@@ -54,6 +54,7 @@ One row per landed issue, added by the landing wrap-up; keep the most recent ~20
 
 | Issue | Pair | Result | What review caught |
 | --- | --- | --- | --- |
+| #12 | Opus low | Fix | Did not completely clean up the tests it merged |
 | #16 | Opus medium | Pass | — |
 | #17 | Opus high | Fix | Small fixes after the first session; ticket too large for one model |
 | #10 | Opus medium | Fix | Ticket too large for one model |
