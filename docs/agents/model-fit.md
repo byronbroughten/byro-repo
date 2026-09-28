@@ -54,6 +54,7 @@ One row per landed issue, added by the landing wrap-up; keep the most recent ~20
 
 | Issue | Pair | Result | What review caught |
 | --- | --- | --- | --- |
+| #20 | Opus medium | Pass | — |
 | #19 | Opus medium | Pass | — |
 | #14 | Opus medium | Pass | — |
 | #11 | Claude medium | Pass | — |
