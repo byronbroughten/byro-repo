@@ -151,11 +151,6 @@
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/readCountNudge.ts\"",
             "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/contextSizeNudge.ts\"",
-            "timeout": 10
           }
         ]
       }
