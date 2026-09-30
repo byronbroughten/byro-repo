@@ -62,6 +62,7 @@ One row per landed issue, added by the landing wrap-up; keep the most recent ~20
 
 | Issue | Pair | Peak context | Result | What review caught |
 | --- | --- | --- | --- | --- |
+| #175 | Sonnet medium | 69.4K | Pass | — |
 | #7 | Opus medium | — | Pass | Opus low might have worked |
 | #23 | Opus medium | — | Pass | — |
 | #5 | Opus medium | — | Pass | — |
@@ -81,4 +82,3 @@ One row per landed issue, added by the landing wrap-up; keep the most recent ~20
 | #8 | Opus medium | — | Fix | Further implementation after the first session; ticket too large for one session (suggested pair was Opus high) |
 | #3 | Opus high | — | Pass | — |
 | #6 | Opus high | — | Pass | — |
-| #168 | Opus low | — | Pass | — |
