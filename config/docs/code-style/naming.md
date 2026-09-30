@@ -1,8 +1,8 @@
 # Naming
 
-Style fragment. The one-line rules live in [`docs/style.md`](../style.md); this file holds the reasoning and the worked examples.
+Style fragment. The one-line rules live in [`docs/code-style.md`](../code-style.md); this file holds the reasoning and the worked examples.
 
-One heading per naming rule, in docs/style.md's order: grep `^## ` for the rule you're applying and read that section.
+One heading per naming rule, in docs/code-style.md's order: grep `^## ` for the rule you're applying and read that section.
 
 ## Prefer TS/JS vocabulary over a made-up adjective
 

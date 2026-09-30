@@ -4,7 +4,7 @@ Every file has one job, and each fact lives in exactly one of them. Everywhere e
 
 ## Terms
 
-- **Rules file**: an index file under `docs/`, `config/docs/` or `packages/*/docs/` of bolded one-line rules (`config/docs/style.md`, and the framework's `docs/style.md`, `docs/vocabulary.md` and `docs/design.md`), with one-sentence scope, the fixed sentence on when to open reasoning, and a "When | File" table under `## Reasoning files` into its reasoning folder. A rule line carries only the rule: the bolded rule plus at most a short clause of scope or its one exception. It must be both brief and clear, and no length cap stands in for either. Examples, instances, citations and the why go in its reasoning file.
+- **Rules file**: an index file under `docs/`, `config/docs/` or `packages/*/docs/` of bolded one-line rules (`config/docs/code-style.md`, and the framework's `docs/code-style.md`, `docs/vocabulary.md` and `docs/design.md`), with one-sentence scope, the fixed sentence on when to open reasoning, and a "When | File" table under `## Reasoning files` into its reasoning folder. A rule line carries only the rule: the bolded rule plus at most a short clause of scope or its one exception. It must be both brief and clear, and no length cap stands in for either. Examples, instances, citations and the why go in its reasoning file.
 - **Reasoning file**: a file under a rules file's `docs/<name>/` folder holding the why, examples, instances and history. It is never auto-loaded. A rules-file section with anything beyond its rules gets one.
 - **Router**: the Read-by-task table in the root AGENTS.md. It is the only one, with rows into both packages.
 - **Nested AGENTS.md**: a folder's own rules, loaded when an agent works there, paired with a one-line `CLAUDE.md` holding `@AGENTS.md`.
@@ -38,8 +38,8 @@ Its `docs/`, `CONTEXT.md`, `README.md`, `AGENTS.md` and `CLAUDE.md` files all sh
 | `src/AGENTS.md` | Rules an agent can only break by touching `src/`: the tiers, downward dependencies, the boundary question, host and platform neutrality, generated data. Kept short: it loads on every `src/` task. |
 | `src/chores/`, `src/00_Source/GoogleSheets/`, `src/01_SpreadsheetSchema/`, `src/02_SpreadsheetRaw/`, `src/06_API/` and `scripts/` `AGENTS.md` | That folder's rules, kept short because they load on every task there, each with a `CLAUDE.md` beside it. |
 | `CONTEXT.md` | Operator-facing words every app on the framework shares: sheet layout, endpoints, columns. Each term is a definition of what it is, its relationships and its avoid-aliases; what the app does with it goes in the mechanics doc that owns that behavior. |
-| `docs/style.md` | Code shape that names Sheets, a tier, `Val` or a framework path, one line per rule, rule only, layered on the config package's general style doc. It names that doc in plain text, since published docs link only inside the package. |
-| `docs/style/*.md` | Each rule's reasoning, examples and instances, indexed by `docs/style.md`'s "When \| File" table. |
+| `docs/code-style.md` | Code shape that names Sheets, a tier, `Val` or a framework path, one line per rule, rule only, layered on the config package's general style doc. It names that doc in plain text, since published docs link only inside the package. |
+| `docs/code-style/*.md` | Each rule's reasoning, examples and instances, indexed by `docs/code-style.md`'s "When \| File" table. |
 | `docs/vocabulary.md` | The architecture words, one line per term. |
 | `docs/vocabulary/*.md` | Each term's elaboration, split by subject, indexed by `docs/vocabulary.md`'s "When \| File" table. |
 | `docs/design.md` | Why the codebase is shaped as it is, including deliberate absences, one line per principle. Covers the codebase only. |
@@ -68,8 +68,8 @@ The same as the framework's: its docs ship with its repo, so they link only insi
 | File | Holds |
 | --- | --- |
 | `README.md` | What the package exports and how a project consumes each piece. A derived view of its `package.json` and the files it exports. |
-| `docs/style.md` | General code shape for any TypeScript project, one line per rule, rule only. It ships with the package, so it names no framework or app path as a link. |
-| `docs/style/*.md` | Each rule's reasoning, examples and instances, indexed by `docs/style.md`'s "When \| File" table. |
+| `docs/code-style.md` | General code shape for any TypeScript project, one line per rule, rule only. It ships with the package, so it names no framework or app path as a link. |
+| `docs/code-style/*.md` | Each rule's reasoning, examples and instances, indexed by `docs/code-style.md`'s "When \| File" table. |
 
 ## What an addition to AGENTS.md costs
 

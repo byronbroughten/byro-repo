@@ -1,4 +1,4 @@
-// PostToolUse on Read records a full read of config/docs/style.md; PreToolUse on Edit and Write denies a gated code edit until one is recorded.
+// PostToolUse on Read records a full read of config/docs/code-style.md; PreToolUse on Edit and Write denies a gated code edit until one is recorded.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 

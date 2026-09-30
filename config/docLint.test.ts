@@ -96,10 +96,10 @@ describe("checkDocs", () => {
       ]);
     });
 
-    it("fails a link to the old root STYLE.md once it lives at docs/style.md", () => {
+    it("fails a link to the old root STYLE.md once it lives at docs/code-style.md", () => {
       const docs = {
         "docs/a.md": "[style](../STYLE.md)\n",
-        "docs/style.md": "# Style\n",
+        "docs/code-style.md": "# Style\n",
       };
       expect(messages(docs)).toEqual([
         "docs/a.md: broken link ../STYLE.md: no file STYLE.md",
@@ -176,7 +176,7 @@ describe("checkDocs", () => {
 
   describe("link direction", () => {
     const paths = [
-      "docs/style.md",
+      "docs/code-style.md",
       "packages/framework/src/x.ts",
       "packages/real-estate/src/y.ts",
     ];
@@ -186,22 +186,22 @@ describe("checkDocs", () => {
       expect(
         messages(
           {
-            "packages/framework/docs/a.md": "[style](../../../docs/style.md)\n",
+            "packages/framework/docs/a.md": "[style](../../../docs/code-style.md)\n",
             "packages/framework/CONTEXT.md":
-              "[app](../real-estate/src/y.ts) [root](/docs/style.md)\n",
+              "[app](../real-estate/src/y.ts) [root](/docs/code-style.md)\n",
             "packages/framework/README.md": "[root](../../AGENTS.md)\n",
             "packages/framework/docs/sub/c.md":
-              "[style](../../../../docs/style.md)\n",
+              "[style](../../../../docs/code-style.md)\n",
           },
           paths,
           published,
         ),
       ).toEqual([
-        "packages/framework/docs/a.md: link ../../../docs/style.md leaves packages/framework; its published docs link only inside packages/framework",
+        "packages/framework/docs/a.md: link ../../../docs/code-style.md leaves packages/framework; its published docs link only inside packages/framework",
         "packages/framework/CONTEXT.md: link ../real-estate/src/y.ts leaves packages/framework; its published docs link only inside packages/framework",
-        "packages/framework/CONTEXT.md: link /docs/style.md leaves packages/framework; its published docs link only inside packages/framework",
+        "packages/framework/CONTEXT.md: link /docs/code-style.md leaves packages/framework; its published docs link only inside packages/framework",
         "packages/framework/README.md: link ../../AGENTS.md leaves packages/framework; its published docs link only inside packages/framework",
-        "packages/framework/docs/sub/c.md: link ../../../../docs/style.md leaves packages/framework; its published docs link only inside packages/framework",
+        "packages/framework/docs/sub/c.md: link ../../../../docs/code-style.md leaves packages/framework; its published docs link only inside packages/framework",
       ]);
     });
 
@@ -218,13 +218,13 @@ describe("checkDocs", () => {
 
     it("fails a published framework's AGENTS.md and CLAUDE.md linking outside it", () => {
       const docs = {
-        "packages/framework/CLAUDE.md": "[root](../../docs/style.md)\n",
-        "packages/framework/src/AGENTS.md": "[root](../../../docs/style.md)\n",
+        "packages/framework/CLAUDE.md": "[root](../../docs/code-style.md)\n",
+        "packages/framework/src/AGENTS.md": "[root](../../../docs/code-style.md)\n",
         "packages/framework/src/CLAUDE.md": "@AGENTS.md\n",
       };
       expect(messages(docs, paths, published)).toEqual([
-        "packages/framework/CLAUDE.md: link ../../docs/style.md leaves packages/framework; its published docs link only inside packages/framework",
-        "packages/framework/src/AGENTS.md: link ../../../docs/style.md leaves packages/framework; its published docs link only inside packages/framework",
+        "packages/framework/CLAUDE.md: link ../../docs/code-style.md leaves packages/framework; its published docs link only inside packages/framework",
+        "packages/framework/src/AGENTS.md: link ../../../docs/code-style.md leaves packages/framework; its published docs link only inside packages/framework",
       ]);
     });
 
@@ -241,7 +241,7 @@ describe("checkDocs", () => {
     it("lets the app's docs link into the framework and root", () => {
       const docs = {
         "packages/real-estate/docs/a.md":
-          "[fw](../../framework/src/x.ts) [root](../../../docs/style.md)\n",
+          "[fw](../../framework/src/x.ts) [root](../../../docs/code-style.md)\n",
       };
       expect(check(docs, paths, published)).toEqual([]);
     });
@@ -250,11 +250,11 @@ describe("checkDocs", () => {
       const docs = {
         "packages/framework/docs/a.md": "[app](../../real-estate/src/y.ts)\n",
         "packages/real-estate/docs/a.md": "[fw](../../framework/src/x.ts)\n",
-        "packages/real-estate/README.md": "[root](../../docs/style.md)\n",
+        "packages/real-estate/README.md": "[root](../../docs/code-style.md)\n",
       };
       expect(messages(docs, paths, "packages/real-estate")).toEqual([
         "packages/real-estate/docs/a.md: link ../../framework/src/x.ts leaves packages/real-estate; its published docs link only inside packages/real-estate",
-        "packages/real-estate/README.md: link ../../docs/style.md leaves packages/real-estate; its published docs link only inside packages/real-estate",
+        "packages/real-estate/README.md: link ../../docs/code-style.md leaves packages/real-estate; its published docs link only inside packages/real-estate",
       ]);
     });
 
@@ -268,14 +268,14 @@ describe("checkDocs", () => {
 
     it("holds the config workspace folder's docs when it is published", () => {
       const docs = {
-        "config/docs/style.md": "[b](./style/b.md) [out](../../docs/x.md)\n",
-        "config/docs/style/b.md": "# B\n",
-        "config/README.md": "[style](./docs/style.md) [root](../AGENTS.md)\n",
+        "config/docs/code-style.md": "[b](./code-style/b.md) [out](../../docs/x.md)\n",
+        "config/docs/code-style/b.md": "# B\n",
+        "config/README.md": "[style](./docs/code-style.md) [root](../AGENTS.md)\n",
         "config/AGENTS.md": "[root](../docs/x.md)\n",
         "config/CLAUDE.md": "@AGENTS.md\n",
       };
       expect(messages(docs, ["docs/x.md"], "config")).toEqual([
-        "config/docs/style.md: link ../../docs/x.md leaves config; its published docs link only inside config",
+        "config/docs/code-style.md: link ../../docs/x.md leaves config; its published docs link only inside config",
         "config/README.md: link ../AGENTS.md leaves config; its published docs link only inside config",
         "config/AGENTS.md: link ../docs/x.md leaves config; its published docs link only inside config",
       ]);
@@ -290,12 +290,12 @@ describe("checkDocs", () => {
     it("holds every package named, and no other", () => {
       const docs = {
         "packages/framework/docs/a.md": "[app](../../real-estate/src/y.ts)\n",
-        "config/docs/a.md": "[root](../../docs/style.md)\n",
+        "config/docs/a.md": "[root](../../docs/code-style.md)\n",
         "packages/real-estate/docs/a.md": "[fw](../../framework/src/x.ts)\n",
       };
       expect(messages(docs, paths, ["packages/framework", "config"])).toEqual([
         "packages/framework/docs/a.md: link ../../real-estate/src/y.ts leaves packages/framework; its published docs link only inside packages/framework",
-        "config/docs/a.md: link ../../docs/style.md leaves config; its published docs link only inside config",
+        "config/docs/a.md: link ../../docs/code-style.md leaves config; its published docs link only inside config",
       ]);
     });
 
@@ -307,7 +307,7 @@ describe("checkDocs", () => {
 
     it("holds no package to the rule when none is configured", () => {
       const docs = {
-        "packages/framework/docs/a.md": "[root](../../../docs/style.md)\n",
+        "packages/framework/docs/a.md": "[root](../../../docs/code-style.md)\n",
       };
       expect(check(docs, paths)).toEqual([]);
     });
@@ -328,7 +328,7 @@ describe("checkDocs", () => {
 
   describe("rule lines", () => {
     it("passes a rules-file rule line of any length", () => {
-      expect(check({ "docs/style.md": `- **${"x".repeat(600)}**\n` })).toEqual(
+      expect(check({ "docs/code-style.md": `- **${"x".repeat(600)}**\n` })).toEqual(
         [],
       );
     });

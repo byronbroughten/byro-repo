@@ -8,14 +8,14 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 
 | When | File |
 | --- | --- |
-| Placing a member, a helper or a class | [`docs/style/class-shape.md`](./style/class-shape.md) |
-| Naming a value, method, flag, getter or param bag | [`docs/style/naming.md`](./style/naming.md) |
-| A type-level choice, a lookup table, a named type | [`docs/style/type-modeling.md`](./style/type-modeling.md) |
-| A shared message phrase, a skip-and-log | [`docs/style/error-handling.md`](./style/error-handling.md) |
-| Writing or changing a test | [`docs/style/tests.md`](./style/tests.md) |
-| A comment, or a file-level navigation block | [`docs/style/comments.md`](./style/comments.md) |
-| `reduce`, a chaining mutator, a combined option | [`docs/style/idioms.md`](./style/idioms.md) |
-| Imports, barrels, file names | [`docs/style/file-organization.md`](./style/file-organization.md) |
+| Placing a member, a helper or a class | [`docs/code-style/class-shape.md`](./code-style/class-shape.md) |
+| Naming a value, method, flag, getter or param bag | [`docs/code-style/naming.md`](./code-style/naming.md) |
+| A type-level choice, a lookup table, a named type | [`docs/code-style/type-modeling.md`](./code-style/type-modeling.md) |
+| A shared message phrase, a skip-and-log | [`docs/code-style/error-handling.md`](./code-style/error-handling.md) |
+| Writing or changing a test | [`docs/code-style/tests.md`](./code-style/tests.md) |
+| A comment, or a file-level navigation block | [`docs/code-style/comments.md`](./code-style/comments.md) |
+| `reduce`, a chaining mutator, a combined option | [`docs/code-style/idioms.md`](./code-style/idioms.md) |
+| Imports, barrels, file names | [`docs/code-style/file-organization.md`](./code-style/file-organization.md) |
 
 ## Class shape
 

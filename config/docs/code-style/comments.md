@@ -1,6 +1,6 @@
 # Comments: reasoning and examples
 
-Disclosed from [`docs/style.md`](../style.md), "Comments". The rules are there, one line each; this file holds the examples and the why.
+Disclosed from [`docs/code-style.md`](../code-style.md), "Comments". The rules are there, one line each; this file holds the examples and the why.
 
 ## Pull a "what" comment into a named method
 

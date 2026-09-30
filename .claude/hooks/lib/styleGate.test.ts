@@ -21,7 +21,7 @@ function edit(filePath: string, hasReadStyle: boolean, cwd = projectDir): EditDe
 const frameworkFile = "/repo/packages/framework/src/02_SpreadsheetRaw/SheetRaw.ts";
 
 describe("editDecision", () => {
-  it("denies a TypeScript edit in either package's src/ before config/docs/style.md was read", () => {
+  it("denies a TypeScript edit in either package's src/ before config/docs/code-style.md was read", () => {
     expect(edit(frameworkFile, false)).toEqual({ denyReason: styleGateReason });
     expect(edit("/repo/packages/real-estate/src/index.ts", false)).toEqual({ denyReason: styleGateReason });
   });
@@ -36,7 +36,7 @@ describe("editDecision", () => {
     });
   });
 
-  it("allows a gated TypeScript edit after config/docs/style.md was read", () => {
+  it("allows a gated TypeScript edit after config/docs/code-style.md was read", () => {
     expect(edit(frameworkFile, true)).toEqual({ denyReason: undefined });
   });
 
@@ -70,7 +70,7 @@ describe("editDecision", () => {
   });
 
   it("names what to read and to retry", () => {
-    expect(styleGateReason).toMatch(/docs\/style\.md/);
+    expect(styleGateReason).toMatch(/docs\/code-style\.md/);
     expect(styleGateReason).toMatch(/retry/);
   });
 });
@@ -84,38 +84,38 @@ describe("isStyleRead", () => {
     return isStyleRead({ projectDir, cwd, filePath, totalLines: 40, ...bounds });
   }
 
-  it("is true for an unbounded Read of config/docs/style.md", () => {
-    expect(read("/repo/config/docs/style.md")).toBe(true);
-    expect(read("../config/docs/style.md", {}, "/repo/src")).toBe(true);
+  it("is true for an unbounded Read of config/docs/code-style.md", () => {
+    expect(read("/repo/config/docs/code-style.md")).toBe(true);
+    expect(read("../config/docs/code-style.md", {}, "/repo/src")).toBe(true);
   });
 
   it("is false for a Read whose limit stops short of the end", () => {
-    expect(read("/repo/config/docs/style.md", { limit: 5 })).toBe(false);
-    expect(read("/repo/config/docs/style.md", { offset: 1, limit: 39 })).toBe(false);
+    expect(read("/repo/config/docs/code-style.md", { limit: 5 })).toBe(false);
+    expect(read("/repo/config/docs/code-style.md", { offset: 1, limit: 39 })).toBe(false);
   });
 
   it("is false for a Read that starts past the top", () => {
-    expect(read("/repo/config/docs/style.md", { offset: 2 })).toBe(false);
-    expect(read("/repo/config/docs/style.md", { offset: 10, limit: 100 })).toBe(false);
+    expect(read("/repo/config/docs/code-style.md", { offset: 2 })).toBe(false);
+    expect(read("/repo/config/docs/code-style.md", { offset: 10, limit: 100 })).toBe(false);
   });
 
   it("is true for a bounded Read that covers the whole file", () => {
-    expect(read("/repo/config/docs/style.md", { limit: 40 })).toBe(true);
-    expect(read("/repo/config/docs/style.md", { offset: 1, limit: 2000 })).toBe(true);
+    expect(read("/repo/config/docs/code-style.md", { limit: 40 })).toBe(true);
+    expect(read("/repo/config/docs/code-style.md", { offset: 1, limit: 2000 })).toBe(true);
   });
 
   it("is false for a bounded Read when the file's length is unknown", () => {
-    expect(read("/repo/config/docs/style.md", { limit: 2000, totalLines: undefined })).toBe(false);
+    expect(read("/repo/config/docs/code-style.md", { limit: 2000, totalLines: undefined })).toBe(false);
   });
 
   it("is false for any other file", () => {
-    expect(read("/repo/config/docs/style/naming.md")).toBe(false);
-    expect(read("/other/config/docs/style.md")).toBe(false);
+    expect(read("/repo/config/docs/code-style/naming.md")).toBe(false);
+    expect(read("/other/config/docs/code-style.md")).toBe(false);
   });
 
   it("is false for a full Read of the framework's rules or the old root path", () => {
-    expect(read("/repo/packages/framework/docs/style.md")).toBe(false);
-    expect(read("/repo/docs/style.md")).toBe(false);
+    expect(read("/repo/packages/framework/docs/code-style.md")).toBe(false);
+    expect(read("/repo/docs/code-style.md")).toBe(false);
   });
 
   it("is false for a full Read of a stale root STYLE.md", () => {
@@ -147,21 +147,21 @@ describe("cursorEditDecision", () => {
 
   it("denies a framework TypeScript edit until both style docs were read in full", () => {
     const denied = decide(frameworkFile);
-    expect(denied.denyReason).toMatch(/config\/docs\/style\.md/);
-    expect(denied.denyReason).toMatch(/packages\/framework\/docs\/style\.md/);
+    expect(denied.denyReason).toMatch(/config\/docs\/code-style\.md/);
+    expect(denied.denyReason).toMatch(/packages\/framework\/docs\/code-style\.md/);
     expect(denied.denyReason).toMatch(/retry/);
     expect(decide(frameworkFile, { hasReadGeneral: true, hasReadFramework: false }).denyReason).toMatch(
-      /packages\/framework\/docs\/style\.md/,
+      /packages\/framework\/docs\/code-style\.md/,
     );
     expect(decide(frameworkFile, { hasReadGeneral: true, hasReadFramework: false }).denyReason).not.toMatch(
-      /config\/docs\/style\.md/,
+      /config\/docs\/code-style\.md/,
     );
   });
 
   it("denies app code the same way, and root tooling only until the general doc was read", () => {
-    expect(decide("/repo/packages/real-estate/src/index.ts").denyReason).toMatch(/packages\/framework\/docs\/style\.md/);
-    expect(decide("/repo/scripts/docLint.ts").denyReason).toMatch(/config\/docs\/style\.md/);
-    expect(decide("/repo/scripts/docLint.ts").denyReason).not.toMatch(/packages\/framework\/docs\/style\.md/);
+    expect(decide("/repo/packages/real-estate/src/index.ts").denyReason).toMatch(/packages\/framework\/docs\/code-style\.md/);
+    expect(decide("/repo/scripts/docLint.ts").denyReason).toMatch(/config\/docs\/code-style\.md/);
+    expect(decide("/repo/scripts/docLint.ts").denyReason).not.toMatch(/packages\/framework\/docs\/code-style\.md/);
     expect(decide("/repo/scripts/docLint.ts", { hasReadGeneral: true, hasReadFramework: false })).toEqual({
       denyReason: undefined,
     });
@@ -175,7 +175,7 @@ describe("cursorEditDecision", () => {
 
 describe("isFullDocRead", () => {
   it("counts a full Read of the framework style doc and rejects a short one", () => {
-    const where = { projectDir, cwd: projectDir, filePath: "/repo/packages/framework/docs/style.md" };
+    const where = { projectDir, cwd: projectDir, filePath: "/repo/packages/framework/docs/code-style.md" };
     expect(isFullDocRead({ ...where, totalLines: 80 }, frameworkStylePath)).toBe(true);
     expect(isFullDocRead({ ...where, limit: 5, totalLines: 80 }, frameworkStylePath)).toBe(false);
   });
