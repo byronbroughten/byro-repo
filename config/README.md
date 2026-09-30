@@ -8,7 +8,7 @@ General tooling for TypeScript projects: an ESLint flat-config preset, the prett
 | `@byronbroughten/config/prettier` | `"prettier": "@byronbroughten/config/prettier"` in `package.json`. |
 | `@byronbroughten/config/tsconfig.base.json` | `"extends"` in a `tsconfig.json`, which adds its own `target`, `module` and `types`. |
 | `lint-docs` (bin) | A `package.json` script such as `"lint:docs": "lint-docs --published packages/<name>"`. It lints the git repo it runs in; see below. |
-| `docs/style.md` (files) | Read from `node_modules/@byronbroughten/config/docs/`, with its reasoning under `docs/style/`. A project keeps its own style doc for the rules only it needs and says it layers on this one, as the framework's does. |
+| `docs/code-style.md` (files) | Read from `node_modules/@byronbroughten/config/docs/`, with its reasoning under `docs/code-style/`. A project keeps its own style doc for the rules only it needs and says it layers on this one, as the framework's does. |
 
 ## The doc linter
 

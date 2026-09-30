@@ -1,6 +1,6 @@
 # Error handling: reasoning and examples
 
-Disclosed from [`docs/style.md`](../style.md), "Error handling & validation". The rules are there, one line each; this file holds the why.
+Disclosed from [`docs/code-style.md`](../code-style.md), "Error handling & validation". The rules are there, one line each; this file holds the why.
 
 ## One function for a shared phrase
 

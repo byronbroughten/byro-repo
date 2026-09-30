@@ -1,6 +1,6 @@
 # Type modeling: reasoning and examples
 
-Disclosed from [`docs/style.md`](../style.md), "Type modeling". The rules are there, one line each; this file holds the why.
+Disclosed from [`docs/code-style.md`](../code-style.md), "Type modeling". The rules are there, one line each; this file holds the why.
 
 ## `interface` or `type`
 

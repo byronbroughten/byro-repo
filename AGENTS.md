@@ -26,7 +26,7 @@ Open only the section or disclosed doc the task needs.
 | When | Open |
 | --- | --- |
 | Placing a file, import, or member; naming an accessor; Meta vs primary; Raw, Identified or Named | [`packages/framework/src/AGENTS.md`](./packages/framework/src/AGENTS.md) + [vocabulary](./packages/framework/docs/vocabulary.md) |
-| Writing or refactoring TypeScript, tests included | [`config/docs/style.md`](./config/docs/style.md), then for framework or app code [`packages/framework/docs/style.md`](./packages/framework/docs/style.md) |
+| Writing or refactoring TypeScript, tests included | [`config/docs/code-style.md`](./config/docs/code-style.md), then for framework or app code [`packages/framework/docs/code-style.md`](./packages/framework/docs/code-style.md) |
 | Operator-facing words: endpoint, selector, run state; units, the ledger | [`CONTEXT-MAP.md`](./CONTEXT-MAP.md), then that package's `CONTEXT.md` |
 | Real-estate endpoints or app chores | [app `src/AGENTS.md`](./packages/real-estate/src/AGENTS.md) |
 | Arguing that a gap is deliberate, or proposing a design principle | [design](./packages/framework/docs/design.md) |

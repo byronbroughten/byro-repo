@@ -1,7 +1,7 @@
 ---
-description: TypeScript code shape. Apply config/docs/style.md, and packages/framework/docs/style.md for framework or app code, when writing or refactoring TS.
+description: TypeScript code shape. Apply config/docs/code-style.md, and packages/framework/docs/code-style.md for framework or app code, when writing or refactoring TS.
 globs: "**/*.ts"
 alwaysApply: false
 ---
 
-Before the first code edit this session, Read [`config/docs/style.md`](../../config/docs/style.md) in full (no offset or limit). Framework or app code also needs a full Read of [`packages/framework/docs/style.md`](../../packages/framework/docs/style.md). A hook denies the edit until those reads are recorded. Open a reasoning file under `docs/style/` only when you're changing the rule, or the rule's line doesn't decide your case.
+Before the first code edit this session, Read [`config/docs/code-style.md`](../../config/docs/code-style.md) in full (no offset or limit). Framework or app code also needs a full Read of [`packages/framework/docs/code-style.md`](../../packages/framework/docs/code-style.md). A hook denies the edit until those reads are recorded. Open a reasoning file under `docs/code-style/` only when you're changing the rule, or the rule's line doesn't decide your case.
