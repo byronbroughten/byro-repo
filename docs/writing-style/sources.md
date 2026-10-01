@@ -1,0 +1,52 @@
+# Sources of the writing style sheets
+
+Where the rules in [`docs/writing-style.md`](../writing-style.md) and [`docs/academic-writing-style.md`](../academic-writing-style.md) came from, and what was read but not kept. The developer reviewed every candidate rule before it became one (#171).
+
+## Sources read
+
+The 24 Docs and 3 decks in the Drive folder **Business Writing Examples**, each read in full by one of six reading batches. The three decks' speaker notes were extracted from each `.pptx` (`ppt/notesSlides/*.xml`), since the Drive text extractor skips them.
+
+| Batch | Source | Genre |
+| --- | --- | --- |
+| 1 | DealLab - Brand Presentation (deck, slides and speaker notes) | Product marketing plan, slide script |
+| 1 | Leadership Through Storytelling (deck, slides and speaker notes) | Spoken slide script with a personal story |
+| 2 | Paylocity - Strategic Analysis and Recommendations.pptx (deck, slides and speaker notes) | Slide script |
+| 2 | BB - Business and Corporate Strategies for Paylocity | Report |
+| 2 | BB - Stratigic Analysis and Recommendations for Paylocity | Report |
+| 3 | Assessment 4 - Code of Ethics and Business Conduct | Report. Despite the title, it is a financial plan for a property-management venture |
+| 3 | Assessment 3 - Code of Ethics and Business Conduct | Report |
+| 3 | Assessment 2 - Feasibility and Competetive Analysis | Report |
+| 3 | Assessment 1 - Business Types and Plans | Report and personal plan |
+| 3 | Assessment 3 (Wild Dog Coffee supply chain) | Slide script |
+| 3 | MBA Leadership Class - Week 6 Assignment | Reflection |
+| 3 | MBA Leadership Class - Week 3 Assignment | Case analysis |
+| 4 | Assessment 2 - Wild Dog Demand Management Plan | Operations report |
+| 4 | Assessment 3 - ABC Healthcare PPT | Slide script |
+| 4 | Assessment 2 - Capital Budgeting Tools | Evaluation report |
+| 4 | Assessment 4 - Accounting | Investment analysis |
+| 4 | Assessment 3 - Accounting | Executive summary |
+| 5 | Assessment 2 - Florida's Best Pickles PowerPoint | Slide script |
+| 5 | Assessment 2 - Florida's Best Pickles Report | Recommendation report |
+| 5 | Assessment 1 - Urban Outfitters Training Manual | Instructional manual |
+| 5 | Assessment 4 - Stock Data Presentation | Slide script |
+| 5 | Assessment 2 - 2 Year Stock Data Report | Analytical report |
+| 5 | Assessment 3 - 10 Year Stock Data Report | Analytical report |
+| 5 | Assessment 1 - Contextual Data Presentation | Slide script |
+| 6 | Assessment 1 - Information and Marketing Strategy | Marketing plan |
+| 6 | Assessment 3 - Digital Marketing Plan | Marketing plan |
+| 6 | Assessment 2 - Brand Presentation | Slide script. It is the written script behind the DealLab deck, so it counts as product voice |
+
+## Reading the counts
+
+"Seen in" counts the six reading batches that reported a habit. Several samples reuse whole paragraphs from one another (the DealLab script and the marketing plan; the D.R. Horton reports; Capital Budgeting and the ABC deck), so a count can overstate an independent habit.
+
+Where the DealLab deck and the academic samples disagree on voice, the deck wins: the blog and in-app text should sound like a product, not a paper.
+
+## Dropped habits
+
+- **Rubric structure**: title pages; the fixed Introduction, Conclusion, References and Appendix sections; appendices that repeat the body; headings that mirror a framework (SWOT, PESTLE, VRIO, Five Forces, SOSTAC, the 8Ps, SMART); mandated "Role of Leadership" and "Ethical responsibility" sections; slide counts; rubric notes still pasted into slide docs; "Summary of Key Points" recaps; conclusions that only restate the body; "In this paper I will… I will then…" roadmaps; the positioning-statement template; discussion-question slides and the formulaic thank-you sign-off.
+- **Citation inconsistencies**: author names spelled two ways, a source dated two ways, reference entries that sometimes include "Retrieved from", a DOI or an ISSN and sometimes don't, in-text citations with no year, sources cited but missing from the reference list. APA 7 replaces them.
+- **Noise**: typos ("Palocity", "SASS" for SaaS, "highlisted"), inconsistent brand spellings ("NerdWallet" and "Nerd Wallet"), "agency" used for "company" in one deck, and a factual slip.
+- **Too thin**: one-off metaphors (a supply chain as "a stream"), rhetorical questions (Week 3 only), a history told in short dated sentences (one passage reused across the D.R. Horton reports).
+- **Workflow habits**: reusing whole paragraphs across assignments.
+- **Struck in review**: the candidates the developer deleted when reviewing #171's file.

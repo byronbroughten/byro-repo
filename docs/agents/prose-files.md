@@ -10,6 +10,7 @@ Every file has one job, and each fact lives in exactly one of them. Everywhere e
 - **Nested AGENTS.md**: a folder's own rules, loaded when an agent works there, paired with a one-line `CLAUDE.md` holding `@AGENTS.md`.
 - **Mechanics doc**: a reference file under `docs/` or `packages/*/docs/` read by heading. It opens with a lead of 5 lines and 800 bytes or fewer, and any such file over 4 KB must have `##` headings (lint checks both; a shorter doc with no heading is read whole). Its headings are specific enough to grep, and a rule found in it moves up to a rules file or nested AGENTS.md, leaving a pointer. One that covers subjects sharing nothing is split and indexed.
 - **Enforcement ladder**: lint > path-triggered (nested AGENTS.md, a hook) > router pointer > prose.
+- **Reader-facing prose**: text written for a reader who is neither the developer nor an agent, and not for development work: shared or published Google Docs, blog posts, in-app text and academic writing. It follows [`docs/writing-style.md`](../writing-style.md); code, agent docs, commits and comments don't.
 - **Derived view**: a file that restates facts whose home is elsewhere, for another audience. README.md is one.
 
 ## Map
@@ -25,6 +26,10 @@ Every file has one job, and each fact lives in exactly one of them. Everywhere e
 | `docs/targets-and-gates.md` | The `dev`/`app` targets, what needs a yes first, the agent account, and the gworkspace MCP rules. |
 | `docs/claude-code-guardrails.md` | The Claude Code hooks and project agent. |
 | `docs/cursor-guardrails.md` | The Cursor hooks. |
+| `docs/writing-style.md` | The voice of reader-facing prose, one line per rule, rule only. Its reader is "the reader"; "app user" means only the app's user. One voice, no sections per medium. |
+| `docs/writing-style/*.md` | Each rule's quoted instances and sources, indexed by `docs/writing-style.md`'s "When \| File" table, plus `sources.md` for the sources read and the habits dropped. |
+| `docs/academic-writing-style.md` | Academic conventions layered on `docs/writing-style.md`, one line per rule, rule only, with APA 7 as the citation standard. |
+| `docs/academic-writing-style/*.md` | Each rule's quoted instances and sources, indexed by `docs/academic-writing-style.md`'s "When \| File" table. |
 | `docs/agents/*.md` | Agent workflow: git, planning, delegation, issues. |
 | `README.md` | The workspace overview, a derived view for people on GitHub; it links each public clone by github.com URL, since the clones don't exist there. Nothing routes agents to it. Update it when a fact it mirrors changes (tables below). |
 
