@@ -68,12 +68,6 @@ Every source read in full. The three decks' speaker notes were extracted from ea
 - **V6. Make a caveat specific: say how far off, or in which range, not just "may be inaccurate".** voice
   - "the model should be treated as less reliable when the inputted advertising spending is… substantially lower than $1,000" — Assessment 2 - Wild Dog Demand Management Plan
   - Seen in 1 of 6.
-- **V7. State a target as a number plus a deadline.** voice
-  - "within the first six months of launch, get at least 4,000 users to try the app for free" — DealLab - Brand Presentation
-  - Seen in 1 of 6. Flag: rubric? (the course taught SMART objectives)
-- **V8. Name the data's limits, and the specific data that would fix them.** voice
-  - "Additional datasets that would increase the efficacy of analysis include those for mortgage interest rates, home sales prices" — Assessment 3 - 10 Year Stock Data Report
-  - Seen in 1 of 6. Flag: rubric? (a limitations slide was required)
 
 ### Explaining
 
@@ -149,9 +143,6 @@ Every source read in full. The three decks' speaker notes were extracted from ea
 - **V28. Lay out each option's pros and cons, then eliminate options until the recommendation is left.** voice
   - "That narrows the choices to Project A or both Projects B and C simultaneously." — Assessment 2 - Capital Budgeting Tools
   - Seen in 1 of 6.
-- **V29. Close with the recommendation plus the reasons that decided it, opened by "Given…", "For these reasons," or "Therefore,".** voice
-  - "Given these considerations, it is clear that we should sell 2,000 cases of pickles to Super Deals this month" — Assessment 2 - Florida's Best Pickles PowerPoint
-  - Seen in 3 of 6.
 - **V30. Phrase advice to the subject as "should" or "would do well to", not a passive "it is recommended".** voice
   - "Paylocity would do well to keep their operations strictly in the US, at least until their market niche is saturated" — BB - Business and Corporate Strategies for Paylocity
   - Seen in 2 of 6. See also A4.
@@ -161,9 +152,6 @@ Every source read in full. The three decks' speaker notes were extracted from ea
 - **V32. Use bullets only for short parallel items (costs, features, slide points); keep reasoning in prose.** voice
   - "Savable and reusable deal components" (a slide bullet whose reasoning is in the notes) — DealLab - Brand Presentation
   - Seen in 3 of 6. Flag: rubric? (one rubric required slide bullets)
-- **V33. Point back to an earlier finding by name, and end a section by pointing to what comes next.** voice
-  - "This comes with a potential threat, however, which will be covered shortly." — Paylocity - Strategic Analysis and Recommendations.pptx
-  - Seen in 1 of 6. Flag: rubric? (close to the dropped roadmaps)
 - **V34. Put a side point in its own "Note that…" sentence.** voice
   - "Also note that the discount rate can be increased to account for a project's heightened risk" — Assessment 3 - ABC Healthcare PPT
   - Seen in 2 of 6.
@@ -173,7 +161,7 @@ Every source read in full. The three decks' speaker notes were extracted from ea
 - **V35. Let explanatory sentences run long, then land the point with a short, blunt one.** voice
   - "Paylocity focuses exclusively on serving businesses in the United States. From a risk standpoint, this makes sense." — BB - Business and Corporate Strategies for Paylocity
   - Seen in 3 of 6.
-- **V36. Use paired em dashes for a mid-sentence aside or example list, and a single em dash to add the consequence.** voice
+- **V36. Use paired em dashes for a mid-sentence aside or example list when using commas instead would be confusing.** voice
   - "Users input information about a potential deal—the offer price for a property, loan information, anticipated costs, etc.—and the app calculates" — Assessment 1 - Information and Marketing Strategy
   - Seen in 5 of 6.
 - **V37. Put a colon after a verdict, then the explanation.** voice
@@ -182,36 +170,25 @@ Every source read in full. The three decks' speaker notes were extracted from ea
 - **V38. End an open-ended list of everyday examples with "etc." or "and so on".** voice
   - "This can include items such as office technology, professional licenses, brand creation, and so on." — Assessment 4 - Code of Ethics and Business Conduct
   - Seen in 3 of 6.
-- **V39. Link sentences with plain additive connectives: "Furthermore", "Moreover", "Additionally", "Finally".** voice
+- **V39. Link sentences with plain additive connectives: "Moreover", "Furthermore", "Additionally", "Finally".** voice
   - "Moreover, DealCheck is in an advantageous market position." — DealLab - Brand Presentation
   - Seen in 3 of 6. DealLab conflict: one batch tagged these academic; the deck uses them, so they stay voice. The rarer formal connectives go to A6.
+Editor's Note: "Furthermore" and "Moreover" should be treated as academic.
 
 ### Person and register
 
 - **V40. In product prose, name the product ("DealLab", "the app") and call the reader "users".** voice
   - "DealLab emphasizes detailed cost estimation by giving users the option to break down any category" — DealLab - Brand Presentation
   - Seen in 2 of 6.
-- **V41. In product prose, don't speak as "we" for the company or address the reader as "you".** voice
-  - "Users can tailor the app to their needs" — DealLab - Brand Presentation
-  - Seen in 1 of 6. DealLab conflict: the deck never says "you" or "we". The Pickles pieces use an insider "we/our" ("each case has cost us about $10 to produce"), the spoken scripts use "we/let's", and Storytelling says "you". The rule follows the deck. The deck shows no in-app copy, where "you" may read more naturally.
-- **V42. Use first person for first-hand experience ("I have done this at my own properties"), outside product prose.** voice
-  - "Having done this multiple times for my own properties, I found that moving walls to make it happen can be both affordable and highly valuable" — Assessment 2 - Feasibility and Competetive Analysis
-  - Seen in 2 of 6. DealLab conflict: the deck has no first person, so under V41 this applies only to prose written as the developer (blog posts, reflections).
-- **V43. In spoken scripts, guide the listener with "we" and "let's" and mark each move ("We'll start with…", "Now that we have covered…").** voice
+- **V43. In spoken scripts or less formal writing, guide the listener/reader with "we" and "let's".** voice
   - "Now that we have covered the relevant considerations of Wild Dog Coffee Company, let's talk about supply chains and logistics." — Assessment 3
-  - Seen in 5 of 6. Flag: rubric? (the slide-script format was assigned). DealLab conflict: the deck's notes use none of this.
-- **V44. Tell a personal story in first person and past tense, in short chronological beats, then state its moral.** voice
-  - "The moral of the story is that teams change and leaders must remain vigilant to accommodate those changes." — Leadership Through Storytelling
-  - Seen in 1 of 6.
 - **V45. Use contractions ("isn't", "doesn't", "that's") in plain prose.** voice
   - "Paylocity's customer support team isn't particularly special, so other companies could imitate it." — BB - Stratigic Analysis and Recommendations for Paylocity
-  - Seen in 3 of 6. The DealLab deck is silent: it has no contractions, but no uncontracted negatives either. The most formal reports avoid them.
+  - Seen in 3 of 6.
 - **V46. Prefer plain words to Latinate ones ("show", not "corroborate"; "many", not "manifold").** voice
   - "Users can tailor the app to their needs" — DealLab - Brand Presentation
   - Seen in 3 of 6. DealLab conflict: the reports lean Latinate ("corroborate" about 10 times, "salient", "attenuates"); the deck does not. See A5.
-- **V47. No humor; at most one light aside per piece, in quotes if it stretches a term ("so to speak").** voice
-  - "DealLab's \"physical evidence\" so to speak will comprise its branding, presentation, and layout." — Assessment 2 - Brand Presentation
-  - Seen in 4 of 6. DealLab conflict: the Paylocity and stock pieces allow more idioms ("nuts and bolts", "not for antsy investors who are faint of heart"). The rule follows the deck's restraint.
+Editor notes: in general, plain words should be prefered, but latinate ones can be used if they genuinely communicate the intended meaning more precisely.
 
 ## Academic candidates
 
@@ -230,18 +207,17 @@ Every source read in full. The three decks' speaker notes were extracted from ea
 - **A5. A formal, Latinate vocabulary is fine in academic work ("manifold", "salient", "pertinent").** academic
   - "Operating a business ethically has manifold benefits." — Assessment 3 - Code of Ethics and Business Conduct
   - Seen in 2 of 6. The voice sheet's V46 says the opposite for everything else.
+Editor's note: the same rule applies here as in V46, except precision is perhaps more important in academic writing.
 - **A6. Link paragraphs with the formal connectives "Conversely", "albeit" and "To that end".** academic
   - "albeit with a proportional increase in cost of sales." — Assessment 2 - Capital Budgeting Tools
   - Seen in 1 of 6.
+Editor's Note: Conversely, albeit, and to that end can stay in regular voice (not academic). Furthermore andmoreover are academic.
 - **A7. Open with a purpose statement ("This report is to inform…"), then the organization, the decision at stake and a roadmap.** academic
   - "This report is to inform whether to grant the loan to Ace Company. To that end, the report summarizes and analyzes" — Assessment 3 - Accounting
   - Seen in 5 of 6. Flag: rubric? (a stock assignment intro). The "is to inform" wording recurs across courses, so it may be your own. The "In this paper I will…" form was dropped as rubric.
 - **A8. Define a framework concept, with its citation, before applying it to the case.** academic
   - "a Blue Ocean strategy, which is the successful synthesis of cost leadership and differentiation via value innovation (Rothaermel, 2023)." — Paylocity - Strategic Analysis and Recommendations.pptx
   - Seen in 1 of 6. Flag: rubric? (assignments ask you to show framework knowledge)
-- **A9. Before interpreting a chart, explain how it was built: axes, trend line, moving average.** academic
-  - "To do this, each data point is summed with the 59 preceding data points (60 total) and then divided by 60." — Assessment 3 - 10 Year Stock Data Report
-  - Seen in 1 of 6. Flag: rubric? (the rubric demanded that graphics be explained)
 - **A10. End a subsection with a one-line summary of its takeaway.** academic
   - "In brief summary, Saint Paul further emphasizes equity and the rights of renters." — Assessment 3 - Code of Ethics and Business Conduct
   - Seen in 1 of 6. Flag: rubric? (close to the dropped "Summary of Key Points" recaps)
