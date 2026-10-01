@@ -1,6 +1,6 @@
 ---
 name: to-code-style
-description: "Turn a session's friction and the user's style rulings into proposed updates to the style docs (config/docs/code-style.md, packages/framework/docs/code-style.md) / packages/framework/docs/vocabulary.md / AGENTS.md: what the docs failed to tell you, and the rules the user set. Runs on this session or on another agent's."
+description: "Turn a session's friction and the user's style rulings into proposed updates to the style docs (config/docs/code-style.md, packages/framework/docs/code-style.md) / packages/framework/docs/vocabulary.md / AGENTS.md: what the docs failed to tell you, and the rules the user set. Runs on this session or on another agent's. Prose rulings go to /to-writing-style."
 disable-model-invocation: true
 ---
 
