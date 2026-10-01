@@ -2,7 +2,7 @@
 import { sep } from "node:path";
 
 import type { ToolInput } from "./hookIo.ts";
-import { type EditDecision, isFullDocRead } from "./styleGate.ts";
+import { type EditDecision, isFullDocRead, type StyleRead } from "./styleGate.ts";
 
 export const docContentGateReason =
   "Read docs/writing-style.md before your first Google Doc text write this session, then retry. " +
@@ -32,7 +32,7 @@ export function docWriteDecision({ toolName, toolInput, hasReadWritingStyle }: D
   return { denyReason: gatedDocWrites[toolName](toolInput ?? {}) ? docContentGateReason : undefined };
 }
 
-export function isWritingStyleRead(read: Parameters<typeof isFullDocRead>[0]): boolean {
+export function isWritingStyleRead(read: StyleRead): boolean {
   return isFullDocRead(read, writingStylePath);
 }
 
@@ -45,5 +45,7 @@ function hasText(value: unknown): boolean {
 }
 
 function isTextOperation(operation: unknown): boolean {
-  return typeof operation === "object" && operation !== null && textOperationTypes.has(String((operation as { type?: unknown }).type));
+  if (typeof operation !== "object" || operation === null) return false;
+  const operationType = (operation as { type?: unknown }).type;
+  return typeof operationType === "string" && textOperationTypes.has(operationType);
 }

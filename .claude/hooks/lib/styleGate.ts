@@ -34,7 +34,7 @@ interface ReadBounds {
   limit?: number;
 }
 
-interface StyleRead extends FileLocation, ReadBounds {
+export interface StyleRead extends FileLocation, ReadBounds {
   totalLines: number | undefined;
 }
 

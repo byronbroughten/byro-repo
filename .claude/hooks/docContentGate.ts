@@ -3,7 +3,7 @@ import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { docWriteDecision, isWritingStyleRead, writingStylePath } from "./lib/docContentGate.ts";
-import { lineCount, readHookInput, runFailOpen, sessionStatePath, writeHookOutput } from "./lib/hookIo.ts";
+import { lineCount, readHookInput, runFailOpen, sessionStatePath, writeDenyOutput } from "./lib/hookIo.ts";
 import { isPostToolUse } from "./lib/styleGate.ts";
 
 await runFailOpen(() => {
@@ -27,11 +27,5 @@ await runFailOpen(() => {
     hasReadWritingStyle: existsSync(markerPath),
   });
   if (!denyReason) return;
-  writeHookOutput({
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "deny",
-      permissionDecisionReason: denyReason,
-    },
-  });
+  writeDenyOutput(denyReason);
 });

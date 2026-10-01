@@ -43,6 +43,12 @@ export function writeHookOutput(output: object): void {
   process.stdout.write(JSON.stringify(output));
 }
 
+export function writeDenyOutput(reason: string): void {
+  writeHookOutput({
+    hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: reason },
+  });
+}
+
 export function sessionStatePath(sessionId: string | undefined, suffix: string): string {
   const dir = join(tmpdir(), "claude-guardrails");
   mkdirSync(dir, { recursive: true });
