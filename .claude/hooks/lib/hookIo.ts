@@ -24,6 +24,9 @@ export interface ToolInput {
   offset?: number;
   limit?: number;
   spreadsheet_id?: string;
+  content?: unknown;
+  text?: unknown;
+  operations?: unknown;
 }
 
 // Every guardrail fails open: an unreadable input allows the call.
@@ -45,6 +48,10 @@ export function sessionStatePath(sessionId: string | undefined, suffix: string):
   mkdirSync(dir, { recursive: true });
   const safeId = String(sessionId ?? "unknown").replace(/[^\w-]/g, "_");
   return join(dir, `${safeId}.${suffix}`);
+}
+
+export function lineCount(path: string): number {
+  return readFileSync(path, "utf8").replace(/\n$/, "").split("\n").length;
 }
 
 export async function runFailOpen(main: () => void | Promise<void>): Promise<void> {
