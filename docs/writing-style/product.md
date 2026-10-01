@@ -2,8 +2,6 @@
 
 Disclosed from [`docs/writing-style.md`](../writing-style.md), "Describing the product". The rules are there, one line each; this file holds the quoted instances and their sources. "Seen in" counts the reading batches, out of 6, that reported the habit ([sources](./sources.md)).
 
-The DealLab deck is the product voice: where it and the academic samples disagree, the deck wins.
-
 ## What app users do
 
 - "Users can compare deals and scenarios side-by-side" — DealLab - Brand Presentation

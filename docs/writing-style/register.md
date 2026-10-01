@@ -10,6 +10,7 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Person and regis
 ## "We" and "let's" in a script
 
 - "Now that we have covered the relevant considerations of Wild Dog Coffee Company, let's talk about supply chains and logistics." — Assessment 3 (Wild Dog Coffee supply chain)
+- No count was recorded for this habit.
 
 ## Contractions
 
@@ -19,5 +20,6 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Person and regis
 ## Plain words, unless the Latinate one is more precise
 
 - "Users can tailor the app to their needs" — DealLab - Brand Presentation
+- Plain over Latinate: "show", not "corroborate"; "many", not "manifold".
 - Seen in 3 of 6. The reports lean Latinate ("corroborate" about 10 times, "salient", "attenuates"); the deck does not, and the deck wins.
 - The developer ruled in review that plain words are the default, but a Latinate word stays when it says the intended meaning more precisely.

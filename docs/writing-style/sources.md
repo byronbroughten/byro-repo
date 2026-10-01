@@ -45,8 +45,8 @@ Where the DealLab deck and the academic samples disagree on voice, the deck wins
 ## Dropped habits
 
 - **Rubric structure**: title pages; the fixed Introduction, Conclusion, References and Appendix sections; appendices that repeat the body; headings that mirror a framework (SWOT, PESTLE, VRIO, Five Forces, SOSTAC, the 8Ps, SMART); mandated "Role of Leadership" and "Ethical responsibility" sections; slide counts; rubric notes still pasted into slide docs; "Summary of Key Points" recaps; conclusions that only restate the body; "In this paper I will… I will then…" roadmaps; the positioning-statement template; discussion-question slides and the formulaic thank-you sign-off.
-- **Citation inconsistencies**: author names spelled two ways, a source dated two ways, reference entries that sometimes include "Retrieved from", a DOI or an ISSN and sometimes don't, in-text citations with no year, sources cited but missing from the reference list. APA 7 replaces them.
-- **Noise**: typos ("Palocity", "SASS" for SaaS, "highlisted"), inconsistent brand spellings ("NerdWallet" and "Nerd Wallet"), "agency" used for "company" in one deck, and a factual slip.
+- **Citation inconsistencies**: author names spelled two ways (Marshal and Marshall, Astrebo and Astebro); a source dated two ways (Rothaermel 2023 and 2025); one filer named three ways; reference entries that sometimes include "Retrieved from", a DOI or an ISSN and sometimes don't, in-text citations with no year, sources cited but missing from the reference list; a DealCheck reference that points to an unrelated URL; image credits on a References slide. APA 7 replaces them.
+- **Noise**: typos ("Palocity", "SASS" for SaaS, "highlisted"), inconsistent brand spellings ("NerdWallet" and "Nerd Wallet"), "agency" used for "company" in one deck, and a factual slip ("28 day durations (two weeks)").
 - **Too thin**: one-off metaphors (a supply chain as "a stream"), rhetorical questions (Week 3 only), a history told in short dated sentences (one passage reused across the D.R. Horton reports).
 - **Workflow habits**: reusing whole paragraphs across assignments.
-- **Struck in review**: the candidates the developer deleted when reviewing #171's file.
+- **Struck in review**: the candidates the developer deleted from #171's candidates file, which #172 removed; git history keeps it.

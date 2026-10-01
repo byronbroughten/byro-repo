@@ -20,10 +20,10 @@ One line per rule. The quoted instances and their sources are one file away. Ope
 
 ## Register
 
-- **Write in the impersonal third person ("this report", "one finds"); use "we" only as the narrator guiding the reader.** This overrides the voice sheet's "users".
-- **Put a formal recommendation in the passive: "it is recommended that…".** This overrides the voice sheet's "should".
-- **Choose the more precise word, Latinate or not; precision weighs more here than in the voice sheet.**
-- **Link paragraphs with "Furthermore" and "Moreover"**, on top of the voice sheet's connectives.
+- **Write in the impersonal third person ("this report", "one finds"); use "we" only as the narrator guiding the reader.**
+- **Put a formal recommendation in the passive: "it is recommended that…".** This overrides the writing style sheet's "should".
+- **Plain words stay the default, but take the Latinate word more readily when it is more precise.**
+- **Link paragraphs with "Furthermore" and "Moreover"**, on top of the writing style sheet's connectives.
 
 ## Structure
 

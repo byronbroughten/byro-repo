@@ -1,6 +1,6 @@
 # Writing style
 
-The developer's voice for reader-facing prose ([defined in `prose-files.md`](./agents/prose-files.md#terms)), drawn from their own writing; academic work layers [`academic-writing-style.md`](./academic-writing-style.md) on top. Code, agent docs, commits and comments follow none of it.
+The developer's voice for reader-facing prose ([defined in `prose-files.md`](./agents/prose-files.md#terms)), drawn from their own writing; academic work layers [`academic-writing-style.md`](./academic-writing-style.md) on top. It calls its reader "the reader", and says "app user" only for the app's user.
 
 One line per rule. The quoted instances and their sources are one file away. Open a reasoning file only when you're changing the rule, or the rule's line doesn't decide your case.
 
@@ -19,7 +19,7 @@ One line per rule. The quoted instances and their sources are one file away. Ope
 
 ## Numbers and evidence
 
-- **After a figure, say in the next sentence what it means for the reader** ("This means…", "This would equate to…").
+- **After a figure, say in the next sentence what it means for the reader.**
 - **Show arithmetic step by step in prose, then state the total in its own short sentence.**
 - **State the assumption behind a projection inline, and call it conservative when it is.**
 - **Give the exact figure, then a rounded, human-scale equivalent.**
@@ -43,11 +43,11 @@ One line per rule. The quoted instances and their sources are one file away. Ope
 - **Introduce a feature as a label, a colon, and one or two sentences on what it does.**
 - **Say plainly where the product falls short of a competitor, without spin.**
 - **Open with the concrete backstory that led to the product, then name it.**
-- **In DealLab prose, lean on its value words: precise, intuitive, modern, flexible, minimal data entry.**
+- **Lean on the product's value words: precise, intuitive, modern, flexible, minimal data entry.**
 
 ## Confidence and candor
 
-- **Hedge only predictions, causes and plans ("may", "could", "likely"), one hedge per claim at most; state facts, decisions and verdicts flatly.**
+- **Hedge only predictions, causes and plans, one hedge per claim at most; state facts, decisions and verdicts flatly.**
 - **Admit a weakness or limit in one flat clause**, often with "however" or in a parenthetical.
 - **Weigh a point's upside and risk together ("On the one hand… On the other hand…").**
 - **Turn to a caveat or exception with "That said," or "Still,".**
@@ -59,7 +59,7 @@ One line per rule. The quoted instances and their sources are one file away. Ope
 - **Lay out each option's pros and cons, then eliminate options until the recommendation is left.**
 - **Phrase advice to its subject as "should" or "would do well to", not a passive "it is recommended".**
 - **Number parallel reasons in prose ("First, … Second, … And third, …") when each needs a sentence or more.**
-- **Use bullets only for short parallel items (costs, features, slide points); keep reasoning in prose.**
+- **Use bullets only for short parallel items; keep reasoning in prose.**
 - **Put a side point in its own "Note that…" sentence.**
 
 ## Sentences and punctuation
@@ -68,11 +68,11 @@ One line per rule. The quoted instances and their sources are one file away. Ope
 - **Use paired em dashes for a mid-sentence aside or example list when commas would confuse.**
 - **Put a colon after a verdict, then the explanation.**
 - **End an open-ended list of everyday examples with "etc." or "and so on".**
-- **Link sentences with plain connectives: "Additionally", "Finally", "Conversely", "To that end", "albeit".** "Furthermore" and "Moreover" are academic.
+- **Link sentences with plain connectives such as "Additionally" and "Finally"; "Conversely", "To that end" and "albeit" are fine too, but "Furthermore" and "Moreover" are academic.**
 
 ## Person and register
 
 - **In product prose, name the product ("DealLab", "the app") and call its readers "users".**
 - **In a spoken script or less formal piece, guide the reader with "we" and "let's".**
 - **Use contractions ("isn't", "doesn't", "that's") in plain prose.**
-- **Prefer plain words to Latinate ones ("show", not "corroborate")**, unless the Latinate word says the meaning more precisely.
+- **Prefer plain words to Latinate ones**, unless the Latinate word says the meaning more precisely.

@@ -6,6 +6,7 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Confidence and c
 
 - "DealLab's paid tier will be priced in the range of $10-$20 per month… DealLab may also offer the option" — Assessment 2 - Brand Presentation
 - "The risk of ZXY becoming financially insolvent as a result of this investment is low." — Assessment 4 - Accounting
+- Typical hedges: "may", "could", "likely".
 - Seen in 6 of 6. The report samples stack hedges ("could possibly", "at least in part"); the deck never does, and the deck wins.
 
 ## A weakness in one flat clause

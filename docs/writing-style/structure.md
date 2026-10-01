@@ -30,6 +30,7 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Structure and re
 ## Bullets for short parallel items
 
 - "Savable and reusable deal components" (a slide bullet whose reasoning is in the notes) — DealLab - Brand Presentation
+- Typical items: costs, features, slide points.
 - Seen in 3 of 6. Flagged in review because one rubric required slide bullets, and kept.
 
 ## "Note that…"

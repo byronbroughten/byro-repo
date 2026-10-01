@@ -10,15 +10,15 @@ Disclosed from [`docs/academic-writing-style.md`](../academic-writing-style.md),
 ## The passive for a formal recommendation
 
 - "Therefore, it is recommended that ZXY move forward with its proposed investment." — Assessment 4 - Accounting
-- Seen in 3 of 6. It conflicts with the voice sheet's "should", which the deck and spoken pieces use. The developer kept it in review, so academic work takes the passive.
+- Seen in 3 of 6. It conflicts with the writing style sheet's "should", which the deck and spoken pieces use. The developer kept it in review, so academic work takes the passive.
 
 ## The precise word
 
 - "Operating a business ethically has manifold benefits." — Assessment 3 - Code of Ethics and Business Conduct
 - Seen in 2 of 6.
-- The developer ruled in review that the voice sheet's word rule holds here too: plain by default, Latinate when it is more precise. Precision matters more in academic work, so the Latinate word wins more often.
+- The developer ruled in review that the writing style sheet's word rule holds here too: plain by default, Latinate when it is more precise. Precision matters more in academic work, so the Latinate word wins more often.
 
 ## "Furthermore" and "Moreover"
 
 - "Moreover, DealCheck is in an advantageous market position." — DealLab - Brand Presentation
-- Seen in 3 of 6, alongside "Additionally" and "Finally". The developer ruled in review that these two are academic; "Conversely", "albeit" and "To that end" moved to the voice sheet.
+- Seen in 3 of 6, alongside "Additionally" and "Finally". The developer ruled in review that these two are academic; "Conversely", "albeit" and "To that end" moved to the writing style sheet.
