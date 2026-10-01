@@ -62,6 +62,7 @@ One row per landed issue, added by the landing wrap-up; keep the most recent ~20
 
 | Issue | Pair | Peak context | Result | What review caught |
 | --- | --- | --- | --- | --- |
+| #172 | Opus medium | 105K | Pass | — |
 | #39 | Opus medium | 106K | Pass | — |
 | #171 | Opus medium | 135K | Pass | — |
 | #175 | Sonnet medium | 69.4K | Pass | — |
@@ -81,5 +82,3 @@ One row per landed issue, added by the landing wrap-up; keep the most recent ~20
 | #17 | Opus high | — | Fix | Small fixes after the first session; ticket too large for one model |
 | #10 | Opus medium | — | Fix | Ticket too large for one model |
 | #9 | Opus medium | — | Pass | — |
-| #8 | Opus medium | — | Fix | Further implementation after the first session; ticket too large for one session (suggested pair was Opus high) |
-| #3 | Opus high | — | Pass | — |
