@@ -42,6 +42,8 @@ Name every instance of these kinds. Be relentless: the easy two surface on their
 - **Stated rule**: a preference or rule the user articulated that no doc holds. Scan the user's own turns for "I prefer", "as a general rule", "always", or a correction of an approach the agent proposed.
 - **Style ruling**: a shape of code the user objected to and had changed, stated as a rule or not. Read the session's diff as well as the conversation: each refactor the user directed is a candidate. The rule is the generalization of the change ("named accessors, never inline lookups"), not the change itself. A ruling counts even if it cost the session nothing, and even if a style doc already gestures at it. A rule the docs hold but the agent or the codebase broke goes in as a sharpened line, not a new one.
 
+**Prose rulings are not yours.** A ruling on reader-facing prose ([`prose-files.md`](../../../docs/agents/prose-files.md#terms)) goes to `/to-writing-style`; drop it here with that reason.
+
 **Include wrong turns, and weight them heavily.** A confident claim that had to be retracted is the strongest possible signal: something about this codebase invites that specific error, and a doc line can disarm it for everyone after. Under-reporting these is the default; resist it.
 
 In your own session you observed the friction. In another's you infer it, from:
