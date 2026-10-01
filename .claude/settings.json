@@ -109,6 +109,16 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "mcp__gworkspace__create_doc|mcp__gworkspace__modify_doc_text|mcp__gworkspace__find_and_replace_doc|mcp__gworkspace__insert_doc_elements|mcp__gworkspace__batch_update_doc",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/docContentGate.ts\"",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -139,6 +149,11 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/styleGate.ts\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/docContentGate.ts\"",
             "timeout": 10
           }
         ]

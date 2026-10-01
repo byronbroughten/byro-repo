@@ -1,8 +1,8 @@
 // PostToolUse on Read records a full read of config/docs/code-style.md; PreToolUse on Edit and Write denies a gated code edit until one is recorded.
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { readHookInput, runFailOpen, sessionStatePath, writeHookOutput } from "./lib/hookIo.ts";
+import { lineCount, readHookInput, runFailOpen, sessionStatePath, writeDenyOutput } from "./lib/hookIo.ts";
 import { readSheetsConfigs } from "./lib/sheetsConfigs.ts";
 import { editDecision, isPostToolUse, isStyleRead, stylePath } from "./lib/styleGate.ts";
 
@@ -29,15 +29,5 @@ await runFailOpen(() => {
     generatedDirs: readSheetsConfigs(projectDir).map(({ generatedDir }) => generatedDir),
   });
   if (!denyReason) return;
-  writeHookOutput({
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "deny",
-      permissionDecisionReason: denyReason,
-    },
-  });
+  writeDenyOutput(denyReason);
 });
-
-function lineCount(path: string): number {
-  return readFileSync(path, "utf8").replace(/\n$/, "").split("\n").length;
-}
