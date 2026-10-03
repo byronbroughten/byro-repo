@@ -10,9 +10,10 @@ An npm-workspaces root for managing real estate operations — properties, units
 | --- | --- |
 | [`sheets-framework`](https://github.com/byronbroughten/sheets-framework) (`@byronbroughten/sheets-framework`), cloned into `packages/framework` | A project-agnostic framework for typed apps on Google Sheets + Apps Script: the numbered tiers from raw cell I/O up to endpoint dispatch, the Node and Apps Script hosts, and the `sheets-framework` bin. It names nothing from real estate, and it is tested against its own dev spreadsheet, `Sheets Framework Dev`. |
 | [`sheets-real-estate`](https://github.com/byronbroughten/sheets-real-estate) (`sheets-real-estate`), cloned into `packages/real-estate` | This project: the real-estate endpoints and chores, bundled with the framework's source and pushed to the business spreadsheet's Apps Script project. |
-| [`config`](./config/README.md) (`@byronbroughten/config`) | The general tooling both packages share: an ESLint flat-config preset, the prettier config and a base tsconfig. The framework layers its tier and Sheets rules on it in its own `eslint.config.mjs`, and exports the app's as a preset. |
+| `writing`, a private repo cloned into `packages/writing` | Specs for reader-facing prose, filed as issues. The text itself lives in Google Docs. Its repo is private, so it has no public link. |
+| [`config`](./config/README.md) (`@byronbroughten/config`) | The general tooling the packages share: an ESLint flat-config preset, the prettier config and a base tsconfig. The framework layers its tier and Sheets rules on it in its own `eslint.config.mjs`, and exports the app's as a preset. |
 
-Before adding a file, ask "would this make sense in a completely different Sheets-backed app?" If yes, it belongs in `packages/framework`, generically named. If no, it belongs in `packages/real-estate`.
+Before adding a file, ask "would this make sense in a completely different Sheets-backed app?" If yes, it belongs in `packages/framework`, generically named. If no, it belongs in `packages/real-estate`. A piece of writing for a reader goes in `packages/writing`.
 
 ## Architecture: the numbered tiers
 
@@ -36,11 +37,11 @@ Every command that touches a live spreadsheet names its target: `dev:*` for `She
 
 ## Words
 
-[`CONTEXT-MAP.md`](./CONTEXT-MAP.md) points at the two glossaries: the framework's operator-facing words, and the app's units and occupancy ledger.
+[`CONTEXT-MAP.md`](./CONTEXT-MAP.md) points at the three glossaries: the framework's operator-facing words, the app's units and occupancy ledger, and the words of a writing spec.
 
 ## Testing
 
-Vitest, across both packages: `npm test`. Co-located `Foo.test.ts`. Fakes, exemplars, and endpoint-run testing: [`testing.md`](https://github.com/byronbroughten/sheets-framework/blob/master/docs/testing.md).
+Vitest, across the two Sheets packages: `npm test`. Co-located `Foo.test.ts`. Fakes, exemplars, and endpoint-run testing: [`testing.md`](https://github.com/byronbroughten/sheets-framework/blob/master/docs/testing.md).
 
 ## Known rough edges
 

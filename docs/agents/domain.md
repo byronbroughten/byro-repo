@@ -11,11 +11,11 @@ If any of these files don't exist, **proceed silently**. Don't flag their absenc
 
 ## File structure
 
-Two contexts, one per package, and no ADR tree:
+Three contexts, one per package, and no ADR tree:
 
 ```
 /
-├── CONTEXT-MAP.md                  # points at both glossaries
+├── CONTEXT-MAP.md                  # points at the three glossaries
 ├── docs/targets-and-gates.md
 ├── docs/claude-code-guardrails.md
 └── packages/
@@ -29,15 +29,18 @@ Two contexts, one per package, and no ADR tree:
     │       ├── generated-data.md, generated-data/
     │       ├── how-it-runs.md
     │       └── testing.md
-    └── real-estate/
-        ├── CONTEXT.md              # the app's terms: units, the occupancy ledger
-        ├── src/AGENTS.md
-        └── docs/occupancy-ledger.md
+    ├── real-estate/
+    │   ├── CONTEXT.md              # the app's terms: units, the occupancy ledger
+    │   ├── src/AGENTS.md
+    │   └── docs/occupancy-ledger.md
+    └── writing/
+        ├── CONTEXT.md              # a prose spec's terms: Piece, Deliverable, Reference
+        └── AGENTS.md               # implementing a piece spec
 ```
 
 ## Which context a term belongs to
 
-Ask "would this make sense in a different Sheets-backed app?" Yes: the framework's `CONTEXT.md`. No: the app's. How the two glossaries relate is [`CONTEXT-MAP.md`](../../CONTEXT-MAP.md)'s; a new term that would redefine a framework one is a conflict to raise, not to resolve silently.
+Ask "would this make sense in a different Sheets-backed app?" Yes: the framework's `CONTEXT.md`. No: the app's. A word for a piece of writing: the writing `CONTEXT.md`. How the glossaries relate is [`CONTEXT-MAP.md`](../../CONTEXT-MAP.md)'s; a new term that would redefine a framework one is a conflict to raise, not to resolve silently.
 
 ## Use the glossary's vocabulary
 
