@@ -22,24 +22,28 @@ One line per rule. The quoted instances and their sources are one file away. Ope
 - **After a figure, say in the next sentence what it means for the reader.**
 - **Show arithmetic step by step in prose, then state the total in its own short sentence.**
 - **State the assumption behind a projection inline, and call it conservative when it is.**
-- **Give the exact figure, then a rounded, human-scale equivalent.**
+- **Give the exact figure, then a rounded, human-scale equivalent, such as the cost per month.**
 - **Write numbers as numerals with $ and %, and ranges with a hyphen.**
 - **Make a caveat specific: say how far off, or in which range**, not just "may be inaccurate".
+- **Name a statistic's source in the same sentence ("according to Redfin", "per Bankrate"); formal citation is for academic work.**
+- **Show what a choice is worth by changing one input in a baseline example and stating the dollar change per month.**
 
 ## Explaining
 
-- **Make an abstract point concrete at once with "For example," and an everyday scenario with real nouns.**
+- **Make an abstract point concrete at once with "For example," or "For instance," and an everyday scenario with real nouns.**
 - **Explain an unfamiliar idea by comparing it to something the reader already knows.**
-- **Restate a dense or technical point in plain words with "In other words,".**
-- **Spell out an acronym on first use with the short form in parentheses, then use only the short form.**
+- **Restate a dense or technical point in plain words with "In other words," or "That is to say,".**
+- **Spell out an acronym on first use with the short form after it ("capital expenses, or CapEx," or "(CapEx)"), then use only the short form.**
 - **Gloss a term inline with "i.e.," rather than in a separate sentence.**
-- **Before the real answer, name the tempting wrong reading and correct it.**
+- **Before the real answer, name the tempting wrong reading or the reader's obvious objection, often as a question ("why doesn't everyone just…?"), and answer it.**
 - **Back a claim with an explicit reason: "After all," or "That's because".**
 - **Put a cause-and-effect pair before the principle it supports.**
+- **Define a factor in one plain sentence, then say which way it moves the result ("A longer loan term means lower monthly payments").**
+- **Back a tip with a short first-person anecdote ("I was once quoted…"), in parentheses, with its real figures.**
 
 ## Describing the product
 
-- **Describe a feature by what app users do ("Users can…"), not by what the system is.**
+- **Describe a feature by what it lets its user do ("lets you line up homes side-by-side"; "Users can…" when the reader isn't the user).**
 - **Introduce a feature as a label, a colon, and one or two sentences on what it does.**
 - **Say plainly where the product falls short of a competitor, without spin.**
 - **Open with the concrete backstory that led to the product, then name it.**
@@ -48,31 +52,38 @@ One line per rule. The quoted instances and their sources are one file away. Ope
 ## Confidence and candor
 
 - **Hedge only predictions, causes and plans, one hedge per claim at most; state facts, decisions and verdicts flatly.**
-- **Admit a weakness or limit in one flat clause**, often with "however" or in a parenthetical.
+- **Admit a weakness or limit in one flat clause**, often with "however" or a closing "though", or in a parenthetical.
 - **Weigh a point's upside and risk together ("On the one hand… On the other hand…").**
-- **Turn to a caveat or exception with "That said," or "Still,".**
+- **Turn to a caveat or exception with "That said,", "Of course," or "Still,".**
+- **When a figure is discouraging, reassure the reader and point to the fix ("don't despair just yet").**
 
 ## Structure and recommendations
 
+- **Open a piece with a striking figure or a blunt claim, then say in one sentence what the piece covers.**
+- **Right after the opening, say what the piece doesn't cover and where to find it.**
 - **Open a section with one sentence stating its claim, then support it.**
 - **State the recommendation early and flatly, then give the reasons.**
 - **Lay out each option's pros and cons, then eliminate options until the recommendation is left.**
-- **Phrase advice to its subject as "should" or "would do well to", not a passive "it is recommended".**
+- **Advise the reader in the imperative, "you'll want to" or "we recommend"; advise a third party with "should" or "would do well to", never a passive "it is recommended".**
 - **Number parallel reasons in prose ("First, … Second, … And third, …") when each needs a sentence or more.**
-- **Use bullets only for short parallel items; keep reasoning in prose.**
+- **Use bullets for short parallel items (costs with their figures, tips, one-sentence reasons after "Here's why:"); keep multi-sentence reasoning in prose.**
 - **Put a side point in its own "Note that…" sentence.**
+- **Close by returning to the opening question or figure, answer it, and say what makes the answer vary for the reader.**
 
 ## Sentences and punctuation
 
 - **Let explanatory sentences run long, then land the point with a short, blunt one.**
 - **Use paired em dashes for a mid-sentence aside or example list when commas would confuse.**
 - **Put a colon after a verdict, then the explanation.**
+- **Give a punchline, consequence or comparison its own sentence, not a trailing em dash.**
+- **Start a sentence with "And" or "But" to add a point or turn on one.**
 - **End an open-ended list of everyday examples with "etc." or "and so on".**
 - **Link sentences with plain connectives such as "Additionally" and "Finally"; "Conversely", "To that end" and "albeit" are fine too, but "Furthermore" and "Moreover" are academic.**
 
 ## Person and register
 
-- **In product prose, name the product ("DealLab", "the app") and call its readers "users".**
-- **In a spoken script or less formal piece, guide the reader with "we" and "let's".**
+- **Address the reader as "you", speak as "we", and guide with "let's"; name the product, and say "users" only when describing app users to someone else.**
 - **Use contractions ("isn't", "doesn't", "that's") in plain prose.**
 - **Prefer plain words to Latinate ones**, unless the Latinate word says the meaning more precisely.
+- **Prefer everyday idioms, often slightly twisted ("blow out of the pond"), to neutral business phrasing.**
+- **Allow the occasional wry aside, in parentheses or between dashes.**

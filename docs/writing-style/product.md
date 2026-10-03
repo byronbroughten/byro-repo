@@ -1,11 +1,12 @@
 # Describing the product: instances
 
-Disclosed from [`docs/writing-style.md`](../writing-style.md), "Describing the product". The rules are there, one line each; this file holds the quoted instances and their sources. "Seen in" counts the reading batches, out of 6, that reported the habit ([sources](./sources.md)).
+Disclosed from [`docs/writing-style.md`](../writing-style.md), "Describing the product". The rules are there, one line each; this file holds the quoted instances and their sources. "Seen in" counts the reading batches, out of 6, that reported the habit ([sources](./sources.md)). "In N of 5 posts" counts the blog posts.
 
-## What app users do
+## What it lets its user do
 
 - "Users can compare deals and scenarios side-by-side" — DealLab - Brand Presentation
-- Seen in 2 of 6.
+- "It has a comparison feature that lets you line up homes side-by-side to compare costs." — blog: Home Cost Comparison
+- Seen in 2 of 6. In 1 of 5 posts.
 
 ## Label, colon, what it does
 

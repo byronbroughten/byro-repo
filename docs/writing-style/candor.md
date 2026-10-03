@@ -1,6 +1,6 @@
 # Confidence and candor: instances
 
-Disclosed from [`docs/writing-style.md`](../writing-style.md), "Confidence and candor". The rules are there, one line each; this file holds the quoted instances and their sources. "Seen in" counts the reading batches, out of 6, that reported the habit ([sources](./sources.md)).
+Disclosed from [`docs/writing-style.md`](../writing-style.md), "Confidence and candor". The rules are there, one line each; this file holds the quoted instances and their sources. "Seen in" counts the reading batches, out of 6, that reported the habit ([sources](./sources.md)). "In N of 5 posts" counts the blog posts.
 
 ## Hedge predictions only, once
 
@@ -8,19 +8,29 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Confidence and c
 - "The risk of ZXY becoming financially insolvent as a result of this investment is low." — Assessment 4 - Accounting
 - Typical hedges: "may", "could", "likely".
 - Seen in 6 of 6. The report samples stack hedges ("could possibly", "at least in part"); the deck never does, and the deck wins.
+- Counter-instance: "That's probably at least part of why 72% of renters would prefer to own a home." — blog: Rent vs Buy (one of the posts' few stacked hedges)
 
 ## A weakness in one flat clause
 
 - "The website's SEO is poor, however, and could be improved with a steady stream of blog posts" — DealLab - Brand Presentation
 - "(although, I failed to market it effectively)" — Assessment 1 - Business Types and Plans
-- Seen in 3 of 6.
+- "That's not guaranteed, though." — blog: The Cost of Buying a House
+- Seen in 3 of 6. A closing "though" is in 3 of 5 posts.
 
 ## Upside and risk together
 
 - "On the other hand, increased difficulty in finding profitable real estate deals could also increase demand for analytical tools like DealLab." — Assessment 1 - Information and Marketing Strategy
 - Seen in 2 of 6. Flagged in review because a PESTLE analysis invites it; it recurs outside PESTLE, and it was kept.
 
-## "That said," and "Still,"
+## "That said,", "Of course," and "Still,"
 
 - "That said, the fact that Paylocity's offices are spread throughout the country limits its exposure to any one natural disaster" — Paylocity - Strategic Analysis and Recommendations.pptx
-- Seen in 3 of 6.
+- "But of course, your particular situation may warrant a different rule" — blog: Rent vs Buy
+- Seen in 3 of 6. "Of course," is in 2 of 5 posts.
+
+## Reassure, then point to the fix
+
+- "If that number is too high, don't despair just yet—there are at least a couple ways to lower it." — blog: The Cost of Buying a House
+- "But don't despair just yet. Now we'll consider which factors can be adjusted in order to lower those costs" — blog: Home Cost Comparison
+- "there is no shame in renting instead of owning, particularly if it just makes sense to rent given the rest of the context of your life" — blog: Rent vs Buy
+- In 3 of 5 posts.

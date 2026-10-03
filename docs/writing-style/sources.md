@@ -36,17 +36,30 @@ The 24 Docs and 3 decks in the Drive folder **Business Writing Examples**, each 
 | 6 | Assessment 3 - Digital Marketing Plan | Marketing plan |
 | 6 | Assessment 2 - Brand Presentation | Slide script. It is the written script behind the DealLab deck, so it counts as product voice |
 
+## Blog posts
+
+The five DealLab blog posts indexed at [deallab.app/home-cost-guides](https://deallab.app/home-cost-guides/), read in full on 2026-10-02. They are the most authoritative source. The site went into maintenance mode after this read, so the links may not resolve; text-only copies are in the Drive folder **Legacy Blog Posts**.
+
+| Post | URL | Published |
+| --- | --- | --- |
+| Costs of Owning a Home: The Complete Guide | https://deallab.app/costs-of-owning-a-home/ | 2023-08-05 |
+| Home Cost Comparison: A Simple Guide | https://deallab.app/home-cost-comparison/ | 2023-09-20 |
+| The Cost of Buying a House (And How to Lower It) | https://deallab.app/cost-of-buying-a-house/ | 2023-11-08 |
+| Is Buying a House a Good Investment? A Complete Guide | https://deallab.app/is-buying-a-house-a-good-investment/ | 2023-11-16 |
+| Rent vs Buy: Should You Buy a Home in 2024? | https://deallab.app/rent-vs-buy/ | 2023-12-15 |
+
 ## Reading the counts
 
-"Seen in" counts the six reading batches that reported a habit. Several samples reuse whole paragraphs from one another (the DealLab script and the marketing plan; the D.R. Horton reports; Capital Budgeting and the ABC deck), so a count can overstate an independent habit.
+"Seen in" counts the six reading batches that reported a habit. Several samples reuse whole paragraphs from one another (the DealLab script and the marketing plan; the D.R. Horton reports; Capital Budgeting and the ABC deck), so a count can overstate an independent habit. "In N of 5 posts" counts the blog posts, separately.
 
-Where the DealLab deck and the academic samples disagree on voice, the deck wins: the blog and in-app text should sound like a product, not a paper.
+Where sources disagree on voice, the blog posts win, then the DealLab deck, then the academic samples: the blog and in-app text should sound like a product, not a paper. In academic work, [`academic-writing-style.md`](../academic-writing-style.md) still wins.
 
 ## Dropped habits
 
 - **Rubric structure**: title pages; the fixed Introduction, Conclusion, References and Appendix sections; appendices that repeat the body; headings that mirror a framework (SWOT, PESTLE, VRIO, Five Forces, SOSTAC, the 8Ps, SMART); mandated "Role of Leadership" and "Ethical responsibility" sections; slide counts; rubric notes still pasted into slide docs; "Summary of Key Points" recaps; conclusions that only restate the body; "In this paper I will… I will then…" roadmaps; the positioning-statement template; discussion-question slides and the formulaic thank-you sign-off.
 - **Citation inconsistencies**: author names spelled two ways (Marshal and Marshall, Astrebo and Astebro); a source dated two ways (Rothaermel 2023 and 2025); one filer named three ways; reference entries that sometimes include "Retrieved from", a DOI or an ISSN and sometimes don't, in-text citations with no year, sources cited but missing from the reference list; a DealCheck reference that points to an unrelated URL; image credits on a References slide. APA 7 replaces them.
 - **Noise**: typos ("Palocity", "SASS" for SaaS, "highlisted"), inconsistent brand spellings ("NerdWallet" and "Nerd Wallet"), "agency" used for "company" in one deck, and a factual slip ("28 day durations (two weeks)").
-- **Too thin**: one-off metaphors (a supply chain as "a stream"), rhetorical questions (Week 3 only), a history told in short dated sentences (one passage reused across the D.R. Horton reports).
+- **Too thin**: one-off metaphors (a supply chain as "a stream"), a history told in short dated sentences (one passage reused across the D.R. Horton reports).
+- **Blog venue**: H2s that repeat the post's keyword ("Rent vs Buy: Affordability"); the closing pitch for the app; "feel free to check out this other article we wrote" links; footnote markers. SEO and marketing mechanics, not voice.
 - **Workflow habits**: reusing whole paragraphs across assignments.
 - **Struck in review**: the candidates the developer deleted from #171's candidates file, which #172 removed; git history keeps it.
