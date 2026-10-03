@@ -6,7 +6,7 @@ Every file has one job, and each fact lives in exactly one of them. Everywhere e
 
 - **Rules file**: an index file under `docs/`, `config/docs/` or `packages/*/docs/` of bolded one-line rules (`config/docs/code-style.md`, and the framework's `docs/code-style.md`, `docs/vocabulary.md` and `docs/design.md`, and the root's `docs/writing-style.md` and `docs/academic-writing-style.md`), with one-sentence scope, the fixed sentence on when to open reasoning, and a "When | File" table under `## Reasoning files` into its reasoning folder. A rule line carries only the rule: the bolded rule plus at most a short clause of scope or its one exception. It must be both brief and clear, and no length cap stands in for either. Examples, instances, citations and the why go in its reasoning file.
 - **Reasoning file**: a file under a rules file's `docs/<name>/` folder holding the why, examples, instances and history. It is never auto-loaded. A rules-file section with anything beyond its rules gets one.
-- **Router**: the Read-by-task table in the root AGENTS.md. It is the only one, with rows into both packages.
+- **Router**: the Read-by-task table in the root AGENTS.md. It is the only one, with rows into every package.
 - **Nested AGENTS.md**: a folder's own rules, loaded when an agent works there, paired with a one-line `CLAUDE.md` holding `@AGENTS.md`.
 - **Mechanics doc**: a reference file under `docs/` or `packages/*/docs/` read by heading. It opens with a lead of 5 lines and 800 bytes or fewer, and any such file over 4 KB must have `##` headings (lint checks both; a shorter doc with no heading is read whole). Its headings are specific enough to grep, and a rule found in it moves up to a rules file or nested AGENTS.md, leaving a pointer. One that covers subjects sharing nothing is split and indexed.
 - **Enforcement ladder**: lint > path-triggered (nested AGENTS.md, a hook) > router pointer > prose.
@@ -21,7 +21,7 @@ Every file has one job, and each fact lives in exactly one of them. Everywhere e
 | --- | --- |
 | `AGENTS.md` | Only what changes an agent's behavior on every task: commands, gates, git rules, the README line, the router. Loaded every turn; read [What an addition to AGENTS.md costs](#what-an-addition-to-agentsmd-costs) before growing it. |
 | `CLAUDE.md` | `@AGENTS.md` plus pointers to Claude Code-only mechanics (subagents, hooks). |
-| `CONTEXT-MAP.md` | Which `CONTEXT.md` each context owns, and how the app's glossary relates to the framework's. |
+| `CONTEXT-MAP.md` | Which `CONTEXT.md` each context owns, how the app's glossary relates to the framework's, and that writing's relates to neither. |
 | `docs/agent-behavior-design.md` | Why the agent tooling (hooks, gates, delegation, this doc scheme) is shaped as it is. It never goes in the framework's `docs/design.md`. |
 | `docs/targets-and-gates.md` | The `dev`/`app` targets, what needs a yes first, the agent account, and the gworkspace MCP rules. |
 | `docs/claude-code-guardrails.md` | The Claude Code hooks and project agent. |
@@ -31,7 +31,7 @@ Every file has one job, and each fact lives in exactly one of them. Everywhere e
 | `docs/academic-writing-style.md` | Academic conventions layered on `docs/writing-style.md`, one line per rule, rule only, with APA 7 as the citation standard. |
 | `docs/academic-writing-style/*.md` | Each rule's quoted instances and sources, indexed by `docs/academic-writing-style.md`'s "When \| File" table. |
 | `docs/agents/*.md` | Agent workflow: git, planning, delegation, issues. |
-| `README.md` | The workspace overview, a derived view for people on GitHub; it links each public clone by github.com URL, since the clones don't exist there. Nothing routes agents to it. Update it when a fact it mirrors changes (tables below). |
+| `README.md` | The workspace overview, a derived view for people on GitHub; it links each public clone by github.com URL, since the clones don't exist there, and names the private writing clone without a link. Nothing routes agents to it. Update it when a fact it mirrors changes (tables below). |
 
 ### Framework (`packages/framework/`, its own repo)
 
@@ -67,6 +67,15 @@ The same as the framework's: its docs ship with its repo, so they link only insi
 | `src/AGENTS.md` | Rules an agent can only break by touching the app's `src/`: the boundary question, the one framework import, generated data. Kept short, with a `CLAUDE.md` beside it. |
 | `src/businessEndpoints/` and `src/chores/` `AGENTS.md` | That folder's rules, kept short, each with a `CLAUDE.md` beside it. The chore gates for `app:chore` live in `src/chores/`. |
 | `README.md` | A short derived view: what the app is, how it builds, its folders, its `app:*` commands (table below). |
+
+### Writing (`packages/writing/`, its own repo)
+
+A private repo holding piece specs as issues; the Pieces' text lives in their Google Docs, never here. Its docs link only inside it (its own lint) and name a root doc in plain text.
+| File | Holds |
+| --- | --- |
+| `CLAUDE.md` | The restart-at-root notice, plus `@AGENTS.md`. |
+| `AGENTS.md` | How to implement a piece spec: the Deliverable as the text's only home, Drive IDs, the Deliverable's standing yes, the voice, closing, and the four done checks. Kept short: it loads on every task there. |
+| `CONTEXT.md` | The writing context's words: Piece, Deliverable and Reference. |
 
 ### Config (`config/`)
 
@@ -111,6 +120,10 @@ No byte cap stands in for judgment here: a cap becomes a target, and an agent at
 | The bin | The bin's usage text (`scripts/cli.ts`) and [`how-it-runs.md`](../../packages/framework/docs/how-it-runs.md#the-sheets-framework-bin) |
 | Docs | The framework's `docs/` indexes and `CONTEXT.md` |
 | History | Nothing; a fixed link to `byronbroughten/byro-repo` for the history before the split |
+
+### The writing repo
+
+It has no README: a private repo has no outside reader.
 
 ### The app's README.md
 

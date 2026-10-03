@@ -1,6 +1,6 @@
 # Agent instructions for this repo
 
-An npm-workspaces root: `packages/framework` (`@byronbroughten/sheets-framework`, a clone of its own repo), a TypeScript framework for typed apps on Google Sheets + Apps Script, and `packages/real-estate` (`sheets-real-estate`, a clone of its own repo), the real-estate endpoints built on it; a live spreadsheet is both database and UI.
+An npm-workspaces root: `packages/framework` (`@byronbroughten/sheets-framework`, a clone of its own repo), a TypeScript framework for typed apps on Google Sheets + Apps Script, and `packages/real-estate` (`sheets-real-estate`, a clone of its own repo), the real-estate endpoints built on it; a live spreadsheet is both database and UI. `packages/writing` (`writing`, a clone of its own private repo) is where prose piece specs are filed.
 
 Open only the section or disclosed doc the task needs.
 
@@ -16,7 +16,7 @@ Open only the section or disclosed doc the task needs.
 ## Every task
 
 - **README.md is for humans.** Nothing in it is needed for a task here; open it only to keep it accurate ([`docs/agents/prose-files.md`](./docs/agents/prose-files.md)).
-- **Which package: "would this make sense in a different Sheets-backed app?"** Yes: `packages/framework`. No: `packages/real-estate`. A lint, format or tsconfig setting any TypeScript project would want: `config`.
+- **Which package: "would this make sense in a different Sheets-backed app?"** Yes: `packages/framework`. No: `packages/real-estate`. A lint, format or tsconfig setting any TypeScript project would want: `config`. A reader-facing Piece: `packages/writing`.
 - **Public repos never depend on private ones; private may depend on public.**
 - **Working in a folder with its own `AGENTS.md`**, read it first; each package's `src/` and several folders under it have one.
 - **Commit or push only when asked. Implement a spec on its `issue-<n>-<slug>` branch**, even when a skill says to commit to the current branch. Branch rules: [`docs/agents/git-workflow.md`](./docs/agents/git-workflow.md).
@@ -39,7 +39,7 @@ Open only the section or disclosed doc the task needs.
 | Regen `tsc` fails, or hand-written sheet/column keys disagree with generated configs | [retarget-after-gen-configs](./.claude/skills/retarget-after-gen-configs/SKILL.md) |
 | Branches, landing a spec, closing an issue, `backup/*` branches | [`docs/agents/git-workflow.md`](./docs/agents/git-workflow.md) |
 | Design, grilling, specs, tickets, an offered ADR, a long session's handoff | [`docs/agents/planning.md`](./docs/agents/planning.md) |
-| Writing reader-facing prose: a shared Google Doc, a blog post, in-app text | [`docs/writing-style.md`](./docs/writing-style.md); academic work adds [`academic-writing-style.md`](./docs/academic-writing-style.md) |
+| Writing reader-facing prose: a shared Google Doc, a blog post, in-app text, a piece spec | [`docs/writing-style.md`](./docs/writing-style.md); academic work adds [`academic-writing-style.md`](./docs/academic-writing-style.md); a piece spec adds [`packages/writing/AGENTS.md`](./packages/writing/AGENTS.md) |
 | Editing a prose doc or AGENTS.md: which file a fact belongs in | [`docs/agents/prose-files.md`](./docs/agents/prose-files.md) |
 | Issues and labels | [`docs/agents/issue-tracker.md`](./docs/agents/issue-tracker.md), [`docs/agents/triage-labels.md`](./docs/agents/triage-labels.md) |
 | Domain vs architecture vocabulary | [`docs/agents/domain.md`](./docs/agents/domain.md) |
