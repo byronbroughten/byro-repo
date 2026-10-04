@@ -62,6 +62,7 @@ One row per landed issue, added by the landing wrap-up; keep the most recent ~20
 
 | Issue | Pair | Peak context | Result | What review caught |
 | --- | --- | --- | --- | --- |
+| #71 | Opus high | 224K | Fix | Minor corrections needed |
 | #70 | Opus high | 420K | Fix | Fixes were needed |
 | #78 | Opus high | 170K | Pass | — |
 | #69 | Opus high | 447K | Pass | — |
@@ -81,4 +82,3 @@ One row per landed issue, added by the landing wrap-up; keep the most recent ~20
 | #23 | Opus medium | — | Pass | — |
 | #5 | Opus medium | — | Pass | — |
 | #22 | Opus medium | — | Pass | — |
-| #21 | Opus medium | ~200K | Fix | A few things had to be fixed; the agent's context window was almost 200K |
