@@ -38,7 +38,7 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 - **Trim a method name to what the return type doesn't already say.**
 - **A name has to read to someone who has never opened this codebase** — never jargon named after the mechanism that sets it.
 - **A constant is camelCase; two or more in one file that serve one purpose become one `as const` object named for that purpose.** Lint backs the camelCase half.
-- **A getter is a cheap, no-arg, side-effect-free, one-expression pass-through.** Anything that takes an argument, has a side effect, or loops/branches to compute its answer is a called method. A value fixed for the object's whole lifetime is a plain field, not a getter.
+- **A no-arg, side-effect-free member is a getter unless it's expensive: a round trip (Sheets, Apps Script, fetch, Drive) or a nested loop over a whole sheet's rows.** Loops and branches are fine. Anything that takes an argument or has a side effect is a called method. A value fixed for the object's whole lifetime is a plain field, not a getter, but a collaborator never counts as fixed ([why](./code-style/naming.md#parens-mean-expensive)).
 - **`_` prefix means "narrow-purpose, not general API"**: a true `private` helper, or a step a coordinating class must call that TS won't let you mark `private`.
 - **Destructure params into a named type at 3+ params, 2+ params of one type, or when a named type for the bag already exists**; otherwise stay positional. The one argument every implementation will use is hoisted out of the bag and passed first. The same grouping judgment applies to fields.
 
