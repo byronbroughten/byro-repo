@@ -62,6 +62,7 @@ One row per landed issue, added by the landing wrap-up; keep the most recent ~20
 
 | Issue | Pair | Peak context | Result | What review caught |
 | --- | --- | --- | --- | --- |
+| #90 | Opus high | 172K | Pass | — |
 | #91 | Sonnet medium | 66K | Pass | — |
 | #71 | Opus high | 224K | Fix | Minor corrections needed |
 | #70 | Opus high | 420K | Fix | Fixes were needed |
@@ -81,4 +82,3 @@ One row per landed issue, added by the landing wrap-up; keep the most recent ~20
 | #175 | Sonnet medium | 69.4K | Pass | — |
 | #7 | Opus medium | — | Pass | Opus low might have worked |
 | #23 | Opus medium | — | Pass | — |
-| #5 | Opus medium | — | Pass | — |
