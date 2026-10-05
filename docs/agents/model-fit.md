@@ -62,6 +62,7 @@ One row per landed issue, added by the landing wrap-up; keep the most recent ~20
 
 | Issue | Pair | Peak context | Result | What review caught |
 | --- | --- | --- | --- | --- |
+| #76 | Opus high | 253K | Pass | — |
 | #120 | Opus medium | 115K | Pass | — |
 | #75 | Opus high | 194K | Pass | — |
 | #93 | Opus medium | 149K | Pass | — |
@@ -81,4 +82,3 @@ One row per landed issue, added by the landing wrap-up; keep the most recent ~20
 | #174 | Opus medium | 80.5K | Pass | — |
 | #42 | Opus medium | 109K | Pass | — |
 | #41 | Opus medium | 129K | Fix | Small fixes needed |
-| #173 | Opus medium | 116K | Pass | — |
