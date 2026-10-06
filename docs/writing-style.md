@@ -4,6 +4,14 @@ The developer's voice for reader-facing prose ([defined in `prose-files.md`](./a
 
 One line per rule. The quoted instances and their sources are one file away. Open a reasoning file only when you're changing the rule, or the rule's line doesn't decide your case.
 
+## Axes
+
+Each Piece takes one value on each axis, and its spec names them. A rule tagged with a value, as `` `formal` ``, applies only to a Piece with that value; an untagged rule applies to every Piece. Text with no spec is `firsthand` and `general`.
+
+- **Evidence**: `firsthand` cites nothing; `sourced` names a published source in the sentence; `cited` cites in APA 7.
+- **Formality**: `general` is for a general audience; `formal` is for a formal one, as a sworn letter.
+- **Academic**: a `cited`, `formal` Piece that also follows [`academic-writing-style.md`](./academic-writing-style.md).
+
 ## Reasoning files
 
 | When | File |
@@ -25,7 +33,9 @@ One line per rule. The quoted instances and their sources are one file away. Ope
 - **Give the exact figure, then a rounded, human-scale equivalent, such as the cost per month.**
 - **Write numbers as numerals with $ and %, and ranges with a hyphen.**
 - **Make a caveat specific: say how far off, or in which range**, not just "may be inaccurate".
-- **In a data-driven piece, name a statistic's source in the same sentence ("according to Redfin", "per Bankrate"); formal citation is for academic work, and a letter cites nothing.**
+- `firsthand` **Cite no published source.**
+- `sourced` **Name a statistic's source in the same sentence ("according to Redfin", "per Bankrate").**
+- `cited` **Cite every borrowed fact in APA 7, per [`academic-writing-style.md`](./academic-writing-style.md).**
 - **Show what a choice is worth by changing one input in a baseline example and stating the dollar change per month.**
 
 ## Explaining
@@ -39,7 +49,7 @@ One line per rule. The quoted instances and their sources are one file away. Ope
 - **Back a claim with an explicit reason: "After all," or "That's because".**
 - **Put a cause-and-effect pair before the principle it supports.**
 - **Define a factor in one plain sentence, then say which way it moves the result ("A longer loan term means lower monthly payments").**
-- **Back a tip with a short first-person anecdote ("I was once quoted…"), in parentheses, with its real figures.**
+- `general` **Back a tip with a short first-person anecdote ("I was once quoted…"), in parentheses, with its real figures.**
 - **Back praise of a person or thing with what the writer relies on it for ("His reliable quotes are the basis on which I decide whether to invest").**
 - **Show a change with its before and after side by side, each described concretely ("the dingy, rundown space… into the warm, welcoming home").**
 
@@ -58,7 +68,7 @@ One line per rule. The quoted instances and their sources are one file away. Ope
 - **Weigh a point's upside and risk together ("On the one hand… On the other hand…").**
 - **Turn to a caveat or exception with "That said,", "Of course," or "Still,".**
 - **Let the specifics show a piece is trustworthy; never vouch for the piece itself ("Everything in this letter is firsthand").**
-- **When a figure is discouraging, reassure the reader and point to the fix ("don't despair just yet").**
+- `general` **When a figure is discouraging, reassure the reader and point to the fix ("don't despair just yet").**
 
 ## Structure and recommendations
 
@@ -87,9 +97,11 @@ One line per rule. The quoted instances and their sources are one file away. Ope
 
 ## Person and register
 
-- **Address the reader as "you", speak as "we", and guide with "let's"; name the product, and say "users" only when describing app users to someone else.**
-- **Use contractions ("isn't", "doesn't", "that's") in plain prose.**
-- **Prefer plain words to Latinate ones**; a formal piece, such as a sworn letter or academic work, keeps a Latinate word that says the meaning more precisely ("corroborates").
+- `general` **Address the reader as "you", speak as "we", and guide with "let's"; name the product, and say "users" only when describing app users to someone else.**
+- `general` **Use contractions ("isn't", "doesn't", "that's").**
+- `formal` **Write no contractions.**
+- **Prefer plain words to Latinate ones.**
+- `formal` **Keep a Latinate word that says the meaning more precisely ("corroborates").**
 - **Call the person a piece is about by name, not "he" or "him", in each paragraph's claim and key sentences**, so no reader wonders who is meant.
-- **Prefer everyday idioms, often slightly twisted ("blow out of the pond"), to neutral business phrasing.**
-- **Allow the occasional wry aside, in parentheses or between dashes.**
+- `general` **Prefer everyday idioms, often slightly twisted ("blow out of the pond"), to neutral business phrasing.**
+- `general` **Allow the occasional wry aside, in parentheses or between dashes.**

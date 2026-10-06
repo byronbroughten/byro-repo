@@ -26,7 +26,7 @@ Every file has one job, and each fact lives in exactly one of them. Everywhere e
 | `docs/targets-and-gates.md` | The `dev`/`app` targets, what needs a yes first, the agent account, and the gworkspace MCP rules. |
 | `docs/claude-code-guardrails.md` | The Claude Code hooks and project agent. |
 | `docs/cursor-guardrails.md` | The Cursor hooks. |
-| `docs/writing-style.md` | The voice of reader-facing prose, one line per rule, rule only, one voice with no sections per medium. |
+| `docs/writing-style.md` | The voice of reader-facing prose, one line per rule, rule only, one voice with no sections per medium. Its `## Axes` section defines the Evidence and Formality values and the Academic overlay; a rule scoped to one value starts with that value as a code tag. |
 | `docs/writing-style/*.md` | Each rule's quoted instances and sources, indexed by `docs/writing-style.md`'s "When \| File" table, plus `sources.md` for the sources read and the habits dropped. |
 | `docs/academic-writing-style.md` | Academic conventions layered on `docs/writing-style.md`, one line per rule, rule only, with APA 7 as the citation standard. |
 | `docs/academic-writing-style/*.md` | Each rule's quoted instances and sources, indexed by `docs/academic-writing-style.md`'s "When \| File" table. |

@@ -1,6 +1,6 @@
 # Academic writing style
 
-Academic conventions layered on the writing style sheet, [`writing-style.md`](./writing-style.md). Read that first: everything there applies here too, except where a rule below overrides one. APA 7 is the citation standard.
+Academic conventions layered on the writing style sheet, [`writing-style.md`](./writing-style.md). An academic Piece is `cited` and `formal`, so read that first: its untagged, `cited` and `formal` rules apply here too, except where a rule below overrides one. APA 7 is the citation standard.
 
 One line per rule. The quoted instances and their sources are one file away. Open a reasoning file only when you're changing the rule, or the rule's line doesn't decide your case.
 
