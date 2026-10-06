@@ -7,6 +7,7 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Sentences and pu
 - "Paylocity focuses exclusively on serving businesses in the United States. From a risk standpoint, this makes sense." — BB - Business and Corporate Strategies for Paylocity
 - "As a function of the impermanence of everything, all those items will eventually deteriorate and need to be replaced. And they aren't cheap." — blog: Costs of Owning a Home
 - Seen in 3 of 6. In 4 of 5 posts.
+- Agent: "His work is broad. He has renovated properties I had just bought…" Developer: "I trust Jesus to help plan and complete renovation projects of all kinds: …" The developer also struck "Three jobs show the quality of that work." and "Everything in this letter is something I have seen firsthand." — session 517e5e68, 2026-10-05
 
 ## Paired em dashes
 
@@ -42,3 +43,16 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Sentences and pu
 - "But then we factor in rent." — blog: Home Cost Comparison
 - "And for many other people, it's a great idea given the right timing and the right property." — blog: Rent vs Buy
 - In 5 of 5 posts.
+
+## The serial comma
+
+- Agent: "skills, reliability, trustworthiness and ingenuity" Developer: "skills, reliability, trustworthiness, and ingenuity" — session 517e5e68, 2026-10-05
+- Also "electrical work, and so on" and "around the Twin Cities, and across Minnesota".
+- "office technology, professional licenses, brand creation, and so on" — Assessment 4 - Code of Ethics and Business Conduct
+- No count was recorded; from a session.
+
+## A list that builds
+
+- Agent: "I trust him with my properties and my home." Developer: "I also trust Jesus in my rental units, around my tenants, and in my home." — session 517e5e68, 2026-10-05
+- Agent: "so that he can keep doing this work in Saint Paul." Developer: "on my properties and on other properties in Saint Paul, around the Twin Cities, and across Minnesota." — session 517e5e68, 2026-10-05
+- No count was recorded; from a session.

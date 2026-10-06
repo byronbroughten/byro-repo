@@ -25,7 +25,7 @@ One line per rule. The quoted instances and their sources are one file away. Ope
 - **Give the exact figure, then a rounded, human-scale equivalent, such as the cost per month.**
 - **Write numbers as numerals with $ and %, and ranges with a hyphen.**
 - **Make a caveat specific: say how far off, or in which range**, not just "may be inaccurate".
-- **Name a statistic's source in the same sentence ("according to Redfin", "per Bankrate"); formal citation is for academic work.**
+- **In a data-driven piece, name a statistic's source in the same sentence ("according to Redfin", "per Bankrate"); formal citation is for academic work, and a letter cites nothing.**
 - **Show what a choice is worth by changing one input in a baseline example and stating the dollar change per month.**
 
 ## Explaining
@@ -40,6 +40,8 @@ One line per rule. The quoted instances and their sources are one file away. Ope
 - **Put a cause-and-effect pair before the principle it supports.**
 - **Define a factor in one plain sentence, then say which way it moves the result ("A longer loan term means lower monthly payments").**
 - **Back a tip with a short first-person anecdote ("I was once quoted…"), in parentheses, with its real figures.**
+- **Back praise of a person or thing with what the writer relies on it for ("His reliable quotes are the basis on which I decide whether to invest").**
+- **Show a change with its before and after side by side, each described concretely ("the dingy, rundown space… into the warm, welcoming home").**
 
 ## Describing the product
 
@@ -55,13 +57,14 @@ One line per rule. The quoted instances and their sources are one file away. Ope
 - **Admit a weakness or limit in one flat clause**, often with "however" or a closing "though", or in a parenthetical.
 - **Weigh a point's upside and risk together ("On the one hand… On the other hand…").**
 - **Turn to a caveat or exception with "That said,", "Of course," or "Still,".**
+- **Let the specifics show a piece is trustworthy; never vouch for the piece itself ("Everything in this letter is firsthand").**
 - **When a figure is discouraging, reassure the reader and point to the fix ("don't despair just yet").**
 
 ## Structure and recommendations
 
 - **Open a piece with a striking figure or a blunt claim, then say in one sentence what the piece covers.**
 - **Right after the opening, say what the piece doesn't cover and where to find it.**
-- **Open a section with one sentence stating its claim, then support it.**
+- **Open a section with one sentence stating its claim at full strength ("I can say without a doubt…"), not a topic label ("His work is broad."), then support it.**
 - **State the recommendation early and flatly, then give the reasons.**
 - **Lay out each option's pros and cons, then eliminate options until the recommendation is left.**
 - **Advise the reader in the imperative, "you'll want to" or "we recommend"; advise a third party with "should" or "would do well to", never a passive "it is recommended".**
@@ -72,7 +75,9 @@ One line per rule. The quoted instances and their sources are one file away. Ope
 
 ## Sentences and punctuation
 
-- **Let explanatory sentences run long, then land the point with a short, blunt one.**
+- **Let explanatory sentences run long, then land the point with a short, blunt one, at most once a paragraph and never as its opener.**
+- **Use the serial comma ("reliability, trustworthiness, and ingenuity").**
+- **Order a list to build, ending on its weightiest item ("in my rental units, around my tenants, and in my home").**
 - **Use paired em dashes for a mid-sentence aside or example list when commas would confuse.**
 - **Put a colon after a verdict, then the explanation.**
 - **Give a punchline, consequence or comparison its own sentence, not a trailing em dash.**
@@ -84,6 +89,7 @@ One line per rule. The quoted instances and their sources are one file away. Ope
 
 - **Address the reader as "you", speak as "we", and guide with "let's"; name the product, and say "users" only when describing app users to someone else.**
 - **Use contractions ("isn't", "doesn't", "that's") in plain prose.**
-- **Prefer plain words to Latinate ones**, unless the Latinate word says the meaning more precisely.
+- **Prefer plain words to Latinate ones**; a formal piece, such as a sworn letter or academic work, keeps a Latinate word that says the meaning more precisely ("corroborates").
+- **Call the person a piece is about by name, not "he" or "him", in each paragraph's claim and key sentences**, so no reader wonders who is meant.
 - **Prefer everyday idioms, often slightly twisted ("blow out of the pond"), to neutral business phrasing.**
 - **Allow the occasional wry aside, in parentheses or between dashes.**

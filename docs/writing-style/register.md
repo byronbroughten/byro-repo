@@ -24,6 +24,7 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Person and regis
 - "Settle for a less expensive property." — blog: Costs of Owning a Home
 - Seen in 3 of 6. The reports lean Latinate ("corroborate" about 10 times, "salient", "attenuates"); the deck does not, and the deck wins. In 5 of 5 posts.
 - The developer ruled in review that plain words are the default, but a Latinate word stays when it says the intended meaning more precisely.
+- The developer kept "corroborates" in a sworn letter after the agent flagged it twice, and ruled (2026-10-05) that it is an excellent, precise word in formal pieces, such as a sworn letter or academic work, but not in blog posts for a general audience. — session 517e5e68, 2026-10-05
 
 ## Everyday idioms, slightly twisted
 
@@ -39,3 +40,10 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Person and regis
 - "the renter would make about $2,042.49 from investment income in the first year—hey, a free month's rent—" — blog: Is Buying a House a Good Investment?
 - "a sprawling garden, state of the art kitchen, or candy cane paint job" — blog: Rent vs Buy
 - In 5 of 5 posts.
+
+## The person's name, not a pronoun
+
+- Agent: "I trust him with my properties and my home." Developer: "I also trust Jesus in my rental units, around my tenants, and in my home." — session 517e5e68, 2026-10-05
+- Agent: "His work is broad." Developer: "I trust Jesus to help plan and complete renovation projects of all kinds" — session 517e5e68, 2026-10-05
+- Also "I relied completely on Jesus" and "Contractors with Jesus' range of skills". The developer's reason: no ambiguity about who is meant.
+- No count was recorded; from a session.

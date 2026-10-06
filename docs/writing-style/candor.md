@@ -34,3 +34,8 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Confidence and c
 - "But don't despair just yet. Now we'll consider which factors can be adjusted in order to lower those costs" — blog: Home Cost Comparison
 - "there is no shame in renting instead of owning, particularly if it just makes sense to rent given the rest of the context of your life" — blog: Rent vs Buy
 - In 3 of 5 posts.
+
+## No vouching for the piece
+
+- Agent: "Everything in this letter is something I have seen firsthand." Developer: struck. — session 517e5e68, 2026-10-05
+- No count was recorded; from a session.

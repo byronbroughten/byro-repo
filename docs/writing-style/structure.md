@@ -21,6 +21,7 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Structure and re
 - "Unlike the initial investment, monthly operating expenses can be substantial for PM companies." — Assessment 4 - Code of Ethics and Business Conduct
 - "Oftentimes renting is less work than owning." — blog: Rent vs Buy
 - Seen in 2 of 6. In 4 of 5 posts.
+- Agent: "Three jobs show the quality of that work." Developer: "I can say without a doubt that Jesus has more creativity and ingenuity than I have encountered in any other contractor." — session 517e5e68, 2026-10-05
 
 ## The recommendation first
 

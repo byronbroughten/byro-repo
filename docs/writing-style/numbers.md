@@ -44,6 +44,7 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Numbers and evid
 - "Given a typical starter home cost of $243,000, according to Redfin, that comes to $14,580." — blog: The Cost of Buying a House
 - "a 6% down payment per Bankrate" — blog: Is Buying a House a Good Investment?
 - In 5 of 5 posts.
+- The developer declined to cite a published source in a letter of support: "citing a source like that sounds too academic for this", and ruled that citing suits data-driven pieces, blog posts and academic papers, but not a letter. — session 517e5e68, 2026-10-05
 
 ## Change one input
 

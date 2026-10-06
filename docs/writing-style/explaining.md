@@ -62,3 +62,15 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Explaining". The
 - "lest you get stuck with a $20,000+ foundation repair job that you wouldn't have known about otherwise (which would have happened to me had I not hired an inspector)" — blog: The Cost of Buying a House
 - "rent for a 3BR unit in my neck of the woods (Minneapolis, MN) is around $1,900 per month" — blog: Home Cost Comparison
 - In 3 of 5 posts.
+
+## What the writer relies on it for
+
+- Agent: "He is honest about costs and keeps his word." Developer adds: "His reliable quotes are the basis on which I decide whether or not to invest in properties." — session 517e5e68, 2026-10-05
+- Also "I can count on him to complete the job by the time I need it" and "I relied completely on Jesus to explore what was feasible". The developer's reason: it makes the praise concrete.
+- No count was recorded; from a session.
+
+## Before and after
+
+- Agent: "much of the work preparing the unit I live in now." Developer: "turning the dingy, rundown space I purchased earlier this year into the warm, welcoming home I live in now." — session 517e5e68, 2026-10-05
+- Also "a washer and dryer in their own homes where families before did not". The developer's reason: it makes the change concrete.
+- No count was recorded; from a session.
