@@ -12,12 +12,12 @@ Checked against Opus 5.5, Sonnet 5.5 and Grok 4.7. Reviewed 2026-09-30.
 - **Sonnet high:** the Opus low shape (fully specified, an existing pattern, one package) when the ticket writes no prose or comment and chooses no names.
 - **Opus low:** fully specified, an existing pattern, one package. Examples: a chore, an endpoint on existing machinery, a migrate batch needing some judgment, a retarget needing new names.
 - **Opus medium:** any prose (a doc, an AGENTS.md edit, a comment), test restructuring, or choosing names or shapes inside a design the spec settles. Also the step up when an Opus low ticket has one soft spot.
-- **Opus high:** type-level framework work, both packages or the framework's public entry, a new deletion path, an open design fork, or a wide refactor's contract or integrate-and-verify ticket.
+- **Opus high:** type-level framework work, both packages or the framework's public entry, a new deletion path, an open design fork, or a wide refactor's contract or integrate-and-verify ticket. After a split, re-check each piece: most drop to medium.
 - **Grok 4.7 low:** a small batch of identical edits, or a rename or move following an exact stated pattern. The only Grok pair: no other Grok version or effort.
 
 ## Ticket size
 
-A bigger pair never fixes a ticket that won't fit one session: #8 and #17 were Opus high picks and still too large, and #21 needed fixes after nearly 200K. Split it instead ([`planning.md`](./planning.md#ticket-size)). The Peak context column below checks the ~100K budget.
+A bigger pair never fixes a ticket that won't fit one session: #8 and #17 were Opus high picks and still too large, and #21 needed fixes after nearly 200K. Split it instead ([`planning.md`](./planning.md#ticket-size)). The Peak context column below checks the ~150K budget. In the log as of 2026-10-08, tickets changing 3–10 files peaked at a median of ~147K and those changing 14–18 at ~212K, so the fixed reads weigh as much as the diff.
 
 ## Grok's rule
 
@@ -58,27 +58,27 @@ Research brief: "For each current model: API price, context window and release d
 
 ## Outcome log
 
-One row per landed issue, added by the landing wrap-up; keep the most recent ~20. Pass means merged without a style or scope fix. Peak context is the highest `/context` the implementing session reached.
+One row per landed issue, added by the landing wrap-up; keep the most recent ~20. Pass means merged without a style or scope fix. Peak context is the highest `/context` the implementing session reached; Files changed is from `git diff --stat` against master.
 
-| Issue | Pair | Peak context | Result | What review caught |
-| --- | --- | --- | --- | --- |
-| #124 | Opus medium | 147K | Pass | — |
-| #122 | Opus medium | 127K | Pass | — |
-| #121 | Opus medium | 231K | Fix | A little cleanup was needed |
-| #88 | Opus high | 315K | Pass | — |
-| #108 | Opus high | unrecorded | Pass | — |
-| #77 | Opus medium | 146K | Pass | — |
-| #96 | Opus medium | 119K | Pass | — |
-| #95 | Opus medium | 165K | Pass | — |
-| #94 | Opus medium | 154K | Pass | — |
-| #123 | Opus medium | 135K | Pass | — |
-| #76 | Opus high | 253K | Pass | — |
-| #120 | Opus medium | 115K | Pass | — |
-| #75 | Opus high | 194K | Pass | — |
-| #93 | Opus medium | 149K | Pass | — |
-| #74 | Opus medium | 234K | Pass | — |
-| #92 | Opus medium | 147K | Pass | — |
-| #73 | Opus high | 200K | Pass | — |
-| #72 | Opus high | 212K | Pass | — |
-| #90 | Opus high | 172K | Pass | — |
-| #91 | Sonnet medium | 66K | Pass | — |
+| Issue | Pair | Files changed | Peak context | Result | What review caught |
+| --- | --- | --- | --- | --- | --- |
+| #127 | Opus medium | 10 | 70K | Pass | — |
+| #124 | Opus medium | 14 | 147K | Pass | — |
+| #122 | Opus medium | 5 | 127K | Pass | — |
+| #121 | Opus medium | 17 | 231K | Fix | A little cleanup was needed |
+| #88 | Opus high | 206 | 315K | Pass | — |
+| #108 | Opus high | unrecorded | unrecorded | Pass | — |
+| #77 | Opus medium | 13 | 146K | Pass | — |
+| #96 | Opus medium | 9 | 119K | Pass | — |
+| #95 | Opus medium | 14 | 165K | Pass | — |
+| #94 | Opus medium | 8 | 154K | Pass | — |
+| #123 | Opus medium | 9 | 135K | Pass | — |
+| #76 | Opus high | 18 | 253K | Pass | — |
+| #120 | Opus medium | 3 | 115K | Pass | — |
+| #75 | Opus high | 6 | 194K | Pass | — |
+| #93 | Opus medium | 5 | 149K | Pass | — |
+| #74 | Opus medium | 15 | 234K | Pass | — |
+| #92 | Opus medium | 10 | 147K | Pass | — |
+| #73 | Opus high | 16 | 200K | Pass | — |
+| #72 | Opus high | 16 | 212K | Pass | — |
+| #90 | Opus high | 7 | 172K | Pass | — |

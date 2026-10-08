@@ -14,9 +14,12 @@
 
 ## Ticket size
 
-- **Size each ticket so one session finishes it without `/context` going much over ~100K.** About 40K is fixed overhead before the first prompt, so the ticket gets about 60K, its required doc reads included.
-- **Estimate from** the files and lines it reads, the docs the read-by-task table requires, the `tsc` and test loops it expects, and whether it touches both packages.
-- **Split an over-budget ticket at a seam where each piece leaves `tsc` and tests green**; each split pays the fixed overhead again. A bigger pair never fixes size ([`model-fit.md`](./model-fit.md#ticket-size)).
+- **Size each ticket so one session finishes it without `/context` going much over ~150K; prefer 110–125K when a green seam makes that easy.** About 40K is fixed overhead before the first prompt.
+- **Estimate from** the files it changes first: grep the names each draft ticket renames or retypes and count the files. Then add the files it reads, the docs the read-by-task table requires, its `tsc` and test loops, and whether it touches both packages.
+- **Split a ticket that changes more than ~10 files**, and any other over-budget ticket, at a seam where each piece leaves `tsc` and tests green; each split pays the fixed overhead again. A bigger pair never fixes size ([`model-fit.md`](./model-fit.md#ticket-size)).
+- **A rename or retype across more than ~10 files is a wide refactor**: sequence it expand–migrate–contract as `/to-tickets` describes, with a pure rename as its own mechanical ticket.
+- **Make each ticket self-contained**: quote the spec rules it depends on, name the symbols it touches, and tell the implementer to open the parent spec only when a criterion is ambiguous. No file paths, per the skill.
+- **An over-budget ticket with no green seam splits into two sessions**: one explores and posts a handoff ([Handoffs](#handoffs)), and a fresh session implements from it.
 
 ## Model fit
 
@@ -29,4 +32,4 @@
 
 ## Handoffs
 
-Write a handoff when a diagnosis finishes in a session near the ticket budget, or one that got a read-count nudge, and do it before implementing. It holds the conclusion, the files and line ranges to open, and the hypotheses already ruled out. Post it as a comment on the issue, or save it as a file if there is no issue, then recommend a fresh session. A small diagnosis in a lean session needs no handoff.
+Write a handoff when a diagnosis finishes in a session near the ticket budget, or one that got a read-count nudge, or when an exploration session for an unsplittable ticket finishes, and do it before implementing. It holds the conclusion, the files and line ranges to open, and the hypotheses already ruled out. Post it as a comment on the issue, or save it as a file if there is no issue, then recommend a fresh session. A small diagnosis in a lean session needs no handoff.
