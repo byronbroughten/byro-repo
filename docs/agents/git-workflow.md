@@ -7,12 +7,13 @@
   ````
   Wrap up issue-<n>-<slug> (#<n>), in this order, stopping at the first failure and reporting it:
   1. Confirm the working tree is clean and the branch's work is committed.
-  2. Model-fit log: ask me which model and effort pair implemented it, its peak `/context`, and yes or no: did /code-review flag anything that I then had fixed? Count Files changed with `git diff --stat master...<branch>`. Add the row to the outcome log in `docs/agents/model-fit.md`, trim it to the latest ~20, and commit on this branch.
+  2. Model-fit answers: ask me which model and effort pair implemented it, its peak `/context`, and yes or no: did /code-review flag anything that I then had fixed? Count Files changed with `git diff --stat master...<branch>` now, before the merge empties it.
   3. Merge the branch into master with a merge commit titled "Merge issue-<n>-<slug> into master (#<n>)", then run `npm run tsc`, `npm test` and `npm run lint`.
-  4. Push master.
-  5. `gh issue close -R <owner/repo> <n> --comment "<what landed, one or two sentences, plus any box left undone>"`.
-  6. Only after steps 4 and 5 succeed, delete the branch locally and on the remote if it exists.
-  This message is the developer's yes to merge, push, close and delete for this branch and issue only.
+  4. On master, add the row to the outcome log in `docs/agents/model-fit.md`, trim it to the latest ~20, and commit it as "Record the #<n> outcome: <pair>, <files> files, <peak>, <first-try pass or fixed after review>."
+  5. Push master.
+  6. `gh issue close -R <owner/repo> <n> --comment "<what landed, one or two sentences, plus any box left undone>"`.
+  7. Only after steps 5 and 6 succeed, delete the branch locally and on the remote if it exists.
+  This message is the developer's yes to merge, commit the log row on master, push, close and delete for this branch and issue only.
   ````
 
   Add a line above the block if the checks were not all green or a box in the issue is undone, so the developer sees it before handing the prompt on.
