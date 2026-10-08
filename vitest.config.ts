@@ -2,6 +2,8 @@ import { defineConfig } from "vitest/config";
 
 // The framework runs its own tests from its vitest.config.ts; the root's `npm test` reaches it through the workspaces.
 export default defineConfig({
+  // Tests run in Vite's server environment, so the source condition goes on ssr.
+  ssr: { resolve: { conditions: ["source"] } },
   test: {
     environment: "node",
     restoreMocks: true,
