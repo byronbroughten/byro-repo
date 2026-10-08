@@ -44,7 +44,7 @@ Ask "would this make sense in a different Sheets-backed app?" Yes: the framework
 
 ## Use the glossary's vocabulary
 
-The architecture words (Raw, Identified, Named, Meta / primary, Operator) are [`docs/vocabulary.md`](../../packages/framework/docs/vocabulary.md)'s, not the glossary's.
+The architecture words (Raw, Identified, Named, profile, Operator) are [`docs/vocabulary.md`](../../packages/framework/docs/vocabulary.md)'s, not the glossary's.
 
 When your output names a domain concept (in an issue title, a refactor proposal, a hypothesis, a test name), use the term as defined in the `CONTEXT.md` that owns it, per `CONTEXT-MAP.md`. Don't drift to synonyms the glossary explicitly avoids.
 

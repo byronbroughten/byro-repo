@@ -13,4 +13,4 @@ Three contexts, one per package, each with its own `CONTEXT.md` glossary. Read t
 - **The app refines the framework's terms, never redefines them.** It links to a framework term where it leans on one, and lists the words the two use differently under its "Same word, two meanings".
 - **The framework names nothing from the app.** A term every Sheets-backed app would want goes in the framework's glossary; a real-estate term goes in the app's.
 - **Writing shares no terms with the two Sheets contexts.** Its glossary links neither of theirs, and neither links it.
-- **Architecture words are neither Sheets glossary's**: Raw, Identified, Named, Meta and Operator are the framework's [`docs/vocabulary.md`](./packages/framework/docs/vocabulary.md).
+- **Architecture words are neither Sheets glossary's**: Raw, Identified, Named, profile and Operator are the framework's [`docs/vocabulary.md`](./packages/framework/docs/vocabulary.md).

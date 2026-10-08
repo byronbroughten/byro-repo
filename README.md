@@ -29,7 +29,7 @@ Each numbered folder under the framework's `src/` is a dependency tier, and depe
 | `05_Operators` | Classes that add methods for one data structure, including regenerating the configs |
 | `06_API` | Routing a sheet edit to the endpoint registered for its column |
 
-The app imports the framework only through its public entry. The precise words for all of this (Raw, Identified, Named, Meta and primary) are defined in [`vocabulary.md`](https://github.com/byronbroughten/sheets-framework/blob/master/docs/vocabulary.md).
+The app imports the framework only through its public entry. The precise words for all of this (Raw, Identified, Named and profile) are defined in [`vocabulary.md`](https://github.com/byronbroughten/sheets-framework/blob/master/docs/vocabulary.md).
 
 ## Two spreadsheets
 
