@@ -6,7 +6,11 @@
   "editor.formatOnSave": true,
   "search.useIgnoreFiles": false,
   "git.autoRepositoryDetection": true,
-  "git.scanRepositories": ["packages/framework", "packages/real-estate"],
+  "git.scanRepositories": [
+    "packages/framework",
+    "packages/real-estate",
+    "packages/utils"
+  ],
   "search.exclude": {
     "**/node_modules": true,
     "**/dist": true,
