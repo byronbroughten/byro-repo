@@ -10,10 +10,11 @@ An npm-workspaces root for managing real estate operations — properties, units
 | --- | --- |
 | [`sheets-framework`](https://github.com/byronbroughten/sheets-framework) (`@byronbroughten/sheets-framework`), cloned into `packages/framework` | A project-agnostic framework for typed apps on Google Sheets + Apps Script: the numbered tiers from raw cell I/O up to endpoint dispatch, the Node and Apps Script hosts, and the `sheets-framework` bin. It names nothing from real estate, and it is tested against its own dev spreadsheet, `Sheets Framework Dev`. |
 | [`sheets-real-estate`](https://github.com/byronbroughten/sheets-real-estate) (`sheets-real-estate`), cloned into `packages/real-estate` | This project: the real-estate endpoints and chores, bundled with the framework's source and pushed to the business spreadsheet's Apps Script project. |
+| [`utils`](https://github.com/byronbroughten/utils) (`@byronbroughten/utils`), cloned into `packages/utils` | Domain-free TypeScript utilities, one import subpath per module: `Arr`, `Obj`, `Str`, `Val`, `lazy`, and `SerialDate` and `SerialDateTime` for dates as Sheets serials. The framework and the app both depend on it. |
 | `writing`, a private repo cloned into `packages/writing` | Specs for reader-facing prose, filed as issues. The text itself lives in Google Docs. Its repo is private, so it has no public link. |
 | [`config`](./config/README.md) (`@byronbroughten/config`) | The general tooling the packages share: an ESLint flat-config preset, the prettier config and a base tsconfig. The framework layers its tier and Sheets rules on it in its own `eslint.config.mjs`, and exports the app's as a preset. |
 
-Before adding a file, ask "would this make sense in a completely different Sheets-backed app?" If yes, it belongs in `packages/framework`, generically named. If no, it belongs in `packages/real-estate`. A piece of writing for a reader goes in `packages/writing`.
+Before adding a file, ask "would this make sense in a TypeScript project with no Sheets at all?" If yes, it belongs in `packages/utils`. If not, ask "would this make sense in a completely different Sheets-backed app?" If yes, it belongs in `packages/framework`, generically named. If no, it belongs in `packages/real-estate`. A piece of writing for a reader goes in `packages/writing`.
 
 ## Architecture: the numbered tiers
 
