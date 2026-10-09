@@ -19,7 +19,7 @@ The input is an issue in `byronbroughten/writing`. Fetch it with `gh issue view 
 Run `gh api repos/byronbroughten/writing/issues/<n>/parent`; a 404 means no parent. Fetch a parent when there is one, since its facts join the fact list. Then set the **scope**:
 
 - **Sections**: the issue has a parent and is not the final pass. The scope is the Sections it names, matched by their exact heading text in the Deliverable.
-- **Whole**: the issue has no parent, or its body says it is the final pass. The scope is the whole Deliverable.
+- **Whole**: the issue has no parent, or it carries the `final-pass` label. The scope is the whole Deliverable.
 
 Done when the title is stated, the scope is one of the two, and for Sections every named heading is found in the Deliverable. A heading that isn't found fails here, before any sub-agent runs.
 
@@ -28,19 +28,19 @@ Done when the title is stated, the scope is one of the two, and for Sections eve
 Write each to its own file in the scratchpad, so each sub-agent gets only its own files:
 
 - **Deliverable**: the Google Doc the spec names, read now as Markdown with the gworkspace tools.
-- **Reader**: the spec's description of who the Piece is for, verbatim, and nothing else.
-- **Fact list**: the closed list the implementer had: the issue's facts, the parent's facts, and any verified source list a Research issue produced and the spec links.
+- **Reader**: the spec's Reader field, verbatim, and nothing else. With no Reader field, use the spec's lines on who the Piece is for and mark them a stand-in.
+- **Fact list**: the closed list the implementer had: the issue's facts, the parent's facts, any verified source list a Research issue produced and the spec links, and any of the developer's own text the spec names as given.
 - **Length limit**: the spec's, verbatim.
-- **References**: each Reference's text, read from Drive by the file ID the spec lists.
+- **References**: each Reference's text, read from Drive by the file ID the spec lists. For one too long to read whole, read the passages the spec lists by page range; with none listed, use the passages a Research issue quoted.
 - **Style**: the spec's Evidence and Formality values, whether the Piece is Academic, and its style overrides, verbatim.
 
-Done when every file exists, or the spec has no such field and you say so. A missing Drive ID or Reference is asked for, never guessed.
+Done when every file exists, or the spec has no such field and you say so. A missing Drive ID or Reference is asked for, never guessed. Note each **gap**: an input that is missing, a stand-in, or only partly loaded.
 
 ## 3. Spawn the three sub-agents in parallel
 
 Issue all three Agent calls together, in the foreground. Each prompt names the scope: the Section headings or "the whole Deliverable".
 
-**Spec** sub-agent, `model: "sonnet"`. Its prompt gives the Deliverable, fact list, length limit and References files, points at done checks 1, 2 and 4 in `packages/writing/AGENTS.md`, and the brief: "For the in-scope text only, report every factual claim that doesn't trace to the fact list and every sentence reused from a Reference. Report whether the whole Deliverable meets the length limit. Quote the spec line or the Reference sentence for each finding. Label every finding hard. Under 400 words."
+**Spec** sub-agent, `model: "sonnet"`. Its prompt gives the Deliverable, fact list, length limit and References files, points at done checks 1, 2 and 4 in `packages/writing/AGENTS.md`, and the brief: "For the in-scope text only, report every factual claim that doesn't trace to the fact list and every sentence reused from a Reference. Report whether the whole Deliverable meets the length limit. Quote the spec line or the Reference sentence for each finding. Label hard only a claim missing from the fact list, a reused sentence or a missed length limit; label how the text describes a source (overstated, narrowed, misattributed) a judgement call. Under 400 words."
 
 **Style** sub-agent, the session's model. Its prompt gives the Deliverable and Style files, points at the "Voice" rule under "Implementing a piece spec" in `packages/writing/AGENTS.md`, plus `docs/academic-writing-style.md` for an Academic Piece, and the brief: "For the in-scope text only, report every place it breaks `docs/writing-style.md`'s rules, read in full and applied with the rules tagged for these Evidence and Formality values, or the spec's overrides, which win where they conflict. Cite the rule for each finding and quote the sentence. Every finding is a judgement call. Under 400 words."
 
@@ -48,6 +48,6 @@ Issue all three Agent calls together, in the foreground. Each prompt names the s
 
 ## 4. Aggregate
 
-Present the three reports under `## Spec`, `## Style` and `## Reader`, verbatim or lightly cleaned. Keep the axes unmerged and unranked: one axis's findings must never bury another's.
+Present the three reports under `## Spec`, `## Style` and `## Reader`, verbatim or lightly cleaned. Open each with that axis's gaps from step 2 and the check each one weakened. Keep the axes unmerged and unranked: one axis's findings must never bury another's.
 
 End with one line per axis: its finding count and its worst finding. Pick no winner across axes.

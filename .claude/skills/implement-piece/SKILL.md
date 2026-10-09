@@ -14,8 +14,8 @@ Once drafted, read [`.claude/skills/review-piece/SKILL.md`](../review-piece/SKIL
 
 Then:
 
-- **Fix every Spec finding**, each one hard, in the Deliverable, under the spec's standing yes. Without one, ask before writing.
-- **Report the Style and Reader findings to the developer, unfixed.** They are judgement calls, and the developer's own edits are what `/to-writing-style` learns from.
+- **Fix every hard Spec finding** in the Deliverable, under the spec's standing yes. Without one, ask before writing.
+- **Report the Spec judgement calls and the Style and Reader findings to the developer, unfixed.** They are judgement calls, and the developer's own edits are what `/to-writing-style` learns from.
 
 Done when no hard finding is left, or each one left is reported with why.
 
