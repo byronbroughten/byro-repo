@@ -18,6 +18,7 @@
   ````
 
   Add a line above the block if the checks were not all green or a box in the issue is undone, so the developer sees it before handing the prompt on.
+- **A piece spec with no branch wraps up per `packages/writing/docs/wrap-up.md`** instead of the prompt above.
 - **Each clone under `packages/` is its own repo; its branches and commits go there, not to the root.** Run git for it with `git -C packages/<name>`, and read a branch's `<n>` against the repo that branch lives in.
 - **A change that spans repos is one commit per repo**, each on a branch in its own repo. They share the one wrap-up prompt, and a repo lands before any repo that depends on it, so a fresh workspace never pulls a dependent's half without its dependency's: a clone before the root, and a breaking change to the framework's public entry before the app's fix. Commit messages get no package prefix.
 - **A `backup/*` branch is single-session scaffolding.** Take one before a history rewrite, retire it once the rewrite is verified, and say so. If a stale one exists, report it with its ahead/behind counts before starting other git work.

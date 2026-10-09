@@ -58,7 +58,7 @@ Research brief: "For each current model: API price, context window and release d
 
 ## Outcome log
 
-One row per landed issue, added by the landing wrap-up; keep the most recent ~20. Pass means merged without a style or scope fix. Peak context is the highest `/context` the implementing session reached; Files changed is from `git diff --stat` against master.
+One row per landed code issue, added by the landing wrap-up; piece specs log in `packages/writing/docs/model-fit.md`. Keep the most recent ~20. Pass means merged without a style or scope fix. Peak context is the highest `/context` the implementing session reached; Files changed is from `git diff --stat` against master.
 
 | Issue | Pair | Files changed | Peak context | Result | What review caught |
 | --- | --- | --- | --- | --- | --- |
