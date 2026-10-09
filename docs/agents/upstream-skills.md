@@ -14,8 +14,8 @@ Each upstream path has one entry with a `status`:
 - `reference-only`: tracked for its upstream changes, never copied, so it costs no context.
 - `declined`: not taken, with a one-line `reason`.
 
-`notes` holds each deliberate divergence of the copy. A fork into a new skill of this repo's own names it in `derivedInto`.
+`notes` holds each deliberate divergence of the copy. `derivedInto` lists the forks: skills of this repo's own copied from this path under new names. The report names a changed path's forks, so each one gets a verdict on whether to take the same change. A sync never copies upstream over a fork.
 
 ## Editing a vendored skill
 
-Record every edit to a vendored copy as a divergence in its `notes`, worded so the next sync can reapply it. An unrecorded edit is lost when the copy is next replaced from upstream. A change big enough to make the skill this repo's own is a fork: copy it under a new name and set `derivedInto`.
+Record every edit to a vendored copy as a divergence in its `notes`, worded so the next sync can reapply it. An unrecorded edit is lost when the copy is next replaced from upstream. A change big enough to make the skill this repo's own is a fork: copy it under a new name and add that name to the path's `derivedInto`.

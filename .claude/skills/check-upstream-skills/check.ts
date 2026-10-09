@@ -5,13 +5,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-interface PathEntry {
-  status: "vendored" | "reference-only" | "declined";
-  syncedSha?: string;
-  reason?: string;
-  derivedInto?: string;
-  notes?: string;
-}
+import { type PathEntry, trackedChangeSummary } from "./trackedChangeSummary.ts";
 
 interface Source {
   repo: string;
@@ -102,7 +96,7 @@ function trackedChanges(clone: string, source: Source, head: string): TrackedCha
     const stat = git(clone, "diff", "--shortstat", syncedSha, head, "--", path) || "no content change";
     return [
       {
-        summary: `${entry.status.padEnd(14)} ${path}: ${commits.length} commit(s), ${stat}`,
+        summary: trackedChangeSummary({ path, entry, commitCount: commits.length, stat }),
         patch: git(clone, "diff", syncedSha, head, "--", path),
       },
     ];

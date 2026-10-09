@@ -38,7 +38,10 @@
         "skills/engineering/code-review": {
           "status": "vendored",
           "syncedSha": "49dd158d1076134a641b33efb035946536778336",
-          "notes": "Divergence: the /setup-matt-pocock-skills fallback points at docs/agents/issue-tracker.md instead."
+          "notes": "Divergence: the /setup-matt-pocock-skills fallback points at docs/agents/issue-tracker.md instead.",
+          "derivedInto": [
+            "review-piece"
+          ]
         },
         "skills/engineering/domain-modeling": {
           "status": "vendored",
@@ -50,7 +53,10 @@
         },
         "skills/engineering/implement": {
           "status": "vendored",
-          "syncedSha": "49dd158d1076134a641b33efb035946536778336"
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336",
+          "derivedInto": [
+            "implement-piece"
+          ]
         },
         "skills/engineering/pr": {
           "status": "vendored",
