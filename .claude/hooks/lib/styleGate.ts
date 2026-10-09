@@ -1,11 +1,11 @@
-// Decides the style gate: an edit to a file ESLint lints waits for a full Read of config/docs/code-style.md this session. Pure; styleGate.ts does the I/O.
-import { sep } from "node:path";
+// Decides the style gate: an edit to a file ESLint lints waits for a full read of config/docs/code-style.md this session. Pure; styleGate.ts does the I/O.
+import { join, sep } from "node:path";
 
 import { type FileLocation, isInLintSet, projectRelative } from "./lintSet.ts";
 
 export const styleGateReason =
   "Read config/docs/code-style.md before your first code edit this session, then retry. " +
-  "Use a full Read with no offset or limit (a partial Read or a Bash read isn't recorded), and skip config/docs/code-style/ unless a rule's line doesn't decide your case. Framework or app code also follows packages/framework/docs/code-style.md.";
+  "Use a full Read with no offset or limit (a partial read isn't recorded; a whole-file `cat` counts), and skip config/docs/code-style/ unless a rule's line doesn't decide your case. Framework or app code also follows packages/framework/docs/code-style.md.";
 export const stylePath = ["config", "docs", "code-style.md"].join(sep);
 export const frameworkStylePath = ["packages", "framework", "docs", "code-style.md"].join(sep);
 const frameworkOrAppRoots = ["framework", "real-estate"].map((packageName) => ["packages", packageName].join(sep) + sep);
@@ -70,6 +70,11 @@ function missingStyleDocs(relativePath: string, reads: RecordedStyleReads): stri
 
 export function isStyleRead(read: StyleRead): boolean {
   return isFullDocRead(read, stylePath);
+}
+
+// wholeFilePaths are absolute, as BashReads.wholeFilePaths returns them.
+export function isStyleBashRead(projectDir: string, wholeFilePaths: string[]): boolean {
+  return wholeFilePaths.includes(join(projectDir, stylePath));
 }
 
 export function isFullDocRead(

@@ -91,7 +91,7 @@
         "skills/engineering/to-tickets": {
           "status": "vendored",
           "syncedSha": "49dd158d1076134a641b33efb035946536778336",
-          "notes": "Divergence: the /setup-matt-pocock-skills fallback points at docs/agents/issue-tracker.md instead."
+          "notes": "Divergence: the /setup-matt-pocock-skills fallback points at docs/agents/issue-tracker.md instead. Divergence: the slice rule \"sized to fit in a single fresh context window\" reads \"changes at most ~10 files, counted by grepping the names it changes\" with a link to docs/agents/planning.md#ticket-size."
         },
         "skills/engineering/wayfinder": {
           "status": "vendored",

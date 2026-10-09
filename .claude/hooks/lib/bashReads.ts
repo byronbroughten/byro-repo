@@ -45,6 +45,13 @@ interface FileRead {
   span?: number;
 }
 
+interface SegmentRead {
+  name: string;
+  read: FileRead;
+  paths: string[];
+  isPipedOn: boolean;
+}
+
 interface Token {
   type: "word" | "redirect" | "op";
   value: string;
@@ -71,25 +78,40 @@ export class BashReads {
   }
   // Throws on a command it cannot parse; callers treat that as "allow, not a read".
   classify(): Classification {
-    let cwd = this.cwd;
     let isRead = false;
-    for (const segment of segmentsOf(tokenize(stripHeredocBodies(this.command)))) {
-      const [first, ...args] = commandWords(segment.words);
-      if (first === undefined) continue;
-      const name = basename(first);
-      if (name === "cd") {
-        if (args[0]) cwd = resolve(cwd, expandHome(args[0]));
-        continue;
-      }
-      const read = readOf(name, args, segment);
-      if (!read) continue;
+    for (const { name, read, paths } of this._segmentReads()) {
       isRead = true;
-      for (const file of [...read.files, ...segment.inputFiles]) {
-        const denyReason = this._denyReasonFor(name, read, resolve(cwd, expandHome(file)));
+      for (const path of paths) {
+        const denyReason = this._denyReasonFor(name, read, path);
         if (denyReason) return { isRead, denyReason };
       }
     }
     return { isRead, denyReason: undefined };
+  }
+  // Absolute paths printed in full: a whole-file command whose output no pipe trims. Throws as classify does.
+  wholeFilePaths(): string[] {
+    return this._segmentReads()
+      .filter(({ name, read, isPipedOn }) => commandNames.wholeFile.has(name) && read.kind === "whole" && !isPipedOn)
+      .flatMap(({ paths }) => paths);
+  }
+  _segmentReads(): SegmentRead[] {
+    let cwd = this.cwd;
+    const reads: SegmentRead[] = [];
+    const segments = segmentsOf(tokenize(stripHeredocBodies(this.command)));
+    segments.forEach((segment, index) => {
+      const [first, ...args] = commandWords(segment.words);
+      if (first === undefined) return;
+      const name = basename(first);
+      if (name === "cd") {
+        if (args[0]) cwd = resolve(cwd, expandHome(args[0]));
+        return;
+      }
+      const read = readOf(name, args, segment);
+      if (!read) return;
+      const paths = [...read.files, ...segment.inputFiles].map((file) => resolve(cwd, expandHome(file)));
+      reads.push({ name, read, paths, isPipedOn: segments[index + 1]?.isPiped ?? false });
+    });
+    return reads;
   }
   _denyReasonFor(name: string, read: FileRead, path: string): string | undefined {
     if (read.kind === "search") return undefined;

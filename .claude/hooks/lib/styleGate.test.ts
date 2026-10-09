@@ -9,6 +9,7 @@ import {
   frameworkStylePath,
   isFullDocRead,
   isPostToolUse,
+  isStyleBashRead,
   isStyleRead,
   styleGateReason,
 } from "./styleGate.ts";
@@ -192,5 +193,15 @@ describe("cursor tool input", () => {
     expect(cursorReadBounds({ offset: 1, limit: 40 })).toEqual({ offset: 1, limit: 40 });
     expect(cursorReadBounds({ offset: "1" })).toBeUndefined();
     expect(cursorReadBounds(undefined)).toEqual({});
+  });
+});
+
+describe("isStyleBashRead", () => {
+  it("counts a whole-file read of config/docs/code-style.md", () => {
+    expect(isStyleBashRead(projectDir, ["/repo/packages/framework/src/AGENTS.md", "/repo/config/docs/code-style.md"])).toBe(true);
+  });
+
+  it("ignores a read of any other doc", () => {
+    expect(isStyleBashRead(projectDir, ["/repo/packages/framework/docs/code-style.md"])).toBe(false);
   });
 });

@@ -64,3 +64,25 @@ describe("BashReads columnConfigs", () => {
     expect(denyReasonOf(projectDir, "sed -n '1,40p' packages/framework/dev/generated/columnConfigs.ts")).toBeUndefined();
   });
 });
+
+describe("BashReads.wholeFilePaths", () => {
+  function wholeFilePathsOf(command: string, cwd = "/repo"): string[] {
+    return BashReads.init({ command, cwd }).wholeFilePaths();
+  }
+
+  it("lists every file a cat prints, resolved from the working directory", () => {
+    expect(wholeFilePathsOf("cat a.md docs/b.md")).toEqual(["/repo/a.md", "/repo/docs/b.md"]);
+  });
+
+  it("follows a cd earlier in the command", () => {
+    expect(wholeFilePathsOf("cd /repo/config && cat docs/code-style.md")).toEqual(["/repo/config/docs/code-style.md"]);
+  });
+
+  it("leaves out a cat whose output a pipe trims", () => {
+    expect(wholeFilePathsOf("cat a.md | head -5")).toEqual([]);
+  });
+
+  it("leaves out ranges and filters", () => {
+    expect(wholeFilePathsOf("sed -n 1,20p a.md; grep x a.md; head -5 a.md")).toEqual([]);
+  });
+});
