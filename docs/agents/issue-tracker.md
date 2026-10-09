@@ -8,6 +8,7 @@ Issues and specs live as GitHub issues, in the repo of the package they concern.
 | --- | --- |
 | `packages/framework` (framework code and docs) | `byronbroughten/sheets-framework` |
 | `packages/real-estate` (the app) | `byronbroughten/sheets-real-estate` |
+| `packages/utils` (domain-free utilities) | `byronbroughten/utils` |
 | A Piece of reader-facing prose (`packages/writing`) | `byronbroughten/writing` |
 | The root: tooling, `config/`, hooks, agent docs, CI | `ByronBroughten/byro-repo` |
 
