@@ -68,6 +68,14 @@ The same as the framework's: its docs ship with its repo, so they link only insi
 | `src/businessEndpoints/` and `src/chores/` `AGENTS.md` | That folder's rules, kept short, each with a `CLAUDE.md` beside it. The chore gates for `app:chore` live in `src/chores/`. |
 | `README.md` | A short derived view: what the app is, how it builds, its folders, its `app:*` commands (table below). |
 
+### Utils (`packages/utils/`, its own repo)
+
+| File | Holds |
+| --- | --- |
+| `CLAUDE.md` | The restart-at-root notice, plus `@AGENTS.md`. |
+| `AGENTS.md` | How a utility is written: bundle names, where a utility type lives, `for…in`, and the structural-cast escape hatch. |
+| `README.md` | What the package is, install, and the subpath imports. A derived view of its `package.json`. |
+
 ### Writing (`packages/writing/`, its own repo)
 
 A private repo holding piece specs as issues; the Pieces' text lives in their Google Docs, never here. Its docs link only inside it (its own lint) and name a root doc in plain text.
