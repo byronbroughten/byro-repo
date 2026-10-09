@@ -1,6 +1,6 @@
 {
   "name": "@byronbroughten/config",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "General tooling for TypeScript projects: an ESLint flat-config preset, the prettier config, a base tsconfig and a doc linter.",
   "type": "module",
   "license": "ISC",
