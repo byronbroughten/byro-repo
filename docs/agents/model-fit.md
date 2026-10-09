@@ -62,7 +62,6 @@ One row per landed code issue, added by the landing wrap-up; piece specs log in 
 
 | Issue | Pair | Files changed | Peak context | Result | What review caught |
 | --- | --- | --- | --- | --- | --- |
-| #141 | Opus medium | 5 | 140K | Pass | — |
 | #140 | Opus high | 9 | 142K | Pass | — |
 | #139 | Opus medium | 9 | 150K | Pass | — |
 | #138 | Claude medium | 15 | 180K | Pass | — |
@@ -82,3 +81,4 @@ One row per landed code issue, added by the landing wrap-up; piece specs log in 
 | #178 | Opus medium | 24 | 126K | Pass | — |
 | #130 | Opus medium | 3 | 134K | Pass | — |
 | #128 | Opus medium | 4 | 67K | Pass | — |
+| #185 | Opus medium | 9 | 135K | Pass | — |
