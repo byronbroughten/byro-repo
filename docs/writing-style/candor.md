@@ -39,3 +39,11 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Confidence and c
 
 - Agent: "Everything in this letter is something I have seen firsthand." Developer: struck. — session 517e5e68, 2026-10-05
 - No count was recorded; from a session.
+
+## No talking up importance
+
+- Agent: "The target of 10 is deliberate: Fannie Mae (2026) caps a single borrower at 10 financed properties" Developer: "The target of 10 was chosen because Fannie Mae (2026) caps a single borrower at 10 financed properties" — session 28fd4b54, 2026-10-08
+- Agent: "beyond which conventional financing becomes markedly harder and more costly to obtain" Developer: "beyond which conventional financing becomes more difficult and costly to obtain" — session 28fd4b54, 2026-10-08
+- Agent: "This charter therefore authorizes the first step of that plan" Developer: "This charter authorizes the first step of that plan" — session 28fd4b54, 2026-10-08
+- "The things I edited felt too ai-ey… I generally prefer to talk plainly rather than trump up something's importance." — developer, session 28fd4b54, 2026-10-08
+- No count was recorded; from a session.

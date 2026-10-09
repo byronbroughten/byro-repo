@@ -18,6 +18,7 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Sentences and pu
 
 - "Paylocity is largely undiversified and from a corporate standpoint is a dominant business: its main driver of profit comes from the offerings of Paylocity itself" — Paylocity - Strategic Analysis and Recommendations.pptx
 - "So here's what it boils down to: assuming you can afford to buy a house, would you net less cash lost in the short-term and more gained in the long-term" — blog: Is Buying a House a Good Investment?
+- Agent: "The target of 10 is deliberate: Fannie Mae (2026) caps…" Developer: "The target of 10 was chosen because Fannie Mae (2026) caps…" — session 28fd4b54, 2026-10-08
 - Seen in 1 of 6. In 2 of 5 posts.
 
 ## "etc." and "and so on"

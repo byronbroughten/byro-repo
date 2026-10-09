@@ -68,6 +68,7 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - **Weigh a point's upside and risk together ("On the one hand… On the other hand…").**
 - **Turn to a caveat or exception with "That said,", "Of course," or "Still,".**
 - **Let the specifics show a piece is trustworthy; never vouch for the piece itself ("Everything in this letter is firsthand").**
+- **State a point plainly; never talk up its importance with an intensifier ("markedly"), a label that announces it ("is deliberate:") or a "therefore" the logic already carries.**
 - `general` **When a figure is discouraging, reassure the reader and point to the fix ("don't despair just yet").**
 
 ## Structure and recommendations
@@ -89,7 +90,7 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - **Use the serial comma ("reliability, trustworthiness, and ingenuity").**
 - **Order a list to build, ending on its weightiest item ("in my rental units, around my tenants, and in my home").**
 - **Use paired em dashes for a mid-sentence aside or example list when commas would confuse.**
-- **Put a colon after a verdict, then the explanation.**
+- **Put a colon after a verdict, then the explanation; when the words before the colon only signal that a reason follows ("is deliberate:"), write "because" instead.**
 - **Give a punchline, consequence or comparison its own sentence, not a trailing em dash.**
 - **Start a sentence with "And" or "But" to add a point or turn on one.**
 - **End an open-ended list of everyday examples with "etc." or "and so on".**
