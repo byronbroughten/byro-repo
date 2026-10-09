@@ -4,7 +4,7 @@ description: Report what changed upstream in the vendored skills' source repos s
 disable-model-invocation: true
 ---
 
-`.claude/skills/upstream.json` is the manifest: each upstream source, its `syncedSha`, and every upstream path with a `status` (`vendored`, `reference-only`, `declined`), a `reason` for declined, and `notes` recording deliberate divergences of the local copy, and a `derivedInto` list of the path's forks: this repo's own skills copied from it under new names.
+`.claude/skills/upstream.json` is the manifest: each upstream source, its `syncedSha`, and every upstream path with a `status` (`vendored`, `reference-only`, `declined`), a `reason` for declined, and `notes` recording deliberate divergences of the local copy, and a `derivedInto` list of its forks.
 
 ## 1. Run the report
 

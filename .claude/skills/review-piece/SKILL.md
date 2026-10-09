@@ -16,9 +16,9 @@ Each axis runs in a **fresh-context sub-agent** that never wrote the Piece, so t
 
 The input is an issue in `byronbroughten/writing`. Fetch it with `gh issue view -R byronbroughten/writing <n> --comments` and state its title. If the reference is ambiguous, or the issue is Research rather than a Piece, stop and say so.
 
-Run `gh api repos/byronbroughten/writing/issues/<n>/parent` and set the **scope**:
+Run `gh api repos/byronbroughten/writing/issues/<n>/parent`; a 404 means no parent. Fetch a parent when there is one, since its facts join the fact list. Then set the **scope**:
 
-- **Sections**: the issue has a parent and is not the final pass. The scope is the Sections it names, matched by their exact heading text in the Deliverable. Fetch the parent too.
+- **Sections**: the issue has a parent and is not the final pass. The scope is the Sections it names, matched by their exact heading text in the Deliverable.
 - **Whole**: the issue has no parent, or its body says it is the final pass. The scope is the whole Deliverable.
 
 Done when the title is stated, the scope is one of the two, and for Sections every named heading is found in the Deliverable. A heading that isn't found fails here, before any sub-agent runs.
@@ -40,7 +40,7 @@ Done when every file exists, or the spec has no such field and you say so. A mis
 
 Issue all three Agent calls together, in the foreground. Each prompt names the scope: the Section headings or "the whole Deliverable".
 
-**Spec** sub-agent, `model: "sonnet"`. Its prompt gives the Deliverable, fact list, length limit and References files, points at done checks 1, 2 and 4 in `packages/writing/AGENTS.md`, and the brief: "For the in-scope text only, report every factual claim that doesn't trace to the fact list, whether the length limit holds, and every sentence reused from a Reference. Quote the spec line or the Reference sentence for each finding. Label every finding hard. Under 400 words."
+**Spec** sub-agent, `model: "sonnet"`. Its prompt gives the Deliverable, fact list, length limit and References files, points at done checks 1, 2 and 4 in `packages/writing/AGENTS.md`, and the brief: "For the in-scope text only, report every factual claim that doesn't trace to the fact list and every sentence reused from a Reference. Report whether the whole Deliverable meets the length limit. Quote the spec line or the Reference sentence for each finding. Label every finding hard. Under 400 words."
 
 **Style** sub-agent, the session's model. Its prompt gives the Deliverable and Style files, points at the "Voice" rule under "Implementing a piece spec" in `packages/writing/AGENTS.md`, plus `docs/academic-writing-style.md` for an Academic Piece, and the brief: "For the in-scope text only, report every place it breaks `docs/writing-style.md`'s rules, read in full and applied with the rules tagged for these Evidence and Formality values, or the spec's overrides, which win where they conflict. Cite the rule for each finding and quote the sentence. Every finding is a judgement call. Under 400 words."
 
