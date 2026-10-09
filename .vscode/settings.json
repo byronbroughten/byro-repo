@@ -9,7 +9,8 @@
   "git.scanRepositories": [
     "packages/framework",
     "packages/real-estate",
-    "packages/utils"
+    "packages/utils",
+    "packages/writing"
   ],
   "search.exclude": {
     "**/node_modules": true,
