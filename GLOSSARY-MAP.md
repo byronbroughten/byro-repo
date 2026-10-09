@@ -1,12 +1,12 @@
-# Context map
+# Glossary map
 
-Three contexts, one per package, each with its own `CONTEXT.md` glossary. Read the ones the topic touches; the app's glossary assumes the framework's.
+Three contexts, one per package, each with its own `GLOSSARY.md` glossary. Read the ones the topic touches; the app's glossary assumes the framework's.
 
 ## Contexts
 
-- [Sheets framework](./packages/framework/CONTEXT.md): what an operator sees in any app built on the framework: sheet layout, endpoints, run states, columns.
-- [Real estate](./packages/real-estate/CONTEXT.md): this app's own words: units and the occupancy ledger.
-- [Writing](./packages/writing/CONTEXT.md): the words of a reader-facing prose spec: Piece, Deliverable and Reference.
+- [Sheets framework](./packages/framework/GLOSSARY.md): what an operator sees in any app built on the framework: sheet layout, endpoints, run states, columns.
+- [Real estate](./packages/real-estate/GLOSSARY.md): this app's own words: units and the occupancy ledger.
+- [Writing](./packages/writing/GLOSSARY.md): the words of a reader-facing prose spec: Piece, Deliverable and Reference.
 
 ## Relationships
 

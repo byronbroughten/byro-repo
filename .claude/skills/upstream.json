@@ -1,0 +1,208 @@
+{
+  "sources": {
+    "mattpocock/skills": {
+      "repo": "https://github.com/mattpocock/skills.git",
+      "skillsRoot": "skills",
+      "pluginManifest": ".claude-plugin/plugin.json",
+      "syncedSha": "49dd158d1076134a641b33efb035946536778336",
+      "promoted": [
+        "engineering/ask-matt",
+        "engineering/diagnosing-bugs",
+        "engineering/grill-with-docs",
+        "engineering/triage",
+        "engineering/improve-codebase-architecture",
+        "engineering/setup-matt-pocock-skills",
+        "engineering/tdd",
+        "engineering/to-spec",
+        "engineering/to-tickets",
+        "engineering/wayfinder",
+        "engineering/implement",
+        "engineering/implement-spec",
+        "engineering/prototype",
+        "engineering/research",
+        "engineering/domain-modeling",
+        "engineering/codebase-design",
+        "engineering/code-review",
+        "engineering/pr",
+        "engineering/retro",
+        "engineering/wizard",
+        "productivity/grill-me",
+        "productivity/grilling",
+        "productivity/handoff",
+        "productivity/teach",
+        "productivity/to-questionnaire",
+        "productivity/wait-what",
+        "productivity/writing-for-agents"
+      ],
+      "paths": {
+        "skills/engineering/code-review": {
+          "status": "vendored",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336",
+          "notes": "Divergence: the /setup-matt-pocock-skills fallback points at docs/agents/issue-tracker.md instead."
+        },
+        "skills/engineering/domain-modeling": {
+          "status": "vendored",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336"
+        },
+        "skills/engineering/grill-with-docs": {
+          "status": "vendored",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336"
+        },
+        "skills/engineering/implement": {
+          "status": "vendored",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336"
+        },
+        "skills/engineering/pr": {
+          "status": "vendored",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336"
+        },
+        "skills/engineering/prototype": {
+          "status": "vendored",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336"
+        },
+        "skills/engineering/research": {
+          "status": "vendored",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336"
+        },
+        "skills/engineering/retro": {
+          "status": "vendored",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336"
+        },
+        "skills/engineering/tdd": {
+          "status": "vendored",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336"
+        },
+        "skills/engineering/codebase-design": {
+          "status": "vendored",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336",
+          "notes": "Vendored because tdd calls it."
+        },
+        "skills/engineering/to-spec": {
+          "status": "vendored",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336",
+          "notes": "Divergence: the /setup-matt-pocock-skills fallback points at docs/agents/issue-tracker.md instead."
+        },
+        "skills/engineering/to-tickets": {
+          "status": "vendored",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336",
+          "notes": "Divergence: the /setup-matt-pocock-skills fallback points at docs/agents/issue-tracker.md instead."
+        },
+        "skills/engineering/wayfinder": {
+          "status": "vendored",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336",
+          "notes": "Divergence: the /setup-matt-pocock-skills fallback points at docs/agents/issue-tracker.md instead."
+        },
+        "skills/engineering/wizard": {
+          "status": "vendored",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336"
+        },
+        "skills/productivity/grill-me": {
+          "status": "vendored",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336"
+        },
+        "skills/productivity/grilling": {
+          "status": "vendored",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336"
+        },
+        "skills/productivity/handoff": {
+          "status": "vendored",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336"
+        },
+        "skills/productivity/writing-for-agents": {
+          "status": "vendored",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336"
+        },
+        "skills/engineering/implement-spec": {
+          "status": "reference-only",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336",
+          "notes": "Inspiration for this repo's planned deterministic implementation loop."
+        },
+        "skills/engineering/triage": {
+          "status": "reference-only",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336",
+          "notes": "docs/agents/triage-labels.md borrows its label language."
+        },
+        "docs/agents/triage-labels.md": {
+          "status": "reference-only",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336",
+          "notes": "Upstream source of this repo's docs/agents/triage-labels.md wording."
+        },
+        "skills/in-progress/writing-beats": {
+          "status": "reference-only",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336",
+          "notes": "Relevant to packages/writing."
+        },
+        "skills/in-progress/writing-fragments": {
+          "status": "reference-only",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336",
+          "notes": "Relevant to packages/writing."
+        },
+        "skills/in-progress/writing-shape": {
+          "status": "reference-only",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336",
+          "notes": "Relevant to packages/writing."
+        },
+        "skills/engineering/ask-matt": {
+          "status": "declined",
+          "reason": "Never used here; model-invoked context cost."
+        },
+        "skills/engineering/diagnosing-bugs": {
+          "status": "declined",
+          "reason": "Invoked once in this repo; model-invoked context cost."
+        },
+        "skills/engineering/improve-codebase-architecture": {
+          "status": "declined",
+          "reason": "Not part of this repo's workflow."
+        },
+        "skills/engineering/setup-matt-pocock-skills": {
+          "status": "declined",
+          "reason": "This repo's issue tracker and labels are already set up in docs/agents/."
+        },
+        "skills/productivity/teach": {
+          "status": "declined",
+          "reason": "Not part of this repo's workflow."
+        },
+        "skills/productivity/to-questionnaire": {
+          "status": "declined",
+          "reason": "Not part of this repo's workflow."
+        },
+        "skills/productivity/wait-what": {
+          "status": "declined",
+          "reason": "Not part of this repo's workflow."
+        },
+        "skills/misc/git-guardrails-claude-code": {
+          "status": "declined",
+          "reason": "This repo has its own guardrails in docs/claude-code-guardrails.md."
+        },
+        "skills/misc/setup-pre-commit": {
+          "status": "declined",
+          "reason": "One-off setup this repo does not need."
+        },
+        "skills/misc/migrate-to-shoehorn": {
+          "status": "declined",
+          "reason": "This repo does not use shoehorn."
+        },
+        "skills/misc/scaffold-exercises": {
+          "status": "declined",
+          "reason": "For Matt's course repos only."
+        },
+        "skills/in-progress/chief-of-staff": {
+          "status": "declined",
+          "reason": "Unfinished upstream and outside this repo's workflow."
+        },
+        "skills/in-progress/claude-handoff": {
+          "status": "declined",
+          "reason": "The vendored handoff covers it."
+        },
+        "skills/in-progress/loop-me": {
+          "status": "declined",
+          "reason": "Unfinished upstream; this repo plans its own loop."
+        },
+        "skills/in-progress/setup-ts-deep-modules": {
+          "status": "declined",
+          "reason": "Unfinished upstream and one-off setup."
+        }
+      }
+    }
+  }
+}

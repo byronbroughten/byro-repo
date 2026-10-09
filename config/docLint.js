@@ -10,7 +10,7 @@ const limits = {
 const linkedRootFiles = new Set([
   "AGENTS.md",
   "CLAUDE.md",
-  "CONTEXT.md",
+  "GLOSSARY.md",
   "README.md",
 ]);
 const workspaceFolders = new Set(["config"]);

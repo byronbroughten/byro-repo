@@ -11,6 +11,7 @@ export default defineConfig(
     files: [
       "config/**/*.{js,ts}",
       ".claude/hooks/**/*.ts",
+      ".claude/skills/**/*.ts",
       ".cursor/hooks/**/*.ts",
     ],
     rules: {

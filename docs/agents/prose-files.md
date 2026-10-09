@@ -21,7 +21,7 @@ Every file has one job, and each fact lives in exactly one of them. Everywhere e
 | --- | --- |
 | `AGENTS.md` | Only what changes an agent's behavior on every task: commands, gates, git rules, the README line, the router. Loaded every turn; read [What an addition to AGENTS.md costs](#what-an-addition-to-agentsmd-costs) before growing it. |
 | `CLAUDE.md` | `@AGENTS.md` plus pointers to Claude Code-only mechanics (subagents, hooks). |
-| `CONTEXT-MAP.md` | Which `CONTEXT.md` each context owns, how the app's glossary relates to the framework's, and that writing's relates to neither. |
+| `GLOSSARY-MAP.md` | Which `GLOSSARY.md` each context owns, how the app's glossary relates to the framework's, and that writing's relates to neither. |
 | `docs/agent-behavior-design.md` | Why the agent tooling (hooks, gates, delegation, this doc scheme) is shaped as it is. It never goes in the framework's `docs/design.md`. |
 | `docs/targets-and-gates.md` | The `dev`/`app` targets, what needs a yes first, the agent account, and the gworkspace MCP rules. |
 | `docs/claude-code-guardrails.md` | The Claude Code hooks and project agent. |
@@ -30,19 +30,19 @@ Every file has one job, and each fact lives in exactly one of them. Everywhere e
 | `docs/writing-style/*.md` | Each rule's quoted instances and sources, indexed by `docs/writing-style.md`'s "When \| File" table, plus `sources.md` for the sources read and the habits dropped. |
 | `docs/academic-writing-style.md` | Academic conventions layered on `docs/writing-style.md`, one line per rule, rule only, with APA 7 as the citation standard. |
 | `docs/academic-writing-style/*.md` | Each rule's quoted instances and sources, indexed by `docs/academic-writing-style.md`'s "When \| File" table. |
-| `docs/agents/*.md` | Agent workflow: git, planning, delegation, issues. |
+| `docs/agents/*.md` | Agent workflow: git, planning, delegation, issues, vendored upstream skills. |
 | `README.md` | The workspace overview, a derived view for people on GitHub; it links each public clone by github.com URL, since the clones don't exist there, and names the private writing clone without a link. Nothing routes agents to it. Update it when a fact it mirrors changes (tables below). |
 
 ### Framework (`packages/framework/`, its own repo)
 
-Its `docs/`, `CONTEXT.md`, `README.md`, `AGENTS.md` and `CLAUDE.md` files all ship with the package's repo, so they link only inside it (its own lint); a rule that lives at root is named in plain text. The root's linter checks `config/`'s docs and README.md the same way.
+Its `docs/`, `GLOSSARY.md`, `README.md`, `AGENTS.md` and `CLAUDE.md` files all ship with the package's repo, so they link only inside it (its own lint); a rule that lives at root is named in plain text. The root's linter checks `config/`'s docs and README.md the same way.
 
 | File | Holds |
 | --- | --- |
 | `CLAUDE.md` | Only the restart-at-root notice for a session started inside the package. |
 | `src/AGENTS.md` | Rules an agent can only break by touching `src/`: the tiers, downward dependencies, the boundary question, host and platform neutrality, generated data. Kept short: it loads on every `src/` task. |
 | `src/chores/`, `src/00_Source/GoogleSheets/`, `src/01_SpreadsheetSchema/`, `src/02_SpreadsheetRaw/`, `src/06_API/` and `scripts/` `AGENTS.md` | That folder's rules, kept short because they load on every task there, each with a `CLAUDE.md` beside it. |
-| `CONTEXT.md` | Operator-facing words every app on the framework shares: sheet layout, endpoints, columns. Each term is a definition of what it is, its relationships and its avoid-aliases; what the app does with it goes in the mechanics doc that owns that behavior. |
+| `GLOSSARY.md` | Operator-facing words every app on the framework shares: sheet layout, endpoints, columns. Each term is a definition of what it is, its relationships and its avoid-aliases; what the app does with it goes in the mechanics doc that owns that behavior. |
 | `docs/code-style.md` | Code shape that names Sheets, a tier, `Val` or a framework path, one line per rule, rule only, layered on the config package's general style doc. It names that doc in plain text, since published docs link only inside the package. |
 | `docs/code-style/*.md` | Each rule's reasoning, examples and instances, indexed by `docs/code-style.md`'s "When \| File" table. |
 | `docs/vocabulary.md` | The architecture words, one line per term. |
@@ -62,8 +62,8 @@ The same as the framework's: its docs ship with its repo, so they link only insi
 | File | Holds |
 | --- | --- |
 | `CLAUDE.md` | Only the restart-at-root notice for a session started inside the package. |
-| `CONTEXT.md` | The app's operator-facing words (units, the occupancy ledger). It opens with a pointer to the framework glossary, links to a framework term rather than redefining it, and lists same-word conflicts under "Same word, two meanings". |
-| `docs/occupancy-ledger.md` | How the occupancy ledger is built, beyond CONTEXT.md's words for it. |
+| `GLOSSARY.md` | The app's operator-facing words (units, the occupancy ledger). It opens with a pointer to the framework glossary, links to a framework term rather than redefining it, and lists same-word conflicts under "Same word, two meanings". |
+| `docs/occupancy-ledger.md` | How the occupancy ledger is built, beyond GLOSSARY.md's words for it. |
 | `src/AGENTS.md` | Rules an agent can only break by touching the app's `src/`: the boundary question, the one framework import, generated data. Kept short, with a `CLAUDE.md` beside it. |
 | `src/businessEndpoints/` and `src/chores/` `AGENTS.md` | That folder's rules, kept short, each with a `CLAUDE.md` beside it. The chore gates for `app:chore` live in `src/chores/`. |
 | `README.md` | A short derived view: what the app is, how it builds, its folders, its `app:*` commands (table below). |
@@ -83,7 +83,7 @@ A private repo holding piece specs as issues; the Pieces' text lives in their Go
 | --- | --- |
 | `CLAUDE.md` | The restart-at-root notice, plus `@AGENTS.md`. |
 | `AGENTS.md` | The pointer to the grilling doc, and how to implement a piece spec: the Deliverable as the text's only home, Drive IDs, the Deliverable's standing yes, the voice, the pointer to the wrap-up, and the four done checks. Kept short: it loads on every task there. |
-| `CONTEXT.md` | The writing context's words: Piece, Deliverable and Reference. |
+| `GLOSSARY.md` | The writing context's words: Piece, Deliverable and Reference. |
 | `docs/grilling.md` | What a grill asks before a piece spec is filed, and the calibration paragraph. `/to-writing-style` adds questions to it. |
 | `docs/wrap-up.md` | The wrap-up prompt for a piece spec with no branch. |
 | `docs/model-fit.md` | The outcome log for piece specs: pair, peak context and whether review revised it. |
@@ -113,11 +113,11 @@ No byte cap stands in for judgment here: a cap becomes a target, and an agent at
 
 | README section | Mirrors |
 | --- | --- |
-| Opening paragraph | What the project manages: the app's `CONTEXT.md` |
+| Opening paragraph | What the project manages: the app's `GLOSSARY.md` |
 | The packages | Each package's `package.json` and README opening; the boundary question: root `AGENTS.md` |
 | Architecture: the numbered tiers | The tier list: `packages/framework/src/AGENTS.md`; the words: the framework's `docs/vocabulary.md` |
 | Two spreadsheets | The root `package.json` scripts and [`targets-and-gates.md`](../targets-and-gates.md#targets-dev-and-app) |
-| Words | `CONTEXT-MAP.md` |
+| Words | `GLOSSARY-MAP.md` |
 | Testing | [`testing.md`](../../packages/framework/docs/testing.md) |
 | Known rough edges | The properties-probe blind spot: [`round-trips.md`](../../packages/framework/docs/architecture/round-trips.md) and `SpreadsheetRaw`'s placement reporter |
 
@@ -129,7 +129,7 @@ No byte cap stands in for judgment here: a cap becomes a target, and an agent at
 | Install | `peerDependencies` and `exports` in its `package.json` |
 | The public entry | `src/framework.ts` and `src/frameworkTesting.ts` |
 | The bin | The bin's usage text (`scripts/cli.ts`) and [`how-it-runs.md`](../../packages/framework/docs/how-it-runs.md#the-sheets-framework-bin) |
-| Docs | The framework's `docs/` indexes and `CONTEXT.md` |
+| Docs | The framework's `docs/` indexes and `GLOSSARY.md` |
 | History | Nothing; a fixed link to `byronbroughten/byro-repo` for the history before the split |
 
 ### The writing repo
@@ -140,10 +140,10 @@ It has no README: a private repo has no outside reader.
 
 | README section | Mirrors |
 | --- | --- |
-| Opening paragraph | What the app manages: its `CONTEXT.md` |
+| Opening paragraph | What the app manages: its `GLOSSARY.md` |
 | Building it | Its `package.json` dependencies and the root's workspaces |
-| What's here | The app's `src/AGENTS.md` and its `CONTEXT.md` and `docs/` |
+| What's here | The app's `src/AGENTS.md` and its `GLOSSARY.md` and `docs/` |
 | Commands | The root `package.json`'s `app:*` scripts and [`targets-and-gates.md`](../targets-and-gates.md#targets-dev-and-app) |
 | History | Nothing; a fixed link to `byronbroughten/byro-repo` for the history before the split |
 
-A fact the environment already states, whether in `package.json`, a config file or `--help`, stays there; a doc restating it is a cache that goes stale. `npm run lint` checks the links, the leads and the headings above with the `lint-docs` bin from `config/`, which the config package's README describes. The root runs it with `--published config` and each clone's repo with `--published .`, which holds each package's published docs (its `docs/`, `CONTEXT.md`, `README.md`, `AGENTS.md` and `CLAUDE.md`) to links inside that package. The root's `npm run lint` runs every clone's `lint:docs` too.
+A fact the environment already states, whether in `package.json`, a config file or `--help`, stays there; a doc restating it is a cache that goes stale. `npm run lint` checks the links, the leads and the headings above with the `lint-docs` bin from `config/`, which the config package's README describes. The root runs it with `--published config` and each clone's repo with `--published .`, which holds each package's published docs (its `docs/`, `GLOSSARY.md`, `README.md`, `AGENTS.md` and `CLAUDE.md`) to links inside that package. The root's `npm run lint` runs every clone's `lint:docs` too.

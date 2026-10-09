@@ -27,7 +27,7 @@ Open only the section or disclosed doc the task needs.
 | --- | --- |
 | Placing a file, import, or member; naming an accessor; profile vs Table; Raw, Identified or Named | [`packages/framework/src/AGENTS.md`](./packages/framework/src/AGENTS.md) + [vocabulary](./packages/framework/docs/vocabulary.md) |
 | Writing or refactoring TypeScript, tests included | [`config/docs/code-style.md`](./config/docs/code-style.md), then for framework or app code [`packages/framework/docs/code-style.md`](./packages/framework/docs/code-style.md) |
-| Operator-facing words: endpoint, selector, run state; units, the ledger | [`CONTEXT-MAP.md`](./CONTEXT-MAP.md), then that package's `CONTEXT.md` |
+| Operator-facing words: endpoint, selector, run state; units, the ledger | [`GLOSSARY-MAP.md`](./GLOSSARY-MAP.md), then that package's `GLOSSARY.md` |
 | Real-estate endpoints or app chores | [app `src/AGENTS.md`](./packages/real-estate/src/AGENTS.md) |
 | Arguing that a gap is deliberate, or proposing a design principle | [design](./packages/framework/docs/design.md) |
 | Architecture mechanics: dispatch, schema classes, class chains, queued writes, round trips, type-check cost | [architecture](./packages/framework/docs/architecture.md) index, then one file |
@@ -43,4 +43,5 @@ Open only the section or disclosed doc the task needs.
 | Editing a prose doc or AGENTS.md: which file a fact belongs in | [`docs/agents/prose-files.md`](./docs/agents/prose-files.md) |
 | Issues and labels | [`docs/agents/issue-tracker.md`](./docs/agents/issue-tracker.md), [`docs/agents/triage-labels.md`](./docs/agents/triage-labels.md) |
 | Domain vs architecture vocabulary | [`docs/agents/domain.md`](./docs/agents/domain.md) |
-| A slash-named skill not in the listing | `.claude/skills/<name>/SKILL.md` (this repo's own), else the `mattpocock-skills` plugin (`mattpocock-skills:<name>`). Never a similarly-named substitute. `grill-with-docs` means grilling + domain-modeling. |
+| A slash-named skill not in the listing | `.claude/skills/<name>/SKILL.md`. Never a similarly-named substitute. |
+| Editing, forking or syncing a vendored skill | [`docs/agents/upstream-skills.md`](./docs/agents/upstream-skills.md) |

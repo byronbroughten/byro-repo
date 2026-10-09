@@ -38,7 +38,7 @@ Every command that touches a live spreadsheet names its target: `dev:*` for `She
 
 ## Words
 
-[`CONTEXT-MAP.md`](./CONTEXT-MAP.md) points at the three glossaries: the framework's operator-facing words, the app's units and occupancy ledger, and the words of a writing spec.
+[`GLOSSARY-MAP.md`](./GLOSSARY-MAP.md) points at the three glossaries: the framework's operator-facing words, the app's units and occupancy ledger, and the words of a writing spec.
 
 ## Testing
 

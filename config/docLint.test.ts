@@ -106,16 +106,16 @@ describe("checkDocs", () => {
       ]);
     });
 
-    it("checks a package's docs, CONTEXT.md and README.md", () => {
+    it("checks a package's docs, GLOSSARY.md and README.md", () => {
       expect(
         messages({
           "packages/app/docs/a.md": "[gone](./gone.md)\n",
-          "packages/app/CONTEXT.md": "[gone](./gone.md)\n",
+          "packages/app/GLOSSARY.md": "[gone](./gone.md)\n",
           "packages/app/README.md": "[gone](./gone.md)\n",
         }),
       ).toEqual([
         "packages/app/docs/a.md: broken link ./gone.md: no file packages/app/docs/gone.md",
-        "packages/app/CONTEXT.md: broken link ./gone.md: no file packages/app/gone.md",
+        "packages/app/GLOSSARY.md: broken link ./gone.md: no file packages/app/gone.md",
         "packages/app/README.md: broken link ./gone.md: no file packages/app/gone.md",
       ]);
     });
@@ -187,7 +187,7 @@ describe("checkDocs", () => {
         messages(
           {
             "packages/framework/docs/a.md": "[style](../../../docs/code-style.md)\n",
-            "packages/framework/CONTEXT.md":
+            "packages/framework/GLOSSARY.md":
               "[app](../real-estate/src/y.ts) [root](/docs/code-style.md)\n",
             "packages/framework/README.md": "[root](../../AGENTS.md)\n",
             "packages/framework/docs/sub/c.md":
@@ -198,8 +198,8 @@ describe("checkDocs", () => {
         ),
       ).toEqual([
         "packages/framework/docs/a.md: link ../../../docs/code-style.md leaves packages/framework; its published docs link only inside packages/framework",
-        "packages/framework/CONTEXT.md: link ../real-estate/src/y.ts leaves packages/framework; its published docs link only inside packages/framework",
-        "packages/framework/CONTEXT.md: link /docs/code-style.md leaves packages/framework; its published docs link only inside packages/framework",
+        "packages/framework/GLOSSARY.md: link ../real-estate/src/y.ts leaves packages/framework; its published docs link only inside packages/framework",
+        "packages/framework/GLOSSARY.md: link /docs/code-style.md leaves packages/framework; its published docs link only inside packages/framework",
         "packages/framework/README.md: link ../../AGENTS.md leaves packages/framework; its published docs link only inside packages/framework",
         "packages/framework/docs/sub/c.md: link ../../../../docs/code-style.md leaves packages/framework; its published docs link only inside packages/framework",
       ]);
