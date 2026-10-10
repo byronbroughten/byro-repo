@@ -41,6 +41,7 @@ Name every instance of these kinds. Be relentless: the easy two surface on their
 - **Rediscovery**: a fact derived by reading source, probing, or measuring. Measurements are the richest kind, because they cannot be looked up at all.
 - **Stated rule**: a preference or rule the user articulated that no doc holds. Scan the user's own turns for "I prefer", "as a general rule", "always", or a correction of an approach the agent proposed.
 - **Style ruling**: a shape of code the user objected to and had changed, stated as a rule or not. Read the session's diff as well as the conversation: each refactor the user directed is a candidate. The rule is the generalization of the change ("named accessors, never inline lookups"), not the change itself. A ruling counts even if it cost the session nothing, and even if a style doc already gestures at it. A rule the docs hold but the agent or the codebase broke goes in as a sharpened line, not a new one.
+- **Review miss**: a shape the developer had changed after `/code-review` passed it. Name the standard the reviewer lacked, or the line it had and skipped; the second goes in as a sharpened line.
 
 **Prose rulings are not yours.** A ruling on reader-facing prose ([`prose-files.md`](../../../docs/agents/prose-files.md#terms)) goes to `/to-writing-style`; drop it here with that reason.
 
@@ -61,11 +62,12 @@ Done when every wrong turn, rediscovered fact, user-stated rule and style ruling
 
 - **Beforehand**: could a doc have stated this before the session began? (Conclusions, decisions, and summaries fail here. Style rulings pass.)
 - **Ownership**: is it already assigned to a spec, issue, or PR from this session, or already in the docs now? Leave it there and say so; do not write it twice.
-- **Lookup**: can the next agent find it with one file read or one command? Leave it to the environment, where it cannot go stale. Cache only what cannot be found by looking: the unwritten convention, the reason behind a choice, the measurement, the gotcha no config confesses.
+- **Lookup**: can the next agent find it with one file read or one command? Leave it to the environment, where it cannot go stale. Cache only what cannot be found by looking: the unwritten convention, the reason behind a choice, the measurement, the gotcha no config confesses. Before proposing a check, read `config/eslint.js` and the `lint` scripts: a rule that exists but is off or scoped away is the finding.
 - **Durability**: will it still be true in three months? Counts and tallies of generated data go stale; the invariant behind them does not.
 
 ## 3. Route and rank
 
+- **A mechanical ruling** (a fixed syntax shape, a banned API, an import shape, a file location) becomes a check, not a line: an entry in `styleSyntax` in `config/eslint.js`, or a `config/docLint.js` rule for docs. Propose the selector and message. A style doc line is for judgement calls only a person can make.
 - **packages/framework/docs/vocabulary.md** and **`packages/framework/src/AGENTS.md`**: the architecture words and the tiers. README.md is a derived view for people, never the home of a fact. Architecture mechanics live as one file per heading under `docs/architecture/`; hosts in `docs/how-it-runs.md`; generated data in `docs/generated-data.md` and the files it indexes; testing in `docs/testing.md`; Claude Code hooks in `docs/claude-code-guardrails.md`. A design principle is one line in packages/framework/docs/design.md plus its reasoning in `docs/design/`.
 - **config/docs/code-style.md** and **packages/framework/docs/code-style.md**: code shape. The charter is rules distilled from the user's own refactors, so a **stated rule** or **style ruling** almost always lands in one of them, as one line: the framework's if it names Sheets, a tier, `Val` or a framework path, otherwise the general one in `config/`. Reasoning and worked examples live under each file's `docs/code-style/`; a rule that needs an example adds the line to the style doc and the example to the fragment. For a ruling, the before and after from the session's diff is the example.
 - **AGENTS.md**: loaded every turn, so it earns a line only if that line changes turn-one behavior. Everything else goes in the other two, or under `docs/agents/`, with a pointer at most. Full routing: `docs/agents/prose-files.md`.
@@ -95,4 +97,4 @@ Then stop. Do not edit until the user approves; an agent running this skill does
 
 ## 5. On approval of items
 
-Write only the approved items, then `npx prettier --check` the touched files. Then ask whether to commit, and on which branch: the reviewed session may have left work in flight, and a docs-only commit should not ride along with it.
+Write only the approved items. Before writing an AGENTS.md or skill line, call the Skill tool with `writing-for-agents`. Then `npx prettier --check` the touched files. Then ask whether to commit, and on which branch: the reviewed session may have left work in flight, and a docs-only commit should not ride along with it.
