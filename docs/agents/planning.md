@@ -32,4 +32,4 @@
 
 ## Handoffs
 
-Write a handoff when a diagnosis finishes in a session near the ticket budget, or one that got a read-count nudge, or when an exploration session for an unsplittable ticket finishes, and do it before implementing. It holds the conclusion, the files and line ranges to open, and the hypotheses already ruled out. Post it as a comment on the issue, or save it as a file if there is no issue, then recommend a fresh session. A small diagnosis in a lean session needs no handoff.
+Write a handoff when a diagnosis finishes in a session near the ticket budget, or one that got a read-count nudge, or when an exploration session for an unsplittable ticket finishes, and do it before implementing. It holds the conclusion, the files and line ranges to open, and the hypotheses already ruled out. A session that got a context nudge writes one once the step in hand is done, adding the changed files and what still fails if the code is red, and leaves the work uncommitted. Post it as a comment on the issue, or save it as a file if there is no issue, then recommend a fresh session. A small diagnosis in a lean session needs no handoff.
