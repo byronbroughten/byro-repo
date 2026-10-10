@@ -7,6 +7,7 @@
 ## Piece specs
 
 - **Grilling a piece spec starts from [`packages/writing/docs/grilling.md`](../../packages/writing/docs/grilling.md).**
+- **A piece spec is filed with `/to-piece-spec` and split with `/to-piece-tickets`**, never `/to-spec` or `/to-tickets`.
 
 ## Test seams
 
