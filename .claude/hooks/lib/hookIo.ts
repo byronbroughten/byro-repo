@@ -11,6 +11,7 @@ export interface HookInput {
   cwd?: string;
   workspace_roots?: string[];
   hook_event_name?: string;
+  prompt?: string;
   tool_name?: string;
   tool_input?: ToolInput;
   agent_id?: string;
@@ -24,6 +25,7 @@ export interface ToolInput {
   offset?: number;
   limit?: number;
   spreadsheet_id?: string;
+  document_id?: string;
   content?: unknown;
   text?: unknown;
   operations?: unknown;
@@ -54,6 +56,12 @@ export function sessionStatePath(sessionId: string | undefined, suffix: string):
   mkdirSync(dir, { recursive: true });
   const safeId = String(sessionId ?? "unknown").replace(/[^\w-]/g, "_");
   return join(dir, `${safeId}.${suffix}`);
+}
+
+export function sharedStatePath(suffix: string): string {
+  const dir = join(tmpdir(), "claude-guardrails");
+  mkdirSync(dir, { recursive: true });
+  return join(dir, suffix);
 }
 
 export function lineCount(path: string): number {

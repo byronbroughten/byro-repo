@@ -8,6 +8,8 @@ Implement the Piece described by the spec or sub-issue in `byronbroughten/writin
 
 Fetch it with `gh issue view -R byronbroughten/writing <n> --comments` and state its title before starting. If the reference is ambiguous, ask. If the issue is Research, stop: it has its own path.
 
+Typing `/implement-piece <n>` is what grants the standing yes: `docGrantGuard.ts` records the Doc ID from the spec's Deliverable (a ticket's Shared rules), and the grant lasts while the spec is open. Any later session, a cleanup agent included, inherits it without retyping; retype it only if the grant is lost (a cleared `$TMPDIR`, say).
+
 Draft by the rules under "Implementing a piece spec" in [`packages/writing/AGENTS.md`](../../../packages/writing/AGENTS.md): its text, its supporting material, its standing yes and its voice. On a sub-issue, write only the Sections it names.
 
 Once drafted, read [`.claude/skills/review-piece/SKILL.md`](../review-piece/SKILL.md) and follow it on the same issue. It is user-invoked, so the Skill tool can't reach it.
