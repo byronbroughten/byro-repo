@@ -129,8 +129,8 @@ export class BashReads {
     if (lines <= largeFileLines) return undefined;
     return (
       `Bash-read guard: \`${name}\` would dump all ${lines} lines of ${shown}. ` +
-      `Use Read with offset/limit on the block you need, or Grep for the symbol first; ` +
-      `\`sed -n 'a,bp'\` and \`head -n ${largeFileLines}\` also work.`
+      `Find the block with \`grep -n\`, then print it with \`sed -n 'a,bp'\` or Read with offset/limit. ` +
+      `If you need the whole file, Read it in full instead.`
     );
   }
   _columnConfigsPaths(): string[] {
