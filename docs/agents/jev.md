@@ -41,6 +41,18 @@ Stdout is `{ answers, usage }` as JSON: a `noul` answer carries `noul`, the prob
 
 The key comes from `TYPESAFE_API_KEY` in the developer's shell profile, never the repo. When it is missing, the run stops and says so; tell the developer, and note that a session started before the key was added won't see it. The client lives in `scripts/jev/`, with `JevClient` as its one test seam.
 
+## The style check
+
+`npm run jev:style` checks a Deliverable against [`docs/writing-style.md`](../writing-style.md) and prints a ready-made `## Jev style` section: one line per flag (band, probability, rule, the paragraph's first words), then a count line. It asks one yes/no per (paragraph, rule) pair; 0.7 or higher is `breaks`, 0.5 to under 0.7 is `unsure`, and lower answers are left out. The full answers go to `jev-style.json` beside the Deliverable.
+
+```sh
+npm run jev:style -- --deliverable <deliverable.md> --style <style.md> [--section "<heading>"]…
+```
+
+- **The Deliverable** is Markdown. Each list item is a paragraph and headings are skipped. With `--section`, only paragraphs under each heading, matched exactly, are judged; the whole Deliverable is still sent for context. A heading that isn't found stops the run.
+- **The Style file** holds `Evidence:`, `Formality:` and `Academic:` lines, an optional `Kind:` line on what the Piece is, then an `## Overrides` heading with the spec's overrides, Form and Order verbatim. `Academic: yes` adds [`docs/academic-writing-style.md`](../academic-writing-style.md)'s rules.
+- **Position rules** ("Open a piece", "Right after the opening", "Close by returning") are judged only at their place, listed in `scripts/jev/styleRules.ts`. A reworded rule that no entry matches stops the run; update the list.
+
 ## The pin and upgrading it
 
 **Every request goes to the version in `jevPin`, in `scripts/jev/JevClient.ts`**, so results stay comparable across runs. Each run also asks which version `jev-latest` resolves to, and when it differs it prints one stderr line: `jev-X is out; pinned to <pin>, see the Jev agent doc`. Pass that line on to the developer; don't bump the pin yourself. A failed check prints its own stderr line and still prints the answers.

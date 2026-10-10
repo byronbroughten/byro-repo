@@ -27,7 +27,8 @@
     "dev:configs:diff": "npm run configs:diff -w @byronbroughten/sheets-framework --",
     "dev:push": "npm run push -w @byronbroughten/sheets-framework --",
     "dev:run": "npm run run -w @byronbroughten/sheets-framework --",
-    "jev": "node scripts/jev/jev.ts"
+    "jev": "node scripts/jev/jev.ts",
+    "jev:style": "node scripts/jev/jevStyle.ts"
   },
   "devDependencies": {
     "@byronbroughten/config": "^0.1.0",
