@@ -26,19 +26,11 @@ export async function runJev({
   }
   const request = readRequest(requestPath);
   const client = connect(apiKey);
-  const [{ answers, usage }, latest] = await Promise.all([
+  const [{ answers, usage }, stderr] = await Promise.all([
     client.send(request),
-    client.latestVersion(),
+    newVersionLines(client),
   ]);
-  return {
-    stdout: JSON.stringify({ answers, usage }, null, 2),
-    stderr: newVersionLines(latest),
-  };
-}
-
-function newVersionLines(latest: string): string[] {
-  if (latest === jevPin) return [];
-  return [`${latest} is out; pinned to ${jevPin}, see the Jev agent doc`];
+  return { stdout: JSON.stringify({ answers, usage }, null, 2), stderr };
 }
 
 // The request file's model field is dropped: the client sends every request to the pin.
@@ -47,4 +39,16 @@ function readRequest(path: string): JevRequest {
     readFileSync(path, "utf8"),
   ) as JevRequest;
   return { state, questions };
+}
+
+// Best-effort: a failed version check never discards the answers.
+async function newVersionLines(client: JevClient): Promise<string[]> {
+  try {
+    const latest = await client.latestVersion();
+    if (latest === jevPin) return [];
+    return [`${latest} is out; pinned to ${jevPin}, see the Jev agent doc`];
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    return [`Couldn't check jev-latest's version: ${reason}`];
+  }
 }

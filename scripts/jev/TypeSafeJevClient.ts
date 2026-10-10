@@ -18,7 +18,7 @@ export class TypeSafeJevClient implements JevClient {
     return this.#client.systemOne({ ...request, model: jevPin });
   }
 
-  // The model list returns only aliases, so a tiny request is the one way to read the version behind jev-latest.
+  // The model list returns only aliases, never version numbers.
   async latestVersion(): Promise<string> {
     const { model } = await this.#client.systemOne({
       state: "ping",

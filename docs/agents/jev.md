@@ -43,11 +43,11 @@ The key comes from `TYPESAFE_API_KEY` in the developer's shell profile, never th
 
 ## The pin and upgrading it
 
-**Every request goes to `jev-1.13.0`, the `jevPin` in `scripts/jev/JevClient.ts`**, so results stay comparable across runs. Each run also asks which version `jev-latest` resolves to, and when it differs it prints one stderr line: `jev-X is out; pinned to jev-1.13.0, see the Jev agent doc`. Pass that line on to the developer; don't bump the pin yourself.
+**Every request goes to the version in `jevPin`, in `scripts/jev/JevClient.ts`**, so results stay comparable across runs. Each run also asks which version `jev-latest` resolves to, and when it differs it prints one stderr line: `jev-X is out; pinned to <pin>, see the Jev agent doc`. Pass that line on to the developer; don't bump the pin yourself. A failed check prints its own stderr line and still prints the answers.
 
 To upgrade, with the developer's yes:
 
-1. Re-run the Pieces listed in the Jev trial log on the new version.
+1. Re-run the Pieces listed in the Jev trial log (set up by byro-repo#196) on the new version.
 2. Compare its flags with the logged ones and the developer's rulings.
 3. Bump `jevPin` only if the new version does at least as well. Otherwise leave the pin and record why.
 

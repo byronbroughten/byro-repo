@@ -58,6 +58,26 @@ describe("runJev", () => {
   });
 });
 
+describe("runJev when jev-latest can't be read", () => {
+  it("still prints the answers, with one stderr line saying the check failed", async () => {
+    const printed = await runJev({
+      requestPath: writeRequestFile(),
+      apiKey: "test-key",
+      connect: () => ({
+        send: () => Promise.resolve(cannedResult),
+        latestVersion: () => Promise.reject(new Error("rate limited")),
+      }),
+    });
+    expect(JSON.parse(printed.stdout)).toEqual({
+      answers: { isAboutWeather: { type: "noul", noul: 0.92 } },
+      usage: { input_tokens: 41, output_tokens: 1 },
+    });
+    expect(printed.stderr).toEqual([
+      "Couldn't check jev-latest's version: rate limited",
+    ]);
+  });
+});
+
 function fakeClient(latest: string): JevClient {
   return {
     send: () => Promise.resolve(cannedResult),
