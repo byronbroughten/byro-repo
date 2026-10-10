@@ -13,7 +13,7 @@ A verified source list is what `/review-piece`'s Spec axis treats as closed. Tha
 The input is one of:
 
 - **A research file**: a Markdown path from `/research`. Read it.
-- **A Research issue** in `byronbroughten/writing`. Fetch it with `gh issue view -R byronbroughten/writing <n> --comments`, state its title, and take the comment that holds the findings. If more than one comment could be the findings, ask which.
+- **A Research issue** in `byronbroughten/writing`. Fetch it with `gh issue view -R byronbroughten/writing <n> --json title,body,comments --jq '{title, body, comments: [.comments[].body]}'`, state its title, and take the comment that holds the findings. If more than one comment could be the findings, ask which.
 
 If the reference is ambiguous, or the issue is a Piece rather than Research, stop and say so.
 

@@ -14,7 +14,7 @@ Each axis runs in a **fresh-context sub-agent** that never wrote the Piece, so t
 
 ## 1. Pin the issue and its scope
 
-The input is an issue in `byronbroughten/writing`. Fetch it with `gh issue view -R byronbroughten/writing <n> --comments` and state its title. If the reference is ambiguous, or the issue is Research rather than a Piece, stop and say so.
+The input is an issue in `byronbroughten/writing`. Fetch it with `gh issue view -R byronbroughten/writing <n> --json title,body,comments --jq '{title, body, comments: [.comments[].body]}'` and state its title. If the reference is ambiguous, or the issue is Research rather than a Piece, stop and say so.
 
 Run `gh api repos/byronbroughten/writing/issues/<n>/parent`; a 404 means no parent. Fetch a parent when there is one, since its facts join the fact list. Then set the **scope**:
 

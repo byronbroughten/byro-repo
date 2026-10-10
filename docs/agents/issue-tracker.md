@@ -21,7 +21,7 @@ Issues and specs live as GitHub issues, in the repo of the package they concern.
 ## Conventions
 
 - **Create an issue**: `gh issue create -R <repo> --title "..." --body "..."`. Use a heredoc for multi-line bodies.
-- **Read an issue**: `gh issue view -R <repo> <number> --comments`, filtering comments by `jq` and also fetching labels.
+- **Read an issue**: `gh issue view -R <repo> <number> --json title,body,labels,comments --jq '{title, body, labels: [.labels[].name], comments: [.comments[].body]}'`. Plain `--comments` prints only the comments outside a terminal, never the body: an empty result for an issue with none.
 - **List issues**: `gh issue list -R <repo> --state open --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'` with appropriate `--label` and `--state` filters.
 - **Comment on an issue**: `gh issue comment -R <repo> <number> --body "..."`
 - **Apply / remove labels**: `gh issue edit -R <repo> <number> --add-label "..."` / `--remove-label "..."`
@@ -35,7 +35,7 @@ Triage labels are separate: [`triage-labels.md`](./triage-labels.md).
 
 When set to `yes`, PRs run through the same labels and states as issues, using the `gh pr` equivalents:
 
-- **Read a PR**: `gh pr view -R <repo> <number> --comments` and `gh pr diff -R <repo> <number>` for the diff.
+- **Read a PR**: `gh pr view -R <repo> <number>` with the same `--json`/`--jq` as reading an issue, and `gh pr diff -R <repo> <number>` for the diff.
 - **List external PRs for triage**: `gh pr list -R <repo> --state open --json number,title,body,labels,author,authorAssociation,comments` then keep only `authorAssociation` of `CONTRIBUTOR`, `FIRST_TIME_CONTRIBUTOR`, or `NONE` (drop `OWNER`/`MEMBER`/`COLLABORATOR`).
 - **Comment / label / close**: `gh pr comment -R <repo>`, `gh pr edit -R <repo> --add-label`/`--remove-label`, `gh pr close -R <repo>`.
 
@@ -47,7 +47,7 @@ Create a GitHub issue.
 
 ## When a skill says "fetch the relevant ticket"
 
-Run `gh issue view -R <repo> <number> --comments`.
+Read it as in **Read an issue** above.
 
 ## Wayfinding operations
 

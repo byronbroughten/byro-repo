@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 Implement the Piece described by the spec or sub-issue in `byronbroughten/writing`.
 
-Fetch it with `gh issue view -R byronbroughten/writing <n> --comments` and state its title before starting. If the reference is ambiguous, ask. If the issue is Research, stop: it has its own path.
+Fetch it with `gh issue view -R byronbroughten/writing <n> --json title,body,comments --jq '{title, body, comments: [.comments[].body]}'` and state its title before starting. If the reference is ambiguous, ask. If the issue is Research, stop: it has its own path.
 
 Typing `/implement-piece <n>` is what grants the standing yes: `docGrantGuard.ts` records the Doc ID from the spec's Deliverable (a ticket's Shared rules), and the grant lasts while the spec is open. Any later session, a cleanup agent included, inherits it without retyping; retype it only if the grant is lost (a cleared `$TMPDIR`, say).
 

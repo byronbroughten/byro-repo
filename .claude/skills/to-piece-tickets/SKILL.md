@@ -8,7 +8,7 @@ Split a piece spec into sub-issues in `byronbroughten/writing`. The Piece rules 
 
 ## 1. Read the spec
 
-Fetch it with `gh issue view -R byronbroughten/writing <n> --comments` and state its title. Read its Research, Final pass, Split and Form fields. Done when all four are found; a missing one is asked for, never inferred.
+Fetch it with `gh issue view -R byronbroughten/writing <n> --json title,body,comments --jq '{title, body, comments: [.comments[].body]}'` and state its title. Read its Research, Final pass, Split and Form fields. Done when all four are found; a missing one is asked for, never inferred.
 
 ## 2. Propose the split
 
