@@ -54,6 +54,7 @@
         "skills/engineering/implement": {
           "status": "vendored",
           "syncedSha": "49dd158d1076134a641b33efb035946536778336",
+          "notes": "Divergence: commits before calling code-review, with master as the fixed point, since code-review diffs commits and a working-tree diff misses untracked files.",
           "derivedInto": [
             "implement-piece"
           ]
