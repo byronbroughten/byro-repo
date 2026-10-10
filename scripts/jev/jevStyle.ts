@@ -1,5 +1,5 @@
 // Checks a Deliverable against the writing style sheet with Jev and prints a `## Jev style` section.
-// Usage: npm run jev:style -- --deliverable <file> --style <file> [--section "<heading>"]…. Details: docs/agents/jev.md.
+// Usage and the Style file's shape: docs/agents/jev.md.
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 

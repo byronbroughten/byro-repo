@@ -20,12 +20,8 @@ import {
   markdownBlocks,
   paragraphTexts,
 } from "./markdownBlocks.ts";
-import { type PieceStyle, readPieceStyle } from "./pieceStyle.ts";
-import {
-  pieceRules,
-  positionRuleOf,
-  type StyleSheetPaths,
-} from "./styleRules.ts";
+import { readPieceStyle } from "./pieceStyle.ts";
+import { isRuleAt, pieceRules, type StyleSheetPaths } from "./styleRules.ts";
 
 export interface JevStyleRun extends StyleSheetPaths {
   deliverablePath: string;
@@ -45,6 +41,17 @@ interface StyleAnswer extends StyleQuestion {
   noul: number;
 }
 
+interface StyleAnswers {
+  model: string;
+  answers: StyleAnswer[];
+  usage: Usage;
+}
+
+interface ParagraphScope {
+  inScope: number[];
+  count: number;
+}
+
 interface JevStyleState {
   [key: string]: JsonValue;
   piece: { kind: string; paragraphs: string[] };
@@ -58,11 +65,18 @@ export async function runJevStyle(run: JevStyleRun): Promise<JevPrinted> {
   const client = run.connect(requireApiKey(run.apiKey));
   const blocks = markdownBlocks(readFileSync(run.deliverablePath, "utf8"));
   const paragraphs = paragraphTexts(blocks);
-  const scope = scopedParagraphs(blocks, run.sections);
+  const inScope = scopedParagraphs(blocks, run.sections);
   const style = readPieceStyle(run.stylePath);
   const rules = pieceRules(run, style);
-  const questions = styleQuestions(scope, rules, paragraphs.length);
-  const state = styleState(style, paragraphs, rules);
+  const questions = styleQuestions(rules, {
+    inScope,
+    count: paragraphs.length,
+  });
+  const state: JevStyleState = {
+    piece: { kind: style.kind, paragraphs },
+    overrides: style.overrides,
+    rules,
+  };
   const [{ model, answers, usage }, versionLines] = await Promise.all([
     sendSplitting(client, state, questions),
     newVersionLines(client),
@@ -85,7 +99,12 @@ function scopedParagraphs(
   if (sections.length === 0) {
     return paragraphTexts(blocks).map((_, index) => index);
   }
-  return sections.flatMap((section) => sectionParagraphs(blocks, section));
+  // A section named twice is still asked once.
+  return [
+    ...new Set(
+      sections.flatMap((section) => sectionParagraphs(blocks, section)),
+    ),
+  ];
 }
 
 // A section runs from its heading to the next heading at its level or above.
@@ -107,55 +126,15 @@ function sectionParagraphs(blocks: MarkdownBlock[], section: string): number[] {
 }
 
 function styleQuestions(
-  scope: number[],
   rules: string[],
-  paragraphCount: number,
+  { inScope, count }: ParagraphScope,
 ): StyleQuestion[] {
-  return scope.flatMap((paragraph) =>
+  return inScope.flatMap((paragraph) =>
     rules.flatMap((rule, ruleIndex) => {
-      if (!isRulePlace(rule, paragraph, paragraphCount)) return [];
+      if (!isRuleAt(rule, { index: paragraph, count })) return [];
       return [{ key: `p${paragraph}r${ruleIndex}`, paragraph, rule }];
     }),
   );
-}
-
-function isRulePlace(
-  rule: string,
-  paragraph: number,
-  paragraphCount: number,
-): boolean {
-  const position = positionRuleOf(rule);
-  if (!position) return true;
-  if (position.end === "first") return paragraph < position.paragraphCount;
-  return paragraph >= paragraphCount - position.paragraphCount;
-}
-
-function styleState(
-  style: PieceStyle,
-  paragraphs: string[],
-  rules: string[],
-): JevStyleState {
-  return {
-    piece: { kind: style.kind, paragraphs },
-    overrides: style.overrides,
-    rules,
-  };
-}
-
-function styleInstructions({ paragraph, rule }: StyleQuestion): string {
-  return (
-    `Style rule: "${rule}"\nJudge only \`piece.paragraphs[${paragraph}]\`, reading the rest of \`piece.paragraphs\` for context. ` +
-    "If an entry in `overrides` permits what the paragraph does, it does not break the rule. " +
-    "A rule that has nothing to act on in this paragraph is not broken. " +
-    "Where another entry in `rules` makes an exception for this rule, the exception holds.\n" +
-    "Does this paragraph break the rule?"
-  );
-}
-
-interface StyleAnswers {
-  model: string;
-  answers: StyleAnswer[];
-  usage: Usage;
 }
 
 // One request carries the text once; halves only when TypeSafe rejects the size.
@@ -216,6 +195,16 @@ function requestQuestions(questions: StyleQuestion[]): Questions {
     };
     return request;
   }, {});
+}
+
+function styleInstructions({ paragraph, rule }: StyleQuestion): string {
+  return (
+    `Style rule: "${rule}"\nJudge only \`piece.paragraphs[${paragraph}]\`, reading the rest of \`piece.paragraphs\` for context. ` +
+    "If an entry in `overrides` permits what the paragraph does, it does not break the rule. " +
+    "A rule that has nothing to act on in this paragraph is not broken. " +
+    "Where another entry in `rules` makes an exception for this rule, the exception holds.\n" +
+    "Does this paragraph break the rule?"
+  );
 }
 
 function styleSection(answers: StyleAnswer[], paragraphs: string[]): string {

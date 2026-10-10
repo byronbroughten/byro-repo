@@ -112,7 +112,8 @@ describe("runJevStyle", () => {
   });
 
   it("adds the academic sheet's rules for an Academic piece", async () => {
-    const academicStyle = "Evidence: cited\nFormality: formal\nAcademic: yes\n";
+    const academicStyle =
+      "Evidence: cited\nFormality: formal\nAcademic: yes\n\n## Overrides\n";
     const general = await runJevStyle(inputs({}));
     const academic = await runJevStyle(inputs({ style: academicStyle }));
     expect(general.stdout).not.toContain("Cite every kettle in APA 7.");
@@ -157,6 +158,18 @@ describe("runJevStyle", () => {
     await expect(
       runJevStyle(inputs({ sections: ["Kettle history"] })),
     ).rejects.toThrow('No heading "Kettle history" in the Deliverable.');
+  });
+
+  it("asks a section named twice only once", async () => {
+    const printed = await runJevStyle(inputs({ sections: ["Costs", "Costs"] }));
+    expect(printed.stdout).toMatch(/from 4 questions\.$/);
+  });
+
+  it("stops when the Style file has no Overrides heading", async () => {
+    const style = "Evidence: firsthand\nFormality: general\n";
+    await expect(runJevStyle(inputs({ style }))).rejects.toThrow(
+      'needs an "## Overrides" heading',
+    );
   });
 
   it("writes the full answers as JSON beside the Deliverable", async () => {

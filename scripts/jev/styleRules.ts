@@ -31,10 +31,11 @@ export function pieceRules(
 ): string[] {
   const sheetRules = rulesOf(readFileSync(styleSheetPath, "utf8"));
   requirePositionRules(sheetRules, styleSheetPath);
-  const academicRules = style.isAcademic
-    ? rulesOf(readFileSync(academicSheetPath, "utf8"))
-    : [];
-  return [...sheetRules, ...academicRules]
+  const rules = [...sheetRules];
+  if (style.isAcademic) {
+    rules.push(...rulesOf(readFileSync(academicSheetPath, "utf8")));
+  }
+  return rules
     .filter(
       ({ tag }) =>
         tag === undefined || tag === style.evidence || tag === style.formality,
@@ -42,8 +43,21 @@ export function pieceRules(
     .map(({ text }) => text);
 }
 
-export function positionRuleOf(rule: string): PositionRule | undefined {
-  return positionRules.find(({ ruleStart }) => rule.startsWith(ruleStart));
+export interface ParagraphPlace {
+  index: number;
+  count: number;
+}
+
+export function isRuleAt(
+  rule: string,
+  { index, count }: ParagraphPlace,
+): boolean {
+  const position = positionRules.find(({ ruleStart }) =>
+    rule.startsWith(ruleStart),
+  );
+  if (!position) return true;
+  if (position.end === "first") return index < position.paragraphCount;
+  return index >= count - position.paragraphCount;
 }
 
 // Starts at the first section after Axes, so the axis definitions are never read as rules.
