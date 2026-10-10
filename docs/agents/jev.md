@@ -59,7 +59,7 @@ npm run jev:style -- --deliverable <deliverable.md> --style <style.md> [--sectio
 
 To upgrade, with the developer's yes:
 
-1. Re-run the Pieces listed in the Jev trial log (set up by byro-repo#196) on the new version.
+1. Re-run the Pieces listed in the [Jev trial log](./jev-trial.md), this procedure's evidence, on the new version.
 2. Compare its flags with the logged ones and the developer's rulings.
 3. Bump `jevPin` only if the new version does at least as well. Otherwise leave the pin and record why.
 

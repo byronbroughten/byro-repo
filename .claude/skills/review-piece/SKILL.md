@@ -1,6 +1,6 @@
 ---
 name: review-piece
-description: "Review a writing Piece's Deliverable as it is now, in three parallel sub-agents: Spec (facts, length, Reference reuse), Style (the style sheets and the spec's overrides) and Reader (what it says to someone without the spec). Reports them side by side."
+description: "Review a writing Piece's Deliverable as it is now, in three parallel sub-agents: Spec (facts, length, Reference reuse), Style (the style sheets and the spec's overrides) and Reader (what it says to someone without the spec). Reports them side by side, then runs Jev's style check as a trial."
 disable-model-invocation: true
 ---
 
@@ -9,6 +9,8 @@ Three-axis review of a Piece's Deliverable, read as it is now. There is no diff 
 - **Spec**: does the text hold to the spec's facts, length limit and References?
 - **Style**: does it follow the style sheets and the spec's overrides?
 - **Reader**: what does it say to a reader who never saw the spec?
+
+Jev's style check then runs on the same text as a trial beside them, logged against the Style axis.
 
 Each axis runs in a **fresh-context sub-agent** that never wrote the Piece, so the axes judge the text rather than the author's intent. The Piece rules live in the writing package: [`packages/writing/AGENTS.md`](../../../packages/writing/AGENTS.md) (its "Implementing a piece spec" and "Done checks" sections) and its `GLOSSARY.md`. Point the sub-agents there; never restate them here.
 
@@ -32,7 +34,7 @@ Write each to its own file in the scratchpad, so each sub-agent gets only its ow
 - **Fact list**: the closed list the implementer had: the issue's facts, the parent's facts, any verified source list a Research issue produced and the spec links, and any of the developer's own text the spec names as given.
 - **Length limit**: the spec's, verbatim.
 - **References**: each Reference's text, read from Drive by the file ID the spec lists. For one too long to read whole, read the passages the spec lists by page range; with none listed, use the passages a Research issue quoted.
-- **Style**: the spec's Evidence and Formality values, whether the Piece is Academic, and its style overrides, verbatim.
+- **Style**: in the shape `npm run jev:style` reads ([the Jev agent doc](../../../docs/agents/jev.md#the-style-check)): `Evidence:`, `Formality:` and `Academic:` lines with the spec's values, then an `## Overrides` heading holding the spec's style overrides, Form and Order sections, verbatim. Without Form and Order, a letter's required closing ask reads as a late recommendation.
 
 Done when every file exists, or the spec has no such field and you say so. A missing Drive ID or Reference is asked for, never guessed. Note each **gap**: an input that is missing, a stand-in, or only partly loaded.
 
@@ -46,8 +48,20 @@ Issue all three Agent calls together, in the foreground. Each prompt names the s
 
 **Reader** sub-agent, the session's model. Its prompt gives only the Deliverable and Reader files. Never give it the facts, the References, the style sheets or the spec. The brief: "You are the reader described. Read the whole Deliverable, then for the in-scope part only report: (a) what you took it to say, in a few sentences; (b) each place you got lost, quoting it; (c) what you would ask the author. Under 400 words."
 
-## 4. Aggregate
+## 4. Run Jev's style check
+
+After the three sub-agents return, run `npm run jev:style -- --deliverable <Deliverable file> --style <Style file>` on step 2's files, adding `--section "<heading>"` for each in-scope heading when the scope is Sections. It is a trial: it replaces no axis yet. If it stops, keep its stderr line for step 5.
+
+## 5. Aggregate
 
 Present the three reports under `## Spec`, `## Style` and `## Reader`, verbatim or lightly cleaned. Open each with that axis's gaps from step 2 and the check each one weakened. Keep the axes unmerged and unranked: one axis's findings must never bury another's.
 
+After them, show Jev's output as `## Jev style`, with its own count line, or the line it stopped on. Never merge its flags into an axis or rank them against one.
+
 End with one line per axis: its finding count and its worst finding. Pick no winner across axes.
+
+## 6. Log the Jev trial
+
+Compare Jev's flags with the Style sub-agent's findings. A match is the same paragraph and the same rule. List the disagreements, Jev's misses and its extra flags, and ask the developer to rule on each one; never on the matches.
+
+Then add a row to the [Jev trial log](../../../docs/agents/jev-trial.md). **The row holds only counts, rule names and issue numbers, never a quoted sentence:** this repo is public and Pieces are private.
