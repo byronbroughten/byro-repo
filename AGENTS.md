@@ -42,6 +42,7 @@ Open only the section or disclosed doc the task needs.
 | Writing reader-facing prose: a shared Google Doc, a blog post, in-app text, a piece spec | [`docs/writing-style.md`](./docs/writing-style.md); academic work adds [`academic-writing-style.md`](./docs/academic-writing-style.md); a piece spec adds [`packages/writing/AGENTS.md`](./packages/writing/AGENTS.md) |
 | Editing a prose doc or AGENTS.md: which file a fact belongs in | [`docs/agents/prose-files.md`](./docs/agents/prose-files.md) |
 | Issues and labels | [`docs/agents/issue-tracker.md`](./docs/agents/issue-tracker.md), [`docs/agents/triage-labels.md`](./docs/agents/triage-labels.md) |
+| A yes/no, pick-one or scale judgement an agent could hand off | [`docs/agents/jev.md`](./docs/agents/jev.md) |
 | Domain vs architecture vocabulary | [`docs/agents/domain.md`](./docs/agents/domain.md) |
 | A slash-named skill not in the listing | `.claude/skills/<name>/SKILL.md`. Never a similarly-named substitute. |
 | Editing, forking or syncing a vendored skill | [`docs/agents/upstream-skills.md`](./docs/agents/upstream-skills.md) |

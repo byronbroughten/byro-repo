@@ -28,6 +28,8 @@
       "Bash(npm run dev:build)",
       "Bash(npm run dev:push)",
       "Bash(npm run dev:run *)",
+      "Bash(npm run jev *)",
+      "Bash(npm run -s jev *)",
       "Bash(npx prettier --check *)",
       "Bash(npx eslint *)",
       "Bash(gh label list *)",
