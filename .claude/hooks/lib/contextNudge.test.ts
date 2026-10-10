@@ -36,6 +36,12 @@ describe("contextSize", () => {
     expect(contextSize(transcript(sized, noUsage, summary, '{"type":"assist'))).toBe(40_007);
   });
 
+  it("reads usage only from assistant lines", () => {
+    const assistant = assistantLine({ input_tokens: 4, cache_read_input_tokens: 60_000 });
+    const other = JSON.stringify({ type: "progress", message: { usage: { input_tokens: 999_999 } } });
+    expect(contextSize(transcript(assistant, other))).toBe(60_004);
+  });
+
   it("counts only numeric token fields", () => {
     const line = JSON.stringify({ type: "assistant", message: { usage: { input_tokens: "900000", cache_read_input_tokens: 12 } } });
     expect(contextSize(transcript(line))).toBe(12);

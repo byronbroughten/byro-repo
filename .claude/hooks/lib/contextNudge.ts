@@ -8,10 +8,10 @@ export function contextNudgeContext(transcript: string): string | undefined {
   if (size === undefined || size < ticketBudgetTokens) return undefined;
   return (
     `Context nudge: this session's context is ${Math.round(size / 1000)}K tokens, past the ` +
-    `${ticketBudgetTokens / 1000}K ticket budget. Finish the step you are on, then make a handoff your next step, ` +
+    `${ticketBudgetTokens / 1000}K ticket budget. Finish the step you are on; the handoff is your next and last step, ` +
     "per docs/agents/planning.md#handoffs: an issue comment, or a file if there is no issue. " +
-    "If tsc, tests or lint are not green, the handoff lists the changed files and what still fails (tsc errors, test names), " +
-    "so the next session resumes from the working tree; leave that work uncommitted. " +
+    "If tsc, tests or lint are red, the handoff lists the changed files and what still fails (tsc errors, test names), " +
+    "so the next session resumes from the working tree. Leave the work uncommitted. " +
     "Then recommend a fresh session to the developer."
   );
 }
@@ -34,7 +34,8 @@ export function contextSize(transcript: string): number | undefined {
 
 function parseUsage(line: string): Usage | undefined {
   try {
-    return JSON.parse(line)?.message?.usage;
+    const entry = JSON.parse(line);
+    return entry?.type === "assistant" ? entry.message?.usage : undefined;
   } catch {
     return undefined;
   }

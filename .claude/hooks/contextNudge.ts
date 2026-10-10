@@ -12,6 +12,7 @@ await runFailOpen(() => {
   if (existsSync(markerPath)) return;
   const context = contextNudgeContext(readFileSync(input.transcript_path, "utf8"));
   if (!context) return;
-  writeFileSync(markerPath, "");
+  // "wx" throws if a parallel call already claimed the nudge, so it fires once.
+  writeFileSync(markerPath, "", { flag: "wx" });
   writeHookOutput({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: context } });
 });
