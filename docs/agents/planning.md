@@ -7,6 +7,7 @@
 ## Piece specs
 
 - **Grilling a piece spec starts from [`packages/writing/docs/grilling.md`](../../packages/writing/docs/grilling.md).**
+- **A piece spec is filed with `/to-piece-spec` and split with `/to-piece-tickets`**, never `/to-spec` or `/to-tickets`.
 
 ## Test seams
 
@@ -23,8 +24,8 @@
 
 ## Model fit
 
-- **After `/to-tickets` publishes**, print the tickets as one flat list in completion order, `#n Title: <Model> <effort> (reason)`, with `~NK` in the reason only for a ticket near its budget. Chat only: never in a ticket, comment or parent issue.
-- **After `/to-spec` publishes**, say in one chat line which pair fits the spec, in the same form, and why. A spec that won't fit one session is still published, and the line recommends `/to-tickets` for sub-issues instead of a pair. Say nothing if the developer has explicitly agreed in the conversation that it becomes tickets. The developer switches with `/model` and `/effort`; never dispatch an implementer.
+- **After `/to-tickets` or `/to-piece-tickets` publishes**, print the tickets as one flat list in completion order, `#n Title: <Model> <effort> (reason)`, with `~NK` in the reason only for a ticket near its budget. Chat only: never in a ticket, comment or parent issue.
+- **After `/to-spec` or `/to-piece-spec` publishes**, say in one chat line which pair fits the spec, in the same form, and why. A spec that won't fit one session is still published, and the line recommends `/to-tickets` or `/to-piece-tickets` for sub-issues instead of a pair. Say nothing if the developer has explicitly agreed in the conversation that it becomes tickets. The developer switches with `/model` and `/effort`; never dispatch an implementer.
 - **Pick from six pairs only:** Sonnet medium, Sonnet high, Opus low, Opus medium, Opus high, Grok 4.7 low. Never another Grok version or effort. Criteria for each and their evidence: [`model-fit.md`](./model-fit.md).
 - **Tie-break: the cheapest pair likely to pass review on the first try.** Cost is the Claude Code weekly limit; Grok draws on Cursor's monthly pool, which runs short, so Grok is a fallback, not a default.
 - **A Claude pick adds `· near limit: Grok 4.7 low`** when the ticket also passes Grok's rule, and nothing when it doesn't.
