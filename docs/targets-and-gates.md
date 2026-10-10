@@ -13,6 +13,7 @@ The threat model is accidents, with tampering made visible. Both clasp credentia
 | Command | dev | app |
 | --- | --- | --- |
 | `probe`, `chore <name>` (dry run) | allow | allow |
+| `configs:diff` (no credential, no live sheet) | allow | allow |
 | `chore <name> -- --send` | allow | ask, and the yes must name the chore |
 | `gen:configs` | allow | allow, under the four conditions below |
 | `push` / `run <fn>` / `build` | allow | ask |

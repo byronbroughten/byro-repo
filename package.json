@@ -19,10 +19,12 @@
     "app:gen:configs": "npm run gen:configs -w sheets-real-estate --",
     "app:probe": "npm run probe -w sheets-real-estate --",
     "app:build": "npm run build -w sheets-real-estate --",
+    "app:configs:diff": "npm run configs:diff -w sheets-real-estate --",
     "dev:chore": "npm run chore -w @byronbroughten/sheets-framework --",
     "dev:gen:configs": "npm run gen:configs -w @byronbroughten/sheets-framework --",
     "dev:probe": "npm run probe -w @byronbroughten/sheets-framework --",
     "dev:build": "npm run build -w @byronbroughten/sheets-framework --",
+    "dev:configs:diff": "npm run configs:diff -w @byronbroughten/sheets-framework --",
     "dev:push": "npm run push -w @byronbroughten/sheets-framework --",
     "dev:run": "npm run run -w @byronbroughten/sheets-framework --"
   },
