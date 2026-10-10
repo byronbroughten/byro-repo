@@ -1,16 +1,16 @@
 import { readFileSync } from "node:fs";
 
-import { type JevClient, jevPin, type JevRequest } from "./JevClient.ts";
+import type { JevClient, JevRequest } from "./JevClient.ts";
+import {
+  type JevPrinted,
+  newVersionLines,
+  requireApiKey,
+} from "./jevRunSteps.ts";
 
 export interface JevRun {
   requestPath: string | undefined;
   apiKey: string | undefined;
   connect(apiKey: string): JevClient;
-}
-
-export interface JevPrinted {
-  stdout: string;
-  stderr: string[];
 }
 
 export async function runJev({
@@ -19,13 +19,8 @@ export async function runJev({
   connect,
 }: JevRun): Promise<JevPrinted> {
   if (!requestPath) throw new Error("usage: npm run jev -- <request.json>");
-  if (!apiKey) {
-    throw new Error(
-      "TYPESAFE_API_KEY is not set. Set it in your shell profile; a session started before the key was added won't see it, so restart the session after adding it.",
-    );
-  }
+  const client = connect(requireApiKey(apiKey));
   const request = readRequest(requestPath);
-  const client = connect(apiKey);
   const [{ answers, usage }, stderr] = await Promise.all([
     client.send(request),
     newVersionLines(client),
@@ -39,16 +34,4 @@ function readRequest(path: string): JevRequest {
     readFileSync(path, "utf8"),
   ) as JevRequest;
   return { state, questions };
-}
-
-// Best-effort: a failed version check never discards the answers.
-async function newVersionLines(client: JevClient): Promise<string[]> {
-  try {
-    const latest = await client.latestVersion();
-    if (latest === jevPin) return [];
-    return [`${latest} is out; pinned to ${jevPin}, see the Jev agent doc`];
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
-    return [`Couldn't check jev-latest's version: ${reason}`];
-  }
 }
