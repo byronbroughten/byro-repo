@@ -21,7 +21,13 @@ export default defineConfig({
         extends: true,
         test: {
           name: "tooling",
-          include: ["config/**/*.test.ts", ".claude/hooks/**/*.test.ts", ".claude/skills/**/*.test.ts", "scripts/**/*.test.ts"],
+          include: [
+            "*.test.ts",
+            "config/**/*.test.ts",
+            ".claude/hooks/**/*.test.ts",
+            ".claude/skills/**/*.test.ts",
+            "scripts/**/*.test.ts",
+          ],
         },
       },
     ],

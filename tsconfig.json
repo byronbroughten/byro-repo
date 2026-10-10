@@ -1,5 +1,5 @@
 {
-  // The tooling program: Claude Code hooks, skill scripts and root scripts, run by Node's type stripping (node file.ts), so erasable syntax only.
+  // The tooling program: Claude Code hooks, skill scripts, root scripts and root-level tests, run by Node's type stripping (node file.ts), so erasable syntax only.
   "extends": "@byronbroughten/config/tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2023",
@@ -12,6 +12,7 @@
     ".claude/hooks/**/*.ts",
     ".claude/skills/**/*.ts",
     ".cursor/hooks/**/*.ts",
-    "scripts/**/*.ts"
+    "scripts/**/*.ts",
+    "*.test.ts"
   ]
 }
