@@ -20,7 +20,7 @@ Choose only the stages the fields call for:
 
 With a one-session Split, the spec itself is the drafting ticket, final pass included: propose only Research, and say the spec is implemented once Research closes.
 
-Size each ticket to fit one session, by the context budget in [`docs/agents/planning.md`](../../../docs/agents/planning.md#ticket-size): count the Reference text it reads and the length it drafts.
+Size each ticket to fit one session under the ~150K context budget in [`docs/agents/planning.md`](../../../docs/agents/planning.md#ticket-size), estimated from the Reference text it reads and the length it drafts.
 
 Order them Research first, Sections in reading order, the final pass last, each blocked by the one before. Present a numbered list: title, stage, the Sections it names, blocked by, and its rough size. Ask whether the granularity, the order and the edges are right.
 
@@ -28,7 +28,7 @@ Done when the developer confirms the list. File nothing before that.
 
 ## 3. File the tickets
 
-File them in order, blockers first, each with `ready-for-agent`, using the template below. The final-pass ticket also gets `final-pass`; create that label in the writing tracker if it is missing. Make each ticket a sub-issue of the spec and set its blocking edges as GitHub's native issue dependencies, by the operations in [`docs/agents/issue-tracker.md`](../../../docs/agents/issue-tracker.md).
+File them in order, blockers first, each with `ready-for-agent`, using the template below. The final-pass ticket also gets `final-pass`; create that label in the writing tracker if it is missing. Make each ticket a sub-issue of the spec and set its blocking edges as GitHub's native issue dependencies, by the child-ticket and blocking operations in [`docs/agents/issue-tracker.md`](../../../docs/agents/issue-tracker.md#wayfinding-operations).
 
 Copy in each ticket's facts and the parent's shared rules verbatim, so the implementer works from the ticket alone and opens the parent only when a criterion is ambiguous.
 

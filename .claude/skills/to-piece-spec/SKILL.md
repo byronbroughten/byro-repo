@@ -13,9 +13,9 @@ Draw each field from the conversation, in the developer's words where they gave 
 - **Deliverable**: the Google Doc's title and Doc ID, and the standing yes to write to that one Doc.
 - **References**: each by title and Drive ID, with what it is for. For one too long to read whole, such as a book, list the passages that count by page range.
 - **Reader**: who reads the Piece, and what they already know.
-- **Voice**: the Axes line (`Evidence: <value> · Formality: <value>`, or `Academic`), then the style overrides. A calibration paragraph the developer rewrote goes here, quoted, as the target voice.
-- **Form**: the length limit, and the template or Section order if there is one.
-- **Facts**: the closed list the Piece may use. Name any of the developer's own text the Piece keeps or revises (an earlier draft, a target-voice paragraph, a Reference entry already graded) as given, with where it lives.
+- **Voice**: the Axes line (`Evidence: <value> · Formality: <value>`, or `Academic`), then the style overrides.
+- **Form**: the length limit and its cut order, and the template or Section order if there is one.
+- **Facts**: the closed list the Piece may use. Name any of the developer's own text the Piece keeps or revises (the verdict, an earlier draft, the rewritten calibration paragraph, a Reference entry already graded) as given, quoted or with where it lives.
 - **Research**: needed or not, and on what.
 - **Final pass**: needed or not, and what it covers.
 - **Split**: one session, or the proposed Sections, each named by its heading text. A Piece with no headings, such as a letter, is one session.
@@ -62,7 +62,7 @@ A short numbered list, only as long as the Piece needs: `As <actor>, I want <fea
 
 ## Further Notes
 
-The Piece is done by the four done checks in the writing package's `AGENTS.md`.
+The Piece is done by the done checks in the writing package's `AGENTS.md`.
 
 </piece-spec-template>
 
