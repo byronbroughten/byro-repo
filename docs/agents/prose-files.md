@@ -30,7 +30,7 @@ Every file has one job, and each fact lives in exactly one of them. Everywhere e
 | `docs/writing-style/*.md` | Each rule's quoted instances and sources, indexed by `docs/writing-style.md`'s "When \| File" table, plus `sources.md` for the sources read and the habits dropped. |
 | `docs/academic-writing-style.md` | Academic conventions layered on `docs/writing-style.md`, one line per rule, rule only, with APA 7 as the citation standard. |
 | `docs/academic-writing-style/*.md` | Each rule's quoted instances and sources, indexed by `docs/academic-writing-style.md`'s "When \| File" table. |
-| `docs/agents/*.md` | Agent workflow: git, planning, delegation, issues, vendored upstream skills, handing judgements to Jev. |
+| `docs/agents/*.md` | Agent workflow: git, planning, delegation, issues, vendored upstream skills, handing judgements to Jev and its trial log. |
 | `README.md` | The workspace overview, a derived view for people on GitHub; it links each public clone by github.com URL, since the clones don't exist there, and names the private writing clone without a link. Nothing routes agents to it. Update it when a fact it mirrors changes (tables below). |
 
 ### Framework (`packages/framework/`, its own repo)
