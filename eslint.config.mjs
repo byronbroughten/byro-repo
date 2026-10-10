@@ -13,6 +13,7 @@ export default defineConfig(
       ".claude/hooks/**/*.ts",
       ".claude/skills/**/*.ts",
       ".cursor/hooks/**/*.ts",
+      "scripts/**/*.ts",
     ],
     rules: {
       "no-restricted-imports": [

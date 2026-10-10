@@ -21,6 +21,7 @@ The threat model is accidents, with tampering made visible. Both clasp credentia
 | gworkspace Sheets writes (`guardedSheetsWrites`) | allow | ask, with the exact sheet, range and values |
 | gworkspace Docs writes, file creation, share tools | ask | ask |
 | gworkspace reads | allow | allow |
+| `npm run jev` (no spreadsheet; sends text to TypeSafe) | allow | allow |
 
 **`npm publish` is ask-first, apart from the two targets.** It publishes `@byronbroughten/config` or `@byronbroughten/utils` to the public npm registry, where a version can't be replaced and a removal is time-limited, so a yes covers one publish of one version, and the agent shows the `npm pack --dry-run` file list before asking. For utils, `npm run smoke` in `packages/utils` passes first. `npm adduser` is the developer's own step.
 
@@ -28,6 +29,7 @@ The threat model is accidents, with tampering made visible. Both clasp credentia
 - **A dev write's standing yes holds only while the pinning files are clean**, and a gworkspace Sheets write gets it only on the dev ID. The hook: `pinnedTargetGuard.ts` in [`docs/claude-code-guardrails.md`](./claude-code-guardrails.md).
 - **`dev:build`, `dev:push` and `dev:run` run the framework package's `build`, `push` and `run` scripts** against the dev project named in its `.clasp.json` ([the dev project](../packages/framework/docs/how-it-runs.md#the-dev-project)).
 - **Both targets' Node-host credential comes from GCP project `real-estate-manager-sheets`**, whose consent screen is published to production so its refresh tokens don't expire ([why](../packages/framework/docs/how-it-runs.md#when-the-node-host-fails-to-authenticate)).
+- **`npm run jev` sends text to TypeSafe under a standing yes: Deliverable text and repo docs, never secrets, `.env` files or credential files** ([the Jev doc](./agents/jev.md#what-may-be-sent)).
 - **The dev spreadsheet is not a rehearsal copy of the app one.** Sheet configs key every sheet by its GID, and the dev sheet carries its own fixture sheets, not a copy of the business ones.
 
 ## Before touching the live spreadsheet or deployment
