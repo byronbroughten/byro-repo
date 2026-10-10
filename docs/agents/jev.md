@@ -50,7 +50,7 @@ npm run jev:style -- --deliverable <deliverable.md> --style <style.md> [--sectio
 ```
 
 - **The Deliverable** is Markdown. Each list item is a paragraph and headings are skipped. With `--section`, only paragraphs under each heading, matched exactly, are judged; the whole Deliverable is still sent for context. A heading that isn't found stops the run.
-- **The Style file** holds `Evidence:`, `Formality:` and `Academic:` lines, an optional `Kind:` line on what the Piece is, then an `## Overrides` heading with the spec's overrides, Form and Order verbatim. The heading is required, empty when the spec has none, so a Style file that lost its overrides stops the run instead of over-flagging. `Academic: yes` adds [`docs/academic-writing-style.md`](../academic-writing-style.md)'s rules.
+- **The Style file** holds `Evidence:`, `Formality:` and `Academic:` lines, an optional `Kind:` line on what the Piece is, then an `## Overrides` heading with the spec's overrides, Form and Order verbatim; without Form and Order, a letter's required closing ask reads as a late recommendation. The heading is required, empty when the spec has none, so a Style file that lost its overrides stops the run instead of over-flagging. `Academic: yes` adds [`docs/academic-writing-style.md`](../academic-writing-style.md)'s rules.
 - **Position rules**, the opening and closing rules listed in `scripts/jev/styleRules.ts`, are judged only at their place. A reworded rule that no entry matches stops the run; update the list.
 
 ## The pin and upgrading it

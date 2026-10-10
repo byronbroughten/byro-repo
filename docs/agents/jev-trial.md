@@ -1,6 +1,6 @@
 # Jev trial log
 
-How `npm run jev:style` compared with `/review-piece`'s Style sub-agent on each Piece reviewed. It is the evidence for upgrading Jev's pin ([`jev.md`](./jev.md#the-pin-and-upgrading-it)) and for any later step that lets Jev replace a review axis.
+How `npm run jev:style` compared with `/review-piece`'s Style sub-agent on each Piece reviewed. It is the evidence for upgrading Jev's pin ([`jev.md`](./jev.md#the-pin-and-upgrading-it)).
 
 **It never quotes Piece text: only counts, rule names and issue numbers.** This repo is public and Pieces are private.
 

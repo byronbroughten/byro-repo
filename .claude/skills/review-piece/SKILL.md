@@ -34,7 +34,7 @@ Write each to its own file in the scratchpad, so each sub-agent gets only its ow
 - **Fact list**: the closed list the implementer had: the issue's facts, the parent's facts, any verified source list a Research issue produced and the spec links, and any of the developer's own text the spec names as given.
 - **Length limit**: the spec's, verbatim.
 - **References**: each Reference's text, read from Drive by the file ID the spec lists. For one too long to read whole, read the passages the spec lists by page range; with none listed, use the passages a Research issue quoted.
-- **Style**: in the shape `npm run jev:style` reads ([the Jev agent doc](../../../docs/agents/jev.md#the-style-check)): `Evidence:`, `Formality:` and `Academic:` lines with the spec's values, then an `## Overrides` heading holding the spec's style overrides, Form and Order sections, verbatim. Without Form and Order, a letter's required closing ask reads as a late recommendation.
+- **Style**: the spec's Evidence and Formality values, whether the Piece is Academic, and its style overrides, Form and Order sections, verbatim, in the Style file shape in [the Jev agent doc](../../../docs/agents/jev.md#the-style-check).
 
 Done when every file exists, or the spec has no such field and you say so. A missing Drive ID or Reference is asked for, never guessed. Note each **gap**: an input that is missing, a stand-in, or only partly loaded.
 
@@ -50,18 +50,18 @@ Issue all three Agent calls together, in the foreground. Each prompt names the s
 
 ## 4. Run Jev's style check
 
-After the three sub-agents return, run `npm run jev:style -- --deliverable <Deliverable file> --style <Style file>` on step 2's files, adding `--section "<heading>"` for each in-scope heading when the scope is Sections. It is a trial: it replaces no axis yet. If it stops, keep its stderr line for step 5.
+After the three sub-agents return, run `npm run jev:style -- --deliverable <Deliverable file> --style <Style file>` on step 2's files, adding `--section "<heading>"` for each in-scope heading when the scope is Sections. It replaces no axis yet. Done when it has printed its `## Jev style` section or stopped; keep any stderr line for step 5.
 
 ## 5. Aggregate
 
 Present the three reports under `## Spec`, `## Style` and `## Reader`, verbatim or lightly cleaned. Open each with that axis's gaps from step 2 and the check each one weakened. Keep the axes unmerged and unranked: one axis's findings must never bury another's.
 
-After them, show Jev's output as `## Jev style`, with its own count line, or the line it stopped on. Never merge its flags into an axis or rank them against one.
+After them, show Jev's output as `## Jev style`, with its own count line, or the line it stopped on, plus any stderr line from step 4. It stays separate from the axes and unranked against them.
 
-End with one line per axis: its finding count and its worst finding. Pick no winner across axes.
+End with one line per axis, and one for Jev: its finding count and its worst finding. Pick no winner across axes.
 
 ## 6. Log the Jev trial
 
-Compare Jev's flags with the Style sub-agent's findings. A match is the same paragraph and the same rule. List the disagreements, Jev's misses and its extra flags, and ask the developer to rule on each one; never on the matches.
+If `jev:style` stopped, skip this step and say so. Otherwise compare Jev's flags with the Style sub-agent's findings, by the log's **Matches** column. List the disagreements (Jev's misses and its extra flags) and ask the developer to rule on each one.
 
-Then add a row to the [Jev trial log](../../../docs/agents/jev-trial.md). **The row holds only counts, rule names and issue numbers, never a quoted sentence:** this repo is public and Pieces are private.
+Then add a row to the [Jev trial log](../../../docs/agents/jev-trial.md). **The row holds only counts, rule names and issue numbers, never a quoted sentence:** this repo is public and Pieces are private. Done when every disagreement has a ruling and the row is added.
