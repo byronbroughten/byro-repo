@@ -13,6 +13,10 @@
 
 - **A spec's test seams name the outcome each test asserts**: for a Sheets write, the grid it leaves, not the requests it sends ([framework style](../../packages/framework/docs/code-style.md#tests)).
 
+## Developer boxes
+
+- **A `.claude/settings.json` change is a developer box.** Auto mode blocks an agent's edit to it as self-modification, so the spec quotes the exact lines and the implementer lists them in its hand-back for the developer to add.
+
 ## Ticket size
 
 - **Size each ticket so one session finishes it without `/context` going much over ~150K; prefer 110–125K when a green seam makes that easy.** About 40K is fixed overhead before the first prompt.
