@@ -30,6 +30,7 @@ describe("devWriteOf", () => {
   it("ignores dev reads and app commands", () => {
     expect(devWriteOf("npm run dev:probe -- --fields sheets")).toBeUndefined();
     expect(devWriteOf("npm run -s dev:probe -- --fields sheets")).toBeUndefined();
+    expect(devWriteOf("npm run dev:configs:diff")).toBeUndefined();
     expect(devWriteOf("npm run app:gen:configs")).toBeUndefined();
     expect(devWriteOf("npm test")).toBeUndefined();
   });
