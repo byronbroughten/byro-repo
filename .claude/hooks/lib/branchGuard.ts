@@ -30,10 +30,7 @@ export interface BranchGuardInput {
   mode: GuardMode;
   primaryCheckouts: string[];
   ownCheckouts: CheckoutStates;
-  // Every other session's record, live or not.
-  otherSessions: SessionRecord[];
   currentCheckouts: CheckoutStates;
-  now: number;
   // Tells a bare-path file restore from a branch name, as git does.
   isExistingPath(path: string): boolean;
 }
@@ -125,26 +122,15 @@ function guardMessage(reason: string): string {
   return `Branch guard: ${reason}`;
 }
 
+// Interim leaves branch moves to the developer, who keeps agents off a branch while it lands.
 function denyReasonOf(action: GitAction, props: BranchGuardInput): string | undefined {
-  if (action.kind === "branchMove") return branchMoveDenyReason(action, props);
+  if (action.kind === "branchMove" && props.mode === "strict") return branchMoveDenyReason(action);
   if (action.kind === "commit" && props.mode === "interim") return commitDenyReason(action, props);
   return undefined;
 }
 
-function branchMoveDenyReason(
-  { subcommand, checkout }: GitAction,
-  { mode, otherSessions, currentCheckouts, now }: BranchGuardInput,
-): string | undefined {
-  if (mode === "strict") {
-    return `\`git ${subcommand}\` would move the branch of the primary checkout ${checkout}, which stays put; ${workspaceWay}. ${restoreHint}`;
-  }
-  const branch = currentCheckouts[checkout]?.branch;
-  if (branch === undefined) return undefined;
-  const sessionIds = otherSessions
-    .filter((record) => isLive(record, now) && record.checkouts[checkout]?.branch === branch)
-    .map(({ sessionId }) => sessionId);
-  if (sessionIds.length === 0) return undefined;
-  return `\`git ${subcommand}\` would move ${checkout} off \`${branch}\`, which live session ${sessionIds.join(", ")} is on. Either ${workspaceWay}, or wait for that session to end. ${restoreHint}`;
+function branchMoveDenyReason({ subcommand, checkout }: GitAction): string {
+  return `\`git ${subcommand}\` would move the branch of the primary checkout ${checkout}, which stays put; ${workspaceWay}. ${restoreHint}`;
 }
 
 function commitDenyReason(
@@ -156,7 +142,7 @@ function commitDenyReason(
   if (!recorded || !current) return undefined;
   // `checkout -b` moves the branch without moving the commit.
   if (recorded.head === current.head && recorded.branch === current.branch) return undefined;
-  return `HEAD of ${checkout} moved since this session recorded it (${stateShown(recorded)} → ${stateShown(current)}), so another session moved it and this commit could land on its work. Either ${workspaceWay}, or wait for the other session to end and start a fresh session here.`;
+  return `HEAD of ${checkout} moved since this session recorded it (${stateShown(recorded)} → ${stateShown(current)}), so something else moved it and this commit could land on other work. Either ${workspaceWay}, or start a fresh session here once that work is done.`;
 }
 
 function stateShown({ branch, head }: CheckoutState): string {

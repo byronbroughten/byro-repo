@@ -24,9 +24,7 @@ function decide(props: Partial<BranchGuardInput> & Pick<BranchGuardInput, "comma
     mode: "interim",
     primaryCheckouts,
     ownCheckouts: {},
-    otherSessions: [],
     currentCheckouts: {},
-    now,
     isExistingPath: (path) => existingPaths.has(path),
     ...props,
   });
@@ -89,7 +87,6 @@ describe("branchDecision, strict", () => {
 describe("branchDecision, interim", () => {
   const onMaster = { branch: "master", head: "aaa111" };
   const onIssue = { branch: "issue-1-x", head: "bbb222" };
-  const otherOnMaster: SessionRecord = { sessionId: "other-session", recordedAt: now - 1, checkouts: { [root]: onMaster } };
 
   it.each([
     "git checkout feature",
@@ -97,57 +94,8 @@ describe("branchDecision, interim", () => {
     "git checkout -b issue-1-x",
     "git switch feature",
     "git switch -c issue-1-x",
-  ])("denies `%s` off a branch another live session recorded, naming both ways through", (command) => {
-    const decision = decide({ command, currentCheckouts: { [root]: onMaster }, otherSessions: [otherOnMaster] });
-    expect(decision.permissionDecision).toBe("deny");
-    expect(decision.reason).toMatch(/other-session/);
-    expect(decision.reason).toMatch(/issue workspace/);
-    expect(decision.reason).toMatch(/wait/);
-  });
-
-  it.each([
-    ["ended", { ...otherOnMaster, endedAt: now - 1 }],
-    ["over a day old", { ...otherOnMaster, recordedAt: now - 25 * 60 * 60 * 1000 }],
-  ])("allows a branch move off a branch only an %s session recorded", (_case, record) => {
-    const decision = decide({ command: "git checkout feature", currentCheckouts: { [root]: onMaster }, otherSessions: [record] });
-    expect(decision.permissionDecision).toBe("allow");
-  });
-
-  it("allows a branch move off a branch no other live session recorded", () => {
-    const decision = decide({
-      command: "git checkout master",
-      currentCheckouts: { [root]: onIssue },
-      ownCheckouts: { [root]: onIssue },
-      otherSessions: [otherOnMaster],
-    });
-    expect(decision.permissionDecision).toBe("allow");
-  });
-
-  it("matches another session's branch in the checkout acted on only", () => {
-    const decision = decide({
-      command: "git -C packages/framework checkout feature",
-      currentCheckouts: { [root]: onMaster, [framework]: onIssue },
-      otherSessions: [otherOnMaster],
-    });
-    expect(decision.permissionDecision).toBe("allow");
-  });
-
-  it("allows a move off a detached HEAD", () => {
-    const decision = decide({
-      command: "git checkout master",
-      currentCheckouts: { [root]: { branch: undefined, head: "aaa111" } },
-      otherSessions: [{ ...otherOnMaster, checkouts: { [root]: { branch: undefined, head: "aaa111" } } }],
-    });
-    expect(decision.permissionDecision).toBe("allow");
-  });
-
-  it("allows a file restore whoever is on the branch", () => {
-    const decision = decide({
-      command: "git checkout HEAD -- src/a.ts",
-      currentCheckouts: { [root]: onMaster },
-      otherSessions: [otherOnMaster],
-    });
-    expect(decision.permissionDecision).toBe("allow");
+  ])("allows `%s`, leaving branch moves to the developer", (command) => {
+    expect(decide({ command, currentCheckouts: { [root]: onMaster } }).permissionDecision).toBe("allow");
   });
 
   it.each([

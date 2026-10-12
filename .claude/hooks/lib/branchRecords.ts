@@ -4,7 +4,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import type { CheckoutStates, SessionRecord } from "./branchGuard.ts";
-import { sessionStatePath, sharedStatePath } from "./hookIo.ts";
+import { sessionStatePath } from "./hookIo.ts";
 
 const recordSuffix = "branch-record.json";
 
@@ -38,16 +38,6 @@ export function readRecord(sessionId: string): SessionRecord | undefined {
 
 export function writeRecord(record: SessionRecord): void {
   writeFileSync(recordPathOf(record.sessionId), JSON.stringify(record));
-}
-
-export function readAllRecords(): SessionRecord[] {
-  const dir = sharedStatePath("");
-  return readdirSync(dir)
-    .filter((name) => name.endsWith(`.${recordSuffix}`))
-    .flatMap((name) => {
-      const record = parseRecord(join(dir, name));
-      return record ? [record] : [];
-    });
 }
 
 function recordPathOf(sessionId: string): string {

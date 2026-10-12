@@ -1,8 +1,8 @@
-// PreToolUse on Bash: denies a branch move or commit in a primary checkout that would pull a branch or HEAD out from under another session.
+// PreToolUse on Bash: denies a commit in a primary checkout whose HEAD moved under the session, and in strict form any branch move there.
 import { existsSync } from "node:fs";
 
 import { branchDecision, type GuardMode, headMovingCheckouts, refreshedRecord } from "./lib/branchGuard.ts";
-import { checkoutStatesOf, primaryCheckoutsOf, primaryRootOf, readAllRecords, readRecord, writeRecord } from "./lib/branchRecords.ts";
+import { checkoutStatesOf, primaryCheckoutsOf, primaryRootOf, readRecord, writeRecord } from "./lib/branchRecords.ts";
 import { readHookInput, runFailOpen, writeDenyOutput } from "./lib/hookIo.ts";
 
 // #225 flips this to "strict" once the runner works every ticket in an issue workspace.
@@ -32,9 +32,7 @@ await runFailOpen(() => {
     mode,
     primaryCheckouts,
     ownCheckouts: ownRecord?.checkouts ?? {},
-    otherSessions: readAllRecords().filter((record) => record.sessionId !== sessionId),
     currentCheckouts,
-    now,
     isExistingPath: existsSync,
   });
   if (decision.permissionDecision === "deny") {
