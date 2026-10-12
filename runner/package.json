@@ -6,9 +6,15 @@
   "type": "module",
   "license": "ISC",
   "exports": {
+    "./AgentStep": "./src/AgentStep.ts",
+    "./ClaudeAgentStep": "./src/ClaudeAgentStep.ts",
+    "./FakeAgentStep": "./src/FakeAgentStep.ts",
     "./contextMeter": "./src/contextMeter.ts"
   },
   "scripts": {
     "tsc": "tsc -p ."
+  },
+  "dependencies": {
+    "ajv": "^8.20.0"
   }
 }
