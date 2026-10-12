@@ -1,0 +1,190 @@
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { describe, expect, it } from "vitest";
+
+import type { StepRequest, StepResult } from "./AgentStep.ts";
+import { ClaudeAgentStep } from "./ClaudeAgentStep.ts";
+
+const fixtures = fileURLToPath(new URL("../fixtures/stream/", import.meta.url));
+
+// The schema the recorded streams ran with.
+const answerSchema = {
+  type: "object",
+  properties: { answer: { type: "string" } },
+  required: ["answer"],
+};
+
+function request(overrides: Partial<StepRequest> = {}): StepRequest {
+  return {
+    prompt: "/implement byro-repo #216",
+    pair: { model: "opus", effort: "medium" },
+    account: 2,
+    cwd: "/Users/dev/byro-repo",
+    maxTurns: 40,
+    allowedTools: ["Bash(npm run tsc)", "Bash(git commit *)"],
+    jsonSchema: answerSchema,
+    ...overrides,
+  };
+}
+
+interface Replay {
+  result: StepResult;
+  argv: string[];
+}
+
+// Runs the real adapter against a stand-in cswap that records its argv and prints a recorded stream.
+async function replay(
+  fixture: string,
+  overrides: Partial<StepRequest> = {},
+): Promise<Replay> {
+  const dir = mkdtempSync(join(tmpdir(), "agent-step-"));
+  const argvPath = join(dir, "argv");
+  const cswapPath = join(dir, "cswap");
+  writeFileSync(
+    cswapPath,
+    `#!/bin/sh\nprintf '%s\\n' "$@" > '${argvPath}'\ncat '${join(fixtures, fixture)}'\n`,
+    { mode: 0o755 },
+  );
+  const result = await ClaudeAgentStep.init(cswapPath).run(
+    request({ cwd: dir, ...overrides }),
+  );
+  const argv = readFileSync(argvPath, "utf8").split("\n").slice(0, -1);
+  return { result, argv };
+}
+
+describe("ClaudeAgentStep on a recorded success", () => {
+  it("returns the validated record and where the session lives", async () => {
+    const { result } = await replay("success.ndjson");
+    expect(result).toEqual({
+      output: { status: "valid", record: { answer: "ok" } },
+      sessionId: "0e3dc8b3-fd87-4381-b3dc-8c36c1e03e1b",
+      account: 2,
+      configFolder: "/Users/dev/.claude-swap-backup/sessions/2-dev_example.com",
+      transcriptPath:
+        "/Users/dev/.claude-swap-backup/sessions/2-dev_example.com/projects/-Users-dev-byro-repo/0e3dc8b3-fd87-4381-b3dc-8c36c1e03e1b.jsonl",
+      peakContext: 20_221,
+      exitSubtype: "success",
+      usage: {
+        fiveHour: { utilization: 0.01, resetsAt: new Date(1791781200_000) },
+        sevenDay: { utilization: 0.5, resetsAt: new Date(1791903600_000) },
+      },
+      limitHit: undefined,
+    });
+  });
+});
+
+describe("ClaudeAgentStep's command", () => {
+  it("runs claude as the account in acceptEdits with the pair, cap, schema and tools", async () => {
+    const { argv } = await replay("success.ndjson");
+    expect(argv).toEqual([
+      "run",
+      "2",
+      "--",
+      "-p",
+      "/implement byro-repo #216",
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--model",
+      "opus",
+      "--effort",
+      "medium",
+      "--permission-mode",
+      "acceptEdits",
+      "--max-turns",
+      "40",
+      "--json-schema",
+      '{"type":"object","properties":{"answer":{"type":"string"}},"required":["answer"]}',
+      "--allowedTools",
+      "Bash(npm run tsc)",
+      "Bash(git commit *)",
+    ]);
+  });
+
+  it("resumes the given session", async () => {
+    const { argv } = await replay("success.ndjson", {
+      resumeSessionId: "0e3dc8b3-fd87-4381-b3dc-8c36c1e03e1b",
+    });
+    const flag = argv.indexOf("--resume");
+    expect(argv[flag + 1]).toBe("0e3dc8b3-fd87-4381-b3dc-8c36c1e03e1b");
+  });
+
+  it("never bypasses permissions or switches the active account", async () => {
+    const { argv } = await replay("success.ndjson", { allowedTools: [] });
+    expect(argv).not.toContain("bypassPermissions");
+    expect(argv).not.toContain("--dangerously-skip-permissions");
+    expect(argv).not.toContain("switch");
+    expect(argv).not.toContain("--allowedTools");
+  });
+});
+
+describe("ClaudeAgentStep's schema failures", () => {
+  it("counts a success with no structured output as a schema failure, keeping the raw output", async () => {
+    const { result } = await replay("noStructuredOutput.ndjson");
+    expect(result.exitSubtype).toBe("success");
+    expect(result.output).toMatchObject({
+      status: "schemaFailure",
+      problems: ["no structured output"],
+    });
+    expect(result.output).toHaveProperty(
+      "rawOutput",
+      expect.stringContaining("I couldn't complete this."),
+    );
+  });
+
+  it("counts structured output failing the schema as a schema failure", async () => {
+    const countSchema = {
+      type: "object",
+      properties: { count: { type: "integer" } },
+      required: ["count"],
+    };
+    const { result } = await replay("success.ndjson", {
+      jsonSchema: countSchema,
+    });
+    expect(result.output).toEqual({
+      status: "schemaFailure",
+      rawOutput: '{"answer":"ok"}',
+      problems: ["/ must have required property 'count'"],
+    });
+  });
+});
+
+describe("ClaudeAgentStep on failed runs", () => {
+  it("returns the turn cap's subtype with no record", async () => {
+    const { result } = await replay("maxTurns.ndjson");
+    expect(result.exitSubtype).toBe("error_max_turns");
+    expect(result.output).toEqual({ status: "none" });
+    expect(result.limitHit).toBeUndefined();
+  });
+
+  // Derived from the turn-cap recording with its result's subtype changed.
+  it("returns error_during_execution with no record", async () => {
+    const { result } = await replay("errorDuringExecution.ndjson");
+    expect(result.exitSubtype).toBe("error_during_execution");
+    expect(result.output).toEqual({ status: "none" });
+  });
+
+  // Derived from the success recording: a rejected rate_limit_event and a 429 result.
+  it("returns a limit hit with its window and reset time", async () => {
+    const { result } = await replay("rateLimited.ndjson");
+    expect(result.limitHit).toEqual({
+      window: "five_hour",
+      resetsAt: new Date(1791781200_000),
+    });
+    expect(result.usage?.fiveHour?.utilization).toBe(1);
+    expect(result.output).toEqual({ status: "none" });
+  });
+});
+
+describe("ClaudeAgentStep's log", () => {
+  it("writes the raw stream to the given log file", async () => {
+    const logPath = join(mkdtempSync(join(tmpdir(), "agent-step-log-")), "log");
+    await replay("success.ndjson", { logPath });
+    expect(readFileSync(logPath, "utf8")).toBe(
+      readFileSync(join(fixtures, "success.ndjson"), "utf8"),
+    );
+  });
+});
