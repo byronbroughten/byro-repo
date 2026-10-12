@@ -8,6 +8,7 @@ Runs a spec's tickets through implement, review, finding triage, fix, checks and
 | `@byronbroughten/spec-runner/ClaudeAgentStep` | The real adapter: runs `cswap run <account> -- -p …` in `acceptEdits` and reads its stream-json, optionally logging it raw. |
 | `@byronbroughten/spec-runner/FakeAgentStep` | The adapter run-loop tests script with `StepResult`s. |
 | `@byronbroughten/spec-runner/contextMeter` | `ContextMeter`: a session's peak context, the most input + cache-read + cache-creation tokens any one main-loop assistant message carried. Feed it stream-json events with `observe()` and read `peak`, or pass a whole transcript to `ContextMeter.ofTranscript()`. |
+| `@byronbroughten/spec-runner/limitGuard` | The limit guard: `readCswapList()` turns `cswap list --json` into per-account readings (a missing one is `undefined`, never thrown), and `decideStep()` picks launch, change account, Limit wait or Stop from them, the pinned account and the day's account changes, with `defaultLimitGuardKnobs` for its thresholds, margin and soft cap. |
 
 ## Tests
 

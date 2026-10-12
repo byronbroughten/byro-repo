@@ -1,0 +1,162 @@
+// The limit guard: from every account's usage reading, decides where (or whether) the next step runs.
+// readCswapList turns `cswap list --json` into readings; decideStep is the pure decision over them.
+// AgentStep.ts owns UsageWindow, the same shape a step's own rate-limit events report.
+
+import type { UsageWindow } from "./AgentStep.ts";
+
+export interface LimitGuardKnobs {
+  // Fractions of a window's limit, 0 to 1.
+  fiveHourPauseAt: number;
+  weeklyReserveAt: number;
+  limitWaitMarginMs: number;
+  maxAccountChangesPerDay: number;
+}
+
+export const defaultLimitGuardKnobs: LimitGuardKnobs = {
+  fiveHourPauseAt: 0.9,
+  weeklyReserveAt: 0.95,
+  limitWaitMarginMs: 5 * 60_000,
+  maxAccountChangesPerDay: 2,
+};
+
+export interface AccountUsage {
+  fiveHour: UsageWindow;
+  sevenDay: UsageWindow;
+}
+
+// `usage` is undefined when cswap gave no usable reading for the account.
+export interface AccountReading {
+  account: number;
+  usage: AccountUsage | undefined;
+}
+
+type MeasuredReading = AccountReading & { usage: AccountUsage };
+
+export interface GuardState {
+  // The account the current ticket is pinned to; undefined at run start.
+  pinnedAccount: number | undefined;
+  isAtTicketBoundary: boolean;
+  accountChangesToday: number;
+}
+
+export type GuardDecision =
+  | { kind: "launch"; account: number }
+  | {
+      kind: "changeAccount";
+      from: number;
+      to: number;
+      accountChangesToday: number;
+      isOverSoftCap: boolean;
+    }
+  | { kind: "limitWait"; until: Date }
+  | { kind: "stop"; reason: string };
+
+interface RawList {
+  accounts?: unknown;
+}
+
+interface RawAccount {
+  number?: unknown;
+  usage?: { fiveHour?: RawWindow; sevenDay?: RawWindow };
+}
+
+interface RawWindow {
+  pct?: unknown;
+  resetsAt?: unknown;
+}
+
+export function readCswapList(json: string): AccountReading[] {
+  let list: RawList | undefined;
+  try {
+    list = JSON.parse(json) as RawList | undefined;
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(list?.accounts)) return [];
+  return (list.accounts as (RawAccount | undefined)[]).flatMap((raw) => {
+    if (typeof raw?.number !== "number") return [];
+    return [{ account: raw.number, usage: usageOf(raw) }];
+  });
+}
+
+function usageOf(raw: RawAccount): AccountUsage | undefined {
+  const fiveHour = windowOf(raw.usage?.fiveHour);
+  const sevenDay = windowOf(raw.usage?.sevenDay);
+  if (!fiveHour || !sevenDay) return undefined;
+  return { fiveHour, sevenDay };
+}
+
+function windowOf(raw: RawWindow | undefined): UsageWindow | undefined {
+  if (typeof raw?.pct !== "number" || typeof raw.resetsAt !== "string") {
+    return undefined;
+  }
+  const resetsAt = new Date(raw.resetsAt);
+  if (Number.isNaN(resetsAt.getTime())) return undefined;
+  return { utilization: raw.pct / 100, resetsAt };
+}
+
+export function decideStep(
+  readings: AccountReading[],
+  state: GuardState,
+  knobs: LimitGuardKnobs = defaultLimitGuardKnobs,
+): GuardDecision {
+  const pinned = state.pinnedAccount;
+  if (pinned !== undefined && !state.isAtTicketBoundary) {
+    return { kind: "launch", account: pinned };
+  }
+  const pinnedReading = readings.find((r) => r.account === pinned);
+  if (pinned !== undefined && isUnderBoth(pinnedReading, knobs)) {
+    return { kind: "launch", account: pinned };
+  }
+  const best = lowestWeekly(readings.filter((r) => isUnderBoth(r, knobs)));
+  if (best === undefined) return waitOrStop(readings, knobs);
+  if (pinned === undefined) return { kind: "launch", account: best };
+  const accountChangesToday = state.accountChangesToday + 1;
+  return {
+    kind: "changeAccount",
+    from: pinned,
+    to: best,
+    accountChangesToday,
+    isOverSoftCap: accountChangesToday > knobs.maxAccountChangesPerDay,
+  };
+}
+
+function isUnderBoth(
+  reading: AccountReading | undefined,
+  knobs: LimitGuardKnobs,
+): reading is MeasuredReading {
+  return (
+    !!reading?.usage &&
+    reading.usage.fiveHour.utilization < knobs.fiveHourPauseAt &&
+    reading.usage.sevenDay.utilization < knobs.weeklyReserveAt
+  );
+}
+
+function lowestWeekly(readings: MeasuredReading[]): number | undefined {
+  const sorted = [...readings].sort(
+    (a, b) =>
+      a.usage.sevenDay.utilization - b.usage.sevenDay.utilization ||
+      a.account - b.account,
+  );
+  return sorted[0]?.account;
+}
+
+function waitOrStop(
+  readings: AccountReading[],
+  knobs: LimitGuardKnobs,
+): GuardDecision {
+  const fiveHourResets = readings.flatMap((r) => {
+    if (!r.usage || r.usage.sevenDay.utilization >= knobs.weeklyReserveAt) {
+      return [];
+    }
+    return [r.usage.fiveHour.resetsAt.getTime()];
+  });
+  if (fiveHourResets.length > 0) {
+    const until = Math.min(...fiveHourResets) + knobs.limitWaitMarginMs;
+    return { kind: "limitWait", until: new Date(until) };
+  }
+  if (readings.some((r) => r.usage)) {
+    return { kind: "stop", reason: "every account is past its weekly reserve" };
+  }
+  return { kind: "stop", reason: "no account has a usage reading" };
+}

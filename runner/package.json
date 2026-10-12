@@ -9,7 +9,8 @@
     "./AgentStep": "./src/AgentStep.ts",
     "./ClaudeAgentStep": "./src/ClaudeAgentStep.ts",
     "./FakeAgentStep": "./src/FakeAgentStep.ts",
-    "./contextMeter": "./src/contextMeter.ts"
+    "./contextMeter": "./src/contextMeter.ts",
+    "./limitGuard": "./src/limitGuard.ts"
   },
   "scripts": {
     "tsc": "tsc -p ."
