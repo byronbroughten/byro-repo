@@ -8,7 +8,9 @@ import { describe, expect, it } from "vitest";
 import type { StepRequest, StepResult } from "./AgentStep.ts";
 import { ClaudeAgentStep } from "./ClaudeAgentStep.ts";
 
-const fixtures = fileURLToPath(new URL("../fixtures/stream/", import.meta.url));
+const fixturesFolder = fileURLToPath(
+  new URL("../fixtures/stream/", import.meta.url),
+);
 
 // The schema the recorded streams ran with.
 const answerSchema = {
@@ -45,7 +47,7 @@ async function replay(
   const cswapPath = join(dir, "cswap");
   writeFileSync(
     cswapPath,
-    `#!/bin/sh\nprintf '%s\\n' "$@" > '${argvPath}'\ncat '${join(fixtures, fixture)}'\n`,
+    `#!/bin/sh\nprintf '%s\\n' "$@" > '${argvPath}'\ncat '${join(fixturesFolder, fixture)}'\n`,
     { mode: 0o755 },
   );
   const result = await ClaudeAgentStep.init(cswapPath).run(
@@ -113,10 +115,14 @@ describe("ClaudeAgentStep's command", () => {
   });
 
   it("never bypasses permissions or switches the active account", async () => {
-    const { argv } = await replay("success.ndjson", { allowedTools: [] });
+    const { argv } = await replay("success.ndjson");
     expect(argv).not.toContain("bypassPermissions");
     expect(argv).not.toContain("--dangerously-skip-permissions");
     expect(argv).not.toContain("switch");
+  });
+
+  it("leaves out --allowedTools when the list is empty", async () => {
+    const { argv } = await replay("success.ndjson", { allowedTools: [] });
     expect(argv).not.toContain("--allowedTools");
   });
 });
@@ -177,6 +183,12 @@ describe("ClaudeAgentStep on failed runs", () => {
     expect(result.usage?.fiveHour?.utilization).toBe(1);
     expect(result.output).toEqual({ status: "none" });
   });
+
+  // Derived the same way, with the event still allowed: the 429 alone is the hit.
+  it("returns a limit error result as a limit hit naming no window", async () => {
+    const { result } = await replay("limitErrorResult.ndjson");
+    expect(result.limitHit).toEqual({ window: undefined, resetsAt: undefined });
+  });
 });
 
 describe("ClaudeAgentStep's log", () => {
@@ -184,7 +196,14 @@ describe("ClaudeAgentStep's log", () => {
     const logPath = join(mkdtempSync(join(tmpdir(), "agent-step-log-")), "log");
     await replay("success.ndjson", { logPath });
     expect(readFileSync(logPath, "utf8")).toBe(
-      readFileSync(join(fixtures, "success.ndjson"), "utf8"),
+      readFileSync(join(fixturesFolder, "success.ndjson"), "utf8"),
+    );
+  });
+
+  it("throws on a log path it can't open", async () => {
+    const logPath = join(tmpdir(), "no-such-folder-agent-step", "log");
+    await expect(replay("success.ndjson", { logPath })).rejects.toThrow(
+      "ENOENT",
     );
   });
 });

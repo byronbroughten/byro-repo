@@ -5,6 +5,7 @@ import { Ajv } from "ajv";
 import type {
   LimitHit,
   StepOutput,
+  StepRequest,
   StepResult,
   UsageReading,
   UsageWindow,
@@ -74,7 +75,7 @@ export class StepStream {
     return this;
   }
 
-  toResult(account: number, jsonSchema: object): StepResult {
+  toResult({ account, jsonSchema }: StepRequest): StepResult {
     const sessionId = this._sessionId;
     const projectFolder = this._projectFolder;
     return {
@@ -105,15 +106,16 @@ export class StepStream {
   }
 
   private get _limitHit(): LimitHit | undefined {
-    const isRejected =
-      this.rateLimit !== undefined && this.rateLimit.status !== "allowed";
+    const rejection =
+      this.rateLimit?.status === "allowed" ? undefined : this.rateLimit;
     const isLimitError =
       this.result?.is_error === true &&
       this.result.api_error_status === tooManyRequests;
-    if (!isRejected && !isLimitError) return undefined;
+    if (!rejection && !isLimitError) return undefined;
+    // An allowed reading's window isn't the one that was hit, so a bare 429 names none.
     return {
-      window: stringOrUndefined(this.rateLimit?.rateLimitType),
-      resetsAt: dateOf(this.rateLimit?.resetsAt),
+      window: stringOrUndefined(rejection?.rateLimitType),
+      resetsAt: dateOf(rejection?.resetsAt),
     };
   }
 }
@@ -153,15 +155,19 @@ function outputOf(
   result: ResultEvent | undefined,
   jsonSchema: object,
 ): StepOutput {
-  if (result?.subtype === "error_max_structured_output_retries") {
-    return schemaFailure(result, ["structured output retries ran out"]);
+  if (!result) return { status: "none" };
+  const resultText = stringOrUndefined(result.result) ?? "";
+  if (result.subtype === "error_max_structured_output_retries") {
+    const problems = ["structured output retries ran out"];
+    return { status: "schemaFailure", rawOutput: resultText, problems };
   }
-  if (result?.subtype !== "success" || result.is_error === true) {
+  if (result.subtype !== "success" || result.is_error === true) {
     return { status: "none" };
   }
   const record = result.structured_output;
   if (record === undefined || record === null) {
-    return schemaFailure(result, ["no structured output"]);
+    const problems = ["no structured output"];
+    return { status: "schemaFailure", rawOutput: resultText, problems };
   }
   const validate = new Ajv({ allErrors: true, strict: false }).compile(
     jsonSchema,
@@ -170,14 +176,9 @@ function outputOf(
   const problems = (validate.errors ?? []).map(
     (error) => `${error.instancePath || "/"} ${error.message ?? "is invalid"}`,
   );
-  return schemaFailure(result, problems);
-}
-
-function schemaFailure(result: ResultEvent, problems: string[]): StepOutput {
-  const structured = result.structured_output;
-  const rawOutput =
-    structured === undefined || structured === null
-      ? (stringOrUndefined(result.result) ?? "")
-      : JSON.stringify(structured);
-  return { status: "schemaFailure", rawOutput, problems };
+  return {
+    status: "schemaFailure",
+    rawOutput: JSON.stringify(record),
+    problems,
+  };
 }

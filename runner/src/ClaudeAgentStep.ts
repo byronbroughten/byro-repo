@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { createWriteStream } from "node:fs";
+import { createWriteStream, openSync, type WriteStream } from "node:fs";
 import { createInterface } from "node:readline";
 
 import type { AgentStep, StepRequest, StepResult } from "./AgentStep.ts";
@@ -18,6 +18,7 @@ export class ClaudeAgentStep implements AgentStep {
   }
 
   async run(request: StepRequest): Promise<StepResult> {
+    const log = openLog(request.logPath);
     const child = spawn(this.cswapPath, commandArgs(request), {
       cwd: request.cwd,
       stdio: ["ignore", "pipe", "inherit"],
@@ -27,17 +28,22 @@ export class ClaudeAgentStep implements AgentStep {
       child.on("error", resolve);
       child.on("close", () => resolve(undefined));
     });
-    const log = request.logPath && createWriteStream(request.logPath);
     const stream = StepStream.init();
     for await (const line of createInterface({ input: child.stdout })) {
       if (log) log.write(`${line}\n`);
       stream.observeLine(line);
     }
+    if (log) await new Promise((resolve) => log.end(resolve));
     const spawnError = await exited;
     if (spawnError) throw spawnError;
-    if (log) await new Promise((resolve) => log.end(resolve));
-    return stream.toResult(request.account, request.jsonSchema);
+    return stream.toResult(request);
   }
+}
+
+// Opened before the spawn, so a bad path throws here instead of as an unhandled stream error.
+function openLog(logPath: string | undefined): WriteStream | undefined {
+  if (logPath === undefined) return undefined;
+  return createWriteStream(logPath, { fd: openSync(logPath, "w") });
 }
 
 // Never bypassPermissions, and never `cswap switch`: the developer's active account stays theirs.

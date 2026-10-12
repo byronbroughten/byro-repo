@@ -14,7 +14,6 @@ export interface Pair {
 export interface StepRequest {
   prompt: string;
   pair: Pair;
-  // A cswap account number.
   account: number;
   // The byro-repo root, so root settings and hooks load.
   cwd: string;
@@ -54,7 +53,6 @@ export interface UsageWindow {
 }
 
 export interface LimitHit {
-  // The stream's rateLimitType, such as five_hour or seven_day.
   window: string | undefined;
   resetsAt: Date | undefined;
 }
