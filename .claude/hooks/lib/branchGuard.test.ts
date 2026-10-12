@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  type BranchCommand,
   branchDecision,
+  type BranchGuardInput,
   endedRecord,
   headMovingCheckouts,
   isLive,
@@ -15,14 +15,19 @@ const root = "/code/byro-repo";
 const framework = `${root}/packages/framework`;
 const primaryCheckouts = [root, framework];
 
-function decide(props: Partial<BranchCommand> & Pick<BranchCommand, "command">) {
+const existingPaths = new Set([`${root}/src/a.ts`, `${root}/src`, root]);
+const now = 10 * 24 * 60 * 60 * 1000;
+
+function decide(props: Partial<BranchGuardInput> & Pick<BranchGuardInput, "command">) {
   return branchDecision({
     cwd: root,
     mode: "interim",
     primaryCheckouts,
     ownCheckouts: {},
-    otherLiveSessions: [],
+    otherSessions: [],
     currentCheckouts: {},
+    now,
+    isExistingPath: (path) => existingPaths.has(path),
     ...props,
   });
 }
@@ -34,6 +39,8 @@ describe("branchDecision, strict", () => {
     "git checkout -b issue-1-x",
     "git switch feature",
     "git switch -c issue-1-x",
+    "git switch -",
+    "git checkout --detach HEAD~1",
   ])("denies the branch move `%s` in a primary checkout", (command) => {
     const decision = decide({ command, mode: "strict" });
     expect(decision.permissionDecision).toBe("deny");
@@ -43,7 +50,12 @@ describe("branchDecision, strict", () => {
   it.each([
     "git checkout -- src/a.ts",
     "git checkout master -- src/a.ts",
+    "git checkout src/a.ts",
+    "git checkout .",
+    "git checkout HEAD src/a.ts",
     "git checkout -p",
+    "git checkout --detach",
+    "git switch --help",
     "git status",
     "git log --oneline",
     "npm test",
@@ -77,7 +89,7 @@ describe("branchDecision, strict", () => {
 describe("branchDecision, interim", () => {
   const onMaster = { branch: "master", head: "aaa111" };
   const onIssue = { branch: "issue-1-x", head: "bbb222" };
-  const otherOnMaster = { sessionId: "other-session", recordedAt: 0, checkouts: { [root]: onMaster } };
+  const otherOnMaster: SessionRecord = { sessionId: "other-session", recordedAt: now - 1, checkouts: { [root]: onMaster } };
 
   it.each([
     "git checkout feature",
@@ -86,11 +98,19 @@ describe("branchDecision, interim", () => {
     "git switch feature",
     "git switch -c issue-1-x",
   ])("denies `%s` off a branch another live session recorded, naming both ways through", (command) => {
-    const decision = decide({ command, currentCheckouts: { [root]: onMaster }, otherLiveSessions: [otherOnMaster] });
+    const decision = decide({ command, currentCheckouts: { [root]: onMaster }, otherSessions: [otherOnMaster] });
     expect(decision.permissionDecision).toBe("deny");
     expect(decision.reason).toMatch(/other-session/);
     expect(decision.reason).toMatch(/issue workspace/);
     expect(decision.reason).toMatch(/wait/);
+  });
+
+  it.each([
+    ["ended", { ...otherOnMaster, endedAt: now - 1 }],
+    ["over a day old", { ...otherOnMaster, recordedAt: now - 25 * 60 * 60 * 1000 }],
+  ])("allows a branch move off a branch only an %s session recorded", (_case, record) => {
+    const decision = decide({ command: "git checkout feature", currentCheckouts: { [root]: onMaster }, otherSessions: [record] });
+    expect(decision.permissionDecision).toBe("allow");
   });
 
   it("allows a branch move off a branch no other live session recorded", () => {
@@ -98,7 +118,7 @@ describe("branchDecision, interim", () => {
       command: "git checkout master",
       currentCheckouts: { [root]: onIssue },
       ownCheckouts: { [root]: onIssue },
-      otherLiveSessions: [otherOnMaster],
+      otherSessions: [otherOnMaster],
     });
     expect(decision.permissionDecision).toBe("allow");
   });
@@ -107,7 +127,7 @@ describe("branchDecision, interim", () => {
     const decision = decide({
       command: "git -C packages/framework checkout feature",
       currentCheckouts: { [root]: onMaster, [framework]: onIssue },
-      otherLiveSessions: [otherOnMaster],
+      otherSessions: [otherOnMaster],
     });
     expect(decision.permissionDecision).toBe("allow");
   });
@@ -116,7 +136,7 @@ describe("branchDecision, interim", () => {
     const decision = decide({
       command: "git checkout master",
       currentCheckouts: { [root]: { branch: undefined, head: "aaa111" } },
-      otherLiveSessions: [{ ...otherOnMaster, checkouts: { [root]: { branch: undefined, head: "aaa111" } } }],
+      otherSessions: [{ ...otherOnMaster, checkouts: { [root]: { branch: undefined, head: "aaa111" } } }],
     });
     expect(decision.permissionDecision).toBe("allow");
   });
@@ -125,7 +145,7 @@ describe("branchDecision, interim", () => {
     const decision = decide({
       command: "git checkout HEAD -- src/a.ts",
       currentCheckouts: { [root]: onMaster },
-      otherLiveSessions: [otherOnMaster],
+      otherSessions: [otherOnMaster],
     });
     expect(decision.permissionDecision).toBe("allow");
   });
@@ -171,7 +191,6 @@ describe("branchDecision, interim", () => {
 
 describe("isLive", () => {
   const day = 24 * 60 * 60 * 1000;
-  const now = 10 * day;
   const record: SessionRecord = { sessionId: "s", recordedAt: now - day + 1, checkouts: {} };
 
   it("is true for a record with no end, under a day old", () => {
@@ -234,6 +253,6 @@ describe("headMovingCheckouts", () => {
     ["git checkout -- a.ts", [root]],
     ["git commit -m x", [], "/code/byro-repo-workspaces/byro-repo-issue-1-x"],
   ])("finds the checkouts `%s` may move", (command, expected, cwd = root) => {
-    expect(headMovingCheckouts(command, cwd, primaryCheckouts)).toEqual(expected);
+    expect(headMovingCheckouts({ command, cwd, primaryCheckouts })).toEqual(expected);
   });
 });

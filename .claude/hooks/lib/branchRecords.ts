@@ -4,7 +4,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import type { CheckoutStates, SessionRecord } from "./branchGuard.ts";
-import { sessionStatePath } from "./hookIo.ts";
+import { sessionStatePath, sharedStatePath } from "./hookIo.ts";
 
 const recordSuffix = "branch-record.json";
 
@@ -17,11 +17,10 @@ export function primaryRootOf(projectDir: string): string | undefined {
 // The root plus each package clone under it.
 export function primaryCheckoutsOf(primaryRoot: string): string[] {
   const packagesDir = join(primaryRoot, "packages");
-  const clones = existsSync(packagesDir)
-    ? readdirSync(packagesDir)
-        .map((name) => join(packagesDir, name))
-        .filter((path) => existsSync(join(path, ".git")))
-    : [];
+  if (!existsSync(packagesDir)) return [primaryRoot];
+  const clones = readdirSync(packagesDir)
+    .map((name) => join(packagesDir, name))
+    .filter((path) => existsSync(join(path, ".git")));
   return [primaryRoot, ...clones];
 }
 
@@ -33,7 +32,7 @@ export function checkoutStatesOf(checkouts: string[]): CheckoutStates {
   }, {});
 }
 
-export function readRecord(sessionId: string | undefined): SessionRecord | undefined {
+export function readRecord(sessionId: string): SessionRecord | undefined {
   return parseRecord(recordPathOf(sessionId));
 }
 
@@ -42,7 +41,7 @@ export function writeRecord(record: SessionRecord): void {
 }
 
 export function readAllRecords(): SessionRecord[] {
-  const dir = dirname(recordPathOf(undefined));
+  const dir = sharedStatePath("");
   return readdirSync(dir)
     .filter((name) => name.endsWith(`.${recordSuffix}`))
     .flatMap((name) => {
@@ -51,7 +50,7 @@ export function readAllRecords(): SessionRecord[] {
     });
 }
 
-function recordPathOf(sessionId: string | undefined): string {
+function recordPathOf(sessionId: string): string {
   return sessionStatePath(sessionId, recordSuffix);
 }
 
