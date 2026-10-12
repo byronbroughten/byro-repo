@@ -1,0 +1,14 @@
+{
+  "name": "@byronbroughten/spec-runner",
+  "version": "0.0.0",
+  "description": "Runs a spec's tickets through implement, review, triage, fix and wrap-up steps, one agent step at a time.",
+  "private": true,
+  "type": "module",
+  "license": "ISC",
+  "exports": {
+    "./contextMeter": "./src/contextMeter.ts"
+  },
+  "scripts": {
+    "tsc": "tsc -p ."
+  }
+}

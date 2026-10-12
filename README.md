@@ -12,6 +12,7 @@ An npm-workspaces root for managing real estate operations — properties, units
 | [`sheets-real-estate`](https://github.com/byronbroughten/sheets-real-estate) (`sheets-real-estate`), cloned into `packages/real-estate` | This project: the real-estate endpoints and chores, bundled with the framework's source and pushed to the business spreadsheet's Apps Script project. |
 | [`utils`](https://github.com/byronbroughten/utils) (`@byronbroughten/utils`), cloned into `packages/utils` | Domain-free TypeScript utilities, one import subpath per module: `Arr`, `Obj`, `Str`, `Val`, `lazy`, and `SerialDate` and `SerialDateTime` for dates as Sheets serials. The framework and the app both depend on it. |
 | `writing`, a private repo cloned into `packages/writing` | Specs for reader-facing prose, filed as issues. The text itself lives in Google Docs. Its repo is private, so it has no public link. |
+| [`runner`](./runner/README.md) (`@byronbroughten/spec-runner`) | Runs a spec's tickets through agent steps unattended. It imports nothing else from this repo; so far it holds the context meter, which the context-nudge hook also reads. |
 | [`config`](./config/README.md) (`@byronbroughten/config`) | The general tooling the packages share: an ESLint flat-config preset, the prettier config and a base tsconfig. The framework layers its tier and Sheets rules on it in its own `eslint.config.mjs`, and exports the app's as a preset. |
 
 Before adding a file, ask "would this make sense in a TypeScript project with no Sheets at all?" If yes, it belongs in `packages/utils`. If not, ask "would this make sense in a completely different Sheets-backed app?" If yes, it belongs in `packages/framework`, generically named. If no, it belongs in `packages/real-estate`. A piece of writing for a reader goes in `packages/writing`.
@@ -38,7 +39,7 @@ Every command that touches a live spreadsheet names its target: `dev:*` for `She
 
 ## Words
 
-[`GLOSSARY-MAP.md`](./GLOSSARY-MAP.md) points at the three glossaries: the framework's operator-facing words, the app's units and occupancy ledger, and the words of a writing spec.
+[`GLOSSARY-MAP.md`](./GLOSSARY-MAP.md) points at the four glossaries: the framework's operator-facing words, the app's units and occupancy ledger, the words of a writing spec, and the spec runner's.
 
 ## Testing
 

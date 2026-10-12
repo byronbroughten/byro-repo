@@ -21,7 +21,7 @@ Every file has one job, and each fact lives in exactly one of them. Everywhere e
 | --- | --- |
 | `AGENTS.md` | Only what changes an agent's behavior on every task: commands, gates, git rules, the README line, the router. Loaded every turn; read [What an addition to AGENTS.md costs](#what-an-addition-to-agentsmd-costs) before growing it. |
 | `CLAUDE.md` | `@AGENTS.md` plus pointers to Claude Code-only mechanics (subagents, hooks). |
-| `GLOSSARY-MAP.md` | Which `GLOSSARY.md` each context owns, how the app's glossary relates to the framework's, and that writing's relates to neither. |
+| `GLOSSARY-MAP.md` | Which `GLOSSARY.md` each context owns, how the app's glossary relates to the framework's, and that writing's and the runner's relate to neither. |
 | `docs/agent-behavior-design.md` | Why the agent tooling (hooks, gates, delegation, this doc scheme) is shaped as it is. It never goes in the framework's `docs/design.md`. |
 | `docs/targets-and-gates.md` | The `dev`/`app` targets, what needs a yes first, the agent account, and the gworkspace MCP rules. |
 | `docs/claude-code-guardrails.md` | The Claude Code hooks and project agent. |
@@ -95,6 +95,13 @@ A private repo holding piece specs as issues; the Pieces' text lives in their Go
 | `README.md` | What the package exports and how a project consumes each piece. A derived view of its `package.json` and the files it exports. |
 | `docs/code-style.md` | General code shape for any TypeScript project, one line per rule, rule only. It ships with the package, so it names no framework or app path as a link. |
 | `docs/code-style/*.md` | Each rule's reasoning, examples and instances, indexed by `docs/code-style.md`'s "When \| File" table. |
+
+### Runner (`runner/`)
+
+| File | Holds |
+| --- | --- |
+| `README.md` | What the runner is, its exports and how to run its tests. A derived view of its `package.json` and the files it exports. |
+| `GLOSSARY.md` | The words of an unattended spec run: runner, step, record, finding triage, the verdicts, Halts, Stop, Limit wait, review list and gap check. |
 
 ## What an addition to AGENTS.md costs
 

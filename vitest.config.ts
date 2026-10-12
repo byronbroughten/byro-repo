@@ -24,6 +24,7 @@ export default defineConfig({
           include: [
             "*.test.ts",
             "config/**/*.test.ts",
+            "runner/**/*.test.ts",
             ".claude/hooks/**/*.test.ts",
             ".claude/skills/**/*.test.ts",
             "scripts/**/*.test.ts",
