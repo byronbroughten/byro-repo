@@ -9,6 +9,7 @@ Branches and commits, landing a spec with the wrap-up prompt, and closing a pare
 - **Each clone under `packages/` is its own repo; its branches and commits go there, not to the root.** Run git for it with `git -C packages/<name>`, and read a branch's `<n>` against the repo that branch lives in.
 - **A change that spans repos is one commit per repo**, each on a branch in its own repo. They share the one wrap-up prompt, and a repo lands before any repo that depends on it, so a fresh workspace never pulls a dependent's half without its dependency's: a clone before the root, and a breaking change to the framework's public entry before the app's fix. Commit messages get no package prefix.
 - **A `backup/*` branch is single-session scaffolding.** Take one before a history rewrite, retire it once the rewrite is verified, and say so. If a stale one exists, report it with its ahead/behind counts before starting other git work.
+- **A `research/*` branch is permanent and never merged.** Wayfinder's research tickets keep their findings there, and the issue's closing comment links to the file on the branch, so merging adds a doc master was never meant to hold and deleting breaks the link. An unmerged `research/*` branch is expected.
 - Commit messages and `gh` writes from a dispatched agent go back to the main session: [`delegation.md`](./delegation.md). The wrap-up prompt is the exception: it is the developer's own hand-off to a separate session, not a dispatch.
 
 ## Landing a spec
