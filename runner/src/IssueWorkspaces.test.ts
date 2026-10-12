@@ -278,6 +278,20 @@ describe("promote", () => {
     );
   });
 
+  it("refuses a repo that is on some other branch, changing nothing", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "spans" },
+    );
+    const utils = join(workspace.path, "packages/utils");
+    git(utils, "switch", "-c", "scratch");
+
+    await expect(workspaces().promote(workspace, "utils")).rejects.toThrow(
+      /scratch/,
+    );
+    expect(branchOf(utils)).toBe("scratch");
+  });
+
   it("is a no-op for a repo already on the issue branch", async () => {
     const workspace = await workspaces().create(
       { repo: "byro-repo", number: 7 },

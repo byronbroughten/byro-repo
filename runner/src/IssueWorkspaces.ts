@@ -1,4 +1,4 @@
-// The workspace module: creates, lists and removes issue workspaces, each a byro-repo worktree outside the
+// The workspace module: creates, lists, promotes, resumes and removes issue workspaces, each a byro-repo worktree outside the
 // primary root with a worktree of every package clone inside it, so tickets never move a primary checkout's branch.
 // Everything repo-specific comes in as IssueWorkspacesConfig; byro-repo's values live in scripts/runner/.
 
@@ -119,17 +119,17 @@ export class IssueWorkspaces {
 
   async promote(workspace: Workspace, repo: string): Promise<Workspace> {
     const worktree = this._worktreeOf(workspace, repo);
-    const checkedOut = await git(worktree, "branch", "--show-current");
+    const checkedOut = await currentBranchOf(worktree);
     if (checkedOut !== "" && checkedOut !== workspace.branch) {
       throw new Error(
-        `${repo} in ${workspace.path} is on ${checkedOut}, not detached or on ${workspace.branch}`,
+        `${repo} in ${workspace.path} is on ${checkedOut}; only a detached repo can be promoted onto ${workspace.branch}`,
       );
     }
     if (checkedOut === "") {
       await git(
         worktree,
         "switch",
-        ...(await promoteArgs(worktree, workspace.branch)),
+        ...(await switchArgs(worktree, workspace.branch)),
       );
     }
     const { path, issue, branch, branchedRepos } = await this._statusOf(
@@ -256,6 +256,28 @@ export class IssueWorkspaces {
     ];
   }
 
+  private _worktreeOf(workspace: Workspace, repo: string): string {
+    const worktree = join(workspace.path, this._clonePathOf(repo));
+    if (!existsSync(worktree)) {
+      throw new Error(`${workspace.path} has no worktree for ${repo}`);
+    }
+    return worktree;
+  }
+
+  private async _detachedWorktrees(
+    workspace: Workspace,
+  ): Promise<DetachedWorktree[]> {
+    const detached: DetachedWorktree[] = [];
+    for (const [repo, clonePath] of this._clonesRootFirst) {
+      const worktree = join(workspace.path, clonePath);
+      if (!existsSync(worktree)) continue;
+      if ((await currentBranchOf(worktree)) === "") {
+        detached.push({ repo, worktree });
+      }
+    }
+    return detached;
+  }
+
   private _issueOfFolder(name: string): IssueRef | undefined {
     for (const repo of Object.keys(this.config.clonePaths)) {
       const match = new RegExp(`^${escapeRegExp(repo)}-issue-(\\d+)-`).exec(
@@ -276,28 +298,6 @@ export class IssueWorkspaces {
     return clonePath;
   }
 
-  private _worktreeOf(workspace: Workspace, repo: string): string {
-    const worktree = join(workspace.path, this._clonePathOf(repo));
-    if (!existsSync(worktree)) {
-      throw new Error(`${workspace.path} has no worktree for ${repo}`);
-    }
-    return worktree;
-  }
-
-  private async _detachedWorktrees(
-    workspace: Workspace,
-  ): Promise<{ repo: string; worktree: string }[]> {
-    const detached: { repo: string; worktree: string }[] = [];
-    for (const [repo, clonePath] of this._clonesRootFirst) {
-      const worktree = join(workspace.path, clonePath);
-      if (!existsSync(worktree)) continue;
-      if ((await git(worktree, "branch", "--show-current")) === "") {
-        detached.push({ repo, worktree });
-      }
-    }
-    return detached;
-  }
-
   private get _clonesRootFirst(): [string, string][] {
     return Object.entries(this.config.clonePaths).sort(
       ([, a], [, b]) => a.length - b.length,
@@ -314,7 +314,7 @@ export class IssueWorkspaces {
     for (const [repo, clonePath] of this._clonesRootFirst) {
       const worktree = join(path, clonePath);
       if (!existsSync(worktree)) continue;
-      const checkedOut = await git(worktree, "branch", "--show-current");
+      const checkedOut = await currentBranchOf(worktree);
       if (checkedOut !== "") branchedRepos.push(repo);
       if (repo === issue.repo) branch = checkedOut;
       if (await isDirty(worktree)) dirtyRepos.push(repo);
@@ -344,6 +344,16 @@ export class IssueWorkspaces {
     }
   }
 }
+
+interface DetachedWorktree {
+  repo: string;
+  worktree: string;
+}
+
+type BranchOrigin =
+  | { kind: "local" }
+  | { kind: "remote"; remoteBranch: string }
+  | { kind: "new" };
 
 interface WorktreeTarget {
   primaryClone: string;
@@ -409,26 +419,32 @@ async function branchedWorktreeArgs({
   worktree,
   branch,
 }: WorktreeTarget & { branch: string }): Promise<string[]> {
-  if (await hasRef(primaryClone, `refs/heads/${branch}`)) {
-    return [worktree, branch];
-  }
-  const [remoteBranch] = await remoteBranchesOf(primaryClone, branch);
-  if (remoteBranch !== undefined) {
-    return ["--track", "-b", branch, worktree, remoteBranch];
+  const origin = await branchOriginOf(primaryClone, branch);
+  if (origin.kind === "local") return [worktree, branch];
+  if (origin.kind === "remote") {
+    return ["--track", "-b", branch, worktree, origin.remoteBranch];
   }
   return ["-b", branch, worktree, "master"];
 }
 
-async function promoteArgs(
-  worktree: string,
-  branch: string,
-): Promise<string[]> {
-  if (await hasRef(worktree, `refs/heads/${branch}`)) return [branch];
-  const [remoteBranch] = await remoteBranchesOf(worktree, branch);
-  if (remoteBranch !== undefined) {
-    return ["--track", "-c", branch, remoteBranch];
+// A new branch starts at the worktree's own HEAD, so edits made on the detached repo come along.
+async function switchArgs(worktree: string, branch: string): Promise<string[]> {
+  const origin = await branchOriginOf(worktree, branch);
+  if (origin.kind === "local") return [branch];
+  if (origin.kind === "remote") {
+    return ["--track", "-c", branch, origin.remoteBranch];
   }
   return ["-c", branch];
+}
+
+async function branchOriginOf(
+  clone: string,
+  branch: string,
+): Promise<BranchOrigin> {
+  if (await hasRef(clone, `refs/heads/${branch}`)) return { kind: "local" };
+  const [remoteBranch] = await remoteBranchesOf(clone, branch);
+  if (remoteBranch !== undefined) return { kind: "remote", remoteBranch };
+  return { kind: "new" };
 }
 
 async function hasRef(clone: string, ref: string): Promise<boolean> {
@@ -461,6 +477,10 @@ async function removeWorktree({
   if (!existsSync(worktree)) return;
   const forceArgs = force ? ["--force"] : [];
   await git(primaryClone, "worktree", "remove", ...forceArgs, worktree);
+}
+
+async function currentBranchOf(worktree: string): Promise<string> {
+  return git(worktree, "branch", "--show-current");
 }
 
 async function isDirty(worktree: string): Promise<boolean> {
