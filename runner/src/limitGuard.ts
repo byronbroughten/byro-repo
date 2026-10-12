@@ -101,8 +101,11 @@ export function decideStep(
 ): GuardDecision {
   const pinned = state.pinnedAccount;
   const pinnedReading = readings.find((r) => r.account === pinned);
+  // A failed read shouldn't spend an account change.
   const isPinnedKept =
-    !state.isAtTicketBoundary || isUnderBothThresholds(pinnedReading, knobs);
+    !state.isAtTicketBoundary ||
+    !pinnedReading?.usage ||
+    isUnderBothThresholds(pinnedReading, knobs);
   if (pinned !== undefined && isPinnedKept) {
     return { kind: "launch", account: pinned };
   }

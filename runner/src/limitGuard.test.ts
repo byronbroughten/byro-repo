@@ -213,4 +213,20 @@ describe("decideStep", () => {
       reason: "no account has a usage reading",
     });
   });
+
+  it("keeps the pinned account at a boundary when its reading is missing", () => {
+    const readings = [
+      { account: 1, usage: undefined },
+      reading({ account: 2, fiveHour: 0, sevenDay: 0 }),
+    ];
+    const boundary = {
+      pinnedAccount: 1,
+      isAtTicketBoundary: true,
+      accountChangesToday: 0,
+    };
+    expect(decideStep(readings, boundary)).toEqual({
+      kind: "launch",
+      account: 1,
+    });
+  });
 });
