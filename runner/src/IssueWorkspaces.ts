@@ -117,6 +117,44 @@ export class IssueWorkspaces {
     return workspaces;
   }
 
+  async promote(workspace: Workspace, repo: string): Promise<Workspace> {
+    const worktree = this._worktreeOf(workspace, repo);
+    const checkedOut = await git(worktree, "branch", "--show-current");
+    if (checkedOut !== "" && checkedOut !== workspace.branch) {
+      throw new Error(
+        `${repo} in ${workspace.path} is on ${checkedOut}, not detached or on ${workspace.branch}`,
+      );
+    }
+    if (checkedOut === "") {
+      await git(
+        worktree,
+        "switch",
+        ...(await promoteArgs(worktree, workspace.branch)),
+      );
+    }
+    const { path, issue, branch, branchedRepos } = await this._statusOf(
+      workspace.path,
+      workspace.issue,
+    );
+    return { path, issue, branch, branchedRepos };
+  }
+
+  async resume(workspace: Workspace): Promise<void> {
+    const detached = await this._detachedWorktrees(workspace);
+    const dirtyRepos: string[] = [];
+    for (const { repo, worktree } of detached) {
+      if (await isDirty(worktree)) dirtyRepos.push(repo);
+    }
+    if (dirtyRepos.length > 0) {
+      throw new Error(
+        `${workspace.path} has uncommitted changes in detached ${dirtyRepos.join(", ")}; commit or discard them before resuming`,
+      );
+    }
+    for (const { worktree } of detached) {
+      await git(worktree, "switch", "--detach", "master");
+    }
+  }
+
   async remove(
     workspace: Workspace,
     { force = false }: RemoveOptions = {},
@@ -238,6 +276,28 @@ export class IssueWorkspaces {
     return clonePath;
   }
 
+  private _worktreeOf(workspace: Workspace, repo: string): string {
+    const worktree = join(workspace.path, this._clonePathOf(repo));
+    if (!existsSync(worktree)) {
+      throw new Error(`${workspace.path} has no worktree for ${repo}`);
+    }
+    return worktree;
+  }
+
+  private async _detachedWorktrees(
+    workspace: Workspace,
+  ): Promise<{ repo: string; worktree: string }[]> {
+    const detached: { repo: string; worktree: string }[] = [];
+    for (const [repo, clonePath] of this._clonesRootFirst) {
+      const worktree = join(workspace.path, clonePath);
+      if (!existsSync(worktree)) continue;
+      if ((await git(worktree, "branch", "--show-current")) === "") {
+        detached.push({ repo, worktree });
+      }
+    }
+    return detached;
+  }
+
   private get _clonesRootFirst(): [string, string][] {
     return Object.entries(this.config.clonePaths).sort(
       ([, a], [, b]) => a.length - b.length,
@@ -257,9 +317,7 @@ export class IssueWorkspaces {
       const checkedOut = await git(worktree, "branch", "--show-current");
       if (checkedOut !== "") branchedRepos.push(repo);
       if (repo === issue.repo) branch = checkedOut;
-      if ((await git(worktree, "status", "--porcelain")) !== "") {
-        dirtyRepos.push(repo);
-      }
+      if (await isDirty(worktree)) dirtyRepos.push(repo);
     }
     return {
       path,
@@ -361,6 +419,18 @@ async function branchedWorktreeArgs({
   return ["-b", branch, worktree, "master"];
 }
 
+async function promoteArgs(
+  worktree: string,
+  branch: string,
+): Promise<string[]> {
+  if (await hasRef(worktree, `refs/heads/${branch}`)) return [branch];
+  const [remoteBranch] = await remoteBranchesOf(worktree, branch);
+  if (remoteBranch !== undefined) {
+    return ["--track", "-c", branch, remoteBranch];
+  }
+  return ["-c", branch];
+}
+
 async function hasRef(clone: string, ref: string): Promise<boolean> {
   return (await git(clone, "for-each-ref", "--format=%(refname)", ref)) !== "";
 }
@@ -391,6 +461,10 @@ async function removeWorktree({
   if (!existsSync(worktree)) return;
   const forceArgs = force ? ["--force"] : [];
   await git(primaryClone, "worktree", "remove", ...forceArgs, worktree);
+}
+
+async function isDirty(worktree: string): Promise<boolean> {
+  return (await git(worktree, "status", "--porcelain")) !== "";
 }
 
 async function git(cwd: string, ...args: string[]): Promise<string> {
