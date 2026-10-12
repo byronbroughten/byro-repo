@@ -72,4 +72,11 @@ A description of the things that are out of scope for this spec.
 
 Any further notes about the feature.
 
+## Model fit
+
+<Model> <effort>
+<one-line reason>
+
 </spec-template>
+
+`## Model fit` is the last section of a spec meant for one session: a pair line naming one of the five pairs in [`planning.md`](../../../docs/agents/planning.md#model-fit), then a one-line reason. A spec bound for `/to-tickets` has none.
