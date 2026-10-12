@@ -4,6 +4,7 @@
   "type": "module",
   "workspaces": [
     "config",
+    "runner",
     "packages/*"
   ],
   "scripts": {

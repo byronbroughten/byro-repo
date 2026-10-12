@@ -1,0 +1,12 @@
+{
+  // Run by Node's type stripping (node file.ts), so erasable syntax only.
+  "extends": "@byronbroughten/config/tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "nodenext",
+    "types": ["node"],
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true
+  },
+  "include": ["src/**/*.ts"]
+}
