@@ -31,6 +31,8 @@
       "Bash(npm run jev *)",
       "Bash(npm run -s jev *)",
       "Bash(npx prettier --check *)",
+      "Bash(npm run session:probe *)",
+      "Bash(npm run -s session:probe *)",
       "Bash(npx eslint *)",
       "Bash(gh label list *)",
       "Bash(gh issue edit *)",

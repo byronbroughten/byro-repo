@@ -22,6 +22,10 @@ Ten Node hooks in `.claude/hooks/`, registered in `.claude/settings.json`: five 
 - **`contextNudge.ts`** (PostToolUse, every tool) reads the session's peak context from its transcript through the runner's context meter (`runner/src/contextMeter.ts`). It resolves the meter as `@byronbroughten/spec-runner`, so a checkout needs `npm install` first; without it the hook fails open. The first time it reaches the 150K ticket budget (`ticketBudgetTokens`, [`planning.md`](./agents/planning.md#ticket-size)) it reminds Claude, once per session and without blocking, to finish the step in hand and hand off per [`planning.md`](./agents/planning.md#handoffs). Subagents are skipped. The decision is `lib/contextNudge.ts`, tested beside it.
 - **`.claude/agents/repo-explorer.md`** is a read-only (Read/Grep/Glob) Sonnet agent for sweeps of about 5+ files. It returns `file:line` plus verbatim quotes.
 
+## Seeing what a hook sees
+
+Never edit a hook to record what it sees; auto mode blocks it, and rightly. `npm run session:probe -- <folder>` starts a one-turn headless session there with its own SessionStart hook added through `--settings`, and prints `$CLAUDE_PROJECT_DIR`, the hook's cwd and its input. For anything else a hook can see, extend `runner/src/SessionProbe.ts`.
+
 ## Per-session state
 
 Per-session state (the read log, whether config/docs/code-style.md and docs/writing-style.md were read, whether the AGENTS.md cost reminder fired, and whether the context nudge fired) lives in `$TMPDIR/claude-guardrails/`, keyed by session id.

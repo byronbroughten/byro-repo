@@ -10,6 +10,7 @@
     "./ClaudeAgentStep": "./src/ClaudeAgentStep.ts",
     "./FakeAgentStep": "./src/FakeAgentStep.ts",
     "./IssueWorkspaces": "./src/IssueWorkspaces.ts",
+    "./SessionProbe": "./src/SessionProbe.ts",
     "./contextMeter": "./src/contextMeter.ts",
     "./limitGuard": "./src/limitGuard.ts"
   },

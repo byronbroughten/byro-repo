@@ -30,6 +30,7 @@
     "dev:run": "npm run run -w @byronbroughten/sheets-framework --",
     "issue:list": "node scripts/runner/issue.ts list",
     "issue:remove": "node scripts/runner/issue.ts remove",
+    "session:probe": "node scripts/runner/sessionProbe.ts",
     "jev": "node scripts/jev/jev.ts",
     "jev:style": "node scripts/jev/jevStyle.ts"
   },
