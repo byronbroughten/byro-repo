@@ -153,7 +153,9 @@ function commitDenyReason(
 ): string | undefined {
   const recorded = ownCheckouts[checkout];
   const current = currentCheckouts[checkout];
-  if (!recorded || !current || recorded.head === current.head) return undefined;
+  if (!recorded || !current) return undefined;
+  // `checkout -b` moves the branch without moving the commit.
+  if (recorded.head === current.head && recorded.branch === current.branch) return undefined;
   return `HEAD of ${checkout} moved since this session recorded it (${stateShown(recorded)} → ${stateShown(current)}), so another session moved it and this commit could land on its work. Either ${workspaceWay}, or wait for the other session to end and start a fresh session here.`;
 }
 

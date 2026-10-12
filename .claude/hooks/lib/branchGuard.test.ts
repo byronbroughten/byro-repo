@@ -150,11 +150,14 @@ describe("branchDecision, interim", () => {
     expect(decision.permissionDecision).toBe("allow");
   });
 
-  it("denies a commit after HEAD moved since this session recorded it, naming the way through", () => {
+  it.each([
+    ["to another commit", onIssue],
+    ["to another branch at the same commit", { ...onIssue, head: onMaster.head }],
+  ])("denies a commit after HEAD moved %s since this session recorded it, naming the way through", (_case, current) => {
     const decision = decide({
       command: 'git add -A && git commit -m "x"',
       ownCheckouts: { [root]: onMaster },
-      currentCheckouts: { [root]: onIssue },
+      currentCheckouts: { [root]: current },
     });
     expect(decision.permissionDecision).toBe("deny");
     expect(decision.reason).toMatch(/moved/);
