@@ -17,7 +17,11 @@ describe("implementPieceIssue", () => {
   it("reads the issue number from a typed /implement-piece", () => {
     expect(implementPieceIssue("/implement-piece 12")).toBe(12);
     expect(implementPieceIssue("  /implement-piece #12")).toBe(12);
-    expect(implementPieceIssue("/implement-piece https://github.com/byronbroughten/writing/issues/12")).toBe(12);
+    expect(
+      implementPieceIssue(
+        "/implement-piece https://github.com/byronbroughten/writing/issues/12",
+      ),
+    ).toBe(12);
   });
 
   it("ignores any other prompt", () => {
@@ -35,7 +39,11 @@ describe("deliverableDocIds", () => {
   });
 
   it("finds a Doc ID in a URL, and in a Deliverable that ends the body", () => {
-    expect(deliverableDocIds(`## Deliverable\nhttps://docs.google.com/document/d/${docId}/edit`)).toEqual([docId]);
+    expect(
+      deliverableDocIds(
+        `## Deliverable\nhttps://docs.google.com/document/d/${docId}/edit`,
+      ),
+    ).toEqual([docId]);
   });
 
   it("finds nothing when there is no Deliverable section or ID", () => {
@@ -53,7 +61,12 @@ describe("tickets", () => {
 
   it("is governed by its parent spec, or by itself with no Parent section", () => {
     expect(governingIssue(12, ticket)).toBe(7);
-    expect(governingIssue(12, "## Parent\n\nhttps://github.com/byronbroughten/writing/issues/9\n")).toBe(9);
+    expect(
+      governingIssue(
+        12,
+        "## Parent\n\nhttps://github.com/byronbroughten/writing/issues/9\n",
+      ),
+    ).toBe(9);
     expect(governingIssue(12, "## Deliverable\n\nx")).toBe(12);
   });
 });
@@ -71,29 +84,53 @@ describe("docGrantDecision", () => {
   const toolName = "mcp__gworkspace__batch_update_doc";
 
   it("allows a write to a granted Doc while the issue is open", () => {
-    const decision = docGrantDecision({ toolName, grantedIssue: 12, issueState: "OPEN" });
+    const decision = docGrantDecision({
+      toolName,
+      grantedIssue: 12,
+      issueState: "OPEN",
+    });
     expect(decision?.permissionDecision).toBe("allow");
     expect(decision?.reason).toMatch(/#12/);
   });
 
   it("leaves the default for a closed issue or one gh could not read", () => {
-    expect(docGrantDecision({ toolName, grantedIssue: 12, issueState: "CLOSED" })).toBeUndefined();
-    expect(docGrantDecision({ toolName, grantedIssue: 12, issueState: undefined })).toBeUndefined();
+    expect(
+      docGrantDecision({ toolName, grantedIssue: 12, issueState: "CLOSED" }),
+    ).toBeUndefined();
+    expect(
+      docGrantDecision({ toolName, grantedIssue: 12, issueState: undefined }),
+    ).toBeUndefined();
   });
 
   it("leaves the default for an ungranted Doc or an unguarded tool", () => {
-    expect(docGrantDecision({ toolName, grantedIssue: undefined, issueState: "OPEN" })).toBeUndefined();
     expect(
-      docGrantDecision({ toolName: "mcp__gworkspace__create_doc", grantedIssue: 12, issueState: "OPEN" }),
+      docGrantDecision({
+        toolName,
+        grantedIssue: undefined,
+        issueState: "OPEN",
+      }),
+    ).toBeUndefined();
+    expect(
+      docGrantDecision({
+        toolName: "mcp__gworkspace__create_doc",
+        grantedIssue: 12,
+        issueState: "OPEN",
+      }),
     ).toBeUndefined();
   });
 });
 
 describe("grantedDocWrites", () => {
   it("matches the Doc write names in settings.json's hook matcher", () => {
-    const settings = JSON.parse(readFileSync(new URL("../../settings.json", import.meta.url), "utf8"));
-    const matchers: string[] = settings.hooks.PreToolUse.map((entry: { matcher: string }) => entry.matcher);
-    const matcher = matchers.find((names) => names.includes("update_paragraph_style"));
+    const settings = JSON.parse(
+      readFileSync(new URL("../../settings.json", import.meta.url), "utf8"),
+    );
+    const matchers: string[] = settings.hooks.PreToolUse.map(
+      (entry: { matcher: string }) => entry.matcher,
+    );
+    const matcher = matchers.find((names) =>
+      names.includes("update_paragraph_style"),
+    );
     expect(new Set(matcher?.split("|"))).toEqual(grantedDocWrites);
   });
 });

@@ -3,7 +3,11 @@ import { describe, expect, it } from "vitest";
 import { agentsCostContext, agentsCostReminder } from "./agentsCostNudge.ts";
 
 const projectDir = "/repo";
-function edit(filePath: string, hasReminded: boolean, cwd = projectDir): string | undefined {
+function edit(
+  filePath: string,
+  hasReminded: boolean,
+  cwd = projectDir,
+): string | undefined {
   return agentsCostContext({ projectDir, cwd, filePath, hasReminded });
 }
 
@@ -22,7 +26,9 @@ describe("agentsCostContext", () => {
   });
 
   it("leaves nested AGENTS.md files alone", () => {
-    expect(edit("/repo/packages/framework/src/AGENTS.md", false)).toBeUndefined();
+    expect(
+      edit("/repo/packages/framework/src/AGENTS.md", false),
+    ).toBeUndefined();
     expect(edit("/repo/scripts/AGENTS.md", false)).toBeUndefined();
   });
 

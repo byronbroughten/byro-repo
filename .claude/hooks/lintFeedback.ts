@@ -13,9 +13,12 @@ await runFailOpen(() => {
   if (!input || !["Edit", "Write"].includes(input.tool_name ?? "")) return;
   const filePath = input.tool_input?.file_path;
   if (typeof filePath !== "string") return;
-  const projectDir = process.env.CLAUDE_PROJECT_DIR ?? input.cwd ?? process.cwd();
+  const projectDir =
+    process.env.CLAUDE_PROJECT_DIR ?? input.cwd ?? process.cwd();
   const location = { projectDir, cwd: input.cwd ?? projectDir, filePath };
-  const generatedDirs = readSheetsConfigs(projectDir).map(({ generatedDir }) => generatedDir);
+  const generatedDirs = readSheetsConfigs(projectDir).map(
+    ({ generatedDir }) => generatedDir,
+  );
   if (!isInLintSet({ ...location, generatedDirs })) return;
   const absolutePath = resolve(location.cwd, filePath);
   const before = readFileSync(absolutePath, "utf8");
@@ -23,15 +26,35 @@ await runFailOpen(() => {
   // Unused variables are off for this run: an import added one edit before its use isn't an error yet.
   const { stdout } = spawnSync(
     binPath(projectDir, "eslint"),
-    [...configLookup, "--fix", "--rule", "@typescript-eslint/no-unused-vars: off", "--format", "json", absolutePath],
+    [
+      ...configLookup,
+      "--fix",
+      "--rule",
+      "@typescript-eslint/no-unused-vars: off",
+      "--format",
+      "json",
+      absolutePath,
+    ],
     { cwd: projectDir, encoding: "utf8", timeout: 20_000 },
   );
   if (readFileSync(absolutePath, "utf8") !== before) {
-    spawnSync(binPath(projectDir, "prettier"), ["--write", "--log-level", "warn", absolutePath], { cwd: projectDir, timeout: 8_000 });
+    spawnSync(
+      binPath(projectDir, "prettier"),
+      ["--write", "--log-level", "warn", absolutePath],
+      { cwd: projectDir, timeout: 8_000 },
+    );
   }
-  const feedback = lintFeedback({ eslintJson: stdout ?? "", filePath: projectRelative(location) });
+  const feedback = lintFeedback({
+    eslintJson: stdout ?? "",
+    filePath: projectRelative(location),
+  });
   if (!feedback) return;
-  writeHookOutput({ hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: feedback } });
+  writeHookOutput({
+    hookSpecificOutput: {
+      hookEventName: "PostToolUse",
+      additionalContext: feedback,
+    },
+  });
 });
 
 function binPath(projectDir: string, name: string): string {

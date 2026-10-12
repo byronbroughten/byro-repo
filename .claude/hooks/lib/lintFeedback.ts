@@ -14,7 +14,10 @@ interface LintMessage {
 
 const maxListed = 20;
 
-export function lintFeedback({ eslintJson, filePath }: LintFeedbackInput): string | undefined {
+export function lintFeedback({
+  eslintJson,
+  filePath,
+}: LintFeedbackInput): string | undefined {
   const errors = parseErrors(eslintJson);
   if (!errors || errors.length === 0) return undefined;
   const listed = errors.slice(0, maxListed).map(describeError);
@@ -23,7 +26,9 @@ export function lintFeedback({ eslintJson, filePath }: LintFeedbackInput): strin
   return [
     `ESLint (after --fix) left ${errors.length} ${noun} in ${filePath}:`,
     ...listed,
-    ...(omitted > 0 ? [`  …and ${omitted} more; run \`npx eslint ${filePath}\`.`] : []),
+    ...(omitted > 0
+      ? [`  …and ${omitted} more; run \`npx eslint ${filePath}\`.`]
+      : []),
   ].join("\n");
 }
 
@@ -37,7 +42,9 @@ function parseErrors(eslintJson: string): LintMessage[] | undefined {
     const results: unknown = JSON.parse(eslintJson);
     if (!Array.isArray(results)) return undefined;
     return results
-      .flatMap((result) => (Array.isArray(result?.messages) ? result.messages : []))
+      .flatMap((result) =>
+        Array.isArray(result?.messages) ? result.messages : [],
+      )
       .filter(isLintError);
   } catch {
     return undefined;
@@ -46,6 +53,16 @@ function parseErrors(eslintJson: string): LintMessage[] | undefined {
 
 function isLintError(message: unknown): message is LintMessage {
   if (typeof message !== "object" || message === null) return false;
-  const { severity, line, column, message: text } = message as Record<string, unknown>;
-  return severity === 2 && typeof line === "number" && typeof column === "number" && typeof text === "string";
+  const {
+    severity,
+    line,
+    column,
+    message: text,
+  } = message as Record<string, unknown>;
+  return (
+    severity === 2 &&
+    typeof line === "number" &&
+    typeof column === "number" &&
+    typeof text === "string"
+  );
 }

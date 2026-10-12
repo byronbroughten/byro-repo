@@ -47,11 +47,18 @@ export function writeHookOutput(output: object): void {
 
 export function writeDenyOutput(reason: string): void {
   writeHookOutput({
-    hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: reason },
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: reason,
+    },
   });
 }
 
-export function sessionStatePath(sessionId: string | undefined, suffix: string): string {
+export function sessionStatePath(
+  sessionId: string | undefined,
+  suffix: string,
+): string {
   const dir = join(tmpdir(), "claude-guardrails");
   mkdirSync(dir, { recursive: true });
   const safeId = String(sessionId ?? "unknown").replace(/[^\w-]/g, "_");
@@ -68,7 +75,9 @@ export function lineCount(path: string): number {
   return readFileSync(path, "utf8").replace(/\n$/, "").split("\n").length;
 }
 
-export async function runFailOpen(main: () => void | Promise<void>): Promise<void> {
+export async function runFailOpen(
+  main: () => void | Promise<void>,
+): Promise<void> {
   try {
     await main();
   } catch {

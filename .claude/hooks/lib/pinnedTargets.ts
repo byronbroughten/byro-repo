@@ -2,7 +2,8 @@
 import { commandWordsOf } from "./bashReads.ts";
 
 // Pinned in tracked code because sheets.config.json is gitignored, so git can't see an edit to it.
-export const pinnedDevSpreadsheetId = "19gIs4w8-2Nsin5zTN1TojOR1HiiT9Y-jCctC7doAMqM";
+export const pinnedDevSpreadsheetId =
+  "19gIs4w8-2Nsin5zTN1TojOR1HiiT9Y-jCctC7doAMqM";
 export const devConfigPath = "packages/framework/sheets.config.json";
 
 // The guard and its libs; git status on these is one pin, the dev config's ID the other.
@@ -24,7 +25,12 @@ export const guardedSheetsWrites = new Set([
   "mcp__gworkspace__manage_named_range",
   "mcp__gworkspace__manage_spreadsheet_comment",
 ]);
-const devWrites = new Set(["dev:gen:configs", "dev:build", "dev:push", "dev:run"]);
+const devWrites = new Set([
+  "dev:gen:configs",
+  "dev:build",
+  "dev:push",
+  "dev:run",
+]);
 const runVerbs = new Set(["run", "run-script"]);
 
 // Each entry says why a pin is off; undefined means git could not say.
@@ -53,7 +59,10 @@ export interface SheetsWrite {
 }
 
 // Turns git's dirty pinning files into pin-off reasons, adding one when the dev config names another spreadsheet.
-export function pinsOff(dirtyFiles: string[] | undefined, configDevSpreadsheetId: string | undefined): DirtyPinningFiles {
+export function pinsOff(
+  dirtyFiles: string[] | undefined,
+  configDevSpreadsheetId: string | undefined,
+): DirtyPinningFiles {
   if (!dirtyFiles) return undefined;
   const reasons = dirtyFiles.map((path) => `${path} has uncommitted changes`);
   if (configDevSpreadsheetId !== pinnedDevSpreadsheetId) {
@@ -73,12 +82,17 @@ export function devWriteOf(command: string): string | undefined {
     const script = npmScriptOf(words);
     if (!script) continue;
     if (devWrites.has(script.name)) return script.name;
-    if (script.name === "dev:chore" && script.args.includes("--send")) return script.name;
+    if (script.name === "dev:chore" && script.args.includes("--send")) {
+      return script.name;
+    }
   }
   return undefined;
 }
 
-export function bashDecision({ command, dirtyPinningFiles }: BashCommand): Decision | undefined {
+export function bashDecision({
+  command,
+  dirtyPinningFiles,
+}: BashCommand): Decision | undefined {
   const write = devWriteOf(command);
   if (!write || isClean(dirtyPinningFiles)) return undefined;
   return {
@@ -93,8 +107,13 @@ export function sheetsWriteDecision({
   devSpreadsheetId,
   dirtyPinningFiles,
 }: SheetsWrite): Decision | undefined {
-  if (toolName === undefined || !guardedSheetsWrites.has(toolName)) return undefined;
-  const isDev = devSpreadsheetId !== undefined && devSpreadsheetId !== "" && spreadsheetId === devSpreadsheetId;
+  if (toolName === undefined || !guardedSheetsWrites.has(toolName)) {
+    return undefined;
+  }
+  const isDev =
+    devSpreadsheetId !== undefined &&
+    devSpreadsheetId !== "" &&
+    spreadsheetId === devSpreadsheetId;
   if (!isDev) {
     return {
       permissionDecision: "ask",
@@ -109,12 +128,18 @@ export function sheetsWriteDecision({
       reason: `Pinned-target guard: this Sheets write targets the dev spreadsheet, but ${dirtyShown(dirtyPinningFiles)}.`,
     };
   }
-  return { permissionDecision: "allow", reason: "Pinned-target guard: a write to the dev spreadsheet, from a clean pin." };
+  return {
+    permissionDecision: "allow",
+    reason:
+      "Pinned-target guard: a write to the dev spreadsheet, from a clean pin.",
+  };
 }
 
 function npmScriptOf(words: string[]): NpmScript | undefined {
   if (words[0] !== "npm" && words[0] !== "npm.cmd") return undefined;
-  const rest = words.slice(1).filter((word) => !/^-/.test(word) || word === "--" || word === "--send");
+  const rest = words
+    .slice(1)
+    .filter((word) => !/^-/.test(word) || word === "--" || word === "--send");
   if (!runVerbs.has(rest[0] ?? "") || !rest[1]) return undefined;
   return { name: rest[1], args: rest.slice(2) };
 }
@@ -125,6 +150,8 @@ function isClean(dirtyPinningFiles: DirtyPinningFiles): boolean {
 }
 
 function dirtyShown(dirtyPinningFiles: DirtyPinningFiles): string {
-  if (!Array.isArray(dirtyPinningFiles)) return "the pinning files' git state could not be read";
+  if (!Array.isArray(dirtyPinningFiles)) {
+    return "the pinning files' git state could not be read";
+  }
   return dirtyPinningFiles.join("; ");
 }

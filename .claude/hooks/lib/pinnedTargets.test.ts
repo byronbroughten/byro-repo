@@ -22,22 +22,32 @@ describe("devWriteOf", () => {
   });
 
   it("names a dev chore only when it sends", () => {
-    expect(devWriteOf("npm run dev:chore buildFixtures -- --send")).toBe("dev:chore");
+    expect(devWriteOf("npm run dev:chore buildFixtures -- --send")).toBe(
+      "dev:chore",
+    );
     expect(devWriteOf("npm run dev:chore buildFixtures")).toBeUndefined();
-    expect(devWriteOf("npm run dev:chore buildFixtures -- --json")).toBeUndefined();
+    expect(
+      devWriteOf("npm run dev:chore buildFixtures -- --json"),
+    ).toBeUndefined();
   });
 
   it("ignores dev reads and app commands", () => {
     expect(devWriteOf("npm run dev:probe -- --fields sheets")).toBeUndefined();
-    expect(devWriteOf("npm run -s dev:probe -- --fields sheets")).toBeUndefined();
+    expect(
+      devWriteOf("npm run -s dev:probe -- --fields sheets"),
+    ).toBeUndefined();
     expect(devWriteOf("npm run dev:configs:diff")).toBeUndefined();
     expect(devWriteOf("npm run app:gen:configs")).toBeUndefined();
     expect(devWriteOf("npm test")).toBeUndefined();
   });
 
   it("finds the write in any part of a compound command", () => {
-    expect(devWriteOf("npm run tsc && npm run dev:gen:configs")).toBe("dev:gen:configs");
-    expect(devWriteOf("cd /repo; npm run -s dev:build | tail")).toBe("dev:build");
+    expect(devWriteOf("npm run tsc && npm run dev:gen:configs")).toBe(
+      "dev:gen:configs",
+    );
+    expect(devWriteOf("cd /repo; npm run -s dev:build | tail")).toBe(
+      "dev:build",
+    );
   });
 
   it("treats an unparseable command that names a dev script as a write", () => {
@@ -54,21 +64,33 @@ describe("bashDecision", () => {
   });
 
   it("asks for a dev write while a pinning file has uncommitted changes, naming it", () => {
-    const decision = bashDecision({ command, dirtyPinningFiles: ["packages/framework/sheets.config.json"] });
+    const decision = bashDecision({
+      command,
+      dirtyPinningFiles: ["packages/framework/sheets.config.json"],
+    });
     expect(decision?.permissionDecision).toBe("ask");
     expect(decision?.reason).toMatch(/dev:gen:configs/);
-    expect(decision?.reason).toMatch(/packages\/framework\/sheets\.config\.json/);
+    expect(decision?.reason).toMatch(
+      /packages\/framework\/sheets\.config\.json/,
+    );
   });
 
   it("asks when the pinning files' state is unknown", () => {
     expect(pinsOff(undefined, pinnedDevSpreadsheetId)).toBeUndefined();
-    expect(bashDecision({ command, dirtyPinningFiles: undefined })?.permissionDecision).toBe("ask");
+    expect(
+      bashDecision({ command, dirtyPinningFiles: undefined })
+        ?.permissionDecision,
+    ).toBe("ask");
   });
 
   it("leaves anything but a dev write alone, however dirty", () => {
     const dirty = ["packages/framework/sheets.config.json"];
-    expect(bashDecision({ command: "npm run dev:probe", dirtyPinningFiles: dirty })).toBeUndefined();
-    expect(bashDecision({ command: "npm run app:build", dirtyPinningFiles: dirty })).toBeUndefined();
+    expect(
+      bashDecision({ command: "npm run dev:probe", dirtyPinningFiles: dirty }),
+    ).toBeUndefined();
+    expect(
+      bashDecision({ command: "npm run app:build", dirtyPinningFiles: dirty }),
+    ).toBeUndefined();
   });
 });
 
@@ -101,7 +123,10 @@ describe("sheetsWriteDecision", () => {
 
   it("allows every guarded gworkspace Sheets write on the dev spreadsheet", () => {
     guardedSheetsWrites.forEach((toolName) => {
-      expect(decide({ toolName })).toEqual({ permissionDecision: "allow", reason: expect.any(String) });
+      expect(decide({ toolName })).toEqual({
+        permissionDecision: "allow",
+        reason: expect.any(String),
+      });
     });
   });
 
@@ -113,38 +138,62 @@ describe("sheetsWriteDecision", () => {
   });
 
   it("asks on the dev spreadsheet while a pinning file has uncommitted changes", () => {
-    const decision = decide({ dirtyPinningFiles: [".claude/hooks/pinnedTargetGuard.ts"] });
+    const decision = decide({
+      dirtyPinningFiles: [".claude/hooks/pinnedTargetGuard.ts"],
+    });
     expect(decision?.permissionDecision).toBe("ask");
     expect(decision?.reason).toMatch(/pinnedTargetGuard\.ts/);
   });
 
   it("asks when the dev ID or the pinning files' state is unknown", () => {
-    expect(decide({ devSpreadsheetId: undefined })?.permissionDecision).toBe("ask");
-    expect(decide({ spreadsheetId: undefined, devSpreadsheetId: undefined })?.permissionDecision).toBe("ask");
-    expect(decide({ dirtyPinningFiles: undefined })?.permissionDecision).toBe("ask");
+    expect(decide({ devSpreadsheetId: undefined })?.permissionDecision).toBe(
+      "ask",
+    );
+    expect(
+      decide({ spreadsheetId: undefined, devSpreadsheetId: undefined })
+        ?.permissionDecision,
+    ).toBe("ask");
+    expect(decide({ dirtyPinningFiles: undefined })?.permissionDecision).toBe(
+      "ask",
+    );
   });
 
   it("has no opinion on a tool it does not guard", () => {
-    expect(decide({ toolName: "mcp__gworkspace__manage_drive_access" })).toBeUndefined();
-    expect(decide({ toolName: "mcp__gworkspace__create_spreadsheet" })).toBeUndefined();
-    expect(decide({ toolName: "mcp__gworkspace__read_sheet_values" })).toBeUndefined();
-    expect(decide({ toolName: "mcp__gworkspace__modify_doc_text" })).toBeUndefined();
+    expect(
+      decide({ toolName: "mcp__gworkspace__manage_drive_access" }),
+    ).toBeUndefined();
+    expect(
+      decide({ toolName: "mcp__gworkspace__create_spreadsheet" }),
+    ).toBeUndefined();
+    expect(
+      decide({ toolName: "mcp__gworkspace__read_sheet_values" }),
+    ).toBeUndefined();
+    expect(
+      decide({ toolName: "mcp__gworkspace__modify_doc_text" }),
+    ).toBeUndefined();
     expect(decide({ toolName: "mcp__gsheets__update_cells" })).toBeUndefined();
   });
 });
 
 describe("guardedSheetsWrites", () => {
   it("covers the gworkspace value and tab writes", () => {
-    expect(guardedSheetsWrites).toContain("mcp__gworkspace__modify_sheet_values");
+    expect(guardedSheetsWrites).toContain(
+      "mcp__gworkspace__modify_sheet_values",
+    );
     expect(guardedSheetsWrites).toContain("mcp__gworkspace__create_sheet");
   });
 
   it("is exactly what the pinned-target hook's matcher names, besides Bash", () => {
-    const settings = JSON.parse(readFileSync(new URL("../../settings.json", import.meta.url), "utf8"));
-    const matchers: string[] = settings.hooks.PreToolUse.filter(({ hooks }: { hooks: { command: string }[] }) =>
-      hooks.some(({ command }) => command.includes("pinnedTargetGuard.ts")),
+    const settings = JSON.parse(
+      readFileSync(new URL("../../settings.json", import.meta.url), "utf8"),
+    );
+    const matchers: string[] = settings.hooks.PreToolUse.filter(
+      ({ hooks }: { hooks: { command: string }[] }) =>
+        hooks.some(({ command }) => command.includes("pinnedTargetGuard.ts")),
     ).map(({ matcher }: { matcher: string }) => matcher);
     expect(matchers).toHaveLength(1);
-    expect(new Set(matchers[0]?.split("|"))).toEqual(new Set(["Bash", ...guardedSheetsWrites]));
+    expect(new Set(matchers[0]?.split("|"))).toEqual(
+      new Set(["Bash", ...guardedSheetsWrites]),
+    );
   });
 });

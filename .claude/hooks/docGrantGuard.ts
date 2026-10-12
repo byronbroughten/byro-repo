@@ -10,7 +10,12 @@ import {
   grantedIssueOf,
   implementPieceIssue,
 } from "./lib/docGrants.ts";
-import { readHookInput, runFailOpen, sharedStatePath, writeHookOutput } from "./lib/hookIo.ts";
+import {
+  readHookInput,
+  runFailOpen,
+  sharedStatePath,
+  writeHookOutput,
+} from "./lib/hookIo.ts";
 
 const specRepo = "byronbroughten/writing";
 const grantsPath = sharedStatePath("doc-grants.json");
@@ -23,7 +28,10 @@ await runFailOpen(() => {
     if (issue !== undefined) recordGrants(issue);
     return;
   }
-  const grantedIssue = grantedIssueOf(readGrants(), input.tool_input?.document_id);
+  const grantedIssue = grantedIssueOf(
+    readGrants(),
+    input.tool_input?.document_id,
+  );
   if (grantedIssue === undefined) return;
   const decision = docGrantDecision({
     toolName: input.tool_name,
@@ -62,7 +70,17 @@ function readGrants(): DocGrants {
 function viewIssue(issue: number, field: "state" | "body"): string | undefined {
   const { status, stdout } = spawnSync(
     "gh",
-    ["issue", "view", String(issue), "-R", specRepo, "--json", field, "--jq", `.${field}`],
+    [
+      "issue",
+      "view",
+      String(issue),
+      "-R",
+      specRepo,
+      "--json",
+      field,
+      "--jq",
+      `.${field}`,
+    ],
     { encoding: "utf8", timeout: 8000 },
   );
   return status === 0 ? stdout.trim() : undefined;

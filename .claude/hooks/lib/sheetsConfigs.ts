@@ -13,8 +13,14 @@ export interface SheetsConfigEntry extends SheetsConfigFile {
 }
 
 export const sheetsConfigFiles: SheetsConfigFile[] = [
-  { path: join("packages", "real-estate", "sheets.config.json"), scriptPrefix: "app" },
-  { path: join("packages", "framework", "sheets.config.json"), scriptPrefix: "dev" },
+  {
+    path: join("packages", "real-estate", "sheets.config.json"),
+    scriptPrefix: "app",
+  },
+  {
+    path: join("packages", "framework", "sheets.config.json"),
+    scriptPrefix: "dev",
+  },
 ];
 
 // Project-relative generatedDir per package; a config that can't be read is skipped.
@@ -31,7 +37,8 @@ export function readSheetsConfigs(projectDir: string): SheetsConfigEntry[] {
       {
         path,
         scriptPrefix,
-        spreadsheetId: typeof raw.spreadsheetId === "string" ? raw.spreadsheetId : undefined,
+        spreadsheetId:
+          typeof raw.spreadsheetId === "string" ? raw.spreadsheetId : undefined,
         generatedDir: join(dirname(path), raw.generatedDir),
       },
     ];

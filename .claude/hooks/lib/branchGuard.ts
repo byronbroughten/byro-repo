@@ -35,7 +35,10 @@ export interface BranchGuardInput {
   isExistingPath(path: string): boolean;
 }
 
-export type CommandTarget = Pick<BranchGuardInput, "command" | "cwd" | "primaryCheckouts">;
+export type CommandTarget = Pick<
+  BranchGuardInput,
+  "command" | "cwd" | "primaryCheckouts"
+>;
 
 export interface BranchDecision {
   permissionDecision: "allow" | "deny";
@@ -55,7 +58,14 @@ const recordLifetimeMs = 24 * 60 * 60 * 1000;
 // Git worktrees nested inside a primary checkout act on their own HEAD, not the primary's.
 const nestedWorktreeDirs = [".claude/worktrees"];
 // Global options that take the next word as their value.
-const gitValueOptions = new Set(["-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"]);
+const gitValueOptions = new Set([
+  "-C",
+  "-c",
+  "--git-dir",
+  "--work-tree",
+  "--namespace",
+  "--exec-path",
+]);
 const headMovingSubcommands = new Set([
   "checkout",
   "switch",
@@ -68,7 +78,8 @@ const headMovingSubcommands = new Set([
   "revert",
   "am",
 ]);
-const workspaceWay = "work the ticket in its issue workspace (`npm run issue:list`), where branches are the workspace's own";
+const workspaceWay =
+  "work the ticket in its issue workspace (`npm run issue:list`), where branches are the workspace's own";
 const restoreHint = "A file restore is `git checkout -- <path>`.";
 // checkout and switch options that make a new branch from the next word.
 const branchCreatingOptions = new Set(["-b", "-B", "-c", "-C", "--orphan"]);
@@ -76,9 +87,16 @@ const branchCreatingOptions = new Set(["-b", "-B", "-c", "-C", "--orphan"]);
 export function branchDecision(props: BranchGuardInput): BranchDecision {
   for (const action of gitActionsOf(props, props.isExistingPath)) {
     const reason = denyReasonOf(action, props);
-    if (reason) return { permissionDecision: "deny", reason: guardMessage(reason) };
+    if (reason) {
+      return { permissionDecision: "deny", reason: guardMessage(reason) };
+    }
   }
-  return { permissionDecision: "allow", reason: guardMessage("nothing here moves a branch or HEAD under another session.") };
+  return {
+    permissionDecision: "allow",
+    reason: guardMessage(
+      "nothing here moves a branch or HEAD under another session.",
+    ),
+  };
 }
 
 // The primary checkouts whose HEAD the command may move, so the session can re-record them.
@@ -89,7 +107,10 @@ export function headMovingCheckouts(target: CommandTarget): string[] {
   return [...new Set(checkouts)];
 }
 
-export function isLive({ endedAt, recordedAt }: SessionRecord, now: number): boolean {
+export function isLive(
+  { endedAt, recordedAt }: SessionRecord,
+  now: number,
+): boolean {
   return endedAt === undefined && now - recordedAt <= recordLifetimeMs;
 }
 
@@ -108,7 +129,11 @@ export function endedRecord(record: SessionRecord, now: number): SessionRecord {
   return { ...record, endedAt: now };
 }
 
-export function refreshedRecord(record: SessionRecord, current: CheckoutStates, now: number): SessionRecord {
+export function refreshedRecord(
+  record: SessionRecord,
+  current: CheckoutStates,
+  now: number,
+): SessionRecord {
   const { refreshPending = [], ...rest } = record;
   const checkouts = { ...record.checkouts };
   refreshPending.forEach((checkout) => {
@@ -123,9 +148,16 @@ function guardMessage(reason: string): string {
 }
 
 // Interim leaves branch moves to the developer, who keeps agents off a branch while it lands.
-function denyReasonOf(action: GitAction, props: BranchGuardInput): string | undefined {
-  if (action.kind === "branchMove" && props.mode === "strict") return branchMoveDenyReason(action);
-  if (action.kind === "commit" && props.mode === "interim") return commitDenyReason(action, props);
+function denyReasonOf(
+  action: GitAction,
+  props: BranchGuardInput,
+): string | undefined {
+  if (action.kind === "branchMove" && props.mode === "strict") {
+    return branchMoveDenyReason(action);
+  }
+  if (action.kind === "commit" && props.mode === "interim") {
+    return commitDenyReason(action, props);
+  }
   return undefined;
 }
 
@@ -141,7 +173,9 @@ function commitDenyReason(
   const current = currentCheckouts[checkout];
   if (!recorded || !current) return undefined;
   // `checkout -b` moves the branch without moving the commit.
-  if (recorded.head === current.head && recorded.branch === current.branch) return undefined;
+  if (recorded.head === current.head && recorded.branch === current.branch) {
+    return undefined;
+  }
   return `HEAD of ${checkout} moved since this session recorded it (${stateShown(recorded)} → ${stateShown(current)}), so something else moved it and this commit could land on other work. Either ${workspaceWay}, or start a fresh session here once that work is done.`;
 }
 
@@ -165,7 +199,11 @@ function gitActionsOf(
       dir = cdTarget(dir, words[1]);
       return [];
     }
-    const action = gitActionOf(words, { command, cwd: dir, primaryCheckouts }, isExistingPath);
+    const action = gitActionOf(
+      words,
+      { command, cwd: dir, primaryCheckouts },
+      isExistingPath,
+    );
     return action ? [action] : [];
   });
 }
@@ -177,7 +215,9 @@ function cdTarget(dir: string, target: string | undefined): string {
 }
 
 function resolvePath(dir: string, path: string): string {
-  if (path === "~" || path.startsWith("~/")) return join(homedir(), path.slice(1));
+  if (path === "~" || path.startsWith("~/")) {
+    return join(homedir(), path.slice(1));
+  }
   return resolve(dir, path);
 }
 
@@ -200,32 +240,52 @@ function gitActionOf(
   if (subcommand === undefined) return undefined;
   const checkout = primaryCheckoutOf(dir, primaryCheckouts);
   if (!checkout) return undefined;
-  const kind = kindOf(subcommand, words.slice(i + 1), (path) => isExistingPath(resolvePath(dir, path)));
+  const kind = kindOf(subcommand, words.slice(i + 1), (path) =>
+    isExistingPath(resolvePath(dir, path)),
+  );
   return { kind, subcommand, checkout };
 }
 
 // The deepest primary checkout holding dir, unless dir is in a worktree nested inside it.
-function primaryCheckoutOf(dir: string, primaryCheckouts: string[]): string | undefined {
+function primaryCheckoutOf(
+  dir: string,
+  primaryCheckouts: string[],
+): string | undefined {
   const holding = primaryCheckouts
     .filter((checkout) => isInside(dir, checkout))
     .sort((a, b) => b.length - a.length)[0];
   if (!holding) return undefined;
-  if (nestedWorktreeDirs.some((nested) => isInside(dir, join(holding, nested)))) return undefined;
+  if (
+    nestedWorktreeDirs.some((nested) => isInside(dir, join(holding, nested)))
+  ) {
+    return undefined;
+  }
   return holding;
 }
 
 function isInside(path: string, folder: string): boolean {
   const fromFolder = relative(folder, path);
-  return fromFolder === "" || (!fromFolder.startsWith("..") && !isAbsolute(fromFolder));
+  return (
+    fromFolder === "" ||
+    (!fromFolder.startsWith("..") && !isAbsolute(fromFolder))
+  );
 }
 
-function kindOf(subcommand: string, args: string[], isExistingPath: (path: string) => boolean): GitActionKind {
+function kindOf(
+  subcommand: string,
+  args: string[],
+  isExistingPath: (path: string) => boolean,
+): GitActionKind {
   if (subcommand === "commit") return "commit";
   if (subcommand !== "checkout" && subcommand !== "switch") return "other";
   if (args.some((arg) => branchCreatingOptions.has(arg))) return "branchMove";
-  if (args.some((arg) => arg === "--" || arg === "-p" || arg === "--patch")) return "other";
+  if (args.some((arg) => arg === "--" || arg === "-p" || arg === "--patch")) {
+    return "other";
+  }
   const operands = args.filter((arg) => arg === "-" || !arg.startsWith("-"));
-  if (subcommand === "switch") return operands.length > 0 ? "branchMove" : "other";
+  if (subcommand === "switch") {
+    return operands.length > 0 ? "branchMove" : "other";
+  }
   // Git's own reading: a ref then paths restores files, and so does a lone operand naming a path.
   const [operand] = operands;
   if (operands.length !== 1 || operand === undefined) return "other";

@@ -31,37 +31,70 @@ describe("BashReads unguarded folders", () => {
   });
 
   it("guards a large repo file", () => {
-    expect(denyReasonOf(projectDir, "cat src/big.ts")).toMatch(/would dump all/);
+    expect(denyReasonOf(projectDir, "cat src/big.ts")).toMatch(
+      /would dump all/,
+    );
   });
 
   it("exempts .probe, dist and coverage at the root and at any depth", () => {
     expect(denyReasonOf(projectDir, "cat .probe/last.json")).toBeUndefined();
-    expect(denyReasonOf(projectDir, "cat dev/.probe/last.json")).toBeUndefined();
-    expect(denyReasonOf(projectDir, "cat packages/framework/dist/bundle.js")).toBeUndefined();
-    expect(denyReasonOf(projectDir, "cat packages/app/coverage/index.html")).toBeUndefined();
+    expect(
+      denyReasonOf(projectDir, "cat dev/.probe/last.json"),
+    ).toBeUndefined();
+    expect(
+      denyReasonOf(projectDir, "cat packages/framework/dist/bundle.js"),
+    ).toBeUndefined();
+    expect(
+      denyReasonOf(projectDir, "cat packages/app/coverage/index.html"),
+    ).toBeUndefined();
   });
 
   it("does not exempt a file merely named like an unguarded folder", () => {
     const withNamedFile = projectWith({ "src/dist": bigFile });
-    expect(denyReasonOf(withNamedFile, "cat src/dist")).toMatch(/would dump all/);
+    expect(denyReasonOf(withNamedFile, "cat src/dist")).toMatch(
+      /would dump all/,
+    );
   });
 });
 
 describe("BashReads columnConfigs", () => {
   const projectDir = projectWith({
-    "packages/real-estate/sheets.config.json": JSON.stringify({ spreadsheetId: "app-id", generatedDir: "src/generated", choreHomes: [] }),
-    "packages/framework/sheets.config.json": JSON.stringify({ spreadsheetId: "dev-id", generatedDir: "dev/generated", choreHomes: [] }),
+    "packages/real-estate/sheets.config.json": JSON.stringify({
+      spreadsheetId: "app-id",
+      generatedDir: "src/generated",
+      choreHomes: [],
+    }),
+    "packages/framework/sheets.config.json": JSON.stringify({
+      spreadsheetId: "dev-id",
+      generatedDir: "dev/generated",
+      choreHomes: [],
+    }),
     "packages/real-estate/src/generated/columnConfigs.ts": "small\n",
     "packages/framework/dev/generated/columnConfigs.ts": "small\n",
   });
 
   it("denies a whole read of every package's columnConfigs.ts, found through its generatedDir", () => {
-    expect(denyReasonOf(projectDir, "cat packages/real-estate/src/generated/columnConfigs.ts")).toMatch(/columnConfigs\.ts beyond one block/);
-    expect(denyReasonOf(projectDir, "cat packages/framework/dev/generated/columnConfigs.ts")).toMatch(/columnConfigs\.ts beyond one block/);
+    expect(
+      denyReasonOf(
+        projectDir,
+        "cat packages/real-estate/src/generated/columnConfigs.ts",
+      ),
+    ).toMatch(/columnConfigs\.ts beyond one block/);
+    expect(
+      denyReasonOf(
+        projectDir,
+        "cat packages/framework/dev/generated/columnConfigs.ts",
+      ),
+    ).toMatch(/columnConfigs\.ts beyond one block/);
   });
 
   it("allows one block of it", () => {
-    expect(denyReasonOf(projectDir, "sed -n '1,40p' packages/framework/dev/generated/columnConfigs.ts")).toBeUndefined();
+    expect(
+      denyReasonOf(
+        projectDir,
+        "sed -n '1,40p' packages/framework/dev/generated/columnConfigs.ts",
+      ),
+    ).toBeUndefined();
   });
 });
 
@@ -71,11 +104,16 @@ describe("BashReads.wholeFilePaths", () => {
   }
 
   it("lists every file a cat prints, resolved from the working directory", () => {
-    expect(wholeFilePathsOf("cat a.md docs/b.md")).toEqual(["/repo/a.md", "/repo/docs/b.md"]);
+    expect(wholeFilePathsOf("cat a.md docs/b.md")).toEqual([
+      "/repo/a.md",
+      "/repo/docs/b.md",
+    ]);
   });
 
   it("follows a cd earlier in the command", () => {
-    expect(wholeFilePathsOf("cd /repo/config && cat docs/code-style.md")).toEqual(["/repo/config/docs/code-style.md"]);
+    expect(
+      wholeFilePathsOf("cd /repo/config && cat docs/code-style.md"),
+    ).toEqual(["/repo/config/docs/code-style.md"]);
   });
 
   it("leaves out a cat whose output a pipe trims", () => {
@@ -83,6 +121,8 @@ describe("BashReads.wholeFilePaths", () => {
   });
 
   it("leaves out ranges and filters", () => {
-    expect(wholeFilePathsOf("sed -n 1,20p a.md; grep x a.md; head -5 a.md")).toEqual([]);
+    expect(
+      wholeFilePathsOf("sed -n 1,20p a.md; grep x a.md; head -5 a.md"),
+    ).toEqual([]);
   });
 });

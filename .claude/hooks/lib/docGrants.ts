@@ -19,8 +19,10 @@ export interface DocWrite {
   issueState: string | undefined;
 }
 
-const implementPiecePrompt = /^\s*\/implement-piece\s+(?:\S*\/issues\/|#)?(\d+)\b/;
-const idSections = /^## (?:Deliverable|Shared rules)\s*$([\s\S]*?)(?=^## |(?![\s\S]))/gm;
+const implementPiecePrompt =
+  /^\s*\/implement-piece\s+(?:\S*\/issues\/|#)?(\d+)\b/;
+const idSections =
+  /^## (?:Deliverable|Shared rules)\s*$([\s\S]*?)(?=^## |(?![\s\S]))/gm;
 const parentSection = /^## Parent\s*$([\s\S]*?)(?=^## |(?![\s\S]))/m;
 const docIdPattern = /\/document\/d\/([\w-]+)|\b([\w-]{25,})\b/g;
 
@@ -31,25 +33,46 @@ export function implementPieceIssue(prompt: unknown): number | undefined {
 }
 
 export function deliverableDocIds(issueBody: string): string[] {
-  const sections = [...issueBody.matchAll(idSections)].map((match) => match[1] ?? "");
+  const sections = [...issueBody.matchAll(idSections)].map(
+    (match) => match[1] ?? "",
+  );
   return sections.flatMap((section) =>
-    [...section.matchAll(docIdPattern)].map((match) => match[1] ?? match[2]).filter((id) => id !== undefined),
+    [...section.matchAll(docIdPattern)]
+      .map((match) => match[1] ?? match[2])
+      .filter((id) => id !== undefined),
   );
 }
 
 // A ticket's grant lives as long as its parent spec is open.
 export function governingIssue(issue: number, issueBody: string): number {
-  const parent = /#(\d+)|\/issues\/(\d+)/.exec(parentSection.exec(issueBody)?.[1] ?? "");
+  const parent = /#(\d+)|\/issues\/(\d+)/.exec(
+    parentSection.exec(issueBody)?.[1] ?? "",
+  );
   return Number(parent?.[1] ?? parent?.[2] ?? issue);
 }
 
-export function grantedIssueOf(grants: DocGrants, documentId: unknown): number | undefined {
-  if (typeof documentId !== "string" || !Object.hasOwn(grants, documentId)) return undefined;
+export function grantedIssueOf(
+  grants: DocGrants,
+  documentId: unknown,
+): number | undefined {
+  if (typeof documentId !== "string" || !Object.hasOwn(grants, documentId)) {
+    return undefined;
+  }
   return grants[documentId];
 }
 
-export function docGrantDecision({ toolName, grantedIssue, issueState }: DocWrite): Decision | undefined {
-  if (toolName === undefined || !grantedDocWrites.has(toolName) || grantedIssue === undefined) return undefined;
+export function docGrantDecision({
+  toolName,
+  grantedIssue,
+  issueState,
+}: DocWrite): Decision | undefined {
+  if (
+    toolName === undefined ||
+    !grantedDocWrites.has(toolName) ||
+    grantedIssue === undefined
+  ) {
+    return undefined;
+  }
   if (issueState !== "OPEN") return undefined;
   return {
     permissionDecision: "allow",

@@ -2,7 +2,13 @@
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 
 import { BashReads } from "./lib/bashReads.ts";
-import { type HookInput, readHookInput, runFailOpen, sessionStatePath, writeHookOutput } from "./lib/hookIo.ts";
+import {
+  type HookInput,
+  readHookInput,
+  runFailOpen,
+  sessionStatePath,
+  writeHookOutput,
+} from "./lib/hookIo.ts";
 
 const nudgeAt = { first: 15, every: 10 } as const;
 const readTools = new Set(["Read", "Grep", "Glob"]);
@@ -23,11 +29,18 @@ class ReadCount {
       writeFileSync(this.logPath, "");
       return;
     }
-    if (exemptAgentTypes.has(this.input.agent_type ?? "") || !this._isRead()) return;
+    if (exemptAgentTypes.has(this.input.agent_type ?? "") || !this._isRead()) {
+      return;
+    }
     // One appended line per read keeps parallel tool calls from losing counts.
     appendFileSync(this.logPath, `${this._counterKey()}\n`);
     const count = this._count();
-    if (count < nudgeAt.first || (count - nudgeAt.first) % nudgeAt.every !== 0) return;
+    if (
+      count < nudgeAt.first ||
+      (count - nudgeAt.first) % nudgeAt.every !== 0
+    ) {
+      return;
+    }
     writeHookOutput({
       hookSpecificOutput: {
         hookEventName: "PostToolUse",
@@ -41,9 +54,12 @@ class ReadCount {
   _isRead(): boolean {
     const { tool_name: toolName, tool_input: toolInput } = this.input;
     if (readTools.has(toolName ?? "")) return true;
-    if (toolName !== "Bash" || typeof toolInput?.command !== "string") return false;
+    if (toolName !== "Bash" || typeof toolInput?.command !== "string") {
+      return false;
+    }
     try {
-      return BashReads.initFromHook(this.input, toolInput.command).classify().isRead;
+      return BashReads.initFromHook(this.input, toolInput.command).classify()
+        .isRead;
     } catch {
       return false;
     }

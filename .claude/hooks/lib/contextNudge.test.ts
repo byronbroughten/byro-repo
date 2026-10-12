@@ -9,7 +9,10 @@ interface Usage {
 }
 
 function assistantLine(usage: Usage): string {
-  return JSON.stringify({ type: "assistant", message: { role: "assistant", usage } });
+  return JSON.stringify({
+    type: "assistant",
+    message: { role: "assistant", usage },
+  });
 }
 
 function transcript(...lines: string[]): string {
@@ -18,7 +21,9 @@ function transcript(...lines: string[]): string {
 
 describe("contextNudgeContext", () => {
   function sized(tokens: number): string {
-    return transcript(assistantLine({ input_tokens: 1, cache_read_input_tokens: tokens - 1 }));
+    return transcript(
+      assistantLine({ input_tokens: 1, cache_read_input_tokens: tokens - 1 }),
+    );
   }
 
   it("stays quiet below the ticket budget", () => {

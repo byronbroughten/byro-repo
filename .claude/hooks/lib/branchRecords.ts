@@ -10,7 +10,11 @@ const recordSuffix = "branch-record.json";
 
 // The root's primary checkout, found through the git common dir so a session in an issue workspace still finds it.
 export function primaryRootOf(projectDir: string): string | undefined {
-  const commonDir = gitOutput(projectDir, ["rev-parse", "--path-format=absolute", "--git-common-dir"]);
+  const commonDir = gitOutput(projectDir, [
+    "rev-parse",
+    "--path-format=absolute",
+    "--git-common-dir",
+  ]);
   return commonDir === undefined ? undefined : dirname(commonDir);
 }
 
@@ -27,7 +31,12 @@ export function primaryCheckoutsOf(primaryRoot: string): string[] {
 export function checkoutStatesOf(checkouts: string[]): CheckoutStates {
   return checkouts.reduce<CheckoutStates>((states, checkout) => {
     const head = gitOutput(checkout, ["rev-parse", "HEAD"]);
-    if (head !== undefined) states[checkout] = { branch: gitOutput(checkout, ["symbolic-ref", "--short", "-q", "HEAD"]), head };
+    if (head !== undefined) {
+      states[checkout] = {
+        branch: gitOutput(checkout, ["symbolic-ref", "--short", "-q", "HEAD"]),
+        head,
+      };
+    }
     return states;
   }, {});
 }
@@ -47,7 +56,11 @@ function recordPathOf(sessionId: string): string {
 function parseRecord(path: string): SessionRecord | undefined {
   try {
     const record = JSON.parse(readFileSync(path, "utf8"));
-    return record && typeof record === "object" && typeof record.sessionId === "string" ? record : undefined;
+    return record &&
+      typeof record === "object" &&
+      typeof record.sessionId === "string"
+      ? record
+      : undefined;
   } catch {
     return undefined;
   }
@@ -58,4 +71,3 @@ function gitOutput(cwd: string, args: string[]): string | undefined {
   if (status !== 0) return undefined;
   return stdout.trim() || undefined;
 }
-

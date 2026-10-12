@@ -9,7 +9,16 @@ import { readSheetsConfigs } from "./sheetsConfigs.ts";
 export const largeFileLines = 150;
 const unguardedDirs = ["node_modules", ".git", ".probe", "dist", "coverage"];
 const commandNames = {
-  wrappers: new Set(["sudo", "command", "env", "time", "nice", "nohup", "exec", "builtin"]),
+  wrappers: new Set([
+    "sudo",
+    "command",
+    "env",
+    "time",
+    "nice",
+    "nohup",
+    "exec",
+    "builtin",
+  ]),
   wholeFile: new Set(["cat", "nl", "bat", "less", "more", "tac"]),
   headTail: new Set(["head", "tail"]),
   search: new Set(["grep", "egrep", "fgrep", "rg", "ag"]),
@@ -26,7 +35,9 @@ export interface BashReadsProps {
 }
 
 // projectDir defaults to cwd.
-type BashReadsInit = Omit<BashReadsProps, "projectDir"> & { projectDir?: string };
+type BashReadsInit = Omit<BashReadsProps, "projectDir"> & {
+  projectDir?: string;
+};
 
 export interface Classification {
   isRead: boolean;
@@ -91,7 +102,12 @@ export class BashReads {
   // Absolute paths printed in full: a whole-file command whose output no pipe trims. Throws as classify does.
   wholeFilePaths(): string[] {
     return this._segmentReads()
-      .filter(({ name, read, isPipedOn }) => commandNames.wholeFile.has(name) && read.kind === "whole" && !isPipedOn)
+      .filter(
+        ({ name, read, isPipedOn }) =>
+          commandNames.wholeFile.has(name) &&
+          read.kind === "whole" &&
+          !isPipedOn,
+      )
       .flatMap(({ paths }) => paths);
   }
   _segmentReads(): SegmentRead[] {
@@ -108,16 +124,33 @@ export class BashReads {
       }
       const read = readOf(name, args, segment);
       if (!read) return;
-      const paths = [...read.files, ...segment.inputFiles].map((file) => resolve(cwd, expandHome(file)));
-      reads.push({ name, read, paths, isPipedOn: segments[index + 1]?.isPiped ?? false });
+      const paths = [...read.files, ...segment.inputFiles].map((file) =>
+        resolve(cwd, expandHome(file)),
+      );
+      reads.push({
+        name,
+        read,
+        paths,
+        isPipedOn: segments[index + 1]?.isPiped ?? false,
+      });
     });
     return reads;
   }
-  _denyReasonFor(name: string, read: FileRead, path: string): string | undefined {
+  _denyReasonFor(
+    name: string,
+    read: FileRead,
+    path: string,
+  ): string | undefined {
     if (read.kind === "search") return undefined;
     const shown = relative(this.projectDir, path);
     if (this._columnConfigsPaths().includes(path)) {
-      if (read.kind === "range" && read.span !== undefined && read.span <= largeFileLines) return undefined;
+      if (
+        read.kind === "range" &&
+        read.span !== undefined &&
+        read.span <= largeFileLines
+      ) {
+        return undefined;
+      }
       return (
         `Bash-read guard: \`${name}\` would read columnConfigs.ts beyond one block. ` +
         `Grep it for the sheet key (e.g. \`"occupancy":\`) with -A to read that object, ` +
@@ -142,18 +175,35 @@ export class BashReads {
   _isGuarded(path: string): boolean {
     const inside = relative(this.projectDir, path);
     if (!inside || inside.startsWith("..") || isAbsolute(inside)) return false;
-    if (dirname(inside).split(sep).some((dir) => unguardedDirs.includes(dir))) return false;
+    if (
+      dirname(inside)
+        .split(sep)
+        .some((dir) => unguardedDirs.includes(dir))
+    ) {
+      return false;
+    }
     return existsSync(path) && statSync(path).isFile();
   }
 }
 
-function readOf(name: string, args: string[], segment: Segment): FileRead | undefined {
-  if (commandNames.wholeFile.has(name)) return fileRead(nonFlags(args), segment, "whole");
+function readOf(
+  name: string,
+  args: string[],
+  segment: Segment,
+): FileRead | undefined {
+  if (commandNames.wholeFile.has(name)) {
+    return fileRead(nonFlags(args), segment, "whole");
+  }
   if (commandNames.headTail.has(name)) return headTailRead(name, args, segment);
   if (name === "sed") return sedRead(args, segment);
-  if (name === "awk") return fileRead(nonFlags(args).slice(1), segment, "filter");
-  const isSearch = commandNames.search.has(name) || (name === "git" && args[0] === "grep");
-  if (!isSearch || (segment.isPiped && segment.inputFiles.length === 0)) return undefined;
+  if (name === "awk") {
+    return fileRead(nonFlags(args).slice(1), segment, "filter");
+  }
+  const isSearch =
+    commandNames.search.has(name) || (name === "git" && args[0] === "grep");
+  if (!isSearch || (segment.isPiped && segment.inputFiles.length === 0)) {
+    return undefined;
+  }
   return { kind: "search", files: [] };
 }
 
@@ -179,7 +229,11 @@ function nonFlags(args: string[]): string[] {
   return args.filter((arg) => !arg.startsWith("-") && !isGlob(arg));
 }
 
-function headTailRead(name: string, args: string[], segment: Segment): FileRead | undefined {
+function headTailRead(
+  name: string,
+  args: string[],
+  segment: Segment,
+): FileRead | undefined {
   let count = 10;
   let isBounded = true;
   const files: string[] = [];
@@ -192,23 +246,38 @@ function headTailRead(name: string, args: string[], segment: Segment): FileRead 
     }
     // `head -n -5` is all but 5 lines and `tail -n +5` is line 5 on: both run to the file's end.
     const sign = String(value)[0];
-    if ((name === "head" && sign === "-") || (name === "tail" && sign === "+")) isBounded = false;
+    if (
+      (name === "head" && sign === "-") ||
+      (name === "tail" && sign === "+")
+    ) {
+      isBounded = false;
+    }
     if (arg.startsWith("-c")) continue;
     count = Number.parseInt(String(value).replace(/^[+-]/, ""), 10);
   }
-  const isSmall = isBounded && Number.isFinite(count) && count <= largeFileLines;
+  const isSmall =
+    isBounded && Number.isFinite(count) && count <= largeFileLines;
   return fileRead(files, segment, isSmall ? "range" : "whole", { span: count });
 }
 
 function optionValue(arg: string): string | undefined {
   const match =
-    /^-n([+-]?\d+)$/.exec(arg) ?? /^--lines=([+-]?\d+)$/.exec(arg) ?? /^-(\d+)$/.exec(arg) ?? /^-c(\d+)$/.exec(arg);
+    /^-n([+-]?\d+)$/.exec(arg) ??
+    /^--lines=([+-]?\d+)$/.exec(arg) ??
+    /^-(\d+)$/.exec(arg) ??
+    /^-c(\d+)$/.exec(arg);
   return match ? match[1] : undefined;
 }
 
 function sedRead(args: string[], segment: Segment): FileRead | undefined {
-  if (args.some((arg) => /^-[a-zA-Z]*i/.test(arg) || arg.startsWith("--in-place"))) return undefined;
-  const isQuiet = args.some((arg) => /^-[a-zA-Z]*n/.test(arg) || arg === "--quiet");
+  if (
+    args.some((arg) => /^-[a-zA-Z]*i/.test(arg) || arg.startsWith("--in-place"))
+  ) {
+    return undefined;
+  }
+  const isQuiet = args.some(
+    (arg) => /^-[a-zA-Z]*n/.test(arg) || arg === "--quiet",
+  );
   const scripts: (string | undefined)[] = [];
   const rest: string[] = [];
   for (let i = 0; i < args.length; i++) {
@@ -218,16 +287,23 @@ function sedRead(args: string[], segment: Segment): FileRead | undefined {
   }
   if (scripts.length === 0) scripts.push(rest.shift());
   const files = rest.filter((arg) => !isGlob(arg));
-  const isToEnd = scripts.some((script) => /\d+\s*,\s*\$\s*p/.test(String(script)));
+  const isToEnd = scripts.some((script) =>
+    /\d+\s*,\s*\$\s*p/.test(String(script)),
+  );
   if (!isQuiet || isToEnd) return fileRead(files, segment, "whole");
   const span = rangeSpanOf(scripts.join(";"));
-  return span === undefined ? fileRead(files, segment, "filter") : fileRead(files, segment, "range", { span });
+  return span === undefined
+    ? fileRead(files, segment, "filter")
+    : fileRead(files, segment, "range", { span });
 }
 
 // `12,40p` or `12p` pieces only; anything else (a pattern, `$`) is not a numeric range.
 function rangeSpanOf(script: string): number | undefined {
   let span = 0;
-  for (const piece of String(script).split(/[;\n]/).map((part) => part.trim()).filter(Boolean)) {
+  for (const piece of String(script)
+    .split(/[;\n]/)
+    .map((part) => part.trim())
+    .filter(Boolean)) {
     const match = /^(\d+)(?:,(\d+))?p$/.exec(piece);
     if (!match) return undefined;
     const start = Number(match[1]);
@@ -248,7 +324,13 @@ function lineCountOf(path: string): number {
 
 function commandWords(words: string[]): string[] {
   let start = 0;
-  while (start < words.length && (/^\w+=/.test(words[start] ?? "") || commandNames.wrappers.has(words[start] ?? ""))) start++;
+  while (
+    start < words.length &&
+    (/^\w+=/.test(words[start] ?? "") ||
+      commandNames.wrappers.has(words[start] ?? ""))
+  ) {
+    start++;
+  }
   return words.slice(start);
 }
 
@@ -257,7 +339,9 @@ function basename(word: string): string {
 }
 
 function expandHome(path: string): string {
-  return path === "~" || path.startsWith("~/") ? join(homedir(), path.slice(1)) : path;
+  return path === "~" || path.startsWith("~/")
+    ? join(homedir(), path.slice(1))
+    : path;
 }
 
 function isGlob(word: string): boolean {
@@ -273,7 +357,9 @@ function stripHeredocBodies(command: string): string {
       continue;
     }
     kept.push(line);
-    for (const match of line.matchAll(/<<-?\s*(['"]?)([\w.-]+)\1/g)) pending.push(match[2] ?? "");
+    for (const match of line.matchAll(/<<-?\s*(['"]?)([\w.-]+)\1/g)) {
+      pending.push(match[2] ?? "");
+    }
   }
   return kept.join("\n");
 }
@@ -317,7 +403,11 @@ function tokenize(command: string): Token[] {
     const next = command[i + 1];
     if (char === "'" || char === '"') {
       const close = findClosingQuote(command, i);
-      word = (word ?? "") + command.slice(i + 1, close).replace(/\\(["\\$`])/g, char === '"' ? "$1" : "\\$1");
+      word =
+        (word ?? "") +
+        command
+          .slice(i + 1, close)
+          .replace(/\\(["\\$`])/g, char === '"' ? "$1" : "\\$1");
       i = close;
     } else if (char === "\\") {
       if (next !== "\n") word = (word ?? "") + (next ?? "");
@@ -337,14 +427,29 @@ function tokenize(command: string): Token[] {
       if (word !== undefined && /^\d+$/.test(word)) word = undefined;
       endWord();
       let value = char;
-      while (/[<>&|]/.test(command[i + 1] ?? "") && value.length < 3) value += command.charAt(++i);
+      while (/[<>&|]/.test(command[i + 1] ?? "") && value.length < 3) {
+        value += command.charAt(++i);
+      }
       tokens.push({ type: "redirect", value });
-    } else if (char === "|" || char === "&" || char === ";" || char === "(" || char === ")" || char === "`") {
+    } else if (
+      char === "|" ||
+      char === "&" ||
+      char === ";" ||
+      char === "(" ||
+      char === ")" ||
+      char === "`"
+    ) {
       endWord();
       const pair = char + (next ?? "");
       const value = ["||", "&&", "|&", ";;"].includes(pair) ? pair : char;
       if (value.length === 2) i++;
-      tokens.push({ type: "op", value: operators.separators.has(value) || operators.pipes.has(value) ? value : ";" });
+      tokens.push({
+        type: "op",
+        value:
+          operators.separators.has(value) || operators.pipes.has(value)
+            ? value
+            : ";",
+      });
     } else {
       word = (word ?? "") + char;
     }

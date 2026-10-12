@@ -18,7 +18,9 @@ const primaryCheckouts = [root, framework];
 const existingPaths = new Set([`${root}/src/a.ts`, `${root}/src`, root]);
 const now = 10 * 24 * 60 * 60 * 1000;
 
-function decide(props: Partial<BranchGuardInput> & Pick<BranchGuardInput, "command">) {
+function decide(
+  props: Partial<BranchGuardInput> & Pick<BranchGuardInput, "command">,
+) {
   return branchDecision({
     cwd: root,
     mode: "interim",
@@ -59,7 +61,9 @@ describe("branchDecision, strict", () => {
     "npm test",
     "git checkout",
   ])("allows `%s`", (command) => {
-    expect(decide({ command, mode: "strict" }).permissionDecision).toBe("allow");
+    expect(decide({ command, mode: "strict" }).permissionDecision).toBe(
+      "allow",
+    );
   });
 
   it.each([
@@ -70,17 +74,27 @@ describe("branchDecision, strict", () => {
     ["git -C .. checkout feature", `${framework}/src`],
     ["npm test; git --no-pager -c core.x=y switch feature", root],
   ])("resolves `%s` from %s to a primary checkout", (command, cwd) => {
-    expect(decide({ command, cwd, mode: "strict" }).permissionDecision).toBe("deny");
+    expect(decide({ command, cwd, mode: "strict" }).permissionDecision).toBe(
+      "deny",
+    );
   });
 
   it.each([
     ["git checkout feature", "/code/byro-repo-workspaces/byro-repo-issue-1-x"],
-    ["git -C /code/byro-repo-workspaces/byro-repo-issue-1-x/packages/framework switch feature", root],
-    ["cd /code/byro-repo-workspaces/byro-repo-issue-1-x && git checkout -b y", root],
+    [
+      "git -C /code/byro-repo-workspaces/byro-repo-issue-1-x/packages/framework switch feature",
+      root,
+    ],
+    [
+      "cd /code/byro-repo-workspaces/byro-repo-issue-1-x && git checkout -b y",
+      root,
+    ],
     ["git checkout feature", `${root}/.claude/worktrees/agent-1`],
     ["git checkout feature", "/somewhere/else"],
   ])("allows `%s` from %s, outside every primary checkout", (command, cwd) => {
-    expect(decide({ command, cwd, mode: "strict" }).permissionDecision).toBe("allow");
+    expect(decide({ command, cwd, mode: "strict" }).permissionDecision).toBe(
+      "allow",
+    );
   });
 });
 
@@ -95,28 +109,40 @@ describe("branchDecision, interim", () => {
     "git switch feature",
     "git switch -c issue-1-x",
   ])("allows `%s`, leaving branch moves to the developer", (command) => {
-    expect(decide({ command, currentCheckouts: { [root]: onMaster } }).permissionDecision).toBe("allow");
+    expect(
+      decide({ command, currentCheckouts: { [root]: onMaster } })
+        .permissionDecision,
+    ).toBe("allow");
   });
 
   it.each([
     ["to another commit", onIssue],
-    ["to another branch at the same commit", { ...onIssue, head: onMaster.head }],
-  ])("denies a commit after HEAD moved %s since this session recorded it, naming the way through", (_case, current) => {
-    const decision = decide({
-      command: 'git add -A && git commit -m "x"',
-      ownCheckouts: { [root]: onMaster },
-      currentCheckouts: { [root]: current },
-    });
-    expect(decision.permissionDecision).toBe("deny");
-    expect(decision.reason).toMatch(/moved/);
-    expect(decision.reason).toMatch(/issue workspace/);
-  });
+    [
+      "to another branch at the same commit",
+      { ...onIssue, head: onMaster.head },
+    ],
+  ])(
+    "denies a commit after HEAD moved %s since this session recorded it, naming the way through",
+    (_case, current) => {
+      const decision = decide({
+        command: 'git add -A && git commit -m "x"',
+        ownCheckouts: { [root]: onMaster },
+        currentCheckouts: { [root]: current },
+      });
+      expect(decision.permissionDecision).toBe("deny");
+      expect(decision.reason).toMatch(/moved/);
+      expect(decision.reason).toMatch(/issue workspace/);
+    },
+  );
 
   it.each([
     ["HEAD has not moved", { [root]: onMaster }, { [root]: onMaster }],
     ["this session has no record of the checkout", {}, { [root]: onIssue }],
   ])("allows a commit when %s", (_case, ownCheckouts, currentCheckouts) => {
-    expect(decide({ command: "git commit -m x", ownCheckouts, currentCheckouts }).permissionDecision).toBe("allow");
+    expect(
+      decide({ command: "git commit -m x", ownCheckouts, currentCheckouts })
+        .permissionDecision,
+    ).toBe("allow");
   });
 
   it("allows a commit after HEAD moved in an issue workspace", () => {
@@ -142,7 +168,11 @@ describe("branchDecision, interim", () => {
 
 describe("isLive", () => {
   const day = 24 * 60 * 60 * 1000;
-  const record: SessionRecord = { sessionId: "s", recordedAt: now - day + 1, checkouts: {} };
+  const record: SessionRecord = {
+    sessionId: "s",
+    recordedAt: now - day + 1,
+    checkouts: {},
+  };
 
   it("is true for a record with no end, under a day old", () => {
     expect(isLive(record, now)).toBe(true);
@@ -175,9 +205,14 @@ describe("session records", () => {
   });
 
   it("replaces an ended record, as on resume", () => {
-    const ended = endedRecord(startedRecord(undefined, "s", { [root]: onMaster }, 5), 6);
+    const ended = endedRecord(
+      startedRecord(undefined, "s", { [root]: onMaster }, 5),
+      6,
+    );
     expect(ended.endedAt).toBe(6);
-    expect(startedRecord(ended, "s", { [root]: onIssue }, 7).checkouts).toEqual({ [root]: onIssue });
+    expect(startedRecord(ended, "s", { [root]: onIssue }, 7).checkouts).toEqual(
+      { [root]: onIssue },
+    );
   });
 
   it("re-records a checkout this session's own command may have moved, and only that one", () => {
@@ -187,7 +222,9 @@ describe("session records", () => {
       checkouts: { [root]: onMaster, [framework]: onMaster },
       refreshPending: [root],
     };
-    expect(refreshedRecord(record, { [root]: onIssue, [framework]: onIssue }, 8)).toEqual({
+    expect(
+      refreshedRecord(record, { [root]: onIssue, [framework]: onIssue }, 8),
+    ).toEqual({
       sessionId: "s",
       recordedAt: 8,
       checkouts: { [root]: onIssue, [framework]: onMaster },
@@ -198,12 +235,17 @@ describe("session records", () => {
 describe("headMovingCheckouts", () => {
   it.each([
     ["git commit -m x", [root]],
-    ["git -C packages/framework merge main && git checkout feature", [framework, root]],
+    [
+      "git -C packages/framework merge main && git checkout feature",
+      [framework, root],
+    ],
     ["git pull && git rebase master && git reset --hard", [root]],
     ["git status && git log", []],
     ["git checkout -- a.ts", [root]],
     ["git commit -m x", [], "/code/byro-repo-workspaces/byro-repo-issue-1-x"],
   ])("finds the checkouts `%s` may move", (command, expected, cwd = root) => {
-    expect(headMovingCheckouts({ command, cwd, primaryCheckouts })).toEqual(expected);
+    expect(headMovingCheckouts({ command, cwd, primaryCheckouts })).toEqual(
+      expected,
+    );
   });
 });

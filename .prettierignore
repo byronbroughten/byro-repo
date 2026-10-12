@@ -2,8 +2,9 @@ node_modules/
 dist/
 coverage/
 
-# Agent tooling (Claude settings and skills).
-.claude/
+# Copied-in skills (synced from upstream) and session worktrees.
+.claude/skills/
+.claude/worktrees/
 
 # Written by `npm run gen:configs` in its own JSON-ish shape (quoted keys, no
 # trailing commas). Formatting them makes every regeneration a spurious diff.

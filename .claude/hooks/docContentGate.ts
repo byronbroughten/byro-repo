@@ -2,21 +2,44 @@
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { docWriteDecision, isWritingStyleRead, writingStylePath } from "./lib/docContentGate.ts";
-import { lineCount, readHookInput, runFailOpen, sessionStatePath, writeDenyOutput } from "./lib/hookIo.ts";
+import {
+  docWriteDecision,
+  isWritingStyleRead,
+  writingStylePath,
+} from "./lib/docContentGate.ts";
+import {
+  lineCount,
+  readHookInput,
+  runFailOpen,
+  sessionStatePath,
+  writeDenyOutput,
+} from "./lib/hookIo.ts";
 import { isPostToolUse } from "./lib/styleGate.ts";
 
 await runFailOpen(() => {
   const input = readHookInput();
   if (!input) return;
-  const markerPath = sessionStatePath(input.session_id ?? input.conversation_id, "writing-style-read");
+  const markerPath = sessionStatePath(
+    input.session_id ?? input.conversation_id,
+    "writing-style-read",
+  );
   if (isPostToolUse(input.hook_event_name)) {
     const filePath = input.tool_input?.file_path;
     if (input.tool_name !== "Read" || typeof filePath !== "string") return;
-    const projectDir = process.env.CLAUDE_PROJECT_DIR ?? input.cwd ?? process.cwd();
+    const projectDir =
+      process.env.CLAUDE_PROJECT_DIR ?? input.cwd ?? process.cwd();
     const { offset, limit } = input.tool_input ?? {};
     const totalLines = lineCount(join(projectDir, writingStylePath));
-    if (isWritingStyleRead({ projectDir, cwd: input.cwd ?? projectDir, filePath, offset, limit, totalLines })) {
+    if (
+      isWritingStyleRead({
+        projectDir,
+        cwd: input.cwd ?? projectDir,
+        filePath,
+        offset,
+        limit,
+        totalLines,
+      })
+    ) {
       writeFileSync(markerPath, "");
     }
     return;

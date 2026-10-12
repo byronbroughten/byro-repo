@@ -186,7 +186,8 @@ describe("checkDocs", () => {
       expect(
         messages(
           {
-            "packages/framework/docs/a.md": "[style](../../../docs/code-style.md)\n",
+            "packages/framework/docs/a.md":
+              "[style](../../../docs/code-style.md)\n",
             "packages/framework/GLOSSARY.md":
               "[app](../real-estate/src/y.ts) [root](/docs/code-style.md)\n",
             "packages/framework/README.md": "[root](../../AGENTS.md)\n",
@@ -219,7 +220,8 @@ describe("checkDocs", () => {
     it("fails a published framework's AGENTS.md and CLAUDE.md linking outside it", () => {
       const docs = {
         "packages/framework/CLAUDE.md": "[root](../../docs/code-style.md)\n",
-        "packages/framework/src/AGENTS.md": "[root](../../../docs/code-style.md)\n",
+        "packages/framework/src/AGENTS.md":
+          "[root](../../../docs/code-style.md)\n",
         "packages/framework/src/CLAUDE.md": "@AGENTS.md\n",
       };
       expect(messages(docs, paths, published)).toEqual([
@@ -268,9 +270,11 @@ describe("checkDocs", () => {
 
     it("holds the config workspace folder's docs when it is published", () => {
       const docs = {
-        "config/docs/code-style.md": "[b](./code-style/b.md) [out](../../docs/x.md)\n",
+        "config/docs/code-style.md":
+          "[b](./code-style/b.md) [out](../../docs/x.md)\n",
         "config/docs/code-style/b.md": "# B\n",
-        "config/README.md": "[style](./docs/code-style.md) [root](../AGENTS.md)\n",
+        "config/README.md":
+          "[style](./docs/code-style.md) [root](../AGENTS.md)\n",
         "config/AGENTS.md": "[root](../docs/x.md)\n",
         "config/CLAUDE.md": "@AGENTS.md\n",
       };
@@ -328,9 +332,9 @@ describe("checkDocs", () => {
 
   describe("rule lines", () => {
     it("passes a rules-file rule line of any length", () => {
-      expect(check({ "docs/code-style.md": `- **${"x".repeat(600)}**\n` })).toEqual(
-        [],
-      );
+      expect(
+        check({ "docs/code-style.md": `- **${"x".repeat(600)}**\n` }),
+      ).toEqual([]);
     });
   });
 
