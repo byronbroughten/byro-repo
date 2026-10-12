@@ -20,7 +20,7 @@ Issues and specs live as GitHub issues, in the repo of the package they concern.
 
 ## Conventions
 
-- **Create an issue**: `gh issue create -R <repo> --title "..." --body "..."`. Use a heredoc for multi-line bodies.
+- **Create an issue**: `gh issue create -R <repo> --title "..." --body "..."`. Use a heredoc for multi-line bodies. For several issues, write each ticket to its own file whose first line is `# <title>`, and create each issue from its file, taking the title from that line and the body from the rest; never pair a list of titles with a separate list of bodies.
 - **Read an issue**: `gh issue view -R <repo> <number> --json title,body,labels,comments --jq '{title, body, labels: [.labels[].name], comments: [.comments[].body]}'`. Plain `--comments` prints only the comments outside a terminal, never the body: an empty result for an issue with none.
 - **List issues**: `gh issue list -R <repo> --state open --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'` with appropriate `--label` and `--state` filters.
 - **Comment on an issue**: `gh issue comment -R <repo> <number> --body "..."`
