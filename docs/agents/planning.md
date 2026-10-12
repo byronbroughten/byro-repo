@@ -28,7 +28,7 @@
 
 ## Model fit
 
-- **The pair lives in the ticket: a `## Model fit` section, last in the body, holding a pair line, then a one-line reason**, with `~NK` in the reason only for a ticket near its budget. The runner reads it before launching the ticket.
+- **The pair lives in the ticket: a `## Model fit` section, last in the body, holding a pair line, then a one-line reason**, with `~NK` in the reason only for a ticket near its budget.
 - **`/to-tickets` writes the section on every `ready-for-agent` ticket and none on a `ready-for-human` one**, then prints the tickets as one flat list in completion order, `#n Title: <Model> <effort> (reason)`, as a read-back.
 - **`/to-spec` writes the section on a spec meant for one session.** A spec that won't fit one session is still published, without the section, and a chat line recommends `/to-tickets` for sub-issues; say nothing if the developer has explicitly agreed in the conversation that it becomes tickets.
 - **`/to-piece-tickets` and `/to-piece-spec` stay chat only**: the same read-back list or one chat line, never in a ticket, comment or parent issue, with `/to-piece-tickets` as the recommendation for a spec too big for one session.

@@ -37,7 +37,7 @@ Break the work into **tracer bullet** tickets.
 
 Give each ticket a **kind**: agent work (`ready-for-agent`) or developer work (`ready-for-human`), never both. Split a slice that needs both into an agent ticket and a human ticket; when the developer's part needs the agent's output, the agent ticket blocks the human ticket.
 
-Give each `ready-for-agent` ticket its **model fit**: one of the five pairs in [`planning.md`](../../../docs/agents/planning.md#model-fit) and a one-line reason.
+Give each `ready-for-agent` ticket its **model fit**: one of the pairs in [`planning.md`](../../../docs/agents/planning.md#model-fit) and a one-line reason.
 
 Give each ticket its **blocking edges**: the other tickets that must complete before it can start. A ticket with no blockers can start immediately.
 
@@ -65,7 +65,7 @@ Iterate until the user approves the breakdown.
 Publish the approved tickets. **How** depends on the tracker in `docs/agents/issue-tracker.md`; the tickets are the same either way, only the shape of the blocking edges changes:
 
 - **Local files** → write one file per ticket under `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01` in dependency order (blockers first). Each file's "Blocked by" lists the numbers/titles it depends on. Use the per-ticket file template below: one ticket per file, never a single combined file.
-- **A real issue tracker (GitHub, Linear, …)** → publish one issue per ticket in dependency order (blockers first) so each ticket's blocking edges can reference real identifiers. Use the platform's native blocking relationship where it has one; otherwise set each ticket's "Blocked by" to the blocking issues. If the source was an existing issue, make each ticket its sub-issue (tracker doc's operation). Apply each ticket's kind as its triage label: `ready-for-agent` or `ready-for-human`.
+- **A real issue tracker (GitHub, Linear, …)** → publish one issue per ticket in dependency order (blockers first) so each ticket's blocking edges can reference real identifiers. Use the platform's native blocking relationship where it has one; otherwise set each ticket's "Blocked by" to the blocking issues. If the source was an existing issue, make each ticket its sub-issue (tracker doc's operation). Apply each ticket's kind as its triage label, `ready-for-agent` or `ready-for-human`, unless instructed otherwise.
 
 Work the **frontier**: any ticket whose blockers are all done. For a purely linear chain that means top to bottom.
 
