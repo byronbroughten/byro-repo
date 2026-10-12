@@ -5,9 +5,8 @@
 import type { UsageWindow } from "./AgentStep.ts";
 
 export interface LimitGuardKnobs {
-  // Fractions of a window's limit, 0 to 1.
-  fiveHourPauseAt: number;
-  weeklyReserveAt: number;
+  fiveHourPauseAt: number; // A fraction of the window's limit, 0 to 1.
+  weeklyReserveAt: number; // A fraction of the window's limit, 0 to 1.
   limitWaitMarginMs: number;
   maxAccountChangesPerDay: number;
 }
@@ -101,14 +100,15 @@ export function decideStep(
   knobs: LimitGuardKnobs = defaultLimitGuardKnobs,
 ): GuardDecision {
   const pinned = state.pinnedAccount;
-  if (pinned !== undefined && !state.isAtTicketBoundary) {
-    return { kind: "launch", account: pinned };
-  }
   const pinnedReading = readings.find((r) => r.account === pinned);
-  if (pinned !== undefined && isUnderBoth(pinnedReading, knobs)) {
+  const isPinnedKept =
+    !state.isAtTicketBoundary || isUnderBothThresholds(pinnedReading, knobs);
+  if (pinned !== undefined && isPinnedKept) {
     return { kind: "launch", account: pinned };
   }
-  const best = lowestWeekly(readings.filter((r) => isUnderBoth(r, knobs)));
+  const best = accountWithLowestWeekly(
+    readings.filter((r) => isUnderBothThresholds(r, knobs)),
+  );
   if (best === undefined) return waitOrStop(readings, knobs);
   if (pinned === undefined) return { kind: "launch", account: best };
   const accountChangesToday = state.accountChangesToday + 1;
@@ -121,18 +121,27 @@ export function decideStep(
   };
 }
 
-function isUnderBoth(
+function isUnderBothThresholds(
   reading: AccountReading | undefined,
   knobs: LimitGuardKnobs,
 ): reading is MeasuredReading {
   return (
     !!reading?.usage &&
     reading.usage.fiveHour.utilization < knobs.fiveHourPauseAt &&
-    reading.usage.sevenDay.utilization < knobs.weeklyReserveAt
+    !isPastWeeklyReserve(reading.usage, knobs)
   );
 }
 
-function lowestWeekly(readings: MeasuredReading[]): number | undefined {
+function isPastWeeklyReserve(
+  usage: AccountUsage,
+  knobs: LimitGuardKnobs,
+): boolean {
+  return usage.sevenDay.utilization >= knobs.weeklyReserveAt;
+}
+
+function accountWithLowestWeekly(
+  readings: MeasuredReading[],
+): number | undefined {
   const sorted = [...readings].sort(
     (a, b) =>
       a.usage.sevenDay.utilization - b.usage.sevenDay.utilization ||
@@ -146,7 +155,7 @@ function waitOrStop(
   knobs: LimitGuardKnobs,
 ): GuardDecision {
   const fiveHourResets = readings.flatMap((r) => {
-    if (!r.usage || r.usage.sevenDay.utilization >= knobs.weeklyReserveAt) {
+    if (!r.usage || isPastWeeklyReserve(r.usage, knobs)) {
       return [];
     }
     return [r.usage.fiveHour.resetsAt.getTime()];

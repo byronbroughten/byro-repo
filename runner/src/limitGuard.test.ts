@@ -10,12 +10,19 @@ import {
 
 const fiveHourReset = new Date("2026-10-12T05:00:00Z");
 
-function reading(
-  account: number,
-  fiveHour: number,
-  sevenDay: number,
+interface ReadingSpec {
+  account: number;
+  fiveHour: number;
+  sevenDay: number;
+  resetsAt?: Date;
+}
+
+function reading({
+  account,
+  fiveHour,
+  sevenDay,
   resetsAt = fiveHourReset,
-): AccountReading {
+}: ReadingSpec): AccountReading {
   return {
     account,
     usage: {
@@ -91,9 +98,9 @@ describe("readCswapList", () => {
 describe("decideStep", () => {
   it("starts on the lowest weekly usage under both thresholds, ignoring the active account", () => {
     const readings = [
-      reading(1, 0.1, 0.3),
-      reading(2, 0.95, 0.1),
-      reading(3, 0.2, 0.4),
+      reading({ account: 1, fiveHour: 0.1, sevenDay: 0.3 }),
+      reading({ account: 2, fiveHour: 0.95, sevenDay: 0.1 }),
+      reading({ account: 3, fiveHour: 0.2, sevenDay: 0.4 }),
     ];
     expect(decideStep(readings, runStart)).toEqual({
       kind: "launch",
@@ -102,7 +109,10 @@ describe("decideStep", () => {
   });
 
   it("keeps the pinned account mid-ticket even past a threshold", () => {
-    const readings = [reading(1, 0.99, 0.99), reading(2, 0, 0)];
+    const readings = [
+      reading({ account: 1, fiveHour: 0.99, sevenDay: 0.99 }),
+      reading({ account: 2, fiveHour: 0, sevenDay: 0 }),
+    ];
     const midTicket = {
       pinnedAccount: 1,
       isAtTicketBoundary: false,
@@ -115,7 +125,10 @@ describe("decideStep", () => {
   });
 
   it("keeps the pinned account at a boundary while it is under both thresholds", () => {
-    const readings = [reading(1, 0.5, 0.6), reading(2, 0, 0)];
+    const readings = [
+      reading({ account: 1, fiveHour: 0.5, sevenDay: 0.6 }),
+      reading({ account: 2, fiveHour: 0, sevenDay: 0 }),
+    ];
     const boundary = {
       pinnedAccount: 1,
       isAtTicketBoundary: true,
@@ -129,9 +142,9 @@ describe("decideStep", () => {
 
   it("changes account at a boundary and reports the soft cap as over, never waiting", () => {
     const readings = [
-      reading(1, 0.91, 0.5),
-      reading(2, 0.1, 0.7),
-      reading(3, 0.1, 0.6),
+      reading({ account: 1, fiveHour: 0.91, sevenDay: 0.5 }),
+      reading({ account: 2, fiveHour: 0.1, sevenDay: 0.7 }),
+      reading({ account: 3, fiveHour: 0.1, sevenDay: 0.6 }),
     ];
     const boundary = {
       pinnedAccount: 1,
@@ -149,9 +162,24 @@ describe("decideStep", () => {
 
   it("waits until the earliest 5-hour reset plus the margin when every account is over 5-hour", () => {
     const readings = [
-      reading(1, 0.95, 0.5, new Date("2026-10-12T06:00:00Z")),
-      reading(2, 0.9, 0.5, new Date("2026-10-12T04:00:00Z")),
-      reading(3, 0.92, 0.97, new Date("2026-10-12T03:00:00Z")),
+      reading({
+        account: 1,
+        fiveHour: 0.95,
+        sevenDay: 0.5,
+        resetsAt: new Date("2026-10-12T06:00:00Z"),
+      }),
+      reading({
+        account: 2,
+        fiveHour: 0.9,
+        sevenDay: 0.5,
+        resetsAt: new Date("2026-10-12T04:00:00Z"),
+      }),
+      reading({
+        account: 3,
+        fiveHour: 0.92,
+        sevenDay: 0.97,
+        resetsAt: new Date("2026-10-12T03:00:00Z"),
+      }),
     ];
     const knobs = { ...defaultLimitGuardKnobs, limitWaitMarginMs: 60_000 };
     expect(decideStep(readings, runStart, knobs)).toEqual({
@@ -161,7 +189,10 @@ describe("decideStep", () => {
   });
 
   it("stops when every account is past its weekly reserve", () => {
-    const readings = [reading(1, 0, 0.95), reading(2, 0, 0.99)];
+    const readings = [
+      reading({ account: 1, fiveHour: 0, sevenDay: 0.95 }),
+      reading({ account: 2, fiveHour: 0, sevenDay: 0.99 }),
+    ];
     expect(decideStep(readings, runStart)).toEqual({
       kind: "stop",
       reason: "every account is past its weekly reserve",
@@ -169,7 +200,10 @@ describe("decideStep", () => {
   });
 
   it("skips accounts with a missing reading", () => {
-    const readings = [{ account: 1, usage: undefined }, reading(2, 0.5, 0.5)];
+    const readings = [
+      { account: 1, usage: undefined },
+      reading({ account: 2, fiveHour: 0.5, sevenDay: 0.5 }),
+    ];
     expect(decideStep(readings, runStart)).toEqual({
       kind: "launch",
       account: 2,
