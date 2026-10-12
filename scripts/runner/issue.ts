@@ -1,6 +1,7 @@
 // Lists and removes issue workspaces by hand; the runner is their only creator, so there is no start command.
 // Usage: npm run issue:list, or npm run issue:remove -- <repo> <n> [--force].
 import {
+  type IssueRef,
   IssueWorkspaces,
   type WorkspaceStatus,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
@@ -30,17 +31,22 @@ async function list(): Promise<void> {
 }
 
 function lineOf(workspace: WorkspaceStatus): string {
-  const { issue, branch, branchedRepos, dirtyRepos, path } = workspace;
+  const { issue, branch, branchedRepos, dirtyRepos, createdAt, path } =
+    workspace;
   const dirty =
     dirtyRepos.length === 0 ? "clean" : `dirty: ${dirtyRepos.join(", ")}`;
   return [
-    `${issue.repo} #${issue.number}`,
+    labelOf(issue),
     branch,
     `on branch: ${branchedRepos.join(", ")}`,
     dirty,
-    `age ${ageOf(workspace.createdAt)}`,
+    `age ${ageOf(createdAt)}`,
     path,
   ].join("  ");
+}
+
+function labelOf(issue: IssueRef): string {
+  return `${issue.repo} #${issue.number}`;
 }
 
 function ageOf(createdAt: Date): string {
@@ -54,8 +60,9 @@ async function remove(args: string[]): Promise<void> {
   if (repo === undefined || !Number.isInteger(Number(number))) {
     throw new Error("Usage: npm run issue:remove -- <repo> <n> [--force]");
   }
-  const workspace = await workspaces.find({ repo, number: Number(number) });
-  if (!workspace) throw new Error(`No issue workspace for ${repo} #${number}`);
+  const issue = { repo, number: Number(number) };
+  const workspace = await workspaces.find(issue);
+  if (!workspace) throw new Error(`No issue workspace for ${labelOf(issue)}`);
   await workspaces.remove(workspace, { force: args.includes("--force") });
   console.log(`Removed ${workspace.path}`);
 }

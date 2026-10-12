@@ -239,6 +239,28 @@ describe("create, a second time", () => {
   });
 });
 
+describe("create, when a step fails", () => {
+  it("rolls back, leaving no folder or registered worktree, so the next create starts afresh", async () => {
+    const failing = workspaces({
+      async installDependencies() {
+        throw new Error("npm install failed");
+      },
+    });
+
+    await expect(
+      failing.create({ repo: "byro-repo", number: 7 }, { slug: "fails" }),
+    ).rejects.toThrow("npm install failed");
+    expect(await workspaces().list()).toEqual([]);
+    expect(registeredWorktrees()).toEqual([]);
+
+    const retried = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "fails" },
+    );
+    expect(installs).toEqual([retried.path]);
+  });
+});
+
 describe("the shared files", () => {
   it("symlinks each listed file from the primary clone that has it, and nothing else", async () => {
     const workspace = await workspaces().create(
