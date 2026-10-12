@@ -77,7 +77,15 @@
     ]
   },
   "hooks": {
+    "SessionStart": [
+      { "hooks": [ { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/branchRecord.ts\"", "timeout": 10 } ] }
+    ],
+    "SessionEnd": [
+      { "hooks": [ { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/branchRecord.ts\"", "timeout": 10 } ] }
+    ],
     "PreToolUse": [
+      { "matcher": "Bash", "hooks": [ { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/branchGuard.ts\"", "timeout": 10 } ] },
+
       {
         "matcher": "Bash",
         "hooks": [
