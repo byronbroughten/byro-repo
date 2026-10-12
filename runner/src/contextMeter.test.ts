@@ -76,7 +76,7 @@ describe("ContextMeter on a stream", () => {
     expect(peakOfStream(main, result)).toBe(60_004);
   });
 
-  it("counts a message split across events once, by its latest reading", () => {
+  it("counts a message split across events once, by its largest reading", () => {
     const firstBlock = streamEvent("msg_1", {
       input_tokens: 2,
       cache_read_input_tokens: 100_000,
@@ -89,7 +89,7 @@ describe("ContextMeter on a stream", () => {
       input_tokens: 2,
       cache_read_input_tokens: 50_000,
     });
-    expect(peakOfStream(firstBlock, secondBlock, next)).toBe(80_002);
+    expect(peakOfStream(firstBlock, secondBlock, next)).toBe(100_002);
   });
 
   it("has no peak before any main-loop message", () => {
@@ -198,7 +198,7 @@ describe("ContextMeter.ofTranscript", () => {
     expect(ContextMeter.ofTranscript(transcript(main, sidechain))).toBe(30_004);
   });
 
-  it("counts lines sharing a message id once, by the latest", () => {
+  it("counts lines sharing a message id once, by the largest", () => {
     const text = JSON.stringify({
       type: "assistant",
       message: {
@@ -213,7 +213,7 @@ describe("ContextMeter.ofTranscript", () => {
         usage: { input_tokens: 1, cache_read_input_tokens: 65_000 },
       },
     });
-    expect(ContextMeter.ofTranscript(transcript(text, toolUse))).toBe(65_001);
+    expect(ContextMeter.ofTranscript(transcript(text, toolUse))).toBe(70_001);
   });
 
   it("counts only numeric token fields", () => {

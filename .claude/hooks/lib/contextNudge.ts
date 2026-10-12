@@ -1,4 +1,4 @@
-// Decides the context nudge: the session's peak context from its transcript, and whether it has passed the ticket budget. Pure; contextNudge.ts does the I/O.
+// Decides the context nudge: whether the session's peak context, read by the runner's context meter, has passed the ticket budget. Pure; contextNudge.ts does the I/O.
 import { ContextMeter } from "@byronbroughten/spec-runner/contextMeter";
 
 // The ticket budget in docs/agents/planning.md#ticket-size.

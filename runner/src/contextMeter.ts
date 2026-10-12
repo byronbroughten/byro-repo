@@ -1,14 +1,16 @@
-// The context meter: a session's peak context, the most input + cache-read + cache-creation tokens any one
-// main-loop assistant message carried. Feed it `claude -p --output-format stream-json --verbose` events one at
-// a time with observe(), or a whole transcript with ofTranscript(). The runner reads it for the fixer pick,
-// the live kill and the log's Peak context; the root's context-nudge hook reads it too.
+// A session's peak context: the most input + cache-read + cache-creation tokens any main-loop assistant message carried.
 
 // A stream-json event or a transcript line; only the fields the meter reads.
 interface AssistantEntry {
   type?: unknown;
   isSidechain?: unknown;
   parent_tool_use_id?: unknown;
-  message?: { id?: unknown; usage?: Usage };
+  message?: AssistantMessage;
+}
+
+interface AssistantMessage {
+  id?: unknown;
+  usage?: Usage;
 }
 
 interface Usage {
@@ -18,8 +20,8 @@ interface Usage {
 }
 
 export class ContextMeter {
-  // Keyed by message id, so a message split across events counts once; a message with no id gets its own key.
-  private readonly sizeByMessage = new Map<unknown, number>();
+  // A message split across events repeats its usage, and a max counts it once without tracking ids.
+  private _peak: number | undefined;
 
   static init(): ContextMeter {
     return new ContextMeter();
@@ -32,15 +34,14 @@ export class ContextMeter {
   }
 
   get peak(): number | undefined {
-    if (this.sizeByMessage.size === 0) return undefined;
-    return Math.max(...this.sizeByMessage.values());
+    return this._peak;
   }
 
   observe(event: unknown): this {
-    const message = mainLoopMessage(event);
-    if (!message?.usage) return this;
-    const key = typeof message.id === "string" ? message.id : Symbol();
-    this.sizeByMessage.set(key, sumUsage(message.usage));
+    const usage = mainLoopMessage(event)?.usage;
+    if (!usage) return this;
+    const size = sumUsage(usage);
+    if (this._peak === undefined || size > this._peak) this._peak = size;
     return this;
   }
 }
@@ -54,7 +55,7 @@ function parseLine(line: string): unknown {
 }
 
 // A subagent's message carries a parent_tool_use_id in the stream and isSidechain in a transcript.
-function mainLoopMessage(event: unknown): AssistantEntry["message"] {
+function mainLoopMessage(event: unknown): AssistantMessage | undefined {
   if (typeof event !== "object" || event === null) return undefined;
   const entry = event as AssistantEntry;
   if (entry.type !== "assistant" || entry.isSidechain === true) {

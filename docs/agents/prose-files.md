@@ -101,7 +101,7 @@ A private repo holding piece specs as issues; the Pieces' text lives in their Go
 | File | Holds |
 | --- | --- |
 | `README.md` | What the runner is, its exports and how to run its tests. A derived view of its `package.json` and the files it exports. |
-| `GLOSSARY.md` | The words of an unattended spec run: runner, step, record, finding triage, the verdicts, Halts, Stop, Limit wait, review list and gap check. |
+| `GLOSSARY.md` | The words of an unattended spec run: its steps, records, verdicts and Halts. |
 
 ## What an addition to AGENTS.md costs
 
