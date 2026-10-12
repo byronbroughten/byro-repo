@@ -87,7 +87,7 @@
         "skills/engineering/to-spec": {
           "status": "vendored",
           "syncedSha": "49dd158d1076134a641b33efb035946536778336",
-          "notes": "Divergence: the /setup-matt-pocock-skills fallback points at docs/agents/issue-tracker.md instead.",
+          "notes": "Divergence: the /setup-matt-pocock-skills fallback points at docs/agents/issue-tracker.md instead. Divergence: the spec template ends with a `## Model fit` section (a pair line, then a one-line reason, linking docs/agents/planning.md#model-fit), written only on a spec meant for one session.",
           "derivedInto": [
             "to-piece-spec"
           ]
@@ -95,7 +95,7 @@
         "skills/engineering/to-tickets": {
           "status": "vendored",
           "syncedSha": "49dd158d1076134a641b33efb035946536778336",
-          "notes": "Divergence: the /setup-matt-pocock-skills fallback points at docs/agents/issue-tracker.md instead. Divergence: the slice rule \"sized to fit in a single fresh context window\" reads \"changes at most ~10 files, counted by grepping the names it changes\" with a link to docs/agents/planning.md#ticket-size.",
+          "notes": "Divergence: the /setup-matt-pocock-skills fallback points at docs/agents/issue-tracker.md instead. Divergence: the slice rule \"sized to fit in a single fresh context window\" reads \"changes at most ~10 files, counted by grepping the names it changes\" with a link to docs/agents/planning.md#ticket-size. Divergence: step 3 gives each ticket a kind (ready-for-agent or ready-for-human, never both, the agent ticket blocking the human one when the developer needs its output) and each agent ticket a model fit; the quiz shows both; step 5 applies the kind as the triage label instead of always ready-for-agent; both templates end with a `## Model fit` section (a pair line, then a one-line reason), written only on ready-for-agent tickets, and the local Status reads \"ready-for-agent or ready-for-human\"; a new step 6 prints the completion-order read-back list from docs/agents/planning.md#model-fit.",
           "derivedInto": [
             "to-piece-tickets"
           ]

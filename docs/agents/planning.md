@@ -28,12 +28,13 @@
 
 ## Model fit
 
-- **After `/to-tickets` or `/to-piece-tickets` publishes**, print the tickets as one flat list in completion order, `#n Title: <Model> <effort> (reason)`, with `~NK` in the reason only for a ticket near its budget. Chat only: never in a ticket, comment or parent issue.
-- **After `/to-spec` or `/to-piece-spec` publishes**, say in one chat line which pair fits the spec, in the same form, and why. A spec that won't fit one session is still published, and the line recommends `/to-tickets` or `/to-piece-tickets` for sub-issues instead of a pair. Say nothing if the developer has explicitly agreed in the conversation that it becomes tickets. The developer switches with `/model` and `/effort`; never dispatch an implementer.
-- **Pick from six pairs only:** Sonnet medium, Sonnet high, Opus low, Opus medium, Opus high, Grok 4.7 low. Never another Grok version or effort. Criteria for each and their evidence: [`model-fit.md`](./model-fit.md).
-- **Tie-break: the cheapest pair likely to pass review on the first try.** Cost is the Claude Code weekly limit; Grok draws on Cursor's monthly pool, which runs short, so Grok is a fallback, not a default.
-- **A Claude pick adds `· near limit: Grok 4.7 low`** when the ticket also passes Grok's rule, and nothing when it doesn't.
-- **Grok only when `tsc`, tests or lint check the whole diff**, adding names only as stated word for word, and no prose, comment, doc, class shape or test restructure. A mixed ticket goes to Claude. The reason names what checks the diff and reminds the developer to have Grok read both style docs first.
+- **The pair lives in the ticket: a `## Model fit` section, last in the body, holding a pair line, then a one-line reason**, with `~NK` in the reason only for a ticket near its budget.
+- **`/to-tickets` writes the section on every `ready-for-agent` ticket and none on a `ready-for-human` one**, then prints the tickets as one flat list in completion order, `#n Title: <Model> <effort> (reason)`, as a read-back.
+- **`/to-spec` writes the section on a spec meant for one session.** A spec that won't fit one session is still published, without the section, and a chat line recommends `/to-tickets` for sub-issues; say nothing if the developer has explicitly agreed in the conversation that it becomes tickets.
+- **`/to-piece-tickets` and `/to-piece-spec` stay chat only**: the same read-back list or one chat line, never in a ticket, comment or parent issue, with `/to-piece-tickets` as the recommendation for a spec too big for one session.
+- **The developer switches with `/model` and `/effort`**; never dispatch an implementer.
+- **Pick from five pairs only:** Sonnet medium, Sonnet high, Opus low, Opus medium, Opus high. Criteria for each and their evidence: [`model-fit.md`](./model-fit.md).
+- **Tie-break: the cheapest pair likely to pass review on the first try.** Cost is the Claude Code weekly limit.
 
 ## Handoffs
 
