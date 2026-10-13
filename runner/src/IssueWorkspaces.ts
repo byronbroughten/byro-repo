@@ -95,15 +95,21 @@ export class IssueWorkspaces {
     }
     const branch = await this._branchName(issue, options.slug);
     const path = join(this.config.workspaceFolder, `${issue.repo}-${branch}`);
-    mkdirSync(this.config.workspaceFolder, { recursive: true });
-    try {
-      await this._build({ path, branch, branchedRepos });
-    } catch (error) {
-      // A half-built folder would otherwise pass as the existing workspace on the next create.
-      await this._tearDown(path, true);
-      throw error;
-    }
+    await this._buildOrTearDown({ path, branch, branchedRepos });
     return { path, issue, branch, branchedRepos };
+  }
+
+  // Every repo detached at its master, rebuilt on each call so it holds exactly the commits master points to now.
+  async masterSet(spec: IssueRef): Promise<string> {
+    const path = join(
+      this.config.workspaceFolder,
+      `master-${fileStemOf(spec)}`,
+    );
+    // Removed and pruned rather than torn down, so a half-removed set from a killed run can't block the rebuild.
+    rmSync(path, { recursive: true, force: true });
+    await this._pruneWorktrees();
+    await this._buildOrTearDown({ path, branchedRepos: [] });
+    return path;
   }
 
   async find(issue: IssueRef): Promise<WorkspaceStatus | undefined> {
@@ -211,15 +217,22 @@ export class IssueWorkspaces {
     return undefined;
   }
 
+  private async _buildOrTearDown(target: BuildTarget): Promise<void> {
+    mkdirSync(this.config.workspaceFolder, { recursive: true });
+    try {
+      await this._build(target);
+    } catch (error) {
+      // A half-built folder would otherwise pass as the existing workspace on the next create.
+      await this._tearDown(target.path, true);
+      throw error;
+    }
+  }
+
   private async _build({
     path,
     branch,
     branchedRepos,
-  }: {
-    path: string;
-    branch: string;
-    branchedRepos: string[];
-  }): Promise<void> {
+  }: BuildTarget): Promise<void> {
     for (const [repo, clonePath] of this._clonesRootFirst) {
       await addWorktree({
         primaryClone: join(this.config.primaryRoot, clonePath),
@@ -360,10 +373,21 @@ export class IssueWorkspaces {
       });
     }
     rmSync(path, { recursive: true, force: true });
-    for (const [, clonePath] of deepestFirst) {
+    await this._pruneWorktrees();
+  }
+
+  private async _pruneWorktrees(): Promise<void> {
+    for (const clonePath of Object.values(this.config.clonePaths)) {
       await git(join(this.config.primaryRoot, clonePath), "worktree", "prune");
     }
   }
+}
+
+// Repos outside branchedRepos are detached at master, so a set with none needs no branch.
+interface BuildTarget {
+  path: string;
+  branch?: string;
+  branchedRepos: string[];
 }
 
 interface DetachedWorktree {

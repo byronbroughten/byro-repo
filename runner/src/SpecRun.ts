@@ -185,7 +185,7 @@ export class SpecRun {
       this._log(run, `Refused: ${refusal}`);
       return { kind: "refused", landed: [], message: refusal };
     }
-    const preflightStop = await this._preflightStop();
+    const preflightStop = await this._preflightStop(run.spec.issue);
     if (preflightStop !== undefined) {
       return this._end(
         run,
@@ -281,7 +281,8 @@ export class SpecRun {
     return `Each open ${readyLabel} ticket needs a ## Model fit section naming one of the five pairs; missing or invalid in ${offenders.join(", ")}.`;
   }
 
-  private async _preflightStop(): Promise<string | undefined> {
+  // Checks run in a master set, so neither another session's uncommitted edit nor a local fix hides master's own state.
+  private async _preflightStop(spec: IssueRef): Promise<string | undefined> {
     const { knobs, primaryRoot } = this.config;
     for (const command of knobs.authChecks) {
       if ((await runCommand(command, primaryRoot)) !== undefined) {
@@ -298,8 +299,14 @@ export class SpecRun {
         return `${repo}'s primary checkout is on ${branch || "a detached HEAD"}, not master`;
       }
     }
+    let masterSet: string;
+    try {
+      masterSet = await this.workspaces.masterSet(spec);
+    } catch (error) {
+      return `the master set failed to build: ${messageOf(error)}`;
+    }
     for (const command of knobs.checks) {
-      if ((await runCommand(command, primaryRoot)) !== undefined) {
+      if ((await runCommand(command, masterSet)) !== undefined) {
         return `master red: ${commandLabelOf(command)}`;
       }
     }
