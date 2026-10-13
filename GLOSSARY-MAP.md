@@ -7,7 +7,7 @@ Four contexts, one per package, each with its own `GLOSSARY.md` glossary. Read t
 - [Sheets framework](./packages/framework/GLOSSARY.md): what an operator sees in any app built on the framework: sheet layout, endpoints, run states, columns.
 - [Real estate](./packages/real-estate/GLOSSARY.md): this app's own words: units and the occupancy ledger.
 - [Writing](./packages/writing/GLOSSARY.md): the words of a reader-facing prose spec: Piece, Deliverable and Reference.
-- [Spec runner](./runner/GLOSSARY.md): the words of an unattended spec run: steps, records, verdicts, Halts and the review list, plus Primary checkout and Issue workspace, which interactive sessions borrow.
+- [Spec runner](./runner/GLOSSARY.md): the words of an unattended spec run: steps, records, verdicts, Halts and the review list, plus Primary checkout and Issue workspace, which interactive sessions borrow, and Phase and Phase gate, which planning borrows.
 
 ## Relationships
 

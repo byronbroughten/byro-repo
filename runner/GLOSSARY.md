@@ -1,6 +1,6 @@
 # Spec runner
 
-The runner takes a spec's tickets through agent steps unattended and hands the developer only what needs a person. The words below are what its records, comments and pushes call the parts of a run.
+The runner takes a spec's tickets through agent steps unattended and hands the developer only what needs a person. The words below are what its records, comments and pushes call the parts of a run, and how a spec is split for one.
 
 ## Language
 
@@ -75,6 +75,14 @@ _Avoid_: ticket worktree, sandbox
 **Master set**:
 A disposable set of checkouts, one per repo, each detached at its master, rebuilt for each preflight so the checks see master's commits and nothing uncommitted.
 _Avoid_: clean checkout, master workspace
+
+**Phase**:
+A batch of a spec's tickets that can be used in real work, ending where that use could change or cancel what follows. Not a tracer bullet: a Phase is usually several.
+_Avoid_: stage, milestone, step
+
+**Phase gate**:
+The developer's ticket that closes a Phase. It tests what the Phase built and decides whether the next Phase goes ahead, changes or is dropped.
+_Avoid_: checkpoint, gate (bare), kill point
 
 ## Same word, two meanings
 
