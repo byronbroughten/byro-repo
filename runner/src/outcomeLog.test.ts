@@ -87,6 +87,13 @@ describe("outcomeFileOf", () => {
     );
     expect([cells[5], cells[13]]).toEqual(["Fix", "unrecorded"]);
   });
+
+  it("writes a ticket with no code as review skipped, with nothing caught", () => {
+    const cells = cellsOf(
+      outcomeFileOf({ ...row, facts: { reviewFixes: "skipped" } }),
+    );
+    expect([cells[5], cells[13]]).toEqual(["skipped (no code)", "—"]);
+  });
 });
 
 describe("peakContextOf", () => {
@@ -110,6 +117,18 @@ describe("outcomeCommitMessage", () => {
       }),
     ).toBe(
       "Record the #218 outcome: Opus medium, 7 files, 80K, fixed after review.",
+    );
+  });
+
+  it("says a ticket with no code skipped review", () => {
+    expect(
+      outcomeCommitMessage({
+        ...row,
+        filesChanged: 0,
+        facts: { pair: "Opus medium", reviewFixes: "skipped" },
+      }),
+    ).toBe(
+      "Record the #218 outcome: Opus medium, 0 files, unrecorded, review skipped (no code).",
     );
   });
 });

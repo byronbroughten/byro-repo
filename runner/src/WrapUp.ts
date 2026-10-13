@@ -51,11 +51,22 @@ export interface UndoneBox {
   reason: string;
 }
 
+export const gitHubWriteActions = ["edit", "comment"] as const;
+
+export interface GitHubWrite {
+  // As owner/repo#n.
+  issue: string;
+  action: (typeof gitHubWriteActions)[number];
+  url: string;
+  summary: string;
+}
+
 export interface WrapUpFacts extends OutcomeFacts {
-  // In landing order: a repo lands before any repo that depends on it.
+  // In landing order: a repo lands before any repo that depends on it. Empty for a ticket that needed only GitHub writes.
   branches: LandingBranch[];
   closingComment: string;
   boxesUndone?: UndoneBox[];
+  githubWrites?: GitHubWrite[];
   // What the runner recorded; facts computed from them win over passed ones.
   sessions?: TicketSessions;
   limitReadings?: LimitReadings;
@@ -204,8 +215,14 @@ export class WrapUp {
     const path = this._factsPathOf(issue);
     if (!existsSync(path)) throw new Error(`No facts file at ${path}`);
     const facts = JSON.parse(readFileSync(path, "utf8")) as WrapUpFacts;
-    if (!Array.isArray(facts.branches) || facts.branches.length === 0) {
-      throw new Error(`${path} names no branches to land`);
+    if (!Array.isArray(facts.branches)) {
+      throw new Error(`${path} has no branch list`);
+    }
+    if (
+      facts.branches.length === 0 &&
+      (facts.githubWrites ?? []).length === 0
+    ) {
+      throw new Error(`${path} names no branches to land and no GitHub writes`);
     }
     if (typeof facts.closingComment !== "string") {
       throw new Error(`${path} has no closing comment`);
@@ -286,7 +303,7 @@ export class WrapUp {
     for (const repo of this._landedRepos(ticket)) {
       await this._assertOnMaster(repo);
     }
-    for (const { repo } of ticket.facts.branches) {
+    for (const repo of this._committedRepos(ticket)) {
       if (await isDirty(this._worktreeOf(workspace, repo))) {
         throw new WrapUpFailure(
           "dirty-tree",
@@ -320,15 +337,21 @@ export class WrapUp {
   }
 
   private async _build(ticket: Ticket, workspace: Workspace): Promise<void> {
-    await this._step(ticket, "merges", () => this._merge(ticket, workspace));
-    await this._step(ticket, "checks", async () => {
-      try {
-        await this._runChecks(workspace.path);
-      } catch (error) {
-        await this._restore(ticket, workspace);
-        throw error;
-      }
-    });
+    if (hasBranches(ticket)) {
+      await this._step(ticket, "merges", () => this._merge(ticket, workspace));
+      await this._step(ticket, "checks", async () => {
+        try {
+          await this._runChecks(workspace.path);
+        } catch (error) {
+          await this._restore(ticket, workspace);
+          throw error;
+        }
+      });
+    } else {
+      // With nothing merged, the row is committed on master rather than on the issue branch's older base.
+      const rootWorktree = this._worktreeOf(workspace, this._rootRepo);
+      await git(rootWorktree, "switch", "--detach", "master");
+    }
     await this._step(ticket, "log-row", () =>
       this._commitLogRow(ticket, workspace),
     );
@@ -505,7 +528,11 @@ export class WrapUp {
 
   private async _deleteBranches(ticket: Ticket): Promise<void> {
     const failures: string[] = [];
-    for (const { repo, branch } of ticket.facts.branches) {
+    let branches = ticket.facts.branches;
+    if (!hasBranches(ticket)) {
+      branches = await this._issueBranchesOf(ticket.issue);
+    }
+    for (const { repo, branch } of branches) {
       try {
         await this._deleteBranch(repo, branch);
       } catch (error) {
@@ -515,6 +542,21 @@ export class WrapUp {
       }
     }
     ticket.progress.branchDeleteFailures = failures;
+  }
+
+  // A ticket with no code lands no branch, but its workspace still made one; the workspace no longer sits on it.
+  private async _issueBranchesOf(issue: IssueRef): Promise<LandingBranch[]> {
+    const branches: LandingBranch[] = [];
+    for (const repo of Object.keys(this.config.workspaces.clonePaths)) {
+      const refs = await git(
+        this._primaryOf(repo),
+        "for-each-ref",
+        "--format=%(refname:short)",
+        `refs/heads/issue-${issue.number}-*`,
+      );
+      lines(refs).forEach((branch) => branches.push({ repo, branch }));
+    }
+    return branches;
   }
 
   private async _deleteBranch(repo: string, branch: string): Promise<void> {
@@ -616,6 +658,12 @@ export class WrapUp {
     ];
   }
 
+  // The repos whose worktrees must be clean: the listed ones, or the root that takes the row when none is listed.
+  private _committedRepos(ticket: Ticket): string[] {
+    if (!hasBranches(ticket)) return [this._rootRepo];
+    return ticket.facts.branches.map(({ repo }) => repo);
+  }
+
   private _rootFirst(repos: string[]): string[] {
     return [...repos].sort(
       (a, b) => this._clonePathOf(a).length - this._clonePathOf(b).length,
@@ -653,13 +701,34 @@ function isDone(ticket: Ticket, step: WrapUpStep): boolean {
   return ticket.progress.completed.includes(step);
 }
 
+function hasBranches(ticket: Ticket): boolean {
+  return ticket.facts.branches.length > 0;
+}
+
 function closingCommentOf({
   closingComment,
   boxesUndone = [],
+  githubWrites = [],
 }: WrapUpFacts): string {
-  if (boxesUndone.length === 0) return closingComment;
-  const undone = boxesUndone.map(({ box, reason }) => `- ${box}: ${reason}`);
-  return [closingComment, "", "Left undone:", ...undone].join("\n");
+  const parts = [closingComment];
+  if (githubWrites.length > 0) {
+    parts.push("", "GitHub writes:", ...githubWrites.map(gitHubWriteLineOf));
+  }
+  if (boxesUndone.length > 0) {
+    const undone = boxesUndone.map(({ box, reason }) => `- ${box}: ${reason}`);
+    parts.push("", "Left undone:", ...undone);
+  }
+  return parts.join("\n");
+}
+
+function gitHubWriteLineOf({
+  issue,
+  action,
+  url,
+  summary,
+}: GitHubWrite): string {
+  const preposition = action === "comment" ? "on" : "of";
+  return `- ${action} ${preposition} ${issue}: ${summary} ${url}`;
 }
 
 function isListed(ticket: Ticket, repo: string): boolean {

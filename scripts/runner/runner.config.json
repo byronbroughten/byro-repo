@@ -25,7 +25,9 @@
       "Bash(npm run lint)",
       "Bash(npm run lint *)",
       "Bash(npm run issue:promote *)",
-      "Bash(gh issue view *)"
+      "Bash(gh issue view *)",
+      "Bash(gh issue edit *)",
+      "Bash(gh issue comment *)"
     ],
     "review": [
       "Skill",

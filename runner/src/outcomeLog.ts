@@ -25,7 +25,8 @@ const columns = [
   "Session ids",
 ] as const;
 
-export type ReviewFixes = "none" | "implementer" | "triage";
+// `skipped` is a ticket that needed only GitHub writes, so review had no diff to read.
+export type ReviewFixes = "none" | "implementer" | "triage" | "skipped";
 
 export interface OutcomeFacts {
   reviewFixes?: ReviewFixes;
@@ -119,20 +120,28 @@ const resultByReviewFixes: Record<ReviewFixes, string> = {
   none: "Pass",
   implementer: "Fix",
   triage: "Triage fix",
+  skipped: "skipped (no code)",
 };
 
 function resultPhraseOf({ halt, reviewFixes }: OutcomeFacts): string {
   if (halt !== undefined) return "halted then passed";
   if (reviewFixes === undefined) return "result unrecorded";
-  return reviewFixes === "none" ? "first-try pass" : "fixed after review";
+  return resultPhraseByReviewFixes[reviewFixes];
 }
+
+const resultPhraseByReviewFixes: Record<ReviewFixes, string> = {
+  none: "first-try pass",
+  implementer: "fixed after review",
+  triage: "fixed after review",
+  skipped: "review skipped (no code)",
+};
 
 function whatReviewCaughtOf({
   whatReviewCaught,
   reviewFixes,
 }: OutcomeFacts): string {
   if (whatReviewCaught !== undefined) return whatReviewCaught;
-  return reviewFixes === "none" ? "—" : unrecorded;
+  return reviewFixes === "none" || reviewFixes === "skipped" ? "—" : unrecorded;
 }
 
 function dollarsOf(usd: number | undefined): string {

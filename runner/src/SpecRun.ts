@@ -447,7 +447,9 @@ export class SpecRun {
     const { state } = ticketRun;
     if (state.step === "implement") {
       await this._implement(ticketRun);
-      this._advance(ticketRun, "review");
+      // A ticket with no code has nothing to review or check.
+      const next = state.record?.status === "applied" ? "wrap-up" : "review";
+      this._advance(ticketRun, next);
     }
     if (state.step === "review") {
       await this._review(ticketRun);
@@ -470,6 +472,7 @@ export class SpecRun {
         branch: workspace.branch,
         branchedRepos: workspace.branchedRepos,
         promoteCommand: this.config.promoteCommandOf(ticket.issue),
+        developerLogin: this.config.githubOwner,
       }),
       jsonSchema: implementRecordSchema,
     });
@@ -747,6 +750,10 @@ export class SpecRun {
       pair: pairLabelOf(pair),
       limitReadings,
     };
+    if (record.status === "applied") {
+      facts.reviewFixes = "skipped";
+      facts.githubWrites = record.githubWrites;
+    }
     if (configFolder !== undefined) {
       facts.sessions = {
         account: this.config.knobs.account,
