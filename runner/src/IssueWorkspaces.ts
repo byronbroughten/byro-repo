@@ -14,6 +14,8 @@ import {
 import { join } from "node:path";
 import { promisify } from "node:util";
 
+import { git, lines } from "./git.ts";
+
 const execFileAsync = promisify(execFile);
 
 const maxSlugWords = 6;
@@ -407,10 +409,6 @@ async function issueBranchesOf(
   return [...local, ...remote];
 }
 
-function lines(output: string): string[] {
-  return output === "" ? [] : output.split("\n");
-}
-
 async function addWorktree({
   primaryClone,
   worktree,
@@ -523,9 +521,4 @@ function unsavedWork(dirtyRepos: string[], orphanedRepos: string[]): string {
     parts.push(`commits on no branch in ${orphanedRepos.join(", ")}`);
   }
   return parts.join(" and ");
-}
-
-async function git(cwd: string, ...args: string[]): Promise<string> {
-  const { stdout } = await execFileAsync("git", args, { cwd });
-  return stdout.trim();
 }

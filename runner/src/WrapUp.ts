@@ -9,6 +9,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
+import { git, lines } from "./git.ts";
 import {
   issueLabelOf,
   type IssueRef,
@@ -153,14 +154,6 @@ export class WrapUp {
     return IssueWorkspaces.init(this.config.workspaces);
   }
 
-  factsPathOf(issue: IssueRef): string {
-    return join(this.config.stateFolder, `${fileStemOf(issue)}.facts.json`);
-  }
-
-  progressPathOf(issue: IssueRef): string {
-    return join(this.config.stateFolder, `${fileStemOf(issue)}.progress.json`);
-  }
-
   async run(issue: IssueRef): Promise<WrapUpResult> {
     const ticket: Ticket = {
       issue,
@@ -194,7 +187,7 @@ export class WrapUp {
   }
 
   private _readFacts(issue: IssueRef): WrapUpFacts {
-    const path = this.factsPathOf(issue);
+    const path = this._factsPathOf(issue);
     if (!existsSync(path)) throw new Error(`No facts file at ${path}`);
     const facts = JSON.parse(readFileSync(path, "utf8")) as WrapUpFacts;
     if (!Array.isArray(facts.branches) || facts.branches.length === 0) {
@@ -207,10 +200,18 @@ export class WrapUp {
     return facts;
   }
 
+  private _factsPathOf(issue: IssueRef): string {
+    return join(this.config.stateFolder, `${fileStemOf(issue)}.facts.json`);
+  }
+
   private _readProgress(issue: IssueRef): Progress {
-    const path = this.progressPathOf(issue);
+    const path = this._progressPathOf(issue);
     if (!existsSync(path)) return { completed: [] };
     return JSON.parse(readFileSync(path, "utf8")) as Progress;
+  }
+
+  private _progressPathOf(issue: IssueRef): string {
+    return join(this.config.stateFolder, `${fileStemOf(issue)}.progress.json`);
   }
 
   // Nothing reaches a primary checkout before the fast-forward, so an unlanded rerun starts over from the branches.
@@ -528,7 +529,7 @@ export class WrapUp {
     ticket.progress.completed.push(step);
     mkdirSync(this.config.stateFolder, { recursive: true });
     writeFileSync(
-      this.progressPathOf(ticket.issue),
+      this._progressPathOf(ticket.issue),
       `${JSON.stringify(ticket.progress, undefined, 2)}\n`,
     );
     this._log(`Done: ${step}.`);
@@ -657,10 +658,6 @@ function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function lines(output: string): string[] {
-  return output === "" ? [] : output.split("\n");
-}
-
 async function sleep(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -705,9 +702,4 @@ async function isAncestor(
 
 async function hasRef(clone: string, ref: string): Promise<boolean> {
   return (await git(clone, "for-each-ref", "--format=%(refname)", ref)) !== "";
-}
-
-async function git(cwd: string, ...args: string[]): Promise<string> {
-  const { stdout } = await execFileAsync("git", args, { cwd });
-  return stdout.trim();
 }
