@@ -16,6 +16,9 @@ client_secret*.json
 sheets.config.json
 .clasp.json
 
+# The runner's per-ticket state: wrap-up facts and progress files.
+.runner/
+
 # Each package is its own repo, cloned here.
 packages/*
 

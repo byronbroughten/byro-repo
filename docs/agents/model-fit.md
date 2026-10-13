@@ -35,7 +35,7 @@ Sonnet 5.5 is back in the pairs (checked 2026-09-30), on probation for code-only
 
 ## What no benchmark covers
 
-No public benchmark measures style-guide adherence for these models, and none of them has an [IFEval or IFBench](https://artificialanalysis.ai/evaluations/ifbench) score. Grok's adherence evidence was only unofficial forum posts. The outcome log below is the evidence that decides Sonnet's boundaries. Sonnet 5.5's FrontierCode scores at low through high were not found.
+No public benchmark measures style-guide adherence for these models, and none of them has an [IFEval or IFBench](https://artificialanalysis.ai/evaluations/ifbench) score. Grok's adherence evidence was only unofficial forum posts. The [outcome log](#outcome-log) is the evidence that decides Sonnet's boundaries. Sonnet 5.5's FrontierCode scores at low through high were not found.
 
 ## When a new model version ships
 
@@ -48,27 +48,4 @@ Research brief: "For each current model: API price, context window and release d
 
 ## Outcome log
 
-One row per landed code issue, added by the landing wrap-up; piece specs log in `packages/writing/docs/model-fit.md`. Keep the most recent ~20. Pass means merged without a style or scope fix. Peak context is the highest `/context` the implementing session reached; Files changed is from `git diff --stat` against master.
-
-| Issue | Pair | Files changed | Peak context | Result | What review caught |
-| --- | --- | --- | --- | --- | --- |
-| #194 | Opus medium | 14 | 121K | Pass | — |
-| #195 | Opus medium | 13 | 137K | Pass | — |
-| #196 | Opus medium | 5 | 68K | Pass | — |
-| #214 | Opus medium | 5 | 80K | Pass | — |
-| #215 | Opus medium | 17 | 117K | Pass | — |
-| #216 | Opus medium | 14 | 132K | Pass | — |
-| #145 | Opus high | 16 | 163K | Pass | — |
-| #217 | Opus low | 4 | 67K | Pass | — |
-| #146 | Opus high | 14 | 150K + 90K handoff | Pass | — |
-| #147 | Opus medium | 3 | 92K | Pass | — |
-| #148 | Opus medium | 29 | 153K + 154K | Pass | — |
-| #150 | Opus medium | 19 | 89K | Pass | — |
-| #12 | Opus medium | 3 | 140K | Pass | — |
-| #151 | Opus medium | 2 | 75K | Pass | — |
-| #149 | Opus medium | 11 | 128K | Pass | — |
-| #243 | Opus medium | 12 | 132K | Pass | — |
-| #240 | Opus medium | 7 | 126K | Fix | Fixed after review |
-| #239 | Sonnet high | 3 | 100K | Fix | Fixed after review |
-| #241 | Sonnet high | 7 | 90K | Pass | — |
-| #242 | Sonnet medium | 4 | 58K | Pass | — |
+One file per landed code issue, written by the wrap-up script (`npm run wrap-up -- <repo> <n>`) at [`outcomes/`](./outcomes/)`<spec repo>-<spec n>/<repo>-<n>.md`; a ticketless spec is its own one-ticket folder. The rows from before the move are in [`outcomes/legacy.md`](./outcomes/legacy.md). Piece specs log in `packages/writing/docs/model-fit.md`.

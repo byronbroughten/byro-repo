@@ -31,6 +31,7 @@
     "issue:list": "node scripts/runner/issue.ts list",
     "issue:remove": "node scripts/runner/issue.ts remove",
     "session:probe": "node scripts/runner/sessionProbe.ts",
+    "wrap-up": "node scripts/runner/wrapUp.ts",
     "jev": "node scripts/jev/jev.ts",
     "jev:style": "node scripts/jev/jevStyle.ts"
   },
