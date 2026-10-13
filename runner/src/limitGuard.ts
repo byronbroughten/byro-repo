@@ -29,6 +29,10 @@ export interface AccountReading {
   usage: AccountUsage | undefined;
 }
 
+export interface UsageReader {
+  read(): Promise<AccountReading[]>;
+}
+
 type MeasuredReading = AccountReading & { usage: AccountUsage };
 
 export interface GuardState {

@@ -7,6 +7,7 @@
 import { execFile } from "node:child_process";
 import {
   appendFileSync,
+  copyFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -15,7 +16,13 @@ import {
 import { join } from "node:path";
 import { promisify } from "node:util";
 
-import type { AgentStep, Pair, StepRequest, StepResult } from "./AgentStep.ts";
+import type {
+  AgentStep,
+  LimitHit,
+  Pair,
+  StepRequest,
+  StepResult,
+} from "./AgentStep.ts";
 import { messageOf, outputTailOf } from "./failureText.ts";
 import { git } from "./git.ts";
 import {
@@ -32,6 +39,15 @@ import {
   type IssueWorkspacesConfig,
   type Workspace,
 } from "./IssueWorkspaces.ts";
+import {
+  type AccountReading,
+  type AccountUsage,
+  decideStep,
+  defaultLimitGuardKnobs,
+  type LimitGuardKnobs,
+  type UsageReader,
+} from "./limitGuard.ts";
+import { LimitStop } from "./LimitStop.ts";
 import { pairLabelOf, pairOf } from "./modelFit.ts";
 import type { Notices } from "./Notices.ts";
 import {
@@ -40,7 +56,14 @@ import {
   reviewRecordSchema,
 } from "./reviewStep.ts";
 import type { Command, KnobbedStep, RunKnobs } from "./runKnobs.ts";
-import type { StepAgent, StepSession } from "./transcriptFacts.ts";
+import { sleep } from "./sleep.ts";
+import {
+  type LimitReading,
+  type LimitReadings,
+  percentOf,
+  type StepAgent,
+  type StepSession,
+} from "./transcriptFacts.ts";
 import { stopOutcomes, UnhandledStop } from "./UnhandledStop.ts";
 import {
   WrapUp,
@@ -80,6 +103,7 @@ export interface SpecRunConfig {
   agentStep: AgentStep;
   github: RunGitHub;
   notices: Notices;
+  usageReader: UsageReader;
   clock: Clock;
   githubOwner: string;
   primaryRoot: string;
@@ -93,6 +117,7 @@ export interface SpecRunConfig {
   // Holds the run state, progress log and step logs, and the wrap-up's facts and progress files; gitignored.
   stateFolder: string;
   wrapUpKnobs?: Partial<WrapUpKnobs>;
+  limitGuardKnobs?: Partial<LimitGuardKnobs>;
   sleep?(ms: number): Promise<void>;
   log?(line: string): void;
 }
@@ -111,6 +136,7 @@ interface TicketState {
   record?: ImplementRecord;
   sessions: StepSession[];
   configFolder?: string;
+  limitReadings?: LimitReadings;
   stop?: string;
 }
 
@@ -124,7 +150,11 @@ interface Run {
   isTicketless: boolean;
   state: RunState;
   landed: IssueRef[];
+  warnings: Set<RunWarning>;
 }
+
+// Each pushed at most once per run.
+type RunWarning = "missing-reading" | "unrecognised-limit-error";
 
 interface LandingTicket {
   run: Run;
@@ -193,7 +223,11 @@ export class SpecRun {
         `Preflight stopped the run: ${preflightStop}`,
       );
     }
-    await this._announce(run, `Run started on ${run.tickets.length} tickets.`);
+    const reading = await this._readingOf(run);
+    await this._announce(
+      run,
+      `Run started on ${run.tickets.length} tickets as ${readingLabelOf(reading)}.`,
+    );
     for (;;) {
       const selection = await this._select(run);
       if (selection.kind === "none") {
@@ -211,7 +245,14 @@ export class SpecRun {
           `${label} is still open after its Stop (${selection.stop}); finish and land it, then rerun.`,
         );
       }
-      if (!(await this._runTicket(run, selection.ticket))) {
+      let isLanded: boolean;
+      try {
+        isLanded = await this._runTicket(run, selection.ticket);
+      } catch (error) {
+        if (!(error instanceof LimitStop)) throw error;
+        return this._end(run, "stopped", error.message);
+      }
+      if (!isLanded) {
         return this._end(
           run,
           "stopped",
@@ -251,6 +292,7 @@ export class SpecRun {
       isTicketless: subIssues.length === 0,
       state: this._readState(specIssue),
       landed: [],
+      warnings: new Set(),
     };
   }
 
@@ -311,6 +353,19 @@ export class SpecRun {
       }
     }
     return undefined;
+  }
+
+  // Usage is undefined when the reader fails or has no usable reading for the configured account.
+  private async _readingOf(run: Run): Promise<AccountReading> {
+    const { account } = this.config.knobs;
+    try {
+      const readings = await this.config.usageReader.read();
+      const usage = readings.find((r) => r.account === account)?.usage;
+      return { account, usage };
+    } catch (error) {
+      this._log(run, `The usage read failed: ${messageOf(error)}`);
+      return { account, usage: undefined };
+    }
   }
 
   // The label, blockers and state are read afresh for every pick, so a mid-run relabel takes effect.
@@ -474,6 +529,7 @@ export class SpecRun {
   ): Promise<LaunchedStep> {
     const { run, ticket, pair, workspace, state } = ticketRun;
     const { knobs } = this.config;
+    await this._waitForLaunch(ticketRun);
     const logPath = this._stepLogPathOf(ticketRun, agent);
     this._log(
       run,
@@ -504,6 +560,12 @@ export class SpecRun {
     state.configFolder = result.configFolder ?? state.configFolder;
     this._saveState(run);
     const { output } = result;
+    const hasSucceeded =
+      result.exitSubtype === "success" && output.status === "valid";
+    // A step that met a limit and still succeeded, as after a retry, isn't stopped.
+    if (result.limitHit !== undefined && !hasSucceeded) {
+      await this._stopOnLimitHit(run, result.limitHit, logPath);
+    }
     if (output.status === "schemaFailure") {
       throw new UnhandledStop(
         "schema-failure",
@@ -519,6 +581,98 @@ export class SpecRun {
       );
     }
     return { record: output.record, logPath };
+  }
+
+  // Asks the limit guard about the configured account until it says launch; the first reading is the ticket's Limit used before.
+  private async _waitForLaunch({ run, state }: TicketRun): Promise<void> {
+    const { account } = this.config.knobs;
+    const knobs = { ...defaultLimitGuardKnobs, ...this.config.limitGuardKnobs };
+    let hasAnnouncedWait = false;
+    for (;;) {
+      const reading = await this._readingOf(run);
+      const { usage } = reading;
+      if (usage === undefined) {
+        await this._warnOnce(
+          run,
+          "missing-reading",
+          `No usage reading for account ${account}; steps launch unguarded.`,
+        );
+        return;
+      }
+      state.limitReadings ??= {};
+      state.limitReadings.before ??= limitReadingOf(usage);
+      const decision = decideStep(
+        [reading],
+        {
+          pinnedAccount: account,
+          isAtTicketBoundary: true,
+          accountChangesToday: 0,
+        },
+        knobs,
+      );
+      if (decision.kind === "launch") return;
+      if (decision.kind === "stop") {
+        throw new LimitStop(
+          `Account ${account} is at ${percentOf(usage.sevenDay.utilization)} of its weekly limit, past the reserve; rerun after it resets at ${usage.sevenDay.resetsAt.toISOString()}.`,
+        );
+      }
+      if (decision.kind !== "limitWait") {
+        throw new Error(`A one-account run can't ${decision.kind}`);
+      }
+      if (!hasAnnouncedWait) {
+        hasAnnouncedWait = true;
+        await this._announce(
+          run,
+          `Limit wait: account ${account} is at ${percentOf(usage.fiveHour.utilization)} of its 5-hour limit; continuing after ${decision.until.toISOString()}.`,
+        );
+      }
+      const waitMs =
+        decision.until.getTime() - this.config.clock.now().getTime();
+      await this._sleep(Math.max(waitMs, knobs.limitWaitMarginMs));
+    }
+  }
+
+  private get _sleep(): (ms: number) => Promise<void> {
+    return this.config.sleep ?? sleep;
+  }
+
+  private async _warnOnce(
+    run: Run,
+    warning: RunWarning,
+    summary: string,
+  ): Promise<void> {
+    if (run.warnings.has(warning)) return;
+    run.warnings.add(warning);
+    await this._announce(run, summary);
+  }
+
+  // The tree stays as is in the workspace; the first stream ever seen is kept for tightening limit detection.
+  private async _stopOnLimitHit(
+    run: Run,
+    { window, resetsAt }: LimitHit,
+    logPath: string,
+  ): Promise<never> {
+    const savedPath = join(this.config.stateFolder, "first-limit-hit.jsonl");
+    if (!existsSync(savedPath) && existsSync(logPath)) {
+      copyFileSync(logPath, savedPath);
+    }
+    if (resetsAt === undefined) {
+      await this._warnOnce(
+        run,
+        "unrecognised-limit-error",
+        `Unrecognised limit error on account ${this.config.knobs.account}; the saved stream can tighten detection.`,
+      );
+      throw new UnhandledStop(
+        "limit-hit",
+        "The step hit an unrecognised limit error; its reset is unknown.",
+        logPath,
+      );
+    }
+    throw new UnhandledStop(
+      "limit-hit",
+      `The step hit the ${window ?? "usage"} limit; it resets at ${resetsAt.toISOString()}.`,
+      logPath,
+    );
   }
 
   private _stepLogPathOf(ticketRun: TicketRun, agent: StepAgent): string {
@@ -553,7 +707,14 @@ export class SpecRun {
 
   // Needs no workspace: a wrap-up killed after removing it resumes from its own progress file.
   private async _land(landingTicket: LandingTicket): Promise<void> {
-    const { run, ticket } = landingTicket;
+    const { run, ticket, state } = landingTicket;
+    const { usage } = await this._readingOf(run);
+    if (usage !== undefined) {
+      state.limitReadings = {
+        ...state.limitReadings,
+        after: limitReadingOf(usage),
+      };
+    }
     this._writeFacts(landingTicket);
     this._log(run, `${issueLabelOf(ticket.issue)}: wrapping up.`);
     try {
@@ -570,7 +731,7 @@ export class SpecRun {
   }
 
   private _writeFacts({ ticket, pair, state }: LandingTicket): void {
-    const { record, configFolder, sessions } = state;
+    const { record, configFolder, sessions, limitReadings } = state;
     if (record === undefined) {
       throw new Error(
         `${issueLabelOf(ticket.issue)} reached its wrap-up with no implement record`,
@@ -584,6 +745,7 @@ export class SpecRun {
       reviewRounds: 1,
       retries: 0,
       pair: pairLabelOf(pair),
+      limitReadings,
     };
     if (configFolder !== undefined) {
       facts.sessions = {
@@ -712,6 +874,18 @@ function endMessageOf(landed: IssueRef[], waiting: string[]): string {
 function stoppedMessageOf(run: Run, ticket: TrackedIssue): string {
   const { stop } = ticketStateOf(run, ticket.issue);
   return `Stopped on ${issueLabelOf(ticket.issue)}: ${stop ?? "an unhandled outcome"}.`;
+}
+
+function readingLabelOf({ account, usage }: AccountReading): string {
+  if (usage === undefined) return `account ${account}: no usage reading`;
+  return `account ${account}: 5-hour ${percentOf(usage.fiveHour.utilization)}, weekly ${percentOf(usage.sevenDay.utilization)}`;
+}
+
+function limitReadingOf(usage: AccountUsage): LimitReading {
+  return {
+    fiveHour: usage.fiveHour.utilization,
+    sevenDay: usage.sevenDay.utilization,
+  };
 }
 
 function bulletsOf(items: string[]): string {

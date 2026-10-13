@@ -331,6 +331,6 @@ function priceKeyOf(model: string): string {
   return model.replace(/^claude-/, "").replace(/-\d{8}$/, "");
 }
 
-function percentOf(fraction: number): string {
+export function percentOf(fraction: number): string {
   return `${Math.round(fraction * 100)}%`;
 }

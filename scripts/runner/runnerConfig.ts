@@ -6,6 +6,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { ClaudeAgentStep } from "@byronbroughten/spec-runner/ClaudeAgentStep";
+import { CswapUsageReader } from "@byronbroughten/spec-runner/CswapUsageReader";
 import { GhCli } from "@byronbroughten/spec-runner/GhCli";
 import type {
   IssueRef,
@@ -79,6 +80,7 @@ export function specRunConfigOf(owner: string): SpecRunConfig {
     agentStep: ClaudeAgentStep.init(),
     github: new GhCli(owner),
     notices: NtfyNotices.init(ntfyTopic()),
+    usageReader: CswapUsageReader.init(),
     clock: { now: () => new Date() },
     githubOwner: owner,
     primaryRoot,
