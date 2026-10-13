@@ -44,6 +44,14 @@ _Avoid_: postpone, backlog
 The verdict that blocks the tickets in its scope until the developer answers: named later tickets and their downstream, or `spec`. It is posted as a spec-issue comment and a push.
 _Avoid_: pause, block, question
 
+**Primary checkout**:
+A repo's one long-lived clone. Tickets land into it and are never implemented in it.
+_Avoid_: main repo, root clone
+
+**Issue workspace**:
+A disposable set of checkouts, one per repo, where one ticket is implemented.
+_Avoid_: ticket worktree, sandbox
+
 **Failure Halt**:
 A Halt raised because a step failed, not by a verdict: a second crash, a schema failure, red checks after a retry, an implement step's turn cap. It offers `retry` and `stop spec`, and free text such as `rerun on <pair>` or `skip`.
 _Avoid_: error, crash
