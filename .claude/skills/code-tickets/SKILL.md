@@ -19,7 +19,7 @@ Work from whatever is already in the conversation context. If the user passes a 
 Then pick the entry point. A spec can be split into **Phases**: batches of its tickets that can be used in real work, each ending where that use could change or cancel what follows, and each but the last closed by a **Phase gate**, the developer's ticket that tests the Phase and decides whether the next goes ahead, changes or is dropped. The rules are in [`planning.md`](../../../docs/agents/planning.md#phases).
 
 - **A Phase gate** (a `ready-for-human` issue with a `## Decision` section): go to [From a Phase gate](#from-a-phase-gate).
-- **A phased spec** (one with a `## Phases` section): steps 2–6 cover only its next `planned` Phase.
+- **A phased spec** (one with a `## Phases` section): steps 2–6 cover only its next `planned` Phase. If an earlier Phase is `ticketed` but not `done`, its gate is still open: point the developer to it and stop.
 - **Anything else is unphased**: steps 2–6, proposing Phases in step 3 if the spec has a boundary.
 
 ### 2. Explore the codebase (optional)
@@ -145,7 +145,7 @@ A reference to the spec.
 
 ## What to do
 
-This is the developer's ticket; the runner never launches it, so everything after it waits. Test what Phase <N> built, record what you learn, tick one box under Decision, then run `/code-tickets` on this issue, which closes it. Put findings and any reshape details in comments here.
+This is the developer's ticket; the runner never launches it, so everything after it waits. Test what Phase <N> built, record what you learn, tick one box under Decision, then run `/code-tickets` on this issue, which closes it, and rerun the runner. Put findings and any reshape details in comments here.
 
 Phase <N>: a reference to each of its tickets.
 

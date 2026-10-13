@@ -101,7 +101,7 @@ A private repo holding piece specs as issues; the Pieces' text lives in their Go
 | File | Holds |
 | --- | --- |
 | `README.md` | What the runner is, its exports and how to run its tests. A derived view of its `package.json` and the files it exports. |
-| `GLOSSARY.md` | The words of an unattended spec run: its steps, records, verdicts and Halts, plus Primary checkout and Issue workspace, which interactive sessions borrow. |
+| `GLOSSARY.md` | The words of an unattended spec run: its steps, records, verdicts and Halts, plus Primary checkout and Issue workspace, which interactive sessions borrow, and Phase and Phase gate, which planning borrows. |
 
 ## What an addition to AGENTS.md costs
 
