@@ -117,6 +117,8 @@ const promptSections = {
 
 - Work test-first: if a \`tdd\` skill is available, call it, at the seams the ticket names or, with none named, seams you pick yourself; never stop to confirm them.
 - Run typechecking regularly, single test files regularly, and the full test suite once at the end.
+- Read and search with the Read and Grep tools. Give Bash one command per call, run from the workspace root: no \`cd\`, no \`;\` or \`&&\` chains, no variables.
+- You can't write under \`.claude/\` (skills, hooks, settings), by any tool or path. When the ticket needs it, record one \`denied-tool\` blocker listing those files and don't retry.
 - Never ask. When the ticket is ambiguous, a command needs a yes nobody gave, or a tool is denied, don't stall: record it as a blocker (\`spec-ambiguity\`, \`gated-action\` or \`denied-tool\`) with what happened and what you recommend the developer do. Carry on with the reading the ticket best supports when the work can go on without it; otherwise stop with status \`blocked\`.`,
 
   finishing: `## When you're done
