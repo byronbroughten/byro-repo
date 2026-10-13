@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { StepRequest, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
+import { FakeGitHub } from "./FakeGitHub.ts";
 import { FakeNotices } from "./FakeNotices.ts";
 import { FakeUsageReader } from "./FakeUsageReader.ts";
 import {
@@ -24,14 +25,7 @@ import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { AccountReading, UsageReader } from "./limitGuard.ts";
 import { reviewRecordSchema } from "./reviewStep.ts";
 import { type Command, runKnobsOf } from "./runKnobs.ts";
-import {
-  type RunGitHub,
-  type RunResult,
-  SpecRun,
-  type SpecRunConfig,
-  type TrackedIssue,
-} from "./SpecRun.ts";
-import type { ParentIssue } from "./WrapUp.ts";
+import { type RunResult, SpecRun, type SpecRunConfig } from "./SpecRun.ts";
 
 const clonePaths = {
   "byro-repo": ".",
@@ -53,62 +47,6 @@ let github: FakeGitHub;
 let notices: FakeNotices;
 let usageReader: FakeUsageReader;
 
-class FakeGitHub implements RunGitHub {
-  issues = new Map<number, TrackedIssue>();
-  subIssues = new Map<number, number[]>();
-  blockers = new Map<number, number[]>();
-  comments: { issue: IssueRef; body: string }[] = [];
-  closingComments = new Map<number, string>();
-
-  async issueOf({ number }: IssueRef): Promise<TrackedIssue> {
-    const issue = this.issues.get(number);
-    if (!issue) throw new Error(`No issue #${number}`);
-    return { ...issue, labels: [...issue.labels] };
-  }
-
-  async subIssuesOf({ number }: IssueRef): Promise<IssueRef[]> {
-    return (this.subIssues.get(number) ?? []).map(refOf);
-  }
-
-  async openBlockersOf({ number }: IssueRef): Promise<IssueRef[]> {
-    return (this.blockers.get(number) ?? [])
-      .filter((blocker) => this.issues.get(blocker)?.isOpen)
-      .map(refOf);
-  }
-
-  async comment(issue: IssueRef, body: string): Promise<void> {
-    this.comments.push({ issue, body });
-  }
-
-  async closeIssue({ number }: IssueRef, comment: string): Promise<void> {
-    this.closingComments.set(number, comment);
-    this.edit(number, { isOpen: false });
-  }
-
-  async parentOf({ number }: IssueRef): Promise<ParentIssue | undefined> {
-    const tickets = this.subIssues.get(spec.number) ?? [];
-    if (!tickets.includes(number)) return undefined;
-    const completed = tickets.filter(
-      (ticket) => !this.issues.get(ticket)?.isOpen,
-    ).length;
-    return {
-      issue: spec,
-      labels: [],
-      subIssues: { total: tickets.length, completed },
-    };
-  }
-
-  async commentsOf(): Promise<string[]> {
-    return [];
-  }
-
-  edit(number: number, change: Partial<TrackedIssue>): void {
-    const issue = this.issues.get(number);
-    if (!issue) throw new Error(`No issue #${number}`);
-    this.issues.set(number, { ...issue, ...change });
-  }
-}
-
 // Account 2 is always idle, so a run on account 1 shows it reads only its own account.
 function readingOf(fiveHour: number, sevenDay: number): AccountReading[] {
   return [1, 2].map((account) => ({
@@ -129,7 +67,7 @@ function readingOf(fiveHour: number, sevenDay: number): AccountReading[] {
 beforeEach(() => {
   temp = realpathSync(mkdtempSync(join(tmpdir(), "spec-run-")));
   primaryRoot = join(temp, "byro-repo");
-  github = new FakeGitHub();
+  github = FakeGitHub.init();
   notices = FakeNotices.init();
   usageReader = FakeUsageReader.init(readingOf(0.1, 0.2));
   buildPrimary();
@@ -531,7 +469,9 @@ describe("run", () => {
     expect(masterSubjects()).toHaveLength(subjectsBefore.length + 1);
     expect(masterSubjects()[0]).toContain("#1");
     expect(github.issues.get(1)?.isOpen).toBe(false);
-    const closing = github.closingComments.get(1);
+    const closing = github.closed.find(
+      ({ issue }) => issue.number === 1,
+    )?.comment;
     expect(closing).toContain(
       "- comment on byronbroughten/byro-repo#213: Posted the addendum.",
     );

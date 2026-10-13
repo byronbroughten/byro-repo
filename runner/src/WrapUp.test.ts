@@ -15,19 +15,14 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { FakeGitHub } from "./FakeGitHub.ts";
 import {
   type IssueRef,
   IssueWorkspaces,
   type IssueWorkspacesConfig,
   type Workspace,
 } from "./IssueWorkspaces.ts";
-import {
-  type ParentIssue,
-  WrapUp,
-  type WrapUpConfig,
-  type WrapUpFacts,
-  type WrapUpGitHub,
-} from "./WrapUp.ts";
+import { WrapUp, type WrapUpConfig, type WrapUpFacts } from "./WrapUp.ts";
 import { WrapUpFailure, type WrapUpFailureKind } from "./WrapUpFailure.ts";
 
 const clonePaths = {
@@ -49,38 +44,10 @@ let primaryRoot: string;
 let github: FakeGitHub;
 let sleeps: number[];
 
-class FakeGitHub implements WrapUpGitHub {
-  closed: { issue: IssueRef; comment: string }[] = [];
-  parents = new Map<number, ParentIssue>();
-  comments = new Map<number, string[]>();
-  failuresLeft = 0;
-
-  async closeIssue(issue: IssueRef, comment: string): Promise<void> {
-    this._failIfScripted();
-    this.closed.push({ issue, comment });
-  }
-
-  async parentOf(issue: IssueRef): Promise<ParentIssue | undefined> {
-    this._failIfScripted();
-    return this.parents.get(issue.number);
-  }
-
-  async commentsOf(issue: IssueRef): Promise<string[]> {
-    this._failIfScripted();
-    return this.comments.get(issue.number) ?? [];
-  }
-
-  private _failIfScripted(): void {
-    if (this.failuresLeft === 0) return;
-    this.failuresLeft -= 1;
-    throw new Error("gh: connection reset");
-  }
-}
-
 beforeEach(() => {
   temp = realpathSync(mkdtempSync(join(tmpdir(), "wrap-up-")));
   primaryRoot = join(temp, "byro-repo");
-  github = new FakeGitHub();
+  github = FakeGitHub.init();
   github.parents.set(ticket.number, {
     issue: spec,
     labels: [],
@@ -266,10 +233,13 @@ describe("run", () => {
       join(configFolder, "projects", "-workspace-byro-repo"),
       { recursive: true },
     );
-    github.comments.set(ticket.number, [
-      "Picking this up.",
-      "## Handoff\n\nWork so far.\n\nsession: session-implement-1",
-    ]);
+    github.comments.push(
+      { issue: ticket, body: "Picking this up." },
+      {
+        issue: ticket,
+        body: "## Handoff\n\nWork so far.\n\nsession: session-implement-1",
+      },
+    );
     const workspace = await workspaceWith();
     commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
     writeFacts({
