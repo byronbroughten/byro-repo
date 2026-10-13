@@ -16,8 +16,11 @@ client_secret*.json
 sheets.config.json
 .clasp.json
 
-# The runner's per-ticket state: wrap-up facts and progress files.
+# The runner's state: run state, progress logs, raw step logs, wrap-up facts and progress files.
 .runner/
+
+# The runner's local config: the ntfy topic, which anyone who knows it can read.
+scripts/runner/runner.local.json
 
 # Each package is its own repo, cloned here.
 packages/*

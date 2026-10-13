@@ -4,14 +4,14 @@ Primary checkouts and issue workspaces, branches and commits, landing a spec wit
 
 ## Primary checkouts and issue workspaces
 
-- **A primary checkout is a repo's one long-lived clone** (the root and each clone under `packages/`); an **issue workspace** is a disposable set of checkouts, one per repo, where one ticket is implemented ([`runner/GLOSSARY.md`](../../runner/GLOSSARY.md)). Once the runner is in use, primary checkouts never change branch; all issue work happens in an issue workspace. Direct edits on master stay allowed in a primary checkout (docs, grilling, mining).
-- **Until the runner exists, one ticket is in flight at a time**, from `/implement` through its wrap-up, on its branch in the primary checkouts. Planning, grilling and docs sessions keep running alongside; a docs session at the root during a ticket edits the ticket's branch, not master.
-- **The developer keeps agents off a branch while it lands.** The branch hook (`branchGuard.ts`) denies only a `git commit` after HEAD's commit or branch moved under the session; it leaves branch moves alone.
+- **A primary checkout is a repo's one long-lived clone** (the root and each clone under `packages/`); an **issue workspace** is a disposable set of checkouts, one per repo, where one ticket is implemented ([`runner/GLOSSARY.md`](../../runner/GLOSSARY.md)). Primary checkouts never change branch; all issue work happens in an issue workspace. Direct edits on master stay allowed in a primary checkout (docs, grilling, mining).
+- **The runner works a spec's tickets one at a time, each in its own issue workspace**: `npm run runner -- <owner/repo> <n>`, rerun to resume. A ticket it Stops on stays unlanded in its workspace; finish it there by hand and land it with `npm run wrap-up -- <repo> <n>`.
+- **The branch hook (`branchGuard.ts`) is strict**: it denies every branch-moving git command in a primary checkout. The way through is the issue workspace.
 - **A Halt can leave an issue workspace behind.** `npm run issue:list` shows each one's issue, branched repos, dirtiness and age. `npm run issue:remove -- <repo> <n>` removes one, refusing a dirty workspace, or a detached repo holding commits no branch has, unless `--force`.
 
 ## Branches and commits
 
-- **Commit or push only when asked.** A skill's approval step covers its edits, not a commit. Ask before committing, and ask which branch to use.
+- **Commit or push only when asked.** A skill's approval step covers its edits, not a commit. Ask before committing, and ask which branch to use. Starting a runner run is the yes for what the runner's own code writes on that spec's issue tree in the named repo: comments, closing its tickets, pushing `issue-*` branches and wrap-up merges. It never covers `app:*` or anything an agent step attempts itself.
 - **Implement a spec on a branch named for it**: `issue-<n>-<short-slug>`. If other work is already in flight, ask which branch to use.
 - **Each clone under `packages/` is its own repo; its branches and commits go there, not to the root.** Run git for it with `git -C packages/<name>`, and read a branch's `<n>` against the repo that branch lives in.
 - **A change that spans repos is one commit per repo**, each on a branch in its own repo. They share the one wrap-up, and a repo lands before any repo that depends on it, so a fresh workspace never pulls a dependent's half without its dependency's: a clone before the root, and a breaking change to the framework's public entry before the app's fix. Commit messages get no package prefix.

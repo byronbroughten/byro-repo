@@ -16,8 +16,8 @@ import {
 } from "./lib/branchRecords.ts";
 import { readHookInput, runFailOpen, writeDenyOutput } from "./lib/hookIo.ts";
 
-// #225 flips this to "strict" once the runner works every ticket in an issue workspace.
-const mode: GuardMode = "interim";
+// The runner works every ticket in an issue workspace, so a primary checkout's branch never moves.
+const mode: GuardMode = "strict";
 
 await runFailOpen(() => {
   const input = readHookInput();

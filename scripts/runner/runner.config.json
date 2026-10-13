@@ -1,0 +1,42 @@
+{
+  "clonePaths": {
+    "byro-repo": ".",
+    "sheets-framework": "packages/framework",
+    "sheets-real-estate": "packages/real-estate",
+    "utils": "packages/utils",
+    "writing": "packages/writing"
+  },
+  "skillNames": { "review": "code-review" },
+  "checks": [
+    ["npm", "run", "tsc"],
+    ["npm", "test"],
+    ["npm", "run", "lint"]
+  ],
+  "allowedTools": {
+    "implement": [
+      "Skill",
+      "Agent",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(npm run lint)",
+      "Bash(npm run lint *)",
+      "Bash(npm run issue:promote *)",
+      "Bash(gh issue view *)"
+    ],
+    "review": [
+      "Skill",
+      "Agent",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git merge-base *)",
+      "Bash(gh issue view *)"
+    ]
+  },
+  "handoffDocPath": "docs/agents/planning.md#handoffs"
+}

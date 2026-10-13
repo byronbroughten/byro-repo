@@ -25,24 +25,24 @@ const committed: CommittedRecord = {
       sha: "9a18184",
     },
   ],
-  closing_comment: "Adds the implement-step prompt.",
-  boxes_undone: [],
+  closingComment: "Adds the implement-step prompt.",
+  boxesUndone: [],
   blockers: [],
 };
 
 const handoffFields: Handoff = {
   conclusion: "The schema is done; the prompt is half written.",
-  files_to_open: [{ path: "runner/src/implementStep.ts", lines: "1-80" }],
-  ruled_out: ["if/then/else in the schema"],
-  files_changed: ["runner/src/implementStep.ts"],
-  still_failing: ["runner/src/implementStep.test.ts"],
+  filesToOpen: [{ path: "runner/src/implementStep.ts", lines: "1-80" }],
+  ruledOut: ["if/then/else in the schema"],
+  filesChanged: ["runner/src/implementStep.ts"],
+  stillFailing: ["runner/src/implementStep.test.ts"],
 };
 
 const handoff: HandoffRecord = {
   status: "handoff",
   branches: [],
-  closing_comment: "",
-  boxes_undone: [],
+  closingComment: "",
+  boxesUndone: [],
   blockers: [],
   handoff: handoffFields,
 };
@@ -73,7 +73,7 @@ describe("implementRecordSchema", () => {
   });
 
   it("refuses a handoff missing a handoff field", () => {
-    const { still_failing: _, ...partial } = handoffFields;
+    const { stillFailing: _, ...partial } = handoffFields;
     expect(validate({ ...handoff, handoff: partial })).toBe(false);
   });
 
