@@ -15,8 +15,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { StepRequest, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
 import { FakeNotices } from "./FakeNotices.ts";
+import { FakeUsageReader } from "./FakeUsageReader.ts";
 import type { ImplementRecord } from "./implementStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
+import type { AccountReading } from "./limitGuard.ts";
 import { reviewRecordSchema } from "./reviewStep.ts";
 import { type Command, runKnobsOf } from "./runKnobs.ts";
 import {
@@ -46,6 +48,7 @@ let temp: string;
 let primaryRoot: string;
 let github: FakeGitHub;
 let notices: FakeNotices;
+let usage: FakeUsageReader;
 
 class FakeGitHub implements RunGitHub {
   issues = new Map<number, TrackedIssue>();
@@ -101,11 +104,29 @@ class FakeGitHub implements RunGitHub {
   }
 }
 
+// Account 2 is always idle, so a run on account 1 shows it reads only its own account.
+function readingOf(fiveHour: number, sevenDay: number): AccountReading[] {
+  return [1, 2].map((account) => ({
+    account,
+    usage: {
+      fiveHour: {
+        utilization: account === 1 ? fiveHour : 0,
+        resetsAt: new Date("2026-10-12T11:00:00Z"),
+      },
+      sevenDay: {
+        utilization: account === 1 ? sevenDay : 0,
+        resetsAt: new Date("2026-10-15T00:00:00Z"),
+      },
+    },
+  }));
+}
+
 beforeEach(() => {
   temp = realpathSync(mkdtempSync(join(tmpdir(), "spec-run-")));
   primaryRoot = join(temp, "byro-repo");
   github = new FakeGitHub();
   notices = FakeNotices.init();
+  usage = FakeUsageReader.init(readingOf(0.1, 0.2));
   buildPrimary();
 });
 
@@ -200,6 +221,7 @@ function specRun(
     agentStep,
     github,
     notices,
+    usageReader: usage,
     clock: { now: () => new Date("2026-10-12T09:00:00Z") },
     githubOwner: "byronbroughten",
     primaryRoot,
@@ -313,7 +335,8 @@ describe("run", () => {
     expect(notices.sent).toEqual([
       {
         specTitle: "The spec",
-        summary: "Run started on 2 tickets.",
+        summary:
+          "Run started on 2 tickets as account 1: 5-hour 10%, weekly 20%.",
         link: "https://github.com/byronbroughten/byro-repo/issues/213",
       },
       {
@@ -363,7 +386,7 @@ describe("run", () => {
     ).toBe(true);
     expect(lines.map((line) => line.slice(25))).toEqual(
       expect.arrayContaining([
-        "Run started on 1 tickets.",
+        "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%.",
         "byro-repo #1: launching on Opus high from implement.",
         "byro-repo #1: checking node -e process.exit(require('fs').existsSync('RED') ? 1 : 0).",
         "byro-repo #1: wrapping up.",
@@ -734,7 +757,7 @@ describe("run's unhandled Stops", () => {
         `Log: \`${join(stateFolder(), logFile)}\``,
       );
       expect(notices.sent.map(({ summary }) => summary)).toEqual([
-        "Run started on 2 tickets.",
+        "Run started on 2 tickets as account 1: 5-hour 10%, weekly 20%.",
         result.message,
       ]);
     },
@@ -833,5 +856,168 @@ describe("run's resume", () => {
     ).run(spec);
 
     expect(result.landed).toEqual([refOf(2)]);
+  });
+});
+describe("run's limit guard", () => {
+  function summaries(): string[] {
+    return notices.sent.map(({ summary }) => summary);
+  }
+
+  it("waits out a 5-hour limit on the configured account until the reset plus a margin, with one notice, then lands", async () => {
+    addSpec([1]);
+    usage = FakeUsageReader.init(
+      readingOf(0.92, 0.5),
+      readingOf(0.92, 0.5),
+      readingOf(0.1, 0.5),
+    );
+    const sleeps: number[] = [];
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    const result = await specRun(agentStep, {
+      async sleep(ms) {
+        sleeps.push(ms);
+      },
+    }).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(sleeps).toEqual([2 * 60 * 60_000 + 5 * 60_000]);
+    expect(summaries()).toEqual([
+      "Run started on 1 tickets as account 1: 5-hour 92%, weekly 50%.",
+      "Limit wait: account 1 is at 92% of its 5-hour limit; continuing after 2026-10-12T11:05:00.000Z.",
+      result.message,
+    ]);
+  });
+
+  it("Stops before a step past the weekly reserve, with one notice, leaving the ticket for a rerun to resume", async () => {
+    addSpec([1]);
+    usage = FakeUsageReader.init(readingOf(0.3, 0.96));
+    const agentStep = FakeAgentStep.init();
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result).toEqual<RunResult>({
+      kind: "stopped",
+      landed: [],
+      message:
+        "Account 1 is at 96% of its weekly limit, past the reserve; rerun after it resets at 2026-10-15T00:00:00.000Z.",
+    });
+    expect(agentStep.requests).toEqual([]);
+    expect(summaries()).toEqual([
+      "Run started on 1 tickets as account 1: 5-hour 30%, weekly 96%.",
+      result.message,
+    ]);
+    usage = FakeUsageReader.init(readingOf(0.3, 0.5));
+
+    const rerun = await specRun(
+      FakeAgentStep.init(implemented("one.ts"), reviewed()),
+    ).run(spec);
+
+    expect(rerun.landed).toEqual([refOf(1)]);
+  });
+
+  function limitHitStep(
+    stream: string,
+    limitHit: StepResult["limitHit"],
+  ): ScriptedStep {
+    return async (request) => {
+      writeFileSync(request.logPath ?? "", stream);
+      return {
+        ...resultOf(undefined),
+        output: { status: "none" },
+        exitSubtype: "error_during_execution",
+        limitHit,
+      };
+    };
+  }
+
+  function savedLimitHit(): string {
+    return readFileSync(join(stateFolder(), "first-limit-hit.jsonl"), "utf8");
+  }
+
+  it("Stops unhandled on a limit hit mid-step, naming the reset, and keeps the first limit-hit stream it sees", async () => {
+    addSpec([1]);
+    const hit = {
+      window: "five_hour",
+      resetsAt: new Date("2026-10-12T11:00:00Z"),
+    };
+
+    const result = await specRun(
+      FakeAgentStep.init(limitHitStep("first stream\n", hit)),
+    ).run(spec);
+
+    expect(result.message).toBe("Stopped on byro-repo #1: a limit hit.");
+    expect(github.issues.get(1)?.isOpen).toBe(true);
+    expect(github.comments[0]?.body).toContain(
+      "The step hit the five_hour limit; it resets at 2026-10-12T11:00:00.000Z.",
+    );
+    expect(savedLimitHit()).toBe("first stream\n");
+    addIssue(2);
+    github.subIssues.set(spec.number, [1, 2]);
+    github.edit(1, { isOpen: false });
+
+    await specRun(FakeAgentStep.init(limitHitStep("later stream\n", hit))).run(
+      spec,
+    );
+
+    expect(savedLimitHit()).toBe("first stream\n");
+  });
+
+  it("warns once on a limit error with no reset and Stops unhandled", async () => {
+    addSpec([1]);
+
+    const result = await specRun(
+      FakeAgentStep.init(
+        limitHitStep("bare 429\n", { window: undefined, resetsAt: undefined }),
+      ),
+    ).run(spec);
+
+    expect(result.message).toBe("Stopped on byro-repo #1: a limit hit.");
+    expect(github.comments[0]?.body).toContain(
+      "The step hit an unrecognised limit error; its reset is unknown.",
+    );
+    expect(summaries()).toEqual([
+      "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%.",
+      "Unrecognised limit error on account 1; the saved stream can tighten detection.",
+      result.message,
+    ]);
+    expect(savedLimitHit()).toBe("bare 429\n");
+  });
+
+  it("warns once per run on a missing reading and launches each step unguarded", async () => {
+    addSpec([1, 2]);
+    usage = FakeUsageReader.init(new Error("cswap: not found"));
+    const agentStep = FakeAgentStep.init(
+      implemented("one.ts"),
+      reviewed(),
+      implemented("two.ts"),
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1), refOf(2)]);
+    expect(summaries()).toEqual([
+      "Run started on 2 tickets as account 1: no usage reading.",
+      "No usage reading for account 1; steps launch unguarded.",
+      result.message,
+    ]);
+  });
+
+  it("records the reading before the ticket's first step and after its last as the outcome's Limit used", async () => {
+    addSpec([1]);
+    usage = FakeUsageReader.init(
+      readingOf(0.1, 0.2),
+      readingOf(0.1, 0.2),
+      readingOf(0.3, 0.22),
+      readingOf(0.4, 0.25),
+    );
+
+    await specRun(FakeAgentStep.init(implemented("one.ts"), reviewed())).run(
+      spec,
+    );
+
+    expect(git(primaryOf("byro-repo"), "log", "-p", "master")).toContain(
+      "5-hour 10% → 40%, weekly 20% → 25%",
+    );
   });
 });

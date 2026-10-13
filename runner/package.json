@@ -8,6 +8,7 @@
   "exports": {
     "./AgentStep": "./src/AgentStep.ts",
     "./ClaudeAgentStep": "./src/ClaudeAgentStep.ts",
+    "./CswapUsageReader": "./src/CswapUsageReader.ts",
     "./FakeAgentStep": "./src/FakeAgentStep.ts",
     "./FakeNotices": "./src/FakeNotices.ts",
     "./GhCli": "./src/GhCli.ts",
