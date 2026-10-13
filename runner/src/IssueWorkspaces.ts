@@ -1,4 +1,4 @@
-// The workspace module: creates, lists and removes issue workspaces, each a byro-repo worktree outside the
+// The workspace module: creates, lists, promotes, resumes and removes issue workspaces, each a byro-repo worktree outside the
 // primary root with a worktree of every package clone inside it, so tickets never move a primary checkout's branch.
 // Everything repo-specific comes in as IssueWorkspacesConfig; byro-repo's values live in scripts/runner/.
 
@@ -117,6 +117,45 @@ export class IssueWorkspaces {
     return workspaces;
   }
 
+  async promote(workspace: Workspace, repo: string): Promise<Workspace> {
+    const worktree = this._worktreeOf(workspace, repo);
+    const checkedOut = await currentBranchOf(worktree);
+    if (checkedOut !== "" && checkedOut !== workspace.branch) {
+      throw new Error(
+        `${repo} in ${workspace.path} is on ${checkedOut}; only a detached repo can be promoted onto ${workspace.branch}`,
+      );
+    }
+    if (checkedOut === "") {
+      await git(
+        worktree,
+        "switch",
+        ...(await switchArgs(worktree, workspace.branch)),
+      );
+    }
+    const { path, issue, branch, branchedRepos } = await this._statusOf(
+      workspace.path,
+      workspace.issue,
+    );
+    return { path, issue, branch, branchedRepos };
+  }
+
+  async resume(workspace: Workspace): Promise<void> {
+    const detached = await this._detachedWorktrees(workspace);
+    const dirtyRepos: string[] = [];
+    for (const { repo, worktree } of detached) {
+      if (await isDirty(worktree)) dirtyRepos.push(repo);
+    }
+    const orphanedRepos = await this._orphanedRepos(workspace);
+    if (dirtyRepos.length > 0 || orphanedRepos.length > 0) {
+      throw new Error(
+        `${workspace.path} has ${unsavedWork(dirtyRepos, orphanedRepos)}; promote the repo to keep its work, or discard it, before resuming`,
+      );
+    }
+    for (const { worktree } of detached) {
+      await git(worktree, "switch", "--detach", "master");
+    }
+  }
+
   async remove(
     workspace: Workspace,
     { force = false }: RemoveOptions = {},
@@ -125,9 +164,10 @@ export class IssueWorkspaces {
       workspace.path,
       workspace.issue,
     );
-    if (dirtyRepos.length > 0 && !force) {
+    const orphanedRepos = await this._orphanedRepos(workspace);
+    if ((dirtyRepos.length > 0 || orphanedRepos.length > 0) && !force) {
       throw new Error(
-        `${workspace.path} has uncommitted changes in ${dirtyRepos.join(", ")}; remove it with force to discard them`,
+        `${workspace.path} has ${unsavedWork(dirtyRepos, orphanedRepos)}; remove it with force to discard them`,
       );
     }
     await this._tearDown(workspace.path, force);
@@ -218,6 +258,36 @@ export class IssueWorkspaces {
     ];
   }
 
+  private _worktreeOf(workspace: Workspace, repo: string): string {
+    const worktree = join(workspace.path, this._clonePathOf(repo));
+    if (!existsSync(worktree)) {
+      throw new Error(`${workspace.path} has no worktree for ${repo}`);
+    }
+    return worktree;
+  }
+
+  private async _detachedWorktrees(
+    workspace: Workspace,
+  ): Promise<DetachedWorktree[]> {
+    const detached: DetachedWorktree[] = [];
+    for (const [repo, clonePath] of this._clonesRootFirst) {
+      const worktree = join(workspace.path, clonePath);
+      if (!existsSync(worktree)) continue;
+      if ((await currentBranchOf(worktree)) === "") {
+        detached.push({ repo, worktree });
+      }
+    }
+    return detached;
+  }
+
+  private async _orphanedRepos(workspace: Workspace): Promise<string[]> {
+    const orphaned: string[] = [];
+    for (const { repo, worktree } of await this._detachedWorktrees(workspace)) {
+      if (await isOrphanedHead(worktree)) orphaned.push(repo);
+    }
+    return orphaned;
+  }
+
   private _issueOfFolder(name: string): IssueRef | undefined {
     for (const repo of Object.keys(this.config.clonePaths)) {
       const match = new RegExp(`^${escapeRegExp(repo)}-issue-(\\d+)-`).exec(
@@ -254,12 +324,10 @@ export class IssueWorkspaces {
     for (const [repo, clonePath] of this._clonesRootFirst) {
       const worktree = join(path, clonePath);
       if (!existsSync(worktree)) continue;
-      const checkedOut = await git(worktree, "branch", "--show-current");
+      const checkedOut = await currentBranchOf(worktree);
       if (checkedOut !== "") branchedRepos.push(repo);
       if (repo === issue.repo) branch = checkedOut;
-      if ((await git(worktree, "status", "--porcelain")) !== "") {
-        dirtyRepos.push(repo);
-      }
+      if (await isDirty(worktree)) dirtyRepos.push(repo);
     }
     return {
       path,
@@ -286,6 +354,16 @@ export class IssueWorkspaces {
     }
   }
 }
+
+interface DetachedWorktree {
+  repo: string;
+  worktree: string;
+}
+
+type BranchOrigin =
+  | { kind: "local" }
+  | { kind: "remote"; remoteBranch: string }
+  | { kind: "new" };
 
 interface WorktreeTarget {
   primaryClone: string;
@@ -351,14 +429,32 @@ async function branchedWorktreeArgs({
   worktree,
   branch,
 }: WorktreeTarget & { branch: string }): Promise<string[]> {
-  if (await hasRef(primaryClone, `refs/heads/${branch}`)) {
-    return [worktree, branch];
-  }
-  const [remoteBranch] = await remoteBranchesOf(primaryClone, branch);
-  if (remoteBranch !== undefined) {
-    return ["--track", "-b", branch, worktree, remoteBranch];
+  const origin = await branchOriginOf(primaryClone, branch);
+  if (origin.kind === "local") return [worktree, branch];
+  if (origin.kind === "remote") {
+    return ["--track", "-b", branch, worktree, origin.remoteBranch];
   }
   return ["-b", branch, worktree, "master"];
+}
+
+// A new branch starts at the worktree's own HEAD, so edits made on the detached repo come along.
+async function switchArgs(worktree: string, branch: string): Promise<string[]> {
+  const origin = await branchOriginOf(worktree, branch);
+  if (origin.kind === "local") return [branch];
+  if (origin.kind === "remote") {
+    return ["--track", "-c", branch, origin.remoteBranch];
+  }
+  return ["-c", branch];
+}
+
+async function branchOriginOf(
+  clone: string,
+  branch: string,
+): Promise<BranchOrigin> {
+  if (await hasRef(clone, `refs/heads/${branch}`)) return { kind: "local" };
+  const [remoteBranch] = await remoteBranchesOf(clone, branch);
+  if (remoteBranch !== undefined) return { kind: "remote", remoteBranch };
+  return { kind: "new" };
 }
 
 async function hasRef(clone: string, ref: string): Promise<boolean> {
@@ -391,6 +487,38 @@ async function removeWorktree({
   if (!existsSync(worktree)) return;
   const forceArgs = force ? ["--force"] : [];
   await git(primaryClone, "worktree", "remove", ...forceArgs, worktree);
+}
+
+async function currentBranchOf(worktree: string): Promise<string> {
+  return git(worktree, "branch", "--show-current");
+}
+
+async function isDirty(worktree: string): Promise<boolean> {
+  return (await git(worktree, "status", "--porcelain")) !== "";
+}
+
+// A detached HEAD no branch contains is reachable only from the reflog, so moving off it or removing its worktree loses the commits.
+async function isOrphanedHead(worktree: string): Promise<boolean> {
+  const containing = await git(
+    worktree,
+    "for-each-ref",
+    "--contains",
+    "HEAD",
+    "refs/heads",
+    "refs/remotes",
+  );
+  return containing === "";
+}
+
+function unsavedWork(dirtyRepos: string[], orphanedRepos: string[]): string {
+  const parts: string[] = [];
+  if (dirtyRepos.length > 0) {
+    parts.push(`uncommitted changes in ${dirtyRepos.join(", ")}`);
+  }
+  if (orphanedRepos.length > 0) {
+    parts.push(`commits on no branch in ${orphanedRepos.join(", ")}`);
+  }
+  return parts.join(" and ");
 }
 
 async function git(cwd: string, ...args: string[]): Promise<string> {

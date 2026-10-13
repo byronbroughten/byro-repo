@@ -218,6 +218,232 @@ describe("the branch name", () => {
   });
 });
 
+describe("promote", () => {
+  it("puts a detached repo on the issue branch, keeping its edits and leaving the primaries alone", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "spans" },
+    );
+    const utils = join(workspace.path, "packages/utils");
+    writeFileSync(join(utils, "README.md"), "edited");
+    const before = primaryStates();
+
+    const promoted = await workspaces().promote(workspace, "utils");
+
+    expect(branchOf(utils)).toBe("issue-7-spans");
+    expect(readFileSync(join(utils, "README.md"), "utf8")).toBe("edited");
+    expect(promoted.branchedRepos).toEqual(["byro-repo", "utils"]);
+    expect(
+      branchOf(join(workspace.path, "packages/framework")),
+    ).toBeUndefined();
+    expect(primaryStates()).toEqual(before);
+  });
+
+  it("reuses the branch when the repo already has it", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "spans" },
+    );
+    const primaryUtils = join(primaryRoot, "packages/utils");
+    git(primaryUtils, "branch", "issue-7-spans");
+    writeFileSync(join(primaryUtils, "extra.txt"), "on the branch");
+    git(primaryUtils, "switch", "issue-7-spans");
+    git(primaryUtils, "add", "extra.txt");
+    git(primaryUtils, "commit", "-m", "Earlier work");
+    git(primaryUtils, "switch", "master");
+
+    await workspaces().promote(workspace, "utils");
+
+    const utils = join(workspace.path, "packages/utils");
+    expect(branchOf(utils)).toBe("issue-7-spans");
+    expect(readFileSync(join(utils, "extra.txt"), "utf8")).toBe(
+      "on the branch",
+    );
+  });
+
+  it("reuses a branch the repo has only on its remote", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "spans" },
+    );
+    const primaryUtils = join(primaryRoot, "packages/utils");
+    git(primaryUtils, "branch", "issue-7-spans");
+    git(primaryUtils, "push", "origin", "issue-7-spans");
+    git(primaryUtils, "branch", "-D", "issue-7-spans");
+
+    await workspaces().promote(workspace, "utils");
+
+    expect(branchOf(join(workspace.path, "packages/utils"))).toBe(
+      "issue-7-spans",
+    );
+  });
+
+  it("refuses a repo that is on some other branch, changing nothing", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "spans" },
+    );
+    const utils = join(workspace.path, "packages/utils");
+    git(utils, "switch", "-c", "scratch");
+
+    await expect(workspaces().promote(workspace, "utils")).rejects.toThrow(
+      /scratch/,
+    );
+    expect(branchOf(utils)).toBe("scratch");
+  });
+
+  it("is a no-op for a repo already on the issue branch", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "spans", extraRepos: ["utils"] },
+    );
+    const utils = join(workspace.path, "packages/utils");
+    writeFileSync(join(utils, "work.txt"), "in progress");
+    const head = git(utils, "rev-parse", "HEAD");
+
+    const promoted = await workspaces().promote(workspace, "utils");
+
+    expect(branchOf(utils)).toBe("issue-7-spans");
+    expect(git(utils, "rev-parse", "HEAD")).toBe(head);
+    expect(readFileSync(join(utils, "work.txt"), "utf8")).toBe("in progress");
+    expect(promoted.branchedRepos).toEqual(["byro-repo", "utils"]);
+  });
+});
+
+function advanceMaster(clonePath: string, file: string): string {
+  const clone = join(primaryRoot, clonePath);
+  writeFileSync(join(clone, file), "newer");
+  git(clone, "add", file);
+  git(clone, "commit", "-m", `Add ${file}`);
+  return git(clone, "rev-parse", "HEAD");
+}
+
+describe("resume", () => {
+  it("moves each clean detached repo to the primary's current master and leaves repos on the issue branch alone", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "spans" },
+    );
+    const framework = join(workspace.path, "packages/framework");
+    const rootHead = git(workspace.path, "rev-parse", "HEAD");
+    const newerFramework = advanceMaster("packages/framework", "newer.txt");
+    advanceMaster(".", "newer.txt");
+    const before = primaryStates();
+
+    await workspaces().resume(workspace);
+
+    expect(branchOf(framework)).toBeUndefined();
+    expect(git(framework, "rev-parse", "HEAD")).toBe(newerFramework);
+    expect(readFileSync(join(framework, "newer.txt"), "utf8")).toBe("newer");
+    expect(branchOf(workspace.path)).toBe("issue-7-spans");
+    expect(git(workspace.path, "rev-parse", "HEAD")).toBe(rootHead);
+    expect(primaryStates()).toEqual(before);
+  });
+
+  it("fails naming each dirty detached repo and changes nothing", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "spans" },
+    );
+    const framework = join(workspace.path, "packages/framework");
+    const utils = join(workspace.path, "packages/utils");
+    const headsBefore = [framework, utils].map((worktree) =>
+      git(worktree, "rev-parse", "HEAD"),
+    );
+    writeFileSync(join(framework, "README.md"), "edited");
+    writeFileSync(join(utils, "new.txt"), "untracked");
+    advanceMaster("packages/framework", "newer.txt");
+    advanceMaster("packages/utils", "newer.txt");
+    writeFileSync(join(workspace.path, "README.md"), "edited on the branch");
+
+    const failure = workspaces().resume(workspace);
+    await expect(failure).rejects.toThrow(/sheets-framework/);
+    await expect(failure).rejects.toThrow(/utils/);
+
+    expect(
+      [framework, utils].map((worktree) => git(worktree, "rev-parse", "HEAD")),
+    ).toEqual(headsBefore);
+    expect(readFileSync(join(framework, "README.md"), "utf8")).toBe("edited");
+    expect(readFileSync(join(utils, "new.txt"), "utf8")).toBe("untracked");
+    expect(existsSync(join(utils, "newer.txt"))).toBe(false);
+  });
+
+  it("fails naming a detached repo whose commits are on no branch, changing nothing", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "spans" },
+    );
+    const utils = join(workspace.path, "packages/utils");
+    writeFileSync(join(utils, "kept.txt"), "committed");
+    git(utils, "add", "kept.txt");
+    git(utils, "commit", "-m", "Detached work");
+    const head = git(utils, "rev-parse", "HEAD");
+    advanceMaster("packages/utils", "newer.txt");
+
+    await expect(workspaces().resume(workspace)).rejects.toThrow(
+      /commits on no branch in utils/,
+    );
+
+    expect(git(utils, "rev-parse", "HEAD")).toBe(head);
+    expect(branchOf(utils)).toBeUndefined();
+  });
+
+  it("resumes a detached repo whose commits are on a branch, such as one behind master", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "spans" },
+    );
+    const utils = join(workspace.path, "packages/utils");
+    const newerUtils = advanceMaster("packages/utils", "newer.txt");
+    git(utils, "switch", "--detach", newerUtils);
+    const primaryUtils = join(primaryRoot, "packages/utils");
+    git(primaryUtils, "branch", "saved", newerUtils);
+    advanceMaster("packages/utils", "newest.txt");
+
+    await workspaces().resume(workspace);
+
+    expect(git(utils, "rev-parse", "HEAD")).toBe(
+      git(primaryUtils, "rev-parse", "master"),
+    );
+  });
+
+  it("keeps the commits when the repo is promoted first", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "spans" },
+    );
+    const utils = join(workspace.path, "packages/utils");
+    writeFileSync(join(utils, "kept.txt"), "committed");
+    git(utils, "add", "kept.txt");
+    git(utils, "commit", "-m", "Detached work");
+    const head = git(utils, "rev-parse", "HEAD");
+
+    await workspaces().promote(workspace, "utils");
+    await workspaces().resume(workspace);
+
+    expect(git(utils, "rev-parse", "HEAD")).toBe(head);
+    expect(branchOf(utils)).toBe("issue-7-spans");
+  });
+
+  it("does not count a dirty repo on the issue branch against resuming", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "spans" },
+    );
+    writeFileSync(join(workspace.path, "README.md"), "edited on the branch");
+    const newerUtils = advanceMaster("packages/utils", "newer.txt");
+
+    await workspaces().resume(workspace);
+
+    expect(
+      git(join(workspace.path, "packages/utils"), "rev-parse", "HEAD"),
+    ).toBe(newerUtils);
+    expect(readFileSync(join(workspace.path, "README.md"), "utf8")).toBe(
+      "edited on the branch",
+    );
+  });
+});
+
 describe("create, a second time", () => {
   it("returns the existing workspace unchanged", async () => {
     const first = await workspaces().create(
@@ -364,6 +590,25 @@ describe("remove", () => {
       true,
     );
     expect(registeredWorktrees()).toHaveLength(3);
+  });
+
+  it("refuses a workspace holding commits on no branch without force, and removes it with force", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "orphaned" },
+    );
+    const utils = join(workspace.path, "packages/utils");
+    writeFileSync(join(utils, "kept.txt"), "committed");
+    git(utils, "add", "kept.txt");
+    git(utils, "commit", "-m", "Detached work");
+
+    await expect(workspaces().remove(workspace)).rejects.toThrow(
+      /commits on no branch in utils/,
+    );
+    expect(existsSync(utils)).toBe(true);
+
+    await workspaces().remove(workspace, { force: true });
+    expect(existsSync(workspace.path)).toBe(false);
   });
 
   it("removes a clean workspace, leaving no worktree registered and the primaries untouched", async () => {
