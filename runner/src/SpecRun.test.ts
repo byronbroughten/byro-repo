@@ -149,6 +149,12 @@ function buildPrimary(): void {
   });
 }
 
+function commitRed(clone: string): void {
+  writeFileSync(join(clone, "RED"), "");
+  git(clone, "add", "RED");
+  git(clone, "commit", "-m", "Turn master red");
+}
+
 function bodyWith(pairLine = "Opus high"): string {
   return `## What to build\n\nA thing.\n\n## Model fit\n\n${pairLine}\nA reason.\n`;
 }
@@ -558,10 +564,8 @@ describe("run's preflight", () => {
     );
   });
 
-  it("Stops on a red master commit, naming the command, though an uncommitted edit would turn it green", async () => {
-    writeFileSync(join(primaryRoot, "RED"), "");
-    git(primaryRoot, "add", "RED");
-    git(primaryRoot, "commit", "-m", "Turn master red");
+  it("Stops on a red master commit though an uncommitted edit would turn it green", async () => {
+    commitRed(primaryRoot);
     rmSync(join(primaryRoot, "RED"));
 
     const result = await preflightOf();
@@ -574,11 +578,10 @@ describe("run's preflight", () => {
 
   it("checks the commit master points to at each preflight, not the one an earlier run saw", async () => {
     addSpec([1]);
+    // A human ticket, so the first run ends straight after its preflight.
     github.edit(1, { labels: ["ready-for-human"] });
     const first = await specRun(FakeAgentStep.init()).run(spec);
-    writeFileSync(join(primaryRoot, "RED"), "");
-    git(primaryRoot, "add", "RED");
-    git(primaryRoot, "commit", "-m", "Turn master red");
+    commitRed(primaryRoot);
 
     const second = await specRun(FakeAgentStep.init()).run(spec);
 
@@ -588,16 +591,39 @@ describe("run's preflight", () => {
     );
   });
 
+  it("rebuilds a master set an earlier run left half-removed", async () => {
+    addSpec([1]);
+    github.edit(1, { labels: ["ready-for-human"] });
+    await specRun(FakeAgentStep.init()).run(spec);
+    rmSync(join(temp, "workspaces", "master-byro-repo-213", ".git"));
+    commitRed(primaryRoot);
+
+    const result = await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(result.message).toBe(
+      "Preflight stopped the run: master red: node -e process.exit(require('fs').existsSync('RED') ? 1 : 0)",
+    );
+  });
+
+  it("Stops when the master set fails to build", async () => {
+    const result = await preflightOf({
+      async installDependencies() {
+        throw new Error("npm install failed");
+      },
+    });
+
+    expect(result.message).toBe(
+      "Preflight stopped the run: the master set failed to build: npm install failed",
+    );
+  });
+
   it("Stops on a red master commit in a package clone", async () => {
     const redClone: Command = [
       "node",
       "-e",
       "process.exit(require('fs').existsSync('packages/framework/RED') ? 1 : 0)",
     ];
-    const framework = primaryOf("sheets-framework");
-    writeFileSync(join(framework, "RED"), "");
-    git(framework, "add", "RED");
-    git(framework, "commit", "-m", "Turn master red");
+    commitRed(primaryOf("sheets-framework"));
 
     const result = await preflightOf({
       knobs: runKnobsOf({ clonePaths, checks: [redClone], authChecks: [] }),

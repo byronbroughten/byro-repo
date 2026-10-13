@@ -72,6 +72,10 @@ _Avoid_: main repo, root clone
 A disposable set of checkouts, one per repo, where one ticket is implemented.
 _Avoid_: ticket worktree, sandbox
 
+**Master set**:
+A disposable set of checkouts, one per repo, each detached at its master, rebuilt for each preflight so the checks see master's commits and nothing uncommitted.
+_Avoid_: clean checkout, master workspace
+
 ## Same word, two meanings
 
 - **Runner**: here, the program that runs a spec. In the framework's glossary, an endpoint whose checkbox is a run button.
