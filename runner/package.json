@@ -10,6 +10,7 @@
     "./ClaudeAgentStep": "./src/ClaudeAgentStep.ts",
     "./FakeAgentStep": "./src/FakeAgentStep.ts",
     "./GhCli": "./src/GhCli.ts",
+    "./implementStep": "./src/implementStep.ts",
     "./IssueWorkspaces": "./src/IssueWorkspaces.ts",
     "./LandingLock": "./src/LandingLock.ts",
     "./SessionProbe": "./src/SessionProbe.ts",
