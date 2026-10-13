@@ -49,7 +49,9 @@ export class GhCli implements WrapUpGitHub {
       "comments",
     );
     const { comments } = JSON.parse(output) as RawComments;
-    return (comments ?? []).map(({ body }) => String(body));
+    return (comments ?? []).flatMap(({ body }) =>
+      typeof body === "string" ? [body] : [],
+    );
   }
 
   // GitHub answers 404 for an issue with no parent.

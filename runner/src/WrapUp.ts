@@ -415,13 +415,13 @@ export class WrapUp {
 
   private async _outcomeFactsOf(ticket: Ticket): Promise<OutcomeFacts> {
     const { sessions, limitReadings } = ticket.facts;
-    const transcriptFacts =
-      sessions === undefined
-        ? {}
-        : transcriptFactsOf(
-            sessions,
-            await this._handoffSessionIdsOf(ticket.issue),
-          );
+    let transcriptFacts: OutcomeFacts = {};
+    if (sessions !== undefined) {
+      transcriptFacts = transcriptFactsOf(
+        sessions,
+        await this._handoffSessionIdsOf(ticket.issue),
+      );
+    }
     return {
       ...ticket.facts,
       ...definedFactsOf({

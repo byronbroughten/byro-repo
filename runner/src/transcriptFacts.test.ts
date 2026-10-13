@@ -33,7 +33,7 @@ afterEach(() => {
   rmSync(configFolder, { recursive: true, force: true });
 });
 
-// One handed-off implement session (from its comment), then the final implement step, triage and a fixer.
+// One handed-off implement session (from its comment), then the final implement step, review, triage and a fixer.
 function sessions(overrides: Partial<TicketSessions> = {}): TicketSessions {
   return {
     account: 2,
@@ -137,6 +137,17 @@ describe("transcriptFactsOf", () => {
       readFileSync(fix, "utf8").replace("claude-opus-5-5", "claude-mystery-9"),
     );
     expect(transcriptFactsOf(sessions(), handoffs).costUsd).toBeUndefined();
+  });
+
+  it("leaves the implementer's facts unrecorded when no implementer session was recorded", () => {
+    const steps = sessions().steps.filter(({ agent }) => agent !== "implement");
+    const facts = transcriptFactsOf(sessions({ steps }), []);
+    expect([
+      facts.pair,
+      facts.peakContext,
+      facts.costUsd,
+      facts.durationMinutes,
+    ]).toEqual([undefined, undefined, undefined, 12]);
   });
 });
 

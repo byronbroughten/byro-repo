@@ -80,6 +80,11 @@ interface Usage {
   };
 }
 
+interface CacheWrites {
+  fiveMinute: number;
+  oneHour: number;
+}
+
 interface Transcript {
   text: string;
   entries: TranscriptEntry[];
@@ -93,7 +98,7 @@ export function transcriptFactsOf(
   sessions: TicketSessions,
   handoffSessionIds: string[],
 ): OutcomeFacts {
-  const transcripts = transcriptsOf(sessions.configFolder);
+  const projectDirs = projectDirsOf(sessions.configFolder);
   const implementerIds = unique([
     ...handoffSessionIds,
     ...stepIdsOf(sessions, "implement"),
@@ -102,20 +107,27 @@ export function transcriptFactsOf(
     ...handoffSessionIds,
     ...sessions.steps.map(({ sessionId }) => sessionId),
   ]);
-  const implementers = transcripts(implementerIds);
-  const costed = transcripts(
-    unique([...implementerIds, ...stepIdsOf(sessions, "fix")]),
-  );
-  const triage = transcripts(stepIdsOf(sessions, "triage"));
-  const everyStep = transcripts(sessionIds);
+  // With no implementer recorded, its facts are unrecorded rather than zero.
+  const implementers =
+    implementerIds.length === 0
+      ? undefined
+      : transcriptsOf(projectDirs, implementerIds);
+  const implementersAndFixers =
+    implementers &&
+    transcriptsOf(
+      projectDirs,
+      unique([...implementerIds, ...stepIdsOf(sessions, "fix")]),
+    );
+  const triage = transcriptsOf(projectDirs, stepIdsOf(sessions, "triage"));
+  const allSessions = transcriptsOf(projectDirs, sessionIds);
   return {
     account: String(sessions.account),
     sessionIds,
-    pair: implementers && pairOf(implementers),
-    peakContext: implementers && peaksOf(implementers),
-    durationMinutes: everyStep && durationMinutesOf(everyStep),
-    costUsd: costed && costUsdOf(costed),
-    triageCostUsd: triage && costUsdOf(triage),
+    pair: factOf(implementers, pairOf),
+    peakContext: factOf(implementers, peaksOf),
+    durationMinutes: factOf(allSessions, durationMinutesOf),
+    costUsd: factOf(implementersAndFixers, costUsdOf),
+    triageCostUsd: factOf(triage, costUsdOf),
   };
 }
 
@@ -137,21 +149,22 @@ export function handoffSessionIdOf(comment: string): string | undefined {
   return lastLine?.match(handoffSessionLine)?.[1];
 }
 
+function projectDirsOf(configFolder: string): string[] {
+  const projects = join(configFolder, "projects");
+  if (!existsSync(projects)) return [];
+  return readdirSync(projects).map((name) => join(projects, name));
+}
+
 // Undefined when any id's transcript is missing.
 function transcriptsOf(
-  configFolder: string,
-): (ids: string[]) => Transcript[] | undefined {
-  const projects = join(configFolder, "projects");
-  const projectDirs = existsSync(projects)
-    ? readdirSync(projects).map((name) => join(projects, name))
-    : [];
-  return (ids) => {
-    const found = ids.flatMap((id) => {
-      const transcript = transcriptOf(projectDirs, id);
-      return transcript === undefined ? [] : [transcript];
-    });
-    return found.length === ids.length ? found : undefined;
-  };
+  projectDirs: string[],
+  ids: string[],
+): Transcript[] | undefined {
+  const found = ids.flatMap((id) => {
+    const transcript = transcriptOf(projectDirs, id);
+    return transcript === undefined ? [] : [transcript];
+  });
+  return found.length === ids.length ? found : undefined;
 }
 
 function transcriptOf(
@@ -192,6 +205,14 @@ function entriesOf(text: string): TranscriptEntry[] {
   });
 }
 
+function factOf<RV>(
+  transcripts: Transcript[] | undefined,
+  compute: (found: Transcript[]) => RV | undefined,
+): RV | undefined {
+  if (transcripts === undefined) return undefined;
+  return compute(transcripts);
+}
+
 function stepIdsOf(sessions: TicketSessions, agent: StepAgent): string[] {
   return sessions.steps
     .filter((step) => step.agent === agent)
@@ -205,7 +226,7 @@ function unique(ids: string[]): string[] {
 // The most common `<Family> <effort>` over the implementer's main-loop replies.
 function pairOf(implementers: Transcript[]): string | undefined {
   const counts = implementers
-    .flatMap(({ entries }) => entries.flatMap(pairsOf))
+    .flatMap(({ entries }) => entries.flatMap(entryPairOf))
     .reduce((tally, pair) => {
       tally.set(pair, (tally.get(pair) ?? 0) + 1);
       return tally;
@@ -213,7 +234,8 @@ function pairOf(implementers: Transcript[]): string | undefined {
   return [...counts].sort(([, a], [, b]) => b - a)[0]?.[0];
 }
 
-function pairsOf(entry: TranscriptEntry): string[] {
+// Empty for a subagent, synthetic or effortless entry.
+function entryPairOf(entry: TranscriptEntry): string[] {
   if (entry.type !== "assistant" || entry.isSidechain === true) return [];
   const model = entry.message?.model;
   if (typeof model !== "string" || model === syntheticModel) return [];
@@ -238,9 +260,8 @@ function durationMinutesOf(transcripts: Transcript[]): number {
       const time = typeof timestamp === "string" ? Date.parse(timestamp) : NaN;
       return Number.isNaN(time) ? [] : [time];
     });
-    return times.length === 0
-      ? sum
-      : sum + Math.max(...times) - Math.min(...times);
+    if (times.length === 0) return sum;
+    return sum + Math.max(...times) - Math.min(...times);
   }, 0);
   return Math.round(ms / 60_000);
 }
@@ -289,7 +310,7 @@ function replyCostOf({ message }: TranscriptEntry): number | undefined {
 }
 
 // Without a per-duration split, all cache creation is priced as 5-minute writes.
-function cacheWritesOf(usage: Usage): { fiveMinute: number; oneHour: number } {
+function cacheWritesOf(usage: Usage): CacheWrites {
   if (usage.cache_creation === undefined) {
     return {
       fiveMinute: tokensOf(usage.cache_creation_input_tokens),
