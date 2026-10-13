@@ -25,11 +25,11 @@
 
 - **Split a spec into Phases only at a boundary where real use could change or cancel what follows.** Ticket count is never the reason, a feature whose value is already certain gets tickets rather than a gate, and a spec with no such boundary stays unphased.
 - **A Phase is not a tracer bullet**: a tracer bullet is one verifiable slice, and a Phase is usually several that together can be used in real work.
-- **Phase 1 is the smallest usable Phase**, and the spec names the stand-ins it runs on until a later Phase replaces them, such as #225's unhandled Stop.
+- **Phase 1 is the smallest usable Phase**, and the spec names the stand-ins it runs on until a later Phase replaces them.
 - **A phased spec has a `## Phases` section**: one line per Phase with its user story numbers and a status, `planned`, `ticketed`, `done` or `dropped`, a dropped one linking the gate that dropped it. Every Phase after the next is an outline marked provisional.
 - **Only the next Phase is ticketed.** `/code-tickets` publishes its tickets and its Phase gate in one pass, the gate blocked by every ticket in the Phase, adding them as sub-issues after the earlier Phases' so the runner's order follows the Phases. The last Phase has no gate; closing the spec plays that role.
 - **A Phase gate is a `ready-for-human` ticket** listing its Phase's tickets, a test checklist, note boxes for the data to record, and a `## Decision` section with three boxes: go, reshape, drop the rest. The developer's findings and any reshape details go in comments on the gate.
-- **Only `/code-tickets` closes a Phase gate.** The developer ticks one decision box, runs `/code-tickets` on the gate, then reruns the runner. A gate closed by hand lets the runner reach the gap check while later Phases are unticketed, which at worst lists their stories as gaps.
+- **Only `/code-tickets` closes a Phase gate.** The developer ticks one decision box, runs `/code-tickets` on the gate, then reruns the runner.
 
 ## Ticket size
 

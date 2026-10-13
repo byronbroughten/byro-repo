@@ -16,7 +16,7 @@ The issue tracker and triage label vocabulary should have been provided to you. 
 
 Check with the user that these seams match their expectations.
 
-3. Decide whether the spec has **Phases**: batches of its tickets that can be used in real work, each ending where that use could change or cancel what follows, and each but the last closed by a **Phase gate**, the developer's ticket that tests the Phase and decides whether the next goes ahead, changes or is dropped. Apply the boundary criterion in [`planning.md`](../../../docs/agents/planning.md#phases) yourself, without asking. When it applies, write the proposed `## Phases` section of the template, naming Phase 1's stand-ins; the developer reviews it with the rest of the spec. With no boundary, leave the section out.
+3. Decide whether the spec has **Phases**, usable batches of its tickets, each but the last closed by a **Phase gate**, the developer's go, reshape or drop ticket. Apply the boundary criterion in [`planning.md`](../../../docs/agents/planning.md#phases) yourself, without asking. When it applies, write the proposed `## Phases` section of the template, naming Phase 1's stand-ins; the developer reviews it with the rest of the spec. With no boundary, leave the section out.
 
 4. Write the spec using the template below, then publish it to the project issue tracker. Apply the `ready-for-agent` triage label - no need for additional triage.
 
@@ -43,8 +43,6 @@ A LONG, numbered list of user stories. Each user story should be in the format o
 This list of user stories should be extremely extensive and cover all aspects of the feature.
 
 ## Phases
-
-Proposed; only on a spec with a Phase boundary.
 
 1. Phase 1, <name>: stories <n–m>. Stand-ins: <what it runs on until a later Phase replaces it>. Status: planned
 2. Phase 2, <name> (provisional): stories <n–m>. Status: planned

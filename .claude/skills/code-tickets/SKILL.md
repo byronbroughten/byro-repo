@@ -16,10 +16,10 @@ The issue tracker and triage label vocabulary should have been provided to you. 
 
 Work from whatever is already in the conversation context. If the user passes a reference (a spec path, an issue number or URL) as an argument, fetch it and read its full body and comments.
 
-Then pick the entry point. A spec can be split into **Phases**: batches of its tickets that can be used in real work, each ending where that use could change or cancel what follows, and each but the last closed by a **Phase gate**, the developer's ticket that tests the Phase and decides whether the next goes ahead, changes or is dropped. The rules are in [`planning.md`](../../../docs/agents/planning.md#phases).
+Then pick the entry point. A spec can be split into **Phases**, usable batches of its tickets, each but the last closed by a **Phase gate**, the developer's go, reshape or drop ticket ([`planning.md`](../../../docs/agents/planning.md#phases)).
 
 - **A Phase gate** (a `ready-for-human` issue with a `## Decision` section): go to [From a Phase gate](#from-a-phase-gate).
-- **A phased spec** (one with a `## Phases` section): steps 2–6 cover only its next `planned` Phase. If an earlier Phase is `ticketed` but not `done`, its gate is still open: point the developer to it and stop.
+- **A phased spec** (one with a `## Phases` section): steps 2–6 for its next Phase, unless an earlier Phase is `ticketed` but not `done`: its gate is still open, so point the developer to it and stop.
 - **Anything else is unphased**: steps 2–6, proposing Phases in step 3 if the spec has a boundary.
 
 ### 2. Explore the codebase (optional)
