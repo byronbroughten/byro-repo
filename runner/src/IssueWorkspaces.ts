@@ -11,7 +11,7 @@ import {
   statSync,
   symlinkSync,
 } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { promisify } from "node:util";
 
 import { git, lines } from "./git.ts";
@@ -344,19 +344,18 @@ export class IssueWorkspaces {
   ): Promise<WorkspaceStatus> {
     const branchedRepos: string[] = [];
     const dirtyRepos: string[] = [];
-    let branch = "";
     for (const [repo, clonePath] of this._clonesRootFirst) {
       const worktree = join(path, clonePath);
       if (!existsSync(worktree)) continue;
       const checkedOut = await currentBranchOf(worktree);
       if (checkedOut !== "") branchedRepos.push(repo);
-      if (repo === issue.repo) branch = checkedOut;
       if (await isDirty(worktree)) dirtyRepos.push(repo);
     }
     return {
       path,
       issue,
-      branch,
+      // From the folder, which create() names after the branch, so it survives the repos being detached.
+      branch: basename(path).slice(`${issue.repo}-`.length),
       branchedRepos,
       dirtyRepos,
       createdAt: statSync(path).birthtime,

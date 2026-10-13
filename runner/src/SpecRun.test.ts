@@ -14,21 +14,18 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { StepRequest, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
+import { FakeGitHub } from "./FakeGitHub.ts";
 import { FakeNotices } from "./FakeNotices.ts";
 import { FakeUsageReader } from "./FakeUsageReader.ts";
-import type { ImplementRecord } from "./implementStep.ts";
+import {
+  type ImplementRecord,
+  implementRecordSchema,
+} from "./implementStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
-import type { AccountReading } from "./limitGuard.ts";
+import type { AccountReading, UsageReader } from "./limitGuard.ts";
 import { reviewRecordSchema } from "./reviewStep.ts";
 import { type Command, runKnobsOf } from "./runKnobs.ts";
-import {
-  type RunGitHub,
-  type RunResult,
-  SpecRun,
-  type SpecRunConfig,
-  type TrackedIssue,
-} from "./SpecRun.ts";
-import type { ParentIssue } from "./WrapUp.ts";
+import { type RunResult, SpecRun, type SpecRunConfig } from "./SpecRun.ts";
 
 const clonePaths = {
   "byro-repo": ".",
@@ -50,60 +47,6 @@ let github: FakeGitHub;
 let notices: FakeNotices;
 let usageReader: FakeUsageReader;
 
-class FakeGitHub implements RunGitHub {
-  issues = new Map<number, TrackedIssue>();
-  subIssues = new Map<number, number[]>();
-  blockers = new Map<number, number[]>();
-  comments: { issue: IssueRef; body: string }[] = [];
-
-  async issueOf({ number }: IssueRef): Promise<TrackedIssue> {
-    const issue = this.issues.get(number);
-    if (!issue) throw new Error(`No issue #${number}`);
-    return { ...issue, labels: [...issue.labels] };
-  }
-
-  async subIssuesOf({ number }: IssueRef): Promise<IssueRef[]> {
-    return (this.subIssues.get(number) ?? []).map(refOf);
-  }
-
-  async openBlockersOf({ number }: IssueRef): Promise<IssueRef[]> {
-    return (this.blockers.get(number) ?? [])
-      .filter((blocker) => this.issues.get(blocker)?.isOpen)
-      .map(refOf);
-  }
-
-  async comment(issue: IssueRef, body: string): Promise<void> {
-    this.comments.push({ issue, body });
-  }
-
-  async closeIssue({ number }: IssueRef): Promise<void> {
-    this.edit(number, { isOpen: false });
-  }
-
-  async parentOf({ number }: IssueRef): Promise<ParentIssue | undefined> {
-    const tickets = this.subIssues.get(spec.number) ?? [];
-    if (!tickets.includes(number)) return undefined;
-    const completed = tickets.filter(
-      (ticket) => !this.issues.get(ticket)?.isOpen,
-    ).length;
-    return {
-      issue: spec,
-      labels: [],
-      subIssues: { total: tickets.length, completed },
-    };
-  }
-
-  async commentsOf(): Promise<string[]> {
-    return [];
-  }
-
-  edit(number: number, change: Partial<TrackedIssue>): void {
-    const issue = this.issues.get(number);
-    if (!issue) throw new Error(`No issue #${number}`);
-    this.issues.set(number, { ...issue, ...change });
-  }
-}
-
 // Account 2 is always idle, so a run on account 1 shows it reads only its own account.
 function readingOf(fiveHour: number, sevenDay: number): AccountReading[] {
   return [1, 2].map((account) => ({
@@ -124,7 +67,7 @@ function readingOf(fiveHour: number, sevenDay: number): AccountReading[] {
 beforeEach(() => {
   temp = realpathSync(mkdtempSync(join(tmpdir(), "spec-run-")));
   primaryRoot = join(temp, "byro-repo");
-  github = new FakeGitHub();
+  github = FakeGitHub.init();
   notices = FakeNotices.init();
   usageReader = FakeUsageReader.init(readingOf(0.1, 0.2));
   buildPrimary();
@@ -279,6 +222,25 @@ function implemented(
     const branch = git(request.cwd, "branch", "--show-current");
     return resultOf(recordOf(branch, git(request.cwd, "rev-parse", "HEAD")));
   };
+}
+
+// Makes only GitHub writes and commits nothing, as an implement step on a ticket with no code would.
+function applied(): StepResult {
+  return resultOf({
+    status: "applied",
+    branches: [],
+    githubWrites: [
+      {
+        issue: "byronbroughten/byro-repo#213",
+        action: "comment",
+        url: "https://github.com/byronbroughten/byro-repo/issues/213#issuecomment-1",
+        summary: "Posted the addendum.",
+      },
+    ],
+    closingComment: "Posted the addendum.",
+    boxesUndone: [],
+    blockers: [],
+  });
 }
 
 function reviewed(findings: string[] = []): StepResult {
@@ -486,6 +448,33 @@ describe("run", () => {
       { model: "sonnet", effort: "medium" },
       { model: "sonnet", effort: "medium" },
     ]);
+  });
+
+  it("lands an applied ticket without review or checks: one agent request, a row commit, the ticket closed with its write list", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(applied());
+    const subjectsBefore = masterSubjects();
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(agentStep.requests.map(({ jsonSchema }) => jsonSchema)).toEqual([
+      implementRecordSchema,
+    ]);
+    const progress = readFileSync(
+      join(stateFolder(), "byro-repo-213.log"),
+      "utf8",
+    );
+    expect(progress).not.toContain("checking");
+    expect(masterSubjects()).toHaveLength(subjectsBefore.length + 1);
+    expect(masterSubjects()[0]).toContain("#1");
+    expect(github.issues.get(1)?.isOpen).toBe(false);
+    const closing = github.closed.find(
+      ({ issue }) => issue.number === 1,
+    )?.comment;
+    expect(closing).toContain(
+      "- comment on byronbroughten/byro-repo#213: Posted the addendum.",
+    );
   });
 
   it("runs a ticketless spec with its own Model fit as one ticket, closing it", async () => {
@@ -834,6 +823,36 @@ describe("run's resume", () => {
     expect(masterSubjects()).toContain(
       "Merge issue-1-ticket-1 into master (#1)",
     );
+  });
+
+  it("resumes an applied ticket killed at its wrap-up and lands it with no agent request", async () => {
+    addSpec([1]);
+    let reachWrapUp = () => {};
+    const reachedWrapUp = new Promise<void>((resolve) => {
+      reachWrapUp = resolve;
+    });
+    let reads = 0;
+    // Reads at run start, before implement, then in the wrap-up, where it hangs.
+    const hangingReader: UsageReader = {
+      async read() {
+        reads += 1;
+        if (reads < 3) return readingOf(0.1, 0.2);
+        reachWrapUp();
+        return new Promise<AccountReading[]>(() => {});
+      },
+    };
+    void specRun(FakeAgentStep.init(applied()), {
+      usageReader: hangingReader,
+    }).run(spec);
+    await reachedWrapUp;
+    expect(ticketState()["byro-repo #1"]?.step).toBe("wrap-up");
+    const rerunStep = FakeAgentStep.init();
+
+    const result = await specRun(rerunStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(rerunStep.requests).toEqual([]);
+    expect(github.issues.get(1)?.isOpen).toBe(false);
   });
 
   it("lets GitHub win: a ticket closed outside the run is skipped whatever its saved step", async () => {
