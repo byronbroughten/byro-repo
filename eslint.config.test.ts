@@ -59,3 +59,52 @@ describe("the runner's import boundary", () => {
     expect(await boundaryErrors(code, "scripts/x.ts")).toEqual([]);
   });
 });
+
+describe("the private-helper rule", () => {
+  async function helperErrors(code: string): Promise<number> {
+    const [result] = await new ESLint({ cwd: repoRoot }).lintText(code, {
+      filePath: "scripts/helper.ts",
+    });
+    return (result?.messages ?? []).filter(
+      (message) => message.ruleId === "style/private-helper-uses-this",
+    ).length;
+  }
+
+  it("flags a `private` or `#` method that never reads `this`", async () => {
+    const code = `export class Box {
+  open(): number {
+    return this._twice(1) + this.#thrice(1);
+  }
+  private _twice(n: number): number {
+    return n * 2;
+  }
+  #thrice(n: number): number {
+    return n * 3;
+  }
+}
+`;
+    expect(await helperErrors(code)).toBe(2);
+  });
+
+  it("passes a helper that reads `this` from an arrow, and a protected or public method", async () => {
+    const code = `class Base {
+  protected _size(): number {
+    return 0;
+  }
+}
+export class Box extends Base {
+  readonly items: number[] = [];
+  open(): number {
+    return this._sum() + this._size();
+  }
+  private _sum(): number {
+    return this.items.reduce((total, item) => total + item + this.items.length, 0);
+  }
+  protected override _size(): number {
+    return 1;
+  }
+}
+`;
+    expect(await helperErrors(code)).toBe(0);
+  });
+});
