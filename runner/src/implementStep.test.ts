@@ -126,21 +126,32 @@ describe("implementPrompt", () => {
     title: "Implement-step prompt",
     body: "## What to build\n\nThe prompt.",
     branch: "issue-224-implement-step-prompt",
+    branchedRepos: ["byro-repo", "sheets-framework"],
     promoteCommand: "npm run issue:promote -- byro-repo 224",
   };
   const noReset = "Don't reset, stash, check out or clean it";
 
   it("tells a first step nothing about earlier work", () => {
     const prompt = implementPrompt(input);
-    expect(prompt).not.toContain("Handoff from the previous step");
+    expect(prompt).not.toContain("Conclusion:");
     expect(prompt).not.toContain(noReset);
   });
 
-  it("gives a fresh step the latest handoff and keeps its uncommitted work", () => {
+  it("names every repo the workspace put on the issue branch", () => {
+    expect(implementPrompt(input)).toContain(
+      "These repos are on the ticket's branch, `issue-224-implement-step-prompt`: byro-repo, sheets-framework.",
+    );
+  });
+
+  it("gives a fresh step the latest handoff", () => {
     const prompt = implementPrompt({ ...input, latestHandoff: handoffFields });
-    expect(prompt).toContain("Handoff from the previous step");
-    expect(prompt).toContain(handoffFields.conclusion);
-    expect(prompt).toContain("runner/src/implementStep.ts:1-80");
+    expect(prompt).toContain(
+      "Conclusion: The schema is done; the prompt is half written.\nFiles to open:\n- runner/src/implementStep.ts:1-80",
+    );
+  });
+
+  it("tells a fresh step to keep the previous step's uncommitted work", () => {
+    const prompt = implementPrompt({ ...input, latestHandoff: handoffFields });
     expect(prompt).toContain(noReset);
   });
 });

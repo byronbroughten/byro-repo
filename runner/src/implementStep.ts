@@ -34,8 +34,10 @@ export interface CommittedBranch {
   sha: string;
 }
 
+const blockerKinds = ["gated-action", "spec-ambiguity", "denied-tool"] as const;
+
 export interface Blocker {
-  kind: "gated-action" | "spec-ambiguity" | "denied-tool";
+  kind: (typeof blockerKinds)[number];
   detail: string;
   recommendation: string;
 }
@@ -45,7 +47,6 @@ export interface Handoff {
   files_to_open: { path: string; lines: string }[];
   ruled_out: string[];
   files_changed: string[];
-  // Empty when the code is green.
   still_failing: string[];
 }
 
@@ -54,7 +55,9 @@ export interface ImplementPromptInput {
   title: string;
   body: string;
   branch: string;
-  // Run with a repo name appended, it puts that detached repo in the workspace onto the issue branch.
+  // The workspace's repos on the issue branch: the issue's own plus any extras it was created with.
+  branchedRepos: string[];
+  // Takes the repo to promote as its last argument.
   promoteCommand: string;
   // Set for a fresh step after a handoff; a handoff is cumulative, so only the latest is passed.
   latestHandoff?: Handoff;
@@ -69,32 +72,33 @@ export function implementPrompt(input: ImplementPromptInput): string {
   return [
     `You are the implement step of an unattended run. Implement ${issue.repo}#${issue.number}, "${title}". Nobody is watching this session: never ask a question or wait for an answer.`,
     workspaceSection(input),
-    workingSection,
-    finishingSection,
-    handoffSection,
+    promptSections.working,
+    promptSections.finishing,
+    promptSections.handoff,
     ...(latestHandoff ? [previousHandoffSection(latestHandoff)] : []),
     `## The ticket\n\n${body}`,
   ].join("\n\n");
 }
 
 function workspaceSection({
-  issue,
   branch,
+  branchedRepos,
   promoteCommand,
 }: ImplementPromptInput): string {
   return `## Where you work
 
-- Your working directory is the ticket's issue workspace root. The ${issue.repo} checkout is on the ticket's branch, \`${branch}\`; every other repo is detached at master.
+- Your working directory is the ticket's issue workspace root. These repos are on the ticket's branch, \`${branch}\`: ${branchedRepos.join(", ")}. Every other repo is detached at master.
 - To change a detached repo, first put it onto \`${branch}\` with \`${promoteCommand} <repo>\`. Never switch, create or delete a branch yourself.`;
 }
 
-const workingSection = `## How you work
+const promptSections = {
+  working: `## How you work
 
 - Work test-first: if a \`tdd\` skill is available, call it, at the seams the ticket names or, with none named, seams you pick yourself; never stop to confirm them.
 - Run typechecking regularly, single test files regularly, and the full test suite once at the end.
-- Never ask. When the ticket is ambiguous, a command needs a yes nobody gave, or a tool is denied, don't stall: record it as a blocker (\`spec-ambiguity\`, \`gated-action\` or \`denied-tool\`) with what happened and what you recommend the developer do. Carry on with the reading the ticket best supports when the work can go on without it; otherwise stop with status \`blocked\`.`;
+- Never ask. When the ticket is ambiguous, a command needs a yes nobody gave, or a tool is denied, don't stall: record it as a blocker (\`spec-ambiguity\`, \`gated-action\` or \`denied-tool\`) with what happened and what you recommend the developer do. Carry on with the reading the ticket best supports when the work can go on without it; otherwise stop with status \`blocked\`.`,
 
-const finishingSection = `## When you're done
+  finishing: `## When you're done
 
 - Commit once in each repo you changed, on the ticket's branch. That commit is your only write outside the workspace's files: never push, merge, rebase or reset, never comment on or close an issue, and never run the wrap-up. Don't call code review; the runner reviews after you.
 - Then stop and return the implement record:
@@ -102,11 +106,12 @@ const finishingSection = `## When you're done
   - \`branches\`: each repo you committed in, its branch and the commit's sha, in landing order (a repo lands before any repo that depends on it; a package clone before the root). Empty unless committed.
   - \`closing_comment\`: what landed, for the ticket's closing comment.
   - \`boxes_undone\`: each acceptance box you left undone, with why.
-  - \`blockers\`: each blocker, as above.`;
+  - \`blockers\`: each blocker, as above.`,
 
-const handoffSection = `## If a context nudge fires
+  handoff: `## If a context nudge fires
 
-Finish the step in hand, then stop: commit nothing, post nothing, and return status \`handoff\` with no branches and every \`handoff\` field: \`conclusion\`, \`files_to_open\` (path and line range), \`ruled_out\`, \`files_changed\`, and \`still_failing\` (empty when the code is green). A handoff is cumulative: carry over whatever still matters from any handoff you started from.`;
+Finish the step in hand, then stop: commit nothing, post nothing, and return status \`handoff\` with no branches and every \`handoff\` field: \`conclusion\`, \`files_to_open\` (path and line range), \`ruled_out\`, \`files_changed\`, and \`still_failing\` (empty when the code is green). A handoff is cumulative: carry over whatever still matters from any handoff you started from.`,
+} as const;
 
 function previousHandoffSection(handoff: Handoff): string {
   return `## Handoff from the previous step
@@ -143,16 +148,16 @@ export function implementRecordProblems(
     return ["the record says committed, but the step made no new commit"];
   }
   if (record.status === "handoff" && hasNewCommit) {
-    return [
-      "a handoff must leave its work uncommitted, but the step made a new commit",
-    ];
+    return [newCommitProblem("a handoff must leave its work uncommitted")];
   }
   if (record.status === "blocked" && hasNewCommit) {
-    return [
-      "a blocked record must commit nothing, but the step made a new commit",
-    ];
+    return [newCommitProblem("a blocked record must commit nothing")];
   }
   return [];
+}
+
+function newCommitProblem(rule: string): string {
+  return `${rule}, but the step made a new commit`;
 }
 
 const stringSchema = { type: "string" };
@@ -164,7 +169,7 @@ const branchSchema = objectSchema({
 });
 
 const blockerSchema = objectSchema({
-  kind: { enum: ["gated-action", "spec-ambiguity", "denied-tool"] },
+  kind: { enum: blockerKinds },
   detail: stringSchema,
   recommendation: stringSchema,
 });
@@ -222,6 +227,11 @@ function objectSchema(properties: Record<string, object>): object {
   };
 }
 
-function arraySchema(items: object, bounds: object = {}): object {
+interface ArrayBounds {
+  minItems?: number;
+  maxItems?: number;
+}
+
+function arraySchema(items: object, bounds: ArrayBounds = {}): object {
   return { type: "array", items, ...bounds };
 }

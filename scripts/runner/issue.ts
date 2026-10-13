@@ -62,29 +62,36 @@ function ageOf(createdAt: Date): string {
 }
 
 async function promote(args: string[]): Promise<void> {
+  const usage = "Usage: npm run issue:promote -- <repo> <n> <repo-to-promote>";
   const [repo, number, promoted] = args;
-  if (
-    repo === undefined ||
-    !Number.isInteger(Number(number)) ||
-    promoted === undefined
-  ) {
-    throw new Error(
-      "Usage: npm run issue:promote -- <repo> <n> <repo-to-promote>",
-    );
-  }
-  const workspace = await workspaceOf({ repo, number: Number(number) });
+  if (promoted === undefined) throw new Error(usage);
+  const workspace = await workspaceOf(issueOf(repo, number, usage));
   const { branch } = await workspaces.promote(workspace, promoted);
   console.log(`${promoted} is on ${branch} in ${workspace.path}`);
 }
 
 async function remove(args: string[]): Promise<void> {
   const [repo, number] = args.filter((arg) => arg !== "--force");
-  if (repo === undefined || !Number.isInteger(Number(number))) {
-    throw new Error("Usage: npm run issue:remove -- <repo> <n> [--force]");
-  }
-  const workspace = await workspaceOf({ repo, number: Number(number) });
+  const workspace = await workspaceOf(
+    issueOf(
+      repo,
+      number,
+      "Usage: npm run issue:remove -- <repo> <n> [--force]",
+    ),
+  );
   await workspaces.remove(workspace, { force: args.includes("--force") });
   console.log(`Removed ${workspace.path}`);
+}
+
+function issueOf(
+  repo: string | undefined,
+  number: string | undefined,
+  usage: string,
+): IssueRef {
+  if (repo === undefined || !Number.isInteger(Number(number))) {
+    throw new Error(usage);
+  }
+  return { repo, number: Number(number) };
 }
 
 async function workspaceOf(issue: IssueRef): Promise<Workspace> {
