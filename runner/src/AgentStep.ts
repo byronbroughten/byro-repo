@@ -33,6 +33,8 @@ export interface StepResult {
   peakContext: number | undefined;
   // The result message's subtype; undefined when the stream ended without one.
   exitSubtype: string | undefined;
+  // The result text of a result flagged is_error, which can still carry subtype success.
+  errorText: string | undefined;
   usage: UsageReading | undefined;
   limitHit: LimitHit | undefined;
 }

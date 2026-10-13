@@ -18,8 +18,8 @@ import { FakeGitHub } from "./FakeGitHub.ts";
 import { FakeNotices } from "./FakeNotices.ts";
 import { FakeUsageReader } from "./FakeUsageReader.ts";
 import {
+  implementOutputSchema,
   type ImplementRecord,
-  implementRecordSchema,
 } from "./implementStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { AccountReading, UsageReader } from "./limitGuard.ts";
@@ -189,9 +189,15 @@ function resultOf(record: unknown): StepResult {
     transcriptPath: undefined,
     peakContext: undefined,
     exitSubtype: "success",
+    errorText: undefined,
     usage: undefined,
     limitHit: undefined,
   };
+}
+
+// An implement step's structured output carries its record under `record`.
+function implementResultOf(record: ImplementRecord): StepResult {
+  return resultOf({ record });
 }
 
 function recordOf(
@@ -220,13 +226,15 @@ function implemented(
     git(request.cwd, "add", file);
     git(request.cwd, "commit", "-m", `Add ${file}`);
     const branch = git(request.cwd, "branch", "--show-current");
-    return resultOf(recordOf(branch, git(request.cwd, "rev-parse", "HEAD")));
+    return implementResultOf(
+      recordOf(branch, git(request.cwd, "rev-parse", "HEAD")),
+    );
   };
 }
 
 // Makes only GitHub writes and commits nothing, as an implement step on a ticket with no code would.
 function applied(): StepResult {
-  return resultOf({
+  return implementResultOf({
     status: "applied",
     branches: [],
     githubWrites: [
@@ -459,7 +467,7 @@ describe("run", () => {
 
     expect(result.landed).toEqual([refOf(1)]);
     expect(agentStep.requests.map(({ jsonSchema }) => jsonSchema)).toEqual([
-      implementRecordSchema,
+      implementOutputSchema,
     ]);
     const progress = readFileSync(
       join(stateFolder(), "byro-repo-213.log"),
@@ -676,7 +684,7 @@ describe("run's unhandled Stops", () => {
 
   function blocked(): ScriptedStep {
     return async (request) =>
-      resultOf(
+      implementResultOf(
         recordOf(git(request.cwd, "branch", "--show-current"), "", {
           status: "blocked",
           blockers: [
@@ -751,6 +759,22 @@ describe("run's unhandled Stops", () => {
       ]);
     },
   );
+
+  it("names an API error in the step-error comment, though its subtype says success", async () => {
+    addSpec([1]);
+    const apiError: StepResult = {
+      ...resultOf(undefined),
+      output: { status: "none" },
+      errorText: "API Error: 400 input_schema does not support oneOf",
+    };
+
+    await specRun(FakeAgentStep.init(apiError)).run(spec);
+
+    expect(github.comments[0]?.body).toContain(
+      "The implement step ended on an error: API Error: 400 input_schema does not support oneOf",
+    );
+    expect(github.comments[0]?.body).not.toContain("ended success");
+  });
 
   it("Stops again on a rerun while the stopped ticket is open, naming it", async () => {
     addSpec([1, 2]);

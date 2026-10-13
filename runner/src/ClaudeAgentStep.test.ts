@@ -69,6 +69,7 @@ describe("ClaudeAgentStep on a recorded success", () => {
         "/Users/dev/.claude-swap-backup/sessions/2-dev_example.com/projects/-Users-dev-byro-repo/0e3dc8b3-fd87-4381-b3dc-8c36c1e03e1b.jsonl",
       peakContext: 20_221,
       exitSubtype: "success",
+      errorText: undefined,
       usage: {
         fiveHour: { utilization: 0.01, resetsAt: new Date(1791781200_000) },
         sevenDay: { utilization: 0.5, resetsAt: new Date(1791903600_000) },
@@ -171,6 +172,20 @@ describe("ClaudeAgentStep on failed runs", () => {
     const { result } = await replay("errorDuringExecution.ndjson");
     expect(result.exitSubtype).toBe("error_during_execution");
     expect(result.output).toEqual({ status: "none" });
+  });
+
+  // Derived from the limit-error recording with a 400 result, as a refused tool schema gives.
+  it("returns an API error's text with no record or limit hit", async () => {
+    const { result } = await replay("apiError.ndjson");
+    expect(result.exitSubtype).toBe("success");
+    expect(result.errorText).toContain("API Error: 400");
+    expect(result.output).toEqual({ status: "none" });
+    expect(result.limitHit).toBeUndefined();
+  });
+
+  it("returns no error text on a run that wasn't an error", async () => {
+    const { result } = await replay("maxTurns.ndjson");
+    expect(result.errorText).toBeUndefined();
   });
 
   // Derived from the success recording: a rejected rate_limit_event and a 429 result.

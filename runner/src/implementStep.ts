@@ -1,6 +1,6 @@
 // The implement step: the prompt the runner sends, a non-interactive fork of upstream `implement`
 // recorded in byro-repo's .claude/skills/upstream.json, and the implement record it returns.
-// AgentStep.ts launches the step; StepStream.ts checks the record against implementRecordSchema.
+// AgentStep.ts launches the step; StepStream.ts checks the output against implementOutputSchema.
 
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import {
@@ -122,7 +122,7 @@ const promptSections = {
   finishing: `## When you're done
 
 - Commit once in each repo you changed, on the ticket's branch. That commit and the GitHub writes the ticket describes are your only writes outside the workspace's files: never push, merge, rebase or reset, never close an issue, and never run the wrap-up. Don't call code review; the runner reviews after you.
-- Then stop and return the implement record:
+- Then stop and return the implement record as \`record\`:
   - \`status\`: \`committed\`; \`applied\` when the ticket needed only GitHub writes and you committed nothing; or \`blocked\` when a blocker stopped you before any commit.
   - \`branches\`: each repo you committed in, its branch and the commit's sha, in landing order (a repo lands before any repo that depends on it; a package clone before the root). Empty unless committed.
   - \`githubWrites\`: only when applied, each GitHub write you made: its issue as \`owner/repo#n\`, its action (\`edit\` or \`comment\`), its URL and a one-line summary.
@@ -217,8 +217,7 @@ const handoffSchema = objectSchema({
 });
 
 // One variant per status, so only the status that needs a field carries it.
-export const implementRecordSchema = {
-  type: "object",
+const recordVariantsSchema = {
   oneOf: [
     recordSchema("committed", {
       branches: arraySchema(branchSchema, { minItems: 1 }),
@@ -237,6 +236,15 @@ export const implementRecordSchema = {
     }),
   ],
 };
+
+// The API refuses a top-level oneOf in a tool's input schema, so the record sits under `record`.
+export const implementOutputSchema = objectSchema({
+  record: recordVariantsSchema,
+});
+
+export function implementRecordOf(output: unknown): ImplementRecord {
+  return (output as { record: ImplementRecord }).record;
+}
 
 function recordSchema(
   status: ImplementRecord["status"],

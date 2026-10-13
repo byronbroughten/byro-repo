@@ -22,6 +22,7 @@ function result(sessionId: string): StepResult {
     transcriptPath: undefined,
     peakContext: 90_000,
     exitSubtype: "success",
+    errorText: undefined,
     usage: undefined,
     limitHit: undefined,
   };

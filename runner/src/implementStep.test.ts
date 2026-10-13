@@ -6,16 +6,20 @@ import {
   type CommittedRecord,
   type Handoff,
   type HandoffRecord,
+  implementOutputSchema,
   implementPrompt,
   type ImplementPromptInput,
   implementRecordProblems,
-  implementRecordSchema,
 } from "./implementStep.ts";
 
 // The same Ajv setup StepStream validates a step's structured output with.
-const validate = new Ajv({ allErrors: true, strict: false }).compile(
-  implementRecordSchema,
+const validateOutput = new Ajv({ allErrors: true, strict: false }).compile(
+  implementOutputSchema,
 );
+
+function validate(record: unknown): boolean {
+  return validateOutput({ record });
+}
 
 const committed: CommittedRecord = {
   status: "committed",
@@ -64,7 +68,7 @@ const applied: AppliedRecord = {
   ],
 };
 
-describe("implementRecordSchema", () => {
+describe("implementOutputSchema", () => {
   it("accepts a committed record", () => {
     expect(validate(committed)).toBe(true);
   });

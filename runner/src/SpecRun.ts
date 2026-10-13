@@ -26,10 +26,11 @@ import type {
 import { messageOf, outputTailOf } from "./failureText.ts";
 import { git } from "./git.ts";
 import {
+  implementOutputSchema,
   implementPrompt,
   type ImplementRecord,
+  implementRecordOf,
   implementRecordProblems,
-  implementRecordSchema,
 } from "./implementStep.ts";
 import {
   fileStemOf,
@@ -474,9 +475,9 @@ export class SpecRun {
         promoteCommand: this.config.promoteCommandOf(ticket.issue),
         developerLogin: this.config.githubOwner,
       }),
-      jsonSchema: implementRecordSchema,
+      jsonSchema: implementOutputSchema,
     });
-    const record = launched.record as ImplementRecord;
+    const record = implementRecordOf(launched.record);
     const { logPath } = launched;
     const hasNewCommit = (await this._headsOf(workspace)) !== headsBefore;
     const problems = implementRecordProblems(record, hasNewCommit);
@@ -573,6 +574,13 @@ export class SpecRun {
       throw new UnhandledStop(
         "schema-failure",
         output.problems.join("; "),
+        logPath,
+      );
+    }
+    if (result.errorText !== undefined) {
+      throw new UnhandledStop(
+        "step-error",
+        `The ${agent} step ended on an error: ${result.errorText}`,
         logPath,
       );
     }

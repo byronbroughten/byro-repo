@@ -87,9 +87,15 @@ export class StepStream {
         projectFolder && sessionId && join(projectFolder, `${sessionId}.jsonl`),
       peakContext: this.meter.peak,
       exitSubtype: stringOrUndefined(this.result?.subtype),
+      errorText: this._errorText,
       usage: this.rateLimit && usageOf(this.rateLimit),
       limitHit: this._limitHit,
     };
+  }
+
+  private get _errorText(): string | undefined {
+    if (this.result?.is_error !== true) return undefined;
+    return stringOrUndefined(this.result.result);
   }
 
   private get _sessionId(): string | undefined {
