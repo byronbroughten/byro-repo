@@ -10,6 +10,7 @@ import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
 import {
+  issueLabelOf,
   type IssueRef,
   IssueWorkspaces,
   type IssueWorkspacesConfig,
@@ -95,7 +96,7 @@ export interface WrapUpConfig {
   github: WrapUpGitHub;
   githubOwner: string;
   // Each a command and its args, run from the issue workspace's root after the merges.
-  checks: string[][];
+  checks: [string, ...string[]][];
   // Relative to the root repo.
   outcomeFolder: string;
   // Holds each ticket's facts and progress files; gitignored.
@@ -192,6 +193,26 @@ export class WrapUp {
     };
   }
 
+  private _readFacts(issue: IssueRef): WrapUpFacts {
+    const path = this.factsPathOf(issue);
+    if (!existsSync(path)) throw new Error(`No facts file at ${path}`);
+    const facts = JSON.parse(readFileSync(path, "utf8")) as WrapUpFacts;
+    if (!Array.isArray(facts.branches) || facts.branches.length === 0) {
+      throw new Error(`${path} names no branches to land`);
+    }
+    if (typeof facts.closingComment !== "string") {
+      throw new Error(`${path} has no closing comment`);
+    }
+    facts.branches.forEach(({ repo }) => this._clonePathOf(repo));
+    return facts;
+  }
+
+  private _readProgress(issue: IssueRef): Progress {
+    const path = this.progressPathOf(issue);
+    if (!existsSync(path)) return { completed: [] };
+    return JSON.parse(readFileSync(path, "utf8")) as Progress;
+  }
+
   // Nothing reaches a primary checkout before the fast-forward, so an unlanded rerun starts over from the branches.
   private async _land(ticket: Ticket): Promise<void> {
     const workspace = await this._workspaceOf(ticket.issue);
@@ -217,7 +238,7 @@ export class WrapUp {
   private async _workspaceOf(issue: IssueRef): Promise<Workspace> {
     const workspace = await this.workspaces.find(issue);
     if (!workspace) {
-      throw new Error(`No issue workspace for ${issue.repo} #${issue.number}`);
+      throw new Error(`No issue workspace for ${issueLabelOf(issue)}`);
     }
     return workspace;
   }
@@ -234,7 +255,7 @@ export class WrapUp {
     const rootHead = ticket.progress.built?.[this._rootRepo]?.head;
     const rootWorktree = this._worktreeOf(workspace, this._rootRepo);
     if (
-      !this._isListed(ticket, this._rootRepo) &&
+      !isListed(ticket, this._rootRepo) &&
       (await currentBranchOf(rootWorktree)) === "" &&
       (await revOf(rootWorktree, "HEAD")) === rootHead
     ) {
@@ -327,7 +348,7 @@ export class WrapUp {
     try {
       await git(worktree, "merge", "--no-ff", "-m", message, branch);
     } catch (error) {
-      await git(worktree, "merge", "--abort");
+      if (await isMerging(worktree)) await git(worktree, "merge", "--abort");
       await this._restore(ticket, workspace);
       throw new WrapUpFailure(
         "conflict",
@@ -338,7 +359,6 @@ export class WrapUp {
 
   private async _runChecks(workspaceRoot: string): Promise<void> {
     for (const [command, ...args] of this.config.checks) {
-      if (command === undefined) continue;
       try {
         await execFileAsync(command, args, {
           cwd: workspaceRoot,
@@ -381,14 +401,10 @@ export class WrapUp {
   }
 
   private async _specOf(issue: IssueRef): Promise<IssueRef> {
-    const parent = await this._withRetries(
-      `Reading #${issue.number}'s parent`,
-      () => this.config.github.parentOf(issue),
-    );
-    return parent?.issue ?? issue;
+    return (await this._parentOf(issue))?.issue ?? issue;
   }
 
-  // Locks are taken root first, the same order for every lander, so two landings never wait on each other.
+  // Locks are taken root first, the same order for every lander, so two landings never deadlock; the push runs under the locks too.
   private async _fastForward(ticket: Ticket): Promise<boolean> {
     const built = ticket.progress.built ?? {};
     const repos = this._rootFirst(Object.keys(built));
@@ -412,6 +428,7 @@ export class WrapUp {
         await this._fastForwardRepo(repo, built[repo] as BuiltRepo);
       }
       await this._markDone(ticket, "fast-forward");
+      await this._step(ticket, "push", () => this._push(ticket));
       return true;
     } finally {
       locks.forEach((lock) => lock.release());
@@ -485,11 +502,13 @@ export class WrapUp {
 
   private async _checkParent(ticket: Ticket): Promise<void> {
     const { issue } = ticket;
-    const parent = await this._withRetries(
-      `Reading #${issue.number}'s parent`,
-      () => this.config.github.parentOf(issue),
+    ticket.progress.parent = parentCheckOf(await this._parentOf(issue));
+  }
+
+  private async _parentOf(issue: IssueRef): Promise<ParentIssue | undefined> {
+    return this._withRetries(`Reading ${issueLabelOf(issue)}'s parent`, () =>
+      this.config.github.parentOf(issue),
     );
-    ticket.progress.parent = parentCheckOf(parent);
   }
 
   private async _step(
@@ -543,26 +562,6 @@ export class WrapUp {
     this.config.log?.(line);
   }
 
-  private _readFacts(issue: IssueRef): WrapUpFacts {
-    const path = this.factsPathOf(issue);
-    if (!existsSync(path)) throw new Error(`No facts file at ${path}`);
-    const facts = JSON.parse(readFileSync(path, "utf8")) as WrapUpFacts;
-    if (!Array.isArray(facts.branches) || facts.branches.length === 0) {
-      throw new Error(`${path} names no branches to land`);
-    }
-    if (typeof facts.closingComment !== "string") {
-      throw new Error(`${path} has no closing comment`);
-    }
-    facts.branches.forEach(({ repo }) => this._clonePathOf(repo));
-    return facts;
-  }
-
-  private _readProgress(issue: IssueRef): Progress {
-    const path = this.progressPathOf(issue);
-    if (!existsSync(path)) return { completed: [] };
-    return JSON.parse(readFileSync(path, "utf8")) as Progress;
-  }
-
   // The listed repos in landing order, then the root repo, which takes the log row.
   private _landedRepos(ticket: Ticket): string[] {
     return [
@@ -571,10 +570,6 @@ export class WrapUp {
         this._rootRepo,
       ]),
     ];
-  }
-
-  private _isListed(ticket: Ticket, repo: string): boolean {
-    return ticket.facts.branches.some((branch) => branch.repo === repo);
   }
 
   private _rootFirst(repos: string[]): string[] {
@@ -627,6 +622,10 @@ function closingCommentOf({
   return [closingComment, "", "Left undone:", ...undone].join("\n");
 }
 
+function isListed(ticket: Ticket, repo: string): boolean {
+  return ticket.facts.branches.some((branch) => branch.repo === repo);
+}
+
 function parentCheckOf(parent: ParentIssue | undefined): ParentCheck {
   if (parent === undefined) return { kind: "none" };
   if (parent.labels.includes(mapLabel)) {
@@ -635,7 +634,7 @@ function parentCheckOf(parent: ParentIssue | undefined): ParentCheck {
   if (parent.subIssues === undefined) {
     throw new WrapUpFailure(
       "parent-check",
-      `${parent.issue.repo} #${parent.issue.number}'s sub-issue summary could not be read`,
+      `${issueLabelOf(parent.issue)}'s sub-issue summary could not be read`,
     );
   }
   if (parent.subIssues.completed < parent.subIssues.total) {

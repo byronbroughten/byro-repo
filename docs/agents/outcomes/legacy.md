@@ -1,6 +1,6 @@
 # Legacy outcome log
 
-The rows the landing wrap-up kept in `model-fit.md` before each ticket got its own file. Pass means merged without a style or scope fix. Peak context lists each implementing session's highest `/context` in order; Files changed is from `git diff --stat` against master.
+The rows the landing wrap-up kept in `model-fit.md` before each ticket got its own file. Pass means merged without a style or scope fix. Peak context lists each implementing session's highest `/context` in order, `→` marking a handoff to a fresh session (#146's row once read `150K + 90K handoff`); Files changed is from `git diff --stat` against master.
 
 | Issue | Pair | Files changed | Peak context | Result | What review caught |
 | --- | --- | --- | --- | --- | --- |

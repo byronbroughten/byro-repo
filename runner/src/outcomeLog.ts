@@ -18,7 +18,7 @@ const columns = [
   "Review rounds",
   "Retries",
   "Duration",
-  "Cost",
+  "Cost (API-equivalent)",
   "Triage cost",
   "Limit used",
   "What review caught",
@@ -78,7 +78,7 @@ export function outcomeFileOf(row: OutcomeRow): string {
 
 export function outcomeCommitMessage(row: OutcomeRow): string {
   const { issue, filesChanged, facts } = row;
-  return `Record the #${issue.number} outcome: ${facts.pair ?? unrecorded}, ${filesChanged} files, ${peakContextOf(facts)}, ${verdictPhraseOf(facts)}.`;
+  return `Record the #${issue.number} outcome: ${facts.pair ?? unrecorded}, ${filesChanged} files, ${peakContextOf(facts)}, ${resultPhraseOf(facts)}.`;
 }
 
 export function peakContextOf({ peakContext }: OutcomeFacts): string {
@@ -108,9 +108,11 @@ function cellsOf({ issue, filesChanged, facts }: OutcomeRow): string[] {
   ];
 }
 
-function resultOf({ halt, reviewFixes = "none" }: OutcomeFacts): string {
+function resultOf({ halt, reviewFixes }: OutcomeFacts): string {
   if (halt !== undefined) return `Halted then passed (${halt})`;
-  return resultByReviewFixes[reviewFixes];
+  return reviewFixes === undefined
+    ? unrecorded
+    : resultByReviewFixes[reviewFixes];
 }
 
 const resultByReviewFixes: Record<ReviewFixes, string> = {
@@ -119,15 +121,15 @@ const resultByReviewFixes: Record<ReviewFixes, string> = {
   triage: "Triage fix",
 };
 
-function verdictPhraseOf({ halt, reviewFixes = "none" }: OutcomeFacts): string {
+function resultPhraseOf({ halt, reviewFixes }: OutcomeFacts): string {
   if (halt !== undefined) return "halted then passed";
-  if (reviewFixes === "none") return "first-try pass";
-  return "fixed after review";
+  if (reviewFixes === undefined) return "result unrecorded";
+  return reviewFixes === "none" ? "first-try pass" : "fixed after review";
 }
 
 function whatReviewCaughtOf({
   whatReviewCaught,
-  reviewFixes = "none",
+  reviewFixes,
 }: OutcomeFacts): string {
   if (whatReviewCaught !== undefined) return whatReviewCaught;
   return reviewFixes === "none" ? "—" : unrecorded;

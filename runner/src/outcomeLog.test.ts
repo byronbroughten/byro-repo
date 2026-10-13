@@ -28,7 +28,7 @@ describe("outcomeFileOf", () => {
       "unrecorded",
       "7",
       "unrecorded",
-      "Pass",
+      "unrecorded",
       "0",
       "1",
       "0",
@@ -36,7 +36,7 @@ describe("outcomeFileOf", () => {
       "unrecorded",
       "unrecorded",
       "unrecorded",
-      "—",
+      "unrecorded",
       "unrecorded",
     ]);
   });

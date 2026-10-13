@@ -23,6 +23,10 @@ export interface IssueRef {
   number: number;
 }
 
+export function issueLabelOf({ repo, number }: IssueRef): string {
+  return `${repo} #${number}`;
+}
+
 export interface CreateOptions {
   slug?: string;
   // Repos besides the issue's own to start on the issue branch.

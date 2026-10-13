@@ -23,7 +23,7 @@ export class GhCli implements WrapUpGitHub {
   }
 
   async closeIssue({ repo, number }: IssueRef, comment: string): Promise<void> {
-    await this._gh(
+    await gh(
       "issue",
       "close",
       String(number),
@@ -38,7 +38,7 @@ export class GhCli implements WrapUpGitHub {
   async parentOf({ repo, number }: IssueRef): Promise<ParentIssue | undefined> {
     let output: string;
     try {
-      output = await this._gh(
+      output = await gh(
         "api",
         `repos/${this.owner}/${repo}/issues/${number}/parent`,
       );
@@ -48,16 +48,16 @@ export class GhCli implements WrapUpGitHub {
       }
       throw error;
     }
-    return parentOf(JSON.parse(output) as RawParent);
-  }
-
-  private async _gh(...args: string[]): Promise<string> {
-    const { stdout } = await execFileAsync("gh", args);
-    return stdout;
+    return parentIssueOf(JSON.parse(output) as RawParent);
   }
 }
 
-function parentOf(raw: RawParent): ParentIssue {
+async function gh(...args: string[]): Promise<string> {
+  const { stdout } = await execFileAsync("gh", args);
+  return stdout;
+}
+
+function parentIssueOf(raw: RawParent): ParentIssue {
   const repo = String(raw.repository_url).split("/").at(-1) ?? "";
   const { total, completed } = raw.sub_issues_summary ?? {};
   return {
