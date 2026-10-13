@@ -23,8 +23,8 @@ export interface HandoffRecord extends RecordBody {
 interface RecordBody {
   // In landing order: a repo lands before any repo that depends on it.
   branches: CommittedBranch[];
-  closing_comment: string;
-  boxes_undone: UndoneBox[];
+  closingComment: string;
+  boxesUndone: UndoneBox[];
   blockers: Blocker[];
 }
 
@@ -44,10 +44,10 @@ export interface Blocker {
 
 export interface Handoff {
   conclusion: string;
-  files_to_open: { path: string; lines: string }[];
-  ruled_out: string[];
-  files_changed: string[];
-  still_failing: string[];
+  filesToOpen: { path: string; lines: string }[];
+  ruledOut: string[];
+  filesChanged: string[];
+  stillFailing: string[];
 }
 
 export interface ImplementPromptInput {
@@ -104,13 +104,13 @@ const promptSections = {
 - Then stop and return the implement record:
   - \`status\`: \`committed\`, or \`blocked\` when a blocker stopped you before any commit.
   - \`branches\`: each repo you committed in, its branch and the commit's sha, in landing order (a repo lands before any repo that depends on it; a package clone before the root). Empty unless committed.
-  - \`closing_comment\`: what landed, for the ticket's closing comment.
-  - \`boxes_undone\`: each acceptance box you left undone, with why.
+  - \`closingComment\`: what landed, for the ticket's closing comment.
+  - \`boxesUndone\`: each acceptance box you left undone, with why.
   - \`blockers\`: each blocker, as above.`,
 
   handoff: `## If a context nudge fires
 
-Finish the step in hand, then stop: commit nothing, post nothing, and return status \`handoff\` with no branches and every \`handoff\` field: \`conclusion\`, \`files_to_open\` (path and line range), \`ruled_out\`, \`files_changed\`, and \`still_failing\` (empty when the code is green). A handoff is cumulative: carry over whatever still matters from any handoff you started from.`,
+Finish the step in hand, then stop: commit nothing, post nothing, and return status \`handoff\` with no branches and every \`handoff\` field: \`conclusion\`, \`filesToOpen\` (path and line range), \`ruledOut\`, \`filesChanged\`, and \`stillFailing\` (empty when the code is green). A handoff is cumulative: carry over whatever still matters from any handoff you started from.`,
 } as const;
 
 function previousHandoffSection(handoff: Handoff): string {
@@ -122,15 +122,15 @@ ${handoffText(handoff)}`;
 }
 
 function handoffText(handoff: Handoff): string {
-  const filesToOpen = handoff.files_to_open.map(
+  const filesToOpen = handoff.filesToOpen.map(
     ({ path, lines }) => `${path}:${lines}`,
   );
   return [
     `Conclusion: ${handoff.conclusion}`,
     `Files to open:${bulletsOf(filesToOpen)}`,
-    `Ruled out:${bulletsOf(handoff.ruled_out)}`,
-    `Files changed:${bulletsOf(handoff.files_changed)}`,
-    `Still failing:${bulletsOf(handoff.still_failing)}`,
+    `Ruled out:${bulletsOf(handoff.ruledOut)}`,
+    `Files changed:${bulletsOf(handoff.filesChanged)}`,
+    `Still failing:${bulletsOf(handoff.stillFailing)}`,
   ].join("\n");
 }
 
@@ -176,12 +176,12 @@ const blockerSchema = objectSchema({
 
 const handoffSchema = objectSchema({
   conclusion: stringSchema,
-  files_to_open: arraySchema(
+  filesToOpen: arraySchema(
     objectSchema({ path: stringSchema, lines: stringSchema }),
   ),
-  ruled_out: arraySchema(stringSchema),
-  files_changed: arraySchema(stringSchema),
-  still_failing: arraySchema(stringSchema),
+  ruledOut: arraySchema(stringSchema),
+  filesChanged: arraySchema(stringSchema),
+  stillFailing: arraySchema(stringSchema),
 });
 
 // One variant per status, so a handoff alone carries `handoff` and only a committed record names branches.
@@ -209,8 +209,8 @@ function recordSchema(
   return objectSchema({
     status: { const: status },
     branches: arraySchema(branchSchema),
-    closing_comment: stringSchema,
-    boxes_undone: arraySchema(
+    closingComment: stringSchema,
+    boxesUndone: arraySchema(
       objectSchema({ box: stringSchema, reason: stringSchema }),
     ),
     blockers: arraySchema(blockerSchema),

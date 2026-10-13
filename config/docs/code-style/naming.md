@@ -36,6 +36,10 @@ One heading per naming rule, in docs/code-style.md's order: grep `^## ` for the 
 
 **A constant is camelCase, and two or more in one file that serve one purpose become one `as const` object named for that purpose.** SCREAMING constants spent the shout on values that need no warning, so the name of a destructive bulk delete stopped standing out; camelCase leaves the shout to that one method. Grouping names the purpose once instead of repeating it as a suffix on every sibling: `USER_FIELDS`, `ORDER_FIELDS` and the rest became `fieldMasks.user` and friends, and a summary's four widths and caps became `layoutLimits`. A constant with no sibling stays a plain `const` (`apiBase`). An external API's enum strings (`"CUSTOM_FORMULA"`, `"NUMBER_EQ"`) are values, not names, and keep the API's spelling. `@typescript-eslint/naming-convention` holds variables to camelCase or PascalCase and rejects an all-caps word, and leaves method names free so a deliberately shouted method still passes.
 
+## Our own properties are camelCase
+
+**A property of a record or schema we define is camelCase; one mirroring an external wire shape keeps that API's spelling.** The runner's types for Claude's stream (`input_tokens`, `session_id`) and GitHub's API (`sub_issues_summary`) copy names another system chose, so they keep them. The implement record is our own contract, yet it first landed as `closing_comment` and `files_to_open` because a spec's sketch spelled it that way, and the runner had to map each field back to camelCase until the record was renamed. Lint's `naming-convention` covers variables only, so this rule rests on the spec and on review.
+
 ## Parens mean expensive
 
 **Getters are for no-arg, side-effect-free derived values that might need re-deriving from updated state** (`get schema`, `get client` — each rebuilds from `this.props`, which can reflect state mutated since construction). Anything that takes an argument or has a side effect is a method, never a getter. And a value that's genuinely fixed for the object's whole lifetime (e.g. a file path built once from `import.meta.url`) is a plain field computed once, not a getter recomputed on every read.

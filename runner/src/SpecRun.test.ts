@@ -231,8 +231,8 @@ function recordOf(
   return {
     status: "committed",
     branches: [{ repo: "byro-repo", branch, sha }],
-    closing_comment: "Landed it.",
-    boxes_undone: [],
+    closingComment: "Landed it.",
+    boxesUndone: [],
     blockers: [],
     ...change,
   } as ImplementRecord;

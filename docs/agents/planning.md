@@ -9,6 +9,10 @@
 - **Grilling a piece spec starts from [`packages/writing/docs/grilling.md`](../../packages/writing/docs/grilling.md).**
 - **A piece spec is filed with `/to-piece-spec` and split with `/to-piece-tickets`**, never `/to-spec` or `/to-tickets`.
 
+## Code in specs
+
+- **Code in a spec or ticket is only a shape that is itself the decision**: a record, type or schema, or a state machine. Its names are binding, so write them as the code will land ([naming](../../config/docs/code-style.md#naming)).
+
 ## Test seams
 
 - **A spec's test seams name the outcome each test asserts**: for a Sheets write, the grid it leaves, not the requests it sends ([framework style](../../packages/framework/docs/code-style.md#tests)).
