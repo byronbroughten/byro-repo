@@ -8,8 +8,9 @@
     "packages/*"
   ],
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks",
     "tsc": "tsc -p . && npm run tsc --workspaces --if-present",
-    "lint": "eslint --flag v10_config_lookup_from_file . && npm run -s lint:docs && npm run -s lint:docs --workspaces --if-present && npm run -s format:check",
+    "lint": "node scripts/lint/lint.ts",
     "lint:docs": "lint-docs --published config",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

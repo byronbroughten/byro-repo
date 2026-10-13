@@ -1,0 +1,3 @@
+#!/bin/sh
+# Set as core.hooksPath by `npm install` (the root's prepare script).
+exec node scripts/lint/preCommit.ts
