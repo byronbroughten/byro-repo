@@ -4,7 +4,7 @@ description: Report what changed upstream in the vendored skills' source repos s
 disable-model-invocation: true
 ---
 
-`.claude/skills/upstream.json` is the manifest: each upstream source, its `syncedSha`, and every upstream path with a `status` (`vendored`, `reference-only`, `declined`), a `reason` for declined, and `notes` recording deliberate divergences of the local copy, and a `derivedInto` list of its forks.
+`.claude/skills/upstream.json` is the manifest: each upstream source, its `syncedSha`, and every upstream path with a `status` (`vendored`, `reference-only`, `declined`), a `reason` for declined, and `notes` recording deliberate divergences of the local copy, and a `derivedInto` list of its forks: a bare name is a skill at `.claude/skills/<name>/`, an entry with a slash a repo-relative path.
 
 ## 1. Run the report
 
@@ -12,7 +12,7 @@ disable-model-invocation: true
 
 ## 2. Brief the user
 
-Read the `.patch` file it names. For every changed tracked path, give a one-line verdict: what changed, and whether to take it. Its report line ends `forks: <names>` when it has forks; give each fork its own one-line verdict on whether to apply the same change to `.claude/skills/<fork>/`. Name each unclassified skill, each path gone upstream, and each promoted-set change, with a suggested status. Mention declined and in-progress changes only when one looks like a reason to revisit the decision.
+Read the `.patch` file it names. For every changed tracked path, give a one-line verdict: what changed, and whether to take it. Its report line ends `forks: <paths>` when it has forks; give each fork its own one-line verdict on whether to apply the same change at that path. Name each unclassified skill, each path gone upstream, and each promoted-set change, with a suggested status. Mention declined and in-progress changes only when one looks like a reason to revisit the decision.
 
 Done when every line of the report has a verdict, and the user has chosen what to take.
 

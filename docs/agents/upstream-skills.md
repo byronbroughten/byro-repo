@@ -14,7 +14,7 @@ Each upstream path has one entry with a `status`:
 - `reference-only`: tracked for its upstream changes, never copied, so it costs no context.
 - `declined`: not taken, with a one-line `reason`.
 
-`notes` holds each deliberate divergence of the copy. `derivedInto` lists the forks: skills of this repo's own copied from this path under new names. The report names a changed path's forks, so each one gets a verdict on whether to take the same change. A sync never copies upstream over a fork.
+`notes` holds each deliberate divergence of the copy. `derivedInto` lists the forks: skills of this repo's own copied from this path under new names, or a repo-relative path for a fork outside `.claude/skills/`. The runner's implement-step prompt, `runner/src/implementStep.ts`, is one: a fork of `implement`. The report names a changed path's forks, so each one gets a verdict on whether to take the same change. A sync never copies upstream over a fork.
 
 ## Editing a vendored skill
 
