@@ -3,7 +3,9 @@ import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { GhCli } from "@byronbroughten/spec-runner/GhCli";
 import type { IssueWorkspacesConfig } from "@byronbroughten/spec-runner/IssueWorkspaces";
+import type { WrapUpConfig } from "@byronbroughten/spec-runner/WrapUp";
 
 const githubOwner = "byronbroughten";
 
@@ -47,4 +49,18 @@ export const issueWorkspacesConfig: IssueWorkspacesConfig = {
       { encoding: "utf8" },
     ).trim();
   },
+};
+
+export const wrapUpConfig: WrapUpConfig = {
+  workspaces: issueWorkspacesConfig,
+  github: new GhCli(githubOwner),
+  githubOwner,
+  checks: [
+    ["npm", "run", "tsc"],
+    ["npm", "test"],
+    ["npm", "run", "lint"],
+  ],
+  outcomeFolder: "docs/agents/outcomes",
+  stateFolder: join(primaryRoot, ".runner"),
+  log: (line) => console.log(line),
 };

@@ -9,10 +9,15 @@
     "./AgentStep": "./src/AgentStep.ts",
     "./ClaudeAgentStep": "./src/ClaudeAgentStep.ts",
     "./FakeAgentStep": "./src/FakeAgentStep.ts",
+    "./GhCli": "./src/GhCli.ts",
     "./IssueWorkspaces": "./src/IssueWorkspaces.ts",
+    "./LandingLock": "./src/LandingLock.ts",
     "./SessionProbe": "./src/SessionProbe.ts",
     "./contextMeter": "./src/contextMeter.ts",
-    "./limitGuard": "./src/limitGuard.ts"
+    "./limitGuard": "./src/limitGuard.ts",
+    "./outcomeLog": "./src/outcomeLog.ts",
+    "./WrapUp": "./src/WrapUp.ts",
+    "./WrapUpFailure": "./src/WrapUpFailure.ts"
   },
   "scripts": {
     "tsc": "tsc -p ."

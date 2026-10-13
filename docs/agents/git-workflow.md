@@ -30,7 +30,7 @@ Primary checkouts and issue workspaces, branches and commits, landing a spec wit
   1. In each listed repo, confirm the working tree is clean and the branch's work is committed.
   2. Model-fit answers: ask me which model and effort pair implemented it, its peak `/context`, and yes or no: did /code-review flag anything that I then had fixed? Count Files changed now, before the merges empty it: the sum of `git -C <repo path> diff --stat master...<branch>` over the listed branches.
   3. In landing order, merge each branch into its repo's master with a merge commit titled "Merge <branch> into master (#<n>)". Then run `npm run tsc`, `npm test` and `npm run lint` from the root.
-  4. Add the row to the outcome log in `docs/agents/model-fit.md`, trim it to the latest ~20, and commit it as "Record the #<n> outcome: <pair>, <files> files, <peak>, <first-try pass or fixed after review>."
+  4. Write the row as its own file, `docs/agents/outcomes/<spec repo>-<spec n>/<repo>-<n>.md`, in the layout `runner/src/outcomeLog.ts` writes (writing `unrecorded` for any fact you lack), and commit it as "Record the #<n> outcome: <pair>, <files> files, <peak>, <first-try pass or fixed after review>."
   5. In landing order, push each listed repo's master, ending with the root's if the root is not listed.
   6. In landing order, delete each repo's branch on the remote if it exists, then locally.
   7. Only after every master is pushed and every branch deleted: `gh issue close -R <owner/repo> <n> --comment "<what landed, one or two sentences, plus any box left undone>"`.
