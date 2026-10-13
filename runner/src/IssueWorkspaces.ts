@@ -95,15 +95,19 @@ export class IssueWorkspaces {
     }
     const branch = await this._branchName(issue, options.slug);
     const path = join(this.config.workspaceFolder, `${issue.repo}-${branch}`);
-    mkdirSync(this.config.workspaceFolder, { recursive: true });
-    try {
-      await this._build({ path, branch, branchedRepos });
-    } catch (error) {
-      // A half-built folder would otherwise pass as the existing workspace on the next create.
-      await this._tearDown(path, true);
-      throw error;
-    }
+    await this._buildOrTearDown({ path, branch, branchedRepos });
     return { path, issue, branch, branchedRepos };
+  }
+
+  // Every repo detached at its master, rebuilt on each call so it holds exactly the commits master points to now.
+  async masterSet(spec: IssueRef): Promise<string> {
+    const path = join(
+      this.config.workspaceFolder,
+      `master-${fileStemOf(spec)}`,
+    );
+    if (existsSync(path)) await this._tearDown(path, true);
+    await this._buildOrTearDown({ path, branch: "", branchedRepos: [] });
+    return path;
   }
 
   async find(issue: IssueRef): Promise<WorkspaceStatus | undefined> {
@@ -209,6 +213,21 @@ export class IssueWorkspaces {
       if (branch !== undefined) return branch;
     }
     return undefined;
+  }
+
+  private async _buildOrTearDown(target: {
+    path: string;
+    branch: string;
+    branchedRepos: string[];
+  }): Promise<void> {
+    mkdirSync(this.config.workspaceFolder, { recursive: true });
+    try {
+      await this._build(target);
+    } catch (error) {
+      // A half-built folder would otherwise pass as an existing set on the next build.
+      await this._tearDown(target.path, true);
+      throw error;
+    }
   }
 
   private async _build({

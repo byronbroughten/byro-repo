@@ -558,14 +558,66 @@ describe("run's preflight", () => {
     );
   });
 
-  it("Stops on a red master, naming the command", async () => {
+  it("Stops on a red master commit, naming the command, though an uncommitted edit would turn it green", async () => {
     writeFileSync(join(primaryRoot, "RED"), "");
+    git(primaryRoot, "add", "RED");
+    git(primaryRoot, "commit", "-m", "Turn master red");
+    rmSync(join(primaryRoot, "RED"));
 
     const result = await preflightOf();
 
     expect(result.message).toBe(
       "Preflight stopped the run: master red: node -e process.exit(require('fs').existsSync('RED') ? 1 : 0)",
     );
+    expect(git(primaryRoot, "status", "--porcelain")).toBe("D RED");
+  });
+
+  it("checks the commit master points to at each preflight, not the one an earlier run saw", async () => {
+    addSpec([1]);
+    github.edit(1, { labels: ["ready-for-human"] });
+    const first = await specRun(FakeAgentStep.init()).run(spec);
+    writeFileSync(join(primaryRoot, "RED"), "");
+    git(primaryRoot, "add", "RED");
+    git(primaryRoot, "commit", "-m", "Turn master red");
+
+    const second = await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(first.kind).toBe("finished");
+    expect(second.message).toBe(
+      "Preflight stopped the run: master red: node -e process.exit(require('fs').existsSync('RED') ? 1 : 0)",
+    );
+  });
+
+  it("Stops on a red master commit in a package clone", async () => {
+    const redClone: Command = [
+      "node",
+      "-e",
+      "process.exit(require('fs').existsSync('packages/framework/RED') ? 1 : 0)",
+    ];
+    const framework = primaryOf("sheets-framework");
+    writeFileSync(join(framework, "RED"), "");
+    git(framework, "add", "RED");
+    git(framework, "commit", "-m", "Turn master red");
+
+    const result = await preflightOf({
+      knobs: runKnobsOf({ clonePaths, checks: [redClone], authChecks: [] }),
+    });
+
+    expect(result.message).toBe(
+      `Preflight stopped the run: master red: ${redClone.join(" ")}`,
+    );
+  });
+
+  it("checks master's commits, so an uncommitted edit that would fail a check neither Stops the run nor is touched", async () => {
+    writeFileSync(join(primaryRoot, "RED"), "");
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(git(primaryRoot, "status", "--porcelain")).toBe("?? RED");
+    expect(git(primaryRoot, "branch", "--show-current")).toBe("master");
   });
 });
 
