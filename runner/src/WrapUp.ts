@@ -2,7 +2,8 @@
 // ticket's issue workspace, fast-forwards each primary checkout's master under its landing lock, then pushes, deletes the
 // branches, removes the workspace, closes the issue and checks its parent. Steps are recorded in a progress file, so a
 // rerun skips what already landed; a failure throws a WrapUpFailure naming its kind.
-// The outcome row's format is outcomeLog.ts; the lock is LandingLock.ts; workspaces are IssueWorkspaces.ts.
+// The outcome row's format is outcomeLog.ts and its transcript facts are transcriptFacts.ts; the lock is LandingLock.ts;
+// workspaces are IssueWorkspaces.ts.
 
 import { execFile } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -24,6 +25,13 @@ import {
   outcomeFileOf,
   outcomePathOf,
 } from "./outcomeLog.ts";
+import {
+  handoffSessionIdOf,
+  type LimitReadings,
+  limitUsedOf,
+  type TicketSessions,
+  transcriptFactsOf,
+} from "./transcriptFacts.ts";
 import { WrapUpFailure } from "./WrapUpFailure.ts";
 
 const execFileAsync = promisify(execFile);
@@ -46,6 +54,9 @@ export interface WrapUpFacts extends OutcomeFacts {
   branches: LandingBranch[];
   closingComment: string;
   boxesUndone?: UndoneBox[];
+  // What the runner recorded; facts computed from them win over passed ones.
+  sessions?: TicketSessions;
+  limitReadings?: LimitReadings;
 }
 
 export interface ParentIssue {
@@ -58,6 +69,7 @@ export interface ParentIssue {
 export interface WrapUpGitHub {
   closeIssue(issue: IssueRef, comment: string): Promise<void>;
   parentOf(issue: IssueRef): Promise<ParentIssue | undefined>;
+  commentsOf(issue: IssueRef): Promise<string[]>;
 }
 
 export type ParentCheck =
@@ -387,7 +399,7 @@ export class WrapUp {
       spec: await this._specOf(ticket.issue),
       githubOwner: this.config.githubOwner,
       filesChanged: ticket.progress.filesChanged ?? 0,
-      facts: ticket.facts,
+      facts: await this._outcomeFactsOf(ticket),
     };
     const path = outcomePathOf(this.config.outcomeFolder, row);
     mkdirSync(dirname(join(worktree, path)), { recursive: true });
@@ -399,6 +411,35 @@ export class WrapUp {
     }
     built[this._rootRepo] = { base, head: await revOf(worktree, "HEAD") };
     ticket.progress.built = built;
+  }
+
+  private async _outcomeFactsOf(ticket: Ticket): Promise<OutcomeFacts> {
+    const { sessions, limitReadings } = ticket.facts;
+    const transcriptFacts =
+      sessions === undefined
+        ? {}
+        : transcriptFactsOf(
+            sessions,
+            await this._handoffSessionIdsOf(ticket.issue),
+          );
+    return {
+      ...ticket.facts,
+      ...definedFactsOf({
+        ...transcriptFacts,
+        limitUsed: limitUsedOf(limitReadings),
+      }),
+    };
+  }
+
+  private async _handoffSessionIdsOf(issue: IssueRef): Promise<string[]> {
+    const comments = await this._withRetries(
+      `Reading ${issueLabelOf(issue)}'s comments`,
+      () => this.config.github.commentsOf(issue),
+    );
+    return comments.flatMap((comment) => {
+      const sessionId = handoffSessionIdOf(comment);
+      return sessionId === undefined ? [] : [sessionId];
+    });
   }
 
   private async _specOf(issue: IssueRef): Promise<IssueRef> {
@@ -656,6 +697,12 @@ function checkOutputOf(error: unknown): string {
 
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function definedFactsOf(facts: OutcomeFacts): OutcomeFacts {
+  return Object.fromEntries(
+    Object.entries(facts).filter(([, value]) => value !== undefined),
+  ) as OutcomeFacts;
 }
 
 async function sleep(ms: number): Promise<void> {

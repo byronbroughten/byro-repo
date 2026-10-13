@@ -42,7 +42,8 @@ No public benchmark measures style-guide adherence for these models, and none of
 1. Update the pinned versions under [Based on](#based-on).
 2. Re-run the research brief.
 3. Re-check each boundary against the new evidence and the outcome log.
-4. Bump the reviewed date.
+4. Refresh the price table in `runner/src/transcriptFacts.ts`.
+5. Bump the reviewed date.
 
 Research brief: "For each current model: API price, context window and release date. What each effort level changes, and the vendor's guidance on it. Coding benchmarks at each effort level, with cost or tokens per task, preferring one harness that covers every pair. Any evidence on following a written style guide or repo conventions. Primary sources first; mark non-primary; no invented numbers; list unknowns."
 

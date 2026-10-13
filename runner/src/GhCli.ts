@@ -15,6 +15,10 @@ interface RawParent {
   sub_issues_summary?: { total?: unknown; completed?: unknown };
 }
 
+interface RawComments {
+  comments?: { body?: unknown }[];
+}
+
 export class GhCli implements WrapUpGitHub {
   private readonly owner: string;
 
@@ -32,6 +36,20 @@ export class GhCli implements WrapUpGitHub {
       "--comment",
       comment,
     );
+  }
+
+  async commentsOf({ repo, number }: IssueRef): Promise<string[]> {
+    const output = await gh(
+      "issue",
+      "view",
+      String(number),
+      "-R",
+      `${this.owner}/${repo}`,
+      "--json",
+      "comments",
+    );
+    const { comments } = JSON.parse(output) as RawComments;
+    return (comments ?? []).map(({ body }) => String(body));
   }
 
   // GitHub answers 404 for an issue with no parent.
