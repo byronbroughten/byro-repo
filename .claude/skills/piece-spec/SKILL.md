@@ -1,5 +1,5 @@
 ---
-name: to-piece-spec
+name: piece-spec
 description: "Turn a grilled conversation about a writing Piece into a piece spec with its nine fields, and file it in the writing tracker."
 disable-model-invocation: true
 ---
@@ -66,4 +66,4 @@ The Piece is done by the done checks in the writing package's `AGENTS.md`.
 
 </piece-spec-template>
 
-End by recommending `/to-piece-tickets` when Research is needed or Split names Sections, and `/implement-piece` otherwise.
+End by recommending `/piece-tickets` when Research is needed or Split names Sections, and `/implement-piece` otherwise.

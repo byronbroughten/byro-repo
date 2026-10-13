@@ -1,5 +1,5 @@
 ---
-name: to-spec
+name: code-spec
 description: "Turn the current conversation into a spec and publish it to the project issue tracker: no interview, just synthesis of what you've already discussed."
 disable-model-invocation: true
 ---
@@ -79,4 +79,4 @@ Any further notes about the feature.
 
 </spec-template>
 
-`## Model fit` is the last section of a spec meant for one session: a pair line naming one of the pairs in [`planning.md`](../../../docs/agents/planning.md#model-fit), then a one-line reason. A spec bound for `/to-tickets` has none.
+`## Model fit` is the last section of a spec meant for one session: a pair line naming one of the pairs in [`planning.md`](../../../docs/agents/planning.md#model-fit), then a one-line reason. A spec bound for `/code-tickets` has none.

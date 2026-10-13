@@ -1,5 +1,5 @@
 ---
-name: to-piece-tickets
+name: piece-tickets
 description: "Split a piece spec into sub-issues chosen from Research, Sections and a final pass, confirm the split with the developer, then file them in the writing tracker with blocking edges."
 disable-model-invocation: true
 ---

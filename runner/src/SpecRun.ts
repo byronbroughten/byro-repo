@@ -310,7 +310,7 @@ export class SpecRun {
   private async _modelFitRefusal(run: Run): Promise<string | undefined> {
     if (run.isTicketless) {
       if (pairOf(run.spec.body) !== undefined) return undefined;
-      return `${issueLabelOf(run.spec.issue)} has no sub-issues and no valid ## Model fit section: split it with /to-tickets, or add the section.`;
+      return `${issueLabelOf(run.spec.issue)} has no sub-issues and no valid ## Model fit section: split it with /code-tickets, or add the section.`;
     }
     const offenders: string[] = [];
     for (const ticket of run.tickets) {
