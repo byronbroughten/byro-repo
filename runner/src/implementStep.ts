@@ -216,7 +216,7 @@ const handoffSchema = objectSchema({
   stillFailing: arraySchema(stringSchema),
 });
 
-// One variant per status, so a handoff alone carries `handoff`, only an applied record `githubWrites`, and only a committed record names branches.
+// One variant per status, so only the status that needs a field carries it.
 export const implementRecordSchema = {
   type: "object",
   oneOf: [

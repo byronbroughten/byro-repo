@@ -570,6 +570,41 @@ describe("run", () => {
       ]);
     });
 
+    it("detaches and deletes the issue branch in every branched repo, removing the workspace", async () => {
+      const workspace = await workspaceWith(["sheets-framework"]);
+      writeAppliedFacts();
+
+      const result = await wrapUp().run(ticket);
+
+      expect(result.branchDeleteFailures).toEqual([]);
+      expect(existsSync(workspace.path)).toBe(false);
+      expect(
+        git(primaryOf("sheets-framework"), "branch", "--list", "issue-218-*"),
+      ).toBe("");
+    });
+
+    it("leaves another repo's issue branch with the same number alone", async () => {
+      await workspaceWith();
+      const framework = primaryOf("sheets-framework");
+      git(framework, "branch", "issue-218-other-work");
+      git(framework, "push", "origin", "issue-218-other-work");
+      writeAppliedFacts();
+
+      await wrapUp().run(ticket);
+
+      expect(
+        git(framework, "branch", "--list", "issue-218-other-work"),
+      ).toContain("issue-218-other-work");
+      expect(
+        git(
+          remoteOf("sheets-framework"),
+          "branch",
+          "--list",
+          "issue-218-other-work",
+        ),
+      ).toContain("issue-218-other-work");
+    });
+
     it("refuses uncommitted work in the workspace's root", async () => {
       const workspace = await workspaceWith();
       writeFileSync(join(workspace.path, "loose.ts"), "");

@@ -752,6 +752,7 @@ export class SpecRun {
     };
     if (record.status === "applied") {
       facts.reviewFixes = "skipped";
+      facts.reviewRounds = 0;
       facts.githubWrites = record.githubWrites;
     }
     if (configFolder !== undefined) {

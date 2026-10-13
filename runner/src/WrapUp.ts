@@ -62,7 +62,7 @@ export interface GitHubWrite {
 }
 
 export interface WrapUpFacts extends OutcomeFacts {
-  // In landing order: a repo lands before any repo that depends on it. Empty for a ticket that needed only GitHub writes.
+  // In landing order: a repo lands before any repo that depends on it; empty for a ticket with no code.
   branches: LandingBranch[];
   closingComment: string;
   boxesUndone?: UndoneBox[];
@@ -348,9 +348,18 @@ export class WrapUp {
         }
       });
     } else {
-      // With nothing merged, the row is committed on master rather than on the issue branch's older base.
-      const rootWorktree = this._worktreeOf(workspace, this._rootRepo);
-      await git(rootWorktree, "switch", "--detach", "master");
+      // The row goes on master, and a repo off the issue branch lets the wrap-up delete it.
+      for (const repo of new Set([
+        this._rootRepo,
+        ...workspace.branchedRepos,
+      ])) {
+        await git(
+          this._worktreeOf(workspace, repo),
+          "switch",
+          "--detach",
+          "master",
+        );
+      }
     }
     await this._step(ticket, "log-row", () =>
       this._commitLogRow(ticket, workspace),
@@ -530,7 +539,7 @@ export class WrapUp {
     const failures: string[] = [];
     let branches = ticket.facts.branches;
     if (!hasBranches(ticket)) {
-      branches = await this._issueBranchesOf(ticket.issue);
+      branches = await this._workspaceBranchesOf(ticket.issue);
     }
     for (const { repo, branch } of branches) {
       try {
@@ -544,17 +553,20 @@ export class WrapUp {
     ticket.progress.branchDeleteFailures = failures;
   }
 
-  // A ticket with no code lands no branch, but its workspace still made one; the workspace no longer sits on it.
-  private async _issueBranchesOf(issue: IssueRef): Promise<LandingBranch[]> {
+  // A ticket with no code lands no branch, but its workspace made one in each repo it branched.
+  private async _workspaceBranchesOf(
+    issue: IssueRef,
+  ): Promise<LandingBranch[]> {
+    const { branch } = await this._workspaceOf(issue);
     const branches: LandingBranch[] = [];
     for (const repo of Object.keys(this.config.workspaces.clonePaths)) {
-      const refs = await git(
+      const ref = await git(
         this._primaryOf(repo),
         "for-each-ref",
         "--format=%(refname:short)",
-        `refs/heads/issue-${issue.number}-*`,
+        `refs/heads/${branch}`,
       );
-      lines(refs).forEach((branch) => branches.push({ repo, branch }));
+      if (ref !== "") branches.push({ repo, branch });
     }
     return branches;
   }
@@ -658,7 +670,6 @@ export class WrapUp {
     ];
   }
 
-  // The repos whose worktrees must be clean: the listed ones, or the root that takes the row when none is listed.
   private _committedRepos(ticket: Ticket): string[] {
     if (!hasBranches(ticket)) return [this._rootRepo];
     return ticket.facts.branches.map(({ repo }) => repo);
