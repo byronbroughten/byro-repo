@@ -368,6 +368,63 @@ describe("resume", () => {
     expect(existsSync(join(utils, "newer.txt"))).toBe(false);
   });
 
+  it("fails naming a detached repo whose commits are on no branch, changing nothing", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "spans" },
+    );
+    const utils = join(workspace.path, "packages/utils");
+    writeFileSync(join(utils, "kept.txt"), "committed");
+    git(utils, "add", "kept.txt");
+    git(utils, "commit", "-m", "Detached work");
+    const head = git(utils, "rev-parse", "HEAD");
+    advanceMaster("packages/utils", "newer.txt");
+
+    await expect(workspaces().resume(workspace)).rejects.toThrow(
+      /commits on no branch in utils/,
+    );
+
+    expect(git(utils, "rev-parse", "HEAD")).toBe(head);
+    expect(branchOf(utils)).toBeUndefined();
+  });
+
+  it("resumes a detached repo whose commits are on a branch, such as one behind master", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "spans" },
+    );
+    const utils = join(workspace.path, "packages/utils");
+    const newerUtils = advanceMaster("packages/utils", "newer.txt");
+    git(utils, "switch", "--detach", newerUtils);
+    const primaryUtils = join(primaryRoot, "packages/utils");
+    git(primaryUtils, "branch", "saved", newerUtils);
+    advanceMaster("packages/utils", "newest.txt");
+
+    await workspaces().resume(workspace);
+
+    expect(git(utils, "rev-parse", "HEAD")).toBe(
+      git(primaryUtils, "rev-parse", "master"),
+    );
+  });
+
+  it("keeps the commits when the repo is promoted first", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "spans" },
+    );
+    const utils = join(workspace.path, "packages/utils");
+    writeFileSync(join(utils, "kept.txt"), "committed");
+    git(utils, "add", "kept.txt");
+    git(utils, "commit", "-m", "Detached work");
+    const head = git(utils, "rev-parse", "HEAD");
+
+    await workspaces().promote(workspace, "utils");
+    await workspaces().resume(workspace);
+
+    expect(git(utils, "rev-parse", "HEAD")).toBe(head);
+    expect(branchOf(utils)).toBe("issue-7-spans");
+  });
+
   it("does not count a dirty repo on the issue branch against resuming", async () => {
     const workspace = await workspaces().create(
       { repo: "byro-repo", number: 7 },
@@ -533,6 +590,25 @@ describe("remove", () => {
       true,
     );
     expect(registeredWorktrees()).toHaveLength(3);
+  });
+
+  it("refuses a workspace holding commits on no branch without force, and removes it with force", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "orphaned" },
+    );
+    const utils = join(workspace.path, "packages/utils");
+    writeFileSync(join(utils, "kept.txt"), "committed");
+    git(utils, "add", "kept.txt");
+    git(utils, "commit", "-m", "Detached work");
+
+    await expect(workspaces().remove(workspace)).rejects.toThrow(
+      /commits on no branch in utils/,
+    );
+    expect(existsSync(utils)).toBe(true);
+
+    await workspaces().remove(workspace, { force: true });
+    expect(existsSync(workspace.path)).toBe(false);
   });
 
   it("removes a clean workspace, leaving no worktree registered and the primaries untouched", async () => {

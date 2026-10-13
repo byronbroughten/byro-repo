@@ -145,9 +145,10 @@ export class IssueWorkspaces {
     for (const { repo, worktree } of detached) {
       if (await isDirty(worktree)) dirtyRepos.push(repo);
     }
-    if (dirtyRepos.length > 0) {
+    const orphanedRepos = await this._orphanedRepos(workspace);
+    if (dirtyRepos.length > 0 || orphanedRepos.length > 0) {
       throw new Error(
-        `${workspace.path} has uncommitted changes in detached ${dirtyRepos.join(", ")}; commit or discard them before resuming`,
+        `${workspace.path} has ${unsavedWork(dirtyRepos, orphanedRepos)}; promote the repo to keep its work, or discard it, before resuming`,
       );
     }
     for (const { worktree } of detached) {
@@ -163,9 +164,10 @@ export class IssueWorkspaces {
       workspace.path,
       workspace.issue,
     );
-    if (dirtyRepos.length > 0 && !force) {
+    const orphanedRepos = await this._orphanedRepos(workspace);
+    if ((dirtyRepos.length > 0 || orphanedRepos.length > 0) && !force) {
       throw new Error(
-        `${workspace.path} has uncommitted changes in ${dirtyRepos.join(", ")}; remove it with force to discard them`,
+        `${workspace.path} has ${unsavedWork(dirtyRepos, orphanedRepos)}; remove it with force to discard them`,
       );
     }
     await this._tearDown(workspace.path, force);
@@ -276,6 +278,14 @@ export class IssueWorkspaces {
       }
     }
     return detached;
+  }
+
+  private async _orphanedRepos(workspace: Workspace): Promise<string[]> {
+    const orphaned: string[] = [];
+    for (const { repo, worktree } of await this._detachedWorktrees(workspace)) {
+      if (await isOrphanedHead(worktree)) orphaned.push(repo);
+    }
+    return orphaned;
   }
 
   private _issueOfFolder(name: string): IssueRef | undefined {
@@ -485,6 +495,30 @@ async function currentBranchOf(worktree: string): Promise<string> {
 
 async function isDirty(worktree: string): Promise<boolean> {
   return (await git(worktree, "status", "--porcelain")) !== "";
+}
+
+// A detached HEAD no branch contains is reachable only from the reflog, so moving off it or removing its worktree loses the commits.
+async function isOrphanedHead(worktree: string): Promise<boolean> {
+  const containing = await git(
+    worktree,
+    "for-each-ref",
+    "--contains",
+    "HEAD",
+    "refs/heads",
+    "refs/remotes",
+  );
+  return containing === "";
+}
+
+function unsavedWork(dirtyRepos: string[], orphanedRepos: string[]): string {
+  const parts: string[] = [];
+  if (dirtyRepos.length > 0) {
+    parts.push(`uncommitted changes in ${dirtyRepos.join(", ")}`);
+  }
+  if (orphanedRepos.length > 0) {
+    parts.push(`commits on no branch in ${orphanedRepos.join(", ")}`);
+  }
+  return parts.join(" and ");
 }
 
 async function git(cwd: string, ...args: string[]): Promise<string> {
