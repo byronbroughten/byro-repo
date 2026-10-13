@@ -528,7 +528,7 @@ describe("run's Model fit refusal", () => {
       kind: "refused",
       landed: [],
       message:
-        "byro-repo #213 has no sub-issues and no valid ## Model fit section: split it with /to-tickets, or add the section.",
+        "byro-repo #213 has no sub-issues and no valid ## Model fit section: split it with /code-tickets, or add the section.",
     });
   });
 });
