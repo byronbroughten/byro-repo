@@ -36,6 +36,7 @@
       "Bash(npx eslint *)",
       "Bash(gh label list *)",
       "Bash(gh issue edit *)",
+      "Bash(gh issue comment *)",
       "mcp__gworkspace__list_spreadsheets",
       "mcp__gworkspace__get_spreadsheet_info",
       "mcp__gworkspace__read_sheet_values",
