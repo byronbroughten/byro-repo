@@ -16,6 +16,12 @@ The issue tracker and triage label vocabulary should have been provided to you. 
 
 Work from whatever is already in the conversation context. If the user passes a reference (a spec path, an issue number or URL) as an argument, fetch it and read its full body and comments.
 
+Then pick the entry point. A spec can be split into **Phases**, usable batches of its tickets, each but the last closed by a **Phase gate**, the developer's go, reshape or drop ticket ([`planning.md`](../../../docs/agents/planning.md#phases)).
+
+- **A Phase gate** (a `ready-for-human` issue with a `## Decision` section): go to [From a Phase gate](#from-a-phase-gate).
+- **A phased spec** (one with a `## Phases` section): steps 2–6 for its next Phase, unless an earlier Phase is `ticketed` but not `done`: its gate is still open, so point the developer to it and stop.
+- **Anything else is unphased**: steps 2–6, proposing Phases in step 3 if the spec has a boundary.
+
 ### 2. Explore the codebase (optional)
 
 If you have not already explored the codebase, do so to understand the current state of the code. Ticket titles and descriptions should use the project's domain glossary vocabulary, and respect ADRs in the area you're touching.
@@ -25,6 +31,9 @@ Look for opportunities to prefactor the code to make the implementation easier. 
 ### 3. Draft vertical slices
 
 Break the work into **tracer bullet** tickets.
+
+- **Phased spec**: draft only the next `planned` Phase's tickets, plus its Phase gate unless it is the last Phase.
+- **Unphased spec**: if the boundary criterion in [`planning.md`](../../../docs/agents/planning.md#phases) applies, propose Phases, naming Phase 1's stand-ins and outlining the later ones as provisional, and draft only Phase 1's tickets and its gate. Otherwise draft every ticket.
 
 <vertical-slice-rules>
 
@@ -52,6 +61,8 @@ Present the proposed breakdown as a numbered list. For each ticket, show:
 - **Kind**: agent or human; for an agent ticket, its model fit
 - **What it delivers**: the end-to-end behaviour this ticket makes work
 
+When proposing Phases, add a **Phases** line before the list: each Phase's user story numbers, Phase 1's stand-ins, and which tickets are its gate's blockers.
+
 Ask the user:
 
 - Does the granularity feel right? (too coarse / too fine)
@@ -69,7 +80,14 @@ Publish the approved tickets. **How** depends on the tracker in `docs/agents/iss
 
 Work the **frontier**: any ticket whose blockers are all done. For a purely linear chain that means top to bottom.
 
-Do NOT close or modify any parent issue.
+When the work has Phases:
+
+- On an unphased spec, write the approved `## Phases` section into the spec before publishing Phase 1.
+- Publish the Phase gate after the Phase's tickets, blocked by every one of them, using the gate template below.
+- Add the Phase's tickets and gate as sub-issues after the earlier Phases' ones, so the runner's order follows the Phases.
+- Set the Phase's status in `## Phases` to `ticketed`.
+
+Do NOT close or modify any parent issue, except its `## Phases` section.
 
 <local-ticket-template>
 
@@ -117,6 +135,33 @@ The end-to-end behaviour this ticket makes work, from the user's perspective, no
 
 </issue-template>
 
+<phase-gate-template>
+
+Title: `Phase gate: Phase <N> tested (<what real use tests>)`
+
+## Parent
+
+A reference to the spec.
+
+## What to do
+
+This is the developer's ticket; the runner never launches it, so everything after it waits. Test what Phase <N> built, record what you learn, tick one box under Decision, then run `/code-tickets` on this issue, which closes it, and rerun the runner. Put findings and any reshape details in comments here.
+
+Phase <N>: a reference to each of its tickets.
+
+- [ ] A test to run in real work
+- [ ] Note: a piece of data to record, and what it decides
+
+## Decision
+
+- [ ] Go: ticket Phase <N+1> as outlined
+- [ ] Reshape: change the later Phases as my comments say, then ticket Phase <N+1>
+- [ ] Drop the rest
+
+</phase-gate-template>
+
+A Phase gate is labelled `ready-for-human` and has no `## Model fit`.
+
 In either form, `## Model fit` is the last section of a `ready-for-agent` ticket: a pair line, then a one-line reason. A `ready-for-human` ticket has none.
 
 In either form, avoid specific file paths or code snippets: they go stale fast. Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it and note briefly that it came from a prototype. Trim to the decision-rich parts, not a working demo, just the important bits.
@@ -124,3 +169,14 @@ In either form, avoid specific file paths or code snippets: they go stale fast. 
 ### 6. Read back the model fit
 
 Print the published tickets as one flat list in completion order, `#n Title: <Model> <effort> (reason)`, the read-back of each ticket's `## Model fit` section. Done when every `ready-for-agent` ticket appears with the pair its section names.
+
+## From a Phase gate
+
+Read the gate's body, every comment on it, and the spec's `## Phases` section.
+
+- **No box ticked, or more than one**: ask the developer which decision they meant, and stop.
+- **Go**: set the gated Phase's status to `done`, then run steps 2–6 for the next Phase.
+- **Reshape**: edit the later Phases' outlines in `## Phases` as the comments say, then do as for Go.
+- **Drop the rest**: set the gated Phase to `done` and every remaining Phase to `dropped`, linking this gate, and publish nothing.
+
+Every branch closes the gate with a comment: the new tickets' links for Go and Reshape, the dropped Phases for Drop the rest.

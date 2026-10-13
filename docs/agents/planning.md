@@ -21,6 +21,16 @@
 
 - **A `.claude/settings.json` change is a developer box.** Auto mode blocks an agent's edit to it as self-modification, so the spec quotes the exact lines and the implementer lists them in its hand-back for the developer to add.
 
+## Phases
+
+- **Split a spec into Phases only at a boundary where real use could change or cancel what follows.** Ticket count is never the reason, a feature whose value is already certain gets tickets rather than a gate, and a spec with no such boundary stays unphased.
+- **A Phase is not a tracer bullet**: a tracer bullet is one verifiable slice, and a Phase is usually several that together can be used in real work.
+- **Phase 1 is the smallest usable Phase**, and the spec names the stand-ins it runs on until a later Phase replaces them.
+- **A phased spec has a `## Phases` section**: one line per Phase with its user story numbers and a status, `planned`, `ticketed`, `done` or `dropped`, a dropped one linking the gate that dropped it. Every Phase after the next is an outline marked provisional.
+- **Only the next Phase is ticketed.** `/code-tickets` publishes its tickets and its Phase gate in one pass, the gate blocked by every ticket in the Phase, adding them as sub-issues after the earlier Phases' so the runner's order follows the Phases. The last Phase has no gate; closing the spec plays that role.
+- **A Phase gate is a `ready-for-human` ticket** listing its Phase's tickets, a test checklist, note boxes for the data to record, and a `## Decision` section with three boxes: go, reshape, drop the rest. The developer's findings and any reshape details go in comments on the gate.
+- **Only `/code-tickets` closes a Phase gate.** The developer ticks one decision box, runs `/code-tickets` on the gate, then reruns the runner.
+
 ## Ticket size
 
 - **Size each ticket so one session finishes it without `/context` going much over ~150K; prefer 110–125K when a green seam makes that easy.** About 40K is fixed overhead before the first prompt.
@@ -28,7 +38,7 @@
 - **Split a ticket that changes more than ~10 files**, and any other over-budget ticket, at a seam where each piece leaves `tsc` and tests green; each split pays the fixed overhead again. A bigger pair never fixes size ([`model-fit.md`](./model-fit.md#ticket-size)).
 - **A rename or retype across more than ~10 files is a wide refactor**: sequence it expand–migrate–contract as `/code-tickets` describes, with a pure rename as its own mechanical ticket.
 - **Make each ticket self-contained**: quote the spec rules it depends on, name the symbols it touches, and tell the implementer to open the parent spec only when a criterion is ambiguous. No file paths, per the skill.
-- **An over-budget ticket with no green seam splits into two sessions**: one explores and posts a handoff ([Handoffs](#handoffs)), and a fresh session implements from it.
+- **An over-budget ticket with no green seam becomes two tickets**: an explore ticket (research or diagnosis) whose deliverable is a written finding posted on the implement ticket, and the implement ticket, blocked by it.
 
 ## Model fit
 
@@ -42,4 +52,4 @@
 
 ## Handoffs
 
-Write a handoff when a diagnosis finishes in a session near the ticket budget, or one that got a read-count nudge, or when an exploration session for an unsplittable ticket finishes, and do it before implementing. It holds the conclusion, the files and line ranges to open, and the hypotheses already ruled out. A session that got a context nudge writes one once the step in hand is done, adding the changed files and what still fails if the code is red, and leaves the work uncommitted. Post it as a comment on the issue, or save it as a file if there is no issue, then recommend a fresh session. A small diagnosis in a lean session needs no handoff.
+Write a handoff when a diagnosis finishes in a session near the ticket budget, or one that got a read-count nudge, and do it before implementing. It holds the conclusion, the files and line ranges to open, and the hypotheses already ruled out. A session that got a context nudge writes one once the step in hand is done, adding the changed files and what still fails if the code is red, and leaves the work uncommitted. Post it as a comment on the issue, or save it as a file if there is no issue, then recommend a fresh session. A small diagnosis in a lean session needs no handoff.
