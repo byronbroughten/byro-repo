@@ -7,7 +7,7 @@ Primary checkouts and issue workspaces, branches and commits, landing a spec wit
 - **A primary checkout is a repo's one long-lived clone** (the root and each clone under `packages/`); an **issue workspace** is a disposable set of checkouts, one per repo, where one ticket is implemented ([`runner/GLOSSARY.md`](../../runner/GLOSSARY.md)). Once the runner is in use, primary checkouts never change branch; all issue work happens in an issue workspace. Direct edits on master stay allowed in a primary checkout (docs, grilling, mining).
 - **Until the runner exists, one ticket is in flight at a time**, from `/implement` through its wrap-up, on its branch in the primary checkouts. Planning, grilling and docs sessions keep running alongside; a docs session at the root during a ticket edits the ticket's branch, not master.
 - **The developer keeps agents off a branch while it lands.** The branch hook (`branchGuard.ts`) denies only a `git commit` after HEAD's commit or branch moved under the session; it leaves branch moves alone.
-- **A Halt can leave an issue workspace behind.** `npm run issue:list` shows each one's issue, branched repos, dirtiness and age. `npm run issue:remove -- <repo> <n>` removes one, refusing a dirty workspace unless `--force`.
+- **A Halt can leave an issue workspace behind.** `npm run issue:list` shows each one's issue, branched repos, dirtiness and age. `npm run issue:remove -- <repo> <n>` removes one, refusing a dirty workspace, or a detached repo holding commits no branch has, unless `--force`.
 
 ## Branches and commits
 
