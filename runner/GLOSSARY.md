@@ -64,6 +64,14 @@ _Avoid_: todo list, report
 The step at the end of a spec that lists what the spec asked for that no landed ticket covered, with drafted follow-ups. Its output is the final review-list comment.
 _Avoid_: audit, retro
 
+**Primary checkout**:
+A repo's one long-lived clone. Tickets land into it and are never implemented in it.
+_Avoid_: main repo, root clone
+
+**Issue workspace**:
+A disposable set of checkouts, one per repo, where one ticket is implemented.
+_Avoid_: ticket worktree, sandbox
+
 ## Same word, two meanings
 
 - **Runner**: here, the program that runs a spec. In the framework's glossary, an endpoint whose checkbox is a run button.

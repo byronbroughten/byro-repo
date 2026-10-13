@@ -1,6 +1,13 @@
 # Git workflow
 
-Branches and commits, landing a spec with the wrap-up prompt, and closing a parent once its last sub-issue lands.
+Primary checkouts and issue workspaces, branches and commits, landing a spec with the wrap-up prompt, and closing a parent once its last sub-issue lands.
+
+## Primary checkouts and issue workspaces
+
+- **A primary checkout is a repo's one long-lived clone** (the root and each clone under `packages/`); an **issue workspace** is a disposable set of checkouts, one per repo, where one ticket is implemented ([`runner/GLOSSARY.md`](../../runner/GLOSSARY.md)). Once the runner is in use, primary checkouts never change branch; all issue work happens in an issue workspace. Direct edits on master stay allowed in a primary checkout (docs, grilling, mining).
+- **Until the runner exists, one ticket is in flight at a time**, from `/implement` through its wrap-up, on its branch in the primary checkouts. Planning, grilling and docs sessions keep running alongside; a docs session at the root during a ticket edits the ticket's branch, not master.
+- **The developer keeps agents off a branch while it lands.** The branch hook (`branchGuard.ts`) denies only a `git commit` after HEAD's commit or branch moved under the session; it leaves branch moves alone.
+- **A Halt can leave an issue workspace behind.** `npm run issue:list` shows each one's issue, branched repos, dirtiness and age. `npm run issue:remove -- <repo> <n>` removes one, refusing a dirty workspace, or a detached repo holding commits no branch has, unless `--force`.
 
 ## Branches and commits
 
@@ -19,15 +26,16 @@ Branches and commits, landing a spec with the wrap-up prompt, and closing a pare
   ````
   Wrap up #<n>, in this order, stopping at the first failure and reporting it. Its branches, in landing order:
   - `<repo path>`: `issue-<n>-<slug>`
+  0. Stop and report if any listed primary checkout is dirty or unexpectedly on another branch.
   1. In each listed repo, confirm the working tree is clean and the branch's work is committed.
   2. Model-fit answers: ask me which model and effort pair implemented it, its peak `/context`, and yes or no: did /code-review flag anything that I then had fixed? Count Files changed now, before the merges empty it: the sum of `git -C <repo path> diff --stat master...<branch>` over the listed branches.
   3. In landing order, merge each branch into its repo's master with a merge commit titled "Merge <branch> into master (#<n>)". Then run `npm run tsc`, `npm test` and `npm run lint` from the root.
-  4. On the root's master, add the row to the outcome log in `docs/agents/model-fit.md`, trim it to the latest ~20, and commit it as "Record the #<n> outcome: <pair>, <files> files, <peak>, <first-try pass or fixed after review>."
+  4. Add the row to the outcome log in `docs/agents/model-fit.md`, trim it to the latest ~20, and commit it as "Record the #<n> outcome: <pair>, <files> files, <peak>, <first-try pass or fixed after review>."
   5. In landing order, push each listed repo's master, ending with the root's if the root is not listed.
   6. In landing order, delete each repo's branch on the remote if it exists, then locally.
   7. Only after every master is pushed and every branch deleted: `gh issue close -R <owner/repo> <n> --comment "<what landed, one or two sentences, plus any box left undone>"`.
   8. Run `gh api repos/<owner/repo>/issues/<n>/parent`. If it returns a parent not labelled `wayfinder:map` whose `sub_issues_summary` shows every sub-issue closed, end your reply with the parent close-out prompt from `docs/agents/git-workflow.md`, filled in for that parent. Otherwise say there is no parent to close.
-  This message is the developer's yes to merge these branches, commit the log row on the root's master, push, delete these branches and close, for this issue only.
+  This message is the developer's yes to merge these branches, commit the log row, push, delete these branches and close, for this issue only.
   ````
 
   Add a line above the block if the checks were not all green or a box in the issue is undone, so the developer sees it before handing the prompt on.
