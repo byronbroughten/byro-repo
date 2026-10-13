@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import {
+  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -51,6 +52,7 @@ let sleeps: number[];
 class FakeGitHub implements WrapUpGitHub {
   closed: { issue: IssueRef; comment: string }[] = [];
   parents = new Map<number, ParentIssue>();
+  comments = new Map<number, string[]>();
   failuresLeft = 0;
 
   async closeIssue(issue: IssueRef, comment: string): Promise<void> {
@@ -61,6 +63,11 @@ class FakeGitHub implements WrapUpGitHub {
   async parentOf(issue: IssueRef): Promise<ParentIssue | undefined> {
     this._failIfScripted();
     return this.parents.get(issue.number);
+  }
+
+  async commentsOf(issue: IssueRef): Promise<string[]> {
+    this._failIfScripted();
+    return this.comments.get(issue.number) ?? [];
   }
 
   private _failIfScripted(): void {
@@ -243,6 +250,47 @@ describe("run", () => {
         "| #218 | Opus medium | unrecorded | 1 | 150K → 90K | Triage fix | 0 | 1 | 0 | unrecorded | unrecorded | unrecorded | unrecorded | A stale doc link | unrecorded |",
         "",
       ].join("\n"),
+    );
+  });
+
+  it("computes the row's facts from the recorded sessions and the ticket's handoff comment", async () => {
+    const configFolder = join(temp, "account-2");
+    cpSync(
+      join(import.meta.dirname, "..", "fixtures", "transcripts"),
+      join(configFolder, "projects", "-workspace-byro-repo"),
+      { recursive: true },
+    );
+    github.comments.set(ticket.number, [
+      "Picking this up.",
+      "## Handoff\n\nWork so far.\n\nsession: session-implement-1",
+    ]);
+    const workspace = await workspaceWith();
+    commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
+    writeFacts({
+      pair: undefined,
+      peakContext: undefined,
+      sessions: {
+        account: 2,
+        configFolder,
+        steps: [
+          { agent: "implement", sessionId: "session-implement-2" },
+          { agent: "review", sessionId: "session-review" },
+          { agent: "triage", sessionId: "session-triage" },
+          { agent: "fix", sessionId: "session-fix" },
+        ],
+      },
+      limitReadings: {
+        before: { fiveHour: 0.12, sevenDay: 0.3 },
+        after: { fiveHour: 0.4, sevenDay: 0.34 },
+      },
+    });
+
+    await wrapUp().run(ticket);
+
+    expect(
+      readFileSync(join(primaryRoot, outcomePath), "utf8").split("\n")[6],
+    ).toBe(
+      "| #218 | Opus medium | 2 | 1 | 150K → 90K | Pass | 0 | 1 | 0 | 42 min | $1.48 | $0.06 | 5-hour 12% → 40%, weekly 30% → 34% | — | session-implement-1, session-implement-2, session-review, session-triage, session-fix |",
     );
   });
 

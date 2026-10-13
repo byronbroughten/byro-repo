@@ -1,0 +1,2 @@
+{"type":"user","isSidechain":true,"sessionId":"session-implement-2","timestamp":"2026-10-12T11:06:00.000Z","message":{"role":"user","content":"go"}}
+{"type":"assistant","isSidechain":true,"sessionId":"session-implement-2","timestamp":"2026-10-12T11:07:00.000Z","effort":"medium","message":{"model":"claude-sonnet-5-5","id":"msg_s1","role":"assistant","content":[],"usage":{"input_tokens":10000,"cache_read_input_tokens":170000,"cache_creation_input_tokens":0,"output_tokens":1000,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":0}}}}

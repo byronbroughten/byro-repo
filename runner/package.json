@@ -16,6 +16,7 @@
     "./contextMeter": "./src/contextMeter.ts",
     "./limitGuard": "./src/limitGuard.ts",
     "./outcomeLog": "./src/outcomeLog.ts",
+    "./transcriptFacts": "./src/transcriptFacts.ts",
     "./WrapUp": "./src/WrapUp.ts",
     "./WrapUpFailure": "./src/WrapUpFailure.ts"
   },
