@@ -158,6 +158,15 @@ interface Ticket {
   issue: IssueRef;
   facts: WrapUpFacts;
   progress: Progress;
+  landing: Landing;
+}
+
+// What differs between a ticket that lands branches and one with no code, chosen once from its facts.
+interface Landing {
+  // Leaves the root worktree on the commit the log row goes onto.
+  build(ticket: Ticket, workspace: Workspace): Promise<void>;
+  cleanRepos(ticket: Ticket): string[];
+  branchesToDelete(ticket: Ticket): Promise<LandingBranch[]>;
 }
 
 const buildSteps: WrapUpStep[] = ["merges", "checks", "log-row"];
@@ -180,10 +189,12 @@ export class WrapUp {
   }
 
   async run(issue: IssueRef): Promise<WrapUpResult> {
+    const facts = this._readFacts(issue);
     const ticket: Ticket = {
       issue,
-      facts: this._readFacts(issue),
+      facts,
       progress: this._readProgress(issue),
+      landing: this._landingOf(facts),
     };
     if (!isDone(ticket, "fast-forward")) await this._land(ticket);
     await this._step(ticket, "push", () => this._push(ticket));
@@ -229,6 +240,21 @@ export class WrapUp {
     }
     facts.branches.forEach(({ repo }) => this._clonePathOf(repo));
     return facts;
+  }
+
+  private _landingOf(facts: WrapUpFacts): Landing {
+    if (facts.branches.length === 0) {
+      return {
+        build: this._switchToMaster.bind(this),
+        cleanRepos: () => [this._rootRepo],
+        branchesToDelete: this._workspaceBranchesOf.bind(this),
+      };
+    }
+    return {
+      build: this._mergeAndCheck.bind(this),
+      cleanRepos: listedReposOf,
+      branchesToDelete: async ({ facts: { branches } }) => branches,
+    };
   }
 
   private _factsPathOf(issue: IssueRef): string {
@@ -303,7 +329,7 @@ export class WrapUp {
     for (const repo of this._landedRepos(ticket)) {
       await this._assertOnMaster(repo);
     }
-    for (const repo of this._committedRepos(ticket)) {
+    for (const repo of ticket.landing.cleanRepos(ticket)) {
       if (await isDirty(this._worktreeOf(workspace, repo))) {
         throw new WrapUpFailure(
           "dirty-tree",
@@ -337,33 +363,40 @@ export class WrapUp {
   }
 
   private async _build(ticket: Ticket, workspace: Workspace): Promise<void> {
-    if (hasBranches(ticket)) {
-      await this._step(ticket, "merges", () => this._merge(ticket, workspace));
-      await this._step(ticket, "checks", async () => {
-        try {
-          await this._runChecks(workspace.path);
-        } catch (error) {
-          await this._restore(ticket, workspace);
-          throw error;
-        }
-      });
-    } else {
-      // The row goes on master, and a repo off the issue branch lets the wrap-up delete it.
-      for (const repo of new Set([
-        this._rootRepo,
-        ...workspace.branchedRepos,
-      ])) {
-        await git(
-          this._worktreeOf(workspace, repo),
-          "switch",
-          "--detach",
-          "master",
-        );
-      }
-    }
+    await ticket.landing.build(ticket, workspace);
     await this._step(ticket, "log-row", () =>
       this._commitLogRow(ticket, workspace),
     );
+  }
+
+  private async _mergeAndCheck(
+    ticket: Ticket,
+    workspace: Workspace,
+  ): Promise<void> {
+    await this._step(ticket, "merges", () => this._merge(ticket, workspace));
+    await this._step(ticket, "checks", async () => {
+      try {
+        await this._runChecks(workspace.path);
+      } catch (error) {
+        await this._restore(ticket, workspace);
+        throw error;
+      }
+    });
+  }
+
+  // With nothing to merge, the row goes on master, and a repo off the issue branch lets the wrap-up delete it.
+  private async _switchToMaster(
+    _ticket: Ticket,
+    workspace: Workspace,
+  ): Promise<void> {
+    for (const repo of new Set([this._rootRepo, ...workspace.branchedRepos])) {
+      await git(
+        this._worktreeOf(workspace, repo),
+        "switch",
+        "--detach",
+        "master",
+      );
+    }
   }
 
   private async _merge(ticket: Ticket, workspace: Workspace): Promise<void> {
@@ -537,11 +570,9 @@ export class WrapUp {
 
   private async _deleteBranches(ticket: Ticket): Promise<void> {
     const failures: string[] = [];
-    let branches = ticket.facts.branches;
-    if (!hasBranches(ticket)) {
-      branches = await this._workspaceBranchesOf(ticket.issue);
-    }
-    for (const { repo, branch } of branches) {
+    for (const { repo, branch } of await ticket.landing.branchesToDelete(
+      ticket,
+    )) {
       try {
         await this._deleteBranch(repo, branch);
       } catch (error) {
@@ -554,9 +585,9 @@ export class WrapUp {
   }
 
   // A ticket with no code lands no branch, but its workspace made one in each repo it branched.
-  private async _workspaceBranchesOf(
-    issue: IssueRef,
-  ): Promise<LandingBranch[]> {
+  private async _workspaceBranchesOf({
+    issue,
+  }: Ticket): Promise<LandingBranch[]> {
     const { branch } = await this._workspaceOf(issue);
     const branches: LandingBranch[] = [];
     for (const repo of Object.keys(this.config.workspaces.clonePaths)) {
@@ -670,11 +701,6 @@ export class WrapUp {
     ];
   }
 
-  private _committedRepos(ticket: Ticket): string[] {
-    if (!hasBranches(ticket)) return [this._rootRepo];
-    return ticket.facts.branches.map(({ repo }) => repo);
-  }
-
   private _rootFirst(repos: string[]): string[] {
     return [...repos].sort(
       (a, b) => this._clonePathOf(a).length - this._clonePathOf(b).length,
@@ -712,8 +738,8 @@ function isDone(ticket: Ticket, step: WrapUpStep): boolean {
   return ticket.progress.completed.includes(step);
 }
 
-function hasBranches(ticket: Ticket): boolean {
-  return ticket.facts.branches.length > 0;
+function listedReposOf({ facts }: Ticket): string[] {
+  return facts.branches.map(({ repo }) => repo);
 }
 
 function closingCommentOf({
