@@ -40,6 +40,7 @@ import {
   type Workspace,
 } from "./IssueWorkspaces.ts";
 import {
+  type AccountReading,
   type AccountUsage,
   decideStep,
   defaultLimitGuardKnobs,
@@ -55,6 +56,7 @@ import {
   reviewRecordSchema,
 } from "./reviewStep.ts";
 import type { Command, KnobbedStep, RunKnobs } from "./runKnobs.ts";
+import { sleep } from "./sleep.ts";
 import {
   type LimitReading,
   type LimitReadings,
@@ -221,10 +223,10 @@ export class SpecRun {
         `Preflight stopped the run: ${preflightStop}`,
       );
     }
-    const usage = await this._usageOf(run);
+    const reading = await this._readingOf(run);
     await this._announce(
       run,
-      `Run started on ${run.tickets.length} tickets as ${usageLabelOf(this.config.knobs.account, usage)}.`,
+      `Run started on ${run.tickets.length} tickets as ${readingLabelOf(reading)}.`,
     );
     for (;;) {
       const selection = await this._select(run);
@@ -353,15 +355,16 @@ export class SpecRun {
     return undefined;
   }
 
-  // Undefined when the reader fails or has no usable reading for the configured account.
-  private async _usageOf(run: Run): Promise<AccountUsage | undefined> {
+  // Usage is undefined when the reader fails or has no usable reading for the configured account.
+  private async _readingOf(run: Run): Promise<AccountReading> {
     const { account } = this.config.knobs;
     try {
       const readings = await this.config.usageReader.read();
-      return readings.find((reading) => reading.account === account)?.usage;
+      const usage = readings.find((r) => r.account === account)?.usage;
+      return { account, usage };
     } catch (error) {
       this._log(run, `The usage read failed: ${messageOf(error)}`);
-      return undefined;
+      return { account, usage: undefined };
     }
   }
 
@@ -526,7 +529,7 @@ export class SpecRun {
   ): Promise<LaunchedStep> {
     const { run, ticket, pair, workspace, state } = ticketRun;
     const { knobs } = this.config;
-    await this._guard(ticketRun);
+    await this._waitForLaunch(ticketRun);
     const logPath = this._stepLogPathOf(ticketRun, agent);
     this._log(
       run,
@@ -556,10 +559,13 @@ export class SpecRun {
     }
     state.configFolder = result.configFolder ?? state.configFolder;
     this._saveState(run);
-    if (result.limitHit !== undefined) {
+    const { output } = result;
+    const hasSucceeded =
+      result.exitSubtype === "success" && output.status === "valid";
+    // A step that met a limit and still succeeded, as after a retry, isn't stopped.
+    if (result.limitHit !== undefined && !hasSucceeded) {
       await this._stopOnLimitHit(run, result.limitHit, logPath);
     }
-    const { output } = result;
     if (output.status === "schemaFailure") {
       throw new UnhandledStop(
         "schema-failure",
@@ -578,11 +584,13 @@ export class SpecRun {
   }
 
   // Asks the limit guard about the configured account until it says launch; the first reading is the ticket's Limit used before.
-  private async _guard({ run, state }: TicketRun): Promise<void> {
+  private async _waitForLaunch({ run, state }: TicketRun): Promise<void> {
     const { account } = this.config.knobs;
     const knobs = { ...defaultLimitGuardKnobs, ...this.config.limitGuardKnobs };
+    let hasAnnouncedWait = false;
     for (;;) {
-      const usage = await this._usageOf(run);
+      const reading = await this._readingOf(run);
+      const { usage } = reading;
       if (usage === undefined) {
         await this._warnOnce(
           run,
@@ -594,7 +602,7 @@ export class SpecRun {
       state.limitReadings ??= {};
       state.limitReadings.before ??= limitReadingOf(usage);
       const decision = decideStep(
-        [{ account, usage }],
+        [reading],
         {
           pinnedAccount: account,
           isAtTicketBoundary: true,
@@ -611,10 +619,13 @@ export class SpecRun {
       if (decision.kind !== "limitWait") {
         throw new Error(`A one-account run can't ${decision.kind}`);
       }
-      await this._announce(
-        run,
-        `Limit wait: account ${account} is at ${percentOf(usage.fiveHour.utilization)} of its 5-hour limit; continuing after ${decision.until.toISOString()}.`,
-      );
+      if (!hasAnnouncedWait) {
+        hasAnnouncedWait = true;
+        await this._announce(
+          run,
+          `Limit wait: account ${account} is at ${percentOf(usage.fiveHour.utilization)} of its 5-hour limit; continuing after ${decision.until.toISOString()}.`,
+        );
+      }
       const waitMs =
         decision.until.getTime() - this.config.clock.now().getTime();
       await this._sleep(Math.max(waitMs, knobs.limitWaitMarginMs));
@@ -697,7 +708,7 @@ export class SpecRun {
   // Needs no workspace: a wrap-up killed after removing it resumes from its own progress file.
   private async _land(landingTicket: LandingTicket): Promise<void> {
     const { run, ticket, state } = landingTicket;
-    const usage = await this._usageOf(run);
+    const { usage } = await this._readingOf(run);
     if (usage !== undefined) {
       state.limitReadings = {
         ...state.limitReadings,
@@ -865,10 +876,7 @@ function stoppedMessageOf(run: Run, ticket: TrackedIssue): string {
   return `Stopped on ${issueLabelOf(ticket.issue)}: ${stop ?? "an unhandled outcome"}.`;
 }
 
-function usageLabelOf(
-  account: number,
-  usage: AccountUsage | undefined,
-): string {
+function readingLabelOf({ account, usage }: AccountReading): string {
   if (usage === undefined) return `account ${account}: no usage reading`;
   return `account ${account}: 5-hour ${percentOf(usage.fiveHour.utilization)}, weekly ${percentOf(usage.sevenDay.utilization)}`;
 }
@@ -878,10 +886,6 @@ function limitReadingOf(usage: AccountUsage): LimitReading {
     fiveHour: usage.fiveHour.utilization,
     sevenDay: usage.sevenDay.utilization,
   };
-}
-
-async function sleep(ms: number): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function bulletsOf(items: string[]): string {

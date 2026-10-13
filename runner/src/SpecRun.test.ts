@@ -48,7 +48,7 @@ let temp: string;
 let primaryRoot: string;
 let github: FakeGitHub;
 let notices: FakeNotices;
-let usage: FakeUsageReader;
+let usageReader: FakeUsageReader;
 
 class FakeGitHub implements RunGitHub {
   issues = new Map<number, TrackedIssue>();
@@ -126,7 +126,7 @@ beforeEach(() => {
   primaryRoot = join(temp, "byro-repo");
   github = new FakeGitHub();
   notices = FakeNotices.init();
-  usage = FakeUsageReader.init(readingOf(0.1, 0.2));
+  usageReader = FakeUsageReader.init(readingOf(0.1, 0.2));
   buildPrimary();
 });
 
@@ -221,7 +221,7 @@ function specRun(
     agentStep,
     github,
     notices,
-    usageReader: usage,
+    usageReader,
     clock: { now: () => new Date("2026-10-12T09:00:00Z") },
     githubOwner: "byronbroughten",
     primaryRoot,
@@ -865,7 +865,7 @@ describe("run's limit guard", () => {
 
   it("waits out a 5-hour limit on the configured account until the reset plus a margin, with one notice, then lands", async () => {
     addSpec([1]);
-    usage = FakeUsageReader.init(
+    usageReader = FakeUsageReader.init(
       readingOf(0.92, 0.5),
       readingOf(0.92, 0.5),
       readingOf(0.1, 0.5),
@@ -890,7 +890,7 @@ describe("run's limit guard", () => {
 
   it("Stops before a step past the weekly reserve, with one notice, leaving the ticket for a rerun to resume", async () => {
     addSpec([1]);
-    usage = FakeUsageReader.init(readingOf(0.3, 0.96));
+    usageReader = FakeUsageReader.init(readingOf(0.3, 0.96));
     const agentStep = FakeAgentStep.init();
 
     const result = await specRun(agentStep).run(spec);
@@ -906,7 +906,7 @@ describe("run's limit guard", () => {
       "Run started on 1 tickets as account 1: 5-hour 30%, weekly 96%.",
       result.message,
     ]);
-    usage = FakeUsageReader.init(readingOf(0.3, 0.5));
+    usageReader = FakeUsageReader.init(readingOf(0.3, 0.5));
 
     const rerun = await specRun(
       FakeAgentStep.init(implemented("one.ts"), reviewed()),
@@ -985,7 +985,7 @@ describe("run's limit guard", () => {
 
   it("warns once per run on a missing reading and launches each step unguarded", async () => {
     addSpec([1, 2]);
-    usage = FakeUsageReader.init(new Error("cswap: not found"));
+    usageReader = FakeUsageReader.init(new Error("cswap: not found"));
     const agentStep = FakeAgentStep.init(
       implemented("one.ts"),
       reviewed(),
@@ -1005,7 +1005,7 @@ describe("run's limit guard", () => {
 
   it("records the reading before the ticket's first step and after its last as the outcome's Limit used", async () => {
     addSpec([1]);
-    usage = FakeUsageReader.init(
+    usageReader = FakeUsageReader.init(
       readingOf(0.1, 0.2),
       readingOf(0.1, 0.2),
       readingOf(0.3, 0.22),
@@ -1019,5 +1019,38 @@ describe("run's limit guard", () => {
     expect(git(primaryOf("byro-repo"), "log", "-p", "master")).toContain(
       "5-hour 10% → 40%, weekly 20% → 25%",
     );
+  });
+
+  it("pushes one Limit wait notice though a reading after the wait is still over", async () => {
+    addSpec([1]);
+    usageReader = FakeUsageReader.init(
+      readingOf(0.92, 0.5),
+      readingOf(0.92, 0.5),
+      readingOf(0.92, 0.5),
+      readingOf(0.1, 0.5),
+    );
+
+    const result = await specRun(
+      FakeAgentStep.init(implemented("one.ts"), reviewed()),
+    ).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(
+      summaries().filter((summary) => summary.startsWith("Limit wait")),
+    ).toHaveLength(1);
+  });
+
+  it("lands a step that met a limit but still succeeded", async () => {
+    addSpec([1]);
+    const hit = { window: "five_hour", resetsAt: undefined };
+
+    const result = await specRun(
+      FakeAgentStep.init(implemented("one.ts"), {
+        ...reviewed(),
+        limitHit: hit,
+      }),
+    ).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
   });
 });

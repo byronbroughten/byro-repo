@@ -29,7 +29,6 @@ export interface AccountReading {
   usage: AccountUsage | undefined;
 }
 
-// Production reads `cswap list --json` through CswapUsageReader.ts; run-loop tests script a fake.
 export interface UsageReader {
   read(): Promise<AccountReading[]>;
 }

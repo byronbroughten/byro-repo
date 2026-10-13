@@ -27,6 +27,7 @@ import {
   outcomeFileOf,
   outcomePathOf,
 } from "./outcomeLog.ts";
+import { sleep } from "./sleep.ts";
 import {
   handoffSessionIdOf,
   type LimitReadings,
@@ -686,10 +687,6 @@ function definedFactsOf(facts: OutcomeFacts): OutcomeFacts {
   return Object.fromEntries(
     Object.entries(facts).filter(([, value]) => value !== undefined),
   ) as OutcomeFacts;
-}
-
-async function sleep(ms: number): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function currentBranchOf(worktree: string): Promise<string> {
