@@ -1,14 +1,17 @@
 // Every knob a run reads, typed and defaulted here; a repo overrides them in one JSON file that loadRunKnobs() lays over these.
-// SpecRun.ts reads them for a run; byro-repo's context-nudge hook reads the ticket budget and handoff doc through runKnobsOr().
+// SpecRun.ts reads them for a run; byro-repo's context-nudge hook reads the ticket budget and handoff doc through runKnobsOrDefaults().
 
 import { readFileSync } from "node:fs";
 
 export type Command = [string, ...string[]];
 
-export interface StepKnobs<VL> {
+export interface StepKnobs<VL extends number | string[]> {
   implement: VL;
   review: VL;
 }
+
+// The steps a run launches, each with its own knobs.
+export type KnobbedStep = keyof StepKnobs<number>;
 
 export interface RunKnobs {
   // Repo name to its clone's path relative to the primary root; the root repo's is ".".
@@ -18,7 +21,7 @@ export interface RunKnobs {
   skillNames: { review: string };
   // Run from a workspace or primary root: on master at preflight, and after review in each ticket.
   checks: Command[];
-  // Each must exit 0 at preflight: GitHub auth and the account's claude login.
+  // Each must exit 0 at preflight; unset, GitHub auth and the configured account's claude login.
   authChecks: Command[];
   allowedTools: StepKnobs<string[]>;
   maxTurns: StepKnobs<number>;
@@ -29,6 +32,13 @@ export interface RunKnobs {
 
 const defaultAccount = 1;
 
+function authChecksOf(account: number): Command[] {
+  return [
+    ["gh", "auth", "status"],
+    ["cswap", "run", String(account), "--", "auth", "status"],
+  ];
+}
+
 export const defaultRunKnobs: RunKnobs = {
   clonePaths: {},
   account: defaultAccount,
@@ -38,10 +48,7 @@ export const defaultRunKnobs: RunKnobs = {
     ["npm", "test"],
     ["npm", "run", "lint"],
   ],
-  authChecks: [
-    ["gh", "auth", "status"],
-    ["cswap", "run", String(defaultAccount), "--", "auth", "status"],
-  ],
+  authChecks: authChecksOf(defaultAccount),
   allowedTools: { implement: [], review: [] },
   maxTurns: { implement: 200, review: 80 },
   ticketBudget: 150_000,
@@ -54,7 +61,7 @@ export function loadRunKnobs(overridePath: string): RunKnobs {
 }
 
 // For a reader that must still work without the override file, such as a hook that fails open.
-export function runKnobsOr(overridePath: string): RunKnobs {
+export function runKnobsOrDefaults(overridePath: string): RunKnobs {
   try {
     return loadRunKnobs(overridePath);
   } catch {
@@ -79,5 +86,7 @@ export function runKnobsOf(overrides: RunKnobOverrides): RunKnobs {
       ...overrides.allowedTools,
     },
     maxTurns: { ...defaultRunKnobs.maxTurns, ...overrides.maxTurns },
+    authChecks:
+      overrides.authChecks ?? authChecksOf(overrides.account ?? defaultAccount),
   };
 }

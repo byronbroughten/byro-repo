@@ -17,19 +17,19 @@ import type { SpecRunConfig } from "@byronbroughten/spec-runner/SpecRun";
 import type { WrapUpConfig } from "@byronbroughten/spec-runner/WrapUp";
 
 const githubOwner = "byronbroughten";
-const configFolder = fileURLToPath(new URL(".", import.meta.url));
-const localConfigPath = join(configFolder, "runner.local.json");
+const scriptFolder = fileURLToPath(new URL(".", import.meta.url));
+const localConfigPath = join(scriptFolder, "runner.local.json");
 
 // The git common dir, not this file's folder, so a script run inside an issue workspace still finds the primary root.
 const primaryRoot = dirname(
   execFileSync(
     "git",
     ["rev-parse", "--path-format=absolute", "--git-common-dir"],
-    { cwd: configFolder, encoding: "utf8" },
+    { cwd: scriptFolder, encoding: "utf8" },
   ).trim(),
 );
 
-export const runKnobs = loadRunKnobs(join(configFolder, "runner.config.json"));
+export const runKnobs = loadRunKnobs(join(scriptFolder, "runner.config.json"));
 
 export const issueWorkspacesConfig: IssueWorkspacesConfig = {
   primaryRoot,

@@ -4,7 +4,11 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { defaultRunKnobs, loadRunKnobs, runKnobsOr } from "./runKnobs.ts";
+import {
+  defaultRunKnobs,
+  loadRunKnobs,
+  runKnobsOrDefaults,
+} from "./runKnobs.ts";
 
 let temp: string;
 
@@ -44,13 +48,26 @@ describe("loadRunKnobs", () => {
     expect(knobs.skillNames.review).toBe("code-review");
   });
 
+  it("checks the configured account's claude login unless the auth checks are overridden", () => {
+    expect(loadRunKnobs(overrideFile('{ "account": 2 }')).authChecks).toEqual([
+      ["gh", "auth", "status"],
+      ["cswap", "run", "2", "--", "auth", "status"],
+    ]);
+    expect(
+      loadRunKnobs(overrideFile('{ "account": 2, "authChecks": [["true"]] }'))
+        .authChecks,
+    ).toEqual([["true"]]);
+  });
+
   it("throws on an unreadable override file", () => {
     expect(() => loadRunKnobs(join(temp, "missing.json"))).toThrow();
   });
 });
 
-describe("runKnobsOr", () => {
+describe("runKnobsOrDefaults", () => {
   it("falls back to the defaults when the override file can't load", () => {
-    expect(runKnobsOr(overrideFile("{ not json"))).toEqual(defaultRunKnobs);
+    expect(runKnobsOrDefaults(overrideFile("{ not json"))).toEqual(
+      defaultRunKnobs,
+    );
   });
 });

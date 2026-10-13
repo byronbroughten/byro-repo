@@ -15,7 +15,8 @@ import {
 import { join } from "node:path";
 import { promisify } from "node:util";
 
-import type { AgentStep, Pair, StepResult } from "./AgentStep.ts";
+import type { AgentStep, Pair, StepRequest, StepResult } from "./AgentStep.ts";
+import { messageOf, outputTailOf } from "./failureText.ts";
 import { git } from "./git.ts";
 import {
   implementPrompt,
@@ -24,6 +25,7 @@ import {
   implementRecordSchema,
 } from "./implementStep.ts";
 import {
+  fileStemOf,
   issueLabelOf,
   type IssueRef,
   IssueWorkspaces,
@@ -37,7 +39,7 @@ import {
   type ReviewRecord,
   reviewRecordSchema,
 } from "./reviewStep.ts";
-import type { Command, RunKnobs } from "./runKnobs.ts";
+import type { Command, KnobbedStep, RunKnobs } from "./runKnobs.ts";
 import type { StepAgent, StepSession } from "./transcriptFacts.ts";
 import { stopOutcomes, UnhandledStop } from "./UnhandledStop.ts";
 import {
@@ -50,7 +52,6 @@ import {
 const execFileAsync = promisify(execFile);
 
 const readyLabel = "ready-for-agent";
-const checkOutputLines = 40;
 
 export interface TrackedIssue {
   issue: IssueRef;
@@ -221,6 +222,25 @@ export class SpecRun {
     }
   }
 
+  private get _workspacesConfig(): IssueWorkspacesConfig {
+    const {
+      primaryRoot,
+      knobs,
+      workspaceFolder,
+      symlinkedFiles,
+      installDependencies,
+      github,
+    } = this.config;
+    return {
+      primaryRoot,
+      clonePaths: knobs.clonePaths,
+      workspaceFolder,
+      symlinkedFiles,
+      installDependencies,
+      issueTitle: async (issue) => (await github.issueOf(issue)).title,
+    };
+  }
+
   private async _startRun(specIssue: IssueRef): Promise<Run> {
     const spec = await this.config.github.issueOf(specIssue);
     const subIssues = await this.config.github.subIssuesOf(specIssue);
@@ -289,7 +309,7 @@ export class SpecRun {
   // The label, blockers and state are read afresh for every pick, so a mid-run relabel takes effect.
   private async _select(run: Run): Promise<Selection> {
     const waiting: string[] = [];
-    let launchable: TrackedIssue | undefined;
+    const launchable: TrackedIssue[] = [];
     for (const ticket of run.tickets) {
       const tracked = await this.config.github.issueOf(ticket);
       if (!tracked.isOpen) continue;
@@ -309,10 +329,11 @@ export class SpecRun {
         );
         continue;
       }
-      launchable ??= tracked;
+      launchable.push(tracked);
     }
-    if (launchable) return { kind: "launch", ticket: launchable };
-    return { kind: "none", waiting };
+    const [first] = launchable;
+    if (first === undefined) return { kind: "none", waiting };
+    return { kind: "launch", ticket: first };
   }
 
   // True once the ticket lands; an UnhandledStop leaves it unlanded, commented on and noticed.
@@ -441,8 +462,8 @@ export class SpecRun {
 
   private async _launch(
     ticketRun: TicketRun,
-    agent: Exclude<StepAgent, "triage" | "fix">,
-    { prompt, jsonSchema }: { prompt: string; jsonSchema: object },
+    agent: KnobbedStep,
+    { prompt, jsonSchema }: Pick<StepRequest, "prompt" | "jsonSchema">,
   ): Promise<LaunchedStep> {
     const { run, ticket, pair, workspace, state } = ticketRun;
     const { knobs } = this.config;
@@ -524,9 +545,9 @@ export class SpecRun {
   }
 
   // Needs no workspace: a wrap-up killed after removing it resumes from its own progress file.
-  private async _land(ticketRun: LandingTicket): Promise<void> {
-    const { run, ticket } = ticketRun;
-    this._writeFacts(ticketRun);
+  private async _land(landingTicket: LandingTicket): Promise<void> {
+    const { run, ticket } = landingTicket;
+    this._writeFacts(landingTicket);
     this._log(run, `${issueLabelOf(ticket.issue)}: wrapping up.`);
     try {
       await this.wrapUp.run(ticket.issue);
@@ -537,7 +558,7 @@ export class SpecRun {
         this._progressPathOf(run),
       );
     }
-    this._advance(ticketRun, "landed");
+    this._advance(landingTicket, "landed");
     this._log(run, `${issueLabelOf(ticket.issue)}: landed.`);
   }
 
@@ -556,16 +577,14 @@ export class SpecRun {
       reviewRounds: 1,
       retries: 0,
       pair: pairLabelOf(pair),
-      ...(configFolder === undefined
-        ? {}
-        : {
-            sessions: {
-              account: this.config.knobs.account,
-              configFolder,
-              steps: sessions,
-            },
-          }),
     };
+    if (configFolder !== undefined) {
+      facts.sessions = {
+        account: this.config.knobs.account,
+        configFolder,
+        steps: sessions,
+      };
+    }
     writeFileSync(
       join(this.config.stateFolder, `${fileStemOf(ticket.issue)}.facts.json`),
       `${JSON.stringify(facts, undefined, 2)}\n`,
@@ -596,7 +615,7 @@ export class SpecRun {
     this._saveState(run);
     this._log(
       run,
-      `${issueLabelOf(ticket.issue)}: stopped on ${outcome}: ${stop.message}`,
+      `${issueLabelOf(ticket.issue)}: stopped on ${outcome}; details in the spec-issue comment.`,
     );
     await this.config.github.comment(
       run.spec.issue,
@@ -632,10 +651,12 @@ export class SpecRun {
     }
   }
 
+  // Newlines are folded so each event stays one line for tail -f.
   private _log(run: Run, line: string): void {
+    const oneLine = line.replace(/\s*\n\s*/g, " ");
     appendFileSync(
       this._progressPathOf(run),
-      `${this.config.clock.now().toISOString()} ${line}\n`,
+      `${this.config.clock.now().toISOString()} ${oneLine}\n`,
     );
     this.config.log?.(line);
   }
@@ -643,29 +664,6 @@ export class SpecRun {
   private _progressPathOf(run: Run): string {
     return join(this.config.stateFolder, `${fileStemOf(run.spec.issue)}.log`);
   }
-
-  private get _workspacesConfig(): IssueWorkspacesConfig {
-    const {
-      primaryRoot,
-      knobs,
-      workspaceFolder,
-      symlinkedFiles,
-      installDependencies,
-      github,
-    } = this.config;
-    return {
-      primaryRoot,
-      clonePaths: knobs.clonePaths,
-      workspaceFolder,
-      symlinkedFiles,
-      installDependencies,
-      issueTitle: async (issue) => (await github.issueOf(issue)).title,
-    };
-  }
-}
-
-function fileStemOf({ repo, number }: IssueRef): string {
-  return `${repo}-${number}`;
 }
 
 function ticketStateOf(run: Run, ticket: IssueRef): TicketState {
@@ -692,12 +690,7 @@ async function runCommand(
     await execFileAsync(file, args, { cwd, maxBuffer: 64 * 1024 * 1024 });
     return undefined;
   } catch (error) {
-    const { stdout = "", stderr = "" } = error as {
-      stdout?: string;
-      stderr?: string;
-    };
-    const output = `${stdout}\n${stderr}`.trim() || messageOf(error);
-    return output.split("\n").slice(-checkOutputLines).join("\n");
+    return outputTailOf(error) || messageOf(error);
   }
 }
 
@@ -710,14 +703,10 @@ function endMessageOf(landed: IssueRef[], waiting: string[]): string {
 }
 
 function stoppedMessageOf(run: Run, ticket: TrackedIssue): string {
-  const { stop } = run.state.tickets[issueLabelOf(ticket.issue)] ?? {};
+  const { stop } = ticketStateOf(run, ticket.issue);
   return `Stopped on ${issueLabelOf(ticket.issue)}: ${stop ?? "an unhandled outcome"}.`;
 }
 
 function bulletsOf(items: string[]): string {
   return items.map((item) => `- ${item}`).join("\n");
-}
-
-function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }

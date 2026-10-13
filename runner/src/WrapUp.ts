@@ -10,8 +10,10 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
+import { messageOf, outputTailOf } from "./failureText.ts";
 import { git, lines } from "./git.ts";
 import {
+  fileStemOf,
   issueLabelOf,
   type IssueRef,
   IssueWorkspaces,
@@ -37,7 +39,6 @@ import { WrapUpFailure } from "./WrapUpFailure.ts";
 const execFileAsync = promisify(execFile);
 
 const mapLabel = "wayfinder:map";
-const checkOutputLines = 40;
 
 export interface LandingBranch {
   repo: string;
@@ -380,7 +381,7 @@ export class WrapUp {
       } catch (error) {
         throw new WrapUpFailure(
           "red-checks",
-          `${[command, ...args].join(" ")} failed after the merges:\n${checkOutputOf(error)}`,
+          `${[command, ...args].join(" ")} failed after the merges:\n${outputTailOf(error)}`,
         );
       }
     }
@@ -647,10 +648,6 @@ export class WrapUp {
   }
 }
 
-function fileStemOf({ repo, number }: IssueRef): string {
-  return `${repo}-${number}`;
-}
-
 function isDone(ticket: Ticket, step: WrapUpStep): boolean {
   return ticket.progress.completed.includes(step);
 }
@@ -683,20 +680,6 @@ function parentCheckOf(parent: ParentIssue | undefined): ParentCheck {
     return { kind: "open-sub-issues", parent: parent.issue };
   }
   return { kind: "ready-to-close", parent: parent.issue };
-}
-
-function checkOutputOf(error: unknown): string {
-  const { stdout = "", stderr = "" } = error as {
-    stdout?: string;
-    stderr?: string;
-  };
-  return lines(`${stdout}\n${stderr}`.trim())
-    .slice(-checkOutputLines)
-    .join("\n");
-}
-
-function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 function definedFactsOf(facts: OutcomeFacts): OutcomeFacts {

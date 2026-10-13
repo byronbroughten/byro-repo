@@ -16,7 +16,7 @@ import type { StepRequest, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
 import { FakeNotices } from "./FakeNotices.ts";
 import type { ImplementRecord } from "./implementStep.ts";
-import { type IssueRef, IssueWorkspaces } from "./IssueWorkspaces.ts";
+import type { IssueRef } from "./IssueWorkspaces.ts";
 import { reviewRecordSchema } from "./reviewStep.ts";
 import { type Command, runKnobsOf } from "./runKnobs.ts";
 import {
@@ -366,6 +366,22 @@ describe("run", () => {
     );
   });
 
+  it("keeps a Stop with multi-line output to timestamped lines", async () => {
+    addSpec([1]);
+
+    await specRun(FakeAgentStep.init(implemented("RED"), reviewed())).run(spec);
+
+    const lines = readFileSync(join(stateFolder(), "byro-repo-213.log"), "utf8")
+      .trimEnd()
+      .split("\n");
+    expect(
+      lines.every((line) => line.startsWith("2026-10-12T09:00:00.000Z ")),
+    ).toBe(true);
+    expect(lines.map((line) => line.slice(25))).toContain(
+      "byro-repo #1: stopped on red checks; details in the spec-issue comment.",
+    );
+  });
+
   it("runs a ticket's open blocker first, then breaks ties by sub-issue order", async () => {
     addSpec([1, 2, 3]);
     github.blockers.set(1, [3]);
@@ -621,7 +637,8 @@ describe("run's unhandled Stops", () => {
     async ({ outcome, steps, logFile }) => {
       addSpec([1, 2]);
 
-      const result = await specRun(FakeAgentStep.init(...steps())).run(spec);
+      const run = specRun(FakeAgentStep.init(...steps()));
+      const result = await run.run(spec);
 
       expect(result).toEqual<RunResult>({
         kind: "stopped",
@@ -629,17 +646,7 @@ describe("run's unhandled Stops", () => {
         message: `Stopped on byro-repo #1: ${outcome}.`,
       });
       expect(github.issues.get(1)?.isOpen).toBe(true);
-      const workspaces = IssueWorkspaces.init({
-        primaryRoot,
-        clonePaths,
-        workspaceFolder: join(temp, "workspaces"),
-        symlinkedFiles: [],
-        async installDependencies() {},
-        async issueTitle() {
-          return "Ticket 1";
-        },
-      });
-      expect(await workspaces.find(refOf(1))).toBeDefined();
+      expect(await run.workspaces.find(refOf(1))).toBeDefined();
       expect(github.comments).toHaveLength(1);
       expect(github.comments[0]?.issue).toEqual(spec);
       expect(github.comments[0]?.body).toContain(

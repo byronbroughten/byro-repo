@@ -3,7 +3,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { runKnobsOr } from "@byronbroughten/spec-runner/runKnobs";
+import { runKnobsOrDefaults } from "@byronbroughten/spec-runner/runKnobs";
 
 import { contextNudgeContext } from "./lib/contextNudge.ts";
 import {
@@ -21,7 +21,7 @@ await runFailOpen(() => {
   }
   const markerPath = sessionStatePath(input.session_id, "context-nudge");
   if (existsSync(markerPath)) return;
-  const knobs = runKnobsOr(
+  const knobs = runKnobsOrDefaults(
     join(import.meta.dirname, "../../scripts/runner/runner.config.json"),
   );
   const context = contextNudgeContext(
