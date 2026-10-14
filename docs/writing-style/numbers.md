@@ -14,6 +14,7 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Numbers and evid
 - "2,400 square feet means $2,400 per year which divides to $200 per month." — blog: Costs of Owning a Home
 - "– $32,952 gross ongoing expenses + $7620 paid towards the principal + $12,879 value gained from appreciation = $12,453 net expenses" (a ledger, one line per term) — blog: Is Buying a House a Good Investment?
 - Seen in 4 of 6. In 3 of 5 posts.
+- Agent: "…and $225,000 less $212,500 leaves $12,500. The reachable equity is $12,500. That is a third of the down payment, which can be drawn back out toward the next acquisition." Developer: "…and $225,000 less $212,500 leaves $12,500 reachable equity: a third of the down payment that can be drawn back out toward the next acquisition." — Assessment 1 Next Draft (writing#4), 2026-10-13
 
 ## State a projection's assumption
 

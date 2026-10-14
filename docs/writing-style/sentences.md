@@ -27,6 +27,11 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Sentences and pu
 - "things like the roof, furnace, cabinets, and so on" — blog: Costs of Owning a Home
 - Seen in 3 of 6. In 4 of 5 posts.
 
+## One stock phrase, not in a row
+
+- Three paragraphs in a row ended with "In other words," and all three were cut ([explaining](./explaining.md#in-other-words-and-that-is-to-say)). The developer ruled that either phrase may recur in a piece, but not several times in a row. — session 35ba225a, 2026-10-13
+- No count was recorded; from a session.
+
 ## Plain connectives
 
 - "albeit with a proportional increase in cost of sales." — Assessment 2 - Capital Budgeting Tools

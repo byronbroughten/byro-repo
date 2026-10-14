@@ -67,3 +67,13 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Structure and re
 - "Of course, your mileage may vary depending on things like which part of the country you intend to live in, the size and type of house you want to buy, the timing of stock and housing market fluctuations" — blog: Is Buying a House a Good Investment?
 - "As with most important questions, the answer boils down to a highly unsatisfying: it depends." — blog: Rent vs Buy
 - In 4 of 5 posts.
+
+## Make each point once
+
+- Agent: "The schedule leaves little slack. This project is planned for eight months, which leaves 31 of the 39 months for the four acquisitions after it, or just under eight months each. If this project ran two months late, the four would share 29 months instead." Developer: struck; the paragraph before already says an overrun "compresses the time available for the rest" — Assessment 1 Next Draft (writing#4), 2026-10-13
+- Agent: "Because the new property will be the owner's principal residence, its loan falls outside the 10-property cap… Once financed, however, the property counts toward the 10" Developer: struck — Assessment 1 Next Draft (writing#4), 2026-10-13
+- Agent: "Every $10,000 added to the price raises the down payment by $1,500 and closing costs by about $300… It could absorb a price of up to about $266,000" Developer: struck the whole paragraph — Assessment 1 Next Draft (writing#4), 2026-10-13
+- Agent: "Špundak also concludes that the two approaches can be combined within one project" Developer: struck — Assessment 1 Next Draft (writing#4), 2026-10-13
+- Agent: "This project's largely fixed scope, cost, and sequence point to the predictive approach." Developer: struck; "A real estate acquisition fits that description." already drew the conclusion — Assessment 1 Next Draft (writing#4), 2026-10-13
+- "it often includes much unnecessary verbiage" — the developer on AI drafts, Assessment 1 graded draft, AI Usage
+- No count was recorded; from a session.

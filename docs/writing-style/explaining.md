@@ -19,6 +19,7 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Explaining". The
 - "In other words, despite selling more goods, the company became less efficient at selling them." — Assessment 3 - Accounting
 - "That is to say, if the costs of a home fit your budget right now, they might not always if your income doesn't keep pace." — blog: Costs of Owning a Home
 - Seen in 3 of 6. "That is to say," is in 2 of 5 posts.
+- Agent, closing three paragraphs in a row: "In other words, each acquisition is planned to help pay for the one after it."; "In other words, the property must clear $750 a month after every expense before the project counts as a success."; "In other words, a third of the down payment can be drawn back out toward the next acquisition." All three were cut, on a `/review-piece` finding the developer approved: "three paragraphs in a row end with it. The first one restates a point that wasn't hard to follow." — session 36fe911a, 2026-10-09
 
 ## Acronyms
 

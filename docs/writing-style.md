@@ -28,7 +28,7 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 ## Numbers and evidence
 
 - **After a figure, say in the next sentence what it means for the reader.**
-- **Show arithmetic step by step in prose, then state the total in its own short sentence.**
+- **Show arithmetic step by step in prose, then state the total in its own short sentence, unless the last step already reaches it; never state the same figure twice.**
 - **State the assumption behind a projection inline, and call it conservative when it is.**
 - **Give the exact figure, then a rounded, human-scale equivalent, such as the cost per month.**
 - **Write numbers as numerals with $ and %, and ranges with a hyphen.**
@@ -42,7 +42,7 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 
 - **Make an abstract point concrete at once with "For example," or "For instance," and an everyday scenario with real nouns.**
 - **Explain an unfamiliar idea by comparing it to something the reader already knows.**
-- **Restate a dense or technical point in plain words with "In other words," or "That is to say,".**
+- **Restate a dense or technical point in plain words with "In other words," or "That is to say,", never after a figure the reader just watched you work out.**
 - **Spell out an acronym on first use with the short form after it ("capital expenses, or CapEx," or "(CapEx)"), then use only the short form.**
 - **Gloss a term inline with "i.e.," rather than in a separate sentence.**
 - **Before the real answer, name the tempting wrong reading or the reader's obvious objection, often as a question ("why doesn't everyone just…?"), and answer it.**
@@ -82,6 +82,7 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - **Number parallel reasons in prose ("First, … Second, … And third, …") when each needs a sentence or more.**
 - **Use bullets for short parallel items (costs with their figures, tips, one-sentence reasons after "Here's why:"); keep multi-sentence reasoning in prose.**
 - **Put a side point in its own "Note that…" sentence.**
+- **Make each point once, with the support it needs; cut a second calculation, a source's side conclusion or a rule's fine print that only reinforces or qualifies it.**
 - **Close by returning to the opening question or figure, answer it, and say what makes the answer vary for the reader.**
 
 ## Sentences and punctuation
@@ -94,6 +95,7 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - **Give a punchline, consequence or comparison its own sentence, not a trailing em dash.**
 - **Start a sentence with "And" or "But" to add a point or turn on one.**
 - **End an open-ended list of everyday examples with "etc." or "and so on".**
+- **Never reuse one stock phrase, such as "In other words,", in sentences or paragraphs in a row.**
 - **Link sentences with plain connectives such as "Additionally" and "Finally"; "Conversely", "To that end" and "albeit" are fine too, but "Furthermore" and "Moreover" are academic.**
 
 ## Person and register
