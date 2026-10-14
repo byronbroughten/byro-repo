@@ -65,12 +65,28 @@ The step at the end of a spec that lists what the spec asked for that no landed 
 _Avoid_: audit, retro
 
 **Primary checkout**:
-A repo's one long-lived clone. Tickets land into it and are never implemented in it.
+A repo's one long-lived clone. Work lands into it and is never made in it.
 _Avoid_: main repo, root clone
 
+**Workspace**:
+A disposable set of checkouts, one per repo, where edits are made instead of in the primary checkouts.
+_Avoid_: worktree (bare), sandbox
+
 **Issue workspace**:
-A disposable set of checkouts, one per repo, where one ticket is implemented.
-_Avoid_: ticket worktree, sandbox
+A workspace that belongs to one issue, where that issue is implemented by a run's steps or an interactive session.
+_Avoid_: ticket worktree
+
+**Session workspace**:
+A workspace that belongs to no issue, opened by an interactive session for edits too small to need one, such as a glossary term settled while grilling. The runner never opens one.
+_Avoid_: scratch workspace, one-off workspace
+
+**Interactive session**:
+A Claude session the developer drives, as opposed to a run's agent steps.
+_Avoid_: hand session, manual session
+
+**Lease**:
+A run's or interactive session's hold on one workspace, which keeps every other run and session out of it until the holder moves on, ends or closes out. A lease whose holder has died is abandoned, and the next taker takes it over.
+_Avoid_: lock, claim
 
 **Master set**:
 A disposable set of checkouts, one per repo, each detached at its master, rebuilt for each preflight so the checks see master's commits and nothing uncommitted.
