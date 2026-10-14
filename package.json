@@ -31,6 +31,7 @@
     "dev:run": "npm run run -w @byronbroughten/sheets-framework --",
     "issue:list": "node scripts/runner/issue.ts list",
     "issue:promote": "node scripts/runner/issue.ts promote",
+    "issue:read": "node scripts/runner/issueRead.ts",
     "issue:remove": "node scripts/runner/issue.ts remove",
     "runner": "node scripts/runner/run.ts",
     "session:probe": "node scripts/runner/sessionProbe.ts",
