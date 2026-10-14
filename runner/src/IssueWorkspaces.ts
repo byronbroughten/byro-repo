@@ -7,6 +7,7 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
+  readFileSync,
   rmSync,
   statSync,
   symlinkSync,
@@ -19,6 +20,7 @@ import { git, lines } from "./git.ts";
 const execFileAsync = promisify(execFile);
 
 const maxSlugWords = 6;
+const lockfileName = "package-lock.json";
 
 export interface IssueRef {
   repo: string;
@@ -255,8 +257,9 @@ export class IssueWorkspaces {
     });
   }
 
-  // A copy-on-write clone is near-instant on APFS; the installer then reconciles, or does the whole install where cloning failed.
+  // A copy-on-write clone is near-instant on APFS and its npm-workspace links are relative, so it resolves to the workspace's own packages.
   private async _seedDependencies(path: string): Promise<void> {
+    let copyFailed = false;
     for (const folder of this._dependencyFolders) {
       const from = join(this.config.primaryRoot, folder, "node_modules");
       const to = join(path, folder, "node_modules");
@@ -264,10 +267,21 @@ export class IssueWorkspaces {
       try {
         await execFileAsync("cp", ["-cR", from, to]);
       } catch {
+        copyFailed = true;
         rmSync(to, { recursive: true, force: true });
       }
     }
-    await this.config.installDependencies(path);
+    if (copyFailed || !this._lockfileMatches(path)) {
+      await this.config.installDependencies(path);
+    }
+  }
+
+  // A missing lockfile counts as differing, so the installer still runs.
+  private _lockfileMatches(path: string): boolean {
+    const primary = join(this.config.primaryRoot, lockfileName);
+    const workspace = join(path, lockfileName);
+    if (!existsSync(primary) || !existsSync(workspace)) return false;
+    return readFileSync(primary).equals(readFileSync(workspace));
   }
 
   // Top-level folders too, since npm workspaces such as runner/ keep their own node_modules.
