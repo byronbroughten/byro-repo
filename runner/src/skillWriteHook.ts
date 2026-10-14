@@ -1,10 +1,10 @@
 // The PermissionRequest hook ClaudeAgentStep registers on every step; its one argument is the JSON of SkillWriteHookArgs.
-// It prints an allow when skillWriteDecision() allows and nothing otherwise, an error included, so the prompt is denied.
 import { readFileSync } from "node:fs";
 
 import {
   skillWriteDecision,
   type SkillWriteRequest,
+  type SkillWriteToolInput,
 } from "./skillWriteDecision.ts";
 
 export type SkillWriteHookArgs = Pick<
@@ -20,7 +20,7 @@ try {
   };
   const decision = skillWriteDecision({
     toolName: String(input.tool_name),
-    toolInput: (input.tool_input ?? {}) as SkillWriteRequest["toolInput"],
+    toolInput: (input.tool_input ?? {}) as SkillWriteToolInput,
     ...args,
   });
   if (decision === "allow") {

@@ -19,7 +19,6 @@ export interface StepRequest {
   cwd: string;
   maxTurns: number;
   allowedTools: string[];
-  // Workspace-relative globs under .claude/ the step's Edit and Write may change.
   allowedWriteGlobs: string[];
   jsonSchema: object;
   resumeSessionId?: string;

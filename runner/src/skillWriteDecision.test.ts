@@ -1,4 +1,10 @@
-import { mkdirSync, mkdtempSync, realpathSync, symlinkSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -8,6 +14,7 @@ import { defaultRunKnobs } from "./runKnobs.ts";
 import {
   skillWriteDecision,
   type SkillWriteRequest,
+  type SkillWriteToolInput,
 } from "./skillWriteDecision.ts";
 
 const workspaceRoot = mkdtempSync(join(tmpdir(), "skill-write-"));
@@ -22,7 +29,7 @@ symlinkSync(
 
 function request(
   toolName: string,
-  toolInput: SkillWriteRequest["toolInput"],
+  toolInput: SkillWriteToolInput,
 ): SkillWriteRequest {
   return {
     toolName,
@@ -34,6 +41,11 @@ function request(
 
 const skillPath = join(workspaceRoot, ".claude/skills/tdd/SKILL.md");
 const agentPath = join(workspaceRoot, ".claude/agents/repo-explorer.md");
+writeFileSync(agentPath, "---\nname: repo-explorer\ndescription: a\n---\n");
+const grantingPath = join(workspaceRoot, ".claude/agents/granting.md");
+writeFileSync(grantingPath, "---\nallowed-tools: Read\n---\n");
+const commentedPath = join(workspaceRoot, ".claude/agents/commented.md");
+writeFileSync(commentedPath, "---\n# hooks: x\n---\n");
 
 describe("skillWriteDecision", () => {
   it("allows a Write to a skill file inside the workspace", () => {
@@ -49,7 +61,7 @@ describe("skillWriteDecision", () => {
       skillWriteDecision(
         request("Edit", {
           file_path: agentPath,
-          old_string: "a",
+          old_string: "description: a",
           new_string: "description: Read-only sweep.",
         }),
       ),
@@ -89,13 +101,65 @@ describe("skillWriteDecision", () => {
         skillWriteDecision(
           request("Edit", {
             file_path: agentPath,
-            old_string: "a",
+            old_string: "description: a",
             new_string: `  ${key}:`,
           }),
         ),
       ).toBeUndefined();
     },
   );
+
+  it("gives no decision for a quoted permission key", () => {
+    const content = `---\n"allowed-tools": Bash\n---\n`;
+    expect(
+      skillWriteDecision(request("Write", { file_path: skillPath, content })),
+    ).toBeUndefined();
+  });
+
+  it("gives no decision for an Edit widening an existing permission key's value", () => {
+    expect(
+      skillWriteDecision(
+        request("Edit", {
+          file_path: grantingPath,
+          old_string: "Read",
+          new_string: "Bash(*)",
+        }),
+      ),
+    ).toBeUndefined();
+  });
+
+  it("gives no decision for an Edit that uncovers a permission key", () => {
+    expect(
+      skillWriteDecision(
+        request("Edit", {
+          file_path: commentedPath,
+          old_string: "# ",
+          new_string: "",
+        }),
+      ),
+    ).toBeUndefined();
+  });
+
+  it("gives no decision for an Edit to a file that doesn't exist or lacks the old string", () => {
+    expect(
+      skillWriteDecision(
+        request("Edit", {
+          file_path: join(workspaceRoot, ".claude/agents/missing.md"),
+          old_string: "a",
+          new_string: "b",
+        }),
+      ),
+    ).toBeUndefined();
+    expect(
+      skillWriteDecision(
+        request("Edit", {
+          file_path: agentPath,
+          old_string: "not in the file",
+          new_string: "b",
+        }),
+      ),
+    ).toBeUndefined();
+  });
 
   it.each([".claude/settings.json", ".claude/hooks/branchGuard.ts"])(
     "gives no decision for %s",

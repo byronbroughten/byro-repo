@@ -5,7 +5,7 @@ Runs a spec's tickets through implement, review, finding triage, fix, checks and
 | Export | What it is |
 | --- | --- |
 | `@byronbroughten/spec-runner/AgentStep` | `AgentStep`: the port that launches one headless `claude -p` step as a cswap account and returns its `StepResult`: the schema-checked record or schema failure, session id, config folder, transcript path, peak context, exit subtype, latest usage reading and any limit hit. |
-| `@byronbroughten/spec-runner/ClaudeAgentStep` | The real adapter: runs `cswap run <account> -- -p …` in `acceptEdits` and reads its stream-json, optionally logging it raw. Its `--settings` registers `skillWriteHook.ts`, a PermissionRequest hook that allows an Edit or Write to a `.claude/` path matching the allowed write globs, inside the workspace with symlinks resolved, carrying no `allowed-tools`, `permissionMode` or `hooks` key; `skillWriteDecision()` is its decision. |
+| `@byronbroughten/spec-runner/ClaudeAgentStep` | The real adapter: runs `cswap run <account> -- -p …` in `acceptEdits` and reads its stream-json, optionally logging it raw. Its `--settings` registers a PermissionRequest hook that lets a step Edit or Write the `.claude/` files the allowed write globs name, which a headless run otherwise denies. |
 | `@byronbroughten/spec-runner/FakeAgentStep` | The adapter run-loop tests script with `StepResult`s, or with functions of the request that act first, such as committing in its cwd. |
 | `@byronbroughten/spec-runner/FakeNotices` | The notice port run-loop tests read back. |
 | `@byronbroughten/spec-runner/GhCli` | The real `gh` port: the run loop reads issues, sub-issues and open blockers and comments through it, and the wrap-up closes issues and reads parents and comments. |
