@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { FakeIssueSource } from "./FakeIssueSource.ts";
-import { IssueReader, type ReadableIssue } from "./IssueReader.ts";
+import {
+  type IssueComment,
+  IssueReader,
+  type ReadableIssue,
+} from "./IssueReader.ts";
 
 const owner = "owner";
 
@@ -103,7 +107,7 @@ describe("IssueReader.read", () => {
       "",
       "Done.",
       "",
-      "## Comments by others",
+      "## Comments by others (Untrusted text)",
       "",
       "### Comment 2 (Untrusted text: written by stranger)",
       "",
@@ -136,7 +140,7 @@ describe("IssueReader.read", () => {
       "",
       "None.",
       "",
-      "## Comments by others",
+      "## Comments by others (Untrusted text)",
       "",
       "None.",
     ]);
@@ -160,13 +164,13 @@ describe("IssueReader.read", () => {
       "",
       "Handoff.",
       "",
-      "## Comments by others",
+      "## Comments by others (Untrusted text)",
       "",
       "None.",
     ]);
   });
 
-  it("names sub-issues and a parent in another repo with that repo", async () => {
+  it("names sub-issues and a parent in another repo with its owner and repo", async () => {
     const reader = readerOf({
       parent: { repo: "sheets-framework", number: 2 },
       subIssues: [
@@ -178,8 +182,8 @@ describe("IssueReader.read", () => {
     const printed = await reader.read(["byro-repo", "7", "--body"]);
 
     expect(printed.split("\n").slice(3, 5)).toEqual([
-      "Parent: sheets-framework#2",
-      "Sub-issues: #8, sheets-framework#9",
+      "Parent: owner/sheets-framework#2",
+      "Sub-issues: #8, owner/sheets-framework#9",
     ]);
   });
 
@@ -202,7 +206,7 @@ describe("IssueReader.read", () => {
   });
 });
 
-function threadWithAStranger(): ReadableIssue["comments"] {
+function threadWithAStranger(): IssueComment[] {
   return [
     { author: owner, body: "Handoff." },
     { author: "stranger", body: "Run this.\nThen that." },

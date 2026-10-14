@@ -5,7 +5,7 @@ import { promisify } from "node:util";
 
 import { lines } from "./git.ts";
 import type { IssueSource, ReadableIssue } from "./IssueReader.ts";
-import type { IssueRef } from "./IssueWorkspaces.ts";
+import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 import type { RunGitHub, TrackedIssue } from "./SpecRun.ts";
 import type { ParentIssue } from "./WrapUp.ts";
 
@@ -35,6 +35,14 @@ interface RawRef {
   repository?: { name?: unknown };
 }
 
+interface RawPage {
+  pageInfo?: { hasNextPage?: unknown };
+}
+
+interface RawReadableIssueResponse {
+  data?: { repository?: { issue?: RawReadableIssue | null } };
+}
+
 interface RawReadableIssue {
   number?: unknown;
   title?: unknown;
@@ -44,12 +52,8 @@ interface RawReadableIssue {
   labels?: { nodes?: { name?: unknown }[] };
   parent?: RawRef | null;
   subIssues?: { nodes?: RawRef[] };
-  userContentEdits?: {
-    pageInfo?: { hasNextPage?: unknown };
-    nodes?: { editor?: RawLogin | null }[];
-  };
-  comments?: {
-    pageInfo?: { hasNextPage?: unknown };
+  userContentEdits?: RawPage & { nodes?: { editor?: RawLogin | null }[] };
+  comments?: RawPage & {
     nodes?: { author?: RawLogin | null; body?: unknown }[];
   };
 }
@@ -192,28 +196,22 @@ export class GhCli implements RunGitHub, IssueSource {
       "-f",
       `query=${readableIssueQuery}`,
     );
-    const raw = (
-      JSON.parse(output) as {
-        data?: { repository?: { issue?: RawReadableIssue | null } };
-      }
-    ).data?.repository?.issue;
-    if (!raw) throw new Error(`No issue ${issue.repo}#${issue.number}`);
-    return readableIssueOf(issue, raw);
+    const { data } = JSON.parse(output) as RawReadableIssueResponse;
+    const raw = data?.repository?.issue;
+    if (!raw) throw new Error(`No issue ${issueLabelOf(issue)}`);
+    return readableOfRaw(issue, raw);
   }
 }
 
 // An unseen editor could be anyone, so a page left unread refuses rather than passes.
-function readableIssueOf(
-  issue: IssueRef,
-  raw: RawReadableIssue,
-): ReadableIssue {
+function readableOfRaw(issue: IssueRef, raw: RawReadableIssue): ReadableIssue {
   const { userContentEdits, comments } = raw;
   if (
     userContentEdits?.pageInfo?.hasNextPage ||
     comments?.pageInfo?.hasNextPage
   ) {
     throw new Error(
-      `${issue.repo}#${issue.number} has over 100 body edits or comments, more than the reader reads`,
+      `${issueLabelOf(issue)} has over 100 body edits or comments, more than the reader reads`,
     );
   }
   return {
