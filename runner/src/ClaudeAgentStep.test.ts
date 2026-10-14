@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -27,6 +28,7 @@ function request(overrides: Partial<StepRequest> = {}): StepRequest {
     cwd: "/Users/dev/byro-repo",
     maxTurns: 40,
     allowedTools: ["Bash(npm run tsc)", "Bash(git commit *)"],
+    allowedWriteGlobs: [".claude/skills/**"],
     jsonSchema: answerSchema,
     ...overrides,
   };
@@ -35,6 +37,14 @@ function request(overrides: Partial<StepRequest> = {}): StepRequest {
 interface Replay {
   result: StepResult;
   argv: string[];
+  cwd: string;
+}
+
+function permissionRequestCommandOf(argv: string[]): string {
+  const settings = JSON.parse(argv[argv.indexOf("--settings") + 1] ?? "") as {
+    hooks: { PermissionRequest: [{ hooks: [{ command: string }] }] };
+  };
+  return settings.hooks.PermissionRequest[0].hooks[0].command;
 }
 
 // Runs the real adapter against a stand-in cswap that records its argv and prints a recorded stream.
@@ -54,7 +64,7 @@ async function replay(
     request({ cwd: dir, ...overrides }),
   );
   const argv = readFileSync(argvPath, "utf8").split("\n").slice(0, -1);
-  return { result, argv };
+  return { result, argv, cwd: dir };
 }
 
 describe("ClaudeAgentStep on a recorded success", () => {
@@ -101,10 +111,34 @@ describe("ClaudeAgentStep's command", () => {
       "40",
       "--json-schema",
       '{"type":"object","properties":{"answer":{"type":"string"}},"required":["answer"]}',
+      "--settings",
+      expect.any(String),
       "--allowedTools",
       "Bash(npm run tsc)",
       "Bash(git commit *)",
     ]);
+  });
+
+  it("registers a PermissionRequest hook that allows a skill write in the step's workspace", async () => {
+    const { argv, cwd } = await replay("success.ndjson");
+    const command = permissionRequestCommandOf(argv);
+    const skillWrite = (path: string) =>
+      execSync(command, {
+        cwd,
+        encoding: "utf8",
+        input: JSON.stringify({
+          hook_event_name: "PermissionRequest",
+          tool_name: "Write",
+          tool_input: { file_path: join(cwd, path), content: "# Skill\n" },
+        }),
+      });
+    expect(JSON.parse(skillWrite(".claude/skills/tdd/SKILL.md"))).toEqual({
+      hookSpecificOutput: {
+        hookEventName: "PermissionRequest",
+        decision: { behavior: "allow" },
+      },
+    });
+    expect(skillWrite(".claude/agents/explorer.md")).toBe("");
   });
 
   it("resumes the given session", async () => {

@@ -548,6 +548,7 @@ export class SpecRun {
         cwd: workspace.path,
         maxTurns: knobs.maxTurns[agent],
         allowedTools: knobs.allowedTools[agent],
+        allowedWriteGlobs: knobs.allowedWriteGlobs,
         jsonSchema,
         logPath,
       });

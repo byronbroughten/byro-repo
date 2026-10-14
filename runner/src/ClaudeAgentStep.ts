@@ -1,9 +1,15 @@
 import { spawn } from "node:child_process";
 import { createWriteStream, openSync, type WriteStream } from "node:fs";
 import { createInterface } from "node:readline";
+import { fileURLToPath } from "node:url";
 
 import type { AgentStep, StepRequest, StepResult } from "./AgentStep.ts";
+import type { SkillWriteHookArgs } from "./skillWriteHook.ts";
 import { StepStream } from "./StepStream.ts";
+
+const skillWriteHookPath = fileURLToPath(
+  new URL("./skillWriteHook.ts", import.meta.url),
+);
 
 // Runs `claude -p` under `cswap run <account> --`, which hands everything after `--` to claude as that account.
 export class ClaudeAgentStep implements AgentStep {
@@ -67,10 +73,37 @@ function commandArgs(request: StepRequest): string[] {
     String(request.maxTurns),
     "--json-schema",
     JSON.stringify(request.jsonSchema),
+    "--settings",
+    JSON.stringify(settingsOf(request)),
   ];
   if (request.resumeSessionId) args.push("--resume", request.resumeSessionId);
   if (request.allowedTools.length > 0) {
     args.push("--allowedTools", ...request.allowedTools);
   }
   return args;
+}
+
+// Settings layered on the workspace's own, registering the hook that answers the prompt a .claude/ skill or agent write raises.
+function settingsOf({ cwd, allowedWriteGlobs }: StepRequest): object {
+  const hookArgs: SkillWriteHookArgs = {
+    workspaceRoot: cwd,
+    allowedGlobs: allowedWriteGlobs,
+  };
+  const command = ["node", skillWriteHookPath, JSON.stringify(hookArgs)].map(
+    shellQuoted,
+  );
+  return {
+    hooks: {
+      PermissionRequest: [
+        {
+          matcher: "Edit|Write",
+          hooks: [{ type: "command", command: command.join(" ") }],
+        },
+      ],
+    },
+  };
+}
+
+function shellQuoted(word: string): string {
+  return `'${word.replaceAll("'", "'\\''")}'`;
 }

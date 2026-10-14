@@ -24,6 +24,8 @@ export interface RunKnobs {
   // Each must exit 0 at preflight; unset, GitHub auth and the configured account's claude login.
   authChecks: Command[];
   allowedTools: StepKnobs<string[]>;
+  // Workspace-relative globs under the protected .claude/ that a step's Edit or Write may still change.
+  allowedWriteGlobs: string[];
   maxTurns: StepKnobs<number>;
   ticketBudget: number;
   // Named in the context nudge's message; unset, the message says to write a handoff with no link.
@@ -50,6 +52,7 @@ export const defaultRunKnobs: RunKnobs = {
   ],
   authChecks: authChecksOf(defaultAccount),
   allowedTools: { implement: [], review: [] },
+  allowedWriteGlobs: [".claude/skills/**", ".claude/agents/**"],
   maxTurns: { implement: 200, review: 80 },
   ticketBudget: 150_000,
 };

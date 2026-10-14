@@ -10,6 +10,7 @@ const request: StepRequest = {
   cwd: "/Users/dev/byro-repo",
   maxTurns: 40,
   allowedTools: [],
+  allowedWriteGlobs: [],
   jsonSchema: {},
 };
 
