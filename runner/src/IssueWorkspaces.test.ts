@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import {
+  chmodSync,
   existsSync,
   lstatSync,
   mkdirSync,
@@ -102,6 +103,12 @@ function buildPrimary(): void {
     join(primaryRoot, "packages/utils/node_modules/dep/index.js"),
     "utils dep",
   );
+}
+
+function commitLockfile(content: string): void {
+  writeFileSync(join(primaryRoot, "package-lock.json"), content);
+  git(primaryRoot, "add", "package-lock.json");
+  git(primaryRoot, "commit", "-m", "Add lockfile");
 }
 
 function branchOf(path: string): string | undefined {
@@ -526,6 +533,45 @@ describe("the dependencies", () => {
       "utils dep",
     );
     expect(installs).toEqual([workspace.path]);
+  });
+
+  it("skips the installer when the lockfile matches the primary's and every copy worked", async () => {
+    commitLockfile("lock v1");
+
+    await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "matching" },
+    );
+
+    expect(installs).toEqual([]);
+  });
+
+  it("runs the installer when the lockfile differs from the primary's", async () => {
+    commitLockfile("lock v1");
+    writeFileSync(join(primaryRoot, "package-lock.json"), "lock v2");
+
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "differing" },
+    );
+
+    expect(installs).toEqual([workspace.path]);
+  });
+
+  it("runs the installer when a copy failed, even with a matching lockfile", async () => {
+    commitLockfile("lock v1");
+    const unreadable = join(primaryRoot, "packages/utils/node_modules/dep");
+    chmodSync(unreadable, 0o000);
+    try {
+      const workspace = await workspaces().create(
+        { repo: "byro-repo", number: 7 },
+        { slug: "failed-copy" },
+      );
+
+      expect(installs).toEqual([workspace.path]);
+    } finally {
+      chmodSync(unreadable, 0o755);
+    }
   });
 });
 
