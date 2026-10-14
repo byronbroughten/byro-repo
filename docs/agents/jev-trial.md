@@ -17,3 +17,4 @@ How `npm run jev:style` compared with `/review-piece`'s Style sub-agent on each 
 
 | Issue | Jev pin | Jev flags | Style findings | Matches | Jev misses | Jev extras | Rulings |
 | --- | --- | --- | --- | --- | --- | --- | --- |
+| writing#5 | jev-1.13.0 | 89 (0 breaks, 89 unsure) | 11 | 3 (caveat specific) | 8 (spec override on definition sentences ×3; state a point plainly ×2; after a figure; make each point once; caveat turn) | 86 (cite in APA 7 ×29; impersonal third person ×15; subsection takeaway ×15; caveat specific ×11; numerals ×9; name the source ×5; cause-and-effect ×1; section opening ×1) | Jev lost 86 (every extra). Style lost 4: spec override ×3, caveat turn ×1. Style won 4: state a point plainly ×2, after a figure, make each point once. |
