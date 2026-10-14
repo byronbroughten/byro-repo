@@ -86,7 +86,7 @@ A private repo holding piece specs as issues; the Pieces' text lives in their Go
 | `GLOSSARY.md` | The writing context's words: Piece, Deliverable and Reference. |
 | `docs/grilling.md` | What a grill asks before a piece spec is filed, and the calibration paragraph. `/to-writing-style` adds questions to it. |
 | `docs/wrap-up.md` | The wrap-up prompt for a piece spec with no branch. |
-| `docs/model-fit.md` | The outcome log for piece specs: pair, peak context and whether review revised it. |
+| `docs/model-fit.md` | The outcome log for piece specs: kind, pair and peak context. |
 
 ### Config (`config/`)
 
