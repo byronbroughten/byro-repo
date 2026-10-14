@@ -89,6 +89,32 @@ describe("readCswapList", () => {
     ]);
   });
 
+  it("reads a window cswap gives no reset time because it hasn't started as unused", () => {
+    const json = JSON.stringify({
+      accounts: [
+        {
+          number: 2,
+          usage: {
+            fiveHour: { pct: 0.0 },
+            sevenDay: { pct: 5.0, resetsAt: "2026-10-20T14:59:59Z" },
+          },
+        },
+      ],
+    });
+    expect(readCswapList(json)).toEqual([
+      {
+        account: 2,
+        usage: {
+          fiveHour: { utilization: 0, resetsAt: new Date(0) },
+          sevenDay: {
+            utilization: 0.05,
+            resetsAt: new Date("2026-10-20T14:59:59Z"),
+          },
+        },
+      },
+    ]);
+  });
+
   it("returns no readings for unparseable output rather than throwing", () => {
     expect(readCswapList("cswap: not logged in")).toEqual([]);
     expect(readCswapList("null")).toEqual([]);

@@ -14,7 +14,6 @@ try {
     repo,
     number: Number(number),
   });
-  console.log(result.message);
   if (result.kind !== "finished") process.exitCode = 1;
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);

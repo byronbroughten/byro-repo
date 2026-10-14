@@ -90,9 +90,12 @@ function usageOf(raw: RawAccount): AccountUsage | undefined {
 }
 
 function windowOf(raw: RawWindow | undefined): UsageWindow | undefined {
-  if (typeof raw?.pct !== "number" || typeof raw.resetsAt !== "string") {
-    return undefined;
+  if (typeof raw?.pct !== "number") return undefined;
+  // cswap omits resetsAt for a window that hasn't started; it has nothing to wait for.
+  if (raw.pct === 0 && raw.resetsAt === undefined) {
+    return { utilization: 0, resetsAt: new Date(0) };
   }
+  if (typeof raw.resetsAt !== "string") return undefined;
   const resetsAt = new Date(raw.resetsAt);
   if (Number.isNaN(resetsAt.getTime())) return undefined;
   return { utilization: raw.pct / 100, resetsAt };
