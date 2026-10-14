@@ -90,7 +90,7 @@ describe("skillWriteDecision", () => {
     ).toBe("allow");
   });
 
-  it.each(["allowed-tools", "permissionMode", "hooks"])(
+  it.each(["allowed-tools", "permissionMode", "hooks", "mcpServers"])(
     "gives no decision for content carrying a %s key",
     (key) => {
       const content = `---\nname: tdd\n${key}: Bash\n---\n`;

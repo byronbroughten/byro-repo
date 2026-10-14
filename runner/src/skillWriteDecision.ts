@@ -25,8 +25,17 @@ export interface SkillWriteToolInput {
   replace_all?: unknown;
 }
 
-const permissionKeyLine =
-  /^\s*["']?(allowed-tools|permissionMode|hooks)["']?\s*:/m;
+export const permissionKeys = [
+  "allowed-tools",
+  "permissionMode",
+  "hooks",
+  "mcpServers",
+] as const;
+
+const permissionKeyLine = new RegExp(
+  `^\\s*["']?(${permissionKeys.join("|")})["']?\\s*:`,
+  "m",
+);
 
 export function skillWriteDecision({
   toolName,

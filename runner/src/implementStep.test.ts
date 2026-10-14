@@ -185,6 +185,7 @@ describe("implementPrompt", () => {
     branchedRepos: ["byro-repo", "sheets-framework"],
     promoteCommand: "npm run issue:promote -- byro-repo 224",
     developerLogin: "byronbroughten",
+    allowedWriteGlobs: [".claude/skills/**", ".claude/commands/*.md"],
   };
   const noReset = "Don't reset, stash, check out or clean it";
 
@@ -213,6 +214,12 @@ describe("implementPrompt", () => {
     );
     expect(prompt).toContain("never close an issue");
     expect(prompt).not.toContain("never comment on or close an issue");
+  });
+
+  it("names the .claude/ globs a step may write and the keys it may not add", () => {
+    expect(implementPrompt(input)).toContain(
+      "You can Edit or Write files under `.claude/` matching `.claude/skills/**` or `.claude/commands/*.md`, but not with an `allowed-tools`, `permissionMode`, `hooks` or `mcpServers` key;",
+    );
   });
 
   it("returns applied for a ticket that needed only GitHub writes", () => {
