@@ -29,6 +29,8 @@ export interface ToolInput {
   content?: unknown;
   text?: unknown;
   operations?: unknown;
+  // gworkspace tools carry many more arguments than these hooks name.
+  [argument: string]: unknown;
 }
 
 // Every guardrail fails open: an unreadable input allows the call.

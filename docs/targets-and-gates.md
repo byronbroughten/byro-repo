@@ -18,15 +18,15 @@ The threat model is accidents, with tampering made visible. Both clasp credentia
 | `gen:configs` | allow | allow, under the four conditions below |
 | `push` / `run <fn>` / `build` | allow | ask |
 | `clasp deploy`, bare `clasp *` | ask | ask |
-| gworkspace Sheets writes (`guardedSheetsWrites`) | allow | ask, with the exact sheet, range and values |
-| gworkspace Docs writes, file creation, share tools | ask | ask |
+| gworkspace Sheets and Docs writes | allow on a file the developer owns; ask on anyone else's | same |
+| gworkspace file creation, copy, import, export | allow | allow |
+| gworkspace share tools | ask | ask |
 | gworkspace reads | allow | allow |
 | `npm run jev`, `npm run jev:style` (no spreadsheet; send text to TypeSafe) | allow | allow |
 
 **`npm publish` is ask-first, apart from the two targets.** It publishes `@byronbroughten/config` or `@byronbroughten/utils` to the public npm registry, where a version can't be replaced and a removal is time-limited, so a yes covers one publish of one version, and the agent shows the `npm pack --dry-run` file list before asking. For utils, `npm run smoke` in `packages/utils` passes first. `npm adduser` is the developer's own step.
 
 - **Bare `npx sheets-framework …`, `node packages/framework/scripts/sheets-framework.js …`, a package-level `npm run chore …` and `npm run … -w …` match no rule, so they ask.** The only `--send` ask rule is `npm run app:chore * --send*`.
-- **A dev write's standing yes holds only while the pinning files are clean**, and a gworkspace Sheets write gets it only on the dev ID. The hook: `pinnedTargetGuard.ts` in [`docs/claude-code-guardrails.md`](./claude-code-guardrails.md).
 - **`dev:build`, `dev:push`, `dev:deploy` and `dev:run` run the framework package's `build`, `push`, `deploy` and `run` scripts** against the dev project named in its `.clasp.json` ([the dev project](../packages/framework/docs/how-it-runs.md#the-dev-project)).
 - **Both targets' Node-host credential comes from GCP project `real-estate-manager-sheets`**, whose consent screen is published to production so its refresh tokens don't expire ([why](../packages/framework/docs/how-it-runs.md#when-the-node-host-fails-to-authenticate)).
 - **`npm run jev` and `npm run jev:style` send text to TypeSafe under a standing yes: Deliverable text and repo docs, never secrets, `.env` files or credential files** ([the Jev doc](./agents/jev.md#what-may-be-sent)).
@@ -61,9 +61,6 @@ The `gworkspace` MCP server signs in as the agent account; what it is and what i
 
 - **Sheets, Docs and Drive reads are always fine to use freely**; the read tools are on the allow-list.
 - **`app:probe`/`dev:probe` are read-only and on the allow-list, like a chore dry run.** Ask before running any other script that opens the `clasp` credential. The chore runner and `gen:configs` are exempt, because they open it as a routine step and the permissions above cover them.
-- **Sheets writes on the dev spreadsheet have a standing yes**, granted by `pinnedTargetGuard.ts` while the pinning files are clean. The guarded tools are `guardedSheetsWrites` in `.claude/hooks/lib/pinnedTargets.ts`.
-- **Any other Sheets write requires stating a specific plan and getting explicit permission before calling it.** "Can I edit the sheet?" is not enough; state the exact sheet, range, and values and wait for a yes.
-- **Every Docs write asks, and the ask names the doc and the change.** The one exception is a piece spec's Deliverable: a typed `/implement-piece <n>` grants a standing yes to the Doc ID in issue #n's Deliverable section, for as long as that spec (a ticket's parent) is open ([`docGrantGuard.ts`](./claude-code-guardrails.md)). No other doc has one.
-- **Creating a spreadsheet, doc or other Drive file always asks**, naming what is being created.
-- **A share tool (`manage_drive_access`, `set_drive_file_permissions`, and `update_drive_file`, which can change sharing settings) needs its own, separate confirmation**: it grants a third party access, not just data. State exactly who it's being shared with and at what permission level, and get explicit sign-off on that, distinct from any data-write approval.
-- **The server's version is pinned; upgrades are manual.** Read the release notes, bump the pin in the setup wizard, check the tool names in `.claude/settings.json` and `guardedSheetsWrites` against the new version, re-run the wizard's registration stage, and re-test on the dev spreadsheet.
+- **Sheets and Docs writes on a file one of the developer's Google accounts owns have a standing yes**, and so does creating, copying, importing or exporting a file; Google's version history is the undo. A write to a file someone else owns, or whose owner can't be looked up, asks, naming the file and the owner. The hook: `tierGate.ts` in [`docs/claude-code-guardrails.md`](./claude-code-guardrails.md); the tool lists are in `.claude/hooks/lib/driveTiers.ts`.
+- **A share tool (`manage_drive_access`, `set_drive_file_permissions`, and `update_drive_file` when it changes sharing settings) needs its own, separate confirmation**: it grants a third party access, not just data. State exactly who it's being shared with and at what permission level, and get explicit sign-off on that, distinct from any data-write approval.
+- **The server's version is pinned; upgrades are manual.** Read the release notes, bump the pin in the setup wizard, check the tool names in `.claude/settings.json` and `lib/driveTiers.ts` against the new version, re-run the wizard's registration stage, and re-test on the dev spreadsheet.

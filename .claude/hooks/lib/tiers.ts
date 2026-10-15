@@ -1,6 +1,10 @@
-// Decides the gate for a Bash call by tier: 1 and 2 are free (git or Google's version history undoes them), 3 asks. Pure; tierGate.ts does the I/O.
+// Decides the gate for a Bash call by tier: 1 and 2 are free (git or Google's version history undoes them), 3 asks. Pure; tierGate.ts does the I/O, and driveTiers.ts decides gworkspace calls.
 import { commandWordsOf, npmScriptOf } from "./bashReads.ts";
-import type { Decision } from "./pinnedTargets.ts";
+
+export interface Decision {
+  permissionDecision: "allow" | "ask" | "deny";
+  reason: string;
+}
 
 // A runner step's mode arrives in a later ticket.
 export type SessionMode = "interactive";
@@ -79,7 +83,7 @@ function parsedCommandsOf(command: string): string[][] | undefined {
   }
 }
 
-function gateOf(
+export function gateOf(
   permissionDecision: Decision["permissionDecision"],
   sentence: string,
 ): Decision {

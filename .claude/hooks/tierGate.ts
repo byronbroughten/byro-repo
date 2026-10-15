@@ -1,31 +1,38 @@
-// PreToolUse on Bash applies the tier gate; PostToolUse on Bash records each app chore dry run that ran, for a later --send.
+// PreToolUse on Bash and the gworkspace write and create tools applies the tier gate; PostToolUse on Bash records each app chore dry run that ran, for a later --send.
 import { readFileSync, writeFileSync } from "node:fs";
 
+import { driveOwnersOf } from "./lib/driveOwners.ts";
 import {
+  cachedOwnerLookup,
+  driveGateDecision,
+  type OwnerCache,
+} from "./lib/driveTiers.ts";
+import {
+  type HookInput,
   readHookInput,
   runFailOpen,
   sessionStatePath,
   writeHookOutput,
 } from "./lib/hookIo.ts";
-import { dryRunChoresOf, gateDecision } from "./lib/tiers.ts";
+import { type Decision, dryRunChoresOf, gateDecision } from "./lib/tiers.ts";
 
 const dryRunSuffix = "chore-dry-runs.json";
+const ownersSuffix = "drive-owners.json";
 
-await runFailOpen(() => {
+await runFailOpen(async () => {
   const input = readHookInput();
-  if (!input || input.tool_name !== "Bash") return;
-  const command = input.tool_input?.command;
-  if (typeof command !== "string") return;
-  const dryRunsPath = sessionStatePath(input.session_id, dryRunSuffix);
-  if (input.hook_event_name === "PostToolUse") {
-    recordDryRuns(dryRunsPath, dryRunChoresOf(command));
-    return;
-  }
-  const decision = gateDecision({
-    command,
-    mode: "interactive",
-    dryRuns: readDryRuns(dryRunsPath),
-  });
+  if (!input?.tool_name) return;
+  const decision =
+    input.tool_name === "Bash"
+      ? bashDecision(input)
+      : await driveGateDecision({
+          toolName: input.tool_name,
+          input: input.tool_input ?? {},
+          ownersOf: cachedOwnerLookup(
+            driveOwnersOf,
+            ownerCacheOf(sessionStatePath(input.session_id, ownersSuffix)),
+          ),
+        });
   if (!decision) return;
   writeHookOutput({
     hookSpecificOutput: {
@@ -35,6 +42,21 @@ await runFailOpen(() => {
     },
   });
 });
+
+function bashDecision(input: HookInput): Decision | undefined {
+  const command = input.tool_input?.command;
+  if (typeof command !== "string") return undefined;
+  const dryRunsPath = sessionStatePath(input.session_id, dryRunSuffix);
+  if (input.hook_event_name === "PostToolUse") {
+    recordDryRuns(dryRunsPath, dryRunChoresOf(command));
+    return undefined;
+  }
+  return gateDecision({
+    command,
+    mode: "interactive",
+    dryRuns: readDryRuns(dryRunsPath),
+  });
+}
 
 function recordDryRuns(path: string, chores: string[]): void {
   if (chores.length === 0) return;
@@ -48,5 +70,30 @@ function readDryRuns(path: string): string[] {
     return Array.isArray(recorded) ? recorded : [];
   } catch {
     return [];
+  }
+}
+
+function ownerCacheOf(path: string): OwnerCache {
+  return {
+    read: (fileId) => {
+      const owners = readOwners(path);
+      if (!Object.hasOwn(owners, fileId)) return undefined;
+      return Array.isArray(owners[fileId]) ? owners[fileId] : undefined;
+    },
+    write: (fileId, owners) => {
+      writeFileSync(
+        path,
+        JSON.stringify({ ...readOwners(path), [fileId]: owners }),
+      );
+    },
+  };
+}
+
+function readOwners(path: string): Record<string, string[]> {
+  try {
+    const recorded = JSON.parse(readFileSync(path, "utf8"));
+    return recorded && typeof recorded === "object" ? recorded : {};
+  } catch {
+    return {};
   }
 }
