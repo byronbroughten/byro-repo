@@ -16,12 +16,12 @@ export interface DriveCall {
   ownersOf: OwnerLookup;
 }
 
-export const developerAccounts = [
+const developerAccounts = [
   "byronbroughten@gmail.com",
   "byronbroughtenai@gmail.com",
 ];
 // Every Sheets write in workspace-mcp 1.28.0 that takes a spreadsheet_id.
-export const sheetsWrites = new Set([
+const sheetsWrites = new Set([
   "mcp__gworkspace__modify_sheet_values",
   "mcp__gworkspace__format_sheet_range",
   "mcp__gworkspace__manage_conditional_formatting",
@@ -34,7 +34,7 @@ export const sheetsWrites = new Set([
   "mcp__gworkspace__manage_spreadsheet_comment",
 ]);
 // Every Docs write in workspace-mcp 1.28.0 that takes a document_id.
-export const docsWrites = new Set([
+const docsWrites = new Set([
   "mcp__gworkspace__modify_doc_text",
   "mcp__gworkspace__find_and_replace_doc",
   "mcp__gworkspace__insert_doc_elements",
@@ -47,7 +47,7 @@ export const docsWrites = new Set([
 ]);
 
 // Each makes or exports the developer's own new file, so it reaches no one else.
-export const fileCreations = new Set([
+const fileCreations = new Set([
   "mcp__gworkspace__create_spreadsheet",
   "mcp__gworkspace__create_doc",
   "mcp__gworkspace__create_drive_file",
@@ -58,16 +58,13 @@ export const fileCreations = new Set([
   "mcp__gworkspace__import_to_google_slides",
   "mcp__gworkspace__export_doc_to_pdf",
 ]);
-const updateDriveFile = "mcp__gworkspace__update_drive_file";
-const accessTools = {
+// The tools that can change who reaches a file, and update_drive_file's arguments that do.
+const sharing = {
   manageDriveAccess: "mcp__gworkspace__manage_drive_access",
   setDriveFilePermissions: "mcp__gworkspace__set_drive_file_permissions",
+  updateDriveFile: "mcp__gworkspace__update_drive_file",
+  settings: ["writers_can_share", "copy_requires_writer_permission"],
 } as const;
-// update_drive_file's arguments that change who can share or copy the file.
-const sharingSettings = [
-  "writers_can_share",
-  "copy_requires_writer_permission",
-];
 
 export async function driveGateDecision({
   toolName,
@@ -80,13 +77,13 @@ export async function driveGateDecision({
       "a new file of the developer's reaches no one else.",
     );
   }
-  if (toolName === accessTools.manageDriveAccess) {
+  if (toolName === sharing.manageDriveAccess) {
     return accessAsk(toolName, input, manageDriveAccessChange(input));
   }
-  if (toolName === accessTools.setDriveFilePermissions) {
+  if (toolName === sharing.setDriveFilePermissions) {
     return accessAsk(toolName, input, settingsChange(input));
   }
-  if (toolName === updateDriveFile) {
+  if (toolName === sharing.updateDriveFile) {
     const change = settingsChange(input);
     if (change !== undefined) return accessAsk(toolName, input, change);
     return writeDecision(toolName, stringOf(input.file_id), ownersOf);
@@ -171,12 +168,19 @@ function settingsChange(input: Record<string, unknown>): string | undefined {
   } else if (linkSharing !== undefined) {
     changes.push(`lets anyone with the link in as ${linkSharing}`);
   }
-  sharingSettings.forEach((setting) => {
+  sharing.settings.forEach((setting) => {
     const value = input[setting];
     if (value !== undefined && value !== null) {
       changes.push(`sets ${setting} to ${String(value)}`);
     }
   });
+  // A folder shares its files with everyone it's shared with.
+  const addedParents = stringOf(input.add_parents);
+  if (addedParents !== undefined) {
+    changes.push(
+      `moves it into folder \`${addedParents}\`, sharing it with whoever that folder is shared with`,
+    );
+  }
   return changes.length === 0 ? undefined : changes.join(" and ");
 }
 

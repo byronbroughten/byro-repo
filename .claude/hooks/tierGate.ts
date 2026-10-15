@@ -22,17 +22,19 @@ const ownersSuffix = "drive-owners.json";
 await runFailOpen(async () => {
   const input = readHookInput();
   if (!input?.tool_name) return;
-  const decision =
-    input.tool_name === "Bash"
-      ? bashDecision(input)
-      : await driveGateDecision({
-          toolName: input.tool_name,
-          input: input.tool_input ?? {},
-          ownersOf: cachedOwnerLookup(
-            driveOwnersOf,
-            ownerCacheOf(sessionStatePath(input.session_id, ownersSuffix)),
-          ),
-        });
+  let decision: Decision | undefined;
+  if (input.tool_name === "Bash") {
+    decision = bashDecision(input);
+  } else {
+    decision = await driveGateDecision({
+      toolName: input.tool_name,
+      input: input.tool_input ?? {},
+      ownersOf: cachedOwnerLookup(
+        driveOwnersOf,
+        ownerCacheOf(sessionStatePath(input.session_id, ownersSuffix)),
+      ),
+    });
+  }
   if (!decision) return;
   writeHookOutput({
     hookSpecificOutput: {

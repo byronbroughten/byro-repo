@@ -127,6 +127,14 @@ describe("driveGateDecision", () => {
     expect(sharing?.permissionDecision).toBe("ask");
     expect(sharing?.reason).toContain("writers_can_share");
 
+    const move = await decisionOf(
+      "mcp__gworkspace__update_drive_file",
+      { file_id: "f1", add_parents: "sharedFolder" },
+      ownersOf,
+    );
+    expect(move?.permissionDecision).toBe("ask");
+    expect(move?.reason).toContain("sharedFolder");
+
     const rename = await decisionOf(
       "mcp__gworkspace__update_drive_file",
       { file_id: "f1", name: "Renamed", writers_can_share: null },
