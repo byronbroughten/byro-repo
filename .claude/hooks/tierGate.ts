@@ -33,7 +33,7 @@ await runFailOpen(async () => {
   if (input.tool_name === "Bash") {
     decision = bashDecision(input);
   } else {
-    decision = await driveGateDecision({
+    const driveDecision = await driveGateDecision({
       toolName: input.tool_name,
       // A spread copy fits the gate's Record of every argument.
       input: { ...input.tool_input },
@@ -42,9 +42,11 @@ await runFailOpen(async () => {
         ownerCacheOf(sessionStatePath(input.session_id, ownersSuffix)),
       ),
     });
+    decision =
+      driveDecision &&
+      decisionInMode(driveDecision, sessionModeOf(process.env));
   }
   if (!decision) return;
-  decision = decisionInMode(decision, sessionModeOf(process.env));
   writeHookOutput({
     hookSpecificOutput: {
       hookEventName: "PreToolUse",

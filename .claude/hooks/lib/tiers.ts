@@ -9,7 +9,7 @@ export interface Decision {
 // A runner step has nobody to answer an ask, so its asks become denials.
 export type SessionMode = "interactive" | "runnerStep";
 
-// The environment variable the runner sets on every step it launches; ClaudeAgentStep.ts keeps the same name.
+// Set by ClaudeAgentStep.ts, which can't import across the hooks boundary.
 export const runnerStepMark = "BYRO_RUNNER_STEP";
 
 export interface ShellCall {
@@ -45,7 +45,7 @@ const freeScripts = new Map([
 ]);
 
 export function gateDecision(call: ShellCall): Decision | undefined {
-  const decision = modelessDecision(call);
+  const decision = baseDecision(call);
   return decision && decisionInMode(decision, call.mode);
 }
 
@@ -66,10 +66,7 @@ export function decisionInMode(
   };
 }
 
-function modelessDecision({
-  command,
-  dryRuns,
-}: ShellCall): Decision | undefined {
+function baseDecision({ command, dryRuns }: ShellCall): Decision | undefined {
   const commands = parsedCommandsOf(command);
   if (!commands) return undefined;
   const verdicts = commands.map((words) => verdictOf(words, dryRuns));
