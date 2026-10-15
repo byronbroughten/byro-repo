@@ -13,6 +13,7 @@
     "./FakeNotices": "./src/FakeNotices.ts",
     "./GhCli": "./src/GhCli.ts",
     "./implementStep": "./src/implementStep.ts",
+    "./IssueReader": "./src/IssueReader.ts",
     "./IssueWorkspaces": "./src/IssueWorkspaces.ts",
     "./LandingLock": "./src/LandingLock.ts",
     "./modelFit": "./src/modelFit.ts",

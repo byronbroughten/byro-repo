@@ -4,11 +4,59 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 import { lines } from "./git.ts";
-import type { IssueRef } from "./IssueWorkspaces.ts";
+import type { IssueSource, ReadableIssue } from "./IssueReader.ts";
+import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 import type { RunGitHub, TrackedIssue } from "./SpecRun.ts";
 import type { ParentIssue } from "./WrapUp.ts";
 
 const execFileAsync = promisify(execFile);
+
+// GraphQL, because `gh issue view --json` exposes no body editors.
+const readableIssueQuery = `query($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    issue(number: $number) {
+      number title state body
+      author { login }
+      labels(first: 100) { nodes { name } }
+      parent { number repository { name } }
+      subIssues(first: 100) { nodes { number repository { name } } }
+      userContentEdits(first: 100) { pageInfo { hasNextPage } nodes { editor { login } } }
+      comments(first: 100) { pageInfo { hasNextPage } nodes { author { login } body } }
+    }
+  }
+}`;
+
+interface RawLogin {
+  login?: unknown;
+}
+
+interface RawRef {
+  number?: unknown;
+  repository?: { name?: unknown };
+}
+
+interface RawPage {
+  pageInfo?: { hasNextPage?: unknown };
+}
+
+interface RawReadableIssueResponse {
+  data?: { repository?: { issue?: RawReadableIssue | null } };
+}
+
+interface RawReadableIssue {
+  number?: unknown;
+  title?: unknown;
+  state?: unknown;
+  body?: unknown;
+  author?: RawLogin | null;
+  labels?: { nodes?: { name?: unknown }[] };
+  parent?: RawRef | null;
+  subIssues?: { nodes?: RawRef[] };
+  userContentEdits?: RawPage & { nodes?: { editor?: RawLogin | null }[] };
+  comments?: RawPage & {
+    nodes?: { author?: RawLogin | null; body?: unknown }[];
+  };
+}
 
 interface RawParent {
   number?: unknown;
@@ -36,7 +84,7 @@ interface RawListedIssue {
   state?: unknown;
 }
 
-export class GhCli implements RunGitHub {
+export class GhCli implements RunGitHub, IssueSource {
   private readonly owner: string;
 
   constructor(owner: string) {
@@ -134,6 +182,64 @@ export class GhCli implements RunGitHub {
     }
     return parentIssueOf(JSON.parse(output) as RawParent);
   }
+
+  async readableIssueOf(issue: IssueRef): Promise<ReadableIssue> {
+    const output = await gh(
+      "api",
+      "graphql",
+      "-F",
+      `owner=${this.owner}`,
+      "-F",
+      `repo=${issue.repo}`,
+      "-F",
+      `number=${issue.number}`,
+      "-f",
+      `query=${readableIssueQuery}`,
+    );
+    const { data } = JSON.parse(output) as RawReadableIssueResponse;
+    const raw = data?.repository?.issue;
+    if (!raw) throw new Error(`No issue ${issueLabelOf(issue)}`);
+    return readableOfRaw(issue, raw);
+  }
+}
+
+// An unseen editor could be anyone, so a page left unread refuses rather than passes.
+function readableOfRaw(issue: IssueRef, raw: RawReadableIssue): ReadableIssue {
+  const { userContentEdits, comments } = raw;
+  if (
+    userContentEdits?.pageInfo?.hasNextPage ||
+    comments?.pageInfo?.hasNextPage
+  ) {
+    throw new Error(
+      `${issueLabelOf(issue)} has over 100 body edits or comments, more than the reader reads`,
+    );
+  }
+  return {
+    issue,
+    title: String(raw.title),
+    isOpen: raw.state === "OPEN",
+    labels: (raw.labels?.nodes ?? []).map((label) => String(label.name)),
+    parent: raw.parent ? refOfRaw(raw.parent) : undefined,
+    subIssues: (raw.subIssues?.nodes ?? []).map(refOfRaw),
+    body: String(raw.body),
+    author: loginOf(raw.author),
+    bodyEditors: (userContentEdits?.nodes ?? []).map(({ editor }) =>
+      loginOf(editor),
+    ),
+    comments: (comments?.nodes ?? []).map((comment) => ({
+      author: loginOf(comment.author),
+      body: String(comment.body),
+    })),
+  };
+}
+
+function refOfRaw(raw: RawRef): IssueRef {
+  return { repo: String(raw.repository?.name), number: Number(raw.number) };
+}
+
+// GitHub gives a deleted account no login; "ghost" is the name it shows for one.
+function loginOf(raw: RawLogin | null | undefined): string {
+  return typeof raw?.login === "string" ? raw.login : "ghost";
 }
 
 // One JSON object per line, so every page of a paginated list parses.

@@ -17,7 +17,7 @@ import { loadRunKnobs } from "@byronbroughten/spec-runner/runKnobs";
 import type { SpecRunConfig } from "@byronbroughten/spec-runner/SpecRun";
 import type { WrapUpConfig } from "@byronbroughten/spec-runner/WrapUp";
 
-const githubOwner = "byronbroughten";
+export const githubOwner = "byronbroughten";
 const scriptFolder = fileURLToPath(new URL(".", import.meta.url));
 const localConfigPath = join(scriptFolder, "runner.local.json");
 
