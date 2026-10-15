@@ -15,7 +15,13 @@ import {
   sessionStatePath,
   writeHookOutput,
 } from "./lib/hookIo.ts";
-import { type Decision, dryRunChoresOf, gateDecision } from "./lib/tiers.ts";
+import {
+  type Decision,
+  decisionInMode,
+  dryRunChoresOf,
+  gateDecision,
+  sessionModeOf,
+} from "./lib/tiers.ts";
 
 const dryRunSuffix = "chore-dry-runs.json";
 const ownersSuffix = "drive-owners.json";
@@ -27,7 +33,7 @@ await runFailOpen(async () => {
   if (input.tool_name === "Bash") {
     decision = bashDecision(input);
   } else {
-    decision = await driveGateDecision({
+    const driveDecision = await driveGateDecision({
       toolName: input.tool_name,
       // A spread copy fits the gate's Record of every argument.
       input: { ...input.tool_input },
@@ -36,6 +42,9 @@ await runFailOpen(async () => {
         ownerCacheOf(sessionStatePath(input.session_id, ownersSuffix)),
       ),
     });
+    decision =
+      driveDecision &&
+      decisionInMode(driveDecision, sessionModeOf(process.env));
   }
   if (!decision) return;
   writeHookOutput({
@@ -57,7 +66,7 @@ function bashDecision(input: HookInput): Decision | undefined {
   }
   return gateDecision({
     command,
-    mode: "interactive",
+    mode: sessionModeOf(process.env),
     dryRuns: readDryRuns(dryRunsPath),
   });
 }

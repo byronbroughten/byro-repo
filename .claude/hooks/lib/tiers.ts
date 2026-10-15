@@ -6,8 +6,11 @@ export interface Decision {
   reason: string;
 }
 
-// A runner step's mode arrives in a later ticket.
-export type SessionMode = "interactive";
+// A runner step has nobody to answer an ask, so its asks become denials.
+export type SessionMode = "interactive" | "runnerStep";
+
+// Set by ClaudeAgentStep.ts, which can't import across the hooks boundary.
+export const runnerStepMark = "BYRO_RUNNER_STEP";
 
 export interface ShellCall {
   command: string;
@@ -41,10 +44,29 @@ const freeScripts = new Map([
   ["dev:deploy", deployWhy],
 ]);
 
-export function gateDecision({
-  command,
-  dryRuns,
-}: ShellCall): Decision | undefined {
+export function gateDecision(call: ShellCall): Decision | undefined {
+  const decision = baseDecision(call);
+  return decision && decisionInMode(decision, call.mode);
+}
+
+export function sessionModeOf(env: NodeJS.ProcessEnv): SessionMode {
+  return env[runnerStepMark] ? "runnerStep" : "interactive";
+}
+
+export function decisionInMode(
+  decision: Decision,
+  mode: SessionMode,
+): Decision {
+  if (mode === "interactive" || decision.permissionDecision !== "ask") {
+    return decision;
+  }
+  return {
+    permissionDecision: "deny",
+    reason: `${decision.reason} This is a runner step, so record a \`denied-tool\` blocker for the developer instead.`,
+  };
+}
+
+function baseDecision({ command, dryRuns }: ShellCall): Decision | undefined {
   const commands = parsedCommandsOf(command);
   if (!commands) return undefined;
   const verdicts = commands.map((words) => verdictOf(words, dryRuns));

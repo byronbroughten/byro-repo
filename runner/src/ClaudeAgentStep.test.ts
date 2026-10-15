@@ -57,7 +57,7 @@ async function replay(
   const cswapPath = join(dir, "cswap");
   writeFileSync(
     cswapPath,
-    `#!/bin/sh\nprintf '%s\\n' "$@" > '${argvPath}'\ncat '${join(fixturesFolder, fixture)}'\n`,
+    `#!/bin/sh\nprintf '%s\\n' "$@" > '${argvPath}'\nprintf '%s' "$BYRO_RUNNER_STEP" > '${join(dir, "mark")}'\ncat '${join(fixturesFolder, fixture)}'\n`,
     { mode: 0o755 },
   );
   const result = await ClaudeAgentStep.init(cswapPath).run(
@@ -139,6 +139,11 @@ describe("ClaudeAgentStep's command", () => {
       },
     });
     expect(skillWrite(".claude/agents/explorer.md")).toBe("");
+  });
+
+  it("launches the step with the runner-step mark in its environment", async () => {
+    const { cwd } = await replay("success.ndjson");
+    expect(readFileSync(join(cwd, "mark"), "utf8")).toBe("1");
   });
 
   it("resumes the given session", async () => {

@@ -7,6 +7,9 @@ import type { AgentStep, StepRequest, StepResult } from "./AgentStep.ts";
 import type { SkillWriteHookArgs } from "./skillWriteHook.ts";
 import { StepStream } from "./StepStream.ts";
 
+// The tier gate's runner-step mark, named the same in .claude/hooks/lib/tiers.ts.
+export const runnerStepMark = "BYRO_RUNNER_STEP";
+
 const skillWriteHookPath = fileURLToPath(
   new URL("./skillWriteHook.ts", import.meta.url),
 );
@@ -27,6 +30,7 @@ export class ClaudeAgentStep implements AgentStep {
     const log = openLog(request.logPath);
     const child = spawn(this.cswapPath, commandArgs(request), {
       cwd: request.cwd,
+      env: { ...process.env, [runnerStepMark]: "1" },
       stdio: ["ignore", "pipe", "inherit"],
     });
     // Resolved, not rejected, so a spawn error waits for the read loop instead of going unhandled.
