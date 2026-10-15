@@ -3,6 +3,9 @@
 
 const sectionHeading = "## Targets";
 const docLine = /^doc ([A-Za-z0-9_-]+)$/;
+// The line shapes targetOf() reads, for a refusal to name.
+export const targetLineShapes =
+  "`app spreadsheet`, `dev spreadsheet` or `doc <id>`";
 
 export type Target =
   { kind: "spreadsheet"; name: SpreadsheetName } | { kind: "doc"; id: string };

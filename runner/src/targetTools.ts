@@ -2,18 +2,17 @@
 // The write lists mirror .claude/hooks/lib/driveTiers.ts, which can't be imported across the hooks boundary.
 import type { SpreadsheetName, Target } from "./ticketTargets.ts";
 
+const appAliases = [
+  "chore",
+  "gen:configs",
+  "probe",
+  "build",
+  "deploy",
+  "configs:diff",
+];
 const liveAliases = {
-  app: ["chore", "gen:configs", "probe", "build", "deploy", "configs:diff"],
-  dev: [
-    "chore",
-    "gen:configs",
-    "probe",
-    "build",
-    "deploy",
-    "configs:diff",
-    "push",
-    "run",
-  ],
+  app: appAliases,
+  dev: [...appAliases, "push", "run"],
 } satisfies Record<SpreadsheetName, string[]>;
 
 const gworkspaceTools = {

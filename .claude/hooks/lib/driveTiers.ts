@@ -1,6 +1,7 @@
-// Decides the gate for a gworkspace call by tier: a write is free on a file the developer owns, and asks on anyone else's. Pure; tierGate.ts does the I/O, driveOwners.ts the real lookup.
+// Decides the gate for a gworkspace call by tier: a write is free on a file the developer owns, and asks on anyone else's; a runner step may write only its ticket's targets. Pure; tierGate.ts does the I/O, driveOwners.ts the real lookup.
 import type { SheetsConfigEntry } from "./sheetsConfigs.ts";
 import {
+  blockerInstead,
   type Decision,
   decisionInMode,
   gateOf,
@@ -248,7 +249,7 @@ async function writeDecision({
   if (mode === "runnerStep" && !targets.some(({ id }) => id === fileId)) {
     return gateOf(
       "deny",
-      `${tool} writes to file \`${fileId}\`, which isn't among this ticket's targets: ${targetsShown(targets)}. Record a \`denied-tool\` blocker for the developer instead.`,
+      `${tool} writes to file \`${fileId}\`, which isn't among this ticket's targets (${targetsShown(targets)}), so ${blockerInstead}.`,
     );
   }
   const owners = await ownersOf(fileId);

@@ -12,6 +12,9 @@ import { toolsOf } from "./targetTools.ts";
 export const runnerStepMark = "BYRO_RUNNER_STEP";
 export const stepTargetsVariable = "BYRO_STEP_TARGETS";
 
+// One `mcpServers` entry, as Claude Code's config files hold it.
+export type McpServerConfig = Record<string, unknown>;
+
 const skillWriteHookPath = fileURLToPath(
   new URL("./skillWriteHook.ts", import.meta.url),
 );
@@ -20,36 +23,32 @@ const skillWriteHookPath = fileURLToPath(
 export class ClaudeAgentStep implements AgentStep {
   private readonly cswapPath: string;
   // The gworkspace MCP server's config, passed only to a step whose ticket names a target.
-  private readonly gworkspaceServer: object | undefined;
+  private readonly gworkspaceServer: McpServerConfig | undefined;
 
-  constructor(cswapPath: string, gworkspaceServer: object | undefined) {
+  constructor(
+    cswapPath: string,
+    gworkspaceServer: McpServerConfig | undefined,
+  ) {
     this.cswapPath = cswapPath;
     this.gworkspaceServer = gworkspaceServer;
   }
 
-  static init(cswapPath = "cswap", gworkspaceServer?: object): ClaudeAgentStep {
+  static init(
+    cswapPath = "cswap",
+    gworkspaceServer?: McpServerConfig,
+  ): ClaudeAgentStep {
     return new ClaudeAgentStep(cswapPath, gworkspaceServer);
   }
 
   async run(request: StepRequest): Promise<StepResult> {
-    const args = commandArgs(request);
-    const env: NodeJS.ProcessEnv = { ...process.env, [runnerStepMark]: "1" };
-    if (request.targets.length > 0) {
-      if (this.gworkspaceServer === undefined) {
-        throw new Error(
-          "The ticket names targets, but the runner has no gworkspace server config to pass the step.",
-        );
-      }
-      args.push(
-        "--mcp-config",
-        JSON.stringify({ mcpServers: { gworkspace: this.gworkspaceServer } }),
-      );
-      env[stepTargetsVariable] = JSON.stringify(request.targets);
-    }
+    const args = [
+      ...commandArgs(request),
+      ...mcpConfigArgsOf(request, this.gworkspaceServer),
+    ];
     const log = openLog(request.logPath);
     const child = spawn(this.cswapPath, args, {
       cwd: request.cwd,
-      env,
+      env: stepEnvOf(request),
       stdio: ["ignore", "pipe", "inherit"],
     });
     // Resolved, not rejected, so a spawn error waits for the read loop instead of going unhandled.
@@ -124,6 +123,29 @@ function settingsOf({ cwd, allowedWriteGlobs }: StepRequest): object {
       ],
     },
   };
+}
+
+// A ticket with no targets gets no Google access at all.
+function mcpConfigArgsOf(
+  { targets }: StepRequest,
+  gworkspaceServer: McpServerConfig | undefined,
+): string[] {
+  if (targets.length === 0) return [];
+  if (gworkspaceServer === undefined) {
+    throw new Error(
+      "The ticket names targets, but the runner has no gworkspace server config to pass the step.",
+    );
+  }
+  return [
+    "--mcp-config",
+    JSON.stringify({ mcpServers: { gworkspace: gworkspaceServer } }),
+  ];
+}
+
+function stepEnvOf({ targets }: StepRequest): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...process.env, [runnerStepMark]: "1" };
+  if (targets.length > 0) env[stepTargetsVariable] = JSON.stringify(targets);
+  return env;
 }
 
 function shellQuoted(word: string): string {

@@ -12,6 +12,9 @@ export type SessionMode = "interactive" | "runnerStep";
 // Set by ClaudeAgentStep.ts, which can't import across the hooks boundary.
 export const runnerStepMark = "BYRO_RUNNER_STEP";
 export const stepTargetsVariable = "BYRO_STEP_TARGETS";
+// How every runner-step denial ends, since nobody is there to give a yes.
+export const blockerInstead =
+  "record a `denied-tool` blocker for the developer instead";
 
 export interface ShellCall {
   command: string;
@@ -63,7 +66,7 @@ export function decisionInMode(
   }
   return {
     permissionDecision: "deny",
-    reason: `${decision.reason} This is a runner step, so record a \`denied-tool\` blocker for the developer instead.`,
+    reason: `${decision.reason} This is a runner step, so ${blockerInstead}.`,
   };
 }
 

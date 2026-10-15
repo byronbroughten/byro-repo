@@ -59,7 +59,7 @@ import {
 } from "./reviewStep.ts";
 import type { Command, KnobbedStep, RunKnobs } from "./runKnobs.ts";
 import { sleep } from "./sleep.ts";
-import { type Target, targetsOf } from "./ticketTargets.ts";
+import { type Target, targetLineShapes, targetsOf } from "./ticketTargets.ts";
 import {
   type LimitReading,
   type LimitReadings,
@@ -78,7 +78,6 @@ import {
 const execFileAsync = promisify(execFile);
 
 const readyLabel = "ready-for-agent";
-const targetLineShapes = "`app spreadsheet`, `dev spreadsheet` or `doc <id>`";
 
 export interface TrackedIssue extends BodyAuthorship {
   issue: IssueRef;

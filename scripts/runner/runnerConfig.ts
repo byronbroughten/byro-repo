@@ -6,7 +6,10 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { ClaudeAgentStep } from "@byronbroughten/spec-runner/ClaudeAgentStep";
+import {
+  ClaudeAgentStep,
+  type McpServerConfig,
+} from "@byronbroughten/spec-runner/ClaudeAgentStep";
 import { CswapUsageReader } from "@byronbroughten/spec-runner/CswapUsageReader";
 import { GhCli } from "@byronbroughten/spec-runner/GhCli";
 import type {
@@ -100,11 +103,11 @@ export function specRunConfigOf(owner: string): SpecRunConfig {
 }
 
 // The primary root's local-scope server; a step runs in an issue workspace, which has none of its own.
-function gworkspaceServer(): object | undefined {
+function gworkspaceServer(): McpServerConfig | undefined {
   const path = join(homedir(), ".claude.json");
   if (!existsSync(path)) return undefined;
   const config = JSON.parse(readFileSync(path, "utf8")) as {
-    projects?: Record<string, { mcpServers?: Record<string, object> }>;
+    projects?: Record<string, { mcpServers?: Record<string, McpServerConfig> }>;
   };
   return config.projects?.[primaryRoot]?.mcpServers?.gworkspace;
 }

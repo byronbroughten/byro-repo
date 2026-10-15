@@ -217,7 +217,7 @@ describe("driveGateDecision", () => {
     expect(unnamed).toEqual({
       permissionDecision: "deny",
       reason:
-        "Tier gate: `modify_sheet_values` writes to file `otherSheet`, which isn't among this ticket's targets: app spreadsheet `appSheet`, doc `doc1`. Record a `denied-tool` blocker for the developer instead.",
+        "Tier gate: `modify_sheet_values` writes to file `otherSheet`, which isn't among this ticket's targets (app spreadsheet `appSheet`, doc `doc1`), so record a `denied-tool` blocker for the developer instead.",
     });
   });
 
