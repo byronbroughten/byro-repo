@@ -108,6 +108,8 @@ export interface SpecRunConfig {
   usageReader: UsageReader;
   clock: Clock;
   githubOwner: string;
+  // The one GitHub login whose bodies pass the authorship refusal.
+  developer: string;
   primaryRoot: string;
   workspaceFolder: string;
   symlinkedFiles: string[];
@@ -326,14 +328,14 @@ export class SpecRun {
     run: Run,
     launchable: TrackedIssue[],
   ): string | undefined {
-    const { githubOwner } = this.config;
+    const { developer } = this.config;
     const offenders = [run.spec, ...launchable].flatMap((issue) => {
-      const reason = untrustedBodyReasonOf(githubOwner, issue);
+      const reason = untrustedBodyReasonOf(developer, issue);
       if (reason === undefined) return [];
       return [`${issueLabelOf(issue.issue)} (${reason})`];
     });
     if (offenders.length === 0) return undefined;
-    return `Only ${githubOwner} may write or edit the spec and each open ${readyLabel} ticket; refused ${offenders.join(", ")}.`;
+    return `Only ${developer} may write or edit the spec and each open ${readyLabel} ticket; refused ${offenders.join(", ")}.`;
   }
 
   // Checks run in a master set, so neither another session's uncommitted edit nor a local fix hides master's own state.

@@ -16,19 +16,14 @@ import type { ParentIssue } from "./WrapUp.ts";
 const execFileAsync = promisify(execFile);
 
 // GraphQL, because `gh issue view --json` exposes no body editors.
-const issueQuery = `query($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    issue(number: $number) {
-      number title state body url
+const trackedIssueFields = `number title state body url
       author { login }
       labels(first: 100) { nodes { name } }
+      userContentEdits(first: 100) { pageInfo { hasNextPage } nodes { editor { login } } }`;
+const readableIssueFields = `${trackedIssueFields}
       parent { number repository { name } }
       subIssues(first: 100) { nodes { number repository { name } } }
-      userContentEdits(first: 100) { pageInfo { hasNextPage } nodes { editor { login } } }
-      comments(first: 100) { pageInfo { hasNextPage } nodes { author { login } body } }
-    }
-  }
-}`;
+      comments(first: 100) { pageInfo { hasNextPage } nodes { author { login } body } }`;
 
 interface RawLogin {
   login?: unknown;
@@ -88,7 +83,7 @@ export class GhCli implements RunGitHub, IssueSource {
   }
 
   async issueOf(issue: IssueRef): Promise<TrackedIssue> {
-    const raw = await this._rawIssueOf(issue);
+    const raw = await this._rawIssueOf(issue, trackedIssueFields);
     return {
       issue,
       title: String(raw.title),
@@ -172,10 +167,14 @@ export class GhCli implements RunGitHub, IssueSource {
   }
 
   async readableIssueOf(issue: IssueRef): Promise<ReadableIssue> {
-    return readableOfRaw(issue, await this._rawIssueOf(issue));
+    const raw = await this._rawIssueOf(issue, readableIssueFields);
+    return readableOfRaw(issue, raw);
   }
 
-  private async _rawIssueOf(issue: IssueRef): Promise<RawIssue> {
+  private async _rawIssueOf(
+    issue: IssueRef,
+    fields: string,
+  ): Promise<RawIssue> {
     const output = await gh(
       "api",
       "graphql",
@@ -186,13 +185,23 @@ export class GhCli implements RunGitHub, IssueSource {
       "-F",
       `number=${issue.number}`,
       "-f",
-      `query=${issueQuery}`,
+      `query=${issueQueryOf(fields)}`,
     );
     const { data } = JSON.parse(output) as RawIssueResponse;
     const raw = data?.repository?.issue;
     if (!raw) throw new Error(`No issue ${issueLabelOf(issue)}`);
     return raw;
   }
+}
+
+function issueQueryOf(fields: string): string {
+  return `query($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    issue(number: $number) {
+      ${fields}
+    }
+  }
+}`;
 }
 
 function labelsOfRaw(raw: RawIssue): string[] {

@@ -3,11 +3,12 @@
 import { GhCli } from "@byronbroughten/spec-runner/GhCli";
 import { IssueReader } from "@byronbroughten/spec-runner/IssueReader";
 
-import { githubOwner, runKnobs } from "./runnerConfig.ts";
+import { developer, githubOwner, runKnobs } from "./runnerConfig.ts";
 
 const reader = IssueReader.init({
   source: new GhCli(githubOwner),
-  owner: githubOwner,
+  developer,
+  githubOwner,
   allowedRepos: Object.keys(runKnobs.clonePaths),
 });
 

@@ -169,6 +169,7 @@ function specRun(
     usageReader,
     clock: { now: () => new Date("2026-10-12T09:00:00Z") },
     githubOwner: "byronbroughten",
+    developer: "byronbroughten",
     primaryRoot,
     workspaceFolder: join(temp, "workspaces"),
     symlinkedFiles: [],
@@ -568,6 +569,19 @@ describe("run's authorship refusal", () => {
     });
   });
 
+  it("trusts the developer's login, not the owner a run names", async () => {
+    addSpec([1]);
+    github.edit(spec.number, { author: "stranger" });
+
+    const result = await specRun(FakeAgentStep.init(), {
+      githubOwner: "stranger",
+    }).run(spec);
+
+    expect(result.message).toBe(
+      "Only byronbroughten may write or edit the spec and each open ready-for-agent ticket; refused byro-repo #213 (written by stranger).",
+    );
+  });
+
   it("skips a stranger's ticket it won't launch", async () => {
     addSpec([1, 2]);
     github.edit(2, { labels: ["ready-for-human"], author: "stranger" });
@@ -589,7 +603,7 @@ describe("run's authorship refusal", () => {
     );
   });
 
-  it("passes an owner-only body with owner edits", async () => {
+  it("passes a body only the developer wrote and edited", async () => {
     addSpec([1]);
     github.edit(spec.number, { bodyEditors: ["byronbroughten"] });
     github.edit(1, { bodyEditors: ["byronbroughten", "byronbroughten"] });

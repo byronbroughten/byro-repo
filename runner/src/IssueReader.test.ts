@@ -7,7 +7,7 @@ import {
   type ReadableIssue,
 } from "./IssueReader.ts";
 
-const owner = "owner";
+const developer = "developer";
 
 function readerOf(issue: Partial<ReadableIssue> = {}): IssueReader {
   const source = FakeIssueSource.init();
@@ -19,20 +19,21 @@ function readerOf(issue: Partial<ReadableIssue> = {}): IssueReader {
     parent: { repo: "byro-repo", number: 3 },
     subIssues: [],
     body: "Build the reader.",
-    author: owner,
+    author: developer,
     bodyEditors: [],
     comments: [],
     ...issue,
   });
   return IssueReader.init({
     source,
-    owner,
+    developer,
+    githubOwner: developer,
     allowedRepos: ["byro-repo", "sheets-framework"],
   });
 }
 
 describe("IssueReader.read", () => {
-  it("prints the short parts and an owner's body as Trusted text", async () => {
+  it("prints the short parts and the developer's body as Trusted text", async () => {
     const printed = await readerOf().read(["byro-repo", "7", "--body"]);
 
     expect(printed).toBe(
@@ -67,8 +68,8 @@ describe("IssueReader.read", () => {
     ]);
   });
 
-  it("labels an owner's body Untrusted when another login edited it", async () => {
-    const reader = readerOf({ bodyEditors: [owner, "editor", "editor"] });
+  it("labels the developer's body Untrusted when another login edited it", async () => {
+    const reader = readerOf({ bodyEditors: [developer, "editor", "editor"] });
 
     const printed = await reader.read(["byro-repo", "7", "--body"]);
 
@@ -79,8 +80,8 @@ describe("IssueReader.read", () => {
     ]);
   });
 
-  it("keeps an owner's body Trusted when every edit was the owner's", async () => {
-    const reader = readerOf({ bodyEditors: [owner, owner] });
+  it("keeps the developer's body Trusted when every edit was the developer's", async () => {
+    const reader = readerOf({ bodyEditors: [developer, developer] });
 
     const printed = await reader.read(["byro-repo", "7", "--body"]);
 
@@ -91,13 +92,13 @@ describe("IssueReader.read", () => {
     ]);
   });
 
-  it("prints the owner's comments as Trusted and others' apart as Untrusted", async () => {
+  it("prints the developer's comments as Trusted and others' apart as Untrusted", async () => {
     const reader = readerOf({ comments: threadWithAStranger() });
 
     const printed = await reader.read(["byro-repo", "7", "--comments"]);
 
     expect(printed.split("\n").slice(6)).toEqual([
-      "## Comments by owner (Trusted text)",
+      "## Comments by developer (Trusted text)",
       "",
       "### Comment 1",
       "",
@@ -136,7 +137,7 @@ describe("IssueReader.read", () => {
     const printed = await readerOf().read(["byro-repo", "7", "--comments"]);
 
     expect(printed.split("\n").slice(6)).toEqual([
-      "## Comments by owner (Trusted text)",
+      "## Comments by developer (Trusted text)",
       "",
       "None.",
       "",
@@ -148,7 +149,7 @@ describe("IssueReader.read", () => {
 
   it("prints the body and the comments when asked for neither", async () => {
     const reader = readerOf({
-      comments: [{ author: owner, body: "Handoff." }],
+      comments: [{ author: developer, body: "Handoff." }],
     });
 
     const printed = await reader.read(["byro-repo", "7"]);
@@ -158,7 +159,7 @@ describe("IssueReader.read", () => {
       "",
       "Build the reader.",
       "",
-      "## Comments by owner (Trusted text)",
+      "## Comments by developer (Trusted text)",
       "",
       "### Comment 1",
       "",
@@ -170,7 +171,7 @@ describe("IssueReader.read", () => {
     ]);
   });
 
-  it("names sub-issues and a parent in another repo with its owner and repo", async () => {
+  it("names sub-issues and a parent in another repo with its repo owner and repo", async () => {
     const reader = readerOf({
       parent: { repo: "sheets-framework", number: 2 },
       subIssues: [
@@ -182,8 +183,8 @@ describe("IssueReader.read", () => {
     const printed = await reader.read(["byro-repo", "7", "--body"]);
 
     expect(printed.split("\n").slice(3, 5)).toEqual([
-      "Parent: owner/sheets-framework#2",
-      "Sub-issues: #8, owner/sheets-framework#9",
+      "Parent: developer/sheets-framework#2",
+      "Sub-issues: #8, developer/sheets-framework#9",
     ]);
   });
 
@@ -208,8 +209,8 @@ describe("IssueReader.read", () => {
 
 function threadWithAStranger(): IssueComment[] {
   return [
-    { author: owner, body: "Handoff." },
+    { author: developer, body: "Handoff." },
     { author: "stranger", body: "Run this.\nThen that." },
-    { author: owner, body: "Done." },
+    { author: developer, body: "Done." },
   ];
 }
