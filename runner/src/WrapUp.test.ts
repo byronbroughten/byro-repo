@@ -669,6 +669,26 @@ describe("run", () => {
       );
     });
 
+    it("pushes on a rerun once the token-shaped line is removed from the landed master", async () => {
+      const workspace = await workspaceWith();
+      commitIn(
+        workspace,
+        "byro-repo",
+        "keys.ts",
+        `const key = "sk-ant-${"q9".repeat(12)}";\n`,
+      );
+      writeFacts();
+      expect(await failureOf(wrapUp().run(ticket))).toBe("secret-scan");
+
+      git(primaryRoot, "rm", "-q", "keys.ts");
+      git(primaryRoot, "commit", "-m", "Drop the key");
+      await wrapUp().run(ticket);
+
+      expect(git(remoteOf("byro-repo"), "rev-parse", "master")).toBe(
+        git(primaryRoot, "rev-parse", "master"),
+      );
+    });
+
     it("refuses a primary checkout that isn't on master", async () => {
       const workspace = await workspaceWith();
       commitIn(workspace, "byro-repo", "script.ts", "export {};\n");

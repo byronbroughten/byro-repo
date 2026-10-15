@@ -568,7 +568,7 @@ export class WrapUp {
     }
   }
 
-  // A refused scan keeps the landed master, so a rerun after the secret is removed scans again before pushing.
+  // A refusal leaves secret-scan undone, so a rerun rescans.
   private async _scanAndPush(ticket: Ticket): Promise<void> {
     await this._step(ticket, "secret-scan", () => this._scanForSecrets(ticket));
     await this._step(ticket, "push", () => this._push(ticket));
@@ -579,6 +579,8 @@ export class WrapUp {
     for (const repo of Object.keys(ticket.progress.built ?? {})) {
       const diff = await git(
         this._primaryOf(repo),
+        "-c",
+        "core.quotePath=false",
         "diff",
         "-U0",
         "--no-color",
@@ -817,7 +819,7 @@ function addedLinesOf(diff: string): AddedLine[] {
     if (diffLine.startsWith("diff --git ")) {
       isInHunk = false;
     } else if (!isInHunk && diffLine.startsWith("+++ ")) {
-      file = diffLine.slice(4).replace(/^b\//, "");
+      file = diffLine.slice(4).replace(/^"?b\/(.*?)"?$/, "$1");
     } else if (diffLine.startsWith("@@")) {
       isInHunk = true;
       line = Number(/\+(\d+)/.exec(diffLine)?.[1] ?? 0);

@@ -12,8 +12,6 @@ const secretPatterns = {
 export type SecretShape = keyof typeof secretPatterns;
 
 export function secretShapeOf(line: string): SecretShape | undefined {
-  const entry = Object.entries(secretPatterns).find(([, pattern]) =>
-    pattern.test(line),
-  );
-  return entry?.[0] as SecretShape | undefined;
+  const shapes = Object.keys(secretPatterns) as SecretShape[];
+  return shapes.find((shape) => secretPatterns[shape].test(line));
 }

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { secretShapeOf } from "./secretShapes.ts";
 
-// Built by concatenation, so this file never carries a token shape the wrap-up would refuse to push.
+// Concatenated, so this file holds no token shape the wrap-up would refuse.
 const tail = "Ab3_dE6-gH9jK2mN5pQ8sT1vW4yZ7cF0iL3oR6uX9";
 
 describe("secretShapeOf", () => {
