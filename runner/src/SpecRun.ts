@@ -32,7 +32,7 @@ import {
   implementRecordOf,
   implementRecordProblems,
 } from "./implementStep.ts";
-import { type BodyAuthorship, bodyOthersOf } from "./IssueReader.ts";
+import { type BodyAuthorship, untrustedBodyReasonOf } from "./IssueReader.ts";
 import {
   fileStemOf,
   issueLabelOf,
@@ -212,9 +212,10 @@ export class SpecRun {
 
   async run(specIssue: IssueRef): Promise<RunResult> {
     const run = await this._startRun(specIssue);
+    const launchable = await this._launchableTicketsOf(run);
     const refusal =
-      (await this._authorshipRefusal(run)) ??
-      (await this._modelFitRefusal(run));
+      this._authorshipRefusal(run, launchable) ??
+      modelFitRefusalOf(run, launchable);
     if (refusal !== undefined) {
       this._log(run, `Refused: ${refusal}`);
       return { kind: "refused", landed: [], message: refusal };
@@ -310,39 +311,29 @@ export class SpecRun {
     return join(this.config.stateFolder, `${fileStemOf(spec)}.run.json`);
   }
 
-  // The spec, plus each ticket the runner would launch; a ticketless spec is its own ticket.
-  private async _authorshipRefusal(run: Run): Promise<string | undefined> {
-    const { github, githubOwner } = this.config;
-    const checked = [run.spec];
+  // A ticketless spec has none; the preflight refusals check the spec itself.
+  private async _launchableTicketsOf(run: Run): Promise<TrackedIssue[]> {
+    if (run.isTicketless) return [];
+    const launchable: TrackedIssue[] = [];
     for (const ticket of run.tickets) {
-      if (ticket.number === run.spec.issue.number) continue;
-      const tracked = await github.issueOf(ticket);
-      if (isLaunchable(tracked)) checked.push(tracked);
+      const tracked = await this.config.github.issueOf(ticket);
+      if (isLaunchable(tracked)) launchable.push(tracked);
     }
-    const offenders = checked.flatMap((tracked) => {
-      const others = bodyOthersOf(githubOwner, tracked);
-      if (others === undefined) return [];
-      return [`${issueLabelOf(tracked.issue)} (${others})`];
+    return launchable;
+  }
+
+  private _authorshipRefusal(
+    run: Run,
+    launchable: TrackedIssue[],
+  ): string | undefined {
+    const { githubOwner } = this.config;
+    const offenders = [run.spec, ...launchable].flatMap((issue) => {
+      const reason = untrustedBodyReasonOf(githubOwner, issue);
+      if (reason === undefined) return [];
+      return [`${issueLabelOf(issue.issue)} (${reason})`];
     });
     if (offenders.length === 0) return undefined;
     return `Only ${githubOwner} may write or edit the spec and each open ${readyLabel} ticket; refused ${offenders.join(", ")}.`;
-  }
-
-  // A split spec's own body is never checked; tickets the runner won't launch need no section.
-  private async _modelFitRefusal(run: Run): Promise<string | undefined> {
-    if (run.isTicketless) {
-      if (pairOf(run.spec.body) !== undefined) return undefined;
-      return `${issueLabelOf(run.spec.issue)} has no sub-issues and no valid ## Model fit section: split it with /code-tickets, or add the section.`;
-    }
-    const offenders: string[] = [];
-    for (const ticket of run.tickets) {
-      const tracked = await this.config.github.issueOf(ticket);
-      if (isLaunchable(tracked) && pairOf(tracked.body) === undefined) {
-        offenders.push(issueLabelOf(ticket));
-      }
-    }
-    if (offenders.length === 0) return undefined;
-    return `Each open ${readyLabel} ticket needs a ## Model fit section naming one of the five pairs; missing or invalid in ${offenders.join(", ")}.`;
   }
 
   // Checks run in a master set, so neither another session's uncommitted edit nor a local fix hides master's own state.
@@ -877,6 +868,22 @@ function ticketStateOf(run: Run, ticket: IssueRef): TicketState {
   const key = issueLabelOf(ticket);
   run.state.tickets[key] ??= { step: "implement", sessions: [] };
   return run.state.tickets[key];
+}
+
+// A split spec's own body is never checked; tickets the runner won't launch need no section.
+function modelFitRefusalOf(
+  run: Run,
+  launchable: TrackedIssue[],
+): string | undefined {
+  if (run.isTicketless) {
+    if (pairOf(run.spec.body) !== undefined) return undefined;
+    return `${issueLabelOf(run.spec.issue)} has no sub-issues and no valid ## Model fit section: split it with /code-tickets, or add the section.`;
+  }
+  const offenders = launchable.flatMap(({ issue, body }) =>
+    pairOf(body) === undefined ? [issueLabelOf(issue)] : [],
+  );
+  if (offenders.length === 0) return undefined;
+  return `Each open ${readyLabel} ticket needs a ## Model fit section naming one of the five pairs; missing or invalid in ${offenders.join(", ")}.`;
 }
 
 function isLaunchable(ticket: TrackedIssue): boolean {

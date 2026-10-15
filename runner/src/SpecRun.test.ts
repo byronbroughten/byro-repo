@@ -553,11 +553,10 @@ describe("run's authorship refusal", () => {
     expect(notices.sent).toEqual([]);
   });
 
-  it("lists every launchable ticket a stranger wrote or another login edited, and skips tickets it won't launch", async () => {
-    addSpec([1, 2, 3, 4]);
+  it("lists every launchable ticket a stranger wrote or another login edited", async () => {
+    addSpec([1, 2, 3]);
     github.edit(2, { author: "stranger" });
     github.edit(3, { bodyEditors: ["byronbroughten", "editor"] });
-    github.edit(4, { labels: ["ready-for-human"], author: "stranger" });
 
     const result = await specRun(FakeAgentStep.init()).run(spec);
 
@@ -567,6 +566,16 @@ describe("run's authorship refusal", () => {
       message:
         "Only byronbroughten may write or edit the spec and each open ready-for-agent ticket; refused byro-repo #2 (written by stranger), byro-repo #3 (edited by editor).",
     });
+  });
+
+  it("skips a stranger's ticket it won't launch", async () => {
+    addSpec([1, 2]);
+    github.edit(2, { labels: ["ready-for-human"], author: "stranger" });
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
   });
 
   it("checks a ticketless spec as its own ticket", async () => {

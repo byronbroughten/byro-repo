@@ -96,10 +96,10 @@ export class IssueReader {
   }
 
   private _bodyOf(issue: ReadableIssue): string[] {
-    const others = bodyOthersOf(this.config.owner, issue);
+    const reason = untrustedBodyReasonOf(this.config.owner, issue);
     const part = { heading: "## Body", text: issue.body };
-    if (others === undefined) return trustedPart(part);
-    return untrustedPart(part, others);
+    if (reason === undefined) return trustedPart(part);
+    return untrustedPart(part, reason);
   }
 
   // Numbered in thread order, so splitting the thread by author keeps where each comment sat.
@@ -147,8 +147,8 @@ export class IssueReader {
   }
 }
 
-// Undefined when the body is Trusted text; otherwise who else wrote or edited it. SpecRun.ts refuses on the same rule.
-export function bodyOthersOf(
+// SpecRun.ts refuses a run on this same rule.
+export function untrustedBodyReasonOf(
   owner: string,
   { author, bodyEditors }: BodyAuthorship,
 ): string | undefined {
