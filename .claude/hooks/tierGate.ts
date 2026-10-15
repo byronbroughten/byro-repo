@@ -1,5 +1,5 @@
 // PreToolUse on Bash and the gworkspace write and create tools applies the tier gate; PostToolUse on Bash records each app chore dry run that ran, for a later --send.
-import { readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 
 import { driveOwnersOf } from "./lib/driveOwners.ts";
 import {
@@ -10,6 +10,7 @@ import {
 import {
   type HookInput,
   readHookInput,
+  readJsonFile,
   runFailOpen,
   sessionStatePath,
   writeHookOutput,
@@ -28,7 +29,8 @@ await runFailOpen(async () => {
   } else {
     decision = await driveGateDecision({
       toolName: input.tool_name,
-      input: input.tool_input ?? {},
+      // A spread copy fits the gate's Record of every argument.
+      input: { ...input.tool_input },
       ownersOf: cachedOwnerLookup(
         driveOwnersOf,
         ownerCacheOf(sessionStatePath(input.session_id, ownersSuffix)),
@@ -67,12 +69,8 @@ function recordDryRuns(path: string, chores: string[]): void {
 }
 
 function readDryRuns(path: string): string[] {
-  try {
-    const recorded = JSON.parse(readFileSync(path, "utf8"));
-    return Array.isArray(recorded) ? recorded : [];
-  } catch {
-    return [];
-  }
+  const recorded = readJsonFile(path);
+  return Array.isArray(recorded) ? recorded : [];
 }
 
 function ownerCacheOf(path: string): OwnerCache {
@@ -92,10 +90,8 @@ function ownerCacheOf(path: string): OwnerCache {
 }
 
 function readOwners(path: string): Record<string, string[]> {
-  try {
-    const recorded = JSON.parse(readFileSync(path, "utf8"));
-    return recorded && typeof recorded === "object" ? recorded : {};
-  } catch {
-    return {};
-  }
+  const recorded = readJsonFile(path);
+  return recorded && typeof recorded === "object"
+    ? (recorded as Record<string, string[]>)
+    : {};
 }

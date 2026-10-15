@@ -54,7 +54,7 @@ export function gateDecision({
   if (deny) return gateOf("deny", `${deny.why}.`);
   const ask = verdicts.find((verdict) => verdict?.permissionDecision === "ask");
   if (ask) {
-    return gateOf("ask", `\`${command}\` ${ask.why}, so it needs a yes.`);
+    return needsYes(`\`${command}\` ${ask.why}`);
   }
   // The parser doesn't look inside quoted substitutions, so one could hide a command.
   if (/\$\(|`/.test(command)) return undefined;
@@ -88,6 +88,10 @@ export function gateOf(
   sentence: string,
 ): Decision {
   return { permissionDecision, reason: `Tier gate: ${sentence}` };
+}
+
+export function needsYes(why: string): Decision {
+  return gateOf("ask", `${why}, so it needs a yes.`);
 }
 
 function verdictOf(words: string[], dryRuns: string[]): Verdict | undefined {

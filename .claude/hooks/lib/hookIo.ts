@@ -24,13 +24,18 @@ export interface ToolInput {
   path?: string;
   offset?: number;
   limit?: number;
-  spreadsheet_id?: string;
-  document_id?: string;
   content?: unknown;
   text?: unknown;
   operations?: unknown;
-  // gworkspace tools carry many more arguments than these hooks name.
-  [argument: string]: unknown;
+}
+
+// Undefined when the file is missing or isn't JSON.
+export function readJsonFile(path: string): unknown {
+  try {
+    return JSON.parse(readFileSync(path, "utf8"));
+  } catch {
+    return undefined;
+  }
 }
 
 // Every guardrail fails open: an unreadable input allows the call.

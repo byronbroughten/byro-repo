@@ -1,10 +1,10 @@
 // The branch guard's I/O: finds the primary checkouts, reads their branches and HEADs, and stores one record per session. The decisions are in branchGuard.ts.
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import type { CheckoutStates, SessionRecord } from "./branchGuard.ts";
-import { sessionStatePath } from "./hookIo.ts";
+import { readJsonFile, sessionStatePath } from "./hookIo.ts";
 
 const recordSuffix = "branch-record.json";
 
@@ -54,16 +54,12 @@ function recordPathOf(sessionId: string): string {
 }
 
 function parseRecord(path: string): SessionRecord | undefined {
-  try {
-    const record = JSON.parse(readFileSync(path, "utf8"));
-    return record &&
-      typeof record === "object" &&
-      typeof record.sessionId === "string"
-      ? record
-      : undefined;
-  } catch {
-    return undefined;
-  }
+  const record = readJsonFile(path) as Partial<SessionRecord> | undefined;
+  return record &&
+    typeof record === "object" &&
+    typeof record.sessionId === "string"
+    ? (record as SessionRecord)
+    : undefined;
 }
 
 function gitOutput(cwd: string, args: string[]): string | undefined {

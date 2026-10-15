@@ -1,5 +1,5 @@
 // Decides the gate for a gworkspace call by tier: a write is free on a file the developer owns, and asks on anyone else's. Pure; tierGate.ts does the I/O, driveOwners.ts the real lookup.
-import { type Decision, gateOf } from "./tiers.ts";
+import { type Decision, gateOf, needsYes } from "./tiers.ts";
 
 // A file's owner emails; undefined when the lookup failed.
 export type OwnerLookup = (fileId: string) => Promise<string[] | undefined>;
@@ -113,9 +113,8 @@ function accessAsk(
   change: string | undefined,
 ): Decision {
   const file = stringOf(input.file_id) ?? "with no ID";
-  return gateOf(
-    "ask",
-    `\`${shortNameOf(toolName)}\` ${change ?? "changes access"} on file \`${file}\`, and an access change reaches someone else, so it needs a yes.`,
+  return needsYes(
+    `\`${shortNameOf(toolName)}\` ${change ?? "changes access"} on file \`${file}\`, and an access change reaches someone else`,
   );
 }
 
@@ -195,9 +194,8 @@ async function writeDecision(
   }
   const owners = await ownersOf(fileId);
   if (owners === undefined) {
-    return gateOf(
-      "ask",
-      `${tool} writes to file \`${fileId}\`, whose owner couldn't be looked up, so it needs a yes.`,
+    return needsYes(
+      `${tool} writes to file \`${fileId}\`, whose owner couldn't be looked up`,
     );
   }
   if (owners.some(isDeveloperAccount)) {
@@ -206,9 +204,8 @@ async function writeDecision(
       `the developer owns file \`${fileId}\`, and Google's version history undoes ${tool}.`,
     );
   }
-  return gateOf(
-    "ask",
-    `${tool} writes to file \`${fileId}\`, owned by ${ownersShown(owners)}, which neither of the developer's accounts owns, so it needs a yes.`,
+  return needsYes(
+    `${tool} writes to file \`${fileId}\`, owned by ${ownersShown(owners)}, which neither of the developer's accounts owns`,
   );
 }
 
