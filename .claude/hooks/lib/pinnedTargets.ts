@@ -29,6 +29,7 @@ const devWrites = new Set([
   "dev:gen:configs",
   "dev:build",
   "dev:push",
+  "dev:deploy",
   "dev:run",
 ]);
 const runVerbs = new Set(["run", "run-script"]);
@@ -41,7 +42,7 @@ export interface Decision {
   reason: string;
 }
 
-interface NpmScript {
+export interface NpmScript {
   name: string;
   args: string[];
 }
@@ -135,7 +136,7 @@ export function sheetsWriteDecision({
   };
 }
 
-function npmScriptOf(words: string[]): NpmScript | undefined {
+export function npmScriptOf(words: string[]): NpmScript | undefined {
   if (words[0] !== "npm" && words[0] !== "npm.cmd") return undefined;
   const rest = words
     .slice(1)

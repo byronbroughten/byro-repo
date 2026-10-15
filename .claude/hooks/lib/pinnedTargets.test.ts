@@ -14,10 +14,11 @@ import {
 } from "./pinnedTargets.ts";
 
 describe("devWriteOf", () => {
-  it("names a dev gen:configs, build, push or run", () => {
+  it("names a dev gen:configs, build, push, deploy or run", () => {
     expect(devWriteOf("npm run dev:gen:configs")).toBe("dev:gen:configs");
     expect(devWriteOf("npm run dev:build")).toBe("dev:build");
     expect(devWriteOf("npm run dev:push")).toBe("dev:push");
+    expect(devWriteOf("npm run dev:deploy")).toBe("dev:deploy");
     expect(devWriteOf("npm run dev:run triggerOnEdit")).toBe("dev:run");
   });
 
