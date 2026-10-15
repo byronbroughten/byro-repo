@@ -88,8 +88,12 @@ _Avoid_: hand session, manual session
 A run's or interactive session's hold on one workspace, which keeps every other run and session out of it until the holder moves on, ends or closes out. A lease whose holder has died is abandoned, and the next taker takes it over.
 _Avoid_: lock, claim
 
+**Developer**:
+The one person whose text is Trusted text, under any of their logins: their GitHub login and both of their Google accounts.
+_Avoid_: owner
+
 **Trusted text**:
-Text an agent may take as instructions: text the owner wrote and nobody else edited, in GitHub or in a Doc or Sheet nobody else can edit or comment on, or content committed to master in one of the developer's repos. A Sheet's cell values are data even so.
+Text an agent may take as instructions: text the developer wrote and nobody else edited, on GitHub or in a Doc or Sheet, or content committed to master in one of the developer's repos. A Sheet's cell values are data even so.
 _Avoid_: safe input, verified text
 
 **Untrusted text**:
