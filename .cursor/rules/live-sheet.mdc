@@ -11,4 +11,4 @@ Live-sheet command rules: [`docs/targets-and-gates.md`](../../docs/targets-and-g
 
 gworkspace MCP: `spreadsheet_id` from the package's `sheets.config.json` (`packages/real-estate/` for the app, `packages/framework/` for dev).
 
-A send needs a yes naming that chore. Chore homes and the raw-request opening: [`architecture/chores.md`](../../packages/framework/docs/architecture/chores.md).
+An `app:chore` send needs a dry run of that chore earlier in the session. Chore homes and the raw-request opening: [`architecture/chores.md`](../../packages/framework/docs/architecture/chores.md).

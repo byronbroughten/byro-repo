@@ -23,7 +23,7 @@ Every file has one job, and each fact lives in exactly one of them. Everywhere e
 | `CLAUDE.md` | `@AGENTS.md` plus pointers to Claude Code-only mechanics (subagents, hooks). |
 | `GLOSSARY-MAP.md` | Which `GLOSSARY.md` each context owns, how the app's glossary relates to the framework's, and that writing's and the runner's relate to neither. |
 | `docs/agent-behavior-design.md` | Why the agent tooling (hooks, gates, delegation, this doc scheme) is shaped as it is. It never goes in the framework's `docs/design.md`. |
-| `docs/targets-and-gates.md` | The `dev`/`app` targets, what needs a yes first, the agent account, and the gworkspace MCP rules. |
+| `docs/targets-and-gates.md` | The tier list of what needs a yes first, ticket targets, the `dev`/`app` targets, the agent account, and the gworkspace MCP rules. |
 | `docs/claude-code-guardrails.md` | The Claude Code hooks and project agent. |
 | `docs/cursor-guardrails.md` | The Cursor hooks. |
 | `docs/writing-style.md` | The voice of reader-facing prose, one line per rule, rule only, one voice with no sections per medium. Its `## Axes` section defines the Evidence and Formality values and the Academic overlay; a rule scoped to one value starts with that value as a code tag. |
@@ -82,7 +82,7 @@ A private repo holding piece specs as issues; the Pieces' text lives in their Go
 | File | Holds |
 | --- | --- |
 | `CLAUDE.md` | The restart-at-root notice, plus `@AGENTS.md`. |
-| `AGENTS.md` | The pointer to the grilling doc, and how to implement a piece spec: the Deliverable as the text's only home, Drive IDs, the Deliverable's standing yes, the voice, the pointer to the wrap-up, and the four done checks. Kept short: it loads on every task there. |
+| `AGENTS.md` | The pointer to the grilling doc, and how to implement a piece spec: the Deliverable as the text's only home, Drive IDs, when a Deliverable write needs no yes, the voice, the pointer to the wrap-up, and the four done checks. Kept short: it loads on every task there. |
 | `GLOSSARY.md` | The writing context's words: Piece, Deliverable and Reference. |
 | `docs/grilling.md` | What a grill asks before a piece spec is filed, and the calibration paragraph. `/to-writing-style` adds questions to it. |
 | `docs/wrap-up.md` | The wrap-up prompt for a piece spec with no branch. |

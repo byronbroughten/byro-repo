@@ -12,6 +12,18 @@ A block that starves the agent of information costs more than it saves: the agen
 
 _Instances:_ the `Read` deny on `columnConfigs.ts` comes paired with the route through it, which is to grep the sheet key and read that one object (`a7810dd`). The Bash-read guard blocks exactly two patterns, each deny message names the alternative, and a command it can't parse is allowed. The per-turn read count only reminds, and it never cuts off a turn (#53). An edit inside the generated folder is usually wrong but not never, since the config-sheet floor is hand-edited, so it draws a warning rather than a block (#71). The first edit to the root AGENTS.md draws a cost reminder, not a block or a required read: growing the file is sometimes right, and the reminder is small enough to inject where the style gate's is not (#156).
 
+### Gate by what it costs to undo
+
+Whether an action needs the developer's yes follows from one question: what would undoing it cost? An action git can undo is free, a commit on any branch included. An action whose undo point is Google's version history is free too: an `app:*` or `dev:*` live command, or a write to a Sheet, Doc or Drive file one of the developer's accounts owns. An action that can't be undone, or that reaches someone else, asks: a push, a publish, a sharing change, a write to someone else's file, spending money, touching credentials. Which action sits in which tier is listed in [`docs/targets-and-gates.md`](./targets-and-gates.md#which-tier-an-action-is-in).
+
+The session mode decides what an ask does. An Interactive session asks the developer. A runner step has nobody to answer, so its call is refused with a reason, and the step records a blocker and carries on. A stalled run has cost more than any action an agent has taken.
+
+The gates are designed against a fallible agent: one that means well and makes a mistake. #268 keeps Untrusted text out of agents' instructions, and hardening against the agent itself waits for its containment triggers (below), so no such gate is built ahead of them.
+
+Quality checks and cost guards are not gates, and the tiers leave them alone: lint feedback, the style gate, the formatter, the read guards and the generated-file read deny.
+
+_Instances:_ every `app:*` write, every Docs write without a Deliverable grant and every commit once waited for a yes, while a push that could leak a secret to a public repo got no more protection than a sheet edit; one tier decision replaced those rules (#273, #274, #276). Runner steps get refusals, not prompts (#277). The one push with a standing yes, `npm run wrap-up`'s, scans its outgoing lines for token shapes first, since a pushed token is the mistake no undo fixes (#275).
+
 ### Keep the payload on disk and the summary in context
 
 Whatever enters the context is paid for on every later turn. A full payload, printed once, rides along through unrelated work. Show a summary that is enough to decide the next step, and keep the complete record somewhere a ranged read can reach it, so the summary never hides needed detail.
@@ -28,7 +40,7 @@ _Instances:_ dispatched agents report the command they would run rather than run
 
 A yes is scoped to the specific thing the operator saw. A general go-ahead, or approval of a neighbouring step, is not consent to an action whose effects they didn't see named.
 
-_Instances:_ a `--send` needs a yes that names that chore, and a Sheets write needs an exact sheet, range and values (AGENTS.md, "Commands"). During design or grilling, nothing is written until the operator invokes the skill that files it: approving a design is not approving its publication (`5d5c77c`).
+_Instances:_ a share needs its own yes naming who gets access and at what permission, apart from any data-write approval ([`docs/targets-and-gates.md`](./targets-and-gates.md#the-gworkspace-mcp-tools)). During design or grilling, nothing is written until the operator invokes the skill that files it: approving a design is not approving its publication (`5d5c77c`).
 
 ### Put each rule where it gets followed, and its reasoning one pointer away
 
@@ -40,7 +52,7 @@ _Instances:_ the style doc was followed more consistently once it became one lin
 
 ## Untrusted text
 
-Trusted text and Untrusted text are defined in [`runner/GLOSSARY.md`](../runner/GLOSSARY.md). For now, the stance is to keep Untrusted text out of an agent's instructions with cheap mechanical checks, and to leave containment for later. Containment means a step can't do harm even after it is misled. Runner steps read issues only through `npm run issue:read` with `--hide-others`, which labels each part and replaces other people's comments with a count, so the prompt no longer asks the model to work out who wrote what (#269).
+Trusted text and Untrusted text are defined in [`runner/GLOSSARY.md`](../runner/GLOSSARY.md). For now, the stance is to keep Untrusted text out of an agent's instructions with cheap mechanical checks, and to leave containment for later. Containment means a step can't do harm even after it is misled. Runner steps read issues only through `npm run issue:read` with `--hide-others`, which labels each part and replaces other people's comments with a count, so the prompt no longer asks the model to work out who wrote what (#269). A pieces runner will read Doc comments the same way, through a labelled reader like `issue:read`.
 
 Containment gets built when any one of these happens:
 
@@ -48,7 +60,7 @@ Containment gets built when any one of these happens:
 2. A runner step gains web access, or access to content someone else can edit or comment on.
 3. Untrusted text is caught trying to instruct an agent.
 
-No Drive-permission check is added, because sharing a Doc or Sheet already needs its own yes (AGENTS.md, "Commands"). A Sheet's cell values are always data, even in a Sheet only the developer can edit. A merge to master is where text becomes trusted: content committed to master in one of the developer's repos is Trusted text, and a branch is not until it lands.
+No Drive-permission check is added, because sharing a Doc or Sheet already needs its own yes ([the tier list](./targets-and-gates.md#which-tier-an-action-is-in)). A Sheet's cell values are always data, even in a Sheet only the developer can edit. A merge to master is where text becomes trusted: content committed to master in one of the developer's repos is Trusted text, and a branch is not until it lands.
 
 ## Not yet promoted
 

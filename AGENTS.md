@@ -7,11 +7,8 @@ Open only the section or disclosed doc the task needs.
 ## Commands
 
 - `npm run tsc`, `npm test` and `npm run lint`: always safe. Run all three before calling a change done, and treat a new type error as yours unless a clean checkout has it too.
-- **Every live-spreadsheet command names its target: `dev:*` (the `Sheets Framework Dev` spreadsheet) or `app:*` (the real-estate one).** `dev:*` has a standing yes. `app:*` keeps the asks below. A yes for one spreadsheet never covers the other, and a bare `npx sheets-framework …` always asks. Full table: [`docs/targets-and-gates.md`](./docs/targets-and-gates.md#targets-dev-and-app).
-- `npm run app:chore <name>`: a dry run, always safe. `npm run app:chore <name> -- --send` applies it and needs a yes **naming that chore**.
-- `npm run app:probe`: read-only raw Sheets JSON. Stdout gets a summary and the full response goes to that package's `.probe/last.json`; read a line range of it, never print a full body into the chat. Ask before any other script that opens the `clasp` credential.
-- `npm run app:gen:configs` writes to the live config sheets. **Before running it, check the four standing-permission conditions** in [`docs/targets-and-gates.md`](./docs/targets-and-gates.md#before-touching-the-live-spreadsheet-or-deployment).
-- Ask first for `npm run app:build`, `clasp push` / `run` / `deploy`, any gworkspace Sheets write to the app spreadsheet (exact sheet, range and values) and any Docs write (the doc and the change). Creating a file asks; a share needs its own yes, naming who and at what permission. Reads need no yes.
+- **What needs a yes follows what it costs to undo: [the tier list](./docs/targets-and-gates.md#which-tier-an-action-is-in).** Every live-spreadsheet command names its target, `dev:*` or `app:*`, and `app:gen:configs` has [four conditions](./docs/targets-and-gates.md#gen-configs-standing-permission) to check first.
+- `npm run app:probe`: read-only raw Sheets JSON. Stdout gets a summary and the full response goes to that package's `.probe/last.json`; read a line range of it, never print a full body into the chat.
 
 ## Every task
 
@@ -19,7 +16,7 @@ Open only the section or disclosed doc the task needs.
 - **Which package: first "would this make sense with no Sheets at all?" Yes: `packages/utils`, never started in the framework. Then "in a different Sheets-backed app?"** Yes: `packages/framework`. No: `packages/real-estate`. A lint, format or tsconfig setting any TypeScript project would want: `config`. A reader-facing Piece: `packages/writing`.
 - **Public repos never depend on private ones; private may depend on public.**
 - **Working in a folder with its own `AGENTS.md`**, read it first; each package's `src/` and several folders under it have one.
-- **Commit or push only when asked. Implement a spec on its `issue-<n>-<slug>` branch**, even when a skill says to commit to the current branch. Starting a runner run is the yes for what the runner's own code writes on that spec's issue tree in the named repo: comments, closing its tickets, pushing `issue-*` branches and wrap-up merges, and for the implement step's `gh issue edit` and `gh issue comment` as the ticket describes them; never for an agent step closing an issue or changing a triage label on a ticket of the running spec, `app:*`, or any other write an agent step attempts. Branch rules: [`docs/agents/git-workflow.md`](./docs/agents/git-workflow.md).
+- **Commit freely; push only through wrap-up, or with a yes. Implement a spec on its `issue-<n>-<slug>` branch**, even when a skill says to commit to the current branch. Starting a runner run is the yes for what the runner's own code writes on that spec's issue tree in the named repo: comments, closing its tickets, pushing `issue-*` branches and wrap-up merges, and for the implement step's `gh issue edit` and `gh issue comment` as the ticket describes them; never for an agent step closing an issue or changing a triage label on a ticket of the running spec, a write outside its ticket's targets, or any other write an agent step attempts. Branch rules: [`docs/agents/git-workflow.md`](./docs/agents/git-workflow.md).
 
 ## Read by task
 

@@ -10,13 +10,13 @@ Fetch it with `gh issue view -R byronbroughten/writing <n> --json title,body,com
 
 A Docs write to the Deliverable needs no yes when one of the developer's Google accounts owns that Doc; the tier gate looks the owner up ([`docs/targets-and-gates.md`](../../../docs/targets-and-gates.md#the-gworkspace-mcp-tools)).
 
-Draft by the rules under "Implementing a piece spec" in [`packages/writing/AGENTS.md`](../../../packages/writing/AGENTS.md): its text, its supporting material, its standing yes and its voice. On a sub-issue, write only the Sections it names.
+Draft by the rules under "Implementing a piece spec" in [`packages/writing/AGENTS.md`](../../../packages/writing/AGENTS.md): its text, its supporting material, when it may write without asking, and its voice. On a sub-issue, write only the Sections it names.
 
 Once drafted, read [`.claude/skills/review-piece/SKILL.md`](../review-piece/SKILL.md) and follow it on the same issue. It is user-invoked, so the Skill tool can't reach it.
 
 Then:
 
-- **Fix every hard Spec finding** in the Deliverable, under the spec's standing yes. Without one, ask before writing.
+- **Fix every hard Spec finding** in the Deliverable. A Deliverable someone else owns asks first.
 - **Report the Spec judgement calls, the Style and Reader findings and Jev's style flags to the developer, unfixed.** They are judgement calls, and the developer's own edits are what `/to-writing-style` learns from.
 
 Done when no hard finding is left, or each one left is reported with why.
