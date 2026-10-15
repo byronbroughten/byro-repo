@@ -29,10 +29,17 @@ function request(overrides: Partial<StepRequest> = {}): StepRequest {
     maxTurns: 40,
     allowedTools: ["Bash(npm run tsc)", "Bash(git commit *)"],
     allowedWriteGlobs: [".claude/skills/**"],
+    targets: [],
     jsonSchema: answerSchema,
     ...overrides,
   };
 }
+
+const gworkspaceServer = {
+  type: "stdio",
+  command: "uvx",
+  args: ["workspace-mcp==1.28.0", "--single-user"],
+};
 
 interface Replay {
   result: StepResult;
@@ -57,10 +64,10 @@ async function replay(
   const cswapPath = join(dir, "cswap");
   writeFileSync(
     cswapPath,
-    `#!/bin/sh\nprintf '%s\\n' "$@" > '${argvPath}'\nprintf '%s' "$BYRO_RUNNER_STEP" > '${join(dir, "mark")}'\ncat '${join(fixturesFolder, fixture)}'\n`,
+    `#!/bin/sh\nprintf '%s\\n' "$@" > '${argvPath}'\nprintf '%s' "$BYRO_RUNNER_STEP" > '${join(dir, "mark")}'\nprintf '%s' "$BYRO_STEP_TARGETS" > '${join(dir, "targets")}'\ncat '${join(fixturesFolder, fixture)}'\n`,
     { mode: 0o755 },
   );
-  const result = await ClaudeAgentStep.init(cswapPath).run(
+  const result = await ClaudeAgentStep.init(cswapPath, gworkspaceServer).run(
     request({ cwd: dir, ...overrides }),
   );
   const argv = readFileSync(argvPath, "utf8").split("\n").slice(0, -1);
@@ -159,6 +166,45 @@ describe("ClaudeAgentStep's command", () => {
     expect(argv).not.toContain("bypassPermissions");
     expect(argv).not.toContain("--dangerously-skip-permissions");
     expect(argv).not.toContain("switch");
+  });
+
+  it("adds a spreadsheet target's live aliases and the Sheets tools, with the gworkspace server and the targets in the environment", async () => {
+    const { argv, cwd } = await replay("success.ndjson", {
+      targets: [{ kind: "spreadsheet", name: "app" }],
+    });
+    const tools = argv.slice(argv.indexOf("--allowedTools") + 1);
+    expect(tools.slice(0, 2)).toEqual([
+      "Bash(npm run tsc)",
+      "Bash(git commit *)",
+    ]);
+    expect(tools).toContain("Bash(npm run app:chore*)");
+    expect(tools).toContain("mcp__gworkspace__modify_sheet_values");
+    expect(tools).not.toContain("Bash(npm run dev:chore*)");
+    expect(tools).not.toContain("mcp__gworkspace__modify_doc_text");
+    expect(JSON.parse(argv[argv.indexOf("--mcp-config") + 1] ?? "")).toEqual({
+      mcpServers: { gworkspace: gworkspaceServer },
+    });
+    expect(JSON.parse(readFileSync(join(cwd, "targets"), "utf8"))).toEqual([
+      { kind: "spreadsheet", name: "app" },
+    ]);
+  });
+
+  it("adds a Doc target's Docs tools and no live aliases", async () => {
+    const { argv } = await replay("success.ndjson", {
+      allowedTools: [],
+      targets: [{ kind: "doc", id: "doc1" }],
+    });
+    const tools = argv.slice(argv.indexOf("--allowedTools") + 1);
+    expect(tools).toContain("mcp__gworkspace__modify_doc_text");
+    expect(tools).not.toContain("mcp__gworkspace__modify_sheet_values");
+    expect(tools.some((tool) => tool.startsWith("Bash("))).toBe(false);
+    expect(argv).toContain("--mcp-config");
+  });
+
+  it("passes no gworkspace server and no targets when the ticket names none", async () => {
+    const { argv, cwd } = await replay("success.ndjson");
+    expect(argv).not.toContain("--mcp-config");
+    expect(readFileSync(join(cwd, "targets"), "utf8")).toBe("");
   });
 
   it("leaves out --allowedTools when the list is empty", async () => {

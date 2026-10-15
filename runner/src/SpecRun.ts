@@ -59,6 +59,7 @@ import {
 } from "./reviewStep.ts";
 import type { Command, KnobbedStep, RunKnobs } from "./runKnobs.ts";
 import { sleep } from "./sleep.ts";
+import { type Target, targetsOf } from "./ticketTargets.ts";
 import {
   type LimitReading,
   type LimitReadings,
@@ -77,6 +78,7 @@ import {
 const execFileAsync = promisify(execFile);
 
 const readyLabel = "ready-for-agent";
+const targetLineShapes = "`app spreadsheet`, `dev spreadsheet` or `doc <id>`";
 
 export interface TrackedIssue extends BodyAuthorship {
   issue: IssueRef;
@@ -169,6 +171,7 @@ interface LandingTicket {
 
 interface TicketRun extends LandingTicket {
   workspace: Workspace;
+  targets: Target[];
 }
 
 interface LaunchedStep {
@@ -217,7 +220,8 @@ export class SpecRun {
     const launchable = await this._launchableTicketsOf(run);
     const refusal =
       this._authorshipRefusal(run, launchable) ??
-      modelFitRefusalOf(run, launchable);
+      modelFitRefusalOf(run, launchable) ??
+      targetsRefusalOf(run, launchable);
     if (refusal !== undefined) {
       this._log(run, `Refused: ${refusal}`);
       return { kind: "refused", landed: [], message: refusal };
@@ -431,7 +435,8 @@ export class SpecRun {
       );
       if (state.step !== "wrap-up") {
         const workspace = await this._workspaceFor(run, ticket.issue);
-        await this._runSteps({ run, ticket, pair, workspace, state });
+        const targets = targetsAtLaunchOf(ticket, this._progressPathOf(run));
+        await this._runSteps({ run, ticket, pair, workspace, state, targets });
       }
       await this._land({ run, ticket, pair, state });
       return true;
@@ -545,7 +550,7 @@ export class SpecRun {
     agent: KnobbedStep,
     { prompt, jsonSchema }: Pick<StepRequest, "prompt" | "jsonSchema">,
   ): Promise<LaunchedStep> {
-    const { run, ticket, pair, workspace, state } = ticketRun;
+    const { run, ticket, pair, workspace, state, targets } = ticketRun;
     const { knobs } = this.config;
     await this._waitForLaunch(ticketRun);
     const logPath = this._stepLogPathOf(ticketRun, agent);
@@ -563,6 +568,7 @@ export class SpecRun {
         maxTurns: knobs.maxTurns[agent],
         allowedTools: knobs.allowedTools[agent],
         allowedWriteGlobs: knobs.allowedWriteGlobs,
+        targets,
         jsonSchema,
         logPath,
       });
@@ -886,6 +892,30 @@ function modelFitRefusalOf(
   );
   if (offenders.length === 0) return undefined;
   return `Each open ${readyLabel} ticket needs a ## Model fit section naming one of the five pairs; missing or invalid in ${offenders.join(", ")}.`;
+}
+
+function targetsRefusalOf(
+  run: Run,
+  launchable: TrackedIssue[],
+): string | undefined {
+  const checked = run.isTicketless ? [run.spec] : launchable;
+  const offenders = checked.flatMap(({ issue, body }) => {
+    const reading = targetsOf(body);
+    if (reading.status === "valid") return [];
+    return [`${issueLabelOf(issue)} (\`${reading.line}\`)`];
+  });
+  if (offenders.length === 0) return undefined;
+  return `Each ## Targets line must be ${targetLineShapes}; malformed in ${offenders.join(", ")}.`;
+}
+
+function targetsAtLaunchOf(ticket: TrackedIssue, logPath: string): Target[] {
+  const reading = targetsOf(ticket.body);
+  if (reading.status === "valid") return reading.targets;
+  throw new UnhandledStop(
+    "targets",
+    `The ## Targets section changed after preflight: \`${reading.line}\` isn't ${targetLineShapes}.`,
+    logPath,
+  );
 }
 
 function isLaunchable(ticket: TrackedIssue): boolean {

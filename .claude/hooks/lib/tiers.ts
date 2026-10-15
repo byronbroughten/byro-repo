@@ -11,6 +11,7 @@ export type SessionMode = "interactive" | "runnerStep";
 
 // Set by ClaudeAgentStep.ts, which can't import across the hooks boundary.
 export const runnerStepMark = "BYRO_RUNNER_STEP";
+export const stepTargetsVariable = "BYRO_STEP_TARGETS";
 
 export interface ShellCall {
   command: string;

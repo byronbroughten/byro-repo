@@ -123,6 +123,10 @@ function bodyWith(pairLine = "Opus high"): string {
   return `## What to build\n\nA thing.\n\n## Model fit\n\n${pairLine}\nA reason.\n`;
 }
 
+function bodyWithTargets(...targetLines: string[]): string {
+  return `## What to build\n\nA thing.\n\n## Targets\n\n${targetLines.join("\n")}\n\n## Model fit\n\nOpus high\nA reason.\n`;
+}
+
 function addIssue(
   number: number,
   {
@@ -461,6 +465,82 @@ describe("run", () => {
     ]);
   });
 
+  it("launches a ticket naming the app spreadsheet with that target beside its step's own tools", async () => {
+    addSpec([1]);
+    github.edit(1, { body: bodyWithTargets("app spreadsheet") });
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    await specRun(agentStep, {
+      knobs: runKnobsOf({
+        clonePaths,
+        checks: [greenUnlessRed],
+        authChecks: [passes],
+        allowedTools: { implement: ["Bash(npm run tsc)"] },
+      }),
+    }).run(spec);
+
+    const app = [{ kind: "spreadsheet", name: "app" }];
+    expect(
+      agentStep.requests.map(({ targets, allowedTools }) => ({
+        targets,
+        allowedTools,
+      })),
+    ).toEqual([
+      { targets: app, allowedTools: ["Bash(npm run tsc)"] },
+      { targets: app, allowedTools: [] },
+    ]);
+  });
+
+  it("launches a ticket naming a Doc with that Doc", async () => {
+    addSpec([1]);
+    github.edit(1, { body: bodyWithTargets("doc 1AbC-d_9") });
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests.map(({ targets }) => targets)).toEqual([
+      [{ kind: "doc", id: "1AbC-d_9" }],
+      [{ kind: "doc", id: "1AbC-d_9" }],
+    ]);
+  });
+
+  it("launches a ticket naming nothing with no targets", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests.map(({ targets }) => targets)).toEqual([[], []]);
+  });
+
+  it("reads the targets just before each launch, so one added mid-run takes effect", async () => {
+    addSpec([1, 2]);
+    const agentStep = FakeAgentStep.init(
+      implemented("one.ts", {
+        act: () =>
+          github.edit(2, {
+            body: bodyWithTargets("dev spreadsheet", "doc docTwo"),
+          }),
+      }),
+      reviewed(),
+      implemented("two.ts"),
+      reviewed(),
+    );
+
+    await specRun(agentStep).run(spec);
+
+    const devAndDoc = [
+      { kind: "spreadsheet", name: "dev" },
+      { kind: "doc", id: "docTwo" },
+    ];
+    expect(agentStep.requests.map(({ targets }) => targets)).toEqual([
+      [],
+      [],
+      devAndDoc,
+      devAndDoc,
+    ]);
+  });
+
   it("lands an applied ticket without review or checks: one agent request, a row commit, the ticket closed with its write list", async () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(applied());
@@ -520,6 +600,24 @@ describe("run's Model fit refusal", () => {
     });
     expect(agentStep.requests).toEqual([]);
     expect(notices.sent).toEqual([]);
+  });
+
+  it("refuses a malformed ## Targets line beside the Model fit check, naming the ticket and the line", async () => {
+    addSpec([1, 2]);
+    github.edit(2, {
+      body: bodyWithTargets("app spreadsheet", "the live sheet"),
+    });
+    const agentStep = FakeAgentStep.init();
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result).toEqual<RunResult>({
+      kind: "refused",
+      landed: [],
+      message:
+        "Each ## Targets line must be `app spreadsheet`, `dev spreadsheet` or `doc <id>`; malformed in byro-repo #2 (`the live sheet`).",
+    });
+    expect(agentStep.requests).toEqual([]);
   });
 
   it("tells a ticketless spec with no section to split it or add one", async () => {

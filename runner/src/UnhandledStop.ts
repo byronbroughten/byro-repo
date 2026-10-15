@@ -9,6 +9,7 @@ export const stopOutcomes = {
   "wrap-up-failure": "a wrap-up failure",
   workspace: "a workspace that can't resume",
   "model-fit": "a missing or invalid Model fit",
+  targets: "a malformed Targets section",
   "limit-hit": "a limit hit",
 } as const;
 

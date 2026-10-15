@@ -1,5 +1,12 @@
 // Decides the gate for a gworkspace call by tier: a write is free on a file the developer owns, and asks on anyone else's. Pure; tierGate.ts does the I/O, driveOwners.ts the real lookup.
-import { type Decision, gateOf, needsYes } from "./tiers.ts";
+import type { SheetsConfigEntry } from "./sheetsConfigs.ts";
+import {
+  type Decision,
+  decisionInMode,
+  gateOf,
+  needsYes,
+  type SessionMode,
+} from "./tiers.ts";
 
 // A file's owner emails; undefined when the lookup failed.
 export type OwnerLookup = (fileId: string) => Promise<string[] | undefined>;
@@ -10,11 +17,22 @@ export interface OwnerCache {
   write(fileId: string, owners: string[]): void;
 }
 
+// A file a runner step's ticket names; id is undefined when its sheets config has none.
+export interface StepTarget {
+  label: string;
+  id: string | undefined;
+}
+
 export interface DriveCall {
   toolName: string;
   input: Record<string, unknown>;
   ownersOf: OwnerLookup;
+  mode: SessionMode;
+  // Checked only in a runner step, which may write nothing else.
+  targets: StepTarget[];
 }
+
+type FileWrite = Omit<DriveCall, "input"> & { fileId: string | undefined };
 
 const developerAccounts = [
   "byronbroughten@gmail.com",
@@ -66,11 +84,18 @@ const sharing = {
   settings: ["writers_can_share", "copy_requires_writer_permission"],
 } as const;
 
-export async function driveGateDecision({
-  toolName,
+export async function driveGateDecision(
+  call: DriveCall,
+): Promise<Decision | undefined> {
+  const decision = await baseDecision(call);
+  return decision && decisionInMode(decision, call.mode);
+}
+
+async function baseDecision({
   input,
-  ownersOf,
+  ...call
 }: DriveCall): Promise<Decision | undefined> {
+  const { toolName } = call;
   if (fileCreations.has(toolName)) {
     return gateOf(
       "allow",
@@ -86,11 +111,37 @@ export async function driveGateDecision({
   if (toolName === sharing.updateDriveFile) {
     const change = settingsChange(input);
     if (change !== undefined) return accessAsk(toolName, input, change);
-    return writeDecision(toolName, stringOf(input.file_id), ownersOf);
+    return writeDecision({ ...call, fileId: stringOf(input.file_id) });
   }
   const fileIdKey = fileIdKeyOf(toolName);
   if (fileIdKey === undefined) return undefined;
-  return writeDecision(toolName, stringOf(input[fileIdKey]), ownersOf);
+  return writeDecision({ ...call, fileId: stringOf(input[fileIdKey]) });
+}
+
+// The targets ClaudeAgentStep.ts hands a runner step as JSON; anything unreadable names none, so every write is denied.
+export function stepTargetsOf(
+  json: string | undefined,
+  sheetsConfigs: SheetsConfigEntry[],
+): StepTarget[] {
+  let targets: unknown;
+  try {
+    targets = JSON.parse(json ?? "[]");
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(targets)) return [];
+  return targets.flatMap((target) => {
+    if (target?.kind === "doc" && typeof target.id === "string") {
+      return [{ label: "doc", id: target.id }];
+    }
+    const config = sheetsConfigs.find(
+      ({ scriptPrefix }) => scriptPrefix === target?.name,
+    );
+    if (target?.kind !== "spreadsheet" || config === undefined) return [];
+    return [
+      { label: `${config.scriptPrefix} spreadsheet`, id: config.spreadsheetId },
+    ];
+  });
 }
 
 // A failed lookup isn't recorded, so a fixed token is picked up on the next write.
@@ -183,14 +234,22 @@ function settingsChange(input: Record<string, unknown>): string | undefined {
   return changes.length === 0 ? undefined : changes.join(" and ");
 }
 
-async function writeDecision(
-  toolName: string,
-  fileId: string | undefined,
-  ownersOf: OwnerLookup,
-): Promise<Decision> {
+async function writeDecision({
+  toolName,
+  fileId,
+  ownersOf,
+  mode,
+  targets,
+}: FileWrite): Promise<Decision> {
   const tool = `\`${shortNameOf(toolName)}\``;
   if (fileId === undefined) {
     return gateOf("ask", `${tool} names no file to look its owner up by.`);
+  }
+  if (mode === "runnerStep" && !targets.some(({ id }) => id === fileId)) {
+    return gateOf(
+      "deny",
+      `${tool} writes to file \`${fileId}\`, which isn't among this ticket's targets: ${targetsShown(targets)}. Record a \`denied-tool\` blocker for the developer instead.`,
+    );
   }
   const owners = await ownersOf(fileId);
   if (owners === undefined) {
@@ -207,6 +266,16 @@ async function writeDecision(
   return needsYes(
     `${tool} writes to file \`${fileId}\`, owned by ${ownersShown(owners)}, which neither of the developer's accounts owns`,
   );
+}
+
+function targetsShown(targets: StepTarget[]): string {
+  if (targets.length === 0) return "none";
+  return targets
+    .map(
+      ({ label, id }) =>
+        `${label} ${id === undefined ? "with no ID" : `\`${id}\``}`,
+    )
+    .join(", ");
 }
 
 function fileIdKeyOf(toolName: string): string | undefined {

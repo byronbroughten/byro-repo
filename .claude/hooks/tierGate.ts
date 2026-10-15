@@ -6,6 +6,7 @@ import {
   cachedOwnerLookup,
   driveGateDecision,
   type OwnerCache,
+  stepTargetsOf,
 } from "./lib/driveTiers.ts";
 import {
   type HookInput,
@@ -15,12 +16,13 @@ import {
   sessionStatePath,
   writeHookOutput,
 } from "./lib/hookIo.ts";
+import { readSheetsConfigs } from "./lib/sheetsConfigs.ts";
 import {
   type Decision,
-  decisionInMode,
   dryRunChoresOf,
   gateDecision,
   sessionModeOf,
+  stepTargetsVariable,
 } from "./lib/tiers.ts";
 
 const dryRunSuffix = "chore-dry-runs.json";
@@ -33,7 +35,9 @@ await runFailOpen(async () => {
   if (input.tool_name === "Bash") {
     decision = bashDecision(input);
   } else {
-    const driveDecision = await driveGateDecision({
+    const projectDir =
+      process.env.CLAUDE_PROJECT_DIR ?? input.cwd ?? process.cwd();
+    decision = await driveGateDecision({
       toolName: input.tool_name,
       // A spread copy fits the gate's Record of every argument.
       input: { ...input.tool_input },
@@ -41,10 +45,12 @@ await runFailOpen(async () => {
         driveOwnersOf,
         ownerCacheOf(sessionStatePath(input.session_id, ownersSuffix)),
       ),
+      mode: sessionModeOf(process.env),
+      targets: stepTargetsOf(
+        process.env[stepTargetsVariable],
+        readSheetsConfigs(projectDir),
+      ),
     });
-    decision =
-      driveDecision &&
-      decisionInMode(driveDecision, sessionModeOf(process.env));
   }
   if (!decision) return;
   writeHookOutput({

@@ -6,9 +6,11 @@ import { fileURLToPath } from "node:url";
 import type { AgentStep, StepRequest, StepResult } from "./AgentStep.ts";
 import type { SkillWriteHookArgs } from "./skillWriteHook.ts";
 import { StepStream } from "./StepStream.ts";
+import { toolsOf } from "./targetTools.ts";
 
-// The tier gate's runner-step mark, named the same in .claude/hooks/lib/tiers.ts.
+// The tier gate's runner-step mark and targets variable, named the same in .claude/hooks/lib/tiers.ts.
 export const runnerStepMark = "BYRO_RUNNER_STEP";
+export const stepTargetsVariable = "BYRO_STEP_TARGETS";
 
 const skillWriteHookPath = fileURLToPath(
   new URL("./skillWriteHook.ts", import.meta.url),
@@ -17,20 +19,37 @@ const skillWriteHookPath = fileURLToPath(
 // Runs `claude -p` under `cswap run <account> --`, which hands everything after `--` to claude as that account.
 export class ClaudeAgentStep implements AgentStep {
   private readonly cswapPath: string;
+  // The gworkspace MCP server's config, passed only to a step whose ticket names a target.
+  private readonly gworkspaceServer: object | undefined;
 
-  constructor(cswapPath: string) {
+  constructor(cswapPath: string, gworkspaceServer: object | undefined) {
     this.cswapPath = cswapPath;
+    this.gworkspaceServer = gworkspaceServer;
   }
 
-  static init(cswapPath = "cswap"): ClaudeAgentStep {
-    return new ClaudeAgentStep(cswapPath);
+  static init(cswapPath = "cswap", gworkspaceServer?: object): ClaudeAgentStep {
+    return new ClaudeAgentStep(cswapPath, gworkspaceServer);
   }
 
   async run(request: StepRequest): Promise<StepResult> {
+    const args = commandArgs(request);
+    const env: NodeJS.ProcessEnv = { ...process.env, [runnerStepMark]: "1" };
+    if (request.targets.length > 0) {
+      if (this.gworkspaceServer === undefined) {
+        throw new Error(
+          "The ticket names targets, but the runner has no gworkspace server config to pass the step.",
+        );
+      }
+      args.push(
+        "--mcp-config",
+        JSON.stringify({ mcpServers: { gworkspace: this.gworkspaceServer } }),
+      );
+      env[stepTargetsVariable] = JSON.stringify(request.targets);
+    }
     const log = openLog(request.logPath);
-    const child = spawn(this.cswapPath, commandArgs(request), {
+    const child = spawn(this.cswapPath, args, {
       cwd: request.cwd,
-      env: { ...process.env, [runnerStepMark]: "1" },
+      env,
       stdio: ["ignore", "pipe", "inherit"],
     });
     // Resolved, not rejected, so a spawn error waits for the read loop instead of going unhandled.
@@ -81,9 +100,8 @@ function commandArgs(request: StepRequest): string[] {
     JSON.stringify(settingsOf(request)),
   ];
   if (request.resumeSessionId) args.push("--resume", request.resumeSessionId);
-  if (request.allowedTools.length > 0) {
-    args.push("--allowedTools", ...request.allowedTools);
-  }
+  const allowedTools = [...request.allowedTools, ...toolsOf(request.targets)];
+  if (allowedTools.length > 0) args.push("--allowedTools", ...allowedTools);
   return args;
 }
 

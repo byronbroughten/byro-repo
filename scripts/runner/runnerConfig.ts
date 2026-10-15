@@ -2,6 +2,7 @@
 // The knobs, repo map and checks included, come from runner.config.json; the ntfy topic from gitignored runner.local.json.
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -79,7 +80,7 @@ export function specRunConfigOf(owner: string): SpecRunConfig {
     issueWorkspacesConfig;
   return {
     knobs: runKnobs,
-    agentStep: ClaudeAgentStep.init(),
+    agentStep: ClaudeAgentStep.init("cswap", gworkspaceServer()),
     github: new GhCli(owner),
     notices: NtfyNotices.init(ntfyTopic()),
     usageReader: CswapUsageReader.init(),
@@ -96,6 +97,16 @@ export function specRunConfigOf(owner: string): SpecRunConfig {
     stateFolder,
     log: (line) => console.log(line),
   };
+}
+
+// The primary root's local-scope server; a step runs in an issue workspace, which has none of its own.
+function gworkspaceServer(): object | undefined {
+  const path = join(homedir(), ".claude.json");
+  if (!existsSync(path)) return undefined;
+  const config = JSON.parse(readFileSync(path, "utf8")) as {
+    projects?: Record<string, { mcpServers?: Record<string, object> }>;
+  };
+  return config.projects?.[primaryRoot]?.mcpServers?.gworkspace;
 }
 
 function ntfyTopic(): string {

@@ -2,6 +2,8 @@
 // ClaudeAgentStep.ts is the real adapter and FakeAgentStep.ts the one run-loop tests script.
 // StepStream.ts reads the adapter's stream-json into a StepResult.
 
+import type { Target } from "./ticketTargets.ts";
+
 export interface AgentStep {
   run(request: StepRequest): Promise<StepResult>;
 }
@@ -20,6 +22,8 @@ export interface StepRequest {
   maxTurns: number;
   allowedTools: string[];
   allowedWriteGlobs: string[];
+  // The ticket's targets outside the repo; the adapter adds their tools to allowedTools.
+  targets: Target[];
   jsonSchema: object;
   resumeSessionId?: string;
   logPath?: string;

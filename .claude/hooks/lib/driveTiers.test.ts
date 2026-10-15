@@ -5,7 +5,10 @@ import {
   driveGateDecision,
   type OwnerCache,
   type OwnerLookup,
+  type StepTarget,
+  stepTargetsOf,
 } from "./driveTiers.ts";
+import type { SessionMode } from "./tiers.ts";
 
 const mine = "byronbroughten@gmail.com";
 const stranger = "someone@example.com";
@@ -28,8 +31,12 @@ async function decisionOf(
   toolName: string,
   input: Record<string, unknown>,
   ownersOf: OwnerLookup = ownersFrom({}),
+  { mode, targets }: { mode: SessionMode; targets: StepTarget[] } = {
+    mode: "interactive",
+    targets: [],
+  },
 ) {
-  return driveGateDecision({ toolName, input, ownersOf });
+  return driveGateDecision({ toolName, input, ownersOf, mode, targets });
 }
 
 describe("driveGateDecision", () => {
@@ -183,5 +190,76 @@ describe("driveGateDecision", () => {
       (await decisionOf("mcp__gworkspace__modify_sheet_values", {}))
         ?.permissionDecision,
     ).toBe("ask");
+  });
+
+  it("in a runner step, allows a write to a named target and denies one to an unnamed file, listing the targets", async () => {
+    const ownersOf = ownersFrom({ appSheet: [mine], otherSheet: [mine] });
+    const runnerStep = {
+      mode: "runnerStep" as const,
+      targets: [
+        { label: "app spreadsheet", id: "appSheet" },
+        { label: "doc", id: "doc1" },
+      ],
+    };
+    const named = await decisionOf(
+      "mcp__gworkspace__modify_sheet_values",
+      { spreadsheet_id: "appSheet" },
+      ownersOf,
+      runnerStep,
+    );
+    const unnamed = await decisionOf(
+      "mcp__gworkspace__modify_sheet_values",
+      { spreadsheet_id: "otherSheet" },
+      ownersOf,
+      runnerStep,
+    );
+    expect(named?.permissionDecision).toBe("allow");
+    expect(unnamed).toEqual({
+      permissionDecision: "deny",
+      reason:
+        "Tier gate: `modify_sheet_values` writes to file `otherSheet`, which isn't among this ticket's targets: app spreadsheet `appSheet`, doc `doc1`. Record a `denied-tool` blocker for the developer instead.",
+    });
+  });
+
+  it("in a runner step, turns an ask into a deny", async () => {
+    const decision = await decisionOf(
+      "mcp__gworkspace__batch_update_doc",
+      { document_id: "theirDoc" },
+      ownersFrom({ theirDoc: [stranger] }),
+      { mode: "runnerStep", targets: [{ label: "doc", id: "theirDoc" }] },
+    );
+    expect(decision?.permissionDecision).toBe("deny");
+    expect(decision?.reason).toContain("record a `denied-tool` blocker");
+  });
+});
+
+describe("stepTargetsOf", () => {
+  it("takes the app and dev spreadsheet IDs from their sheets configs, and a Doc's from the ticket", () => {
+    const configs = [
+      {
+        path: "a",
+        scriptPrefix: "app" as const,
+        spreadsheetId: "appSheet",
+        generatedDir: "g",
+      },
+      {
+        path: "d",
+        scriptPrefix: "dev" as const,
+        spreadsheetId: undefined,
+        generatedDir: "g",
+      },
+    ];
+    const targets = JSON.stringify([
+      { kind: "spreadsheet", name: "app" },
+      { kind: "spreadsheet", name: "dev" },
+      { kind: "doc", id: "doc1" },
+    ]);
+    expect(stepTargetsOf(targets, configs)).toEqual([
+      { label: "app spreadsheet", id: "appSheet" },
+      { label: "dev spreadsheet", id: undefined },
+      { label: "doc", id: "doc1" },
+    ]);
+    expect(stepTargetsOf(undefined, configs)).toEqual([]);
+    expect(stepTargetsOf("not json", configs)).toEqual([]);
   });
 });

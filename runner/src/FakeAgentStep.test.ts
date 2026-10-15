@@ -11,6 +11,7 @@ const request: StepRequest = {
   maxTurns: 40,
   allowedTools: [],
   allowedWriteGlobs: [],
+  targets: [],
   jsonSchema: {},
 };
 
