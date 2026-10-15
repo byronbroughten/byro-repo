@@ -1,6 +1,6 @@
 // Decides the gate for a Bash call by tier: 1 and 2 are free (git or Google's version history undoes them), 3 asks. Pure; tierGate.ts does the I/O.
-import { commandWordsOf } from "./bashReads.ts";
-import { npmScriptOf } from "./pinnedTargets.ts";
+import { commandWordsOf, npmScriptOf } from "./bashReads.ts";
+import type { Decision } from "./pinnedTargets.ts";
 
 // A runner step's mode arrives in a later ticket.
 export type SessionMode = "interactive";
@@ -11,14 +11,9 @@ export interface ShellCall {
   dryRuns: string[];
 }
 
-export interface GateDecision {
-  permissionDecision: "allow" | "ask" | "deny";
-  reason: string;
-}
-
 // One simple command's verdict; `why` finishes a sentence about it.
 interface Verdict {
-  permissionDecision: GateDecision["permissionDecision"];
+  permissionDecision: Decision["permissionDecision"];
   why: string;
 }
 
@@ -27,42 +22,45 @@ interface AppChore {
   isSend: boolean;
 }
 
-const untargeted = new Set(["clasp", "sheets-framework", "@google/clasp"]);
-// npm scripts that are free, each with why.
-const freeScripts: Record<string, string> = {
-  "wrap-up": "`npm run wrap-up` is the standing yes to push",
-  "app:build": "Apps Script keeps the pushed code's version history",
-  "app:deploy": "a deployment can be rolled back to an earlier version",
-  "dev:deploy": "a deployment can be rolled back to an earlier version",
-};
+const untargetedPrograms = new Set([
+  "clasp",
+  "@google/clasp",
+  "sheets-framework",
+  "@byronbroughten/sheets-framework",
+]);
+const npmExecVerbs = new Set(["exec", "x"]);
+const deployWhy = "a deployment can be rolled back to an earlier version";
+const freeScripts = new Map([
+  ["wrap-up", "`npm run wrap-up` is the standing yes to push"],
+  ["app:build", "Apps Script keeps the pushed code's version history"],
+  ["app:deploy", deployWhy],
+  ["dev:deploy", deployWhy],
+]);
 
 export function gateDecision({
   command,
   dryRuns,
-}: ShellCall): GateDecision | undefined {
+}: ShellCall): Decision | undefined {
   const commands = parsedCommandsOf(command);
   if (!commands) return undefined;
   const verdicts = commands.map((words) => verdictOf(words, dryRuns));
   const deny = verdicts.find(
     (verdict) => verdict?.permissionDecision === "deny",
   );
-  if (deny) {
-    return { permissionDecision: "deny", reason: `Tier gate: ${deny.why}.` };
-  }
+  if (deny) return gateOf("deny", `${deny.why}.`);
   const ask = verdicts.find((verdict) => verdict?.permissionDecision === "ask");
   if (ask) {
-    return {
-      permissionDecision: "ask",
-      reason: `Tier gate: \`${command}\` ${ask.why}, so it needs a yes.`,
-    };
+    return gateOf("ask", `\`${command}\` ${ask.why}, so it needs a yes.`);
   }
+  // The parser doesn't look inside quoted substitutions, so one could hide a command.
+  if (/\$\(|`/.test(command)) return undefined;
   if (!verdicts.every((verdict) => verdict?.permissionDecision === "allow")) {
     return undefined;
   }
-  return {
-    permissionDecision: "allow",
-    reason: `Tier gate: ${verdicts.map((verdict) => verdict?.why).join("; ")}.`,
-  };
+  return gateOf(
+    "allow",
+    `${verdicts.map((verdict) => verdict?.why).join("; ")}.`,
+  );
 }
 
 // The chore names a command dry-runs, for the session's dry-run record.
@@ -81,6 +79,13 @@ function parsedCommandsOf(command: string): string[][] | undefined {
   }
 }
 
+function gateOf(
+  permissionDecision: Decision["permissionDecision"],
+  sentence: string,
+): Decision {
+  return { permissionDecision, reason: `Tier gate: ${sentence}` };
+}
+
 function verdictOf(words: string[], dryRuns: string[]): Verdict | undefined {
   const chore = appChoreOf(words);
   if (chore?.isSend) return sendVerdictOf(chore.name, dryRuns);
@@ -94,24 +99,20 @@ function verdictOf(words: string[], dryRuns: string[]): Verdict | undefined {
       why: "pushes outside `npm run wrap-up`, and a push can't be taken back",
     };
   }
-  const program =
-    words[0] === "npx"
-      ? words.find((word, i) => i > 0 && !word.startsWith("-"))
-      : words[0];
-  if (untargeted.has(program ?? "")) {
+  if (untargetedPrograms.has(programOf(words) ?? "")) {
     return {
       permissionDecision: "ask",
       why: "names no target; use a `dev:*` or `app:*` script",
     };
   }
-  if (npmVerbOf(words) === "publish") {
+  const script = npmScriptOf(words);
+  if (!script && isNpm(words) && words.includes("publish")) {
     return {
       permissionDecision: "ask",
       why: "publishes a package, which reaches everyone who installs it",
     };
   }
-  const script = npmScriptOf(words);
-  const freeWhy = script && freeScripts[script.name];
+  const freeWhy = script && freeScripts.get(script.name);
   if (freeWhy) return { permissionDecision: "allow", why: freeWhy };
   return undefined;
 }
@@ -129,12 +130,16 @@ function sendVerdictOf(name: string, dryRuns: string[]): Verdict {
   };
 }
 
+// npm keeps a `--send` before its `--` as its own config, so only one after it reaches the chore.
 function appChoreOf(words: string[]): AppChore | undefined {
   const script = npmScriptOf(words);
   if (script?.name !== "app:chore") return undefined;
   const name = script.args.find((arg) => !arg.startsWith("-"));
   if (!name) return undefined;
-  return { name, isSend: script.args.includes("--send") };
+  const separator = script.args.indexOf("--");
+  const isSend =
+    separator >= 0 && script.args.slice(separator).includes("--send");
+  return { name, isSend };
 }
 
 function gitVerbOf(words: string[]): string | undefined {
@@ -147,7 +152,28 @@ function gitVerbOf(words: string[]): string | undefined {
   return undefined;
 }
 
-function npmVerbOf(words: string[]): string | undefined {
-  if (words[0] !== "npm") return undefined;
-  return words.slice(1).find((word) => !word.startsWith("-"));
+// The program a command runs, through npx or npm exec, without its path or version.
+function programOf(words: string[]): string | undefined {
+  let rest = words;
+  if (basenameOf(words[0] ?? "") === "npx") rest = words.slice(1);
+  else if (isNpm(words) && npmExecVerbs.has(nonFlagsOf(words)[1] ?? "")) {
+    rest = words.slice(words.indexOf(nonFlagsOf(words)[1] ?? "") + 1);
+  }
+  const program = nonFlagsOf(rest)[0];
+  if (program === undefined) return undefined;
+  return basenameOf(program.replace(/(.)@[^/]*$/, "$1"));
+}
+
+function isNpm(words: string[]): boolean {
+  return words[0] === "npm" || words[0] === "npm.cmd";
+}
+
+function nonFlagsOf(words: string[]): string[] {
+  return words.filter((word) => !word.startsWith("-"));
+}
+
+// A scoped package keeps its scope; a path keeps only its last part.
+function basenameOf(program: string): string {
+  if (program.startsWith("@")) return program;
+  return program.slice(program.lastIndexOf("/") + 1);
 }

@@ -1,5 +1,5 @@
 // Decides the pinned-target guard: dev writes drop to ask while a pin is off, and gworkspace Sheets writes are allowed only on the dev ID. Pure; pinnedTargetGuard.ts does the I/O.
-import { commandWordsOf } from "./bashReads.ts";
+import { commandWordsOf, npmScriptOf } from "./bashReads.ts";
 
 // Pinned in tracked code because sheets.config.json is gitignored, so git can't see an edit to it.
 export const pinnedDevSpreadsheetId =
@@ -32,19 +32,13 @@ const devWrites = new Set([
   "dev:deploy",
   "dev:run",
 ]);
-const runVerbs = new Set(["run", "run-script"]);
 
 // Each entry says why a pin is off; undefined means git could not say.
 export type DirtyPinningFiles = string[] | undefined;
 
 export interface Decision {
-  permissionDecision: "allow" | "ask";
+  permissionDecision: "allow" | "ask" | "deny";
   reason: string;
-}
-
-export interface NpmScript {
-  name: string;
-  args: string[];
 }
 
 export interface BashCommand {
@@ -134,15 +128,6 @@ export function sheetsWriteDecision({
     reason:
       "Pinned-target guard: a write to the dev spreadsheet, from a clean pin.",
   };
-}
-
-export function npmScriptOf(words: string[]): NpmScript | undefined {
-  if (words[0] !== "npm" && words[0] !== "npm.cmd") return undefined;
-  const rest = words
-    .slice(1)
-    .filter((word) => !/^-/.test(word) || word === "--" || word === "--send");
-  if (!runVerbs.has(rest[0] ?? "") || !rest[1]) return undefined;
-  return { name: rest[1], args: rest.slice(2) };
 }
 
 // undefined means git could not say, which counts as dirty.

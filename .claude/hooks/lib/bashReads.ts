@@ -68,6 +68,13 @@ interface Token {
   value: string;
 }
 
+export interface NpmScript {
+  name: string;
+  args: string[];
+}
+
+const npmRunVerbs = new Set(["run", "run-script"]);
+
 export class BashReads {
   readonly command: string;
   readonly cwd: string;
@@ -212,6 +219,16 @@ export function commandWordsOf(command: string): string[][] {
   return segmentsOf(tokenize(stripHeredocBodies(command)))
     .map((segment) => commandWords(segment.words))
     .filter((words) => words.length > 0);
+}
+
+// An `npm run` script and its args; flags drop out except `--` and `--send`.
+export function npmScriptOf(words: string[]): NpmScript | undefined {
+  if (words[0] !== "npm" && words[0] !== "npm.cmd") return undefined;
+  const rest = words
+    .slice(1)
+    .filter((word) => !/^-/.test(word) || word === "--" || word === "--send");
+  if (!npmRunVerbs.has(rest[0] ?? "") || !rest[1]) return undefined;
+  return { name: rest[1], args: rest.slice(2) };
 }
 
 // A command with no file operand reads a pipe or a heredoc, which is not a file read.

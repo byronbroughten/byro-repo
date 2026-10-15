@@ -49,6 +49,13 @@ describe("gateDecision", () => {
     });
   });
 
+  it("treats --send before npm's `--` as npm's own flag, so a dry run", () => {
+    expect(decisionOf("npm run app:chore fixRents --send")).toBeUndefined();
+    expect(dryRunChoresOf("npm run app:chore fixRents --send")).toEqual([
+      "fixRents",
+    ]);
+  });
+
   it("denies a send in the same call as its own dry run", () => {
     expect(
       decisionOf(
@@ -74,6 +81,33 @@ describe("gateDecision", () => {
       expect(decision?.permissionDecision).toBe("ask");
       expect(decision?.reason).toContain(`\`${command}\``);
     });
+  });
+
+  it("asks for a clasp or sheets-framework run by version, path or npm exec", () => {
+    [
+      "npx clasp@2.4.2 deploy",
+      "npx @google/clasp@latest deploy",
+      "./node_modules/.bin/clasp deploy",
+      "npm exec clasp deploy",
+      "npm exec -- sheets-framework probe",
+    ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
+  });
+
+  it("asks for a publish behind npm's own flags", () => {
+    expect(decisionOf("npm --prefix packages/utils publish")).toBe("ask");
+    expect(decisionOf("npm -w @byronbroughten/utils publish")).toBe("ask");
+  });
+
+  it("allows nothing whose words hide a command substitution", () => {
+    expect(decisionOf('git commit -m "$(git push origin master)"')).not.toBe(
+      "allow",
+    );
+    expect(decisionOf('git commit -m "`git push`"')).not.toBe("allow");
+  });
+
+  it("has no opinion on an npm script named after an object built-in", () => {
+    expect(decisionOf("npm run constructor")).toBeUndefined();
+    expect(decisionOf("npm run toString")).toBeUndefined();
   });
 
   it("asks when any part of a compound command asks", () => {
