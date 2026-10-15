@@ -26,7 +26,7 @@
       "Bash(npm run lint)",
       "Bash(npm run lint *)",
       "Bash(npm run issue:promote *)",
-      "Bash(gh issue view *)",
+      "Bash(npm run issue:read -- * --hide-others)",
       "Bash(gh issue edit *)",
       "Bash(gh issue comment *)",
       "Bash(git mv *)",
@@ -41,7 +41,7 @@
       "Bash(git log *)",
       "Bash(git show *)",
       "Bash(git merge-base *)",
-      "Bash(gh issue view *)"
+      "Bash(npm run issue:read -- * --hide-others)"
     ]
   },
   "handoffDocPath": "docs/agents/planning.md#handoffs"

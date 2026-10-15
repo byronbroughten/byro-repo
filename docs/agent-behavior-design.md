@@ -38,6 +38,18 @@ A rules file holds only the rule: a rule line is the bolded rule plus at most a 
 
 _Instances:_ the style doc was followed more consistently once it became one line per rule with the reasoning under `docs/code-style/` (`a7810dd`), and the same shape now holds packages/framework/docs/vocabulary.md; `src/`-only rules left the root AGENTS.md for `src/AGENTS.md`; the tier rule and the doc structure's limits moved to `npm run lint`; editing code without opening the style doc, the most common miss, got the gate (#108); Cursor's copy of that gate also requires the framework style doc on framework and app code, because a pointer in `.cursor/rules` was not a read (#167); the rule-line cap gave way to the rule-only convention, and the style doc's trailing examples moved to `docs/code-style/` (#110); the AGENTS.md size caps gave way to a stated cost of adding (#156).
 
+## Untrusted text
+
+Trusted text and Untrusted text are defined in [`runner/GLOSSARY.md`](../runner/GLOSSARY.md). For now, the stance is to keep Untrusted text out of an agent's instructions with cheap mechanical checks, and to leave containment for later. Containment means a step can't do harm even after it is misled. Runner steps read issues only through `npm run issue:read` with `--hide-others`, which labels each part and replaces other people's comments with a count, so the prompt no longer asks the model to work out who wrote what (#269).
+
+Containment gets built when any one of these happens:
+
+1. The runner starts working tickets the developer didn't write.
+2. A runner step gains web access, or access to content someone else can edit or comment on.
+3. Untrusted text is caught trying to instruct an agent.
+
+No Drive-permission check is added, because sharing a Doc or Sheet already needs its own yes (AGENTS.md, "Commands"). A Sheet's cell values are always data, even in a Sheet only the developer can edit. A merge to master is where text becomes trusted: content committed to master in one of the developer's repos is Trusted text, and a branch is not until it lands.
+
 ## Not yet promoted
 
 - **End a fat session with a written handoff, not a longer turn.** Past a size threshold, a finished diagnosis is written down (the conclusion, the files and ranges to open, the hypotheses ruled out) and a fresh session starts from it. A small diagnosis in a lean session skips this. _Cited by:_ #53.

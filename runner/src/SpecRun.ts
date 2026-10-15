@@ -473,7 +473,6 @@ export class SpecRun {
         branch: workspace.branch,
         branchedRepos: workspace.branchedRepos,
         promoteCommand: this.config.promoteCommandOf(ticket.issue),
-        developerLogin: this.config.githubOwner,
         allowedWriteGlobs: this.config.knobs.allowedWriteGlobs,
       }),
       jsonSchema: implementOutputSchema,
