@@ -10,7 +10,7 @@ Synthesize the grilled conversation into a piece spec and file it in `byronbroug
 
 Draw each field from the conversation, in the developer's words where they gave them:
 
-- **Deliverable**: the Google Doc's title and Doc ID, and the standing yes to write to that one Doc.
+- **Deliverable**: the Google Doc's title and Doc ID.
 - **References**: each by title and Drive ID, with what it is for. For one too long to read whole, such as a book, list the passages that count by page range.
 - **Reader**: who reads the Piece, and what they already know.
 - **Voice**: the Axes line (`Evidence: <value> · Formality: <value>`, or `Academic`), then the style overrides.

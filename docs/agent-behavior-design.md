@@ -14,7 +14,7 @@ _Instances:_ the `Read` deny on `columnConfigs.ts` comes paired with the route t
 
 ### Gate by what it costs to undo
 
-Whether an action needs the developer's yes follows from one question: what would undoing it cost? An action git can undo is free, a commit on any branch included. An action whose undo point is Google's version history is free too: an `app:*` or `dev:*` live command, or a write to a Sheet, Doc or Drive file one of the developer's accounts owns. An action that can't be undone, or that reaches someone else, asks: a push, a publish, a sharing change, a write to someone else's file, spending money, touching credentials. Which action sits in which tier is listed in [`docs/targets-and-gates.md`](./targets-and-gates.md#which-tier-an-action-is-in).
+Whether an action needs the developer's yes follows from one question: what would undoing it cost? An action git can undo is free, a commit on any branch included. An action whose undo point is Google's version history is free too: an `app:*` or `dev:*` live command, a new Drive file, or a write to a Sheet, Doc or Drive file one of the developer's accounts owns. An action that can't be undone, or that reaches someone else, asks: a raw push, a publish, a sharing change, a write to someone else's file, spending money, touching credentials. Which action sits in which tier is listed in [`docs/targets-and-gates.md`](./targets-and-gates.md#which-tier-an-action-is-in).
 
 The session mode decides what an ask does. An Interactive session asks the developer. A runner step has nobody to answer, so its call is refused with a reason, and the step records a blocker and carries on. A stalled run has cost more than any action an agent has taken.
 
@@ -40,7 +40,7 @@ _Instances:_ dispatched agents report the command they would run rather than run
 
 A yes is scoped to the specific thing the operator saw. A general go-ahead, or approval of a neighbouring step, is not consent to an action whose effects they didn't see named.
 
-_Instances:_ a share needs its own yes naming who gets access and at what permission, apart from any data-write approval ([`docs/targets-and-gates.md`](./targets-and-gates.md#the-gworkspace-mcp-tools)). During design or grilling, nothing is written until the operator invokes the skill that files it: approving a design is not approving its publication (`5d5c77c`).
+_Instances:_ a share needs its own yes naming who gets access and at what permission, apart from any data-write approval (#273). During design or grilling, nothing is written until the operator invokes the skill that files it: approving a design is not approving its publication (`5d5c77c`).
 
 ### Put each rule where it gets followed, and its reasoning one pointer away
 
@@ -52,7 +52,7 @@ _Instances:_ the style doc was followed more consistently once it became one lin
 
 ## Untrusted text
 
-Trusted text and Untrusted text are defined in [`runner/GLOSSARY.md`](../runner/GLOSSARY.md). For now, the stance is to keep Untrusted text out of an agent's instructions with cheap mechanical checks, and to leave containment for later. Containment means a step can't do harm even after it is misled. Runner steps read issues only through `npm run issue:read` with `--hide-others`, which labels each part and replaces other people's comments with a count, so the prompt no longer asks the model to work out who wrote what (#269). A pieces runner will read Doc comments the same way, through a labelled reader like `issue:read`.
+Trusted text and Untrusted text are defined in [`runner/GLOSSARY.md`](../runner/GLOSSARY.md). For now, the stance is to keep Untrusted text out of an agent's instructions with cheap mechanical checks, and to leave containment for later. Containment means a step can't do harm even after it is misled. Runner steps read issues only through `npm run issue:read` with `--hide-others`, which labels each part and replaces other people's comments with a count, so the prompt no longer asks the model to work out who wrote what (#269). A pieces runner will read Doc comments the same way, through a labelled reader like `issue:read` (#273).
 
 Containment gets built when any one of these happens:
 

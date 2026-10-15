@@ -44,7 +44,7 @@ The stage, and for a Section ticket its Sections by exact heading text.
 
 ## Shared rules
 
-Copied from the parent: the Deliverable and its standing yes, the References this ticket reads (with page ranges), Reader, Voice and Form.
+Copied from the parent: the Deliverable, the References this ticket reads (with page ranges), Reader, Voice and Form.
 
 ## Facts
 

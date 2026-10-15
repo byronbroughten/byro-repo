@@ -49,9 +49,9 @@ Reads need no yes in any tier.
 
 ## Targets: dev and app
 
-**Every live command names its target through a root alias: `dev:*` for the `Sheets Framework Dev` spreadsheet, `app:*` for the real-estate one.** Each alias runs its package's own script with `-w <pkg> --` (`sheets-real-estate` for `app:*`, `@byronbroughten/sheets-framework` for `dev:*`), so npm runs the bin from that package and it finds that package's `sheets.config.json`. A bare `npx sheets-framework …` names no target, so it always asks.
+**Every live command names its target through a root alias: `dev:*` for the `Sheets Framework Dev` spreadsheet, `app:*` for the real-estate one.** Each alias runs its package's own script with `-w <pkg> --` (`sheets-real-estate` for `app:*`, `@byronbroughten/sheets-framework` for `dev:*`), so npm runs the bin from that package and it finds that package's `sheets.config.json`.
 
-Both clasp credentials cover the whole Google account, so OAuth can't isolate the two spreadsheets; the aliases and hooks do.
+The threat model is accidents, with tampering made visible. Both clasp credentials cover the whole Google account, so OAuth can't isolate the two spreadsheets; the aliases and hooks do.
 
 - **Bare `npx sheets-framework …`, `node packages/framework/scripts/sheets-framework.js …`, a package-level `npm run chore …` and `npm run … -w …` match no allow rule, so they ask.**
 - **`dev:build`, `dev:push`, `dev:deploy` and `dev:run` run the framework package's `build`, `push`, `deploy` and `run` scripts** against the dev project named in its `.clasp.json` ([the dev project](../packages/framework/docs/how-it-runs.md#the-dev-project)); `app:build` and `app:deploy` run the app's.

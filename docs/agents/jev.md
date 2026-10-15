@@ -65,4 +65,4 @@ To upgrade, with the developer's yes:
 
 ## What may be sent
 
-**Agents have a standing yes to send Deliverable text and repo docs to TypeSafe with `npm run jev`, without asking.** It never covers secrets, `.env` files or credential files: never put their contents, or any text copied from them, in a request. Anything else outside the repo and the Deliverable asks first. The gate row: [`docs/targets-and-gates.md`](../targets-and-gates.md#targets-dev-and-app).
+**Agents have a standing yes to send Deliverable text and repo docs to TypeSafe with `npm run jev`, without asking.** It never covers secrets, `.env` files or credential files: never put their contents, or any text copied from them, in a request. Anything else outside the repo and the Deliverable asks first. The gate row: [`docs/targets-and-gates.md`](../targets-and-gates.md#which-tier-an-action-is-in).
