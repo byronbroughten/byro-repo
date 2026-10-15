@@ -5,6 +5,7 @@ export type WrapUpFailureKind =
   | "dirty-tree"
   | "foreign-branch"
   | "parent-check"
+  | "secret-scan"
   | "network";
 
 export class WrapUpFailure extends Error {

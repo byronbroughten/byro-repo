@@ -27,6 +27,7 @@ import {
   outcomeFileOf,
   outcomePathOf,
 } from "./outcomeLog.ts";
+import { secretShapeOf } from "./secretShapes.ts";
 import { sleep } from "./sleep.ts";
 import {
   handoffSessionIdOf,
@@ -98,6 +99,7 @@ export type WrapUpStep =
   | "checks"
   | "log-row"
   | "fast-forward"
+  | "secret-scan"
   | "push"
   | "delete-branches"
   | "remove-workspace"
@@ -154,6 +156,12 @@ interface Progress {
   parent?: ParentCheck;
 }
 
+interface AddedLine {
+  file: string;
+  line: number;
+  text: string;
+}
+
 interface Ticket {
   issue: IssueRef;
   facts: WrapUpFacts;
@@ -197,7 +205,7 @@ export class WrapUp {
       landing: this._landingOf(facts),
     };
     if (!isDone(ticket, "fast-forward")) await this._land(ticket);
-    await this._step(ticket, "push", () => this._push(ticket));
+    await this._scanAndPush(ticket);
     await this._step(ticket, "delete-branches", () =>
       this._deleteBranches(ticket),
     );
@@ -537,7 +545,7 @@ export class WrapUp {
         await this._fastForwardRepo(repo, built[repo] as BuiltRepo);
       }
       await this._markDone(ticket, "fast-forward");
-      await this._step(ticket, "push", () => this._push(ticket));
+      await this._scanAndPush(ticket);
       return true;
     } finally {
       locks.forEach((lock) => lock.release());
@@ -558,6 +566,37 @@ export class WrapUp {
         `Fast-forwarding ${repo}'s primary checkout failed, likely over its uncommitted changes: ${messageOf(error)}`,
       );
     }
+  }
+
+  // A refused scan keeps the landed master, so a rerun after the secret is removed scans again before pushing.
+  private async _scanAndPush(ticket: Ticket): Promise<void> {
+    await this._step(ticket, "secret-scan", () => this._scanForSecrets(ticket));
+    await this._step(ticket, "push", () => this._push(ticket));
+  }
+
+  private async _scanForSecrets(ticket: Ticket): Promise<void> {
+    const hits: string[] = [];
+    for (const repo of Object.keys(ticket.progress.built ?? {})) {
+      const diff = await git(
+        this._primaryOf(repo),
+        "diff",
+        "-U0",
+        "--no-color",
+        "--no-ext-diff",
+        "origin/master...master",
+      );
+      addedLinesOf(diff).forEach(({ file, line, text }) => {
+        const shape = secretShapeOf(text);
+        if (shape !== undefined) {
+          hits.push(`${repo} ${file}:${line} (${shape})`);
+        }
+      });
+    }
+    if (hits.length === 0) return;
+    throw new WrapUpFailure(
+      "secret-scan",
+      `The landed master adds token-shaped lines, so nothing was pushed:\n${hits.join("\n")}`,
+    );
   }
 
   private async _push(ticket: Ticket): Promise<void> {
@@ -766,6 +805,28 @@ function gitHubWriteLineOf({
 }: GitHubWrite): string {
   const preposition = action === "comment" ? "on" : "of";
   return `- ${action} ${preposition} ${issue}: ${summary} ${url}`;
+}
+
+// Each line a unified diff adds, with its file and line number in the new version.
+function addedLinesOf(diff: string): AddedLine[] {
+  const added: AddedLine[] = [];
+  let file = "";
+  let line = 0;
+  let isInHunk = false;
+  lines(diff).forEach((diffLine) => {
+    if (diffLine.startsWith("diff --git ")) {
+      isInHunk = false;
+    } else if (!isInHunk && diffLine.startsWith("+++ ")) {
+      file = diffLine.slice(4).replace(/^b\//, "");
+    } else if (diffLine.startsWith("@@")) {
+      isInHunk = true;
+      line = Number(/\+(\d+)/.exec(diffLine)?.[1] ?? 0);
+    } else if (isInHunk && diffLine.startsWith("+")) {
+      added.push({ file, line, text: diffLine.slice(1) });
+      line += 1;
+    }
+  });
+  return added;
 }
 
 function isListed(ticket: Ticket, repo: string): boolean {
