@@ -32,6 +32,7 @@ import {
   implementRecordOf,
   implementRecordProblems,
 } from "./implementStep.ts";
+import { type BodyAuthorship, bodyOthersOf } from "./IssueReader.ts";
 import {
   fileStemOf,
   issueLabelOf,
@@ -77,7 +78,7 @@ const execFileAsync = promisify(execFile);
 
 const readyLabel = "ready-for-agent";
 
-export interface TrackedIssue {
+export interface TrackedIssue extends BodyAuthorship {
   issue: IssueRef;
   title: string;
   body: string;
@@ -211,7 +212,9 @@ export class SpecRun {
 
   async run(specIssue: IssueRef): Promise<RunResult> {
     const run = await this._startRun(specIssue);
-    const refusal = await this._modelFitRefusal(run);
+    const refusal =
+      (await this._authorshipRefusal(run)) ??
+      (await this._modelFitRefusal(run));
     if (refusal !== undefined) {
       this._log(run, `Refused: ${refusal}`);
       return { kind: "refused", landed: [], message: refusal };
@@ -305,6 +308,24 @@ export class SpecRun {
 
   private _statePathOf(spec: IssueRef): string {
     return join(this.config.stateFolder, `${fileStemOf(spec)}.run.json`);
+  }
+
+  // The spec, plus each ticket the runner would launch; a ticketless spec is its own ticket.
+  private async _authorshipRefusal(run: Run): Promise<string | undefined> {
+    const { github, githubOwner } = this.config;
+    const checked = [run.spec];
+    for (const ticket of run.tickets) {
+      if (ticket.number === run.spec.issue.number) continue;
+      const tracked = await github.issueOf(ticket);
+      if (isLaunchable(tracked)) checked.push(tracked);
+    }
+    const offenders = checked.flatMap((tracked) => {
+      const others = bodyOthersOf(githubOwner, tracked);
+      if (others === undefined) return [];
+      return [`${issueLabelOf(tracked.issue)} (${others})`];
+    });
+    if (offenders.length === 0) return undefined;
+    return `Only ${githubOwner} may write or edit the spec and each open ${readyLabel} ticket; refused ${offenders.join(", ")}.`;
   }
 
   // A split spec's own body is never checked; tickets the runner won't launch need no section.

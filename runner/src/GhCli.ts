@@ -4,7 +4,11 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 import { lines } from "./git.ts";
-import type { IssueSource, ReadableIssue } from "./IssueReader.ts";
+import type {
+  BodyAuthorship,
+  IssueSource,
+  ReadableIssue,
+} from "./IssueReader.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 import type { RunGitHub, TrackedIssue } from "./SpecRun.ts";
 import type { ParentIssue } from "./WrapUp.ts";
@@ -12,10 +16,10 @@ import type { ParentIssue } from "./WrapUp.ts";
 const execFileAsync = promisify(execFile);
 
 // GraphQL, because `gh issue view --json` exposes no body editors.
-const readableIssueQuery = `query($owner: String!, $repo: String!, $number: Int!) {
+const issueQuery = `query($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     issue(number: $number) {
-      number title state body
+      number title state body url
       author { login }
       labels(first: 100) { nodes { name } }
       parent { number repository { name } }
@@ -39,15 +43,16 @@ interface RawPage {
   pageInfo?: { hasNextPage?: unknown };
 }
 
-interface RawReadableIssueResponse {
-  data?: { repository?: { issue?: RawReadableIssue | null } };
+interface RawIssueResponse {
+  data?: { repository?: { issue?: RawIssue | null } };
 }
 
-interface RawReadableIssue {
+interface RawIssue {
   number?: unknown;
   title?: unknown;
   state?: unknown;
   body?: unknown;
+  url?: unknown;
   author?: RawLogin | null;
   labels?: { nodes?: { name?: unknown }[] };
   parent?: RawRef | null;
@@ -69,15 +74,6 @@ interface RawComments {
   comments?: { body?: unknown }[];
 }
 
-interface RawIssue {
-  number?: unknown;
-  title?: unknown;
-  body?: unknown;
-  state?: unknown;
-  labels?: { name?: unknown }[];
-  url?: unknown;
-}
-
 interface RawListedIssue {
   number?: unknown;
   repository_url?: unknown;
@@ -92,23 +88,15 @@ export class GhCli implements RunGitHub, IssueSource {
   }
 
   async issueOf(issue: IssueRef): Promise<TrackedIssue> {
-    const output = await gh(
-      "issue",
-      "view",
-      String(issue.number),
-      "-R",
-      `${this.owner}/${issue.repo}`,
-      "--json",
-      "title,body,state,labels,url",
-    );
-    const raw = JSON.parse(output) as RawIssue;
+    const raw = await this._rawIssueOf(issue);
     return {
       issue,
       title: String(raw.title),
       body: String(raw.body),
       isOpen: raw.state === "OPEN",
-      labels: (raw.labels ?? []).map((label) => String(label.name)),
+      labels: labelsOfRaw(raw),
       url: String(raw.url),
+      ...authorshipOfRaw(issue, raw),
     };
   }
 
@@ -184,6 +172,10 @@ export class GhCli implements RunGitHub, IssueSource {
   }
 
   async readableIssueOf(issue: IssueRef): Promise<ReadableIssue> {
+    return readableOfRaw(issue, await this._rawIssueOf(issue));
+  }
+
+  private async _rawIssueOf(issue: IssueRef): Promise<RawIssue> {
     const output = await gh(
       "api",
       "graphql",
@@ -194,38 +186,53 @@ export class GhCli implements RunGitHub, IssueSource {
       "-F",
       `number=${issue.number}`,
       "-f",
-      `query=${readableIssueQuery}`,
+      `query=${issueQuery}`,
     );
-    const { data } = JSON.parse(output) as RawReadableIssueResponse;
+    const { data } = JSON.parse(output) as RawIssueResponse;
     const raw = data?.repository?.issue;
     if (!raw) throw new Error(`No issue ${issueLabelOf(issue)}`);
-    return readableOfRaw(issue, raw);
+    return raw;
   }
 }
 
+function labelsOfRaw(raw: RawIssue): string[] {
+  return (raw.labels?.nodes ?? []).map((label) => String(label.name));
+}
+
 // An unseen editor could be anyone, so a page left unread refuses rather than passes.
-function readableOfRaw(issue: IssueRef, raw: RawReadableIssue): ReadableIssue {
-  const { userContentEdits, comments } = raw;
-  if (
-    userContentEdits?.pageInfo?.hasNextPage ||
-    comments?.pageInfo?.hasNextPage
-  ) {
-    throw new Error(
-      `${issueLabelOf(issue)} has over 100 body edits or comments, more than the reader reads`,
-    );
+function authorshipOfRaw(
+  issue: IssueRef,
+  { author, userContentEdits }: RawIssue,
+): BodyAuthorship {
+  if (userContentEdits?.pageInfo?.hasNextPage) {
+    throw new Error(overflowMessageOf(issue, "body edits"));
+  }
+  return {
+    author: loginOf(author),
+    bodyEditors: (userContentEdits?.nodes ?? []).map(({ editor }) =>
+      loginOf(editor),
+    ),
+  };
+}
+
+function overflowMessageOf(issue: IssueRef, part: string): string {
+  return `${issueLabelOf(issue)} has over 100 ${part}, more than the reader reads`;
+}
+
+function readableOfRaw(issue: IssueRef, raw: RawIssue): ReadableIssue {
+  const { comments } = raw;
+  if (comments?.pageInfo?.hasNextPage) {
+    throw new Error(overflowMessageOf(issue, "comments"));
   }
   return {
     issue,
     title: String(raw.title),
     isOpen: raw.state === "OPEN",
-    labels: (raw.labels?.nodes ?? []).map((label) => String(label.name)),
+    labels: labelsOfRaw(raw),
     parent: raw.parent ? refOfRaw(raw.parent) : undefined,
     subIssues: (raw.subIssues?.nodes ?? []).map(refOfRaw),
     body: String(raw.body),
-    author: loginOf(raw.author),
-    bodyEditors: (userContentEdits?.nodes ?? []).map(({ editor }) =>
-      loginOf(editor),
-    ),
+    ...authorshipOfRaw(issue, raw),
     comments: (comments?.nodes ?? []).map((comment) => ({
       author: loginOf(comment.author),
       body: String(comment.body),

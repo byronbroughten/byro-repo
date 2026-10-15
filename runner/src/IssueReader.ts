@@ -12,7 +12,12 @@ export interface IssueComment {
   body: string;
 }
 
-export interface ReadableIssue {
+export interface BodyAuthorship {
+  author: string;
+  bodyEditors: string[];
+}
+
+export interface ReadableIssue extends BodyAuthorship {
   issue: IssueRef;
   title: string;
   isOpen: boolean;
@@ -20,8 +25,6 @@ export interface ReadableIssue {
   parent: IssueRef | undefined;
   subIssues: IssueRef[];
   body: string;
-  author: string;
-  bodyEditors: string[];
   comments: IssueComment[];
 }
 
@@ -92,17 +95,11 @@ export class IssueReader {
     return printed.join("\n");
   }
 
-  private _bodyOf({ body, author, bodyEditors }: ReadableIssue): string[] {
-    const { owner } = this.config;
-    const others: string[] = [];
-    if (author !== owner) others.push(`written by ${author}`);
-    const editors = [...new Set(bodyEditors)].filter(
-      (editor) => editor !== owner && editor !== author,
-    );
-    if (editors.length > 0) others.push(`edited by ${editors.join(", ")}`);
-    const part = { heading: "## Body", text: body };
-    if (others.length === 0) return trustedPart(part);
-    return untrustedPart(part, others.join("; "));
+  private _bodyOf(issue: ReadableIssue): string[] {
+    const others = bodyOthersOf(this.config.owner, issue);
+    const part = { heading: "## Body", text: issue.body };
+    if (others === undefined) return trustedPart(part);
+    return untrustedPart(part, others);
   }
 
   // Numbered in thread order, so splitting the thread by author keeps where each comment sat.
@@ -148,6 +145,21 @@ export class IssueReader {
     if (ref.repo === issue.repo) return `#${ref.number}`;
     return `${this.config.owner}/${ref.repo}#${ref.number}`;
   }
+}
+
+// Undefined when the body is Trusted text; otherwise who else wrote or edited it. SpecRun.ts refuses on the same rule.
+export function bodyOthersOf(
+  owner: string,
+  { author, bodyEditors }: BodyAuthorship,
+): string | undefined {
+  const others: string[] = [];
+  if (author !== owner) others.push(`written by ${author}`);
+  const editors = [...new Set(bodyEditors)].filter(
+    (editor) => editor !== owner && editor !== author,
+  );
+  if (editors.length > 0) others.push(`edited by ${editors.join(", ")}`);
+  if (others.length === 0) return undefined;
+  return others.join("; ");
 }
 
 function trustedPart({ heading, text }: IssuePart): string[] {

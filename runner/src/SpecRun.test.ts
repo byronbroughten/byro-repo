@@ -137,6 +137,8 @@ function addIssue(
     isOpen: true,
     labels,
     url: `https://github.com/byronbroughten/byro-repo/issues/${number}`,
+    author: "byronbroughten",
+    bodyEditors: [],
   });
 }
 
@@ -530,6 +532,63 @@ describe("run's Model fit refusal", () => {
       message:
         "byro-repo #213 has no sub-issues and no valid ## Model fit section: split it with /code-tickets, or add the section.",
     });
+  });
+});
+
+describe("run's authorship refusal", () => {
+  it("refuses a spec a stranger wrote, naming it and the login", async () => {
+    addSpec([1]);
+    github.edit(spec.number, { author: "stranger" });
+    const agentStep = FakeAgentStep.init();
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result).toEqual<RunResult>({
+      kind: "refused",
+      landed: [],
+      message:
+        "Only byronbroughten may write or edit the spec and each open ready-for-agent ticket; refused byro-repo #213 (written by stranger).",
+    });
+    expect(agentStep.requests).toEqual([]);
+    expect(notices.sent).toEqual([]);
+  });
+
+  it("lists every launchable ticket a stranger wrote or another login edited, and skips tickets it won't launch", async () => {
+    addSpec([1, 2, 3, 4]);
+    github.edit(2, { author: "stranger" });
+    github.edit(3, { bodyEditors: ["byronbroughten", "editor"] });
+    github.edit(4, { labels: ["ready-for-human"], author: "stranger" });
+
+    const result = await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(result).toEqual<RunResult>({
+      kind: "refused",
+      landed: [],
+      message:
+        "Only byronbroughten may write or edit the spec and each open ready-for-agent ticket; refused byro-repo #2 (written by stranger), byro-repo #3 (edited by editor).",
+    });
+  });
+
+  it("checks a ticketless spec as its own ticket", async () => {
+    addIssue(spec.number);
+    github.edit(spec.number, { bodyEditors: ["editor"] });
+
+    const result = await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(result.message).toBe(
+      "Only byronbroughten may write or edit the spec and each open ready-for-agent ticket; refused byro-repo #213 (edited by editor).",
+    );
+  });
+
+  it("passes an owner-only body with owner edits", async () => {
+    addSpec([1]);
+    github.edit(spec.number, { bodyEditors: ["byronbroughten"] });
+    github.edit(1, { bodyEditors: ["byronbroughten", "byronbroughten"] });
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
   });
 });
 
