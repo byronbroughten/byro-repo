@@ -5,13 +5,13 @@ How the engineering skills should consume this repo's domain documentation when 
 ## Before exploring, read these
 
 - **`GLOSSARY-MAP.md`** at the repo root: it points at one `GLOSSARY.md` per context, among them the framework's and the app's. Read each one relevant to the topic; the app's assumes the framework's, so a real-estate topic reads both.
-- **`packages/framework/docs/design.md`**: the arguments behind the design, and this repo's substitute for an ADR tree.
+- **`packages/framework/docs/design.md`**: the arguments behind the codebase's design; `docs/agent-behavior-design.md` holds the ones behind how agents work here.
 
 If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The `/domain-modeling` skill (reached via `/grill-with-docs`) creates a `GLOSSARY.md` lazily when terms actually get resolved.
 
 ## File structure
 
-Four contexts, one per package, and no ADR tree:
+Four contexts, one per package:
 
 ```
 /
@@ -51,10 +51,8 @@ When your output names a domain concept (in an issue title, a refactor proposal,
 
 If the concept you need isn't in the glossary yet, that's a signal: either you're inventing language the project doesn't use (reconsider) or there's a real gap (note it for `/domain-modeling`).
 
-## No ADR tree — flag conflicts against the framework's design.md
+## Flag conflicts against the design docs
 
-**Don't create `docs/adr/`.** The framework's `docs/design.md` rules it out: specs are published as GitHub issues, and a second filing system would only drift from them. An architectural argument belongs in docs/design.md's principle list, one line there plus its reasoning in `docs/design/`, cited by issue where one exists and by commit otherwise.
-
-If your output contradicts a principle already recorded there, surface it explicitly rather than silently overriding:
+If your output contradicts a principle recorded in design.md or `docs/agent-behavior-design.md`, surface it explicitly rather than silently overriding:
 
 > _Contradicts the framework's design.md's "Record a deliberate absence as deliberate", but worth reopening because…_

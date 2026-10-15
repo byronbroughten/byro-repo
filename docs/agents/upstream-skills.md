@@ -18,4 +18,4 @@ Each upstream path has one entry with a `status`:
 
 ## Editing a vendored skill
 
-Record every edit to a vendored copy as a divergence in its `notes`, worded so the next sync can reapply it. An unrecorded edit is lost when the copy is next replaced from upstream. A change big enough to make the skill this repo's own is a fork: copy it under a new name and add that name to the path's `derivedInto`.
+Record every edit to a vendored copy as a divergence in its `notes`, worded so the next sync can reapply it. An unrecorded edit is lost when the copy is next replaced from upstream. A change big enough to make the skill this repo's own is a fork: copy it under a new name and add that name to the path's `derivedInto`. A fork may keep the upstream name when the path turns `reference-only`, since nothing then copies upstream over it.

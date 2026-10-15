@@ -42,12 +42,16 @@
           "derivedInto": ["review-piece"]
         },
         "skills/engineering/domain-modeling": {
-          "status": "vendored",
-          "syncedSha": "49dd158d1076134a641b33efb035946536778336"
+          "status": "reference-only",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336",
+          "notes": "Forked under the same name: design.md entries replace ADRs.",
+          "derivedInto": ["domain-modeling"]
         },
         "skills/engineering/grill-with-docs": {
-          "status": "vendored",
-          "syncedSha": "49dd158d1076134a641b33efb035946536778336"
+          "status": "reference-only",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336",
+          "notes": "Forked under the same name: the description names design.md entries instead of ADRs.",
+          "derivedInto": ["grill-with-docs"]
         },
         "skills/engineering/implement": {
           "status": "vendored",
@@ -73,7 +77,8 @@
         },
         "skills/engineering/tdd": {
           "status": "vendored",
-          "syncedSha": "49dd158d1076134a641b33efb035946536778336"
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336",
+          "notes": "Divergence: respects the design.md principles in the area instead of ADRs."
         },
         "skills/engineering/codebase-design": {
           "status": "vendored",
@@ -102,16 +107,21 @@
           "syncedSha": "49dd158d1076134a641b33efb035946536778336"
         },
         "skills/productivity/grill-me": {
-          "status": "vendored",
-          "syncedSha": "49dd158d1076134a641b33efb035946536778336"
+          "status": "reference-only",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336",
+          "notes": "Forked under the same name, unchanged so far; the grilling family is this repo's own.",
+          "derivedInto": ["grill-me"]
         },
         "skills/productivity/grilling": {
-          "status": "vendored",
-          "syncedSha": "49dd158d1076134a641b33efb035946536778336"
+          "status": "reference-only",
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336",
+          "notes": "Forked under the same name, unchanged so far; the grilling family is this repo's own.",
+          "derivedInto": ["grilling"]
         },
         "skills/productivity/handoff": {
           "status": "vendored",
-          "syncedSha": "49dd158d1076134a641b33efb035946536778336"
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336",
+          "notes": "Divergence: ADRs dropped from the list of artifacts not to duplicate."
         },
         "skills/productivity/writing-for-agents": {
           "status": "vendored",
