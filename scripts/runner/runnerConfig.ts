@@ -18,6 +18,8 @@ import type { SpecRunConfig } from "@byronbroughten/spec-runner/SpecRun";
 import type { WrapUpConfig } from "@byronbroughten/spec-runner/WrapUp";
 
 export const githubOwner = "byronbroughten";
+// The one login whose text is Trusted text; fixed here, never taken from a command line.
+export const developer = githubOwner;
 const scriptFolder = fileURLToPath(new URL(".", import.meta.url));
 const localConfigPath = join(scriptFolder, "runner.local.json");
 
@@ -83,6 +85,7 @@ export function specRunConfigOf(owner: string): SpecRunConfig {
     usageReader: CswapUsageReader.init(),
     clock: { now: () => new Date() },
     githubOwner: owner,
+    developer,
     primaryRoot,
     workspaceFolder,
     symlinkedFiles,

@@ -12,7 +12,12 @@ export interface IssueComment {
   body: string;
 }
 
-export interface ReadableIssue {
+export interface BodyAuthorship {
+  author: string;
+  bodyEditors: string[];
+}
+
+export interface ReadableIssue extends BodyAuthorship {
   issue: IssueRef;
   title: string;
   isOpen: boolean;
@@ -20,8 +25,6 @@ export interface ReadableIssue {
   parent: IssueRef | undefined;
   subIssues: IssueRef[];
   body: string;
-  author: string;
-  bodyEditors: string[];
   comments: IssueComment[];
 }
 
@@ -40,12 +43,14 @@ interface IssuePart {
 
 export interface IssueReaderConfig {
   source: IssueSource;
-  owner: string;
+  developer: string;
+  // Prefixes a ref in another repo.
+  githubOwner: string;
   allowedRepos: string[];
 }
 
 // The issue reader behind `npm run issue:read`: prints an issue with each part labelled Trusted text or Untrusted text.
-// The rule: a body is Trusted when the owner wrote it and every edit was the owner's; a comment, by its author alone.
+// The rule: a body is Trusted when the developer wrote it and every edit was theirs; a comment, by its author alone.
 // Untrusted text prints quoted, so it can't print a heading that passes for one of the reader's own.
 // The real source is GhCli.ts over GraphQL, since `gh issue view --json` shows no editors; tests use FakeIssueSource.ts.
 // The script is scripts/runner/issueRead.ts; the terms are in runner/GLOSSARY.md.
@@ -92,17 +97,11 @@ export class IssueReader {
     return printed.join("\n");
   }
 
-  private _bodyOf({ body, author, bodyEditors }: ReadableIssue): string[] {
-    const { owner } = this.config;
-    const others: string[] = [];
-    if (author !== owner) others.push(`written by ${author}`);
-    const editors = [...new Set(bodyEditors)].filter(
-      (editor) => editor !== owner && editor !== author,
-    );
-    if (editors.length > 0) others.push(`edited by ${editors.join(", ")}`);
-    const part = { heading: "## Body", text: body };
-    if (others.length === 0) return trustedPart(part);
-    return untrustedPart(part, others.join("; "));
+  private _bodyOf(issue: ReadableIssue): string[] {
+    const reason = untrustedBodyReasonOf(this.config.developer, issue);
+    const part = { heading: "## Body", text: issue.body };
+    if (reason === undefined) return trustedPart(part);
+    return untrustedPart(part, reason);
   }
 
   // Numbered in thread order, so splitting the thread by author keeps where each comment sat.
@@ -110,16 +109,18 @@ export class IssueReader {
     { comments }: ReadableIssue,
     hidesOthers: boolean,
   ): string[] {
-    const { owner } = this.config;
+    const { developer } = this.config;
     const numbered: NumberedComment[] = comments.map((comment, index) => ({
       ...comment,
       heading: `### Comment ${index + 1}`,
     }));
-    const owners = numbered.filter(({ author }) => author === owner);
-    const others = numbered.filter(({ author }) => author !== owner);
-    const printed = [`## Comments by ${owner} (Trusted text)`];
-    if (owners.length === 0) printed.push("", "None.");
-    owners.forEach(({ heading, body }) => printed.push("", heading, "", body));
+    const developers = numbered.filter(({ author }) => author === developer);
+    const others = numbered.filter(({ author }) => author !== developer);
+    const printed = [`## Comments by ${developer} (Trusted text)`];
+    if (developers.length === 0) printed.push("", "None.");
+    developers.forEach(({ heading, body }) =>
+      printed.push("", heading, "", body),
+    );
     printed.push("");
     if (hidesOthers) {
       printed.push(
@@ -143,11 +144,26 @@ export class IssueReader {
     ];
   }
 
-  // A ref in another repo carries the owner, as the issue-tracker doc writes cross-repo refs.
+  // A ref in another repo carries the repo owner, as the issue-tracker doc writes cross-repo refs.
   private _refOf({ issue }: ReadableIssue, ref: IssueRef): string {
     if (ref.repo === issue.repo) return `#${ref.number}`;
-    return `${this.config.owner}/${ref.repo}#${ref.number}`;
+    return `${this.config.githubOwner}/${ref.repo}#${ref.number}`;
   }
+}
+
+// SpecRun.ts refuses a run on this same rule.
+export function untrustedBodyReasonOf(
+  developer: string,
+  { author, bodyEditors }: BodyAuthorship,
+): string | undefined {
+  const others: string[] = [];
+  if (author !== developer) others.push(`written by ${author}`);
+  const editors = [...new Set(bodyEditors)].filter(
+    (editor) => editor !== developer && editor !== author,
+  );
+  if (editors.length > 0) others.push(`edited by ${editors.join(", ")}`);
+  if (others.length === 0) return undefined;
+  return others.join("; ");
 }
 
 function trustedPart({ heading, text }: IssuePart): string[] {
