@@ -516,6 +516,7 @@ describe("run", () => {
         "files-changed",
         "log-row",
         "fast-forward",
+        "secret-scan",
         "push",
         "delete-branches",
         "remove-workspace",
@@ -630,6 +631,64 @@ describe("run", () => {
       );
     });
 
+    it("refuses to push a landing that adds a token-shaped line, keeping the landed master", async () => {
+      const workspace = await workspaceWith(["sheets-framework"]);
+      const key = `AIza${"x7".repeat(18).slice(0, 35)}`;
+      commitIn(
+        workspace,
+        "sheets-framework",
+        "keys.ts",
+        `export const a = 1;\nexport const key = "${key}";\n`,
+      );
+      const remoteBefore = git(
+        remoteOf("sheets-framework"),
+        "rev-parse",
+        "master",
+      );
+      writeFacts({
+        branches: [
+          { repo: "sheets-framework", branch: "issue-218-wrap-up-script" },
+        ],
+      });
+
+      const failure = await wrapUp()
+        .run(ticket)
+        .catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(WrapUpFailure);
+      expect((failure as WrapUpFailure).kind).toBe("secret-scan");
+      expect((failure as WrapUpFailure).message).toContain(
+        "sheets-framework keys.ts:2",
+      );
+      expect((failure as WrapUpFailure).message).not.toContain(key);
+      expect(git(remoteOf("sheets-framework"), "rev-parse", "master")).toBe(
+        remoteBefore,
+      );
+      expect(subjectsOf("sheets-framework")[0]).toBe(
+        "Merge issue-218-wrap-up-script into master (#218)",
+      );
+    });
+
+    it("pushes on a rerun once the token-shaped line is removed from the landed master", async () => {
+      const workspace = await workspaceWith();
+      commitIn(
+        workspace,
+        "byro-repo",
+        "keys.ts",
+        `const key = "sk-ant-${"q9".repeat(12)}";\n`,
+      );
+      writeFacts();
+      expect(await failureOf(wrapUp().run(ticket))).toBe("secret-scan");
+
+      git(primaryRoot, "rm", "-q", "keys.ts");
+      git(primaryRoot, "commit", "-m", "Drop the key");
+      await wrapUp().run(ticket);
+
+      expect(git(remoteOf("byro-repo"), "rev-parse", "master")).toBe(
+        git(primaryRoot, "rev-parse", "master"),
+      );
+    });
+
     it("refuses a primary checkout that isn't on master", async () => {
       const workspace = await workspaceWith();
       commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
@@ -686,6 +745,7 @@ describe("run", () => {
         "checks",
         "log-row",
         "fast-forward",
+        "secret-scan",
         "push",
         "delete-branches",
         "remove-workspace",
