@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { dryRunChoresOf, gateDecision } from "./tiers.ts";
+import {
+  decisionInMode,
+  dryRunChoresOf,
+  gateDecision,
+  sessionModeOf,
+} from "./tiers.ts";
 
 function decisionOf(command: string, dryRuns: string[] = []) {
   return gateDecision({ command, mode: "interactive", dryRuns })
@@ -127,5 +132,47 @@ describe("dryRunChoresOf", () => {
     expect(dryRunChoresOf("npm run app:chore fixRents -- --send")).toEqual([]);
     expect(dryRunChoresOf("npm run dev:chore buildFixtures")).toEqual([]);
     expect(dryRunChoresOf("npm run app:chore")).toEqual([]);
+  });
+});
+
+describe("runnerStep mode", () => {
+  const asks = ["git push origin master", "npx clasp push", "npm publish"];
+
+  it("turns every ask into a deny that says to record a blocker", () => {
+    asks.forEach((command) => {
+      const ask = gateDecision({ command, mode: "interactive", dryRuns: [] });
+      const decision = gateDecision({
+        command,
+        mode: "runnerStep",
+        dryRuns: [],
+      });
+      expect(ask?.permissionDecision).toBe("ask");
+      expect(decision?.permissionDecision).toBe("deny");
+      expect(decision?.reason).toContain(ask?.reason);
+      expect(decision?.reason).toContain("`denied-tool` blocker");
+    });
+  });
+
+  it("leaves allow and deny alone", () => {
+    ['git commit -m "wip"', "npm run app:chore fixRents -- --send"].forEach(
+      (command) => {
+        expect(
+          gateDecision({ command, mode: "runnerStep", dryRuns: [] }),
+        ).toEqual(gateDecision({ command, mode: "interactive", dryRuns: [] }));
+      },
+    );
+  });
+
+  it("turns a gworkspace ask into a deny too", () => {
+    const decision = decisionInMode(
+      { permissionDecision: "ask", reason: "Tier gate: a share needs a yes." },
+      "runnerStep",
+    );
+    expect(decision.permissionDecision).toBe("deny");
+  });
+
+  it("is the mode only when the runner's mark is set", () => {
+    expect(sessionModeOf({})).toBe("interactive");
+    expect(sessionModeOf({ BYRO_RUNNER_STEP: "1" })).toBe("runnerStep");
   });
 });

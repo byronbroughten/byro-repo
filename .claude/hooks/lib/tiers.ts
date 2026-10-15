@@ -6,8 +6,11 @@ export interface Decision {
   reason: string;
 }
 
-// A runner step's mode arrives in a later ticket.
-export type SessionMode = "interactive";
+// A runner step has nobody to answer an ask, so its asks become denials.
+export type SessionMode = "interactive" | "runnerStep";
+
+// The environment variable the runner sets on every step it launches; ClaudeAgentStep.ts keeps the same name.
+export const runnerStepMark = "BYRO_RUNNER_STEP";
 
 export interface ShellCall {
   command: string;
@@ -41,7 +44,29 @@ const freeScripts = new Map([
   ["dev:deploy", deployWhy],
 ]);
 
-export function gateDecision({
+export function gateDecision(call: ShellCall): Decision | undefined {
+  const decision = modelessDecision(call);
+  return decision && decisionInMode(decision, call.mode);
+}
+
+export function sessionModeOf(env: NodeJS.ProcessEnv): SessionMode {
+  return env[runnerStepMark] ? "runnerStep" : "interactive";
+}
+
+export function decisionInMode(
+  decision: Decision,
+  mode: SessionMode,
+): Decision {
+  if (mode === "interactive" || decision.permissionDecision !== "ask") {
+    return decision;
+  }
+  return {
+    permissionDecision: "deny",
+    reason: `${decision.reason} This is a runner step, so record a \`denied-tool\` blocker for the developer instead.`,
+  };
+}
+
+function modelessDecision({
   command,
   dryRuns,
 }: ShellCall): Decision | undefined {
