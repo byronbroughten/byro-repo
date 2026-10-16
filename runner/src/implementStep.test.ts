@@ -221,9 +221,9 @@ describe("implementPrompt", () => {
     expect(prompt).not.toContain("never comment on or close an issue");
   });
 
-  it("names the .claude/ globs a step may write and the keys it may not add", () => {
+  it("names the .claude/ globs a step may write and the settings it may not", () => {
     expect(implementPrompt(input)).toContain(
-      "You can Edit or Write files under `.claude/` matching `.claude/skills/**` or `.claude/commands/*.md`, but not with an `allowed-tools`, `permissionMode`, `hooks` or `mcpServers` key;",
+      "You can Edit or Write skills, agent definitions and hooks under `.claude/` matching `.claude/skills/**` or `.claude/commands/*.md`; you can't move or delete them with Bash, and can't write `.claude/settings*.json`",
     );
   });
 

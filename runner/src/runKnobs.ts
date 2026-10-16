@@ -52,7 +52,11 @@ export const defaultRunKnobs: RunKnobs = {
   ],
   authChecks: authChecksOf(defaultAccount),
   allowedTools: { implement: [], review: [] },
-  allowedWriteGlobs: [".claude/skills/**", ".claude/agents/**"],
+  allowedWriteGlobs: [
+    ".claude/skills/**",
+    ".claude/agents/**",
+    ".claude/hooks/**",
+  ],
   maxTurns: { implement: 200, review: 80 },
   ticketBudget: 150_000,
 };

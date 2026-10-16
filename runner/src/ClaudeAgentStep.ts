@@ -4,7 +4,7 @@ import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 
 import type { AgentStep, StepRequest, StepResult } from "./AgentStep.ts";
-import type { SkillWriteHookArgs } from "./skillWriteHook.ts";
+import type { ClaudeWriteHookArgs } from "./claudeWriteHook.ts";
 import { StepStream } from "./StepStream.ts";
 import { toolsOf } from "./targetTools.ts";
 
@@ -15,8 +15,8 @@ export const stepTargetsVariable = "BYRO_STEP_TARGETS";
 // One `mcpServers` entry, as Claude Code's config files hold it.
 export type McpServerConfig = Record<string, unknown>;
 
-const skillWriteHookPath = fileURLToPath(
-  new URL("./skillWriteHook.ts", import.meta.url),
+const claudeWriteHookPath = fileURLToPath(
+  new URL("./claudeWriteHook.ts", import.meta.url),
 );
 
 // Runs `claude -p` under `cswap run <account> --`, which hands everything after `--` to claude as that account.
@@ -106,11 +106,11 @@ function commandArgs(request: StepRequest): string[] {
 
 // Settings layered on the workspace's own, registering the hook that answers the prompt a .claude/ skill or agent write raises.
 function settingsOf({ cwd, allowedWriteGlobs }: StepRequest): object {
-  const hookArgs: SkillWriteHookArgs = {
+  const hookArgs: ClaudeWriteHookArgs = {
     workspaceRoot: cwd,
     allowedGlobs: allowedWriteGlobs,
   };
-  const command = ["node", skillWriteHookPath, JSON.stringify(hookArgs)].map(
+  const command = ["node", claudeWriteHookPath, JSON.stringify(hookArgs)].map(
     shellQuoted,
   );
   return {

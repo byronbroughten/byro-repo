@@ -4,7 +4,6 @@
 
 import { stepReadLine } from "./IssueReader.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
-import { permissionKeys } from "./skillWriteDecision.ts";
 import {
   type GitHubWrite,
   gitHubWriteActions,
@@ -119,7 +118,7 @@ function workingSection({ allowedWriteGlobs }: ImplementPromptInput): string {
 - Work test-first: if a \`tdd\` skill is available, call it, at the seams the ticket names or, with none named, seams you pick yourself; never stop to confirm them.
 - Run typechecking regularly, single test files regularly, and the full test suite once at the end.
 - Read and search with the Read and Grep tools. Give Bash one command per call, run from the workspace root: no \`cd\`, no \`;\` or \`&&\` chains, no variables.
-- You can Edit or Write files under \`.claude/\` matching ${codeListOf(allowedWriteGlobs)}, but not with an ${codeListOf(permissionKeys)} key; you can't move or delete them with Bash, and can't write anything else under \`.claude/\` (hooks, settings), by any tool or path. When a write there is denied, record one \`denied-tool\` blocker listing those files instead of trying a workaround.
+- You can Edit or Write skills, agent definitions and hooks under \`.claude/\` matching ${codeListOf(allowedWriteGlobs)}; you can't move or delete them with Bash, and can't write \`.claude/settings*.json\` or anything else under \`.claude/\`, by any tool or path. When a write there is denied, record one \`denied-tool\` blocker listing those files instead of trying a workaround.
 - Never ask. When the ticket is ambiguous, a command needs a yes nobody gave, or a tool is denied, don't stall: record it as a blocker (\`spec-ambiguity\`, \`gated-action\` or \`denied-tool\`) with what happened and what you recommend the developer do. Carry on with the reading the ticket best supports when the work can go on without it; otherwise stop with status \`blocked\`.`;
 }
 

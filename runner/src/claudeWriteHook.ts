@@ -1,26 +1,26 @@
-// The PermissionRequest hook ClaudeAgentStep registers on every step; its one argument is the JSON of SkillWriteHookArgs.
+// The PermissionRequest hook ClaudeAgentStep registers on every step; its one argument is the JSON of ClaudeWriteHookArgs.
 import { readFileSync } from "node:fs";
 
 import {
-  skillWriteDecision,
-  type SkillWriteRequest,
-  type SkillWriteToolInput,
-} from "./skillWriteDecision.ts";
+  claudeWriteDecision,
+  type ClaudeWriteRequest,
+  type ClaudeWriteToolInput,
+} from "./claudeWriteDecision.ts";
 
-export type SkillWriteHookArgs = Pick<
-  SkillWriteRequest,
+export type ClaudeWriteHookArgs = Pick<
+  ClaudeWriteRequest,
   "workspaceRoot" | "allowedGlobs"
 >;
 
 try {
-  const args = JSON.parse(process.argv[2] ?? "") as SkillWriteHookArgs;
+  const args = JSON.parse(process.argv[2] ?? "") as ClaudeWriteHookArgs;
   const input = JSON.parse(readFileSync(0, "utf8")) as {
     tool_name?: unknown;
     tool_input?: unknown;
   };
-  const decision = skillWriteDecision({
+  const decision = claudeWriteDecision({
     toolName: String(input.tool_name),
-    toolInput: (input.tool_input ?? {}) as SkillWriteToolInput,
+    toolInput: (input.tool_input ?? {}) as ClaudeWriteToolInput,
     ...args,
   });
   if (decision === "allow") {
