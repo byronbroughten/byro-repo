@@ -2,7 +2,7 @@
 // primary root with a worktree of every package clone inside it, so work never moves a primary checkout's branch.
 // An issue workspace is keyed by an IssueRef; a session workspace by a SessionKey, with every repo on its session branch.
 // A lease is a run's or session's hold on one workspace, a file in its root worktree's git folder so it never shows as dirty;
-// it is live while its holder's process runs on this machine, and a dead holder's lease is taken over.
+// it is live while the process that took it runs on this machine, and a dead holder's lease is taken over.
 // Everything repo-specific comes in as IssueWorkspacesConfig; byro-repo's values live in scripts/runner/.
 
 import { execFile } from "node:child_process";
@@ -20,6 +20,7 @@ import { basename, join } from "node:path";
 import { promisify } from "node:util";
 
 import { git, lines } from "./git.ts";
+import { LeaseHeld } from "./LeaseHeld.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -168,11 +169,13 @@ export class IssueWorkspaces {
   async takeLease(workspace: Workspace, holder: LeaseHolder): Promise<void> {
     const leasePath = await leasePathOf(workspace.path);
     const { kind, pid } = holder;
+    const startedAt = await startTimeOf(pid);
     for (;;) {
-      const lease = readLease(leasePath);
+      const lease = await readLease(leasePath);
       assertLeaseFree({ path: workspace.path, lease, holder });
       if (lease) rmSync(leasePath, { force: true });
-      if (tryCreate(leasePath, JSON.stringify({ kind, pid }))) return;
+      const content = JSON.stringify({ kind, pid, startedAt });
+      if (tryCreate(leasePath, content)) return;
     }
   }
 
@@ -474,7 +477,7 @@ export class IssueWorkspaces {
       branchedRepos,
       dirtyRepos,
       createdAt: statSync(path).birthtime,
-      lease: readLease(await leasePathOf(path)),
+      lease: await readLease(await leasePathOf(path)),
     };
   }
 
@@ -694,13 +697,24 @@ async function leasePathOf(workspacePath: string): Promise<string> {
 }
 
 // An unreadable lease file counts as no lease, so a torn write never locks a workspace for good.
-function readLease(path: string): Lease | undefined {
+async function readLease(path: string): Promise<Lease | undefined> {
+  let file: LeaseFile;
   try {
-    const { kind, pid } = JSON.parse(readFileSync(path, "utf8")) as LeaseHolder;
-    return { kind, pid, isLive: isRunning(pid) };
+    file = JSON.parse(readFileSync(path, "utf8")) as LeaseFile;
   } catch {
     return undefined;
   }
+  const { kind, pid, startedAt } = file;
+  const startedNow = await startTimeOf(pid);
+  return {
+    kind,
+    pid,
+    isLive: startedNow !== undefined && startedNow === startedAt,
+  };
+}
+
+interface LeaseFile extends LeaseHolder {
+  startedAt?: string;
 }
 
 // The exclusive flag makes two takers racing for a free lease end with one holder.
@@ -723,18 +737,23 @@ interface LeaseCheck {
 function assertLeaseFree({ path, lease, holder }: LeaseCheck): void {
   const other = otherLiveHolderOf(lease, holder);
   if (!other) return;
-  throw new Error(
+  throw new LeaseHeld(
     `${path} is leased by ${holderLabelOf(other)}, which is still running`,
   );
 }
 
-// EPERM means the process exists but belongs to another user.
-function isRunning(pid: number): boolean {
+// Compared with the time the lease recorded, so a reused process ID never makes an abandoned lease look live.
+async function startTimeOf(pid: number): Promise<string | undefined> {
   try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code === "EPERM";
+    const { stdout } = await execFileAsync("ps", [
+      "-o",
+      "lstart=",
+      "-p",
+      `${pid}`,
+    ]);
+    return stdout.trim() || undefined;
+  } catch {
+    return undefined;
   }
 }
 

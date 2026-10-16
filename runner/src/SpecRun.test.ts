@@ -1112,6 +1112,46 @@ describe("run's leases", () => {
     expect(second.landed).toEqual([refOf(1)]);
   });
 
+  it("waits on a ticket another holder leases between the pick and the take, rather than stopping it", async () => {
+    addSpec([1, 2]);
+    const run = specRun(FakeAgentStep.init(implemented("two.ts"), reviewed()));
+    const leased = await run.workspaces.create(refOf(1));
+    const openBlockersOf = github.openBlockersOf.bind(github);
+    github.openBlockersOf = async (ref) => {
+      if (ref.number === 1) await run.workspaces.takeLease(leased, session);
+      return openBlockersOf(ref);
+    };
+
+    const result = await run.run(spec);
+
+    expect(result).toEqual<RunResult>({
+      kind: "finished",
+      landed: [refOf(2)],
+      message: `Run ended: landed byro-repo #2. byro-repo #1 is leased by a session (pid ${process.ppid}).`,
+    });
+    expect(github.comments.filter(({ issue }) => issue.number === 1)).toEqual(
+      [],
+    );
+  });
+
+  it("leaves a ticket the session landed while holding the lease alone once it lets go", async () => {
+    addSpec([1]);
+    const { workspaces } = specRun(FakeAgentStep.init());
+    const leased = await workspaces.create(refOf(1));
+    await workspaces.takeLease(leased, session);
+    await specRun(FakeAgentStep.init()).run(spec);
+    github.edit(1, { isOpen: false });
+    await workspaces.releaseLease(leased);
+
+    const rerunStep = FakeAgentStep.init();
+    const result = await specRun(rerunStep).run(spec);
+
+    expect(result.message).toBe(
+      "Run ended: landed nothing. Every ticket is closed.",
+    );
+    expect(rerunStep.requests).toEqual([]);
+  });
+
   it("holds the lease on the ticket it works and releases it when it moves off, here on a Stop", async () => {
     addSpec([1]);
     let heldDuringStep: Lease | undefined;
