@@ -21,7 +21,7 @@ await runFailOpen(() => {
   if (primaryRoot === undefined) return;
   const decision = primaryEditDecision({
     toolInput,
-    cwd: input?.cwd ?? projectDir,
+    cwd: realPathOf(input?.cwd ?? projectDir),
     primaryCheckouts: primaryCheckoutsOf(primaryRoot).map(realPathOf),
     realPathOf,
     isIgnored,
@@ -37,7 +37,7 @@ function realPathOf(path: string): string {
   return join(realPathOf(parent), basename(path));
 }
 
-// A git error counts as ignored, so the guard fails open.
+// Without --no-index a tracked file is never ignored, so it is denied; a git error counts as ignored, failing open.
 function isIgnored(checkout: string, path: string): boolean {
   const { status } = spawnSync("git", ["check-ignore", "-q", path], {
     cwd: checkout,

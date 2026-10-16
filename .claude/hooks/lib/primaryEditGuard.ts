@@ -2,8 +2,8 @@
 import { resolve } from "node:path";
 
 import {
-  type BranchDecision,
   commitCheckouts,
+  type GuardDecision,
   primaryCheckoutOf,
 } from "./branchGuard.ts";
 import type { ToolInput } from "./hookIo.ts";
@@ -20,7 +20,7 @@ export interface PrimaryEditInput {
 const workspaceWay =
   "Runs land there, so work in a workspace: `npm run issue:start -- <repo> <n>` for an issue, or `npm run issue:start -- --session <slug>` for anything else, then continue at the printed path.";
 
-export function primaryEditDecision(props: PrimaryEditInput): BranchDecision {
+export function primaryEditDecision(props: PrimaryEditInput): GuardDecision {
   const reason = fileDenyReason(props) ?? commitDenyReason(props);
   if (reason) {
     return {
