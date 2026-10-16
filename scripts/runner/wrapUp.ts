@@ -47,10 +47,11 @@ async function landSession(args: string[]): Promise<void> {
   if (session === undefined || session.startsWith("--") || rest.length > 0) {
     throw new Error(usage);
   }
-  const result = await WrapUp.init(wrapUpConfig).runSession(session, {
-    keep,
-    holder: nearestClaudeAncestor(),
-  });
+  const wrapUp = WrapUp.init(wrapUpConfig);
+  const options = { holder: nearestClaudeAncestor() };
+  const result = keep
+    ? await wrapUp.keepSession(session, options)
+    : await wrapUp.runSession(session, options);
   console.log(
     `Landed ${workspaceLabelOf({ session })}: ${result.filesChanged} files.`,
   );
