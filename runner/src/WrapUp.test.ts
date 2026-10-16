@@ -22,6 +22,7 @@ import {
   type IssueWorkspacesConfig,
   type Workspace,
 } from "./IssueWorkspaces.ts";
+import { LeaseHeld } from "./LeaseHeld.ts";
 import { WrapUp, type WrapUpConfig, type WrapUpFacts } from "./WrapUp.ts";
 import { WrapUpFailure, type WrapUpFailureKind } from "./WrapUpFailure.ts";
 
@@ -843,7 +844,7 @@ describe("runSession", () => {
     git(framework, "add", "landed.ts");
     git(framework, "commit", "-m", "Land elsewhere");
 
-    await sessionWrapUp().runSession(session, { keep: true });
+    await sessionWrapUp().runSession(session, { keep: true, holder });
 
     Object.entries(clonePaths).forEach(([repo, clonePath]) => {
       const worktree = join(workspace.path, clonePath);
@@ -862,6 +863,66 @@ describe("runSession", () => {
       git(primaryRoot, "rev-parse", "master"),
     );
     expect(await workspaces.leaseOf(workspace)).toMatchObject(holder);
+  });
+
+  it("refuses a workspace another live session leases, landing nothing", async () => {
+    const workspace = await sessionWorkspace();
+    await IssueWorkspaces.init(workspacesConfig()).takeLease(workspace, {
+      kind: "session",
+      pid: process.ppid,
+    });
+    commitIn(workspace, "byro-repo", "terms.md", "# Terms\n");
+    const masterBefore = git(primaryRoot, "rev-parse", "master");
+
+    const failure = await sessionWrapUp()
+      .runSession(session, { holder: { kind: "session", pid: process.pid } })
+      .catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(LeaseHeld);
+    expect(git(primaryRoot, "rev-parse", "master")).toBe(masterBefore);
+  });
+
+  it("keeps a commit made on the landed build when a kept rerun levels the workspace", async () => {
+    const workspace = await sessionWorkspace();
+    commitIn(workspace, "byro-repo", "terms.md", "# Terms\n");
+    const remote = remoteOf("byro-repo");
+    renameSync(remote, `${remote}.gone`);
+    expect(
+      await failureOf(sessionWrapUp().runSession(session, { keep: true })),
+    ).toBe("network");
+    renameSync(`${remote}.gone`, remote);
+    commitIn(workspace, "byro-repo", "more.md", "# More\n");
+
+    await sessionWrapUp().runSession(session, { keep: true });
+    await sessionWrapUp().runSession(session);
+
+    expect(subjectsOf("byro-repo").slice(0, 2)).toEqual([
+      "Add more.md",
+      "Add terms.md",
+    ]);
+  });
+
+  it("names the failure when edits made since the landing block leveling", async () => {
+    const workspace = await sessionWorkspace();
+    commitIn(workspace, "byro-repo", "terms.md", "# Terms\n");
+    const framework = primaryOf("sheets-framework");
+    writeFileSync(join(framework, "landed.ts"), "export {};\n");
+    git(framework, "add", "landed.ts");
+    git(framework, "commit", "-m", "Land elsewhere");
+    const remote = remoteOf("byro-repo");
+    renameSync(remote, `${remote}.gone`);
+    expect(
+      await failureOf(sessionWrapUp().runSession(session, { keep: true })),
+    ).toBe("network");
+    renameSync(`${remote}.gone`, remote);
+    writeFileSync(
+      join(workspace.path, clonePaths["sheets-framework"], "landed.ts"),
+      "",
+    );
+
+    expect(
+      await failureOf(sessionWrapUp().runSession(session, { keep: true })),
+    ).toBe("dirty-tree");
   });
 
   it("refuses uncommitted work in any repo of the workspace", async () => {

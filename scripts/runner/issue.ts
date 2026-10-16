@@ -3,21 +3,20 @@
 // Usage: npm run issue:start -- (<repo> <n> | --session <slug>) [--claude], npm run issue:list,
 // npm run issue:promote -- <repo> <n> <repo-to-promote>,
 // or npm run issue:remove -- (<repo> <n> | --session <slug>) [--force].
-import { execFileSync, spawn } from "node:child_process";
-import { basename } from "node:path";
+import { spawn } from "node:child_process";
 
 import {
   holderLabelOf,
   type IssueRef,
   IssueWorkspaces,
   type Lease,
-  type LeaseHolder,
   type Workspace,
   type WorkspaceKey,
   workspaceLabelOf,
   type WorkspaceStatus,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
 
+import { nearestClaudeAncestor } from "./claudeAncestor.ts";
 import { issueWorkspacesConfig } from "./runnerConfig.ts";
 
 const workspaces = IssueWorkspaces.init(issueWorkspacesConfig);
@@ -81,29 +80,6 @@ async function openClaude(workspace: Workspace): Promise<void> {
     }
   }
   process.exitCode = (await exited) ?? 1;
-}
-
-function nearestClaudeAncestor(): LeaseHolder | undefined {
-  let pid = process.ppid;
-  while (pid > 1) {
-    const [parent, ...command] = processLineOf(pid).split(/\s+/);
-    if (basename(command.join(" ")) === "claude") {
-      return { kind: "session", pid };
-    }
-    pid = Number(parent);
-  }
-  return undefined;
-}
-
-// Empty once the process has exited, which ends the walk.
-function processLineOf(pid: number): string {
-  try {
-    return execFileSync("ps", ["-o", "ppid=,comm=", "-p", String(pid)], {
-      encoding: "utf8",
-    }).trim();
-  } catch {
-    return "";
-  }
 }
 
 async function list(): Promise<void> {

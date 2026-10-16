@@ -21,17 +21,22 @@ import { messageOf, outputTailOf } from "./failureText.ts";
 import { git, lines } from "./git.ts";
 import {
   fileStemOf,
+  holderLabelOf,
   isSessionKey,
   issueLabelOf,
   type IssueRef,
   IssueWorkspaces,
   type IssueWorkspacesConfig,
+  type LeaseHolder,
+  otherLiveHolderOf,
+  sessionBranchOf,
   type SessionKey,
   type Workspace,
   type WorkspaceKey,
   workspaceLabelOf,
 } from "./IssueWorkspaces.ts";
 import { LandingLock } from "./LandingLock.ts";
+import { LeaseHeld } from "./LeaseHeld.ts";
 import {
   outcomeCommitMessage,
   type OutcomeFacts,
@@ -157,8 +162,10 @@ export interface WrapUpResult extends LandingResult {
 }
 
 export interface SessionOptions {
-  // Lands mid-session: the workspace stays, leased, with every repo's session branch moved onto the new master.
+  // Lets a session publish its work and carry on, so a long session's edits don't wait for its end.
   keep?: boolean;
+  // The session landing it; another live holder of the workspace's lease refuses the landing.
+  holder?: LeaseHolder;
 }
 
 interface BuiltRepo {
@@ -246,9 +253,10 @@ export class WrapUp {
 
   async runSession(
     session: string,
-    { keep = false }: SessionOptions = {},
+    { keep = false, holder }: SessionOptions = {},
   ): Promise<LandingResult> {
     const key: SessionKey = { session };
+    await this._assertLeaseFree(key, holder);
     const ticket: Ticket = {
       key,
       branches: [],
@@ -277,15 +285,35 @@ export class WrapUp {
     return landingResultOf(ticket);
   }
 
-  // A repo whose branch didn't land is behind master, so every branch fast-forwards; a landed one leaves its detached build.
+  private async _assertLeaseFree(
+    key: SessionKey,
+    holder: LeaseHolder | undefined,
+  ): Promise<void> {
+    const workspace = await this.workspaces.find(key);
+    if (!workspace) return;
+    const other = otherLiveHolderOf(
+      await this.workspaces.leaseOf(workspace),
+      holder,
+    );
+    if (!other) return;
+    throw new LeaseHeld(
+      `${workspaceLabelOf(key)} is leased by ${holderLabelOf(other)}, which is still running`,
+    );
+  }
+
+  // A landed repo sits detached on master, so its branch moves there, keeping any commit or edit made since.
   private async _levelWorkspace(key: SessionKey): Promise<void> {
     const workspace = await this._workspaceOf(key);
     for (const repo of Object.keys(this.config.workspaces.clonePaths)) {
       const worktree = this._worktreeOf(workspace, repo);
-      if ((await currentBranchOf(worktree)) !== workspace.branch) {
-        await git(worktree, "switch", workspace.branch);
+      try {
+        await levelRepo(worktree, workspace.branch);
+      } catch (error) {
+        throw new WrapUpFailure(
+          "dirty-tree",
+          `Leveling ${repo} in ${workspace.path} with master failed, likely over changes made since the landing: ${messageOf(error)}`,
+        );
       }
-      await git(worktree, "merge", "--ff-only", "master");
     }
   }
 
@@ -778,8 +806,17 @@ export class WrapUp {
   private async _removeWorkspace(key: WorkspaceKey): Promise<void> {
     const workspace = await this.workspaces.find(key);
     if (!workspace) return;
+    const lease = await this.workspaces.leaseOf(workspace);
     await this.workspaces.releaseLease(workspace);
-    await this.workspaces.remove(workspace);
+    try {
+      await this.workspaces.remove(workspace);
+    } catch (error) {
+      // A half torn-down workspace may have nowhere left to hold a lease.
+      if (lease?.isLive) {
+        await this.workspaces.takeLease(workspace, lease).catch(() => {});
+      }
+      throw error;
+    }
   }
 
   private async _close(issue: IssueRef, facts: WrapUpFacts): Promise<void> {
@@ -907,7 +944,7 @@ function retryBranchDeletes(ticket: Ticket): void {
 }
 
 function stateStemOf(key: WorkspaceKey): string {
-  if (isSessionKey(key)) return `session-${key.session}`;
+  if (isSessionKey(key)) return sessionBranchOf(key);
   return fileStemOf(key);
 }
 
@@ -1001,6 +1038,19 @@ function definedFactsOf(facts: OutcomeFacts): OutcomeFacts {
   return Object.fromEntries(
     Object.entries(facts).filter(([, value]) => value !== undefined),
   ) as OutcomeFacts;
+}
+
+async function levelRepo(worktree: string, branch: string): Promise<void> {
+  if ((await currentBranchOf(worktree)) !== branch) {
+    if (await isAncestor(worktree, branch, "HEAD")) {
+      await git(worktree, "switch", "-C", branch);
+    } else {
+      await git(worktree, "switch", branch);
+    }
+  }
+  if (await isAncestor(worktree, branch, "master")) {
+    await git(worktree, "merge", "--ff-only", "master");
+  }
 }
 
 async function currentBranchOf(worktree: string): Promise<string> {

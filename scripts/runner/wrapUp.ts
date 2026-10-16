@@ -8,6 +8,7 @@ import {
 import { type ParentCheck, WrapUp } from "@byronbroughten/spec-runner/WrapUp";
 import { WrapUpFailure } from "@byronbroughten/spec-runner/WrapUpFailure";
 
+import { nearestClaudeAncestor } from "./claudeAncestor.ts";
 import { wrapUpConfig } from "./runnerConfig.ts";
 
 const usage =
@@ -46,7 +47,10 @@ async function landSession(args: string[]): Promise<void> {
   if (session === undefined || session.startsWith("--") || rest.length > 0) {
     throw new Error(usage);
   }
-  const result = await WrapUp.init(wrapUpConfig).runSession(session, { keep });
+  const result = await WrapUp.init(wrapUpConfig).runSession(session, {
+    keep,
+    holder: nearestClaudeAncestor(),
+  });
   console.log(
     `Landed ${workspaceLabelOf({ session })}: ${result.filesChanged} files.`,
   );
