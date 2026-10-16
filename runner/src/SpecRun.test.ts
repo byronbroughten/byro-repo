@@ -21,7 +21,7 @@ import {
   implementOutputSchema,
   type ImplementRecord,
 } from "./implementStep.ts";
-import type { IssueRef } from "./IssueWorkspaces.ts";
+import type { IssueRef, Lease, LeaseHolder } from "./IssueWorkspaces.ts";
 import type { AccountReading, UsageReader } from "./limitGuard.ts";
 import { reviewRecordSchema } from "./reviewStep.ts";
 import { type Command, runKnobsOf } from "./runKnobs.ts";
@@ -226,7 +226,7 @@ function recordOf(
 function implemented(
   file: string,
   { content = "export {};\n", act = () => {} } = {},
-): ScriptedStep {
+): (request: StepRequest) => Promise<StepResult> {
   return async (request: StepRequest) => {
     act();
     writeFileSync(join(request.cwd, file), content);
@@ -1081,6 +1081,62 @@ describe("run's resume", () => {
     expect(result.landed).toEqual([refOf(2)]);
   });
 });
+describe("run's leases", () => {
+  // The test runner's parent outlives every test, so it stands in for an interactive session's claude.
+  const session: LeaseHolder = { kind: "session", pid: process.ppid };
+
+  it("skips a ticket another holder has leased while the others run, naming the holder, and runs it once the lease is gone", async () => {
+    addSpec([1, 2]);
+    const { workspaces } = specRun(FakeAgentStep.init());
+    const leased = await workspaces.create(refOf(1));
+    await workspaces.takeLease(leased, session);
+
+    const first = await specRun(
+      FakeAgentStep.init(implemented("two.ts"), reviewed()),
+    ).run(spec);
+
+    expect(first).toEqual<RunResult>({
+      kind: "finished",
+      landed: [refOf(2)],
+      message: `Run ended: landed byro-repo #2. byro-repo #1 is leased by a session (pid ${process.ppid}).`,
+    });
+    expect(github.issues.get(1)?.isOpen).toBe(true);
+
+    await workspaces.releaseLease(leased);
+    const second = await specRun(
+      FakeAgentStep.init(implemented("one.ts"), reviewed()),
+    ).run(spec);
+
+    expect(second.landed).toEqual([refOf(1)]);
+  });
+
+  it("holds the lease on the ticket it works and releases it when it moves off, here on a Stop", async () => {
+    addSpec([1]);
+    let heldDuringStep: Lease | undefined;
+    const run = specRun(
+      FakeAgentStep.init(
+        async (request) => {
+          const workspace = await run.workspaces.find(refOf(1));
+          heldDuringStep = workspace?.lease;
+          return implemented("one.ts")(request);
+        },
+        reviewed(["A finding."]),
+      ),
+    );
+
+    await run.run(spec);
+
+    expect(heldDuringStep).toEqual({
+      kind: "run",
+      pid: process.pid,
+      isLive: true,
+    });
+    const workspace = await run.workspaces.find(refOf(1));
+    expect(workspace?.lease).toBeUndefined();
+    await run.workspaces.start(refOf(1), session);
+  });
+});
+
 describe("run's limit guard", () => {
   function summaries(): string[] {
     return notices.sent.map(({ summary }) => summary);

@@ -1,13 +1,16 @@
 // Starts, lists, promotes and removes workspaces, each keyed by an issue or, for a session workspace, by a slug.
-// The runner creates its own issue workspaces; `start` is the interactive session's way into one.
+// The runner creates its own issue workspaces; `start` is the interactive session's way into one, leased to its claude.
 // Usage: npm run issue:start -- (<repo> <n> | --session <slug>) [--claude], npm run issue:list,
 // npm run issue:promote -- <repo> <n> <repo-to-promote>,
 // or npm run issue:remove -- (<repo> <n> | --session <slug>) [--force].
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
+import { basename } from "node:path";
 
 import {
+  holderLabelOf,
   type IssueRef,
   IssueWorkspaces,
+  type LeaseHolder,
   type Workspace,
   type WorkspaceKey,
   workspaceLabelOf,
@@ -44,19 +47,58 @@ async function start(args: string[]): Promise<void> {
     args.filter((arg) => arg !== "--claude"),
     `Usage: npm run issue:start -- ${keyUsage} [--claude]`,
   );
-  const { path } = await workspaces.start(key);
+  if (args.includes("--claude")) {
+    const workspace = await workspaces.start(key);
+    console.log(workspace.path);
+    await openClaude(workspace);
+    return;
+  }
+  const holder = claudeAncestor();
+  const { path } = await workspaces.start(key, holder);
   console.log(path);
-  if (args.includes("--claude")) openClaude(path);
+  if (!holder) {
+    console.log("No claude process ran this, so no lease was taken.");
+  }
 }
 
-// Runs in the foreground so the session takes over the terminal, and passes its exit status on.
-function openClaude(path: string): void {
-  const { status, error } = spawnSync("claude", {
-    cwd: path,
-    stdio: "inherit",
+// Runs in the foreground so the session takes over the terminal, holds the lease, and passes its exit status on.
+async function openClaude(workspace: Workspace): Promise<void> {
+  const claude = spawn("claude", { cwd: workspace.path, stdio: "inherit" });
+  const exited = new Promise<number | null>((resolve, reject) => {
+    claude.on("error", reject);
+    claude.on("exit", resolve);
   });
-  if (error) throw error;
-  process.exitCode = status ?? 1;
+  if (claude.pid !== undefined) {
+    try {
+      await workspaces.takeLease(workspace, {
+        kind: "session",
+        pid: claude.pid,
+      });
+    } catch (error) {
+      claude.kill();
+      throw error;
+    }
+  }
+  process.exitCode = (await exited) ?? 1;
+}
+
+// The nearest claude above this process, which is the session that ran the command.
+function claudeAncestor(): LeaseHolder | undefined {
+  let pid = process.ppid;
+  while (pid > 1) {
+    const [parent, ...command] = execFileSync(
+      "ps",
+      ["-o", "ppid=,comm=", "-p", String(pid)],
+      { encoding: "utf8" },
+    )
+      .trim()
+      .split(/\s+/);
+    if (basename(command.join(" ")) === "claude") {
+      return { kind: "session", pid };
+    }
+    pid = Number(parent);
+  }
+  return undefined;
 }
 
 async function list(): Promise<void> {
@@ -66,7 +108,8 @@ async function list(): Promise<void> {
 }
 
 function lineOf(workspace: WorkspaceStatus): string {
-  const { key, branch, branchedRepos, dirtyRepos, createdAt, path } = workspace;
+  const { key, branch, branchedRepos, dirtyRepos, createdAt, path, lease } =
+    workspace;
   const dirty =
     dirtyRepos.length === 0 ? "clean" : `dirty: ${dirtyRepos.join(", ")}`;
   return [
@@ -74,9 +117,16 @@ function lineOf(workspace: WorkspaceStatus): string {
     branch,
     `on branch: ${branchedRepos.join(", ")}`,
     dirty,
+    leaseLabelOf(lease),
     `age ${ageOf(createdAt)}`,
     path,
   ].join("  ");
+}
+
+function leaseLabelOf(lease: WorkspaceStatus["lease"]): string {
+  if (!lease) return "no lease";
+  if (!lease.isLive) return `lease abandoned by ${holderLabelOf(lease)}`;
+  return `leased by ${holderLabelOf(lease)}`;
 }
 
 function ageOf(createdAt: Date): string {

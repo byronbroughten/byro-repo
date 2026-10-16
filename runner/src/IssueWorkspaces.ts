@@ -1,6 +1,8 @@
 // The workspace module: creates, lists, promotes, resumes and removes workspaces, each a byro-repo worktree outside the
 // primary root with a worktree of every package clone inside it, so work never moves a primary checkout's branch.
 // An issue workspace is keyed by an IssueRef; a session workspace by a SessionKey, with every repo on its session branch.
+// A lease is a run's or session's hold on one workspace, a file in its root worktree's git folder so it never shows as dirty;
+// it is live while its holder's process runs on this machine, and a dead holder's lease is taken over.
 // Everything repo-specific comes in as IssueWorkspacesConfig; byro-repo's values live in scripts/runner/.
 
 import { execFile } from "node:child_process";
@@ -12,6 +14,7 @@ import {
   rmSync,
   statSync,
   symlinkSync,
+  writeFileSync,
 } from "node:fs";
 import { basename, join } from "node:path";
 import { promisify } from "node:util";
@@ -22,6 +25,7 @@ const execFileAsync = promisify(execFile);
 
 const maxSlugWords = 6;
 const lockfileName = "package-lock.json";
+const leaseFileName = "workspace.lease";
 
 export interface IssueRef {
   repo: string;
@@ -76,9 +80,27 @@ export interface Workspace {
   branchedRepos: string[];
 }
 
+export interface LeaseHolder {
+  kind: "run" | "session";
+  pid: number;
+}
+
+export interface Lease extends LeaseHolder {
+  isLive: boolean;
+}
+
+export function isSameHolder(a: LeaseHolder, b: LeaseHolder): boolean {
+  return a.kind === b.kind && a.pid === b.pid;
+}
+
+export function holderLabelOf({ kind, pid }: LeaseHolder): string {
+  return `a ${kind} (pid ${pid})`;
+}
+
 export interface WorkspaceStatus extends Workspace {
   dirtyRepos: string[];
   createdAt: Date;
+  lease?: Lease;
 }
 
 export interface RemoveOptions {
@@ -120,11 +142,33 @@ export class IssueWorkspaces {
     return { path, key, branch, branchedRepos };
   }
 
-  async start(key: WorkspaceKey): Promise<Workspace> {
+  // Refuses a live lease held by anyone but the holder, before resuming touches the workspace; takes the lease for the holder.
+  async start(key: WorkspaceKey, holder?: LeaseHolder): Promise<Workspace> {
     const existing = await this.find(key);
-    if (!existing) return this.create(key);
-    await this.resume(existing);
-    return existing;
+    if (existing) {
+      assertLeaseFree(existing.path, existing.lease, holder);
+      await this.resume(existing);
+    }
+    const workspace = existing ?? (await this.create(key));
+    if (holder) await this.takeLease(workspace, holder);
+    return workspace;
+  }
+
+  async takeLease(workspace: Workspace, holder: LeaseHolder): Promise<void> {
+    assertLeaseFree(workspace.path, await this.leaseOf(workspace), holder);
+    const { kind, pid } = holder;
+    writeFileSync(
+      await leasePathOf(workspace.path),
+      JSON.stringify({ kind, pid }),
+    );
+  }
+
+  async releaseLease(workspace: Workspace): Promise<void> {
+    rmSync(await leasePathOf(workspace.path), { force: true });
+  }
+
+  async leaseOf(workspace: Workspace): Promise<Lease | undefined> {
+    return readLease(await leasePathOf(workspace.path));
   }
 
   // Every repo detached at its master, rebuilt on each call so it holds exactly the commits master points to now.
@@ -201,7 +245,11 @@ export class IssueWorkspaces {
     workspace: Workspace,
     { force = false }: RemoveOptions = {},
   ): Promise<void> {
-    const { dirtyRepos } = await this._statusOf(workspace.path, workspace.key);
+    const { dirtyRepos, lease } = await this._statusOf(
+      workspace.path,
+      workspace.key,
+    );
+    assertLeaseFree(workspace.path, lease, undefined);
     const orphanedRepos = await this._orphanedRepos(workspace);
     if ((dirtyRepos.length > 0 || orphanedRepos.length > 0) && !force) {
       throw new Error(
@@ -413,6 +461,7 @@ export class IssueWorkspaces {
       branchedRepos,
       dirtyRepos,
       createdAt: statSync(path).birthtime,
+      lease: readLease(await leasePathOf(path)),
     };
   }
 
@@ -622,6 +671,41 @@ async function isOrphanedHead(worktree: string): Promise<boolean> {
     "refs/remotes",
   );
   return containing === "";
+}
+
+async function leasePathOf(workspacePath: string): Promise<string> {
+  return join(
+    await git(workspacePath, "rev-parse", "--absolute-git-dir"),
+    leaseFileName,
+  );
+}
+
+function readLease(path: string): Lease | undefined {
+  if (!existsSync(path)) return undefined;
+  const { kind, pid } = JSON.parse(readFileSync(path, "utf8")) as LeaseHolder;
+  return { kind, pid, isLive: isRunning(pid) };
+}
+
+function assertLeaseFree(
+  workspacePath: string,
+  lease: Lease | undefined,
+  holder: LeaseHolder | undefined,
+): void {
+  if (!lease?.isLive) return;
+  if (holder && isSameHolder(holder, lease)) return;
+  throw new Error(
+    `${workspacePath} is leased by ${holderLabelOf(lease)}, which is still running`,
+  );
+}
+
+// EPERM means the process exists but belongs to another user.
+function isRunning(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "EPERM";
+  }
 }
 
 function unsavedWork(dirtyRepos: string[], orphanedRepos: string[]): string {

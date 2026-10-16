@@ -1,6 +1,7 @@
 // The run loop: takes one spec's tickets, one at a time in blocking-graph order, through implement, review, checks and
 // wrap-up in each ticket's issue workspace, and never closes the spec. Preflight refuses or Stops a run before it starts.
 // Any outcome a later ticket will handle (findings, red checks, step errors, blockers, schema failures) is an UnhandledStop.
+// The run holds the lease on the workspace of the ticket it's working; a ticket another holder has leased waits.
 // GitHub and git hold what's durable; a per-spec state file holds the step each ticket reached, so a rerun resumes there.
 // Steps launch through AgentStep.ts; prompts are implementStep.ts and reviewStep.ts; landing is WrapUp.ts; knobs are runKnobs.ts.
 
@@ -35,10 +36,13 @@ import {
 import { type BodyAuthorship, untrustedBodyReasonOf } from "./IssueReader.ts";
 import {
   fileStemOf,
+  holderLabelOf,
+  isSameHolder,
   issueLabelOf,
   type IssueRef,
   IssueWorkspaces,
   type IssueWorkspacesConfig,
+  type LeaseHolder,
   type Workspace,
 } from "./IssueWorkspaces.ts";
 import {
@@ -393,11 +397,16 @@ export class SpecRun {
     for (const ticket of run.tickets) {
       const tracked = await this.config.github.issueOf(ticket);
       if (!tracked.isOpen) continue;
+      const label = issueLabelOf(ticket);
+      const otherHolder = await this._otherHolderOf(ticket);
+      if (otherHolder !== undefined) {
+        waiting.push(`${label} is leased by ${holderLabelOf(otherHolder)}`);
+        continue;
+      }
       const { stop } = ticketStateOf(run, ticket);
       if (stop !== undefined) {
         return { kind: "stopped-again", ticket: tracked, stop };
       }
-      const label = issueLabelOf(ticket);
       if (!isLaunchable(tracked)) {
         waiting.push(`${label} waits on the developer`);
         continue;
@@ -443,13 +452,35 @@ export class SpecRun {
       if (!(error instanceof UnhandledStop)) throw error;
       await this._stopTicket(run, ticket, error);
       return false;
+    } finally {
+      await this._releaseLeaseOf(ticket.issue);
+    }
+  }
+
+  private async _otherHolderOf(
+    issue: IssueRef,
+  ): Promise<LeaseHolder | undefined> {
+    const lease = (await this.workspaces.find(issue))?.lease;
+    if (!lease?.isLive || isSameHolder(lease, runHolder())) return undefined;
+    return lease;
+  }
+
+  private async _releaseLeaseOf(issue: IssueRef): Promise<void> {
+    const workspace = await this.workspaces.find(issue);
+    if (workspace?.lease && isSameHolder(workspace.lease, runHolder())) {
+      await this.workspaces.releaseLease(workspace);
     }
   }
 
   private async _workspaceFor(run: Run, issue: IssueRef): Promise<Workspace> {
     const existing = await this.workspaces.find(issue);
-    if (!existing) return this.workspaces.create(issue);
+    if (!existing) {
+      const created = await this.workspaces.create(issue);
+      await this.workspaces.takeLease(created, runHolder());
+      return created;
+    }
     try {
+      await this.workspaces.takeLease(existing, runHolder());
       await this.workspaces.resume(existing);
     } catch (error) {
       throw new UnhandledStop(
@@ -915,6 +946,10 @@ function targetsAtLaunchOf(ticket: TrackedIssue, logPath: string): Target[] {
     `The ## Targets section changed after preflight: \`${reading.line}\` isn't ${targetLineShapes}.`,
     logPath,
   );
+}
+
+function runHolder(): LeaseHolder {
+  return { kind: "run", pid: process.pid };
 }
 
 function isLaunchable(ticket: TrackedIssue): boolean {
