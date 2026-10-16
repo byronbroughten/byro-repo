@@ -1,26 +1,18 @@
-import type { WorkspaceStatus } from "@byronbroughten/spec-runner/IssueWorkspaces";
+import type {
+  Lease,
+  LeasedWorkspace,
+} from "@byronbroughten/spec-runner/IssueWorkspaces";
 import { describe, expect, it } from "vitest";
 
 import { endsProcess, leasedWorkspacesOf } from "./leaseRelease.ts";
 
 const session = { kind: "session", pid: 100 } as const;
 
-function workspaceOf(
-  path: string,
-  lease?: WorkspaceStatus["lease"],
-): WorkspaceStatus {
-  return {
-    path,
-    key: { session: path },
-    branch: `session-${path}`,
-    branchedRepos: [],
-    dirtyRepos: [],
-    createdAt: new Date(0),
-    lease,
-  };
+function workspaceOf(path: string, lease: Lease): LeasedWorkspace {
+  return { path, key: { session: path }, lease };
 }
 
-function pathsOf(workspaces: WorkspaceStatus[]): string[] {
+function pathsOf(workspaces: LeasedWorkspace[]): string[] {
   return workspaces.map(({ path }) => path);
 }
 
@@ -34,10 +26,6 @@ describe("leasedWorkspacesOf", () => {
       "a",
       "b",
     ]);
-  });
-
-  it("leaves a workspace with no lease", () => {
-    expect(leasedWorkspacesOf([workspaceOf("a")], session)).toEqual([]);
   });
 
   it("leaves another session's lease and a run's lease on the same pid", () => {

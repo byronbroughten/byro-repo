@@ -1,8 +1,8 @@
 // Decides the lease release: whether a session end ends its claude process, and which workspaces' leases that process holds. Pure; leaseRelease.ts does the I/O.
 import {
   isSameHolder,
+  type LeasedWorkspace,
   type LeaseHolder,
-  type WorkspaceStatus,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
 
 // SessionEnd reasons after which the same claude process carries on working in its workspace.
@@ -13,10 +13,10 @@ export function endsProcess(reason: string | undefined): boolean {
 }
 
 export function leasedWorkspacesOf(
-  workspaces: WorkspaceStatus[],
+  leased: LeasedWorkspace[],
   holder: LeaseHolder,
-): WorkspaceStatus[] {
-  return workspaces.filter(
-    ({ lease }) => lease?.isLive === true && isSameHolder(lease, holder),
+): LeasedWorkspace[] {
+  return leased.filter(
+    ({ lease }) => lease.isLive && isSameHolder(lease, holder),
   );
 }

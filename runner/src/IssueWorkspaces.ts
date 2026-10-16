@@ -113,6 +113,15 @@ export function holderLabelOf({ kind, pid }: LeaseHolder): string {
   return `a ${kind} (pid ${pid})`;
 }
 
+interface KeyedFolder {
+  path: string;
+  key: WorkspaceKey;
+}
+
+export interface LeasedWorkspace extends KeyedFolder {
+  lease: Lease;
+}
+
 export interface WorkspaceStatus extends Workspace {
   dirtyRepos: string[];
   createdAt: Date;
@@ -183,12 +192,22 @@ export class IssueWorkspaces {
     }
   }
 
-  async releaseLease(workspace: Workspace): Promise<void> {
-    rmSync(await leasePathOf(workspace.path), { force: true });
+  async releaseLease({ path }: Pick<Workspace, "path">): Promise<void> {
+    rmSync(await leasePathOf(path), { force: true });
   }
 
-  async leaseOf(workspace: Workspace): Promise<Lease | undefined> {
-    return readLease(await leasePathOf(workspace.path));
+  async leaseOf({ path }: Pick<Workspace, "path">): Promise<Lease | undefined> {
+    return readLease(await leasePathOf(path));
+  }
+
+  // Reads only the lease files, with none of list()'s git checks, so a session-end hook stays quick.
+  async leases(): Promise<LeasedWorkspace[]> {
+    const leased: LeasedWorkspace[] = [];
+    for (const { path, key } of this._keyedFolders()) {
+      const lease = await this.leaseOf({ path });
+      if (lease) leased.push({ path, key, lease });
+    }
+    return leased;
   }
 
   // Every repo detached at its master, rebuilt on each call so it holds exactly the commits master points to now.
@@ -210,16 +229,22 @@ export class IssueWorkspaces {
   }
 
   async list(): Promise<WorkspaceStatus[]> {
-    if (!existsSync(this.config.workspaceFolder)) return [];
     const workspaces: WorkspaceStatus[] = [];
-    for (const name of readdirSync(this.config.workspaceFolder).sort()) {
-      const key = this._keyOfFolder(name);
-      if (!key) continue;
-      workspaces.push(
-        await this._statusOf(join(this.config.workspaceFolder, name), key),
-      );
+    for (const { path, key } of this._keyedFolders()) {
+      workspaces.push(await this._statusOf(path, key));
     }
     return workspaces;
+  }
+
+  private _keyedFolders(): KeyedFolder[] {
+    if (!existsSync(this.config.workspaceFolder)) return [];
+    return readdirSync(this.config.workspaceFolder)
+      .sort()
+      .flatMap((name) => {
+        const key = this._keyOfFolder(name);
+        if (!key) return [];
+        return [{ path: join(this.config.workspaceFolder, name), key }];
+      });
   }
 
   async promote(workspace: Workspace, repo: string): Promise<Workspace> {
@@ -676,8 +701,11 @@ async function currentBranchOf(worktree: string): Promise<string> {
   return git(worktree, "branch", "--show-current");
 }
 
+// No optional locks, so a status read never holds index.lock against a commit running in that worktree.
 async function isDirty(worktree: string): Promise<boolean> {
-  return (await git(worktree, "status", "--porcelain")) !== "";
+  return (
+    (await git(worktree, "--no-optional-locks", "status", "--porcelain")) !== ""
+  );
 }
 
 // A detached HEAD no branch contains is reachable only from the reflog, so moving off it or removing its worktree loses the commits.
