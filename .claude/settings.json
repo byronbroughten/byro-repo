@@ -92,6 +92,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/leaseRelease.ts\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/branchRecord.ts\"",
             "timeout": 10
           }
