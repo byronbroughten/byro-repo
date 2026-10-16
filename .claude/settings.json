@@ -59,7 +59,8 @@
       "mcp__gworkspace__get_drive_file_content",
       "mcp__gworkspace__list_drive_items",
       "mcp__gworkspace__get_drive_file_permissions",
-      "mcp__gworkspace__check_drive_file_public_access"
+      "mcp__gworkspace__check_drive_file_public_access",
+      "Edit(/**)"
     ],
     "ask": [
       "Bash(git push*)",
@@ -68,7 +69,10 @@
     ],
     "deny": [
       "Read(./packages/*/src/generated/columnConfigs.ts)",
-      "Read(./packages/*/dev/generated/columnConfigs.ts)"
+      "Read(./packages/*/dev/generated/columnConfigs.ts)",
+      "Edit(**/.clasprc.json*)",
+      "Edit(**/client_secret*.json)",
+      "Edit(**/.env*)"
     ]
   },
   "hooks": {
