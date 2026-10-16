@@ -6,7 +6,6 @@
 import { spawnSync } from "node:child_process";
 
 import {
-  isSessionKey,
   type IssueRef,
   IssueWorkspaces,
   type Workspace,
@@ -126,9 +125,6 @@ function issueOf(
 
 async function workspaceOf(key: WorkspaceKey): Promise<Workspace> {
   const workspace = await workspaces.find(key);
-  if (!workspace) {
-    const kind = isSessionKey(key) ? "session" : "issue";
-    throw new Error(`No ${kind} workspace for ${workspaceLabelOf(key)}`);
-  }
+  if (!workspace) throw new Error(`No workspace for ${workspaceLabelOf(key)}`);
   return workspace;
 }

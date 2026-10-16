@@ -28,7 +28,6 @@ export interface IssueRef {
   number: number;
 }
 
-// A workspace that belongs to no issue, opened by an interactive session.
 export interface SessionKey {
   session: string;
 }
@@ -101,6 +100,7 @@ export class IssueWorkspaces {
     key: WorkspaceKey,
     options: CreateOptions = {},
   ): Promise<Workspace> {
+    if (isSessionKey(key)) assertSessionSlug(key.session);
     const branchedRepos = this._branchedReposOf(key, options);
     const existing = await this.find(key);
     if (existing) {
@@ -120,7 +120,6 @@ export class IssueWorkspaces {
     return { path, key, branch, branchedRepos };
   }
 
-  // Resumes the key's workspace, or creates it when there is none.
   async start(key: WorkspaceKey): Promise<Workspace> {
     const existing = await this.find(key);
     if (!existing) return this.create(key);
@@ -216,14 +215,7 @@ export class IssueWorkspaces {
     key: WorkspaceKey,
     options: CreateOptions,
   ): string[] {
-    if (isSessionKey(key)) {
-      if (!isSlug(key.session)) {
-        throw new Error(
-          `"${key.session}" is not a session slug; use lowercase words joined by hyphens`,
-        );
-      }
-      return this._clonesRootFirst.map(([repo]) => repo);
-    }
+    if (isSessionKey(key)) return this._clonesRootFirst.map(([repo]) => repo);
     const branchedRepos = [key.repo, ...(options.extraRepos ?? [])];
     branchedRepos.forEach((repo) => this._clonePathOf(repo));
     return branchedRepos;
@@ -481,8 +473,11 @@ function isSameKey(a: WorkspaceKey, b: WorkspaceKey): boolean {
   return a.repo === b.repo && a.number === b.number;
 }
 
-function isSlug(text: string): boolean {
-  return /^[a-z0-9]+(-[a-z0-9]+)*$/.test(text);
+function assertSessionSlug(session: string): void {
+  if (/^[a-z0-9]+(-[a-z0-9]+)*$/.test(session)) return;
+  throw new Error(
+    `"${session}" is not a session slug; use lowercase words joined by hyphens`,
+  );
 }
 
 function issueBranchPrefix(issueNumber: number): string {
