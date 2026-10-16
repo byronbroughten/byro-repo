@@ -21,7 +21,7 @@ import {
   implementOutputSchema,
   type ImplementRecord,
 } from "./implementStep.ts";
-import type { IssueRef } from "./IssueWorkspaces.ts";
+import type { IssueRef, Lease, LeaseHolder } from "./IssueWorkspaces.ts";
 import type { AccountReading, UsageReader } from "./limitGuard.ts";
 import { reviewRecordSchema } from "./reviewStep.ts";
 import { type Command, runKnobsOf } from "./runKnobs.ts";
@@ -222,11 +222,13 @@ function recordOf(
   } as ImplementRecord;
 }
 
+type StepScript = (request: StepRequest) => Promise<StepResult>;
+
 // Commits `file` on the ticket's branch in the workspace, as a real implement step would.
 function implemented(
   file: string,
   { content = "export {};\n", act = () => {} } = {},
-): ScriptedStep {
+): StepScript {
   return async (request: StepRequest) => {
     act();
     writeFileSync(join(request.cwd, file), content);
@@ -1081,6 +1083,102 @@ describe("run's resume", () => {
     expect(result.landed).toEqual([refOf(2)]);
   });
 });
+describe("run's leases", () => {
+  // The test runner's parent outlives every test, so it stands in for an interactive session's claude.
+  const session: LeaseHolder = { kind: "session", pid: process.ppid };
+
+  it("skips a ticket another holder has leased while the others run, naming the holder, and runs it once the lease is gone", async () => {
+    addSpec([1, 2]);
+    const { workspaces } = specRun(FakeAgentStep.init());
+    const leased = await workspaces.create(refOf(1));
+    await workspaces.takeLease(leased, session);
+
+    const first = await specRun(
+      FakeAgentStep.init(implemented("two.ts"), reviewed()),
+    ).run(spec);
+
+    expect(first).toEqual<RunResult>({
+      kind: "finished",
+      landed: [refOf(2)],
+      message: `Run ended: landed byro-repo #2. byro-repo #1 is leased by a session (pid ${process.ppid}).`,
+    });
+    expect(github.issues.get(1)?.isOpen).toBe(true);
+
+    await workspaces.releaseLease(leased);
+    const second = await specRun(
+      FakeAgentStep.init(implemented("one.ts"), reviewed()),
+    ).run(spec);
+
+    expect(second.landed).toEqual([refOf(1)]);
+  });
+
+  it("waits on a ticket another holder leases between the pick and the take, rather than stopping it", async () => {
+    addSpec([1, 2]);
+    const run = specRun(FakeAgentStep.init(implemented("two.ts"), reviewed()));
+    const leased = await run.workspaces.create(refOf(1));
+    const openBlockersOf = github.openBlockersOf.bind(github);
+    github.openBlockersOf = async (ref) => {
+      if (ref.number === 1) await run.workspaces.takeLease(leased, session);
+      return openBlockersOf(ref);
+    };
+
+    const result = await run.run(spec);
+
+    expect(result).toEqual<RunResult>({
+      kind: "finished",
+      landed: [refOf(2)],
+      message: `Run ended: landed byro-repo #2. byro-repo #1 is leased by a session (pid ${process.ppid}).`,
+    });
+    expect(github.comments.filter(({ issue }) => issue.number === 1)).toEqual(
+      [],
+    );
+  });
+
+  it("leaves a ticket the session landed while holding the lease alone once it lets go", async () => {
+    addSpec([1]);
+    const { workspaces } = specRun(FakeAgentStep.init());
+    const leased = await workspaces.create(refOf(1));
+    await workspaces.takeLease(leased, session);
+    await specRun(FakeAgentStep.init()).run(spec);
+    github.edit(1, { isOpen: false });
+    await workspaces.releaseLease(leased);
+
+    const rerunStep = FakeAgentStep.init();
+    const result = await specRun(rerunStep).run(spec);
+
+    expect(result.message).toBe(
+      "Run ended: landed nothing. Every ticket is closed.",
+    );
+    expect(rerunStep.requests).toEqual([]);
+  });
+
+  it("holds the lease on the ticket it works and releases it when it moves off, here on a Stop", async () => {
+    addSpec([1]);
+    let heldDuringStep: Lease | undefined;
+    const run = specRun(
+      FakeAgentStep.init(
+        async (request) => {
+          const workspace = await run.workspaces.find(refOf(1));
+          heldDuringStep = workspace?.lease;
+          return implemented("one.ts")(request);
+        },
+        reviewed(["A finding."]),
+      ),
+    );
+
+    await run.run(spec);
+
+    expect(heldDuringStep).toEqual({
+      kind: "run",
+      pid: process.pid,
+      isLive: true,
+    });
+    const workspace = await run.workspaces.find(refOf(1));
+    expect(workspace?.lease).toBeUndefined();
+    await run.workspaces.start(refOf(1), session);
+  });
+});
+
 describe("run's limit guard", () => {
   function summaries(): string[] {
     return notices.sent.map(({ summary }) => summary);

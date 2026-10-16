@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
   chmodSync,
   existsSync,
@@ -18,6 +18,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   IssueWorkspaces,
   type IssueWorkspacesConfig,
+  type LeaseHolder,
 } from "./IssueWorkspaces.ts";
 
 const clonePaths = {
@@ -771,6 +772,137 @@ describe("list", () => {
 
   it("is empty before any workspace exists", async () => {
     expect(await workspaces().list()).toEqual([]);
+  });
+});
+
+// The test runner's parent outlives every test, so it stands in for another live holder.
+const liveSession: LeaseHolder = { kind: "session", pid: process.ppid };
+
+function deadPid(): number {
+  const { pid } = spawnSync("node", ["-e", ""]);
+  if (pid === undefined) throw new Error("The throwaway process didn't start");
+  return pid;
+}
+
+describe("a lease", () => {
+  it("is taken, read back with its holder live, and leaves the workspace clean", async () => {
+    const workspace = await workspaces().create({ session: "glossary-fix" });
+
+    await workspaces().takeLease(workspace, liveSession);
+
+    expect(await workspaces().leaseOf(workspace)).toEqual({
+      ...liveSession,
+      isLive: true,
+    });
+    const found = await workspaces().find({ session: "glossary-fix" });
+    expect(found?.lease).toEqual({ ...liveSession, isLive: true });
+    expect(found?.dirtyRepos).toEqual([]);
+  });
+
+  it("is refused to another holder while its holder lives, naming the holder, and re-taken by its own", async () => {
+    const workspace = await workspaces().create({ session: "glossary-fix" });
+    await workspaces().takeLease(workspace, liveSession);
+
+    await expect(
+      workspaces().takeLease(workspace, { kind: "run", pid: process.pid }),
+    ).rejects.toThrow(`a session (pid ${process.ppid})`);
+    await workspaces().takeLease(workspace, liveSession);
+    expect(await workspaces().leaseOf(workspace)).toMatchObject(liveSession);
+  });
+
+  it("is read as abandoned once its holder dies, and taken over", async () => {
+    const workspace = await workspaces().create({ session: "glossary-fix" });
+    const dead: LeaseHolder = { kind: "session", pid: deadPid() };
+    await workspaces().takeLease(workspace, dead);
+
+    expect(await workspaces().leaseOf(workspace)).toEqual({
+      ...dead,
+      isLive: false,
+    });
+    await workspaces().takeLease(workspace, { kind: "run", pid: process.pid });
+    expect(await workspaces().leaseOf(workspace)).toEqual({
+      kind: "run",
+      pid: process.pid,
+      isLive: true,
+    });
+  });
+
+  it("is read as abandoned when its process ID now belongs to a process started since", async () => {
+    const workspace = await workspaces().create({ session: "glossary-fix" });
+    await workspaces().takeLease(workspace, liveSession);
+    const gitDir = execFileSync("git", ["rev-parse", "--absolute-git-dir"], {
+      cwd: workspace.path,
+      encoding: "utf8",
+    }).trim();
+    const leasePath = join(gitDir, "workspace.lease");
+    const lease = JSON.parse(readFileSync(leasePath, "utf8")) as object;
+    writeFileSync(
+      leasePath,
+      JSON.stringify({ ...lease, startedAt: "Thu Jan  1 00:00:00 1970" }),
+    );
+
+    expect(await workspaces().leaseOf(workspace)).toEqual({
+      ...liveSession,
+      isLive: false,
+    });
+  });
+
+  it("is released", async () => {
+    const workspace = await workspaces().create({ session: "glossary-fix" });
+    await workspaces().takeLease(workspace, liveSession);
+
+    await workspaces().releaseLease(workspace);
+
+    expect(await workspaces().leaseOf(workspace)).toBeUndefined();
+    await workspaces().takeLease(workspace, { kind: "run", pid: process.pid });
+  });
+
+  it("keeps start from resuming the workspace for anyone but its holder", async () => {
+    const key = { repo: "byro-repo", number: 7 };
+    const workspace = await workspaces().create(key, { slug: "leased" });
+    await workspaces().takeLease(workspace, liveSession);
+
+    await expect(workspaces().start(key)).rejects.toThrow(
+      `a session (pid ${process.ppid})`,
+    );
+    expect((await workspaces().start(key, liveSession)).path).toBe(
+      workspace.path,
+    );
+  });
+
+  it("is taken by start for the holder it names", async () => {
+    const workspace = await workspaces().start(
+      { session: "glossary-fix" },
+      liveSession,
+    );
+
+    expect(await workspaces().leaseOf(workspace)).toMatchObject(liveSession);
+  });
+
+  it("keeps remove from removing the workspace, even with force, until it is released or its holder dies", async () => {
+    const workspace = await workspaces().create({ session: "glossary-fix" });
+    await workspaces().takeLease(workspace, liveSession);
+
+    await expect(
+      workspaces().remove(workspace, { force: true }),
+    ).rejects.toThrow(`a session (pid ${process.ppid})`);
+    expect(existsSync(workspace.path)).toBe(true);
+
+    await workspaces().releaseLease(workspace);
+    await workspaces().remove(workspace);
+    expect(existsSync(workspace.path)).toBe(false);
+  });
+
+  it("leaves remove free once its holder dies", async () => {
+    const workspace = await workspaces().create({ session: "glossary-fix" });
+    await workspaces().takeLease(workspace, {
+      kind: "session",
+      pid: deadPid(),
+    });
+
+    await workspaces().remove(workspace);
+
+    expect(existsSync(workspace.path)).toBe(false);
   });
 });
 

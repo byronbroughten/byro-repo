@@ -1,6 +1,7 @@
 // The run loop: takes one spec's tickets, one at a time in blocking-graph order, through implement, review, checks and
 // wrap-up in each ticket's issue workspace, and never closes the spec. Preflight refuses or Stops a run before it starts.
 // Any outcome a later ticket will handle (findings, red checks, step errors, blockers, schema failures) is an UnhandledStop.
+// The run holds the lease on the workspace of the ticket it's working; a ticket another holder has leased waits.
 // GitHub and git hold what's durable; a per-spec state file holds the step each ticket reached, so a rerun resumes there.
 // Steps launch through AgentStep.ts; prompts are implementStep.ts and reviewStep.ts; landing is WrapUp.ts; knobs are runKnobs.ts.
 
@@ -35,12 +36,17 @@ import {
 import { type BodyAuthorship, untrustedBodyReasonOf } from "./IssueReader.ts";
 import {
   fileStemOf,
+  holderLabelOf,
+  isSameHolder,
   issueLabelOf,
   type IssueRef,
   IssueWorkspaces,
   type IssueWorkspacesConfig,
+  type LeaseHolder,
+  otherLiveHolderOf,
   type Workspace,
 } from "./IssueWorkspaces.ts";
+import { LeaseHeld } from "./LeaseHeld.ts";
 import {
   type AccountReading,
   type AccountUsage,
@@ -78,6 +84,7 @@ import {
 const execFileAsync = promisify(execFile);
 
 const readyLabel = "ready-for-agent";
+const runHolder: LeaseHolder = { kind: "run", pid: process.pid };
 
 export interface TrackedIssue extends BodyAuthorship {
   issue: IssueRef;
@@ -178,6 +185,8 @@ interface LaunchedStep {
   logPath: string;
 }
 
+type TicketOutcome = "landed" | "stopped" | "leased";
+
 type Selection =
   | { kind: "launch"; ticket: TrackedIssue }
   | { kind: "stopped-again"; ticket: TrackedIssue; stop: string }
@@ -255,14 +264,15 @@ export class SpecRun {
           `${label} is still open after its Stop (${selection.stop}); finish and land it, then rerun.`,
         );
       }
-      let isLanded: boolean;
+      let outcome: TicketOutcome;
       try {
-        isLanded = await this._runTicket(run, selection.ticket);
+        outcome = await this._runTicket(run, selection.ticket);
       } catch (error) {
         if (!(error instanceof LimitStop)) throw error;
         return this._end(run, "stopped", error.message);
       }
-      if (!isLanded) {
+      if (outcome === "leased") continue;
+      if (outcome === "stopped") {
         return this._end(
           run,
           "stopped",
@@ -393,11 +403,16 @@ export class SpecRun {
     for (const ticket of run.tickets) {
       const tracked = await this.config.github.issueOf(ticket);
       if (!tracked.isOpen) continue;
+      const label = issueLabelOf(ticket);
+      const otherHolder = await this._otherHolderOf(ticket);
+      if (otherHolder !== undefined) {
+        waiting.push(`${label} is leased by ${holderLabelOf(otherHolder)}`);
+        continue;
+      }
       const { stop } = ticketStateOf(run, ticket);
       if (stop !== undefined) {
         return { kind: "stopped-again", ticket: tracked, stop };
       }
-      const label = issueLabelOf(ticket);
       if (!isLaunchable(tracked)) {
         waiting.push(`${label} waits on the developer`);
         continue;
@@ -416,8 +431,11 @@ export class SpecRun {
     return { kind: "launch", ticket: first };
   }
 
-  // True once the ticket lands; an UnhandledStop leaves it unlanded, commented on and noticed.
-  private async _runTicket(run: Run, ticket: TrackedIssue): Promise<boolean> {
+  // An UnhandledStop leaves the ticket unlanded, commented on and noticed; a lease taken since the pick leaves it waiting.
+  private async _runTicket(
+    run: Run,
+    ticket: TrackedIssue,
+  ): Promise<TicketOutcome> {
     const state = ticketStateOf(run, ticket.issue);
     try {
       const pair = pairOf(ticket.body);
@@ -436,19 +454,60 @@ export class SpecRun {
         const workspace = await this._workspaceFor(run, ticket.issue);
         const targets = targetsAtLaunchOf(ticket, this._progressPathOf(run));
         await this._runSteps({ run, ticket, pair, workspace, state, targets });
+      } else {
+        const landing = await this.workspaces.find(ticket.issue);
+        if (landing) await this._takeLease(run, landing);
       }
       await this._land({ run, ticket, pair, state });
-      return true;
+      return "landed";
     } catch (error) {
+      if (error instanceof LeaseHeld) {
+        this._log(run, `${issueLabelOf(ticket.issue)}: ${error.message}`);
+        return "leased";
+      }
       if (!(error instanceof UnhandledStop)) throw error;
       await this._stopTicket(run, ticket, error);
-      return false;
+      return "stopped";
+    } finally {
+      await this._releaseLeaseOf(ticket.issue);
+    }
+  }
+
+  private async _otherHolderOf(
+    issue: IssueRef,
+  ): Promise<LeaseHolder | undefined> {
+    const lease = (await this.workspaces.find(issue))?.lease;
+    return otherLiveHolderOf(lease, runHolder);
+  }
+
+  private async _releaseLeaseOf(issue: IssueRef): Promise<void> {
+    const workspace = await this.workspaces.find(issue);
+    if (workspace?.lease && isSameHolder(workspace.lease, runHolder)) {
+      await this.workspaces.releaseLease(workspace);
+    }
+  }
+
+  private async _takeLease(run: Run, workspace: Workspace): Promise<void> {
+    try {
+      await this.workspaces.takeLease(workspace, runHolder);
+    } catch (error) {
+      if (error instanceof LeaseHeld) throw error;
+      throw new UnhandledStop(
+        "workspace",
+        messageOf(error),
+        this._progressPathOf(run),
+      );
     }
   }
 
   private async _workspaceFor(run: Run, issue: IssueRef): Promise<Workspace> {
     const existing = await this.workspaces.find(issue);
-    if (!existing) return this.workspaces.create(issue);
+    if (!existing) {
+      const created = await this.workspaces.create(issue);
+      await this._takeLease(run, created);
+      return created;
+    }
+    await this._takeLease(run, existing);
     try {
       await this.workspaces.resume(existing);
     } catch (error) {

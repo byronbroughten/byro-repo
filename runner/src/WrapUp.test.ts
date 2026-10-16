@@ -357,6 +357,22 @@ describe("run", () => {
     ]);
   });
 
+  it("releases the lease of the session landing it, removing the workspace", async () => {
+    const workspace = await workspaceWith();
+    commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
+    await IssueWorkspaces.init(workspacesConfig()).takeLease(workspace, {
+      kind: "session",
+      pid: process.ppid,
+    });
+    writeFacts();
+
+    await wrapUp().run(ticket);
+
+    expect(existsSync(workspace.path)).toBe(false);
+    expect(await IssueWorkspaces.init(workspacesConfig()).list()).toEqual([]);
+    expect(github.closed.map(({ issue }) => issue)).toEqual([ticket]);
+  });
+
   it("logs a failed branch delete, keeps the workspace and still closes the issue", async () => {
     const workspace = await workspaceWith();
     commitIn(workspace, "byro-repo", "script.ts", "export {};\n");

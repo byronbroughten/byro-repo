@@ -660,7 +660,9 @@ export class WrapUp {
 
   private async _removeWorkspace(issue: IssueRef): Promise<void> {
     const workspace = await this.workspaces.find(issue);
-    if (workspace) await this.workspaces.remove(workspace);
+    if (!workspace) return;
+    await this.workspaces.releaseLease(workspace);
+    await this.workspaces.remove(workspace);
   }
 
   private async _close(ticket: Ticket): Promise<void> {

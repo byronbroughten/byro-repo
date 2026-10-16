@@ -1,6 +1,8 @@
 // The workspace module: creates, lists, promotes, resumes and removes workspaces, each a byro-repo worktree outside the
 // primary root with a worktree of every package clone inside it, so work never moves a primary checkout's branch.
 // An issue workspace is keyed by an IssueRef; a session workspace by a SessionKey, with every repo on its session branch.
+// A lease is a run's or session's hold on one workspace, a file in its root worktree's git folder so it never shows as dirty;
+// it is live while the process that took it runs on this machine, and a dead holder's lease is taken over.
 // Everything repo-specific comes in as IssueWorkspacesConfig; byro-repo's values live in scripts/runner/.
 
 import { execFile } from "node:child_process";
@@ -12,16 +14,19 @@ import {
   rmSync,
   statSync,
   symlinkSync,
+  writeFileSync,
 } from "node:fs";
 import { basename, join } from "node:path";
 import { promisify } from "node:util";
 
 import { git, lines } from "./git.ts";
+import { LeaseHeld } from "./LeaseHeld.ts";
 
 const execFileAsync = promisify(execFile);
 
 const maxSlugWords = 6;
 const lockfileName = "package-lock.json";
+const leaseFileName = "workspace.lease";
 
 export interface IssueRef {
   repo: string;
@@ -76,9 +81,38 @@ export interface Workspace {
   branchedRepos: string[];
 }
 
+export interface LeaseHolder {
+  kind: "run" | "session";
+  pid: number;
+}
+
+export interface Lease extends LeaseHolder {
+  isLive: boolean;
+}
+
+export function isSameHolder(a: LeaseHolder, b: LeaseHolder): boolean {
+  return a.kind === b.kind && a.pid === b.pid;
+}
+
+// The lease when someone other than the holder holds it live, undefined when the holder may take it.
+export function otherLiveHolderOf(
+  lease: Lease | undefined,
+  holder?: LeaseHolder,
+): Lease | undefined {
+  if (!lease?.isLive || (holder && isSameHolder(holder, lease))) {
+    return undefined;
+  }
+  return lease;
+}
+
+export function holderLabelOf({ kind, pid }: LeaseHolder): string {
+  return `a ${kind} (pid ${pid})`;
+}
+
 export interface WorkspaceStatus extends Workspace {
   dirtyRepos: string[];
   createdAt: Date;
+  lease?: Lease;
 }
 
 export interface RemoveOptions {
@@ -120,11 +154,37 @@ export class IssueWorkspaces {
     return { path, key, branch, branchedRepos };
   }
 
-  async start(key: WorkspaceKey): Promise<Workspace> {
+  // The lease is checked before resume, which would move another holder's detached repos.
+  async start(key: WorkspaceKey, holder?: LeaseHolder): Promise<Workspace> {
     const existing = await this.find(key);
-    if (!existing) return this.create(key);
-    await this.resume(existing);
-    return existing;
+    if (existing) {
+      assertLeaseFree({ path: existing.path, lease: existing.lease, holder });
+      await this.resume(existing);
+    }
+    const workspace = existing ?? (await this.create(key));
+    if (holder) await this.takeLease(workspace, holder);
+    return workspace;
+  }
+
+  async takeLease(workspace: Workspace, holder: LeaseHolder): Promise<void> {
+    const leasePath = await leasePathOf(workspace.path);
+    const { kind, pid } = holder;
+    const startedAt = await startTimeOf(pid);
+    for (;;) {
+      const lease = await readLease(leasePath);
+      assertLeaseFree({ path: workspace.path, lease, holder });
+      if (lease) rmSync(leasePath, { force: true });
+      const content = JSON.stringify({ kind, pid, startedAt });
+      if (tryCreate(leasePath, content)) return;
+    }
+  }
+
+  async releaseLease(workspace: Workspace): Promise<void> {
+    rmSync(await leasePathOf(workspace.path), { force: true });
+  }
+
+  async leaseOf(workspace: Workspace): Promise<Lease | undefined> {
+    return readLease(await leasePathOf(workspace.path));
   }
 
   // Every repo detached at its master, rebuilt on each call so it holds exactly the commits master points to now.
@@ -201,7 +261,11 @@ export class IssueWorkspaces {
     workspace: Workspace,
     { force = false }: RemoveOptions = {},
   ): Promise<void> {
-    const { dirtyRepos } = await this._statusOf(workspace.path, workspace.key);
+    const { dirtyRepos, lease } = await this._statusOf(
+      workspace.path,
+      workspace.key,
+    );
+    assertLeaseFree({ path: workspace.path, lease });
     const orphanedRepos = await this._orphanedRepos(workspace);
     if ((dirtyRepos.length > 0 || orphanedRepos.length > 0) && !force) {
       throw new Error(
@@ -413,6 +477,7 @@ export class IssueWorkspaces {
       branchedRepos,
       dirtyRepos,
       createdAt: statSync(path).birthtime,
+      lease: await readLease(await leasePathOf(path)),
     };
   }
 
@@ -622,6 +687,74 @@ async function isOrphanedHead(worktree: string): Promise<boolean> {
     "refs/remotes",
   );
   return containing === "";
+}
+
+async function leasePathOf(workspacePath: string): Promise<string> {
+  return join(
+    await git(workspacePath, "rev-parse", "--absolute-git-dir"),
+    leaseFileName,
+  );
+}
+
+// An unreadable lease file counts as no lease, so a torn write never locks a workspace for good.
+async function readLease(path: string): Promise<Lease | undefined> {
+  let file: LeaseFile;
+  try {
+    file = JSON.parse(readFileSync(path, "utf8")) as LeaseFile;
+  } catch {
+    return undefined;
+  }
+  const { kind, pid, startedAt } = file;
+  const startedNow = await startTimeOf(pid);
+  return {
+    kind,
+    pid,
+    isLive: startedNow !== undefined && startedNow === startedAt,
+  };
+}
+
+interface LeaseFile extends LeaseHolder {
+  startedAt?: string;
+}
+
+// The exclusive flag makes two takers racing for a free lease end with one holder.
+function tryCreate(path: string, content: string): boolean {
+  try {
+    writeFileSync(path, content, { flag: "wx" });
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "EEXIST") return false;
+    throw error;
+  }
+}
+
+interface LeaseCheck {
+  path: string;
+  lease: Lease | undefined;
+  holder?: LeaseHolder;
+}
+
+function assertLeaseFree({ path, lease, holder }: LeaseCheck): void {
+  const other = otherLiveHolderOf(lease, holder);
+  if (!other) return;
+  throw new LeaseHeld(
+    `${path} is leased by ${holderLabelOf(other)}, which is still running`,
+  );
+}
+
+// Compared with the time the lease recorded, so a reused process ID never makes an abandoned lease look live.
+async function startTimeOf(pid: number): Promise<string | undefined> {
+  try {
+    const { stdout } = await execFileAsync("ps", [
+      "-o",
+      "lstart=",
+      "-p",
+      `${pid}`,
+    ]);
+    return stdout.trim() || undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function unsavedWork(dirtyRepos: string[], orphanedRepos: string[]): string {
