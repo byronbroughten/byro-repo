@@ -944,6 +944,28 @@ describe("runSession", () => {
     ]);
   });
 
+  it("retries a failed branch delete on a rerun, then removes the workspace", async () => {
+    const workspace = await sessionWorkspace();
+    commitIn(workspace, "byro-repo", "terms.md", "# Terms\n");
+    git(workspace.path, "push", "origin", `session-${session}`);
+    const remote = remoteOf("byro-repo");
+    const first = await wrapUp({
+      github: noGitHub,
+      log(line) {
+        if (line === "Done: push.") renameSync(remote, `${remote}.gone`);
+      },
+    }).runSession(session);
+    expect(first.branchDeleteFailures).toHaveLength(1);
+    expect(existsSync(workspace.path)).toBe(true);
+
+    renameSync(`${remote}.gone`, remote);
+    const result = await sessionWrapUp().runSession(session);
+
+    expect(result.branchDeleteFailures).toEqual([]);
+    expect(git(remote, "branch", "--list", "session-*")).toBe("");
+    expect(existsSync(workspace.path)).toBe(false);
+  });
+
   it("lands again from the kept workspace", async () => {
     const workspace = await sessionWorkspace();
     commitIn(workspace, "byro-repo", "terms.md", "# Terms\n");

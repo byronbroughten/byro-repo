@@ -1,7 +1,10 @@
 // Lands one ticket from its facts file in .runner/<repo>-<n>.facts.json, or a session workspace's branches with no facts
 // file; --keep lands mid-session and keeps the workspace. A rerun skips the steps already done.
 // Usage: npm run wrap-up -- (<repo> <n> | --session <slug> [--keep]).
-import { issueLabelOf } from "@byronbroughten/spec-runner/IssueWorkspaces";
+import {
+  issueLabelOf,
+  workspaceLabelOf,
+} from "@byronbroughten/spec-runner/IssueWorkspaces";
 import { type ParentCheck, WrapUp } from "@byronbroughten/spec-runner/WrapUp";
 import { WrapUpFailure } from "@byronbroughten/spec-runner/WrapUpFailure";
 
@@ -44,7 +47,9 @@ async function landSession(args: string[]): Promise<void> {
     throw new Error(usage);
   }
   const result = await WrapUp.init(wrapUpConfig).runSession(session, { keep });
-  console.log(`Landed session ${session}: ${result.filesChanged} files.`);
+  console.log(
+    `Landed ${workspaceLabelOf({ session })}: ${result.filesChanged} files.`,
+  );
   logBranchDeleteFailures(result.branchDeleteFailures);
   if (keep) console.log("The workspace stays, level with master.");
 }

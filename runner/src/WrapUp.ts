@@ -267,10 +267,13 @@ export class WrapUp {
         this._levelWorkspace(key),
       );
     } else {
+      retryBranchDeletes(ticket);
       await this._landAndRemove(ticket);
     }
     // A session lands again under the same slug, so its next landing starts from no progress.
-    rmSync(this._progressPathOf(key), { force: true });
+    if (isDone(ticket, keep ? "level-workspace" : "remove-workspace")) {
+      rmSync(this._progressPathOf(key), { force: true });
+    }
     return landingResultOf(ticket);
   }
 
@@ -893,6 +896,14 @@ function isDone(ticket: Ticket, step: WrapUpStep): boolean {
 function landingResultOf({ progress }: Ticket): LandingResult {
   const { completed, filesChanged = 0, branchDeleteFailures = [] } = progress;
   return { completed, filesChanged, branchDeleteFailures };
+}
+
+// Unlike a ticket, whose issue closes regardless, a session's workspace removal waits on every branch being deleted.
+function retryBranchDeletes(ticket: Ticket): void {
+  if ((ticket.progress.branchDeleteFailures ?? []).length === 0) return;
+  ticket.progress.completed = ticket.progress.completed.filter(
+    (step) => step !== "delete-branches",
+  );
 }
 
 function stateStemOf(key: WorkspaceKey): string {
