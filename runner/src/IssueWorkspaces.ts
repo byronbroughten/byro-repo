@@ -52,6 +52,10 @@ export function issueLabelOf({ repo, number }: IssueRef): string {
   return `${repo} #${number}`;
 }
 
+export function sessionBranchOf({ session }: SessionKey): string {
+  return `${sessionBranchPrefix}${session}`;
+}
+
 // The issue as a file name's stem, for the state files kept per issue.
 export function fileStemOf({ repo, number }: IssueRef): string {
   return `${repo}-${number}`;
@@ -289,7 +293,7 @@ export class IssueWorkspaces {
     key: WorkspaceKey,
     slug: string | undefined,
   ): Promise<string> {
-    if (isSessionKey(key)) return `${sessionBranchPrefix}${key.session}`;
+    if (isSessionKey(key)) return sessionBranchOf(key);
     return this._issueBranchName(key, slug);
   }
 
