@@ -107,6 +107,14 @@ export function headMovingCheckouts(target: CommandTarget): string[] {
   return [...new Set(checkouts)];
 }
 
+// The primary checkouts the command commits in, for the primary-edit guard.
+export function commitCheckouts(target: CommandTarget): string[] {
+  const checkouts = gitActionsOf(target, () => false)
+    .filter(({ kind }) => kind === "commit")
+    .map(({ checkout }) => checkout);
+  return [...new Set(checkouts)];
+}
+
 export function isLive(
   { endedAt, recordedAt }: SessionRecord,
   now: number,
@@ -247,7 +255,7 @@ function gitActionOf(
 }
 
 // The deepest primary checkout holding dir, unless dir is in a worktree nested inside it.
-function primaryCheckoutOf(
+export function primaryCheckoutOf(
   dir: string,
   primaryCheckouts: string[],
 ): string | undefined {
