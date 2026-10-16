@@ -104,7 +104,7 @@ function commandArgs(request: StepRequest): string[] {
   return args;
 }
 
-// Settings layered on the workspace's own, registering the hook that answers the prompt a .claude/ skill or agent write raises.
+// Settings layered on the workspace's own, registering the hook that answers the prompt an allowed .claude/ write raises.
 function settingsOf({ cwd, allowedWriteGlobs }: StepRequest): object {
   const hookArgs: ClaudeWriteHookArgs = {
     workspaceRoot: cwd,
