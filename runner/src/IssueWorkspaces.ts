@@ -100,7 +100,7 @@ export class IssueWorkspaces {
     key: WorkspaceKey,
     options: CreateOptions = {},
   ): Promise<Workspace> {
-    if (isSessionKey(key)) assertSessionSlug(key.session);
+    if (isSessionKey(key)) assertSessionCreate(key, options);
     const branchedRepos = this._branchedReposOf(key, options);
     const existing = await this.find(key);
     if (existing) {
@@ -473,7 +473,15 @@ function isSameKey(a: WorkspaceKey, b: WorkspaceKey): boolean {
   return a.repo === b.repo && a.number === b.number;
 }
 
-function assertSessionSlug(session: string): void {
+function assertSessionCreate(
+  { session }: SessionKey,
+  { slug, extraRepos }: CreateOptions,
+): void {
+  if (slug !== undefined || extraRepos !== undefined) {
+    throw new Error(
+      `A slug or extra repos are for an issue workspace; session ${session} puts every repo on its branch`,
+    );
+  }
   if (/^[a-z0-9]+(-[a-z0-9]+)*$/.test(session)) return;
   throw new Error(
     `"${session}" is not a session slug; use lowercase words joined by hyphens`,

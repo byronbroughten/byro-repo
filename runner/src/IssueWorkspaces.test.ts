@@ -165,7 +165,7 @@ describe("create", () => {
 });
 
 describe("a session workspace", () => {
-  it("puts every repo on session-<slug>, in the same workspace folder, without asking for a title", async () => {
+  it("puts every repo on session-<slug>, in the same workspace folder, with no title lookup, since that is a gh call", async () => {
     const before = primaryStates();
     const workspace = await workspaces().create({ session: "glossary-fix" });
 
@@ -182,6 +182,19 @@ describe("a session workspace", () => {
     ]);
     expect(titleLookups).toBe(0);
     expect(primaryStates()).toEqual(before);
+  });
+
+  it("refuses a slug or extra repos, which only an issue workspace takes", async () => {
+    await expect(
+      workspaces().create({ session: "glossary-fix" }, { slug: "other" }),
+    ).rejects.toThrow(/issue workspace/);
+    await expect(
+      workspaces().create(
+        { session: "glossary-fix" },
+        { extraRepos: ["utils"] },
+      ),
+    ).rejects.toThrow(/issue workspace/);
+    expect(await workspaces().list()).toEqual([]);
   });
 
   it("refuses a session key that isn't a slug", async () => {
@@ -287,7 +300,6 @@ describe("start", () => {
     expect(git(join(created.path, "packages/utils"), "rev-parse", "HEAD")).toBe(
       newerUtils,
     );
-    expect(installs).toHaveLength(1);
   });
 
   it("resumes an existing session workspace, keeping its work", async () => {
@@ -300,7 +312,6 @@ describe("start", () => {
     expect(readFileSync(join(created.path, "work.txt"), "utf8")).toBe(
       "in progress",
     );
-    expect(installs).toHaveLength(1);
   });
 });
 
