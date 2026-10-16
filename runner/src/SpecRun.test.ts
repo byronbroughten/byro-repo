@@ -222,11 +222,13 @@ function recordOf(
   } as ImplementRecord;
 }
 
+type StepScript = (request: StepRequest) => Promise<StepResult>;
+
 // Commits `file` on the ticket's branch in the workspace, as a real implement step would.
 function implemented(
   file: string,
   { content = "export {};\n", act = () => {} } = {},
-): (request: StepRequest) => Promise<StepResult> {
+): StepScript {
   return async (request: StepRequest) => {
     act();
     writeFileSync(join(request.cwd, file), content);

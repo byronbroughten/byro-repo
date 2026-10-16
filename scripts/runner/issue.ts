@@ -10,6 +10,7 @@ import {
   holderLabelOf,
   type IssueRef,
   IssueWorkspaces,
+  type Lease,
   type LeaseHolder,
   type Workspace,
   type WorkspaceKey,
@@ -53,7 +54,7 @@ async function start(args: string[]): Promise<void> {
     await openClaude(workspace);
     return;
   }
-  const holder = claudeAncestor();
+  const holder = nearestClaudeAncestor();
   const { path } = await workspaces.start(key, holder);
   console.log(path);
   if (!holder) {
@@ -61,7 +62,7 @@ async function start(args: string[]): Promise<void> {
   }
 }
 
-// Runs in the foreground so the session takes over the terminal, holds the lease, and passes its exit status on.
+// Runs in the foreground so the session takes over the terminal, and passes its exit status on.
 async function openClaude(workspace: Workspace): Promise<void> {
   const claude = spawn("claude", { cwd: workspace.path, stdio: "inherit" });
   const exited = new Promise<number | null>((resolve, reject) => {
@@ -82,23 +83,27 @@ async function openClaude(workspace: Workspace): Promise<void> {
   process.exitCode = (await exited) ?? 1;
 }
 
-// The nearest claude above this process, which is the session that ran the command.
-function claudeAncestor(): LeaseHolder | undefined {
+function nearestClaudeAncestor(): LeaseHolder | undefined {
   let pid = process.ppid;
   while (pid > 1) {
-    const [parent, ...command] = execFileSync(
-      "ps",
-      ["-o", "ppid=,comm=", "-p", String(pid)],
-      { encoding: "utf8" },
-    )
-      .trim()
-      .split(/\s+/);
+    const [parent, ...command] = processLineOf(pid).split(/\s+/);
     if (basename(command.join(" ")) === "claude") {
       return { kind: "session", pid };
     }
     pid = Number(parent);
   }
   return undefined;
+}
+
+// Empty once the process has exited, which ends the walk.
+function processLineOf(pid: number): string {
+  try {
+    return execFileSync("ps", ["-o", "ppid=,comm=", "-p", String(pid)], {
+      encoding: "utf8",
+    }).trim();
+  } catch {
+    return "";
+  }
 }
 
 async function list(): Promise<void> {
@@ -123,7 +128,7 @@ function lineOf(workspace: WorkspaceStatus): string {
   ].join("  ");
 }
 
-function leaseLabelOf(lease: WorkspaceStatus["lease"]): string {
+function leaseLabelOf(lease: Lease | undefined): string {
   if (!lease) return "no lease";
   if (!lease.isLive) return `lease abandoned by ${holderLabelOf(lease)}`;
   return `leased by ${holderLabelOf(lease)}`;

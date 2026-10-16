@@ -93,6 +93,17 @@ export function isSameHolder(a: LeaseHolder, b: LeaseHolder): boolean {
   return a.kind === b.kind && a.pid === b.pid;
 }
 
+// The lease when someone other than the holder holds it live, undefined when the holder may take it.
+export function otherLiveHolderOf(
+  lease: Lease | undefined,
+  holder?: LeaseHolder,
+): Lease | undefined {
+  if (!lease?.isLive || (holder && isSameHolder(holder, lease))) {
+    return undefined;
+  }
+  return lease;
+}
+
 export function holderLabelOf({ kind, pid }: LeaseHolder): string {
   return `a ${kind} (pid ${pid})`;
 }
@@ -142,11 +153,11 @@ export class IssueWorkspaces {
     return { path, key, branch, branchedRepos };
   }
 
-  // Refuses a live lease held by anyone but the holder, before resuming touches the workspace; takes the lease for the holder.
+  // The lease is checked before resume, which would move another holder's detached repos.
   async start(key: WorkspaceKey, holder?: LeaseHolder): Promise<Workspace> {
     const existing = await this.find(key);
     if (existing) {
-      assertLeaseFree(existing.path, existing.lease, holder);
+      assertLeaseFree({ path: existing.path, lease: existing.lease, holder });
       await this.resume(existing);
     }
     const workspace = existing ?? (await this.create(key));
@@ -155,12 +166,14 @@ export class IssueWorkspaces {
   }
 
   async takeLease(workspace: Workspace, holder: LeaseHolder): Promise<void> {
-    assertLeaseFree(workspace.path, await this.leaseOf(workspace), holder);
+    const leasePath = await leasePathOf(workspace.path);
     const { kind, pid } = holder;
-    writeFileSync(
-      await leasePathOf(workspace.path),
-      JSON.stringify({ kind, pid }),
-    );
+    for (;;) {
+      const lease = readLease(leasePath);
+      assertLeaseFree({ path: workspace.path, lease, holder });
+      if (lease) rmSync(leasePath, { force: true });
+      if (tryCreate(leasePath, JSON.stringify({ kind, pid }))) return;
+    }
   }
 
   async releaseLease(workspace: Workspace): Promise<void> {
@@ -249,7 +262,7 @@ export class IssueWorkspaces {
       workspace.path,
       workspace.key,
     );
-    assertLeaseFree(workspace.path, lease, undefined);
+    assertLeaseFree({ path: workspace.path, lease });
     const orphanedRepos = await this._orphanedRepos(workspace);
     if ((dirtyRepos.length > 0 || orphanedRepos.length > 0) && !force) {
       throw new Error(
@@ -680,21 +693,38 @@ async function leasePathOf(workspacePath: string): Promise<string> {
   );
 }
 
+// An unreadable lease file counts as no lease, so a torn write never locks a workspace for good.
 function readLease(path: string): Lease | undefined {
-  if (!existsSync(path)) return undefined;
-  const { kind, pid } = JSON.parse(readFileSync(path, "utf8")) as LeaseHolder;
-  return { kind, pid, isLive: isRunning(pid) };
+  try {
+    const { kind, pid } = JSON.parse(readFileSync(path, "utf8")) as LeaseHolder;
+    return { kind, pid, isLive: isRunning(pid) };
+  } catch {
+    return undefined;
+  }
 }
 
-function assertLeaseFree(
-  workspacePath: string,
-  lease: Lease | undefined,
-  holder: LeaseHolder | undefined,
-): void {
-  if (!lease?.isLive) return;
-  if (holder && isSameHolder(holder, lease)) return;
+// The exclusive flag makes two takers racing for a free lease end with one holder.
+function tryCreate(path: string, content: string): boolean {
+  try {
+    writeFileSync(path, content, { flag: "wx" });
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "EEXIST") return false;
+    throw error;
+  }
+}
+
+interface LeaseCheck {
+  path: string;
+  lease: Lease | undefined;
+  holder?: LeaseHolder;
+}
+
+function assertLeaseFree({ path, lease, holder }: LeaseCheck): void {
+  const other = otherLiveHolderOf(lease, holder);
+  if (!other) return;
   throw new Error(
-    `${workspacePath} is leased by ${holderLabelOf(lease)}, which is still running`,
+    `${path} is leased by ${holderLabelOf(other)}, which is still running`,
   );
 }
 

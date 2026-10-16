@@ -43,6 +43,7 @@ import {
   IssueWorkspaces,
   type IssueWorkspacesConfig,
   type LeaseHolder,
+  otherLiveHolderOf,
   type Workspace,
 } from "./IssueWorkspaces.ts";
 import {
@@ -82,6 +83,7 @@ import {
 const execFileAsync = promisify(execFile);
 
 const readyLabel = "ready-for-agent";
+const runHolder: LeaseHolder = { kind: "run", pid: process.pid };
 
 export interface TrackedIssue extends BodyAuthorship {
   issue: IssueRef;
@@ -445,6 +447,9 @@ export class SpecRun {
         const workspace = await this._workspaceFor(run, ticket.issue);
         const targets = targetsAtLaunchOf(ticket, this._progressPathOf(run));
         await this._runSteps({ run, ticket, pair, workspace, state, targets });
+      } else {
+        const landing = await this.workspaces.find(ticket.issue);
+        if (landing) await this._leaseOrStop(run, landing);
       }
       await this._land({ run, ticket, pair, state });
       return true;
@@ -461,14 +466,25 @@ export class SpecRun {
     issue: IssueRef,
   ): Promise<LeaseHolder | undefined> {
     const lease = (await this.workspaces.find(issue))?.lease;
-    if (!lease?.isLive || isSameHolder(lease, runHolder())) return undefined;
-    return lease;
+    return otherLiveHolderOf(lease, runHolder);
   }
 
   private async _releaseLeaseOf(issue: IssueRef): Promise<void> {
     const workspace = await this.workspaces.find(issue);
-    if (workspace?.lease && isSameHolder(workspace.lease, runHolder())) {
+    if (workspace?.lease && isSameHolder(workspace.lease, runHolder)) {
       await this.workspaces.releaseLease(workspace);
+    }
+  }
+
+  private async _leaseOrStop(run: Run, workspace: Workspace): Promise<void> {
+    try {
+      await this.workspaces.takeLease(workspace, runHolder);
+    } catch (error) {
+      throw new UnhandledStop(
+        "workspace",
+        messageOf(error),
+        this._progressPathOf(run),
+      );
     }
   }
 
@@ -476,11 +492,11 @@ export class SpecRun {
     const existing = await this.workspaces.find(issue);
     if (!existing) {
       const created = await this.workspaces.create(issue);
-      await this.workspaces.takeLease(created, runHolder());
+      await this._leaseOrStop(run, created);
       return created;
     }
+    await this._leaseOrStop(run, existing);
     try {
-      await this.workspaces.takeLease(existing, runHolder());
       await this.workspaces.resume(existing);
     } catch (error) {
       throw new UnhandledStop(
@@ -946,10 +962,6 @@ function targetsAtLaunchOf(ticket: TrackedIssue, logPath: string): Target[] {
     `The ## Targets section changed after preflight: \`${reading.line}\` isn't ${targetLineShapes}.`,
     logPath,
   );
-}
-
-function runHolder(): LeaseHolder {
-  return { kind: "run", pid: process.pid };
 }
 
 function isLaunchable(ticket: TrackedIssue): boolean {
