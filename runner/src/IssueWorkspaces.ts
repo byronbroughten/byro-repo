@@ -1,5 +1,6 @@
-// The workspace module: creates, lists, promotes, resumes and removes issue workspaces, each a byro-repo worktree outside the
-// primary root with a worktree of every package clone inside it, so tickets never move a primary checkout's branch.
+// The workspace module: creates, lists, promotes, resumes and removes workspaces, each a byro-repo worktree outside the
+// primary root with a worktree of every package clone inside it, so work never moves a primary checkout's branch.
+// An issue workspace is keyed by an IssueRef; a session workspace by a SessionKey, with every repo on its session branch.
 // Everything repo-specific comes in as IssueWorkspacesConfig; byro-repo's values live in scripts/runner/.
 
 import { execFile } from "node:child_process";
@@ -25,6 +26,22 @@ const lockfileName = "package-lock.json";
 export interface IssueRef {
   repo: string;
   number: number;
+}
+
+// A workspace that belongs to no issue, opened by an interactive session.
+export interface SessionKey {
+  session: string;
+}
+
+export type WorkspaceKey = IssueRef | SessionKey;
+
+export function isSessionKey(key: WorkspaceKey): key is SessionKey {
+  return "session" in key;
+}
+
+export function workspaceLabelOf(key: WorkspaceKey): string {
+  if (isSessionKey(key)) return `session ${key.session}`;
+  return issueLabelOf(key);
 }
 
 export function issueLabelOf({ repo, number }: IssueRef): string {
@@ -55,7 +72,7 @@ export interface IssueWorkspacesConfig {
 
 export interface Workspace {
   path: string;
-  issue: IssueRef;
+  key: WorkspaceKey;
   branch: string;
   branchedRepos: string[];
 }
@@ -81,24 +98,34 @@ export class IssueWorkspaces {
   }
 
   async create(
-    issue: IssueRef,
+    key: WorkspaceKey,
     options: CreateOptions = {},
   ): Promise<Workspace> {
-    const branchedRepos = [issue.repo, ...(options.extraRepos ?? [])];
-    branchedRepos.forEach((repo) => this._clonePathOf(repo));
-    const existing = await this.find(issue);
+    const branchedRepos = this._branchedReposOf(key, options);
+    const existing = await this.find(key);
     if (existing) {
       return {
         path: existing.path,
-        issue,
+        key,
         branch: existing.branch,
         branchedRepos: existing.branchedRepos,
       };
     }
-    const branch = await this._branchName(issue, options.slug);
-    const path = join(this.config.workspaceFolder, `${issue.repo}-${branch}`);
+    const branch = await this._branchName(key, options.slug);
+    const path = join(
+      this.config.workspaceFolder,
+      `${folderPrefixOf(key)}${branch}`,
+    );
     await this._buildOrTearDown({ path, branch, branchedRepos });
-    return { path, issue, branch, branchedRepos };
+    return { path, key, branch, branchedRepos };
+  }
+
+  // Resumes the key's workspace, or creates it when there is none.
+  async start(key: WorkspaceKey): Promise<Workspace> {
+    const existing = await this.find(key);
+    if (!existing) return this.create(key);
+    await this.resume(existing);
+    return existing;
   }
 
   // Every repo detached at its master, rebuilt on each call so it holds exactly the commits master points to now.
@@ -114,23 +141,19 @@ export class IssueWorkspaces {
     return path;
   }
 
-  async find(issue: IssueRef): Promise<WorkspaceStatus | undefined> {
+  async find(key: WorkspaceKey): Promise<WorkspaceStatus | undefined> {
     const workspaces = await this.list();
-    return workspaces.find(
-      (workspace) =>
-        workspace.issue.repo === issue.repo &&
-        workspace.issue.number === issue.number,
-    );
+    return workspaces.find((workspace) => isSameKey(workspace.key, key));
   }
 
   async list(): Promise<WorkspaceStatus[]> {
     if (!existsSync(this.config.workspaceFolder)) return [];
     const workspaces: WorkspaceStatus[] = [];
     for (const name of readdirSync(this.config.workspaceFolder).sort()) {
-      const issue = this._issueOfFolder(name);
-      if (!issue) continue;
+      const key = this._keyOfFolder(name);
+      if (!key) continue;
       workspaces.push(
-        await this._statusOf(join(this.config.workspaceFolder, name), issue),
+        await this._statusOf(join(this.config.workspaceFolder, name), key),
       );
     }
     return workspaces;
@@ -151,11 +174,11 @@ export class IssueWorkspaces {
         ...(await switchArgs(worktree, workspace.branch)),
       );
     }
-    const { path, issue, branch, branchedRepos } = await this._statusOf(
+    const { path, key, branch, branchedRepos } = await this._statusOf(
       workspace.path,
-      workspace.issue,
+      workspace.key,
     );
-    return { path, issue, branch, branchedRepos };
+    return { path, key, branch, branchedRepos };
   }
 
   async resume(workspace: Workspace): Promise<void> {
@@ -179,10 +202,7 @@ export class IssueWorkspaces {
     workspace: Workspace,
     { force = false }: RemoveOptions = {},
   ): Promise<void> {
-    const { dirtyRepos } = await this._statusOf(
-      workspace.path,
-      workspace.issue,
-    );
+    const { dirtyRepos } = await this._statusOf(workspace.path, workspace.key);
     const orphanedRepos = await this._orphanedRepos(workspace);
     if ((dirtyRepos.length > 0 || orphanedRepos.length > 0) && !force) {
       throw new Error(
@@ -192,7 +212,32 @@ export class IssueWorkspaces {
     await this._tearDown(workspace.path, force);
   }
 
+  private _branchedReposOf(
+    key: WorkspaceKey,
+    options: CreateOptions,
+  ): string[] {
+    if (isSessionKey(key)) {
+      if (!isSlug(key.session)) {
+        throw new Error(
+          `"${key.session}" is not a session slug; use lowercase words joined by hyphens`,
+        );
+      }
+      return this._clonesRootFirst.map(([repo]) => repo);
+    }
+    const branchedRepos = [key.repo, ...(options.extraRepos ?? [])];
+    branchedRepos.forEach((repo) => this._clonePathOf(repo));
+    return branchedRepos;
+  }
+
   private async _branchName(
+    key: WorkspaceKey,
+    slug: string | undefined,
+  ): Promise<string> {
+    if (isSessionKey(key)) return `${sessionBranchPrefix}${key.session}`;
+    return this._issueBranchName(key, slug);
+  }
+
+  private async _issueBranchName(
     issue: IssueRef,
     slug: string | undefined,
   ): Promise<string> {
@@ -326,7 +371,10 @@ export class IssueWorkspaces {
     return orphaned;
   }
 
-  private _issueOfFolder(name: string): IssueRef | undefined {
+  private _keyOfFolder(name: string): WorkspaceKey | undefined {
+    if (name.startsWith(sessionBranchPrefix)) {
+      return { session: name.slice(sessionBranchPrefix.length) };
+    }
     for (const repo of Object.keys(this.config.clonePaths)) {
       const match = new RegExp(`^${escapeRegExp(repo)}-issue-(\\d+)-`).exec(
         name,
@@ -354,7 +402,7 @@ export class IssueWorkspaces {
 
   private async _statusOf(
     path: string,
-    issue: IssueRef,
+    key: WorkspaceKey,
   ): Promise<WorkspaceStatus> {
     const branchedRepos: string[] = [];
     const dirtyRepos: string[] = [];
@@ -367,9 +415,9 @@ export class IssueWorkspaces {
     }
     return {
       path,
-      issue,
+      key,
       // From the folder, which create() names after the branch, so it survives the repos being detached.
-      branch: basename(path).slice(`${issue.repo}-`.length),
+      branch: basename(path).slice(folderPrefixOf(key).length),
       branchedRepos,
       dirtyRepos,
       createdAt: statSync(path).birthtime,
@@ -416,6 +464,25 @@ type BranchOrigin =
 interface WorktreeTarget {
   primaryClone: string;
   worktree: string;
+}
+
+const sessionBranchPrefix = "session-";
+
+// A session folder is named for its branch alone; an issue folder leads with its repo, since issue numbers repeat across repos.
+function folderPrefixOf(key: WorkspaceKey): string {
+  if (isSessionKey(key)) return "";
+  return `${key.repo}-`;
+}
+
+function isSameKey(a: WorkspaceKey, b: WorkspaceKey): boolean {
+  if (isSessionKey(a) || isSessionKey(b)) {
+    return isSessionKey(a) && isSessionKey(b) && a.session === b.session;
+  }
+  return a.repo === b.repo && a.number === b.number;
+}
+
+function isSlug(text: string): boolean {
+  return /^[a-z0-9]+(-[a-z0-9]+)*$/.test(text);
 }
 
 function issueBranchPrefix(issueNumber: number): string {

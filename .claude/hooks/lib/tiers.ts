@@ -46,6 +46,9 @@ const freeScripts = new Map([
   ["app:build", "Apps Script keeps the pushed code's version history"],
   ["app:deploy", deployWhy],
   ["dev:deploy", deployWhy],
+  ["issue:start", "a workspace it starts comes off with `issue:remove`"],
+  ["issue:list", "it only reads the workspaces"],
+  ["issue:remove", "a plain remove refuses a workspace holding unlanded work"],
 ]);
 
 export function gateDecision(call: ShellCall): Decision | undefined {
@@ -144,6 +147,13 @@ function verdictOf(words: string[], dryRuns: string[]): Verdict | undefined {
     return {
       permissionDecision: "ask",
       why: "publishes a package, which reaches everyone who installs it",
+    };
+  }
+  // npmScriptOf drops flags, so the raw words are searched for --force.
+  if (script?.name === "issue:remove" && words.includes("--force")) {
+    return {
+      permissionDecision: "ask",
+      why: "discards a workspace's unlanded work, which git can't bring back",
     };
   }
   const freeWhy = script && freeScripts.get(script.name);

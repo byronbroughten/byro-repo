@@ -7,7 +7,8 @@ Primary checkouts and issue workspaces, branches and commits, landing a spec wit
 - **A primary checkout is a repo's one long-lived clone** (the root and each clone under `packages/`); an **issue workspace** is a disposable set of checkouts, one per repo, where one ticket is implemented ([`runner/GLOSSARY.md`](../../runner/GLOSSARY.md)). Primary checkouts never change branch; all issue work happens in an issue workspace. Direct edits on master stay allowed in a primary checkout (docs, grilling, mining).
 - **The runner works a spec's tickets one at a time, each in its own issue workspace**: `npm run runner -- <owner/repo> <n>`, rerun to resume. A ticket it Stops on stays unlanded in its workspace; finish it there by hand and land it with `npm run wrap-up -- <repo> <n>`.
 - **The branch hook (`branchGuard.ts`) is strict**: it denies every branch-moving git command in a primary checkout. The way through is the issue workspace.
-- **A Halt can leave an issue workspace behind.** `npm run issue:list` shows each one's issue, branched repos, dirtiness and age. `npm run issue:remove -- <repo> <n>` removes one, refusing a dirty workspace, or a detached repo holding commits no branch has, unless `--force`.
+- **An interactive session opens a workspace with `npm run issue:start -- <repo> <n>`**, or `-- --session <slug>` for a session workspace, which is on `session-<slug>` in every repo. It resumes the workspace or creates it, gives an issue workspace the branch the runner would, and prints its path; `--claude` also opens Claude Code at its root.
+- **A Halt can leave an issue workspace behind.** `npm run issue:list` shows each workspace's issue or session, branched repos, dirtiness and age. `npm run issue:remove -- <repo> <n>` (or `-- --session <slug>`) removes one, refusing a dirty workspace, or a detached repo holding commits no branch has, unless `--force`.
 
 ## Branches and commits
 

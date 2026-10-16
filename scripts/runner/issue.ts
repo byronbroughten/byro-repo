@@ -1,20 +1,30 @@
-// Lists, promotes and removes issue workspaces; the runner is their only creator, so there is no start command.
-// Usage: npm run issue:list, npm run issue:promote -- <repo> <n> <repo-to-promote>,
-// or npm run issue:remove -- <repo> <n> [--force].
+// Starts, lists, promotes and removes workspaces, each keyed by an issue or, for a session workspace, by a slug.
+// The runner creates its own issue workspaces; `start` is the interactive session's way into one.
+// Usage: npm run issue:start -- (<repo> <n> | --session <slug>) [--claude], npm run issue:list,
+// npm run issue:promote -- <repo> <n> <repo-to-promote>,
+// or npm run issue:remove -- (<repo> <n> | --session <slug>) [--force].
+import { spawnSync } from "node:child_process";
+
 import {
+  isSessionKey,
   type IssueRef,
   IssueWorkspaces,
   type Workspace,
+  type WorkspaceKey,
+  workspaceLabelOf,
   type WorkspaceStatus,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
 
 import { issueWorkspacesConfig } from "./runnerConfig.ts";
 
 const workspaces = IssueWorkspaces.init(issueWorkspacesConfig);
+const keyUsage = "(<repo> <n> | --session <slug>)";
 
 try {
   const [command, ...args] = process.argv.slice(2);
-  if (command === "list") {
+  if (command === "start") {
+    await start(args);
+  } else if (command === "list") {
     await list();
   } else if (command === "promote") {
     await promote(args);
@@ -22,7 +32,7 @@ try {
     await remove(args);
   } else {
     throw new Error(
-      `Unknown command "${command}"; use list, promote or remove`,
+      `Unknown command "${command}"; use start, list, promote or remove`,
     );
   }
 } catch (error) {
@@ -30,29 +40,44 @@ try {
   process.exitCode = 1;
 }
 
+async function start(args: string[]): Promise<void> {
+  const key = keyOf(
+    args.filter((arg) => arg !== "--claude"),
+    `Usage: npm run issue:start -- ${keyUsage} [--claude]`,
+  );
+  const { path } = await workspaces.start(key);
+  console.log(path);
+  if (args.includes("--claude")) openClaude(path);
+}
+
+// Runs in the foreground so the session takes over the terminal, and passes its exit status on.
+function openClaude(path: string): void {
+  const { status, error } = spawnSync("claude", {
+    cwd: path,
+    stdio: "inherit",
+  });
+  if (error) throw error;
+  process.exitCode = status ?? 1;
+}
+
 async function list(): Promise<void> {
   const listed = await workspaces.list();
-  if (listed.length === 0) console.log("No issue workspaces.");
+  if (listed.length === 0) console.log("No workspaces.");
   listed.forEach((workspace) => console.log(lineOf(workspace)));
 }
 
 function lineOf(workspace: WorkspaceStatus): string {
-  const { issue, branch, branchedRepos, dirtyRepos, createdAt, path } =
-    workspace;
+  const { key, branch, branchedRepos, dirtyRepos, createdAt, path } = workspace;
   const dirty =
     dirtyRepos.length === 0 ? "clean" : `dirty: ${dirtyRepos.join(", ")}`;
   return [
-    labelOf(issue),
+    workspaceLabelOf(key),
     branch,
     `on branch: ${branchedRepos.join(", ")}`,
     dirty,
     `age ${ageOf(createdAt)}`,
     path,
   ].join("  ");
-}
-
-function labelOf(issue: IssueRef): string {
-  return `${issue.repo} #${issue.number}`;
 }
 
 function ageOf(createdAt: Date): string {
@@ -71,16 +96,21 @@ async function promote(args: string[]): Promise<void> {
 }
 
 async function remove(args: string[]): Promise<void> {
-  const [repo, number] = args.filter((arg) => arg !== "--force");
   const workspace = await workspaceOf(
-    issueOf(
-      repo,
-      number,
-      "Usage: npm run issue:remove -- <repo> <n> [--force]",
+    keyOf(
+      args.filter((arg) => arg !== "--force"),
+      `Usage: npm run issue:remove -- ${keyUsage} [--force]`,
     ),
   );
   await workspaces.remove(workspace, { force: args.includes("--force") });
   console.log(`Removed ${workspace.path}`);
+}
+
+function keyOf(args: string[], usage: string): WorkspaceKey {
+  const [first, second] = args;
+  if (first !== "--session") return issueOf(first, second, usage);
+  if (second === undefined) throw new Error(usage);
+  return { session: second };
 }
 
 function issueOf(
@@ -94,8 +124,11 @@ function issueOf(
   return { repo, number: Number(number) };
 }
 
-async function workspaceOf(issue: IssueRef): Promise<Workspace> {
-  const workspace = await workspaces.find(issue);
-  if (!workspace) throw new Error(`No issue workspace for ${labelOf(issue)}`);
+async function workspaceOf(key: WorkspaceKey): Promise<Workspace> {
+  const workspace = await workspaces.find(key);
+  if (!workspace) {
+    const kind = isSessionKey(key) ? "session" : "issue";
+    throw new Error(`No ${kind} workspace for ${workspaceLabelOf(key)}`);
+  }
   return workspace;
 }

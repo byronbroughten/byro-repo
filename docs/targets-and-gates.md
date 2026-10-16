@@ -18,6 +18,8 @@ Reads need no yes in any tier.
 | --- | --- |
 | Editing repo files; `npm run tsc`, `npm test`, `npm run lint` | 1 |
 | `git commit`, on any branch | 1; the branch guard still keeps a primary checkout on its branch |
+| `npm run issue:start`, `issue:list`, and `issue:remove` without `--force`, which refuses unlanded work | 1 |
+| `npm run issue:remove … --force`, which discards a workspace's unlanded work | 3 |
 | `npm run wrap-up -- <repo> <n>`, which pushes | a standing yes to push, behind its secret scan |
 | `probe`, `chore <name>` (dry run), `configs:diff` on either target | free: reads |
 | `app:chore <name> -- --send` | 2, once this session has dry-run `<name>`; with no dry run it's refused, naming the dry-run command |

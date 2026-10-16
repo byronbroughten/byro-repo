@@ -27,6 +27,31 @@ describe("gateDecision", () => {
     expect(decisionOf("npm run -s dev:deploy")).toBe("allow");
   });
 
+  it("allows starting, listing and a plain remove of a workspace", () => {
+    [
+      "npm run issue:start -- byro-repo 261",
+      "npm run issue:start -- --session glossary-fix --claude",
+      "npm run issue:list",
+      "npm run issue:remove -- byro-repo 261",
+      "npm run issue:remove -- --session glossary-fix",
+    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
+  });
+
+  it("asks for a forced workspace remove, which discards work git can't bring back", () => {
+    [
+      "npm run issue:remove -- byro-repo 261 --force",
+      "npm run issue:remove -- --session glossary-fix --force",
+      "npm run issue:remove --force -- --session glossary-fix",
+    ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
+    expect(
+      gateDecision({
+        command: "npm run issue:remove -- --session glossary-fix --force",
+        mode: "runnerStep",
+        dryRuns: [],
+      })?.permissionDecision,
+    ).toBe("deny");
+  });
+
   it("has no opinion on a command it doesn't list, alone or beside an allowed one", () => {
     expect(decisionOf("npm test")).toBeUndefined();
     expect(decisionOf("npm run app:gen:configs")).toBeUndefined();
