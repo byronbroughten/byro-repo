@@ -8,6 +8,12 @@
       "Bash(npm test)",
       "Bash(npm test *)",
       "Bash(npm run tsc *)",
+      "Bash(npm run app:chore *)",
+      "Bash(npm run app:build)",
+      "Bash(npm run app:deploy*)",
+      "Bash(npm run dev:deploy*)",
+      "Bash(npm run wrap-up*)",
+      "Bash(git commit*)",
       "Bash(npm run app:gen:configs)",
       "Bash(npm run app:chore)",
       "Bash(npm run app:chore addMissingColumnIds)",
@@ -56,21 +62,9 @@
       "mcp__gworkspace__check_drive_file_public_access"
     ],
     "ask": [
-      "Bash(npm run app:chore * --send*)",
-      "Bash(npm run app:build*)",
-      "Bash(clasp deploy*)",
-      "Bash(npx clasp deploy*)",
-      "mcp__gworkspace__create_spreadsheet",
-      "mcp__gworkspace__create_doc",
-      "mcp__gworkspace__import_to_google_sheets",
-      "mcp__gworkspace__import_to_google_doc",
-      "mcp__gworkspace__copy_drive_file",
+      "Bash(git push*)",
       "mcp__gworkspace__manage_drive_access",
-      "mcp__gworkspace__set_drive_file_permissions",
-      "mcp__gworkspace__update_drive_file",
-      "mcp__gworkspace__create_drive_file",
-      "mcp__gworkspace__create_drive_folder",
-      "mcp__gworkspace__export_doc_to_pdf"
+      "mcp__gworkspace__set_drive_file_permissions"
     ],
     "deny": [
       "Read(./packages/*/src/generated/columnConfigs.ts)",
@@ -123,12 +117,22 @@
         ]
       },
       {
-        "matcher": "Bash|mcp__gworkspace__modify_sheet_values|mcp__gworkspace__format_sheet_range|mcp__gworkspace__manage_conditional_formatting|mcp__gworkspace__create_sheet|mcp__gworkspace__append_table_rows|mcp__gworkspace__manage_sheet_tab|mcp__gworkspace__resize_sheet_dimensions|mcp__gworkspace__move_sheet_rows|mcp__gworkspace__manage_named_range|mcp__gworkspace__manage_spreadsheet_comment",
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pinnedTargetGuard.ts\"",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/tierGate.ts\"",
             "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__gworkspace__modify_sheet_values|mcp__gworkspace__format_sheet_range|mcp__gworkspace__manage_conditional_formatting|mcp__gworkspace__create_sheet|mcp__gworkspace__append_table_rows|mcp__gworkspace__manage_sheet_tab|mcp__gworkspace__resize_sheet_dimensions|mcp__gworkspace__move_sheet_rows|mcp__gworkspace__manage_named_range|mcp__gworkspace__manage_spreadsheet_comment|mcp__gworkspace__modify_doc_text|mcp__gworkspace__find_and_replace_doc|mcp__gworkspace__insert_doc_elements|mcp__gworkspace__batch_update_doc|mcp__gworkspace__update_paragraph_style|mcp__gworkspace__update_doc_headers_footers|mcp__gworkspace__manage_doc_tab|mcp__gworkspace__insert_doc_image|mcp__gworkspace__create_table_with_data|mcp__gworkspace__create_spreadsheet|mcp__gworkspace__create_doc|mcp__gworkspace__create_drive_file|mcp__gworkspace__create_drive_folder|mcp__gworkspace__copy_drive_file|mcp__gworkspace__import_to_google_sheets|mcp__gworkspace__import_to_google_doc|mcp__gworkspace__import_to_google_slides|mcp__gworkspace__export_doc_to_pdf|mcp__gworkspace__update_drive_file|mcp__gworkspace__manage_drive_access|mcp__gworkspace__set_drive_file_permissions",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/tierGate.ts\"",
+            "timeout": 15
           }
         ]
       },
@@ -149,16 +153,6 @@
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/styleGate.ts\"",
             "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "mcp__gworkspace__modify_doc_text|mcp__gworkspace__find_and_replace_doc|mcp__gworkspace__insert_doc_elements|mcp__gworkspace__batch_update_doc|mcp__gworkspace__update_paragraph_style",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/docGrantGuard.ts\"",
-            "timeout": 15
           }
         ]
       },
@@ -215,6 +209,16 @@
         ]
       },
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/tierGate.ts\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "Read",
         "hooks": [
           {
@@ -231,15 +235,6 @@
       }
     ],
     "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/docGrantGuard.ts\"",
-            "timeout": 15
-          }
-        ]
-      },
       {
         "hooks": [
           {
