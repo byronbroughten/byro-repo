@@ -2,11 +2,18 @@
 // ticket's issue workspace, fast-forwards each primary checkout's master under its landing lock, then pushes, deletes the
 // branches, removes the workspace, closes the issue and checks its parent. Steps are recorded in a progress file, so a
 // rerun skips what already landed; a failure throws a WrapUpFailure naming its kind.
+// A session workspace lands the same way from its session branches, with no facts file, checks or issue steps.
 // The outcome row's format is outcomeLog.ts and its transcript facts are transcriptFacts.ts; the lock is LandingLock.ts;
 // workspaces are IssueWorkspaces.ts.
 
 import { execFile } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
@@ -14,11 +21,15 @@ import { messageOf, outputTailOf } from "./failureText.ts";
 import { git, lines } from "./git.ts";
 import {
   fileStemOf,
+  isSessionKey,
   issueLabelOf,
   type IssueRef,
   IssueWorkspaces,
   type IssueWorkspacesConfig,
+  type SessionKey,
   type Workspace,
+  type WorkspaceKey,
+  workspaceLabelOf,
 } from "./IssueWorkspaces.ts";
 import { LandingLock } from "./LandingLock.ts";
 import {
@@ -103,6 +114,7 @@ export type WrapUpStep =
   | "push"
   | "delete-branches"
   | "remove-workspace"
+  | "level-workspace"
   | "close"
   | "parent-check";
 
@@ -134,11 +146,19 @@ export interface WrapUpConfig {
   log?(line: string): void;
 }
 
-export interface WrapUpResult {
+export interface LandingResult {
   completed: WrapUpStep[];
   filesChanged: number;
   branchDeleteFailures: string[];
+}
+
+export interface WrapUpResult extends LandingResult {
   parent: ParentCheck;
+}
+
+export interface SessionOptions {
+  // Lands mid-session: the workspace stays, leased, with every repo's session branch moved onto the new master.
+  keep?: boolean;
 }
 
 interface BuiltRepo {
@@ -156,6 +176,13 @@ interface Progress {
   parent?: ParentCheck;
 }
 
+interface LogRowTarget {
+  issue: IssueRef;
+  facts: WrapUpFacts;
+  ticket: Ticket;
+  workspace: Workspace;
+}
+
 interface AddedLine {
   file: string;
   line: number;
@@ -163,15 +190,16 @@ interface AddedLine {
 }
 
 interface Ticket {
-  issue: IssueRef;
-  facts: WrapUpFacts;
+  key: WorkspaceKey;
+  // In landing order: from the facts file, or for a session the repos whose branch was ahead of master.
+  branches: LandingBranch[];
   progress: Progress;
   landing: Landing;
 }
 
-// What differs between a ticket that lands branches and one with no code, chosen once from its facts.
+// What differs between a ticket that lands branches, one with no code and a session, chosen once up front.
 interface Landing {
-  // Leaves the root worktree on the commit the log row goes onto.
+  // Leaves each landed repo's worktree on the commit its master fast-forwards to.
   build(ticket: Ticket, workspace: Workspace): Promise<void>;
   cleanRepos(ticket: Ticket): string[];
   branchesToDelete(ticket: Ticket): Promise<LandingBranch[]>;
@@ -199,35 +227,75 @@ export class WrapUp {
   async run(issue: IssueRef): Promise<WrapUpResult> {
     const facts = this._readFacts(issue);
     const ticket: Ticket = {
-      issue,
-      facts,
+      key: issue,
+      branches: facts.branches,
       progress: this._readProgress(issue),
-      landing: this._landingOf(facts),
+      landing: this._issueLandingOf(issue, facts),
     };
     if (!isDone(ticket, "fast-forward")) await this._land(ticket);
+    await this._landAndRemove(ticket);
+    await this._step(ticket, "close", () => this._close(issue, facts));
+    await this._step(ticket, "parent-check", () =>
+      this._checkParent(ticket, issue),
+    );
+    return {
+      ...landingResultOf(ticket),
+      parent: ticket.progress.parent ?? { kind: "none" },
+    };
+  }
+
+  async runSession(
+    session: string,
+    { keep = false }: SessionOptions = {},
+  ): Promise<LandingResult> {
+    const key: SessionKey = { session };
+    const ticket: Ticket = {
+      key,
+      branches: [],
+      progress: this._readProgress(key),
+      landing: this._sessionLanding,
+    };
+    if (!isDone(ticket, "fast-forward")) {
+      ticket.branches = await this._sessionBranchesOf(
+        await this._workspaceOf(key),
+      );
+      await this._land(ticket);
+    }
+    if (keep) {
+      await this._scanAndPush(ticket);
+      await this._step(ticket, "level-workspace", () =>
+        this._levelWorkspace(key),
+      );
+    } else {
+      await this._landAndRemove(ticket);
+    }
+    // A session lands again under the same slug, so its next landing starts from no progress.
+    rmSync(this._progressPathOf(key), { force: true });
+    return landingResultOf(ticket);
+  }
+
+  // A repo whose branch didn't land is behind master, so every branch fast-forwards; a landed one leaves its detached build.
+  private async _levelWorkspace(key: SessionKey): Promise<void> {
+    const workspace = await this._workspaceOf(key);
+    for (const repo of Object.keys(this.config.workspaces.clonePaths)) {
+      const worktree = this._worktreeOf(workspace, repo);
+      if ((await currentBranchOf(worktree)) !== workspace.branch) {
+        await git(worktree, "switch", workspace.branch);
+      }
+      await git(worktree, "merge", "--ff-only", "master");
+    }
+  }
+
+  private async _landAndRemove(ticket: Ticket): Promise<void> {
     await this._scanAndPush(ticket);
     await this._step(ticket, "delete-branches", () =>
       this._deleteBranches(ticket),
     );
     if ((ticket.progress.branchDeleteFailures ?? []).length === 0) {
       await this._step(ticket, "remove-workspace", () =>
-        this._removeWorkspace(issue),
+        this._removeWorkspace(ticket.key),
       );
     }
-    await this._step(ticket, "close", () => this._close(ticket));
-    await this._step(ticket, "parent-check", () => this._checkParent(ticket));
-    const {
-      completed,
-      filesChanged = 0,
-      branchDeleteFailures = [],
-      parent,
-    } = ticket.progress;
-    return {
-      completed,
-      filesChanged,
-      branchDeleteFailures,
-      parent: parent ?? { kind: "none" },
-    };
   }
 
   private _readFacts(issue: IssueRef): WrapUpFacts {
@@ -250,18 +318,37 @@ export class WrapUp {
     return facts;
   }
 
-  private _landingOf(facts: WrapUpFacts): Landing {
+  private _issueLandingOf(issue: IssueRef, facts: WrapUpFacts): Landing {
     if (facts.branches.length === 0) {
       return {
-        build: this._switchToMaster.bind(this),
+        build: async (ticket, workspace) => {
+          await this._switchToMaster(workspace);
+          await this._logRow({ issue, facts, ticket, workspace });
+        },
         cleanRepos: () => [this._rootRepo],
         branchesToDelete: this._workspaceBranchesOf.bind(this),
       };
     }
     return {
-      build: this._mergeAndCheck.bind(this),
+      build: async (ticket, workspace) => {
+        await this._mergeAndCheck(ticket, workspace);
+        await this._logRow({ issue, facts, ticket, workspace });
+      },
       cleanRepos: listedReposOf,
-      branchesToDelete: async ({ facts: { branches } }) => branches,
+      branchesToDelete: async ({ branches }) => branches,
+    };
+  }
+
+  // A session runs its checks before landing, as every edit does, so its build is the merges alone.
+  private get _sessionLanding(): Landing {
+    return {
+      build: async (ticket, workspace) =>
+        this._step(ticket, "merges", () => this._merge(ticket, workspace)),
+      cleanRepos: () => Object.keys(this.config.workspaces.clonePaths),
+      branchesToDelete: async (ticket) => {
+        await this._switchToMaster(await this._workspaceOf(ticket.key));
+        return this._workspaceBranchesOf(ticket);
+      },
     };
   }
 
@@ -269,19 +356,46 @@ export class WrapUp {
     return join(this.config.stateFolder, `${fileStemOf(issue)}.facts.json`);
   }
 
-  private _readProgress(issue: IssueRef): Progress {
-    const path = this._progressPathOf(issue);
+  private _readProgress(key: WorkspaceKey): Progress {
+    const path = this._progressPathOf(key);
     if (!existsSync(path)) return { completed: [] };
     return JSON.parse(readFileSync(path, "utf8")) as Progress;
   }
 
-  private _progressPathOf(issue: IssueRef): string {
-    return join(this.config.stateFolder, `${fileStemOf(issue)}.progress.json`);
+  private _progressPathOf(key: WorkspaceKey): string {
+    return join(this.config.stateFolder, `${stateStemOf(key)}.progress.json`);
+  }
+
+  // Landing order: each clone before the root repo, which may depend on it.
+  private async _sessionBranchesOf(
+    workspace: Workspace,
+  ): Promise<LandingBranch[]> {
+    const repos = this._rootFirst(
+      Object.keys(this.config.workspaces.clonePaths),
+    ).reverse();
+    const branches: LandingBranch[] = [];
+    for (const repo of repos) {
+      const primary = this._primaryOf(repo);
+      if (!(await hasRef(primary, `refs/heads/${workspace.branch}`))) continue;
+      const ahead = await git(
+        primary,
+        "rev-list",
+        "--count",
+        `master..${workspace.branch}`,
+      );
+      if (Number(ahead) > 0) branches.push({ repo, branch: workspace.branch });
+    }
+    if (branches.length === 0) {
+      throw new Error(
+        `${workspaceLabelOf(workspace.key)} has no commits ahead of master to land`,
+      );
+    }
+    return branches;
   }
 
   // Nothing reaches a primary checkout before the fast-forward, so an unlanded rerun starts over from the branches.
   private async _land(ticket: Ticket): Promise<void> {
-    const workspace = await this._workspaceOf(ticket.issue);
+    const workspace = await this._workspaceOf(ticket.key);
     await this._restore(ticket, workspace);
     ticket.progress = { completed: [] };
     await this._step(ticket, "clean-check", () =>
@@ -291,7 +405,7 @@ export class WrapUp {
       ticket.progress.filesChanged = await this._filesChanged(ticket);
     });
     for (;;) {
-      await this._build(ticket, workspace);
+      await ticket.landing.build(ticket, workspace);
       if (await this._fastForward(ticket)) return;
       this._log("A master moved while the merges were checked; rebuilding.");
       await this._restore(ticket, workspace);
@@ -301,17 +415,17 @@ export class WrapUp {
     }
   }
 
-  private async _workspaceOf(issue: IssueRef): Promise<Workspace> {
-    const workspace = await this.workspaces.find(issue);
+  private async _workspaceOf(key: WorkspaceKey): Promise<Workspace> {
+    const workspace = await this.workspaces.find(key);
     if (!workspace) {
-      throw new Error(`No issue workspace for ${issueLabelOf(issue)}`);
+      throw new Error(`No workspace for ${workspaceLabelOf(key)}`);
     }
     return workspace;
   }
 
   // Puts each listed repo back on its branch and the root off an unlanded log-row commit, undoing any earlier build.
   private async _restore(ticket: Ticket, workspace: Workspace): Promise<void> {
-    for (const { repo, branch } of ticket.facts.branches) {
+    for (const { repo, branch } of ticket.branches) {
       const worktree = this._worktreeOf(workspace, repo);
       if (await isMerging(worktree)) await git(worktree, "merge", "--abort");
       if ((await currentBranchOf(worktree)) !== branch) {
@@ -358,7 +472,7 @@ export class WrapUp {
 
   private async _filesChanged(ticket: Ticket): Promise<number> {
     let count = 0;
-    for (const { repo, branch } of ticket.facts.branches) {
+    for (const { repo, branch } of ticket.branches) {
       const files = await git(
         this._primaryOf(repo),
         "diff",
@@ -368,13 +482,6 @@ export class WrapUp {
       count += lines(files).length;
     }
     return count;
-  }
-
-  private async _build(ticket: Ticket, workspace: Workspace): Promise<void> {
-    await ticket.landing.build(ticket, workspace);
-    await this._step(ticket, "log-row", () =>
-      this._commitLogRow(ticket, workspace),
-    );
   }
 
   private async _mergeAndCheck(
@@ -393,10 +500,7 @@ export class WrapUp {
   }
 
   // With nothing to merge, the row goes on master, and a repo off the issue branch lets the wrap-up delete it.
-  private async _switchToMaster(
-    _ticket: Ticket,
-    workspace: Workspace,
-  ): Promise<void> {
+  private async _switchToMaster(workspace: Workspace): Promise<void> {
     for (const repo of new Set([this._rootRepo, ...workspace.branchedRepos])) {
       await git(
         this._worktreeOf(workspace, repo),
@@ -414,7 +518,7 @@ export class WrapUp {
       throw new WrapUpFailure("dirty-tree", messageOf(error));
     }
     const built: Record<string, BuiltRepo> = {};
-    for (const { repo, branch } of ticket.facts.branches) {
+    for (const { repo, branch } of ticket.branches) {
       const worktree = this._worktreeOf(workspace, repo);
       const base = await revOf(worktree, "master");
       await git(worktree, "switch", "--detach", "master");
@@ -432,9 +536,8 @@ export class WrapUp {
     { repo, branch }: LandingBranch,
   ): Promise<void> {
     const worktree = this._worktreeOf(workspace, repo);
-    const message = `Merge ${branch} into master (#${ticket.issue.number})`;
     try {
-      await git(worktree, "merge", "--no-ff", "-m", message, branch);
+      await git(worktree, "merge", ...mergeArgsOf(ticket.key, branch));
     } catch (error) {
       if (await isMerging(worktree)) await git(worktree, "merge", "--abort");
       await this._restore(ticket, workspace);
@@ -461,20 +564,28 @@ export class WrapUp {
     }
   }
 
-  private async _commitLogRow(
-    ticket: Ticket,
-    workspace: Workspace,
-  ): Promise<void> {
+  private async _logRow(target: LogRowTarget): Promise<void> {
+    await this._step(target.ticket, "log-row", () =>
+      this._commitLogRow(target),
+    );
+  }
+
+  private async _commitLogRow({
+    issue,
+    facts,
+    ticket,
+    workspace,
+  }: LogRowTarget): Promise<void> {
     const worktree = this._worktreeOf(workspace, this._rootRepo);
     const built = ticket.progress.built ?? {};
     const base =
       built[this._rootRepo]?.base ?? (await revOf(worktree, "master"));
     const row = {
-      issue: ticket.issue,
-      spec: await this._specOf(ticket.issue),
+      issue,
+      spec: await this._specOf(issue),
       githubOwner: this.config.githubOwner,
       filesChanged: ticket.progress.filesChanged ?? 0,
-      facts: await this._outcomeFactsOf(ticket),
+      facts: await this._outcomeFactsOf(issue, facts),
     };
     const path = outcomePathOf(this.config.outcomeFolder, row);
     mkdirSync(dirname(join(worktree, path)), { recursive: true });
@@ -488,17 +599,20 @@ export class WrapUp {
     ticket.progress.built = built;
   }
 
-  private async _outcomeFactsOf(ticket: Ticket): Promise<OutcomeFacts> {
-    const { sessions, limitReadings } = ticket.facts;
+  private async _outcomeFactsOf(
+    issue: IssueRef,
+    facts: WrapUpFacts,
+  ): Promise<OutcomeFacts> {
+    const { sessions, limitReadings } = facts;
     let transcriptFacts: OutcomeFacts = {};
     if (sessions !== undefined) {
       transcriptFacts = transcriptFactsOf(
         sessions,
-        await this._handoffSessionIdsOf(ticket.issue),
+        await this._handoffSessionIdsOf(issue),
       );
     }
     return {
-      ...ticket.facts,
+      ...facts,
       ...definedFactsOf({
         ...transcriptFacts,
         limitUsed: limitUsedOf(limitReadings),
@@ -625,11 +739,11 @@ export class WrapUp {
     ticket.progress.branchDeleteFailures = failures;
   }
 
-  // A ticket with no code lands no branch, but its workspace made one in each repo it branched.
+  // A ticket with no code or a session lists no branch to delete, but its workspace made one in each repo it branched.
   private async _workspaceBranchesOf({
-    issue,
+    key,
   }: Ticket): Promise<LandingBranch[]> {
-    const { branch } = await this._workspaceOf(issue);
+    const { branch } = await this._workspaceOf(key);
     const branches: LandingBranch[] = [];
     for (const repo of Object.keys(this.config.workspaces.clonePaths)) {
       const ref = await git(
@@ -658,22 +772,20 @@ export class WrapUp {
     }
   }
 
-  private async _removeWorkspace(issue: IssueRef): Promise<void> {
-    const workspace = await this.workspaces.find(issue);
+  private async _removeWorkspace(key: WorkspaceKey): Promise<void> {
+    const workspace = await this.workspaces.find(key);
     if (!workspace) return;
     await this.workspaces.releaseLease(workspace);
     await this.workspaces.remove(workspace);
   }
 
-  private async _close(ticket: Ticket): Promise<void> {
-    const { issue, facts } = ticket;
+  private async _close(issue: IssueRef, facts: WrapUpFacts): Promise<void> {
     await this._withRetries(`Closing #${issue.number}`, () =>
       this.config.github.closeIssue(issue, closingCommentOf(facts)),
     );
   }
 
-  private async _checkParent(ticket: Ticket): Promise<void> {
-    const { issue } = ticket;
+  private async _checkParent(ticket: Ticket, issue: IssueRef): Promise<void> {
     ticket.progress.parent = parentCheckOf(await this._parentOf(issue));
   }
 
@@ -700,7 +812,7 @@ export class WrapUp {
     ticket.progress.completed.push(step);
     mkdirSync(this.config.stateFolder, { recursive: true });
     writeFileSync(
-      this._progressPathOf(ticket.issue),
+      this._progressPathOf(ticket.key),
       `${JSON.stringify(ticket.progress, undefined, 2)}\n`,
     );
     this._log(`Done: ${step}.`);
@@ -737,10 +849,7 @@ export class WrapUp {
   // The listed repos in landing order, then the root repo, which takes the log row.
   private _landedRepos(ticket: Ticket): string[] {
     return [
-      ...new Set([
-        ...ticket.facts.branches.map(({ repo }) => repo),
-        this._rootRepo,
-      ]),
+      ...new Set([...ticket.branches.map(({ repo }) => repo), this._rootRepo]),
     ];
   }
 
@@ -781,8 +890,31 @@ function isDone(ticket: Ticket, step: WrapUpStep): boolean {
   return ticket.progress.completed.includes(step);
 }
 
-function listedReposOf({ facts }: Ticket): string[] {
-  return facts.branches.map(({ repo }) => repo);
+function landingResultOf({ progress }: Ticket): LandingResult {
+  const { completed, filesChanged = 0, branchDeleteFailures = [] } = progress;
+  return { completed, filesChanged, branchDeleteFailures };
+}
+
+function stateStemOf(key: WorkspaceKey): string {
+  if (isSessionKey(key)) return `session-${key.session}`;
+  return fileStemOf(key);
+}
+
+function listedReposOf({ branches }: Ticket): string[] {
+  return branches.map(({ repo }) => repo);
+}
+
+// A session's branch fast-forwards master when it can, so a mid-session landing adds no merge commit.
+function mergeArgsOf(key: WorkspaceKey, branch: string): string[] {
+  if (isSessionKey(key)) {
+    return ["-m", `Merge ${branch} into master`, branch];
+  }
+  return [
+    "--no-ff",
+    "-m",
+    `Merge ${branch} into master (#${key.number})`,
+    branch,
+  ];
 }
 
 function closingCommentOf({
@@ -834,7 +966,7 @@ function addedLinesOf(diff: string): AddedLine[] {
 }
 
 function isListed(ticket: Ticket, repo: string): boolean {
-  return ticket.facts.branches.some((branch) => branch.repo === repo);
+  return ticket.branches.some((branch) => branch.repo === repo);
 }
 
 function parentCheckOf(parent: ParentIssue | undefined): ParentCheck {
