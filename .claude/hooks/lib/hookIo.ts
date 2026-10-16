@@ -21,6 +21,7 @@ export interface HookInput {
 export interface ToolInput {
   command?: string;
   file_path?: string;
+  notebook_path?: string;
   path?: string;
   offset?: number;
   limit?: number;

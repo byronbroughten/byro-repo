@@ -40,7 +40,7 @@ export type CommandTarget = Pick<
   "command" | "cwd" | "primaryCheckouts"
 >;
 
-export interface BranchDecision {
+export interface GuardDecision {
   permissionDecision: "allow" | "deny";
   reason: string;
 }
@@ -84,7 +84,7 @@ const restoreHint = "A file restore is `git checkout -- <path>`.";
 // checkout and switch options that make a new branch from the next word.
 const branchCreatingOptions = new Set(["-b", "-B", "-c", "-C", "--orphan"]);
 
-export function branchDecision(props: BranchGuardInput): BranchDecision {
+export function branchDecision(props: BranchGuardInput): GuardDecision {
   for (const action of gitActionsOf(props, props.isExistingPath)) {
     const reason = denyReasonOf(action, props);
     if (reason) {
@@ -101,10 +101,14 @@ export function branchDecision(props: BranchGuardInput): BranchDecision {
 
 // The primary checkouts whose HEAD the command may move, so the session can re-record them.
 export function headMovingCheckouts(target: CommandTarget): string[] {
-  const checkouts = gitActionsOf(target, () => false)
-    .filter(({ subcommand }) => headMovingSubcommands.has(subcommand))
-    .map(({ checkout }) => checkout);
-  return [...new Set(checkouts)];
+  return checkoutsActedOn(target, ({ subcommand }) =>
+    headMovingSubcommands.has(subcommand),
+  );
+}
+
+// The primary checkouts the command commits in, for the primary-edit guard.
+export function commitCheckouts(target: CommandTarget): string[] {
+  return checkoutsActedOn(target, ({ kind }) => kind === "commit");
 }
 
 export function isLive(
@@ -145,6 +149,16 @@ export function refreshedRecord(
 
 function guardMessage(reason: string): string {
   return `Branch guard: ${reason}`;
+}
+
+function checkoutsActedOn(
+  target: CommandTarget,
+  isActedOn: (action: GitAction) => boolean,
+): string[] {
+  const checkouts = gitActionsOf(target, () => false)
+    .filter(isActedOn)
+    .map(({ checkout }) => checkout);
+  return [...new Set(checkouts)];
 }
 
 // Interim leaves branch moves to the developer, who keeps agents off a branch while it lands.
@@ -247,7 +261,7 @@ function gitActionOf(
 }
 
 // The deepest primary checkout holding dir, unless dir is in a worktree nested inside it.
-function primaryCheckoutOf(
+export function primaryCheckoutOf(
   dir: string,
   primaryCheckouts: string[],
 ): string | undefined {
