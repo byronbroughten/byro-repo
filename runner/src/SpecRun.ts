@@ -43,7 +43,7 @@ import {
   type GaveUpOutcome,
   giveUpRecordOf,
 } from "./fixStep.ts";
-import { git } from "./git.ts";
+import { git, isDirty } from "./git.ts";
 import {
   implementOutputSchema,
   implementPrompt,
@@ -743,7 +743,13 @@ export class SpecRun {
     }
     const { outcomes, logPath } = attempt;
     const hasNewCommit = !isSameHeads(base, await this._headsOf(workspace));
-    const problems = fixRecordProblems({ fixes, outcomes, hasNewCommit });
+    const dirtyRepos = await this._dirtyReposOf(workspace);
+    const problems = fixRecordProblems({
+      fixes,
+      outcomes,
+      hasNewCommit,
+      dirtyRepos,
+    });
     if (problems.length > 0) {
       throw new UnhandledStop("schema-failure", problems.join("; "), logPath);
     }
@@ -756,6 +762,17 @@ export class SpecRun {
       return giveUpRecordOf({ record, gaveUp, downstream });
     });
     if (outcomes.some(({ status }) => status === "fixed")) state.fixer = fixer;
+  }
+
+  private async _dirtyReposOf(workspace: Workspace): Promise<string[]> {
+    const dirty: string[] = [];
+    for (const [repo, clonePath] of Object.entries(
+      this.config.knobs.clonePaths,
+    )) {
+      const worktree = join(workspace.path, clonePath);
+      if (existsSync(worktree) && (await isDirty(worktree))) dirty.push(repo);
+    }
+    return dirty;
   }
 
   private async _runFixer(

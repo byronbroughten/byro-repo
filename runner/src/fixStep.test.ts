@@ -77,6 +77,7 @@ describe("fixRecordProblems", () => {
         fixes,
         outcomes: [fixed, gaveUp],
         hasNewCommit: true,
+        dirtyRepos: [],
       }),
     ).toEqual([]);
   });
@@ -84,7 +85,12 @@ describe("fixRecordProblems", () => {
   it("passes all given up with no commit", () => {
     const outcomes: FixOutcome[] = [{ ...gaveUp, finding: 1 }, gaveUp];
     expect(
-      fixRecordProblems({ fixes, outcomes: outcomes, hasNewCommit: false }),
+      fixRecordProblems({
+        fixes,
+        outcomes: outcomes,
+        hasNewCommit: false,
+        dirtyRepos: [],
+      }),
     ).toEqual([]);
   });
 
@@ -94,6 +100,7 @@ describe("fixRecordProblems", () => {
         fixes,
         outcomes: [fixed, { finding: 5, status: "fixed" }],
         hasNewCommit: true,
+        dirtyRepos: [],
       }),
     ).toEqual([
       "finding 2: each Fix gets exactly one outcome, but it got 0",
@@ -107,15 +114,34 @@ describe("fixRecordProblems", () => {
         fixes,
         outcomes: [fixed, gaveUp],
         hasNewCommit: false,
+        dirtyRepos: [],
       }),
     ).toEqual([
       "the record says a finding was fixed, but the step made no new commit",
     ]);
     const allGaveUp: FixOutcome[] = [{ ...gaveUp, finding: 1 }, gaveUp];
     expect(
-      fixRecordProblems({ fixes, outcomes: allGaveUp, hasNewCommit: true }),
+      fixRecordProblems({
+        fixes,
+        outcomes: allGaveUp,
+        hasNewCommit: true,
+        dirtyRepos: [],
+      }),
     ).toEqual([
       "every Fix was given up, so its change is reverted, but the step made a new commit",
+    ]);
+  });
+
+  it("names each repo the step left uncommitted changes in", () => {
+    expect(
+      fixRecordProblems({
+        fixes,
+        outcomes: [fixed, gaveUp],
+        hasNewCommit: true,
+        dirtyRepos: ["byro-repo"],
+      }),
+    ).toEqual([
+      "byro-repo: the step left uncommitted changes, such as a give-up it didn't revert",
     ]);
   });
 });

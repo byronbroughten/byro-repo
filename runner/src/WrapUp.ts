@@ -18,7 +18,7 @@ import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
 import { messageOf, outputTailOf } from "./failureText.ts";
-import { git, lines } from "./git.ts";
+import { git, isDirty, lines } from "./git.ts";
 import {
   fileStemOf,
   holderLabelOf,
@@ -1084,10 +1084,6 @@ async function revOf(worktree: string, ref: string): Promise<string> {
 
 async function gitDirOf(clone: string): Promise<string> {
   return git(clone, "rev-parse", "--absolute-git-dir");
-}
-
-async function isDirty(worktree: string): Promise<boolean> {
-  return (await git(worktree, "status", "--porcelain")) !== "";
 }
 
 async function isMerging(worktree: string): Promise<boolean> {

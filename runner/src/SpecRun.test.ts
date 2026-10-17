@@ -1468,6 +1468,17 @@ describe("run's finding triage", () => {
     return JSON.parse(readFileSync(path, "utf8")) as ReturnType<typeof factsOf>;
   }
 
+  it("skips triage and the fix step when review finds nothing", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(implementedAt(90_000), reviewed());
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.kind).toBe("finished");
+    expect(agentStep.requests).toHaveLength(2);
+    expect(factsOf().reviewFixes).toBe("none");
+  });
+
   it("keeps a Dismiss, a Defer and a Halt in run state and lands with no fix step, the triage step on its own pair with no targets", async () => {
     addSpec([1]);
     github.edit(1, { body: bodyWithTargets("app spreadsheet") });
@@ -1642,6 +1653,35 @@ describe("run's finding triage", () => {
       { finding: 2, verdict: "defer", reason: "decision" },
     ]);
     expect(factsOf()).toMatchObject({ reviewFixes: "none", defers: 1 });
+  });
+
+  it("Stops on a schema failure when the fixer leaves uncommitted changes", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      reviewed(findings),
+      triaged(triageRecordOf(1, "fix"), triageRecordOf(2, "fix")),
+      async (request) => {
+        writeFileSync(join(request.cwd, "unreverted.ts"), "export {};\n");
+        return fixed(
+          "fix.ts",
+          { finding: 1, status: "fixed" },
+          {
+            finding: 2,
+            status: "gave-up",
+            reason: "checks-red",
+            note: "The fix breaks a test.",
+          },
+        )(request);
+      },
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.message).toBe("Stopped on byro-repo #1: a schema failure.");
+    expect(github.comments[0]?.body).toContain(
+      "byro-repo: the step left uncommitted changes",
+    );
   });
 
   it("runs the checks after the fixes", async () => {

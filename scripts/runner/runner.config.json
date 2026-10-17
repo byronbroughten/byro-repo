@@ -62,6 +62,7 @@
       "Bash(git show *)",
       "Bash(git add *)",
       "Bash(git commit *)",
+      "Bash(git restore *)",
       "Bash(npm run lint)",
       "Bash(npm run lint *)",
       "Bash(npm run issue:read -- * --hide-others)",

@@ -99,13 +99,16 @@ export interface FixRecordCheck {
   fixes: TriageRecord[];
   outcomes: FixOutcome[];
   hasNewCommit: boolean;
+  // The repos the step left uncommitted changes in.
+  dirtyRepos: string[];
 }
 
-// What the schema can't see: one outcome per Fix, and whether the commits git shows match what was fixed.
+// What the schema can't see: one outcome per Fix, and whether what git shows matches what was fixed.
 export function fixRecordProblems({
   fixes,
   outcomes,
   hasNewCommit,
+  dirtyRepos,
 }: FixRecordCheck): string[] {
   const batch = fixes.map(({ finding }) => finding);
   const countProblems = batch.flatMap((finding) => {
@@ -124,6 +127,10 @@ export function fixRecordProblems({
     ...countProblems,
     ...unknownProblems,
     ...commitProblems(outcomes, hasNewCommit),
+    ...dirtyRepos.map(
+      (repo) =>
+        `${repo}: the step left uncommitted changes, such as a give-up it didn't revert`,
+    ),
   ];
 }
 
