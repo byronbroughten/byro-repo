@@ -4,6 +4,8 @@
 
 import { stepReadLine } from "./IssueReader.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
+import { codeListOf } from "./promptText.ts";
+import { arraySchema, objectSchema, stringSchema } from "./recordSchema.ts";
 import {
   type GitHubWrite,
   gitHubWriteActions,
@@ -122,12 +124,6 @@ function workingSection({ allowedWriteGlobs }: ImplementPromptInput): string {
 - Never ask. When the ticket is ambiguous, a command needs a yes nobody gave, or a tool is denied, don't stall: record it as a blocker (\`spec-ambiguity\`, \`gated-action\` or \`denied-tool\`) with what happened and what you recommend the developer do. Carry on with the reading the ticket best supports when the work can go on without it; otherwise stop with status \`blocked\`.`;
 }
 
-function codeListOf(words: readonly string[]): string {
-  const quoted = words.map((word) => `\`${word}\``);
-  if (quoted.length < 2) return quoted.join("");
-  return `${quoted.slice(0, -1).join(", ")} or ${quoted.at(-1)}`;
-}
-
 const promptSections = {
   finishing: `## When you're done
 
@@ -194,8 +190,6 @@ export function implementRecordProblems(
 function newCommitProblem(rule: string): string {
   return `${rule}, but the step made a new commit`;
 }
-
-const stringSchema = { type: "string" };
 
 const branchSchema = objectSchema({
   repo: stringSchema,
@@ -270,22 +264,4 @@ function recordSchema(
     blockers: arraySchema(blockerSchema),
     ...overrides,
   });
-}
-
-function objectSchema(properties: Record<string, object>): object {
-  return {
-    type: "object",
-    properties,
-    required: Object.keys(properties),
-    additionalProperties: false,
-  };
-}
-
-interface ArrayBounds {
-  minItems?: number;
-  maxItems?: number;
-}
-
-function arraySchema(items: object, bounds: ArrayBounds = {}): object {
-  return { type: "array", items, ...bounds };
 }
