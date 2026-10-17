@@ -143,6 +143,8 @@ export interface RunResult {
 type TicketStep =
   "implement" | "review" | "checks" | "wrap-up" | "landed" | "stopped";
 
+type TimedStep = "workspace" | "implement" | "review" | "checks" | "wrap-up";
+
 interface TicketState {
   step: TicketStep;
   record?: ImplementRecord;
@@ -224,6 +226,7 @@ export class SpecRun {
   }
 
   async run(specIssue: IssueRef): Promise<RunResult> {
+    const startedAt = this.config.clock.now();
     const run = await this._startRun(specIssue);
     const launchable = await this._launchableTicketsOf(run);
     const refusal =
@@ -242,6 +245,7 @@ export class SpecRun {
         `Preflight stopped the run: ${preflightStop}`,
       );
     }
+    this._log(run, `Preflight passed in ${this._secondsSince(startedAt)}s.`);
     const reading = await this._readingOf(run);
     await this._announce(
       run,
@@ -451,14 +455,21 @@ export class SpecRun {
         `${issueLabelOf(ticket.issue)}: launching on ${pairLabelOf(pair)} from ${state.step}.`,
       );
       if (state.step !== "wrap-up") {
-        const workspace = await this._workspaceFor(run, ticket.issue);
+        const workspace = await this._timed(
+          run,
+          ticket.issue,
+          "workspace",
+          () => this._workspaceFor(run, ticket.issue),
+        );
         const targets = targetsAtLaunchOf(ticket, this._progressPathOf(run));
         await this._runSteps({ run, ticket, pair, workspace, state, targets });
       } else {
         const landing = await this.workspaces.find(ticket.issue);
         if (landing) await this._takeLease(run, landing);
       }
-      await this._land({ run, ticket, pair, state });
+      await this._timed(run, ticket.issue, "wrap-up", () =>
+        this._land({ run, ticket, pair, state }),
+      );
       return "landed";
     } catch (error) {
       if (error instanceof LeaseHeld) {
@@ -522,19 +533,25 @@ export class SpecRun {
   }
 
   private async _runSteps(ticketRun: TicketRun): Promise<void> {
-    const { state } = ticketRun;
+    const { run, ticket, state } = ticketRun;
     if (state.step === "implement") {
-      await this._implement(ticketRun);
+      await this._timed(run, ticket.issue, "implement", () =>
+        this._implement(ticketRun),
+      );
       // A ticket with no code has nothing to review or check.
       const next = state.record?.status === "applied" ? "wrap-up" : "review";
       this._advance(ticketRun, next);
     }
     if (state.step === "review") {
-      await this._review(ticketRun);
+      await this._timed(run, ticket.issue, "review", () =>
+        this._review(ticketRun),
+      );
       this._advance(ticketRun, "checks");
     }
     if (state.step === "checks") {
-      await this._check(ticketRun);
+      await this._timed(run, ticket.issue, "checks", () =>
+        this._check(ticketRun),
+      );
       this._advance(ticketRun, "wrap-up");
     }
   }
@@ -853,6 +870,29 @@ export class SpecRun {
       join(this.config.stateFolder, `${fileStemOf(ticket.issue)}.facts.json`),
       `${JSON.stringify(facts, undefined, 2)}\n`,
     );
+  }
+
+  // Logged however the step ends, a Stop or Halt included.
+  private async _timed<RV>(
+    run: Run,
+    issue: IssueRef,
+    step: TimedStep,
+    act: () => Promise<RV>,
+  ): Promise<RV> {
+    const startedAt = this.config.clock.now();
+    try {
+      return await act();
+    } finally {
+      this._log(
+        run,
+        `${issueLabelOf(issue)}: ${step} took ${this._secondsSince(startedAt)}s.`,
+      );
+    }
+  }
+
+  private _secondsSince(startedAt: Date): number {
+    const ms = this.config.clock.now().getTime() - startedAt.getTime();
+    return Math.round(ms / 1000);
   }
 
   private _advance({ run, state }: LandingTicket, step: TicketStep): void {

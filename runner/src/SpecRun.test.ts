@@ -1375,3 +1375,73 @@ describe("run's limit guard", () => {
     expect(result.landed).toEqual([refOf(1)]);
   });
 });
+
+describe("run's timings", () => {
+  let time: number;
+
+  function advance(seconds: number): void {
+    time += seconds * 1000;
+  }
+
+  // Each workspace build, the master set's included, installs dependencies, so it takes 4s.
+  function timedRun(...steps: ScriptedStep[]): SpecRun {
+    time = new Date("2026-10-12T09:00:00Z").getTime();
+    return specRun(FakeAgentStep.init(...steps), {
+      clock: { now: () => new Date(time) },
+      async installDependencies() {
+        advance(4);
+      },
+    });
+  }
+
+  function reviewedAfter(seconds: number, findings: string[] = []): StepScript {
+    return async () => {
+      advance(seconds);
+      return reviewed(findings);
+    };
+  }
+
+  function timingLines(): string[] {
+    return readFileSync(join(stateFolder(), "byro-repo-213.log"), "utf8")
+      .trimEnd()
+      .split("\n")
+      .map((line) => line.slice(25))
+      .filter((line) => / took |^Preflight passed|^Run started/.test(line));
+  }
+
+  it("logs preflight's time before Run started, then each step's time in the order the steps ran", async () => {
+    addSpec([1]);
+
+    await timedRun(
+      implemented("one.ts", { act: () => advance(90.4) }),
+      reviewedAfter(29.6),
+    ).run(spec);
+
+    expect(timingLines()).toEqual([
+      "Preflight passed in 4s.",
+      "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%.",
+      "byro-repo #1: workspace took 4s.",
+      "byro-repo #1: implement took 90s.",
+      "byro-repo #1: review took 30s.",
+      "byro-repo #1: checks took 0s.",
+      "byro-repo #1: wrap-up took 0s.",
+    ]);
+  });
+
+  it("logs the time of a step that ends in a Stop, and of no step after it", async () => {
+    addSpec([1]);
+
+    await timedRun(
+      implemented("one.ts", { act: () => advance(60) }),
+      reviewedAfter(20, ["one.ts:1 is wrong."]),
+    ).run(spec);
+
+    expect(timingLines()).toEqual([
+      "Preflight passed in 4s.",
+      "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%.",
+      "byro-repo #1: workspace took 4s.",
+      "byro-repo #1: implement took 60s.",
+      "byro-repo #1: review took 20s.",
+    ]);
+  });
+});
