@@ -857,6 +857,17 @@ describe("a lease", () => {
     await workspaces().takeLease(workspace, { kind: "run", pid: process.pid });
   });
 
+  it("is listed with its workspace by leases(), which skips a workspace with none", async () => {
+    const key = { session: "glossary-fix" };
+    const leased = await workspaces().create(key);
+    await workspaces().create({ session: "unleased" });
+    await workspaces().takeLease(leased, liveSession);
+
+    expect(await workspaces().leases()).toEqual([
+      { path: leased.path, key, lease: { ...liveSession, isLive: true } },
+    ]);
+  });
+
   it("keeps start from resuming the workspace for anyone but its holder", async () => {
     const key = { repo: "byro-repo", number: 7 };
     const workspace = await workspaces().create(key, { slug: "leased" });
