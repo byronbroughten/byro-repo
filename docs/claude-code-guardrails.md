@@ -4,7 +4,7 @@ Mechanics of the Claude Code hooks and project agent. Why they are shaped this w
 
 Thirteen Node hooks in `.claude/hooks/`, registered in `.claude/settings.json`: six gate a call (the Bash-read guard, the tier gate, the branch guard, the primary-edit guard, the STYLE gate and the doc content gate), five add feedback or a reminder, one records state for a gate, and one releases leases. All fail open except where noted. Session state lives in `$TMPDIR/claude-guardrails/`.
 
-**Start every session at the primary root, or an issue workspace's root.** The settings, hooks and agent load only from a root's `.claude/`, so a session started inside `packages/*` runs with none of them. Each package's `CLAUDE.md` says so; restart at a root.
+**Start every session at the primary root, or a workspace's root.** The settings, hooks and agent load only from a root's `.claude/`, so a session started inside `packages/*` runs with none of them. Each package's `CLAUDE.md` says so; restart at a root.
 
 ## The hooks and the project agent
 
