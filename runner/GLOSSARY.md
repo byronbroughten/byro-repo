@@ -12,6 +12,14 @@ _Avoid_: orchestrator, driver, pipeline
 One stage of a ticket's run, in order: implement, review, finding triage, fix, checks and wrap-up, with the gap check once at the end of the spec. An agent step is one `claude -p` session; checks and wrap-up the runner does itself.
 _Avoid_: phase, stage, job
 
+**Checks**:
+The type check, the tests and the lint, which every change passes before it lands, whether a run's steps or an interactive session made it.
+_Avoid_: run check, CI, the gate
+
+**Check stamp**:
+Proof that the checks passed on one exact set of committed files, so they are skipped the next time anyone checks those same files.
+_Avoid_: record, cache, green mark
+
 **Record**:
 The structured output an agent step returns, validated against the runner's schema: the implement record from the implement step and one triage record per finding from finding triage. A record failing the schema gets one retry.
 _Avoid_: report, result, output
@@ -45,7 +53,7 @@ The verdict that blocks the tickets in its scope until the developer answers: na
 _Avoid_: pause, block, question
 
 **Failure Halt**:
-A Halt raised because a step failed, not by a verdict: a second crash, a schema failure, red checks after a retry, an implement step's turn cap. It offers `retry` and `stop spec`, and free text such as `rerun on <pair>` or `skip`.
+A Halt raised because a step failed, not by a verdict: a second crash, a schema failure, red checks on a green master, an implement step's turn cap. It offers `retry` and `stop spec`, and free text such as `rerun on <pair>` or `skip`.
 _Avoid_: error, crash
 
 **Stop**:
