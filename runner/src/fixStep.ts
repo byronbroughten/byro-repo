@@ -95,12 +95,18 @@ export function fixOutcomesOf(output: unknown): FixOutcome[] {
   return (output as { outcomes: FixOutcome[] }).outcomes;
 }
 
+export interface FixRecordCheck {
+  fixes: TriageRecord[];
+  outcomes: FixOutcome[];
+  hasNewCommit: boolean;
+}
+
 // What the schema can't see: one outcome per Fix, and whether the commits git shows match what was fixed.
-export function fixRecordProblems(
-  fixes: TriageRecord[],
-  outcomes: FixOutcome[],
-  hasNewCommit: boolean,
-): string[] {
+export function fixRecordProblems({
+  fixes,
+  outcomes,
+  hasNewCommit,
+}: FixRecordCheck): string[] {
   const batch = fixes.map(({ finding }) => finding);
   const countProblems = batch.flatMap((finding) => {
     const count = outcomes.filter((o) => o.finding === finding).length;
@@ -139,21 +145,24 @@ function commitProblems(
   return [];
 }
 
+export interface GiveUp {
+  record: TriageRecord;
+  gaveUp: GaveUpOutcome;
+  // The later tickets this one blocks, each `<repo>#<n>`.
+  downstream: string[];
+}
+
 // A fixer never turns Fix into Dismiss: a give-up goes back to the developer, as a Halt on the spec axis, else a Defer.
-export function giveUpRecordOf(
-  record: TriageRecord,
-  { reason, note }: GaveUpOutcome,
-  downstream: string[],
-): TriageRecord {
+export function giveUpRecordOf({
+  record,
+  gaveUp: { reason, note },
+  downstream,
+}: GiveUp): TriageRecord {
   const recommendation = `The fixer gave up (${reason}): ${note}`;
   if (record.axis === "spec") {
-    return {
-      ...record,
-      verdict: "halt",
-      reason,
-      haltScope: downstream,
-      recommendation,
-    };
+    // An empty scope would block nothing; with no downstream ticket the Halt holds the spec.
+    const haltScope = downstream.length > 0 ? downstream : "spec";
+    return { ...record, verdict: "halt", reason, haltScope, recommendation };
   }
   return { ...record, verdict: "defer", reason: "decision", recommendation };
 }

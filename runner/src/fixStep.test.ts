@@ -72,17 +72,29 @@ describe("fixRecordProblems", () => {
   const fixes = [fixOf(1, "standards"), fixOf(2, "spec")];
 
   it("passes one outcome per Fix with a commit for the fixed one", () => {
-    expect(fixRecordProblems(fixes, [fixed, gaveUp], true)).toEqual([]);
+    expect(
+      fixRecordProblems({
+        fixes,
+        outcomes: [fixed, gaveUp],
+        hasNewCommit: true,
+      }),
+    ).toEqual([]);
   });
 
   it("passes all given up with no commit", () => {
     const outcomes: FixOutcome[] = [{ ...gaveUp, finding: 1 }, gaveUp];
-    expect(fixRecordProblems(fixes, outcomes, false)).toEqual([]);
+    expect(
+      fixRecordProblems({ fixes, outcomes: outcomes, hasNewCommit: false }),
+    ).toEqual([]);
   });
 
   it("names a Fix with no outcome and an outcome for a finding not in the batch", () => {
     expect(
-      fixRecordProblems(fixes, [fixed, { finding: 5, status: "fixed" }], true),
+      fixRecordProblems({
+        fixes,
+        outcomes: [fixed, { finding: 5, status: "fixed" }],
+        hasNewCommit: true,
+      }),
     ).toEqual([
       "finding 2: each Fix gets exactly one outcome, but it got 0",
       "finding 5: the batch has no Fix 5",
@@ -90,11 +102,19 @@ describe("fixRecordProblems", () => {
   });
 
   it("refuses a fixed outcome with no new commit, and a new commit with nothing fixed", () => {
-    expect(fixRecordProblems(fixes, [fixed, gaveUp], false)).toEqual([
+    expect(
+      fixRecordProblems({
+        fixes,
+        outcomes: [fixed, gaveUp],
+        hasNewCommit: false,
+      }),
+    ).toEqual([
       "the record says a finding was fixed, but the step made no new commit",
     ]);
     const allGaveUp: FixOutcome[] = [{ ...gaveUp, finding: 1 }, gaveUp];
-    expect(fixRecordProblems(fixes, allGaveUp, true)).toEqual([
+    expect(
+      fixRecordProblems({ fixes, outcomes: allGaveUp, hasNewCommit: true }),
+    ).toEqual([
       "every Fix was given up, so its change is reverted, but the step made a new commit",
     ]);
   });
@@ -103,7 +123,11 @@ describe("fixRecordProblems", () => {
 describe("giveUpRecordOf", () => {
   it("turns a spec-axis give-up into a Halt scoped to the downstream tickets", () => {
     expect(
-      giveUpRecordOf(fixOf(2, "spec"), gaveUp, ["byro-repo#7"]),
+      giveUpRecordOf({
+        record: fixOf(2, "spec"),
+        gaveUp,
+        downstream: ["byro-repo#7"],
+      }),
     ).toMatchObject({
       verdict: "halt",
       reason: "judgement-call",
@@ -113,9 +137,19 @@ describe("giveUpRecordOf", () => {
     });
   });
 
+  it("scopes a spec-axis give-up's Halt to the whole spec when no ticket is downstream", () => {
+    expect(
+      giveUpRecordOf({ record: fixOf(2, "spec"), gaveUp, downstream: [] }),
+    ).toMatchObject({ verdict: "halt", haltScope: "spec" });
+  });
+
   it("turns a standards-axis give-up into a Defer `decision`", () => {
     expect(
-      giveUpRecordOf(fixOf(2, "standards"), gaveUp, ["byro-repo#7"]),
+      giveUpRecordOf({
+        record: fixOf(2, "standards"),
+        gaveUp,
+        downstream: ["byro-repo#7"],
+      }),
     ).toMatchObject({
       verdict: "defer",
       reason: "decision",

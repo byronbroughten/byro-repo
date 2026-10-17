@@ -1579,6 +1579,26 @@ describe("run's finding triage", () => {
     expect(factsOf().reviewFixes).toBe("triage");
   });
 
+  it("Stops on a step error, its work discarded, when the triage agent's fix crosses the live ceiling", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      implementedAt(150_000),
+      reviewed(findings),
+      triaged(triageRecordOf(1, "fix"), triageRecordOf(2, "dismiss")),
+      killed("half.ts"),
+    );
+    const run = specRun(agentStep);
+
+    const result = await run.run(spec);
+
+    expect(result.message).toBe("Stopped on byro-repo #1: a step error.");
+    const workspace = await run.workspaces.find(refOf(1));
+    expect(existsSync(join(workspace?.path ?? "", "half.ts"))).toBe(false);
+    expect(github.comments[0]?.body).toContain(
+      "The triage agent's fix crossed the live ceiling of 180000",
+    );
+  });
+
   it("turns a spec-axis give-up into a Halt on the downstream tickets and a standards-axis one into a Defer `decision`", async () => {
     addSpec([1, 2, 3]);
     github.blockers.set(2, [1]);

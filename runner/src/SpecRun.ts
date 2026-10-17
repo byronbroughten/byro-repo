@@ -40,6 +40,7 @@ import {
   fixOutputSchema,
   fixPrompt,
   fixRecordProblems,
+  type GaveUpOutcome,
   giveUpRecordOf,
 } from "./fixStep.ts";
 import { git } from "./git.ts";
@@ -708,7 +709,7 @@ export class SpecRun {
     state.triage = records;
   }
 
-  // The resumed implementer fixes while its peak is under the ticket budget; past it, or killed at the live ceiling, the triage agent does.
+  // The resumed implementer fixes under the ticket budget; otherwise, or once killed, the triage agent does.
   private async _fix(ticketRun: TicketRun): Promise<void> {
     const { run, ticket, workspace, state } = ticketRun;
     const fixes = (state.triage ?? []).filter(isFix);
@@ -719,11 +720,9 @@ export class SpecRun {
       await resetTo(workspace, state.fixBase);
     }
     const base = state.fixBase;
-    const peak = state.implementPeak;
-    let fixer: Fixer =
-      peak !== undefined && peak < this.config.knobs.ticketBudget
-        ? "implementer"
-        : "triage";
+    const peak = state.implementPeak ?? Infinity;
+    const isUnderBudget = peak < this.config.knobs.ticketBudget;
+    let fixer: Fixer = isUnderBudget ? "implementer" : "triage";
     let attempt = await this._runFixer(ticketRun, fixer, fixes);
     if (attempt.kind === "crossed" && fixer === "implementer") {
       await resetTo(workspace, base);
@@ -744,18 +743,17 @@ export class SpecRun {
     }
     const { outcomes, logPath } = attempt;
     const hasNewCommit = !isSameHeads(base, await this._headsOf(workspace));
-    const problems = fixRecordProblems(fixes, outcomes, hasNewCommit);
+    const problems = fixRecordProblems({ fixes, outcomes, hasNewCommit });
     if (problems.length > 0) {
       throw new UnhandledStop("schema-failure", problems.join("; "), logPath);
     }
     const downstream = await this._downstreamOf(run, ticket.issue);
     state.triage = (state.triage ?? []).map((record) => {
-      const gaveUp = outcomes.find(
-        (outcome) =>
-          outcome.finding === record.finding && outcome.status === "gave-up",
-      );
-      if (gaveUp?.status !== "gave-up") return record;
-      return giveUpRecordOf(record, gaveUp, downstream);
+      const gaveUp = outcomes
+        .filter(isGaveUp)
+        .find(({ finding }) => finding === record.finding);
+      if (gaveUp === undefined) return record;
+      return giveUpRecordOf({ record, gaveUp, downstream });
     });
     if (outcomes.some(({ status }) => status === "fixed")) state.fixer = fixer;
   }
@@ -767,13 +765,15 @@ export class SpecRun {
   ): Promise<FixAttempt> {
     const { ticket, pair, workspace, state } = ticketRun;
     const { knobs } = this.config;
-    const resumed =
-      fixer === "implementer"
-        ? { pair, resumeSessionId: lastSessionOf(state, "implement") }
-        : {
-            pair: strongerPairOf(knobs.triagePair, pair),
-            resumeSessionId: lastSessionOf(state, "triage"),
-          };
+    let resumed: Pick<StepRequest, "pair" | "resumeSessionId">;
+    if (fixer === "implementer") {
+      resumed = { pair, resumeSessionId: lastSessionOf(state, "implement") };
+    } else {
+      resumed = {
+        pair: strongerPairOf(knobs.triagePair, pair),
+        resumeSessionId: lastSessionOf(state, "triage"),
+      };
+    }
     const { result, logPath } = await this._runStep(ticketRun, "fix", {
       ...resumed,
       liveCeiling: knobs.liveCeiling,
@@ -804,8 +804,11 @@ export class SpecRun {
       const next = run.tickets.filter((ticket) => {
         const label = issueLabelOf(ticket);
         if (label === issueLabelOf(issue)) return false;
-        if (downstream.some((d) => issueLabelOf(d) === label)) return false;
-        return (blockersOf.get(label) ?? []).some((b) => frontier.includes(b));
+        if (downstream.some((found) => issueLabelOf(found) === label)) {
+          return false;
+        }
+        const blockers = blockersOf.get(label) ?? [];
+        return blockers.some((blocker) => frontier.includes(blocker));
       });
       downstream.push(...next);
       frontier = next.map(issueLabelOf);
@@ -823,7 +826,7 @@ export class SpecRun {
     return { record, logPath, peakContext: result.peakContext };
   }
 
-  // Runs the step and records its session; the result is read by recordOf(), or first checked for a live-ceiling kill.
+  // Leaves the result unread, so a fixer can check for a live-ceiling kill before recordOf().
   private async _runStep(
     ticketRun: TicketRun,
     agent: KnobbedStep,
@@ -1133,12 +1136,37 @@ export class SpecRun {
 }
 
 // Discards commits and untracked files alike; ignored files, such as the symlinked configs, stay.
+
+function isFix({ verdict }: TriageRecord): boolean {
+  return verdict === "fix";
+}
+
+function isSameHeads(first: Heads, second: Heads): boolean {
+  return JSON.stringify(first) === JSON.stringify(second);
+}
+
+function branchedReposOf(state: TicketState): string[] {
+  return (state.record?.branches ?? []).map(({ repo }) => repo);
+}
+
+function lastSessionOf(
+  state: TicketState,
+  agent: StepAgent,
+): string | undefined {
+  return state.sessions.findLast((session) => session.agent === agent)
+    ?.sessionId;
+}
+
 async function resetTo(workspace: Workspace, heads: Heads): Promise<void> {
   for (const [clonePath, sha] of Object.entries(heads)) {
     const worktree = join(workspace.path, clonePath);
     await git(worktree, "reset", "--hard", sha);
     await git(worktree, "clean", "-fd");
   }
+}
+
+function isGaveUp(outcome: FixOutcome): outcome is GaveUpOutcome {
+  return outcome.status === "gave-up";
 }
 
 function recordOf(
@@ -1169,26 +1197,6 @@ function recordOf(
     );
   }
   return output.record;
-}
-
-function branchedReposOf(state: TicketState): string[] {
-  return (state.record?.branches ?? []).map(({ repo }) => repo);
-}
-
-function lastSessionOf(
-  state: TicketState,
-  agent: StepAgent,
-): string | undefined {
-  return state.sessions.findLast((session) => session.agent === agent)
-    ?.sessionId;
-}
-
-function isFix({ verdict }: TriageRecord): boolean {
-  return verdict === "fix";
-}
-
-function isSameHeads(first: Heads, second: Heads): boolean {
-  return JSON.stringify(first) === JSON.stringify(second);
 }
 
 function ticketStateOf(run: Run, ticket: IssueRef): TicketState {
