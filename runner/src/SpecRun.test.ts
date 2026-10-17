@@ -270,6 +270,18 @@ function masterSubjects(): string[] {
   );
 }
 
+function progressLines(): string[] {
+  return readFileSync(join(stateFolder(), "byro-repo-213.log"), "utf8")
+    .trimEnd()
+    .split("\n");
+}
+
+const timestampLength = "2026-10-12T09:00:00.000Z ".length;
+
+function eventOf(line: string): string {
+  return line.slice(timestampLength);
+}
+
 function ticketState(): Record<string, { step: string }> {
   const path = join(stateFolder(), "byro-repo-213.run.json");
   return (
@@ -357,13 +369,11 @@ describe("run", () => {
       spec,
     );
 
-    const lines = readFileSync(join(stateFolder(), "byro-repo-213.log"), "utf8")
-      .trimEnd()
-      .split("\n");
+    const lines = progressLines();
     expect(
       lines.every((line) => line.startsWith("2026-10-12T09:00:00.000Z ")),
     ).toBe(true);
-    expect(lines.map((line) => line.slice(25))).toEqual(
+    expect(lines.map(eventOf)).toEqual(
       expect.arrayContaining([
         "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%.",
         "byro-repo #1: launching on Opus high from implement.",
@@ -379,13 +389,11 @@ describe("run", () => {
 
     await specRun(FakeAgentStep.init(implemented("RED"), reviewed())).run(spec);
 
-    const lines = readFileSync(join(stateFolder(), "byro-repo-213.log"), "utf8")
-      .trimEnd()
-      .split("\n");
+    const lines = progressLines();
     expect(
       lines.every((line) => line.startsWith("2026-10-12T09:00:00.000Z ")),
     ).toBe(true);
-    expect(lines.map((line) => line.slice(25))).toContain(
+    expect(lines.map(eventOf)).toContain(
       "byro-repo #1: stopped on red checks; details in the spec-issue comment.",
     );
   });
@@ -1402,10 +1410,8 @@ describe("run's timings", () => {
   }
 
   function timingLines(): string[] {
-    return readFileSync(join(stateFolder(), "byro-repo-213.log"), "utf8")
-      .trimEnd()
-      .split("\n")
-      .map((line) => line.slice(25))
+    return progressLines()
+      .map(eventOf)
       .filter((line) => / took |^Preflight passed|^Run started/.test(line));
   }
 

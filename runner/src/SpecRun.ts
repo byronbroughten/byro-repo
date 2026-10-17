@@ -143,7 +143,7 @@ export interface RunResult {
 type TicketStep =
   "implement" | "review" | "checks" | "wrap-up" | "landed" | "stopped";
 
-type TimedStep = "workspace" | "implement" | "review" | "checks" | "wrap-up";
+type TimedStep = Exclude<TicketStep, "landed" | "stopped"> | "workspace";
 
 interface TicketState {
   step: TicketStep;
@@ -455,11 +455,8 @@ export class SpecRun {
         `${issueLabelOf(ticket.issue)}: launching on ${pairLabelOf(pair)} from ${state.step}.`,
       );
       if (state.step !== "wrap-up") {
-        const workspace = await this._timed(
-          run,
-          ticket.issue,
-          "workspace",
-          () => this._workspaceFor(run, ticket.issue),
+        const workspace = await this._timed({ run, ticket }, "workspace", () =>
+          this._workspaceFor(run, ticket.issue),
         );
         const targets = targetsAtLaunchOf(ticket, this._progressPathOf(run));
         await this._runSteps({ run, ticket, pair, workspace, state, targets });
@@ -467,7 +464,7 @@ export class SpecRun {
         const landing = await this.workspaces.find(ticket.issue);
         if (landing) await this._takeLease(run, landing);
       }
-      await this._timed(run, ticket.issue, "wrap-up", () =>
+      await this._timed({ run, ticket }, "wrap-up", () =>
         this._land({ run, ticket, pair, state }),
       );
       return "landed";
@@ -533,9 +530,9 @@ export class SpecRun {
   }
 
   private async _runSteps(ticketRun: TicketRun): Promise<void> {
-    const { run, ticket, state } = ticketRun;
+    const { state } = ticketRun;
     if (state.step === "implement") {
-      await this._timed(run, ticket.issue, "implement", () =>
+      await this._timed(ticketRun, "implement", () =>
         this._implement(ticketRun),
       );
       // A ticket with no code has nothing to review or check.
@@ -543,15 +540,11 @@ export class SpecRun {
       this._advance(ticketRun, next);
     }
     if (state.step === "review") {
-      await this._timed(run, ticket.issue, "review", () =>
-        this._review(ticketRun),
-      );
+      await this._timed(ticketRun, "review", () => this._review(ticketRun));
       this._advance(ticketRun, "checks");
     }
     if (state.step === "checks") {
-      await this._timed(run, ticket.issue, "checks", () =>
-        this._check(ticketRun),
-      );
+      await this._timed(ticketRun, "checks", () => this._check(ticketRun));
       this._advance(ticketRun, "wrap-up");
     }
   }
@@ -874,8 +867,7 @@ export class SpecRun {
 
   // Logged however the step ends, a Stop or Halt included.
   private async _timed<RV>(
-    run: Run,
-    issue: IssueRef,
+    { run, ticket }: Pick<LandingTicket, "run" | "ticket">,
     step: TimedStep,
     act: () => Promise<RV>,
   ): Promise<RV> {
@@ -885,7 +877,7 @@ export class SpecRun {
     } finally {
       this._log(
         run,
-        `${issueLabelOf(issue)}: ${step} took ${this._secondsSince(startedAt)}s.`,
+        `${issueLabelOf(ticket.issue)}: ${step} took ${this._secondsSince(startedAt)}s.`,
       );
     }
   }
