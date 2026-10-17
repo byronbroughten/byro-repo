@@ -8,6 +8,8 @@ import {
   readFileSync,
   realpathSync,
   rmSync,
+  statSync,
+  utimesSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -110,6 +112,14 @@ function commitLockfile(content: string): void {
   writeFileSync(join(primaryRoot, "package-lock.json"), content);
   git(primaryRoot, "add", "package-lock.json");
   git(primaryRoot, "commit", "-m", "Add lockfile");
+}
+
+function writeHiddenLockfile(ageSeconds: number): void {
+  const hidden = join(primaryRoot, "node_modules/.package-lock.json");
+  writeFileSync(hidden, "hidden lock");
+  const lockfileTime = statSync(join(primaryRoot, "package-lock.json")).mtime;
+  const time = new Date(lockfileTime.getTime() - ageSeconds * 1000);
+  utimesSync(hidden, time, time);
 }
 
 function branchOf(path: string): string | undefined {
@@ -687,8 +697,9 @@ describe("the dependencies", () => {
     expect(installs).toEqual([workspace.path]);
   });
 
-  it("skips the installer when the lockfile matches the primary's and every copy worked", async () => {
+  it("skips the installer when the lockfile matches the primary's, the primary's install is fresh and every copy worked", async () => {
     commitLockfile("lock v1");
+    writeHiddenLockfile(-60);
 
     await workspaces().create(
       { repo: "byro-repo", number: 7 },
@@ -696,6 +707,29 @@ describe("the dependencies", () => {
     );
 
     expect(installs).toEqual([]);
+  });
+
+  it("runs the installer when the primary's hidden lockfile is older than its lockfile, even with a matching lockfile", async () => {
+    commitLockfile("lock v1");
+    writeHiddenLockfile(60);
+
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "stale-primary" },
+    );
+
+    expect(installs).toEqual([workspace.path]);
+  });
+
+  it("runs the installer when the primary has no hidden lockfile, even with a matching lockfile", async () => {
+    commitLockfile("lock v1");
+
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "no-hidden-lockfile" },
+    );
+
+    expect(installs).toEqual([workspace.path]);
   });
 
   it("runs the installer when the lockfile differs from the primary's", async () => {
@@ -712,6 +746,7 @@ describe("the dependencies", () => {
 
   it("runs the installer when a copy failed, even with a matching lockfile", async () => {
     commitLockfile("lock v1");
+    writeHiddenLockfile(-60);
     const unreadable = join(primaryRoot, "packages/utils/node_modules/dep");
     chmodSync(unreadable, 0o000);
     try {

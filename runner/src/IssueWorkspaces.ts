@@ -26,6 +26,7 @@ const execFileAsync = promisify(execFile);
 
 const maxSlugWords = 6;
 const lockfileName = "package-lock.json";
+const hiddenLockfileName = ".package-lock.json";
 const leaseFileName = "workspace.lease";
 
 export interface IssueRef {
@@ -401,7 +402,7 @@ export class IssueWorkspaces {
         rmSync(to, { recursive: true, force: true });
       }
     }
-    if (copyFailed || !this._lockfileMatches(path)) {
+    if (copyFailed || this._primaryIsStale || !this._lockfileMatches(path)) {
       await this.config.installDependencies(path);
     }
   }
@@ -412,6 +413,18 @@ export class IssueWorkspaces {
     const workspace = join(path, lockfileName);
     if (!existsSync(primary) || !existsSync(workspace)) return false;
     return readFileSync(primary).equals(readFileSync(workspace));
+  }
+
+  // npm rewrites its hidden lockfile on every install, so one older than the lockfile means landing changed deps without a reinstall.
+  private get _primaryIsStale(): boolean {
+    const lockfile = join(this.config.primaryRoot, lockfileName);
+    const hidden = join(
+      this.config.primaryRoot,
+      "node_modules",
+      hiddenLockfileName,
+    );
+    if (!existsSync(lockfile) || !existsSync(hidden)) return true;
+    return statSync(hidden).mtimeMs < statSync(lockfile).mtimeMs;
   }
 
   // Top-level folders too, since npm workspaces such as runner/ keep their own node_modules.
