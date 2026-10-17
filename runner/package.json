@@ -11,6 +11,7 @@
     "./CswapUsageReader": "./src/CswapUsageReader.ts",
     "./FakeAgentStep": "./src/FakeAgentStep.ts",
     "./FakeNotices": "./src/FakeNotices.ts",
+    "./findingTriage": "./src/findingTriage.ts",
     "./GhCli": "./src/GhCli.ts",
     "./implementStep": "./src/implementStep.ts",
     "./IssueReader": "./src/IssueReader.ts",
