@@ -3,11 +3,15 @@
 
 import { readFileSync } from "node:fs";
 
+import type { Pair } from "./AgentStep.ts";
+
 export type Command = [string, ...string[]];
 
 export interface StepKnobs<VL extends number | string[]> {
   implement: VL;
   review: VL;
+  triage: VL;
+  fix: VL;
 }
 
 // The steps a run launches, each with its own knobs.
@@ -27,7 +31,12 @@ export interface RunKnobs {
   // Workspace-relative globs under the protected .claude/ that a step's Edit or Write may still change.
   allowedWriteGlobs: string[];
   maxTurns: StepKnobs<number>;
+  // The resumed implementer fixes the Fix batch only while its peak context is under this.
   ticketBudget: number;
+  // A fixer whose context crosses this is killed and its batch handed to the triage agent.
+  liveCeiling: number;
+  // Finding triage's pair; the triage agent fixes on the stronger of it and the ticket's.
+  triagePair: Pair;
   // Named in the context nudge's message; unset, the message says to write a handoff with no link.
   handoffDocPath?: string;
 }
@@ -51,14 +60,16 @@ export const defaultRunKnobs: RunKnobs = {
     ["npm", "run", "lint"],
   ],
   authChecks: authChecksOf(defaultAccount),
-  allowedTools: { implement: [], review: [] },
+  allowedTools: { implement: [], review: [], triage: [], fix: [] },
   allowedWriteGlobs: [
     ".claude/skills/**",
     ".claude/agents/**",
     ".claude/hooks/**",
   ],
-  maxTurns: { implement: 200, review: 80 },
+  maxTurns: { implement: 200, review: 80, triage: 80, fix: 120 },
   ticketBudget: 150_000,
+  liveCeiling: 180_000,
+  triagePair: { model: "opus", effort: "medium" },
 };
 
 export function loadRunKnobs(overridePath: string): RunKnobs {

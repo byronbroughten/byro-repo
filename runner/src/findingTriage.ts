@@ -82,6 +82,12 @@ Return \`records\`, exactly one record per finding: \`finding\` (its number belo
 ${numbered.join("\n")}`;
 }
 
+// Sent with --resume to a triage agent whose records broke a verdict rule; its one retry.
+export function triageRetryPrompt(problems: string[]): string {
+  const rules = problems.map((problem) => `- ${problem}`).join("\n");
+  return `Your records broke these rules:\n\n${rules}\n\nReturn \`records\` again, every finding's, with these corrected. Change nothing else.`;
+}
+
 export const triageRecordSchema = {
   type: "object",
   properties: {

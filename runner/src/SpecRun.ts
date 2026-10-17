@@ -1,9 +1,10 @@
-// The run loop: takes one spec's tickets, one at a time in blocking-graph order, through implement, review, checks and
-// wrap-up in each ticket's issue workspace, and never closes the spec. Preflight refuses or Stops a run before it starts.
-// Any outcome a later ticket will handle (findings, red checks, step errors, blockers, schema failures) is an UnhandledStop.
+// The run loop: takes one spec's tickets, one at a time in blocking-graph order, through implement, review, finding triage,
+// fix, checks and wrap-up in each ticket's issue workspace, and never closes the spec. Preflight refuses or Stops a run first.
+// Any outcome a later ticket will handle (red checks, step errors, blockers, schema failures) is an UnhandledStop.
 // The run holds the lease on the workspace of the ticket it's working; a ticket another holder has leased waits.
 // GitHub and git hold what's durable; a per-spec state file holds the step each ticket reached, so a rerun resumes there.
-// Steps launch through AgentStep.ts; prompts are implementStep.ts and reviewStep.ts; landing is WrapUp.ts; knobs are runKnobs.ts.
+// Steps launch through AgentStep.ts; prompts are implementStep.ts, reviewStep.ts, findingTriage.ts and fixStep.ts;
+// landing is WrapUp.ts; knobs are runKnobs.ts.
 
 import { execFile } from "node:child_process";
 import {
@@ -25,7 +26,24 @@ import type {
   StepResult,
 } from "./AgentStep.ts";
 import { messageOf, outputTailOf } from "./failureText.ts";
-import { git } from "./git.ts";
+import {
+  triageOutputSchema,
+  triagePrompt,
+  type TriageRecord,
+  triageRecordProblems,
+  triageRecordsOf,
+  triageRetryPrompt,
+} from "./findingTriage.ts";
+import {
+  type FixOutcome,
+  fixOutcomesOf,
+  fixOutputSchema,
+  fixPrompt,
+  fixRecordProblems,
+  type GaveUpOutcome,
+  giveUpRecordOf,
+} from "./fixStep.ts";
+import { git, isDirty } from "./git.ts";
 import {
   implementOutputSchema,
   implementPrompt,
@@ -56,7 +74,7 @@ import {
   type UsageReader,
 } from "./limitGuard.ts";
 import { LimitStop } from "./LimitStop.ts";
-import { pairLabelOf, pairOf } from "./modelFit.ts";
+import { pairLabelOf, pairOf, strongerPairOf } from "./modelFit.ts";
 import type { Notices } from "./Notices.ts";
 import {
   reviewPrompt,
@@ -141,13 +159,34 @@ export interface RunResult {
 }
 
 type TicketStep =
-  "implement" | "review" | "checks" | "wrap-up" | "landed" | "stopped";
+  | "implement"
+  | "review"
+  | "triage"
+  | "fix"
+  | "checks"
+  | "wrap-up"
+  | "landed"
+  | "stopped";
+
+type Fixer = "implementer" | "triage";
+
+// Each worktree's clone path to its HEAD.
+type Heads = Record<string, string>;
 
 type TimedStep = Exclude<TicketStep, "landed" | "stopped"> | "workspace";
 
 interface TicketState {
   step: TicketStep;
   record?: ImplementRecord;
+  // The implement session's peak context, which picks the fixer.
+  implementPeak?: number;
+  findings?: string[];
+  // A fixer's give-ups are rewritten in place as Halts or Defers.
+  triage?: TriageRecord[];
+  // Set once a fixer fixed a finding.
+  fixer?: Fixer;
+  // The heads before the fix step, which a killed fixer or a rerun resets to.
+  fixBase?: Heads;
   sessions: StepSession[];
   configFolder?: string;
   limitReadings?: LimitReadings;
@@ -182,10 +221,25 @@ interface TicketRun extends LandingTicket {
   targets: Target[];
 }
 
+type StepLaunch = Pick<StepRequest, "prompt" | "jsonSchema"> &
+  Partial<
+    Pick<StepRequest, "pair" | "targets" | "resumeSessionId" | "liveCeiling">
+  >;
+
+interface RanStep {
+  result: StepResult;
+  logPath: string;
+}
+
 interface LaunchedStep {
   record: unknown;
   logPath: string;
+  peakContext: number | undefined;
 }
+
+type FixAttempt =
+  | { kind: "done"; outcomes: FixOutcome[]; logPath: string }
+  | { kind: "crossed"; logPath: string };
 
 type TicketOutcome = "landed" | "stopped" | "leased";
 
@@ -541,6 +595,17 @@ export class SpecRun {
     }
     if (state.step === "review") {
       await this._timed(ticketRun, "review", () => this._review(ticketRun));
+      const hasFindings = (state.findings ?? []).length > 0;
+      this._advance(ticketRun, hasFindings ? "triage" : "checks");
+    }
+    if (state.step === "triage") {
+      await this._timed(ticketRun, "triage", () => this._triage(ticketRun));
+      const hasFix = (state.triage ?? []).some(isFix);
+      this._advance(ticketRun, hasFix ? "fix" : "checks");
+    }
+    // Checks run after the fixes, so a fix that turns them red Stops.
+    if (state.step === "fix") {
+      await this._timed(ticketRun, "fix", () => this._fix(ticketRun));
       this._advance(ticketRun, "checks");
     }
     if (state.step === "checks") {
@@ -566,7 +631,11 @@ export class SpecRun {
     });
     const record = implementRecordOf(launched.record);
     const { logPath } = launched;
-    const hasNewCommit = (await this._headsOf(workspace)) !== headsBefore;
+    state.implementPeak = launched.peakContext;
+    const hasNewCommit = !isSameHeads(
+      headsBefore,
+      await this._headsOf(workspace),
+    );
     const problems = implementRecordProblems(record, hasNewCommit);
     if (problems.length > 0) {
       throw new UnhandledStop("schema-failure", problems.join("; "), logPath);
@@ -584,40 +653,212 @@ export class SpecRun {
     state.record = record;
   }
 
-  // Every repo's branch and HEAD in one string, so any commit in any repo changes it.
-  private async _headsOf(workspace: Workspace): Promise<string> {
-    const heads: string[] = [];
+  // Every repo's HEAD, so any commit in any repo changes it.
+  private async _headsOf(workspace: Workspace): Promise<Heads> {
+    const heads: Heads = {};
     for (const clonePath of Object.values(this.config.knobs.clonePaths)) {
       const worktree = join(workspace.path, clonePath);
       if (!existsSync(worktree)) continue;
-      heads.push(`${clonePath}:${await git(worktree, "rev-parse", "HEAD")}`);
+      heads[clonePath] = await git(worktree, "rev-parse", "HEAD");
     }
-    return heads.join(" ");
+    return heads;
   }
 
   private async _review(ticketRun: TicketRun): Promise<void> {
     const { ticket, workspace, state } = ticketRun;
-    const { record, logPath } = await this._launch(ticketRun, "review", {
+    const { record } = await this._launch(ticketRun, "review", {
       prompt: reviewPrompt({
         issue: ticket.issue,
         title: ticket.title,
         skillName: this.config.knobs.skillNames.review,
         branch: workspace.branch,
-        branchedRepos: (state.record?.branches ?? []).map(({ repo }) => repo),
+        branchedRepos: branchedReposOf(state),
       }),
       jsonSchema: reviewRecordSchema,
     });
-    const { findings } = record as ReviewRecord;
-    if (findings.length > 0) {
-      throw new UnhandledStop("review-findings", bulletsOf(findings), logPath);
+    state.findings = (record as ReviewRecord).findings;
+  }
+
+  // Triage never edits, so it runs with no targets; a refused record gets one retry in the same session.
+  private async _triage(ticketRun: TicketRun): Promise<void> {
+    const { ticket, workspace, state } = ticketRun;
+    const findings = state.findings ?? [];
+    const launch = {
+      pair: this.config.knobs.triagePair,
+      targets: [],
+      jsonSchema: triageOutputSchema,
+    };
+    const first = await this._launch(ticketRun, "triage", {
+      ...launch,
+      prompt: triagePrompt({
+        issue: ticket.issue,
+        title: ticket.title,
+        branch: workspace.branch,
+        branchedRepos: branchedReposOf(state),
+        findings,
+      }),
+    });
+    let records = triageRecordsOf(first.record);
+    const problems = triageRecordProblems(findings.length, records);
+    if (problems.length > 0) {
+      const retry = await this._launch(ticketRun, "triage", {
+        ...launch,
+        prompt: triageRetryPrompt(problems),
+        resumeSessionId: lastSessionOf(state, "triage"),
+      });
+      records = triageRecordsOf(retry.record);
+      const retryProblems = triageRecordProblems(findings.length, records);
+      if (retryProblems.length > 0) {
+        throw new UnhandledStop(
+          "schema-failure",
+          retryProblems.join("; "),
+          retry.logPath,
+        );
+      }
     }
+    state.triage = records;
+  }
+
+  // The resumed implementer fixes under the ticket budget; otherwise, or once killed, the triage agent does.
+  private async _fix(ticketRun: TicketRun): Promise<void> {
+    const { run, ticket, workspace, state } = ticketRun;
+    const fixes = (state.triage ?? []).filter(isFix);
+    if (state.fixBase === undefined) {
+      state.fixBase = await this._headsOf(workspace);
+      this._saveState(run);
+    } else {
+      await resetTo(workspace, state.fixBase);
+    }
+    const base = state.fixBase;
+    const peak = state.implementPeak ?? Infinity;
+    const isUnderBudget = peak < this.config.knobs.ticketBudget;
+    let fixer: Fixer = isUnderBudget ? "implementer" : "triage";
+    let attempt = await this._runFixer(ticketRun, fixer, fixes);
+    if (attempt.kind === "crossed" && fixer === "implementer") {
+      await resetTo(workspace, base);
+      this._log(
+        run,
+        `${issueLabelOf(ticket.issue)}: the implementer's fix crossed the live ceiling; handing the batch to the triage agent.`,
+      );
+      fixer = "triage";
+      attempt = await this._runFixer(ticketRun, fixer, fixes);
+    }
+    if (attempt.kind === "crossed") {
+      await resetTo(workspace, base);
+      throw new UnhandledStop(
+        "step-error",
+        `The triage agent's fix crossed the live ceiling of ${this.config.knobs.liveCeiling}; its work is discarded.`,
+        attempt.logPath,
+      );
+    }
+    const { outcomes, logPath } = attempt;
+    const hasNewCommit = !isSameHeads(base, await this._headsOf(workspace));
+    const dirtyRepos = await this._dirtyReposOf(workspace);
+    const problems = fixRecordProblems({
+      fixes,
+      outcomes,
+      hasNewCommit,
+      dirtyRepos,
+    });
+    if (problems.length > 0) {
+      throw new UnhandledStop("schema-failure", problems.join("; "), logPath);
+    }
+    const downstream = await this._downstreamOf(run, ticket.issue);
+    state.triage = (state.triage ?? []).map((record) => {
+      const gaveUp = outcomes
+        .filter(isGaveUp)
+        .find(({ finding }) => finding === record.finding);
+      if (gaveUp === undefined) return record;
+      return giveUpRecordOf({ record, gaveUp, downstream });
+    });
+    if (outcomes.some(({ status }) => status === "fixed")) state.fixer = fixer;
+  }
+
+  private async _dirtyReposOf(workspace: Workspace): Promise<string[]> {
+    const dirty: string[] = [];
+    for (const [repo, clonePath] of Object.entries(
+      this.config.knobs.clonePaths,
+    )) {
+      const worktree = join(workspace.path, clonePath);
+      if (existsSync(worktree) && (await isDirty(worktree))) dirty.push(repo);
+    }
+    return dirty;
+  }
+
+  private async _runFixer(
+    ticketRun: TicketRun,
+    fixer: Fixer,
+    fixes: TriageRecord[],
+  ): Promise<FixAttempt> {
+    const { ticket, pair, workspace, state } = ticketRun;
+    const { knobs } = this.config;
+    let resumed: Pick<StepRequest, "pair" | "resumeSessionId">;
+    if (fixer === "implementer") {
+      resumed = { pair, resumeSessionId: lastSessionOf(state, "implement") };
+    } else {
+      resumed = {
+        pair: strongerPairOf(knobs.triagePair, pair),
+        resumeSessionId: lastSessionOf(state, "triage"),
+      };
+    }
+    const { result, logPath } = await this._runStep(ticketRun, "fix", {
+      ...resumed,
+      liveCeiling: knobs.liveCeiling,
+      prompt: fixPrompt({
+        issue: ticket.issue,
+        title: ticket.title,
+        branch: workspace.branch,
+        branchedRepos: branchedReposOf(state),
+        fixes,
+      }),
+      jsonSchema: fixOutputSchema,
+    });
+    if (result.hasCrossedCeiling) return { kind: "crossed", logPath };
+    const record = recordOf("fix", result, logPath);
+    return { kind: "done", outcomes: fixOutcomesOf(record), logPath };
+  }
+
+  // The run's tickets this one blocks, directly or through another, each `<repo>#<n>`.
+  private async _downstreamOf(run: Run, issue: IssueRef): Promise<string[]> {
+    const blockersOf = new Map<string, string[]>();
+    for (const ticket of run.tickets) {
+      const blockers = await this.config.github.openBlockersOf(ticket);
+      blockersOf.set(issueLabelOf(ticket), blockers.map(issueLabelOf));
+    }
+    const downstream: IssueRef[] = [];
+    let frontier = [issueLabelOf(issue)];
+    while (frontier.length > 0) {
+      const next = run.tickets.filter((ticket) => {
+        const label = issueLabelOf(ticket);
+        if (label === issueLabelOf(issue)) return false;
+        if (downstream.some((found) => issueLabelOf(found) === label)) {
+          return false;
+        }
+        const blockers = blockersOf.get(label) ?? [];
+        return blockers.some((blocker) => frontier.includes(blocker));
+      });
+      downstream.push(...next);
+      frontier = next.map(issueLabelOf);
+    }
+    return downstream.map(({ repo, number }) => `${repo}#${number}`);
   }
 
   private async _launch(
     ticketRun: TicketRun,
     agent: KnobbedStep,
-    { prompt, jsonSchema }: Pick<StepRequest, "prompt" | "jsonSchema">,
+    launch: StepLaunch,
   ): Promise<LaunchedStep> {
+    const { result, logPath } = await this._runStep(ticketRun, agent, launch);
+    const record = recordOf(agent, result, logPath);
+    return { record, logPath, peakContext: result.peakContext };
+  }
+
+  // Leaves the result unread, so a fixer can check for a live-ceiling kill before recordOf().
+  private async _runStep(
+    ticketRun: TicketRun,
+    agent: KnobbedStep,
+    { prompt, jsonSchema, ...overrides }: StepLaunch,
+  ): Promise<RanStep> {
     const { run, ticket, pair, workspace, state, targets } = ticketRun;
     const { knobs } = this.config;
     await this._waitForLaunch(ticketRun);
@@ -639,6 +880,7 @@ export class SpecRun {
         targets,
         jsonSchema,
         logPath,
+        ...overrides,
       });
     } catch (error) {
       throw new UnhandledStop(
@@ -652,35 +894,13 @@ export class SpecRun {
     }
     state.configFolder = result.configFolder ?? state.configFolder;
     this._saveState(run);
-    const { output } = result;
     const hasSucceeded =
-      result.exitSubtype === "success" && output.status === "valid";
+      result.exitSubtype === "success" && result.output.status === "valid";
     // A step that met a limit and still succeeded, as after a retry, isn't stopped.
     if (result.limitHit !== undefined && !hasSucceeded) {
       await this._stopOnLimitHit(run, result.limitHit, logPath);
     }
-    if (output.status === "schemaFailure") {
-      throw new UnhandledStop(
-        "schema-failure",
-        output.problems.join("; "),
-        logPath,
-      );
-    }
-    if (result.errorText !== undefined) {
-      throw new UnhandledStop(
-        "step-error",
-        `The ${agent} step ended on an error: ${result.errorText}`,
-        logPath,
-      );
-    }
-    if (result.exitSubtype !== "success" || output.status !== "valid") {
-      throw new UnhandledStop(
-        "step-error",
-        `The ${agent} step ended ${result.exitSubtype ?? "without a result"}.`,
-        logPath,
-      );
-    }
-    return { record: output.record, logPath };
+    return { result, logPath };
   }
 
   // Asks the limit guard about the configured account until it says launch; the first reading is the ticket's Limit used before.
@@ -841,7 +1061,9 @@ export class SpecRun {
       branches: record.branches.map(({ repo, branch }) => ({ repo, branch })),
       closingComment: record.closingComment,
       boxesUndone: record.boxesUndone,
-      reviewFixes: "none",
+      reviewFixes: state.fixer ?? "none",
+      defers: (state.triage ?? []).filter(({ verdict }) => verdict === "defer")
+        .length,
       reviewRounds: 1,
       retries: 0,
       pair: pairLabelOf(pair),
@@ -960,6 +1182,70 @@ export class SpecRun {
   private _progressPathOf(run: Run): string {
     return join(this.config.stateFolder, `${fileStemOf(run.spec.issue)}.log`);
   }
+}
+
+// Discards commits and untracked files alike; ignored files, such as the symlinked configs, stay.
+
+function isFix({ verdict }: TriageRecord): boolean {
+  return verdict === "fix";
+}
+
+function isSameHeads(first: Heads, second: Heads): boolean {
+  return JSON.stringify(first) === JSON.stringify(second);
+}
+
+function branchedReposOf(state: TicketState): string[] {
+  return (state.record?.branches ?? []).map(({ repo }) => repo);
+}
+
+function lastSessionOf(
+  state: TicketState,
+  agent: StepAgent,
+): string | undefined {
+  return state.sessions.findLast((session) => session.agent === agent)
+    ?.sessionId;
+}
+
+async function resetTo(workspace: Workspace, heads: Heads): Promise<void> {
+  for (const [clonePath, sha] of Object.entries(heads)) {
+    const worktree = join(workspace.path, clonePath);
+    await git(worktree, "reset", "--hard", sha);
+    await git(worktree, "clean", "-fd");
+  }
+}
+
+function isGaveUp(outcome: FixOutcome): outcome is GaveUpOutcome {
+  return outcome.status === "gave-up";
+}
+
+function recordOf(
+  agent: KnobbedStep,
+  result: StepResult,
+  logPath: string,
+): unknown {
+  const { output } = result;
+  if (output.status === "schemaFailure") {
+    throw new UnhandledStop(
+      "schema-failure",
+      output.problems.join("; "),
+      logPath,
+    );
+  }
+  if (result.errorText !== undefined) {
+    throw new UnhandledStop(
+      "step-error",
+      `The ${agent} step ended on an error: ${result.errorText}`,
+      logPath,
+    );
+  }
+  if (result.exitSubtype !== "success" || output.status !== "valid") {
+    throw new UnhandledStop(
+      "step-error",
+      `The ${agent} step ended ${result.exitSubtype ?? "without a result"}.`,
+      logPath,
+    );
+  }
+  return output.record;
 }
 
 function ticketStateOf(run: Run, ticket: IssueRef): TicketState {

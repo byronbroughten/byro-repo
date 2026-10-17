@@ -51,12 +51,23 @@ const tooManyRequests = 429;
 
 export class StepStream {
   private readonly meter = ContextMeter.init();
+  private readonly liveCeiling: number | undefined;
   private init: InitEvent | undefined;
   private rateLimit: RateLimitInfo | undefined;
   private result: ResultEvent | undefined;
 
-  static init(): StepStream {
-    return new StepStream();
+  constructor(liveCeiling: number | undefined) {
+    this.liveCeiling = liveCeiling;
+  }
+
+  static init(liveCeiling?: number): StepStream {
+    return new StepStream(liveCeiling);
+  }
+
+  get hasCrossedCeiling(): boolean {
+    const peak = this.meter.peak;
+    if (this.liveCeiling === undefined || peak === undefined) return false;
+    return peak > this.liveCeiling;
   }
 
   // cswap and claude can print plain lines too; only JSON events count.
@@ -86,6 +97,7 @@ export class StepStream {
       transcriptPath:
         projectFolder && sessionId && join(projectFolder, `${sessionId}.jsonl`),
       peakContext: this.meter.peak,
+      hasCrossedCeiling: this.hasCrossedCeiling,
       exitSubtype: stringOrUndefined(this.result?.subtype),
       errorText: this._errorText,
       usage: this.rateLimit && usageOf(this.rateLimit),

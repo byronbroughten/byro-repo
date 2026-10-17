@@ -26,6 +26,8 @@ export interface StepRequest {
   targets: Target[];
   jsonSchema: object;
   resumeSessionId?: string;
+  // The peak context past which the adapter kills the session.
+  liveCeiling?: number;
   logPath?: string;
 }
 
@@ -36,6 +38,8 @@ export interface StepResult {
   configFolder: string | undefined;
   transcriptPath: string | undefined;
   peakContext: number | undefined;
+  // Set when the adapter killed the session for crossing the request's live ceiling.
+  hasCrossedCeiling: boolean;
   // The result message's subtype; undefined when the stream ended without one.
   exitSubtype: string | undefined;
   // The result text of a result flagged is_error, which can still carry subtype success.

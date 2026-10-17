@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { pairOf } from "./modelFit.ts";
+import { pairOf, strongerPairOf } from "./modelFit.ts";
 
 function bodyWith(section: string): string {
   return `## What to build\n\nA thing.\n\n${section}`;
@@ -36,5 +36,21 @@ describe("pairOf", () => {
     const body = "## Model fit\n\nOpus low\nWhy.\n\n## Notes\n\nMore.";
 
     expect(pairOf(body)).toBe(undefined);
+  });
+});
+
+describe("strongerPairOf", () => {
+  const opusMedium = { model: "opus", effort: "medium" } as const;
+
+  it("picks the ticket's pair when it is Opus high", () => {
+    const opusHigh = { model: "opus", effort: "high" } as const;
+    expect(strongerPairOf(opusMedium, opusHigh)).toEqual(opusHigh);
+  });
+
+  it("keeps Opus medium over a lower Opus effort or any Sonnet", () => {
+    const opusLow = { model: "opus", effort: "low" } as const;
+    const sonnetHigh = { model: "sonnet", effort: "high" } as const;
+    expect(strongerPairOf(opusMedium, opusLow)).toEqual(opusMedium);
+    expect(strongerPairOf(opusMedium, sonnetHigh)).toEqual(opusMedium);
   });
 });

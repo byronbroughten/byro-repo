@@ -42,6 +42,33 @@
       "Bash(git show *)",
       "Bash(git merge-base *)",
       "Bash(npm run issue:read -- * --hide-others)"
+    ],
+    "triage": [
+      "Skill",
+      "Agent",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git merge-base *)",
+      "Bash(npm run issue:read -- * --hide-others)"
+    ],
+    "fix": [
+      "Skill",
+      "Agent",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git restore *)",
+      "Bash(npm run lint)",
+      "Bash(npm run lint *)",
+      "Bash(npm run issue:read -- * --hide-others)",
+      "Bash(git mv *)",
+      "Bash(git rm *)",
+      "Bash(mkdir *)"
     ]
   },
   "handoffDocPath": "docs/agents/planning.md#handoffs"

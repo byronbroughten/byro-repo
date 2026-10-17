@@ -85,6 +85,7 @@ describe("ClaudeAgentStep on a recorded success", () => {
       transcriptPath:
         "/Users/dev/.claude-swap-backup/sessions/2-dev_example.com/projects/-Users-dev-byro-repo/0e3dc8b3-fd87-4381-b3dc-8c36c1e03e1b.jsonl",
       peakContext: 20_221,
+      hasCrossedCeiling: false,
       exitSubtype: "success",
       errorText: undefined,
       usage: {
@@ -305,5 +306,38 @@ describe("ClaudeAgentStep's log", () => {
     await expect(replay("success.ndjson", { logPath })).rejects.toThrow(
       "ENOENT",
     );
+  });
+});
+
+describe("ClaudeAgentStep's live ceiling", () => {
+  // A stand-in claude that reports one main-loop reply's context, then runs on until killed.
+  async function runPast(peak: number): Promise<StepResult> {
+    const liveCeiling = 180_000;
+    const dir = mkdtempSync(join(tmpdir(), "agent-step-ceiling-"));
+    const reply = JSON.stringify({
+      type: "assistant",
+      message: { id: "m1", usage: { input_tokens: peak } },
+    });
+    const cswapPath = join(dir, "cswap");
+    writeFileSync(
+      cswapPath,
+      `#!/bin/sh\nprintf '%s\\n' '${reply}'\nexec sleep ${peak > liveCeiling ? 30 : 0}\n`,
+      { mode: 0o755 },
+    );
+    return ClaudeAgentStep.init(cswapPath).run(
+      request({ cwd: dir, liveCeiling }),
+    );
+  }
+
+  it("kills a session whose context crosses the ceiling and says so", async () => {
+    const result = await runPast(181_000);
+    expect(result.hasCrossedCeiling).toBe(true);
+    expect(result.peakContext).toBe(181_000);
+    expect(result.output).toEqual({ status: "none" });
+  });
+
+  it("lets a session at the ceiling run to its end", async () => {
+    const result = await runPast(180_000);
+    expect(result.hasCrossedCeiling).toBe(false);
   });
 });
