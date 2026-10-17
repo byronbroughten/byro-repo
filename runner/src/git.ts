@@ -1,4 +1,4 @@
-// The git helpers IssueWorkspaces.ts and WrapUp.ts share.
+// The git helpers IssueWorkspaces.ts, WrapUp.ts and SpecRun.ts share.
 
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -12,6 +12,13 @@ export async function git(cwd: string, ...args: string[]): Promise<string> {
     maxBuffer: 64 * 1024 * 1024,
   });
   return stdout.trim();
+}
+
+// No optional locks, so a status read never holds index.lock against a commit running in that worktree.
+export async function isDirty(worktree: string): Promise<boolean> {
+  return (
+    (await git(worktree, "--no-optional-locks", "status", "--porcelain")) !== ""
+  );
 }
 
 export function lines(output: string): string[] {

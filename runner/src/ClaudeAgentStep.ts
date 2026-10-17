@@ -56,10 +56,12 @@ export class ClaudeAgentStep implements AgentStep {
       child.on("error", resolve);
       child.on("close", () => resolve(undefined));
     });
-    const stream = StepStream.init();
+    const stream = StepStream.init(request.liveCeiling);
     for await (const line of createInterface({ input: child.stdout })) {
       if (log) log.write(`${line}\n`);
       stream.observeLine(line);
+      // cswap execs claude, so the signal reaches the session itself.
+      if (stream.hasCrossedCeiling && !child.killed) child.kill();
     }
     if (log) await new Promise((resolve) => log.end(resolve));
     const spawnError = await exited;

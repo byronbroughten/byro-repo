@@ -19,7 +19,7 @@ import {
 import { basename, join } from "node:path";
 import { promisify } from "node:util";
 
-import { git, lines } from "./git.ts";
+import { git, isDirty, lines } from "./git.ts";
 import { LeaseHeld } from "./LeaseHeld.ts";
 
 const execFileAsync = promisify(execFile);
@@ -712,13 +712,6 @@ async function removeWorktree({
 
 async function currentBranchOf(worktree: string): Promise<string> {
   return git(worktree, "branch", "--show-current");
-}
-
-// No optional locks, so a status read never holds index.lock against a commit running in that worktree.
-async function isDirty(worktree: string): Promise<boolean> {
-  return (
-    (await git(worktree, "--no-optional-locks", "status", "--porcelain")) !== ""
-  );
 }
 
 // A detached HEAD no branch contains is reachable only from the reflog, so moving off it or removing its worktree loses the commits.
