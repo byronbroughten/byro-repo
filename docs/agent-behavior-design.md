@@ -16,7 +16,7 @@ _Instances:_ the `Read` deny on `columnConfigs.ts` comes paired with the route t
 
 Parallel sessions share one set of primary checkouts, so one session's branch switch moves another's, and runs land into those same checkouts, so a session's uncommitted edit there can collide with a landing or get mixed into it. So no session edits a primary checkout or moves its branch. Each ticket is implemented in its own issue workspace, any other work in a session workspace, and a primary only fast-forwards when a workspace lands.
 
-Its guards, `branchGuard.ts` and the primary-edit guard, decide where an edit or commit happens, not whether it needs a yes. They are not gates, so the tiers leave them alone: a commit stays free once it is in a workspace.
+The guards, `branchGuard.ts` and the primary-edit guard, decide where an edit or commit happens, not whether it needs a yes, so the tiers leave them alone: a commit stays free once it is in a workspace.
 
 _Instances:_ the branch guard went strict once the runner gave each ticket its own workspace (#238). Session workspaces, leases, `wrap-up -- --session` and the primary-edit guard ended the exception that let docs, grilling and mining edit master in a primary checkout (#257).
 

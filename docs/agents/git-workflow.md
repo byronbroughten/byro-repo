@@ -8,7 +8,7 @@ Primary checkouts and workspaces, branches and commits, landing a spec or a sess
 - **The runner works a spec's tickets one at a time, each in its own issue workspace**: `npm run runner -- <owner/repo> <n>`, rerun to resume. A ticket it Stops on stays unlanded in its workspace; finish it there by hand and land it with `npm run wrap-up -- <repo> <n>`.
 - **Two hooks keep a primary checkout clean**: `branchGuard.ts` denies every branch-moving git command in one, and the primary-edit guard (`primaryEditGuard.ts`) denies a file edit or `git commit` there, passing gitignored paths such as `.runner/` and `.probe/`. The way through for both is a workspace.
 - **An interactive session opens a workspace with `npm run issue:start -- <repo> <n>`**, or `-- --session <slug>` for a session workspace, which is on `session-<slug>` in every repo. It resumes the workspace or creates it, gives an issue workspace the branch the runner would, takes its lease for the `claude` that ran it, and prints its path; `--claude` also opens Claude Code at its root as the lease's holder. Continue at the printed path, starting a session there so its hooks load. It refuses a workspace another live run or session leases, naming the holder.
-- **A lease marks a workspace as in use** by one run's or session's process, and holds while that process runs; one whose process has died is taken over. A session's leases are released when it ends, but not on `/clear` or `/resume`, since the same process carries on.
+- **A workspace's lease ([`runner/GLOSSARY.md`](../../runner/GLOSSARY.md)) is released when the session holding it ends**, so a session never releases one by hand.
 - **A Halt can leave an issue workspace behind.** `npm run issue:list` shows each workspace's issue or session, branched repos, dirtiness, lease holder and age. `npm run issue:remove -- <repo> <n>` (or `-- --session <slug>`) removes one, refusing a dirty workspace, or a detached repo holding commits no branch has, unless `--force`, and refusing a live lease even with it.
 
 ## Branches and commits
@@ -28,7 +28,7 @@ Primary checkouts and workspaces, branches and commits, landing a spec or a sess
 
 ## Landing a session
 
-- **Once a session workspace's edits are done, land it without asking**: `npm run wrap-up -- --session <slug>`. Wrap-up holds the standing yes to push, behind its secret scan (#273). It fast-forwards each primary's master to the repos whose `session-<slug>` branch is ahead, clones before the root, with no checks, outcome row or GitHub calls, then deletes the session branches, releases the lease and removes the workspace. It refuses uncommitted changes, so commit first.
+- **Once a session workspace's edits are done, land it without asking**: `npm run wrap-up -- --session <slug>`. Wrap-up holds the standing yes to push, behind its secret scan (#273). It fast-forwards master in each repo whose `session-<slug>` branch is ahead, clones before the root, with no checks, outcome row or GitHub calls, then deletes the session branches, releases the lease and removes the workspace. It refuses uncommitted changes, so commit first.
 - **To land mid-session and keep working, add `--keep`**: the edits so far land the same way, and the workspace stays leased with every session branch level with master. Land this way whenever a finished piece of work would otherwise wait on the rest of the session.
 
 ## Closing a parent

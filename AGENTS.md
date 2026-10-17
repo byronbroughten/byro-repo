@@ -16,7 +16,7 @@ Open only the section or disclosed doc the task needs.
 - **Which package: first "would this make sense with no Sheets at all?" Yes: `packages/utils`, never started in the framework. Then "in a different Sheets-backed app?"** Yes: `packages/framework`. No: `packages/real-estate`. A lint, format or tsconfig setting any TypeScript project would want: `config`. A reader-facing Piece: `packages/writing`.
 - **Public repos never depend on private ones; private may depend on public.**
 - **Working in a folder with its own `AGENTS.md`**, read it first; each package's `src/` and several folders under it have one.
-- **Every edit happens in a workspace**, opened with `npm run issue:start -- <repo> <n>` (or `-- --session <slug>`) and closed out with `npm run wrap-up`.
+- **Every edit happens in a workspace**, opened with `npm run issue:start -- <repo> <n>` (or `-- --session <slug>`) and closed out with `npm run wrap-up` on the same arguments.
 - **Commit freely; push only through wrap-up, or with a yes. Implement a spec on its `issue-<n>-<slug>` branch**, even when a skill says to commit to the current branch. Starting a runner run is the yes for what the runner's own code writes on that spec's issue tree in the named repo: comments, closing its tickets, pushing `issue-*` branches and wrap-up merges, and for the implement step's `gh issue edit` and `gh issue comment` as the ticket describes them; never for an agent step closing an issue or changing a triage label on a ticket of the running spec, a write outside its ticket's targets, or any other write an agent step attempts. Branch rules: [`docs/agents/git-workflow.md`](./docs/agents/git-workflow.md).
 
 ## Read by task
