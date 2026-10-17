@@ -4,6 +4,8 @@
 
 import { stepReadLine } from "./IssueReader.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
+import { codeListOf } from "./promptText.ts";
+import { stringSchema } from "./recordSchema.ts";
 
 const verdicts = ["dismiss", "fix", "defer", "halt"] as const;
 const axes = ["standards", "spec"] as const;
@@ -65,10 +67,10 @@ Never edit code, and change nothing else: no edits, commits, comments, issues or
 
 ## Verdicts
 
-- **Dismiss**: no action. \`reason\` is ${orList(dismissReasons)}. A \`covered-later\` Dismiss names the later ticket that covers it in \`coveredBy\`, as \`<repo>#<n>\`.
+- **Dismiss**: no action. \`reason\` is ${codeListOf(dismissReasons)}. A \`covered-later\` Dismiss names the later ticket that covers it in \`coveredBy\`, as \`<repo>#<n>\`.
 - **Fix**: fixed now, in a separate commit. It needs \`quote\`, the quoted code with its file:line, and \`rule\`, the documented rule or spec line it breaks. A smell is Fix only when a \`code-style.md\` line clearly backs it. Doc drift the diff caused is Fix.
 - **Defer**: left for the developer. \`reason\` is \`decision\` for a judgement only they can make, including unverifiable findings and unbacked smells, or \`ticket\` for a problem that predates this branch, with a drafted issue title in \`draftIssueTitle\`. The runner never files them.
-- **Halt**: blocks tickets until the developer answers. \`haltScope\` names the later tickets it blocks, each \`<repo>#<n>\`, with their downstream; when unsure, omit \`haltScope\` to scope it to the whole spec.
+- **Halt**: blocks tickets until the developer answers. \`haltScope\` names the later tickets it blocks, each \`<repo>#<n>\`, with their downstream, or is \`spec\` for the whole spec; when unsure, omit \`haltScope\` to scope it to the whole spec.
 - Defer and Halt each need \`recommendation\`, what you recommend the developer do.
 
 ## The record
@@ -80,9 +82,7 @@ Return \`records\`, exactly one record per finding: \`finding\` (its number belo
 ${numbered.join("\n")}`;
 }
 
-const stringSchema = { type: "string" };
-
-const triageRecordSchema = {
+export const triageRecordSchema = {
   type: "object",
   properties: {
     finding: { type: "integer", minimum: 1 },
@@ -127,8 +127,8 @@ export function triageRecordProblems(
   return [
     ...verdictCountProblems(findingCount, records),
     ...records.flatMap((record) =>
-      recordProblems(record).map(
-        (problem) => `finding ${record.finding}: ${problem}`,
+      verdictRules[record.verdict](record).map((rule) =>
+        findingProblem(record.finding, rule),
       ),
     ),
   ];
@@ -154,60 +154,80 @@ function verdictCountProblems(
       const count = counts.get(finding) ?? 0;
       if (count === 1) return [];
       return [
-        `finding ${finding}: each finding gets exactly one verdict, but it got ${count}`,
+        findingProblem(
+          finding,
+          `each finding gets exactly one verdict, but it got ${count}`,
+        ),
       ];
     }),
-    ...unknown.map(
-      (finding) =>
-        `finding ${finding}: the review has no finding ${finding}; findings run 1 to ${findingCount}`,
+    ...unknown.map((finding) =>
+      findingProblem(
+        finding,
+        `the review has no finding ${finding}; findings run 1 to ${findingCount}`,
+      ),
     ),
   ];
 }
 
-function recordProblems(record: TriageRecord): string[] {
-  return verdictRules[record.verdict](record);
+function findingProblem(finding: number, rule: string): string {
+  return `finding ${finding}: ${rule}`;
 }
 
+// Each verdict's rules, as [is broken, the rule] pairs; a record gets every rule it broke.
 const verdictRules: Record<Verdict, (record: TriageRecord) => string[]> = {
-  dismiss: ({ reason, coveredBy }) => {
-    if (!isOneOf(dismissReasons, reason)) {
-      return [
-        `a Dismiss needs reason ${orList(dismissReasons)}, but has ${reasonText(reason)}`,
-      ];
-    }
-    if (reason === "covered-later" && isBlank(coveredBy)) {
-      return ["a `covered-later` Dismiss needs `coveredBy`, the later ticket"];
-    }
-    return [];
-  },
-  fix: ({ quote, rule }) => [
-    ...(hasFileLine(quote)
-      ? []
-      : ["a Fix needs `quote`, the quoted code with its file:line"]),
-    ...(isBlank(rule)
-      ? ["a Fix needs `rule`, the documented rule or spec line it breaks"]
-      : []),
-  ],
-  defer: ({ reason, recommendation, draftIssueTitle }) => [
-    ...(isOneOf(deferReasons, reason)
-      ? []
-      : [
-          `a Defer needs reason ${orList(deferReasons)}, but has ${reasonText(reason)}`,
-        ]),
-    ...recommendationProblems("Defer", recommendation),
-    ...(reason === "ticket" && isBlank(draftIssueTitle)
-      ? ["a Defer `ticket` needs `draftIssueTitle`"]
-      : []),
-  ],
-  halt: ({ recommendation }) => recommendationProblems("Halt", recommendation),
+  dismiss: ({ reason, coveredBy }) =>
+    brokenRules([
+      [
+        !isOneOf(dismissReasons, reason),
+        reasonRule("Dismiss", dismissReasons, reason),
+      ],
+      [
+        reason === "covered-later" && isBlank(coveredBy),
+        "a `covered-later` Dismiss needs `coveredBy`, the later ticket",
+      ],
+    ]),
+  fix: ({ quote, rule }) =>
+    brokenRules([
+      [
+        !hasFileLine(quote),
+        "a Fix needs `quote`, the quoted code with its file:line",
+      ],
+      [
+        isBlank(rule),
+        "a Fix needs `rule`, the documented rule or spec line it breaks",
+      ],
+    ]),
+  defer: ({ reason, recommendation, draftIssueTitle }) =>
+    brokenRules([
+      [
+        !isOneOf(deferReasons, reason),
+        reasonRule("Defer", deferReasons, reason),
+      ],
+      [isBlank(recommendation), recommendationRule("Defer")],
+      [
+        reason === "ticket" && isBlank(draftIssueTitle),
+        "a Defer `ticket` needs `draftIssueTitle`",
+      ],
+    ]),
+  halt: ({ recommendation }) =>
+    brokenRules([[isBlank(recommendation), recommendationRule("Halt")]]),
 };
 
-function recommendationProblems(
-  verdict: "Defer" | "Halt",
-  recommendation: string | undefined,
-): string[] {
-  if (!isBlank(recommendation)) return [];
-  return [`a ${verdict} needs \`recommendation\``];
+function brokenRules(rules: [isBroken: boolean, rule: string][]): string[] {
+  return rules.flatMap(([isBroken, rule]) => (isBroken ? [rule] : []));
+}
+
+function reasonRule(
+  verdict: "Dismiss" | "Defer",
+  reasons: readonly string[],
+  reason: string | undefined,
+): string {
+  const given = reason === undefined ? "none" : `\`${reason}\``;
+  return `a ${verdict} needs reason ${codeListOf(reasons)}, but has ${given}`;
+}
+
+function recommendationRule(verdict: "Defer" | "Halt"): string {
+  return `a ${verdict} needs \`recommendation\``;
 }
 
 // A Halt with no scope blocks the whole spec: the safe default when the triage agent is unsure.
@@ -215,8 +235,9 @@ export function haltScopeOf(record: TriageRecord): HaltScope {
   return record.haltScope ?? "spec";
 }
 
+// A path with an extension, then a line: `runner/src/SpecRun.ts:88`.
 function hasFileLine(quote: string | undefined): boolean {
-  return /\S+:\d+/.test(quote ?? "");
+  return /[\w./-]+\.\w+:\d+/.test(quote ?? "");
 }
 
 function isBlank(text: string | undefined): boolean {
@@ -228,14 +249,4 @@ function isOneOf<VV extends string>(
   value: string | undefined,
 ): value is VV {
   return (values as readonly (string | undefined)[]).includes(value);
-}
-
-function orList(words: readonly string[]): string {
-  const quoted = words.map((word) => `\`${word}\``);
-  return `${quoted.slice(0, -1).join(", ")} or ${quoted.at(-1)}`;
-}
-
-function reasonText(reason: string | undefined): string {
-  if (reason === undefined) return "none";
-  return `\`${reason}\``;
 }

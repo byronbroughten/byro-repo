@@ -72,6 +72,14 @@ describe("triageRecordProblems", () => {
     ]);
   });
 
+  it("refuses a Fix whose quote has a line number but no file", () => {
+    expect(
+      triageRecordProblems(1, [{ ...fix, quote: "retries at 12:30" }]),
+    ).toEqual([
+      "finding 1: a Fix needs `quote`, the quoted code with its file:line",
+    ]);
+  });
+
   it("refuses a Fix with no rule", () => {
     expect(triageRecordProblems(1, [{ ...fix, rule: " " }])).toEqual([
       "finding 1: a Fix needs `rule`, the documented rule or spec line it breaks",
@@ -222,6 +230,7 @@ describe("triagePrompt", () => {
       "`draftIssueTitle`",
       "`haltScope`",
       "omit `haltScope` to scope it to the whole spec",
+      "or is `spec` for the whole spec",
       "The runner never files them",
     ].forEach((rule) => expect(prompt).toContain(rule));
   });
