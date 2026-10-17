@@ -1,13 +1,14 @@
 # Git workflow
 
-Primary checkouts and issue workspaces, branches and commits, landing a spec with the wrap-up script, and closing a parent once its last sub-issue lands.
+Primary checkouts and workspaces, branches and commits, landing a spec or a session with the wrap-up script, and closing a parent once its last sub-issue lands.
 
-## Primary checkouts and issue workspaces
+## Primary checkouts and workspaces
 
-- **A primary checkout is a repo's one long-lived clone** (the root and each clone under `packages/`); an **issue workspace** is a disposable set of checkouts, one per repo, where one ticket is implemented ([`runner/GLOSSARY.md`](../../runner/GLOSSARY.md)). Primary checkouts never change branch; all issue work happens in an issue workspace. Direct edits on master stay allowed in a primary checkout (docs, grilling, mining).
+- **A primary checkout is a repo's one long-lived clone** (the root and each clone under `packages/`); an **issue workspace** is a disposable set of checkouts, one per repo, where one ticket is implemented, and a **session workspace** is the same for work with no ticket: docs, grilling, mining ([`runner/GLOSSARY.md`](../../runner/GLOSSARY.md)). Primary checkouts take no edits; every edit happens in a workspace, and a primary only fast-forwards when one lands.
 - **The runner works a spec's tickets one at a time, each in its own issue workspace**: `npm run runner -- <owner/repo> <n>`, rerun to resume. A ticket it Stops on stays unlanded in its workspace; finish it there by hand and land it with `npm run wrap-up -- <repo> <n>`.
-- **The branch hook (`branchGuard.ts`) is strict**: it denies every branch-moving git command in a primary checkout. The way through is the issue workspace.
-- **An interactive session opens a workspace with `npm run issue:start -- <repo> <n>`**, or `-- --session <slug>` for a session workspace, which is on `session-<slug>` in every repo. It resumes the workspace or creates it, gives an issue workspace the branch the runner would, takes its lease for the `claude` that ran it, and prints its path; `--claude` also opens Claude Code at its root as the lease's holder. It refuses a workspace another live run or session leases, naming the holder.
+- **Two hooks keep a primary checkout clean**: `branchGuard.ts` denies every branch-moving git command in one, and the primary-edit guard (`primaryEditGuard.ts`) denies a file edit or `git commit` there, passing gitignored paths such as `.runner/` and `.probe/`. The way through for both is a workspace.
+- **An interactive session opens a workspace with `npm run issue:start -- <repo> <n>`**, or `-- --session <slug>` for a session workspace, which is on `session-<slug>` in every repo. It resumes the workspace or creates it, gives an issue workspace the branch the runner would, takes its lease for the `claude` that ran it, and prints its path; `--claude` also opens Claude Code at its root as the lease's holder. Continue at the printed path, starting a session there so its hooks load. It refuses a workspace another live run or session leases, naming the holder.
+- **A workspace's lease ([`runner/GLOSSARY.md`](../../runner/GLOSSARY.md)) is released when the session holding it ends**, so a session never releases one by hand.
 - **A Halt can leave an issue workspace behind.** `npm run issue:list` shows each workspace's issue or session, branched repos, dirtiness, lease holder and age. `npm run issue:remove -- <repo> <n>` (or `-- --session <slug>`) removes one, refusing a dirty workspace, or a detached repo holding commits no branch has, unless `--force`, and refusing a live lease even with it.
 
 ## Branches and commits
@@ -24,6 +25,11 @@ Primary checkouts and issue workspaces, branches and commits, landing a spec wit
 
 - **After a spec is implemented**, do not ask whether to land it, and do not merge, push, close or delete anything yourself. The runner's wrap-up script lands it: `npm run wrap-up -- <repo> <n>`, reading `.runner/<repo>-<n>.facts.json` (the `WrapUpFacts` shape in `runner/src/WrapUp.ts`). The implementer passes the branches in landing order (yours to decide; see the spanning rule under Branches and commits), the closing comment, any box left undone, whether review fixes were needed and what review caught. When the facts file also carries the recorded session ids and account config folder (`sessions`) and limit readings (`limitReadings`), the script computes pair, peak context, duration, cost, triage cost and Limit used from them, reading earlier implementer sessions from each handoff comment's `session: <id>` line; a fact it can't compute is written `unrecorded`. It stops at the first failure, naming its kind, and a rerun skips the steps already done.
 - **A piece spec with no branch wraps up per `packages/writing/docs/wrap-up.md`** instead of the script.
+
+## Landing a session
+
+- **Once a session workspace's edits are done, land it without asking**: `npm run wrap-up -- --session <slug>`. Wrap-up holds the standing yes to push, behind its secret scan (#273). It fast-forwards master in each repo whose `session-<slug>` branch is ahead, clones before the root, with no checks, outcome row or GitHub calls, then deletes the session branches, releases the lease and removes the workspace. It refuses uncommitted changes, so commit first.
+- **To land mid-session and keep working, add `--keep`**: the edits so far land the same way, and the workspace stays leased with every session branch level with master. Land this way whenever a finished piece of work would otherwise wait on the rest of the session.
 
 ## Closing a parent
 
