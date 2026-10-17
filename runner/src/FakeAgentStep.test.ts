@@ -23,6 +23,7 @@ function result(sessionId: string): StepResult {
     configFolder: undefined,
     transcriptPath: undefined,
     peakContext: 90_000,
+    hasCrossedCeiling: false,
     exitSubtype: "success",
     errorText: undefined,
     usage: undefined,

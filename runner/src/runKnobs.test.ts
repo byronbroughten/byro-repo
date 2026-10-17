@@ -40,11 +40,13 @@ describe("loadRunKnobs", () => {
 
     expect(knobs.clonePaths).toEqual({ "byro-repo": "." });
     expect(knobs.allowedTools).toEqual({
-      implement: defaultRunKnobs.allowedTools.implement,
+      ...defaultRunKnobs.allowedTools,
       review: ["Read"],
     });
     expect(knobs.handoffDocPath).toBe("docs/handoffs.md");
     expect(knobs.ticketBudget).toBe(150_000);
+    expect(knobs.liveCeiling).toBe(180_000);
+    expect(knobs.triagePair).toEqual({ model: "opus", effort: "medium" });
     expect(knobs.skillNames.review).toBe("code-review");
   });
 

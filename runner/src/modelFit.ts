@@ -26,6 +26,22 @@ export function pairOf(body: string): Pair | undefined {
   return pairs[pairLine.toLowerCase()];
 }
 
+const modelRanks: Record<Pair["model"], number> = { sonnet: 0, opus: 1 };
+const effortRanks: Record<Pair["effort"], number> = {
+  low: 0,
+  medium: 1,
+  high: 2,
+};
+
+// The model decides first, so Opus low is stronger than Sonnet high.
+export function strongerPairOf(first: Pair, second: Pair): Pair {
+  const modelGap = modelRanks[first.model] - modelRanks[second.model];
+  if (modelGap !== 0) return modelGap > 0 ? first : second;
+  return effortRanks[first.effort] >= effortRanks[second.effort]
+    ? first
+    : second;
+}
+
 export function pairLabelOf({ model, effort }: Pair): string {
   return `${model[0]?.toUpperCase()}${model.slice(1)} ${effort}`;
 }

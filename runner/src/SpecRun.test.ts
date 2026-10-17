@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -12,11 +13,13 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import type { StepRequest, StepResult } from "./AgentStep.ts";
+import type { Pair, StepRequest, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
 import { FakeGitHub } from "./FakeGitHub.ts";
 import { FakeNotices } from "./FakeNotices.ts";
 import { FakeUsageReader } from "./FakeUsageReader.ts";
+import type { TriageRecord } from "./findingTriage.ts";
+import type { FixOutcome } from "./fixStep.ts";
 import {
   implementOutputSchema,
   type ImplementRecord,
@@ -195,6 +198,7 @@ function resultOf(record: unknown): StepResult {
     configFolder: undefined,
     transcriptPath: undefined,
     peakContext: undefined,
+    hasCrossedCeiling: false,
     exitSubtype: "success",
     errorText: undefined,
     usage: undefined,
@@ -886,11 +890,6 @@ describe("run's unhandled Stops", () => {
     logFile: string;
   }[] = [
     {
-      outcome: "review findings",
-      steps: () => [implemented("one.ts"), reviewed(["one.ts:1 is wrong."])],
-      logFile: "byro-repo-213-steps/byro-repo-1-2-review.jsonl",
-    },
-    {
       outcome: "red checks",
       steps: () => [implemented("RED"), reviewed()],
       logFile: "byro-repo-213.log",
@@ -960,9 +959,7 @@ describe("run's unhandled Stops", () => {
 
   it("Stops again on a rerun while the stopped ticket is open, naming it", async () => {
     addSpec([1, 2]);
-    await specRun(
-      FakeAgentStep.init(implemented("one.ts"), reviewed(["A finding."])),
-    ).run(spec);
+    await specRun(FakeAgentStep.init(implemented("RED"), reviewed())).run(spec);
     const rerunStep = FakeAgentStep.init();
 
     const result = await specRun(rerunStep).run(spec);
@@ -971,16 +968,14 @@ describe("run's unhandled Stops", () => {
       kind: "stopped",
       landed: [],
       message:
-        "byro-repo #1 is still open after its Stop (review findings); finish and land it, then rerun.",
+        "byro-repo #1 is still open after its Stop (red checks); finish and land it, then rerun.",
     });
     expect(rerunStep.requests).toEqual([]);
   });
 
   it("skips the stopped ticket on a rerun once it is closed", async () => {
     addSpec([1, 2]);
-    await specRun(
-      FakeAgentStep.init(implemented("one.ts"), reviewed(["A finding."])),
-    ).run(spec);
+    await specRun(FakeAgentStep.init(implemented("RED"), reviewed())).run(spec);
     github.edit(1, { isOpen: false });
 
     const result = await specRun(
@@ -1373,5 +1368,311 @@ describe("run's limit guard", () => {
     ).run(spec);
 
     expect(result.landed).toEqual([refOf(1)]);
+  });
+});
+
+describe("run's finding triage", () => {
+  const opusMedium: Pair = { model: "opus", effort: "medium" };
+  const opusHigh: Pair = { model: "opus", effort: "high" };
+  const findings = ["one.ts:1 is wrong.", "one.ts:2 is wrong."];
+
+  function triageRecordOf(
+    finding: number,
+    verdict: TriageRecord["verdict"],
+    axis: TriageRecord["axis"] = "standards",
+  ): TriageRecord {
+    const base = {
+      finding,
+      axis,
+      where: `one.ts:${finding}`,
+      claim: `Line ${finding} is wrong.`,
+      evidence: "Checked it.",
+    };
+    if (verdict === "fix") {
+      return {
+        ...base,
+        verdict,
+        quote: `one.ts:${finding} \`export {};\``,
+        rule: "config/docs/code-style.md: a rule.",
+      };
+    }
+    if (verdict === "dismiss") {
+      return { ...base, verdict, reason: "false-positive" };
+    }
+    if (verdict === "defer") {
+      return { ...base, verdict, reason: "decision", recommendation: "Pick." };
+    }
+    return { ...base, verdict, recommendation: "Answer it." };
+  }
+
+  function stepOf(
+    result: StepResult | StepScript,
+    facts: Partial<StepResult>,
+  ): StepScript {
+    return async (request) => {
+      const base =
+        typeof result === "function" ? await result(request) : result;
+      return { ...base, ...facts };
+    };
+  }
+
+  function implementedAt(peakContext: number): StepScript {
+    return stepOf(implemented("one.ts"), {
+      sessionId: "implement-session",
+      peakContext,
+    });
+  }
+
+  function triaged(...records: TriageRecord[]): StepScript {
+    return stepOf(resultOf({ records }), { sessionId: "triage-session" });
+  }
+
+  // Commits `file` as the fix commit, as a fixer would, and returns its outcomes.
+  function fixed(file: string, ...outcomes: FixOutcome[]): StepScript {
+    return async (request) => {
+      writeFileSync(join(request.cwd, file), "export {};\n");
+      git(request.cwd, "add", file);
+      git(request.cwd, "commit", "-m", `Fix ${file}`);
+      return resultOf({ outcomes });
+    };
+  }
+
+  // Leaves an uncommitted edit, then is killed at the live ceiling.
+  function killed(file: string): StepScript {
+    return async (request) => {
+      writeFileSync(join(request.cwd, file), "half a fix\n");
+      return {
+        ...resultOf(undefined),
+        output: { status: "none" },
+        exitSubtype: undefined,
+        peakContext: 181_000,
+        hasCrossedCeiling: true,
+      };
+    };
+  }
+
+  function ticketRunState(): {
+    step: string;
+    triage?: TriageRecord[];
+    fixer?: string;
+  } {
+    const path = join(stateFolder(), "byro-repo-213.run.json");
+    const state = JSON.parse(readFileSync(path, "utf8")) as {
+      tickets: Record<string, ReturnType<typeof ticketRunState>>;
+    };
+    return state.tickets["byro-repo #1"] ?? { step: "none" };
+  }
+
+  function factsOf(): { reviewFixes?: string; defers?: number } {
+    const path = join(stateFolder(), "byro-repo-1.facts.json");
+    return JSON.parse(readFileSync(path, "utf8")) as ReturnType<typeof factsOf>;
+  }
+
+  it("keeps a Dismiss, a Defer and a Halt in run state and lands with no fix step, the triage step on its own pair with no targets", async () => {
+    addSpec([1]);
+    github.edit(1, { body: bodyWithTargets("app spreadsheet") });
+    const records = [
+      triageRecordOf(1, "dismiss"),
+      triageRecordOf(2, "defer"),
+      triageRecordOf(3, "halt", "spec"),
+    ];
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      reviewed([...findings, "one.ts:3 is wrong."]),
+      triaged(...records),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.kind).toBe("finished");
+    const triage = agentStep.requests[2];
+    expect(triage?.pair).toEqual(opusMedium);
+    expect(triage?.targets).toEqual([]);
+    expect(triage?.prompt).toContain("3. one.ts:3 is wrong.");
+    expect(ticketRunState().triage).toEqual(records);
+    expect(factsOf()).toMatchObject({ reviewFixes: "none", defers: 1 });
+  });
+
+  it("hands the Fix batch to the resumed implementer under the ticket budget, landing the fix as its own commit", async () => {
+    addSpec([1]);
+    github.edit(1, { body: bodyWithTargets("app spreadsheet") });
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      reviewed(findings),
+      triaged(triageRecordOf(1, "fix"), triageRecordOf(2, "dismiss")),
+      fixed("fix.ts", { finding: 1, status: "fixed" }),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.kind).toBe("finished");
+    const fixer = agentStep.requests[3];
+    expect(fixer?.resumeSessionId).toBe("implement-session");
+    expect(fixer?.pair).toEqual(opusHigh);
+    expect(fixer?.targets).toEqual([{ kind: "spreadsheet", name: "app" }]);
+    expect(fixer?.liveCeiling).toBe(180_000);
+    expect(fixer?.prompt).toContain("Finding 1: Line 1 is wrong.");
+    expect(fixer?.prompt).not.toContain("Finding 2");
+    const merge = git(
+      primaryOf("byro-repo"),
+      "log",
+      "--merges",
+      "-1",
+      "--format=%H",
+      "master",
+    );
+    expect(
+      git(primaryOf("byro-repo"), "log", "--format=%s", "-3", `${merge}^2`),
+    ).toBe(["Fix fix.ts", "Add one.ts", "Initial commit"].join("\n"));
+    expect(factsOf().reviewFixes).toBe("implementer");
+  });
+
+  it("hands the Fix batch to the triage agent on the stronger pair once the implementer's peak reaches the ticket budget", async () => {
+    addSpec([1]);
+    github.edit(1, { body: bodyWith("Sonnet high") });
+    const agentStep = FakeAgentStep.init(
+      implementedAt(150_000),
+      reviewed(findings),
+      triaged(triageRecordOf(1, "fix"), triageRecordOf(2, "fix")),
+      fixed(
+        "fix.ts",
+        { finding: 1, status: "fixed" },
+        { finding: 2, status: "fixed" },
+      ),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.kind).toBe("finished");
+    const fixer = agentStep.requests[3];
+    expect(fixer?.resumeSessionId).toBe("triage-session");
+    expect(fixer?.pair).toEqual(opusMedium);
+    expect(factsOf().reviewFixes).toBe("triage");
+  });
+
+  it("kills a fixer that crosses the live ceiling, discards its work and hands the batch to the triage agent", async () => {
+    addSpec([1]);
+    let leftover = false;
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      reviewed(findings),
+      triaged(triageRecordOf(1, "fix"), triageRecordOf(2, "fix")),
+      killed("half.ts"),
+      async (request) => {
+        leftover = existsSync(join(request.cwd, "half.ts"));
+        return fixed(
+          "fix.ts",
+          { finding: 1, status: "fixed" },
+          { finding: 2, status: "fixed" },
+        )(request);
+      },
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.kind).toBe("finished");
+    expect(leftover).toBe(false);
+    const fixer = agentStep.requests[4];
+    expect(fixer?.resumeSessionId).toBe("triage-session");
+    expect(fixer?.pair).toEqual(opusHigh);
+    expect(fixer?.prompt).toContain("Finding 2: Line 2 is wrong.");
+    expect(factsOf().reviewFixes).toBe("triage");
+  });
+
+  it("turns a spec-axis give-up into a Halt on the downstream tickets and a standards-axis one into a Defer `decision`", async () => {
+    addSpec([1, 2, 3]);
+    github.blockers.set(2, [1]);
+    github.blockers.set(3, [2]);
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      reviewed(findings),
+      triaged(triageRecordOf(1, "fix", "spec"), triageRecordOf(2, "fix")),
+      async () =>
+        resultOf({
+          outcomes: [
+            {
+              finding: 1,
+              status: "gave-up",
+              reason: "judgement-call",
+              note: "The spec reads both ways.",
+            },
+            {
+              finding: 2,
+              status: "gave-up",
+              reason: "checks-red",
+              note: "The fix breaks a test.",
+            },
+          ],
+        }),
+      implemented("two.ts"),
+      reviewed(),
+      implemented("three.ts"),
+      reviewed(),
+    );
+
+    await specRun(agentStep).run(spec);
+
+    expect(ticketRunState().triage).toMatchObject([
+      {
+        finding: 1,
+        verdict: "halt",
+        reason: "judgement-call",
+        haltScope: ["byro-repo#2", "byro-repo#3"],
+      },
+      { finding: 2, verdict: "defer", reason: "decision" },
+    ]);
+    expect(factsOf()).toMatchObject({ reviewFixes: "none", defers: 1 });
+  });
+
+  it("runs the checks after the fixes", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      reviewed(findings),
+      triaged(triageRecordOf(1, "fix"), triageRecordOf(2, "dismiss")),
+      fixed("RED", { finding: 1, status: "fixed" }),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.message).toBe("Stopped on byro-repo #1: red checks.");
+  });
+
+  it("gives a refused triage record one retry in the same session, then lands", async () => {
+    addSpec([1]);
+    const noQuote = { ...triageRecordOf(1, "fix"), quote: undefined };
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      reviewed(findings),
+      triaged(noQuote, triageRecordOf(2, "dismiss")),
+      triaged(triageRecordOf(1, "dismiss"), triageRecordOf(2, "dismiss")),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.kind).toBe("finished");
+    const retry = agentStep.requests[3];
+    expect(retry?.resumeSessionId).toBe("triage-session");
+    expect(retry?.targets).toEqual([]);
+    expect(retry?.prompt).toContain(
+      "finding 1: a Fix needs `quote`, the quoted code with its file:line",
+    );
+  });
+
+  it("fails the step on a second refused triage record", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      reviewed(findings),
+      triaged(triageRecordOf(1, "dismiss")),
+      triaged(triageRecordOf(1, "dismiss")),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.message).toBe("Stopped on byro-repo #1: a schema failure.");
+    expect(github.comments[0]?.body).toContain(
+      "finding 2: each finding gets exactly one verdict, but it got 0",
+    );
   });
 });
