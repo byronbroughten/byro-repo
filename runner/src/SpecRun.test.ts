@@ -274,6 +274,48 @@ function masterSubjects(): string[] {
   );
 }
 
+function progressLines(): string[] {
+  return readFileSync(join(stateFolder(), "byro-repo-213.log"), "utf8")
+    .trimEnd()
+    .split("\n");
+}
+
+const timestampLength = "2026-10-12T09:00:00.000Z ".length;
+
+function eventOf(line: string): string {
+  return line.slice(timestampLength);
+}
+
+let time: number;
+
+function advance(seconds: number): void {
+  time += seconds * 1000;
+}
+
+// A clock the fakes move on; each workspace build, the master set's included, installs dependencies in 4s.
+function timed(): Partial<SpecRunConfig> {
+  time = new Date("2026-10-12T09:00:00Z").getTime();
+  return {
+    clock: { now: () => new Date(time) },
+    async installDependencies() {
+      advance(4);
+    },
+  };
+}
+
+function after(seconds: number, step: ScriptedStep): StepScript {
+  return async (request) => {
+    advance(seconds);
+    return typeof step === "function" ? step(request) : step;
+  };
+}
+
+function timingLines(): string[] {
+  return progressLines()
+    .map(eventOf)
+    .filter((line) => / took |^Preflight passed|^Run started/.test(line));
+}
+
 function ticketState(): Record<string, { step: string }> {
   const path = join(stateFolder(), "byro-repo-213.run.json");
   return (
@@ -361,13 +403,11 @@ describe("run", () => {
       spec,
     );
 
-    const lines = readFileSync(join(stateFolder(), "byro-repo-213.log"), "utf8")
-      .trimEnd()
-      .split("\n");
+    const lines = progressLines();
     expect(
       lines.every((line) => line.startsWith("2026-10-12T09:00:00.000Z ")),
     ).toBe(true);
-    expect(lines.map((line) => line.slice(25))).toEqual(
+    expect(lines.map(eventOf)).toEqual(
       expect.arrayContaining([
         "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%.",
         "byro-repo #1: launching on Opus high from implement.",
@@ -383,13 +423,11 @@ describe("run", () => {
 
     await specRun(FakeAgentStep.init(implemented("RED"), reviewed())).run(spec);
 
-    const lines = readFileSync(join(stateFolder(), "byro-repo-213.log"), "utf8")
-      .trimEnd()
-      .split("\n");
+    const lines = progressLines();
     expect(
       lines.every((line) => line.startsWith("2026-10-12T09:00:00.000Z ")),
     ).toBe(true);
-    expect(lines.map((line) => line.slice(25))).toContain(
+    expect(lines.map(eventOf)).toContain(
       "byro-repo #1: stopped on red checks; details in the spec-issue comment.",
     );
   });
@@ -1371,6 +1409,55 @@ describe("run's limit guard", () => {
   });
 });
 
+describe("run's timings", () => {
+  it("logs preflight's time before Run started, then each step's time in the order the steps ran", async () => {
+    addSpec([1]);
+
+    await specRun(
+      FakeAgentStep.init(
+        after(90.4, implemented("one.ts")),
+        after(29.6, reviewed()),
+      ),
+      timed(),
+    ).run(spec);
+
+    expect(timingLines()).toEqual([
+      "Preflight passed in 4s.",
+      "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%.",
+      "byro-repo #1: workspace took 4s.",
+      "byro-repo #1: implement took 90s.",
+      "byro-repo #1: review took 30s.",
+      "byro-repo #1: checks took 0s.",
+      "byro-repo #1: wrap-up took 0s.",
+    ]);
+  });
+
+  it("logs the time of a step that ends in a Stop, and of no step after it", async () => {
+    addSpec([1]);
+    const stepError: StepResult = {
+      ...reviewed(),
+      output: { status: "none" },
+      exitSubtype: "error_max_turns",
+    };
+
+    await specRun(
+      FakeAgentStep.init(
+        after(60, implemented("one.ts")),
+        after(20, stepError),
+      ),
+      timed(),
+    ).run(spec);
+
+    expect(timingLines()).toEqual([
+      "Preflight passed in 4s.",
+      "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%.",
+      "byro-repo #1: workspace took 4s.",
+      "byro-repo #1: implement took 60s.",
+      "byro-repo #1: review took 20s.",
+    ]);
+  });
+});
+
 describe("run's finding triage", () => {
   const opusMedium: Pair = { model: "opus", effort: "medium" };
   const opusHigh: Pair = { model: "opus", effort: "high" };
@@ -1734,5 +1821,31 @@ describe("run's finding triage", () => {
     expect(github.comments[0]?.body).toContain(
       "finding 2: each finding gets exactly one verdict, but it got 0",
     );
+  });
+
+  it("logs the triage and fix steps' times between review's and the checks'", async () => {
+    addSpec([1]);
+
+    await specRun(
+      FakeAgentStep.init(
+        implementedAt(90_000),
+        reviewed(findings),
+        after(
+          40,
+          triaged(triageRecordOf(1, "fix"), triageRecordOf(2, "dismiss")),
+        ),
+        after(70, fixed("fix.ts", { finding: 1, status: "fixed" })),
+      ),
+      timed(),
+    ).run(spec);
+
+    expect(timingLines().slice(3)).toEqual([
+      "byro-repo #1: implement took 0s.",
+      "byro-repo #1: review took 0s.",
+      "byro-repo #1: triage took 40s.",
+      "byro-repo #1: fix took 70s.",
+      "byro-repo #1: checks took 0s.",
+      "byro-repo #1: wrap-up took 0s.",
+    ]);
   });
 });
