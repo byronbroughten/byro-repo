@@ -1,6 +1,8 @@
 {
   "permissions": {
     "allow": [
+      "Bash(npm run check)",
+      "Bash(npm run check *)",
       "Bash(npm run tsc)",
       "Bash(npx tsc *)",
       "Bash(npx vitest run)",
