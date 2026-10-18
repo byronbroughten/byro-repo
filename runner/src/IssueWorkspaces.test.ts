@@ -108,10 +108,9 @@ function buildPrimary(): void {
   );
 }
 
-function commitLockfile(content: string): void {
+// Untracked, as the root lockfile is gitignored.
+function writeLockfile(content: string): void {
   writeFileSync(join(primaryRoot, "package-lock.json"), content);
-  git(primaryRoot, "add", "package-lock.json");
-  git(primaryRoot, "commit", "-m", "Add lockfile");
 }
 
 function writeHiddenLockfile(ageSeconds: number): void {
@@ -697,8 +696,31 @@ describe("the dependencies", () => {
     expect(installs).toEqual([workspace.path]);
   });
 
-  it("skips the installer when the lockfile matches the primary's, the primary's install is fresh and every copy worked", async () => {
-    commitLockfile("lock v1");
+  it("copies the primary's lockfile into the workspace byte for byte", async () => {
+    writeLockfile("lock v1");
+
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "lockfile" },
+    );
+
+    expect(readFileSync(join(workspace.path, "package-lock.json"))).toEqual(
+      readFileSync(join(primaryRoot, "package-lock.json")),
+    );
+  });
+
+  it("runs the installer when the primary has no lockfile", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "no-lockfile" },
+    );
+
+    expect(existsSync(join(workspace.path, "package-lock.json"))).toBe(false);
+    expect(installs).toEqual([workspace.path]);
+  });
+
+  it("skips the installer when the primary's install is fresh and every copy worked", async () => {
+    writeLockfile("lock v1");
     writeHiddenLockfile(-60);
 
     await workspaces().create(
@@ -709,8 +731,8 @@ describe("the dependencies", () => {
     expect(installs).toEqual([]);
   });
 
-  it("runs the installer when the primary's hidden lockfile is older than its lockfile, even with a matching lockfile", async () => {
-    commitLockfile("lock v1");
+  it("runs the installer when the primary's hidden lockfile is older than its lockfile", async () => {
+    writeLockfile("lock v1");
     writeHiddenLockfile(60);
 
     const workspace = await workspaces().create(
@@ -721,8 +743,8 @@ describe("the dependencies", () => {
     expect(installs).toEqual([workspace.path]);
   });
 
-  it("runs the installer when the primary has no hidden lockfile, even with a matching lockfile", async () => {
-    commitLockfile("lock v1");
+  it("runs the installer when the primary has no hidden lockfile", async () => {
+    writeLockfile("lock v1");
 
     const workspace = await workspaces().create(
       { repo: "byro-repo", number: 7 },
@@ -732,20 +754,8 @@ describe("the dependencies", () => {
     expect(installs).toEqual([workspace.path]);
   });
 
-  it("runs the installer when the lockfile differs from the primary's", async () => {
-    commitLockfile("lock v1");
-    writeFileSync(join(primaryRoot, "package-lock.json"), "lock v2");
-
-    const workspace = await workspaces().create(
-      { repo: "byro-repo", number: 7 },
-      { slug: "differing" },
-    );
-
-    expect(installs).toEqual([workspace.path]);
-  });
-
-  it("runs the installer when a copy failed, even with a matching lockfile", async () => {
-    commitLockfile("lock v1");
+  it("runs the installer when a copy failed", async () => {
+    writeLockfile("lock v1");
     writeHiddenLockfile(-60);
     const unreadable = join(primaryRoot, "packages/utils/node_modules/dep");
     chmodSync(unreadable, 0o000);
