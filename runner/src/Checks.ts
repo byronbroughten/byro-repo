@@ -1,7 +1,8 @@
 // Runs the checks for `npm run check`: every command at once, skipped on a check stamp for the same committed files.
 // A stamp's key hashes each repo's committed tree, the root lockfile and the Node version; one file per key in the
 // stamp folder, written only on a pass with every repo clean. SpecRun.ts and WrapUp.ts run whatever commands their
-// checks setting names and know nothing of stamps.
+// checks setting names and know nothing of stamps. scripts/runner/check.ts names the commands and prints the result;
+// the label a failure is listed under comes from failureText.ts.
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -46,27 +47,36 @@ export class Checks {
   }
 
   async run(options: CheckOptions = {}): Promise<CheckResult> {
-    const isClean = !(await this._hasDirtyRepo());
-    const stampPath = join(this.config.stampFolder, await this._stampKey());
-    if (isClean && !options.fresh && existsSync(stampPath)) {
+    const before = await this._stampPath();
+    if (before !== undefined && !options.fresh && existsSync(before)) {
       return { kind: "skipped" };
     }
     const failures = await this._failures();
     if (failures.length > 0) return { kind: "failed", failures };
-    if (!isClean) return { kind: "passed", isStamped: false };
+    // Read again: a check, or the operator, may have changed the files while the commands ran.
+    const after = await this._stampPath();
+    if (before === undefined || after !== before) {
+      return { kind: "passed", isStamped: false };
+    }
     mkdirSync(this.config.stampFolder, { recursive: true });
-    writeFileSync(stampPath, "");
+    writeFileSync(before, "");
     return { kind: "passed", isStamped: true };
   }
 
+  // Undefined while any repo has a change no stamp could describe.
+  private async _stampPath(): Promise<string | undefined> {
+    if (await this._hasDirtyRepo()) return undefined;
+    return join(this.config.stampFolder, await this._stampKey());
+  }
+
   private async _hasDirtyRepo(): Promise<boolean> {
-    const dirty = await Promise.all(this._repoPaths().map(isDirty));
+    const dirty = await Promise.all(this._repoPaths.map(isDirty));
     return dirty.includes(true);
   }
 
   private async _stampKey(): Promise<string> {
     const trees = await Promise.all(
-      this._repoPaths().map((path) => git(path, "rev-parse", "HEAD^{tree}")),
+      this._repoPaths.map((path) => git(path, "rev-parse", "HEAD^{tree}")),
     );
     const hash = createHash("sha256");
     trees.forEach((tree) => hash.update(`${tree}\n`));
@@ -76,7 +86,7 @@ export class Checks {
   }
 
   // Sorted by repo name, so the key never depends on the config's key order.
-  private _repoPaths(): string[] {
+  private get _repoPaths(): string[] {
     return Object.entries(this.config.clonePaths)
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([, clonePath]) => join(this.config.root, clonePath));
@@ -90,10 +100,6 @@ export class Checks {
     );
     return outcomes.flatMap((failure) => (failure ? [failure] : []));
   }
-}
-
-export function commandLabelOf(command: Command): string {
-  return command.join(" ");
 }
 
 // The lockfile is gitignored, so its bytes go into the key directly; a missing one hashes as a marker.

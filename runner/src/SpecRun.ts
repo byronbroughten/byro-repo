@@ -25,7 +25,7 @@ import type {
   StepRequest,
   StepResult,
 } from "./AgentStep.ts";
-import { messageOf, outputTailOf } from "./failureText.ts";
+import { commandLabelOf, messageOf, outputTailOf } from "./failureText.ts";
 import {
   triageOutputSchema,
   triagePrompt,
@@ -1296,10 +1296,6 @@ function targetsAtLaunchOf(ticket: TrackedIssue, logPath: string): Target[] {
 
 function isLaunchable(ticket: TrackedIssue): boolean {
   return ticket.isOpen && ticket.labels.includes(readyLabel);
-}
-
-function commandLabelOf(command: Command): string {
-  return command.join(" ");
 }
 
 // The command's output tail when it fails, undefined when it passes.

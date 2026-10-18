@@ -2,7 +2,8 @@
 // Usage: npm run check [-- --fresh].
 import { join } from "node:path";
 
-import { Checks, commandLabelOf } from "@byronbroughten/spec-runner/Checks";
+import { Checks } from "@byronbroughten/spec-runner/Checks";
+import { commandLabelOf } from "@byronbroughten/spec-runner/failureText";
 import type { Command } from "@byronbroughten/spec-runner/runKnobs";
 
 import { runKnobs, stateFolder } from "./runnerConfig.ts";

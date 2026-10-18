@@ -163,6 +163,32 @@ describe("Checks.run", () => {
     expect(stampCount()).toBe(0);
   });
 
+  it("writes no stamp when a command changes a tracked file", async () => {
+    const editing: Command = [
+      "sh",
+      "-c",
+      `echo edited > ${join(root, "README.md")}`,
+    ];
+
+    const result = await checks([editing]).run();
+
+    expect(result).toEqual({ kind: "passed", isStamped: false });
+    expect(stampCount()).toBe(0);
+  });
+
+  it("writes no stamp when a commit lands while the commands run", async () => {
+    const committing: Command = [
+      "sh",
+      "-c",
+      `cd ${join(root, "packages/utils")} && echo changed > README.md && git -c user.name=Test -c user.email=test@example.com commit -qam Change`,
+    ];
+
+    const result = await checks([committing]).run();
+
+    expect(result).toEqual({ kind: "passed", isStamped: false });
+    expect(stampCount()).toBe(0);
+  });
+
   it("runs no command on a matching stamp", async () => {
     await checks([marking("a"), marking("b")]).run();
     clearMarkers("a", "b");

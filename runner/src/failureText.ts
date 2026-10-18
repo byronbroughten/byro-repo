@@ -1,6 +1,7 @@
-// What a thrown error or a failed command says, worded once for SpecRun.ts and WrapUp.ts.
+// What a thrown error or a failed command says, worded once for SpecRun.ts, WrapUp.ts and Checks.ts.
 
 import { lines } from "./git.ts";
+import type { Command } from "./runKnobs.ts";
 
 const outputTailLines = 40;
 
@@ -17,4 +18,8 @@ export function outputTailOf(error: unknown): string {
   return lines(`${stdout}\n${stderr}`.trim())
     .slice(-outputTailLines)
     .join("\n");
+}
+
+export function commandLabelOf(command: Command): string {
+  return command.join(" ");
 }
