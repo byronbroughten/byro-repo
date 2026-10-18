@@ -65,7 +65,7 @@ export const issueWorkspacesConfig: IssueWorkspacesConfig = {
   },
 };
 
-const stateFolder = join(primaryRoot, ".runner");
+export const stateFolder = join(primaryRoot, ".runner");
 const outcomeFolder = "docs/agents/outcomes";
 
 export const wrapUpConfig: WrapUpConfig = {
