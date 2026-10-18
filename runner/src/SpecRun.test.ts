@@ -11,7 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Pair, StepRequest, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
@@ -29,6 +29,9 @@ import type { AccountReading, UsageReader } from "./limitGuard.ts";
 import { reviewRecordSchema } from "./reviewStep.ts";
 import { type Command, runKnobsOf } from "./runKnobs.ts";
 import { type RunResult, SpecRun, type SpecRunConfig } from "./SpecRun.ts";
+
+// Each run spawns real git over five repos, which a concurrent npm run check slows past the 5s default.
+vi.setConfig({ testTimeout: 15_000 });
 
 const clonePaths = {
   "byro-repo": ".",
