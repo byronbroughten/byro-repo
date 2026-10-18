@@ -79,6 +79,15 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 - **`if`/`else` over a ternary for anything beyond a single trivial value pick** with no side effects; a ternary inside `${}` must also fit on one line, or it becomes a named local.
 - **Encode state as a named variable and an explicit `if`, not a wrapper object or a compact operator whose meaning the reader has to reconstruct.** `??=` is for filling in a default, not for "computed yet?" tracking.
 
+## Smells
+
+- **A smell from `code-review`'s baseline is fixed by default**, the way its "→ how to fix" line says.
+- **A smell stays only when its site carries a one-line comment saying why not the obvious thing**, and that reason is still true.
+- **A reason that's no longer true makes the smell a fresh finding.** Re-check it when a change touches its site or what it relies on: the same function, a type it names, a spec decision it cites.
+- **Every new keep needs the developer's yes.**
+- **A smell whose fix would reverse a User Story or an Implementation Decision goes to the developer.** A spec protects decisions, not wording; a fix that changes only how a decision is met is still a fix.
+- **Approved exceptions**, recurring reasons the developer has said yes to, are listed here and suppress the smell everywhere: none yet.
+
 ## Tests
 
 - **A test sits beside what it tests (`Foo.test.ts`).**

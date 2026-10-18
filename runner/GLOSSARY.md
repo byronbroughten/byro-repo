@@ -37,7 +37,7 @@ What finding triage decides for one finding: Dismiss, Fix, Defer or Halt.
 _Avoid_: ruling, outcome
 
 **Dismiss**:
-The verdict that takes no action, with a reason: `false-positive`, `covered-later`, `won't-fix` or `tooling-enforced`. Dismisses appear in the review list's collapsed audit.
+The verdict that takes no action, with a reason: `false-positive`, `covered-later`, `kept` or `tooling-enforced`. Dismisses appear in the review list's collapsed audit.
 _Avoid_: ignore, reject
 
 **Fix**:
