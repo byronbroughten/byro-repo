@@ -15,6 +15,7 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 | Writing or changing a test | [`docs/code-style/tests.md`](./code-style/tests.md) |
 | A comment, or a file-level navigation block | [`docs/code-style/comments.md`](./code-style/comments.md) |
 | `reduce`, a chaining mutator, a combined option | [`docs/code-style/idioms.md`](./code-style/idioms.md) |
+| A code smell, fixing it or keeping it | [`docs/code-style/smells.md`](./code-style/smells.md) |
 | Imports, barrels, file names | [`docs/code-style/file-organization.md`](./code-style/file-organization.md) |
 
 ## Class shape
@@ -81,12 +82,12 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 
 ## Smells
 
-- **A smell from `code-review`'s baseline is fixed by default**, the way its "→ how to fix" line says.
+- **A code smell is fixed by default**, the way the review's how-to-fix line for it says.
 - **A smell stays only when its site carries a one-line comment saying why not the obvious thing**, and that reason is still true.
-- **A reason that's no longer true makes the smell a fresh finding.** Re-check it when a change touches its site or what it relies on: the same function, a type it names, a spec decision it cites.
+- **A reason that's no longer true makes the smell a fresh finding.**
 - **Every new keep needs the developer's yes.**
-- **A smell whose fix would reverse a User Story or an Implementation Decision goes to the developer.** A spec protects decisions, not wording; a fix that changes only how a decision is met is still a fix.
-- **Approved exceptions**, recurring reasons the developer has said yes to, are listed here and suppress the smell everywhere: none yet.
+- **A smell whose fix would reverse a decision the spec made goes to the developer**, not one that only changes how a decision is met.
+- **Approved exceptions**, recurring reasons the developer has said yes to, suppress the smell everywhere: none yet.
 
 ## Tests
 
