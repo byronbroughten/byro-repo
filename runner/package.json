@@ -7,10 +7,12 @@
   "license": "ISC",
   "exports": {
     "./AgentStep": "./src/AgentStep.ts",
+    "./Checks": "./src/Checks.ts",
     "./ClaudeAgentStep": "./src/ClaudeAgentStep.ts",
     "./CswapUsageReader": "./src/CswapUsageReader.ts",
     "./FakeAgentStep": "./src/FakeAgentStep.ts",
     "./FakeNotices": "./src/FakeNotices.ts",
+    "./failureText": "./src/failureText.ts",
     "./findingTriage": "./src/findingTriage.ts",
     "./GhCli": "./src/GhCli.ts",
     "./implementStep": "./src/implementStep.ts",

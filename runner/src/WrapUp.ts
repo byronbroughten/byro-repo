@@ -17,7 +17,7 @@ import {
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
-import { messageOf, outputTailOf } from "./failureText.ts";
+import { commandLabelOf, messageOf, outputTailOf } from "./failureText.ts";
 import { git, isDirty, lines } from "./git.ts";
 import {
   fileStemOf,
@@ -612,7 +612,7 @@ export class WrapUp {
       } catch (error) {
         throw new WrapUpFailure(
           "red-checks",
-          `${[command, ...args].join(" ")} failed after the merges:\n${outputTailOf(error)}`,
+          `${commandLabelOf([command, ...args])} failed after the merges:\n${outputTailOf(error)}`,
         );
       }
     }

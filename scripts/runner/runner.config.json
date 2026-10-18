@@ -8,11 +8,7 @@
     "writing": "packages/writing"
   },
   "skillNames": { "review": "code-review" },
-  "checks": [
-    ["npm", "run", "tsc"],
-    ["npm", "test"],
-    ["npm", "run", "lint"]
-  ],
+  "checks": [["npm", "run", "check"]],
   "allowedTools": {
     "implement": [
       "Skill",
