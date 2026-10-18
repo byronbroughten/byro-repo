@@ -7,6 +7,7 @@
 
 import { execFile } from "node:child_process";
 import {
+  copyFileSync,
   existsSync,
   mkdirSync,
   readdirSync,
@@ -402,9 +403,16 @@ export class IssueWorkspaces {
         rmSync(to, { recursive: true, force: true });
       }
     }
+    this._copyLockfile(path);
     if (copyFailed || this._primaryIsStale || !this._lockfileMatches(path)) {
       await this.config.installDependencies(path);
     }
+  }
+
+  // The lockfile is gitignored, so a new worktree has none until the primary's is copied in.
+  private _copyLockfile(path: string): void {
+    const primary = join(this.config.primaryRoot, lockfileName);
+    if (existsSync(primary)) copyFileSync(primary, join(path, lockfileName));
   }
 
   // A missing lockfile counts as differing, so the installer still runs.
