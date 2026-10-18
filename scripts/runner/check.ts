@@ -26,7 +26,7 @@ const result = await Checks.init({
   clonePaths: runKnobs.clonePaths,
   stampFolder: join(stateFolder, "check-stamps"),
   nodeVersion: process.version,
-}).run({ fresh: args.includes("--fresh") });
+}).run({ isFresh: args.includes("--fresh") });
 
 if (result.kind === "skipped") {
   console.log(

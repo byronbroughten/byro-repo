@@ -203,7 +203,7 @@ describe("Checks.run", () => {
     await checks([marking("a")]).run();
     clearMarkers("a");
 
-    const result = await checks([marking("a")]).run({ fresh: true });
+    const result = await checks([marking("a")]).run({ isFresh: true });
 
     expect(result).toEqual({ kind: "passed", isStamped: true });
     expect(hasRun("a")).toBe(true);

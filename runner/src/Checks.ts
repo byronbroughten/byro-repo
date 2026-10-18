@@ -22,7 +22,7 @@ export interface ChecksConfig {
 }
 
 export interface CheckOptions {
-  fresh?: boolean;
+  isFresh?: boolean;
 }
 
 export interface CommandFailure {
@@ -48,7 +48,7 @@ export class Checks {
 
   async run(options: CheckOptions = {}): Promise<CheckResult> {
     const before = await this._stampPath();
-    if (before !== undefined && !options.fresh && existsSync(before)) {
+    if (before !== undefined && !options.isFresh && existsSync(before)) {
       return { kind: "skipped" };
     }
     const failures = await this._failures();
