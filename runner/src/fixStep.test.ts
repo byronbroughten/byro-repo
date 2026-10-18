@@ -54,6 +54,20 @@ describe("fixPrompt", () => {
     expect(prompt).toContain("separate from the implement commit");
   });
 
+  it("runs npm run check after committing, and fixes a failing check in a further commit", () => {
+    const prompt = fixPrompt({
+      issue: { repo: "byro-repo", number: 226 },
+      title: "Run loop: finding triage and fixes",
+      branch: "issue-226-run-loop",
+      branchedRepos: ["byro-repo"],
+      fixes: [fixOf(3, "standards")],
+    });
+    expect(prompt).toContain(
+      "Once the fixes are in, commit, then run `npm run check`. When it fails on a fix, fix it in a further commit and run it again.",
+    );
+    expect(prompt).not.toContain("Commit once");
+  });
+
   it("settles a tie by picking one fix, and keeps judgement-call for a spec reversal", () => {
     const prompt = fixPrompt({
       issue: { repo: "byro-repo", number: 291 },
