@@ -53,6 +53,20 @@ describe("fixPrompt", () => {
     );
     expect(prompt).toContain("separate from the implement commit");
   });
+
+  it("settles a tie by picking one fix, and keeps judgement-call for a spec reversal", () => {
+    const prompt = fixPrompt({
+      issue: { repo: "byro-repo", number: 291 },
+      title: "Smells are fixed by default",
+      branch: "issue-291-smells",
+      branchedRepos: ["byro-repo"],
+      fixes: [fixOf(1, "standards")],
+    });
+    expect(prompt).toContain("pick one and say which in the commit message");
+    expect(prompt).toContain(
+      "`judgement-call` only when the fix would reverse a spec decision",
+    );
+  });
 });
 
 describe("fixOutputSchema", () => {

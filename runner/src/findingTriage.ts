@@ -9,12 +9,18 @@ import { stringSchema } from "./recordSchema.ts";
 
 const verdicts = ["dismiss", "fix", "defer", "halt"] as const;
 const axes = ["standards", "spec"] as const;
-const dismissReasons = [
-  "false-positive",
-  "covered-later",
-  "won't-fix",
-  "tooling-enforced",
-] as const;
+// Each Dismiss reason with its definition, as the prompt states it.
+const dismissReasonDefinitions = {
+  "false-positive":
+    "the finding is wrong about the code, the ticket or the spec",
+  "covered-later":
+    "a later ticket covers it, named in `coveredBy` as `<repo>#<n>`",
+  kept: "a smell whose site carries a one-line reason that is still true, quoted with its file:line in `quote`",
+  "tooling-enforced": "lint, the typecheck or a test already catches it",
+} as const;
+const dismissReasons = Object.keys(
+  dismissReasonDefinitions,
+) as (keyof typeof dismissReasonDefinitions)[];
 const deferReasons = ["decision", "ticket"] as const;
 
 export type Verdict = (typeof verdicts)[number];
@@ -67,9 +73,12 @@ Never edit code, and change nothing else: no edits, commits, comments, issues or
 
 ## Verdicts
 
-- **Dismiss**: no action. \`reason\` is ${codeListOf(dismissReasons)}. A \`covered-later\` Dismiss names the later ticket that covers it in \`coveredBy\`, as \`<repo>#<n>\`.
-- **Fix**: fixed now, in a separate commit. It needs \`quote\`, the quoted code with its file:line, and \`rule\`, the documented rule or spec line it breaks. A smell is Fix only when a \`code-style.md\` line clearly backs it. Doc drift the diff caused is Fix.
-- **Defer**: left for the developer. \`reason\` is \`decision\` for a judgement only they can make, including unverifiable findings and unbacked smells, or \`ticket\` for a problem that predates this branch, with a drafted issue title in \`draftIssueTitle\`. The runner never files them.
+- **Dismiss**: no action. \`reason\` is one of:
+${dismissReasonLines()}.
+- **Fix**: fixed now, in a separate commit. It needs \`quote\`, the quoted code with its file:line, and \`rule\`, the documented rule or spec line it breaks. A smell is Fix by default (\`config/docs/code-style.md#smells\`): unless it is \`kept\` or a Defer \`decision\`, \`rule\` names the smell and that section, with the smell's "→ how to fix" line from the finding. Doc drift the diff caused is Fix.
+- **Defer**: left for the developer. \`reason\` is \`decision\` for a judgement only they can make, or \`ticket\` for a problem that predates this branch, with a drafted issue title in \`draftIssueTitle\`. The runner never files them. A \`decision\` covers unverifiable findings and two smell cases:
+  - a smell you think is wanted but whose site carries no reason, with the drafted one-line reason as \`recommendation\`, since every new keep needs the developer's yes;
+  - a smell whose fix would reverse a User Story or an Implementation Decision. A spec protects decisions, not wording: a fix that changes how a decision is met while the decision still holds is a Fix.
 - **Halt**: blocks tickets until the developer answers. \`haltScope\` names the later tickets it blocks, each \`<repo>#<n>\`, with their downstream, or is \`spec\` for the whole spec; when unsure, omit \`haltScope\` to scope it to the whole spec.
 - Defer and Halt each need \`recommendation\`, what you recommend the developer do.
 
@@ -80,6 +89,12 @@ Return \`records\`, exactly one record per finding: \`finding\` (its number belo
 ## Findings
 
 ${numbered.join("\n")}`;
+}
+
+function dismissReasonLines(): string {
+  return Object.entries(dismissReasonDefinitions)
+    .map(([reason, definition]) => `  - \`${reason}\`: ${definition}`)
+    .join(";\n");
 }
 
 // Sent with --resume to a triage agent whose records broke a verdict rule; its one retry.
@@ -181,7 +196,7 @@ function findingProblem(finding: number, rule: string): string {
 
 // Each verdict's rules, as [is broken, the rule] pairs; a record gets every rule it broke.
 const verdictRules: Record<Verdict, (record: TriageRecord) => string[]> = {
-  dismiss: ({ reason, coveredBy }) =>
+  dismiss: ({ reason, coveredBy, quote }) =>
     brokenRules([
       [
         !isOneOf(dismissReasons, reason),
@@ -190,6 +205,10 @@ const verdictRules: Record<Verdict, (record: TriageRecord) => string[]> = {
       [
         reason === "covered-later" && isBlank(coveredBy),
         "a `covered-later` Dismiss needs `coveredBy`, the later ticket",
+      ],
+      [
+        reason === "kept" && !hasFileLine(quote),
+        "a `kept` Dismiss needs `quote`, its reason quoted with its file:line",
       ],
     ]),
   fix: ({ quote, rule }) =>

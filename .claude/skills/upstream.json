@@ -38,7 +38,7 @@
         "skills/engineering/code-review": {
           "status": "vendored",
           "syncedSha": "49dd158d1076134a641b33efb035946536778336",
-          "notes": "Divergence: the /setup-matt-pocock-skills fallback points at docs/agents/issue-tracker.md instead.",
+          "notes": "Divergences: (1) the /setup-matt-pocock-skills fallback points at docs/agents/issue-tracker.md instead. (2) Step 3's \"Always a judgement call\" rule becomes \"Fix or explain\", pointing at config/docs/code-style.md#smells; the Standards brief's judgement-call sentence becomes the same pointer, with the re-check of a kept smell's reason and a stale reason reported as a fresh smell; step 5 labels each smell's outcome Fix, Dismiss `kept` or Defer `decision`, never left alone. (3) A \"Code only\" rule in step 3, and the brief's matching sentence: the baseline applies to code, and prose findings cite docs/agents/prose-files.md's one-fact-one-home rule and its exception, or writing-for-agents' single source of truth. (4) The Standards brief asks for each smell's \"→ how to fix\" line with the finding.",
           "derivedInto": ["review-piece"]
         },
         "skills/engineering/domain-modeling": {

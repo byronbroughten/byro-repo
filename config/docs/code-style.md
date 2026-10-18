@@ -15,6 +15,7 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 | Writing or changing a test | [`docs/code-style/tests.md`](./code-style/tests.md) |
 | A comment, or a file-level navigation block | [`docs/code-style/comments.md`](./code-style/comments.md) |
 | `reduce`, a chaining mutator, a combined option | [`docs/code-style/idioms.md`](./code-style/idioms.md) |
+| A code smell, fixing it or keeping it | [`docs/code-style/smells.md`](./code-style/smells.md) |
 | Imports, barrels, file names | [`docs/code-style/file-organization.md`](./code-style/file-organization.md) |
 
 ## Class shape
@@ -78,6 +79,15 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 - **An option that combines other options is built from them, not from copies of their bodies.**
 - **`if`/`else` over a ternary for anything beyond a single trivial value pick** with no side effects; a ternary inside `${}` must also fit on one line, or it becomes a named local.
 - **Encode state as a named variable and an explicit `if`, not a wrapper object or a compact operator whose meaning the reader has to reconstruct.** `??=` is for filling in a default, not for "computed yet?" tracking.
+
+## Smells
+
+- **A code smell is fixed by default**, the way the review's how-to-fix line for it says.
+- **A smell stays only when its site carries a one-line comment saying why not the obvious thing**, and that reason is still true.
+- **A reason that's no longer true makes the smell a fresh finding.**
+- **Every new keep needs the developer's yes.**
+- **A smell whose fix would reverse a decision the spec made goes to the developer**, not one that only changes how a decision is met.
+- **Approved exceptions**, recurring reasons the developer has said yes to, suppress the smell everywhere: none yet.
 
 ## Tests
 

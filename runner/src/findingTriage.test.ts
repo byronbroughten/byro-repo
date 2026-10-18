@@ -59,6 +59,18 @@ const dismiss: TriageRecord = {
   evidence: "#230 wires wrap-up into the run.",
 };
 
+const kept: TriageRecord = {
+  finding: 1,
+  axis: "standards",
+  where: "runner/src/StepStream.ts:52",
+  claim: "Possible Middle Man: streamOf() only delegates.",
+  quote:
+    "runner/src/StepStream.ts:51 `// A seam for the fake stream in tests, not a pass-through.`",
+  verdict: "dismiss",
+  reason: "kept",
+  evidence: "The comment above the site still holds: SpecRun.test.ts fakes it.",
+};
+
 describe("triageRecordProblems", () => {
   it("accepts a Fix with a quoted file:line and its rule", () => {
     expect(triageRecordProblems(1, [fix])).toEqual([]);
@@ -123,8 +135,8 @@ describe("triageRecordProblems", () => {
         { ...dismiss, finding: 2, reason: "duplicate" },
       ]),
     ).toEqual([
-      "finding 1: a Dismiss needs reason `false-positive`, `covered-later`, `won't-fix` or `tooling-enforced`, but has none",
-      "finding 2: a Dismiss needs reason `false-positive`, `covered-later`, `won't-fix` or `tooling-enforced`, but has `duplicate`",
+      "finding 1: a Dismiss needs reason `false-positive`, `covered-later`, `kept` or `tooling-enforced`, but has none",
+      "finding 2: a Dismiss needs reason `false-positive`, `covered-later`, `kept` or `tooling-enforced`, but has `duplicate`",
     ]);
   });
 
@@ -137,6 +149,31 @@ describe("triageRecordProblems", () => {
 
   it("accepts a covered-later Dismiss naming its later ticket", () => {
     expect(triageRecordProblems(1, [dismiss])).toEqual([]);
+  });
+
+  it("accepts a kept Dismiss quoting its reason with a file:line", () => {
+    expect(triageRecordProblems(1, [kept])).toEqual([]);
+  });
+
+  it("refuses a kept Dismiss with no quote, or a quote with no file", () => {
+    const { quote: _quote, ...unquoted } = kept;
+    expect(
+      triageRecordProblems(2, [
+        unquoted,
+        { ...kept, finding: 2, quote: "a seam, kept at line 51" },
+      ]),
+    ).toEqual([
+      "finding 1: a `kept` Dismiss needs `quote`, its reason quoted with its file:line",
+      "finding 2: a `kept` Dismiss needs `quote`, its reason quoted with its file:line",
+    ]);
+  });
+
+  it("refuses a won't-fix Dismiss as outside the reasons", () => {
+    expect(
+      triageRecordProblems(1, [{ ...dismiss, reason: "won't-fix" }]),
+    ).toEqual([
+      "finding 1: a Dismiss needs reason `false-positive`, `covered-later`, `kept` or `tooling-enforced`, but has `won't-fix`",
+    ]);
   });
 
   it("refuses a finding given zero verdicts or two", () => {
@@ -173,9 +210,9 @@ describe("haltScopeOf", () => {
 
 describe("triageOutputSchema", () => {
   it("accepts one record per verdict and reads them back", () => {
-    const output = { records: [fix, defer, halt, dismiss] };
+    const output = { records: [fix, defer, halt, dismiss, kept] };
     expect(validateOutput(output)).toBe(true);
-    expect(triageRecordsOf(output)).toEqual([fix, defer, halt, dismiss]);
+    expect(triageRecordsOf(output)).toEqual([fix, defer, halt, dismiss, kept]);
   });
 
   it("refuses a verdict outside the four", () => {
@@ -222,11 +259,16 @@ describe("triagePrompt", () => {
 
   it("states every verdict rule", () => {
     [
-      "`false-positive`, `covered-later`, `won't-fix` or `tooling-enforced`",
+      "`false-positive`: the finding is wrong",
+      "`covered-later`: a later ticket covers it",
+      "`kept`: a smell whose site carries a one-line reason that is still true",
+      "`tooling-enforced`: lint, the typecheck or a test",
       "`coveredBy`",
-      "a `code-style.md` line clearly backs it",
+      "#smells",
       "Doc drift the diff caused is Fix",
-      "unverifiable findings and unbacked smells",
+      "unverifiable findings",
+      "would reverse a User Story or an Implementation Decision",
+      "drafted one-line reason",
       "`draftIssueTitle`",
       "`haltScope`",
       "omit `haltScope` to scope it to the whole spec",

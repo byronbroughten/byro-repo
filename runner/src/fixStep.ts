@@ -51,7 +51,8 @@ Finding triage of the review of ${issue.repo}#${issue.number}, "${title}", gave 
 
 - Read and search with the Read and Grep tools. Give Bash one command per call, run from the workspace root: no \`cd\`, no \`;\` or \`&&\` chains, no variables.
 - Run typechecking, the tests and lint once the fixes are in.
-- Give up on a finding when fixing it needs a judgement the quoted rule doesn't settle (\`judgement-call\`), or when its fix leaves the checks red and you can't turn them green (\`checks-red\`). Revert that finding's change before you commit, and never turn a Fix into anything else.
+- A smell's \`rule\` carries its "→ how to fix" line. When two fixes are equally good, pick one and say which in the commit message; a tie is never a give-up.
+- Give up on a finding with \`judgement-call\` only when the fix would reverse a spec decision, a User Story or an Implementation Decision, or with \`checks-red\` when its fix leaves the checks red and you can't turn them green. Revert that finding's change before you commit, and never turn a Fix into anything else.
 
 ## When you're done
 
