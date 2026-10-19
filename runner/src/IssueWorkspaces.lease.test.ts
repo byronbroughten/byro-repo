@@ -156,6 +156,21 @@ describe("a lease", () => {
 
     expect(existsSync(workspace.path)).toBe(false);
   });
+
+  it("is gone from a workspace removed and created again", async () => {
+    const key = { session: "glossary-fix" };
+    const workspace = await workspaces().create(key);
+    await workspaces().takeLease(workspace, {
+      kind: "session",
+      pid: deadPid(),
+    });
+    await workspaces().remove(workspace);
+
+    const recreated = await workspaces().create(key);
+
+    expect(recreated.path).toBe(workspace.path);
+    expect(await workspaces().leaseOf(recreated)).toBeUndefined();
+  });
 });
 
 describe("remove", () => {

@@ -17,10 +17,17 @@ import {
   symlinkSync,
   writeFileSync,
 } from "node:fs";
-import { basename, join } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { promisify } from "node:util";
 
-import { git, isDirty, lines } from "./git.ts";
+import {
+  currentBranchOf,
+  git,
+  hasRef,
+  lines,
+  type WorktreeState,
+  worktreeStateOf,
+} from "./git.ts";
 import { LeaseHeld } from "./LeaseHeld.ts";
 
 const execFileAsync = promisify(execFile);
@@ -182,7 +189,7 @@ export class IssueWorkspaces {
   }
 
   async takeLease(workspace: Workspace, holder: LeaseHolder): Promise<void> {
-    const leasePath = await leasePathOf(workspace.path);
+    const leasePath = leasePathOf(workspace.path);
     const { kind, pid } = holder;
     const startedAt = await startTimeOf(pid);
     for (;;) {
@@ -195,11 +202,11 @@ export class IssueWorkspaces {
   }
 
   async releaseLease({ path }: Pick<Workspace, "path">): Promise<void> {
-    rmSync(await leasePathOf(path), { force: true });
+    rmSync(leasePathOf(path), { force: true });
   }
 
   async leaseOf({ path }: Pick<Workspace, "path">): Promise<Lease | undefined> {
-    return readLease(await leasePathOf(path));
+    return readLease(leasePathOf(path));
   }
 
   // Reads only the lease files, with none of list()'s git checks, so a session-end hook stays quick.
@@ -272,12 +279,9 @@ export class IssueWorkspaces {
   }
 
   async resume(workspace: Workspace): Promise<void> {
-    const detached = await this._detachedWorktrees(workspace);
-    const dirtyRepos: string[] = [];
-    for (const { repo, worktree } of detached) {
-      if (await isDirty(worktree)) dirtyRepos.push(repo);
-    }
-    const orphanedRepos = await this._orphanedRepos(workspace);
+    const detached = detachedOf(await this._worktreeStatesOf(workspace.path));
+    const dirtyRepos = dirtyReposOf(detached);
+    const orphanedRepos = await orphanedReposOf(detached);
     if (dirtyRepos.length > 0 || orphanedRepos.length > 0) {
       throw new Error(
         `${workspace.path} has ${unsavedWork(dirtyRepos, orphanedRepos)}; promote the repo to keep its work, or discard it, before resuming`,
@@ -292,12 +296,13 @@ export class IssueWorkspaces {
     workspace: Workspace,
     { force = false }: RemoveOptions = {},
   ): Promise<void> {
-    const { dirtyRepos, lease } = await this._statusOf(
-      workspace.path,
-      workspace.key,
-    );
-    assertLeaseFree({ path: workspace.path, lease });
-    const orphanedRepos = await this._orphanedRepos(workspace);
+    assertLeaseFree({
+      path: workspace.path,
+      lease: await this.leaseOf(workspace),
+    });
+    const states = await this._worktreeStatesOf(workspace.path);
+    const dirtyRepos = dirtyReposOf(states);
+    const orphanedRepos = await orphanedReposOf(detachedOf(states));
     if ((dirtyRepos.length > 0 || orphanedRepos.length > 0) && !force) {
       throw new Error(
         `${workspace.path} has ${unsavedWork(dirtyRepos, orphanedRepos)}; remove it with force to discard them`,
@@ -455,26 +460,18 @@ export class IssueWorkspaces {
     return worktree;
   }
 
-  private async _detachedWorktrees(
-    workspace: Workspace,
-  ): Promise<DetachedWorktree[]> {
-    const detached: DetachedWorktree[] = [];
+  private async _worktreeStatesOf(path: string): Promise<RepoWorktree[]> {
+    const worktrees: RepoWorktree[] = [];
     for (const [repo, clonePath] of this._clonesRootFirst) {
-      const worktree = join(workspace.path, clonePath);
+      const worktree = join(path, clonePath);
       if (!existsSync(worktree)) continue;
-      if ((await currentBranchOf(worktree)) === "") {
-        detached.push({ repo, worktree });
-      }
+      worktrees.push({
+        repo,
+        worktree,
+        state: await worktreeStateOf(worktree),
+      });
     }
-    return detached;
-  }
-
-  private async _orphanedRepos(workspace: Workspace): Promise<string[]> {
-    const orphaned: string[] = [];
-    for (const { repo, worktree } of await this._detachedWorktrees(workspace)) {
-      if (await isOrphanedHead(worktree)) orphaned.push(repo);
-    }
-    return orphaned;
+    return worktrees;
   }
 
   private _keyOfFolder(name: string): WorkspaceKey | undefined {
@@ -510,15 +507,11 @@ export class IssueWorkspaces {
     path: string,
     key: WorkspaceKey,
   ): Promise<WorkspaceStatus> {
-    const branchedRepos: string[] = [];
-    const dirtyRepos: string[] = [];
-    for (const [repo, clonePath] of this._clonesRootFirst) {
-      const worktree = join(path, clonePath);
-      if (!existsSync(worktree)) continue;
-      const checkedOut = await currentBranchOf(worktree);
-      if (checkedOut !== "") branchedRepos.push(repo);
-      if (await isDirty(worktree)) dirtyRepos.push(repo);
-    }
+    const states = await this._worktreeStatesOf(path);
+    const branchedRepos = states
+      .filter(({ state }) => state.branch !== "")
+      .map(({ repo }) => repo);
+    const dirtyRepos = dirtyReposOf(states);
     return {
       path,
       key,
@@ -527,7 +520,7 @@ export class IssueWorkspaces {
       branchedRepos,
       dirtyRepos,
       createdAt: statSync(path).birthtime,
-      lease: await readLease(await leasePathOf(path)),
+      lease: await readLease(leasePathOf(path)),
     };
   }
 
@@ -558,9 +551,10 @@ interface BuildTarget {
   branchedRepos: string[];
 }
 
-interface DetachedWorktree {
+interface RepoWorktree {
   repo: string;
   worktree: string;
+  state: WorktreeState;
 }
 
 type BranchOrigin =
@@ -686,10 +680,6 @@ async function branchOriginOf(
   return { kind: "new" };
 }
 
-async function hasRef(clone: string, ref: string): Promise<boolean> {
-  return (await git(clone, "for-each-ref", "--format=%(refname)", ref)) !== "";
-}
-
 async function remoteBranchesOf(
   clone: string,
   branch: string,
@@ -718,8 +708,20 @@ async function removeWorktree({
   await git(primaryClone, "worktree", "remove", ...forceArgs, worktree);
 }
 
-async function currentBranchOf(worktree: string): Promise<string> {
-  return git(worktree, "branch", "--show-current");
+function detachedOf(worktrees: RepoWorktree[]): RepoWorktree[] {
+  return worktrees.filter(({ state }) => state.branch === "");
+}
+
+function dirtyReposOf(worktrees: RepoWorktree[]): string[] {
+  return worktrees.filter(({ state }) => state.isDirty).map(({ repo }) => repo);
+}
+
+async function orphanedReposOf(detached: RepoWorktree[]): Promise<string[]> {
+  const orphaned: string[] = [];
+  for (const { repo, worktree } of detached) {
+    if (await isOrphanedHead(worktree)) orphaned.push(repo);
+  }
+  return orphaned;
 }
 
 // A detached HEAD no branch contains is reachable only from the reflog, so moving off it or removing its worktree loses the commits.
@@ -735,11 +737,11 @@ async function isOrphanedHead(worktree: string): Promise<boolean> {
   return containing === "";
 }
 
-async function leasePathOf(workspacePath: string): Promise<string> {
-  return join(
-    await git(workspacePath, "rev-parse", "--absolute-git-dir"),
-    leaseFileName,
-  );
+// A worktree's .git file names its git folder, so the lease is found without a git process.
+function leasePathOf(workspacePath: string): string {
+  const dotGit = readFileSync(join(workspacePath, ".git"), "utf8");
+  const gitDir = dotGit.trim().replace(/^gitdir: /, "");
+  return join(resolve(workspacePath, gitDir), leaseFileName);
 }
 
 // An unreadable lease file counts as no lease, so a torn write never locks a workspace for good.

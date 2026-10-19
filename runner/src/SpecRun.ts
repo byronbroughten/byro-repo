@@ -44,7 +44,7 @@ import {
   type GaveUpOutcome,
   giveUpRecordOf,
 } from "./fixStep.ts";
-import { git, isDirty } from "./git.ts";
+import { git, type WorktreeState, worktreeStateOf } from "./git.ts";
 import {
   implementOutputSchema,
   implementPrompt,
@@ -173,6 +173,12 @@ type Fixer = "implementer" | "triage";
 
 // Each worktree's clone path to its HEAD.
 type Heads = Record<string, string>;
+
+interface CloneWorktree {
+  repo: string;
+  clonePath: string;
+  state: WorktreeState;
+}
 
 type TimedStep = Exclude<TicketStep, "landed" | "stopped"> | "workspace";
 
@@ -742,8 +748,14 @@ export class SpecRun {
       );
     }
     const { outcomes, logPath } = attempt;
-    const hasNewCommit = !isSameHeads(base, await this._headsOf(workspace));
-    const dirtyRepos = await this._dirtyReposOf(workspace);
+    const states = await this._worktreeStatesOf(workspace);
+    const heads: Heads = Object.fromEntries(
+      states.map(({ clonePath, state }) => [clonePath, state.head]),
+    );
+    const hasNewCommit = !isSameHeads(base, heads);
+    const dirtyRepos = states
+      .filter(({ state }) => state.isDirty)
+      .map(({ repo }) => repo);
     const problems = fixRecordProblems({
       fixes,
       outcomes,
@@ -764,15 +776,22 @@ export class SpecRun {
     if (outcomes.some(({ status }) => status === "fixed")) state.fixer = fixer;
   }
 
-  private async _dirtyReposOf(workspace: Workspace): Promise<string[]> {
-    const dirty: string[] = [];
+  private async _worktreeStatesOf(
+    workspace: Workspace,
+  ): Promise<CloneWorktree[]> {
+    const worktrees: CloneWorktree[] = [];
     for (const [repo, clonePath] of Object.entries(
       this.config.knobs.clonePaths,
     )) {
       const worktree = join(workspace.path, clonePath);
-      if (existsSync(worktree) && (await isDirty(worktree))) dirty.push(repo);
+      if (!existsSync(worktree)) continue;
+      worktrees.push({
+        repo,
+        clonePath,
+        state: await worktreeStateOf(worktree),
+      });
     }
-    return dirty;
+    return worktrees;
   }
 
   private async _runFixer(

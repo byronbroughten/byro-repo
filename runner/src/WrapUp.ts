@@ -18,7 +18,14 @@ import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
 import { commandLabelOf, messageOf, outputTailOf } from "./failureText.ts";
-import { git, isDirty, lines } from "./git.ts";
+import {
+  currentBranchOf,
+  git,
+  hasRef,
+  isDirty,
+  lines,
+  worktreeStateOf,
+} from "./git.ts";
 import {
   fileStemOf,
   holderLabelOf,
@@ -488,10 +495,11 @@ export class WrapUp {
     }
     const rootHead = landing.progress.built?.[this._rootRepo]?.head;
     const rootWorktree = this._worktreeOf(workspace, this._rootRepo);
+    const { branch, head } = await worktreeStateOf(rootWorktree);
     if (
       !isListed(landing, this._rootRepo) &&
-      (await currentBranchOf(rootWorktree)) === "" &&
-      (await revOf(rootWorktree, "HEAD")) === rootHead
+      branch === "" &&
+      head === rootHead
     ) {
       await git(rootWorktree, "switch", "--detach", "master");
     }
@@ -1074,10 +1082,6 @@ async function levelRepo(worktree: string, branch: string): Promise<void> {
   }
 }
 
-async function currentBranchOf(worktree: string): Promise<string> {
-  return git(worktree, "branch", "--show-current");
-}
-
 async function revOf(worktree: string, ref: string): Promise<string> {
   return git(worktree, "rev-parse", ref);
 }
@@ -1106,8 +1110,4 @@ async function isAncestor(
   } catch {
     return false;
   }
-}
-
-async function hasRef(clone: string, ref: string): Promise<boolean> {
-  return (await git(clone, "for-each-ref", "--format=%(refname)", ref)) !== "";
 }
