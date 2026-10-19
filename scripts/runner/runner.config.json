@@ -69,6 +69,16 @@
       "Bash(git mv *)",
       "Bash(git rm *)",
       "Bash(mkdir *)"
+    ],
+    "gapCheck": [
+      "Skill",
+      "Agent",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git merge-base *)",
+      "Bash(npm run issue:read -- * --hide-others)"
     ]
   },
   "handoffDocPath": "docs/agents/planning.md#handoffs"

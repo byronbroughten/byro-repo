@@ -12,11 +12,12 @@ import { join } from "node:path";
 
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
 
-import type { StepRequest, StepResult } from "./AgentStep.ts";
+import type { AgentStep, StepRequest, StepResult } from "./AgentStep.ts";
 import type { FakeAgentStep, ScriptedStep } from "./FakeAgentStep.ts";
 import { FakeGitHub } from "./FakeGitHub.ts";
 import { FakeNotices } from "./FakeNotices.ts";
 import { FakeUsageReader } from "./FakeUsageReader.ts";
+import { gapCheckOutputSchema } from "./gapCheck.ts";
 import { git, GitFixture } from "./GitFixture.ts";
 import type { ImplementRecord } from "./implementStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
@@ -153,17 +154,24 @@ export function stateFolder(): string {
   return join(temp, "state");
 }
 
+// The gap check finds no gaps unless a test passes its own agentStep to script it.
 export function specRun(
   agentStep: FakeAgentStep,
   overrides: Partial<SpecRunConfig> = {},
 ): SpecRun {
+  const withGapCheck: AgentStep = {
+    run: async (request) =>
+      request.jsonSchema === gapCheckOutputSchema
+        ? resultOf({ gaps: [] })
+        : agentStep.run(request),
+  };
   return SpecRun.init({
     knobs: runKnobsOf({
       clonePaths,
       checks: [greenUnlessRed],
       authChecks: [passes],
     }),
-    agentStep,
+    agentStep: withGapCheck,
     github,
     notices,
     usageReader,
