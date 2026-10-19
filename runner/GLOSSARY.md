@@ -33,7 +33,7 @@ The fresh agent session that runs finding triage. It also fixes the Fix batch wh
 _Avoid_: judge, reviewer
 
 **Verdict**:
-What finding triage decides for one finding: Dismiss, Fix, Defer or Halt.
+What finding triage decides for one finding: Dismiss, Fix, Propose or Halt.
 _Avoid_: ruling, outcome
 
 **Dismiss**:
@@ -44,9 +44,9 @@ _Avoid_: ignore, reject
 The verdict that the finding gets fixed now, in a separate fix commit. It needs a quoted `file:line` and the documented rule or spec line it breaks.
 _Avoid_: accept, apply
 
-**Defer**:
+**Propose**:
 The verdict that leaves the finding for the developer on the review list: `decision` for a judgement only they can make, or `ticket` for a pre-existing problem, with a drafted issue title.
-_Avoid_: postpone, backlog
+_Avoid_: Defer, postpone, backlog
 
 **Halt**:
 The verdict that blocks the tickets in its scope until the developer answers: named later tickets and their downstream, or `spec`. A fixer's give-up or a blocker in the implement record is one too. It is posted as a spec-issue comment and a push.
@@ -65,7 +65,7 @@ The run pauses until the earliest 5-hour usage reset plus a margin, because ever
 _Avoid_: cooldown, throttle
 
 **Review list**:
-The comment the runner posts on the spec issue for each landed ticket with a Defer, one checkbox per Defer and the Dismisses in a collapsed audit. The gap check posts the last one.
+The comment the runner posts on the spec issue for each landed ticket with a Propose, one checkbox per Propose and the Dismisses in a collapsed audit. The gap check posts the last one.
 _Avoid_: todo list, report
 
 **Gap check**:

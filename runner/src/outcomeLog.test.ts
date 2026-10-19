@@ -50,7 +50,7 @@ describe("outcomeFileOf", () => {
           account: "2",
           peakContext: [121_400],
           halt: "red checks",
-          defers: 2,
+          proposals: 2,
           reviewRounds: 1,
           retries: 1,
           durationMinutes: 42,

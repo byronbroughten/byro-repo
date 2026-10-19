@@ -78,7 +78,7 @@ If the spec is missing, skip the Spec sub-agent and note this in the final repor
 
 Present the two reports under `## Standards` and `## Spec` headings, verbatim or lightly cleaned. Do **not** merge or rerank findings, because the two axes are deliberately separate (see _Why two axes_).
 
-Label each smell's outcome with the runner's verdict words, never "left alone": **Fix**; **Dismiss `kept`**, quoting its still-true reason at its `file:line`; or **Defer `decision`**, for a smell you think is wanted but whose site carries no reason (give the drafted one-line reason) or one whose fix would reverse a User Story or an Implementation Decision.
+Label each smell's outcome with the runner's verdict words, never "left alone": **Fix**; **Dismiss `kept`**, quoting its still-true reason at its `file:line`; or **Propose `decision`**, for a smell you think is wanted but whose site carries no reason (give the drafted one-line reason) or one whose fix would reverse a User Story or an Implementation Decision.
 
 End with a one-line summary: total findings per axis, and the worst issue _within each axis_ (if any). Don't pick a single winner across axes: that's the reranking the separation exists to prevent.
 

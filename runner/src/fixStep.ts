@@ -1,6 +1,6 @@
 // The fix step: the prompt that hands a batch of Fix findings to a fixer, the fix record it returns, and its checker.
 // findingTriage.ts gives the verdicts; SpecRun.ts picks the fixer, the resumed implementer or the triage agent,
-// and turns a give-up into a Halt or a Defer with giveUpRecordOf().
+// and turns a give-up into a Halt or a Propose with giveUpRecordOf().
 
 import type { TriageRecord } from "./findingTriage.ts";
 import { stepReadLine } from "./IssueReader.ts";
@@ -23,7 +23,7 @@ export interface GaveUpOutcome {
   finding: number;
   status: "gave-up";
   reason: GiveUpReason;
-  // Why, for the developer, who gets the finding back as a Halt or a Defer.
+  // Why, for the developer, who gets the finding back as a Halt or a Propose.
   note: string;
 }
 
@@ -160,7 +160,7 @@ export interface GiveUp {
   downstream: string[];
 }
 
-// A fixer never turns Fix into Dismiss: a give-up goes back to the developer, as a Halt on the spec axis, else a Defer.
+// A fixer never turns Fix into Dismiss: a give-up goes back to the developer, as a Halt on the spec axis, else a Propose.
 export function giveUpRecordOf({
   record,
   gaveUp: { reason, note },
@@ -172,5 +172,5 @@ export function giveUpRecordOf({
     const haltScope = downstream.length > 0 ? downstream : "spec";
     return { ...record, verdict: "halt", reason, haltScope, recommendation };
   }
-  return { ...record, verdict: "defer", reason: "decision", recommendation };
+  return { ...record, verdict: "propose", reason: "decision", recommendation };
 }

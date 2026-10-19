@@ -1,4 +1,4 @@
-// The review list: the spec-issue comment a landed ticket's Defers are posted as, with its Dismisses in a collapsed
+// The review list: the spec-issue comment a landed ticket's Proposals are posted as, with its Dismisses in a collapsed
 // audit, the gap check's comment in the same format, the note a `covered-later` Dismiss leaves on its later ticket,
 // and the count of undecided items the end-of-run push gives. The runner only creates these; /judge-findings edits them.
 // SpecRun.ts posts them at wrap-up and at the end of the spec; gapCheck.ts supplies the gaps.
@@ -83,16 +83,16 @@ export interface TicketReviewList {
   records: TriageRecord[];
 }
 
-// Undefined for a ticket with no Defers, which posts no comment.
+// Undefined for a ticket with no Proposals, which posts no comment.
 export function ticketReviewListOf({
   ticket,
   title,
   records,
 }: TicketReviewList): string | undefined {
-  const defers = records.filter(({ verdict }) => verdict === "defer");
-  if (defers.length === 0) return undefined;
-  const items = defers.map((record, index) =>
-    itemOf(itemIdOf(ticket, index), deferItemOf(record)),
+  const proposals = records.filter(({ verdict }) => verdict === "propose");
+  if (proposals.length === 0) return undefined;
+  const items = proposals.map((record, index) =>
+    itemOf(itemIdOf(ticket, index), proposeItemOf(record)),
   );
   const dismisses = records.filter(({ verdict }) => verdict === "dismiss");
   return [
@@ -103,11 +103,11 @@ export function ticketReviewListOf({
   ].join("\n\n");
 }
 
-function deferItemOf(record: TriageRecord): ReviewItem {
+function proposeItemOf(record: TriageRecord): ReviewItem {
   const { finding, claim, where, evidence } = record;
   const reason = requiredOf(record, "reason");
   return {
-    heading: `Defer \`${reason}\` · Finding ${finding}: ${claim} (${where})`,
+    heading: `Propose \`${reason}\` · Finding ${finding}: ${claim} (${where})`,
     evidence,
     recommendation: requiredOf(record, "recommendation"),
     draftIssueTitle:

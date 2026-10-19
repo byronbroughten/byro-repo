@@ -26,12 +26,12 @@ const fix: TriageRecord = {
   evidence: "Lines 88-90 are one comment.",
 };
 
-const defer: TriageRecord = {
+const propose: TriageRecord = {
   finding: 1,
   axis: "standards",
   where: "runner/src/LandingLock.ts:40",
   claim: "The lock file name is built in two places.",
-  verdict: "defer",
+  verdict: "propose",
   reason: "ticket",
   evidence: "Both copies predate this branch.",
   recommendation: "File a ticket to name the lock file once.",
@@ -98,32 +98,32 @@ describe("triageRecordProblems", () => {
     ]);
   });
 
-  it("refuses a Defer or a Halt with no recommendation", () => {
-    const { recommendation: _deferred, ...bareDefer } = defer;
+  it("refuses a Propose or a Halt with no recommendation", () => {
+    const { recommendation: _recommendation, ...bareProposal } = propose;
     const { recommendation: _halted, ...bareHalt } = { ...halt, finding: 2 };
-    expect(triageRecordProblems(2, [bareDefer, bareHalt])).toEqual([
-      "finding 1: a Defer needs `recommendation`",
+    expect(triageRecordProblems(2, [bareProposal, bareHalt])).toEqual([
+      "finding 1: a Propose needs `recommendation`",
       "finding 2: a Halt needs `recommendation`",
     ]);
   });
 
-  it("refuses a Defer ticket with no drafted issue title", () => {
-    const { draftIssueTitle: _title, ...untitled } = defer;
+  it("refuses a Propose ticket with no drafted issue title", () => {
+    const { draftIssueTitle: _title, ...untitled } = propose;
     expect(triageRecordProblems(1, [untitled])).toEqual([
-      "finding 1: a Defer `ticket` needs `draftIssueTitle`",
+      "finding 1: a Propose `ticket` needs `draftIssueTitle`",
     ]);
   });
 
-  it("accepts a Defer decision with no drafted issue title", () => {
-    const { draftIssueTitle: _title, ...decision } = defer;
+  it("accepts a Propose decision with no drafted issue title", () => {
+    const { draftIssueTitle: _title, ...decision } = propose;
     expect(
       triageRecordProblems(1, [{ ...decision, reason: "decision" }]),
     ).toEqual([]);
   });
 
-  it("refuses a Defer whose reason is neither decision nor ticket", () => {
-    expect(triageRecordProblems(1, [{ ...defer, reason: "later" }])).toEqual([
-      "finding 1: a Defer needs reason `decision` or `ticket`, but has `later`",
+  it("refuses a Propose whose reason is neither decision nor ticket", () => {
+    expect(triageRecordProblems(1, [{ ...propose, reason: "later" }])).toEqual([
+      "finding 1: a Propose needs reason `decision` or `ticket`, but has `later`",
     ]);
   });
 
@@ -218,15 +218,27 @@ describe("haltScopeOf", () => {
 
 describe("triageOutputSchema", () => {
   it("accepts one record per verdict and reads them back", () => {
-    const output = { records: [fix, defer, halt, dismiss, kept] };
+    const output = { records: [fix, propose, halt, dismiss, kept] };
     expect(validateOutput(output)).toBe(true);
-    expect(triageRecordsOf(output)).toEqual([fix, defer, halt, dismiss, kept]);
+    expect(triageRecordsOf(output)).toEqual([
+      fix,
+      propose,
+      halt,
+      dismiss,
+      kept,
+    ]);
   });
 
   it("refuses a verdict outside the four", () => {
     expect(validateOutput({ records: [{ ...fix, verdict: "ignore" }] })).toBe(
       false,
     );
+  });
+
+  it("refuses Defer, Propose's old name, in a new record", () => {
+    expect(
+      validateOutput({ records: [{ ...propose, verdict: "defer" }] }),
+    ).toBe(false);
   });
 
   it("refuses a Halt scope naming no ticket", () => {

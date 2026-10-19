@@ -24,6 +24,7 @@ import { promisify } from "node:util";
 import type { AgentStep, Pair, StepRequest, StepResult } from "./AgentStep.ts";
 import { commandLabelOf, messageOf, outputTailOf } from "./failureText.ts";
 import {
+  savedTriageRecordOf,
   triageOutputSchema,
   triagePrompt,
   type TriageRecord,
@@ -247,7 +248,7 @@ interface TicketState {
   // The implementer's latest session, a fix step it ran included.
   implementerSession?: string;
   findings?: string[];
-  // A fixer's give-ups are rewritten in place as Halts or Defers.
+  // A fixer's give-ups are rewritten in place as Halts or Proposals.
   triage?: TriageRecord[];
   // Set once a fixer fixed a finding.
   fixer?: Fixer;
@@ -462,7 +463,11 @@ export class SpecRun {
   private _readState(spec: IssueRef): RunState {
     const path = this._statePathOf(spec);
     if (!existsSync(path)) return { tickets: {} };
-    return JSON.parse(readFileSync(path, "utf8")) as RunState;
+    const state = JSON.parse(readFileSync(path, "utf8")) as RunState;
+    for (const ticket of Object.values(state.tickets)) {
+      ticket.triage = ticket.triage?.map(savedTriageRecordOf);
+    }
+    return state;
   }
 
   private _statePathOf(spec: IssueRef): string {
@@ -1426,8 +1431,9 @@ export class SpecRun {
       closingComment: record.closingComment,
       boxesUndone: record.boxesUndone,
       reviewFixes: state.fixer ?? "none",
-      defers: (state.triage ?? []).filter(({ verdict }) => verdict === "defer")
-        .length,
+      proposals: (state.triage ?? []).filter(
+        ({ verdict }) => verdict === "propose",
+      ).length,
       reviewRounds: 1,
       retries: 0,
       pair: pairLabelOf(pair),

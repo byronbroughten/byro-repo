@@ -7,7 +7,7 @@ import type { IssueRef } from "./IssueWorkspaces.ts";
 import { codeListOf } from "./promptText.ts";
 import { stringSchema } from "./recordSchema.ts";
 
-const verdicts = ["dismiss", "fix", "defer", "halt"] as const;
+const verdicts = ["dismiss", "fix", "propose", "halt"] as const;
 const axes = ["standards", "spec"] as const;
 // Each Dismiss reason with its definition, as the prompt states it.
 const dismissReasonDefinitions = {
@@ -21,11 +21,11 @@ const dismissReasonDefinitions = {
 const dismissReasons = Object.keys(
   dismissReasonDefinitions,
 ) as (keyof typeof dismissReasonDefinitions)[];
-const deferReasons = ["decision", "ticket"] as const;
+const proposeReasons = ["decision", "ticket"] as const;
 
 export type Verdict = (typeof verdicts)[number];
 export type DismissReason = (typeof dismissReasons)[number];
-export type DeferReason = (typeof deferReasons)[number];
+export type ProposeReason = (typeof proposeReasons)[number];
 
 // Named later tickets, each `<repo>#<n>`, plus their downstream; or the whole spec.
 export type HaltScope = "spec" | string[];
@@ -75,16 +75,16 @@ Never edit code, and change nothing else: no edits, commits, comments, issues or
 
 - **Dismiss**: no action. \`reason\` is one of:
 ${dismissReasonLines()}.
-- **Fix**: fixed now, in a separate commit. It needs \`quote\`, the quoted code with its file:line, and \`rule\`, the documented rule or spec line it breaks. A smell is Fix by default (\`config/docs/code-style.md#smells\`): unless it is \`kept\` or a Defer \`decision\`, \`rule\` names the smell and that section, with the smell's "→ how to fix" line from the finding. Doc drift the diff caused is Fix.
-- **Defer**: left for the developer. \`reason\` is \`decision\` for a judgement only they can make, or \`ticket\` for a problem that predates this branch, with a drafted issue title in \`draftIssueTitle\`. The runner never files them. A \`decision\` covers unverifiable findings and two smell cases:
+- **Fix**: fixed now, in a separate commit. It needs \`quote\`, the quoted code with its file:line, and \`rule\`, the documented rule or spec line it breaks. A smell is Fix by default (\`config/docs/code-style.md#smells\`): unless it is \`kept\` or a Propose \`decision\`, \`rule\` names the smell and that section, with the smell's "→ how to fix" line from the finding. Doc drift the diff caused is Fix.
+- **Propose**: left for the developer. \`reason\` is \`decision\` for a judgement only they can make, or \`ticket\` for a problem that predates this branch, with a drafted issue title in \`draftIssueTitle\`. The runner never files them. A \`decision\` covers unverifiable findings and two smell cases:
   - a smell you think is wanted but whose site carries no reason, with the drafted one-line reason as \`recommendation\`, since every new keep needs the developer's yes;
   - a smell whose fix would reverse a User Story or an Implementation Decision. A spec protects decisions, not wording: a fix that changes how a decision is met while the decision still holds is a Fix.
 - **Halt**: blocks tickets until the developer answers. \`haltScope\` names the later tickets it blocks, each \`<repo>#<n>\`, with their downstream, or is \`spec\` for the whole spec; when unsure, omit \`haltScope\` to scope it to the whole spec.
-- Defer and Halt each need \`recommendation\`, what you recommend the developer do.
+- Propose and Halt each need \`recommendation\`, what you recommend the developer do.
 
 ## The record
 
-Return \`records\`, exactly one record per finding: \`finding\` (its number below), \`axis\` (\`standards\` or \`spec\`), \`where\` (its file:line or area), \`claim\` (what the finding says, in a line), \`verdict\` (\`dismiss\`, \`fix\`, \`defer\` or \`halt\`), \`evidence\` (what you checked and found), and the fields its verdict needs above.
+Return \`records\`, exactly one record per finding: \`finding\` (its number below), \`axis\` (\`standards\` or \`spec\`), \`where\` (its file:line or area), \`claim\` (what the finding says, in a line), \`verdict\` (\`dismiss\`, \`fix\`, \`propose\` or \`halt\`), \`evidence\` (what you checked and found), and the fields its verdict needs above.
 
 ## Findings
 
@@ -139,6 +139,12 @@ export const triageOutputSchema = {
 
 export function triageRecordsOf(output: unknown): TriageRecord[] {
   return (output as { records: TriageRecord[] }).records;
+}
+
+// A run state saved before #297 holds Propose under its old name, Defer.
+export function savedTriageRecordOf(record: TriageRecord): TriageRecord {
+  const verdict: string = record.verdict;
+  return verdict === "defer" ? { ...record, verdict: "propose" } : record;
 }
 
 export function triageRecordProblems(
@@ -222,16 +228,16 @@ const verdictRules: Record<Verdict, (record: TriageRecord) => string[]> = {
         "a Fix needs `rule`, the documented rule or spec line it breaks",
       ],
     ]),
-  defer: ({ reason, recommendation, draftIssueTitle }) =>
+  propose: ({ reason, recommendation, draftIssueTitle }) =>
     brokenRules([
       [
-        !isOneOf(deferReasons, reason),
-        reasonRule("Defer", deferReasons, reason),
+        !isOneOf(proposeReasons, reason),
+        reasonRule("Propose", proposeReasons, reason),
       ],
-      [isBlank(recommendation), recommendationRule("Defer")],
+      [isBlank(recommendation), recommendationRule("Propose")],
       [
         reason === "ticket" && isBlank(draftIssueTitle),
-        "a Defer `ticket` needs `draftIssueTitle`",
+        "a Propose `ticket` needs `draftIssueTitle`",
       ],
     ]),
   halt: ({ recommendation }) =>
@@ -243,7 +249,7 @@ function brokenRules(rules: [isBroken: boolean, rule: string][]): string[] {
 }
 
 function reasonRule(
-  verdict: "Dismiss" | "Defer",
+  verdict: "Dismiss" | "Propose",
   reasons: readonly string[],
   reason: string | undefined,
 ): string {
@@ -251,7 +257,7 @@ function reasonRule(
   return `a ${verdict} needs reason ${codeListOf(reasons)}, but has ${given}`;
 }
 
-function recommendationRule(verdict: "Defer" | "Halt"): string {
+function recommendationRule(verdict: "Propose" | "Halt"): string {
   return `a ${verdict} needs \`recommendation\``;
 }
 

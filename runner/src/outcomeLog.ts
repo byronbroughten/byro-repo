@@ -14,7 +14,7 @@ const columns = [
   "Files changed",
   "Peak context",
   "Result",
-  "Defers",
+  "Proposals",
   "Review rounds",
   "Retries",
   "Duration",
@@ -31,7 +31,7 @@ export type ReviewFixes = "none" | "implementer" | "triage" | "skipped";
 export interface OutcomeFacts {
   reviewFixes?: ReviewFixes;
   whatReviewCaught?: string;
-  defers?: number;
+  proposals?: number;
   // The Halt's kind, when the ticket halted before it passed.
   halt?: string;
   reviewRounds?: number;
@@ -95,7 +95,7 @@ function cellsOf({ issue, filesChanged, facts }: OutcomeRow): string[] {
     String(filesChanged),
     peakContextOf(facts),
     resultOf(facts),
-    String(facts.defers ?? 0),
+    String(facts.proposals ?? 0),
     String(facts.reviewRounds ?? 1),
     String(facts.retries ?? 0),
     facts.durationMinutes === undefined
