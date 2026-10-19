@@ -36,6 +36,12 @@ The 24 Docs and 3 decks in the Drive folder **Business Writing Examples**, each 
 | 6 | Assessment 3 - Digital Marketing Plan | Marketing plan |
 | 6 | Assessment 2 - Brand Presentation | Slide script. It is the written script behind the DealLab deck, so it counts as product voice |
 
+## The Elements of Style
+
+Strunk and White, *The Elements of Style*, 4th edition, in the Drive folder **Writing Style**, read on 2026-10-18 (Chapters II and V closely). The developer endorsed nine of its rules against the Assessment 1 Next Draft (writing#4), whose AI drafting ran wordy and repetitive (session 2ebcdf61). Each borrowed rule's instances name its Strunk and White rule number. The book is under copyright, so the rules are paraphrased, with a phrase quoted at most.
+
+Where a borrowed rule meets one of the developer's own habits, the habit wins: arithmetic keeps its steps, for one.
+
 ## Blog posts
 
 The five DealLab blog posts indexed at [deallab.app/home-cost-guides](https://deallab.app/home-cost-guides/), read in full on 2026-10-02. They are the most authoritative source. The site went into maintenance mode after this read, so the links may not resolve; text-only copies are in the Drive folder **Legacy Blog Posts**.

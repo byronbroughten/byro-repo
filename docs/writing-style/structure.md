@@ -22,6 +22,7 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Structure and re
 - "Oftentimes renting is less work than owning." — blog: Rent vs Buy
 - Seen in 2 of 6. In 4 of 5 posts.
 - Agent: "Three jobs show the quality of that work." Developer: "I can say without a doubt that Jesus has more creativity and ingenuity than I have encountered in any other contractor." — session 517e5e68, 2026-10-05
+- Agent: "This section identifies conditions the project charter is based on that are believed to be true." — Assessment 1 Next Draft (writing#4). The announcement clause is from Strunk and White V.9, whose good example "plunges directly into the news"; the developer endorsed it — session 2ebcdf61, 2026-10-18
 
 ## The recommendation first
 
@@ -77,3 +78,26 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Structure and re
 - Agent: "This project's largely fixed scope, cost, and sequence point to the predictive approach." Developer: struck; "A real estate acquisition fits that description." already drew the conclusion — Assessment 1 Next Draft (writing#4), 2026-10-13
 - "it often includes much unnecessary verbiage" — the developer on AI drafts, Assessment 1 graded draft, AI Usage
 - No count was recorded; from a session.
+
+## Refer back by name
+
+- From Strunk and White II.17, "Omit needless words": every word should "tell".
+- The HELOC gate before Build is explained in full in Approach (Table 2 and the paragraph after it), again in each of the two Dependencies, and again in Roles. The developer: "I definitely don't like that the HELOC gate is retold." — Assessment 1 Next Draft (writing#4), session 2ebcdf61, 2026-10-18
+- Agent: "Saint Paul's rent stabilization ordinance, described under Dependencies, caps rent increases at 3% in a 12-month period" — Assessment 1 Next Draft (writing#4), Regulatory section, which the developer had not edited. The pointer back is right; restating the cap after it is not.
+
+## A shared assumption, once
+
+- From Strunk and White II.17.
+- Agent: "As in the risk analysis, each unit other than the owner's is assumed to rent for at least $1,900 a month." — Assessment 1 Next Draft (writing#4), Regulatory section, after the Risks intro had already set the same assumption. The developer endorsed the rule — session 2ebcdf61, 2026-10-18
+
+## A closing line that ties
+
+- Refines Strunk and White II.21, which asks for "an orderly discussion" rather than summary. The developer drew the line between these closers from the draft — Assessment 1 Next Draft (writing#4), session 2ebcdf61, 2026-10-18:
+- Kept: "Each acquisition is planned to help pay for the one after it." (Business Need; it boils the sentence before it down to a takeaway)
+- Kept: "The first and last assumptions are confirmed before the purchase closes, while the second and third stay open until the project ends." (Assumptions)
+- Kept: "The budget and the finish date can each stretch, but stretching the budget costs return, while stretching the finish date costs time in the wider plan." (Constraints)
+- Kept: "Both dependencies lead to the budget, so one gate before Build controls them both." (Dependencies)
+- Kept: "The largest regulatory cost is the risk of one tenant who stops paying, not the fees." (Total Regulatory Cost)
+- Struck: "The predictive life cycle gives each step a fixed place in the sequence, and the HELOC gate keeps the project from committing to a purchase it cannot yet fund." (Approach; it retells the two points just made)
+- Struck: "Across both drafts, AI found sources and drafted text, while the checks and the final wording stayed with me." (AI Usage; it echoes the section's opening paragraph)
+- The developer: "I seem to like when a connection between points that is relevent to the section as a whole is succinctly pointed out at the end."

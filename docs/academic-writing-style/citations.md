@@ -16,3 +16,9 @@ Disclosed from [`docs/academic-writing-style.md`](../academic-writing-style.md),
 
 - "a Blue Ocean strategy, which is the successful synthesis of cost leadership and differentiation via value innovation (Rothaermel, 2023)." — Paylocity - Strategic Analysis and Recommendations.pptx
 - Seen in 1 of 6. Flagged in review because assignments ask for framework knowledge, and kept.
+
+## Cite a framework once
+
+- After Strunk and White II.21, which warns against overworking "he said" once a summary is underway.
+- The Risks intro cites Martinelli et al. (2017) for its approach to a risk plan; Risks 1, 3, 4 and 5 each cite it again only to say a leading indicator follows: "In line with Martinelli et al. (2017), a rejected offer… is the leading indicator", "Following Martinelli et al. (2017), the leading indicator is…", "As Martinelli et al. (2017) recommend, the response is tied to a leading indicator" — Assessment 1 Next Draft (writing#4)
+- The developer endorsed the rule, with the APA proviso that a new claim keeps its citation — session 2ebcdf61, 2026-10-18

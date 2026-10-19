@@ -62,3 +62,24 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Sentences and pu
 - Agent: "I trust him with my properties and my home." Developer: "I also trust Jesus in my rental units, around my tenants, and in my home." — session 517e5e68, 2026-10-05
 - Agent: "so that he can keep doing this work in Saint Paul." Developer: "on my properties and on other properties in Saint Paul, around the Twin Cities, and across Minnesota." — session 517e5e68, 2026-10-05
 - No count was recorded; from a session.
+
+## Wrapper phrases
+
+- From Strunk and White II.17, whose list includes "the question as to whether" for "whether" and "the fact that", which it would revise "out of every sentence in which it occurs".
+- Agent: "The mitigation strategy for if this dependency is not obtained is the phase gate into the project's Build phase." — Assessment 1 Next Draft (writing#4)
+- Agent: "The first such dependency is a new, aforementioned HELOC with TruStone Financial" — Assessment 1 Next Draft (writing#4)
+- Agent: "This charter authorizes the first step of that plan, which is acquiring, repairing, and leasing one residential rental property" — Assessment 1 Next Draft (writing#4)
+- The developer endorsed the rule — session 2ebcdf61, 2026-10-18
+
+## One point, one sentence
+
+- From Strunk and White II.17: a common way into wordiness is to give one idea "step by step, in a series of sentences that might to advantage be combined into one".
+- Agent: "That date falls partway through the project, so the new property could be inspected under either standard. One requirement applies under both. Since December 29, 2024, smoke alarms must be either hardwired or sealed devices with 10-year batteries" — Assessment 1 Next Draft (writing#4), Regulatory section, which the developer had not edited
+- Arithmetic is the exception: the numbers rule's step-by-step working is the developer's own habit, and it wins over the borrowed rule ([sources](./sources.md#the-elements-of-style)).
+- The developer endorsed the rule — session 2ebcdf61, 2026-10-18
+
+## Active voice
+
+- From Strunk and White II.14, which keeps the passive where the actor doesn't matter or the receiver must be the subject. The academic sheet's passive recommendation overrides this rule.
+- Agent: "Based on an initial assessment, it is assumed that the four conditions below will hold through May 31, 2027." — Assessment 1 Next Draft (writing#4)
+- The developer endorsed the rule — session 2ebcdf61, 2026-10-18

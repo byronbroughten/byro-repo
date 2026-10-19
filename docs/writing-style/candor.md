@@ -47,3 +47,11 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Confidence and c
 - Agent: "This charter therefore authorizes the first step of that plan" Developer: "This charter authorizes the first step of that plan" — session 28fd4b54, 2026-10-08
 - "The things I edited felt too ai-ey… I generally prefer to talk plainly rather than trump up something's importance." — developer, session 28fd4b54, 2026-10-08
 - No count was recorded; from a session.
+
+## Empty qualifiers
+
+- From Strunk and White V.8, which calls "rather, very, little, pretty" "the leeches that infest the pond of prose".
+- Agent: "its outcomes and budget can be estimated up front within a predictable, relatively small margin of error" — Assessment 1 Next Draft (writing#4)
+- Agent: "Whatever the life cycle, project phases generally run in sequence" — Assessment 1 Next Draft (writing#4)
+- An "about" before an estimated figure states a real limit, and stays.
+- The developer endorsed the rule — session 2ebcdf61, 2026-10-18

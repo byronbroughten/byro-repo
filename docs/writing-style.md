@@ -1,6 +1,6 @@
 # Writing style
 
-The developer's voice for reader-facing prose ([defined in `prose-files.md`](./agents/prose-files.md#terms)), drawn from their own writing; academic work layers [`academic-writing-style.md`](./academic-writing-style.md) on top. It calls its reader "the reader", and says "app user" only for the app's user.
+The developer's voice for reader-facing prose ([defined in `prose-files.md`](./agents/prose-files.md#terms)), drawn from their own writing, plus the rules they endorsed from Strunk and White's *The Elements of Style*; academic work layers [`academic-writing-style.md`](./academic-writing-style.md) on top. It calls its reader "the reader", and says "app user" only for the app's user.
 
 One line per rule. The quoted instances and their sources are one file away. Open a reasoning file only when you're changing the rule, or the rule's line doesn't decide your case.
 
@@ -64,6 +64,7 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 ## Confidence and candor
 
 - **Hedge only predictions, causes and plans, one hedge per claim at most; state facts, decisions and verdicts flatly.**
+- **Keep a qualifier ("rather", "very", "relatively", "generally") only when it states a real limit.**
 - **Admit a weakness or limit in one flat clause**, often with "however" or a closing "though", or in a parenthetical.
 - **Weigh a point's upside and risk together ("On the one hand… On the other hand…").**
 - **Turn to a caveat or exception with "That said,", "Of course," or "Still,".**
@@ -75,7 +76,7 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 
 - **Open a piece with a striking figure or a blunt claim, then say in one sentence what the piece covers.**
 - **Right after the opening, say what the piece doesn't cover and where to find it.**
-- **Open a section with one sentence stating its claim at full strength ("I can say without a doubt…"), not a topic label ("His work is broad."), then support it.**
+- **Open a section with one sentence stating its claim at full strength ("I can say without a doubt…"), not a topic label ("His work is broad.") or an announcement of what the section does ("This section identifies…"), then support it.**
 - **State the recommendation early and flatly, then give the reasons.**
 - **Lay out each option's pros and cons, then eliminate options until the recommendation is left.**
 - **Advise the reader in the imperative, "you'll want to" or "we recommend"; advise a third party with "should" or "would do well to", never a passive "it is recommended".**
@@ -83,11 +84,17 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - **Use bullets for short parallel items (costs with their figures, tips, one-sentence reasons after "Here's why:"); keep multi-sentence reasoning in prose.**
 - **Put a side point in its own "Note that…" sentence.**
 - **Make each point once, with the support it needs; cut a second calculation, a source's side conclusion or a rule's fine print that only reinforces or qualifies it.**
+- **Once a fact or mechanism is set out, refer back to it by a short name ("the Build gate", "Table 2") instead of explaining it again.**
+- **State an assumption the rest of the piece shares once, where it first applies, and say there that it holds throughout.**
+- **A section may close with one short sentence that ties its points together (what they share, how they trade off, how they sort, or what they add up to); never with one that retells the points in turn or echoes the section's opening.**
 - **Close by returning to the opening question or figure, answer it, and say what makes the answer vary for the reader.**
 
 ## Sentences and punctuation
 
 - **Let explanatory sentences run long, then land the point with a short, blunt one, at most once a paragraph and never as its opener.**
+- **Say the thing directly, cutting any wrapper phrase that carries no meaning ("the mitigation strategy for if…", "which is", "it is assumed that", "aforementioned").**
+- **Combine a run of short sentences that build one point into a single sentence; arithmetic keeps its steps.**
+- **Use the active voice, unless the actor is unknown or beside the point.**
 - **Use the serial comma ("reliability, trustworthiness, and ingenuity").**
 - **Order a list to build, ending on its weightiest item ("in my rental units, around my tenants, and in my home").**
 - **Use paired em dashes for a mid-sentence aside or example list when commas would confuse.**
