@@ -33,7 +33,7 @@ Runs a spec's tickets through implement, review, finding triage, fix, checks and
 
 ## Running under tmux
 
-`npm run runner:tmux -- <owner/repo> <n>` starts the run in a detached tmux session, `runner-<repo>-<n>`, under `caffeinate -is` so the Mac stays awake; attach with `tmux attach -t runner-<repo>-<n>`. The runner exits 0 on a finished run, 1 on any other end and 2 on a crash. On an exit above 1 the wrapper sends a push (`scripts/runner/crashPush.ts`, to `runner.local.json`'s topic), since a crashed run sends none of its own, and the pane stays open with the error. Check on a run from any terminal with `npm run runner -- status <owner/repo> <n>`, and end it after its current ticket with `npm run runner -- stop <owner/repo> <n>`.
+`npm run runner:tmux -- <owner/repo> <n>` starts the run in a detached tmux session, `runner-<repo>-<n>`, under `caffeinate -is` so the Mac stays awake; attach with `tmux attach -t runner-<repo>-<n>`. On a crash the wrapper sends a push (`scripts/runner/crashPush.ts`, to `runner.local.json`'s topic), since a crashed run sends none of its own, and the pane stays open with the error. Check on a run from any terminal with `npm run runner -- status <owner/repo> <n>`, and end it after its current ticket with `npm run runner -- stop <owner/repo> <n>`.
 
 ## Skills
 

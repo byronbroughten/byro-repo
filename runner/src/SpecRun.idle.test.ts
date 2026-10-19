@@ -130,6 +130,19 @@ describe("run's idle and stops", () => {
     );
   });
 
+  it("names the rerun command on a stop request while a ticket waits on the developer", async () => {
+    addSpec([1, 2]);
+    github.edit(2, { labels: ["ready-for-human"] });
+
+    const result = await specRun(FakeAgentStep.init(blocked([gated]))).run(
+      spec,
+    );
+
+    expect(result.message).toBe(
+      "Stopped on request: landed nothing. byro-repo #1 waits on Halt H1; byro-repo #2 waits on you. Rerun once your tickets close: `npm run runner -- byronbroughten/byro-repo 213`.",
+    );
+  });
+
   it("prints a status from run state and GitHub", async () => {
     addSpec([1, 2, 3]);
     github.edit(3, { labels: ["ready-for-human"] });

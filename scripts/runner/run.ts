@@ -8,8 +8,11 @@ const usage = "Usage: npm run runner -- [status|stop] <owner/repo> <n>";
 
 try {
   const args = process.argv.slice(2);
-  const command =
-    args[0] === "status" || args[0] === "stop" ? args.shift() : "run";
+  let command = "run";
+  if (args[0] === "status" || args[0] === "stop") {
+    command = args[0];
+    args.shift();
+  }
   const [ownerRepo = "", number] = args;
   const [owner, repo] = ownerRepo.split("/");
   if (!owner || !repo || !Number.isInteger(Number(number))) {
@@ -21,7 +24,7 @@ try {
     console.log(await specRun.status(specIssue));
   } else if (command === "stop") {
     specRun.requestStop(specIssue);
-    console.log("Stop requested; the run ends after its current ticket.");
+    console.log("Stop requested.");
   } else {
     const result = await specRun.run(specIssue);
     if (result.kind !== "finished") process.exitCode = 1;
