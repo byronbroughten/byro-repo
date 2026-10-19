@@ -29,4 +29,3 @@ One line per rule. The quoted instances and their sources are one file away. Ope
 ## Structure
 
 - **Open with a purpose statement ("This report is to inform…"), then the organization, the decision at stake and a roadmap.**
-- **End a subsection with one line that ties its points together, never one that retells them.**

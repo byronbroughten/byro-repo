@@ -86,7 +86,7 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - **Make each point once, with the support it needs; cut a second calculation, a source's side conclusion or a rule's fine print that only reinforces or qualifies it.**
 - **Once a fact or mechanism is set out, refer back to it by a short name ("the Build gate", "Table 2") instead of explaining it again.**
 - **State an assumption the rest of the piece shares once, where it first applies, and say there that it holds throughout.**
-- **A section may close with one short sentence that ties its points together (what they share, how they trade off, how they sort, or what they add up to); never with one that retells the points in turn or echoes the section's opening.**
+- **End a section on its weightiest point; when one short sentence can tie its points together (what they share, how they trade off, how they sort, or what they add up to), close with that instead, never with one that retells the points in turn or echoes the section's opening.**
 - **Close by returning to the opening question or figure, answer it, and say what makes the answer vary for the reader.**
 
 ## Sentences and punctuation

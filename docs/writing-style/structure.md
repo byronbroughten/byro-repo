@@ -92,7 +92,8 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Structure and re
 
 ## A closing line that ties
 
-- Refines Strunk and White II.21, which asks for "an orderly discussion" rather than summary. The developer drew the line between these closers from the draft — Assessment 1 Next Draft (writing#4), session 2ebcdf61, 2026-10-18:
+- The default is Strunk and White II.22: the emphatic place is the end, of a sentence, a paragraph or a whole piece. The developer: "not every subsection needs a closing sentence like that. It should probably only be used when one such sentence is applicable." — session 2ebcdf61, 2026-10-18
+- The tying line refines II.21, which asks for "an orderly discussion" rather than summary. The developer drew the line between these closers from the draft — Assessment 1 Next Draft (writing#4), session 2ebcdf61, 2026-10-18:
 - Kept: "Each acquisition is planned to help pay for the one after it." (Business Need; it boils the sentence before it down to a takeaway)
 - Kept: "The first and last assumptions are confirmed before the purchase closes, while the second and third stay open until the project ends." (Assumptions)
 - Kept: "The budget and the finish date can each stretch, but stretching the budget costs return, while stretching the finish date costs time in the wider plan." (Constraints)
