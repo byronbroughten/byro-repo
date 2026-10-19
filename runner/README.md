@@ -1,6 +1,6 @@
 # @byronbroughten/spec-runner
 
-Runs a spec's tickets through implement, review, finding triage, fix, checks and wrap-up, one agent step at a time, and leaves the developer a review list. It imports nothing from the repo around it: everything repo-specific is injected config, so it can be split out later. Its words are in [`GLOSSARY.md`](./GLOSSARY.md).
+Runs a spec's tickets through implement, review, finding triage, fix, checks and wrap-up, one agent step at a time, and leaves the developer a review list. Its code imports nothing from the repo around it: everything repo-specific is injected config, so it can be split out later. Its words are in [`GLOSSARY.md`](./GLOSSARY.md).
 
 | Export | What it is |
 | --- | --- |
@@ -30,6 +30,10 @@ Runs a spec's tickets through implement, review, finding triage, fix, checks and
 | `@byronbroughten/spec-runner/limitGuard` | The limit guard: `readCswapList()` turns `cswap list --json` into per-account readings (a missing one is `undefined`, never thrown), and `decideStep()` picks launch, change account, Limit wait or Stop from them, the pinned account and the day's account changes, with `defaultLimitGuardKnobs` for its thresholds, margin and soft cap. |
 | `@byronbroughten/spec-runner/outcomeLog` | The outcome log's file layout: a ticket's path under its spec's folder, its one-row table with `unrecorded` for facts nobody computed, and the commit message. |
 | `@byronbroughten/spec-runner/transcriptFacts` | `transcriptFactsOf()`: the outcome facts computed from transcripts, found by the session ids and account config folder the runner records plus the handoff comments' `session: <id>` lines: pair, each implementer session's peak context, duration, API-equivalent cost (implementer, its subagents and any fixer) and triage cost, from the per-model price table `modelPrices`. `limitUsedOf()` writes Limit used from before and after readings. A fact with a missing transcript or reading stays `unrecorded`. |
+
+## Skills
+
+The runner's interactive skills live in `skills/<name>/`: `/judge-findings <repo> #<spec>` walks a spec's undecided review-list items and closes the spec when none is left. byro-repo loads each one through a symlink in `.claude/skills/`, not a plugin ([layout](../docs/agents/upstream-skills.md#layout)). The skills link byro-repo's docs.
 
 ## Tests
 

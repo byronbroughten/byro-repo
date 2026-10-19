@@ -1,6 +1,7 @@
 // Run by .githooks/pre-commit: checks the staged files' formatting and lint, however they were edited.
 import { execFileSync } from "node:child_process";
-import { basename } from "node:path";
+import { lstatSync } from "node:fs";
+import { basename, join } from "node:path";
 
 import {
   type Command,
@@ -17,7 +18,9 @@ const staged = execFileSync(
   { cwd: repoRoot, encoding: "utf8" },
 )
   .split("\0")
-  .filter((path) => path !== "");
+  .filter((path) => path !== "")
+  // Prettier refuses a symlink, such as a runner skill's link in `.claude/skills/`.
+  .filter((path) => !lstatSync(join(repoRoot, path)).isSymbolicLink());
 const commands: Command[] = [];
 if (staged.length > 0) commands.push(prettierCheckOf(staged));
 const code = staged.filter(isCode);
