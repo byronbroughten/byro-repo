@@ -25,6 +25,7 @@ export class GitFixture {
   static init(
     clonePaths: Record<string, string>,
     gitignoreOf: (repo: string) => string,
+    addUntracked: (primaryRoot: string) => void = () => {},
   ): GitFixture {
     const template = realpathSync(mkdtempSync(join(tmpdir(), "git-fixture-")));
     Object.entries(clonePaths).forEach(([repo, clonePath]) => {
@@ -43,6 +44,7 @@ export class GitFixture {
       git(clone, "commit", "-m", "Initial commit");
       git(clone, "push", "-u", "origin", "master");
     });
+    addUntracked(join(template, "byro-repo"));
     return new GitFixture(template, clonePaths);
   }
 
