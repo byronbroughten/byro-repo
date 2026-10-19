@@ -10,7 +10,7 @@ import type {
   ReadableIssue,
 } from "./IssueReader.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
-import type { RunGitHub, TrackedIssue } from "./SpecRun.ts";
+import type { IssueComment, RunGitHub, TrackedIssue } from "./SpecRun.ts";
 import type { ParentIssue } from "./WrapUp.ts";
 
 const execFileAsync = promisify(execFile);
@@ -65,7 +65,7 @@ interface RawParent {
 }
 
 interface RawComments {
-  comments?: { body?: unknown }[];
+  comments?: { id?: unknown; author?: RawLogin | null; body?: unknown }[];
 }
 
 interface RawListedIssue {
@@ -132,7 +132,14 @@ export class GhCli implements RunGitHub, IssueSource {
     );
   }
 
-  async commentsOf({ repo, number }: IssueRef): Promise<string[]> {
+  async commentsOf(issue: IssueRef): Promise<string[]> {
+    return (await this.authoredCommentsOf(issue)).map(({ body }) => body);
+  }
+
+  async authoredCommentsOf({
+    repo,
+    number,
+  }: IssueRef): Promise<IssueComment[]> {
     const output = await gh(
       "issue",
       "view",
@@ -143,9 +150,10 @@ export class GhCli implements RunGitHub, IssueSource {
       "comments",
     );
     const { comments } = JSON.parse(output) as RawComments;
-    return (comments ?? []).flatMap(({ body }) =>
-      typeof body === "string" ? [body] : [],
-    );
+    return (comments ?? []).flatMap(({ id, author, body }) => {
+      if (typeof body !== "string") return [];
+      return [{ id: String(id), author: String(author?.login ?? ""), body }];
+    });
   }
 
   // GitHub answers 404 for an issue with no parent.

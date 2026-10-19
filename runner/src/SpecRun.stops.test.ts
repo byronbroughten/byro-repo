@@ -14,13 +14,11 @@ import {
   commitRed,
   github,
   implemented,
-  implementResultOf,
   masterSetPath,
   notices,
   passes,
   primaryOf,
   primaryRoot,
-  recordOf,
   refOf,
   resultOf,
   reviewed,
@@ -198,22 +196,6 @@ describe("run's unhandled Stops", () => {
     },
   };
 
-  function blocked(): ScriptedStep {
-    return async (request) =>
-      implementResultOf(
-        recordOf(git(request.cwd, "branch", "--show-current"), "", {
-          status: "blocked",
-          blockers: [
-            {
-              kind: "gated-action",
-              detail: "It needs app:build.",
-              recommendation: "Run it by hand.",
-            },
-          ],
-        }),
-      );
-  }
-
   const outcomes: {
     outcome: string;
     steps: () => ScriptedStep[];
@@ -228,11 +210,6 @@ describe("run's unhandled Stops", () => {
       outcome: "a step error",
       steps: () => [implemented("one.ts"), stepError],
       logFile: "byro-repo-213-steps/byro-repo-1-2-review.jsonl",
-    },
-    {
-      outcome: "a blocker in the implement record",
-      steps: () => [blocked()],
-      logFile: "byro-repo-213-steps/byro-repo-1-1-implement.jsonl",
     },
     {
       outcome: "a schema failure",

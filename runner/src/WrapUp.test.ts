@@ -71,12 +71,10 @@ describe("run", () => {
       join(configFolder, "projects", "-workspace-byro-repo"),
       { recursive: true },
     );
-    github.comments.push(
-      { issue: ticket, body: "Picking this up." },
-      {
-        issue: ticket,
-        body: "## Handoff\n\nWork so far.\n\nsession: session-implement-1",
-      },
+    github.reply(ticket.number, "Picking this up.");
+    github.reply(
+      ticket.number,
+      "## Handoff\n\nWork so far.\n\nsession: session-implement-1",
     );
     const workspace = await workspaceWith();
     commitIn(workspace, "byro-repo", "script.ts", "export {};\n");

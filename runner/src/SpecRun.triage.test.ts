@@ -122,7 +122,7 @@ describe("run's finding triage", () => {
     return state.tickets["byro-repo #1"] ?? { step: "none" };
   }
 
-  function factsOf(): { reviewFixes?: string; defers?: number } {
+  function factsOf(): { reviewFixes?: string; defers?: number; halt?: string } {
     const path = join(stateFolder(), "byro-repo-1.facts.json");
     return JSON.parse(readFileSync(path, "utf8")) as ReturnType<typeof factsOf>;
   }
@@ -138,7 +138,7 @@ describe("run's finding triage", () => {
     expect(factsOf().reviewFixes).toBe("none");
   });
 
-  it("keeps a Dismiss, a Defer and a Halt in run state and lands with no fix step, the triage step on its own pair with no targets", async () => {
+  it("keeps a Dismiss, a Defer and a Halt in run state and halts with no fix step, the triage step on its own pair with no targets", async () => {
     addSpec([1]);
     github.edit(1, { body: bodyWithTargets("app spreadsheet") });
     const records = [
@@ -159,8 +159,12 @@ describe("run's finding triage", () => {
     expect(triage?.pair).toEqual(opusMedium);
     expect(triage?.targets).toEqual([]);
     expect(triage?.prompt).toContain("3. one.ts:3 is wrong.");
-    expect(ticketRunState().triage).toEqual(records);
-    expect(factsOf()).toMatchObject({ reviewFixes: "none", defers: 1 });
+    expect(ticketRunState()).toMatchObject({ step: "halted", triage: records });
+    expect(result.message).toContain("byro-repo #1 waits on Halt H1");
+    expect(github.comments[0]?.body).toContain(
+      '**Halt H1** · Halt 1 of 1 · byro-repo #1, "Ticket 1" · triage Halt',
+    );
+    expect(github.comments[0]?.body).toContain("Blocks: the whole spec.");
   });
 
   it("hands the Fix batch to the resumed implementer under the ticket budget, landing the fix as its own commit", async () => {
@@ -294,13 +298,9 @@ describe("run's finding triage", () => {
             },
           ],
         }),
-      implemented("two.ts"),
-      reviewed(),
-      implemented("three.ts"),
-      reviewed(),
     );
 
-    await specRun(agentStep).run(spec);
+    const result = await specRun(agentStep).run(spec);
 
     expect(ticketRunState().triage).toMatchObject([
       {
@@ -311,8 +311,62 @@ describe("run's finding triage", () => {
       },
       { finding: 2, verdict: "defer", reason: "decision" },
     ]);
-    expect(factsOf()).toMatchObject({ reviewFixes: "none", defers: 1 });
+    expect(agentStep.requests).toHaveLength(4);
+    expect(result.message).toContain("byro-repo #2 waits on Halt H1");
+    expect(result.message).toContain("byro-repo #3 waits on Halt H1");
+    expect(github.comments[0]?.body).toContain(
+      'Halt 1 of 1 · byro-repo #1, "Ticket 1" · fixer give-up',
+    );
+    expect(github.comments[0]?.body).toContain(
+      "Blocks: byro-repo#2, byro-repo#3 and their downstream.",
+    );
   });
+
+  it.each([
+    { fixerPeak: 120_000, resumeSessionId: "fixer-session" },
+    { fixerPeak: 160_000, resumeSessionId: undefined },
+  ])(
+    "resumes a give-up's ticket in the implementer's fix session only while its peak is under the ticket budget, then lands it: $fixerPeak",
+    async ({ fixerPeak, resumeSessionId }) => {
+      addSpec([1]);
+      const gaveUp = stepOf(
+        resultOf({
+          outcomes: [
+            {
+              finding: 1,
+              status: "gave-up",
+              reason: "judgement-call",
+              note: "The spec reads both ways.",
+            },
+          ],
+        }),
+        { sessionId: "fixer-session", peakContext: fixerPeak },
+      );
+      await specRun(
+        FakeAgentStep.init(
+          implementedAt(90_000),
+          reviewed(findings),
+          triaged(
+            triageRecordOf(1, "fix", "spec"),
+            triageRecordOf(2, "dismiss"),
+          ),
+          gaveUp,
+        ),
+      ).run(spec);
+      github.reply(213, "H1: read it the first way.");
+      const agentStep = FakeAgentStep.init(implemented("fix.ts"));
+
+      const result = await specRun(agentStep).run(spec);
+
+      expect(result.message).toContain("landed byro-repo #1");
+      expect(agentStep.requests).toHaveLength(1);
+      expect(agentStep.requests[0]?.resumeSessionId).toBe(resumeSessionId);
+      expect(agentStep.requests[0]?.prompt).toContain(
+        "H1: read it the first way.",
+      );
+      expect(factsOf().halt).toBe("fixer give-up");
+    },
+  );
 
   it("Stops on a schema failure when the fixer leaves uncommitted changes", async () => {
     addSpec([1]);
