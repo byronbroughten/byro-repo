@@ -24,7 +24,6 @@ import {
   currentBranchOf,
   dirtyReposOf,
   git,
-  hasRef,
   lines,
   type RepoWorktree,
   worktreeStateOf,
@@ -557,6 +556,12 @@ type BranchOrigin =
   | { kind: "remote"; remoteBranch: string }
   | { kind: "new" };
 
+interface MatchingBranches {
+  local: string[];
+  // Each names its remote, as `origin/<branch>`.
+  remote: string[];
+}
+
 interface WorktreeTarget {
   primaryClone: string;
   worktree: string;
@@ -605,24 +610,41 @@ async function issueBranchesOf(
   clone: string,
   issueNumber: number,
 ): Promise<string[]> {
-  const pattern = `${issueBranchPrefix(issueNumber)}*`;
-  const local = lines(
-    await git(
-      clone,
-      "for-each-ref",
-      "--format=%(refname:lstrip=2)",
-      `refs/heads/${pattern}`,
-    ),
+  const { local, remote } = await matchingBranchesOf(
+    clone,
+    `${issueBranchPrefix(issueNumber)}*`,
   );
-  const remote = lines(
+  return [...local, ...remote.map(withoutRemoteName)];
+}
+
+// One for-each-ref over both patterns, read apart by prefix, so each ask starts one git process instead of two.
+async function matchingBranchesOf(
+  clone: string,
+  pattern: string,
+): Promise<MatchingBranches> {
+  const refs = lines(
     await git(
       clone,
       "for-each-ref",
-      "--format=%(refname:lstrip=3)",
+      "--format=%(refname)",
+      `refs/heads/${pattern}`,
       `refs/remotes/*/${pattern}`,
     ),
   );
-  return [...local, ...remote];
+  return {
+    local: refsUnder(refs, "refs/heads/"),
+    remote: refsUnder(refs, "refs/remotes/"),
+  };
+}
+
+function refsUnder(refs: string[], prefix: string): string[] {
+  return refs.flatMap((ref) =>
+    ref.startsWith(prefix) ? [ref.slice(prefix.length)] : [],
+  );
+}
+
+function withoutRemoteName(remoteBranch: string): string {
+  return remoteBranch.slice(remoteBranch.indexOf("/") + 1);
 }
 
 async function addWorktree({
@@ -669,24 +691,11 @@ async function branchOriginOf(
   clone: string,
   branch: string,
 ): Promise<BranchOrigin> {
-  if (await hasRef(clone, `refs/heads/${branch}`)) return { kind: "local" };
-  const [remoteBranch] = await remoteBranchesOf(clone, branch);
+  const { local, remote } = await matchingBranchesOf(clone, branch);
+  if (local.length > 0) return { kind: "local" };
+  const [remoteBranch] = remote;
   if (remoteBranch !== undefined) return { kind: "remote", remoteBranch };
   return { kind: "new" };
-}
-
-async function remoteBranchesOf(
-  clone: string,
-  branch: string,
-): Promise<string[]> {
-  return lines(
-    await git(
-      clone,
-      "for-each-ref",
-      "--format=%(refname:lstrip=2)",
-      `refs/remotes/*/${branch}`,
-    ),
-  );
 }
 
 function escapeRegExp(text: string): string {
