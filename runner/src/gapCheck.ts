@@ -5,6 +5,7 @@
 import { stepReadLine } from "./IssueReader.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 import { arraySchema, objectSchema, stringSchema } from "./recordSchema.ts";
+import type { TrackedIssue } from "./SpecRun.ts";
 
 export interface Gap {
   // What the spec asked for, by its story number or section.
@@ -19,10 +20,7 @@ export interface GapCheckRecord {
   gaps: Gap[];
 }
 
-export interface GapCheckTicket {
-  issue: IssueRef;
-  title: string;
-}
+export type GapCheckTicket = Pick<TrackedIssue, "issue" | "title">;
 
 export interface GapCheckPromptInput {
   spec: IssueRef;

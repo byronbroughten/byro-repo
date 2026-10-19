@@ -8,25 +8,53 @@ import type { Gap, GapCheckRecord } from "./gapCheck.ts";
 import { shortRefOf } from "./halts.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 
-const gapCheckKey = "gap-check";
+const markPrefix = "<!-- review-list ";
+const listMarkPrefix = `${markPrefix}ticket=`;
 const undecidedBox = /^- \[ \] \*\*R/gm;
 
+export const gapCheckSubject = "gap-check";
+
 // What one review-list comment is for: a landed ticket, or the gap check.
-export type ReviewListSubject = IssueRef | typeof gapCheckKey;
+export type ReviewListSubject = IssueRef | typeof gapCheckSubject;
 
-export const gapCheckSubject: ReviewListSubject = gapCheckKey;
-
-export function reviewListMarkOf(subject: ReviewListSubject): string {
-  return `<!-- review-list ticket=${keyOf(subject)} -->`;
+interface SubjectNames {
+  // After `ticket=` in the mark.
+  markKey: string;
+  // After `R` in an item's id.
+  itemKey: string;
+  label: string;
 }
 
-function keyOf(subject: ReviewListSubject): string {
-  return subject === gapCheckKey ? gapCheckKey : `#${subject.number}`;
+function namesOf(subject: ReviewListSubject): SubjectNames {
+  if (subject === gapCheckSubject) {
+    return {
+      markKey: gapCheckSubject,
+      itemKey: gapCheckSubject,
+      label: "the gap check",
+    };
+  }
+  return {
+    markKey: `#${subject.number}`,
+    itemKey: String(subject.number),
+    label: issueLabelOf(subject),
+  };
+}
+
+export function reviewListMarkOf(subject: ReviewListSubject): string {
+  return `${listMarkPrefix}${namesOf(subject).markKey} -->`;
 }
 
 function itemIdOf(subject: ReviewListSubject, index: number): string {
-  const key = subject === gapCheckKey ? gapCheckKey : String(subject.number);
-  return `R${key}.${index + 1}`;
+  return `R${namesOf(subject).itemKey}.${index + 1}`;
+}
+
+// Triage refuses a record missing what its verdict and reason need, so a missing one here is a bug.
+function requiredOf(record: TriageRecord, field: keyof TriageRecord): string {
+  const value = record[field];
+  if (typeof value !== "string") {
+    throw new Error(`Finding ${record.finding} has no \`${field}\`.`);
+  }
+  return value;
 }
 
 interface ReviewItem {
@@ -76,12 +104,14 @@ export function ticketReviewListOf({
 }
 
 function deferItemOf(record: TriageRecord): ReviewItem {
-  const { finding, claim, where, reason, evidence, recommendation } = record;
+  const { finding, claim, where, evidence } = record;
+  const reason = requiredOf(record, "reason");
   return {
-    heading: `Defer \`${reason ?? ""}\` · Finding ${finding}: ${claim} (${where})`,
+    heading: `Defer \`${reason}\` · Finding ${finding}: ${claim} (${where})`,
     evidence,
-    recommendation: recommendation ?? "",
-    draftIssueTitle: reason === "ticket" ? record.draftIssueTitle : undefined,
+    recommendation: requiredOf(record, "recommendation"),
+    draftIssueTitle:
+      reason === "ticket" ? requiredOf(record, "draftIssueTitle") : undefined,
   };
 }
 
@@ -92,11 +122,14 @@ function dismissAuditOf(dismisses: TriageRecord[]): string {
 }
 
 function dismissLineOf(record: TriageRecord): string {
-  const { finding, claim, where, reason, evidence } = record;
-  const line = `- Finding ${finding} · \`${reason ?? ""}\` · ${claim} (${where}). ${evidence}`;
-  if (reason === "kept") return `${line} Kept for: ${record.quote ?? ""}`;
+  const { finding, claim, where, evidence } = record;
+  const reason = requiredOf(record, "reason");
+  const line = `- Finding ${finding} · \`${reason}\` · ${claim} (${where}). ${evidence}`;
+  if (reason === "kept") {
+    return `${line} Kept for: ${requiredOf(record, "quote")}`;
+  }
   if (reason === "covered-later") {
-    return `${line} Covered by ${record.coveredBy ?? ""}.`;
+    return `${line} Covered by ${requiredOf(record, "coveredBy")}.`;
   }
   return line;
 }
@@ -144,7 +177,7 @@ export function coveredLaterNotesOf(
     // A record checked before `coveredBy` had to be `<repo>#<n>` may name no ticket.
     const issue = issueRefOf(record.coveredBy);
     if (issue === undefined) return [];
-    const mark = `<!-- review-list note=${shortRefOf(ticket)}.${record.finding} -->`;
+    const mark = `${markPrefix}note=${shortRefOf(ticket)}.${record.finding} -->`;
     const body = `${mark}\n${shortRefOf(ticket)}'s review left this for this ticket to cover: ${record.claim} (${record.where}).`;
     return [{ issue, mark, body }];
   });
@@ -152,34 +185,47 @@ export function coveredLaterNotesOf(
 
 export interface UndecidedCount {
   items: number;
-  // Review-list comments with at least one undecided item.
-  lists: number;
+  // Tickets whose review list has at least one undecided item.
+  tickets: number;
+  hasUndecidedGaps: boolean;
 }
 
 // Counts unticked boxes, so an item /judge-findings or a hand tick decided no longer counts.
 export function undecidedCountOf(bodies: string[]): UndecidedCount {
+  const gapCheckMark = reviewListMarkOf(gapCheckSubject);
   return bodies
-    .filter((body) => body.includes("<!-- review-list ticket="))
-    .reduce(
+    .filter((body) => body.includes(listMarkPrefix))
+    .reduce<UndecidedCount>(
       (count, body) => {
         const items = body.match(undecidedBox)?.length ?? 0;
         count.items += items;
-        if (items > 0) count.lists += 1;
+        if (items === 0) return count;
+        if (body.includes(gapCheckMark)) count.hasUndecidedGaps = true;
+        else count.tickets += 1;
         return count;
       },
-      { items: 0, lists: 0 },
+      { items: 0, tickets: 0, hasUndecidedGaps: false },
     );
 }
 
-export function undecidedLineOf({ items, lists }: UndecidedCount): string {
-  return `review list: ${items} undecided across ${lists} ${lists === 1 ? "ticket" : "tickets"}`;
+// The gap check is named on its own, since it is no ticket.
+export function undecidedLineOf({
+  items,
+  tickets,
+  hasUndecidedGaps,
+}: UndecidedCount): string {
+  const across = [
+    ...(tickets > 0
+      ? [`${tickets} ${tickets === 1 ? "ticket" : "tickets"}`]
+      : []),
+    ...(hasUndecidedGaps ? ["the gap check"] : []),
+  ];
+  return `review list: ${items} undecided across ${across.join(" and ")}`;
 }
 
 export function ticketPushOf(
   subject: ReviewListSubject,
   items: number,
 ): string {
-  const label =
-    subject === gapCheckKey ? "the gap check" : issueLabelOf(subject);
-  return `review list: ${items} undecided on ${label}`;
+  return `review list: ${items} undecided on ${namesOf(subject).label}`;
 }

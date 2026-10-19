@@ -61,7 +61,7 @@ describe("coveredLaterNotesOf", () => {
 });
 
 describe("undecidedCountOf", () => {
-  it("counts unticked items on review lists only, and the lists holding any", () => {
+  it("counts unticked items on review lists only, naming the gap check apart from the tickets", () => {
     const count = undecidedCountOf([
       "<!-- review-list ticket=#1 -->\n- [ ] **R1.1** · a\n- [x] **R1.2** · b",
       "<!-- review-list ticket=#2 -->\n- [x] **R2.1** · a",
@@ -69,9 +69,9 @@ describe("undecidedCountOf", () => {
       "A Halt.\n- [ ] **R9.1** · not a review list",
     ]);
 
-    expect(count).toEqual({ items: 3, lists: 2 });
+    expect(count).toEqual({ items: 3, tickets: 1, hasUndecidedGaps: true });
     expect(undecidedLineOf(count)).toBe(
-      "review list: 3 undecided across 2 tickets",
+      "review list: 3 undecided across 1 ticket and the gap check",
     );
   });
 });

@@ -7,9 +7,7 @@
 // The run holds the lease on the workspace of the ticket it's working; a ticket another holder has leased waits.
 // GitHub and git hold what's durable; a per-spec state file holds the step each ticket reached, so a rerun resumes there.
 // Steps launch through AgentStep.ts; prompts are implementStep.ts, reviewStep.ts, findingTriage.ts and fixStep.ts;
-// landing is WrapUp.ts; knobs are runKnobs.ts.
-// A landed ticket's Defers and Dismisses are posted as its review-list comment; once every ticket is closed, the gap
-// check posts the last one (reviewList.ts, gapCheck.ts).
+// landing is WrapUp.ts; knobs are runKnobs.ts; the review list and gap check are reviewList.ts and gapCheck.ts.
 
 import { execFile } from "node:child_process";
 import {
@@ -1560,11 +1558,9 @@ export class SpecRun {
   private async _gapCheck(run: Run): Promise<void> {
     if (await this._hasReviewList(run, gapCheckSubject)) return;
     const { knobs } = this.config;
-    const tickets: GapCheckTicket[] = [];
-    for (const ticket of run.tickets) {
-      const { issue, title } = await this.config.github.issueOf(ticket);
-      tickets.push({ issue, title });
-    }
+    const tickets: GapCheckTicket[] = await Promise.all(
+      run.tickets.map((ticket) => this.config.github.issueOf(ticket)),
+    );
     await this._waitForLaunch(run);
     const logPath = join(this._stepsFolderOf(run), "gap-check.jsonl");
     this._log(run, `Gap check step, raw stream in ${logPath}.`);
