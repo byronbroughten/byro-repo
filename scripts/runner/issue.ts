@@ -58,7 +58,12 @@ async function start(args: string[]): Promise<void> {
   console.log(path);
   if (!holder) {
     console.log("No claude process ran this, so no lease was taken.");
+    return;
   }
+  // The session that ran this stays at its own root, so the workspace's .claude/ hooks and settings never load.
+  console.log(
+    `To load the workspace's hooks and settings, exit this session and run: npm run issue:start -- ${args.join(" ")} --claude`,
+  );
 }
 
 // Runs in the foreground so the session takes over the terminal, and passes its exit status on.
