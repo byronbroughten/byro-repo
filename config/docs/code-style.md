@@ -87,7 +87,8 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 - **A reason that's no longer true makes the smell a fresh finding.**
 - **Every new keep needs the developer's yes.**
 - **A smell whose fix would reverse a decision the spec made goes to the developer**, not one that only changes how a decision is met.
-- **Approved exceptions**, recurring reasons the developer has said yes to, suppress the smell everywhere: none yet.
+- **Approved exceptions**, recurring reasons the developer has said yes to, suppress the smell everywhere:
+  - **A public member with no callers is kept, not flagged as Speculative Generality,** unless another member does the same job with the same or fewer parameters.
 
 ## Tests
 
