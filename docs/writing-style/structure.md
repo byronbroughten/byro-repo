@@ -84,6 +84,22 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Structure and re
 - From Strunk and White II.17, "Omit needless words": every word should "tell".
 - The HELOC gate before Build is explained in full in Approach (Table 2 and the paragraph after it), again in each of the two Dependencies, and again in Roles. The developer: "I definitely don't like that the HELOC gate is retold." — Assessment 1 Next Draft (writing#4), session 2ebcdf61, 2026-10-18
 - Agent: "Saint Paul's rent stabilization ordinance, described under Dependencies, caps rent increases at 3% in a 12-month period" — Assessment 1 Next Draft (writing#4), Regulatory section, which the developer had not edited. The pointer back is right; restating the cap after it is not.
+- Agent: "Build and Test assume that Jesus Fernandez of Fernandez Remodeling carries out the repairs, as the second assumption above sets out." Developer: struck the pointer — Assessment 1 Next Draft (writing#4), Drive edit after session 66510c6, by 2026-10-18
+- Agent: "go to a second contractor only after a written quote, which fixes the price that the second assumption leaves unknown before any work starts" Developer: "go to a second contractor." — same
+- Agent: "and no step in the project can make a seller agree" Developer: struck; Constraints already says it — same
+- Agent: "two of the five months between the January 1, 2027, budget date and the May 31, 2027, finish" Developer: "two of the project's five scheduled months" — same
+- Agent: "The down payment and closing costs alone come to $45,000, more than the $20,000 backup line can cover, so the purchase cannot go ahead without the new HELOC." Developer: struck — same
+
+## No preview list
+
+- Agent: "Based on an initial assessment, the dependencies are as follows: a new HELOC that funds the budget, and the rent-tracking and revenue tooling that supports the cash flow behind it. Both are efforts outside this project, and both are in progress." Developer: struck — Assessment 1 Next Draft (writing#4), Drive edit after session 66510c6, by 2026-10-18
+- No count was recorded; from a session.
+
+## A table only when asked
+
+- Agent: "Table 3 brings the five risks together in a register." followed by a five-row register restating each risk's likelihood, impact and mitigation. Developer: struck the table and its lead-in — Assessment 1 Next Draft (writing#4), Drive edit after session 66510c6, by 2026-10-18
+- The developer: "no tables unless specifically requested by me or the ruberic" — session 7bb81d3, 2026-10-18
+- No count was recorded; from a session.
 
 ## A shared assumption, once
 
