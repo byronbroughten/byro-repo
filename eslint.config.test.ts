@@ -1,7 +1,12 @@
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { ESLint } from "eslint";
 import { describe, expect, it } from "vitest";
+
+import { workspaceNames } from "./eslint.config.mjs";
 
 const repoRoot = fileURLToPath(new URL(".", import.meta.url));
 
@@ -25,14 +30,23 @@ describe("the runner's import boundary", () => {
   });
 
   it("rejects another workspace package by name", async () => {
-    const framework =
-      'import { x } from "@byronbroughten/sheets-framework";\nexport { x };\n';
-    const config =
+    const code =
       'export { eslintPreset } from "@byronbroughten/config/eslint";\n';
-    expect(await boundaryErrors(framework, "runner/src/step.ts")).toHaveLength(
-      1,
+    expect(await boundaryErrors(code, "runner/src/step.ts")).toHaveLength(1);
+  });
+
+  it("finds workspace names under packages/*", () => {
+    const root = mkdtempSync(join(tmpdir(), "workspace-names-"));
+    writeFileSync(
+      join(root, "package.json"),
+      JSON.stringify({ workspaces: ["packages/*"] }),
     );
-    expect(await boundaryErrors(config, "runner/src/step.ts")).toHaveLength(1);
+    mkdirSync(join(root, "packages", "fake"), { recursive: true });
+    writeFileSync(
+      join(root, "packages", "fake", "package.json"),
+      JSON.stringify({ name: "@example/fake" }),
+    );
+    expect(workspaceNames(root)).toEqual(["@example/fake"]);
   });
 
   it("rejects a dynamic import out of the runner", async () => {

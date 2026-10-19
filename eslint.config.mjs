@@ -57,7 +57,7 @@ export default defineConfig(
 );
 
 function runnerImportBoundary() {
-  const otherWorkspaces = workspaceNames().filter(
+  const otherWorkspaces = workspaceNames(repoRoot).filter(
     (name) => name !== "@byronbroughten/spec-runner",
   );
   return {
@@ -92,14 +92,15 @@ function runnerImportBoundary() {
   };
 }
 
-function workspaceNames() {
+// With no packages checked out (as on CI) it finds none, which is harmless: tsc fails any import of a missing package.
+export function workspaceNames(root) {
   const { workspaces } = JSON.parse(
-    readFileSync(join(repoRoot, "package.json"), "utf8"),
+    readFileSync(join(root, "package.json"), "utf8"),
   );
   return globSync(
     workspaces.map((pattern) => `${pattern}/package.json`),
-    { cwd: repoRoot },
-  ).map((path) => JSON.parse(readFileSync(join(repoRoot, path), "utf8")).name);
+    { cwd: root },
+  ).map((path) => JSON.parse(readFileSync(join(root, path), "utf8")).name);
 }
 
 function isOutsideRunner(specifier, filename, otherWorkspaces) {
