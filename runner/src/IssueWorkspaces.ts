@@ -17,13 +17,14 @@ import {
   symlinkSync,
   writeFileSync,
 } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { basename, join } from "node:path";
 import { promisify } from "node:util";
 
 import {
   currentBranchOf,
   dirtyReposOf,
   git,
+  gitDirOf,
   lines,
   type RepoWorktree,
   worktreeStateOf,
@@ -737,11 +738,9 @@ async function isOrphanedHead(worktree: string): Promise<boolean> {
   return containing === "";
 }
 
-// A worktree's .git file names its git folder, so the lease is found without a git process.
+// The lease is found without a git process.
 function leasePathOf(workspacePath: string): string {
-  const dotGit = readFileSync(join(workspacePath, ".git"), "utf8");
-  const gitDir = dotGit.trim().replace(/^gitdir: /, "");
-  return join(resolve(workspacePath, gitDir), leaseFileName);
+  return join(gitDirOf(workspacePath), leaseFileName);
 }
 
 // An unreadable lease file counts as no lease, so a torn write never locks a workspace for good.

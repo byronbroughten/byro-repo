@@ -1,6 +1,9 @@
 // The git helpers IssueWorkspaces.ts, WrapUp.ts and SpecRun.ts share.
 
 import { execFile } from "node:child_process";
+import { readFileSync, statSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -63,8 +66,20 @@ export function dirtyReposOf(worktrees: RepoWorktree[]): string[] {
   return worktrees.filter(({ state }) => state.isDirty).map(({ repo }) => repo);
 }
 
-export async function currentBranchOf(worktree: string): Promise<string> {
-  return git(worktree, "branch", "--show-current");
+// HEAD names the branch as `ref: refs/heads/<name>`, so no git process starts; a commit id there is a detached HEAD.
+export async function currentBranchOf(checkout: string): Promise<string> {
+  const head = await readFile(join(gitDirOf(checkout), "HEAD"), "utf8");
+  return /^ref: refs\/heads\/(.+)$/.exec(head.trim())?.[1] ?? "";
+}
+
+// A primary checkout's .git is its git folder; a worktree's .git file names one, maybe relative to the checkout.
+export function gitDirOf(checkout: string): string {
+  const dotGit = join(checkout, ".git");
+  if (statSync(dotGit).isDirectory()) return dotGit;
+  const gitDir = readFileSync(dotGit, "utf8")
+    .trim()
+    .replace(/^gitdir: /, "");
+  return resolve(checkout, gitDir);
 }
 
 export async function hasRef(clone: string, ref: string): Promise<boolean> {
