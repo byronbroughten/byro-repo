@@ -58,7 +58,7 @@ describe("run's finding triage", () => {
     if (verdict === "dismiss") {
       return { ...base, verdict, reason: "false-positive" };
     }
-    if (verdict === "defer") {
+    if (verdict === "propose") {
       return { ...base, verdict, reason: "decision", recommendation: "Pick." };
     }
     return { ...base, verdict, recommendation: "Answer it." };
@@ -122,7 +122,11 @@ describe("run's finding triage", () => {
     return state.tickets["byro-repo #1"] ?? { step: "none" };
   }
 
-  function factsOf(): { reviewFixes?: string; defers?: number; halt?: string } {
+  function factsOf(): {
+    reviewFixes?: string;
+    proposals?: number;
+    halt?: string;
+  } {
     const path = join(stateFolder(), "byro-repo-1.facts.json");
     return JSON.parse(readFileSync(path, "utf8")) as ReturnType<typeof factsOf>;
   }
@@ -138,12 +142,12 @@ describe("run's finding triage", () => {
     expect(factsOf().reviewFixes).toBe("none");
   });
 
-  it("keeps a Dismiss, a Defer and a Halt in run state and halts with no fix step, the triage step on its own pair with no targets", async () => {
+  it("keeps a Dismiss, a Propose and a Halt in run state and halts with no fix step, the triage step on its own pair with no targets", async () => {
     addSpec([1]);
     github.edit(1, { body: bodyWithTargets("app spreadsheet") });
     const records = [
       triageRecordOf(1, "dismiss"),
-      triageRecordOf(2, "defer"),
+      triageRecordOf(2, "propose"),
       triageRecordOf(3, "halt", "spec"),
     ];
     const agentStep = FakeAgentStep.init(
@@ -273,7 +277,7 @@ describe("run's finding triage", () => {
     );
   });
 
-  it("turns a spec-axis give-up into a Halt on the downstream tickets and a standards-axis one into a Defer `decision`", async () => {
+  it("turns a spec-axis give-up into a Halt on the downstream tickets and a standards-axis one into a Propose `decision`", async () => {
     addSpec([1, 2, 3]);
     github.blockers.set(2, [1]);
     github.blockers.set(3, [2]);
@@ -309,7 +313,7 @@ describe("run's finding triage", () => {
         reason: "judgement-call",
         haltScope: ["byro-repo#2", "byro-repo#3"],
       },
-      { finding: 2, verdict: "defer", reason: "decision" },
+      { finding: 2, verdict: "propose", reason: "decision" },
     ]);
     expect(agentStep.requests).toHaveLength(4);
     expect(result.message).toContain("byro-repo #2 waits on Halt H1");

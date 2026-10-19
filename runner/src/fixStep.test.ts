@@ -197,7 +197,7 @@ describe("giveUpRecordOf", () => {
     ).toMatchObject({ verdict: "halt", haltScope: "spec" });
   });
 
-  it("turns a standards-axis give-up into a Defer `decision`", () => {
+  it("turns a standards-axis give-up into a Propose `decision`", () => {
     expect(
       giveUpRecordOf({
         record: fixOf(2, "standards"),
@@ -205,7 +205,7 @@ describe("giveUpRecordOf", () => {
         downstream: ["byro-repo#7"],
       }),
     ).toMatchObject({
-      verdict: "defer",
+      verdict: "propose",
       reason: "decision",
       recommendation:
         "The fixer gave up (judgement-call): Either name reads fine; the developer should pick.",

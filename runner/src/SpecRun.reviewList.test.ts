@@ -45,9 +45,9 @@ describe("run's review list", () => {
     };
   }
 
-  const defer: TriageRecord = {
+  const propose: TriageRecord = {
     ...base(1),
-    verdict: "defer",
+    verdict: "propose",
     reason: "decision",
     recommendation: "Pick the first.",
   };
@@ -91,26 +91,26 @@ describe("run's review list", () => {
     writeFileSync(path, JSON.stringify(state));
   }
 
-  function landsOneWithDefer(): FakeAgentStep {
+  function landsOneWithPropose(): FakeAgentStep {
     return FakeAgentStep.init(
       implemented("one.ts"),
       reviewed(findings),
-      triaged(defer, kept, coveredLater),
+      triaged(propose, kept, coveredLater),
       implemented("two.ts"),
       reviewed(),
     );
   }
 
-  it("posts a landed ticket's Defers as R items with a collapsed Dismiss audit, the kept quote included", async () => {
+  it("posts a landed ticket's Proposals as R items with a collapsed Dismiss audit, the kept quote included", async () => {
     addSpec([1, 2]);
 
-    await specRun(landsOneWithDefer()).run(spec);
+    await specRun(landsOneWithPropose()).run(spec);
 
     const [list, gapCheck] = reviewListsOn(213);
     expect(reviewListsOn(213)).toHaveLength(2);
     expect(list).toContain("<!-- review-list ticket=#1 -->");
     expect(list).toContain(
-      "- [ ] **R1.1** · Defer `decision` · Finding 1: Line 1 is wrong. (one.ts:1)\n  Evidence: Checked it.\n  Recommendation: Pick the first.",
+      "- [ ] **R1.1** · Propose `decision` · Finding 1: Line 1 is wrong. (one.ts:1)\n  Evidence: Checked it.\n  Recommendation: Pick the first.",
     );
     expect(list).toContain("<details>\n<summary>Dismissed: 2</summary>");
     expect(list).toContain("Kept for: one.ts:2 `// Kept for the old reader.`");
@@ -119,7 +119,7 @@ describe("run's review list", () => {
     expect(gapCheck).toContain("<!-- review-list ticket=gap-check -->");
   });
 
-  it("posts no review list for a ticket with no Defers", async () => {
+  it("posts no review list for a ticket with no Proposals", async () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(
       implemented("one.ts"),
@@ -137,7 +137,7 @@ describe("run's review list", () => {
   it("leaves a covered-later Dismiss's note with its file:line on the named ticket", async () => {
     addSpec([1, 2]);
 
-    await specRun(landsOneWithDefer()).run(spec);
+    await specRun(landsOneWithPropose()).run(spec);
 
     expect(reviewListsOn(2)).toEqual([
       expect.stringContaining(
@@ -148,7 +148,7 @@ describe("run's review list", () => {
 
   it("finds its markers on a rerun and posts nothing twice", async () => {
     addSpec([1, 2]);
-    await specRun(landsOneWithDefer()).run(spec);
+    await specRun(landsOneWithPropose()).run(spec);
     clearPostedFlags();
     const agentStep = FakeAgentStep.init();
 
@@ -159,13 +159,13 @@ describe("run's review list", () => {
     expect(reviewListsOn(2)).toHaveLength(1);
   });
 
-  it("posts a Halted then passed ticket's list once it lands, covering the Defers from before the Halt", async () => {
+  it("posts a Halted then passed ticket's list once it lands, covering the Proposals from before the Halt", async () => {
     addSpec([1]);
     await specRun(
       FakeAgentStep.init(
         implemented("one.ts"),
         reviewed(findings.slice(0, 2)),
-        triaged(defer, halt),
+        triaged(propose, halt),
       ),
     ).run(spec);
     expect(reviewListsOn(213)).toEqual([]);
@@ -174,8 +174,30 @@ describe("run's review list", () => {
     await specRun(FakeAgentStep.init(implemented("fix.ts"))).run(spec);
 
     const [list] = reviewListsOn(213);
-    expect(list).toContain("**R1.1** · Defer `decision` · Finding 1");
+    expect(list).toContain("**R1.1** · Propose `decision` · Finding 1");
     expect(list).not.toContain("R1.2");
+  });
+
+  it("resumes a run state saved with Defer, Propose's old name, and posts it as a Propose", async () => {
+    addSpec([1]);
+    await specRun(
+      FakeAgentStep.init(
+        implemented("one.ts"),
+        reviewed(findings.slice(0, 2)),
+        triaged(propose, halt),
+      ),
+    ).run(spec);
+    const path = join(stateFolder(), "byro-repo-213.run.json");
+    writeFileSync(
+      path,
+      readFileSync(path, "utf8").replaceAll('"propose"', '"defer"'),
+    );
+    github.reply(213, "H1: read it the first way.");
+
+    await specRun(FakeAgentStep.init(implemented("fix.ts"))).run(spec);
+
+    const [list] = reviewListsOn(213);
+    expect(list).toContain("**R1.1** · Propose `decision` · Finding 1");
   });
 
   it("runs the gap check with no targets on its pair once every ticket closes, posting its gaps as the last review list", async () => {
@@ -230,7 +252,7 @@ describe("run's review list", () => {
     const agentStep = FakeAgentStep.init(
       implemented("one.ts"),
       reviewed(findings.slice(0, 2)),
-      triaged(defer, { ...halt, haltScope: ["byro-repo#2"] }),
+      triaged(propose, { ...halt, haltScope: ["byro-repo#2"] }),
     );
 
     await specRun(agentStep, { agentStep }).run(spec);
@@ -242,7 +264,7 @@ describe("run's review list", () => {
   it("ends a finished run with one push counting the undecided items across tickets", async () => {
     addSpec([1, 2]);
 
-    await specRun(landsOneWithDefer()).run(spec);
+    await specRun(landsOneWithPropose()).run(spec);
 
     expect(notices.sent.at(-1)?.summary).toBe(
       "Run ended: landed byro-repo #1, byro-repo #2. Every ticket is closed. review list: 1 undecided across 1 ticket.",
@@ -258,7 +280,7 @@ describe("run's review list", () => {
       reviewListCadence: "per-ticket",
     });
 
-    await specRun(landsOneWithDefer(), { knobs }).run(spec);
+    await specRun(landsOneWithPropose(), { knobs }).run(spec);
 
     const summaries = notices.sent.map(({ summary }) => summary);
     expect(summaries).toContain("review list: 1 undecided on byro-repo #1");

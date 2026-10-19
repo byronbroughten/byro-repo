@@ -24,6 +24,8 @@ import { promisify } from "node:util";
 import type { AgentStep, Pair, StepRequest, StepResult } from "./AgentStep.ts";
 import { commandLabelOf, messageOf, outputTailOf } from "./failureText.ts";
 import {
+  type SavedTriageRecord,
+  savedTriageRecordOf,
   triageOutputSchema,
   triagePrompt,
   type TriageRecord,
@@ -247,7 +249,7 @@ interface TicketState {
   // The implementer's latest session, a fix step it ran included.
   implementerSession?: string;
   findings?: string[];
-  // A fixer's give-ups are rewritten in place as Halts or Defers.
+  // A fixer's give-ups are rewritten in place as Halts or Proposals.
   triage?: TriageRecord[];
   // Set once a fixer fixed a finding.
   fixer?: Fixer;
@@ -265,6 +267,23 @@ interface RunState {
   tickets: Record<string, TicketState>;
   // Every ticket's, answered ones included, in the order raised; absent from a state file written before Halts.
   halts?: Halt[];
+}
+
+interface SavedRunState extends Omit<RunState, "tickets"> {
+  tickets: Record<
+    string,
+    Omit<TicketState, "triage"> & { triage?: SavedTriageRecord[] }
+  >;
+}
+
+function runStateOf(saved: SavedRunState): RunState {
+  const tickets = Object.fromEntries(
+    Object.entries(saved.tickets).map(([key, { triage, ...ticket }]) => [
+      key,
+      { ...ticket, triage: triage?.map(savedTriageRecordOf) },
+    ]),
+  );
+  return { ...saved, tickets };
 }
 
 interface Run {
@@ -462,7 +481,7 @@ export class SpecRun {
   private _readState(spec: IssueRef): RunState {
     const path = this._statePathOf(spec);
     if (!existsSync(path)) return { tickets: {} };
-    return JSON.parse(readFileSync(path, "utf8")) as RunState;
+    return runStateOf(JSON.parse(readFileSync(path, "utf8")) as SavedRunState);
   }
 
   private _statePathOf(spec: IssueRef): string {
@@ -1426,8 +1445,9 @@ export class SpecRun {
       closingComment: record.closingComment,
       boxesUndone: record.boxesUndone,
       reviewFixes: state.fixer ?? "none",
-      defers: (state.triage ?? []).filter(({ verdict }) => verdict === "defer")
-        .length,
+      proposals: (state.triage ?? []).filter(
+        ({ verdict }) => verdict === "propose",
+      ).length,
       reviewRounds: 1,
       retries: 0,
       pair: pairLabelOf(pair),

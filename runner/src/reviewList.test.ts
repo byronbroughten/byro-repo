@@ -11,12 +11,12 @@ import {
 
 const ticket = { repo: "byro-repo", number: 7 };
 
-const ticketDefer: TriageRecord = {
+const ticketPropose: TriageRecord = {
   finding: 1,
   axis: "spec",
   where: "one.ts:1",
   claim: "Story 3 is unmet.",
-  verdict: "defer",
+  verdict: "propose",
   reason: "ticket",
   evidence: "Checked it.",
   recommendation: "File it.",
@@ -24,15 +24,15 @@ const ticketDefer: TriageRecord = {
 };
 
 describe("ticketReviewListOf", () => {
-  it("numbers each Defer R<ticket>.<k> and carries a Defer `ticket`'s drafted title", () => {
+  it("numbers each Propose R<ticket>.<k> and carries a Propose `ticket`'s drafted title", () => {
     const body = ticketReviewListOf({
       ticket,
       title: "Ticket 7",
-      records: [ticketDefer, { ...ticketDefer, finding: 2 }],
+      records: [ticketPropose, { ...ticketPropose, finding: 2 }],
     });
 
     expect(body).toContain('**Review list** · byro-repo #7, "Ticket 7"');
-    expect(body).toContain("**R7.1** · Defer `ticket`");
+    expect(body).toContain("**R7.1** · Propose `ticket`");
     expect(body).toContain('  Drafted issue: "Meet story 3"');
     expect(body).toContain("**R7.2**");
     expect(body).not.toContain("<details>");
@@ -50,7 +50,7 @@ describe("gapCheckListOf", () => {
 describe("coveredLaterNotesOf", () => {
   it("skips a covered-later Dismiss whose ticket isn't `<repo>#<n>`", () => {
     const dismiss: TriageRecord = {
-      ...ticketDefer,
+      ...ticketPropose,
       verdict: "dismiss",
       reason: "covered-later",
       coveredBy: "the next one",

@@ -56,11 +56,23 @@ describe("run", () => {
         "",
         "Spec: [byro-repo#213](https://github.com/byronbroughten/byro-repo/issues/213)",
         "",
-        "| Issue | Pair | Account | Files changed | Peak context | Result | Defers | Review rounds | Retries | Duration | Cost (API-equivalent) | Triage cost | Limit used | What review caught | Session ids |",
+        "| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Triage cost | Limit used | What review caught | Session ids |",
         "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
         "| #218 | Opus medium | unrecorded | 1 | 150K → 90K | Triage fix | 0 | 1 | 0 | unrecorded | unrecorded | unrecorded | unrecorded | A stale doc link | unrecorded |",
         "",
       ].join("\n"),
+    );
+  });
+
+  it("counts a facts file's Defers, Proposals' old name, as Proposals", async () => {
+    const workspace = await workspaceWith();
+    commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
+    writeFacts({ reviewFixes: "none", ...{ defers: 2 } });
+
+    await wrapUp().run(ticket);
+
+    expect(readFileSync(join(primaryRoot, outcomePath), "utf8")).toContain(
+      "| #218 | Opus medium | unrecorded | 1 | 150K → 90K | Pass | 2 |",
     );
   });
 
