@@ -50,37 +50,37 @@ describe("worktreeStateOf", () => {
 });
 
 describe("currentBranchOf", () => {
-  it("reads a primary checkout's branch", async () => {
+  it("reads a primary checkout's branch", () => {
     git(repo, "switch", "-c", "feature");
 
-    expect(await currentBranchOf(repo)).toBe("feature");
+    expect(currentBranchOf(repo)).toBe("feature");
   });
 
-  it("reads a detached HEAD as no branch", async () => {
+  it("reads a detached HEAD as no branch", () => {
     git(repo, "switch", "--detach", "master");
 
-    expect(await currentBranchOf(repo)).toBe("");
+    expect(currentBranchOf(repo)).toBe("");
   });
 
-  it("reads a branch with no commits yet", async () => {
+  it("reads a branch with no commits yet", () => {
     git(repo, "switch", "--orphan", "fresh");
 
-    expect(await currentBranchOf(repo)).toBe("fresh");
+    expect(currentBranchOf(repo)).toBe("fresh");
   });
 
-  it("reads a workspace's checkout apart from its primary checkout", async () => {
+  it("reads a workspace's checkout apart from its primary checkout", () => {
     const workspace = `${repo}-workspace`;
     git(repo, "worktree", "add", "-b", "issue-1", workspace);
 
     try {
-      expect(await currentBranchOf(workspace)).toBe("issue-1");
-      expect(await currentBranchOf(repo)).toBe("master");
+      expect(currentBranchOf(workspace)).toBe("issue-1");
+      expect(currentBranchOf(repo)).toBe("master");
     } finally {
       rmSync(workspace, { recursive: true, force: true });
     }
   });
 
-  it("follows a .git file whose git folder is relative to the checkout", async () => {
+  it("follows a .git file whose git folder is relative to the checkout", () => {
     const workspace = `${repo}-workspace`;
     git(repo, "worktree", "add", "-b", "issue-1", workspace);
     const gitDir = git(workspace, "rev-parse", "--git-dir");
@@ -90,7 +90,7 @@ describe("currentBranchOf", () => {
     );
 
     try {
-      expect(await currentBranchOf(workspace)).toBe("issue-1");
+      expect(currentBranchOf(workspace)).toBe("issue-1");
     } finally {
       rmSync(workspace, { recursive: true, force: true });
     }

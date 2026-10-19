@@ -440,7 +440,7 @@ export class SpecRun {
       if (!existsSync(join(clone, ".git"))) {
         return `${repo}'s primary clone is missing at ${clone}`;
       }
-      const branch = await currentBranchOf(clone);
+      const branch = currentBranchOf(clone);
       if (branch !== "master") {
         return `${repo}'s primary checkout is on ${branch || "a detached HEAD"}, not master`;
       }
