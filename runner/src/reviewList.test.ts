@@ -37,6 +37,27 @@ describe("ticketReviewListOf", () => {
     expect(body).toContain("**R7.2**");
     expect(body).not.toContain("<details>");
   });
+
+  it("writes a keep's drafted reason under its item", () => {
+    const { draftIssueTitle: _title, ...decision } = ticketPropose;
+    const body = ticketReviewListOf({
+      ticket,
+      title: "Ticket 7",
+      records: [
+        {
+          ...decision,
+          reason: "decision",
+          recommendation: "Approve the keep.",
+          draftKeepReason: "A seam for the fake stream in tests.",
+        },
+      ],
+    });
+
+    expect(body).toContain(
+      '  Recommendation: Approve the keep.\n  Drafted keep: "A seam for the fake stream in tests."',
+    );
+    expect(body).not.toContain("Drafted issue:");
+  });
 });
 
 describe("gapCheckListOf", () => {

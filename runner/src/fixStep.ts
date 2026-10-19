@@ -153,6 +153,14 @@ function commitProblems(
   return [];
 }
 
+// What the developer can say yes to, by why the fixer gave up.
+const giveUpProposals: Record<GiveUpReason, string> = {
+  "judgement-call":
+    "The fix would reverse a spec decision, so it was reverted. Keep the decision and dismiss the finding, or revise the decision and file the fix.",
+  "checks-red":
+    "The fix kept the checks red, so it was reverted. File it as a fix ticket that names the failing check, or dismiss the finding.",
+};
+
 export interface GiveUp {
   record: TriageRecord;
   gaveUp: GaveUpOutcome;
@@ -166,7 +174,7 @@ export function giveUpRecordOf({
   gaveUp: { reason, note },
   downstream,
 }: GiveUp): TriageRecord {
-  const recommendation = `The fixer gave up (${reason}): ${note}`;
+  const recommendation = `${giveUpProposals[reason]} The fixer's note: ${note}`;
   if (record.axis === "spec") {
     // An empty scope would block nothing; with no downstream ticket the Halt holds the spec.
     const haltScope = downstream.length > 0 ? downstream : "spec";

@@ -45,7 +45,7 @@ The verdict that the finding gets fixed now, in a separate fix commit. It needs 
 _Avoid_: accept, apply
 
 **Propose**:
-The verdict that leaves the finding for the developer on the review list: `decision` for a judgement only they can make, or `ticket` for a pre-existing problem, with a drafted issue title.
+The verdict that leaves the finding for the developer on the review list: `decision` for a judgement only they can make, or `ticket` for a pre-existing problem, with a drafted issue title. A `decision` asking to keep a wanted smell carries the drafted keep reason.
 _Avoid_: Defer, postpone, backlog
 
 **Halt**:

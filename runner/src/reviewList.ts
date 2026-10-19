@@ -62,6 +62,7 @@ interface ReviewItem {
   evidence: string;
   recommendation: string;
   draftIssueTitle?: string;
+  draftKeepReason?: string;
 }
 
 function itemOf(id: string, item: ReviewItem): string {
@@ -72,6 +73,9 @@ function itemOf(id: string, item: ReviewItem): string {
   ];
   if (item.draftIssueTitle !== undefined) {
     lines.push(`  Drafted issue: "${item.draftIssueTitle}"`);
+  }
+  if (item.draftKeepReason !== undefined) {
+    lines.push(`  Drafted keep: "${item.draftKeepReason}"`);
   }
   return lines.join("\n");
 }
@@ -104,7 +108,7 @@ export function ticketReviewListOf({
 }
 
 function proposeItemOf(record: TriageRecord): ReviewItem {
-  const { finding, claim, where, evidence } = record;
+  const { finding, claim, where, evidence, draftKeepReason } = record;
   const reason = requiredOf(record, "reason");
   return {
     heading: `Propose \`${reason}\` · Finding ${finding}: ${claim} (${where})`,
@@ -112,6 +116,7 @@ function proposeItemOf(record: TriageRecord): ReviewItem {
     recommendation: requiredOf(record, "recommendation"),
     draftIssueTitle:
       reason === "ticket" ? requiredOf(record, "draftIssueTitle") : undefined,
+    draftKeepReason,
   };
 }
 
