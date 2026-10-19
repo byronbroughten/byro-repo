@@ -4,7 +4,7 @@ Some skills in `.claude/skills/` are copies of another repo's skills, vendored s
 
 ## Layout
 
-Every skill sits flat at `.claude/skills/<name>/`, vendored or this repo's own, since nested folders load lazily. A vendored skill keeps its upstream supporting files and `agents/openai.yaml` as upstream has them.
+Every skill sits flat at `.claude/skills/<name>/`, vendored or this repo's own, since nested folders load lazily; the runner's skills sit there as symlinks ([`runner/README.md`](../../runner/README.md#skills)). A vendored skill keeps its upstream supporting files and `agents/openai.yaml` as upstream has them.
 
 ## The manifest
 

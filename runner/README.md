@@ -31,6 +31,10 @@ Runs a spec's tickets through implement, review, finding triage, fix, checks and
 | `@byronbroughten/spec-runner/outcomeLog` | The outcome log's file layout: a ticket's path under its spec's folder, its one-row table with `unrecorded` for facts nobody computed, and the commit message. |
 | `@byronbroughten/spec-runner/transcriptFacts` | `transcriptFactsOf()`: the outcome facts computed from transcripts, found by the session ids and account config folder the runner records plus the handoff comments' `session: <id>` lines: pair, each implementer session's peak context, duration, API-equivalent cost (implementer, its subagents and any fixer) and triage cost, from the per-model price table `modelPrices`. `limitUsedOf()` writes Limit used from before and after readings. A fact with a missing transcript or reading stays `unrecorded`. |
 
+## Skills
+
+The runner's interactive skills live in `skills/<name>/`: `/judge-findings <repo> #<spec>` clears a spec's review list. byro-repo loads each one through a symlink, `.claude/skills/<name>` → `../../runner/skills/<name>`, so it is invocable as `/<name>` in a session at the root or in a workspace, and its relative links resolve from here. A plugin was the other option, but its skills are namespaced as `/<plugin>:<name>` and need a marketplace install. The skills name byro-repo's docs, so splitting the runner out means rewriting those links.
+
 ## Tests
 
 Vitest, in the root's `tooling` project: `npm test` from the repo root, or `npx vitest run runner` for just these. `npm run tsc` and `npm run lint` from the root reach it too.
