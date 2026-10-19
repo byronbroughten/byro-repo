@@ -203,8 +203,8 @@ const verdictRules: Record<Verdict, (record: TriageRecord) => string[]> = {
         reasonRule("Dismiss", dismissReasons, reason),
       ],
       [
-        reason === "covered-later" && isBlank(coveredBy),
-        "a `covered-later` Dismiss needs `coveredBy`, the later ticket",
+        reason === "covered-later" && issueRefOf(coveredBy) === undefined,
+        "a `covered-later` Dismiss needs `coveredBy`, the later ticket as `<repo>#<n>`",
       ],
       [
         reason === "kept" && !hasFileLine(quote),
@@ -258,6 +258,14 @@ function recommendationRule(verdict: "Defer" | "Halt"): string {
 // A Halt with no scope blocks the whole spec: the safe default when the triage agent is unsure.
 export function haltScopeOf(record: TriageRecord): HaltScope {
   return record.haltScope ?? "spec";
+}
+
+// A `<repo>#<n>` reference, as `coveredBy` names its ticket.
+export function issueRefOf(text: string | undefined): IssueRef | undefined {
+  const match = /^([\w.-]+)#(\d+)$/.exec(text?.trim() ?? "");
+  if (match === null) return undefined;
+  const [, repo = "", number = ""] = match;
+  return { repo, number: Number(number) };
 }
 
 // A path with an extension, then a line: `runner/src/SpecRun.ts:88`.

@@ -12,10 +12,14 @@ export interface StepKnobs<VL extends number | string[]> {
   review: VL;
   triage: VL;
   fix: VL;
+  gapCheck: VL;
 }
 
 // The steps a run launches, each with its own knobs.
 export type KnobbedStep = keyof StepKnobs<number>;
+
+// When the developer is pushed about the review list: once as the run ends, or as each ticket's comment is posted.
+export type ReviewListCadence = "end-of-run" | "per-ticket";
 
 export interface RunKnobs {
   // Repo name to its clone's path relative to the primary root; the root repo's is ".".
@@ -37,6 +41,8 @@ export interface RunKnobs {
   liveCeiling: number;
   // Finding triage's pair; the triage agent fixes on the stronger of it and the ticket's.
   triagePair: Pair;
+  gapCheckPair: Pair;
+  reviewListCadence: ReviewListCadence;
   // Named in the context nudge's message; unset, the message says to write a handoff with no link.
   handoffDocPath?: string;
 }
@@ -60,16 +66,24 @@ export const defaultRunKnobs: RunKnobs = {
     ["npm", "run", "lint"],
   ],
   authChecks: authChecksOf(defaultAccount),
-  allowedTools: { implement: [], review: [], triage: [], fix: [] },
+  allowedTools: {
+    implement: [],
+    review: [],
+    triage: [],
+    fix: [],
+    gapCheck: [],
+  },
   allowedWriteGlobs: [
     ".claude/skills/**",
     ".claude/agents/**",
     ".claude/hooks/**",
   ],
-  maxTurns: { implement: 200, review: 80, triage: 80, fix: 120 },
+  maxTurns: { implement: 200, review: 80, triage: 80, fix: 120, gapCheck: 80 },
   ticketBudget: 150_000,
   liveCeiling: 180_000,
   triagePair: { model: "opus", effort: "medium" },
+  gapCheckPair: { model: "opus", effort: "medium" },
+  reviewListCadence: "end-of-run",
 };
 
 export function loadRunKnobs(overridePath: string): RunKnobs {

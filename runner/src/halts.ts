@@ -169,7 +169,7 @@ export function repliesTo({
     );
 }
 
-function isRunnersComment({ body }: IssueComment): boolean {
+export function isRunnersComment({ body }: IssueComment): boolean {
   return body.includes(runnerMark);
 }
 

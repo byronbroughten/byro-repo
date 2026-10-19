@@ -47,6 +47,9 @@ describe("loadRunKnobs", () => {
     expect(knobs.ticketBudget).toBe(150_000);
     expect(knobs.liveCeiling).toBe(180_000);
     expect(knobs.triagePair).toEqual({ model: "opus", effort: "medium" });
+    expect(knobs.gapCheckPair).toEqual({ model: "opus", effort: "medium" });
+    expect(knobs.reviewListCadence).toBe("end-of-run");
+    expect(knobs.maxTurns.gapCheck).toBe(80);
     expect(knobs.skillNames.review).toBe("code-review");
   });
 

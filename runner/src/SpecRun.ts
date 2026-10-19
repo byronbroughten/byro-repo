@@ -7,7 +7,7 @@
 // The run holds the lease on the workspace of the ticket it's working; a ticket another holder has leased waits.
 // GitHub and git hold what's durable; a per-spec state file holds the step each ticket reached, so a rerun resumes there.
 // Steps launch through AgentStep.ts; prompts are implementStep.ts, reviewStep.ts, findingTriage.ts and fixStep.ts;
-// landing is WrapUp.ts; knobs are runKnobs.ts.
+// landing is WrapUp.ts; knobs are runKnobs.ts; the review list and gap check are reviewList.ts and gapCheck.ts.
 
 import { execFile } from "node:child_process";
 import {
@@ -21,13 +21,7 @@ import {
 import { join } from "node:path";
 import { promisify } from "node:util";
 
-import type {
-  AgentStep,
-  LimitHit,
-  Pair,
-  StepRequest,
-  StepResult,
-} from "./AgentStep.ts";
+import type { AgentStep, Pair, StepRequest, StepResult } from "./AgentStep.ts";
 import { commandLabelOf, messageOf, outputTailOf } from "./failureText.ts";
 import {
   triageOutputSchema,
@@ -47,6 +41,12 @@ import {
   giveUpRecordOf,
 } from "./fixStep.ts";
 import {
+  gapCheckOutputSchema,
+  gapCheckPrompt,
+  gapCheckRecordOf,
+  type GapCheckTicket,
+} from "./gapCheck.ts";
+import {
   currentBranchOf,
   dirtyReposOf,
   git,
@@ -65,6 +65,7 @@ import {
   haltNoticeOf,
   type HaltPost,
   ignoredNoteOf,
+  isRunnersComment,
   isStopSpecAnswer,
   repliesTo,
   resumePrompt,
@@ -105,11 +106,22 @@ import {
 import { pairLabelOf, pairOf, strongerPairOf } from "./modelFit.ts";
 import type { Notices } from "./Notices.ts";
 import {
+  coveredLaterNotesOf,
+  gapCheckListOf,
+  gapCheckSubject,
+  reviewListMarkOf,
+  type ReviewListSubject,
+  ticketPushOf,
+  ticketReviewListOf,
+  undecidedCountOf,
+  undecidedLineOf,
+} from "./reviewList.ts";
+import {
   reviewPrompt,
   type ReviewRecord,
   reviewRecordSchema,
 } from "./reviewStep.ts";
-import type { Command, KnobbedStep, RunKnobs } from "./runKnobs.ts";
+import type { Command, RunKnobs } from "./runKnobs.ts";
 import { RunStop } from "./RunStop.ts";
 import { sleep } from "./sleep.ts";
 import { TicketHalted } from "./TicketHalted.ts";
@@ -245,6 +257,8 @@ interface TicketState {
   configFolder?: string;
   limitReadings?: LimitReadings;
   stop?: string;
+  // Set once a landed ticket's review list and covered-later notes are posted, or found to need none.
+  isReviewListPosted?: boolean;
 }
 
 interface RunState {
@@ -383,11 +397,7 @@ export class SpecRun {
     for (;;) {
       const selection = await this._select(run);
       if (selection.kind === "none") {
-        return this._end(
-          run,
-          "finished",
-          endMessageOf(run.landed, selection.waiting),
-        );
+        return this._finish(run, selection.waiting);
       }
       if (selection.kind === "stopped-again") {
         const label = issueLabelOf(selection.ticket.issue);
@@ -1106,7 +1116,7 @@ export class SpecRun {
 
   private async _launch(
     ticketRun: TicketRun,
-    agent: KnobbedStep,
+    agent: StepAgent,
     launch: StepLaunch,
   ): Promise<LaunchedStep> {
     const { result, logPath } = await this._runStep(ticketRun, agent, launch);
@@ -1117,58 +1127,64 @@ export class SpecRun {
   // Leaves the result unread, so a fixer can check for a live-ceiling kill before recordOf().
   private async _runStep(
     ticketRun: TicketRun,
-    agent: KnobbedStep,
+    agent: StepAgent,
     { prompt, jsonSchema, ...overrides }: StepLaunch,
   ): Promise<RanStep> {
     const { run, ticket, pair, workspace, state, targets } = ticketRun;
     const { knobs } = this.config;
-    await this._waitForLaunch(ticketRun);
+    const usage = await this._waitForLaunch(run);
+    if (usage !== undefined) {
+      state.limitReadings ??= {};
+      state.limitReadings.before ??= limitReadingOf(usage);
+    }
     const logPath = this._stepLogPathOf(ticketRun, agent);
     this._log(
       run,
       `${issueLabelOf(ticket.issue)}: ${agent} step, raw stream in ${logPath}.`,
     );
-    let result: StepResult;
-    try {
-      result = await this.config.agentStep.run({
-        prompt,
-        pair,
-        account: knobs.account,
-        cwd: workspace.path,
-        maxTurns: knobs.maxTurns[agent],
-        allowedTools: knobs.allowedTools[agent],
-        allowedWriteGlobs: knobs.allowedWriteGlobs,
-        targets,
-        jsonSchema,
-        logPath,
-        ...overrides,
-      });
-    } catch (error) {
-      throw new UnhandledStop(
-        "step-error",
-        `The ${agent} step failed to run: ${messageOf(error)}`,
-        logPath,
-      );
-    }
+    const result = await this._agentResultOf(agent, {
+      prompt,
+      pair,
+      account: knobs.account,
+      cwd: workspace.path,
+      maxTurns: knobs.maxTurns[agent],
+      allowedTools: knobs.allowedTools[agent],
+      allowedWriteGlobs: knobs.allowedWriteGlobs,
+      targets,
+      jsonSchema,
+      logPath,
+      ...overrides,
+    });
     if (result.sessionId !== undefined) {
       state.sessions.push({ agent, sessionId: result.sessionId });
     }
     state.configFolder = result.configFolder ?? state.configFolder;
     this._saveState(run);
-    const hasSucceeded =
-      result.exitSubtype === "success" && result.output.status === "valid";
-    // A step that met a limit and still succeeded, as after a retry, isn't stopped.
-    if (result.limitHit !== undefined && !hasSucceeded) {
-      await this._stopOnLimitHit(run, result.limitHit, logPath);
-    }
+    await this._stopOnLimitHit(run, result, logPath);
     return { result, logPath };
   }
 
-  // Asks the limit guard about the configured account until it says launch; the first reading is the ticket's Limit used before.
-  private async _waitForLaunch({ run, state }: TicketRun): Promise<void> {
+  private async _agentResultOf(
+    step: string,
+    request: StepRequest & { logPath: string },
+  ): Promise<StepResult> {
+    try {
+      return await this.config.agentStep.run(request);
+    } catch (error) {
+      throw new UnhandledStop(
+        "step-error",
+        `The ${step} step failed to run: ${messageOf(error)}`,
+        request.logPath,
+      );
+    }
+  }
+
+  // Asks the limit guard about the configured account until it says launch, returning the first reading: a ticket's Limit used before.
+  private async _waitForLaunch(run: Run): Promise<AccountUsage | undefined> {
     const { account } = this.config.knobs;
     const knobs = { ...defaultLimitGuardKnobs, ...this.config.limitGuardKnobs };
     let hasAnnouncedWait = false;
+    let first: AccountUsage | undefined;
     for (;;) {
       const reading = await this._readingOf(run);
       const { usage } = reading;
@@ -1178,10 +1194,9 @@ export class SpecRun {
           "missing-reading",
           `No usage reading for account ${account}; steps launch unguarded.`,
         );
-        return;
+        return first;
       }
-      state.limitReadings ??= {};
-      state.limitReadings.before ??= limitReadingOf(usage);
+      first ??= usage;
       const decision = decideStep(
         [reading],
         {
@@ -1191,7 +1206,7 @@ export class SpecRun {
         },
         knobs,
       );
-      if (decision.kind === "launch") return;
+      if (decision.kind === "launch") return first;
       if (decision.kind === "stop") {
         throw new RunStop(
           `Account ${account} is at ${percentOf(usage.sevenDay.utilization)} of its weekly limit, past the reserve; rerun after it resets at ${usage.sevenDay.resetsAt.toISOString()}.`,
@@ -1230,9 +1245,13 @@ export class SpecRun {
   // The tree stays as is in the workspace; the first stream ever seen is kept for tightening limit detection.
   private async _stopOnLimitHit(
     run: Run,
-    { window, resetsAt }: LimitHit,
+    { limitHit, exitSubtype, output }: StepResult,
     logPath: string,
-  ): Promise<never> {
+  ): Promise<void> {
+    const hasSucceeded = exitSubtype === "success" && output.status === "valid";
+    // A step that met a limit and still succeeded, as after a retry, isn't stopped.
+    if (limitHit === undefined || hasSucceeded) return;
+    const { window, resetsAt } = limitHit;
     const savedPath = join(this.config.stateFolder, "first-limit-hit.jsonl");
     if (!existsSync(savedPath) && existsSync(logPath)) {
       copyFileSync(logPath, savedPath);
@@ -1257,16 +1276,20 @@ export class SpecRun {
   }
 
   private _stepLogPathOf(ticketRun: TicketRun, agent: StepAgent): string {
-    const folder = join(
-      this.config.stateFolder,
-      `${fileStemOf(ticketRun.run.spec.issue)}-steps`,
-    );
-    mkdirSync(folder, { recursive: true });
     const index = ticketRun.state.sessions.length + 1;
     return join(
-      folder,
+      this._stepsFolderOf(ticketRun.run),
       `${fileStemOf(ticketRun.ticket.issue)}-${index}-${agent}.jsonl`,
     );
+  }
+
+  private _stepsFolderOf(run: Run): string {
+    const folder = join(
+      this.config.stateFolder,
+      `${fileStemOf(run.spec.issue)}-steps`,
+    );
+    mkdirSync(folder, { recursive: true });
+    return folder;
   }
 
   private async _check(ticketRun: TicketRun): Promise<void> {
@@ -1328,6 +1351,67 @@ export class SpecRun {
     }
     this._advance(landingTicket, "landed");
     this._log(run, `${issueLabelOf(ticket.issue)}: landed.`);
+    await this._postReviewList(run, ticket);
+  }
+
+  // Posts the notes before the comment, so a ticket marked posted has posted both.
+  private async _postReviewList(run: Run, ticket: TrackedIssue): Promise<void> {
+    const state = ticketStateOf(run, ticket.issue);
+    if (state.isReviewListPosted) return;
+    const records = state.triage ?? [];
+    await this._postCoveredLaterNotes(ticket.issue, records);
+    const body = ticketReviewListOf({
+      ticket: ticket.issue,
+      title: ticket.title,
+      records,
+    });
+    if (body !== undefined && !(await this._hasReviewList(run, ticket.issue))) {
+      await this._postReviewListComment(run, ticket.issue, body);
+    }
+    state.isReviewListPosted = true;
+    this._saveState(run);
+  }
+
+  // Each checks the later ticket for its mark first, so a rerun never posts it twice.
+  private async _postCoveredLaterNotes(
+    ticket: IssueRef,
+    records: TriageRecord[],
+  ): Promise<void> {
+    const { github } = this.config;
+    for (const note of coveredLaterNotesOf(ticket, records)) {
+      const bodies = await github.commentsOf(note.issue);
+      if (bodies.some((body) => body.includes(note.mark))) continue;
+      await github.comment(note.issue, `${runnerMark}\n${note.body}`);
+    }
+  }
+
+  // The marker, not run state, is the record: a run killed after posting but before saving finds it.
+  private async _hasReviewList(
+    run: Run,
+    subject: ReviewListSubject,
+  ): Promise<boolean> {
+    const mark = reviewListMarkOf(subject);
+    const comments = await this._runnersSpecCommentsOf(run);
+    return comments.some((body) => body.includes(mark));
+  }
+
+  private async _runnersSpecCommentsOf(run: Run): Promise<string[]> {
+    const comments = await this.config.github.authoredCommentsOf(
+      run.spec.issue,
+    );
+    return comments.filter(isRunnersComment).map(({ body }) => body);
+  }
+
+  private async _postReviewListComment(
+    run: Run,
+    subject: ReviewListSubject,
+    body: string,
+  ): Promise<void> {
+    await this._comment(run, body);
+    const { items } = undecidedCountOf([body]);
+    if (this.config.knobs.reviewListCadence === "per-ticket" && items > 0) {
+      await this._announce(run, ticketPushOf(subject, items));
+    }
   }
 
   private _writeFacts({ run, ticket, pair, state }: LandingTicket): void {
@@ -1433,6 +1517,84 @@ export class SpecRun {
   // Marked, since the runner posts as the developer's login and must never read its own comment as an answer.
   private async _comment(run: Run, body: string): Promise<void> {
     await this.config.github.comment(run.spec.issue, `${runnerMark}\n${body}`);
+  }
+
+  // The gap check waits for every ticket to close, since an open one may still land what it would report.
+  private async _finish(run: Run, waiting: string[]): Promise<RunResult> {
+    await this._postLandedReviewLists(run);
+    if (waiting.length === 0) {
+      try {
+        await this._gapCheck(run);
+      } catch (error) {
+        if (error instanceof RunStop) {
+          return this._end(run, "stopped", error.message);
+        }
+        if (!(error instanceof UnhandledStop)) throw error;
+        return this._end(
+          run,
+          "stopped",
+          `The gap check stopped on ${stopOutcomes[error.outcome]}: ${error.message} Log: \`${error.logPath}\`. Rerun to retry it.`,
+        );
+      }
+    }
+    const message = endMessageOf(run.landed, waiting);
+    return this._end(
+      run,
+      "finished",
+      await this._withUndecidedLine(run, message),
+    );
+  }
+
+  // Catches a ticket that landed in a run killed before its review list was posted.
+  private async _postLandedReviewLists(run: Run): Promise<void> {
+    for (const ticket of run.tickets) {
+      const state = run.state.tickets[issueLabelOf(ticket)];
+      if (state?.step !== "landed" || state.isReviewListPosted) continue;
+      await this._postReviewList(run, await this.config.github.issueOf(ticket));
+    }
+  }
+
+  // Runs in the primary root on master, where every landed ticket's work is; it reads and writes nothing else.
+  private async _gapCheck(run: Run): Promise<void> {
+    if (await this._hasReviewList(run, gapCheckSubject)) return;
+    const { knobs } = this.config;
+    const tickets: GapCheckTicket[] = await Promise.all(
+      run.tickets.map((ticket) => this.config.github.issueOf(ticket)),
+    );
+    await this._waitForLaunch(run);
+    const logPath = join(this._stepsFolderOf(run), "gap-check.jsonl");
+    this._log(run, `Gap check step, raw stream in ${logPath}.`);
+    const result = await this._agentResultOf("gap check", {
+      prompt: gapCheckPrompt({
+        spec: run.spec.issue,
+        title: run.spec.title,
+        tickets,
+      }),
+      pair: knobs.gapCheckPair,
+      account: knobs.account,
+      cwd: this.config.primaryRoot,
+      maxTurns: knobs.maxTurns.gapCheck,
+      allowedTools: knobs.allowedTools.gapCheck,
+      allowedWriteGlobs: [],
+      targets: [],
+      jsonSchema: gapCheckOutputSchema,
+      logPath,
+    });
+    await this._stopOnLimitHit(run, result, logPath);
+    const record = gapCheckRecordOf(recordOf("gap check", result, logPath));
+    await this._postReviewListComment(
+      run,
+      gapCheckSubject,
+      gapCheckListOf(run.spec.title, record),
+    );
+  }
+
+  // Counts every review-list comment on the spec, earlier runs' included, since the developer decides them in one place.
+  private async _withUndecidedLine(run: Run, message: string): Promise<string> {
+    if (this.config.knobs.reviewListCadence !== "end-of-run") return message;
+    const count = undecidedCountOf(await this._runnersSpecCommentsOf(run));
+    if (count.items === 0) return message;
+    return `${message} ${undecidedLineOf(count)}.`;
   }
 
   private async _end(
@@ -1591,11 +1753,7 @@ function isGaveUp(outcome: FixOutcome): outcome is GaveUpOutcome {
   return outcome.status === "gave-up";
 }
 
-function recordOf(
-  agent: KnobbedStep,
-  result: StepResult,
-  logPath: string,
-): unknown {
+function recordOf(step: string, result: StepResult, logPath: string): unknown {
   const { output } = result;
   if (output.status === "schemaFailure") {
     throw new UnhandledStop(
@@ -1607,14 +1765,14 @@ function recordOf(
   if (result.errorText !== undefined) {
     throw new UnhandledStop(
       "step-error",
-      `The ${agent} step ended on an error: ${result.errorText}`,
+      `The ${step} step ended on an error: ${result.errorText}`,
       logPath,
     );
   }
   if (result.exitSubtype !== "success" || output.status !== "valid") {
     throw new UnhandledStop(
       "step-error",
-      `The ${agent} step ended ${result.exitSubtype ?? "without a result"}.`,
+      `The ${step} step ended ${result.exitSubtype ?? "without a result"}.`,
       logPath,
     );
   }

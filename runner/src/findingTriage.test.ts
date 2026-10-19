@@ -143,7 +143,15 @@ describe("triageRecordProblems", () => {
   it("refuses a covered-later Dismiss that names no later ticket", () => {
     const { coveredBy: _ticket, ...uncovered } = dismiss;
     expect(triageRecordProblems(1, [uncovered])).toEqual([
-      "finding 1: a `covered-later` Dismiss needs `coveredBy`, the later ticket",
+      "finding 1: a `covered-later` Dismiss needs `coveredBy`, the later ticket as `<repo>#<n>`",
+    ]);
+  });
+
+  it("refuses a covered-later Dismiss whose ticket has no repo", () => {
+    expect(
+      triageRecordProblems(1, [{ ...dismiss, coveredBy: "#230" }]),
+    ).toEqual([
+      "finding 1: a `covered-later` Dismiss needs `coveredBy`, the later ticket as `<repo>#<n>`",
     ]);
   });
 
