@@ -1,6 +1,8 @@
 // The git helpers IssueWorkspaces.ts, WrapUp.ts and SpecRun.ts share.
 
 import { execFile } from "node:child_process";
+import { readFileSync, statSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -63,8 +65,20 @@ export function dirtyReposOf(worktrees: RepoWorktree[]): string[] {
   return worktrees.filter(({ state }) => state.isDirty).map(({ repo }) => repo);
 }
 
-export async function currentBranchOf(worktree: string): Promise<string> {
-  return git(worktree, "branch", "--show-current");
+// Read from HEAD itself, so no git process starts.
+export function currentBranchOf(worktree: string): string {
+  const head = readFileSync(join(gitDirOf(worktree), "HEAD"), "utf8");
+  return /^ref: refs\/heads\/(.+)$/.exec(head.trim())?.[1] ?? "";
+}
+
+// A linked worktree's .git file names its git folder, maybe relative to the worktree.
+export function gitDirOf(worktree: string): string {
+  const dotGit = join(worktree, ".git");
+  if (statSync(dotGit).isDirectory()) return dotGit;
+  const gitDir = readFileSync(dotGit, "utf8")
+    .trim()
+    .replace(/^gitdir: /, "");
+  return resolve(worktree, gitDir);
 }
 
 export async function hasRef(clone: string, ref: string): Promise<boolean> {

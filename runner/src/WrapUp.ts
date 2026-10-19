@@ -542,7 +542,7 @@ export class WrapUp {
   }
 
   private async _assertOnMaster(repo: string): Promise<void> {
-    const checkedOut = await currentBranchOf(this._primaryOf(repo));
+    const checkedOut = currentBranchOf(this._primaryOf(repo));
     if (checkedOut === "master") return;
     throw new WrapUpFailure(
       "foreign-branch",
@@ -1088,7 +1088,7 @@ function definedFactsOf(facts: OutcomeFacts): OutcomeFacts {
 }
 
 async function levelRepo(worktree: string, branch: string): Promise<void> {
-  if ((await currentBranchOf(worktree)) !== branch) {
+  if (currentBranchOf(worktree) !== branch) {
     if (await isAncestor(worktree, branch, "HEAD")) {
       await git(worktree, "switch", "-C", branch);
     } else {

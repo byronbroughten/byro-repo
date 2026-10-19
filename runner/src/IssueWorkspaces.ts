@@ -17,13 +17,14 @@ import {
   symlinkSync,
   writeFileSync,
 } from "node:fs";
-import { basename, join, resolve } from "node:path";
+import { basename, join } from "node:path";
 import { promisify } from "node:util";
 
 import {
   currentBranchOf,
   dirtyReposOf,
   git,
+  gitDirOf,
   lines,
   type RepoWorktree,
   worktreeStateOf,
@@ -258,7 +259,7 @@ export class IssueWorkspaces {
 
   async promote(workspace: Workspace, repo: string): Promise<Workspace> {
     const worktree = this._worktreeOf(workspace, repo);
-    const checkedOut = await currentBranchOf(worktree);
+    const checkedOut = currentBranchOf(worktree);
     if (checkedOut !== "" && checkedOut !== workspace.branch) {
       throw new Error(
         `${repo} in ${workspace.path} is on ${checkedOut}; only a detached repo can be promoted onto ${workspace.branch}`,
@@ -739,9 +740,7 @@ async function isOrphanedHead(worktree: string): Promise<boolean> {
 
 // A worktree's .git file names its git folder, so the lease is found without a git process.
 function leasePathOf(workspacePath: string): string {
-  const dotGit = readFileSync(join(workspacePath, ".git"), "utf8");
-  const gitDir = dotGit.trim().replace(/^gitdir: /, "");
-  return join(resolve(workspacePath, gitDir), leaseFileName);
+  return join(gitDirOf(workspacePath), leaseFileName);
 }
 
 // An unreadable lease file counts as no lease, so a torn write never locks a workspace for good.

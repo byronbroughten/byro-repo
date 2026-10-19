@@ -1,10 +1,10 @@
 import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { worktreeStateOf } from "./git.ts";
+import { currentBranchOf, worktreeStateOf } from "./git.ts";
 import { git } from "./GitFixture.ts";
 
 let repo: string;
@@ -46,5 +46,53 @@ describe("worktreeStateOf", () => {
       head: git(repo, "rev-parse", "HEAD"),
       isDirty: false,
     });
+  });
+});
+
+describe("currentBranchOf", () => {
+  it("reads a primary checkout's branch", () => {
+    git(repo, "switch", "-c", "feature");
+
+    expect(currentBranchOf(repo)).toBe("feature");
+  });
+
+  it("reads a detached HEAD as no branch", () => {
+    git(repo, "switch", "--detach", "master");
+
+    expect(currentBranchOf(repo)).toBe("");
+  });
+
+  it("reads a branch with no commits yet", () => {
+    git(repo, "switch", "--orphan", "fresh");
+
+    expect(currentBranchOf(repo)).toBe("fresh");
+  });
+
+  it("reads a workspace's checkout apart from its primary checkout", () => {
+    const workspace = `${repo}-workspace`;
+    git(repo, "worktree", "add", "-b", "issue-1", workspace);
+
+    try {
+      expect(currentBranchOf(workspace)).toBe("issue-1");
+      expect(currentBranchOf(repo)).toBe("master");
+    } finally {
+      rmSync(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it("follows a .git file whose git folder is relative to the checkout", () => {
+    const workspace = `${repo}-workspace`;
+    git(repo, "worktree", "add", "-b", "issue-1", workspace);
+    const gitDir = git(workspace, "rev-parse", "--git-dir");
+    writeFileSync(
+      join(workspace, ".git"),
+      `gitdir: ${relative(workspace, gitDir)}\n`,
+    );
+
+    try {
+      expect(currentBranchOf(workspace)).toBe("issue-1");
+    } finally {
+      rmSync(workspace, { recursive: true, force: true });
+    }
   });
 });
