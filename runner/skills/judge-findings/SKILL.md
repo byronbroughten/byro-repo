@@ -75,5 +75,6 @@ When every review-list item on the spec is decided (no unticked box, no hand-tic
 
 1. Close the spec: `gh issue close -R <owner>/<repo> <spec> --comment "Every review-list item is decided and every sub-issue is closed."`
 2. Remind the developer to run `/to-code-style`. Name each keep reason approved more than once (the `Drafted keep:` line of each item decided `keep approved`, or for a list posted before #298 its `keep approved:` reason, across the spec's review lists, same reason in different words included) as a candidate approved exception for `config/docs/code-style.md#smells`.
+3. Prompt the developer to run `/mine-outcomes <repo> #<spec>` on the spec's outcome rows.
 
 Otherwise, end by saying what is left: undecided items, and open sub-issues by number.

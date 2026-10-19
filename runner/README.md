@@ -37,7 +37,7 @@ Runs a spec's tickets through implement, review, finding triage, fix, checks and
 
 ## Skills
 
-The runner's interactive skills live in `skills/<name>/`: `/judge-findings <repo> #<spec>` walks a spec's undecided review-list items and closes the spec when none is left. byro-repo loads each one through a symlink in `.claude/skills/`, not a plugin ([layout](../docs/agents/upstream-skills.md#layout)). The skills link byro-repo's docs.
+The runner's interactive skills live in `skills/<name>/`: `/judge-findings <repo> #<spec>` walks a spec's undecided review-list items and closes the spec when none is left; `/mine-outcomes <repo> #<spec>` turns a landed spec's outcome rows into model-fit and process proposals, offers `/retro` on its outlier tickets and then clears the rows. Whichever closes a spec, `/judge-findings` or the parent close-out prompt, prompts `/mine-outcomes` once. byro-repo loads each one through a symlink in `.claude/skills/`, not a plugin ([layout](../docs/agents/upstream-skills.md#layout)). The skills link byro-repo's docs.
 
 ## Tests
 
