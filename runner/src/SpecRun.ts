@@ -74,8 +74,6 @@ import {
   type LimitGuardKnobs,
   type UsageReader,
 } from "./limitGuard.ts";
-import { LimitStop } from "./LimitStop.ts";
-import { MasterStop } from "./MasterStop.ts";
 import { pairLabelOf, pairOf, strongerPairOf } from "./modelFit.ts";
 import type { Notices } from "./Notices.ts";
 import {
@@ -84,6 +82,7 @@ import {
   reviewRecordSchema,
 } from "./reviewStep.ts";
 import type { Command, KnobbedStep, RunKnobs } from "./runKnobs.ts";
+import { RunStop } from "./RunStop.ts";
 import { sleep } from "./sleep.ts";
 import { type Target, targetLineShapes, targetsOf } from "./ticketTargets.ts";
 import {
@@ -328,14 +327,7 @@ export class SpecRun {
       try {
         outcome = await this._runTicket(run, selection.ticket);
       } catch (error) {
-        if (error instanceof MasterStop) {
-          return this._end(
-            run,
-            "stopped",
-            `Stopped the run at ${issueLabelOf(selection.ticket.issue)}'s checks: ${error.message}`,
-          );
-        }
-        if (!(error instanceof LimitStop)) throw error;
+        if (!(error instanceof RunStop)) throw error;
         return this._end(run, "stopped", error.message);
       }
       if (outcome === "leased") continue;
@@ -930,7 +922,7 @@ export class SpecRun {
       );
       if (decision.kind === "launch") return;
       if (decision.kind === "stop") {
-        throw new LimitStop(
+        throw new RunStop(
           `Account ${account} is at ${percentOf(usage.sevenDay.utilization)} of its weekly limit, past the reserve; rerun after it resets at ${usage.sevenDay.resetsAt.toISOString()}.`,
         );
       }
@@ -1014,7 +1006,7 @@ export class SpecRun {
       );
       const failure = await runCommand(command, ticketRun.workspace.path);
       if (failure !== undefined) {
-        await this._stopOnRedMaster(ticketRun.run.spec.issue);
+        await this._stopOnRedMaster(ticketRun);
         throw new UnhandledStop(
           "red-checks",
           `${commandLabelOf(command)} failed:\n${failure}`,
@@ -1025,18 +1017,19 @@ export class SpecRun {
   }
 
   // Checks run in a master set, so neither another session's uncommitted edit nor a local fix hides master's own state.
-  private async _stopOnRedMaster(spec: IssueRef): Promise<void> {
+  private async _stopOnRedMaster({ run, ticket }: TicketRun): Promise<void> {
+    const prefix = `Stopped the run at ${issueLabelOf(ticket.issue)}'s checks`;
     let masterSet: string;
     try {
-      masterSet = await this.workspaces.masterSet(spec);
+      masterSet = await this.workspaces.masterSet(run.spec.issue);
     } catch (error) {
-      throw new MasterStop(
-        `the master set failed to build: ${messageOf(error)}`,
+      throw new RunStop(
+        `${prefix}: the master set failed to build: ${messageOf(error)}`,
       );
     }
     for (const command of this.config.knobs.checks) {
       if ((await runCommand(command, masterSet)) !== undefined) {
-        throw new MasterStop(`master red: ${commandLabelOf(command)}`);
+        throw new RunStop(`${prefix}: master red: ${commandLabelOf(command)}`);
       }
     }
   }

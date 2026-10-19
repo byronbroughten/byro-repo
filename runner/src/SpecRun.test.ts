@@ -887,6 +887,8 @@ describe("run's master check", () => {
     expect(result.message).toBe(
       "Stopped the run at byro-repo #1's checks: the master set failed to build: npm install failed",
     );
+    expect(ticketState()["byro-repo #1"]?.step).toBe("checks");
+    expect(github.issues.get(1)?.isOpen).toBe(true);
   });
 
   it("Stops on a red master commit in a package clone", async () => {
