@@ -81,17 +81,20 @@ describe("run's Halts", () => {
     return JSON.parse(readFileSync(path, "utf8")) as ReturnType<typeof factsOf>;
   }
 
-  it("posts one comment and one notice per Halt and holds the whole spec when nothing is downstream", async () => {
+  it("posts one comment and one notice per Halt and, with nothing downstream, holds only the blocked ticket", async () => {
     addSpec([1, 2]);
-    const agentStep = FakeAgentStep.init(blocked([gated, ambiguous]));
+    const agentStep = FakeAgentStep.init(
+      blocked([gated, ambiguous]),
+      implemented("two.ts"),
+      reviewed(),
+    );
 
     const result = await specRun(agentStep).run(spec);
 
     expect(result.kind).toBe("finished");
     expect(result.message).toBe(
-      "Run ended: landed nothing. byro-repo #1 waits on Halt H1, H2; byro-repo #2 waits on Halt H1, H2.",
+      "Run ended: landed byro-repo #2. byro-repo #1 waits on Halt H1, H2.",
     );
-    expect(agentStep.requests).toHaveLength(1);
     expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
     const [first, second] = haltComments();
     expect(haltComments()).toHaveLength(2);
@@ -99,7 +102,7 @@ describe("run's Halts", () => {
       '**Halt H1** · Halt 1 of 2 · byro-repo #1, "Ticket 1" · gated-action blocker',
     );
     expect(first).toContain("It needs app:build.");
-    expect(first).toContain("Blocks: the whole spec.");
+    expect(first).toContain("Blocks: only this ticket.");
     expect(first).toContain("1. Run it by hand.\n2. `stop spec`");
     expect(second).toContain("**Halt H2** · Halt 2 of 2 · byro-repo #1");
     expect(notices.sent.slice(1, 3)).toEqual([
@@ -181,6 +184,18 @@ describe("run's Halts", () => {
 
     expect(agentStep.requests).toHaveLength(0);
     expect(result.message).toContain("byro-repo #1 waits on Halt H2");
+  });
+
+  it("reads no answer from a reply posted before the Halt", async () => {
+    addSpec([1]);
+    github.reply(213, "H1: an old note.");
+    await specRun(FakeAgentStep.init(blocked([gated]))).run(spec);
+    const agentStep = FakeAgentStep.init();
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests).toHaveLength(0);
+    expect(result.message).toContain("byro-repo #1 waits on Halt H1");
   });
 
   it("reads no answer from another login's reply", async () => {

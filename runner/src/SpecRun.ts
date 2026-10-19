@@ -61,6 +61,7 @@ import {
   haltCommentOf,
   type HaltDraft,
   haltKindLabelOf,
+  haltNameOf,
   haltNoticeOf,
   type HaltPost,
   ignoredNoteOf,
@@ -229,8 +230,10 @@ type TimedStep =
 interface TicketState {
   step: TicketStep;
   record?: ImplementRecord;
-  // The implement session's peak context, which picks the fixer.
+  // The implementer's peak context, which picks the fixer and whether a resume continues its session.
   implementPeak?: number;
+  // The implementer's latest session, a fix step it ran included.
+  implementerSession?: string;
   findings?: string[];
   // A fixer's give-ups are rewritten in place as Halts or Defers.
   triage?: TriageRecord[];
@@ -293,6 +296,25 @@ interface LaunchedStep {
 type FixAttempt =
   | { kind: "done"; outcomes: FixOutcome[]; logPath: string }
   | { kind: "crossed"; logPath: string };
+
+interface ImplementTake {
+  ticketRun: TicketRun;
+  launched: LaunchedStep;
+  headsBefore: Heads;
+}
+
+interface HoldCheck {
+  halt: Halt;
+  // `<repo>#<n>`.
+  ticket: string;
+  downstreamOf: Map<string, string[]>;
+}
+
+interface DownstreamSearch {
+  run: Run;
+  blockersOf: Map<string, string[]>;
+  ticket: string;
+}
 
 type TicketOutcome = "landed" | "stopped" | "leased" | "halted";
 
@@ -496,8 +518,7 @@ export class SpecRun {
     }
   }
 
-  // The label, blockers, state and answers are read afresh for every pick, so a mid-run relabel or reply takes effect.
-  // A ticket whose Halts are all answered goes first, oldest answered set first; then the frontier in sub-issue order.
+  // Read afresh each pick; a ticket with every Halt answered goes first, oldest answered set first, then the frontier.
   private async _select(run: Run): Promise<Selection> {
     await this._postUnpostedHalts(run);
     await this._readAnswers(run);
@@ -520,10 +541,10 @@ export class SpecRun {
         return { kind: "stopped-again", ticket: tracked, stop };
       }
       const holding = openHalts.filter((halt) =>
-        isHeldBy(halt, shortRefOf(ticket), downstreamOf),
+        isHeldBy({ halt, ticket: shortRefOf(ticket), downstreamOf }),
       );
       if (holding.length > 0) {
-        waiting.push(`${label} waits on Halt ${idsOf(holding)}`);
+        waiting.push(`${label} waits on Halt ${idListOf(holding)}`);
         continue;
       }
       const stopSpecs = undeliveredHaltsOf(run, ticket).filter(
@@ -531,7 +552,7 @@ export class SpecRun {
       );
       if (stopSpecs.length > 0) {
         waiting.push(
-          `${label}'s Halt ${idsOf(stopSpecs)} was answered \`stop spec\``,
+          `${label}'s Halt ${idListOf(stopSpecs)} was answered \`stop spec\``,
         );
         continue;
       }
@@ -562,9 +583,12 @@ export class SpecRun {
   private async _readAnswers(run: Run): Promise<void> {
     const posted = haltsOf(run).filter(({ isPosted }) => isPosted);
     if (posted.length === 0) return;
-    const replies = await this.config.github.authoredCommentsOf(run.spec.issue);
+    const comments = await this.config.github.authoredCommentsOf(
+      run.spec.issue,
+    );
+    const { developer } = this.config;
     for (const halt of posted) {
-      const [first, ...later] = repliesTo(halt, replies, this.config.developer);
+      const [first, ...later] = repliesTo({ halt, comments, developer });
       if (first === undefined) continue;
       if (halt.answer === undefined) {
         halt.answer = {
@@ -573,7 +597,10 @@ export class SpecRun {
           at: this.config.clock.now().toISOString(),
         };
         this._saveState(run);
-        this._log(run, `Halt ${halt.id} on ${halt.ticket} is answered.`);
+        this._log(
+          run,
+          `${haltNameOf(halt)} on ${issueLabelOf(halt.ticket)} is answered.`,
+        );
         await this._comment(run, answeredNoteOf(halt));
       }
       const ignored = [first, ...later].filter(
@@ -600,7 +627,7 @@ export class SpecRun {
     if (named.size === 0) return downstreamOf;
     const blockersOf = await this._blockersByTicketOf(run);
     named.forEach((ticket) => {
-      downstreamOf.set(ticket, downstreamIn(run, blockersOf, ticket));
+      downstreamOf.set(ticket, downstreamIn({ run, blockersOf, ticket }));
     });
     return downstreamOf;
   }
@@ -743,7 +770,7 @@ export class SpecRun {
       prompt: this._implementPromptOf(ticketRun),
       jsonSchema: implementOutputSchema,
     });
-    await this._takeImplementRecord(ticketRun, launched, headsBefore);
+    await this._takeImplementRecord({ ticketRun, launched, headsBefore });
   }
 
   private _implementPromptOf({ ticket, workspace }: TicketRun): string {
@@ -759,15 +786,16 @@ export class SpecRun {
   }
 
   // Each blocker is a Halt; a blocked record, having committed nothing to review, posts them at once.
-  private async _takeImplementRecord(
-    ticketRun: TicketRun,
-    launched: LaunchedStep,
-    headsBefore: Heads,
-  ): Promise<void> {
+  private async _takeImplementRecord({
+    ticketRun,
+    launched,
+    headsBefore,
+  }: ImplementTake): Promise<void> {
     const { workspace, state } = ticketRun;
     const record = implementRecordOf(launched.record);
     const { logPath } = launched;
     state.implementPeak = launched.peakContext;
+    state.implementerSession = lastSessionOf(state, "implement");
     const hasNewCommit = !isSameHeads(
       headsBefore,
       await this._headsOf(workspace),
@@ -810,8 +838,8 @@ export class SpecRun {
   // Posts the ticket's new Halts and halts it; with none, the ticket goes on.
   private async _haltOnUnpostedHalts(ticketRun: TicketRun): Promise<void> {
     const { run, ticket } = ticketRun;
-    const unposted = haltsOf(run).filter(
-      (halt) => isHaltOf(halt, ticket.issue) && !halt.isPosted,
+    const unposted = haltsOfTicket(run, ticket.issue).filter(
+      ({ isPosted }) => !isPosted,
     );
     if (unposted.length === 0) return;
     this._advance(ticketRun, "halted");
@@ -847,7 +875,7 @@ export class SpecRun {
     const { run, ticket, workspace, state } = ticketRun;
     const halts = undeliveredHaltsOf(run, ticket.issue);
     const headsBefore = await this._headsOf(workspace);
-    const sessionId = lastSessionOf(state, "implement");
+    const sessionId = implementerSessionOf(state);
     const peak = state.implementPeak ?? Infinity;
     const isUnderBudget = peak < this.config.knobs.ticketBudget;
     let launch: StepLaunch;
@@ -867,7 +895,7 @@ export class SpecRun {
     halts.forEach((halt) => {
       halt.isDelivered = true;
     });
-    await this._takeImplementRecord(ticketRun, launched, headsBefore);
+    await this._takeImplementRecord({ ticketRun, launched, headsBefore });
   }
 
   // Every repo's HEAD, so any commit in any repo changes it.
@@ -943,7 +971,7 @@ export class SpecRun {
     state.triage = records;
     raiseHalts(
       ticketRun,
-      records.filter(isHalt).map((record) => triageHaltOf(record)),
+      records.filter(isHalt).map((record) => triageHaltOf(record, "verdict")),
     );
   }
 
@@ -1005,7 +1033,7 @@ export class SpecRun {
     );
     raiseHalts(
       ticketRun,
-      gaveUpHalts.map((record) => triageHaltOf(record)),
+      gaveUpHalts.map((record) => triageHaltOf(record, "give-up")),
     );
     if (outcomes.some(({ status }) => status === "fixed")) state.fixer = fixer;
   }
@@ -1032,7 +1060,7 @@ export class SpecRun {
     const { knobs } = this.config;
     let resumed: Pick<StepRequest, "pair" | "resumeSessionId">;
     if (fixer === "implementer") {
-      resumed = { pair, resumeSessionId: lastSessionOf(state, "implement") };
+      resumed = { pair, resumeSessionId: implementerSessionOf(state) };
     } else {
       resumed = {
         pair: strongerPairOf(knobs.triagePair, pair),
@@ -1051,6 +1079,10 @@ export class SpecRun {
       }),
       jsonSchema: fixOutputSchema,
     });
+    if (fixer === "implementer") {
+      state.implementPeak = result.peakContext ?? state.implementPeak;
+      state.implementerSession = result.sessionId ?? state.implementerSession;
+    }
     if (result.hasCrossedCeiling) return { kind: "crossed", logPath };
     const record = recordOf("fix", result, logPath);
     return { kind: "done", outcomes: fixOutcomesOf(record), logPath };
@@ -1059,7 +1091,7 @@ export class SpecRun {
   // The run's tickets this one blocks, directly or through another, each `<repo>#<n>`.
   private async _downstreamOf(run: Run, issue: IssueRef): Promise<string[]> {
     const blockersOf = await this._blockersByTicketOf(run);
-    return downstreamIn(run, blockersOf, shortRefOf(issue));
+    return downstreamIn({ run, blockersOf, ticket: shortRefOf(issue) });
   }
 
   // Each of the run's tickets, `<repo>#<n>`, to its open blockers.
@@ -1318,9 +1350,7 @@ export class SpecRun {
       limitReadings,
     };
     const haltKinds = new Set(
-      haltsOf(run)
-        .filter((halt) => isHaltOf(halt, ticket.issue))
-        .map(({ kind }) => haltKindLabelOf(kind)),
+      haltsOfTicket(run, ticket.issue).map(({ kind }) => haltKindLabelOf(kind)),
     );
     if (haltKinds.size > 0) facts.halt = [...haltKinds].join(", ");
     if (record.status === "applied") {
@@ -1392,7 +1422,6 @@ export class SpecRun {
     await this._comment(
       run,
       [
-        runnerMark,
         `The runner stopped on ${issueLabelOf(ticket.issue)}, "${ticket.title}": ${outcome}.`,
         stop.message,
         `Log: \`${stop.logPath}\``,
@@ -1401,8 +1430,9 @@ export class SpecRun {
     );
   }
 
+  // Marked, since the runner posts as the developer's login and must never read its own comment as an answer.
   private async _comment(run: Run, body: string): Promise<void> {
-    await this.config.github.comment(run.spec.issue, body);
+    await this.config.github.comment(run.spec.issue, `${runnerMark}\n${body}`);
   }
 
   private async _end(
@@ -1473,8 +1503,8 @@ function haltsOf(run: Run): Halt[] {
   return run.state.halts ?? [];
 }
 
-function isHaltOf(halt: Halt, ticket: IssueRef): boolean {
-  return isSameIssue(halt.ticket, ticket);
+function haltsOfTicket(run: Run, ticket: IssueRef): Halt[] {
+  return haltsOf(run).filter((halt) => isSameIssue(halt.ticket, ticket));
 }
 
 function isSameIssue(first: IssueRef, second: IssueRef): boolean {
@@ -1482,17 +1512,11 @@ function isSameIssue(first: IssueRef, second: IssueRef): boolean {
 }
 
 function undeliveredHaltsOf(run: Run, ticket: IssueRef): Halt[] {
-  return haltsOf(run).filter(
-    (halt) => isHaltOf(halt, ticket) && !halt.isDelivered,
-  );
+  return haltsOfTicket(run, ticket).filter(({ isDelivered }) => !isDelivered);
 }
 
 // The halted ticket itself, every ticket for a `spec` scope, else the named tickets and their downstream.
-function isHeldBy(
-  halt: Halt,
-  ticket: string,
-  downstreamOf: Map<string, string[]>,
-): boolean {
+function isHeldBy({ halt, ticket, downstreamOf }: HoldCheck): boolean {
   const { scope } = halt;
   if (shortRefOf(halt.ticket) === ticket || scope === "spec") return true;
   return scope.some(
@@ -1501,7 +1525,7 @@ function isHeldBy(
   );
 }
 
-function idsOf(halts: Halt[]): string {
+function idListOf(halts: Halt[]): string {
   return halts.map(({ id }) => id).join(", ");
 }
 
@@ -1519,11 +1543,7 @@ function stepAfterResumeOf(state: TicketState): TicketStep {
 }
 
 // The tickets downstream of one, each `<repo>#<n>`, through the blocking graph.
-function downstreamIn(
-  run: Run,
-  blockersOf: Map<string, string[]>,
-  ticket: string,
-): string[] {
+function downstreamIn({ run, blockersOf, ticket }: DownstreamSearch): string[] {
   const downstream: string[] = [];
   let frontier = [ticket];
   while (frontier.length > 0) {
@@ -1544,6 +1564,11 @@ function isSameHeads(first: Heads, second: Heads): boolean {
 
 function branchedReposOf(state: TicketState): string[] {
   return (state.record?.branches ?? []).map(({ repo }) => repo);
+}
+
+// Absent from a state file written before Halts, where the last implement session is the implementer's.
+function implementerSessionOf(state: TicketState): string | undefined {
+  return state.implementerSession ?? lastSessionOf(state, "implement");
 }
 
 function lastSessionOf(

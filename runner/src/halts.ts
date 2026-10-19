@@ -2,10 +2,14 @@
 // reply answers one, and the prompt that hands every answer back to the ticket's resumed or fresh implementer.
 // SpecRun.ts keeps them in run state, blocks the tickets in their scope and resumes the halted ticket once all are answered.
 
-import type { HaltScope, TriageRecord } from "./findingTriage.ts";
-import { giveUpReasons } from "./fixStep.ts";
+import {
+  type HaltScope,
+  haltScopeOf,
+  type TriageRecord,
+} from "./findingTriage.ts";
 import type { Blocker } from "./implementStep.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
+import type { IssueComment } from "./SpecRun.ts";
 
 // Marks every comment the runner posts, which carries the developer's login too, so none is read as an answer.
 export const runnerMark = "<!-- spec-runner -->";
@@ -55,12 +59,6 @@ export type HaltDraft = Pick<
   "kind" | "question" | "options" | "scope" | "finding"
 >;
 
-export interface Reply {
-  id: string;
-  author: string;
-  body: string;
-}
-
 export function shortRefOf({ repo, number }: IssueRef): string {
   return `${repo}#${number}`;
 }
@@ -69,7 +67,7 @@ export function haltKindLabelOf(kind: HaltKind): string {
   return kindLabels[kind];
 }
 
-// A blocker's Halt holds the tickets downstream of its own; with none downstream it holds the spec.
+// A blocker's Halt holds its own ticket and the tickets downstream of it.
 export function blockerHaltOf(
   { kind, detail, recommendation }: Blocker,
   downstream: string[],
@@ -78,24 +76,22 @@ export function blockerHaltOf(
   if (kind === "denied-tool") {
     options.push("Add it to the ticket's `## Targets`, then resume");
   }
-  return { kind, question: detail, options, scope: scopeOf(downstream) };
+  return { kind, question: detail, options, scope: downstream };
 }
 
 // The fixer's give-ups arrive already rewritten as Halt records by giveUpRecordOf().
-export function triageHaltOf(record: TriageRecord): HaltDraft {
-  const { finding, claim, where, evidence, reason, recommendation } = record;
-  const isGiveUp = (giveUpReasons as readonly string[]).includes(reason ?? "");
+export function triageHaltOf(
+  record: TriageRecord,
+  kind: "verdict" | "give-up",
+): HaltDraft {
+  const { finding, claim, where, evidence, recommendation } = record;
   return {
-    kind: isGiveUp ? "give-up" : "verdict",
+    kind,
     question: `Finding ${finding}: ${claim} (${where}) ${evidence}`,
     options: [recommendation ?? ""],
-    scope: record.haltScope ?? "spec",
+    scope: haltScopeOf(record),
     finding,
   };
-}
-
-export function scopeOf(downstream: string[]): HaltScope {
-  return downstream.length > 0 ? downstream : "spec";
 }
 
 export interface HaltPost {
@@ -106,8 +102,16 @@ export interface HaltPost {
   ticketTitle: string;
 }
 
-export function haltLabelOf({ halt, index, count }: HaltPost): string {
+function haltLabelOf({ halt, index, count }: HaltPost): string {
   return `Halt ${index} of ${count} · ${issueLabelOf(halt.ticket)}`;
+}
+
+export function haltNameOf({ id }: Halt): string {
+  return `Halt ${id}`;
+}
+
+function haltHeadingOf(halt: Halt): string {
+  return `**${haltNameOf(halt)}**`;
 }
 
 export function haltCommentOf(post: HaltPost): string {
@@ -116,8 +120,7 @@ export function haltCommentOf(post: HaltPost): string {
     (option, index) => `${index + 1}. ${option}`,
   );
   return [
-    runnerMark,
-    `**Halt ${halt.id}** · ${haltLabelOf(post)}, "${ticketTitle}" · ${haltKindLabelOf(halt.kind)}`,
+    `${haltHeadingOf(halt)} · ${haltLabelOf(post)}, "${ticketTitle}" · ${haltKindLabelOf(halt.kind)}`,
     halt.question,
     `Blocks: ${scopeTextOf(halt.scope)}.`,
     `Options:\n${options.join("\n")}`,
@@ -133,20 +136,41 @@ export function haltNoticeOf(post: HaltPost): string {
 
 function scopeTextOf(scope: HaltScope): string {
   if (scope === "spec") return "the whole spec";
+  if (scope.length === 0) return "only this ticket";
   return `${scope.join(", ")} and their downstream`;
 }
 
-// The developer's replies naming the Halt, oldest first; the runner's own comments are never among them.
-export function repliesTo(
-  halt: Halt,
-  replies: Reply[],
-  developer: string,
-): Reply[] {
-  const naming = new RegExp(`(^|[^\\w])${halt.id}(?!\\w)`, "i");
-  return replies.filter(
-    ({ author, body }) =>
-      author === developer && !body.includes(runnerMark) && naming.test(body),
+export interface ReplySearch {
+  halt: Halt;
+  // The spec issue's comments, oldest first.
+  comments: IssueComment[];
+  developer: string;
+}
+
+// The developer's replies naming the Halt since it was last posted, oldest first; never the runner's own comments.
+export function repliesTo({
+  halt,
+  comments,
+  developer,
+}: ReplySearch): IssueComment[] {
+  const postedAt = comments.findLastIndex(
+    (comment) =>
+      isRunnersComment(comment) && comment.body.includes(haltHeadingOf(halt)),
   );
+  if (postedAt === -1) return [];
+  const naming = new RegExp(`(^|[^\\w])${halt.id}(?!\\w)`);
+  return comments
+    .slice(postedAt + 1)
+    .filter(
+      (comment) =>
+        comment.author === developer &&
+        !isRunnersComment(comment) &&
+        naming.test(comment.body),
+    );
+}
+
+function isRunnersComment({ body }: IssueComment): boolean {
+  return body.includes(runnerMark);
 }
 
 export function isStopSpecAnswer({ text }: HaltAnswer): boolean {
@@ -154,11 +178,11 @@ export function isStopSpecAnswer({ text }: HaltAnswer): boolean {
 }
 
 export function answeredNoteOf(halt: Halt): string {
-  return `${runnerMark}\nHalt ${halt.id} answered via a spec-issue reply.`;
+  return `${haltNameOf(halt)} answered via a spec-issue reply.`;
 }
 
-export function ignoredNoteOf(halt: Halt, reply: Reply): string {
-  return `${runnerMark}\nHalt ${halt.id} was already answered; the later reply \`${reply.id}\` is ignored.`;
+export function ignoredNoteOf(halt: Halt, reply: IssueComment): string {
+  return `${haltNameOf(halt)} was already answered; the later reply \`${reply.id}\` is ignored.`;
 }
 
 // Sent with --resume to the implementer whose ticket halted.

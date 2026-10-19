@@ -2,6 +2,9 @@ import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { IssueComment, RunGitHub, TrackedIssue } from "./SpecRun.ts";
 import type { ParentIssue } from "./WrapUp.ts";
 
+// The runner posts as the developer's login, as GhCli does.
+const developer = "byronbroughten";
+
 // The GitHub port run-loop and wrap-up tests script and read back; issues are keyed by number, so one fake serves one repo.
 export class FakeGitHub implements RunGitHub {
   readonly issues = new Map<number, TrackedIssue>();
@@ -9,7 +12,6 @@ export class FakeGitHub implements RunGitHub {
   readonly blockers = new Map<number, number[]>();
   // Set to override the parent the sub-issue map gives.
   readonly parents = new Map<number, ParentIssue>();
-  // The runner posts as the developer's login, as GhCli does.
   readonly comments: { issue: IssueRef; body: string; author: string }[] = [];
   readonly closed: { issue: IssueRef; comment: string }[] = [];
   // How many calls throw a network error before one succeeds.
@@ -43,11 +45,11 @@ export class FakeGitHub implements RunGitHub {
 
   async comment(issue: IssueRef, body: string): Promise<void> {
     this._failIfScripted();
-    this.comments.push({ issue, body, author: "byronbroughten" });
+    this.comments.push({ issue, body, author: developer });
   }
 
   // A comment someone other than the runner posts, such as the developer's answer to a Halt.
-  reply(number: number, body: string, author = "byronbroughten"): void {
+  reply(number: number, body: string, author = developer): void {
     this.comments.push({ issue: { repo: "byro-repo", number }, body, author });
   }
 
