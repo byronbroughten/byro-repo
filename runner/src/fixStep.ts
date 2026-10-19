@@ -8,7 +8,7 @@ import type { IssueRef } from "./IssueWorkspaces.ts";
 import { codeListOf } from "./promptText.ts";
 import { arraySchema, objectSchema, stringSchema } from "./recordSchema.ts";
 
-const giveUpReasons = ["judgement-call", "checks-red"] as const;
+export const giveUpReasons = ["judgement-call", "checks-red"] as const;
 
 export type GiveUpReason = (typeof giveUpReasons)[number];
 

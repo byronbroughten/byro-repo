@@ -1,5 +1,5 @@
 import type { IssueRef } from "./IssueWorkspaces.ts";
-import type { RunGitHub, TrackedIssue } from "./SpecRun.ts";
+import type { IssueComment, RunGitHub, TrackedIssue } from "./SpecRun.ts";
 import type { ParentIssue } from "./WrapUp.ts";
 
 // The GitHub port run-loop and wrap-up tests script and read back; issues are keyed by number, so one fake serves one repo.
@@ -9,7 +9,8 @@ export class FakeGitHub implements RunGitHub {
   readonly blockers = new Map<number, number[]>();
   // Set to override the parent the sub-issue map gives.
   readonly parents = new Map<number, ParentIssue>();
-  readonly comments: { issue: IssueRef; body: string }[] = [];
+  // The runner posts as the developer's login, as GhCli does.
+  readonly comments: { issue: IssueRef; body: string; author: string }[] = [];
   readonly closed: { issue: IssueRef; comment: string }[] = [];
   // How many calls throw a network error before one succeeds.
   failuresLeft = 0;
@@ -42,7 +43,12 @@ export class FakeGitHub implements RunGitHub {
 
   async comment(issue: IssueRef, body: string): Promise<void> {
     this._failIfScripted();
-    this.comments.push({ issue, body });
+    this.comments.push({ issue, body, author: "byronbroughten" });
+  }
+
+  // A comment someone other than the runner posts, such as the developer's answer to a Halt.
+  reply(number: number, body: string, author = "byronbroughten"): void {
+    this.comments.push({ issue: { repo: "byro-repo", number }, body, author });
   }
 
   async closeIssue(issue: IssueRef, comment: string): Promise<void> {
@@ -76,6 +82,14 @@ export class FakeGitHub implements RunGitHub {
     return this.comments
       .filter(({ issue }) => issue.number === number)
       .map(({ body }) => body);
+  }
+
+  async authoredCommentsOf({ number }: IssueRef): Promise<IssueComment[]> {
+    this._failIfScripted();
+    return this.comments.flatMap(({ issue, body, author }, index) => {
+      if (issue.number !== number) return [];
+      return [{ id: `comment-${index + 1}`, author, body }];
+    });
   }
 
   edit(number: number, change: Partial<TrackedIssue>): void {
