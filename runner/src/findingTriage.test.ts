@@ -121,6 +121,46 @@ describe("triageRecordProblems", () => {
     ).toEqual([]);
   });
 
+  it("accepts a Propose decision with a drafted keep reason", () => {
+    const { draftIssueTitle: _title, ...decision } = propose;
+    expect(
+      triageRecordProblems(1, [
+        {
+          ...decision,
+          reason: "decision",
+          draftKeepReason: "Two call sites read better than one helper.",
+        },
+      ]),
+    ).toEqual([]);
+  });
+
+  it("refuses a blank drafted keep reason", () => {
+    expect(
+      triageRecordProblems(1, [
+        { ...propose, reason: "decision", draftKeepReason: " " },
+      ]),
+    ).toEqual([
+      "finding 1: a Propose `decision`'s `draftKeepReason` can't be blank",
+    ]);
+  });
+
+  it("refuses a drafted keep reason on any verdict or reason but Propose decision", () => {
+    const draftKeepReason = "Two call sites read better than one helper.";
+    expect(
+      triageRecordProblems(4, [
+        { ...propose, draftKeepReason },
+        { ...fix, finding: 2, draftKeepReason },
+        { ...kept, finding: 3, draftKeepReason },
+        { ...halt, finding: 4, draftKeepReason },
+      ]),
+    ).toEqual([
+      "finding 1: only a Propose `decision` has `draftKeepReason`",
+      "finding 2: only a Propose `decision` has `draftKeepReason`",
+      "finding 3: only a Propose `decision` has `draftKeepReason`",
+      "finding 4: only a Propose `decision` has `draftKeepReason`",
+    ]);
+  });
+
   it("refuses a Propose whose reason is neither decision nor ticket", () => {
     expect(triageRecordProblems(1, [{ ...propose, reason: "later" }])).toEqual([
       "finding 1: a Propose needs reason `decision` or `ticket`, but has `later`",
@@ -288,7 +328,8 @@ describe("triagePrompt", () => {
       "Doc drift the diff caused is Fix",
       "unverifiable findings",
       "would reverse a User Story or an Implementation Decision",
-      "drafted one-line reason",
+      "drafted one-line reason in `draftKeepReason`",
+      "Only that wanted-smell case of Propose `decision` has `draftKeepReason`",
       "`draftIssueTitle`",
       "`haltScope`",
       "omit `haltScope` to scope it to the whole spec",

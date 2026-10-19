@@ -46,6 +46,7 @@ export interface TriageRecord {
   haltScope?: HaltScope;
   recommendation?: string;
   draftIssueTitle?: string;
+  draftKeepReason?: string;
 }
 
 export interface TriagePromptInput {
@@ -77,10 +78,11 @@ Never edit code, and change nothing else: no edits, commits, comments, issues or
 ${dismissReasonLines()}.
 - **Fix**: fixed now, in a separate commit. It needs \`quote\`, the quoted code with its file:line, and \`rule\`, the documented rule or spec line it breaks. A smell is Fix by default (\`config/docs/code-style.md#smells\`): unless it is \`kept\` or a Propose \`decision\`, \`rule\` names the smell and that section, with the smell's "→ how to fix" line from the finding. Doc drift the diff caused is Fix.
 - **Propose**: left for the developer. \`reason\` is \`decision\` for a judgement only they can make, or \`ticket\` for a problem that predates this branch, with a drafted issue title in \`draftIssueTitle\`. The runner never files them. A \`decision\` covers unverifiable findings and two smell cases:
-  - a smell you think is wanted but whose site carries no reason, with the drafted one-line reason as \`recommendation\`, since every new keep needs the developer's yes;
+  - a smell you think is wanted but whose site carries no reason, with the drafted one-line reason in \`draftKeepReason\` and \`recommendation\` asking the developer to approve it, since every new keep needs their yes;
   - a smell whose fix would reverse a User Story or an Implementation Decision. A spec protects decisions, not wording: a fix that changes how a decision is met while the decision still holds is a Fix.
 - **Halt**: blocks tickets until the developer answers. \`haltScope\` names the later tickets it blocks, each \`<repo>#<n>\`, with their downstream, or is \`spec\` for the whole spec; when unsure, omit \`haltScope\` to scope it to the whole spec.
 - Propose and Halt each need \`recommendation\`, what you recommend the developer do.
+- Only that wanted-smell case of Propose \`decision\` has \`draftKeepReason\`.
 
 ## The record
 
@@ -124,6 +126,7 @@ export const triageRecordSchema = {
     },
     recommendation: stringSchema,
     draftIssueTitle: stringSchema,
+    draftKeepReason: stringSchema,
   },
   required: ["finding", "axis", "where", "claim", "verdict", "evidence"],
   additionalProperties: false,
@@ -160,8 +163,8 @@ export function triageRecordProblems(
   return [
     ...verdictCountProblems(findingCount, records),
     ...records.flatMap((record) =>
-      verdictRules[record.verdict](record).map((rule) =>
-        findingProblem(record.finding, rule),
+      [...verdictRules[record.verdict](record), ...keepReasonRules(record)].map(
+        (rule) => findingProblem(record.finding, rule),
       ),
     ),
   ];
@@ -249,6 +252,24 @@ const verdictRules: Record<Verdict, (record: TriageRecord) => string[]> = {
   halt: ({ recommendation }) =>
     brokenRules([[isBlank(recommendation), recommendationRule("Halt")]]),
 };
+
+function keepReasonRules({
+  verdict,
+  reason,
+  draftKeepReason,
+}: TriageRecord): string[] {
+  const isDecision = verdict === "propose" && reason === "decision";
+  return brokenRules([
+    [
+      draftKeepReason !== undefined && !isDecision,
+      "only a Propose `decision` has `draftKeepReason`",
+    ],
+    [
+      isDecision && draftKeepReason !== undefined && isBlank(draftKeepReason),
+      "a Propose `decision`'s `draftKeepReason` can't be blank",
+    ],
+  ]);
+}
 
 function brokenRules(rules: [isBroken: boolean, rule: string][]): string[] {
   return rules.flatMap(([isBroken, rule]) => (isBroken ? [rule] : []));

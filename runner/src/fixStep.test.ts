@@ -186,8 +186,9 @@ describe("giveUpRecordOf", () => {
       verdict: "halt",
       reason: "judgement-call",
       haltScope: ["byro-repo#7"],
-      recommendation:
-        "The fixer gave up (judgement-call): Either name reads fine; the developer should pick.",
+      recommendation: expect.stringContaining(
+        "Keep the decision and dismiss the finding, or revise the decision and file the fix.",
+      ),
     });
   });
 
@@ -204,11 +205,32 @@ describe("giveUpRecordOf", () => {
         gaveUp,
         downstream: ["byro-repo#7"],
       }),
-    ).toMatchObject({
-      verdict: "propose",
-      reason: "decision",
-      recommendation:
-        "The fixer gave up (judgement-call): Either name reads fine; the developer should pick.",
+    ).toMatchObject({ verdict: "propose", reason: "decision" });
+  });
+
+  it("proposes the choice between the spec decision and the fix for a judgement call", () => {
+    const { recommendation } = giveUpRecordOf({
+      record: fixOf(2, "standards"),
+      gaveUp,
+      downstream: [],
     });
+    expect(recommendation).toBe(
+      "The fix would reverse a spec decision, so it was reverted. Keep the decision and dismiss the finding, or revise the decision and file the fix. The fixer's note: Either name reads fine; the developer should pick.",
+    );
+  });
+
+  it("proposes what to do with the fix that kept the checks red", () => {
+    const { recommendation } = giveUpRecordOf({
+      record: fixOf(2, "standards"),
+      gaveUp: {
+        ...gaveUp,
+        reason: "checks-red",
+        note: "The rename breaks a test fixture.",
+      },
+      downstream: [],
+    });
+    expect(recommendation).toBe(
+      "The fix kept the checks red, so it was reverted. File it as a fix ticket that names the failing check, or dismiss the finding. The fixer's note: The rename breaks a test fixture.",
+    );
   });
 });
