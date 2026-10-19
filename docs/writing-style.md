@@ -27,7 +27,7 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 
 ## Numbers and evidence
 
-- **After a figure, say in the next sentence what it means for the reader.**
+- **After a figure, say in the next sentence what it means for the reader, unless its size is already plain; never just compare it with a second figure.**
 - **Show arithmetic step by step in prose, then state the total in its own short sentence, unless the last step already reaches it; never state the same figure twice.**
 - **State the assumption behind a projection inline, and call it conservative when it is.**
 - **Give the exact figure, then a rounded, human-scale equivalent, such as the cost per month.**
@@ -84,7 +84,9 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - **Use bullets for short parallel items (costs with their figures, tips, one-sentence reasons after "Here's why:"); keep multi-sentence reasoning in prose.**
 - **Put a side point in its own "Note that…" sentence.**
 - **Make each point once, with the support it needs; cut a second calculation, a source's side conclusion or a rule's fine print that only reinforces or qualifies it.**
-- **Once a fact or mechanism is set out, refer back to it by a short name ("the Build gate", "Table 2") instead of explaining it again.**
+- **Once a fact or mechanism is set out, refer back to it by a short name ("the Build gate", "Table 2") instead of explaining it again, and only when the reader needs it to follow the point, never to show that sections agree.**
+- **Don't preview the items that the next paragraphs take up one by one.**
+- **Add a table only when the developer or the assignment asks for one, and never one that restates the prose.**
 - **State an assumption the rest of the piece shares once, where it first applies, and say there that it holds throughout.**
 - **End a section on its weightiest point; when one short sentence can tie its points together (what they share, how they trade off, how they sort, or what they add up to), close with that instead, never with one that retells the points in turn or echoes the section's opening.**
 - **Close by returning to the opening question or figure, answer it, and say what makes the answer vary for the reader.**
@@ -94,6 +96,8 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - **Let explanatory sentences run long, then land the point with a short, blunt one, at most once a paragraph and never as its opener.**
 - **Say the thing directly, cutting any wrapper phrase that carries no meaning ("the mitigation strategy for if…", "which is", "it is assumed that", "aforementioned").**
 - **Combine a run of short sentences that build one point into a single sentence; arithmetic keeps its steps.**
+- **Never put a short sentence before a calculation or example that only names what it will show ("A rate rise cuts the return."); let the sentence that shows it say so.**
+- **Write an event as a clause with its own verb ("when estimates are made"), not a packed noun phrase ("the Planning estimates"), even when the clause runs longer; split a sentence whose modifiers nest into plain joined clauses.**
 - **Use the active voice, unless the actor is unknown or beside the point.**
 - **Use the serial comma ("reliability, trustworthiness, and ingenuity").**
 - **Order a list to build, ending on its weightiest item ("in my rental units, around my tenants, and in my home").**
@@ -113,5 +117,6 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - **Prefer plain words to Latinate ones.**
 - `formal` **Keep a Latinate word that says the meaning more precisely ("corroborates").**
 - **Call the person a piece is about by name, not "he" or "him", in each paragraph's claim and key sentences**, so no reader wonders who is meant.
+- **Give a phase, stage or deadline its noun ("the Build phase", "the finish date"), not a bare shorthand ("Build", "the finish"), and never make it the actor ("what Planning can see").**
 - `general` **Prefer everyday idioms, often slightly twisted ("blow out of the pond"), to neutral business phrasing.**
 - `general` **Allow the occasional wry aside, in parentheses or between dashes.**

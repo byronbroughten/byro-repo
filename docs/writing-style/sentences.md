@@ -13,6 +13,7 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Sentences and pu
 
 - "Users input information about a potential deal—the offer price for a property, loan information, anticipated costs, etc.—and the app calculates" — Assessment 1 - Information and Marketing Strategy
 - Seen in 5 of 6.
+- Agent: "costs about a month to return to the candidate list, tour, and make a new offer" Developer: "costs about a month—touring properties, drafting an offer, the inspection contingency window, etc.—" — Assessment 1 Next Draft (writing#4), Drive edit after session 66510c6, by 2026-10-18
 
 ## A colon after a verdict
 
@@ -83,3 +84,18 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Sentences and pu
 - From Strunk and White II.14, which keeps the passive where the actor doesn't matter or the receiver must be the subject. The academic sheet's passive recommendation overrides this rule.
 - Agent: "Based on an initial assessment, it is assumed that the four conditions below will hold through May 31, 2027." — Assessment 1 Next Draft (writing#4)
 - The developer endorsed the rule — session 2ebcdf61, 2026-10-18
+
+## A signpost before the point
+
+- Agent: "The impact falls on the schedule. Assuming each failed negotiation costs about a month…" Developer: struck the first sentence — Assessment 1 Next Draft (writing#4), Drive edit after session 66510c6, by 2026-10-18
+- Agent: "A rate rise cuts the return. Assuming a 30-year mortgage of $212,500 at 7.5%…" Developer: struck the first sentence — same
+- Agent: "An appraisal shortfall cuts the equity target instead." Developer: struck — same
+- No count was recorded; from a session.
+
+## An event as a clause
+
+- Agent: "between the Planning estimates and the purchase" Developer: "between when estimates are made during the planning phase and when a property would actually be purchased" — Assessment 1 Next Draft (writing#4), Drive edit after session 66510c6, by 2026-10-18
+- Agent: "before an offer goes in" Developer: "before making an offer" — same
+- Agent: "from those units' lease rents and, for the owner's unit, the rent it is projected to earn if leased, as estimated in Planning" Developer: "and the measurement is based on lease rents and the rent that the owner's unit is projected to earn if it were leased" — same
+- This doesn't contradict "Wrapper phrases": a wrapper carries no meaning, while the clause's verb names the event the noun phrase hid. A passive clause here passes "Active voice", since the actor is beside the point.
+- No count was recorded; from a session.
