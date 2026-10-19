@@ -50,9 +50,9 @@ export function useSpecRunHarness(): void {
   let fixture: GitFixture;
 
   beforeAll(() => {
-    fixture = GitFixture.init(clonePaths, (repo) =>
-      repo === "byro-repo" ? "packages/*\n" : "",
-    );
+    fixture = GitFixture.init(clonePaths, {
+      gitignoreOf: (repo) => (repo === "byro-repo" ? "packages/*\n" : ""),
+    });
   });
 
   afterAll(() => {

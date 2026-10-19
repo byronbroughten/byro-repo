@@ -12,6 +12,11 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+interface GitFixtureFiles {
+  gitignoreOf: (repo: string) => string;
+  addUntracked?: (primaryRoot: string) => void;
+}
+
 // A primary root of clones, each pushed to a bare remote, built once per test file and copied into each test's folder.
 export class GitFixture {
   private readonly template: string;
@@ -24,14 +29,15 @@ export class GitFixture {
 
   static init(
     clonePaths: Record<string, string>,
-    gitignoreOf: (repo: string) => string,
+    { gitignoreOf, addUntracked = () => {} }: GitFixtureFiles,
   ): GitFixture {
     const template = realpathSync(mkdtempSync(join(tmpdir(), "git-fixture-")));
+    const primaryRoot = join(template, "byro-repo");
     Object.entries(clonePaths).forEach(([repo, clonePath]) => {
       const remote = join(template, "remotes", `${repo}.git`);
       mkdirSync(remote, { recursive: true });
       git(remote, "init", "--bare", "-b", "master");
-      const clone = join(template, "byro-repo", clonePath);
+      const clone = join(primaryRoot, clonePath);
       mkdirSync(clone, { recursive: true });
       git(clone, "init", "-b", "master");
       git(clone, "config", "user.name", "Test");
@@ -43,6 +49,7 @@ export class GitFixture {
       git(clone, "commit", "-m", "Initial commit");
       git(clone, "push", "-u", "origin", "master");
     });
+    addUntracked(primaryRoot);
     return new GitFixture(template, clonePaths);
   }
 
