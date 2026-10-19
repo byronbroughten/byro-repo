@@ -49,4 +49,4 @@ Research brief: "For each current model: API price, context window and release d
 
 ## Outcome log
 
-One file per landed code issue, written by the wrap-up script (`npm run wrap-up -- <repo> <n>`) at [`outcomes/`](./outcomes/)`<spec repo>-<spec n>/<repo>-<n>.md`; a ticketless spec is its own one-ticket folder. The rows from before the move are in [`outcomes/legacy.md`](./outcomes/legacy.md). Piece specs log in `packages/writing/docs/model-fit.md`.
+One file per landed code issue, written by the wrap-up script (`npm run wrap-up -- <repo> <n>`) at [`outcomes/`](./outcomes/)`<spec repo>-<spec n>/<repo>-<n>.md`; a ticketless spec is its own one-ticket folder. Once a spec lands, `/mine-outcomes <repo> #<spec>` turns its folder into proposals and then clears it. The rows from before the move are in [`outcomes/legacy.md`](./outcomes/legacy.md). Piece specs log in `packages/writing/docs/model-fit.md`.
