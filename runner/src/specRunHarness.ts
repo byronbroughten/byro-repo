@@ -1,6 +1,5 @@
 // The fixture and helpers SpecRun's test files share; each file calls useSpecRunHarness() once at its top.
 
-import { execFileSync } from "node:child_process";
 import {
   mkdtempSync,
   readFileSync,
@@ -18,7 +17,7 @@ import type { FakeAgentStep, ScriptedStep } from "./FakeAgentStep.ts";
 import { FakeGitHub } from "./FakeGitHub.ts";
 import { FakeNotices } from "./FakeNotices.ts";
 import { FakeUsageReader } from "./FakeUsageReader.ts";
-import { GitFixture } from "./GitFixture.ts";
+import { git, GitFixture } from "./GitFixture.ts";
 import type { ImplementRecord } from "./implementStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { AccountReading, UsageReader } from "./limitGuard.ts";
@@ -51,7 +50,7 @@ export function useSpecRunHarness(): void {
   let fixture: GitFixture;
 
   beforeAll(() => {
-    fixture = GitFixture.build(clonePaths, (repo) =>
+    fixture = GitFixture.init(clonePaths, (repo) =>
       repo === "byro-repo" ? "packages/*\n" : "",
     );
   });
@@ -100,14 +99,6 @@ export function readingOf(
 
 export function refOf(number: number): IssueRef {
   return { repo: "byro-repo", number };
-}
-
-export function git(cwd: string, ...args: string[]): string {
-  return execFileSync("git", args, {
-    cwd,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  }).trim();
 }
 
 export function primaryOf(repo: keyof typeof clonePaths): string {

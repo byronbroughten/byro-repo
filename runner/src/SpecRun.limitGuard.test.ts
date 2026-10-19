@@ -5,12 +5,12 @@ import { describe, expect, it } from "vitest";
 
 import type { StepResult } from "./AgentStep.ts";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
+import { git } from "./GitFixture.ts";
 import type { RunResult } from "./SpecRun.ts";
 import {
   addIssue,
   addSpec,
   after,
-  git,
   github,
   implemented,
   notices,

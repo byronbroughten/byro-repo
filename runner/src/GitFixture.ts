@@ -22,8 +22,7 @@ export class GitFixture {
     this.clonePaths = clonePaths;
   }
 
-  // Lays out `primaryRoot` under `byro-repo` and the remotes under `remotes`, as copyTo does in a test's folder.
-  static build(
+  static init(
     clonePaths: Record<string, string>,
     gitignoreOf: (repo: string) => string,
   ): GitFixture {
@@ -47,7 +46,7 @@ export class GitFixture {
     return new GitFixture(template, clonePaths);
   }
 
-  // Copy-on-write where the filesystem has it, so a copy costs a fraction of a build; each origin is repointed at the copied remote.
+  // Copy-on-write where the filesystem has it, so a copy costs a fraction of a build.
   copyTo(folder: string): void {
     cpSync(this.template, folder, {
       recursive: true,
@@ -67,6 +66,10 @@ export class GitFixture {
   }
 }
 
-function git(cwd: string, ...args: string[]): void {
-  execFileSync("git", args, { cwd, stdio: ["ignore", "pipe", "pipe"] });
+export function git(cwd: string, ...args: string[]): string {
+  return execFileSync("git", args, {
+    cwd,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  }).trim();
 }

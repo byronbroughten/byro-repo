@@ -4,12 +4,12 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { FakeAgentStep } from "./FakeAgentStep.ts";
+import { git } from "./GitFixture.ts";
 import type { RunResult } from "./SpecRun.ts";
 import {
   addSpec,
   bodyWith,
   eventOf,
-  git,
   github,
   implemented,
   masterSetPath,

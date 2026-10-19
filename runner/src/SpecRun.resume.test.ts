@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import type { StepResult } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
+import { git } from "./GitFixture.ts";
 import type { Lease, LeaseHolder } from "./IssueWorkspaces.ts";
 import type { AccountReading, UsageReader } from "./limitGuard.ts";
 import { reviewRecordSchema } from "./reviewStep.ts";
@@ -12,7 +13,6 @@ import type { RunResult } from "./SpecRun.ts";
 import {
   addSpec,
   applied,
-  git,
   github,
   implemented,
   masterSubjects,

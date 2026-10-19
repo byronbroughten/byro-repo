@@ -7,12 +7,12 @@ import type { Pair, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import type { TriageRecord } from "./findingTriage.ts";
 import type { FixOutcome } from "./fixStep.ts";
+import { git } from "./GitFixture.ts";
 import {
   addSpec,
   after,
   bodyWith,
   bodyWithTargets,
-  git,
   github,
   implemented,
   primaryOf,

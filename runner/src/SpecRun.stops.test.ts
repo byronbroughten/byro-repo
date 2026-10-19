@@ -5,13 +5,13 @@ import { describe, expect, it } from "vitest";
 
 import type { StepResult } from "./AgentStep.ts";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
+import { git } from "./GitFixture.ts";
 import { type Command, runKnobsOf } from "./runKnobs.ts";
 import type { RunResult, SpecRunConfig } from "./SpecRun.ts";
 import {
   addSpec,
   clonePaths,
   commitRed,
-  git,
   github,
   implemented,
   implementResultOf,
