@@ -2,7 +2,6 @@
 export const stopOutcomes = {
   "red-checks": "red checks",
   "step-error": "a step error",
-  blocker: "a blocker in the implement record",
   "schema-failure": "a schema failure",
   handoff: "an implement handoff",
   "wrap-up-failure": "a wrap-up failure",

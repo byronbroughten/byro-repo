@@ -138,7 +138,7 @@ describe("run's finding triage", () => {
     expect(factsOf().reviewFixes).toBe("none");
   });
 
-  it("keeps a Dismiss, a Defer and a Halt in run state and lands with no fix step, the triage step on its own pair with no targets", async () => {
+  it("keeps a Dismiss, a Defer and a Halt in run state and halts with no fix step, the triage step on its own pair with no targets", async () => {
     addSpec([1]);
     github.edit(1, { body: bodyWithTargets("app spreadsheet") });
     const records = [
@@ -159,8 +159,11 @@ describe("run's finding triage", () => {
     expect(triage?.pair).toEqual(opusMedium);
     expect(triage?.targets).toEqual([]);
     expect(triage?.prompt).toContain("3. one.ts:3 is wrong.");
-    expect(ticketRunState().triage).toEqual(records);
-    expect(factsOf()).toMatchObject({ reviewFixes: "none", defers: 1 });
+    expect(ticketRunState()).toMatchObject({ step: "halted", triage: records });
+    expect(result.message).toContain("byro-repo #1 waits on Halt H1");
+    expect(github.comments[0]?.body).toContain(
+      '**Halt H1** · Halt 1 of 1 · byro-repo #1, "Ticket 1" · triage Halt',
+    );
   });
 
   it("hands the Fix batch to the resumed implementer under the ticket budget, landing the fix as its own commit", async () => {
@@ -294,13 +297,9 @@ describe("run's finding triage", () => {
             },
           ],
         }),
-      implemented("two.ts"),
-      reviewed(),
-      implemented("three.ts"),
-      reviewed(),
     );
 
-    await specRun(agentStep).run(spec);
+    const result = await specRun(agentStep).run(spec);
 
     expect(ticketRunState().triage).toMatchObject([
       {
@@ -311,7 +310,15 @@ describe("run's finding triage", () => {
       },
       { finding: 2, verdict: "defer", reason: "decision" },
     ]);
-    expect(factsOf()).toMatchObject({ reviewFixes: "none", defers: 1 });
+    expect(agentStep.requests).toHaveLength(4);
+    expect(result.message).toContain("byro-repo #2 waits on Halt H1");
+    expect(result.message).toContain("byro-repo #3 waits on Halt H1");
+    expect(github.comments[0]?.body).toContain(
+      'Halt 1 of 1 · byro-repo #1, "Ticket 1" · fixer give-up',
+    );
+    expect(github.comments[0]?.body).toContain(
+      "Blocks: byro-repo#2, byro-repo#3 and their downstream.",
+    );
   });
 
   it("Stops on a schema failure when the fixer leaves uncommitted changes", async () => {
