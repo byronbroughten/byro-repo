@@ -153,7 +153,6 @@ function commitProblems(
   return [];
 }
 
-// What the developer can say yes to, by why the fixer gave up.
 const giveUpProposals: Record<GiveUpReason, string> = {
   "judgement-call":
     "The fix would reverse a spec decision, so it was reverted. Keep the decision and dismiss the finding, or revise the decision and file the fix.",

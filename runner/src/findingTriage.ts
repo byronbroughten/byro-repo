@@ -46,7 +46,6 @@ export interface TriageRecord {
   haltScope?: HaltScope;
   recommendation?: string;
   draftIssueTitle?: string;
-  // A wanted smell's one-line reason, for the developer to approve as a keep.
   draftKeepReason?: string;
 }
 
@@ -254,7 +253,6 @@ const verdictRules: Record<Verdict, (record: TriageRecord) => string[]> = {
     brokenRules([[isBlank(recommendation), recommendationRule("Halt")]]),
 };
 
-// A drafted keep only makes sense where the developer is asked a decision.
 function keepReasonRules({
   verdict,
   reason,
@@ -265,6 +263,10 @@ function keepReasonRules({
     [
       draftKeepReason !== undefined && !isDecision,
       "only a Propose `decision` has `draftKeepReason`",
+    ],
+    [
+      isDecision && draftKeepReason !== undefined && isBlank(draftKeepReason),
+      "a Propose `decision`'s `draftKeepReason` can't be blank",
     ],
   ]);
 }

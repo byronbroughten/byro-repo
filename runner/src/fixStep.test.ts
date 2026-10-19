@@ -186,6 +186,9 @@ describe("giveUpRecordOf", () => {
       verdict: "halt",
       reason: "judgement-call",
       haltScope: ["byro-repo#7"],
+      recommendation: expect.stringContaining(
+        "Keep the decision and dismiss the finding, or revise the decision and file the fix.",
+      ),
     });
   });
 

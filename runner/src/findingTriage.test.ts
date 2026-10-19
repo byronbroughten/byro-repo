@@ -134,6 +134,16 @@ describe("triageRecordProblems", () => {
     ).toEqual([]);
   });
 
+  it("refuses a blank drafted keep reason", () => {
+    expect(
+      triageRecordProblems(1, [
+        { ...propose, reason: "decision", draftKeepReason: " " },
+      ]),
+    ).toEqual([
+      "finding 1: a Propose `decision`'s `draftKeepReason` can't be blank",
+    ]);
+  });
+
   it("refuses a drafted keep reason on any verdict or reason but Propose decision", () => {
     const draftKeepReason = "Two call sites read better than one helper.";
     expect(
