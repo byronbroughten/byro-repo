@@ -101,6 +101,7 @@ A private repo holding piece specs as issues; the Pieces' text lives in their Go
 | File | Holds |
 | --- | --- |
 | `README.md` | What the runner is, its exports and how to run its tests. A derived view of its `package.json` and the files it exports. |
+| `skills/<name>/SKILL.md` | An interactive skill for the runner's records, such as `/judge-findings` for the review list, loaded through `.claude/skills/` ([layout](./upstream-skills.md#layout)). |
 | `GLOSSARY.md` | The words of an unattended spec run: its steps, records, verdicts and Halts, plus Primary checkout, the workspaces and Lease, which interactive sessions borrow, and Phase and Phase gate, which planning borrows. |
 
 ## What an addition to AGENTS.md costs

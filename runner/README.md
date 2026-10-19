@@ -1,6 +1,6 @@
 # @byronbroughten/spec-runner
 
-Runs a spec's tickets through implement, review, finding triage, fix, checks and wrap-up, one agent step at a time, and leaves the developer a review list. It imports nothing from the repo around it: everything repo-specific is injected config, so it can be split out later. Its words are in [`GLOSSARY.md`](./GLOSSARY.md).
+Runs a spec's tickets through implement, review, finding triage, fix, checks and wrap-up, one agent step at a time, and leaves the developer a review list. Its code imports nothing from the repo around it: everything repo-specific is injected config, so it can be split out later. Its words are in [`GLOSSARY.md`](./GLOSSARY.md).
 
 | Export | What it is |
 | --- | --- |
@@ -33,7 +33,7 @@ Runs a spec's tickets through implement, review, finding triage, fix, checks and
 
 ## Skills
 
-The runner's interactive skills live in `skills/<name>/`: `/judge-findings <repo> #<spec>` clears a spec's review list. byro-repo loads each one through a symlink, `.claude/skills/<name>` → `../../runner/skills/<name>`, so it is invocable as `/<name>` in a session at the root or in a workspace, and its relative links resolve from here. A plugin was the other option, but its skills are namespaced as `/<plugin>:<name>` and need a marketplace install. The skills name byro-repo's docs, so splitting the runner out means rewriting those links.
+The runner's interactive skills live in `skills/<name>/`: `/judge-findings <repo> #<spec>` walks a spec's undecided review-list items and closes the spec when none is left. byro-repo loads each one through a symlink in `.claude/skills/`, not a plugin ([layout](../docs/agents/upstream-skills.md#layout)). The skills link byro-repo's docs.
 
 ## Tests
 
