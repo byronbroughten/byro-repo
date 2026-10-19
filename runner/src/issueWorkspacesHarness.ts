@@ -37,14 +37,13 @@ export function useIssueWorkspacesHarness(): void {
   let fixture: GitFixture;
 
   beforeAll(() => {
-    fixture = GitFixture.init(
-      clonePaths,
-      (repo) =>
+    fixture = GitFixture.init(clonePaths, {
+      gitignoreOf: (repo) =>
         repo === "byro-repo"
           ? "node_modules/\npackages/*\n"
           : "node_modules/\nsheets.config.json\n.clasp.json\n",
-      writeUntracked,
-    );
+      addUntracked: writeUntracked,
+    });
   });
 
   afterAll(() => {
