@@ -227,6 +227,25 @@ describe("implementPrompt", () => {
     );
   });
 
+  it("runs npm run check once, after committing", () => {
+    const prompt = implementPrompt(input);
+    expect(prompt).toContain(
+      "Run typechecking and single test files regularly. At the end, commit, then run `npm run check` once; it must pass before you return a `committed` record.",
+    );
+    expect(prompt).not.toContain("the full test suite once at the end");
+  });
+
+  it("fixes a failing check in a further commit, and returns past a failure the change didn't cause", () => {
+    const prompt = implementPrompt(input);
+    expect(prompt).toContain(
+      "When it fails on your change, fix it in a further commit and run it again; never amend.",
+    );
+    expect(prompt).toContain(
+      "When it fails only on something your change didn't cause, return your record anyway and name the failure in `boxesUndone`",
+    );
+    expect(prompt).not.toContain("Commit once");
+  });
+
   it("returns applied for a ticket that needed only GitHub writes", () => {
     expect(implementPrompt(input)).toContain(
       "`applied` when the ticket needed only GitHub writes and you committed nothing",

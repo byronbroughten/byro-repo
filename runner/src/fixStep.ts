@@ -50,13 +50,13 @@ Finding triage of the review of ${issue.repo}#${issue.number}, "${title}", gave 
 ## How you work
 
 - Read and search with the Read and Grep tools. Give Bash one command per call, run from the workspace root: no \`cd\`, no \`;\` or \`&&\` chains, no variables.
-- Run typechecking, the tests and lint once the fixes are in.
+- Once the fixes are in, commit, then run \`npm run check\`. When it fails on a fix, fix it in a further commit and run it again. When it fails only on something your fixes didn't cause, return your outcomes anyway; the runner's checks step stops on it.
 - A smell's \`rule\` carries its "→ how to fix" line. When two fixes are equally good, pick one and say which in the commit message; a tie is never a give-up.
-- Give up on a finding with \`judgement-call\` only when the fix would reverse a spec decision, a User Story or an Implementation Decision, or with \`checks-red\` when its fix leaves the checks red and you can't turn them green. Revert that finding's change before you commit, and never turn a Fix into anything else.
+- Give up on a finding with \`judgement-call\` only when the fix would reverse a spec decision, a User Story or an Implementation Decision, or with \`checks-red\` when its fix leaves the checks red and you can't turn them green. Revert that finding's change, in a further commit when it's already committed, and never turn a Fix into anything else.
 
 ## When you're done
 
-- Commit once in each repo you changed, on the ticket's branch: a new commit, separate from the implement commit. Never amend, push, merge, rebase or reset, never comment on or close an issue, and never run the wrap-up. Commit nothing when you gave every finding up.
+- Commit in each repo you changed, on the ticket's branch: new commits, separate from the implement commit. Never amend, push, merge, rebase or reset, never comment on or close an issue, and never run the wrap-up. Commit nothing when you gave every finding up.
 - Return \`outcomes\`, exactly one per finding: \`finding\` (its number below) and \`status\`, \`fixed\` or \`gave-up\`; a give-up also has \`reason\` (${codeListOf(giveUpReasons)}) and \`note\`, why, for the developer.
 
 ## Findings

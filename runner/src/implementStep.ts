@@ -118,7 +118,7 @@ function workingSection({ allowedWriteGlobs }: ImplementPromptInput): string {
   return `## How you work
 
 - Work test-first: if a \`tdd\` skill is available, call it, at the seams the ticket names or, with none named, seams you pick yourself; never stop to confirm them.
-- Run typechecking regularly, single test files regularly, and the full test suite once at the end.
+- Run typechecking and single test files regularly. At the end, commit, then run \`npm run check\` once; it must pass before you return a \`committed\` record.
 - Read and search with the Read and Grep tools. Give Bash one command per call, run from the workspace root: no \`cd\`, no \`;\` or \`&&\` chains, no variables.
 - You can Edit or Write skills, agent definitions and hooks under \`.claude/\` matching ${codeListOf(allowedWriteGlobs)}; you can't move or delete them with Bash, and can't write \`.claude/settings*.json\` or anything else under \`.claude/\`, by any tool or path. When a write there is denied, record one \`denied-tool\` blocker listing those files instead of trying a workaround.
 - Never ask. When the ticket is ambiguous, a command needs a yes nobody gave, or a tool is denied, don't stall: record it as a blocker (\`spec-ambiguity\`, \`gated-action\` or \`denied-tool\`) with what happened and what you recommend the developer do. Carry on with the reading the ticket best supports when the work can go on without it; otherwise stop with status \`blocked\`.`;
@@ -127,10 +127,11 @@ function workingSection({ allowedWriteGlobs }: ImplementPromptInput): string {
 const promptSections = {
   finishing: `## When you're done
 
-- Commit once in each repo you changed, on the ticket's branch. That commit and the GitHub writes the ticket describes are your only writes outside the workspace's files: never push, merge, rebase or reset, never close an issue, and never run the wrap-up. Don't call code review; the runner reviews after you.
+- Commit in each repo you changed, on the ticket's branch, then run \`npm run check\`. When it fails on your change, fix it in a further commit and run it again; never amend. When it fails only on something your change didn't cause, return your record anyway and name the failure in \`boxesUndone\`; the runner's checks step stops on it.
+- Those commits and the GitHub writes the ticket describes are your only writes outside the workspace's files: never push, merge, rebase or reset, never close an issue, and never run the wrap-up. Don't call code review; the runner reviews after you.
 - Then stop and return the implement record as \`record\`:
   - \`status\`: \`committed\`; \`applied\` when the ticket needed only GitHub writes and you committed nothing; or \`blocked\` when a blocker stopped you before any commit.
-  - \`branches\`: each repo you committed in, its branch and the commit's sha, in landing order (a repo lands before any repo that depends on it; a package clone before the root). Empty unless committed.
+  - \`branches\`: each repo you committed in, its branch and its last commit's sha, in landing order (a repo lands before any repo that depends on it; a package clone before the root). Empty unless committed.
   - \`githubWrites\`: only when applied, each GitHub write you made: its issue as \`owner/repo#n\`, its action (\`edit\` or \`comment\`), its URL and a one-line summary.
   - \`closingComment\`: what landed, for the ticket's closing comment.
   - \`boxesUndone\`: each acceptance box you left undone, with why.
