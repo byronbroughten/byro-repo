@@ -44,7 +44,12 @@ import {
   type GaveUpOutcome,
   giveUpRecordOf,
 } from "./fixStep.ts";
-import { git, isDirty } from "./git.ts";
+import {
+  dirtyReposOf,
+  git,
+  type RepoWorktree,
+  worktreeStateOf,
+} from "./git.ts";
 import {
   implementOutputSchema,
   implementPrompt,
@@ -173,6 +178,17 @@ type Fixer = "implementer" | "triage";
 
 // Each worktree's clone path to its HEAD.
 type Heads = Record<string, string>;
+
+interface CloneWorktree {
+  repo: string;
+  clonePath: string;
+  worktree: string;
+}
+
+interface HeadsAndDirtyRepos {
+  heads: Heads;
+  dirtyRepos: string[];
+}
 
 type TimedStep = Exclude<TicketStep, "landed" | "stopped"> | "workspace";
 
@@ -646,12 +662,19 @@ export class SpecRun {
   // Every repo's HEAD, so any commit in any repo changes it.
   private async _headsOf(workspace: Workspace): Promise<Heads> {
     const heads: Heads = {};
-    for (const clonePath of Object.values(this.config.knobs.clonePaths)) {
-      const worktree = join(workspace.path, clonePath);
-      if (!existsSync(worktree)) continue;
+    for (const { clonePath, worktree } of this._worktreesOf(workspace)) {
       heads[clonePath] = await git(worktree, "rev-parse", "HEAD");
     }
     return heads;
+  }
+
+  private _worktreesOf(workspace: Workspace): CloneWorktree[] {
+    return Object.entries(this.config.knobs.clonePaths).flatMap(
+      ([repo, clonePath]) => {
+        const worktree = join(workspace.path, clonePath);
+        return existsSync(worktree) ? [{ repo, clonePath, worktree }] : [];
+      },
+    );
   }
 
   private async _review(ticketRun: TicketRun): Promise<void> {
@@ -742,8 +765,8 @@ export class SpecRun {
       );
     }
     const { outcomes, logPath } = attempt;
-    const hasNewCommit = !isSameHeads(base, await this._headsOf(workspace));
-    const dirtyRepos = await this._dirtyReposOf(workspace);
+    const { heads, dirtyRepos } = await this._headsAndDirtyReposOf(workspace);
+    const hasNewCommit = !isSameHeads(base, heads);
     const problems = fixRecordProblems({
       fixes,
       outcomes,
@@ -764,15 +787,17 @@ export class SpecRun {
     if (outcomes.some(({ status }) => status === "fixed")) state.fixer = fixer;
   }
 
-  private async _dirtyReposOf(workspace: Workspace): Promise<string[]> {
-    const dirty: string[] = [];
-    for (const [repo, clonePath] of Object.entries(
-      this.config.knobs.clonePaths,
-    )) {
-      const worktree = join(workspace.path, clonePath);
-      if (existsSync(worktree) && (await isDirty(worktree))) dirty.push(repo);
+  private async _headsAndDirtyReposOf(
+    workspace: Workspace,
+  ): Promise<HeadsAndDirtyRepos> {
+    const heads: Heads = {};
+    const worktrees: RepoWorktree[] = [];
+    for (const { repo, clonePath, worktree } of this._worktreesOf(workspace)) {
+      const state = await worktreeStateOf(worktree);
+      heads[clonePath] = state.head;
+      worktrees.push({ repo, worktree, state });
     }
-    return dirty;
+    return { heads, dirtyRepos: dirtyReposOf(worktrees) };
   }
 
   private async _runFixer(
