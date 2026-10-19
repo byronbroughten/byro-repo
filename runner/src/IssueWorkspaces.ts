@@ -22,10 +22,11 @@ import { promisify } from "node:util";
 
 import {
   currentBranchOf,
+  dirtyReposOf,
   git,
   hasRef,
   lines,
-  type WorktreeState,
+  type RepoWorktree,
   worktreeStateOf,
 } from "./git.ts";
 import { LeaseHeld } from "./LeaseHeld.ts";
@@ -279,7 +280,7 @@ export class IssueWorkspaces {
   }
 
   async resume(workspace: Workspace): Promise<void> {
-    const detached = detachedOf(await this._worktreeStatesOf(workspace.path));
+    const detached = detachedOf(await this._repoWorktreesOf(workspace.path));
     const dirtyRepos = dirtyReposOf(detached);
     const orphanedRepos = await orphanedReposOf(detached);
     if (dirtyRepos.length > 0 || orphanedRepos.length > 0) {
@@ -300,9 +301,9 @@ export class IssueWorkspaces {
       path: workspace.path,
       lease: await this.leaseOf(workspace),
     });
-    const states = await this._worktreeStatesOf(workspace.path);
-    const dirtyRepos = dirtyReposOf(states);
-    const orphanedRepos = await orphanedReposOf(detachedOf(states));
+    const worktrees = await this._repoWorktreesOf(workspace.path);
+    const dirtyRepos = dirtyReposOf(worktrees);
+    const orphanedRepos = await orphanedReposOf(detachedOf(worktrees));
     if ((dirtyRepos.length > 0 || orphanedRepos.length > 0) && !force) {
       throw new Error(
         `${workspace.path} has ${unsavedWork(dirtyRepos, orphanedRepos)}; remove it with force to discard them`,
@@ -460,7 +461,7 @@ export class IssueWorkspaces {
     return worktree;
   }
 
-  private async _worktreeStatesOf(path: string): Promise<RepoWorktree[]> {
+  private async _repoWorktreesOf(path: string): Promise<RepoWorktree[]> {
     const worktrees: RepoWorktree[] = [];
     for (const [repo, clonePath] of this._clonesRootFirst) {
       const worktree = join(path, clonePath);
@@ -507,11 +508,11 @@ export class IssueWorkspaces {
     path: string,
     key: WorkspaceKey,
   ): Promise<WorkspaceStatus> {
-    const states = await this._worktreeStatesOf(path);
-    const branchedRepos = states
+    const worktrees = await this._repoWorktreesOf(path);
+    const branchedRepos = worktrees
       .filter(({ state }) => state.branch !== "")
       .map(({ repo }) => repo);
-    const dirtyRepos = dirtyReposOf(states);
+    const dirtyRepos = dirtyReposOf(worktrees);
     return {
       path,
       key,
@@ -549,12 +550,6 @@ interface BuildTarget {
   path: string;
   branch?: string;
   branchedRepos: string[];
-}
-
-interface RepoWorktree {
-  repo: string;
-  worktree: string;
-  state: WorktreeState;
 }
 
 type BranchOrigin =
@@ -710,10 +705,6 @@ async function removeWorktree({
 
 function detachedOf(worktrees: RepoWorktree[]): RepoWorktree[] {
   return worktrees.filter(({ state }) => state.branch === "");
-}
-
-function dirtyReposOf(worktrees: RepoWorktree[]): string[] {
-  return worktrees.filter(({ state }) => state.isDirty).map(({ repo }) => repo);
 }
 
 async function orphanedReposOf(detached: RepoWorktree[]): Promise<string[]> {

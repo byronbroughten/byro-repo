@@ -210,6 +210,14 @@ interface Landing {
 }
 
 // What differs between a ticket that lands branches, one with no code and a session, chosen once up front.
+// Read before any switch and only for repos left unswitched, so a switch never leaves a stale answer.
+type UnswitchedDirtiness = Record<string, boolean>;
+
+interface CleanCheckTarget {
+  workspace: Workspace;
+  unswitchedDirtiness: UnswitchedDirtiness;
+}
+
 interface LandingKind {
   // Leaves each landed repo's worktree on the commit its master fast-forwards to.
   build(landing: Landing, workspace: Workspace): Promise<void>;
@@ -454,10 +462,10 @@ export class WrapUp {
   // Nothing reaches a primary checkout before the fast-forward, so an unlanded rerun starts over from the branches.
   private async _land(landing: Landing): Promise<void> {
     const workspace = await this._workspaceOf(landing.key);
-    await this._restore(landing, workspace);
+    const unswitchedDirtiness = await this._restore(landing, workspace);
     landing.progress = { completed: [] };
     await this._step(landing, "clean-check", () =>
-      this._cleanCheck(landing, workspace),
+      this._cleanCheck(landing, { workspace, unswitchedDirtiness }),
     );
     await this._step(landing, "files-changed", async () => {
       landing.progress.filesChanged = await this._filesChanged(landing);
@@ -485,36 +493,46 @@ export class WrapUp {
   private async _restore(
     landing: Landing,
     workspace: Workspace,
-  ): Promise<void> {
+  ): Promise<UnswitchedDirtiness> {
+    const unswitchedDirtiness: UnswitchedDirtiness = {};
     for (const { repo, branch } of landing.branches) {
       const worktree = this._worktreeOf(workspace, repo);
       if (await isMerging(worktree)) await git(worktree, "merge", "--abort");
-      if ((await currentBranchOf(worktree)) !== branch) {
+      const state = await worktreeStateOf(worktree);
+      if (state.branch !== branch) {
         await git(worktree, "switch", branch);
+      } else {
+        unswitchedDirtiness[repo] = state.isDirty;
       }
     }
     const rootHead = landing.progress.built?.[this._rootRepo]?.head;
     const rootWorktree = this._worktreeOf(workspace, this._rootRepo);
-    const { branch, head } = await worktreeStateOf(rootWorktree);
+    const { branch, head, isDirty } = await worktreeStateOf(rootWorktree);
     if (
       !isListed(landing, this._rootRepo) &&
       branch === "" &&
       head === rootHead
     ) {
       await git(rootWorktree, "switch", "--detach", "master");
+    } else {
+      unswitchedDirtiness[this._rootRepo] = isDirty;
     }
     delete landing.progress.built;
+    return unswitchedDirtiness;
   }
 
   private async _cleanCheck(
     landing: Landing,
-    workspace: Workspace,
+    { workspace, unswitchedDirtiness }: CleanCheckTarget,
   ): Promise<void> {
     for (const repo of this._landedRepos(landing)) {
       await this._assertOnMaster(repo);
     }
     for (const repo of landing.kind.cleanRepos(landing)) {
-      if (await isDirty(this._worktreeOf(workspace, repo))) {
+      const isRepoDirty =
+        unswitchedDirtiness[repo] ??
+        (await isDirty(this._worktreeOf(workspace, repo)));
+      if (isRepoDirty) {
         throw new WrapUpFailure(
           "dirty-tree",
           `${repo} in ${workspace.path} has uncommitted changes`,

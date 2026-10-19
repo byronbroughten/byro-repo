@@ -53,6 +53,16 @@ export async function worktreeStateOf(
   return state;
 }
 
+export interface RepoWorktree {
+  repo: string;
+  worktree: string;
+  state: WorktreeState;
+}
+
+export function dirtyReposOf(worktrees: RepoWorktree[]): string[] {
+  return worktrees.filter(({ state }) => state.isDirty).map(({ repo }) => repo);
+}
+
 export async function currentBranchOf(worktree: string): Promise<string> {
   return git(worktree, "branch", "--show-current");
 }
