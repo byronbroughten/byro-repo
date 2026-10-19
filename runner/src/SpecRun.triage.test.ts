@@ -158,7 +158,7 @@ describe("run's finding triage", () => {
 
     const result = await specRun(agentStep).run(spec);
 
-    expect(result.kind).toBe("finished");
+    expect(result.kind).toBe("stopped");
     const triage = agentStep.requests[2];
     expect(triage?.pair).toEqual(opusMedium);
     expect(triage?.targets).toEqual([]);

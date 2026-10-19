@@ -19,7 +19,7 @@ import { FakeNotices } from "./FakeNotices.ts";
 import { FakeUsageReader } from "./FakeUsageReader.ts";
 import { gapCheckOutputSchema } from "./gapCheck.ts";
 import { git, GitFixture } from "./GitFixture.ts";
-import type { ImplementRecord } from "./implementStep.ts";
+import type { Blocker, ImplementRecord } from "./implementStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { AccountReading, UsageReader } from "./limitGuard.ts";
 import { type Command, runKnobsOf } from "./runKnobs.ts";
@@ -154,7 +154,7 @@ export function stateFolder(): string {
   return join(temp, "state");
 }
 
-// The gap check finds no gaps unless a test passes its own agentStep to script it.
+// The gap check finds no gaps unless a test passes its own agentStep to script it; an idle run stops at its first poll.
 export function specRun(
   agentStep: FakeAgentStep,
   overrides: Partial<SpecRunConfig> = {},
@@ -165,12 +165,13 @@ export function specRun(
         ? resultOf({ gaps: [] })
         : agentStep.run(request),
   };
-  return SpecRun.init({
-    knobs: runKnobsOf({
-      clonePaths,
-      checks: [greenUnlessRed],
-      authChecks: [passes],
-    }),
+  const knobs = runKnobsOf({
+    clonePaths,
+    checks: [greenUnlessRed],
+    authChecks: [passes],
+  });
+  const run = SpecRun.init({
+    knobs,
     agentStep: withGapCheck,
     github,
     notices,
@@ -186,9 +187,12 @@ export function specRun(
     outcomeFolder: "docs/agents/outcomes",
     stateFolder: stateFolder(),
     wrapUpKnobs: { backoffMs: 1, lockPollMs: 1 },
-    async sleep() {},
+    async sleep(ms) {
+      if (ms === knobs.idlePollMs) run.requestStop(spec);
+    },
     ...overrides,
   });
+  return run;
 }
 
 export function resultOf(record: unknown): StepResult {
@@ -244,6 +248,24 @@ export function implemented(
       recordOf(branch, git(request.cwd, "rev-parse", "HEAD")),
     );
   };
+}
+
+// Commits nothing and returns a blocked record, as an implementer stuck before its first commit would.
+export function blocked(
+  blockers: Blocker[],
+  facts: Partial<StepResult> = {},
+): StepScript {
+  return async (request: StepRequest) => ({
+    ...implementResultOf(
+      recordOf(git(request.cwd, "branch", "--show-current"), "", {
+        status: "blocked",
+        blockers,
+      }),
+    ),
+    sessionId: "implement-session",
+    peakContext: 90_000,
+    ...facts,
+  });
 }
 
 // Makes only GitHub writes and commits nothing, as an implement step on a ticket with no code would.

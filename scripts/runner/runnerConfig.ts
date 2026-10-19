@@ -112,7 +112,7 @@ function gworkspaceServer(): McpServerConfig | undefined {
   return config.projects?.[primaryRoot]?.mcpServers?.gworkspace;
 }
 
-function ntfyTopic(): string {
+export function ntfyTopic(): string {
   const missing = `Put {"ntfyTopic": "<a long random string>"} in ${localConfigPath}, then subscribe to that topic in the ntfy app.`;
   if (!existsSync(localConfigPath)) throw new Error(missing);
   const { ntfyTopic } = JSON.parse(readFileSync(localConfigPath, "utf8")) as {

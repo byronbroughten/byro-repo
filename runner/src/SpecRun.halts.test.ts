@@ -3,13 +3,13 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import type { StepRequest, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
 import type { Blocker } from "./implementStep.ts";
 import {
   addSpec,
   after,
+  blocked,
   bodyWithTargets,
   github,
   implemented,
@@ -46,24 +46,6 @@ describe("run's Halts", () => {
     recommendation: "Skip the write.",
   };
 
-  // Commits nothing and returns a blocked record, as an implementer stuck before its first commit would.
-  function blocked(
-    blockers: Blocker[],
-    facts: Partial<StepResult> = {},
-  ): StepScript {
-    return async (request: StepRequest) => ({
-      ...implementResultOf(
-        recordOf(git(request.cwd, "branch", "--show-current"), "", {
-          status: "blocked",
-          blockers,
-        }),
-      ),
-      sessionId: "implement-session",
-      peakContext: 90_000,
-      ...facts,
-    });
-  }
-
   function haltComments(): string[] {
     return github.comments
       .map(({ body }) => body)
@@ -91,9 +73,9 @@ describe("run's Halts", () => {
 
     const result = await specRun(agentStep).run(spec);
 
-    expect(result.kind).toBe("finished");
+    expect(result.kind).toBe("stopped");
     expect(result.message).toBe(
-      "Run ended: landed byro-repo #2. byro-repo #1 waits on Halt H1, H2.",
+      "Stopped on request: landed byro-repo #2. byro-repo #1 waits on Halt H1, H2.",
     );
     expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
     const [first, second] = haltComments();
@@ -133,7 +115,7 @@ describe("run's Halts", () => {
     const result = await specRun(agentStep).run(spec);
 
     expect(result.message).toBe(
-      "Run ended: landed byro-repo #3. byro-repo #1 waits on Halt H1; byro-repo #2 waits on Halt H1.",
+      "Stopped on request: landed byro-repo #3. byro-repo #1 waits on Halt H1; byro-repo #2 waits on Halt H1.",
     );
     expect(haltComments()[0]).toContain(
       "Blocks: byro-repo#2 and their downstream.",

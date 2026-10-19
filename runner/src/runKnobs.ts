@@ -43,6 +43,8 @@ export interface RunKnobs {
   triagePair: Pair;
   gapCheckPair: Pair;
   reviewListCadence: ReviewListCadence;
+  // How often an idle run reads the spec issue for answers and its tickets for released leases.
+  idlePollMs: number;
   // Named in the context nudge's message; unset, the message says to write a handoff with no link.
   handoffDocPath?: string;
 }
@@ -84,6 +86,7 @@ export const defaultRunKnobs: RunKnobs = {
   triagePair: { model: "opus", effort: "medium" },
   gapCheckPair: { model: "opus", effort: "medium" },
   reviewListCadence: "end-of-run",
+  idlePollMs: 60_000,
 };
 
 export function loadRunKnobs(overridePath: string): RunKnobs {
