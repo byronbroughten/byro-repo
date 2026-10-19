@@ -62,7 +62,6 @@ interface RawParent {
   number?: unknown;
   repository_url?: unknown;
   labels?: { name?: unknown }[];
-  sub_issues_summary?: { total?: unknown; completed?: unknown };
 }
 
 interface RawComments {
@@ -163,7 +162,23 @@ export class GhCli implements RunGitHub, IssueSource {
       }
       throw error;
     }
-    return parentIssueOf(JSON.parse(output) as RawParent);
+    const raw = JSON.parse(output) as RawParent;
+    const issue = {
+      repo: repoOfUrl(raw.repository_url),
+      number: Number(raw.number),
+    };
+    // Counted from each sub-issue's state: the stored sub_issues_summary lags a close made just before.
+    const subIssues = await listedIssuesOf(
+      `repos/${this.owner}/${issue.repo}/issues/${issue.number}/sub_issues`,
+    );
+    return {
+      issue,
+      labels: (raw.labels ?? []).map((label) => String(label.name)),
+      subIssues: {
+        total: subIssues.length,
+        completed: subIssues.filter(({ isOpen }) => !isOpen).length,
+      },
+    };
   }
 
   async readableIssueOf(issue: IssueRef): Promise<ReadableIssue> {
@@ -288,17 +303,4 @@ async function gh(...args: string[]): Promise<string> {
 
 function repoOfUrl(repositoryUrl: unknown): string {
   return String(repositoryUrl).split("/").at(-1) ?? "";
-}
-
-function parentIssueOf(raw: RawParent): ParentIssue {
-  const repo = repoOfUrl(raw.repository_url);
-  const { total, completed } = raw.sub_issues_summary ?? {};
-  return {
-    issue: { repo, number: Number(raw.number) },
-    labels: (raw.labels ?? []).map((label) => String(label.name)),
-    subIssues:
-      typeof total === "number" && typeof completed === "number"
-        ? { total, completed }
-        : undefined,
-  };
 }
