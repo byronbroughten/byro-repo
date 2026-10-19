@@ -109,7 +109,7 @@ Any other text an agent reads, such as another person's issue or comment, a web 
 _Avoid_: external input, user content
 
 **Master set**:
-A disposable set of checkouts, one per repo, each detached at its master, rebuilt for each preflight so the checks see master's commits and nothing uncommitted.
+A disposable set of checkouts, one per repo, each detached at its master, rebuilt when a ticket's checks go red, so checking master there sees master's commits and nothing uncommitted.
 _Avoid_: clean checkout, master workspace
 
 **Phase**:
