@@ -23,26 +23,28 @@ import {
 import { WrapUp, type WrapUpConfig, type WrapUpFacts } from "./WrapUp.ts";
 import { WrapUpFailure, type WrapUpFailureKind } from "./WrapUpFailure.ts";
 
+// Each class's tests pick their own fixture repos and checks; matching SpecRun's is a coincidence, not a shared fact.
 export const clonePaths = {
   "byro-repo": ".",
   "sheets-framework": "packages/framework",
 };
-
-export const ticket: IssueRef = { repo: "byro-repo", number: 218 };
-export const spec: IssueRef = { repo: "byro-repo", number: 213 };
-export const outcomePath =
-  "docs/agents/outcomes/byro-repo-213/byro-repo-218.md";
 const redCheck: [string, ...string[]] = [
   "node",
   "-e",
   "process.exit(require('fs').existsSync('RED') ? 1 : 0)",
 ];
 
+export const ticket: IssueRef = { repo: "byro-repo", number: 218 };
+export const spec: IssueRef = { repo: "byro-repo", number: 213 };
+export const outcomePath =
+  "docs/agents/outcomes/byro-repo-213/byro-repo-218.md";
+
 export let temp: string;
 export let primaryRoot: string;
 export let github: FakeGitHub;
 export let sleeps: number[];
 
+// Each harness owns the temp and primaryRoot its test files import, so a shared setup would hand them back through getters.
 export function useWrapUpHarness(): void {
   // Real git runs alongside every other git-heavy test file, which slows a test past the 5s default.
   vi.setConfig({ testTimeout: 15_000 });

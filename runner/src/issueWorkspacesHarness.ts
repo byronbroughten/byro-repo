@@ -31,6 +31,7 @@ export let primaryRoot: string;
 export let installs: string[];
 export let titleLookups: number;
 
+// Each harness owns the temp and primaryRoot its test files import, so a shared setup would hand them back through getters.
 export function useIssueWorkspacesHarness(): void {
   // Real git runs alongside every other git-heavy test file, which slows a test past the 5s default.
   vi.setConfig({ testTimeout: 15_000 });
