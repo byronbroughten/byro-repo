@@ -159,6 +159,10 @@ function addSpec(tickets: number[]): void {
   tickets.forEach((ticket) => addIssue(ticket));
 }
 
+function masterSetPath(): string {
+  return join(temp, "workspaces", "master-byro-repo-213");
+}
+
 function stateFolder(): string {
   return join(temp, "state");
 }
@@ -295,7 +299,7 @@ function advance(seconds: number): void {
   time += seconds * 1000;
 }
 
-// A clock the fakes move on; each workspace build, the master set's included, installs dependencies in 4s.
+// A clock the fakes move on; each workspace build installs dependencies in 4s.
 function timed(): Partial<SpecRunConfig> {
   time = new Date("2026-10-12T09:00:00Z").getTime();
   return {
@@ -360,6 +364,7 @@ describe("run", () => {
     expect(
       git(join(temp, "remotes", "byro-repo.git"), "rev-parse", "master"),
     ).toBe(git(primaryOf("byro-repo"), "rev-parse", "master"));
+    expect(existsSync(masterSetPath())).toBe(false);
     expect(notices.sent).toEqual([
       {
         specTitle: "The spec",
@@ -811,56 +816,76 @@ describe("run's preflight", () => {
     );
   });
 
-  it("Stops on a red master commit though an uncommitted edit would turn it green", async () => {
+  it("runs no checks and builds no master set, so an uncommitted edit that would fail a check neither Stops the run nor is touched", async () => {
+    writeFileSync(join(primaryRoot, "RED"), "");
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(git(primaryRoot, "status", "--porcelain")).toBe("?? RED");
+    expect(git(primaryRoot, "branch", "--show-current")).toBe("master");
+    expect(existsSync(masterSetPath())).toBe(false);
+  });
+});
+
+describe("run's master check", () => {
+  const redMaster =
+    "master red: node -e process.exit(require('fs').existsSync('RED') ? 1 : 0)";
+
+  it("Stops the run naming master red when a ticket's checks go red on a red master, though an uncommitted edit would turn it green", async () => {
     commitRed(primaryRoot);
     rmSync(join(primaryRoot, "RED"));
+    addSpec([1, 2]);
 
-    const result = await preflightOf();
+    const result = await specRun(
+      FakeAgentStep.init(implemented("one.ts"), reviewed()),
+    ).run(spec);
 
-    expect(result.message).toBe(
-      "Preflight stopped the run: master red: node -e process.exit(require('fs').existsSync('RED') ? 1 : 0)",
-    );
+    expect(result).toEqual<RunResult>({
+      kind: "stopped",
+      landed: [],
+      message: `Stopped the run at byro-repo #1's checks: ${redMaster}`,
+    });
+    expect(ticketState()["byro-repo #1"]?.step).toBe("checks");
+    expect(github.issues.get(1)?.isOpen).toBe(true);
     expect(git(primaryRoot, "status", "--porcelain")).toBe("D RED");
   });
 
-  it("checks the commit master points to at each preflight, not the one an earlier run saw", async () => {
-    addSpec([1]);
-    // A human ticket, so the first run ends straight after its preflight.
-    github.edit(1, { labels: ["ready-for-human"] });
-    const first = await specRun(FakeAgentStep.init()).run(spec);
+  it("checks master again on a rerun, rebuilding a master set the earlier run left half-removed", async () => {
     commitRed(primaryRoot);
-
-    const second = await specRun(FakeAgentStep.init()).run(spec);
-
-    expect(first.kind).toBe("finished");
-    expect(second.message).toBe(
-      "Preflight stopped the run: master red: node -e process.exit(require('fs').existsSync('RED') ? 1 : 0)",
+    addSpec([1]);
+    await specRun(FakeAgentStep.init(implemented("one.ts"), reviewed())).run(
+      spec,
     );
-  });
+    rmSync(join(masterSetPath(), ".git"));
+    const rerunStep = FakeAgentStep.init();
 
-  it("rebuilds a master set an earlier run left half-removed", async () => {
-    addSpec([1]);
-    github.edit(1, { labels: ["ready-for-human"] });
-    await specRun(FakeAgentStep.init()).run(spec);
-    rmSync(join(temp, "workspaces", "master-byro-repo-213", ".git"));
-    commitRed(primaryRoot);
-
-    const result = await specRun(FakeAgentStep.init()).run(spec);
+    const result = await specRun(rerunStep).run(spec);
 
     expect(result.message).toBe(
-      "Preflight stopped the run: master red: node -e process.exit(require('fs').existsSync('RED') ? 1 : 0)",
+      `Stopped the run at byro-repo #1's checks: ${redMaster}`,
     );
+    expect(rerunStep.requests).toEqual([]);
   });
 
   it("Stops when the master set fails to build", async () => {
-    const result = await preflightOf({
-      async installDependencies() {
-        throw new Error("npm install failed");
+    addSpec([1]);
+    let builds = 0;
+
+    const result = await specRun(
+      FakeAgentStep.init(implemented("RED"), reviewed()),
+      {
+        async installDependencies() {
+          builds += 1;
+          if (builds > 1) throw new Error("npm install failed");
+        },
       },
-    });
+    ).run(spec);
 
     expect(result.message).toBe(
-      "Preflight stopped the run: the master set failed to build: npm install failed",
+      "Stopped the run at byro-repo #1's checks: the master set failed to build: npm install failed",
     );
   });
 
@@ -871,26 +896,18 @@ describe("run's preflight", () => {
       "process.exit(require('fs').existsSync('packages/framework/RED') ? 1 : 0)",
     ];
     commitRed(primaryOf("sheets-framework"));
+    addSpec([1]);
 
-    const result = await preflightOf({
-      knobs: runKnobsOf({ clonePaths, checks: [redClone], authChecks: [] }),
-    });
+    const result = await specRun(
+      FakeAgentStep.init(implemented("one.ts"), reviewed()),
+      {
+        knobs: runKnobsOf({ clonePaths, checks: [redClone], authChecks: [] }),
+      },
+    ).run(spec);
 
     expect(result.message).toBe(
-      `Preflight stopped the run: master red: ${redClone.join(" ")}`,
+      `Stopped the run at byro-repo #1's checks: master red: ${redClone.join(" ")}`,
     );
-  });
-
-  it("checks master's commits, so an uncommitted edit that would fail a check neither Stops the run nor is touched", async () => {
-    writeFileSync(join(primaryRoot, "RED"), "");
-    addSpec([1]);
-    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
-
-    const result = await specRun(agentStep).run(spec);
-
-    expect(result.landed).toEqual([refOf(1)]);
-    expect(git(primaryRoot, "status", "--porcelain")).toBe("?? RED");
-    expect(git(primaryRoot, "branch", "--show-current")).toBe("master");
   });
 });
 
@@ -1425,7 +1442,7 @@ describe("run's timings", () => {
     ).run(spec);
 
     expect(timingLines()).toEqual([
-      "Preflight passed in 4s.",
+      "Preflight passed in 0s.",
       "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%.",
       "byro-repo #1: workspace took 4s.",
       "byro-repo #1: implement took 90s.",
@@ -1452,7 +1469,7 @@ describe("run's timings", () => {
     ).run(spec);
 
     expect(timingLines()).toEqual([
-      "Preflight passed in 4s.",
+      "Preflight passed in 0s.",
       "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%.",
       "byro-repo #1: workspace took 4s.",
       "byro-repo #1: implement took 60s.",

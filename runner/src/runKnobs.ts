@@ -23,7 +23,7 @@ export interface RunKnobs {
   // The cswap account every step runs as.
   account: number;
   skillNames: { review: string };
-  // Run from a workspace or primary root: on master at preflight, and after review in each ticket.
+  // Run from a workspace or primary root: after review in each ticket, and on master when they go red there.
   checks: Command[];
   // Each must exit 0 at preflight; unset, GitHub auth and the configured account's claude login.
   authChecks: Command[];

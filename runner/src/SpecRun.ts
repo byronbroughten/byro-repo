@@ -1,5 +1,6 @@
 // The run loop: takes one spec's tickets, one at a time in blocking-graph order, through implement, review, finding triage,
-// fix, checks and wrap-up in each ticket's issue workspace, and never closes the spec. Preflight refuses or Stops a run first.
+// fix, checks and wrap-up in each ticket's issue workspace, and never closes the spec. Preflight refuses or Stops a run first;
+// red checks on a red master Stop the run.
 // Any outcome a later ticket will handle (red checks, step errors, blockers, schema failures) is an UnhandledStop.
 // The run holds the lease on the workspace of the ticket it's working; a ticket another holder has leased waits.
 // GitHub and git hold what's durable; a per-spec state file holds the step each ticket reached, so a rerun resumes there.
@@ -74,6 +75,7 @@ import {
   type UsageReader,
 } from "./limitGuard.ts";
 import { LimitStop } from "./LimitStop.ts";
+import { MasterStop } from "./MasterStop.ts";
 import { pairLabelOf, pairOf, strongerPairOf } from "./modelFit.ts";
 import type { Notices } from "./Notices.ts";
 import {
@@ -291,7 +293,7 @@ export class SpecRun {
       this._log(run, `Refused: ${refusal}`);
       return { kind: "refused", landed: [], message: refusal };
     }
-    const preflightStop = await this._preflightStop(run.spec.issue);
+    const preflightStop = await this._preflightStop();
     if (preflightStop !== undefined) {
       return this._end(
         run,
@@ -326,6 +328,13 @@ export class SpecRun {
       try {
         outcome = await this._runTicket(run, selection.ticket);
       } catch (error) {
+        if (error instanceof MasterStop) {
+          return this._end(
+            run,
+            "stopped",
+            `Stopped the run at ${issueLabelOf(selection.ticket.issue)}'s checks: ${error.message}`,
+          );
+        }
         if (!(error instanceof LimitStop)) throw error;
         return this._end(run, "stopped", error.message);
       }
@@ -409,8 +418,8 @@ export class SpecRun {
     return `Only ${developer} may write or edit the spec and each open ${readyLabel} ticket; refused ${offenders.join(", ")}.`;
   }
 
-  // Checks run in a master set, so neither another session's uncommitted edit nor a local fix hides master's own state.
-  private async _preflightStop(spec: IssueRef): Promise<string | undefined> {
+  // Runs no checks: master moves only through wrap-up, which checked the commits it landed.
+  private async _preflightStop(): Promise<string | undefined> {
     const { knobs, primaryRoot } = this.config;
     for (const command of knobs.authChecks) {
       if ((await runCommand(command, primaryRoot)) !== undefined) {
@@ -425,17 +434,6 @@ export class SpecRun {
       const branch = await git(clone, "branch", "--show-current");
       if (branch !== "master") {
         return `${repo}'s primary checkout is on ${branch || "a detached HEAD"}, not master`;
-      }
-    }
-    let masterSet: string;
-    try {
-      masterSet = await this.workspaces.masterSet(spec);
-    } catch (error) {
-      return `the master set failed to build: ${messageOf(error)}`;
-    }
-    for (const command of knobs.checks) {
-      if ((await runCommand(command, masterSet)) !== undefined) {
-        return `master red: ${commandLabelOf(command)}`;
       }
     }
     return undefined;
@@ -1016,11 +1014,29 @@ export class SpecRun {
       );
       const failure = await runCommand(command, ticketRun.workspace.path);
       if (failure !== undefined) {
+        await this._stopOnRedMaster(ticketRun.run.spec.issue);
         throw new UnhandledStop(
           "red-checks",
           `${commandLabelOf(command)} failed:\n${failure}`,
           this._progressPathOf(ticketRun.run),
         );
+      }
+    }
+  }
+
+  // Checks run in a master set, so neither another session's uncommitted edit nor a local fix hides master's own state.
+  private async _stopOnRedMaster(spec: IssueRef): Promise<void> {
+    let masterSet: string;
+    try {
+      masterSet = await this.workspaces.masterSet(spec);
+    } catch (error) {
+      throw new MasterStop(
+        `the master set failed to build: ${messageOf(error)}`,
+      );
+    }
+    for (const command of this.config.knobs.checks) {
+      if ((await runCommand(command, masterSet)) !== undefined) {
+        throw new MasterStop(`master red: ${commandLabelOf(command)}`);
       }
     }
   }
