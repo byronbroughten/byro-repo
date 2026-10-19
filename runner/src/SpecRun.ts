@@ -5,6 +5,8 @@
 // tickets in its scope, and the ticket resumes once every one of its Halts is answered (halts.ts).
 // Any outcome a later ticket will handle (red checks, step errors, schema failures) is an UnhandledStop.
 // The run holds the lease on the workspace of the ticket it's working; a ticket another holder has leased waits.
+// With nothing runnable, an open Halt or another holder's lease leaves the run idle, polling; otherwise it ends.
+// A stop request (requestStop()) or a `stop spec` answer ends the run between tickets; status() reads a run from outside.
 // GitHub and git hold what's durable; a per-spec state file holds the step each ticket reached, so a rerun resumes there.
 // Steps launch through AgentStep.ts; prompts are implementStep.ts, reviewStep.ts, findingTriage.ts and fixStep.ts;
 // landing is WrapUp.ts; knobs are runKnobs.ts; the review list and gap check are reviewList.ts and gapCheck.ts.
@@ -16,6 +18,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
@@ -351,10 +354,30 @@ interface DownstreamSearch {
 
 type TicketOutcome = "landed" | "stopped" | "leased" | "halted";
 
+type WaitReason =
+  "leased" | "halted" | "stop-spec" | "stopped" | "developer" | "blocked";
+
+// Why an open ticket isn't runnable, as the end-of-run, idle and status texts name it.
+interface Wait {
+  ticket: IssueRef;
+  reason: WaitReason;
+  text: string;
+  holder?: LeaseHolder;
+}
+
+interface Survey {
+  waits: Wait[];
+  // A ticket with every Halt answered, and when its last answer was read.
+  answered: { ticket: TrackedIssue; at: string }[];
+  launchable: TrackedIssue[];
+  stoppedAgain?: { ticket: TrackedIssue; stop: string };
+}
+
 type Selection =
   | { kind: "launch"; ticket: TrackedIssue }
   | { kind: "stopped-again"; ticket: TrackedIssue; stop: string }
-  | { kind: "none"; waiting: string[] };
+  | { kind: "stop-spec"; halts: Halt[] }
+  | { kind: "none"; waits: Wait[] };
 
 export class SpecRun {
   private readonly config: SpecRunConfig;
@@ -389,6 +412,8 @@ export class SpecRun {
 
   async run(specIssue: IssueRef): Promise<RunResult> {
     const startedAt = this.config.clock.now();
+    // A request left by a stop command with no run going would end this run at its first pick.
+    rmSync(this._stopRequestPathOf(specIssue), { force: true });
     const run = await this._startRun(specIssue);
     const launchable = await this._launchableTicketsOf(run);
     const refusal =
@@ -413,11 +438,26 @@ export class SpecRun {
       run,
       `Run started on ${run.tickets.length} tickets as ${readingLabelOf(reading)}.`,
     );
+    let isIdle = false;
     for (;;) {
       const selection = await this._select(run);
-      if (selection.kind === "none") {
-        return this._finish(run, selection.waiting);
+      if (selection.kind === "stop-spec") {
+        return this._end(run, "stopped", stopSpecMessageOf(run, selection));
       }
+      const waits = selection.kind === "none" ? selection.waits : [];
+      if (selection.kind === "none" && !waits.some(isIdleWait)) {
+        return this._finish(run, waits);
+      }
+      if (this._takeStopRequest(run)) {
+        return this._end(run, "stopped", stopRequestMessageOf(run, waits));
+      }
+      if (selection.kind === "none") {
+        if (!isIdle) await this._announce(run, idleMessageOf(waits));
+        isIdle = true;
+        await this._sleep(this.config.knobs.idlePollMs);
+        continue;
+      }
+      isIdle = false;
       if (selection.kind === "stopped-again") {
         const label = issueLabelOf(selection.ticket.issue);
         return this._end(
@@ -547,71 +587,140 @@ export class SpecRun {
     }
   }
 
+  // Read by the run between tickets and while idle; a request made with no run going is dropped as the next run starts.
+  requestStop(specIssue: IssueRef): void {
+    mkdirSync(this.config.stateFolder, { recursive: true });
+    writeFileSync(this._stopRequestPathOf(specIssue), "");
+  }
+
+  // Reads run state and GitHub and writes nothing, so it's safe beside a live run; an answer the run hasn't read yet shows as open.
+  async status(specIssue: IssueRef): Promise<string> {
+    const run = await this._startRun(specIssue);
+    const openHalts = openHaltsOf(run);
+    const { waits } = await this._survey(run, openHalts);
+    const landed = run.tickets.filter(
+      (ticket) => run.state.tickets[issueLabelOf(ticket)]?.step === "landed",
+    );
+    const current = waits.flatMap((wait) => currentTextOf(run, wait));
+    const others = waits.filter(({ holder }) => holder?.kind !== "run");
+    const lines = [
+      `${issueLabelOf(specIssue)}, "${run.spec.title}"`,
+      `Landed: ${listOf(landed.map(issueLabelOf))}.`,
+      `Current: ${listOf(current)}.`,
+      `Open Halts: ${listOf(openHalts.map(openHaltTextOf))}.`,
+      `Waiting: ${others.length === 0 ? "none" : waitsTextOf(others)}.`,
+      `Account: ${readingLabelOf(await this._readingOf(run))}.`,
+    ];
+    if (existsSync(this._stopRequestPathOf(specIssue))) {
+      lines.push("A stop is requested; the run ends after its current ticket.");
+    }
+    return lines.join("\n");
+  }
+
   // Read afresh each pick; a ticket with every Halt answered goes first, oldest answered set first, then the frontier.
   private async _select(run: Run): Promise<Selection> {
     await this._postUnpostedHalts(run);
-    await this._readAnswers(run);
-    const openHalts = haltsOf(run).filter(({ answer }) => answer === undefined);
+    const stopSpecs = await this._readAnswers(run);
+    if (stopSpecs.length > 0) return { kind: "stop-spec", halts: stopSpecs };
+    const survey = await this._survey(run, openHaltsOf(run));
+    const { waits, answered, launchable, stoppedAgain } = survey;
+    if (stoppedAgain !== undefined) {
+      return { kind: "stopped-again", ...stoppedAgain };
+    }
+    answered.sort((first, second) => first.at.localeCompare(second.at));
+    const [first] = [...answered.map(({ ticket }) => ticket), ...launchable];
+    if (first === undefined) return { kind: "none", waits };
+    return { kind: "launch", ticket: first };
+  }
+
+  private async _survey(run: Run, openHalts: Halt[]): Promise<Survey> {
     const downstreamOf = await this._scopeDownstreamOf(run, openHalts);
-    const waiting: string[] = [];
-    const answered: { ticket: TrackedIssue; at: string }[] = [];
-    const launchable: TrackedIssue[] = [];
+    const survey: Survey = { waits: [], answered: [], launchable: [] };
+    const { waits } = survey;
     for (const ticket of run.tickets) {
       const tracked = await this.config.github.issueOf(ticket);
       if (!tracked.isOpen) continue;
       const label = issueLabelOf(ticket);
-      const otherHolder = await this._otherHolderOf(ticket);
-      if (otherHolder !== undefined) {
-        waiting.push(`${label} is leased by ${holderLabelOf(otherHolder)}`);
+      const holder = await this._otherHolderOf(ticket);
+      if (holder !== undefined) {
+        const text = `${label} is leased by ${holderLabelOf(holder)}`;
+        waits.push({ ticket, reason: "leased", text, holder });
         continue;
       }
       const { step, stop } = ticketStateOf(run, ticket);
       if (stop !== undefined) {
-        return { kind: "stopped-again", ticket: tracked, stop };
+        survey.stoppedAgain ??= { ticket: tracked, stop };
+        const text = `${label} stopped on ${stop}`;
+        waits.push({ ticket, reason: "stopped", text });
+        continue;
       }
       const holding = openHalts.filter((halt) =>
         isHeldBy({ halt, ticket: shortRefOf(ticket), downstreamOf }),
       );
       if (holding.length > 0) {
-        waiting.push(`${label} waits on Halt ${idListOf(holding)}`);
+        const text = `${label} waits on Halt ${idListOf(holding)}`;
+        waits.push({ ticket, reason: "halted", text });
         continue;
       }
-      const stopSpecs = undeliveredHaltsOf(run, ticket).filter(
-        ({ answer }) => answer !== undefined && isStopSpecAnswer(answer),
-      );
+      const stopSpecs = undeliveredHaltsOf(run, ticket).filter(isStopSpec);
       if (stopSpecs.length > 0) {
-        waiting.push(
-          `${label}'s Halt ${idListOf(stopSpecs)} was answered \`stop spec\``,
-        );
+        const text = `${label}'s Halt ${idListOf(stopSpecs)} was answered \`stop spec\``;
+        waits.push({ ticket, reason: "stop-spec", text });
         continue;
       }
       if (!isLaunchable(tracked)) {
-        waiting.push(`${label} waits on the developer`);
+        const text = developerWaitTextOf(
+          label,
+          await this._downstreamLabelsOf(run, ticket),
+        );
+        waits.push({ ticket, reason: "developer", text });
         continue;
       }
       const blockers = await this.config.github.openBlockersOf(ticket);
       if (blockers.length > 0) {
-        waiting.push(
-          `${label} is blocked by ${blockers.map(issueLabelOf).join(", ")}`,
-        );
+        const text = `${label} is blocked by ${blockers.map(issueLabelOf).join(", ")}`;
+        waits.push({ ticket, reason: "blocked", text });
         continue;
       }
       if (step === "halted") {
-        answered.push({ ticket: tracked, at: lastAnswerAtOf(run, ticket) });
+        survey.answered.push({
+          ticket: tracked,
+          at: lastAnswerAtOf(run, ticket),
+        });
       } else {
-        launchable.push(tracked);
+        survey.launchable.push(tracked);
       }
     }
-    answered.sort((first, second) => first.at.localeCompare(second.at));
-    const [first] = [...answered.map(({ ticket }) => ticket), ...launchable];
-    if (first === undefined) return { kind: "none", waiting };
-    return { kind: "launch", ticket: first };
+    return survey;
   }
 
-  // The first reply naming an open Halt answers it; a later one is noted as ignored, once.
-  private async _readAnswers(run: Run): Promise<void> {
+  private async _downstreamLabelsOf(
+    run: Run,
+    issue: IssueRef,
+  ): Promise<string[]> {
+    const downstream = await this._downstreamOf(run, issue);
+    return run.tickets
+      .filter((ticket) => downstream.includes(shortRefOf(ticket)))
+      .map(issueLabelOf);
+  }
+
+  // Taken once read, so a later run never sees it.
+  private _takeStopRequest(run: Run): boolean {
+    const path = this._stopRequestPathOf(run.spec.issue);
+    if (!existsSync(path)) return false;
+    rmSync(path, { force: true });
+    return true;
+  }
+
+  private _stopRequestPathOf(spec: IssueRef): string {
+    return join(this.config.stateFolder, `${fileStemOf(spec)}.stop`);
+  }
+
+  // The first reply naming an open Halt answers it; a later one is noted as ignored, once. Returns those newly answered `stop spec`.
+  private async _readAnswers(run: Run): Promise<Halt[]> {
     const posted = haltsOf(run).filter(({ isPosted }) => isPosted);
-    if (posted.length === 0) return;
+    if (posted.length === 0) return [];
+    const stopSpecs: Halt[] = [];
     const comments = await this.config.github.authoredCommentsOf(
       run.spec.issue,
     );
@@ -631,6 +740,7 @@ export class SpecRun {
           `${haltNameOf(halt)} on ${issueLabelOf(halt.ticket)} is answered.`,
         );
         await this._comment(run, answeredNoteOf(halt));
+        if (isStopSpec(halt)) stopSpecs.push(halt);
       }
       const ignored = [first, ...later].filter(
         ({ id }) =>
@@ -642,6 +752,7 @@ export class SpecRun {
         await this._comment(run, ignoredNoteOf(halt, reply));
       }
     }
+    return stopSpecs;
   }
 
   // Each ticket an open Halt names in its scope, to the tickets downstream of it; read only when a Halt names one.
@@ -1540,9 +1651,9 @@ export class SpecRun {
   }
 
   // The gap check waits for every ticket to close, since an open one may still land what it would report.
-  private async _finish(run: Run, waiting: string[]): Promise<RunResult> {
+  private async _finish(run: Run, waits: Wait[]): Promise<RunResult> {
     await this._postLandedReviewLists(run);
-    if (waiting.length === 0) {
+    if (waits.length === 0) {
       try {
         await this._gapCheck(run);
       } catch (error) {
@@ -1557,12 +1668,20 @@ export class SpecRun {
         );
       }
     }
-    const message = endMessageOf(run.landed, waiting);
+    let message = endMessageOf(run.landed, waits);
+    if (waits.some(({ reason }) => reason === "developer")) {
+      message += ` Rerun once your tickets close: \`${this._rerunCommandOf(run)}\`.`;
+    }
     return this._end(
       run,
       "finished",
       await this._withUndecidedLine(run, message),
     );
+  }
+
+  private _rerunCommandOf({ spec }: Run): string {
+    const { repo, number } = spec.issue;
+    return `npm run runner -- ${this.config.githubOwner}/${repo} ${number}`;
   }
 
   // Catches a ticket that landed in a run killed before its review list was posted.
@@ -1863,12 +1982,67 @@ async function runCommand(
   }
 }
 
-function endMessageOf(landed: IssueRef[], waiting: string[]): string {
-  const landedPart =
-    landed.length === 0 ? "nothing" : landed.map(issueLabelOf).join(", ");
+function isStopSpec({ answer }: Halt): boolean {
+  return answer !== undefined && isStopSpecAnswer(answer);
+}
+
+function openHaltsOf(run: Run): Halt[] {
+  return haltsOf(run).filter(({ answer }) => answer === undefined);
+}
+
+// An open Halt may be answered, and a lease released, while the run waits; anything else needs a rerun.
+function isIdleWait({ reason }: Wait): boolean {
+  return reason === "halted" || reason === "leased";
+}
+
+function developerWaitTextOf(label: string, downstream: string[]): string {
+  if (downstream.length === 0) return `${label} waits on you`;
+  return `${label} waits on you and blocks ${downstream.join(", ")}`;
+}
+
+function waitsTextOf(waits: Wait[]): string {
+  return waits.map(({ text }) => text).join("; ");
+}
+
+function landedTextOf(landed: IssueRef[]): string {
+  if (landed.length === 0) return "landed nothing";
+  return `landed ${landed.map(issueLabelOf).join(", ")}`;
+}
+
+function listOf(items: string[]): string {
+  return items.length === 0 ? "none" : items.join(", ");
+}
+
+function endMessageOf(landed: IssueRef[], waits: Wait[]): string {
   const waitingPart =
-    waiting.length === 0 ? "Every ticket is closed." : `${waiting.join("; ")}.`;
-  return `Run ended: landed ${landedPart}. ${waitingPart}`;
+    waits.length === 0 ? "Every ticket is closed." : `${waitsTextOf(waits)}.`;
+  return `Run ended: ${landedTextOf(landed)}. ${waitingPart}`;
+}
+
+function idleMessageOf(waits: Wait[]): string {
+  return `Idle: nothing runnable. ${waitsTextOf(waits)}.`;
+}
+
+function stopRequestMessageOf(run: Run, waits: Wait[]): string {
+  const message = `Stopped on request: ${landedTextOf(run.landed)}.`;
+  return waits.length === 0 ? message : `${message} ${waitsTextOf(waits)}.`;
+}
+
+// The halted ticket keeps its commits and its other Halts; a rerun runs the rest.
+function stopSpecMessageOf(run: Run, { halts }: { halts: Halt[] }): string {
+  const tickets = [...new Set(halts.map(({ ticket }) => issueLabelOf(ticket)))];
+  return `Stopped on \`stop spec\` for Halt ${idListOf(halts)}: ${landedTextOf(run.landed)}; ${tickets.join(", ")} stays unlanded.`;
+}
+
+function openHaltTextOf(halt: Halt): string {
+  return `${halt.id} on ${issueLabelOf(halt.ticket)}`;
+}
+
+// The ticket a run's lease holds, at the step run state last saved for it.
+function currentTextOf(run: Run, { ticket, holder }: Wait): string[] {
+  if (holder?.kind !== "run") return [];
+  const step = run.state.tickets[issueLabelOf(ticket)]?.step ?? "implement";
+  return [`${issueLabelOf(ticket)} at ${step} (${holderLabelOf(holder)})`];
 }
 
 function stoppedMessageOf(run: Run, ticket: TrackedIssue): string {

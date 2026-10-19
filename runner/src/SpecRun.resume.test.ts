@@ -16,6 +16,7 @@ import {
   github,
   implemented,
   masterSubjects,
+  notices,
   primaryOf,
   readingOf,
   refOf,
@@ -131,23 +132,20 @@ describe("run's leases", () => {
     const leased = await workspaces.create(refOf(1));
     await workspaces.takeLease(leased, session);
 
-    const first = await specRun(
-      FakeAgentStep.init(implemented("two.ts"), reviewed()),
+    const result = await specRun(
+      FakeAgentStep.init(
+        implemented("two.ts"),
+        reviewed(),
+        implemented("one.ts"),
+        reviewed(),
+      ),
+      { sleep: () => workspaces.releaseLease(leased) },
     ).run(spec);
 
-    expect(first).toEqual<RunResult>({
-      kind: "finished",
-      landed: [refOf(2)],
-      message: `Run ended: landed byro-repo #2. byro-repo #1 is leased by a session (pid ${process.ppid}).`,
-    });
-    expect(github.issues.get(1)?.isOpen).toBe(true);
-
-    await workspaces.releaseLease(leased);
-    const second = await specRun(
-      FakeAgentStep.init(implemented("one.ts"), reviewed()),
-    ).run(spec);
-
-    expect(second.landed).toEqual([refOf(1)]);
+    expect(result.landed).toEqual([refOf(2), refOf(1)]);
+    expect(notices.sent.map(({ summary }) => summary)).toContain(
+      `Idle: nothing runnable. byro-repo #1 is leased by a session (pid ${process.ppid}).`,
+    );
   });
 
   it("waits on a ticket another holder leases between the pick and the take, rather than stopping it", async () => {
@@ -163,9 +161,9 @@ describe("run's leases", () => {
     const result = await run.run(spec);
 
     expect(result).toEqual<RunResult>({
-      kind: "finished",
+      kind: "stopped",
       landed: [refOf(2)],
-      message: `Run ended: landed byro-repo #2. byro-repo #1 is leased by a session (pid ${process.ppid}).`,
+      message: `Stopped on request: landed byro-repo #2. byro-repo #1 is leased by a session (pid ${process.ppid}).`,
     });
     expect(github.comments.filter(({ issue }) => issue.number === 1)).toEqual(
       [],

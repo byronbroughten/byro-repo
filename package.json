@@ -38,6 +38,7 @@
     "issue:read": "node scripts/runner/issueRead.ts",
     "issue:remove": "node scripts/runner/issue.ts remove",
     "runner": "node scripts/runner/run.ts",
+    "runner:tmux": "bash scripts/runner/tmux.sh",
     "session:probe": "node scripts/runner/sessionProbe.ts",
     "wrap-up": "node scripts/runner/wrapUp.ts",
     "jev": "node scripts/jev/jev.ts",

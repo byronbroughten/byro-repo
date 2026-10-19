@@ -57,12 +57,16 @@ A Halt raised because a step failed, not by a verdict: a second crash, a schema 
 _Avoid_: error, crash
 
 **Stop**:
-The run ends on a failure no answer can fix inside the run: GitHub or `claude` unreachable or logged out, a clone missing or dirty, a red master, every account past its weekly reserve, or a runner exception. Rerunning resumes it.
+The run ends on a failure no answer can fix inside the run: GitHub or `claude` unreachable or logged out, a clone missing or dirty, a red master, every account past its weekly reserve, or a runner exception. A stop request (`npm run runner -- stop`) or a `stop spec` answer ends it too, after the current ticket; a halted ticket stays committed and unlanded with its other Halts open. Rerunning resumes it.
 _Avoid_: abort, exit, kill
 
 **Limit wait**:
 The run pauses until the earliest 5-hour usage reset plus a margin, because every account is past its 5-hour threshold, then continues unaided.
 _Avoid_: cooldown, throttle
+
+**Idle**:
+Nothing is runnable, but an open Halt or another holder's Lease may clear while the run waits, so it pushes once and polls for answers rather than ending.
+_Avoid_: sleep, paused
 
 **Review list**:
 The comment the runner posts on the spec issue for each landed ticket with a Propose, one checkbox per Propose and the Dismisses in a collapsed audit. The gap check posts the last one.
