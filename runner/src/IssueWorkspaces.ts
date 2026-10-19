@@ -37,6 +37,8 @@ const maxSlugWords = 6;
 const lockfileName = "package-lock.json";
 const hiddenLockfileName = ".package-lock.json";
 const leaseFileName = "workspace.lease";
+const cloneFlags =
+  process.platform === "darwin" ? ["-cR"] : ["-R", "--reflink=auto"];
 
 export interface IssueRef {
   repo: string;
@@ -395,7 +397,7 @@ export class IssueWorkspaces {
     });
   }
 
-  // A copy-on-write clone is near-instant on APFS and its npm-workspace links are relative, so it resolves to the workspace's own packages.
+  // macOS clones with -c and Linux with --reflink=auto (plain copy without it); npm-workspace links are relative, so they resolve to the workspace's own packages.
   private async _seedDependencies(path: string): Promise<void> {
     let copyFailed = false;
     for (const folder of this._dependencyFolders) {
@@ -403,7 +405,7 @@ export class IssueWorkspaces {
       const to = join(path, folder, "node_modules");
       if (!existsSync(from) || !existsSync(join(path, folder))) continue;
       try {
-        await execFileAsync("cp", ["-cR", from, to]);
+        await execFileAsync("cp", [...cloneFlags, from, to]);
       } catch {
         copyFailed = true;
         rmSync(to, { recursive: true, force: true });
