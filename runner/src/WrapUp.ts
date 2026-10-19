@@ -364,7 +364,11 @@ export class WrapUp {
   private _readFacts(issue: IssueRef): WrapUpFacts {
     const path = this._factsPathOf(issue);
     if (!existsSync(path)) throw new Error(`No facts file at ${path}`);
-    const facts = JSON.parse(readFileSync(path, "utf8")) as WrapUpFacts;
+    // A facts file written before #297 counts Proposals under their old name.
+    const { defers, ...facts } = JSON.parse(
+      readFileSync(path, "utf8"),
+    ) as WrapUpFacts & { defers?: number };
+    if (defers !== undefined) facts.proposals ??= defers;
     if (!Array.isArray(facts.branches)) {
       throw new Error(`${path} has no branch list`);
     }

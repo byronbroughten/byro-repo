@@ -64,6 +64,18 @@ describe("run", () => {
     );
   });
 
+  it("counts a facts file's Defers, Proposals' old name, as Proposals", async () => {
+    const workspace = await workspaceWith();
+    commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
+    writeFacts({ reviewFixes: "none", ...{ defers: 2 } });
+
+    await wrapUp().run(ticket);
+
+    expect(readFileSync(join(primaryRoot, outcomePath), "utf8")).toContain(
+      "| #218 | Opus medium | unrecorded | 1 | 150K → 90K | Pass | 2 |",
+    );
+  });
+
   it("computes the row's facts from the recorded sessions and the ticket's handoff comment", async () => {
     const configFolder = join(temp, "account-2");
     cpSync(

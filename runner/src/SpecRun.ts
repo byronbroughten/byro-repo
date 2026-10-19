@@ -24,6 +24,7 @@ import { promisify } from "node:util";
 import type { AgentStep, Pair, StepRequest, StepResult } from "./AgentStep.ts";
 import { commandLabelOf, messageOf, outputTailOf } from "./failureText.ts";
 import {
+  type SavedTriageRecord,
   savedTriageRecordOf,
   triageOutputSchema,
   triagePrompt,
@@ -268,6 +269,23 @@ interface RunState {
   halts?: Halt[];
 }
 
+interface SavedRunState extends Omit<RunState, "tickets"> {
+  tickets: Record<
+    string,
+    Omit<TicketState, "triage"> & { triage?: SavedTriageRecord[] }
+  >;
+}
+
+function runStateOf(saved: SavedRunState): RunState {
+  const tickets = Object.fromEntries(
+    Object.entries(saved.tickets).map(([key, { triage, ...ticket }]) => [
+      key,
+      { ...ticket, triage: triage?.map(savedTriageRecordOf) },
+    ]),
+  );
+  return { ...saved, tickets };
+}
+
 interface Run {
   spec: TrackedIssue;
   tickets: IssueRef[];
@@ -463,11 +481,7 @@ export class SpecRun {
   private _readState(spec: IssueRef): RunState {
     const path = this._statePathOf(spec);
     if (!existsSync(path)) return { tickets: {} };
-    const state = JSON.parse(readFileSync(path, "utf8")) as RunState;
-    for (const ticket of Object.values(state.tickets)) {
-      ticket.triage = ticket.triage?.map(savedTriageRecordOf);
-    }
-    return state;
+    return runStateOf(JSON.parse(readFileSync(path, "utf8")) as SavedRunState);
   }
 
   private _statePathOf(spec: IssueRef): string {

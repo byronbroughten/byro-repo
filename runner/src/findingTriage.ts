@@ -142,9 +142,15 @@ export function triageRecordsOf(output: unknown): TriageRecord[] {
 }
 
 // A run state saved before #297 holds Propose under its old name, Defer.
-export function savedTriageRecordOf(record: TriageRecord): TriageRecord {
-  const verdict: string = record.verdict;
-  return verdict === "defer" ? { ...record, verdict: "propose" } : record;
+export interface SavedTriageRecord extends Omit<TriageRecord, "verdict"> {
+  verdict: Verdict | "defer";
+}
+
+export function savedTriageRecordOf({
+  verdict,
+  ...record
+}: SavedTriageRecord): TriageRecord {
+  return { ...record, verdict: verdict === "defer" ? "propose" : verdict };
 }
 
 export function triageRecordProblems(
