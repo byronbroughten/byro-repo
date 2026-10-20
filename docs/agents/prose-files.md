@@ -78,14 +78,16 @@ The same as the framework's: its docs ship with its repo, so they link only insi
 
 ### Writing (`packages/writing/`, its own repo)
 
-A private repo holding piece specs as issues; the Pieces' text lives in their Google Docs, never here. Its docs link only inside it (its own lint) and name a root doc in plain text.
+A private repo holding piece specs as issues; the Pieces' text lives in their Google Docs, apart from each Piece's Snapshot. Its docs link only inside it (its own lint) and name a root doc in plain text.
 | File | Holds |
 | --- | --- |
 | `CLAUDE.md` | The restart-at-root notice, plus `@AGENTS.md`. |
-| `AGENTS.md` | The pointer to the grilling doc, and how to implement a piece spec: the Deliverable as the text's only home, Drive IDs, when a Deliverable write needs no yes, the voice, the pointer to the wrap-up, and the four done checks. Kept short: it loads on every task there. |
-| `GLOSSARY.md` | The writing context's words: Piece, Deliverable, Supporting Material and Reference. |
+| `AGENTS.md` | The pointer to the grilling doc, and how to implement a piece spec: the Deliverable as the text's working home, Drive IDs, when a Deliverable write needs no yes, the voice, a Piece's branch and landing, the pointer to the Snapshot doc, and the four done checks. Kept short: it loads on every task there. |
+| `GLOSSARY.md` | The writing context's words: Piece, Deliverable, Section, Outline, Snapshot, Supporting Material and Reference. |
 | `docs/grilling.md` | What a grill asks before a piece spec is filed, and the calibration paragraph. `/to-writing-style` adds questions to it. |
-| `docs/wrap-up.md` | The wrap-up prompt for a piece spec with no branch. |
+| `docs/wrap-up.md` | The wrap-up prompt for a Research spec, which has no branch. |
+| `docs/snapshots.md` | A Snapshot's path, its shape and how a save replaces its blocks. |
+| `snapshots/` | One Snapshot per Piece, written by `/implement-piece` only. |
 | `docs/model-fit.md` | The outcome log for piece specs: kind, pair and peak context. |
 
 ### Config (`config/`)

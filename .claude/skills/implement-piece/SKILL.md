@@ -1,12 +1,14 @@
 ---
 name: implement-piece
-description: "Implement a writing Piece spec into its Deliverable, then review it with /review-piece, fix the hard findings and report the rest."
+description: "Implement a writing Piece spec into its Deliverable, review it with /review-piece, fix the hard findings and report the rest, then commit its Snapshot."
 disable-model-invocation: true
 ---
 
 Implement the Piece described by the spec or sub-issue in `byronbroughten/writing`.
 
 Fetch it with `gh issue view -R byronbroughten/writing <n> --json title,body,comments --jq '{title, body, comments: [.comments[].body]}'` and state its title before starting. If the reference is ambiguous, ask. If the issue is Research, stop: it has its own path.
+
+**Work in the Piece's issue workspace.** If this session did not start at its root, run `npm run issue:start -- writing <n>` from the primary root and tell the developer to start `/implement-piece <n>` at the path it prints; stop there.
 
 A Docs write to the Deliverable needs no yes when one of the developer's Google accounts owns that Doc; the tier gate looks the owner up ([`docs/targets-and-gates.md`](../../../docs/targets-and-gates.md#the-gworkspace-mcp-tools)).
 
@@ -21,4 +23,10 @@ Then:
 
 Done when no hard finding is left, or each one left is reported with why.
 
-End with the wrap-up prompt in [`packages/writing/docs/wrap-up.md`](../../../packages/writing/docs/wrap-up.md). Commit nothing.
+**Last, save the Snapshot, every time, without offering.** Its path, its shape and how a save replaces its blocks are in [`packages/writing/docs/snapshots.md`](../../../packages/writing/docs/snapshots.md).
+
+1. `get_doc_as_markdown` the Deliverable as it is now, after the fixes.
+2. Save the Sections this issue drafted into the Snapshot. A later revision round saves the Sections it changed the same way.
+3. Commit only the Snapshot, in the writing clone on its `issue-<n>-<slug>` branch: `git -C packages/writing add snapshots/<spec n>.md`, then `git -C packages/writing commit -m "Snapshot writing#<n> before review."`, "review" being the developer's.
+
+**End with the landing, which waits for the developer's review.** Ask which model and effort pair ran this and each implementing session's peak `/context`. Then write the wrap-up facts per "Landing a spec" in [`docs/agents/git-workflow.md`](../../../docs/agents/git-workflow.md): the writing branch as the only branch, the Deliverable's link in the closing comment, and their answers as `pair` and `peakContext`. Tell them to run `npm run wrap-up -- writing <n>` once they've finished editing; it lands the Snapshot, records the outcome row and closes the issue.
