@@ -1,12 +1,13 @@
-// The context nudge: whether a session's peak context, read by the context meter, has reached the ticket budget, and the handoff reminder it gets.
-// Pure; a repo's Claude Code hook reads the transcript, fires it once per session and writes it out.
+// The context nudge: once a session's peak context reaches the ticket budget, the handoff reminder it gets; a repo's hook does the I/O.
 import { ContextMeter } from "./contextMeter.ts";
 import type { RunKnobs } from "./runKnobs.ts";
 
-export interface ContextNudgeOptions extends Pick<
+export type ContextNudgeKnobs = Pick<
   RunKnobs,
   "ticketBudget" | "handoffDocPath"
-> {
+>;
+
+export interface ContextNudgeOptions extends ContextNudgeKnobs {
   // Named in the message so the handoff comment's `session:` line ties it to this transcript.
   sessionId: string;
 }

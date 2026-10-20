@@ -1,14 +1,12 @@
 // The context nudge's root-only parts: which sessions the ticket budget binds, and the knobs the shim passes the runner's nudge. Pure apart from reading the override file; contextNudge.ts does the I/O.
 import { join } from "node:path";
 
+import type { ContextNudgeKnobs } from "@byronbroughten/spec-runner/contextNudge";
 import {
   isSessionKey,
   type LeasedWorkspace,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
-import {
-  type RunKnobs,
-  runKnobsOrDefaults,
-} from "@byronbroughten/spec-runner/runKnobs";
+import { runKnobsOrDefaults } from "@byronbroughten/spec-runner/runKnobs";
 
 import type { SessionMode } from "./tiers.ts";
 
@@ -25,10 +23,7 @@ export function isTicketWork(
   return mode === "runnerStep" || held.some(({ key }) => !isSessionKey(key));
 }
 
-export function contextNudgeKnobs(): Pick<
-  RunKnobs,
-  "ticketBudget" | "handoffDocPath"
-> {
+export function contextNudgeKnobs(): ContextNudgeKnobs {
   const { ticketBudget, handoffDocPath } = runKnobsOrDefaults(runnerConfigPath);
   return { ticketBudget, handoffDocPath };
 }

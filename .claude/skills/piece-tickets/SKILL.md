@@ -20,7 +20,7 @@ Choose only the stages the fields call for:
 
 With a one-session Split, the spec itself is the drafting ticket, final pass included: propose only Research, and say the spec is implemented once Research closes.
 
-Size each ticket to fit one session under the ~150K context budget in [`docs/agents/planning.md`](../../../docs/agents/planning.md#ticket-size), estimated at its read rates from the Supporting Material and Reference passages it reads, the Sections already drafted before it, and the length it drafts.
+Size each ticket to fit one session under the ticket budget (default ~150K) in [`docs/agents/planning.md`](../../../docs/agents/planning.md#ticket-size), estimated at its read rates from the Supporting Material and Reference passages it reads, the Sections already drafted before it, and the length it drafts.
 
 Order them Research first, Sections in reading order, the final pass last, each blocked by the one before. Present a numbered list: title, stage, the Sections it names, blocked by, and its rough size. Ask whether the granularity, the order and the edges are right.
 
