@@ -1,6 +1,5 @@
 // Prints every run of four or more words a Deliverable shares with the passages read for it, for a judgment pass to keep or dismiss.
-// Usage: npm run overlap -- --deliverable <file.md> --passages <folder> [--allow <file>]
-// Each file in the folder is one passage, named by its file name. The allow file lists one proper name or fixed term per line.
+// Each file in the passages folder is one passage, named by its file name. The allow file lists one proper name or fixed term per line.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
@@ -19,29 +18,34 @@ try {
     },
   });
   if (!values.deliverable || !values.passages) throw new Error(usage);
-  const folder = values.passages;
-  const passages = readdirSync(folder, { withFileTypes: true })
+  const passages = passagesOf(values.passages);
+  const hits = overlapHits({
+    deliverable: readFileSync(values.deliverable, "utf8"),
+    passages,
+    allowlist: values.allow ? allowlistOf(values.allow) : [],
+  });
+  console.log(report(hits, passages.length));
+} catch (error) {
+  console.error(error instanceof Error ? error.message : error);
+  process.exitCode = 1;
+}
+
+function passagesOf(folder: string): { name: string; text: string }[] {
+  return readdirSync(folder, { withFileTypes: true })
     .filter((entry) => entry.isFile() && !entry.name.startsWith("."))
     .map((entry) => ({
       name: entry.name,
       text: readFileSync(join(folder, entry.name), "utf8"),
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
-  const allowlist = values.allow
-    ? readFileSync(values.allow, "utf8")
-        .split("\n")
-        .map((line) => line.trim())
-        .filter((line) => line !== "" && !line.startsWith("#"))
-    : [];
-  const hits = overlapHits({
-    deliverable: readFileSync(values.deliverable, "utf8"),
-    passages,
-    allowlist,
-  });
-  console.log(report(hits, passages.length));
-} catch (error) {
-  console.error(error instanceof Error ? error.message : error);
-  process.exitCode = 1;
+}
+
+// Blank lines and "#" lines are skipped, so an allow file can carry notes.
+function allowlistOf(path: string): string[] {
+  return readFileSync(path, "utf8")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line !== "" && !line.startsWith("#"));
 }
 
 function report(hits: OverlapHit[], passageCount: number): string {

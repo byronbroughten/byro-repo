@@ -29,15 +29,30 @@ describe("overlapHits", () => {
 
   it("drops a run made only of common function words", () => {
     const passages = [
-      { name: "lease.md", text: "Notice must arrive at the end of the lease." },
+      { name: "phases.md", text: "Funding is set at the start of the year." },
     ];
     expect(
       overlapHits({
-        deliverable: "Rent is due at the end of the month.",
+        deliverable: "The sponsor will delay the start of the build.",
         passages,
         allowlist: [],
       }),
     ).toEqual([]);
+  });
+
+  it("still finds copied wording that overlaps a dropped function-word run", () => {
+    const passages = [
+      {
+        name: "lease.md",
+        text: "We met at the end of the day. Notice is due before the end of the lease term.",
+      },
+    ];
+    const hits = overlapHits({
+      deliverable: "Rent rises at the end of the lease term.",
+      passages,
+      allowlist: [],
+    });
+    expect(hits.map((hit) => hit.run)).toEqual(["the end of the lease term"]);
   });
 
   it("never matches an allowlisted term, so only the copied wording around it counts", () => {

@@ -2,12 +2,12 @@
 // The rule and its reasoning: docs/writing-style/borrowing.md. The command: overlap.ts.
 import { markdownBlocks } from "../jev/markdownBlocks.ts";
 
-export interface Passage {
+interface Passage {
   name: string;
   text: string;
 }
 
-export interface OverlapInput {
+interface OverlapInput {
   deliverable: string;
   passages: Passage[];
   allowlist: string[];
@@ -23,8 +23,11 @@ export interface OverlapHit {
 }
 
 // An allowlisted term's words are undefined, so no run passes through them.
+type MaskedWords = (string | undefined)[];
+
 interface Tokens {
-  words: (string | undefined)[];
+  sentences: string[];
+  words: MaskedWords;
   sentenceIndexes: number[];
 }
 
@@ -62,49 +65,35 @@ export function overlapHits({
   );
   const terms = allowlist.map(wordsOf);
   return passages.flatMap((passage) => {
-    const passageSentences = sentencesOf(passage.text);
-    const passageTokens = tokensOf(passageSentences, terms);
+    const passageTokens = tokensOf(sentencesOf(passage.text), terms);
     return sentences.flatMap((sentence) =>
-      sharedRuns(
-        tokensOf([sentence], terms).words,
-        passageTokens.words,
-      ).flatMap((run) => {
-        const words = passageTokens.words
-          .slice(run.start, run.start + run.length)
-          .filter((word) => word !== undefined);
-        const contentWords = words.filter((word) => !functionWords.has(word));
-        if (contentWords.length === 0) return [];
-        return [
-          {
+      sharedRuns(tokensOf([sentence], terms).words, passageTokens.words).map(
+        (run) => {
+          const words = passageTokens.words
+            .slice(run.start, run.start + run.length)
+            .filter((word) => word !== undefined);
+          return {
             run: words.join(" "),
             wordCount: run.length,
             passageName: passage.name,
             sentence,
-            passageSentence: passageSentenceOf(
-              passageSentences,
-              passageTokens,
-              run,
-            ),
-            isOnlyFigures: contentWords.every(
-              (word) => /^\d+$/.test(word) || months.has(word),
-            ),
-          },
-        ];
-      }),
+            passageSentence: passageSentenceOf(passageTokens, run),
+            isOnlyFigures: words
+              .filter((word) => !functionWords.has(word))
+              .every((word) => /^\d+$/.test(word) || months.has(word)),
+          };
+        },
+      ),
     );
   });
 }
 
 // The passage sentences the run spans, joined, since a run can cross a sentence break the splitter guessed.
-function passageSentenceOf(
-  passageSentences: string[],
-  passageTokens: Tokens,
-  run: Run,
-): string {
+function passageSentenceOf(passageTokens: Tokens, run: Run): string {
   const first = passageTokens.sentenceIndexes[run.start] ?? 0;
   const last =
     passageTokens.sentenceIndexes[run.start + run.length - 1] ?? first;
-  return passageSentences.slice(first, last + 1).join(" ");
+  return passageTokens.sentences.slice(first, last + 1).join(" ");
 }
 
 function sentencesOf(text: string): string[] {
@@ -115,27 +104,26 @@ function sentencesOf(text: string): string[] {
 }
 
 function tokensOf(sentences: string[], terms: string[][]): Tokens {
-  const tokens = sentences.reduce<Tokens>(
-    (tokens, sentence, index) => {
-      wordsOf(sentence).forEach((word) => {
-        tokens.words.push(word);
-        tokens.sentenceIndexes.push(index);
-      });
-      return tokens;
-    },
-    { words: [], sentenceIndexes: [] },
+  const words = sentences.flatMap(wordsOf);
+  const sentenceIndexes = sentences.flatMap((sentence, index) =>
+    wordsOf(sentence).map(() => index),
   );
-  terms.forEach((term) => maskTerm(tokens.words, term));
-  return tokens;
+  return {
+    sentences,
+    words: terms.reduce<MaskedWords>(maskedTerm, words),
+    sentenceIndexes,
+  };
 }
 
-function maskTerm(words: (string | undefined)[], term: string[]): void {
+function maskedTerm(words: MaskedWords, term: string[]): MaskedWords {
+  const masked = [...words];
   words.forEach((_, start) => {
     const isTermStart =
       term.length > 0 &&
       term.every((word, offset) => words[start + offset] === word);
-    if (isTermStart) words.fill(undefined, start, start + term.length);
+    if (isTermStart) masked.fill(undefined, start, start + term.length);
   });
+  return masked;
 }
 
 function wordsOf(text: string): string[] {
@@ -148,14 +136,12 @@ function wordsOf(text: string): string[] {
 }
 
 // Greedy left to right: each run is the longest one starting at that sentence word, and the next search starts after it.
-function sharedRuns(
-  sentence: (string | undefined)[],
-  passage: (string | undefined)[],
-): Run[] {
+// A function-word-only run moves the search one word on, so copied wording overlapping it is still found.
+function sharedRuns(sentence: MaskedWords, passage: MaskedWords): Run[] {
   const runs: Run[] = [];
   let index = 0;
   while (index <= sentence.length - minRunLength) {
-    let best: Run = { start: 0, length: 0 };
+    let longest: Run = { start: 0, length: 0 };
     passage.forEach((_, start) => {
       let length = 0;
       while (
@@ -165,11 +151,14 @@ function sharedRuns(
       ) {
         length += 1;
       }
-      if (length > best.length) best = { start, length };
+      if (length > longest.length) longest = { start, length };
     });
-    if (best.length >= minRunLength) {
-      runs.push(best);
-      index += best.length;
+    const hasContentWord = sentence
+      .slice(index, index + longest.length)
+      .some((word) => word !== undefined && !functionWords.has(word));
+    if (longest.length >= minRunLength && hasContentWord) {
+      runs.push(longest);
+      index += longest.length;
     } else {
       index += 1;
     }
