@@ -1,11 +1,25 @@
 // Decides the context nudge: whether the session's peak context, read by the runner's context meter, has passed the ticket budget. Pure; contextNudge.ts does the I/O.
 import { ContextMeter } from "@byronbroughten/spec-runner/contextMeter";
+import {
+  isSessionKey,
+  type LeasedWorkspace,
+} from "@byronbroughten/spec-runner/IssueWorkspaces";
 import type { RunKnobs } from "@byronbroughten/spec-runner/runKnobs";
+
+import type { SessionMode } from "./tiers.ts";
 
 export type ContextNudgeKnobs = Pick<
   RunKnobs,
   "ticketBudget" | "handoffDocPath"
 >;
+
+// The budget sizes tickets, so it binds a runner step or a session holding an issue workspace; other sessions are the operator's to pace.
+export function isTicketWork(
+  mode: SessionMode,
+  held: LeasedWorkspace[],
+): boolean {
+  return mode === "runnerStep" || held.some(({ key }) => !isSessionKey(key));
+}
 
 export function contextNudgeContext(
   transcript: string,
