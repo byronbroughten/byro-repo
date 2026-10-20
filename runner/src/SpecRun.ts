@@ -113,7 +113,12 @@ import {
   type LimitGuardKnobs,
   type UsageReader,
 } from "./limitGuard.ts";
-import { pairLabelOf, pairOf, strongerPairOf } from "./modelFit.ts";
+import {
+  nextStrongerPairOf,
+  pairLabelOf,
+  pairOf,
+  strongerPairOf,
+} from "./modelFit.ts";
 import type { Notices } from "./Notices.ts";
 import { redChecksOutputSchema, redChecksPrompt } from "./redChecksStep.ts";
 import {
@@ -377,7 +382,8 @@ type FixerSession = Pick<StepRequest, "pair" | "resumeSessionId">;
 
 type FixAttempt =
   | { kind: "done"; outcomes: FixOutcome[]; logPath: string }
-  | { kind: "crossed"; logPath: string };
+  | { kind: "crossed"; logPath: string }
+  | { kind: "capped" };
 
 interface ImplementTake {
   ticketRun: TicketRun;
@@ -858,6 +864,13 @@ export class SpecRun {
   ): Promise<TicketOutcome> {
     const state = ticketStateOf(run, ticket.issue);
     try {
+      // Delivered first, so a `rerun on <pair>` answer picks the pair.
+      if (state.step === "halted") {
+        const { extraTurns } = this.config.knobs;
+        state.step =
+          deliverFailureHalts(run, { ticket: ticket.issue, extraTurns }) ??
+          "resume";
+      }
       const pair = state.pair ?? pairOf(ticket.body);
       if (pair === undefined) {
         throw new UnhandledStop(
@@ -865,12 +878,6 @@ export class SpecRun {
           "The ## Model fit section changed after preflight.",
           this._progressPathOf(run),
         );
-      }
-      if (state.step === "halted") {
-        const { extraTurns } = this.config.knobs;
-        state.step =
-          deliverFailureHalts(run, { ticket: ticket.issue, extraTurns }) ??
-          "resume";
       }
       this._log(
         run,
@@ -1364,17 +1371,24 @@ export class SpecRun {
         attempt.logPath,
       );
     }
-    const { outcomes, logPath } = attempt;
     const { heads, dirtyRepos } = await this._headsAndDirtyReposOf(workspace);
     const hasNewCommit = !isSameHeads(base, heads);
-    const problems = fixRecordProblems({
-      fixes,
-      outcomes,
-      hasNewCommit,
-      dirtyRepos,
-    });
-    if (problems.length > 0) {
-      throw schemaFailureOf(logPath, { problems, output: outcomes });
+    let outcomes: FixOutcome[];
+    if (attempt.kind === "capped") {
+      // A capped fixer keeps its commits; only its uncommitted work is set aside.
+      await this._snapshot(ticketRun, "fix");
+      outcomes = fixes.map(({ finding }) => turnCapGiveUpOf(finding));
+    } else {
+      outcomes = attempt.outcomes;
+      const problems = fixRecordProblems({
+        fixes,
+        outcomes,
+        hasNewCommit,
+        dirtyRepos,
+      });
+      if (problems.length > 0) {
+        throw schemaFailureOf(attempt.logPath, { problems, output: outcomes });
+      }
     }
     const downstream = await this._downstreamOf(run, ticket.issue);
     const gaveUps = outcomes.filter(isGaveUp);
@@ -1392,7 +1406,7 @@ export class SpecRun {
       ticket: ticketRun.ticket.issue,
       drafts: gaveUpHalts.map((record) => triageHaltOf(record, "give-up")),
     });
-    if (outcomes.some(({ status }) => status === "fixed")) state.fixer = fixer;
+    if (hasNewCommit) state.fixer = fixer;
   }
 
   private async _headsAndDirtyReposOf(
@@ -1429,6 +1443,7 @@ export class SpecRun {
     });
     if (fixer === "implementer") noteImplementerResult(state, result);
     if (result.hasCrossedCeiling) return { kind: "crossed", logPath };
+    if (isTurnCapped(result)) return { kind: "capped" };
     const record = recordOf("fix", result, logPath);
     return { kind: "done", outcomes: fixOutcomesOf(record), logPath };
   }
@@ -1489,6 +1504,18 @@ export class SpecRun {
         continue;
       }
       const { result } = ran;
+      if (isTurnCapped(result)) {
+        // A fixer's caller turns what it left unfinished into give-ups.
+        if (agent === "fix") return { result, logPath };
+        const turns = attempt.maxTurns ?? this.config.knobs.maxTurns[agent];
+        const cap = { detail: turnCapDetailOf(agent, turns), logPath };
+        if (agent === "implement") {
+          return this._haltOnImplementCap(ticketRun, cap);
+        }
+        await this._takeCrash(ticketRun, cap);
+        attempt = launch;
+        continue;
+      }
       const detail = crashDetailOf(agent, result, this.config.knobs);
       if (detail === undefined) return { result, logPath };
       await this._takeCrash(ticketRun, { detail, logPath });
@@ -1502,6 +1529,21 @@ export class SpecRun {
         };
       }
     }
+  }
+
+  // Offers more turns, or a stronger pair while there is one.
+  private async _haltOnImplementCap(
+    ticketRun: TicketRun,
+    cap: Crash,
+  ): Promise<never> {
+    const { pair, state } = ticketRun;
+    await this._snapshot(ticketRun, state.step);
+    const options = [`\`resume +${this.config.knobs.extraTurns} turns\``];
+    const stronger = nextStrongerPairOf(pair);
+    if (stronger !== undefined) {
+      options.push(`\`rerun on ${pairLabelOf(stronger)}\``);
+    }
+    return this._failureHalt(ticketRun, { ...cap, step: state.step, options });
   }
 
   private async _attemptStep(
@@ -1748,6 +1790,11 @@ export class SpecRun {
     state.redChecksLogPath = logPath;
     state.isStepStarted = undefined;
     this._saveState(run);
+    // The checks loop judges what a capped fixer committed.
+    if (isTurnCapped(result)) {
+      await this._snapshot(ticketRun, "checks");
+      return;
+    }
     recordOf("fix", result, logPath);
   }
 
@@ -2316,6 +2363,15 @@ function noteImplementerResult(
   state.implementerSession = sessionId ?? state.implementerSession;
 }
 
+// A live-ceiling kill is the fixer's crossing, whatever its subtype.
+function isTurnCapped(result: StepResult): boolean {
+  return result.exitSubtype === "error_max_turns" && !result.hasCrossedCeiling;
+}
+
+function turnCapDetailOf(agent: StepAgent, turns: number): string {
+  return `The ${agent} step hit its ${turns}-turn cap.`;
+}
+
 // Undefined for an outcome a caller handles: a live-ceiling kill, a schema failure, success or a turn cap.
 function crashDetailOf(
   agent: StepAgent,
@@ -2374,6 +2430,15 @@ function schemaFailureOf(
     `${problems.join("; ")}\n\nRaw output: \`${outputPath}\``,
     logPath,
   );
+}
+
+function turnCapGiveUpOf(finding: number): GaveUpOutcome {
+  return {
+    finding,
+    status: "gave-up",
+    reason: "turn-cap",
+    note: "The fixer hit its turn cap before reporting the finding fixed.",
+  };
 }
 
 function isGaveUp(outcome: FixOutcome): outcome is GaveUpOutcome {

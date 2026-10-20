@@ -262,7 +262,7 @@ describe("run's timings", () => {
     const stepError: StepResult = {
       ...reviewed(),
       output: { status: "none" },
-      exitSubtype: "error_max_turns",
+      exitSubtype: "error_max_budget_usd",
     };
 
     await specRun(
