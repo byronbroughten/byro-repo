@@ -136,6 +136,7 @@ import { type Target, targetLineShapes, targetsOf } from "./ticketTargets.ts";
 import {
   type LimitReading,
   type LimitReadings,
+  minutesOf,
   percentOf,
   type StepAgent,
   type StepSession,
@@ -276,6 +277,7 @@ interface TicketState {
   isStepStarted?: boolean;
   // Retries taken, by the step that crashed; cleared when a Failure Halt is answered.
   crashes?: Partial<Record<TicketStep, number>>;
+  // Kept apart from crashes.checks, so a crash in the red-checks resume doesn't spend the red-checks retry.
   redCheckResumes?: number;
   redChecksLogPath?: string;
   // Set once a landed ticket's review list and covered-later notes are posted, or found to need none.
@@ -1558,6 +1560,7 @@ export class SpecRun {
     const folder = this._stepsFolderOf(ticketRun.run);
     const stem = fileStemOf(ticketRun.ticket.issue);
     let index = ticketRun.state.sessions.length + 1;
+    // Not shared with git.ts's freeBranchNameOf, which asks git asynchronously and numbers from 2.
     while (existsSync(join(folder, `${stem}-${index}-${agent}.jsonl`))) {
       index += 1;
     }
@@ -2188,10 +2191,6 @@ function interruptedPromptOf(step: TicketStep): string {
 
 function unrunDetailOf(step: string, error: unknown): string {
   return `The ${step} step failed to run: ${messageOf(error)}`;
-}
-
-function minutesOf(ms: number): number {
-  return Math.round(ms / 60_000);
 }
 
 function isGaveUp(outcome: FixOutcome): outcome is GaveUpOutcome {
