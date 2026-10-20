@@ -60,6 +60,7 @@ Present the proposed breakdown as a numbered list. For each ticket, show:
 - **Blocked by**: which other tickets (if any) must complete first
 - **Kind**: agent or human; for an agent ticket, its model fit
 - **What it delivers**: the end-to-end behaviour this ticket makes work
+- **Files**: the count from the slice rules' grep, with the names; split a ticket over ~10 before showing it
 
 When proposing Phases, add a **Phases** line before the list: each Phase's user story numbers, Phase 1's stand-ins, and which tickets are its gate's blockers.
 
