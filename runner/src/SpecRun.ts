@@ -114,6 +114,10 @@ import {
   type UsageReader,
 } from "./limitGuard.ts";
 import {
+  mergeMasterOutputSchema,
+  mergeMasterPrompt,
+} from "./mergeMasterStep.ts";
+import {
   nextStrongerPairOf,
   pairLabelOf,
   pairOf,
@@ -162,6 +166,7 @@ import {
   type WrapUpGitHub,
   type WrapUpKnobs,
 } from "./WrapUp.ts";
+import { WrapUpFailure } from "./WrapUpFailure.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -1828,18 +1833,98 @@ export class SpecRun {
     }
     this._writeFacts(landingTicket);
     this._log(run, `${issueLabelOf(ticket.issue)}: wrapping up.`);
-    try {
-      await this.wrapUp.run(ticket.issue);
-    } catch (error) {
-      throw new UnhandledStop(
-        "wrap-up-failure",
-        messageOf(error),
-        this._progressPathOf(run),
-      );
+    for (;;) {
+      try {
+        await this.wrapUp.run(ticket.issue);
+        break;
+      } catch (error) {
+        await this._takeWrapUpFailure(landingTicket, error);
+      }
     }
     this._advance(landingTicket, "landed");
     this._log(run, `${issueLabelOf(ticket.issue)}: landed.`);
     await this._postReviewList(run, ticket);
+  }
+
+  // Returns only after the merge-master resume, so the wrap-up runs again; a network failure was already retried with backoff.
+  private async _takeWrapUpFailure(
+    landingTicket: LandingTicket,
+    error: unknown,
+  ): Promise<void> {
+    const { run, state } = landingTicket;
+    const logPath = this._progressPathOf(run);
+    if (!(error instanceof WrapUpFailure) || error.kind === "network") {
+      throw new UnhandledStop("wrap-up-failure", messageOf(error), logPath);
+    }
+    const resumes = state.conflictResumes ?? 0;
+    if (error.kind === "conflict" && resumes === 0) {
+      state.conflictResumes = resumes + 1;
+      this._saveState(run);
+      await this._mergeMaster(landingTicket, error.message);
+      return;
+    }
+    let detail = error.message;
+    if (error.kind === "conflict") {
+      detail = `The wrap-up still conflicts after the merge-master resume: ${detail}`;
+    }
+    await this._failureHalt(landingTicket, {
+      step: "wrap-up",
+      detail,
+      logPath,
+    });
+  }
+
+  // The rerun wrap-up judges what the session merged, so a turn cap only sets its uncommitted work aside.
+  private async _mergeMaster(
+    landingTicket: LandingTicket,
+    conflict: string,
+  ): Promise<void> {
+    const { run, ticket, state } = landingTicket;
+    const progressPath = this._progressPathOf(run);
+    const workspace = await this.workspaces.find(ticket.issue);
+    if (workspace === undefined) {
+      throw new UnhandledStop(
+        "workspace",
+        `${issueLabelOf(ticket.issue)}'s workspace is gone, so master can't be merged into its branch.`,
+        progressPath,
+      );
+    }
+    const ticketRun: TicketRun = {
+      ...landingTicket,
+      workspace,
+      targets: targetsAtLaunchOf(ticket, progressPath),
+    };
+    this._log(
+      run,
+      `${issueLabelOf(ticket.issue)}: the wrap-up conflicted with master; resuming the implementer to merge it.`,
+    );
+    const { result, logPath } = await this._runStep(ticketRun, "fix", {
+      ...this._fixerSessionOf(ticketRun, "implementer"),
+      prompt: mergeMasterPrompt({
+        issue: ticket.issue,
+        title: ticket.title,
+        branch: workspace.branch,
+        branchedRepos: branchedReposOf(state),
+        conflict,
+      }),
+      jsonSchema: mergeMasterOutputSchema,
+    });
+    noteImplementerResult(state, result);
+    this._saveState(run);
+    if (isTurnCapped(result)) {
+      await this._snapshot(ticketRun, "wrap-up");
+      return;
+    }
+    try {
+      recordOf("merge-master", result, logPath);
+    } catch (error) {
+      if (!(error instanceof SchemaFailure)) throw error;
+      await this._failureHalt(landingTicket, {
+        step: "wrap-up",
+        detail: error.message,
+        logPath: error.logPath,
+      });
+    }
   }
 
   // Posts the notes before the comment, so a ticket marked posted has posted both.
