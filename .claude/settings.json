@@ -67,14 +67,20 @@
     "ask": [
       "Bash(git push*)",
       "mcp__gworkspace__manage_drive_access",
-      "mcp__gworkspace__set_drive_file_permissions"
+      "mcp__gworkspace__set_drive_file_permissions",
+      "mcp__gmail__manage_gmail_filter",
+      "mcp__gmail__manage_gmail_label",
+      "mcp__gmail__modify_gmail_message_labels",
+      "mcp__gmail__batch_modify_gmail_message_labels"
     ],
     "deny": [
       "Read(./packages/*/src/generated/columnConfigs.ts)",
       "Read(./packages/*/dev/generated/columnConfigs.ts)",
       "Edit(**/.clasprc.json*)",
       "Edit(**/client_secret*.json)",
-      "Edit(**/.env*)"
+      "Edit(**/.env*)",
+      "mcp__gmail__send_gmail_message",
+      "mcp__gmail__draft_gmail_message"
     ]
   },
   "hooks": {
