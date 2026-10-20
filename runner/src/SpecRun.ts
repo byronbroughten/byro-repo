@@ -1434,8 +1434,7 @@ export class SpecRun {
   ): Promise<FixAttempt> {
     const { ticket, workspace, state } = ticketRun;
     const { knobs } = this.config;
-    const { result, logPath } = await this._runStep(ticketRun, "fix", {
-      ...this._fixerSessionOf(ticketRun, fixer),
+    const { result, logPath } = await this._runFixerStep(ticketRun, fixer, {
       liveCeiling: knobs.liveCeiling,
       prompt: fixPrompt({
         issue: ticket.issue,
@@ -1446,11 +1445,24 @@ export class SpecRun {
       }),
       jsonSchema: fixOutputSchema,
     });
-    if (fixer === "implementer") noteImplementerResult(state, result);
     if (result.hasCrossedCeiling) return { kind: "crossed", logPath };
     if (isTurnCapped(result)) return { kind: "capped" };
     const record = recordOf("fix", result, logPath);
     return { kind: "done", outcomes: fixOutcomesOf(record), logPath };
+  }
+
+  private async _runFixerStep(
+    ticketRun: TicketRun,
+    fixer: Fixer,
+    launch: StepLaunch,
+  ): Promise<RanStep> {
+    const ran = await this._runStep(ticketRun, "fix", {
+      ...this._fixerSessionOf(ticketRun, fixer),
+      ...launch,
+    });
+    const { state } = ticketRun;
+    if (fixer === "implementer") noteImplementerResult(state, ran.result);
+    return ran;
   }
 
   private _fixerSessionOf(
@@ -1780,8 +1792,7 @@ export class SpecRun {
       `${issueLabelOf(ticket.issue)}: checks red; resuming the ${fixerLabels[fixer]} with the failure.`,
     );
     this._markStepStarted(ticketRun);
-    const { result, logPath } = await this._runStep(ticketRun, "fix", {
-      ...this._fixerSessionOf(ticketRun, fixer),
+    const { result, logPath } = await this._runFixerStep(ticketRun, fixer, {
       prompt: redChecksPrompt({
         issue: ticket.issue,
         title: ticket.title,
@@ -1791,7 +1802,6 @@ export class SpecRun {
       }),
       jsonSchema: redChecksOutputSchema,
     });
-    if (fixer === "implementer") noteImplementerResult(state, result);
     state.redChecksLogPath = logPath;
     state.isStepStarted = undefined;
     this._saveState(run);
@@ -1898,18 +1908,20 @@ export class SpecRun {
       run,
       `${issueLabelOf(ticket.issue)}: the wrap-up conflicted with master; resuming the implementer to merge it.`,
     );
-    const { result, logPath } = await this._runStep(ticketRun, "fix", {
-      ...this._fixerSessionOf(ticketRun, "implementer"),
-      prompt: mergeMasterPrompt({
-        issue: ticket.issue,
-        title: ticket.title,
-        branch: workspace.branch,
-        branchedRepos: branchedReposOf(state),
-        conflict,
-      }),
-      jsonSchema: mergeMasterOutputSchema,
-    });
-    noteImplementerResult(state, result);
+    const { result, logPath } = await this._runFixerStep(
+      ticketRun,
+      "implementer",
+      {
+        prompt: mergeMasterPrompt({
+          issue: ticket.issue,
+          title: ticket.title,
+          branch: workspace.branch,
+          branchedRepos: branchedReposOf(state),
+          conflict,
+        }),
+        jsonSchema: mergeMasterOutputSchema,
+      },
+    );
     this._saveState(run);
     if (isTurnCapped(result)) {
       await this._snapshot(ticketRun, "wrap-up");
