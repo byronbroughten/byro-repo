@@ -10,16 +10,37 @@ import { packagesImportRegex, workspaceNames } from "./eslint.config.mjs";
 
 const repoRoot = fileURLToPath(new URL(".", import.meta.url));
 
-async function boundaryErrors(
+async function ruleMessages(
   code: string,
   filePath: string,
+  ruleId: string,
 ): Promise<string[]> {
   const [result] = await new ESLint({ cwd: repoRoot }).lintText(code, {
     filePath,
   });
   return (result?.messages ?? [])
-    .filter((message) => message.ruleId === "runner/import-boundary")
+    .filter((message) => message.ruleId === ruleId)
     .map((message) => message.message);
+}
+
+function fakeWorkspaceRoot(
+  workspaces: string[],
+  packages: { folder: string; name: string }[],
+): string {
+  const root = mkdtempSync(join(tmpdir(), "workspace-names-"));
+  writeFileSync(join(root, "package.json"), JSON.stringify({ workspaces }));
+  packages.forEach(({ folder, name }) => {
+    mkdirSync(join(root, folder), { recursive: true });
+    writeFileSync(join(root, folder, "package.json"), JSON.stringify({ name }));
+  });
+  return root;
+}
+
+async function boundaryErrors(
+  code: string,
+  filePath: string,
+): Promise<string[]> {
+  return ruleMessages(code, filePath, "runner/import-boundary");
 }
 
 describe("the runner's import boundary", () => {
@@ -36,15 +57,9 @@ describe("the runner's import boundary", () => {
   });
 
   it("finds workspace names under packages/*", () => {
-    const root = mkdtempSync(join(tmpdir(), "workspace-names-"));
-    writeFileSync(
-      join(root, "package.json"),
-      JSON.stringify({ workspaces: ["packages/*"] }),
-    );
-    mkdirSync(join(root, "packages", "fake"), { recursive: true });
-    writeFileSync(
-      join(root, "packages", "fake", "package.json"),
-      JSON.stringify({ name: "@example/fake" }),
+    const root = fakeWorkspaceRoot(
+      ["packages/*"],
+      [{ folder: "packages/fake", name: "@example/fake" }],
     );
     expect(workspaceNames(root)).toEqual(["@example/fake"]);
   });
@@ -75,13 +90,12 @@ describe("the runner's import boundary", () => {
 });
 
 describe("the private-helper rule", () => {
-  async function helperErrors(code: string): Promise<number> {
-    const [result] = await new ESLint({ cwd: repoRoot }).lintText(code, {
-      filePath: "scripts/helper.ts",
-    });
-    return (result?.messages ?? []).filter(
-      (message) => message.ruleId === "style/private-helper-uses-this",
-    ).length;
+  async function helperErrors(code: string): Promise<string[]> {
+    return ruleMessages(
+      code,
+      "scripts/helper.ts",
+      "style/private-helper-uses-this",
+    );
   }
 
   it("flags a `private` or `#` method that never reads `this`", async () => {
@@ -97,7 +111,7 @@ describe("the private-helper rule", () => {
   }
 }
 `;
-    expect(await helperErrors(code)).toBe(2);
+    expect(await helperErrors(code)).toHaveLength(2);
   });
 
   it("passes a helper that reads `this` from an arrow, and a protected or public method", async () => {
@@ -119,18 +133,13 @@ export class Box extends Base {
   }
 }
 `;
-    expect(await helperErrors(code)).toBe(0);
+    expect(await helperErrors(code)).toEqual([]);
   });
 });
 
 describe("the packages/ import rule", () => {
-  async function packagesErrors(code: string): Promise<number> {
-    const [result] = await new ESLint({ cwd: repoRoot }).lintText(code, {
-      filePath: ".claude/hooks/hook.ts",
-    });
-    return (result?.messages ?? []).filter(
-      (message) => message.ruleId === "no-restricted-imports",
-    ).length;
+  async function packagesErrors(code: string): Promise<string[]> {
+    return ruleMessages(code, ".claude/hooks/hook.ts", "no-restricted-imports");
   }
 
   it("passes the runner and config by name", async () => {
@@ -140,31 +149,23 @@ describe("the packages/ import rule", () => {
       "export { ContextMeter, eslintPreset };",
       "",
     ].join("\n");
-    expect(await packagesErrors(code)).toBe(0);
+    expect(await packagesErrors(code)).toEqual([]);
   });
 
   it("rejects a relative import into packages/", async () => {
     const code =
       'import { x } from "../../packages/framework/src/x.ts";\nexport { x };\n';
-    expect(await packagesErrors(code)).toBe(1);
+    expect(await packagesErrors(code)).toHaveLength(1);
   });
 
   it("finds only the names under packages/", () => {
-    const root = mkdtempSync(join(tmpdir(), "package-names-"));
-    writeFileSync(
-      join(root, "package.json"),
-      JSON.stringify({ workspaces: ["config", "packages/*"] }),
+    const root = fakeWorkspaceRoot(
+      ["config", "packages/*"],
+      [
+        { folder: "config", name: "@example/config" },
+        { folder: "packages/fake", name: "@example/fake" },
+      ],
     );
-    [
-      { folder: "config", name: "@example/config" },
-      { folder: "packages/fake", name: "@example/fake" },
-    ].forEach(({ folder, name }) => {
-      mkdirSync(join(root, folder), { recursive: true });
-      writeFileSync(
-        join(root, folder, "package.json"),
-        JSON.stringify({ name }),
-      );
-    });
     expect(workspaceNames(root, "packages/")).toEqual(["@example/fake"]);
   });
 
@@ -176,7 +177,7 @@ describe("the packages/ import rule", () => {
     expect(regex.test("@example/fakexjs")).toBe(false);
   });
 
-  it("rejects nothing extra with no names", () => {
+  it("keeps only the path pattern with no names", () => {
     const regex = new RegExp(packagesImportRegex([]));
     expect(regex.test("@byronbroughten/spec-runner")).toBe(false);
     expect(regex.test("packages/x")).toBe(true);
