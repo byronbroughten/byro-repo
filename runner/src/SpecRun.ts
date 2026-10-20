@@ -54,11 +54,13 @@ import {
   dirtyReposOf,
   git,
   type RepoWorktree,
+  snapshotUncommitted,
   worktreeStateOf,
 } from "./git.ts";
 import {
   answeredNoteOf,
   blockerHaltOf,
+  failureHaltOf,
   freshResumeSection,
   type Halt,
   haltCommentOf,
@@ -74,6 +76,7 @@ import {
   resumePrompt,
   runnerMark,
   shortRefOf,
+  type StepFailure,
   triageHaltOf,
 } from "./halts.ts";
 import {
@@ -108,6 +111,7 @@ import {
 } from "./limitGuard.ts";
 import { pairLabelOf, pairOf, strongerPairOf } from "./modelFit.ts";
 import type { Notices } from "./Notices.ts";
+import { redChecksOutputSchema, redChecksPrompt } from "./redChecksStep.ts";
 import {
   coveredLaterNotesOf,
   gapCheckListOf,
@@ -136,7 +140,11 @@ import {
   type StepAgent,
   type StepSession,
 } from "./transcriptFacts.ts";
-import { stopOutcomes, UnhandledStop } from "./UnhandledStop.ts";
+import {
+  rerunRetriedOutcomes,
+  stopOutcomes,
+  UnhandledStop,
+} from "./UnhandledStop.ts";
 import {
   WrapUp,
   type WrapUpFacts,
@@ -147,6 +155,8 @@ import {
 const execFileAsync = promisify(execFile);
 
 const readyLabel = "ready-for-agent";
+const interruptedPrompt =
+  "The previous run was interrupted; continue. Any uncommitted work was set aside on a backup branch and the tree reset to its last commit, so check what is committed first. Nobody is watching this session: never ask a question or wait for an answer.";
 const runHolder: LeaseHolder = { kind: "run", pid: process.pid };
 
 export interface TrackedIssue extends BodyAuthorship {
@@ -211,7 +221,7 @@ export interface RunResult {
   message: string;
 }
 
-type TicketStep =
+export type TicketStep =
   | "implement"
   | "review"
   | "triage"
@@ -260,6 +270,12 @@ interface TicketState {
   configFolder?: string;
   limitReadings?: LimitReadings;
   stop?: string;
+  // Set while a step runs, so a rerun after the process died takes the step as crashed.
+  isStepStarted?: boolean;
+  // Retries taken, by the step that crashed; cleared when a Failure Halt is answered.
+  crashes?: Partial<Record<TicketStep, number>>;
+  redCheckResumes?: number;
+  redChecksLogPath?: string;
   // Set once a landed ticket's review list and covered-later notes are posted, or found to need none.
   isReviewListPosted?: boolean;
 }
@@ -321,11 +337,17 @@ interface RanStep {
   logPath: string;
 }
 
+// An adapter that throws leaves the step unrun, which is retried as a crash.
+type StepAttempt =
+  { kind: "ran"; result: StepResult } | { kind: "unrun"; detail: string };
+
 interface LaunchedStep {
   record: unknown;
   logPath: string;
   peakContext: number | undefined;
 }
+
+type FixerSession = Pick<StepRequest, "pair" | "resumeSessionId">;
 
 type FixAttempt =
   | { kind: "done"; outcomes: FixOutcome[]; logPath: string }
@@ -460,7 +482,7 @@ export class SpecRun {
         return this._end(
           run,
           "stopped",
-          `${label} is still open after its Stop (${selection.stop}); finish and land it, then rerun.`,
+          `${label} is still open after its Stop (${selection.stop}); finish and land it by hand, then rerun.`,
         );
       }
       let outcome: TicketOutcome;
@@ -795,7 +817,9 @@ export class SpecRun {
           this._progressPathOf(run),
         );
       }
-      if (state.step === "halted") state.step = "resume";
+      if (state.step === "halted") {
+        state.step = relaunchStepOf(run, ticket.issue);
+      }
       this._log(
         run,
         `${issueLabelOf(ticket.issue)}: launching on ${pairLabelOf(pair)} from ${state.step}.`,
@@ -820,7 +844,11 @@ export class SpecRun {
         return "leased";
       }
       if (error instanceof TicketHalted) return "halted";
+      // Only a run that dies mid-step leaves the marker, so an environment Stop never costs the step its retry.
+      state.isStepStarted = undefined;
+      this._saveState(run);
       if (!(error instanceof UnhandledStop)) throw error;
+      if (isRerunRetried(error)) await this._stopForRerun(run, ticket, error);
       await this._stopTicket(run, ticket, error);
       return "stopped";
     } finally {
@@ -877,8 +905,16 @@ export class SpecRun {
   }
 
   private async _runSteps(ticketRun: TicketRun): Promise<void> {
-    const { state } = ticketRun;
+    const { run, state } = ticketRun;
+    if (state.isStepStarted) {
+      await this._takeCrash(ticketRun, {
+        step: state.step,
+        detail: `The run ended during the ${state.step} step.`,
+        logPath: this._progressPathOf(run),
+      });
+    }
     if (state.step === "implement") {
+      this._markStepStarted(ticketRun);
       await this._timed(ticketRun, "implement", () =>
         this._implement(ticketRun),
       );
@@ -887,21 +923,25 @@ export class SpecRun {
       this._advance(ticketRun, next);
     }
     if (state.step === "resume") {
+      this._markStepStarted(ticketRun);
       await this._timed(ticketRun, "resume", () => this._resume(ticketRun));
       this._advance(ticketRun, stepAfterResumeOf(state));
     }
     if (state.step === "review") {
+      this._markStepStarted(ticketRun);
       await this._timed(ticketRun, "review", () => this._review(ticketRun));
       const hasFindings = (state.findings ?? []).length > 0;
       this._advance(ticketRun, hasFindings ? "triage" : "checks");
     }
     if (state.step === "triage") {
+      this._markStepStarted(ticketRun);
       await this._timed(ticketRun, "triage", () => this._triage(ticketRun));
       const hasFix = (state.triage ?? []).some(isFix);
       this._advance(ticketRun, hasFix ? "fix" : "checks");
     }
     // Checks run after the fixes, so a fix that turns them red Stops.
     if (state.step === "fix") {
+      this._markStepStarted(ticketRun);
       await this._timed(ticketRun, "fix", () => this._fix(ticketRun));
       this._advance(ticketRun, "checks");
     }
@@ -910,6 +950,63 @@ export class SpecRun {
       await this._timed(ticketRun, "checks", () => this._check(ticketRun));
       this._advance(ticketRun, "wrap-up");
     }
+  }
+
+  private _markStepStarted({ run, state }: TicketRun): void {
+    state.isStepStarted = true;
+    this._saveState(run);
+  }
+
+  // Snapshots a step that edits; a crash past the retries is a Failure Halt.
+  private async _takeCrash(
+    ticketRun: TicketRun,
+    failure: StepFailure,
+  ): Promise<void> {
+    const { run, ticket, state } = ticketRun;
+    const { step, detail } = failure;
+    if (step !== "review" && step !== "triage") {
+      await this._snapshot(ticketRun, step);
+    }
+    state.crashes ??= {};
+    const taken = state.crashes[step] ?? 0;
+    const { retriesPerFailure } = this.config.knobs;
+    if (taken >= retriesPerFailure) await this._failureHalt(ticketRun, failure);
+    state.crashes[step] = taken + 1;
+    this._saveState(run);
+    this._log(
+      run,
+      `${issueLabelOf(ticket.issue)}: ${detail} Retrying, ${taken + 1} of ${retriesPerFailure}.`,
+    );
+  }
+
+  // Each dirty worktree's uncommitted work goes to a backup branch, and the tree back to its last commit.
+  private async _snapshot(
+    { run, ticket, workspace }: TicketRun,
+    step: TicketStep,
+  ): Promise<void> {
+    for (const { repo, worktree } of this._worktreesOf(workspace)) {
+      const branch = await snapshotUncommitted(
+        worktree,
+        `backup/${workspace.branch}-${step}`,
+      );
+      if (branch === undefined) continue;
+      this._log(
+        run,
+        `${issueLabelOf(ticket.issue)}: saved ${repo}'s uncommitted work to ${branch}.`,
+      );
+    }
+  }
+
+  private async _failureHalt(
+    ticketRun: TicketRun,
+    failure: StepFailure,
+  ): Promise<never> {
+    const downstream = await this._downstreamOf(
+      ticketRun.run,
+      ticketRun.ticket.issue,
+    );
+    raiseHalts(ticketRun, [failureHaltOf(failure, downstream)]);
+    return this._halt(ticketRun);
   }
 
   private async _implement(ticketRun: TicketRun): Promise<void> {
@@ -990,9 +1087,13 @@ export class SpecRun {
       ({ isPosted }) => !isPosted,
     );
     if (unposted.length === 0) return;
+    await this._halt(ticketRun);
+  }
+
+  private async _halt(ticketRun: TicketRun): Promise<never> {
     this._advance(ticketRun, "halted");
-    await this._postUnpostedHalts(run);
-    throw new TicketHalted(issueLabelOf(ticket.issue));
+    await this._postUnpostedHalts(ticketRun.run);
+    throw new TicketHalted(issueLabelOf(ticketRun.ticket.issue));
   }
 
   // Also picks up the Halts of a ticket that halted in a run killed before they were all posted.
@@ -1204,19 +1305,10 @@ export class SpecRun {
     fixer: Fixer,
     fixes: TriageRecord[],
   ): Promise<FixAttempt> {
-    const { ticket, pair, workspace, state } = ticketRun;
+    const { ticket, workspace, state } = ticketRun;
     const { knobs } = this.config;
-    let resumed: Pick<StepRequest, "pair" | "resumeSessionId">;
-    if (fixer === "implementer") {
-      resumed = { pair, resumeSessionId: implementerSessionOf(state) };
-    } else {
-      resumed = {
-        pair: strongerPairOf(knobs.triagePair, pair),
-        resumeSessionId: lastSessionOf(state, "triage"),
-      };
-    }
     const { result, logPath } = await this._runStep(ticketRun, "fix", {
-      ...resumed,
+      ...this._fixerSessionOf(ticketRun, fixer),
       liveCeiling: knobs.liveCeiling,
       prompt: fixPrompt({
         issue: ticket.issue,
@@ -1227,13 +1319,23 @@ export class SpecRun {
       }),
       jsonSchema: fixOutputSchema,
     });
-    if (fixer === "implementer") {
-      state.implementPeak = result.peakContext ?? state.implementPeak;
-      state.implementerSession = result.sessionId ?? state.implementerSession;
-    }
+    if (fixer === "implementer") noteImplementerResult(state, result);
     if (result.hasCrossedCeiling) return { kind: "crossed", logPath };
     const record = recordOf("fix", result, logPath);
     return { kind: "done", outcomes: fixOutcomesOf(record), logPath };
+  }
+
+  private _fixerSessionOf(
+    { pair, state }: TicketRun,
+    fixer: Fixer,
+  ): FixerSession {
+    if (fixer === "implementer") {
+      return { pair, resumeSessionId: implementerSessionOf(state) };
+    }
+    return {
+      pair: strongerPairOf(this.config.knobs.triagePair, pair),
+      resumeSessionId: lastSessionOf(state, "triage"),
+    };
   }
 
   // The run's tickets this one blocks, directly or through another, each `<repo>#<n>`.
@@ -1262,12 +1364,44 @@ export class SpecRun {
     return { record, logPath, peakContext: result.peakContext };
   }
 
-  // Leaves the result unread, so a fixer can check for a live-ceiling kill before recordOf().
+  // Retries a crash, resuming its session when it has one; leaves the result unread, so a fixer can check for a live-ceiling kill before recordOf().
   private async _runStep(
     ticketRun: TicketRun,
     agent: StepAgent,
-    { prompt, jsonSchema, ...overrides }: StepLaunch,
+    launch: StepLaunch,
   ): Promise<RanStep> {
+    const step = ticketRun.state.step;
+    let attempt = launch;
+    for (;;) {
+      const logPath = this._stepLogPathOf(ticketRun, agent);
+      const ran = await this._attemptStep(ticketRun, agent, attempt, logPath);
+      if (ran.kind === "unrun") {
+        await this._takeCrash(ticketRun, { step, detail: ran.detail, logPath });
+        attempt = launch;
+        continue;
+      }
+      const { result } = ran;
+      const detail = crashDetailOf(agent, result, this.config.knobs);
+      if (detail === undefined) return { result, logPath };
+      await this._takeCrash(ticketRun, { step, detail, logPath });
+      if (result.sessionId === undefined) {
+        attempt = launch;
+      } else {
+        attempt = {
+          ...launch,
+          prompt: interruptedPrompt,
+          resumeSessionId: result.sessionId,
+        };
+      }
+    }
+  }
+
+  private async _attemptStep(
+    ticketRun: TicketRun,
+    agent: StepAgent,
+    { prompt, jsonSchema, ...overrides }: StepLaunch,
+    logPath: string,
+  ): Promise<StepAttempt> {
     const { run, ticket, pair, workspace, state, targets } = ticketRun;
     const { knobs } = this.config;
     const usage = await this._waitForLaunch(run);
@@ -1275,31 +1409,38 @@ export class SpecRun {
       state.limitReadings ??= {};
       state.limitReadings.before ??= limitReadingOf(usage);
     }
-    const logPath = this._stepLogPathOf(ticketRun, agent);
     this._log(
       run,
       `${issueLabelOf(ticket.issue)}: ${agent} step, raw stream in ${logPath}.`,
     );
-    const result = await this._agentResultOf(agent, {
-      prompt,
-      pair,
-      account: knobs.account,
-      cwd: workspace.path,
-      maxTurns: knobs.maxTurns[agent],
-      allowedTools: knobs.allowedTools[agent],
-      allowedWriteGlobs: knobs.allowedWriteGlobs,
-      targets,
-      jsonSchema,
-      logPath,
-      ...overrides,
-    });
+    let result: StepResult;
+    try {
+      result = await this.config.agentStep.run({
+        prompt,
+        pair,
+        account: knobs.account,
+        cwd: workspace.path,
+        maxTurns: knobs.maxTurns[agent],
+        silenceTimeoutMs: knobs.silenceTimeoutMs,
+        wallClockMs: knobs.wallClockMs[agent],
+        allowedTools: knobs.allowedTools[agent],
+        allowedWriteGlobs: knobs.allowedWriteGlobs,
+        targets,
+        jsonSchema,
+        logPath,
+        ...overrides,
+      });
+    } catch (error) {
+      const detail = `The ${agent} step failed to run: ${messageOf(error)}`;
+      return { kind: "unrun", detail };
+    }
     if (result.sessionId !== undefined) {
       state.sessions.push({ agent, sessionId: result.sessionId });
     }
     state.configFolder = result.configFolder ?? state.configFolder;
     this._saveState(run);
     await this._stopOnLimitHit(run, result, logPath);
-    return { result, logPath };
+    return { kind: "ran", result };
   }
 
   private async _agentResultOf(
@@ -1413,12 +1554,15 @@ export class SpecRun {
     );
   }
 
+  // Skips a path already taken, so a crashed step's log survives its retry.
   private _stepLogPathOf(ticketRun: TicketRun, agent: StepAgent): string {
-    const index = ticketRun.state.sessions.length + 1;
-    return join(
-      this._stepsFolderOf(ticketRun.run),
-      `${fileStemOf(ticketRun.ticket.issue)}-${index}-${agent}.jsonl`,
-    );
+    const folder = this._stepsFolderOf(ticketRun.run);
+    const stem = fileStemOf(ticketRun.ticket.issue);
+    let index = ticketRun.state.sessions.length + 1;
+    while (existsSync(join(folder, `${stem}-${index}-${agent}.jsonl`))) {
+      index += 1;
+    }
+    return join(folder, `${stem}-${index}-${agent}.jsonl`);
   }
 
   private _stepsFolderOf(run: Run): string {
@@ -1431,6 +1575,17 @@ export class SpecRun {
   }
 
   private async _check(ticketRun: TicketRun): Promise<void> {
+    for (;;) {
+      const failure = await this._redChecksOf(ticketRun);
+      if (failure === undefined) return;
+      await this._resumeOnRedChecks(ticketRun, failure);
+    }
+  }
+
+  // The first failing check's command and output tail; undefined when all pass. A red master Stops the run.
+  private async _redChecksOf(
+    ticketRun: TicketRun,
+  ): Promise<string | undefined> {
     for (const command of this.config.knobs.checks) {
       this._log(
         ticketRun.run,
@@ -1439,13 +1594,51 @@ export class SpecRun {
       const failure = await runCommand(command, ticketRun.workspace.path);
       if (failure !== undefined) {
         await this._stopOnRedMaster(ticketRun);
-        throw new UnhandledStop(
-          "red-checks",
-          `${commandLabelOf(command)} failed:\n${failure}`,
-          this._progressPathOf(ticketRun.run),
-        );
+        return `${commandLabelOf(command)} failed:\n${failure}`;
       }
     }
+    return undefined;
+  }
+
+  // Whoever made the last commit gets the failure, the triage agent in place of an implementer past the ticket budget.
+  private async _resumeOnRedChecks(
+    ticketRun: TicketRun,
+    failure: string,
+  ): Promise<void> {
+    const { run, ticket, workspace, state } = ticketRun;
+    const { retriesPerFailure, ticketBudget } = this.config.knobs;
+    const resumes = state.redCheckResumes ?? 0;
+    if (resumes >= retriesPerFailure) {
+      await this._failureHalt(ticketRun, {
+        step: "checks",
+        detail: `The checks are still red after ${resumes} resume(s): ${failure}`,
+        logPath: state.redChecksLogPath ?? this._progressPathOf(run),
+      });
+    }
+    state.redCheckResumes = resumes + 1;
+    this._saveState(run);
+    const peak = state.implementPeak ?? Infinity;
+    let fixer: Fixer = state.fixer ?? "implementer";
+    if (fixer === "implementer" && peak >= ticketBudget) fixer = "triage";
+    this._log(
+      run,
+      `${issueLabelOf(ticket.issue)}: checks red; resuming the ${fixer === "implementer" ? "implementer" : "triage agent"} with the failure.`,
+    );
+    const { result, logPath } = await this._runStep(ticketRun, "fix", {
+      ...this._fixerSessionOf(ticketRun, fixer),
+      prompt: redChecksPrompt({
+        issue: ticket.issue,
+        title: ticket.title,
+        branch: workspace.branch,
+        branchedRepos: branchedReposOf(state),
+        failures: failure,
+      }),
+      jsonSchema: redChecksOutputSchema,
+    });
+    if (fixer === "implementer") noteImplementerResult(state, result);
+    state.redChecksLogPath = logPath;
+    this._saveState(run);
+    recordOf("fix", result, logPath);
   }
 
   // Checks run in a master set, so neither another session's uncommitted edit nor a local fix hides master's own state.
@@ -1568,7 +1761,7 @@ export class SpecRun {
         ({ verdict }) => verdict === "propose",
       ).length,
       reviewRounds: 1,
-      retries: 0,
+      retries: retriesOf(state),
       pair: pairLabelOf(pair),
       limitReadings,
     };
@@ -1618,6 +1811,7 @@ export class SpecRun {
 
   private _advance({ run, state }: LandingTicket, step: TicketStep): void {
     state.step = step;
+    state.isStepStarted = undefined;
     this._saveState(run);
   }
 
@@ -1645,12 +1839,33 @@ export class SpecRun {
     await this._comment(
       run,
       [
-        `The runner stopped on ${issueLabelOf(ticket.issue)}, "${ticket.title}": ${outcome}.`,
+        stopHeadingOf(ticket, outcome),
         stop.message,
         `Log: \`${stop.logPath}\``,
-        "The ticket is left unlanded in its issue workspace. Finish it there by hand and land it with the standalone wrap-up; a rerun skips it once it is closed.",
+        "The ticket is left unlanded in its issue workspace, and a rerun won't retry it. Finish and land it by hand with the standalone wrap-up; a rerun skips it once it is closed.",
       ].join("\n\n"),
     );
+  }
+
+  // Leaves the ticket at its step, so a rerun retries it.
+  private async _stopForRerun(
+    run: Run,
+    ticket: TrackedIssue,
+    stop: UnhandledStop,
+  ): Promise<never> {
+    const outcome = stopOutcomes[stop.outcome];
+    const label = issueLabelOf(ticket.issue);
+    const command = rerunCommandOf(this.config.githubOwner, run.spec.issue);
+    await this._comment(
+      run,
+      [
+        stopHeadingOf(ticket, outcome),
+        stop.message,
+        `Log: \`${stop.logPath}\``,
+        `The ticket is left at its ${ticketStateOf(run, ticket.issue).step} step in its issue workspace; rerun to retry it: \`${command}\`.`,
+      ].join("\n\n"),
+    );
+    throw new RunStop(`Stopped on ${label}: ${outcome}; rerun to retry it.`);
   }
 
   // Marked, since the runner posts as the developer's login and must never read its own comment as an answer.
@@ -1723,6 +1938,8 @@ export class SpecRun {
       account: knobs.account,
       cwd: this.config.primaryRoot,
       maxTurns: knobs.maxTurns.gapCheck,
+      silenceTimeoutMs: knobs.silenceTimeoutMs,
+      wallClockMs: knobs.wallClockMs.gapCheck,
       allowedTools: knobs.allowedTools.gapCheck,
       allowedWriteGlobs: [],
       targets: [],
@@ -1847,6 +2064,22 @@ function lastAnswerAtOf(run: Run, ticket: IssueRef): string {
   return times.sort().at(-1) ?? "";
 }
 
+// An answered Failure Halt reruns its step with a fresh count, marking it delivered; other answers go to the resumed implementer.
+function relaunchStepOf(run: Run, ticket: IssueRef): TicketStep {
+  const state = ticketStateOf(run, ticket);
+  const failures = undeliveredHaltsOf(run, ticket).filter(
+    ({ kind }) => kind === "failure",
+  );
+  const failedStep = failures[0]?.failedStep;
+  if (failedStep === undefined) return "resume";
+  failures.forEach((halt) => {
+    halt.isDelivered = true;
+  });
+  state.crashes = undefined;
+  state.redCheckResumes = undefined;
+  return failedStep;
+}
+
 // A ticket halted before review has nothing reviewed yet; one with no code has nothing to review.
 function stepAfterResumeOf(state: TicketState): TicketStep {
   if (state.record?.status === "applied") return "wrap-up";
@@ -1898,6 +2131,46 @@ async function resetTo(workspace: Workspace, heads: Heads): Promise<void> {
   }
 }
 
+// A fix or red-checks step the implementer ran moves its peak and session on.
+function noteImplementerResult(
+  state: TicketState,
+  { peakContext, sessionId }: StepResult,
+): void {
+  state.implementPeak = peakContext ?? state.implementPeak;
+  state.implementerSession = sessionId ?? state.implementerSession;
+}
+
+// Undefined for an outcome a caller handles: a live-ceiling kill, a schema failure, success or a turn cap.
+function crashDetailOf(
+  agent: StepAgent,
+  result: StepResult,
+  knobs: RunKnobs,
+): string | undefined {
+  const { hang, errorText, exitSubtype, output } = result;
+  if (result.hasCrossedCeiling) return undefined;
+  if (hang === "silence") {
+    return `The ${agent} step was silent for ${minutesOf(knobs.silenceTimeoutMs)} minutes and was killed.`;
+  }
+  if (hang === "wall-clock") {
+    return `The ${agent} step ran past its ${minutesOf(knobs.wallClockMs[agent])}-minute wall clock and was killed.`;
+  }
+  if (output.status === "schemaFailure") return undefined;
+  if (errorText !== undefined) {
+    return `The ${agent} step ended on an error: ${errorText}`;
+  }
+  if (exitSubtype === undefined) {
+    return `The ${agent} step ended without a result.`;
+  }
+  if (exitSubtype === "error_during_execution") {
+    return `The ${agent} step ended ${exitSubtype}.`;
+  }
+  return undefined;
+}
+
+function minutesOf(ms: number): number {
+  return Math.round(ms / 60_000);
+}
+
 function isGaveUp(outcome: FixOutcome): outcome is GaveUpOutcome {
   return outcome.status === "gave-up";
 }
@@ -1926,6 +2199,21 @@ function recordOf(step: string, result: StepResult, logPath: string): unknown {
     );
   }
   return output.record;
+}
+
+function retriesOf({ crashes = {}, redCheckResumes = 0 }: TicketState): number {
+  return Object.values(crashes).reduce(
+    (sum, count) => sum + count,
+    redCheckResumes,
+  );
+}
+
+function isRerunRetried({ outcome }: UnhandledStop): boolean {
+  return rerunRetriedOutcomes.includes(outcome);
+}
+
+function stopHeadingOf(ticket: TrackedIssue, outcome: string): string {
+  return `The runner stopped on ${issueLabelOf(ticket.issue)}, "${ticket.title}": ${outcome}.`;
 }
 
 function ticketStateOf(run: Run, ticket: IssueRef): TicketState {

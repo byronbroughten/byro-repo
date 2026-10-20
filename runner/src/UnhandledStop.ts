@@ -1,6 +1,5 @@
 // An outcome no run-loop ticket handles yet: SpecRun.ts leaves the ticket unlanded, comments, sends a notice and ends the run.
 export const stopOutcomes = {
-  "red-checks": "red checks",
   "step-error": "a step error",
   "schema-failure": "a schema failure",
   handoff: "an implement handoff",
@@ -12,6 +11,14 @@ export const stopOutcomes = {
 } as const;
 
 export type StopOutcome = keyof typeof stopOutcomes;
+
+// Left at the ticket's step rather than marked stopped, so a rerun retries it.
+export const rerunRetriedOutcomes: readonly StopOutcome[] = [
+  "limit-hit",
+  "wrap-up-failure",
+  "model-fit",
+  "targets",
+];
 
 export class UnhandledStop extends Error {
   readonly outcome: StopOutcome;

@@ -4,7 +4,11 @@ import { join, relative } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { currentBranchOf, worktreeStateOf } from "./git.ts";
+import {
+  currentBranchOf,
+  snapshotUncommitted,
+  worktreeStateOf,
+} from "./git.ts";
 import { git } from "./GitFixture.ts";
 
 let repo: string;
@@ -94,5 +98,39 @@ describe("currentBranchOf", () => {
     } finally {
       rmSync(workspace, { recursive: true, force: true });
     }
+  });
+});
+
+describe("snapshotUncommitted", () => {
+  it("saves tracked and untracked changes to a backup branch, leaving the tree clean at HEAD", async () => {
+    const head = git(repo, "rev-parse", "HEAD");
+    writeFileSync(join(repo, "README.md"), "# changed\n");
+    writeFileSync(join(repo, "new.txt"), "untracked");
+
+    const branch = await snapshotUncommitted(repo, "backup/issue-1-implement");
+
+    expect(branch).toBe("backup/issue-1-implement");
+    expect(git(repo, "status", "--porcelain")).toBe("");
+    expect(git(repo, "rev-parse", "HEAD")).toBe(head);
+    expect(git(repo, "rev-parse", `${branch}^`)).toBe(head);
+    expect(git(repo, "show", `${branch}:new.txt`)).toBe("untracked");
+    expect(git(repo, "show", `${branch}:README.md`)).toBe("# changed");
+  });
+
+  it("numbers the branch when the name is taken", async () => {
+    writeFileSync(join(repo, "a.txt"), "a");
+    await snapshotUncommitted(repo, "backup/issue-1-fix");
+    writeFileSync(join(repo, "b.txt"), "b");
+
+    expect(await snapshotUncommitted(repo, "backup/issue-1-fix")).toBe(
+      "backup/issue-1-fix-2",
+    );
+  });
+
+  it("makes no branch for a clean tree", async () => {
+    expect(
+      await snapshotUncommitted(repo, "backup/issue-1-fix"),
+    ).toBeUndefined();
+    expect(git(repo, "branch", "--list", "backup/*")).toBe("");
   });
 });

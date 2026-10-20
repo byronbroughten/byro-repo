@@ -88,3 +88,42 @@ export async function hasRef(clone: string, ref: string): Promise<boolean> {
 export function lines(output: string): string[] {
   return output === "" ? [] : output.split("\n");
 }
+
+// Commits the tree's uncommitted work, untracked files included, to a new branch without moving HEAD, then cleans the tree.
+export async function snapshotUncommitted(
+  worktree: string,
+  branchName: string,
+): Promise<string | undefined> {
+  if (!(await isDirty(worktree))) return undefined;
+  await git(worktree, "add", "-A");
+  const tree = await git(worktree, "write-tree");
+  const commit = await git(
+    worktree,
+    "commit-tree",
+    tree,
+    "-p",
+    "HEAD",
+    "-m",
+    "Snapshot of a crashed step's uncommitted work",
+  );
+  const branch = await freeBranchNameOf(worktree, branchName);
+  await git(worktree, "branch", branch, commit);
+  await git(worktree, "reset", "--hard", "HEAD");
+  await git(worktree, "clean", "-fd");
+  return branch;
+}
+
+async function freeBranchNameOf(
+  worktree: string,
+  branchName: string,
+): Promise<string> {
+  let candidate = branchName;
+  for (
+    let suffix = 2;
+    await hasRef(worktree, `refs/heads/${candidate}`);
+    suffix++
+  ) {
+    candidate = `${branchName}-${suffix}`;
+  }
+  return candidate;
+}
