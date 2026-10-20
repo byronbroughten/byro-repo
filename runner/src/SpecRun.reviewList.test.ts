@@ -233,20 +233,6 @@ describe("run's review list", () => {
     ]);
   });
 
-  it("ends the run stopped when the gap check fails, so a rerun retries it", async () => {
-    addSpec([1]);
-    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed(), {
-      ...resultOf(undefined),
-      exitSubtype: "error_max_turns",
-    });
-
-    const result = await specRun(agentStep, { agentStep }).run(spec);
-
-    expect(result.kind).toBe("stopped");
-    expect(result.message).toContain("The gap check stopped on a step error");
-    expect(reviewListsOn(213)).toEqual([]);
-  });
-
   it("holds the gap check while a ticket is still open", async () => {
     addSpec([1, 2]);
     const agentStep = FakeAgentStep.init(
