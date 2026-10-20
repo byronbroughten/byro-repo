@@ -1,6 +1,6 @@
 # Sources of the writing style sheets
 
-Where the rules in [`docs/writing-style.md`](../writing-style.md) and [`docs/academic-writing-style.md`](../academic-writing-style.md) came from, and what was read but not kept. The developer reviewed every candidate rule before it became one (#171).
+Where the rules in [`docs/writing-voice.md`](../writing-voice.md) and [`docs/academic-writing-style.md`](../academic-writing-style.md) came from, and what was read but not kept. The developer reviewed every candidate rule before it became one (#171).
 
 ## Sources read
 

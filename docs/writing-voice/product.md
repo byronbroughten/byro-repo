@@ -1,6 +1,6 @@
 # Describing the product: instances
 
-Disclosed from [`docs/writing-style.md`](../writing-style.md), "Describing the product". The rules are there, one line each; this file holds the quoted instances and their sources. "Seen in" counts the reading batches, out of 6, that reported the habit ([sources](./sources.md)). "In N of 5 posts" counts the blog posts.
+Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Describing the product". The rules are there, one line each; this file holds the quoted instances and their sources. "Seen in" counts the reading batches, out of 6, that reported the habit ([sources](./sources.md)). "In N of 5 posts" counts the blog posts.
 
 ## What it lets its user do
 

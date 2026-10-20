@@ -16,15 +16,15 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 
 | When | File |
 | --- | --- |
-| A figure, a calculation, a projection or a caveat | [`docs/writing-style/numbers.md`](./writing-style/numbers.md) |
-| An example, a comparison, a term, a reason | [`docs/writing-style/explaining.md`](./writing-style/explaining.md) |
-| A borrowed fact, a quote | [`docs/writing-style/borrowing.md`](./writing-style/borrowing.md) |
-| A feature, a competitor, the product's story | [`docs/writing-style/product.md`](./writing-style/product.md) |
-| A hedge, a weakness, a trade-off | [`docs/writing-style/candor.md`](./writing-style/candor.md) |
-| A section opening, a recommendation, a list | [`docs/writing-style/structure.md`](./writing-style/structure.md) |
-| Sentence length, dashes, colons, connectives | [`docs/writing-style/sentences.md`](./writing-style/sentences.md) |
-| Person, contractions, word choice | [`docs/writing-style/register.md`](./writing-style/register.md) |
-| Where the rules came from, or what was dropped | [`docs/writing-style/sources.md`](./writing-style/sources.md) |
+| A figure, a calculation, a projection or a caveat | [`docs/writing-voice/numbers.md`](./writing-voice/numbers.md) |
+| An example, a comparison, a term, a reason | [`docs/writing-voice/explaining.md`](./writing-voice/explaining.md) |
+| A borrowed fact, a quote | [`docs/writing-voice/borrowing.md`](./writing-voice/borrowing.md) |
+| A feature, a competitor, the product's story | [`docs/writing-voice/product.md`](./writing-voice/product.md) |
+| A hedge, a weakness, a trade-off | [`docs/writing-voice/candor.md`](./writing-voice/candor.md) |
+| A section opening, a recommendation, a list | [`docs/writing-voice/structure.md`](./writing-voice/structure.md) |
+| Sentence length, dashes, colons, connectives | [`docs/writing-voice/sentences.md`](./writing-voice/sentences.md) |
+| Person, contractions, word choice | [`docs/writing-voice/register.md`](./writing-voice/register.md) |
+| Where the rules came from, or what was dropped | [`docs/writing-voice/sources.md`](./writing-voice/sources.md) |
 
 ## Numbers and evidence
 

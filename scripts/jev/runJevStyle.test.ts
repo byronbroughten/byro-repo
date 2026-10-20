@@ -208,7 +208,7 @@ describe("runJevStyle on the repo's own style sheets", () => {
   it("finds every position rule", async () => {
     const run = {
       ...inputs({}),
-      styleSheetPath: "docs/writing-style.md",
+      styleSheetPath: "docs/writing-voice.md",
       academicSheetPath: "docs/academic-writing-style.md",
     };
     await expect(runJevStyle(run)).resolves.toBeDefined();
@@ -239,7 +239,7 @@ function inputs({
     deliverablePath: write(dir, "deliverable.md", deliverable),
     stylePath: write(dir, "style.md", style),
     sections,
-    styleSheetPath: write(dir, "writing-style.md", sheet),
+    styleSheetPath: write(dir, "writing-voice.md", sheet),
     academicSheetPath: write(dir, "academic-writing-style.md", academicSheet),
     apiKey: "test-key",
     connect: () => fakeClient(answer),

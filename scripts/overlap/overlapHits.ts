@@ -1,5 +1,5 @@
 // Done check 4's mechanical half: every run of four or more words a Deliverable sentence shares with a passage read for it.
-// The rule and its reasoning: docs/writing-style/borrowing.md. The command: overlap.ts.
+// The rule and its reasoning: docs/writing-voice/borrowing.md. The command: overlap.ts.
 import { markdownBlocks } from "../jev/markdownBlocks.ts";
 
 interface Passage {

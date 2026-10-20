@@ -1,6 +1,6 @@
 # Person and register: instances
 
-Disclosed from [`docs/writing-style.md`](../writing-style.md), "Person and register". The rules are there, one line each; this file holds the quoted instances and their sources. "Seen in" counts the reading batches, out of 6, that reported the habit ([sources](./sources.md)). "In N of 5 posts" counts the blog posts.
+Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Person and register". The rules are there, one line each; this file holds the quoted instances and their sources. "Seen in" counts the reading batches, out of 6, that reported the habit ([sources](./sources.md)). "In N of 5 posts" counts the blog posts.
 
 ## "You", "we" and "let's"
 

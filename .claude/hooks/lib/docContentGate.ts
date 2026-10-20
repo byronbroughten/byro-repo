@@ -1,4 +1,4 @@
-// Decides the doc content gate: a Google Doc write that adds text waits for a full Read of docs/writing-style.md this session. Pure; docContentGate.ts does the I/O.
+// Decides the doc content gate: a Google Doc write that adds text waits for a full Read of docs/writing-voice.md this session. Pure; docContentGate.ts does the I/O.
 import { sep } from "node:path";
 
 import type { ToolInput } from "./hookIo.ts";
@@ -9,9 +9,9 @@ import {
 } from "./styleGate.ts";
 
 export const docContentGateReason =
-  "Read docs/writing-style.md before your first Google Doc text write this session, then retry. " +
+  "Read docs/writing-voice.md before your first Google Doc text write this session, then retry. " +
   "Doc text is reader-facing prose. Use a full Read with no offset or limit (a partial Read or a Bash read isn't recorded); for academic work, read docs/academic-writing-style.md as well. Formatting-only writes pass without it.";
-export const writingStylePath = ["docs", "writing-style.md"].join(sep);
+export const writingVoicePath = ["docs", "writing-voice.md"].join(sep);
 
 const textOperationTypes = new Set([
   "insert_text",
@@ -52,7 +52,7 @@ export function docWriteDecision({
 }
 
 export function isWritingStyleRead(read: StyleRead): boolean {
-  return isFullDocRead(read, writingStylePath);
+  return isFullDocRead(read, writingVoicePath);
 }
 
 function isGatedDocWrite(

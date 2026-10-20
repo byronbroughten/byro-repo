@@ -1,6 +1,6 @@
 # Sentences and punctuation: instances
 
-Disclosed from [`docs/writing-style.md`](../writing-style.md), "Sentences and punctuation". The rules are there, one line each; this file holds the quoted instances and their sources. "Seen in" counts the reading batches, out of 6, that reported the habit ([sources](./sources.md)). "In N of 5 posts" counts the blog posts.
+Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Sentences and punctuation". The rules are there, one line each; this file holds the quoted instances and their sources. "Seen in" counts the reading batches, out of 6, that reported the habit ([sources](./sources.md)). "In N of 5 posts" counts the blog posts.
 
 ## Long, then short and blunt
 
