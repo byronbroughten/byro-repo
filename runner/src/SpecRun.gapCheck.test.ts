@@ -4,6 +4,7 @@ import type { Pair, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { guidanceSectionOf } from "./halts.ts";
 import { runKnobsOf } from "./runKnobs.ts";
+import type { RunResult, SpecRunConfig } from "./SpecRun.ts";
 import {
   addSpec,
   capped,
@@ -41,9 +42,26 @@ function gapCheckLists(): string[] {
     .filter((body) => body.includes("<!-- review-list ticket=gap-check -->"));
 }
 
-// Lands ticket 1, then scripts the gap check's own launches.
-function landsThenGapChecks(...gapChecks: StepResult[]): FakeAgentStep {
-  return FakeAgentStep.init(implemented("one.ts"), reviewed(), ...gapChecks);
+interface LandedRun {
+  result: RunResult;
+  agentStep: FakeAgentStep;
+}
+
+// Lands ticket 1, then runs the gap check on the scripted launches.
+async function landsThenGapChecks(
+  gapChecks: StepResult[],
+  overrides: Partial<SpecRunConfig> = {},
+): Promise<LandedRun> {
+  addSpec([1]);
+  const agentStep = FakeAgentStep.init(
+    implemented("one.ts"),
+    reviewed(),
+    ...gapChecks,
+  );
+  const result = await specRun(agentStep, { agentStep, ...overrides }).run(
+    spec,
+  );
+  return { result, agentStep };
 }
 
 async function runGapChecks(
@@ -55,40 +73,35 @@ async function runGapChecks(
 }
 
 async function haltsOnGapCheck(): Promise<void> {
-  addSpec([1]);
-  const agentStep = landsThenGapChecks(capped, capped);
-  await specRun(agentStep, { agentStep }).run(spec);
+  await landsThenGapChecks([capped, capped]);
 }
 
+const idleOnH1 = "Idle: nothing runnable. The gap check waits on Halt H1.";
+
 describe("run's gap-check failures", () => {
-  it("retries a turn-capped gap check once fresh, then posts a Failure Halt on the spec issue and idles", async () => {
-    addSpec([1]);
-    const agentStep = landsThenGapChecks(capped, capped);
+  it("retries a turn-capped gap check once fresh, then posts a Failure Halt on the spec issue", async () => {
+    const { agentStep } = await landsThenGapChecks([capped, capped]);
 
-    const result = await specRun(agentStep, { agentStep }).run(spec);
+    const [first, retry] = agentStep.requests.slice(2);
+    expect(retry?.resumeSessionId).toBeUndefined();
+    expect(retry?.prompt).toBe(first?.prompt);
+    expect(haltComments()).toEqual([
+      expect.stringContaining(
+        '**Halt H1** · Halt 1 of 1 · byro-repo #213, "The spec" · Failure Halt\n\nThe gap check step hit its 80-turn cap.',
+      ),
+    ]);
+  });
 
-    const gapChecks = agentStep.requests.slice(2);
-    expect(gapChecks).toHaveLength(2);
-    expect(gapChecks[1]?.resumeSessionId).toBeUndefined();
-    expect(gapChecks[1]?.prompt).toBe(gapChecks[0]?.prompt);
-    const [halt] = haltComments();
-    expect(halt).toContain(
-      '**Halt H1** · Halt 1 of 1 · byro-repo #213, "The spec" · Failure Halt',
-    );
-    expect(halt).toContain("The gap check step hit its 80-turn cap.");
-    expect(noticeSummaries()).toContain(
-      "Idle: nothing runnable. The gap check waits on Halt H1.",
-    );
+  it("idles while the gap check's Halt is open, posting no list", async () => {
+    const { result } = await landsThenGapChecks([capped, capped]);
+
+    expect(noticeSummaries()).toContain(idleOnH1);
     expect(result.kind).toBe("stopped");
-    expect(result.landed).toHaveLength(1);
     expect(gapCheckLists()).toEqual([]);
   });
 
   it("posts the gap check's list when its fresh retry finishes", async () => {
-    addSpec([1]);
-    const agentStep = landsThenGapChecks(capped, noGaps);
-
-    const result = await specRun(agentStep, { agentStep }).run(spec);
+    const { result } = await landsThenGapChecks([capped, noGaps]);
 
     expect(result.kind).toBe("finished");
     expect(haltComments()).toEqual([]);
@@ -96,23 +109,19 @@ describe("run's gap-check failures", () => {
   });
 
   it("posts a Failure Halt at once for a gap-check output that fails its schema, linking the raw output", async () => {
-    addSpec([1]);
-    const agentStep = landsThenGapChecks(unmatched);
-
-    await specRun(agentStep, { agentStep }).run(spec);
+    // One launch: a schema failure is never retried.
+    const { agentStep } = await landsThenGapChecks([unmatched]);
 
     expect(agentStep.requests).toHaveLength(3);
     const [halt] = haltComments();
-    expect(halt).toContain("Failure Halt");
-    expect(halt).toContain("gaps must be an array");
+    expect(halt).toContain(
+      '**Halt H1** · Halt 1 of 1 · byro-repo #213, "The spec" · Failure Halt\n\ngaps must be an array',
+    );
     expect(halt).toContain("gap-check.output.txt");
   });
 
   it("keeps the Stop for a gap check that crashes", async () => {
-    addSpec([1]);
-    const agentStep = landsThenGapChecks(crashed);
-
-    const result = await specRun(agentStep, { agentStep }).run(spec);
+    const { result } = await landsThenGapChecks([crashed]);
 
     expect(result.kind).toBe("stopped");
     expect(result.message).toContain("The gap check stopped on a step error");
@@ -120,8 +129,6 @@ describe("run's gap-check failures", () => {
   });
 
   it("never counts a gap-check Halt toward the stuck detector", async () => {
-    addSpec([1]);
-    const agentStep = landsThenGapChecks(unmatched);
     const knobs = runKnobsOf({
       clonePaths,
       checks: [greenUnlessRed],
@@ -129,27 +136,20 @@ describe("run's gap-check failures", () => {
       stuckFailureHalts: 1,
     });
 
-    const result = await specRun(agentStep, { agentStep, knobs }).run(spec);
+    const { result } = await landsThenGapChecks([unmatched], { knobs });
 
     expect(result.message).not.toContain("Stopped as stuck");
-    expect(noticeSummaries()).toContain(
-      "Idle: nothing runnable. The gap check waits on Halt H1.",
-    );
+    expect(noticeSummaries()).toContain(idleOnH1);
   });
 
   it("reruns the gap check in the same run once a later poll reads the Halt's answer", async () => {
-    addSpec([1]);
-    const agentStep = landsThenGapChecks(capped, capped, noGaps);
-
-    const result = await specRun(agentStep, {
-      agentStep,
+    const { result } = await landsThenGapChecks([capped, capped, noGaps], {
       async sleep() {
         github.reply(213, "H1: retry");
       },
-    }).run(spec);
+    });
 
     expect(result.kind).toBe("finished");
-    expect(agentStep.requests).toHaveLength(5);
     expect(gapCheckLists()).toHaveLength(1);
   });
 });

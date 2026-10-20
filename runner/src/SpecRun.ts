@@ -371,7 +371,9 @@ type StepLaunch = Pick<StepRequest, "prompt" | "jsonSchema"> &
     >
   >;
 
-type GapCheckRequest = StepRequest & { logPath: string };
+const gapCheckLabel = "gap check";
+
+type LoggedStepRequest = StepRequest & { logPath: string };
 
 interface RanStep {
   result: StepResult;
@@ -1653,7 +1655,7 @@ export class SpecRun {
 
   private async _agentResultOf(
     step: string,
-    request: GapCheckRequest,
+    request: LoggedStepRequest,
   ): Promise<StepResult> {
     try {
       return await this.config.agentStep.run(request);
@@ -2171,8 +2173,7 @@ export class SpecRun {
     await this.config.github.comment(run.spec.issue, `${runnerMark}\n${body}`);
   }
 
-  // The gap check waits for every ticket to close, since an open one may still land what it would report.
-  // Undefined once the gap check halts, so the run idles on its Halt.
+  // The gap check waits for every ticket to close, since an open one may still land what it would report; undefined once it halts.
   private async _finish(
     run: Run,
     waits: Wait[],
@@ -2244,7 +2245,7 @@ export class SpecRun {
       prompt = `${prompt}\n\n${guidanceSectionOf(answer.text)}`;
     }
     const logPath = join(this._stepsFolderOf(run), "gap-check.jsonl");
-    const request: GapCheckRequest = {
+    const request: LoggedStepRequest = {
       prompt,
       pair: answer?.kind === "rerun" ? answer.pair : knobs.gapCheckPair,
       account: knobs.account,
@@ -2267,12 +2268,12 @@ export class SpecRun {
       result = await this._runGapCheck(run, request);
     }
     if (isTurnCapped(result)) {
-      const detail = turnCapDetailOf("gap check", knobs.maxTurns.gapCheck);
+      const detail = turnCapDetailOf(gapCheckLabel, knobs.maxTurns.gapCheck);
       await this._gapCheckHalt(run, { detail, logPath });
     }
     let record: GapCheckRecord;
     try {
-      record = gapCheckRecordOf(recordOf("gap check", result, logPath));
+      record = gapCheckRecordOf(recordOf(gapCheckLabel, result, logPath));
     } catch (error) {
       if (!(error instanceof SchemaFailure)) throw error;
       return this._gapCheckHalt(run, {
@@ -2280,22 +2281,22 @@ export class SpecRun {
         logPath: error.logPath,
       });
     }
-    deliverGapCheckHalts(run);
-    this._saveState(run);
     await this._postReviewListComment(
       run,
       gapCheckSubject,
       gapCheckListOf(run.spec.title, record),
     );
+    deliverGapCheckHalts(run);
+    this._saveState(run);
   }
 
   private async _runGapCheck(
     run: Run,
-    request: GapCheckRequest,
+    request: LoggedStepRequest,
   ): Promise<StepResult> {
     await this._waitForLaunch(run);
     this._log(run, `Gap check step, raw stream in ${request.logPath}.`);
-    const result = await this._agentResultOf("gap check", request);
+    const result = await this._agentResultOf(gapCheckLabel, request);
     await this._stopOnLimitHit(run, result, request.logPath);
     return result;
   }
@@ -2592,7 +2593,10 @@ function isTurnCapped(result: StepResult): boolean {
   return result.exitSubtype === "error_max_turns" && !result.hasCrossedCeiling;
 }
 
-function turnCapDetailOf(step: string, turns: number): string {
+function turnCapDetailOf(
+  step: StepAgent | typeof gapCheckLabel,
+  turns: number,
+): string {
   return `The ${step} step hit its ${turns}-turn cap.`;
 }
 
