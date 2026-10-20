@@ -46,6 +46,7 @@ import {
 import {
   gapCheckOutputSchema,
   gapCheckPrompt,
+  type GapCheckRecord,
   gapCheckRecordOf,
   type GapCheckTicket,
 } from "./gapCheck.ts";
@@ -60,6 +61,7 @@ import {
 import {
   answeredNoteOf,
   blockerHaltOf,
+  type FailureAnswer,
   failureAnswerOf,
   failureHaltOf,
   failureOptions,
@@ -368,6 +370,10 @@ type StepLaunch = Pick<StepRequest, "prompt" | "jsonSchema"> &
       "pair" | "targets" | "resumeSessionId" | "liveCeiling" | "maxTurns"
     >
   >;
+
+const gapCheckLabel = "gap check";
+
+type LoggedStepRequest = StepRequest & { logPath: string };
 
 interface RanStep {
   result: StepResult;
@@ -1649,7 +1655,7 @@ export class SpecRun {
 
   private async _agentResultOf(
     step: string,
-    request: StepRequest & { logPath: string },
+    request: LoggedStepRequest,
   ): Promise<StepResult> {
     try {
       return await this.config.agentStep.run(request);
@@ -2167,28 +2173,25 @@ export class SpecRun {
     await this.config.github.comment(run.spec.issue, `${runnerMark}\n${body}`);
   }
 
-  // The gap check waits for every ticket to close, since an open one may still land what it would report.
-  private async _finish(run: Run, waits: Wait[]): Promise<RunResult> {
+  // The gap check waits for every ticket to close, since an open one may still land what it would report; undefined once it halts.
+  private async _finish(
+    run: Run,
+    waits: Wait[],
+  ): Promise<RunResult | undefined> {
     await this._postLandedReviewLists(run);
     if (waits.length === 0) {
       try {
         await this._gapCheck(run);
       } catch (error) {
+        if (error instanceof TicketHalted) return undefined;
         if (error instanceof RunStop) {
           return this._end(run, "stopped", error.message);
         }
-        let outcome: string;
-        if (error instanceof SchemaFailure) {
-          outcome = "a schema failure";
-        } else if (error instanceof UnhandledStop) {
-          outcome = stopOutcomes[error.outcome];
-        } else {
-          throw error;
-        }
+        if (!(error instanceof UnhandledStop)) throw error;
         return this._end(
           run,
           "stopped",
-          `The gap check stopped on ${outcome}: ${error.message} Log: \`${error.logPath}\`. Rerun to retry it.`,
+          `The gap check stopped on ${stopOutcomes[error.outcome]}: ${error.message} Log: \`${error.logPath}\`. Rerun to retry it.`,
         );
       }
     }
@@ -2222,20 +2225,29 @@ export class SpecRun {
   // Runs in the primary root on master, where every landed ticket's work is; it reads and writes nothing else.
   private async _gapCheck(run: Run): Promise<void> {
     if (await this._hasReviewList(run, gapCheckSubject)) return;
+    const answer = gapCheckAnswerOf(run);
+    if (answer?.kind === "skip") {
+      deliverGapCheckHalts(run);
+      this._saveState(run);
+      this._log(run, "The gap check was skipped on its Failure Halt's answer.");
+      return;
+    }
     const { knobs } = this.config;
     const tickets: GapCheckTicket[] = await Promise.all(
       run.tickets.map((ticket) => this.config.github.issueOf(ticket)),
     );
-    await this._waitForLaunch(run);
+    let prompt = gapCheckPrompt({
+      spec: run.spec.issue,
+      title: run.spec.title,
+      tickets,
+    });
+    if (answer?.kind === "guidance") {
+      prompt = `${prompt}\n\n${guidanceSectionOf(answer.text)}`;
+    }
     const logPath = join(this._stepsFolderOf(run), "gap-check.jsonl");
-    this._log(run, `Gap check step, raw stream in ${logPath}.`);
-    const result = await this._agentResultOf("gap check", {
-      prompt: gapCheckPrompt({
-        spec: run.spec.issue,
-        title: run.spec.title,
-        tickets,
-      }),
-      pair: knobs.gapCheckPair,
+    const request: LoggedStepRequest = {
+      prompt,
+      pair: answer?.kind === "rerun" ? answer.pair : knobs.gapCheckPair,
       account: knobs.account,
       cwd: this.config.primaryRoot,
       maxTurns: knobs.maxTurns.gapCheck,
@@ -2246,14 +2258,61 @@ export class SpecRun {
       targets: [],
       jsonSchema: gapCheckOutputSchema,
       logPath,
-    });
-    await this._stopOnLimitHit(run, result, logPath);
-    const record = gapCheckRecordOf(recordOf("gap check", result, logPath));
+    };
+    let result = await this._runGapCheck(run, request);
+    for (
+      let retries = 0;
+      isTurnCapped(result) && retries < knobs.retriesPerFailure;
+      retries += 1
+    ) {
+      result = await this._runGapCheck(run, request);
+    }
+    if (isTurnCapped(result)) {
+      const detail = turnCapDetailOf(gapCheckLabel, knobs.maxTurns.gapCheck);
+      await this._gapCheckHalt(run, { detail, logPath });
+    }
+    let record: GapCheckRecord;
+    try {
+      record = gapCheckRecordOf(recordOf(gapCheckLabel, result, logPath));
+    } catch (error) {
+      if (!(error instanceof SchemaFailure)) throw error;
+      return this._gapCheckHalt(run, {
+        detail: error.message,
+        logPath: error.logPath,
+      });
+    }
     await this._postReviewListComment(
       run,
       gapCheckSubject,
       gapCheckListOf(run.spec.title, record),
     );
+    deliverGapCheckHalts(run);
+    this._saveState(run);
+  }
+
+  private async _runGapCheck(
+    run: Run,
+    request: LoggedStepRequest,
+  ): Promise<StepResult> {
+    await this._waitForLaunch(run);
+    this._log(run, `Gap check step, raw stream in ${request.logPath}.`);
+    const result = await this._agentResultOf(gapCheckLabel, request);
+    await this._stopOnLimitHit(run, result, request.logPath);
+    return result;
+  }
+
+  // Raised on the spec issue and never counted toward the stuck detector, since the gap check belongs to no ticket.
+  private async _gapCheckHalt(
+    run: Run,
+    failure: Omit<StepFailure, "step">,
+  ): Promise<never> {
+    deliverGapCheckHalts(run);
+    raiseHalts(run, {
+      ticket: run.spec.issue,
+      drafts: [failureHaltOf({ ...failure, step: "gap-check" }, [])],
+    });
+    await this._postUnpostedHalts(run);
+    throw new TicketHalted(issueLabelOf(run.spec.issue));
   }
 
   // Counts every review-list comment on the spec, earlier runs' included, since the developer decides them in one place.
@@ -2431,6 +2490,24 @@ function isGapCheckHalt({ failedStep }: Halt): boolean {
   return failedStep === "gap-check";
 }
 
+// The latest answer the gap check hasn't acted on; a `stop spec` read on a later run is a skip.
+function gapCheckAnswerOf(run: Run): FailureAnswer | undefined {
+  const latest = haltsOf(run)
+    .filter((halt) => isGapCheckHalt(halt) && !halt.isDelivered)
+    .at(-1);
+  if (latest?.answer === undefined) return undefined;
+  if (isStopSpecAnswer(latest.answer)) return { kind: "skip" };
+  return failureAnswerOf(latest, latest.answer);
+}
+
+function deliverGapCheckHalts(run: Run): void {
+  haltsOf(run)
+    .filter(isGapCheckHalt)
+    .forEach((halt) => {
+      halt.isDelivered = true;
+    });
+}
+
 function isSkipAnswered(halt: Halt): boolean {
   if (halt.kind !== "failure" || halt.answer === undefined) return false;
   return failureAnswerOf(halt, halt.answer).kind === "skip";
@@ -2516,8 +2593,11 @@ function isTurnCapped(result: StepResult): boolean {
   return result.exitSubtype === "error_max_turns" && !result.hasCrossedCeiling;
 }
 
-function turnCapDetailOf(agent: StepAgent, turns: number): string {
-  return `The ${agent} step hit its ${turns}-turn cap.`;
+function turnCapDetailOf(
+  step: StepAgent | typeof gapCheckLabel,
+  turns: number,
+): string {
+  return `The ${step} step hit its ${turns}-turn cap.`;
 }
 
 // Undefined for an outcome a caller handles: a live-ceiling kill, a schema failure, success or a turn cap.
