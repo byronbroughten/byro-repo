@@ -17,6 +17,7 @@ import type { FakeAgentStep, ScriptedStep } from "./FakeAgentStep.ts";
 import { FakeGitHub } from "./FakeGitHub.ts";
 import { FakeNotices } from "./FakeNotices.ts";
 import { FakeUsageReader } from "./FakeUsageReader.ts";
+import type { TriageRecord } from "./findingTriage.ts";
 import { gapCheckOutputSchema } from "./gapCheck.ts";
 import { git, GitFixture } from "./GitFixture.ts";
 import type { Blocker, ImplementRecord } from "./implementStep.ts";
@@ -355,11 +356,14 @@ export function timingLines(): string[] {
     .filter((line) => / took |^Preflight passed|^Run started/.test(line));
 }
 
-export function ticketState(): Record<string, { step: string }> {
+export function ticketState(): Record<
+  string,
+  { step: string; triage?: TriageRecord[] }
+> {
   const path = join(stateFolder(), "byro-repo-213.run.json");
   return (
     JSON.parse(readFileSync(path, "utf8")) as {
-      tickets: Record<string, { step: string }>;
+      tickets: Record<string, { step: string; triage?: TriageRecord[] }>;
     }
   ).tickets;
 }

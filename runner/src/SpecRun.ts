@@ -1091,21 +1091,6 @@ export class SpecRun {
     return this._halt(landingTicket);
   }
 
-  // Offers more turns, or a stronger pair while there is one.
-  private async _haltOnImplementCap(
-    ticketRun: TicketRun,
-    cap: Crash,
-  ): Promise<never> {
-    const { pair, state } = ticketRun;
-    await this._snapshot(ticketRun, state.step);
-    const options = [`\`resume +${this.config.knobs.extraTurns} turns\``];
-    const stronger = nextStrongerPairOf(pair);
-    if (stronger !== undefined) {
-      options.push(`\`rerun on ${pairLabelOf(stronger)}\``);
-    }
-    return this._failureHalt(ticketRun, { ...cap, step: state.step, options });
-  }
-
   private async _implement(ticketRun: TicketRun): Promise<void> {
     await this._runImplement(ticketRun, () => ({
       prompt: this._implementPromptOf(ticketRun),
@@ -1386,12 +1371,12 @@ export class SpecRun {
         attempt.logPath,
       );
     }
-    // A capped fixer keeps its commits; only its uncommitted work is set aside.
-    if (attempt.kind === "capped") await this._snapshot(ticketRun, "fix");
     const { heads, dirtyRepos } = await this._headsAndDirtyReposOf(workspace);
     const hasNewCommit = !isSameHeads(base, heads);
     let outcomes: FixOutcome[];
     if (attempt.kind === "capped") {
+      // A capped fixer keeps its commits; only its uncommitted work is set aside.
+      await this._snapshot(ticketRun, "fix");
       outcomes = fixes.map(({ finding }) => turnCapGiveUpOf(finding));
     } else {
       outcomes = attempt.outcomes;
@@ -1523,12 +1508,9 @@ export class SpecRun {
         // A fixer's caller turns what it left unfinished into give-ups.
         if (agent === "fix") return { result, logPath };
         const turns = attempt.maxTurns ?? this.config.knobs.maxTurns[agent];
-        const cap = {
-          detail: `The ${agent} step hit its ${turns}-turn cap.`,
-          logPath,
-        };
+        const cap = { detail: turnCapDetailOf(agent, turns), logPath };
         if (agent === "implement") {
-          await this._haltOnImplementCap(ticketRun, cap);
+          return this._haltOnImplementCap(ticketRun, cap);
         }
         await this._takeCrash(ticketRun, cap);
         attempt = launch;
@@ -1547,6 +1529,21 @@ export class SpecRun {
         };
       }
     }
+  }
+
+  // Offers more turns, or a stronger pair while there is one.
+  private async _haltOnImplementCap(
+    ticketRun: TicketRun,
+    cap: Crash,
+  ): Promise<never> {
+    const { pair, state } = ticketRun;
+    await this._snapshot(ticketRun, state.step);
+    const options = [`\`resume +${this.config.knobs.extraTurns} turns\``];
+    const stronger = nextStrongerPairOf(pair);
+    if (stronger !== undefined) {
+      options.push(`\`rerun on ${pairLabelOf(stronger)}\``);
+    }
+    return this._failureHalt(ticketRun, { ...cap, step: state.step, options });
   }
 
   private async _attemptStep(
@@ -2369,6 +2366,10 @@ function noteImplementerResult(
 // A live-ceiling kill is the fixer's crossing, whatever its subtype.
 function isTurnCapped(result: StepResult): boolean {
   return result.exitSubtype === "error_max_turns" && !result.hasCrossedCeiling;
+}
+
+function turnCapDetailOf(agent: StepAgent, turns: number): string {
+  return `The ${agent} step hit its ${turns}-turn cap.`;
 }
 
 // Undefined for an outcome a caller handles: a live-ceiling kill, a schema failure, success or a turn cap.

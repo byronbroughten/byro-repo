@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -23,7 +23,6 @@ import {
   reviewed,
   spec,
   specRun,
-  stateFolder,
   ticketState,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
@@ -153,6 +152,19 @@ describe("run's implement turn cap", () => {
     expect(resumed?.prompt).toBe(moreTurnsPrompt(50));
   });
 
+  it("halts again on the extra turns' cap when the resumed session hits it", async () => {
+    addSpec([1]);
+    await specRun(FakeAgentStep.init(capped)).run(spec);
+    github.reply(213, "H1: resume +50 turns");
+
+    await specRun(FakeAgentStep.init(capped)).run(spec);
+
+    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+    const halt = haltComments().at(-1);
+    expect(halt).toContain("The implement step hit its 50-turn cap.");
+    expect(halt).toContain("1. `resume +100 turns`");
+  });
+
   it("reruns the step fresh on the named pair on `rerun on <pair>`", async () => {
     addSpec([1]);
     github.edit(1, { body: bodyWith("Opus medium") });
@@ -187,14 +199,6 @@ describe("run's fix and red-checks turn caps", () => {
     };
   }
 
-  function triageStateOf(): TriageRecord[] | undefined {
-    const path = join(stateFolder(), "byro-repo-213.run.json");
-    const state = JSON.parse(readFileSync(path, "utf8")) as {
-      tickets: Record<string, { triage?: TriageRecord[] }>;
-    };
-    return state.tickets["byro-repo #1"]?.triage;
-  }
-
   // Commits one fix and leaves another half done, then runs out of turns.
   async function cappedFixer(request: StepRequest): Promise<StepResult> {
     writeFileSync(join(request.cwd, "fix.ts"), "export {};\n");
@@ -221,11 +225,13 @@ describe("run's fix and red-checks turn caps", () => {
 
     expect(result.landed).toEqual([refOf(1)]);
     expect(agentStep.requests).toHaveLength(4);
-    expect(triageStateOf()).toMatchObject([
+    expect(ticketState()["byro-repo #1"]?.triage).toMatchObject([
       { finding: 1, verdict: "propose", reason: "decision" },
       { finding: 2, verdict: "propose", reason: "decision" },
     ]);
-    expect(triageStateOf()?.[0]?.recommendation).toContain("ran out of turns");
+    expect(
+      ticketState()["byro-repo #1"]?.triage?.[0]?.recommendation,
+    ).toContain("ran out of turns");
     const primary = primaryOf("byro-repo");
     const merge = git(
       primary,
@@ -238,9 +244,9 @@ describe("run's fix and red-checks turn caps", () => {
     expect(git(primary, "log", "--format=%s", "-1", `${merge}^2`)).toBe(
       "Fix fix.ts",
     );
-    expect(
-      git(primaryOf("byro-repo"), "show", `backup/${branch}-fix:half.ts`),
-    ).toBe("half a fix");
+    expect(git(primary, "show", `backup/${branch}-fix:half.ts`)).toBe(
+      "half a fix",
+    );
   });
 
   it("lands a ticket whose red-checks resume turned the checks green before its turn cap", async () => {
