@@ -117,10 +117,15 @@ describe("run's limit guard", () => {
       FakeAgentStep.init(limitHitStep("first stream\n", hit)),
     ).run(spec);
 
-    expect(result.message).toBe("Stopped on byro-repo #1: a limit hit.");
+    expect(result.message).toBe(
+      "Stopped on byro-repo #1: a limit hit; rerun to retry it.",
+    );
     expect(github.issues.get(1)?.isOpen).toBe(true);
     expect(github.comments[0]?.body).toContain(
       "The step hit the five_hour limit; it resets at 2026-10-12T11:00:00.000Z.",
+    );
+    expect(github.comments[0]?.body).toContain(
+      "The ticket is left at its implement step in its issue workspace; rerun to retry it: `npm run runner -- byronbroughten/byro-repo 213`.",
     );
     expect(savedLimitHit()).toBe("first stream\n");
     addIssue(2);
@@ -143,7 +148,9 @@ describe("run's limit guard", () => {
       ),
     ).run(spec);
 
-    expect(result.message).toBe("Stopped on byro-repo #1: a limit hit.");
+    expect(result.message).toBe(
+      "Stopped on byro-repo #1: a limit hit; rerun to retry it.",
+    );
     expect(github.comments[0]?.body).toContain(
       "The step hit an unrecognised limit error; its reset is unknown.",
     );

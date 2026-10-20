@@ -14,6 +14,7 @@ import {
   bodyWith,
   bodyWithTargets,
   github,
+  greened,
   implemented,
   primaryOf,
   refOf,
@@ -401,18 +402,22 @@ describe("run's finding triage", () => {
     );
   });
 
-  it("runs the checks after the fixes", async () => {
+  it("runs the checks after the fixes, resuming the fixer on red", async () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(
       implementedAt(90_000),
       reviewed(findings),
       triaged(triageRecordOf(1, "fix"), triageRecordOf(2, "dismiss")),
       fixed("RED", { finding: 1, status: "fixed" }),
+      greened(),
     );
 
     const result = await specRun(agentStep).run(spec);
 
-    expect(result.message).toBe("Stopped on byro-repo #1: red checks.");
+    expect(result.kind).toBe("finished");
+    const resumed = agentStep.requests[4];
+    expect(resumed?.resumeSessionId).toBe("session"); // The fix step's, which made the last commit.
+    expect(resumed?.prompt).toContain("You are the red-checks step");
   });
 
   it("gives a refused triage record one retry in the same session, then lands", async () => {
