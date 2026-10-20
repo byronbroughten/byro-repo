@@ -1,11 +1,11 @@
-// PostToolUse on Read records a full read of docs/writing-style.md; PreToolUse on the gworkspace Doc writes denies a text write until one is recorded.
+// PostToolUse on Read records a full read of docs/writing-voice.md; PreToolUse on the gworkspace Doc writes denies a text write until one is recorded.
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
   docWriteDecision,
-  isWritingStyleRead,
-  writingStylePath,
+  isWritingVoiceRead,
+  writingVoicePath,
 } from "./lib/docContentGate.ts";
 import {
   lineCount,
@@ -21,7 +21,7 @@ await runFailOpen(() => {
   if (!input) return;
   const markerPath = sessionStatePath(
     input.session_id ?? input.conversation_id,
-    "writing-style-read",
+    "writing-voice-read",
   );
   if (isPostToolUse(input.hook_event_name)) {
     const filePath = input.tool_input?.file_path;
@@ -29,9 +29,9 @@ await runFailOpen(() => {
     const projectDir =
       process.env.CLAUDE_PROJECT_DIR ?? input.cwd ?? process.cwd();
     const { offset, limit } = input.tool_input ?? {};
-    const totalLines = lineCount(join(projectDir, writingStylePath));
+    const totalLines = lineCount(join(projectDir, writingVoicePath));
     if (
-      isWritingStyleRead({
+      isWritingVoiceRead({
         projectDir,
         cwd: input.cwd ?? projectDir,
         filePath,
@@ -47,7 +47,7 @@ await runFailOpen(() => {
   const { denyReason } = docWriteDecision({
     toolName: input.tool_name,
     toolInput: input.tool_input,
-    hasReadWritingStyle: existsSync(markerPath),
+    hasReadWritingVoice: existsSync(markerPath),
   });
   if (!denyReason) return;
   writeDenyOutput(denyReason);

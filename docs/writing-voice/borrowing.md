@@ -1,6 +1,6 @@
 # Borrowing: reasoning and examples
 
-Disclosed from [`docs/writing-style.md`](../writing-style.md), "Numbers and evidence": the paraphrase and quote rules. This file holds why the floor is four words, what it catches, and where the numbers came from.
+Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Numbers and evidence": the paraphrase and quote rules. This file holds why the floor is four words, what it catches, and where the numbers came from.
 
 ## Restate a borrowed fact
 

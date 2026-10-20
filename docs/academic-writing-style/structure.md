@@ -1,8 +1,8 @@
 # Structure: instances
 
-Disclosed from [`docs/academic-writing-style.md`](../academic-writing-style.md), "Structure". The rules are there, one line each; this file holds the quoted instances and their sources. "Seen in" counts the reading batches, out of 6, that reported the habit ([sources](../writing-style/sources.md)).
+Disclosed from [`docs/academic-writing-style.md`](../academic-writing-style.md), "Structure". The rules are there, one line each; this file holds the quoted instances and their sources. "Seen in" counts the reading batches, out of 6, that reported the habit ([sources](../writing-voice/sources.md)).
 
-The rubric-driven structure in the samples (title pages, fixed section lists, framework-shaped headings, recaps) was dropped, not kept: [dropped habits](../writing-style/sources.md#dropped-habits).
+The rubric-driven structure in the samples (title pages, fixed section lists, framework-shaped headings, recaps) was dropped, not kept: [dropped habits](../writing-voice/sources.md#dropped-habits).
 
 ## A purpose statement opens the piece
 
@@ -13,4 +13,4 @@ The rubric-driven structure in the samples (title pages, fixed section lists, fr
 
 - "In brief summary, Saint Paul further emphasizes equity and the rights of renters." — Assessment 3 - Code of Ethics and Business Conduct
 - Seen in 1 of 6. Flagged in review as close to the dropped "Summary of Key Points" recaps, and kept.
-- Retired when the developer sorted the Assessment 1 closers: not every subsection needs a closing line, so academic work follows the writing style sheet's section-ending rule ([the kept and struck lines](../writing-style/structure.md#a-closing-line-that-ties)) — session 2ebcdf61, 2026-10-18
+- Retired when the developer sorted the Assessment 1 closers: not every subsection needs a closing line, so academic work follows the writing style sheet's section-ending rule ([the kept and struck lines](../writing-voice/structure.md#a-closing-line-that-ties)) — session 2ebcdf61, 2026-10-18

@@ -23,7 +23,7 @@ try {
     stylePath: values.style,
     sections: values.section ?? [],
     styleSheetPath: fileURLToPath(
-      new URL("../../docs/writing-style.md", import.meta.url),
+      new URL("../../docs/writing-voice.md", import.meta.url),
     ),
     academicSheetPath: fileURLToPath(
       new URL("../../docs/academic-writing-style.md", import.meta.url),

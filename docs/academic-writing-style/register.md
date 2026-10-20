@@ -1,6 +1,6 @@
 # Register: instances
 
-Disclosed from [`docs/academic-writing-style.md`](../academic-writing-style.md), "Register". The rules are there, one line each; this file holds the quoted instances and their sources. "Seen in" counts the reading batches, out of 6, that reported the habit ([sources](../writing-style/sources.md)).
+Disclosed from [`docs/academic-writing-style.md`](../academic-writing-style.md), "Register". The rules are there, one line each; this file holds the quoted instances and their sources. "Seen in" counts the reading batches, out of 6, that reported the habit ([sources](../writing-voice/sources.md)).
 
 ## Impersonal third person
 
