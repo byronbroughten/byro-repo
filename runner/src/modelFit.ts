@@ -23,7 +23,20 @@ export function pairOf(body: string): Pair | undefined {
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line !== "");
-  return pairs[pairLine.toLowerCase()];
+  return pairNamed(pairLine);
+}
+
+export function pairNamed(name: string): Pair | undefined {
+  return pairs[name.trim().toLowerCase()];
+}
+
+// The pairs are listed weakest first; undefined past Opus high.
+export function nextStrongerPairOf(pair: Pair): Pair | undefined {
+  const ordered = Object.values(pairs);
+  const index = ordered.findIndex(
+    ({ model, effort }) => model === pair.model && effort === pair.effort,
+  );
+  return ordered[index + 1];
 }
 
 const pairRanks: {

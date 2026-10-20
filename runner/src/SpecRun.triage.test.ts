@@ -24,6 +24,7 @@ import {
   specRun,
   stateFolder,
   type StepScript,
+  ticketState,
   timed,
   timingLines,
   useSpecRunHarness,
@@ -373,7 +374,7 @@ describe("run's finding triage", () => {
     },
   );
 
-  it("Stops on a schema failure when the fixer leaves uncommitted changes", async () => {
+  it("posts a Failure Halt when the fixer leaves uncommitted changes", async () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(
       implementedAt(90_000),
@@ -394,12 +395,13 @@ describe("run's finding triage", () => {
       },
     );
 
-    const result = await specRun(agentStep).run(spec);
+    await specRun(agentStep).run(spec);
 
-    expect(result.message).toBe("Stopped on byro-repo #1: a schema failure.");
-    expect(github.comments[0]?.body).toContain(
-      "byro-repo: the step left uncommitted changes",
-    );
+    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+    const halt = github.comments.at(-1)?.body;
+    expect(halt).toContain("Failure Halt");
+    expect(halt).toContain("byro-repo: the step left uncommitted changes");
+    expect(halt).toContain("Raw output: `");
   });
 
   it("runs the checks after the fixes, resuming the fixer on red", async () => {
@@ -472,7 +474,7 @@ describe("run's finding triage", () => {
     );
   });
 
-  it("fails the step on a second refused triage record", async () => {
+  it("posts a Failure Halt on a second refused triage record", async () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(
       implementedAt(90_000),
@@ -481,13 +483,52 @@ describe("run's finding triage", () => {
       triaged(triageRecordOf(1, "dismiss")),
     );
 
-    const result = await specRun(agentStep).run(spec);
+    await specRun(agentStep).run(spec);
 
-    expect(result.message).toBe("Stopped on byro-repo #1: a schema failure.");
-    expect(github.comments[0]?.body).toContain(
+    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+    const halt = github.comments.at(-1)?.body;
+    expect(halt).toContain("Failure Halt");
+    expect(halt).toContain(
       "finding 2: each finding gets exactly one verdict, but it got 0",
     );
+    expect(halt).toContain("Raw output: `");
   });
+
+  it.each([
+    { step: "triage", fixes: [] },
+    {
+      step: "fix",
+      fixes: [triaged(triageRecordOf(1, "fix"), triageRecordOf(2, "dismiss"))],
+    },
+  ])(
+    "posts a Failure Halt at once when the $step output fails its schema",
+    async ({ step, fixes }) => {
+      addSpec([1]);
+      const unmatched: StepResult = {
+        ...resultOf(undefined),
+        output: {
+          status: "schemaFailure",
+          rawOutput: "{}",
+          problems: ["records is required"],
+        },
+      };
+
+      await specRun(
+        FakeAgentStep.init(
+          implementedAt(90_000),
+          reviewed(findings),
+          ...fixes,
+          unmatched,
+        ),
+      ).run(spec);
+
+      expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+      const halt = github.comments.at(-1)?.body;
+      expect(halt).toContain("Failure Halt");
+      expect(halt).toContain("records is required");
+      expect(halt).toContain(`-${step}.output.txt\``);
+    },
+  );
 
   it("logs the triage and fix steps' times between review's and the checks'", async () => {
     addSpec([1]);

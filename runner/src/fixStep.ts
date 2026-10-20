@@ -10,7 +10,8 @@ import { arraySchema, objectSchema, stringSchema } from "./recordSchema.ts";
 
 const giveUpReasons = ["judgement-call", "checks-red"] as const;
 
-export type GiveUpReason = (typeof giveUpReasons)[number];
+// `turn-cap` is the runner's own, for a fixer that ran out of turns before reporting a finding fixed.
+export type GiveUpReason = (typeof giveUpReasons)[number] | "turn-cap";
 
 export type FixOutcome = FixedOutcome | GaveUpOutcome;
 
@@ -158,6 +159,8 @@ const giveUpProposals: Record<GiveUpReason, string> = {
     "The fix would reverse a spec decision, so it was reverted. Keep the decision and dismiss the finding, or revise the decision and file the fix.",
   "checks-red":
     "The fix kept the checks red, so it was reverted. File it as a fix ticket that names the failing check, or dismiss the finding.",
+  "turn-cap":
+    "The fixer ran out of turns before reporting it fixed; what it committed is kept. File the rest as a fix ticket, or dismiss the finding.",
 };
 
 export interface GiveUp {
