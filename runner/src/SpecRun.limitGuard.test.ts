@@ -13,7 +13,7 @@ import {
   after,
   github,
   implemented,
-  notices,
+  noticeSummaries,
   primaryOf,
   readingOf,
   refOf,
@@ -31,10 +31,6 @@ import {
 useSpecRunHarness();
 
 describe("run's limit guard", () => {
-  function summaries(): string[] {
-    return notices.sent.map(({ summary }) => summary);
-  }
-
   it("waits out a 5-hour limit on the configured account until the reset plus a margin, with one notice, then lands", async () => {
     addSpec([1]);
     scriptUsage(
@@ -53,7 +49,7 @@ describe("run's limit guard", () => {
 
     expect(result.landed).toEqual([refOf(1)]);
     expect(sleeps).toEqual([2 * 60 * 60_000 + 5 * 60_000]);
-    expect(summaries()).toEqual([
+    expect(noticeSummaries()).toEqual([
       "Run started on 1 tickets as account 1: 5-hour 92%, weekly 50%.",
       "Limit wait: account 1 is at 92% of its 5-hour limit; continuing after 2026-10-12T11:05:00.000Z.",
       result.message,
@@ -74,7 +70,7 @@ describe("run's limit guard", () => {
         "Account 1 is at 96% of its weekly limit, past the reserve; rerun after it resets at 2026-10-15T00:00:00.000Z.",
     });
     expect(agentStep.requests).toEqual([]);
-    expect(summaries()).toEqual([
+    expect(noticeSummaries()).toEqual([
       "Run started on 1 tickets as account 1: 5-hour 30%, weekly 96%.",
       result.message,
     ]);
@@ -154,7 +150,7 @@ describe("run's limit guard", () => {
     expect(github.comments[0]?.body).toContain(
       "The step hit an unrecognised limit error; its reset is unknown.",
     );
-    expect(summaries()).toEqual([
+    expect(noticeSummaries()).toEqual([
       "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%.",
       "Unrecognised limit error on account 1; the saved stream can tighten detection.",
       result.message,
@@ -175,7 +171,7 @@ describe("run's limit guard", () => {
     const result = await specRun(agentStep).run(spec);
 
     expect(result.landed).toEqual([refOf(1), refOf(2)]);
-    expect(summaries()).toEqual([
+    expect(noticeSummaries()).toEqual([
       "Run started on 2 tickets as account 1: no usage reading.",
       "No usage reading for account 1; steps launch unguarded.",
       result.message,
@@ -215,7 +211,7 @@ describe("run's limit guard", () => {
 
     expect(result.landed).toEqual([refOf(1)]);
     expect(
-      summaries().filter((summary) => summary.startsWith("Limit wait")),
+      noticeSummaries().filter((summary) => summary.startsWith("Limit wait")),
     ).toHaveLength(1);
   });
 

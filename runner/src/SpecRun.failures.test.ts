@@ -10,6 +10,7 @@ import {
   addSpec,
   after,
   bodyWith,
+  crashed,
   eventOf,
   github,
   greened,
@@ -27,7 +28,7 @@ import {
   spec,
   specRun,
   stateFolder,
-  type StepScript,
+  throws,
   ticketState,
   timed,
   useSpecRunHarness,
@@ -35,21 +36,8 @@ import {
 
 useSpecRunHarness();
 
-const crashed: StepResult = {
-  ...resultOf(undefined),
-  output: { status: "none" },
-  sessionId: "crashed-session",
-  exitSubtype: "error_during_execution",
-};
-
 function runStatePath(): string {
   return join(stateFolder(), "byro-repo-213.run.json");
-}
-
-function throws(message: string): StepScript {
-  return async () => {
-    throw new Error(message);
-  };
 }
 
 describe("run's crash retries", () => {

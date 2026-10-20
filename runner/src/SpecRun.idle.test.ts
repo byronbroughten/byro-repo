@@ -8,7 +8,7 @@ import {
   blocked,
   github,
   implemented,
-  notices,
+  noticeSummaries,
   reviewed,
   spec,
   specRun,
@@ -30,10 +30,6 @@ describe("run's idle and stops", () => {
     recommendation: "Read it the first way.",
   };
 
-  function summaries(): string[] {
-    return notices.sent.map(({ summary }) => summary);
-  }
-
   it("ends after the current ticket on a stop request, leaving the next ticket unlaunched", async () => {
     addSpec([1, 2]);
     const agentStep = FakeAgentStep.init(
@@ -51,7 +47,7 @@ describe("run's idle and stops", () => {
     });
     expect(agentStep.requests).toHaveLength(2);
     expect(github.issues.get(2)?.isOpen).toBe(true);
-    expect(summaries().at(-1)).toBe(result.message);
+    expect(noticeSummaries().at(-1)).toBe(result.message);
   });
 
   it("drops a stop request left from before the run", async () => {
@@ -85,9 +81,9 @@ describe("run's idle and stops", () => {
     expect(result.message).toBe(
       "Run ended: landed byro-repo #1. Every ticket is closed.",
     );
-    expect(summaries().filter((line) => line.startsWith("Idle:"))).toEqual([
-      "Idle: nothing runnable. byro-repo #1 waits on Halt H1.",
-    ]);
+    expect(
+      noticeSummaries().filter((line) => line.startsWith("Idle:")),
+    ).toEqual(["Idle: nothing runnable. byro-repo #1 waits on Halt H1."]);
   });
 
   it("ends on a `stop spec` answer, the halted ticket unlanded and its other Halt open", async () => {
@@ -108,7 +104,7 @@ describe("run's idle and stops", () => {
       message:
         "Stopped on `stop spec` for Halt H1: landed nothing; byro-repo #1 stays unlanded.",
     });
-    expect(summaries().at(-1)).toBe(result.message);
+    expect(noticeSummaries().at(-1)).toBe(result.message);
     expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
     expect(github.issues.get(1)?.isOpen).toBe(true);
     expect(agentStep.requests).toHaveLength(1);
@@ -125,7 +121,7 @@ describe("run's idle and stops", () => {
     ).run(spec);
 
     expect(result.kind).toBe("finished");
-    expect(summaries().at(-1)).toBe(
+    expect(noticeSummaries().at(-1)).toBe(
       "Run ended: landed byro-repo #3. byro-repo #1 waits on you and blocks byro-repo #2; byro-repo #2 is blocked by byro-repo #1. Rerun once your tickets close: `npm run runner -- byronbroughten/byro-repo 213`.",
     );
   });

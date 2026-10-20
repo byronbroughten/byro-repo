@@ -235,6 +235,27 @@ export function recordOf(
 
 export type StepScript = (request: StepRequest) => Promise<StepResult>;
 
+export const crashed: StepResult = {
+  ...resultOf(undefined),
+  output: { status: "none" },
+  sessionId: "crashed-session",
+  exitSubtype: "error_during_execution",
+};
+
+export const capped: StepResult = {
+  ...resultOf(undefined),
+  output: { status: "none" },
+  sessionId: "capped-session",
+  exitSubtype: "error_max_turns",
+};
+
+// The adapter itself throws, so the step never starts.
+export function throws(message: string): StepScript {
+  return async () => {
+    throw new Error(message);
+  };
+}
+
 // Commits `file` on the ticket's branch in the workspace, as a real implement step would.
 export function implemented(
   file: string,
@@ -306,6 +327,10 @@ export function haltComments(): string[] {
   return github.comments
     .map(({ body }) => body)
     .filter((body) => body.includes("**Halt H"));
+}
+
+export function noticeSummaries(): string[] {
+  return notices.sent.map(({ summary }) => summary);
 }
 
 export function masterSubjects(): string[] {
