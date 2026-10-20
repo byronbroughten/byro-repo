@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import {
   docWriteDecision,
-  isWritingStyleRead,
+  isWritingVoiceRead,
   writingVoicePath,
 } from "./lib/docContentGate.ts";
 import {
@@ -31,7 +31,7 @@ await runFailOpen(() => {
     const { offset, limit } = input.tool_input ?? {};
     const totalLines = lineCount(join(projectDir, writingVoicePath));
     if (
-      isWritingStyleRead({
+      isWritingVoiceRead({
         projectDir,
         cwd: input.cwd ?? projectDir,
         filePath,
@@ -47,7 +47,7 @@ await runFailOpen(() => {
   const { denyReason } = docWriteDecision({
     toolName: input.tool_name,
     toolInput: input.tool_input,
-    hasReadWritingStyle: existsSync(markerPath),
+    hasReadWritingVoice: existsSync(markerPath),
   });
   if (!denyReason) return;
   writeDenyOutput(denyReason);

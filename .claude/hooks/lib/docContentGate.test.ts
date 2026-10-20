@@ -6,7 +6,7 @@ import {
   docContentGateReason,
   docWriteDecision,
   gatedDocWrites,
-  isWritingStyleRead,
+  isWritingVoiceRead,
 } from "./docContentGate.ts";
 import type { ToolInput } from "./hookIo.ts";
 import type { EditDecision } from "./styleGate.ts";
@@ -17,12 +17,12 @@ type DocArgs = ToolInput & Record<string, unknown>;
 function write(
   toolName: string,
   toolInput: DocArgs,
-  hasReadWritingStyle = false,
+  hasReadWritingVoice = false,
 ): EditDecision {
   return docWriteDecision({
     toolName: `mcp__gworkspace__${toolName}`,
     toolInput,
-    hasReadWritingStyle,
+    hasReadWritingVoice,
   });
 }
 const denied = { denyReason: docContentGateReason };
@@ -106,7 +106,7 @@ describe("docWriteDecision", () => {
       docWriteDecision({
         toolName: "Edit",
         toolInput: { text: "x" },
-        hasReadWritingStyle: false,
+        hasReadWritingVoice: false,
       }),
     ).toEqual(allowed);
     expect(write("modify_sheet_values", { text: "x" })).toEqual(allowed);
@@ -123,13 +123,13 @@ describe("the refusal reason", () => {
   });
 });
 
-describe("isWritingStyleRead", () => {
+describe("isWritingVoiceRead", () => {
   const projectDir = "/repo";
   function read(
     filePath: string,
     bounds: { offset?: number; limit?: number } = {},
   ): boolean {
-    return isWritingStyleRead({
+    return isWritingVoiceRead({
       projectDir,
       cwd: projectDir,
       filePath,

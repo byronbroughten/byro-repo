@@ -33,15 +33,15 @@ export const gatedDocWrites = {
 interface DocWrite {
   toolName: string | undefined;
   toolInput: ToolInput | undefined;
-  hasReadWritingStyle: boolean;
+  hasReadWritingVoice: boolean;
 }
 
 export function docWriteDecision({
   toolName,
   toolInput,
-  hasReadWritingStyle,
+  hasReadWritingVoice,
 }: DocWrite): EditDecision {
-  if (hasReadWritingStyle || !isGatedDocWrite(toolName)) {
+  if (hasReadWritingVoice || !isGatedDocWrite(toolName)) {
     return { denyReason: undefined };
   }
   return {
@@ -51,7 +51,7 @@ export function docWriteDecision({
   };
 }
 
-export function isWritingStyleRead(read: StyleRead): boolean {
+export function isWritingVoiceRead(read: StyleRead): boolean {
   return isFullDocRead(read, writingVoicePath);
 }
 
