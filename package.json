@@ -42,7 +42,8 @@
     "session:probe": "node scripts/runner/sessionProbe.ts",
     "wrap-up": "node scripts/runner/wrapUp.ts",
     "jev": "node scripts/jev/jev.ts",
-    "jev:style": "node scripts/jev/jevStyle.ts"
+    "jev:style": "node scripts/jev/jevStyle.ts",
+    "overlap": "node scripts/overlap/overlap.ts"
   },
   "devDependencies": {
     "@byronbroughten/config": "^0.1.0",
