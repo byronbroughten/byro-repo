@@ -35,7 +35,7 @@ Four contexts, one per package:
     │   ├── src/AGENTS.md
     │   └── docs/occupancy-ledger.md
     └── writing/
-        ├── GLOSSARY.md             # a prose spec's terms: Piece, Deliverable, Reference
+        ├── GLOSSARY.md             # a prose spec's terms: Piece, Deliverable, Supporting Material, Reference
         └── AGENTS.md               # implementing a piece spec
 ```
 

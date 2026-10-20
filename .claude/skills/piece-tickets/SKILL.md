@@ -4,7 +4,7 @@ description: "Split a piece spec into sub-issues chosen from Research, Sections 
 disable-model-invocation: true
 ---
 
-Split a piece spec into sub-issues in `byronbroughten/writing`. The Piece rules live in the writing package: [`packages/writing/AGENTS.md`](../../../packages/writing/AGENTS.md) and its `GLOSSARY.md`. Use their words (Piece, Deliverable, Section, Reference); never restate them here.
+Split a piece spec into sub-issues in `byronbroughten/writing`. The Piece rules live in the writing package: [`packages/writing/AGENTS.md`](../../../packages/writing/AGENTS.md) and its `GLOSSARY.md`. Use their words (Piece, Deliverable, Section, Supporting Material, Reference); never restate them here.
 
 ## 1. Read the spec
 
@@ -20,7 +20,7 @@ Choose only the stages the fields call for:
 
 With a one-session Split, the spec itself is the drafting ticket, final pass included: propose only Research, and say the spec is implemented once Research closes.
 
-Size each ticket to fit one session under the ~150K context budget in [`docs/agents/planning.md`](../../../docs/agents/planning.md#ticket-size), estimated at its read rates from the Reference text it reads, the Sections already drafted before it, and the length it drafts.
+Size each ticket to fit one session under the ~150K context budget in [`docs/agents/planning.md`](../../../docs/agents/planning.md#ticket-size), estimated at its read rates from the Supporting Material and Reference passages it reads, the Sections already drafted before it, and the length it drafts.
 
 Order them Research first, Sections in reading order, the final pass last, each blocked by the one before. Present a numbered list: title, stage, the Sections it names, blocked by, and its rough size. Ask whether the granularity, the order and the edges are right.
 
@@ -44,7 +44,7 @@ The stage, and for a Section ticket its Sections by exact heading text.
 
 ## Shared rules
 
-Copied from the parent: the Deliverable, the References this ticket reads (with page ranges), Reader, Voice and Form.
+Copied from the parent: the Deliverable, the Supporting Material this ticket reads (with page ranges), Reader, Voice and Form.
 
 ## Facts
 

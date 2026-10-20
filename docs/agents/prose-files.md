@@ -83,7 +83,7 @@ A private repo holding piece specs as issues; the Pieces' text lives in their Go
 | --- | --- |
 | `CLAUDE.md` | The restart-at-root notice, plus `@AGENTS.md`. |
 | `AGENTS.md` | The pointer to the grilling doc, and how to implement a piece spec: the Deliverable as the text's only home, Drive IDs, when a Deliverable write needs no yes, the voice, the pointer to the wrap-up, and the four done checks. Kept short: it loads on every task there. |
-| `GLOSSARY.md` | The writing context's words: Piece, Deliverable and Reference. |
+| `GLOSSARY.md` | The writing context's words: Piece, Deliverable, Supporting Material and Reference. |
 | `docs/grilling.md` | What a grill asks before a piece spec is filed, and the calibration paragraph. `/to-writing-style` adds questions to it. |
 | `docs/wrap-up.md` | The wrap-up prompt for a piece spec with no branch. |
 | `docs/model-fit.md` | The outcome log for piece specs: kind, pair and peak context. |

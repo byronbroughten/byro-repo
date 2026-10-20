@@ -18,6 +18,7 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 | --- | --- |
 | A figure, a calculation, a projection or a caveat | [`docs/writing-style/numbers.md`](./writing-style/numbers.md) |
 | An example, a comparison, a term, a reason | [`docs/writing-style/explaining.md`](./writing-style/explaining.md) |
+| A borrowed fact, a quote | [`docs/writing-style/borrowing.md`](./writing-style/borrowing.md) |
 | A feature, a competitor, the product's story | [`docs/writing-style/product.md`](./writing-style/product.md) |
 | A hedge, a weakness, a trade-off | [`docs/writing-style/candor.md`](./writing-style/candor.md) |
 | A section opening, a recommendation, a list | [`docs/writing-style/structure.md`](./writing-style/structure.md) |
@@ -36,6 +37,8 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - `firsthand` **Cite no published source.**
 - `sourced` **Name a statistic's source in the same sentence ("according to Redfin", "per Bankrate").**
 - `cited` **Cite every borrowed fact in APA 7, per [`academic-writing-style.md`](./academic-writing-style.md).**
+- **Restate a borrowed fact in your own words and sentence shape: no run of four or more words from a passage you read for it.** Proper names, fixed terms and runs of common function words don't count.
+- **Quote only when the wording is notably better than any paraphrase, in quotation marks, naming who said it.**
 - **Show what a choice is worth by changing one input in a baseline example and stating the dollar change per month.**
 
 ## Explaining

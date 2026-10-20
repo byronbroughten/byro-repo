@@ -1,12 +1,12 @@
 ---
 name: review-piece
-description: "Review a writing Piece's Deliverable as it is now, in three parallel sub-agents: Spec (facts, length, Reference reuse), Style (the style sheets and the spec's overrides) and Reader (what it says to someone without the spec). Reports them side by side, then runs Jev's style check as a trial."
+description: "Review a writing Piece's Deliverable as it is now, in three parallel sub-agents: Spec (facts, length, copied wording), Style (the style sheets and the spec's overrides) and Reader (what it says to someone without the spec). Reports them side by side, then runs Jev's style check as a trial."
 disable-model-invocation: true
 ---
 
 Three-axis review of a Piece's Deliverable, read as it is now. There is no diff and no fixed point.
 
-- **Spec**: does the text hold to the spec's facts, length limit and References?
+- **Spec**: does the text hold to the spec's facts and length limit, and copy no wording from what its drafter read?
 - **Style**: does it follow the style sheets and the spec's overrides?
 - **Reader**: what does it say to a reader who never saw the spec?
 
@@ -33,20 +33,20 @@ Write each to its own file in the scratchpad, so each sub-agent gets only its ow
 - **Reader**: the spec's Reader field, verbatim, and nothing else. With no Reader field, use the spec's lines on who the Piece is for and mark them a stand-in.
 - **Fact list**: the closed list the implementer had: the issue's facts, the parent's facts, any verified source list a Research issue produced and the spec links, and any of the developer's own text the spec names as given.
 - **Length limit**: the spec's, verbatim.
-- **References**: each Reference's text, read from Drive by the file ID the spec lists. For one too long to read whole, read the passages the spec lists by page range; with none listed, use the passages a Research issue quoted.
+- **Read passages**: each Supporting Material file's text, read from Drive by the file ID the spec lists; for one too long to read whole, the passages the spec lists by page range. Add the passages a Research issue quoted, which stand for the References the drafter read.
 - **Style**: the spec's Evidence and Formality values, whether the Piece is Academic, and its style overrides, Form and Order sections, verbatim, in the Style file shape in [the Jev agent doc](../../../docs/agents/jev.md#the-style-check).
 
-Done when every file exists, or the spec has no such field and you say so. A missing Drive ID or Reference is asked for, never guessed. Note each **gap**: an input that is missing, a stand-in, or only partly loaded.
+Done when every file exists, or the spec has no such field and you say so. A missing Drive ID or Supporting Material file is asked for, never guessed. Note each **gap**: an input that is missing, a stand-in, or only partly loaded.
 
 ## 3. Spawn the three sub-agents in parallel
 
 Issue all three Agent calls together, in the foreground. Each prompt names the scope: the Section headings or "the whole Deliverable".
 
-**Spec** sub-agent, `model: "sonnet"`. Its prompt gives the Deliverable, fact list, length limit and References files, points at done checks 1, 2 and 4 in `packages/writing/AGENTS.md`, and the brief: "For the in-scope text only, report every factual claim that doesn't trace to the fact list and every sentence reused from a Reference. Report whether the whole Deliverable meets the length limit. Quote the spec line or the Reference sentence for each finding. Label hard only a claim missing from the fact list, a reused sentence or a missed length limit; label how the text describes a source (overstated, narrowed, misattributed) a judgement call. Under 400 words."
+**Spec** sub-agent, `model: "sonnet"`. Its prompt gives the Deliverable, fact list, length limit and Read passages files, points at done checks 1, 2 and 4 in `packages/writing/AGENTS.md`, and the brief: "For the in-scope text only, report every factual claim that doesn't trace to the fact list and every run of four or more words, or sentence structure, copied from the Read passages. Report whether the whole Deliverable meets the length limit. Quote the spec line or the copied passage for each finding. Label hard only a claim missing from the fact list, copied wording or a missed length limit; label how the text describes a source (overstated, narrowed, misattributed) a judgement call. Under 400 words."
 
 **Style** sub-agent, the session's model. Its prompt gives the Deliverable and Style files, points at the "Voice" rule under "Implementing a piece spec" in `packages/writing/AGENTS.md`, plus `docs/academic-writing-style.md` for an Academic Piece, and the brief: "For the in-scope text only, report every place it breaks `docs/writing-style.md`'s rules, read in full and applied with the rules tagged for these Evidence and Formality values, or the spec's overrides, which win where they conflict. Cite the rule for each finding and quote the sentence. Every finding is a judgement call. Under 400 words."
 
-**Reader** sub-agent, the session's model. Its prompt gives only the Deliverable and Reader files. Never give it the facts, the References, the style sheets or the spec. The brief: "You are the reader described. Read the whole Deliverable, then for the in-scope part only report: (a) what you took it to say, in a few sentences; (b) each place you got lost, quoting it; (c) what you would ask the author. Under 400 words."
+**Reader** sub-agent, the session's model. Its prompt gives only the Deliverable and Reader files. Never give it the facts, the Read passages, the style sheets or the spec. The brief: "You are the reader described. Read the whole Deliverable, then for the in-scope part only report: (a) what you took it to say, in a few sentences; (b) each place you got lost, quoting it; (c) what you would ask the author. Under 400 words."
 
 ## 4. Run Jev's style check
 
