@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { ESLint } from "eslint";
 import { describe, expect, it } from "vitest";
 
-import { workspaceNames } from "./eslint.config.mjs";
+import { packagesImportRegex, workspaceNames } from "./eslint.config.mjs";
 
 const repoRoot = fileURLToPath(new URL(".", import.meta.url));
 
@@ -120,5 +120,65 @@ export class Box extends Base {
 }
 `;
     expect(await helperErrors(code)).toBe(0);
+  });
+});
+
+describe("the packages/ import rule", () => {
+  async function packagesErrors(code: string): Promise<number> {
+    const [result] = await new ESLint({ cwd: repoRoot }).lintText(code, {
+      filePath: ".claude/hooks/hook.ts",
+    });
+    return (result?.messages ?? []).filter(
+      (message) => message.ruleId === "no-restricted-imports",
+    ).length;
+  }
+
+  it("passes the runner and config by name", async () => {
+    const code = [
+      'import { ContextMeter } from "@byronbroughten/spec-runner/contextMeter";',
+      'import { eslintPreset } from "@byronbroughten/config/eslint";',
+      "export { ContextMeter, eslintPreset };",
+      "",
+    ].join("\n");
+    expect(await packagesErrors(code)).toBe(0);
+  });
+
+  it("rejects a relative import into packages/", async () => {
+    const code =
+      'import { x } from "../../packages/framework/src/x.ts";\nexport { x };\n';
+    expect(await packagesErrors(code)).toBe(1);
+  });
+
+  it("finds only the names under packages/", () => {
+    const root = mkdtempSync(join(tmpdir(), "package-names-"));
+    writeFileSync(
+      join(root, "package.json"),
+      JSON.stringify({ workspaces: ["config", "packages/*"] }),
+    );
+    [
+      { folder: "config", name: "@example/config" },
+      { folder: "packages/fake", name: "@example/fake" },
+    ].forEach(({ folder, name }) => {
+      mkdirSync(join(root, folder), { recursive: true });
+      writeFileSync(
+        join(root, folder, "package.json"),
+        JSON.stringify({ name }),
+      );
+    });
+    expect(workspaceNames(root, "packages/")).toEqual(["@example/fake"]);
+  });
+
+  it("rejects a given name and its subpath, but not a longer name", () => {
+    const regex = new RegExp(packagesImportRegex(["@example/fake.js"]));
+    expect(regex.test("@example/fake.js")).toBe(true);
+    expect(regex.test("@example/fake.js/sub")).toBe(true);
+    expect(regex.test("@example/fake.jsx")).toBe(false);
+    expect(regex.test("@example/fakexjs")).toBe(false);
+  });
+
+  it("rejects nothing extra with no names", () => {
+    const regex = new RegExp(packagesImportRegex([]));
+    expect(regex.test("@byronbroughten/spec-runner")).toBe(false);
+    expect(regex.test("packages/x")).toBe(true);
   });
 });
