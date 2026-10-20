@@ -32,6 +32,7 @@ describe("loadRunKnobs", () => {
       JSON.stringify({
         clonePaths: { "byro-repo": "." },
         allowedTools: { review: ["Read"] },
+        wallClockMs: { review: 5_000 },
         handoffDocPath: "docs/handoffs.md",
       }),
     );
@@ -50,6 +51,13 @@ describe("loadRunKnobs", () => {
     expect(knobs.gapCheckPair).toEqual({ model: "opus", effort: "medium" });
     expect(knobs.reviewListCadence).toBe("end-of-run");
     expect(knobs.maxTurns.gapCheck).toBe(80);
+    expect(knobs.wallClockMs).toEqual({
+      ...defaultRunKnobs.wallClockMs,
+      review: 5_000,
+    });
+    expect(knobs.wallClockMs.implement).toBe(3_600_000);
+    expect(knobs.silenceTimeoutMs).toBe(600_000);
+    expect(knobs.retriesPerFailure).toBe(1);
     expect(knobs.skillNames.review).toBe("code-review");
   });
 

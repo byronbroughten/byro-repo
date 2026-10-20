@@ -9,7 +9,7 @@ import {
 } from "./findingTriage.ts";
 import type { Blocker } from "./implementStep.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
-import type { IssueComment } from "./SpecRun.ts";
+import type { IssueComment, TicketStep } from "./SpecRun.ts";
 
 // Marks every comment the runner posts, which carries the developer's login too, so none is read as an answer.
 export const runnerMark = "<!-- spec-runner -->";
@@ -22,6 +22,7 @@ const kindLabels = {
   "gated-action": "gated-action blocker",
   "spec-ambiguity": "spec-ambiguity blocker",
   "denied-tool": "denied-tool blocker",
+  failure: "Failure Halt",
 } as const;
 
 export type HaltKind = keyof typeof kindLabels;
@@ -38,6 +39,8 @@ export interface Halt {
   scope: HaltScope;
   // The triage finding it came from, if any.
   finding?: number;
+  // A Failure Halt's step, which a `retry` answer runs again.
+  failedStep?: TicketStep;
   isPosted: boolean;
   answer?: HaltAnswer;
   // Set once the answer reached the resumed or fresh implementer.
@@ -56,7 +59,7 @@ export interface HaltAnswer {
 // What a Halt needs before the run numbers it.
 export type HaltDraft = Pick<
   Halt,
-  "kind" | "question" | "options" | "scope" | "finding"
+  "kind" | "question" | "options" | "scope" | "finding" | "failedStep"
 >;
 
 export function shortRefOf({ repo, number }: IssueRef): string {
@@ -91,6 +94,26 @@ export function triageHaltOf(
     options: [recommendation ?? ""],
     scope: haltScopeOf(record),
     finding,
+  };
+}
+
+export interface StepFailure {
+  step: TicketStep;
+  detail: string;
+  logPath: string;
+}
+
+// A step that failed again after its retry; a reply other than `stop spec` runs the step again with a fresh count.
+export function failureHaltOf(
+  { step, detail, logPath }: StepFailure,
+  downstream: string[],
+): HaltDraft {
+  return {
+    kind: "failure",
+    question: `${detail}\n\nLog: \`${logPath}\``,
+    options: ["`retry`"],
+    scope: downstream,
+    failedStep: step,
   };
 }
 

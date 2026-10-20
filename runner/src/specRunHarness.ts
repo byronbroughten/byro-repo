@@ -204,6 +204,7 @@ export function resultOf(record: unknown): StepResult {
     transcriptPath: undefined,
     peakContext: undefined,
     hasCrossedCeiling: false,
+    hang: undefined,
     exitSubtype: "success",
     errorText: undefined,
     usage: undefined,
@@ -285,6 +286,15 @@ export function applied(): StepResult {
     boxesUndone: [],
     blockers: [],
   });
+}
+
+// Removes the committed RED file, as a red-checks step that turns the checks green would.
+export function greened(): StepScript {
+  return async (request) => {
+    git(request.cwd, "rm", "-q", "RED");
+    git(request.cwd, "commit", "-m", "Remove RED");
+    return resultOf({ summary: "Removed RED." });
+  };
 }
 
 export function reviewed(findings: string[] = []): StepResult {

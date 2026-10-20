@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import type { StepResult } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
 import type { RunResult } from "./SpecRun.ts";
@@ -18,6 +19,7 @@ import {
   primaryOf,
   progressLines,
   refOf,
+  resultOf,
   reviewed,
   spec,
   specRun,
@@ -123,17 +125,24 @@ describe("run", () => {
     );
   });
 
-  it("keeps a Stop with multi-line output to timestamped lines", async () => {
+  it("keeps a crash with multi-line output to timestamped lines", async () => {
     addSpec([1]);
+    const crashed: StepResult = {
+      ...resultOf(undefined),
+      output: { status: "none" },
+      errorText: "API Error: 500\noverloaded",
+    };
 
-    await specRun(FakeAgentStep.init(implemented("RED"), reviewed())).run(spec);
+    await specRun(
+      FakeAgentStep.init(crashed, implemented("one.ts"), reviewed()),
+    ).run(spec);
 
     const lines = progressLines();
     expect(
       lines.every((line) => line.startsWith("2026-10-12T09:00:00.000Z ")),
     ).toBe(true);
     expect(lines.map(eventOf)).toContain(
-      "byro-repo #1: stopped on red checks; details in the spec-issue comment.",
+      "byro-repo #1: The implement step ended on an error: API Error: 500 overloaded Retrying, 1 of 1.",
     );
   });
 

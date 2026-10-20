@@ -14,6 +14,7 @@ import {
   bodyWith,
   bodyWithTargets,
   github,
+  greened,
   implemented,
   primaryOf,
   refOf,
@@ -401,18 +402,53 @@ describe("run's finding triage", () => {
     );
   });
 
-  it("runs the checks after the fixes", async () => {
+  it("runs the checks after the fixes, resuming the fixer on red", async () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(
       implementedAt(90_000),
       reviewed(findings),
       triaged(triageRecordOf(1, "fix"), triageRecordOf(2, "dismiss")),
       fixed("RED", { finding: 1, status: "fixed" }),
+      greened(),
     );
 
     const result = await specRun(agentStep).run(spec);
 
-    expect(result.message).toBe("Stopped on byro-repo #1: red checks.");
+    expect(result.kind).toBe("finished");
+    const resumed = agentStep.requests[4];
+    expect(resumed?.resumeSessionId).toBe("session"); // The fix step's, which made the last commit.
+    expect(resumed?.prompt).toContain("You are the red-checks step");
+  });
+
+  it("saves a crashed fix step's uncommitted work to a backup branch and resumes it", async () => {
+    addSpec([1]);
+    let branch = "";
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      reviewed(findings),
+      triaged(triageRecordOf(1, "fix"), triageRecordOf(2, "dismiss")),
+      async (request) => {
+        writeFileSync(join(request.cwd, "half.ts"), "half a fix\n");
+        branch = git(request.cwd, "branch", "--show-current");
+        return {
+          ...resultOf(undefined),
+          output: { status: "none" },
+          sessionId: "fix-session",
+          exitSubtype: "error_during_execution",
+        };
+      },
+      fixed("two.ts", { finding: 1, status: "fixed" }),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.kind).toBe("finished");
+    expect(
+      git(primaryOf("byro-repo"), "show", `backup/${branch}-fix:half.ts`),
+    ).toBe("half a fix");
+    const retry = agentStep.requests[4];
+    expect(retry?.resumeSessionId).toBe("fix-session");
+    expect(retry?.prompt).toContain("set aside on a backup branch");
   });
 
   it("gives a refused triage record one retry in the same session, then lands", async () => {

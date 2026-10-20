@@ -98,6 +98,7 @@ export class StepStream {
         projectFolder && sessionId && join(projectFolder, `${sessionId}.jsonl`),
       peakContext: this.meter.peak,
       hasCrossedCeiling: this.hasCrossedCeiling,
+      hang: undefined,
       exitSubtype: stringOrUndefined(this.result?.subtype),
       errorText: this._errorText,
       usage: this.rateLimit && usageOf(this.rateLimit),

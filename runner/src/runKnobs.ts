@@ -35,6 +35,11 @@ export interface RunKnobs {
   // Workspace-relative globs under the protected .claude/ that a step's Edit or Write may still change.
   allowedWriteGlobs: string[];
   maxTurns: StepKnobs<number>;
+  // A step whose stream stays silent this long, or that runs past its wall clock, is killed as hung.
+  silenceTimeoutMs: number;
+  wallClockMs: StepKnobs<number>;
+  // How many times a crashed step or red checks are retried before a Failure Halt.
+  retriesPerFailure: number;
   // The resumed implementer fixes the Fix batch only while its peak context is under this.
   ticketBudget: number;
   // A fixer whose context crosses this is killed and its batch handed to the triage agent.
@@ -50,6 +55,7 @@ export interface RunKnobs {
 }
 
 const defaultAccount = 1;
+const minuteMs = 60_000;
 
 function authChecksOf(account: number): Command[] {
   return [
@@ -81,6 +87,15 @@ export const defaultRunKnobs: RunKnobs = {
     ".claude/hooks/**",
   ],
   maxTurns: { implement: 200, review: 80, triage: 80, fix: 120, gapCheck: 80 },
+  silenceTimeoutMs: 10 * minuteMs,
+  wallClockMs: {
+    implement: 60 * minuteMs,
+    review: 20 * minuteMs,
+    triage: 20 * minuteMs,
+    fix: 20 * minuteMs,
+    gapCheck: 20 * minuteMs,
+  },
+  retriesPerFailure: 1,
   ticketBudget: 150_000,
   liveCeiling: 180_000,
   triagePair: { model: "opus", effort: "medium" },
@@ -105,9 +120,10 @@ export function runKnobsOrDefaults(overridePath: string): RunKnobs {
 }
 
 type RunKnobOverrides = Partial<
-  Omit<RunKnobs, "allowedTools" | "maxTurns"> & {
+  Omit<RunKnobs, "allowedTools" | "maxTurns" | "wallClockMs"> & {
     allowedTools: Partial<StepKnobs<string[]>>;
     maxTurns: Partial<StepKnobs<number>>;
+    wallClockMs: Partial<StepKnobs<number>>;
   }
 >;
 
@@ -121,6 +137,7 @@ export function runKnobsOf(overrides: RunKnobOverrides): RunKnobs {
       ...overrides.allowedTools,
     },
     maxTurns: { ...defaultRunKnobs.maxTurns, ...overrides.maxTurns },
+    wallClockMs: { ...defaultRunKnobs.wallClockMs, ...overrides.wallClockMs },
     authChecks:
       overrides.authChecks ?? authChecksOf(overrides.account ?? defaultAccount),
   };

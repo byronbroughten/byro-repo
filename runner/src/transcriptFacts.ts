@@ -263,6 +263,10 @@ function durationMinutesOf(transcripts: Transcript[]): number {
     if (times.length === 0) return sum;
     return sum + Math.max(...times) - Math.min(...times);
   }, 0);
+  return minutesOf(ms);
+}
+
+export function minutesOf(ms: number): number {
   return Math.round(ms / 60_000);
 }
 
