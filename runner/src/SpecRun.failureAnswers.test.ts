@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { Pair, StepResult } from "./AgentStep.ts";
+import type { Pair } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { guidanceSectionOf } from "./halts.ts";
 import type { Blocker } from "./implementStep.ts";
@@ -9,52 +9,27 @@ import {
   addSpec,
   blocked,
   bodyWith,
+  capped,
+  crashed,
   github,
   haltComments,
   implemented,
-  notices,
+  noticeSummaries,
   refOf,
-  resultOf,
   reviewed,
   spec,
   specRun,
-  type StepScript,
+  throws,
   ticketState,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
 
 useSpecRunHarness();
 
-const crashed: StepResult = {
-  ...resultOf(undefined),
-  output: { status: "none" },
-  sessionId: "crashed-session",
-  exitSubtype: "error_during_execution",
-};
-
-const capped: StepResult = {
-  ...resultOf(undefined),
-  output: { status: "none" },
-  sessionId: "capped-session",
-  exitSubtype: "error_max_turns",
-};
-
-const opusHigh: Pair = { model: "opus", effort: "high" };
-
-function throws(message: string): StepScript {
-  return async () => {
-    throw new Error(message);
-  };
-}
-
-function summaries(): string[] {
-  return notices.sent.map(({ summary }) => summary);
-}
-
 describe("run's Failure Halt answers", () => {
   const guidance = "Split the change into two commits.";
 
-  it("ends on a `stop spec` answer to a Failure Halt, the ticket unlanded", async () => {
+  it("ends on a `stop spec` answer to a Failure Halt, launching nothing more and leaving the ticket unlanded", async () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(crashed, crashed);
 
@@ -86,7 +61,10 @@ describe("run's Failure Halt answers", () => {
     const result = await specRun(rerunStep).run(spec);
 
     expect(result.landed).toEqual([refOf(1)]);
-    expect(rerunStep.requests[0]?.pair).toEqual(opusHigh);
+    expect(rerunStep.requests[0]?.pair).toEqual<Pair>({
+      model: "opus",
+      effort: "high",
+    });
     expect(rerunStep.requests[0]?.resumeSessionId).toBeUndefined();
   });
 
@@ -110,7 +88,7 @@ describe("run's Failure Halt answers", () => {
     expect(review?.prompt).not.toContain(guidance);
   });
 
-  it("drops a `skip` answered ticket from the run, open with its downstream blocked, and a later run retries it", async () => {
+  it("drops a `skip` answered ticket from the run, launching nothing more with its downstream blocked and it open, and a later run retries it", async () => {
     addSpec([1, 2]);
     github.blockers.set(2, [1]);
     const agentStep = FakeAgentStep.init(crashed, crashed);
@@ -124,8 +102,8 @@ describe("run's Failure Halt answers", () => {
     expect(first.landed).toEqual([]);
     expect(agentStep.requests).toHaveLength(2);
     expect(github.issues.get(1)?.isOpen).toBe(true);
-    expect(summaries().at(-1)).toContain("byro-repo #1 was skipped");
-    expect(summaries().at(-1)).toContain(
+    expect(noticeSummaries().at(-1)).toContain("byro-repo #1 was skipped");
+    expect(noticeSummaries().at(-1)).toContain(
       "byro-repo #2 is blocked by byro-repo #1",
     );
     const rerunStep = FakeAgentStep.init(
@@ -149,7 +127,7 @@ describe("run's stuck detector", () => {
     recommendation: "Run it by hand.",
   };
 
-  it("Stops with a push on Failure Halts on two different tickets in a row, both posted", async () => {
+  it("Stops with a push on Failure Halts on two different tickets in a row, both posted and the third ticket never launched", async () => {
     addSpec([1, 2, 3]);
     const agentStep = FakeAgentStep.init(crashed, crashed, crashed, crashed);
 
@@ -161,7 +139,7 @@ describe("run's stuck detector", () => {
       message:
         "Stopped as stuck: byro-repo #1, byro-repo #2 each ended on a Failure Halt in a row; answer them, then rerun.",
     });
-    expect(summaries().at(-1)).toBe(result.message);
+    expect(noticeSummaries().at(-1)).toBe(result.message);
     expect(haltComments()).toHaveLength(2);
     expect(ticketState()["byro-repo #2"]?.step).toBe("halted");
     expect(agentStep.requests).toHaveLength(4);
@@ -185,14 +163,21 @@ describe("run's stuck detector", () => {
     expect(ticketState()["byro-repo #3"]?.step).toBe("halted");
   });
 
-  it("leaves decision Halts out of the count", async () => {
-    addSpec([1, 2]);
-    const agentStep = FakeAgentStep.init(blocked([gated]), crashed, crashed);
+  it("neither counts nor resets on a decision Halt between Failure Halts", async () => {
+    addSpec([1, 2, 3]);
+    const agentStep = FakeAgentStep.init(
+      crashed,
+      crashed,
+      blocked([gated]),
+      crashed,
+      crashed,
+    );
 
     const result = await specRun(agentStep).run(spec);
 
-    expect(result.message).not.toContain("stuck");
-    expect(haltComments()).toHaveLength(2);
-    expect(ticketState()["byro-repo #2"]?.step).toBe("halted");
+    expect(result.message).toBe(
+      "Stopped as stuck: byro-repo #1, byro-repo #3 each ended on a Failure Halt in a row; answer them, then rerun.",
+    );
+    expect(haltComments()).toHaveLength(3);
   });
 });

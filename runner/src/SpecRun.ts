@@ -1088,7 +1088,6 @@ export class SpecRun {
     }
   }
 
-  // The stuck detector: Failure Halts on enough different tickets in a row Stop the run, the last one posted.
   private async _failureHalt(
     landingTicket: LandingTicket,
     failure: StepFailure,
@@ -1099,11 +1098,16 @@ export class SpecRun {
       ticket: ticket.issue,
       drafts: [failureHaltOf(failure, downstream)],
     });
+    await this._stopIfStuck(landingTicket);
+    return this._halt(landingTicket);
+  }
+
+  // Posts the last Halt before the Stop, so the developer can answer it.
+  private async _stopIfStuck(landingTicket: LandingTicket): Promise<void> {
+    const { run, ticket } = landingTicket;
     const label = issueLabelOf(ticket.issue);
     if (!run.failureStreak.includes(label)) run.failureStreak.push(label);
-    if (run.failureStreak.length < this.config.knobs.stuckFailureHalts) {
-      return this._halt(landingTicket);
-    }
+    if (run.failureStreak.length < this.config.knobs.stuckFailureHalts) return;
     await this._postHalts(landingTicket);
     throw new RunStop(
       `Stopped as stuck: ${run.failureStreak.join(", ")} each ended on a Failure Halt in a row; answer them, then rerun.`,
@@ -2097,8 +2101,10 @@ export class SpecRun {
     return Math.round(ms / 1000);
   }
 
+  // A halted step that passes with no agent launch, as green checks do, drops its guidance.
   private _advance({ run, state }: LandingTicket, step: TicketStep): void {
     state.step = step;
+    state.guidance = undefined;
     state.isStepStarted = undefined;
     this._saveState(run);
   }

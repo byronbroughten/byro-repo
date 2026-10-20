@@ -11,6 +11,7 @@ import { moreTurnsPrompt } from "./implementStep.ts";
 import {
   addSpec,
   bodyWith,
+  capped,
   eventOf,
   github,
   greened,
@@ -28,13 +29,6 @@ import {
 } from "./specRunHarness.ts";
 
 useSpecRunHarness();
-
-const capped: StepResult = {
-  ...resultOf(undefined),
-  output: { status: "none" },
-  sessionId: "capped-session",
-  exitSubtype: "error_max_turns",
-};
 
 describe("run's review and triage turn caps", () => {
   it("retries a review that hit its turn cap once, fresh", async () => {
