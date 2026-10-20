@@ -185,7 +185,7 @@ describe("run's unhandled Stops", () => {
   const stepError: StepResult = {
     ...reviewed(),
     output: { status: "none" },
-    exitSubtype: "error_max_turns",
+    exitSubtype: "error_max_budget_usd",
   };
 
   const outcomes: {
