@@ -3,7 +3,7 @@ import { createWriteStream, openSync, type WriteStream } from "node:fs";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 
-import type { AgentStep, StepRequest, StepResult } from "./AgentStep.ts";
+import type { AgentStep, Hang, StepRequest, StepResult } from "./AgentStep.ts";
 import type { ClaudeWriteHookArgs } from "./claudeWriteHook.ts";
 import { StepStream } from "./StepStream.ts";
 import { toolsOf } from "./targetTools.ts";
@@ -57,17 +57,46 @@ export class ClaudeAgentStep implements AgentStep {
       child.on("close", () => resolve(undefined));
     });
     const stream = StepStream.init(request.liveCeiling);
-    for await (const line of createInterface({ input: child.stdout })) {
-      if (log) log.write(`${line}\n`);
-      stream.observeLine(line);
-      // cswap execs claude, so the signal reaches the session itself.
-      if (stream.hasCrossedCeiling && !child.killed) child.kill();
+    const lines = createInterface({ input: child.stdout });
+    let hang: Hang | undefined;
+    // Stdout is dropped too, so a tool's child still holding it can't keep the read loop open.
+    function killOnHang(reason: Hang): void {
+      hang = reason;
+      child.kill();
+      lines.close();
+      child.stdout.destroy();
+    }
+    const wallClock = timerOf(request.wallClockMs, () =>
+      killOnHang("wall-clock"),
+    );
+    const silence = timerOf(request.silenceTimeoutMs, () =>
+      killOnHang("silence"),
+    );
+    try {
+      for await (const line of lines) {
+        silence?.refresh();
+        if (log) log.write(`${line}\n`);
+        stream.observeLine(line);
+        // cswap execs claude, so the signal reaches the session itself.
+        if (stream.hasCrossedCeiling && !child.killed) child.kill();
+      }
+    } finally {
+      clearTimeout(wallClock);
+      clearTimeout(silence);
     }
     if (log) await new Promise((resolve) => log.end(resolve));
     const spawnError = await exited;
     if (spawnError) throw spawnError;
-    return stream.toResult(request);
+    return { ...stream.toResult(request), hang };
   }
+}
+
+function timerOf(
+  ms: number | undefined,
+  onTimeout: () => void,
+): NodeJS.Timeout | undefined {
+  if (ms === undefined) return undefined;
+  return setTimeout(onTimeout, ms);
 }
 
 // Opened before the spawn, so a bad path throws here instead of as an unhandled stream error.

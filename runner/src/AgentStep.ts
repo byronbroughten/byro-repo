@@ -28,6 +28,9 @@ export interface StepRequest {
   resumeSessionId?: string;
   // The peak context past which the adapter kills the session.
   liveCeiling?: number;
+  // How long the stream may stay silent, and the session run, before the adapter kills it as hung.
+  silenceTimeoutMs?: number;
+  wallClockMs?: number;
   logPath?: string;
 }
 
@@ -40,6 +43,8 @@ export interface StepResult {
   peakContext: number | undefined;
   // Set when the adapter killed the session for crossing the request's live ceiling.
   hasCrossedCeiling: boolean;
+  // Set when the adapter killed the session as hung.
+  hang: Hang | undefined;
   // The result message's subtype; undefined when the stream ended without one.
   exitSubtype: string | undefined;
   // The result text of a result flagged is_error, which can still carry subtype success.
@@ -47,6 +52,9 @@ export interface StepResult {
   usage: UsageReading | undefined;
   limitHit: LimitHit | undefined;
 }
+
+// Which limit a hung session ran past: its stream's silence timeout or its wall clock.
+export type Hang = "silence" | "wall-clock";
 
 export type StepOutput =
   | { status: "valid"; record: unknown }

@@ -24,6 +24,7 @@ function result(sessionId: string): StepResult {
     transcriptPath: undefined,
     peakContext: 90_000,
     hasCrossedCeiling: false,
+    hang: undefined,
     exitSubtype: "success",
     errorText: undefined,
     usage: undefined,

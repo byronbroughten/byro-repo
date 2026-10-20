@@ -204,6 +204,7 @@ export function resultOf(record: unknown): StepResult {
     transcriptPath: undefined,
     peakContext: undefined,
     hasCrossedCeiling: false,
+    hang: undefined,
     exitSubtype: "success",
     errorText: undefined,
     usage: undefined,

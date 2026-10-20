@@ -86,6 +86,7 @@ describe("ClaudeAgentStep on a recorded success", () => {
         "/Users/dev/.claude-swap-backup/sessions/2-dev_example.com/projects/-Users-dev-byro-repo/0e3dc8b3-fd87-4381-b3dc-8c36c1e03e1b.jsonl",
       peakContext: 20_221,
       hasCrossedCeiling: false,
+      hang: undefined,
       exitSubtype: "success",
       errorText: undefined,
       usage: {
@@ -339,5 +340,49 @@ describe("ClaudeAgentStep's live ceiling", () => {
   it("lets a session at the ceiling run to its end", async () => {
     const result = await runPast(180_000);
     expect(result.hasCrossedCeiling).toBe(false);
+  });
+});
+
+describe("ClaudeAgentStep's hang limits", () => {
+  const line = `printf '%s\\n' '{"type":"system"}'`;
+
+  // A stand-in claude that runs the script as its body; exec'd sleeps leave nothing behind once killed.
+  async function runStandIn(
+    script: string,
+    overrides: Partial<StepRequest>,
+  ): Promise<StepResult> {
+    const dir = mkdtempSync(join(tmpdir(), "agent-step-hang-"));
+    const cswapPath = join(dir, "cswap");
+    writeFileSync(cswapPath, `#!/bin/sh\n${script}\n`, { mode: 0o755 });
+    return ClaudeAgentStep.init(cswapPath).run(
+      request({ cwd: dir, ...overrides }),
+    );
+  }
+
+  it("kills a session whose stream goes silent past the silence timeout and says so", async () => {
+    const result = await runStandIn(`${line}; exec sleep 30`, {
+      silenceTimeoutMs: 200,
+    });
+    expect(result.hang).toBe("silence");
+    expect(result.exitSubtype).toBeUndefined();
+  });
+
+  it("kills a session still talking past its wall clock and says so", async () => {
+    const result = await runStandIn(
+      `while true; do ${line}; sleep 0.05; done`,
+      {
+        silenceTimeoutMs: 5_000,
+        wallClockMs: 300,
+      },
+    );
+    expect(result.hang).toBe("wall-clock");
+  });
+
+  it("leaves a session that ends inside both limits unflagged", async () => {
+    const { result } = await replay("success.ndjson", {
+      silenceTimeoutMs: 5_000,
+      wallClockMs: 5_000,
+    });
+    expect(result.hang).toBeUndefined();
   });
 });
