@@ -14,6 +14,7 @@ import {
   github,
   greened,
   implemented,
+  implementResultOf,
   masterSubjects,
   primaryOf,
   progressLines,
@@ -315,22 +316,29 @@ describe("run's retries across a rerun", () => {
 });
 
 describe("run's Stop wording", () => {
-  it("tells the developer a rerun won't retry a schema failure", async () => {
+  it("tells the developer a rerun won't retry an implement handoff", async () => {
     addSpec([1]);
-    const schemaFailure: StepResult = {
-      ...reviewed(),
-      output: {
-        status: "schemaFailure",
-        rawOutput: "{}",
-        problems: ["findings is required"],
+
+    const handedOff = implementResultOf({
+      status: "handoff",
+      branches: [],
+      closingComment: "",
+      boxesUndone: [],
+      blockers: [],
+      handoff: {
+        conclusion: "Half done.",
+        filesToOpen: [],
+        ruledOut: [],
+        filesChanged: [],
+        stillFailing: [],
       },
-    };
+    });
 
-    const result = await specRun(
-      FakeAgentStep.init(implemented("one.ts"), schemaFailure),
-    ).run(spec);
+    const result = await specRun(FakeAgentStep.init(handedOff)).run(spec);
 
-    expect(result.message).toBe("Stopped on byro-repo #1: a schema failure.");
+    expect(result.message).toBe(
+      "Stopped on byro-repo #1: an implement handoff.",
+    );
     expect(github.comments[0]?.body).toContain(
       "a rerun won't retry it. Finish and land it by hand",
     );

@@ -159,6 +159,15 @@ export function failureAnswerOf(
   return { kind: "guidance", text };
 }
 
+// Appended to the prompt of the step a guidance answer reruns.
+export function guidanceSectionOf(guidance: string): string {
+  return `## The developer's guidance
+
+This step failed before, and the developer answered its Failure Halt with the words below. Act on them.
+
+${guidance}`;
+}
+
 export interface HaltPost {
   halt: Halt;
   // Its place among the Halts posted for its ticket at once, from 1.

@@ -187,14 +187,6 @@ describe("run's unhandled Stops", () => {
     output: { status: "none" },
     exitSubtype: "error_max_turns",
   };
-  const schemaFailure: StepResult = {
-    ...reviewed(),
-    output: {
-      status: "schemaFailure",
-      rawOutput: "{}",
-      problems: ["findings is required"],
-    },
-  };
 
   const outcomes: {
     outcome: string;
@@ -204,11 +196,6 @@ describe("run's unhandled Stops", () => {
     {
       outcome: "a step error",
       steps: () => [implemented("one.ts"), stepError],
-      logFile: "byro-repo-213-steps/byro-repo-1-2-review.jsonl",
-    },
-    {
-      outcome: "a schema failure",
-      steps: () => [implemented("one.ts"), schemaFailure],
       logFile: "byro-repo-213-steps/byro-repo-1-2-review.jsonl",
     },
   ];
@@ -261,7 +248,7 @@ describe("run's unhandled Stops", () => {
 
   it("Stops again on a rerun while the stopped ticket is open, naming it", async () => {
     addSpec([1, 2]);
-    await specRun(FakeAgentStep.init(implemented("one.ts"), schemaFailure)).run(
+    await specRun(FakeAgentStep.init(implemented("one.ts"), stepError)).run(
       spec,
     );
     const rerunStep = FakeAgentStep.init();
@@ -272,14 +259,14 @@ describe("run's unhandled Stops", () => {
       kind: "stopped",
       landed: [],
       message:
-        "byro-repo #1 is still open after its Stop (a schema failure); finish and land it by hand, then rerun.",
+        "byro-repo #1 is still open after its Stop (a step error); finish and land it by hand, then rerun.",
     });
     expect(rerunStep.requests).toEqual([]);
   });
 
   it("skips the stopped ticket on a rerun once it is closed", async () => {
     addSpec([1, 2]);
-    await specRun(FakeAgentStep.init(implemented("one.ts"), schemaFailure)).run(
+    await specRun(FakeAgentStep.init(implemented("one.ts"), stepError)).run(
       spec,
     );
     github.edit(1, { isOpen: false });

@@ -40,6 +40,10 @@ export interface RunKnobs {
   wallClockMs: StepKnobs<number>;
   // How many times a crashed step or red checks are retried before a Failure Halt.
   retriesPerFailure: number;
+  // The turns a `resume +N turns` answer with no N gives an implementer that hit its turn cap.
+  extraTurns: number;
+  // How many tickets in a row may end on a Failure Halt before the run Stops as stuck.
+  stuckFailureHalts: number;
   // The resumed implementer fixes the Fix batch only while its peak context is under this.
   ticketBudget: number;
   // A fixer whose context crosses this is killed and its batch handed to the triage agent.
@@ -96,6 +100,8 @@ export const defaultRunKnobs: RunKnobs = {
     gapCheck: 20 * minuteMs,
   },
   retriesPerFailure: 1,
+  extraTurns: 100,
+  stuckFailureHalts: 2,
   ticketBudget: 150_000,
   liveCeiling: 180_000,
   triagePair: { model: "opus", effort: "medium" },
