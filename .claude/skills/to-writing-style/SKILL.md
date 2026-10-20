@@ -57,9 +57,9 @@ In your own session you saw the developer's edits. In another's you infer them, 
 - a developer turn that names a word, a phrase or a habit;
 - the agent's next draft changing in a way no turn explains, after a developer turn you skipped.
 
-Tag each item `observed` or `inferred`, and rank `inferred` lower.
+Tag each item `observed` or `inferred`, and rank `inferred` lower. If a ruling sounds situational ("for this Doc", "here"), quote the developer's words and do not generalize it; you cannot tell whether it was meant as a rule.
 
-**In pair mode**, hunt the paired list from setup. Each changed paragraph is a Rewrite, a struck one a Rejection, an added one an Addition, and a fix of a line the style sheets hold a Broken rule; a Stated rule counts only where an attributing transcript holds one. Tag each item `diffed`, upgraded to `observed` where a transcript states the developer's reason. The same fix made in several places in one Piece is a repeated correction. Drop an edit the diff can't tell apart as voice or fact as `ambiguous`; a fact correction never becomes a style rule. If a ruling sounds situational ("for this Doc", "here"), quote the developer's words and do not generalize it; you cannot tell whether it was meant as a rule.
+**In pair mode**, hunt the paired list from setup. Each changed paragraph is a Rewrite, a struck one a Rejection, an added one an Addition, and a fix of a line the style sheets hold a Broken rule; a Stated rule counts only where an attributing transcript holds one. Tag each item `diffed`, upgraded to `observed` where a transcript states the developer's reason. The same fix made in several places in one Piece is a repeated correction. Drop an edit the diff can't tell apart as voice or fact as `ambiguous`; a fact correction never becomes a style rule.
 
 **Code-style rulings are not yours.** A ruling on code, comments, commits, PRs, agent docs or READMEs goes to `/to-code-style`; drop it here with that reason. A ruling on a chat reply or a Doc meant only for the developer goes to neither; drop it as out of scope.
 
@@ -67,7 +67,7 @@ Done when every rewrite, rejection, stated rule, broken rule and addition is eit
 
 ## 2. Keep what passes all four tests
 
-- **Beforehand**: could a style sheet have stated this before the session began? (A fact the piece got wrong fails here. A ruling on voice passes.) An addition fails for the style sheets but passes for the grilling doc when a question asked before the draft would have drawn it out.
+- **Beforehand**: could a style sheet have stated this before the draft was written? (A fact the piece got wrong fails here. A ruling on voice passes.) An addition fails for the style sheets but passes for the grilling doc when a question asked before the draft would have drawn it out.
 - **Ownership**: is it already in a style sheet or the grilling doc now, or assigned to an issue? Leave it there and say so; do not write it twice.
 - **Voice, not rubric**: is it how the developer writes, not a constraint of this one piece's venue (a word limit, a template, an assignment's required headings)? A venue constraint fails.
 - **Separates**: would the agent's draft (in pair mode, the Snapshot) have broken the proposed rule? A rule the draft already follows fails: it does not tell the draft from the developer's edit.
@@ -77,7 +77,7 @@ Done when every rewrite, rejection, stated rule, broken rule and addition is eit
 - **`docs/writing-style.md`**: the voice, for every kind of reader-facing prose. A ruling lands here unless it is an academic convention. One voice: never add a section per medium.
 - **`docs/academic-writing-style.md`**: citations, academic register, academic structure. A ruling lands here only if it applies to academic work and would be wrong in a blog post or in-app text. A ruling that overrides a writing-style line for academic work goes here, and says which line it overrides.
 - **The rule line** goes under the style sheet's existing section that fits, in its shape: one bolded line, the rule only, plus at most a short clause of scope or its one exception ([rules file](../../../docs/agents/prose-files.md#terms)).
-- **The instance** goes in the reasoning file whose row in the style sheet's "When | File" table matches the rule's topic, under a `##` heading named for the rule. Match the file's bullets, `- "<quote>" — <source>`: for a rewrite, one bullet `- Agent: "<draft>" Developer: "<version>" — session <short id>, <date>`. A pair-mode instance ends `— writing#<n> Snapshot, <date>` instead, the date the Snapshot's commit date, or names the agent's Doc in place of `Snapshot` when mined from two Docs. Close a new heading with `- No count was recorded; from a session.`, or `from a Snapshot.` and leave `docs/writing-style/sources.md` and every "Seen in" count alone: those describe the Drive samples, not sessions.
+- **The instance** goes in the reasoning file whose row in the style sheet's "When | File" table matches the rule's topic, under a `##` heading named for the rule. Match the file's bullets, `- "<quote>" — <source>`: for a rewrite, one bullet `- Agent: "<draft>" Developer: "<version>" — session <short id>, <date>`. A pair-mode instance ends `— writing#<n> Snapshot, <date>` instead, `<date>` being the Snapshot commit's date; mined from two Docs, it names the agent's Doc in place of `Snapshot`. Close a new heading with `- No count was recorded; from a session.` (in pair mode, `from a Snapshot.`), and leave `docs/writing-style/sources.md` and every "Seen in" count alone: those describe the Drive samples, not sessions.
 
 - **A grilling question** goes in the grilling doc's `## Questions` list, in its shape: a bolded label, what to ask, and the session's instance as `(#<spec number>: "<quote>")`. A change to the calibration step edits `## The calibration paragraph`. The doc lives in the writing clone, its own repo.
 

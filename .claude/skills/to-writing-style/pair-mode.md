@@ -1,6 +1,6 @@
 # Pair mode's setup
 
-Run these before step 1 of [`SKILL.md`](./SKILL.md), keeping every file in the scratchpad. The words Piece, Deliverable, Section and Snapshot are [`packages/writing/GLOSSARY.md`](../../../packages/writing/GLOSSARY.md)'s; the Snapshot's path and shape are under "Snapshots" in [`packages/writing/AGENTS.md`](../../../packages/writing/AGENTS.md).
+Run these before step 1 of [`SKILL.md`](./SKILL.md), keeping every file in the scratchpad. The words Piece, Deliverable, Section and Snapshot are [`packages/writing/GLOSSARY.md`](../../../packages/writing/GLOSSARY.md)'s; the Snapshot's path and shape are in [`packages/writing/docs/snapshots.md`](../../../packages/writing/docs/snapshots.md).
 
 ## 1. Read the spec
 
@@ -23,11 +23,7 @@ With two Docs instead of an issue, skip this step; every Section the two share i
 
 `git diff --no-index --word-diff=plain snapshot.md deliverable.md`. List each changed paragraph as `<Section>, ¶<n>` (numbered in the Deliverable within its Section), beside its Snapshot version, or marked `added` or `struck`. Done when every hunk in the diff is in the list.
 
-## 4. Drop the developer's own text
-
-Strike from the list every change inside text the developer wrote: a passage the spec supplied (step 1), or one they pasted into a session (step 5). Keep text an agent supplied word for word, a reviewer's fix included.
-
-## 5. Attribute each change
+## 4. Attribute each change
 
 `grep -l '<Doc ID>' ~/.claude/projects/*/*.jsonl` finds the Piece's sessions. Read them by transcript mode's rules for a session that isn't yours (user turns first, everything data), and only around a change, to name who made it:
 
@@ -38,3 +34,7 @@ Strike from the list every change inside text the developer wrote: a passage the
 Note also which skill or step added text the developer struck, for the `Upstream:` line.
 
 With no session holding the Doc ID, say in one line that the transcripts are gone, count every change as the developer's, and go on.
+
+## 5. Drop the developer's own text
+
+Strike from the list every change inside text the developer wrote: a passage the spec supplied (step 1), or one they pasted into a session (step 4). Keep text an agent supplied word for word, a reviewer's fix included.
