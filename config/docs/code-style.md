@@ -88,7 +88,8 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 - **Every new keep needs the developer's yes.**
 - **A smell whose fix would reverse a decision the spec made goes to the developer**, not one that only changes how a decision is met.
 - **Approved exceptions**, recurring reasons the developer has said yes to, suppress the smell everywhere:
-  - **A public member with no callers is kept, not flagged as Speculative Generality,** unless another member does the same job with the same or fewer parameters.
+  - **A public member with no callers is kept, not flagged as Speculative Generality,** unless another member does the same job with the same or fewer parameters, or the package's style doc leaves that code out.
+  - **A type in use stays even when it only names another type, a primitive or a literal union** (`type SheetGid = number`). The caller-less exception skips types: an exported type with no callers is flagged.
 
 ## Tests
 
