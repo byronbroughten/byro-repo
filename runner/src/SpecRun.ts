@@ -62,6 +62,7 @@ import {
   blockerHaltOf,
   failureAnswerOf,
   failureHaltOf,
+  failureOptions,
   freshResumeSection,
   type Halt,
   haltCommentOf,
@@ -284,11 +285,11 @@ interface TicketState {
   // Kept apart from crashes.checks, so a crash in the red-checks resume doesn't spend the red-checks retry.
   redCheckResumes?: number;
   redChecksLogPath?: string;
-  // Set once the wrap-up's conflict resumed the implementer to merge master; cleared when a Failure Halt is answered.
+  // Counts the wrap-up conflict's merge-master resumes; cleared when a Failure Halt is answered.
   conflictResumes?: number;
   // The heads before the latest implement step, which a continued session's record is checked against.
   implementBase?: Heads;
-  // Set by a Failure Halt's answer: the pair that replaces the Model fit's, the words for the next step, or how the capped or unrecorded implementer continues.
+  // Set by a Failure Halt's answer, so a rerun acts on it.
   pair?: Pair;
   guidance?: string;
   continuation?: Continuation;
@@ -330,8 +331,6 @@ interface Run {
   warnings: Set<RunWarning>;
   // Tickets whose Failure Halt this run was answered `skip`; a later run retries them.
   skipped: Set<string>;
-  // The distinct tickets whose Failure Halts came in a row; a landing clears it.
-  failureStreak: string[];
 }
 
 // Each pushed at most once per run.
@@ -538,7 +537,6 @@ export class SpecRun {
         );
       }
       run.landed.push(selection.ticket.issue);
-      run.failureStreak = [];
     }
   }
 
@@ -590,7 +588,6 @@ export class SpecRun {
       landed: [],
       warnings: new Set(),
       skipped: new Set(),
-      failureStreak: [],
     };
   }
 
@@ -872,7 +869,8 @@ export class SpecRun {
       if (state.step === "halted") {
         const { extraTurns } = this.config.knobs;
         state.step =
-          deliverFailureHalts(run, ticket.issue, extraTurns) ?? "resume";
+          deliverFailureHalts(run, { ticket: ticket.issue, extraTurns }) ??
+          "resume";
       }
       this._log(
         run,
@@ -958,19 +956,10 @@ export class SpecRun {
     return existing;
   }
 
-  private async _runSteps(ticketRun: TicketRun): Promise<void> {
-    await this._haltOnSchemaFailure(ticketRun, () =>
-      this._runEachStep(ticketRun),
-    );
-  }
-
   // An implementer whose record failed after it committed is offered `retry record`, which keeps those commits.
-  private async _haltOnSchemaFailure(
-    ticketRun: TicketRun,
-    act: () => Promise<void>,
-  ): Promise<void> {
+  private async _runSteps(ticketRun: TicketRun): Promise<void> {
     try {
-      await act();
+      await this._runEachStep(ticketRun);
     } catch (error) {
       if (!(error instanceof SchemaFailure)) throw error;
       const { workspace, state } = ticketRun;
@@ -986,7 +975,7 @@ export class SpecRun {
         base !== undefined &&
         !isSameHeads(base, await this._headsOf(workspace))
       ) {
-        failure.options = ["`retry record`", "`retry`"];
+        failure.options = [failureOptions.retryRecord, failureOptions.retry];
       }
       await this._failureHalt(ticketRun, failure);
     }
@@ -1082,23 +1071,17 @@ export class SpecRun {
     }
   }
 
-  // The stuck detector: Failure Halts on enough different tickets in a row Stop the run, the last one posted.
   private async _failureHalt(
     landingTicket: LandingTicket,
     failure: StepFailure,
   ): Promise<never> {
     const { run, ticket } = landingTicket;
     const downstream = await this._downstreamOf(run, ticket.issue);
-    raiseHalts(run, ticket.issue, [failureHaltOf(failure, downstream)]);
-    const label = issueLabelOf(ticket.issue);
-    if (!run.failureStreak.includes(label)) run.failureStreak.push(label);
-    if (run.failureStreak.length < this.config.knobs.stuckFailureHalts) {
-      return this._halt(landingTicket);
-    }
-    await this._postHalts(landingTicket);
-    throw new RunStop(
-      `Stopped as stuck: ${run.failureStreak.join(", ")} each ended on a Failure Halt in a row; answer them, then rerun.`,
-    );
+    raiseHalts(run, {
+      ticket: ticket.issue,
+      drafts: [failureHaltOf(failure, downstream)],
+    });
+    return this._halt(landingTicket);
   }
 
   private async _implement(ticketRun: TicketRun): Promise<void> {
@@ -1108,7 +1091,7 @@ export class SpecRun {
     }));
   }
 
-  // A continuation resumes the capped or unrecorded session instead, checking its record against the heads before it began.
+  // A continuation keeps the earlier base, so the commits it already made still count as new.
   private async _runImplement(
     ticketRun: TicketRun,
     launchOf: () => StepLaunch,
@@ -1166,7 +1149,10 @@ export class SpecRun {
       hasNewCommit || isRecommit,
     );
     if (problems.length > 0) {
-      throw schemaFailureOf(problems, launched.record, logPath);
+      throw schemaFailureOf(logPath, {
+        problems,
+        output: launched.record,
+      });
     }
     if (record.status === "handoff") {
       throw new UnhandledStop("handoff", record.handoff.conclusion, logPath);
@@ -1187,11 +1173,10 @@ export class SpecRun {
       ticketRun.run,
       ticketRun.ticket.issue,
     );
-    raiseHalts(
-      ticketRun.run,
-      ticketRun.ticket.issue,
-      blockers.map((blocker) => blockerHaltOf(blocker, downstream)),
-    );
+    raiseHalts(ticketRun.run, {
+      ticket: ticketRun.ticket.issue,
+      drafts: blockers.map((blocker) => blockerHaltOf(blocker, downstream)),
+    });
   }
 
   // Posts the ticket's new Halts and halts it; with none, the ticket goes on.
@@ -1205,13 +1190,9 @@ export class SpecRun {
   }
 
   private async _halt(landingTicket: LandingTicket): Promise<never> {
-    await this._postHalts(landingTicket);
-    throw new TicketHalted(issueLabelOf(landingTicket.ticket.issue));
-  }
-
-  private async _postHalts(landingTicket: LandingTicket): Promise<void> {
     this._advance(landingTicket, "halted");
     await this._postUnpostedHalts(landingTicket.run);
+    throw new TicketHalted(issueLabelOf(landingTicket.ticket.issue));
   }
 
   // Also picks up the Halts of a ticket that halted in a run killed before they were all posted.
@@ -1336,15 +1317,19 @@ export class SpecRun {
       records = triageRecordsOf(retry.record);
       const retryProblems = triageRecordProblems(findings.length, records);
       if (retryProblems.length > 0) {
-        throw schemaFailureOf(retryProblems, retry.record, retry.logPath);
+        throw schemaFailureOf(retry.logPath, {
+          problems: retryProblems,
+          output: retry.record,
+        });
       }
     }
     state.triage = records;
-    raiseHalts(
-      ticketRun.run,
-      ticketRun.ticket.issue,
-      records.filter(isHalt).map((record) => triageHaltOf(record, "verdict")),
-    );
+    raiseHalts(ticketRun.run, {
+      ticket: ticketRun.ticket.issue,
+      drafts: records
+        .filter(isHalt)
+        .map((record) => triageHaltOf(record, "verdict")),
+    });
   }
 
   // The resumed implementer fixes under the ticket budget; otherwise, or once killed, the triage agent does.
@@ -1389,7 +1374,7 @@ export class SpecRun {
       dirtyRepos,
     });
     if (problems.length > 0) {
-      throw schemaFailureOf(problems, outcomes, logPath);
+      throw schemaFailureOf(logPath, { problems, output: outcomes });
     }
     const downstream = await this._downstreamOf(run, ticket.issue);
     const gaveUps = outcomes.filter(isGaveUp);
@@ -1403,11 +1388,10 @@ export class SpecRun {
         isHalt(record) &&
         gaveUps.some(({ finding }) => finding === record.finding),
     );
-    raiseHalts(
-      ticketRun.run,
-      ticketRun.ticket.issue,
-      gaveUpHalts.map((record) => triageHaltOf(record, "give-up")),
-    );
+    raiseHalts(ticketRun.run, {
+      ticket: ticketRun.ticket.issue,
+      drafts: gaveUpHalts.map((record) => triageHaltOf(record, "give-up")),
+    });
     if (outcomes.some(({ status }) => status === "fixed")) state.fixer = fixer;
   }
 
@@ -2145,7 +2129,10 @@ function isHalt({ verdict }: TriageRecord): boolean {
 }
 
 // Saved with the step's own state when it advances, so a rerun of the step never raises them twice.
-function raiseHalts(run: Run, ticket: IssueRef, drafts: HaltDraft[]): void {
+function raiseHalts(
+  run: Run,
+  { ticket, drafts }: { ticket: IssueRef; drafts: HaltDraft[] },
+): void {
   run.state.halts ??= [];
   const { halts } = run.state;
   drafts.forEach((draft) => {
@@ -2200,8 +2187,7 @@ function lastAnswerAtOf(run: Run, ticket: IssueRef): string {
 // Marks answered Failure Halts delivered, clears the retry counts and acts on the latest answer; a `skip` read on a later run is a retry.
 function deliverFailureHalts(
   run: Run,
-  ticket: IssueRef,
-  extraTurns: number,
+  { ticket, extraTurns }: { ticket: IssueRef; extraTurns: number },
 ): TicketStep | undefined {
   const state = ticketStateOf(run, ticket);
   const failures = undeliveredHaltsOf(run, ticket).filter(isTicketFailureHalt);
@@ -2217,8 +2203,14 @@ function deliverFailureHalts(
   state.continuation = undefined;
   state.guidance = undefined;
   const answer = failureAnswerOf(latest, latest.answer);
-  if (answer.kind === "retry-record") state.continuation = { kind: "record" };
-  if (answer.kind === "more-turns") {
+  // A continuation another Halt never offered would resume a session with nothing to continue.
+  if (
+    answer.kind === "retry-record" &&
+    isOffered(latest, failureOptions.retryRecord)
+  ) {
+    state.continuation = { kind: "record" };
+  }
+  if (answer.kind === "more-turns" && isOffered(latest, "`resume +")) {
     state.continuation = { kind: "turns", turns: answer.turns ?? extraTurns };
   }
   if (answer.kind === "rerun") state.pair = answer.pair;
@@ -2232,8 +2224,12 @@ function isTicketFailureHalt(
   return (
     halt.kind === "failure" &&
     halt.failedStep !== undefined &&
-    halt.failedStep !== "gap-check"
+    !isGapCheckHalt(halt)
   );
+}
+
+function isOffered(halt: Halt, option: string): boolean {
+  return halt.options.some((offered) => offered.startsWith(option));
 }
 
 function isGapCheckHalt({ failedStep }: Halt): boolean {
@@ -2367,9 +2363,8 @@ function unrunDetailOf(step: string, error: unknown): string {
 
 // Writes the raw output beside the step's log, so the Failure Halt can link it.
 function schemaFailureOf(
-  problems: string[],
-  output: unknown,
   logPath: string,
+  { problems, output }: { problems: string[]; output: unknown },
 ): SchemaFailure {
   const outputPath = logPath.replace(/\.jsonl$/, ".output.txt");
   const raw =
@@ -2388,7 +2383,10 @@ function isGaveUp(outcome: FixOutcome): outcome is GaveUpOutcome {
 function recordOf(step: string, result: StepResult, logPath: string): unknown {
   const { output } = result;
   if (output.status === "schemaFailure") {
-    throw schemaFailureOf(output.problems, output.rawOutput, logPath);
+    throw schemaFailureOf(logPath, {
+      problems: output.problems,
+      output: output.rawOutput,
+    });
   }
   if (result.errorText !== undefined) {
     throw new UnhandledStop(

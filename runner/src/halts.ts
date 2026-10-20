@@ -110,9 +110,14 @@ export interface StepFailure {
   options?: string[];
 }
 
-// A step that failed past its retries; failureAnswerOf() reads the reply, and any answer but `stop spec` and `skip` runs the step again with a fresh count.
+export const failureOptions = {
+  retry: "`retry`",
+  retryRecord: "`retry record`",
+} as const;
+
+// Any answer but `stop spec` and `skip` runs the step again with a fresh count.
 export function failureHaltOf(
-  { step, detail, logPath, options = ["`retry`"] }: StepFailure,
+  { step, detail, logPath, options = [failureOptions.retry] }: StepFailure,
   downstream: string[],
 ): HaltDraft {
   return {
@@ -132,21 +137,21 @@ export type FailureAnswer =
   | { kind: "skip" }
   | { kind: "guidance"; text: string };
 
-// `stop spec` is read apart by isStopSpecAnswer(); a reply that is no named answer, with the Halt's id and backticks aside, is guidance.
+// `stop spec` is read apart by isStopSpecAnswer(); any other unnamed reply is guidance.
 export function failureAnswerOf(
   halt: Halt,
   { text }: HaltAnswer,
 ): FailureAnswer {
-  const bare = text
+  const answerWords = text
     .replace(haltIdPatternOf(halt, "g"), " ")
     .replace(/[`*:.,!]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
     .toLowerCase();
-  if (bare === "retry") return { kind: "retry" };
-  if (bare === "retry record") return { kind: "retry-record" };
-  if (bare === "skip") return { kind: "skip" };
-  const moreTurns = /^resume \+(\d+)? ?turns?$/.exec(bare);
+  if (answerWords === "retry") return { kind: "retry" };
+  if (answerWords === "retry record") return { kind: "retry-record" };
+  if (answerWords === "skip") return { kind: "skip" };
+  const moreTurns = /^resume \+(\d+)? ?turns?$/.exec(answerWords);
   if (moreTurns !== null) {
     const [, turns] = moreTurns;
     return {
@@ -154,12 +159,11 @@ export function failureAnswerOf(
       turns: turns === undefined ? undefined : Number(turns),
     };
   }
-  const pair = pairNamed(/^rerun on (.+)$/.exec(bare)?.[1] ?? "");
+  const pair = pairNamed(/^rerun on (.+)$/.exec(answerWords)?.[1] ?? "");
   if (pair !== undefined) return { kind: "rerun", pair };
   return { kind: "guidance", text };
 }
 
-// Appended to the prompt of the step a guidance answer reruns.
 export function guidanceSectionOf(guidance: string): string {
   return `## The developer's guidance
 

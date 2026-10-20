@@ -12,6 +12,7 @@ import {
   blocked,
   bodyWithTargets,
   github,
+  haltComments,
   implemented,
   implementResultOf,
   notices,
@@ -45,12 +46,6 @@ describe("run's Halts", () => {
     detail: "The gate refused a write to the app spreadsheet.",
     recommendation: "Skip the write.",
   };
-
-  function haltComments(): string[] {
-    return github.comments
-      .map(({ body }) => body)
-      .filter((body) => body.includes("**Halt H"));
-  }
 
   function noteComments(): string[] {
     return github.comments

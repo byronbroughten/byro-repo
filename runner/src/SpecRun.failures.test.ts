@@ -13,6 +13,7 @@ import {
   eventOf,
   github,
   greened,
+  haltComments,
   implemented,
   implementResultOf,
   masterSubjects,
@@ -40,12 +41,6 @@ const crashed: StepResult = {
   sessionId: "crashed-session",
   exitSubtype: "error_during_execution",
 };
-
-function haltComments(): string[] {
-  return github.comments
-    .map(({ body }) => body)
-    .filter((body) => body.includes("**Halt H"));
-}
 
 function runStatePath(): string {
   return join(stateFolder(), "byro-repo-213.run.json");

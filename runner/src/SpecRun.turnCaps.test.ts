@@ -5,7 +5,7 @@ import { FakeAgentStep } from "./FakeAgentStep.ts";
 import {
   addSpec,
   eventOf,
-  github,
+  haltComments,
   implemented,
   progressLines,
   refOf,
@@ -25,12 +25,6 @@ const capped: StepResult = {
   sessionId: "capped-session",
   exitSubtype: "error_max_turns",
 };
-
-function haltComments(): string[] {
-  return github.comments
-    .map(({ body }) => body)
-    .filter((body) => body.includes("**Halt H"));
-}
 
 // #302 handles turn caps and unskips these.
 describe.skip("run's review and triage turn caps", () => {

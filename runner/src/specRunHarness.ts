@@ -301,6 +301,12 @@ export function reviewed(findings: string[] = []): StepResult {
   return resultOf({ findings });
 }
 
+export function haltComments(): string[] {
+  return github.comments
+    .map(({ body }) => body)
+    .filter((body) => body.includes("**Halt H"));
+}
+
 export function masterSubjects(): string[] {
   return git(primaryOf("byro-repo"), "log", "--format=%s", "master").split(
     "\n",

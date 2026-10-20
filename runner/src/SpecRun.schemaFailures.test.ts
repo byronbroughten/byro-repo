@@ -10,6 +10,7 @@ import { recordOnlyPrompt } from "./implementStep.ts";
 import {
   addSpec,
   github,
+  haltComments,
   implemented,
   implementResultOf,
   recordOf,
@@ -33,12 +34,6 @@ const unmatched: StepResult = {
     problems: ["status must be one of committed, blocked, handoff, applied"],
   },
 };
-
-function haltComments(): string[] {
-  return github.comments
-    .map(({ body }) => body)
-    .filter((body) => body.includes("**Halt H"));
-}
 
 function stepsPathOf(file: string): string {
   return join(stateFolder(), "byro-repo-213-steps", file);
@@ -84,6 +79,19 @@ describe("run's schema failures", () => {
     expect(JSON.parse(readFileSync(outputPath, "utf8"))).toMatchObject({
       record: { status: "committed" },
     });
+  });
+
+  it("takes `retry record` on a Halt that didn't offer it as a fresh retry", async () => {
+    addSpec([1]);
+    await specRun(FakeAgentStep.init(unmatched)).run(spec);
+    github.reply(213, "H1: retry record");
+    const rerunStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    const result = await specRun(rerunStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(rerunStep.requests[0]?.prompt).not.toBe(recordOnlyPrompt);
+    expect(rerunStep.requests[0]?.resumeSessionId).toBeUndefined();
   });
 
   it("posts a Failure Halt for a review output that fails its schema", async () => {

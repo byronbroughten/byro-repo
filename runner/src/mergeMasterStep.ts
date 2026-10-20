@@ -1,5 +1,4 @@
-// The merge-master step: the prompt that hands a wrap-up's merge conflict back to the ticket's implementer, and the
-// summary it returns. SpecRun.ts runs it once on a conflict, then reruns the wrap-up; a second conflict is a Failure Halt.
+// The merge-master step's prompt and record; SpecRun.ts runs it once on a wrap-up conflict.
 
 import { stepReadLine } from "./IssueReader.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";

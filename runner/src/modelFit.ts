@@ -26,7 +26,6 @@ export function pairOf(body: string): Pair | undefined {
   return pairNamed(pairLine);
 }
 
-// One of the five pairs by its name, as in `Opus high`, case aside.
 export function pairNamed(name: string): Pair | undefined {
   return pairs[name.trim().toLowerCase()];
 }
