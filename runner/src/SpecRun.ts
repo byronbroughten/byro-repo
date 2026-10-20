@@ -64,6 +64,7 @@ import {
   failureHaltOf,
   failureOptions,
   freshResumeSection,
+  guidanceSectionOf,
   type Halt,
   haltCommentOf,
   type HaltDraft,
@@ -341,6 +342,8 @@ interface Run {
   warnings: Set<RunWarning>;
   // Tickets whose Failure Halt this run was answered `skip`; a later run retries them.
   skipped: Set<string>;
+  // The distinct tickets whose Failure Halts came in a row; a landing clears it.
+  failureStreak: string[];
 }
 
 // Each pushed at most once per run.
@@ -548,6 +551,7 @@ export class SpecRun {
         );
       }
       run.landed.push(selection.ticket.issue);
+      run.failureStreak = [];
     }
   }
 
@@ -599,6 +603,7 @@ export class SpecRun {
       landed: [],
       warnings: new Set(),
       skipped: new Set(),
+      failureStreak: [],
     };
   }
 
@@ -1083,6 +1088,7 @@ export class SpecRun {
     }
   }
 
+  // The stuck detector: Failure Halts on enough different tickets in a row Stop the run, the last one posted.
   private async _failureHalt(
     landingTicket: LandingTicket,
     failure: StepFailure,
@@ -1093,7 +1099,15 @@ export class SpecRun {
       ticket: ticket.issue,
       drafts: [failureHaltOf(failure, downstream)],
     });
-    return this._halt(landingTicket);
+    const label = issueLabelOf(ticket.issue);
+    if (!run.failureStreak.includes(label)) run.failureStreak.push(label);
+    if (run.failureStreak.length < this.config.knobs.stuckFailureHalts) {
+      return this._halt(landingTicket);
+    }
+    await this._postHalts(landingTicket);
+    throw new RunStop(
+      `Stopped as stuck: ${run.failureStreak.join(", ")} each ended on a Failure Halt in a row; answer them, then rerun.`,
+    );
   }
 
   private async _implement(ticketRun: TicketRun): Promise<void> {
@@ -1202,9 +1216,13 @@ export class SpecRun {
   }
 
   private async _halt(landingTicket: LandingTicket): Promise<never> {
+    await this._postHalts(landingTicket);
+    throw new TicketHalted(issueLabelOf(landingTicket.ticket.issue));
+  }
+
+  private async _postHalts(landingTicket: LandingTicket): Promise<void> {
     this._advance(landingTicket, "halted");
     await this._postUnpostedHalts(landingTicket.run);
-    throw new TicketHalted(issueLabelOf(landingTicket.ticket.issue));
   }
 
   // Also picks up the Halts of a ticket that halted in a run killed before they were all posted.
@@ -1504,8 +1522,24 @@ export class SpecRun {
     return { record, logPath, peakContext: result.peakContext };
   }
 
-  // Retries a crash, resuming its session when it has one; leaves the result unread, so a fixer can check for a live-ceiling kill before recordOf().
+  // A guidance answer goes to the halted step's next launch only, its crash retries included.
   private async _runStep(
+    ticketRun: TicketRun,
+    agent: StepAgent,
+    launch: StepLaunch,
+  ): Promise<RanStep> {
+    const { state } = ticketRun;
+    const ran = await this._retryStep(
+      ticketRun,
+      agent,
+      guidedLaunchOf(launch, state.guidance),
+    );
+    state.guidance = undefined;
+    return ran;
+  }
+
+  // Retries a crash, resuming its session when it has one; leaves the result unread, so a fixer can check for a live-ceiling kill before recordOf().
+  private async _retryStep(
     ticketRun: TicketRun,
     agent: StepAgent,
     launch: StepLaunch,
@@ -2370,6 +2404,17 @@ function isTicketFailureHalt(
     halt.failedStep !== undefined &&
     !isGapCheckHalt(halt)
   );
+}
+
+function guidedLaunchOf(
+  launch: StepLaunch,
+  guidance: string | undefined,
+): StepLaunch {
+  if (guidance === undefined) return launch;
+  return {
+    ...launch,
+    prompt: `${launch.prompt}\n\n${guidanceSectionOf(guidance)}`,
+  };
 }
 
 function isOffered(halt: Halt, option: string): boolean {
