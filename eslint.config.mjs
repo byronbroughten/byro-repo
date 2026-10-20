@@ -28,7 +28,7 @@ export default defineConfig(
         {
           patterns: [
             {
-              regex: `(^|/)packages/|^(@byronbroughten/sheets-framework|sheets-real-estate)(/|$)`,
+              regex: packagesImportRegex(workspaceNames(repoRoot, "packages/")),
               message:
                 "The config package and the hooks import nothing from packages/; write a plain guard instead.",
             },
@@ -55,6 +55,18 @@ export default defineConfig(
     },
   },
 );
+
+export function packagesImportRegex(names) {
+  const alternatives = [
+    "(^|/)packages/",
+    ...names.map((name) => `^${escapeRegex(name)}(/|$)`),
+  ];
+  return alternatives.join("|");
+}
+
+function escapeRegex(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 function runnerImportBoundary() {
   const otherWorkspaces = workspaceNames(repoRoot).filter(
@@ -93,12 +105,14 @@ function runnerImportBoundary() {
 }
 
 // With no packages checked out (as on CI) it finds none, which is harmless: tsc fails any import of a missing package.
-export function workspaceNames(root) {
+export function workspaceNames(root, patternPrefix = "") {
   const { workspaces } = JSON.parse(
     readFileSync(join(root, "package.json"), "utf8"),
   );
   return globSync(
-    workspaces.map((pattern) => `${pattern}/package.json`),
+    workspaces
+      .filter((pattern) => pattern.startsWith(patternPrefix))
+      .map((pattern) => `${pattern}/package.json`),
     { cwd: root },
   ).map((path) => JSON.parse(readFileSync(join(root, path), "utf8")).name);
 }
