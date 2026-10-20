@@ -2,6 +2,7 @@
 // reply answers one, and the prompt that hands every answer back to the ticket's resumed or fresh implementer.
 // SpecRun.ts keeps them in run state, blocks the tickets in their scope and resumes the halted ticket once all are answered.
 
+import type { Pair } from "./AgentStep.ts";
 import {
   type HaltScope,
   haltScopeOf,
@@ -9,6 +10,7 @@ import {
 } from "./findingTriage.ts";
 import type { Blocker } from "./implementStep.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
+import { pairNamed } from "./modelFit.ts";
 import type { IssueComment, TicketStep } from "./SpecRun.ts";
 
 // Marks every comment the runner posts, which carries the developer's login too, so none is read as an answer.
@@ -40,7 +42,7 @@ export interface Halt {
   // The triage finding it came from, if any.
   finding?: number;
   // A Failure Halt's step, which a `retry` answer runs again.
-  failedStep?: TicketStep;
+  failedStep?: FailedStep;
   isPosted: boolean;
   answer?: HaltAnswer;
   // Set once the answer reached the resumed or fresh implementer.
@@ -97,24 +99,64 @@ export function triageHaltOf(
   };
 }
 
+// The gap check fails outside any ticket, so its Failure Halt is raised on the spec issue.
+export type FailedStep = TicketStep | "gap-check";
+
 export interface StepFailure {
-  step: TicketStep;
+  step: FailedStep;
   detail: string;
   logPath: string;
+  // The answers offered in place of `retry`.
+  options?: string[];
 }
 
-// A step that failed again after its retry; a reply other than `stop spec` runs the step again with a fresh count.
+// A step that failed past its retries; failureAnswerOf() reads the reply, and any answer but `stop spec` and `skip` runs the step again with a fresh count.
 export function failureHaltOf(
-  { step, detail, logPath }: StepFailure,
+  { step, detail, logPath, options = ["`retry`"] }: StepFailure,
   downstream: string[],
 ): HaltDraft {
   return {
     kind: "failure",
     question: `${detail}\n\nLog: \`${logPath}\``,
-    options: ["`retry`"],
+    options,
     scope: downstream,
     failedStep: step,
   };
+}
+
+export type FailureAnswer =
+  | { kind: "retry" }
+  | { kind: "retry-record" }
+  | { kind: "more-turns"; turns: number | undefined }
+  | { kind: "rerun"; pair: Pair }
+  | { kind: "skip" }
+  | { kind: "guidance"; text: string };
+
+// `stop spec` is read apart by isStopSpecAnswer(); a reply that is no named answer, with the Halt's id and backticks aside, is guidance.
+export function failureAnswerOf(
+  halt: Halt,
+  { text }: HaltAnswer,
+): FailureAnswer {
+  const bare = text
+    .replace(haltIdPatternOf(halt, "g"), " ")
+    .replace(/[`*:.,!]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+  if (bare === "retry") return { kind: "retry" };
+  if (bare === "retry record") return { kind: "retry-record" };
+  if (bare === "skip") return { kind: "skip" };
+  const moreTurns = /^resume \+(\d+)? ?turns?$/.exec(bare);
+  if (moreTurns !== null) {
+    const [, turns] = moreTurns;
+    return {
+      kind: "more-turns",
+      turns: turns === undefined ? undefined : Number(turns),
+    };
+  }
+  const pair = pairNamed(/^rerun on (.+)$/.exec(bare)?.[1] ?? "");
+  if (pair !== undefined) return { kind: "rerun", pair };
+  return { kind: "guidance", text };
 }
 
 export interface HaltPost {
@@ -181,7 +223,7 @@ export function repliesTo({
       isRunnersComment(comment) && comment.body.includes(haltHeadingOf(halt)),
   );
   if (postedAt === -1) return [];
-  const naming = new RegExp(`(^|[^\\w])${halt.id}(?!\\w)`);
+  const naming = haltIdPatternOf(halt);
   return comments
     .slice(postedAt + 1)
     .filter(
@@ -190,6 +232,10 @@ export function repliesTo({
         !isRunnersComment(comment) &&
         naming.test(comment.body),
     );
+}
+
+function haltIdPatternOf({ id }: Halt, flags = ""): RegExp {
+  return new RegExp(`(^|[^\\w])${id}(?!\\w)`, flags);
 }
 
 export function isRunnersComment({ body }: IssueComment): boolean {
