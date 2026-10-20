@@ -155,8 +155,10 @@ import {
 const execFileAsync = promisify(execFile);
 
 const readyLabel = "ready-for-agent";
-const interruptedPrompt =
-  "The previous run was interrupted; continue. Any uncommitted work was set aside on a backup branch and the tree reset to its last commit, so check what is committed first. Nobody is watching this session: never ask a question or wait for an answer.";
+const fixerLabels: Record<Fixer, string> = {
+  implementer: "implementer",
+  triage: "triage agent",
+};
 const runHolder: LeaseHolder = { kind: "run", pid: process.pid };
 
 export interface TrackedIssue extends BodyAuthorship {
@@ -818,7 +820,7 @@ export class SpecRun {
         );
       }
       if (state.step === "halted") {
-        state.step = relaunchStepOf(run, ticket.issue);
+        state.step = deliverFailureHalts(run, ticket.issue) ?? "resume";
       }
       this._log(
         run,
@@ -939,7 +941,7 @@ export class SpecRun {
       const hasFix = (state.triage ?? []).some(isFix);
       this._advance(ticketRun, hasFix ? "fix" : "checks");
     }
-    // Checks run after the fixes, so a fix that turns them red Stops.
+    // Checks run after the fixes, so a fix that turns them red gets the red-checks resume.
     if (state.step === "fix") {
       this._markStepStarted(ticketRun);
       await this._timed(ticketRun, "fix", () => this._fix(ticketRun));
@@ -964,9 +966,7 @@ export class SpecRun {
   ): Promise<void> {
     const { run, ticket, state } = ticketRun;
     const { step, detail } = failure;
-    if (step !== "review" && step !== "triage") {
-      await this._snapshot(ticketRun, step);
-    }
+    if (isSnapshotted(step)) await this._snapshot(ticketRun, step);
     state.crashes ??= {};
     const taken = state.crashes[step] ?? 0;
     const { retriesPerFailure } = this.config.knobs;
@@ -1389,7 +1389,7 @@ export class SpecRun {
       } else {
         attempt = {
           ...launch,
-          prompt: interruptedPrompt,
+          prompt: interruptedPromptOf(step),
           resumeSessionId: result.sessionId,
         };
       }
@@ -1431,8 +1431,7 @@ export class SpecRun {
         ...overrides,
       });
     } catch (error) {
-      const detail = `The ${agent} step failed to run: ${messageOf(error)}`;
-      return { kind: "unrun", detail };
+      return { kind: "unrun", detail: unrunDetailOf(agent, error) };
     }
     if (result.sessionId !== undefined) {
       state.sessions.push({ agent, sessionId: result.sessionId });
@@ -1452,7 +1451,7 @@ export class SpecRun {
     } catch (error) {
       throw new UnhandledStop(
         "step-error",
-        `The ${step} step failed to run: ${messageOf(error)}`,
+        unrunDetailOf(step, error),
         request.logPath,
       );
     }
@@ -1622,8 +1621,9 @@ export class SpecRun {
     if (fixer === "implementer" && peak >= ticketBudget) fixer = "triage";
     this._log(
       run,
-      `${issueLabelOf(ticket.issue)}: checks red; resuming the ${fixer === "implementer" ? "implementer" : "triage agent"} with the failure.`,
+      `${issueLabelOf(ticket.issue)}: checks red; resuming the ${fixerLabels[fixer]} with the failure.`,
     );
+    this._markStepStarted(ticketRun);
     const { result, logPath } = await this._runStep(ticketRun, "fix", {
       ...this._fixerSessionOf(ticketRun, fixer),
       prompt: redChecksPrompt({
@@ -1637,6 +1637,7 @@ export class SpecRun {
     });
     if (fixer === "implementer") noteImplementerResult(state, result);
     state.redChecksLogPath = logPath;
+    state.isStepStarted = undefined;
     this._saveState(run);
     recordOf("fix", result, logPath);
   }
@@ -2064,19 +2065,23 @@ function lastAnswerAtOf(run: Run, ticket: IssueRef): string {
   return times.sort().at(-1) ?? "";
 }
 
-// An answered Failure Halt reruns its step with a fresh count, marking it delivered; other answers go to the resumed implementer.
-function relaunchStepOf(run: Run, ticket: IssueRef): TicketStep {
+// Marks answered Failure Halts delivered and clears the retry counts, returning the step to rerun; undefined when there are none.
+function deliverFailureHalts(
+  run: Run,
+  ticket: IssueRef,
+): TicketStep | undefined {
   const state = ticketStateOf(run, ticket);
   const failures = undeliveredHaltsOf(run, ticket).filter(
     ({ kind }) => kind === "failure",
   );
   const failedStep = failures[0]?.failedStep;
-  if (failedStep === undefined) return "resume";
+  if (failedStep === undefined) return undefined;
   failures.forEach((halt) => {
     halt.isDelivered = true;
   });
   state.crashes = undefined;
   state.redCheckResumes = undefined;
+  state.redChecksLogPath = undefined;
   return failedStep;
 }
 
@@ -2165,6 +2170,24 @@ function crashDetailOf(
     return `The ${agent} step ended ${exitSubtype}.`;
   }
   return undefined;
+}
+
+// Review and triage edit nothing, so there is no work of theirs to set aside.
+function isSnapshotted(step: TicketStep): boolean {
+  return step !== "review" && step !== "triage";
+}
+
+function interruptedPromptOf(step: TicketStep): string {
+  let setAside = "";
+  if (isSnapshotted(step)) {
+    setAside =
+      " Any uncommitted work was set aside on a backup branch and the tree reset to its last commit, so check what is committed first.";
+  }
+  return `The previous run was interrupted; continue.${setAside} Nobody is watching this session: never ask a question or wait for an answer.`;
+}
+
+function unrunDetailOf(step: string, error: unknown): string {
+  return `The ${step} step failed to run: ${messageOf(error)}`;
 }
 
 function minutesOf(ms: number): number {

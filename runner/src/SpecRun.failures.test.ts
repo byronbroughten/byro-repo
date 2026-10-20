@@ -141,6 +141,28 @@ describe("run's crash retries", () => {
     expect(progressLines().map(eventOf)).toContain(
       "byro-repo #1: The review step was silent for 10 minutes and was killed. Retrying, 1 of 1.",
     );
+    expect(agentStep.requests[2]?.prompt).not.toContain("backup branch");
+  });
+
+  it("retries a step killed at its wall clock", async () => {
+    addSpec([1]);
+    const hung: StepResult = {
+      ...crashed,
+      exitSubtype: undefined,
+      hang: "wall-clock",
+    };
+    const agentStep = FakeAgentStep.init(
+      after(3_600, hung),
+      implemented("one.ts"),
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep, timed()).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(progressLines().map(eventOf)).toContain(
+      "byro-repo #1: The implement step ran past its 60-minute wall clock and was killed. Retrying, 1 of 1.",
+    );
   });
 
   it("posts a Failure Halt on a second crash, and a `retry` answer runs the step again and lands", async () => {
@@ -234,6 +256,27 @@ describe("run's red-check resume", () => {
 });
 
 describe("run's retries across a rerun", () => {
+  it("takes a step the dead run left started as its first crash and retries it", async () => {
+    addSpec([1]);
+    const saved = join(stateFolder(), "saved.run.json");
+    await specRun(
+      FakeAgentStep.init(async () => {
+        copyFileSync(runStatePath(), saved);
+        throw new Error("killed");
+      }, crashed),
+    ).run(spec);
+    copyFileSync(saved, runStatePath());
+
+    const result = await specRun(
+      FakeAgentStep.init(implemented("one.ts"), reviewed()),
+    ).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(progressLines().map(eventOf)).toContain(
+      "byro-repo #1: The run ended during the implement step. Retrying, 1 of 1.",
+    );
+  });
+
   it("takes a step the dead run left started as a crash with the carried count", async () => {
     addSpec([1]);
     const saved = join(stateFolder(), "saved.run.json");
