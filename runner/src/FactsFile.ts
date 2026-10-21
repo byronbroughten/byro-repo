@@ -82,9 +82,17 @@ export class FactsFile {
   ): FactsFile {
     const facts = this._storedOf(issue);
     const steps = facts.sessions?.steps ?? [];
+    const isRecorded = steps.some(
+      ({ agent, sessionId }) =>
+        agent === step.agent && sessionId === step.sessionId,
+    );
     return this._store(issue, {
       ...facts,
-      sessions: { account, configFolder, steps: [...steps, step] },
+      sessions: {
+        account,
+        configFolder,
+        steps: isRecorded ? steps : [...steps, step],
+      },
     });
   }
 

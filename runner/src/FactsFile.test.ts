@@ -73,6 +73,24 @@ describe("addSession", () => {
       },
     });
   });
+
+  it("keeps one entry for a session added again, as a resumed or compacted session is", () => {
+    const session = {
+      account: 1,
+      configFolder: "/config/account-1",
+      step: { agent: "implement", sessionId: "session-1" },
+    } as const;
+
+    factsFile().addSession(ticket, session).addSession(ticket, session);
+
+    expect(storedFacts()).toEqual({
+      sessions: {
+        account: 1,
+        configFolder: "/config/account-1",
+        steps: [{ agent: "implement", sessionId: "session-1" }],
+      },
+    });
+  });
 });
 
 describe("write", () => {
