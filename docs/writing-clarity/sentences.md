@@ -50,8 +50,3 @@ Disclosed from [`docs/writing-clarity.md`](../writing-clarity.md), "Sentences". 
 
 - Before: "the rent stabilization increase self-certification limit" After: "the limit on increases a landlord can self-certify under rent stabilization" — invented; Pinker, Ch. 4, PDF pp. 116–117, 128. _From Pinker; not yet seen in your writing._
 - The Voice sheet's "not a packed noun phrase" overlaps; #321's audit decides whether it moves.
-
-## Agreement with the head noun
-
-- Before: "The cost of the sealed smoke alarms in both units come to $300." After: "The cost of the sealed smoke alarms in both units comes to $300." — invented; Pinker, Ch. 4, PDF pp. 96–97, 109–110. _From Pinker; not yet seen in your writing._
-- Agent drafts rarely break it, so it is the first candidate to cut if the sheet grows too long to read in full.

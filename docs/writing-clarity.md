@@ -38,4 +38,3 @@ One line per rule. The examples and their sources are one file away. Open a reas
 - **Make the items joined by "and", "or", "both… and" or "not only… but also" the same kind of phrase, each working alone with what precedes it; put "both", "either" or "not only" just before the first item.**
 - **Give parallel points the same sentence shape, in the same order (cause then effect, say), rather than varying it for variety's sake.**
 - **Unpack nouns stacked before a noun into a phrase with a preposition ("the gate on HELOC funding", not "the HELOC funding gate").**
-- **Make a verb agree with the head noun of its subject, not the noun nearest it ("the cost of the repairs is").**
