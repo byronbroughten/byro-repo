@@ -175,7 +175,16 @@ describe("a lease", () => {
     expect(existsSync(workspace.path)).toBe(false);
   });
 
-  it("lets its holder remove the workspace, still refusing a dirty one without force", async () => {
+  it("lets its holder remove a clean workspace it holds", async () => {
+    const workspace = await workspaces().create({ session: "glossary-fix" });
+    await workspaces().takeLease(workspace, liveSession);
+
+    await workspaces().remove(workspace, { holder: liveSession });
+
+    expect(existsSync(workspace.path)).toBe(false);
+  });
+
+  it("still refuses its holder a dirty workspace without force", async () => {
     const workspace = await workspaces().create({ session: "glossary-fix" });
     await workspaces().takeLease(workspace, liveSession);
     writeFileSync(join(workspace.path, "work.txt"), "in progress");
@@ -183,6 +192,16 @@ describe("a lease", () => {
     await expect(
       workspaces().remove(workspace, { holder: liveSession }),
     ).rejects.toThrow(/uncommitted changes/);
+    expect(existsSync(workspace.path)).toBe(true);
+
+    await workspaces().remove(workspace, { holder: liveSession, force: true });
+    expect(existsSync(workspace.path)).toBe(false);
+  });
+
+  it("keeps a caller other than its holder from removing the workspace, even with force", async () => {
+    const workspace = await workspaces().create({ session: "glossary-fix" });
+    await workspaces().takeLease(workspace, liveSession);
+
     await expect(
       workspaces().remove(workspace, {
         holder: { kind: "session", pid: process.pid },
@@ -190,9 +209,6 @@ describe("a lease", () => {
       }),
     ).rejects.toThrow(`a session (pid ${process.ppid})`);
     expect(existsSync(workspace.path)).toBe(true);
-
-    await workspaces().remove(workspace, { holder: liveSession, force: true });
-    expect(existsSync(workspace.path)).toBe(false);
   });
 
   it("leaves remove free once its holder dies", async () => {
