@@ -21,20 +21,19 @@ export const positionRules: PositionRule[] = [
 ];
 
 export interface StyleSheetPaths {
-  styleSheetPath: string;
+  voiceSheetPath: string;
+  claritySheetPath: string;
   academicSheetPath: string;
 }
 
 export function pieceRules(
-  { styleSheetPath, academicSheetPath }: StyleSheetPaths,
+  { voiceSheetPath, claritySheetPath, academicSheetPath }: StyleSheetPaths,
   style: PieceStyle,
 ): string[] {
-  const sheetRules = rulesOf(readFileSync(styleSheetPath, "utf8"));
-  requirePositionRules(sheetRules, styleSheetPath);
-  const rules = [...sheetRules];
-  if (style.isAcademic) {
-    rules.push(...rulesOf(readFileSync(academicSheetPath, "utf8")));
-  }
+  const voiceRules = rulesIn(voiceSheetPath);
+  requirePositionRules(voiceRules, voiceSheetPath);
+  const rules = [...voiceRules, ...rulesIn(claritySheetPath)];
+  if (style.isAcademic) rules.push(...rulesIn(academicSheetPath));
   return rules
     .filter(
       ({ tag }) =>
@@ -60,19 +59,30 @@ export function isRuleAt(
   return index >= count - position.paragraphCount;
 }
 
-// Starts at the first section after Axes, so the axis definitions are never read as rules.
+// Sections whose bold lines define words or rank the sheets, never rules a paragraph can break.
+const nonRuleSections = ["Axes", "Terms", "Precedence"];
+
+function rulesIn(sheetPath: string): StyleRule[] {
+  return rulesOf(readFileSync(sheetPath, "utf8"));
+}
+
+// Drops the text before the first section, so a sheet's intro is never read as rules.
 function rulesOf(sheet: string): StyleRule[] {
-  const lines = sheet.split("\n");
-  const axes = lines.findIndex((line) => /^## Axes\s*$/.test(line));
-  const start = lines.findIndex(
-    (line, index) => index > axes && line.startsWith("## "),
-  );
-  return lines.slice(Math.max(start, 0)).flatMap((line) => {
-    const rule = /^- (?:`(\w+)` )?\*\*(.+?)\*\*/.exec(line);
-    if (!rule) return [];
-    const [, tag, text = ""] = rule;
-    return [{ text, tag }];
-  });
+  return sheet
+    .split(/^## /m)
+    .slice(1)
+    .filter((section) => !nonRuleSections.includes(headingOf(section)))
+    .flatMap((section) => section.split("\n"))
+    .flatMap((line) => {
+      const rule = /^- (?:`(\w+)` )?\*\*(.+?)\*\*/.exec(line);
+      if (!rule) return [];
+      const [, tag, text = ""] = rule;
+      return [{ text, tag }];
+    });
+}
+
+function headingOf(section: string): string {
+  return section.split("\n", 1)[0]?.trim() ?? "";
 }
 
 function requirePositionRules(rules: StyleRule[], sheetPath: string): void {

@@ -1,4 +1,4 @@
-// Checks a Deliverable against the writing style sheet with Jev and prints a `## Jev style` section.
+// Checks a Deliverable against the Voice and Clarity sheets with Jev and prints a `## Jev style` section.
 // Usage and the Style file's shape: docs/agents/jev.md.
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
@@ -22,8 +22,11 @@ try {
     deliverablePath: values.deliverable,
     stylePath: values.style,
     sections: values.section ?? [],
-    styleSheetPath: fileURLToPath(
+    voiceSheetPath: fileURLToPath(
       new URL("../../docs/writing-voice.md", import.meta.url),
+    ),
+    claritySheetPath: fileURLToPath(
+      new URL("../../docs/writing-clarity.md", import.meta.url),
     ),
     academicSheetPath: fileURLToPath(
       new URL("../../docs/academic-writing-style.md", import.meta.url),
