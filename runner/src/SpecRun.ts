@@ -1418,7 +1418,7 @@ export class SpecRun {
     }
   }
 
-  // The resumed implementer gets every answer while its session is under the ticket budget and didn't hand off; otherwise a fresh agent does.
+  // The resumed implementer gets every answer while its session is under the ticket budget and no handoff is pending; otherwise a fresh agent does.
   private async _resume(ticketRun: TicketRun): Promise<void> {
     const { run, ticket } = ticketRun;
     const halts = undeliveredHaltsOf(run, ticket.issue);
