@@ -1,6 +1,6 @@
 # Sources of the writing style sheets
 
-Where the rules in [`docs/writing-voice.md`](../writing-voice.md) and [`docs/academic-writing-style.md`](../academic-writing-style.md) came from, and what was read but not kept. The developer reviewed every candidate rule before it became one (#171).
+Where the rules in [`docs/writing-voice.md`](../writing-voice.md), [`docs/writing-clarity.md`](../writing-clarity.md) and [`docs/academic-writing-style.md`](../academic-writing-style.md) came from, and what was read but not kept. The developer reviewed every candidate rule before it became one (#171).
 
 ## Sources read
 
@@ -40,7 +40,7 @@ The 24 Docs and 3 decks in the Drive folder **Business Writing Examples**, each 
 
 Strunk and White, *The Elements of Style*, 4th edition, in the Drive folder **Writing Style**, read on 2026-10-18 (Chapters II and V closely). The developer endorsed nine of its rules against the Assessment 1 Next Draft (writing#4), whose AI drafting ran wordy and repetitive (session 2ebcdf61). Each borrowed rule's instances name its Strunk and White rule number. The book is under copyright, so the rules are paraphrased, with a phrase quoted at most.
 
-Where a borrowed rule meets one of the developer's own habits, the habit wins: arithmetic keeps its steps, for one.
+Where a borrowed rule meets one of the developer's own habits, the Clarity sheet's [precedence rule](../writing-clarity.md#precedence) decides.
 
 ## Blog posts
 

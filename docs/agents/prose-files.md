@@ -4,13 +4,13 @@ Every file has one job, and each fact lives in exactly one of them. Everywhere e
 
 ## Terms
 
-- **Rules file**: an index file under `docs/`, `config/docs/` or `packages/*/docs/` of bolded one-line rules (`config/docs/code-style.md`, and the framework's `docs/code-style.md`, `docs/vocabulary.md` and `docs/design.md`, and the root's `docs/writing-voice.md` and `docs/academic-writing-style.md`), with one-sentence scope, the fixed sentence on when to open reasoning, and a "When | File" table under `## Reasoning files` into its reasoning folder. A rule line carries only the rule: the bolded rule plus at most a short clause of scope or its one exception. It must be both brief and clear, and no length cap stands in for either. Examples, instances, citations and the why go in its reasoning file.
+- **Rules file**: an index file under `docs/`, `config/docs/` or `packages/*/docs/` of bolded one-line rules (`config/docs/code-style.md`, and the framework's `docs/code-style.md`, `docs/vocabulary.md` and `docs/design.md`, and the root's `docs/writing-voice.md`, `docs/writing-clarity.md` and `docs/academic-writing-style.md`), with one-sentence scope, the fixed sentence on when to open reasoning, and a "When | File" table under `## Reasoning files` into its reasoning folder. A rule line carries only the rule: the bolded rule plus at most a short clause of scope or its one exception. It must be both brief and clear, and no length cap stands in for either. Examples, instances, citations and the why go in its reasoning file.
 - **Reasoning file**: a file under a rules file's `docs/<name>/` folder holding the why, examples, instances and history. It is never auto-loaded. A rules-file section with anything beyond its rules gets one.
 - **Router**: the Read-by-task table in the root AGENTS.md. It is the only one, with rows into every package.
 - **Nested AGENTS.md**: a folder's own rules, loaded when an agent works there, paired with a one-line `CLAUDE.md` holding `@AGENTS.md`.
 - **Mechanics doc**: a reference file under `docs/` or `packages/*/docs/` read by heading. It opens with a lead of 5 lines and 800 bytes or fewer, and any such file over 4 KB must have `##` headings (lint checks both; a shorter doc with no heading is read whole). Its headings are specific enough to grep, and a rule found in it moves up to a rules file or nested AGENTS.md, leaving a pointer. One that covers subjects sharing nothing is split and indexed.
 - **Enforcement ladder**: lint > path-triggered (nested AGENTS.md, a hook) > router pointer > prose.
-- **Reader-facing prose**: text written for a reader who is neither the developer nor an agent, and not for development work: shared or published Google Docs, blog posts, in-app text and academic writing. It follows [`docs/writing-voice.md`](../writing-voice.md).
+- **Reader-facing prose**: text written for a reader who is neither the developer nor an agent, and not for development work: shared or published Google Docs, blog posts, in-app text and academic writing. It follows [`docs/writing-voice.md`](../writing-voice.md) and [`docs/writing-clarity.md`](../writing-clarity.md).
 - **Derived view**: a file that restates facts whose home is elsewhere, for another audience. README.md is one.
 
 ## Map
@@ -28,7 +28,9 @@ Every file has one job, and each fact lives in exactly one of them. Everywhere e
 | `docs/cursor-guardrails.md` | The Cursor hooks. |
 | `docs/writing-voice.md` | The voice of reader-facing prose, one line per rule, rule only, one voice with no sections per medium. Its `## Axes` section defines the Evidence and Formality values and the Academic overlay; a rule scoped to one value starts with that value as a code tag. |
 | `docs/writing-voice/*.md` | Each rule's quoted instances and sources, indexed by `docs/writing-voice.md`'s "When \| File" table, plus `sources.md` for the sources read and the habits dropped. |
-| `docs/academic-writing-style.md` | Academic conventions layered on `docs/writing-voice.md`, one line per rule, rule only, with APA 7 as the citation standard. |
+| `docs/writing-clarity.md` | Rules any skilled writer follows so a reader can parse and follow reader-facing prose, one line per rule, rule only, opening with a `## Terms` section of one line per term, then the `## Precedence` rule for a clash with a Voice habit. |
+| `docs/writing-clarity/*.md` | Each rule's before-and-after example and the chapter and page it came from, indexed by `docs/writing-clarity.md`'s "When \| File" table. Which books were read, and when, is in `docs/writing-voice/sources.md`. |
+| `docs/academic-writing-style.md` | Academic conventions layered on `docs/writing-voice.md` and `docs/writing-clarity.md`, one line per rule, rule only, with APA 7 as the citation standard. |
 | `docs/academic-writing-style/*.md` | Each rule's quoted instances and sources, indexed by `docs/academic-writing-style.md`'s "When \| File" table. |
 | `docs/agents/*.md` | Agent workflow: git, planning, delegation, issues, vendored upstream skills, handing judgements to Jev and its trial log. |
 | `README.md` | The workspace overview, a derived view for people on GitHub; it links each public clone by github.com URL, since the clones don't exist there, and names the private writing clone without a link. Nothing routes agents to it. Update it when a fact it mirrors changes (tables below). |
