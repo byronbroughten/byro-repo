@@ -10,6 +10,7 @@ import type { Handoff } from "./implementStep.ts";
 import {
   addSpec,
   bodyWith,
+  capped,
   crashed,
   github,
   haltComments,
@@ -136,6 +137,27 @@ describe("run's implement handoff", () => {
     expect(fresh?.prompt).toContain("## Handoff from the previous step");
     expect(retry?.resumeSessionId).toBe("crashed-session");
     expect(retry?.prompt).not.toContain("the tree reset");
+  });
+
+  it("keeps the handed-off work through a turn cap and its `resume +N turns`", async () => {
+    addSpec([1]);
+    await specRun(FakeAgentStep.init(handedOff, capped)).run(spec);
+    github.reply(213, "H1: resume +50 turns");
+    let isWorkKept = false;
+    const rerunStep = FakeAgentStep.init(
+      keepingWork((isKept) => {
+        isWorkKept = isKept;
+      }),
+      reviewed(),
+    );
+
+    const result = await specRun(rerunStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(isWorkKept).toBe(true);
+    const [resumed] = rerunStep.requests;
+    expect(resumed?.resumeSessionId).toBe("capped-session");
+    expect(resumed?.prompt).not.toContain("the tree reset");
   });
 
   it("records every implement step's session, so a rerun starts from the latest handoff", async () => {

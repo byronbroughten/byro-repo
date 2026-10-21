@@ -96,6 +96,7 @@ import {
   implementRecordProblems,
   moreTurnsPrompt,
   recordOnlyPrompt,
+  treeResetNote,
 } from "./implementStep.ts";
 import { type BodyAuthorship, untrustedBodyReasonOf } from "./IssueReader.ts";
 import {
@@ -1068,11 +1069,7 @@ export class SpecRun {
     const { run, ticket, state } = ticketRun;
     const { step } = state;
     const { detail } = crash;
-    if (isTreeKept(state)) {
-      await this._backUp(ticketRun, step, saveUncommitted);
-    } else if (isSnapshotted(step)) {
-      await this._snapshot(ticketRun, step);
-    }
+    if (isSnapshotted(step)) await this._snapshot(ticketRun, step);
     state.crashes ??= {};
     const taken = state.crashes[step] ?? 0;
     const { retriesPerFailure } = this.config.knobs;
@@ -1087,12 +1084,15 @@ export class SpecRun {
     );
   }
 
-  // Each dirty worktree's uncommitted work goes to a backup branch, and the tree back to its last commit.
+  // Each dirty worktree's uncommitted work goes to a backup branch, and the tree back to its last commit unless a handoff's next step needs it.
   private async _snapshot(
     ticketRun: TicketRun,
     step: TicketStep,
   ): Promise<void> {
-    await this._backUp(ticketRun, step, snapshotUncommitted);
+    const save = isTreeKept(ticketRun.state)
+      ? saveUncommitted
+      : snapshotUncommitted;
+    await this._backUp(ticketRun, step, save);
   }
 
   private async _backUp(
@@ -2588,7 +2588,8 @@ function continuationLaunchOf(
     return { ...launch, prompt: recordOnlyPrompt };
   }
   const { turns } = continuation;
-  return { ...launch, prompt: moreTurnsPrompt(turns), maxTurns: turns };
+  const prompt = moreTurnsPrompt(turns, !isTreeKept(state));
+  return { ...launch, prompt, maxTurns: turns };
 }
 
 // A ticket halted before review has nothing reviewed yet; one with no code has nothing to review.
@@ -2695,7 +2696,7 @@ function isSnapshotted(step: TicketStep): boolean {
   return step !== "review" && step !== "triage";
 }
 
-// After a handoff the implement step builds on the uncommitted work, so a crash saves it without a reset.
+// After a handoff the implement step builds on the uncommitted work, so a snapshot saves it without a reset.
 function isTreeKept({ step, latestHandoff }: TicketState): boolean {
   const isImplement = step === "implement" || step === "resume";
   return isImplement && latestHandoff !== undefined;
@@ -2704,8 +2705,7 @@ function isTreeKept({ step, latestHandoff }: TicketState): boolean {
 function interruptedPromptOf(state: TicketState): string {
   let setAside = "";
   if (isSnapshotted(state.step) && !isTreeKept(state)) {
-    setAside =
-      " Any uncommitted work was set aside on a backup branch and the tree reset to its last commit, so check what is committed first.";
+    setAside = ` ${treeResetNote}`;
   }
   return `The previous run was interrupted; continue.${setAside} Nobody is watching this session: never ask a question or wait for an answer.`;
 }
