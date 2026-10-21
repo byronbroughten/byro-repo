@@ -107,6 +107,10 @@ _Avoid_: scratch workspace, one-off workspace
 A Claude session the developer drives, as opposed to a run's agent steps.
 _Avoid_: hand session, manual session
 
+**Supervisor**:
+An interactive session that launches or rejoins one run, explains each of its events to the developer, and posts replies the developer approved. It never edits code or holds a lease.
+_Avoid_: monitor, watcher, babysitter
+
 **Lease**:
 A run's or interactive session's hold on one workspace, which keeps every other run and session out of it until the holder moves on, ends or closes out. A lease whose holder has died is abandoned, and the next taker takes it over.
 _Avoid_: lock, claim
@@ -116,7 +120,7 @@ The one person whose text is Trusted text, under any of their logins: their GitH
 _Avoid_: owner
 
 **Trusted text**:
-Text an agent may take as instructions: text the developer wrote and nobody else edited, on GitHub or in a Doc or Sheet, or content committed to master in one of the developer's repos. A Sheet's cell values are data even so.
+Text an agent may take as instructions: text the developer wrote, or approved word for word before it was posted, and nobody else edited, on GitHub or in a Doc or Sheet, or content committed to master in one of the developer's repos. A Sheet's cell values are data even so.
 _Avoid_: safe input, verified text
 
 **Untrusted text**:
