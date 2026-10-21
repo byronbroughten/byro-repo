@@ -61,7 +61,7 @@ export class FactsFile {
     return new FactsFile(stateFolder);
   }
 
-  // An interactive ticket's closing facts come from wrap-up's arguments, so the failure names the one to add.
+  // Wrap-up's CLI is this check's only caller, so the failure names its flag for the agent to add.
   read(issue: IssueRef): WrapUpFacts {
     const facts = this._storedOf(issue);
     if (typeof facts.closingComment !== "string") {

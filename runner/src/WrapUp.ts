@@ -1014,6 +1014,7 @@ function retryBranchDeletes(landing: Landing): void {
   );
 }
 
+// Wrap-up's CLI is this module's only caller, so each failure names the flag that resolves it.
 function assertLandable(
   issue: IssueRef,
   { branches, facts, hasNoCode }: LandabilityTarget,
