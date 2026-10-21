@@ -1,24 +1,25 @@
 ---
 name: piece-spec
-description: "Turn a grilled conversation about a writing Piece into a piece spec with its nine fields, and file it in the writing tracker."
+description: "Turn a grilled conversation about a writing Piece into a piece spec with its ten fields, and file it in the writing tracker."
 disable-model-invocation: true
 ---
 
 Synthesize the grilled conversation into a piece spec and file it in `byronbroughten/writing`. The Piece rules live in the writing package: [`packages/writing/AGENTS.md`](../../../packages/writing/AGENTS.md), its `GLOSSARY.md` and [`docs/grilling.md`](../../../packages/writing/docs/grilling.md). Use their words (Piece, Deliverable, Section, Supporting Material, Reference) and cite them; never restate them here.
 
-## 1. Fill the nine fields
+## 1. Fill the ten fields
 
 Draw each field from the conversation, in the developer's words where they gave them:
 
 - **Deliverable**: the Google Doc's title and Doc ID.
 - **Supporting Material**: each by title and Drive ID, with what it is for. For one too long to read whole, such as a book, list the passages that count by page range.
 - **Reader**: who reads the Piece, and what they already know.
-- **Voice**: the Axes line (`Evidence: <value> · Formality: <value>`, or `Academic`), then the style overrides.
-- **Form**: the length limit and its cut order, and the template or Section order if there is one.
+- **Style**: the Axes line (`Evidence: <value> · Formality: <value>`, or `Academic`), then the style overrides, to any sheet: Voice, Clarity or academic.
+- **Form**: the length limit and its cut order, and the template if there is one.
+- **Outline**: the Piece's Sections in order, each with its claim in one line and the facts it sets out in full, and nothing more. A template in Form fixes the Sections; the Outline fills them. Shape it by [`docs/outlining.md`](../../../packages/writing/docs/outlining.md).
 - **Facts**: the closed list the Piece may use. Name any of the developer's own text the Piece keeps or revises (the verdict, an earlier draft, the rewritten calibration paragraph, Supporting Material already graded) as given, quoted or with where it lives.
 - **Research**: needed or not, and on what.
 - **Final pass**: needed or not, and what it covers.
-- **Split**: one session, or the proposed Sections, each named by its heading text. A Piece with no headings, such as a letter, is one session.
+- **Split**: one session, or the Outline's Sections grouped into sessions, each named by its heading text. A Piece with no headings, such as a letter, is one session.
 
 Done when every field holds an answer or the developer's waiver. Ask for any field the conversation left open, all in one message; a Drive or Doc ID is always asked for, never guessed.
 
@@ -46,9 +47,11 @@ A short numbered list, only as long as the Piece needs: `As <actor>, I want <fea
 
 ## Reader
 
-## Voice
+## Style
 
 ## Form
+
+## Outline
 
 ## Facts
 
