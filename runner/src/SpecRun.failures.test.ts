@@ -16,7 +16,6 @@ import {
   greened,
   haltComments,
   implemented,
-  implementResultOf,
   masterSubjects,
   primaryOf,
   progressLines,
@@ -299,29 +298,17 @@ describe("run's retries across a rerun", () => {
 });
 
 describe("run's Stop wording", () => {
-  it("tells the developer a rerun won't retry an implement handoff", async () => {
+  it("tells the developer a rerun won't retry a step error", async () => {
     addSpec([1]);
+    const errored: StepResult = {
+      ...resultOf(undefined),
+      output: { status: "none" },
+      exitSubtype: "error_max_budget_usd",
+    };
 
-    const handedOff = implementResultOf({
-      status: "handoff",
-      branches: [],
-      closingComment: "",
-      boxesUndone: [],
-      blockers: [],
-      handoff: {
-        conclusion: "Half done.",
-        filesToOpen: [],
-        ruledOut: [],
-        filesChanged: [],
-        stillFailing: [],
-      },
-    });
+    const result = await specRun(FakeAgentStep.init(errored)).run(spec);
 
-    const result = await specRun(FakeAgentStep.init(handedOff)).run(spec);
-
-    expect(result.message).toBe(
-      "Stopped on byro-repo #1: an implement handoff.",
-    );
+    expect(result.message).toBe("Stopped on byro-repo #1: a step error.");
     expect(github.comments[0]?.body).toContain(
       "a rerun won't retry it. Finish and land it by hand",
     );

@@ -1,4 +1,10 @@
-import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 
@@ -6,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
   currentBranchOf,
+  saveUncommitted,
   snapshotUncommitted,
   worktreeStateOf,
 } from "./git.ts";
@@ -132,5 +139,19 @@ describe("snapshotUncommitted", () => {
       await snapshotUncommitted(repo, "backup/issue-1-fix"),
     ).toBeUndefined();
     expect(git(repo, "branch", "--list", "backup/*")).toBe("");
+  });
+});
+
+describe("saveUncommitted", () => {
+  it("saves tracked and untracked changes to a backup branch, leaving them in the tree", async () => {
+    writeFileSync(join(repo, "README.md"), "# changed\n");
+    writeFileSync(join(repo, "new.txt"), "untracked");
+
+    const branch = await saveUncommitted(repo, "backup/issue-1-handoff-1");
+
+    expect(branch).toBe("backup/issue-1-handoff-1");
+    expect(git(repo, "show", `${branch}:new.txt`)).toBe("untracked");
+    expect(git(repo, "status", "--porcelain")).toBe("M README.md\n?? new.txt");
+    expect(readFileSync(join(repo, "README.md"), "utf8")).toBe("# changed\n");
   });
 });

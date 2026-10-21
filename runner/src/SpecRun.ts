@@ -55,6 +55,7 @@ import {
   dirtyReposOf,
   git,
   type RepoWorktree,
+  saveUncommitted,
   snapshotUncommitted,
   worktreeStateOf,
 } from "./git.ts";
@@ -86,6 +87,8 @@ import {
 } from "./halts.ts";
 import {
   type Blocker,
+  type Handoff,
+  handoffCommentOf,
   implementOutputSchema,
   implementPrompt,
   type ImplementRecord,
@@ -302,6 +305,10 @@ interface TicketState {
   conflictResumes?: number;
   // The heads before the latest implement step, which a continued session's record is checked against.
   implementBase?: Heads;
+  // Kept across a rerun, so the step after a handoff starts from it; cleared by any other implement record.
+  latestHandoff?: Handoff;
+  // Numbers each handoff's backup branch.
+  handoffCount?: number;
   // Set by a Failure Halt's answer, so a rerun acts on it.
   pair?: Pair;
   guidance?: string;
@@ -1078,13 +1085,21 @@ export class SpecRun {
 
   // Each dirty worktree's uncommitted work goes to a backup branch, and the tree back to its last commit.
   private async _snapshot(
-    { run, ticket, workspace }: TicketRun,
+    ticketRun: TicketRun,
     step: TicketStep,
   ): Promise<void> {
+    await this._backUp(ticketRun, step, snapshotUncommitted);
+  }
+
+  private async _backUp(
+    { run, ticket, workspace }: TicketRun,
+    suffix: string,
+    save: typeof saveUncommitted,
+  ): Promise<void> {
     for (const { repo, worktree } of this._worktreesOf(workspace)) {
-      const branch = await snapshotUncommitted(
+      const branch = await save(
         worktree,
-        `backup/${workspace.branch}-${step}`,
+        `backup/${workspace.branch}-${suffix}`,
       );
       if (branch === undefined) continue;
       this._log(
@@ -1127,12 +1142,28 @@ export class SpecRun {
     }));
   }
 
-  // A continuation keeps the earlier base, so the commits it already made still count as new.
+  // Each handoff launches a fresh implement step, until one returns another record.
   private async _runImplement(
     ticketRun: TicketRun,
     launchOf: () => StepLaunch,
     onLaunched: () => void = () => {},
   ): Promise<void> {
+    let record = await this._runImplementStep(ticketRun, launchOf, onLaunched);
+    while (record.status === "handoff") {
+      await this._handOff(ticketRun, record.handoff);
+      record = await this._runImplementStep(ticketRun, () => ({
+        prompt: this._implementPromptOf(ticketRun),
+        jsonSchema: implementOutputSchema,
+      }));
+    }
+  }
+
+  // A continuation keeps the earlier base, so the commits it already made still count as new.
+  private async _runImplementStep(
+    ticketRun: TicketRun,
+    launchOf: () => StepLaunch,
+    onLaunched: () => void = () => {},
+  ): Promise<ImplementRecord> {
     const { run, workspace, state } = ticketRun;
     const { continuation } = state;
     let launch: StepLaunch;
@@ -1147,10 +1178,29 @@ export class SpecRun {
     const launched = await this._launch(ticketRun, "implement", launch);
     state.continuation = undefined;
     onLaunched();
-    await this._takeImplementRecord({ ticketRun, launched, headsBefore });
+    return this._takeImplementRecord({ ticketRun, launched, headsBefore });
   }
 
-  private _implementPromptOf({ ticket, workspace }: TicketRun): string {
+  // The work stays in the tree for the fresh step; the backup branch is in case that step loses it.
+  private async _handOff(
+    ticketRun: TicketRun,
+    handoff: Handoff,
+  ): Promise<void> {
+    const { run, ticket, state } = ticketRun;
+    const count = (state.handoffCount ?? 0) + 1;
+    await this._backUp(ticketRun, `handoff-${count}`, saveUncommitted);
+    const comment = handoffCommentOf(handoff, state.implementerSession);
+    await this.config.github.comment(ticket.issue, `${runnerMark}\n${comment}`);
+    state.handoffCount = count;
+    state.latestHandoff = handoff;
+    this._saveState(run);
+    this._log(
+      run,
+      `${issueLabelOf(ticket.issue)}: handoff ${count}; launching a fresh implement step.`,
+    );
+  }
+
+  private _implementPromptOf({ ticket, workspace, state }: TicketRun): string {
     return implementPrompt({
       issue: ticket.issue,
       title: ticket.title,
@@ -1159,6 +1209,7 @@ export class SpecRun {
       branchedRepos: workspace.branchedRepos,
       promoteCommand: this.config.promoteCommandOf(ticket.issue),
       allowedWriteGlobs: this.config.knobs.allowedWriteGlobs,
+      latestHandoff: state.latestHandoff,
     });
   }
 
@@ -1167,7 +1218,7 @@ export class SpecRun {
     ticketRun,
     launched,
     headsBefore,
-  }: ImplementTake): Promise<void> {
+  }: ImplementTake): Promise<ImplementRecord> {
     const { workspace, state } = ticketRun;
     const record = implementRecordOf(launched.record);
     const { logPath } = launched;
@@ -1190,14 +1241,14 @@ export class SpecRun {
         output: launched.record,
       });
     }
-    if (record.status === "handoff") {
-      throw new UnhandledStop("handoff", record.handoff.conclusion, logPath);
-    }
     await this._raiseBlockerHalts(ticketRun, record.blockers);
+    if (record.status === "handoff") return record;
     if (record.status === "blocked") {
       await this._haltOnUnpostedHalts(ticketRun);
     }
     state.record = record;
+    state.latestHandoff = undefined;
+    return record;
   }
 
   private async _raiseBlockerHalts(

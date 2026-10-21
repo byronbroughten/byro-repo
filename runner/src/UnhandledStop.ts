@@ -1,7 +1,6 @@
 // An outcome no run-loop ticket handles yet: SpecRun.ts leaves the ticket unlanded, comments, sends a notice and ends the run.
 export const stopOutcomes = {
   "step-error": "a step error",
-  handoff: "an implement handoff",
   "wrap-up-failure": "a wrap-up failure",
   workspace: "a workspace that can't resume",
   "model-fit": "a missing or invalid Model fit",

@@ -159,6 +159,20 @@ The tree holds uncommitted work from the previous step. Don't reset, stash, chec
 ${handoffText(handoff)}`;
 }
 
+// The runner posts it on the ticket; the `session:` line ties it to the step's transcript.
+export function handoffCommentOf(
+  handoff: Handoff,
+  sessionId: string | undefined,
+): string {
+  const sessionLine = sessionId === undefined ? [] : [`session: ${sessionId}`];
+  return [
+    "## Handoff",
+    "The implement step handed this ticket to a fresh implement step.",
+    handoffText(handoff),
+    ...sessionLine,
+  ].join("\n\n");
+}
+
 function handoffText(handoff: Handoff): string {
   const filesToOpen = handoff.filesToOpen.map(
     ({ path, lines }) => `${path}:${lines}`,
