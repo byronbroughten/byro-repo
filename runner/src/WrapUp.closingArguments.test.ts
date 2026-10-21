@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, renameSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -6,10 +6,12 @@ import { describe, expect, it } from "vitest";
 import { git } from "./GitFixture.ts";
 import {
   commitIn,
+  failureOf,
   github,
   outcomePath,
   primaryOf,
   primaryRoot,
+  remoteOf,
   subjectsOf,
   ticket,
   useWrapUpHarness,
@@ -72,6 +74,27 @@ describe("run", () => {
       expect(
         git(primaryOf("byro-repo"), "branch", "--list", "issue-218-*"),
       ).toBe("");
+      expect(github.closed).toEqual([
+        { issue: ticket, comment: "Edited the shared doc." },
+      ]);
+    });
+
+    it("resumes past its fast-forward on a rerun with no arguments", async () => {
+      await workspaceWith();
+      const remote = remoteOf("byro-repo");
+      renameSync(remote, `${remote}.gone`);
+
+      expect(
+        await failureOf(
+          wrapUp().run(ticket, {
+            closing: { closingComment: "Edited the shared doc." },
+            hasNoCode: true,
+          }),
+        ),
+      ).toBe("network");
+      renameSync(`${remote}.gone`, remote);
+      await wrapUp().run(ticket);
+
       expect(github.closed).toEqual([
         { issue: ticket, comment: "Edited the shared doc." },
       ]);

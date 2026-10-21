@@ -1,7 +1,8 @@
 // The wrap-up script: lands one ticket's issue branches, found by what is ahead of master, with its facts file and no
-// agent. It builds and checks the merge commits in the ticket's issue workspace, fast-forwards each primary checkout's master under its landing lock, then pushes, deletes the
-// branches, removes the workspace, closes the issue and checks its parent. Steps are recorded in a progress file, so a
-// rerun skips what already landed; a failure throws a WrapUpFailure naming its kind.
+// agent. It builds and checks the merge commits in the ticket's issue workspace, fast-forwards each primary checkout's
+// master under its landing lock, then pushes, deletes the branches, removes the workspace, closes the issue and checks
+// its parent. Steps are recorded in a progress file, so a rerun skips what already landed; a failure throws a
+// WrapUpFailure naming its kind.
 // A session workspace lands the same way from its session branches, with no facts file, checks or issue steps.
 // The outcome row's format is outcomeLog.ts and its transcript facts are transcriptFacts.ts; the lock is LandingLock.ts;
 // workspaces are IssueWorkspaces.ts.
@@ -252,10 +253,11 @@ export class WrapUp {
     if (closing) this.factsFile.setClosingFacts(issue, closing);
     const facts = this.factsFile.read(issue);
     const progress = this._readProgress(issue);
-    const branches = isDone({ progress }, "fast-forward")
-      ? (progress.branches ?? [])
-      : await this._issueBranchesOf(issue, progress);
-    assertLandable(issue, { branches, facts, hasNoCode });
+    let branches = progress.branches ?? [];
+    if (!isDone({ progress }, "fast-forward")) {
+      branches = await this._issueBranchesOf(issue, progress);
+      assertLandable(issue, { branches, facts, hasNoCode });
+    }
     const landing: Landing = {
       key: issue,
       branches,

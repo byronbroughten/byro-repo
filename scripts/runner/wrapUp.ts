@@ -87,11 +87,14 @@ function undoneBoxOf(value: string): UndoneBox {
 }
 
 async function landSession(args: string[]): Promise<void> {
-  const keep = args.includes("--keep");
-  const [session, ...rest] = args.filter((arg) => arg !== "--keep");
-  if (session === undefined || session.startsWith("--") || rest.length > 0) {
-    throw new Error(usage);
-  }
+  const { positionals, values } = parseArgs({
+    args,
+    allowPositionals: true,
+    options: { keep: { type: "boolean", default: false } },
+  });
+  const [session, ...rest] = positionals;
+  if (session === undefined || rest.length > 0) throw new Error(usage);
+  const { keep } = values;
   const wrapUp = WrapUp.init(wrapUpConfig);
   const options = { holder: nearestClaudeAncestor() };
   const result = keep
