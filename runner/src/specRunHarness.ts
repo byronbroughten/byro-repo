@@ -25,6 +25,7 @@ import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { AccountReading, UsageReader } from "./limitGuard.ts";
 import { type Command, runKnobsOf } from "./runKnobs.ts";
 import { SpecRun, type SpecRunConfig } from "./SpecRun.ts";
+import type { StepSession } from "./transcriptFacts.ts";
 
 export const clonePaths = {
   "byro-repo": ".",
@@ -381,14 +382,20 @@ export function timingLines(): string[] {
     .filter((line) => / took |^Preflight passed|^Run started/.test(line));
 }
 
-export function ticketState(): Record<
-  string,
-  { step: string; triage?: TriageRecord[] }
-> {
-  const path = join(stateFolder(), "byro-repo-213.run.json");
+interface SavedTicket {
+  step: string;
+  triage?: TriageRecord[];
+  sessions: StepSession[];
+}
+
+export function runStatePath(): string {
+  return join(stateFolder(), "byro-repo-213.run.json");
+}
+
+export function ticketState(): Record<string, SavedTicket> {
   return (
-    JSON.parse(readFileSync(path, "utf8")) as {
-      tickets: Record<string, { step: string; triage?: TriageRecord[] }>;
+    JSON.parse(readFileSync(runStatePath(), "utf8")) as {
+      tickets: Record<string, SavedTicket>;
     }
   ).tickets;
 }

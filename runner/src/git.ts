@@ -89,8 +89,19 @@ export function lines(output: string): string[] {
   return output === "" ? [] : output.split("\n");
 }
 
-// Commits the tree's uncommitted work, untracked files included, to a new branch without moving HEAD, then cleans the tree.
 export async function snapshotUncommitted(
+  worktree: string,
+  branchName: string,
+): Promise<string | undefined> {
+  const branch = await saveUncommitted(worktree, branchName);
+  if (branch === undefined) return undefined;
+  await git(worktree, "reset", "--hard", "HEAD");
+  await git(worktree, "clean", "-fd");
+  return branch;
+}
+
+// Commits the tree's uncommitted work, untracked files included, to a new branch without moving HEAD or changing the tree.
+export async function saveUncommitted(
   worktree: string,
   branchName: string,
 ): Promise<string | undefined> {
@@ -104,12 +115,12 @@ export async function snapshotUncommitted(
     "-p",
     "HEAD",
     "-m",
-    "Snapshot of a crashed step's uncommitted work",
+    "Snapshot of a step's uncommitted work",
   );
   const branch = await freeBranchNameOf(worktree, branchName);
   await git(worktree, "branch", branch, commit);
-  await git(worktree, "reset", "--hard", "HEAD");
-  await git(worktree, "clean", "-fd");
+  // Unstages what `add -A` staged, so the tree is left as the step left it.
+  await git(worktree, "reset", "-q");
   return branch;
 }
 

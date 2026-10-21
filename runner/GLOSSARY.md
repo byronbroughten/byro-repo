@@ -24,6 +24,10 @@ _Avoid_: record, cache, green mark
 The structured output an agent step returns, validated against the runner's schema: the implement record from the implement step and one triage record per finding from finding triage. A record failing the schema gets one retry.
 _Avoid_: report, result, output
 
+**Handoff**:
+An implement step's ending that passes unfinished work, with a written account of it, to a fresh implement step on the same ticket.
+_Avoid_: retry, restart
+
 **Finding triage**:
 The step after review that gives each review finding a verdict, as one triage record. It is skipped when review finds nothing.
 _Avoid_: classification, judging
