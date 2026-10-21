@@ -388,10 +388,13 @@ interface SavedTicket {
   sessions: StepSession[];
 }
 
+export function runStatePath(): string {
+  return join(stateFolder(), "byro-repo-213.run.json");
+}
+
 export function ticketState(): Record<string, SavedTicket> {
-  const path = join(stateFolder(), "byro-repo-213.run.json");
   return (
-    JSON.parse(readFileSync(path, "utf8")) as {
+    JSON.parse(readFileSync(runStatePath(), "utf8")) as {
       tickets: Record<string, SavedTicket>;
     }
   ).tickets;

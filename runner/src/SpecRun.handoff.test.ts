@@ -18,9 +18,11 @@ import {
   primaryOf,
   refOf,
   reviewed,
+  runStatePath,
   spec,
   specRun,
   stateFolder,
+  type StepScript,
   ticketState,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
@@ -50,10 +52,6 @@ async function handedOff(request: StepRequest): Promise<StepResult> {
     sessionId: "handoff-session",
     peakContext: 150_000,
   };
-}
-
-function runStatePath(): string {
-  return join(stateFolder(), "byro-repo-213.run.json");
 }
 
 describe("run's implement handoff", () => {
@@ -120,19 +118,24 @@ describe("run's implement handoff", () => {
 
   it("resumes a crashed handoff step with the usual retry", async () => {
     addSpec([1]);
+    let isWorkKept = false;
     const agentStep = FakeAgentStep.init(
       handedOff,
       crashed,
-      implemented("one.ts"),
+      keepingWork((isKept) => {
+        isWorkKept = isKept;
+      }),
       reviewed(),
     );
 
     const result = await specRun(agentStep).run(spec);
 
     expect(result.landed).toEqual([refOf(1)]);
+    expect(isWorkKept).toBe(true);
     const [, fresh, retry] = agentStep.requests;
     expect(fresh?.prompt).toContain("## Handoff from the previous step");
     expect(retry?.resumeSessionId).toBe("crashed-session");
+    expect(retry?.prompt).not.toContain("the tree reset");
   });
 
   it("records every implement step's session, so a rerun starts from the latest handoff", async () => {
@@ -145,11 +148,18 @@ describe("run's implement handoff", () => {
       }),
     ).run(spec);
     copyFileSync(saved, runStatePath());
-    const rerunStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+    let isWorkKept = false;
+    const rerunStep = FakeAgentStep.init(
+      keepingWork((isKept) => {
+        isWorkKept = isKept;
+      }),
+      reviewed(),
+    );
 
     const result = await specRun(rerunStep).run(spec);
 
     expect(result.landed).toEqual([refOf(1)]);
+    expect(isWorkKept).toBe(true);
     expect(rerunStep.requests[0]?.prompt).toContain(
       "Conclusion: The parser is half done.",
     );
@@ -159,3 +169,14 @@ describe("run's implement handoff", () => {
     });
   });
 });
+
+// Reports whether the handed-off work is still in the tree, then commits it with the rest of the ticket.
+function keepingWork(report: (isKept: boolean) => void): StepScript {
+  return async (request) => {
+    report(existsSync(join(request.cwd, "half.ts")));
+    if (existsSync(join(request.cwd, "half.ts"))) {
+      git(request.cwd, "add", "half.ts");
+    }
+    return implemented("one.ts")(request);
+  };
+}

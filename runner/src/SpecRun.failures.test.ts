@@ -23,6 +23,7 @@ import {
   refOf,
   resultOf,
   reviewed,
+  runStatePath,
   scriptUsage,
   spec,
   specRun,
@@ -34,10 +35,6 @@ import {
 } from "./specRunHarness.ts";
 
 useSpecRunHarness();
-
-function runStatePath(): string {
-  return join(stateFolder(), "byro-repo-213.run.json");
-}
 
 describe("run's crash retries", () => {
   it("saves a crashed implement step's uncommitted work to a backup branch, resets the tree and resumes the session", async () => {

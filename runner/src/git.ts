@@ -89,7 +89,6 @@ export function lines(output: string): string[] {
   return output === "" ? [] : output.split("\n");
 }
 
-// Saves the tree's uncommitted work to a new branch, then cleans the tree.
 export async function snapshotUncommitted(
   worktree: string,
   branchName: string,

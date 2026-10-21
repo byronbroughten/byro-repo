@@ -1068,7 +1068,11 @@ export class SpecRun {
     const { run, ticket, state } = ticketRun;
     const { step } = state;
     const { detail } = crash;
-    if (isSnapshotted(step)) await this._snapshot(ticketRun, step);
+    if (isTreeKept(state)) {
+      await this._backUp(ticketRun, step, saveUncommitted);
+    } else if (isSnapshotted(step)) {
+      await this._snapshot(ticketRun, step);
+    }
     state.crashes ??= {};
     const taken = state.crashes[step] ?? 0;
     const { retriesPerFailure } = this.config.knobs;
@@ -1136,10 +1140,7 @@ export class SpecRun {
   }
 
   private async _implement(ticketRun: TicketRun): Promise<void> {
-    await this._runImplement(ticketRun, () => ({
-      prompt: this._implementPromptOf(ticketRun),
-      jsonSchema: implementOutputSchema,
-    }));
+    await this._runImplement(ticketRun, () => this._freshLaunchOf(ticketRun));
   }
 
   // Each handoff launches a fresh implement step, until one returns another record.
@@ -1151,11 +1152,17 @@ export class SpecRun {
     let record = await this._runImplementStep(ticketRun, launchOf, onLaunched);
     while (record.status === "handoff") {
       await this._handOff(ticketRun, record.handoff);
-      record = await this._runImplementStep(ticketRun, () => ({
-        prompt: this._implementPromptOf(ticketRun),
-        jsonSchema: implementOutputSchema,
-      }));
+      record = await this._runImplementStep(ticketRun, () =>
+        this._freshLaunchOf(ticketRun),
+      );
     }
+  }
+
+  private _freshLaunchOf(ticketRun: TicketRun): StepLaunch {
+    return {
+      prompt: this._implementPromptOf(ticketRun),
+      jsonSchema: implementOutputSchema,
+    };
   }
 
   // A continuation keeps the earlier base, so the commits it already made still count as new.
@@ -1187,9 +1194,15 @@ export class SpecRun {
     handoff: Handoff,
   ): Promise<void> {
     const { run, ticket, state } = ticketRun;
+    const sessionId = state.implementerSession;
+    if (sessionId === undefined) {
+      throw new Error(
+        `${issueLabelOf(ticket.issue)}'s handoff has no session id.`,
+      );
+    }
     const count = (state.handoffCount ?? 0) + 1;
     await this._backUp(ticketRun, `handoff-${count}`, saveUncommitted);
-    const comment = handoffCommentOf(handoff, state.implementerSession);
+    const comment = handoffCommentOf(handoff, sessionId);
     await this.config.github.comment(ticket.issue, `${runnerMark}\n${comment}`);
     state.handoffCount = count;
     state.latestHandoff = handoff;
@@ -1605,7 +1618,6 @@ export class SpecRun {
     agent: StepAgent,
     launch: StepLaunch,
   ): Promise<RanStep> {
-    const step = ticketRun.state.step;
     let attempt = launch;
     for (;;) {
       const logPath = this._stepLogPathOf(ticketRun, agent);
@@ -1636,7 +1648,7 @@ export class SpecRun {
       } else {
         attempt = {
           ...launch,
-          prompt: interruptedPromptOf(step),
+          prompt: interruptedPromptOf(ticketRun.state),
           resumeSessionId: result.sessionId,
         };
       }
@@ -2683,9 +2695,15 @@ function isSnapshotted(step: TicketStep): boolean {
   return step !== "review" && step !== "triage";
 }
 
-function interruptedPromptOf(step: TicketStep): string {
+// After a handoff the implement step builds on the uncommitted work, so a crash saves it without a reset.
+function isTreeKept({ step, latestHandoff }: TicketState): boolean {
+  const isImplement = step === "implement" || step === "resume";
+  return isImplement && latestHandoff !== undefined;
+}
+
+function interruptedPromptOf(state: TicketState): string {
   let setAside = "";
-  if (isSnapshotted(step)) {
+  if (isSnapshotted(state.step) && !isTreeKept(state)) {
     setAside =
       " Any uncommitted work was set aside on a backup branch and the tree reset to its last commit, so check what is committed first.";
   }
