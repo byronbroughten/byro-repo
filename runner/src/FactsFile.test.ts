@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -80,13 +80,11 @@ describe("write", () => {
     factsFile()
       .setReviewFacts(ticket, { whatReviewCaught: "A stale doc link" })
       .write(ticket, {
-        branches: [{ repo: "byro-repo", branch: "issue-332-facts" }],
         closingComment: "Landed the writer.",
         reviewFixes: "none",
       });
 
     expect(storedFacts()).toEqual({
-      branches: [{ repo: "byro-repo", branch: "issue-332-facts" }],
       closingComment: "Landed the writer.",
       reviewFixes: "none",
     });
@@ -94,11 +92,8 @@ describe("write", () => {
 });
 
 describe("read", () => {
-  const branches = [{ repo: "byro-repo", branch: "issue-332-facts" }];
-
   it("returns the facts written", () => {
     const facts = {
-      branches,
       closingComment: "Landed the writer.",
       reviewFixes: "none" as const,
       proposals: 1,
@@ -109,49 +104,30 @@ describe("read", () => {
 
   it("counts Defers, Proposals' old name, as Proposals", () => {
     const written = factsFile().write(ticket, {
-      branches,
       closingComment: "Landed the writer.",
       ...{ defers: 2 },
     });
 
     expect(written.read(ticket)).toEqual({
-      branches,
       closingComment: "Landed the writer.",
       proposals: 2,
     });
   });
 
-  it("fails naming the path when there is no file", () => {
-    expect(() => factsFile().read(ticket)).toThrow(
-      `No facts file at ${factsPath()}`,
-    );
+  it("fails naming --closing when there is no file", () => {
+    expect(() => factsFile().read(ticket)).toThrow("--closing");
   });
 
-  it("fails when the file holds sessions but no branch list", () => {
+  it("fails naming --closing when the file holds sessions but no closing comment", () => {
     factsFile().addSession(ticket, {
       account: 1,
       configFolder: "/config/account-1",
       step: { agent: "implement", sessionId: "session-1" },
     });
 
-    expect(() => factsFile().read(ticket)).toThrow("has no branch list");
-  });
-
-  it("fails when the file names no branches and no GitHub writes", () => {
-    factsFile().write(ticket, {
-      branches: [],
-      closingComment: "Landed the writer.",
-    });
-
     expect(() => factsFile().read(ticket)).toThrow(
-      "names no branches to land and no GitHub writes",
+      `byro-repo #332 has no closing comment in ${factsPath()}: pass it to wrap-up with --closing`,
     );
-  });
-
-  it("fails when the file has no closing comment", () => {
-    writeFileSync(factsPath(), JSON.stringify({ branches }));
-
-    expect(() => factsFile().read(ticket)).toThrow("has no closing comment");
   });
 });
 

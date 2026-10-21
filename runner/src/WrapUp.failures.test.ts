@@ -65,11 +65,7 @@ describe("run", () => {
         "rev-parse",
         "master",
       );
-      writeFacts({
-        branches: [
-          { repo: "sheets-framework", branch: "issue-218-wrap-up-script" },
-        ],
-      });
+      writeFacts();
 
       const failure = await wrapUp()
         .run(ticket)

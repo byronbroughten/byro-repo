@@ -134,7 +134,6 @@ export function commitIn(
 
 export function writeFacts(facts: Partial<WrapUpFacts> = {}): void {
   const full: WrapUpFacts = {
-    branches: [{ repo: "byro-repo", branch: "issue-218-wrap-up-script" }],
     closingComment: "Landed the wrap-up script.",
     pair: "Opus medium",
     peakContext: [150_000, 90_000],

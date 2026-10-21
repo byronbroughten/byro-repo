@@ -130,16 +130,11 @@ describe("run", () => {
     expect(existsSync(join(primaryRoot, ownFolder))).toBe(true);
   });
 
-  it("lands each repo's branch in landing order, the clone before the root", async () => {
+  it("derives each repo's branch ahead of master and lands them in landing order, the clone before the root", async () => {
     const workspace = await workspaceWith(["sheets-framework"]);
     commitIn(workspace, "sheets-framework", "core.ts", "export {};\n");
     commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
-    writeFacts({
-      branches: [
-        { repo: "sheets-framework", branch: "issue-218-wrap-up-script" },
-        { repo: "byro-repo", branch: "issue-218-wrap-up-script" },
-      ],
-    });
+    writeFacts();
 
     const result = await wrapUp().run(ticket);
 
@@ -147,6 +142,10 @@ describe("run", () => {
     expect(subjectsOf("sheets-framework").slice(0, 2)).toEqual([
       "Merge issue-218-wrap-up-script into master (#218)",
       "Add core.ts",
+    ]);
+    expect(subjectsOf("byro-repo").slice(1, 3)).toEqual([
+      "Merge issue-218-wrap-up-script into master (#218)",
+      "Add script.ts",
     ]);
     expect(git(remoteOf("sheets-framework"), "rev-parse", "master")).toBe(
       git(primaryOf("sheets-framework"), "rev-parse", "master"),
@@ -163,11 +162,7 @@ describe("run", () => {
       "sheets-framework",
     );
     commitIn(workspace, "sheets-framework", "core.ts", "export {};\n");
-    writeFacts({
-      branches: [
-        { repo: "sheets-framework", branch: "issue-218-wrap-up-script" },
-      ],
-    });
+    writeFacts();
 
     await wrapUp().run(ticket);
 

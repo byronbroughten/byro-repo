@@ -40,7 +40,6 @@ describe("run", () => {
 
     function writeAppliedFacts(): void {
       writeFacts({
-        branches: [],
         closingComment: "Posted the addendum and retitled #246.",
         reviewFixes: "skipped",
         githubWrites,
