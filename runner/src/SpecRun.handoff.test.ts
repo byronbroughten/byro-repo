@@ -18,6 +18,7 @@ import {
   crashed,
   github,
   haltComments,
+  handoffResultOf,
   implemented,
   implementResultOf,
   primaryOf,
@@ -56,14 +57,7 @@ function handingOff(given: Handoff): StepScript {
   return async (request) => {
     writeFileSync(join(request.cwd, "half.ts"), "half a ticket\n");
     return {
-      ...implementResultOf({
-        status: "handoff",
-        branches: [],
-        closingComment: "",
-        boxesUndone: [],
-        blockers: [],
-        handoff: given,
-      }),
+      ...handoffResultOf(given),
       sessionId: "handoff-session",
       peakContext: 150_000,
     };

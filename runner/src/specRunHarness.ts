@@ -20,7 +20,7 @@ import { FakeUsageReader } from "./FakeUsageReader.ts";
 import type { TriageRecord } from "./findingTriage.ts";
 import { gapCheckOutputSchema } from "./gapCheck.ts";
 import { git, GitFixture } from "./GitFixture.ts";
-import type { Blocker, ImplementRecord } from "./implementStep.ts";
+import type { Blocker, Handoff, ImplementRecord } from "./implementStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { AccountReading, UsageReader } from "./limitGuard.ts";
 import { type Command, runKnobsOf } from "./runKnobs.ts";
@@ -217,6 +217,18 @@ export function resultOf(record: unknown): StepResult {
 // An implement step's structured output carries its record under `record`.
 export function implementResultOf(record: ImplementRecord): StepResult {
   return resultOf({ record });
+}
+
+// A handoff record commits nothing, so it names no branch.
+export function handoffResultOf(handoff: Handoff): StepResult {
+  return implementResultOf({
+    status: "handoff",
+    branches: [],
+    closingComment: "",
+    boxesUndone: [],
+    blockers: [],
+    handoff,
+  });
 }
 
 export function recordOf(

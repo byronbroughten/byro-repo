@@ -8,6 +8,7 @@ import { FakeAgentStep } from "./FakeAgentStep.ts";
 import type { TriageRecord } from "./findingTriage.ts";
 import type { FixOutcome } from "./fixStep.ts";
 import { git } from "./GitFixture.ts";
+import type { Handoff } from "./implementStep.ts";
 import {
   addSpec,
   after,
@@ -15,8 +16,8 @@ import {
   bodyWithTargets,
   github,
   greened,
+  handoffResultOf,
   implemented,
-  implementResultOf,
   primaryOf,
   refOf,
   resultOf,
@@ -86,23 +87,17 @@ describe("run's finding triage", () => {
   }
 
   function handedOffAt(peakContext: number): StepScript {
-    return stepOf(
-      implementResultOf({
-        status: "handoff",
-        branches: [],
-        closingComment: "",
-        boxesUndone: [],
-        blockers: [],
-        handoff: {
-          conclusion: "Half done.",
-          filesToOpen: [],
-          ruledOut: [],
-          filesChanged: [],
-          stillFailing: [],
-        },
-      }),
-      { sessionId: "handoff-session", peakContext },
-    );
+    const handoff: Handoff = {
+      conclusion: "Half done.",
+      filesToOpen: [],
+      ruledOut: [],
+      filesChanged: [],
+      stillFailing: [],
+    };
+    return stepOf(handoffResultOf(handoff), {
+      sessionId: "handoff-session",
+      peakContext,
+    });
   }
 
   function triaged(...records: TriageRecord[]): StepScript {
@@ -253,18 +248,20 @@ describe("run's finding triage", () => {
 
   it.each([
     {
+      fixer: "implementer",
       handoffPeak: 150_000,
       freshPeak: 90_000,
       resumeSessionId: "implement-session",
     },
     {
+      fixer: "triage",
       handoffPeak: 90_000,
       freshPeak: 150_000,
       resumeSessionId: "triage-session",
     },
   ])(
-    "picks the fixer after a handoff by the last implement step's peak, $freshPeak",
-    async ({ handoffPeak, freshPeak, resumeSessionId }) => {
+    "hands a fix after a handoff to the $fixer when the last implement step peaked at $freshPeak",
+    async ({ fixer, handoffPeak, freshPeak, resumeSessionId }) => {
       addSpec([1]);
       const agentStep = FakeAgentStep.init(
         handedOffAt(handoffPeak),
@@ -278,6 +275,7 @@ describe("run's finding triage", () => {
 
       expect(result.kind).toBe("finished");
       expect(agentStep.requests[4]?.resumeSessionId).toBe(resumeSessionId);
+      expect(factsOf().reviewFixes).toBe(fixer);
     },
   );
 
