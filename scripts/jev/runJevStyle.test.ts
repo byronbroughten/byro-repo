@@ -35,6 +35,21 @@ const styleSheet = `# Fake style
 - **Close by returning to the first kettle.**
 `;
 
+const claritySheet = `# Fake clarity
+
+## Terms
+
+- **Kettle path**: a sentence that boils over before its end.
+
+## Precedence
+
+- **A Clarity rule wins over a Voice habit only when the habit costs a reread.**
+
+## Sentences
+
+- **Put the known kettle before the new one.**
+`;
+
 const academicSheet = `# Fake academic style
 
 ## Citations
@@ -93,7 +108,7 @@ describe("runJevStyle", () => {
         '- breaks 0.70: "Use contractions." at "The green kettle sat beside the…"',
         '- unsure 0.62: "Name every kettle by its colour." at "The kettle whistled while rain tapped…"',
         "",
-        "3 flags: 2 breaks, 1 unsure, from 14 questions.",
+        "3 flags: 2 breaks, 1 unsure, from 19 questions.",
       ].join("\n"),
     );
   });
@@ -109,6 +124,13 @@ describe("runJevStyle", () => {
     const printed = await runJevStyle(inputs({}));
     expect(printed.stdout).not.toContain('"Evidence"');
     expect(printed.stdout).not.toContain('"Formality"');
+  });
+
+  it("asks the Clarity sheet's rules of every paragraph, but never its Terms or Precedence", async () => {
+    const printed = await runJevStyle(inputs({}));
+    expect(linesWith(printed.stdout, "Put the known kettle")).toHaveLength(5);
+    expect(printed.stdout).not.toContain("Kettle path");
+    expect(printed.stdout).not.toContain("A Clarity rule wins");
   });
 
   it("adds the academic sheet's rules for an Academic piece", async () => {
@@ -162,7 +184,7 @@ describe("runJevStyle", () => {
 
   it("asks a section named twice only once", async () => {
     const printed = await runJevStyle(inputs({ sections: ["Costs", "Costs"] }));
-    expect(printed.stdout).toMatch(/from 4 questions\.$/);
+    expect(printed.stdout).toMatch(/from 6 questions\.$/);
   });
 
   it("stops when the Style file has no Overrides heading", async () => {
@@ -181,7 +203,7 @@ describe("runJevStyle", () => {
         "utf8",
       ),
     ) as { answers: unknown[] };
-    expect(written.answers).toHaveLength(14);
+    expect(written.answers).toHaveLength(19);
   });
 
   it("splits the questions over several requests when TypeSafe rejects the size", async () => {
@@ -199,7 +221,7 @@ describe("runJevStyle", () => {
     };
     const printed = await runJevStyle(run);
     expect(printed.stdout).toMatch(
-      /14 flags: 14 breaks, 0 unsure, from 14 questions\.$/,
+      /19 flags: 19 breaks, 0 unsure, from 19 questions\.$/,
     );
   });
 });
@@ -208,7 +230,8 @@ describe("runJevStyle on the repo's own style sheets", () => {
   it("finds every position rule", async () => {
     const run = {
       ...inputs({}),
-      styleSheetPath: "docs/writing-voice.md",
+      voiceSheetPath: "docs/writing-voice.md",
+      claritySheetPath: "docs/writing-clarity.md",
       academicSheetPath: "docs/academic-writing-style.md",
     };
     await expect(runJevStyle(run)).resolves.toBeDefined();
@@ -239,7 +262,8 @@ function inputs({
     deliverablePath: write(dir, "deliverable.md", deliverable),
     stylePath: write(dir, "style.md", style),
     sections,
-    styleSheetPath: write(dir, "writing-voice.md", sheet),
+    voiceSheetPath: write(dir, "writing-voice.md", sheet),
+    claritySheetPath: write(dir, "writing-clarity.md", claritySheet),
     academicSheetPath: write(dir, "academic-writing-style.md", academicSheet),
     apiKey: "test-key",
     connect: () => fakeClient(answer),

@@ -21,17 +21,21 @@ export const positionRules: PositionRule[] = [
 ];
 
 export interface StyleSheetPaths {
-  styleSheetPath: string;
+  voiceSheetPath: string;
+  claritySheetPath: string;
   academicSheetPath: string;
 }
 
 export function pieceRules(
-  { styleSheetPath, academicSheetPath }: StyleSheetPaths,
+  { voiceSheetPath, claritySheetPath, academicSheetPath }: StyleSheetPaths,
   style: PieceStyle,
 ): string[] {
-  const sheetRules = rulesOf(readFileSync(styleSheetPath, "utf8"));
-  requirePositionRules(sheetRules, styleSheetPath);
-  const rules = [...sheetRules];
+  const voiceRules = rulesOf(readFileSync(voiceSheetPath, "utf8"));
+  requirePositionRules(voiceRules, voiceSheetPath);
+  const rules = [
+    ...voiceRules,
+    ...rulesOf(readFileSync(claritySheetPath, "utf8")),
+  ];
   if (style.isAcademic) {
     rules.push(...rulesOf(readFileSync(academicSheetPath, "utf8")));
   }
@@ -60,16 +64,18 @@ export function isRuleAt(
   return index >= count - position.paragraphCount;
 }
 
-// Starts at the first section after Axes, so the axis definitions are never read as rules.
+// Sections whose bold lines define words or rank the sheets, never rules a paragraph can break.
+const nonRuleSections = ["Axes", "Terms", "Precedence"];
+
 function rulesOf(sheet: string): StyleRule[] {
-  const lines = sheet.split("\n");
-  const axes = lines.findIndex((line) => /^## Axes\s*$/.test(line));
-  const start = lines.findIndex(
-    (line, index) => index > axes && line.startsWith("## "),
-  );
-  return lines.slice(Math.max(start, 0)).flatMap((line) => {
+  let section: string | undefined;
+  return sheet.split("\n").flatMap((line) => {
+    const heading = /^## (.+?)\s*$/.exec(line);
+    if (heading) section = heading[1];
     const rule = /^- (?:`(\w+)` )?\*\*(.+?)\*\*/.exec(line);
-    if (!rule) return [];
+    if (!rule || section === undefined || nonRuleSections.includes(section)) {
+      return [];
+    }
     const [, tag, text = ""] = rule;
     return [{ text, tag }];
   });

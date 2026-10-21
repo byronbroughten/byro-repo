@@ -43,7 +43,7 @@ The key comes from `TYPESAFE_API_KEY` in the developer's shell profile, never th
 
 ## The style check
 
-`npm run jev:style` checks a Deliverable against [`docs/writing-voice.md`](../writing-voice.md) and prints a ready-made `## Jev style` section: one line per flag (band, probability, rule, the paragraph's first words), then a count line. It asks one yes/no per (paragraph, rule) pair; 0.7 or higher is `breaks`, 0.5 to under 0.7 is `unsure`, and lower answers are left out. The full answers go to `jev-style.json` beside the Deliverable.
+`npm run jev:style` checks a Deliverable against the Voice and Clarity sheets, [`docs/writing-voice.md`](../writing-voice.md) and [`docs/writing-clarity.md`](../writing-clarity.md), and prints a ready-made `## Jev style` section: one line per flag (band, probability, rule, the paragraph's first words), then a count line. It asks one yes/no per (paragraph, rule) pair for both sheets, skipping the Clarity sheet's Terms and Precedence; 0.7 or higher is `breaks`, 0.5 to under 0.7 is `unsure`, and lower answers are left out. The full answers go to `jev-style.json` beside the Deliverable.
 
 ```sh
 npm run jev:style -- --deliverable <deliverable.md> --style <style.md> [--section "<heading>"]…
