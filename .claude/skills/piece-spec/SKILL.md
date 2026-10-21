@@ -1,10 +1,10 @@
 ---
 name: piece-spec
-description: "Turn a grilled conversation about a writing Piece into a piece spec with its ten fields, and file it in the writing tracker."
+description: "Turn a /grill-piece conversation about a writing Piece into a piece spec with its ten fields, and file it in the writing tracker."
 disable-model-invocation: true
 ---
 
-Synthesize the grilled conversation into a piece spec and file it in `byronbroughten/writing`. The Piece rules live in the writing package: [`packages/writing/AGENTS.md`](../../../packages/writing/AGENTS.md), its `GLOSSARY.md` and [`docs/grilling.md`](../../../packages/writing/docs/grilling.md). Use their words (Piece, Deliverable, Section, Supporting Material, Reference) and cite them; never restate them here.
+Synthesize the conversation `/grill-piece` ran, the step before this one, into a piece spec and file it in `byronbroughten/writing`. The Piece rules live in the writing package: [`packages/writing/AGENTS.md`](../../../packages/writing/AGENTS.md), its `GLOSSARY.md` and [`docs/grilling.md`](../../../packages/writing/docs/grilling.md). Use their words (Piece, Deliverable, Section, Supporting Material, Reference) and cite them; never restate them here.
 
 ## 1. Fill the ten fields
 
@@ -15,7 +15,7 @@ Draw each field from the conversation, in the developer's words where they gave 
 - **Reader**: who reads the Piece, and what they already know.
 - **Style**: the Axes line (`Evidence: <value> · Formality: <value>`, or `Academic`), then the style overrides, to any sheet: Voice, Clarity or academic.
 - **Form**: the length limit and its cut order, and the template if there is one.
-- **Outline**: the glossary's Outline, written by [`docs/outlining.md`](../../../packages/writing/docs/outlining.md), which also says how a template in Form fixes its Sections.
+- **Outline**: the Outline the developer approved at the end of the grill, the glossary's Outline, written by [`docs/outlining.md`](../../../packages/writing/docs/outlining.md), which also says how a template in Form fixes its Sections.
 - **Facts**: the closed list the Piece may use. Name any of the developer's own text the Piece keeps or revises (the verdict, an earlier draft, the rewritten calibration paragraph, Supporting Material already graded) as given, quoted or with where it lives.
 - **Research**: needed or not, and on what.
 - **Final pass**: needed or not, and what it covers.

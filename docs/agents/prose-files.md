@@ -84,9 +84,10 @@ A private repo holding piece specs as issues; the Pieces' text lives in their Go
 | File | Holds |
 | --- | --- |
 | `CLAUDE.md` | The restart-at-root notice, plus `@AGENTS.md`. |
-| `AGENTS.md` | The pointer to the grilling doc, and how to implement a piece spec: the Deliverable as the text's working home, Drive IDs, when a Deliverable write needs no yes, the style sheets to apply, a Piece's branch and landing, the pointer to the Snapshot doc, and the four done checks. Kept short: it loads on every task there. |
+| `AGENTS.md` | The pointers to `/grill-piece` and the outlining guide, and how to implement a piece spec: the Deliverable as the text's working home, Drive IDs, when a Deliverable write needs no yes, the style sheets to apply, a Piece's branch and landing, the pointer to the Snapshot doc, and the four done checks. Kept short: it loads on every task there. |
 | `GLOSSARY.md` | The writing context's words: Piece, Deliverable, Section, Outline, Snapshot, Supporting Material and Reference. |
-| `docs/grilling.md` | What a grill asks before a piece spec is filed, and the calibration paragraph. `/to-writing-style` adds questions to it. |
+| `docs/grilling.md` | What a grill asks before a piece spec is filed, the rounds rule, the calibration paragraph and the Outline that ends it. `/grill-piece` runs it; `/to-writing-style` adds questions to it. |
+| `docs/outlining.md` | How a spec's Outline is written: what each entry holds, a template's fixed Sections, and when Research revises it. |
 | `docs/wrap-up.md` | The wrap-up prompt for a Research spec, which has no branch. |
 | `docs/snapshots.md` | A Snapshot's path, its shape and how a save replaces its blocks. |
 | `snapshots/` | One Snapshot per Piece, written by `/implement-piece` only. |
