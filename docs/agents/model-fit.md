@@ -16,7 +16,7 @@ Checked against Opus 5.5 and Sonnet 5.5. Reviewed 2026-09-30; Grok left the pair
 
 ## Ticket size
 
-A bigger pair never fixes a ticket that won't fit one session: #8 and #17 were Opus high picks and still too large, and #21 needed fixes after nearly 200K. Split it instead ([`planning.md`](./planning.md#ticket-size)). The Peak context column below checks the ticket budget (default ~150K). In the log as of 2026-10-08, tickets changing 3–10 files peaked at a median of ~147K and those changing 14–18 at ~212K, so the fixed reads weigh as much as the diff.
+A bigger pair never fixes a ticket that won't fit one session: #8 and #17 were Opus high picks and still too large, and #21 needed fixes after nearly 200K. Split it instead ([`planning.md`](./planning.md#ticket-size)). The Peak context column below checks the ticket budget (default ~150K). In the log as of 2026-10-08, tickets changing 3–10 files peaked at a median of ~147K and those changing 14–18 at ~212K, so the fixed reads weigh as much as the diff. Thinking counts toward the budget too: #336, an Opus high pick in a 3,000-line file, spent ~66K of output on diagnosis and hit the budget before writing code, so an Opus high ticket in a large file gets split or drops to medium.
 
 ## Sonnet
 

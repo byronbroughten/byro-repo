@@ -32,6 +32,7 @@ Open only the section or disclosed doc the task needs.
 | Adding a deletion path | [blank-row](./packages/framework/docs/architecture/blank-row.md) |
 | A one-off job against the live sheet | [chores](./packages/framework/docs/architecture/chores.md) |
 | Hosts, bin, chore dry run, Sheets probe, gworkspace MCP | [how-it-runs](./packages/framework/docs/how-it-runs.md); gates: [targets-and-gates](./docs/targets-and-gates.md) |
+| Runner code (`runner/`), `SpecRun.ts` included | [`runner/src/AGENTS.md`](./runner/src/AGENTS.md) |
 | Claude Code hooks and the project agent | [`docs/claude-code-guardrails.md`](./docs/claude-code-guardrails.md) |
 | Tests and fakes | [testing](./packages/framework/docs/testing.md) |
 | Regen `tsc` fails, or hand-written sheet/column keys disagree with generated configs | [retarget-after-gen-configs](./.claude/skills/retarget-after-gen-configs/SKILL.md) |

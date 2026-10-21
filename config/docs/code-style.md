@@ -28,6 +28,7 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 - **Delete dead scaffolding in a file you touch**, but **ask before deleting commented-out code.** Zero callers is a list of candidates, not a verdict.
 - **A "why" comment carries over verbatim across a restructure.**
 - **One class per file, custom `Error` subclasses included.** Lint backs it.
+- **Split a class into collaborators when its private helpers fall into groups that share nothing with each other**, not when it passes a method or line count. The class keeps its public methods as one-line delegations, and the collaborators go in a subfolder named after it.
 
 ## Naming
 
