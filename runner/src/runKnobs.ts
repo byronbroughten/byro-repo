@@ -46,7 +46,7 @@ export interface RunKnobs {
   stuckFailureHalts: number;
   // The resumed implementer fixes the Fix batch only while its peak context is under this.
   ticketBudget: number;
-  // A fixer whose context crosses this is killed and its batch handed to the triage agent.
+  // A step crossing this is killed: an implementer is resumed for a handoff, a fixer's batch goes to the triage agent.
   liveCeiling: number;
   // Finding triage's pair; the triage agent fixes on the stronger of it and the ticket's.
   triagePair: Pair;

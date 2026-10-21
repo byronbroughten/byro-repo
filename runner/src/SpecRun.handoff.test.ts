@@ -6,7 +6,11 @@ import { describe, expect, it } from "vitest";
 import type { StepRequest, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
-import type { Handoff } from "./implementStep.ts";
+import {
+  type Handoff,
+  handoffOnlyPrompt,
+  type ImplementRecord,
+} from "./implementStep.ts";
 import {
   addSpec,
   bodyWith,
@@ -18,6 +22,7 @@ import {
   implementResultOf,
   primaryOf,
   refOf,
+  resultOf,
   reviewed,
   runStatePath,
   spec,
@@ -189,6 +194,132 @@ describe("run's implement handoff", () => {
       agent: "implement",
       sessionId: "handoff-session",
     });
+  });
+});
+
+// Leaves an uncommitted edit, then is killed at the live ceiling without handing off.
+async function crossed(request: StepRequest): Promise<StepResult> {
+  writeFileSync(join(request.cwd, "half.ts"), "half a ticket\n");
+  return {
+    ...implementResultOf(blockedRecord),
+    output: { status: "none" },
+    exitSubtype: undefined,
+    sessionId: "crossed-session",
+    peakContext: 181_000,
+    hasCrossedCeiling: true,
+  };
+}
+
+const blockedRecord: ImplementRecord = {
+  status: "blocked",
+  branches: [],
+  closingComment: "",
+  boxesUndone: [],
+  blockers: [
+    { kind: "spec-ambiguity", detail: "Unclear.", recommendation: "Decide." },
+  ],
+};
+
+describe("run's live-ceiling backstop", () => {
+  it("kills an implement step past the live ceiling and resumes it for a handoff record, which hands off as any other", async () => {
+    addSpec([1]);
+    let isWorkKept = false;
+    const agentStep = FakeAgentStep.init(
+      crossed,
+      handedOff,
+      keepingWork((isKept) => {
+        isWorkKept = isKept;
+      }),
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(isWorkKept).toBe(true);
+    const [first, backstop, fresh] = agentStep.requests;
+    expect(first?.liveCeiling).toBe(180_000);
+    expect(backstop?.resumeSessionId).toBe("crossed-session");
+    expect(backstop?.prompt).toBe(handoffOnlyPrompt);
+    expect(backstop?.liveCeiling).toBeUndefined();
+    expect(fresh?.resumeSessionId).toBeUndefined();
+    expect(fresh?.prompt).toContain("Conclusion: The parser is half done.");
+  });
+
+  it("posts a Failure Halt with the work snapshotted when the backstop's record isn't a handoff", async () => {
+    addSpec([1]);
+    let branch = "";
+    const agentStep = FakeAgentStep.init(
+      async (request) => {
+        branch = git(request.cwd, "branch", "--show-current");
+        return crossed(request);
+      },
+      async () => implementResultOf(blockedRecord),
+    );
+
+    await specRun(agentStep).run(spec);
+
+    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+    expect(haltComments()[0]).toContain(
+      "The implement step crossed the live ceiling of 180000, and its handoff record failed: the record is blocked, not a handoff",
+    );
+    expect(
+      git(primaryOf("byro-repo"), "show", `backup/${branch}-implement:half.ts`),
+    ).toBe("half a ticket");
+  });
+
+  it("posts a Failure Halt with the work snapshotted when the backstop's record fails its schema", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(crossed, async () => ({
+      ...resultOf(undefined),
+      output: {
+        status: "schemaFailure",
+        rawOutput: "",
+        problems: ["no record"],
+      },
+    }));
+
+    await specRun(agentStep).run(spec);
+
+    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+    expect(haltComments()[0]).toContain(
+      "The implement step crossed the live ceiling of 180000, and its handoff record failed: no record",
+    );
+  });
+
+  it("offers `retry record` when the step had committed before crossing", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(async (request) => {
+      writeFileSync(join(request.cwd, "one.ts"), "export {};\n");
+      git(request.cwd, "add", "one.ts");
+      git(request.cwd, "commit", "-m", "Add one.ts");
+      return crossed(request);
+    }, handedOff);
+
+    await specRun(agentStep).run(spec);
+
+    expect(haltComments()[0]).toContain(
+      "a handoff must leave its work uncommitted, but the step made a new commit",
+    );
+    expect(haltComments()[0]).toContain("retry record");
+  });
+
+  it("keeps asking for a handoff record only when the backstop's resume crashes", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      crossed,
+      crashed,
+      handedOff,
+      keepingWork(() => {}),
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    const [, , retry] = agentStep.requests;
+    expect(retry?.resumeSessionId).toBe("crashed-session");
+    expect(retry?.prompt).toBe(handoffOnlyPrompt);
   });
 });
 
