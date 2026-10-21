@@ -108,7 +108,7 @@ Number grilling-doc items `G1`, `G2`, … in the same shape, after the `W` items
 - Give the wording, not a description of it. The developer is approving the edit, not the idea.
 - The `(session ab12, 22:53)` pointer is for another agent's session: the short session ID and the timestamp of the turn, so the developer can check it. A pair-mode item cites `(<Piece>, <Section>, ¶<n>)` instead.
 - A `diffed` item's 🪤 half gives your reading of the developer's reason as "likely because…", and says when the change was a reviewer fix the developer approved.
-- End with one line for what you dropped: `Dropped: <item> (situational), <item> (code style: /to-code-style), <item> (already in writing-clarity.md)`.
+- End with one line for what you dropped: `Dropped: <item> (situational), <item> (code style: /to-code-style), <item> (already in writing-voice.md)`.
 - In pair mode, close with an `Upstream:` line naming each skill or step that added text the developer struck, and what it added, or `Upstream: none found.` File and edit nothing for it; the developer decides whether to follow up.
 
 Then stop. Do not edit until the developer approves; an agent running this skill does not approve for itself.
