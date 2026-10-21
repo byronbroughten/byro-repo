@@ -89,6 +89,7 @@ import {
   type Blocker,
   type Handoff,
   handoffCommentOf,
+  handoffOnlyPrompt,
   implementOutputSchema,
   implementPrompt,
   type ImplementRecord,
@@ -392,6 +393,11 @@ interface RanStep {
 type StepAttempt =
   { kind: "ran"; result: StepResult } | { kind: "unrun"; detail: string };
 
+interface CeilingCrossing {
+  crossed: RanStep;
+  headsBefore: Heads;
+}
+
 interface LaunchedStep {
   record: unknown;
   logPath: string;
@@ -659,6 +665,9 @@ export class SpecRun {
   // Runs no checks: master moves only through wrap-up, which checked the commits it landed.
   private async _preflightStop(): Promise<string | undefined> {
     const { knobs, primaryRoot } = this.config;
+    if (knobs.liveCeiling <= knobs.ticketBudget) {
+      return `the live ceiling of ${knobs.liveCeiling} isn't above the ticket budget of ${knobs.ticketBudget}`;
+    }
     for (const command of knobs.authChecks) {
       if ((await runCommand(command, primaryRoot)) !== undefined) {
         return `${commandLabelOf(command)} failed: GitHub auth or the claude login is missing`;
@@ -1173,19 +1182,66 @@ export class SpecRun {
   ): Promise<ImplementRecord> {
     const { run, workspace, state } = ticketRun;
     const { continuation } = state;
+    const { liveCeiling } = this.config.knobs;
     let launch: StepLaunch;
     if (continuation === undefined || state.implementBase === undefined) {
       state.implementBase = await this._headsOf(workspace);
       this._saveState(run);
-      launch = launchOf();
+      launch = { ...launchOf(), liveCeiling };
     } else {
-      launch = continuationLaunchOf(state, continuation);
+      launch = continuationLaunchOf(state, continuation, liveCeiling);
     }
     const headsBefore = state.implementBase;
-    const launched = await this._launch(ticketRun, "implement", launch);
+    const ran = await this._runStep(ticketRun, "implement", launch);
     state.continuation = undefined;
     onLaunched();
+    if (ran.result.hasCrossedCeiling) {
+      return this._handOffAtCeiling(ticketRun, { crossed: ran, headsBefore });
+    }
+    const launched = launchedOf("implement", ran);
     return this._takeImplementRecord({ ticketRun, launched, headsBefore });
+  }
+
+  // Resumed for a handoff record only; any other outcome is a Failure Halt with the work snapshotted.
+  private async _handOffAtCeiling(
+    ticketRun: TicketRun,
+    { crossed, headsBefore }: CeilingCrossing,
+  ): Promise<ImplementRecord> {
+    const { ticket, state } = ticketRun;
+    const { sessionId } = crossed.result;
+    if (sessionId === undefined) {
+      throw new Error(
+        `${issueLabelOf(ticket.issue)}'s implement step crossed the live ceiling with no session id.`,
+      );
+    }
+    const ran = await this._runStep(ticketRun, "implement", {
+      prompt: handoffOnlyPrompt,
+      jsonSchema: implementOutputSchema,
+      resumeSessionId: sessionId,
+    });
+    try {
+      const launched = launchedOf("implement", ran);
+      const { status } = implementRecordOf(launched.record);
+      if (status !== "handoff") {
+        throw schemaFailureOf(ran.logPath, {
+          problems: [`the record is ${status}, not a handoff`],
+          output: launched.record,
+        });
+      }
+      return await this._takeImplementRecord({
+        ticketRun,
+        launched,
+        headsBefore,
+      });
+    } catch (error) {
+      if (!(error instanceof SchemaFailure)) throw error;
+      await this._snapshot(ticketRun, state.step);
+      return this._failureHalt(ticketRun, {
+        step: state.step,
+        detail: `The implement step crossed the live ceiling of ${this.config.knobs.liveCeiling}, and its handoff record failed: ${error.message}`,
+        logPath: error.logPath,
+      });
+    }
   }
 
   // The work stays in the tree for the fresh step; the backup branch is in case that step loses it.
@@ -1591,9 +1647,7 @@ export class SpecRun {
     agent: StepAgent,
     launch: StepLaunch,
   ): Promise<LaunchedStep> {
-    const { result, logPath } = await this._runStep(ticketRun, agent, launch);
-    const record = recordOf(agent, result, logPath);
-    return { record, logPath, peakContext: result.peakContext };
+    return launchedOf(agent, await this._runStep(ticketRun, agent, launch));
   }
 
   // A guidance answer goes to the halted step's next launch only, its crash retries included.
@@ -2576,9 +2630,11 @@ function isSkipAnswered(halt: Halt): boolean {
   return failureAnswerOf(halt, halt.answer).kind === "skip";
 }
 
+// A record-only retry follows commits, which a handoff record can't have, so it gets no live ceiling.
 function continuationLaunchOf(
   state: TicketState,
   continuation: Continuation,
+  liveCeiling: number,
 ): StepLaunch {
   const launch = {
     resumeSessionId: lastSessionOf(state, "implement"),
@@ -2589,7 +2645,7 @@ function continuationLaunchOf(
   }
   const { turns } = continuation;
   const prompt = moreTurnsPrompt(turns, !isTreeKept(state));
-  return { ...launch, prompt, maxTurns: turns };
+  return { ...launch, prompt, maxTurns: turns, liveCeiling };
 }
 
 // A ticket halted before review has nothing reviewed yet; one with no code has nothing to review.
@@ -2740,6 +2796,14 @@ function turnCapGiveUpOf(finding: number): GaveUpOutcome {
 
 function isGaveUp(outcome: FixOutcome): outcome is GaveUpOutcome {
   return outcome.status === "gave-up";
+}
+
+function launchedOf(
+  agent: StepAgent,
+  { result, logPath }: RanStep,
+): LaunchedStep {
+  const record = recordOf(agent, result, logPath);
+  return { record, logPath, peakContext: result.peakContext };
 }
 
 function recordOf(step: string, result: StepResult, logPath: string): unknown {

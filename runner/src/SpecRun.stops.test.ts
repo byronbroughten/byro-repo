@@ -64,6 +64,21 @@ describe("run's preflight", () => {
     });
   });
 
+  it("Stops when the live ceiling isn't above the ticket budget", async () => {
+    const result = await preflightOf({
+      knobs: runKnobsOf({
+        clonePaths,
+        checks: [],
+        authChecks: [passes],
+        ticketBudget: 180_000,
+      }),
+    });
+
+    expect(result.message).toBe(
+      "Preflight stopped the run: the live ceiling of 180000 isn't above the ticket budget of 180000",
+    );
+  });
+
   it("Stops when a primary clone is missing", async () => {
     rmSync(primaryOf("sheets-framework"), { recursive: true, force: true });
 
