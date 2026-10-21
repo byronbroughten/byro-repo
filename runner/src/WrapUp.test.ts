@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { FactsFile } from "./FactsFile.ts";
 import { git } from "./GitFixture.ts";
 import { IssueWorkspaces } from "./IssueWorkspaces.ts";
 import {
@@ -115,6 +116,35 @@ describe("run", () => {
       readFileSync(join(primaryRoot, outcomePath), "utf8").split("\n")[6],
     ).toBe(
       "| #218 | Opus medium | 2 | 1 | 150K → 90K | Pass | 0 | 1 | 0 | 42 min | $1.48 | $0.06 | 5-hour 12% → 40%, weekly 30% → 34% | — | session-implement-1, session-implement-2, session-review, session-triage, session-fix |",
+    );
+  });
+
+  it("computes an interactive ticket's row from its recorded sessions, with Limit used unrecorded", async () => {
+    const configFolder = join(temp, "account-2");
+    cpSync(
+      join(import.meta.dirname, "..", "fixtures", "transcripts"),
+      join(configFolder, "projects", "-workspace-byro-repo"),
+      { recursive: true },
+    );
+    const workspace = await workspaceWith();
+    commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
+    const implementSession = (sessionId: string) => ({
+      account: 2,
+      configFolder,
+      step: { agent: "implement", sessionId } as const,
+    });
+    FactsFile.init(join(temp, "state"))
+      .addSession(ticket, implementSession("session-implement-1"))
+      .addSession(ticket, implementSession("session-implement-2"))
+      .setReviewFacts(ticket, { reviewFixes: "none" })
+      .setClosingFacts(ticket, { closingComment: "Landed the hook." });
+
+    await wrapUp().run(ticket);
+
+    expect(
+      readFileSync(join(primaryRoot, outcomePath), "utf8").split("\n")[6],
+    ).toBe(
+      "| #218 | Opus medium | 2 | 1 | 150K → 90K | Pass | 0 | 1 | 0 | 30 min | $1.45 | $0.00 | unrecorded | — | session-implement-1, session-implement-2 |",
     );
   });
 
