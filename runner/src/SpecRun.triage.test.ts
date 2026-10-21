@@ -8,6 +8,7 @@ import { FakeAgentStep } from "./FakeAgentStep.ts";
 import type { TriageRecord } from "./findingTriage.ts";
 import type { FixOutcome } from "./fixStep.ts";
 import { git } from "./GitFixture.ts";
+import type { Handoff } from "./implementStep.ts";
 import {
   addSpec,
   after,
@@ -15,6 +16,7 @@ import {
   bodyWithTargets,
   github,
   greened,
+  handoffResultOf,
   implemented,
   primaryOf,
   refOf,
@@ -80,6 +82,20 @@ describe("run's finding triage", () => {
   function implementedAt(peakContext: number): StepScript {
     return stepOf(implemented("one.ts"), {
       sessionId: "implement-session",
+      peakContext,
+    });
+  }
+
+  function handedOffAt(peakContext: number): StepScript {
+    const handoff: Handoff = {
+      conclusion: "Half done.",
+      filesToOpen: [],
+      ruledOut: [],
+      filesChanged: [],
+      stillFailing: [],
+    };
+    return stepOf(handoffResultOf(handoff), {
+      sessionId: "handoff-session",
       peakContext,
     });
   }
@@ -229,6 +245,39 @@ describe("run's finding triage", () => {
     expect(fixer?.pair).toEqual(opusMedium);
     expect(factsOf().reviewFixes).toBe("triage");
   });
+
+  it.each([
+    {
+      fixer: "implementer",
+      handoffPeak: 150_000,
+      freshPeak: 90_000,
+      resumeSessionId: "implement-session",
+    },
+    {
+      fixer: "triage",
+      handoffPeak: 90_000,
+      freshPeak: 150_000,
+      resumeSessionId: "triage-session",
+    },
+  ])(
+    "hands a fix after a handoff to the $fixer when the last implement step peaked at $freshPeak",
+    async ({ fixer, handoffPeak, freshPeak, resumeSessionId }) => {
+      addSpec([1]);
+      const agentStep = FakeAgentStep.init(
+        handedOffAt(handoffPeak),
+        implementedAt(freshPeak),
+        reviewed(findings),
+        triaged(triageRecordOf(1, "fix"), triageRecordOf(2, "dismiss")),
+        fixed("fix.ts", { finding: 1, status: "fixed" }),
+      );
+
+      const result = await specRun(agentStep).run(spec);
+
+      expect(result.kind).toBe("finished");
+      expect(agentStep.requests[4]?.resumeSessionId).toBe(resumeSessionId);
+      expect(factsOf().reviewFixes).toBe(fixer);
+    },
+  );
 
   it("kills a fixer that crosses the live ceiling, discards its work and hands the batch to the triage agent", async () => {
     addSpec([1]);

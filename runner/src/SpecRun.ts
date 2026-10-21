@@ -283,7 +283,7 @@ type TimedStep =
 interface TicketState {
   step: TicketStep;
   record?: ImplementRecord;
-  // The implementer's peak context, which picks the fixer and whether a resume continues its session.
+  // The last implement step's own peak, never a sum across handoffs; picks the fixer and whether a resume continues its session.
   implementPeak?: number;
   // The implementer's latest session, a fix step it ran included.
   implementerSession?: string;
