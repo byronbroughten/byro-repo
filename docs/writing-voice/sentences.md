@@ -71,6 +71,7 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Sentences and pu
 - Agent: "The first such dependency is a new, aforementioned HELOC with TruStone Financial" — Assessment 1 Next Draft (writing#4)
 - Agent: "This charter authorizes the first step of that plan, which is acquiring, repairing, and leasing one residential rental property" — Assessment 1 Next Draft (writing#4)
 - The developer endorsed the rule — session 2ebcdf61, 2026-10-18
+- Where cutting "which" or "that" would leave a garden path, the Clarity sheet keeps it; the case is in its [precedence file](../writing-clarity/precedence.md#a-wrapper-phrase-against-a-signal-word).
 
 ## One point, one sentence
 
@@ -82,6 +83,7 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Sentences and pu
 ## Active voice
 
 - From Strunk and White II.14, which keeps the passive where the actor doesn't matter or the receiver must be the subject. The academic sheet's passive recommendation overrides this rule.
+- The given-before-new exception is from Pinker, Ch. 4 (#316); its case is in the Clarity sheet's [precedence file](../writing-clarity/precedence.md#the-passive-that-keeps-the-topic-first).
 - Agent: "Based on an initial assessment, it is assumed that the four conditions below will hold through May 31, 2027." — Assessment 1 Next Draft (writing#4)
 - The developer endorsed the rule — session 2ebcdf61, 2026-10-18
 

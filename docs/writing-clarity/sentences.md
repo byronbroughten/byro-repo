@@ -9,18 +9,18 @@ Disclosed from [`docs/writing-clarity.md`](../writing-clarity.md), "Sentences". 
 
 ## Heavy phrases last
 
-- Before: "Because the new HELOC with TruStone Financial, which funds part of the budget, may not be open by January 1, 2027, the sponsor may delay the Build phase." After: "The sponsor may delay the Build phase if the new HELOC with TruStone Financial, which funds part of the budget, is not open by January 1, 2027." — invented; Pinker, Ch. 4, PDF pp. 114–116, 134. _From Pinker; not yet seen in your writing._
+- Before: "Because the new HELOC with TruStone Financial that funds part of the budget may not be open by January 1, 2027, the sponsor may delay the Build phase." After: "The sponsor may delay the Build phase if the new HELOC with TruStone Financial is not open by January 1, 2027, since it funds part of the budget." — invented; Pinker, Ch. 4, PDF pp. 114–116, 134. _From Pinker; not yet seen in your writing._
 - It agrees with the Voice sheet's "Order a list to build", which orders by weight of meaning rather than length; #321's audit decides whether that line moves.
 
 ## Use the passive to keep the topic first
 
-- Agent: "in which Build constructs the deliverable, Test inspects it before acceptance, and Deploy puts it into use" Developer: "in which the deliverable is constructed in the Build phase, inspected before acceptance in the Test phase, and put into use in the Deploy phase" — writing#2, Assessment 1 Next Draft - AI, 2026-10-13
-- Before: "the inspector whom Property Science hired after the 2024 flood to check each unit" After: "the inspector who was hired by Property Science after the 2024 flood to check each unit" — invented. _From Pinker; not yet seen in your writing._
-- Pinker, Ch. 4, PDF pp. 135–138: the passive puts the done-to first when it is the topic, saves a heavy doer for the end, and brings a relative clause's noun next to its role. The Voice sheet's active-voice rule carries this as its exception (#316).
+- Agent: "in which Build constructs the deliverable, Test inspects it before acceptance, and Deploy puts it into use" Developer: "in which the deliverable is constructed in the Build phase, inspected before acceptance in the Test phase, and put into use in the Deploy phase" — Assessment 1 Next Draft - AI against the edited Assessment 1 Next Draft (writing#4), 2026-10-13
+- Before: "the inspector whom Property Science hired after the 2024 flood to check each unit" After: "the inspector who was hired by Property Science after the 2024 flood to check each unit" — invented.
+- Pinker, Ch. 4, PDF pp. 135–138: the passive puts the done-to first when it is the topic, saves a heavy doer for the end, and brings a relative clause's noun next to its role. How it meets the Voice sheet's active-voice rule: [`precedence.md`](./precedence.md#the-passive-that-keeps-the-topic-first).
 
 ## Reword a garden path
 
-- Agent: "The return is measured once every unit other than the owner's is leased" Developer: "The return is measured when every unit other than the owner's is leased" — writing#2, Assessment 1 Next Draft - AI, 2026-10-13
+- Agent: "The return is measured once every unit other than the owner's is leased" Developer: "The return is measured when every unit other than the owner's is leased" — Assessment 1 Next Draft - AI against the edited Assessment 1 Next Draft (writing#4), 2026-10-13
 - Pinker, Ch. 4, PDF pp. 124–125, 129: a reader takes a word in its more frequent sense, and a garden path costs a backtrack even when it doesn't stop the reader.
 
 ## Keep the words that mark a phrase
@@ -29,12 +29,12 @@ Disclosed from [`docs/writing-clarity.md`](../writing-clarity.md), "Sentences". 
 
 ## Place a modifier by what it could attach to
 
-- Before: "Property Science will review the estimates for the candidates from the Planning phase." After: "Property Science will review the Planning phase's estimates for the candidates." — invented; Pinker, Ch. 4, PDF pp. 131–133. _From Pinker; not yet seen in your writing._
+- Before: "Property Science will review the estimates for the candidates from the Planning phase." After: "Property Science will review the estimates it made in the Planning phase for each candidate." — invented; Pinker, Ch. 4, PDF pp. 131–133. _From Pinker; not yet seen in your writing._
 - Strunk and White's "keep related words together" misses this case: the right phrase and the wrong one can both sit next door.
 
 ## Don't nest a clause in the middle of another
 
-- Agent: "The return is measured once every unit other than the owner's is leased, from those units' lease rents and, for the owner's unit, the rent it is projected to earn if leased, as estimated in Planning." Developer: "The return is measured when every unit other than the owner's is leased, and the measurement is based on lease rents and the rent that the owner's unit is projected to earn if it were leased." — writing#2, Assessment 1 Next Draft - AI, 2026-10-13
+- Agent: "The return is measured once every unit other than the owner's is leased, from those units' lease rents and, for the owner's unit, the rent it is projected to earn if leased, as estimated in Planning." Developer: "The return is measured when every unit other than the owner's is leased, and the measurement is based on lease rents and the rent that the owner's unit is projected to earn if it were leased." — Assessment 1 Next Draft - AI against the edited Assessment 1 Next Draft (writing#4), 2026-10-13
 - Pinker, Ch. 4, PDF pp. 118–121: center-embedding makes the reader hold the outer phrase open until it resumes; set the clauses side by side, then split them. The Voice sheet's "split a sentence whose modifiers nest" overlaps; #321's audit decides whether it moves.
 
 ## Parallel items
