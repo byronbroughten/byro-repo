@@ -12,7 +12,7 @@ Fetch it with `gh issue view -R byronbroughten/writing <n> --json title,body,com
 
 A Docs write to the Deliverable needs no yes when one of the developer's Google accounts owns that Doc; the tier gate looks the owner up ([`docs/targets-and-gates.md`](../../../docs/targets-and-gates.md#the-gworkspace-mcp-tools)).
 
-Draft by the rules under "Implementing a piece spec" in [`packages/writing/AGENTS.md`](../../../packages/writing/AGENTS.md): its text, its supporting material, when it may write without asking, and its voice. On a sub-issue, write only the Sections it names.
+Draft by the rules under "Implementing a piece spec" in [`packages/writing/AGENTS.md`](../../../packages/writing/AGENTS.md): its text, its supporting material, when it may write without asking, its style and the Outline. On a sub-issue, write only the Sections it names.
 
 Once drafted, read [`.claude/skills/review-piece/SKILL.md`](../review-piece/SKILL.md) and follow it on the same issue. It is user-invoked, so the Skill tool can't reach it.
 

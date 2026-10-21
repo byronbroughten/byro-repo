@@ -1,12 +1,12 @@
 ---
 name: review-piece
-description: "Review a writing Piece's Deliverable as it is now, in four parallel sub-agents: Spec (facts, length, copied wording), Voice (the Voice sheet and the spec's overrides), Clarity (the Clarity sheet: rules and garden paths) and Reader (what it says to someone without the spec). Reports them side by side, then runs Jev's style check as a trial."
+description: "Review a writing Piece's Deliverable as it is now, in four parallel sub-agents: Spec (facts, Outline, length, copied wording), Voice (the Voice sheet and the spec's overrides), Clarity (the Clarity sheet: rules and garden paths) and Reader (what it says to someone without the spec). Reports them side by side, then runs Jev's style check as a trial."
 disable-model-invocation: true
 ---
 
 Four-axis review of a Piece's Deliverable, read as it is now. There is no diff and no fixed point.
 
-- **Spec**: does the text hold to the spec's facts and length limit, and copy no wording from what its drafter read?
+- **Spec**: does the text hold to the spec's facts, Outline and length limit, and copy no wording from what its drafter read?
 - **Voice**: does it follow the Voice sheet and the spec's overrides?
 - **Clarity**: can a reader parse each sentence on the first pass, by the Clarity sheet's rules?
 - **Reader**: what does it say to a reader who never saw the spec?
@@ -33,10 +33,11 @@ Write each to its own file in the scratchpad, so each sub-agent gets only its ow
 - **Deliverable**: the Google Doc the spec names, read now as Markdown with the gworkspace tools.
 - **Reader**: the spec's Reader field, verbatim, and nothing else. With no Reader field, use the spec's lines on who the Piece is for and mark them a stand-in.
 - **Fact list**: the closed list the implementer had: the issue's facts, the parent's facts, any verified source list a Research issue produced and the spec links, and any of the developer's own text the spec names as given.
+- **Outline**: the spec's Outline field, verbatim.
 - **Length limit**: the spec's, verbatim.
 - **Read passages**: a folder with one file per passage: each Supporting Material file's text, read from Drive by the file ID the spec lists; for one too long to read whole, the passages the spec lists by page range. Add the passages a Research issue quoted, which stand for the References the drafter read.
 - **Overlap**: the output of `npm run overlap -- --deliverable <Deliverable file> --passages <Read passages folder> --allow <file>`, its allow file listing the proper names and fixed terms the Piece can't reword.
-- **Style**: the spec's Evidence and Formality values, whether the Piece is Academic, and its style overrides, Form and Order sections, verbatim, in the Style file shape in [the Jev agent doc](../../../docs/agents/jev.md#the-style-check).
+- **Style**: the spec's Evidence and Formality values, whether the Piece is Academic, and its Style field's overrides, Form and Order sections, verbatim, in the Style file shape in [the Jev agent doc](../../../docs/agents/jev.md#the-style-check).
 
 Done when every file exists, or the spec has no such field and you say so. A missing Drive ID or Supporting Material file is asked for, never guessed. Note each **gap**: an input that is missing, a stand-in, or only partly loaded.
 
@@ -44,7 +45,7 @@ Done when every file exists, or the spec has no such field and you say so. A mis
 
 Issue all four Agent calls together, in the foreground. Each prompt names the scope: the Section headings or "the whole Deliverable".
 
-**Spec** sub-agent, `model: "sonnet"`. Its prompt gives the Deliverable, fact list, length limit, Read passages and Overlap files, points at done checks 1, 2 and 4 in `packages/writing/AGENTS.md`, and the brief: "For the in-scope text only, report every factual claim that doesn't trace to the fact list. Judge each in-scope Overlap hit, keeping it as copied wording or dismissing it with a one-line reason, and add any sentence structure copied from the Read passages, which the Overlap list can't see. Report whether the whole Deliverable meets the length limit. Quote the spec line or the copied passage for each finding. Label hard only a claim missing from the fact list, copied wording or a missed length limit; label how the text describes a source (overstated, narrowed, misattributed) a judgement call. Under 400 words."
+**Spec** sub-agent, `model: "sonnet"`. Its prompt gives the Deliverable, fact list, Outline, length limit, Read passages and Overlap files, points at done checks 1, 2 and 4 in `packages/writing/AGENTS.md`, and the brief: "For the in-scope text only, report every factual claim that doesn't trace to the fact list. Judge each in-scope Overlap hit, keeping it as copied wording or dismissing it with a one-line reason, and add any sentence structure copied from the Read passages, which the Overlap list can't see. Report each in-scope Section that doesn't make its Outline claim or set out the facts the Outline assigns it. Report whether the whole Deliverable meets the length limit. Quote the spec line or the copied passage for each finding. Label hard only a claim missing from the fact list, a fact the Outline assigns a Section that it leaves out, a Section that doesn't make its Outline claim at all or makes a different one, copied wording or a missed length limit; label how the text describes a source (overstated, narrowed, misattributed) and a claim made only weakly or implicitly a judgement call. Under 400 words."
 
 **Voice** sub-agent, the session's model. Its prompt gives the Deliverable and Style files, points at the "Style" rule under "Implementing a piece spec" in `packages/writing/AGENTS.md`, plus `docs/academic-writing-style.md` for an Academic Piece, and the brief: "For the in-scope text only, report every place it breaks `docs/writing-voice.md`'s rules, read in full and applied with the rules tagged for these Evidence and Formality values, or the spec's overrides, which win where they conflict. Leave `docs/writing-clarity.md` to the Clarity axis. Cite the rule for each finding and quote the sentence. Every finding is a judgement call. Under 400 words."
 
