@@ -8,6 +8,8 @@ Implement the work described by the user in the spec or tickets.
 
 If the user passes a ticket reference, fetch it from the issue tracker and state its title before starting. If the reference is ambiguous, ask.
 
+A `ready-for-human` ticket: state its title, name the skill or steps its body says to run, and stop.
+
 Call the Skill tool with "tdd" where possible, at pre-agreed seams.
 
 Run typechecking regularly, single test files regularly, and the full test suite once at the end.
