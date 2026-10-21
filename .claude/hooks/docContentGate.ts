@@ -1,11 +1,13 @@
-// PostToolUse on Read records a full read of docs/writing-voice.md; PreToolUse on the gworkspace Doc writes denies a text write until one is recorded.
+// PostToolUse on Read records a full read of docs/writing-voice.md or docs/writing-clarity.md; PreToolUse on the gworkspace Doc writes denies a text write until both are recorded.
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
   docWriteDecision,
-  isWritingVoiceRead,
-  writingVoicePath,
+  isWritingSheetRead,
+  type WritingSheet,
+  writingSheetPaths,
+  writingSheets,
 } from "./lib/docContentGate.ts";
 import {
   lineCount,
@@ -19,36 +21,44 @@ import { isPostToolUse } from "./lib/styleGate.ts";
 await runFailOpen(() => {
   const input = readHookInput();
   if (!input) return;
-  const markerPath = sessionStatePath(
-    input.session_id ?? input.conversation_id,
-    "writing-voice-read",
-  );
+  const sessionId = input.session_id ?? input.conversation_id;
   if (isPostToolUse(input.hook_event_name)) {
     const filePath = input.tool_input?.file_path;
     if (input.tool_name !== "Read" || typeof filePath !== "string") return;
     const projectDir =
       process.env.CLAUDE_PROJECT_DIR ?? input.cwd ?? process.cwd();
     const { offset, limit } = input.tool_input ?? {};
-    const totalLines = lineCount(join(projectDir, writingVoicePath));
-    if (
-      isWritingVoiceRead({
-        projectDir,
-        cwd: input.cwd ?? projectDir,
-        filePath,
-        offset,
-        limit,
-        totalLines,
-      })
-    ) {
-      writeFileSync(markerPath, "");
-    }
+    writingSheets.forEach((sheet) => {
+      const totalLines = lineCount(join(projectDir, writingSheetPaths[sheet]));
+      if (
+        isWritingSheetRead(sheet, {
+          projectDir,
+          cwd: input.cwd ?? projectDir,
+          filePath,
+          offset,
+          limit,
+          totalLines,
+        })
+      ) {
+        writeFileSync(markerPath(sessionId, sheet), "");
+      }
+    });
     return;
   }
   const { denyReason } = docWriteDecision({
     toolName: input.tool_name,
     toolInput: input.tool_input,
-    hasReadWritingVoice: existsSync(markerPath),
+    readSheets: writingSheets.filter((sheet) =>
+      existsSync(markerPath(sessionId, sheet)),
+    ),
   });
   if (!denyReason) return;
   writeDenyOutput(denyReason);
 });
+
+function markerPath(
+  sessionId: string | undefined,
+  sheet: WritingSheet,
+): string {
+  return sessionStatePath(sessionId, `writing-${sheet}-read`);
+}

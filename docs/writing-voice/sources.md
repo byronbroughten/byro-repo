@@ -1,6 +1,6 @@
 # Sources of the writing style sheets
 
-Where the rules in [`docs/writing-voice.md`](../writing-voice.md) and [`docs/academic-writing-style.md`](../academic-writing-style.md) came from, and what was read but not kept. The developer reviewed every candidate rule before it became one (#171).
+Where the rules in [`docs/writing-voice.md`](../writing-voice.md), [`docs/writing-clarity.md`](../writing-clarity.md) and [`docs/academic-writing-style.md`](../academic-writing-style.md) came from, and what was read but not kept. The developer reviewed every candidate rule before it became one (#171).
 
 ## Sources read
 
@@ -59,6 +59,8 @@ The five DealLab blog posts indexed at [deallab.app/home-cost-guides](https://de
 "Seen in" counts the six reading batches that reported a habit. Several samples reuse whole paragraphs from one another (the DealLab script and the marketing plan; the D.R. Horton reports; Capital Budgeting and the ABC deck), so a count can overstate an independent habit. "In N of 5 posts" counts the blog posts, separately.
 
 Where sources disagree on voice, the blog posts win, then the DealLab deck, then the academic samples: the blog and in-app text should sound like a product, not a paper. In academic work, [`academic-writing-style.md`](../academic-writing-style.md) still wins.
+
+A Clarity rule wins over a Voice habit only when the habit makes the reader misread or reread a sentence; matters of taste stay with the habit.
 
 ## Dropped habits
 
