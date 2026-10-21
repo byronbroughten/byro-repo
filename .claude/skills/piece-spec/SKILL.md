@@ -15,7 +15,7 @@ Draw each field from the conversation, in the developer's words where they gave 
 - **Reader**: who reads the Piece, and what they already know.
 - **Style**: the Axes line (`Evidence: <value> · Formality: <value>`, or `Academic`), then the style overrides, to any sheet: Voice, Clarity or academic.
 - **Form**: the length limit and its cut order, and the template if there is one.
-- **Outline**: the Outline the developer approved at the end of the grill, the glossary's Outline, written by [`docs/outlining.md`](../../../packages/writing/docs/outlining.md), which also says how a template in Form fixes its Sections.
+- **Outline**: the glossary's Outline as the developer approved it at the grill's end. [`docs/outlining.md`](../../../packages/writing/docs/outlining.md) says how it is written and how a template in Form fixes its Sections.
 - **Facts**: the closed list the Piece may use. Name any of the developer's own text the Piece keeps or revises (the verdict, an earlier draft, the rewritten calibration paragraph, Supporting Material already graded) as given, quoted or with where it lives.
 - **Research**: needed or not, and on what.
 - **Final pass**: needed or not, and what it covers.
