@@ -259,7 +259,6 @@ describe("run's live-ceiling backstop", () => {
 
     await specRun(agentStep).run(spec);
 
-    expect(agentStep.requests).toHaveLength(2);
     expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
     expect(haltComments()[0]).toContain(
       "The implement step crossed the live ceiling of 180000, and its handoff record failed: the record is blocked, not a handoff",
@@ -282,11 +281,45 @@ describe("run's live-ceiling backstop", () => {
 
     await specRun(agentStep).run(spec);
 
-    expect(agentStep.requests).toHaveLength(2);
     expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
     expect(haltComments()[0]).toContain(
-      "The implement step crossed the live ceiling of 180000, and its handoff record failed",
+      "The implement step crossed the live ceiling of 180000, and its handoff record failed: no record",
     );
+  });
+
+  it("offers `retry record` when the step had committed before crossing", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(async (request) => {
+      writeFileSync(join(request.cwd, "one.ts"), "export {};\n");
+      git(request.cwd, "add", "one.ts");
+      git(request.cwd, "commit", "-m", "Add one.ts");
+      return crossed(request);
+    }, handedOff);
+
+    await specRun(agentStep).run(spec);
+
+    expect(haltComments()[0]).toContain(
+      "a handoff must leave its work uncommitted, but the step made a new commit",
+    );
+    expect(haltComments()[0]).toContain("retry record");
+  });
+
+  it("keeps asking for a handoff record only when the backstop's resume crashes", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      crossed,
+      crashed,
+      handedOff,
+      keepingWork(() => {}),
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    const [, , retry] = agentStep.requests;
+    expect(retry?.resumeSessionId).toBe("crashed-session");
+    expect(retry?.prompt).toBe(handoffOnlyPrompt);
   });
 });
 

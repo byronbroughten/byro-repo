@@ -394,7 +394,7 @@ type StepAttempt =
   { kind: "ran"; result: StepResult } | { kind: "unrun"; detail: string };
 
 interface CeilingCrossing {
-  crossed: RanStep;
+  ranStep: RanStep;
   headsBefore: Heads;
 }
 
@@ -666,7 +666,7 @@ export class SpecRun {
   private async _preflightStop(): Promise<string | undefined> {
     const { knobs, primaryRoot } = this.config;
     if (knobs.liveCeiling <= knobs.ticketBudget) {
-      return `the live ceiling of ${knobs.liveCeiling} isn't above the ticket budget of ${knobs.ticketBudget}`;
+      return `${liveCeilingPhraseOf(knobs)} isn't above the ticket budget of ${knobs.ticketBudget}`;
     }
     for (const command of knobs.authChecks) {
       if ((await runCommand(command, primaryRoot)) !== undefined) {
@@ -1196,28 +1196,25 @@ export class SpecRun {
     state.continuation = undefined;
     onLaunched();
     if (ran.result.hasCrossedCeiling) {
-      return this._handOffAtCeiling(ticketRun, { crossed: ran, headsBefore });
+      return this._handOffAtCeiling(ticketRun, { ranStep: ran, headsBefore });
     }
     const launched = launchedOf("implement", ran);
     return this._takeImplementRecord({ ticketRun, launched, headsBefore });
   }
 
-  // Resumed for a handoff record only; any other outcome is a Failure Halt with the work snapshotted.
   private async _handOffAtCeiling(
     ticketRun: TicketRun,
-    { crossed, headsBefore }: CeilingCrossing,
+    { ranStep, headsBefore }: CeilingCrossing,
   ): Promise<ImplementRecord> {
     const { ticket, state } = ticketRun;
-    const { sessionId } = crossed.result;
-    if (sessionId === undefined) {
-      throw new Error(
-        `${issueLabelOf(ticket.issue)}'s implement step crossed the live ceiling with no session id.`,
-      );
-    }
     const ran = await this._runStep(ticketRun, "implement", {
       prompt: handoffOnlyPrompt,
       jsonSchema: implementOutputSchema,
-      resumeSessionId: sessionId,
+      resumeSessionId: sessionIdOf(
+        ticket.issue,
+        "implement step past the live ceiling",
+        ranStep.result.sessionId,
+      ),
     });
     try {
       const launched = launchedOf("implement", ran);
@@ -1236,11 +1233,11 @@ export class SpecRun {
     } catch (error) {
       if (!(error instanceof SchemaFailure)) throw error;
       await this._snapshot(ticketRun, state.step);
-      return this._failureHalt(ticketRun, {
-        step: state.step,
-        detail: `The implement step crossed the live ceiling of ${this.config.knobs.liveCeiling}, and its handoff record failed: ${error.message}`,
-        logPath: error.logPath,
-      });
+      // Rethrown so the Failure Halt offers `retry record` when the step had committed.
+      throw new SchemaFailure(
+        `The implement step crossed ${liveCeilingPhraseOf(this.config.knobs)}, and its handoff record failed: ${error.message}`,
+        error.logPath,
+      );
     }
   }
 
@@ -1250,12 +1247,11 @@ export class SpecRun {
     handoff: Handoff,
   ): Promise<void> {
     const { run, ticket, state } = ticketRun;
-    const sessionId = state.implementerSession;
-    if (sessionId === undefined) {
-      throw new Error(
-        `${issueLabelOf(ticket.issue)}'s handoff has no session id.`,
-      );
-    }
+    const sessionId = sessionIdOf(
+      ticket.issue,
+      "handoff",
+      state.implementerSession,
+    );
     const count = (state.handoffCount ?? 0) + 1;
     await this._backUp(ticketRun, `handoff-${count}`, saveUncommitted);
     const comment = handoffCommentOf(handoff, sessionId);
@@ -1520,7 +1516,7 @@ export class SpecRun {
       await resetTo(workspace, base);
       throw new UnhandledStop(
         "step-error",
-        `The triage agent's fix crossed the live ceiling of ${this.config.knobs.liveCeiling}; its work is discarded.`,
+        `The triage agent's fix crossed ${liveCeilingPhraseOf(this.config.knobs)}; its work is discarded.`,
         attempt.logPath,
       );
     }
@@ -1702,7 +1698,7 @@ export class SpecRun {
       } else {
         attempt = {
           ...launch,
-          prompt: interruptedPromptOf(ticketRun.state),
+          prompt: retryPromptOf(launch, ticketRun.state),
           resumeSessionId: result.sessionId,
         };
       }
@@ -2758,6 +2754,12 @@ function isTreeKept({ step, latestHandoff }: TicketState): boolean {
   return isImplement && latestHandoff !== undefined;
 }
 
+// A crashed backstop resume still owes only its handoff record.
+function retryPromptOf(launch: StepLaunch, state: TicketState): string {
+  if (launch.prompt === handoffOnlyPrompt) return handoffOnlyPrompt;
+  return interruptedPromptOf(state);
+}
+
 function interruptedPromptOf(state: TicketState): string {
   let setAside = "";
   if (isSnapshotted(state.step) && !isTreeKept(state)) {
@@ -2796,6 +2798,21 @@ function turnCapGiveUpOf(finding: number): GaveUpOutcome {
 
 function isGaveUp(outcome: FixOutcome): outcome is GaveUpOutcome {
   return outcome.status === "gave-up";
+}
+
+function liveCeilingPhraseOf({ liveCeiling }: RunKnobs): string {
+  return `the live ceiling of ${liveCeiling}`;
+}
+
+function sessionIdOf(
+  issue: IssueRef,
+  owner: string,
+  sessionId: string | undefined,
+): string {
+  if (sessionId === undefined) {
+    throw new Error(`${issueLabelOf(issue)}'s ${owner} has no session id.`);
+  }
+  return sessionId;
 }
 
 function launchedOf(
