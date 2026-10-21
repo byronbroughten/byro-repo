@@ -17,7 +17,12 @@ import {
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
-import { FactsFile } from "./FactsFile.ts";
+import {
+  FactsFile,
+  type GitHubWrite,
+  type LandingBranch,
+  type WrapUpFacts,
+} from "./FactsFile.ts";
 import { commandLabelOf, messageOf, outputTailOf } from "./failureText.ts";
 import {
   currentBranchOf,
@@ -55,9 +60,7 @@ import { secretShapeOf } from "./secretShapes.ts";
 import { sleep } from "./sleep.ts";
 import {
   handoffSessionIdOf,
-  type LimitReadings,
   limitUsedOf,
-  type TicketSessions,
   transcriptFactsOf,
 } from "./transcriptFacts.ts";
 import { WrapUpFailure } from "./WrapUpFailure.ts";
@@ -65,37 +68,6 @@ import { WrapUpFailure } from "./WrapUpFailure.ts";
 const execFileAsync = promisify(execFile);
 
 const mapLabel = "wayfinder:map";
-
-export interface LandingBranch {
-  repo: string;
-  branch: string;
-}
-
-export interface UndoneBox {
-  box: string;
-  reason: string;
-}
-
-export const gitHubWriteActions = ["edit", "comment"] as const;
-
-export interface GitHubWrite {
-  // As owner/repo#n.
-  issue: string;
-  action: (typeof gitHubWriteActions)[number];
-  url: string;
-  summary: string;
-}
-
-export interface WrapUpFacts extends OutcomeFacts {
-  // In landing order: a repo lands before any repo that depends on it; empty for a ticket with no code.
-  branches: LandingBranch[];
-  closingComment: string;
-  boxesUndone?: UndoneBox[];
-  githubWrites?: GitHubWrite[];
-  // What the runner recorded; facts computed from them win over passed ones.
-  sessions?: TicketSessions;
-  limitReadings?: LimitReadings;
-}
 
 export interface ParentIssue {
   issue: IssueRef;

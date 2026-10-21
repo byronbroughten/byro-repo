@@ -23,7 +23,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 
 import type { AgentStep, Pair, StepRequest, StepResult } from "./AgentStep.ts";
-import { FactsFile } from "./FactsFile.ts";
+import { FactsFile, type WrapUpFacts } from "./FactsFile.ts";
 import { commandLabelOf, messageOf, outputTailOf } from "./failureText.ts";
 import {
   type SavedTriageRecord,
@@ -171,12 +171,7 @@ import {
   stopOutcomes,
   UnhandledStop,
 } from "./UnhandledStop.ts";
-import {
-  WrapUp,
-  type WrapUpFacts,
-  type WrapUpGitHub,
-  type WrapUpKnobs,
-} from "./WrapUp.ts";
+import { WrapUp, type WrapUpGitHub, type WrapUpKnobs } from "./WrapUp.ts";
 import { WrapUpFailure } from "./WrapUpFailure.ts";
 
 const execFileAsync = promisify(execFile);

@@ -1,6 +1,6 @@
 // The one reader and writer of a ticket's facts file, .runner/<repo>-<n>.facts.json in the state folder.
 // The runner writes it during a run (SpecRun.ts), and an interactive session's tooling during that session;
-// an agent never does. WrapUp.ts reads it to land the ticket, and owns its WrapUpFacts shape.
+// an agent never does. WrapUp.ts reads it to land the ticket.
 // Each setter replaces its own group of facts and leaves the others as they are; a missing file starts empty,
 // so a session can be added before any other fact exists. The sessions' shape is transcriptFacts.ts.
 
@@ -8,8 +8,43 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { fileStemOf, type IssueRef } from "./IssueWorkspaces.ts";
-import type { StepSession, TicketSessions } from "./transcriptFacts.ts";
-import type { WrapUpFacts } from "./WrapUp.ts";
+import type { OutcomeFacts } from "./outcomeLog.ts";
+import type {
+  LimitReadings,
+  StepSession,
+  TicketSessions,
+} from "./transcriptFacts.ts";
+
+export interface LandingBranch {
+  repo: string;
+  branch: string;
+}
+
+export interface UndoneBox {
+  box: string;
+  reason: string;
+}
+
+export const gitHubWriteActions = ["edit", "comment"] as const;
+
+export interface GitHubWrite {
+  // As owner/repo#n.
+  issue: string;
+  action: (typeof gitHubWriteActions)[number];
+  url: string;
+  summary: string;
+}
+
+export interface WrapUpFacts extends OutcomeFacts {
+  // In landing order: a repo lands before any repo that depends on it; empty for a ticket with no code.
+  branches: LandingBranch[];
+  closingComment: string;
+  boxesUndone?: UndoneBox[];
+  githubWrites?: GitHubWrite[];
+  // What the runner recorded; facts computed from them win over passed ones.
+  sessions?: TicketSessions;
+  limitReadings?: LimitReadings;
+}
 
 export interface AddedSession extends Omit<TicketSessions, "steps"> {
   step: StepSession;

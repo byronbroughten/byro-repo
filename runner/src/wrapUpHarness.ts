@@ -6,7 +6,7 @@ import { join } from "node:path";
 
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
 
-import { FactsFile } from "./FactsFile.ts";
+import { FactsFile, type WrapUpFacts } from "./FactsFile.ts";
 import { FakeGitHub } from "./FakeGitHub.ts";
 import { git, GitFixture } from "./GitFixture.ts";
 import {
@@ -15,7 +15,7 @@ import {
   type IssueWorkspacesConfig,
   type Workspace,
 } from "./IssueWorkspaces.ts";
-import { WrapUp, type WrapUpConfig, type WrapUpFacts } from "./WrapUp.ts";
+import { WrapUp, type WrapUpConfig } from "./WrapUp.ts";
 import { WrapUpFailure, type WrapUpFailureKind } from "./WrapUpFailure.ts";
 
 // Each class's tests pick their own fixture repos and checks; matching SpecRun's is a coincidence, not a shared fact.
