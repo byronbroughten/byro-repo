@@ -1,6 +1,6 @@
 # Jev trial log
 
-How `npm run jev:style` compared with `/review-piece`'s Style sub-agent on each Piece reviewed. It is the evidence for upgrading Jev's pin ([`jev.md`](./jev.md#the-pin-and-upgrading-it)).
+How `npm run jev:style` compared with `/review-piece`'s Voice and Clarity sub-agents on each Piece reviewed; the log counts their findings together as **Style findings**. It is the evidence for upgrading Jev's pin ([`jev.md`](./jev.md#the-pin-and-upgrading-it)).
 
 **It never quotes Piece text: only counts, rule names and issue numbers.** This repo is public and Pieces are private.
 
