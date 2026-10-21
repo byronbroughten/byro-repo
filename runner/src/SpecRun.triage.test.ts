@@ -16,6 +16,7 @@ import {
   github,
   greened,
   implemented,
+  implementResultOf,
   primaryOf,
   refOf,
   resultOf,
@@ -82,6 +83,26 @@ describe("run's finding triage", () => {
       sessionId: "implement-session",
       peakContext,
     });
+  }
+
+  function handedOffAt(peakContext: number): StepScript {
+    return stepOf(
+      implementResultOf({
+        status: "handoff",
+        branches: [],
+        closingComment: "",
+        boxesUndone: [],
+        blockers: [],
+        handoff: {
+          conclusion: "Half done.",
+          filesToOpen: [],
+          ruledOut: [],
+          filesChanged: [],
+          stillFailing: [],
+        },
+      }),
+      { sessionId: "handoff-session", peakContext },
+    );
   }
 
   function triaged(...records: TriageRecord[]): StepScript {
@@ -229,6 +250,36 @@ describe("run's finding triage", () => {
     expect(fixer?.pair).toEqual(opusMedium);
     expect(factsOf().reviewFixes).toBe("triage");
   });
+
+  it.each([
+    {
+      handoffPeak: 150_000,
+      freshPeak: 90_000,
+      resumeSessionId: "implement-session",
+    },
+    {
+      handoffPeak: 90_000,
+      freshPeak: 150_000,
+      resumeSessionId: "triage-session",
+    },
+  ])(
+    "picks the fixer after a handoff by the last implement step's peak, $freshPeak",
+    async ({ handoffPeak, freshPeak, resumeSessionId }) => {
+      addSpec([1]);
+      const agentStep = FakeAgentStep.init(
+        handedOffAt(handoffPeak),
+        implementedAt(freshPeak),
+        reviewed(findings),
+        triaged(triageRecordOf(1, "fix"), triageRecordOf(2, "dismiss")),
+        fixed("fix.ts", { finding: 1, status: "fixed" }),
+      );
+
+      const result = await specRun(agentStep).run(spec);
+
+      expect(result.kind).toBe("finished");
+      expect(agentStep.requests[4]?.resumeSessionId).toBe(resumeSessionId);
+    },
+  );
 
   it("kills a fixer that crosses the live ceiling, discards its work and hands the batch to the triage agent", async () => {
     addSpec([1]);
