@@ -30,7 +30,8 @@ Reads need no yes in any tier.
 | Creating, copying, importing or exporting a spreadsheet, Doc, Drive file or folder | 2 |
 | gworkspace write on a file someone else owns, or whose owner can't be looked up | 3 |
 | `manage_drive_access`, `set_drive_file_permissions`, an `update_drive_file` that changes sharing or moves a file into a folder | 3 |
-| A `gmail` filter, label or message-label change | 3: Gmail keeps no version history; `.claude/settings.json` asks for each, and denies sending and drafting |
+| A `gmail` filter, label or message-label change | 3: Gmail keeps no version history. The yes is the developer's `/inbox` Sign-off in the chat; `gmailGate.ts` allows a call one `signed-off` Proposal covers and asks for any other. Settings deny sending and drafting |
+| `gh issue close`, `gh issue edit`, `gh issue comment` | free: `gh issue reopen` and a further edit or comment undo them |
 | A raw `git push` | 3 |
 | `npm publish` | 3, [below](#npm-publish) |
 | A bare `clasp …` or `npx sheets-framework …` | 3: it names no target |

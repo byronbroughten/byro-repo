@@ -45,6 +45,7 @@
       "Bash(gh label list *)",
       "Bash(gh issue edit *)",
       "Bash(gh issue comment *)",
+      "Bash(gh issue close *)",
       "mcp__gworkspace__list_spreadsheets",
       "mcp__gworkspace__get_spreadsheet_info",
       "mcp__gworkspace__read_sheet_values",
@@ -67,11 +68,7 @@
     "ask": [
       "Bash(git push*)",
       "mcp__gworkspace__manage_drive_access",
-      "mcp__gworkspace__set_drive_file_permissions",
-      "mcp__gmail__manage_gmail_filter",
-      "mcp__gmail__manage_gmail_label",
-      "mcp__gmail__modify_gmail_message_labels",
-      "mcp__gmail__batch_modify_gmail_message_labels"
+      "mcp__gworkspace__set_drive_file_permissions"
     ],
     "deny": [
       "Read(./packages/*/src/generated/columnConfigs.ts)",
@@ -164,6 +161,16 @@
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/tierGate.ts\"",
             "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__gmail__manage_gmail_filter|mcp__gmail__manage_gmail_label|mcp__gmail__modify_gmail_message_labels|mcp__gmail__batch_modify_gmail_message_labels",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/gmailGate.ts\"",
+            "timeout": 10
           }
         ]
       },

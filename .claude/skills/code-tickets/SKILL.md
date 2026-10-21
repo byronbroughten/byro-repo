@@ -165,6 +165,8 @@ A Phase gate is labelled `ready-for-human` and has no `## Model fit`.
 
 In either form, `## Model fit` is the last section of a `ready-for-agent` ticket: a pair line, then a one-line reason. A `ready-for-human` ticket has none.
 
+A `ready-for-human` ticket's body names what the developer runs: the skill (e.g. `/inbox`) or the numbered steps.
+
 In either form, avoid specific file paths or code snippets: they go stale fast. Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it and note briefly that it came from a prototype. Trim to the decision-rich parts, not a working demo, just the important bits.
 
 ### 6. Read back the model fit
