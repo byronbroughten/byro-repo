@@ -2209,7 +2209,6 @@ export class SpecRun {
       );
     }
     const facts: WrapUpFacts = {
-      branches: record.branches.map(({ repo, branch }) => ({ repo, branch })),
       closingComment: record.closingComment,
       boxesUndone: record.boxesUndone,
       reviewFixes: state.fixer ?? "none",

@@ -1,24 +1,19 @@
 // The one reader and writer of a ticket's facts file, .runner/<repo>-<n>.facts.json in the state folder.
-// The runner writes it during a run (SpecRun.ts), and an interactive session's tooling during that session;
-// an agent never does. WrapUp.ts reads it to land the ticket.
+// The runner writes it during a run (SpecRun.ts), and an interactive session's tooling and wrap-up's closing
+// arguments during that session; an agent never does. WrapUp.ts reads it to land the ticket and derives the branches itself.
 // Each setter replaces its own group of facts and leaves the others as they are; a missing file starts empty,
 // so a session can be added before any other fact exists. The sessions' shape is transcriptFacts.ts.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fileStemOf, type IssueRef } from "./IssueWorkspaces.ts";
+import { fileStemOf, issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 import type { OutcomeFacts } from "./outcomeLog.ts";
 import type {
   LimitReadings,
   StepSession,
   TicketSessions,
 } from "./transcriptFacts.ts";
-
-export interface LandingBranch {
-  repo: string;
-  branch: string;
-}
 
 export interface UndoneBox {
   box: string;
@@ -36,8 +31,6 @@ export interface GitHubWrite {
 }
 
 export interface WrapUpFacts extends OutcomeFacts {
-  // In landing order: a repo lands before any repo that depends on it; empty for a ticket with no code.
-  branches: LandingBranch[];
   closingComment: string;
   boxesUndone?: UndoneBox[];
   githubWrites?: GitHubWrite[];
@@ -68,21 +61,13 @@ export class FactsFile {
     return new FactsFile(stateFolder);
   }
 
+  // An interactive ticket's closing facts come from wrap-up's arguments, so the failure names the one to add.
   read(issue: IssueRef): WrapUpFacts {
-    const path = this._pathOf(issue);
-    if (!existsSync(path)) throw new Error(`No facts file at ${path}`);
-    const facts = parsedFactsOf(path);
-    if (!Array.isArray(facts.branches)) {
-      throw new Error(`${path} has no branch list`);
-    }
-    if (
-      facts.branches.length === 0 &&
-      (facts.githubWrites ?? []).length === 0
-    ) {
-      throw new Error(`${path} names no branches to land and no GitHub writes`);
-    }
+    const facts = this._storedOf(issue);
     if (typeof facts.closingComment !== "string") {
-      throw new Error(`${path} has no closing comment`);
+      throw new Error(
+        `${issueLabelOf(issue)} has no closing comment in ${this._pathOf(issue)}: pass it to wrap-up with --closing "…"`,
+      );
     }
     return facts as WrapUpFacts;
   }

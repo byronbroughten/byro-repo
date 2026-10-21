@@ -2,9 +2,9 @@
   "account": 2,
   "clonePaths": {
     "byro-repo": ".",
+    "utils": "packages/utils",
     "sheets-framework": "packages/framework",
     "sheets-real-estate": "packages/real-estate",
-    "utils": "packages/utils",
     "writing": "packages/writing"
   },
   "skillNames": { "review": "code-review" },

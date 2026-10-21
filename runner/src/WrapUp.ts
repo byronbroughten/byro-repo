@@ -1,5 +1,5 @@
-// The wrap-up script: lands one ticket from its facts file with no agent. It builds and checks the merge commits in the
-// ticket's issue workspace, fast-forwards each primary checkout's master under its landing lock, then pushes, deletes the
+// The wrap-up script: lands one ticket's issue branches, found by what is ahead of master, with its facts file and no
+// agent. It builds and checks the merge commits in the ticket's issue workspace, fast-forwards each primary checkout's master under its landing lock, then pushes, deletes the
 // branches, removes the workspace, closes the issue and checks its parent. Steps are recorded in a progress file, so a
 // rerun skips what already landed; a failure throws a WrapUpFailure naming its kind.
 // A session workspace lands the same way from its session branches, with no facts file, checks or issue steps.
@@ -18,9 +18,9 @@ import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
 import {
+  type ClosingFacts,
   FactsFile,
   type GitHubWrite,
-  type LandingBranch,
   type WrapUpFacts,
 } from "./FactsFile.ts";
 import { commandLabelOf, messageOf, outputTailOf } from "./failureText.ts";
@@ -141,6 +141,18 @@ export interface WrapUpResult extends LandingResult {
   parent: ParentCheck;
 }
 
+export interface LandingBranch {
+  repo: string;
+  branch: string;
+}
+
+export interface IssueOptions {
+  // Passed by an interactive session; a run's facts file already holds them.
+  closing?: ClosingFacts;
+  // Lands a ticket with no branch ahead of master and no GitHub writes, such as one that only edited a Doc.
+  hasNoCode?: boolean;
+}
+
 export interface SessionOptions {
   // The session landing it; another live holder of the workspace's lease refuses the landing.
   holder?: LeaseHolder;
@@ -157,6 +169,8 @@ interface Progress {
   filesChanged?: number;
   // Repo name to its build, in landing order with the root repo last.
   built?: Record<string, BuiltRepo>;
+  // A ticket's derived branches, kept so a rerun past the fast-forward, when none is ahead any more, deletes them.
+  branches?: LandingBranch[];
   branchDeleteFailures?: string[];
   parent?: ParentCheck;
 }
@@ -168,6 +182,15 @@ interface LogRowTarget {
   workspace: Workspace;
 }
 
+interface IssueLandingTarget {
+  branches: LandingBranch[];
+  facts: WrapUpFacts;
+}
+
+interface LandabilityTarget extends IssueLandingTarget {
+  hasNoCode: boolean;
+}
+
 interface AddedLine {
   file: string;
   line: number;
@@ -176,7 +199,7 @@ interface AddedLine {
 
 interface Landing {
   key: WorkspaceKey;
-  // In landing order: from the facts file, or for a session the repos whose branch was ahead of master.
+  // In landing order: the repos whose branch was ahead of master.
   branches: LandingBranch[];
   progress: Progress;
   kind: LandingKind;
@@ -222,13 +245,22 @@ export class WrapUp {
     return FactsFile.init(this.config.stateFolder);
   }
 
-  async run(issue: IssueRef): Promise<WrapUpResult> {
-    const facts = this._readFacts(issue);
+  async run(
+    issue: IssueRef,
+    { closing, hasNoCode = false }: IssueOptions = {},
+  ): Promise<WrapUpResult> {
+    if (closing) this.factsFile.setClosingFacts(issue, closing);
+    const facts = this.factsFile.read(issue);
+    const progress = this._readProgress(issue);
+    const branches = isDone({ progress }, "fast-forward")
+      ? (progress.branches ?? [])
+      : await this._issueBranchesOf(issue, progress);
+    assertLandable(issue, { branches, facts, hasNoCode });
     const landing: Landing = {
       key: issue,
-      branches: facts.branches,
-      progress: this._readProgress(issue),
-      kind: this._issueLandingOf(issue, facts),
+      branches,
+      progress,
+      kind: this._issueLandingOf(issue, { branches, facts }),
     };
     if (!isDone(landing, "fast-forward")) await this._land(landing);
     await this._landAndRemove(landing);
@@ -338,14 +370,27 @@ export class WrapUp {
     }
   }
 
-  private _readFacts(issue: IssueRef): WrapUpFacts {
-    const facts = this.factsFile.read(issue);
-    facts.branches.forEach(({ repo }) => this._clonePathOf(repo));
-    return facts;
+  // Adds back any branch an earlier, unfinished landing found, which a partial fast-forward may have left level with master.
+  private async _issueBranchesOf(
+    issue: IssueRef,
+    progress: Progress,
+  ): Promise<LandingBranch[]> {
+    const workspace = await this._workspaceOf(issue);
+    const ahead = await this._branchesAheadOf(workspace);
+    const repos = new Set(
+      [...ahead, ...(progress.branches ?? [])].map(({ repo }) => repo),
+    );
+    return this._landingOrderOf([...repos]).map((repo) => ({
+      repo,
+      branch: workspace.branch,
+    }));
   }
 
-  private _issueLandingOf(issue: IssueRef, facts: WrapUpFacts): LandingKind {
-    if (facts.branches.length === 0) {
+  private _issueLandingOf(
+    issue: IssueRef,
+    { branches, facts }: IssueLandingTarget,
+  ): LandingKind {
+    if (branches.length === 0) {
       return {
         build: async (landing, workspace) => {
           await this._switchToMaster(workspace);
@@ -391,13 +436,24 @@ export class WrapUp {
     return join(this.config.stateFolder, `${stateStemOf(key)}.progress.json`);
   }
 
-  // Landing order: each clone before the root repo, which may depend on it.
   private async _sessionBranchesOf(
     workspace: Workspace,
   ): Promise<LandingBranch[]> {
-    const repos = this._rootFirst(
+    const branches = await this._branchesAheadOf(workspace);
+    if (branches.length === 0) {
+      throw new Error(
+        `${workspaceLabelOf(workspace.key)} has no commits ahead of master to land`,
+      );
+    }
+    return branches;
+  }
+
+  private async _branchesAheadOf(
+    workspace: Workspace,
+  ): Promise<LandingBranch[]> {
+    const repos = this._landingOrderOf(
       Object.keys(this.config.workspaces.clonePaths),
-    ).reverse();
+    );
     const branches: LandingBranch[] = [];
     for (const repo of repos) {
       const primary = this._primaryOf(repo);
@@ -410,19 +466,22 @@ export class WrapUp {
       );
       if (Number(ahead) > 0) branches.push({ repo, branch: workspace.branch });
     }
-    if (branches.length === 0) {
-      throw new Error(
-        `${workspaceLabelOf(workspace.key)} has no commits ahead of master to land`,
-      );
-    }
     return branches;
+  }
+
+  // Landing order: the clones in the config's order, which puts a repo before any repo that depends on it, then the root.
+  private _landingOrderOf(repos: string[]): string[] {
+    const clones = Object.keys(this.config.workspaces.clonePaths).filter(
+      (repo) => repo !== this._rootRepo,
+    );
+    return [...clones, this._rootRepo].filter((repo) => repos.includes(repo));
   }
 
   // Nothing reaches a primary checkout before the fast-forward, so an unlanded rerun starts over from the branches.
   private async _land(landing: Landing): Promise<void> {
     const workspace = await this._workspaceOf(landing.key);
     const unswitchedDirtiness = await this._restore(landing, workspace);
-    landing.progress = { completed: [] };
+    landing.progress = { completed: [], branches: landing.branches };
     await this._step(landing, "clean-check", () =>
       this._cleanCheck(landing, { workspace, unswitchedDirtiness }),
     );
@@ -936,7 +995,7 @@ export class WrapUp {
   }
 }
 
-function isDone(landing: Landing, step: WrapUpStep): boolean {
+function isDone(landing: Pick<Landing, "progress">, step: WrapUpStep): boolean {
   return landing.progress.completed.includes(step);
 }
 
@@ -953,12 +1012,28 @@ function retryBranchDeletes(landing: Landing): void {
   );
 }
 
+function assertLandable(
+  issue: IssueRef,
+  { branches, facts, hasNoCode }: LandabilityTarget,
+): void {
+  const hasCode = branches.length > 0;
+  if (hasNoCode && hasCode) {
+    throw new Error(
+      `${issueLabelOf(issue)} has commits ahead of master in ${listedReposOf({ branches }).join(", ")}; drop --no-code to land them`,
+    );
+  }
+  if (hasNoCode || hasCode || (facts.githubWrites ?? []).length > 0) return;
+  throw new Error(
+    `${issueLabelOf(issue)} has no issue branch ahead of master and no GitHub writes; pass --no-code to land it without code`,
+  );
+}
+
 function stateStemOf(key: WorkspaceKey): string {
   if (isSessionKey(key)) return sessionBranchOf(key);
   return fileStemOf(key);
 }
 
-function listedReposOf({ branches }: Landing): string[] {
+function listedReposOf({ branches }: Pick<Landing, "branches">): string[] {
   return branches.map(({ repo }) => repo);
 }
 

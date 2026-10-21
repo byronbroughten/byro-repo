@@ -81,7 +81,7 @@ export interface CreateOptions {
 
 export interface IssueWorkspacesConfig {
   primaryRoot: string;
-  // Repo name to its clone's path relative to the primary root; the root repo's is ".".
+  // Repo name to its clone's path relative to the primary root; the root repo's is ".". Wrap-up lands clones in this order.
   clonePaths: Record<string, string>;
   workspaceFolder: string;
   // Gitignored files symlinked from each primary clone that has them.
