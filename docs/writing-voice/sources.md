@@ -42,6 +42,10 @@ Strunk and White, *The Elements of Style*, 4th edition, in the Drive folder **Wr
 
 Where a borrowed rule meets one of the developer's own habits, the Clarity sheet's [precedence rule](../writing-clarity.md#precedence) decides.
 
+## The Sense of Style
+
+Steven Pinker, _The Sense of Style_ (2014), the PDF in the Drive folder **Writing Style**. It is a calibre conversion with no printed page numbers, so instances cite PDF pages. It is mined in batches, one issue each, under #309. Ch. 4, "The Web, the Tree, and the String" (PDF 84–141), was read in full on 2026-10-21 (#316), alongside a comparison of "Assessment 1 Next Draft - AI" with the edited "Assessment 1 Next Draft" (writing#4). The book is under copyright: its rules are paraphrased, with a phrase quoted at most, and no rule line holds a run of four or more of its words.
+
 ## Blog posts
 
 The five DealLab blog posts indexed at [deallab.app/home-cost-guides](https://deallab.app/home-cost-guides/), read in full on 2026-10-02. They are the most authoritative source. The site went into maintenance mode after this read, so the links may not resolve; text-only copies are in the Drive folder **Legacy Blog Posts**.

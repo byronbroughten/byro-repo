@@ -101,7 +101,7 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - **Combine a run of short sentences that build one point into a single sentence; arithmetic keeps its steps.**
 - **Never put a short sentence before a calculation or example that only names what it will show ("A rate rise cuts the return."); let the sentence that shows it say so.**
 - **Write an event as a clause with its own verb ("when estimates are made"), not a packed noun phrase ("the Planning estimates"), even when the clause runs longer; split a sentence whose modifiers nest into plain joined clauses.**
-- **Use the active voice, unless the actor is unknown or beside the point.**
+- **Use the active voice, unless the actor is unknown or beside the point, or the passive keeps given before new.**
 - **Use the serial comma ("reliability, trustworthiness, and ingenuity").**
 - **Order a list to build, ending on its weightiest item ("in my rental units, around my tenants, and in my home").**
 - **Use paired em dashes for a mid-sentence aside or example list when commas would confuse.**
