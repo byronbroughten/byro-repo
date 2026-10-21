@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -18,9 +18,12 @@ afterEach(() => {
   rmSync(stateFolder, { recursive: true, force: true });
 });
 
+function factsPath(): string {
+  return join(stateFolder, "byro-repo-332.facts.json");
+}
+
 function storedFacts(): unknown {
-  const path = join(stateFolder, "byro-repo-332.facts.json");
-  return JSON.parse(readFileSync(path, "utf8"));
+  return JSON.parse(readFileSync(factsPath(), "utf8"));
 }
 
 function factsFile(): FactsFile {
@@ -120,7 +123,7 @@ describe("read", () => {
 
   it("fails naming the path when there is no file", () => {
     expect(() => factsFile().read(ticket)).toThrow(
-      `No facts file at ${join(stateFolder, "byro-repo-332.facts.json")}`,
+      `No facts file at ${factsPath()}`,
     );
   });
 
@@ -132,6 +135,23 @@ describe("read", () => {
     });
 
     expect(() => factsFile().read(ticket)).toThrow("has no branch list");
+  });
+
+  it("fails when the file names no branches and no GitHub writes", () => {
+    factsFile().write(ticket, {
+      branches: [],
+      closingComment: "Landed the writer.",
+    });
+
+    expect(() => factsFile().read(ticket)).toThrow(
+      "names no branches to land and no GitHub writes",
+    );
+  });
+
+  it("fails when the file has no closing comment", () => {
+    writeFileSync(factsPath(), JSON.stringify({ branches }));
+
+    expect(() => factsFile().read(ticket)).toThrow("has no closing comment");
   });
 });
 

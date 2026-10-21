@@ -1,6 +1,8 @@
-// The one reader and writer of a ticket's facts file, .runner/<repo>-<n>.facts.json in the state folder. The runner
-// writes it during a run (SpecRun.ts) and an interactive session's tooling during that session; an agent never does.
-// WrapUp.ts reads it to land the ticket. Each setter replaces its own group of facts and leaves the others as they are.
+// The one reader and writer of a ticket's facts file, .runner/<repo>-<n>.facts.json in the state folder.
+// The runner writes it during a run (SpecRun.ts), and an interactive session's tooling during that session;
+// an agent never does. WrapUp.ts reads it to land the ticket, and owns its WrapUpFacts shape.
+// Each setter replaces its own group of facts and leaves the others as they are; a missing file starts empty,
+// so a session can be added before any other fact exists. The sessions' shape is transcriptFacts.ts.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -34,7 +36,7 @@ export class FactsFile {
   read(issue: IssueRef): WrapUpFacts {
     const path = this._pathOf(issue);
     if (!existsSync(path)) throw new Error(`No facts file at ${path}`);
-    const facts = this._storedOf(issue);
+    const facts = parsedFactsOf(path);
     if (!Array.isArray(facts.branches)) {
       throw new Error(`${path} has no branch list`);
     }
@@ -92,12 +94,7 @@ export class FactsFile {
   private _storedOf(issue: IssueRef): Partial<WrapUpFacts> {
     const path = this._pathOf(issue);
     if (!existsSync(path)) return {};
-    // A facts file written before #297 counts Proposals under their old name.
-    const { defers, ...facts } = JSON.parse(
-      readFileSync(path, "utf8"),
-    ) as Partial<WrapUpFacts> & { defers?: number };
-    if (defers !== undefined) facts.proposals ??= defers;
-    return facts;
+    return parsedFactsOf(path);
   }
 
   private _store(issue: IssueRef, facts: Partial<WrapUpFacts>): FactsFile {
@@ -112,4 +109,13 @@ export class FactsFile {
   private _pathOf(issue: IssueRef): string {
     return join(this.stateFolder, `${fileStemOf(issue)}.facts.json`);
   }
+}
+
+function parsedFactsOf(path: string): Partial<WrapUpFacts> {
+  // A facts file written before #297 counts Proposals under their old name.
+  const { defers, ...facts } = JSON.parse(
+    readFileSync(path, "utf8"),
+  ) as Partial<WrapUpFacts> & { defers?: number };
+  if (defers !== undefined) facts.proposals ??= defers;
+  return facts;
 }
