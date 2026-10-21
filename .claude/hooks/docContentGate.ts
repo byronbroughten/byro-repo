@@ -4,7 +4,6 @@ import { join } from "node:path";
 
 import {
   docWriteDecision,
-  isWritingSheetRead,
   type WritingSheet,
   writingSheetPaths,
   writingSheets,
@@ -16,7 +15,7 @@ import {
   sessionStatePath,
   writeDenyOutput,
 } from "./lib/hookIo.ts";
-import { isPostToolUse } from "./lib/styleGate.ts";
+import { isFullDocRead, isPostToolUse } from "./lib/styleGate.ts";
 
 await runFailOpen(() => {
   const input = readHookInput();
@@ -31,14 +30,17 @@ await runFailOpen(() => {
     writingSheets.forEach((sheet) => {
       const totalLines = lineCount(join(projectDir, writingSheetPaths[sheet]));
       if (
-        isWritingSheetRead(sheet, {
-          projectDir,
-          cwd: input.cwd ?? projectDir,
-          filePath,
-          offset,
-          limit,
-          totalLines,
-        })
+        isFullDocRead(
+          {
+            projectDir,
+            cwd: input.cwd ?? projectDir,
+            filePath,
+            offset,
+            limit,
+            totalLines,
+          },
+          writingSheetPaths[sheet],
+        )
       ) {
         writeFileSync(markerPath(sessionId, sheet), "");
       }

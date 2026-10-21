@@ -2,11 +2,7 @@
 import { sep } from "node:path";
 
 import type { ToolInput } from "./hookIo.ts";
-import {
-  type EditDecision,
-  isFullDocRead,
-  type StyleRead,
-} from "./styleGate.ts";
+import type { EditDecision } from "./styleGate.ts";
 
 export const docContentGateReason =
   "Read docs/writing-voice.md and docs/writing-clarity.md before your first Google Doc text write this session, then retry. " +
@@ -46,10 +42,10 @@ export function docWriteDecision({
   toolInput,
   readSheets,
 }: DocWrite): EditDecision {
-  const hasReadSheets = writingSheets.every((sheet) =>
+  const hasReadEverySheet = writingSheets.every((sheet) =>
     readSheets.includes(sheet),
   );
-  if (hasReadSheets || !isGatedDocWrite(toolName)) {
+  if (hasReadEverySheet || !isGatedDocWrite(toolName)) {
     return { denyReason: undefined };
   }
   return {
@@ -57,13 +53,6 @@ export function docWriteDecision({
       ? docContentGateReason
       : undefined,
   };
-}
-
-export function isWritingSheetRead(
-  sheet: WritingSheet,
-  read: StyleRead,
-): boolean {
-  return isFullDocRead(read, writingSheetPaths[sheet]);
 }
 
 function isGatedDocWrite(

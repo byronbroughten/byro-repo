@@ -28,8 +28,8 @@ Every file has one job, and each fact lives in exactly one of them. Everywhere e
 | `docs/cursor-guardrails.md` | The Cursor hooks. |
 | `docs/writing-voice.md` | The voice of reader-facing prose, one line per rule, rule only, one voice with no sections per medium. Its `## Axes` section defines the Evidence and Formality values and the Academic overlay; a rule scoped to one value starts with that value as a code tag. |
 | `docs/writing-voice/*.md` | Each rule's quoted instances and sources, indexed by `docs/writing-voice.md`'s "When \| File" table, plus `sources.md` for the sources read and the habits dropped. |
-| `docs/writing-clarity.md` | Rules any skilled writer follows so a reader can parse and follow reader-facing prose, one line per rule, rule only, opening with a `## Terms` section of one line per term. A rule goes here, not in the Voice sheet, when a good writer with a different voice would still follow it. |
-| `docs/writing-clarity/*.md` | Each rule's before-and-after example and its source, indexed by `docs/writing-clarity.md`'s "When \| File" table. Its sources are recorded in `docs/writing-voice/sources.md`. |
+| `docs/writing-clarity.md` | Rules any skilled writer follows so a reader can parse and follow reader-facing prose, one line per rule, rule only, opening with a `## Terms` section of one line per term. |
+| `docs/writing-clarity/*.md` | Each rule's before-and-after example and the chapter and page it came from, indexed by `docs/writing-clarity.md`'s "When \| File" table. Which books were read, and when, is in `docs/writing-voice/sources.md`. |
 | `docs/academic-writing-style.md` | Academic conventions layered on `docs/writing-voice.md` and `docs/writing-clarity.md`, one line per rule, rule only, with APA 7 as the citation standard. |
 | `docs/academic-writing-style/*.md` | Each rule's quoted instances and sources, indexed by `docs/academic-writing-style.md`'s "When \| File" table. |
 | `docs/agents/*.md` | Agent workflow: git, planning, delegation, issues, vendored upstream skills, handing judgements to Jev and its trial log. |

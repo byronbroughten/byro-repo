@@ -6,11 +6,11 @@ import {
   docContentGateReason,
   docWriteDecision,
   gatedDocWrites,
-  isWritingSheetRead,
   type WritingSheet,
+  writingSheetPaths,
 } from "./docContentGate.ts";
 import type { ToolInput } from "./hookIo.ts";
-import type { EditDecision } from "./styleGate.ts";
+import { type EditDecision, isFullDocRead } from "./styleGate.ts";
 
 // Real tool inputs carry more fields than the gate reads.
 type DocArgs = ToolInput & Record<string, unknown>;
@@ -135,20 +135,17 @@ describe("the refusal reason", () => {
   });
 });
 
-describe("isWritingSheetRead", () => {
+describe("a full Read of a writing sheet", () => {
   const projectDir = "/repo";
   function read(
     sheet: WritingSheet,
     filePath: string,
     bounds: { offset?: number; limit?: number } = {},
   ): boolean {
-    return isWritingSheetRead(sheet, {
-      projectDir,
-      cwd: projectDir,
-      filePath,
-      totalLines: 30,
-      ...bounds,
-    });
+    return isFullDocRead(
+      { projectDir, cwd: projectDir, filePath, totalLines: 30, ...bounds },
+      writingSheetPaths[sheet],
+    );
   }
 
   it("is true for a full Read of each sheet", () => {

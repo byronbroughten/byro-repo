@@ -1,6 +1,8 @@
 # Writing clarity
 
-Rules any skilled writer follows so a reader can parse and follow reader-facing prose ([defined in `prose-files.md`](./agents/prose-files.md#terms)), whatever their voice, drawn from Strunk and White's *The Elements of Style* and Steven Pinker's *The Sense of Style*; read it with the Voice sheet, [`writing-voice.md`](./writing-voice.md), and academic work layers [`academic-writing-style.md`](./academic-writing-style.md) on both. A rule belongs here when a good writer with a different voice would still follow it.
+Rules any skilled writer follows, whatever their voice, so a reader can parse and follow reader-facing prose ([defined in `prose-files.md`](./agents/prose-files.md#terms)); it sits beside the Voice sheet, [`writing-voice.md`](./writing-voice.md), and academic work layers [`academic-writing-style.md`](./academic-writing-style.md) on both.
+
+A rule belongs here when a good writer with a different voice would still follow it. Where one meets a Voice habit, [`sources.md`](./writing-voice/sources.md#reading-the-counts) says which wins.
 
 One line per rule. The examples and their sources are one file away. Open a reasoning file only when you're changing the rule, or the rule's line doesn't decide your case.
 
@@ -15,4 +17,3 @@ One line per rule. The examples and their sources are one file away. Open a reas
 | When | File |
 | --- | --- |
 | A sentence's structure, its word order, a garden path | [`docs/writing-clarity/sentences.md`](./writing-clarity/sentences.md) |
-| Which rule wins over a Voice habit, or where a rule came from | [`docs/writing-voice/sources.md`](./writing-voice/sources.md) |
