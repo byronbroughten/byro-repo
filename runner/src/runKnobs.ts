@@ -42,6 +42,8 @@ export interface RunKnobs {
   retriesPerFailure: number;
   // The turns a `resume +N turns` answer with no N gives an implementer that hit its turn cap.
   extraTurns: number;
+  // How many handoffs, a backstop's included, a ticket may take before a Failure Halt says to split it.
+  handoffsPerTicket: number;
   // How many tickets in a row may end on a Failure Halt before the run Stops as stuck.
   stuckFailureHalts: number;
   // The resumed implementer fixes the Fix batch only while its peak context is under this.
@@ -101,6 +103,7 @@ export const defaultRunKnobs: RunKnobs = {
   },
   retriesPerFailure: 1,
   extraTurns: 100,
+  handoffsPerTicket: 2,
   stuckFailureHalts: 2,
   ticketBudget: 150_000,
   liveCeiling: 180_000,

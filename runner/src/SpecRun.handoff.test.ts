@@ -43,22 +43,34 @@ const handoff: Handoff = {
   stillFailing: [],
 };
 
+const splitHandoff: Handoff = {
+  ...handoff,
+  proposedSplit: [
+    { delivers: "The parser's error messages.", files: ["errors.ts"] },
+    { delivers: "The parser's CLI.", files: ["cli.ts", "bin.ts"] },
+  ],
+};
+
 // Leaves an uncommitted edit, then hands off, as a step past its ticket budget would.
-async function handedOff(request: StepRequest): Promise<StepResult> {
-  writeFileSync(join(request.cwd, "half.ts"), "half a ticket\n");
-  return {
-    ...implementResultOf({
-      status: "handoff",
-      branches: [],
-      closingComment: "",
-      boxesUndone: [],
-      blockers: [],
-      handoff,
-    }),
-    sessionId: "handoff-session",
-    peakContext: 150_000,
+function handingOff(given: Handoff): StepScript {
+  return async (request) => {
+    writeFileSync(join(request.cwd, "half.ts"), "half a ticket\n");
+    return {
+      ...implementResultOf({
+        status: "handoff",
+        branches: [],
+        closingComment: "",
+        boxesUndone: [],
+        blockers: [],
+        handoff: given,
+      }),
+      sessionId: "handoff-session",
+      peakContext: 150_000,
+    };
   };
 }
+
+const handedOff = handingOff(handoff);
 
 describe("run's implement handoff", () => {
   it("passes the ticket to a fresh implement step on the same pair, keeping the work", async () => {
@@ -320,6 +332,110 @@ describe("run's live-ceiling backstop", () => {
     const [, , retry] = agentStep.requests;
     expect(retry?.resumeSessionId).toBe("crashed-session");
     expect(retry?.prompt).toBe(handoffOnlyPrompt);
+  });
+});
+
+describe("run's split Halt", () => {
+  it("halts a handoff that proposes a split on a Halt carrying the slices, launching no fresh step", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(handingOff(splitHandoff));
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests).toHaveLength(1);
+    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+    const [halt] = haltComments();
+    expect(halt).toContain("split Halt");
+    expect(halt).toContain("The parser's error messages. (errors.ts)");
+    expect(halt).toContain("The parser's CLI. (cli.ts, bin.ts)");
+    expect(halt).toContain("1. `continue`\n2. `stop spec`");
+  });
+
+  it("isn't counted by the stuck detector", async () => {
+    addSpec([1, 2, 3]);
+    const agentStep = FakeAgentStep.init(
+      handingOff(splitHandoff),
+      crashed,
+      crashed,
+      implemented("three.ts"),
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(3)]);
+  });
+
+  it("launches a fresh step on `continue`, from the ticket's narrowed body and the latest handoff", async () => {
+    addSpec([1]);
+    await specRun(FakeAgentStep.init(handingOff(splitHandoff))).run(spec);
+    github.edit(1, { body: bodyWith().replace("A thing.", "Half a thing.") });
+    github.reply(213, "H1: continue");
+    let isWorkKept = false;
+    const rerunStep = FakeAgentStep.init(
+      keepingWork((isKept) => {
+        isWorkKept = isKept;
+      }),
+      reviewed(),
+    );
+
+    const result = await specRun(rerunStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(isWorkKept).toBe(true);
+    const [fresh] = rerunStep.requests;
+    expect(fresh?.resumeSessionId).toBeUndefined();
+    expect(fresh?.prompt).toContain("Half a thing.");
+    expect(fresh?.prompt).toContain("Conclusion: The parser is half done.");
+  });
+});
+
+describe("run's handoff cap", () => {
+  it("posts a Failure Halt on a ticket's third handoff, saying to split it first", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(handedOff, handedOff, handedOff);
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests).toHaveLength(3);
+    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+    const [halt] = haltComments();
+    expect(halt).toContain("Failure Halt");
+    expect(halt).toContain("Split the ticket");
+    expect(halt).toContain("1. `continue +1 handoff`\n2. `stop spec`");
+  });
+
+  it("counts a backstop handoff", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      handedOff,
+      handedOff,
+      crossed,
+      handedOff,
+    );
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests).toHaveLength(4);
+    expect(haltComments()[0]).toContain("`continue +1 handoff`");
+  });
+
+  it("allows exactly one more handoff on `continue +1 handoff`", async () => {
+    addSpec([1]);
+    await specRun(FakeAgentStep.init(handedOff, handedOff, handedOff)).run(
+      spec,
+    );
+    github.reply(213, "H1: continue +1 handoff");
+    const rerunStep = FakeAgentStep.init(handedOff, handedOff);
+
+    await specRun(rerunStep).run(spec);
+
+    expect(rerunStep.requests).toHaveLength(1);
+    const [fresh] = rerunStep.requests;
+    expect(fresh?.resumeSessionId).toBeUndefined();
+    expect(fresh?.prompt).toContain("Conclusion: The parser is half done.");
+    expect(haltComments()).toHaveLength(2);
+    expect(haltComments()[1]).toContain("`continue +1 handoff`");
   });
 });
 

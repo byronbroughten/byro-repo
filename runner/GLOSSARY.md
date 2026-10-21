@@ -25,7 +25,7 @@ The structured output an agent step returns, validated against the runner's sche
 _Avoid_: report, result, output
 
 **Handoff**:
-An implement step's ending that passes unfinished work, with a written account of it, to a fresh implement step on the same ticket.
+An implement step's ending that passes unfinished work, with a written account of it, to a fresh implement step on the same ticket. A ticket gets two before a Failure Halt says to split it.
 _Avoid_: retry, restart
 
 **Finding triage**:
@@ -58,6 +58,9 @@ _Avoid_: pause, block, question
 
 **Failure Halt**:
 A Halt raised because a step failed, not by a verdict: a second crash, a schema failure, red checks on a green master, an implement step's turn cap. It offers `retry` and `stop spec`, and free text such as `rerun on <pair>` or `skip`.
+
+**Split Halt**:
+A Halt raised in place of a fresh implement step when a handoff proposes splitting the ticket, carrying the proposed slices. The developer splits the ticket, then answers `continue`. It is not a Failure Halt, so the stuck detector ignores it.
 _Avoid_: error, crash
 
 **Stop**:
