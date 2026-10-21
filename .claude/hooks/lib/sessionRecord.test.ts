@@ -8,6 +8,7 @@ import {
   activeAccountOf,
   configFolderOf,
   recordedSessionOf,
+  type StartingSession,
   whereYouAreLineOf,
 } from "./sessionRecord.ts";
 
@@ -23,13 +24,13 @@ function leasedBy(
   return { path, key, lease: { kind: "session", pid, isLive: true } };
 }
 
-describe("recordedSessionOf", () => {
-  const session = {
-    mode: "interactive",
-    sessionId: "session-1",
-    holder,
-  } as const;
+const session = {
+  mode: "interactive",
+  sessionId: "session-1",
+  holder,
+} as const;
 
+describe("recordedSessionOf", () => {
   it("records an implement session under the issue whose workspace this claude leases", () => {
     expect(
       recordedSessionOf({ ...session, leased: [leasedBy(issue)] }),
@@ -67,7 +68,8 @@ describe("recordedSessionOf", () => {
 });
 
 describe("whereYouAreLineOf", () => {
-  const cleared = {
+  const cleared: StartingSession = {
+    ...session,
     source: "clear",
     cwd: issuePath,
     holder,

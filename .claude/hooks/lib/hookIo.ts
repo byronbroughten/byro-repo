@@ -12,7 +12,7 @@ export interface HookInput {
   workspace_roots?: string[];
   hook_event_name?: string;
   reason?: string;
-  source?: string;
+  source?: "startup" | "resume" | "clear" | "compact";
   prompt?: string;
   tool_name?: string;
   tool_input?: ToolInput;

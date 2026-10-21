@@ -1,5 +1,4 @@
-// SessionStart: puts the session's id in context, for a handoff's `session: <id>` line and the wrap-up facts.
-// In an issue workspace this claude leases, it also records the session in that issue's facts file and, after `/clear`, says where the session is.
+// SessionStart: puts the session's id in context and, in an issue workspace this claude leases, records the session and says where it is.
 import { execFileSync } from "node:child_process";
 
 import { FactsFile } from "@byronbroughten/spec-runner/FactsFile";
@@ -50,12 +49,15 @@ async function leaseLinesOf(
     const holder = nearestClaudeAncestor();
     if (!holder) return [];
     const leased = await IssueWorkspaces.init(issueWorkspacesConfig).leases();
-    const mode = sessionModeOf(process.env);
-    recordSession(
-      input,
-      recordedSessionOf({ mode, sessionId, holder, leased }),
-    );
-    const line = whereYouAreLineOf({ ...input, holder, leased });
+    const session = {
+      ...input,
+      mode: sessionModeOf(process.env),
+      sessionId,
+      holder,
+      leased,
+    };
+    recordSession(input, recordedSessionOf(session));
+    const line = whereYouAreLineOf(session);
     return line === undefined ? [] : [line];
   } catch {
     return [];

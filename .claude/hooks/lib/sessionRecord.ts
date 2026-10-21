@@ -1,10 +1,8 @@
-// Decides what SessionStart adds for an interactive session in an issue workspace: the session recorded under that
-// issue in its facts file, and after `/clear` a line saying where the session is. Pure; sessionIdContext.ts does the I/O.
+// Decides SessionStart's facts-file record and "where you are" line for an issue workspace; sessionIdContext.ts does the I/O.
 import { basename, dirname } from "node:path";
 
 import type { AddedSession } from "@byronbroughten/spec-runner/FactsFile";
 import {
-  isSameHolder,
   isSessionKey,
   issueLabelOf,
   type IssueRef,
@@ -12,14 +10,20 @@ import {
   type LeaseHolder,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
 
+import type { HookInput } from "./hookIo.ts";
+import { leasedWorkspacesOf } from "./leaseRelease.ts";
 import type { SessionMode } from "./tiers.ts";
 
 export interface StartingSession {
   mode: SessionMode;
   sessionId: string;
+  source?: HookInput["source"];
+  cwd?: string;
   holder: LeaseHolder;
   leased: LeasedWorkspace[];
 }
+
+type LeasedIssueWorkspace = LeasedWorkspace & { key: IssueRef };
 
 export interface RecordedSession {
   issue: IssueRef;
@@ -39,20 +43,12 @@ export function recordedSessionOf({
   return { issue, step: { agent: "implement", sessionId } };
 }
 
-export interface ClearedSession {
-  // SessionStart's source: startup, resume, clear or compact.
-  source?: string;
-  cwd?: string;
-  holder: LeaseHolder;
-  leased: LeasedWorkspace[];
-}
-
 export function whereYouAreLineOf({
   source,
   cwd,
   holder,
   leased,
-}: ClearedSession): string | undefined {
+}: StartingSession): string | undefined {
   if (source !== "clear" || cwd === undefined) return undefined;
   const workspace = leasedIssueOf(leased, holder);
   if (workspace === undefined || !isInside(cwd, workspace.path)) {
@@ -84,11 +80,9 @@ export function configFolderOf(
 function leasedIssueOf(
   leased: LeasedWorkspace[],
   holder: LeaseHolder,
-): (LeasedWorkspace & { key: IssueRef }) | undefined {
-  return leased.find(
-    (workspace): workspace is LeasedWorkspace & { key: IssueRef } =>
-      workspace.lease.isLive &&
-      isSameHolder(workspace.lease, holder) &&
+): LeasedIssueWorkspace | undefined {
+  return leasedWorkspacesOf(leased, holder).find(
+    (workspace): workspace is LeasedIssueWorkspace =>
       !isSessionKey(workspace.key),
   );
 }
