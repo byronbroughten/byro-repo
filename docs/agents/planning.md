@@ -32,7 +32,7 @@
 
 ## Ticket size
 
-- **Size each ticket so one session finishes it without `/context` going much over ~150K; prefer 110–125K when a green seam makes that easy.** About 40K is fixed overhead before the first prompt.
+- **Size each ticket so one session finishes it without `/context` going much over the ticket budget (default ~150K); prefer 110–125K when a green seam makes that easy.** About 40K is fixed overhead before the first prompt.
 - **Estimate from** the files it changes first: grep the names each draft ticket renames or retypes and count the files. Then add the files it reads, the docs the read-by-task table requires, its `tsc` and test loops, and whether it touches both packages.
 - **A ticket that reads a body of text in full is sized by that text, not its file count**: an audit reads all the code it judges, a piece ticket its Supporting Material and Reference passages plus every Section already in the Deliverable, so later Sections cost more. Measured over recent sessions, reading costs about 1K tokens per 2K characters of code (about 20 a line; #154 spent ~65K on 3.3K lines) and per 2.5K of Docs prose. Past ~60K of reading, name a subagent per part that returns only findings, or split the ticket; a drafter needs those passages in its own context, so a piece ticket splits.
 - **Split a ticket that changes more than ~10 files**, and any other over-budget ticket, at a seam where each piece leaves `tsc` and tests green; each split pays the fixed overhead again. A bigger pair never fixes size ([`model-fit.md`](./model-fit.md#ticket-size)).

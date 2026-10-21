@@ -29,6 +29,7 @@
     "./SessionProbe": "./src/SessionProbe.ts",
     "./SpecRun": "./src/SpecRun.ts",
     "./contextMeter": "./src/contextMeter.ts",
+    "./contextNudge": "./src/contextNudge.ts",
     "./limitGuard": "./src/limitGuard.ts",
     "./outcomeLog": "./src/outcomeLog.ts",
     "./transcriptFacts": "./src/transcriptFacts.ts",
