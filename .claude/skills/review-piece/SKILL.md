@@ -35,7 +35,7 @@ Write each to its own file in the scratchpad, so each sub-agent gets only its ow
 - **Fact list**: the closed list the implementer had: the issue's facts, the parent's facts, any verified source list a Research issue produced and the spec links, and any of the developer's own text the spec names as given.
 - **Outline**: the spec's Outline field, verbatim.
 - **Length limit**: the spec's, verbatim.
-- **Read passages**: a folder with one file per passage: each Supporting Material file's text, read from Drive by the file ID the spec lists; for one too long to read whole, the passages the spec lists by page range. Add the passages a Research issue quoted, which stand for the References the drafter read.
+- **Read passages**: a folder with one file per passage: each short Supporting Material file's text, read from Drive by the file ID the spec lists; for one too long to read whole, the passages the spec lists by page range. A long PDF is downloaded by [`docs/pdf-pages.md`](../../../docs/pdf-pages.md), each listed range written to its own file with the page-range command, then the download deleted. Add the passages a Research issue quoted, which stand for the References the drafter read.
 - **Overlap**: the output of `npm run overlap -- --deliverable <Deliverable file> --passages <Read passages folder> --allow <file>`, its allow file listing the proper names and fixed terms the Piece can't reword.
 - **Style**: the spec's Evidence and Formality values, whether the Piece is Academic, and its Style field's overrides, Form and Order sections, verbatim, in the Style file shape in [the Jev agent doc](../../../docs/agents/jev.md#the-style-check).
 

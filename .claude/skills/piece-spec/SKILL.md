@@ -11,7 +11,7 @@ Synthesize the conversation `/grill-piece` ran, the step before this one, into a
 Draw each field from the conversation, in the developer's words where they gave them:
 
 - **Deliverable**: the Google Doc's title and Doc ID.
-- **Supporting Material**: each by title and Drive ID, with what it is for. For one too long to read whole, such as a book, list the passages that count by page range.
+- **Supporting Material**: each by title and Drive ID, with what it is for. For one too long to read whole, such as a book, list the passages that count by page range, given as PDF pages with the printed pages beside them when they differ, such as `PDF pp. 45–60 (printed 31–46)`.
 - **Reader**: who reads the Piece, and what they already know.
 - **Style**: the Axes line (`Evidence: <value> · Formality: <value>`, or `Academic`), then the style overrides, to any sheet: Voice, Clarity or academic.
 - **Form**: the length limit and its cut order, and the template if there is one.

@@ -44,7 +44,7 @@ The stage, and for a Section ticket its Sections by exact heading text.
 
 ## Shared rules
 
-Copied from the parent: the Deliverable, the Supporting Material this ticket reads (with page ranges), Reader, Style, Form and Outline.
+Copied from the parent: the Deliverable, the Supporting Material this ticket reads (with page ranges, a long PDF's read by the root's `docs/pdf-pages.md`), Reader, Style, Form and Outline.
 
 ## Facts
 
