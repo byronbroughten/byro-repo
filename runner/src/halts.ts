@@ -29,7 +29,7 @@ const kindLabels = {
   "spec-ambiguity": "spec-ambiguity blocker",
   "denied-tool": "denied-tool blocker",
   failure: "Failure Halt",
-  split: "split Halt",
+  split: "Split Halt",
 } as const;
 
 export type HaltKind = keyof typeof kindLabels;
@@ -96,10 +96,35 @@ export function splitHaltOf(
 ): HaltDraft {
   return {
     kind: "split",
-    question: `The implement step handed off with less than half the ticket done, and proposed splitting the rest into:\n\n${proposedSplitText(slices)}\n\nSplit the ticket, narrowing its body and moving the rest to new tickets, then answer \`continue\`: a fresh implement step picks up from the handoff on the ticket's body as it then reads.`,
+    question: `The implement step handed off with less than half the ticket done, and proposed splitting the rest into:\n\n${proposedSplitText(slices)}\n\n${splitTheTicketPhraseOf("`continue`")}: a fresh implement step picks up from the handoff on the ticket's body as it then reads.`,
     options: ["`continue`"],
     scope: downstream,
   };
+}
+
+export interface HandoffCap {
+  ticket: IssueRef;
+  count: number;
+  cap: number;
+  // A split the capped handoff proposed; empty when none, or a Halt already carried it.
+  slices: ProposedSlice[];
+}
+
+export function handoffCapDetailOf({
+  ticket,
+  count,
+  cap,
+  slices,
+}: HandoffCap): string {
+  const split =
+    slices.length > 0
+      ? ` The last handoff proposed splitting the rest into:\n\n${proposedSplitText(slices)}\n\n`
+      : " ";
+  return `${issueLabelOf(ticket)} handed off ${count} times, past its cap of ${cap}.${split}${splitTheTicketPhraseOf(failureOptions.moreHandoffs)}.`;
+}
+
+function splitTheTicketPhraseOf(answer: string): string {
+  return `Split the ticket, narrowing its body and moving the rest to new tickets, then answer ${answer}`;
 }
 
 // The fixer's give-ups arrive already rewritten as Halt records by giveUpRecordOf().

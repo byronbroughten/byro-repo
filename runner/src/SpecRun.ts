@@ -75,6 +75,7 @@ import {
   haltNameOf,
   haltNoticeOf,
   type HaltPost,
+  handoffCapDetailOf,
   ignoredNoteOf,
   isRunnersComment,
   isStopSpecAnswer,
@@ -314,6 +315,8 @@ interface TicketState {
   handoffCount?: number;
   // Added by `continue +1 handoff` answers, on top of the handoffsPerTicket knob.
   extraHandoffs?: number;
+  // The handoff whose proposed split a Halt already carried, so a rerun never raises it again.
+  splitHaltedHandoff?: number;
   // Set by a Failure Halt's answer, so a rerun acts on it.
   pair?: Pair;
   guidance?: string;
@@ -1188,6 +1191,9 @@ export class SpecRun {
     const { liveCeiling } = this.config.knobs;
     let launch: StepLaunch;
     if (continuation === undefined || state.implementBase === undefined) {
+      if (state.latestHandoff !== undefined) {
+        await this._haltBeforeFreshStep(ticketRun, state.latestHandoff);
+      }
       state.implementBase = await this._headsOf(workspace);
       this._saveState(run);
       launch = { ...launchOf(), liveCeiling };
@@ -1245,7 +1251,6 @@ export class SpecRun {
   }
 
   // The work stays in the tree for the fresh step; the backup branch is in case that step loses it.
-  // A handoff past the cap is a Failure Halt and one proposing a split is a split Halt, either in place of the fresh step.
   private async _handOff(
     ticketRun: TicketRun,
     handoff: Handoff,
@@ -1263,29 +1268,42 @@ export class SpecRun {
     state.handoffCount = count;
     state.latestHandoff = handoff;
     this._saveState(run);
+    this._log(run, `${issueLabelOf(ticket.issue)}: handoff ${count}.`);
+  }
+
+  // Checked at each fresh step's launch, so a crash or an answer other than `continue +1 handoff` never skips it.
+  private async _haltBeforeFreshStep(
+    ticketRun: TicketRun,
+    { proposedSplit }: Handoff,
+  ): Promise<void> {
+    const { run, ticket, state } = ticketRun;
+    const count = state.handoffCount ?? 0;
     const cap =
       this.config.knobs.handoffsPerTicket + (state.extraHandoffs ?? 0);
+    const isSplitUnhalted =
+      proposedSplit !== undefined && state.splitHaltedHandoff !== count;
     if (count > cap) {
+      if (isSplitUnhalted) state.splitHaltedHandoff = count;
       await this._failureHalt(ticketRun, {
         step: state.step,
-        detail: `${issueLabelOf(ticket.issue)} handed off ${count} times, past its cap of ${cap}. Split the ticket first, narrowing its body and moving the rest to new tickets, then answer ${failureOptions.moreHandoffs}.`,
+        detail: handoffCapDetailOf({
+          ticket: ticket.issue,
+          count,
+          cap,
+          slices: isSplitUnhalted ? proposedSplit : [],
+        }),
         logPath: this._progressPathOf(run),
         options: [failureOptions.moreHandoffs],
       });
     }
-    const { proposedSplit = [] } = handoff;
-    if (proposedSplit.length > 0) {
-      const downstream = await this._downstreamOf(run, ticket.issue);
-      raiseHalts(run, {
-        ticket: ticket.issue,
-        drafts: [splitHaltOf(proposedSplit, downstream)],
-      });
-      await this._haltOnUnpostedHalts(ticketRun);
-    }
-    this._log(
-      run,
-      `${issueLabelOf(ticket.issue)}: handoff ${count}; launching a fresh implement step.`,
-    );
+    if (!isSplitUnhalted) return;
+    const downstream = await this._downstreamOf(run, ticket.issue);
+    raiseHalts(run, {
+      ticket: ticket.issue,
+      drafts: [splitHaltOf(proposedSplit, downstream)],
+    });
+    state.splitHaltedHandoff = count;
+    await this._haltOnUnpostedHalts(ticketRun);
   }
 
   private _implementPromptOf({ ticket, workspace, state }: TicketRun): string {
@@ -1428,10 +1446,11 @@ export class SpecRun {
         jsonSchema: implementOutputSchema,
       };
     }
-    // A `continue +1 handoff` answer to a resume's Failure Halt leaves it no answers to pass.
-    if (halts.length === 0) return this._freshLaunchOf(ticketRun);
+    // A split Halt's slices may be stale once the developer narrows the ticket, so only its body speaks for them.
+    const answered = halts.filter(({ kind }) => kind !== "split");
+    if (answered.length === 0) return this._freshLaunchOf(ticketRun);
     return {
-      prompt: `${this._implementPromptOf(ticketRun)}\n\n${freshResumeSection(halts)}`,
+      prompt: `${this._implementPromptOf(ticketRun)}\n\n${freshResumeSection(answered)}`,
       jsonSchema: implementOutputSchema,
     };
   }

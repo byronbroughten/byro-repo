@@ -172,14 +172,14 @@ ${handoffText(handoff)}`;
 
 // The runner posts it on the ticket; the `session:` line ties it to the step's transcript.
 export function handoffCommentOf(handoff: Handoff, sessionId: string): string {
-  const { proposedSplit = [] } = handoff;
+  const { proposedSplit } = handoff;
   return [
     "## Handoff",
     "The implement step handed this ticket to a fresh implement step.",
     handoffText(handoff),
-    ...(proposedSplit.length > 0
-      ? [`Proposed split:\n${proposedSplitText(proposedSplit)}`]
-      : []),
+    ...(proposedSplit === undefined
+      ? []
+      : [`Proposed split:\n${proposedSplitText(proposedSplit)}`]),
     `session: ${sessionId}`,
   ].join("\n\n");
 }

@@ -345,7 +345,7 @@ describe("run's split Halt", () => {
     expect(agentStep.requests).toHaveLength(1);
     expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
     const [halt] = haltComments();
-    expect(halt).toContain("split Halt");
+    expect(halt).toContain("Split Halt");
     expect(halt).toContain("The parser's error messages. (errors.ts)");
     expect(halt).toContain("The parser's CLI. (cli.ts, bin.ts)");
     expect(halt).toContain("1. `continue`\n2. `stop spec`");
@@ -387,10 +387,44 @@ describe("run's split Halt", () => {
     expect(fresh?.resumeSessionId).toBeUndefined();
     expect(fresh?.prompt).toContain("Half a thing.");
     expect(fresh?.prompt).toContain("Conclusion: The parser is half done.");
+    expect(fresh?.prompt).not.toContain("The parser's CLI.");
   });
 });
 
 describe("run's handoff cap", () => {
+  it("posts the cap's Failure Halt again, launching nothing, on any answer but `continue +1 handoff`", async () => {
+    addSpec([1]);
+    await specRun(FakeAgentStep.init(handedOff, handedOff, handedOff)).run(
+      spec,
+    );
+    github.reply(213, "H1: retry");
+    const rerunStep = FakeAgentStep.init(handedOff);
+
+    await specRun(rerunStep).run(spec);
+
+    expect(rerunStep.requests).toHaveLength(0);
+    expect(haltComments()).toHaveLength(2);
+    expect(haltComments()[1]).toContain("`continue +1 handoff`");
+  });
+
+  it("carries a split proposed on the capped handoff in its Failure Halt, and raises no split Halt after it", async () => {
+    addSpec([1]);
+    await specRun(
+      FakeAgentStep.init(handedOff, handedOff, handingOff(splitHandoff)),
+    ).run(spec);
+    github.reply(213, "H1: continue +1 handoff");
+    const rerunStep = FakeAgentStep.init(
+      keepingWork(() => {}),
+      reviewed(),
+    );
+
+    const result = await specRun(rerunStep).run(spec);
+
+    expect(haltComments()).toHaveLength(1);
+    expect(haltComments()[0]).toContain("The parser's CLI. (cli.ts, bin.ts)");
+    expect(result.landed).toEqual([refOf(1)]);
+  });
+
   it("posts a Failure Halt on a ticket's third handoff, saying to split it first", async () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(handedOff, handedOff, handedOff);
