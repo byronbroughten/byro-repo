@@ -137,7 +137,10 @@ async function remove(args: string[]): Promise<void> {
       `Usage: npm run issue:remove -- ${keyUsage} [--force]`,
     ),
   );
-  await workspaces.remove(workspace, { force: args.includes("--force") });
+  await workspaces.remove(workspace, {
+    force: args.includes("--force"),
+    holder: nearestClaudeAncestor(),
+  });
   console.log(`Removed ${workspace.path}`);
 }
 

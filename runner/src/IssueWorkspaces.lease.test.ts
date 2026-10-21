@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import { git } from "./GitFixture.ts";
 import type { LeaseHolder } from "./IssueWorkspaces.ts";
 import {
+  branchOf,
   primaryRoot,
   primaryStates,
   registeredWorktrees,
@@ -98,6 +99,35 @@ describe("a lease", () => {
     await workspaces().takeLease(workspace, { kind: "run", pid: process.pid });
   });
 
+  it("releases its holder's other lease when taken, leaving that workspace's branch and files in place", async () => {
+    const first = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "first" },
+    );
+    writeFileSync(join(first.path, "work.txt"), "in progress");
+    await workspaces().takeLease(first, liveSession);
+    const second = await workspaces().create({ session: "glossary-fix" });
+
+    await workspaces().takeLease(second, liveSession);
+
+    expect(await workspaces().leaseOf(first)).toBeUndefined();
+    expect(await workspaces().leaseOf(second)).toMatchObject(liveSession);
+    expect(branchOf(first.path)).toBe("issue-7-first");
+    expect(readFileSync(join(first.path, "work.txt"), "utf8")).toBe(
+      "in progress",
+    );
+  });
+
+  it("leaves another holder's lease alone when taken", async () => {
+    const theirs = await workspaces().create({ session: "theirs" });
+    await workspaces().takeLease(theirs, liveSession);
+    const mine = await workspaces().create({ session: "mine" });
+
+    await workspaces().takeLease(mine, { kind: "run", pid: process.pid });
+
+    expect(await workspaces().leaseOf(theirs)).toMatchObject(liveSession);
+  });
+
   it("is listed with its workspace by leases(), which skips a workspace with none", async () => {
     const key = { session: "glossary-fix" };
     const leased = await workspaces().create(key);
@@ -142,6 +172,26 @@ describe("a lease", () => {
 
     await workspaces().releaseLease(workspace);
     await workspaces().remove(workspace);
+    expect(existsSync(workspace.path)).toBe(false);
+  });
+
+  it("lets its holder remove the workspace, still refusing a dirty one without force", async () => {
+    const workspace = await workspaces().create({ session: "glossary-fix" });
+    await workspaces().takeLease(workspace, liveSession);
+    writeFileSync(join(workspace.path, "work.txt"), "in progress");
+
+    await expect(
+      workspaces().remove(workspace, { holder: liveSession }),
+    ).rejects.toThrow(/uncommitted changes/);
+    await expect(
+      workspaces().remove(workspace, {
+        holder: { kind: "session", pid: process.pid },
+        force: true,
+      }),
+    ).rejects.toThrow(`a session (pid ${process.ppid})`);
+    expect(existsSync(workspace.path)).toBe(true);
+
+    await workspaces().remove(workspace, { holder: liveSession, force: true });
     expect(existsSync(workspace.path)).toBe(false);
   });
 
