@@ -17,6 +17,7 @@ import {
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 
+import { FactsFile } from "./FactsFile.ts";
 import { commandLabelOf, messageOf, outputTailOf } from "./failureText.ts";
 import {
   currentBranchOf,
@@ -245,6 +246,10 @@ export class WrapUp {
     return IssueWorkspaces.init(this.config.workspaces);
   }
 
+  get factsFile(): FactsFile {
+    return FactsFile.init(this.config.stateFolder);
+  }
+
   async run(issue: IssueRef): Promise<WrapUpResult> {
     const facts = this._readFacts(issue);
     const landing: Landing = {
@@ -362,25 +367,7 @@ export class WrapUp {
   }
 
   private _readFacts(issue: IssueRef): WrapUpFacts {
-    const path = this._factsPathOf(issue);
-    if (!existsSync(path)) throw new Error(`No facts file at ${path}`);
-    // A facts file written before #297 counts Proposals under their old name.
-    const { defers, ...facts } = JSON.parse(
-      readFileSync(path, "utf8"),
-    ) as WrapUpFacts & { defers?: number };
-    if (defers !== undefined) facts.proposals ??= defers;
-    if (!Array.isArray(facts.branches)) {
-      throw new Error(`${path} has no branch list`);
-    }
-    if (
-      facts.branches.length === 0 &&
-      (facts.githubWrites ?? []).length === 0
-    ) {
-      throw new Error(`${path} names no branches to land and no GitHub writes`);
-    }
-    if (typeof facts.closingComment !== "string") {
-      throw new Error(`${path} has no closing comment`);
-    }
+    const facts = this.factsFile.read(issue);
     facts.branches.forEach(({ repo }) => this._clonePathOf(repo));
     return facts;
   }
@@ -420,10 +407,6 @@ export class WrapUp {
       },
       mergeArgs: sessionMergeArgsOf,
     };
-  }
-
-  private _factsPathOf(issue: IssueRef): string {
-    return join(this.config.stateFolder, `${fileStemOf(issue)}.facts.json`);
   }
 
   private _readProgress(key: WorkspaceKey): Progress {

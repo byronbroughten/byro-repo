@@ -23,6 +23,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 
 import type { AgentStep, Pair, StepRequest, StepResult } from "./AgentStep.ts";
+import { FactsFile } from "./FactsFile.ts";
 import { commandLabelOf, messageOf, outputTailOf } from "./failureText.ts";
 import {
   type SavedTriageRecord,
@@ -482,6 +483,10 @@ export class SpecRun {
 
   get workspaces(): IssueWorkspaces {
     return IssueWorkspaces.init(this._workspacesConfig);
+  }
+
+  get factsFile(): FactsFile {
+    return FactsFile.init(this.config.stateFolder);
   }
 
   get wrapUp(): WrapUp {
@@ -2237,10 +2242,7 @@ export class SpecRun {
         steps: sessions,
       };
     }
-    writeFileSync(
-      join(this.config.stateFolder, `${fileStemOf(ticket.issue)}.facts.json`),
-      `${JSON.stringify(facts, undefined, 2)}\n`,
-    );
+    this.factsFile.write(ticket.issue, facts);
   }
 
   // Logged however the step ends, a Stop or Halt included.
