@@ -62,6 +62,13 @@ export interface Handoff {
   ruledOut: string[];
   filesChanged: string[];
   stillFailing: string[];
+  // Set when less than half the ticket is done: the remaining work, which the developer splits the ticket into.
+  proposedSplit?: ProposedSlice[];
+}
+
+export interface ProposedSlice {
+  delivers: string;
+  files: string[];
 }
 
 export interface ImplementPromptInput {
@@ -152,7 +159,7 @@ const promptSections = {
 
   handoff: `## If a context nudge fires
 
-Finish the step in hand, then stop: commit nothing, post nothing, and return status \`handoff\` with no branches and every \`handoff\` field: \`conclusion\`, \`filesToOpen\` (path and line range), \`ruledOut\`, \`filesChanged\`, and \`stillFailing\` (empty when the code is green). A handoff is cumulative: carry over whatever still matters from any handoff you started from.`,
+Finish the step in hand, then stop: commit nothing, post nothing, and return status \`handoff\` with no branches and every \`handoff\` field: \`conclusion\`, \`filesToOpen\` (path and line range), \`ruledOut\`, \`filesChanged\`, and \`stillFailing\` (empty when the code is green). A handoff is cumulative: carry over whatever still matters from any handoff you started from. When less than half the ticket is done, also fill \`proposedSplit\` with the remaining work as slices, each with what it \`delivers\` and the \`files\` it changes, so the developer can split the ticket before a fresh step goes on.`,
 } as const;
 
 function previousHandoffSection(handoff: Handoff): string {
@@ -165,12 +172,25 @@ ${handoffText(handoff)}`;
 
 // The runner posts it on the ticket; the `session:` line ties it to the step's transcript.
 export function handoffCommentOf(handoff: Handoff, sessionId: string): string {
+  const { proposedSplit } = handoff;
   return [
     "## Handoff",
     "The implement step handed this ticket to a fresh implement step.",
     handoffText(handoff),
+    ...(proposedSplit === undefined
+      ? []
+      : [`Proposed split:\n${proposedSplitText(proposedSplit)}`]),
     `session: ${sessionId}`,
   ].join("\n\n");
+}
+
+export function proposedSplitText(slices: ProposedSlice[]): string {
+  return slices
+    .map(
+      ({ delivers, files }, index) =>
+        `${index + 1}. ${delivers} (${files.join(", ")})`,
+    )
+    .join("\n");
 }
 
 function handoffText(handoff: Handoff): string {
@@ -234,15 +254,25 @@ const gitHubWriteSchema = objectSchema({
   summary: stringSchema,
 });
 
-const handoffSchema = objectSchema({
-  conclusion: stringSchema,
-  filesToOpen: arraySchema(
-    objectSchema({ path: stringSchema, lines: stringSchema }),
-  ),
-  ruledOut: arraySchema(stringSchema),
-  filesChanged: arraySchema(stringSchema),
-  stillFailing: arraySchema(stringSchema),
-});
+const handoffSchema = objectSchema(
+  {
+    conclusion: stringSchema,
+    filesToOpen: arraySchema(
+      objectSchema({ path: stringSchema, lines: stringSchema }),
+    ),
+    ruledOut: arraySchema(stringSchema),
+    filesChanged: arraySchema(stringSchema),
+    stillFailing: arraySchema(stringSchema),
+    proposedSplit: arraySchema(
+      objectSchema({
+        delivers: stringSchema,
+        files: arraySchema(stringSchema),
+      }),
+      { minItems: 1 },
+    ),
+  },
+  { optional: ["proposedSplit"] },
+);
 
 // One variant per status, so only the status that needs a field carries it.
 const recordVariantsSchema = {

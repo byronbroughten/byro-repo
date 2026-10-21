@@ -8,7 +8,11 @@ import {
   haltScopeOf,
   type TriageRecord,
 } from "./findingTriage.ts";
-import type { Blocker } from "./implementStep.ts";
+import {
+  type Blocker,
+  type ProposedSlice,
+  proposedSplitText,
+} from "./implementStep.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 import { pairNamed } from "./modelFit.ts";
 import type { IssueComment, TicketStep } from "./SpecRun.ts";
@@ -25,6 +29,7 @@ const kindLabels = {
   "spec-ambiguity": "spec-ambiguity blocker",
   "denied-tool": "denied-tool blocker",
   failure: "Failure Halt",
+  split: "Split Halt",
 } as const;
 
 export type HaltKind = keyof typeof kindLabels;
@@ -84,6 +89,44 @@ export function blockerHaltOf(
   return { kind, question: detail, options, scope: downstream };
 }
 
+// Any answer but `stop spec` is a `continue`: a fresh step on the ticket's body as it then reads.
+export function splitHaltOf(
+  slices: ProposedSlice[],
+  downstream: string[],
+): HaltDraft {
+  return {
+    kind: "split",
+    question: `The implement step handed off with less than half the ticket done, and proposed splitting the rest into:\n\n${proposedSplitText(slices)}\n\n${splitTheTicketPhraseOf("`continue`")}: a fresh implement step picks up from the handoff on the ticket's body as it then reads.`,
+    options: ["`continue`"],
+    scope: downstream,
+  };
+}
+
+export interface HandoffCap {
+  ticket: IssueRef;
+  count: number;
+  cap: number;
+  // A split the capped handoff proposed; empty when none, or a Halt already carried it.
+  slices: ProposedSlice[];
+}
+
+export function handoffCapDetailOf({
+  ticket,
+  count,
+  cap,
+  slices,
+}: HandoffCap): string {
+  const split =
+    slices.length > 0
+      ? ` The last handoff proposed splitting the rest into:\n\n${proposedSplitText(slices)}\n\n`
+      : " ";
+  return `${issueLabelOf(ticket)} handed off ${count} times, past its cap of ${cap}.${split}${splitTheTicketPhraseOf(failureOptions.moreHandoffs)}.`;
+}
+
+function splitTheTicketPhraseOf(answer: string): string {
+  return `Split the ticket, narrowing its body and moving the rest to new tickets, then answer ${answer}`;
+}
+
 // The fixer's give-ups arrive already rewritten as Halt records by giveUpRecordOf().
 export function triageHaltOf(
   record: TriageRecord,
@@ -113,6 +156,7 @@ export interface StepFailure {
 export const failureOptions = {
   retry: "`retry`",
   retryRecord: "`retry record`",
+  moreHandoffs: "`continue +1 handoff`",
 } as const;
 
 // Any answer but `stop spec` and `skip` runs the step again with a fresh count.
@@ -133,6 +177,7 @@ export type FailureAnswer =
   | { kind: "retry" }
   | { kind: "retry-record" }
   | { kind: "more-turns"; turns: number | undefined }
+  | { kind: "more-handoffs" }
   | { kind: "rerun"; pair: Pair }
   | { kind: "skip" }
   | { kind: "guidance"; text: string };
@@ -151,6 +196,7 @@ export function failureAnswerOf(
   if (answerWords === "retry") return { kind: "retry" };
   if (answerWords === "retry record") return { kind: "retry-record" };
   if (answerWords === "skip") return { kind: "skip" };
+  if (answerWords === "continue +1 handoff") return { kind: "more-handoffs" };
   const moreTurns = /^resume \+(\d+)? ?turns?$/.exec(answerWords);
   if (moreTurns !== null) {
     const [, turns] = moreTurns;

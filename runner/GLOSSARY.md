@@ -25,7 +25,7 @@ The structured output an agent step returns, validated against the runner's sche
 _Avoid_: report, result, output
 
 **Handoff**:
-An implement step's ending that passes unfinished work, with a written account of it, to a fresh implement step on the same ticket.
+An implement step's ending that passes unfinished work, with a written account of it, to a fresh implement step on the same ticket. A ticket past its handoff cap gets a Failure Halt saying to split it.
 _Avoid_: retry, restart
 
 **Finding triage**:
@@ -57,8 +57,11 @@ The verdict that blocks the tickets in its scope until the developer answers: na
 _Avoid_: pause, block, question
 
 **Failure Halt**:
-A Halt raised because a step failed, not by a verdict: a second crash, a schema failure, red checks on a green master, an implement step's turn cap. It offers `retry` and `stop spec`, and free text such as `rerun on <pair>` or `skip`.
+A Halt raised because a step failed, not by a verdict: a second crash, a schema failure, red checks on a green master, an implement step's turn cap. It offers `retry` and `stop spec`, and free text such as `rerun on <pair>` or `skip`; a ticket past its handoff cap gets one offering `continue +1 handoff` in place of `retry`.
 _Avoid_: error, crash
+
+**Split Halt**:
+A Halt raised in place of a fresh implement step when a handoff proposes splitting the ticket, carrying the proposed slices. The developer splits the ticket, then answers `continue`. It is not a Failure Halt, so the stuck detector ignores it.
 
 **Stop**:
 The run ends early: on a failure no answer can fix inside the run (GitHub or `claude` unreachable or logged out, a clone missing or dirty, a red master, every account past its weekly reserve, or a runner exception), or after the current ticket on a stop request (`npm run runner -- stop`) or a `stop spec` answer, which leaves a halted ticket committed and unlanded with its other Halts open. Rerunning resumes it.

@@ -75,6 +75,7 @@ import {
   haltNameOf,
   haltNoticeOf,
   type HaltPost,
+  handoffCapDetailOf,
   ignoredNoteOf,
   isRunnersComment,
   isStopSpecAnswer,
@@ -82,6 +83,7 @@ import {
   resumePrompt,
   runnerMark,
   shortRefOf,
+  splitHaltOf,
   type StepFailure,
   triageHaltOf,
 } from "./halts.ts";
@@ -309,8 +311,12 @@ interface TicketState {
   implementBase?: Heads;
   // Kept across a rerun, so the step after a handoff starts from it; cleared by any other implement record.
   latestHandoff?: Handoff;
-  // Numbers each handoff's backup branch.
+  // Numbers each handoff's backup branch, and counts toward the handoff cap.
   handoffCount?: number;
+  // Added by `continue +1 handoff` answers, on top of the handoffsPerTicket knob.
+  extraHandoffs?: number;
+  // The handoff whose proposed split a Halt already carried, so a rerun never raises it again.
+  splitHaltedHandoff?: number;
   // Set by a Failure Halt's answer, so a rerun acts on it.
   pair?: Pair;
   guidance?: string;
@@ -1185,6 +1191,9 @@ export class SpecRun {
     const { liveCeiling } = this.config.knobs;
     let launch: StepLaunch;
     if (continuation === undefined || state.implementBase === undefined) {
+      if (state.latestHandoff !== undefined) {
+        await this._haltBeforeFreshStep(ticketRun, state.latestHandoff);
+      }
       state.implementBase = await this._headsOf(workspace);
       this._saveState(run);
       launch = { ...launchOf(), liveCeiling };
@@ -1259,10 +1268,42 @@ export class SpecRun {
     state.handoffCount = count;
     state.latestHandoff = handoff;
     this._saveState(run);
-    this._log(
-      run,
-      `${issueLabelOf(ticket.issue)}: handoff ${count}; launching a fresh implement step.`,
-    );
+    this._log(run, `${issueLabelOf(ticket.issue)}: handoff ${count}.`);
+  }
+
+  // Checked at each fresh step's launch, so a crash or an answer other than `continue +1 handoff` never skips it.
+  private async _haltBeforeFreshStep(
+    ticketRun: TicketRun,
+    { proposedSplit }: Handoff,
+  ): Promise<void> {
+    const { run, ticket, state } = ticketRun;
+    const count = state.handoffCount ?? 0;
+    const cap =
+      this.config.knobs.handoffsPerTicket + (state.extraHandoffs ?? 0);
+    const isSplitUnhalted =
+      proposedSplit !== undefined && state.splitHaltedHandoff !== count;
+    if (count > cap) {
+      if (isSplitUnhalted) state.splitHaltedHandoff = count;
+      await this._failureHalt(ticketRun, {
+        step: state.step,
+        detail: handoffCapDetailOf({
+          ticket: ticket.issue,
+          count,
+          cap,
+          slices: isSplitUnhalted ? proposedSplit : [],
+        }),
+        logPath: this._progressPathOf(run),
+        options: [failureOptions.moreHandoffs],
+      });
+    }
+    if (!isSplitUnhalted) return;
+    const downstream = await this._downstreamOf(run, ticket.issue);
+    raiseHalts(run, {
+      ticket: ticket.issue,
+      drafts: [splitHaltOf(proposedSplit, downstream)],
+    });
+    state.splitHaltedHandoff = count;
+    await this._haltOnUnpostedHalts(ticketRun);
   }
 
   private _implementPromptOf({ ticket, workspace, state }: TicketRun): string {
@@ -1377,7 +1418,7 @@ export class SpecRun {
     }
   }
 
-  // The resumed implementer gets every answer while its session is under the ticket budget; otherwise a fresh agent does.
+  // The resumed implementer gets every answer while its session is under the ticket budget and didn't hand off; otherwise a fresh agent does.
   private async _resume(ticketRun: TicketRun): Promise<void> {
     const { run, ticket } = ticketRun;
     const halts = undeliveredHaltsOf(run, ticket.issue);
@@ -1397,15 +1438,19 @@ export class SpecRun {
     const sessionId = implementerSessionOf(state);
     const peak = state.implementPeak ?? Infinity;
     const isUnderBudget = peak < this.config.knobs.ticketBudget;
-    if (sessionId !== undefined && isUnderBudget) {
+    const isHandedOff = state.latestHandoff !== undefined;
+    if (sessionId !== undefined && isUnderBudget && !isHandedOff) {
       return {
         prompt: resumePrompt(halts),
         resumeSessionId: sessionId,
         jsonSchema: implementOutputSchema,
       };
     }
+    // A split Halt's slices may be stale once the developer narrows the ticket, so only its body speaks for them.
+    const answered = halts.filter(({ kind }) => kind !== "split");
+    if (answered.length === 0) return this._freshLaunchOf(ticketRun);
     return {
-      prompt: `${this._implementPromptOf(ticketRun)}\n\n${freshResumeSection(halts)}`,
+      prompt: `${this._implementPromptOf(ticketRun)}\n\n${freshResumeSection(answered)}`,
       jsonSchema: implementOutputSchema,
     };
   }
@@ -2568,6 +2613,12 @@ function deliverFailureHalts(
   }
   if (answer.kind === "more-turns" && isOffered(latest, "`resume +")) {
     state.continuation = { kind: "turns", turns: answer.turns ?? extraTurns };
+  }
+  if (
+    answer.kind === "more-handoffs" &&
+    isOffered(latest, failureOptions.moreHandoffs)
+  ) {
+    state.extraHandoffs = (state.extraHandoffs ?? 0) + 1;
   }
   if (answer.kind === "rerun") state.pair = answer.pair;
   if (answer.kind === "guidance") state.guidance = answer.text;
