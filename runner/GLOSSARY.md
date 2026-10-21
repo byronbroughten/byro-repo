@@ -28,6 +28,10 @@ _Avoid_: report, result, output
 An implement step's ending that passes unfinished work, with a written account of it, to a fresh implement step on the same ticket. A ticket past its handoff cap gets a Failure Halt saying to split it.
 _Avoid_: retry, restart
 
+**Facts file**:
+What one ticket's landing reads: where its work is, how it went and what to say when closing it. The runner writes it during a run, and an interactive session's tooling writes it during that session; an agent never writes it.
+_Avoid_: wrap-up input, outcome file
+
 **Finding triage**:
 The step after review that gives each review finding a verdict, as one triage record. It is skipped when review finds nothing.
 _Avoid_: classification, judging
