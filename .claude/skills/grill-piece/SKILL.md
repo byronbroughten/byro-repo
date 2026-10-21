@@ -17,10 +17,10 @@ An ID is always asked for, never guessed. For a folder, list it with the gworksp
 
 ## 2. Read the files
 
-Size each file from its Drive metadata. **Short** is under about 10 pages, which a Google Doc under about 30 KB is. A PDF, which Drive sizes only in bytes, counts as long.
+**Short** is under about 10 pages. A Google Doc is sized by its Drive metadata: under about 30 KB is short. A PDF is downloaded and its pages counted, by [`pdf.md`](pdf.md); one that can't be counted is long.
 
 - **The short files go to one sub-agent together**, which reads each in full and returns, per file by title: what it is, every fact bearing on grilling.md's questions, and any of the developer's own text, quoted verbatim with where it lives.
-- **Each long file gets its own sub-agent**, which reads only its table of contents and front matter and returns its chapters and sections with page ranges. One that finds the file short after all reads it whole and returns what a short-file sub-agent would.
+- **Each long file gets its own sub-agent**, which reads only its table of contents and front matter and returns its chapters and sections with page ranges. A long PDF's sub-agent gets its local path and `pdf.md`, reads the first 20 PDF pages and more only while the contents run on, and gives each range as PDF pages with the printed pages beside them. One that finds the file short after all reads it whole and returns what a short-file sub-agent would.
 
 Dispatch them all at once, reads only, each told the file IDs and to cite by title and page. Done when every file has its report: its facts and own text, or its chapter list.
 
@@ -31,7 +31,7 @@ Call the Skill tool with "grilling" for its round format; grilling.md's rounds r
 Every question carries a recommendation:
 
 - **A factual question's** is drafted from the files and cites the file it came from.
-- **A voice question's**, one of those grilling.md asks alone, quotes the developer's own text from Drive when one exists, cited. Otherwise it is labelled _draft, reword it_, so agent wording reaches the spec only once the developer rewords it.
+- **A voice question's**, one of those grilling.md asks alone, quotes the developer's own text from Drive when one exists, cited. Otherwise it is labelled _draft, reword it_, so agent wording reaches the spec only once the developer rewords it. A bare "yes" to a draft is no answer yet: ask the developer to reword it or waive the question.
 
 **Write a term settled in the grill into the writing `GLOSSARY.md` at once**, in its existing entry shape; that is the only file written before `/piece-spec`.
 
@@ -41,4 +41,6 @@ Every question carries a recommendation:
 2. **The Outline.** Read [`packages/writing/docs/outlining.md`](../../../packages/writing/docs/outlining.md), then draft it from the settled facts for the developer's approval.
 3. **The `/to-writing-style` candidates**: list each difference that holds for every Piece in chat, unwritten, for that skill's approval.
 
-Done when grilling.md's done criterion holds and the candidates are listed. End by recommending `/piece-spec`.
+4. **Delete the PDFs step 2 downloaded**, by the paths it got back; later stages read Supporting Material from Drive by ID.
+
+Done when grilling.md's done criterion holds, the candidates are listed and the downloads are gone. End by recommending `/piece-spec`.
