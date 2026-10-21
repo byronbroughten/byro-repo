@@ -30,15 +30,10 @@ export function pieceRules(
   { voiceSheetPath, claritySheetPath, academicSheetPath }: StyleSheetPaths,
   style: PieceStyle,
 ): string[] {
-  const voiceRules = rulesOf(readFileSync(voiceSheetPath, "utf8"));
+  const voiceRules = rulesIn(voiceSheetPath);
   requirePositionRules(voiceRules, voiceSheetPath);
-  const rules = [
-    ...voiceRules,
-    ...rulesOf(readFileSync(claritySheetPath, "utf8")),
-  ];
-  if (style.isAcademic) {
-    rules.push(...rulesOf(readFileSync(academicSheetPath, "utf8")));
-  }
+  const rules = [...voiceRules, ...rulesIn(claritySheetPath)];
+  if (style.isAcademic) rules.push(...rulesIn(academicSheetPath));
   return rules
     .filter(
       ({ tag }) =>
@@ -67,18 +62,27 @@ export function isRuleAt(
 // Sections whose bold lines define words or rank the sheets, never rules a paragraph can break.
 const nonRuleSections = ["Axes", "Terms", "Precedence"];
 
+function rulesIn(sheetPath: string): StyleRule[] {
+  return rulesOf(readFileSync(sheetPath, "utf8"));
+}
+
+// Drops the text before the first section, so a sheet's intro is never read as rules.
 function rulesOf(sheet: string): StyleRule[] {
-  let section: string | undefined;
-  return sheet.split("\n").flatMap((line) => {
-    const heading = /^## (.+?)\s*$/.exec(line);
-    if (heading) section = heading[1];
-    const rule = /^- (?:`(\w+)` )?\*\*(.+?)\*\*/.exec(line);
-    if (!rule || section === undefined || nonRuleSections.includes(section)) {
-      return [];
-    }
-    const [, tag, text = ""] = rule;
-    return [{ text, tag }];
-  });
+  return sheet
+    .split(/^## /m)
+    .slice(1)
+    .filter((section) => !nonRuleSections.includes(headingOf(section)))
+    .flatMap((section) => section.split("\n"))
+    .flatMap((line) => {
+      const rule = /^- (?:`(\w+)` )?\*\*(.+?)\*\*/.exec(line);
+      if (!rule) return [];
+      const [, tag, text = ""] = rule;
+      return [{ text, tag }];
+    });
+}
+
+function headingOf(section: string): string {
+  return section.split("\n", 1)[0]?.trim() ?? "";
 }
 
 function requirePositionRules(rules: StyleRule[], sheetPath: string): void {
