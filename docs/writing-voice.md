@@ -1,4 +1,4 @@
-# Writing style
+# Writing voice
 
 The developer's voice for reader-facing prose ([defined in `prose-files.md`](./agents/prose-files.md#terms)), drawn from their own writing, plus the rules they endorsed from Strunk and White's *The Elements of Style*; academic work layers [`academic-writing-style.md`](./academic-writing-style.md) on top. It calls its reader "the reader", and says "app user" only for the app's user.
 
