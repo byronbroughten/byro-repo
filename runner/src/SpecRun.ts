@@ -23,6 +23,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 
 import type { AgentStep, Pair, StepRequest, StepResult } from "./AgentStep.ts";
+import { FactsFile, type WrapUpFacts } from "./FactsFile.ts";
 import { commandLabelOf, messageOf, outputTailOf } from "./failureText.ts";
 import {
   type SavedTriageRecord,
@@ -170,12 +171,7 @@ import {
   stopOutcomes,
   UnhandledStop,
 } from "./UnhandledStop.ts";
-import {
-  WrapUp,
-  type WrapUpFacts,
-  type WrapUpGitHub,
-  type WrapUpKnobs,
-} from "./WrapUp.ts";
+import { WrapUp, type WrapUpGitHub, type WrapUpKnobs } from "./WrapUp.ts";
 import { WrapUpFailure } from "./WrapUpFailure.ts";
 
 const execFileAsync = promisify(execFile);
@@ -482,6 +478,10 @@ export class SpecRun {
 
   get workspaces(): IssueWorkspaces {
     return IssueWorkspaces.init(this._workspacesConfig);
+  }
+
+  get factsFile(): FactsFile {
+    return FactsFile.init(this.config.stateFolder);
   }
 
   get wrapUp(): WrapUp {
@@ -2237,10 +2237,7 @@ export class SpecRun {
         steps: sessions,
       };
     }
-    writeFileSync(
-      join(this.config.stateFolder, `${fileStemOf(ticket.issue)}.facts.json`),
-      `${JSON.stringify(facts, undefined, 2)}\n`,
-    );
+    this.factsFile.write(ticket.issue, facts);
   }
 
   // Logged however the step ends, a Stop or Halt included.
