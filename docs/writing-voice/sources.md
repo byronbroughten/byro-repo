@@ -40,7 +40,7 @@ The 24 Docs and 3 decks in the Drive folder **Business Writing Examples**, each 
 
 Strunk and White, *The Elements of Style*, 4th edition, in the Drive folder **Writing Style**, read on 2026-10-18 (Chapters II and V closely). The developer endorsed nine of its rules against the Assessment 1 Next Draft (writing#4), whose AI drafting ran wordy and repetitive (session 2ebcdf61). Each borrowed rule's instances name its Strunk and White rule number. The book is under copyright, so the rules are paraphrased, with a phrase quoted at most.
 
-Where a borrowed rule meets one of the developer's own habits, the habit wins: arithmetic keeps its steps, for one.
+Where a borrowed rule meets one of the developer's own habits, the Clarity sheet's [precedence rule](../writing-clarity.md#precedence) decides.
 
 ## Blog posts
 
@@ -59,8 +59,6 @@ The five DealLab blog posts indexed at [deallab.app/home-cost-guides](https://de
 "Seen in" counts the six reading batches that reported a habit. Several samples reuse whole paragraphs from one another (the DealLab script and the marketing plan; the D.R. Horton reports; Capital Budgeting and the ABC deck), so a count can overstate an independent habit. "In N of 5 posts" counts the blog posts, separately.
 
 Where sources disagree on voice, the blog posts win, then the DealLab deck, then the academic samples: the blog and in-app text should sound like a product, not a paper. In academic work, [`academic-writing-style.md`](../academic-writing-style.md) still wins.
-
-A Clarity rule wins over a Voice habit only when the habit makes the reader misread or reread a sentence; matters of taste stay with the habit.
 
 ## Dropped habits
 
