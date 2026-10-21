@@ -5,7 +5,7 @@
 
 ## Piece specs
 
-- **Grilling a piece spec starts from [`packages/writing/docs/grilling.md`](../../packages/writing/docs/grilling.md).**
+- **A piece spec is grilled with `/grill-piece`**, which runs [`packages/writing/docs/grilling.md`](../../packages/writing/docs/grilling.md).
 - **A piece spec is filed with `/piece-spec` and split with `/piece-tickets`**, never `/code-spec` or `/code-tickets`.
 
 ## Code in specs
