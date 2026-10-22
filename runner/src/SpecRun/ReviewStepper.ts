@@ -92,7 +92,7 @@ export class ReviewStepper extends SpecRunBase {
 
   // Triage never edits, so it runs with no targets; a refused record gets one retry in the same session.
   async _triage(ticketRun: TicketRun): Promise<void> {
-    const { ticket, workspace, state } = ticketRun;
+    const { run, ticket, workspace, state } = ticketRun;
     const findings = state.findings ?? [];
     const launch = {
       pair: this.config.knobs.triagePair,
@@ -127,8 +127,8 @@ export class ReviewStepper extends SpecRunBase {
       }
     }
     state.triage = records;
-    raiseHalts(ticketRun.run, {
-      ticket: ticketRun.ticket.issue,
+    raiseHalts(run, {
+      ticket: ticket.issue,
       drafts: records
         .filter(isHalt)
         .map((record) => triageHaltOf(record, "verdict")),
@@ -146,9 +146,7 @@ export class ReviewStepper extends SpecRunBase {
       await resetTo(workspace, state.fixBase);
     }
     const base = state.fixBase;
-    const peak = state.implementPeak ?? Infinity;
-    const isUnderBudget = peak < this.config.knobs.ticketBudget;
-    let fixer: Fixer = isUnderBudget ? "implementer" : "triage";
+    let fixer: Fixer = this._isUnderBudget(state) ? "implementer" : "triage";
     let attempt = await this._runFixer(ticketRun, fixer, fixes);
     if (attempt.kind === "crossed" && fixer === "implementer") {
       await resetTo(workspace, base);
@@ -198,8 +196,8 @@ export class ReviewStepper extends SpecRunBase {
         isHalt(record) &&
         gaveUps.some(({ finding }) => finding === record.finding),
     );
-    raiseHalts(ticketRun.run, {
-      ticket: ticketRun.ticket.issue,
+    raiseHalts(run, {
+      ticket: ticket.issue,
       drafts: gaveUpHalts.map((record) => triageHaltOf(record, "give-up")),
     });
     if (hasNewCommit) state.fixer = fixer;

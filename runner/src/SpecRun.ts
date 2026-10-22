@@ -828,7 +828,7 @@ export class SpecRun extends SpecRunBase {
     failure: string,
   ): Promise<void> {
     const { run, ticket, workspace, state } = ticketRun;
-    const { retriesPerFailure, ticketBudget } = this.config.knobs;
+    const { retriesPerFailure } = this.config.knobs;
     const resumes = state.redCheckResumes ?? 0;
     if (resumes >= retriesPerFailure) {
       await this.haltRaiser._failureHalt(ticketRun, {
@@ -839,9 +839,10 @@ export class SpecRun extends SpecRunBase {
     }
     state.redCheckResumes = resumes + 1;
     this._saveState(run);
-    const peak = state.implementPeak ?? Infinity;
     let fixer: Fixer = state.fixer ?? "implementer";
-    if (fixer === "implementer" && peak >= ticketBudget) fixer = "triage";
+    if (fixer === "implementer" && !this._isUnderBudget(state)) {
+      fixer = "triage";
+    }
     this._log(
       run,
       `${issueLabelOf(ticket.issue)}: checks red; resuming the ${fixerLabels[fixer]} with the failure.`,

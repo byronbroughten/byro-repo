@@ -295,8 +295,7 @@ export class ImplementStepper extends SpecRunBase {
   private _resumeLaunchOf(ticketRun: TicketRun, halts: Halt[]): StepLaunch {
     const { state } = ticketRun;
     const sessionId = implementerSessionOf(state);
-    const peak = state.implementPeak ?? Infinity;
-    const isUnderBudget = peak < this.config.knobs.ticketBudget;
+    const isUnderBudget = this._isUnderBudget(state);
     const isHandedOff = state.latestHandoff !== undefined;
     if (sessionId !== undefined && isUnderBudget && !isHandedOff) {
       return {

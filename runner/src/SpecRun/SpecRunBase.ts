@@ -229,6 +229,12 @@ export class SpecRunBase {
     this._saveState(run);
   }
 
+  // A ticket whose implementer has no recorded peak counts as over budget.
+  protected _isUnderBudget(state: TicketState): boolean {
+    const peak = state.implementPeak ?? Infinity;
+    return peak < this.config.knobs.ticketBudget;
+  }
+
   // Usage is undefined when the reader fails or has no usable reading for the configured account.
   protected async _readingOf(run: Run): Promise<AccountReading> {
     const { account } = this.config.knobs;
