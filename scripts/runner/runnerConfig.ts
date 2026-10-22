@@ -54,7 +54,8 @@ export const runKnobs = loadRunKnobs(join(scriptFolder, "runner.config.json"));
 export const issueWorkspacesConfig: IssueWorkspacesConfig = {
   primaryRoot,
   clonePaths: runKnobs.clonePaths,
-  workspaceFolder: join(dirname(primaryRoot), "byro-repo-workspaces"),
+  // EnterWorktree asks for approval on any path outside the repo's .claude/worktrees/, whatever the allow rules say.
+  workspaceFolder: join(primaryRoot, ".claude", "worktrees"),
   symlinkedFiles: ["sheets.config.json", ".clasp.json"],
   async installDependencies(workspaceRoot) {
     execFileSync("npm", ["install"], { cwd: workspaceRoot, stdio: "inherit" });

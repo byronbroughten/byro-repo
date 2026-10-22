@@ -1,5 +1,5 @@
-// The workspace module: creates, lists, promotes, resumes and removes workspaces, each a byro-repo worktree outside the
-// primary root with a worktree of every package clone inside it, so work never moves a primary checkout's branch.
+// The workspace module: creates, lists, promotes, resumes and removes workspaces, each a byro-repo worktree in the injected
+// workspace folder with a worktree of every package clone inside it, so work never moves a primary checkout's branch.
 // An issue workspace is keyed by an IssueRef; a session workspace by a SessionKey, with every repo on its session branch.
 // A lease is a run's or session's hold on one workspace, a file in its root worktree's git folder so it never shows as dirty;
 // it is live while the process that took it runs on this machine, a dead holder's lease is taken over, and a holder holds one at a time.
