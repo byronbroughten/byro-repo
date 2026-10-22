@@ -12,6 +12,7 @@ import {
 } from "@byronbroughten/spec-runner/ClaudeAgentStep";
 import { CswapUsageReader } from "@byronbroughten/spec-runner/CswapUsageReader";
 import { GhCli } from "@byronbroughten/spec-runner/GhCli";
+import type { ImplementCodeSkillInput } from "@byronbroughten/spec-runner/implementCodeSkill";
 import type {
   IssueRef,
   IssueWorkspacesConfig,
@@ -24,6 +25,12 @@ import type { WrapUpConfig } from "@byronbroughten/spec-runner/WrapUp";
 export const githubOwner = "byronbroughten";
 // The one login whose text is Trusted text; fixed here, never taken from a command line.
 export const developer = githubOwner;
+// The commands /implement-code names; implementCodeSkill.test.ts keeps the committed skill generated from them.
+export const implementCodeCommands: ImplementCodeSkillInput = {
+  promoteCommand: promoteCommandOf("<repo>", "<n>"),
+  reviewCommand: "npm run runner -- review <owner>/<repo> <n>",
+  wrapUpCommand: "npm run wrap-up -- <repo> <n>",
+};
 const scriptFolder = fileURLToPath(new URL(".", import.meta.url));
 const localConfigPath = join(scriptFolder, "runner.local.json");
 
@@ -95,7 +102,7 @@ export function specRunConfigOf(owner: string): SpecRunConfig {
     symlinkedFiles,
     installDependencies,
     promoteCommandOf: ({ repo, number }: IssueRef) =>
-      `npm run issue:promote -- ${repo} ${number}`,
+      promoteCommandOf(repo, `${number}`),
     outcomeFolder,
     stateFolder,
     log: (line) => console.log(line),
@@ -122,4 +129,8 @@ export function ntfyTopic(): string {
     throw new Error(missing);
   }
   return ntfyTopic;
+}
+
+function promoteCommandOf(repo: string, number: string): string {
+  return `npm run issue:promote -- ${repo} ${number}`;
 }

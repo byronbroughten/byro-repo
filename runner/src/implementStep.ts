@@ -9,7 +9,7 @@ import {
 } from "./FactsFile.ts";
 import { stepReadLine } from "./IssueReader.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
-import { codeListOf } from "./promptText.ts";
+import { codeListOf, sectionOf } from "./promptText.ts";
 import { arraySchema, objectSchema, stringSchema } from "./recordSchema.ts";
 
 export type ImplementRecord =
@@ -128,27 +128,42 @@ function workspaceSection({
 }
 
 function gitHubSection(): string {
-  return `## GitHub
-
-- Some tickets need only GitHub writes and no code. Run \`gh issue edit\` and \`gh issue comment\` only as the ticket describes them. Never close an issue, never change a triage label (such as \`ready-for-agent\`) on this ticket or another ticket of its spec, and make no other GitHub write.
-- ${stepReadLine} When you need a field the reader doesn't print, record a \`denied-tool\` blocker naming it.`;
+  return sectionOf("GitHub", [
+    implementBody.gitHubWrites,
+    `${stepReadLine} When you need a field the reader doesn't print, record a \`denied-tool\` blocker naming it.`,
+  ]);
 }
 
 function workingSection({ allowedWriteGlobs }: ImplementPromptInput): string {
-  return `## How you work
-
-- Work test-first: if a \`tdd\` skill is available, call it, at the seams the ticket names or, with none named, seams you pick yourself; never stop to confirm them.
-- Run typechecking and single test files regularly. At the end, commit, then run \`npm run check\` once; it must pass before you return a \`committed\` record.
-- Read and search with the Read and Grep tools. Give Bash one command per call, run from the workspace root: no \`cd\`, no \`;\` or \`&&\` chains, no variables.
-- You can Edit or Write skills, agent definitions and hooks under \`.claude/\` matching ${codeListOf(allowedWriteGlobs)}; you can't move or delete them with Bash, and can't write \`.claude/settings*.json\` or anything else under \`.claude/\`, by any tool or path. When a write there is denied, record one \`denied-tool\` blocker listing those files instead of trying a workaround.
-- Never ask. When the ticket is ambiguous, a command needs a yes nobody gave, or a tool is denied, don't stall: record it as a blocker (\`spec-ambiguity\`, \`gated-action\` or \`denied-tool\`) with what happened and what you recommend the developer do. Carry on with the reading the ticket best supports when the work can go on without it; otherwise stop with status \`blocked\`.`;
+  return sectionOf("How you work", [
+    implementBody.testFirst,
+    `${implementBody.checking} At the end, commit, then run \`npm run check\` once; it must pass before you return a \`committed\` record.`,
+    implementBody.oneCommand,
+    `You can Edit or Write skills, agent definitions and hooks under \`.claude/\` matching ${codeListOf(allowedWriteGlobs)}; you can't move or delete them with Bash, and can't write \`.claude/settings*.json\` or anything else under \`.claude/\`, by any tool or path. When a write there is denied, record one \`denied-tool\` blocker listing those files instead of trying a workaround.`,
+    "Never ask. When the ticket is ambiguous, a command needs a yes nobody gave, or a tool is denied, don't stall: record it as a blocker (`spec-ambiguity`, `gated-action` or `denied-tool`) with what happened and what you recommend the developer do. Carry on with the reading the ticket best supports when the work can go on without it; otherwise stop with status `blocked`.",
+  ]);
 }
+
+// The bullets the implement step's prompt and the /implement-code skill share; only their endings differ.
+export const implementBody = {
+  gitHubWrites:
+    "Some tickets need only GitHub writes and no code. Run `gh issue edit` and `gh issue comment` only as the ticket describes them. Never close an issue, never change a triage label (such as `ready-for-agent`) on this ticket or another ticket of its spec, and make no other GitHub write.",
+  testFirst:
+    "Work test-first: if a `tdd` skill is available, call it, at the seams the ticket names or, with none named, seams you pick yourself; never stop to confirm them.",
+  checking: "Run typechecking and single test files regularly.",
+  oneCommand:
+    "Read and search with the Read and Grep tools. Give Bash one command per call, run from the workspace root: no `cd`, no `;` or `&&` chains, no variables.",
+  committing:
+    "Commit in each repo you changed, on the ticket's branch, then run `npm run check`. When it fails on your change, fix it in a further commit and run it again; never amend.",
+  onlyWrites:
+    "Those commits and the GitHub writes the ticket describes are your only writes outside the workspace's files: never push, merge, rebase or reset, never close an issue",
+} as const;
 
 const promptSections = {
   finishing: `## When you're done
 
-- Commit in each repo you changed, on the ticket's branch, then run \`npm run check\`. When it fails on your change, fix it in a further commit and run it again; never amend. When it fails only on something your change didn't cause, return your record anyway and name the failure in \`boxesUndone\`; the runner's checks step stops on it.
-- Those commits and the GitHub writes the ticket describes are your only writes outside the workspace's files: never push, merge, rebase or reset, never close an issue, and never run the wrap-up. Don't call code review; the runner reviews after you.
+- ${implementBody.committing} When it fails only on something your change didn't cause, return your record anyway and name the failure in \`boxesUndone\`; the runner's checks step stops on it.
+- ${implementBody.onlyWrites}, and never run the wrap-up. Don't call code review; the runner reviews after you.
 - Then stop and return the implement record as \`record\`:
   - \`status\`: \`committed\`; \`applied\` when the ticket needed only GitHub writes and you committed nothing; or \`blocked\` when a blocker stopped you before any commit.
   - \`branches\`: each repo you committed in, its branch and its last commit's sha, in landing order (a repo lands before any repo that depends on it; a package clone before the root). Empty unless committed.
