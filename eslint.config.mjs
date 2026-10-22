@@ -11,7 +11,7 @@ const runnerRoot = join(repoRoot, "runner");
 // Each package under packages/ lints with its own eslint.config.mjs; the root lint finds them with --flag v10_config_lookup_from_file.
 export default defineConfig(
   ...eslintPreset,
-  // Agent worktrees are whole checkouts that git excludes locally, which ESLint doesn't read.
+  // Workspaces and Claude Code's worktrees are whole checkouts; ESLint doesn't read the .gitignore that skips them.
   { ignores: [".claude/worktrees/**"] },
   // These run or ship apart from packages/, so they carry their own plain guards instead of importing a package's helper.
   {
