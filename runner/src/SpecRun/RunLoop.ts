@@ -2,7 +2,7 @@
 // while an open Halt or another holder's lease is all that's in the way, until every ticket lands or something Stops it.
 // Any outcome a later ticket will handle (red checks, step errors, schema failures) is an UnhandledStop; a red master Stops the run.
 // requestStop() or a `stop spec` answer ends the run between tickets; status() reads it from outside.
-// ../SpecRun.ts delegates run, status and requestStop to it; SessionReviewer.ts calls _authorshipRefusal.
+// ../SpecRun.ts delegates run, status and requestStop to it.
 // It builds its own TicketSelector, TicketSequencer and ReviewListPoster.
 
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
@@ -11,7 +11,6 @@ import { join } from "node:path";
 import { commandLabelOf } from "../failureText.ts";
 import { currentBranchOf } from "../git.ts";
 import { type Halt } from "../halts.ts";
-import { untrustedBodyReasonOf } from "../IssueReader.ts";
 import {
   fileStemOf,
   holderLabelOf,
@@ -194,17 +193,6 @@ export class RunLoop extends SpecRunBase {
       if (isLaunchable(tracked)) launchable.push(tracked);
     }
     return launchable;
-  }
-
-  _authorshipRefusal(run: Run, launchable: TrackedIssue[]): string | undefined {
-    const { developer } = this.config;
-    const offenders = [run.spec, ...launchable].flatMap((issue) => {
-      const reason = untrustedBodyReasonOf(developer, issue);
-      if (reason === undefined) return [];
-      return [`${issueLabelOf(issue.issue)} (${reason})`];
-    });
-    if (offenders.length === 0) return undefined;
-    return `Only ${developer} may write or edit the spec and each open ${readyLabel} ticket; refused ${offenders.join(", ")}.`;
   }
 
   // Runs no checks: master moves only through wrap-up, which checked the commits it landed.

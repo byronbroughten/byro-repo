@@ -1,8 +1,8 @@
 // A session's review: runs review, triage and fix on one ticket's issue workspace outside any run, refusing a workspace
 // another holder leases or one with uncommitted changes, and posts its review list and Halts as a run would.
 // Its Halts are numbered S<n>.<k> and returned to print, to be answered in the session rather than on the spec.
-// ../SpecRun.ts delegates review to it; it builds its own RunLoop (for _authorshipRefusal), TicketSequencer, LeaseKeeper,
-// ReviewListPoster and HaltRaiser.
+// ../SpecRun.ts delegates review to it; its authorship refusal is the Base's, shared with RunLoop.ts.
+// It builds its own TicketSequencer, LeaseKeeper, ReviewListPoster and HaltRaiser.
 
 import { sessionHaltCountOf } from "../halts.ts";
 import {
@@ -22,7 +22,6 @@ import { UnhandledStop } from "../UnhandledStop.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import { LeaseKeeper } from "./LeaseKeeper.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
-import { RunLoop } from "./RunLoop.ts";
 import {
   haltsOf,
   idListOf,
@@ -45,10 +44,6 @@ interface TicketReview extends ReviewOptions {
 }
 
 export class SessionReviewer extends SpecRunBase {
-  private get runLoop(): RunLoop {
-    return new RunLoop(this.config);
-  }
-
   private get ticketSequencer(): TicketSequencer {
     return new TicketSequencer(this.config);
   }
@@ -99,7 +94,7 @@ export class SessionReviewer extends SpecRunBase {
     }
     const checked = isSameIssue(run.spec.issue, issue) ? [] : [ticket];
     const refusal =
-      this.runLoop._authorshipRefusal(run, checked) ??
+      this._authorshipRefusal(run, checked) ??
       targetsRefusalOf(run, [ticket]) ??
       workspaceRefusalOf(workspace, holder);
     if (refusal !== undefined) return refusedReviewOf(refusal);
