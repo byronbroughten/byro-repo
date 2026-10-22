@@ -155,13 +155,15 @@ export const implementBody = {
     "Read and search with the Read and Grep tools. Give Bash one command per call, run from the workspace root: no `cd`, no `;` or `&&` chains, no variables.",
   committing:
     "Commit in each repo you changed, on the ticket's branch, then run `npm run check`. When it fails on your change, fix it in a further commit and run it again; never amend.",
+  onlyWrites:
+    "Those commits and the GitHub writes the ticket describes are your only writes outside the workspace's files: never push, merge, rebase or reset, never close an issue",
 } as const;
 
 const promptSections = {
   finishing: `## When you're done
 
 - ${implementBody.committing} When it fails only on something your change didn't cause, return your record anyway and name the failure in \`boxesUndone\`; the runner's checks step stops on it.
-- Those commits and the GitHub writes the ticket describes are your only writes outside the workspace's files: never push, merge, rebase or reset, never close an issue, and never run the wrap-up. Don't call code review; the runner reviews after you.
+- ${implementBody.onlyWrites}, and never run the wrap-up. Don't call code review; the runner reviews after you.
 - Then stop and return the implement record as \`record\`:
   - \`status\`: \`committed\`; \`applied\` when the ticket needed only GitHub writes and you committed nothing; or \`blocked\` when a blocker stopped you before any commit.
   - \`branches\`: each repo you committed in, its branch and its last commit's sha, in landing order (a repo lands before any repo that depends on it; a package clone before the root). Empty unless committed.

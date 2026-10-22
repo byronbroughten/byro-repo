@@ -60,7 +60,7 @@ function endingSection({
   return `## When you're done
 
 - ${implementBody.committing} When it fails only on something your change didn't cause, carry on and name the failure in your report.
-- Those commits and the GitHub writes the ticket describes are your only writes until the go-ahead: never push, merge, rebase or reset, and never close an issue. Wrap-up does those.
+- ${implementBody.onlyWrites}. The review and wrap-up commands in the ending make every other write.
 - Run git commands one at a time: inside an entered worktree, Claude Code refuses a compound git command.
 - Then, in order:
   1. **Review**: run \`${reviewCommand}\`, resolving \`<repo>\` to \`<owner>/<repo>\`. It runs the runner's review, finding triage and fix on this ticket, commits the fixes, posts the review list on the spec and writes the review facts. It prints each Halt as \`S<n>.<k>\`; answer it with the developer in the session. When it exits short of reviewed, report why and stop.
