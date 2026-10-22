@@ -6,9 +6,9 @@
   - Run loop and selection: `run`, `_select`, `_survey`, `_preflightStop`, `status`, `requestStop`.
   - Leases and workspaces: `_takeLease`, `_releaseLeaseOf`, `_otherHolderOf`, `_workspaceFor`.
   - Per-ticket flow: `_runTicket`, `_runSteps`, `_runEachStep`.
-  - Implement and hand-off: `_implement*`, `_handOff*`, `_takeImplementRecord`, `_resume*`.
-  - Review, triage and fix: `_review`, `_triage`, `_fix`, `_runFixer*`, `_fixerSessionOf`.
-  - Step launch and retry: [`SpecRun/StepLauncher.ts`](./SpecRun/StepLauncher.ts); `_launch` stays on `SpecRun`.
+  - Implement, hand-off and resume: [`SpecRun/ImplementStepper.ts`](./SpecRun/ImplementStepper.ts).
+  - Review, triage and fix: [`SpecRun/ReviewStepper.ts`](./SpecRun/ReviewStepper.ts).
+  - Step launch and retry: [`SpecRun/StepLauncher.ts`](./SpecRun/StepLauncher.ts).
   - Halts, crashes and a ticket's downstream: [`SpecRun/HaltRaiser.ts`](./SpecRun/HaltRaiser.ts); formats and reply matching are `halts.ts`.
   - Checks and landing: `_check`, `_redChecksOf`, `_land`, `_mergeMaster`, `_writeFacts`.
   - Review list and gap check: `_postReviewList*`, `_gapCheck*`, `_finish`.
