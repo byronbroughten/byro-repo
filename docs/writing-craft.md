@@ -14,7 +14,7 @@ One line per rule. The examples and their sources are one file away. Open a reas
 - **Heavy phrase**: a phrase that is long or has phrases nested inside it.
 - **Noun pile**: nouns stacked as modifiers before a head noun.
 - **Center-embedding**: a clause nested in the middle of another, rather than at its start or end.
-- **Metaconcept**: a word for a kind of idea ("issue", "level", "framework") standing where the idea itself should be.
+- **Metaconcept**: a word for a kind of idea ("issue", "level", "approach", "framework", "process", "perspective", "strategy") standing where the idea itself should be.
 
 ## Precedence
 
@@ -45,7 +45,7 @@ One line per rule. The examples and their sources are one file away. Open a reas
 
 ## Words
 
-- **Name the thing itself, not a word for the kind of thing it is ("issue", "level", "approach", "framework", "process", "perspective", "strategy"): "rent may not cover the mortgage", not "there are affordability issues".**
+- **Name the thing itself, not a metaconcept that wraps it: "rent may not cover the mortgage", not "there are affordability issues".**
 - **Call a thing by what it is, with the detail that lets the reader picture it ("the 1950s boiler", "a three-bedroom unit"), not by the part it plays in your work ("the asset", "the subject property", "the test conditions").**
 - **When a piece names something, build the name from plain words that say what it is ("the backup HELOC"), never a letter, a number or an initialism coined for the piece ("Option B", "Scenario 2", "BH").** A table or figure keeps its number.
 - **The first time a term of the trade appears, add a few plain words saying what it is, unless every reader of the piece uses it daily.** The Voice sheet's "i.e.," rule decides the form; this rule decides when.
