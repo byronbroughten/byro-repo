@@ -32,6 +32,12 @@ import {
 
 useSpecRunHarness();
 
+// The harness's spec and ticket bodies, hashed outside the code under test.
+const specApproval =
+  "Approved body: sha256:f03a4c12746e95cbf20e943225c0246d553b4f6e4651be338714739d550f2152";
+const ticketApproval =
+  "Approved body: sha256:c558a51de72dcd2bb13e6d8af1c265d8050936ca30dd09bf3314c8f9be105fe0";
+
 describe("run", () => {
   it("launches a ticket naming the app spreadsheet with that target beside its step's own tools", async () => {
     addSpec([1]);
@@ -203,7 +209,7 @@ describe("run's Model fit refusal", () => {
 });
 
 describe("run's authorship refusal", () => {
-  it("refuses a spec a stranger wrote, naming it and the login", async () => {
+  it("refuses a spec a stranger wrote, naming it and the login, and prints the line that approves it", async () => {
     addSpec([1]);
     github.edit(spec.number, { author: "stranger" });
     const agentStep = FakeAgentStep.init();
@@ -213,26 +219,24 @@ describe("run's authorship refusal", () => {
     expect(result).toEqual<RunResult>({
       kind: "refused",
       landed: [],
-      message:
-        "Only byronbroughten may write or edit the spec and each open ready-for-agent ticket; refused byro-repo #213 (written by stranger).",
+      message: `Only byronbroughten may write or edit the spec; refused byro-repo #213 (written by stranger). To approve a body as it reads now, comment its line on it.\n\nbyro-repo #213:\n${specApproval}`,
     });
     expect(agentStep.requests).toEqual([]);
     expect(notices.sent).toEqual([]);
+    expect(github.comments).toEqual([]);
   });
 
-  it("lists every launchable ticket a stranger wrote or another login edited", async () => {
-    addSpec([1, 2, 3]);
+  it("passes a ticket a stranger wrote to the launch-time Halt", async () => {
+    addSpec([1, 2]);
     github.edit(2, { author: "stranger" });
-    github.edit(3, { bodyEditors: ["byronbroughten", "editor"] });
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
 
-    const result = await specRun(FakeAgentStep.init()).run(spec);
+    const result = await specRun(agentStep).run(spec);
 
-    expect(result).toEqual<RunResult>({
-      kind: "refused",
-      landed: [],
-      message:
-        "Only byronbroughten may write or edit the spec and each open ready-for-agent ticket; refused byro-repo #2 (written by stranger), byro-repo #3 (edited by editor).",
-    });
+    expect(result.landed).toEqual([refOf(1)]);
+    const halts = haltComments();
+    expect(halts).toHaveLength(1);
+    expect(halts[0]).toContain("byro-repo #2's body was written by stranger.");
   });
 
   it("trusts the developer's login, not the owner a run names", async () => {
@@ -243,8 +247,8 @@ describe("run's authorship refusal", () => {
       githubOwner: "stranger",
     }).run(spec);
 
-    expect(result.message).toBe(
-      "Only byronbroughten may write or edit the spec and each open ready-for-agent ticket; refused byro-repo #213 (written by stranger).",
+    expect(result.message).toContain(
+      "refused byro-repo #213 (written by stranger).",
     );
   });
 
@@ -265,7 +269,7 @@ describe("run's authorship refusal", () => {
     const result = await specRun(FakeAgentStep.init()).run(spec);
 
     expect(result.message).toBe(
-      "Only byronbroughten may write or edit the spec and each open ready-for-agent ticket; refused byro-repo #213 (edited by editor).",
+      `Only byronbroughten may write or edit the spec; refused byro-repo #213 (edited by editor). To approve a body as it reads now, comment its line on it.\n\nbyro-repo #213:\n${ticketApproval}`,
     );
   });
 
@@ -279,10 +283,21 @@ describe("run's authorship refusal", () => {
 
     expect(result.landed).toEqual([refOf(1)]);
   });
+
+  it("passes a spec another login edited once the developer approved its text", async () => {
+    addSpec([1]);
+    github.edit(spec.number, { bodyEditors: ["editor"] });
+    github.reply(spec.number, specApproval);
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+  });
 });
 
 describe("run's launch-time authorship check", () => {
-  it("checks authorship just before each launch, halting a ticket another login edited since preflight", async () => {
+  it("halts a ticket another login edited since preflight, offering `approve` and `skip` without quoting its body", async () => {
     addSpec([1, 2]);
     const agentStep = editsTicketTwoMidRun();
 
@@ -295,20 +310,73 @@ describe("run's launch-time authorship check", () => {
     expect(halts).toHaveLength(1);
     expect(halts[0]).toContain("Failure Halt");
     expect(halts[0]).toContain("byro-repo #2's body was edited by editor.");
-    expect(halts[0]).toContain("1. `retry`\n2. `skip`");
+    expect(halts[0]).toContain(
+      "https://github.com/byronbroughten/byro-repo/issues/2",
+    );
+    expect(halts[0]).toContain("sha256:c558a51de72d");
+    expect(halts[0]).toContain("1. `approve`\n2. `skip`");
+    expect(halts[0]).not.toContain("A thing.");
+    expect(halts[0]).not.toContain(ticketApproval);
   });
 
-  it("launches a ticket halted on authorship once the edit is reverted and the Halt answered `retry`, though the edit stays in its history", async () => {
+  it("posts the approval on the ticket and launches it on an `approve` answer, though the edit stays in its history", async () => {
     addSpec([1, 2]);
     await specRun(editsTicketTwoMidRun()).run(spec);
-    github.edit(2, { bodyEditors: ["editor", "byronbroughten"] });
-    github.reply(213, "H1: retry");
+    github.reply(213, "H1: approve");
     const rerunStep = FakeAgentStep.init(implemented("two.ts"), reviewed());
 
     const result = await specRun(rerunStep).run(spec);
 
     expect(result.landed).toEqual([refOf(2)]);
     expect(rerunStep.requests).toHaveLength(2);
+    expect(approvalsOnTicketTwo()).toEqual([ticketApproval]);
+  });
+
+  it("raises a fresh Halt when the body changed after the Halt saw it, whoever edited it", async () => {
+    addSpec([1, 2]);
+    await specRun(editsTicketTwoMidRun()).run(spec);
+    github.edit(2, {
+      body: bodyWith("Opus medium"),
+      bodyEditors: ["editor", "byronbroughten"],
+    });
+    github.reply(213, "H1: approve");
+    const rerunStep = FakeAgentStep.init();
+
+    const result = await specRun(rerunStep).run(spec);
+
+    expect(result.message).toBe(
+      "Stopped on request: landed nothing. byro-repo #2 waits on Halt H2.",
+    );
+    expect(rerunStep.requests).toEqual([]);
+    expect(approvalsOnTicketTwo()).toEqual([]);
+    expect(haltComments()).toHaveLength(2);
+  });
+
+  it("halts a ticket edited after its approval", async () => {
+    addSpec([1]);
+    github.edit(1, { body: bodyWith("Opus medium"), bodyEditors: ["editor"] });
+    github.reply(1, ticketApproval);
+    const agentStep = FakeAgentStep.init();
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([]);
+    expect(agentStep.requests).toEqual([]);
+    expect(haltComments()[0]).toContain(
+      "byro-repo #1's body was edited by editor.",
+    );
+  });
+
+  it("launches a ticket reverted to text the developer approved, with no new approval", async () => {
+    addSpec([1]);
+    github.edit(1, { bodyEditors: ["editor", "editor"] });
+    github.reply(1, ticketApproval);
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(haltComments()).toEqual([]);
   });
 
   it("drops a ticket halted on authorship from the run on a `skip` answer", async () => {
@@ -343,27 +411,17 @@ describe("run's launch-time authorship check", () => {
       "Stopped on request: landed nothing. byro-repo #2 waits on Halt H2.",
     );
     expect(rerunStep.requests).toEqual([]);
-  });
-
-  it("halts again on another login's edit the answered Halt didn't report", async () => {
-    addSpec([1, 2]);
-    await specRun(editsTicketTwoMidRun()).run(spec);
-    github.reply(213, "H1: retry");
-    github.edit(2, { bodyEditors: ["editor", "editor"] });
-    const rerunStep = FakeAgentStep.init();
-
-    const result = await specRun(rerunStep).run(spec);
-
-    expect(result.message).toBe(
-      "Stopped on request: landed nothing. byro-repo #2 waits on Halt H2.",
-    );
-    expect(rerunStep.requests).toEqual([]);
-    const halts = haltComments();
-    expect(halts).toHaveLength(2);
-    expect(halts[1]).toContain("byro-repo #2's body was edited by editor.");
+    expect(approvalsOnTicketTwo()).toEqual([]);
   });
 });
 
+function approvalsOnTicketTwo(): string[] {
+  return github.comments.flatMap(({ issue, body }) =>
+    issue.number === 2
+      ? body.split("\n").filter((line) => line.startsWith("Approved body"))
+      : [],
+  );
+}
 function editsTicketTwoMidRun(): FakeAgentStep {
   return FakeAgentStep.init(
     implemented("one.ts", {

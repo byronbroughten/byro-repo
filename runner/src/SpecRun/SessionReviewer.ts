@@ -94,7 +94,10 @@ export class SessionReviewer extends SpecRunBase {
     }
     const checked = isSameIssue(run.spec.issue, issue) ? [] : [ticket];
     const refusal =
-      this._authorshipRefusal(run, checked) ??
+      (await this._authorshipRefusal("the spec and the reviewed ticket", [
+        run.spec,
+        ...checked,
+      ])) ??
       targetsRefusalOf(run, [ticket]) ??
       workspaceRefusalOf(workspace, holder);
     if (refusal !== undefined) return refusedReviewOf(refusal);

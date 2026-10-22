@@ -262,8 +262,8 @@ export function haltsOfTicket(run: Run, ticket: IssueRef): Halt[] {
   return haltsOf(run).filter((halt) => isSameIssue(halt.ticket, ticket));
 }
 
-export function isAuthorshipHalt({ reportedAuthorship }: Halt): boolean {
-  return reportedAuthorship !== undefined;
+export function isAuthorshipHalt({ bodyHash }: Halt): boolean {
+  return bodyHash !== undefined;
 }
 
 export function isStopSpec({ answer }: Halt): boolean {

@@ -1,7 +1,7 @@
 // One ticket's run: takes its workspace lease, runs each step from the one it reached (implement or resume, review,
 // triage, fix, checks) and lands it, releasing the lease however it ends. A Halt or a lease taken since the pick leaves
 // the ticket waiting; an UnhandledStop leaves it unlanded and commented on, or Stops the run for a rerun to retry it.
-// Before launch it raises a Failure Halt when a login other than the developer edited the body since the last approval.
+// Before launch it raises a Failure Halt on a body ../IssueReader.ts doesn't trust; `approve` posts the text's approval.
 // RunLoop.ts calls _runTicket and SessionReviewer.ts calls _runSteps.
 // It builds its own LeaseKeeper, ImplementStepper, ReviewStepper, TicketLander and HaltRaiser.
 
@@ -9,9 +9,11 @@ import {
   failureAnswerOf,
   failureOptions,
   type Halt,
+  haltNameOf,
+  runnerMark,
   type StepFailure,
 } from "../halts.ts";
-import { type BodyAuthorship, untrustedBodyReasonOf } from "../IssueReader.ts";
+import { approvalLineOf, bodyHashOf } from "../IssueReader.ts";
 import { issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
 import { LeaseHeld } from "../LeaseHeld.ts";
 import { pairLabelOf, pairOf } from "../modelFit.ts";
@@ -33,7 +35,6 @@ import {
   isAuthorshipHalt,
   isFix,
   isSameHeads,
-  isStopSpec,
   type LandingTicket,
   onlyDeveloperEditsTextOf,
   rerunCommandOf,
@@ -126,28 +127,29 @@ export class TicketSequencer extends SpecRunBase {
     }
   }
 
+  // Never quotes the body: a quote in a comment under the developer's login would read as Trusted text.
   private async _haltOnUntrustedBody(
     landingTicket: LandingTicket,
   ): Promise<void> {
     const { run, ticket, state } = landingTicket;
-    const { developer } = this.config;
-    const unapproved = unapprovedAuthorshipOf({
-      developer,
-      current: ticket,
-      approved: approvedAuthorshipOf(run, ticket.issue),
-    });
-    const reason = untrustedBodyReasonOf(developer, unapproved);
+    const reason = await this._untrustedBodyReasonOf(ticket);
     if (reason === undefined) return;
-    const { retry, skip } = failureOptions;
+    const bodyHash = bodyHashOf(ticket.body);
+    const approving = approvingHaltOf(run, ticket.issue, bodyHash);
+    if (approving !== undefined) {
+      await this.config.github.comment(
+        ticket.issue,
+        `${runnerMark}\n${approvalLineOf(ticket.body)}\n\nApproved by answering ${haltNameOf(approving)} on ${issueLabelOf(run.spec.issue)}.`,
+      );
+      return;
+    }
+    const { approve, skip } = failureOptions;
     await this.haltRaiser._failureHalt(landingTicket, {
       step: state.step,
-      detail: `${issueLabelOf(ticket.issue)}'s body was ${reason}. ${onlyDeveloperEditsTextOf(developer, "a ticket the run launches")}; revert the edit before a ${retry}, or ${skip} the ticket. A ${retry} approves the edits named here, and only a later edit halts it again.`,
+      detail: `${issueLabelOf(ticket.issue)}'s body was ${reason}. ${onlyDeveloperEditsTextOf(this.config.developer, "a ticket the run launches")}, unless they approve its text. Read the body and its edit history at ${ticket.url}; this Halt saw it as sha256:${bodyHash.slice(0, 12)}. An ${approve} posts the approval of that text on the ticket; a body changed since raises a fresh Halt instead, so to revert an edit, revert it, then ${approve} the fresh Halt. A ${skip} approves nothing.`,
       logPath: this._progressPathOf(run),
-      options: [retry, skip],
-      reportedAuthorship: {
-        author: ticket.author,
-        bodyEditors: ticket.bodyEditors,
-      },
+      options: [approve, skip],
+      bodyHash,
     });
   }
 
@@ -288,43 +290,18 @@ function stepAfterResumeOf(state: TicketState): TicketStep {
   return state.findings === undefined ? "review" : "checks";
 }
 
-// GitHub keeps every edit in a body's history, so an approval is the latest rerun-answered authorship Halt's own record.
-function approvedAuthorshipOf(
+// Only the latest authorship Halt's answer counts, and only for the text that Halt saw.
+function approvingHaltOf(
   run: Run,
   ticket: IssueRef,
-): BodyAuthorship | undefined {
-  const approving = haltsOfTicket(run, ticket).filter(isRerunAnswered);
-  return approving.findLast(isAuthorshipHalt)?.reportedAuthorship;
-}
-
-function isRerunAnswered(halt: Halt): boolean {
-  if (halt.answer === undefined || isStopSpec(halt)) return false;
-  return failureAnswerOf(halt, halt.answer).kind !== "skip";
-}
-
-// Each approved edit cancels one edit by the same login, so a login's later edit still counts.
-function unapprovedAuthorshipOf({
-  developer,
-  current,
-  approved,
-}: {
-  developer: string;
-  current: BodyAuthorship;
-  approved: BodyAuthorship | undefined;
-}): BodyAuthorship {
-  if (approved === undefined) return current;
-  const approvedEditors = [...approved.bodyEditors];
-  const bodyEditors = current.bodyEditors.filter((editor) => {
-    const index = approvedEditors.indexOf(editor);
-    if (index === -1) return true;
-    approvedEditors.splice(index, 1);
-    return false;
-  });
-  const isAuthorApproved = current.author === approved.author;
-  return {
-    author: isAuthorApproved ? developer : current.author,
-    bodyEditors,
-  };
+  bodyHash: string,
+): Halt | undefined {
+  const latest = haltsOfTicket(run, ticket).findLast(isAuthorshipHalt);
+  if (latest?.answer === undefined || latest.bodyHash !== bodyHash) {
+    return undefined;
+  }
+  const isApproved = failureAnswerOf(latest, latest.answer).kind === "approve";
+  return isApproved ? latest : undefined;
 }
 
 function isRerunRetried({ outcome }: UnhandledStop): boolean {
