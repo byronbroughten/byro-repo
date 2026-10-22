@@ -18,7 +18,7 @@ export interface PrimaryEditInput {
 }
 
 const workspaceWay =
-  "Runs land there, so work in a workspace: `npm run issue:start -- <repo> <n>` for an issue, or `npm run issue:start -- --session <slug>` for anything else, then continue at the printed path.";
+  "Runs land there, so work in a workspace: `/start-issue <repo> <n>` moves this session into an issue's; otherwise `npm run issue:start -- <repo> <n>` for an issue, or `npm run issue:start -- --session <slug>` for anything else, then continue at the printed path.";
 
 export function primaryEditDecision(props: PrimaryEditInput): GuardDecision {
   const reason = fileDenyReason(props) ?? commitDenyReason(props);

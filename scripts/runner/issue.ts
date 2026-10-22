@@ -1,12 +1,14 @@
 // Starts, lists, promotes and removes workspaces, each keyed by an issue or, for a session workspace, by a slug.
 // The runner creates its own issue workspaces; `start` is the interactive session's way into one, leased to its claude.
-// Usage: npm run issue:start -- (<repo> <n> | --session <slug>) [--claude], npm run issue:list,
+// Usage: npm run issue:start -- (<repo> <n> | --session <slug>) [--claude [--no-prompt]], npm run issue:list,
+// npm run issue:held -- (<repo> <n> | --session <slug>),
 // npm run issue:promote -- <repo> <n> <repo-to-promote>,
 // or npm run issue:remove -- (<repo> <n> | --session <slug>) [--force].
 import { spawn } from "node:child_process";
 
 import {
   holderLabelOf,
+  isSameHolder,
   type IssueRef,
   IssueWorkspaces,
   type Lease,
@@ -28,13 +30,15 @@ try {
     await start(args);
   } else if (command === "list") {
     await list();
+  } else if (command === "held") {
+    await held(args);
   } else if (command === "promote") {
     await promote(args);
   } else if (command === "remove") {
     await remove(args);
   } else {
     throw new Error(
-      `Unknown command "${command}"; use start, list, promote or remove`,
+      `Unknown command "${command}"; use start, list, held, promote or remove`,
     );
   }
 } catch (error) {
@@ -44,13 +48,11 @@ try {
 
 async function start(args: string[]): Promise<void> {
   const key = keyOf(
-    args.filter((arg) => arg !== "--claude"),
-    `Usage: npm run issue:start -- ${keyUsage} [--claude]`,
+    args.filter((arg) => arg !== "--claude" && arg !== "--no-prompt"),
+    `Usage: npm run issue:start -- ${keyUsage} [--claude [--no-prompt]]`,
   );
   if (args.includes("--claude")) {
-    const workspace = await workspaces.start(key);
-    console.log(workspace.path);
-    await openClaude(workspace);
+    await openClaude(key, !args.includes("--no-prompt"));
     return;
   }
   const holder = nearestClaudeAncestor();
@@ -58,33 +60,29 @@ async function start(args: string[]): Promise<void> {
   console.log(path);
   if (!holder) {
     console.log("No claude process ran this, so no lease was taken.");
-    return;
   }
-  // The session that ran this stays at its own root, so the workspace's .claude/ hooks and settings never load.
-  console.log(
-    `To load the workspace's hooks and settings, exit this session and run: npm run issue:start -- ${args.join(" ")} --claude`,
-  );
 }
 
+// Opens at the primary root, not the workspace, so hooks never point into a folder wrap-up removes.
 // Runs in the foreground so the session takes over the terminal, and passes its exit status on.
-async function openClaude(workspace: Workspace): Promise<void> {
-  const claude = spawn("claude", { cwd: workspace.path, stdio: "inherit" });
+async function openClaude(
+  key: WorkspaceKey,
+  sendsPrompt: boolean,
+): Promise<void> {
+  const claude = spawn("claude", sendsPrompt ? [startIssuePromptOf(key)] : [], {
+    cwd: issueWorkspacesConfig.primaryRoot,
+    stdio: "inherit",
+  });
   const exited = new Promise<number | null>((resolve, reject) => {
     claude.on("error", reject);
     claude.on("exit", resolve);
   });
-  if (claude.pid !== undefined) {
-    try {
-      await workspaces.takeLease(workspace, {
-        kind: "session",
-        pid: claude.pid,
-      });
-    } catch (error) {
-      claude.kill();
-      throw error;
-    }
-  }
   process.exitCode = (await exited) ?? 1;
+}
+
+function startIssuePromptOf(key: WorkspaceKey): string {
+  if ("session" in key) return `/start-issue --session ${key.session}`;
+  return `/start-issue ${key.repo} ${key.number}`;
 }
 
 async function list(): Promise<void> {
@@ -119,6 +117,19 @@ function ageOf(createdAt: Date): string {
   const hours = Math.floor((Date.now() - createdAt.getTime()) / 3_600_000);
   if (hours < 24) return `${hours}h`;
   return `${Math.floor(hours / 24)}d ${hours % 24}h`;
+}
+
+// /start-issue reads this to skip the move when its session already holds the workspace.
+async function held(args: string[]): Promise<void> {
+  const key = keyOf(args, `Usage: npm run issue:held -- ${keyUsage}`);
+  const workspace = await workspaces.find(key);
+  const holder = nearestClaudeAncestor();
+  const lease = workspace?.lease;
+  if (!workspace || !holder || !lease?.isLive || !isSameHolder(lease, holder)) {
+    console.log(`This session holds no lease on ${workspaceLabelOf(key)}.`);
+    return;
+  }
+  console.log(`This session holds ${workspace.path}`);
 }
 
 async function promote(args: string[]): Promise<void> {

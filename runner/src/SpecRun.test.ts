@@ -175,7 +175,7 @@ describe("run", () => {
       kind: "finished",
       landed: [refOf(1)],
       message:
-        "Run ended: landed byro-repo #1. byro-repo #2 waits on you and blocks byro-repo #3; byro-repo #3 is blocked by byro-repo #2. Rerun once your tickets close: `npm run runner -- byronbroughten/byro-repo 213`.",
+        "Run ended: landed byro-repo #1. byro-repo #2 waits on you (`/start-issue byro-repo 2`) and blocks byro-repo #3; byro-repo #3 is blocked by byro-repo #2. Rerun once your tickets close: `npm run runner -- byronbroughten/byro-repo 213`.",
     });
     expect(agentStep.requests).toHaveLength(2);
     expect([1, 2, 3].map((n) => github.issues.get(n)?.isOpen)).toEqual([
@@ -198,7 +198,7 @@ describe("run", () => {
 
     expect(result.landed).toEqual([refOf(1)]);
     expect(result.message).toBe(
-      "Run ended: landed byro-repo #1. byro-repo #2 waits on you. Rerun once your tickets close: `npm run runner -- byronbroughten/byro-repo 213`.",
+      "Run ended: landed byro-repo #1. byro-repo #2 waits on you (`/start-issue byro-repo 2`). Rerun once your tickets close: `npm run runner -- byronbroughten/byro-repo 213`.",
     );
   });
 
