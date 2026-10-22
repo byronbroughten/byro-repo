@@ -1,7 +1,7 @@
 // A ticket's review, finding triage and fix steps. Review records findings; triage gives each a verdict, a Halt verdict
 // raising a Halt, with one resumed retry for a refused record. The fix step hands the Fix batch to the resumed implementer
 // under the ticket budget, else to the triage agent, resetting a fixer that crosses the live ceiling; a give-up can be a Halt.
-// Landing calls _runFixerStep to resume a fixer on red checks or a master merge.
+// Checks and landing call _runFixerStep to resume a fixer on red checks or a master merge.
 // It builds its own HaltRaiser and StepLauncher; prompts are ../reviewStep.ts, ../findingTriage.ts and ../fixStep.ts.
 
 import { join } from "node:path";
