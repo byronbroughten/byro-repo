@@ -29,7 +29,7 @@ import {
   worktreeStateOf,
 } from "../git.ts";
 import { runnerMark } from "../halts.ts";
-import { untrustedBodyReasonOf } from "../IssueReader.ts";
+import { approvalLineOf, untrustedBodyReasonOf } from "../IssueReader.ts";
 import {
   fileStemOf,
   issueLabelOf,
@@ -53,7 +53,6 @@ import {
   isTreeKept,
   type LandingTicket,
   onlyDeveloperEditsTextOf,
-  readyLabel,
   rerunCommandOf,
   type Run,
   type RunResult,
@@ -284,18 +283,41 @@ export class SpecRunBase {
     return `${message} Rerun once your tickets close: \`${command}\`.`;
   }
 
-  protected _authorshipRefusal(
-    run: Run,
-    launchable: TrackedIssue[],
-  ): string | undefined {
-    const { developer } = this.config;
-    const offenders = [run.spec, ...launchable].flatMap((issue) => {
-      const reason = untrustedBodyReasonOf(developer, issue);
-      if (reason === undefined) return [];
-      return [`${issueLabelOf(issue.issue)} (${reason})`];
+  // Printed to the terminal only: a developer-login comment quoting the approval line would itself approve the body.
+  protected async _authorshipRefusal(
+    subject: string,
+    issues: TrackedIssue[],
+  ): Promise<string | undefined> {
+    const reasons = await Promise.all(
+      issues.map((issue) => this._untrustedBodyReasonOf(issue)),
+    );
+    const refused = issues.flatMap((issue, index) => {
+      const reason = reasons[index];
+      return reason === undefined ? [] : [{ issue, reason }];
     });
-    if (offenders.length === 0) return undefined;
-    return `${onlyDeveloperEditsTextOf(developer, `the spec and each open ${readyLabel} ticket`)}; refused ${offenders.join(", ")}.`;
+    if (refused.length === 0) return undefined;
+    const offenders = refused.map(
+      ({ issue, reason }) => `${issueLabelOf(issue.issue)} (${reason})`,
+    );
+    const approvals = refused.map(
+      ({ issue }) =>
+        `${issueLabelOf(issue.issue)}:\n${approvalLineOf(issue.body)}`,
+    );
+    return `${onlyDeveloperEditsTextOf(this.config.developer, subject)}; refused ${offenders.join(", ")}. For the developer to paste after reading the body, as a comment on it; an agent never posts this line.\n\n${approvals.join("\n\n")}`;
+  }
+
+  // Its comments are read only when its edit history alone leaves the body untrusted.
+  protected async _untrustedBodyReasonOf(
+    issue: TrackedIssue,
+  ): Promise<string | undefined> {
+    const { developer, github } = this.config;
+    if (
+      untrustedBodyReasonOf(developer, { ...issue, comments: [] }) === undefined
+    ) {
+      return undefined;
+    }
+    const comments = await github.authoredCommentsOf(issue.issue);
+    return untrustedBodyReasonOf(developer, { ...issue, comments });
   }
 
   protected async _end(

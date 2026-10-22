@@ -23,9 +23,7 @@ import { RunStop } from "../RunStop.ts";
 import { percentOf } from "../transcriptFacts.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
 import {
-  haltsOfTicket,
   idListOf,
-  isAuthorshipHalt,
   isLaunchable,
   landedTextOf,
   liveCeilingPhraseOf,
@@ -64,12 +62,9 @@ export class RunLoop extends SpecRunBase {
     rmSync(this._stopRequestPathOf(specIssue), { force: true });
     const run = await this._startRun(specIssue);
     const launchable = await this._launchableTicketsOf(run);
-    // A ticket with an authorship Halt is left to the launch-time check, which reads the Halt's answer.
-    const unhalted = launchable.filter(
-      ({ issue }) => !haltsOfTicket(run, issue).some(isAuthorshipHalt),
-    );
+    // A ticket's body is left to the launch-time check, whose Halt can approve it.
     const refusal =
-      this._authorshipRefusal(run, unhalted) ??
+      (await this._authorshipRefusal("the spec", [run.spec])) ??
       modelFitRefusalOf(run, launchable) ??
       targetsRefusalOf(run, launchable);
     if (refusal !== undefined) {

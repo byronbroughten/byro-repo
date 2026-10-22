@@ -13,7 +13,6 @@ import {
   type ProposedSlice,
   proposedSplitText,
 } from "./implementStep.ts";
-import type { BodyAuthorship } from "./IssueReader.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 import { pairNamed } from "./modelFit.ts";
 import type { IssueComment, TicketStep } from "./SpecRun.ts";
@@ -49,8 +48,8 @@ export interface Halt {
   finding?: number;
   // A Failure Halt's step, which a `retry` answer runs again.
   failedStep?: FailedStep;
-  // The authorship a launch-time check reported; answering the Halt approves just those edits.
-  reportedAuthorship?: BodyAuthorship;
+  // The hash of the body a launch-time authorship check saw; `approve` approves that text alone.
+  bodyHash?: string;
   isPosted: boolean;
   answer?: HaltAnswer;
   // Set once the answer reached the resumed or fresh implementer.
@@ -75,7 +74,7 @@ export type HaltDraft = Pick<
   | "scope"
   | "finding"
   | "failedStep"
-  | "reportedAuthorship"
+  | "bodyHash"
 >;
 
 export function shortRefOf({ repo, number }: IssueRef): string {
@@ -160,13 +159,14 @@ export interface StepFailure {
   logPath: string;
   // The answers offered in place of `retry`.
   options?: string[];
-  reportedAuthorship?: BodyAuthorship;
+  bodyHash?: string;
 }
 
 export const failureOptions = {
   retry: "`retry`",
   retryRecord: "`retry record`",
   moreHandoffs: "`continue +1 handoff`",
+  approve: "`approve`",
   skip: "`skip`",
 } as const;
 
@@ -177,7 +177,7 @@ export function failureHaltOf(
     detail,
     logPath,
     options = [failureOptions.retry],
-    reportedAuthorship,
+    bodyHash,
   }: StepFailure,
   downstream: string[],
 ): HaltDraft {
@@ -187,7 +187,7 @@ export function failureHaltOf(
     options,
     scope: downstream,
     failedStep: step,
-    reportedAuthorship,
+    bodyHash,
   };
 }
 
@@ -197,6 +197,7 @@ export type FailureAnswer =
   | { kind: "more-turns"; turns: number | undefined }
   | { kind: "more-handoffs" }
   | { kind: "rerun"; pair: Pair }
+  | { kind: "approve" }
   | { kind: "skip" }
   | { kind: "guidance"; text: string };
 
@@ -213,6 +214,7 @@ export function failureAnswerOf(
     .toLowerCase();
   if (answerWords === "retry") return { kind: "retry" };
   if (answerWords === "retry record") return { kind: "retry-record" };
+  if (answerWords === "approve") return { kind: "approve" };
   if (answerWords === "skip") return { kind: "skip" };
   if (answerWords === "continue +1 handoff") return { kind: "more-handoffs" };
   const moreTurns = /^resume \+(\d+)? ?turns?$/.exec(answerWords);
