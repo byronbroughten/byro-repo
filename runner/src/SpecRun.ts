@@ -6,18 +6,18 @@
 // The run holds its ticket's workspace lease; with nothing runnable, an open Halt or another holder's lease leaves it idle, polling.
 // requestStop() or a `stop spec` answer ends the run between tickets; status() reads it from outside; review() reviews a session's ticket.
 // GitHub and git hold what's durable; a per-spec state file holds the step each ticket reached, so a rerun resumes there.
-// Steps launch through AgentStep.ts; landing is WrapUp.ts; knobs are runKnobs.ts; shared helpers, run state, Halts, step
-// launches, the implement, review, triage and fix steps, checks and landing, and the review lists and gap check are SpecRun/.
+// Steps launch through AgentStep.ts; landing is WrapUp.ts; knobs are runKnobs.ts; shared helpers, run state, a ticket's run,
+// leases, Halts, step launches, the implement, review, triage and fix steps, checks and landing, and the review lists and
+// gap check are SpecRun/.
 
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { commandLabelOf, messageOf } from "./failureText.ts";
+import { commandLabelOf } from "./failureText.ts";
 import { currentBranchOf } from "./git.ts";
 import {
   answeredNoteOf,
   failureAnswerOf,
-  failureOptions,
   type Halt,
   haltNameOf,
   ignoredNoteOf,
@@ -25,45 +25,36 @@ import {
   repliesTo,
   sessionHaltCountOf,
   shortRefOf,
-  type StepFailure,
 } from "./halts.ts";
 import { untrustedBodyReasonOf } from "./IssueReader.ts";
 import {
   fileStemOf,
   holderLabelOf,
-  isSameHolder,
   issueLabelOf,
   type IssueRef,
   type LeaseHolder,
   otherLiveHolderOf,
-  type Workspace,
   workspaceLabelOf,
   type WorkspaceStatus,
 } from "./IssueWorkspaces.ts";
 import { LeaseHeld } from "./LeaseHeld.ts";
 import { type AccountReading } from "./limitGuard.ts";
-import { pairLabelOf, pairOf } from "./modelFit.ts";
+import { pairOf } from "./modelFit.ts";
 import { RunStop } from "./RunStop.ts";
-import { SchemaFailure } from "./SchemaFailure.ts";
 import { HaltRaiser } from "./SpecRun/HaltRaiser.ts";
-import { ImplementStepper } from "./SpecRun/ImplementStepper.ts";
+import { LeaseKeeper } from "./SpecRun/LeaseKeeper.ts";
 import { ReviewListPoster } from "./SpecRun/ReviewListPoster.ts";
-import { ReviewStepper } from "./SpecRun/ReviewStepper.ts";
 import {
-  deliverFailureHalts,
   downstreamIn,
   haltsOf,
   idListOf,
-  isFix,
   isGapCheckHalt,
   isLaunchable,
-  isSameHeads,
   isSameIssue,
   landedTextOf,
   liveCeilingPhraseOf,
   openHaltsOf,
   readyLabel,
-  rerunCommandOf,
   reviewFactsOf,
   type ReviewOptions,
   type ReviewResult,
@@ -73,25 +64,19 @@ import {
   stoppedOnTextOf,
   targetsAtLaunchOf,
   targetsRefusalOf,
+  type TicketOutcome,
   type TicketRun,
-  type TicketState,
   ticketStateOf,
-  type TicketStep,
   type TrackedIssue,
   undeliveredHaltsOf,
   type Wait,
   waitsTextOf,
 } from "./SpecRun/runState.ts";
 import { SpecRunBase, type SpecRunConfig } from "./SpecRun/SpecRunBase.ts";
-import { StepLauncher } from "./SpecRun/StepLauncher.ts";
-import { TicketLander } from "./SpecRun/TicketLander.ts";
+import { TicketSequencer } from "./SpecRun/TicketSequencer.ts";
 import { TicketHalted } from "./TicketHalted.ts";
 import { percentOf } from "./transcriptFacts.ts";
-import {
-  rerunRetriedOutcomes,
-  stopOutcomes,
-  UnhandledStop,
-} from "./UnhandledStop.ts";
+import { UnhandledStop } from "./UnhandledStop.ts";
 
 export type { Clock, RunGitHub, SpecRunConfig } from "./SpecRun/SpecRunBase.ts";
 export {
@@ -104,8 +89,6 @@ export {
   type TrackedIssue,
 } from "./SpecRun/runState.ts";
 
-const runHolder: LeaseHolder = { kind: "run", pid: process.pid };
-
 interface TicketReview extends ReviewOptions {
   ticket: TrackedIssue;
 }
@@ -116,8 +99,6 @@ interface HoldCheck {
   ticket: string;
   downstreamOf: Map<string, string[]>;
 }
-
-type TicketOutcome = "landed" | "stopped" | "leased" | "halted";
 
 interface Survey {
   waits: Wait[];
@@ -141,20 +122,12 @@ export class SpecRun extends SpecRunBase {
     return new HaltRaiser(this.config);
   }
 
-  private get stepLauncher(): StepLauncher {
-    return new StepLauncher(this.config);
+  private get leaseKeeper(): LeaseKeeper {
+    return new LeaseKeeper(this.config);
   }
 
-  private get implementStepper(): ImplementStepper {
-    return new ImplementStepper(this.config);
-  }
-
-  private get reviewStepper(): ReviewStepper {
-    return new ReviewStepper(this.config);
-  }
-
-  private get ticketLander(): TicketLander {
-    return new TicketLander(this.config);
+  private get ticketSequencer(): TicketSequencer {
+    return new TicketSequencer(this.config);
   }
 
   private get reviewListPoster(): ReviewListPoster {
@@ -224,7 +197,7 @@ export class SpecRun extends SpecRunBase {
       }
       let outcome: TicketOutcome;
       try {
-        outcome = await this._runTicket(run, selection.ticket);
+        outcome = await this.ticketSequencer._runTicket(run, selection.ticket);
       } catch (error) {
         if (!(error instanceof RunStop)) throw error;
         return this._end(run, "stopped", error.message);
@@ -388,11 +361,8 @@ export class SpecRun extends SpecRunBase {
     };
     run.state.tickets[issueLabelOf(issue)] = ticketRun.state;
     try {
-      // Past the refusals, a live lease is the caller's own.
-      if (otherLiveHolderOf(workspace.lease) === undefined) {
-        await this.workspaces.takeLease(workspace, runHolder);
-      }
-      await this._runSteps(ticketRun);
+      await this.leaseKeeper._takeSessionLease(workspace);
+      await this.ticketSequencer._runSteps(ticketRun);
       this.factsFile.setReviewFacts(issue, reviewFactsOf(ticketRun.state));
       await this.reviewListPoster._postReviewList(run, ticket);
       await this.haltRaiser._haltOnUnpostedHalts(ticketRun);
@@ -404,7 +374,7 @@ export class SpecRun extends SpecRunBase {
     } catch (error) {
       return reviewEndOf(ticketRun, error);
     } finally {
-      await this._releaseLeaseOf(issue);
+      await this.leaseKeeper._releaseLeaseOf(issue);
     }
   }
 
@@ -437,7 +407,7 @@ export class SpecRun extends SpecRunBase {
       const tracked = await this.config.github.issueOf(ticket);
       if (!tracked.isOpen) continue;
       const label = issueLabelOf(ticket);
-      const holder = await this._otherHolderOf(ticket);
+      const holder = await this.leaseKeeper._otherHolderOf(ticket);
       if (holder !== undefined) {
         const text = `${label} is leased by ${holderLabelOf(holder)}`;
         waits.push({ ticket, reason: "leased", text, holder });
@@ -568,242 +538,6 @@ export class SpecRun extends SpecRunBase {
     });
     return downstreamOf;
   }
-
-  // An UnhandledStop leaves the ticket unlanded, commented on and noticed; a lease taken since the pick leaves it waiting.
-  private async _runTicket(
-    run: Run,
-    ticket: TrackedIssue,
-  ): Promise<TicketOutcome> {
-    const state = ticketStateOf(run, ticket.issue);
-    try {
-      // Delivered first, so a `rerun on <pair>` answer picks the pair.
-      if (state.step === "halted") {
-        const { extraTurns } = this.config.knobs;
-        state.step =
-          deliverFailureHalts(run, { ticket: ticket.issue, extraTurns }) ??
-          "resume";
-      }
-      const pair = state.pair ?? pairOf(ticket.body);
-      if (pair === undefined) {
-        throw new UnhandledStop(
-          "model-fit",
-          "The ## Model fit section changed after preflight.",
-          this._progressPathOf(run),
-        );
-      }
-      this._log(
-        run,
-        `${issueLabelOf(ticket.issue)}: launching on ${pairLabelOf(pair)} from ${state.step}.`,
-      );
-      if (state.step !== "wrap-up") {
-        const workspace = await this._timed({ run, ticket }, "workspace", () =>
-          this._workspaceFor(run, ticket.issue),
-        );
-        const targets = targetsAtLaunchOf(ticket, this._progressPathOf(run));
-        await this._runSteps({ run, ticket, pair, workspace, state, targets });
-      } else {
-        const landing = await this.workspaces.find(ticket.issue);
-        if (landing) await this._takeLease(run, landing);
-      }
-      await this._timed({ run, ticket }, "wrap-up", () =>
-        this.ticketLander._land({ run, ticket, pair, state }),
-      );
-      return "landed";
-    } catch (error) {
-      if (error instanceof LeaseHeld) {
-        this._log(run, `${issueLabelOf(ticket.issue)}: ${error.message}`);
-        return "leased";
-      }
-      if (error instanceof TicketHalted) return "halted";
-      // Only a run that dies mid-step leaves the marker, so an environment Stop never costs the step its retry.
-      state.isStepStarted = undefined;
-      this._saveState(run);
-      if (!(error instanceof UnhandledStop)) throw error;
-      if (isRerunRetried(error)) await this._stopForRerun(run, ticket, error);
-      await this._stopTicket(run, ticket, error);
-      return "stopped";
-    } finally {
-      await this._releaseLeaseOf(ticket.issue);
-    }
-  }
-
-  private async _otherHolderOf(
-    issue: IssueRef,
-  ): Promise<LeaseHolder | undefined> {
-    const lease = (await this.workspaces.find(issue))?.lease;
-    return otherLiveHolderOf(lease, runHolder);
-  }
-
-  private async _releaseLeaseOf(issue: IssueRef): Promise<void> {
-    const workspace = await this.workspaces.find(issue);
-    if (workspace?.lease && isSameHolder(workspace.lease, runHolder)) {
-      await this.workspaces.releaseLease(workspace);
-    }
-  }
-
-  private async _takeLease(run: Run, workspace: Workspace): Promise<void> {
-    try {
-      await this.workspaces.takeLease(workspace, runHolder);
-    } catch (error) {
-      if (error instanceof LeaseHeld) throw error;
-      throw new UnhandledStop(
-        "workspace",
-        messageOf(error),
-        this._progressPathOf(run),
-      );
-    }
-  }
-
-  private async _workspaceFor(run: Run, issue: IssueRef): Promise<Workspace> {
-    const existing = await this.workspaces.find(issue);
-    if (!existing) {
-      const created = await this.workspaces.create(issue);
-      await this._takeLease(run, created);
-      return created;
-    }
-    await this._takeLease(run, existing);
-    try {
-      await this.workspaces.resume(existing);
-    } catch (error) {
-      throw new UnhandledStop(
-        "workspace",
-        messageOf(error),
-        this._progressPathOf(run),
-      );
-    }
-    this._log(run, `${issueLabelOf(issue)}: resumed ${existing.path}.`);
-    return existing;
-  }
-
-  // An implementer whose record failed after it committed is offered `retry record`, which keeps those commits.
-  private async _runSteps(ticketRun: TicketRun): Promise<void> {
-    try {
-      await this._runEachStep(ticketRun);
-    } catch (error) {
-      if (!(error instanceof SchemaFailure)) throw error;
-      const { workspace, state } = ticketRun;
-      const base = state.implementBase;
-      const isImplement = state.step === "implement" || state.step === "resume";
-      const failure: StepFailure = {
-        step: state.step,
-        detail: error.message,
-        logPath: error.logPath,
-      };
-      if (
-        isImplement &&
-        base !== undefined &&
-        !isSameHeads(base, await this._headsOf(workspace))
-      ) {
-        failure.options = [failureOptions.retryRecord, failureOptions.retry];
-      }
-      await this.haltRaiser._failureHalt(ticketRun, failure);
-    }
-  }
-
-  private async _runEachStep(ticketRun: TicketRun): Promise<void> {
-    const { run, state } = ticketRun;
-    if (state.isStepStarted) {
-      await this.haltRaiser._takeCrash(ticketRun, {
-        detail: `The run ended during the ${state.step} step.`,
-        logPath: this._progressPathOf(run),
-      });
-    }
-    if (state.step === "implement") {
-      this._markStepStarted(ticketRun);
-      await this._timed(ticketRun, "implement", () =>
-        this.implementStepper._implement(ticketRun),
-      );
-      // A ticket with no code has nothing to review or check.
-      const next = state.record?.status === "applied" ? "wrap-up" : "review";
-      this._advance(ticketRun, next);
-    }
-    if (state.step === "resume") {
-      this._markStepStarted(ticketRun);
-      await this._timed(ticketRun, "resume", () =>
-        this.implementStepper._resume(ticketRun),
-      );
-      this._advance(ticketRun, stepAfterResumeOf(state));
-    }
-    if (state.step === "review") {
-      this._markStepStarted(ticketRun);
-      await this._timed(ticketRun, "review", () =>
-        this.reviewStepper._review(ticketRun),
-      );
-      const hasFindings = (state.findings ?? []).length > 0;
-      this._advance(ticketRun, hasFindings ? "triage" : "checks");
-    }
-    if (state.step === "triage") {
-      this._markStepStarted(ticketRun);
-      await this._timed(ticketRun, "triage", () =>
-        this.reviewStepper._triage(ticketRun),
-      );
-      const hasFix = (state.triage ?? []).some(isFix);
-      this._advance(ticketRun, hasFix ? "fix" : "checks");
-    }
-    // Checks run after the fixes, so a fix that turns them red gets the red-checks resume.
-    if (state.step === "fix") {
-      this._markStepStarted(ticketRun);
-      await this._timed(ticketRun, "fix", () =>
-        this.reviewStepper._fix(ticketRun),
-      );
-      this._advance(ticketRun, "checks");
-    }
-    if (state.step === "checks") {
-      // A session's review leaves the checks and wrap-up to the session.
-      if (run.sessionReview !== undefined) return;
-      await this.haltRaiser._haltOnUnpostedHalts(ticketRun);
-      await this._timed(ticketRun, "checks", () =>
-        this.ticketLander._check(ticketRun),
-      );
-      this._advance(ticketRun, "wrap-up");
-    }
-  }
-
-  private async _stopTicket(
-    run: Run,
-    ticket: TrackedIssue,
-    stop: UnhandledStop,
-  ): Promise<void> {
-    const state = ticketStateOf(run, ticket.issue);
-    const outcome = stopOutcomes[stop.outcome];
-    state.step = "stopped";
-    state.stop = outcome;
-    this._saveState(run);
-    this._log(
-      run,
-      `${issueLabelOf(ticket.issue)}: stopped on ${outcome}; details in the spec-issue comment.`,
-    );
-    await this._comment(
-      run,
-      [
-        stopHeadingOf(ticket, outcome),
-        stop.message,
-        `Log: \`${stop.logPath}\``,
-        "The ticket is left unlanded in its issue workspace, and a rerun won't retry it. Finish and land it by hand with the standalone wrap-up; a rerun skips it once it is closed.",
-      ].join("\n\n"),
-    );
-  }
-
-  // Leaves the ticket at its step, so a rerun retries it.
-  private async _stopForRerun(
-    run: Run,
-    ticket: TrackedIssue,
-    stop: UnhandledStop,
-  ): Promise<never> {
-    const outcome = stopOutcomes[stop.outcome];
-    const label = issueLabelOf(ticket.issue);
-    const command = rerunCommandOf(this.config.githubOwner, run.spec.issue);
-    await this._comment(
-      run,
-      [
-        stopHeadingOf(ticket, outcome),
-        stop.message,
-        `Log: \`${stop.logPath}\``,
-        `The ticket is left at its ${ticketStateOf(run, ticket.issue).step} step in its issue workspace; rerun to retry it: \`${command}\`.`,
-      ].join("\n\n"),
-    );
-    throw new RunStop(`Stopped on ${label}: ${outcome}; rerun to retry it.`);
-  }
 }
 
 // The halted ticket itself, every ticket for a `spec` scope, else the named tickets and their downstream.
@@ -826,12 +560,6 @@ function lastAnswerAtOf(run: Run, ticket: IssueRef): string {
 function isSkipAnswered(halt: Halt): boolean {
   if (halt.kind !== "failure" || halt.answer === undefined) return false;
   return failureAnswerOf(halt, halt.answer).kind === "skip";
-}
-
-// A ticket halted before review has nothing reviewed yet; one with no code has nothing to review.
-function stepAfterResumeOf(state: TicketState): TicketStep {
-  if (state.record?.status === "applied") return "wrap-up";
-  return state.findings === undefined ? "review" : "checks";
 }
 
 function workspaceRefusalOf(
@@ -874,14 +602,6 @@ function reviewEndOf({ run, ticket }: TicketRun, error: unknown): ReviewResult {
     return { kind: "stopped", message: error.message, halts };
   }
   throw error;
-}
-
-function isRerunRetried({ outcome }: UnhandledStop): boolean {
-  return rerunRetriedOutcomes.includes(outcome);
-}
-
-function stopHeadingOf(ticket: TrackedIssue, outcome: string): string {
-  return `The runner stopped on ${issueLabelOf(ticket.issue)}, "${ticket.title}": ${outcome}.`;
 }
 
 // A split spec's own body is never checked; tickets the runner won't launch need no section.

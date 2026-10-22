@@ -4,8 +4,8 @@
 - **`SpecRun` is split across `SpecRun.ts` and the `SpecRun/` folder; grep its method names by group rather than reading the files in ranges:**
   - Shared helpers and run state, every member more than one group calls: [`SpecRun/SpecRunBase.ts`](./SpecRun/SpecRunBase.ts); the run's types and shared module functions: [`SpecRun/runState.ts`](./SpecRun/runState.ts).
   - Run loop and selection: `run`, `_select`, `_survey`, `_preflightStop`, `status`, `requestStop`.
-  - Leases and workspaces: `_takeLease`, `_releaseLeaseOf`, `_otherHolderOf`, `_workspaceFor`.
-  - Per-ticket flow: `_runTicket`, `_runSteps`, `_runEachStep`.
+  - Leases and workspaces: [`SpecRun/LeaseKeeper.ts`](./SpecRun/LeaseKeeper.ts).
+  - Per-ticket flow and Stops: [`SpecRun/TicketSequencer.ts`](./SpecRun/TicketSequencer.ts).
   - Implement, hand-off and resume: [`SpecRun/ImplementStepper.ts`](./SpecRun/ImplementStepper.ts).
   - Review, triage and fix: [`SpecRun/ReviewStepper.ts`](./SpecRun/ReviewStepper.ts).
   - Step launch and retry: [`SpecRun/StepLauncher.ts`](./SpecRun/StepLauncher.ts).
