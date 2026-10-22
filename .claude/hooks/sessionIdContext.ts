@@ -1,10 +1,9 @@
 // SessionStart: puts the session's id in context and, in an issue workspace this claude leases, records the session and says where it is.
-import { execFileSync } from "node:child_process";
-
 import { FactsFile } from "@byronbroughten/spec-runner/FactsFile";
 import { IssueWorkspaces } from "@byronbroughten/spec-runner/IssueWorkspaces";
 
 import { nearestClaudeAncestor } from "../../scripts/runner/claudeAncestor.ts";
+import { activeAccount } from "../../scripts/runner/cswapAccount.ts";
 import {
   issueWorkspacesConfig,
   stateFolder,
@@ -16,7 +15,6 @@ import {
   writeHookOutput,
 } from "./lib/hookIo.ts";
 import {
-  activeAccountOf,
   configFolderOf,
   type RecordedSession,
   recordedSessionOf,
@@ -69,7 +67,7 @@ function recordSession(
   recorded: RecordedSession | undefined,
 ): void {
   if (recorded === undefined) return;
-  const account = activeAccountOf(cswapStatus());
+  const account = activeAccount();
   const configFolder = configFolderOf(transcript_path);
   if (account === undefined || configFolder === undefined) return;
   const { issue, step } = recorded;
@@ -78,13 +76,4 @@ function recordSession(
     configFolder,
     step,
   });
-}
-
-// Empty when cswap is missing or fails, which leaves the account unknown.
-function cswapStatus(): string {
-  try {
-    return execFileSync("cswap", ["status", "--json"], { encoding: "utf8" });
-  } catch {
-    return "";
-  }
 }

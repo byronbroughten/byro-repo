@@ -58,15 +58,6 @@ export function whereYouAreLineOf({
   return `You are in ${issueLabelOf(workspace.key)}'s workspace, leased to this session: \`/start-issue ${repo} ${number}\` continues it from its handoff, and work outside it needs \`ExitWorktree\` with \`keep\` first.`;
 }
 
-export function activeAccountOf(cswapStatus: string): number | undefined {
-  try {
-    const number = JSON.parse(cswapStatus)?.active?.number;
-    return typeof number === "number" ? number : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 // A transcript sits at <config folder>/projects/<project>/<session>.jsonl, as StepStream.ts reads a step's.
 export function configFolderOf(
   transcriptPath: string | undefined,

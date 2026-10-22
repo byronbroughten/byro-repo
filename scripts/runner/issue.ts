@@ -5,7 +5,9 @@
 // npm run issue:promote -- <repo> <n> <repo-to-promote>,
 // or npm run issue:remove -- (<repo> <n> | --session <slug>) [--force].
 import { spawn } from "node:child_process";
+import { homedir } from "node:os";
 
+import { FactsFile } from "@byronbroughten/spec-runner/FactsFile";
 import {
   holderLabelOf,
   isSameHolder,
@@ -19,7 +21,9 @@ import {
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
 
 import { nearestClaudeAncestor } from "./claudeAncestor.ts";
-import { issueWorkspacesConfig } from "./runnerConfig.ts";
+import { activeAccount } from "./cswapAccount.ts";
+import { issueWorkspacesConfig, stateFolder } from "./runnerConfig.ts";
+import { startedSessionOf } from "./startedSession.ts";
 
 const workspaces = IssueWorkspaces.init(issueWorkspacesConfig);
 const keyUsage = "(<repo> <n> | --session <slug>)";
@@ -60,7 +64,21 @@ async function start(args: string[]): Promise<void> {
   console.log(path);
   if (!holder) {
     console.log("No claude process ran this, so no lease was taken.");
+    return;
   }
+  recordSession(key);
+}
+
+// SessionStart records a session that starts in the workspace; this records one that moves in later.
+function recordSession(key: WorkspaceKey): void {
+  const started = startedSessionOf({
+    key,
+    env: process.env,
+    account: activeAccount(),
+    homeFolder: homedir(),
+  });
+  if (started === undefined) return;
+  FactsFile.init(stateFolder).addSession(started.issue, started.session);
 }
 
 // Opens at the primary root, not the workspace, so hooks never point into a folder wrap-up removes.
