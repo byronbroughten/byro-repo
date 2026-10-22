@@ -12,6 +12,7 @@ import {
   bodyWith,
   eventOf,
   github,
+  haltComments,
   implemented,
   masterSetPath,
   masterSubjects,
@@ -221,5 +222,46 @@ describe("run", () => {
       { model: "sonnet", effort: "medium" },
       { model: "sonnet", effort: "medium" },
     ]);
+  });
+
+  it("checks authorship just before each launch, halting a ticket another login edited since preflight", async () => {
+    addSpec([1, 2]);
+    const agentStep = FakeAgentStep.init(
+      implemented("one.ts", {
+        act: () => github.edit(2, { bodyEditors: ["editor"] }),
+      }),
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(agentStep.requests).toHaveLength(2);
+    expect(ticketState()["byro-repo #2"]?.step).toBe("halted");
+    const [halt] = haltComments();
+    expect(haltComments()).toHaveLength(1);
+    expect(halt).toContain("Failure Halt");
+    expect(halt).toContain("byro-repo #2's body was edited by editor");
+    expect(halt).toContain("1. `retry`\n2. `skip`");
+  });
+
+  it("launches a ticket halted on authorship once the edit is reverted and the Halt answered `retry`", async () => {
+    addSpec([1, 2]);
+    await specRun(
+      FakeAgentStep.init(
+        implemented("one.ts", {
+          act: () => github.edit(2, { bodyEditors: ["editor"] }),
+        }),
+        reviewed(),
+      ),
+    ).run(spec);
+    github.edit(2, { bodyEditors: [] });
+    github.reply(213, "H1: retry");
+    const rerunStep = FakeAgentStep.init(implemented("two.ts"), reviewed());
+
+    const result = await specRun(rerunStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(2)]);
+    expect(rerunStep.requests).toHaveLength(2);
   });
 });

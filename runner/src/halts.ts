@@ -113,6 +113,7 @@ export interface StepFailure {
 export const failureOptions = {
   retry: "`retry`",
   retryRecord: "`retry record`",
+  skip: "`skip`",
 } as const;
 
 // Any answer but `stop spec` and `skip` runs the step again with a fresh count.

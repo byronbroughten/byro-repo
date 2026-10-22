@@ -895,6 +895,7 @@ export class SpecRun {
           this._progressPathOf(run),
         );
       }
+      await this._checkAuthorship({ run, ticket, pair, state });
       this._log(
         run,
         `${issueLabelOf(ticket.issue)}: launching on ${pairLabelOf(pair)} from ${state.step}.`,
@@ -929,6 +930,18 @@ export class SpecRun {
     } finally {
       await this._releaseLeaseOf(ticket.issue);
     }
+  }
+
+  private async _checkAuthorship(landingTicket: LandingTicket): Promise<void> {
+    const { run, ticket, state } = landingTicket;
+    const reason = untrustedBodyReasonOf(this.config.developer, ticket);
+    if (reason === undefined) return;
+    await this._failureHalt(landingTicket, {
+      step: state.step,
+      detail: `${issueLabelOf(ticket.issue)}'s body was ${reason}; only ${this.config.developer} may write or edit a ticket the run launches. Revert the edit before a \`retry\`, or \`skip\` the ticket.`,
+      logPath: this._progressPathOf(run),
+      options: [failureOptions.retry, failureOptions.skip],
+    });
   }
 
   private async _otherHolderOf(
