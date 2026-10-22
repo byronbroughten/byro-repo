@@ -325,6 +325,10 @@ interface SavedRunState extends Omit<RunState, "tickets"> {
   >;
 }
 
+function onlyDeveloperEditsTextOf(developer: string, bodies: string): string {
+  return `Only ${developer} may write or edit ${bodies}`;
+}
+
 function runStateOf(saved: SavedRunState): RunState {
   const tickets = Object.fromEntries(
     Object.entries(saved.tickets).map(([key, { triage, ...ticket }]) => [
@@ -645,7 +649,7 @@ export class SpecRun {
       return [`${issueLabelOf(issue.issue)} (${reason})`];
     });
     if (offenders.length === 0) return undefined;
-    return `Only ${developer} may write or edit the spec and each open ${readyLabel} ticket; refused ${offenders.join(", ")}.`;
+    return `${onlyDeveloperEditsTextOf(developer, `the spec and each open ${readyLabel} ticket`)}; refused ${offenders.join(", ")}.`;
   }
 
   // Runs no checks: master moves only through wrap-up, which checked the commits it landed.
@@ -895,7 +899,7 @@ export class SpecRun {
           this._progressPathOf(run),
         );
       }
-      await this._checkAuthorship({ run, ticket, pair, state });
+      await this._haltOnUntrustedBody({ run, ticket, pair, state });
       this._log(
         run,
         `${issueLabelOf(ticket.issue)}: launching on ${pairLabelOf(pair)} from ${state.step}.`,
@@ -932,15 +936,19 @@ export class SpecRun {
     }
   }
 
-  private async _checkAuthorship(landingTicket: LandingTicket): Promise<void> {
+  private async _haltOnUntrustedBody(
+    landingTicket: LandingTicket,
+  ): Promise<void> {
     const { run, ticket, state } = landingTicket;
-    const reason = untrustedBodyReasonOf(this.config.developer, ticket);
+    const { developer } = this.config;
+    const reason = untrustedBodyReasonOf(developer, ticket);
     if (reason === undefined) return;
+    const { retry, skip } = failureOptions;
     await this._failureHalt(landingTicket, {
       step: state.step,
-      detail: `${issueLabelOf(ticket.issue)}'s body was ${reason}; only ${this.config.developer} may write or edit a ticket the run launches. Revert the edit before a \`retry\`, or \`skip\` the ticket.`,
+      detail: `${issueLabelOf(ticket.issue)}'s body was ${reason}. ${onlyDeveloperEditsTextOf(developer, "a ticket the run launches")}; revert the edit before a ${retry}, or ${skip} the ticket.`,
       logPath: this._progressPathOf(run),
-      options: [failureOptions.retry, failureOptions.skip],
+      options: [retry, skip],
     });
   }
 

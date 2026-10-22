@@ -238,11 +238,11 @@ describe("run", () => {
     expect(result.landed).toEqual([refOf(1)]);
     expect(agentStep.requests).toHaveLength(2);
     expect(ticketState()["byro-repo #2"]?.step).toBe("halted");
-    const [halt] = haltComments();
-    expect(haltComments()).toHaveLength(1);
-    expect(halt).toContain("Failure Halt");
-    expect(halt).toContain("byro-repo #2's body was edited by editor");
-    expect(halt).toContain("1. `retry`\n2. `skip`");
+    const halts = haltComments();
+    expect(halts).toHaveLength(1);
+    expect(halts[0]).toContain("Failure Halt");
+    expect(halts[0]).toContain("byro-repo #2's body was edited by editor.");
+    expect(halts[0]).toContain("1. `retry`\n2. `skip`");
   });
 
   it("launches a ticket halted on authorship once the edit is reverted and the Halt answered `retry`", async () => {
