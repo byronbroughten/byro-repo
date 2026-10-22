@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -19,6 +19,8 @@ describe("runner.config.json", () => {
     ) as { clonePaths: Record<string, string> };
     const clones = Object.values(clonePaths)
       .filter((clonePath) => clonePath !== ".")
+      // CI checks out only this repo, so its clones are absent there.
+      .filter((clonePath) => existsSync(packageFilePathOf(clonePath)))
       .map((clonePath) => packageFileOf(clonePath));
     const cloneNames = clones.map(({ name }) => name);
 
@@ -32,9 +34,13 @@ describe("runner.config.json", () => {
   });
 });
 
+function packageFilePathOf(clonePath: string): string {
+  return join(primaryRoot, clonePath, "package.json");
+}
+
 function packageFileOf(clonePath: string): PackageFile {
   return JSON.parse(
-    readFileSync(join(primaryRoot, clonePath, "package.json"), "utf8"),
+    readFileSync(packageFilePathOf(clonePath), "utf8"),
   ) as PackageFile;
 }
 
