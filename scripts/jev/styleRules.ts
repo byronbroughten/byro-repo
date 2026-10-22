@@ -22,17 +22,17 @@ export const positionRules: PositionRule[] = [
 
 export interface StyleSheetPaths {
   voiceSheetPath: string;
-  claritySheetPath: string;
+  craftSheetPath: string;
   academicSheetPath: string;
 }
 
 export function pieceRules(
-  { voiceSheetPath, claritySheetPath, academicSheetPath }: StyleSheetPaths,
+  { voiceSheetPath, craftSheetPath, academicSheetPath }: StyleSheetPaths,
   style: PieceStyle,
 ): string[] {
   const voiceRules = rulesIn(voiceSheetPath);
   requirePositionRules(voiceRules, voiceSheetPath);
-  const rules = [...voiceRules, ...rulesIn(claritySheetPath)];
+  const rules = [...voiceRules, ...rulesIn(craftSheetPath)];
   if (style.isAcademic) rules.push(...rulesIn(academicSheetPath));
   return rules
     .filter(

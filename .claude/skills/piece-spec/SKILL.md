@@ -13,7 +13,7 @@ Draw each field from the conversation, in the developer's words where they gave 
 - **Deliverable**: the Google Doc's title and Doc ID.
 - **Supporting Material**: each by title and Drive ID, with what it is for. For one too long to read whole, such as a book, list the passages that count by page range, given as PDF pages with the printed pages beside them when they differ, such as `PDF pp. 45–60 (printed 31–46)`.
 - **Reader**: who reads the Piece, and what they already know.
-- **Style**: the Axes line (`Evidence: <value> · Formality: <value>`, or `Academic`), then the style overrides, to any sheet: Voice, Clarity or academic.
+- **Style**: the Axes line (`Evidence: <value> · Formality: <value>`, or `Academic`), then the style overrides, to any sheet: Voice, Craft or academic.
 - **Form**: the length limit and its cut order, and the template if there is one.
 - **Outline**: the glossary's Outline as the developer approved it at the grill's end. [`docs/outlining.md`](../../../packages/writing/docs/outlining.md) says how it is written and how a template in Form fixes its Sections.
 - **Facts**: the closed list the Piece may use. Name any of the developer's own text the Piece keeps or revises (the verdict, an earlier draft, the rewritten calibration paragraph, Supporting Material already graded) as given, quoted or with where it lives.

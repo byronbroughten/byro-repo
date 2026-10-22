@@ -71,7 +71,7 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Sentences and pu
 - Agent: "The first such dependency is a new, aforementioned HELOC with TruStone Financial" — Assessment 1 Next Draft (writing#4)
 - Agent: "This charter authorizes the first step of that plan, which is acquiring, repairing, and leasing one residential rental property" — Assessment 1 Next Draft (writing#4)
 - The developer endorsed the rule — session 2ebcdf61, 2026-10-18
-- Where cutting "which" or "that" would leave a garden path, the Clarity sheet keeps it; the case is in its [precedence file](../writing-clarity/precedence.md#a-wrapper-phrase-against-a-signal-word).
+- Where cutting "which" or "that" would leave a garden path, the Craft sheet keeps it; the case is in its [precedence file](../writing-craft/precedence.md#a-wrapper-phrase-against-a-signal-word).
 
 ## One point, one sentence
 
@@ -83,7 +83,8 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Sentences and pu
 ## Active voice
 
 - From Strunk and White II.14, which keeps the passive where the actor doesn't matter or the receiver must be the subject. The academic sheet's passive recommendation overrides this rule.
-- The given-before-new exception is from Pinker, Ch. 4 (#316); its case is in the Clarity sheet's [precedence file](../writing-clarity/precedence.md#the-passive-that-keeps-the-topic-first).
+- The given-before-new exception is from Pinker, Ch. 4 (#316); its case is in the Craft sheet's [precedence file](../writing-craft/precedence.md#the-passive-that-keeps-the-topic-first).
+- Pinker, Ch. 2, PDF pp. 59–63, argues the same, and keeps the passive for leaving out a minor actor or keeping the reader's eye on one character.
 - Agent: "Based on an initial assessment, it is assumed that the four conditions below will hold through May 31, 2027." — Assessment 1 Next Draft (writing#4)
 - The developer endorsed the rule — session 2ebcdf61, 2026-10-18
 
@@ -100,4 +101,5 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Sentences and pu
 - Agent: "before an offer goes in" Developer: "before making an offer" — same
 - Agent: "from those units' lease rents and, for the owner's unit, the rent it is projected to earn if leased, as estimated in Planning" Developer: "and the measurement is based on lease rents and the rent that the owner's unit is projected to earn if it were leased" — same
 - This doesn't contradict "Wrapper phrases": a wrapper carries no meaning, while the clause's verb names the event the noun phrase hid. A passive clause here passes "Active voice", since the actor is beside the point.
+- Pinker, Ch. 2, PDF pp. 57–59: a verb turned into a noun ("prevention", "assessment") drops its actor, so the reader can't picture who did what.
 - No count was recorded; from a session.

@@ -35,7 +35,7 @@ const styleSheet = `# Fake style
 - **Close by returning to the first kettle.**
 `;
 
-const claritySheet = `# Fake clarity
+const craftSheet = `# Fake craft
 
 ## Terms
 
@@ -43,7 +43,7 @@ const claritySheet = `# Fake clarity
 
 ## Precedence
 
-- **A Clarity rule wins over a Voice habit only when the habit costs a reread.**
+- **A Craft rule wins over a Voice habit only when the habit costs a reread.**
 
 ## Sentences
 
@@ -126,11 +126,11 @@ describe("runJevStyle", () => {
     expect(printed.stdout).not.toContain('"Formality"');
   });
 
-  it("asks the Clarity sheet's rules of every paragraph, but never its Terms or Precedence", async () => {
+  it("asks the Craft sheet's rules of every paragraph, but never its Terms or Precedence", async () => {
     const printed = await runJevStyle(inputs({}));
     expect(linesWith(printed.stdout, "Put the known kettle")).toHaveLength(5);
     expect(printed.stdout).not.toContain("Kettle path");
-    expect(printed.stdout).not.toContain("A Clarity rule wins");
+    expect(printed.stdout).not.toContain("A Craft rule wins");
   });
 
   it("adds the academic sheet's rules for an Academic piece", async () => {
@@ -231,7 +231,7 @@ describe("runJevStyle on the repo's own style sheets", () => {
     const run = {
       ...inputs({}),
       voiceSheetPath: "docs/writing-voice.md",
-      claritySheetPath: "docs/writing-clarity.md",
+      craftSheetPath: "docs/writing-craft.md",
       academicSheetPath: "docs/academic-writing-style.md",
     };
     await expect(runJevStyle(run)).resolves.toBeDefined();
@@ -263,7 +263,7 @@ function inputs({
     stylePath: write(dir, "style.md", style),
     sections,
     voiceSheetPath: write(dir, "writing-voice.md", sheet),
-    claritySheetPath: write(dir, "writing-clarity.md", claritySheet),
+    craftSheetPath: write(dir, "writing-craft.md", craftSheet),
     academicSheetPath: write(dir, "academic-writing-style.md", academicSheet),
     apiKey: "test-key",
     connect: () => fakeClient(answer),
