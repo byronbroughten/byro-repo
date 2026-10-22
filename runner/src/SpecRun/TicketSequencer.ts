@@ -5,11 +5,7 @@
 // RunLoop.ts calls _runTicket and SessionReviewer.ts calls _runSteps.
 // It builds its own LeaseKeeper, ImplementStepper, ReviewStepper, TicketLander and HaltRaiser.
 
-import {
-  failureOptions,
-  isStopSpecAnswer,
-  type StepFailure,
-} from "../halts.ts";
+import { failureOptions, type StepFailure } from "../halts.ts";
 import { type BodyAuthorship, untrustedBodyReasonOf } from "../IssueReader.ts";
 import { issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
 import { LeaseHeld } from "../LeaseHeld.ts";
@@ -32,6 +28,7 @@ import {
   isAuthorshipHalt,
   isFix,
   isSameHeads,
+  isStopSpec,
   type LandingTicket,
   onlyDeveloperEditsTextOf,
   rerunCommandOf,
@@ -131,7 +128,7 @@ export class TicketSequencer extends SpecRunBase {
     const { developer } = this.config;
     const unapproved = unapprovedAuthorshipOf({
       developer,
-      ticket,
+      current: ticket,
       approved: approvedAuthorshipOf(run, ticket.issue),
     });
     const reason = untrustedBodyReasonOf(developer, unapproved);
@@ -142,7 +139,10 @@ export class TicketSequencer extends SpecRunBase {
       detail: `${issueLabelOf(ticket.issue)}'s body was ${reason}. ${onlyDeveloperEditsTextOf(developer, "a ticket the run launches")}; revert the edit before a ${retry}, or ${skip} the ticket. Either answer approves the edits named here, and only a later edit halts it again.`,
       logPath: this._progressPathOf(run),
       options: [retry, skip],
-      untrustedBody: { author: ticket.author, bodyEditors: ticket.bodyEditors },
+      reportedAuthorship: {
+        author: ticket.author,
+        bodyEditors: ticket.bodyEditors,
+      },
     });
   }
 
@@ -289,32 +289,32 @@ function approvedAuthorshipOf(
   ticket: IssueRef,
 ): BodyAuthorship | undefined {
   const answered = haltsOfTicket(run, ticket).filter(
-    ({ answer }) => answer !== undefined && !isStopSpecAnswer(answer),
+    (halt) => halt.answer !== undefined && !isStopSpec(halt),
   );
-  return answered.findLast(isAuthorshipHalt)?.untrustedBody;
+  return answered.findLast(isAuthorshipHalt)?.reportedAuthorship;
 }
 
 // Each approved edit cancels one edit by the same login, so a login's later edit still counts.
 function unapprovedAuthorshipOf({
   developer,
-  ticket,
+  current,
   approved,
 }: {
   developer: string;
-  ticket: BodyAuthorship;
+  current: BodyAuthorship;
   approved: BodyAuthorship | undefined;
 }): BodyAuthorship {
-  if (approved === undefined) return ticket;
+  if (approved === undefined) return current;
   const approvedEditors = [...approved.bodyEditors];
-  const bodyEditors = ticket.bodyEditors.filter((editor) => {
+  const bodyEditors = current.bodyEditors.filter((editor) => {
     const index = approvedEditors.indexOf(editor);
     if (index === -1) return true;
     approvedEditors.splice(index, 1);
     return false;
   });
-  const isAuthorApproved = ticket.author === approved.author;
+  const isAuthorApproved = current.author === approved.author;
   return {
-    author: isAuthorApproved ? developer : ticket.author,
+    author: isAuthorApproved ? developer : current.author,
     bodyEditors,
   };
 }

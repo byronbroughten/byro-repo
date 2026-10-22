@@ -50,7 +50,7 @@ export interface Halt {
   // A Failure Halt's step, which a `retry` answer runs again.
   failedStep?: FailedStep;
   // The authorship a launch-time check reported; answering the Halt approves just those edits.
-  untrustedBody?: BodyAuthorship;
+  reportedAuthorship?: BodyAuthorship;
   isPosted: boolean;
   answer?: HaltAnswer;
   // Set once the answer reached the resumed or fresh implementer.
@@ -75,7 +75,7 @@ export type HaltDraft = Pick<
   | "scope"
   | "finding"
   | "failedStep"
-  | "untrustedBody"
+  | "reportedAuthorship"
 >;
 
 export function shortRefOf({ repo, number }: IssueRef): string {
@@ -160,7 +160,7 @@ export interface StepFailure {
   logPath: string;
   // The answers offered in place of `retry`.
   options?: string[];
-  untrustedBody?: BodyAuthorship;
+  reportedAuthorship?: BodyAuthorship;
 }
 
 export const failureOptions = {
@@ -177,7 +177,7 @@ export function failureHaltOf(
     detail,
     logPath,
     options = [failureOptions.retry],
-    untrustedBody,
+    reportedAuthorship,
   }: StepFailure,
   downstream: string[],
 ): HaltDraft {
@@ -187,7 +187,7 @@ export function failureHaltOf(
     options,
     scope: downstream,
     failedStep: step,
-    untrustedBody,
+    reportedAuthorship,
   };
 }
 

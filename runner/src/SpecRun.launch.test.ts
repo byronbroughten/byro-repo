@@ -16,6 +16,7 @@ import {
   clonePaths,
   github,
   greenUnlessRed,
+  haltComments,
   implemented,
   masterSubjects,
   notices,
@@ -25,6 +26,7 @@ import {
   spec,
   specRun,
   stateFolder,
+  ticketState,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
 
@@ -278,3 +280,78 @@ describe("run's authorship refusal", () => {
     expect(result.landed).toEqual([refOf(1)]);
   });
 });
+
+describe("run's launch-time authorship check", () => {
+  it("checks authorship just before each launch, halting a ticket another login edited since preflight", async () => {
+    addSpec([1, 2]);
+    const agentStep = editsTicketTwoMidRun();
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(agentStep.requests).toHaveLength(2);
+    expect(ticketState()["byro-repo #2"]?.step).toBe("halted");
+    const halts = haltComments();
+    expect(halts).toHaveLength(1);
+    expect(halts[0]).toContain("Failure Halt");
+    expect(halts[0]).toContain("byro-repo #2's body was edited by editor.");
+    expect(halts[0]).toContain("1. `retry`\n2. `skip`");
+  });
+
+  it("launches a ticket halted on authorship once the edit is reverted and the Halt answered `retry`, though the edit stays in its history", async () => {
+    addSpec([1, 2]);
+    await specRun(editsTicketTwoMidRun()).run(spec);
+    github.edit(2, { bodyEditors: ["editor", "byronbroughten"] });
+    github.reply(213, "H1: retry");
+    const rerunStep = FakeAgentStep.init(implemented("two.ts"), reviewed());
+
+    const result = await specRun(rerunStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(2)]);
+    expect(rerunStep.requests).toHaveLength(2);
+  });
+
+  it("drops a ticket halted on authorship from the run on a `skip` answer", async () => {
+    addSpec([1, 2]);
+    const agentStep = editsTicketTwoMidRun();
+
+    const result = await specRun(agentStep, {
+      async sleep() {
+        github.reply(213, "H1: skip");
+      },
+    }).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(result.message).toBe(
+      "Run ended: landed byro-repo #1. byro-repo #2 was skipped.",
+    );
+    expect(agentStep.requests).toHaveLength(2);
+  });
+
+  it("halts again on another login's edit the answered Halt didn't report", async () => {
+    addSpec([1, 2]);
+    await specRun(editsTicketTwoMidRun()).run(spec);
+    github.reply(213, "H1: retry");
+    github.edit(2, { bodyEditors: ["editor", "editor"] });
+    const rerunStep = FakeAgentStep.init();
+
+    const result = await specRun(rerunStep).run(spec);
+
+    expect(result.message).toBe(
+      "Stopped on request: landed nothing. byro-repo #2 waits on Halt H2.",
+    );
+    expect(rerunStep.requests).toEqual([]);
+    const halts = haltComments();
+    expect(halts).toHaveLength(2);
+    expect(halts[1]).toContain("byro-repo #2's body was edited by editor.");
+  });
+});
+
+function editsTicketTwoMidRun(): FakeAgentStep {
+  return FakeAgentStep.init(
+    implemented("one.ts", {
+      act: () => github.edit(2, { bodyEditors: ["editor"] }),
+    }),
+    reviewed(),
+  );
+}
