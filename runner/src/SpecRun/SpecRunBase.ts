@@ -303,7 +303,7 @@ export class SpecRunBase {
       ({ issue }) =>
         `${issueLabelOf(issue.issue)}:\n${approvalLineOf(issue.body)}`,
     );
-    return `${onlyDeveloperEditsTextOf(this.config.developer, subject)}; refused ${offenders.join(", ")}. To approve a body as it reads now, comment its line on it.\n\n${approvals.join("\n\n")}`;
+    return `${onlyDeveloperEditsTextOf(this.config.developer, subject)}; refused ${offenders.join(", ")}. For the developer to paste after reading the body, as a comment on it; an agent never posts this line.\n\n${approvals.join("\n\n")}`;
   }
 
   // Its comments are read only when its edit history alone leaves the body untrusted.

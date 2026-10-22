@@ -221,7 +221,7 @@ describe("run's authorship refusal", () => {
     expect(result).toEqual<RunResult>({
       kind: "refused",
       landed: [],
-      message: `Only byronbroughten may write or edit the spec; refused byro-repo #213 (written by stranger). To approve a body as it reads now, comment its line on it.\n\nbyro-repo #213:\n${specApproval}`,
+      message: `Only byronbroughten may write or edit the spec; refused byro-repo #213 (written by stranger). For the developer to paste after reading the body, as a comment on it; an agent never posts this line.\n\nbyro-repo #213:\n${specApproval}`,
     });
     expect(agentStep.requests).toEqual([]);
     expect(notices.sent).toEqual([]);
@@ -271,7 +271,7 @@ describe("run's authorship refusal", () => {
     const result = await specRun(FakeAgentStep.init()).run(spec);
 
     expect(result.message).toBe(
-      `Only byronbroughten may write or edit the spec; refused byro-repo #213 (edited by editor). To approve a body as it reads now, comment its line on it.\n\nbyro-repo #213:\n${bodyWithApproval}`,
+      `Only byronbroughten may write or edit the spec; refused byro-repo #213 (edited by editor). For the developer to paste after reading the body, as a comment on it; an agent never posts this line.\n\nbyro-repo #213:\n${bodyWithApproval}`,
     );
   });
 
