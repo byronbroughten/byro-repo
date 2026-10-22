@@ -3,7 +3,7 @@
 import { SpecRun } from "@byronbroughten/spec-runner/SpecRun";
 
 import { nearestClaudeAncestor } from "./claudeAncestor.ts";
-import { specRunConfigOf } from "./runnerConfig.ts";
+import { ntfyTopic, specRunConfigOf } from "./runnerConfig.ts";
 
 const verbs = ["status", "stop", "review"];
 const usage = `Usage: npm run runner -- [${verbs.join("|")}] <owner/repo> <n>`;
@@ -34,6 +34,8 @@ try {
     console.log([result.message, ...result.halts].join("\n\n"));
     if (result.kind !== "reviewed") process.exitCode = 1;
   } else {
+    // Only a run sends notices, so only a run needs the topic before it starts.
+    ntfyTopic();
     const result = await specRun.run(issue);
     if (result.kind !== "finished") process.exitCode = 1;
   }

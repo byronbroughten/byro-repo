@@ -32,7 +32,6 @@ export const implementCodeCommands: ImplementCodeSkillInput = {
   wrapUpCommand: "npm run wrap-up -- <repo> <n>",
 };
 const scriptFolder = fileURLToPath(new URL(".", import.meta.url));
-const localConfigPath = join(scriptFolder, "runner.local.json");
 
 // The git common dir, not this file's folder, so a script run inside an issue workspace still finds the primary root.
 const primaryRoot = dirname(
@@ -41,6 +40,13 @@ const primaryRoot = dirname(
     ["rev-parse", "--path-format=absolute", "--git-common-dir"],
     { cwd: scriptFolder, encoding: "utf8" },
   ).trim(),
+);
+// Gitignored, so only the primary root has it.
+const localConfigPath = join(
+  primaryRoot,
+  "scripts",
+  "runner",
+  "runner.local.json",
 );
 
 export const runKnobs = loadRunKnobs(join(scriptFolder, "runner.config.json"));
@@ -92,7 +98,8 @@ export function specRunConfigOf(owner: string): SpecRunConfig {
     knobs: runKnobs,
     agentStep: ClaudeAgentStep.init("cswap", gworkspaceServer()),
     github: new GhCli(owner),
-    notices: NtfyNotices.init(ntfyTopic()),
+    // Read on each send, so review, status and stop, which never send, need no topic.
+    notices: { send: (notice) => NtfyNotices.init(ntfyTopic()).send(notice) },
     usageReader: CswapUsageReader.init(),
     clock: { now: () => new Date() },
     githubOwner: owner,

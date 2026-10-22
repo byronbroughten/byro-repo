@@ -8,8 +8,17 @@ import { ntfyTopic } from "./runnerConfig.ts";
 const [ownerRepo = "", number = "", code = ""] = process.argv.slice(2);
 const [owner = "", repo = ""] = ownerRepo.split("/");
 const command = rerunCommandOf(owner, { repo, number: Number(number) });
-await NtfyNotices.init(ntfyTopic()).send({
-  specTitle: `${ownerRepo} #${number}`,
-  summary: `The runner exited unexpectedly with code ${code}; read its tmux pane, then rerun \`${command}\`.`,
-  link: `https://github.com/${ownerRepo}/issues/${number}`,
-});
+let topic: string | undefined;
+try {
+  topic = ntfyTopic();
+} catch (error) {
+  // The pane already shows the crash; a second throw would bury it.
+  console.error(error instanceof Error ? error.message : error);
+}
+if (topic !== undefined) {
+  await NtfyNotices.init(topic).send({
+    specTitle: `${ownerRepo} #${number}`,
+    summary: `The runner exited unexpectedly with code ${code}; read its tmux pane, then rerun \`${command}\`.`,
+    link: `https://github.com/${ownerRepo}/issues/${number}`,
+  });
+}
