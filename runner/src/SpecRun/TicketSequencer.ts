@@ -113,6 +113,52 @@ export class TicketSequencer extends SpecRunBase {
     }
   }
 
+  // Leaves the ticket at its step, so a rerun retries it.
+  private async _stopForRerun(
+    run: Run,
+    ticket: TrackedIssue,
+    stop: UnhandledStop,
+  ): Promise<never> {
+    const outcome = stopOutcomes[stop.outcome];
+    const label = issueLabelOf(ticket.issue);
+    const command = rerunCommandOf(this.config.githubOwner, run.spec.issue);
+    await this._comment(
+      run,
+      [
+        stopHeadingOf(ticket, outcome),
+        stop.message,
+        `Log: \`${stop.logPath}\``,
+        `The ticket is left at its ${ticketStateOf(run, ticket.issue).step} step in its issue workspace; rerun to retry it: \`${command}\`.`,
+      ].join("\n\n"),
+    );
+    throw new RunStop(`Stopped on ${label}: ${outcome}; rerun to retry it.`);
+  }
+
+  private async _stopTicket(
+    run: Run,
+    ticket: TrackedIssue,
+    stop: UnhandledStop,
+  ): Promise<void> {
+    const state = ticketStateOf(run, ticket.issue);
+    const outcome = stopOutcomes[stop.outcome];
+    state.step = "stopped";
+    state.stop = outcome;
+    this._saveState(run);
+    this._log(
+      run,
+      `${issueLabelOf(ticket.issue)}: stopped on ${outcome}; details in the spec-issue comment.`,
+    );
+    await this._comment(
+      run,
+      [
+        stopHeadingOf(ticket, outcome),
+        stop.message,
+        `Log: \`${stop.logPath}\``,
+        "The ticket is left unlanded in its issue workspace, and a rerun won't retry it. Finish and land it by hand with the standalone wrap-up; a rerun skips it once it is closed.",
+      ].join("\n\n"),
+    );
+  }
+
   // An implementer whose record failed after it committed is offered `retry record`, which keeps those commits.
   async _runSteps(ticketRun: TicketRun): Promise<void> {
     try {
@@ -195,52 +241,6 @@ export class TicketSequencer extends SpecRunBase {
       );
       this._advance(ticketRun, "wrap-up");
     }
-  }
-
-  private async _stopTicket(
-    run: Run,
-    ticket: TrackedIssue,
-    stop: UnhandledStop,
-  ): Promise<void> {
-    const state = ticketStateOf(run, ticket.issue);
-    const outcome = stopOutcomes[stop.outcome];
-    state.step = "stopped";
-    state.stop = outcome;
-    this._saveState(run);
-    this._log(
-      run,
-      `${issueLabelOf(ticket.issue)}: stopped on ${outcome}; details in the spec-issue comment.`,
-    );
-    await this._comment(
-      run,
-      [
-        stopHeadingOf(ticket, outcome),
-        stop.message,
-        `Log: \`${stop.logPath}\``,
-        "The ticket is left unlanded in its issue workspace, and a rerun won't retry it. Finish and land it by hand with the standalone wrap-up; a rerun skips it once it is closed.",
-      ].join("\n\n"),
-    );
-  }
-
-  // Leaves the ticket at its step, so a rerun retries it.
-  private async _stopForRerun(
-    run: Run,
-    ticket: TrackedIssue,
-    stop: UnhandledStop,
-  ): Promise<never> {
-    const outcome = stopOutcomes[stop.outcome];
-    const label = issueLabelOf(ticket.issue);
-    const command = rerunCommandOf(this.config.githubOwner, run.spec.issue);
-    await this._comment(
-      run,
-      [
-        stopHeadingOf(ticket, outcome),
-        stop.message,
-        `Log: \`${stop.logPath}\``,
-        `The ticket is left at its ${ticketStateOf(run, ticket.issue).step} step in its issue workspace; rerun to retry it: \`${command}\`.`,
-      ].join("\n\n"),
-    );
-    throw new RunStop(`Stopped on ${label}: ${outcome}; rerun to retry it.`);
   }
 }
 
