@@ -10,6 +10,7 @@ import { git } from "./GitFixture.ts";
 import type { LeaseHolder } from "./IssueWorkspaces.ts";
 import {
   addSpec,
+  crashed,
   github,
   haltComments,
   implemented,
@@ -180,6 +181,19 @@ describe("review of one ticket outside a run", () => {
       whatReviewCaught: "Halted: Line 1 is wrong. (one.ts:1).",
       proposals: 0,
     });
+  });
+
+  it("offers a failed step's session Halt only a fresh review, since no run reads `retry`", async () => {
+    const agentStep = FakeAgentStep.init(crashed, crashed);
+
+    const result = await specRun(agentStep).review(refOf(1), { holder });
+
+    expect(result.kind).toBe("halted");
+    expect(result.halts[0]).toContain("Failure Halt");
+    expect(result.halts[0]).toContain(
+      "Options:\n1. Review the ticket again once the failure's cause is fixed.\n\n",
+    );
+    expect(result.halts[0]).not.toContain("`retry`");
   });
 
   it("leaves a later run on the spec unaffected: it saves no run state, and a reply to its Halt answers none of the run's", async () => {

@@ -375,7 +375,7 @@ interface Run {
   skipped: Set<string>;
   // The distinct tickets whose Failure Halts came in a row; a landing clears it.
   failureStreak: string[];
-  // Set for one ticket's review outside a run, which saves no run state and pushes nothing.
+  // One ticket's review outside a run; a flag, not a strategy, as it differs from a run at only a handful of checks.
   sessionReview?: SessionReview;
 }
 

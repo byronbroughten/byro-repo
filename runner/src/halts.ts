@@ -266,8 +266,13 @@ function sessionHaltPrefixOf({ number }: IssueRef): string {
 
 // No run reads a reply to it, and with no run going there is no spec to stop.
 export function sessionHaltCommentOf(post: HaltPost): string {
+  const { halt } = post;
   return haltCommentWith(post, {
-    options: post.halt.options,
+    // A Failure Halt's answers are a run's, and a review keeps no state to resume.
+    options:
+      halt.kind === "failure"
+        ? ["Review the ticket again once the failure's cause is fixed."]
+        : halt.options,
     answerLine:
       "Answer it in the interactive session that ran the review; no run reads a reply to it.",
   });
