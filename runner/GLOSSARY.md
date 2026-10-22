@@ -57,7 +57,7 @@ The verdict that leaves the finding for the developer on the review list: `decis
 _Avoid_: Defer, postpone, backlog
 
 **Halt**:
-The verdict that blocks the tickets in its scope until the developer answers: named later tickets and their downstream, or `spec`. A fixer's give-up or a blocker in the implement record is one too. It is posted as a spec-issue comment and a push.
+The verdict that blocks the tickets in its scope until the developer answers: named later tickets and their downstream, or `spec`. A fixer's give-up or a blocker in the implement record is one too. It is posted as a spec-issue comment and a push; an interactive session's review of its own ticket posts its Halts with no push and takes the answers in the session.
 _Avoid_: pause, block, question
 
 **Failure Halt**:

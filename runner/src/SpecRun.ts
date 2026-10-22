@@ -4,7 +4,7 @@
 // tickets in its scope, and the ticket resumes once every one of its Halts is answered (halts.ts).
 // Any outcome a later ticket will handle (red checks, step errors, schema failures) is an UnhandledStop; a red master Stops the run.
 // The run holds its ticket's workspace lease; with nothing runnable, an open Halt or another holder's lease leaves it idle, polling.
-// A stop request (requestStop()) or a `stop spec` answer ends the run between tickets; status() reads a run from outside.
+// requestStop() or a `stop spec` answer ends the run between tickets; status() reads it from outside; review() reviews a session's ticket.
 // GitHub and git hold what's durable; a per-spec state file holds the step each ticket reached, so a rerun resumes there.
 // Steps launch through AgentStep.ts; prompts are implementStep.ts, reviewStep.ts, findingTriage.ts and fixStep.ts;
 // landing is WrapUp.ts; knobs are runKnobs.ts; the review list and gap check are reviewList.ts and gapCheck.ts.
@@ -23,7 +23,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 
 import type { AgentStep, Pair, StepRequest, StepResult } from "./AgentStep.ts";
-import { FactsFile, type WrapUpFacts } from "./FactsFile.ts";
+import { FactsFile, type ReviewFacts, type WrapUpFacts } from "./FactsFile.ts";
 import { commandLabelOf, messageOf, outputTailOf } from "./failureText.ts";
 import {
   type SavedTriageRecord,
@@ -34,6 +34,7 @@ import {
   triageRecordProblems,
   triageRecordsOf,
   triageRetryPrompt,
+  whatReviewCaughtOf,
 } from "./findingTriage.ts";
 import {
   type FixOutcome,
@@ -83,6 +84,9 @@ import {
   repliesTo,
   resumePrompt,
   runnerMark,
+  sessionHaltCommentOf,
+  sessionHaltCountOf,
+  sessionHaltIdOf,
   shortRefOf,
   splitHaltOf,
   type StepFailure,
@@ -114,6 +118,8 @@ import {
   type LeaseHolder,
   otherLiveHolderOf,
   type Workspace,
+  workspaceLabelOf,
+  type WorkspaceStatus,
 } from "./IssueWorkspaces.ts";
 import { LeaseHeld } from "./LeaseHeld.ts";
 import {
@@ -245,6 +251,18 @@ export interface RunResult {
   message: string;
 }
 
+export interface ReviewOptions {
+  // The interactive session's, which may hold the workspace's lease.
+  holder?: LeaseHolder;
+}
+
+export interface ReviewResult {
+  kind: "reviewed" | "halted" | "stopped" | "refused";
+  message: string;
+  // Each Halt comment the review posted on the spec, for the session to print.
+  halts: string[];
+}
+
 export type TicketStep =
   | "implement"
   | "review"
@@ -357,6 +375,18 @@ interface Run {
   skipped: Set<string>;
   // The distinct tickets whose Failure Halts came in a row; a landing clears it.
   failureStreak: string[];
+  // One ticket's review outside a run; a flag, not a strategy, as it differs from a run at only a handful of checks.
+  sessionReview?: SessionReview;
+}
+
+interface SessionReview {
+  // The ticket's session Halts already on the spec, which this review numbers on from.
+  earlierHalts: number;
+  postedHalts: string[];
+}
+
+interface TicketReview extends ReviewOptions {
+  ticket: TrackedIssue;
 }
 
 // Each pushed at most once per run.
@@ -618,6 +648,10 @@ export class SpecRun {
   }
 
   private async _startRun(specIssue: IssueRef): Promise<Run> {
+    return this._runOf(specIssue, this._readState(specIssue));
+  }
+
+  private async _runOf(specIssue: IssueRef, state: RunState): Promise<Run> {
     const spec = await this.config.github.issueOf(specIssue);
     const subIssues = await this.config.github.subIssuesOf(specIssue);
     mkdirSync(this.config.stateFolder, { recursive: true });
@@ -625,7 +659,7 @@ export class SpecRun {
       spec,
       tickets: subIssues.length > 0 ? subIssues : [specIssue],
       isTicketless: subIssues.length === 0,
-      state: this._readState(specIssue),
+      state,
       landed: [],
       warnings: new Set(),
       skipped: new Set(),
@@ -733,6 +767,76 @@ export class SpecRun {
       lines.push("A stop is requested; the run ends after its current ticket.");
     }
     return lines.join("\n");
+  }
+
+  // Saves no run state and resumes no session, so a later run of the spec is unaffected; runs no checks and no wrap-up.
+  async review(
+    issue: IssueRef,
+    { holder }: ReviewOptions,
+  ): Promise<ReviewResult> {
+    const { github } = this.config;
+    const ticket = await github.issueOf(issue);
+    const specIssue = (await github.parentOf(issue))?.issue ?? issue;
+    const run = await this._runOf(specIssue, { tickets: {} });
+    run.sessionReview = {
+      earlierHalts: sessionHaltCountOf(
+        issue,
+        await this._runnersSpecCommentsOf(run),
+      ),
+      postedHalts: [],
+    };
+    const result = await this._reviewOne(run, { ticket, holder });
+    this._log(run, result.message);
+    return result;
+  }
+
+  private async _reviewOne(
+    run: Run,
+    { ticket, holder }: TicketReview,
+  ): Promise<ReviewResult> {
+    const { issue } = ticket;
+    const workspace = await this.workspaces.find(issue);
+    if (workspace === undefined) {
+      return refusedReviewOf(
+        `${issueLabelOf(issue)} has no issue workspace; open it with \`npm run issue:start\` first.`,
+      );
+    }
+    const checked = isSameIssue(run.spec.issue, issue) ? [] : [ticket];
+    const refusal =
+      this._authorshipRefusal(run, checked) ??
+      targetsRefusalOf(run, [ticket]) ??
+      workspaceRefusalOf(workspace, holder);
+    if (refusal !== undefined) return refusedReviewOf(refusal);
+    const ticketRun: TicketRun = {
+      run,
+      ticket,
+      // Interactive tickets may carry no Model fit.
+      pair: pairOf(ticket.body) ?? this.config.knobs.triagePair,
+      workspace,
+      // With no implementPeak, the triage agent fixes: the implementer is the live interactive session.
+      state: { step: "review", sessions: [] },
+      targets: targetsAtLaunchOf(ticket, this._progressPathOf(run)),
+    };
+    run.state.tickets[issueLabelOf(issue)] = ticketRun.state;
+    try {
+      // Past the refusals, a live lease is the caller's own.
+      if (otherLiveHolderOf(workspace.lease) === undefined) {
+        await this.workspaces.takeLease(workspace, runHolder);
+      }
+      await this._runSteps(ticketRun);
+      this.factsFile.setReviewFacts(issue, reviewFactsOf(ticketRun.state));
+      await this._postReviewList(run, ticket);
+      await this._haltOnUnpostedHalts(ticketRun);
+      return {
+        kind: "reviewed",
+        message: reviewedMessageOf(ticketRun),
+        halts: [],
+      };
+    } catch (error) {
+      return reviewEndOf(ticketRun, error);
+    } finally {
+      await this._releaseLeaseOf(issue);
+    }
   }
 
   // Read afresh each pick; a ticket with every Halt answered goes first, oldest answered set first, then the frontier.
@@ -1068,6 +1172,8 @@ export class SpecRun {
       this._advance(ticketRun, "checks");
     }
     if (state.step === "checks") {
+      // A session's review leaves the checks and wrap-up to the session.
+      if (run.sessionReview !== undefined) return;
       await this._haltOnUnpostedHalts(ticketRun);
       await this._timed(ticketRun, "checks", () => this._check(ticketRun));
       this._advance(ticketRun, "wrap-up");
@@ -1411,7 +1517,13 @@ export class SpecRun {
         count: batch.length,
         ticketTitle: (await this.config.github.issueOf(halt.ticket)).title,
       };
-      await this._comment(run, haltCommentOf(post));
+      const { sessionReview } = run;
+      const body =
+        sessionReview === undefined
+          ? haltCommentOf(post)
+          : sessionHaltCommentOf(post);
+      await this._comment(run, body);
+      sessionReview?.postedHalts.push(body);
       halt.isPosted = true;
       this._saveState(run);
       await this._announce(run, haltNoticeOf(post));
@@ -1481,7 +1593,7 @@ export class SpecRun {
         title: ticket.title,
         skillName: this.config.knobs.skillNames.review,
         branch: workspace.branch,
-        branchedRepos: branchedReposOf(state),
+        branchedRepos: branchedReposOf(ticketRun),
       }),
       jsonSchema: reviewRecordSchema,
     });
@@ -1503,7 +1615,7 @@ export class SpecRun {
         issue: ticket.issue,
         title: ticket.title,
         branch: workspace.branch,
-        branchedRepos: branchedReposOf(state),
+        branchedRepos: branchedReposOf(ticketRun),
         findings,
       }),
     });
@@ -1621,7 +1733,7 @@ export class SpecRun {
     fixer: Fixer,
     fixes: TriageRecord[],
   ): Promise<FixAttempt> {
-    const { ticket, workspace, state } = ticketRun;
+    const { ticket, workspace } = ticketRun;
     const { knobs } = this.config;
     const { result, logPath } = await this._runFixerStep(ticketRun, fixer, {
       liveCeiling: knobs.liveCeiling,
@@ -1629,7 +1741,7 @@ export class SpecRun {
         issue: ticket.issue,
         title: ticket.title,
         branch: workspace.branch,
-        branchedRepos: branchedReposOf(state),
+        branchedRepos: branchedReposOf(ticketRun),
         fixes,
       }),
       jsonSchema: fixOutputSchema,
@@ -1999,7 +2111,7 @@ export class SpecRun {
         issue: ticket.issue,
         title: ticket.title,
         branch: workspace.branch,
-        branchedRepos: branchedReposOf(state),
+        branchedRepos: branchedReposOf(ticketRun),
         failures: failure,
       }),
       jsonSchema: redChecksOutputSchema,
@@ -2091,7 +2203,7 @@ export class SpecRun {
     landingTicket: LandingTicket,
     conflict: string,
   ): Promise<void> {
-    const { run, ticket, state } = landingTicket;
+    const { run, ticket } = landingTicket;
     const progressPath = this._progressPathOf(run);
     const workspace = await this.workspaces.find(ticket.issue);
     if (workspace === undefined) {
@@ -2118,7 +2230,7 @@ export class SpecRun {
           issue: ticket.issue,
           title: ticket.title,
           branch: workspace.branch,
-          branchedRepos: branchedReposOf(state),
+          branchedRepos: branchedReposOf(ticketRun),
           conflict,
         }),
         jsonSchema: mergeMasterOutputSchema,
@@ -2211,10 +2323,7 @@ export class SpecRun {
     const facts: WrapUpFacts = {
       closingComment: record.closingComment,
       boxesUndone: record.boxesUndone,
-      reviewFixes: state.fixer ?? "none",
-      proposals: (state.triage ?? []).filter(
-        ({ verdict }) => verdict === "propose",
-      ).length,
+      ...reviewFactsOf(state),
       reviewRounds: 1,
       retries: retriesOf(state),
       pair: pairLabelOf(pair),
@@ -2270,6 +2379,7 @@ export class SpecRun {
   }
 
   private _saveState(run: Run): void {
+    if (run.sessionReview !== undefined) return;
     writeFileSync(
       this._statePathOf(run.spec.issue),
       `${JSON.stringify(run.state, undefined, 2)}\n`,
@@ -2345,7 +2455,7 @@ export class SpecRun {
         return this._end(
           run,
           "stopped",
-          `The gap check stopped on ${stopOutcomes[error.outcome]}: ${error.message} Log: \`${error.logPath}\`. Rerun to retry it.`,
+          `The gap check ${stoppedOnTextOf(error)}. Rerun to retry it.`,
         );
       }
     }
@@ -2489,6 +2599,8 @@ export class SpecRun {
   // A notice that fails is logged, not thrown: the comment and the progress log still hold the event.
   private async _announce(run: Run, summary: string): Promise<void> {
     this._log(run, summary);
+    // A session's review prints to the session instead.
+    if (run.sessionReview !== undefined) return;
     try {
       await this.config.notices.send({
         specTitle: run.spec.title,
@@ -2532,10 +2644,15 @@ function raiseHalts(
 ): void {
   run.state.halts ??= [];
   const { halts } = run.state;
+  const { sessionReview } = run;
   drafts.forEach((draft) => {
+    const index = halts.length + 1;
     halts.push({
       ...draft,
-      id: `H${halts.length + 1}`,
+      id:
+        sessionReview === undefined
+          ? `H${index}`
+          : sessionHaltIdOf(ticket, sessionReview.earlierHalts + index),
       ticket,
       isPosted: false,
       isDelivered: false,
@@ -2717,8 +2834,11 @@ function isSameHeads(first: Heads, second: Heads): boolean {
   return JSON.stringify(first) === JSON.stringify(second);
 }
 
-function branchedReposOf(state: TicketState): string[] {
-  return (state.record?.branches ?? []).map(({ repo }) => repo);
+// A session review has no implement record, so its workspace's branched repos stand in.
+function branchedReposOf({ workspace, state }: TicketRun): string[] {
+  return (
+    state.record?.branches.map(({ repo }) => repo) ?? workspace.branchedRepos
+  );
 }
 
 // Absent from a state file written before Halts, where the last implement session is the implementer's.
@@ -2893,6 +3013,60 @@ function recordOf(step: string, result: StepResult, logPath: string): unknown {
     );
   }
   return output.record;
+}
+
+function reviewFactsOf({ fixer, triage = [] }: TicketState): ReviewFacts {
+  return {
+    reviewFixes: fixer ?? "none",
+    whatReviewCaught: whatReviewCaughtOf(triage),
+    proposals: triage.filter(({ verdict }) => verdict === "propose").length,
+  };
+}
+
+function workspaceRefusalOf(
+  { key, lease, dirtyRepos }: WorkspaceStatus,
+  holder: LeaseHolder | undefined,
+): string | undefined {
+  const label = workspaceLabelOf(key);
+  const other = otherLiveHolderOf(lease, holder);
+  if (other !== undefined) {
+    return `${label}'s workspace is leased by ${holderLabelOf(other)}.`;
+  }
+  if (dirtyRepos.length === 0) return undefined;
+  // The fix step resets the tree when it is killed or capped, so it would lose them.
+  return `${label}'s workspace has uncommitted changes in ${dirtyRepos.join(", ")}; commit them first.`;
+}
+
+function refusedReviewOf(message: string): ReviewResult {
+  return { kind: "refused", message, halts: [] };
+}
+
+function reviewedMessageOf({ ticket, state }: TicketRun): string {
+  const { whatReviewCaught } = reviewFactsOf(state);
+  const findings = state.findings?.length ?? 0;
+  return `Reviewed ${issueLabelOf(ticket.issue)}, findings: ${findings}. ${whatReviewCaught ?? "Nothing to fix or decide."}`;
+}
+
+function reviewEndOf({ run, ticket }: TicketRun, error: unknown): ReviewResult {
+  const label = issueLabelOf(ticket.issue);
+  const halts = run.sessionReview?.postedHalts ?? [];
+  if (error instanceof TicketHalted) {
+    const message = `The review of ${label} halted on Halt ${idListOf(haltsOf(run))}; answer it in this session.`;
+    return { kind: "halted", message, halts };
+  }
+  if (error instanceof LeaseHeld) return refusedReviewOf(error.message);
+  if (error instanceof UnhandledStop) {
+    const message = `The review of ${label} ${stoppedOnTextOf(error)}.`;
+    return { kind: "stopped", message, halts };
+  }
+  if (error instanceof RunStop) {
+    return { kind: "stopped", message: error.message, halts };
+  }
+  throw error;
+}
+
+function stoppedOnTextOf({ outcome, message, logPath }: UnhandledStop): string {
+  return `stopped on ${stopOutcomes[outcome]}: ${message} Log: \`${logPath}\``;
 }
 
 function retriesOf({ crashes = {}, redCheckResumes = 0 }: TicketState): number {

@@ -104,7 +104,7 @@ function cellsOf({ issue, filesChanged, facts }: OutcomeRow): string[] {
     dollarsOf(facts.costUsd),
     dollarsOf(facts.triageCostUsd),
     facts.limitUsed ?? unrecorded,
-    whatReviewCaughtOf(facts),
+    whatReviewCaughtCellOf(facts),
     facts.sessionIds?.join(", ") ?? unrecorded,
   ];
 }
@@ -136,7 +136,7 @@ const resultPhraseByReviewFixes: Record<ReviewFixes, string> = {
   skipped: "review skipped (no code)",
 };
 
-function whatReviewCaughtOf({
+function whatReviewCaughtCellOf({
   whatReviewCaught,
   reviewFixes,
 }: OutcomeFacts): string {

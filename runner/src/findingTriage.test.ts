@@ -8,6 +8,7 @@ import {
   type TriageRecord,
   triageRecordProblems,
   triageRecordsOf,
+  whatReviewCaughtOf,
 } from "./findingTriage.ts";
 
 // The same Ajv setup StepStream validates a step's structured output with.
@@ -253,6 +254,27 @@ describe("haltScopeOf", () => {
     expect(haltScopeOf({ ...halt, haltScope: ["byro-repo#231"] })).toEqual([
       "byro-repo#231",
     ]);
+  });
+});
+
+describe("whatReviewCaughtOf", () => {
+  it("names the kept findings by verdict, leaving out Dismisses", () => {
+    const second = {
+      ...fix,
+      finding: 2,
+      claim: "A stale doc link.",
+      where: "README.md:4",
+    };
+
+    expect(
+      whatReviewCaughtOf([dismiss, fix, halt, second, propose, kept]),
+    ).toBe(
+      "Fixed: A multi-line why comment above the retry loop. (runner/src/SpecRun.ts:88); A stale doc link. (README.md:4). Proposed: The lock file name is built in two places. (runner/src/LandingLock.ts:40). Halted: The ticket asks for a retry the spec forbids. (runner/src/SpecRun.ts:120).",
+    );
+  });
+
+  it("is undefined when every finding was dismissed", () => {
+    expect(whatReviewCaughtOf([dismiss, kept])).toBeUndefined();
   });
 });
 

@@ -35,7 +35,7 @@ const kindLabels = {
 export type HaltKind = keyof typeof kindLabels;
 
 export interface Halt {
-  // `H<n>`, numbered across the spec's run; a reply names it.
+  // `H<n>`, numbered across the spec's run, which reads a reply naming it; `S<ticket>.<k>` for a session's review.
   id: string;
   // The halted ticket.
   ticket: IssueRef;
@@ -239,16 +239,62 @@ function haltHeadingOf(halt: Halt): string {
 }
 
 export function haltCommentOf(post: HaltPost): string {
+  const { halt } = post;
+  return haltCommentWith(post, {
+    options: [...halt.options, stopSpecOption],
+    answerLine: `Answer with a reply naming \`${halt.id}\`: an option, or your own words.`,
+  });
+}
+
+// Never a run's `H<n>`, so a run never reads a reply to one.
+export function sessionHaltIdOf(ticket: IssueRef, index: number): string {
+  return `${sessionHaltPrefixOf(ticket)}${index}`;
+}
+
+// The ticket's session Halts among the spec's comments, one per comment.
+export function sessionHaltCountOf(
+  ticket: IssueRef,
+  comments: string[],
+): number {
+  const heading = `**Halt ${sessionHaltPrefixOf(ticket)}`;
+  return comments.filter((body) => body.includes(heading)).length;
+}
+
+function sessionHaltPrefixOf({ number }: IssueRef): string {
+  return `S${number}.`;
+}
+
+// No run reads a reply to it, and with no run going there is no spec to stop.
+export function sessionHaltCommentOf(post: HaltPost): string {
+  const { halt } = post;
+  return haltCommentWith(post, {
+    // A Failure Halt's answers are a run's, and a review keeps no state to resume.
+    options:
+      halt.kind === "failure"
+        ? ["Review the ticket again once the failure's cause is fixed."]
+        : halt.options,
+    answerLine:
+      "Answer it in the interactive session that ran the review; no run reads a reply to it.",
+  });
+}
+
+interface HaltCommentParts {
+  options: string[];
+  answerLine: string;
+}
+
+function haltCommentWith(
+  post: HaltPost,
+  { options, answerLine }: HaltCommentParts,
+): string {
   const { halt, ticketTitle } = post;
-  const options = [...halt.options, stopSpecOption].map(
-    (option, index) => `${index + 1}. ${option}`,
-  );
+  const numbered = options.map((option, index) => `${index + 1}. ${option}`);
   return [
     `${haltHeadingOf(halt)} · ${haltLabelOf(post)}, "${ticketTitle}" · ${haltKindLabelOf(halt.kind)}`,
     halt.question,
     `Blocks: ${scopeTextOf(halt.scope)}.`,
-    `Options:\n${options.join("\n")}`,
-    `Answer with a reply naming \`${halt.id}\`: an option, or your own words.`,
+    `Options:\n${numbered.join("\n")}`,
+    answerLine,
   ].join("\n\n");
 }
 
