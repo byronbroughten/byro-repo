@@ -60,7 +60,6 @@ import {
   type ReviewResult,
   type Run,
   runCommand,
-  runHolder,
   type RunResult,
   stoppedOnTextOf,
   targetsAtLaunchOf,
@@ -362,10 +361,7 @@ export class SpecRun extends SpecRunBase {
     };
     run.state.tickets[issueLabelOf(issue)] = ticketRun.state;
     try {
-      // Past the refusals, a live lease is the caller's own.
-      if (otherLiveHolderOf(workspace.lease) === undefined) {
-        await this.workspaces.takeLease(workspace, runHolder);
-      }
+      await this.leaseKeeper._takeSessionLease(workspace);
       await this.ticketSequencer._runSteps(ticketRun);
       this.factsFile.setReviewFacts(issue, reviewFactsOf(ticketRun.state));
       await this.reviewListPoster._postReviewList(run, ticket);

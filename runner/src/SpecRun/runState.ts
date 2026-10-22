@@ -43,8 +43,6 @@ import { stopOutcomes, UnhandledStop } from "../UnhandledStop.ts";
 
 const execFileAsync = promisify(execFile);
 
-export const runHolder: LeaseHolder = { kind: "run", pid: process.pid };
-
 export const readyLabel = "ready-for-agent";
 
 export const gapCheckLabel = "gap check";
