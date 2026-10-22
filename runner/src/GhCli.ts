@@ -23,6 +23,7 @@ const trackedIssueFields = `number title state body url
 const readableIssueFields = `${trackedIssueFields}
       parent { number repository { name } }
       subIssues(first: 100) { nodes { number repository { name } } }
+      timelineItems(itemTypes: [RENAMED_TITLE_EVENT], last: 1) { nodes { ... on RenamedTitleEvent { actor { login } } } }
       comments(first: 100) { pageInfo { hasNextPage } nodes { author { login } body } }`;
 
 interface RawLogin {
@@ -53,6 +54,7 @@ interface RawIssue {
   parent?: RawRef | null;
   subIssues?: { nodes?: RawRef[] };
   userContentEdits?: RawPage & { nodes?: { editor?: RawLogin | null }[] };
+  timelineItems?: { nodes?: { actor?: RawLogin | null }[] };
   comments?: RawPage & {
     nodes?: { author?: RawLogin | null; body?: unknown }[];
   };
@@ -256,9 +258,11 @@ function readableOfRaw(issue: IssueRef, raw: RawIssue): ReadableIssue {
   if (comments?.pageInfo?.hasNextPage) {
     throw new Error(overflowMessageOf(issue, "comments"));
   }
+  const [lastRename] = raw.timelineItems?.nodes ?? [];
   return {
     issue,
     title: String(raw.title),
+    titleRenamer: lastRename ? loginOf(lastRename.actor) : undefined,
     isOpen: raw.state === "OPEN",
     labels: labelsOfRaw(raw),
     parent: raw.parent ? refOfRaw(raw.parent) : undefined,

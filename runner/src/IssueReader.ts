@@ -29,6 +29,8 @@ export interface ApprovableBody extends BodyAuthorship {
 export interface ReadableIssue extends ApprovableBody {
   issue: IssueRef;
   title: string;
+  // Undefined when the title was never renamed.
+  titleRenamer: string | undefined;
   isOpen: boolean;
   labels: string[];
   parent: IssueRef | undefined;
@@ -58,7 +60,7 @@ export interface IssueReaderConfig {
 
 // The issue reader behind `npm run issue:read`: prints an issue with each part labelled Trusted text or Untrusted text.
 // The rule: a body is Trusted when the developer wrote it and every edit was theirs, or when the developer approved
-// its exact text in a comment; a comment, by its author alone.
+// its exact text in a comment; a title, by whoever set it last; a comment, by its author alone.
 // Untrusted text prints quoted, so it can't print a heading that passes for one of the reader's own.
 // The real source is GhCli.ts over GraphQL, since `gh issue view --json` shows no editors; tests use FakeIssueSource.ts.
 // The script is scripts/runner/issueRead.ts; the terms are in runner/GLOSSARY.md.
@@ -144,11 +146,29 @@ export class IssueReader {
     const subIssues = issue.subIssues.map((sub) => this._refOf(issue, sub));
     const { parent } = issue;
     return [
-      `#${issue.issue.number} ${issue.title}`,
+      ...this._titleOf(issue),
       `State: ${issue.isOpen ? "open" : "closed"}`,
       `Labels: ${listOf(issue.labels)}`,
       `Parent: ${parent ? this._refOf(issue, parent) : "none"}`,
       `Sub-issues: ${listOf(subIssues)}`,
+    ];
+  }
+
+  // A rename replaces the whole title, so whoever set it last wrote all of it.
+  private _titleOf({
+    issue,
+    title,
+    author,
+    titleRenamer,
+  }: ReadableIssue): string[] {
+    const setter = titleRenamer ?? author;
+    if (setter === this.config.developer) {
+      return [`#${issue.number} ${title} (Trusted text)`];
+    }
+    const how = titleRenamer === undefined ? "written" : "renamed";
+    return [
+      `#${issue.number} title: Untrusted text, ${how} by ${setter}`,
+      ...quotedLinesOf(title),
     ];
   }
 
@@ -204,8 +224,11 @@ function trustedPart({ heading, text }: IssuePart): string[] {
 }
 
 function untrustedPart({ heading, text }: IssuePart, whose: string): string[] {
-  const quoted = text.split("\n").map((line) => `> ${line}`);
-  return [`${heading} (Untrusted text: ${whose})`, "", ...quoted];
+  return [`${heading} (Untrusted text: ${whose})`, "", ...quotedLinesOf(text)];
+}
+
+function quotedLinesOf(text: string): string[] {
+  return text.split("\n").map((line) => `> ${line}`);
 }
 
 function othersCommentsOf(others: NumberedComment[]): string[] {
