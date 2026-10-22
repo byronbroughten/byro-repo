@@ -43,6 +43,8 @@ import { stopOutcomes, UnhandledStop } from "../UnhandledStop.ts";
 
 const execFileAsync = promisify(execFile);
 
+export const runHolder: LeaseHolder = { kind: "run", pid: process.pid };
+
 export const readyLabel = "ready-for-agent";
 
 export const gapCheckLabel = "gap check";
@@ -186,6 +188,8 @@ export interface TicketRun extends LandingTicket {
   workspace: Workspace;
   targets: Target[];
 }
+
+export type TicketOutcome = "landed" | "stopped" | "leased" | "halted";
 
 export interface Wait {
   ticket: IssueRef;
