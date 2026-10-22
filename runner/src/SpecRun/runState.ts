@@ -8,7 +8,7 @@ import { execFile } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { promisify } from "node:util";
 
-import type { Pair, StepResult } from "../AgentStep.ts";
+import type { Pair, StepRequest, StepResult } from "../AgentStep.ts";
 import { type ReviewFacts } from "../FactsFile.ts";
 import { messageOf, outputTailOf } from "../failureText.ts";
 import { type TriageRecord, whatReviewCaughtOf } from "../findingTriage.ts";
@@ -19,6 +19,7 @@ import {
   type HaltDraft,
   sessionHaltIdOf,
   shortRefOf,
+  type StepFailure,
 } from "../halts.ts";
 import { type Handoff, type ImplementRecord } from "../implementStep.ts";
 import { type BodyAuthorship } from "../IssueReader.ts";
@@ -218,6 +219,18 @@ export interface LaunchedStep {
   logPath: string;
   peakContext: number | undefined;
 }
+
+export type StepLaunch = Pick<StepRequest, "prompt" | "jsonSchema"> &
+  Partial<
+    Pick<
+      StepRequest,
+      "pair" | "targets" | "resumeSessionId" | "liveCeiling" | "maxTurns"
+    >
+  >;
+
+export type LoggedStepRequest = StepRequest & { logPath: string };
+
+export type Crash = Pick<StepFailure, "detail" | "logPath">;
 
 export function isFix({ verdict }: TriageRecord): boolean {
   return verdict === "fix";
