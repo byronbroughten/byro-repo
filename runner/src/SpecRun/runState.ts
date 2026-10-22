@@ -1,6 +1,7 @@
 // The run's state and shapes: the Run, each ticket's TicketState and the step it reached, a ticket's TicketRun,
 // and the Waits that keep a ticket from launching, plus the module functions more than one SpecRun collaborator calls:
 // raising and delivering Halts, a ticket's state, step-record reads, and the run's end and wait messages.
+// A declaration here is exported only when another file uses it; a function with one caller sits below that caller's class instead.
 // The class that saves this state is SpecRunBase.ts; the coordinator callers build is ../SpecRun.ts.
 
 import { execFile } from "node:child_process";

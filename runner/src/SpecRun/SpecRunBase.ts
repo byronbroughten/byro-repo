@@ -1,6 +1,7 @@
 // The Base every SpecRun collaborator extends: the run's config, the run-state file, the progress log and notices,
 // the spec comment, the step timer, the usage reading and the git snapshots that back up a workspace's uncommitted work.
 // It holds every helper more than one collaborator calls, and imports no collaborator, so `extends SpecRunBase` loads first.
+// Its members are protected so the coordinator and every collaborator reach them, and each keeps its `_` prefix.
 // The run's types and shared module functions are runState.ts; the coordinator callers build is ../SpecRun.ts.
 
 import {

@@ -30,7 +30,7 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 - **One class per file, custom `Error` subclasses included.** Lint backs it.
 - **Split a class into collaborators when its private helpers fall into groups that share nothing with each other**, not when it passes a method or line count. The class keeps its public methods as one-line delegations, and the collaborators go in a subfolder named after it.
   - **A Base class holds the coordinator's props and every helper more than one collaborator calls**; the coordinator and each collaborator extend it ([why](./code-style/class-shape.md#a-split-class-shares-a-base-and-layers-its-collaborators)).
-  - **Collaborators layer without cycles: each builds the ones below it in lazy getters, and the Base never imports a collaborator**, since a circular import breaks `class X extends Base` at load time. A getter back to a coordinator that holds shared state is the one upward reference, safe because the coordinator never sits in an `extends` clause.
+  - **Collaborators layer without cycles: each builds the ones below it in lazy getters, and the Base never imports a collaborator**; a getter back to a coordinator that holds shared state is the one upward reference ([why](./code-style/class-shape.md#a-split-class-shares-a-base-and-layers-its-collaborators)).
   - **A collaborator is named `<Subject><Role>`, plus the tier suffix where the codebase has tiers**: the role is an agent noun, or a plain descriptive noun where no verb fits ([why](./code-style/naming.md#a-collaborator-is-subjectrole)).
 
 ## Naming

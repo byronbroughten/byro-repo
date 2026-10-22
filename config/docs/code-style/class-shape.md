@@ -45,11 +45,10 @@ Splitting a class family can close an import cycle through an `extends` clause, 
 
 A comment explaining a non-obvious invariant (e.g. why two tables must be written in one transaction) carries over verbatim across a restructure — it documents the invariant, not the code shape around it.
 
-
 ## A split class shares a Base and layers its collaborators
 
 **A Base class holds the coordinator's props and every helper more than one collaborator calls**, and the coordinator and each collaborator extend it. Without one, a helper two collaborators share lives in one of them, and the other reaches sideways for it or copies it. `SpecRun`'s split put its config, the progress log and notices, the run-state file and the git snapshots on `SpecRunBase`, so an agent learns the shared surface from one file and then reads only the collaborator for its concern (#344). A helper with one collaborator calling it stays in that collaborator, not on the Base.
 
 **Collaborators layer without cycles: each builds the ones below it in lazy getters, and the Base never imports a collaborator.** A call then only goes down, so a reader follows it into a file below and never traces a loop back up. The Base rule is also a load-time one: each collaborator's file runs `class X extends Base`, so a Base that imported a collaborator would reach that `extends` clause before the Base was defined, and fail. A method that sits in one group but calls into a group above moves down, to the lower group or to the Base; `SpecRun`'s split placed each method from a call graph built with the TypeScript compiler API, so that no call goes up (#344).
 
-A getter back to the coordinator is the one upward reference allowed, for a coordinator that holds shared state of its own: the framework's `SpreadsheetRaw` collaborators reach it through `ss`, safe because the coordinator only appears inside method bodies. `SpecRun` holds only delegations, so its collaborators have nothing to reach back for and build the ones below them instead.
+A getter back to the coordinator is the one upward reference allowed, for a coordinator that holds shared state of its own, since a circular import is safe while the coordinator only appears inside method bodies and never in an `extends` clause; a project's own style doc names its getters. `SpecRun` holds only delegations, so its collaborators have nothing to reach back for and build the ones below them instead.
