@@ -1,10 +1,12 @@
 # Reading a PDF by page
 
-The Drive content tool returns a PDF's whole text and takes no page range, so every piece stage that reads a long PDF downloads it and reads it locally with macOS's PDF library, never through `get_drive_file_content`. Each command prints one harmless `CoreGraphics PDF has logged an error` line on stderr.
+The Drive content tool returns a PDF's whole text and takes no page range, so every piece stage that reads a long PDF downloads it and reads it locally, never through `get_drive_file_content`.
 
 **Download**: `get_drive_file_download_url` with the file ID saves the whole file under `~/.workspace-mcp/attachments/` and returns its path.
 
-**Count its pages**:
+**Dump its text once**, when the file will be read or quoted more than once: `npm run pdf:text -- "<path>" "<scratchpad>/<name>.txt"` writes every page under a `--- PDF page <n> ---` line, which [`npm run verify:quotes`](../scripts/quotes/verifyQuotes.ts) matches against. It needs poppler (`brew install poppler`). Without poppler, use the macOS commands below; each prints one harmless `CoreGraphics PDF has logged an error` line on stderr.
+
+**Count its pages** (macOS fallback):
 
 ```sh
 osascript -l JavaScript -e 'function run(a){ObjC.import("Quartz"); return $.PDFDocument.alloc.initWithURL($.NSURL.fileURLWithPath(a[0])).pageCount}' "<path>"

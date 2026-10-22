@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 Implement the Piece described by the spec or sub-issue in `byronbroughten/writing`.
 
-Fetch it with `gh issue view -R byronbroughten/writing <n> --json title,body,comments --jq '{title, body, comments: [.comments[].body]}'` and state its title before starting. If the reference is ambiguous, ask. If the issue is Research, stop: it has its own path.
+Fetch it with `gh issue view -R byronbroughten/writing <n> --json title,body,comments --jq '{title, body, comments: [.comments[].body]}'` and state its title before starting. If the reference is ambiguous, ask. If the issue is Research, read [`.claude/skills/research-piece/SKILL.md`](../research-piece/SKILL.md) and follow it on the same issue instead; it is user-invoked, so the Skill tool can't reach it.
 
 **Work in the Piece's issue workspace.** If this session did not start at its root, run `npm run issue:start -- writing <n>` from the primary root and tell the developer to start `/implement-piece <n>` at the path it prints; stop there.
 

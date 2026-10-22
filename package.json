@@ -44,7 +44,9 @@
     "wrap-up": "node scripts/runner/wrapUp.ts",
     "jev": "node scripts/jev/jev.ts",
     "jev:style": "node scripts/jev/jevStyle.ts",
-    "overlap": "node scripts/overlap/overlap.ts"
+    "overlap": "node scripts/overlap/overlap.ts",
+    "pdf:text": "node scripts/quotes/pdfText.ts",
+    "verify:quotes": "node scripts/quotes/verifyQuotes.ts"
   },
   "devDependencies": {
     "@byronbroughten/config": "^0.1.0",
