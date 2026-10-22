@@ -35,7 +35,7 @@ const kindLabels = {
 export type HaltKind = keyof typeof kindLabels;
 
 export interface Halt {
-  // `H<n>`, numbered across the spec's run; a reply names it.
+  // `H<n>`, numbered across the spec's run, which reads a reply naming it; `S<ticket>.<k>` for a session's review.
   id: string;
   // The halted ticket.
   ticket: IssueRef;
@@ -239,16 +239,39 @@ function haltHeadingOf(halt: Halt): string {
 }
 
 export function haltCommentOf(post: HaltPost): string {
+  const { halt } = post;
+  return haltCommentWith(post, {
+    options: [...halt.options, stopSpecOption],
+    answerLine: `Answer with a reply naming \`${halt.id}\`: an option, or your own words.`,
+  });
+}
+
+// No run reads a reply to it, and with no run going there is no spec to stop.
+export function sessionHaltCommentOf(post: HaltPost): string {
+  return haltCommentWith(post, {
+    options: post.halt.options,
+    answerLine:
+      "Answer it in the interactive session that ran the review; no run reads a reply to it.",
+  });
+}
+
+interface HaltCommentParts {
+  options: string[];
+  answerLine: string;
+}
+
+function haltCommentWith(
+  post: HaltPost,
+  { options, answerLine }: HaltCommentParts,
+): string {
   const { halt, ticketTitle } = post;
-  const options = [...halt.options, stopSpecOption].map(
-    (option, index) => `${index + 1}. ${option}`,
-  );
+  const numbered = options.map((option, index) => `${index + 1}. ${option}`);
   return [
     `${haltHeadingOf(halt)} · ${haltLabelOf(post)}, "${ticketTitle}" · ${haltKindLabelOf(halt.kind)}`,
     halt.question,
     `Blocks: ${scopeTextOf(halt.scope)}.`,
-    `Options:\n${options.join("\n")}`,
-    `Answer with a reply naming \`${halt.id}\`: an option, or your own words.`,
+    `Options:\n${numbered.join("\n")}`,
+    answerLine,
   ].join("\n\n");
 }
 
