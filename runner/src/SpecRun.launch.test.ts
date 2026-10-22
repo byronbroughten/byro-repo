@@ -328,6 +328,23 @@ describe("run's launch-time authorship check", () => {
     expect(agentStep.requests).toHaveLength(2);
   });
 
+  it("halts again on a later run when the Halt was answered `skip`, since `skip` approves nothing", async () => {
+    addSpec([1, 2]);
+    await specRun(editsTicketTwoMidRun(), {
+      async sleep() {
+        github.reply(213, "H1: skip");
+      },
+    }).run(spec);
+    const rerunStep = FakeAgentStep.init();
+
+    const result = await specRun(rerunStep).run(spec);
+
+    expect(result.message).toBe(
+      "Stopped on request: landed nothing. byro-repo #2 waits on Halt H2.",
+    );
+    expect(rerunStep.requests).toEqual([]);
+  });
+
   it("halts again on another login's edit the answered Halt didn't report", async () => {
     addSpec([1, 2]);
     await specRun(editsTicketTwoMidRun()).run(spec);

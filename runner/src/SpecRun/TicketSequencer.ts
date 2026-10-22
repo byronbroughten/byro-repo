@@ -5,7 +5,12 @@
 // RunLoop.ts calls _runTicket and SessionReviewer.ts calls _runSteps.
 // It builds its own LeaseKeeper, ImplementStepper, ReviewStepper, TicketLander and HaltRaiser.
 
-import { failureOptions, type StepFailure } from "../halts.ts";
+import {
+  failureAnswerOf,
+  failureOptions,
+  type Halt,
+  type StepFailure,
+} from "../halts.ts";
 import { type BodyAuthorship, untrustedBodyReasonOf } from "../IssueReader.ts";
 import { issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
 import { LeaseHeld } from "../LeaseHeld.ts";
@@ -136,7 +141,7 @@ export class TicketSequencer extends SpecRunBase {
     const { retry, skip } = failureOptions;
     await this.haltRaiser._failureHalt(landingTicket, {
       step: state.step,
-      detail: `${issueLabelOf(ticket.issue)}'s body was ${reason}. ${onlyDeveloperEditsTextOf(developer, "a ticket the run launches")}; revert the edit before a ${retry}, or ${skip} the ticket. Either answer approves the edits named here, and only a later edit halts it again.`,
+      detail: `${issueLabelOf(ticket.issue)}'s body was ${reason}. ${onlyDeveloperEditsTextOf(developer, "a ticket the run launches")}; revert the edit before a ${retry}, or ${skip} the ticket. A ${retry} approves the edits named here, and only a later edit halts it again.`,
       logPath: this._progressPathOf(run),
       options: [retry, skip],
       reportedAuthorship: {
@@ -283,15 +288,18 @@ function stepAfterResumeOf(state: TicketState): TicketStep {
   return state.findings === undefined ? "review" : "checks";
 }
 
-// GitHub keeps every edit in a body's history, so an approval is the latest answered authorship Halt's own record.
+// GitHub keeps every edit in a body's history, so an approval is the latest rerun-answered authorship Halt's own record.
 function approvedAuthorshipOf(
   run: Run,
   ticket: IssueRef,
 ): BodyAuthorship | undefined {
-  const answered = haltsOfTicket(run, ticket).filter(
-    (halt) => halt.answer !== undefined && !isStopSpec(halt),
-  );
-  return answered.findLast(isAuthorshipHalt)?.reportedAuthorship;
+  const approving = haltsOfTicket(run, ticket).filter(isRerunAnswered);
+  return approving.findLast(isAuthorshipHalt)?.reportedAuthorship;
+}
+
+function isRerunAnswered(halt: Halt): boolean {
+  if (halt.answer === undefined || isStopSpec(halt)) return false;
+  return failureAnswerOf(halt, halt.answer).kind !== "skip";
 }
 
 // Each approved edit cancels one edit by the same login, so a login's later edit still counts.
