@@ -122,7 +122,7 @@ describe("run's idle and stops", () => {
 
     expect(result.kind).toBe("finished");
     expect(noticeSummaries().at(-1)).toBe(
-      "Run ended: landed byro-repo #3. byro-repo #1 waits on you and blocks byro-repo #2; byro-repo #2 is blocked by byro-repo #1. Rerun once your tickets close: `npm run runner -- byronbroughten/byro-repo 213`.",
+      "Run ended: landed byro-repo #3. byro-repo #1 waits on you (`/start-issue byro-repo 1`) and blocks byro-repo #2; byro-repo #2 is blocked by byro-repo #1. Rerun once your tickets close: `npm run runner -- byronbroughten/byro-repo 213`.",
     );
   });
 
@@ -135,7 +135,7 @@ describe("run's idle and stops", () => {
     );
 
     expect(result.message).toBe(
-      "Stopped on request: landed nothing. byro-repo #1 waits on Halt H1; byro-repo #2 waits on you. Rerun once your tickets close: `npm run runner -- byronbroughten/byro-repo 213`.",
+      "Stopped on request: landed nothing. byro-repo #1 waits on Halt H1; byro-repo #2 waits on you (`/start-issue byro-repo 2`). Rerun once your tickets close: `npm run runner -- byronbroughten/byro-repo 213`.",
     );
   });
 
@@ -154,7 +154,7 @@ describe("run's idle and stops", () => {
         "Landed: byro-repo #2.",
         "Current: none.",
         "Open Halts: H1 on byro-repo #1.",
-        "Waiting: byro-repo #1 waits on Halt H1; byro-repo #3 waits on you.",
+        "Waiting: byro-repo #1 waits on Halt H1; byro-repo #3 waits on you (`/start-issue byro-repo 3`).",
         "Account: account 1: 5-hour 10%, weekly 20%.",
         "A stop is requested; the run ends after its current ticket.",
       ].join("\n"),

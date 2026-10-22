@@ -129,7 +129,7 @@ export class TicketSelector extends SpecRunBase {
       }
       if (!isLaunchable(tracked)) {
         const text = developerWaitTextOf(
-          label,
+          ticket,
           await this._downstreamLabelsOf(run, ticket),
         );
         waits.push({ ticket, reason: "developer", text });
@@ -245,7 +245,9 @@ function isSkipAnswered(halt: Halt): boolean {
   return failureAnswerOf(halt, halt.answer).kind === "skip";
 }
 
-function developerWaitTextOf(label: string, downstream: string[]): string {
-  if (downstream.length === 0) return `${label} waits on you`;
-  return `${label} waits on you and blocks ${downstream.join(", ")}`;
+function developerWaitTextOf(ticket: IssueRef, downstream: string[]): string {
+  const { repo, number } = ticket;
+  const waits = `${issueLabelOf(ticket)} waits on you (\`/start-issue ${repo} ${number}\`)`;
+  if (downstream.length === 0) return waits;
+  return `${waits} and blocks ${downstream.join(", ")}`;
 }

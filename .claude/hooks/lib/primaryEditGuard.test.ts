@@ -100,10 +100,14 @@ describe("primaryEditDecision, the denial", () => {
   it.each([
     ["an edit", { file_path: `${root}/docs/a.md` }],
     ["a commit", { command: "git commit -m x" }],
-  ])("names both issue:start forms for %s", (_case, toolInput) => {
-    const { reason } = decide({ toolInput });
-    expect(reason).toContain("npm run issue:start -- <repo> <n>");
-    expect(reason).toContain("npm run issue:start -- --session <slug>");
-    expect(reason).toMatch(/printed path/);
-  });
+  ])(
+    "names /start-issue and both issue:start forms for %s",
+    (_case, toolInput) => {
+      const { reason } = decide({ toolInput });
+      expect(reason).toContain("`/start-issue <repo> <n>`");
+      expect(reason).toContain("npm run issue:start -- <repo> <n>");
+      expect(reason).toContain("npm run issue:start -- --session <slug>");
+      expect(reason).toMatch(/printed path/);
+    },
+  );
 });

@@ -32,6 +32,7 @@
     "dev:configs:diff": "npm run configs:diff -w @byronbroughten/sheets-framework --",
     "dev:push": "npm run push -w @byronbroughten/sheets-framework --",
     "dev:run": "npm run run -w @byronbroughten/sheets-framework --",
+    "issue:held": "node scripts/runner/issue.ts held",
     "issue:list": "node scripts/runner/issue.ts list",
     "issue:start": "node scripts/runner/issue.ts start",
     "issue:promote": "node scripts/runner/issue.ts promote",
