@@ -4,8 +4,7 @@
 // tickets in its scope, and the ticket resumes once every one of its Halts is answered (halts.ts).
 // Any outcome a later ticket will handle (red checks, step errors, schema failures) is an UnhandledStop; a red master Stops the run.
 // The run holds its ticket's workspace lease; with nothing runnable, an open Halt or another holder's lease leaves it idle, polling.
-// A stop request (requestStop()) or a `stop spec` answer ends the run between tickets; status() reads a run from outside,
-// and review() runs one ticket's review, triage and fix for an interactive session, saving no run state.
+// requestStop() or a `stop spec` answer ends the run between tickets; status() reads it from outside; review() reviews a session's ticket.
 // GitHub and git hold what's durable; a per-spec state file holds the step each ticket reached, so a rerun resumes there.
 // Steps launch through AgentStep.ts; prompts are implementStep.ts, reviewStep.ts, findingTriage.ts and fixStep.ts;
 // landing is WrapUp.ts; knobs are runKnobs.ts; the review list and gap check are reviewList.ts and gapCheck.ts.
