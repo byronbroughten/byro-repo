@@ -1,7 +1,7 @@
 // The review lists and the gap check. At landing a ticket with Proposals gets one review-list comment on the spec and each
 // covered-later Dismiss a note on its later ticket, each checked for its marker first; once every ticket is closed, _finish
 // posts any review list a killed run missed and runs the gap check, whose gaps become the last review list.
-// ../SpecRun.ts calls _finish, _runnersSpecCommentsOf and, for a session's review, _postReviewList; TicketLander.ts calls it at landing.
+// RunLoop.ts calls _finish; SessionReviewer.ts calls _runnersSpecCommentsOf and _postReviewList; TicketLander.ts calls _postReviewList at landing.
 // It builds its own StepLauncher and HaltRaiser; formats are ../reviewList.ts, the gap check's prompt ../gapCheck.ts.
 
 import type { StepRequest } from "../AgentStep.ts";

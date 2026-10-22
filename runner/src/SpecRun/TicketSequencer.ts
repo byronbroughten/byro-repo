@@ -1,7 +1,7 @@
 // One ticket's run: takes its workspace lease, runs each step from the one it reached (implement or resume, review,
 // triage, fix, checks) and lands it, releasing the lease however it ends. A Halt or a lease taken since the pick leaves
 // the ticket waiting; an UnhandledStop leaves it unlanded and commented on, or Stops the run for a rerun to retry it.
-// ../SpecRun.ts calls _runTicket from its run loop and _runSteps from a session's review.
+// RunLoop.ts calls _runTicket and SessionReviewer.ts calls _runSteps.
 // It builds its own LeaseKeeper, ImplementStepper, ReviewStepper, TicketLander and HaltRaiser.
 
 import { failureOptions, type StepFailure } from "../halts.ts";
