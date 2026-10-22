@@ -63,7 +63,12 @@
       "mcp__gworkspace__list_drive_items",
       "mcp__gworkspace__get_drive_file_permissions",
       "mcp__gworkspace__check_drive_file_public_access",
-      "Edit(/**)"
+      "Edit(/**)",
+      "EnterWorktree",
+      "ExitWorktree",
+      "Bash(npm run issue:held*)",
+      "Bash(npm run issue:start*)",
+      "Bash(npm run issue:read*)"
     ],
     "ask": [
       "Bash(git push*)",
