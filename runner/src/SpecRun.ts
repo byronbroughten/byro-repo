@@ -6,35 +6,28 @@
 // The run holds its ticket's workspace lease; with nothing runnable, an open Halt or another holder's lease leaves it idle, polling.
 // requestStop() or a `stop spec` answer ends the run between tickets; status() reads it from outside; review() reviews a session's ticket.
 // GitHub and git hold what's durable; a per-spec state file holds the step each ticket reached, so a rerun resumes there.
-// Steps launch through AgentStep.ts; prompts are implementStep.ts, reviewStep.ts, findingTriage.ts and fixStep.ts;
-// landing is WrapUp.ts; knobs are runKnobs.ts; the review list and gap check are reviewList.ts and gapCheck.ts.
+// Steps launch through AgentStep.ts; prompts are implementStep.ts, reviewStep.ts, findingTriage.ts and fixStep.ts; landing is WrapUp.ts;
+// knobs are runKnobs.ts; the review list and gap check are reviewList.ts and gapCheck.ts; shared helpers and run state are SpecRun/.
 
-import { execFile } from "node:child_process";
 import {
-  appendFileSync,
   copyFileSync,
   existsSync,
   mkdirSync,
-  readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import { promisify } from "node:util";
 
-import type { AgentStep, Pair, StepRequest, StepResult } from "./AgentStep.ts";
-import { FactsFile, type ReviewFacts, type WrapUpFacts } from "./FactsFile.ts";
-import { commandLabelOf, messageOf, outputTailOf } from "./failureText.ts";
+import type { StepRequest, StepResult } from "./AgentStep.ts";
+import { type WrapUpFacts } from "./FactsFile.ts";
+import { commandLabelOf, messageOf } from "./failureText.ts";
 import {
-  type SavedTriageRecord,
-  savedTriageRecordOf,
   triageOutputSchema,
   triagePrompt,
   type TriageRecord,
   triageRecordProblems,
   triageRecordsOf,
   triageRetryPrompt,
-  whatReviewCaughtOf,
 } from "./findingTriage.ts";
 import {
   type FixOutcome,
@@ -52,15 +45,7 @@ import {
   gapCheckRecordOf,
   type GapCheckTicket,
 } from "./gapCheck.ts";
-import {
-  currentBranchOf,
-  dirtyReposOf,
-  git,
-  type RepoWorktree,
-  saveUncommitted,
-  snapshotUncommitted,
-  worktreeStateOf,
-} from "./git.ts";
+import { currentBranchOf, git, saveUncommitted } from "./git.ts";
 import {
   answeredNoteOf,
   blockerHaltOf,
@@ -72,7 +57,6 @@ import {
   guidanceSectionOf,
   type Halt,
   haltCommentOf,
-  type HaltDraft,
   haltKindLabelOf,
   haltNameOf,
   haltNoticeOf,
@@ -86,7 +70,6 @@ import {
   runnerMark,
   sessionHaltCommentOf,
   sessionHaltCountOf,
-  sessionHaltIdOf,
   shortRefOf,
   splitHaltOf,
   type StepFailure,
@@ -106,15 +89,13 @@ import {
   recordOnlyPrompt,
   treeResetNote,
 } from "./implementStep.ts";
-import { type BodyAuthorship, untrustedBodyReasonOf } from "./IssueReader.ts";
+import { untrustedBodyReasonOf } from "./IssueReader.ts";
 import {
   fileStemOf,
   holderLabelOf,
   isSameHolder,
   issueLabelOf,
   type IssueRef,
-  IssueWorkspaces,
-  type IssueWorkspacesConfig,
   type LeaseHolder,
   otherLiveHolderOf,
   type Workspace,
@@ -127,8 +108,6 @@ import {
   type AccountUsage,
   decideStep,
   defaultLimitGuardKnobs,
-  type LimitGuardKnobs,
-  type UsageReader,
 } from "./limitGuard.ts";
 import {
   mergeMasterOutputSchema,
@@ -140,7 +119,6 @@ import {
   pairOf,
   strongerPairOf,
 } from "./modelFit.ts";
-import type { Notices } from "./Notices.ts";
 import { redChecksOutputSchema, redChecksPrompt } from "./redChecksStep.ts";
 import {
   coveredLaterNotesOf,
@@ -158,250 +136,92 @@ import {
   type ReviewRecord,
   reviewRecordSchema,
 } from "./reviewStep.ts";
-import type { Command, RunKnobs } from "./runKnobs.ts";
+import type { RunKnobs } from "./runKnobs.ts";
 import { RunStop } from "./RunStop.ts";
 import { SchemaFailure } from "./SchemaFailure.ts";
-import { sleep } from "./sleep.ts";
-import { TicketHalted } from "./TicketHalted.ts";
-import { type Target, targetLineShapes, targetsOf } from "./ticketTargets.ts";
 import {
-  type LimitReading,
-  type LimitReadings,
-  minutesOf,
-  percentOf,
-  type StepAgent,
-  type StepSession,
-} from "./transcriptFacts.ts";
+  branchedReposOf,
+  type Continuation,
+  deliverFailureHalts,
+  downstreamIn,
+  type Fixer,
+  gapCheckLabel,
+  haltsOf,
+  haltsOfTicket,
+  type Heads,
+  idListOf,
+  implementerSessionOf,
+  isFix,
+  isGapCheckHalt,
+  isLaunchable,
+  isSameHeads,
+  isSameIssue,
+  isSnapshotted,
+  isTreeKept,
+  isTurnCapped,
+  landedTextOf,
+  type LandingTicket,
+  lastSessionOf,
+  launchedOf,
+  type LaunchedStep,
+  limitReadingOf,
+  liveCeilingPhraseOf,
+  openHaltsOf,
+  raiseHalts,
+  type RanStep,
+  readyLabel,
+  recordOf,
+  rerunCommandOf,
+  reviewFactsOf,
+  type ReviewOptions,
+  type ReviewResult,
+  type Run,
+  runCommand,
+  type RunResult,
+  type RunWarning,
+  schemaFailureOf,
+  stoppedOnTextOf,
+  targetsAtLaunchOf,
+  targetsRefusalOf,
+  type TicketRun,
+  type TicketState,
+  ticketStateOf,
+  type TicketStep,
+  type TrackedIssue,
+  turnCapDetailOf,
+  undeliveredHaltsOf,
+  type Wait,
+  waitsTextOf,
+} from "./SpecRun/runState.ts";
+import { SpecRunBase, type SpecRunConfig } from "./SpecRun/SpecRunBase.ts";
+import { TicketHalted } from "./TicketHalted.ts";
+import { minutesOf, percentOf, type StepAgent } from "./transcriptFacts.ts";
 import {
   rerunRetriedOutcomes,
   stopOutcomes,
   UnhandledStop,
 } from "./UnhandledStop.ts";
-import { WrapUp, type WrapUpGitHub, type WrapUpKnobs } from "./WrapUp.ts";
 import { WrapUpFailure } from "./WrapUpFailure.ts";
 
-const execFileAsync = promisify(execFile);
+export type { Clock, RunGitHub, SpecRunConfig } from "./SpecRun/SpecRunBase.ts";
+export {
+  type IssueComment,
+  rerunCommandOf,
+  type ReviewOptions,
+  type ReviewResult,
+  type RunResult,
+  type TicketStep,
+  type TrackedIssue,
+} from "./SpecRun/runState.ts";
 
-const readyLabel = "ready-for-agent";
 const fixerLabels: Record<Fixer, string> = {
   implementer: "implementer",
   triage: "triage agent",
 };
 const runHolder: LeaseHolder = { kind: "run", pid: process.pid };
 
-export interface TrackedIssue extends BodyAuthorship {
-  issue: IssueRef;
-  title: string;
-  body: string;
-  isOpen: boolean;
-  labels: string[];
-  url: string;
-}
-
-export interface RunGitHub extends WrapUpGitHub {
-  issueOf(issue: IssueRef): Promise<TrackedIssue>;
-  // In sub-issue order.
-  subIssuesOf(issue: IssueRef): Promise<IssueRef[]>;
-  // The issues still open among those natively marked as blocking it.
-  openBlockersOf(issue: IssueRef): Promise<IssueRef[]>;
-  comment(issue: IssueRef, body: string): Promise<void>;
-  // Oldest first.
-  authoredCommentsOf(issue: IssueRef): Promise<IssueComment[]>;
-}
-
-export interface IssueComment {
-  id: string;
-  author: string;
-  body: string;
-}
-
-export interface Clock {
-  now(): Date;
-}
-
-export interface SpecRunConfig {
-  knobs: RunKnobs;
-  agentStep: AgentStep;
-  github: RunGitHub;
-  notices: Notices;
-  usageReader: UsageReader;
-  clock: Clock;
-  githubOwner: string;
-  // The one GitHub login whose bodies pass the authorship refusal.
-  developer: string;
-  primaryRoot: string;
-  workspaceFolder: string;
-  symlinkedFiles: string[];
-  installDependencies(workspaceRoot: string): Promise<void>;
-  // The command an implement step runs to promote a repo, taking the repo as its last argument.
-  promoteCommandOf(issue: IssueRef): string;
-  // Relative to the root repo.
-  outcomeFolder: string;
-  // Holds the run state, progress log and step logs, and the wrap-up's facts and progress files; gitignored.
-  stateFolder: string;
-  wrapUpKnobs?: Partial<WrapUpKnobs>;
-  limitGuardKnobs?: Partial<LimitGuardKnobs>;
-  sleep?(ms: number): Promise<void>;
-  log?(line: string): void;
-}
-
-export interface RunResult {
-  kind: "finished" | "refused" | "stopped";
-  landed: IssueRef[];
-  message: string;
-}
-
-export interface ReviewOptions {
-  // The interactive session's, which may hold the workspace's lease.
-  holder?: LeaseHolder;
-}
-
-export interface ReviewResult {
-  kind: "reviewed" | "halted" | "stopped" | "refused";
-  message: string;
-  // Each Halt comment the review posted on the spec, for the session to print.
-  halts: string[];
-}
-
-export type TicketStep =
-  | "implement"
-  | "review"
-  | "triage"
-  | "fix"
-  | "checks"
-  | "halted"
-  | "resume"
-  | "wrap-up"
-  | "landed"
-  | "stopped";
-
-type Fixer = "implementer" | "triage";
-
-// Each worktree's clone path to its HEAD.
-type Heads = Record<string, string>;
-
-interface CloneWorktree {
-  repo: string;
-  clonePath: string;
-  worktree: string;
-}
-
-interface HeadsAndDirtyRepos {
-  heads: Heads;
-  dirtyRepos: string[];
-}
-
-type TimedStep =
-  Exclude<TicketStep, "halted" | "landed" | "stopped"> | "workspace";
-
-interface TicketState {
-  step: TicketStep;
-  record?: ImplementRecord;
-  // The last implement step's own peak, never a sum across handoffs; picks the fixer and whether a resume continues its session.
-  implementPeak?: number;
-  // The implementer's latest session, a fix step it ran included.
-  implementerSession?: string;
-  findings?: string[];
-  // A fixer's give-ups are rewritten in place as Halts or Proposals.
-  triage?: TriageRecord[];
-  // Set once a fixer fixed a finding.
-  fixer?: Fixer;
-  // The heads before the fix step, which a killed fixer or a rerun resets to.
-  fixBase?: Heads;
-  sessions: StepSession[];
-  configFolder?: string;
-  limitReadings?: LimitReadings;
-  stop?: string;
-  // Set while a step runs, so a rerun after the process died takes the step as crashed.
-  isStepStarted?: boolean;
-  // Retries taken, by the step that crashed; cleared when a Failure Halt is answered.
-  crashes?: Partial<Record<TicketStep, number>>;
-  // Kept apart from crashes.checks, so a crash in the red-checks resume doesn't spend the red-checks retry.
-  redCheckResumes?: number;
-  redChecksLogPath?: string;
-  // Counts the wrap-up conflict's merge-master resumes; cleared when a Failure Halt is answered.
-  conflictResumes?: number;
-  // The heads before the latest implement step, which a continued session's record is checked against.
-  implementBase?: Heads;
-  // Kept across a rerun, so the step after a handoff starts from it; cleared by any other implement record.
-  latestHandoff?: Handoff;
-  // Numbers each handoff's backup branch, and counts toward the handoff cap.
-  handoffCount?: number;
-  // Added by `continue +1 handoff` answers, on top of the handoffsPerTicket knob.
-  extraHandoffs?: number;
-  // The handoff whose proposed split a Halt already carried, so a rerun never raises it again.
-  splitHaltedHandoff?: number;
-  // Set by a Failure Halt's answer, so a rerun acts on it.
-  pair?: Pair;
-  guidance?: string;
-  continuation?: Continuation;
-  // Set once a landed ticket's review list and covered-later notes are posted, or found to need none.
-  isReviewListPosted?: boolean;
-}
-
-type Continuation = { kind: "record" } | { kind: "turns"; turns: number };
-
-interface RunState {
-  tickets: Record<string, TicketState>;
-  // Every ticket's, answered ones included, in the order raised; absent from a state file written before Halts.
-  halts?: Halt[];
-}
-
-interface SavedRunState extends Omit<RunState, "tickets"> {
-  tickets: Record<
-    string,
-    Omit<TicketState, "triage"> & { triage?: SavedTriageRecord[] }
-  >;
-}
-
-function runStateOf(saved: SavedRunState): RunState {
-  const tickets = Object.fromEntries(
-    Object.entries(saved.tickets).map(([key, { triage, ...ticket }]) => [
-      key,
-      { ...ticket, triage: triage?.map(savedTriageRecordOf) },
-    ]),
-  );
-  return { ...saved, tickets };
-}
-
-interface Run {
-  spec: TrackedIssue;
-  tickets: IssueRef[];
-  isTicketless: boolean;
-  state: RunState;
-  landed: IssueRef[];
-  warnings: Set<RunWarning>;
-  // Tickets whose Failure Halt this run was answered `skip`; a later run retries them.
-  skipped: Set<string>;
-  // The distinct tickets whose Failure Halts came in a row; a landing clears it.
-  failureStreak: string[];
-  // One ticket's review outside a run; a flag, not a strategy, as it differs from a run at only a handful of checks.
-  sessionReview?: SessionReview;
-}
-
-interface SessionReview {
-  // The ticket's session Halts already on the spec, which this review numbers on from.
-  earlierHalts: number;
-  postedHalts: string[];
-}
-
 interface TicketReview extends ReviewOptions {
   ticket: TrackedIssue;
-}
-
-// Each pushed at most once per run.
-type RunWarning = "missing-reading" | "unrecognised-limit-error";
-
-interface LandingTicket {
-  run: Run;
-  ticket: TrackedIssue;
-  pair: Pair;
-  state: TicketState;
-}
-
-interface TicketRun extends LandingTicket {
-  workspace: Workspace;
-  targets: Target[];
 }
 
 type StepLaunch = Pick<StepRequest, "prompt" | "jsonSchema"> &
@@ -412,14 +232,7 @@ type StepLaunch = Pick<StepRequest, "prompt" | "jsonSchema"> &
     >
   >;
 
-const gapCheckLabel = "gap check";
-
 type LoggedStepRequest = StepRequest & { logPath: string };
-
-interface RanStep {
-  result: StepResult;
-  logPath: string;
-}
 
 // An adapter that throws leaves the step unrun, which is retried as a crash.
 type StepAttempt =
@@ -428,12 +241,6 @@ type StepAttempt =
 interface CeilingCrossing {
   ranStep: RanStep;
   headsBefore: Heads;
-}
-
-interface LaunchedStep {
-  record: unknown;
-  logPath: string;
-  peakContext: number | undefined;
 }
 
 type Crash = Pick<StepFailure, "detail" | "logPath">;
@@ -458,29 +265,7 @@ interface HoldCheck {
   downstreamOf: Map<string, string[]>;
 }
 
-interface DownstreamSearch {
-  run: Run;
-  blockersOf: Map<string, string[]>;
-  ticket: string;
-}
-
 type TicketOutcome = "landed" | "stopped" | "leased" | "halted";
-
-type WaitReason =
-  | "leased"
-  | "halted"
-  | "stop-spec"
-  | "stopped"
-  | "skipped"
-  | "developer"
-  | "blocked";
-
-interface Wait {
-  ticket: IssueRef;
-  reason: WaitReason;
-  text: string;
-  holder?: LeaseHolder;
-}
 
 interface Survey {
   waits: Wait[];
@@ -495,39 +280,9 @@ type Selection =
   | { kind: "stop-spec"; halts: Halt[] }
   | { kind: "none"; waits: Wait[] };
 
-export class SpecRun {
-  private readonly config: SpecRunConfig;
-
-  constructor(config: SpecRunConfig) {
-    this.config = config;
-  }
-
+export class SpecRun extends SpecRunBase {
   static init(config: SpecRunConfig): SpecRun {
     return new SpecRun(config);
-  }
-
-  get workspaces(): IssueWorkspaces {
-    return IssueWorkspaces.init(this._workspacesConfig);
-  }
-
-  get factsFile(): FactsFile {
-    return FactsFile.init(this.config.stateFolder);
-  }
-
-  get wrapUp(): WrapUp {
-    const { github, githubOwner, knobs, outcomeFolder, stateFolder } =
-      this.config;
-    return WrapUp.init({
-      workspaces: this._workspacesConfig,
-      github,
-      githubOwner,
-      checks: knobs.checks,
-      outcomeFolder,
-      stateFolder,
-      knobs: this.config.wrapUpKnobs,
-      sleep: this.config.sleep,
-      log: (line) => this.config.log?.(line),
-    });
   }
 
   async run(specIssue: IssueRef): Promise<RunResult> {
@@ -628,55 +383,6 @@ export class SpecRun {
     return this._end(run, "stopped", message);
   }
 
-  private get _workspacesConfig(): IssueWorkspacesConfig {
-    const {
-      primaryRoot,
-      knobs,
-      workspaceFolder,
-      symlinkedFiles,
-      installDependencies,
-      github,
-    } = this.config;
-    return {
-      primaryRoot,
-      clonePaths: knobs.clonePaths,
-      workspaceFolder,
-      symlinkedFiles,
-      installDependencies,
-      issueTitle: async (issue) => (await github.issueOf(issue)).title,
-    };
-  }
-
-  private async _startRun(specIssue: IssueRef): Promise<Run> {
-    return this._runOf(specIssue, this._readState(specIssue));
-  }
-
-  private async _runOf(specIssue: IssueRef, state: RunState): Promise<Run> {
-    const spec = await this.config.github.issueOf(specIssue);
-    const subIssues = await this.config.github.subIssuesOf(specIssue);
-    mkdirSync(this.config.stateFolder, { recursive: true });
-    return {
-      spec,
-      tickets: subIssues.length > 0 ? subIssues : [specIssue],
-      isTicketless: subIssues.length === 0,
-      state,
-      landed: [],
-      warnings: new Set(),
-      skipped: new Set(),
-      failureStreak: [],
-    };
-  }
-
-  private _readState(spec: IssueRef): RunState {
-    const path = this._statePathOf(spec);
-    if (!existsSync(path)) return { tickets: {} };
-    return runStateOf(JSON.parse(readFileSync(path, "utf8")) as SavedRunState);
-  }
-
-  private _statePathOf(spec: IssueRef): string {
-    return join(this.config.stateFolder, `${fileStemOf(spec)}.run.json`);
-  }
-
   // A ticketless spec has none; the preflight refusals check the spec itself.
   private async _launchableTicketsOf(run: Run): Promise<TrackedIssue[]> {
     if (run.isTicketless) return [];
@@ -724,19 +430,6 @@ export class SpecRun {
       }
     }
     return undefined;
-  }
-
-  // Usage is undefined when the reader fails or has no usable reading for the configured account.
-  private async _readingOf(run: Run): Promise<AccountReading> {
-    const { account } = this.config.knobs;
-    try {
-      const readings = await this.config.usageReader.read();
-      const usage = readings.find((r) => r.account === account)?.usage;
-      return { account, usage };
-    } catch (error) {
-      this._log(run, `The usage read failed: ${messageOf(error)}`);
-      return { account, usage: undefined };
-    }
   }
 
   // Read by the run between tickets and while idle; a request made with no run going is dropped as the next run starts.
@@ -1180,11 +873,6 @@ export class SpecRun {
     }
   }
 
-  private _markStepStarted({ run, state }: TicketRun): void {
-    state.isStepStarted = true;
-    this._saveState(run);
-  }
-
   // Snapshots a step that edits; a crash past the retries is a Failure Halt.
   private async _takeCrash(ticketRun: TicketRun, crash: Crash): Promise<void> {
     const { run, ticket, state } = ticketRun;
@@ -1203,35 +891,6 @@ export class SpecRun {
       run,
       `${issueLabelOf(ticket.issue)}: ${detail} Retrying, ${taken + 1} of ${retriesPerFailure}.`,
     );
-  }
-
-  // Each dirty worktree's uncommitted work goes to a backup branch, and the tree back to its last commit unless a handoff's next step needs it.
-  private async _snapshot(
-    ticketRun: TicketRun,
-    step: TicketStep,
-  ): Promise<void> {
-    const save = isTreeKept(ticketRun.state)
-      ? saveUncommitted
-      : snapshotUncommitted;
-    await this._backUp(ticketRun, step, save);
-  }
-
-  private async _backUp(
-    { run, ticket, workspace }: TicketRun,
-    suffix: string,
-    save: typeof saveUncommitted,
-  ): Promise<void> {
-    for (const { repo, worktree } of this._worktreesOf(workspace)) {
-      const branch = await save(
-        worktree,
-        `backup/${workspace.branch}-${suffix}`,
-      );
-      if (branch === undefined) continue;
-      this._log(
-        run,
-        `${issueLabelOf(ticket.issue)}: saved ${repo}'s uncommitted work to ${branch}.`,
-      );
-    }
   }
 
   private async _failureHalt(
@@ -1567,24 +1226,6 @@ export class SpecRun {
     };
   }
 
-  // Every repo's HEAD, so any commit in any repo changes it.
-  private async _headsOf(workspace: Workspace): Promise<Heads> {
-    const heads: Heads = {};
-    for (const { clonePath, worktree } of this._worktreesOf(workspace)) {
-      heads[clonePath] = await git(worktree, "rev-parse", "HEAD");
-    }
-    return heads;
-  }
-
-  private _worktreesOf(workspace: Workspace): CloneWorktree[] {
-    return Object.entries(this.config.knobs.clonePaths).flatMap(
-      ([repo, clonePath]) => {
-        const worktree = join(workspace.path, clonePath);
-        return existsSync(worktree) ? [{ repo, clonePath, worktree }] : [];
-      },
-    );
-  }
-
   private async _review(ticketRun: TicketRun): Promise<void> {
     const { ticket, workspace, state } = ticketRun;
     const { record } = await this._launch(ticketRun, "review", {
@@ -1713,19 +1354,6 @@ export class SpecRun {
       drafts: gaveUpHalts.map((record) => triageHaltOf(record, "give-up")),
     });
     if (hasNewCommit) state.fixer = fixer;
-  }
-
-  private async _headsAndDirtyReposOf(
-    workspace: Workspace,
-  ): Promise<HeadsAndDirtyRepos> {
-    const heads: Heads = {};
-    const worktrees: RepoWorktree[] = [];
-    for (const { repo, clonePath, worktree } of this._worktreesOf(workspace)) {
-      const state = await worktreeStateOf(worktree);
-      heads[clonePath] = state.head;
-      worktrees.push({ repo, worktree, state });
-    }
-    return { heads, dirtyRepos: dirtyReposOf(worktrees) };
   }
 
   private async _runFixer(
@@ -1985,10 +1613,6 @@ export class SpecRun {
         decision.until.getTime() - this.config.clock.now().getTime();
       await this._sleep(Math.max(waitMs, knobs.limitWaitMarginMs));
     }
-  }
-
-  private get _sleep(): (ms: number) => Promise<void> {
-    return this.config.sleep ?? sleep;
   }
 
   private async _warnOnce(
@@ -2348,44 +1972,6 @@ export class SpecRun {
     this.factsFile.write(ticket.issue, facts);
   }
 
-  // Logged however the step ends, a Stop or Halt included.
-  private async _timed<RV>(
-    { run, ticket }: Pick<LandingTicket, "run" | "ticket">,
-    step: TimedStep,
-    act: () => Promise<RV>,
-  ): Promise<RV> {
-    const startedAt = this.config.clock.now();
-    try {
-      return await act();
-    } finally {
-      this._log(
-        run,
-        `${issueLabelOf(ticket.issue)}: ${step} took ${this._secondsSince(startedAt)}s.`,
-      );
-    }
-  }
-
-  private _secondsSince(startedAt: Date): number {
-    const ms = this.config.clock.now().getTime() - startedAt.getTime();
-    return Math.round(ms / 1000);
-  }
-
-  // A halted step that passes with no agent launch, as green checks do, drops its guidance.
-  private _advance({ run, state }: LandingTicket, step: TicketStep): void {
-    state.step = step;
-    state.guidance = undefined;
-    state.isStepStarted = undefined;
-    this._saveState(run);
-  }
-
-  private _saveState(run: Run): void {
-    if (run.sessionReview !== undefined) return;
-    writeFileSync(
-      this._statePathOf(run.spec.issue),
-      `${JSON.stringify(run.state, undefined, 2)}\n`,
-    );
-  }
-
   private async _stopTicket(
     run: Run,
     ticket: TrackedIssue,
@@ -2432,11 +2018,6 @@ export class SpecRun {
     throw new RunStop(`Stopped on ${label}: ${outcome}; rerun to retry it.`);
   }
 
-  // Marked, since the runner posts as the developer's login and must never read its own comment as an answer.
-  private async _comment(run: Run, body: string): Promise<void> {
-    await this.config.github.comment(run.spec.issue, `${runnerMark}\n${body}`);
-  }
-
   // The gap check waits for every ticket to close, since an open one may still land what it would report; undefined once it halts.
   private async _finish(
     run: Run,
@@ -2469,12 +2050,6 @@ export class SpecRun {
       "finished",
       await this._withUndecidedLine(run, message),
     );
-  }
-
-  private _withRerunLine(run: Run, message: string, waits: Wait[]): string {
-    if (!waits.some(({ reason }) => reason === "developer")) return message;
-    const command = rerunCommandOf(this.config.githubOwner, run.spec.issue);
-    return `${message} Rerun once your tickets close: \`${command}\`.`;
   }
 
   // Catches a ticket that landed in a run killed before its review list was posted.
@@ -2586,95 +2161,12 @@ export class SpecRun {
     if (count.items === 0) return message;
     return `${message} ${undecidedLineOf(count)}.`;
   }
-
-  private async _end(
-    run: Run,
-    kind: RunResult["kind"],
-    message: string,
-  ): Promise<RunResult> {
-    await this._announce(run, message);
-    return { kind, landed: run.landed, message };
-  }
-
-  // A notice that fails is logged, not thrown: the comment and the progress log still hold the event.
-  private async _announce(run: Run, summary: string): Promise<void> {
-    this._log(run, summary);
-    // A session's review prints to the session instead.
-    if (run.sessionReview !== undefined) return;
-    try {
-      await this.config.notices.send({
-        specTitle: run.spec.title,
-        summary,
-        link: run.spec.url,
-      });
-    } catch (error) {
-      this._log(run, `The notice failed: ${messageOf(error)}`);
-    }
-  }
-
-  // Newlines are folded so each event stays one line for tail -f.
-  private _log(run: Run, line: string): void {
-    const oneLine = line.replace(/\s*\n\s*/g, " ");
-    appendFileSync(
-      this._progressPathOf(run),
-      `${this.config.clock.now().toISOString()} ${oneLine}\n`,
-    );
-    this.config.log?.(line);
-  }
-
-  private _progressPathOf(run: Run): string {
-    return join(this.config.stateFolder, `${fileStemOf(run.spec.issue)}.log`);
-  }
 }
 
 // Discards commits and untracked files alike; ignored files, such as the symlinked configs, stay.
 
-function isFix({ verdict }: TriageRecord): boolean {
-  return verdict === "fix";
-}
-
 function isHalt({ verdict }: TriageRecord): boolean {
   return verdict === "halt";
-}
-
-// Saved with the step's own state when it advances, so a rerun of the step never raises them twice.
-function raiseHalts(
-  run: Run,
-  { ticket, drafts }: { ticket: IssueRef; drafts: HaltDraft[] },
-): void {
-  run.state.halts ??= [];
-  const { halts } = run.state;
-  const { sessionReview } = run;
-  drafts.forEach((draft) => {
-    const index = halts.length + 1;
-    halts.push({
-      ...draft,
-      id:
-        sessionReview === undefined
-          ? `H${index}`
-          : sessionHaltIdOf(ticket, sessionReview.earlierHalts + index),
-      ticket,
-      isPosted: false,
-      isDelivered: false,
-      ignoredReplies: [],
-    });
-  });
-}
-
-function haltsOf(run: Run): Halt[] {
-  return run.state.halts ?? [];
-}
-
-function haltsOfTicket(run: Run, ticket: IssueRef): Halt[] {
-  return haltsOf(run).filter((halt) => isSameIssue(halt.ticket, ticket));
-}
-
-function isSameIssue(first: IssueRef, second: IssueRef): boolean {
-  return shortRefOf(first) === shortRefOf(second);
-}
-
-function undeliveredHaltsOf(run: Run, ticket: IssueRef): Halt[] {
-  return haltsOfTicket(run, ticket).filter(({ isDelivered }) => !isDelivered);
 }
 
 // The halted ticket itself, every ticket for a `spec` scope, else the named tickets and their downstream.
@@ -2687,65 +2179,11 @@ function isHeldBy({ halt, ticket, downstreamOf }: HoldCheck): boolean {
   );
 }
 
-function idListOf(halts: Halt[]): string {
-  return halts.map(({ id }) => id).join(", ");
-}
-
 function lastAnswerAtOf(run: Run, ticket: IssueRef): string {
   const times = undeliveredHaltsOf(run, ticket).map(
     ({ answer }) => answer?.at ?? "",
   );
   return times.sort().at(-1) ?? "";
-}
-
-// Marks answered Failure Halts delivered, clears the retry counts and acts on the latest answer; a `skip` read on a later run is a retry.
-function deliverFailureHalts(
-  run: Run,
-  { ticket, extraTurns }: { ticket: IssueRef; extraTurns: number },
-): TicketStep | undefined {
-  const state = ticketStateOf(run, ticket);
-  const failures = undeliveredHaltsOf(run, ticket).filter(isTicketFailureHalt);
-  const latest = failures.at(-1);
-  if (latest?.answer === undefined) return undefined;
-  failures.forEach((halt) => {
-    halt.isDelivered = true;
-  });
-  state.crashes = undefined;
-  state.redCheckResumes = undefined;
-  state.redChecksLogPath = undefined;
-  state.conflictResumes = undefined;
-  state.continuation = undefined;
-  state.guidance = undefined;
-  const answer = failureAnswerOf(latest, latest.answer);
-  // A continuation another Halt never offered would resume a session with nothing to continue.
-  if (
-    answer.kind === "retry-record" &&
-    isOffered(latest, failureOptions.retryRecord)
-  ) {
-    state.continuation = { kind: "record" };
-  }
-  if (answer.kind === "more-turns" && isOffered(latest, "`resume +")) {
-    state.continuation = { kind: "turns", turns: answer.turns ?? extraTurns };
-  }
-  if (
-    answer.kind === "more-handoffs" &&
-    isOffered(latest, failureOptions.moreHandoffs)
-  ) {
-    state.extraHandoffs = (state.extraHandoffs ?? 0) + 1;
-  }
-  if (answer.kind === "rerun") state.pair = answer.pair;
-  if (answer.kind === "guidance") state.guidance = answer.text;
-  return latest.failedStep;
-}
-
-function isTicketFailureHalt(
-  halt: Halt,
-): halt is Halt & { failedStep: TicketStep } {
-  return (
-    halt.kind === "failure" &&
-    halt.failedStep !== undefined &&
-    !isGapCheckHalt(halt)
-  );
 }
 
 function guidedLaunchOf(
@@ -2757,14 +2195,6 @@ function guidedLaunchOf(
     ...launch,
     prompt: `${launch.prompt}\n\n${guidanceSectionOf(guidance)}`,
   };
-}
-
-function isOffered(halt: Halt, option: string): boolean {
-  return halt.options.some((offered) => offered.startsWith(option));
-}
-
-function isGapCheckHalt({ failedStep }: Halt): boolean {
-  return failedStep === "gap-check";
 }
 
 // The latest answer the gap check hasn't acted on; a `stop spec` read on a later run is a skip.
@@ -2814,46 +2244,6 @@ function stepAfterResumeOf(state: TicketState): TicketStep {
   return state.findings === undefined ? "review" : "checks";
 }
 
-// The tickets downstream of one, each `<repo>#<n>`, through the blocking graph.
-function downstreamIn({ run, blockersOf, ticket }: DownstreamSearch): string[] {
-  const downstream: string[] = [];
-  let frontier = [ticket];
-  while (frontier.length > 0) {
-    const next = run.tickets.map(shortRefOf).filter((label) => {
-      if (label === ticket || downstream.includes(label)) return false;
-      const blockers = blockersOf.get(label) ?? [];
-      return blockers.some((blocker) => frontier.includes(blocker));
-    });
-    downstream.push(...next);
-    frontier = next;
-  }
-  return downstream;
-}
-
-function isSameHeads(first: Heads, second: Heads): boolean {
-  return JSON.stringify(first) === JSON.stringify(second);
-}
-
-// A session review has no implement record, so its workspace's branched repos stand in.
-function branchedReposOf({ workspace, state }: TicketRun): string[] {
-  return (
-    state.record?.branches.map(({ repo }) => repo) ?? workspace.branchedRepos
-  );
-}
-
-// Absent from a state file written before Halts, where the last implement session is the implementer's.
-function implementerSessionOf(state: TicketState): string | undefined {
-  return state.implementerSession ?? lastSessionOf(state, "implement");
-}
-
-function lastSessionOf(
-  state: TicketState,
-  agent: StepAgent,
-): string | undefined {
-  return state.sessions.findLast((session) => session.agent === agent)
-    ?.sessionId;
-}
-
 async function resetTo(workspace: Workspace, heads: Heads): Promise<void> {
   for (const [clonePath, sha] of Object.entries(heads)) {
     const worktree = join(workspace.path, clonePath);
@@ -2869,18 +2259,6 @@ function noteImplementerResult(
 ): void {
   state.implementPeak = peakContext ?? state.implementPeak;
   state.implementerSession = sessionId ?? state.implementerSession;
-}
-
-// A live-ceiling kill is the fixer's crossing, whatever its subtype.
-function isTurnCapped(result: StepResult): boolean {
-  return result.exitSubtype === "error_max_turns" && !result.hasCrossedCeiling;
-}
-
-function turnCapDetailOf(
-  step: StepAgent | typeof gapCheckLabel,
-  turns: number,
-): string {
-  return `The ${step} step hit its ${turns}-turn cap.`;
 }
 
 // Undefined for an outcome a caller handles: a live-ceiling kill, a schema failure, success or a turn cap.
@@ -2910,17 +2288,6 @@ function crashDetailOf(
   return undefined;
 }
 
-// Review and triage edit nothing, so there is no work of theirs to set aside.
-function isSnapshotted(step: TicketStep): boolean {
-  return step !== "review" && step !== "triage";
-}
-
-// After a handoff the implement step builds on the uncommitted work, so a snapshot saves it without a reset.
-function isTreeKept({ step, latestHandoff }: TicketState): boolean {
-  const isImplement = step === "implement" || step === "resume";
-  return isImplement && latestHandoff !== undefined;
-}
-
 // A crashed backstop resume still owes only its handoff record.
 function retryPromptOf(launch: StepLaunch, state: TicketState): string {
   if (launch.prompt === handoffOnlyPrompt) return handoffOnlyPrompt;
@@ -2939,21 +2306,6 @@ function unrunDetailOf(step: string, error: unknown): string {
   return `The ${step} step failed to run: ${messageOf(error)}`;
 }
 
-// Writes the raw output beside the step's log, so the Failure Halt can link it.
-function schemaFailureOf(
-  logPath: string,
-  { problems, output }: { problems: string[]; output: unknown },
-): SchemaFailure {
-  const outputPath = logPath.replace(/\.jsonl$/, ".output.txt");
-  const raw =
-    typeof output === "string" ? output : JSON.stringify(output, undefined, 2);
-  writeFileSync(outputPath, raw);
-  return new SchemaFailure(
-    `${problems.join("; ")}\n\nRaw output: \`${outputPath}\``,
-    logPath,
-  );
-}
-
 function turnCapGiveUpOf(finding: number): GaveUpOutcome {
   return {
     finding,
@@ -2967,10 +2319,6 @@ function isGaveUp(outcome: FixOutcome): outcome is GaveUpOutcome {
   return outcome.status === "gave-up";
 }
 
-function liveCeilingPhraseOf({ liveCeiling }: RunKnobs): string {
-  return `the live ceiling of ${liveCeiling}`;
-}
-
 function sessionIdOf(
   issue: IssueRef,
   owner: string,
@@ -2980,47 +2328,6 @@ function sessionIdOf(
     throw new Error(`${issueLabelOf(issue)}'s ${owner} has no session id.`);
   }
   return sessionId;
-}
-
-function launchedOf(
-  agent: StepAgent,
-  { result, logPath }: RanStep,
-): LaunchedStep {
-  const record = recordOf(agent, result, logPath);
-  return { record, logPath, peakContext: result.peakContext };
-}
-
-function recordOf(step: string, result: StepResult, logPath: string): unknown {
-  const { output } = result;
-  if (output.status === "schemaFailure") {
-    throw schemaFailureOf(logPath, {
-      problems: output.problems,
-      output: output.rawOutput,
-    });
-  }
-  if (result.errorText !== undefined) {
-    throw new UnhandledStop(
-      "step-error",
-      `The ${step} step ended on an error: ${result.errorText}`,
-      logPath,
-    );
-  }
-  if (result.exitSubtype !== "success" || output.status !== "valid") {
-    throw new UnhandledStop(
-      "step-error",
-      `The ${step} step ended ${result.exitSubtype ?? "without a result"}.`,
-      logPath,
-    );
-  }
-  return output.record;
-}
-
-function reviewFactsOf({ fixer, triage = [] }: TicketState): ReviewFacts {
-  return {
-    reviewFixes: fixer ?? "none",
-    whatReviewCaught: whatReviewCaughtOf(triage),
-    proposals: triage.filter(({ verdict }) => verdict === "propose").length,
-  };
 }
 
 function workspaceRefusalOf(
@@ -3065,10 +2372,6 @@ function reviewEndOf({ run, ticket }: TicketRun, error: unknown): ReviewResult {
   throw error;
 }
 
-function stoppedOnTextOf({ outcome, message, logPath }: UnhandledStop): string {
-  return `stopped on ${stopOutcomes[outcome]}: ${message} Log: \`${logPath}\``;
-}
-
 function retriesOf({ crashes = {}, redCheckResumes = 0 }: TicketState): number {
   return Object.values(crashes).reduce(
     (sum, count) => sum + count,
@@ -3082,12 +2385,6 @@ function isRerunRetried({ outcome }: UnhandledStop): boolean {
 
 function stopHeadingOf(ticket: TrackedIssue, outcome: string): string {
   return `The runner stopped on ${issueLabelOf(ticket.issue)}, "${ticket.title}": ${outcome}.`;
-}
-
-function ticketStateOf(run: Run, ticket: IssueRef): TicketState {
-  const key = issueLabelOf(ticket);
-  run.state.tickets[key] ??= { step: "implement", sessions: [] };
-  return run.state.tickets[key];
 }
 
 // A split spec's own body is never checked; tickets the runner won't launch need no section.
@@ -3106,61 +2403,8 @@ function modelFitRefusalOf(
   return `Each open ${readyLabel} ticket needs a ## Model fit section naming one of the five pairs; missing or invalid in ${offenders.join(", ")}.`;
 }
 
-function targetsRefusalOf(
-  run: Run,
-  launchable: TrackedIssue[],
-): string | undefined {
-  const checked = run.isTicketless ? [run.spec] : launchable;
-  const offenders = checked.flatMap(({ issue, body }) => {
-    const reading = targetsOf(body);
-    if (reading.status === "valid") return [];
-    return [`${issueLabelOf(issue)} (\`${reading.line}\`)`];
-  });
-  if (offenders.length === 0) return undefined;
-  return `Each ## Targets line must be ${targetLineShapes}; malformed in ${offenders.join(", ")}.`;
-}
-
-function targetsAtLaunchOf(ticket: TrackedIssue, logPath: string): Target[] {
-  const reading = targetsOf(ticket.body);
-  if (reading.status === "valid") return reading.targets;
-  throw new UnhandledStop(
-    "targets",
-    `The ## Targets section changed after preflight: \`${reading.line}\` isn't ${targetLineShapes}.`,
-    logPath,
-  );
-}
-
-function isLaunchable(ticket: TrackedIssue): boolean {
-  return ticket.isOpen && ticket.labels.includes(readyLabel);
-}
-
-// The command's output tail when it fails, undefined when it passes.
-async function runCommand(
-  command: Command,
-  cwd: string,
-): Promise<string | undefined> {
-  const [file, ...args] = command;
-  try {
-    await execFileAsync(file, args, { cwd, maxBuffer: 64 * 1024 * 1024 });
-    return undefined;
-  } catch (error) {
-    return outputTailOf(error) || messageOf(error);
-  }
-}
-
-export function rerunCommandOf(
-  owner: string,
-  { repo, number }: IssueRef,
-): string {
-  return `npm run runner -- ${owner}/${repo} ${number}`;
-}
-
 function isStopSpec({ answer }: Halt): boolean {
   return answer !== undefined && isStopSpecAnswer(answer);
-}
-
-function openHaltsOf(run: Run): Halt[] {
-  return haltsOf(run).filter(({ answer }) => answer === undefined);
 }
 
 // An open Halt may be answered, and a lease released, while the run waits; anything else needs a rerun.
@@ -3171,15 +2415,6 @@ function isIdleWait({ reason }: Wait): boolean {
 function developerWaitTextOf(label: string, downstream: string[]): string {
   if (downstream.length === 0) return `${label} waits on you`;
   return `${label} waits on you and blocks ${downstream.join(", ")}`;
-}
-
-function waitsTextOf(waits: Wait[]): string {
-  return waits.map(({ text }) => text).join("; ");
-}
-
-function landedTextOf(landed: IssueRef[]): string {
-  if (landed.length === 0) return "landed nothing";
-  return `landed ${landed.map(issueLabelOf).join(", ")}`;
 }
 
 function joinedOrNone(items: string[]): string {
@@ -3224,11 +2459,4 @@ function stoppedMessageOf(run: Run, ticket: TrackedIssue): string {
 function readingLabelOf({ account, usage }: AccountReading): string {
   if (usage === undefined) return `account ${account}: no usage reading`;
   return `account ${account}: 5-hour ${percentOf(usage.fiveHour.utilization)}, weekly ${percentOf(usage.sevenDay.utilization)}`;
-}
-
-function limitReadingOf(usage: AccountUsage): LimitReading {
-  return {
-    fiveHour: usage.fiveHour.utilization,
-    sevenDay: usage.sevenDay.utilization,
-  };
 }
