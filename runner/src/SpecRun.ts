@@ -643,7 +643,11 @@ export class SpecRun {
     launchable: TrackedIssue[],
   ): string | undefined {
     const { developer } = this.config;
-    const offenders = [run.spec, ...launchable].flatMap((issue) => {
+    // A ticket with an authorship Halt is left to the launch-time check, which reads the Halt's answer.
+    const checked = [run.spec, ...launchable].filter(
+      ({ issue }) => !haltsOfTicket(run, issue).some(isAuthorshipHalt),
+    );
+    const offenders = checked.flatMap((issue) => {
       const reason = untrustedBodyReasonOf(developer, issue);
       if (reason === undefined) return [];
       return [`${issueLabelOf(issue.issue)} (${reason})`];
@@ -941,14 +945,20 @@ export class SpecRun {
   ): Promise<void> {
     const { run, ticket, state } = landingTicket;
     const { developer } = this.config;
-    const reason = untrustedBodyReasonOf(developer, ticket);
+    const unapproved = unapprovedAuthorshipOf({
+      developer,
+      ticket,
+      approved: approvedAuthorshipOf(run, ticket.issue),
+    });
+    const reason = untrustedBodyReasonOf(developer, unapproved);
     if (reason === undefined) return;
     const { retry, skip } = failureOptions;
     await this._failureHalt(landingTicket, {
       step: state.step,
-      detail: `${issueLabelOf(ticket.issue)}'s body was ${reason}. ${onlyDeveloperEditsTextOf(developer, "a ticket the run launches")}; revert the edit before a ${retry}, or ${skip} the ticket.`,
+      detail: `${issueLabelOf(ticket.issue)}'s body was ${reason}. ${onlyDeveloperEditsTextOf(developer, "a ticket the run launches")}; revert the edit before a ${retry}, or ${skip} the ticket. Either answer approves the edits named here, and only a later edit halts it again.`,
       logPath: this._progressPathOf(run),
       options: [retry, skip],
+      untrustedBody: { author: ticket.author, bodyEditors: ticket.bodyEditors },
     });
   }
 
@@ -2417,6 +2427,46 @@ function haltsOf(run: Run): Halt[] {
 
 function haltsOfTicket(run: Run, ticket: IssueRef): Halt[] {
   return haltsOf(run).filter((halt) => isSameIssue(halt.ticket, ticket));
+}
+
+function isAuthorshipHalt({ untrustedBody }: Halt): boolean {
+  return untrustedBody !== undefined;
+}
+
+// GitHub keeps every edit in a body's history, so an approval is the latest answered authorship Halt's own record.
+function approvedAuthorshipOf(
+  run: Run,
+  ticket: IssueRef,
+): BodyAuthorship | undefined {
+  const answered = haltsOfTicket(run, ticket).filter(
+    (halt) => halt.answer !== undefined && !isStopSpec(halt),
+  );
+  return answered.findLast(isAuthorshipHalt)?.untrustedBody;
+}
+
+// Each approved edit cancels one edit by the same login, so a login's later edit still counts.
+function unapprovedAuthorshipOf({
+  developer,
+  ticket,
+  approved,
+}: {
+  developer: string;
+  ticket: BodyAuthorship;
+  approved: BodyAuthorship | undefined;
+}): BodyAuthorship {
+  if (approved === undefined) return ticket;
+  const approvedEditors = [...approved.bodyEditors];
+  const bodyEditors = ticket.bodyEditors.filter((editor) => {
+    const index = approvedEditors.indexOf(editor);
+    if (index === -1) return true;
+    approvedEditors.splice(index, 1);
+    return false;
+  });
+  const isAuthorApproved = ticket.author === approved.author;
+  return {
+    author: isAuthorApproved ? developer : ticket.author,
+    bodyEditors,
+  };
 }
 
 function isSameIssue(first: IssueRef, second: IssueRef): boolean {
