@@ -1,7 +1,7 @@
 // The run's workspace leases: takes a ticket's lease as the run, releasing only the run's own, and finds or creates
 // the ticket's issue workspace, resuming an existing one. A lease another live holder has leaves the ticket waiting.
-// ../SpecRun.ts calls _otherHolderOf while it picks a ticket, and _takeSessionLease and _releaseLeaseOf around a
-// session's review; TicketSequencer.ts calls _workspaceFor, _takeLease and _releaseLeaseOf around one ticket's run.
+// TicketSelector.ts calls _otherHolderOf while it picks a ticket, SessionReviewer.ts _takeSessionLease and _releaseLeaseOf
+// around a session's review; TicketSequencer.ts calls _workspaceFor, _takeLease and _releaseLeaseOf around one ticket's run.
 // It calls only the Base.
 
 import { messageOf } from "../failureText.ts";
