@@ -29,6 +29,7 @@ import {
   worktreeStateOf,
 } from "../git.ts";
 import { runnerMark } from "../halts.ts";
+import { untrustedBodyReasonOf } from "../IssueReader.ts";
 import {
   fileStemOf,
   issueLabelOf,
@@ -51,6 +52,8 @@ import {
   type IssueComment,
   isTreeKept,
   type LandingTicket,
+  onlyDeveloperEditsTextOf,
+  readyLabel,
   rerunCommandOf,
   type Run,
   type RunResult,
@@ -279,6 +282,20 @@ export class SpecRunBase {
     if (!waits.some(({ reason }) => reason === "developer")) return message;
     const command = rerunCommandOf(this.config.githubOwner, run.spec.issue);
     return `${message} Rerun once your tickets close: \`${command}\`.`;
+  }
+
+  protected _authorshipRefusal(
+    run: Run,
+    launchable: TrackedIssue[],
+  ): string | undefined {
+    const { developer } = this.config;
+    const offenders = [run.spec, ...launchable].flatMap((issue) => {
+      const reason = untrustedBodyReasonOf(developer, issue);
+      if (reason === undefined) return [];
+      return [`${issueLabelOf(issue.issue)} (${reason})`];
+    });
+    if (offenders.length === 0) return undefined;
+    return `${onlyDeveloperEditsTextOf(developer, `the spec and each open ${readyLabel} ticket`)}; refused ${offenders.join(", ")}.`;
   }
 
   protected async _end(

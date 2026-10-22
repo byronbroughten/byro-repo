@@ -187,6 +187,8 @@ export interface TicketRun extends LandingTicket {
   targets: Target[];
 }
 
+export type TicketOutcome = "landed" | "stopped" | "leased" | "halted";
+
 export interface Wait {
   ticket: IssueRef;
   reason: WaitReason;
@@ -264,6 +266,10 @@ export function haltsOf(run: Run): Halt[] {
 
 export function haltsOfTicket(run: Run, ticket: IssueRef): Halt[] {
   return haltsOf(run).filter((halt) => isSameIssue(halt.ticket, ticket));
+}
+
+export function isAuthorshipHalt({ untrustedBody }: Halt): boolean {
+  return untrustedBody !== undefined;
 }
 
 export function isSameIssue(first: IssueRef, second: IssueRef): boolean {
@@ -527,6 +533,13 @@ export async function runCommand(
   } catch (error) {
     return outputTailOf(error) || messageOf(error);
   }
+}
+
+export function onlyDeveloperEditsTextOf(
+  developer: string,
+  bodies: string,
+): string {
+  return `Only ${developer} may write or edit ${bodies}`;
 }
 
 export function rerunCommandOf(
