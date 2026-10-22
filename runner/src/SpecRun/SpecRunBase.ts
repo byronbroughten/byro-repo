@@ -285,7 +285,7 @@ export class SpecRunBase {
 
   // Printed to the terminal only: a developer-login comment quoting the approval line would itself approve the body.
   protected async _authorshipRefusal(
-    bodies: string,
+    subject: string,
     issues: TrackedIssue[],
   ): Promise<string | undefined> {
     const reasons = await Promise.all(
@@ -303,7 +303,7 @@ export class SpecRunBase {
       ({ issue }) =>
         `${issueLabelOf(issue.issue)}:\n${approvalLineOf(issue.body)}`,
     );
-    return `${onlyDeveloperEditsTextOf(this.config.developer, bodies)}; refused ${offenders.join(", ")}. To approve a body as it reads now, comment its line on it.\n\n${approvals.join("\n\n")}`;
+    return `${onlyDeveloperEditsTextOf(this.config.developer, subject)}; refused ${offenders.join(", ")}. To approve a body as it reads now, comment its line on it.\n\n${approvals.join("\n\n")}`;
   }
 
   // Its comments are read only when its edit history alone leaves the body untrusted.
