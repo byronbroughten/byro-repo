@@ -435,6 +435,7 @@ async function ticketTwoAsAStepReadsIt(): Promise<string> {
   source.issues.set(2, {
     issue: refOf(2),
     title,
+    titleRenamer: undefined,
     isOpen,
     labels,
     parent: spec,
