@@ -1,7 +1,7 @@
 // A spec run's agent step launches: waits out the limit guard before each, runs the step with its guidance and the run's
 // knobs, logs its raw stream, and retries a crash, resuming its session when it has one; a hit limit is an UnhandledStop.
 // An implement step that hits its turn cap halts, offering more turns or a stronger pair; other crashes past their retries halt too.
-// It builds its own HaltRaiser, and every collaborator that launches a step builds one of it.
+// It builds its own HaltRaiser, and every collaborator that launches a step builds a StepLauncher.
 // Steps run through ../AgentStep.ts; limit decisions are ../limitGuard.ts; the coordinator callers build is ../SpecRun.ts.
 
 import { copyFileSync, existsSync, mkdirSync } from "node:fs";
@@ -109,6 +109,18 @@ export class StepLauncher extends SpecRunBase {
         };
       }
     }
+  }
+
+  // Skips a path already taken, so a crashed step's log survives its retry.
+  private _stepLogPathOf(ticketRun: TicketRun, agent: StepAgent): string {
+    const folder = this._stepsFolderOf(ticketRun.run);
+    const stem = fileStemOf(ticketRun.ticket.issue);
+    let index = ticketRun.state.sessions.length + 1;
+    // Not shared with git.ts's freeBranchNameOf, which asks git asynchronously and numbers from 2.
+    while (existsSync(join(folder, `${stem}-${index}-${agent}.jsonl`))) {
+      index += 1;
+    }
+    return join(folder, `${stem}-${index}-${agent}.jsonl`);
   }
 
   // Offers more turns, or a stronger pair while there is one.
@@ -281,18 +293,6 @@ export class StepLauncher extends SpecRunBase {
       `The step hit the ${window ?? "usage"} limit; it resets at ${resetsAt.toISOString()}.`,
       logPath,
     );
-  }
-
-  // Skips a path already taken, so a crashed step's log survives its retry.
-  private _stepLogPathOf(ticketRun: TicketRun, agent: StepAgent): string {
-    const folder = this._stepsFolderOf(ticketRun.run);
-    const stem = fileStemOf(ticketRun.ticket.issue);
-    let index = ticketRun.state.sessions.length + 1;
-    // Not shared with git.ts's freeBranchNameOf, which asks git asynchronously and numbers from 2.
-    while (existsSync(join(folder, `${stem}-${index}-${agent}.jsonl`))) {
-      index += 1;
-    }
-    return join(folder, `${stem}-${index}-${agent}.jsonl`);
   }
 
   _stepsFolderOf(run: Run): string {
