@@ -7,7 +7,7 @@
 import { copyFileSync, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-import type { StepResult } from "../AgentStep.ts";
+import type { StepRequest, StepResult } from "../AgentStep.ts";
 import { messageOf } from "../failureText.ts";
 import { guidanceSectionOf } from "../halts.ts";
 import { handoffOnlyPrompt, treeResetNote } from "../implementStep.ts";
@@ -29,7 +29,6 @@ import {
   isTreeKept,
   isTurnCapped,
   limitReadingOf,
-  type LoggedStepRequest,
   type RanStep,
   type Run,
   type RunWarning,
@@ -39,6 +38,8 @@ import {
   turnCapDetailOf,
 } from "./runState.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
+
+type LoggedStepRequest = StepRequest & { logPath: string };
 
 // An adapter that throws leaves the step unrun, which is retried as a crash.
 type StepAttempt =
@@ -188,7 +189,24 @@ export class StepLauncher extends SpecRunBase {
     return { kind: "ran", result };
   }
 
-  async _agentResultOf(
+  // Unretried: a step that belongs to the spec rather than a ticket, as the gap check does, handles its own turn cap.
+  async _runSpecStep(
+    run: Run,
+    step: string,
+    request: StepRequest,
+  ): Promise<RanStep> {
+    const logPath = join(
+      this._stepsFolderOf(run),
+      `${step.replaceAll(" ", "-")}.jsonl`,
+    );
+    await this._waitForLaunch(run);
+    this._log(run, `${sentenceCaseOf(step)} step, raw stream in ${logPath}.`);
+    const result = await this._agentResultOf(step, { ...request, logPath });
+    await this._stopOnLimitHit(run, result, logPath);
+    return { result, logPath };
+  }
+
+  private async _agentResultOf(
     step: string,
     request: LoggedStepRequest,
   ): Promise<StepResult> {
@@ -204,7 +222,7 @@ export class StepLauncher extends SpecRunBase {
   }
 
   // Asks the limit guard about the configured account until it says launch, returning the first reading: a ticket's Limit used before.
-  async _waitForLaunch(run: Run): Promise<AccountUsage | undefined> {
+  private async _waitForLaunch(run: Run): Promise<AccountUsage | undefined> {
     const { account } = this.config.knobs;
     const knobs = { ...defaultLimitGuardKnobs, ...this.config.limitGuardKnobs };
     let hasAnnouncedWait = false;
@@ -263,7 +281,7 @@ export class StepLauncher extends SpecRunBase {
   }
 
   // The tree stays as is in the workspace; the first stream ever seen is kept for tightening limit detection.
-  async _stopOnLimitHit(
+  private async _stopOnLimitHit(
     run: Run,
     { limitHit, exitSubtype, output }: StepResult,
     logPath: string,
@@ -295,7 +313,7 @@ export class StepLauncher extends SpecRunBase {
     );
   }
 
-  _stepsFolderOf(run: Run): string {
+  private _stepsFolderOf(run: Run): string {
     const folder = join(
       this.config.stateFolder,
       `${fileStemOf(run.spec.issue)}-steps`,
@@ -359,4 +377,8 @@ function interruptedPromptOf(state: TicketState): string {
 
 function unrunDetailOf(step: string, error: unknown): string {
   return `The ${step} step failed to run: ${messageOf(error)}`;
+}
+
+function sentenceCaseOf(text: string): string {
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
 }

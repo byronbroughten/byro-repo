@@ -142,7 +142,6 @@ import {
   type LaunchedStep,
   limitReadingOf,
   liveCeilingPhraseOf,
-  type LoggedStepRequest,
   openHaltsOf,
   raiseHalts,
   type RanStep,
@@ -1683,11 +1682,7 @@ export class SpecRun extends SpecRunBase {
     if (answer?.kind === "guidance") {
       prompt = `${prompt}\n\n${guidanceSectionOf(answer.text)}`;
     }
-    const logPath = join(
-      this.stepLauncher._stepsFolderOf(run),
-      "gap-check.jsonl",
-    );
-    const request: LoggedStepRequest = {
+    const request: StepRequest = {
       prompt,
       pair: answer?.kind === "rerun" ? answer.pair : knobs.gapCheckPair,
       account: knobs.account,
@@ -1699,16 +1694,16 @@ export class SpecRun extends SpecRunBase {
       allowedWriteGlobs: [],
       targets: [],
       jsonSchema: gapCheckOutputSchema,
-      logPath,
     };
-    let result = await this._runGapCheck(run, request);
+    let ran = await this._runGapCheck(run, request);
     for (
       let retries = 0;
-      isTurnCapped(result) && retries < knobs.retriesPerFailure;
+      isTurnCapped(ran.result) && retries < knobs.retriesPerFailure;
       retries += 1
     ) {
-      result = await this._runGapCheck(run, request);
+      ran = await this._runGapCheck(run, request);
     }
+    const { result, logPath } = ran;
     if (isTurnCapped(result)) {
       const detail = turnCapDetailOf(gapCheckLabel, knobs.maxTurns.gapCheck);
       await this._gapCheckHalt(run, { detail, logPath });
@@ -1732,18 +1727,8 @@ export class SpecRun extends SpecRunBase {
     this._saveState(run);
   }
 
-  private async _runGapCheck(
-    run: Run,
-    request: LoggedStepRequest,
-  ): Promise<StepResult> {
-    await this.stepLauncher._waitForLaunch(run);
-    this._log(run, `Gap check step, raw stream in ${request.logPath}.`);
-    const result = await this.stepLauncher._agentResultOf(
-      gapCheckLabel,
-      request,
-    );
-    await this.stepLauncher._stopOnLimitHit(run, result, request.logPath);
-    return result;
+  private async _runGapCheck(run: Run, request: StepRequest): Promise<RanStep> {
+    return this.stepLauncher._runSpecStep(run, gapCheckLabel, request);
   }
 
   // Raised on the spec issue and never counted toward the stuck detector, since the gap check belongs to no ticket.

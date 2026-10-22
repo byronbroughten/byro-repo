@@ -228,8 +228,6 @@ export type StepLaunch = Pick<StepRequest, "prompt" | "jsonSchema"> &
     >
   >;
 
-export type LoggedStepRequest = StepRequest & { logPath: string };
-
 export type Crash = Pick<StepFailure, "detail" | "logPath">;
 
 export function isFix({ verdict }: TriageRecord): boolean {
