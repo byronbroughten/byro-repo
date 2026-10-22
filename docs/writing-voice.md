@@ -86,7 +86,7 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - **Number parallel reasons in prose ("First, … Second, … And third, …") when each needs a sentence or more.**
 - **Use bullets for short parallel items (costs with their figures, tips, one-sentence reasons after "Here's why:"); keep multi-sentence reasoning in prose.**
 - **Put a side point in its own "Note that…" sentence.**
-- **Make each point once, with the support it needs; cut a second calculation, a source's side conclusion or a rule's fine print that only reinforces or qualifies it.**
+- **Make each point once, with the support it needs; cut a second calculation, a source's side conclusion or a rule's fine print that only reinforces or qualifies it, or a result the reader already draws from the sentence before.**
 - **Once a fact or mechanism is set out, refer back to it by a short name ("the Build gate", "Table 2") instead of explaining it again, and only when the reader needs it to follow the point, never to show that sections agree.**
 - **Don't preview the items that the next paragraphs take up one by one.**
 - **Add a table only when the developer or the assignment asks for one, and never one that restates the prose.**
@@ -108,6 +108,7 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - **Put a colon after a verdict, then the explanation; when the words before the colon only signal that a reason follows ("is deliberate:"), write "because" instead.**
 - **Give a punchline, consequence or comparison its own sentence, not a trailing em dash.**
 - **Start a sentence with "And" or "But" to add a point or turn on one.**
+- **Open a sentence on a bare "This" when it refers to the phrase that ends the sentence before ("…screening grew lenient. This ultimately led to…"); don't replace it with a noun phrase.**
 - **End an open-ended list of everyday examples with "etc." or "and so on".**
 - **Never reuse one stock phrase, such as "In other words,", in sentences or paragraphs in a row.**
 - **Link sentences with plain connectives such as "Additionally" and "Finally"; "Conversely", "To that end" and "albeit" are fine too, but "Furthermore" and "Moreover" are academic.**

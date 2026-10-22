@@ -28,10 +28,12 @@ Dispatch them all at once, reads only, each told the file IDs and to cite by tit
 
 Call the Skill tool with "grilling" for its round format; grilling.md's rounds rule and done criterion win over that skill's. Ask the Long reads question against step 2's chapter lists: "which of these matter?"
 
+**Before writing the grill's first draft, read the root's [`docs/writing-voice.md`](../../../docs/writing-voice.md) and [`docs/writing-craft.md`](../../../docs/writing-craft.md) in full**, and for an Academic Piece [`docs/academic-writing-style.md`](../../../docs/academic-writing-style.md); every draft in the grill, the calibration paragraph included, follows them.
+
 Every question carries a recommendation:
 
 - **A factual question's** is drafted from the files and cites the file it came from.
-- **A voice question's**, one of those grilling.md asks alone, quotes the developer's own text from Drive when one exists, cited. Otherwise it is labelled _draft, reword it_, so agent wording reaches the spec only once the developer rewords it. A bare "yes" to a draft is no answer yet: ask the developer to reword it or waive the question.
+- **A voice question's**, one of those grilling.md asks alone, quotes the developer's own text from Drive when one exists, cited. Otherwise it is a first draft labelled _draft, reword it_, given with the question, never on request. The developer rewords it or says to keep it as is, and either makes it their answer; a bare "yes" to the question is not, so ask which.
 
 **Write a term settled in the grill into the writing `GLOSSARY.md` at once**, in its existing entry shape; that is the only file written before `/piece-spec`.
 
@@ -39,8 +41,9 @@ Every question carries a recommendation:
 
 1. **The calibration paragraph**, by grilling.md. Keep each Piece-only difference for the Style field.
 2. **The Outline.** Read [`packages/writing/docs/outlining.md`](../../../packages/writing/docs/outlining.md), then draft it from the settled facts for the developer's approval.
-3. **The `/to-writing-style` candidates**: list each difference that holds for every Piece in chat, unwritten, for that skill's approval.
+3. **Research, Final pass and Split**, the [`/piece-spec`](../piece-spec/SKILL.md#1-fill-the-ten-fields) fields grilling.md has no question for: ask them in one round once the Outline is approved, each with a recommendation, so every one of the ten fields is settled before `/piece-spec`.
+4. **The `/to-writing-style` candidates**: list each difference that holds for every Piece in chat, unwritten, for that skill's approval.
 
-4. **Delete the PDFs step 2 downloaded**, by the paths it got back; each later stage downloads the ranges it reads.
+5. **Delete the PDFs step 2 downloaded**, by the paths it got back; each later stage downloads the ranges it reads.
 
-Done when grilling.md's done criterion holds, the candidates are listed and the downloads are gone. End by recommending `/piece-spec`.
+Done when grilling.md's done criterion holds, Research, Final pass and Split are answered, the candidates are listed and the downloads are gone. End by recommending `/piece-spec`.

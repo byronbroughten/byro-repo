@@ -47,6 +47,7 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Structure and re
 - "First, they are free. Second, they offer the ultimate freedom and customizability" — Assessment 1 - Information and Marketing Strategy
 - "First is the 1% Rule… Second is the Square Footage Rule… Finally, there's the hybrid method" — blog: Costs of Owning a Home
 - Seen in 5 of 6. In 1 of 5 posts.
+- Agent: "The first is time: … The second is capital: … The third is cash flow: …" Revised, approved by the developer: "First, work added beyond the plan pushes … Second, costs added beyond … And third, repairs cut below …" — Assessment 2 grill (writing#16), session 27f9c715, 2026-10-22
 
 ## Bullets for short parallel items
 
@@ -76,6 +77,7 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Structure and re
 - Agent: "Every $10,000 added to the price raises the down payment by $1,500 and closing costs by about $300… It could absorb a price of up to about $266,000" Developer: struck the whole paragraph — Assessment 1 Next Draft (writing#4), 2026-10-13
 - Agent: "Špundak also concludes that the two approaches can be combined within one project" Developer: struck — Assessment 1 Next Draft (writing#4), 2026-10-13
 - Agent: "This project's largely fixed scope, cost, and sequence point to the predictive approach." Developer: struck; "A real estate acquisition fits that description." already drew the conclusion — Assessment 1 Next Draft (writing#4), 2026-10-13
+- Agent: "the tenants selected from those larger pools keep their units in better condition, so the units need fewer repairs." Developer: struck "so the units need fewer repairs"; "To me that felt unnecessarily obvious to state" — Assessment 2 grill (writing#16), session 27f9c715, 2026-10-22
 - "it often includes much unnecessary verbiage" — the developer on AI drafts, Assessment 1 graded draft, AI Usage
 - No count was recorded; from a session.
 

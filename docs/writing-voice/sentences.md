@@ -103,3 +103,9 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Sentences and pu
 - This doesn't contradict "Wrapper phrases": a wrapper carries no meaning, while the clause's verb names the event the noun phrase hid. A passive clause here passes "Active voice", since the actor is beside the point.
 - Pinker, Ch. 2, PDF pp. 57–59: a verb turned into a noun ("prevention", "assessment") drops its actor, so the reader can't picture who did what.
 - No count was recorded; from a session.
+
+## A "This" that follows its phrase
+
+- Agent: flagged "screening grew lenient. This ultimately led to lease non-renewals, high turnover costs, and extended vacancies." and proposed "Lenient screening ultimately led to…" Developer: "the "This" referred to what was immediately before the "This", in this case right at the end of the sentence preceding it: "screening grew lenient"." — Assessment 2 grill (writing#16), session 27f9c715, 2026-10-22
+- It passes the Craft sheet's precedence line: the reader can't misread what "This" points to, so "Name the thing itself" doesn't override it. A "This" that points further back, or at a whole paragraph, still gets its noun.
+- No count was recorded; from a session.

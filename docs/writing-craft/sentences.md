@@ -43,7 +43,8 @@ Disclosed from [`docs/writing-craft.md`](../writing-craft.md), "Sentences". The 
 
 ## Same shape for parallel points
 
-- Before: "The first assumption is confirmed in the Planning phase, while the Test phase is when the second can be checked." After: "The first assumption is checked in the Planning phase, and the second in the Test phase." — invented; Pinker, Ch. 4, PDF pp. 129–131. _From Pinker; not yet seen in your writing._
+- Agent: "The first is time: each month the project runs past May 31, 2027, is a month taken from the four acquisitions that follow it. The second is capital: costs above the $60,000 budget draw on cash and credit that the next purchase needs… The third is cash flow: a unit finished below a marketable standard draws fewer qualified applicants…" Revised, approved by the developer: "First, work added beyond the plan pushes the finish date past May 31, 2027, and each month of delay is a month taken from the four acquisitions that follow. Second, costs added beyond the $60,000 budget must come from the backup HELOC, which leaves less cash and credit for the next down payment. And third, repairs cut below a marketable standard draw fewer qualified applicants…" Each point now runs cause, then effect — Assessment 2 grill (writing#16), session 27f9c715, 2026-10-22
+- Pinker, Ch. 4, PDF pp. 129–131.
 - Pinker's other half, one name for one thing, is left to Ch. 5 (#318).
 
 ## Unpack a noun pile
