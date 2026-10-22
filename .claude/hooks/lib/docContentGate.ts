@@ -1,15 +1,15 @@
-// Decides the doc content gate: a Google Doc write that adds text waits for full Reads of docs/writing-voice.md and docs/writing-clarity.md this session. Pure; docContentGate.ts does the I/O.
+// Decides the doc content gate: a Google Doc write that adds text waits for full Reads of docs/writing-voice.md and docs/writing-craft.md this session. Pure; docContentGate.ts does the I/O.
 import { sep } from "node:path";
 
 import type { ToolInput } from "./hookIo.ts";
 import type { EditDecision } from "./styleGate.ts";
 
 export const docContentGateReason =
-  "Read docs/writing-voice.md and docs/writing-clarity.md before your first Google Doc text write this session, then retry. " +
+  "Read docs/writing-voice.md and docs/writing-craft.md before your first Google Doc text write this session, then retry. " +
   "Doc text is reader-facing prose. Use a full Read with no offset or limit for each (a partial Read or a Bash read isn't recorded); for academic work, read docs/academic-writing-style.md as well. Formatting-only writes pass without them.";
 export const writingSheetPaths = {
   voice: ["docs", "writing-voice.md"].join(sep),
-  clarity: ["docs", "writing-clarity.md"].join(sep),
+  craft: ["docs", "writing-craft.md"].join(sep),
 } as const;
 export type WritingSheet = keyof typeof writingSheetPaths;
 export const writingSheets = Object.keys(writingSheetPaths) as WritingSheet[];

@@ -1,4 +1,4 @@
-// PostToolUse on Read records a full read of docs/writing-voice.md or docs/writing-clarity.md; PreToolUse on the gworkspace Doc writes denies a text write until both are recorded.
+// PostToolUse on Read records a full read of docs/writing-voice.md or docs/writing-craft.md; PreToolUse on the gworkspace Doc writes denies a text write until both are recorded.
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 

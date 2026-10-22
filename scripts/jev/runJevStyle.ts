@@ -1,4 +1,4 @@
-// Checks a Deliverable against the Voice and Clarity sheets with Jev and prints a `## Jev style` section.
+// Checks a Deliverable against the Voice and Craft sheets with Jev and prints a `## Jev style` section.
 // The rules come from the sheets (styleRules.ts), the paragraphs from the Deliverable's Markdown
 // (markdownBlocks.ts), and the Piece's axis values and overrides from the Style file (pieceStyle.ts).
 // One yes/no question per (paragraph, rule) pair; the full answers go to jev-style.json beside the Deliverable.

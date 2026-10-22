@@ -1,6 +1,6 @@
 # Sentence structure: examples
 
-Disclosed from [`docs/writing-clarity.md`](../writing-clarity.md), "Sentences". The rules are there, one line each; this file holds each rule's before-and-after and where in Pinker's _The Sense of Style_ it comes from. An instance marked _from Pinker; not yet seen in your writing_ is invented, and a real one replaces it when it turns up.
+Disclosed from [`docs/writing-craft.md`](../writing-craft.md), "Sentences". The rules are there, one line each; this file holds each rule's before-and-after and where in Pinker's _The Sense of Style_ it comes from. An instance marked _from Pinker; not yet seen in your writing_ is invented, and a real one replaces it when it turns up.
 
 ## Given before new
 

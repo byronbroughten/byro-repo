@@ -93,7 +93,7 @@ describe("docWriteDecision", () => {
   it("denies each text write when only one sheet was read", () => {
     contentWrites.forEach(([toolName, toolInput]) => {
       expect(write(toolName, toolInput, ["voice"]), toolName).toEqual(denied);
-      expect(write(toolName, toolInput, ["clarity"]), toolName).toEqual(denied);
+      expect(write(toolName, toolInput, ["craft"]), toolName).toEqual(denied);
     });
   });
 
@@ -105,10 +105,9 @@ describe("docWriteDecision", () => {
 
   it("allows every write after both sheets were read", () => {
     [...contentWrites, ...formattingWrites].forEach(([toolName, toolInput]) => {
-      expect(
-        write(toolName, toolInput, ["clarity", "voice"]),
-        toolName,
-      ).toEqual(allowed);
+      expect(write(toolName, toolInput, ["craft", "voice"]), toolName).toEqual(
+        allowed,
+      );
     });
   });
 
@@ -127,7 +126,7 @@ describe("docWriteDecision", () => {
 describe("the refusal reason", () => {
   it("names both sheets, asks for a full Read, and points academic work to its sheet", () => {
     expect(docContentGateReason).toMatch(/docs\/writing-voice\.md/);
-    expect(docContentGateReason).toMatch(/docs\/writing-clarity\.md/);
+    expect(docContentGateReason).toMatch(/docs\/writing-craft\.md/);
     expect(docContentGateReason).toMatch(/full Read with no offset or limit/);
     expect(docContentGateReason).toMatch(/docs\/academic-writing-style\.md/);
     expect(docContentGateReason).toMatch(/reader-facing prose/);
@@ -150,9 +149,9 @@ describe("a full Read of a writing sheet", () => {
 
   it("is true for a full Read of each sheet", () => {
     expect(read("voice", "/repo/docs/writing-voice.md")).toBe(true);
-    expect(read("clarity", "/repo/docs/writing-clarity.md")).toBe(true);
+    expect(read("craft", "/repo/docs/writing-craft.md")).toBe(true);
     expect(
-      read("clarity", "/repo/docs/writing-clarity.md", {
+      read("craft", "/repo/docs/writing-craft.md", {
         offset: 1,
         limit: 2000,
       }),
@@ -163,20 +162,18 @@ describe("a full Read of a writing sheet", () => {
     expect(read("voice", "/repo/docs/writing-voice.md", { limit: 10 })).toBe(
       false,
     );
-    expect(
-      read("clarity", "/repo/docs/writing-clarity.md", { offset: 5 }),
-    ).toBe(false);
+    expect(read("craft", "/repo/docs/writing-craft.md", { offset: 5 })).toBe(
+      false,
+    );
   });
 
   it("is false for a Read of another file", () => {
-    expect(read("voice", "/repo/docs/writing-clarity.md")).toBe(false);
-    expect(read("clarity", "/repo/docs/writing-voice.md")).toBe(false);
+    expect(read("voice", "/repo/docs/writing-craft.md")).toBe(false);
+    expect(read("craft", "/repo/docs/writing-voice.md")).toBe(false);
     expect(read("voice", "/repo/docs/academic-writing-style.md")).toBe(false);
-    expect(read("clarity", "/repo/docs/academic-writing-style.md")).toBe(false);
+    expect(read("craft", "/repo/docs/academic-writing-style.md")).toBe(false);
     expect(read("voice", "/repo/docs/writing-voice/register.md")).toBe(false);
-    expect(read("clarity", "/repo/docs/writing-clarity/sentences.md")).toBe(
-      false,
-    );
+    expect(read("craft", "/repo/docs/writing-craft/sentences.md")).toBe(false);
   });
 });
 

@@ -121,5 +121,5 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - `formal` **Keep a Latinate word that says the meaning more precisely ("corroborates").**
 - **Call the person a piece is about by name, not "he" or "him", in each paragraph's claim and key sentences**, so no reader wonders who is meant.
 - **Give a phase, stage or deadline its noun ("the Build phase", "the finish date"), not a bare shorthand ("Build", "the finish"), and never make it the actor ("what Planning can see").**
-- `general` **Prefer everyday idioms, often slightly twisted ("blow out of the pond"), to neutral business phrasing.**
+- `general` **Prefer everyday idioms, often slightly twisted ("blow out of the pond"), or a fresh, concrete image, to neutral business phrasing.**
 - `general` **Allow the occasional wry aside, in parentheses or between dashes.**
