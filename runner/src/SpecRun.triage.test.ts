@@ -26,6 +26,7 @@ import {
   specRun,
   stateFolder,
   type StepScript,
+  ticketFacts,
   ticketState,
   timed,
   timingLines,
@@ -140,16 +141,6 @@ describe("run's finding triage", () => {
     return state.tickets["byro-repo #1"] ?? { step: "none" };
   }
 
-  function factsOf(): {
-    reviewFixes?: string;
-    whatReviewCaught?: string;
-    proposals?: number;
-    halt?: string;
-  } {
-    const path = join(stateFolder(), "byro-repo-1.facts.json");
-    return JSON.parse(readFileSync(path, "utf8")) as ReturnType<typeof factsOf>;
-  }
-
   it("skips triage and the fix step when review finds nothing", async () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(implementedAt(90_000), reviewed());
@@ -158,7 +149,7 @@ describe("run's finding triage", () => {
 
     expect(result.kind).toBe("finished");
     expect(agentStep.requests).toHaveLength(2);
-    expect(factsOf().reviewFixes).toBe("none");
+    expect(ticketFacts().reviewFixes).toBe("none");
   });
 
   it("keeps a Dismiss, a Propose and a Halt in run state and halts with no fix step, the triage step on its own pair with no targets", async () => {
@@ -221,7 +212,7 @@ describe("run's finding triage", () => {
     expect(
       git(primaryOf("byro-repo"), "log", "--format=%s", "-3", `${merge}^2`),
     ).toBe(["Fix fix.ts", "Add one.ts", "Initial commit"].join("\n"));
-    expect(factsOf()).toMatchObject({
+    expect(ticketFacts()).toMatchObject({
       reviewFixes: "implementer",
       whatReviewCaught: "Fixed: Line 1 is wrong. (one.ts:1).",
     });
@@ -247,7 +238,7 @@ describe("run's finding triage", () => {
     const fixer = agentStep.requests[3];
     expect(fixer?.resumeSessionId).toBe("triage-session");
     expect(fixer?.pair).toEqual(opusMedium);
-    expect(factsOf().reviewFixes).toBe("triage");
+    expect(ticketFacts().reviewFixes).toBe("triage");
   });
 
   it.each([
@@ -279,7 +270,7 @@ describe("run's finding triage", () => {
 
       expect(result.kind).toBe("finished");
       expect(agentStep.requests[4]?.resumeSessionId).toBe(resumeSessionId);
-      expect(factsOf().reviewFixes).toBe(fixer);
+      expect(ticketFacts().reviewFixes).toBe(fixer);
     },
   );
 
@@ -309,7 +300,7 @@ describe("run's finding triage", () => {
     expect(fixer?.resumeSessionId).toBe("triage-session");
     expect(fixer?.pair).toEqual(opusHigh);
     expect(fixer?.prompt).toContain("Finding 2: Line 2 is wrong.");
-    expect(factsOf().reviewFixes).toBe("triage");
+    expect(ticketFacts().reviewFixes).toBe("triage");
   });
 
   it("Stops on a step error, its work discarded, when the triage agent's fix crosses the live ceiling", async () => {
@@ -423,7 +414,7 @@ describe("run's finding triage", () => {
       expect(agentStep.requests[0]?.prompt).toContain(
         "H1: read it the first way.",
       );
-      expect(factsOf().halt).toBe("fixer give-up");
+      expect(ticketFacts().halt).toBe("fixer give-up");
     },
   );
 

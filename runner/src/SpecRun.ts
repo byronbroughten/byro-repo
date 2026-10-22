@@ -85,6 +85,8 @@ import {
   resumePrompt,
   runnerMark,
   sessionHaltCommentOf,
+  sessionHaltCountOf,
+  sessionHaltIdOf,
   shortRefOf,
   splitHaltOf,
   type StepFailure,
@@ -116,6 +118,7 @@ import {
   type LeaseHolder,
   otherLiveHolderOf,
   type Workspace,
+  workspaceLabelOf,
   type WorkspaceStatus,
 } from "./IssueWorkspaces.ts";
 import { LeaseHeld } from "./LeaseHeld.ts";
@@ -377,7 +380,13 @@ interface Run {
 }
 
 interface SessionReview {
+  // The ticket's session Halts already on the spec, which this review numbers on from.
+  earlierHalts: number;
   postedHalts: string[];
+}
+
+interface TicketReview extends ReviewOptions {
+  ticket: TrackedIssue;
 }
 
 // Each pushed at most once per run.
@@ -768,78 +777,65 @@ export class SpecRun {
     const { github } = this.config;
     const ticket = await github.issueOf(issue);
     const specIssue = (await github.parentOf(issue))?.issue ?? issue;
-    const run: Run = {
-      ...(await this._runOf(specIssue, { tickets: {} })),
-      sessionReview: { postedHalts: [] },
+    const run = await this._runOf(specIssue, { tickets: {} });
+    run.sessionReview = {
+      earlierHalts: sessionHaltCountOf(
+        issue,
+        await this._runnersSpecCommentsOf(run),
+      ),
+      postedHalts: [],
     };
-    const result = await this._reviewOne(run, ticket, holder);
+    const result = await this._reviewOne(run, { ticket, holder });
     this._log(run, result.message);
     return result;
   }
 
   private async _reviewOne(
     run: Run,
-    ticket: TrackedIssue,
-    holder: LeaseHolder | undefined,
+    { ticket, holder }: TicketReview,
   ): Promise<ReviewResult> {
     const { issue } = ticket;
-    const label = issueLabelOf(issue);
     const workspace = await this.workspaces.find(issue);
     if (workspace === undefined) {
       return refusedReviewOf(
-        `${label} has no issue workspace; open it with \`npm run issue:start\` first.`,
+        `${issueLabelOf(issue)} has no issue workspace; open it with \`npm run issue:start\` first.`,
       );
     }
     const checked = isSameIssue(run.spec.issue, issue) ? [] : [ticket];
     const refusal =
       this._authorshipRefusal(run, checked) ??
-      workspaceRefusalOf(label, workspace, holder);
+      targetsRefusalOf(run, [ticket]) ??
+      workspaceRefusalOf(workspace, holder);
     if (refusal !== undefined) return refusedReviewOf(refusal);
-    // Interactive tickets may carry no Model fit.
-    const pair = pairOf(ticket.body) ?? this.config.knobs.triagePair;
-    const state: TicketState = { step: "review", sessions: [] };
-    run.state.tickets[label] = state;
+    const ticketRun: TicketRun = {
+      run,
+      ticket,
+      // Interactive tickets may carry no Model fit.
+      pair: pairOf(ticket.body) ?? this.config.knobs.triagePair,
+      workspace,
+      // With no implementPeak, the triage agent fixes: the implementer is the live interactive session.
+      state: { step: "review", sessions: [] },
+      targets: targetsAtLaunchOf(ticket, this._progressPathOf(run)),
+    };
+    run.state.tickets[issueLabelOf(issue)] = ticketRun.state;
     try {
       // Past the refusals, a live lease is the caller's own.
       if (otherLiveHolderOf(workspace.lease) === undefined) {
         await this.workspaces.takeLease(workspace, runHolder);
       }
-      const targets = targetsAtLaunchOf(ticket, this._progressPathOf(run));
-      const ticketRun = { run, ticket, pair, workspace, state, targets };
-      await this._reviewSteps(ticketRun);
-      this.factsFile.setReviewFacts(issue, reviewFactsOf(state));
+      await this._runSteps(ticketRun);
+      this.factsFile.setReviewFacts(issue, reviewFactsOf(ticketRun.state));
       await this._postReviewList(run, ticket);
       await this._haltOnUnpostedHalts(ticketRun);
       return {
         kind: "reviewed",
-        message: reviewedMessageOf(label, state),
+        message: reviewedMessageOf(ticketRun),
         halts: [],
       };
     } catch (error) {
-      return reviewEndOf(run, label, error);
+      return reviewEndOf(ticketRun, error);
     } finally {
       await this._releaseLeaseOf(issue);
-    }
-  }
-
-  // The fixer is always the triage agent, since the implementer is the live interactive session.
-  private async _reviewSteps(ticketRun: TicketRun): Promise<void> {
-    const { state } = ticketRun;
-    try {
-      await this._review(ticketRun);
-      if ((state.findings ?? []).length === 0) return;
-      this._advance(ticketRun, "triage");
-      await this._triage(ticketRun);
-      if (!(state.triage ?? []).some(isFix)) return;
-      this._advance(ticketRun, "fix");
-      await this._fix(ticketRun);
-    } catch (error) {
-      if (!(error instanceof SchemaFailure)) throw error;
-      await this._failureHalt(ticketRun, {
-        step: state.step,
-        detail: error.message,
-        logPath: error.logPath,
-      });
     }
   }
 
@@ -1176,6 +1172,8 @@ export class SpecRun {
       this._advance(ticketRun, "checks");
     }
     if (state.step === "checks") {
+      // A session's review leaves the checks and wrap-up to the session.
+      if (run.sessionReview !== undefined) return;
       await this._haltOnUnpostedHalts(ticketRun);
       await this._timed(ticketRun, "checks", () => this._check(ticketRun));
       this._advance(ticketRun, "wrap-up");
@@ -2457,7 +2455,7 @@ export class SpecRun {
         return this._end(
           run,
           "stopped",
-          `The gap check stopped on ${stopOutcomes[error.outcome]}: ${error.message} Log: \`${error.logPath}\`. Rerun to retry it.`,
+          `The gap check ${stoppedOnTextOf(error)}. Rerun to retry it.`,
         );
       }
     }
@@ -2646,15 +2644,15 @@ function raiseHalts(
 ): void {
   run.state.halts ??= [];
   const { halts } = run.state;
+  const { sessionReview } = run;
   drafts.forEach((draft) => {
     const index = halts.length + 1;
     halts.push({
       ...draft,
-      // A run reads replies by id, so a session review's ids never match a run's.
       id:
-        run.sessionReview === undefined
+        sessionReview === undefined
           ? `H${index}`
-          : `S${ticket.number}.${index}`,
+          : sessionHaltIdOf(ticket, sessionReview.earlierHalts + index),
       ticket,
       isPosted: false,
       isDelivered: false,
@@ -3026,10 +3024,10 @@ function reviewFactsOf({ fixer, triage = [] }: TicketState): ReviewFacts {
 }
 
 function workspaceRefusalOf(
-  label: string,
-  { lease, dirtyRepos }: WorkspaceStatus,
+  { key, lease, dirtyRepos }: WorkspaceStatus,
   holder: LeaseHolder | undefined,
 ): string | undefined {
+  const label = workspaceLabelOf(key);
   const other = otherLiveHolderOf(lease, holder);
   if (other !== undefined) {
     return `${label}'s workspace is leased by ${holderLabelOf(other)}.`;
@@ -3043,13 +3041,14 @@ function refusedReviewOf(message: string): ReviewResult {
   return { kind: "refused", message, halts: [] };
 }
 
-function reviewedMessageOf(label: string, state: TicketState): string {
+function reviewedMessageOf({ ticket, state }: TicketRun): string {
   const { whatReviewCaught } = reviewFactsOf(state);
   const findings = state.findings?.length ?? 0;
-  return `Reviewed ${label}, findings: ${findings}. ${whatReviewCaught ?? "Nothing to fix or decide."}`;
+  return `Reviewed ${issueLabelOf(ticket.issue)}, findings: ${findings}. ${whatReviewCaught ?? "Nothing to fix or decide."}`;
 }
 
-function reviewEndOf(run: Run, label: string, error: unknown): ReviewResult {
+function reviewEndOf({ run, ticket }: TicketRun, error: unknown): ReviewResult {
+  const label = issueLabelOf(ticket.issue);
   const halts = run.sessionReview?.postedHalts ?? [];
   if (error instanceof TicketHalted) {
     const message = `The review of ${label} halted on Halt ${idListOf(haltsOf(run))}; answer it in this session.`;
@@ -3057,13 +3056,17 @@ function reviewEndOf(run: Run, label: string, error: unknown): ReviewResult {
   }
   if (error instanceof LeaseHeld) return refusedReviewOf(error.message);
   if (error instanceof UnhandledStop) {
-    const message = `The review of ${label} stopped on ${stopOutcomes[error.outcome]}: ${error.message} Log: \`${error.logPath}\`.`;
+    const message = `The review of ${label} ${stoppedOnTextOf(error)}.`;
     return { kind: "stopped", message, halts };
   }
   if (error instanceof RunStop) {
     return { kind: "stopped", message: error.message, halts };
   }
   throw error;
+}
+
+function stoppedOnTextOf({ outcome, message, logPath }: UnhandledStop): string {
+  return `stopped on ${stopOutcomes[outcome]}: ${message} Log: \`${logPath}\``;
 }
 
 function retriesOf({ crashes = {}, redCheckResumes = 0 }: TicketState): number {

@@ -1,9 +1,8 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { beforeEach, describe, expect, it } from "vitest";
 
-import type { WrapUpFacts } from "./FactsFile.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import type { TriageRecord } from "./findingTriage.ts";
 import type { FixOutcome } from "./fixStep.ts";
@@ -21,8 +20,8 @@ import {
   runStatePath,
   spec,
   specRun,
-  stateFolder,
   type StepScript,
+  ticketFacts,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
 
@@ -97,11 +96,11 @@ describe("review of one ticket outside a run", () => {
     };
   }
 
-  function reviewsWithFix(): FakeAgentStep {
+  function reviewsWithFix(file = "fix.ts"): FakeAgentStep {
     return FakeAgentStep.init(
       reviewed(findings),
       triaged(propose, fix, coveredLater),
-      fixed("fix.ts", { finding: 2, status: "fixed" }),
+      fixed(file, { finding: 2, status: "fixed" }),
     );
   }
 
@@ -112,11 +111,6 @@ describe("review of one ticket outside a run", () => {
       .filter((body) => body.includes(mark));
   }
 
-  function factsOf(): Partial<WrapUpFacts> {
-    const path = join(stateFolder(), "byro-repo-1.facts.json");
-    return JSON.parse(readFileSync(path, "utf8")) as Partial<WrapUpFacts>;
-  }
-
   it("writes reviewFixes none and posts nothing when the review finds nothing", async () => {
     const result = await specRun(FakeAgentStep.init(reviewed())).review(
       refOf(1),
@@ -124,7 +118,7 @@ describe("review of one ticket outside a run", () => {
     );
 
     expect(result).toMatchObject({ kind: "reviewed", halts: [] });
-    expect(factsOf()).toEqual({ reviewFixes: "none", proposals: 0 });
+    expect(ticketFacts()).toEqual({ reviewFixes: "none", proposals: 0 });
     expect(github.comments).toEqual([]);
   });
 
@@ -140,7 +134,7 @@ describe("review of one ticket outside a run", () => {
       "- [ ] **R1.1** · Propose `decision` · Finding 1: Line 1 is wrong. (one.ts:1)",
     );
     expect(commentsOn(2, "byro-repo#1's review left this")).toHaveLength(1);
-    expect(factsOf()).toEqual({
+    expect(ticketFacts()).toEqual({
       reviewFixes: "triage",
       whatReviewCaught:
         "Fixed: Line 2 is wrong. (one.ts:2). Proposed: Line 1 is wrong. (one.ts:1).",
@@ -151,8 +145,12 @@ describe("review of one ticket outside a run", () => {
   it("finds its markers on a second review and posts nothing twice", async () => {
     await specRun(reviewsWithFix()).review(refOf(1), { holder });
 
-    await specRun(reviewsWithFix()).review(refOf(1), { holder });
+    const result = await specRun(reviewsWithFix("fix-again.ts")).review(
+      refOf(1),
+      { holder },
+    );
 
+    expect(result.kind).toBe("reviewed");
     expect(commentsOn(213, "<!-- review-list ")).toHaveLength(1);
     expect(commentsOn(2, "byro-repo#1's review left this")).toHaveLength(1);
   });
@@ -177,6 +175,11 @@ describe("review of one ticket outside a run", () => {
     expect(result.halts[0]).toContain("Options:\n1. Answer it.\n\n");
     expect(result.halts[0]).not.toContain("stop spec");
     expect(notices.sent).toEqual([]);
+    expect(ticketFacts()).toEqual({
+      reviewFixes: "none",
+      whatReviewCaught: "Halted: Line 1 is wrong. (one.ts:1).",
+      proposals: 0,
+    });
   });
 
   it("leaves a later run on the spec unaffected: it saves no run state, and a reply to its Halt answers none of the run's", async () => {
@@ -235,5 +238,20 @@ describe("review of one ticket outside a run", () => {
       "byro-repo #1's workspace has uncommitted changes in byro-repo; commit them first.",
     );
     expect(agentStep.requests).toHaveLength(0);
+  });
+
+  it("numbers a later review's Halts on from the ticket's earlier ones, so no two share an id", async () => {
+    function halting(): FakeAgentStep {
+      return FakeAgentStep.init(reviewed(findings.slice(0, 1)), triaged(halt));
+    }
+    await specRun(halting()).review(refOf(1), { holder });
+
+    const result = await specRun(halting()).review(refOf(1), { holder });
+
+    expect(result.message).toContain("halted on Halt S1.2");
+    expect(commentsOn(213, "**Halt S1.")).toEqual([
+      expect.stringContaining("**Halt S1.1**"),
+      expect.stringContaining("**Halt S1.2**"),
+    ]);
   });
 });

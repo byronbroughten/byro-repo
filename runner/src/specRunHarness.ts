@@ -13,6 +13,7 @@ import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
 
 import type { AgentStep, StepRequest, StepResult } from "./AgentStep.ts";
+import type { WrapUpFacts } from "./FactsFile.ts";
 import type { FakeAgentStep, ScriptedStep } from "./FakeAgentStep.ts";
 import { FakeGitHub } from "./FakeGitHub.ts";
 import { FakeNotices } from "./FakeNotices.ts";
@@ -402,6 +403,12 @@ interface SavedTicket {
 
 export function runStatePath(): string {
   return join(stateFolder(), "byro-repo-213.run.json");
+}
+
+// Ticket 1's facts file.
+export function ticketFacts(): Partial<WrapUpFacts> {
+  const path = join(stateFolder(), "byro-repo-1.facts.json");
+  return JSON.parse(readFileSync(path, "utf8")) as Partial<WrapUpFacts>;
 }
 
 export function ticketState(): Record<string, SavedTicket> {

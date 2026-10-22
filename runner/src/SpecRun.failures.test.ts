@@ -1,4 +1,4 @@
-import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -29,6 +29,7 @@ import {
   specRun,
   stateFolder,
   throws,
+  ticketFacts,
   ticketState,
   timed,
   useSpecRunHarness,
@@ -66,10 +67,7 @@ describe("run's crash retries", () => {
     expect(retry?.prompt).toMatch(
       /^The previous run was interrupted; continue/,
     );
-    const facts = JSON.parse(
-      readFileSync(join(stateFolder(), "byro-repo-1.facts.json"), "utf8"),
-    ) as { retries: number };
-    expect(facts.retries).toBe(1);
+    expect(ticketFacts().retries).toBe(1);
   });
 
   it("relaunches a step whose adapter throws with the same prompt and no session", async () => {

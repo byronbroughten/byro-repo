@@ -246,6 +246,24 @@ export function haltCommentOf(post: HaltPost): string {
   });
 }
 
+// Never a run's `H<n>`, so a run never reads a reply to one.
+export function sessionHaltIdOf(ticket: IssueRef, index: number): string {
+  return `${sessionHaltPrefixOf(ticket)}${index}`;
+}
+
+// The ticket's session Halts among the spec's comments, one per comment.
+export function sessionHaltCountOf(
+  ticket: IssueRef,
+  comments: string[],
+): number {
+  const heading = `**Halt ${sessionHaltPrefixOf(ticket)}`;
+  return comments.filter((body) => body.includes(heading)).length;
+}
+
+function sessionHaltPrefixOf({ number }: IssueRef): string {
+  return `S${number}.`;
+}
+
 // No run reads a reply to it, and with no run going there is no spec to stop.
 export function sessionHaltCommentOf(post: HaltPost): string {
   return haltCommentWith(post, {
