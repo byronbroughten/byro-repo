@@ -8,8 +8,8 @@
   - Per-ticket flow: `_runTicket`, `_runSteps`, `_runEachStep`.
   - Implement and hand-off: `_implement*`, `_handOff*`, `_takeImplementRecord`, `_resume*`.
   - Review, triage and fix: `_review`, `_triage`, `_fix`, `_runFixer*`, `_fixerSessionOf`.
-  - Step launch and retry: `_launch`, `_runStep`, `_retryStep`, `_attemptStep`, `_waitForLaunch`, `_stopOnLimitHit`.
-  - Halts: `_halt`, `_postHalts`, `_postUnpostedHalts`, `_raiseBlockerHalts`; formats and reply matching are `halts.ts`.
+  - Step launch and retry: [`SpecRun/StepLauncher.ts`](./SpecRun/StepLauncher.ts); `_launch` stays on `SpecRun`.
+  - Halts, crashes and a ticket's downstream: [`SpecRun/HaltRaiser.ts`](./SpecRun/HaltRaiser.ts); formats and reply matching are `halts.ts`.
   - Checks and landing: `_check`, `_redChecksOf`, `_land`, `_mergeMaster`, `_writeFacts`.
   - Review list and gap check: `_postReviewList*`, `_gapCheck*`, `_finish`.
 - **Test `SpecRun` through `specRunHarness.ts`**; each `SpecRun.<subject>.test.ts` covers one group, so the nearest one is the model for a new test.

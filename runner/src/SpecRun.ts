@@ -7,15 +7,9 @@
 // requestStop() or a `stop spec` answer ends the run between tickets; status() reads it from outside; review() reviews a session's ticket.
 // GitHub and git hold what's durable; a per-spec state file holds the step each ticket reached, so a rerun resumes there.
 // Steps launch through AgentStep.ts; prompts are implementStep.ts, reviewStep.ts, findingTriage.ts and fixStep.ts; landing is WrapUp.ts;
-// knobs are runKnobs.ts; the review list and gap check are reviewList.ts and gapCheck.ts; shared helpers and run state are SpecRun/.
+// knobs are runKnobs.ts; the review list and gap check are reviewList.ts and gapCheck.ts; shared helpers, run state, Halts and step launches are SpecRun/.
 
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import type { StepRequest, StepResult } from "./AgentStep.ts";
@@ -48,7 +42,6 @@ import {
 import { currentBranchOf, git, saveUncommitted } from "./git.ts";
 import {
   answeredNoteOf,
-  blockerHaltOf,
   type FailureAnswer,
   failureAnswerOf,
   failureHaltOf,
@@ -56,11 +49,8 @@ import {
   freshResumeSection,
   guidanceSectionOf,
   type Halt,
-  haltCommentOf,
   haltKindLabelOf,
   haltNameOf,
-  haltNoticeOf,
-  type HaltPost,
   handoffCapDetailOf,
   ignoredNoteOf,
   isRunnersComment,
@@ -68,7 +58,6 @@ import {
   repliesTo,
   resumePrompt,
   runnerMark,
-  sessionHaltCommentOf,
   sessionHaltCountOf,
   shortRefOf,
   splitHaltOf,
@@ -76,7 +65,6 @@ import {
   triageHaltOf,
 } from "./halts.ts";
 import {
-  type Blocker,
   type Handoff,
   handoffCommentOf,
   handoffOnlyPrompt,
@@ -87,7 +75,6 @@ import {
   implementRecordProblems,
   moreTurnsPrompt,
   recordOnlyPrompt,
-  treeResetNote,
 } from "./implementStep.ts";
 import { untrustedBodyReasonOf } from "./IssueReader.ts";
 import {
@@ -103,22 +90,12 @@ import {
   type WorkspaceStatus,
 } from "./IssueWorkspaces.ts";
 import { LeaseHeld } from "./LeaseHeld.ts";
-import {
-  type AccountReading,
-  type AccountUsage,
-  decideStep,
-  defaultLimitGuardKnobs,
-} from "./limitGuard.ts";
+import { type AccountReading } from "./limitGuard.ts";
 import {
   mergeMasterOutputSchema,
   mergeMasterPrompt,
 } from "./mergeMasterStep.ts";
-import {
-  nextStrongerPairOf,
-  pairLabelOf,
-  pairOf,
-  strongerPairOf,
-} from "./modelFit.ts";
+import { pairLabelOf, pairOf, strongerPairOf } from "./modelFit.ts";
 import { redChecksOutputSchema, redChecksPrompt } from "./redChecksStep.ts";
 import {
   coveredLaterNotesOf,
@@ -136,9 +113,9 @@ import {
   type ReviewRecord,
   reviewRecordSchema,
 } from "./reviewStep.ts";
-import type { RunKnobs } from "./runKnobs.ts";
 import { RunStop } from "./RunStop.ts";
 import { SchemaFailure } from "./SchemaFailure.ts";
+import { HaltRaiser } from "./SpecRun/HaltRaiser.ts";
 import {
   branchedReposOf,
   type Continuation,
@@ -156,7 +133,6 @@ import {
   isLaunchable,
   isSameHeads,
   isSameIssue,
-  isSnapshotted,
   isTreeKept,
   isTurnCapped,
   landedTextOf,
@@ -178,8 +154,8 @@ import {
   type Run,
   runCommand,
   type RunResult,
-  type RunWarning,
   schemaFailureOf,
+  type StepLaunch,
   stoppedOnTextOf,
   targetsAtLaunchOf,
   targetsRefusalOf,
@@ -194,8 +170,9 @@ import {
   waitsTextOf,
 } from "./SpecRun/runState.ts";
 import { SpecRunBase, type SpecRunConfig } from "./SpecRun/SpecRunBase.ts";
+import { StepLauncher } from "./SpecRun/StepLauncher.ts";
 import { TicketHalted } from "./TicketHalted.ts";
-import { minutesOf, percentOf, type StepAgent } from "./transcriptFacts.ts";
+import { percentOf, type StepAgent } from "./transcriptFacts.ts";
 import {
   rerunRetriedOutcomes,
   stopOutcomes,
@@ -224,26 +201,10 @@ interface TicketReview extends ReviewOptions {
   ticket: TrackedIssue;
 }
 
-type StepLaunch = Pick<StepRequest, "prompt" | "jsonSchema"> &
-  Partial<
-    Pick<
-      StepRequest,
-      "pair" | "targets" | "resumeSessionId" | "liveCeiling" | "maxTurns"
-    >
-  >;
-
-type LoggedStepRequest = StepRequest & { logPath: string };
-
-// An adapter that throws leaves the step unrun, which is retried as a crash.
-type StepAttempt =
-  { kind: "ran"; result: StepResult } | { kind: "unrun"; detail: string };
-
 interface CeilingCrossing {
   ranStep: RanStep;
   headsBefore: Heads;
 }
-
-type Crash = Pick<StepFailure, "detail" | "logPath">;
 
 type FixerSession = Pick<StepRequest, "pair" | "resumeSessionId">;
 
@@ -283,6 +244,14 @@ type Selection =
 export class SpecRun extends SpecRunBase {
   static init(config: SpecRunConfig): SpecRun {
     return new SpecRun(config);
+  }
+
+  private get haltRaiser(): HaltRaiser {
+    return new HaltRaiser(this.config);
+  }
+
+  private get stepLauncher(): StepLauncher {
+    return new StepLauncher(this.config);
   }
 
   async run(specIssue: IssueRef): Promise<RunResult> {
@@ -519,7 +488,7 @@ export class SpecRun extends SpecRunBase {
       await this._runSteps(ticketRun);
       this.factsFile.setReviewFacts(issue, reviewFactsOf(ticketRun.state));
       await this._postReviewList(run, ticket);
-      await this._haltOnUnpostedHalts(ticketRun);
+      await this.haltRaiser._haltOnUnpostedHalts(ticketRun);
       return {
         kind: "reviewed",
         message: reviewedMessageOf(ticketRun),
@@ -534,7 +503,7 @@ export class SpecRun extends SpecRunBase {
 
   // Read afresh each pick; a ticket with every Halt answered goes first, oldest answered set first, then the frontier.
   private async _select(run: Run): Promise<Selection> {
-    await this._postUnpostedHalts(run);
+    await this.haltRaiser._postUnpostedHalts(run);
     const stopSpecs = await this._readAnswers(run);
     if (stopSpecs.length > 0) return { kind: "stop-spec", halts: stopSpecs };
     const survey = await this._survey(run, openHaltsOf(run));
@@ -624,7 +593,7 @@ export class SpecRun extends SpecRunBase {
     run: Run,
     issue: IssueRef,
   ): Promise<string[]> {
-    const downstream = await this._downstreamOf(run, issue);
+    const downstream = await this.haltRaiser._downstreamOf(run, issue);
     return run.tickets
       .filter((ticket) => downstream.includes(shortRefOf(ticket)))
       .map(issueLabelOf);
@@ -686,7 +655,7 @@ export class SpecRun extends SpecRunBase {
     );
     const downstreamOf = new Map<string, string[]>();
     if (named.size === 0) return downstreamOf;
-    const blockersOf = await this._blockersByTicketOf(run);
+    const blockersOf = await this.haltRaiser._blockersByTicketOf(run);
     named.forEach((ticket) => {
       downstreamOf.set(ticket, downstreamIn({ run, blockersOf, ticket }));
     });
@@ -820,14 +789,14 @@ export class SpecRun extends SpecRunBase {
       ) {
         failure.options = [failureOptions.retryRecord, failureOptions.retry];
       }
-      await this._failureHalt(ticketRun, failure);
+      await this.haltRaiser._failureHalt(ticketRun, failure);
     }
   }
 
   private async _runEachStep(ticketRun: TicketRun): Promise<void> {
     const { run, state } = ticketRun;
     if (state.isStepStarted) {
-      await this._takeCrash(ticketRun, {
+      await this.haltRaiser._takeCrash(ticketRun, {
         detail: `The run ended during the ${state.step} step.`,
         logPath: this._progressPathOf(run),
       });
@@ -867,56 +836,10 @@ export class SpecRun extends SpecRunBase {
     if (state.step === "checks") {
       // A session's review leaves the checks and wrap-up to the session.
       if (run.sessionReview !== undefined) return;
-      await this._haltOnUnpostedHalts(ticketRun);
+      await this.haltRaiser._haltOnUnpostedHalts(ticketRun);
       await this._timed(ticketRun, "checks", () => this._check(ticketRun));
       this._advance(ticketRun, "wrap-up");
     }
-  }
-
-  // Snapshots a step that edits; a crash past the retries is a Failure Halt.
-  private async _takeCrash(ticketRun: TicketRun, crash: Crash): Promise<void> {
-    const { run, ticket, state } = ticketRun;
-    const { step } = state;
-    const { detail } = crash;
-    if (isSnapshotted(step)) await this._snapshot(ticketRun, step);
-    state.crashes ??= {};
-    const taken = state.crashes[step] ?? 0;
-    const { retriesPerFailure } = this.config.knobs;
-    if (taken >= retriesPerFailure) {
-      await this._failureHalt(ticketRun, { ...crash, step });
-    }
-    state.crashes[step] = taken + 1;
-    this._saveState(run);
-    this._log(
-      run,
-      `${issueLabelOf(ticket.issue)}: ${detail} Retrying, ${taken + 1} of ${retriesPerFailure}.`,
-    );
-  }
-
-  private async _failureHalt(
-    landingTicket: LandingTicket,
-    failure: StepFailure,
-  ): Promise<never> {
-    const { run, ticket } = landingTicket;
-    const downstream = await this._downstreamOf(run, ticket.issue);
-    raiseHalts(run, {
-      ticket: ticket.issue,
-      drafts: [failureHaltOf(failure, downstream)],
-    });
-    await this._stopIfStuck(landingTicket);
-    return this._halt(landingTicket);
-  }
-
-  // Posts the last Halt before the Stop, so the developer can answer it.
-  private async _stopIfStuck(landingTicket: LandingTicket): Promise<void> {
-    const { run, ticket } = landingTicket;
-    const label = issueLabelOf(ticket.issue);
-    if (!run.failureStreak.includes(label)) run.failureStreak.push(label);
-    if (run.failureStreak.length < this.config.knobs.stuckFailureHalts) return;
-    await this._postHalts(landingTicket);
-    throw new RunStop(
-      `Stopped as stuck: ${run.failureStreak.join(", ")} each ended on a Failure Halt in a row; answer them, then rerun.`,
-    );
   }
 
   private async _implement(ticketRun: TicketRun): Promise<void> {
@@ -966,7 +889,11 @@ export class SpecRun extends SpecRunBase {
       launch = continuationLaunchOf(state, continuation, liveCeiling);
     }
     const headsBefore = state.implementBase;
-    const ran = await this._runStep(ticketRun, "implement", launch);
+    const ran = await this.stepLauncher._runStep(
+      ticketRun,
+      "implement",
+      launch,
+    );
     state.continuation = undefined;
     onLaunched();
     if (ran.result.hasCrossedCeiling) {
@@ -981,7 +908,7 @@ export class SpecRun extends SpecRunBase {
     { ranStep, headsBefore }: CeilingCrossing,
   ): Promise<ImplementRecord> {
     const { ticket, state } = ticketRun;
-    const ran = await this._runStep(ticketRun, "implement", {
+    const ran = await this.stepLauncher._runStep(ticketRun, "implement", {
       prompt: handoffOnlyPrompt,
       jsonSchema: implementOutputSchema,
       resumeSessionId: sessionIdOf(
@@ -1049,7 +976,7 @@ export class SpecRun extends SpecRunBase {
       proposedSplit !== undefined && state.splitHaltedHandoff !== count;
     if (count > cap) {
       if (isSplitUnhalted) state.splitHaltedHandoff = count;
-      await this._failureHalt(ticketRun, {
+      await this.haltRaiser._failureHalt(ticketRun, {
         step: state.step,
         detail: handoffCapDetailOf({
           ticket: ticket.issue,
@@ -1062,13 +989,13 @@ export class SpecRun extends SpecRunBase {
       });
     }
     if (!isSplitUnhalted) return;
-    const downstream = await this._downstreamOf(run, ticket.issue);
+    const downstream = await this.haltRaiser._downstreamOf(run, ticket.issue);
     raiseHalts(run, {
       ticket: ticket.issue,
       drafts: [splitHaltOf(proposedSplit, downstream)],
     });
     state.splitHaltedHandoff = count;
-    await this._haltOnUnpostedHalts(ticketRun);
+    await this.haltRaiser._haltOnUnpostedHalts(ticketRun);
   }
 
   private _implementPromptOf({ ticket, workspace, state }: TicketRun): string {
@@ -1112,81 +1039,14 @@ export class SpecRun extends SpecRunBase {
         output: launched.record,
       });
     }
-    await this._raiseBlockerHalts(ticketRun, record.blockers);
+    await this.haltRaiser._raiseBlockerHalts(ticketRun, record.blockers);
     if (record.status === "handoff") return record;
     if (record.status === "blocked") {
-      await this._haltOnUnpostedHalts(ticketRun);
+      await this.haltRaiser._haltOnUnpostedHalts(ticketRun);
     }
     state.record = record;
     state.latestHandoff = undefined;
     return record;
-  }
-
-  private async _raiseBlockerHalts(
-    ticketRun: TicketRun,
-    blockers: Blocker[],
-  ): Promise<void> {
-    if (blockers.length === 0) return;
-    const downstream = await this._downstreamOf(
-      ticketRun.run,
-      ticketRun.ticket.issue,
-    );
-    raiseHalts(ticketRun.run, {
-      ticket: ticketRun.ticket.issue,
-      drafts: blockers.map((blocker) => blockerHaltOf(blocker, downstream)),
-    });
-  }
-
-  // Posts the ticket's new Halts and halts it; with none, the ticket goes on.
-  private async _haltOnUnpostedHalts(ticketRun: TicketRun): Promise<void> {
-    const { run, ticket } = ticketRun;
-    const unposted = haltsOfTicket(run, ticket.issue).filter(
-      ({ isPosted }) => !isPosted,
-    );
-    if (unposted.length === 0) return;
-    await this._halt(ticketRun);
-  }
-
-  private async _halt(landingTicket: LandingTicket): Promise<never> {
-    await this._postHalts(landingTicket);
-    throw new TicketHalted(issueLabelOf(landingTicket.ticket.issue));
-  }
-
-  private async _postHalts(landingTicket: LandingTicket): Promise<void> {
-    this._advance(landingTicket, "halted");
-    await this._postUnpostedHalts(landingTicket.run);
-  }
-
-  // Also picks up the Halts of a ticket that halted in a run killed before they were all posted.
-  private async _postUnpostedHalts(run: Run): Promise<void> {
-    // The gap check's is checked first, so it never creates a ticket state for the spec.
-    const unposted = haltsOf(run).filter(
-      (halt) =>
-        !halt.isPosted &&
-        (isGapCheckHalt(halt) ||
-          ticketStateOf(run, halt.ticket).step === "halted"),
-    );
-    for (const halt of unposted) {
-      const batch = unposted.filter(({ ticket }) =>
-        isSameIssue(ticket, halt.ticket),
-      );
-      const post: HaltPost = {
-        halt,
-        index: batch.indexOf(halt) + 1,
-        count: batch.length,
-        ticketTitle: (await this.config.github.issueOf(halt.ticket)).title,
-      };
-      const { sessionReview } = run;
-      const body =
-        sessionReview === undefined
-          ? haltCommentOf(post)
-          : sessionHaltCommentOf(post);
-      await this._comment(run, body);
-      sessionReview?.postedHalts.push(body);
-      halt.isPosted = true;
-      this._saveState(run);
-      await this._announce(run, haltNoticeOf(post));
-    }
   }
 
   // The resumed implementer gets every answer while its session is under the ticket budget and no handoff is pending; otherwise a fresh agent does.
@@ -1337,7 +1197,7 @@ export class SpecRun extends SpecRunBase {
         throw schemaFailureOf(attempt.logPath, { problems, output: outcomes });
       }
     }
-    const downstream = await this._downstreamOf(run, ticket.issue);
+    const downstream = await this.haltRaiser._downstreamOf(run, ticket.issue);
     const gaveUps = outcomes.filter(isGaveUp);
     state.triage = (state.triage ?? []).map((record) => {
       const gaveUp = gaveUps.find(({ finding }) => finding === record.finding);
@@ -1385,7 +1245,7 @@ export class SpecRun extends SpecRunBase {
     fixer: Fixer,
     launch: StepLaunch,
   ): Promise<RanStep> {
-    const ran = await this._runStep(ticketRun, "fix", {
+    const ran = await this.stepLauncher._runStep(ticketRun, "fix", {
       ...this._fixerSessionOf(ticketRun, fixer),
       ...launch,
     });
@@ -1407,276 +1267,15 @@ export class SpecRun extends SpecRunBase {
     };
   }
 
-  // The run's tickets this one blocks, directly or through another, each `<repo>#<n>`.
-  private async _downstreamOf(run: Run, issue: IssueRef): Promise<string[]> {
-    const blockersOf = await this._blockersByTicketOf(run);
-    return downstreamIn({ run, blockersOf, ticket: shortRefOf(issue) });
-  }
-
-  // Each of the run's tickets, `<repo>#<n>`, to its open blockers.
-  private async _blockersByTicketOf(run: Run): Promise<Map<string, string[]>> {
-    const blockersOf = new Map<string, string[]>();
-    for (const ticket of run.tickets) {
-      const blockers = await this.config.github.openBlockersOf(ticket);
-      blockersOf.set(shortRefOf(ticket), blockers.map(shortRefOf));
-    }
-    return blockersOf;
-  }
-
   private async _launch(
     ticketRun: TicketRun,
     agent: StepAgent,
     launch: StepLaunch,
   ): Promise<LaunchedStep> {
-    return launchedOf(agent, await this._runStep(ticketRun, agent, launch));
-  }
-
-  // A guidance answer goes to the halted step's next launch only, its crash retries included.
-  private async _runStep(
-    ticketRun: TicketRun,
-    agent: StepAgent,
-    launch: StepLaunch,
-  ): Promise<RanStep> {
-    const { state } = ticketRun;
-    const ran = await this._retryStep(
-      ticketRun,
+    return launchedOf(
       agent,
-      guidedLaunchOf(launch, state.guidance),
+      await this.stepLauncher._runStep(ticketRun, agent, launch),
     );
-    state.guidance = undefined;
-    return ran;
-  }
-
-  // Retries a crash, resuming its session when it has one; leaves the result unread, so a fixer can check for a live-ceiling kill before recordOf().
-  private async _retryStep(
-    ticketRun: TicketRun,
-    agent: StepAgent,
-    launch: StepLaunch,
-  ): Promise<RanStep> {
-    let attempt = launch;
-    for (;;) {
-      const logPath = this._stepLogPathOf(ticketRun, agent);
-      const ran = await this._attemptStep(ticketRun, agent, attempt, logPath);
-      if (ran.kind === "unrun") {
-        await this._takeCrash(ticketRun, { detail: ran.detail, logPath });
-        attempt = launch;
-        continue;
-      }
-      const { result } = ran;
-      if (isTurnCapped(result)) {
-        // A fixer's caller turns what it left unfinished into give-ups.
-        if (agent === "fix") return { result, logPath };
-        const turns = attempt.maxTurns ?? this.config.knobs.maxTurns[agent];
-        const cap = { detail: turnCapDetailOf(agent, turns), logPath };
-        if (agent === "implement") {
-          return this._haltOnImplementCap(ticketRun, cap);
-        }
-        await this._takeCrash(ticketRun, cap);
-        attempt = launch;
-        continue;
-      }
-      const detail = crashDetailOf(agent, result, this.config.knobs);
-      if (detail === undefined) return { result, logPath };
-      await this._takeCrash(ticketRun, { detail, logPath });
-      if (result.sessionId === undefined) {
-        attempt = launch;
-      } else {
-        attempt = {
-          ...launch,
-          prompt: retryPromptOf(launch, ticketRun.state),
-          resumeSessionId: result.sessionId,
-        };
-      }
-    }
-  }
-
-  // Offers more turns, or a stronger pair while there is one.
-  private async _haltOnImplementCap(
-    ticketRun: TicketRun,
-    cap: Crash,
-  ): Promise<never> {
-    const { pair, state } = ticketRun;
-    await this._snapshot(ticketRun, state.step);
-    const options = [`\`resume +${this.config.knobs.extraTurns} turns\``];
-    const stronger = nextStrongerPairOf(pair);
-    if (stronger !== undefined) {
-      options.push(`\`rerun on ${pairLabelOf(stronger)}\``);
-    }
-    return this._failureHalt(ticketRun, { ...cap, step: state.step, options });
-  }
-
-  private async _attemptStep(
-    ticketRun: TicketRun,
-    agent: StepAgent,
-    { prompt, jsonSchema, ...overrides }: StepLaunch,
-    logPath: string,
-  ): Promise<StepAttempt> {
-    const { run, ticket, pair, workspace, state, targets } = ticketRun;
-    const { knobs } = this.config;
-    const usage = await this._waitForLaunch(run);
-    if (usage !== undefined) {
-      state.limitReadings ??= {};
-      state.limitReadings.before ??= limitReadingOf(usage);
-    }
-    this._log(
-      run,
-      `${issueLabelOf(ticket.issue)}: ${agent} step, raw stream in ${logPath}.`,
-    );
-    let result: StepResult;
-    try {
-      result = await this.config.agentStep.run({
-        prompt,
-        pair,
-        account: knobs.account,
-        cwd: workspace.path,
-        maxTurns: knobs.maxTurns[agent],
-        silenceTimeoutMs: knobs.silenceTimeoutMs,
-        wallClockMs: knobs.wallClockMs[agent],
-        allowedTools: knobs.allowedTools[agent],
-        allowedWriteGlobs: knobs.allowedWriteGlobs,
-        targets,
-        jsonSchema,
-        logPath,
-        ...overrides,
-      });
-    } catch (error) {
-      return { kind: "unrun", detail: unrunDetailOf(agent, error) };
-    }
-    if (result.sessionId !== undefined) {
-      state.sessions.push({ agent, sessionId: result.sessionId });
-    }
-    state.configFolder = result.configFolder ?? state.configFolder;
-    this._saveState(run);
-    await this._stopOnLimitHit(run, result, logPath);
-    return { kind: "ran", result };
-  }
-
-  private async _agentResultOf(
-    step: string,
-    request: LoggedStepRequest,
-  ): Promise<StepResult> {
-    try {
-      return await this.config.agentStep.run(request);
-    } catch (error) {
-      throw new UnhandledStop(
-        "step-error",
-        unrunDetailOf(step, error),
-        request.logPath,
-      );
-    }
-  }
-
-  // Asks the limit guard about the configured account until it says launch, returning the first reading: a ticket's Limit used before.
-  private async _waitForLaunch(run: Run): Promise<AccountUsage | undefined> {
-    const { account } = this.config.knobs;
-    const knobs = { ...defaultLimitGuardKnobs, ...this.config.limitGuardKnobs };
-    let hasAnnouncedWait = false;
-    let first: AccountUsage | undefined;
-    for (;;) {
-      const reading = await this._readingOf(run);
-      const { usage } = reading;
-      if (usage === undefined) {
-        await this._warnOnce(
-          run,
-          "missing-reading",
-          `No usage reading for account ${account}; steps launch unguarded.`,
-        );
-        return first;
-      }
-      first ??= usage;
-      const decision = decideStep(
-        [reading],
-        {
-          pinnedAccount: account,
-          isAtTicketBoundary: true,
-          accountChangesToday: 0,
-        },
-        knobs,
-      );
-      if (decision.kind === "launch") return first;
-      if (decision.kind === "stop") {
-        throw new RunStop(
-          `Account ${account} is at ${percentOf(usage.sevenDay.utilization)} of its weekly limit, past the reserve; rerun after it resets at ${usage.sevenDay.resetsAt.toISOString()}.`,
-        );
-      }
-      if (decision.kind !== "limitWait") {
-        throw new Error(`A one-account run can't ${decision.kind}`);
-      }
-      if (!hasAnnouncedWait) {
-        hasAnnouncedWait = true;
-        await this._announce(
-          run,
-          `Limit wait: account ${account} is at ${percentOf(usage.fiveHour.utilization)} of its 5-hour limit; continuing after ${decision.until.toISOString()}.`,
-        );
-      }
-      const waitMs =
-        decision.until.getTime() - this.config.clock.now().getTime();
-      await this._sleep(Math.max(waitMs, knobs.limitWaitMarginMs));
-    }
-  }
-
-  private async _warnOnce(
-    run: Run,
-    warning: RunWarning,
-    summary: string,
-  ): Promise<void> {
-    if (run.warnings.has(warning)) return;
-    run.warnings.add(warning);
-    await this._announce(run, summary);
-  }
-
-  // The tree stays as is in the workspace; the first stream ever seen is kept for tightening limit detection.
-  private async _stopOnLimitHit(
-    run: Run,
-    { limitHit, exitSubtype, output }: StepResult,
-    logPath: string,
-  ): Promise<void> {
-    const hasSucceeded = exitSubtype === "success" && output.status === "valid";
-    // A step that met a limit and still succeeded, as after a retry, isn't stopped.
-    if (limitHit === undefined || hasSucceeded) return;
-    const { window, resetsAt } = limitHit;
-    const savedPath = join(this.config.stateFolder, "first-limit-hit.jsonl");
-    if (!existsSync(savedPath) && existsSync(logPath)) {
-      copyFileSync(logPath, savedPath);
-    }
-    if (resetsAt === undefined) {
-      await this._warnOnce(
-        run,
-        "unrecognised-limit-error",
-        `Unrecognised limit error on account ${this.config.knobs.account}; the saved stream can tighten detection.`,
-      );
-      throw new UnhandledStop(
-        "limit-hit",
-        "The step hit an unrecognised limit error; its reset is unknown.",
-        logPath,
-      );
-    }
-    throw new UnhandledStop(
-      "limit-hit",
-      `The step hit the ${window ?? "usage"} limit; it resets at ${resetsAt.toISOString()}.`,
-      logPath,
-    );
-  }
-
-  // Skips a path already taken, so a crashed step's log survives its retry.
-  private _stepLogPathOf(ticketRun: TicketRun, agent: StepAgent): string {
-    const folder = this._stepsFolderOf(ticketRun.run);
-    const stem = fileStemOf(ticketRun.ticket.issue);
-    let index = ticketRun.state.sessions.length + 1;
-    // Not shared with git.ts's freeBranchNameOf, which asks git asynchronously and numbers from 2.
-    while (existsSync(join(folder, `${stem}-${index}-${agent}.jsonl`))) {
-      index += 1;
-    }
-    return join(folder, `${stem}-${index}-${agent}.jsonl`);
-  }
-
-  private _stepsFolderOf(run: Run): string {
-    const folder = join(
-      this.config.stateFolder,
-      `${fileStemOf(run.spec.issue)}-steps`,
-    );
-    mkdirSync(folder, { recursive: true });
-    return folder;
   }
 
   private async _check(ticketRun: TicketRun): Promise<void> {
@@ -1714,7 +1313,7 @@ export class SpecRun extends SpecRunBase {
     const { retriesPerFailure, ticketBudget } = this.config.knobs;
     const resumes = state.redCheckResumes ?? 0;
     if (resumes >= retriesPerFailure) {
-      await this._failureHalt(ticketRun, {
+      await this.haltRaiser._failureHalt(ticketRun, {
         step: "checks",
         detail: `The checks are still red after ${resumes} resume(s): ${failure}`,
         logPath: state.redChecksLogPath ?? this._progressPathOf(run),
@@ -1815,7 +1414,7 @@ export class SpecRun extends SpecRunBase {
     if (error.kind === "conflict") {
       detail = `The wrap-up still conflicts after the merge-master resume: ${detail}`;
     }
-    await this._failureHalt(landingTicket, {
+    await this.haltRaiser._failureHalt(landingTicket, {
       step: "wrap-up",
       detail,
       logPath,
@@ -1869,7 +1468,7 @@ export class SpecRun extends SpecRunBase {
       recordOf("merge-master", result, logPath);
     } catch (error) {
       if (!(error instanceof SchemaFailure)) throw error;
-      await this._failureHalt(landingTicket, {
+      await this.haltRaiser._failureHalt(landingTicket, {
         step: "wrap-up",
         detail: error.message,
         logPath: error.logPath,
@@ -2083,8 +1682,7 @@ export class SpecRun extends SpecRunBase {
     if (answer?.kind === "guidance") {
       prompt = `${prompt}\n\n${guidanceSectionOf(answer.text)}`;
     }
-    const logPath = join(this._stepsFolderOf(run), "gap-check.jsonl");
-    const request: LoggedStepRequest = {
+    const request: StepRequest = {
       prompt,
       pair: answer?.kind === "rerun" ? answer.pair : knobs.gapCheckPair,
       account: knobs.account,
@@ -2096,16 +1694,16 @@ export class SpecRun extends SpecRunBase {
       allowedWriteGlobs: [],
       targets: [],
       jsonSchema: gapCheckOutputSchema,
-      logPath,
     };
-    let result = await this._runGapCheck(run, request);
+    let ran = await this._runGapCheck(run, request);
     for (
       let retries = 0;
-      isTurnCapped(result) && retries < knobs.retriesPerFailure;
+      isTurnCapped(ran.result) && retries < knobs.retriesPerFailure;
       retries += 1
     ) {
-      result = await this._runGapCheck(run, request);
+      ran = await this._runGapCheck(run, request);
     }
+    const { result, logPath } = ran;
     if (isTurnCapped(result)) {
       const detail = turnCapDetailOf(gapCheckLabel, knobs.maxTurns.gapCheck);
       await this._gapCheckHalt(run, { detail, logPath });
@@ -2129,15 +1727,8 @@ export class SpecRun extends SpecRunBase {
     this._saveState(run);
   }
 
-  private async _runGapCheck(
-    run: Run,
-    request: LoggedStepRequest,
-  ): Promise<StepResult> {
-    await this._waitForLaunch(run);
-    this._log(run, `Gap check step, raw stream in ${request.logPath}.`);
-    const result = await this._agentResultOf(gapCheckLabel, request);
-    await this._stopOnLimitHit(run, result, request.logPath);
-    return result;
+  private async _runGapCheck(run: Run, request: StepRequest): Promise<RanStep> {
+    return this.stepLauncher._runSpecStep(run, gapCheckLabel, request);
   }
 
   // Raised on the spec issue and never counted toward the stuck detector, since the gap check belongs to no ticket.
@@ -2150,7 +1741,7 @@ export class SpecRun extends SpecRunBase {
       ticket: run.spec.issue,
       drafts: [failureHaltOf({ ...failure, step: "gap-check" }, [])],
     });
-    await this._postUnpostedHalts(run);
+    await this.haltRaiser._postUnpostedHalts(run);
     throw new TicketHalted(issueLabelOf(run.spec.issue));
   }
 
@@ -2184,17 +1775,6 @@ function lastAnswerAtOf(run: Run, ticket: IssueRef): string {
     ({ answer }) => answer?.at ?? "",
   );
   return times.sort().at(-1) ?? "";
-}
-
-function guidedLaunchOf(
-  launch: StepLaunch,
-  guidance: string | undefined,
-): StepLaunch {
-  if (guidance === undefined) return launch;
-  return {
-    ...launch,
-    prompt: `${launch.prompt}\n\n${guidanceSectionOf(guidance)}`,
-  };
 }
 
 // The latest answer the gap check hasn't acted on; a `stop spec` read on a later run is a skip.
@@ -2259,51 +1839,6 @@ function noteImplementerResult(
 ): void {
   state.implementPeak = peakContext ?? state.implementPeak;
   state.implementerSession = sessionId ?? state.implementerSession;
-}
-
-// Undefined for an outcome a caller handles: a live-ceiling kill, a schema failure, success or a turn cap.
-function crashDetailOf(
-  agent: StepAgent,
-  result: StepResult,
-  knobs: RunKnobs,
-): string | undefined {
-  const { hang, errorText, exitSubtype, output } = result;
-  if (result.hasCrossedCeiling) return undefined;
-  if (hang === "silence") {
-    return `The ${agent} step was silent for ${minutesOf(knobs.silenceTimeoutMs)} minutes and was killed.`;
-  }
-  if (hang === "wall-clock") {
-    return `The ${agent} step ran past its ${minutesOf(knobs.wallClockMs[agent])}-minute wall clock and was killed.`;
-  }
-  if (output.status === "schemaFailure") return undefined;
-  if (errorText !== undefined) {
-    return `The ${agent} step ended on an error: ${errorText}`;
-  }
-  if (exitSubtype === undefined) {
-    return `The ${agent} step ended without a result.`;
-  }
-  if (exitSubtype === "error_during_execution") {
-    return `The ${agent} step ended ${exitSubtype}.`;
-  }
-  return undefined;
-}
-
-// A crashed backstop resume still owes only its handoff record.
-function retryPromptOf(launch: StepLaunch, state: TicketState): string {
-  if (launch.prompt === handoffOnlyPrompt) return handoffOnlyPrompt;
-  return interruptedPromptOf(state);
-}
-
-function interruptedPromptOf(state: TicketState): string {
-  let setAside = "";
-  if (isSnapshotted(state.step) && !isTreeKept(state)) {
-    setAside = ` ${treeResetNote}`;
-  }
-  return `The previous run was interrupted; continue.${setAside} Nobody is watching this session: never ask a question or wait for an answer.`;
-}
-
-function unrunDetailOf(step: string, error: unknown): string {
-  return `The ${step} step failed to run: ${messageOf(error)}`;
 }
 
 function turnCapGiveUpOf(finding: number): GaveUpOutcome {
