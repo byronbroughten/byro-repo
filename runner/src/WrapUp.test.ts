@@ -57,9 +57,9 @@ describe("run", () => {
         "",
         "Spec: [byro-repo#213](https://github.com/byronbroughten/byro-repo/issues/213)",
         "",
-        "| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Triage cost | Limit used | What review caught | Session ids |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
-        "| #218 | Opus medium | unrecorded | 1 | 150K → 90K | Triage fix | 0 | 1 | 0 | unrecorded | unrecorded | unrecorded | unrecorded | A stale doc link | unrecorded |",
+        "| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Triage cost | What review caught | Session ids |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+        "| #218 | Opus medium | unrecorded | 1 | 150K → 90K | Triage fix | 0 | 1 | 0 | unrecorded | unrecorded | unrecorded | A stale doc link | unrecorded |",
         "",
       ].join("\n"),
     );
@@ -104,10 +104,6 @@ describe("run", () => {
           { agent: "fix", sessionId: "session-fix" },
         ],
       },
-      limitReadings: {
-        before: { fiveHour: 0.12, sevenDay: 0.3 },
-        after: { fiveHour: 0.4, sevenDay: 0.34 },
-      },
     });
 
     await wrapUp().run(ticket);
@@ -115,11 +111,11 @@ describe("run", () => {
     expect(
       readFileSync(join(primaryRoot, outcomePath), "utf8").split("\n")[6],
     ).toBe(
-      "| #218 | Opus medium | 2 | 1 | 150K → 90K | Pass | 0 | 1 | 0 | 42 min | $1.48 | $0.06 | 5-hour 12% → 40%, weekly 30% → 34% | — | session-implement-1, session-implement-2, session-review, session-triage, session-fix |",
+      "| #218 | Opus medium | 2 | 1 | 150K → 90K | Pass | 0 | 1 | 0 | 42 min | $1.48 | $0.06 | — | session-implement-1, session-implement-2, session-review, session-triage, session-fix |",
     );
   });
 
-  it("computes an interactive ticket's row from its recorded sessions, with Limit used unrecorded", async () => {
+  it("computes an interactive ticket's row from its recorded sessions", async () => {
     const configFolder = join(temp, "account-2");
     cpSync(
       join(import.meta.dirname, "..", "fixtures", "transcripts"),
@@ -144,7 +140,7 @@ describe("run", () => {
     expect(
       readFileSync(join(primaryRoot, outcomePath), "utf8").split("\n")[6],
     ).toBe(
-      "| #218 | Opus medium | 2 | 1 | 150K → 90K | Pass | 0 | 1 | 0 | 30 min | $1.45 | $0.00 | unrecorded | — | session-implement-1, session-implement-2 |",
+      "| #218 | Opus medium | 2 | 1 | 150K → 90K | Pass | 0 | 1 | 0 | 30 min | $1.45 | $0.00 | — | session-implement-1, session-implement-2 |",
     );
   });
 

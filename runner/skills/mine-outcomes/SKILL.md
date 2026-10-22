@@ -10,7 +10,7 @@ disable-model-invocation: true
 
 The spec's section is the folder `docs/agents/outcomes/<spec repo>-<spec n>/`, one file per landed ticket, each holding a one-row table ([`docs/agents/model-fit.md`](../../../docs/agents/model-fit.md#outcome-log)). Read every file in it. With no folder, say so and stop.
 
-- The columns are `columns` in `outcomeLog.ts`. A file written before #297 heads Proposals `Defers`, and one before the #213 addendum calls Triage fix `Handoff fix`. Read both by the new names.
+- The columns are `columns` in `outcomeLog.ts`. A file written before #297 heads Proposals `Defers`, and one before the #213 addendum calls Triage fix `Handoff fix`. Read both by the new names. One before #330 has a Limit used column; ignore it.
 - `unrecorded` is a missing fact. Leave it out of a sum or a median and say how many rows each figure rests on. Never guess one.
 - Peak context lists one peak per implementer session, in order: `150K → 90K` is a handoff. A row's **peak sum** adds them.
 

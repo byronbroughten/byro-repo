@@ -12,11 +12,7 @@ import { messageOf } from "../failureText.ts";
 import { guidanceSectionOf } from "../halts.ts";
 import { handoffOnlyPrompt, treeResetNote } from "../implementStep.ts";
 import { fileStemOf, issueLabelOf } from "../IssueWorkspaces.ts";
-import {
-  type AccountUsage,
-  decideStep,
-  defaultLimitGuardKnobs,
-} from "../limitGuard.ts";
+import { decideStep, defaultLimitGuardKnobs } from "../limitGuard.ts";
 import { nextStrongerPairOf, pairLabelOf } from "../modelFit.ts";
 import type { RunKnobs } from "../runKnobs.ts";
 import { RunStop } from "../RunStop.ts";
@@ -28,7 +24,6 @@ import {
   isSnapshotted,
   isTreeKept,
   isTurnCapped,
-  limitReadingOf,
   type RanStep,
   type Run,
   type RunWarning,
@@ -151,11 +146,7 @@ export class StepLauncher extends SpecRunBase {
   ): Promise<StepAttempt> {
     const { run, ticket, pair, workspace, state, targets } = ticketRun;
     const { knobs } = this.config;
-    const usage = await this._waitForLaunch(run);
-    if (usage !== undefined) {
-      state.limitReadings ??= {};
-      state.limitReadings.before ??= limitReadingOf(usage);
-    }
+    await this._waitForLaunch(run);
     this._log(
       run,
       `${issueLabelOf(ticket.issue)}: ${agent} step, raw stream in ${logPath}.`,
@@ -221,12 +212,11 @@ export class StepLauncher extends SpecRunBase {
     }
   }
 
-  // Asks the limit guard about the configured account until it says launch, returning the first reading: a ticket's Limit used before.
-  private async _waitForLaunch(run: Run): Promise<AccountUsage | undefined> {
+  // Asks the limit guard about the configured account until it says launch.
+  private async _waitForLaunch(run: Run): Promise<void> {
     const { account } = this.config.knobs;
     const knobs = { ...defaultLimitGuardKnobs, ...this.config.limitGuardKnobs };
     let hasAnnouncedWait = false;
-    let first: AccountUsage | undefined;
     for (;;) {
       const reading = await this._readingOf(run);
       const { usage } = reading;
@@ -236,9 +226,8 @@ export class StepLauncher extends SpecRunBase {
           "missing-reading",
           `No usage reading for account ${account}; steps launch unguarded.`,
         );
-        return first;
+        return;
       }
-      first ??= usage;
       const decision = decideStep(
         [reading],
         {
@@ -248,7 +237,7 @@ export class StepLauncher extends SpecRunBase {
         },
         knobs,
       );
-      if (decision.kind === "launch") return first;
+      if (decision.kind === "launch") return;
       if (decision.kind === "stop") {
         throw new RunStop(
           `Account ${account} is at ${percentOf(usage.sevenDay.utilization)} of its weekly limit, past the reserve; rerun after it resets at ${usage.sevenDay.resetsAt.toISOString()}.`,

@@ -5,7 +5,6 @@ import { describe, expect, it } from "vitest";
 
 import type { StepResult } from "./AgentStep.ts";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
-import { git } from "./GitFixture.ts";
 import type { RunResult } from "./SpecRun.ts";
 import {
   addIssue,
@@ -14,7 +13,6 @@ import {
   github,
   implemented,
   noticeSummaries,
-  primaryOf,
   readingOf,
   refOf,
   resultOf,
@@ -176,24 +174,6 @@ describe("run's limit guard", () => {
       "No usage reading for account 1; steps launch unguarded.",
       result.message,
     ]);
-  });
-
-  it("records the reading before the ticket's first step and after its last as the outcome's Limit used", async () => {
-    addSpec([1]);
-    scriptUsage(
-      readingOf(0.1, 0.2),
-      readingOf(0.1, 0.2),
-      readingOf(0.3, 0.22),
-      readingOf(0.4, 0.25),
-    );
-
-    await specRun(FakeAgentStep.init(implemented("one.ts"), reviewed())).run(
-      spec,
-    );
-
-    expect(git(primaryOf("byro-repo"), "log", "-p", "master")).toContain(
-      "5-hour 10% → 40%, weekly 20% → 25%",
-    );
   });
 
   it("pushes one Limit wait notice though a reading after the wait is still over", async () => {
