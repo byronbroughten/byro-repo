@@ -2,8 +2,9 @@
 // ending in place of the step's record-returning one. The committed skill is runner/skills/implement-code/SKILL.md;
 // byro-repo's drift test regenerates it from byro-repo's commands.
 
-import { implementBody, sectionOf } from "./implementStep.ts";
+import { implementBody } from "./implementStep.ts";
 import { stepReadLine } from "./IssueReader.ts";
+import { sectionOf } from "./promptText.ts";
 
 export interface ImplementCodeSkillInput {
   // Each command is written with `<repo>` and `<n>` placeholders; the promote command takes the repo to promote last.
@@ -35,7 +36,7 @@ function openingSection({ promoteCommand }: ImplementCodeSkillInput): string {
   return sectionOf("Before you start", [
     "Read the ticket and state its title before starting. If the reference is ambiguous, ask.",
     "A `ready-for-human` ticket: state its title, name the skill or steps its body says to run, and stop.",
-    "Work only in the ticket's issue workspace. When your working directory is a primary checkout, stop and tell the developer to run `npm run issue:start -- <repo> <n> --claude`.",
+    "Work only in the ticket's issue workspace. When your working directory is a primary checkout, stop and tell the developer to move this session into the workspace first.",
     `The repos the workspace put on the ticket's \`issue-<n>-*\` branch take edits; every other repo is detached at master. To change one, first run \`${promoteCommand} <repo-to-promote>\`. Never switch, create or delete a branch yourself.`,
   ]);
 }
@@ -43,7 +44,7 @@ function openingSection({ promoteCommand }: ImplementCodeSkillInput): string {
 function workingSection(): string {
   return sectionOf("How you work", [
     implementBody.testFirst,
-    `${implementBody.checking} At the end, commit, then run \`npm run check\` once; it must pass before you start the ending.`,
+    implementBody.checking,
     implementBody.oneCommand,
   ]);
 }
@@ -65,6 +66,6 @@ function endingSection({
   1. **Review**: run \`${reviewCommand}\`, resolving \`<repo>\` to \`<owner>/<repo>\`. It runs the runner's review, finding triage and fix on this ticket, commits the fixes, posts the review list on the spec and writes the review facts. It prints each Halt as \`S<n>.<k>\`; answer it with the developer in the session. When it exits short of reviewed, report why and stop.
   2. **Report**: post in the session what review caught, what was fixed and what is Proposed.
   3. **Wait for the developer's go-ahead.** Land nothing before it.
-  4. If the session entered the workspace with \`EnterWorktree\`, call \`ExitWorktree\` with \`keep\`, so wrap-up can remove the workspace.
+  4. Call \`ExitWorktree\` with \`keep\`, so wrap-up can remove the workspace.
   5. **Land**: \`${wrapUpCommand} --closing "<what landed>" [--undone "<box>: <reason>"]...\`, one \`--undone\` per acceptance box left undone. A ticket with no branch ahead of master, one that needed only GitHub or Doc writes, adds \`--no-code\`: \`${wrapUpCommand} --no-code --closing "<what landed>"\`.`;
 }

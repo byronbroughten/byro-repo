@@ -9,7 +9,7 @@ import {
 } from "./FactsFile.ts";
 import { stepReadLine } from "./IssueReader.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
-import { codeListOf } from "./promptText.ts";
+import { codeListOf, sectionOf } from "./promptText.ts";
 import { arraySchema, objectSchema, stringSchema } from "./recordSchema.ts";
 
 export type ImplementRecord =
@@ -156,10 +156,6 @@ export const implementBody = {
   committing:
     "Commit in each repo you changed, on the ticket's branch, then run `npm run check`. When it fails on your change, fix it in a further commit and run it again; never amend.",
 } as const;
-
-export function sectionOf(heading: string, bullets: string[]): string {
-  return `## ${heading}\n\n${bullets.map((bullet) => `- ${bullet}`).join("\n")}`;
-}
 
 const promptSections = {
   finishing: `## When you're done

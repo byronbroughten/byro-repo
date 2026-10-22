@@ -12,13 +12,13 @@ disable-model-invocation: true
 
 - Read the ticket and state its title before starting. If the reference is ambiguous, ask.
 - A `ready-for-human` ticket: state its title, name the skill or steps its body says to run, and stop.
-- Work only in the ticket's issue workspace. When your working directory is a primary checkout, stop and tell the developer to run `npm run issue:start -- <repo> <n> --claude`.
+- Work only in the ticket's issue workspace. When your working directory is a primary checkout, stop and tell the developer to move this session into the workspace first.
 - The repos the workspace put on the ticket's `issue-<n>-*` branch take edits; every other repo is detached at master. To change one, first run `npm run issue:promote -- <repo> <n> <repo-to-promote>`. Never switch, create or delete a branch yourself.
 
 ## How you work
 
 - Work test-first: if a `tdd` skill is available, call it, at the seams the ticket names or, with none named, seams you pick yourself; never stop to confirm them.
-- Run typechecking and single test files regularly. At the end, commit, then run `npm run check` once; it must pass before you start the ending.
+- Run typechecking and single test files regularly.
 - Read and search with the Read and Grep tools. Give Bash one command per call, run from the workspace root: no `cd`, no `;` or `&&` chains, no variables.
 
 ## GitHub
@@ -35,5 +35,5 @@ disable-model-invocation: true
   1. **Review**: run `npm run runner -- review <owner>/<repo> <n>`, resolving `<repo>` to `<owner>/<repo>`. It runs the runner's review, finding triage and fix on this ticket, commits the fixes, posts the review list on the spec and writes the review facts. It prints each Halt as `S<n>.<k>`; answer it with the developer in the session. When it exits short of reviewed, report why and stop.
   2. **Report**: post in the session what review caught, what was fixed and what is Proposed.
   3. **Wait for the developer's go-ahead.** Land nothing before it.
-  4. If the session entered the workspace with `EnterWorktree`, call `ExitWorktree` with `keep`, so wrap-up can remove the workspace.
+  4. Call `ExitWorktree` with `keep`, so wrap-up can remove the workspace.
   5. **Land**: `npm run wrap-up -- <repo> <n> --closing "<what landed>" [--undone "<box>: <reason>"]...`, one `--undone` per acceptance box left undone. A ticket with no branch ahead of master, one that needed only GitHub or Doc writes, adds `--no-code`: `npm run wrap-up -- <repo> <n> --no-code --closing "<what landed>"`.
