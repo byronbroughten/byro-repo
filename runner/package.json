@@ -17,6 +17,7 @@
     "./findingTriage": "./src/findingTriage.ts",
     "./gapCheck": "./src/gapCheck.ts",
     "./GhCli": "./src/GhCli.ts",
+    "./implementCodeSkill": "./src/implementCodeSkill.ts",
     "./implementStep": "./src/implementStep.ts",
     "./IssueReader": "./src/IssueReader.ts",
     "./IssueWorkspaces": "./src/IssueWorkspaces.ts",

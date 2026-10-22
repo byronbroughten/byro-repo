@@ -1,12 +1,13 @@
 // Starts, lists, promotes and removes workspaces, each keyed by an issue or, for a session workspace, by a slug.
 // The runner creates its own issue workspaces; `start` is the interactive session's way into one, leased to its claude.
-// Usage: npm run issue:start -- (<repo> <n> | --session <slug>) [--claude], npm run issue:list,
+// Usage: npm run issue:start -- (<repo> <n> | --session <slug>) [--claude [--no-prompt]], npm run issue:list,
 // npm run issue:promote -- <repo> <n> <repo-to-promote>,
 // or npm run issue:remove -- (<repo> <n> | --session <slug>) [--force].
 import { spawn } from "node:child_process";
 
 import {
   holderLabelOf,
+  isSessionKey,
   type IssueRef,
   IssueWorkspaces,
   type Lease,
@@ -44,13 +45,14 @@ try {
 
 async function start(args: string[]): Promise<void> {
   const key = keyOf(
-    args.filter((arg) => arg !== "--claude"),
-    `Usage: npm run issue:start -- ${keyUsage} [--claude]`,
+    args.filter((arg) => arg !== "--claude" && arg !== "--no-prompt"),
+    `Usage: npm run issue:start -- ${keyUsage} [--claude [--no-prompt]]`,
   );
   if (args.includes("--claude")) {
     const workspace = await workspaces.start(key);
     console.log(workspace.path);
-    await openClaude(workspace);
+    const prompt = args.includes("--no-prompt") ? [] : openingPromptOf(key);
+    await openClaude(workspace, prompt);
     return;
   }
   const holder = nearestClaudeAncestor();
@@ -66,9 +68,21 @@ async function start(args: string[]): Promise<void> {
   );
 }
 
+// A session workspace has no ticket to implement, so it opens bare.
+function openingPromptOf(key: WorkspaceKey): string[] {
+  if (isSessionKey(key)) return [];
+  return [`/implement-code ${key.repo}#${key.number}`];
+}
+
 // Runs in the foreground so the session takes over the terminal, and passes its exit status on.
-async function openClaude(workspace: Workspace): Promise<void> {
-  const claude = spawn("claude", { cwd: workspace.path, stdio: "inherit" });
+async function openClaude(
+  workspace: Workspace,
+  prompt: string[],
+): Promise<void> {
+  const claude = spawn("claude", prompt, {
+    cwd: workspace.path,
+    stdio: "inherit",
+  });
   const exited = new Promise<number | null>((resolve, reject) => {
     claude.on("error", reject);
     claude.on("exit", resolve);
