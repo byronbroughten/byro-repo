@@ -6,40 +6,23 @@
 // The run holds its ticket's workspace lease; with nothing runnable, an open Halt or another holder's lease leaves it idle, polling.
 // requestStop() or a `stop spec` answer ends the run between tickets; status() reads it from outside; review() reviews a session's ticket.
 // GitHub and git hold what's durable; a per-spec state file holds the step each ticket reached, so a rerun resumes there.
-// Steps launch through AgentStep.ts; prompts are redChecksStep.ts and mergeMasterStep.ts; landing is WrapUp.ts; knobs are runKnobs.ts;
-// the review list and gap check are reviewList.ts and gapCheck.ts; shared helpers, run state, Halts, step launches and the
-// implement, review, triage and fix steps are SpecRun/.
+// Steps launch through AgentStep.ts; landing is WrapUp.ts; knobs are runKnobs.ts; shared helpers, run state, Halts, step
+// launches, the implement, review, triage and fix steps, checks and landing, and the review lists and gap check are SpecRun/.
 
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import type { StepRequest } from "./AgentStep.ts";
-import { type WrapUpFacts } from "./FactsFile.ts";
 import { commandLabelOf, messageOf } from "./failureText.ts";
-import { type TriageRecord } from "./findingTriage.ts";
-import {
-  gapCheckOutputSchema,
-  gapCheckPrompt,
-  type GapCheckRecord,
-  gapCheckRecordOf,
-  type GapCheckTicket,
-} from "./gapCheck.ts";
 import { currentBranchOf } from "./git.ts";
 import {
   answeredNoteOf,
-  type FailureAnswer,
   failureAnswerOf,
-  failureHaltOf,
   failureOptions,
-  guidanceSectionOf,
   type Halt,
-  haltKindLabelOf,
   haltNameOf,
   ignoredNoteOf,
-  isRunnersComment,
   isStopSpecAnswer,
   repliesTo,
-  runnerMark,
   sessionHaltCountOf,
   shortRefOf,
   type StepFailure,
@@ -59,52 +42,27 @@ import {
 } from "./IssueWorkspaces.ts";
 import { LeaseHeld } from "./LeaseHeld.ts";
 import { type AccountReading } from "./limitGuard.ts";
-import {
-  mergeMasterOutputSchema,
-  mergeMasterPrompt,
-} from "./mergeMasterStep.ts";
 import { pairLabelOf, pairOf } from "./modelFit.ts";
-import { redChecksOutputSchema, redChecksPrompt } from "./redChecksStep.ts";
-import {
-  coveredLaterNotesOf,
-  gapCheckListOf,
-  gapCheckSubject,
-  reviewListMarkOf,
-  type ReviewListSubject,
-  ticketPushOf,
-  ticketReviewListOf,
-  undecidedCountOf,
-  undecidedLineOf,
-} from "./reviewList.ts";
 import { RunStop } from "./RunStop.ts";
 import { SchemaFailure } from "./SchemaFailure.ts";
 import { HaltRaiser } from "./SpecRun/HaltRaiser.ts";
 import { ImplementStepper } from "./SpecRun/ImplementStepper.ts";
+import { ReviewListPoster } from "./SpecRun/ReviewListPoster.ts";
 import { ReviewStepper } from "./SpecRun/ReviewStepper.ts";
 import {
-  branchedReposOf,
   deliverFailureHalts,
   downstreamIn,
-  type Fixer,
-  gapCheckLabel,
   haltsOf,
-  haltsOfTicket,
   idListOf,
   isFix,
   isGapCheckHalt,
   isLaunchable,
   isSameHeads,
   isSameIssue,
-  isTurnCapped,
   landedTextOf,
-  type LandingTicket,
-  limitReadingOf,
   liveCeilingPhraseOf,
   openHaltsOf,
-  raiseHalts,
-  type RanStep,
   readyLabel,
-  recordOf,
   rerunCommandOf,
   reviewFactsOf,
   type ReviewOptions,
@@ -120,13 +78,13 @@ import {
   ticketStateOf,
   type TicketStep,
   type TrackedIssue,
-  turnCapDetailOf,
   undeliveredHaltsOf,
   type Wait,
   waitsTextOf,
 } from "./SpecRun/runState.ts";
 import { SpecRunBase, type SpecRunConfig } from "./SpecRun/SpecRunBase.ts";
 import { StepLauncher } from "./SpecRun/StepLauncher.ts";
+import { TicketLander } from "./SpecRun/TicketLander.ts";
 import { TicketHalted } from "./TicketHalted.ts";
 import { percentOf } from "./transcriptFacts.ts";
 import {
@@ -134,7 +92,6 @@ import {
   stopOutcomes,
   UnhandledStop,
 } from "./UnhandledStop.ts";
-import { WrapUpFailure } from "./WrapUpFailure.ts";
 
 export type { Clock, RunGitHub, SpecRunConfig } from "./SpecRun/SpecRunBase.ts";
 export {
@@ -147,10 +104,6 @@ export {
   type TrackedIssue,
 } from "./SpecRun/runState.ts";
 
-const fixerLabels: Record<Fixer, string> = {
-  implementer: "implementer",
-  triage: "triage agent",
-};
 const runHolder: LeaseHolder = { kind: "run", pid: process.pid };
 
 interface TicketReview extends ReviewOptions {
@@ -200,6 +153,14 @@ export class SpecRun extends SpecRunBase {
     return new ReviewStepper(this.config);
   }
 
+  private get ticketLander(): TicketLander {
+    return new TicketLander(this.config);
+  }
+
+  private get reviewListPoster(): ReviewListPoster {
+    return new ReviewListPoster(this.config);
+  }
+
   async run(specIssue: IssueRef): Promise<RunResult> {
     const startedAt = this.config.clock.now();
     // A request left by a stop command with no run going would end this run at its first pick.
@@ -241,7 +202,7 @@ export class SpecRun extends SpecRunBase {
       if (selection.kind === "none") {
         const { waits } = selection;
         if (!waits.some(isIdleWait)) {
-          const finished = await this._finish(run, waits);
+          const finished = await this.reviewListPoster._finish(run, waits);
           if (finished !== undefined) return finished;
           continue;
         }
@@ -389,7 +350,7 @@ export class SpecRun extends SpecRunBase {
     run.sessionReview = {
       earlierHalts: sessionHaltCountOf(
         issue,
-        await this._runnersSpecCommentsOf(run),
+        await this.reviewListPoster._runnersSpecCommentsOf(run),
       ),
       postedHalts: [],
     };
@@ -433,7 +394,7 @@ export class SpecRun extends SpecRunBase {
       }
       await this._runSteps(ticketRun);
       this.factsFile.setReviewFacts(issue, reviewFactsOf(ticketRun.state));
-      await this._postReviewList(run, ticket);
+      await this.reviewListPoster._postReviewList(run, ticket);
       await this.haltRaiser._haltOnUnpostedHalts(ticketRun);
       return {
         kind: "reviewed",
@@ -645,7 +606,7 @@ export class SpecRun extends SpecRunBase {
         if (landing) await this._takeLease(run, landing);
       }
       await this._timed({ run, ticket }, "wrap-up", () =>
-        this._land({ run, ticket, pair, state }),
+        this.ticketLander._land({ run, ticket, pair, state }),
       );
       return "landed";
     } catch (error) {
@@ -791,307 +752,11 @@ export class SpecRun extends SpecRunBase {
       // A session's review leaves the checks and wrap-up to the session.
       if (run.sessionReview !== undefined) return;
       await this.haltRaiser._haltOnUnpostedHalts(ticketRun);
-      await this._timed(ticketRun, "checks", () => this._check(ticketRun));
+      await this._timed(ticketRun, "checks", () =>
+        this.ticketLander._check(ticketRun),
+      );
       this._advance(ticketRun, "wrap-up");
     }
-  }
-
-  private async _check(ticketRun: TicketRun): Promise<void> {
-    for (;;) {
-      const failure = await this._redChecksOf(ticketRun);
-      if (failure === undefined) return;
-      await this._resumeOnRedChecks(ticketRun, failure);
-    }
-  }
-
-  // The first failing check's command and output tail; undefined when all pass. A red master Stops the run.
-  private async _redChecksOf(
-    ticketRun: TicketRun,
-  ): Promise<string | undefined> {
-    for (const command of this.config.knobs.checks) {
-      this._log(
-        ticketRun.run,
-        `${issueLabelOf(ticketRun.ticket.issue)}: checking ${commandLabelOf(command)}.`,
-      );
-      const failure = await runCommand(command, ticketRun.workspace.path);
-      if (failure !== undefined) {
-        await this._stopOnRedMaster(ticketRun);
-        return `${commandLabelOf(command)} failed:\n${failure}`;
-      }
-    }
-    return undefined;
-  }
-
-  // Whoever made the last commit gets the failure, the triage agent in place of an implementer past the ticket budget.
-  private async _resumeOnRedChecks(
-    ticketRun: TicketRun,
-    failure: string,
-  ): Promise<void> {
-    const { run, ticket, workspace, state } = ticketRun;
-    const { retriesPerFailure } = this.config.knobs;
-    const resumes = state.redCheckResumes ?? 0;
-    if (resumes >= retriesPerFailure) {
-      await this.haltRaiser._failureHalt(ticketRun, {
-        step: "checks",
-        detail: `The checks are still red after ${resumes} resume(s): ${failure}`,
-        logPath: state.redChecksLogPath ?? this._progressPathOf(run),
-      });
-    }
-    state.redCheckResumes = resumes + 1;
-    this._saveState(run);
-    let fixer: Fixer = state.fixer ?? "implementer";
-    if (fixer === "implementer" && !this._isUnderBudget(state)) {
-      fixer = "triage";
-    }
-    this._log(
-      run,
-      `${issueLabelOf(ticket.issue)}: checks red; resuming the ${fixerLabels[fixer]} with the failure.`,
-    );
-    this._markStepStarted(ticketRun);
-    const { result, logPath } = await this.reviewStepper._runFixerStep(
-      ticketRun,
-      fixer,
-      {
-        prompt: redChecksPrompt({
-          issue: ticket.issue,
-          title: ticket.title,
-          branch: workspace.branch,
-          branchedRepos: branchedReposOf(ticketRun),
-          failures: failure,
-        }),
-        jsonSchema: redChecksOutputSchema,
-      },
-    );
-    state.redChecksLogPath = logPath;
-    state.isStepStarted = undefined;
-    this._saveState(run);
-    // The checks loop judges what a capped fixer committed.
-    if (isTurnCapped(result)) {
-      await this._snapshot(ticketRun, "checks");
-      return;
-    }
-    recordOf("fix", result, logPath);
-  }
-
-  // Checks run in a master set, so neither another session's uncommitted edit nor a local fix hides master's own state.
-  private async _stopOnRedMaster({ run, ticket }: TicketRun): Promise<void> {
-    const prefix = `Stopped the run at ${issueLabelOf(ticket.issue)}'s checks`;
-    let masterSet: string;
-    try {
-      masterSet = await this.workspaces.masterSet(run.spec.issue);
-    } catch (error) {
-      throw new RunStop(
-        `${prefix}: the master set failed to build: ${messageOf(error)}`,
-      );
-    }
-    for (const command of this.config.knobs.checks) {
-      if ((await runCommand(command, masterSet)) !== undefined) {
-        throw new RunStop(`${prefix}: master red: ${commandLabelOf(command)}`);
-      }
-    }
-  }
-
-  // Needs no workspace: a wrap-up killed after removing it resumes from its own progress file.
-  private async _land(landingTicket: LandingTicket): Promise<void> {
-    const { run, ticket, state } = landingTicket;
-    const { usage } = await this._readingOf(run);
-    if (usage !== undefined) {
-      state.limitReadings = {
-        ...state.limitReadings,
-        after: limitReadingOf(usage),
-      };
-    }
-    this._writeFacts(landingTicket);
-    this._log(run, `${issueLabelOf(ticket.issue)}: wrapping up.`);
-    for (;;) {
-      try {
-        await this.wrapUp.run(ticket.issue);
-        break;
-      } catch (error) {
-        await this._takeWrapUpFailure(landingTicket, error);
-      }
-    }
-    this._advance(landingTicket, "landed");
-    this._log(run, `${issueLabelOf(ticket.issue)}: landed.`);
-    await this._postReviewList(run, ticket);
-  }
-
-  // Returns only after the merge-master resume, so the wrap-up runs again; a network failure was already retried with backoff.
-  private async _takeWrapUpFailure(
-    landingTicket: LandingTicket,
-    error: unknown,
-  ): Promise<void> {
-    const { run, state } = landingTicket;
-    const logPath = this._progressPathOf(run);
-    if (!(error instanceof WrapUpFailure) || error.kind === "network") {
-      throw new UnhandledStop("wrap-up-failure", messageOf(error), logPath);
-    }
-    const resumes = state.conflictResumes ?? 0;
-    if (error.kind === "conflict" && resumes === 0) {
-      state.conflictResumes = resumes + 1;
-      this._saveState(run);
-      await this._mergeMaster(landingTicket, error.message);
-      return;
-    }
-    let detail = error.message;
-    if (error.kind === "conflict") {
-      detail = `The wrap-up still conflicts after the merge-master resume: ${detail}`;
-    }
-    await this.haltRaiser._failureHalt(landingTicket, {
-      step: "wrap-up",
-      detail,
-      logPath,
-    });
-  }
-
-  // The rerun wrap-up judges what the session merged, so a turn cap only sets its uncommitted work aside.
-  private async _mergeMaster(
-    landingTicket: LandingTicket,
-    conflict: string,
-  ): Promise<void> {
-    const { run, ticket } = landingTicket;
-    const progressPath = this._progressPathOf(run);
-    const workspace = await this.workspaces.find(ticket.issue);
-    if (workspace === undefined) {
-      throw new UnhandledStop(
-        "workspace",
-        `${issueLabelOf(ticket.issue)}'s workspace is gone, so master can't be merged into its branch.`,
-        progressPath,
-      );
-    }
-    const ticketRun: TicketRun = {
-      ...landingTicket,
-      workspace,
-      targets: targetsAtLaunchOf(ticket, progressPath),
-    };
-    this._log(
-      run,
-      `${issueLabelOf(ticket.issue)}: the wrap-up conflicted with master; resuming the implementer to merge it.`,
-    );
-    const { result, logPath } = await this.reviewStepper._runFixerStep(
-      ticketRun,
-      "implementer",
-      {
-        prompt: mergeMasterPrompt({
-          issue: ticket.issue,
-          title: ticket.title,
-          branch: workspace.branch,
-          branchedRepos: branchedReposOf(ticketRun),
-          conflict,
-        }),
-        jsonSchema: mergeMasterOutputSchema,
-      },
-    );
-    this._saveState(run);
-    if (isTurnCapped(result)) {
-      await this._snapshot(ticketRun, "wrap-up");
-      return;
-    }
-    try {
-      recordOf("merge-master", result, logPath);
-    } catch (error) {
-      if (!(error instanceof SchemaFailure)) throw error;
-      await this.haltRaiser._failureHalt(landingTicket, {
-        step: "wrap-up",
-        detail: error.message,
-        logPath: error.logPath,
-      });
-    }
-  }
-
-  // Posts the notes before the comment, so a ticket marked posted has posted both.
-  private async _postReviewList(run: Run, ticket: TrackedIssue): Promise<void> {
-    const state = ticketStateOf(run, ticket.issue);
-    if (state.isReviewListPosted) return;
-    const records = state.triage ?? [];
-    await this._postCoveredLaterNotes(ticket.issue, records);
-    const body = ticketReviewListOf({
-      ticket: ticket.issue,
-      title: ticket.title,
-      records,
-    });
-    if (body !== undefined && !(await this._hasReviewList(run, ticket.issue))) {
-      await this._postReviewListComment(run, ticket.issue, body);
-    }
-    state.isReviewListPosted = true;
-    this._saveState(run);
-  }
-
-  // Each checks the later ticket for its mark first, so a rerun never posts it twice.
-  private async _postCoveredLaterNotes(
-    ticket: IssueRef,
-    records: TriageRecord[],
-  ): Promise<void> {
-    const { github } = this.config;
-    for (const note of coveredLaterNotesOf(ticket, records)) {
-      const bodies = await github.commentsOf(note.issue);
-      if (bodies.some((body) => body.includes(note.mark))) continue;
-      await github.comment(note.issue, `${runnerMark}\n${note.body}`);
-    }
-  }
-
-  // The marker, not run state, is the record: a run killed after posting but before saving finds it.
-  private async _hasReviewList(
-    run: Run,
-    subject: ReviewListSubject,
-  ): Promise<boolean> {
-    const mark = reviewListMarkOf(subject);
-    const comments = await this._runnersSpecCommentsOf(run);
-    return comments.some((body) => body.includes(mark));
-  }
-
-  private async _runnersSpecCommentsOf(run: Run): Promise<string[]> {
-    const comments = await this.config.github.authoredCommentsOf(
-      run.spec.issue,
-    );
-    return comments.filter(isRunnersComment).map(({ body }) => body);
-  }
-
-  private async _postReviewListComment(
-    run: Run,
-    subject: ReviewListSubject,
-    body: string,
-  ): Promise<void> {
-    await this._comment(run, body);
-    const { items } = undecidedCountOf([body]);
-    if (this.config.knobs.reviewListCadence === "per-ticket" && items > 0) {
-      await this._announce(run, ticketPushOf(subject, items));
-    }
-  }
-
-  private _writeFacts({ run, ticket, pair, state }: LandingTicket): void {
-    const { record, configFolder, sessions, limitReadings } = state;
-    if (record === undefined) {
-      throw new Error(
-        `${issueLabelOf(ticket.issue)} reached its wrap-up with no implement record`,
-      );
-    }
-    const facts: WrapUpFacts = {
-      closingComment: record.closingComment,
-      boxesUndone: record.boxesUndone,
-      ...reviewFactsOf(state),
-      reviewRounds: 1,
-      retries: retriesOf(state),
-      pair: pairLabelOf(pair),
-      limitReadings,
-    };
-    const haltKinds = new Set(
-      haltsOfTicket(run, ticket.issue).map(({ kind }) => haltKindLabelOf(kind)),
-    );
-    if (haltKinds.size > 0) facts.halt = [...haltKinds].join(", ");
-    if (record.status === "applied") {
-      facts.reviewFixes = "skipped";
-      facts.reviewRounds = 0;
-      facts.githubWrites = record.githubWrites;
-    }
-    if (configFolder !== undefined) {
-      facts.sessions = {
-        account: this.config.knobs.account,
-        configFolder,
-        steps: sessions,
-      };
-    }
-    this.factsFile.write(ticket.issue, facts);
   }
 
   private async _stopTicket(
@@ -1139,142 +804,6 @@ export class SpecRun extends SpecRunBase {
     );
     throw new RunStop(`Stopped on ${label}: ${outcome}; rerun to retry it.`);
   }
-
-  // The gap check waits for every ticket to close, since an open one may still land what it would report; undefined once it halts.
-  private async _finish(
-    run: Run,
-    waits: Wait[],
-  ): Promise<RunResult | undefined> {
-    await this._postLandedReviewLists(run);
-    if (waits.length === 0) {
-      try {
-        await this._gapCheck(run);
-      } catch (error) {
-        if (error instanceof TicketHalted) return undefined;
-        if (error instanceof RunStop) {
-          return this._end(run, "stopped", error.message);
-        }
-        if (!(error instanceof UnhandledStop)) throw error;
-        return this._end(
-          run,
-          "stopped",
-          `The gap check ${stoppedOnTextOf(error)}. Rerun to retry it.`,
-        );
-      }
-    }
-    const message = this._withRerunLine(
-      run,
-      endMessageOf(run.landed, waits),
-      waits,
-    );
-    return this._end(
-      run,
-      "finished",
-      await this._withUndecidedLine(run, message),
-    );
-  }
-
-  // Catches a ticket that landed in a run killed before its review list was posted.
-  private async _postLandedReviewLists(run: Run): Promise<void> {
-    for (const ticket of run.tickets) {
-      const state = run.state.tickets[issueLabelOf(ticket)];
-      if (state?.step !== "landed" || state.isReviewListPosted) continue;
-      await this._postReviewList(run, await this.config.github.issueOf(ticket));
-    }
-  }
-
-  // Runs in the primary root on master, where every landed ticket's work is; it reads and writes nothing else.
-  private async _gapCheck(run: Run): Promise<void> {
-    if (await this._hasReviewList(run, gapCheckSubject)) return;
-    const answer = gapCheckAnswerOf(run);
-    if (answer?.kind === "skip") {
-      deliverGapCheckHalts(run);
-      this._saveState(run);
-      this._log(run, "The gap check was skipped on its Failure Halt's answer.");
-      return;
-    }
-    const { knobs } = this.config;
-    const tickets: GapCheckTicket[] = await Promise.all(
-      run.tickets.map((ticket) => this.config.github.issueOf(ticket)),
-    );
-    let prompt = gapCheckPrompt({
-      spec: run.spec.issue,
-      title: run.spec.title,
-      tickets,
-    });
-    if (answer?.kind === "guidance") {
-      prompt = `${prompt}\n\n${guidanceSectionOf(answer.text)}`;
-    }
-    const request: StepRequest = {
-      prompt,
-      pair: answer?.kind === "rerun" ? answer.pair : knobs.gapCheckPair,
-      account: knobs.account,
-      cwd: this.config.primaryRoot,
-      maxTurns: knobs.maxTurns.gapCheck,
-      silenceTimeoutMs: knobs.silenceTimeoutMs,
-      wallClockMs: knobs.wallClockMs.gapCheck,
-      allowedTools: knobs.allowedTools.gapCheck,
-      allowedWriteGlobs: [],
-      targets: [],
-      jsonSchema: gapCheckOutputSchema,
-    };
-    let ran = await this._runGapCheck(run, request);
-    for (
-      let retries = 0;
-      isTurnCapped(ran.result) && retries < knobs.retriesPerFailure;
-      retries += 1
-    ) {
-      ran = await this._runGapCheck(run, request);
-    }
-    const { result, logPath } = ran;
-    if (isTurnCapped(result)) {
-      const detail = turnCapDetailOf(gapCheckLabel, knobs.maxTurns.gapCheck);
-      await this._gapCheckHalt(run, { detail, logPath });
-    }
-    let record: GapCheckRecord;
-    try {
-      record = gapCheckRecordOf(recordOf(gapCheckLabel, result, logPath));
-    } catch (error) {
-      if (!(error instanceof SchemaFailure)) throw error;
-      return this._gapCheckHalt(run, {
-        detail: error.message,
-        logPath: error.logPath,
-      });
-    }
-    await this._postReviewListComment(
-      run,
-      gapCheckSubject,
-      gapCheckListOf(run.spec.title, record),
-    );
-    deliverGapCheckHalts(run);
-    this._saveState(run);
-  }
-
-  private async _runGapCheck(run: Run, request: StepRequest): Promise<RanStep> {
-    return this.stepLauncher._runSpecStep(run, gapCheckLabel, request);
-  }
-
-  // Raised on the spec issue and never counted toward the stuck detector, since the gap check belongs to no ticket.
-  private async _gapCheckHalt(
-    run: Run,
-    failure: Omit<StepFailure, "step">,
-  ): Promise<never> {
-    deliverGapCheckHalts(run);
-    raiseHalts(run, {
-      ticket: run.spec.issue,
-      drafts: [failureHaltOf({ ...failure, step: "gap-check" }, [])],
-    });
-    await this.haltRaiser._postUnpostedHalts(run);
-    throw new TicketHalted(issueLabelOf(run.spec.issue));
-  }
-
-  // Counts every review-list comment on the spec, earlier runs' included, since the developer decides them in one place.
-  private async _withUndecidedLine(run: Run, message: string): Promise<string> {
-    if (this.config.knobs.reviewListCadence !== "end-of-run") return message;
-    const count = undecidedCountOf(await this._runnersSpecCommentsOf(run));
-    if (count.items === 0) return message;
-    return `${message} ${undecidedLineOf(count)}.`;
-  }
 }
 
 // The halted ticket itself, every ticket for a `spec` scope, else the named tickets and their downstream.
@@ -1292,24 +821,6 @@ function lastAnswerAtOf(run: Run, ticket: IssueRef): string {
     ({ answer }) => answer?.at ?? "",
   );
   return times.sort().at(-1) ?? "";
-}
-
-// The latest answer the gap check hasn't acted on; a `stop spec` read on a later run is a skip.
-function gapCheckAnswerOf(run: Run): FailureAnswer | undefined {
-  const latest = haltsOf(run)
-    .filter((halt) => isGapCheckHalt(halt) && !halt.isDelivered)
-    .at(-1);
-  if (latest?.answer === undefined) return undefined;
-  if (isStopSpecAnswer(latest.answer)) return { kind: "skip" };
-  return failureAnswerOf(latest, latest.answer);
-}
-
-function deliverGapCheckHalts(run: Run): void {
-  haltsOf(run)
-    .filter(isGapCheckHalt)
-    .forEach((halt) => {
-      halt.isDelivered = true;
-    });
 }
 
 function isSkipAnswered(halt: Halt): boolean {
@@ -1365,13 +876,6 @@ function reviewEndOf({ run, ticket }: TicketRun, error: unknown): ReviewResult {
   throw error;
 }
 
-function retriesOf({ crashes = {}, redCheckResumes = 0 }: TicketState): number {
-  return Object.values(crashes).reduce(
-    (sum, count) => sum + count,
-    redCheckResumes,
-  );
-}
-
 function isRerunRetried({ outcome }: UnhandledStop): boolean {
   return rerunRetriedOutcomes.includes(outcome);
 }
@@ -1412,12 +916,6 @@ function developerWaitTextOf(label: string, downstream: string[]): string {
 
 function joinedOrNone(items: string[]): string {
   return items.length === 0 ? "none" : items.join(", ");
-}
-
-function endMessageOf(landed: IssueRef[], waits: Wait[]): string {
-  const waitingPart =
-    waits.length === 0 ? "Every ticket is closed." : `${waitsTextOf(waits)}.`;
-  return `Run ended: ${landedTextOf(landed)}. ${waitingPart}`;
 }
 
 function idleMessageOf(waits: Wait[]): string {

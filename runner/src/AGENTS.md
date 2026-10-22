@@ -10,6 +10,6 @@
   - Review, triage and fix: [`SpecRun/ReviewStepper.ts`](./SpecRun/ReviewStepper.ts).
   - Step launch and retry: [`SpecRun/StepLauncher.ts`](./SpecRun/StepLauncher.ts).
   - Halts, crashes and a ticket's downstream: [`SpecRun/HaltRaiser.ts`](./SpecRun/HaltRaiser.ts); formats and reply matching are `halts.ts`.
-  - Checks and landing: `_check`, `_redChecksOf`, `_land`, `_mergeMaster`, `_writeFacts`.
-  - Review list and gap check: `_postReviewList*`, `_gapCheck*`, `_finish`.
+  - Checks and landing: [`SpecRun/TicketLander.ts`](./SpecRun/TicketLander.ts).
+  - Review list and gap check: [`SpecRun/ReviewListPoster.ts`](./SpecRun/ReviewListPoster.ts).
 - **Test `SpecRun` through `specRunHarness.ts`**; each `SpecRun.<subject>.test.ts` covers one group, so the nearest one is the model for a new test.
