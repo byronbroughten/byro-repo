@@ -10,7 +10,6 @@ import {
   type Halt,
   haltNameOf,
   ignoredNoteOf,
-  isStopSpecAnswer,
   repliesTo,
   shortRefOf,
 } from "../halts.ts";
@@ -27,6 +26,7 @@ import {
   idListOf,
   isGapCheckHalt,
   isLaunchable,
+  isStopSpec,
   openHaltsOf,
   type Run,
   ticketStateOf,
@@ -243,10 +243,6 @@ function lastAnswerAtOf(run: Run, ticket: IssueRef): string {
 function isSkipAnswered(halt: Halt): boolean {
   if (halt.kind !== "failure" || halt.answer === undefined) return false;
   return failureAnswerOf(halt, halt.answer).kind === "skip";
-}
-
-function isStopSpec({ answer }: Halt): boolean {
-  return answer !== undefined && isStopSpecAnswer(answer);
 }
 
 function developerWaitTextOf(ticket: IssueRef, downstream: string[]): string {

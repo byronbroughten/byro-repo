@@ -17,6 +17,7 @@ import {
   failureOptions,
   type Halt,
   type HaltDraft,
+  isStopSpecAnswer,
   sessionHaltIdOf,
   shortRefOf,
   type StepFailure,
@@ -266,6 +267,14 @@ export function haltsOf(run: Run): Halt[] {
 
 export function haltsOfTicket(run: Run, ticket: IssueRef): Halt[] {
   return haltsOf(run).filter((halt) => isSameIssue(halt.ticket, ticket));
+}
+
+export function isAuthorshipHalt({ reportedAuthorship }: Halt): boolean {
+  return reportedAuthorship !== undefined;
+}
+
+export function isStopSpec({ answer }: Halt): boolean {
+  return answer !== undefined && isStopSpecAnswer(answer);
 }
 
 export function isSameIssue(first: IssueRef, second: IssueRef): boolean {
@@ -529,6 +538,13 @@ export async function runCommand(
   } catch (error) {
     return outputTailOf(error) || messageOf(error);
   }
+}
+
+export function onlyDeveloperEditsTextOf(
+  developer: string,
+  bodies: string,
+): string {
+  return `Only ${developer} may write or edit ${bodies}`;
 }
 
 export function rerunCommandOf(

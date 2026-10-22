@@ -13,6 +13,7 @@ import {
   type ProposedSlice,
   proposedSplitText,
 } from "./implementStep.ts";
+import type { BodyAuthorship } from "./IssueReader.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 import { pairNamed } from "./modelFit.ts";
 import type { IssueComment, TicketStep } from "./SpecRun.ts";
@@ -48,6 +49,8 @@ export interface Halt {
   finding?: number;
   // A Failure Halt's step, which a `retry` answer runs again.
   failedStep?: FailedStep;
+  // The authorship a launch-time check reported; answering the Halt approves just those edits.
+  reportedAuthorship?: BodyAuthorship;
   isPosted: boolean;
   answer?: HaltAnswer;
   // Set once the answer reached the resumed or fresh implementer.
@@ -66,7 +69,13 @@ export interface HaltAnswer {
 // What a Halt needs before the run numbers it.
 export type HaltDraft = Pick<
   Halt,
-  "kind" | "question" | "options" | "scope" | "finding" | "failedStep"
+  | "kind"
+  | "question"
+  | "options"
+  | "scope"
+  | "finding"
+  | "failedStep"
+  | "reportedAuthorship"
 >;
 
 export function shortRefOf({ repo, number }: IssueRef): string {
@@ -151,17 +160,25 @@ export interface StepFailure {
   logPath: string;
   // The answers offered in place of `retry`.
   options?: string[];
+  reportedAuthorship?: BodyAuthorship;
 }
 
 export const failureOptions = {
   retry: "`retry`",
   retryRecord: "`retry record`",
   moreHandoffs: "`continue +1 handoff`",
+  skip: "`skip`",
 } as const;
 
 // Any answer but `stop spec` and `skip` runs the step again with a fresh count.
 export function failureHaltOf(
-  { step, detail, logPath, options = [failureOptions.retry] }: StepFailure,
+  {
+    step,
+    detail,
+    logPath,
+    options = [failureOptions.retry],
+    reportedAuthorship,
+  }: StepFailure,
   downstream: string[],
 ): HaltDraft {
   return {
@@ -170,6 +187,7 @@ export function failureHaltOf(
     options,
     scope: downstream,
     failedStep: step,
+    reportedAuthorship,
   };
 }
 

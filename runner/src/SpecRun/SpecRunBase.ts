@@ -52,6 +52,7 @@ import {
   type IssueComment,
   isTreeKept,
   type LandingTicket,
+  onlyDeveloperEditsTextOf,
   readyLabel,
   rerunCommandOf,
   type Run,
@@ -294,7 +295,7 @@ export class SpecRunBase {
       return [`${issueLabelOf(issue.issue)} (${reason})`];
     });
     if (offenders.length === 0) return undefined;
-    return `Only ${developer} may write or edit the spec and each open ${readyLabel} ticket; refused ${offenders.join(", ")}.`;
+    return `${onlyDeveloperEditsTextOf(developer, `the spec and each open ${readyLabel} ticket`)}; refused ${offenders.join(", ")}.`;
   }
 
   protected async _end(
