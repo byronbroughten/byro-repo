@@ -1,4 +1,4 @@
-import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -16,7 +16,6 @@ import {
   greened,
   haltComments,
   implemented,
-  implementResultOf,
   masterSubjects,
   primaryOf,
   progressLines,
@@ -24,21 +23,19 @@ import {
   refOf,
   resultOf,
   reviewed,
+  runStatePath,
   scriptUsage,
   spec,
   specRun,
   stateFolder,
   throws,
+  ticketFacts,
   ticketState,
   timed,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
 
 useSpecRunHarness();
-
-function runStatePath(): string {
-  return join(stateFolder(), "byro-repo-213.run.json");
-}
 
 describe("run's crash retries", () => {
   it("saves a crashed implement step's uncommitted work to a backup branch, resets the tree and resumes the session", async () => {
@@ -70,10 +67,7 @@ describe("run's crash retries", () => {
     expect(retry?.prompt).toMatch(
       /^The previous run was interrupted; continue/,
     );
-    const facts = JSON.parse(
-      readFileSync(join(stateFolder(), "byro-repo-1.facts.json"), "utf8"),
-    ) as { retries: number };
-    expect(facts.retries).toBe(1);
+    expect(ticketFacts().retries).toBe(1);
   });
 
   it("relaunches a step whose adapter throws with the same prompt and no session", async () => {
@@ -299,29 +293,17 @@ describe("run's retries across a rerun", () => {
 });
 
 describe("run's Stop wording", () => {
-  it("tells the developer a rerun won't retry an implement handoff", async () => {
+  it("tells the developer a rerun won't retry a step error", async () => {
     addSpec([1]);
+    const errored: StepResult = {
+      ...resultOf(undefined),
+      output: { status: "none" },
+      exitSubtype: "error_max_budget_usd",
+    };
 
-    const handedOff = implementResultOf({
-      status: "handoff",
-      branches: [],
-      closingComment: "",
-      boxesUndone: [],
-      blockers: [],
-      handoff: {
-        conclusion: "Half done.",
-        filesToOpen: [],
-        ruledOut: [],
-        filesChanged: [],
-        stillFailing: [],
-      },
-    });
+    const result = await specRun(FakeAgentStep.init(errored)).run(spec);
 
-    const result = await specRun(FakeAgentStep.init(handedOff)).run(spec);
-
-    expect(result.message).toBe(
-      "Stopped on byro-repo #1: an implement handoff.",
-    );
+    expect(result.message).toBe("Stopped on byro-repo #1: a step error.");
     expect(github.comments[0]?.body).toContain(
       "a rerun won't retry it. Finish and land it by hand",
     );

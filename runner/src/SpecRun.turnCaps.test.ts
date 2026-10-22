@@ -143,7 +143,7 @@ describe("run's implement turn cap", () => {
     const [resumed] = rerunStep.requests;
     expect(resumed?.resumeSessionId).toBe("capped-session");
     expect(resumed?.maxTurns).toBe(50);
-    expect(resumed?.prompt).toBe(moreTurnsPrompt(50));
+    expect(resumed?.prompt).toBe(moreTurnsPrompt(50, true));
   });
 
   it("halts again on the extra turns' cap when the resumed session hits it", async () => {

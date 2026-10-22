@@ -24,6 +24,14 @@ _Avoid_: record, cache, green mark
 The structured output an agent step returns, validated against the runner's schema: the implement record from the implement step and one triage record per finding from finding triage. A record failing the schema gets one retry.
 _Avoid_: report, result, output
 
+**Handoff**:
+An implement step's ending that passes unfinished work, with a written account of it, to a fresh implement step on the same ticket. A ticket past its handoff cap gets a Failure Halt saying to split it.
+_Avoid_: retry, restart
+
+**Facts file**:
+What one ticket's landing reads: where its work is, how it went and what to say when closing it. The runner writes it during a run, and an interactive session's tooling writes it during that session; an agent never writes it.
+_Avoid_: wrap-up input, outcome file
+
 **Finding triage**:
 The step after review that gives each review finding a verdict, as one triage record. It is skipped when review finds nothing.
 _Avoid_: classification, judging
@@ -49,12 +57,15 @@ The verdict that leaves the finding for the developer on the review list: `decis
 _Avoid_: Defer, postpone, backlog
 
 **Halt**:
-The verdict that blocks the tickets in its scope until the developer answers: named later tickets and their downstream, or `spec`. A fixer's give-up or a blocker in the implement record is one too. It is posted as a spec-issue comment and a push.
+The verdict that blocks the tickets in its scope until the developer answers: named later tickets and their downstream, or `spec`. A fixer's give-up or a blocker in the implement record is one too. It is posted as a spec-issue comment and a push; an interactive session's review of its own ticket posts its Halts with no push and takes the answers in the session.
 _Avoid_: pause, block, question
 
 **Failure Halt**:
-A Halt raised because a step failed, not by a verdict: a second crash, a schema failure, red checks on a green master, an implement step's turn cap. It offers `retry` and `stop spec`, and free text such as `rerun on <pair>` or `skip`.
+A Halt raised because a step failed, not by a verdict: a second crash, a schema failure, red checks on a green master, an implement step's turn cap. It offers `retry` and `stop spec`, and free text such as `rerun on <pair>` or `skip`; a ticket past its handoff cap gets one offering `continue +1 handoff` in place of `retry`.
 _Avoid_: error, crash
+
+**Split Halt**:
+A Halt raised in place of a fresh implement step when a handoff proposes splitting the ticket, carrying the proposed slices. The developer splits the ticket, then answers `continue`. It is not a Failure Halt, so the stuck detector ignores it.
 
 **Stop**:
 The run ends early: on a failure no answer can fix inside the run (GitHub or `claude` unreachable or logged out, a clone missing or dirty, a red master, every account past its weekly reserve, or a runner exception), or after the current ticket on a stop request (`npm run runner -- stop`) or a `stop spec` answer, which leaves a halted ticket committed and unlanded with its other Halts open. Rerunning resumes it.
@@ -96,6 +107,10 @@ _Avoid_: scratch workspace, one-off workspace
 A Claude session the developer drives, as opposed to a run's agent steps.
 _Avoid_: hand session, manual session
 
+**Supervisor**:
+An interactive session that launches or rejoins one run, explains each of its events to the developer, and posts replies the developer approved. It never edits code or holds a lease.
+_Avoid_: monitor, watcher, babysitter
+
 **Lease**:
 A run's or interactive session's hold on one workspace, which keeps every other run and session out of it until the holder moves on, ends or closes out. A lease whose holder has died is abandoned, and the next taker takes it over.
 _Avoid_: lock, claim
@@ -105,7 +120,7 @@ The one person whose text is Trusted text, under any of their logins: their GitH
 _Avoid_: owner
 
 **Trusted text**:
-Text an agent may take as instructions: text the developer wrote and nobody else edited, on GitHub or in a Doc or Sheet, or content committed to master in one of the developer's repos. A Sheet's cell values are data even so.
+Text an agent may take as instructions: text the developer wrote, or approved word for word before it was posted, and nobody else edited, on GitHub or in a Doc or Sheet, or content committed to master in one of the developer's repos. A Sheet's cell values are data even so.
 _Avoid_: safe input, verified text
 
 **Untrusted text**:

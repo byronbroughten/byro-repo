@@ -1,6 +1,12 @@
-// Lands one ticket from its facts file in .runner/<repo>-<n>.facts.json, or a session workspace's branches with no facts
-// file; --keep lands mid-session and keeps the workspace. A rerun skips the steps already done.
-// Usage: npm run wrap-up -- (<repo> <n> | --session <slug> [--keep]).
+// Lands one ticket's issue branches with the facts in .runner/<repo>-<n>.facts.json, or a session workspace's branches
+// with no facts file; --keep lands mid-session and keeps the workspace. An interactive ticket passes its closing facts
+// as arguments, and --no-code lands a ticket with no branch. A rerun skips the steps already done.
+import { parseArgs } from "node:util";
+
+import type {
+  ClosingFacts,
+  UndoneBox,
+} from "@byronbroughten/spec-runner/FactsFile";
 import {
   issueLabelOf,
   workspaceLabelOf,
@@ -12,7 +18,7 @@ import { nearestClaudeAncestor } from "./claudeAncestor.ts";
 import { wrapUpConfig } from "./runnerConfig.ts";
 
 const usage =
-  "Usage: npm run wrap-up -- (<repo> <n> | --session <slug> [--keep])";
+  'Usage: npm run wrap-up -- (<repo> <n> [--closing "…" [--undone "<box>: <reason>"]...] [--no-code] | --session <slug> [--keep])';
 
 try {
   const args = process.argv.slice(2);
@@ -30,23 +36,65 @@ try {
   process.exitCode = 1;
 }
 
-async function landIssue([repo, number]: string[]): Promise<void> {
-  if (repo === undefined || !Number.isInteger(Number(number))) {
+async function landIssue(args: string[]): Promise<void> {
+  const { positionals, values } = parseArgs({
+    args,
+    allowPositionals: true,
+    options: {
+      closing: { type: "string" },
+      undone: { type: "string", multiple: true, default: [] },
+      "no-code": { type: "boolean", default: false },
+    },
+  });
+  const [repo, number, ...rest] = positionals;
+  if (
+    repo === undefined ||
+    !Number.isInteger(Number(number)) ||
+    rest.length > 0
+  ) {
     throw new Error(usage);
   }
   const issue = { repo, number: Number(number) };
-  const result = await WrapUp.init(wrapUpConfig).run(issue);
+  const result = await WrapUp.init(wrapUpConfig).run(issue, {
+    closing: closingFactsOf(values.closing, values.undone),
+    hasNoCode: values["no-code"],
+  });
   console.log(`Landed ${issueLabelOf(issue)}: ${result.filesChanged} files.`);
   logBranchDeleteFailures(result.branchDeleteFailures);
   console.log(parentLineOf(result.parent));
 }
 
-async function landSession(args: string[]): Promise<void> {
-  const keep = args.includes("--keep");
-  const [session, ...rest] = args.filter((arg) => arg !== "--keep");
-  if (session === undefined || session.startsWith("--") || rest.length > 0) {
-    throw new Error(usage);
+function closingFactsOf(
+  closingComment: string | undefined,
+  undone: string[],
+): ClosingFacts | undefined {
+  if (closingComment === undefined) {
+    if (undone.length > 0) throw new Error("--undone needs --closing with it");
+    return undefined;
   }
+  return { closingComment, boxesUndone: undone.map(undoneBoxOf) };
+}
+
+function undoneBoxOf(value: string): UndoneBox {
+  const separator = value.indexOf(": ");
+  if (separator === -1) {
+    throw new Error(`--undone takes "<box>: <reason>", not "${value}"`);
+  }
+  return {
+    box: value.slice(0, separator),
+    reason: value.slice(separator + 2),
+  };
+}
+
+async function landSession(args: string[]): Promise<void> {
+  const { positionals, values } = parseArgs({
+    args,
+    allowPositionals: true,
+    options: { keep: { type: "boolean", default: false } },
+  });
+  const [session, ...rest] = positionals;
+  if (session === undefined || rest.length > 0) throw new Error(usage);
+  const { keep } = values;
   const wrapUp = WrapUp.init(wrapUpConfig);
   const options = { holder: nearestClaudeAncestor() };
   const result = keep

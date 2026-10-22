@@ -93,6 +93,22 @@ describe("implementOutputSchema", () => {
     expect(validate(blocked)).toBe(true);
   });
 
+  it("accepts a handoff proposing a split", () => {
+    const proposedSplit = [{ delivers: "The prompt.", files: ["prompt.ts"] }];
+    expect(
+      validate({ ...handoff, handoff: { ...handoffFields, proposedSplit } }),
+    ).toBe(true);
+  });
+
+  it("refuses an empty proposed split", () => {
+    expect(
+      validate({
+        ...handoff,
+        handoff: { ...handoffFields, proposedSplit: [] },
+      }),
+    ).toBe(false);
+  });
+
   it("refuses a handoff missing a handoff field", () => {
     const { stillFailing: _, ...partial } = handoffFields;
     expect(validate({ ...handoff, handoff: partial })).toBe(false);
@@ -256,6 +272,12 @@ describe("implementPrompt", () => {
     const prompt = implementPrompt({ ...input, latestHandoff: handoffFields });
     expect(prompt).toContain(
       "Conclusion: The schema is done; the prompt is half written.\nFiles to open:\n- runner/src/implementStep.ts:1-80",
+    );
+  });
+
+  it("says to propose a split when less than half the ticket is done", () => {
+    expect(implementPrompt(input)).toContain(
+      "When less than half the ticket is done, also fill `proposedSplit`",
     );
   });
 

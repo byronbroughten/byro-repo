@@ -2,11 +2,14 @@
 
 export const stringSchema = { type: "string" };
 
-export function objectSchema(properties: Record<string, object>): object {
+export function objectSchema(
+  properties: Record<string, object>,
+  { optional = [] }: { optional?: string[] } = {},
+): object {
   return {
     type: "object",
     properties,
-    required: Object.keys(properties),
+    required: Object.keys(properties).filter((key) => !optional.includes(key)),
     additionalProperties: false,
   };
 }

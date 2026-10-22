@@ -1,6 +1,6 @@
 # Person and register: instances
 
-Disclosed from [`docs/writing-style.md`](../writing-style.md), "Person and register". The rules are there, one line each; this file holds the quoted instances and their sources. "Seen in" counts the reading batches, out of 6, that reported the habit ([sources](./sources.md)). "In N of 5 posts" counts the blog posts.
+Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Person and register". The rules are there, one line each; this file holds the quoted instances and their sources. "Seen in" counts the reading batches, out of 6, that reported the habit ([sources](./sources.md)). "In N of 5 posts" counts the blog posts.
 
 ## "You", "we" and "let's"
 
@@ -26,13 +26,14 @@ Disclosed from [`docs/writing-style.md`](../writing-style.md), "Person and regis
 - The developer ruled in review that plain words are the default, but a Latinate word stays when it says the intended meaning more precisely.
 - The developer kept "corroborates" in a sworn letter after the agent flagged it twice, and ruled (2026-10-05) that it is an excellent, precise word in formal pieces, such as a sworn letter or academic work, but not in blog posts for a general audience. — session 517e5e68, 2026-10-05
 
-## Everyday idioms, slightly twisted
+## Everyday idioms, slightly twisted, or a fresh image
 
 - "the total ongoing home costs would drop by a whopping $1,104 per month" — blog: Home Cost Comparison
 - "A 20% often provides good bang-for-buck in this regard" — blog: Rent vs Buy
 - "The average homeowner who pays HOA fees shells out around $250 per month" — blog: Costs of Owning a Home
 - In 5 of 5 posts. "A whopping" is in 3 of them.
 - The developer ruled in review (2026-10-02) that they now prefer idioms slightly twisted, such as "blow out of the pond".
+- Pinker, Ch. 2, PDF pp. 53–55: a stock idiom stops the reader picturing anything; playing with its literal image keeps it alive. Pinker's fresh simile (pp. 55–56) does the same job, and the developer counts either as fine (#317).
 
 ## The wry aside
 

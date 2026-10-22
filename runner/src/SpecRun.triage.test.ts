@@ -8,6 +8,7 @@ import { FakeAgentStep } from "./FakeAgentStep.ts";
 import type { TriageRecord } from "./findingTriage.ts";
 import type { FixOutcome } from "./fixStep.ts";
 import { git } from "./GitFixture.ts";
+import type { Handoff } from "./implementStep.ts";
 import {
   addSpec,
   after,
@@ -15,6 +16,7 @@ import {
   bodyWithTargets,
   github,
   greened,
+  handoffResultOf,
   implemented,
   primaryOf,
   refOf,
@@ -24,6 +26,7 @@ import {
   specRun,
   stateFolder,
   type StepScript,
+  ticketFacts,
   ticketState,
   timed,
   timingLines,
@@ -84,6 +87,20 @@ describe("run's finding triage", () => {
     });
   }
 
+  function handedOffAt(peakContext: number): StepScript {
+    const handoff: Handoff = {
+      conclusion: "Half done.",
+      filesToOpen: [],
+      ruledOut: [],
+      filesChanged: [],
+      stillFailing: [],
+    };
+    return stepOf(handoffResultOf(handoff), {
+      sessionId: "handoff-session",
+      peakContext,
+    });
+  }
+
   function triaged(...records: TriageRecord[]): StepScript {
     return stepOf(resultOf({ records }), { sessionId: "triage-session" });
   }
@@ -124,15 +141,6 @@ describe("run's finding triage", () => {
     return state.tickets["byro-repo #1"] ?? { step: "none" };
   }
 
-  function factsOf(): {
-    reviewFixes?: string;
-    proposals?: number;
-    halt?: string;
-  } {
-    const path = join(stateFolder(), "byro-repo-1.facts.json");
-    return JSON.parse(readFileSync(path, "utf8")) as ReturnType<typeof factsOf>;
-  }
-
   it("skips triage and the fix step when review finds nothing", async () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(implementedAt(90_000), reviewed());
@@ -141,7 +149,7 @@ describe("run's finding triage", () => {
 
     expect(result.kind).toBe("finished");
     expect(agentStep.requests).toHaveLength(2);
-    expect(factsOf().reviewFixes).toBe("none");
+    expect(ticketFacts().reviewFixes).toBe("none");
   });
 
   it("keeps a Dismiss, a Propose and a Halt in run state and halts with no fix step, the triage step on its own pair with no targets", async () => {
@@ -204,7 +212,10 @@ describe("run's finding triage", () => {
     expect(
       git(primaryOf("byro-repo"), "log", "--format=%s", "-3", `${merge}^2`),
     ).toBe(["Fix fix.ts", "Add one.ts", "Initial commit"].join("\n"));
-    expect(factsOf().reviewFixes).toBe("implementer");
+    expect(ticketFacts()).toMatchObject({
+      reviewFixes: "implementer",
+      whatReviewCaught: "Fixed: Line 1 is wrong. (one.ts:1).",
+    });
   });
 
   it("hands the Fix batch to the triage agent on the stronger pair once the implementer's peak reaches the ticket budget", async () => {
@@ -227,8 +238,41 @@ describe("run's finding triage", () => {
     const fixer = agentStep.requests[3];
     expect(fixer?.resumeSessionId).toBe("triage-session");
     expect(fixer?.pair).toEqual(opusMedium);
-    expect(factsOf().reviewFixes).toBe("triage");
+    expect(ticketFacts().reviewFixes).toBe("triage");
   });
+
+  it.each([
+    {
+      fixer: "implementer",
+      handoffPeak: 150_000,
+      freshPeak: 90_000,
+      resumeSessionId: "implement-session",
+    },
+    {
+      fixer: "triage",
+      handoffPeak: 90_000,
+      freshPeak: 150_000,
+      resumeSessionId: "triage-session",
+    },
+  ])(
+    "hands a fix after a handoff to the $fixer when the last implement step peaked at $freshPeak",
+    async ({ fixer, handoffPeak, freshPeak, resumeSessionId }) => {
+      addSpec([1]);
+      const agentStep = FakeAgentStep.init(
+        handedOffAt(handoffPeak),
+        implementedAt(freshPeak),
+        reviewed(findings),
+        triaged(triageRecordOf(1, "fix"), triageRecordOf(2, "dismiss")),
+        fixed("fix.ts", { finding: 1, status: "fixed" }),
+      );
+
+      const result = await specRun(agentStep).run(spec);
+
+      expect(result.kind).toBe("finished");
+      expect(agentStep.requests[4]?.resumeSessionId).toBe(resumeSessionId);
+      expect(ticketFacts().reviewFixes).toBe(fixer);
+    },
+  );
 
   it("kills a fixer that crosses the live ceiling, discards its work and hands the batch to the triage agent", async () => {
     addSpec([1]);
@@ -256,7 +300,7 @@ describe("run's finding triage", () => {
     expect(fixer?.resumeSessionId).toBe("triage-session");
     expect(fixer?.pair).toEqual(opusHigh);
     expect(fixer?.prompt).toContain("Finding 2: Line 2 is wrong.");
-    expect(factsOf().reviewFixes).toBe("triage");
+    expect(ticketFacts().reviewFixes).toBe("triage");
   });
 
   it("Stops on a step error, its work discarded, when the triage agent's fix crosses the live ceiling", async () => {
@@ -370,7 +414,7 @@ describe("run's finding triage", () => {
       expect(agentStep.requests[0]?.prompt).toContain(
         "H1: read it the first way.",
       );
-      expect(factsOf().halt).toBe("fixer give-up");
+      expect(ticketFacts().halt).toBe("fixer give-up");
     },
   );
 

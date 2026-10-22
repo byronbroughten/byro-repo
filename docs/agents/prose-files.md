@@ -4,13 +4,13 @@ Every file has one job, and each fact lives in exactly one of them. Everywhere e
 
 ## Terms
 
-- **Rules file**: an index file under `docs/`, `config/docs/` or `packages/*/docs/` of bolded one-line rules (`config/docs/code-style.md`, and the framework's `docs/code-style.md`, `docs/vocabulary.md` and `docs/design.md`, and the root's `docs/writing-style.md` and `docs/academic-writing-style.md`), with one-sentence scope, the fixed sentence on when to open reasoning, and a "When | File" table under `## Reasoning files` into its reasoning folder. A rule line carries only the rule: the bolded rule plus at most a short clause of scope or its one exception. It must be both brief and clear, and no length cap stands in for either. Examples, instances, citations and the why go in its reasoning file.
+- **Rules file**: an index file under `docs/`, `config/docs/` or `packages/*/docs/` of bolded one-line rules (`config/docs/code-style.md`, and the framework's `docs/code-style.md`, `docs/vocabulary.md` and `docs/design.md`, and the root's `docs/writing-voice.md`, `docs/writing-craft.md` and `docs/academic-writing-style.md`), with one-sentence scope, the fixed sentence on when to open reasoning, and a "When | File" table under `## Reasoning files` into its reasoning folder. A rule line carries only the rule: the bolded rule plus at most a short clause of scope or its one exception. It must be both brief and clear, and no length cap stands in for either. Examples, instances, citations and the why go in its reasoning file.
 - **Reasoning file**: a file under a rules file's `docs/<name>/` folder holding the why, examples, instances and history. It is never auto-loaded. A rules-file section with anything beyond its rules gets one.
 - **Router**: the Read-by-task table in the root AGENTS.md. It is the only one, with rows into every package.
 - **Nested AGENTS.md**: a folder's own rules, loaded when an agent works there, paired with a one-line `CLAUDE.md` holding `@AGENTS.md`.
 - **Mechanics doc**: a reference file under `docs/` or `packages/*/docs/` read by heading. It opens with a lead of 5 lines and 800 bytes or fewer, and any such file over 4 KB must have `##` headings (lint checks both; a shorter doc with no heading is read whole). Its headings are specific enough to grep, and a rule found in it moves up to a rules file or nested AGENTS.md, leaving a pointer. One that covers subjects sharing nothing is split and indexed.
 - **Enforcement ladder**: lint > path-triggered (nested AGENTS.md, a hook) > router pointer > prose.
-- **Reader-facing prose**: text written for a reader who is neither the developer nor an agent, and not for development work: shared or published Google Docs, blog posts, in-app text and academic writing. It follows [`docs/writing-style.md`](../writing-style.md).
+- **Reader-facing prose**: text written for a reader who is neither the developer nor an agent, and not for development work: shared or published Google Docs, blog posts, in-app text and academic writing. It follows [`docs/writing-voice.md`](../writing-voice.md) and [`docs/writing-craft.md`](../writing-craft.md).
 - **Derived view**: a file that restates facts whose home is elsewhere, for another audience. README.md is one.
 
 ## Map
@@ -25,10 +25,13 @@ Every file has one job, and each fact lives in exactly one of them. Everywhere e
 | `docs/agent-behavior-design.md` | Why the agent tooling (hooks, gates, delegation, this doc scheme) is shaped as it is. It never goes in the framework's `docs/design.md`. |
 | `docs/targets-and-gates.md` | The tier list of what needs a yes first, ticket targets, the `dev`/`app` targets, the agent account, and the gworkspace MCP rules. |
 | `docs/claude-code-guardrails.md` | The Claude Code hooks and project agent. |
+| `docs/pdf-pages.md` | How a piece stage reads a long PDF by page: download it, count its pages, print a page range, PDF against printed pages, and delete the download. Shared by every piece skill, since user-invoked skills can't reach each other. |
 | `docs/cursor-guardrails.md` | The Cursor hooks. |
-| `docs/writing-style.md` | The voice of reader-facing prose, one line per rule, rule only, one voice with no sections per medium. Its `## Axes` section defines the Evidence and Formality values and the Academic overlay; a rule scoped to one value starts with that value as a code tag. |
-| `docs/writing-style/*.md` | Each rule's quoted instances and sources, indexed by `docs/writing-style.md`'s "When \| File" table, plus `sources.md` for the sources read and the habits dropped. |
-| `docs/academic-writing-style.md` | Academic conventions layered on `docs/writing-style.md`, one line per rule, rule only, with APA 7 as the citation standard. |
+| `docs/writing-voice.md` | The voice of reader-facing prose, one line per rule, rule only, one voice with no sections per medium. Its `## Axes` section defines the Evidence and Formality values and the Academic overlay; a rule scoped to one value starts with that value as a code tag. |
+| `docs/writing-voice/*.md` | Each rule's quoted instances and sources, indexed by `docs/writing-voice.md`'s "When \| File" table, plus `sources.md` for the sources read and the habits dropped. |
+| `docs/writing-craft.md` | Rules any skilled writer follows in reader-facing prose, whatever their voice, one line per rule, rule only, opening with a `## Terms` section of one line per term, then the `## Precedence` rule for a clash with a Voice habit. |
+| `docs/writing-craft/*.md` | Each rule's before-and-after example and the chapter and page it came from, indexed by `docs/writing-craft.md`'s "When \| File" table. Which books were read, and when, is in `docs/writing-voice/sources.md`. |
+| `docs/academic-writing-style.md` | Academic conventions layered on `docs/writing-voice.md` and `docs/writing-craft.md`, one line per rule, rule only, with APA 7 as the citation standard. |
 | `docs/academic-writing-style/*.md` | Each rule's quoted instances and sources, indexed by `docs/academic-writing-style.md`'s "When \| File" table. |
 | `docs/agents/*.md` | Agent workflow: git, planning, delegation, issues, vendored upstream skills, handing judgements to Jev and its trial log. |
 | `README.md` | The workspace overview, a derived view for people on GitHub; it links each public clone by github.com URL, since the clones don't exist there, and names the private writing clone without a link. Nothing routes agents to it. Update it when a fact it mirrors changes (tables below). |
@@ -78,14 +81,17 @@ The same as the framework's: its docs ship with its repo, so they link only insi
 
 ### Writing (`packages/writing/`, its own repo)
 
-A private repo holding piece specs as issues; the Pieces' text lives in their Google Docs, never here. Its docs link only inside it (its own lint) and name a root doc in plain text.
+A private repo holding piece specs as issues; the Pieces' text lives in their Google Docs, apart from each Piece's Snapshot. Its docs link only inside it (its own lint) and name a root doc in plain text.
 | File | Holds |
 | --- | --- |
 | `CLAUDE.md` | The restart-at-root notice, plus `@AGENTS.md`. |
-| `AGENTS.md` | The pointer to the grilling doc, and how to implement a piece spec: the Deliverable as the text's only home, Drive IDs, when a Deliverable write needs no yes, the voice, the pointer to the wrap-up, and the four done checks. Kept short: it loads on every task there. |
-| `GLOSSARY.md` | The writing context's words: Piece, Deliverable, Supporting Material and Reference. |
-| `docs/grilling.md` | What a grill asks before a piece spec is filed, and the calibration paragraph. `/to-writing-style` adds questions to it. |
-| `docs/wrap-up.md` | The wrap-up prompt for a piece spec with no branch. |
+| `AGENTS.md` | The pointers to `/grill-piece` and the outlining guide, and how to implement a piece spec: the Deliverable as the text's working home, Drive IDs and long PDFs, when a Deliverable write needs no yes, the style sheets to apply, a Piece's branch and landing, the pointer to the Snapshot doc, and the four done checks. Kept short: it loads on every task there. |
+| `GLOSSARY.md` | The writing context's words: Piece, Deliverable, Section, Outline, Snapshot, Supporting Material and Reference. |
+| `docs/grilling.md` | What a grill asks before a piece spec is filed, the rounds rule, the calibration paragraph and the Outline that ends it. `/grill-piece` runs it; `/to-writing-style` adds questions to it. |
+| `docs/outlining.md` | How a spec's Outline is written: what each entry holds, a template's fixed Sections, and when Research revises it. |
+| `docs/wrap-up.md` | The wrap-up prompt for a Research spec, which has no branch. |
+| `docs/snapshots.md` | A Snapshot's path, its shape and how a save replaces its blocks. |
+| `snapshots/` | One Snapshot per Piece, written by `/implement-piece` only. |
 | `docs/model-fit.md` | The outcome log for piece specs: kind, pair and peak context. |
 
 ### Config (`config/`)

@@ -1,17 +1,12 @@
 // The fixture and helpers WrapUp's test files share; each file calls useWrapUpHarness() once at its top.
 
-import {
-  mkdirSync,
-  mkdtempSync,
-  realpathSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
 
+import { FactsFile, type WrapUpFacts } from "./FactsFile.ts";
 import { FakeGitHub } from "./FakeGitHub.ts";
 import { git, GitFixture } from "./GitFixture.ts";
 import {
@@ -20,7 +15,7 @@ import {
   type IssueWorkspacesConfig,
   type Workspace,
 } from "./IssueWorkspaces.ts";
-import { WrapUp, type WrapUpConfig, type WrapUpFacts } from "./WrapUp.ts";
+import { WrapUp, type WrapUpConfig } from "./WrapUp.ts";
 import { WrapUpFailure, type WrapUpFailureKind } from "./WrapUpFailure.ts";
 
 // Each class's tests pick their own fixture repos and checks; matching SpecRun's is a coincidence, not a shared fact.
@@ -138,19 +133,14 @@ export function commitIn(
 }
 
 export function writeFacts(facts: Partial<WrapUpFacts> = {}): void {
-  mkdirSync(join(temp, "state"), { recursive: true });
   const full: WrapUpFacts = {
-    branches: [{ repo: "byro-repo", branch: "issue-218-wrap-up-script" }],
     closingComment: "Landed the wrap-up script.",
     pair: "Opus medium",
     peakContext: [150_000, 90_000],
     reviewFixes: "none",
     ...facts,
   };
-  writeFileSync(
-    join(temp, "state", "byro-repo-218.facts.json"),
-    JSON.stringify(full),
-  );
+  FactsFile.init(join(temp, "state")).write(ticket, full);
 }
 
 export function commitRed(clone: string): void {

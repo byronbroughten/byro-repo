@@ -2,7 +2,7 @@
 // primary root with a worktree of every package clone inside it, so work never moves a primary checkout's branch.
 // An issue workspace is keyed by an IssueRef; a session workspace by a SessionKey, with every repo on its session branch.
 // A lease is a run's or session's hold on one workspace, a file in its root worktree's git folder so it never shows as dirty;
-// it is live while the process that took it runs on this machine, and a dead holder's lease is taken over.
+// it is live while the process that took it runs on this machine, a dead holder's lease is taken over, and a holder holds one at a time.
 // Everything repo-specific comes in as IssueWorkspacesConfig; byro-repo's values live in scripts/runner/.
 
 import { execFile } from "node:child_process";
@@ -81,7 +81,7 @@ export interface CreateOptions {
 
 export interface IssueWorkspacesConfig {
   primaryRoot: string;
-  // Repo name to its clone's path relative to the primary root; the root repo's is ".".
+  // Repo name to its clone's path relative to the primary root; the root repo's is ".". Wrap-up lands clones in this order.
   clonePaths: Record<string, string>;
   workspaceFolder: string;
   // Gitignored files symlinked from each primary clone that has them.
@@ -142,6 +142,8 @@ export interface WorkspaceStatus extends Workspace {
 
 export interface RemoveOptions {
   force?: boolean;
+  // The caller, whose own live lease doesn't block the removal.
+  holder?: LeaseHolder;
 }
 
 export class IssueWorkspaces {
@@ -200,7 +202,24 @@ export class IssueWorkspaces {
       assertLeaseFree({ path: workspace.path, lease, holder });
       if (lease) rmSync(leasePath, { force: true });
       const content = JSON.stringify({ kind, pid, startedAt });
-      if (tryCreate(leasePath, content)) return;
+      if (tryCreate(leasePath, content)) break;
+    }
+    await this._releaseOtherLeasesOf(workspace, holder);
+  }
+
+  // Only the lease goes, so the released workspace keeps its unlanded commits and dirty files.
+  private async _releaseOtherLeasesOf(
+    workspace: Workspace,
+    holder: LeaseHolder,
+  ): Promise<void> {
+    for (const { path, lease } of await this.leases()) {
+      if (
+        path !== workspace.path &&
+        lease.isLive &&
+        isSameHolder(lease, holder)
+      ) {
+        await this.releaseLease({ path });
+      }
     }
   }
 
@@ -297,11 +316,12 @@ export class IssueWorkspaces {
 
   async remove(
     workspace: Workspace,
-    { force = false }: RemoveOptions = {},
+    { force = false, holder }: RemoveOptions = {},
   ): Promise<void> {
     assertLeaseFree({
       path: workspace.path,
       lease: await this.leaseOf(workspace),
+      holder,
     });
     const worktrees = await this._repoWorktreesOf(workspace.path);
     const dirtyRepos = dirtyReposOf(worktrees);

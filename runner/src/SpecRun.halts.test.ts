@@ -1,6 +1,3 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-
 import { describe, expect, it } from "vitest";
 
 import { FakeAgentStep } from "./FakeAgentStep.ts";
@@ -20,8 +17,8 @@ import {
   reviewed,
   spec,
   specRun,
-  stateFolder,
   type StepScript,
+  ticketFacts,
   ticketState,
   timed,
   timingLines,
@@ -51,11 +48,6 @@ describe("run's Halts", () => {
     return github.comments
       .map(({ body }) => body)
       .filter((body) => /^<!-- spec-runner -->\nHalt H/.test(body));
-  }
-
-  function factsOf(): { halt?: string } {
-    const path = join(stateFolder(), "byro-repo-1.facts.json");
-    return JSON.parse(readFileSync(path, "utf8")) as ReturnType<typeof factsOf>;
   }
 
   it("posts one comment and one notice per Halt and, with nothing downstream, holds only the blocked ticket", async () => {
@@ -148,7 +140,9 @@ describe("run's Halts", () => {
       "<!-- spec-runner -->\nHalt H1 answered via a spec-issue reply.",
       "<!-- spec-runner -->\nHalt H2 answered via a spec-issue reply.",
     ]);
-    expect(factsOf().halt).toBe("gated-action blocker, spec-ambiguity blocker");
+    expect(ticketFacts().halt).toBe(
+      "gated-action blocker, spec-ambiguity blocker",
+    );
   });
 
   it("keeps the ticket halted while one of its Halts is unanswered", async () => {
@@ -238,7 +232,7 @@ describe("run's Halts", () => {
     expect(agentStep.requests[0]?.targets).toEqual([
       { kind: "spreadsheet", name: "app" },
     ]);
-    expect(factsOf().halt).toBe("denied-tool blocker");
+    expect(ticketFacts().halt).toBe("denied-tool blocker");
   });
 
   it("halts on a blocker in a committed record only after the work is reviewed, then resumes at checks", async () => {

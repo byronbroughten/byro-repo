@@ -6,10 +6,11 @@ import {
   docContentGateReason,
   docWriteDecision,
   gatedDocWrites,
-  isWritingStyleRead,
+  type WritingSheet,
+  writingSheetPaths,
 } from "./docContentGate.ts";
 import type { ToolInput } from "./hookIo.ts";
-import type { EditDecision } from "./styleGate.ts";
+import { type EditDecision, isFullDocRead } from "./styleGate.ts";
 
 // Real tool inputs carry more fields than the gate reads.
 type DocArgs = ToolInput & Record<string, unknown>;
@@ -17,12 +18,12 @@ type DocArgs = ToolInput & Record<string, unknown>;
 function write(
   toolName: string,
   toolInput: DocArgs,
-  hasReadWritingStyle = false,
+  readSheets: WritingSheet[] = [],
 ): EditDecision {
   return docWriteDecision({
     toolName: `mcp__gworkspace__${toolName}`,
     toolInput,
-    hasReadWritingStyle,
+    readSheets,
   });
 }
 const denied = { denyReason: docContentGateReason };
@@ -83,21 +84,30 @@ const formattingWrites: [string, DocArgs][] = [
 ];
 
 describe("docWriteDecision", () => {
-  it("denies each text write before docs/writing-style.md was read", () => {
+  it("denies each text write before either sheet was read", () => {
     contentWrites.forEach(([toolName, toolInput]) => {
       expect(write(toolName, toolInput), toolName).toEqual(denied);
     });
   });
 
-  it("allows each formatting-only write before the read", () => {
+  it("denies each text write when only one sheet was read", () => {
+    contentWrites.forEach(([toolName, toolInput]) => {
+      expect(write(toolName, toolInput, ["voice"]), toolName).toEqual(denied);
+      expect(write(toolName, toolInput, ["craft"]), toolName).toEqual(denied);
+    });
+  });
+
+  it("allows each formatting-only write before the reads", () => {
     formattingWrites.forEach(([toolName, toolInput]) => {
       expect(write(toolName, toolInput), toolName).toEqual(allowed);
     });
   });
 
-  it("allows every write after the read", () => {
+  it("allows every write after both sheets were read", () => {
     [...contentWrites, ...formattingWrites].forEach(([toolName, toolInput]) => {
-      expect(write(toolName, toolInput, true), toolName).toEqual(allowed);
+      expect(write(toolName, toolInput, ["craft", "voice"]), toolName).toEqual(
+        allowed,
+      );
     });
   });
 
@@ -106,7 +116,7 @@ describe("docWriteDecision", () => {
       docWriteDecision({
         toolName: "Edit",
         toolInput: { text: "x" },
-        hasReadWritingStyle: false,
+        readSheets: [],
       }),
     ).toEqual(allowed);
     expect(write("modify_sheet_values", { text: "x" })).toEqual(allowed);
@@ -114,8 +124,9 @@ describe("docWriteDecision", () => {
 });
 
 describe("the refusal reason", () => {
-  it("names the sheet, asks for a full Read, and points academic work to its sheet", () => {
-    expect(docContentGateReason).toMatch(/docs\/writing-style\.md/);
+  it("names both sheets, asks for a full Read, and points academic work to its sheet", () => {
+    expect(docContentGateReason).toMatch(/docs\/writing-voice\.md/);
+    expect(docContentGateReason).toMatch(/docs\/writing-craft\.md/);
     expect(docContentGateReason).toMatch(/full Read with no offset or limit/);
     expect(docContentGateReason).toMatch(/docs\/academic-writing-style\.md/);
     expect(docContentGateReason).toMatch(/reader-facing prose/);
@@ -123,36 +134,46 @@ describe("the refusal reason", () => {
   });
 });
 
-describe("isWritingStyleRead", () => {
+describe("a full Read of a writing sheet", () => {
   const projectDir = "/repo";
   function read(
+    sheet: WritingSheet,
     filePath: string,
     bounds: { offset?: number; limit?: number } = {},
   ): boolean {
-    return isWritingStyleRead({
-      projectDir,
-      cwd: projectDir,
-      filePath,
-      totalLines: 30,
-      ...bounds,
-    });
+    return isFullDocRead(
+      { projectDir, cwd: projectDir, filePath, totalLines: 30, ...bounds },
+      writingSheetPaths[sheet],
+    );
   }
 
-  it("is true for a full Read of docs/writing-style.md", () => {
-    expect(read("/repo/docs/writing-style.md")).toBe(true);
+  it("is true for a full Read of each sheet", () => {
+    expect(read("voice", "/repo/docs/writing-voice.md")).toBe(true);
+    expect(read("craft", "/repo/docs/writing-craft.md")).toBe(true);
     expect(
-      read("/repo/docs/writing-style.md", { offset: 1, limit: 2000 }),
+      read("craft", "/repo/docs/writing-craft.md", {
+        offset: 1,
+        limit: 2000,
+      }),
     ).toBe(true);
   });
 
-  it("is false for a partial Read of the sheet", () => {
-    expect(read("/repo/docs/writing-style.md", { limit: 10 })).toBe(false);
-    expect(read("/repo/docs/writing-style.md", { offset: 5 })).toBe(false);
+  it("is false for a partial Read of either sheet", () => {
+    expect(read("voice", "/repo/docs/writing-voice.md", { limit: 10 })).toBe(
+      false,
+    );
+    expect(read("craft", "/repo/docs/writing-craft.md", { offset: 5 })).toBe(
+      false,
+    );
   });
 
   it("is false for a Read of another file", () => {
-    expect(read("/repo/docs/academic-writing-style.md")).toBe(false);
-    expect(read("/repo/docs/writing-style/register.md")).toBe(false);
+    expect(read("voice", "/repo/docs/writing-craft.md")).toBe(false);
+    expect(read("craft", "/repo/docs/writing-voice.md")).toBe(false);
+    expect(read("voice", "/repo/docs/academic-writing-style.md")).toBe(false);
+    expect(read("craft", "/repo/docs/academic-writing-style.md")).toBe(false);
+    expect(read("voice", "/repo/docs/writing-voice/register.md")).toBe(false);
+    expect(read("craft", "/repo/docs/writing-craft/sentences.md")).toBe(false);
   });
 });
 

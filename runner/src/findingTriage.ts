@@ -293,6 +293,25 @@ export function haltScopeOf(record: TriageRecord): HaltScope {
   return record.haltScope ?? "spec";
 }
 
+const caughtLabels = {
+  fix: "Fixed",
+  propose: "Proposed",
+  halt: "Halted",
+} as const satisfies Partial<Record<Verdict, string>>;
+
+// The outcome row's text, after a fixer's give-ups are rewritten; undefined when the review kept nothing.
+export function whatReviewCaughtOf(
+  records: TriageRecord[],
+): string | undefined {
+  const groups = Object.entries(caughtLabels).flatMap(([verdict, label]) => {
+    const caught = records
+      .filter((record) => record.verdict === verdict)
+      .map(({ claim, where }) => `${claim} (${where})`);
+    return caught.length === 0 ? [] : [`${label}: ${caught.join("; ")}.`];
+  });
+  return groups.length === 0 ? undefined : groups.join(" ");
+}
+
 // A `<repo>#<n>` reference, as `coveredBy` names its ticket.
 export function issueRefOf(text: string | undefined): IssueRef | undefined {
   const match = /^([\w.-]+)#(\d+)$/.exec(text?.trim() ?? "");

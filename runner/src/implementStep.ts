@@ -2,15 +2,15 @@
 // recorded in byro-repo's .claude/skills/upstream.json, and the implement record it returns.
 // AgentStep.ts launches the step; StepStream.ts checks the output against implementOutputSchema.
 
-import { stepReadLine } from "./IssueReader.ts";
-import type { IssueRef } from "./IssueWorkspaces.ts";
-import { codeListOf } from "./promptText.ts";
-import { arraySchema, objectSchema, stringSchema } from "./recordSchema.ts";
 import {
   type GitHubWrite,
   gitHubWriteActions,
   type UndoneBox,
-} from "./WrapUp.ts";
+} from "./FactsFile.ts";
+import { stepReadLine } from "./IssueReader.ts";
+import type { IssueRef } from "./IssueWorkspaces.ts";
+import { codeListOf } from "./promptText.ts";
+import { arraySchema, objectSchema, stringSchema } from "./recordSchema.ts";
 
 export type ImplementRecord =
   CommittedRecord | AppliedRecord | BlockedRecord | HandoffRecord;
@@ -62,6 +62,13 @@ export interface Handoff {
   ruledOut: string[];
   filesChanged: string[];
   stillFailing: string[];
+  // Set when less than half the ticket is done: the remaining work, which the developer splits the ticket into.
+  proposedSplit?: ProposedSlice[];
+}
+
+export interface ProposedSlice {
+  delivers: string;
+  files: string[];
 }
 
 export interface ImplementPromptInput {
@@ -86,9 +93,13 @@ export const handoffOnlyPrompt =
 export const recordOnlyPrompt =
   "Your implement record failed the runner's check. Change no files: return the implement record again, matching the schema, with each branch's current sha. Nobody is watching this session: never ask a question or wait for an answer.";
 
+export const treeResetNote =
+  "Any uncommitted work was set aside on a backup branch and the tree reset to its last commit, so check what is committed first.";
+
 // Sent with --resume on a `resume +N turns` answer, after the step hit its turn cap.
-export function moreTurnsPrompt(turns: number): string {
-  return `You hit your turn cap; the developer gave you ${turns} more turns. Any uncommitted work was set aside on a backup branch and the tree reset to its last commit, so check what is committed first. Finish the ticket as before and return the implement record. Nobody is watching this session: never ask a question or wait for an answer.`;
+export function moreTurnsPrompt(turns: number, isTreeReset: boolean): string {
+  const resetNote = isTreeReset ? ` ${treeResetNote}` : "";
+  return `You hit your turn cap; the developer gave you ${turns} more turns.${resetNote} Finish the ticket as before and return the implement record. Nobody is watching this session: never ask a question or wait for an answer.`;
 }
 
 export function implementPrompt(input: ImplementPromptInput): string {
@@ -148,7 +159,7 @@ const promptSections = {
 
   handoff: `## If a context nudge fires
 
-Finish the step in hand, then stop: commit nothing, post nothing, and return status \`handoff\` with no branches and every \`handoff\` field: \`conclusion\`, \`filesToOpen\` (path and line range), \`ruledOut\`, \`filesChanged\`, and \`stillFailing\` (empty when the code is green). A handoff is cumulative: carry over whatever still matters from any handoff you started from.`,
+Finish the step in hand, then stop: commit nothing, post nothing, and return status \`handoff\` with no branches and every \`handoff\` field: \`conclusion\`, \`filesToOpen\` (path and line range), \`ruledOut\`, \`filesChanged\`, and \`stillFailing\` (empty when the code is green). A handoff is cumulative: carry over whatever still matters from any handoff you started from. When less than half the ticket is done, also fill \`proposedSplit\` with the remaining work as slices, each with what it \`delivers\` and the \`files\` it changes, so the developer can split the ticket before a fresh step goes on.`,
 } as const;
 
 function previousHandoffSection(handoff: Handoff): string {
@@ -157,6 +168,29 @@ function previousHandoffSection(handoff: Handoff): string {
 The tree holds uncommitted work from the previous step. Don't reset, stash, check out or clean it; build on it.
 
 ${handoffText(handoff)}`;
+}
+
+// The runner posts it on the ticket; the `session:` line ties it to the step's transcript.
+export function handoffCommentOf(handoff: Handoff, sessionId: string): string {
+  const { proposedSplit } = handoff;
+  return [
+    "## Handoff",
+    "The implement step handed this ticket to a fresh implement step.",
+    handoffText(handoff),
+    ...(proposedSplit === undefined
+      ? []
+      : [`Proposed split:\n${proposedSplitText(proposedSplit)}`]),
+    `session: ${sessionId}`,
+  ].join("\n\n");
+}
+
+export function proposedSplitText(slices: ProposedSlice[]): string {
+  return slices
+    .map(
+      ({ delivers, files }, index) =>
+        `${index + 1}. ${delivers} (${files.join(", ")})`,
+    )
+    .join("\n");
 }
 
 function handoffText(handoff: Handoff): string {
@@ -220,15 +254,25 @@ const gitHubWriteSchema = objectSchema({
   summary: stringSchema,
 });
 
-const handoffSchema = objectSchema({
-  conclusion: stringSchema,
-  filesToOpen: arraySchema(
-    objectSchema({ path: stringSchema, lines: stringSchema }),
-  ),
-  ruledOut: arraySchema(stringSchema),
-  filesChanged: arraySchema(stringSchema),
-  stillFailing: arraySchema(stringSchema),
-});
+const handoffSchema = objectSchema(
+  {
+    conclusion: stringSchema,
+    filesToOpen: arraySchema(
+      objectSchema({ path: stringSchema, lines: stringSchema }),
+    ),
+    ruledOut: arraySchema(stringSchema),
+    filesChanged: arraySchema(stringSchema),
+    stillFailing: arraySchema(stringSchema),
+    proposedSplit: arraySchema(
+      objectSchema({
+        delivers: stringSchema,
+        files: arraySchema(stringSchema),
+      }),
+      { minItems: 1 },
+    ),
+  },
+  { optional: ["proposedSplit"] },
+);
 
 // One variant per status, so only the status that needs a field carries it.
 const recordVariantsSchema = {

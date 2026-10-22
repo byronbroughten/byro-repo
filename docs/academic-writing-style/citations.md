@@ -1,11 +1,11 @@
 # Citations: instances
 
-Disclosed from [`docs/academic-writing-style.md`](../academic-writing-style.md), "Citations". The rules are there, one line each; this file holds the quoted instances and their sources. "Seen in" counts the reading batches, out of 6, that reported the habit ([sources](../writing-style/sources.md)).
+Disclosed from [`docs/academic-writing-style.md`](../academic-writing-style.md), "Citations". The rules are there, one line each; this file holds the quoted instances and their sources. "Seen in" counts the reading batches, out of 6, that reported the habit ([sources](../writing-voice/sources.md)).
 
 ## Cite every borrowed fact
 
 - "Paylocity was sued by one of its clients for allegedly miscalculating staff hours and/or wages (Kasler, 2024)." — BB - Stratigic Analysis and Recommendations for Paylocity
-- Seen in 6 of 6. Only the habit of citing is kept. The samples format citations inconsistently ([dropped habits](../writing-style/sources.md#dropped-habits)), so the format comes from APA 7, not from them.
+- Seen in 6 of 6. Only the habit of citing is kept. The samples format citations inconsistently ([dropped habits](../writing-voice/sources.md#dropped-habits)), so the format comes from APA 7, not from them.
 
 ## Name the source in the sentence
 

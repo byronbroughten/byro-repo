@@ -42,11 +42,13 @@ export interface RunKnobs {
   retriesPerFailure: number;
   // The turns a `resume +N turns` answer with no N gives an implementer that hit its turn cap.
   extraTurns: number;
+  // How many handoffs, a backstop's included, a ticket may take before a Failure Halt says to split it.
+  handoffsPerTicket: number;
   // How many tickets in a row may end on a Failure Halt before the run Stops as stuck.
   stuckFailureHalts: number;
   // The resumed implementer fixes the Fix batch only while its peak context is under this.
   ticketBudget: number;
-  // A fixer whose context crosses this is killed and its batch handed to the triage agent.
+  // A step crossing this is killed: an implementer is resumed for a handoff, a fixer's batch goes to the triage agent.
   liveCeiling: number;
   // Finding triage's pair; the triage agent fixes on the stronger of it and the ticket's.
   triagePair: Pair;
@@ -101,6 +103,7 @@ export const defaultRunKnobs: RunKnobs = {
   },
   retriesPerFailure: 1,
   extraTurns: 100,
+  handoffsPerTicket: 2,
   stuckFailureHalts: 2,
   ticketBudget: 150_000,
   liveCeiling: 180_000,

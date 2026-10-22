@@ -8,7 +8,11 @@ import {
   haltScopeOf,
   type TriageRecord,
 } from "./findingTriage.ts";
-import type { Blocker } from "./implementStep.ts";
+import {
+  type Blocker,
+  type ProposedSlice,
+  proposedSplitText,
+} from "./implementStep.ts";
 import type { BodyAuthorship } from "./IssueReader.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 import { pairNamed } from "./modelFit.ts";
@@ -26,12 +30,13 @@ const kindLabels = {
   "spec-ambiguity": "spec-ambiguity blocker",
   "denied-tool": "denied-tool blocker",
   failure: "Failure Halt",
+  split: "Split Halt",
 } as const;
 
 export type HaltKind = keyof typeof kindLabels;
 
 export interface Halt {
-  // `H<n>`, numbered across the spec's run; a reply names it.
+  // `H<n>`, numbered across the spec's run, which reads a reply naming it; `S<ticket>.<k>` for a session's review.
   id: string;
   // The halted ticket.
   ticket: IssueRef;
@@ -93,6 +98,44 @@ export function blockerHaltOf(
   return { kind, question: detail, options, scope: downstream };
 }
 
+// Any answer but `stop spec` is a `continue`: a fresh step on the ticket's body as it then reads.
+export function splitHaltOf(
+  slices: ProposedSlice[],
+  downstream: string[],
+): HaltDraft {
+  return {
+    kind: "split",
+    question: `The implement step handed off with less than half the ticket done, and proposed splitting the rest into:\n\n${proposedSplitText(slices)}\n\n${splitTheTicketPhraseOf("`continue`")}: a fresh implement step picks up from the handoff on the ticket's body as it then reads.`,
+    options: ["`continue`"],
+    scope: downstream,
+  };
+}
+
+export interface HandoffCap {
+  ticket: IssueRef;
+  count: number;
+  cap: number;
+  // A split the capped handoff proposed; empty when none, or a Halt already carried it.
+  slices: ProposedSlice[];
+}
+
+export function handoffCapDetailOf({
+  ticket,
+  count,
+  cap,
+  slices,
+}: HandoffCap): string {
+  const split =
+    slices.length > 0
+      ? ` The last handoff proposed splitting the rest into:\n\n${proposedSplitText(slices)}\n\n`
+      : " ";
+  return `${issueLabelOf(ticket)} handed off ${count} times, past its cap of ${cap}.${split}${splitTheTicketPhraseOf(failureOptions.moreHandoffs)}.`;
+}
+
+function splitTheTicketPhraseOf(answer: string): string {
+  return `Split the ticket, narrowing its body and moving the rest to new tickets, then answer ${answer}`;
+}
+
 // The fixer's give-ups arrive already rewritten as Halt records by giveUpRecordOf().
 export function triageHaltOf(
   record: TriageRecord,
@@ -123,6 +166,7 @@ export interface StepFailure {
 export const failureOptions = {
   retry: "`retry`",
   retryRecord: "`retry record`",
+  moreHandoffs: "`continue +1 handoff`",
   skip: "`skip`",
 } as const;
 
@@ -151,6 +195,7 @@ export type FailureAnswer =
   | { kind: "retry" }
   | { kind: "retry-record" }
   | { kind: "more-turns"; turns: number | undefined }
+  | { kind: "more-handoffs" }
   | { kind: "rerun"; pair: Pair }
   | { kind: "skip" }
   | { kind: "guidance"; text: string };
@@ -169,6 +214,7 @@ export function failureAnswerOf(
   if (answerWords === "retry") return { kind: "retry" };
   if (answerWords === "retry record") return { kind: "retry-record" };
   if (answerWords === "skip") return { kind: "skip" };
+  if (answerWords === "continue +1 handoff") return { kind: "more-handoffs" };
   const moreTurns = /^resume \+(\d+)? ?turns?$/.exec(answerWords);
   if (moreTurns !== null) {
     const [, turns] = moreTurns;
@@ -211,16 +257,62 @@ function haltHeadingOf(halt: Halt): string {
 }
 
 export function haltCommentOf(post: HaltPost): string {
+  const { halt } = post;
+  return haltCommentWith(post, {
+    options: [...halt.options, stopSpecOption],
+    answerLine: `Answer with a reply naming \`${halt.id}\`: an option, or your own words.`,
+  });
+}
+
+// Never a run's `H<n>`, so a run never reads a reply to one.
+export function sessionHaltIdOf(ticket: IssueRef, index: number): string {
+  return `${sessionHaltPrefixOf(ticket)}${index}`;
+}
+
+// The ticket's session Halts among the spec's comments, one per comment.
+export function sessionHaltCountOf(
+  ticket: IssueRef,
+  comments: string[],
+): number {
+  const heading = `**Halt ${sessionHaltPrefixOf(ticket)}`;
+  return comments.filter((body) => body.includes(heading)).length;
+}
+
+function sessionHaltPrefixOf({ number }: IssueRef): string {
+  return `S${number}.`;
+}
+
+// No run reads a reply to it, and with no run going there is no spec to stop.
+export function sessionHaltCommentOf(post: HaltPost): string {
+  const { halt } = post;
+  return haltCommentWith(post, {
+    // A Failure Halt's answers are a run's, and a review keeps no state to resume.
+    options:
+      halt.kind === "failure"
+        ? ["Review the ticket again once the failure's cause is fixed."]
+        : halt.options,
+    answerLine:
+      "Answer it in the interactive session that ran the review; no run reads a reply to it.",
+  });
+}
+
+interface HaltCommentParts {
+  options: string[];
+  answerLine: string;
+}
+
+function haltCommentWith(
+  post: HaltPost,
+  { options, answerLine }: HaltCommentParts,
+): string {
   const { halt, ticketTitle } = post;
-  const options = [...halt.options, stopSpecOption].map(
-    (option, index) => `${index + 1}. ${option}`,
-  );
+  const numbered = options.map((option, index) => `${index + 1}. ${option}`);
   return [
     `${haltHeadingOf(halt)} · ${haltLabelOf(post)}, "${ticketTitle}" · ${haltKindLabelOf(halt.kind)}`,
     halt.question,
     `Blocks: ${scopeTextOf(halt.scope)}.`,
-    `Options:\n${options.join("\n")}`,
-    `Answer with a reply naming \`${halt.id}\`: an option, or your own words.`,
+    `Options:\n${numbered.join("\n")}`,
+    answerLine,
   ].join("\n\n");
 }
 

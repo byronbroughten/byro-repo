@@ -1,4 +1,4 @@
-# Writing style
+# Writing voice
 
 The developer's voice for reader-facing prose ([defined in `prose-files.md`](./agents/prose-files.md#terms)), drawn from their own writing, plus the rules they endorsed from Strunk and White's *The Elements of Style*; academic work layers [`academic-writing-style.md`](./academic-writing-style.md) on top. It calls its reader "the reader", and says "app user" only for the app's user.
 
@@ -16,15 +16,15 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 
 | When | File |
 | --- | --- |
-| A figure, a calculation, a projection or a caveat | [`docs/writing-style/numbers.md`](./writing-style/numbers.md) |
-| An example, a comparison, a term, a reason | [`docs/writing-style/explaining.md`](./writing-style/explaining.md) |
-| A borrowed fact, a quote | [`docs/writing-style/borrowing.md`](./writing-style/borrowing.md) |
-| A feature, a competitor, the product's story | [`docs/writing-style/product.md`](./writing-style/product.md) |
-| A hedge, a weakness, a trade-off | [`docs/writing-style/candor.md`](./writing-style/candor.md) |
-| A section opening, a recommendation, a list | [`docs/writing-style/structure.md`](./writing-style/structure.md) |
-| Sentence length, dashes, colons, connectives | [`docs/writing-style/sentences.md`](./writing-style/sentences.md) |
-| Person, contractions, word choice | [`docs/writing-style/register.md`](./writing-style/register.md) |
-| Where the rules came from, or what was dropped | [`docs/writing-style/sources.md`](./writing-style/sources.md) |
+| A figure, a calculation, a projection or a caveat | [`docs/writing-voice/numbers.md`](./writing-voice/numbers.md) |
+| An example, a comparison, a term, a reason | [`docs/writing-voice/explaining.md`](./writing-voice/explaining.md) |
+| A borrowed fact, a quote | [`docs/writing-voice/borrowing.md`](./writing-voice/borrowing.md) |
+| A feature, a competitor, the product's story | [`docs/writing-voice/product.md`](./writing-voice/product.md) |
+| A hedge, a weakness, a trade-off | [`docs/writing-voice/candor.md`](./writing-voice/candor.md) |
+| A section opening, a recommendation, a list | [`docs/writing-voice/structure.md`](./writing-voice/structure.md) |
+| Sentence length, dashes, colons, connectives | [`docs/writing-voice/sentences.md`](./writing-voice/sentences.md) |
+| Person, contractions, word choice | [`docs/writing-voice/register.md`](./writing-voice/register.md) |
+| Where the rules came from, or what was dropped | [`docs/writing-voice/sources.md`](./writing-voice/sources.md) |
 
 ## Numbers and evidence
 
@@ -101,7 +101,7 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - **Combine a run of short sentences that build one point into a single sentence; arithmetic keeps its steps.**
 - **Never put a short sentence before a calculation or example that only names what it will show ("A rate rise cuts the return."); let the sentence that shows it say so.**
 - **Write an event as a clause with its own verb ("when estimates are made"), not a packed noun phrase ("the Planning estimates"), even when the clause runs longer; split a sentence whose modifiers nest into plain joined clauses.**
-- **Use the active voice, unless the actor is unknown or beside the point.**
+- **Use the active voice, unless the actor is unknown or beside the point, or the passive keeps given before new.**
 - **Use the serial comma ("reliability, trustworthiness, and ingenuity").**
 - **Order a list to build, ending on its weightiest item ("in my rental units, around my tenants, and in my home").**
 - **Use paired em dashes for a mid-sentence aside or example list when commas would confuse.**
@@ -121,5 +121,5 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - `formal` **Keep a Latinate word that says the meaning more precisely ("corroborates").**
 - **Call the person a piece is about by name, not "he" or "him", in each paragraph's claim and key sentences**, so no reader wonders who is meant.
 - **Give a phase, stage or deadline its noun ("the Build phase", "the finish date"), not a bare shorthand ("Build", "the finish"), and never make it the actor ("what Planning can see").**
-- `general` **Prefer everyday idioms, often slightly twisted ("blow out of the pond"), to neutral business phrasing.**
+- `general` **Prefer everyday idioms, often slightly twisted ("blow out of the pond"), or a fresh, concrete image, to neutral business phrasing.**
 - `general` **Allow the occasional wry aside, in parentheses or between dashes.**

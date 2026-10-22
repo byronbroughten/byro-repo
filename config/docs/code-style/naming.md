@@ -4,6 +4,10 @@ Style fragment. The one-line rules live in [`docs/code-style.md`](../code-style.
 
 One heading per naming rule, in docs/code-style.md's order: grep `^## ` for the rule you're applying and read that section.
 
+## A collaborator is `<Subject><Role>`
+
+**A collaborator is named `<Subject><Role>`, plus the tier suffix where the codebase has tiers.** The subject is a word from the glossary of the code it serves, saying which part of the work it handles; the role is an agent noun saying what it does there (`TicketLander`, `HaltRaiser`), or a plain descriptive noun where no verb fits (`RunLoop`). It takes no coordinator prefix, since the subfolder named after the coordinator already groups them. A codebase with tiers ends the name on the tier word, as its own naming doc says; the runner has no tiers, so its collaborators stop at the role. A role can't reuse another glossary term's word: `SpecRun`'s split has no `Implementer`, the implement agent's name as a fixer, and nothing ending in `Runner`, the glossary's word for the whole tool (#344).
+
 ## Prefer TS/JS vocabulary over a made-up adjective
 
 **Prefer a term from TS/JS's own vocabulary over a made-up adjective, once one fits.** `PureValue` named the `string | number | boolean` family after a vague "pure" adjective; renamed to `PrimitiveValue` once it was clear that's exactly what the set is — no invented term needed when the language already has one.

@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { FactsFile } from "./FactsFile.ts";
 import { git } from "./GitFixture.ts";
 import { IssueWorkspaces } from "./IssueWorkspaces.ts";
 import {
@@ -118,6 +119,35 @@ describe("run", () => {
     );
   });
 
+  it("computes an interactive ticket's row from its recorded sessions, with Limit used unrecorded", async () => {
+    const configFolder = join(temp, "account-2");
+    cpSync(
+      join(import.meta.dirname, "..", "fixtures", "transcripts"),
+      join(configFolder, "projects", "-workspace-byro-repo"),
+      { recursive: true },
+    );
+    const workspace = await workspaceWith();
+    commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
+    const implementSession = (sessionId: string) => ({
+      account: 2,
+      configFolder,
+      step: { agent: "implement", sessionId } as const,
+    });
+    FactsFile.init(join(temp, "state"))
+      .addSession(ticket, implementSession("session-implement-1"))
+      .addSession(ticket, implementSession("session-implement-2"))
+      .setReviewFacts(ticket, { reviewFixes: "none" })
+      .setClosingFacts(ticket, { closingComment: "Landed the hook." });
+
+    await wrapUp().run(ticket);
+
+    expect(
+      readFileSync(join(primaryRoot, outcomePath), "utf8").split("\n")[6],
+    ).toBe(
+      "| #218 | Opus medium | 2 | 1 | 150K → 90K | Pass | 0 | 1 | 0 | 30 min | $1.45 | $0.00 | unrecorded | — | session-implement-1, session-implement-2 |",
+    );
+  });
+
   it("puts a ticketless spec's row in a folder of its own", async () => {
     github.parents.clear();
     const workspace = await workspaceWith();
@@ -130,16 +160,11 @@ describe("run", () => {
     expect(existsSync(join(primaryRoot, ownFolder))).toBe(true);
   });
 
-  it("lands each repo's branch in landing order, the clone before the root", async () => {
+  it("derives each repo's branch ahead of master and lands them in landing order, the clone before the root", async () => {
     const workspace = await workspaceWith(["sheets-framework"]);
     commitIn(workspace, "sheets-framework", "core.ts", "export {};\n");
     commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
-    writeFacts({
-      branches: [
-        { repo: "sheets-framework", branch: "issue-218-wrap-up-script" },
-        { repo: "byro-repo", branch: "issue-218-wrap-up-script" },
-      ],
-    });
+    writeFacts();
 
     const result = await wrapUp().run(ticket);
 
@@ -147,6 +172,10 @@ describe("run", () => {
     expect(subjectsOf("sheets-framework").slice(0, 2)).toEqual([
       "Merge issue-218-wrap-up-script into master (#218)",
       "Add core.ts",
+    ]);
+    expect(subjectsOf("byro-repo").slice(1, 3)).toEqual([
+      "Merge issue-218-wrap-up-script into master (#218)",
+      "Add script.ts",
     ]);
     expect(git(remoteOf("sheets-framework"), "rev-parse", "master")).toBe(
       git(primaryOf("sheets-framework"), "rev-parse", "master"),
@@ -163,11 +192,7 @@ describe("run", () => {
       "sheets-framework",
     );
     commitIn(workspace, "sheets-framework", "core.ts", "export {};\n");
-    writeFacts({
-      branches: [
-        { repo: "sheets-framework", branch: "issue-218-wrap-up-script" },
-      ],
-    });
+    writeFacts();
 
     await wrapUp().run(ticket);
 
