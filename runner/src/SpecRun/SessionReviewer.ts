@@ -1,5 +1,6 @@
 // A session's review: runs review, triage and fix on one ticket's issue workspace outside any run, refusing a workspace
 // another holder leases or one with uncommitted changes, and posts its review list and Halts as a run would.
+// Its Halts are numbered S<n>.<k> and returned to print, to be answered in the session rather than on the spec.
 // ../SpecRun.ts delegates review to it; it builds its own RunLoop (for _authorshipRefusal), TicketSequencer, LeaseKeeper,
 // ReviewListPoster and HaltRaiser.
 

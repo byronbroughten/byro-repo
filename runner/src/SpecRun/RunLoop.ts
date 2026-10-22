@@ -1,5 +1,6 @@
 // The run loop: preflight refuses or Stops a run first, then it picks tickets one at a time and runs each, idling
 // while an open Halt or another holder's lease is all that's in the way, until every ticket lands or something Stops it.
+// Any outcome a later ticket will handle (red checks, step errors, schema failures) is an UnhandledStop; a red master Stops the run.
 // requestStop() or a `stop spec` answer ends the run between tickets; status() reads it from outside.
 // ../SpecRun.ts delegates run, status and requestStop to it; SessionReviewer.ts calls _authorshipRefusal.
 // It builds its own TicketSelector, TicketSequencer and ReviewListPoster.
@@ -137,6 +138,36 @@ export class RunLoop extends SpecRunBase {
     }
   }
 
+  // Read by the run between tickets and while idle; a request made with no run going is dropped as the next run starts.
+  requestStop(specIssue: IssueRef): void {
+    mkdirSync(this.config.stateFolder, { recursive: true });
+    writeFileSync(this._stopRequestPathOf(specIssue), "");
+  }
+
+  // Posts nothing and saves no run state, so it's safe beside a live run; an answer the run hasn't read yet shows as open.
+  async status(specIssue: IssueRef): Promise<string> {
+    const run = await this._startRun(specIssue);
+    const openHalts = openHaltsOf(run);
+    const { waits } = await this.ticketSelector._survey(run, openHalts);
+    const landed = run.tickets.filter(
+      (ticket) => run.state.tickets[issueLabelOf(ticket)]?.step === "landed",
+    );
+    const current = waits.flatMap((wait) => currentTextOf(run, wait));
+    const others = waits.filter(({ holder }) => holder?.kind !== "run");
+    const lines = [
+      `${issueLabelOf(specIssue)}, "${run.spec.title}"`,
+      `Landed: ${joinedOrNone(landed.map(issueLabelOf))}.`,
+      `Current: ${joinedOrNone(current)}.`,
+      `Open Halts: ${joinedOrNone(openHalts.map(openHaltTextOf))}.`,
+      `Waiting: ${others.length === 0 ? "none" : waitsTextOf(others)}.`,
+      `Account: ${readingLabelOf(await this._readingOf(run))}.`,
+    ];
+    if (existsSync(this._stopRequestPathOf(specIssue))) {
+      lines.push("A stop is requested; the run ends after its current ticket.");
+    }
+    return lines.join("\n");
+  }
+
   // Taken once read, so a later run never sees it.
   private _takeStopRequest(run: Run): boolean {
     const path = this._stopRequestPathOf(run.spec.issue);
@@ -198,36 +229,6 @@ export class RunLoop extends SpecRunBase {
       }
     }
     return undefined;
-  }
-
-  // Read by the run between tickets and while idle; a request made with no run going is dropped as the next run starts.
-  requestStop(specIssue: IssueRef): void {
-    mkdirSync(this.config.stateFolder, { recursive: true });
-    writeFileSync(this._stopRequestPathOf(specIssue), "");
-  }
-
-  // Posts nothing and saves no run state, so it's safe beside a live run; an answer the run hasn't read yet shows as open.
-  async status(specIssue: IssueRef): Promise<string> {
-    const run = await this._startRun(specIssue);
-    const openHalts = openHaltsOf(run);
-    const { waits } = await this.ticketSelector._survey(run, openHalts);
-    const landed = run.tickets.filter(
-      (ticket) => run.state.tickets[issueLabelOf(ticket)]?.step === "landed",
-    );
-    const current = waits.flatMap((wait) => currentTextOf(run, wait));
-    const others = waits.filter(({ holder }) => holder?.kind !== "run");
-    const lines = [
-      `${issueLabelOf(specIssue)}, "${run.spec.title}"`,
-      `Landed: ${joinedOrNone(landed.map(issueLabelOf))}.`,
-      `Current: ${joinedOrNone(current)}.`,
-      `Open Halts: ${joinedOrNone(openHalts.map(openHaltTextOf))}.`,
-      `Waiting: ${others.length === 0 ? "none" : waitsTextOf(others)}.`,
-      `Account: ${readingLabelOf(await this._readingOf(run))}.`,
-    ];
-    if (existsSync(this._stopRequestPathOf(specIssue))) {
-      lines.push("A stop is requested; the run ends after its current ticket.");
-    }
-    return lines.join("\n");
   }
 
   private _stopRequestPathOf(spec: IssueRef): string {

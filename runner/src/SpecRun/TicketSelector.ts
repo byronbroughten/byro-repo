@@ -1,6 +1,8 @@
 // The run's pick: posts unposted Halts, reads the developer's answers to posted ones, then surveys every open ticket
 // for what holds it (a lease, a Stop, a skip, an open Halt in scope, the developer, a blocker) and picks the next one.
-// RunLoop.ts calls _select each pick and _survey for status(); it builds its own LeaseKeeper and HaltRaiser.
+// A ticket with every Halt answered goes first, oldest answered set first, then the blocking graph's frontier.
+// RunLoop.ts calls _select each pick and _survey for status().
+// It builds its own LeaseKeeper and HaltRaiser; Halt formats and reply matching are ../halts.ts.
 
 import {
   answeredNoteOf,
