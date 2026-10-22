@@ -27,7 +27,6 @@ import {
   haltsOfTicket,
   isTurnCapped,
   type LandingTicket,
-  limitReadingOf,
   recordOf,
   reviewFactsOf,
   runCommand,
@@ -152,14 +151,7 @@ export class TicketLander extends SpecRunBase {
 
   // Needs no workspace: a wrap-up killed after removing it resumes from its own progress file.
   async _land(landingTicket: LandingTicket): Promise<void> {
-    const { run, ticket, state } = landingTicket;
-    const { usage } = await this._readingOf(run);
-    if (usage !== undefined) {
-      state.limitReadings = {
-        ...state.limitReadings,
-        after: limitReadingOf(usage),
-      };
-    }
+    const { run, ticket } = landingTicket;
     this._writeFacts(landingTicket);
     this._log(run, `${issueLabelOf(ticket.issue)}: wrapping up.`);
     for (;;) {
@@ -259,7 +251,7 @@ export class TicketLander extends SpecRunBase {
   }
 
   private _writeFacts({ run, ticket, pair, state }: LandingTicket): void {
-    const { record, configFolder, sessions, limitReadings } = state;
+    const { record, configFolder, sessions } = state;
     if (record === undefined) {
       throw new Error(
         `${issueLabelOf(ticket.issue)} reached its wrap-up with no implement record`,
@@ -272,7 +264,6 @@ export class TicketLander extends SpecRunBase {
       reviewRounds: 1,
       retries: retriesOf(state),
       pair: pairLabelOf(pair),
-      limitReadings,
     };
     const haltKinds = new Set(
       haltsOfTicket(run, ticket.issue).map(({ kind }) => haltKindLabelOf(kind)),

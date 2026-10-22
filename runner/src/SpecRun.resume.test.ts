@@ -7,7 +7,6 @@ import type { StepResult } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
 import type { Lease, LeaseHolder } from "./IssueWorkspaces.ts";
-import type { AccountReading, UsageReader } from "./limitGuard.ts";
 import { reviewRecordSchema } from "./reviewStep.ts";
 import type { RunResult } from "./SpecRun.ts";
 import {
@@ -18,7 +17,6 @@ import {
   masterSubjects,
   notices,
   primaryOf,
-  readingOf,
   refOf,
   reviewed,
   spec,
@@ -75,18 +73,21 @@ describe("run's resume", () => {
     const reachedWrapUp = new Promise<void>((resolve) => {
       reachWrapUp = resolve;
     });
-    let reads = 0;
-    // Reads at run start, before implement, then in the wrap-up, where it hangs.
-    const hangingReader: UsageReader = {
-      async read() {
-        reads += 1;
-        if (reads < 3) return readingOf(0.1, 0.2);
-        reachWrapUp();
-        return new Promise<AccountReading[]>(() => {});
+    // The wrap-up hangs closing the issue.
+    const hangingGitHub = new Proxy(github, {
+      get(target, key) {
+        if (key === "closeIssue") {
+          return () => {
+            reachWrapUp();
+            return new Promise<void>(() => {});
+          };
+        }
+        const value: unknown = Reflect.get(target, key);
+        return typeof value === "function" ? value.bind(target) : value;
       },
-    };
+    });
     void specRun(FakeAgentStep.init(applied()), {
-      usageReader: hangingReader,
+      github: hangingGitHub,
     }).run(spec);
     await reachedWrapUp;
     expect(ticketState()["byro-repo #1"]?.step).toBe("wrap-up");

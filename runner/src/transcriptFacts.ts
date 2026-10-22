@@ -23,17 +23,6 @@ export interface TicketSessions {
   steps: StepSession[];
 }
 
-// Each a 0 to 1 fraction of that window's limit.
-export interface LimitReading {
-  fiveHour: number;
-  sevenDay: number;
-}
-
-export interface LimitReadings {
-  before?: LimitReading;
-  after?: LimitReading;
-}
-
 export interface ModelPrice {
   // Dollars per million tokens; a 5-minute cache write is 1.25× input and a 1-hour write 2×.
   input: number;
@@ -129,14 +118,6 @@ export function transcriptFactsOf(
     costUsd: factOf(implementersAndFixers, costUsdOf),
     triageCostUsd: factOf(triage, costUsdOf),
   };
-}
-
-export function limitUsedOf(
-  readings: LimitReadings | undefined,
-): string | undefined {
-  const { before, after } = readings ?? {};
-  if (before === undefined || after === undefined) return undefined;
-  return `5-hour ${percentOf(before.fiveHour)} → ${percentOf(after.fiveHour)}, weekly ${percentOf(before.sevenDay)} → ${percentOf(after.sevenDay)}`;
 }
 
 // A handoff comment ends with a `session: <id>` line naming the session that wrote it.

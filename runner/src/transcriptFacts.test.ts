@@ -13,7 +13,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
   handoffSessionIdOf,
-  limitUsedOf,
   type TicketSessions,
   transcriptFactsOf,
 } from "./transcriptFacts.ts";
@@ -148,23 +147,6 @@ describe("transcriptFactsOf", () => {
       facts.costUsd,
       facts.durationMinutes,
     ]).toEqual([undefined, undefined, undefined, 12]);
-  });
-});
-
-describe("limitUsedOf", () => {
-  it("writes both windows before and after", () => {
-    expect(
-      limitUsedOf({
-        before: { fiveHour: 0.12, sevenDay: 0.3 },
-        after: { fiveHour: 0.4, sevenDay: 0.34 },
-      }),
-    ).toBe("5-hour 12% → 40%, weekly 30% → 34%");
-  });
-
-  it("leaves Limit used unrecorded without both readings", () => {
-    expect(
-      limitUsedOf({ before: { fiveHour: 0.12, sevenDay: 0.3 } }),
-    ).toBeUndefined();
   });
 });
 

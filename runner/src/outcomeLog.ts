@@ -20,7 +20,6 @@ const columns = [
   "Duration",
   "Cost (API-equivalent)",
   "Triage cost",
-  "Limit used",
   "What review caught",
   "Session ids",
 ] as const;
@@ -43,7 +42,6 @@ export interface OutcomeFacts {
   durationMinutes?: number;
   costUsd?: number;
   triageCostUsd?: number;
-  limitUsed?: string;
   sessionIds?: string[];
 }
 
@@ -103,7 +101,6 @@ function cellsOf({ issue, filesChanged, facts }: OutcomeRow): string[] {
       : `${facts.durationMinutes} min`,
     dollarsOf(facts.costUsd),
     dollarsOf(facts.triageCostUsd),
-    facts.limitUsed ?? unrecorded,
     whatReviewCaughtCellOf(facts),
     facts.sessionIds?.join(", ") ?? unrecorded,
   ];

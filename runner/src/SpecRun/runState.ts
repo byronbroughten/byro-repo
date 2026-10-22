@@ -30,16 +30,10 @@ import {
   type LeaseHolder,
   type Workspace,
 } from "../IssueWorkspaces.ts";
-import { type AccountUsage } from "../limitGuard.ts";
 import type { Command, RunKnobs } from "../runKnobs.ts";
 import { SchemaFailure } from "../SchemaFailure.ts";
 import { type Target, targetLineShapes, targetsOf } from "../ticketTargets.ts";
-import {
-  type LimitReading,
-  type LimitReadings,
-  type StepAgent,
-  type StepSession,
-} from "../transcriptFacts.ts";
+import { type StepAgent, type StepSession } from "../transcriptFacts.ts";
 import { stopOutcomes, UnhandledStop } from "../UnhandledStop.ts";
 
 const execFileAsync = promisify(execFile);
@@ -114,7 +108,6 @@ export interface TicketState {
   fixBase?: Heads;
   sessions: StepSession[];
   configFolder?: string;
-  limitReadings?: LimitReadings;
   stop?: string;
   // Set while a step runs, so a rerun after the process died takes the step as crashed.
   isStepStarted?: boolean;
@@ -565,11 +558,4 @@ export function waitsTextOf(waits: Wait[]): string {
 export function landedTextOf(landed: IssueRef[]): string {
   if (landed.length === 0) return "landed nothing";
   return `landed ${landed.map(issueLabelOf).join(", ")}`;
-}
-
-export function limitReadingOf(usage: AccountUsage): LimitReading {
-  return {
-    fiveHour: usage.fiveHour.utilization,
-    sevenDay: usage.sevenDay.utilization,
-  };
 }

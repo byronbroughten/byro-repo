@@ -37,7 +37,6 @@ describe("outcomeFileOf", () => {
       "unrecorded",
       "unrecorded",
       "unrecorded",
-      "unrecorded",
     ]);
   });
 
@@ -56,7 +55,6 @@ describe("outcomeFileOf", () => {
           durationMinutes: 42,
           costUsd: 3.5,
           triageCostUsd: 0.4,
-          limitUsed: "5h 12% → 30%",
           whatReviewCaught: "A | in a cell",
           sessionIds: ["a1", "b2"],
         },
@@ -75,7 +73,6 @@ describe("outcomeFileOf", () => {
       "42 min",
       "$3.50",
       "$0.40",
-      "5h 12% → 30%",
       "A \\| in a cell",
       "a1, b2",
     ]);
@@ -85,14 +82,14 @@ describe("outcomeFileOf", () => {
     const cells = cellsOf(
       outcomeFileOf({ ...row, facts: { reviewFixes: "implementer" } }),
     );
-    expect([cells[5], cells[13]]).toEqual(["Fix", "unrecorded"]);
+    expect([cells[5], cells[12]]).toEqual(["Fix", "unrecorded"]);
   });
 
   it("writes a ticket with no code as review skipped, with nothing caught", () => {
     const cells = cellsOf(
       outcomeFileOf({ ...row, facts: { reviewFixes: "skipped" } }),
     );
-    expect([cells[5], cells[13]]).toEqual(["skipped (no code)", "—"]);
+    expect([cells[5], cells[12]]).toEqual(["skipped (no code)", "—"]);
   });
 });
 

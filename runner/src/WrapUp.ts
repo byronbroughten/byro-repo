@@ -59,11 +59,7 @@ import {
 } from "./outcomeLog.ts";
 import { secretShapeOf } from "./secretShapes.ts";
 import { sleep } from "./sleep.ts";
-import {
-  handoffSessionIdOf,
-  limitUsedOf,
-  transcriptFactsOf,
-} from "./transcriptFacts.ts";
+import { handoffSessionIdOf, transcriptFactsOf } from "./transcriptFacts.ts";
 import { WrapUpFailure } from "./WrapUpFailure.ts";
 
 const execFileAsync = promisify(execFile);
@@ -703,21 +699,13 @@ export class WrapUp {
     issue: IssueRef,
     facts: WrapUpFacts,
   ): Promise<OutcomeFacts> {
-    const { sessions, limitReadings } = facts;
-    let transcriptFacts: OutcomeFacts = {};
-    if (sessions !== undefined) {
-      transcriptFacts = transcriptFactsOf(
-        sessions,
-        await this._handoffSessionIdsOf(issue),
-      );
-    }
-    return {
-      ...facts,
-      ...definedFactsOf({
-        ...transcriptFacts,
-        limitUsed: limitUsedOf(limitReadings),
-      }),
-    };
+    const { sessions } = facts;
+    if (sessions === undefined) return facts;
+    const transcriptFacts = transcriptFactsOf(
+      sessions,
+      await this._handoffSessionIdsOf(issue),
+    );
+    return { ...facts, ...definedFactsOf(transcriptFacts) };
   }
 
   private async _handoffSessionIdsOf(issue: IssueRef): Promise<string[]> {

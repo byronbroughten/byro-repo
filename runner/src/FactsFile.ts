@@ -9,11 +9,7 @@ import { join } from "node:path";
 
 import { fileStemOf, issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 import type { OutcomeFacts } from "./outcomeLog.ts";
-import type {
-  LimitReadings,
-  StepSession,
-  TicketSessions,
-} from "./transcriptFacts.ts";
+import type { StepSession, TicketSessions } from "./transcriptFacts.ts";
 
 export interface UndoneBox {
   box: string;
@@ -36,7 +32,6 @@ export interface WrapUpFacts extends OutcomeFacts {
   githubWrites?: GitHubWrite[];
   // What the runner recorded; facts computed from them win over passed ones.
   sessions?: TicketSessions;
-  limitReadings?: LimitReadings;
 }
 
 export interface AddedSession extends Omit<TicketSessions, "steps"> {
