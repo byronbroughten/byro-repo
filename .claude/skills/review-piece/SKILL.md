@@ -8,7 +8,7 @@ Four-axis review of a Piece's Deliverable, read as it is now. There is no diff a
 
 - **Spec**: does the text hold to the spec's facts, Outline and length limit, and copy no wording from what its drafter read?
 - **Voice**: does it follow the Voice sheet and the spec's overrides?
-- **Craft**: can a reader parse each sentence on the first pass, and does the text keep the Craft sheet's rules?
+- **Craft**: does the text keep the Craft sheet's rules, and can a reader parse each sentence on the first pass?
 - **Reader**: what does it say to a reader who never saw the spec?
 
 Jev's style check then runs on the same text as a trial beside them, logged against the Voice and Craft axes.

@@ -4,7 +4,7 @@ Disclosed from [`docs/writing-craft.md`](../writing-craft.md), "Precedence". The
 
 ## Why a misread is the line
 
-A Voice habit is how the developer sounds, and a reader who parses it the first time loses nothing by it, so the habit stays even where a guide would write the sentence differently. A habit that makes the reader misread or reread a sentence costs the reader the text itself, so there the Craft rule wins. The developer set the line in #309, when the style sheet split into Voice and Clarity, the sheet renamed Craft in #317.
+A Voice habit is how the developer sounds, and a reader who parses it the first time loses nothing by it, so the habit stays even where a guide would write the sentence differently. A habit that makes the reader misread or reread a sentence costs the reader the text itself, so there the Craft rule wins. The developer set the line in #309, when the style sheet split in two.
 
 ## Arithmetic keeps its steps
 

@@ -48,7 +48,7 @@ One line per rule. The examples and their sources are one file away. Open a reas
 - **Name the thing itself, not a word for the kind of thing it is ("issue", "level", "approach", "framework", "process", "perspective", "strategy"): "rent may not cover the mortgage", not "there are affordability issues".**
 - **Call a thing by what it is, with the detail that lets the reader picture it ("the 1950s boiler", "a three-bedroom unit"), not by the part it plays in your work ("the asset", "the subject property", "the test conditions").**
 - **When a piece names something, build the name from plain words that say what it is ("the backup HELOC"), never a letter, a number or an initialism coined for the piece ("Option B", "Scenario 2", "BH").** A table or figure keeps its number.
-- **The first time a term of the trade appears, add a few plain words saying what it is, unless every reader of the piece uses it daily.**
+- **The first time a term of the trade appears, add a few plain words saying what it is, unless every reader of the piece uses it daily.** The Voice sheet's "i.e.," rule decides the form; this rule decides when.
 - **When everyday words say exactly what a term of the trade says, use them ("rent", not "gross scheduled income").**
 - **Put quotation marks around words only to quote someone, to cite a term rather than use it, or to show you reject another's use of it; never to hold your own phrasing at arm's length.**
 - **Never let two idioms whose pictures clash share a sentence.**
