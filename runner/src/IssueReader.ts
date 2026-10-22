@@ -60,7 +60,7 @@ export interface IssueReaderConfig {
 
 // The issue reader behind `npm run issue:read`: prints an issue with each part labelled Trusted text or Untrusted text.
 // The rule: a body is Trusted when the developer wrote it and every edit was theirs, or when the developer approved
-// its exact text in a comment; a title, by whoever set it last; a comment, by its author alone.
+// its exact text in a comment; a title, by whoever set it last, labelled only when Untrusted; a comment, by its author alone.
 // Untrusted text prints quoted, so it can't print a heading that passes for one of the reader's own.
 // The real source is GhCli.ts over GraphQL, since `gh issue view --json` shows no editors; tests use FakeIssueSource.ts.
 // The script is scripts/runner/issueRead.ts; the terms are in runner/GLOSSARY.md.
@@ -163,7 +163,7 @@ export class IssueReader {
   }: ReadableIssue): string[] {
     const setter = titleRenamer ?? author;
     if (setter === this.config.developer) {
-      return [`#${issue.number} ${title} (Trusted text)`];
+      return [`#${issue.number} ${title}`];
     }
     const how = titleRenamer === undefined ? "written" : "renamed";
     return [

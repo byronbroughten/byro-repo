@@ -41,7 +41,7 @@ describe("IssueReader.read", () => {
 
     expect(printed).toBe(
       [
-        "#7 Read issues (Trusted text)",
+        "#7 Read issues",
         "State: open",
         "Labels: ready-for-agent",
         "Parent: #3",
@@ -89,7 +89,7 @@ describe("IssueReader.read", () => {
 
     const printed = await reader.read(["byro-repo", "7", "--body"]);
 
-    expect(printed.split("\n")[0]).toBe("#7 Read issues (Trusted text)");
+    expect(printed.split("\n")[0]).toBe("#7 Read issues");
   });
 
   it("labels a stranger's body Untrusted, naming the author, and quotes it", async () => {
