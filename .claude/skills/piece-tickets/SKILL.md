@@ -58,3 +58,7 @@ The facts this ticket uses, including any of the developer's own text named as g
 </piece-ticket-template>
 
 Leave the parent spec's body unchanged.
+
+## 4. Read back the tickets
+
+Print the filed tickets as one flat list in completion order, `#n Title: <Model> <effort> (reason)`, each pair chosen by [model fit](../../../docs/agents/planning.md#model-fit) and the writing outcome log in [`docs/model-fit.md`](../../../packages/writing/docs/model-fit.md). The pairs stay in chat. Done when every filed ticket appears; end by recommending `/implement-piece` on the first.
