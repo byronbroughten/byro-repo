@@ -4,7 +4,9 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { FakeAgentStep } from "./FakeAgentStep.ts";
+import { FakeIssueSource } from "./FakeIssueSource.ts";
 import { implementOutputSchema } from "./implementStep.ts";
+import { IssueReader } from "./IssueReader.ts";
 import { runKnobsOf } from "./runKnobs.ts";
 import type { RunResult } from "./SpecRun.ts";
 import {
@@ -32,10 +34,10 @@ import {
 
 useSpecRunHarness();
 
-// The harness's spec and ticket bodies, hashed outside the code under test.
+// addSpec's spec body and bodyWith()'s default body, which addIssue gives a ticket or a ticketless spec, hashed outside the code under test.
 const specApproval =
   "Approved body: sha256:f03a4c12746e95cbf20e943225c0246d553b4f6e4651be338714739d550f2152";
-const ticketApproval =
+const bodyWithApproval =
   "Approved body: sha256:c558a51de72dcd2bb13e6d8af1c265d8050936ca30dd09bf3314c8f9be105fe0";
 
 describe("run", () => {
@@ -269,7 +271,7 @@ describe("run's authorship refusal", () => {
     const result = await specRun(FakeAgentStep.init()).run(spec);
 
     expect(result.message).toBe(
-      `Only byronbroughten may write or edit the spec; refused byro-repo #213 (edited by editor). To approve a body as it reads now, comment its line on it.\n\nbyro-repo #213:\n${ticketApproval}`,
+      `Only byronbroughten may write or edit the spec; refused byro-repo #213 (edited by editor). To approve a body as it reads now, comment its line on it.\n\nbyro-repo #213:\n${bodyWithApproval}`,
     );
   });
 
@@ -316,7 +318,7 @@ describe("run's launch-time authorship check", () => {
     expect(halts[0]).toContain("sha256:c558a51de72d");
     expect(halts[0]).toContain("1. `approve`\n2. `skip`");
     expect(halts[0]).not.toContain("A thing.");
-    expect(halts[0]).not.toContain(ticketApproval);
+    expect(halts[0]).not.toContain(bodyWithApproval);
   });
 
   it("posts the approval on the ticket and launches it on an `approve` answer, though the edit stays in its history", async () => {
@@ -329,7 +331,9 @@ describe("run's launch-time authorship check", () => {
 
     expect(result.landed).toEqual([refOf(2)]);
     expect(rerunStep.requests).toHaveLength(2);
-    expect(approvalsOnTicketTwo()).toEqual([ticketApproval]);
+    expect(approvalsOnTicketTwo()).toEqual([bodyWithApproval]);
+    expect(github.issues.get(2)?.bodyEditors).toEqual(["editor"]);
+    expect(await ticketTwoAsAStepReadsIt()).toContain("## Body (Trusted text)");
   });
 
   it("raises a fresh Halt when the body changed after the Halt saw it, whoever edited it", async () => {
@@ -355,7 +359,7 @@ describe("run's launch-time authorship check", () => {
   it("halts a ticket edited after its approval", async () => {
     addSpec([1]);
     github.edit(1, { body: bodyWith("Opus medium"), bodyEditors: ["editor"] });
-    github.reply(1, ticketApproval);
+    github.reply(1, bodyWithApproval);
     const agentStep = FakeAgentStep.init();
 
     const result = await specRun(agentStep).run(spec);
@@ -370,7 +374,7 @@ describe("run's launch-time authorship check", () => {
   it("launches a ticket reverted to text the developer approved, with no new approval", async () => {
     addSpec([1]);
     github.edit(1, { bodyEditors: ["editor", "editor"] });
-    github.reply(1, ticketApproval);
+    github.reply(1, bodyWithApproval);
     const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
 
     const result = await specRun(agentStep).run(spec);
@@ -422,6 +426,33 @@ function approvalsOnTicketTwo(): string[] {
       : [],
   );
 }
+
+// Reads the fake GitHub's ticket and every comment on it, the runner's own included, as `issue:read` would.
+async function ticketTwoAsAStepReadsIt(): Promise<string> {
+  const source = FakeIssueSource.init();
+  const { title, body, isOpen, labels, author, bodyEditors } =
+    await github.issueOf(refOf(2));
+  source.issues.set(2, {
+    issue: refOf(2),
+    title,
+    isOpen,
+    labels,
+    parent: spec,
+    subIssues: [],
+    body,
+    author,
+    bodyEditors,
+    comments: await github.authoredCommentsOf(refOf(2)),
+  });
+  const reader = IssueReader.init({
+    source,
+    developer: "byronbroughten",
+    githubOwner: "byronbroughten",
+    allowedRepos: ["byro-repo"],
+  });
+  return reader.read(["byro-repo", "2", "--body"]);
+}
+
 function editsTicketTwoMidRun(): FakeAgentStep {
   return FakeAgentStep.init(
     implemented("one.ts", {
