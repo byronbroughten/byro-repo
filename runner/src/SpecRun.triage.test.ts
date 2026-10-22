@@ -142,6 +142,7 @@ describe("run's finding triage", () => {
 
   function factsOf(): {
     reviewFixes?: string;
+    whatReviewCaught?: string;
     proposals?: number;
     halt?: string;
   } {
@@ -220,7 +221,10 @@ describe("run's finding triage", () => {
     expect(
       git(primaryOf("byro-repo"), "log", "--format=%s", "-3", `${merge}^2`),
     ).toBe(["Fix fix.ts", "Add one.ts", "Initial commit"].join("\n"));
-    expect(factsOf().reviewFixes).toBe("implementer");
+    expect(factsOf()).toMatchObject({
+      reviewFixes: "implementer",
+      whatReviewCaught: "Fixed: Line 1 is wrong. (one.ts:1).",
+    });
   });
 
   it("hands the Fix batch to the triage agent on the stronger pair once the implementer's peak reaches the ticket budget", async () => {

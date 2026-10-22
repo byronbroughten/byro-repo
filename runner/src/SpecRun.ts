@@ -23,7 +23,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 
 import type { AgentStep, Pair, StepRequest, StepResult } from "./AgentStep.ts";
-import { FactsFile, type WrapUpFacts } from "./FactsFile.ts";
+import { FactsFile, type ReviewFacts, type WrapUpFacts } from "./FactsFile.ts";
 import { commandLabelOf, messageOf, outputTailOf } from "./failureText.ts";
 import {
   type SavedTriageRecord,
@@ -34,6 +34,7 @@ import {
   triageRecordProblems,
   triageRecordsOf,
   triageRetryPrompt,
+  whatReviewCaughtOf,
 } from "./findingTriage.ts";
 import {
   type FixOutcome,
@@ -2211,10 +2212,7 @@ export class SpecRun {
     const facts: WrapUpFacts = {
       closingComment: record.closingComment,
       boxesUndone: record.boxesUndone,
-      reviewFixes: state.fixer ?? "none",
-      proposals: (state.triage ?? []).filter(
-        ({ verdict }) => verdict === "propose",
-      ).length,
+      ...reviewFactsOf(state),
       reviewRounds: 1,
       retries: retriesOf(state),
       pair: pairLabelOf(pair),
@@ -2893,6 +2891,14 @@ function recordOf(step: string, result: StepResult, logPath: string): unknown {
     );
   }
   return output.record;
+}
+
+function reviewFactsOf({ fixer, triage = [] }: TicketState): ReviewFacts {
+  return {
+    reviewFixes: fixer ?? "none",
+    whatReviewCaught: whatReviewCaughtOf(triage),
+    proposals: triage.filter(({ verdict }) => verdict === "propose").length,
+  };
 }
 
 function retriesOf({ crashes = {}, redCheckResumes = 0 }: TicketState): number {
