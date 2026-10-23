@@ -151,7 +151,7 @@ export class ReviewStepper extends SpecRunBase {
     }
   }
 
-  private async _keepRecords(
+  async _keepRecords(
     ticketRun: TicketRun,
     { resolver, base, records }: KeptRecords,
   ): Promise<void> {
@@ -166,7 +166,7 @@ export class ReviewStepper extends SpecRunBase {
     });
   }
 
-  private async _resolveProblemsOf(
+  async _resolveProblemsOf(
     { workspace, state }: TicketRun,
     base: Heads,
     records: ResolveRecord[],

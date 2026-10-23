@@ -6,6 +6,7 @@ import { implementBody } from "./implementStep.ts";
 const skill = implementCodeSkillOf({
   promoteCommand: "npm run issue:promote -- <repo> <n>",
   reviewCommand: "npm run runner -- review <owner>/<repo> <n>",
+  resolveCommand: "npm run runner -- resolve <owner>/<repo> <n>",
   wrapUpCommand: "npm run wrap-up -- <repo> <n>",
 });
 
@@ -29,9 +30,10 @@ describe("implementCodeSkillOf", () => {
     );
   });
 
-  it("ends with review, report, wait, ExitWorktree keep and wrap-up, in that order", () => {
+  it("ends with review, resolve, report, wait, ExitWorktree keep and wrap-up, in that order", () => {
     const steps = [
       "`npm run runner -- review <owner>/<repo> <n>`",
+      "`npm run runner -- resolve <owner>/<repo> <n> .runner/resolve-<n>.json`",
       "what review caught, what was fixed and what is Proposed",
       "Wait for the developer's go-ahead",
       "`ExitWorktree` with `keep`",

@@ -122,6 +122,16 @@ export function transcriptFactsOf(
   };
 }
 
+// The latest recorded implementer's peak, as an interactive session is when its review runs; undefined when unreadable.
+export function latestImplementPeakOf(
+  sessions: TicketSessions,
+): number | undefined {
+  const latest = stepIdsOf(sessions, "implement").at(-1);
+  if (latest === undefined) return undefined;
+  const transcript = transcriptOf(projectDirsOf(sessions.configFolder), latest);
+  return transcript && ContextMeter.ofTranscript(transcript.text);
+}
+
 // A handoff comment ends with a `session: <id>` line naming the session that wrote it.
 export function handoffSessionIdOf(comment: string): string | undefined {
   const lastLine = comment

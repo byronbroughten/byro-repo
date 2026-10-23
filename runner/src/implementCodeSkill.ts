@@ -5,11 +5,14 @@
 import { implementBody } from "./implementStep.ts";
 import { stepReadLine } from "./IssueReader.ts";
 import { sectionOf } from "./promptText.ts";
+import { resolveRecordFields } from "./resolveStep.ts";
 
 export interface ImplementCodeSkillInput {
   // Each command is written with `<repo>` and `<n>` placeholders; the promote command takes the repo to promote last.
   promoteCommand: string;
   reviewCommand: string;
+  // Takes the records file's path last.
+  resolveCommand: string;
   wrapUpCommand: string;
 }
 
@@ -55,6 +58,7 @@ function gitHubSection(): string {
 
 function endingSection({
   reviewCommand,
+  resolveCommand,
   wrapUpCommand,
 }: ImplementCodeSkillInput): string {
   return `## When you're done
@@ -63,9 +67,18 @@ function endingSection({
 - ${implementBody.onlyWrites}. The review and wrap-up commands in the ending make every other write.
 - Run git commands one at a time: inside an entered worktree, Claude Code refuses a compound git command.
 - Then, in order:
-  1. **Review**: run \`${reviewCommand}\`, resolving \`<repo>\` to \`<owner>/<repo>\`. It runs the runner's review on this ticket, then one session that resolves the findings and commits the fixes; it prints the review list, by axis then verdict with each suggested verdict the resolver overruled, and writes the review facts. It prints each Halt as \`S<n>.<k>\`; answer it with the developer in the session. When it exits short of reviewed, report why and stop.
-  2. **Report**: post in the session what review caught, what was fixed and what is Proposed.
-  3. **Wait for the developer's go-ahead.** Land nothing before it.
-  4. Call \`ExitWorktree\` with \`keep\`, so wrap-up can remove the workspace.
-  5. **Land**: \`${wrapUpCommand} --closing "<what landed>" [--undone "<box>: <reason>"]...\`, one \`--undone\` per acceptance box left undone. A ticket with no branch ahead of master, one that needed only GitHub or Doc writes, adds \`--no-code\`: \`${wrapUpCommand} --no-code --closing "<what landed>"\`.`;
+  1. **Review**: run \`${reviewCommand}\`, resolving \`<repo>\` to \`<owner>/<repo>\` here and in resolve. It runs the runner's review session on this ticket and records it. While this session's context is under the ticket budget, it prints the findings, numbered, each with its axis and suggested verdict, for you to resolve; past it, a fresh resolver resolves them instead and it goes straight to the review list.
+  2. **Resolve**, when it printed findings: ${implementBody.resolving} Then run \`npm run check\`. Write \`.runner/resolve-<n>.json\`, gitignored, as \`{ "records": [...] }\`, ${indentedOf(resolveRecordFields)}
+
+     Then run \`${resolveCommand} .runner/resolve-<n>.json\`. It checks the records and your commits by the run's rules; when it refuses them, correct what it names and run it again.
+  3. Either way, review or resolve prints the review list, by axis then verdict with each suggested verdict overruled, and writes the review facts. It prints each Halt as \`S<n>.<k>\`; answer it with the developer in the session. When it exits short of reviewed, report why and stop.
+  4. **Report**: post in the session what review caught, what was fixed and what is Proposed.
+  5. **Wait for the developer's go-ahead.** Land nothing before it.
+  6. Call \`ExitWorktree\` with \`keep\`, so wrap-up can remove the workspace.
+  7. **Land**: \`${wrapUpCommand} --closing "<what landed>" [--undone "<box>: <reason>"]...\`, one \`--undone\` per acceptance box left undone. A ticket with no branch ahead of master, one that needed only GitHub or Doc writes, adds \`--no-code\`: \`${wrapUpCommand} --no-code --closing "<what landed>"\`.`;
+}
+
+// Under a numbered step's text, so a list inside it stays in the step.
+function indentedOf(text: string): string {
+  return text.replaceAll(/\n(?=.)/g, "\n     ");
 }

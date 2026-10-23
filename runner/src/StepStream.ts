@@ -1,7 +1,5 @@
 import { dirname, join } from "node:path";
 
-import { Ajv } from "ajv";
-
 import type {
   LimitHit,
   StepOutput,
@@ -11,6 +9,7 @@ import type {
   UsageWindow,
 } from "./AgentStep.ts";
 import { ContextMeter } from "./contextMeter.ts";
+import { schemaProblemsOf } from "./recordSchema.ts";
 
 // Only the fields the stream reader uses, each from an observed `claude -p` stream.
 interface InitEvent {
@@ -188,13 +187,8 @@ function outputOf(
     const problems = ["no structured output"];
     return { status: "schemaFailure", rawOutput: resultText, problems };
   }
-  const validate = new Ajv({ allErrors: true, strict: false }).compile(
-    jsonSchema,
-  );
-  if (validate(record)) return { status: "valid", record };
-  const problems = (validate.errors ?? []).map(
-    (error) => `${error.instancePath || "/"} ${error.message ?? "is invalid"}`,
-  );
+  const problems = schemaProblemsOf(jsonSchema, record);
+  if (problems.length === 0) return { status: "valid", record };
   return {
     status: "schemaFailure",
     rawOutput: JSON.stringify(record),

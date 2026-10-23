@@ -1,6 +1,9 @@
 // Runs a spec's tickets to landed, one at a time; rerunning the same command resumes. Progress is in .runner/<repo>-<n>.log.
-// Usage below; `review` takes a session's ticket, not a spec. Exit 1 is a run short of finished or a review short of reviewed; 2 is a crash, which tmux.sh pushes.
+// Usage below; `review` and `resolve` take a session's ticket, not a spec, and `resolve` the path of the session's records.
+// Exit 1 is a run short of finished, a review short of reviewed or its findings, or refused records; 2 is a crash, which tmux.sh pushes.
 // `supervise` records the caller's claude as the spec's Supervisor and prints its unexplained event lines; `--advance` marks one more explained.
+import { readFileSync } from "node:fs";
+
 import {
   isSameIssue,
   type IssueRef,
@@ -11,8 +14,9 @@ import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecor
 import { nearestClaudeAncestor } from "./claudeAncestor.ts";
 import { ntfyTopic, specRunConfigOf, stateFolder } from "./runnerConfig.ts";
 
-const verbs = ["status", "stop", "review", "supervise"];
-const usage = `Usage: npm run runner -- [${verbs.join("|")}] <owner/repo> <n>, or supervise <owner/repo> <n> --advance`;
+const plainVerbs = ["status", "stop", "review"];
+const verbs = [...plainVerbs, "resolve", "supervise"];
+const usage = `Usage: npm run runner -- [${plainVerbs.join("|")}] <owner/repo> <n>, resolve <owner/repo> <n> <records.json>, or supervise <owner/repo> <n> [--advance]`;
 
 try {
   const args = process.argv.slice(2);
@@ -24,19 +28,18 @@ try {
   const [ownerRepo = "", number, flag] = args;
   const [owner, repo] = ownerRepo.split("/");
   const isAdvance = flag === "--advance";
-  if (
-    !owner ||
-    !repo ||
-    !Number.isInteger(Number(number)) ||
-    (flag !== undefined && !(command === "supervise" && isAdvance))
-  ) {
+  const isFlagValid =
+    command === "resolve"
+      ? flag !== undefined
+      : flag === undefined || (command === "supervise" && isAdvance);
+  if (!owner || !repo || !Number.isInteger(Number(number)) || !isFlagValid) {
     throw new Error(usage);
   }
   const issue = { repo, number: Number(number) };
   if (command === "supervise") {
     await supervise(owner, issue, isAdvance);
   } else {
-    await runSpec(command, owner, issue);
+    await runSpec(command, owner, issue, flag);
   }
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
@@ -47,6 +50,7 @@ async function runSpec(
   command: string,
   owner: string,
   issue: IssueRef,
+  recordsPath: string | undefined,
 ): Promise<void> {
   const specRun = SpecRun.init(specRunConfigOf(owner));
   if (command === "status") {
@@ -57,6 +61,16 @@ async function runSpec(
   } else if (command === "review") {
     const result = await specRun.review(issue, {
       holder: nearestClaudeAncestor(),
+    });
+    console.log(reviewPrintoutOf(result));
+    if (result.kind !== "reviewed" && result.kind !== "findings") {
+      process.exitCode = 1;
+    }
+  } else if (command === "resolve") {
+    if (recordsPath === undefined) throw new Error(usage);
+    const result = await specRun.resolve(issue, {
+      holder: nearestClaudeAncestor(),
+      output: JSON.parse(readFileSync(recordsPath, "utf8")),
     });
     console.log(reviewPrintoutOf(result));
     if (result.kind !== "reviewed") process.exitCode = 1;

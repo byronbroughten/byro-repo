@@ -70,13 +70,21 @@ export interface ReviewOptions {
   holder?: LeaseHolder;
 }
 
+export interface ResolveOptions extends ReviewOptions {
+  // The session's resolve output, `{ records }`, unchecked.
+  output: unknown;
+}
+
 export interface ReviewResult {
-  kind: "reviewed" | "halted" | "stopped" | "refused";
+  // `findings`: the session resolves them itself and hands its records to `resolve`.
+  kind: "reviewed" | "findings" | "halted" | "stopped" | "refused";
   message: string;
   // Each Halt comment the review posted on the spec, for the session to print.
   halts: string[];
   // The run's review-list rendering, printed rather than posted; absent when resolve kept no records.
   reviewList?: string;
+  // The numbered findings, each with its axis and suggested verdict, when the session resolves them.
+  findings?: string;
 }
 
 export type TicketStep =
@@ -168,6 +176,7 @@ interface SessionReview {
   // The ticket's session Halts already on the spec, which this review numbers on from.
   earlierHalts: number;
   postedHalts: string[];
+  resolvesItself: boolean;
 }
 
 // Each pushed at most once per run.
