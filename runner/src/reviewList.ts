@@ -189,34 +189,35 @@ function departureLinesOf(record: ResolveRecord): string[] {
   return departure === undefined ? [] : [`  ${departure}`];
 }
 
+function findingHeadOf({ finding, claim, where }: ResolveRecord): string {
+  return `Finding ${finding}: ${claim} (${where})`;
+}
+
+function evidenceLineOf(record: ResolveRecord): string {
+  return departureOf(record) ?? `Evidence: ${record.evidence}`;
+}
+
 function fixRowOf(record: ResolveRecord): string {
-  const { finding, claim, where } = record;
-  return [
-    `- Finding ${finding}: ${claim} (${where})`,
-    ...departureLinesOf(record),
-  ].join("\n");
+  return [`- ${findingHeadOf(record)}`, ...departureLinesOf(record)].join("\n");
 }
 
 function haltRowOf(record: ResolveRecord): string {
-  const { finding, claim, where, evidence } = record;
-  const departure = departureOf(record);
   return [
-    `- Finding ${finding}: ${claim} (${where})`,
-    `  ${departure ?? `Evidence: ${evidence}`}`,
+    `- ${findingHeadOf(record)}`,
+    `  ${evidenceLineOf(record)}`,
     `  Recommendation: ${requiredOf(record, "recommendation")}`,
   ].join("\n");
 }
 
 function proposeItemOf(record: ResolveRecord): ReviewItem {
-  const { finding, claim, where, evidence, draftKeepReason } = record;
   const reason = requiredOf(record, "reason");
   return {
-    heading: `Propose \`${reason}\` · Finding ${finding}: ${claim} (${where})`,
-    evidenceLine: departureOf(record) ?? `Evidence: ${evidence}`,
+    heading: `Propose \`${reason}\` · ${findingHeadOf(record)}`,
+    evidenceLine: evidenceLineOf(record),
     recommendation: requiredOf(record, "recommendation"),
     draftIssueTitle:
       reason === "ticket" ? requiredOf(record, "draftIssueTitle") : undefined,
-    draftKeepReason,
+    draftKeepReason: record.draftKeepReason,
   };
 }
 
