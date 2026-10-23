@@ -172,6 +172,10 @@ describe("a supervising session's gh calls", () => {
     'echo "$(gh issue close 341)"',
     "git log | xargs gh issue comment 331 -b",
     'gh issue view "$(gh issue close 341)"',
+    "xargs /opt/homebrew/bin/gh issue close 341",
+    "env -i /opt/homebrew/bin/gh issue close 341",
+    "bash -c '/opt/homebrew/bin/gh issue close 341'",
+    'echo "$(/opt/homebrew/bin/gh issue close 341)"',
     "gh api -iXPOST repos/o/r/issues/341/comments",
     "gh api -X post repos/o/r/issues/341/comments",
   ];

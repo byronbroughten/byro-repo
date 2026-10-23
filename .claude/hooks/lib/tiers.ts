@@ -58,8 +58,8 @@ const ghReadGroups = new Set(["search", "status", "version", "--version"]);
 const ghApiValueShorthands = new Set(["X", "f", "F", "H", "q", "t", "p"]);
 const ghApiFieldFlags = new Set(["--field", "--raw-field", "--input"]);
 const ghReadMethods = new Set(["GET", "HEAD"]);
-// `gh` at a command position inside a word, as in `bash -c '… && gh …'` or `$(gh …)`.
-const hiddenGh = /(^|[;&|(`\n]|\$\()\s*gh(\s|$)/;
+// `gh`, or a path to it, at a command position inside a word, as in `bash -c '… && gh …'` or `$(gh …)`.
+const hiddenGh = /(^|[;&|(`\n]|\$\()\s*(\S*\/)?gh(\s|$)/;
 const ghWriteWhy =
   "writes to GitHub from a session supervising a run, and the developer approves its exact text";
 
@@ -194,7 +194,7 @@ function verdictOf(words: string[], dryRuns: string[]): Verdict | undefined {
 function ghWriteOf(words: string[]): boolean {
   const hidesGh = words
     .slice(1)
-    .some((word) => word === "gh" || hiddenGh.test(word));
+    .some((word) => basenameOf(word) === "gh" || hiddenGh.test(word));
   if (hidesGh) return true;
   if (basenameOf(words[0] ?? "") !== "gh") return false;
   const [group = "", verb = ""] = words.slice(1);
