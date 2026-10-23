@@ -10,7 +10,8 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 | --- | --- |
 | A fact in two files, a pointer, a cache of the environment, a cross-repo link | [`docs/prose-style/one-home.md`](./prose-style/one-home.md) |
 | A rule line, a reasoning file, a mechanics doc's lead and headings | [`docs/prose-style/file-shapes.md`](./prose-style/file-shapes.md) |
-| Which rung a rule goes on, an addition to AGENTS.md | [`docs/prose-style/placement.md`](./prose-style/placement.md) |
+| Which rung a rule goes on | [`agent-behavior-design.md`](./agent-behavior-design.md#put-each-rule-where-it-gets-followed-and-its-reasoning-one-pointer-away) |
+| An addition to AGENTS.md | [`prose-files.md`](./agents/prose-files.md#what-an-addition-to-agentsmd-costs) |
 | A prose smell: what it looks like, derived prose | [`docs/prose-style/smells.md`](./prose-style/smells.md) |
 
 ## One home per fact
@@ -30,7 +31,7 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 ## Placement
 
 - **A rule goes on the highest rung of the enforcement ladder it can reach** ([ladder](./agents/prose-files.md#terms)).
-- **Add to the root AGENTS.md only a fact that changes what an agent does on nearly every task, or whose miss is costly and can't be cheaply undone**; read [what an addition costs](./agents/prose-files.md#what-an-addition-to-agentsmd-costs) first.
+- **Add to the root AGENTS.md only a fact that changes what an agent does on nearly every task, or whose miss is costly and can't be cheaply undone.**
 - **When you add to the root AGENTS.md, shorten or drop a line that no longer earns its place, and state the net bytes in your reply.**
 
 ## Smells
