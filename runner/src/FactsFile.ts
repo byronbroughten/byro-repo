@@ -11,7 +11,7 @@ import { fileStemOf, issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 import type { OutcomeFacts } from "./outcomeLog.ts";
 import type { Finding } from "./reviewStep.ts";
 import { factsOf } from "./savedFormats.ts";
-import type { StepSession, TicketSessions } from "./transcriptFacts.ts";
+import type { RecordedSession, TicketSessions } from "./transcriptFacts.ts";
 
 export interface UndoneBox {
   box: string;
@@ -42,10 +42,6 @@ export interface PendingResolve {
   findings: Finding[];
   // Each branched clone's head when the review ended, which the session's Fix commits are checked against.
   base: Record<string, string>;
-}
-
-export interface AddedSession extends Omit<TicketSessions, "steps"> {
-  step: StepSession;
 }
 
 export type ReviewFacts = Pick<
@@ -85,23 +81,16 @@ export class FactsFile {
     return this._store(issue, facts);
   }
 
-  addSession(
-    issue: IssueRef,
-    { account, configFolder, step }: AddedSession,
-  ): FactsFile {
+  addSession(issue: IssueRef, session: RecordedSession): FactsFile {
     const facts = this._storedOf(issue);
     const steps = facts.sessions?.steps ?? [];
     const isRecorded = steps.some(
       ({ agent, sessionId }) =>
-        agent === step.agent && sessionId === step.sessionId,
+        agent === session.agent && sessionId === session.sessionId,
     );
     return this._store(issue, {
       ...facts,
-      sessions: {
-        account,
-        configFolder,
-        steps: isRecorded ? steps : [...steps, step],
-      },
+      sessions: { steps: isRecorded ? steps : [...steps, session] },
     });
   }
 

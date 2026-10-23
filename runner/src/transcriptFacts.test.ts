@@ -1,8 +1,10 @@
 import {
   cpSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   realpathSync,
+  renameSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -13,6 +15,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
   handoffSessionIdOf,
+  type RecordedSession,
+  type StepAgent,
   type TicketSessions,
   transcriptFactsOf,
 } from "./transcriptFacts.ts";
@@ -35,15 +39,36 @@ afterEach(() => {
 // One handed-off implement session (from its comment), then the final implement step, review and two resolve sessions.
 function sessions(overrides: Partial<TicketSessions> = {}): TicketSessions {
   return {
-    account: 2,
-    configFolder,
     steps: [
-      { agent: "implement", sessionId: "session-implement-2" },
-      { agent: "review", sessionId: "session-review" },
-      { agent: "resolve", sessionId: "session-triage" },
-      { agent: "resolve", sessionId: "session-fix" },
+      step("implement", "session-implement-2"),
+      step("review", "session-review"),
+      step("resolve", "session-triage"),
+      step("resolve", "session-fix"),
     ],
     ...overrides,
+  };
+}
+
+function step(agent: StepAgent, sessionId: string): RecordedSession {
+  return { agent, sessionId, account: 2, configFolder };
+}
+
+// Moves the review and resolve transcripts to account 1's folder and records them there.
+function reviewedOnAccountOne(): TicketSessions {
+  const accountOne = join(configFolder, "account-1");
+  const from = join(configFolder, "projects", "-workspace-byro-repo");
+  const to = join(accountOne, "projects", "-workspace-byro-repo");
+  mkdirSync(to, { recursive: true });
+  const reviewIds = ["session-review", "session-triage", "session-fix"];
+  for (const id of reviewIds) {
+    renameSync(join(from, `${id}.jsonl`), join(to, `${id}.jsonl`));
+  }
+  return {
+    steps: sessions().steps.map((recorded) =>
+      reviewIds.includes(recorded.sessionId)
+        ? { ...recorded, account: 1, configFolder: accountOne }
+        : recorded,
+    ),
   };
 }
 
@@ -106,6 +131,13 @@ describe("transcriptFactsOf", () => {
         "session-fix",
       ],
     ]);
+  });
+
+  it("finds each step session's transcript in its own config folder", () => {
+    const facts = transcriptFactsOf(reviewedOnAccountOne(), handoffs);
+    expect([facts.account, facts.durationMinutes]).toEqual(["2, 1", 42]);
+    expect(facts.costUsd).toBeCloseTo(1.454, 6);
+    expect(facts.reviewCostUsd).toBeCloseTo(0.114, 6);
   });
 
   it("leaves duration unrecorded when the review transcript is missing", () => {

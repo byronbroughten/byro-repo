@@ -35,7 +35,11 @@ import type { Finding } from "../reviewStep.ts";
 import type { Command, RunKnobs } from "../runKnobs.ts";
 import { SchemaFailure } from "../SchemaFailure.ts";
 import { type Target, targetLineShapes, targetsOf } from "../ticketTargets.ts";
-import { type StepAgent, type StepSession } from "../transcriptFacts.ts";
+import {
+  type RecordedSession,
+  type StepAgent,
+  type StepSession,
+} from "../transcriptFacts.ts";
 import { stopOutcomes, UnhandledStop } from "../UnhandledStop.ts";
 
 const execFileAsync = promisify(execFile);
@@ -103,6 +107,10 @@ export type Resolver = "implementer" | "fresh";
 // Each worktree's clone path to its HEAD.
 export type Heads = Record<string, string>;
 
+// Optional, as a state saved before #367 has neither.
+export type TicketSession = StepSession &
+  Partial<Pick<RecordedSession, "account" | "configFolder">>;
+
 export interface TicketState {
   step: TicketStep;
   record?: ImplementRecord;
@@ -118,7 +126,8 @@ export interface TicketState {
   resolverSession?: string;
   // The heads before the resolve step, which a killed resolver or a rerun resets to.
   resolveBase?: Heads;
-  sessions: StepSession[];
+  sessions: TicketSession[];
+  // The latest step's config folder.
   configFolder?: string;
   stop?: string;
   // Set while a step runs, so a rerun after the process died takes the step as crashed.
@@ -387,6 +396,18 @@ export function lastSessionOf(
 ): string | undefined {
   return state.sessions.findLast((session) => session.agent === agent)
     ?.sessionId;
+}
+
+// A session saved before #367 takes the configured account and the ticket's last config folder; one with no folder is left out.
+export function recordedSessionsOf(
+  state: TicketState,
+  account: number,
+): RecordedSession[] {
+  return state.sessions.flatMap((session) => {
+    const configFolder = session.configFolder ?? state.configFolder;
+    if (configFolder === undefined) return [];
+    return [{ account, ...session, configFolder }];
+  });
 }
 
 // A live-ceiling kill is the resolver's crossing, whatever its subtype.

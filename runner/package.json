@@ -37,6 +37,7 @@
     "./contextNudge": "./src/contextNudge.ts",
     "./limitGuard": "./src/limitGuard.ts",
     "./outcomeLog": "./src/outcomeLog.ts",
+    "./outcomeRowWriter": "./src/outcomeRowWriter.ts",
     "./transcriptFacts": "./src/transcriptFacts.ts",
     "./UnhandledStop": "./src/UnhandledStop.ts",
     "./WrapUp": "./src/WrapUp.ts",

@@ -4,7 +4,7 @@
 // its parent. Steps are recorded in a progress file, so a rerun skips what already landed; a failure throws a
 // WrapUpFailure naming its kind.
 // A session workspace lands the same way from its session branches, with no facts file, checks or issue steps.
-// The outcome row's format is outcomeLog.ts and its transcript facts are transcriptFacts.ts; the lock is LandingLock.ts;
+// The outcome row is written by outcomeRowWriter.ts with the merged code; the lock is LandingLock.ts;
 // workspaces are IssueWorkspaces.ts.
 
 import { execFile } from "node:child_process";
@@ -15,7 +15,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { promisify } from "node:util";
 
 import {
@@ -52,14 +52,13 @@ import {
 import { LandingLock } from "./LandingLock.ts";
 import { LeaseHeld } from "./LeaseHeld.ts";
 import {
-  outcomeCommitMessage,
-  type OutcomeFacts,
-  outcomeFileOf,
-  outcomePathOf,
-} from "./outcomeLog.ts";
+  type OutcomeRowRequest,
+  writeOutcomeRow,
+  type WrittenOutcomeRow,
+} from "./outcomeRowWriter.ts";
 import { secretShapeOf } from "./secretShapes.ts";
 import { sleep } from "./sleep.ts";
-import { handoffSessionIdOf, transcriptFactsOf } from "./transcriptFacts.ts";
+import { handoffSessionIdOf } from "./transcriptFacts.ts";
 import { WrapUpFailure } from "./WrapUpFailure.ts";
 
 const execFileAsync = promisify(execFile);
@@ -123,6 +122,11 @@ export interface WrapUpConfig {
   outcomeFolder: string;
   // Holds each ticket's facts and progress files; gitignored.
   stateFolder: string;
+  // Writes the row file into the merged root checkout with that checkout's code; unset, with the code already loaded.
+  writeOutcomeRow?(
+    root: string,
+    request: OutcomeRowRequest,
+  ): Promise<WrittenOutcomeRow>;
   knobs?: Partial<WrapUpKnobs>;
   sleep?(ms: number): Promise<void>;
   log?(line: string): void;
@@ -672,36 +676,27 @@ export class WrapUp {
     const built = landing.progress.built ?? {};
     const base =
       built[this._rootRepo]?.base ?? (await revOf(worktree, "master"));
-    const row = {
+    let handoffSessionIds: string[] = [];
+    if (facts.sessions !== undefined) {
+      handoffSessionIds = await this._handoffSessionIdsOf(issue);
+    }
+    const writeRow = this.config.writeOutcomeRow ?? writeOutcomeRow;
+    const { path, commitMessage } = await writeRow(worktree, {
       issue,
       spec: await this._specOf(issue),
       githubOwner: this.config.githubOwner,
       filesChanged: landing.progress.filesChanged ?? 0,
-      facts: await this._outcomeFactsOf(issue, facts),
-    };
-    const path = outcomePathOf(this.config.outcomeFolder, row);
-    mkdirSync(dirname(join(worktree, path)), { recursive: true });
-    writeFileSync(join(worktree, path), outcomeFileOf(row));
+      handoffSessionIds,
+      stateFolder: this.config.stateFolder,
+      outcomeFolder: this.config.outcomeFolder,
+    });
     await git(worktree, "add", path);
     // A rerun after a partial fast-forward finds the row already on master.
     if ((await git(worktree, "status", "--porcelain", path)) !== "") {
-      await git(worktree, "commit", "-m", outcomeCommitMessage(row));
+      await git(worktree, "commit", "-m", commitMessage);
     }
     built[this._rootRepo] = { base, head: await revOf(worktree, "HEAD") };
     landing.progress.built = built;
-  }
-
-  private async _outcomeFactsOf(
-    issue: IssueRef,
-    facts: WrapUpFacts,
-  ): Promise<OutcomeFacts> {
-    const { sessions } = facts;
-    if (sessions === undefined) return facts;
-    const transcriptFacts = transcriptFactsOf(
-      sessions,
-      await this._handoffSessionIdsOf(issue),
-    );
-    return { ...facts, ...definedFactsOf(transcriptFacts) };
   }
 
   private async _handoffSessionIdsOf(issue: IssueRef): Promise<string[]> {
@@ -1100,12 +1095,6 @@ function parentCheckOf(parent: ParentIssue | undefined): ParentCheck {
     return { kind: "open-sub-issues", parent: parent.issue };
   }
   return { kind: "ready-to-close", parent: parent.issue };
-}
-
-function definedFactsOf(facts: OutcomeFacts): OutcomeFacts {
-  return Object.fromEntries(
-    Object.entries(facts).filter(([, value]) => value !== undefined),
-  ) as OutcomeFacts;
 }
 
 async function levelRepo(worktree: string, branch: string): Promise<void> {

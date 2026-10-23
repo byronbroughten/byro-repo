@@ -199,6 +199,7 @@ describe("run's implement handoff", () => {
     expect(ticketState()["byro-repo #1"]?.sessions).toContainEqual({
       agent: "implement",
       sessionId: "handoff-session",
+      account: 1,
     });
   });
 });

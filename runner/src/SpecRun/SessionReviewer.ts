@@ -39,6 +39,7 @@ import { ReviewStepper } from "./ReviewStepper.ts";
 import {
   haltsOf,
   idListOf,
+  recordedSessionsOf,
   type ResolveOptions,
   reviewFactsOf,
   type ReviewOptions,
@@ -246,19 +247,12 @@ export class SessionReviewer extends SpecRunBase {
     };
   }
 
-  // Beside the implement session, under its account and config folder, so wrap-up prices them as review cost.
+  // Beside the implement session, each under the account and config folder it ran as, so wrap-up prices them as review cost.
   private _recordSessions({ run, ticket, state }: TicketRun): void {
     try {
-      const implemented = this.factsFile.sessionsOf(ticket.issue);
-      const account = implemented?.account ?? this.config.knobs.account;
-      const configFolder = implemented?.configFolder ?? state.configFolder;
-      if (configFolder === undefined) return;
-      for (const step of state.sessions) {
-        this.factsFile.addSession(ticket.issue, {
-          account,
-          configFolder,
-          step,
-        });
+      const { account } = this.config.knobs;
+      for (const step of recordedSessionsOf(state, account)) {
+        this.factsFile.addSession(ticket.issue, step);
       }
     } catch (error) {
       // Logged, not thrown, so a failed write never replaces the review's own result.

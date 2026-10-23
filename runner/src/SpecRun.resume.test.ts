@@ -145,6 +145,38 @@ describe("run's resume", () => {
     expect(ticketFacts().reviewFixes).toBe("fresh");
   });
 
+  it("records a resumed state's sessions each under its own saved account and folder, and an older one under the run's", async () => {
+    await killAtResolveSavedAs({
+      configFolder: "/config/account-1",
+      sessions: [
+        {
+          agent: "implement",
+          sessionId: "implement-session",
+          account: 2,
+          configFolder: "/config/account-2",
+        },
+        { agent: "triage", sessionId: "triage-session" },
+      ],
+    });
+
+    await specRun(dismissingResolver()).run(spec);
+
+    expect(ticketFacts().sessions?.steps.slice(0, 2)).toEqual([
+      {
+        agent: "implement",
+        sessionId: "implement-session",
+        account: 2,
+        configFolder: "/config/account-2",
+      },
+      {
+        agent: "resolve",
+        sessionId: "triage-session",
+        account: 1,
+        configFolder: "/config/account-1",
+      },
+    ]);
+  });
+
   it("counts a crash saved under the resolve step's old name against resolve", async () => {
     await killAtResolveSavedAs({ crashes: { triage: 1 } });
 
@@ -334,13 +366,13 @@ async function killAtResolveSavedAs(
   const { resolveBase, ...ticket } = saved.tickets["byro-repo #1"] ?? {};
   saved.tickets["byro-repo #1"] = {
     ...ticket,
-    ...oldFields,
     step: "fix",
     fixBase: resolveBase,
     sessions: [
       { agent: "implement", sessionId: "implement-session" },
       { agent: "triage", sessionId: "triage-session" },
     ],
+    ...oldFields,
   };
   writeFileSync(runStatePath(), JSON.stringify(saved));
 }

@@ -138,29 +138,70 @@ describe("review of one ticket outside a run", () => {
     });
   });
 
-  it("records the review and resolve sessions it started beside the implement session, under its account and config folder", async () => {
-    FactsFile.init(stateFolder()).addSession(refOf(1), {
+  it("records the review and resolve sessions beside the implement session, each under the account and config folder it ran as", async () => {
+    const implement = {
+      agent: "implement",
+      sessionId: "implement-session",
       account: 2,
       configFolder: "/config/account-2",
-      step: { agent: "implement", sessionId: "implement-session" },
-    });
+    } as const;
+    FactsFile.init(stateFolder()).addSession(refOf(1), implement);
     const agentStep = FakeAgentStep.init(
-      { ...reviewed(findings), sessionId: "review-session" },
+      {
+        ...reviewed(findings),
+        sessionId: "review-session",
+        configFolder: "/config/account-1",
+      },
       async (request) => ({
         ...(await resolved([propose, fix, coveredLater], "fix.ts")(request)),
         sessionId: "resolve-session",
+        configFolder: "/config/account-1",
+      }),
+    );
+
+    await specRun(agentStep).review(refOf(1), { holder });
+
+    const accountOne = { account: 1, configFolder: "/config/account-1" };
+    expect(ticketFacts().sessions).toEqual({
+      steps: [
+        implement,
+        { agent: "review", sessionId: "review-session", ...accountOne },
+        { agent: "resolve", sessionId: "resolve-session", ...accountOne },
+      ],
+    });
+  });
+
+  it("records each step session under the account and config folder its own step ran as", async () => {
+    const agentStep = FakeAgentStep.init(
+      {
+        ...reviewed(findings),
+        sessionId: "review-session",
+        account: 2,
+        configFolder: "/config/account-2",
+      },
+      async (request) => ({
+        ...(await resolved([propose, fix, coveredLater], "fix.ts")(request)),
+        sessionId: "resolve-session",
+        configFolder: "/config/account-1",
       }),
     );
 
     await specRun(agentStep).review(refOf(1), { holder });
 
     expect(ticketFacts().sessions).toEqual({
-      account: 2,
-      configFolder: "/config/account-2",
       steps: [
-        { agent: "implement", sessionId: "implement-session" },
-        { agent: "review", sessionId: "review-session" },
-        { agent: "resolve", sessionId: "resolve-session" },
+        {
+          agent: "review",
+          sessionId: "review-session",
+          account: 2,
+          configFolder: "/config/account-2",
+        },
+        {
+          agent: "resolve",
+          sessionId: "resolve-session",
+          account: 1,
+          configFolder: "/config/account-1",
+        },
       ],
     });
   });
@@ -181,12 +222,11 @@ describe("review of one ticket outside a run", () => {
     const result = await specRun(agentStep).review(refOf(1), { holder });
 
     expect(result.kind).toBe("halted");
+    const accountOne = { account: 1, configFolder: "/config/account-1" };
     expect(ticketFacts().sessions).toEqual({
-      account: 1,
-      configFolder: "/config/account-1",
       steps: [
-        { agent: "review", sessionId: "review-session" },
-        { agent: "resolve", sessionId: "resolve-session" },
+        { agent: "review", sessionId: "review-session", ...accountOne },
+        { agent: "resolve", sessionId: "resolve-session", ...accountOne },
       ],
     });
   });
