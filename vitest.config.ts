@@ -6,17 +6,16 @@ import { defineConfig } from "vitest/config";
 import { frameworkProjects } from "./packages/framework/vitest.config.ts";
 
 // macOS's /usr/bin/git is an xcrun shim that doubles each git call's cost, and the runner tests make thousands.
-function pathWithDirectGitFirst(): string | undefined {
-  if (process.platform !== "darwin") return undefined;
+function pathWithDirectGitFirst(): string {
+  const path = process.env.PATH ?? "";
+  if (process.platform !== "darwin") return path;
   try {
     const git = execFileSync("xcrun", ["--find", "git"], { encoding: "utf8" });
-    return [dirname(git.trim()), process.env.PATH].join(delimiter);
+    return [dirname(git.trim()), path].join(delimiter);
   } catch {
-    return undefined;
+    return path;
   }
 }
-
-const pathWithDirectGit = pathWithDirectGitFirst();
 
 // The framework's and utils' own projects join the root's, so one vitest run covers every package.
 export default defineConfig({
@@ -24,7 +23,7 @@ export default defineConfig({
   ssr: { resolve: { conditions: ["source"] } },
   test: {
     environment: "node",
-    ...(pathWithDirectGit && { env: { PATH: pathWithDirectGit } }),
+    env: { PATH: pathWithDirectGitFirst() },
     restoreMocks: true,
     unstubGlobals: true,
     projects: [

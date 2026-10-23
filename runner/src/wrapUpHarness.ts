@@ -15,6 +15,7 @@ import {
   type IssueWorkspacesConfig,
   type Workspace,
 } from "./IssueWorkspaces.ts";
+import { type Command } from "./runKnobs.ts";
 import { WrapUp, type WrapUpConfig } from "./WrapUp.ts";
 import { WrapUpFailure, type WrapUpFailureKind } from "./WrapUpFailure.ts";
 
@@ -23,7 +24,7 @@ export const clonePaths = {
   "byro-repo": ".",
   "sheets-framework": "packages/framework",
 };
-const redCheck: [string, ...string[]] = ["sh", "-c", "test ! -f RED"];
+const redCheck: Command = ["sh", "-c", "test ! -f RED"];
 
 export const ticket: IssueRef = { repo: "byro-repo", number: 218 };
 export const spec: IssueRef = { repo: "byro-repo", number: 213 };
