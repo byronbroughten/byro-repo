@@ -8,7 +8,7 @@ import type { Gap, GapCheckRecord } from "./gapCheck.ts";
 import { shortRefOf } from "./halts.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 import { issueRefOf, type ResolveRecord } from "./resolveStep.ts";
-import { axes, type Axis, type Verdict } from "./verdicts.ts";
+import type { Axis, Verdict } from "./verdicts.ts";
 
 const markPrefix = "<!-- review-list ";
 const listMarkPrefix = `${markPrefix}ticket=`;
@@ -90,19 +90,25 @@ export interface TicketReviewList {
   records: ResolveRecord[];
 }
 
-const verdictOrder = ["fix", "propose", "dismiss", "halt"] as const;
+// A ticket's groups, each key order the order shown.
+const reviewGroups = {
+  axes: {
+    standards: "### Standards",
+    spec: "### Spec",
+  },
+  verdicts: {
+    fix: { heading: "Fixed", word: "Fix" },
+    propose: { heading: "Proposed", word: "Propose" },
+    dismiss: { heading: "Dismissed", word: "Dismiss" },
+    halt: { heading: "Halted", word: "Halt" },
+  },
+} as const satisfies {
+  axes: Record<Axis, string>;
+  verdicts: Record<Verdict, { heading: string; word: string }>;
+};
 
-const verdictLabels = {
-  fix: { heading: "Fixed", word: "Fix" },
-  propose: { heading: "Proposed", word: "Propose" },
-  dismiss: { heading: "Dismissed", word: "Dismiss" },
-  halt: { heading: "Halted", word: "Halt" },
-} as const satisfies Record<Verdict, { heading: string; word: string }>;
-
-const axisHeadings = {
-  standards: "### Standards",
-  spec: "### Spec",
-} as const satisfies Record<Axis, string>;
+const shownAxes = Object.keys(reviewGroups.axes) as Axis[];
+const shownVerdicts = Object.keys(reviewGroups.verdicts) as Verdict[];
 
 // The run's comment and the interactive printout alike; undefined for a review that kept no records.
 export function ticketReviewListOf({
@@ -111,8 +117,8 @@ export function ticketReviewListOf({
   records,
 }: TicketReviewList): string | undefined {
   if (records.length === 0) return undefined;
-  const groups = axes.map((axis) =>
-    verdictOrder.map((verdict) =>
+  const groups = shownAxes.map((axis) =>
+    shownVerdicts.map((verdict) =>
       records.filter(
         (record) => record.axis === axis && record.verdict === verdict,
       ),
@@ -120,17 +126,17 @@ export function ticketReviewListOf({
   );
   // Numbered in the order shown, so R<ticket>.1 is the first Proposal read.
   const proposals = groups.flatMap(
-    (byVerdict) => byVerdict[verdictOrder.indexOf("propose")] ?? [],
+    (byVerdict) => byVerdict[shownVerdicts.indexOf("propose")] ?? [],
   );
-  const sections = axes.flatMap((axis, axisIndex) => {
-    const shown = verdictOrder.flatMap((verdict, verdictIndex) =>
+  const sections = shownAxes.flatMap((axis, axisIndex) => {
+    const shown = shownVerdicts.flatMap((verdict, verdictIndex) =>
       verdictGroupOf(
         groups[axisIndex]?.[verdictIndex] ?? [],
         verdict,
         (record) => itemIdOf(ticket, proposals.indexOf(record)),
       ),
     );
-    return shown.length === 0 ? [] : [axisHeadings[axis], ...shown];
+    return shown.length === 0 ? [] : [reviewGroups.axes[axis], ...shown];
   });
   return [
     reviewListMarkOf(ticket),
@@ -153,7 +159,9 @@ function verdictGroupOf(
     if (verdict === "halt") return haltRowOf(record);
     return fixRowOf(record);
   });
-  return [`**${verdictLabels[verdict].heading}**\n\n${rows.join("\n")}`];
+  return [
+    `**${reviewGroups.verdicts[verdict].heading}**\n\n${rows.join("\n")}`,
+  ];
 }
 
 // Undefined where the resolver kept the reviewer's verdict, or the record predates suggested verdicts.
@@ -165,8 +173,8 @@ function departureOf({
   if (suggestedVerdict === undefined || suggestedVerdict === verdict) {
     return undefined;
   }
-  const from = verdictLabels[suggestedVerdict].word;
-  return `suggested ${from} → ${verdictLabels[verdict].word}: ${evidence}`;
+  const from = reviewGroups.verdicts[suggestedVerdict].word;
+  return `suggested ${from} → ${reviewGroups.verdicts[verdict].word}: ${evidence}`;
 }
 
 function departureLinesOf(record: ResolveRecord): string[] {
@@ -218,7 +226,7 @@ function dismissGroupOf(dismisses: ResolveRecord[]): string[] {
   );
   return [
     ...(shown.length > 0
-      ? [`**${verdictLabels.dismiss.heading}**\n\n${shown.join("\n")}`]
+      ? [`**${reviewGroups.verdicts.dismiss.heading}**\n\n${shown.join("\n")}`]
       : []),
     ...(agreed.length > 0 ? [dismissAuditOf(agreed)] : []),
   ];
