@@ -21,7 +21,7 @@ import {
   primaryOf,
   progressLines,
   refOf,
-  resultOf,
+  resolved,
   reviewed,
   spec,
   specRun,
@@ -62,28 +62,6 @@ describe("run's review and triage turn caps", () => {
     const [halt] = haltComments();
     expect(halt).toContain("Failure Halt");
     expect(halt).toContain("The review step hit its 80-turn cap.");
-    expect(halt).toContain("1. `retry`");
-  });
-});
-
-describe("run's triage turn cap", () => {
-  it("retries a triage that hit its turn cap once, fresh, then posts a Failure Halt", async () => {
-    addSpec([1]);
-    const agentStep = FakeAgentStep.init(
-      implemented("one.ts"),
-      reviewed([findingOf(1)]),
-      capped,
-      capped,
-    );
-
-    await specRun(agentStep).run(spec);
-
-    const [, , first, retry] = agentStep.requests;
-    expect(retry?.prompt).toBe(first?.prompt);
-    expect(retry?.resumeSessionId).toBeUndefined();
-    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
-    const [halt] = haltComments();
-    expect(halt).toContain("The triage step hit its 80-turn cap.");
     expect(halt).toContain("1. `retry`");
   });
 });
@@ -178,7 +156,7 @@ describe("run's implement turn cap", () => {
   });
 });
 
-describe("run's fix and red-checks turn caps", () => {
+describe("run's resolve and red-checks turn caps", () => {
   const findings = [findingOf(1), findingOf(2)];
 
   function fixRecordOf(finding: number): TriageRecord {
@@ -203,30 +181,22 @@ describe("run's fix and red-checks turn caps", () => {
     return capped;
   }
 
-  it("turns the batch's findings into `turn-cap` give-ups, keeping the fixer's commits", async () => {
+  it("reruns a capped resolve with its work reset away, and lands the rerun's fix", async () => {
     addSpec([1]);
-    let branch = "";
     const agentStep = FakeAgentStep.init(
       implemented("one.ts"),
       reviewed(findings),
-      resultOf({ records: [fixRecordOf(1), fixRecordOf(2)] }),
-      async (request) => {
-        branch = git(request.cwd, "branch", "--show-current");
-        return cappedFixer(request);
-      },
+      cappedFixer,
+      resolved([fixRecordOf(1), fixRecordOf(2)], "fix.ts"),
     );
 
     const result = await specRun(agentStep).run(spec);
 
     expect(result.landed).toEqual([refOf(1)]);
     expect(agentStep.requests).toHaveLength(4);
-    expect(ticketState()["byro-repo #1"]?.triage).toMatchObject([
-      { finding: 1, verdict: "propose", reason: "decision" },
-      { finding: 2, verdict: "propose", reason: "decision" },
-    ]);
-    expect(
-      ticketState()["byro-repo #1"]?.triage?.[0]?.recommendation,
-    ).toContain("ran out of turns");
+    expect(progressLines().map(eventOf)).toContain(
+      "byro-repo #1: The fix step hit its 120-turn cap. Retrying, 1 of 1.",
+    );
     const primary = primaryOf("byro-repo");
     const merge = git(
       primary,
@@ -236,12 +206,28 @@ describe("run's fix and red-checks turn caps", () => {
       "--format=%H",
       "master",
     );
-    expect(git(primary, "log", "--format=%s", "-1", `${merge}^2`)).toBe(
-      "Fix fix.ts",
-    );
-    expect(git(primary, "show", `backup/${branch}-fix:half.ts`)).toBe(
-      "half a fix",
-    );
+    expect(
+      git(primary, "log", "--format=%s", `${merge}^1..${merge}^2`).split("\n"),
+    ).toEqual(["Fix fix.ts", "Add one.ts"]);
+  });
+
+  it("posts a Failure Halt when the resolve's rerun hits its turn cap too", async () => {
+    addSpec([1]);
+
+    await specRun(
+      FakeAgentStep.init(
+        implemented("one.ts"),
+        reviewed(findings),
+        cappedFixer,
+        cappedFixer,
+      ),
+    ).run(spec);
+
+    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+    const [halt] = haltComments();
+    expect(halt).toContain("Failure Halt");
+    expect(halt).toContain("The fix step hit its 120-turn cap.");
+    expect(halt).toContain("1. `retry`");
   });
 
   it("lands a ticket whose red-checks resume turned the checks green before its turn cap", async () => {

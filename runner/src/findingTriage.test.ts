@@ -3,8 +3,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   haltScopeOf,
+  resolveCommitProblems,
+  resolvePrompt,
   triageOutputSchema,
-  triagePrompt,
   type TriageRecord,
   triageRecordProblems,
   triageRecordsOf,
@@ -168,7 +169,7 @@ describe("triageRecordProblems", () => {
     ]);
   });
 
-  it("refuses a Dismiss without one of the four reasons", () => {
+  it("refuses a Dismiss without one of the five reasons", () => {
     const { reason: _reason, ...reasonless } = dismiss;
     expect(
       triageRecordProblems(2, [
@@ -176,8 +177,8 @@ describe("triageRecordProblems", () => {
         { ...dismiss, finding: 2, reason: "duplicate" },
       ]),
     ).toEqual([
-      "finding 1: a Dismiss needs reason `false-positive`, `covered-later`, `kept` or `tooling-enforced`, but has none",
-      "finding 2: a Dismiss needs reason `false-positive`, `covered-later`, `kept` or `tooling-enforced`, but has `duplicate`",
+      "finding 1: a Dismiss needs reason `false-positive`, `covered-later`, `kept`, `tooling-enforced` or `serves-spec`, but has none",
+      "finding 2: a Dismiss needs reason `false-positive`, `covered-later`, `kept`, `tooling-enforced` or `serves-spec`, but has `duplicate`",
     ]);
   });
 
@@ -221,8 +222,40 @@ describe("triageRecordProblems", () => {
     expect(
       triageRecordProblems(1, [{ ...dismiss, reason: "won't-fix" }]),
     ).toEqual([
-      "finding 1: a Dismiss needs reason `false-positive`, `covered-later`, `kept` or `tooling-enforced`, but has `won't-fix`",
+      "finding 1: a Dismiss needs reason `false-positive`, `covered-later`, `kept`, `tooling-enforced` or `serves-spec`, but has `won't-fix`",
     ]);
+  });
+
+  it("accepts a serves-spec Dismiss with its evidence", () => {
+    expect(
+      triageRecordProblems(1, [{ ...dismiss, reason: "serves-spec" }]),
+    ).toEqual([]);
+  });
+
+  it("refuses a suggested Halt resolved as a Fix or a Dismiss", () => {
+    expect(
+      triageRecordProblems(2, [
+        { ...fix, suggestedVerdict: "halt" },
+        { ...dismiss, finding: 2, suggestedVerdict: "halt" },
+      ]),
+    ).toEqual([
+      "finding 1: a suggested Halt resolves only as a Halt or a Propose `decision`",
+      "finding 2: a suggested Halt resolves only as a Halt or a Propose `decision`",
+    ]);
+  });
+
+  it("accepts a suggested Halt resolved as a Halt or a Propose decision", () => {
+    expect(
+      triageRecordProblems(2, [
+        { ...halt, suggestedVerdict: "halt" },
+        {
+          ...propose,
+          finding: 2,
+          reason: "decision",
+          suggestedVerdict: "halt",
+        },
+      ]),
+    ).toEqual([]);
   });
 
   it("refuses a finding given zero verdicts or two", () => {
@@ -316,8 +349,8 @@ describe("triageOutputSchema", () => {
   });
 });
 
-describe("triagePrompt", () => {
-  const prompt = triagePrompt({
+describe("resolvePrompt", () => {
+  const prompt = resolvePrompt({
     issue: { repo: "byro-repo", number: 220 },
     title: "Finding-triage record, checker and prompt",
     branch: "issue-220-finding-triage-record-checker-and-prompt",
@@ -340,33 +373,74 @@ describe("triagePrompt", () => {
     );
   });
 
-  it("asks for one record per finding and forbids edits", () => {
+  it("asks for one record per finding and a commit per Fix", () => {
     expect(prompt).toContain("exactly one record per finding");
-    expect(prompt).toContain("Never edit code");
+    expect(prompt).toContain("Each Fix lands in its own commit");
   });
 
-  it("states every verdict rule", () => {
+  it("names the verdict-rules doc instead of carrying its rules", () => {
+    expect(prompt).toContain("`docs/agents/verdicts.md`");
     [
-      "`false-positive`: the finding is wrong",
-      "`covered-later`: a later ticket covers it",
-      "`kept`: a smell whose site carries a one-line reason that is still true",
-      "`tooling-enforced`: lint, the typecheck or a test",
-      "`coveredBy`",
-      "`docs/agents/verdicts.md`",
-      "Doc drift the diff caused is Fix",
+      "Doc drift",
+      "the finding is wrong",
       "unverifiable findings",
-      "would reverse a User Story or an Implementation Decision",
-      "drafted one-line reason in `draftKeepReason`",
-      "Only that wanted-smell case of Propose `decision` has `draftKeepReason`",
+      "would reverse a User Story",
+    ].forEach((rule) => expect(prompt).not.toContain(rule));
+  });
+
+  it("lists the fields each verdict's record needs", () => {
+    [
+      "`serves-spec`",
+      "`coveredBy`",
+      "`draftKeepReason`",
       "`draftIssueTitle`",
       "`haltScope`",
-      "omit `haltScope` to scope it to the whole spec",
-      "or is `spec` for the whole spec",
-      "The runner never files them",
-    ].forEach((rule) => expect(prompt).toContain(rule));
+    ].forEach((field) => expect(prompt).toContain(field));
   });
 
   it("names the issue reader for the spec read", () => {
     expect(prompt).toContain("npm run issue:read -- <repo> <n> --hide-others");
+  });
+});
+
+describe("resolveCommitProblems", () => {
+  const clean = { hasChangedTree: false, dirtyRepos: [] };
+
+  it("accepts a Fix with a committed change", () => {
+    expect(
+      resolveCommitProblems({ ...clean, records: [fix], hasChangedTree: true }),
+    ).toEqual([]);
+  });
+
+  it("refuses a Fix with no committed change", () => {
+    expect(resolveCommitProblems({ ...clean, records: [fix] })).toEqual([
+      "the records give a Fix, but the step committed no change",
+    ]);
+  });
+
+  it("refuses a committed change with no Fix", () => {
+    expect(
+      resolveCommitProblems({
+        ...clean,
+        records: [propose],
+        hasChangedTree: true,
+      }),
+    ).toEqual(["no record is a Fix, but the step committed a change"]);
+  });
+
+  it("accepts no Fix and no change, as a fix reverted into a Propose leaves", () => {
+    expect(resolveCommitProblems({ ...clean, records: [propose] })).toEqual([]);
+  });
+
+  it("refuses each repo left with uncommitted changes", () => {
+    expect(
+      resolveCommitProblems({
+        ...clean,
+        records: [dismiss],
+        dirtyRepos: ["x"],
+      }),
+    ).toEqual([
+      "x: the step left uncommitted changes, such as a fix it didn't commit or revert",
+    ]);
   });
 });
