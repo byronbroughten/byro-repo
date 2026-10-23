@@ -23,7 +23,6 @@ import {
 import {
   dirtyReposOf,
   git,
-  type RepoWorktree,
   saveUncommitted,
   snapshotUncommitted,
   worktreeStateOf,
@@ -401,11 +400,13 @@ export class SpecRunBase {
 
   // Every repo's HEAD, so any commit in any repo changes it.
   protected async _headsOf(workspace: Workspace): Promise<Heads> {
-    const heads: Heads = {};
-    for (const { clonePath, worktree } of this._worktreesOf(workspace)) {
-      heads[clonePath] = await git(worktree, "rev-parse", "HEAD");
-    }
-    return heads;
+    const entries = await Promise.all(
+      this._worktreesOf(workspace).map(
+        async ({ clonePath, worktree }) =>
+          [clonePath, await git(worktree, "rev-parse", "HEAD")] as const,
+      ),
+    );
+    return Object.fromEntries(entries);
   }
 
   protected _worktreesOf(workspace: Workspace): CloneWorktree[] {
@@ -420,13 +421,15 @@ export class SpecRunBase {
   protected async _headsAndDirtyReposOf(
     workspace: Workspace,
   ): Promise<HeadsAndDirtyRepos> {
-    const heads: Heads = {};
-    const worktrees: RepoWorktree[] = [];
-    for (const { repo, clonePath, worktree } of this._worktreesOf(workspace)) {
-      const state = await worktreeStateOf(worktree);
-      heads[clonePath] = state.head;
-      worktrees.push({ repo, worktree, state });
-    }
+    const worktrees = await Promise.all(
+      this._worktreesOf(workspace).map(async (clone) => ({
+        ...clone,
+        state: await worktreeStateOf(clone.worktree),
+      })),
+    );
+    const heads: Heads = Object.fromEntries(
+      worktrees.map(({ clonePath, state }) => [clonePath, state.head]),
+    );
     return { heads, dirtyRepos: dirtyReposOf(worktrees) };
   }
 }

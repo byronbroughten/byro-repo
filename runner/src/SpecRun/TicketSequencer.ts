@@ -101,7 +101,7 @@ export class TicketSequencer extends SpecRunBase {
         const targets = targetsAtLaunchOf(ticket, this._progressPathOf(run));
         await this._runSteps({ run, ticket, pair, workspace, state, targets });
       } else {
-        const landing = await this.workspaces.find(ticket.issue);
+        const landing = this.workspaces.folderOf(ticket.issue);
         if (landing) await this.leaseKeeper._takeLease(run, landing);
       }
       await this._timed({ run, ticket }, "wrap-up", () =>

@@ -36,12 +36,9 @@ export const clonePaths = {
 };
 
 export const spec: IssueRef = { repo: "byro-repo", number: 213 };
-export const passes: Command = ["node", "-e", "process.exit(0)"];
-export const greenUnlessRed: Command = [
-  "node",
-  "-e",
-  "process.exit(require('fs').existsSync('RED') ? 1 : 0)",
-];
+// Small binaries, not node, since every run spawns them and a node process costs several times as much to start.
+export const passes: Command = ["true"];
+export const greenUnlessRed: Command = ["sh", "-c", "test ! -f RED"];
 
 export let temp: string;
 export let primaryRoot: string;

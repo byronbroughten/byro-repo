@@ -2,7 +2,10 @@
 // Usage: npm run check [-- --fresh].
 import { join } from "node:path";
 
-import { Checks } from "@byronbroughten/spec-runner/Checks";
+import {
+  Checks,
+  type CommandDuration,
+} from "@byronbroughten/spec-runner/Checks";
 import { commandLabelOf } from "@byronbroughten/spec-runner/failureText";
 import type { Command } from "@byronbroughten/spec-runner/runKnobs";
 
@@ -37,6 +40,7 @@ if (result.kind === "skipped") {
     ? "Stamped."
     : "Not stamped: a repo has uncommitted or untracked changes.";
   console.log(`check passed. ${stampLine}`);
+  console.log(timingLine(result.durations));
 } else {
   result.failures.forEach(({ command, output }) =>
     console.error(`\n--- ${commandLabelOf(command)} ---\n${output}`),
@@ -44,4 +48,13 @@ if (result.kind === "skipped") {
   const labels = result.failures.map(({ command }) => commandLabelOf(command));
   console.error(`\ncheck failed: ${labels.join("; ")}`);
   process.exitCode = 1;
+  console.log(timingLine(result.durations));
+}
+
+function timingLine(durations: CommandDuration[]): string {
+  const timings = durations.map(
+    ({ command, ms }) =>
+      `${commandLabelOf(command)} ${(ms / 1000).toFixed(1)}s`,
+  );
+  return `Took: ${timings.join("; ")}.`;
 }

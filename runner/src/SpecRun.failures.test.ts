@@ -187,9 +187,7 @@ describe("run's red-check resume", () => {
     expect(result.landed).toEqual([refOf(1)]);
     const resumed = agentStep.requests[2];
     expect(resumed?.resumeSessionId).toBe("session");
-    expect(resumed?.prompt).toContain(
-      "node -e process.exit(require('fs').existsSync('RED') ? 1 : 0) failed",
-    );
+    expect(resumed?.prompt).toContain("sh -c test ! -f RED failed");
   });
 
   it("hands red checks to the triage agent on the stronger pair once the implementer is past the ticket budget", async () => {

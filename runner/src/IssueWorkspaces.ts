@@ -135,6 +135,10 @@ interface KeyedFolder {
   key: WorkspaceKey;
 }
 
+interface MaybeLeasedFolder extends KeyedFolder {
+  lease?: Lease;
+}
+
 export interface LeasedWorkspace extends KeyedFolder {
   lease: Lease;
 }
@@ -198,7 +202,10 @@ export class IssueWorkspaces {
     return workspace;
   }
 
-  async takeLease(workspace: Workspace, holder: LeaseHolder): Promise<void> {
+  async takeLease(
+    workspace: Pick<Workspace, "path">,
+    holder: LeaseHolder,
+  ): Promise<void> {
     const leasePath = leasePathOf(workspace.path);
     const { kind, pid } = holder;
     const startedAt = await startTimeOf(pid);
@@ -214,7 +221,7 @@ export class IssueWorkspaces {
 
   // Only the lease goes, so the released workspace keeps its unlanded commits and dirty files.
   private async _releaseOtherLeasesOf(
-    workspace: Workspace,
+    workspace: Pick<Workspace, "path">,
     holder: LeaseHolder,
   ): Promise<void> {
     for (const { path, lease } of await this.leases()) {
@@ -259,9 +266,25 @@ export class IssueWorkspaces {
     return path;
   }
 
+  // Reads only the matching folder's repos, since each status read is a git process.
   async find(key: WorkspaceKey): Promise<WorkspaceStatus | undefined> {
-    const workspaces = await this.list();
-    return workspaces.find((workspace) => isSameKey(workspace.key, key));
+    const folder = this.folderOf(key);
+    if (!folder) return undefined;
+    return this._statusOf(folder.path, folder.key);
+  }
+
+  // The folder alone, with no git process, for a caller that needs only its path or lease.
+  folderOf(key: WorkspaceKey): KeyedFolder | undefined {
+    return this._keyedFolders().find((keyed) => isSameKey(keyed.key, key));
+  }
+
+  // The folder and its lease, with no git process, for a caller that checks or moves only the lease.
+  async leasedFolderOf(
+    key: WorkspaceKey,
+  ): Promise<MaybeLeasedFolder | undefined> {
+    const folder = this.folderOf(key);
+    if (!folder) return undefined;
+    return { ...folder, lease: await this.leaseOf(folder) };
   }
 
   async list(): Promise<WorkspaceStatus[]> {
@@ -320,7 +343,7 @@ export class IssueWorkspaces {
   }
 
   async remove(
-    workspace: Workspace,
+    workspace: Pick<Workspace, "path">,
     { force = false, holder }: RemoveOptions = {},
   ): Promise<void> {
     assertLeaseFree({
@@ -488,18 +511,17 @@ export class IssueWorkspaces {
     return worktree;
   }
 
-  private async _repoWorktreesOf(path: string): Promise<RepoWorktree[]> {
-    const worktrees: RepoWorktree[] = [];
-    for (const [repo, clonePath] of this._clonesRootFirst) {
-      const worktree = join(path, clonePath);
-      if (!existsSync(worktree)) continue;
-      worktrees.push({
+  private _repoWorktreesOf(path: string): Promise<RepoWorktree[]> {
+    const present = this._clonesRootFirst
+      .map(([repo, clonePath]) => ({ repo, worktree: join(path, clonePath) }))
+      .filter(({ worktree }) => existsSync(worktree));
+    return Promise.all(
+      present.map(async ({ repo, worktree }) => ({
         repo,
         worktree,
         state: await worktreeStateOf(worktree),
-      });
-    }
-    return worktrees;
+      })),
+    );
   }
 
   private _keyOfFolder(name: string): WorkspaceKey | undefined {

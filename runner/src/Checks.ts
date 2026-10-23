@@ -1,14 +1,15 @@
 // Runs the checks for `npm run check`: every command at once, skipped on a check stamp for the same committed files.
 // A stamp's key hashes each repo's committed tree, the root lockfile and the Node version; one file per key in the
-// stamp folder, written only on a pass with every repo clean. SpecRun.ts and WrapUp.ts run whatever commands their
-// checks setting names and know nothing of stamps. scripts/runner/check.ts names the commands and prints the result;
-// the label a failure is listed under comes from failureText.ts.
-import { spawn } from "node:child_process";
+// stamp folder, written only on a pass with every repo clean and holding that pass's per-command durations.
+// SpecRun.ts and WrapUp.ts run whatever commands their checks setting names and know nothing of stamps.
+// scripts/runner/check.ts names the commands and prints the result; the label a failure is listed under comes from
+// failureText.ts.
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { git, isDirty } from "./git.ts";
+import { runCollecting } from "./runCollecting.ts";
 import type { Command } from "./runKnobs.ts";
 
 export interface ChecksConfig {
@@ -30,10 +31,24 @@ export interface CommandFailure {
   output: string;
 }
 
+export interface CommandDuration {
+  command: Command;
+  ms: number;
+}
+
 export type CheckResult =
   | { kind: "skipped" }
-  | { kind: "passed"; isStamped: boolean }
-  | { kind: "failed"; failures: CommandFailure[] };
+  | { kind: "passed"; isStamped: boolean; durations: CommandDuration[] }
+  | {
+      kind: "failed";
+      failures: CommandFailure[];
+      durations: CommandDuration[];
+    };
+
+interface CommandOutcome {
+  duration: CommandDuration;
+  failure?: CommandFailure;
+}
 
 export class Checks {
   private readonly config: ChecksConfig;
@@ -51,16 +66,20 @@ export class Checks {
     if (before !== undefined && !options.isFresh && existsSync(before)) {
       return { kind: "skipped" };
     }
-    const failures = await this._failures();
-    if (failures.length > 0) return { kind: "failed", failures };
+    const outcomes = await this._outcomes();
+    const durations = outcomes.map(({ duration }) => duration);
+    const failures = outcomes.flatMap(({ failure }) =>
+      failure ? [failure] : [],
+    );
+    if (failures.length > 0) return { kind: "failed", failures, durations };
     // Read again: a check, or the operator, may have changed the files while the commands ran.
     const after = await this._stampPath();
     if (before === undefined || after !== before) {
-      return { kind: "passed", isStamped: false };
+      return { kind: "passed", isStamped: false, durations };
     }
     mkdirSync(this.config.stampFolder, { recursive: true });
-    writeFileSync(before, "");
-    return { kind: "passed", isStamped: true };
+    writeFileSync(before, JSON.stringify(durations));
+    return { kind: "passed", isStamped: true, durations };
   }
 
   // Undefined while any repo has a change no stamp could describe.
@@ -92,13 +111,12 @@ export class Checks {
       .map(([, clonePath]) => join(this.config.root, clonePath));
   }
 
-  private async _failures(): Promise<CommandFailure[]> {
-    const outcomes = await Promise.all(
+  private _outcomes(): Promise<CommandOutcome[]> {
+    return Promise.all(
       this.config.commands.map((command) =>
-        failureOf(command, this.config.root),
+        outcomeOf(command, this.config.root),
       ),
     );
-    return outcomes.flatMap((failure) => (failure ? [failure] : []));
   }
 }
 
@@ -108,19 +126,14 @@ function lockfileOf(root: string): Buffer | string {
   return existsSync(path) ? readFileSync(path) : "no lockfile";
 }
 
-function failureOf(
+async function outcomeOf(
   command: Command,
   cwd: string,
-): Promise<CommandFailure | undefined> {
+): Promise<CommandOutcome> {
   const [file, ...args] = command;
-  return new Promise((resolve) => {
-    const child = spawn(file, args, { cwd });
-    let output = "";
-    child.stdout.on("data", (chunk) => (output += chunk));
-    child.stderr.on("data", (chunk) => (output += chunk));
-    child.on("error", (error) => resolve({ command, output: error.message }));
-    child.on("close", (code) =>
-      resolve(code === 0 ? undefined : { command, output: output.trim() }),
-    );
-  });
+  const start = performance.now();
+  const { isOk, output } = await runCollecting(file, args, { cwd });
+  const duration = { command, ms: Math.round(performance.now() - start) };
+  if (isOk) return { duration };
+  return { duration, failure: { command, output } };
 }

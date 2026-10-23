@@ -1,14 +1,34 @@
+import { execFileSync } from "node:child_process";
+import { delimiter, dirname } from "node:path";
+
 import { defineConfig } from "vitest/config";
 
-// The framework runs its own tests from its vitest.config.ts; the root's `npm test` reaches it through the workspaces.
+import { frameworkProjects } from "./packages/framework/vitest.config.ts";
+
+// macOS's /usr/bin/git is an xcrun shim that doubles each git call's cost, and the runner tests make thousands.
+function pathWithDirectGitFirst(): string {
+  const path = process.env.PATH ?? "";
+  if (process.platform !== "darwin") return path;
+  try {
+    const git = execFileSync("xcrun", ["--find", "git"], { encoding: "utf8" });
+    return [dirname(git.trim()), path].join(delimiter);
+  } catch {
+    return path;
+  }
+}
+
+// The framework's and utils' own projects join the root's, so one vitest run covers every package.
 export default defineConfig({
   // Tests run in Vite's server environment, so the source condition goes on ssr.
   ssr: { resolve: { conditions: ["source"] } },
   test: {
     environment: "node",
+    env: { PATH: pathWithDirectGitFirst() },
     restoreMocks: true,
     unstubGlobals: true,
     projects: [
+      ...frameworkProjects,
+      "packages/utils/vitest.config.ts",
       {
         extends: true,
         test: {
