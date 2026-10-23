@@ -6,9 +6,9 @@ import { stepReadLine } from "./IssueReader.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import { codeListOf } from "./promptText.ts";
 import { stringSchema } from "./recordSchema.ts";
+import type { Finding } from "./reviewStep.ts";
+import { axes, type Axis, type Verdict, verdicts } from "./verdicts.ts";
 
-const verdicts = ["dismiss", "fix", "propose", "halt"] as const;
-const axes = ["standards", "spec"] as const;
 // Each Dismiss reason with its definition, as the prompt states it.
 const dismissReasonDefinitions = {
   "false-positive":
@@ -23,7 +23,6 @@ const dismissReasons = Object.keys(
 ) as (keyof typeof dismissReasonDefinitions)[];
 const proposeReasons = ["decision", "ticket"] as const;
 
-export type Verdict = (typeof verdicts)[number];
 export type DismissReason = (typeof dismissReasons)[number];
 export type ProposeReason = (typeof proposeReasons)[number];
 
@@ -34,7 +33,7 @@ export type HaltScope = "spec" | string[];
 export interface TriageRecord {
   // The finding's number in the review's list, from 1.
   finding: number;
-  axis: (typeof axes)[number];
+  axis: Axis;
   where: string;
   claim: string;
   quote?: string;
@@ -55,7 +54,7 @@ export interface TriagePromptInput {
   branch: string;
   branchedRepos: string[];
   // As the review record lists them; the prompt numbers them from 1.
-  findings: string[];
+  findings: Finding[];
 }
 
 export function triagePrompt({
@@ -65,10 +64,12 @@ export function triagePrompt({
   branchedRepos,
   findings,
 }: TriagePromptInput): string {
-  const numbered = findings.map((finding, index) => `${index + 1}. ${finding}`);
+  const numbered = findings.map(
+    (finding, index) => `${index + 1}. ${findingLineOf(finding)}`,
+  );
   return `You are the finding-triage step of an unattended run. Nobody is watching this session: never ask a question or wait for an answer.
 
-The review of ${issue.repo}#${issue.number}, "${title}", reported the findings below. Give each one exactly one verdict. Your working directory is the ticket's issue workspace root; these repos are on the ticket's branch, \`${branch}\`: ${branchedRepos.join(", ")}. Verify each finding against the code, the ticket and its spec before you judge it. ${stepReadLine}
+The review of ${issue.repo}#${issue.number}, "${title}", reported the findings below, each with its axis and its reviewer's suggested verdict. Give each one exactly one verdict; you may overrule a suggested verdict with a reason, under \`docs/agents/verdicts.md\`. Your working directory is the ticket's issue workspace root; these repos are on the ticket's branch, \`${branch}\`: ${branchedRepos.join(", ")}. Verify each finding against the code, the ticket and its spec before you judge it. ${stepReadLine}
 
 Never edit code, and change nothing else: no edits, commits, comments, issues or fixes. The runner acts on your verdicts.
 
@@ -86,11 +87,17 @@ ${dismissReasonLines()}.
 
 ## The record
 
-Return \`records\`, exactly one record per finding: \`finding\` (its number below), \`axis\` (\`standards\` or \`spec\`), \`where\` (its file:line or area), \`claim\` (what the finding says, in a line), \`verdict\` (\`dismiss\`, \`fix\`, \`propose\` or \`halt\`), \`evidence\` (what you checked and found), and the fields its verdict needs above.
+Return \`records\`, exactly one record per finding: \`finding\` (its number below), \`axis\` (the finding's own, or for a finding without one, \`standards\` or \`spec\`), \`where\` (its file:line or area), \`claim\` (what the finding says, in a line), \`verdict\` (\`dismiss\`, \`fix\`, \`propose\` or \`halt\`), \`evidence\` (what you checked and found), and the fields its verdict needs above.
 
 ## Findings
 
 ${numbered.join("\n")}`;
+}
+
+function findingLineOf(finding: Finding): string {
+  if (typeof finding === "string") return finding;
+  const { axis, where, claim, suggestedVerdict, reason } = finding;
+  return `[${axis}] ${where}: ${claim} Suggested verdict: ${suggestedVerdict}, ${reason}`;
 }
 
 function dismissReasonLines(): string {
@@ -142,6 +149,18 @@ export const triageOutputSchema = {
 
 export function triageRecordsOf(output: unknown): TriageRecord[] {
   return (output as { records: TriageRecord[] }).records;
+}
+
+// A structured finding's axis is its reviewer's, whatever triage wrote; a prose finding's is triage's.
+export function withReviewerAxes(
+  records: TriageRecord[],
+  findings: Finding[],
+): TriageRecord[] {
+  return records.map((record) => {
+    const finding = findings[record.finding - 1];
+    if (finding === undefined || typeof finding === "string") return record;
+    return { ...record, axis: finding.axis };
+  });
 }
 
 // A run state saved before #297 holds Propose under its old name, Defer.

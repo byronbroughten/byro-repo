@@ -31,6 +31,7 @@ import {
   type LeaseHolder,
   type Workspace,
 } from "../IssueWorkspaces.ts";
+import type { Finding } from "../reviewStep.ts";
 import type { Command, RunKnobs } from "../runKnobs.ts";
 import { SchemaFailure } from "../SchemaFailure.ts";
 import { type Target, targetLineShapes, targetsOf } from "../ticketTargets.ts";
@@ -100,7 +101,7 @@ export interface TicketState {
   implementPeak?: number;
   // The implementer's latest session, a fix step it ran included.
   implementerSession?: string;
-  findings?: string[];
+  findings?: Finding[];
   // A fixer's give-ups are rewritten in place as Halts or Proposals.
   triage?: TriageRecord[];
   // Set once a fixer fixed a finding.

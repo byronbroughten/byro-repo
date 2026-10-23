@@ -25,6 +25,7 @@ import type { Blocker, Handoff, ImplementRecord } from "./implementStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { AccountReading, UsageReader } from "./limitGuard.ts";
 import type { Notice } from "./Notices.ts";
+import type { ReviewFinding } from "./reviewStep.ts";
 import { type Command, runKnobsOf } from "./runKnobs.ts";
 import { SpecRun, type SpecRunConfig } from "./SpecRun.ts";
 import type { StepSession } from "./transcriptFacts.ts";
@@ -334,8 +335,22 @@ export function greened(): StepScript {
   };
 }
 
-export function reviewed(findings: string[] = []): StepResult {
+export function reviewed(findings: ReviewFinding[] = []): StepResult {
   return resultOf({ findings });
+}
+
+// Finding `line` of one.ts, as a reviewer on `axis` reports it.
+export function findingOf(
+  line: number,
+  axis: ReviewFinding["axis"] = "standards",
+): ReviewFinding {
+  return {
+    axis,
+    where: `one.ts:${line}`,
+    claim: `Line ${line} is wrong.`,
+    suggestedVerdict: "fix",
+    reason: "It breaks a rule.",
+  };
 }
 
 export function haltComments(): string[] {

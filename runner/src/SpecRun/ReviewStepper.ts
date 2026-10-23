@@ -14,6 +14,7 @@ import {
   triageRecordProblems,
   triageRecordsOf,
   triageRetryPrompt,
+  withReviewerAxes,
 } from "../findingTriage.ts";
 import {
   type FixOutcome,
@@ -126,10 +127,10 @@ export class ReviewStepper extends SpecRunBase {
         });
       }
     }
-    state.triage = records;
+    state.triage = withReviewerAxes(records, findings);
     raiseHalts(run, {
       ticket: ticket.issue,
-      drafts: records
+      drafts: state.triage
         .filter(isHalt)
         .map((record) => triageHaltOf(record, "verdict")),
     });

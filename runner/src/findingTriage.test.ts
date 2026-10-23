@@ -323,14 +323,20 @@ describe("triagePrompt", () => {
     branch: "issue-220-finding-triage-record-checker-and-prompt",
     branchedRepos: ["byro-repo"],
     findings: [
-      "SpecRun.ts:88 has a multi-line comment.",
+      {
+        axis: "standards",
+        where: "SpecRun.ts:88",
+        claim: "It has a multi-line comment.",
+        suggestedVerdict: "fix",
+        reason: "Smells: Multi-line comment.",
+      },
       "Wrap-up isn't wired in.",
     ],
   });
 
-  it("numbers each finding for its record", () => {
+  it("numbers each finding for its record, a structured one with its axis and suggested verdict, a saved prose one as it was", () => {
     expect(prompt).toContain(
-      "1. SpecRun.ts:88 has a multi-line comment.\n2. Wrap-up isn't wired in.",
+      "1. [standards] SpecRun.ts:88: It has a multi-line comment. Suggested verdict: fix, Smells: Multi-line comment.\n2. Wrap-up isn't wired in.",
     );
   });
 
