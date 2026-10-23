@@ -8,6 +8,7 @@ import {
   configFolderOf,
   recordedSessionOf,
   type StartingSession,
+  supervisingLineOf,
   whereYouAreLineOf,
 } from "./sessionRecord.ts";
 
@@ -103,6 +104,31 @@ describe("whereYouAreLineOf", () => {
         leased: [leasedBy(issue, issuePath, 200)],
       }),
     ).toBeUndefined();
+  });
+});
+
+describe("supervisingLineOf", () => {
+  const record = {
+    pid: holder.pid,
+    owner: "byronbroughten",
+    spec: { repo: "byro-repo", number: 331 },
+    offset: 2,
+  };
+
+  it("names the run, how to carry on and how to switch after /clear with a supervision record", () => {
+    expect(supervisingLineOf({ source: "clear", record })).toBe(
+      "This session supervises byro-repo #331's run: `/runner byronbroughten/byro-repo 331` carries on from its last explained event, and `/runner` on another spec switches to that run.",
+    );
+  });
+
+  it("says nothing after /clear without a supervision record", () => {
+    expect(
+      supervisingLineOf({ source: "clear", record: undefined }),
+    ).toBeUndefined();
+  });
+
+  it("says nothing on a startup start", () => {
+    expect(supervisingLineOf({ source: "startup", record })).toBeUndefined();
   });
 });
 

@@ -30,6 +30,7 @@ import {
   worktreeStateOf,
 } from "./git.ts";
 import { LeaseHeld } from "./LeaseHeld.ts";
+import { startTimeOf } from "./processStart.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -809,21 +810,6 @@ function assertLeaseFree({ path, lease, holder }: LeaseCheck): void {
   throw new LeaseHeld(
     `${path} is leased by ${holderLabelOf(other)}, which is still running`,
   );
-}
-
-// Compared with the time the lease recorded, so a reused process ID never makes an abandoned lease look live.
-async function startTimeOf(pid: number): Promise<string | undefined> {
-  try {
-    const { stdout } = await execFileAsync("ps", [
-      "-o",
-      "lstart=",
-      "-p",
-      `${pid}`,
-    ]);
-    return stdout.trim() || undefined;
-  } catch {
-    return undefined;
-  }
 }
 
 function unsavedWork(dirtyRepos: string[], orphanedRepos: string[]): string {

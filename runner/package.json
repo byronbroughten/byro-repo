@@ -31,6 +31,7 @@
     "./runKnobs": "./src/runKnobs.ts",
     "./SessionProbe": "./src/SessionProbe.ts",
     "./SpecRun": "./src/SpecRun.ts",
+    "./SupervisionRecords": "./src/SupervisionRecords.ts",
     "./contextMeter": "./src/contextMeter.ts",
     "./contextNudge": "./src/contextNudge.ts",
     "./limitGuard": "./src/limitGuard.ts",

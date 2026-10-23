@@ -1,10 +1,19 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import type {
   Lease,
   LeasedWorkspace,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
-import { describe, expect, it } from "vitest";
+import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { endsProcess, leasedWorkspacesOf } from "./leaseRelease.ts";
+import {
+  endsProcess,
+  leasedWorkspacesOf,
+  releaseSupervisionAtEnd,
+} from "./leaseRelease.ts";
 
 const session = { kind: "session", pid: 100 } as const;
 
@@ -39,6 +48,38 @@ describe("leasedWorkspacesOf", () => {
   it("leaves an abandoned lease whose pid this session now has", () => {
     const workspaces = [workspaceOf("a", { ...session, isLive: false })];
     expect(leasedWorkspacesOf(workspaces, session)).toEqual([]);
+  });
+});
+
+describe("releaseSupervisionAtEnd", () => {
+  const supervisor = { kind: "session", pid: process.pid } as const;
+  const spec = { repo: "byro-repo", number: 331 };
+  let stateFolder = "";
+
+  beforeEach(() => {
+    stateFolder = mkdtempSync(join(tmpdir(), "supervision-"));
+  });
+
+  afterEach(() => {
+    rmSync(stateFolder, { recursive: true, force: true });
+  });
+
+  it("deletes the session's supervision record when the session ends", async () => {
+    const records = SupervisionRecords.init(stateFolder);
+    await records.supervise(supervisor, "byronbroughten", spec);
+
+    await releaseSupervisionAtEnd(records, supervisor, "prompt_input_exit");
+
+    expect(await records.recordOf(supervisor)).toBeUndefined();
+  });
+
+  it("keeps it on a /clear end, which keeps the same process supervising", async () => {
+    const records = SupervisionRecords.init(stateFolder);
+    await records.supervise(supervisor, "byronbroughten", spec);
+
+    await releaseSupervisionAtEnd(records, supervisor, "clear");
+
+    expect((await records.recordOf(supervisor))?.spec).toEqual(spec);
   });
 });
 
