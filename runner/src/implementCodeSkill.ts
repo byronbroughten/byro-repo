@@ -68,7 +68,7 @@ function endingSection({
 - Run git commands one at a time: inside an entered worktree, Claude Code refuses a compound git command.
 - Then, in order:
   1. **Review**: run \`${reviewCommand}\`, resolving \`<repo>\` to \`<owner>/<repo>\` here and in resolve. It runs the runner's review session on this ticket and records it. While this session's context is under the ticket budget, it prints the findings, numbered, each with its axis and suggested verdict, for you to resolve; past it, a fresh resolver resolves them instead and it goes straight to the review list.
-  2. **When it printed findings**: ${implementBody.resolving} Then run \`npm run check\`. Write \`.runner/resolve-<n>.json\`, gitignored, as \`{ "records": [...] }\`, ${indentedOf(resolveRecordFields)}
+  2. **Resolve**, when it printed findings: ${implementBody.resolving} Then run \`npm run check\`. Write \`.runner/resolve-<n>.json\`, gitignored, as \`{ "records": [...] }\`, ${indentedOf(resolveRecordFields)}
 
      Then run \`${resolveCommand} .runner/resolve-<n>.json\`. It checks the records and your commits by the run's rules; when it refuses them, correct what it names and run it again.
   3. Either way, review or resolve prints the review list, by axis then verdict with each suggested verdict overruled, and writes the review facts. It prints each Halt as \`S<n>.<k>\`; answer it with the developer in the session. When it exits short of reviewed, report why and stop.

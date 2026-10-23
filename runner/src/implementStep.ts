@@ -11,6 +11,7 @@ import { stepReadLine } from "./IssueReader.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import { codeListOf, sectionOf } from "./promptText.ts";
 import { arraySchema, objectSchema, stringSchema } from "./recordSchema.ts";
+import { resolveRules } from "./resolveStep.ts";
 
 export type ImplementRecord =
   CommittedRecord | AppliedRecord | BlockedRecord | HandoffRecord;
@@ -157,8 +158,7 @@ export const implementBody = {
     "Commit in each repo you changed, on the ticket's branch, then run `npm run check`. When it fails on your change, fix it in a further commit and run it again; never amend.",
   onlyWrites:
     "Those commits and the GitHub writes the ticket describes are your only writes outside the workspace's files: never push, merge, rebase or reset, never close an issue",
-  resolving:
-    "Resolve review findings under `docs/agents/verdicts.md`, read before you judge. Give each finding exactly one verdict, Dismiss, Fix, Propose or Halt: Fix by default, and Dismiss, Propose or Halt only where that doc says, with evidence. You may overrule a reviewer's suggested verdict, saying why, except that a suggested Halt resolves only as a Halt or a Propose `decision`. Each Fix lands in its own commit.",
+  resolving: resolveRules,
 } as const;
 
 const promptSections = {
