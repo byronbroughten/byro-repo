@@ -57,7 +57,7 @@ describe("run", () => {
         "",
         "Spec: [byro-repo#213](https://github.com/byronbroughten/byro-repo/issues/213)",
         "",
-        "| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Triage cost | What review caught | Session ids |",
+        "| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |",
         "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
         "| #218 | Opus medium | unrecorded | 1 | 150K → 90K | Triage fix | 0 | 1 | 0 | unrecorded | unrecorded | unrecorded | A stale doc link | unrecorded |",
         "",
@@ -111,7 +111,7 @@ describe("run", () => {
     expect(
       readFileSync(join(primaryRoot, outcomePath), "utf8").split("\n")[6],
     ).toBe(
-      "| #218 | Opus medium | 2 | 1 | 150K → 90K | Pass | 0 | 1 | 0 | 42 min | $1.48 | $0.06 | — | session-implement-1, session-implement-2, session-review, session-triage, session-fix |",
+      "| #218 | Opus medium | 2 | 1 | 150K → 90K | Pass | 0 | 1 | 0 | 42 min | $1.45 | $0.11 | — | session-implement-1, session-implement-2, session-review, session-triage, session-fix |",
     );
   });
 
@@ -140,8 +140,35 @@ describe("run", () => {
     expect(
       readFileSync(join(primaryRoot, outcomePath), "utf8").split("\n")[6],
     ).toBe(
-      "| #218 | Opus medium | 2 | 1 | 150K → 90K | Pass | 0 | 1 | 0 | 30 min | $1.45 | $0.00 | — | session-implement-1, session-implement-2 |",
+      "| #218 | Opus medium | 2 | 1 | 150K → 90K | Pass | 0 | 1 | 0 | 30 min | $1.45 | unrecorded | — | session-implement-1, session-implement-2 |",
     );
+  });
+
+  it("prices an interactive review that started no further step as its review session", async () => {
+    const configFolder = join(temp, "account-2");
+    cpSync(
+      join(import.meta.dirname, "..", "fixtures", "transcripts"),
+      join(configFolder, "projects", "-workspace-byro-repo"),
+      { recursive: true },
+    );
+    const workspace = await workspaceWith();
+    commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
+    const session = (agent: "implement" | "review", sessionId: string) => ({
+      account: 2,
+      configFolder,
+      step: { agent, sessionId },
+    });
+    FactsFile.init(join(temp, "state"))
+      .addSession(ticket, session("implement", "session-implement-2"))
+      .addSession(ticket, session("review", "session-review"))
+      .setReviewFacts(ticket, { reviewFixes: "none" })
+      .setClosingFacts(ticket, { closingComment: "Landed the hook." });
+
+    await wrapUp().run(ticket);
+
+    expect(
+      readFileSync(join(primaryRoot, outcomePath), "utf8").split("\n")[6],
+    ).toContain("| $0.02 | — | session-implement-2, session-review |");
   });
 
   it("puts a ticketless spec's row in a folder of its own", async () => {

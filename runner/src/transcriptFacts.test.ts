@@ -60,25 +60,34 @@ describe("transcriptFactsOf", () => {
     ]);
   });
 
-  it("prices the implementer, its subagents and the fixer, counting a repeated reply once", () => {
+  it("prices the implementers and their subagents alone, counting a repeated reply once", () => {
     expect(transcriptFactsOf(sessions(), handoffs).costUsd).toBeCloseTo(
-      1.484,
+      1.454,
       6,
     );
   });
 
-  it("prices the triage sessions apart", () => {
-    expect(transcriptFactsOf(sessions(), handoffs).triageCostUsd).toBeCloseTo(
-      0.06,
+  it("prices the review, triage and fix sessions together as review cost", () => {
+    expect(transcriptFactsOf(sessions(), handoffs).reviewCostUsd).toBeCloseTo(
+      0.114,
       6,
     );
   });
 
-  it("costs no triage when no triage step ran", () => {
-    const steps = sessions().steps.filter(({ agent }) => agent !== "triage");
-    expect(transcriptFactsOf(sessions({ steps }), handoffs).triageCostUsd).toBe(
-      0,
+  it("prices a review that started no further step as the review session alone", () => {
+    const steps = sessions().steps.filter(
+      ({ agent }) => agent === "implement" || agent === "review",
     );
+    expect(
+      transcriptFactsOf(sessions({ steps }), handoffs).reviewCostUsd,
+    ).toBeCloseTo(0.024, 6);
+  });
+
+  it("leaves review cost unrecorded when no review session was recorded", () => {
+    const steps = sessions().steps.filter(({ agent }) => agent === "implement");
+    expect(
+      transcriptFactsOf(sessions({ steps }), handoffs).reviewCostUsd,
+    ).toBeUndefined();
   });
 
   it("sums every step session's span, review and handoffs included", () => {
@@ -120,11 +129,11 @@ describe("transcriptFactsOf", () => {
       facts.peakContext,
       facts.costUsd,
       facts.durationMinutes,
-      facts.triageCostUsd,
-    ]).toEqual([undefined, undefined, undefined, undefined, 0.06]);
+    ]).toEqual([undefined, undefined, undefined, undefined]);
+    expect(facts.reviewCostUsd).toBeCloseTo(0.114, 6);
   });
 
-  it("leaves cost unrecorded when a model has no price", () => {
+  it("leaves review cost unrecorded when a model has no price", () => {
     const fix = join(
       configFolder,
       "projects",
@@ -134,6 +143,25 @@ describe("transcriptFactsOf", () => {
     writeFileSync(
       fix,
       readFileSync(fix, "utf8").replace("claude-opus-5-5", "claude-mystery-9"),
+    );
+    expect(
+      transcriptFactsOf(sessions(), handoffs).reviewCostUsd,
+    ).toBeUndefined();
+  });
+
+  it("leaves cost unrecorded when an implementer's model has no price", () => {
+    const implement = join(
+      configFolder,
+      "projects",
+      "-workspace-byro-repo",
+      "session-implement-2.jsonl",
+    );
+    writeFileSync(
+      implement,
+      readFileSync(implement, "utf8").replaceAll(
+        "claude-opus-5-5",
+        "claude-mystery-9",
+      ),
     );
     expect(transcriptFactsOf(sessions(), handoffs).costUsd).toBeUndefined();
   });

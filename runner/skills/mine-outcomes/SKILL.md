@@ -38,13 +38,13 @@ Make two kinds. Each names the knob, criterion or file it would change, the chan
 
 A pattern on one row is not a proposal; leave it to `/retro`.
 
-Report triage's share of cost: the sum of Triage cost over the sum of Cost and Triage cost, on the rows where both are recorded, as a percentage with the row count. Review sessions are in neither, so say it is the share of all spend but review; Triage cost includes the triage agent fixing a Fix batch.
+Report review's share of cost: the sum of Review cost over the sum of Cost and Review cost, on the rows where both are recorded, as a percentage with the row count. Review cost is the review, triage and fix sessions; Cost is the implementer sessions alone. Leave out older rows with a Triage cost column instead: theirs is triage alone, with the fixer counted under Cost.
 
 ## 5. Present
 
 In one message, give:
 
-1. Triage's share of cost.
+1. Review's share of cost.
 2. The proposals, model fit first, each with its knob, change and rows.
 3. The outliers, each with the rules it trips. Offer `/retro` on each that has transcripts, naming its session ids and any that are missing.
 4. The expired and partly expired rows, and the rows that never had transcripts.

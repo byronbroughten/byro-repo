@@ -3,6 +3,7 @@ import { join } from "node:path";
 
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { FactsFile } from "./FactsFile.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import type { TriageRecord } from "./findingTriage.ts";
 import type { FixOutcome } from "./fixStep.ts";
@@ -21,6 +22,7 @@ import {
   runStatePath,
   spec,
   specRun,
+  stateFolder,
   type StepScript,
   ticketFacts,
   useSpecRunHarness,
@@ -140,6 +142,58 @@ describe("review of one ticket outside a run", () => {
       whatReviewCaught:
         "Fixed: Line 2 is wrong. (one.ts:2). Proposed: Line 1 is wrong. (one.ts:1).",
       proposals: 1,
+    });
+  });
+
+  it("records the review, triage and fix sessions it started beside the implement session, under its account and config folder", async () => {
+    FactsFile.init(stateFolder()).addSession(refOf(1), {
+      account: 2,
+      configFolder: "/config/account-2",
+      step: { agent: "implement", sessionId: "implement-session" },
+    });
+    const agentStep = FakeAgentStep.init(
+      { ...reviewed(findings), sessionId: "review-session" },
+      { ...triaged(propose, fix, coveredLater), sessionId: "triage-session" },
+      async (request) => ({
+        ...(await fixed("fix.ts", { finding: 2, status: "fixed" })(request)),
+        sessionId: "fix-session",
+      }),
+    );
+
+    await specRun(agentStep).review(refOf(1), { holder });
+
+    expect(ticketFacts().sessions).toEqual({
+      account: 2,
+      configFolder: "/config/account-2",
+      steps: [
+        { agent: "implement", sessionId: "implement-session" },
+        { agent: "review", sessionId: "review-session" },
+        { agent: "triage", sessionId: "triage-session" },
+        { agent: "fix", sessionId: "fix-session" },
+      ],
+    });
+  });
+
+  it("records a halted review's sessions under the step's own config folder when no implement session was recorded", async () => {
+    const agentStep = FakeAgentStep.init(
+      {
+        ...reviewed(findings.slice(0, 1)),
+        sessionId: "review-session",
+        configFolder: "/config/account-1",
+      },
+      { ...triaged(halt), sessionId: "triage-session" },
+    );
+
+    const result = await specRun(agentStep).review(refOf(1), { holder });
+
+    expect(result.kind).toBe("halted");
+    expect(ticketFacts().sessions).toEqual({
+      account: 1,
+      configFolder: "/config/account-1",
+      steps: [
+        { agent: "review", sessionId: "review-session" },
+        { agent: "triage", sessionId: "triage-session" },
+      ],
     });
   });
 
