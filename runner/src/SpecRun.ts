@@ -21,6 +21,7 @@ export {
   type IssueComment,
   rerunCommandOf,
   type ReviewOptions,
+  reviewPrintoutOf,
   type ReviewResult,
   type RunResult,
   type TicketStep,

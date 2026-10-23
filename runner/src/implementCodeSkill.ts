@@ -63,7 +63,7 @@ function endingSection({
 - ${implementBody.onlyWrites}. The review and wrap-up commands in the ending make every other write.
 - Run git commands one at a time: inside an entered worktree, Claude Code refuses a compound git command.
 - Then, in order:
-  1. **Review**: run \`${reviewCommand}\`, resolving \`<repo>\` to \`<owner>/<repo>\`. It runs the runner's review on this ticket, then one session that resolves the findings and commits the fixes; it posts the review list on the spec and writes the review facts. It prints each Halt as \`S<n>.<k>\`; answer it with the developer in the session. When it exits short of reviewed, report why and stop.
+  1. **Review**: run \`${reviewCommand}\`, resolving \`<repo>\` to \`<owner>/<repo>\`. It runs the runner's review on this ticket, then one session that resolves the findings and commits the fixes; it prints the review list, by axis then verdict with each suggested verdict the resolver overruled, and writes the review facts. It prints each Halt as \`S<n>.<k>\`; answer it with the developer in the session. When it exits short of reviewed, report why and stop.
   2. **Report**: post in the session what review caught, what was fixed and what is Proposed.
   3. **Wait for the developer's go-ahead.** Land nothing before it.
   4. Call \`ExitWorktree\` with \`keep\`, so wrap-up can remove the workspace.

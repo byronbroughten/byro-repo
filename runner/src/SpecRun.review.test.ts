@@ -8,6 +8,7 @@ import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
 import type { LeaseHolder } from "./IssueWorkspaces.ts";
 import type { ResolveRecord } from "./resolveStep.ts";
+import { reviewPrintoutOf } from "./SpecRun.ts";
 import {
   addSpec,
   crashed,
@@ -110,16 +111,23 @@ describe("review of one ticket outside a run", () => {
     expect(github.comments).toEqual([]);
   });
 
-  it("posts the run's review list and covered-later note, and writes the same review facts, a fresh resolver fixing", async () => {
+  it("prints the run's review list rather than posting it, posts the covered-later note, and writes the same review facts, a fresh resolver fixing", async () => {
     const result = await specRun(reviewsWithFix()).review(refOf(1), {
       holder,
     });
 
     expect(result).toMatchObject({ kind: "reviewed", halts: [] });
-    const [list] = commentsOn(213, "<!-- review-list ");
-    expect(list).toContain("<!-- review-list ticket=#1 -->");
-    expect(list).toContain(
-      "- [ ] **R1.1** · Propose `decision` · Finding 1: Line 1 is wrong. (one.ts:1)",
+    expect(commentsOn(213, "<!-- review-list ")).toEqual([]);
+    expect(reviewPrintoutOf(result)).toBe(
+      [
+        "Reviewed byro-repo #1, findings: 3. Fixed: Line 2 is wrong. (one.ts:2). Proposed: Line 1 is wrong. (one.ts:1).",
+        "<!-- review-list ticket=#1 -->",
+        '**Review list** · byro-repo #1, "Ticket 1"',
+        "### Standards",
+        "**Fixed**\n\n- Finding 2: Line 2 is wrong. (one.ts:2)",
+        "**Proposed**\n\n- [ ] **R1.1** · Propose `decision` · Finding 1: Line 1 is wrong. (one.ts:1)\n  suggested Fix → Propose: Checked it.\n  Recommendation: Pick the first.",
+        "**Dismissed**\n\n- Finding 3 · `covered-later` · Line 3 is wrong. (one.ts:3). Covered by byro-repo#2.\n  suggested Fix → Dismiss: Checked it.",
+      ].join("\n\n"),
     );
     expect(commentsOn(2, "byro-repo#1's review left this")).toHaveLength(1);
     expect(ticketFacts()).toEqual({
@@ -183,7 +191,7 @@ describe("review of one ticket outside a run", () => {
     });
   });
 
-  it("finds its markers on a second review and posts nothing twice", async () => {
+  it("finds its markers on a second review and posts no note twice", async () => {
     await specRun(reviewsWithFix()).review(refOf(1), { holder });
 
     const result = await specRun(reviewsWithFix("fix-again.ts")).review(
@@ -192,7 +200,6 @@ describe("review of one ticket outside a run", () => {
     );
 
     expect(result.kind).toBe("reviewed");
-    expect(commentsOn(213, "<!-- review-list ")).toHaveLength(1);
     expect(commentsOn(2, "byro-repo#1's review left this")).toHaveLength(1);
   });
 

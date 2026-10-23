@@ -75,6 +75,18 @@ export interface ReviewResult {
   message: string;
   // Each Halt comment the review posted on the spec, for the session to print.
   halts: string[];
+  // The run's review-list rendering, printed rather than posted; absent when resolve kept no records.
+  reviewList?: string;
+}
+
+// What `runner review` prints: the outcome, then the review list, then each Halt.
+export function reviewPrintoutOf({
+  message,
+  reviewList,
+  halts,
+}: ReviewResult): string {
+  const reviewLists = reviewList === undefined ? [] : [reviewList];
+  return [message, ...reviewLists, ...halts].join("\n\n");
 }
 
 export type TicketStep =

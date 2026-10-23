@@ -1,5 +1,5 @@
 // A session's review: runs review and resolve on one ticket's issue workspace outside any run, refusing a workspace
-// another holder leases or one with uncommitted changes, and posts its review list and Halts as a run would.
+// another holder leases or one with uncommitted changes; it returns the run's review list to print and posts Halts as a run would.
 // Its Halts are numbered S<n>.<k> and returned to print, to be answered in the session rather than on the spec.
 // Each step session it starts goes into the ticket's facts file, halted or not.
 // ../SpecRun.ts delegates review to it; its authorship refusal is the Base's, shared with RunLoop.ts.
@@ -19,6 +19,7 @@ import {
 } from "../IssueWorkspaces.ts";
 import { LeaseHeld } from "../LeaseHeld.ts";
 import { pairOf } from "../modelFit.ts";
+import { ticketReviewListOf } from "../reviewList.ts";
 import { RunStop } from "../RunStop.ts";
 import { TicketHalted } from "../TicketHalted.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
@@ -118,12 +119,18 @@ export class SessionReviewer extends SpecRunBase {
       await this.leaseKeeper._takeSessionLease(workspace);
       await this.ticketSequencer._runSteps(ticketRun);
       this.factsFile.setReviewFacts(issue, reviewFactsOf(ticketRun.state));
-      await this.reviewListPoster._postReviewList(run, ticket);
+      const records = ticketRun.state.resolveRecords ?? [];
+      await this.reviewListPoster._postCoveredLaterNotes(issue, records);
       await this.haltRaiser._haltOnUnpostedHalts(ticketRun);
       return {
         kind: "reviewed",
         message: reviewedMessageOf(ticketRun),
         halts: [],
+        reviewList: ticketReviewListOf({
+          ticket: issue,
+          title: ticket.title,
+          records,
+        }),
       };
     } catch (error) {
       return reviewEndOf(ticketRun, error);

@@ -98,37 +98,52 @@ describe("run's review list", () => {
     );
   }
 
-  it("posts a landed ticket's Proposals as R items with a collapsed Dismiss audit, the kept quote included", async () => {
+  it("posts a landed ticket's review list by axis then verdict, each departure with its why, only the agreed Dismiss collapsed", async () => {
     addSpec([1, 2]);
-
-    await specRun(landsOneWithPropose()).run(spec);
-
-    const [list, gapCheck] = reviewListsOn(213);
-    expect(reviewListsOn(213)).toHaveLength(2);
-    expect(list).toContain("<!-- review-list ticket=#1 -->");
-    expect(list).toContain(
-      "- [ ] **R1.1** · Propose `decision` · Finding 1: Line 1 is wrong. (one.ts:1)\n  Evidence: Checked it.\n  Recommendation: Pick the first.",
-    );
-    expect(list).toContain("<details>\n<summary>Dismissed: 2</summary>");
-    expect(list).toContain("Kept for: one.ts:2 `// Kept for the old reader.`");
-    expect(list).toContain("Covered by byro-repo#2.");
-    expect(list?.match(/- \[ \]/g)).toHaveLength(1);
-    expect(gapCheck).toContain("<!-- review-list ticket=gap-check -->");
-  });
-
-  it("posts no review list for a ticket with no Proposals", async () => {
-    addSpec([1]);
     const agentStep = FakeAgentStep.init(
       implemented("one.ts"),
-      reviewed(findings.slice(1, 2)),
-      resolvedAs({ ...kept, finding: 1 }),
+      reviewed([
+        findingOf(1, "spec"),
+        findingOf(2, "standards", "dismiss"),
+        findingOf(3),
+      ]),
+      resolvedAs({ ...propose, axis: "spec" }, kept, coveredLater),
+      implemented("two.ts"),
+      reviewed(),
     );
 
     await specRun(agentStep).run(spec);
 
-    expect(reviewListsOn(213)).toEqual([
-      expect.stringContaining("ticket=gap-check"),
-    ]);
+    const [list, gapCheck] = reviewListsOn(213);
+    expect(reviewListsOn(213)).toHaveLength(2);
+    expect(list).toBe(
+      [
+        "<!-- spec-runner -->\n<!-- review-list ticket=#1 -->",
+        '**Review list** · byro-repo #1, "Ticket 1"',
+        "### Standards",
+        "**Dismissed**\n\n- Finding 3 · `covered-later` · Line 3 is wrong. (one.ts:3). Covered by byro-repo#2.\n  suggested Fix → Dismiss: Checked it.",
+        "<details>\n<summary>Dismissed: 1</summary>\n\n- Finding 2 · `kept` · Line 2 is wrong. (one.ts:2). Checked it. Kept for: one.ts:2 `// Kept for the old reader.`\n\n</details>",
+        "### Spec",
+        "**Proposed**\n\n- [ ] **R1.1** · Propose `decision` · Finding 1: Line 1 is wrong. (one.ts:1)\n  suggested Fix → Propose: Checked it.\n  Recommendation: Pick the first.",
+      ].join("\n\n"),
+    );
+    expect(gapCheck).toContain("<!-- review-list ticket=gap-check -->");
+  });
+
+  it("posts a review list with no Proposals, which leaves nothing undecided", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      implemented("one.ts"),
+      reviewed([findingOf(2, "standards", "dismiss")]),
+      resolvedAs({ ...kept, finding: 1 }),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    const [list] = reviewListsOn(213);
+    expect(list).toContain("<summary>Dismissed: 1</summary>");
+    expect(list).not.toContain("- [ ]");
+    expect(result.message).not.toContain("undecided");
   });
 
   it("leaves a covered-later Dismiss's note with its file:line on the named ticket", async () => {
