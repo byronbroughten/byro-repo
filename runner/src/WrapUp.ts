@@ -676,15 +676,17 @@ export class WrapUp {
     const built = landing.progress.built ?? {};
     const base =
       built[this._rootRepo]?.base ?? (await revOf(worktree, "master"));
+    let handoffSessionIds: string[] = [];
+    if (facts.sessions !== undefined) {
+      handoffSessionIds = await this._handoffSessionIdsOf(issue);
+    }
     const writeRow = this.config.writeOutcomeRow ?? writeOutcomeRow;
     const { path, commitMessage } = await writeRow(worktree, {
       issue,
       spec: await this._specOf(issue),
       githubOwner: this.config.githubOwner,
       filesChanged: landing.progress.filesChanged ?? 0,
-      handoffSessionIds: facts.sessions
-        ? await this._handoffSessionIdsOf(issue)
-        : [],
+      handoffSessionIds,
       stateFolder: this.config.stateFolder,
       outcomeFolder: this.config.outcomeFolder,
     });
