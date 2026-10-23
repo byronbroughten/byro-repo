@@ -14,8 +14,9 @@ import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecor
 import { nearestClaudeAncestor } from "./claudeAncestor.ts";
 import { ntfyTopic, specRunConfigOf, stateFolder } from "./runnerConfig.ts";
 
-const verbs = ["status", "stop", "review", "resolve", "supervise"];
-const usage = `Usage: npm run runner -- [status|stop|review] <owner/repo> <n>, resolve <owner/repo> <n> <records.json>, or supervise <owner/repo> <n> [--advance]`;
+const plainVerbs = ["status", "stop", "review"];
+const verbs = [...plainVerbs, "resolve", "supervise"];
+const usage = `Usage: npm run runner -- [${plainVerbs.join("|")}] <owner/repo> <n>, resolve <owner/repo> <n> <records.json>, or supervise <owner/repo> <n> [--advance]`;
 
 try {
   const args = process.argv.slice(2);
