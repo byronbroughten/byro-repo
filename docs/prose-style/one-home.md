@@ -4,7 +4,7 @@ Why each fact lives in one file, why a behavior-changing rule is the exception, 
 
 ## One fact, one file
 
-A fact stated in two files is changed in one of them and goes stale in the other, and an agent that reads the stale copy acts on it. A pointer costs one line and can't drift from its target. Past reviews show the pattern: a layout fact that lived only in a README moved to `upstream-skills.md` (#233), and stale rows in `prose-files.md`'s map were fixed in #253, #267 and #313.
+A fact stated in two files is changed in one of them and goes stale in the other, and an agent that reads the stale copy acts on it. A pointer costs one line and can't drift from its target. Past reviews show the pattern: two sentences repeated in `prose-files.md` and the Claude Code guardrails doc were cut to one home (#311), and stale rows in `prose-files.md`'s map were fixed in #253, #267 and #313.
 
 ## The behavior-changing exception
 

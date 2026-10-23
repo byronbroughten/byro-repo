@@ -4,7 +4,7 @@ What each prose smell looks like in this repo, and why derived prose gets its ow
 
 ## What each smell looks like
 
-- **Duplicated Fact**: the layout of vendored skills stated in the root README and nowhere an agent reads (#233).
+- **Duplicated Fact**: the same two sentences stated in `prose-files.md` and the Claude Code guardrails doc (#311).
 - **Shotgun Surgery**: renaming one command means editing AGENTS.md, a skill and two docs, because each restates how to run it.
 - **Divergent Doc**: `prose-files.md` holding rules, a file map and README mirror tables together, until its rules moved to `prose-style.md`.
 - **Stale Fact**: a map row still naming "the voice" after the writing package gained a second style sheet (#313).
