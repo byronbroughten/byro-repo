@@ -3,9 +3,29 @@ import { join, sep } from "node:path";
 
 import { type FileLocation, isInLintSet, projectRelative } from "./lintSet.ts";
 
-export const styleGateReason =
-  "Read config/docs/code-style.md before your first code edit this session, then retry. " +
-  "Use a full Read with no offset or limit (a partial read isn't recorded; a whole-file `cat` counts), and skip config/docs/code-style/ unless a rule's line doesn't decide your case. Framework or app code also follows packages/framework/docs/code-style.md.";
+interface GatedDoc {
+  docPath: string;
+  reasoningDir: string;
+  editKind: string;
+}
+
+export function fullReadReason({
+  docPath,
+  reasoningDir,
+  editKind,
+}: GatedDoc): string {
+  return (
+    `Read ${docPath} before your first ${editKind} edit this session, then retry. ` +
+    `Use a full Read with no offset or limit (a partial read isn't recorded; a whole-file \`cat\` counts), and skip ${reasoningDir} unless a rule's line doesn't decide your case.`
+  );
+}
+
+const styleDocReason = fullReadReason({
+  docPath: "config/docs/code-style.md",
+  reasoningDir: "config/docs/code-style/",
+  editKind: "code",
+});
+export const styleGateReason = `${styleDocReason} Framework or app code also follows packages/framework/docs/code-style.md.`;
 export const stylePath = ["config", "docs", "code-style.md"].join(sep);
 export const frameworkStylePath = [
   "packages",

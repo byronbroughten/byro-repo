@@ -8,13 +8,16 @@ import {
 } from "./lintSet.ts";
 import {
   type EditDecision,
+  fullReadReason,
   isFullDocRead,
   type StyleRead,
 } from "./styleGate.ts";
 
-export const proseGateReason =
-  "Read docs/prose-style.md before your first markdown edit this session, then retry. " +
-  "Use a full Read with no offset or limit (a partial read isn't recorded; a whole-file `cat` counts), and skip docs/prose-style/ unless a rule's line doesn't decide your case.";
+export const proseGateReason = fullReadReason({
+  docPath: "docs/prose-style.md",
+  reasoningDir: "docs/prose-style/",
+  editKind: "markdown",
+});
 export const prosePath = ["docs", "prose-style.md"].join(sep);
 const ungatedRoots = [
   ["packages", "writing"],
