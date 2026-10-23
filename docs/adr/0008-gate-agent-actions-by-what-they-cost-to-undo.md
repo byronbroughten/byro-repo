@@ -6,6 +6,4 @@ Source: byronbroughten/byro-repo#273, byronbroughten/byro-repo#274, byronbrought
 
 ## Consequences
 
-- A sharing or permission change always asks, naming who and at what permission, and a failed owner lookup counts as someone else's file, so it asks too.
-- `app:chore <name> -- --send` runs free only after that chore's dry run in the same session, and a command naming no target, a bare `clasp` or `npx sheets-framework`, still asks.
-- `pinnedTargetGuard` and `docGrantGuard` were retired, and hardening against the agent itself waits for [ADR 0007](./0007-keep-untrusted-text-out-of-instructions-and-defer-containment.md#consequences)'s containment triggers.
+- `pinnedTargetGuard` and `docGrantGuard` were retired; which action sits in which tier is [the tier list](../targets-and-gates.md#which-tier-an-action-is-in).
