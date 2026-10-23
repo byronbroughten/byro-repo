@@ -1,4 +1,5 @@
 // PreToolUse on Bash and the gworkspace write and create tools applies the tier gate; PostToolUse on Bash records each app chore dry run that ran, for a later --send.
+// A Bash call naming gh also reads this claude's supervision record, since a supervising session's gh writes ask.
 import { writeFileSync } from "node:fs";
 
 import { driveOwnersOf } from "./lib/driveOwners.ts";
@@ -18,6 +19,7 @@ import {
 } from "./lib/hookIo.ts";
 import { readSheetsConfigs } from "./lib/sheetsConfigs.ts";
 import {
+  callsGh,
   type Decision,
   dryRunChoresOf,
   gateDecision,
@@ -33,7 +35,7 @@ await runFailOpen(async () => {
   if (!input?.tool_name) return;
   let decision: Decision | undefined;
   if (input.tool_name === "Bash") {
-    decision = bashDecision(input);
+    decision = await bashDecision(input);
   } else {
     const projectDir =
       process.env.CLAUDE_PROJECT_DIR ?? input.cwd ?? process.cwd();
@@ -62,7 +64,7 @@ await runFailOpen(async () => {
   });
 });
 
-function bashDecision(input: HookInput): Decision | undefined {
+async function bashDecision(input: HookInput): Promise<Decision | undefined> {
   const command = input.tool_input?.command;
   if (typeof command !== "string") return undefined;
   const dryRunsPath = sessionStatePath(input.session_id, dryRunSuffix);
@@ -70,11 +72,32 @@ function bashDecision(input: HookInput): Decision | undefined {
     recordDryRuns(dryRunsPath, dryRunChoresOf(command));
     return undefined;
   }
+  const mode = sessionModeOf(process.env);
   return gateDecision({
     command,
-    mode: sessionModeOf(process.env),
+    mode,
     dryRuns: readDryRuns(dryRunsPath),
+    supervising:
+      mode === "interactive" && callsGh(command) && (await isSupervising()),
   });
+}
+
+// Loaded here, not at the top, so only a gh call pays for the runner config; a failed lookup counts as supervising, so gh writes ask.
+async function isSupervising(): Promise<boolean> {
+  try {
+    const { nearestClaudeAncestor } =
+      await import("../../scripts/runner/claudeAncestor.ts");
+    const { stateFolder } =
+      await import("../../scripts/runner/runnerConfig.ts");
+    const { SupervisionRecords } =
+      await import("@byronbroughten/spec-runner/SupervisionRecords");
+    const holder = nearestClaudeAncestor();
+    if (!holder) return false;
+    const record = await SupervisionRecords.init(stateFolder).recordOf(holder);
+    return record !== undefined;
+  } catch {
+    return true;
+  }
 }
 
 function recordDryRuns(path: string, chores: string[]): void {

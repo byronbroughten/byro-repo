@@ -20,6 +20,8 @@ export interface ShellCall {
   command: string;
   mode: SessionMode;
   dryRuns: string[];
+  // This session's claude holds a supervision record, so its gh writes ask.
+  supervising?: boolean;
 }
 
 // One simple command's verdict; `why` finishes a sentence about it.
@@ -50,9 +52,21 @@ const freeScripts = new Map([
   ["issue:list", "it only reads the workspaces"],
   ["issue:remove", "a plain remove refuses a workspace holding unlanded work"],
 ]);
+const ghReadVerbs = new Set(["view", "list", "status", "diff", "checks"]);
+const ghReadGroups = new Set(["search", "status", "version", "--version"]);
+// gh api's shorthand flags that take a value, which ends a cluster such as `-iXPOST`.
+const ghApiValueShorthands = new Set(["X", "f", "F", "H", "q", "t", "p"]);
+const ghApiFieldFlags = new Set(["--field", "--raw-field", "--input"]);
+const ghReadMethods = new Set(["GET", "HEAD"]);
+// `gh`, or a path to it, at a command position inside a word, as in `bash -c '… && gh …'` or `$(gh …)`.
+const hiddenGh = /(^|[;&|(`\n]|\$\()\s*(\S*\/)?gh(\s|$)/;
+const ghWriteWhy =
+  "writes to GitHub from a session supervising a run, and the developer approves its exact text";
 
 export function gateDecision(call: ShellCall): Decision | undefined {
-  const decision = baseDecision(call);
+  // A runner step is never a supervisor, whatever record its claude holds.
+  const supervising = call.mode === "interactive" && call.supervising;
+  const decision = baseDecision({ ...call, supervising });
   return decision && decisionInMode(decision, call.mode);
 }
 
@@ -73,10 +87,27 @@ export function decisionInMode(
   };
 }
 
-function baseDecision({ command, dryRuns }: ShellCall): Decision | undefined {
+// Cheap enough for every Bash call, so the hook reads the supervision record only when this is true.
+export function callsGh(command: string): boolean {
+  return /\bgh\b/.test(command);
+}
+
+function baseDecision({
+  command,
+  dryRuns,
+  supervising,
+}: ShellCall): Decision | undefined {
   const commands = parsedCommandsOf(command);
-  if (!commands) return undefined;
-  const verdicts = commands.map((words) => verdictOf(words, dryRuns));
+  if (!commands) {
+    return supervising && callsGh(command)
+      ? needsYes(`\`${command}\` ${ghWriteWhy}`)
+      : undefined;
+  }
+  const verdicts = commands.map((words) =>
+    supervising && ghWriteOf(words)
+      ? { permissionDecision: "ask" as const, why: ghWriteWhy }
+      : verdictOf(words, dryRuns),
+  );
   const deny = verdicts.find(
     (verdict) => verdict?.permissionDecision === "deny",
   );
@@ -159,6 +190,51 @@ function verdictOf(words: string[], dryRuns: string[]): Verdict | undefined {
   const freeWhy = script && freeScripts.get(script.name);
   if (freeWhy) return { permissionDecision: "allow", why: freeWhy };
   return undefined;
+}
+
+// Every gh call but a known read writes, and so does a gh this gate can't see into.
+function ghWriteOf(words: string[]): boolean {
+  const hidesGh = words
+    .slice(1)
+    .some((word) => basenameOf(word) === "gh" || hiddenGh.test(word));
+  if (hidesGh) return true;
+  if (basenameOf(words[0] ?? "") !== "gh") return false;
+  const [group = "", verb = ""] = words.slice(1);
+  if (group === "api") return !isGhApiRead(words.slice(2));
+  if (ghReadGroups.has(group)) return false;
+  if (group === "auth" && verb === "status") return false;
+  return group.startsWith("-") || !ghReadVerbs.has(verb);
+}
+
+// gh api sends a POST once it has a field, unless a method says otherwise; graphql is always a POST.
+function isGhApiRead(args: string[]): boolean {
+  let method: string | undefined;
+  let hasFields = false;
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i] ?? "";
+    if (arg === "graphql") return false;
+    if (arg.startsWith("--")) {
+      const [name = "", value] = arg.split(/=(.*)/s);
+      const isField = ghApiFieldFlags.has(name);
+      if (name !== "--method" && !isField) continue;
+      const flagValue = value ?? args[++i];
+      if (isField) hasFields = true;
+      else method = flagValue;
+      continue;
+    }
+    if (!arg.startsWith("-")) continue;
+    // Each shorthand is one flag, until one that takes a value, which is the rest or the next word.
+    for (let at = 1; at < arg.length; at++) {
+      const shorthand = arg[at] ?? "";
+      if (!ghApiValueShorthands.has(shorthand)) continue;
+      const flagValue = arg.slice(at + 1) || args[++i];
+      if (shorthand === "X") method = flagValue;
+      if (shorthand === "f" || shorthand === "F") hasFields = true;
+      break;
+    }
+  }
+  if (method !== undefined) return ghReadMethods.has(method.toUpperCase());
+  return !hasFields;
 }
 
 function sendVerdictOf(name: string, dryRuns: string[]): Verdict {
