@@ -117,23 +117,13 @@ export function ticketReviewListOf({
   records,
 }: TicketReviewList): string | undefined {
   if (records.length === 0) return undefined;
-  const groups = shownAxes.map((axis) =>
-    shownVerdicts.map((verdict) =>
-      records.filter(
-        (record) => record.axis === axis && record.verdict === verdict,
-      ),
-    ),
-  );
+  const groups = groupsOf(records);
   // Numbered in the order shown, so R<ticket>.1 is the first Proposal read.
-  const proposals = groups.flatMap(
-    (byVerdict) => byVerdict[shownVerdicts.indexOf("propose")] ?? [],
-  );
-  const sections = shownAxes.flatMap((axis, axisIndex) => {
-    const shown = shownVerdicts.flatMap((verdict, verdictIndex) =>
-      verdictGroupOf(
-        groups[axisIndex]?.[verdictIndex] ?? [],
-        verdict,
-        (record) => itemIdOf(ticket, proposals.indexOf(record)),
+  const proposals = shownAxes.flatMap((axis) => groups[axis].propose);
+  const sections = shownAxes.flatMap((axis) => {
+    const shown = shownVerdicts.flatMap((verdict) =>
+      verdictGroupOf(groups[axis][verdict], verdict, (record) =>
+        itemIdOf(ticket, proposals.indexOf(record)),
       ),
     );
     return shown.length === 0 ? [] : [reviewGroups.axes[axis], ...shown];
@@ -143,6 +133,23 @@ export function ticketReviewListOf({
     `**Review list** · ${issueLabelOf(ticket)}, "${title}"`,
     ...sections,
   ].join("\n\n");
+}
+
+type RecordGroups = Record<Axis, Record<Verdict, ResolveRecord[]>>;
+
+function groupsOf(records: ResolveRecord[]): RecordGroups {
+  const groups: RecordGroups = {
+    standards: emptyVerdictGroupsOf(),
+    spec: emptyVerdictGroupsOf(),
+  };
+  records.forEach((record) => {
+    groups[record.axis][record.verdict].push(record);
+  });
+  return groups;
+}
+
+function emptyVerdictGroupsOf(): Record<Verdict, ResolveRecord[]> {
+  return { fix: [], propose: [], dismiss: [], halt: [] };
 }
 
 function verdictGroupOf(
