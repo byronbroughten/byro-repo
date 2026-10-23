@@ -14,6 +14,7 @@ import type { SpecRunConfig } from "./SpecRun.ts";
 import {
   addSpec,
   blocked,
+  crashed,
   github,
   implemented,
   notices,
@@ -108,6 +109,20 @@ describe("run's event file", () => {
     ).toEqual(
       notices.sent.map(() => ({ specTitle: "The spec", link: specUrl })),
     );
+  });
+
+  it("writes a failure-halt line for a Failure Halt, naming its ticket and comment", async () => {
+    addSpec([1]);
+
+    await specRun(FakeAgentStep.init(crashed, crashed), withEventFile()).run(
+      spec,
+    );
+
+    expect(eventLines()[0]).toMatchObject({
+      ticket: "byro-repo#1",
+      kind: "failure-halt",
+      commentUrl: haltCommentUrl(),
+    });
   });
 
   it("writes no line for a notice with no kind", async () => {
