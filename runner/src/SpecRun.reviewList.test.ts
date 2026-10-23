@@ -11,6 +11,7 @@ import { runKnobsOf } from "./runKnobs.ts";
 import {
   addSpec,
   clonePaths,
+  findingOf,
   github,
   greenUnlessRed,
   implemented,
@@ -29,11 +30,7 @@ useSpecRunHarness();
 
 describe("run's review list", () => {
   const opusMedium: Pair = { model: "opus", effort: "medium" };
-  const findings = [
-    "one.ts:1 is wrong.",
-    "one.ts:2 is wrong.",
-    "one.ts:3 is wrong.",
-  ];
+  const findings = [findingOf(1), findingOf(2), findingOf(3)];
 
   function base(finding: number): Omit<TriageRecord, "verdict"> {
     return {

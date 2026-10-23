@@ -13,6 +13,7 @@ import {
   bodyWith,
   capped,
   eventOf,
+  findingOf,
   github,
   greened,
   haltComments,
@@ -70,7 +71,7 @@ describe("run's triage turn cap", () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(
       implemented("one.ts"),
-      reviewed(["one.ts:1 is wrong."]),
+      reviewed([findingOf(1)]),
       capped,
       capped,
     );
@@ -178,7 +179,7 @@ describe("run's implement turn cap", () => {
 });
 
 describe("run's fix and red-checks turn caps", () => {
-  const findings = ["one.ts:1 is wrong.", "one.ts:2 is wrong."];
+  const findings = [findingOf(1), findingOf(2)];
 
   function fixRecordOf(finding: number): TriageRecord {
     return {

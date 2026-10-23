@@ -12,6 +12,7 @@ import type { LeaseHolder } from "./IssueWorkspaces.ts";
 import {
   addSpec,
   crashed,
+  findingOf,
   github,
   haltComments,
   implemented,
@@ -44,11 +45,7 @@ describe("review of one ticket outside a run", () => {
     await workspaces.takeLease(workspace, holder);
   });
 
-  const findings = [
-    "one.ts:1 is wrong.",
-    "one.ts:2 is wrong.",
-    "one.ts:3 is wrong.",
-  ];
+  const findings = [findingOf(1), findingOf(2), findingOf(3)];
 
   function base(finding: number): Omit<TriageRecord, "verdict"> {
     return {

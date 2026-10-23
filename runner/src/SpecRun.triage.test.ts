@@ -14,6 +14,7 @@ import {
   after,
   bodyWith,
   bodyWithTargets,
+  findingOf,
   github,
   greened,
   handoffResultOf,
@@ -38,7 +39,7 @@ useSpecRunHarness();
 describe("run's finding triage", () => {
   const opusMedium: Pair = { model: "opus", effort: "medium" };
   const opusHigh: Pair = { model: "opus", effort: "high" };
-  const findings = ["one.ts:1 is wrong.", "one.ts:2 is wrong."];
+  const findings = [findingOf(1), findingOf(2)];
 
   function triageRecordOf(
     finding: number,
@@ -162,7 +163,7 @@ describe("run's finding triage", () => {
     ];
     const agentStep = FakeAgentStep.init(
       implementedAt(90_000),
-      reviewed([...findings, "one.ts:3 is wrong."]),
+      reviewed([...findings, findingOf(3, "spec")]),
       triaged(...records),
     );
 
@@ -172,13 +173,31 @@ describe("run's finding triage", () => {
     const triage = agentStep.requests[2];
     expect(triage?.pair).toEqual(opusMedium);
     expect(triage?.targets).toEqual([]);
-    expect(triage?.prompt).toContain("3. one.ts:3 is wrong.");
     expect(ticketRunState()).toMatchObject({ step: "halted", triage: records });
     expect(result.message).toContain("byro-repo #1 waits on Halt H1");
     expect(github.comments[0]?.body).toContain(
       '**Halt H1** · Halt 1 of 1 · byro-repo #1, "Ticket 1" · triage Halt',
     );
     expect(github.comments[0]?.body).toContain("Blocks: the whole spec.");
+  });
+
+  it("keeps each finding's reviewer axis on its triage record, whatever triage wrote", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      reviewed([findingOf(1, "spec"), findingOf(2)]),
+      triaged(
+        triageRecordOf(1, "dismiss"),
+        triageRecordOf(2, "dismiss", "spec"),
+      ),
+    );
+
+    await specRun(agentStep).run(spec);
+
+    expect(ticketRunState().triage).toMatchObject([
+      { finding: 1, axis: "spec" },
+      { finding: 2, axis: "standards" },
+    ]);
   });
 
   it("hands the Fix batch to the resumed implementer under the ticket budget, landing the fix as its own commit", async () => {
@@ -199,8 +218,6 @@ describe("run's finding triage", () => {
     expect(fixer?.pair).toEqual(opusHigh);
     expect(fixer?.targets).toEqual([{ kind: "spreadsheet", name: "app" }]);
     expect(fixer?.liveCeiling).toBe(180_000);
-    expect(fixer?.prompt).toContain("Finding 1: Line 1 is wrong.");
-    expect(fixer?.prompt).not.toContain("Finding 2");
     const merge = git(
       primaryOf("byro-repo"),
       "log",
@@ -299,7 +316,6 @@ describe("run's finding triage", () => {
     const fixer = agentStep.requests[4];
     expect(fixer?.resumeSessionId).toBe("triage-session");
     expect(fixer?.pair).toEqual(opusHigh);
-    expect(fixer?.prompt).toContain("Finding 2: Line 2 is wrong.");
     expect(ticketFacts().reviewFixes).toBe("triage");
   });
 
@@ -329,7 +345,7 @@ describe("run's finding triage", () => {
     github.blockers.set(3, [2]);
     const agentStep = FakeAgentStep.init(
       implementedAt(90_000),
-      reviewed(findings),
+      reviewed([findingOf(1, "spec"), findingOf(2)]),
       triaged(triageRecordOf(1, "fix", "spec"), triageRecordOf(2, "fix")),
       async () =>
         resultOf({
@@ -395,7 +411,7 @@ describe("run's finding triage", () => {
       await specRun(
         FakeAgentStep.init(
           implementedAt(90_000),
-          reviewed(findings),
+          reviewed([findingOf(1, "spec"), findingOf(2)]),
           triaged(
             triageRecordOf(1, "fix", "spec"),
             triageRecordOf(2, "dismiss"),

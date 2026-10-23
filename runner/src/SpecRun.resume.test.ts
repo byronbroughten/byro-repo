@@ -1,4 +1,4 @@
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -12,13 +12,16 @@ import type { RunResult } from "./SpecRun.ts";
 import {
   addSpec,
   applied,
+  findingOf,
   github,
   implemented,
   masterSubjects,
   notices,
   primaryOf,
   refOf,
+  resultOf,
   reviewed,
+  runStatePath,
   spec,
   specRun,
   ticketState,
@@ -65,6 +68,54 @@ describe("run's resume", () => {
     expect(masterSubjects()).toContain(
       "Merge issue-1-ticket-1 into master (#1)",
     );
+  });
+
+  it("resumes a run state saved with prose findings at triage, keeping triage's own axis", async () => {
+    addSpec([1]);
+    let reachTriage = () => {};
+    const reachedTriage = new Promise<void>((resolve) => {
+      reachTriage = resolve;
+    });
+    void specRun(
+      FakeAgentStep.init(
+        implemented("one.ts"),
+        reviewed([findingOf(1)]),
+        async () => {
+          reachTriage();
+          return new Promise<StepResult>(() => {});
+        },
+      ),
+    ).run(spec);
+    await reachedTriage;
+    const saved = JSON.parse(readFileSync(runStatePath(), "utf8")) as {
+      tickets: Record<string, { findings?: unknown[] }>;
+    };
+    const ticket = saved.tickets["byro-repo #1"] ?? {};
+    ticket.findings = ["one.ts:1 is wrong."];
+    writeFileSync(runStatePath(), JSON.stringify(saved));
+
+    const result = await specRun(
+      FakeAgentStep.init(
+        resultOf({
+          records: [
+            {
+              finding: 1,
+              axis: "spec",
+              where: "one.ts:1",
+              claim: "Line 1 is wrong.",
+              verdict: "dismiss",
+              reason: "false-positive",
+              evidence: "Checked it.",
+            },
+          ],
+        }),
+      ),
+    ).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(ticketState()["byro-repo #1"]?.triage).toMatchObject([
+      { finding: 1, axis: "spec", verdict: "dismiss" },
+    ]);
   });
 
   it("resumes an applied ticket killed at its wrap-up and lands it with no agent request", async () => {
@@ -199,7 +250,7 @@ describe("run's leases", () => {
           heldDuringStep = workspace?.lease;
           return implemented("one.ts")(request);
         },
-        reviewed(["A finding."]),
+        reviewed([findingOf(1)]),
       ),
     );
 
