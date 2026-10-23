@@ -185,3 +185,34 @@ describe("setReviewFacts", () => {
     });
   });
 });
+
+// Master's runner rewrites the facts files a branch's newer runner wrote, as the primary's hooks and wrap-up do.
+describe("a field a newer runner wrote", () => {
+  it("survives every write, on the facts and on each step", () => {
+    writeFileSync(
+      factsPath(),
+      JSON.stringify({
+        newerFact: "kept",
+        sessions: {
+          steps: [{ ...implement("session-1", 2), newerStepFact: "kept" }],
+        },
+      }),
+    );
+
+    factsFile()
+      .addSession(ticket, implement("session-2", 1))
+      .setClosingFacts(ticket, { closingComment: "Landed the writer." })
+      .setReviewFacts(ticket, { reviewFixes: "none", proposals: 0 })
+      .setPendingResolve(ticket, undefined);
+
+    expect(storedFacts()).toMatchObject({
+      newerFact: "kept",
+      sessions: {
+        steps: [
+          { ...implement("session-1", 2), newerStepFact: "kept" },
+          implement("session-2", 1),
+        ],
+      },
+    });
+  });
+});
