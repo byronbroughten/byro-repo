@@ -22,7 +22,7 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 
 ## File shapes
 
-- **A rule line is the bolded rule plus at most a short clause of scope or its one exception**, brief and clear at once, with no length cap standing in for either.
+- **A rule line is the bolded rule plus at most a short clause of scope or its one exception.**
 - **Examples, instances, citations and the why go in the rules file's reasoning folder, which is never auto-loaded**; a rules-file section with anything beyond its rules gets a reasoning file.
 - **A mechanics doc opens with a lead of 5 lines and 800 bytes or fewer, and over 4 KB it needs `##` headings**; lint checks both.
 - **A mechanics doc's headings are specific enough to grep; a rule found in one moves up to a rules file or nested AGENTS.md, leaving a pointer.**

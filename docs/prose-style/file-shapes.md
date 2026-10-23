@@ -4,7 +4,7 @@ Why a rule line carries only the rule, why the reasoning sits one pointer away, 
 
 ## A rule line carries only the rule
 
-A rules file is read in full before work starts, so every byte of it is paid on every task that reads it. A line that also carries its why or an example costs that much more and buries the rule. The convention replaced a 300-character cap, which became a target; the history is in [`agent-behavior-design.md`](../agent-behavior-design.md#put-each-rule-where-it-gets-followed-and-its-reasoning-one-pointer-away).
+A rules file is read in full before work starts, so every byte of it is paid on every task that reads it. A line that also carries its why or an example costs that much more and buries the rule. It must be brief and clear at once, and no length cap stands in for either: the convention replaced a 300-character cap, which became a target; the history is in [`agent-behavior-design.md`](../agent-behavior-design.md#put-each-rule-where-it-gets-followed-and-its-reasoning-one-pointer-away).
 
 Before: **Name a value after the domain type it holds, because a generic word like `data` or `item` tells the reader nothing, as in `rows` over `items`.** After: **Name a value after the domain type it holds, not a generic container word.**, with the reason and the example in `config/docs/code-style/naming.md`.
 
