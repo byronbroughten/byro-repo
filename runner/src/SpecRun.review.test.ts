@@ -230,6 +230,28 @@ describe("review of one ticket outside a run", () => {
     });
   });
 
+  it("prints a halted review's list before its Halt, posting the list nowhere", async () => {
+    const agentStep = FakeAgentStep.init(
+      reviewed(findings.slice(0, 1)),
+      resolvedAs(halt),
+    );
+
+    const result = await specRun(agentStep).review(refOf(1), { holder });
+
+    expect(result.kind).toBe("halted");
+    expect(commentsOn(213, "<!-- review-list ")).toEqual([]);
+    expect(reviewPrintoutOf(result)).toBe(
+      [
+        result.message,
+        "<!-- review-list ticket=#1 -->",
+        '**Review list** · byro-repo #1, "Ticket 1"',
+        "### Standards",
+        "**Halted**\n\n- Finding 1: Line 1 is wrong. (one.ts:1)\n  suggested Fix → Halt: Checked it.\n  Recommendation: Answer it.",
+        ...result.halts,
+      ].join("\n\n"),
+    );
+  });
+
   it("offers a failed step's session Halt only a fresh review, since no run reads `retry`", async () => {
     const agentStep = FakeAgentStep.init(crashed, crashed);
 

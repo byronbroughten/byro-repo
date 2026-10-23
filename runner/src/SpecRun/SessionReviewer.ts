@@ -119,18 +119,16 @@ export class SessionReviewer extends SpecRunBase {
       await this.leaseKeeper._takeSessionLease(workspace);
       await this.ticketSequencer._runSteps(ticketRun);
       this.factsFile.setReviewFacts(issue, reviewFactsOf(ticketRun.state));
-      const records = ticketRun.state.resolveRecords ?? [];
-      await this.reviewListPoster._postCoveredLaterNotes(issue, records);
+      await this.reviewListPoster._postCoveredLaterNotes(
+        issue,
+        ticketRun.state.resolveRecords ?? [],
+      );
       await this.haltRaiser._haltOnUnpostedHalts(ticketRun);
       return {
         kind: "reviewed",
         message: reviewedMessageOf(ticketRun),
         halts: [],
-        reviewList: ticketReviewListOf({
-          ticket: issue,
-          title: ticket.title,
-          records,
-        }),
+        reviewList: reviewListOf(ticketRun),
       };
     } catch (error) {
       return reviewEndOf(ticketRun, error);
@@ -198,12 +196,27 @@ function reviewedMessageOf({ ticket, state }: TicketRun): string {
   return `Reviewed ${issueLabelOf(ticket.issue)}, findings: ${findings}. ${whatReviewCaught ?? "Nothing to fix or decide."}`;
 }
 
-function reviewEndOf({ run, ticket }: TicketRun, error: unknown): ReviewResult {
+// Undefined when resolve kept no records, or halted before it ran.
+function reviewListOf({ ticket, state }: TicketRun): string | undefined {
+  return ticketReviewListOf({
+    ticket: ticket.issue,
+    title: ticket.title,
+    records: state.resolveRecords ?? [],
+  });
+}
+
+function reviewEndOf(ticketRun: TicketRun, error: unknown): ReviewResult {
+  const { run, ticket } = ticketRun;
   const label = issueLabelOf(ticket.issue);
   const halts = run.sessionReview?.postedHalts ?? [];
   if (error instanceof TicketHalted) {
     const message = `The review of ${label} halted on Halt ${idListOf(haltsOf(run))}; answer it in this session.`;
-    return { kind: "halted", message, halts };
+    return {
+      kind: "halted",
+      message,
+      halts,
+      reviewList: reviewListOf(ticketRun),
+    };
   }
   if (error instanceof LeaseHeld) return refusedReviewOf(error.message);
   if (error instanceof UnhandledStop) {
