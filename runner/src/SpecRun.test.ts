@@ -15,7 +15,7 @@ import {
   implemented,
   masterSetPath,
   masterSubjects,
-  notices,
+  ntfyNotices,
   primaryOf,
   progressLines,
   refOf,
@@ -64,7 +64,7 @@ describe("run", () => {
       git(join(temp, "remotes", "byro-repo.git"), "rev-parse", "master"),
     ).toBe(git(primaryOf("byro-repo"), "rev-parse", "master"));
     expect(existsSync(masterSetPath())).toBe(false);
-    expect(notices.sent).toEqual([
+    expect(ntfyNotices()).toEqual([
       {
         specTitle: "The spec",
         summary:

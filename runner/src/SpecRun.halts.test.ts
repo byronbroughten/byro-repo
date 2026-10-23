@@ -12,7 +12,7 @@ import {
   haltComments,
   implemented,
   implementResultOf,
-  notices,
+  ntfyNotices,
   recordOf,
   reviewed,
   spec,
@@ -74,7 +74,7 @@ describe("run's Halts", () => {
     expect(first).toContain("Blocks: only this ticket.");
     expect(first).toContain("1. Run it by hand.\n2. `stop spec`");
     expect(second).toContain("**Halt H2** · Halt 2 of 2 · byro-repo #1");
-    expect(notices.sent.slice(1, 3)).toEqual([
+    expect(ntfyNotices().slice(1, 3)).toEqual([
       {
         specTitle: "The spec",
         summary:

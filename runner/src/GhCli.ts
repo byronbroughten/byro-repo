@@ -110,8 +110,9 @@ export class GhCli implements RunGitHub, IssueSource {
     return listed.flatMap(({ issue, isOpen }) => (isOpen ? [issue] : []));
   }
 
-  async comment({ repo, number }: IssueRef, body: string): Promise<void> {
-    await gh(
+  // gh prints the new comment's URL.
+  async comment({ repo, number }: IssueRef, body: string): Promise<string> {
+    const stdout = await gh(
       "issue",
       "comment",
       String(number),
@@ -120,6 +121,7 @@ export class GhCli implements RunGitHub, IssueSource {
       "--body",
       body,
     );
+    return stdout.trim();
   }
 
   async closeIssue({ repo, number }: IssueRef, comment: string): Promise<void> {

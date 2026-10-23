@@ -181,7 +181,7 @@ export interface TicketRun extends LandingTicket {
   targets: Target[];
 }
 
-export type TicketOutcome = "landed" | "stopped" | "leased" | "halted";
+export type TicketOutcome = "landed" | "leased" | "halted";
 
 export interface Wait {
   ticket: IssueRef;

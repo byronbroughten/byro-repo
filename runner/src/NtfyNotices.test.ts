@@ -11,6 +11,8 @@ interface Received {
   body: string;
 }
 
+const spec = { repo: "r", number: 1 };
+
 let server: Server;
 let received: Received[];
 let status: number;
@@ -41,6 +43,7 @@ function notices(): NtfyNotices {
 describe("send", () => {
   it("posts the summary to the topic, titled with the spec and clicking through to the link", async () => {
     await notices().send({
+      spec,
       specTitle: "Spec runner",
       summary: "Run started: 2 tickets.",
       link: "https://github.com/o/r/issues/1",
@@ -59,18 +62,30 @@ describe("send", () => {
   });
 
   it("encodes a title ntfy can't carry as a plain header", async () => {
-    await notices().send({ specTitle: "A → B", summary: "s", link: "l" });
+    await notices().send({ spec, specTitle: "A → B", summary: "s", link: "l" });
 
     const title = String(received[0]?.headers.title);
     const encoded = /^=\?UTF-8\?B\?(.*)\?=$/.exec(title)?.[1] ?? "";
     expect(Buffer.from(encoded, "base64").toString()).toBe("A → B");
   });
 
+  it("pushes nothing for a refused run", async () => {
+    await notices().send({
+      spec,
+      specTitle: "s",
+      summary: "Refused: no Model fit.",
+      link: "l",
+      kind: "refused",
+    });
+
+    expect(received).toEqual([]);
+  });
+
   it("throws when ntfy refuses the notice", async () => {
     status = 429;
 
     await expect(
-      notices().send({ specTitle: "s", summary: "s", link: "l" }),
+      notices().send({ spec, specTitle: "s", summary: "s", link: "l" }),
     ).rejects.toThrow("429");
   });
 });

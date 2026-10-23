@@ -21,7 +21,7 @@ import {
   haltComments,
   implemented,
   masterSubjects,
-  notices,
+  ntfyNotices,
   passes,
   refOf,
   reviewed,
@@ -175,7 +175,7 @@ describe("run's Model fit refusal", () => {
         "Each open ready-for-agent ticket needs a ## Model fit section naming one of the five pairs; missing or invalid in byro-repo #2, byro-repo #3.",
     });
     expect(agentStep.requests).toEqual([]);
-    expect(notices.sent).toEqual([]);
+    expect(ntfyNotices()).toEqual([]);
   });
 
   it("refuses a malformed ## Targets line beside the Model fit check, naming the ticket and the line", async () => {
@@ -224,7 +224,7 @@ describe("run's authorship refusal", () => {
       message: `Only byronbroughten may write or edit the spec; refused byro-repo #213 (written by stranger). For the developer to paste after reading the body, as a comment on it; an agent never posts this line.\n\nbyro-repo #213:\n${specApproval}`,
     });
     expect(agentStep.requests).toEqual([]);
-    expect(notices.sent).toEqual([]);
+    expect(ntfyNotices()).toEqual([]);
     expect(github.comments).toEqual([]);
   });
 

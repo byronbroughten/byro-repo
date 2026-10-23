@@ -140,11 +140,15 @@ export class HaltRaiser extends SpecRunBase {
         sessionReview === undefined
           ? haltCommentOf(post)
           : sessionHaltCommentOf(post);
-      await this._comment(run, body);
+      const commentUrl = await this._comment(run, body);
       sessionReview?.postedHalts.push(body);
       halt.isPosted = true;
       this._saveState(run);
-      await this._announce(run, haltNoticeOf(post));
+      await this._announce(run, haltNoticeOf(post), {
+        kind: halt.kind === "failure" ? "failure-halt" : "halt",
+        ticket: halt.ticket,
+        commentUrl,
+      });
     }
   }
 

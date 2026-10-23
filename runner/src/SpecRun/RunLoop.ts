@@ -34,7 +34,6 @@ import {
   type RunResult,
   targetsRefusalOf,
   type TicketOutcome,
-  ticketStateOf,
   type TrackedIssue,
   type Wait,
   waitsTextOf,
@@ -68,7 +67,7 @@ export class RunLoop extends SpecRunBase {
       modelFitRefusalOf(run, launchable) ??
       targetsRefusalOf(run, launchable);
     if (refusal !== undefined) {
-      this._log(run, `Refused: ${refusal}`);
+      await this._announce(run, `Refused: ${refusal}`, { kind: "refused" });
       return { kind: "refused", landed: [], message: refusal };
     }
     const preflightStop = await this._preflightStop();
@@ -103,7 +102,9 @@ export class RunLoop extends SpecRunBase {
           continue;
         }
         if (this._takeStopRequest(run)) return this._stopOnRequest(run, waits);
-        if (!isIdle) await this._announce(run, idleMessageOf(waits));
+        if (!isIdle) {
+          await this._announce(run, idleMessageOf(waits), { kind: "idle" });
+        }
         isIdle = true;
         await this._sleep(this.config.knobs.idlePollMs);
         continue;
@@ -116,6 +117,7 @@ export class RunLoop extends SpecRunBase {
           run,
           "stopped",
           `${label} is still open after its Stop (${selection.stop}); finish and land it by hand, then rerun.`,
+          { ticket: selection.ticket.issue },
         );
       }
       let outcome: TicketOutcome;
@@ -123,16 +125,9 @@ export class RunLoop extends SpecRunBase {
         outcome = await this.ticketSequencer._runTicket(run, selection.ticket);
       } catch (error) {
         if (!(error instanceof RunStop)) throw error;
-        return this._end(run, "stopped", error.message);
+        return this._end(run, "stopped", error.message, error.event);
       }
       if (outcome === "leased" || outcome === "halted") continue;
-      if (outcome === "stopped") {
-        return this._end(
-          run,
-          "stopped",
-          stoppedMessageOf(run, selection.ticket),
-        );
-      }
       run.landed.push(selection.ticket.issue);
       run.failureStreak = [];
     }
@@ -272,11 +267,6 @@ function currentTextOf(run: Run, { ticket, holder }: Wait): string[] {
   if (holder?.kind !== "run") return [];
   const step = run.state.tickets[issueLabelOf(ticket)]?.step ?? "implement";
   return [`${issueLabelOf(ticket)} at ${step} (${holderLabelOf(holder)})`];
-}
-
-function stoppedMessageOf(run: Run, ticket: TrackedIssue): string {
-  const { stop } = ticketStateOf(run, ticket.issue);
-  return `Stopped on ${issueLabelOf(ticket.issue)}: ${stop ?? "an unhandled outcome"}.`;
 }
 
 function readingLabelOf({ account, usage }: AccountReading): string {

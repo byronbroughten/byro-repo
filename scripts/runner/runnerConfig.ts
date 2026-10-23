@@ -11,12 +11,14 @@ import {
   type McpServerConfig,
 } from "@byronbroughten/spec-runner/ClaudeAgentStep";
 import { CswapUsageReader } from "@byronbroughten/spec-runner/CswapUsageReader";
+import { EventFileNotices } from "@byronbroughten/spec-runner/EventFileNotices";
 import { GhCli } from "@byronbroughten/spec-runner/GhCli";
 import type { ImplementCodeSkillInput } from "@byronbroughten/spec-runner/implementCodeSkill";
 import type {
   IssueRef,
   IssueWorkspacesConfig,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
+import { composedNotices } from "@byronbroughten/spec-runner/Notices";
 import { NtfyNotices } from "@byronbroughten/spec-runner/NtfyNotices";
 import { loadRunKnobs } from "@byronbroughten/spec-runner/runKnobs";
 import type { SpecRunConfig } from "@byronbroughten/spec-runner/SpecRun";
@@ -99,8 +101,11 @@ export function specRunConfigOf(owner: string): SpecRunConfig {
     knobs: runKnobs,
     agentStep: ClaudeAgentStep.init("cswap", gworkspaceServer()),
     github: new GhCli(owner),
-    // Read on each send, so review, status and stop, which never send, need no topic.
-    notices: { send: (notice) => NtfyNotices.init(ntfyTopic()).send(notice) },
+    notices: composedNotices(
+      // Read on each send, so review, status and stop, which never send, need no topic.
+      { send: (notice) => NtfyNotices.init(ntfyTopic()).send(notice) },
+      EventFileNotices.init(stateFolder),
+    ),
     usageReader: CswapUsageReader.init(),
     clock: { now: () => new Date() },
     githubOwner: owner,
