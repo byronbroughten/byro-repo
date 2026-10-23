@@ -9,6 +9,7 @@
 import { type IssueRef } from "./IssueWorkspaces.ts";
 import { RunLoop } from "./SpecRun/RunLoop.ts";
 import {
+  type ResolveOptions,
   type ReviewOptions,
   type ReviewResult,
   type RunResult,
@@ -20,6 +21,7 @@ export type { Clock, RunGitHub, SpecRunConfig } from "./SpecRun/SpecRunBase.ts";
 export {
   type IssueComment,
   rerunCommandOf,
+  type ResolveOptions,
   type ReviewOptions,
   type ReviewResult,
   type RunResult,
@@ -55,5 +57,9 @@ export class SpecRun extends SpecRunBase {
 
   review(issue: IssueRef, options: ReviewOptions): Promise<ReviewResult> {
     return this.sessionReviewer.review(issue, options);
+  }
+
+  resolve(issue: IssueRef, options: ResolveOptions): Promise<ReviewResult> {
+    return this.sessionReviewer.resolve(issue, options);
   }
 }

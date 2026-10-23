@@ -1,9 +1,11 @@
-// A session's review: runs review and resolve on one ticket's issue workspace outside any run, refusing a workspace
-// another holder leases or one with uncommitted changes; it returns the run's review list to print and posts Halts as a run would.
+// A session's review: runs review on one ticket's issue workspace outside any run, refusing a workspace another holder
+// leases or one with uncommitted changes. Under the ticket budget it saves the findings to the facts file and returns them,
+// for the session to resolve itself and hand its records to resolve, which checks them as a run's resolve records are;
+// past it, a fresh resolver resolves them. Either way it returns the run's review list to print and posts Halts as a run would.
 // Its Halts are numbered S<n>.<k> and returned to print, to be answered in the session rather than on the spec.
 // Each step session it starts goes into the ticket's facts file, halted or not.
-// ../SpecRun.ts delegates review to it; its authorship refusal is the Base's, shared with RunLoop.ts.
-// It builds its own TicketSequencer, LeaseKeeper, ReviewListPoster and HaltRaiser.
+// ../SpecRun.ts delegates review and resolve to it; its authorship refusal is the Base's, shared with RunLoop.ts.
+// It builds its own TicketSequencer, ReviewStepper, LeaseKeeper, ReviewListPoster and HaltRaiser.
 
 import { messageOf } from "../failureText.ts";
 import { sessionHaltCountOf } from "../halts.ts";
@@ -19,36 +21,57 @@ import {
 } from "../IssueWorkspaces.ts";
 import { LeaseHeld } from "../LeaseHeld.ts";
 import { pairOf } from "../modelFit.ts";
+import {
+  numberedFindingsOf,
+  resolveOutputProblems,
+  resolveRecordsOf,
+  withReviewerFields,
+} from "../resolveStep.ts";
 import { ticketReviewListOf } from "../reviewList.ts";
 import { RunStop } from "../RunStop.ts";
 import { TicketHalted } from "../TicketHalted.ts";
+import { latestImplementPeakOf } from "../transcriptFacts.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import { LeaseKeeper } from "./LeaseKeeper.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
+import { ReviewStepper } from "./ReviewStepper.ts";
 import {
   haltsOf,
   idListOf,
+  type ResolveOptions,
   reviewFactsOf,
   type ReviewOptions,
   type ReviewResult,
-  type Run,
   stoppedOnTextOf,
   targetsAtLaunchOf,
   targetsRefusalOf,
   type TicketRun,
-  type TrackedIssue,
+  type TicketState,
 } from "./runState.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 import { TicketSequencer } from "./TicketSequencer.ts";
 
-interface TicketReview extends ReviewOptions {
-  ticket: TrackedIssue;
+interface SessionTicket extends ReviewOptions {
+  issue: IssueRef;
+  state: TicketState;
+  resolvesItself: boolean;
+  // Resolve checks uncommitted changes as a broken rule instead.
+  isDirtyRefused: boolean;
+}
+
+// The workspace's lease decides whether the review takes it.
+interface SessionTicketRun extends TicketRun {
+  workspace: WorkspaceStatus;
 }
 
 export class SessionReviewer extends SpecRunBase {
   private get ticketSequencer(): TicketSequencer {
     return new TicketSequencer(this.config);
+  }
+
+  private get reviewStepper(): ReviewStepper {
+    return new ReviewStepper(this.config);
   }
 
   private get leaseKeeper(): LeaseKeeper {
@@ -68,6 +91,92 @@ export class SessionReviewer extends SpecRunBase {
     issue: IssueRef,
     { holder }: ReviewOptions,
   ): Promise<ReviewResult> {
+    const ticketRun = await this._sessionTicketRunOf({
+      issue,
+      holder,
+      // With no implementPeak, a fresh resolver resolves: the implementer is the live interactive session.
+      state: { step: "review", sessions: [] },
+      resolvesItself: this._isSessionUnderBudget(issue),
+      isDirtyRefused: true,
+    });
+    if (typeof ticketRun === "string") return refusedReviewOf(ticketRun);
+    const result = await this._leased(ticketRun, async () => {
+      await this.ticketSequencer._runSteps(ticketRun);
+      const { state, workspace } = ticketRun;
+      if (state.step !== "resolve") return this._finishReview(ticketRun);
+      const findings = state.findings ?? [];
+      this.factsFile.setPendingResolve(issue, {
+        findings,
+        base: await this._headsOf(workspace),
+      });
+      return {
+        kind: "findings",
+        message: `Reviewed ${issueLabelOf(issue)}, findings: ${findings.length}. Resolve them in this session by \`docs/agents/verdicts.md\`, then hand your records to resolve.`,
+        halts: [],
+        findings: numberedFindingsOf(findings),
+      };
+    });
+    this._log(ticketRun.run, result.message);
+    return result;
+  }
+
+  // The session's records pass the run's checker or are refused, naming each rule broken, for the session to correct.
+  async resolve(
+    issue: IssueRef,
+    { holder, output }: ResolveOptions,
+  ): Promise<ReviewResult> {
+    const pending = this.factsFile.pendingResolveOf(issue);
+    if (pending === undefined) {
+      return refusedReviewOf(
+        `${issueLabelOf(issue)} has no findings waiting on this session; run review first.`,
+      );
+    }
+    const outputProblems = resolveOutputProblems(output);
+    if (outputProblems.length > 0) return brokenRulesOf(outputProblems);
+    const { findings, base } = pending;
+    const ticketRun = await this._sessionTicketRunOf({
+      issue,
+      holder,
+      state: { step: "resolve", sessions: [], findings, resolveBase: base },
+      resolvesItself: true,
+      isDirtyRefused: false,
+    });
+    if (typeof ticketRun === "string") return refusedReviewOf(ticketRun);
+    const result = await this._leased(ticketRun, async () => {
+      const records = withReviewerFields(resolveRecordsOf(output), findings);
+      const problems = await this.reviewStepper._resolveProblemsOf(
+        ticketRun,
+        base,
+        records,
+      );
+      if (problems.length > 0) return brokenRulesOf(problems);
+      await this.reviewStepper._keepRecords(ticketRun, {
+        resolver: "implementer",
+        base,
+        records,
+      });
+      this.factsFile.setPendingResolve(issue, undefined);
+      return this._finishReview(ticketRun);
+    });
+    this._log(ticketRun.run, result.message);
+    return result;
+  }
+
+  // Unknown when no implement session is recorded or its transcript is missing, which counts as past budget.
+  private _isSessionUnderBudget(issue: IssueRef): boolean {
+    const sessions = this.factsFile.sessionsOf(issue);
+    const peak = sessions && latestImplementPeakOf(sessions);
+    return peak !== undefined && peak < this.config.knobs.ticketBudget;
+  }
+
+  // A string is the refusal.
+  private async _sessionTicketRunOf({
+    issue,
+    holder,
+    state,
+    resolvesItself,
+    isDirtyRefused,
+  }: SessionTicket): Promise<SessionTicketRun | string> {
     const { github } = this.config;
     const ticket = await github.issueOf(issue);
     const specIssue = (await github.parentOf(issue))?.issue ?? issue;
@@ -78,22 +187,11 @@ export class SessionReviewer extends SpecRunBase {
         await this.reviewListPoster._runnersSpecCommentsOf(run),
       ),
       postedHalts: [],
+      resolvesItself,
     };
-    const result = await this._reviewOne(run, { ticket, holder });
-    this._log(run, result.message);
-    return result;
-  }
-
-  private async _reviewOne(
-    run: Run,
-    { ticket, holder }: TicketReview,
-  ): Promise<ReviewResult> {
-    const { issue } = ticket;
     const workspace = await this.workspaces.find(issue);
     if (workspace === undefined) {
-      return refusedReviewOf(
-        `${issueLabelOf(issue)} has no issue workspace; open it with \`npm run issue:start\` first.`,
-      );
+      return `${issueLabelOf(issue)} has no issue workspace; open it with \`npm run issue:start\` first.`;
     }
     const checked = isSameIssue(run.spec.issue, issue) ? [] : [ticket];
     const refusal =
@@ -102,40 +200,50 @@ export class SessionReviewer extends SpecRunBase {
         ...checked,
       ])) ??
       targetsRefusalOf(run, [ticket]) ??
-      workspaceRefusalOf(workspace, holder);
-    if (refusal !== undefined) return refusedReviewOf(refusal);
-    const ticketRun: TicketRun = {
+      leaseRefusalOf(workspace, holder) ??
+      (isDirtyRefused ? dirtyRefusalOf(workspace) : undefined);
+    if (refusal !== undefined) return refusal;
+    run.state.tickets[issueLabelOf(issue)] = state;
+    return {
       run,
       ticket,
       // Interactive tickets may carry no Model fit.
       pair: pairOf(ticket.body) ?? this.config.knobs.resolverPair,
       workspace,
-      // With no implementPeak, a fresh resolver resolves: the implementer is the live interactive session.
-      state: { step: "review", sessions: [] },
+      state,
       targets: targetsAtLaunchOf(ticket, this._progressPathOf(run)),
     };
-    run.state.tickets[issueLabelOf(issue)] = ticketRun.state;
+  }
+
+  private async _leased(
+    ticketRun: SessionTicketRun,
+    body: () => Promise<ReviewResult>,
+  ): Promise<ReviewResult> {
     try {
-      await this.leaseKeeper._takeSessionLease(workspace);
-      await this.ticketSequencer._runSteps(ticketRun);
-      this.factsFile.setReviewFacts(issue, reviewFactsOf(ticketRun.state));
-      await this.reviewListPoster._postCoveredLaterNotes(
-        issue,
-        ticketRun.state.resolveRecords ?? [],
-      );
-      await this.haltRaiser._haltOnUnpostedHalts(ticketRun);
-      return {
-        kind: "reviewed",
-        message: reviewedMessageOf(ticketRun),
-        halts: [],
-        reviewList: reviewListOf(ticketRun),
-      };
+      await this.leaseKeeper._takeSessionLease(ticketRun.workspace);
+      return await body();
     } catch (error) {
       return reviewEndOf(ticketRun, error);
     } finally {
-      await this.leaseKeeper._releaseLeaseOf(issue);
+      await this.leaseKeeper._releaseLeaseOf(ticketRun.ticket.issue);
       this._recordSessions(ticketRun);
     }
+  }
+
+  private async _finishReview(ticketRun: TicketRun): Promise<ReviewResult> {
+    const { ticket, state } = ticketRun;
+    this.factsFile.setReviewFacts(ticket.issue, reviewFactsOf(state));
+    await this.reviewListPoster._postCoveredLaterNotes(
+      ticket.issue,
+      state.resolveRecords ?? [],
+    );
+    await this.haltRaiser._haltOnUnpostedHalts(ticketRun);
+    return {
+      kind: "reviewed",
+      message: reviewedMessageOf(ticketRun),
+      halts: [],
+      reviewList: reviewListOf(ticketRun),
+    };
   }
 
   // Beside the implement session, under its account and config folder, so wrap-up prices them as review cost.
@@ -162,32 +270,44 @@ export class SessionReviewer extends SpecRunBase {
   }
 }
 
-// What `runner review` prints: the outcome, then the review list, then each Halt.
+// What `runner review` and `runner resolve` print: the outcome, then the findings or the review list, then each Halt.
 export function reviewPrintoutOf({
   message,
+  findings,
   reviewList,
   halts,
 }: ReviewResult): string {
-  const reviewLists = reviewList === undefined ? [] : [reviewList];
-  return [message, ...reviewLists, ...halts].join("\n\n");
+  const lists = [findings, reviewList].filter((list) => list !== undefined);
+  return [message, ...lists, ...halts].join("\n\n");
 }
 
-function workspaceRefusalOf(
-  { key, lease, dirtyRepos }: WorkspaceStatus,
+function leaseRefusalOf(
+  { key, lease }: WorkspaceStatus,
   holder: LeaseHolder | undefined,
 ): string | undefined {
-  const label = workspaceLabelOf(key);
   const other = otherLiveHolderOf(lease, holder);
-  if (other !== undefined) {
-    return `${label}'s workspace is leased by ${holderLabelOf(other)}.`;
-  }
+  if (other === undefined) return undefined;
+  return `${workspaceLabelOf(key)}'s workspace is leased by ${holderLabelOf(other)}.`;
+}
+
+// The resolve step resets the tree when it is killed or capped, so it would lose them.
+function dirtyRefusalOf({
+  key,
+  dirtyRepos,
+}: WorkspaceStatus): string | undefined {
   if (dirtyRepos.length === 0) return undefined;
-  // The resolve step resets the tree when it is killed or capped, so it would lose them.
-  return `${label}'s workspace has uncommitted changes in ${dirtyRepos.join(", ")}; commit them first.`;
+  return `${workspaceLabelOf(key)}'s workspace has uncommitted changes in ${dirtyRepos.join(", ")}; commit them first.`;
 }
 
 function refusedReviewOf(message: string): ReviewResult {
   return { kind: "refused", message, halts: [] };
+}
+
+function brokenRulesOf(problems: string[]): ReviewResult {
+  const rules = problems.map((problem) => `- ${problem}`).join("\n");
+  return refusedReviewOf(
+    `Your records broke these rules; correct them, committing any fix they need, and resolve again with every finding's record:\n\n${rules}`,
+  );
 }
 
 function reviewedMessageOf({ ticket, state }: TicketRun): string {

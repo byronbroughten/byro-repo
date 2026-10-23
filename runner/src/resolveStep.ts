@@ -46,6 +46,14 @@ export interface ResolveRecord {
   draftKeepReason?: string;
 }
 
+// The resolve prompt's and the /implement-code skill's one description of a record, after "Return `records`, ".
+export const resolveRecordFields = `exactly one record per finding: \`finding\` (its number in the list), \`axis\` (the finding's own, or for a finding without one, \`standards\` or \`spec\`), \`where\` (its file:line or area), \`claim\` (what the finding says, in a line), \`verdict\` (\`dismiss\`, \`fix\`, \`propose\` or \`halt\`), \`evidence\` (what you checked and found, and why, when you overruled the suggested verdict), and the fields its verdict needs:
+
+- **Dismiss**: \`reason\`, one of ${codeListOf(dismissReasons)}; for \`covered-later\`, \`coveredBy\`, the later ticket as \`<repo>#<n>\`; for \`kept\`, \`quote\`, the site's reason with its file:line.
+- **Fix**: \`quote\`, the quoted code with its file:line, and \`rule\`, the documented rule or spec line it breaks.
+- **Propose**: \`reason\`, ${codeListOf(proposeReasons)}, and \`recommendation\`; for \`ticket\`, \`draftIssueTitle\`; for a \`decision\` asking the developer's yes to a new keep, \`draftKeepReason\`, the drafted one-line reason.
+- **Halt**: \`recommendation\`, and \`haltScope\`, the later tickets it blocks as \`<repo>#<n>\`, or \`spec\`; omit it to block the whole spec.`;
+
 export interface ResolvePromptInput {
   issue: IssueRef;
   title: string;
@@ -62,9 +70,6 @@ export function resolvePrompt({
   branchedRepos,
   findings,
 }: ResolvePromptInput): string {
-  const numbered = findings.map(
-    (finding, index) => `${index + 1}. ${findingLineOf(finding)}`,
-  );
   return `You are the resolve step of an unattended run. Nobody is watching this session: never ask a question or wait for an answer.
 
 The review of ${issue.repo}#${issue.number}, "${title}", reported the findings below, each with its axis and its reviewer's suggested verdict. Give each one exactly one verdict, Dismiss, Fix, Propose or Halt, by the rules in \`docs/agents/verdicts.md\`; read it before you judge. You may overrule a suggested verdict only as that doc allows, saying why in \`evidence\`. Then fix the Fix ones. Your working directory is the ticket's issue workspace root; these repos are on the ticket's branch, \`${branch}\`: ${branchedRepos.join(", ")}. Change only those repos. Verify each finding against the code, the ticket and its spec before you judge it. ${stepReadLine}
@@ -79,16 +84,18 @@ The review of ${issue.repo}#${issue.number}, "${title}", reported the findings b
 
 ## The record
 
-Return \`records\`, exactly one record per finding: \`finding\` (its number below), \`axis\` (the finding's own, or for a finding without one, \`standards\` or \`spec\`), \`where\` (its file:line or area), \`claim\` (what the finding says, in a line), \`verdict\` (\`dismiss\`, \`fix\`, \`propose\` or \`halt\`), \`evidence\` (what you checked and found, and why, when you overruled the suggested verdict), and the fields its verdict needs:
-
-- **Dismiss**: \`reason\`, one of ${codeListOf(dismissReasons)}; for \`covered-later\`, \`coveredBy\`, the later ticket as \`<repo>#<n>\`; for \`kept\`, \`quote\`, the site's reason with its file:line.
-- **Fix**: \`quote\`, the quoted code with its file:line, and \`rule\`, the documented rule or spec line it breaks.
-- **Propose**: \`reason\`, ${codeListOf(proposeReasons)}, and \`recommendation\`; for \`ticket\`, \`draftIssueTitle\`; for a \`decision\` asking the developer's yes to a new keep, \`draftKeepReason\`, the drafted one-line reason.
-- **Halt**: \`recommendation\`, and \`haltScope\`, the later tickets it blocks as \`<repo>#<n>\`, or \`spec\`; omit it to block the whole spec.
+Return \`records\`, ${resolveRecordFields}
 
 ## Findings
 
-${numbered.join("\n")}`;
+${numberedFindingsOf(findings)}`;
+}
+
+// Numbered from 1, as a resolve record's `finding` names them.
+export function numberedFindingsOf(findings: Finding[]): string {
+  return findings
+    .map((finding, index) => `${index + 1}. ${findingLineOf(finding)}`)
+    .join("\n");
 }
 
 function findingLineOf(finding: Finding): string {
@@ -140,6 +147,42 @@ export const resolveOutputSchema = {
 
 export function resolveRecordsOf(output: unknown): ResolveRecord[] {
   return (output as { records: ResolveRecord[] }).records;
+}
+
+// A step's output passed resolveOutputSchema already; a session's records file did not, so this checks what the rules read.
+export function resolveOutputProblems(output: unknown): string[] {
+  const records = (output as { records?: unknown } | null)?.records;
+  if (!Array.isArray(records)) {
+    return ["the file holds `records`, an array of resolve records"];
+  }
+  return records.flatMap((record: unknown, index) => {
+    const fields = (record ?? {}) as Partial<Record<string, unknown>>;
+    const label = `record ${index + 1}`;
+    return brokenRules([
+      [
+        !Number.isInteger(fields.finding) || Number(fields.finding) < 1,
+        `${label}: \`finding\` is the finding's number, from 1`,
+      ],
+      [
+        !isOneOf(axes, stringOrUndefined(fields.axis)),
+        `${label}: \`axis\` is ${codeListOf(axes)}`,
+      ],
+      [
+        !isOneOf(verdicts, stringOrUndefined(fields.verdict)),
+        `${label}: \`verdict\` is ${codeListOf(verdicts)}`,
+      ],
+      ...(["where", "claim", "evidence"] as const).map(
+        (field): [boolean, string] => [
+          typeof fields[field] !== "string",
+          `${label}: \`${field}\` is a string`,
+        ],
+      ),
+    ]);
+  });
+}
+
+function stringOrUndefined(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
 }
 
 // A structured finding's axis and suggested verdict are its reviewer's, whatever the resolver wrote.

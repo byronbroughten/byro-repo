@@ -263,6 +263,8 @@ export class TicketSequencer extends SpecRunBase {
     }
     // Checks run after the resolve, so a fix that turns them red gets the red-checks resume.
     if (state.step === "resolve") {
+      // A session under the ticket budget resolves its own review.
+      if (run.sessionReview?.resolvesItself) return;
       this._markStepStarted(ticketRun);
       await this._timed(ticketRun, "resolve", () =>
         this.reviewStepper._resolve(ticketRun),

@@ -9,6 +9,7 @@ import { join } from "node:path";
 
 import { fileStemOf, issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 import type { OutcomeFacts } from "./outcomeLog.ts";
+import type { Finding } from "./reviewStep.ts";
 import { factsOf } from "./savedFormats.ts";
 import type { StepSession, TicketSessions } from "./transcriptFacts.ts";
 
@@ -33,6 +34,14 @@ export interface WrapUpFacts extends OutcomeFacts {
   githubWrites?: GitHubWrite[];
   // What the runner recorded; facts computed from them win over passed ones.
   sessions?: TicketSessions;
+  // A session's review whose findings the session is resolving itself.
+  pendingResolve?: PendingResolve;
+}
+
+export interface PendingResolve {
+  findings: Finding[];
+  // Each branched clone's head when the review ended, which the session's Fix commits are checked against.
+  base: Record<string, string>;
 }
 
 export interface AddedSession extends Omit<TicketSessions, "steps"> {
@@ -106,6 +115,18 @@ export class FactsFile {
       whatReviewCaught,
       proposals,
     });
+  }
+
+  pendingResolveOf(issue: IssueRef): PendingResolve | undefined {
+    return this._storedOf(issue).pendingResolve;
+  }
+
+  // Undefined clears it, once the session's records pass.
+  setPendingResolve(
+    issue: IssueRef,
+    pendingResolve: PendingResolve | undefined,
+  ): FactsFile {
+    return this._store(issue, { ...this._storedOf(issue), pendingResolve });
   }
 
   setClosingFacts(
