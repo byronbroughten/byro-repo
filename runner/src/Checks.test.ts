@@ -275,8 +275,7 @@ describe("Checks.run", () => {
         { command: sleeping(0.2), ms: expect.any(Number) },
       ],
     });
-    const [, slept] = durationsOf(result);
-    expect(slept.ms).toBeGreaterThanOrEqual(200);
+    expect(durationsOf(result)[1]?.ms).toBeGreaterThanOrEqual(200);
   });
 
   it("times each command of a failure, green and red alike", async () => {
