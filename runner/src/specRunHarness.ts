@@ -67,7 +67,7 @@ export function useSpecRunHarness(): void {
     primaryRoot = join(temp, "byro-repo");
     github = FakeGitHub.init();
     notices = FakeNotices.init();
-    usageReader = FakeUsageReader.init(readingOf(0.1, 0.2));
+    usageReader = FakeUsageReader.init(usageListOf(0.1, 0.2));
     fixture.copyTo(temp);
   });
 
@@ -81,7 +81,7 @@ export function scriptUsage(...lists: (UsageList | Error)[]): void {
 }
 
 // Account 2 is always idle, so a run on account 1 shows it reads only its own account; 1, the account runs launch on, is active by default.
-export function readingOf(
+export function usageListOf(
   fiveHour: number,
   sevenDay: number,
   activeAccount: number | undefined = 1,

@@ -13,7 +13,6 @@ import {
   github,
   implemented,
   noticeSummaries,
-  readingOf,
   refOf,
   resultOf,
   reviewed,
@@ -23,6 +22,7 @@ import {
   stateFolder,
   timed,
   timingLines,
+  usageListOf,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
 
@@ -32,9 +32,9 @@ describe("run's limit guard", () => {
   it("waits out a 5-hour limit on the configured account until the reset plus a margin, with one notice, then lands", async () => {
     addSpec([1]);
     scriptUsage(
-      readingOf(0.92, 0.5),
-      readingOf(0.92, 0.5),
-      readingOf(0.1, 0.5),
+      usageListOf(0.92, 0.5),
+      usageListOf(0.92, 0.5),
+      usageListOf(0.1, 0.5),
     );
     const sleeps: number[] = [];
     const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
@@ -56,7 +56,7 @@ describe("run's limit guard", () => {
 
   it("Stops before a step past the weekly reserve, with one notice, leaving the ticket for a rerun to resume", async () => {
     addSpec([1]);
-    scriptUsage(readingOf(0.3, 0.96));
+    scriptUsage(usageListOf(0.3, 0.96));
     const agentStep = FakeAgentStep.init();
 
     const result = await specRun(agentStep).run(spec);
@@ -72,7 +72,7 @@ describe("run's limit guard", () => {
       "Run started on 1 tickets as account 1: 5-hour 30%, weekly 96%.",
       result.message,
     ]);
-    scriptUsage(readingOf(0.3, 0.5));
+    scriptUsage(usageListOf(0.3, 0.5));
 
     const rerun = await specRun(
       FakeAgentStep.init(implemented("one.ts"), reviewed()),
@@ -179,10 +179,10 @@ describe("run's limit guard", () => {
   it("pushes one Limit wait notice though a reading after the wait is still over", async () => {
     addSpec([1]);
     scriptUsage(
-      readingOf(0.92, 0.5),
-      readingOf(0.92, 0.5),
-      readingOf(0.92, 0.5),
-      readingOf(0.1, 0.5),
+      usageListOf(0.92, 0.5),
+      usageListOf(0.92, 0.5),
+      usageListOf(0.92, 0.5),
+      usageListOf(0.1, 0.5),
     );
 
     const result = await specRun(
