@@ -1,0 +1,7 @@
+# byro-repo#384 outcome
+
+Spec: [byro-repo#382](https://github.com/byronbroughten/byro-repo/issues/382)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #384 | Opus medium | 1, 2 | 16 | 130K | Fix (resumed implementer) | 1 | 1 | 0 | 32 min | $3.14 | $0.79 | Fixed: The summary line still says fourteen hooks and seven gating, without the prose gate. (docs/claude-code-guardrails.md:5); proseGateReason repeats styleGateReason's wording with only the paths changed. (.claude/hooks/lib/proseGate.ts:16-18); The prose hook body copies styleGate.ts almost line for line. (.claude/hooks/proseGate.ts:21-67); isProseRead and isProseBashRead duplicate isStyleRead and isStyleBashRead with a different path. (.claude/hooks/lib/proseGate.ts:46-55); isTrackedProjectFile reads as git-tracked but checks only project membership and ignored folders; the header still says code only. (.claude/hooks/lib/lintSet.ts:44-45); The doc's summary line keeps the old counts and omits the prose gate. (docs/claude-code-guardrails.md:5). Proposed: The prose gate types its reads as StyleRead and its result as EditDecision from styleGate.ts. (.claude/hooks/lib/proseGate.ts:10-13). | 9fae9f4b-cefe-4fc0-ab13-2d7921c7c4ba, ab01cf34-43df-4880-8a51-3b0cf1ce88e9 |
