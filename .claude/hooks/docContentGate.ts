@@ -8,6 +8,7 @@ import {
   writingSheetPaths,
   writingSheets,
 } from "./lib/docContentGate.ts";
+import { isFullDocRead, isPostToolUse } from "./lib/fullDocRead.ts";
 import {
   lineCount,
   readHookInput,
@@ -15,7 +16,6 @@ import {
   sessionStatePath,
   writeDenyOutput,
 } from "./lib/hookIo.ts";
-import { isFullDocRead, isPostToolUse } from "./lib/styleGate.ts";
 
 await runFailOpen(() => {
   const input = readHookInput();

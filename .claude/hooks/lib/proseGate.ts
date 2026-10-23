@@ -2,17 +2,17 @@
 import { sep } from "node:path";
 
 import {
+  type EditDecision,
+  type FullDocRead,
+  fullReadReason,
+  isFullDocBashRead,
+  isFullDocRead,
+} from "./fullDocRead.ts";
+import {
   type FileLocation,
   isUnignoredProjectFile,
   projectRelative,
 } from "./lintSet.ts";
-import {
-  type EditDecision,
-  fullReadReason,
-  isFullDocBashRead,
-  isFullDocRead,
-  type StyleRead,
-} from "./styleGate.ts";
 
 export const proseGateReason = fullReadReason({
   docPath: "docs/prose-style.md",
@@ -46,7 +46,7 @@ function isGatedProse(target: string): boolean {
   return !ungatedRoots.some((root) => target.startsWith(root));
 }
 
-export function isProseRead(read: StyleRead): boolean {
+export function isProseRead(read: FullDocRead): boolean {
   return isFullDocRead(read, prosePath);
 }
 

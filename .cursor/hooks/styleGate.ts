@@ -3,6 +3,10 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
+  isFullDocRead,
+  isPostToolUse,
+} from "../../.claude/hooks/lib/fullDocRead.ts";
+import {
   readHookInput,
   runFailOpen,
   sessionStatePath,
@@ -14,8 +18,6 @@ import {
   cursorFilePath,
   cursorReadBounds,
   frameworkStylePath,
-  isFullDocRead,
-  isPostToolUse,
   stylePath,
 } from "../../.claude/hooks/lib/styleGate.ts";
 

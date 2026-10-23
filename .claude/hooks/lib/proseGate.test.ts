@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
+import type { EditDecision } from "./fullDocRead.ts";
 import {
   editDecision,
   isProseBashRead,
   isProseRead,
   proseGateReason,
 } from "./proseGate.ts";
-import type { EditDecision } from "./styleGate.ts";
 
 const projectDir = "/repo";
 function edit(

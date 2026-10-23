@@ -3,6 +3,7 @@ import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { BashReads } from "./bashReads.ts";
+import { type FullDocRead, isPostToolUse } from "./fullDocRead.ts";
 import {
   lineCount,
   readHookInput,
@@ -11,12 +12,11 @@ import {
   writeDenyOutput,
 } from "./hookIo.ts";
 import type { FileLocation } from "./lintSet.ts";
-import { isPostToolUse, type StyleRead } from "./styleGate.ts";
 
 interface FullReadGate {
   marker: string;
   docPath: string;
-  isDocRead: (read: StyleRead) => boolean;
+  isDocRead: (read: FullDocRead) => boolean;
   isDocBashRead: (projectDir: string, wholeFilePaths: string[]) => boolean;
   editDenyReason: (
     where: FileLocation,
