@@ -28,6 +28,7 @@
     "./NtfyNotices": "./src/NtfyNotices.ts",
     "./reviewList": "./src/reviewList.ts",
     "./reviewStep": "./src/reviewStep.ts",
+    "./runCollecting": "./src/runCollecting.ts",
     "./runKnobs": "./src/runKnobs.ts",
     "./SessionProbe": "./src/SessionProbe.ts",
     "./SpecRun": "./src/SpecRun.ts",

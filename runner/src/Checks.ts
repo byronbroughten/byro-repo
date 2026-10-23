@@ -1,14 +1,15 @@
 // Runs the checks for `npm run check`: every command at once, skipped on a check stamp for the same committed files.
 // A stamp's key hashes each repo's committed tree, the root lockfile and the Node version; one file per key in the
-// stamp folder, written only on a pass with every repo clean and holding that pass's per-command durations. SpecRun.ts and WrapUp.ts run whatever commands their
-// checks setting names and know nothing of stamps. scripts/runner/check.ts names the commands and prints the result;
-// the label a failure is listed under comes from failureText.ts.
-import { spawn } from "node:child_process";
+// stamp folder, written only on a pass with every repo clean and holding that pass's per-command durations.
+// SpecRun.ts and WrapUp.ts run whatever commands their checks setting names and know nothing of stamps.
+// scripts/runner/check.ts names the commands and prints the result; the label a failure is listed under comes from
+// failureText.ts.
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { git, isDirty } from "./git.ts";
+import { runCollecting } from "./runCollecting.ts";
 import type { Command } from "./runKnobs.ts";
 
 export interface ChecksConfig {
@@ -125,23 +126,14 @@ function lockfileOf(root: string): Buffer | string {
   return existsSync(path) ? readFileSync(path) : "no lockfile";
 }
 
-function outcomeOf(command: Command, cwd: string): Promise<CommandOutcome> {
+async function outcomeOf(
+  command: Command,
+  cwd: string,
+): Promise<CommandOutcome> {
   const [file, ...args] = command;
   const start = performance.now();
-  return new Promise((resolve) => {
-    function finish(failure?: CommandFailure): void {
-      resolve({
-        duration: { command, ms: Math.round(performance.now() - start) },
-        failure,
-      });
-    }
-    const child = spawn(file, args, { cwd });
-    let output = "";
-    child.stdout.on("data", (chunk) => (output += chunk));
-    child.stderr.on("data", (chunk) => (output += chunk));
-    child.on("error", (error) => finish({ command, output: error.message }));
-    child.on("close", (code) =>
-      finish(code === 0 ? undefined : { command, output: output.trim() }),
-    );
-  });
+  const { isOk, output } = await runCollecting(file, args, { cwd });
+  const duration = { command, ms: Math.round(performance.now() - start) };
+  if (isOk) return { duration };
+  return { duration, failure: { command, output } };
 }
