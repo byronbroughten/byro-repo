@@ -151,11 +151,7 @@ export class ReviewStepper extends SpecRunBase {
     let { records, logPath } = attempt;
     let problems = await this._resolveProblemsOf(ticketRun, records);
     if (problems.length === 0) return records;
-    const retry = await this._runResolver(
-      ticketRun,
-      fixer,
-      resolveRetryPrompt(problems),
-    );
+    const retry = await this._retryResolver(ticketRun, fixer, problems);
     if (retry.kind !== "done") {
       throw new UnhandledStop(
         "step-error",
@@ -187,33 +183,53 @@ export class ReviewStepper extends SpecRunBase {
     ];
   }
 
-  // With no retry prompt it is a first launch, so a fresh resolver starts a new session.
+  // A first launch, so a fresh resolver starts a new session.
   private async _runResolver(
     ticketRun: TicketRun,
     fixer: Fixer,
-    retryPrompt?: string,
   ): Promise<ResolveAttempt> {
     const { ticket, workspace, state } = ticketRun;
-    const findings = state.findings ?? [];
-    const prompt =
-      retryPrompt ??
-      resolvePrompt({
-        issue: ticket.issue,
-        title: ticket.title,
-        branch: workspace.branch,
-        branchedRepos: branchedReposOf(ticketRun),
-        findings,
+    const prompt = resolvePrompt({
+      issue: ticket.issue,
+      title: ticket.title,
+      branch: workspace.branch,
+      branchedRepos: branchedReposOf(ticketRun),
+      findings: state.findings ?? [],
+    });
+    if (fixer === "triage") {
+      return this._launchResolver(ticketRun, fixer, {
+        prompt,
+        resumeSessionId: undefined,
       });
-    const isFresh = fixer === "triage" && retryPrompt === undefined;
+    }
+    return this._launchResolver(ticketRun, fixer, { prompt });
+  }
+
+  // Resumes the session that returned the refused record.
+  private async _retryResolver(
+    ticketRun: TicketRun,
+    fixer: Fixer,
+    problems: string[],
+  ): Promise<ResolveAttempt> {
+    return this._launchResolver(ticketRun, fixer, {
+      prompt: resolveRetryPrompt(problems),
+    });
+  }
+
+  private async _launchResolver(
+    ticketRun: TicketRun,
+    fixer: Fixer,
+    launch: Pick<StepLaunch, "prompt" | "resumeSessionId">,
+  ): Promise<ResolveAttempt> {
     const { result, logPath } = await this._runFixerStep(ticketRun, fixer, {
       liveCeiling: this.config.knobs.liveCeiling,
-      prompt,
       jsonSchema: triageOutputSchema,
-      ...(isFresh ? { resumeSessionId: undefined } : {}),
+      ...launch,
     });
     if (result.hasCrossedCeiling) return { kind: "crossed", logPath };
     if (isTurnCapped(result)) return { kind: "capped", logPath };
     const record = recordOf("fix", result, logPath);
+    const findings = ticketRun.state.findings ?? [];
     const records = withReviewerFields(triageRecordsOf(record), findings);
     return { kind: "done", records, logPath };
   }
