@@ -1,5 +1,5 @@
-// Finds each quoted span of a Research comment in the text of the sources it cites, page by page.
-// Whitespace, line-end hyphens, ligatures and curly quotes are ignored on both sides, so a quote copied from a PDF's line breaks still matches.
+// Finds each quoted span of a Research comment in the text of its sources, across page breaks.
+// Whitespace, line-end hyphens, ligatures, curly quotes and letter case are ignored; punctuation must match exactly.
 // The command: verifyQuotes.ts.
 
 export interface Page {
@@ -22,6 +22,10 @@ export function quotesIn(comment: string): string[] {
   return spans.filter((span) => span.split(/\s+/).length >= minQuoteWords);
 }
 
+export function isJoined(quote: string): boolean {
+  return /\.\.\.|…/.test(quote);
+}
+
 export function pagesOf(text: string): Page[] {
   const parts = text.split(/^--- PDF page (\d+) ---$/m);
   if (parts.length === 1) return [{ number: undefined, text }];
@@ -38,20 +42,33 @@ export function findQuote(
 ): QuoteMatch | undefined {
   const wanted = normalize(quote, false);
   for (const source of sources) {
-    for (const page of source.pages) {
-      if (normalize(page.text, true).includes(wanted)) {
-        return { quote, file: source.file, page: page.number };
-      }
-    }
+    const { text, pageStarts } = joinedPages(source.pages);
+    const at = text.indexOf(wanted);
+    if (at === -1) continue;
+    const start = pageStarts.findLast((page) => page.start <= at);
+    return { quote, file: source.file, page: start?.number };
   }
   return undefined;
+}
+
+// One string per source, so a quote that crosses a page break is found; each page's start maps a match back to its page.
+function joinedPages(pages: Page[]): {
+  text: string;
+  pageStarts: { start: number; number: number | undefined }[];
+} {
+  let text = "";
+  const pageStarts: { start: number; number: number | undefined }[] = [];
+  for (const page of pages) {
+    pageStarts.push({ start: text.length, number: page.number });
+    text += normalize(page.text, true);
+  }
+  return { text, pageStarts };
 }
 
 function normalize(text: string, isSource: boolean): string {
   const unified = text
     .replace(/[“”]/g, '"')
     .replace(/[‘’]/g, "'")
-    .replace(/[–—]/g, "-")
     .replace(/ﬁ/g, "fi")
     .replace(/ﬂ/g, "fl")
     .replace(/ﬀ/g, "ff")

@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { findQuote, pagesOf, quotesIn } from "./quoteMatch.ts";
+import { findQuote, isJoined, pagesOf, quotesIn } from "./quoteMatch.ts";
 
 const source = {
   file: "pmbok.txt",
   pages: pagesOf(
-    "--- PDF page 104 ---\nEmotional intelligence is the ability to recog-\nnize our own emotions and those of others.\n--- PDF page 105 ---\nﬁnal text.",
+    "--- PDF page 104 ---\nEmotional intelligence is the ability to recog-\nnize our own emotions and those of others.\n--- PDF page 105 ---\nﬁnal text, and the work defined at the lowest level\n--- PDF page 106 ---\nof the work breakdown structure.",
   ),
 };
 
@@ -18,6 +18,14 @@ describe("quotesIn", () => {
       "Emotional intelligence is the ability",
       "don’t always circle the low bidder",
     ]);
+  });
+});
+
+describe("isJoined", () => {
+  it("flags a quote that contains an ellipsis", () => {
+    expect(isJoined("...projects often involve")).toBe(true);
+    expect(isJoined("the total scope…the tasks")).toBe(true);
+    expect(isJoined("the total scope of work")).toBe(false);
   });
 });
 
@@ -36,8 +44,25 @@ describe("findQuote", () => {
     });
   });
 
-  it("matches ligatures and returns undefined for a paraphrase", () => {
-    expect(findQuote("Final text.", [source])?.page).toBe(105);
+  it("matches a quote that crosses a page break, reporting the page it starts on", () => {
+    expect(
+      findQuote(
+        "the work defined at the lowest level of the work breakdown structure.",
+        [source],
+      )?.page,
+    ).toBe(105);
+  });
+
+  it("matches ligatures and letter case", () => {
+    expect(findQuote("Final text,", [source])?.page).toBe(105);
+  });
+
+  it("does not match when the punctuation differs", () => {
+    expect(findQuote("final text.", [source])).toBeUndefined();
+    expect(findQuote("final text,", [source])?.page).toBe(105);
+  });
+
+  it("returns undefined for a paraphrase", () => {
     expect(
       findQuote("the ability to understand one's self", [source]),
     ).toBeUndefined();
