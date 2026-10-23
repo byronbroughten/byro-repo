@@ -42,16 +42,13 @@
           "derivedInto": ["review-piece"]
         },
         "skills/engineering/domain-modeling": {
-          "status": "reference-only",
-          "syncedSha": "49dd158d1076134a641b33efb035946536778336",
-          "notes": "Forked under the same name: design.md entries replace ADRs.",
-          "derivedInto": ["domain-modeling"]
+          "status": "vendored",
+          "syncedSha": "5beb35b040e3de97e54fa9e386d7e42d15c295c2",
+          "notes": "Divergences: (1) Glossary files are GLOSSARY.md and GLOSSARY-MAP.md, with the existing GLOSSARY-FORMAT.md, never CONTEXT.md; upstream at this SHA already uses those names, so reapply only if it renames them. (2) ADR-FORMAT.md's template ends with a required `Source:` line naming the backing issues as owner/repo#n and/or commits, plus a sentence saying it is required; SKILL.md adds a \"Backlink the issue\" section: the backing issue's body ends with `Design decision: <owner/repo>/docs/adr/NNNN-slug.md`, kept in step by docs/agents/issue-tracker.md. (3) SKILL.md adds, after \"Offer ADRs sparingly\", a paragraph pointing at the \"What qualifies\" list, writing only after a yes, and offering an ADR when the developer rejects a suggestion for a reason that bears weight; and a \"Build principles on ADRs\" section: an instance added to a principle's reasoning without asking as a link plus one clause, a pair proposed as a one-line principle and written only after approval, pair-spotting reading every ADR body with no index, a superseded ADR stops counting and a principle below two ADRs goes to the developer, deliberate-absence bullets name the gap and its reason, and cross-repo citations only from a repo using the library and never from a private repo. (4) File structure: the multi-context tree shows one docs/adr/ per repo root (byro-repo root for agent behavior, packages/framework, packages/real-estate), not per context, and says packages/writing gets none."
         },
         "skills/engineering/grill-with-docs": {
-          "status": "reference-only",
-          "syncedSha": "49dd158d1076134a641b33efb035946536778336",
-          "notes": "Forked under the same name: the description names design.md entries instead of ADRs.",
-          "derivedInto": ["grill-with-docs"]
+          "status": "vendored",
+          "syncedSha": "5beb35b040e3de97e54fa9e386d7e42d15c295c2"
         },
         "skills/engineering/implement": {
           "status": "reference-only",
@@ -78,7 +75,7 @@
         "skills/engineering/tdd": {
           "status": "vendored",
           "syncedSha": "49dd158d1076134a641b33efb035946536778336",
-          "notes": "Divergence: respects the design.md principles in the area instead of ADRs."
+          "notes": "Divergence: the consumer line reads \"respect ADRs in the area you're touching, and the design.md principles that apply.\""
         },
         "skills/engineering/codebase-design": {
           "status": "vendored",
@@ -88,13 +85,13 @@
         "skills/engineering/to-spec": {
           "status": "reference-only",
           "syncedSha": "49dd158d1076134a641b33efb035946536778336",
-          "notes": "Upstream source of this repo's code-spec and piece-spec forks.",
+          "notes": "Upstream source of this repo's code-spec and piece-spec forks. code-spec's consumer line reads \"respect ADRs in the area you're touching, and the design.md principles that apply.\"",
           "derivedInto": ["code-spec", "piece-spec"]
         },
         "skills/engineering/to-tickets": {
           "status": "reference-only",
           "syncedSha": "49dd158d1076134a641b33efb035946536778336",
-          "notes": "Upstream source of this repo's code-tickets and piece-tickets forks.",
+          "notes": "Upstream source of this repo's code-tickets and piece-tickets forks. code-tickets' consumer line reads \"respect ADRs in the area you're touching, and the design.md principles that apply.\"",
           "derivedInto": ["code-tickets", "piece-tickets"]
         },
         "skills/engineering/wayfinder": {
