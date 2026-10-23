@@ -8,11 +8,7 @@ import {
   stateFolder,
 } from "../../scripts/runner/runnerConfig.ts";
 import { readHookInput, runFailOpen } from "./lib/hookIo.ts";
-import {
-  endsProcess,
-  leasedWorkspacesOf,
-  releaseSupervisionAtEnd,
-} from "./lib/leaseRelease.ts";
+import { endsProcess, leasedWorkspacesOf } from "./lib/leaseRelease.ts";
 import { sessionModeOf } from "./lib/tiers.ts";
 
 await runFailOpen(async () => {
@@ -24,11 +20,7 @@ await runFailOpen(async () => {
   }
   const holder = nearestClaudeAncestor();
   if (!holder) return;
-  await releaseSupervisionAtEnd(
-    SupervisionRecords.init(stateFolder),
-    holder,
-    input.reason,
-  );
+  await SupervisionRecords.init(stateFolder).release(holder);
   const workspaces = IssueWorkspaces.init(issueWorkspacesConfig);
   const leased = leasedWorkspacesOf(await workspaces.leases(), holder);
   for (const workspace of leased) await workspaces.releaseLease(workspace);

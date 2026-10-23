@@ -65,10 +65,12 @@ async function leaseLinesOf(
   }
 }
 
-// Its own fail-open too; a runner step is never a Supervisor.
+// Its own fail-open too; only a clear start can yield the line, and a runner step is never a Supervisor.
 async function supervisionLinesOf({ source }: HookInput): Promise<string[]> {
   try {
-    if (sessionModeOf(process.env) === "runnerStep") return [];
+    if (source !== "clear" || sessionModeOf(process.env) === "runnerStep") {
+      return [];
+    }
     const holder = nearestClaudeAncestor();
     if (!holder) return [];
     const record = await SupervisionRecords.init(stateFolder).recordOf(holder);

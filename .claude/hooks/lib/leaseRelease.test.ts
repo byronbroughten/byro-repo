@@ -1,19 +1,10 @@
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-
 import type {
   Lease,
   LeasedWorkspace,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
-import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import {
-  endsProcess,
-  leasedWorkspacesOf,
-  releaseSupervisionAtEnd,
-} from "./leaseRelease.ts";
+import { endsProcess, leasedWorkspacesOf } from "./leaseRelease.ts";
 
 const session = { kind: "session", pid: 100 } as const;
 
@@ -51,46 +42,15 @@ describe("leasedWorkspacesOf", () => {
   });
 });
 
-describe("releaseSupervisionAtEnd", () => {
-  const supervisor = { kind: "session", pid: process.pid } as const;
-  const spec = { repo: "byro-repo", number: 331 };
-  let stateFolder = "";
-
-  beforeEach(() => {
-    stateFolder = mkdtempSync(join(tmpdir(), "supervision-"));
-  });
-
-  afterEach(() => {
-    rmSync(stateFolder, { recursive: true, force: true });
-  });
-
-  it("deletes the session's supervision record when the session ends", async () => {
-    const records = SupervisionRecords.init(stateFolder);
-    await records.supervise(supervisor, "byronbroughten", spec);
-
-    await releaseSupervisionAtEnd(records, supervisor, "prompt_input_exit");
-
-    expect(await records.recordOf(supervisor)).toBeUndefined();
-  });
-
-  it("keeps it on a /clear end, which keeps the same process supervising", async () => {
-    const records = SupervisionRecords.init(stateFolder);
-    await records.supervise(supervisor, "byronbroughten", spec);
-
-    await releaseSupervisionAtEnd(records, supervisor, "clear");
-
-    expect((await records.recordOf(supervisor))?.spec).toEqual(spec);
-  });
-});
-
+// endsProcess gates both the leases' release and the supervision record's deletion.
 describe("endsProcess", () => {
-  it("is true when the session ends with its claude process", () => {
+  it("is true when the session ends with its claude process, which releases its leases and deletes its supervision record", () => {
     expect(endsProcess("prompt_input_exit")).toBe(true);
     expect(endsProcess("logout")).toBe(true);
     expect(endsProcess(undefined)).toBe(true);
   });
 
-  it("is false for /clear and /resume, which keep the same process working", () => {
+  it("is false for /clear and /resume, which keep the same process working and supervising", () => {
     expect(endsProcess("clear")).toBe(false);
     expect(endsProcess("resume")).toBe(false);
   });
