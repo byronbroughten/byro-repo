@@ -166,9 +166,11 @@ function verdictGroupOf(
     if (verdict === "halt") return haltRowOf(record);
     return fixRowOf(record);
   });
-  return [
-    `**${reviewGroups.verdicts[verdict].heading}**\n\n${rows.join("\n")}`,
-  ];
+  return [groupBlockOf(verdict, rows)];
+}
+
+function groupBlockOf(verdict: Verdict, rows: string[]): string {
+  return `**${reviewGroups.verdicts[verdict].heading}**\n\n${rows.join("\n")}`;
 }
 
 // Undefined where the resolver kept the reviewer's verdict, or the record predates suggested verdicts.
@@ -233,9 +235,7 @@ function dismissGroupOf(dismisses: ResolveRecord[]): string[] {
     [overruledDismissLineOf(record), ...departureLinesOf(record)].join("\n"),
   );
   return [
-    ...(shown.length > 0
-      ? [`**${reviewGroups.verdicts.dismiss.heading}**\n\n${shown.join("\n")}`]
-      : []),
+    ...(shown.length > 0 ? [groupBlockOf("dismiss", shown)] : []),
     ...(agreed.length > 0 ? [dismissAuditOf(agreed)] : []),
   ];
 }
