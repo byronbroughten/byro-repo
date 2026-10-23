@@ -26,7 +26,7 @@ Whether an action needs the developer's yes follows from one question: what woul
 
 The session mode decides what an ask does. An Interactive session asks the developer. A runner step has nobody to answer, so its call is refused with a reason, and the step records a blocker and carries on. A stalled run has cost more than any action an agent has taken.
 
-The gates are designed against a fallible agent: one that means well and makes a mistake. #268 keeps Untrusted text out of agents' instructions, and hardening against the agent itself waits for its [containment triggers](./adr/0007-keep-untrusted-text-out-of-instructions-and-defer-containment.md#consequences), so no such gate is built ahead of them.
+The gates are designed against a fallible agent: one that means well and makes a mistake. [ADR 0007](./adr/0007-keep-untrusted-text-out-of-instructions-and-defer-containment.md) keeps Untrusted text out of agents' instructions, and hardening against the agent itself waits for its [containment triggers](./adr/0007-keep-untrusted-text-out-of-instructions-and-defer-containment.md#consequences), so no such gate is built ahead of them.
 
 Quality checks and cost guards are not gates, and the tiers leave them alone: lint feedback, the style gate, the formatter, the read guards and the generated-file read deny.
 
