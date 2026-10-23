@@ -7,9 +7,8 @@ import type { IssueRef } from "./IssueWorkspaces.ts";
 import { codeListOf } from "./promptText.ts";
 import { stringSchema } from "./recordSchema.ts";
 import type { Finding } from "./reviewStep.ts";
+import { axes, type Axis, type Verdict, verdicts } from "./verdicts.ts";
 
-export const verdicts = ["dismiss", "fix", "propose", "halt"] as const;
-export const axes = ["standards", "spec"] as const;
 // Each Dismiss reason with its definition, as the prompt states it.
 const dismissReasonDefinitions = {
   "false-positive":
@@ -24,8 +23,6 @@ const dismissReasons = Object.keys(
 ) as (keyof typeof dismissReasonDefinitions)[];
 const proposeReasons = ["decision", "ticket"] as const;
 
-export type Verdict = (typeof verdicts)[number];
-export type Axis = (typeof axes)[number];
 export type DismissReason = (typeof dismissReasons)[number];
 export type ProposeReason = (typeof proposeReasons)[number];
 
