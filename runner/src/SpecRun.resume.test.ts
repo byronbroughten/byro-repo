@@ -151,7 +151,9 @@ describe("run's resume", () => {
     const result = await specRun(dismissingResolver()).run(spec);
 
     expect(result.landed).toEqual([]);
-    expect(ticketState()["byro-repo #1"]?.crashes).toEqual({ resolve: 1 });
+    const state = ticketState()["byro-repo #1"];
+    expect(state).toMatchObject({ crashes: { resolve: 1 } });
+    expect(state).not.toHaveProperty("crashes.triage");
     expect(notices.sent).toContainEqual(
       expect.objectContaining({ kind: "failure-halt" }),
     );
