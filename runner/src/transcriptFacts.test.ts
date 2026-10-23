@@ -149,6 +149,23 @@ describe("transcriptFactsOf", () => {
     ).toBeUndefined();
   });
 
+  it("leaves cost unrecorded when an implementer's model has no price", () => {
+    const implement = join(
+      configFolder,
+      "projects",
+      "-workspace-byro-repo",
+      "session-implement-2.jsonl",
+    );
+    writeFileSync(
+      implement,
+      readFileSync(implement, "utf8").replaceAll(
+        "claude-opus-5-5",
+        "claude-mystery-9",
+      ),
+    );
+    expect(transcriptFactsOf(sessions(), handoffs).costUsd).toBeUndefined();
+  });
+
   it("leaves the implementer's facts unrecorded when no implementer session was recorded", () => {
     const steps = sessions().steps.filter(({ agent }) => agent !== "implement");
     const facts = transcriptFactsOf(sessions({ steps }), []);
