@@ -1,0 +1,7 @@
+# byro-repo#339 outcome
+
+Spec: [byro-repo#331](https://github.com/byronbroughten/byro-repo/issues/331)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Triage cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #339 | Opus medium | 2 | 25 | 140K | Triage fix | 1 | 1 | 0 | 40 min | $2.94 | $0.00 | Fixed: No test covers a Failure Halt's event line, so the failure-halt mapping is untested. (runner/src/SpecRun.eventFile.test.ts:245, runner/src/SpecRun/HaltRaiser.ts:148); The three run endings are written out as separate string literals in three places. (runner/src/Notices.ts:9-11, runner/src/EventFileNotices.ts:14, runner/src/EventFileNotices.ts:47-48); The eventLines() event-file reader is written twice in two tests. (runner/src/SpecRun.eventFile.test.ts:45, scripts/runner/crashPush.test.ts:24); Run gains a mutable stopCommentUrl field only to pass a URL from _stopTicket to RunLoop's _end, while _stopForRerun passes it on RunStop.event. (runner/src/SpecRun/runState.ts:160, runner/src/SpecRun/TicketSequencer.ts:194, runner/src/SpecRun/RunLoop.ts:137). Proposed: A refused run ends with no run-ended line, and its exit code 1 is below the crash path's threshold, so a Supervisor waits forever on it. (runner/src/SpecRun/RunLoop.ts:72). | 9079f2b0-5f73-4ea5-93ac-21f269cf454d |
