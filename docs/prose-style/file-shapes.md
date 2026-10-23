@@ -14,4 +14,4 @@ A reasoning file is opened only when a rule's line doesn't decide the case, or w
 
 ## Mechanics docs
 
-A mechanics doc is read by heading, not whole. Its lead is what an agent reads to decide whether the doc is the right one, so it stays short; lint caps it in bytes as well as lines, since a line count lets one long paragraph through. A doc over 4 KB with no headings is one long lead read whole. A heading is how a grep finds the section, so "Notes" or "Details" finds nothing. A rule found in a mechanics doc is followed only by agents who happen to read that heading, so it moves up to where it's loaded.
+A mechanics doc is read by heading, not whole. Its lead is what an agent reads to decide whether the doc is the right one, so it stays short; why lint caps it in bytes and wants headings past 4 KB is in [`agent-behavior-design.md`](../agent-behavior-design.md#put-each-rule-where-it-gets-followed-and-its-reasoning-one-pointer-away). A heading is how a grep finds the section, so "Notes" or "Details" finds nothing. A rule found in a mechanics doc is followed only by agents who happen to read that heading, so it moves up to where it's loaded.
