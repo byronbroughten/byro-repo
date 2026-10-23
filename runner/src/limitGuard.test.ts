@@ -69,7 +69,8 @@ describe("readCswapList", () => {
         },
       ],
     });
-    const readings = readCswapList(json);
+    const { readings, activeAccount } = readCswapList(json);
+    expect(activeAccount).toBe(1);
     expect(readings[0]).toEqual({
       account: 1,
       usage: {
@@ -101,7 +102,7 @@ describe("readCswapList", () => {
         },
       ],
     });
-    expect(readCswapList(json)).toEqual([
+    expect(readCswapList(json).readings).toEqual([
       {
         account: 2,
         usage: {
@@ -115,9 +116,26 @@ describe("readCswapList", () => {
     ]);
   });
 
-  it("returns no readings for unparseable output rather than throwing", () => {
-    expect(readCswapList("cswap: not logged in")).toEqual([]);
-    expect(readCswapList("null")).toEqual([]);
+  it("reads a missing active account as unknown, keeping the readings", () => {
+    const json = JSON.stringify({ accounts: [{ number: 2 }] });
+    expect(readCswapList(json)).toEqual({
+      readings: [{ account: 2, usage: undefined }],
+      activeAccount: undefined,
+    });
+  });
+
+  it.each([["2"], [null], [1.5], [0], [-1], [Number.NaN], [{ number: 2 }]])(
+    "reads a malformed active account %j as unknown rather than guessing",
+    (activeAccountNumber) => {
+      const json = JSON.stringify({ activeAccountNumber, accounts: [] });
+      expect(readCswapList(json).activeAccount).toBeUndefined();
+    },
+  );
+
+  it("returns no readings and an unknown active account for unparseable output rather than throwing", () => {
+    const empty = { readings: [], activeAccount: undefined };
+    expect(readCswapList("cswap: not logged in")).toEqual(empty);
+    expect(readCswapList("null")).toEqual(empty);
   });
 });
 
