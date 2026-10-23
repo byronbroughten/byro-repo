@@ -9,7 +9,7 @@ The program that runs one spec: it picks each ready ticket in turn, launches its
 _Avoid_: orchestrator, driver, pipeline
 
 **Step**:
-One stage of a ticket's run, in order: implement, review, finding triage, fix, checks and wrap-up, with the gap check once at the end of the spec. An agent step is one `claude -p` session; checks and wrap-up the runner does itself.
+One stage of a ticket's run, in order: implement, review, finding triage, checks and wrap-up, with the gap check once at the end of the spec. An agent step is one `claude -p` session; checks and wrap-up the runner does itself.
 _Avoid_: phase, stage, job
 
 **Checks**:
@@ -33,11 +33,11 @@ What one ticket's landing reads: where its work is, how it went and what to say 
 _Avoid_: wrap-up input, outcome file
 
 **Finding triage**:
-The step after review that gives each review finding a verdict, as one triage record. It is skipped when review finds nothing.
+The step after review that gives each review finding a verdict, as one triage record, and commits the Fix ones in the same session. The resumed implementer runs it while its peak context is under ~150K, else the triage agent. It is skipped when review finds nothing.
 _Avoid_: classification, judging
 
 **Triage agent**:
-The fresh agent session that runs finding triage. It also fixes the Fix batch when the implementer's peak context is past ~150K, or after a fixer is killed at ~180K.
+The fresh agent session that runs finding triage, the fresh resolver, when the implementer's peak context is past ~150K, or after an implementer running it is killed at ~180K.
 _Avoid_: judge, reviewer
 
 **Verdict**:
@@ -45,7 +45,7 @@ What finding triage decides for one finding: Dismiss, Fix, Propose or Halt.
 _Avoid_: ruling, outcome
 
 **Dismiss**:
-The verdict that takes no action, with a reason: `false-positive`, `covered-later`, `kept` or `tooling-enforced`. Dismisses appear in the review list's collapsed audit.
+The verdict that takes no action, with one of the reasons [`docs/agents/verdicts.md`](../docs/agents/verdicts.md) defines. Dismisses appear in the review list's collapsed audit.
 _Avoid_: ignore, reject
 
 **Fix**:
@@ -57,7 +57,7 @@ The verdict that leaves the finding for the developer on the review list: `decis
 _Avoid_: Defer, postpone, backlog
 
 **Halt**:
-The verdict that blocks the tickets in its scope until the developer answers: named later tickets and their downstream, or `spec`. A fixer's give-up or a blocker in the implement record is one too. It is posted as a spec-issue comment and a push; an interactive session's review of its own ticket posts its Halts with no push and takes the answers in the session.
+The verdict that blocks the tickets in its scope until the developer answers: named later tickets and their downstream, or `spec`. A blocker in the implement record is one too. It is posted as a spec-issue comment and a push; an interactive session's review of its own ticket posts its Halts with no push and takes the answers in the session.
 _Avoid_: pause, block, question
 
 **Failure Halt**:

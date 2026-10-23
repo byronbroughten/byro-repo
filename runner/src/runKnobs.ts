@@ -46,11 +46,11 @@ export interface RunKnobs {
   handoffsPerTicket: number;
   // How many tickets in a row may end on a Failure Halt before the run Stops as stuck.
   stuckFailureHalts: number;
-  // The resumed implementer fixes the Fix batch only while its peak context is under this.
+  // The resumed implementer resolves the findings only while its peak context is under this.
   ticketBudget: number;
-  // A step crossing this is killed: an implementer is resumed for a handoff, a fixer's batch goes to the triage agent.
+  // A step crossing this is killed: an implementer is resumed for a handoff, or its resolve goes to a fresh resolver.
   liveCeiling: number;
-  // Finding triage's pair; the triage agent fixes on the stronger of it and the ticket's.
+  // The fresh resolver runs on the stronger of this and the ticket's pair.
   triagePair: Pair;
   gapCheckPair: Pair;
   reviewListCadence: ReviewListCadence;

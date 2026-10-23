@@ -100,7 +100,7 @@ export interface TicketState {
   record?: ImplementRecord;
   // The last implement step's own peak, never a sum across handoffs; picks the fixer and whether a resume continues its session.
   implementPeak?: number;
-  // The implementer's latest session, a fix step it ran included.
+  // The implementer's latest session, a resolve it ran included.
   implementerSession?: string;
   findings?: Finding[];
   // The resolve records.

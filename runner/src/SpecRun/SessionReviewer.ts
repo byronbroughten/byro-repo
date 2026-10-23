@@ -109,7 +109,7 @@ export class SessionReviewer extends SpecRunBase {
       // Interactive tickets may carry no Model fit.
       pair: pairOf(ticket.body) ?? this.config.knobs.triagePair,
       workspace,
-      // With no implementPeak, the triage agent fixes: the implementer is the live interactive session.
+      // With no implementPeak, a fresh resolver resolves: the implementer is the live interactive session.
       state: { step: "review", sessions: [] },
       targets: targetsAtLaunchOf(ticket, this._progressPathOf(run)),
     };
@@ -167,7 +167,7 @@ function workspaceRefusalOf(
     return `${label}'s workspace is leased by ${holderLabelOf(other)}.`;
   }
   if (dirtyRepos.length === 0) return undefined;
-  // The fix step resets the tree when it is killed or capped, so it would lose them.
+  // The resolve step resets the tree when it is killed or capped, so it would lose them.
   return `${label}'s workspace has uncommitted changes in ${dirtyRepos.join(", ")}; commit them first.`;
 }
 

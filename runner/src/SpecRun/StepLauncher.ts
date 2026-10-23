@@ -81,7 +81,7 @@ export class StepLauncher extends SpecRunBase {
       }
       const { result } = ran;
       if (isTurnCapped(result)) {
-        // A fixer's caller turns what it left unfinished into give-ups.
+        // A fixer's caller resets what it left before taking the crash.
         if (agent === "fix") return { result, logPath };
         const turns = attempt.maxTurns ?? this.config.knobs.maxTurns[agent];
         const cap = { detail: turnCapDetailOf(agent, turns), logPath };
