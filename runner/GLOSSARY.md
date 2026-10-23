@@ -33,7 +33,7 @@ What one ticket's landing reads: where its work is, how it went and what to say 
 _Avoid_: wrap-up input, outcome file
 
 **Finding triage**:
-The step after review that gives each review finding a verdict, as one triage record, and commits the Fix ones in the same session. The resumed implementer runs it while its peak context is under ~150K, else the triage agent. It is skipped when review finds nothing.
+The step after review that gives each review finding a verdict, as one triage record, and commits the Fix ones in the same session: the resumed implementer, or else the triage agent. It is skipped when review finds nothing.
 _Avoid_: classification, judging
 
 **Triage agent**:
