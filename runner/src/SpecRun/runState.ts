@@ -393,7 +393,7 @@ export function turnCapDetailOf(
   return `The ${step} step hit its ${turns}-turn cap.`;
 }
 
-// Review edits nothing, so there is no work of its to set aside.
+// Review edits nothing, so it has no work of its own to set aside.
 export function isSnapshotted(step: TicketStep): boolean {
   return step !== "review";
 }
