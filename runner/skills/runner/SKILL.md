@@ -16,7 +16,7 @@ disable-model-invocation: true
 
 ## 2. Catch up
 
-Run `npm run runner -- supervise <owner/repo> <n>`. It records this session as the spec's Supervisor, taking over any earlier Supervisor's record and carrying on from its offset. Then it prints each event line nobody has explained yet, oldest first. `/runner` on another spec moves the record to that spec.
+Run `npm run runner -- supervise <owner/repo> <n>`. It records this session as the spec's Supervisor and prints each unexplained event line, oldest first.
 
 Explain those lines one at a time, oldest first, as step 4 says. After each one, run `npm run runner -- supervise <owner/repo> <n> --advance` before going on to the next. Advance once per line explained, never in a batch: a `/clear` partway through carries on from the line where you stopped.
 
