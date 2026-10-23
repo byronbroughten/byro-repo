@@ -347,12 +347,17 @@ export class SpecRunBase {
 
   // Newlines are folded so each event stays one line for tail -f.
   protected _log(run: Run, line: string): void {
+    this._record(run, line);
+    this.config.log?.(line);
+  }
+
+  // To the progress file alone, for a line its caller returns to print.
+  protected _record(run: Run, line: string): void {
     const oneLine = line.replace(/\s*\n\s*/g, " ");
     appendFileSync(
       this._progressPathOf(run),
       `${this.config.clock.now().toISOString()} ${oneLine}\n`,
     );
-    this.config.log?.(line);
   }
 
   protected _progressPathOf(run: Run): string {

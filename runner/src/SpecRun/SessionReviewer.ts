@@ -117,7 +117,7 @@ export class SessionReviewer extends SpecRunBase {
         findings: numberedFindingsOf(findings),
       };
     });
-    this._log(ticketRun.run, result.message);
+    this._record(ticketRun.run, result.message);
     return result;
   }
 
@@ -159,7 +159,7 @@ export class SessionReviewer extends SpecRunBase {
       this.factsFile.setPendingResolve(issue, undefined);
       return this._finishReview(ticketRun);
     });
-    this._log(ticketRun.run, result.message);
+    this._record(ticketRun.run, result.message);
     return result;
   }
 

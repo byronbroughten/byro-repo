@@ -17,6 +17,7 @@ import {
   haltComments,
   implemented,
   notices,
+  progressLines,
   refOf,
   resolved,
   reviewed,
@@ -229,6 +230,18 @@ describe("review of one ticket outside a run", () => {
         { agent: "resolve", sessionId: "resolve-session", ...accountOne },
       ],
     });
+  });
+
+  it("prints its message once, at the head of its printout, and records it in the progress log", async () => {
+    const logged: string[] = [];
+
+    const result = await specRun(reviewsWithFix(), {
+      log: (line) => logged.push(line),
+    }).review(refOf(1), { holder });
+
+    expect(logged).not.toContain(result.message);
+    expect(reviewPrintoutOf(result).startsWith(result.message)).toBe(true);
+    expect(progressLines().at(-1)).toContain(result.message);
   });
 
   it("finds its markers on a second review and posts no note twice", async () => {
