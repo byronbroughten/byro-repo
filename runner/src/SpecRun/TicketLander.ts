@@ -23,11 +23,11 @@ import { ReviewListPoster } from "./ReviewListPoster.ts";
 import { ReviewStepper } from "./ReviewStepper.ts";
 import {
   branchedReposOf,
-  type Fixer,
   haltsOfTicket,
   isTurnCapped,
   type LandingTicket,
   recordOf,
+  type Resolver,
   reviewFactsOf,
   runCommand,
   targetsAtLaunchOf,
@@ -36,9 +36,9 @@ import {
 } from "./runState.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 
-const fixerLabels: Record<Fixer, string> = {
+const resolverLabels: Record<Resolver, string> = {
   implementer: "implementer",
-  triage: "fresh resolver",
+  fresh: "fresh resolver",
 };
 
 export class TicketLander extends SpecRunBase {
@@ -97,18 +97,18 @@ export class TicketLander extends SpecRunBase {
     }
     state.redCheckResumes = resumes + 1;
     this._saveState(run);
-    let fixer: Fixer = state.fixer ?? "implementer";
-    if (fixer === "implementer" && !this._isUnderBudget(state)) {
-      fixer = "triage";
+    let resolver: Resolver = state.resolver ?? "implementer";
+    if (resolver === "implementer" && !this._isUnderBudget(state)) {
+      resolver = "fresh";
     }
     this._log(
       run,
-      `${issueLabelOf(ticket.issue)}: checks red; resuming the ${fixerLabels[fixer]} with the failure.`,
+      `${issueLabelOf(ticket.issue)}: checks red; resuming the ${resolverLabels[resolver]} with the failure.`,
     );
     this._markStepStarted(ticketRun);
-    const { result, logPath } = await this.reviewStepper._runFixerStep(
+    const { result, logPath } = await this.reviewStepper._runResolverStep(
       ticketRun,
-      fixer,
+      resolver,
       {
         prompt: redChecksPrompt({
           issue: ticket.issue,
@@ -123,12 +123,12 @@ export class TicketLander extends SpecRunBase {
     state.redChecksLogPath = logPath;
     state.isStepStarted = undefined;
     this._saveState(run);
-    // The checks loop judges what a capped fixer committed.
+    // The checks loop judges what a capped resolver committed.
     if (isTurnCapped(result)) {
       await this._snapshot(ticketRun, "checks");
       return;
     }
-    recordOf("fix", result, logPath);
+    recordOf("resolve", result, logPath);
   }
 
   // Checks run in a master set, so neither another session's uncommitted edit nor a local fix hides master's own state.
@@ -219,7 +219,7 @@ export class TicketLander extends SpecRunBase {
       run,
       `${issueLabelOf(ticket.issue)}: the wrap-up conflicted with master; resuming the implementer to merge it.`,
     );
-    const { result, logPath } = await this.reviewStepper._runFixerStep(
+    const { result, logPath } = await this.reviewStepper._runResolverStep(
       ticketRun,
       "implementer",
       {

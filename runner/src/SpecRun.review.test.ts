@@ -5,9 +5,9 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { FactsFile } from "./FactsFile.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
-import type { TriageRecord } from "./findingTriage.ts";
 import { git } from "./GitFixture.ts";
 import type { LeaseHolder } from "./IssueWorkspaces.ts";
+import type { ResolveRecord } from "./resolveStep.ts";
 import {
   addSpec,
   crashed,
@@ -46,7 +46,7 @@ describe("review of one ticket outside a run", () => {
 
   const findings = [findingOf(1), findingOf(2), findingOf(3)];
 
-  function base(finding: number): Omit<TriageRecord, "verdict"> {
+  function base(finding: number): Omit<ResolveRecord, "verdict"> {
     return {
       finding,
       axis: "standards",
@@ -56,32 +56,32 @@ describe("review of one ticket outside a run", () => {
     };
   }
 
-  const propose: TriageRecord = {
+  const propose: ResolveRecord = {
     ...base(1),
     verdict: "propose",
     reason: "decision",
     recommendation: "Pick the first.",
   };
-  const fix: TriageRecord = {
+  const fix: ResolveRecord = {
     ...base(2),
     verdict: "fix",
     quote: "one.ts:2 `export {};`",
     rule: "config/docs/code-style.md: a rule.",
   };
-  const coveredLater: TriageRecord = {
+  const coveredLater: ResolveRecord = {
     ...base(3),
     verdict: "dismiss",
     reason: "covered-later",
     coveredBy: "byro-repo#2",
   };
 
-  const halt: TriageRecord = {
+  const halt: ResolveRecord = {
     ...base(1),
     verdict: "halt",
     recommendation: "Answer it.",
   };
 
-  function triaged(...records: TriageRecord[]): StepScript {
+  function resolvedAs(...records: ResolveRecord[]): StepScript {
     return resolved(records);
   }
 
@@ -123,7 +123,7 @@ describe("review of one ticket outside a run", () => {
     );
     expect(commentsOn(2, "byro-repo#1's review left this")).toHaveLength(1);
     expect(ticketFacts()).toEqual({
-      reviewFixes: "triage",
+      reviewFixes: "fresh",
       whatReviewCaught:
         "Fixed: Line 2 is wrong. (one.ts:2). Proposed: Line 1 is wrong. (one.ts:1).",
       proposals: 1,
@@ -152,7 +152,7 @@ describe("review of one ticket outside a run", () => {
       steps: [
         { agent: "implement", sessionId: "implement-session" },
         { agent: "review", sessionId: "review-session" },
-        { agent: "fix", sessionId: "resolve-session" },
+        { agent: "resolve", sessionId: "resolve-session" },
       ],
     });
   });
@@ -165,7 +165,7 @@ describe("review of one ticket outside a run", () => {
         configFolder: "/config/account-1",
       },
       async (request) => ({
-        ...(await triaged(halt)(request)),
+        ...(await resolvedAs(halt)(request)),
         sessionId: "resolve-session",
       }),
     );
@@ -178,7 +178,7 @@ describe("review of one ticket outside a run", () => {
       configFolder: "/config/account-1",
       steps: [
         { agent: "review", sessionId: "review-session" },
-        { agent: "fix", sessionId: "resolve-session" },
+        { agent: "resolve", sessionId: "resolve-session" },
       ],
     });
   });
@@ -199,7 +199,7 @@ describe("review of one ticket outside a run", () => {
   it("posts a Halt verdict on the spec as a session Halt, returns it to print and pushes nothing", async () => {
     const agentStep = FakeAgentStep.init(
       reviewed(findings.slice(0, 1)),
-      triaged(halt),
+      resolvedAs(halt),
     );
 
     const result = await specRun(agentStep).review(refOf(1), { holder });
@@ -211,7 +211,7 @@ describe("review of one ticket outside a run", () => {
     expect(result.halts).toHaveLength(1);
     expect(halts[0]).toContain(result.halts[0]);
     expect(result.halts[0]).toContain(
-      '**Halt S1.1** · Halt 1 of 1 · byro-repo #1, "Ticket 1" · triage Halt',
+      '**Halt S1.1** · Halt 1 of 1 · byro-repo #1, "Ticket 1" · verdict Halt',
     );
     expect(result.halts[0]).toContain("Options:\n1. Answer it.\n\n");
     expect(result.halts[0]).not.toContain("stop spec");
@@ -238,7 +238,7 @@ describe("review of one ticket outside a run", () => {
 
   it("leaves a later run on the spec unaffected: it saves no run state, and a reply to its Halt answers none of the run's", async () => {
     const reviewing = specRun(
-      FakeAgentStep.init(reviewed(findings.slice(0, 1)), triaged(halt)),
+      FakeAgentStep.init(reviewed(findings.slice(0, 1)), resolvedAs(halt)),
     );
     await reviewing.review(refOf(1), { holder });
     expect(existsSync(runStatePath())).toBe(false);
@@ -248,7 +248,7 @@ describe("review of one ticket outside a run", () => {
       FakeAgentStep.init(
         implemented("two.ts"),
         reviewed(findings.slice(0, 1)),
-        triaged(halt),
+        resolvedAs(halt),
       ),
     ).run(spec);
     github.reply(213, "S1.1: read it the first way.");
@@ -278,7 +278,7 @@ describe("review of one ticket outside a run", () => {
     expect(agentStep.requests).toHaveLength(0);
   });
 
-  it("refuses a workspace with uncommitted changes, which the fix step could reset away", async () => {
+  it("refuses a workspace with uncommitted changes, which the resolve step could reset away", async () => {
     const workspace = await specRun(FakeAgentStep.init()).workspaces.find(
       refOf(1),
     );
@@ -296,7 +296,10 @@ describe("review of one ticket outside a run", () => {
 
   it("numbers a later review's Halts on from the ticket's earlier ones, so no two share an id", async () => {
     function halting(): FakeAgentStep {
-      return FakeAgentStep.init(reviewed(findings.slice(0, 1)), triaged(halt));
+      return FakeAgentStep.init(
+        reviewed(findings.slice(0, 1)),
+        resolvedAs(halt),
+      );
     }
     await specRun(halting()).review(refOf(1), { holder });
 

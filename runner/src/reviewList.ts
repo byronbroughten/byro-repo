@@ -3,10 +3,10 @@
 // and the count of undecided items the end-of-run push gives. The runner only creates these; /judge-findings edits them.
 // SpecRun.ts posts them at wrap-up and at the end of the spec; gapCheck.ts supplies the gaps.
 
-import { issueRefOf, type TriageRecord } from "./findingTriage.ts";
 import type { Gap, GapCheckRecord } from "./gapCheck.ts";
 import { shortRefOf } from "./halts.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
+import { issueRefOf, type ResolveRecord } from "./resolveStep.ts";
 
 const markPrefix = "<!-- review-list ";
 const listMarkPrefix = `${markPrefix}ticket=`;
@@ -48,8 +48,8 @@ function itemIdOf(subject: ReviewListSubject, index: number): string {
   return `R${namesOf(subject).itemKey}.${index + 1}`;
 }
 
-// Triage refuses a record missing what its verdict and reason need, so a missing one here is a bug.
-function requiredOf(record: TriageRecord, field: keyof TriageRecord): string {
+// Resolve refuses a record missing what its verdict and reason need, so a missing one here is a bug.
+function requiredOf(record: ResolveRecord, field: keyof ResolveRecord): string {
   const value = record[field];
   if (typeof value !== "string") {
     throw new Error(`Finding ${record.finding} has no \`${field}\`.`);
@@ -83,8 +83,8 @@ function itemOf(id: string, item: ReviewItem): string {
 export interface TicketReviewList {
   ticket: IssueRef;
   title: string;
-  // Every triage record the ticket kept, from either side of a Halt.
-  records: TriageRecord[];
+  // Every resolve record the ticket kept, from either side of a Halt.
+  records: ResolveRecord[];
 }
 
 // Undefined for a ticket with no Proposals, which posts no comment.
@@ -107,7 +107,7 @@ export function ticketReviewListOf({
   ].join("\n\n");
 }
 
-function proposeItemOf(record: TriageRecord): ReviewItem {
+function proposeItemOf(record: ResolveRecord): ReviewItem {
   const { finding, claim, where, evidence, draftKeepReason } = record;
   const reason = requiredOf(record, "reason");
   return {
@@ -121,12 +121,12 @@ function proposeItemOf(record: TriageRecord): ReviewItem {
 }
 
 // No checkboxes, so a Dismiss never counts as undecided.
-function dismissAuditOf(dismisses: TriageRecord[]): string {
+function dismissAuditOf(dismisses: ResolveRecord[]): string {
   const lines = dismisses.map(dismissLineOf);
   return `<details>\n<summary>Dismissed: ${dismisses.length}</summary>\n\n${lines.join("\n")}\n\n</details>`;
 }
 
-function dismissLineOf(record: TriageRecord): string {
+function dismissLineOf(record: ResolveRecord): string {
   const { finding, claim, where, evidence } = record;
   const reason = requiredOf(record, "reason");
   const line = `- Finding ${finding} · \`${reason}\` · ${claim} (${where}). ${evidence}`;
@@ -173,7 +173,7 @@ export interface CoveredLaterNote {
 // Each `covered-later` Dismiss's note, for its later ticket's reviewer to check.
 export function coveredLaterNotesOf(
   ticket: IssueRef,
-  records: TriageRecord[],
+  records: ResolveRecord[],
 ): CoveredLaterNote[] {
   return records.flatMap((record) => {
     if (record.verdict !== "dismiss" || record.reason !== "covered-later") {

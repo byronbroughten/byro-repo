@@ -5,7 +5,6 @@
 // It builds its own StepLauncher and HaltRaiser; formats are ../reviewList.ts, the gap check's prompt ../gapCheck.ts.
 
 import type { StepRequest } from "../AgentStep.ts";
-import { type TriageRecord } from "../findingTriage.ts";
 import {
   gapCheckOutputSchema,
   gapCheckPrompt,
@@ -24,6 +23,7 @@ import {
   type StepFailure,
 } from "../halts.ts";
 import { issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
+import { type ResolveRecord } from "../resolveStep.ts";
 import {
   coveredLaterNotesOf,
   gapCheckListOf,
@@ -74,7 +74,7 @@ export class ReviewListPoster extends SpecRunBase {
   async _postReviewList(run: Run, ticket: TrackedIssue): Promise<void> {
     const state = ticketStateOf(run, ticket.issue);
     if (state.isReviewListPosted) return;
-    const records = state.triage ?? [];
+    const records = state.resolveRecords ?? [];
     await this._postCoveredLaterNotes(ticket.issue, records);
     const body = ticketReviewListOf({
       ticket: ticket.issue,
@@ -91,7 +91,7 @@ export class ReviewListPoster extends SpecRunBase {
   // Each checks the later ticket for its mark first, so a rerun never posts it twice.
   private async _postCoveredLaterNotes(
     ticket: IssueRef,
-    records: TriageRecord[],
+    records: ResolveRecord[],
   ): Promise<void> {
     const { github } = this.config;
     for (const note of coveredLaterNotesOf(ticket, records)) {

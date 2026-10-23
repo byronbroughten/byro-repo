@@ -10,11 +10,29 @@ import { join } from "node:path";
 import { ContextMeter } from "./contextMeter.ts";
 import type { OutcomeFacts } from "./outcomeLog.ts";
 
-export type StepAgent = "implement" | "review" | "triage" | "fix";
+export type StepAgent = "implement" | "review" | "resolve";
 
 export interface StepSession {
   agent: StepAgent;
   sessionId: string;
+}
+
+// Run state and facts files saved before #364 name the resolve step `triage` or `fix`.
+export type SavedStepAgent = StepAgent | "triage" | "fix";
+
+export interface SavedStepSession extends Omit<StepSession, "agent"> {
+  agent: SavedStepAgent;
+}
+
+export function stepAgentOf(saved: SavedStepAgent): StepAgent {
+  return saved === "triage" || saved === "fix" ? "resolve" : saved;
+}
+
+export function savedStepSessionOf({
+  agent,
+  sessionId,
+}: SavedStepSession): StepSession {
+  return { agent: stepAgentOf(agent), sessionId };
 }
 
 export interface TicketSessions {
@@ -108,11 +126,7 @@ export function transcriptFactsOf(
       ? undefined
       : transcriptsOf(
           projectDirs,
-          unique([
-            ...reviewIds,
-            ...stepIdsOf(sessions, "triage"),
-            ...stepIdsOf(sessions, "fix"),
-          ]),
+          unique([...reviewIds, ...stepIdsOf(sessions, "resolve")]),
         );
   const allSessions = transcriptsOf(projectDirs, sessionIds);
   return {

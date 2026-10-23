@@ -17,10 +17,6 @@ import type { AgentStep } from "../AgentStep.ts";
 import { FactsFile } from "../FactsFile.ts";
 import { messageOf } from "../failureText.ts";
 import {
-  type SavedTriageRecord,
-  savedTriageRecordOf,
-} from "../findingTriage.ts";
-import {
   dirtyReposOf,
   git,
   type RepoWorktree,
@@ -28,7 +24,7 @@ import {
   snapshotUncommitted,
   worktreeStateOf,
 } from "../git.ts";
-import { runnerMark } from "../halts.ts";
+import { type Halt, runnerMark } from "../halts.ts";
 import { approvalLineOf, untrustedBodyReasonOf } from "../IssueReader.ts";
 import {
   fileStemOf,
@@ -44,8 +40,17 @@ import {
   type UsageReader,
 } from "../limitGuard.ts";
 import type { Notice, Notices } from "../Notices.ts";
+import {
+  type SavedResolveRecord,
+  savedResolveRecordOf,
+} from "../resolveStep.ts";
 import type { RunKnobs } from "../runKnobs.ts";
 import { sleep } from "../sleep.ts";
+import {
+  type SavedStepAgent,
+  type SavedStepSession,
+  savedStepSessionOf,
+} from "../transcriptFacts.ts";
 import { WrapUp, type WrapUpGitHub, type WrapUpKnobs } from "../WrapUp.ts";
 import {
   type Heads,
@@ -54,6 +59,7 @@ import {
   type LandingTicket,
   onlyDeveloperEditsTextOf,
   rerunCommandOf,
+  type Resolver,
   type Run,
   type RunResult,
   type RunState,
@@ -123,11 +129,31 @@ interface HeadsAndDirtyRepos {
 type TimedStep =
   Exclude<TicketStep, "halted" | "landed" | "stopped"> | "workspace";
 
-interface SavedRunState extends Omit<RunState, "tickets"> {
-  tickets: Record<
-    string,
-    Omit<TicketState, "triage"> & { triage?: SavedTriageRecord[] }
-  >;
+type SavedTicketStep = TicketStep | SavedStepAgent;
+
+// Saved before #364 under the resolve step's old names, or before #297 with a Defer verdict.
+interface SavedTicketState extends Omit<
+  TicketState,
+  "step" | "resolveRecords" | "resolver" | "crashes" | "sessions"
+> {
+  step: SavedTicketStep;
+  resolveRecords?: SavedResolveRecord[];
+  resolver?: Resolver;
+  crashes?: Partial<Record<SavedTicketStep, number>>;
+  sessions: SavedStepSession[];
+  triage?: SavedResolveRecord[];
+  fixer?: "implementer" | "triage";
+  triageSession?: string;
+  fixBase?: Heads;
+}
+
+interface SavedHalt extends Omit<Halt, "failedStep"> {
+  failedStep?: Halt["failedStep"] | SavedStepAgent;
+}
+
+interface SavedRunState extends Omit<RunState, "tickets" | "halts"> {
+  tickets: Record<string, SavedTicketState>;
+  halts?: SavedHalt[];
 }
 
 export class SpecRunBase {
@@ -433,10 +459,70 @@ export class SpecRunBase {
 
 function runStateOf(saved: SavedRunState): RunState {
   const tickets = Object.fromEntries(
-    Object.entries(saved.tickets).map(([key, { triage, ...ticket }]) => [
+    Object.entries(saved.tickets).map(([key, ticket]) => [
       key,
-      { ...ticket, triage: triage?.map(savedTriageRecordOf) },
+      ticketStateOf(ticket),
     ]),
   );
-  return { ...saved, tickets };
+  const halts = saved.halts?.map(({ failedStep, ...halt }) => ({
+    ...halt,
+    failedStep: failedStep === undefined ? undefined : savedStepOf(failedStep),
+  }));
+  return { ...saved, tickets, halts };
+}
+
+function ticketStateOf({
+  step,
+  resolveRecords,
+  resolver,
+  crashes,
+  sessions,
+  triage,
+  fixer,
+  triageSession,
+  fixBase,
+  ...ticket
+}: SavedTicketState): TicketState {
+  const state: TicketState = {
+    ...ticket,
+    step: savedStepOf(step),
+    sessions: sessions.map(savedStepSessionOf),
+  };
+  const records = resolveRecords ?? triage;
+  if (records !== undefined) {
+    state.resolveRecords = records.map(savedResolveRecordOf);
+  }
+  const savedResolver = resolver ?? resolverOf(fixer);
+  if (savedResolver !== undefined) state.resolver = savedResolver;
+  // A state saved before the fresh resolver's session was kept names it only in its sessions.
+  const freshSession =
+    triageSession ??
+    sessions.findLast(({ agent }) => agent === "triage")?.sessionId;
+  if (freshSession !== undefined) state.resolverSession ??= freshSession;
+  if (fixBase !== undefined) state.resolveBase ??= fixBase;
+  if (crashes !== undefined) state.crashes = crashCountsOf(crashes);
+  return state;
+}
+
+function savedStepOf<SV extends string>(
+  step: SV | "triage" | "fix",
+): SV | "resolve" {
+  return step === "triage" || step === "fix" ? "resolve" : step;
+}
+
+function resolverOf(fixer: SavedTicketState["fixer"]): Resolver | undefined {
+  return fixer === "triage" ? "fresh" : fixer;
+}
+
+function crashCountsOf(
+  crashes: Partial<Record<SavedTicketStep, number>>,
+): Partial<Record<TicketStep, number>> {
+  return Object.entries(crashes).reduce<Partial<Record<TicketStep, number>>>(
+    (counts, [step, count]) => {
+      const key = savedStepOf(step as SavedTicketStep) as TicketStep;
+      counts[key] = (counts[key] ?? 0) + (count ?? 0);
+      return counts;
+    },
+    {},
+  );
 }

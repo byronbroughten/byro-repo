@@ -1,6 +1,12 @@
 // The fixture and helpers WrapUp's test files share; each file calls useWrapUpHarness() once at its top.
 
-import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -10,6 +16,7 @@ import { FactsFile, type WrapUpFacts } from "./FactsFile.ts";
 import { FakeGitHub } from "./FakeGitHub.ts";
 import { git, GitFixture } from "./GitFixture.ts";
 import {
+  fileStemOf,
   type IssueRef,
   IssueWorkspaces,
   type IssueWorkspacesConfig,
@@ -141,6 +148,14 @@ export function writeFacts(facts: Partial<WrapUpFacts> = {}): void {
     ...facts,
   };
   FactsFile.init(join(temp, "state")).write(ticket, full);
+}
+
+// A facts file as an older runner saved it, laid over writeFacts()'s defaults.
+export function writeSavedFacts(saved: Record<string, unknown>): void {
+  writeFacts();
+  const path = join(temp, "state", `${fileStemOf(ticket)}.facts.json`);
+  const facts = JSON.parse(readFileSync(path, "utf8")) as object;
+  writeFileSync(path, JSON.stringify({ ...facts, ...saved }));
 }
 
 export function commitRed(clone: string): void {

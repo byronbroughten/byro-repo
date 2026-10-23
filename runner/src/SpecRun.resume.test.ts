@@ -70,23 +70,23 @@ describe("run's resume", () => {
     );
   });
 
-  it("resumes a run state saved with prose findings at triage, keeping triage's own axis", async () => {
+  it("resumes a run state saved with prose findings at resolve, keeping resolve's own axis", async () => {
     addSpec([1]);
-    let reachTriage = () => {};
-    const reachedTriage = new Promise<void>((resolve) => {
-      reachTriage = resolve;
+    let reachResolve = () => {};
+    const reachedResolve = new Promise<void>((resolve) => {
+      reachResolve = resolve;
     });
     void specRun(
       FakeAgentStep.init(
         implemented("one.ts"),
         reviewed([findingOf(1)]),
         async () => {
-          reachTriage();
+          reachResolve();
           return new Promise<StepResult>(() => {});
         },
       ),
     ).run(spec);
-    await reachedTriage;
+    await reachedResolve;
     const saved = JSON.parse(readFileSync(runStatePath(), "utf8")) as {
       tickets: Record<string, { findings?: unknown[] }>;
     };
@@ -113,8 +113,65 @@ describe("run's resume", () => {
     ).run(spec);
 
     expect(result.landed).toEqual([refOf(1)]);
-    expect(ticketState()["byro-repo #1"]?.triage).toMatchObject([
+    expect(ticketState()["byro-repo #1"]?.resolveRecords).toMatchObject([
       { finding: 1, axis: "spec", verdict: "dismiss" },
+    ]);
+  });
+
+  it("resumes a run state saved under the resolve step's old names", async () => {
+    addSpec([1]);
+    let reachResolve = () => {};
+    const reachedResolve = new Promise<void>((resolve) => {
+      reachResolve = resolve;
+    });
+    void specRun(
+      FakeAgentStep.init(
+        implemented("one.ts"),
+        reviewed([findingOf(1)]),
+        async () => {
+          reachResolve();
+          return new Promise<StepResult>(() => {});
+        },
+      ),
+    ).run(spec);
+    await reachedResolve;
+    const saved = JSON.parse(readFileSync(runStatePath(), "utf8")) as {
+      tickets: Record<string, Record<string, unknown>>;
+    };
+    const { resolveBase, ...ticket } = saved.tickets["byro-repo #1"] ?? {};
+    saved.tickets["byro-repo #1"] = {
+      ...ticket,
+      step: "fix",
+      fixBase: resolveBase,
+      sessions: [
+        { agent: "implement", sessionId: "implement-session" },
+        { agent: "triage", sessionId: "triage-session" },
+      ],
+    };
+    writeFileSync(runStatePath(), JSON.stringify(saved));
+    const rerunStep = FakeAgentStep.init(
+      resultOf({
+        records: [
+          {
+            finding: 1,
+            axis: "spec",
+            where: "one.ts:1",
+            claim: "Line 1 is wrong.",
+            verdict: "dismiss",
+            reason: "false-positive",
+            evidence: "Checked it.",
+          },
+        ],
+      }),
+    );
+
+    const result = await specRun(rerunStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(ticketState()["byro-repo #1"]?.sessions).toEqual([
+      { agent: "implement", sessionId: "implement-session" },
+      { agent: "resolve", sessionId: "triage-session" },
+      expect.objectContaining({ agent: "resolve" }),
     ]);
   });
 

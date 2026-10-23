@@ -5,8 +5,8 @@ import { describe, expect, it } from "vitest";
 
 import type { Pair } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
-import type { TriageRecord } from "./findingTriage.ts";
 import { gapCheckOutputSchema } from "./gapCheck.ts";
+import type { ResolveRecord } from "./resolveStep.ts";
 import { runKnobsOf } from "./runKnobs.ts";
 import {
   addSpec,
@@ -32,7 +32,7 @@ describe("run's review list", () => {
   const opusMedium: Pair = { model: "opus", effort: "medium" };
   const findings = [findingOf(1), findingOf(2), findingOf(3)];
 
-  function base(finding: number): Omit<TriageRecord, "verdict"> {
+  function base(finding: number): Omit<ResolveRecord, "verdict"> {
     return {
       finding,
       axis: "standards",
@@ -42,31 +42,31 @@ describe("run's review list", () => {
     };
   }
 
-  const propose: TriageRecord = {
+  const propose: ResolveRecord = {
     ...base(1),
     verdict: "propose",
     reason: "decision",
     recommendation: "Pick the first.",
   };
-  const kept: TriageRecord = {
+  const kept: ResolveRecord = {
     ...base(2),
     verdict: "dismiss",
     reason: "kept",
     quote: "one.ts:2 `// Kept for the old reader.`",
   };
-  const coveredLater: TriageRecord = {
+  const coveredLater: ResolveRecord = {
     ...base(3),
     verdict: "dismiss",
     reason: "covered-later",
     coveredBy: "byro-repo#2",
   };
-  const halt: TriageRecord = {
+  const halt: ResolveRecord = {
     ...base(2),
     verdict: "halt",
     recommendation: "Answer it.",
   };
 
-  function triaged(...records: TriageRecord[]) {
+  function resolvedAs(...records: ResolveRecord[]) {
     return resultOf({ records });
   }
 
@@ -92,7 +92,7 @@ describe("run's review list", () => {
     return FakeAgentStep.init(
       implemented("one.ts"),
       reviewed(findings),
-      triaged(propose, kept, coveredLater),
+      resolvedAs(propose, kept, coveredLater),
       implemented("two.ts"),
       reviewed(),
     );
@@ -121,7 +121,7 @@ describe("run's review list", () => {
     const agentStep = FakeAgentStep.init(
       implemented("one.ts"),
       reviewed(findings.slice(1, 2)),
-      triaged({ ...kept, finding: 1 }),
+      resolvedAs({ ...kept, finding: 1 }),
     );
 
     await specRun(agentStep).run(spec);
@@ -162,7 +162,7 @@ describe("run's review list", () => {
       FakeAgentStep.init(
         implemented("one.ts"),
         reviewed(findings.slice(0, 2)),
-        triaged(propose, halt),
+        resolvedAs(propose, halt),
       ),
     ).run(spec);
     expect(reviewListsOn(213)).toEqual([]);
@@ -181,7 +181,7 @@ describe("run's review list", () => {
       FakeAgentStep.init(
         implemented("one.ts"),
         reviewed(findings.slice(0, 2)),
-        triaged(propose, halt),
+        resolvedAs(propose, halt),
       ),
     ).run(spec);
     const path = join(stateFolder(), "byro-repo-213.run.json");
@@ -235,7 +235,7 @@ describe("run's review list", () => {
     const agentStep = FakeAgentStep.init(
       implemented("one.ts"),
       reviewed(findings.slice(0, 2)),
-      triaged(propose, { ...halt, haltScope: ["byro-repo#2"] }),
+      resolvedAs(propose, { ...halt, haltScope: ["byro-repo#2"] }),
     );
 
     await specRun(agentStep, { agentStep }).run(spec);

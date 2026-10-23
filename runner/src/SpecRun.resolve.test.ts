@@ -5,9 +5,9 @@ import { describe, expect, it } from "vitest";
 
 import type { Pair, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
-import type { TriageRecord } from "./findingTriage.ts";
 import { git } from "./GitFixture.ts";
 import type { Handoff } from "./implementStep.ts";
+import type { ResolveRecord } from "./resolveStep.ts";
 import {
   addSpec,
   after,
@@ -44,9 +44,9 @@ describe("run's resolve", () => {
 
   function recordOf(
     finding: number,
-    verdict: TriageRecord["verdict"],
-    axis: TriageRecord["axis"] = "standards",
-  ): TriageRecord {
+    verdict: ResolveRecord["verdict"],
+    axis: ResolveRecord["axis"] = "standards",
+  ): ResolveRecord {
     const base = {
       finding,
       axis,
@@ -104,7 +104,7 @@ describe("run's resolve", () => {
   }
 
   function freshResolved(
-    records: TriageRecord[],
+    records: ResolveRecord[],
     fixFile?: string,
   ): StepScript {
     return stepOf(resolved(records, fixFile), { sessionId: "fresh-session" });
@@ -126,8 +126,8 @@ describe("run's resolve", () => {
 
   function ticketRunState(): {
     step: string;
-    triage?: TriageRecord[];
-    fixer?: string;
+    resolveRecords?: ResolveRecord[];
+    resolver?: string;
   } {
     const path = join(stateFolder(), "byro-repo-213.run.json");
     const state = JSON.parse(readFileSync(path, "utf8")) as {
@@ -218,11 +218,14 @@ describe("run's resolve", () => {
     const result = await specRun(agentStep).run(spec);
 
     expect(result.kind).toBe("stopped");
-    expect(ticketRunState()).toMatchObject({ step: "halted", triage: records });
-    expect(ticketRunState().fixer).toBeUndefined();
+    expect(ticketRunState()).toMatchObject({
+      step: "halted",
+      resolveRecords: records,
+    });
+    expect(ticketRunState().resolver).toBeUndefined();
     expect(result.message).toContain("byro-repo #1 waits on Halt H1");
     expect(github.comments[0]?.body).toContain(
-      '**Halt H1** · Halt 1 of 1 · byro-repo #1, "Ticket 1" · triage Halt',
+      '**Halt H1** · Halt 1 of 1 · byro-repo #1, "Ticket 1" · verdict Halt',
     );
     expect(github.comments[0]?.body).toContain("Blocks: the whole spec.");
   });
@@ -237,7 +240,7 @@ describe("run's resolve", () => {
 
     await specRun(agentStep).run(spec);
 
-    expect(ticketRunState().triage).toMatchObject([
+    expect(ticketRunState().resolveRecords).toMatchObject([
       { finding: 1, axis: "spec", suggestedVerdict: "dismiss" },
       { finding: 2, axis: "standards", suggestedVerdict: "fix" },
     ]);
@@ -260,25 +263,25 @@ describe("run's resolve", () => {
     expect(resolver?.pair).toEqual(opusMedium);
     expect(resolver?.prompt).toContain("You are the resolve step");
     expect(landedSubjects(2)).toEqual(["Fix fix.ts", "Add one.ts"]);
-    expect(ticketFacts().reviewFixes).toBe("triage");
+    expect(ticketFacts().reviewFixes).toBe("fresh");
   });
 
   it.each([
     {
-      fixer: "implementer",
+      resolver: "implementer",
       handoffPeak: 150_000,
       freshPeak: 90_000,
       resumeSessionId: "implement-session",
     },
     {
-      fixer: "triage",
+      resolver: "fresh",
       handoffPeak: 90_000,
       freshPeak: 150_000,
       resumeSessionId: undefined,
     },
   ])(
-    "resolves after a handoff as the $fixer when the last implement step peaked at $freshPeak",
-    async ({ fixer, handoffPeak, freshPeak, resumeSessionId }) => {
+    "resolves after a handoff as the $resolver resolver when the last implement step peaked at $freshPeak",
+    async ({ resolver, handoffPeak, freshPeak, resumeSessionId }) => {
       addSpec([1]);
       const agentStep = FakeAgentStep.init(
         handedOffAt(handoffPeak),
@@ -291,7 +294,7 @@ describe("run's resolve", () => {
 
       expect(result.kind).toBe("finished");
       expect(agentStep.requests[3]?.resumeSessionId).toBe(resumeSessionId);
-      expect(ticketFacts().reviewFixes).toBe(fixer);
+      expect(ticketFacts().reviewFixes).toBe(resolver);
     },
   );
 
@@ -319,7 +322,7 @@ describe("run's resolve", () => {
     expect(resolver?.resumeSessionId).toBeUndefined();
     expect(resolver?.pair).toEqual(opusHigh);
     expect(landedSubjects(2)).toEqual(["Fix fix.ts", "Add one.ts"]);
-    expect(ticketFacts().reviewFixes).toBe("triage");
+    expect(ticketFacts().reviewFixes).toBe("fresh");
   });
 
   it("Stops on a step error, its work discarded, when the fresh resolver crosses the live ceiling", async () => {
@@ -382,7 +385,7 @@ describe("run's resolve", () => {
     expect(resolver?.resumeSessionId).toBeUndefined();
     expect(resolver?.pair).toEqual(opusHigh);
     expect(landedSubjects(2)).toEqual(["Fix fix.ts", "Add one.ts"]);
-    expect(ticketFacts().reviewFixes).toBe("triage");
+    expect(ticketFacts().reviewFixes).toBe("fresh");
   });
 
   it("reruns the resolve, its work reset away, when the retry hits its turn cap", async () => {
@@ -422,7 +425,7 @@ describe("run's resolve", () => {
     );
     expect(ticketRunState()).toMatchObject({
       step: "halted",
-      triage: [{ verdict: "halt", suggestedVerdict: "halt" }],
+      resolveRecords: [{ verdict: "halt", suggestedVerdict: "halt" }],
     });
   });
 
@@ -507,7 +510,7 @@ describe("run's resolve", () => {
     const halt = github.comments.at(-1)?.body;
     expect(halt).toContain("Failure Halt");
     expect(halt).toContain("records is required");
-    expect(halt).toContain("-fix.output.txt`");
+    expect(halt).toContain("-resolve.output.txt`");
   });
 
   it("runs the checks after the resolve, resuming the resolver on red", async () => {
@@ -550,7 +553,7 @@ describe("run's resolve", () => {
 
     expect(result.kind).toBe("finished");
     expect(
-      git(primaryOf("byro-repo"), "show", `backup/${branch}-fix:half.ts`),
+      git(primaryOf("byro-repo"), "show", `backup/${branch}-resolve:half.ts`),
     ).toBe("half a fix");
     const retry = agentStep.requests[3];
     expect(retry?.resumeSessionId).toBe("fix-session");
@@ -575,7 +578,7 @@ describe("run's resolve", () => {
     expect(timingLines().slice(3)).toEqual([
       "byro-repo #1: implement took 0s.",
       "byro-repo #1: review took 0s.",
-      "byro-repo #1: fix took 70s.",
+      "byro-repo #1: resolve took 70s.",
       "byro-repo #1: checks took 0s.",
       "byro-repo #1: wrap-up took 0s.",
     ]);

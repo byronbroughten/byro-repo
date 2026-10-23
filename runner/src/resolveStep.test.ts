@@ -4,20 +4,20 @@ import { describe, expect, it } from "vitest";
 import {
   haltScopeOf,
   resolveCommitProblems,
+  resolveOutputSchema,
   resolvePrompt,
-  triageOutputSchema,
-  type TriageRecord,
-  triageRecordProblems,
-  triageRecordsOf,
+  type ResolveRecord,
+  resolveRecordProblems,
+  resolveRecordsOf,
   whatReviewCaughtOf,
-} from "./findingTriage.ts";
+} from "./resolveStep.ts";
 
 // The same Ajv setup StepStream validates a step's structured output with.
 const validateOutput = new Ajv({ allErrors: true, strict: false }).compile(
-  triageOutputSchema,
+  resolveOutputSchema,
 );
 
-const fix: TriageRecord = {
+const fix: ResolveRecord = {
   finding: 1,
   axis: "standards",
   where: "runner/src/SpecRun.ts:88",
@@ -28,7 +28,7 @@ const fix: TriageRecord = {
   evidence: "Lines 88-90 are one comment.",
 };
 
-const propose: TriageRecord = {
+const propose: ResolveRecord = {
   finding: 1,
   axis: "standards",
   where: "runner/src/LandingLock.ts:40",
@@ -40,7 +40,7 @@ const propose: TriageRecord = {
   draftIssueTitle: "Name the landing lock file in one place",
 };
 
-const halt: TriageRecord = {
+const halt: ResolveRecord = {
   finding: 1,
   axis: "spec",
   where: "runner/src/SpecRun.ts:120",
@@ -50,7 +50,7 @@ const halt: TriageRecord = {
   recommendation: "Follow #213 and drop the retry.",
 };
 
-const dismiss: TriageRecord = {
+const dismiss: ResolveRecord = {
   finding: 1,
   axis: "spec",
   where: "runner/src/SpecRun.ts:30",
@@ -61,7 +61,7 @@ const dismiss: TriageRecord = {
   evidence: "#230 wires wrap-up into the run.",
 };
 
-const kept: TriageRecord = {
+const kept: ResolveRecord = {
   finding: 1,
   axis: "standards",
   where: "runner/src/StepStream.ts:52",
@@ -73,14 +73,14 @@ const kept: TriageRecord = {
   evidence: "The comment above the site still holds: SpecRun.test.ts fakes it.",
 };
 
-describe("triageRecordProblems", () => {
+describe("resolveRecordProblems", () => {
   it("accepts a Fix with a quoted file:line and its rule", () => {
-    expect(triageRecordProblems(1, [fix])).toEqual([]);
+    expect(resolveRecordProblems(1, [fix])).toEqual([]);
   });
 
   it("refuses a Fix whose quote names no file:line", () => {
     expect(
-      triageRecordProblems(1, [{ ...fix, quote: "`// Retry once`" }]),
+      resolveRecordProblems(1, [{ ...fix, quote: "`// Retry once`" }]),
     ).toEqual([
       "finding 1: a Fix needs `quote`, the quoted code with its file:line",
     ]);
@@ -88,14 +88,14 @@ describe("triageRecordProblems", () => {
 
   it("refuses a Fix whose quote has a line number but no file", () => {
     expect(
-      triageRecordProblems(1, [{ ...fix, quote: "retries at 12:30" }]),
+      resolveRecordProblems(1, [{ ...fix, quote: "retries at 12:30" }]),
     ).toEqual([
       "finding 1: a Fix needs `quote`, the quoted code with its file:line",
     ]);
   });
 
   it("refuses a Fix with no rule", () => {
-    expect(triageRecordProblems(1, [{ ...fix, rule: " " }])).toEqual([
+    expect(resolveRecordProblems(1, [{ ...fix, rule: " " }])).toEqual([
       "finding 1: a Fix needs `rule`, the documented rule or spec line it breaks",
     ]);
   });
@@ -103,7 +103,7 @@ describe("triageRecordProblems", () => {
   it("refuses a Propose or a Halt with no recommendation", () => {
     const { recommendation: _recommendation, ...bareProposal } = propose;
     const { recommendation: _halted, ...bareHalt } = { ...halt, finding: 2 };
-    expect(triageRecordProblems(2, [bareProposal, bareHalt])).toEqual([
+    expect(resolveRecordProblems(2, [bareProposal, bareHalt])).toEqual([
       "finding 1: a Propose needs `recommendation`",
       "finding 2: a Halt needs `recommendation`",
     ]);
@@ -111,7 +111,7 @@ describe("triageRecordProblems", () => {
 
   it("refuses a Propose ticket with no drafted issue title", () => {
     const { draftIssueTitle: _title, ...untitled } = propose;
-    expect(triageRecordProblems(1, [untitled])).toEqual([
+    expect(resolveRecordProblems(1, [untitled])).toEqual([
       "finding 1: a Propose `ticket` needs `draftIssueTitle`",
     ]);
   });
@@ -119,14 +119,14 @@ describe("triageRecordProblems", () => {
   it("accepts a Propose decision with no drafted issue title", () => {
     const { draftIssueTitle: _title, ...decision } = propose;
     expect(
-      triageRecordProblems(1, [{ ...decision, reason: "decision" }]),
+      resolveRecordProblems(1, [{ ...decision, reason: "decision" }]),
     ).toEqual([]);
   });
 
   it("accepts a Propose decision with a drafted keep reason", () => {
     const { draftIssueTitle: _title, ...decision } = propose;
     expect(
-      triageRecordProblems(1, [
+      resolveRecordProblems(1, [
         {
           ...decision,
           reason: "decision",
@@ -138,7 +138,7 @@ describe("triageRecordProblems", () => {
 
   it("refuses a blank drafted keep reason", () => {
     expect(
-      triageRecordProblems(1, [
+      resolveRecordProblems(1, [
         { ...propose, reason: "decision", draftKeepReason: " " },
       ]),
     ).toEqual([
@@ -149,7 +149,7 @@ describe("triageRecordProblems", () => {
   it("refuses a drafted keep reason on any verdict or reason but Propose decision", () => {
     const draftKeepReason = "Two call sites read better than one helper.";
     expect(
-      triageRecordProblems(4, [
+      resolveRecordProblems(4, [
         { ...propose, draftKeepReason },
         { ...fix, finding: 2, draftKeepReason },
         { ...kept, finding: 3, draftKeepReason },
@@ -164,15 +164,17 @@ describe("triageRecordProblems", () => {
   });
 
   it("refuses a Propose whose reason is neither decision nor ticket", () => {
-    expect(triageRecordProblems(1, [{ ...propose, reason: "later" }])).toEqual([
-      "finding 1: a Propose needs reason `decision` or `ticket`, but has `later`",
-    ]);
+    expect(resolveRecordProblems(1, [{ ...propose, reason: "later" }])).toEqual(
+      [
+        "finding 1: a Propose needs reason `decision` or `ticket`, but has `later`",
+      ],
+    );
   });
 
   it("refuses a Dismiss without one of the five reasons", () => {
     const { reason: _reason, ...reasonless } = dismiss;
     expect(
-      triageRecordProblems(2, [
+      resolveRecordProblems(2, [
         reasonless,
         { ...dismiss, finding: 2, reason: "duplicate" },
       ]),
@@ -184,31 +186,31 @@ describe("triageRecordProblems", () => {
 
   it("refuses a covered-later Dismiss that names no later ticket", () => {
     const { coveredBy: _ticket, ...uncovered } = dismiss;
-    expect(triageRecordProblems(1, [uncovered])).toEqual([
+    expect(resolveRecordProblems(1, [uncovered])).toEqual([
       "finding 1: a `covered-later` Dismiss needs `coveredBy`, the later ticket as `<repo>#<n>`",
     ]);
   });
 
   it("refuses a covered-later Dismiss whose ticket has no repo", () => {
     expect(
-      triageRecordProblems(1, [{ ...dismiss, coveredBy: "#230" }]),
+      resolveRecordProblems(1, [{ ...dismiss, coveredBy: "#230" }]),
     ).toEqual([
       "finding 1: a `covered-later` Dismiss needs `coveredBy`, the later ticket as `<repo>#<n>`",
     ]);
   });
 
   it("accepts a covered-later Dismiss naming its later ticket", () => {
-    expect(triageRecordProblems(1, [dismiss])).toEqual([]);
+    expect(resolveRecordProblems(1, [dismiss])).toEqual([]);
   });
 
   it("accepts a kept Dismiss quoting its reason with a file:line", () => {
-    expect(triageRecordProblems(1, [kept])).toEqual([]);
+    expect(resolveRecordProblems(1, [kept])).toEqual([]);
   });
 
   it("refuses a kept Dismiss with no quote, or a quote with no file", () => {
     const { quote: _quote, ...unquoted } = kept;
     expect(
-      triageRecordProblems(2, [
+      resolveRecordProblems(2, [
         unquoted,
         { ...kept, finding: 2, quote: "a seam, kept at line 51" },
       ]),
@@ -220,7 +222,7 @@ describe("triageRecordProblems", () => {
 
   it("refuses a won't-fix Dismiss as outside the reasons", () => {
     expect(
-      triageRecordProblems(1, [{ ...dismiss, reason: "won't-fix" }]),
+      resolveRecordProblems(1, [{ ...dismiss, reason: "won't-fix" }]),
     ).toEqual([
       "finding 1: a Dismiss needs reason `false-positive`, `covered-later`, `kept`, `tooling-enforced` or `serves-spec`, but has `won't-fix`",
     ]);
@@ -228,13 +230,13 @@ describe("triageRecordProblems", () => {
 
   it("accepts a serves-spec Dismiss with its evidence", () => {
     expect(
-      triageRecordProblems(1, [{ ...dismiss, reason: "serves-spec" }]),
+      resolveRecordProblems(1, [{ ...dismiss, reason: "serves-spec" }]),
     ).toEqual([]);
   });
 
   it("refuses a suggested Halt resolved as a Fix or a Dismiss", () => {
     expect(
-      triageRecordProblems(2, [
+      resolveRecordProblems(2, [
         { ...fix, suggestedVerdict: "halt" },
         { ...dismiss, finding: 2, suggestedVerdict: "halt" },
       ]),
@@ -246,7 +248,7 @@ describe("triageRecordProblems", () => {
 
   it("accepts a suggested Halt resolved as a Halt or a Propose decision", () => {
     expect(
-      triageRecordProblems(2, [
+      resolveRecordProblems(2, [
         { ...halt, suggestedVerdict: "halt" },
         {
           ...propose,
@@ -260,7 +262,7 @@ describe("triageRecordProblems", () => {
 
   it("refuses a finding given zero verdicts or two", () => {
     expect(
-      triageRecordProblems(3, [
+      resolveRecordProblems(3, [
         fix,
         { ...halt, finding: 3 },
         { ...dismiss, finding: 3 },
@@ -272,7 +274,7 @@ describe("triageRecordProblems", () => {
   });
 
   it("refuses a record for a finding the review doesn't have", () => {
-    expect(triageRecordProblems(1, [fix, { ...halt, finding: 4 }])).toEqual([
+    expect(resolveRecordProblems(1, [fix, { ...halt, finding: 4 }])).toEqual([
       "finding 4: the review has no finding 4; findings run 1 to 1",
     ]);
   });
@@ -311,11 +313,11 @@ describe("whatReviewCaughtOf", () => {
   });
 });
 
-describe("triageOutputSchema", () => {
+describe("resolveOutputSchema", () => {
   it("accepts one record per verdict and reads them back", () => {
     const output = { records: [fix, propose, halt, dismiss, kept] };
     expect(validateOutput(output)).toBe(true);
-    expect(triageRecordsOf(output)).toEqual([
+    expect(resolveRecordsOf(output)).toEqual([
       fix,
       propose,
       halt,

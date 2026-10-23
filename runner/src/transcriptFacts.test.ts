@@ -32,7 +32,7 @@ afterEach(() => {
   rmSync(configFolder, { recursive: true, force: true });
 });
 
-// One handed-off implement session (from its comment), then the final implement step, review, triage and a fixer.
+// One handed-off implement session (from its comment), then the final implement step, review and two resolve sessions.
 function sessions(overrides: Partial<TicketSessions> = {}): TicketSessions {
   return {
     account: 2,
@@ -40,8 +40,8 @@ function sessions(overrides: Partial<TicketSessions> = {}): TicketSessions {
     steps: [
       { agent: "implement", sessionId: "session-implement-2" },
       { agent: "review", sessionId: "session-review" },
-      { agent: "triage", sessionId: "session-triage" },
-      { agent: "fix", sessionId: "session-fix" },
+      { agent: "resolve", sessionId: "session-triage" },
+      { agent: "resolve", sessionId: "session-fix" },
     ],
     ...overrides,
   };
@@ -54,7 +54,7 @@ describe("transcriptFactsOf", () => {
     expect(transcriptFactsOf(sessions(), handoffs).pair).toBe("Opus medium");
   });
 
-  it("lists each implementer session's peak in order, leaving out the fixer", () => {
+  it("lists each implementer session's peak in order, leaving out the resolver", () => {
     expect(transcriptFactsOf(sessions(), handoffs).peakContext).toEqual([
       150_000, 90_000,
     ]);
@@ -67,7 +67,7 @@ describe("transcriptFactsOf", () => {
     );
   });
 
-  it("prices the review, triage and fix sessions together as review cost", () => {
+  it("prices the review and resolve sessions together as review cost", () => {
     expect(transcriptFactsOf(sessions(), handoffs).reviewCostUsd).toBeCloseTo(
       0.114,
       6,

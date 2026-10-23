@@ -41,17 +41,7 @@
       "Bash(git merge-base *)",
       "Bash(npm run issue:read -- * --hide-others)"
     ],
-    "triage": [
-      "Skill",
-      "Agent",
-      "Bash(git status *)",
-      "Bash(git diff *)",
-      "Bash(git log *)",
-      "Bash(git show *)",
-      "Bash(git merge-base *)",
-      "Bash(npm run issue:read -- * --hide-others)"
-    ],
-    "fix": [
+    "resolve": [
       "Skill",
       "Agent",
       "Bash(git status *)",

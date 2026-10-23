@@ -192,7 +192,7 @@ describe("run's red-check resume", () => {
     );
   });
 
-  it("hands red checks to the triage agent on the stronger pair once the implementer is past the ticket budget", async () => {
+  it("hands red checks to a fresh resolver on the stronger pair once the implementer is past the ticket budget", async () => {
     addSpec([1]);
     github.edit(1, { body: bodyWith("Sonnet medium") });
     const agentStep = FakeAgentStep.init(
@@ -226,7 +226,7 @@ describe("run's red-check resume", () => {
     expect(halt).toContain("Failure Halt");
     expect(halt).toContain("The checks are still red after 1 resume(s)");
     expect(halt).toContain(
-      `Log: \`${join(stateFolder(), "byro-repo-213-steps", "byro-repo-1-3-fix.jsonl")}\``,
+      `Log: \`${join(stateFolder(), "byro-repo-213-steps", "byro-repo-1-3-resolve.jsonl")}\``,
     );
     expect(masterSubjects()).not.toContain("Add RED");
     expect(github.issues.get(1)?.isOpen).toBe(true);

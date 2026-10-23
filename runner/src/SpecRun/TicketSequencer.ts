@@ -1,5 +1,5 @@
 // One ticket's run: takes its workspace lease, runs each step from the one it reached (implement or resume, review,
-// triage, fix, checks) and lands it, releasing the lease however it ends. A Halt or a lease taken since the pick leaves
+// resolve, checks) and lands it, releasing the lease however it ends. A Halt or a lease taken since the pick leaves
 // the ticket waiting; an UnhandledStop leaves it unlanded and commented on, or Stops the run for a rerun to retry it.
 // Before launch it raises a Failure Halt on a body ../IssueReader.ts doesn't trust; `approve` posts the text's approval.
 // RunLoop.ts calls _runTicket and SessionReviewer.ts calls _runSteps.
@@ -259,12 +259,12 @@ export class TicketSequencer extends SpecRunBase {
         this.reviewStepper._review(ticketRun),
       );
       const hasFindings = (state.findings ?? []).length > 0;
-      this._advance(ticketRun, hasFindings ? "fix" : "checks");
+      this._advance(ticketRun, hasFindings ? "resolve" : "checks");
     }
     // Checks run after the resolve, so a fix that turns them red gets the red-checks resume.
-    if (state.step === "fix" || state.step === "triage") {
+    if (state.step === "resolve") {
       this._markStepStarted(ticketRun);
-      await this._timed(ticketRun, "fix", () =>
+      await this._timed(ticketRun, "resolve", () =>
         this.reviewStepper._resolve(ticketRun),
       );
       this._advance(ticketRun, "checks");

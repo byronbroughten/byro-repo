@@ -8,8 +8,13 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { fileStemOf, issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
-import type { OutcomeFacts } from "./outcomeLog.ts";
-import type { StepSession, TicketSessions } from "./transcriptFacts.ts";
+import type { OutcomeFacts, ReviewFixes } from "./outcomeLog.ts";
+import {
+  type SavedStepSession,
+  savedStepSessionOf,
+  type StepSession,
+  type TicketSessions,
+} from "./transcriptFacts.ts";
 
 export interface UndoneBox {
   box: string;
@@ -138,11 +143,30 @@ export class FactsFile {
   }
 }
 
+// Before #297 Proposals were `defers`; before #364 resolve was `triage` or `fix`.
+interface SavedFacts extends Omit<
+  Partial<WrapUpFacts>,
+  "reviewFixes" | "sessions"
+> {
+  defers?: number;
+  reviewFixes?: ReviewFixes | "triage";
+  sessions?: Omit<TicketSessions, "steps"> & { steps: SavedStepSession[] };
+}
+
 function parsedFactsOf(path: string): Partial<WrapUpFacts> {
-  // A facts file written before #297 counts Proposals under their old name.
-  const { defers, ...facts } = JSON.parse(
+  const { defers, reviewFixes, sessions, ...rest } = JSON.parse(
     readFileSync(path, "utf8"),
-  ) as Partial<WrapUpFacts> & { defers?: number };
+  ) as SavedFacts;
+  const facts: Partial<WrapUpFacts> = rest;
   if (defers !== undefined) facts.proposals ??= defers;
+  if (reviewFixes !== undefined) {
+    facts.reviewFixes = reviewFixes === "triage" ? "fresh" : reviewFixes;
+  }
+  if (sessions !== undefined) {
+    facts.sessions = {
+      ...sessions,
+      steps: sessions.steps.map(savedStepSessionOf),
+    };
+  }
   return facts;
 }

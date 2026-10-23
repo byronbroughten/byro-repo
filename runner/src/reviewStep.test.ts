@@ -23,7 +23,7 @@ describe("reviewRecordSchema", () => {
   const finding = {
     axis: "spec",
     where: "SpecRun.ts:88",
-    claim: "It skips the fix step.",
+    claim: "It skips the resolve step.",
     suggestedVerdict: "halt",
     reason: "The spec reads both ways.",
   };
@@ -35,9 +35,9 @@ describe("reviewRecordSchema", () => {
 
   it("refuses a prose finding and one missing its axis", () => {
     const { axis: _axis, ...noAxis } = finding;
-    expect(isValid({ findings: ["SpecRun.ts:88 skips the fix step."] })).toBe(
-      false,
-    );
+    expect(
+      isValid({ findings: ["SpecRun.ts:88 skips the resolve step."] }),
+    ).toBe(false);
     expect(isValid({ findings: [noAxis] })).toBe(false);
   });
 });
