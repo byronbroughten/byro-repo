@@ -54,23 +54,17 @@ import { StepLauncher } from "./StepLauncher.ts";
 
 type FixerSession = Pick<StepRequest, "pair" | "resumeSessionId">;
 
-interface DoneAttempt {
-  kind: "done";
-  records: TriageRecord[];
-  logPath: string;
-}
+type ResolveAttempt =
+  | { kind: "done"; records: TriageRecord[]; logPath: string }
+  | { kind: "crossed"; logPath: string }
+  | { kind: "capped"; logPath: string };
 
-interface ResolveCheck {
+interface KeptRecords {
   fixer: Fixer;
   // The heads the resolve started on.
   base: Heads;
-  attempt: DoneAttempt;
+  records: TriageRecord[];
 }
-
-type ResolveAttempt =
-  | DoneAttempt
-  | { kind: "crossed"; logPath: string }
-  | { kind: "capped"; logPath: string };
 
 export class ReviewStepper extends SpecRunBase {
   private get haltRaiser(): HaltRaiser {
@@ -97,7 +91,7 @@ export class ReviewStepper extends SpecRunBase {
   }
 
   // The resumed implementer resolves under the ticket budget; otherwise, or once killed, a fresh resolver does.
-  // A turn cap is a crash: the work is reset away and the resolve runs again.
+  // A turn cap is a crash: the work is reset away and the resolve runs again. A retry ends as a first attempt would.
   async _resolve(ticketRun: TicketRun): Promise<void> {
     const { run, ticket, workspace, state } = ticketRun;
     if (state.fixBase === undefined) {
@@ -107,74 +101,68 @@ export class ReviewStepper extends SpecRunBase {
       await resetTo(workspace, state.fixBase);
     }
     const base = state.fixBase;
+    let fixer: Fixer = this._isUnderBudget(state) ? "implementer" : "triage";
+    let attempt = await this._runResolver(ticketRun, fixer);
+    let isRetry = false;
     for (;;) {
-      let fixer: Fixer = this._isUnderBudget(state) ? "implementer" : "triage";
-      let attempt = await this._runResolver(ticketRun, fixer);
-      if (attempt.kind === "crossed" && fixer === "implementer") {
+      if (attempt.kind === "crossed") {
         await resetTo(workspace, base);
+        if (fixer === "triage") {
+          throw new UnhandledStop(
+            "step-error",
+            `The fresh resolver crossed ${liveCeilingPhraseOf(this.config.knobs)}; its work is discarded.`,
+            attempt.logPath,
+          );
+        }
         this._log(
           run,
           `${issueLabelOf(ticket.issue)}: the implementer's resolve crossed the live ceiling; handing the findings to a fresh resolver.`,
         );
         fixer = "triage";
-        attempt = await this._runResolver(ticketRun, fixer);
-      }
-      if (attempt.kind === "crossed") {
-        await resetTo(workspace, base);
-        throw new UnhandledStop(
-          "step-error",
-          `The fresh resolver crossed ${liveCeilingPhraseOf(this.config.knobs)}; its work is discarded.`,
-          attempt.logPath,
-        );
-      }
-      if (attempt.kind === "capped") {
+      } else if (attempt.kind === "capped") {
         const turns = this.config.knobs.maxTurns.fix;
         await this.haltRaiser._takeCrash(ticketRun, {
           detail: turnCapDetailOf("fix", turns),
           logPath: attempt.logPath,
         });
         await resetTo(workspace, base);
+        fixer = this._isUnderBudget(state) ? "implementer" : "triage";
+      } else {
+        const { records, logPath } = attempt;
+        const problems = await this._resolveProblemsOf(
+          ticketRun,
+          base,
+          records,
+        );
+        if (problems.length === 0) {
+          await this._keepRecords(ticketRun, { fixer, base, records });
+          return;
+        }
+        if (isRetry) {
+          throw schemaFailureOf(logPath, { problems, output: records });
+        }
+        isRetry = true;
+        attempt = await this._retryResolver(ticketRun, fixer, problems);
         continue;
       }
-      const records = await this._checkedRecordsOf(ticketRun, {
-        fixer,
-        base,
-        attempt,
-      });
-      state.triage = records;
-      if (!isSameHeads(base, await this._headsOf(workspace))) {
-        state.fixer = fixer;
-      }
-      raiseHalts(run, {
-        ticket: ticket.issue,
-        drafts: records.filter(isHalt).map(triageHaltOf),
-      });
-      return;
+      isRetry = false;
+      attempt = await this._runResolver(ticketRun, fixer);
     }
   }
 
-  // A refused record gets one retry in the same session.
-  private async _checkedRecordsOf(
+  private async _keepRecords(
     ticketRun: TicketRun,
-    { fixer, base, attempt }: ResolveCheck,
-  ): Promise<TriageRecord[]> {
-    let { records, logPath } = attempt;
-    let problems = await this._resolveProblemsOf(ticketRun, base, records);
-    if (problems.length === 0) return records;
-    const retry = await this._retryResolver(ticketRun, fixer, problems);
-    if (retry.kind !== "done") {
-      throw new UnhandledStop(
-        "step-error",
-        "The resolver's retry for a refused record ended before returning its records.",
-        retry.logPath,
-      );
+    { fixer, base, records }: KeptRecords,
+  ): Promise<void> {
+    const { run, ticket, workspace, state } = ticketRun;
+    state.triage = records;
+    if (!isSameHeads(base, await this._headsOf(workspace))) {
+      state.fixer = fixer;
     }
-    ({ records, logPath } = retry);
-    problems = await this._resolveProblemsOf(ticketRun, base, records);
-    if (problems.length > 0) {
-      throw schemaFailureOf(logPath, { problems, output: records });
-    }
-    return records;
+    raiseHalts(run, {
+      ticket: ticket.issue,
+      drafts: records.filter(isHalt).map(triageHaltOf),
+    });
   }
 
   private async _resolveProblemsOf(

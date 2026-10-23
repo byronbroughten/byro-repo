@@ -13,6 +13,7 @@ import {
   after,
   bodyWith,
   bodyWithTargets,
+  capped,
   findingOf,
   github,
   greened,
@@ -360,6 +361,45 @@ describe("run's resolve", () => {
     expect(retry?.prompt).toContain(
       "finding 1: a Fix needs `quote`, the quoted code with its file:line",
     );
+    expect(landedSubjects(2)).toEqual(["Fix fix.ts", "Add one.ts"]);
+  });
+
+  it("hands the findings to a fresh resolver, its work discarded, when the implementer's retry crosses the live ceiling", async () => {
+    addSpec([1]);
+    const noQuote = { ...recordOf(1, "fix"), quote: undefined };
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      reviewed(findings),
+      resolved([noQuote, recordOf(2, "dismiss")], "fix.ts"),
+      killed("half.ts"),
+      freshResolved([recordOf(1, "fix"), recordOf(2, "dismiss")], "fix.ts"),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.kind).toBe("finished");
+    const resolver = agentStep.requests[4];
+    expect(resolver?.resumeSessionId).toBeUndefined();
+    expect(resolver?.pair).toEqual(opusHigh);
+    expect(landedSubjects(2)).toEqual(["Fix fix.ts", "Add one.ts"]);
+    expect(ticketFacts().reviewFixes).toBe("triage");
+  });
+
+  it("reruns the resolve, its work reset away, when the retry hits its turn cap", async () => {
+    addSpec([1]);
+    const noQuote = { ...recordOf(1, "fix"), quote: undefined };
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      reviewed(findings),
+      resolved([noQuote, recordOf(2, "dismiss")], "fix.ts"),
+      capped,
+      resolved([recordOf(1, "fix"), recordOf(2, "dismiss")], "fix.ts"),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.kind).toBe("finished");
+    expect(agentStep.requests[4]?.prompt).toContain("You are the resolve step");
     expect(landedSubjects(2)).toEqual(["Fix fix.ts", "Add one.ts"]);
   });
 

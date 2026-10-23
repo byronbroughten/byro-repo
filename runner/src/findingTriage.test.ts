@@ -378,6 +378,12 @@ describe("resolvePrompt", () => {
     expect(prompt).toContain("Each Fix lands in its own commit");
   });
 
+  it("halts on a spec-axis fix it can't land, and Proposes any other", () => {
+    expect(prompt).toContain(
+      "as a Propose `decision`, or for a `spec`-axis finding as a Halt scoped to the downstream tickets",
+    );
+  });
+
   it("names the verdict-rules doc instead of carrying its rules", () => {
     expect(prompt).toContain("`docs/agents/verdicts.md`");
     [

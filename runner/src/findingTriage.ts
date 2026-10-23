@@ -73,7 +73,7 @@ The review of ${issue.repo}#${issue.number}, "${title}", reported the findings b
 
 - Read and search with the Read and Grep tools. Give Bash one command per call, run from the workspace root: no \`cd\`, no \`;\` or \`&&\` chains, no variables.
 - Each Fix lands in its own commit on the ticket's branch, separate from the implement commit. Commit nothing when no finding is a Fix.
-- Once the fixes are in, run \`npm run check\`. When it fails on a fix, fix it in a further commit and run it again. A fix you can't turn green, or one that would reverse a spec decision, is reverted in a further commit and resolved as a Propose \`decision\` saying why. When it fails only on something your fixes didn't cause, return your records anyway; the runner's checks step stops on it.
+- Once the fixes are in, run \`npm run check\`. When it fails on a fix, fix it in a further commit and run it again. A fix you can't turn green, or one that would reverse a spec decision, is reverted in a further commit and resolved, saying why, as a Propose \`decision\`, or for a \`spec\`-axis finding as a Halt scoped to the downstream tickets. When it fails only on something your fixes didn't cause, return your records anyway; the runner's checks step stops on it.
 - When two fixes are equally good, pick one and say which in the commit message.
 - Never amend, push, merge, rebase or reset, never comment on, file or close an issue, and never run the wrap-up. The runner acts on your Propose and Halt verdicts.
 
