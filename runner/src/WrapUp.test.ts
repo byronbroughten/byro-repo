@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import { FactsFile } from "./FactsFile.ts";
 import { git } from "./GitFixture.ts";
 import { IssueWorkspaces } from "./IssueWorkspaces.ts";
+import type { RecordedSession, StepAgent } from "./transcriptFacts.ts";
 import {
   commitIn,
   github,
@@ -96,13 +97,11 @@ describe("run", () => {
       pair: undefined,
       peakContext: undefined,
       sessions: {
-        account: 2,
-        configFolder,
         steps: [
-          { agent: "implement", sessionId: "session-implement-2" },
-          { agent: "review", sessionId: "session-review" },
-          { agent: "resolve", sessionId: "session-triage" },
-          { agent: "resolve", sessionId: "session-fix" },
+          recorded("implement", "session-implement-2", configFolder),
+          recorded("review", "session-review", configFolder),
+          recorded("resolve", "session-triage", configFolder),
+          recorded("resolve", "session-fix", configFolder),
         ],
       },
     });
@@ -158,14 +157,15 @@ describe("run", () => {
     );
     const workspace = await workspaceWith();
     commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
-    const implementSession = (sessionId: string) => ({
-      account: 2,
-      configFolder,
-      step: { agent: "implement", sessionId } as const,
-    });
     FactsFile.init(join(temp, "state"))
-      .addSession(ticket, implementSession("session-implement-1"))
-      .addSession(ticket, implementSession("session-implement-2"))
+      .addSession(
+        ticket,
+        recorded("implement", "session-implement-1", configFolder),
+      )
+      .addSession(
+        ticket,
+        recorded("implement", "session-implement-2", configFolder),
+      )
       .setReviewFacts(ticket, { reviewFixes: "none" })
       .setClosingFacts(ticket, { closingComment: "Landed the hook." });
 
@@ -187,14 +187,12 @@ describe("run", () => {
     );
     const workspace = await workspaceWith();
     commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
-    const session = (agent: "implement" | "review", sessionId: string) => ({
-      account: 2,
-      configFolder,
-      step: { agent, sessionId },
-    });
     FactsFile.init(join(temp, "state"))
-      .addSession(ticket, session("implement", "session-implement-2"))
-      .addSession(ticket, session("review", "session-review"))
+      .addSession(
+        ticket,
+        recorded("implement", "session-implement-2", configFolder),
+      )
+      .addSession(ticket, recorded("review", "session-review", configFolder))
       .setReviewFacts(ticket, { reviewFixes: "none" })
       .setClosingFacts(ticket, { closingComment: "Landed the hook." });
 
@@ -292,3 +290,11 @@ describe("run", () => {
     ]);
   });
 });
+
+function recorded(
+  agent: StepAgent,
+  sessionId: string,
+  configFolder: string,
+): RecordedSession {
+  return { agent, sessionId, account: 2, configFolder };
+}

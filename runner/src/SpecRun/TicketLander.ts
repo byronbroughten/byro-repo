@@ -275,10 +275,9 @@ export class TicketLander extends SpecRunBase {
       facts.githubWrites = record.githubWrites;
     }
     if (configFolder !== undefined) {
+      const { account } = this.config.knobs;
       facts.sessions = {
-        account: this.config.knobs.account,
-        configFolder,
-        steps: sessions,
+        steps: sessions.map((step) => ({ ...step, account, configFolder })),
       };
     }
     this.factsFile.write(ticket.issue, facts);

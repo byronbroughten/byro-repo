@@ -1,7 +1,6 @@
 // Decides SessionStart's facts-file record, "where you are" line for an issue workspace and supervising line; sessionIdContext.ts does the I/O.
 import { basename, dirname } from "node:path";
 
-import type { AddedSession } from "@byronbroughten/spec-runner/FactsFile";
 import {
   isSessionKey,
   issueLabelOf,
@@ -10,6 +9,7 @@ import {
   type LeaseHolder,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
 import type { SupervisionRecord } from "@byronbroughten/spec-runner/SupervisionRecords";
+import type { StepSession } from "@byronbroughten/spec-runner/transcriptFacts";
 
 import type { HookInput } from "./hookIo.ts";
 import { leasedWorkspacesOf } from "./leaseRelease.ts";
@@ -28,7 +28,7 @@ type LeasedIssueWorkspace = LeasedWorkspace & { key: IssueRef };
 
 export interface RecordedSession {
   issue: IssueRef;
-  step: AddedSession["step"];
+  step: StepSession;
 }
 
 export function recordedSessionOf({

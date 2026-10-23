@@ -1,11 +1,11 @@
 // Decides the implement session `issue:start` records when a Claude Code session leases an issue workspace mid-session, which SessionStart can't see.
 import { join } from "node:path";
 
-import type { AddedSession } from "@byronbroughten/spec-runner/FactsFile";
 import type {
   IssueRef,
   WorkspaceKey,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
+import type { RecordedSession } from "@byronbroughten/spec-runner/transcriptFacts";
 
 import { sessionModeOf } from "../../.claude/hooks/lib/tiers.ts";
 
@@ -18,7 +18,7 @@ interface StartedWorkspace {
 
 export interface StartedSession {
   issue: IssueRef;
-  session: AddedSession;
+  session: RecordedSession;
 }
 
 export function startedSessionOf({
@@ -35,9 +35,10 @@ export function startedSessionOf({
   return {
     issue: key,
     session: {
+      agent: "implement",
+      sessionId,
       account,
       configFolder: env.CLAUDE_CONFIG_DIR ?? join(homeFolder, ".claude"),
-      step: { agent: "implement", sessionId },
     },
   };
 }

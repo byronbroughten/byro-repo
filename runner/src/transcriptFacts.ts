@@ -1,5 +1,5 @@
 // The outcome facts a wrap-up computes from transcripts instead of asking: pair, peak context, duration, API-equivalent
-// cost, review cost, account and session ids, from the session ids and config folder the runner records.
+// cost, review cost, accounts and session ids, from each session id the runner records with its account and config folder.
 // A fact is computed only when every transcript it reads is found; otherwise it stays undefined and is written `unrecorded`.
 // Peak context is contextMeter.ts; the row format is outcomeLog.ts; WrapUp.ts merges these over the passed facts.
 // Refresh the price table when a new model version ships (docs/agents/model-fit.md).
@@ -17,10 +17,14 @@ export interface StepSession {
   sessionId: string;
 }
 
-export interface TicketSessions {
+// With the account it ran as and the config folder its transcript is under.
+export interface RecordedSession extends StepSession {
   account: number;
   configFolder: string;
-  steps: StepSession[];
+}
+
+export interface TicketSessions {
+  steps: RecordedSession[];
 }
 
 export interface ModelPrice {
@@ -87,7 +91,7 @@ export function transcriptFactsOf(
   sessions: TicketSessions,
   handoffSessionIds: string[],
 ): OutcomeFacts {
-  const projectDirs = projectDirsOf(sessions.configFolder);
+  const projectDirs = projectDirsBySessionOf(sessions, handoffSessionIds);
   const implementerIds = unique([
     ...handoffSessionIds,
     ...stepIdsOf(sessions, "implement"),
@@ -111,8 +115,9 @@ export function transcriptFactsOf(
           unique([...reviewIds, ...stepIdsOf(sessions, "resolve")]),
         );
   const allSessions = transcriptsOf(projectDirs, sessionIds);
+  const accounts = unique(sessions.steps.map(({ account }) => String(account)));
   return {
-    account: String(sessions.account),
+    account: accounts.length === 0 ? undefined : accounts.join(", "),
     sessionIds,
     pair: factOf(implementers, pairOf),
     peakContext: factOf(implementers, peaksOf),
@@ -126,9 +131,12 @@ export function transcriptFactsOf(
 export function latestImplementPeakOf(
   sessions: TicketSessions,
 ): number | undefined {
-  const latest = stepIdsOf(sessions, "implement").at(-1);
+  const latest = sessions.steps.findLast(({ agent }) => agent === "implement");
   if (latest === undefined) return undefined;
-  const transcript = transcriptOf(projectDirsOf(sessions.configFolder), latest);
+  const transcript = transcriptOf(
+    projectDirsOf(latest.configFolder),
+    latest.sessionId,
+  );
   return transcript && ContextMeter.ofTranscript(transcript.text);
 }
 
@@ -142,6 +150,25 @@ export function handoffSessionIdOf(comment: string): string | undefined {
   return lastLine?.match(handoffSessionLine)?.[1];
 }
 
+// A recorded session is looked for in its own config folder; a handoff, which records none, in every recorded one.
+function projectDirsBySessionOf(
+  { steps }: TicketSessions,
+  handoffSessionIds: string[],
+): Map<string, string[]> {
+  const byFolder = new Map(
+    steps.map(({ configFolder }) => [
+      configFolder,
+      projectDirsOf(configFolder),
+    ]),
+  );
+  const everyFolder = [...byFolder.values()].flat();
+  const bySession = new Map(handoffSessionIds.map((id) => [id, everyFolder]));
+  for (const { sessionId, configFolder } of steps) {
+    bySession.set(sessionId, byFolder.get(configFolder) ?? []);
+  }
+  return bySession;
+}
+
 function projectDirsOf(configFolder: string): string[] {
   const projects = join(configFolder, "projects");
   if (!existsSync(projects)) return [];
@@ -150,11 +177,11 @@ function projectDirsOf(configFolder: string): string[] {
 
 // Undefined when any id's transcript is missing.
 function transcriptsOf(
-  projectDirs: string[],
+  projectDirs: Map<string, string[]>,
   ids: string[],
 ): Transcript[] | undefined {
   const found = ids.flatMap((id) => {
-    const transcript = transcriptOf(projectDirs, id);
+    const transcript = transcriptOf(projectDirs.get(id) ?? [], id);
     return transcript === undefined ? [] : [transcript];
   });
   return found.length === ids.length ? found : undefined;

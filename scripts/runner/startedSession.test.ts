@@ -15,9 +15,10 @@ describe("startedSessionOf", () => {
     expect(startedSessionOf(started)).toEqual({
       issue,
       session: {
+        agent: "implement",
+        sessionId: "session-1",
         account: 1,
         configFolder: "/Users/dev/.claude",
-        step: { agent: "implement", sessionId: "session-1" },
       },
     });
   });

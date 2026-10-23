@@ -246,18 +246,16 @@ export class SessionReviewer extends SpecRunBase {
     };
   }
 
-  // Beside the implement session, under its account and config folder, so wrap-up prices them as review cost.
+  // Beside the implement session, each under the account and config folder it ran as, so wrap-up prices them as review cost.
   private _recordSessions({ run, ticket, state }: TicketRun): void {
     try {
-      const implemented = this.factsFile.sessionsOf(ticket.issue);
-      const account = implemented?.account ?? this.config.knobs.account;
-      const configFolder = implemented?.configFolder ?? state.configFolder;
+      const { configFolder } = state;
       if (configFolder === undefined) return;
       for (const step of state.sessions) {
         this.factsFile.addSession(ticket.issue, {
-          account,
+          ...step,
+          account: this.config.knobs.account,
           configFolder,
-          step,
         });
       }
     } catch (error) {

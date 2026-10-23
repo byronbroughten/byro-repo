@@ -1,6 +1,7 @@
 // Reads a run state or facts file saved by an older runner into today's shapes, the one place old names are known:
 // before #297 Propose was Defer and Proposals were `defers`; before #364 resolve was the `triage` and `fix` steps,
-// a fresh resolver was `triage`, and its records, session and base were `triage`, `triageSession` and `fixBase`.
+// a fresh resolver was `triage`, and its records, session and base were `triage`, `triageSession` and `fixBase`;
+// before #367 a facts file's sessions shared one ticket-level account and config folder.
 // SpecRun/SpecRunBase.ts reads run state through runStateOf(), and FactsFile.ts reads facts through factsOf().
 
 import type { WrapUpFacts } from "./FactsFile.ts";
@@ -15,9 +16,9 @@ import type {
   TicketStep,
 } from "./SpecRun/runState.ts";
 import type {
+  RecordedSession,
   StepAgent,
   StepSession,
-  TicketSessions,
 } from "./transcriptFacts.ts";
 import type { Verdict } from "./verdicts.ts";
 
@@ -26,6 +27,13 @@ type SavedStepAgent = StepAgent | "triage" | "fix";
 interface SavedStepSession extends Omit<StepSession, "agent"> {
   agent: SavedStepAgent;
 }
+
+type SavedRecordedSession = SavedStepSession &
+  Omit<RecordedSession, keyof StepSession>;
+
+type SavedTicketSessions =
+  | { steps: SavedRecordedSession[] }
+  | { account: number; configFolder: string; steps: SavedStepSession[] };
 
 interface SavedResolveRecord extends Omit<ResolveRecord, "verdict"> {
   verdict: Verdict | "defer";
@@ -63,7 +71,7 @@ interface SavedFacts extends Omit<
 > {
   defers?: number;
   reviewFixes?: ReviewFixes | "triage";
-  sessions?: Omit<TicketSessions, "steps"> & { steps: SavedStepSession[] };
+  sessions?: SavedTicketSessions;
 }
 
 export function runStateOf(parsed: unknown): RunState {
@@ -86,10 +94,16 @@ export function factsOf(parsed: unknown): Partial<WrapUpFacts> {
   const facts: Partial<WrapUpFacts> = rest;
   if (defers !== undefined) facts.proposals ??= defers;
   if (reviewFixes !== undefined) facts.reviewFixes = resolverOf(reviewFixes);
-  if (sessions !== undefined) {
-    facts.sessions = { ...sessions, steps: sessions.steps.map(sessionOf) };
-  }
+  if (sessions !== undefined) facts.sessions = { steps: stepsOf(sessions) };
   return facts;
+}
+
+function stepsOf(sessions: SavedTicketSessions): RecordedSession[] {
+  if (!("configFolder" in sessions)) {
+    return sessions.steps.map((step) => ({ ...step, ...sessionOf(step) }));
+  }
+  const { account, configFolder, steps } = sessions;
+  return steps.map((step) => ({ ...sessionOf(step), account, configFolder }));
 }
 
 function ticketStateOf({

@@ -1,10 +1,11 @@
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { FactsFile } from "./FactsFile.ts";
+import type { RecordedSession } from "./transcriptFacts.ts";
 
 const ticket = { repo: "byro-repo", number: 332 };
 
@@ -31,67 +32,51 @@ function factsFile(): FactsFile {
 }
 
 describe("addSession", () => {
-  it("starts the file with the session's account, config folder and step", () => {
-    factsFile().addSession(ticket, {
-      account: 2,
-      configFolder: "/config/account-2",
-      step: { agent: "implement", sessionId: "session-1" },
-    });
+  it("starts the file with the session, its account and config folder", () => {
+    factsFile().addSession(ticket, implement("session-1", 2));
 
     expect(storedFacts()).toEqual({
-      sessions: {
-        account: 2,
-        configFolder: "/config/account-2",
-        steps: [{ agent: "implement", sessionId: "session-1" }],
-      },
+      sessions: { steps: [implement("session-1", 2)] },
     });
   });
 
-  it("appends to the recorded steps and keeps the other facts", () => {
+  it("appends to the recorded steps, each keeping its own account and config folder, and keeps the other facts", () => {
     factsFile()
       .setClosingFacts(ticket, { closingComment: "Landed the writer." })
-      .addSession(ticket, {
-        account: 1,
-        configFolder: "/config/account-1",
-        step: { agent: "implement", sessionId: "session-1" },
-      })
-      .addSession(ticket, {
-        account: 1,
-        configFolder: "/config/account-1",
-        step: { agent: "implement", sessionId: "session-2" },
-      });
+      .addSession(ticket, implement("session-1", 1))
+      .addSession(ticket, review("session-2", 2));
 
     expect(storedFacts()).toEqual({
       closingComment: "Landed the writer.",
       sessions: {
-        account: 1,
-        configFolder: "/config/account-1",
-        steps: [
-          { agent: "implement", sessionId: "session-1" },
-          { agent: "implement", sessionId: "session-2" },
-        ],
+        steps: [implement("session-1", 1), review("session-2", 2)],
       },
     });
   });
 
   it("keeps one entry for a session added again, as a resumed or compacted session is", () => {
-    const session = {
-      account: 1,
-      configFolder: "/config/account-1",
-      step: { agent: "implement", sessionId: "session-1" },
-    } as const;
-
-    factsFile().addSession(ticket, session).addSession(ticket, session);
+    factsFile()
+      .addSession(ticket, implement("session-1", 1))
+      .addSession(ticket, implement("session-1", 1));
 
     expect(storedFacts()).toEqual({
-      sessions: {
-        account: 1,
-        configFolder: "/config/account-1",
-        steps: [{ agent: "implement", sessionId: "session-1" }],
-      },
+      sessions: { steps: [implement("session-1", 1)] },
     });
   });
 });
+
+function implement(sessionId: string, account: number): RecordedSession {
+  return {
+    agent: "implement",
+    sessionId,
+    account,
+    configFolder: `/config/account-${account}`,
+  };
+}
+
+function review(sessionId: string, account: number): RecordedSession {
+  return { ...implement(sessionId, account), agent: "review" };
+}
 
 describe("write", () => {
   it("replaces the whole file with the run's facts", () => {
@@ -132,16 +117,36 @@ describe("read", () => {
     });
   });
 
+  it("gives each step of a file with one ticket-level account and config folder that account and folder", () => {
+    writeFileSync(
+      factsPath(),
+      JSON.stringify({
+        closingComment: "Landed the writer.",
+        sessions: {
+          account: 1,
+          configFolder: "/config/account-1",
+          steps: [
+            { agent: "implement", sessionId: "session-1" },
+            { agent: "triage", sessionId: "session-2" },
+          ],
+        },
+      }),
+    );
+
+    expect(factsFile().read(ticket).sessions).toEqual({
+      steps: [
+        implement("session-1", 1),
+        { ...implement("session-2", 1), agent: "resolve" },
+      ],
+    });
+  });
+
   it("fails naming --closing when there is no file", () => {
     expect(() => factsFile().read(ticket)).toThrow("--closing");
   });
 
   it("fails naming --closing when the file holds sessions but no closing comment", () => {
-    factsFile().addSession(ticket, {
-      account: 1,
-      configFolder: "/config/account-1",
-      step: { agent: "implement", sessionId: "session-1" },
-    });
+    factsFile().addSession(ticket, implement("session-1", 1));
 
     expect(() => factsFile().read(ticket)).toThrow(
       `byro-repo #332 has no closing comment in ${factsPath()}: pass it to wrap-up with --closing`,

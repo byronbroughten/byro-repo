@@ -57,9 +57,10 @@ describe("a session resolving its own review", () => {
       `${JSON.stringify(entry)}\n`,
     );
     FactsFile.init(stateFolder()).addSession(refOf(1), {
+      agent: "implement",
+      sessionId: "implement-session",
       account: 2,
       configFolder,
-      step: { agent: "implement", sessionId: "implement-session" },
     });
   }
 
@@ -108,6 +109,7 @@ describe("a session resolving its own review", () => {
     const agentStep = FakeAgentStep.init({
       ...reviewed(findings),
       sessionId: "review-session",
+      configFolder: "/config/account-1",
     });
     const result = await specRun(agentStep).review(refOf(1), { holder });
     return { agentStep, result };
@@ -128,7 +130,7 @@ describe("a session resolving its own review", () => {
         ].join("\n"),
       ].join("\n\n"),
     );
-    expect(ticketFacts().sessions?.steps).toEqual([
+    expect(ticketFacts().sessions?.steps).toMatchObject([
       { agent: "implement", sessionId: "implement-session" },
       { agent: "review", sessionId: "review-session" },
     ]);
@@ -252,7 +254,11 @@ describe("a session resolving its own review", () => {
   it("starts a fresh resolver past the ticket budget and records it", async () => {
     implementedAt(160_000);
     const agentStep = FakeAgentStep.init(
-      { ...reviewed(findings), sessionId: "review-session" },
+      {
+        ...reviewed(findings),
+        sessionId: "review-session",
+        configFolder: "/config/account-1",
+      },
       async (request) => ({
         ...(await resolved([fix, decision, coveredLater], "fix.ts")(request)),
         sessionId: "resolve-session",
@@ -263,7 +269,7 @@ describe("a session resolving its own review", () => {
 
     expect(result.kind).toBe("reviewed");
     expect(ticketFacts().reviewFixes).toBe("fresh");
-    expect(ticketFacts().sessions?.steps).toEqual([
+    expect(ticketFacts().sessions?.steps).toMatchObject([
       { agent: "implement", sessionId: "implement-session" },
       { agent: "review", sessionId: "review-session" },
       { agent: "resolve", sessionId: "resolve-session" },

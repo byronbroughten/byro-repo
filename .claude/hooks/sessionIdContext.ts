@@ -91,8 +91,8 @@ function recordSession(
   if (account === undefined || configFolder === undefined) return;
   const { issue, step } = recorded;
   FactsFile.init(stateFolder).addSession(issue, {
+    ...step,
     account,
     configFolder,
-    step,
   });
 }
