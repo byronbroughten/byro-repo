@@ -55,6 +55,8 @@ If the concept you need isn't in the glossary yet, that's a signal: either you'r
 
 ## Flag conflicts against the design docs
 
-If your output contradicts a principle recorded in design.md or `docs/agent-behavior-design.md`, surface it explicitly rather than silently overriding:
+If your output contradicts an ADR in a repo's `docs/adr/`, or a principle recorded in design.md or `docs/agent-behavior-design.md`, surface it explicitly rather than silently overriding:
 
+> _Contradicts ADR-0003 (escalate a spec whose premise fails), but worth reopening because…_
+>
 > _Contradicts the framework's design.md's "Record a deliberate absence as deliberate", but worth reopening because…_

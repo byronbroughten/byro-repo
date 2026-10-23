@@ -27,7 +27,9 @@ Open only the section or disclosed doc the task needs.
 | Writing or refactoring TypeScript, tests included | [`config/docs/code-style.md`](./config/docs/code-style.md), then for framework or app code [`packages/framework/docs/code-style.md`](./packages/framework/docs/code-style.md) |
 | Operator-facing words: endpoint, selector, run state; units, the ledger | [`GLOSSARY-MAP.md`](./GLOSSARY-MAP.md), then that package's `GLOSSARY.md` |
 | Real-estate endpoints or app chores | [app `src/AGENTS.md`](./packages/real-estate/src/AGENTS.md) |
-| Arguing that a gap is deliberate, or proposing a design principle | [design](./packages/framework/docs/design.md) |
+| Touching, reversing or re-suggesting a past choice | that repo's `docs/adr/` |
+| A gap that looks like a to-do | the comment at the site, then [deliberate-absence](./packages/framework/docs/design/deliberate-absence.md) and the ADR it links; stop at the first that answers |
+| Making a new structural choice, or proposing a principle | [design](./packages/framework/docs/design.md) |
 | Architecture mechanics: dispatch, schema classes, class chains, queued writes, round trips, type-check cost | [architecture](./packages/framework/docs/architecture.md) index, then one file |
 | Adding a deletion path | [blank-row](./packages/framework/docs/architecture/blank-row.md) |
 | A one-off job against the live sheet | [chores](./packages/framework/docs/architecture/chores.md) |

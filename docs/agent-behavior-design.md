@@ -2,7 +2,7 @@
 
 Why the agent tooling around this repo is shaped the way it is: the hooks, gates, delegation rules and helper commands that decide how agents work here. [docs/design.md](../packages/framework/docs/design.md) holds the arguments for the codebase itself; this file holds the arguments for how agents work on it. The mechanics live in [`docs/claude-code-guardrails.md`](./claude-code-guardrails.md) and the rules in [AGENTS.md](../AGENTS.md) and [`docs/agents/`](./agents/).
 
-The citation rule is the same as packages/framework/docs/design.md's. Every principle cites the decisions that produced it, by issue where one exists and by commit otherwise. A candidate with only one citation is parked at the bottom until a second decision makes the same argument.
+Decisions are ADRs in [`docs/adr/`](./adr/), and every principle cites at least two; the issue and commit citations below predate them and await migration. A new ADR making a principle's argument is added to it as a link plus one clause. A new principle is proposed to the developer and added only once approved.
 
 ## Principles
 
@@ -26,7 +26,7 @@ Whether an action needs the developer's yes follows from one question: what woul
 
 The session mode decides what an ask does. An Interactive session asks the developer. A runner step has nobody to answer, so its call is refused with a reason, and the step records a blocker and carries on. A stalled run has cost more than any action an agent has taken.
 
-The gates are designed against a fallible agent: one that means well and makes a mistake. #268 keeps Untrusted text out of agents' instructions, and hardening against the agent itself waits for its containment triggers (below), so no such gate is built ahead of them.
+The gates are designed against a fallible agent: one that means well and makes a mistake. #268 keeps Untrusted text out of agents' instructions, and hardening against the agent itself waits for its [containment triggers](./adr/0007-keep-untrusted-text-out-of-instructions-and-defer-containment.md#consequences), so no such gate is built ahead of them.
 
 Quality checks and cost guards are not gates, and the tiers leave them alone: lint feedback, the style gate, the formatter, the read guards and the generated-file read deny.
 
@@ -57,23 +57,3 @@ What an agent loads without asking is paid for on every task, and a rule it has 
 A rules file holds only the rule: a rule line is the bolded rule plus at most a clause of scope or its one exception, and every example, instance, citation and why sits in the reasoning file. That convention replaced a 300-character cap on rule lines. The cap became a target: rules clustered just under it, padded with an example or a second clause to fill it, or squeezed to fit it, so it bought neither brevity nor clarity. Brevity and clarity are held together by the written convention and by review instead, because a number can measure only one of them. The size caps on AGENTS.md files failed the same way: an agent 2 bytes under the root cap left it unchanged and spread the pointer over eslint.config.mjs, the README and prose-files.md (#156). They gave way to a stated cost, which is that every byte is paid on every turn and dilutes the rest, so the agent adding to the file weighs that itself ([`prose-files.md`](./agents/prose-files.md#what-an-addition-to-agentsmd-costs)). A lead is capped in bytes as well as lines, since a line count lets one long paragraph through, and a doc over 4 KB needs `##` headings, since a doc with none is one long lead read whole.
 
 _Instances:_ the style doc was followed more consistently once it became one line per rule with the reasoning under `docs/code-style/` (`a7810dd`), and the same shape now holds packages/framework/docs/vocabulary.md; `src/`-only rules left the root AGENTS.md for `src/AGENTS.md`; the tier rule and the doc structure's limits moved to `npm run lint`; editing code without opening the style doc, the most common miss, got the gate (#108); Cursor's copy of that gate also requires the framework style doc on framework and app code, because a pointer in `.cursor/rules` was not a read (#167); the rule-line cap gave way to the rule-only convention, and the style doc's trailing examples moved to `docs/code-style/` (#110); the AGENTS.md size caps gave way to a stated cost of adding (#156).
-
-## Untrusted text
-
-Trusted text and Untrusted text are defined in [`runner/GLOSSARY.md`](../runner/GLOSSARY.md). For now, the stance is to keep Untrusted text out of an agent's instructions with cheap mechanical checks, and to leave containment for later. Containment means a step can't do harm even after it is misled. Runner steps read issues only through `npm run issue:read` with `--hide-others`, which labels each part and replaces other people's comments with a count, so the prompt no longer asks the model to work out who wrote what (#269). A pieces runner will read Doc comments the same way, through a labelled reader like `issue:read` (#273).
-
-Containment gets built when any one of these happens:
-
-1. The runner starts working tickets the developer didn't write.
-2. A runner step gains web access, or access to content someone else can edit or comment on.
-3. Untrusted text is caught trying to instruct an agent.
-
-No Drive-permission check is added, because sharing a Doc or Sheet already needs its own yes ([the tier list](./targets-and-gates.md#which-tier-an-action-is-in)). A Sheet's cell values are always data, even in a Sheet only the developer can edit. A merge to master is where text becomes trusted: content committed to master in one of the developer's repos is Trusted text, and a branch is not until it lands.
-
-## Not yet promoted
-
-- **End a fat session with a written handoff, not a longer turn.** Past a size threshold, a finished diagnosis is written down (the conclusion, the files and ranges to open, the hypotheses ruled out) and a fresh session starts from it. A small diagnosis in a lean session skips this. _Cited by:_ #53.
-- **A spec whose premise fails is escalated, not worked around.** When a ticket's placement can only be met with plumbing that exists to get around it, the conflict goes to the developer before the code is written, not into a departure note afterward. _Cited by:_ #84.
-- **Split a big spec into Phases rather than bigger tickets with more handoffs, and ticket one Phase at a time.** Each handoff pays the fixed reads again, a large ticket runs every piece at its hardest piece's pair, handoffs are written under context pressure, and tickets written ahead of real use get reshaped or dropped. The runner stays Phase-unaware: a Phase gate is one more `ready-for-human` blocker, closed only by `/code-tickets` because a gate closed by hand lets the gap check run while later Phases are unticketed. Handoffs stay the fallback for a ticket that outgrows its estimate. _Cited by:_ #213's staging pass (#246–#250), decided in #251.
-- **An approval covers the words the developer saw, not the edits that produced them.** GitHub keeps every edit in a body's history, so approving edits can't tell a revert from a new edit by the same login, while a hash of the approved text breaks on any change. The approval is a comment under the developer's login, so every reader sees it. _Cited by:_ #351.
-- **The author resolves its own review, under verdicts an independent reviewer suggested; overruling one is visible, and a suggested Halt only a person can clear.** _Cited by:_ #359.

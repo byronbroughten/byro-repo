@@ -15,6 +15,8 @@ Every file has one job, and each fact lives in exactly one of them. Everywhere e
 
 ## Map
 
+A library repo in byro-repo may point at a repo that uses it, for cases relevant to the library; from a published doc that pointer is a github.com URL.
+
 ### Root
 
 | File | Holds |
@@ -22,7 +24,8 @@ Every file has one job, and each fact lives in exactly one of them. Everywhere e
 | `AGENTS.md` | Only what changes an agent's behavior on every task: commands, gates, git rules, the README line, the router. Loaded every turn; read [What an addition to AGENTS.md costs](#what-an-addition-to-agentsmd-costs) before growing it. |
 | `CLAUDE.md` | `@AGENTS.md` plus pointers to Claude Code-only mechanics (subagents, hooks). |
 | `GLOSSARY-MAP.md` | Which `GLOSSARY.md` each context owns, how the app's glossary relates to the framework's, and that writing's and the runner's relate to neither. |
-| `docs/agent-behavior-design.md` | Why the agent tooling (hooks, gates, delegation, this doc scheme) is shaped as it is. It never goes in the framework's `docs/design.md`. |
+| `docs/agent-behavior-design.md` | Why the agent tooling (hooks, gates, delegation, this doc scheme) is shaped as it is, each principle citing ADRs. It never goes in the framework's `docs/design.md`. |
+| `docs/adr/*.md` | One agent-behavior decision per file, in the `domain-modeling` skill's ADR format with its `Source:` line. Each repo has its own `docs/adr/`, created with its first ADR. |
 | `docs/targets-and-gates.md` | The tier list of what needs a yes first, ticket targets, the `dev`/`app` targets, the agent account, and the gworkspace MCP rules. |
 | `docs/claude-code-guardrails.md` | The Claude Code hooks and project agent. |
 | `docs/pdf-pages.md` | How a piece stage reads a long PDF by page: download it, count its pages, print a page range, PDF against printed pages, and delete the download. Shared by every piece skill, since user-invoked skills can't reach each other. |
@@ -53,7 +56,8 @@ Its `docs/`, `GLOSSARY.md`, `README.md`, `AGENTS.md` and `CLAUDE.md` files all s
 | `docs/vocabulary.md` | The architecture words, one line per term. |
 | `docs/vocabulary/*.md` | Each term's elaboration, split by subject, indexed by `docs/vocabulary.md`'s "When \| File" table. |
 | `docs/design.md` | Why the codebase is shaped as it is, including deliberate absences, one line per principle. Covers the codebase only. |
-| `docs/design/*.md` | Each principle's argument and instances, one file per principle, plus `candidates.md` for the parked ones. |
+| `docs/design/*.md` | Each principle's argument and instances, one file per principle. |
+| `docs/adr/*.md` | One codebase decision per file, cited by `docs/design.md`'s principles. |
 | `docs/architecture/*.md` | Mechanics, one file per heading, indexed by `docs/architecture.md`. |
 | `docs/how-it-runs.md` | The two hosts, the rollup preset, the `sheets-framework` bin, the dev project, the chore dry run, auth failure, the probe, what the gworkspace MCP can see. |
 | `docs/generated-data.md`, `docs/generated-data/*.md` | The generated configs: the index and regen path, then one file per constant, the config sync and the floor. |
