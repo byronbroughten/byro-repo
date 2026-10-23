@@ -1,0 +1,7 @@
+# byro-repo#373 outcome
+
+Spec: [byro-repo#372](https://github.com/byronbroughten/byro-repo/issues/372)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #373 | Opus medium | 2 | 4 | 116K | Fix (resumed implementer) | 0 | 1 | 0 | 15 min | $3.54 | $4.53 | Fixed: The new ADR 0008 link repeats the #273 share sentence left beside it. (docs/agent-behavior-design.md:51); The ADR 0008 instance runs to several clauses and repeats line 31. (docs/agent-behavior-design.md:33); The migrated section still cites #268, which ADR 0007 records. (docs/agent-behavior-design.md:29); The stalled-run clause is the wrong reason for the well-meaning-agent stance. (docs/adr/0008-gate-agent-actions-by-what-they-cost-to-undo.md:3); A Consequences bullet copies agent-behavior-design.md:31 word for word. (docs/adr/0008-gate-agent-actions-by-what-they-cost-to-undo.md:9); Consequences bullets restate tier-list rows and the line-29 containment sentence. (docs/adr/0008-gate-agent-actions-by-what-they-cost-to-undo.md:10-12); The ADR 0008 link packs two claims into one long clause. (docs/agent-behavior-design.md:33 (ADR 0008 link)); The old #273 share instance and the new ADR 0008 link say the same thing side by side. (docs/agent-behavior-design.md:51). | 7f87d824-1808-4e67-b205-77d6969c9980, 4d359a3c-51e2-4c7a-862b-d6de258554d0 |
