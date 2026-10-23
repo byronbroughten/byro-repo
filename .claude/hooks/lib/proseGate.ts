@@ -1,5 +1,5 @@
 // Decides the prose gate: an edit to a tracked markdown file waits for a full read of docs/prose-style.md this session. Pure; proseGate.ts does the I/O.
-import { join, sep } from "node:path";
+import { sep } from "node:path";
 
 import {
   type FileLocation,
@@ -9,6 +9,7 @@ import {
 import {
   type EditDecision,
   fullReadReason,
+  isFullDocBashRead,
   isFullDocRead,
   type StyleRead,
 } from "./styleGate.ts";
@@ -49,10 +50,9 @@ export function isProseRead(read: StyleRead): boolean {
   return isFullDocRead(read, prosePath);
 }
 
-// wholeFilePaths are absolute, as BashReads.wholeFilePaths returns them.
 export function isProseBashRead(
   projectDir: string,
   wholeFilePaths: string[],
 ): boolean {
-  return wholeFilePaths.includes(join(projectDir, prosePath));
+  return isFullDocBashRead(projectDir, wholeFilePaths, prosePath);
 }

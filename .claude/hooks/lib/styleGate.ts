@@ -115,12 +115,20 @@ export function isStyleRead(read: StyleRead): boolean {
   return isFullDocRead(read, stylePath);
 }
 
-// wholeFilePaths are absolute, as BashReads.wholeFilePaths returns them.
 export function isStyleBashRead(
   projectDir: string,
   wholeFilePaths: string[],
 ): boolean {
-  return wholeFilePaths.includes(join(projectDir, stylePath));
+  return isFullDocBashRead(projectDir, wholeFilePaths, stylePath);
+}
+
+// wholeFilePaths are absolute, as BashReads.wholeFilePaths returns them.
+export function isFullDocBashRead(
+  projectDir: string,
+  wholeFilePaths: string[],
+  docPath: string,
+): boolean {
+  return wholeFilePaths.includes(join(projectDir, docPath));
 }
 
 export function isFullDocRead(
