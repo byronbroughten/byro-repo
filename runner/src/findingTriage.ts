@@ -76,7 +76,7 @@ Never edit code, and change nothing else: no edits, commits, comments, issues or
 
 - **Dismiss**: no action. \`reason\` is one of:
 ${dismissReasonLines()}.
-- **Fix**: fixed now, in a separate commit. It needs \`quote\`, the quoted code with its file:line, and \`rule\`, the documented rule or spec line it breaks. A smell is Fix by default (\`config/docs/code-style.md#smells\`): unless it is \`kept\` or a Propose \`decision\`, \`rule\` names the smell and that section, with the smell's "→ how to fix" line from the finding. Doc drift the diff caused is Fix.
+- **Fix**: fixed now, in a separate commit. It needs \`quote\`, the quoted code with its file:line, and \`rule\`, the documented rule or spec line it breaks. A smell is Fix by default (\`docs/agents/verdicts.md\`): unless it is \`kept\` or a Propose \`decision\`, \`rule\` names the smell and that doc, with the smell's "→ how to fix" line from the finding. Doc drift the diff caused is Fix.
 - **Propose**: left for the developer. \`reason\` is \`decision\` for a judgement only they can make, or \`ticket\` for a problem that predates this branch, with a drafted issue title in \`draftIssueTitle\`. The runner never files them. A \`decision\` covers unverifiable findings and two smell cases:
   - a smell you think is wanted but whose site carries no reason, with the drafted one-line reason in \`draftKeepReason\` and \`recommendation\` asking the developer to approve it, since every new keep needs their yes;
   - a smell whose fix would reverse a User Story or an Implementation Decision. A spec protects decisions, not wording: a fix that changes how a decision is met while the decision still holds is a Fix.

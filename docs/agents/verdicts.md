@@ -1,6 +1,14 @@
 # Verdicts
 
-How any review finding is judged: one verdict each, Dismiss, Fix, Propose or Halt. The code-review skill's reviewers suggest one per finding and the resolve step settles it. The reasoning and examples for the smell rules are in [`docs/agents/verdicts/smells.md`](./verdicts/smells.md).
+How any review finding is judged: one verdict each, Dismiss, Fix, Propose or Halt. The code-review skill's reviewers suggest one per finding and the resolve step settles it.
+
+One line per rule. The reasoning and worked examples are one file away. Open a reasoning file only when you're changing the rule, or the rule's line doesn't decide your case.
+
+## Reasoning files
+
+| When | File |
+| --- | --- |
+| A smell: fixing it, keeping it, a stale keep reason, an approved exception | [`docs/agents/verdicts/smells.md`](./verdicts/smells.md) |
 
 ## The verdicts
 
@@ -19,7 +27,7 @@ How any review finding is judged: one verdict each, Dismiss, Fix, Propose or Hal
 - **Standards findings, smells included, share one rule: Fix by default**, the way the review's how-to-fix line for a smell says.
 - **A documented standard overrides the smell baseline**: where it endorses what the baseline flags, the smell is suppressed, not Proposed.
 - **A finding is `kept` only for an external constraint**: a library's or API's required shape, or generated code. Its site carries a one-line reason that is still true.
-- **Every new keep needs the developer's yes**: a finding you think should stay, whose site carries no reason, is a Propose `decision` with the drafted one-line reason.
+- **Every new keep needs the developer's yes**: a finding an external constraint forces, whose site carries no reason, is a Propose `decision` with the drafted one-line reason.
 - **A reason that's no longer true makes the finding fresh.** Re-check a kept reason when the diff touches its site or what the reason relies on.
 - **Two documented standards in conflict is a Propose `decision`.** A conflict with the spec follows the Halt rules.
 
@@ -46,5 +54,5 @@ A suggested verdict may be overruled with a reason. A suggested Halt becomes onl
 
 Recurring keep reasons the developer has said yes to. Each suspends the rule it names, everywhere it applies.
 
-- **Suspends Speculative Generality: a public member with no callers is kept only in a library package** (the framework and utils packages), and within one only where its style doc allows. In an app package (real-estate, runner) it is flagged; an older caller-less member found there predates the branch, so it is a Propose `ticket`. Types are left out: an exported type with no callers is flagged.
+- **Suspends Speculative Generality: a public member with no callers is kept only in a library package** (the framework and utils packages), unless another member does the same job with the same or fewer parameters, and within one only where its style doc allows. In an app package (real-estate, runner) it is flagged; an older caller-less member found there predates the branch, so it is a Propose `ticket`. Types are left out: an exported type with no callers is flagged.
 - **Suspends Middle Man: a type in use stays even when it only names another type, a primitive or a literal union** (`type SheetGid = number`).
