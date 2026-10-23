@@ -2,10 +2,6 @@
 // A Bash call naming gh also reads this claude's supervision record, since a supervising session's gh writes ask.
 import { writeFileSync } from "node:fs";
 
-import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
-
-import { nearestClaudeAncestor } from "../../scripts/runner/claudeAncestor.ts";
-import { stateFolder } from "../../scripts/runner/runnerConfig.ts";
 import { driveOwnersOf } from "./lib/driveOwners.ts";
 import {
   cachedOwnerLookup,
@@ -86,12 +82,22 @@ async function bashDecision(input: HookInput): Promise<Decision | undefined> {
   });
 }
 
-// A runner step is never a supervisor, so only an interactive session's claude is looked up.
+// Loaded here, not at the top, so only a gh call pays for the runner config; a failed lookup counts as supervising, so gh writes ask.
 async function isSupervising(): Promise<boolean> {
-  const holder = nearestClaudeAncestor();
-  if (!holder) return false;
-  const record = await SupervisionRecords.init(stateFolder).recordOf(holder);
-  return record !== undefined;
+  try {
+    const { nearestClaudeAncestor } =
+      await import("../../scripts/runner/claudeAncestor.ts");
+    const { stateFolder } =
+      await import("../../scripts/runner/runnerConfig.ts");
+    const { SupervisionRecords } =
+      await import("@byronbroughten/spec-runner/SupervisionRecords");
+    const holder = nearestClaudeAncestor();
+    if (!holder) return false;
+    const record = await SupervisionRecords.init(stateFolder).recordOf(holder);
+    return record !== undefined;
+  } catch {
+    return true;
+  }
 }
 
 function recordDryRuns(path: string, chores: string[]): void {
