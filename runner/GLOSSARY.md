@@ -12,6 +12,10 @@ _Avoid_: orchestrator, driver, pipeline
 One stage of a ticket's run, in order: implement, review, resolve, checks and wrap-up, with the gap check once at the end of the spec. An agent step is one `claude -p` session; checks and wrap-up the runner does itself.
 _Avoid_: phase, stage, job
 
+**Active account**:
+The Claude account the developer is logged in with right now, as cswap reports it. A fresh agent step runs on it; a resumed session stays on the account it started on.
+_Avoid_: configured account, current account, runner account
+
 **Checks**:
 The type check, the tests and the lint, which every change passes before it lands, whether a run's steps or an interactive session made it.
 _Avoid_: run check, CI, the gate
@@ -72,11 +76,11 @@ _Avoid_: error, crash
 A Halt raised in place of a fresh implement step when a handoff proposes splitting the ticket, carrying the proposed slices. The developer splits the ticket, then answers `continue`. It is not a Failure Halt, so the stuck detector ignores it.
 
 **Stop**:
-The run ends early: on a failure no answer can fix inside the run (GitHub or `claude` unreachable or logged out, a clone missing or dirty, a red master, every account past its weekly reserve, or a runner exception), or after the current ticket on a stop request (`npm run runner -- stop`) or a `stop spec` answer, which leaves a halted ticket committed and unlanded with its other Halts open. Rerunning resumes it.
+The run ends early: on a failure no answer can fix inside the run (GitHub or `claude` unreachable or logged out, a clone missing or dirty, a red master, the account a step would run on past its weekly reserve, or a runner exception), or after the current ticket on a stop request (`npm run runner -- stop`) or a `stop spec` answer, which leaves a halted ticket committed and unlanded with its other Halts open. Rerunning resumes it.
 _Avoid_: abort, exit, kill
 
 **Limit wait**:
-The run pauses until the earliest 5-hour usage reset plus a margin, because every account is past its 5-hour threshold, then continues unaided.
+The run pauses because the account a step would run on is past its 5-hour threshold, and continues unaided once that window resets or a fresh step's active account is under it.
 _Avoid_: cooldown, throttle
 
 **Idle**:
