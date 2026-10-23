@@ -130,9 +130,13 @@ export function holderLabelOf({ kind, pid }: LeaseHolder): string {
   return `a ${kind} (pid ${pid})`;
 }
 
-export interface KeyedFolder {
+interface KeyedFolder {
   path: string;
   key: WorkspaceKey;
+}
+
+interface MaybeLeasedFolder extends KeyedFolder {
+  lease?: Lease;
 }
 
 export interface LeasedWorkspace extends KeyedFolder {
@@ -272,6 +276,15 @@ export class IssueWorkspaces {
   // The folder alone, with no git process, for a caller that needs only its path or lease.
   folderOf(key: WorkspaceKey): KeyedFolder | undefined {
     return this._keyedFolders().find((keyed) => isSameKey(keyed.key, key));
+  }
+
+  // The folder and its lease, with no git process, for a caller that checks or moves only the lease.
+  async leasedFolderOf(
+    key: WorkspaceKey,
+  ): Promise<MaybeLeasedFolder | undefined> {
+    const folder = this.folderOf(key);
+    if (!folder) return undefined;
+    return { ...folder, lease: await this.leaseOf(folder) };
   }
 
   async list(): Promise<WorkspaceStatus[]> {

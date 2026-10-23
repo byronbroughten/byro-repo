@@ -328,12 +328,8 @@ export class WrapUp {
     key: SessionKey,
     holder: LeaseHolder | undefined,
   ): Promise<void> {
-    const folder = this.workspaces.folderOf(key);
-    if (!folder) return;
-    const other = otherLiveHolderOf(
-      await this.workspaces.leaseOf(folder),
-      holder,
-    );
+    const folder = await this.workspaces.leasedFolderOf(key);
+    const other = otherLiveHolderOf(folder?.lease, holder);
     if (!other) return;
     throw new LeaseHeld(
       `${workspaceLabelOf(key)} is leased by ${holderLabelOf(other)}, which is still running`,
@@ -863,9 +859,9 @@ export class WrapUp {
   }
 
   private async _removeWorkspace(key: WorkspaceKey): Promise<void> {
-    const folder = this.workspaces.folderOf(key);
+    const folder = await this.workspaces.leasedFolderOf(key);
     if (!folder) return;
-    const lease = await this.workspaces.leaseOf(folder);
+    const { lease } = folder;
     await this.workspaces.releaseLease(folder);
     try {
       await this.workspaces.remove(folder);
