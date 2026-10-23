@@ -82,6 +82,7 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 - **An option that combines other options is built from them, not from copies of their bodies.**
 - **`if`/`else` over a ternary for anything beyond a single trivial value pick** with no side effects; a ternary inside `${}` must also fit on one line, or it becomes a named local.
 - **Encode state as a named variable and an explicit `if`, not a wrapper object or a compact operator whose meaning the reader has to reconstruct.** `??=` is for filling in a default, not for "computed yet?" tracking.
+- **`&&` and `||` are for true/false tests, never for producing a value; use `?.`, `??`, an `if` or a ternary.** A falsy `0` or `""` passes through `a && b` as if it were missing. One exception: a conditional spread in an object literal, `...(x && { x })`, when `x` is an object or `undefined`.
 
 ## Smells
 
