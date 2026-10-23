@@ -4,6 +4,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readdirSync,
+  readFileSync,
   realpathSync,
   rmSync,
   writeFileSync,
@@ -13,7 +14,12 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Checks, type ChecksConfig } from "./Checks.ts";
+import {
+  type CheckResult,
+  Checks,
+  type ChecksConfig,
+  type CommandDuration,
+} from "./Checks.ts";
 import type { Command } from "./runKnobs.ts";
 
 const clonePaths = {
@@ -104,6 +110,21 @@ function stampCount(): number {
   return existsSync(stampFolder) ? readdirSync(stampFolder).length : 0;
 }
 
+function sleeping(seconds: number): Command {
+  return ["sh", "-c", `sleep ${seconds}`];
+}
+
+function durationsOf(result: CheckResult): CommandDuration[] {
+  if (result.kind === "skipped") throw new Error("A skip has no durations.");
+  return result.durations;
+}
+
+function stampContents(): unknown[] {
+  return readdirSync(stampFolder).map((name) =>
+    JSON.parse(readFileSync(join(stampFolder, name), "utf8")),
+  );
+}
+
 // Leaves its own marker, then waits up to five seconds for the other's; only commands run at once both pass.
 function waitingFor(own: string, other: string): Command {
   const script = `touch ${join(temp, own)}; i=0; while [ ! -f ${join(temp, other)} ]; do i=$((i+1)); [ $i -gt 100 ] && exit 1; sleep 0.05; done`;
@@ -114,14 +135,14 @@ describe("Checks.run", () => {
   it("passes and writes a stamp when every command is green and every repo clean", async () => {
     const result = await checks([marking("a"), marking("b")]).run();
 
-    expect(result).toEqual({ kind: "passed", isStamped: true });
+    expect(result).toMatchObject({ kind: "passed", isStamped: true });
     expect(stampCount()).toBe(1);
   });
 
   it("fails with the red command's output and writes no stamp", async () => {
     const result = await checks([marking("a"), marking("b", 1)]).run();
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       kind: "failed",
       failures: [{ command: marking("b", 1), output: "b says hello" }],
     });
@@ -135,7 +156,7 @@ describe("Checks.run", () => {
       marking("c", 2),
     ]).run();
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       kind: "failed",
       failures: [
         { command: marking("a", 1), output: "a says hello" },
@@ -149,7 +170,7 @@ describe("Checks.run", () => {
 
     const result = await checks([marking("a")]).run();
 
-    expect(result).toEqual({ kind: "passed", isStamped: false });
+    expect(result).toMatchObject({ kind: "passed", isStamped: false });
     expect(hasRun("a")).toBe(true);
     expect(stampCount()).toBe(0);
   });
@@ -159,7 +180,7 @@ describe("Checks.run", () => {
 
     const result = await checks([marking("a")]).run();
 
-    expect(result).toEqual({ kind: "passed", isStamped: false });
+    expect(result).toMatchObject({ kind: "passed", isStamped: false });
     expect(stampCount()).toBe(0);
   });
 
@@ -172,7 +193,7 @@ describe("Checks.run", () => {
 
     const result = await checks([editing]).run();
 
-    expect(result).toEqual({ kind: "passed", isStamped: false });
+    expect(result).toMatchObject({ kind: "passed", isStamped: false });
     expect(stampCount()).toBe(0);
   });
 
@@ -185,7 +206,7 @@ describe("Checks.run", () => {
 
     const result = await checks([committing]).run();
 
-    expect(result).toEqual({ kind: "passed", isStamped: false });
+    expect(result).toMatchObject({ kind: "passed", isStamped: false });
     expect(stampCount()).toBe(0);
   });
 
@@ -205,7 +226,7 @@ describe("Checks.run", () => {
 
     const result = await checks([marking("a")]).run({ isFresh: true });
 
-    expect(result).toEqual({ kind: "passed", isStamped: true });
+    expect(result).toMatchObject({ kind: "passed", isStamped: true });
     expect(hasRun("a")).toBe(true);
     expect(stampCount()).toBe(1);
   });
@@ -217,7 +238,7 @@ describe("Checks.run", () => {
 
     const result = await checks([marking("a")]).run();
 
-    expect(result).toEqual({ kind: "passed", isStamped: true });
+    expect(result).toMatchObject({ kind: "passed", isStamped: true });
     expect(hasRun("a")).toBe(true);
   });
 
@@ -228,7 +249,7 @@ describe("Checks.run", () => {
 
     const result = await checks([marking("a")]).run();
 
-    expect(result).toEqual({ kind: "passed", isStamped: true });
+    expect(result).toMatchObject({ kind: "passed", isStamped: true });
     expect(hasRun("a")).toBe(true);
   });
 
@@ -240,8 +261,50 @@ describe("Checks.run", () => {
       nodeVersion: "v24.0.0",
     }).run();
 
-    expect(result).toEqual({ kind: "passed", isStamped: true });
+    expect(result).toMatchObject({ kind: "passed", isStamped: true });
     expect(hasRun("a")).toBe(true);
+  });
+
+  it("times each command of a pass, in command order", async () => {
+    const result = await checks([marking("a"), sleeping(0.2)]).run();
+
+    expect(result).toMatchObject({
+      kind: "passed",
+      durations: [
+        { command: marking("a"), ms: expect.any(Number) },
+        { command: sleeping(0.2), ms: expect.any(Number) },
+      ],
+    });
+    const [, slept] = durationsOf(result);
+    expect(slept.ms).toBeGreaterThanOrEqual(200);
+  });
+
+  it("times each command of a failure, green and red alike", async () => {
+    const result = await checks([marking("a"), marking("b", 1)]).run();
+
+    expect(result).toMatchObject({
+      kind: "failed",
+      durations: [
+        { command: marking("a"), ms: expect.any(Number) },
+        { command: marking("b", 1), ms: expect.any(Number) },
+      ],
+    });
+  });
+
+  it("keeps a stamped pass's durations in its stamp", async () => {
+    const result = await checks([marking("a"), marking("b")]).run();
+
+    expect(stampContents()).toEqual([durationsOf(result)]);
+  });
+
+  it("reports no durations on a skip and leaves the stamp as it was", async () => {
+    await checks([marking("a")]).run();
+    const stamped = stampContents();
+
+    const result = await checks([marking("a")]).run();
+
+    expect(result).toEqual({ kind: "skipped" });
+    expect(stampContents()).toEqual(stamped);
   });
 
   it("runs the commands at the same time", async () => {
@@ -250,6 +313,6 @@ describe("Checks.run", () => {
       waitingFor("right", "left"),
     ]).run();
 
-    expect(result).toEqual({ kind: "passed", isStamped: true });
+    expect(result).toMatchObject({ kind: "passed", isStamped: true });
   });
 });

@@ -45,3 +45,10 @@ if (result.kind === "skipped") {
   console.error(`\ncheck failed: ${labels.join("; ")}`);
   process.exitCode = 1;
 }
+if (result.kind !== "skipped") {
+  const timings = result.durations.map(
+    ({ command, ms }) =>
+      `${commandLabelOf(command)} ${(ms / 1000).toFixed(1)}s`,
+  );
+  console.log(`Took: ${timings.join("; ")}.`);
+}
