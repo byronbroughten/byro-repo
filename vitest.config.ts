@@ -1,4 +1,20 @@
+import { execFileSync } from "node:child_process";
+import { delimiter, dirname } from "node:path";
+
 import { defineConfig } from "vitest/config";
+
+// macOS's /usr/bin/git is an xcrun shim that doubles each git call's cost, and the runner tests make thousands.
+function directGitPath(): string | undefined {
+  if (process.platform !== "darwin") return undefined;
+  try {
+    const git = execFileSync("xcrun", ["--find", "git"], { encoding: "utf8" });
+    return [dirname(git.trim()), process.env.PATH].join(delimiter);
+  } catch {
+    return undefined;
+  }
+}
+
+const path = directGitPath();
 
 // The framework runs its own tests from its vitest.config.ts; the root's `npm test` reaches it through the workspaces.
 export default defineConfig({
@@ -6,6 +22,7 @@ export default defineConfig({
   ssr: { resolve: { conditions: ["source"] } },
   test: {
     environment: "node",
+    ...(path && { env: { PATH: path } }),
     restoreMocks: true,
     unstubGlobals: true,
     projects: [

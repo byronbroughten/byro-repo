@@ -259,9 +259,12 @@ export class IssueWorkspaces {
     return path;
   }
 
+  // Reads only the matching folder's repos, since each status read is a git process.
   async find(key: WorkspaceKey): Promise<WorkspaceStatus | undefined> {
-    const workspaces = await this.list();
-    return workspaces.find((workspace) => isSameKey(workspace.key, key));
+    const folder = this._keyedFolders().find((keyed) =>
+      isSameKey(keyed.key, key),
+    );
+    return folder && (await this._statusOf(folder.path, folder.key));
   }
 
   async list(): Promise<WorkspaceStatus[]> {
@@ -488,18 +491,17 @@ export class IssueWorkspaces {
     return worktree;
   }
 
-  private async _repoWorktreesOf(path: string): Promise<RepoWorktree[]> {
-    const worktrees: RepoWorktree[] = [];
-    for (const [repo, clonePath] of this._clonesRootFirst) {
-      const worktree = join(path, clonePath);
-      if (!existsSync(worktree)) continue;
-      worktrees.push({
+  private _repoWorktreesOf(path: string): Promise<RepoWorktree[]> {
+    const present = this._clonesRootFirst
+      .map(([repo, clonePath]) => ({ repo, worktree: join(path, clonePath) }))
+      .filter(({ worktree }) => existsSync(worktree));
+    return Promise.all(
+      present.map(async ({ repo, worktree }) => ({
         repo,
         worktree,
         state: await worktreeStateOf(worktree),
-      });
-    }
-    return worktrees;
+      })),
+    );
   }
 
   private _keyOfFolder(name: string): WorkspaceKey | undefined {
