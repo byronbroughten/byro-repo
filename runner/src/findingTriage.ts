@@ -1,5 +1,5 @@
-// Finding triage: the prompt that gives each review finding one verdict, the triage record it returns,
-// and the checker that refuses a record naming the verdict rule it broke.
+// Resolve: the prompt that gives each review finding one verdict and fixes the Fix ones, the triage record it returns,
+// and the checkers that refuse a record, or commits that disagree with it, naming the rule broken.
 // reviewStep.ts supplies the findings; StepStream.ts checks the output against triageOutputSchema first.
 
 import { stepReadLine } from "./IssueReader.ts";
@@ -9,18 +9,14 @@ import { stringSchema } from "./recordSchema.ts";
 import type { Finding } from "./reviewStep.ts";
 import { axes, type Axis, type Verdict, verdicts } from "./verdicts.ts";
 
-// Each Dismiss reason with its definition, as the prompt states it.
-const dismissReasonDefinitions = {
-  "false-positive":
-    "the finding is wrong about the code, the ticket or the spec",
-  "covered-later":
-    "a later ticket covers it, named in `coveredBy` as `<repo>#<n>`",
-  kept: "a smell whose site carries a one-line reason that is still true, quoted with its file:line in `quote`",
-  "tooling-enforced": "lint, the typecheck or a test already catches it",
-} as const;
-const dismissReasons = Object.keys(
-  dismissReasonDefinitions,
-) as (keyof typeof dismissReasonDefinitions)[];
+// docs/agents/verdicts.md defines each reason.
+const dismissReasons = [
+  "false-positive",
+  "covered-later",
+  "kept",
+  "tooling-enforced",
+  "serves-spec",
+] as const;
 const proposeReasons = ["decision", "ticket"] as const;
 
 export type DismissReason = (typeof dismissReasons)[number];
@@ -34,6 +30,8 @@ export interface TriageRecord {
   // The finding's number in the review's list, from 1.
   finding: number;
   axis: Axis;
+  // The reviewer's, set by the runner; absent for a finding saved before #362.
+  suggestedVerdict?: Verdict;
   where: string;
   claim: string;
   quote?: string;
@@ -57,7 +55,7 @@ export interface TriagePromptInput {
   findings: Finding[];
 }
 
-export function triagePrompt({
+export function resolvePrompt({
   issue,
   title,
   branch,
@@ -67,27 +65,26 @@ export function triagePrompt({
   const numbered = findings.map(
     (finding, index) => `${index + 1}. ${findingLineOf(finding)}`,
   );
-  return `You are the finding-triage step of an unattended run. Nobody is watching this session: never ask a question or wait for an answer.
+  return `You are the resolve step of an unattended run. Nobody is watching this session: never ask a question or wait for an answer.
 
-The review of ${issue.repo}#${issue.number}, "${title}", reported the findings below, each with its axis and its reviewer's suggested verdict. Give each one exactly one verdict; you may overrule a suggested verdict with a reason, under \`docs/agents/verdicts.md\`. Your working directory is the ticket's issue workspace root; these repos are on the ticket's branch, \`${branch}\`: ${branchedRepos.join(", ")}. Verify each finding against the code, the ticket and its spec before you judge it. ${stepReadLine}
+The review of ${issue.repo}#${issue.number}, "${title}", reported the findings below, each with its axis and its reviewer's suggested verdict. Give each one exactly one verdict, Dismiss, Fix, Propose or Halt, by the rules in \`docs/agents/verdicts.md\`; read it before you judge. You may overrule a suggested verdict only as that doc allows, saying why in \`evidence\`. Then fix the Fix ones. Your working directory is the ticket's issue workspace root; these repos are on the ticket's branch, \`${branch}\`: ${branchedRepos.join(", ")}. Change only those repos. Verify each finding against the code, the ticket and its spec before you judge it. ${stepReadLine}
 
-Never edit code, and change nothing else: no edits, commits, comments, issues or fixes. The runner acts on your verdicts.
+## How you work
 
-## Verdicts
-
-- **Dismiss**: no action. \`reason\` is one of:
-${dismissReasonLines()}.
-- **Fix**: fixed now, in a separate commit. It needs \`quote\`, the quoted code with its file:line, and \`rule\`, the documented rule or spec line it breaks. A smell is Fix by default (\`docs/agents/verdicts.md\`): unless it is \`kept\` or a Propose \`decision\`, \`rule\` names the smell and that doc, with the smell's "→ how to fix" line from the finding. Doc drift the diff caused is Fix.
-- **Propose**: left for the developer. \`reason\` is \`decision\` for a judgement only they can make, or \`ticket\` for a problem that predates this branch, with a drafted issue title in \`draftIssueTitle\`. The runner never files them. A \`decision\` covers unverifiable findings and two smell cases:
-  - a smell you think is wanted but whose site carries no reason, with the drafted one-line reason in \`draftKeepReason\` and \`recommendation\` asking the developer to approve it, since every new keep needs their yes;
-  - a smell whose fix would reverse a User Story or an Implementation Decision. A spec protects decisions, not wording: a fix that changes how a decision is met while the decision still holds is a Fix.
-- **Halt**: blocks tickets until the developer answers. \`haltScope\` names the later tickets it blocks, each \`<repo>#<n>\`, with their downstream, or is \`spec\` for the whole spec; when unsure, omit \`haltScope\` to scope it to the whole spec.
-- Propose and Halt each need \`recommendation\`, what you recommend the developer do.
-- Only that wanted-smell case of Propose \`decision\` has \`draftKeepReason\`.
+- Read and search with the Read and Grep tools. Give Bash one command per call, run from the workspace root: no \`cd\`, no \`;\` or \`&&\` chains, no variables.
+- Each Fix lands in its own commit on the ticket's branch, separate from the implement commit. Commit nothing when no finding is a Fix.
+- Once the fixes are in, run \`npm run check\`. When it fails on a fix, fix it in a further commit and run it again. A fix you can't turn green, or one that would reverse a spec decision, is reverted in a further commit and resolved as a Propose \`decision\` saying why. When it fails only on something your fixes didn't cause, return your records anyway; the runner's checks step stops on it.
+- When two fixes are equally good, pick one and say which in the commit message.
+- Never amend, push, merge, rebase or reset, never comment on, file or close an issue, and never run the wrap-up. The runner acts on your Propose and Halt verdicts.
 
 ## The record
 
-Return \`records\`, exactly one record per finding: \`finding\` (its number below), \`axis\` (the finding's own, or for a finding without one, \`standards\` or \`spec\`), \`where\` (its file:line or area), \`claim\` (what the finding says, in a line), \`verdict\` (\`dismiss\`, \`fix\`, \`propose\` or \`halt\`), \`evidence\` (what you checked and found), and the fields its verdict needs above.
+Return \`records\`, exactly one record per finding: \`finding\` (its number below), \`axis\` (the finding's own, or for a finding without one, \`standards\` or \`spec\`), \`where\` (its file:line or area), \`claim\` (what the finding says, in a line), \`verdict\` (\`dismiss\`, \`fix\`, \`propose\` or \`halt\`), \`evidence\` (what you checked and found, and why, when you overruled the suggested verdict), and the fields its verdict needs:
+
+- **Dismiss**: \`reason\`, one of ${codeListOf(dismissReasons)}; for \`covered-later\`, \`coveredBy\`, the later ticket as \`<repo>#<n>\`; for \`kept\`, \`quote\`, the site's reason with its file:line.
+- **Fix**: \`quote\`, the quoted code with its file:line, and \`rule\`, the documented rule or spec line it breaks.
+- **Propose**: \`reason\`, ${codeListOf(proposeReasons)}, and \`recommendation\`; for \`ticket\`, \`draftIssueTitle\`; for a \`decision\` asking the developer's yes to a new keep, \`draftKeepReason\`, the drafted one-line reason.
+- **Halt**: \`recommendation\`, and \`haltScope\`, the later tickets it blocks as \`<repo>#<n>\`, or \`spec\`; omit it to block the whole spec.
 
 ## Findings
 
@@ -100,16 +97,10 @@ function findingLineOf(finding: Finding): string {
   return `[${axis}] ${where}: ${claim} Suggested verdict: ${suggestedVerdict}, ${reason}`;
 }
 
-function dismissReasonLines(): string {
-  return Object.entries(dismissReasonDefinitions)
-    .map(([reason, definition]) => `  - \`${reason}\`: ${definition}`)
-    .join(";\n");
-}
-
-// Sent with --resume to a triage agent whose records broke a verdict rule; its one retry.
-export function triageRetryPrompt(problems: string[]): string {
+// Sent with --resume to a resolver whose records or commits broke a rule; its one retry.
+export function resolveRetryPrompt(problems: string[]): string {
   const rules = problems.map((problem) => `- ${problem}`).join("\n");
-  return `Your records broke these rules:\n\n${rules}\n\nReturn \`records\` again, every finding's, with these corrected. Change nothing else.`;
+  return `Your records broke these rules:\n\n${rules}\n\nCorrect them, committing any fix they need, and return \`records\` again, every finding's.`;
 }
 
 export const triageRecordSchema = {
@@ -151,15 +142,16 @@ export function triageRecordsOf(output: unknown): TriageRecord[] {
   return (output as { records: TriageRecord[] }).records;
 }
 
-// A structured finding's axis is its reviewer's, whatever triage wrote; a prose finding's is triage's.
-export function withReviewerAxes(
+// A structured finding's axis and suggested verdict are its reviewer's, whatever the resolver wrote.
+export function withReviewerFields(
   records: TriageRecord[],
   findings: Finding[],
 ): TriageRecord[] {
   return records.map((record) => {
     const finding = findings[record.finding - 1];
     if (finding === undefined || typeof finding === "string") return record;
-    return { ...record, axis: finding.axis };
+    const { axis, suggestedVerdict } = finding;
+    return { ...record, axis, suggestedVerdict };
   });
 }
 
@@ -182,9 +174,44 @@ export function triageRecordProblems(
   return [
     ...verdictCountProblems(findingCount, records),
     ...records.flatMap((record) =>
-      [...verdictRules[record.verdict](record), ...keepReasonRules(record)].map(
-        (rule) => findingProblem(record.finding, rule),
-      ),
+      [
+        ...verdictRules[record.verdict](record),
+        ...keepReasonRules(record),
+        ...suggestedHaltRules(record),
+      ].map((rule) => findingProblem(record.finding, rule)),
+    ),
+  ];
+}
+
+export interface ResolveCommits {
+  records: TriageRecord[];
+  // Whether the committed tree differs from the one the resolve started on; a reverted fix leaves it unchanged.
+  hasChangedTree: boolean;
+  // The repos the resolver left uncommitted changes in.
+  dirtyRepos: string[];
+}
+
+// What the records can't show alone: whether what git shows matches the Fix verdicts.
+export function resolveCommitProblems({
+  records,
+  hasChangedTree,
+  dirtyRepos,
+}: ResolveCommits): string[] {
+  const hasFix = records.some(({ verdict }) => verdict === "fix");
+  return [
+    ...brokenRules([
+      [
+        hasFix && !hasChangedTree,
+        "the records give a Fix, but the step committed no change",
+      ],
+      [
+        !hasFix && hasChangedTree,
+        "no record is a Fix, but the step committed a change",
+      ],
+    ]),
+    ...dirtyRepos.map(
+      (repo) =>
+        `${repo}: the step left uncommitted changes, such as a fix it didn't commit or revert`,
     ),
   ];
 }
@@ -290,6 +317,20 @@ function keepReasonRules({
   ]);
 }
 
+function suggestedHaltRules({
+  suggestedVerdict,
+  verdict,
+  reason,
+}: TriageRecord): string[] {
+  const isDecision = verdict === "propose" && reason === "decision";
+  return brokenRules([
+    [
+      suggestedVerdict === "halt" && verdict !== "halt" && !isDecision,
+      "a suggested Halt resolves only as a Halt or a Propose `decision`",
+    ],
+  ]);
+}
+
 function brokenRules(rules: [isBroken: boolean, rule: string][]): string[] {
   return rules.flatMap(([isBroken, rule]) => (isBroken ? [rule] : []));
 }
@@ -307,7 +348,7 @@ function recommendationRule(verdict: "Propose" | "Halt"): string {
   return `a ${verdict} needs \`recommendation\``;
 }
 
-// A Halt with no scope blocks the whole spec: the safe default when the triage agent is unsure.
+// A Halt with no scope blocks the whole spec: the safe default when the resolver is unsure.
 export function haltScopeOf(record: TriageRecord): HaltScope {
   return record.haltScope ?? "spec";
 }
@@ -318,7 +359,7 @@ const caughtLabels = {
   halt: "Halted",
 } as const satisfies Partial<Record<Verdict, string>>;
 
-// The outcome row's text, after a fixer's give-ups are rewritten; undefined when the review kept nothing.
+// The outcome row's text; undefined when the review kept nothing.
 export function whatReviewCaughtOf(
   records: TriageRecord[],
 ): string | undefined {
