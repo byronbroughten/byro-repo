@@ -1,6 +1,6 @@
 # Gate agent actions by what they cost to undo
 
-Gates built a rule at a time asked for cheap-to-undo actions, such as every `app:*` write and every commit, while a push that could leak a secret got no more protection than a sheet edit. One gate decision now sorts every tool call into three tiers: free when git can undo it, free when Google's version history can (live `app:*`/`dev:*` commands, and files the developer's accounts own), and an ask for anything that can't be undone or reaches someone else, such as a raw push, a publish, a sharing change, another owner's file, money or credentials. The gates are designed against a well-meaning agent that makes a mistake, since a stalled run had cost more than any action an agent took.
+Gates built a rule at a time asked for cheap-to-undo actions, such as every `app:*` write and commit, though a stalled run cost more than any agent action, while a secret-leaking push got no more protection than a sheet edit. One gate decision now sorts every tool call into tiers: free when git or Google's version history can undo it (live `app:*`/`dev:*` commands, files the developer's accounts own), and an ask for anything that can't be undone or reaches someone else, such as a raw push, a publish, a sharing change, another owner's file, money or credentials. With Untrusted text kept out by ADR 0007, the gates guard against a well-meaning agent's mistakes.
 
 Source: byronbroughten/byro-repo#273, byronbroughten/byro-repo#274, byronbroughten/byro-repo#276
 
