@@ -9,8 +9,8 @@ import {
   type WritingSheet,
   writingSheetPaths,
 } from "./docContentGate.ts";
+import { type EditDecision, isFullDocRead } from "./fullDocRead.ts";
 import type { ToolInput } from "./hookIo.ts";
-import { type EditDecision, isFullDocRead } from "./styleGate.ts";
 
 // Real tool inputs carry more fields than the gate reads.
 type DocArgs = ToolInput & Record<string, unknown>;

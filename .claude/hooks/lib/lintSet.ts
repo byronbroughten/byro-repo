@@ -1,4 +1,4 @@
-// Which files the guardrail hooks treat as code: the set `eslint .` lints, minus each package's generatedDir. Pure; shared by styleGate.ts and lintFeedback.ts.
+// Which files the guardrail hooks gate: project files outside the ignored folders, and as code the set `eslint .` lints, minus each package's generatedDir. Pure; shared by styleGate.ts, proseGate.ts and lintFeedback.ts.
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 const lintedFiles = {
@@ -37,6 +37,12 @@ export function projectRelative({
 
 // `eslint .` lints every code file in the project outside its ignored folders, at any depth.
 function isLinted(target: string): boolean {
+  if (!isUnignoredProjectFile(target)) return false;
+  return lintedFiles.extensions.some((extension) => target.endsWith(extension));
+}
+
+// target is project-relative; false outside the project, in an ignored folder, or in another worktree.
+export function isUnignoredProjectFile(target: string): boolean {
   if (!target || target.startsWith("..") || isAbsolute(target)) return false;
   if (
     target
@@ -46,6 +52,5 @@ function isLinted(target: string): boolean {
   ) {
     return false;
   }
-  if (target.startsWith(lintedFiles.ignoredRoot)) return false;
-  return lintedFiles.extensions.some((extension) => target.endsWith(extension));
+  return !target.startsWith(lintedFiles.ignoredRoot);
 }

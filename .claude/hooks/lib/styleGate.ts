@@ -1,11 +1,22 @@
 // Decides the style gate: an edit to a file ESLint lints waits for a full read of config/docs/code-style.md this session. Pure; styleGate.ts does the I/O.
-import { join, sep } from "node:path";
+import { sep } from "node:path";
 
+import {
+  type EditDecision,
+  type FullDocRead,
+  fullReadReason,
+  isFullDocBashRead,
+  isFullDocRead,
+  type ReadBounds,
+} from "./fullDocRead.ts";
 import { type FileLocation, isInLintSet, projectRelative } from "./lintSet.ts";
 
-export const styleGateReason =
-  "Read config/docs/code-style.md before your first code edit this session, then retry. " +
-  "Use a full Read with no offset or limit (a partial read isn't recorded; a whole-file `cat` counts), and skip config/docs/code-style/ unless a rule's line doesn't decide your case. Framework or app code also follows packages/framework/docs/code-style.md.";
+const styleDocReason = fullReadReason({
+  docPath: "config/docs/code-style.md",
+  reasoningDir: "config/docs/code-style/",
+  editKind: "code",
+});
+export const styleGateReason = `${styleDocReason} Framework or app code also follows packages/framework/docs/code-style.md.`;
 export const stylePath = ["config", "docs", "code-style.md"].join(sep);
 export const frameworkStylePath = [
   "packages",
@@ -17,11 +28,6 @@ const frameworkOrAppRoots = ["framework", "real-estate"].map(
   (packageName) => ["packages", packageName].join(sep) + sep,
 );
 
-// Cursor spells the event postToolUse; Claude Code spells it PostToolUse.
-export function isPostToolUse(eventName: string | undefined): boolean {
-  return eventName?.toLowerCase() === "posttooluse";
-}
-
 interface EditTarget extends FileLocation {
   hasReadStyle: boolean;
   generatedDirs: string[];
@@ -30,19 +36,6 @@ interface EditTarget extends FileLocation {
 interface CursorEditTarget extends FileLocation {
   generatedDirs: string[];
   reads: RecordedStyleReads;
-}
-
-export interface EditDecision {
-  denyReason: string | undefined;
-}
-
-interface ReadBounds {
-  offset?: number;
-  limit?: number;
-}
-
-export interface StyleRead extends FileLocation, ReadBounds {
-  totalLines: number | undefined;
 }
 
 export function editDecision({
@@ -91,31 +84,15 @@ function missingStyleDocs(
   return missing;
 }
 
-export function isStyleRead(read: StyleRead): boolean {
+export function isStyleRead(read: FullDocRead): boolean {
   return isFullDocRead(read, stylePath);
 }
 
-// wholeFilePaths are absolute, as BashReads.wholeFilePaths returns them.
 export function isStyleBashRead(
   projectDir: string,
   wholeFilePaths: string[],
 ): boolean {
-  return wholeFilePaths.includes(join(projectDir, stylePath));
-}
-
-export function isFullDocRead(
-  { projectDir, cwd, filePath, offset, limit, totalLines }: StyleRead,
-  docPath: string,
-): boolean {
-  if (projectRelative({ projectDir, cwd, filePath }) !== docPath) return false;
-  if (offset == null && limit == null) return true;
-  if ((offset ?? 1) > 1) return false;
-  return (
-    limit == null ||
-    (totalLines !== undefined &&
-      Number.isInteger(totalLines) &&
-      limit >= totalLines)
-  );
+  return isFullDocBashRead(projectDir, wholeFilePaths, stylePath);
 }
 
 export function cursorFilePath(

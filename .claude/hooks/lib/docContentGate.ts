@@ -1,8 +1,8 @@
 // Decides the doc content gate: a Google Doc write that adds text waits for full Reads of docs/writing-voice.md and docs/writing-craft.md this session. Pure; docContentGate.ts does the I/O.
 import { sep } from "node:path";
 
+import type { EditDecision } from "./fullDocRead.ts";
 import type { ToolInput } from "./hookIo.ts";
-import type { EditDecision } from "./styleGate.ts";
 
 export const docContentGateReason =
   "Read docs/writing-voice.md and docs/writing-craft.md before your first Google Doc text write this session, then retry. " +
