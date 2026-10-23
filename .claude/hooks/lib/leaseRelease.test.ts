@@ -42,14 +42,15 @@ describe("leasedWorkspacesOf", () => {
   });
 });
 
+// endsProcess gates both the leases' release and the supervision record's deletion.
 describe("endsProcess", () => {
-  it("is true when the session ends with its claude process", () => {
+  it("is true when the session ends with its claude process, which releases its leases and deletes its supervision record", () => {
     expect(endsProcess("prompt_input_exit")).toBe(true);
     expect(endsProcess("logout")).toBe(true);
     expect(endsProcess(undefined)).toBe(true);
   });
 
-  it("is false for /clear and /resume, which keep the same process working", () => {
+  it("is false for /clear and /resume, which keep the same process working and supervising", () => {
     expect(endsProcess("clear")).toBe(false);
     expect(endsProcess("resume")).toBe(false);
   });

@@ -1,4 +1,4 @@
-// Decides SessionStart's facts-file record and "where you are" line for an issue workspace; sessionIdContext.ts does the I/O.
+// Decides SessionStart's facts-file record, "where you are" line for an issue workspace and supervising line; sessionIdContext.ts does the I/O.
 import { basename, dirname } from "node:path";
 
 import type { AddedSession } from "@byronbroughten/spec-runner/FactsFile";
@@ -9,6 +9,7 @@ import {
   type LeasedWorkspace,
   type LeaseHolder,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
+import type { SupervisionRecord } from "@byronbroughten/spec-runner/SupervisionRecords";
 
 import type { HookInput } from "./hookIo.ts";
 import { leasedWorkspacesOf } from "./leaseRelease.ts";
@@ -56,6 +57,20 @@ export function whereYouAreLineOf({
   }
   const { repo, number } = workspace.key;
   return `You are in ${issueLabelOf(workspace.key)}'s workspace, leased to this session: \`/start-issue ${repo} ${number}\` continues it from its handoff, and work outside it needs \`ExitWorktree\` with \`keep\` first.`;
+}
+
+export interface SupervisingSession {
+  source?: HookInput["source"];
+  record: SupervisionRecord | undefined;
+}
+
+export function supervisingLineOf({
+  source,
+  record,
+}: SupervisingSession): string | undefined {
+  if (source !== "clear" || record === undefined) return undefined;
+  const { owner, spec } = record;
+  return `This session supervises ${issueLabelOf(spec)}'s run: \`/runner ${owner}/${spec.repo} ${spec.number}\` carries on from its last explained event, and \`/runner\` on another spec switches to that run.`;
 }
 
 // A transcript sits at <config folder>/projects/<project>/<session>.jsonl, as StepStream.ts reads a step's.

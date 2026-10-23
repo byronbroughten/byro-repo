@@ -30,6 +30,7 @@ import {
   worktreeStateOf,
 } from "./git.ts";
 import { LeaseHeld } from "./LeaseHeld.ts";
+import { startTimeOf } from "./processStart.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -43,6 +44,10 @@ const cloneFlags =
 export interface IssueRef {
   repo: string;
   number: number;
+}
+
+export function isSameIssue(a: IssueRef, b: IssueRef): boolean {
+  return a.repo === b.repo && a.number === b.number;
 }
 
 export interface SessionKey {
@@ -602,7 +607,7 @@ function isSameKey(a: WorkspaceKey, b: WorkspaceKey): boolean {
   if (isSessionKey(a) || isSessionKey(b)) {
     return isSessionKey(a) && isSessionKey(b) && a.session === b.session;
   }
-  return a.repo === b.repo && a.number === b.number;
+  return isSameIssue(a, b);
 }
 
 function assertSessionCreate(
@@ -809,21 +814,6 @@ function assertLeaseFree({ path, lease, holder }: LeaseCheck): void {
   throw new LeaseHeld(
     `${path} is leased by ${holderLabelOf(other)}, which is still running`,
   );
-}
-
-// Compared with the time the lease recorded, so a reused process ID never makes an abandoned lease look live.
-async function startTimeOf(pid: number): Promise<string | undefined> {
-  try {
-    const { stdout } = await execFileAsync("ps", [
-      "-o",
-      "lstart=",
-      "-p",
-      `${pid}`,
-    ]);
-    return stdout.trim() || undefined;
-  } catch {
-    return undefined;
-  }
 }
 
 function unsavedWork(dirtyRepos: string[], orphanedRepos: string[]): string {

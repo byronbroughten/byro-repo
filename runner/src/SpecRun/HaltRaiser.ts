@@ -15,7 +15,11 @@ import {
   type StepFailure,
 } from "../halts.ts";
 import { type Blocker } from "../implementStep.ts";
-import { issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
+import {
+  isSameIssue,
+  issueLabelOf,
+  type IssueRef,
+} from "../IssueWorkspaces.ts";
 import { RunStop } from "../RunStop.ts";
 import { TicketHalted } from "../TicketHalted.ts";
 import {
@@ -24,7 +28,6 @@ import {
   haltsOf,
   haltsOfTicket,
   isGapCheckHalt,
-  isSameIssue,
   isSnapshotted,
   type LandingTicket,
   raiseHalts,

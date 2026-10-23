@@ -5,7 +5,7 @@ import {
   type LeaseHolder,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
 
-// SessionEnd reasons after which the same claude process carries on working in its workspace.
+// SessionEnd reasons after which the same claude process carries on working in its workspace, or supervising its run.
 const processContinuingReasons = new Set(["clear", "resume"]);
 
 export function endsProcess(reason: string | undefined): boolean {

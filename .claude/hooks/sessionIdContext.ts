@@ -1,6 +1,7 @@
-// SessionStart: puts the session's id in context and, in an issue workspace this claude leases, records the session and says where it is.
+// SessionStart: puts the session's id in context; in an issue workspace this claude leases, records the session and says where it is; after /clear, names the run it supervises.
 import { FactsFile } from "@byronbroughten/spec-runner/FactsFile";
 import { IssueWorkspaces } from "@byronbroughten/spec-runner/IssueWorkspaces";
+import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
 
 import { nearestClaudeAncestor } from "../../scripts/runner/claudeAncestor.ts";
 import { activeAccount } from "../../scripts/runner/cswapAccount.ts";
@@ -18,6 +19,7 @@ import {
   configFolderOf,
   type RecordedSession,
   recordedSessionOf,
+  supervisingLineOf,
   whereYouAreLineOf,
 } from "./lib/sessionRecord.ts";
 import { sessionModeOf } from "./lib/tiers.ts";
@@ -29,6 +31,7 @@ await runFailOpen(async () => {
   const lines = [
     `session: ${sessionId}`,
     ...(await leaseLinesOf(input, sessionId)),
+    ...(await supervisionLinesOf(input)),
   ];
   writeHookOutput({
     hookSpecificOutput: {
@@ -56,6 +59,22 @@ async function leaseLinesOf(
     };
     recordSession(input, recordedSessionOf(session));
     const line = whereYouAreLineOf(session);
+    return line === undefined ? [] : [line];
+  } catch {
+    return [];
+  }
+}
+
+// Its own fail-open too; only a clear start can yield the line, and a runner step is never a Supervisor.
+async function supervisionLinesOf({ source }: HookInput): Promise<string[]> {
+  try {
+    if (source !== "clear" || sessionModeOf(process.env) === "runnerStep") {
+      return [];
+    }
+    const holder = nearestClaudeAncestor();
+    if (!holder) return [];
+    const record = await SupervisionRecords.init(stateFolder).recordOf(holder);
+    const line = supervisingLineOf({ source, record });
     return line === undefined ? [] : [line];
   } catch {
     return [];

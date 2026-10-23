@@ -7,6 +7,7 @@
 import { sessionHaltCountOf } from "../halts.ts";
 import {
   holderLabelOf,
+  isSameIssue,
   issueLabelOf,
   type IssueRef,
   type LeaseHolder,
@@ -25,7 +26,6 @@ import { ReviewListPoster } from "./ReviewListPoster.ts";
 import {
   haltsOf,
   idListOf,
-  isSameIssue,
   reviewFactsOf,
   type ReviewOptions,
   type ReviewResult,
