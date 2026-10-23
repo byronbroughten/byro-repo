@@ -6,9 +6,17 @@ export interface Notices {
   send(notice: Notice): Promise<void>;
 }
 
-// The events a Supervisor wakes on; the last three end the run.
-export type NoticeKind =
-  "halt" | "failure-halt" | "idle" | "stopped" | "finished" | "crashed";
+const runEndings = ["stopped", "finished", "crashed"] as const;
+
+// The notice kinds that end the run.
+export type RunEnding = (typeof runEndings)[number];
+
+// The events a Supervisor wakes on.
+export type NoticeKind = "halt" | "failure-halt" | "idle" | RunEnding;
+
+export function isRunEnding(kind: NoticeKind): kind is RunEnding {
+  return (runEndings as readonly NoticeKind[]).includes(kind);
+}
 
 // The ntfy adapter sends only the title, summary and link, so a notice on a public topic carries nothing else about the run.
 export interface Notice {

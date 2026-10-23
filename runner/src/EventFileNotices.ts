@@ -3,7 +3,12 @@ import { join } from "node:path";
 
 import { shortRefOf } from "./halts.ts";
 import { fileStemOf, type IssueRef } from "./IssueWorkspaces.ts";
-import type { Notice, Notices } from "./Notices.ts";
+import {
+  isRunEnding,
+  type Notice,
+  type Notices,
+  type RunEnding,
+} from "./Notices.ts";
 
 // One line of a spec's event file; a run's end is a `run-ended` line, its `ending` saying how.
 export interface EventLine {
@@ -11,7 +16,7 @@ export interface EventLine {
   spec: string;
   ticket?: string;
   kind: "halt" | "failure-halt" | "idle" | "run-ended";
-  ending?: "stopped" | "finished" | "crashed";
+  ending?: RunEnding;
   summary: string;
   // The spec issue's when the event posted no comment.
   commentUrl: string;
@@ -44,8 +49,7 @@ export class EventFileNotices implements Notices {
   private _lineOf(notice: Notice): EventLine | undefined {
     const { kind } = notice;
     if (kind === undefined) return undefined;
-    const isEnd =
-      kind === "stopped" || kind === "finished" || kind === "crashed";
+    const isEnd = isRunEnding(kind);
     return {
       time: this.now().toISOString(),
       spec: shortRefOf(notice.spec),
