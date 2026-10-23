@@ -43,6 +43,8 @@ The key comes from `TYPESAFE_API_KEY` in the developer's shell profile, never th
 
 ## The style check
 
+**No skill runs it while the [trial](./jev-trial.md) is paused.** The Style file shape below is still the one `/review-piece` writes for its Voice and Craft axes.
+
 `npm run jev:style` checks a Deliverable against the Voice and Craft sheets, [`docs/writing-voice.md`](../writing-voice.md) and [`docs/writing-craft.md`](../writing-craft.md), and prints a ready-made `## Jev style` section: one line per flag (band, probability, rule, the paragraph's first words), then a count line. It asks one yes/no per (paragraph, rule) pair for both sheets, skipping the Craft sheet's Terms and Precedence; 0.7 or higher is `breaks`, 0.5 to under 0.7 is `unsure`, and lower answers are left out. The full answers go to `jev-style.json` beside the Deliverable.
 
 ```sh

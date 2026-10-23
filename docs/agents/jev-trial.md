@@ -2,6 +2,8 @@
 
 How `npm run jev:style` compared with `/review-piece`'s Voice and Craft sub-agents on each Piece reviewed; the log counts their findings together as **Style findings**. It is the evidence for upgrading Jev's pin ([`jev.md`](./jev.md#the-pin-and-upgrading-it)).
 
+**The trial is paused after writing#18**, where 0 of 50 Jev flags matched a Style finding; `/review-piece` no longer runs `jev:style`. That run has no row, since its disagreements were never ruled on.
+
 **It never quotes Piece text: only counts, rule names and issue numbers.** This repo is public and Pieces are private.
 
 ## Columns
