@@ -47,6 +47,7 @@ import {
 import type { RunKnobs } from "../runKnobs.ts";
 import { sleep } from "../sleep.ts";
 import {
+  savedResolverOf,
   type SavedStepAgent,
   savedStepOf,
   type SavedStepSession,
@@ -493,8 +494,11 @@ function ticketStateOf({
   if (records !== undefined) {
     state.resolveRecords = records.map(savedResolveRecordOf);
   }
-  const savedResolver = resolver ?? resolverOf(fixer);
-  if (savedResolver !== undefined) state.resolver = savedResolver;
+  if (resolver !== undefined) {
+    state.resolver = resolver;
+  } else if (fixer !== undefined) {
+    state.resolver = savedResolverOf(fixer);
+  }
   // A state saved before the fresh resolver's session was kept names it only in its sessions.
   const freshSession =
     triageSession ??
@@ -503,10 +507,6 @@ function ticketStateOf({
   if (fixBase !== undefined) state.resolveBase ??= fixBase;
   if (crashes !== undefined) state.crashes = crashCountsOf(crashes);
   return state;
-}
-
-function resolverOf(fixer: SavedTicketState["fixer"]): Resolver | undefined {
-  return fixer === "triage" ? "fresh" : fixer;
 }
 
 function crashCountsOf(

@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { fileStemOf, issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 import type { OutcomeFacts, ReviewFixes } from "./outcomeLog.ts";
 import {
+  savedResolverOf,
   type SavedStepSession,
   savedStepSessionOf,
   type StepSession,
@@ -160,7 +161,7 @@ function parsedFactsOf(path: string): Partial<WrapUpFacts> {
   const facts: Partial<WrapUpFacts> = rest;
   if (defers !== undefined) facts.proposals ??= defers;
   if (reviewFixes !== undefined) {
-    facts.reviewFixes = reviewFixes === "triage" ? "fresh" : reviewFixes;
+    facts.reviewFixes = savedResolverOf(reviewFixes);
   }
   if (sessions !== undefined) {
     facts.sessions = {

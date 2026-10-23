@@ -30,6 +30,13 @@ export function savedStepOf<SV extends string>(
   return step === "triage" || step === "fix" ? "resolve" : step;
 }
 
+// Before #364 a fresh resolver was saved as `triage`.
+export function savedResolverOf<RV extends string>(
+  resolver: RV | "triage",
+): RV | "fresh" {
+  return resolver === "triage" ? "fresh" : resolver;
+}
+
 export function savedStepSessionOf({
   agent,
   sessionId,
