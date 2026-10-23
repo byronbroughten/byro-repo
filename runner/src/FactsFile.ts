@@ -9,6 +9,7 @@ import { join } from "node:path";
 
 import { fileStemOf, issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 import type { OutcomeFacts } from "./outcomeLog.ts";
+import { factsOf } from "./savedFormats.ts";
 import type { StepSession, TicketSessions } from "./transcriptFacts.ts";
 
 export interface UndoneBox {
@@ -121,7 +122,7 @@ export class FactsFile {
   private _storedOf(issue: IssueRef): Partial<WrapUpFacts> {
     const path = this._pathOf(issue);
     if (!existsSync(path)) return {};
-    return parsedFactsOf(path);
+    return factsOf(JSON.parse(readFileSync(path, "utf8")));
   }
 
   private _store(issue: IssueRef, facts: Partial<WrapUpFacts>): FactsFile {
@@ -136,13 +137,4 @@ export class FactsFile {
   private _pathOf(issue: IssueRef): string {
     return join(this.stateFolder, `${fileStemOf(issue)}.facts.json`);
   }
-}
-
-function parsedFactsOf(path: string): Partial<WrapUpFacts> {
-  // A facts file written before #297 counts Proposals under their old name.
-  const { defers, ...facts } = JSON.parse(
-    readFileSync(path, "utf8"),
-  ) as Partial<WrapUpFacts> & { defers?: number };
-  if (defers !== undefined) facts.proposals ??= defers;
-  return facts;
 }

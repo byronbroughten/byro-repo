@@ -1,4 +1,4 @@
-// A session's review: runs review, triage and fix on one ticket's issue workspace outside any run, refusing a workspace
+// A session's review: runs review and resolve on one ticket's issue workspace outside any run, refusing a workspace
 // another holder leases or one with uncommitted changes, and posts its review list and Halts as a run would.
 // Its Halts are numbered S<n>.<k> and returned to print, to be answered in the session rather than on the spec.
 // Each step session it starts goes into the ticket's facts file, halted or not.
@@ -107,7 +107,7 @@ export class SessionReviewer extends SpecRunBase {
       run,
       ticket,
       // Interactive tickets may carry no Model fit.
-      pair: pairOf(ticket.body) ?? this.config.knobs.triagePair,
+      pair: pairOf(ticket.body) ?? this.config.knobs.resolverPair,
       workspace,
       // With no implementPeak, a fresh resolver resolves: the implementer is the live interactive session.
       state: { step: "review", sessions: [] },

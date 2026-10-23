@@ -1,7 +1,7 @@
 {
   "name": "@byronbroughten/spec-runner",
   "version": "0.0.0",
-  "description": "Runs a spec's tickets through implement, review, triage, fix and wrap-up steps, one agent step at a time.",
+  "description": "Runs a spec's tickets through implement, review, resolve, checks and wrap-up steps, one agent step at a time.",
   "private": true,
   "type": "module",
   "license": "ISC",
@@ -15,7 +15,7 @@
     "./FakeAgentStep": "./src/FakeAgentStep.ts",
     "./FakeNotices": "./src/FakeNotices.ts",
     "./failureText": "./src/failureText.ts",
-    "./findingTriage": "./src/findingTriage.ts",
+    "./resolveStep": "./src/resolveStep.ts",
     "./gapCheck": "./src/gapCheck.ts",
     "./GhCli": "./src/GhCli.ts",
     "./implementCodeSkill": "./src/implementCodeSkill.ts",

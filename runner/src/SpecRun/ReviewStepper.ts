@@ -1,26 +1,26 @@
 // A ticket's review and resolve steps. Review records findings; resolve gives each a verdict and fixes the Fix ones in one
 // session, the resumed implementer under the ticket budget, else a fresh resolver, resetting one that crosses the live
 // ceiling; a refused record gets one resumed retry and a Halt verdict raises a Halt.
-// Checks and landing call _runFixerStep to resume a resolver on red checks or a master merge.
-// It builds its own HaltRaiser and StepLauncher; prompts are ../reviewStep.ts and ../findingTriage.ts.
+// Checks and landing call _runResolverStep to resume a resolver on red checks or a master merge.
+// It builds its own HaltRaiser and StepLauncher; prompts are ../reviewStep.ts and ../resolveStep.ts.
 
 import { join } from "node:path";
 
 import type { StepRequest, StepResult } from "../AgentStep.ts";
-import {
-  resolveCommitProblems,
-  resolvePrompt,
-  resolveRetryPrompt,
-  triageOutputSchema,
-  type TriageRecord,
-  triageRecordProblems,
-  triageRecordsOf,
-  withReviewerFields,
-} from "../findingTriage.ts";
 import { git } from "../git.ts";
-import { triageHaltOf } from "../halts.ts";
+import { verdictHaltOf } from "../halts.ts";
 import { issueLabelOf, type Workspace } from "../IssueWorkspaces.ts";
 import { strongerPairOf } from "../modelFit.ts";
+import {
+  resolveCommitProblems,
+  resolveOutputSchema,
+  resolvePrompt,
+  type ResolveRecord,
+  resolveRecordProblems,
+  resolveRecordsOf,
+  resolveRetryPrompt,
+  withReviewerFields,
+} from "../resolveStep.ts";
 import {
   reviewPrompt,
   type ReviewRecord,
@@ -31,18 +31,17 @@ import { UnhandledStop } from "../UnhandledStop.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import {
   branchedReposOf,
-  type Fixer,
   type Heads,
   implementerSessionOf,
   isSameHeads,
   isTurnCapped,
-  lastSessionOf,
   launchedOf,
   type LaunchedStep,
   liveCeilingPhraseOf,
   raiseHalts,
   type RanStep,
   recordOf,
+  type Resolver,
   schemaFailureOf,
   type StepLaunch,
   type TicketRun,
@@ -52,18 +51,18 @@ import {
 import { SpecRunBase } from "./SpecRunBase.ts";
 import { StepLauncher } from "./StepLauncher.ts";
 
-type FixerSession = Pick<StepRequest, "pair" | "resumeSessionId">;
+type ResolverSession = Pick<StepRequest, "pair" | "resumeSessionId">;
 
 type ResolveAttempt =
-  | { kind: "done"; records: TriageRecord[]; logPath: string }
+  | { kind: "done"; records: ResolveRecord[]; logPath: string }
   | { kind: "crossed"; logPath: string }
   | { kind: "capped"; logPath: string };
 
 interface KeptRecords {
-  fixer: Fixer;
+  resolver: Resolver;
   // The heads the resolve started on.
   base: Heads;
-  records: TriageRecord[];
+  records: ResolveRecord[];
 }
 
 export class ReviewStepper extends SpecRunBase {
@@ -94,20 +93,22 @@ export class ReviewStepper extends SpecRunBase {
   // A turn cap is a crash: the work is reset away and the resolve runs again. A retry ends as a first attempt would.
   async _resolve(ticketRun: TicketRun): Promise<void> {
     const { run, ticket, workspace, state } = ticketRun;
-    if (state.fixBase === undefined) {
-      state.fixBase = await this._headsOf(workspace);
+    if (state.resolveBase === undefined) {
+      state.resolveBase = await this._headsOf(workspace);
       this._saveState(run);
     } else {
-      await resetTo(workspace, state.fixBase);
+      await resetTo(workspace, state.resolveBase);
     }
-    const base = state.fixBase;
-    let fixer: Fixer = this._isUnderBudget(state) ? "implementer" : "triage";
-    let attempt = await this._runResolver(ticketRun, fixer);
+    const base = state.resolveBase;
+    let resolver: Resolver = this._isUnderBudget(state)
+      ? "implementer"
+      : "fresh";
+    let attempt = await this._runResolver(ticketRun, resolver);
     let isRetry = false;
     for (;;) {
       if (attempt.kind === "crossed") {
         await resetTo(workspace, base);
-        if (fixer === "triage") {
+        if (resolver === "fresh") {
           throw new UnhandledStop(
             "step-error",
             `The fresh resolver crossed ${liveCeilingPhraseOf(this.config.knobs)}; its work is discarded.`,
@@ -118,15 +119,15 @@ export class ReviewStepper extends SpecRunBase {
           run,
           `${issueLabelOf(ticket.issue)}: the implementer's resolve crossed the live ceiling; handing the findings to a fresh resolver.`,
         );
-        fixer = "triage";
+        resolver = "fresh";
       } else if (attempt.kind === "capped") {
-        const turns = this.config.knobs.maxTurns.fix;
+        const turns = this.config.knobs.maxTurns.resolve;
         await this.haltRaiser._takeCrash(ticketRun, {
-          detail: turnCapDetailOf("fix", turns),
+          detail: turnCapDetailOf("resolve", turns),
           logPath: attempt.logPath,
         });
         await resetTo(workspace, base);
-        fixer = this._isUnderBudget(state) ? "implementer" : "triage";
+        resolver = this._isUnderBudget(state) ? "implementer" : "fresh";
       } else {
         const { records, logPath } = attempt;
         const problems = await this._resolveProblemsOf(
@@ -135,46 +136,46 @@ export class ReviewStepper extends SpecRunBase {
           records,
         );
         if (problems.length === 0) {
-          await this._keepRecords(ticketRun, { fixer, base, records });
+          await this._keepRecords(ticketRun, { resolver, base, records });
           return;
         }
         if (isRetry) {
           throw schemaFailureOf(logPath, { problems, output: records });
         }
         isRetry = true;
-        attempt = await this._retryResolver(ticketRun, fixer, problems);
+        attempt = await this._retryResolver(ticketRun, resolver, problems);
         continue;
       }
       isRetry = false;
-      attempt = await this._runResolver(ticketRun, fixer);
+      attempt = await this._runResolver(ticketRun, resolver);
     }
   }
 
   private async _keepRecords(
     ticketRun: TicketRun,
-    { fixer, base, records }: KeptRecords,
+    { resolver, base, records }: KeptRecords,
   ): Promise<void> {
     const { run, ticket, workspace, state } = ticketRun;
-    state.triage = records;
+    state.resolveRecords = records;
     if (!isSameHeads(base, await this._headsOf(workspace))) {
-      state.fixer = fixer;
+      state.resolver = resolver;
     }
     raiseHalts(run, {
       ticket: ticket.issue,
-      drafts: records.filter(isHalt).map(triageHaltOf),
+      drafts: records.filter(isHalt).map(verdictHaltOf),
     });
   }
 
   private async _resolveProblemsOf(
     { workspace, state }: TicketRun,
     base: Heads,
-    records: TriageRecord[],
+    records: ResolveRecord[],
   ): Promise<string[]> {
     const findingCount = (state.findings ?? []).length;
     const { dirtyRepos } = await this._headsAndDirtyReposOf(workspace);
     const hasChangedTree = await hasChangedTreeSince(workspace, base);
     return [
-      ...triageRecordProblems(findingCount, records),
+      ...resolveRecordProblems(findingCount, records),
       ...resolveCommitProblems({ records, hasChangedTree, dirtyRepos }),
     ];
   }
@@ -182,7 +183,7 @@ export class ReviewStepper extends SpecRunBase {
   // A first launch, so a fresh resolver starts a new session.
   private async _runResolver(
     ticketRun: TicketRun,
-    fixer: Fixer,
+    resolver: Resolver,
   ): Promise<ResolveAttempt> {
     const { ticket, workspace, state } = ticketRun;
     const prompt = resolvePrompt({
@@ -192,71 +193,75 @@ export class ReviewStepper extends SpecRunBase {
       branchedRepos: branchedReposOf(ticketRun),
       findings: state.findings ?? [],
     });
-    if (fixer === "triage") {
-      return this._launchResolver(ticketRun, fixer, {
+    if (resolver === "fresh") {
+      return this._launchResolver(ticketRun, resolver, {
         prompt,
         resumeSessionId: undefined,
       });
     }
-    return this._launchResolver(ticketRun, fixer, { prompt });
+    return this._launchResolver(ticketRun, resolver, { prompt });
   }
 
   // Resumes the session that returned the refused record.
   private async _retryResolver(
     ticketRun: TicketRun,
-    fixer: Fixer,
+    resolver: Resolver,
     problems: string[],
   ): Promise<ResolveAttempt> {
-    return this._launchResolver(ticketRun, fixer, {
+    return this._launchResolver(ticketRun, resolver, {
       prompt: resolveRetryPrompt(problems),
     });
   }
 
   private async _launchResolver(
     ticketRun: TicketRun,
-    fixer: Fixer,
+    resolver: Resolver,
     launch: Pick<StepLaunch, "prompt" | "resumeSessionId">,
   ): Promise<ResolveAttempt> {
-    const { result, logPath } = await this._runFixerStep(ticketRun, fixer, {
-      liveCeiling: this.config.knobs.liveCeiling,
-      jsonSchema: triageOutputSchema,
-      ...launch,
-    });
+    const { result, logPath } = await this._runResolverStep(
+      ticketRun,
+      resolver,
+      {
+        liveCeiling: this.config.knobs.liveCeiling,
+        jsonSchema: resolveOutputSchema,
+        ...launch,
+      },
+    );
     if (result.hasCrossedCeiling) return { kind: "crossed", logPath };
     if (isTurnCapped(result)) return { kind: "capped", logPath };
-    const record = recordOf("fix", result, logPath);
+    const record = recordOf("resolve", result, logPath);
     const findings = ticketRun.state.findings ?? [];
-    const records = withReviewerFields(triageRecordsOf(record), findings);
+    const records = withReviewerFields(resolveRecordsOf(record), findings);
     return { kind: "done", records, logPath };
   }
 
-  async _runFixerStep(
+  async _runResolverStep(
     ticketRun: TicketRun,
-    fixer: Fixer,
+    resolver: Resolver,
     launch: StepLaunch,
   ): Promise<RanStep> {
-    const ran = await this.stepLauncher._runStep(ticketRun, "fix", {
-      ...this._fixerSessionOf(ticketRun, fixer),
+    const ran = await this.stepLauncher._runStep(ticketRun, "resolve", {
+      ...this._resolverSessionOf(ticketRun, resolver),
       ...launch,
     });
     const { state } = ticketRun;
-    if (fixer === "implementer") noteImplementerResult(state, ran.result);
-    if (fixer === "triage") {
-      state.triageSession = ran.result.sessionId ?? state.triageSession;
+    if (resolver === "implementer") noteImplementerResult(state, ran.result);
+    if (resolver === "fresh") {
+      state.resolverSession = ran.result.sessionId ?? state.resolverSession;
     }
     return ran;
   }
 
-  private _fixerSessionOf(
+  private _resolverSessionOf(
     { pair, state }: TicketRun,
-    fixer: Fixer,
-  ): FixerSession {
-    if (fixer === "implementer") {
+    resolver: Resolver,
+  ): ResolverSession {
+    if (resolver === "implementer") {
       return { pair, resumeSessionId: implementerSessionOf(state) };
     }
     return {
-      pair: strongerPairOf(this.config.knobs.triagePair, pair),
-      resumeSessionId: state.triageSession ?? lastSessionOf(state, "triage"),
+      pair: strongerPairOf(this.config.knobs.resolverPair, pair),
+      resumeSessionId: state.resolverSession,
     };
   }
 
@@ -272,7 +277,7 @@ export class ReviewStepper extends SpecRunBase {
   }
 }
 
-function isHalt({ verdict }: TriageRecord): boolean {
+function isHalt({ verdict }: ResolveRecord): boolean {
   return verdict === "halt";
 }
 

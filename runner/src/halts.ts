@@ -4,17 +4,17 @@
 
 import type { Pair } from "./AgentStep.ts";
 import {
-  type HaltScope,
-  haltScopeOf,
-  type TriageRecord,
-} from "./findingTriage.ts";
-import {
   type Blocker,
   type ProposedSlice,
   proposedSplitText,
 } from "./implementStep.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 import { pairNamed } from "./modelFit.ts";
+import {
+  type HaltScope,
+  haltScopeOf,
+  type ResolveRecord,
+} from "./resolveStep.ts";
 import type { IssueComment, TicketStep } from "./SpecRun.ts";
 
 // Marks every comment the runner posts, which carries the developer's login too, so none is read as an answer.
@@ -23,9 +23,9 @@ export const runnerMark = "<!-- spec-runner -->";
 const stopSpecOption = "`stop spec`";
 
 const kindLabels = {
-  verdict: "triage Halt",
-  // Only in run state saved before #363, when a separate fix step could give a finding up.
-  "give-up": "fixer give-up",
+  verdict: "verdict Halt",
+  // Only in run state saved before #363, when a separate step could give a finding up.
+  "give-up": "resolver give-up",
   "gated-action": "gated-action blocker",
   "spec-ambiguity": "spec-ambiguity blocker",
   "denied-tool": "denied-tool blocker",
@@ -45,7 +45,7 @@ export interface Halt {
   // The recommendations, without `stop spec`, which every Halt offers.
   options: string[];
   scope: HaltScope;
-  // The triage finding it came from, if any.
+  // The finding it came from, if any.
   finding?: number;
   // A Failure Halt's step, which a `retry` answer runs again.
   failedStep?: FailedStep;
@@ -136,7 +136,7 @@ function splitTheTicketPhraseOf(answer: string): string {
   return `Split the ticket, narrowing its body and moving the rest to new tickets, then answer ${answer}`;
 }
 
-export function triageHaltOf(record: TriageRecord): HaltDraft {
+export function verdictHaltOf(record: ResolveRecord): HaltDraft {
   const { finding, claim, where, evidence, recommendation } = record;
   return {
     kind: "verdict",

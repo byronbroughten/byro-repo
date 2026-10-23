@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { ContextMeter } from "./contextMeter.ts";
 import type { OutcomeFacts } from "./outcomeLog.ts";
 
-export type StepAgent = "implement" | "review" | "triage" | "fix";
+export type StepAgent = "implement" | "review" | "resolve";
 
 export interface StepSession {
   agent: StepAgent;
@@ -108,11 +108,7 @@ export function transcriptFactsOf(
       ? undefined
       : transcriptsOf(
           projectDirs,
-          unique([
-            ...reviewIds,
-            ...stepIdsOf(sessions, "triage"),
-            ...stepIdsOf(sessions, "fix"),
-          ]),
+          unique([...reviewIds, ...stepIdsOf(sessions, "resolve")]),
         );
   const allSessions = transcriptsOf(projectDirs, sessionIds);
   return {

@@ -1,6 +1,6 @@
-// Resolve: the prompt that gives each review finding one verdict and fixes the Fix ones, the triage record it returns,
+// Resolve: the prompt that gives each review finding one verdict and fixes the Fix ones, the resolve record it returns,
 // and the checkers that refuse a record, or commits that disagree with it, naming the rule broken.
-// reviewStep.ts supplies the findings; StepStream.ts checks the output against triageOutputSchema first.
+// reviewStep.ts supplies the findings; StepStream.ts checks the output against resolveOutputSchema first.
 
 import { stepReadLine } from "./IssueReader.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
@@ -25,8 +25,8 @@ export type ProposeReason = (typeof proposeReasons)[number];
 // Named later tickets, each `<repo>#<n>`, plus their downstream; or the whole spec.
 export type HaltScope = "spec" | string[];
 
-// What the schema guarantees; triageRecordProblems() checks which fields each verdict needs.
-export interface TriageRecord {
+// What the schema guarantees; resolveRecordProblems() checks which fields each verdict needs.
+export interface ResolveRecord {
   // The finding's number in the review's list, from 1.
   finding: number;
   axis: Axis;
@@ -46,7 +46,7 @@ export interface TriageRecord {
   draftKeepReason?: string;
 }
 
-export interface TriagePromptInput {
+export interface ResolvePromptInput {
   issue: IssueRef;
   title: string;
   branch: string;
@@ -61,7 +61,7 @@ export function resolvePrompt({
   branch,
   branchedRepos,
   findings,
-}: TriagePromptInput): string {
+}: ResolvePromptInput): string {
   const numbered = findings.map(
     (finding, index) => `${index + 1}. ${findingLineOf(finding)}`,
   );
@@ -103,7 +103,7 @@ export function resolveRetryPrompt(problems: string[]): string {
   return `Your records broke these rules:\n\n${rules}\n\nCorrect them, committing any fix they need, and return \`records\` again, every finding's.`;
 }
 
-export const triageRecordSchema = {
+export const resolveRecordSchema = {
   type: "object",
   properties: {
     finding: { type: "integer", minimum: 1 },
@@ -130,23 +130,23 @@ export const triageRecordSchema = {
   additionalProperties: false,
 };
 
-// The verdict rules stay out of the schema so triageRecordProblems() can name the one a record broke.
-export const triageOutputSchema = {
+// The verdict rules stay out of the schema so resolveRecordProblems() can name the one a record broke.
+export const resolveOutputSchema = {
   type: "object",
-  properties: { records: { type: "array", items: triageRecordSchema } },
+  properties: { records: { type: "array", items: resolveRecordSchema } },
   required: ["records"],
   additionalProperties: false,
 };
 
-export function triageRecordsOf(output: unknown): TriageRecord[] {
-  return (output as { records: TriageRecord[] }).records;
+export function resolveRecordsOf(output: unknown): ResolveRecord[] {
+  return (output as { records: ResolveRecord[] }).records;
 }
 
 // A structured finding's axis and suggested verdict are its reviewer's, whatever the resolver wrote.
 export function withReviewerFields(
-  records: TriageRecord[],
+  records: ResolveRecord[],
   findings: Finding[],
-): TriageRecord[] {
+): ResolveRecord[] {
   return records.map((record) => {
     const finding = findings[record.finding - 1];
     if (finding === undefined || typeof finding === "string") return record;
@@ -155,21 +155,9 @@ export function withReviewerFields(
   });
 }
 
-// A run state saved before #297 holds Propose under its old name, Defer.
-export interface SavedTriageRecord extends Omit<TriageRecord, "verdict"> {
-  verdict: Verdict | "defer";
-}
-
-export function savedTriageRecordOf({
-  verdict,
-  ...record
-}: SavedTriageRecord): TriageRecord {
-  return { ...record, verdict: verdict === "defer" ? "propose" : verdict };
-}
-
-export function triageRecordProblems(
+export function resolveRecordProblems(
   findingCount: number,
-  records: TriageRecord[],
+  records: ResolveRecord[],
 ): string[] {
   return [
     ...verdictCountProblems(findingCount, records),
@@ -184,7 +172,7 @@ export function triageRecordProblems(
 }
 
 export interface ResolveCommits {
-  records: TriageRecord[];
+  records: ResolveRecord[];
   // Whether the committed tree differs from the one the resolve started on; a reverted fix leaves it unchanged.
   hasChangedTree: boolean;
   // The repos the resolver left uncommitted changes in.
@@ -218,7 +206,7 @@ export function resolveCommitProblems({
 
 function verdictCountProblems(
   findingCount: number,
-  records: TriageRecord[],
+  records: ResolveRecord[],
 ): string[] {
   const counts = records.reduce((byFinding, { finding }) => {
     byFinding.set(finding, (byFinding.get(finding) ?? 0) + 1);
@@ -256,7 +244,7 @@ function findingProblem(finding: number, rule: string): string {
 }
 
 // Each verdict's rules, as [is broken, the rule] pairs; a record gets every rule it broke.
-const verdictRules: Record<Verdict, (record: TriageRecord) => string[]> = {
+const verdictRules: Record<Verdict, (record: ResolveRecord) => string[]> = {
   dismiss: ({ reason, coveredBy, quote }) =>
     brokenRules([
       [
@@ -303,7 +291,7 @@ function keepReasonRules({
   verdict,
   reason,
   draftKeepReason,
-}: TriageRecord): string[] {
+}: ResolveRecord): string[] {
   const isDecision = verdict === "propose" && reason === "decision";
   return brokenRules([
     [
@@ -321,7 +309,7 @@ function suggestedHaltRules({
   suggestedVerdict,
   verdict,
   reason,
-}: TriageRecord): string[] {
+}: ResolveRecord): string[] {
   const isDecision = verdict === "propose" && reason === "decision";
   return brokenRules([
     [
@@ -349,7 +337,7 @@ function recommendationRule(verdict: "Propose" | "Halt"): string {
 }
 
 // A Halt with no scope blocks the whole spec: the safe default when the resolver is unsure.
-export function haltScopeOf(record: TriageRecord): HaltScope {
+export function haltScopeOf(record: ResolveRecord): HaltScope {
   return record.haltScope ?? "spec";
 }
 
@@ -361,7 +349,7 @@ const caughtLabels = {
 
 // The outcome row's text; undefined when the review kept nothing.
 export function whatReviewCaughtOf(
-  records: TriageRecord[],
+  records: ResolveRecord[],
 ): string | undefined {
   const groups = Object.entries(caughtLabels).flatMap(([verdict, label]) => {
     const caught = records

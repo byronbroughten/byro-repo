@@ -1,0 +1,155 @@
+// Reads a run state or facts file saved by an older runner into today's shapes, the one place old names are known:
+// before #297 Propose was Defer and Proposals were `defers`; before #364 resolve was the `triage` and `fix` steps,
+// a fresh resolver was `triage`, and its records, session and base were `triage`, `triageSession` and `fixBase`.
+// SpecRun/SpecRunBase.ts reads run state through runStateOf(), and FactsFile.ts reads facts through factsOf().
+
+import type { WrapUpFacts } from "./FactsFile.ts";
+import type { Halt } from "./halts.ts";
+import type { ReviewFixes } from "./outcomeLog.ts";
+import type { ResolveRecord } from "./resolveStep.ts";
+import type {
+  Heads,
+  Resolver,
+  RunState,
+  TicketState,
+  TicketStep,
+} from "./SpecRun/runState.ts";
+import type {
+  StepAgent,
+  StepSession,
+  TicketSessions,
+} from "./transcriptFacts.ts";
+import type { Verdict } from "./verdicts.ts";
+
+type SavedStepAgent = StepAgent | "triage" | "fix";
+
+interface SavedStepSession extends Omit<StepSession, "agent"> {
+  agent: SavedStepAgent;
+}
+
+interface SavedResolveRecord extends Omit<ResolveRecord, "verdict"> {
+  verdict: Verdict | "defer";
+}
+
+type SavedTicketStep = TicketStep | SavedStepAgent;
+
+interface SavedTicketState extends Omit<
+  TicketState,
+  "step" | "resolveRecords" | "resolver" | "crashes" | "sessions"
+> {
+  step: SavedTicketStep;
+  resolveRecords?: SavedResolveRecord[];
+  resolver?: Resolver;
+  crashes?: Partial<Record<SavedTicketStep, number>>;
+  sessions: SavedStepSession[];
+  triage?: SavedResolveRecord[];
+  fixer?: "implementer" | "triage";
+  triageSession?: string;
+  fixBase?: Heads;
+}
+
+interface SavedHalt extends Omit<Halt, "failedStep"> {
+  failedStep?: Halt["failedStep"] | SavedStepAgent;
+}
+
+interface SavedRunState extends Omit<RunState, "tickets" | "halts"> {
+  tickets: Record<string, SavedTicketState>;
+  halts?: SavedHalt[];
+}
+
+interface SavedFacts extends Omit<
+  Partial<WrapUpFacts>,
+  "reviewFixes" | "sessions"
+> {
+  defers?: number;
+  reviewFixes?: ReviewFixes | "triage";
+  sessions?: Omit<TicketSessions, "steps"> & { steps: SavedStepSession[] };
+}
+
+export function runStateOf(parsed: unknown): RunState {
+  const saved = parsed as SavedRunState;
+  const tickets = Object.fromEntries(
+    Object.entries(saved.tickets).map(([key, ticket]) => [
+      key,
+      ticketStateOf(ticket),
+    ]),
+  );
+  const halts = saved.halts?.map(({ failedStep, ...halt }) => ({
+    ...halt,
+    failedStep: failedStep === undefined ? undefined : stepOf(failedStep),
+  }));
+  return { ...saved, tickets, halts };
+}
+
+export function factsOf(parsed: unknown): Partial<WrapUpFacts> {
+  const { defers, reviewFixes, sessions, ...rest } = parsed as SavedFacts;
+  const facts: Partial<WrapUpFacts> = rest;
+  if (defers !== undefined) facts.proposals ??= defers;
+  if (reviewFixes !== undefined) facts.reviewFixes = resolverOf(reviewFixes);
+  if (sessions !== undefined) {
+    facts.sessions = { ...sessions, steps: sessions.steps.map(sessionOf) };
+  }
+  return facts;
+}
+
+function ticketStateOf({
+  step,
+  resolveRecords,
+  resolver,
+  crashes,
+  sessions,
+  triage,
+  fixer,
+  triageSession,
+  fixBase,
+  ...ticket
+}: SavedTicketState): TicketState {
+  const state: TicketState = {
+    ...ticket,
+    step: stepOf(step),
+    sessions: sessions.map(sessionOf),
+  };
+  const records = resolveRecords ?? triage;
+  if (records !== undefined) state.resolveRecords = records.map(recordOf);
+  const savedResolver = resolver ?? fixer;
+  if (savedResolver !== undefined) state.resolver = resolverOf(savedResolver);
+  // A state saved before the fresh resolver's session was kept names it only in its sessions.
+  const freshSession =
+    triageSession ??
+    sessions.findLast(({ agent }) => agent === "triage")?.sessionId;
+  if (freshSession !== undefined) state.resolverSession ??= freshSession;
+  if (fixBase !== undefined) state.resolveBase ??= fixBase;
+  if (crashes !== undefined) state.crashes = crashCountsOf(crashes);
+  return state;
+}
+
+function crashCountsOf(
+  crashes: Partial<Record<SavedTicketStep, number>>,
+): Partial<Record<TicketStep, number>> {
+  return Object.entries(crashes).reduce<Partial<Record<TicketStep, number>>>(
+    (counts, [step, count]) => {
+      const key = stepOf(step as SavedTicketStep) as TicketStep;
+      counts[key] = (counts[key] ?? 0) + (count ?? 0);
+      return counts;
+    },
+    {},
+  );
+}
+
+function stepOf<SV extends string>(
+  step: SV | "triage" | "fix",
+): SV | "resolve" {
+  return step === "triage" || step === "fix" ? "resolve" : step;
+}
+
+function resolverOf<RV extends string>(resolver: RV | "triage"): RV | "fresh" {
+  return resolver === "triage" ? "fresh" : resolver;
+}
+
+function sessionOf({ agent, sessionId }: SavedStepSession): StepSession {
+  return { agent: stepOf(agent), sessionId };
+}
+
+function recordOf({ verdict, ...record }: SavedResolveRecord): ResolveRecord {
+  return { ...record, verdict: verdict === "defer" ? "propose" : verdict };
+}

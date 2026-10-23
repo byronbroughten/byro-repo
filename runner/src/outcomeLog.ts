@@ -24,8 +24,8 @@ const columns = [
   "Session ids",
 ] as const;
 
-// `skipped` is a ticket that needed only GitHub writes, so review had no diff to read.
-export type ReviewFixes = "none" | "implementer" | "triage" | "skipped";
+// Who resolve's Fixes were made by; `skipped` is a ticket that needed only GitHub writes, so review had no diff to read.
+export type ReviewFixes = "none" | "implementer" | "fresh" | "skipped";
 
 export interface OutcomeFacts {
   reviewFixes?: ReviewFixes;
@@ -37,12 +37,12 @@ export interface OutcomeFacts {
   retries?: number;
   pair?: string;
   account?: string;
-  // Each implementer session's peak, in order; fixer sessions are left out.
+  // Each implementer session's peak, in order; resolver sessions are left out.
   peakContext?: number[];
   durationMinutes?: number;
   // The implementer sessions, handoffs included.
   costUsd?: number;
-  // The review, triage and fix sessions.
+  // The review and resolve sessions.
   reviewCostUsd?: number;
   sessionIds?: string[];
 }
@@ -117,8 +117,8 @@ function resultOf({ halt, reviewFixes }: OutcomeFacts): string {
 
 const resultByReviewFixes: Record<ReviewFixes, string> = {
   none: "Pass",
-  implementer: "Fix",
-  triage: "Triage fix",
+  implementer: "Fix (resumed implementer)",
+  fresh: "Fix (fresh resolver)",
   skipped: "skipped (no code)",
 };
 
@@ -130,8 +130,8 @@ function resultPhraseOf({ halt, reviewFixes }: OutcomeFacts): string {
 
 const resultPhraseByReviewFixes: Record<ReviewFixes, string> = {
   none: "first-try pass",
-  implementer: "fixed after review",
-  triage: "fixed after review",
+  implementer: "fixed after review by the resumed implementer",
+  fresh: "fixed after review by a fresh resolver",
   skipped: "review skipped (no code)",
 };
 

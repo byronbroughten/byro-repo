@@ -21,6 +21,7 @@ import {
   workspaceWith,
   wrapUp,
   writeFacts,
+  writeSavedFacts,
 } from "./wrapUpHarness.ts";
 
 useWrapUpHarness();
@@ -47,7 +48,7 @@ describe("run", () => {
   it("writes the outcome row in the spec's folder with every column", async () => {
     const workspace = await workspaceWith();
     commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
-    writeFacts({ reviewFixes: "triage", whatReviewCaught: "A stale doc link" });
+    writeFacts({ reviewFixes: "fresh", whatReviewCaught: "A stale doc link" });
 
     await wrapUp().run(ticket);
 
@@ -59,7 +60,7 @@ describe("run", () => {
         "",
         "| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |",
         "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
-        "| #218 | Opus medium | unrecorded | 1 | 150K → 90K | Triage fix | 0 | 1 | 0 | unrecorded | unrecorded | unrecorded | A stale doc link | unrecorded |",
+        "| #218 | Opus medium | unrecorded | 1 | 150K → 90K | Fix (fresh resolver) | 0 | 1 | 0 | unrecorded | unrecorded | unrecorded | A stale doc link | unrecorded |",
         "",
       ].join("\n"),
     );
@@ -100,8 +101,8 @@ describe("run", () => {
         steps: [
           { agent: "implement", sessionId: "session-implement-2" },
           { agent: "review", sessionId: "session-review" },
-          { agent: "triage", sessionId: "session-triage" },
-          { agent: "fix", sessionId: "session-fix" },
+          { agent: "resolve", sessionId: "session-triage" },
+          { agent: "resolve", sessionId: "session-fix" },
         ],
       },
     });
@@ -113,6 +114,39 @@ describe("run", () => {
     ).toBe(
       "| #218 | Opus medium | 2 | 1 | 150K → 90K | Pass | 0 | 1 | 0 | 42 min | $1.45 | $0.11 | — | session-implement-1, session-implement-2, session-review, session-triage, session-fix |",
     );
+  });
+
+  it("reads and prices a facts file saved under the resolve step's old names", async () => {
+    const configFolder = join(temp, "account-2");
+    cpSync(
+      join(import.meta.dirname, "..", "fixtures", "transcripts"),
+      join(configFolder, "projects", "-workspace-byro-repo"),
+      { recursive: true },
+    );
+    const workspace = await workspaceWith();
+    commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
+    writeSavedFacts({
+      reviewFixes: "triage",
+      whatReviewCaught: "A stale doc link",
+      sessions: {
+        account: 2,
+        configFolder,
+        steps: [
+          { agent: "implement", sessionId: "session-implement-2" },
+          { agent: "review", sessionId: "session-review" },
+          { agent: "triage", sessionId: "session-triage" },
+          { agent: "fix", sessionId: "session-fix" },
+        ],
+      },
+    });
+
+    await wrapUp().run(ticket);
+
+    const row = readFileSync(join(primaryRoot, outcomePath), "utf8").split(
+      "\n",
+    )[6];
+    expect(row).toContain("| Fix (fresh resolver) |");
+    expect(row).toContain("| $0.11 | A stale doc link |");
   });
 
   it("computes an interactive ticket's row from its recorded sessions", async () => {

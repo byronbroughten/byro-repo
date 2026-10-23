@@ -17,10 +17,6 @@ import type { AgentStep } from "../AgentStep.ts";
 import { FactsFile } from "../FactsFile.ts";
 import { messageOf } from "../failureText.ts";
 import {
-  type SavedTriageRecord,
-  savedTriageRecordOf,
-} from "../findingTriage.ts";
-import {
   dirtyReposOf,
   git,
   saveUncommitted,
@@ -44,6 +40,7 @@ import {
 } from "../limitGuard.ts";
 import type { Notice, Notices } from "../Notices.ts";
 import type { RunKnobs } from "../runKnobs.ts";
+import { runStateOf } from "../savedFormats.ts";
 import { sleep } from "../sleep.ts";
 import { WrapUp, type WrapUpGitHub, type WrapUpKnobs } from "../WrapUp.ts";
 import {
@@ -122,13 +119,6 @@ interface HeadsAndDirtyRepos {
 type TimedStep =
   Exclude<TicketStep, "halted" | "landed" | "stopped"> | "workspace";
 
-interface SavedRunState extends Omit<RunState, "tickets"> {
-  tickets: Record<
-    string,
-    Omit<TicketState, "triage"> & { triage?: SavedTriageRecord[] }
-  >;
-}
-
 export class SpecRunBase {
   protected readonly config: SpecRunConfig;
 
@@ -206,7 +196,7 @@ export class SpecRunBase {
   protected _readState(spec: IssueRef): RunState {
     const path = this._statePathOf(spec);
     if (!existsSync(path)) return { tickets: {} };
-    return runStateOf(JSON.parse(readFileSync(path, "utf8")) as SavedRunState);
+    return runStateOf(JSON.parse(readFileSync(path, "utf8")));
   }
 
   protected _statePathOf(spec: IssueRef): string {
@@ -432,14 +422,4 @@ export class SpecRunBase {
     );
     return { heads, dirtyRepos: dirtyReposOf(worktrees) };
   }
-}
-
-function runStateOf(saved: SavedRunState): RunState {
-  const tickets = Object.fromEntries(
-    Object.entries(saved.tickets).map(([key, { triage, ...ticket }]) => [
-      key,
-      { ...ticket, triage: triage?.map(savedTriageRecordOf) },
-    ]),
-  );
-  return { ...saved, tickets };
 }

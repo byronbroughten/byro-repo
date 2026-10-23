@@ -82,7 +82,10 @@ describe("outcomeFileOf", () => {
     const cells = cellsOf(
       outcomeFileOf({ ...row, facts: { reviewFixes: "implementer" } }),
     );
-    expect([cells[5], cells[12]]).toEqual(["Fix", "unrecorded"]);
+    expect([cells[5], cells[12]]).toEqual([
+      "Fix (resumed implementer)",
+      "unrecorded",
+    ]);
   });
 
   it("writes a ticket with no code as review skipped, with nothing caught", () => {
@@ -102,18 +105,18 @@ describe("peakContextOf", () => {
 });
 
 describe("outcomeCommitMessage", () => {
-  it("says a reviewed fix was fixed after review", () => {
+  it("says which resolver fixed a reviewed ticket", () => {
     expect(
       outcomeCommitMessage({
         ...row,
         facts: {
           pair: "Opus medium",
           peakContext: [80_000],
-          reviewFixes: "triage",
+          reviewFixes: "fresh",
         },
       }),
     ).toBe(
-      "Record the #218 outcome: Opus medium, 7 files, 80K, fixed after review.",
+      "Record the #218 outcome: Opus medium, 7 files, 80K, fixed after review by a fresh resolver.",
     );
   });
 

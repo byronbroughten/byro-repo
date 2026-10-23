@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { TriageRecord } from "./findingTriage.ts";
+import type { ResolveRecord } from "./resolveStep.ts";
 import {
   coveredLaterNotesOf,
   gapCheckListOf,
@@ -11,7 +11,7 @@ import {
 
 const ticket = { repo: "byro-repo", number: 7 };
 
-const ticketPropose: TriageRecord = {
+const ticketPropose: ResolveRecord = {
   finding: 1,
   axis: "spec",
   where: "one.ts:1",
@@ -70,7 +70,7 @@ describe("gapCheckListOf", () => {
 
 describe("coveredLaterNotesOf", () => {
   it("skips a covered-later Dismiss whose ticket isn't `<repo>#<n>`", () => {
-    const dismiss: TriageRecord = {
+    const dismiss: ResolveRecord = {
       ...ticketPropose,
       verdict: "dismiss",
       reason: "covered-later",

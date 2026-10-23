@@ -61,7 +61,7 @@ export class StepLauncher extends SpecRunBase {
     return ran;
   }
 
-  // Retries a crash, resuming its session when it has one; leaves the result unread, so a fixer can check for a live-ceiling kill before recordOf().
+  // Retries a crash, resuming its session when it has one; leaves the result unread, so a resolver can check for a live-ceiling kill before recordOf().
   private async _retryStep(
     ticketRun: TicketRun,
     agent: StepAgent,
@@ -81,8 +81,8 @@ export class StepLauncher extends SpecRunBase {
       }
       const { result } = ran;
       if (isTurnCapped(result)) {
-        // A fixer's caller resets what it left before taking the crash.
-        if (agent === "fix") return { result, logPath };
+        // A resolver's caller resets what it left before taking the crash.
+        if (agent === "resolve") return { result, logPath };
         const turns = attempt.maxTurns ?? this.config.knobs.maxTurns[agent];
         const cap = { detail: turnCapDetailOf(agent, turns), logPath };
         if (agent === "implement") {

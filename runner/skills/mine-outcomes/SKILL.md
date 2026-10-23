@@ -4,13 +4,13 @@ description: "Turn a landed spec's outcome-log rows into model-fit and process p
 disable-model-invocation: true
 ---
 
-`/mine-outcomes <repo> #<spec>` reads what a landed spec's tickets cost and how they went, and turns it into proposals, so the outcome log stays short and its lessons are kept as changes. Its words (Halt, Propose) are in [`runner/GLOSSARY.md`](../../GLOSSARY.md); the Result strings (Pass, Fix, Triage fix) are `resultByReviewFixes` in [`runner/src/outcomeLog.ts`](../../src/outcomeLog.ts).
+`/mine-outcomes <repo> #<spec>` reads what a landed spec's tickets cost and how they went, and turns it into proposals, so the outcome log stays short and its lessons are kept as changes. Its words (Halt, Propose) are in [`runner/GLOSSARY.md`](../../GLOSSARY.md); the Result strings (Pass, Fix (resumed implementer), Fix (fresh resolver)) are `resultByReviewFixes` in [`runner/src/outcomeLog.ts`](../../src/outcomeLog.ts).
 
 ## 1. Read the section
 
 The spec's section is the folder `docs/agents/outcomes/<spec repo>-<spec n>/`, one file per landed ticket, each holding a one-row table ([`docs/agents/model-fit.md`](../../../docs/agents/model-fit.md#outcome-log)). Read every file in it. With no folder, say so and stop.
 
-- The columns are `columns` in `outcomeLog.ts`. A file written before #297 heads Proposals `Defers`, and one before the #213 addendum calls Triage fix `Handoff fix`. Read both by the new names. One before #330 has a Limit used column; ignore it.
+- The columns are `columns` in `outcomeLog.ts`. A file written before #297 heads Proposals `Defers`, one before #364 says `Fix` for Fix (resumed implementer) and `Triage fix` for Fix (fresh resolver), and one before the #213 addendum calls Fix (fresh resolver) `Handoff fix`. Read each by the new names. One before #330 has a Limit used column; ignore it.
 - `unrecorded` is a missing fact. Leave it out of a sum or a median and say how many rows each figure rests on. Never guess one.
 - Peak context lists one peak per implementer session, in order: `150K → 90K` is a handoff. A row's **peak sum** adds them.
 
@@ -24,7 +24,7 @@ A row's transcripts are the `<session id>.jsonl` files its Session ids name, und
 
 A row is an outlier when any of these holds. Name every rule it trips:
 
-- Result is `Fix`, `Triage fix` or `Halted then passed (<kind>)`.
+- Result is `Fix (resumed implementer)`, `Fix (fresh resolver)` or `Halted then passed (<kind>)`.
 - Retries is above 0.
 - **Over budget**: its peak sum is above `ticketBudget`. A ticket with a handoff counts, since its peaks are summed.
 - **Long or costly for its size**: Duration or Cost per file changed is more than twice the spec's median of that figure, on a spec with at least three rows recording it.
@@ -33,12 +33,12 @@ A row is an outlier when any of these holds. Name every rule it trips:
 
 Make two kinds. Each names the knob, criterion or file it would change, the change, and the rows behind it by issue number:
 
-- **Model-fit boundary**: move a ticket shape from one pair to another in a criterion of `model-fit.md`, or change `triagePair`, `gapCheckPair`, `ticketBudget` or `liveCeiling`. Compare each ticket's pair and its Model fit reason with its Result, peak sum and cost. A pair that passed first try on a shape its criterion puts higher is evidence for moving the boundary down. A cheaper pair that needed a Fix is evidence against.
+- **Model-fit boundary**: move a ticket shape from one pair to another in a criterion of `model-fit.md`, or change `resolverPair`, `gapCheckPair`, `ticketBudget` or `liveCeiling`. Compare each ticket's pair and its Model fit reason with its Result, peak sum and cost. A pair that passed first try on a shape its criterion puts higher is evidence for moving the boundary down. A cheaper pair that needed a Fix is evidence against.
 - **Process**: one in one of the categories in [`/retro`](../../../.claude/skills/retro/SKILL.md), drawn mainly from What review caught. The same kind of catch on two or more tickets is a proposal. Name the knob when one fits, such as `maxTurns.<step>`, `allowedTools.<step>`, `skillNames.review` or `reviewListCadence`. Otherwise name the doc or check to change.
 
 A pattern on one row is not a proposal; leave it to `/retro`.
 
-Report review's share of cost: the sum of Review cost over the sum of Cost and Review cost, on the rows where both are recorded, as a percentage with the row count. Review cost is the review, triage and fix sessions; Cost is the implementer sessions alone. Leave out older rows with a Triage cost column instead: theirs is triage alone, with the fixer counted under Cost.
+Report review's share of cost: the sum of Review cost over the sum of Cost and Review cost, on the rows where both are recorded, as a percentage with the row count. Review cost is the review and resolve sessions; Cost is the implementer sessions alone. Leave out older rows with a Triage cost column instead: theirs is triage alone, with the fixer counted under Cost.
 
 ## 5. Present
 

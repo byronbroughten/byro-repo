@@ -18,13 +18,13 @@ import type { FakeAgentStep, ScriptedStep } from "./FakeAgentStep.ts";
 import { FakeGitHub } from "./FakeGitHub.ts";
 import { FakeNotices } from "./FakeNotices.ts";
 import { FakeUsageReader } from "./FakeUsageReader.ts";
-import type { TriageRecord } from "./findingTriage.ts";
 import { gapCheckOutputSchema } from "./gapCheck.ts";
 import { git, GitFixture } from "./GitFixture.ts";
 import type { Blocker, Handoff, ImplementRecord } from "./implementStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { AccountReading, UsageReader } from "./limitGuard.ts";
 import type { Notice } from "./Notices.ts";
+import type { ResolveRecord } from "./resolveStep.ts";
 import type { ReviewFinding } from "./reviewStep.ts";
 import { type Command, runKnobsOf } from "./runKnobs.ts";
 import { SpecRun, type SpecRunConfig } from "./SpecRun.ts";
@@ -353,7 +353,7 @@ export function findingOf(
 
 // Commits `fixFile`, as a resolver landing its Fix verdicts would, and returns the records.
 export function resolved(
-  records: TriageRecord[],
+  records: ResolveRecord[],
   fixFile?: string,
 ): StepScript {
   return async (request) => {
@@ -436,7 +436,7 @@ export function timingLines(): string[] {
 
 interface SavedTicket {
   step: string;
-  triage?: TriageRecord[];
+  resolveRecords?: ResolveRecord[];
   sessions: StepSession[];
 }
 

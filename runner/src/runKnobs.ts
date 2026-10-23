@@ -10,8 +10,7 @@ export type Command = [string, ...string[]];
 export interface StepKnobs<VL extends number | string[]> {
   implement: VL;
   review: VL;
-  triage: VL;
-  fix: VL;
+  resolve: VL;
   gapCheck: VL;
 }
 
@@ -51,7 +50,7 @@ export interface RunKnobs {
   // A step crossing this is killed: an implementer is resumed for a handoff, or its resolve goes to a fresh resolver.
   liveCeiling: number;
   // The fresh resolver runs on the stronger of this and the ticket's pair.
-  triagePair: Pair;
+  resolverPair: Pair;
   gapCheckPair: Pair;
   reviewListCadence: ReviewListCadence;
   // How often an idle run reads the spec issue for answers and its tickets for released leases.
@@ -83,8 +82,7 @@ export const defaultRunKnobs: RunKnobs = {
   allowedTools: {
     implement: [],
     review: [],
-    triage: [],
-    fix: [],
+    resolve: [],
     gapCheck: [],
   },
   allowedWriteGlobs: [
@@ -92,13 +90,12 @@ export const defaultRunKnobs: RunKnobs = {
     ".claude/agents/**",
     ".claude/hooks/**",
   ],
-  maxTurns: { implement: 200, review: 80, triage: 80, fix: 120, gapCheck: 80 },
+  maxTurns: { implement: 200, review: 80, resolve: 120, gapCheck: 80 },
   silenceTimeoutMs: 10 * minuteMs,
   wallClockMs: {
     implement: 60 * minuteMs,
     review: 20 * minuteMs,
-    triage: 20 * minuteMs,
-    fix: 20 * minuteMs,
+    resolve: 20 * minuteMs,
     gapCheck: 20 * minuteMs,
   },
   retriesPerFailure: 1,
@@ -107,7 +104,7 @@ export const defaultRunKnobs: RunKnobs = {
   stuckFailureHalts: 2,
   ticketBudget: 150_000,
   liveCeiling: 180_000,
-  triagePair: { model: "opus", effort: "medium" },
+  resolverPair: { model: "opus", effort: "medium" },
   gapCheckPair: { model: "opus", effort: "medium" },
   reviewListCadence: "end-of-run",
   idlePollMs: 60_000,

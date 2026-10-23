@@ -11,7 +11,6 @@ import { promisify } from "node:util";
 import type { Pair, StepRequest, StepResult } from "../AgentStep.ts";
 import { type ReviewFacts } from "../FactsFile.ts";
 import { messageOf, outputTailOf } from "../failureText.ts";
-import { type TriageRecord, whatReviewCaughtOf } from "../findingTriage.ts";
 import {
   failureAnswerOf,
   failureOptions,
@@ -31,6 +30,7 @@ import {
   type LeaseHolder,
   type Workspace,
 } from "../IssueWorkspaces.ts";
+import { type ResolveRecord, whatReviewCaughtOf } from "../resolveStep.ts";
 import type { Finding } from "../reviewStep.ts";
 import type { Command, RunKnobs } from "../runKnobs.ts";
 import { SchemaFailure } from "../SchemaFailure.ts";
@@ -77,12 +77,10 @@ export interface ReviewResult {
   halts: string[];
 }
 
-// `fix` is the resolve step; `triage` is only in run state saved before #363, and resolves too.
 export type TicketStep =
   | "implement"
   | "review"
-  | "triage"
-  | "fix"
+  | "resolve"
   | "checks"
   | "halted"
   | "resume"
@@ -90,7 +88,7 @@ export type TicketStep =
   | "landed"
   | "stopped";
 
-export type Fixer = "implementer" | "triage";
+export type Resolver = "implementer" | "fresh";
 
 // Each worktree's clone path to its HEAD.
 export type Heads = Record<string, string>;
@@ -98,19 +96,18 @@ export type Heads = Record<string, string>;
 export interface TicketState {
   step: TicketStep;
   record?: ImplementRecord;
-  // The last implement step's own peak, never a sum across handoffs; picks the fixer and whether a resume continues its session.
+  // The last implement step's own peak, never a sum across handoffs; picks the resolver and whether a resume continues its session.
   implementPeak?: number;
   // The implementer's latest session, a resolve it ran included.
   implementerSession?: string;
   findings?: Finding[];
-  // The resolve records.
-  triage?: TriageRecord[];
+  resolveRecords?: ResolveRecord[];
   // Set once a resolver fixed a finding.
-  fixer?: Fixer;
+  resolver?: Resolver;
   // The fresh resolver's latest session, which a red-checks resume continues.
-  triageSession?: string;
+  resolverSession?: string;
   // The heads before the resolve step, which a killed resolver or a rerun resets to.
-  fixBase?: Heads;
+  resolveBase?: Heads;
   sessions: StepSession[];
   configFolder?: string;
   stop?: string;
@@ -381,7 +378,7 @@ export function lastSessionOf(
     ?.sessionId;
 }
 
-// A live-ceiling kill is the fixer's crossing, whatever its subtype.
+// A live-ceiling kill is the resolver's crossing, whatever its subtype.
 export function isTurnCapped(result: StepResult): boolean {
   return result.exitSubtype === "error_max_turns" && !result.hasCrossedCeiling;
 }
@@ -461,13 +458,14 @@ export function recordOf(
 }
 
 export function reviewFactsOf({
-  fixer,
-  triage = [],
+  resolver,
+  resolveRecords = [],
 }: TicketState): ReviewFacts {
   return {
-    reviewFixes: fixer ?? "none",
-    whatReviewCaught: whatReviewCaughtOf(triage),
-    proposals: triage.filter(({ verdict }) => verdict === "propose").length,
+    reviewFixes: resolver ?? "none",
+    whatReviewCaught: whatReviewCaughtOf(resolveRecords),
+    proposals: resolveRecords.filter(({ verdict }) => verdict === "propose")
+      .length,
   };
 }
 

@@ -9,7 +9,7 @@ The program that runs one spec: it picks each ready ticket in turn, launches its
 _Avoid_: orchestrator, driver, pipeline
 
 **Step**:
-One stage of a ticket's run, in order: implement, review, finding triage, checks and wrap-up, with the gap check once at the end of the spec. An agent step is one `claude -p` session; checks and wrap-up the runner does itself.
+One stage of a ticket's run, in order: implement, review, resolve, checks and wrap-up, with the gap check once at the end of the spec. An agent step is one `claude -p` session; checks and wrap-up the runner does itself.
 _Avoid_: phase, stage, job
 
 **Checks**:
@@ -21,7 +21,7 @@ Proof that the checks passed on one exact set of committed files, so they are sk
 _Avoid_: record, cache, green mark
 
 **Record**:
-The structured output an agent step returns, validated against the runner's schema: the implement record from the implement step and one triage record per finding from finding triage. A record failing the schema gets one retry.
+The structured output an agent step returns, validated against the runner's schema: the implement record from the implement step and one resolve record per finding from resolve. A record failing the schema gets one retry.
 _Avoid_: report, result, output
 
 **Handoff**:
@@ -32,17 +32,21 @@ _Avoid_: retry, restart
 What one ticket's landing reads: where its work is, how it went and what to say when closing it. The runner writes it during a run, and an interactive session's tooling writes it during that session; an agent never writes it.
 _Avoid_: wrap-up input, outcome file
 
-**Finding triage**:
-The step after review that gives each review finding a verdict, as one triage record, and commits the Fix ones in the same session: the resumed implementer, or else the triage agent. It is skipped when review finds nothing.
-_Avoid_: classification, judging
+**Resolve**:
+The step after review where the resolver gives each finding a verdict and fixes the Fix ones, in one session. It is skipped when review finds nothing.
+_Avoid_: finding triage, triage, classification, label
 
-**Triage agent**:
-The fresh agent session that runs finding triage, the fresh resolver, when the implementer's peak context is past ~150K, or after an implementer running it is killed at ~180K.
-_Avoid_: judge, reviewer
+**Resolver**:
+The agent that resolves: either the resumed implementer, or a fresh session when the implementer's peak context is past ~150K, or after an implementer resolving is killed at ~180K.
+_Avoid_: triage agent, judge, fixer
+
+**Suggested verdict**:
+A reviewer's verdict for one finding, with its reason. The resolver may overrule it only as [`docs/agents/verdicts.md`](../docs/agents/verdicts.md) allows.
+_Avoid_: recommendation, proposal
 
 **Verdict**:
-What finding triage decides for one finding: Dismiss, Fix, Propose or Halt.
-_Avoid_: ruling, outcome
+What resolve decides for one finding: Dismiss, Fix, Propose or Halt.
+_Avoid_: ruling, outcome, label
 
 **Dismiss**:
 The verdict that takes no action, with one of the reasons [`docs/agents/verdicts.md`](../docs/agents/verdicts.md) defines. Dismisses appear in the review list's collapsed audit.
