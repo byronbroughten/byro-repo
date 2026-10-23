@@ -1,6 +1,6 @@
 # Smells: reasoning and examples
 
-Disclosed from [`docs/code-style.md`](../code-style.md), "Smells". The rules are there, one line each; this file holds the examples and the why.
+Disclosed from [`docs/agents/verdicts.md`](../../../docs/agents/verdicts.md). The rules are there, one line each; this file holds the examples and the why.
 
 ## Fix or explain
 
@@ -16,4 +16,4 @@ A fix may change how a decision is met as long as the decision still holds. An i
 
 ## Approved exceptions
 
-A reason the developer approves more than once becomes an exception in the rules file, and the review stops flagging that pattern.
+A reason the developer approves more than once becomes an exception in the verdict rules, and the review stops flagging that pattern.

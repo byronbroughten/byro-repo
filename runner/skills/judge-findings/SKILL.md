@@ -43,7 +43,7 @@ Each answer is one of four:
 - **File a fix**: an issue that says what to change, where (`file:line` from the evidence) and why, with the finding quoted.
 - **File a decision**: a grilling ticket with the question, the options and your recommendation, labelled `wayfinder:grilling` where the repo has that label.
 
-**A keep is a fix.** An item with a `Drafted keep: "<reason>"` line asks for the developer's yes to keeping a smell for that reason (`config/docs/code-style.md#smells`). A list posted before #298 has no such line: there, a keep is a Propose `decision` whose finding names a smell and whose recommendation is a drafted one-line reason for keeping it, not a smell whose fix would reverse a spec decision. Accepting it files a fix that writes that reason as a comment at the smell's site; never just mark it decided. Its `Decided:` line names the reason, so step 5 can find it.
+**A keep is a fix.** An item with a `Drafted keep: "<reason>"` line asks for the developer's yes to keeping a smell for that reason (`docs/agents/verdicts.md`). A list posted before #298 has no such line: there, a keep is a Propose `decision` whose finding names a smell and whose recommendation is a drafted one-line reason for keeping it, not a smell whose fix would reverse a spec decision. Accepting it files a fix that writes that reason as a comment at the smell's site; never just mark it decided. Its `Decided:` line names the reason, so step 5 can find it.
 
 **Every filing asks "blocks this spec?"**, pre-filled with your answer: yes when the spec's stories or decisions aren't met until it lands, no otherwise. The keep's fix and a Propose `ticket` default to no; a gap defaults to yes.
 
@@ -74,7 +74,7 @@ gh api --method PATCH repos/<owner>/<repo>/issues/comments/<id> -F body=@<file>
 When every review-list item on the spec is decided (no unticked box, no hand-ticked box missing its filing) and every sub-issue is closed:
 
 1. Close the spec: `gh issue close -R <owner>/<repo> <spec> --comment "Every review-list item is decided and every sub-issue is closed."`
-2. Remind the developer to run `/to-code-style`. Name each keep reason approved more than once (the `Drafted keep:` line of each item decided `keep approved`, or for a list posted before #298 its `keep approved:` reason, across the spec's review lists, same reason in different words included) as a candidate approved exception for `config/docs/code-style.md#smells`.
+2. Remind the developer to run `/to-code-style`. Name each keep reason approved more than once (the `Drafted keep:` line of each item decided `keep approved`, or for a list posted before #298 its `keep approved:` reason, across the spec's review lists, same reason in different words included) as a candidate approved exception for `docs/agents/verdicts.md`.
 3. Prompt the developer to run `/mine-outcomes <repo> #<spec>` on the spec's outcome rows.
 
 Otherwise, end by saying what is left: undecided items, and open sub-issues by number.
