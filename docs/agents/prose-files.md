@@ -15,7 +15,7 @@ Every file has one job, and each fact lives in exactly one of them. Everywhere e
 
 ## Map
 
-A library repo in byro-repo may point at a repo that uses it, for cases relevant to the library; from a published doc that pointer is a github.com URL.
+A library repo in byro-repo may point at a repo that uses it, for cases relevant to the library, but never at a private one; from a published doc that pointer is a github.com URL.
 
 ### Root
 
