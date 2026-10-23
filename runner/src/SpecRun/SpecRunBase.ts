@@ -43,7 +43,7 @@ import {
   type LimitGuardKnobs,
   type UsageReader,
 } from "../limitGuard.ts";
-import type { Notices } from "../Notices.ts";
+import type { Notice, Notices } from "../Notices.ts";
 import type { RunKnobs } from "../runKnobs.ts";
 import { sleep } from "../sleep.ts";
 import { WrapUp, type WrapUpGitHub, type WrapUpKnobs } from "../WrapUp.ts";
@@ -96,10 +96,14 @@ export interface RunGitHub extends WrapUpGitHub {
   subIssuesOf(issue: IssueRef): Promise<IssueRef[]>;
   // The issues still open among those natively marked as blocking it.
   openBlockersOf(issue: IssueRef): Promise<IssueRef[]>;
-  comment(issue: IssueRef, body: string): Promise<void>;
+  // Resolves to the comment's URL.
+  comment(issue: IssueRef, body: string): Promise<string>;
   // Oldest first.
   authoredCommentsOf(issue: IssueRef): Promise<IssueComment[]>;
 }
+
+// What an announced event adds to its notice beyond the spec and summary.
+export type RunEvent = Pick<Notice, "kind" | "ticket" | "commentUrl">;
 
 export interface Clock {
   now(): Date;
@@ -273,8 +277,8 @@ export class SpecRunBase {
   }
 
   // Marked, since the runner posts as the developer's login and must never read its own comment as an answer.
-  protected async _comment(run: Run, body: string): Promise<void> {
-    await this.config.github.comment(run.spec.issue, `${runnerMark}\n${body}`);
+  protected async _comment(run: Run, body: string): Promise<string> {
+    return this.config.github.comment(run.spec.issue, `${runnerMark}\n${body}`);
   }
 
   protected _withRerunLine(run: Run, message: string, waits: Wait[]): string {
@@ -322,23 +326,30 @@ export class SpecRunBase {
 
   protected async _end(
     run: Run,
-    kind: RunResult["kind"],
+    kind: "finished" | "stopped",
     message: string,
+    event: RunEvent = {},
   ): Promise<RunResult> {
-    await this._announce(run, message);
+    await this._announce(run, message, { ...event, kind });
     return { kind, landed: run.landed, message };
   }
 
   // A notice that fails is logged, not thrown: the comment and the progress log still hold the event.
-  protected async _announce(run: Run, summary: string): Promise<void> {
+  protected async _announce(
+    run: Run,
+    summary: string,
+    event: RunEvent = {},
+  ): Promise<void> {
     this._log(run, summary);
     // A session's review prints to the session instead.
     if (run.sessionReview !== undefined) return;
     try {
       await this.config.notices.send({
+        spec: run.spec.issue,
         specTitle: run.spec.title,
         summary,
         link: run.spec.url,
+        ...event,
       });
     } catch (error) {
       this._log(run, `The notice failed: ${messageOf(error)}`);

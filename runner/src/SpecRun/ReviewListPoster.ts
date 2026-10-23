@@ -139,7 +139,7 @@ export class ReviewListPoster extends SpecRunBase {
       } catch (error) {
         if (error instanceof TicketHalted) return undefined;
         if (error instanceof RunStop) {
-          return this._end(run, "stopped", error.message);
+          return this._end(run, "stopped", error.message, error.event);
         }
         if (!(error instanceof UnhandledStop)) throw error;
         return this._end(

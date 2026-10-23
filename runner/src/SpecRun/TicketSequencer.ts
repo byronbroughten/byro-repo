@@ -162,7 +162,7 @@ export class TicketSequencer extends SpecRunBase {
     const outcome = stopOutcomes[stop.outcome];
     const label = issueLabelOf(ticket.issue);
     const command = rerunCommandOf(this.config.githubOwner, run.spec.issue);
-    await this._comment(
+    const commentUrl = await this._comment(
       run,
       [
         stopHeadingOf(ticket, outcome),
@@ -171,7 +171,10 @@ export class TicketSequencer extends SpecRunBase {
         `The ticket is left at its ${ticketStateOf(run, ticket.issue).step} step in its issue workspace; rerun to retry it: \`${command}\`.`,
       ].join("\n\n"),
     );
-    throw new RunStop(`Stopped on ${label}: ${outcome}; rerun to retry it.`);
+    throw new RunStop(`Stopped on ${label}: ${outcome}; rerun to retry it.`, {
+      ticket: ticket.issue,
+      commentUrl,
+    });
   }
 
   private async _stopTicket(
@@ -188,7 +191,7 @@ export class TicketSequencer extends SpecRunBase {
       run,
       `${issueLabelOf(ticket.issue)}: stopped on ${outcome}; details in the spec-issue comment.`,
     );
-    await this._comment(
+    run.stopCommentUrl = await this._comment(
       run,
       [
         stopHeadingOf(ticket, outcome),

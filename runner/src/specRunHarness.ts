@@ -24,6 +24,7 @@ import { git, GitFixture } from "./GitFixture.ts";
 import type { Blocker, Handoff, ImplementRecord } from "./implementStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { AccountReading, UsageReader } from "./limitGuard.ts";
+import type { Notice } from "./Notices.ts";
 import { type Command, runKnobsOf } from "./runKnobs.ts";
 import { SpecRun, type SpecRunConfig } from "./SpecRun.ts";
 import type { StepSession } from "./transcriptFacts.ts";
@@ -341,6 +342,18 @@ export function haltComments(): string[] {
   return github.comments
     .map(({ body }) => body)
     .filter((body) => body.includes("**Halt H"));
+}
+
+// The three fields the ntfy adapter sends.
+export function ntfyNotices(): Pick<
+  Notice,
+  "specTitle" | "summary" | "link"
+>[] {
+  return notices.sent.map(({ specTitle, summary, link }) => ({
+    specTitle,
+    summary,
+    link,
+  }));
 }
 
 export function noticeSummaries(): string[] {

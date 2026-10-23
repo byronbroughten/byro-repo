@@ -43,9 +43,10 @@ export class FakeGitHub implements RunGitHub {
       .map((blocker) => ({ repo, number: blocker }));
   }
 
-  async comment(issue: IssueRef, body: string): Promise<void> {
+  async comment(issue: IssueRef, body: string): Promise<string> {
     this._failIfScripted();
     this.comments.push({ issue, body, author: developer });
+    return commentUrlOf(issue, this.comments.length);
   }
 
   // A comment someone other than the runner posts, such as the developer's answer to a Halt.
@@ -105,4 +106,11 @@ export class FakeGitHub implements RunGitHub {
     this.failuresLeft -= 1;
     throw new Error("gh: connection reset");
   }
+}
+
+export function commentUrlOf(
+  { repo, number }: IssueRef,
+  index: number,
+): string {
+  return `https://github.com/o/${repo}/issues/${number}#issuecomment-${index}`;
 }

@@ -1,24 +1,39 @@
-// Sends the push for a runner that crashed; tmux.sh calls it, since a crashed run sends no end-of-run push of its own.
-// Usage: node scripts/runner/crashPush.ts <owner/repo> <n> <exit code>.
-import { NtfyNotices } from "@byronbroughten/spec-runner/NtfyNotices";
+// The crash notice for a runner that exited above 1: its push, and its run-ended line, since a crashed run sends neither itself.
+// crash.ts is the command tmux.sh calls.
+import { EventFileNotices } from "@byronbroughten/spec-runner/EventFileNotices";
+import type { IssueRef } from "@byronbroughten/spec-runner/IssueWorkspaces";
+import {
+  composedNotices,
+  type Notices,
+} from "@byronbroughten/spec-runner/Notices";
 import { rerunCommandOf } from "@byronbroughten/spec-runner/SpecRun";
 
-import { ntfyTopic } from "./runnerConfig.ts";
-
-const [ownerRepo = "", number = "", code = ""] = process.argv.slice(2);
-const [owner = "", repo = ""] = ownerRepo.split("/");
-const command = rerunCommandOf(owner, { repo, number: Number(number) });
-let topic: string | undefined;
-try {
-  topic = ntfyTopic();
-} catch (error) {
-  // The pane already shows the crash; a second throw would bury it.
-  console.error(error instanceof Error ? error.message : error);
+export interface Crash {
+  owner: string;
+  spec: IssueRef;
+  code: string;
 }
-if (topic !== undefined) {
-  await NtfyNotices.init(topic).send({
-    specTitle: `${ownerRepo} #${number}`,
+
+interface CrashNotices {
+  // Undefined when the topic couldn't be read; the line is still written.
+  ntfy: Notices | undefined;
+  stateFolder: string;
+}
+
+export async function sendCrashPush(
+  { owner, spec, code }: Crash,
+  { ntfy, stateFolder }: CrashNotices,
+): Promise<void> {
+  const ownerRepo = `${owner}/${spec.repo}`;
+  const command = rerunCommandOf(owner, spec);
+  const eventFile = EventFileNotices.init(stateFolder);
+  const notices =
+    ntfy === undefined ? eventFile : composedNotices(ntfy, eventFile);
+  await notices.send({
+    spec,
+    specTitle: `${ownerRepo} #${spec.number}`,
     summary: `The runner exited unexpectedly with code ${code}; read its tmux pane, then rerun \`${command}\`.`,
-    link: `https://github.com/${ownerRepo}/issues/${number}`,
+    link: `https://github.com/${ownerRepo}/issues/${spec.number}`,
+    kind: "crashed",
   });
 }
