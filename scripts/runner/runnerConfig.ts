@@ -20,6 +20,7 @@ import type {
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
 import { composedNotices } from "@byronbroughten/spec-runner/Notices";
 import { NtfyNotices } from "@byronbroughten/spec-runner/NtfyNotices";
+import type { WrittenOutcomeRow } from "@byronbroughten/spec-runner/outcomeRowWriter";
 import { loadRunKnobs } from "@byronbroughten/spec-runner/runKnobs";
 import type { SpecRunConfig } from "@byronbroughten/spec-runner/SpecRun";
 import type { WrapUpConfig } from "@byronbroughten/spec-runner/WrapUp";
@@ -92,6 +93,14 @@ export const wrapUpConfig: WrapUpConfig = {
   checks: runKnobs.checks,
   outcomeFolder,
   stateFolder,
+  writeOutcomeRow: async (root, request) =>
+    JSON.parse(
+      execFileSync(
+        process.execPath,
+        ["scripts/runner/outcomeRow.ts", JSON.stringify(request)],
+        { cwd: root, encoding: "utf8" },
+      ),
+    ) as WrittenOutcomeRow,
   log: (line) => console.log(line),
 };
 

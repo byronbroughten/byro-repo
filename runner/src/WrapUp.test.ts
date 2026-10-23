@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import { FactsFile } from "./FactsFile.ts";
 import { git } from "./GitFixture.ts";
 import { IssueWorkspaces } from "./IssueWorkspaces.ts";
+import { writeOutcomeRow } from "./outcomeRowWriter.ts";
 import type { RecordedSession, StepAgent } from "./transcriptFacts.ts";
 import {
   commitIn,
@@ -64,6 +65,25 @@ describe("run", () => {
         "| #218 | Opus medium | unrecorded | 1 | 150K → 90K | Fix (fresh resolver) | 0 | 1 | 0 | unrecorded | unrecorded | unrecorded | A stale doc link | unrecorded |",
         "",
       ].join("\n"),
+    );
+  });
+
+  it("writes the row through the configured writer in the merged root checkout, where the ticket's own code is", async () => {
+    const workspace = await workspaceWith();
+    commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
+    writeFacts();
+    const hasTicketCode: boolean[] = [];
+
+    await wrapUp({
+      writeOutcomeRow: async (root, request) => {
+        hasTicketCode.push(existsSync(join(root, "script.ts")));
+        return writeOutcomeRow(root, request);
+      },
+    }).run(ticket);
+
+    expect(hasTicketCode).toEqual([true]);
+    expect(readFileSync(join(primaryRoot, outcomePath), "utf8")).toContain(
+      "| #218 | Opus medium |",
     );
   });
 
