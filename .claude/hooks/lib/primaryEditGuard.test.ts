@@ -8,6 +8,7 @@ import {
 const root = "/code/byro-repo";
 const framework = `${root}/packages/framework`;
 const primaryCheckouts = [root, framework];
+const workspace = `${root}/.claude/worktrees/byro-repo-issue-1-x`;
 
 function decide(
   props: Partial<PrimaryEditInput> & Pick<PrimaryEditInput, "toolInput">,
@@ -54,11 +55,11 @@ describe("primaryEditDecision, file tools", () => {
 
   it.each([
     ["a gitignored path", `${root}/.runner/state.json`],
+    ["a workspace path", `${workspace}/docs/a.md`],
     [
-      "a workspace path",
-      "/code/byro-repo-workspaces/byro-repo-issue-1-x/docs/a.md",
+      "a workspace's package clone path",
+      `${workspace}/packages/framework/src/a.ts`,
     ],
-    ["a path under .claude/worktrees", `${root}/.claude/worktrees/a/docs/a.md`],
     ["a path outside every checkout", "/tmp/scratch/a.md"],
   ])("passes %s", (_case, filePath) => {
     const decision = decide({
@@ -84,11 +85,9 @@ describe("primaryEditDecision, Bash", () => {
   });
 
   it.each([
-    ["git commit -m x", "/code/byro-repo-workspaces/byro-repo-issue-1-x"],
-    [
-      "cd /code/byro-repo-workspaces/byro-repo-issue-1-x && git commit -m x",
-      root,
-    ],
+    ["git commit -m x", workspace],
+    [`cd ${workspace} && git commit -m x`, root],
+    [`git -C ${workspace}/packages/framework commit -m x`, root],
     ["git status", root],
     ["npm test", root],
   ])("passes `%s` from %s", (command, cwd) => {

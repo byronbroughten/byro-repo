@@ -3,6 +3,9 @@ dist/
 coverage/
 tsconfig.tsbuildinfo
 .claude/settings.local.json
+
+# Issue and session workspaces, plus Claude Code's own worktrees.
+.claude/worktrees/
 .DS_Store
 
 # OAuth client secrets live outside the repo; this is belt-and-braces.

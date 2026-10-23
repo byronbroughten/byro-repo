@@ -14,6 +14,7 @@ import {
 const root = "/code/byro-repo";
 const framework = `${root}/packages/framework`;
 const primaryCheckouts = [root, framework];
+const workspace = `${root}/.claude/worktrees/byro-repo-issue-1-x`;
 
 const existingPaths = new Set([`${root}/src/a.ts`, `${root}/src`, root]);
 const now = 10 * 24 * 60 * 60 * 1000;
@@ -80,15 +81,10 @@ describe("branchDecision, strict", () => {
   });
 
   it.each([
-    ["git checkout feature", "/code/byro-repo-workspaces/byro-repo-issue-1-x"],
-    [
-      "git -C /code/byro-repo-workspaces/byro-repo-issue-1-x/packages/framework switch feature",
-      root,
-    ],
-    [
-      "cd /code/byro-repo-workspaces/byro-repo-issue-1-x && git checkout -b y",
-      root,
-    ],
+    ["git checkout feature", workspace],
+    [`git -C ${workspace}/packages/framework switch feature`, root],
+    ["git switch feature", `${workspace}/packages/framework/src`],
+    [`cd ${workspace} && git checkout -b y`, root],
     ["git checkout feature", `${root}/.claude/worktrees/agent-1`],
     ["git checkout feature", "/somewhere/else"],
   ])("allows `%s` from %s, outside every primary checkout", (command, cwd) => {
@@ -148,7 +144,7 @@ describe("branchDecision, interim", () => {
   it("allows a commit after HEAD moved in an issue workspace", () => {
     const decision = decide({
       command: "git commit -m x",
-      cwd: "/code/byro-repo-workspaces/byro-repo-issue-1-x",
+      cwd: workspace,
       ownCheckouts: { [root]: onMaster },
       currentCheckouts: { [root]: onIssue },
     });
@@ -242,7 +238,7 @@ describe("headMovingCheckouts", () => {
     ["git pull && git rebase master && git reset --hard", [root]],
     ["git status && git log", []],
     ["git checkout -- a.ts", [root]],
-    ["git commit -m x", [], "/code/byro-repo-workspaces/byro-repo-issue-1-x"],
+    ["git commit -m x", [], workspace],
   ])("finds the checkouts `%s` may move", (command, expected, cwd = root) => {
     expect(headMovingCheckouts({ command, cwd, primaryCheckouts })).toEqual(
       expected,
