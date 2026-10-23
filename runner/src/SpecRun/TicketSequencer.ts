@@ -120,8 +120,7 @@ export class TicketSequencer extends SpecRunBase {
       this._saveState(run);
       if (!(error instanceof UnhandledStop)) throw error;
       if (isRerunRetried(error)) await this._stopForRerun(run, ticket, error);
-      await this._stopTicket(run, ticket, error);
-      return "stopped";
+      return await this._stopTicket(run, ticket, error);
     } finally {
       await this.leaseKeeper._releaseLeaseOf(ticket.issue);
     }
@@ -181,7 +180,7 @@ export class TicketSequencer extends SpecRunBase {
     run: Run,
     ticket: TrackedIssue,
     stop: UnhandledStop,
-  ): Promise<void> {
+  ): Promise<never> {
     const state = ticketStateOf(run, ticket.issue);
     const outcome = stopOutcomes[stop.outcome];
     state.step = "stopped";
@@ -191,7 +190,7 @@ export class TicketSequencer extends SpecRunBase {
       run,
       `${issueLabelOf(ticket.issue)}: stopped on ${outcome}; details in the spec-issue comment.`,
     );
-    run.stopCommentUrl = await this._comment(
+    const commentUrl = await this._comment(
       run,
       [
         stopHeadingOf(ticket, outcome),
@@ -200,6 +199,10 @@ export class TicketSequencer extends SpecRunBase {
         "The ticket is left unlanded in its issue workspace, and a rerun won't retry it. Finish and land it by hand with the standalone wrap-up; a rerun skips it once it is closed.",
       ].join("\n\n"),
     );
+    throw new RunStop(`Stopped on ${issueLabelOf(ticket.issue)}: ${outcome}.`, {
+      ticket: ticket.issue,
+      commentUrl,
+    });
   }
 
   // An implementer whose record failed after it committed is offered `retry record`, which keeps those commits.

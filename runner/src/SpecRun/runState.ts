@@ -156,8 +156,6 @@ export interface Run {
   skipped: Set<string>;
   // The distinct tickets whose Failure Halts came in a row; a landing clears it.
   failureStreak: string[];
-  // The comment of the ticket Stop the run is ending on, for its run-ended event.
-  stopCommentUrl?: string;
   // One ticket's review outside a run; a flag, not a strategy, as it differs from a run at only a handful of checks.
   sessionReview?: SessionReview;
 }
@@ -183,7 +181,7 @@ export interface TicketRun extends LandingTicket {
   targets: Target[];
 }
 
-export type TicketOutcome = "landed" | "stopped" | "leased" | "halted";
+export type TicketOutcome = "landed" | "leased" | "halted";
 
 export interface Wait {
   ticket: IssueRef;

@@ -34,7 +34,6 @@ import {
   type RunResult,
   targetsRefusalOf,
   type TicketOutcome,
-  ticketStateOf,
   type TrackedIssue,
   type Wait,
   waitsTextOf,
@@ -129,14 +128,6 @@ export class RunLoop extends SpecRunBase {
         return this._end(run, "stopped", error.message, error.event);
       }
       if (outcome === "leased" || outcome === "halted") continue;
-      if (outcome === "stopped") {
-        return this._end(
-          run,
-          "stopped",
-          stoppedMessageOf(run, selection.ticket),
-          { ticket: selection.ticket.issue, commentUrl: run.stopCommentUrl },
-        );
-      }
       run.landed.push(selection.ticket.issue);
       run.failureStreak = [];
     }
@@ -276,11 +267,6 @@ function currentTextOf(run: Run, { ticket, holder }: Wait): string[] {
   if (holder?.kind !== "run") return [];
   const step = run.state.tickets[issueLabelOf(ticket)]?.step ?? "implement";
   return [`${issueLabelOf(ticket)} at ${step} (${holderLabelOf(holder)})`];
-}
-
-function stoppedMessageOf(run: Run, ticket: TrackedIssue): string {
-  const { stop } = ticketStateOf(run, ticket.issue);
-  return `Stopped on ${issueLabelOf(ticket.issue)}: ${stop ?? "an unhandled outcome"}.`;
 }
 
 function readingLabelOf({ account, usage }: AccountReading): string {
