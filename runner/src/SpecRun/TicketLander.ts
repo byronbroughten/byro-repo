@@ -26,6 +26,7 @@ import {
   haltsOfTicket,
   isTurnCapped,
   type LandingTicket,
+  recordedSessionsOf,
   recordOf,
   type Resolver,
   reviewFactsOf,
@@ -251,7 +252,7 @@ export class TicketLander extends SpecRunBase {
   }
 
   private _writeFacts({ run, ticket, pair, state }: LandingTicket): void {
-    const { record, configFolder, sessions } = state;
+    const { record } = state;
     if (record === undefined) {
       throw new Error(
         `${issueLabelOf(ticket.issue)} reached its wrap-up with no implement record`,
@@ -274,12 +275,8 @@ export class TicketLander extends SpecRunBase {
       facts.reviewRounds = 0;
       facts.githubWrites = record.githubWrites;
     }
-    if (configFolder !== undefined) {
-      const { account } = this.config.knobs;
-      facts.sessions = {
-        steps: sessions.map((step) => ({ ...step, account, configFolder })),
-      };
-    }
+    const steps = recordedSessionsOf(state, this.config.knobs.account);
+    if (steps.length > 0) facts.sessions = { steps };
     this.factsFile.write(ticket.issue, facts);
   }
 }

@@ -171,10 +171,15 @@ export class StepLauncher extends SpecRunBase {
     } catch (error) {
       return { kind: "unrun", detail: unrunDetailOf(agent, error) };
     }
-    if (result.sessionId !== undefined) {
-      state.sessions.push({ agent, sessionId: result.sessionId });
-    }
     state.configFolder = result.configFolder ?? state.configFolder;
+    if (result.sessionId !== undefined) {
+      state.sessions.push({
+        agent,
+        sessionId: result.sessionId,
+        account: result.account,
+        configFolder: state.configFolder,
+      });
+    }
     this._saveState(run);
     await this._stopOnLimitHit(run, result, logPath);
     return { kind: "ran", result };

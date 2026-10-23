@@ -171,6 +171,41 @@ describe("review of one ticket outside a run", () => {
     });
   });
 
+  it("records each step session under the account and config folder its own step ran as", async () => {
+    const agentStep = FakeAgentStep.init(
+      {
+        ...reviewed(findings),
+        sessionId: "review-session",
+        account: 2,
+        configFolder: "/config/account-2",
+      },
+      async (request) => ({
+        ...(await resolved([propose, fix, coveredLater], "fix.ts")(request)),
+        sessionId: "resolve-session",
+        configFolder: "/config/account-1",
+      }),
+    );
+
+    await specRun(agentStep).review(refOf(1), { holder });
+
+    expect(ticketFacts().sessions).toEqual({
+      steps: [
+        {
+          agent: "review",
+          sessionId: "review-session",
+          account: 2,
+          configFolder: "/config/account-2",
+        },
+        {
+          agent: "resolve",
+          sessionId: "resolve-session",
+          account: 1,
+          configFolder: "/config/account-1",
+        },
+      ],
+    });
+  });
+
   it("records a halted review's sessions under the step's own config folder when no implement session was recorded", async () => {
     const agentStep = FakeAgentStep.init(
       {
