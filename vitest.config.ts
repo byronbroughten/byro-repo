@@ -16,7 +16,7 @@ function pathWithDirectGitFirst(): string | undefined {
   }
 }
 
-const pathValue = pathWithDirectGitFirst();
+const pathWithDirectGit = pathWithDirectGitFirst();
 
 // The framework's and utils' own projects join the root's, so one vitest run covers every package.
 export default defineConfig({
@@ -24,7 +24,7 @@ export default defineConfig({
   ssr: { resolve: { conditions: ["source"] } },
   test: {
     environment: "node",
-    ...(pathValue && { env: { PATH: pathValue } }),
+    ...(pathWithDirectGit && { env: { PATH: pathWithDirectGit } }),
     restoreMocks: true,
     unstubGlobals: true,
     projects: [

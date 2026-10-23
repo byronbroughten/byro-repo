@@ -36,7 +36,7 @@ export const clonePaths = {
 };
 
 export const spec: IssueRef = { repo: "byro-repo", number: 213 };
-// Shell builtins, since every run spawns them and a node process costs several times as much to start.
+// Small binaries, not node, since every run spawns them and a node process costs several times as much to start.
 export const passes: Command = ["true"];
 export const greenUnlessRed: Command = ["sh", "-c", "test ! -f RED"];
 

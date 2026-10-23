@@ -3,17 +3,18 @@
 import { existsSync, globSync, readFileSync } from "node:fs";
 import { delimiter, join, relative } from "node:path";
 
-import { runCollecting } from "@byronbroughten/spec-runner/runCollecting";
+import {
+  type CollectedRun,
+  runCollecting,
+} from "@byronbroughten/spec-runner/runCollecting";
 
 interface Program {
   cwd: string;
   command: string;
 }
 
-interface Outcome {
+interface Outcome extends CollectedRun {
   label: string;
-  isOk: boolean;
-  output: string;
 }
 
 const root = join(import.meta.dirname, "../..");
@@ -61,12 +62,13 @@ function readJson(path: string): unknown {
 async function outcomeOf({ cwd, command }: Program): Promise<Outcome> {
   const label = `${relative(root, cwd) || "."}: ${command}`;
   // The workspace's own bin folder first, as `npm run` would put it.
-  const pathValue = [join(cwd, "node_modules/.bin"), process.env.PATH].join(
-    delimiter,
-  );
+  const pathWithWorkspaceBin = [
+    join(cwd, "node_modules/.bin"),
+    process.env.PATH,
+  ].join(delimiter);
   const run = await runCollecting("sh", ["-c", command], {
     cwd,
-    env: { ...process.env, PATH: pathValue },
+    env: { ...process.env, PATH: pathWithWorkspaceBin },
   });
   return { label, ...run };
 }
