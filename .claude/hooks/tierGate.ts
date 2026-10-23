@@ -1,6 +1,11 @@
 // PreToolUse on Bash and the gworkspace write and create tools applies the tier gate; PostToolUse on Bash records each app chore dry run that ran, for a later --send.
+// A Bash call naming gh also reads this claude's supervision record, since a supervising session's gh writes ask.
 import { writeFileSync } from "node:fs";
 
+import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
+
+import { nearestClaudeAncestor } from "../../scripts/runner/claudeAncestor.ts";
+import { stateFolder } from "../../scripts/runner/runnerConfig.ts";
 import { driveOwnersOf } from "./lib/driveOwners.ts";
 import {
   cachedOwnerLookup,
@@ -18,6 +23,7 @@ import {
 } from "./lib/hookIo.ts";
 import { readSheetsConfigs } from "./lib/sheetsConfigs.ts";
 import {
+  callsGh,
   type Decision,
   dryRunChoresOf,
   gateDecision,
@@ -33,7 +39,7 @@ await runFailOpen(async () => {
   if (!input?.tool_name) return;
   let decision: Decision | undefined;
   if (input.tool_name === "Bash") {
-    decision = bashDecision(input);
+    decision = await bashDecision(input);
   } else {
     const projectDir =
       process.env.CLAUDE_PROJECT_DIR ?? input.cwd ?? process.cwd();
@@ -62,7 +68,7 @@ await runFailOpen(async () => {
   });
 });
 
-function bashDecision(input: HookInput): Decision | undefined {
+async function bashDecision(input: HookInput): Promise<Decision | undefined> {
   const command = input.tool_input?.command;
   if (typeof command !== "string") return undefined;
   const dryRunsPath = sessionStatePath(input.session_id, dryRunSuffix);
@@ -70,11 +76,22 @@ function bashDecision(input: HookInput): Decision | undefined {
     recordDryRuns(dryRunsPath, dryRunChoresOf(command));
     return undefined;
   }
+  const mode = sessionModeOf(process.env);
   return gateDecision({
     command,
-    mode: sessionModeOf(process.env),
+    mode,
     dryRuns: readDryRuns(dryRunsPath),
+    supervising:
+      mode === "interactive" && callsGh(command) && (await isSupervising()),
   });
+}
+
+// A runner step is never a supervisor, so only an interactive session's claude is looked up.
+async function isSupervising(): Promise<boolean> {
+  const holder = nearestClaudeAncestor();
+  if (!holder) return false;
+  const record = await SupervisionRecords.init(stateFolder).recordOf(holder);
+  return record !== undefined;
 }
 
 function recordDryRuns(path: string, chores: string[]): void {
