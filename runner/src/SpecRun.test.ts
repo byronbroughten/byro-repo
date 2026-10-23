@@ -118,7 +118,7 @@ describe("run", () => {
       expect.arrayContaining([
         "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%.",
         "byro-repo #1: launching on Opus high from implement.",
-        "byro-repo #1: checking node -e process.exit(require('fs').existsSync('RED') ? 1 : 0).",
+        "byro-repo #1: checking sh -c test ! -f RED.",
         "byro-repo #1: wrapping up.",
         "byro-repo #1: landed.",
       ]),

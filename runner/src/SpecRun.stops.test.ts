@@ -114,8 +114,7 @@ describe("run's preflight", () => {
 });
 
 describe("run's master check", () => {
-  const redMaster =
-    "master red: node -e process.exit(require('fs').existsSync('RED') ? 1 : 0)";
+  const redMaster = "master red: sh -c test ! -f RED";
 
   it("Stops the run naming master red when a ticket's checks go red on a red master, though an uncommitted edit would turn it green", async () => {
     commitRed(primaryRoot);

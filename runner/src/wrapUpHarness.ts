@@ -23,11 +23,7 @@ export const clonePaths = {
   "byro-repo": ".",
   "sheets-framework": "packages/framework",
 };
-const redCheck: [string, ...string[]] = [
-  "node",
-  "-e",
-  "process.exit(require('fs').existsSync('RED') ? 1 : 0)",
-];
+const redCheck: [string, ...string[]] = ["sh", "-c", "test ! -f RED"];
 
 export const ticket: IssueRef = { repo: "byro-repo", number: 218 };
 export const spec: IssueRef = { repo: "byro-repo", number: 213 };
