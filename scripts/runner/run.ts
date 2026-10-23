@@ -66,9 +66,10 @@ async function runSpec(
       process.exitCode = 1;
     }
   } else if (command === "resolve") {
+    if (recordsPath === undefined) throw new Error(usage);
     const result = await specRun.resolve(issue, {
       holder: nearestClaudeAncestor(),
-      output: JSON.parse(readFileSync(recordsPath ?? "", "utf8")),
+      output: JSON.parse(readFileSync(recordsPath, "utf8")),
     });
     console.log(reviewPrintoutOf(result));
     if (result.kind !== "reviewed") process.exitCode = 1;
