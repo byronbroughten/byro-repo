@@ -22,7 +22,7 @@ Explain those lines one at a time, oldest first, as step 4 says. After each one,
 
 ## 3. Watch
 
-Once caught up, watch the event file, `.runner/<repo>-<n>.events.jsonl` under the primary root, with the `Monitor` tool, filtered to new lines only, such as `tail -n 0 -F <file>`. Explain each new line as step 4 says, then advance. Keep watching until a `run-ended` line.
+Once caught up, start the `Monitor` tool on the event file, `.runner/<repo>-<n>.events.jsonl` under the primary root, filtered to new lines, such as `tail -n 0 -F <file>`. The watch only wakes you. On each wake, go back to step 2: run `supervise` again and explain the lines it prints. Those come from the record's offset, so a line written before the watch started is still among them. Keep watching until you have explained a `run-ended` line.
 
 ## 4. Explain each event
 
