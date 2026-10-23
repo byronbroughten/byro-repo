@@ -45,4 +45,4 @@ disable-model-invocation: true
   4. **Report**: post in the session what review caught, what was fixed and what is Proposed.
   5. **Wait for the developer's go-ahead.** Land nothing before it.
   6. Call `ExitWorktree` with `keep`, so wrap-up can remove the workspace.
-  7. **Land**: `npm run wrap-up -- <repo> <n> --closing "<what landed>" [--undone "<box>: <reason>"]...`, one `--undone` per acceptance box left undone. A ticket with no branch ahead of master, one that needed only GitHub or Doc writes, adds `--no-code`: `npm run wrap-up -- <repo> <n> --no-code --closing "<what landed>"`.
+  7. **Land**: `npm run wrap-up -- <repo> <n> --closing "<what landed>" [--undone "<box>: <reason>"]...`, one `--undone` per acceptance box left undone. A ticket with no branch ahead of master, one that needed only GitHub or Doc writes, adds `--no-code`: `npm run wrap-up -- <repo> <n> --no-code --closing "<what landed>"`. A ticket that changes wrap-up or the facts file's format lands through its workspace's own script instead, by `docs/agents/git-workflow.md`.
