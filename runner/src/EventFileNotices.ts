@@ -1,4 +1,4 @@
-import { appendFileSync, mkdirSync } from "node:fs";
+import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { shortRefOf } from "./halts.ts";
@@ -64,4 +64,11 @@ export class EventFileNotices implements Notices {
 
 export function eventFilePathOf(stateFolder: string, spec: IssueRef): string {
   return join(stateFolder, `${fileStemOf(spec)}.events.jsonl`);
+}
+
+export function eventLinesOf(stateFolder: string, spec: IssueRef): EventLine[] {
+  return readFileSync(eventFilePathOf(stateFolder, spec), "utf8")
+    .trimEnd()
+    .split("\n")
+    .map((line) => JSON.parse(line) as EventLine);
 }

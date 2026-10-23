@@ -1,12 +1,10 @@
-import { readFileSync } from "node:fs";
-
 import { describe, expect, it } from "vitest";
 
 import type { StepResult } from "./AgentStep.ts";
 import {
   EventFileNotices,
-  eventFilePathOf,
   type EventLine,
+  eventLinesOf,
 } from "./EventFileNotices.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { commentUrlOf } from "./FakeGitHub.ts";
@@ -43,10 +41,7 @@ function withEventFile(): Partial<SpecRunConfig> {
 }
 
 function eventLines(): EventLine[] {
-  return readFileSync(eventFilePathOf(stateFolder(), spec), "utf8")
-    .trimEnd()
-    .split("\n")
-    .map((line) => JSON.parse(line) as EventLine);
+  return eventLinesOf(stateFolder(), spec);
 }
 
 function haltCommentUrl(): string {
