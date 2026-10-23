@@ -220,6 +220,19 @@ describe("a supervising session's gh calls", () => {
     });
   });
 
+  it("decides a runner step's writes as today, since a runner step is never a supervisor", () => {
+    writes.forEach((command) => {
+      expect(
+        gateDecision({
+          command,
+          mode: "runnerStep",
+          dryRuns: [],
+          supervising: true,
+        }),
+      ).toBeUndefined();
+    });
+  });
+
   it("still asks in a compound command beside an allowed one", () => {
     expect(
       supervisedDecisionOf('git commit -m wip && gh issue comment 3 -b "x"')

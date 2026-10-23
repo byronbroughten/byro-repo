@@ -64,7 +64,9 @@ const ghWriteWhy =
   "writes to GitHub from a session supervising a run, and the developer approves its exact text";
 
 export function gateDecision(call: ShellCall): Decision | undefined {
-  const decision = baseDecision(call);
+  // A runner step is never a supervisor, whatever record its claude holds.
+  const supervising = call.mode === "interactive" && call.supervising;
+  const decision = baseDecision({ ...call, supervising });
   return decision && decisionInMode(decision, call.mode);
 }
 
