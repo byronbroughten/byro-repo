@@ -346,7 +346,7 @@ describe("triagePrompt", () => {
       "`kept`: a smell whose site carries a one-line reason that is still true",
       "`tooling-enforced`: lint, the typecheck or a test",
       "`coveredBy`",
-      "#smells",
+      "`docs/agents/verdicts.md`",
       "Doc drift the diff caused is Fix",
       "unverifiable findings",
       "would reverse a User Story or an Implementation Decision",

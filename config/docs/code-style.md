@@ -15,7 +15,6 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 | Writing or changing a test | [`docs/code-style/tests.md`](./code-style/tests.md) |
 | A comment, or a file-level navigation block | [`docs/code-style/comments.md`](./code-style/comments.md) |
 | `reduce`, a chaining mutator, a combined option | [`docs/code-style/idioms.md`](./code-style/idioms.md) |
-| A code smell, fixing it or keeping it | [`docs/code-style/smells.md`](./code-style/smells.md) |
 | Imports, barrels, file names | [`docs/code-style/file-organization.md`](./code-style/file-organization.md) |
 
 ## Class shape
@@ -86,14 +85,7 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 
 ## Smells
 
-- **A code smell is fixed by default**, the way the review's how-to-fix line for it says.
-- **A smell stays only when its site carries a one-line comment saying why not the obvious thing**, and that reason is still true.
-- **A reason that's no longer true makes the smell a fresh finding.**
-- **Every new keep needs the developer's yes.**
-- **A smell whose fix would reverse a decision the spec made goes to the developer**, not one that only changes how a decision is met.
-- **Approved exceptions**, recurring reasons the developer has said yes to, suppress the smell everywhere:
-  - **A public member with no callers is kept, not flagged as Speculative Generality,** unless another member does the same job with the same or fewer parameters, or the package's style doc leaves that code out.
-  - **A type in use stays even when it only names another type, a primitive or a literal union** (`type SheetGid = number`). The caller-less exception skips types: an exported type with no callers is flagged.
+- **Whether a smell is fixed or kept, and its approved exceptions: the byro-repo root's `docs/agents/verdicts.md`.**
 
 ## Tests
 

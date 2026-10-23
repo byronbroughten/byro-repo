@@ -38,7 +38,7 @@ Search the repo for every file that documents how code should be written. When `
 On top of whatever the repo documents, the Standards axis always carries the **smell baseline** below: a fixed set of Fowler code smells (_Refactoring_, ch.3) that applies even when a repo documents nothing. Two rules bind it:
 
 - **The repo overrides.** A documented repo standard always wins; where it endorses something the baseline would flag, suppress the smell.
-- **Fix or explain.** A smell is fixed by default and stays only when its site carries a one-line reason that is still true; every new keep needs the developer's yes. The rule, the re-check of a kept smell's reason, and the approved exceptions are in [`config/docs/code-style.md#smells`](../../../config/docs/code-style.md#smells). Like any standard here, skip anything tooling already enforces.
+- **Fix or explain.** A smell is fixed by default and stays only when its site carries a one-line reason that is still true; every new keep needs the developer's yes. The rule, the re-check of a kept smell's reason, and the approved exceptions are in [`docs/agents/verdicts.md`](../../../docs/agents/verdicts.md). Like any standard here, skip anything tooling already enforces.
 - **Code only.** The baseline never applies to prose. A prose finding cites [`docs/agents/prose-files.md`](../../../docs/agents/prose-files.md)'s rule that each fact lives in one file, with its exception for a behavior-changing rule repeated where it gets followed, or `writing-for-agents`'s single source of truth.
 
 Each smell reads *what it is* → *how to fix*; match it against the diff:
@@ -58,13 +58,15 @@ Each smell reads *what it is* → *how to fix*; match it against the diff:
 
 ### 4. Spawn both sub-agents in parallel
 
-Issue both sub-agent calls together, in the foreground, and aggregate the reports they return.
+Call the Agent tool twice in one message, each with `subagent_type: "general-purpose"`, one per axis, in the foreground, and aggregate the reports they return.
+
+Both briefs end with the same verdict line: "Give each finding a suggested verdict and its reason under `docs/agents/verdicts.md`: Fix, Dismiss with its reason, Propose `decision` or `ticket`, or Halt."
 
 **Standards sub-agent prompt** should include:
 
 - The full diff command and commit list.
 - The list of standards-source files you found in step 3, **plus the smell baseline from step 3** pasted in full (the sub-agent has no other access to it).
-- The brief: "Report, per file/hunk where relevant, (a) every place the diff violates a documented standard: cite the standard (file + the rule); and (b) any baseline smell you spot in code: name it, quote the hunk, and copy that smell's '→ how to fix' line. A smell is fixed by default unless its site carries a one-line reason that is still true (`config/docs/code-style.md#smells`); when the diff changes a kept smell's site or what its reason relies on (the same function, a type it names, a spec decision it cites), re-check the reason and report one that's no longer true as a fresh smell. A documented repo standard overrides the baseline. Prose findings cite the prose rules above, never the baseline. Skip anything tooling enforces. Under 400 words."
+- The brief: "Report, per file/hunk where relevant, (a) every place the diff violates a documented standard: cite the standard (file + the rule); and (b) any baseline smell you spot in code: name it, quote the hunk, and copy that smell's '→ how to fix' line. A smell is fixed by default unless its site carries a one-line reason that is still true (`docs/agents/verdicts.md`); when the diff changes a kept smell's site or what its reason relies on (the same function, a type it names, a spec decision it cites), re-check the reason and report one that's no longer true as a fresh smell. A documented repo standard overrides the baseline. Prose findings cite the prose rules above, never the baseline. Skip anything tooling enforces. Under 400 words."
 
 **Spec sub-agent prompt** should include:
 
@@ -76,9 +78,7 @@ If the spec is missing, skip the Spec sub-agent and note this in the final repor
 
 ### 5. Aggregate
 
-Present the two reports under `## Standards` and `## Spec` headings, verbatim or lightly cleaned. Do **not** merge or rerank findings, because the two axes are deliberately separate (see _Why two axes_).
-
-Label each smell's outcome with the runner's verdict words, never "left alone": **Fix**; **Dismiss `kept`**, quoting its still-true reason at its `file:line`; or **Propose `decision`**, for a smell you think is wanted but whose site carries no reason (give the drafted one-line reason) or one whose fix would reverse a User Story or an Implementation Decision.
+Present the two reports apart, under `## Standards` and `## Spec` headings, verbatim or lightly cleaned, each finding with its suggested verdict and reason. Keep each finding under its own axis's heading, in its reviewer's order, because the two axes are deliberately separate (see _Why two axes_).
 
 End with a one-line summary: total findings per axis, and the worst issue _within each axis_ (if any). Don't pick a single winner across axes: that's the reranking the separation exists to prevent.
 
