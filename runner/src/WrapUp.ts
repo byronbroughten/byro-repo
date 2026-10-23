@@ -676,7 +676,7 @@ export class WrapUp {
     const built = landing.progress.built ?? {};
     const base =
       built[this._rootRepo]?.base ?? (await revOf(worktree, "master"));
-    const writeRow = this.config.writeOutcomeRow ?? writeOutcomeRowHere;
+    const writeRow = this.config.writeOutcomeRow ?? writeOutcomeRow;
     const { path, commitMessage } = await writeRow(worktree, {
       issue,
       spec: await this._specOf(issue),
@@ -1093,14 +1093,6 @@ function parentCheckOf(parent: ParentIssue | undefined): ParentCheck {
     return { kind: "open-sub-issues", parent: parent.issue };
   }
   return { kind: "ready-to-close", parent: parent.issue };
-}
-
-// Writes the row with the code already loaded, as tests do; the live config runs the workspace's own.
-async function writeOutcomeRowHere(
-  root: string,
-  request: OutcomeRowRequest,
-): Promise<WrittenOutcomeRow> {
-  return writeOutcomeRow(root, request);
 }
 
 async function levelRepo(worktree: string, branch: string): Promise<void> {
