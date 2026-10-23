@@ -9,6 +9,7 @@ import { git } from "./GitFixture.ts";
 import type { LeaseHolder, Workspace } from "./IssueWorkspaces.ts";
 import type { ResolveRecord } from "./resolveStep.ts";
 import { reviewPrintoutOf } from "./SpecRun.ts";
+import type { ReviewResult } from "./SpecRun/runState.ts";
 import {
   addSpec,
   findingOf,
@@ -99,24 +100,21 @@ describe("a session resolving its own review", () => {
     coveredBy: "byro-repo#2",
   };
 
-  async function reviewUnderBudget(): Promise<FakeAgentStep> {
+  async function reviewUnderBudget(): Promise<{
+    agentStep: FakeAgentStep;
+    result: ReviewResult;
+  }> {
     implementedAt(100_000);
     const agentStep = FakeAgentStep.init({
       ...reviewed(findings),
       sessionId: "review-session",
     });
-    await specRun(agentStep).review(refOf(1), { holder });
-    return agentStep;
+    const result = await specRun(agentStep).review(refOf(1), { holder });
+    return { agentStep, result };
   }
 
   it("starts only the review session under the ticket budget, records it, and returns the findings with their axes and suggested verdicts", async () => {
-    implementedAt(100_000);
-    const agentStep = FakeAgentStep.init({
-      ...reviewed(findings),
-      sessionId: "review-session",
-    });
-
-    const result = await specRun(agentStep).review(refOf(1), { holder });
+    const { agentStep, result } = await reviewUnderBudget();
 
     expect(result.kind).toBe("findings");
     expect(agentStep.requests).toHaveLength(1);
