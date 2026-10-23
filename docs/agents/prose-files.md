@@ -1,21 +1,20 @@
 # Which prose file a fact belongs in
 
-Every file has one job, and each fact lives in exactly one of them. Everywhere else, point to it. The one exception is a behavior-changing rule, repeated on purpose where it gets followed. Why the scheme is shaped this way: [`docs/agent-behavior-design.md`](../agent-behavior-design.md).
+The words for the repo's prose, which file holds which fact, what the root AGENTS.md costs, and what each README mirrors. The rules for shaping developer-facing prose, one home per fact included: [`docs/prose-style.md`](../prose-style.md).
 
 ## Terms
 
-- **Rules file**: an index file under `docs/`, `config/docs/` or `packages/*/docs/` of bolded one-line rules (`config/docs/code-style.md`, and the framework's `docs/code-style.md`, `docs/vocabulary.md` and `docs/design.md`, and the root's `docs/writing-voice.md`, `docs/writing-craft.md`, `docs/academic-writing-style.md` and `docs/agents/verdicts.md`), with one-sentence scope, the fixed sentence on when to open reasoning, and a "When | File" table under `## Reasoning files` into its reasoning folder. A rule line carries only the rule: the bolded rule plus at most a short clause of scope or its one exception. It must be both brief and clear, and no length cap stands in for either. Examples, instances, citations and the why go in its reasoning file.
-- **Reasoning file**: a file under a rules file's `docs/<name>/` folder holding the why, examples, instances and history. It is never auto-loaded. A rules-file section with anything beyond its rules gets one.
+- **Rules file**: an index file under `docs/`, `config/docs/` or `packages/*/docs/` of bolded one-line rules (`config/docs/code-style.md`, and the framework's `docs/code-style.md`, `docs/vocabulary.md` and `docs/design.md`, and the root's `docs/prose-style.md`, `docs/writing-voice.md`, `docs/writing-craft.md`, `docs/academic-writing-style.md` and `docs/agents/verdicts.md`), with one-sentence scope, the fixed sentence on when to open reasoning, and a "When | File" table under `## Reasoning files` into its reasoning folder.
+- **Reasoning file**: a file under a rules file's `docs/<name>/` folder holding the why, examples, instances and history.
 - **Router**: the Read-by-task table in the root AGENTS.md. It is the only one, with rows into every package.
 - **Nested AGENTS.md**: a folder's own rules, loaded when an agent works there, paired with a one-line `CLAUDE.md` holding `@AGENTS.md`.
-- **Mechanics doc**: a reference file under `docs/` or `packages/*/docs/` read by heading. It opens with a lead of 5 lines and 800 bytes or fewer, and any such file over 4 KB must have `##` headings (lint checks both; a shorter doc with no heading is read whole). Its headings are specific enough to grep, and a rule found in it moves up to a rules file or nested AGENTS.md, leaving a pointer. One that covers subjects sharing nothing is split and indexed.
+- **Mechanics doc**: a reference file under `docs/` or `packages/*/docs/` read by heading.
 - **Enforcement ladder**: lint > path-triggered (nested AGENTS.md, a hook) > router pointer > prose.
+- **Developer-facing prose**: prose written for the developer or an agent doing development work. AGENTS.md and CLAUDE.md files, skills, docs, GLOSSARY files and ADRs are developer-facing prose; code comments follow the code style rules, and commit messages and issue or spec bodies are neither. It follows [`docs/prose-style.md`](../prose-style.md).
 - **Reader-facing prose**: text written for a reader who is neither the developer nor an agent, and not for development work: shared or published Google Docs, blog posts, in-app text and academic writing. It follows [`docs/writing-voice.md`](../writing-voice.md) and [`docs/writing-craft.md`](../writing-craft.md).
-- **Derived view**: a file that restates facts whose home is elsewhere, for another audience. README.md is one.
+- **Derived prose**: prose that restates facts whose home is elsewhere, for onlookers rather than development work. Each README is derived prose.
 
 ## Map
-
-A library repo in byro-repo may point at a repo that uses it, for cases relevant to the library, but never at a private one; from a published doc that pointer is a github.com URL.
 
 ### Root
 
@@ -30,6 +29,8 @@ A library repo in byro-repo may point at a repo that uses it, for cases relevant
 | `docs/claude-code-guardrails.md` | The Claude Code hooks and project agent. |
 | `docs/pdf-pages.md` | How a piece stage reads a long PDF by page: download it, count its pages, print a page range, PDF against printed pages, and delete the download. Shared by every piece skill, since user-invoked skills can't reach each other. |
 | `docs/cursor-guardrails.md` | The Cursor hooks. |
+| `docs/prose-style.md` | How developer-facing prose is shaped, one line per rule, rule only: one home per fact, rule lines, reasoning files, mechanics docs, placement and the AGENTS.md bar, then the `## Smells` baseline with its two derived-prose rules. |
+| `docs/prose-style/*.md` | Each rule's reasoning and examples, indexed by `docs/prose-style.md`'s "When \| File" table. |
 | `docs/writing-voice.md` | The voice of reader-facing prose, one line per rule, rule only, one voice with no sections per medium. Its `## Axes` section defines the Evidence and Formality values and the Academic overlay; a rule scoped to one value starts with that value as a code tag. |
 | `docs/writing-voice/*.md` | Each rule's quoted instances and sources, indexed by `docs/writing-voice.md`'s "When \| File" table, plus `sources.md` for the sources read and the habits dropped. |
 | `docs/writing-craft.md` | Rules any skilled writer follows in reader-facing prose, whatever their voice, one line per rule, rule only, opening with a `## Terms` section of one line per term, then the `## Precedence` rule for a clash with a Voice habit. |
@@ -39,7 +40,7 @@ A library repo in byro-repo may point at a repo that uses it, for cases relevant
 | `docs/agents/*.md` | Agent workflow: git, planning, delegation, issues, vendored upstream skills, handing judgements to Jev and its trial log. |
 | `docs/agents/verdicts.md` | How any review finding is judged, one line per rule, rule only: the four verdicts and their reasons, the Standards and Spec rules, Halt, overruling a suggested verdict, and the approved exceptions. |
 | `docs/agents/verdicts/*.md` | Each rule's reasoning and examples, indexed by `docs/agents/verdicts.md`'s "When \| File" table. |
-| `README.md` | The workspace overview, a derived view for people on GitHub; it links each public clone by github.com URL, since the clones don't exist there, and names the private writing clone without a link. Nothing routes agents to it. Update it when a fact it mirrors changes (tables below). |
+| `README.md` | The workspace overview, derived prose for people on GitHub; it links each public clone by github.com URL, since the clones don't exist there, and names the private writing clone without a link. Nothing routes agents to it. Update it when a fact it mirrors changes (tables below). |
 
 ### Framework (`packages/framework/`, its own repo)
 
@@ -62,7 +63,7 @@ Its `docs/`, `GLOSSARY.md`, `README.md`, `AGENTS.md` and `CLAUDE.md` files all s
 | `docs/how-it-runs.md` | The two hosts, the rollup preset, the `sheets-framework` bin, the dev project, the chore dry run, auth failure, the probe, what the gworkspace MCP can see. |
 | `docs/generated-data.md`, `docs/generated-data/*.md` | The generated configs: the index and regen path, then one file per constant, the config sync and the floor. |
 | `docs/testing.md` | The fakes, the seams and the exemplar columns. |
-| `README.md` | The consumer's face: install, the public entry, the bin. A derived view like the root one (table below). |
+| `README.md` | The consumer's face: install, the public entry, the bin. Derived prose like the root one (table below). |
 
 ### App (`packages/real-estate/`, its own repo)
 
@@ -75,7 +76,7 @@ The same as the framework's: its docs ship with its repo, so they link only insi
 | `docs/occupancy-ledger.md` | How the occupancy ledger is built, beyond GLOSSARY.md's words for it. |
 | `src/AGENTS.md` | Rules an agent can only break by touching the app's `src/`: the boundary question, the one framework import, generated data. Kept short, with a `CLAUDE.md` beside it. |
 | `src/businessEndpoints/` and `src/chores/` `AGENTS.md` | That folder's rules, kept short, each with a `CLAUDE.md` beside it. The chore gates for `app:chore` live in `src/chores/`. |
-| `README.md` | A short derived view: what the app is, how it builds, its folders, its `app:*` commands (table below). |
+| `README.md` | Short derived prose: what the app is, how it builds, its folders, its `app:*` commands (table below). |
 
 ### Utils (`packages/utils/`, its own repo)
 
@@ -83,7 +84,7 @@ The same as the framework's: its docs ship with its repo, so they link only insi
 | --- | --- |
 | `CLAUDE.md` | The restart-at-root notice, plus `@AGENTS.md`. |
 | `AGENTS.md` | How a utility is written: bundle names, where a utility type lives, `for…in`, and the structural-cast escape hatch. |
-| `README.md` | What the package is, install, and the subpath imports. A derived view of its `package.json`. |
+| `README.md` | What the package is, install, and the subpath imports. Derived prose mirroring its `package.json`. |
 
 ### Writing (`packages/writing/`, its own repo)
 
@@ -104,7 +105,7 @@ A private repo holding piece specs as issues; the Pieces' text lives in their Go
 
 | File | Holds |
 | --- | --- |
-| `README.md` | What the package exports and how a project consumes each piece. A derived view of its `package.json` and the files it exports. |
+| `README.md` | What the package exports and how a project consumes each piece. Derived prose mirroring its `package.json` and the files it exports. |
 | `docs/code-style.md` | General code shape for any TypeScript project, one line per rule, rule only. It ships with the package, so it names no framework or app path as a link. |
 | `docs/code-style/*.md` | Each rule's reasoning, examples and instances, indexed by `docs/code-style.md`'s "When \| File" table. |
 
@@ -112,7 +113,7 @@ A private repo holding piece specs as issues; the Pieces' text lives in their Go
 
 | File | Holds |
 | --- | --- |
-| `README.md` | What the runner is, its exports and how to run its tests. A derived view of its `package.json` and the files it exports. |
+| `README.md` | What the runner is, its exports and how to run its tests. Derived prose mirroring its `package.json` and the files it exports. |
 | `skills/<name>/SKILL.md` | An interactive skill for the runner's records, such as `/judge-findings` for the review list, loaded through `.claude/skills/` ([layout](./upstream-skills.md#layout)). |
 | `GLOSSARY.md` | The words of an unattended spec run: its steps, records, verdicts and Halts, plus Primary checkout, the workspaces and Lease, which interactive sessions borrow, and Phase and Phase gate, which planning borrows. |
 
@@ -123,7 +124,8 @@ No byte cap stands in for judgment here: a cap becomes a target, and an agent at
 - **Every byte is paid on every turn**, by every agent and every task, including the ones that never touch the fact. `CLAUDE.md` imports the file, so Claude Code loads all of it; Codex and Cursor read it directly. Roughly 4 bytes is a token.
 - **Each addition dilutes the rest.** A rule competes for attention with the rules already there, so the file's most important gates weaken as it grows.
 - **A rule left out is followed only if a pointer reaches it.** That is the case for a router row, not a reason to skip the row. A fact that matters only for some tasks goes on a higher rung ([enforcement ladder](#terms)): lint, a nested `AGENTS.md`, or a trigger word added to an existing router row.
-- **Add to it only when the fact changes what an agent does on nearly every task, or a miss is costly and can't be cheaply undone.** When you add, shorten or drop a line that no longer earns its place, and state the net bytes in your reply so the operator can judge.
+
+The bar for an addition: [`docs/prose-style.md`](../prose-style.md#placement).
 
 ## What README.md mirrors
 
@@ -166,4 +168,4 @@ It has no README: a private repo has no outside reader.
 | Commands | The root `package.json`'s `app:*` scripts and [`targets-and-gates.md`](../targets-and-gates.md#targets-dev-and-app) |
 | History | Nothing; a fixed link to `byronbroughten/byro-repo` for the history before the split |
 
-A fact the environment already states, whether in `package.json`, a config file or `--help`, stays there; a doc restating it is a cache that goes stale. `npm run lint` checks the links, the leads and the headings above with the `lint-docs` bin from `config/`, which the config package's README describes. The root runs it with `--published config` and each clone's repo with `--published .`, which holds each package's published docs (its `docs/`, `GLOSSARY.md`, `README.md`, `AGENTS.md` and `CLAUDE.md`) to links inside that package. The root's `npm run lint` runs every clone's `lint:docs` too.
+`npm run lint` checks the links, the leads and the headings above with the `lint-docs` bin from `config/`, which the config package's README describes. The root runs it with `--published config` and each clone's repo with `--published .`, which holds each package's published docs (its `docs/`, `GLOSSARY.md`, `README.md`, `AGENTS.md` and `CLAUDE.md`) to links inside that package. The root's `npm run lint` runs every clone's `lint:docs` too.
