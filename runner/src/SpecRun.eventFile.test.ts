@@ -159,4 +159,23 @@ describe("run's event file", () => {
       }),
     ]);
   });
+
+  it("writes a run-ended refused line for a refused run, sending ntfy nothing it would push", async () => {
+    addSpec([1]);
+    github.edit(1, { body: "## What to build\n\nNo section.\n" });
+
+    const result = await specRun(FakeAgentStep.init(), withEventFile()).run(
+      spec,
+    );
+
+    expect(result.kind).toBe("refused");
+    expect(eventLines()).toEqual([
+      expect.objectContaining({
+        kind: "run-ended",
+        ending: "refused",
+        summary: `Refused: ${result.message}`,
+      }),
+    ]);
+    expect(notices.sent.map(({ kind }) => kind)).toEqual(["refused"]);
+  });
 });

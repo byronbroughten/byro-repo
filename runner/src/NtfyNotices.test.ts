@@ -69,6 +69,18 @@ describe("send", () => {
     expect(Buffer.from(encoded, "base64").toString()).toBe("A → B");
   });
 
+  it("pushes nothing for a refused run", async () => {
+    await notices().send({
+      spec,
+      specTitle: "s",
+      summary: "Refused: no Model fit.",
+      link: "l",
+      kind: "refused",
+    });
+
+    expect(received).toEqual([]);
+  });
+
   it("throws when ntfy refuses the notice", async () => {
     status = 429;
 

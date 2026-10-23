@@ -67,7 +67,7 @@ export class RunLoop extends SpecRunBase {
       modelFitRefusalOf(run, launchable) ??
       targetsRefusalOf(run, launchable);
     if (refusal !== undefined) {
-      this._log(run, `Refused: ${refusal}`);
+      await this._announce(run, `Refused: ${refusal}`, { kind: "refused" });
       return { kind: "refused", landed: [], message: refusal };
     }
     const preflightStop = await this._preflightStop();

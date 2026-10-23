@@ -344,16 +344,14 @@ export function haltComments(): string[] {
     .filter((body) => body.includes("**Halt H"));
 }
 
-// The three fields the ntfy adapter sends.
+// The notices the ntfy adapter pushes, with the three fields it sends.
 export function ntfyNotices(): Pick<
   Notice,
   "specTitle" | "summary" | "link"
 >[] {
-  return notices.sent.map(({ specTitle, summary, link }) => ({
-    specTitle,
-    summary,
-    link,
-  }));
+  return notices.sent
+    .filter(({ kind }) => kind !== "refused")
+    .map(({ specTitle, summary, link }) => ({ specTitle, summary, link }));
 }
 
 export function noticeSummaries(): string[] {

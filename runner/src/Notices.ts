@@ -6,7 +6,7 @@ export interface Notices {
   send(notice: Notice): Promise<void>;
 }
 
-const runEndings = ["stopped", "finished", "crashed"] as const;
+const runEndings = ["stopped", "finished", "crashed", "refused"] as const;
 
 // The notice kinds that end the run.
 export type RunEnding = (typeof runEndings)[number];
