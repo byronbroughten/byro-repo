@@ -1,5 +1,5 @@
 // The limit guard: from every account's usage reading, decides where (or whether) the next step runs.
-// readCswapList turns `cswap list --json` into readings; decideStep is the pure decision over them.
+// readCswapList turns `cswap list --json` into readings and the active account; decideStep is the pure decision over them.
 // AgentStep.ts owns UsageWindow, the same shape a step's own rate-limit events report.
 
 import type { UsageWindow } from "./AgentStep.ts";
@@ -29,8 +29,14 @@ export interface AccountReading {
   usage: AccountUsage | undefined;
 }
 
+// `activeAccount` is undefined when cswap reported no usable active account; it is never guessed.
+export interface UsageList {
+  readings: AccountReading[];
+  activeAccount: number | undefined;
+}
+
 export interface UsageReader {
-  read(): Promise<AccountReading[]>;
+  read(): Promise<UsageList>;
 }
 
 type MeasuredReading = AccountReading & { usage: AccountUsage };
@@ -55,6 +61,7 @@ export type GuardDecision =
   | { kind: "stop"; reason: string };
 
 interface RawList {
+  activeAccountNumber?: unknown;
   accounts?: unknown;
 }
 
@@ -68,18 +75,32 @@ interface RawWindow {
   resetsAt?: unknown;
 }
 
-export function readCswapList(json: string): AccountReading[] {
+export function readCswapList(json: string): UsageList {
   let list: RawList | undefined;
   try {
     list = JSON.parse(json) as RawList | undefined;
   } catch {
-    return [];
+    return { readings: [], activeAccount: undefined };
   }
-  if (!Array.isArray(list?.accounts)) return [];
-  return (list.accounts as (RawAccount | undefined)[]).flatMap((raw) => {
+  return {
+    readings: readingsOf(list?.accounts),
+    activeAccount: activeAccountOf(list?.activeAccountNumber),
+  };
+}
+
+function readingsOf(accounts: unknown): AccountReading[] {
+  if (!Array.isArray(accounts)) return [];
+  return (accounts as (RawAccount | undefined)[]).flatMap((raw) => {
     if (typeof raw?.number !== "number") return [];
     return [{ account: raw.number, usage: usageOf(raw) }];
   });
+}
+
+function activeAccountOf(raw: unknown): number | undefined {
+  if (typeof raw !== "number" || !Number.isInteger(raw) || raw < 1) {
+    return undefined;
+  }
+  return raw;
 }
 
 function usageOf(raw: RawAccount): AccountUsage | undefined {

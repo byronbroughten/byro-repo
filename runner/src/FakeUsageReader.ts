@@ -1,24 +1,23 @@
-import type { AccountReading, UsageReader } from "./limitGuard.ts";
+import type { UsageList, UsageReader } from "./limitGuard.ts";
 
-// The usage reader run-loop tests script: each read returns the next scripted reading, then repeats the last; an Error is thrown.
+// The usage reader run-loop tests script: each read returns the next scripted list, then repeats the last; an Error is thrown.
 export class FakeUsageReader implements UsageReader {
-  private readonly readings: (AccountReading[] | Error)[];
+  private readonly lists: (UsageList | Error)[];
   private reads = 0;
 
-  constructor(readings: (AccountReading[] | Error)[]) {
-    this.readings = readings;
+  constructor(lists: (UsageList | Error)[]) {
+    this.lists = lists;
   }
 
-  static init(...readings: (AccountReading[] | Error)[]): FakeUsageReader {
-    return new FakeUsageReader(readings);
+  static init(...lists: (UsageList | Error)[]): FakeUsageReader {
+    return new FakeUsageReader(lists);
   }
 
-  async read(): Promise<AccountReading[]> {
-    const reading =
-      this.readings[Math.min(this.reads, this.readings.length - 1)];
+  async read(): Promise<UsageList> {
+    const list = this.lists[Math.min(this.reads, this.lists.length - 1)];
     this.reads += 1;
-    if (reading === undefined) throw new Error("No scripted usage reading");
-    if (reading instanceof Error) throw reading;
-    return reading;
+    if (list === undefined) throw new Error("No scripted usage reading");
+    if (list instanceof Error) throw list;
+    return list;
   }
 }

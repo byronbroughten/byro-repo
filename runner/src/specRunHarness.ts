@@ -22,7 +22,7 @@ import { gapCheckOutputSchema } from "./gapCheck.ts";
 import { git, GitFixture } from "./GitFixture.ts";
 import type { Blocker, Handoff, ImplementRecord } from "./implementStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
-import type { AccountReading, UsageReader } from "./limitGuard.ts";
+import type { UsageList, UsageReader } from "./limitGuard.ts";
 import type { Notice } from "./Notices.ts";
 import type { ResolveRecord } from "./resolveStep.ts";
 import type { ReviewFinding } from "./reviewStep.ts";
@@ -76,16 +76,17 @@ export function useSpecRunHarness(): void {
   });
 }
 
-export function scriptUsage(...readings: (AccountReading[] | Error)[]): void {
-  usageReader = FakeUsageReader.init(...readings);
+export function scriptUsage(...lists: (UsageList | Error)[]): void {
+  usageReader = FakeUsageReader.init(...lists);
 }
 
-// Account 2 is always idle, so a run on account 1 shows it reads only its own account.
+// Account 2 is always idle, so a run on account 1 shows it reads only its own account; 1, the account runs launch on, is active by default.
 export function readingOf(
   fiveHour: number,
   sevenDay: number,
-): AccountReading[] {
-  return [1, 2].map((account) => ({
+  activeAccount: number | undefined = 1,
+): UsageList {
+  const readings = [1, 2].map((account) => ({
     account,
     usage: {
       fiveHour: {
@@ -98,6 +99,7 @@ export function readingOf(
       },
     },
   }));
+  return { readings, activeAccount };
 }
 
 export function refOf(number: number): IssueRef {

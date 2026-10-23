@@ -2,14 +2,14 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 import {
-  type AccountReading,
   readCswapList,
+  type UsageList,
   type UsageReader,
 } from "./limitGuard.ts";
 
 const execFileAsync = promisify(execFile);
 
-// Reads every account's usage from `cswap list --json`; a failed command throws, which SpecRun.ts treats as a missing reading.
+// Reads every account's usage and the active account from `cswap list --json`; a failed command throws, which SpecRun.ts treats as a missing reading.
 export class CswapUsageReader implements UsageReader {
   private readonly cswapPath: string;
 
@@ -21,7 +21,7 @@ export class CswapUsageReader implements UsageReader {
     return new CswapUsageReader(cswapPath);
   }
 
-  async read(): Promise<AccountReading[]> {
+  async read(): Promise<UsageList> {
     const { stdout } = await execFileAsync(this.cswapPath, ["list", "--json"]);
     return readCswapList(stdout);
   }

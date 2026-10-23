@@ -234,7 +234,7 @@ export class SpecRunBase {
   protected async _readingOf(run: Run): Promise<AccountReading> {
     const { account } = this.config.knobs;
     try {
-      const readings = await this.config.usageReader.read();
+      const { readings } = await this.config.usageReader.read();
       const usage = readings.find((r) => r.account === account)?.usage;
       return { account, usage };
     } catch (error) {
