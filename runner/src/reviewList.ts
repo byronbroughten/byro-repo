@@ -2,7 +2,8 @@
 // collapsed audit, each departure from a suggested verdict with its why; a run posts it on the spec, a session prints it.
 // Also the gap check's comment in the same format, the note a `covered-later` Dismiss leaves on its later ticket,
 // and the count of undecided items the end-of-run push gives. The runner only creates these; /judge-findings edits them.
-// SpecRun.ts posts them at wrap-up and at the end of the spec; gapCheck.ts supplies the gaps.
+// SpecRun/ReviewListPoster.ts posts them, TicketLander.ts calling it at landing; SpecRun/SessionReviewer.ts returns a
+// ticket's to print; gapCheck.ts supplies the gaps.
 
 import type { Gap, GapCheckRecord } from "./gapCheck.ts";
 import { shortRefOf } from "./halts.ts";
