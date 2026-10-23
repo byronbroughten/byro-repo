@@ -75,6 +75,8 @@ export interface ReviewResult {
   message: string;
   // Each Halt comment the review posted on the spec, for the session to print.
   halts: string[];
+  // The run's review-list rendering, printed rather than posted; absent when resolve kept no records.
+  reviewList?: string;
 }
 
 export type TicketStep =

@@ -1,12 +1,15 @@
-// The review list: the spec-issue comment a landed ticket's Proposals are posted as, with its Dismisses in a collapsed
-// audit, the gap check's comment in the same format, the note a `covered-later` Dismiss leaves on its later ticket,
+// The review list: a ticket's resolve records by axis then verdict, its Proposals as R items, its agreed Dismisses in a
+// collapsed audit, each departure from a suggested verdict with its why; a run posts it on the spec, a session prints it.
+// Also the gap check's comment in the same format, the note a `covered-later` Dismiss leaves on its later ticket,
 // and the count of undecided items the end-of-run push gives. The runner only creates these; /judge-findings edits them.
-// SpecRun.ts posts them at wrap-up and at the end of the spec; gapCheck.ts supplies the gaps.
+// SpecRun/ReviewListPoster.ts posts them, TicketLander.ts calling it at landing; SpecRun/SessionReviewer.ts returns a
+// ticket's to print; gapCheck.ts supplies the gaps.
 
 import type { Gap, GapCheckRecord } from "./gapCheck.ts";
 import { shortRefOf } from "./halts.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 import { issueRefOf, type ResolveRecord } from "./resolveStep.ts";
+import type { Axis, Verdict } from "./verdicts.ts";
 
 const markPrefix = "<!-- review-list ";
 const listMarkPrefix = `${markPrefix}ticket=`;
@@ -59,7 +62,8 @@ function requiredOf(record: ResolveRecord, field: keyof ResolveRecord): string {
 
 interface ReviewItem {
   heading: string;
-  evidence: string;
+  // `Evidence: …`, or a departure from the suggested verdict, which carries its evidence.
+  evidenceLine: string;
   recommendation: string;
   draftIssueTitle?: string;
   draftKeepReason?: string;
@@ -68,7 +72,7 @@ interface ReviewItem {
 function itemOf(id: string, item: ReviewItem): string {
   const lines = [
     `- [ ] **${id}** · ${item.heading}`,
-    `  Evidence: ${item.evidence}`,
+    `  ${item.evidenceLine}`,
     `  Recommendation: ${item.recommendation}`,
   ];
   if (item.draftIssueTitle !== undefined) {
@@ -87,56 +91,185 @@ export interface TicketReviewList {
   records: ResolveRecord[];
 }
 
-// Undefined for a ticket with no Proposals, which posts no comment.
+// A ticket's groups, each key order the order shown.
+const reviewGroups = {
+  axes: {
+    standards: "### Standards",
+    spec: "### Spec",
+  },
+  verdicts: {
+    fix: { heading: "Fixed", word: "Fix" },
+    propose: { heading: "Proposed", word: "Propose" },
+    dismiss: { heading: "Dismissed", word: "Dismiss" },
+    halt: { heading: "Halted", word: "Halt" },
+  },
+} as const satisfies {
+  axes: Record<Axis, string>;
+  verdicts: Record<Verdict, { heading: string; word: string }>;
+};
+
+const shownAxes = Object.keys(reviewGroups.axes) as Axis[];
+const shownVerdicts = Object.keys(reviewGroups.verdicts) as Verdict[];
+
+// The run's comment and the interactive printout alike; undefined for a review that kept no records.
 export function ticketReviewListOf({
   ticket,
   title,
   records,
 }: TicketReviewList): string | undefined {
-  const proposals = records.filter(({ verdict }) => verdict === "propose");
-  if (proposals.length === 0) return undefined;
-  const items = proposals.map((record, index) =>
-    itemOf(itemIdOf(ticket, index), proposeItemOf(record)),
-  );
-  const dismisses = records.filter(({ verdict }) => verdict === "dismiss");
+  if (records.length === 0) return undefined;
+  const groups = groupsOf(records);
+  // Numbered in the order shown, so R<ticket>.1 is the first Proposal read.
+  const proposals = shownAxes.flatMap((axis) => groups[axis].propose);
+  const sections = shownAxes.flatMap((axis) => {
+    const shown = shownVerdicts.flatMap((verdict) =>
+      verdictGroupOf(groups[axis][verdict], verdict, (record) =>
+        itemIdOf(ticket, proposals.indexOf(record)),
+      ),
+    );
+    return shown.length === 0 ? [] : [reviewGroups.axes[axis], ...shown];
+  });
   return [
     reviewListMarkOf(ticket),
     `**Review list** · ${issueLabelOf(ticket)}, "${title}"`,
-    items.join("\n"),
-    ...(dismisses.length > 0 ? [dismissAuditOf(dismisses)] : []),
+    ...sections,
   ].join("\n\n");
 }
 
+type RecordGroups = Record<Axis, Record<Verdict, ResolveRecord[]>>;
+
+function groupsOf(records: ResolveRecord[]): RecordGroups {
+  const groups: RecordGroups = {
+    standards: emptyVerdictGroupsOf(),
+    spec: emptyVerdictGroupsOf(),
+  };
+  records.forEach((record) => {
+    groups[record.axis][record.verdict].push(record);
+  });
+  return groups;
+}
+
+function emptyVerdictGroupsOf(): Record<Verdict, ResolveRecord[]> {
+  return { fix: [], propose: [], dismiss: [], halt: [] };
+}
+
+function verdictGroupOf(
+  records: ResolveRecord[],
+  verdict: Verdict,
+  proposalIdOf: (record: ResolveRecord) => string,
+): string[] {
+  if (records.length === 0) return [];
+  if (verdict === "dismiss") return dismissGroupOf(records);
+  const rows = records.map((record) => {
+    if (verdict === "propose") {
+      return itemOf(proposalIdOf(record), proposeItemOf(record));
+    }
+    if (verdict === "halt") return haltRowOf(record);
+    return fixRowOf(record);
+  });
+  return [groupBlockOf(verdict, rows)];
+}
+
+function groupBlockOf(verdict: Verdict, rows: string[]): string {
+  return `**${reviewGroups.verdicts[verdict].heading}**\n\n${rows.join("\n")}`;
+}
+
+// Undefined where the resolver kept the reviewer's verdict, or the record predates suggested verdicts.
+function departureOf({
+  suggestedVerdict,
+  verdict,
+  evidence,
+}: ResolveRecord): string | undefined {
+  if (suggestedVerdict === undefined || suggestedVerdict === verdict) {
+    return undefined;
+  }
+  const from = reviewGroups.verdicts[suggestedVerdict].word;
+  return `suggested ${from} → ${reviewGroups.verdicts[verdict].word}: ${evidence}`;
+}
+
+function departureLinesOf(record: ResolveRecord): string[] {
+  const departure = departureOf(record);
+  return departure === undefined ? [] : [`  ${departure}`];
+}
+
+function findingHeadOf({ finding, claim, where }: ResolveRecord): string {
+  return `Finding ${finding}: ${claim} (${where})`;
+}
+
+function evidenceLineOf(record: ResolveRecord): string {
+  return departureOf(record) ?? `Evidence: ${record.evidence}`;
+}
+
+function fixRowOf(record: ResolveRecord): string {
+  return [`- ${findingHeadOf(record)}`, ...departureLinesOf(record)].join("\n");
+}
+
+function haltRowOf(record: ResolveRecord): string {
+  return [
+    `- ${findingHeadOf(record)}`,
+    `  ${evidenceLineOf(record)}`,
+    `  Recommendation: ${requiredOf(record, "recommendation")}`,
+  ].join("\n");
+}
+
 function proposeItemOf(record: ResolveRecord): ReviewItem {
-  const { finding, claim, where, evidence, draftKeepReason } = record;
   const reason = requiredOf(record, "reason");
   return {
-    heading: `Propose \`${reason}\` · Finding ${finding}: ${claim} (${where})`,
-    evidence,
+    heading: `Propose \`${reason}\` · ${findingHeadOf(record)}`,
+    evidenceLine: evidenceLineOf(record),
     recommendation: requiredOf(record, "recommendation"),
     draftIssueTitle:
       reason === "ticket" ? requiredOf(record, "draftIssueTitle") : undefined,
-    draftKeepReason,
+    draftKeepReason: record.draftKeepReason,
   };
 }
 
-// No checkboxes, so a Dismiss never counts as undecided.
+// An overruled Dismiss is shown; only the agreed ones collapse, with no checkboxes, so none counts as undecided.
+function dismissGroupOf(dismisses: ResolveRecord[]): string[] {
+  const overruled = dismisses.filter(
+    (record) => departureOf(record) !== undefined,
+  );
+  const agreed = dismisses.filter(
+    (record) => departureOf(record) === undefined,
+  );
+  const shown = overruled.map((record) =>
+    [overruledDismissLineOf(record), ...departureLinesOf(record)].join("\n"),
+  );
+  return [
+    ...(shown.length > 0 ? [groupBlockOf("dismiss", shown)] : []),
+    ...(agreed.length > 0 ? [dismissAuditOf(agreed)] : []),
+  ];
+}
+
+// Its evidence is on the departure line below it.
+function overruledDismissLineOf(record: ResolveRecord): string {
+  const details = dismissDetailsOf(record);
+  if (details.length === 0) return `- ${dismissHeadOf(record)}`;
+  return `- ${[`${dismissHeadOf(record)}.`, ...details].join(" ")}`;
+}
+
 function dismissAuditOf(dismisses: ResolveRecord[]): string {
-  const lines = dismisses.map(dismissLineOf);
+  const lines = dismisses.map((record) => {
+    const sentences = [`${dismissHeadOf(record)}.`, record.evidence];
+    return `- ${[...sentences, ...dismissDetailsOf(record)].join(" ")}`;
+  });
   return `<details>\n<summary>Dismissed: ${dismisses.length}</summary>\n\n${lines.join("\n")}\n\n</details>`;
 }
 
-function dismissLineOf(record: ResolveRecord): string {
-  const { finding, claim, where, evidence } = record;
+function dismissHeadOf(record: ResolveRecord): string {
+  const { finding, claim, where } = record;
   const reason = requiredOf(record, "reason");
-  const line = `- Finding ${finding} · \`${reason}\` · ${claim} (${where}). ${evidence}`;
-  if (reason === "kept") {
-    return `${line} Kept for: ${requiredOf(record, "quote")}`;
+  return `Finding ${finding} · \`${reason}\` · ${claim} (${where})`;
+}
+
+function dismissDetailsOf(record: ResolveRecord): string[] {
+  if (record.reason === "kept") {
+    return [`Kept for: ${requiredOf(record, "quote")}`];
   }
-  if (reason === "covered-later") {
-    return `${line} Covered by ${requiredOf(record, "coveredBy")}.`;
+  if (record.reason === "covered-later") {
+    return [`Covered by ${requiredOf(record, "coveredBy")}.`];
   }
-  return line;
+  return [];
 }
 
 export function gapCheckListOf(
@@ -160,7 +293,12 @@ function gapItemOf({
   recommendation,
   draftIssueTitle,
 }: Gap): ReviewItem {
-  return { heading: `Gap · ${ask}`, evidence, recommendation, draftIssueTitle };
+  return {
+    heading: `Gap · ${ask}`,
+    evidenceLine: `Evidence: ${evidence}`,
+    recommendation,
+    draftIssueTitle,
+  };
 }
 
 export interface CoveredLaterNote {

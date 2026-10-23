@@ -5,7 +5,7 @@ import {
   isSameIssue,
   type IssueRef,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
-import { SpecRun } from "@byronbroughten/spec-runner/SpecRun";
+import { reviewPrintoutOf, SpecRun } from "@byronbroughten/spec-runner/SpecRun";
 import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
 
 import { nearestClaudeAncestor } from "./claudeAncestor.ts";
@@ -58,7 +58,7 @@ async function runSpec(
     const result = await specRun.review(issue, {
       holder: nearestClaudeAncestor(),
     });
-    console.log([result.message, ...result.halts].join("\n\n"));
+    console.log(reviewPrintoutOf(result));
     if (result.kind !== "reviewed") process.exitCode = 1;
   } else {
     // Only a run sends notices, so only a run needs the topic before it starts.
