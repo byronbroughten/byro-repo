@@ -213,7 +213,7 @@ describe("a session resolving its own review", () => {
 
     expect(result.kind).toBe("refused");
     expect(result.message).toContain(
-      "- record 1: `verdict` is `dismiss`, `fix`, `propose` or `halt`",
+      "- /records/0/verdict must be equal to one of the allowed values",
     );
   });
 

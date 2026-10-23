@@ -5,7 +5,7 @@
 import { stepReadLine } from "./IssueReader.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import { codeListOf } from "./promptText.ts";
-import { stringSchema } from "./recordSchema.ts";
+import { schemaProblemsOf, stringSchema } from "./recordSchema.ts";
 import type { Finding } from "./reviewStep.ts";
 import { axes, type Axis, type Verdict, verdicts } from "./verdicts.ts";
 
@@ -149,40 +149,9 @@ export function resolveRecordsOf(output: unknown): ResolveRecord[] {
   return (output as { records: ResolveRecord[] }).records;
 }
 
-// A step's output passed resolveOutputSchema already; a session's records file did not, so this checks what the rules read.
+// A step's output passed resolveOutputSchema already; a session's records file did not.
 export function resolveOutputProblems(output: unknown): string[] {
-  const records = (output as { records?: unknown } | null)?.records;
-  if (!Array.isArray(records)) {
-    return ["the file holds `records`, an array of resolve records"];
-  }
-  return records.flatMap((record: unknown, index) => {
-    const fields = (record ?? {}) as Partial<Record<string, unknown>>;
-    const label = `record ${index + 1}`;
-    return brokenRules([
-      [
-        !Number.isInteger(fields.finding) || Number(fields.finding) < 1,
-        `${label}: \`finding\` is the finding's number, from 1`,
-      ],
-      [
-        !isOneOf(axes, stringOrUndefined(fields.axis)),
-        `${label}: \`axis\` is ${codeListOf(axes)}`,
-      ],
-      [
-        !isOneOf(verdicts, stringOrUndefined(fields.verdict)),
-        `${label}: \`verdict\` is ${codeListOf(verdicts)}`,
-      ],
-      ...(["where", "claim", "evidence"] as const).map(
-        (field): [boolean, string] => [
-          typeof fields[field] !== "string",
-          `${label}: \`${field}\` is a string`,
-        ],
-      ),
-    ]);
-  });
-}
-
-function stringOrUndefined(value: unknown): string | undefined {
-  return typeof value === "string" ? value : undefined;
+  return schemaProblemsOf(resolveOutputSchema, output);
 }
 
 // A structured finding's axis and suggested verdict are its reviewer's, whatever the resolver wrote.
