@@ -60,6 +60,13 @@ interface DoneAttempt {
   logPath: string;
 }
 
+interface ResolveCheck {
+  fixer: Fixer;
+  // The heads the resolve started on.
+  base: Heads;
+  attempt: DoneAttempt;
+}
+
 type ResolveAttempt =
   | DoneAttempt
   | { kind: "crossed"; logPath: string }
@@ -129,7 +136,11 @@ export class ReviewStepper extends SpecRunBase {
         await resetTo(workspace, base);
         continue;
       }
-      const records = await this._checkedRecordsOf(ticketRun, fixer, attempt);
+      const records = await this._checkedRecordsOf(ticketRun, {
+        fixer,
+        base,
+        attempt,
+      });
       state.triage = records;
       if (!isSameHeads(base, await this._headsOf(workspace))) {
         state.fixer = fixer;
@@ -145,11 +156,10 @@ export class ReviewStepper extends SpecRunBase {
   // A refused record gets one retry in the same session.
   private async _checkedRecordsOf(
     ticketRun: TicketRun,
-    fixer: Fixer,
-    attempt: DoneAttempt,
+    { fixer, base, attempt }: ResolveCheck,
   ): Promise<TriageRecord[]> {
     let { records, logPath } = attempt;
-    let problems = await this._resolveProblemsOf(ticketRun, records);
+    let problems = await this._resolveProblemsOf(ticketRun, base, records);
     if (problems.length === 0) return records;
     const retry = await this._retryResolver(ticketRun, fixer, problems);
     if (retry.kind !== "done") {
@@ -160,7 +170,7 @@ export class ReviewStepper extends SpecRunBase {
       );
     }
     ({ records, logPath } = retry);
-    problems = await this._resolveProblemsOf(ticketRun, records);
+    problems = await this._resolveProblemsOf(ticketRun, base, records);
     if (problems.length > 0) {
       throw schemaFailureOf(logPath, { problems, output: records });
     }
@@ -169,14 +179,12 @@ export class ReviewStepper extends SpecRunBase {
 
   private async _resolveProblemsOf(
     { workspace, state }: TicketRun,
+    base: Heads,
     records: TriageRecord[],
   ): Promise<string[]> {
     const findingCount = (state.findings ?? []).length;
-    const { heads, dirtyRepos } = await this._headsAndDirtyReposOf(workspace);
-    const hasChangedTree = await hasChangedTreeSince(
-      workspace,
-      state.fixBase ?? heads,
-    );
+    const { dirtyRepos } = await this._headsAndDirtyReposOf(workspace);
+    const hasChangedTree = await hasChangedTreeSince(workspace, base);
     return [
       ...triageRecordProblems(findingCount, records),
       ...resolveCommitProblems({ records, hasChangedTree, dirtyRepos }),
