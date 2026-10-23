@@ -27,6 +27,8 @@ Issues and specs live as GitHub issues, in the repo of the package they concern.
 - **Apply / remove labels**: `gh issue edit -R <repo> <number> --add-label "..."` / `--remove-label "..."`
 - **Close**: `gh issue close -R <repo> <number> --comment "..."`
 
+**An issue whose body ends with a `Design decision: <owner/repo>/docs/adr/NNNN-slug.md` line backs that ADR.** Editing such an issue, update the ADR to match, or mark it `superseded` when the edit reverses it.
+
 Triage labels are separate: [`triage-labels.md`](./triage-labels.md).
 
 ## Pull requests as a triage surface

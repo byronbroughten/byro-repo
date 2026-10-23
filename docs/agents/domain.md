@@ -5,6 +5,7 @@ How the engineering skills should consume this repo's domain documentation when 
 ## Before exploring, read these
 
 - **`GLOSSARY-MAP.md`** at the repo root: it points at one `GLOSSARY.md` per context, among them the framework's and the app's. Read each one relevant to the topic; the app's assumes the framework's, so a real-estate topic reads both.
+- **The `docs/adr/` of each repo you're touching**: the decisions recorded there, one per file; the root's holds agent-behavior decisions.
 - **`packages/framework/docs/design.md`**: the arguments behind the codebase's design; `docs/agent-behavior-design.md` holds the ones behind how agents work here.
 
 If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The `/domain-modeling` skill (reached via `/grill-with-docs`) creates a `GLOSSARY.md` lazily when terms actually get resolved.
@@ -17,6 +18,7 @@ Four contexts, one per package:
 /
 ├── GLOSSARY-MAP.md                 # points at the four glossaries
 ├── runner/GLOSSARY.md              # the spec runner's terms: steps, verdicts, Halts
+├── docs/adr/                       # agent-behavior decisions; framework and real-estate get their own
 ├── docs/targets-and-gates.md
 ├── docs/claude-code-guardrails.md
 └── packages/
