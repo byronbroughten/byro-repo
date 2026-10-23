@@ -1,5 +1,5 @@
 // The outcome facts a wrap-up computes from transcripts instead of asking: pair, peak context, duration, API-equivalent
-// cost, triage cost, account and session ids, from the session ids and config folder the runner records.
+// cost, review cost, account and session ids, from the session ids and config folder the runner records.
 // A fact is computed only when every transcript it reads is found; otherwise it stays undefined and is written `unrecorded`.
 // Peak context is contextMeter.ts; the row format is outcomeLog.ts; WrapUp.ts merges these over the passed facts.
 // Refresh the price table when a new model version ships (docs/agents/model-fit.md).
@@ -101,13 +101,19 @@ export function transcriptFactsOf(
     implementerIds.length === 0
       ? undefined
       : transcriptsOf(projectDirs, implementerIds);
-  const implementersAndFixers =
-    implementers &&
-    transcriptsOf(
-      projectDirs,
-      unique([...implementerIds, ...stepIdsOf(sessions, "fix")]),
-    );
-  const triage = transcriptsOf(projectDirs, stepIdsOf(sessions, "triage"));
+  const reviewIds = stepIdsOf(sessions, "review");
+  // With no review recorded, review cost is unrecorded rather than zero.
+  const reviewSteps =
+    reviewIds.length === 0
+      ? undefined
+      : transcriptsOf(
+          projectDirs,
+          unique([
+            ...reviewIds,
+            ...stepIdsOf(sessions, "triage"),
+            ...stepIdsOf(sessions, "fix"),
+          ]),
+        );
   const allSessions = transcriptsOf(projectDirs, sessionIds);
   return {
     account: String(sessions.account),
@@ -115,8 +121,8 @@ export function transcriptFactsOf(
     pair: factOf(implementers, pairOf),
     peakContext: factOf(implementers, peaksOf),
     durationMinutes: factOf(allSessions, durationMinutesOf),
-    costUsd: factOf(implementersAndFixers, costUsdOf),
-    triageCostUsd: factOf(triage, costUsdOf),
+    costUsd: factOf(implementers, costUsdOf),
+    reviewCostUsd: factOf(reviewSteps, costUsdOf),
   };
 }
 

@@ -1,6 +1,7 @@
 // A session's review: runs review, triage and fix on one ticket's issue workspace outside any run, refusing a workspace
 // another holder leases or one with uncommitted changes, and posts its review list and Halts as a run would.
 // Its Halts are numbered S<n>.<k> and returned to print, to be answered in the session rather than on the spec.
+// Each step session it starts goes into the ticket's facts file, halted or not.
 // ../SpecRun.ts delegates review to it; its authorship refusal is the Base's, shared with RunLoop.ts.
 // It builds its own TicketSequencer, LeaseKeeper, ReviewListPoster and HaltRaiser.
 
@@ -126,7 +127,19 @@ export class SessionReviewer extends SpecRunBase {
     } catch (error) {
       return reviewEndOf(ticketRun, error);
     } finally {
+      this._recordSessions(ticketRun);
       await this.leaseKeeper._releaseLeaseOf(issue);
+    }
+  }
+
+  // Beside the implement session, under its account and config folder, so wrap-up prices them as review cost.
+  private _recordSessions({ ticket, state }: TicketRun): void {
+    const implemented = this.factsFile.sessionsOf(ticket.issue);
+    const account = implemented?.account ?? this.config.knobs.account;
+    const configFolder = implemented?.configFolder ?? state.configFolder;
+    if (configFolder === undefined) return;
+    for (const step of state.sessions) {
+      this.factsFile.addSession(ticket.issue, { account, configFolder, step });
     }
   }
 }

@@ -67,6 +67,10 @@ export class FactsFile {
     return facts as WrapUpFacts;
   }
 
+  sessionsOf(issue: IssueRef): TicketSessions | undefined {
+    return this._storedOf(issue).sessions;
+  }
+
   write(issue: IssueRef, facts: WrapUpFacts): FactsFile {
     return this._store(issue, facts);
   }

@@ -54,7 +54,7 @@ describe("outcomeFileOf", () => {
           retries: 1,
           durationMinutes: 42,
           costUsd: 3.5,
-          triageCostUsd: 0.4,
+          reviewCostUsd: 0.4,
           whatReviewCaught: "A | in a cell",
           sessionIds: ["a1", "b2"],
         },

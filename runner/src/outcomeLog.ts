@@ -19,7 +19,7 @@ const columns = [
   "Retries",
   "Duration",
   "Cost (API-equivalent)",
-  "Triage cost",
+  "Review cost",
   "What review caught",
   "Session ids",
 ] as const;
@@ -40,8 +40,10 @@ export interface OutcomeFacts {
   // Each implementer session's peak, in order; fixer sessions are left out.
   peakContext?: number[];
   durationMinutes?: number;
+  // The implementer sessions, handoffs included.
   costUsd?: number;
-  triageCostUsd?: number;
+  // The review, triage and fix sessions.
+  reviewCostUsd?: number;
   sessionIds?: string[];
 }
 
@@ -100,7 +102,7 @@ function cellsOf({ issue, filesChanged, facts }: OutcomeRow): string[] {
       ? unrecorded
       : `${facts.durationMinutes} min`,
     dollarsOf(facts.costUsd),
-    dollarsOf(facts.triageCostUsd),
+    dollarsOf(facts.reviewCostUsd),
     whatReviewCaughtCellOf(facts),
     facts.sessionIds?.join(", ") ?? unrecorded,
   ];
