@@ -10,7 +10,7 @@
   "scripts": {
     "prepare": "git config core.hooksPath .githooks",
     "check": "node scripts/runner/check.ts",
-    "tsc": "tsc -p . && npm run tsc --workspaces --if-present",
+    "tsc": "node scripts/tsc/tsc.ts",
     "lint": "node scripts/lint/lint.ts",
     "lint:docs": "lint-docs --published config",
     "format": "prettier --write .",
