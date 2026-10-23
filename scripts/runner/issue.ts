@@ -1,7 +1,6 @@
 // Starts, lists, promotes and removes workspaces, each keyed by an issue or, for a session workspace, by a slug.
 // The runner creates its own issue workspaces; `start` is the interactive session's way into one, leased to its claude.
 // Usage: npm run issue:start -- (<repo> <n> | --session <slug>) [--claude [--no-prompt]], npm run issue:list,
-// npm run issue:held -- (<repo> <n> | --session <slug>),
 // npm run issue:promote -- <repo> <n> <repo-to-promote>,
 // or npm run issue:remove -- (<repo> <n> | --session <slug>) [--force].
 import { spawn } from "node:child_process";
@@ -10,7 +9,6 @@ import { homedir } from "node:os";
 import { FactsFile } from "@byronbroughten/spec-runner/FactsFile";
 import {
   holderLabelOf,
-  isSameHolder,
   type IssueRef,
   IssueWorkspaces,
   type Lease,
@@ -22,8 +20,10 @@ import {
 
 import { nearestClaudeAncestor } from "./claudeAncestor.ts";
 import { activeAccount } from "./cswapAccount.ts";
+import { issueReader } from "./issueReader.ts";
 import { issueWorkspacesConfig, stateFolder } from "./runnerConfig.ts";
 import { startedSessionOf } from "./startedSession.ts";
+import { startReportOf } from "./startReport.ts";
 
 const workspaces = IssueWorkspaces.init(issueWorkspacesConfig);
 const keyUsage = "(<repo> <n> | --session <slug>)";
@@ -34,15 +34,13 @@ try {
     await start(args);
   } else if (command === "list") {
     await list();
-  } else if (command === "held") {
-    await held(args);
   } else if (command === "promote") {
     await promote(args);
   } else if (command === "remove") {
     await remove(args);
   } else {
     throw new Error(
-      `Unknown command "${command}"; use start, list, held, promote or remove`,
+      `Unknown command "${command}"; use start, list, promote or remove`,
     );
   }
 } catch (error) {
@@ -61,12 +59,27 @@ async function start(args: string[]): Promise<void> {
   }
   const holder = nearestClaudeAncestor();
   const { path } = await workspaces.start(key, holder);
-  console.log(path);
-  if (!holder) {
-    console.log("No claude process ran this, so no lease was taken.");
-    return;
-  }
-  recordSession(key);
+  console.log(
+    startReportOf({
+      path,
+      hasLease: holder !== undefined,
+      cwd: process.cwd(),
+      ticketText: await ticketTextOf(key),
+    }),
+  );
+  if (holder) recordSession(key);
+}
+
+// The Model fit section and the comments a session reads on entering; a session workspace has no ticket.
+async function ticketTextOf(key: WorkspaceKey): Promise<string | undefined> {
+  if ("session" in key) return undefined;
+  return issueReader.read([
+    key.repo,
+    String(key.number),
+    "--body",
+    "--comments",
+    "--hide-others",
+  ]);
 }
 
 // SessionStart records a session that starts in the workspace; this records one that moves in later.
@@ -135,19 +148,6 @@ function ageOf(createdAt: Date): string {
   const hours = Math.floor((Date.now() - createdAt.getTime()) / 3_600_000);
   if (hours < 24) return `${hours}h`;
   return `${Math.floor(hours / 24)}d ${hours % 24}h`;
-}
-
-// /start-issue reads this to skip the move when its session already holds the workspace.
-async function held(args: string[]): Promise<void> {
-  const key = keyOf(args, `Usage: npm run issue:held -- ${keyUsage}`);
-  const workspace = await workspaces.find(key);
-  const holder = nearestClaudeAncestor();
-  const lease = workspace?.lease;
-  if (!workspace || !holder || !lease?.isLive || !isSameHolder(lease, holder)) {
-    console.log(`This session holds no lease on ${workspaceLabelOf(key)}.`);
-    return;
-  }
-  console.log(`This session holds ${workspace.path}`);
 }
 
 async function promote(args: string[]): Promise<void> {
