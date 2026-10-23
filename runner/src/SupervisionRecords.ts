@@ -11,7 +11,11 @@ import {
 import { join } from "node:path";
 
 import { eventFilePathOf } from "./EventFileNotices.ts";
-import type { IssueRef, LeaseHolder } from "./IssueWorkspaces.ts";
+import {
+  isSameIssue,
+  type IssueRef,
+  type LeaseHolder,
+} from "./IssueWorkspaces.ts";
 import { startTimeOf } from "./processStart.ts";
 
 export interface SupervisionRecord {
@@ -46,7 +50,7 @@ export class SupervisionRecords {
     spec: IssueRef,
   ): Promise<SupervisionRecord> {
     const sameSpec = this._files().filter((file) =>
-      isSameSpec(file.spec, spec),
+      isSameIssue(file.spec, spec),
     );
     const offset = Math.max(0, ...sameSpec.map((file) => file.offset));
     for (const file of sameSpec) this._remove(file.pid);
@@ -124,8 +128,4 @@ export class SupervisionRecords {
   private _pathOf(pid: number): string {
     return join(this.folder, `${pid}.json`);
   }
-}
-
-function isSameSpec(a: IssueRef, b: IssueRef): boolean {
-  return a.repo === b.repo && a.number === b.number;
 }

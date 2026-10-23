@@ -46,6 +46,10 @@ export interface IssueRef {
   number: number;
 }
 
+export function isSameIssue(a: IssueRef, b: IssueRef): boolean {
+  return a.repo === b.repo && a.number === b.number;
+}
+
 export interface SessionKey {
   session: string;
 }
@@ -603,7 +607,7 @@ function isSameKey(a: WorkspaceKey, b: WorkspaceKey): boolean {
   if (isSessionKey(a) || isSessionKey(b)) {
     return isSessionKey(a) && isSessionKey(b) && a.session === b.session;
   }
-  return a.repo === b.repo && a.number === b.number;
+  return isSameIssue(a, b);
 }
 
 function assertSessionCreate(

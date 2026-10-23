@@ -25,6 +25,7 @@ import {
 import { type Handoff, type ImplementRecord } from "../implementStep.ts";
 import { type BodyAuthorship } from "../IssueReader.ts";
 import {
+  isSameIssue,
   issueLabelOf,
   type IssueRef,
   type LeaseHolder,
@@ -268,10 +269,6 @@ export function isAuthorshipHalt({ bodyHash }: Halt): boolean {
 
 export function isStopSpec({ answer }: Halt): boolean {
   return answer !== undefined && isStopSpecAnswer(answer);
-}
-
-export function isSameIssue(first: IssueRef, second: IssueRef): boolean {
-  return shortRefOf(first) === shortRefOf(second);
 }
 
 export function undeliveredHaltsOf(run: Run, ticket: IssueRef): Halt[] {

@@ -1,7 +1,10 @@
 // Runs a spec's tickets to landed, one at a time; rerunning the same command resumes. Progress is in .runner/<repo>-<n>.log.
 // Usage below; `review` takes a session's ticket, not a spec. Exit 1 is a run short of finished or a review short of reviewed; 2 is a crash, which tmux.sh pushes.
 // `supervise` records the caller's claude as the spec's Supervisor and prints its unexplained event lines; `--advance` marks one more explained.
-import type { IssueRef } from "@byronbroughten/spec-runner/IssueWorkspaces";
+import {
+  isSameIssue,
+  type IssueRef,
+} from "@byronbroughten/spec-runner/IssueWorkspaces";
 import { SpecRun } from "@byronbroughten/spec-runner/SpecRun";
 import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
 
@@ -75,7 +78,7 @@ async function supervise(
   const records = SupervisionRecords.init(stateFolder);
   if (isAdvance) {
     const record = await records.recordOf(holder);
-    if (!isSupervising(record?.spec, spec)) {
+    if (record === undefined || !isSameIssue(record.spec, spec)) {
       throw new Error(
         `This session doesn't supervise ${ownerRepoOf(owner, spec)}.`,
       );
@@ -87,13 +90,6 @@ async function supervise(
   for (const line of await records.unexplainedLinesOf(holder)) {
     console.log(line);
   }
-}
-
-function isSupervising(
-  supervised: IssueRef | undefined,
-  spec: IssueRef,
-): boolean {
-  return supervised?.repo === spec.repo && supervised.number === spec.number;
 }
 
 function ownerRepoOf(owner: string, { repo, number }: IssueRef): string {
