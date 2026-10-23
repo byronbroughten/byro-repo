@@ -17,33 +17,6 @@ export interface StepSession {
   sessionId: string;
 }
 
-// Run state and facts files saved before #364 name the resolve step `triage` or `fix`.
-export type SavedStepAgent = StepAgent | "triage" | "fix";
-
-export interface SavedStepSession extends Omit<StepSession, "agent"> {
-  agent: SavedStepAgent;
-}
-
-export function savedStepOf<SV extends string>(
-  step: SV | "triage" | "fix",
-): SV | "resolve" {
-  return step === "triage" || step === "fix" ? "resolve" : step;
-}
-
-// Before #364 a fresh resolver was saved as `triage`.
-export function savedResolverOf<RV extends string>(
-  resolver: RV | "triage",
-): RV | "fresh" {
-  return resolver === "triage" ? "fresh" : resolver;
-}
-
-export function savedStepSessionOf({
-  agent,
-  sessionId,
-}: SavedStepSession): StepSession {
-  return { agent: savedStepOf(agent), sessionId };
-}
-
 export interface TicketSessions {
   account: number;
   configFolder: string;

@@ -155,18 +155,6 @@ export function withReviewerFields(
   });
 }
 
-// A run state saved before #297 holds Propose under its old name, Defer.
-export interface SavedResolveRecord extends Omit<ResolveRecord, "verdict"> {
-  verdict: Verdict | "defer";
-}
-
-export function savedResolveRecordOf({
-  verdict,
-  ...record
-}: SavedResolveRecord): ResolveRecord {
-  return { ...record, verdict: verdict === "defer" ? "propose" : verdict };
-}
-
 export function resolveRecordProblems(
   findingCount: number,
   records: ResolveRecord[],

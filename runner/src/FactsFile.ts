@@ -8,14 +8,9 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { fileStemOf, issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
-import type { OutcomeFacts, ReviewFixes } from "./outcomeLog.ts";
-import {
-  savedResolverOf,
-  type SavedStepSession,
-  savedStepSessionOf,
-  type StepSession,
-  type TicketSessions,
-} from "./transcriptFacts.ts";
+import type { OutcomeFacts } from "./outcomeLog.ts";
+import { factsOf } from "./savedFormats.ts";
+import type { StepSession, TicketSessions } from "./transcriptFacts.ts";
 
 export interface UndoneBox {
   box: string;
@@ -127,7 +122,7 @@ export class FactsFile {
   private _storedOf(issue: IssueRef): Partial<WrapUpFacts> {
     const path = this._pathOf(issue);
     if (!existsSync(path)) return {};
-    return parsedFactsOf(path);
+    return factsOf(JSON.parse(readFileSync(path, "utf8")));
   }
 
   private _store(issue: IssueRef, facts: Partial<WrapUpFacts>): FactsFile {
@@ -142,32 +137,4 @@ export class FactsFile {
   private _pathOf(issue: IssueRef): string {
     return join(this.stateFolder, `${fileStemOf(issue)}.facts.json`);
   }
-}
-
-// Before #297 Proposals were `defers`; before #364 resolve was `triage` or `fix`.
-interface SavedFacts extends Omit<
-  Partial<WrapUpFacts>,
-  "reviewFixes" | "sessions"
-> {
-  defers?: number;
-  reviewFixes?: ReviewFixes | "triage";
-  sessions?: Omit<TicketSessions, "steps"> & { steps: SavedStepSession[] };
-}
-
-function parsedFactsOf(path: string): Partial<WrapUpFacts> {
-  const { defers, reviewFixes, sessions, ...rest } = JSON.parse(
-    readFileSync(path, "utf8"),
-  ) as SavedFacts;
-  const facts: Partial<WrapUpFacts> = rest;
-  if (defers !== undefined) facts.proposals ??= defers;
-  if (reviewFixes !== undefined) {
-    facts.reviewFixes = savedResolverOf(reviewFixes);
-  }
-  if (sessions !== undefined) {
-    facts.sessions = {
-      ...sessions,
-      steps: sessions.steps.map(savedStepSessionOf),
-    };
-  }
-  return facts;
 }
