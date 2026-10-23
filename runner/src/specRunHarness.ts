@@ -343,13 +343,29 @@ export function reviewed(findings: ReviewFinding[] = []): StepResult {
 export function findingOf(
   line: number,
   axis: ReviewFinding["axis"] = "standards",
+  suggestedVerdict: ReviewFinding["suggestedVerdict"] = "fix",
 ): ReviewFinding {
   return {
     axis,
     where: `one.ts:${line}`,
     claim: `Line ${line} is wrong.`,
-    suggestedVerdict: "fix",
+    suggestedVerdict,
     reason: "It breaks a rule.",
+  };
+}
+
+// Commits `fixFile`, as a resolver landing its Fix verdicts would, and returns the records.
+export function resolved(
+  records: TriageRecord[],
+  fixFile?: string,
+): StepScript {
+  return async (request) => {
+    if (fixFile !== undefined) {
+      writeFileSync(join(request.cwd, fixFile), "export {};\n");
+      git(request.cwd, "add", fixFile);
+      git(request.cwd, "commit", "-m", `Fix ${fixFile}`);
+    }
+    return resultOf({ records });
   };
 }
 

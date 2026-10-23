@@ -1,6 +1,6 @@
-// A spec run: takes one spec's tickets, one at a time in blocking-graph order, through implement, review, finding triage,
-// fix, checks and wrap-up in each ticket's issue workspace, and never closes the spec; preflight refuses or Stops a run first.
-// A blocker, a Halt verdict or a fixer's give-up is a Halt: posted once the ticket's other work is committed, it holds the
+// A spec run: takes one spec's tickets, one at a time in blocking-graph order, through implement, review, resolve, checks
+// and wrap-up in each ticket's issue workspace, and never closes the spec; preflight refuses or Stops a run first.
+// A blocker or a Halt verdict is a Halt: posted once the ticket's other work is committed, it holds the
 // tickets in its scope, and the ticket resumes once every one of its Halts is answered (halts.ts).
 // GitHub and git hold what's durable; a per-spec state file holds the step each ticket reached, so a rerun resumes there.
 // This class only delegates: the run loop, ticket selection, a session's review and every step they run are SpecRun/,

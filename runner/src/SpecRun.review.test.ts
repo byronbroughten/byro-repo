@@ -6,7 +6,6 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { FactsFile } from "./FactsFile.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import type { TriageRecord } from "./findingTriage.ts";
-import type { FixOutcome } from "./fixStep.ts";
 import { git } from "./GitFixture.ts";
 import type { LeaseHolder } from "./IssueWorkspaces.ts";
 import {
@@ -18,7 +17,7 @@ import {
   implemented,
   notices,
   refOf,
-  resultOf,
+  resolved,
   reviewed,
   runStatePath,
   spec,
@@ -82,25 +81,14 @@ describe("review of one ticket outside a run", () => {
     recommendation: "Answer it.",
   };
 
-  function triaged(...records: TriageRecord[]) {
-    return resultOf({ records });
-  }
-
-  // Commits `file` as the fix commit, as a fixer would, and returns its outcomes.
-  function fixed(file: string, ...outcomes: FixOutcome[]): StepScript {
-    return async (request) => {
-      writeFileSync(join(request.cwd, file), "export {};\n");
-      git(request.cwd, "add", file);
-      git(request.cwd, "commit", "-m", `Fix ${file}`);
-      return resultOf({ outcomes });
-    };
+  function triaged(...records: TriageRecord[]): StepScript {
+    return resolved(records);
   }
 
   function reviewsWithFix(file = "fix.ts"): FakeAgentStep {
     return FakeAgentStep.init(
       reviewed(findings),
-      triaged(propose, fix, coveredLater),
-      fixed(file, { finding: 2, status: "fixed" }),
+      resolved([propose, fix, coveredLater], file),
     );
   }
 
@@ -122,7 +110,7 @@ describe("review of one ticket outside a run", () => {
     expect(github.comments).toEqual([]);
   });
 
-  it("posts the run's review list and covered-later note, and writes the same review facts, the triage agent fixing", async () => {
+  it("posts the run's review list and covered-later note, and writes the same review facts, a fresh resolver fixing", async () => {
     const result = await specRun(reviewsWithFix()).review(refOf(1), {
       holder,
     });
@@ -142,7 +130,7 @@ describe("review of one ticket outside a run", () => {
     });
   });
 
-  it("records the review, triage and fix sessions it started beside the implement session, under its account and config folder", async () => {
+  it("records the review and resolve sessions it started beside the implement session, under its account and config folder", async () => {
     FactsFile.init(stateFolder()).addSession(refOf(1), {
       account: 2,
       configFolder: "/config/account-2",
@@ -150,10 +138,9 @@ describe("review of one ticket outside a run", () => {
     });
     const agentStep = FakeAgentStep.init(
       { ...reviewed(findings), sessionId: "review-session" },
-      { ...triaged(propose, fix, coveredLater), sessionId: "triage-session" },
       async (request) => ({
-        ...(await fixed("fix.ts", { finding: 2, status: "fixed" })(request)),
-        sessionId: "fix-session",
+        ...(await resolved([propose, fix, coveredLater], "fix.ts")(request)),
+        sessionId: "resolve-session",
       }),
     );
 
@@ -165,8 +152,7 @@ describe("review of one ticket outside a run", () => {
       steps: [
         { agent: "implement", sessionId: "implement-session" },
         { agent: "review", sessionId: "review-session" },
-        { agent: "triage", sessionId: "triage-session" },
-        { agent: "fix", sessionId: "fix-session" },
+        { agent: "fix", sessionId: "resolve-session" },
       ],
     });
   });
@@ -178,7 +164,10 @@ describe("review of one ticket outside a run", () => {
         sessionId: "review-session",
         configFolder: "/config/account-1",
       },
-      { ...triaged(halt), sessionId: "triage-session" },
+      async (request) => ({
+        ...(await triaged(halt)(request)),
+        sessionId: "resolve-session",
+      }),
     );
 
     const result = await specRun(agentStep).review(refOf(1), { holder });
@@ -189,7 +178,7 @@ describe("review of one ticket outside a run", () => {
       configFolder: "/config/account-1",
       steps: [
         { agent: "review", sessionId: "review-session" },
-        { agent: "triage", sessionId: "triage-session" },
+        { agent: "fix", sessionId: "resolve-session" },
       ],
     });
   });

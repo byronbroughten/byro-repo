@@ -1,7 +1,7 @@
 // A ticket's checks and landing. Checks run in the workspace until green, resuming whoever made the last commit on red;
 // a red master Stops the run. Landing writes the facts file, runs the wrap-up, resumes the implementer once to merge master
 // on a conflict, and posts the ticket's review list.
-// TicketSequencer.ts calls _check after the fix step and _land at wrap-up.
+// TicketSequencer.ts calls _check after the resolve step and _land at wrap-up.
 // It builds its own ReviewStepper, ReviewListPoster and HaltRaiser; prompts are ../redChecksStep.ts and ../mergeMasterStep.ts.
 
 import { type WrapUpFacts } from "../FactsFile.ts";
@@ -38,7 +38,7 @@ import { SpecRunBase } from "./SpecRunBase.ts";
 
 const fixerLabels: Record<Fixer, string> = {
   implementer: "implementer",
-  triage: "triage agent",
+  triage: "fresh resolver",
 };
 
 export class TicketLander extends SpecRunBase {
@@ -80,7 +80,7 @@ export class TicketLander extends SpecRunBase {
     return undefined;
   }
 
-  // Whoever made the last commit gets the failure, the triage agent in place of an implementer past the ticket budget.
+  // Whoever made the last commit gets the failure, the fresh resolver in place of an implementer past the ticket budget.
   private async _resumeOnRedChecks(
     ticketRun: TicketRun,
     failure: string,

@@ -83,7 +83,7 @@ function itemOf(id: string, item: ReviewItem): string {
 export interface TicketReviewList {
   ticket: IssueRef;
   title: string;
-  // Every triage record the ticket kept, from either side of a Halt, a fixer's rewritten give-ups included.
+  // Every triage record the ticket kept, from either side of a Halt.
   records: TriageRecord[];
 }
 

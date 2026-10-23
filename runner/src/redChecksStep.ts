@@ -1,5 +1,5 @@
 // The red-checks step: the prompt that hands a ticket's failing checks back to whoever made its last commit, and the
-// summary it returns. SpecRun.ts runs it once after red checks, resuming the implementer or the triage agent; still red is a Failure Halt.
+// summary it returns. SpecRun.ts runs it once after red checks, resuming the implementer or the fresh resolver; still red is a Failure Halt.
 
 import { stepReadLine } from "./IssueReader.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";

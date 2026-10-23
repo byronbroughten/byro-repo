@@ -24,6 +24,7 @@ const stopSpecOption = "`stop spec`";
 
 const kindLabels = {
   verdict: "triage Halt",
+  // Only in run state saved before #363, when a separate fix step could give a finding up.
   "give-up": "fixer give-up",
   "gated-action": "gated-action blocker",
   "spec-ambiguity": "spec-ambiguity blocker",
@@ -135,14 +136,10 @@ function splitTheTicketPhraseOf(answer: string): string {
   return `Split the ticket, narrowing its body and moving the rest to new tickets, then answer ${answer}`;
 }
 
-// The fixer's give-ups arrive already rewritten as Halt records by giveUpRecordOf().
-export function triageHaltOf(
-  record: TriageRecord,
-  kind: "verdict" | "give-up",
-): HaltDraft {
+export function triageHaltOf(record: TriageRecord): HaltDraft {
   const { finding, claim, where, evidence, recommendation } = record;
   return {
-    kind,
+    kind: "verdict",
     question: `Finding ${finding}: ${claim} (${where}) ${evidence}`,
     options: [recommendation ?? ""],
     scope: haltScopeOf(record),

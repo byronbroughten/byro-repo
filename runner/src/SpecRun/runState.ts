@@ -77,6 +77,7 @@ export interface ReviewResult {
   halts: string[];
 }
 
+// `fix` is the resolve step; `triage` is only in run state saved before #363, and resolves too.
 export type TicketStep =
   | "implement"
   | "review"
@@ -99,14 +100,16 @@ export interface TicketState {
   record?: ImplementRecord;
   // The last implement step's own peak, never a sum across handoffs; picks the fixer and whether a resume continues its session.
   implementPeak?: number;
-  // The implementer's latest session, a fix step it ran included.
+  // The implementer's latest session, a resolve it ran included.
   implementerSession?: string;
   findings?: Finding[];
-  // A fixer's give-ups are rewritten in place as Halts or Proposals.
+  // The resolve records.
   triage?: TriageRecord[];
-  // Set once a fixer fixed a finding.
+  // Set once a resolver fixed a finding.
   fixer?: Fixer;
-  // The heads before the fix step, which a killed fixer or a rerun resets to.
+  // The fresh resolver's latest session, which a red-checks resume continues.
+  triageSession?: string;
+  // The heads before the resolve step, which a killed resolver or a rerun resets to.
   fixBase?: Heads;
   sessions: StepSession[];
   configFolder?: string;
@@ -227,10 +230,6 @@ export type StepLaunch = Pick<StepRequest, "prompt" | "jsonSchema"> &
   >;
 
 export type Crash = Pick<StepFailure, "detail" | "logPath">;
-
-export function isFix({ verdict }: TriageRecord): boolean {
-  return verdict === "fix";
-}
 
 // Saved with the step's own state when it advances, so a rerun of the step never raises them twice.
 export function raiseHalts(
@@ -394,9 +393,9 @@ export function turnCapDetailOf(
   return `The ${step} step hit its ${turns}-turn cap.`;
 }
 
-// Review and triage edit nothing, so there is no work of theirs to set aside.
+// Review edits nothing, so it has no work of its own to set aside.
 export function isSnapshotted(step: TicketStep): boolean {
-  return step !== "review" && step !== "triage";
+  return step !== "review";
 }
 
 // After a handoff the implement step builds on the uncommitted work, so a snapshot saves it without a reset.

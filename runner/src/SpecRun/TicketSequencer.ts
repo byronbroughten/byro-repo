@@ -33,7 +33,6 @@ import {
   deliverFailureHalts,
   haltsOfTicket,
   isAuthorshipHalt,
-  isFix,
   isSameHeads,
   type LandingTicket,
   onlyDeveloperEditsTextOf,
@@ -260,21 +259,13 @@ export class TicketSequencer extends SpecRunBase {
         this.reviewStepper._review(ticketRun),
       );
       const hasFindings = (state.findings ?? []).length > 0;
-      this._advance(ticketRun, hasFindings ? "triage" : "checks");
+      this._advance(ticketRun, hasFindings ? "fix" : "checks");
     }
-    if (state.step === "triage") {
-      this._markStepStarted(ticketRun);
-      await this._timed(ticketRun, "triage", () =>
-        this.reviewStepper._triage(ticketRun),
-      );
-      const hasFix = (state.triage ?? []).some(isFix);
-      this._advance(ticketRun, hasFix ? "fix" : "checks");
-    }
-    // Checks run after the fixes, so a fix that turns them red gets the red-checks resume.
-    if (state.step === "fix") {
+    // Checks run after the resolve, so a fix that turns them red gets the red-checks resume.
+    if (state.step === "fix" || state.step === "triage") {
       this._markStepStarted(ticketRun);
       await this._timed(ticketRun, "fix", () =>
-        this.reviewStepper._fix(ticketRun),
+        this.reviewStepper._resolve(ticketRun),
       );
       this._advance(ticketRun, "checks");
     }
