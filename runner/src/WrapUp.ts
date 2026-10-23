@@ -328,10 +328,10 @@ export class WrapUp {
     key: SessionKey,
     holder: LeaseHolder | undefined,
   ): Promise<void> {
-    const workspace = await this.workspaces.find(key);
-    if (!workspace) return;
+    const folder = this.workspaces.folderOf(key);
+    if (!folder) return;
     const other = otherLiveHolderOf(
-      await this.workspaces.leaseOf(workspace),
+      await this.workspaces.leaseOf(folder),
       holder,
     );
     if (!other) return;
@@ -863,16 +863,16 @@ export class WrapUp {
   }
 
   private async _removeWorkspace(key: WorkspaceKey): Promise<void> {
-    const workspace = await this.workspaces.find(key);
-    if (!workspace) return;
-    const lease = await this.workspaces.leaseOf(workspace);
-    await this.workspaces.releaseLease(workspace);
+    const folder = this.workspaces.folderOf(key);
+    if (!folder) return;
+    const lease = await this.workspaces.leaseOf(folder);
+    await this.workspaces.releaseLease(folder);
     try {
-      await this.workspaces.remove(workspace);
+      await this.workspaces.remove(folder);
     } catch (error) {
       // A half torn-down workspace may have nowhere left to hold a lease.
       if (lease?.isLive) {
-        await this.workspaces.takeLease(workspace, lease).catch(() => {});
+        await this.workspaces.takeLease(folder, lease).catch(() => {});
       }
       throw error;
     }

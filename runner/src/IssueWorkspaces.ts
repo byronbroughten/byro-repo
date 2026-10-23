@@ -130,7 +130,7 @@ export function holderLabelOf({ kind, pid }: LeaseHolder): string {
   return `a ${kind} (pid ${pid})`;
 }
 
-interface KeyedFolder {
+export interface KeyedFolder {
   path: string;
   key: WorkspaceKey;
 }
@@ -198,7 +198,10 @@ export class IssueWorkspaces {
     return workspace;
   }
 
-  async takeLease(workspace: Workspace, holder: LeaseHolder): Promise<void> {
+  async takeLease(
+    workspace: Pick<Workspace, "path">,
+    holder: LeaseHolder,
+  ): Promise<void> {
     const leasePath = leasePathOf(workspace.path);
     const { kind, pid } = holder;
     const startedAt = await startTimeOf(pid);
@@ -214,7 +217,7 @@ export class IssueWorkspaces {
 
   // Only the lease goes, so the released workspace keeps its unlanded commits and dirty files.
   private async _releaseOtherLeasesOf(
-    workspace: Workspace,
+    workspace: Pick<Workspace, "path">,
     holder: LeaseHolder,
   ): Promise<void> {
     for (const { path, lease } of await this.leases()) {
@@ -261,10 +264,14 @@ export class IssueWorkspaces {
 
   // Reads only the matching folder's repos, since each status read is a git process.
   async find(key: WorkspaceKey): Promise<WorkspaceStatus | undefined> {
-    const folder = this._keyedFolders().find((keyed) =>
-      isSameKey(keyed.key, key),
-    );
-    return folder && (await this._statusOf(folder.path, folder.key));
+    const folder = this.folderOf(key);
+    if (!folder) return undefined;
+    return this._statusOf(folder.path, folder.key);
+  }
+
+  // The folder alone, with no git process, for a caller that needs only its path or lease.
+  folderOf(key: WorkspaceKey): KeyedFolder | undefined {
+    return this._keyedFolders().find((keyed) => isSameKey(keyed.key, key));
   }
 
   async list(): Promise<WorkspaceStatus[]> {
@@ -323,7 +330,7 @@ export class IssueWorkspaces {
   }
 
   async remove(
-    workspace: Workspace,
+    workspace: Pick<Workspace, "path">,
     { force = false, holder }: RemoveOptions = {},
   ): Promise<void> {
     assertLeaseFree({

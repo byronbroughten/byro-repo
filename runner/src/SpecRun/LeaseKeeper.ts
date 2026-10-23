@@ -23,18 +23,24 @@ const runHolder: LeaseHolder = { kind: "run", pid: process.pid };
 
 export class LeaseKeeper extends SpecRunBase {
   async _otherHolderOf(issue: IssueRef): Promise<LeaseHolder | undefined> {
-    const lease = (await this.workspaces.find(issue))?.lease;
-    return otherLiveHolderOf(lease, runHolder);
+    const folder = this.workspaces.folderOf(issue);
+    if (!folder) return undefined;
+    return otherLiveHolderOf(await this.workspaces.leaseOf(folder), runHolder);
   }
 
   async _releaseLeaseOf(issue: IssueRef): Promise<void> {
-    const workspace = await this.workspaces.find(issue);
-    if (workspace?.lease && isSameHolder(workspace.lease, runHolder)) {
-      await this.workspaces.releaseLease(workspace);
+    const folder = this.workspaces.folderOf(issue);
+    if (!folder) return;
+    const lease = await this.workspaces.leaseOf(folder);
+    if (lease && isSameHolder(lease, runHolder)) {
+      await this.workspaces.releaseLease(folder);
     }
   }
 
-  async _takeLease(run: Run, workspace: Workspace): Promise<void> {
+  async _takeLease(
+    run: Run,
+    workspace: Pick<Workspace, "path">,
+  ): Promise<void> {
     try {
       await this.workspaces.takeLease(workspace, runHolder);
     } catch (error) {
