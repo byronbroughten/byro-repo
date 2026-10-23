@@ -1,6 +1,6 @@
 # Smells: reasoning and examples
 
-Disclosed from [`docs/agents/verdicts.md`](../../../docs/agents/verdicts.md). The rules are there, one line each; this file holds the examples and the why.
+Disclosed from [`docs/agents/verdicts.md`](../verdicts.md). The rules are there, one line each; this file holds the examples and the why.
 
 ## Fix or explain
 

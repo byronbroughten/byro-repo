@@ -1,6 +1,6 @@
 # Verdicts
 
-How any review finding is judged: one verdict each, Dismiss, Fix, Propose or Halt. The code-review skill's reviewers suggest one per finding and the resolve step settles it. The reasoning and examples for the smell rules are in [`config/docs/code-style/smells.md`](../../config/docs/code-style/smells.md).
+How any review finding is judged: one verdict each, Dismiss, Fix, Propose or Halt. The code-review skill's reviewers suggest one per finding and the resolve step settles it. The reasoning and examples for the smell rules are in [`docs/agents/verdicts/smells.md`](./verdicts/smells.md).
 
 ## The verdicts
 

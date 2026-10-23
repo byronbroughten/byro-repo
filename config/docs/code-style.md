@@ -85,7 +85,7 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 
 ## Smells
 
-- **Whether a smell is fixed or kept, and its approved exceptions: [`docs/agents/verdicts.md`](../../docs/agents/verdicts.md).**
+- **Whether a smell is fixed or kept, and its approved exceptions: the byro-repo root's `docs/agents/verdicts.md`.**
 
 ## Tests
 
