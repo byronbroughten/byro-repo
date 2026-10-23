@@ -24,15 +24,17 @@ export interface SavedStepSession extends Omit<StepSession, "agent"> {
   agent: SavedStepAgent;
 }
 
-export function stepAgentOf(saved: SavedStepAgent): StepAgent {
-  return saved === "triage" || saved === "fix" ? "resolve" : saved;
+export function savedStepOf<SV extends string>(
+  step: SV | "triage" | "fix",
+): SV | "resolve" {
+  return step === "triage" || step === "fix" ? "resolve" : step;
 }
 
 export function savedStepSessionOf({
   agent,
   sessionId,
 }: SavedStepSession): StepSession {
-  return { agent: stepAgentOf(agent), sessionId };
+  return { agent: savedStepOf(agent), sessionId };
 }
 
 export interface TicketSessions {

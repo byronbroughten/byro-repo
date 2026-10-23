@@ -48,6 +48,7 @@ import type { RunKnobs } from "../runKnobs.ts";
 import { sleep } from "../sleep.ts";
 import {
   type SavedStepAgent,
+  savedStepOf,
   type SavedStepSession,
   savedStepSessionOf,
 } from "../transcriptFacts.ts";
@@ -502,12 +503,6 @@ function ticketStateOf({
   if (fixBase !== undefined) state.resolveBase ??= fixBase;
   if (crashes !== undefined) state.crashes = crashCountsOf(crashes);
   return state;
-}
-
-function savedStepOf<SV extends string>(
-  step: SV | "triage" | "fix",
-): SV | "resolve" {
-  return step === "triage" || step === "fix" ? "resolve" : step;
 }
 
 function resolverOf(fixer: SavedTicketState["fixer"]): Resolver | undefined {
