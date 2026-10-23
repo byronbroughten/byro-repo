@@ -59,7 +59,7 @@ Runs a spec's tickets through implement, review, resolve (which commits the fixe
 
 ## Skills
 
-The runner's interactive skills live in `skills/<name>/`: `/implement-code <repo>#<n>` implements one ticket in its issue workspace and lands it once the developer says go (generated, see `implementCodeSkill`); `/judge-findings <repo> #<spec>` walks a spec's undecided review-list items and closes the spec when none is left; `/mine-outcomes <repo> #<spec>` turns a landed spec's outcome rows into model-fit and process proposals, offers `/retro` on its outlier tickets and then clears the rows. byro-repo loads each one through a symlink in `.claude/skills/`, not a plugin ([layout](../docs/agents/upstream-skills.md#layout)). The skills link byro-repo's docs.
+The runner's interactive skills live in `skills/<name>/`: `/implement-code <repo>#<n>` implements one ticket in its issue workspace and lands it once the developer says go (generated, see `implementCodeSkill`); `/judge-findings <repo> #<spec>` walks a spec's undecided review-list items and closes the spec when none is left; `/mine-outcomes <repo> #<spec>` turns a landed spec's outcome rows into model-fit and process proposals, offers `/retro` on its outlier tickets and then clears the rows; `/runner <owner/repo> <n>` makes the session a spec run's Supervisor, launching it through `runner:tmux` or rejoining it, explaining each event-file line with a suggested reply, posting only replies the developer settled, and stopping the run once they agree. byro-repo loads each one through a symlink in `.claude/skills/`, not a plugin ([layout](../docs/agents/upstream-skills.md#layout)). The skills link byro-repo's docs.
 
 ## Tests
 
