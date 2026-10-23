@@ -21,12 +21,12 @@ export {
   type IssueComment,
   rerunCommandOf,
   type ReviewOptions,
-  reviewPrintoutOf,
   type ReviewResult,
   type RunResult,
   type TicketStep,
   type TrackedIssue,
 } from "./SpecRun/runState.ts";
+export { reviewPrintoutOf } from "./SpecRun/SessionReviewer.ts";
 
 export class SpecRun extends SpecRunBase {
   static init(config: SpecRunConfig): SpecRun {

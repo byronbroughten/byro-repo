@@ -164,6 +164,16 @@ export class SessionReviewer extends SpecRunBase {
   }
 }
 
+// What `runner review` prints: the outcome, then the review list, then each Halt.
+export function reviewPrintoutOf({
+  message,
+  reviewList,
+  halts,
+}: ReviewResult): string {
+  const reviewLists = reviewList === undefined ? [] : [reviewList];
+  return [message, ...reviewLists, ...halts].join("\n\n");
+}
+
 function workspaceRefusalOf(
   { key, lease, dirtyRepos }: WorkspaceStatus,
   holder: LeaseHolder | undefined,

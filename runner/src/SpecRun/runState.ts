@@ -79,16 +79,6 @@ export interface ReviewResult {
   reviewList?: string;
 }
 
-// What `runner review` prints: the outcome, then the review list, then each Halt.
-export function reviewPrintoutOf({
-  message,
-  reviewList,
-  halts,
-}: ReviewResult): string {
-  const reviewLists = reviewList === undefined ? [] : [reviewList];
-  return [message, ...reviewLists, ...halts].join("\n\n");
-}
-
 export type TicketStep =
   | "implement"
   | "review"
