@@ -16,7 +16,7 @@ export class FakeUsageReader implements UsageReader {
   async read(): Promise<UsageList> {
     const list = this.lists[Math.min(this.reads, this.lists.length - 1)];
     this.reads += 1;
-    if (list === undefined) throw new Error("No scripted usage reading");
+    if (list === undefined) throw new Error("No scripted usage list");
     if (list instanceof Error) throw list;
     return list;
   }
