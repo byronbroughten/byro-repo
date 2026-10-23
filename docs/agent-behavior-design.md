@@ -48,7 +48,7 @@ _Instances:_ dispatched agents report the command they would run rather than run
 
 A yes is scoped to the specific thing the operator saw. A general go-ahead, or approval of a neighbouring step, is not consent to an action whose effects they didn't see named.
 
-_Instances:_ a share needs its own yes naming who gets access and at what permission, apart from any data-write approval (#273). [ADR 0008](./adr/0008-gate-agent-actions-by-what-they-cost-to-undo.md#consequences) makes every sharing change ask on its own, naming who and at what permission, even for a file whose writes are free. During design or grilling, nothing is written until the operator invokes the skill that files it: approving a design is not approving its publication (`5d5c77c`).
+_Instances:_ [ADR 0008](./adr/0008-gate-agent-actions-by-what-they-cost-to-undo.md) makes a share ask on its own, naming who gets access and at what permission, even on a file whose writes are free. During design or grilling, nothing is written until the operator invokes the skill that files it: approving a design is not approving its publication (`5d5c77c`).
 
 ### Put each rule where it gets followed, and its reasoning one pointer away
 
