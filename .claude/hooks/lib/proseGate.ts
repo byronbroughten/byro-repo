@@ -3,7 +3,7 @@ import { join, sep } from "node:path";
 
 import {
   type FileLocation,
-  isTrackedProjectFile,
+  isUnignoredProjectFile,
   projectRelative,
 } from "./lintSet.ts";
 import {
@@ -38,7 +38,7 @@ export function editDecision({
 }
 
 function isGatedProse(target: string): boolean {
-  if (!target.endsWith(".md") || !isTrackedProjectFile(target)) return false;
+  if (!target.endsWith(".md") || !isUnignoredProjectFile(target)) return false;
   return !ungatedRoots.some((root) => target.startsWith(root));
 }
 
