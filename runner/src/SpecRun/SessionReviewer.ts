@@ -332,8 +332,7 @@ function reviewEndOf(ticketRun: TicketRun, error: unknown): ReviewResult {
       reviewList: reviewListOf(ticketRun),
     };
   }
-  if (error instanceof LeaseHeld) return refusedReviewOf(error.message);
-  if (error instanceof ActiveAccountUnknown) {
+  if (error instanceof LeaseHeld || error instanceof ActiveAccountUnknown) {
     return refusedReviewOf(error.message);
   }
   if (error instanceof UnhandledStop) {
