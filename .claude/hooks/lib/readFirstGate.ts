@@ -4,6 +4,7 @@ import { join, sep } from "node:path";
 import {
   type EditDecision,
   type FullDocRead,
+  fullReadHowTo,
   isFullDocBashRead,
   isFullDocRead,
 } from "./fullDocRead.ts";
@@ -69,7 +70,7 @@ function readFirstReason(missing: ReadFirstRow[]): string {
   const rules = missing.flatMap((row) => row.rules).join(" ");
   return (
     `Read ${docs.join(" and ")} in full before this edit, then retry. ` +
-    `Use a full Read with no offset or limit (a partial read isn't recorded; a whole-file \`cat\` counts). ${rules}`
+    `${fullReadHowTo}. ${rules}`
   );
 }
 
