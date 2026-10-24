@@ -105,7 +105,7 @@ const ghReadGroups = new Set(["search", "status", "version", "--version"]);
 const ghApiValueShorthands = new Set(["X", "f", "F", "H", "q", "t", "p"]);
 const ghApiFieldFlags = new Set(["--field", "--raw-field", "--input"]);
 const ghReadMethods = new Set(["GET", "HEAD"]);
-// A word runs as shell only as a shell's `-c` script, an `eval` argument, or a substitution the parser kept inside a quoted word.
+// A quoted gh is text unless a shell's -c, eval or a substitution runs it.
 const shells = new Set(["bash", "sh", "zsh", "dash", "ksh"]);
 const shellScriptFlag = /^-[a-zA-Z]*c/;
 const substitutionOpen = /\$\(|`/;
