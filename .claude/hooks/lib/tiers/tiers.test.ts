@@ -353,6 +353,13 @@ describe("a supervising session's gh calls", () => {
     'echo "$(/opt/homebrew/bin/gh issue close 341)"',
     "gh api -iXPOST repos/o/r/issues/341/comments",
     "gh api -X post repos/o/r/issues/341/comments",
+    "sh -c 'git fetch && gh issue comment 1 -b hi'",
+    "bash -lc 'cd x; gh issue close 341'",
+    "echo `gh issue close 341`",
+    'echo "`gh issue close 341`"',
+    'echo "$(cd x; gh issue close 341)"',
+    "eval 'gh issue close 341'",
+    "find . -name x -exec /bin/sh -c 'gh issue close 341' \\;",
   ];
 
   it("asks for each write, naming the exact command", () => {
@@ -375,6 +382,18 @@ describe("a supervising session's gh calls", () => {
       "gh auth status",
     ].forEach((command) =>
       expect(supervisedDecisionOf(command)).toBeUndefined(),
+    );
+  });
+
+  it("reads a gh in a quoted argument to another command as text", () => {
+    [
+      'grep -n "a\\|gh b" f',
+      'grep -n "git \\|gh \\|issue:" f',
+      'rg "gh issue" .',
+      "sed -n '/gh x/p' f",
+      "git log --grep='; gh issue close'",
+    ].forEach((command) =>
+      expect(supervisedDecisionOf(command)?.permissionDecision).toBe("allow"),
     );
   });
 

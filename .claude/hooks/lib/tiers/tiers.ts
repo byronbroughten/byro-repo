@@ -105,8 +105,10 @@ const ghReadGroups = new Set(["search", "status", "version", "--version"]);
 const ghApiValueShorthands = new Set(["X", "f", "F", "H", "q", "t", "p"]);
 const ghApiFieldFlags = new Set(["--field", "--raw-field", "--input"]);
 const ghReadMethods = new Set(["GET", "HEAD"]);
-// `gh`, or a path to it, at a command position inside a word, as in `bash -c '… && gh …'` or `$(gh …)`.
-const hiddenGh = /(^|[;&|(`\n]|\$\()\s*(\S*\/)?gh(\s|$)/;
+// A word runs as shell only as a shell's `-c` script, an `eval` argument, or a substitution the parser kept inside a quoted word.
+const shells = new Set(["bash", "sh", "zsh", "dash", "ksh"]);
+const shellScriptFlag = /^-[a-zA-Z]*c/;
+const substitutionOpen = /\$\(|`/;
 const ghWriteWhy =
   "writes to GitHub from a session supervising a run, and the developer approves its exact text";
 
@@ -271,9 +273,10 @@ function verdictOf(
 
 // Every gh call but a known read writes, and so does a gh this gate can't see into.
 function ghWriteOf(words: string[]): boolean {
-  const hidesGh = words
-    .slice(1)
-    .some((word) => basenameOf(word) === "gh" || hiddenGh.test(word));
+  const hidesGh =
+    words.slice(1).some((word) => basenameOf(word) === "gh") ||
+    shellWordsOf(words).some(callsGh) ||
+    words.some((word) => word.split(substitutionOpen).slice(1).some(callsGh));
   if (hidesGh) return true;
   if (basenameOf(words[0] ?? "") !== "gh") return false;
   const [group = "", verb = ""] = words.slice(1);
@@ -281,6 +284,16 @@ function ghWriteOf(words: string[]): boolean {
   if (ghReadGroups.has(group)) return false;
   if (group === "auth" && verb === "status") return false;
   return group.startsWith("-") || !ghReadVerbs.has(verb);
+}
+
+// Found anywhere in the words, so a wrapper such as `env -i`, `xargs` or `find -exec` can't hide the shell.
+function shellWordsOf(words: string[]): string[] {
+  return words.flatMap((word, at) => {
+    const rest = words.slice(at + 1);
+    if (word === "eval") return rest;
+    if (!shells.has(basenameOf(word))) return [];
+    return rest.some((arg) => shellScriptFlag.test(arg)) ? rest : [];
+  });
 }
 
 // gh api sends a POST once it has a field, unless a method says otherwise; graphql is always a POST.
