@@ -1,5 +1,5 @@
 // Decides the gate for a gworkspace call by tier: a write is free on a file the developer owns, and asks on anyone else's; a runner step may write only its ticket's targets. Pure; tierGate.ts does the I/O, driveOwners.ts the real lookup.
-import type { SheetsConfigEntry } from "./sheetsConfigs.ts";
+import type { SheetsConfigEntry } from "../sheetsConfigs.ts";
 import {
   blockerInstead,
   type Decision,

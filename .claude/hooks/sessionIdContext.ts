@@ -22,7 +22,7 @@ import {
   supervisingLineOf,
   whereYouAreLineOf,
 } from "./lib/sessionRecord.ts";
-import { sessionModeOf } from "./lib/tiers.ts";
+import { sessionModeOf } from "./lib/tiers/tiers.ts";
 
 await runFailOpen(async () => {
   const input = readHookInput();

@@ -2,7 +2,6 @@
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { BashReads } from "./bashReads.ts";
 import { type FullDocRead, isPostToolUse } from "./fullDocRead.ts";
 import {
   lineCount,
@@ -12,6 +11,7 @@ import {
   writeDenyOutput,
 } from "./hookIo.ts";
 import type { FileLocation } from "./lintSet.ts";
+import { BashReads } from "./tiers/bashReads.ts";
 
 interface FullReadGate {
   marker: string;

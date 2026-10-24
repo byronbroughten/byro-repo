@@ -2,13 +2,6 @@
 // A Bash call naming gh also reads this claude's supervision record, since a supervising session's gh writes ask.
 import { writeFileSync } from "node:fs";
 
-import { driveOwnersOf } from "./lib/driveOwners.ts";
-import {
-  cachedOwnerLookup,
-  driveGateDecision,
-  type OwnerCache,
-  stepTargetsOf,
-} from "./lib/driveTiers.ts";
 import {
   type HookInput,
   readHookInput,
@@ -18,6 +11,13 @@ import {
   writeHookOutput,
 } from "./lib/hookIo.ts";
 import { readSheetsConfigs } from "./lib/sheetsConfigs.ts";
+import { driveOwnersOf } from "./lib/tiers/driveOwners.ts";
+import {
+  cachedOwnerLookup,
+  driveGateDecision,
+  type OwnerCache,
+  stepTargetsOf,
+} from "./lib/tiers/driveTiers.ts";
 import {
   callsGh,
   type Decision,
@@ -25,7 +25,7 @@ import {
   gateDecision,
   sessionModeOf,
   stepTargetsVariable,
-} from "./lib/tiers.ts";
+} from "./lib/tiers/tiers.ts";
 
 const dryRunSuffix = "chore-dry-runs.json";
 const ownersSuffix = "drive-owners.json";

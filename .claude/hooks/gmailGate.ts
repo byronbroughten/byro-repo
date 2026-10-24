@@ -3,13 +3,13 @@ import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
+import { readHookInput, writeHookOutput } from "./lib/hookIo.ts";
 import {
   gmailGateDecision,
   gmailWrites,
   unreadableDataDecision,
-} from "./lib/gmailGate.ts";
-import { readHookInput, writeHookOutput } from "./lib/hookIo.ts";
-import { type Decision, sessionModeOf } from "./lib/tiers.ts";
+} from "./lib/tiers/gmailGate.ts";
+import { type Decision, sessionModeOf } from "./lib/tiers/tiers.ts";
 
 const inboxData = join(homedir(), ".claude", "inbox-data");
 const input = readHookInput();
