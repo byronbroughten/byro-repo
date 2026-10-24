@@ -54,7 +54,7 @@ export const resolveRules =
 export const resolveRecordFields = `exactly one record per finding: \`finding\` (its number in the list), \`axis\` (the finding's own, or for a finding without one, \`standards\` or \`spec\`), \`where\` (its file:line or area), \`claim\` (what the finding says, in a line), \`verdict\` (\`dismiss\`, \`fix\`, \`propose\` or \`halt\`), \`evidence\` (what you checked and found, and why, when you overruled the suggested verdict), and the fields its verdict needs:
 
 - **Dismiss**: \`reason\`, one of ${codeListOf(dismissReasons)}; for \`covered-later\`, \`coveredBy\`, the later ticket as \`<repo>#<n>\`; for \`kept\`, \`quote\`, the site's reason with its file:line.
-- **Fix**: \`quote\`, the quoted code with its file:line, and \`rule\`, the documented rule or spec line it breaks.
+- **Fix**: \`quote\`, the quoted code or text, with its file:line, and \`rule\`, the documented rule or spec line it breaks.
 - **Propose**: \`reason\`, ${codeListOf(proposeReasons)}, and \`recommendation\`; for \`ticket\`, \`draftIssueTitle\`; for a \`decision\` asking the developer's yes to a new keep, \`draftKeepReason\`, the drafted one-line reason.
 - **Halt**: \`recommendation\`, and \`haltScope\`, the later tickets it blocks as \`<repo>#<n>\`, or \`spec\`; omit it to block the whole spec.`;
 
@@ -280,7 +280,7 @@ const verdictRules: Record<Verdict, (record: ResolveRecord) => string[]> = {
     brokenRules([
       [
         !hasFileLine(quote),
-        "a Fix needs `quote`, the quoted code with its file:line",
+        "a Fix needs `quote`, the quoted code or text, with its file:line",
       ],
       [
         isBlank(rule),

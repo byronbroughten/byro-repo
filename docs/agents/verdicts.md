@@ -18,7 +18,7 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
   - `kept`: a Standards finding whose site carries a one-line reason that is still true, quoted with its `file:line`.
   - `tooling-enforced`: lint, the typecheck or a test already catches it.
   - `serves-spec`: scope creep that serves a user story the spec has, named in the evidence.
-- **Fix**: fixed now, quoting the code with its `file:line` and naming the documented rule or spec line it breaks. Doc drift the diff caused is a Fix.
+- **Fix**: fixed now, quoting the code or text with its `file:line` and naming the documented rule or spec line it breaks. Doc drift the diff caused is a Fix.
 - **Propose**: left for the developer, with a recommendation. `decision` is a judgement only they can make, unverifiable findings included; `ticket` is a problem that predates this branch, with a drafted issue title.
 - **Halt**: blocks the spec's scope, the named later tickets with their downstream or the whole spec, until the developer answers. In a run it posts on the spec; in an interactive session it is answered there.
 

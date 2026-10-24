@@ -154,6 +154,8 @@ export const implementBody = {
   checking: "Run typechecking and single test files regularly.",
   oneCommand:
     "Read and search with the Read and Grep tools. Give Bash one command per call, run from the workspace root: no `cd`, no `;` or `&&` chains, no variables.",
+  drift:
+    "Before review, grep the docs for every name, command or behavior the change renamed, removed or altered, and fix or delete each statement it made untrue.",
   committing:
     "Commit in each repo you changed, on the ticket's branch, then run `npm run check`. When it fails on your change, fix it in a further commit and run it again; never amend.",
   onlyWrites:
@@ -164,6 +166,7 @@ export const implementBody = {
 const promptSections = {
   finishing: `## When you're done
 
+- ${implementBody.drift}
 - ${implementBody.committing} When it fails only on something your change didn't cause, return your record anyway and name the failure in \`boxesUndone\`; the runner's checks step stops on it.
 - ${implementBody.onlyWrites}, and never run the wrap-up. Don't call code review; the runner reviews after you.
 - When review findings come back to you: ${implementBody.resolving}
