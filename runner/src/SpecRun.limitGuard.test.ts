@@ -5,11 +5,13 @@ import { describe, expect, it } from "vitest";
 
 import type { StepResult } from "./AgentStep.ts";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
+import type { UsageReader } from "./limitGuard.ts";
 import type { RunResult } from "./SpecRun.ts";
 import {
   addIssue,
   addSpec,
   after,
+  crashed,
   github,
   implemented,
   noticeSummaries,
@@ -29,9 +31,10 @@ import {
 useSpecRunHarness();
 
 describe("run's limit guard", () => {
-  it("waits out a 5-hour limit on the configured account until the reset plus a margin, with one notice, then lands", async () => {
+  it("re-reads the account every idlePollMs during a Limit wait, with one notice, then lands", async () => {
     addSpec([1]);
     scriptUsage(
+      usageListOf(0.92, 0.5),
       usageListOf(0.92, 0.5),
       usageListOf(0.92, 0.5),
       usageListOf(0.1, 0.5),
@@ -46,12 +49,91 @@ describe("run's limit guard", () => {
     }).run(spec);
 
     expect(result.landed).toEqual([refOf(1)]);
-    expect(sleeps).toEqual([2 * 60 * 60_000 + 5 * 60_000]);
+    expect(sleeps).toEqual([60_000, 60_000]);
     expect(noticeSummaries()).toEqual([
       "Run started on 1 tickets as account 1: 5-hour 92%, weekly 50%.",
-      "Limit wait: account 1 is at 92% of its 5-hour limit; continuing after 2026-10-12T11:05:00.000Z.",
+      "Limit wait: account 1 is at 92% of its 5-hour limit; continuing after 2026-10-12T11:05:00.000Z. Switching to an account with headroom with cswap continues the run now.",
       result.message,
     ]);
+  });
+
+  it("shortens the last poll of a Limit wait to end at the reset plus the margin", async () => {
+    addSpec([1]);
+    scriptUsage(
+      usageListOf(0.92, 0.5),
+      usageListOf(0.92, 0.5),
+      usageListOf(0.1, 0.5),
+    );
+    const sleeps: number[] = [];
+
+    await specRun(FakeAgentStep.init(implemented("one.ts"), reviewed()), {
+      clock: { now: () => new Date("2026-10-12T11:04:30Z") },
+      async sleep(ms) {
+        sleeps.push(ms);
+      },
+    }).run(spec);
+
+    expect(sleeps).toEqual([30_000]);
+  });
+
+  it("launches on the account switched to at the next poll of a Limit wait", async () => {
+    addSpec([1]);
+    let activeAccount = 1;
+    const usageReader: UsageReader = {
+      read: async () => ({ ...usageListOf(0.92, 0.5), activeAccount }),
+    };
+    const sleeps: number[] = [];
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    const result = await specRun(agentStep, {
+      usageReader,
+      async sleep(ms) {
+        sleeps.push(ms);
+        activeAccount = 2;
+      },
+    }).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(sleeps).toEqual([60_000]);
+    expect(agentStep.requests.map(({ account }) => account)).toEqual([2, 2]);
+  });
+
+  it("keeps a resumed step's Limit wait on its recorded account after a switch", async () => {
+    addSpec([1]);
+    let activeAccount = 1;
+    let account1FiveHour = 0.1;
+    const usageReader: UsageReader = {
+      read: async () => ({
+        ...usageListOf(account1FiveHour, 0.5),
+        activeAccount,
+      }),
+    };
+    const crashThenSwitch: ScriptedStep = async () => {
+      activeAccount = 2;
+      account1FiveHour = 0.92;
+      return crashed;
+    };
+    const sleeps: number[] = [];
+    const agentStep = FakeAgentStep.init(
+      crashThenSwitch,
+      implemented("one.ts"),
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep, {
+      usageReader,
+      async sleep(ms) {
+        sleeps.push(ms);
+        if (sleeps.length === 2) account1FiveHour = 0.1;
+      },
+    }).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(sleeps).toEqual([60_000, 60_000]);
+    expect(agentStep.requests.map(({ account }) => account)).toEqual([1, 1, 2]);
+    expect(noticeSummaries()).toContain(
+      "Limit wait: account 1 is at 92% of its 5-hour limit; continuing after 2026-10-12T11:05:00.000Z. A resumed session stays on its recorded account, so switching with cswap won't end this wait.",
+    );
   });
 
   it("Stops before a step past the weekly reserve, with one notice, leaving the ticket for a rerun to resume", async () => {
@@ -65,7 +147,7 @@ describe("run's limit guard", () => {
       kind: "stopped",
       landed: [],
       message:
-        "Account 1 is at 96% of its weekly limit, past the reserve; rerun after it resets at 2026-10-15T00:00:00.000Z.",
+        "Account 1 is at 96% of its weekly limit, past the reserve; switch with cswap and rerun, or rerun after it resets at 2026-10-15T00:00:00.000Z.",
     });
     expect(agentStep.requests).toEqual([]);
     expect(noticeSummaries()).toEqual([
@@ -177,25 +259,6 @@ describe("run's limit guard", () => {
       "No usage reading for account 1; steps launch unguarded.",
       result.message,
     ]);
-  });
-
-  it("pushes one Limit wait notice though a reading after the wait is still over", async () => {
-    addSpec([1]);
-    scriptUsage(
-      usageListOf(0.92, 0.5),
-      usageListOf(0.92, 0.5),
-      usageListOf(0.92, 0.5),
-      usageListOf(0.1, 0.5),
-    );
-
-    const result = await specRun(
-      FakeAgentStep.init(implemented("one.ts"), reviewed()),
-    ).run(spec);
-
-    expect(result.landed).toEqual([refOf(1)]);
-    expect(
-      noticeSummaries().filter((summary) => summary.startsWith("Limit wait")),
-    ).toHaveLength(1);
   });
 
   it("lands a step that met a limit but still succeeded", async () => {

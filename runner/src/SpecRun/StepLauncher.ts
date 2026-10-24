@@ -249,35 +249,30 @@ export class StepLauncher extends SpecRunBase {
         );
         return account;
       }
-      const decision = decideStep(
-        [reading],
-        {
-          pinnedAccount: account,
-          isAtTicketBoundary: true,
-          accountChangesToday: 0,
-        },
-        knobs,
-      );
+      const decision = decideStep(usage, knobs);
       if (decision.kind === "launch") return account;
       if (decision.kind === "stop") {
         throw new RunStop(
-          `Account ${account} is at ${percentOf(usage.sevenDay.utilization)} of its weekly limit, past the reserve; rerun after it resets at ${usage.sevenDay.resetsAt.toISOString()}.`,
+          `Account ${account} is at ${percentOf(usage.sevenDay.utilization)} of its weekly limit, past the reserve; switch with cswap and rerun, or rerun after it resets at ${usage.sevenDay.resetsAt.toISOString()}.`,
         );
-      }
-      if (decision.kind !== "limitWait") {
-        throw new Error(`A one-account run can't ${decision.kind}`);
       }
       if (!hasAnnouncedWait) {
         hasAnnouncedWait = true;
         await this._announce(
           run,
-          `Limit wait: account ${account} is at ${percentOf(usage.fiveHour.utilization)} of its 5-hour limit; continuing after ${decision.until.toISOString()}.`,
+          `Limit wait: account ${account} is at ${percentOf(usage.fiveHour.utilization)} of its 5-hour limit; continuing after ${decision.until.toISOString()}. ${waitEndNoteOf(recordedAccount)}`,
         );
       }
-      const waitMs =
-        decision.until.getTime() - this.config.clock.now().getTime();
-      await this._sleep(Math.max(waitMs, knobs.limitWaitMarginMs));
+      await this._sleep(this._limitPollMsOf(decision.until));
     }
+  }
+
+  // Polls every idlePollMs, so a switch ends the wait within one poll.
+  private _limitPollMsOf(until: Date): number {
+    const { idlePollMs } = this.config.knobs;
+    const remainingMs = until.getTime() - this.config.clock.now().getTime();
+    if (remainingMs <= 0) return idlePollMs;
+    return Math.min(idlePollMs, remainingMs);
   }
 
   private async _warnOnce(
@@ -349,6 +344,14 @@ function resumedAccountOf(
     );
   }
   return session.account;
+}
+
+// A resume's transcript lives under its recorded account, so only a fresh step follows a switch.
+function waitEndNoteOf(recordedAccount: number | undefined): string {
+  if (recordedAccount === undefined) {
+    return "Switching to an account with headroom with cswap continues the run now.";
+  }
+  return "A resumed session stays on its recorded account, so switching with cswap won't end this wait.";
 }
 
 function guidedLaunchOf(
