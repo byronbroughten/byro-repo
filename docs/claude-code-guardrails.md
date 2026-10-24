@@ -2,7 +2,7 @@
 
 Mechanics of the Claude Code hooks and project agent. Why they are shaped this way: [`docs/agent-behavior-design.md`](./agent-behavior-design.md).
 
-Seventeen Node hooks in `.claude/hooks/`: nine gate a call, five add feedback or a reminder, one records state for a gate, one records a session in its issue's facts file, and one releases leases. All fail open except where noted. Session state lives in `$TMPDIR/claude-guardrails/`.
+Fifteen Node hooks in `.claude/hooks/`: seven gate a call, five add feedback or a reminder, one records state for a gate, one records a session in its issue's facts file, and one releases leases. All fail open except where noted. Session state lives in `$TMPDIR/claude-guardrails/`.
 
 **Start every session at the primary root, or a workspace's root.** The settings, hooks and agent load only from a root's `.claude/`, so a session started inside `packages/*` runs with none of them. Each package's `CLAUDE.md` says so; restart at a root.
 
