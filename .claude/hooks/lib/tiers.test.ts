@@ -13,6 +13,11 @@ function decisionOf(command: string, dryRuns: string[] = []) {
     ?.permissionDecision;
 }
 
+function runnerStepDecisionOf(command: string) {
+  return gateDecision({ command, mode: "runnerStep", dryRuns: [] })
+    ?.permissionDecision;
+}
+
 describe("gateDecision", () => {
   it("allows a commit on any branch", () => {
     expect(decisionOf('git commit -m "Add the gate"')).toBe("allow");
@@ -201,12 +206,7 @@ describe("reads and git add", () => {
       "cat AGENTS.md",
       "git -C packages/framework log -3",
       "git add docs/adr/0009-x.md",
-    ].forEach((command) =>
-      expect(
-        gateDecision({ command, mode: "runnerStep", dryRuns: [] })
-          ?.permissionDecision,
-      ).toBe("allow"),
-    );
+    ].forEach((command) => expect(runnerStepDecisionOf(command)).toBe("allow"));
   });
 
   it("allows chained reads and a read after cd", () => {
@@ -233,13 +233,20 @@ describe("reads and git add", () => {
       "find . -ok rm {} ;",
       "find . -name '*.tmp' -delete",
       "find . -fprint out.txt",
+      "find . -fprint0 out.txt",
+      "find . -fprintf out.txt %p",
+      "find . -fls out.txt",
+      "find . -okdir rm {} ;",
       "rg --pre ./run.sh x",
+      "rg --pre=./run.sh x",
+      "rg --hostname-bin=./run.sh --hyperlink-format=default x",
       "git branch -d old",
       "git branch -D old",
       "git branch --delete old",
       "git branch new-branch",
       "git branch -m old new",
       "git diff --output=patch.diff",
+      "git log -p --output patch.diff",
       "git -c core.fsmonitor='rm -rf dist' status",
       "git -c core.pager=less log",
       "cat AGENTS.md > copy.md",
@@ -260,6 +267,7 @@ describe("reads and git add", () => {
       "cat $(rm -rf dist)",
       "cat `rm -rf dist`",
       "cat <(rm -rf dist)",
+      "git log | tee >(cat)",
       "grep '<<EOF' AGENTS.md\nrm -rf dist\nEOF",
       "cat $'\\'' ; rm -rf dist ; echo '",
     ].forEach((command) => expect(decisionOf(command)).not.toBe("allow"));
@@ -278,12 +286,9 @@ describe("reads and git add", () => {
   });
 
   it("still denies a gh read in a runner step", () => {
-    ["gh issue view 389", "gh issue list"].forEach((command) => {
-      expect(
-        gateDecision({ command, mode: "runnerStep", dryRuns: [] })
-          ?.permissionDecision,
-      ).not.toBe("allow");
-    });
+    ["gh issue view 389", "gh issue list"].forEach((command) =>
+      expect(runnerStepDecisionOf(command)).not.toBe("allow"),
+    );
   });
 });
 
