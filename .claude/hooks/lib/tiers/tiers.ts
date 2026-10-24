@@ -277,7 +277,7 @@ function verdictOf(
 function ghWriteOf(words: string[]): boolean {
   const hidesGh =
     words.slice(1).some((word) => basenameOf(word) === "gh") ||
-    shellWordsOf(words).some(callsGh) ||
+    shellScriptsOf(words).some(callsGh) ||
     words.flatMap(substitutionsOf).some(callsGh);
   if (hidesGh) return true;
   if (basenameOf(words[0] ?? "") !== "gh") return false;
@@ -289,7 +289,7 @@ function ghWriteOf(words: string[]): boolean {
 }
 
 // Found anywhere in the words, so a wrapper such as `env -i`, `xargs` or `find -exec` can't hide the shell.
-function shellWordsOf(words: string[]): string[] {
+function shellScriptsOf(words: string[]): string[] {
   return words.flatMap((word, at) => {
     const rest = words.slice(at + 1);
     if (word === "eval") return rest;
