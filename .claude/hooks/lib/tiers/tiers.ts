@@ -278,9 +278,7 @@ function ghWriteOf(words: string[]): boolean {
   const hidesGh =
     words.slice(1).some((word) => basenameOf(word) === "gh") ||
     shellWordsOf(words).some(callsGh) ||
-    words.some((word) =>
-      word.split(shellRunners.substitutionOpen).slice(1).some(callsGh),
-    );
+    words.flatMap(substitutionsOf).some(callsGh);
   if (hidesGh) return true;
   if (basenameOf(words[0] ?? "") !== "gh") return false;
   const [group = "", verb = ""] = words.slice(1);
@@ -298,6 +296,11 @@ function shellWordsOf(words: string[]): string[] {
     if (!shellRunners.shells.has(basenameOf(word))) return [];
     return rest.some((arg) => shellRunners.scriptFlag.test(arg)) ? rest : [];
   });
+}
+
+// The text after each `$(` or backtick the parser kept inside a quoted word.
+function substitutionsOf(word: string): string[] {
+  return word.split(shellRunners.substitutionOpen).slice(1);
 }
 
 // gh api sends a POST once it has a field, unless a method says otherwise; graphql is always a POST.
