@@ -27,6 +27,7 @@ import {
   type RanStep,
   type Run,
   type RunWarning,
+  type SpecStepRequest,
   type StepLaunch,
   type TicketRun,
   type TicketState,
@@ -192,7 +193,7 @@ export class StepLauncher extends SpecRunBase {
   async _runSpecStep(
     run: Run,
     step: string,
-    request: Omit<StepRequest, "account">,
+    request: SpecStepRequest,
   ): Promise<RanStep> {
     const logPath = join(
       this._stepsFolderOf(run),

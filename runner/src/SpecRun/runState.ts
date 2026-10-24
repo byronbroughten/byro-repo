@@ -246,6 +246,9 @@ export type StepLaunch = Pick<StepRequest, "prompt" | "jsonSchema"> &
     >
   >;
 
+// A spec-level step's request before the launcher picks its account.
+export type SpecStepRequest = Omit<StepRequest, "account">;
+
 export type Crash = Pick<StepFailure, "detail" | "logPath">;
 
 // Saved with the step's own state when it advances, so a rerun of the step never raises them twice.

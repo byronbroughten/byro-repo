@@ -4,7 +4,6 @@
 // RunLoop.ts calls _finish; SessionReviewer.ts calls _runnersSpecCommentsOf and _postCoveredLaterNotes; TicketLander.ts calls _postReviewList at landing.
 // It builds its own StepLauncher and HaltRaiser; formats are ../reviewList.ts, the gap check's prompt ../gapCheck.ts.
 
-import type { StepRequest } from "../AgentStep.ts";
 import {
   gapCheckOutputSchema,
   gapCheckPrompt,
@@ -51,6 +50,7 @@ import {
   recordOf,
   type Run,
   type RunResult,
+  type SpecStepRequest,
   stoppedOnTextOf,
   ticketStateOf,
   type TrackedIssue,
@@ -192,7 +192,7 @@ export class ReviewListPoster extends SpecRunBase {
     if (answer?.kind === "guidance") {
       prompt = `${prompt}\n\n${guidanceSectionOf(answer.text)}`;
     }
-    const request: Omit<StepRequest, "account"> = {
+    const request: SpecStepRequest = {
       prompt,
       pair: answer?.kind === "rerun" ? answer.pair : knobs.gapCheckPair,
       cwd: this.config.primaryRoot,
@@ -238,7 +238,7 @@ export class ReviewListPoster extends SpecRunBase {
 
   private async _runGapCheck(
     run: Run,
-    request: Omit<StepRequest, "account">,
+    request: SpecStepRequest,
   ): Promise<RanStep> {
     return this.stepLauncher._runSpecStep(run, gapCheckLabel, request);
   }
