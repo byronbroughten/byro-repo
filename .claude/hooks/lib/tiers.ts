@@ -1,5 +1,10 @@
 // Decides the gate for a Bash call by tier: 1 and 2 are free (git or Google's version history undoes them), 3 asks. Pure; tierGate.ts does the I/O, and driveTiers.ts decides gworkspace calls.
-import { commandWordsOf, npmScriptOf } from "./bashReads.ts";
+import {
+  npmScriptOf,
+  sedPartsOf,
+  type SimpleCommand,
+  simpleCommandsOf,
+} from "./bashReads.ts";
 
 export interface Decision {
   permissionDecision: "allow" | "ask" | "deny";
@@ -28,6 +33,15 @@ export interface ShellCall {
 interface Verdict {
   permissionDecision: Decision["permissionDecision"];
   why: string;
+  // Allowed only in a command with no heredoc or $'…' to hide another behind it.
+  needsPlainText?: boolean;
+}
+
+// isPlain: no global option but a path one, so no `-c` config can run a command.
+interface GitCall {
+  verb: string;
+  args: string[];
+  isPlain: boolean;
 }
 
 interface AppChore {
@@ -52,6 +66,39 @@ const freeScripts = new Map([
   ["issue:list", "it only reads the workspaces"],
   ["issue:remove", "a plain remove refuses a workspace holding unlanded work"],
 ]);
+const readPrograms = new Set(["grep", "rg", "cat", "head", "tail", "wc", "ls"]);
+const gitReadVerbs = new Set([
+  "log",
+  "show",
+  "status",
+  "diff",
+  "rev-parse",
+  "ls-files",
+  "blame",
+]);
+const gitPathOptions = new Set(["-C", "--git-dir", "--work-tree"]);
+const findActions = new Set([
+  "-exec",
+  "-execdir",
+  "-ok",
+  "-okdir",
+  "-delete",
+  "-fprint",
+  "-fprint0",
+  "-fprintf",
+  "-fls",
+]);
+// ripgrep runs the program each of these names.
+const rgRunFlags = ["--pre", "--hostname-bin"];
+const sedReadFlags = /^-[nEsrz]+$/;
+const sedAddress = String.raw`(\d+|\$|/[^/\\]*/)`;
+// Printing pieces only, as `12,40p`, `$=` or `s/a/b/gp`: sed's own w and e commands write a file or run one.
+const sedPrint = new RegExp(
+  String.raw`^(${sedAddress}(,${sedAddress})?)?(p|=|l|q\d*|s/[^/\\]*/[^/\\]*/[gpI\d]*)$`,
+);
+// Deleting a branch, or forcing one over another, loses commits git can't bring back but by its reflog.
+const branchDropFlags = new Set(["--delete", "--force"]);
+const branchDropShorthands = /^-[^-]*[dDfMC]/;
 const ghReadVerbs = new Set(["view", "list", "status", "diff", "checks"]);
 const ghReadGroups = new Set(["search", "status", "version", "--version"]);
 // gh api's shorthand flags that take a value, which ends a cluster such as `-iXPOST`.
@@ -103,10 +150,10 @@ function baseDecision({
       ? needsYes(`\`${command}\` ${ghWriteWhy}`)
       : undefined;
   }
-  const verdicts = commands.map((words) =>
-    supervising && ghWriteOf(words)
+  const verdicts = commands.map((simple) =>
+    supervising && ghWriteOf(simple.words)
       ? { permissionDecision: "ask" as const, why: ghWriteWhy }
-      : verdictOf(words, dryRuns),
+      : verdictOf(simple, dryRuns),
   );
   const deny = verdicts.find(
     (verdict) => verdict?.permissionDecision === "deny",
@@ -118,6 +165,13 @@ function baseDecision({
   }
   // The parser doesn't look inside quoted substitutions, so one could hide a command.
   if (/\$\(|`/.test(command)) return undefined;
+  // It also strips heredoc bodies and misreads $'…', so either could hide a command after one.
+  if (
+    verdicts.some((verdict) => verdict?.needsPlainText) &&
+    /<<|\$'/.test(command)
+  ) {
+    return undefined;
+  }
   if (!verdicts.every((verdict) => verdict?.permissionDecision === "allow")) {
     return undefined;
   }
@@ -129,15 +183,15 @@ function baseDecision({
 
 // The chore names a command dry-runs, for the session's dry-run record.
 export function dryRunChoresOf(command: string): string[] {
-  return (parsedCommandsOf(command) ?? []).flatMap((words) => {
+  return (parsedCommandsOf(command) ?? []).flatMap(({ words }) => {
     const chore = appChoreOf(words);
     return chore && !chore.isSend ? [chore.name] : [];
   });
 }
 
-function parsedCommandsOf(command: string): string[][] | undefined {
+function parsedCommandsOf(command: string): SimpleCommand[] | undefined {
   try {
-    return commandWordsOf(command);
+    return simpleCommandsOf(command);
   } catch {
     return undefined;
   }
@@ -154,14 +208,37 @@ export function needsYes(why: string): Decision {
   return gateOf("ask", `${why}, so it needs a yes.`);
 }
 
-function verdictOf(words: string[], dryRuns: string[]): Verdict | undefined {
+function verdictOf(
+  simple: SimpleCommand,
+  dryRuns: string[],
+): Verdict | undefined {
+  const { words } = simple;
   const chore = appChoreOf(words);
   if (chore?.isSend) return sendVerdictOf(chore.name, dryRuns);
-  const gitVerb = gitVerbOf(words);
-  if (gitVerb === "commit") {
+  const git = gitCallOf(words);
+  if (git?.verb === "commit") {
     return { permissionDecision: "allow", why: "git can undo a commit" };
   }
-  if (gitVerb === "push") {
+  const isPlainGit = git?.isPlain === true && isBareCommand(simple);
+  if (isPlainGit && git.verb === "add") {
+    return {
+      permissionDecision: "allow",
+      why: "git can undo staging a file",
+      needsPlainText: true,
+    };
+  }
+  if (isPlainGit && isBranchChange(git)) {
+    return {
+      permissionDecision: "allow",
+      why: "git can undo a branch create, copy, rename or upstream change",
+      needsPlainText: true,
+    };
+  }
+  const readWhy = isBareCommand(simple) ? readWhyOf(words, git) : undefined;
+  if (readWhy) {
+    return { permissionDecision: "allow", why: readWhy, needsPlainText: true };
+  }
+  if (git?.verb === "push") {
     return {
       permissionDecision: "ask",
       why: "pushes outside `npm run wrap-up`, and a push can't be taken back",
@@ -262,12 +339,85 @@ function appChoreOf(words: string[]): AppChore | undefined {
   return { name, isSend };
 }
 
-function gitVerbOf(words: string[]): string | undefined {
+function isBareCommand({ isBare, writesFile }: SimpleCommand): boolean {
+  return isBare && !writesFile;
+}
+
+// Programs match by bare name only, since a path could be any program.
+function readWhyOf(
+  words: string[],
+  git: GitCall | undefined,
+): string | undefined {
+  const [program = "", ...args] = words;
+  if (program === "cd") return "`cd` changes no file";
+  if (git) {
+    return git.isPlain && isGitRead(git)
+      ? `\`git ${git.verb}\` only reads`
+      : undefined;
+  }
+  return isProgramRead(program, args) ? `\`${program}\` only reads` : undefined;
+}
+
+function isProgramRead(program: string, args: string[]): boolean {
+  if (program === "sed") return isSedRead(args);
+  if (program === "find") return !args.some((arg) => findActions.has(arg));
+  if (program === "rg") {
+    return !args.some((arg) => rgRunFlags.some((flag) => arg.startsWith(flag)));
+  }
+  return readPrograms.has(program);
+}
+
+function isGitRead({ verb, args }: GitCall): boolean {
+  return (
+    gitReadVerbs.has(verb) && !args.some((arg) => arg.startsWith("--output"))
+  );
+}
+
+function isBranchChange({ verb, args }: GitCall): boolean {
+  return (
+    verb === "branch" &&
+    !args.some(
+      (arg) =>
+        branchDropFlags.has(arg.split("=")[0] ?? "") ||
+        branchDropShorthands.test(arg),
+    )
+  );
+}
+
+function isSedRead(args: string[]): boolean {
+  let isQuiet = false;
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i] ?? "";
+    if (arg === "-e") i++;
+    else if (arg === "--quiet" || arg === "--silent") isQuiet = true;
+    else if (sedReadFlags.test(arg)) {
+      if (arg.includes("n")) isQuiet = true;
+    } else if (arg.startsWith("-") && arg !== "-") return false;
+  }
+  return (
+    isQuiet &&
+    sedPartsOf(args).scripts.every((script) =>
+      script
+        .split(/[;\n]/)
+        .map((piece) => piece.trim())
+        .every((piece) => sedPrint.test(piece)),
+    )
+  );
+}
+
+function gitCallOf(words: string[]): GitCall | undefined {
   if (words[0] !== "git") return undefined;
+  let isPlain = true;
   for (let i = 1; i < words.length; i++) {
     const word = words[i] ?? "";
-    if (word === "-C" || word === "-c") i++;
-    else if (!word.startsWith("-")) return word;
+    if (gitPathOptions.has(word)) i++;
+    else if (word === "-c") {
+      isPlain = false;
+      i++;
+    } else if (/^--(git-dir|work-tree)=/.test(word) || word === "--no-pager") {
+      continue;
+    } else if (word.startsWith("-")) isPlain = false;
+    else return { verb: word, args: words.slice(i + 1), isPlain };
   }
   return undefined;
 }
