@@ -30,6 +30,9 @@ const coveredPaths = [
   "/repo/packages/framework/.claude/settings.json",
   "/repo/.claude/worktrees/byro-repo-issue-1-x/.claude/settings.json",
   "/repo/runner/src/claudeWriteDecision.ts",
+  "/repo/.claude/worktrees/byro-repo-issue-1-x/.claude/hooks/lib/tiers/tiers.ts",
+  "/repo/.claude/worktrees/byro-repo-issue-1-x/.claude/hooks/tierGate.ts",
+  "/repo/.claude/worktrees/byro-repo-issue-1-x/runner/src/claudeWriteDecision.ts",
 ];
 
 describe("readFirstDecision with the tiers row", () => {

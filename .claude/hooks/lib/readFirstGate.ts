@@ -18,6 +18,7 @@ export interface ReadFirstRow {
 }
 
 export const tierTablePath = join("docs", "targets-and-gates.md");
+const workspacesRoot = join(".claude", "worktrees") + sep;
 const tierCode = {
   folder: join(".claude", "hooks", "lib", "tiers") + sep,
   files: new Set([
@@ -36,9 +37,7 @@ export const readFirstRows: ReadFirstRow[] = [
       "The tier table and the tier code change in the same commit.",
     ],
     covers: (target) =>
-      target.startsWith(tierCode.folder) ||
-      tierCode.files.has(target) ||
-      isSettingsFile(target),
+      isTierCode(rootRelative(target)) || isSettingsFile(target),
   },
 ];
 
@@ -83,6 +82,16 @@ export function isTierTableBashRead(
   wholeFilePaths: string[],
 ): boolean {
   return isFullDocBashRead(projectDir, wholeFilePaths, tierTablePath);
+}
+
+function isTierCode(target: string): boolean {
+  return target.startsWith(tierCode.folder) || tierCode.files.has(target);
+}
+
+// Relative to the workspace root for a path inside a workspace, else unchanged.
+function rootRelative(target: string): string {
+  if (!target.startsWith(workspacesRoot)) return target;
+  return target.split(sep).slice(3).join(sep);
 }
 
 // A settings file at any root: the primary root, a package or a workspace.
