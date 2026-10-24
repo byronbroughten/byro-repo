@@ -146,6 +146,147 @@ describe("gateDecision", () => {
   });
 });
 
+describe("reads and git add", () => {
+  const gitForms = [
+    "git",
+    "git -C packages/framework",
+    "git --git-dir=.git --work-tree=.",
+    "git --git-dir .git --work-tree .",
+  ];
+  const gitReads = [
+    "log --oneline -5",
+    "show HEAD:AGENTS.md",
+    "status --short",
+    "diff master...HEAD",
+    "rev-parse HEAD",
+    "ls-files .claude",
+    "blame -L 1,20 AGENTS.md",
+    "branch",
+    "branch --show-current",
+    "branch -avv",
+    "branch --list 'issue-*'",
+  ];
+
+  it("allows each read", () => {
+    [
+      "grep -rn verdictOf .claude/hooks",
+      "rg -n freeScripts",
+      "cat AGENTS.md",
+      "head -20 AGENTS.md",
+      "tail -n 5 AGENTS.md",
+      "wc -l AGENTS.md",
+      "ls -la .claude",
+      "sed -n '1,40p' AGENTS.md",
+      "sed -n -e '12p' -e '/^## /p' AGENTS.md",
+      "find . -name '*.ts' -not -path './node_modules/*'",
+    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
+  });
+
+  it("allows each git read in each form", () => {
+    gitForms.forEach((git) =>
+      gitReads.forEach((read) =>
+        expect(decisionOf(`${git} ${read}`)).toBe("allow"),
+      ),
+    );
+  });
+
+  it("allows git add in each form, as git can undo it", () => {
+    gitForms.forEach((git) =>
+      expect(decisionOf(`${git} add docs/adr/0009-x.md`)).toBe("allow"),
+    );
+  });
+
+  it("gives the same allows in a runner step", () => {
+    [
+      "cat AGENTS.md",
+      "git -C packages/framework log -3",
+      "git add docs/adr/0009-x.md",
+    ].forEach((command) =>
+      expect(
+        gateDecision({ command, mode: "runnerStep", dryRuns: [] })
+          ?.permissionDecision,
+      ).toBe("allow"),
+    );
+  });
+
+  it("allows chained reads and a read after cd", () => {
+    [
+      "git status && git diff",
+      "git log --oneline | head -5",
+      "ls; wc -l AGENTS.md",
+      "cd packages/framework && git log -3",
+      "cd packages/framework && git add src/x.ts && git commit -m wip",
+    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
+  });
+
+  it("allows no read that edits, runs a command or writes a file", () => {
+    [
+      "sed -i '' 's/a/b/' AGENTS.md",
+      "sed -ni '1p' AGENTS.md",
+      "sed --in-place -n 1p AGENTS.md",
+      "sed 's/a/b/' AGENTS.md",
+      "sed -n '1w out.txt' AGENTS.md",
+      "sed -n '1e rm -rf dist' AGENTS.md",
+      "sed -n -f script.sed AGENTS.md",
+      "find . -exec rm {} ;",
+      "find . -execdir rm {} +",
+      "find . -ok rm {} ;",
+      "find . -name '*.tmp' -delete",
+      "find . -fprint out.txt",
+      "rg --pre ./run.sh x",
+      "git branch -d old",
+      "git branch -D old",
+      "git branch --delete old",
+      "git branch new-branch",
+      "git branch -m old new",
+      "git diff --output=patch.diff",
+      "git -c core.fsmonitor='rm -rf dist' status",
+      "git -c core.pager=less log",
+      "cat AGENTS.md > copy.md",
+      "git log >> log.txt",
+      "ls 2>&1",
+      "cat AGENTS.md; > AGENTS.md",
+      "PAGER=./run.sh git log",
+      "sudo cat /etc/hosts",
+      "/tmp/cat AGENTS.md",
+    ].forEach((command) => expect(decisionOf(command)).not.toBe("allow"));
+  });
+
+  it("allows no chain holding an unallowed part, nor a hidden substitution", () => {
+    [
+      "cat AGENTS.md && rm -rf dist",
+      "git log | xargs rm",
+      "cd dist && rm -rf .",
+      "cat $(rm -rf dist)",
+      "cat `rm -rf dist`",
+      "cat <(rm -rf dist)",
+      "grep '<<EOF' AGENTS.md\nrm -rf dist\nEOF",
+      "cat $'\\'' ; rm -rf dist ; echo '",
+    ].forEach((command) => expect(decisionOf(command)).not.toBe("allow"));
+  });
+
+  it("allows no git verb that changes anything, and git add only plain", () => {
+    [
+      "git checkout master",
+      "git restore AGENTS.md",
+      "git reset --hard",
+      "git stash",
+      "git rebase master",
+      "git -c core.fsmonitor=./run.sh add x",
+      "GIT_DIR=/tmp/x git add x",
+    ].forEach((command) => expect(decisionOf(command)).not.toBe("allow"));
+  });
+
+  it("still denies a gh read in a runner step", () => {
+    ["gh issue view 389", "gh issue list"].forEach((command) => {
+      expect(
+        gateDecision({ command, mode: "runnerStep", dryRuns: [] })
+          ?.permissionDecision,
+      ).not.toBe("allow");
+    });
+  });
+});
+
 describe("a supervising session's gh calls", () => {
   function supervisedDecisionOf(command: string) {
     return gateDecision({

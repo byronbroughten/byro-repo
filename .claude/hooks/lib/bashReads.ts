@@ -48,6 +48,7 @@ interface Segment {
   words: string[];
   inputFiles: string[];
   isPiped: boolean;
+  writesFile: boolean;
 }
 
 interface FileRead {
@@ -66,6 +67,13 @@ interface SegmentRead {
 interface Token {
   type: "word" | "redirect" | "op";
   value: string;
+}
+
+// isBare: no wrapper or env assignment was dropped from its words.
+export interface SimpleCommand {
+  words: string[];
+  isBare: boolean;
+  writesFile: boolean;
 }
 
 export interface NpmScript {
@@ -216,9 +224,23 @@ function readOf(
 
 // Each simple command's words, wrappers and env assignments dropped; throws on an unbalanced quote.
 export function commandWordsOf(command: string): string[][] {
-  return segmentsOf(tokenize(stripHeredocBodies(command)))
-    .map((segment) => commandWords(segment.words))
+  return simpleCommandsOf(command)
+    .map(({ words }) => words)
     .filter((words) => words.length > 0);
+}
+
+// Keeps a bare redirect such as `> file`, which has no words but writes.
+export function simpleCommandsOf(command: string): SimpleCommand[] {
+  return segmentsOf(tokenize(stripHeredocBodies(command)))
+    .map((segment) => {
+      const words = commandWords(segment.words);
+      return {
+        words,
+        isBare: words.length === segment.words.length,
+        writesFile: segment.writesFile,
+      };
+    })
+    .filter(({ words, writesFile }) => words.length > 0 || writesFile);
 }
 
 // An `npm run` script and its args; flags drop out except `--` and `--send`.
@@ -394,6 +416,7 @@ function segmentsOf(tokens: Token[]): Segment[] {
     }
     if (token.type === "redirect") {
       redirect = token.value;
+      if (token.value.includes(">")) current.writesFile = true;
       continue;
     }
     redirect = undefined;
@@ -405,7 +428,7 @@ function segmentsOf(tokens: Token[]): Segment[] {
 }
 
 function newSegment(isPiped: boolean): Segment {
-  return { words: [], inputFiles: [], isPiped };
+  return { words: [], inputFiles: [], isPiped, writesFile: false };
 }
 
 function tokenize(command: string): Token[] {

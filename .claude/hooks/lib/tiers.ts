@@ -1,5 +1,9 @@
 // Decides the gate for a Bash call by tier: 1 and 2 are free (git or Google's version history undoes them), 3 asks. Pure; tierGate.ts does the I/O, and driveTiers.ts decides gworkspace calls.
-import { commandWordsOf, npmScriptOf } from "./bashReads.ts";
+import {
+  npmScriptOf,
+  type SimpleCommand,
+  simpleCommandsOf,
+} from "./bashReads.ts";
 
 export interface Decision {
   permissionDecision: "allow" | "ask" | "deny";
@@ -28,6 +32,14 @@ export interface ShellCall {
 interface Verdict {
   permissionDecision: Decision["permissionDecision"];
   why: string;
+  isRead?: boolean;
+}
+
+// isPlain: no global option but a path one, so no `-c` config can run a command.
+interface GitCall {
+  verb: string | undefined;
+  args: string[];
+  isPlain: boolean;
 }
 
 interface AppChore {
@@ -51,6 +63,45 @@ const freeScripts = new Map([
   ["issue:start", "a workspace it starts comes off with `issue:remove`"],
   ["issue:list", "it only reads the workspaces"],
   ["issue:remove", "a plain remove refuses a workspace holding unlanded work"],
+]);
+const readPrograms = new Set(["grep", "rg", "cat", "head", "tail", "wc", "ls"]);
+const gitReadVerbs = new Set([
+  "log",
+  "show",
+  "status",
+  "diff",
+  "rev-parse",
+  "ls-files",
+  "blame",
+]);
+const gitPathOptions = new Set(["-C", "--git-dir", "--work-tree"]);
+const findActions = new Set([
+  "-exec",
+  "-execdir",
+  "-ok",
+  "-okdir",
+  "-delete",
+  "-fprint",
+  "-fprint0",
+  "-fprintf",
+  "-fls",
+]);
+const sedReadFlags = /^-[nEsrz]+$/;
+// `12,40p`, `$p` or `/re/p` only: sed's own w and e commands write a file or run one.
+const sedPrint = /^(\d+|\$|\/[^/\\]*\/)(,(\d+|\$|\/[^/\\]*\/))?p$/;
+const branchListFlags = new Set([
+  "--list",
+  "--all",
+  "--remotes",
+  "--verbose",
+  "--show-current",
+  "--color",
+  "--no-color",
+  "--column",
+  "--no-column",
+  "--sort",
+  "--format",
+  "--ignore-case",
 ]);
 const ghReadVerbs = new Set(["view", "list", "status", "diff", "checks"]);
 const ghReadGroups = new Set(["search", "status", "version", "--version"]);
@@ -103,10 +154,10 @@ function baseDecision({
       ? needsYes(`\`${command}\` ${ghWriteWhy}`)
       : undefined;
   }
-  const verdicts = commands.map((words) =>
-    supervising && ghWriteOf(words)
+  const verdicts = commands.map((simple) =>
+    supervising && ghWriteOf(simple.words)
       ? { permissionDecision: "ask" as const, why: ghWriteWhy }
-      : verdictOf(words, dryRuns),
+      : verdictOf(simple, dryRuns),
   );
   const deny = verdicts.find(
     (verdict) => verdict?.permissionDecision === "deny",
@@ -118,6 +169,10 @@ function baseDecision({
   }
   // The parser doesn't look inside quoted substitutions, so one could hide a command.
   if (/\$\(|`/.test(command)) return undefined;
+  // It also strips heredoc bodies and misreads $'…', so either could hide a command after a read.
+  if (verdicts.some((verdict) => verdict?.isRead) && /<<|\$'/.test(command)) {
+    return undefined;
+  }
   if (!verdicts.every((verdict) => verdict?.permissionDecision === "allow")) {
     return undefined;
   }
@@ -129,15 +184,15 @@ function baseDecision({
 
 // The chore names a command dry-runs, for the session's dry-run record.
 export function dryRunChoresOf(command: string): string[] {
-  return (parsedCommandsOf(command) ?? []).flatMap((words) => {
+  return (parsedCommandsOf(command) ?? []).flatMap(({ words }) => {
     const chore = appChoreOf(words);
     return chore && !chore.isSend ? [chore.name] : [];
   });
 }
 
-function parsedCommandsOf(command: string): string[][] | undefined {
+function parsedCommandsOf(command: string): SimpleCommand[] | undefined {
   try {
-    return commandWordsOf(command);
+    return simpleCommandsOf(command);
   } catch {
     return undefined;
   }
@@ -154,14 +209,25 @@ export function needsYes(why: string): Decision {
   return gateOf("ask", `${why}, so it needs a yes.`);
 }
 
-function verdictOf(words: string[], dryRuns: string[]): Verdict | undefined {
+function verdictOf(
+  simple: SimpleCommand,
+  dryRuns: string[],
+): Verdict | undefined {
+  const { words } = simple;
   const chore = appChoreOf(words);
   if (chore?.isSend) return sendVerdictOf(chore.name, dryRuns);
-  const gitVerb = gitVerbOf(words);
-  if (gitVerb === "commit") {
+  const git = gitCallOf(words);
+  if (git?.verb === "commit") {
     return { permissionDecision: "allow", why: "git can undo a commit" };
   }
-  if (gitVerb === "push") {
+  if (git?.verb === "add" && git.isPlain && isBareCommand(simple)) {
+    return { permissionDecision: "allow", why: "git can undo staging a file" };
+  }
+  const readWhy = isBareCommand(simple) ? readWhyOf(words, git) : undefined;
+  if (readWhy) {
+    return { permissionDecision: "allow", why: readWhy, isRead: true };
+  }
+  if (git?.verb === "push") {
     return {
       permissionDecision: "ask",
       why: "pushes outside `npm run wrap-up`, and a push can't be taken back",
@@ -262,14 +328,93 @@ function appChoreOf(words: string[]): AppChore | undefined {
   return { name, isSend };
 }
 
-function gitVerbOf(words: string[]): string | undefined {
+function isBareCommand({ isBare, writesFile }: SimpleCommand): boolean {
+  return isBare && !writesFile;
+}
+
+// Programs match by bare name only, since a path could be any program.
+function readWhyOf(
+  words: string[],
+  git: GitCall | undefined,
+): string | undefined {
+  const [program = "", ...args] = words;
+  if (program === "cd") return "`cd` changes no file";
+  if (git) {
+    return git.isPlain && isGitRead(git)
+      ? `\`git ${git.verb}\` only reads`
+      : undefined;
+  }
+  const isRead =
+    (readPrograms.has(program) &&
+      !(program === "rg" && args.some((arg) => arg.startsWith("--pre")))) ||
+    (program === "sed" && isSedRead(args)) ||
+    (program === "find" && !args.some((arg) => findActions.has(arg)));
+  return isRead ? `\`${program}\` only reads` : undefined;
+}
+
+function isGitRead({ verb = "", args }: GitCall): boolean {
+  if (verb === "branch") return isBranchList(args);
+  return (
+    gitReadVerbs.has(verb) && !args.some((arg) => arg.startsWith("--output"))
+  );
+}
+
+// A branch name without --list creates that branch, so only a list reads.
+function isBranchList(args: string[]): boolean {
+  const flags = args.filter((arg) => arg.startsWith("-"));
+  const isList = flags.some(
+    (flag) => flag === "--list" || /^-[arvi]*l[arvil]*$/.test(flag),
+  );
+  return (
+    flags.every(isBranchListFlag) && (isList || flags.length === args.length)
+  );
+}
+
+function isBranchListFlag(flag: string): boolean {
+  return (
+    /^-[arvil]+$/.test(flag) || branchListFlags.has(flag.split("=")[0] ?? "")
+  );
+}
+
+function isSedRead(args: string[]): boolean {
+  let isQuiet = false;
+  const scripts: string[] = [];
+  const rest: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i] ?? "";
+    if (arg === "-e") scripts.push(args[++i] ?? "");
+    else if (arg === "--quiet" || arg === "--silent") isQuiet = true;
+    else if (sedReadFlags.test(arg)) isQuiet ||= arg.includes("n");
+    else if (arg.startsWith("-") && arg !== "-") return false;
+    else rest.push(arg);
+  }
+  if (scripts.length === 0) scripts.push(rest[0] ?? "");
+  return (
+    isQuiet &&
+    scripts.every((script) =>
+      script
+        .split(/[;\n]/)
+        .map((piece) => piece.trim())
+        .every((piece) => sedPrint.test(piece)),
+    )
+  );
+}
+
+function gitCallOf(words: string[]): GitCall | undefined {
   if (words[0] !== "git") return undefined;
+  let isPlain = true;
   for (let i = 1; i < words.length; i++) {
     const word = words[i] ?? "";
-    if (word === "-C" || word === "-c") i++;
-    else if (!word.startsWith("-")) return word;
+    if (gitPathOptions.has(word)) i++;
+    else if (word === "-c") {
+      isPlain = false;
+      i++;
+    } else if (/^--(git-dir|work-tree)=/.test(word) || word === "--no-pager") {
+      continue;
+    } else if (word.startsWith("-")) isPlain = false;
+    else return { verb: word, args: words.slice(i + 1), isPlain };
   }
-  return undefined;
+  return { verb: undefined, args: [], isPlain: false };
 }
 
 // The program a command runs, through npx or npm exec, without its path or version.
