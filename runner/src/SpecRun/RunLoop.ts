@@ -8,7 +8,10 @@
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { ActiveAccountUnknown } from "../ActiveAccountUnknown.ts";
+import {
+  ActiveAccountUnknown,
+  noActiveAccountPhraseOf,
+} from "../ActiveAccountUnknown.ts";
 import { commandLabelOf } from "../failureText.ts";
 import { currentBranchOf } from "../git.ts";
 import { type Halt } from "../halts.ts";
@@ -175,7 +178,7 @@ export class RunLoop extends SpecRunBase {
       return readingLabelOf(await this._launchReadingOf(run));
     } catch (error) {
       if (!(error instanceof ActiveAccountUnknown)) throw error;
-      return "unknown; cswap reported no active account";
+      return `unknown; ${noActiveAccountPhraseOf()}`;
     }
   }
 

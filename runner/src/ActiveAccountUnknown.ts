@@ -4,8 +4,12 @@ import { RunStop } from "./RunStop.ts";
 export class ActiveAccountUnknown extends RunStop {
   constructor() {
     super(
-      "No active account could be read from cswap, so no step launched; check `cswap list --json`, then rerun.",
+      `${noActiveAccountPhraseOf()}, so no step launched; check \`cswap list --json\`, then rerun.`,
     );
     this.name = "ActiveAccountUnknown";
   }
+}
+
+export function noActiveAccountPhraseOf(): string {
+  return "cswap gave no readable active account";
 }
