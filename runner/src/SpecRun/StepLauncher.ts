@@ -267,7 +267,7 @@ export class StepLauncher extends SpecRunBase {
     }
   }
 
-  // Polls every idlePollMs, so a switch ends the wait within one poll; the last poll lands on the reset plus margin.
+  // Polls every idlePollMs, so a switch ends the wait within one poll.
   private _limitPollMsOf(until: Date): number {
     const { idlePollMs } = this.config.knobs;
     const remainingMs = until.getTime() - this.config.clock.now().getTime();
