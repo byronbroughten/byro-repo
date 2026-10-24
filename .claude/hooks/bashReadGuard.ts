@@ -1,6 +1,6 @@
 // PreToolUse on Bash: denies Bash reads of columnConfigs.ts and whole-file dumps of large repo files.
-import { BashReads } from "./lib/bashReads.ts";
 import { readHookInput, runFailOpen, writeDenyOutput } from "./lib/hookIo.ts";
+import { BashReads } from "./lib/tiers/bashReads.ts";
 
 await runFailOpen(() => {
   const input = readHookInput();

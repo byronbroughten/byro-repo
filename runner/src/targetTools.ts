@@ -1,5 +1,5 @@
 // The tools ClaudeAgentStep.ts adds to a step for each of its ticket's targets, on top of the runner config's fixed lists.
-// The write lists mirror .claude/hooks/lib/driveTiers.ts, which can't be imported across the hooks boundary.
+// The write lists mirror .claude/hooks/lib/tiers/driveTiers.ts, which can't be imported across the hooks boundary.
 import type { SpreadsheetName, Target } from "./ticketTargets.ts";
 
 const appAliases = [

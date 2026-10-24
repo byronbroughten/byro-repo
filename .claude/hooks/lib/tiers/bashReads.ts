@@ -3,8 +3,8 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
-import type { HookInput } from "./hookIo.ts";
-import { readSheetsConfigs } from "./sheetsConfigs.ts";
+import type { HookInput } from "../hookIo.ts";
+import { readSheetsConfigs } from "../sheetsConfigs.ts";
 
 export const largeFileLines = 150;
 const unguardedDirs = ["node_modules", ".git", ".probe", "dist", "coverage"];

@@ -2,7 +2,7 @@
 import { homedir } from "node:os";
 import { isAbsolute, join, relative, resolve } from "node:path";
 
-import { commandWordsOf } from "./bashReads.ts";
+import { commandWordsOf } from "./tiers/bashReads.ts";
 
 export type GuardMode = "interim" | "strict";
 

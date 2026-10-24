@@ -7,7 +7,7 @@ import type {
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
 import type { RecordedSession } from "@byronbroughten/spec-runner/transcriptFacts";
 
-import { sessionModeOf } from "../../.claude/hooks/lib/tiers.ts";
+import { sessionModeOf } from "../../.claude/hooks/lib/tiers/tiers.ts";
 
 interface StartedWorkspace {
   key: WorkspaceKey;

@@ -13,7 +13,7 @@ import type { StepSession } from "@byronbroughten/spec-runner/transcriptFacts";
 
 import type { HookInput } from "./hookIo.ts";
 import { leasedWorkspacesOf } from "./leaseRelease.ts";
-import type { SessionMode } from "./tiers.ts";
+import type { SessionMode } from "./tiers/tiers.ts";
 
 export interface StartingSession {
   mode: SessionMode;

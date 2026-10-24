@@ -82,6 +82,6 @@ The threat model is accidents, with tampering made visible. Both clasp credentia
 
 The `gworkspace` MCP server signs in as the agent account; what it is and what it can see: [the framework's notes](../packages/framework/docs/how-it-runs.md#the-gworkspace-mcp-tools). It is registered in `~/.claude.json` under this project, never in a repo file. Setting it up, re-authorizing after a dead token, or adding a service is a re-run of `scripts/setup-agent-account-mcp.sh`; `scripts/retire-gsheets-service-account.sh` retired the old service account once that passed.
 
-- **A write's owner is looked up in Drive and cached for the session**; the tool lists are in `.claude/hooks/lib/driveTiers.ts`.
+- **A write's owner is looked up in Drive and cached for the session**; the tool lists are in `.claude/hooks/lib/tiers/driveTiers.ts`.
 - **A share's yes is its own**, separate from any data-write approval: state exactly who gets access and at what permission level, and get sign-off on that.
-- **The server's version is pinned; upgrades are manual.** Read the release notes, bump the pin in the setup wizard, check the tool names in `.claude/settings.json` and `lib/driveTiers.ts` against the new version, re-run the wizard's registration stage, and re-test on the dev spreadsheet.
+- **The server's version is pinned; upgrades are manual.** Read the release notes, bump the pin in the setup wizard, check the tool names in `.claude/settings.json` and `lib/tiers/driveTiers.ts` against the new version, re-run the wizard's registration stage, and re-test on the dev spreadsheet.

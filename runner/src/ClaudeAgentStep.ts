@@ -8,7 +8,7 @@ import type { ClaudeWriteHookArgs } from "./claudeWriteHook.ts";
 import { StepStream } from "./StepStream.ts";
 import { toolsOf } from "./targetTools.ts";
 
-// The tier gate's runner-step mark and targets variable, named the same in .claude/hooks/lib/tiers.ts.
+// The tier gate's runner-step mark and targets variable, named the same in .claude/hooks/lib/tiers/tiers.ts.
 export const runnerStepMark = "BYRO_RUNNER_STEP";
 export const stepTargetsVariable = "BYRO_STEP_TARGETS";
 
