@@ -1,4 +1,4 @@
-// PostToolUse on Read or Bash records a full read of each read-first row's doc; PreToolUse on Edit and Write denies an edit a row covers until that row's doc is recorded.
+// PostToolUse on Read or Bash records a full read of each read-first doc; PreToolUse on a row's tools denies a call the row covers until each of its docs is recorded.
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -14,11 +14,13 @@ import {
 import { projectRelative } from "./lib/lintSet.ts";
 import {
   readFirstDecision,
-  type ReadFirstRow,
+  type ReadFirstDoc,
   readFirstRows,
 } from "./lib/readFirstGate.ts";
 import { readSheetsConfigs } from "./lib/sheetsConfigs.ts";
 import { BashReads } from "./lib/tiers/bashReads.ts";
+
+const readFirstDocs = readFirstRows.flatMap((row) => row.docs);
 
 await runFailOpen(() => {
   const input = readHookInput();
@@ -26,22 +28,20 @@ await runFailOpen(() => {
   const projectDir =
     process.env.CLAUDE_PROJECT_DIR ?? input.cwd ?? process.cwd();
   if (input.hook_event_name === "PostToolUse") {
-    rowsReadBy(input, projectDir).forEach((row) => {
-      writeFileSync(markerPath(input, row), "");
+    docsReadBy(input, projectDir).forEach((doc) => {
+      writeFileSync(markerPath(input, doc), "");
     });
     return;
   }
-  if (!["Edit", "Write"].includes(input.tool_name ?? "")) return;
-  const filePath = input.tool_input?.file_path;
-  if (typeof filePath !== "string") return;
-  const docsRead = readFirstRows
-    .filter((row) => existsSync(markerPath(input, row)))
-    .map((row) => row.docPath);
+  const docsRead = readFirstDocs
+    .filter((doc) => existsSync(markerPath(input, doc)))
+    .map((doc) => doc.path);
   const { denyReason } = readFirstDecision(
     {
       projectDir,
       cwd: input.cwd ?? projectDir,
-      filePath,
+      toolName: input.tool_name,
+      toolInput: input.tool_input,
       generatedDirs: readSheetsConfigs(projectDir).map(
         ({ generatedDir }) => generatedDir,
       ),
@@ -51,7 +51,7 @@ await runFailOpen(() => {
   if (denyReason) writeDenyOutput(denyReason);
 });
 
-function rowsReadBy(input: HookInput, projectDir: string): ReadFirstRow[] {
+function docsReadBy(input: HookInput, projectDir: string): ReadFirstDoc[] {
   const cwd = input.cwd ?? projectDir;
   const command = input.tool_input?.command;
   if (input.tool_name === "Bash" && typeof command === "string") {
@@ -60,8 +60,8 @@ function rowsReadBy(input: HookInput, projectDir: string): ReadFirstRow[] {
       cwd,
       projectDir,
     }).wholeFilePaths();
-    return readFirstRows.filter((row) =>
-      isFullDocBashRead(projectDir, wholeFilePaths, row.docPath),
+    return readFirstDocs.filter((doc) =>
+      isFullDocBashRead(projectDir, wholeFilePaths, doc.path),
     );
   }
   const filePath = input.tool_input?.file_path;
@@ -69,21 +69,21 @@ function rowsReadBy(input: HookInput, projectDir: string): ReadFirstRow[] {
   const where = { projectDir, cwd, filePath };
   const target = projectRelative(where);
   const { offset, limit } = input.tool_input ?? {};
-  return readFirstRows.filter(
-    (row) =>
-      row.docPath === target &&
+  return readFirstDocs.filter(
+    (doc) =>
+      doc.path === target &&
       isFullDocRead(
         {
           ...where,
           offset,
           limit,
-          totalLines: lineCount(join(projectDir, row.docPath)),
+          totalLines: lineCount(join(projectDir, doc.path)),
         },
-        row.docPath,
+        doc.path,
       ),
   );
 }
 
-function markerPath(input: HookInput, row: ReadFirstRow): string {
-  return sessionStatePath(input.session_id, row.marker);
+function markerPath(input: HookInput, doc: ReadFirstDoc): string {
+  return sessionStatePath(input.session_id, doc.marker);
 }

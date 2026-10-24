@@ -203,7 +203,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/docContentGate.ts\"",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/readFirstGate.ts\"",
             "timeout": 10
           }
         ]
@@ -266,11 +266,6 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/readFirstGate.ts\"",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/docContentGate.ts\"",
             "timeout": 10
           }
         ]

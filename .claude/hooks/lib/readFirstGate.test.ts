@@ -1,6 +1,9 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
-import type { EditDecision } from "./fullDocRead.ts";
+import { type EditDecision, isFullDocRead } from "./fullDocRead.ts";
+import type { ToolInput } from "./hookIo.ts";
 import {
   codeStylePath,
   proseStylePath,
@@ -8,6 +11,7 @@ import {
   type ReadFirstRow,
   readFirstRows,
   tierTablePath,
+  writingDocPaths,
 } from "./readFirstGate.ts";
 
 const projectDir = "/repo";
@@ -15,19 +19,27 @@ const generatedDirs = [
   "packages/real-estate/src/generated",
   "packages/framework/dev/generated",
 ];
-const allDocs = readFirstRows.map((row) => row.docPath);
-function except(docPath: string): string[] {
-  return allDocs.filter((read) => read !== docPath);
+const allDocs = readFirstRows.flatMap((row) => row.docs.map((doc) => doc.path));
+function except(...docPaths: string[]): string[] {
+  return allDocs.filter((read) => !docPaths.includes(read));
+}
+function call(
+  toolName: string,
+  toolInput: ToolInput,
+  docsRead: string[],
+  cwd = projectDir,
+): EditDecision {
+  return readFirstDecision(
+    { projectDir, cwd, toolName, toolInput, generatedDirs },
+    docsRead,
+  );
 }
 function edit(
   filePath: string,
   docsRead: string[],
   cwd = projectDir,
 ): EditDecision {
-  return readFirstDecision(
-    { projectDir, cwd, filePath, generatedDirs },
-    docsRead,
-  );
+  return call("Edit", { file_path: filePath }, docsRead, cwd);
 }
 const allowed = { denyReason: undefined };
 
@@ -201,6 +213,172 @@ describe("the prose-style row", () => {
   });
 });
 
+describe("the writing row", () => {
+  // Real tool inputs carry more fields than the gate reads.
+  type DocArgs = ToolInput & Record<string, unknown>;
+  const unread = except(writingDocPaths.voice, writingDocPaths.craft);
+  function docWrite(
+    toolName: string,
+    toolInput: DocArgs,
+    docsRead: string[],
+  ): EditDecision {
+    return call(`mcp__gworkspace__${toolName}`, toolInput, docsRead);
+  }
+
+  const contentWrites: [string, DocArgs][] = [
+    ["create_doc", { content: "Hello, reader." }],
+    ["modify_doc_text", { text: "A new sentence.", bold: true }],
+    [
+      "find_and_replace_doc",
+      { find_text: "{{TITLE}}", replace_text: "Q3 report" },
+    ],
+    ["insert_doc_elements", { element_type: "list", text: "First item" }],
+    [
+      "batch_update_doc",
+      {
+        operations: [
+          { type: "insert_text", end_of_segment: true, text: "Title\n" },
+        ],
+      },
+    ],
+    [
+      "batch_update_doc",
+      {
+        operations: [
+          { type: "replace_text", start_index: 1, end_index: 4, text: "New" },
+        ],
+      },
+    ],
+    [
+      "batch_update_doc",
+      {
+        operations: [
+          { type: "format_text", bold: true },
+          { type: "find_replace" },
+        ],
+      },
+    ],
+    [
+      "batch_update_doc",
+      { operations: [{ type: "replace_named_range_content", text: "x" }] },
+    ],
+  ];
+
+  const formattingWrites: [string, DocArgs][] = [
+    ["update_paragraph_style", { heading_level: 1 }],
+    ["modify_doc_text", { bold: true, font_size: 12 }],
+    [
+      "batch_update_doc",
+      {
+        operations: [
+          { type: "format_text", italic: true },
+          { type: "update_paragraph_style" },
+        ],
+      },
+    ],
+    ["create_doc", { title: "Empty" }],
+  ];
+
+  it.each(contentWrites)(
+    "refuses a %s text write before either sheet is read",
+    (toolName, toolInput) => {
+      const reason = docWrite(toolName, toolInput, unread).denyReason;
+      expect(reason).toMatch(
+        /docs\/writing-voice\.md \(the voice sheet\) and docs\/writing-craft\.md \(the craft sheet\)/,
+      );
+    },
+  );
+
+  it.each(contentWrites)(
+    "refuses a %s text write when only one sheet is read, naming the other",
+    (toolName, toolInput) => {
+      const voiceOnly = docWrite(
+        toolName,
+        toolInput,
+        except(writingDocPaths.craft),
+      ).denyReason;
+      expect(voiceOnly).toMatch(/docs\/writing-craft\.md/);
+      expect(voiceOnly).not.toMatch(/docs\/writing-voice\.md/);
+      const craftOnly = docWrite(
+        toolName,
+        toolInput,
+        except(writingDocPaths.voice),
+      ).denyReason;
+      expect(craftOnly).toMatch(/docs\/writing-voice\.md/);
+      expect(craftOnly).not.toMatch(/docs\/writing-craft\.md/);
+    },
+  );
+
+  it.each(formattingWrites)(
+    "allows a formatting-only %s write before the reads",
+    (toolName, toolInput) => {
+      expect(docWrite(toolName, toolInput, unread)).toEqual(allowed);
+    },
+  );
+
+  it.each([...contentWrites, ...formattingWrites])(
+    "allows a %s write after both sheets are read",
+    (toolName, toolInput) => {
+      expect(docWrite(toolName, toolInput, allDocs)).toEqual(allowed);
+    },
+  );
+
+  it("leaves other tools alone", () => {
+    expect(call("Edit", { text: "x" }, unread)).toEqual(allowed);
+    expect(docWrite("modify_sheet_values", { text: "x" }, unread)).toEqual(
+      allowed,
+    );
+  });
+
+  it("calls Doc text reader-facing prose and points academic work to its sheet", () => {
+    const reason = docWrite("create_doc", { content: "x" }, unread).denyReason;
+    expect(reason).toMatch(/reader-facing prose/);
+    expect(reason).toMatch(/docs\/academic-writing-style\.md/);
+    expect(reason).toMatch(/full Read with no offset or limit/);
+    expect(reason).toMatch(/retry/);
+  });
+
+  describe("a full Read of a writing sheet", () => {
+    function read(
+      docPath: string,
+      filePath: string,
+      bounds: { offset?: number; limit?: number } = {},
+    ): boolean {
+      return isFullDocRead(
+        { projectDir, cwd: projectDir, filePath, totalLines: 30, ...bounds },
+        docPath,
+      );
+    }
+    const { voice, craft } = writingDocPaths;
+
+    it("is true for a full Read of each sheet", () => {
+      expect(read(voice, "/repo/docs/writing-voice.md")).toBe(true);
+      expect(read(craft, "/repo/docs/writing-craft.md")).toBe(true);
+      expect(
+        read(craft, "/repo/docs/writing-craft.md", { offset: 1, limit: 2000 }),
+      ).toBe(true);
+    });
+
+    it("is false for a partial Read of either sheet", () => {
+      expect(read(voice, "/repo/docs/writing-voice.md", { limit: 10 })).toBe(
+        false,
+      );
+      expect(read(craft, "/repo/docs/writing-craft.md", { offset: 5 })).toBe(
+        false,
+      );
+    });
+
+    it("is false for a Read of another file", () => {
+      expect(read(voice, "/repo/docs/writing-craft.md")).toBe(false);
+      expect(read(craft, "/repo/docs/writing-voice.md")).toBe(false);
+      expect(read(voice, "/repo/docs/academic-writing-style.md")).toBe(false);
+      expect(read(craft, "/repo/docs/academic-writing-style.md")).toBe(false);
+      expect(read(voice, "/repo/docs/writing-voice/register.md")).toBe(false);
+      expect(read(craft, "/repo/docs/writing-craft/sentences.md")).toBe(false);
+    });
+  });
+});
+
 describe("the refusal reason", () => {
   it("asks for a full read and a retry, and says a partial read doesn't count", () => {
     const reason = edit("/repo/AGENTS.md", []).denyReason;
@@ -228,20 +406,20 @@ describe("the refusal reason", () => {
 
 describe("readFirstDecision over a given table", () => {
   const throwingRow: ReadFirstRow = {
-    docPath: "docs/broken.md",
-    docName: "the broken doc",
-    marker: "broken-read",
+    docs: [
+      { path: "docs/broken.md", name: "the broken doc", marker: "broken-read" },
+    ],
     rules: [],
+    tools: ["Edit"],
     covers: () => {
       throw new Error("bad row");
     },
   };
   const markdownRow: ReadFirstRow = {
-    docPath: "docs/notes.md",
-    docName: "the notes",
-    marker: "notes-read",
+    docs: [{ path: "docs/notes.md", name: "the notes", marker: "notes-read" }],
     rules: ["Keep it short."],
-    covers: (target) => target.endsWith(".md"),
+    tools: ["Edit"],
+    covers: ({ target }) => target?.endsWith(".md") ?? false,
   };
 
   it("fails a throwing row open while another row still refuses", () => {
@@ -249,7 +427,8 @@ describe("readFirstDecision over a given table", () => {
       {
         projectDir,
         cwd: projectDir,
-        filePath: "/repo/AGENTS.md",
+        toolName: "Edit",
+        toolInput: { file_path: "/repo/AGENTS.md" },
         generatedDirs,
       },
       [],
@@ -258,5 +437,20 @@ describe("readFirstDecision over a given table", () => {
     expect(decision.denyReason).toMatch(/docs\/notes\.md \(the notes\)/);
     expect(decision.denyReason).toContain("Keep it short.");
     expect(decision.denyReason).not.toMatch(/broken/);
+  });
+});
+
+describe("the hook's PreToolUse matcher", () => {
+  it("names exactly the rows' tools", () => {
+    const settings = JSON.parse(
+      readFileSync(new URL("../../settings.json", import.meta.url), "utf8"),
+    );
+    const matched: string[] = settings.hooks.PreToolUse.filter(
+      ({ hooks }: { hooks: { command: string }[] }) =>
+        hooks.some(({ command }) => command.includes("readFirstGate.ts")),
+    ).flatMap(({ matcher }: { matcher: string }) => matcher.split("|"));
+    expect(new Set(matched)).toEqual(
+      new Set(readFirstRows.flatMap((row) => row.tools)),
+    );
   });
 });
