@@ -145,7 +145,7 @@ describe("run's resume", () => {
     expect(ticketFacts().reviewFixes).toBe("fresh");
   });
 
-  it("records a resumed state's sessions each under its own saved account and folder, and an older one under the run's", async () => {
+  it("records a resumed state's sessions each under its own saved account and folder, leaving out an older one with no account", async () => {
     await killAtResolveSavedAs({
       configFolder: "/config/account-1",
       sessions: [
@@ -161,20 +161,16 @@ describe("run's resume", () => {
 
     await specRun(dismissingResolver()).run(spec);
 
-    expect(ticketFacts().sessions?.steps.slice(0, 2)).toEqual([
-      {
-        agent: "implement",
-        sessionId: "implement-session",
-        account: 2,
-        configFolder: "/config/account-2",
-      },
-      {
-        agent: "resolve",
-        sessionId: "triage-session",
-        account: 1,
-        configFolder: "/config/account-1",
-      },
-    ]);
+    const steps = ticketFacts().sessions?.steps ?? [];
+    expect(steps[0]).toEqual({
+      agent: "implement",
+      sessionId: "implement-session",
+      account: 2,
+      configFolder: "/config/account-2",
+    });
+    expect(steps.map(({ sessionId }) => sessionId)).not.toContain(
+      "triage-session",
+    );
   });
 
   it("counts a crash saved under the resolve step's old name against resolve", async () => {

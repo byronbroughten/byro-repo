@@ -13,6 +13,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 
+import { ActiveAccountUnknown } from "../ActiveAccountUnknown.ts";
 import type { AgentStep } from "../AgentStep.ts";
 import { FactsFile } from "../FactsFile.ts";
 import { messageOf } from "../failureText.ts";
@@ -36,6 +37,7 @@ import {
 import {
   type AccountReading,
   type LimitGuardKnobs,
+  type UsageList,
   type UsageReader,
 } from "../limitGuard.ts";
 import type { Notice, Notices } from "../Notices.ts";
@@ -230,17 +232,21 @@ export class SpecRunBase {
     return peak < this.config.knobs.ticketBudget;
   }
 
-  // Usage is undefined when the reader fails or has no usable reading for the configured account.
-  protected async _readingOf(run: Run): Promise<AccountReading> {
-    const { account } = this.config.knobs;
+  // A fresh step's account is the Active account and a resume's the one its session recorded; usage is undefined when the read gives none for it.
+  protected async _launchReadingOf(
+    run: Run,
+    recordedAccount?: number,
+  ): Promise<AccountReading> {
+    let list: UsageList | undefined;
     try {
-      const { readings } = await this.config.usageReader.read();
-      const usage = readings.find((r) => r.account === account)?.usage;
-      return { account, usage };
+      list = await this.config.usageReader.read();
     } catch (error) {
       this._log(run, `The usage read failed: ${messageOf(error)}`);
-      return { account, usage: undefined };
     }
+    const account = recordedAccount ?? list?.activeAccount;
+    if (account === undefined) throw new ActiveAccountUnknown();
+    const usage = list?.readings.find((r) => r.account === account)?.usage;
+    return { account, usage };
   }
 
   // Logged however the step ends, a Stop or Halt included.

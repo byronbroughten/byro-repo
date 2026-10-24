@@ -8,6 +8,7 @@
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { ActiveAccountUnknown } from "../ActiveAccountUnknown.ts";
 import { commandLabelOf } from "../failureText.ts";
 import { currentBranchOf } from "../git.ts";
 import { type Halt } from "../halts.ts";
@@ -79,7 +80,13 @@ export class RunLoop extends SpecRunBase {
       );
     }
     this._log(run, `Preflight passed in ${this._secondsSince(startedAt)}s.`);
-    const reading = await this._readingOf(run);
+    let reading: AccountReading;
+    try {
+      reading = await this._launchReadingOf(run);
+    } catch (error) {
+      if (!(error instanceof RunStop)) throw error;
+      return this._end(run, "stopped", error.message);
+    }
     await this._announce(
       run,
       `Run started on ${run.tickets.length} tickets as ${readingLabelOf(reading)}.`,
@@ -155,12 +162,21 @@ export class RunLoop extends SpecRunBase {
       `Current: ${joinedOrNone(current)}.`,
       `Open Halts: ${joinedOrNone(openHalts.map(openHaltTextOf))}.`,
       `Waiting: ${others.length === 0 ? "none" : waitsTextOf(others)}.`,
-      `Account: ${readingLabelOf(await this._readingOf(run))}.`,
+      `Account: ${await this._activeReadingLabelOf(run)}.`,
     ];
     if (existsSync(this._stopRequestPathOf(specIssue))) {
       lines.push("A stop is requested; the run ends after its current ticket.");
     }
     return lines.join("\n");
+  }
+
+  private async _activeReadingLabelOf(run: Run): Promise<string> {
+    try {
+      return readingLabelOf(await this._launchReadingOf(run));
+    } catch (error) {
+      if (!(error instanceof ActiveAccountUnknown)) throw error;
+      return "unknown; cswap reported no active account";
+    }
   }
 
   // Taken once read, so a later run never sees it.

@@ -61,14 +61,13 @@ describe("loadRunKnobs", () => {
     expect(knobs.skillNames.review).toBe("code-review");
   });
 
-  it("checks the configured account's claude login unless the auth checks are overridden", () => {
-    expect(loadRunKnobs(overrideFile('{ "account": 2 }')).authChecks).toEqual([
+  it("checks GitHub auth and the default claude login unless the auth checks are overridden", () => {
+    expect(loadRunKnobs(overrideFile("{}")).authChecks).toEqual([
       ["gh", "auth", "status"],
-      ["cswap", "run", "2", "--", "auth", "status"],
+      ["claude", "auth", "status"],
     ]);
     expect(
-      loadRunKnobs(overrideFile('{ "account": 2, "authChecks": [["true"]] }'))
-        .authChecks,
+      loadRunKnobs(overrideFile('{ "authChecks": [["true"]] }')).authChecks,
     ).toEqual([["true"]]);
   });
 
