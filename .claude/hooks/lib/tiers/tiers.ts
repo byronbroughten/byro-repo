@@ -106,9 +106,11 @@ const ghApiValueShorthands = new Set(["X", "f", "F", "H", "q", "t", "p"]);
 const ghApiFieldFlags = new Set(["--field", "--raw-field", "--input"]);
 const ghReadMethods = new Set(["GET", "HEAD"]);
 // A quoted gh is text unless a shell's -c, eval or a substitution runs it.
-const shells = new Set(["bash", "sh", "zsh", "dash", "ksh"]);
-const shellScriptFlag = /^-[a-zA-Z]*c/;
-const substitutionOpen = /\$\(|`/;
+const shellRunners = {
+  shells: new Set(["bash", "sh", "zsh", "dash", "ksh"]),
+  scriptFlag: /^-[a-zA-Z]*c/,
+  substitutionOpen: /\$\(|`/,
+} as const;
 const ghWriteWhy =
   "writes to GitHub from a session supervising a run, and the developer approves its exact text";
 
@@ -276,7 +278,9 @@ function ghWriteOf(words: string[]): boolean {
   const hidesGh =
     words.slice(1).some((word) => basenameOf(word) === "gh") ||
     shellWordsOf(words).some(callsGh) ||
-    words.some((word) => word.split(substitutionOpen).slice(1).some(callsGh));
+    words.some((word) =>
+      word.split(shellRunners.substitutionOpen).slice(1).some(callsGh),
+    );
   if (hidesGh) return true;
   if (basenameOf(words[0] ?? "") !== "gh") return false;
   const [group = "", verb = ""] = words.slice(1);
@@ -291,8 +295,8 @@ function shellWordsOf(words: string[]): string[] {
   return words.flatMap((word, at) => {
     const rest = words.slice(at + 1);
     if (word === "eval") return rest;
-    if (!shells.has(basenameOf(word))) return [];
-    return rest.some((arg) => shellScriptFlag.test(arg)) ? rest : [];
+    if (!shellRunners.shells.has(basenameOf(word))) return [];
+    return rest.some((arg) => shellRunners.scriptFlag.test(arg)) ? rest : [];
   });
 }
 
