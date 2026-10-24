@@ -1,4 +1,4 @@
-// The I/O shared by styleGate.ts and proseGate.ts: PostToolUse on Read or Bash records a full read of one doc; PreToolUse on Edit and Write asks the gate's decider whether to deny.
+// The I/O shared by styleGate.ts, proseGate.ts and readFirstGate.ts: PostToolUse on Read or Bash records a full read of one doc; PreToolUse on Edit and Write asks the gate's decider whether to deny.
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
