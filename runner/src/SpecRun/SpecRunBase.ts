@@ -232,21 +232,29 @@ export class SpecRunBase {
     return peak < this.config.knobs.ticketBudget;
   }
 
-  // A fresh step's account is the Active account and a resume's the one its session recorded; usage is undefined when the read gives none for it.
-  protected async _launchReadingOf(
+  // A fresh step's reading; usage is undefined when the read gives none for the Active account.
+  protected async _activeReadingOf(run: Run): Promise<AccountReading> {
+    const list = await this._usageListOf(run);
+    const account = list?.activeAccount;
+    if (account === undefined) throw new ActiveAccountUnknown();
+    return readingIn(list, account);
+  }
+
+  // A resume's reading, on the account its session recorded.
+  protected async _recordedReadingOf(
     run: Run,
-    recordedAccount?: number,
+    account: number,
   ): Promise<AccountReading> {
-    let list: UsageList | undefined;
+    return readingIn(await this._usageListOf(run), account);
+  }
+
+  private async _usageListOf(run: Run): Promise<UsageList | undefined> {
     try {
-      list = await this.config.usageReader.read();
+      return await this.config.usageReader.read();
     } catch (error) {
       this._log(run, `The usage read failed: ${messageOf(error)}`);
+      return undefined;
     }
-    const account = recordedAccount ?? list?.activeAccount;
-    if (account === undefined) throw new ActiveAccountUnknown();
-    const usage = list?.readings.find((r) => r.account === account)?.usage;
-    return { account, usage };
   }
 
   // Logged however the step ends, a Stop or Halt included.
@@ -433,4 +441,12 @@ export class SpecRunBase {
     );
     return { heads, dirtyRepos: dirtyReposOf(worktrees) };
   }
+}
+
+function readingIn(
+  list: UsageList | undefined,
+  account: number,
+): AccountReading {
+  const usage = list?.readings.find((r) => r.account === account)?.usage;
+  return { account, usage };
 }

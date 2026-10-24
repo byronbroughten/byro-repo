@@ -85,7 +85,7 @@ export class RunLoop extends SpecRunBase {
     this._log(run, `Preflight passed in ${this._secondsSince(startedAt)}s.`);
     let reading: AccountReading;
     try {
-      reading = await this._launchReadingOf(run);
+      reading = await this._activeReadingOf(run);
     } catch (error) {
       if (!(error instanceof RunStop)) throw error;
       return this._end(run, "stopped", error.message);
@@ -175,7 +175,7 @@ export class RunLoop extends SpecRunBase {
 
   private async _activeReadingLabelOf(run: Run): Promise<string> {
     try {
-      return readingLabelOf(await this._launchReadingOf(run));
+      return readingLabelOf(await this._activeReadingOf(run));
     } catch (error) {
       if (!(error instanceof ActiveAccountUnknown)) throw error;
       return `unknown; ${noActiveAccountPhraseOf()}`;

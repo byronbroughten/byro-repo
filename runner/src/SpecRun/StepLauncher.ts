@@ -236,7 +236,10 @@ export class StepLauncher extends SpecRunBase {
     const knobs = { ...defaultLimitGuardKnobs, ...this.config.limitGuardKnobs };
     let hasAnnouncedWait = false;
     for (;;) {
-      const reading = await this._launchReadingOf(run, recordedAccount);
+      const reading =
+        recordedAccount === undefined
+          ? await this._activeReadingOf(run)
+          : await this._recordedReadingOf(run, recordedAccount);
       const { account, usage } = reading;
       if (usage === undefined) {
         await this._warnOnce(
