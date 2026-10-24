@@ -1,5 +1,5 @@
-// A spec run's agent step launches: waits out the limit guard before each, runs the step with its guidance and the run's
-// knobs, logs its raw stream, and retries a crash, resuming its session when it has one; a hit limit is an UnhandledStop.
+// A spec run's agent step launches: waits out the limit guard before each, runs a fresh step on the Active account and a
+// resume on its session's recorded one, with its guidance and the run's knobs, logs its raw stream, and retries a crash, resuming its session when it has one; a hit limit is an UnhandledStop.
 // An implement step that hits its turn cap halts, offering more turns or a stronger pair; other crashes past their retries halt too.
 // It builds its own HaltRaiser, and every collaborator that launches a step builds a StepLauncher.
 // Steps run through ../AgentStep.ts; limit decisions are ../limitGuard.ts; the coordinator callers build is ../SpecRun.ts.
