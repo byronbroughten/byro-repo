@@ -271,7 +271,8 @@ export class StepLauncher extends SpecRunBase {
   private _limitPollMsOf(until: Date): number {
     const { idlePollMs } = this.config.knobs;
     const remainingMs = until.getTime() - this.config.clock.now().getTime();
-    return remainingMs > 0 ? Math.min(idlePollMs, remainingMs) : idlePollMs;
+    if (remainingMs <= 0) return idlePollMs;
+    return Math.min(idlePollMs, remainingMs);
   }
 
   private async _warnOnce(
