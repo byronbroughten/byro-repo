@@ -82,7 +82,7 @@ describe("resolveRecordProblems", () => {
     expect(
       resolveRecordProblems(1, [{ ...fix, quote: "`// Retry once`" }]),
     ).toEqual([
-      "finding 1: a Fix needs `quote`, the quoted code with its file:line",
+      "finding 1: a Fix needs `quote`, the quoted code or text, with its file:line",
     ]);
   });
 
@@ -90,7 +90,7 @@ describe("resolveRecordProblems", () => {
     expect(
       resolveRecordProblems(1, [{ ...fix, quote: "retries at 12:30" }]),
     ).toEqual([
-      "finding 1: a Fix needs `quote`, the quoted code with its file:line",
+      "finding 1: a Fix needs `quote`, the quoted code or text, with its file:line",
     ]);
   });
 

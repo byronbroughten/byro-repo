@@ -362,7 +362,7 @@ describe("run's resolve", () => {
     const retry = agentStep.requests[3];
     expect(retry?.resumeSessionId).toBe("session");
     expect(retry?.prompt).toContain(
-      "finding 1: a Fix needs `quote`, the quoted code with its file:line",
+      "finding 1: a Fix needs `quote`, the quoted code or text, with its file:line",
     );
     expect(landedSubjects(2)).toEqual(["Fix fix.ts", "Add one.ts"]);
   });

@@ -63,6 +63,7 @@ function endingSection({
 }: ImplementCodeSkillInput): string {
   return `## When you're done
 
+- ${implementBody.drift}
 - ${implementBody.committing} When it fails only on something your change didn't cause, carry on and name the failure in your report.
 - ${implementBody.onlyWrites}. The review and wrap-up commands in the ending make every other write.
 - Run git commands one at a time: inside an entered worktree, Claude Code refuses a compound git command.

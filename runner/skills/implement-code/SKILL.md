@@ -28,6 +28,7 @@ disable-model-invocation: true
 
 ## When you're done
 
+- Before review, grep the docs for every name, command or behavior the change renamed, removed or altered, and fix or delete each statement it made untrue.
 - Commit in each repo you changed, on the ticket's branch, then run `npm run check`. When it fails on your change, fix it in a further commit and run it again; never amend. When it fails only on something your change didn't cause, carry on and name the failure in your report.
 - Those commits and the GitHub writes the ticket describes are your only writes outside the workspace's files: never push, merge, rebase or reset, never close an issue. The review and wrap-up commands in the ending make every other write.
 - Run git commands one at a time: inside an entered worktree, Claude Code refuses a compound git command.
@@ -36,7 +37,7 @@ disable-model-invocation: true
   2. **Resolve**, when it printed findings: Give each finding exactly one verdict, Dismiss, Fix, Propose or Halt, by the rules in `docs/agents/verdicts.md`; read it before you judge. Fix by default, and Dismiss, Propose or Halt only where that doc says, with evidence. You may overrule a reviewer's suggested verdict, saying why in `evidence`, except that a suggested Halt resolves only as a Halt or a Propose `decision`. Each Fix lands in its own commit. Then run `npm run check`. Write `.runner/resolve-<n>.json`, gitignored, as `{ "records": [...] }`, exactly one record per finding: `finding` (its number in the list), `axis` (the finding's own, or for a finding without one, `standards` or `spec`), `where` (its file:line or area), `claim` (what the finding says, in a line), `verdict` (`dismiss`, `fix`, `propose` or `halt`), `evidence` (what you checked and found, and why, when you overruled the suggested verdict), and the fields its verdict needs:
 
      - **Dismiss**: `reason`, one of `false-positive`, `covered-later`, `kept`, `tooling-enforced` or `serves-spec`; for `covered-later`, `coveredBy`, the later ticket as `<repo>#<n>`; for `kept`, `quote`, the site's reason with its file:line.
-     - **Fix**: `quote`, the quoted code with its file:line, and `rule`, the documented rule or spec line it breaks.
+     - **Fix**: `quote`, the quoted code or text, with its file:line, and `rule`, the documented rule or spec line it breaks.
      - **Propose**: `reason`, `decision` or `ticket`, and `recommendation`; for `ticket`, `draftIssueTitle`; for a `decision` asking the developer's yes to a new keep, `draftKeepReason`, the drafted one-line reason.
      - **Halt**: `recommendation`, and `haltScope`, the later tickets it blocks as `<repo>#<n>`, or `spec`; omit it to block the whole spec.
 
