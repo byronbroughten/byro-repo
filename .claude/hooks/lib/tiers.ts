@@ -33,7 +33,8 @@ export interface ShellCall {
 interface Verdict {
   permissionDecision: Decision["permissionDecision"];
   why: string;
-  isRead?: boolean;
+  // Allowed only in a command with no heredoc or $'…' to hide another behind it.
+  needsPlainText?: boolean;
 }
 
 // isPlain: no global option but a path one, so no `-c` config can run a command.
@@ -90,22 +91,14 @@ const findActions = new Set([
 // ripgrep runs the program each of these names.
 const rgRunFlags = ["--pre", "--hostname-bin"];
 const sedReadFlags = /^-[nEsrz]+$/;
-// `12,40p`, `$p` or `/re/p` only: sed's own w and e commands write a file or run one.
-const sedPrint = /^(\d+|\$|\/[^/\\]*\/)(,(\d+|\$|\/[^/\\]*\/))?p$/;
-const branchListFlags = new Set([
-  "--list",
-  "--all",
-  "--remotes",
-  "--verbose",
-  "--show-current",
-  "--color",
-  "--no-color",
-  "--column",
-  "--no-column",
-  "--sort",
-  "--format",
-  "--ignore-case",
-]);
+const sedAddress = String.raw`(\d+|\$|/[^/\\]*/)`;
+// Printing pieces only, as `12,40p`, `$=` or `s/a/b/gp`: sed's own w and e commands write a file or run one.
+const sedPrint = new RegExp(
+  String.raw`^(${sedAddress}(,${sedAddress})?)?(p|=|l|q\d*|s/[^/\\]*/[^/\\]*/[gpI\d]*)$`,
+);
+// Deleting a branch, or forcing one over another, loses commits git can't bring back but by its reflog.
+const branchDropFlags = new Set(["--delete", "--force"]);
+const branchDropShorthands = /^-[^-]*[dDfMC]/;
 const ghReadVerbs = new Set(["view", "list", "status", "diff", "checks"]);
 const ghReadGroups = new Set(["search", "status", "version", "--version"]);
 // gh api's shorthand flags that take a value, which ends a cluster such as `-iXPOST`.
@@ -172,8 +165,11 @@ function baseDecision({
   }
   // The parser doesn't look inside quoted substitutions, so one could hide a command.
   if (/\$\(|`/.test(command)) return undefined;
-  // It also strips heredoc bodies and misreads $'…', so either could hide a command after a read.
-  if (verdicts.some((verdict) => verdict?.isRead) && /<<|\$'/.test(command)) {
+  // It also strips heredoc bodies and misreads $'…', so either could hide a command after one.
+  if (
+    verdicts.some((verdict) => verdict?.needsPlainText) &&
+    /<<|\$'/.test(command)
+  ) {
     return undefined;
   }
   if (!verdicts.every((verdict) => verdict?.permissionDecision === "allow")) {
@@ -223,12 +219,24 @@ function verdictOf(
   if (git?.verb === "commit") {
     return { permissionDecision: "allow", why: "git can undo a commit" };
   }
-  if (git?.verb === "add" && git.isPlain && isBareCommand(simple)) {
-    return { permissionDecision: "allow", why: "git can undo staging a file" };
+  const isPlainGit = git?.isPlain === true && isBareCommand(simple);
+  if (isPlainGit && git.verb === "add") {
+    return {
+      permissionDecision: "allow",
+      why: "git can undo staging a file",
+      needsPlainText: true,
+    };
+  }
+  if (isPlainGit && isBranchChange(git)) {
+    return {
+      permissionDecision: "allow",
+      why: "git can undo a branch create, copy, rename or upstream change",
+      needsPlainText: true,
+    };
   }
   const readWhy = isBareCommand(simple) ? readWhyOf(words, git) : undefined;
   if (readWhy) {
-    return { permissionDecision: "allow", why: readWhy, isRead: true };
+    return { permissionDecision: "allow", why: readWhy, needsPlainText: true };
   }
   if (git?.verb === "push") {
     return {
@@ -360,26 +368,19 @@ function isProgramRead(program: string, args: string[]): boolean {
 }
 
 function isGitRead({ verb, args }: GitCall): boolean {
-  if (verb === "branch") return isBranchList(args);
   return (
     gitReadVerbs.has(verb) && !args.some((arg) => arg.startsWith("--output"))
   );
 }
 
-// A branch name without --list creates that branch, so only a list reads.
-function isBranchList(args: string[]): boolean {
-  const flags = args.filter((arg) => arg.startsWith("-"));
-  const isList = flags.some(
-    (flag) => flag === "--list" || /^-[arvi]*l[arvil]*$/.test(flag),
-  );
+function isBranchChange({ verb, args }: GitCall): boolean {
   return (
-    flags.every(isBranchListFlag) && (isList || flags.length === args.length)
-  );
-}
-
-function isBranchListFlag(flag: string): boolean {
-  return (
-    /^-[arvil]+$/.test(flag) || branchListFlags.has(flag.split("=")[0] ?? "")
+    verb === "branch" &&
+    !args.some(
+      (arg) =>
+        branchDropFlags.has(arg.split("=")[0] ?? "") ||
+        branchDropShorthands.test(arg),
+    )
   );
 }
 

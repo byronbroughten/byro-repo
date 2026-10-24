@@ -183,6 +183,10 @@ describe("reads and git add", () => {
       "ls -la .claude",
       "sed -n '1,40p' AGENTS.md",
       "sed -n -e '12p' -e '/^## /p' AGENTS.md",
+      "sed -n 's/verdict/Verdict/gp' AGENTS.md",
+      "sed -n '$=' AGENTS.md",
+      "sed -n '/^## /,/^## /p' AGENTS.md",
+      "sed -n '1,3l;5q' AGENTS.md",
       "find . -name '*.ts' -not -path './node_modules/*'",
     ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
   });
@@ -191,6 +195,23 @@ describe("reads and git add", () => {
     gitForms.forEach((git) =>
       gitReads.forEach((read) =>
         expect(decisionOf(`${git} ${read}`)).toBe("allow"),
+      ),
+    );
+  });
+
+  it("allows a branch create, copy, rename or upstream change in each form, as git can undo it", () => {
+    gitForms.forEach((git) =>
+      [
+        "branch issue-400-x",
+        "branch issue-400-x master",
+        "branch -c old copy",
+        "branch -m old new",
+        "branch --move old new",
+        "branch -u origin/master",
+        "branch --unset-upstream",
+        "branch --merged master",
+      ].forEach((change) =>
+        expect(decisionOf(`${git} ${change}`)).toBe("allow"),
       ),
     );
   });
@@ -228,6 +249,9 @@ describe("reads and git add", () => {
       "sed -n '1w out.txt' AGENTS.md",
       "sed -n '1e rm -rf dist' AGENTS.md",
       "sed -n -f script.sed AGENTS.md",
+      "sed -n 's/a/b/w out.txt' AGENTS.md",
+      "sed -n 's/a/b/e' AGENTS.md",
+      "sed -n '1{p;w out.txt' -e '}' AGENTS.md",
       "find . -exec rm {} ;",
       "find . -execdir rm {} +",
       "find . -ok rm {} ;",
@@ -243,8 +267,13 @@ describe("reads and git add", () => {
       "git branch -d old",
       "git branch -D old",
       "git branch --delete old",
-      "git branch new-branch",
-      "git branch -m old new",
+      "git branch -df old",
+      "git branch -f master HEAD~3",
+      "git branch --force master HEAD~3",
+      "git branch -M old master",
+      "git branch -C old master",
+      "git branch -m --force old master",
+      "git branch issue-400-x <<EOF\nrm -rf dist\nEOF",
       "git diff --output=patch.diff",
       "git log -p --output patch.diff",
       "git -c core.fsmonitor='rm -rf dist' status",

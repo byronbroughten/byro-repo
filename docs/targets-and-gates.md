@@ -17,9 +17,9 @@ Reads need no yes in any tier.
 | Action | Tier |
 | --- | --- |
 | Editing repo files; `npm run tsc`, `npm test`, `npm run lint` | 1 |
-| `grep`, `rg`, `cat`, `head`, `tail`, `wc`, `ls`, `cd`; `sed -n` with print-only scripts and no `-i`; `find`; `git log`, `show`, `status`, `diff`, `rev-parse`, `ls-files`, `blame` and a `git branch` list, plain or through `-C`, `--git-dir` or `--work-tree` | free: reads. Not with an option that runs a program or writes a file, a `>` redirect, an env prefix, `git -c`, a heredoc or `$(…)` |
+| `grep`, `rg`, `cat`, `head`, `tail`, `wc`, `ls`, `cd`; `sed -n` with printing scripts and no `-i`; `find`; `git log`, `show`, `status`, `diff`, `rev-parse`, `ls-files` and `blame`, plain or through `-C`, `--git-dir` or `--work-tree` | free: reads. Not with an option that runs a program or writes a file, a `>` redirect, an env prefix, `git -c`, a heredoc or `$(…)` |
 | `git commit`, on any branch | 1; the branch guard still keeps a primary checkout on its branch, and the primary-edit guard keeps the commit out of one |
-| `git add`, in the same forms as the git reads | 1: git can undo it |
+| `git add`, and `git branch` without a delete or force flag (`-d`, `-D`, `-f`, `-M`, `-C`), in the same forms as the git reads | 1: git can undo it |
 | `npm run issue:start`, `issue:list`, and `issue:remove` without `--force`, which refuses unlanded work | 1 |
 | `npm run issue:remove … --force`, which discards a workspace's unlanded work | 3 |
 | `npm run wrap-up -- <repo> <n>` or `-- --session <slug> [--keep]`, which pushes | a standing yes to push, behind its secret scan |
