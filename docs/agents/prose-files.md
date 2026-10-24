@@ -28,7 +28,6 @@ The words for the repo's prose, which file holds which fact, what the root AGENT
 | `docs/targets-and-gates.md` | The tier list of what needs a yes first, ticket targets, the `dev`/`app` targets, the agent account, and the gworkspace MCP rules. |
 | `docs/claude-code-guardrails.md` | The Claude Code hooks and project agent. |
 | `docs/pdf-pages.md` | How a piece stage reads a long PDF by page: download it, count its pages, print a page range, PDF against printed pages, and delete the download. Shared by every piece skill, since user-invoked skills can't reach each other. |
-| `docs/cursor-guardrails.md` | The Cursor hooks. |
 | `docs/prose-style.md` | How developer-facing prose is shaped, one line per rule, rule only: one home per fact, rule lines, reasoning files, mechanics docs, placement and the AGENTS.md bar, then the `## Smells` baseline with its two derived-prose rules. |
 | `docs/prose-style/*.md` | Each rule's reasoning and examples, indexed by `docs/prose-style.md`'s "When \| File" table. |
 | `docs/writing-voice.md` | The voice of reader-facing prose, one line per rule, rule only, one voice with no sections per medium. Its `## Axes` section defines the Evidence and Formality values and the Academic overlay; a rule scoped to one value starts with that value as a code tag. |

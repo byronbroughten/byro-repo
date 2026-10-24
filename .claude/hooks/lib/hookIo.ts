@@ -6,10 +6,8 @@ import { join } from "node:path";
 // The fields of Claude Code's hook payload these hooks read; every one may be absent.
 export interface HookInput {
   session_id?: string;
-  conversation_id?: string;
   transcript_path?: string;
   cwd?: string;
-  workspace_roots?: string[];
   hook_event_name?: string;
   reason?: string;
   source?: "startup" | "resume" | "clear" | "compact";
@@ -24,7 +22,6 @@ export interface ToolInput {
   command?: string;
   file_path?: string;
   notebook_path?: string;
-  path?: string;
   offset?: number;
   limit?: number;
   content?: unknown;

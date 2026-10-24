@@ -8,7 +8,7 @@ import {
   writingSheetPaths,
   writingSheets,
 } from "./lib/docContentGate.ts";
-import { isFullDocRead, isPostToolUse } from "./lib/fullDocRead.ts";
+import { isFullDocRead } from "./lib/fullDocRead.ts";
 import {
   lineCount,
   readHookInput,
@@ -20,8 +20,8 @@ import {
 await runFailOpen(() => {
   const input = readHookInput();
   if (!input) return;
-  const sessionId = input.session_id ?? input.conversation_id;
-  if (isPostToolUse(input.hook_event_name)) {
+  const sessionId = input.session_id;
+  if (input.hook_event_name === "PostToolUse") {
     const filePath = input.tool_input?.file_path;
     if (input.tool_name !== "Read" || typeof filePath !== "string") return;
     const projectDir =

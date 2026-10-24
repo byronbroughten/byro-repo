@@ -1,4 +1,4 @@
-// Which files the guardrail hooks gate: project files outside the ignored folders, and as code the set `eslint .` lints, minus each package's generatedDir. Pure; shared by styleGate.ts, proseGate.ts and lintFeedback.ts.
+// Which files the guardrail hooks gate: project files outside the ignored folders, and as code the set `eslint .` lints, minus each package's generatedDir. Pure; shared by readFirstGate.ts and lintFeedback.ts.
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 const lintedFiles = {
@@ -22,7 +22,14 @@ export function isInLintSet({
   generatedDirs,
   ...location
 }: LintSetTarget): boolean {
-  const target = projectRelative(location);
+  return isLintedSource(projectRelative(location), generatedDirs);
+}
+
+// target is project-relative.
+export function isLintedSource(
+  target: string,
+  generatedDirs: string[],
+): boolean {
   const isGenerated = generatedDirs.some((dir) => target.startsWith(dir + sep));
   return isLinted(target) && !isGenerated;
 }
