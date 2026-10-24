@@ -27,6 +27,9 @@ export function isPostToolUse(eventName: string | undefined): boolean {
   return eventName?.toLowerCase() === "posttooluse";
 }
 
+export const fullReadHowTo =
+  "Use a full Read with no offset or limit (a partial read isn't recorded; a whole-file `cat` counts)";
+
 export function fullReadReason({
   docPath,
   reasoningDir,
@@ -34,7 +37,7 @@ export function fullReadReason({
 }: GatedDoc): string {
   return (
     `Read ${docPath} before your first ${editKind} edit this session, then retry. ` +
-    `Use a full Read with no offset or limit (a partial read isn't recorded; a whole-file \`cat\` counts), and skip ${reasoningDir} unless a rule's line doesn't decide your case.`
+    `${fullReadHowTo}, and skip ${reasoningDir} unless a rule's line doesn't decide your case.`
   );
 }
 

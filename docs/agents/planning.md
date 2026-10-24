@@ -11,6 +11,7 @@
 ## Code in specs
 
 - **Code in a spec or ticket is only a shape that is itself the decision**: a record, type or schema, or a state machine. Its names are binding, so write them as the code will land ([naming](../../config/docs/code-style.md#naming)).
+- **A ticket that changes a tier rule quotes the row of the tier table it changes and says whether the change is stricter or looser.**
 
 ## Test seams
 
