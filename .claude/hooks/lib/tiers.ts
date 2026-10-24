@@ -1,6 +1,7 @@
 // Decides the gate for a Bash call by tier: 1 and 2 are free (git or Google's version history undoes them), 3 asks. Pure; tierGate.ts does the I/O, and driveTiers.ts decides gworkspace calls.
 import {
   npmScriptOf,
+  sedPartsOf,
   type SimpleCommand,
   simpleCommandsOf,
 } from "./bashReads.ts";
@@ -37,7 +38,7 @@ interface Verdict {
 
 // isPlain: no global option but a path one, so no `-c` config can run a command.
 interface GitCall {
-  verb: string | undefined;
+  verb: string;
   args: string[];
   isPlain: boolean;
 }
@@ -86,6 +87,8 @@ const findActions = new Set([
   "-fprintf",
   "-fls",
 ]);
+// ripgrep runs the program each of these names.
+const rgRunFlags = ["--pre", "--hostname-bin"];
 const sedReadFlags = /^-[nEsrz]+$/;
 // `12,40p`, `$p` or `/re/p` only: sed's own w and e commands write a file or run one.
 const sedPrint = /^(\d+|\$|\/[^/\\]*\/)(,(\d+|\$|\/[^/\\]*\/))?p$/;
@@ -344,15 +347,19 @@ function readWhyOf(
       ? `\`git ${git.verb}\` only reads`
       : undefined;
   }
-  const isRead =
-    (readPrograms.has(program) &&
-      !(program === "rg" && args.some((arg) => arg.startsWith("--pre")))) ||
-    (program === "sed" && isSedRead(args)) ||
-    (program === "find" && !args.some((arg) => findActions.has(arg)));
-  return isRead ? `\`${program}\` only reads` : undefined;
+  return isProgramRead(program, args) ? `\`${program}\` only reads` : undefined;
 }
 
-function isGitRead({ verb = "", args }: GitCall): boolean {
+function isProgramRead(program: string, args: string[]): boolean {
+  if (program === "sed") return isSedRead(args);
+  if (program === "find") return !args.some((arg) => findActions.has(arg));
+  if (program === "rg") {
+    return !args.some((arg) => rgRunFlags.some((flag) => arg.startsWith(flag)));
+  }
+  return readPrograms.has(program);
+}
+
+function isGitRead({ verb, args }: GitCall): boolean {
   if (verb === "branch") return isBranchList(args);
   return (
     gitReadVerbs.has(verb) && !args.some((arg) => arg.startsWith("--output"))
@@ -378,20 +385,17 @@ function isBranchListFlag(flag: string): boolean {
 
 function isSedRead(args: string[]): boolean {
   let isQuiet = false;
-  const scripts: string[] = [];
-  const rest: string[] = [];
   for (let i = 0; i < args.length; i++) {
     const arg = args[i] ?? "";
-    if (arg === "-e") scripts.push(args[++i] ?? "");
+    if (arg === "-e") i++;
     else if (arg === "--quiet" || arg === "--silent") isQuiet = true;
-    else if (sedReadFlags.test(arg)) isQuiet ||= arg.includes("n");
-    else if (arg.startsWith("-") && arg !== "-") return false;
-    else rest.push(arg);
+    else if (sedReadFlags.test(arg)) {
+      if (arg.includes("n")) isQuiet = true;
+    } else if (arg.startsWith("-") && arg !== "-") return false;
   }
-  if (scripts.length === 0) scripts.push(rest[0] ?? "");
   return (
     isQuiet &&
-    scripts.every((script) =>
+    sedPartsOf(args).scripts.every((script) =>
       script
         .split(/[;\n]/)
         .map((piece) => piece.trim())
@@ -414,7 +418,7 @@ function gitCallOf(words: string[]): GitCall | undefined {
     } else if (word.startsWith("-")) isPlain = false;
     else return { verb: word, args: words.slice(i + 1), isPlain };
   }
-  return { verb: undefined, args: [], isPlain: false };
+  return undefined;
 }
 
 // The program a command runs, through npx or npm exec, without its path or version.
