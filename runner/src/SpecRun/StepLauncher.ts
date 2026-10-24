@@ -1,5 +1,5 @@
-// A spec run's agent step launches: waits out the limit guard before each, runs the step with its guidance and the run's
-// knobs, logs its raw stream, and retries a crash, resuming its session when it has one; a hit limit is an UnhandledStop.
+// A spec run's agent step launches: waits out the limit guard before each, runs a fresh step on the Active account and a
+// resume on its session's recorded one, with its guidance and the run's knobs, logs its raw stream, and retries a crash, resuming its session when it has one; a hit limit is an UnhandledStop.
 // An implement step that hits its turn cap halts, offering more turns or a stronger pair; other crashes past their retries halt too.
 // It builds its own HaltRaiser, and every collaborator that launches a step builds a StepLauncher.
 // Steps run through ../AgentStep.ts; limit decisions are ../limitGuard.ts; the coordinator callers build is ../SpecRun.ts.
@@ -27,6 +27,7 @@ import {
   type RanStep,
   type Run,
   type RunWarning,
+  type SpecStepRequest,
   type StepLaunch,
   type TicketRun,
   type TicketState,
@@ -146,17 +147,20 @@ export class StepLauncher extends SpecRunBase {
   ): Promise<StepAttempt> {
     const { run, ticket, pair, workspace, state, targets } = ticketRun;
     const { knobs } = this.config;
-    await this._waitForLaunch(run);
+    const account = await this._waitForLaunch(
+      run,
+      resumedAccountOf(ticketRun, overrides.resumeSessionId),
+    );
     this._log(
       run,
-      `${issueLabelOf(ticket.issue)}: ${agent} step, raw stream in ${logPath}.`,
+      `${issueLabelOf(ticket.issue)}: ${agent} step on account ${account}, raw stream in ${logPath}.`,
     );
     let result: StepResult;
     try {
       result = await this.config.agentStep.run({
         prompt,
         pair,
-        account: knobs.account,
+        account,
         cwd: workspace.path,
         maxTurns: knobs.maxTurns[agent],
         silenceTimeoutMs: knobs.silenceTimeoutMs,
@@ -189,15 +193,22 @@ export class StepLauncher extends SpecRunBase {
   async _runSpecStep(
     run: Run,
     step: string,
-    request: StepRequest,
+    request: SpecStepRequest,
   ): Promise<RanStep> {
     const logPath = join(
       this._stepsFolderOf(run),
       `${step.replaceAll(" ", "-")}.jsonl`,
     );
-    await this._waitForLaunch(run);
-    this._log(run, `${sentenceCaseOf(step)} step, raw stream in ${logPath}.`);
-    const result = await this._agentResultOf(step, { ...request, logPath });
+    const account = await this._waitForLaunch(run, undefined);
+    this._log(
+      run,
+      `${sentenceCaseOf(step)} step on account ${account}, raw stream in ${logPath}.`,
+    );
+    const result = await this._agentResultOf(step, {
+      ...request,
+      account,
+      logPath,
+    });
     await this._stopOnLimitHit(run, result, logPath);
     return { result, logPath };
   }
@@ -217,21 +228,26 @@ export class StepLauncher extends SpecRunBase {
     }
   }
 
-  // Asks the limit guard about the configured account until it says launch.
-  private async _waitForLaunch(run: Run): Promise<void> {
-    const { account } = this.config.knobs;
+  // Asks the limit guard about the account the step will run on until it says launch, and returns that account.
+  private async _waitForLaunch(
+    run: Run,
+    recordedAccount: number | undefined,
+  ): Promise<number> {
     const knobs = { ...defaultLimitGuardKnobs, ...this.config.limitGuardKnobs };
     let hasAnnouncedWait = false;
     for (;;) {
-      const reading = await this._readingOf(run);
-      const { usage } = reading;
+      const reading =
+        recordedAccount === undefined
+          ? await this._activeReadingOf(run)
+          : await this._recordedReadingOf(run, recordedAccount);
+      const { account, usage } = reading;
       if (usage === undefined) {
         await this._warnOnce(
           run,
           "missing-reading",
           `No usage reading for account ${account}; steps launch unguarded.`,
         );
-        return;
+        return account;
       }
       const decision = decideStep(
         [reading],
@@ -242,7 +258,7 @@ export class StepLauncher extends SpecRunBase {
         },
         knobs,
       );
-      if (decision.kind === "launch") return;
+      if (decision.kind === "launch") return account;
       if (decision.kind === "stop") {
         throw new RunStop(
           `Account ${account} is at ${percentOf(usage.sevenDay.utilization)} of its weekly limit, past the reserve; rerun after it resets at ${usage.sevenDay.resetsAt.toISOString()}.`,
@@ -277,7 +293,7 @@ export class StepLauncher extends SpecRunBase {
   // The tree stays as is in the workspace; the first stream ever seen is kept for tightening limit detection.
   private async _stopOnLimitHit(
     run: Run,
-    { limitHit, exitSubtype, output }: StepResult,
+    { limitHit, exitSubtype, output, account }: StepResult,
     logPath: string,
   ): Promise<void> {
     const hasSucceeded = exitSubtype === "success" && output.status === "valid";
@@ -292,7 +308,7 @@ export class StepLauncher extends SpecRunBase {
       await this._warnOnce(
         run,
         "unrecognised-limit-error",
-        `Unrecognised limit error on account ${this.config.knobs.account}; the saved stream can tighten detection.`,
+        `Unrecognised limit error on account ${account}; the saved stream can tighten detection.`,
       );
       throw new UnhandledStop(
         "limit-hit",
@@ -315,6 +331,24 @@ export class StepLauncher extends SpecRunBase {
     mkdirSync(folder, { recursive: true });
     return folder;
   }
+}
+
+// Undefined for a fresh launch; a resume's transcript lives under the account its session ran on.
+function resumedAccountOf(
+  { ticket, state }: TicketRun,
+  resumeSessionId: string | undefined,
+): number | undefined {
+  if (resumeSessionId === undefined) return undefined;
+  const session = state.sessions.findLast(
+    ({ sessionId }) => sessionId === resumeSessionId,
+  );
+  if (session?.account === undefined) {
+    throw new RunStop(
+      `${issueLabelOf(ticket.issue)}: session ${resumeSessionId} has no recorded account to resume on.`,
+      { ticket: ticket.issue },
+    );
+  }
+  return session.account;
 }
 
 function guidedLaunchOf(

@@ -7,6 +7,7 @@ import { FactsFile } from "./FactsFile.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
 import type { LeaseHolder } from "./IssueWorkspaces.ts";
+import type { UsageReader } from "./limitGuard.ts";
 import type { ResolveRecord } from "./resolveStep.ts";
 import { reviewPrintoutOf } from "./SpecRun.ts";
 import {
@@ -27,6 +28,7 @@ import {
   stateFolder,
   type StepScript,
   ticketFacts,
+  usageListOf,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
 
@@ -373,6 +375,45 @@ describe("review of one ticket outside a run", () => {
     expect(result.message).toBe(
       "byro-repo #1's workspace has uncommitted changes in byro-repo; commit them first.",
     );
+    expect(agentStep.requests).toHaveLength(0);
+  });
+
+  it("launches the review and a fresh resolver each on the account active just before it", async () => {
+    let activeAccount = 1;
+    const usageReader: UsageReader = {
+      read: async () => usageListOf(0.1, 0.2, activeAccount),
+    };
+    const agentStep = FakeAgentStep.init(
+      async () => {
+        activeAccount = 2;
+        return reviewed(findings);
+      },
+      resolved([propose, fix, coveredLater], "fix.ts"),
+    );
+
+    const result = await specRun(agentStep, { usageReader }).review(refOf(1), {
+      holder,
+    });
+
+    expect(result.kind).toBe("reviewed");
+    expect(agentStep.requests.map(({ account }) => account)).toEqual([1, 2]);
+  });
+
+  it("refuses with a message naming cswap when cswap reports no active account, launching nothing", async () => {
+    const usageReader: UsageReader = {
+      read: async () => ({
+        ...usageListOf(0.1, 0.2),
+        activeAccount: undefined,
+      }),
+    };
+    const agentStep = FakeAgentStep.init(reviewed());
+
+    const result = await specRun(agentStep, { usageReader }).review(refOf(1), {
+      holder,
+    });
+
+    expect(result.kind).toBe("refused");
+    expect(result.message).toContain("cswap");
     expect(agentStep.requests).toHaveLength(0);
   });
 

@@ -7,6 +7,7 @@
 // ../SpecRun.ts delegates review and resolve to it; its authorship refusal is the Base's, shared with RunLoop.ts.
 // It builds its own TicketSequencer, ReviewStepper, LeaseKeeper, ReviewListPoster and HaltRaiser.
 
+import { ActiveAccountUnknown } from "../ActiveAccountUnknown.ts";
 import { messageOf } from "../failureText.ts";
 import { sessionHaltCountOf } from "../halts.ts";
 import {
@@ -250,8 +251,7 @@ export class SessionReviewer extends SpecRunBase {
   // Beside the implement session, each under the account and config folder it ran as, so wrap-up prices them as review cost.
   private _recordSessions({ run, ticket, state }: TicketRun): void {
     try {
-      const { account } = this.config.knobs;
-      for (const step of recordedSessionsOf(state, account)) {
+      for (const step of recordedSessionsOf(state)) {
         this.factsFile.addSession(ticket.issue, step);
       }
     } catch (error) {
@@ -332,7 +332,9 @@ function reviewEndOf(ticketRun: TicketRun, error: unknown): ReviewResult {
       reviewList: reviewListOf(ticketRun),
     };
   }
-  if (error instanceof LeaseHeld) return refusedReviewOf(error.message);
+  if (error instanceof LeaseHeld || error instanceof ActiveAccountUnknown) {
+    return refusedReviewOf(error.message);
+  }
   if (error instanceof UnhandledStop) {
     const message = `The review of ${label} ${stoppedOnTextOf(error)}.`;
     return { kind: "stopped", message, halts };

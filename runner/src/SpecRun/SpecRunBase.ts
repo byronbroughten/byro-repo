@@ -13,6 +13,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 
+import { ActiveAccountUnknown } from "../ActiveAccountUnknown.ts";
 import type { AgentStep } from "../AgentStep.ts";
 import { FactsFile } from "../FactsFile.ts";
 import { messageOf } from "../failureText.ts";
@@ -36,6 +37,7 @@ import {
 import {
   type AccountReading,
   type LimitGuardKnobs,
+  type UsageList,
   type UsageReader,
 } from "../limitGuard.ts";
 import type { Notice, Notices } from "../Notices.ts";
@@ -230,16 +232,28 @@ export class SpecRunBase {
     return peak < this.config.knobs.ticketBudget;
   }
 
-  // Usage is undefined when the reader fails or has no usable reading for the configured account.
-  protected async _readingOf(run: Run): Promise<AccountReading> {
-    const { account } = this.config.knobs;
+  // A fresh step's reading; usage is undefined when the read gives none for the Active account.
+  protected async _activeReadingOf(run: Run): Promise<AccountReading> {
+    const list = await this._usageListOf(run);
+    const account = list?.activeAccount;
+    if (account === undefined) throw new ActiveAccountUnknown();
+    return readingIn(list, account);
+  }
+
+  // A resume's reading, on the account its session recorded.
+  protected async _recordedReadingOf(
+    run: Run,
+    account: number,
+  ): Promise<AccountReading> {
+    return readingIn(await this._usageListOf(run), account);
+  }
+
+  private async _usageListOf(run: Run): Promise<UsageList | undefined> {
     try {
-      const { readings } = await this.config.usageReader.read();
-      const usage = readings.find((r) => r.account === account)?.usage;
-      return { account, usage };
+      return await this.config.usageReader.read();
     } catch (error) {
       this._log(run, `The usage read failed: ${messageOf(error)}`);
-      return { account, usage: undefined };
+      return undefined;
     }
   }
 
@@ -427,4 +441,12 @@ export class SpecRunBase {
     );
     return { heads, dirtyRepos: dirtyReposOf(worktrees) };
   }
+}
+
+function readingIn(
+  list: UsageList | undefined,
+  account: number,
+): AccountReading {
+  const usage = list?.readings.find((r) => r.account === account)?.usage;
+  return { account, usage };
 }

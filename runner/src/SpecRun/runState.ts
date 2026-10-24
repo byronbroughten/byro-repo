@@ -246,6 +246,9 @@ export type StepLaunch = Pick<StepRequest, "prompt" | "jsonSchema"> &
     >
   >;
 
+// A spec-level step's request before the launcher picks its account.
+export type SpecStepRequest = Omit<StepRequest, "account">;
+
 export type Crash = Pick<StepFailure, "detail" | "logPath">;
 
 // Saved with the step's own state when it advances, so a rerun of the step never raises them twice.
@@ -398,15 +401,13 @@ export function lastSessionOf(
     ?.sessionId;
 }
 
-// A session saved before #367 takes the configured account and the ticket's last config folder; one with no folder is left out.
-export function recordedSessionsOf(
-  state: TicketState,
-  account: number,
-): RecordedSession[] {
+// A session saved before #367 takes the ticket's last config folder; one with no folder or account is left out.
+export function recordedSessionsOf(state: TicketState): RecordedSession[] {
   return state.sessions.flatMap((session) => {
     const configFolder = session.configFolder ?? state.configFolder;
-    if (configFolder === undefined) return [];
-    return [{ account, ...session, configFolder }];
+    const { account } = session;
+    if (configFolder === undefined || account === undefined) return [];
+    return [{ ...session, account, configFolder }];
   });
 }
 

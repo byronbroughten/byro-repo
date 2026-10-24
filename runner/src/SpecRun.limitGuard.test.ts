@@ -158,7 +158,10 @@ describe("run's limit guard", () => {
 
   it("warns once per run on a missing reading and launches each step unguarded", async () => {
     addSpec([1, 2]);
-    scriptUsage(new Error("cswap: not found"));
+    scriptUsage({
+      readings: [{ account: 1, usage: undefined }],
+      activeAccount: 1,
+    });
     const agentStep = FakeAgentStep.init(
       implemented("one.ts"),
       reviewed(),
