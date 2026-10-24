@@ -185,7 +185,7 @@ function readFirstReason(missing: ReadFirstRow[], docsRead: string[]): string {
     .map((doc) => `${doc.path} (${doc.name})`);
   const rules = missing.flatMap((row) => row.rules).join(" ");
   return (
-    `Read ${docs.join(" and ")} in full before this edit, then retry. ` +
+    `Read ${docs.join(" and ")} in full before this write, then retry. ` +
     `${fullReadHowTo}. ${rules}`
   );
 }
