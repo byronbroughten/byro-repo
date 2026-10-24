@@ -1,5 +1,5 @@
 // The limit guard: from the usage reading of the account a step will run on, decides whether it runs now.
-// readCswapList turns `cswap list --json` into readings and the active account; decideStep is the pure decision over one.
+// readCswapList turns `cswap list --json` into readings and the active account; decideStep is the pure decision over one account's usage.
 // AgentStep.ts owns UsageWindow, the same shape a step's own rate-limit events report.
 
 import type { UsageWindow } from "./AgentStep.ts";
