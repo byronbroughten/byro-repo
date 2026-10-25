@@ -2,6 +2,8 @@
 import { existsSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { clonePathsOf } from "@byronbroughten/spec-runner/clonePaths";
+
 import { isFullDocBashRead, isFullDocRead } from "./lib/fullDocRead.ts";
 import {
   type HookInput,
@@ -45,6 +47,7 @@ await runFailOpen(() => {
       generatedDirs: readSheetsConfigs(projectDir).map(
         ({ generatedDir }) => generatedDir,
       ),
+      clonePaths: clonePathsOf(projectDir),
     },
     docsRead,
   );

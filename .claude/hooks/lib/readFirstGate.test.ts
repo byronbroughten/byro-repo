@@ -20,6 +20,10 @@ const generatedDirs = [
   "packages/real-estate/src/generated",
   "packages/framework/dev/generated",
 ];
+const clonePaths = {
+  "byro-repo": ".",
+  personal: "packages/diary",
+};
 const allDocs = readFirstRows.flatMap((row) => row.docs.map((doc) => doc.path));
 function except(...docPaths: string[]): string[] {
   return allDocs.filter((read) => !docPaths.includes(read));
@@ -31,7 +35,7 @@ function call(
   cwd = projectDir,
 ): EditDecision {
   return readFirstDecision(
-    { projectDir, cwd, toolName, toolInput, generatedDirs },
+    { projectDir, cwd, toolName, toolInput, generatedDirs, clonePaths },
     docsRead,
   );
 }
@@ -235,7 +239,7 @@ describe("the prose-style row", () => {
       edit("AGENTS.md", unread, "/repo/packages/framework/src").denyReason,
     ).toBeDefined();
     expect(
-      edit("../writing/pieces/a.md", unread, "/repo/packages/framework"),
+      edit("../diary/writing/pieces/a.md", unread, "/repo/packages/framework"),
     ).toEqual(allowed);
   });
 
@@ -247,14 +251,44 @@ describe("the prose-style row", () => {
   });
 
   it.each([
-    "/repo/packages/writing/pieces/a.md",
+    "/repo/packages/diary/writing/pieces/a.md",
     "/repo/docs/agents/outcomes/byro-repo-382/byro-repo-384.md",
     "/repo/package.json",
     "/elsewhere/AGENTS.md",
     "/repo/node_modules/x/README.md",
-    "/repo/.claude/worktrees/agent-1/packages/writing/pieces/a.md",
+    "/repo/.claude/worktrees/agent-1/packages/diary/writing/pieces/a.md",
   ])("allows %s, which the row skips", (path) => {
     expect(edit(path, unread)).toEqual(allowed);
+  });
+
+  it.each([
+    "/repo/packages/diary/AGENTS.md",
+    "/repo/packages/diary/inbox/a.md",
+    "/repo/packages/diary/private/a.md",
+    "/repo/packages/writing/pieces/a.md",
+  ])("refuses %s, outside the personal clone's writing folder", (path) => {
+    expect(edit(path, unread).denyReason).toMatch(/docs\/prose-style\.md/);
+  });
+
+  it("skips only the outcome records when the map has no personal clone", () => {
+    const withoutPersonal = (filePath: string): EditDecision =>
+      readFirstDecision(
+        {
+          projectDir,
+          cwd: projectDir,
+          toolName: "Edit",
+          toolInput: { file_path: filePath },
+          generatedDirs,
+          clonePaths: { "byro-repo": "." },
+        },
+        unread,
+      );
+    expect(
+      withoutPersonal("/repo/packages/diary/writing/pieces/a.md").denyReason,
+    ).toBeDefined();
+    expect(
+      withoutPersonal("/repo/docs/agents/outcomes/byro-repo-382/a.md"),
+    ).toEqual(allowed);
   });
 
   it("allows a code edit", () => {
