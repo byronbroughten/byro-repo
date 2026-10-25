@@ -125,7 +125,9 @@ export const readFirstRows: ReadFirstRow[] = [
       { path: proseStylePath, name: "the prose rules", marker: "prose-read" },
     ],
     rules: [skipReasoningRule(join("docs", "prose-style") + sep)],
-    ...fileEdits(isGatedProse),
+    tools: ["Edit", "Write"],
+    covers: ({ target, clonePaths }) =>
+      target !== undefined && isGatedProse(target, clonePaths),
   },
   {
     docs: [
@@ -188,16 +190,12 @@ export function readFirstDecision(
 }
 
 function fileEdits(
-  isCovered: (
-    target: string,
-    generatedDirs: string[],
-    clonePaths: Record<string, string>,
-  ) => boolean,
+  isCovered: (target: string, generatedDirs: string[]) => boolean,
 ): Pick<ReadFirstRow, "tools" | "covers"> {
   return {
     tools: ["Edit", "Write"],
-    covers: ({ target, generatedDirs, clonePaths }) =>
-      target !== undefined && isCovered(target, generatedDirs, clonePaths),
+    covers: ({ target, generatedDirs }) =>
+      target !== undefined && isCovered(target, generatedDirs),
   };
 }
 
@@ -250,7 +248,6 @@ function isFrameworkSource(target: string, generatedDirs: string[]): boolean {
 
 function isGatedProse(
   target: string,
-  _generatedDirs: string[],
   clonePaths: Record<string, string>,
 ): boolean {
   if (!target.endsWith(".md") || !isUnignoredProjectFile(target)) return false;
