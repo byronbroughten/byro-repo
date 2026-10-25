@@ -80,6 +80,18 @@ describe("clonePathsOf", () => {
     );
     rmSync(twins, { recursive: true, force: true });
   });
+
+  it("refuses a clone with no origin remote, naming its folder", () => {
+    const orphan = mkdtempSync(join(tmpdir(), "clone-paths-orphan-"));
+    fixture.copyTo(orphan);
+    const root = join(orphan, "byro-repo");
+    git(join(root, "packages/utils"), "remote", "remove", "origin");
+
+    expect(() => clonePathsOf(root)).toThrow(
+      "packages/utils has a .git but no origin remote",
+    );
+    rmSync(orphan, { recursive: true, force: true });
+  });
 });
 
 function packageFile(

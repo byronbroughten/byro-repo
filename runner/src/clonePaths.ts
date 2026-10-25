@@ -28,7 +28,7 @@ export function clonePathsOf(primaryRoot: string): Record<string, string> {
       paths[repo] = clonePath;
       return paths;
     },
-    { [originRepoOf(primaryRoot)]: "." },
+    { [originRepoOf(primaryRoot, ".")]: "." },
   );
 }
 
@@ -40,13 +40,12 @@ function packageFoldersOf(primaryRoot: string): Dirent[] {
 }
 
 function cloneOf(primaryRoot: string, clonePath: string): Clone {
-  const folder = join(primaryRoot, clonePath);
-  const packageFilePath = join(folder, "package.json");
+  const packageFilePath = join(primaryRoot, clonePath, "package.json");
   const packageFile = existsSync(packageFilePath)
     ? (JSON.parse(readFileSync(packageFilePath, "utf8")) as PackageFile)
     : {};
   return {
-    repo: originRepoOf(folder),
+    repo: originRepoOf(primaryRoot, clonePath),
     clonePath,
     packageName: packageFile.name,
     dependencyNames: Object.keys({
@@ -65,17 +64,24 @@ interface PackageFile {
 }
 
 // The last segment of the origin URL, so an https, ssh or local-path remote all give the bare repo name.
-function originRepoOf(folder: string): string {
-  const url = execFileSync("git", ["remote", "get-url", "origin"], {
-    cwd: folder,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  }).trim();
-  return url
+function originRepoOf(primaryRoot: string, clonePath: string): string {
+  const folder = join(primaryRoot, clonePath);
+  if (!gitIn(folder, "remote").split("\n").includes("origin")) {
+    throw new Error(`${clonePath} has a .git but no origin remote`);
+  }
+  return gitIn(folder, "remote", "get-url", "origin")
     .replace(/\/+$/, "")
     .replace(/\.git$/, "")
     .split(/[/:]/)
     .at(-1) as string;
+}
+
+function gitIn(folder: string, ...args: string[]): string {
+  return execFileSync("git", args, {
+    cwd: folder,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  }).trim();
 }
 
 // Folder order, except that a clone waits for every clone whose package it depends on.
