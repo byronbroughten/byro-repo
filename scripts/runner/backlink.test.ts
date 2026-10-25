@@ -52,6 +52,15 @@ describe("backlinkLineOf", () => {
     );
   });
 
+  it("refuses a path in no clone when the root isn't a clone", () => {
+    const frameworkOnly = {
+      ...clones,
+      clonePaths: { "sheets-framework": "packages/framework" },
+    };
+
+    expect(() => backlinkLineOf(rootAdr, frameworkOnly)).toThrow("no clone");
+  });
+
   it("refuses an ADR path with no file behind it", () => {
     expect(() =>
       backlinkLineOf("docs/adr/0099-not-written.md", clones),

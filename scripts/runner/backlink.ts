@@ -31,10 +31,13 @@ function cloneOf(
   path: string,
   { clonePaths }: Clones,
 ): { repo: string; pathInClone: string } {
-  const [repo = "", folder = ""] =
-    Object.entries(clonePaths)
-      .filter(([, folder]) => folder === "." || path.startsWith(`${folder}/`))
-      .sort(([, a], [, b]) => b.length - a.length)[0] ?? [];
+  const clone = Object.entries(clonePaths)
+    .filter(([, folder]) => folder === "." || path.startsWith(`${folder}/`))
+    .sort(([, a], [, b]) => b.length - a.length)[0];
+  if (clone === undefined) {
+    throw new Error(`${path} sits in no clone of clonePaths.`);
+  }
+  const [repo, folder] = clone;
   const pathInClone = folder === "." ? path : path.slice(folder.length + 1);
   return { repo, pathInClone };
 }
