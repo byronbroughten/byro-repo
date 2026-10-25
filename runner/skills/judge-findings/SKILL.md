@@ -8,6 +8,8 @@ disable-model-invocation: true
 
 **The runner only creates review-list comments; this skill only edits them.** Never post a new review-list comment, never delete one, never remove an item.
 
+**Weigh your pre-filled answers and the recommendations you put to the developer against the [Codebase Priorities](../../../docs/agents/codebase-priorities.md).**
+
 ## 1. Read the list
 
 - Resolve `<repo>` to `<owner>/<repo>` the way [`docs/agents/issue-tracker.md`](../../../docs/agents/issue-tracker.md) does, and pass `-R` on every `gh issue` call.
