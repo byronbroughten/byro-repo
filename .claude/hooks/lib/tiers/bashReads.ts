@@ -421,15 +421,20 @@ function segmentsOf(tokens: Token[]): Segment[] {
   const segments: Segment[] = [];
   let current = newSegment(false);
   let redirect: string | undefined;
+  let didWriteBefore = false;
   for (const token of tokens) {
     if (token.type === "word") {
       if (redirect === "<") current.inputFiles.push(token.value);
       else if (!redirect) current.words.push(token.value);
+      else if (isDiscardRedirect(redirect, token.value)) {
+        current.writesFile = didWriteBefore;
+      }
       redirect = undefined;
       continue;
     }
     if (token.type === "redirect") {
       redirect = token.value;
+      didWriteBefore = current.writesFile;
       if (token.value.includes(">")) current.writesFile = true;
       continue;
     }
@@ -439,6 +444,14 @@ function segmentsOf(tokens: Token[]): Segment[] {
   }
   segments.push(current);
   return segments;
+}
+
+// A copy to a descriptor number, or /dev/null; bash opens `>&name` and `&>2` as files.
+function isDiscardRedirect(redirect: string, target: string): boolean {
+  if (redirect === "<>") return false;
+  return (
+    target === "/dev/null" || (redirect.endsWith("&") && /^\d+$/.test(target))
+  );
 }
 
 function newSegment(isPiped: boolean): Segment {
