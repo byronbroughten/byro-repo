@@ -213,6 +213,7 @@ export function resultOf(record: unknown): StepResult {
     errorText: undefined,
     usage: undefined,
     limitHit: undefined,
+    deniedTools: [],
   };
 }
 

@@ -87,6 +87,7 @@ export class HaltRaiser extends SpecRunBase {
   async _raiseBlockerHalts(
     ticketRun: TicketRun,
     blockers: Blocker[],
+    deniedTools: string[],
   ): Promise<void> {
     if (blockers.length === 0) return;
     const downstream = await this._downstreamOf(
@@ -95,7 +96,9 @@ export class HaltRaiser extends SpecRunBase {
     );
     raiseHalts(ticketRun.run, {
       ticket: ticketRun.ticket.issue,
-      drafts: blockers.map((blocker) => blockerHaltOf(blocker, downstream)),
+      drafts: blockers.map((blocker) =>
+        blockerHaltOf(blocker, { downstream, deniedTools }),
+      ),
     });
   }
 

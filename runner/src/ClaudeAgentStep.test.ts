@@ -94,7 +94,17 @@ describe("ClaudeAgentStep on a recorded success", () => {
         sevenDay: { utilization: 0.5, resetsAt: new Date(1791903600_000) },
       },
       limitHit: undefined,
+      deniedTools: [],
     });
+  });
+
+  // Derived from the success recording with two entries in its result's permission_denials.
+  it("returns the name of each tool its result records as denied", async () => {
+    const { result } = await replay("permissionDenials.ndjson");
+    expect(result.deniedTools).toEqual([
+      "Bash",
+      "mcp__gworkspace__modify_sheet_values",
+    ]);
   });
 });
 

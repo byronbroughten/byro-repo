@@ -29,6 +29,7 @@ function result(sessionId: string): StepResult {
     errorText: undefined,
     usage: undefined,
     limitHit: undefined,
+    deniedTools: [],
   };
 }
 
