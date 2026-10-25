@@ -2,7 +2,7 @@
 // ending in place of the step's record-returning one. The committed skill is runner/skills/implement-code/SKILL.md;
 // byro-repo's drift test regenerates it from byro-repo's commands.
 
-import { implementBody } from "./implementStep.ts";
+import { implementBody, ticketBindsSection } from "./implementStep.ts";
 import { stepReadLine } from "./IssueReader.ts";
 import { sectionOf } from "./promptText.ts";
 import { resolveRecordFields } from "./resolveStep.ts";
@@ -22,6 +22,7 @@ export function implementCodeSkillOf(input: ImplementCodeSkillInput): string {
     "`/implement-code <repo>#<n>` implements one ticket in an interactive session, from the same body as the spec runner's implement step; only the ending differs.",
     openingSection(input),
     workingSection(),
+    ticketBindsSection(),
     gitHubSection(),
     endingSection(input),
   ].join("\n\n")}\n`;

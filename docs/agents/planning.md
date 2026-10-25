@@ -10,7 +10,9 @@
 
 ## Code in specs
 
-- **Code in a spec or ticket is only a shape that is itself the decision**: a record, type or schema, or a state machine. Its names are binding, so write them as the code will land ([naming](../../config/docs/code-style.md#naming)).
+- **Inline a shape (a record, type, schema or state machine) only when prose can't state the decision as precisely.**
+- **A shape binds what it decides: which facts a record carries, which states and transitions exist, what a type allows.** Its form doesn't bind: names, how it's split, or whether it's a new type at all ([the implementer's precedence](../../runner/skills/implement-code/SKILL.md#what-the-ticket-binds)).
+- **Wording is verbatim only when the developer has said it is exact.** A planner never treats the developer's casual phrasing as verbatim.
 - **A ticket that changes a tier rule quotes the row of the tier table it changes and says whether the change is stricter or looser.**
 
 ## Test seams
