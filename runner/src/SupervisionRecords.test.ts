@@ -6,7 +6,11 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { eventFilePathOf } from "./EventFileNotices.ts";
-import type { IssueRef, LeaseHolder } from "./IssueWorkspaces.ts";
+import {
+  fileStemOf,
+  type IssueRef,
+  type LeaseHolder,
+} from "./IssueWorkspaces.ts";
 import { deadPid, seedHolder } from "./lockFixture.ts";
 import { SupervisionRecords } from "./SupervisionRecords.ts";
 
@@ -40,7 +44,7 @@ function appendEvents(of: IssueRef, ...lines: string[]): void {
 
 function seedRunLock(of: IssueRef, pid: number): void {
   mkdirSync(stateFolder, { recursive: true });
-  seedHolder(join(stateFolder, `${of.repo}-${of.number}.run.lock`), {
+  seedHolder(join(stateFolder, `${fileStemOf(of)}.run.lock`), {
     pid,
     host: hostname(),
     startedAt: "2026-01-01",
