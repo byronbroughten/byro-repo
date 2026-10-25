@@ -1,12 +1,11 @@
-import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { hostname } from "node:os";
 import { join } from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { FakeAgentStep } from "./FakeAgentStep.ts";
-import type { LockHolder } from "./LandingLock.ts";
+import { deadPid, seedHolder } from "./lockFixture.ts";
 import { runKnobsOf } from "./runKnobs.ts";
 import { RunLock } from "./RunLock.ts";
 import type { RunResult } from "./SpecRun.ts";
@@ -28,23 +27,14 @@ import {
 
 useSpecRunHarness();
 
-function seedLock(content: string): void {
+beforeEach(() => {
   mkdirSync(stateFolder(), { recursive: true });
-  writeFileSync(runLockPath(), content);
-}
-
-function seedHolder(holder: LockHolder): void {
-  seedLock(JSON.stringify(holder));
-}
-
-function deadPid(): number {
-  return Number(execFileSync("node", ["-e", "console.log(process.pid)"]));
-}
+});
 
 describe("run's run lock", () => {
   it("refuses a run whose spec's lock a running pid holds, naming that pid and its start time, and leaves the lock and a stop request alone", async () => {
     addSpec([1]);
-    seedHolder({
+    seedHolder(runLockPath(), {
       pid: process.pid,
       host: hostname(),
       startedAt: "2026-10-12T08:00:00Z",
@@ -68,7 +58,7 @@ describe("run's run lock", () => {
 
   it("counts an unreadable lock as held", async () => {
     addSpec([1]);
-    seedLock("{ half-written");
+    writeFileSync(runLockPath(), "{ half-written");
 
     const result = await specRun(FakeAgentStep.init()).run(spec);
 
@@ -78,7 +68,11 @@ describe("run's run lock", () => {
 
   it("takes over a lock whose pid has died, and the run proceeds", async () => {
     addSpec([1]);
-    seedHolder({ pid: deadPid(), host: hostname(), startedAt: "2026-01-01" });
+    seedHolder(runLockPath(), {
+      pid: deadPid(),
+      host: hostname(),
+      startedAt: "2026-01-01",
+    });
     const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
 
     const result = await specRun(agentStep).run(spec);

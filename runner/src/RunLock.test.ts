@@ -1,12 +1,11 @@
-import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { IssueRef } from "./IssueWorkspaces.ts";
-import type { LockHolder } from "./LandingLock.ts";
+import { deadPid, seedHolder } from "./lockFixture.ts";
 import { RunLock } from "./RunLock.ts";
 
 const spec: IssueRef = { repo: "byro-repo", number: 213 };
@@ -20,25 +19,26 @@ afterEach(() => {
   rmSync(stateFolder, { recursive: true, force: true });
 });
 
-function seedHolder(holder: LockHolder): void {
-  writeFileSync(
-    join(stateFolder, "byro-repo-213.run.lock"),
-    JSON.stringify(holder),
-  );
-}
-
-function deadPid(): number {
-  return Number(execFileSync("node", ["-e", "console.log(process.pid)"]));
+function lockPath(): string {
+  return join(stateFolder, "byro-repo-213.run.lock");
 }
 
 describe("RunLock.isHeld", () => {
   it("answers yes for a lock this host's running pid holds", () => {
-    seedHolder({ pid: process.pid, host: hostname(), startedAt: "2026-01-01" });
+    seedHolder(lockPath(), {
+      pid: process.pid,
+      host: hostname(),
+      startedAt: "2026-01-01",
+    });
     expect(RunLock.isHeld(stateFolder, spec)).toBe(true);
   });
 
   it("answers no for a lock whose pid has died", () => {
-    seedHolder({ pid: deadPid(), host: hostname(), startedAt: "2026-01-01" });
+    seedHolder(lockPath(), {
+      pid: deadPid(),
+      host: hostname(),
+      startedAt: "2026-01-01",
+    });
     expect(RunLock.isHeld(stateFolder, spec)).toBe(false);
   });
 
