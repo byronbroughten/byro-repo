@@ -1,4 +1,4 @@
-import { cpSync, existsSync, readFileSync } from "node:fs";
+import { cpSync, existsSync, readFileSync, renameSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -9,6 +9,7 @@ import { IssueWorkspaces } from "./IssueWorkspaces.ts";
 import { writeOutcomeRow } from "./outcomeRowWriter.ts";
 import type { RecordedSession, StepAgent } from "./transcriptFacts.ts";
 import {
+  clonePaths,
   commitIn,
   github,
   outcomePath,
@@ -255,6 +256,27 @@ describe("run", () => {
     expect(git(remoteOf("sheets-framework"), "rev-parse", "master")).toBe(
       git(primaryOf("sheets-framework"), "rev-parse", "master"),
     );
+  });
+
+  it("lands a workspace built before its clone's primary moved folders", async () => {
+    const workspace = await workspaceWith(["sheets-framework"]);
+    commitIn(workspace, "sheets-framework", "core.ts", "export {};\n");
+    writeFacts();
+    const movedPrimary = join(primaryRoot, "packages/sheets");
+    renameSync(primaryOf("sheets-framework"), movedPrimary);
+
+    await wrapUp({
+      workspaces: {
+        ...workspacesConfig(),
+        clonePaths: { ...clonePaths, "sheets-framework": "packages/sheets" },
+      },
+    }).run(ticket);
+
+    expect(git(movedPrimary, "log", "-2", "--format=%s", "master")).toBe(
+      "Merge issue-218-wrap-up-script into master (#218)\nAdd core.ts",
+    );
+    expect(existsSync(join(movedPrimary, "core.ts"))).toBe(true);
+    expect(existsSync(workspace.path)).toBe(false);
   });
 
   it("commits the row to the root even when only a clone's branch lands", async () => {

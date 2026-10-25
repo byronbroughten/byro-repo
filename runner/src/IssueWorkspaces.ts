@@ -9,6 +9,7 @@ import { execFile } from "node:child_process";
 import {
   copyFileSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   readdirSync,
   readFileSync,
@@ -17,7 +18,7 @@ import {
   symlinkSync,
   writeFileSync,
 } from "node:fs";
-import { basename, join } from "node:path";
+import { basename, dirname, join, sep } from "node:path";
 import { promisify } from "node:util";
 
 import {
@@ -435,14 +436,18 @@ export class IssueWorkspaces {
   }
 
   private _linkSharedFiles(path: string): void {
-    Object.values(this.config.clonePaths).forEach((clonePath) => {
-      this.config.symlinkedFiles.forEach((file) => {
-        const target = join(this.config.primaryRoot, clonePath, file);
-        if (existsSync(target)) {
-          symlinkSync(target, join(path, clonePath, file));
-        }
-      });
-    });
+    Object.values(this.config.clonePaths).forEach((clonePath) =>
+      this._linkSharedFilesOf(path, clonePath),
+    );
+  }
+
+  private _linkSharedFilesOf(path: string, clonePath: string): void {
+    this.config.symlinkedFiles.forEach((file) =>
+      linkSharedFile({
+        target: join(this.config.primaryRoot, clonePath, file),
+        link: join(path, clonePath, file),
+      }),
+    );
   }
 
   // macOS clones with -c and Linux with --reflink=auto (plain copy without it); npm-workspace links are relative, so they resolve to the workspace's own packages.
@@ -511,7 +516,8 @@ export class IssueWorkspaces {
     return worktree;
   }
 
-  private _repoWorktreesOf(path: string): Promise<RepoWorktree[]> {
+  private async _repoWorktreesOf(path: string): Promise<RepoWorktree[]> {
+    await this._relocateMovedWorktrees(path);
     const present = this._clonesRootFirst
       .map(([repo, clonePath]) => ({ repo, worktree: join(path, clonePath) }))
       .filter(({ worktree }) => existsSync(worktree));
@@ -522,6 +528,22 @@ export class IssueWorkspaces {
         state: await worktreeStateOf(worktree),
       })),
     );
+  }
+
+  // A workspace built before its primary clone moved holds that repo's worktree at the old folder, which every path here would miss.
+  private async _relocateMovedWorktrees(path: string): Promise<void> {
+    for (const clonePath of Object.values(this.config.clonePaths)) {
+      const worktree = join(path, clonePath);
+      const primaryClone = join(this.config.primaryRoot, clonePath);
+      if (existsSync(worktree) || !existsSync(primaryClone)) continue;
+      // The moved primary's linked worktrees still point at its old folder until repaired.
+      await git(primaryClone, "worktree", "repair");
+      const [moved] = await worktreesInside(primaryClone, path);
+      if (moved === undefined) continue;
+      mkdirSync(dirname(worktree), { recursive: true });
+      await git(primaryClone, "worktree", "move", moved, worktree);
+      this._linkSharedFilesOf(path, clonePath);
+    }
   }
 
   private _keyOfFolder(name: string): WorkspaceKey | undefined {
@@ -615,6 +637,11 @@ interface MatchingBranches {
 interface WorktreeTarget {
   primaryClone: string;
   worktree: string;
+}
+
+interface SharedFileLink {
+  target: string;
+  link: string;
 }
 
 const sessionBranchPrefix = "session-";
@@ -746,6 +773,27 @@ async function branchOriginOf(
   const [remoteBranch] = remote;
   if (remoteBranch !== undefined) return { kind: "remote", remoteBranch };
   return { kind: "new" };
+}
+
+// A link a moved primary clone left pointing at its old folder is replaced; a real file in its place is the developer's and stays.
+function linkSharedFile({ target, link }: SharedFileLink): void {
+  if (!existsSync(target)) return;
+  if (lstatSync(link, { throwIfNoEntry: false })?.isSymbolicLink()) {
+    rmSync(link);
+  }
+  if (!existsSync(link)) symlinkSync(target, link);
+}
+
+async function worktreesInside(
+  primaryClone: string,
+  folder: string,
+): Promise<string[]> {
+  const listing = await git(primaryClone, "worktree", "list", "--porcelain");
+  return lines(listing).flatMap((line) => {
+    if (!line.startsWith("worktree ")) return [];
+    const worktree = line.slice("worktree ".length);
+    return worktree.startsWith(`${folder}${sep}`) ? [worktree] : [];
+  });
 }
 
 function escapeRegExp(text: string): string {

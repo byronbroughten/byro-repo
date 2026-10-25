@@ -1,4 +1,10 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  readFileSync,
+  realpathSync,
+  renameSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -7,6 +13,7 @@ import { git } from "./GitFixture.ts";
 import {
   advanceMaster,
   branchOf,
+  clonePaths,
   primaryRoot,
   primaryStates,
   useIssueWorkspacesHarness,
@@ -230,5 +237,104 @@ describe("resume", () => {
     expect(readFileSync(join(workspace.path, "README.md"), "utf8")).toBe(
       "edited on the branch",
     );
+  });
+});
+
+describe("after a primary clone moves", () => {
+  const movedClonePaths = { ...clonePaths, utils: "packages/tools" };
+
+  function moveUtilsClone(): void {
+    renameSync(
+      join(primaryRoot, "packages/utils"),
+      join(primaryRoot, "packages/tools"),
+    );
+  }
+
+  it("finds a workspace built before the move with its worktree at the clone's new folder", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "spans", extraRepos: ["utils"] },
+    );
+    writeFileSync(join(workspace.path, "packages/utils/README.md"), "edited");
+    moveUtilsClone();
+
+    const found = await workspaces({ clonePaths: movedClonePaths }).find({
+      repo: "byro-repo",
+      number: 7,
+    });
+
+    const tools = join(workspace.path, "packages/tools");
+    expect(found?.branchedRepos).toEqual(["byro-repo", "utils"]);
+    expect(found?.dirtyRepos).toEqual(["utils"]);
+    expect(branchOf(tools)).toBe("issue-7-spans");
+    expect(readFileSync(join(tools, "README.md"), "utf8")).toBe("edited");
+    expect(existsSync(join(workspace.path, "packages/utils"))).toBe(false);
+  });
+
+  it("points a moved worktree's shared-file links at the moved clone", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "spans" },
+    );
+    renameSync(
+      join(primaryRoot, "packages/framework"),
+      join(primaryRoot, "packages/sheets"),
+    );
+
+    await workspaces({
+      clonePaths: { ...clonePaths, "sheets-framework": "packages/sheets" },
+    }).find({ repo: "byro-repo", number: 7 });
+
+    expect(
+      realpathSync(join(workspace.path, "packages/sheets/sheets.config.json")),
+    ).toBe(join(primaryRoot, "packages/sheets/sheets.config.json"));
+  });
+
+  it("resumes a moved detached repo onto the moved primary's master", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "spans" },
+    );
+    moveUtilsClone();
+    const newerUtils = advanceMaster("packages/tools", "newer.txt");
+
+    await workspaces({ clonePaths: movedClonePaths }).start({
+      repo: "byro-repo",
+      number: 7,
+    });
+
+    const tools = join(workspace.path, "packages/tools");
+    expect(branchOf(tools)).toBeUndefined();
+    expect(git(tools, "rev-parse", "HEAD")).toBe(newerUtils);
+  });
+
+  it("refuses to resume when the moved detached repo is dirty, naming it", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "spans" },
+    );
+    writeFileSync(join(workspace.path, "packages/utils/new.txt"), "untracked");
+    moveUtilsClone();
+
+    await expect(
+      workspaces({ clonePaths: movedClonePaths }).start({
+        repo: "byro-repo",
+        number: 7,
+      }),
+    ).rejects.toThrow(/uncommitted changes in utils/);
+  });
+
+  it("builds a workspace made after the move at the clone's new folder", async () => {
+    moveUtilsClone();
+
+    const workspace = await workspaces({ clonePaths: movedClonePaths }).create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "spans", extraRepos: ["utils"] },
+    );
+
+    expect(branchOf(join(workspace.path, "packages/tools"))).toBe(
+      "issue-7-spans",
+    );
+    expect(existsSync(join(workspace.path, "packages/utils"))).toBe(false);
   });
 });
