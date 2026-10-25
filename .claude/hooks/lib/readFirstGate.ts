@@ -43,6 +43,12 @@ interface CoveredCall {
 
 export const tierTablePath = join("docs", "targets-and-gates.md");
 export const codeStylePath = join("config", "docs", "code-style.md");
+export const frameworkStylePath = join(
+  "packages",
+  "framework",
+  "docs",
+  "code-style.md",
+);
 export const proseStylePath = join("docs", "prose-style.md");
 export const writingDocPaths = {
   voice: join("docs", "writing-voice.md"),
@@ -56,6 +62,10 @@ const tierCode = {
     join("runner", "src", "claudeWriteDecision.ts"),
   ]),
 } as const;
+const frameworkRoots = [
+  join("packages", "framework"),
+  join("packages", "real-estate"),
+].map((root) => root + sep);
 const proseSkippedRoots = [
   join("packages", "writing"),
   join("docs", "agents", "outcomes"),
@@ -92,11 +102,23 @@ export const readFirstRows: ReadFirstRow[] = [
     docs: [
       { path: codeStylePath, name: "the code rules", marker: "style-read" },
     ],
-    rules: [
-      skipReasoningRule(join("config", "docs", "code-style") + sep),
-      "Framework or app code also follows packages/framework/docs/code-style.md.",
-    ],
+    rules: [skipReasoningRule(join("config", "docs", "code-style") + sep)],
     ...fileEdits(isLintedSource),
+  },
+  {
+    docs: [
+      {
+        path: frameworkStylePath,
+        name: "the framework's code rules",
+        marker: "framework-style-read",
+      },
+    ],
+    rules: [
+      skipReasoningRule(
+        join("packages", "framework", "docs", "code-style") + sep,
+      ),
+    ],
+    ...fileEdits(isFrameworkSource),
   },
   {
     docs: [
@@ -204,6 +226,13 @@ function isSettingsFile(target: string): boolean {
     parts.at(-2) === ".claude" &&
     fileName.startsWith("settings") &&
     fileName.endsWith(".json")
+  );
+}
+
+function isFrameworkSource(target: string, generatedDirs: string[]): boolean {
+  return (
+    frameworkRoots.some((root) => target.startsWith(root)) &&
+    isLintedSource(target, generatedDirs)
   );
 }
 
