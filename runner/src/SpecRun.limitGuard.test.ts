@@ -51,7 +51,7 @@ describe("run's limit guard", () => {
     expect(result.landed).toEqual([refOf(1)]);
     expect(sleeps).toEqual([60_000, 60_000]);
     expect(noticeSummaries()).toEqual([
-      "Run started on 1 tickets as account 1: 5-hour 92%, weekly 50%.",
+      "Run started on 1 tickets as account 1: 5-hour 92%, weekly 50%. Launching byro-repo #1.",
       "Limit wait: account 1 is at 92% of its 5-hour limit; continuing after 2026-10-12T11:05:00.000Z. Switching to an account with headroom with cswap continues the run now.",
       result.message,
     ]);
@@ -151,7 +151,7 @@ describe("run's limit guard", () => {
     });
     expect(agentStep.requests).toEqual([]);
     expect(noticeSummaries()).toEqual([
-      "Run started on 1 tickets as account 1: 5-hour 30%, weekly 96%.",
+      "Run started on 1 tickets as account 1: 5-hour 30%, weekly 96%. Launching byro-repo #1.",
       result.message,
     ]);
     scriptUsage(usageListOf(0.3, 0.5));
@@ -231,7 +231,7 @@ describe("run's limit guard", () => {
       "The step hit an unrecognised limit error; its reset is unknown.",
     );
     expect(noticeSummaries()).toEqual([
-      "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%.",
+      "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%. Launching byro-repo #1.",
       "Unrecognised limit error on account 1; the saved stream can tighten detection.",
       result.message,
     ]);
@@ -255,7 +255,7 @@ describe("run's limit guard", () => {
 
     expect(result.landed).toEqual([refOf(1), refOf(2)]);
     expect(noticeSummaries()).toEqual([
-      "Run started on 2 tickets as account 1: no usage reading.",
+      "Run started on 2 tickets as account 1: no usage reading. Launching byro-repo #1.",
       "No usage reading for account 1; steps launch unguarded.",
       result.message,
     ]);
@@ -290,7 +290,7 @@ describe("run's timings", () => {
 
     expect(timingLines()).toEqual([
       "Preflight passed in 0s.",
-      "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%.",
+      "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%. Launching byro-repo #1.",
       "byro-repo #1: workspace took 4s.",
       "byro-repo #1: implement took 90s.",
       "byro-repo #1: review took 30s.",
@@ -317,7 +317,7 @@ describe("run's timings", () => {
 
     expect(timingLines()).toEqual([
       "Preflight passed in 0s.",
-      "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%.",
+      "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%. Launching byro-repo #1.",
       "byro-repo #1: workspace took 4s.",
       "byro-repo #1: implement took 60s.",
       "byro-repo #1: review took 20s.",

@@ -12,7 +12,8 @@ const runEndings = ["stopped", "finished", "crashed", "refused"] as const;
 export type RunEnding = (typeof runEndings)[number];
 
 // The events a Supervisor wakes on.
-export type NoticeKind = "halt" | "failure-halt" | "idle" | RunEnding;
+export type NoticeKind =
+  "run-started" | "halt" | "failure-halt" | "idle" | RunEnding;
 
 export function isRunEnding(kind: NoticeKind): kind is RunEnding {
   return (runEndings as readonly NoticeKind[]).includes(kind);
@@ -27,6 +28,8 @@ export interface Notice {
   kind?: NoticeKind;
   ticket?: IssueRef;
   commentUrl?: string;
+  // What startup found worth a look; a run-started notice's, empty when it found nothing.
+  warnings?: string[];
 }
 
 // Every adapter gets every notice, even after one fails; the first failure is rethrown.

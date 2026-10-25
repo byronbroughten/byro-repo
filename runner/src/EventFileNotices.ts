@@ -15,9 +15,10 @@ export interface EventLine {
   time: string;
   spec: string;
   ticket?: string;
-  kind: "halt" | "failure-halt" | "idle" | "run-ended";
+  kind: "run-started" | "halt" | "failure-halt" | "idle" | "run-ended";
   ending?: RunEnding;
   summary: string;
+  warnings?: string[];
   // The spec issue's when the event posted no comment.
   commentUrl: string;
 }
@@ -57,6 +58,7 @@ export class EventFileNotices implements Notices {
       kind: isEnd ? "run-ended" : kind,
       ...(isEnd && { ending: kind }),
       summary: notice.summary,
+      ...(notice.warnings && { warnings: notice.warnings }),
       commentUrl: notice.commentUrl ?? notice.link,
     };
   }
