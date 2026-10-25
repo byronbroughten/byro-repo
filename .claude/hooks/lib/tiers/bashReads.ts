@@ -4,6 +4,7 @@ import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import type { HookInput } from "../hookIo.ts";
+import { rootRelative } from "../lintSet.ts";
 import { readSheetsConfigs } from "../sheetsConfigs.ts";
 
 export const largeFileLines = 150;
@@ -158,7 +159,7 @@ export class BashReads {
   ): string | undefined {
     if (read.kind === "search") return undefined;
     const shown = relative(this.projectDir, path);
-    if (this._columnConfigsPaths().includes(path)) {
+    if (this._isColumnConfigs(path)) {
       if (
         read.kind === "range" &&
         read.span !== undefined &&
@@ -181,9 +182,15 @@ export class BashReads {
       `If you need the whole file, Read it in full instead.`
     );
   }
-  _columnConfigsPaths(): string[] {
-    return readSheetsConfigs(this.projectDir).map(({ generatedDir }) =>
-      join(this.projectDir, generatedDir, "columnConfigs.ts"),
+  // Matched relative to its own root, so a workspace's copy counts as the primary's does.
+  _isColumnConfigs(path: string): boolean {
+    const target = rootRelative({
+      projectDir: this.projectDir,
+      cwd: this.projectDir,
+      filePath: path,
+    });
+    return readSheetsConfigs(this.projectDir).some(
+      ({ generatedDir }) => target === join(generatedDir, "columnConfigs.ts"),
     );
   }
   // An unguarded folder at any depth, so each package's own .probe/, dist/ and coverage/ are free to read.

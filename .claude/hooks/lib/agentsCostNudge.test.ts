@@ -21,6 +21,15 @@ describe("agentsCostContext", () => {
     expect(edit("../AGENTS.md", false, "/repo/docs")).toBe(agentsCostReminder);
   });
 
+  it("reminds on the first edit to a workspace's root AGENTS.md", () => {
+    expect(edit("/repo/.claude/worktrees/agent-1/AGENTS.md", false)).toBe(
+      agentsCostReminder,
+    );
+    expect(
+      edit("/repo/.claude/worktrees/agent-1/docs/AGENTS.md", false),
+    ).toBeUndefined();
+  });
+
   it("stays quiet once the session has been reminded", () => {
     expect(edit("/repo/AGENTS.md", true)).toBeUndefined();
   });

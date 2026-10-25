@@ -1,4 +1,4 @@
-// Turns ESLint's JSON formatter output for one edited file into hook feedback, or nothing. Pure; lintFeedback.ts does the I/O.
+// Turns ESLint's JSON formatter output for one edited file into hook feedback, or nothing. Pure; formatAndLint.ts does the I/O.
 interface LintFeedbackInput {
   eslintJson: string;
   filePath: string;
