@@ -35,7 +35,7 @@ function cloneOf(
     .filter(([, folder]) => folder === "." || path.startsWith(`${folder}/`))
     .sort(([, a], [, b]) => b.length - a.length)[0];
   if (clone === undefined) {
-    throw new Error(`${path} sits in no clone of clonePaths.`);
+    throw new Error(`${path} sits in no clone of the repo map.`);
   }
   const [repo, folder] = clone;
   const pathInClone = folder === "." ? path : path.slice(folder.length + 1);

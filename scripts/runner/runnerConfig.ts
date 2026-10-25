@@ -1,5 +1,5 @@
 // byro-repo's values for the spec runner's injected config. Every root script that drives the runner reads them here.
-// The knobs, repo map and checks included, come from runner.config.json; the ntfy topic from gitignored runner.local.json.
+// The knobs, checks included, come from runner.config.json; the repo map from the primary root's clones; the ntfy topic from gitignored runner.local.json.
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -10,6 +10,7 @@ import {
   ClaudeAgentStep,
   type McpServerConfig,
 } from "@byronbroughten/spec-runner/ClaudeAgentStep";
+import { clonePathsOf } from "@byronbroughten/spec-runner/clonePaths";
 import { CswapUsageReader } from "@byronbroughten/spec-runner/CswapUsageReader";
 import { EventFileNotices } from "@byronbroughten/spec-runner/EventFileNotices";
 import { GhCli } from "@byronbroughten/spec-runner/GhCli";
@@ -53,7 +54,10 @@ const localConfigPath = join(
   "runner.local.json",
 );
 
-export const runKnobs = loadRunKnobs(join(scriptFolder, "runner.config.json"));
+export const runKnobs = loadRunKnobs(
+  join(scriptFolder, "runner.config.json"),
+  clonePathsOf(primaryRoot),
+);
 
 export const issueWorkspacesConfig: IssueWorkspacesConfig = {
   primaryRoot,

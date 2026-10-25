@@ -102,16 +102,22 @@ export const defaultRunKnobs: RunKnobs = {
   idlePollMs: 60_000,
 };
 
-export function loadRunKnobs(overridePath: string): RunKnobs {
-  return runKnobsOf(
-    JSON.parse(readFileSync(overridePath, "utf8")) as RunKnobOverrides,
-  );
+export function loadRunKnobs(
+  overridePath: string,
+  clonePaths: Record<string, string>,
+): RunKnobs {
+  return {
+    ...runKnobsOf(
+      JSON.parse(readFileSync(overridePath, "utf8")) as RunKnobOverrides,
+    ),
+    clonePaths,
+  };
 }
 
-// For a reader that must still work without the override file, such as a hook that fails open.
+// For a reader that must still work without the override file, such as a hook that fails open; it gets no repo map.
 export function runKnobsOrDefaults(overridePath: string): RunKnobs {
   try {
-    return loadRunKnobs(overridePath);
+    return loadRunKnobs(overridePath, {});
   } catch {
     return defaultRunKnobs;
   }
