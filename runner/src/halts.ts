@@ -87,7 +87,7 @@ export function haltKindLabelOf(kind: HaltKind): string {
   return kindLabels[kind];
 }
 
-export interface BlockerStep {
+export interface BlockerHaltFacts {
   downstream: string[];
   // The tools the step's stream recorded as denied.
   deniedTools: string[];
@@ -96,7 +96,7 @@ export interface BlockerStep {
 // A blocker's Halt holds its own ticket and the tickets downstream of it.
 export function blockerHaltOf(
   { kind, detail, recommendation }: Blocker,
-  { downstream, deniedTools }: BlockerStep,
+  { downstream, deniedTools }: BlockerHaltFacts,
 ): HaltDraft {
   const options = [recommendation];
   if (kind === "denied-tool" && deniedTools.some(isTargetWrite)) {
