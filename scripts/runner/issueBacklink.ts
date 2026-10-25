@@ -14,7 +14,12 @@ try {
     );
   }
   const ownerRepo = `${githubOwner}/${repo}`;
-  const line = backlinkLineOf(ownerRepo, adrPath);
+  // npm runs a root script from the workspace root, which an ADR path is relative to.
+  const line = backlinkLineOf(adrPath, {
+    owner: githubOwner,
+    root: process.cwd(),
+    clonePaths: runKnobs.clonePaths,
+  });
   const body = execFileSync(
     "gh",
     ["issue", "view", number, "-R", ownerRepo, "--json", "body", "-q", ".body"],
