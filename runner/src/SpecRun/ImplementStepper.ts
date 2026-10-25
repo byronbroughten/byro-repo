@@ -267,10 +267,11 @@ export class ImplementStepper extends SpecRunBase {
         output: launched.record,
       });
     }
-    await this.haltRaiser._raiseBlockerHalts(ticketRun, {
-      blockers: record.blockers,
-      deniedTools: launched.deniedTools,
-    });
+    await this.haltRaiser._raiseBlockerHalts(
+      ticketRun,
+      record.blockers,
+      launched.deniedTools,
+    );
     if (record.status === "handoff") return record;
     if (record.status === "blocked") {
       await this.haltRaiser._haltOnUnpostedHalts(ticketRun);
