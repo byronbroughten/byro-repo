@@ -72,7 +72,7 @@ export class SupervisionRecords {
   }
 
   // The tier gate and SessionStart read this one: a Supervisor whose run has ended is a regular session.
-  async liveRecordOf(
+  async runningRecordOf(
     holder: LeaseHolder,
   ): Promise<SupervisionRecord | undefined> {
     const record = await this.recordOf(holder);

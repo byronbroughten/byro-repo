@@ -150,12 +150,12 @@ describe("unexplained event lines", () => {
   });
 });
 
-describe("a live supervision record", () => {
+describe("a running supervision record", () => {
   it("is the record while its spec's run lock is held by a running pid", async () => {
     await records().supervise(me, owner, spec);
     seedRunLock(spec, process.pid);
 
-    expect(await records().liveRecordOf(me)).toEqual({
+    expect(await records().runningRecordOf(me)).toEqual({
       pid: me.pid,
       owner,
       spec,
@@ -166,26 +166,26 @@ describe("a live supervision record", () => {
   it("is none with no run lock", async () => {
     await records().supervise(me, owner, spec);
 
-    expect(await records().liveRecordOf(me)).toBeUndefined();
+    expect(await records().runningRecordOf(me)).toBeUndefined();
   });
 
   it("is none when the run lock's pid has died", async () => {
     await records().supervise(me, owner, spec);
     seedRunLock(spec, deadPid());
 
-    expect(await records().liveRecordOf(me)).toBeUndefined();
+    expect(await records().runningRecordOf(me)).toBeUndefined();
   });
 
   it("is none when only another spec's run lock is held", async () => {
     await records().supervise(me, owner, spec);
     seedRunLock(otherSpec, process.pid);
 
-    expect(await records().liveRecordOf(me)).toBeUndefined();
+    expect(await records().runningRecordOf(me)).toBeUndefined();
   });
 
   it("is none for a pid that supervises nothing", async () => {
     seedRunLock(spec, process.pid);
 
-    expect(await records().liveRecordOf(me)).toBeUndefined();
+    expect(await records().runningRecordOf(me)).toBeUndefined();
   });
 });

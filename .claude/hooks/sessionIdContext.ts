@@ -74,7 +74,7 @@ async function supervisionLinesOf({ source }: HookInput): Promise<string[]> {
     const holder = nearestClaudeAncestor();
     if (!holder) return [];
     const record =
-      await SupervisionRecords.init(stateFolder).liveRecordOf(holder);
+      await SupervisionRecords.init(stateFolder).runningRecordOf(holder);
     const line = supervisingLineOf({ source, record });
     return line === undefined ? [] : [line];
   } catch {
