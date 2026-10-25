@@ -1,34 +1,40 @@
 import { describe, expect, it } from "vitest";
 
-import { sessionPairLineOf } from "./sessionPairContext.ts";
+import {
+  isIssueStartCommand,
+  sessionPairLineOf,
+} from "./sessionPairContext.ts";
 
-const transcript = JSON.stringify({
-  type: "assistant",
-  effort: "medium",
-  message: { model: "claude-opus-5-5" },
-});
-
-describe("sessionPairLineOf", () => {
+describe("isIssueStartCommand", () => {
   it.each([
     "npm run issue:start -- byro-repo 404",
     "npm run issue:start -- --session retro",
-  ])("states the session's pair after %s", (command) => {
-    expect(sessionPairLineOf(command, transcript)).toBe(
-      "This session runs Opus medium.",
-    );
+  ])("matches %s", (command) => {
+    expect(isIssueStartCommand(command)).toBe(true);
   });
 
   it.each([
     "npm run check",
     "grep -n 'npm run issue:start' AGENTS.md",
     "npm run issue:read -- byro-repo 404",
-  ])("says nothing after %s", (command) => {
-    expect(sessionPairLineOf(command, transcript)).toBeUndefined();
+  ])("doesn't match %s", (command) => {
+    expect(isIssueStartCommand(command)).toBe(false);
+  });
+});
+
+describe("sessionPairLineOf", () => {
+  it("states the session's pair", () => {
+    const transcript = JSON.stringify({
+      type: "assistant",
+      effort: "medium",
+      message: { model: "claude-opus-5-5" },
+    });
+    expect(sessionPairLineOf(transcript)).toBe(
+      "This session runs Opus medium.",
+    );
   });
 
   it("says nothing when the transcript has no pair", () => {
-    expect(
-      sessionPairLineOf("npm run issue:start -- byro-repo 404", ""),
-    ).toBeUndefined();
+    expect(sessionPairLineOf("")).toBeUndefined();
   });
 });

@@ -3,11 +3,11 @@ import { latestPairOf } from "@byronbroughten/spec-runner/transcriptFacts";
 
 const issueStartCommand = /^npm run issue:start(\s|$)/;
 
-export function sessionPairLineOf(
-  command: string,
-  transcript: string,
-): string | undefined {
-  if (!issueStartCommand.test(command.trim())) return undefined;
+export function isIssueStartCommand(command: string): boolean {
+  return issueStartCommand.test(command.trim());
+}
+
+export function sessionPairLineOf(transcript: string): string | undefined {
   const pair = latestPairOf(transcript);
   return pair === undefined ? undefined : `This session runs ${pair}.`;
 }

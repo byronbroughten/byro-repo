@@ -2,16 +2,17 @@
 import { readFileSync } from "node:fs";
 
 import { readHookInput, runFailOpen, writeHookOutput } from "./lib/hookIo.ts";
-import { sessionPairLineOf } from "./lib/sessionPairContext.ts";
+import {
+  isIssueStartCommand,
+  sessionPairLineOf,
+} from "./lib/sessionPairContext.ts";
 
 await runFailOpen(() => {
   const input = readHookInput();
   const command = input?.tool_input?.command;
-  if (typeof command !== "string" || !input?.transcript_path) return;
-  const line = sessionPairLineOf(
-    command,
-    readFileSync(input.transcript_path, "utf8"),
-  );
+  if (typeof command !== "string" || !isIssueStartCommand(command)) return;
+  if (!input?.transcript_path) return;
+  const line = sessionPairLineOf(readFileSync(input.transcript_path, "utf8"));
   if (line === undefined) return;
   writeHookOutput({
     hookSpecificOutput: {
