@@ -170,15 +170,16 @@ export class RunLoop extends SpecRunBase {
     selection: Selection,
   ): Promise<void> {
     const started = `Run started on ${run.tickets.length} tickets as ${readingLabelOf(reading)}.`;
-    if (selection.kind !== "launch") {
-      await this._announce(run, started, { kind: "run-started", warnings: [] });
-      return;
-    }
-    const { issue } = selection.ticket;
-    await this._announce(run, `${started} Launching ${issueLabelOf(issue)}.`, {
+    const ticket =
+      selection.kind === "launch" ? selection.ticket.issue : undefined;
+    const summary =
+      ticket === undefined
+        ? started
+        : `${started} Launching ${issueLabelOf(ticket)}.`;
+    await this._announce(run, summary, {
       kind: "run-started",
-      ticket: issue,
       warnings: [],
+      ...(ticket && { ticket }),
     });
   }
 
