@@ -20,7 +20,7 @@ export class RunLock extends PidLock {
     const path = lockPathOf(stateFolder, spec);
     const attempt = PidLock.tryTake(path);
     if (attempt.kind === "taken") {
-      return { kind: "taken", lock: new RunLock(path) };
+      return { kind: "taken", lock: new RunLock(path, attempt.holder) };
     }
     return { ...attempt, path };
   }
