@@ -44,7 +44,7 @@ An `idle` line says what holds the run, such as an open Halt or another holder's
 
 On `stopped`, `crashed` or `refused`, say that rerunning resumes the run, and offer to relaunch it once the cause is fixed.
 
-Once a `run-ended` line is explained, this session is a regular interactive session: the limits above and the tier gate's asks on `gh` writes no longer hold.
+Once the run has ended, this session is a regular interactive session: the limits above and the tier gate's asks on `gh` writes no longer hold.
 
 ## 5. Replies
 
