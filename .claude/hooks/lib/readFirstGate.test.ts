@@ -6,6 +6,7 @@ import { type EditDecision, isFullDocRead } from "./fullDocRead.ts";
 import type { ToolInput } from "./hookIo.ts";
 import {
   codeStylePath,
+  frameworkStylePath,
   proseStylePath,
   readFirstDecision,
   type ReadFirstRow,
@@ -138,7 +139,7 @@ describe("the code-style row", () => {
   });
 
   it("allows a linted edit after the code rules are read", () => {
-    expect(edit(frameworkFile, [codeStylePath])).toEqual(allowed);
+    expect(edit("/repo/scripts/docLint.ts", [codeStylePath])).toEqual(allowed);
     expect(
       edit("/repo/.claude/worktrees/agent-1/scripts/docLint.ts", [
         codeStylePath,
@@ -168,13 +169,49 @@ describe("the code-style row", () => {
     expect(edit(path, unread)).toEqual(allowed);
   });
 
-  it("points at the framework's rules and the reasoning folder, without saying it only covers packages/", () => {
-    const reason = edit(frameworkFile, []).denyReason;
-    expect(reason).toContain(
-      "Framework or app code also follows packages/framework/docs/code-style.md.",
-    );
+  it("points at the reasoning folder, and not at the framework's rules outside the framework", () => {
+    const reason = edit("/repo/scripts/docLint.ts", []).denyReason;
     expect(reason).toMatch(/config\/docs\/code-style\//);
-    expect(reason).not.toMatch(/under packages/);
+    expect(reason).not.toMatch(/packages\/framework/);
+  });
+});
+
+describe("the framework-style row", () => {
+  const unread = except(frameworkStylePath);
+  const frameworkPaths = [
+    "/repo/packages/framework/src/02_SpreadsheetRaw/SheetRaw.ts",
+    "/repo/packages/real-estate/src/index.ts",
+    "/repo/.claude/worktrees/byro-repo-issue-1-x/packages/framework/src/02_SpreadsheetRaw/SheetRaw.ts",
+    "/repo/.claude/worktrees/byro-repo-issue-1-x/packages/real-estate/src/index.ts",
+  ];
+
+  it.each(frameworkPaths)(
+    "refuses %s before the framework's code rules are read",
+    (path) => {
+      expect(edit(path, unread).denyReason).toMatch(
+        /packages\/framework\/docs\/code-style\.md \(the framework's code rules\)/,
+      );
+    },
+  );
+
+  it.each(frameworkPaths)(
+    "allows %s after the framework's code rules are read",
+    (path) => {
+      expect(edit(path, allDocs)).toEqual(allowed);
+    },
+  );
+
+  it.each([
+    "/repo/packages/real-estate/src/generated/sheetConfigs.ts",
+    "/repo/packages/framework/dev/generated/sheetConfigs.ts",
+    "/repo/packages/framework/dist/bundle.js",
+    "/repo/packages/framework/src/AGENTS.md",
+    "/repo/packages/framework/sheets.config.json",
+    "/repo/packages/utils/src/x.ts",
+    "/repo/scripts/docLint.ts",
+    "/repo/.claude/worktrees/byro-repo-issue-1-x/packages/real-estate/src/generated/sheetConfigs.ts",
+  ])("allows %s, generated, not code or outside the two packages", (path) => {
+    expect(edit(path, unread)).toEqual(allowed);
   });
 });
 
@@ -416,9 +453,18 @@ describe("the refusal reason", () => {
     expect(reason).toContain(
       "The tier table and the tier code change in the same commit.",
     );
-    expect(reason).toContain(
-      "Framework or app code also follows packages/framework/docs/code-style.md.",
+  });
+
+  it("names both style docs and both reasoning folders in one refusal for framework code before either is read", () => {
+    const reason = edit(
+      "/repo/packages/framework/src/02_SpreadsheetRaw/SheetRaw.ts",
+      [],
+    ).denyReason;
+    expect(reason).toMatch(
+      /config\/docs\/code-style\.md \(the code rules\) and packages\/framework\/docs\/code-style\.md \(the framework's code rules\)/,
     );
+    expect(reason).toMatch(/Skip config\/docs\/code-style\//);
+    expect(reason).toMatch(/Skip packages\/framework\/docs\/code-style\//);
   });
 });
 
