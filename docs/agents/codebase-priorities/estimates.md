@@ -1,6 +1,6 @@
 # Estimates
 
-An index of measured costs a tradeoff's estimate can come from, grouped by subject. Each line gives the number, its date, its source and the priorities it bears on. A measurement stays in its source beside its conclusion; one with no conclusion to sit beside is recorded here.
+An index of measured costs a tradeoff's estimate can come from, grouped by subject. Each line gives the number, its date, its source and the priorities it bears on.
 
 ## Reads
 
