@@ -1,4 +1,4 @@
-// The pid-lock fixtures LandingLock's, RunLock's and SpecRun's run-lock tests share.
+// The pid-lock fixtures LandingLock's, RunLock's, SupervisionRecords' and SpecRun's run-lock tests share.
 
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";

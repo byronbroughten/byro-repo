@@ -1,12 +1,17 @@
 import { spawnSync } from "node:child_process";
 import { appendFileSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { eventFilePathOf } from "./EventFileNotices.ts";
-import type { IssueRef, LeaseHolder } from "./IssueWorkspaces.ts";
+import {
+  fileStemOf,
+  type IssueRef,
+  type LeaseHolder,
+} from "./IssueWorkspaces.ts";
+import { deadPid, seedHolder } from "./lockFixture.ts";
 import { SupervisionRecords } from "./SupervisionRecords.ts";
 
 const owner = "byronbroughten";
@@ -35,6 +40,15 @@ function appendEvents(of: IssueRef, ...lines: string[]): void {
   for (const line of lines) {
     appendFileSync(eventFilePathOf(stateFolder, of), `${line}\n`);
   }
+}
+
+function seedRunLock(of: IssueRef, pid: number): void {
+  mkdirSync(stateFolder, { recursive: true });
+  seedHolder(join(stateFolder, `${fileStemOf(of)}.run.lock`), {
+    pid,
+    host: hostname(),
+    startedAt: "2026-01-01",
+  });
 }
 
 function deadHolder(): LeaseHolder {
@@ -137,5 +151,45 @@ describe("unexplained event lines", () => {
 
   it("are none for a pid that supervises nothing", async () => {
     expect(await records().unexplainedLinesOf(me)).toEqual([]);
+  });
+});
+
+describe("a running supervision record", () => {
+  it("is the record while its spec's run lock is held by a running pid", async () => {
+    await records().supervise(me, owner, spec);
+    seedRunLock(spec, process.pid);
+
+    expect(await records().runningRecordOf(me)).toEqual({
+      pid: me.pid,
+      owner,
+      spec,
+      offset: 0,
+    });
+  });
+
+  it("is none with no run lock", async () => {
+    await records().supervise(me, owner, spec);
+
+    expect(await records().runningRecordOf(me)).toBeUndefined();
+  });
+
+  it("is none when the run lock's pid has died", async () => {
+    await records().supervise(me, owner, spec);
+    seedRunLock(spec, deadPid());
+
+    expect(await records().runningRecordOf(me)).toBeUndefined();
+  });
+
+  it("is none when only another spec's run lock is held", async () => {
+    await records().supervise(me, owner, spec);
+    seedRunLock(otherSpec, process.pid);
+
+    expect(await records().runningRecordOf(me)).toBeUndefined();
+  });
+
+  it("is none for a pid that supervises nothing", async () => {
+    seedRunLock(spec, process.pid);
+
+    expect(await records().runningRecordOf(me)).toBeUndefined();
   });
 });

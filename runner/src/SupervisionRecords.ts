@@ -17,6 +17,7 @@ import {
   type LeaseHolder,
 } from "./IssueWorkspaces.ts";
 import { startTimeOf } from "./processStart.ts";
+import { RunLock } from "./RunLock.ts";
 
 export interface SupervisionRecord {
   pid: number;
@@ -68,6 +69,15 @@ export class SupervisionRecords {
     }
     const { owner, spec, offset } = file;
     return { pid, owner, spec, offset };
+  }
+
+  // The tier gate and SessionStart read this one: a Supervisor whose run has ended is a regular session.
+  async runningRecordOf(
+    holder: LeaseHolder,
+  ): Promise<SupervisionRecord | undefined> {
+    const record = await this.recordOf(holder);
+    if (record === undefined) return undefined;
+    return RunLock.isHeld(this.stateFolder, record.spec) ? record : undefined;
   }
 
   // Raw lines, so the record needs only the event file's location, never its line format.
