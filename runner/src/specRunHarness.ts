@@ -451,7 +451,7 @@ export function runLockPath(): string {
 }
 
 // A killed run's pid is dead, so a rerun takes its lock over; a run left hung in this process still holds it.
-export function killHungRun(): void {
+export function freeHungRunLock(): void {
   rmSync(runLockPath());
 }
 

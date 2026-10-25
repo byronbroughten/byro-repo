@@ -13,9 +13,9 @@ import {
   addSpec,
   applied,
   findingOf,
+  freeHungRunLock,
   github,
   implemented,
-  killHungRun,
   masterSubjects,
   notices,
   primaryOf,
@@ -46,7 +46,7 @@ describe("run's resume", () => {
       }),
     ).run(spec);
     await reachedReview;
-    killHungRun();
+    freeHungRunLock();
     const framework = primaryOf("sheets-framework");
     writeFileSync(join(framework, "later.ts"), "export {};\n");
     git(framework, "add", "later.ts");
@@ -90,7 +90,7 @@ describe("run's resume", () => {
       ),
     ).run(spec);
     await reachedResolve;
-    killHungRun();
+    freeHungRunLock();
     const saved = JSON.parse(readFileSync(runStatePath(), "utf8")) as {
       tickets: Record<string, { findings?: unknown[] }>;
     };
@@ -213,7 +213,7 @@ describe("run's resume", () => {
       github: hangingGitHub,
     }).run(spec);
     await reachedWrapUp;
-    killHungRun();
+    freeHungRunLock();
     expect(ticketState()["byro-repo #1"]?.step).toBe("wrap-up");
     const rerunStep = FakeAgentStep.init();
 
@@ -237,7 +237,7 @@ describe("run's resume", () => {
       }),
     ).run(spec);
     await reachedReview;
-    killHungRun();
+    freeHungRunLock();
     github.edit(1, { isOpen: false });
 
     const result = await specRun(
@@ -361,7 +361,7 @@ async function killAtResolveSavedAs(
     ),
   ).run(spec);
   await reachedResolve;
-  killHungRun();
+  freeHungRunLock();
   const saved = JSON.parse(readFileSync(runStatePath(), "utf8")) as {
     tickets: Record<string, Record<string, unknown>>;
   };
