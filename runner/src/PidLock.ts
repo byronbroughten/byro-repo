@@ -121,10 +121,10 @@ function takeOver(path: string, { stale, taker }: Takeover): boolean {
 }
 
 function isSameHolder(
-  read: LockHolder | undefined,
+  current: LockHolder | undefined,
   holder: LockHolder,
 ): boolean {
-  return read?.pid === holder.pid && read.token === holder.token;
+  return current?.pid === holder.pid && current.token === holder.token;
 }
 
 function isRunning(pid: number): boolean {
