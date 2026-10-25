@@ -21,6 +21,11 @@ export interface HeldLock {
 
 export type LockAttempt = { kind: "taken"; holder: LockHolder } | HeldLock;
 
+interface Takeover {
+  stale: LockHolder;
+  taker: LockHolder;
+}
+
 export class PidLock {
   readonly path: string;
   readonly holder: LockHolder;
@@ -48,7 +53,9 @@ export class PidLock {
       if (!takeGuard(path, holder)) {
         return { kind: "held", holder: readHolder(guardPathOf(path)) };
       }
-      if (takeOver(path, current, holder)) return { kind: "taken", holder };
+      if (takeOver(path, { stale: current, taker: holder })) {
+        return { kind: "taken", holder };
+      }
     }
   }
 
@@ -103,15 +110,11 @@ function guardPathOf(path: string): string {
   return `${path}.takeover`;
 }
 
-function takeOver(
-  path: string,
-  stale: LockHolder,
-  holder: LockHolder,
-): boolean {
+function takeOver(path: string, { stale, taker }: Takeover): boolean {
   try {
     if (!isSameHolder(readHolder(path), stale)) return false;
     rmSync(path, { force: true });
-    return tryCreate(path, holder);
+    return tryCreate(path, taker);
   } finally {
     rmSync(guardPathOf(path), { force: true });
   }
