@@ -1,4 +1,4 @@
-// The run loop: preflight refuses or Stops a run first, then it picks tickets one at a time and runs each, idling
+// The run loop: it holds the spec's RunLock while it runs, and preflight refuses or Stops a run first; then it picks tickets one at a time and runs each, idling
 // while an open Halt or another holder's lease is all that's in the way, until every ticket lands or something Stops it.
 // Any outcome a later ticket will handle (red checks, step errors, schema failures) is an UnhandledStop; a red master Stops the run.
 // requestStop() or a `stop spec` answer ends the run between tickets; status() reads it from outside.
@@ -23,6 +23,7 @@ import {
 } from "../IssueWorkspaces.ts";
 import { type AccountReading } from "../limitGuard.ts";
 import { pairOf } from "../modelFit.ts";
+import { type HeldRunLock, RunLock } from "../RunLock.ts";
 import { RunStop } from "../RunStop.ts";
 import { percentOf } from "../transcriptFacts.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
@@ -60,6 +61,23 @@ export class RunLoop extends SpecRunBase {
   }
 
   async run(specIssue: IssueRef): Promise<RunResult> {
+    const taken = RunLock.take(this.config.stateFolder, specIssue);
+    // Announced, the refusal would land in the live run's event file as its run-ended line.
+    if (taken.kind === "held") {
+      return {
+        kind: "refused",
+        landed: [],
+        message: runLockRefusalOf(specIssue, taken),
+      };
+    }
+    try {
+      return await this._runHoldingLock(specIssue);
+    } finally {
+      taken.lock.release();
+    }
+  }
+
+  private async _runHoldingLock(specIssue: IssueRef): Promise<RunResult> {
     const startedAt = this.config.clock.now();
     // A request left by a stop command with no run going would end this run at its first pick.
     rmSync(this._stopRequestPathOf(specIssue), { force: true });
@@ -237,6 +255,17 @@ export class RunLoop extends SpecRunBase {
   private _stopRequestPathOf(spec: IssueRef): string {
     return join(this.config.stateFolder, `${fileStemOf(spec)}.stop`);
   }
+}
+
+function runLockRefusalOf(
+  spec: IssueRef,
+  { holder, path }: HeldRunLock,
+): string {
+  const label = issueLabelOf(spec);
+  if (holder === undefined) {
+    return `${label}'s run lock is unreadable, so it counts as held; remove ${path} if no run of it is going.`;
+  }
+  return `${label} already has a run going: pid ${holder.pid}, started ${holder.startedAt}.`;
 }
 
 // A split spec's own body is never checked; tickets the runner won't launch need no section.

@@ -1,6 +1,6 @@
 // The landing lock: one file per primary checkout, held while a wrap-up fast-forwards that checkout's master.
 // It holds the holder's pid, host and start time, and is stale only when that pid is no longer running on this host;
-// there is no time-based expiry, so a live holder is always waited on. WrapUp.ts takes it.
+// there is no time-based expiry, so a live holder is always waited on. WrapUp.ts takes it; RunLock.ts shares its file helpers.
 
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { hostname } from "node:os";
@@ -52,7 +52,7 @@ export class LandingLock {
   }
 }
 
-function tryCreate(path: string, holder: LockHolder): boolean {
+export function tryCreate(path: string, holder: LockHolder): boolean {
   try {
     writeFileSync(path, JSON.stringify(holder), { flag: "wx" });
     return true;
@@ -63,7 +63,7 @@ function tryCreate(path: string, holder: LockHolder): boolean {
 }
 
 // An unreadable lock may be mid-write by its holder, so it counts as live.
-function readHolder(path: string): LockHolder | undefined {
+export function readHolder(path: string): LockHolder | undefined {
   try {
     return JSON.parse(readFileSync(path, "utf8")) as LockHolder;
   } catch {
@@ -71,7 +71,7 @@ function readHolder(path: string): LockHolder | undefined {
   }
 }
 
-function isStale(holder: LockHolder | undefined): boolean {
+export function isStale(holder: LockHolder | undefined): boolean {
   if (holder === undefined || holder.host !== hostname()) return false;
   return !isRunning(holder.pid);
 }
