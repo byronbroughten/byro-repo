@@ -1,4 +1,4 @@
-// Run by .githooks/pre-commit: checks the staged files' formatting and lint, however they were edited.
+// Run by .githooks/pre-commit in the root or a package clone: checks the staged files' formatting and lint, however they were edited.
 import { execFileSync } from "node:child_process";
 import { lstatSync } from "node:fs";
 import { basename, join } from "node:path";
@@ -10,15 +10,21 @@ import {
   isCode,
   prettierCheckOf,
   repoRoot,
+  rootPathsOf,
 } from "./lintCommands.ts";
 
-const staged = execFileSync(
-  "git",
-  ["diff", "--cached", "--name-only", "--diff-filter=ACMR", "-z"],
-  { cwd: repoRoot, encoding: "utf8" },
+// Git runs a hook at the top of the committing repo's worktree.
+const cloneRoot = process.cwd();
+const staged = rootPathsOf(
+  cloneRoot,
+  execFileSync(
+    "git",
+    ["diff", "--cached", "--name-only", "--diff-filter=ACMR", "-z"],
+    { cwd: cloneRoot, encoding: "utf8" },
+  )
+    .split("\0")
+    .filter((path) => path !== ""),
 )
-  .split("\0")
-  .filter((path) => path !== "")
   // Prettier refuses a symlink, such as a runner skill's link in `.claude/skills/`.
   .filter((path) => !lstatSync(join(repoRoot, path)).isSymbolicLink());
 const commands: Command[] = [];

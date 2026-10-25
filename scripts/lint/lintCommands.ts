@@ -1,6 +1,6 @@
-// The lint commands lint.ts and preCommit.ts share, and the runner that runs every one of them.
+// The lint commands lint.ts and preCommit.ts share, the runner that runs every one of them, and the hook paths prepare.ts sets.
 import { spawnSync } from "node:child_process";
-import { basename, join } from "node:path";
+import { basename, join, relative } from "node:path";
 
 export type Command = [string, ...string[]];
 
@@ -19,8 +19,16 @@ export function eslintOf(paths: string[]): Command {
   ];
 }
 
+// Only .prettierignore: Prettier's default also reads .gitignore, whose `packages/*` would skip every clone's files.
 export function prettierCheckOf(paths: string[]): Command {
-  return [binOf("prettier"), "--check", "--ignore-unknown", ...paths];
+  return [
+    binOf("prettier"),
+    "--check",
+    "--ignore-unknown",
+    "--ignore-path",
+    join(repoRoot, ".prettierignore"),
+    ...paths,
+  ];
 }
 
 export function isCode(path: string): boolean {
@@ -39,6 +47,17 @@ export function failedCommandsOf(
     if (status !== 0) failed.push(command);
   });
   return failed;
+}
+
+// A clone's staged paths are relative to the clone; Prettier and ESLint run from the root.
+export function rootPathsOf(cloneRoot: string, paths: string[]): string[] {
+  const prefix = relative(repoRoot, cloneRoot);
+  return paths.map((path) => join(prefix, path));
+}
+
+// Relative, so a workspace clone, sharing its primary's config, finds its own root's hooks.
+export function hooksPathOf(clonePath: string): string {
+  return relative(clonePath, ".githooks");
 }
 
 export function commandLabelOf([file, ...args]: Command): string {

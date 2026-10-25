@@ -127,6 +127,8 @@ export interface WrapUpConfig {
     root: string,
     request: OutcomeRowRequest,
   ): Promise<WrittenOutcomeRow>;
+  // Run at the primary root once the primaries are fast-forwarded; a failure only warns.
+  afterFastForward?(primaryRoot: string): Promise<void>;
   knobs?: Partial<WrapUpKnobs>;
   sleep?(ms: number): Promise<void>;
   log?(line: string): void;
@@ -738,10 +740,21 @@ export class WrapUp {
         await this._fastForwardRepo(repo, built[repo] as BuiltRepo);
       }
       await this._markDone(landing, "fast-forward");
+      await this._runAfterFastForward();
       await this._scanAndPush(landing);
       return true;
     } finally {
       locks.forEach((lock) => lock.release());
+    }
+  }
+
+  private async _runAfterFastForward(): Promise<void> {
+    try {
+      await this.config.afterFastForward?.(this.config.workspaces.primaryRoot);
+    } catch (error) {
+      this._log(
+        `Warning: the after-fast-forward hook failed, continuing: ${messageOf(error)}`,
+      );
     }
   }
 

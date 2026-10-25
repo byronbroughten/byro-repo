@@ -8,7 +8,7 @@
     "packages/*"
   ],
   "scripts": {
-    "prepare": "git config core.hooksPath .githooks",
+    "prepare": "node scripts/lint/prepare.ts",
     "check": "node scripts/runner/check.ts",
     "tsc": "node scripts/tsc/tsc.ts",
     "lint": "node scripts/lint/lint.ts",

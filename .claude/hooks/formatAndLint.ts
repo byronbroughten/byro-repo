@@ -6,6 +6,7 @@ import { join, resolve } from "node:path";
 import { readHookInput, runFailOpen, writeHookOutput } from "./lib/hookIo.ts";
 import { lintFeedback } from "./lib/lintFeedback.ts";
 import { isInLintSet, projectRelative, rootOf } from "./lib/lintSet.ts";
+import { prettierWriteArgsOf } from "./lib/prettierArgs.ts";
 import { readSheetsConfigs } from "./lib/sheetsConfigs.ts";
 
 await runFailOpen(() => {
@@ -61,7 +62,7 @@ await runFailOpen(() => {
 function runPrettier(root: string, args: string[]): void {
   const prettier = binPath(root, "prettier");
   if (!existsSync(prettier)) return;
-  spawnSync(prettier, ["--write", "--log-level", "warn", ...args], {
+  spawnSync(prettier, prettierWriteArgsOf(root, args), {
     cwd: root,
     timeout: 8_000,
   });
