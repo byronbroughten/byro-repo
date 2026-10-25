@@ -9,6 +9,7 @@
     "./AgentStep": "./src/AgentStep.ts",
     "./Checks": "./src/Checks.ts",
     "./ClaudeAgentStep": "./src/ClaudeAgentStep.ts",
+    "./clonePaths": "./src/clonePaths.ts",
     "./CswapUsageReader": "./src/CswapUsageReader.ts",
     "./EventFileNotices": "./src/EventFileNotices.ts",
     "./FactsFile": "./src/FactsFile.ts",

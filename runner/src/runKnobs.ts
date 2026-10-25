@@ -21,7 +21,7 @@ export type KnobbedStep = keyof StepKnobs<number>;
 export type ReviewListCadence = "end-of-run" | "per-ticket";
 
 export interface RunKnobs {
-  // Repo name to its clone's path relative to the primary root; the root repo's is ".".
+  // Repo name to its clone's path relative to the primary root; the root repo's is ".". Never from the override file: clonePathsOf() builds it.
   clonePaths: Record<string, string>;
   skillNames: { review: string };
   // Run from a workspace or primary root: after review in each ticket, and in a master set when they go red in a ticket.
@@ -102,16 +102,22 @@ export const defaultRunKnobs: RunKnobs = {
   idlePollMs: 60_000,
 };
 
-export function loadRunKnobs(overridePath: string): RunKnobs {
-  return runKnobsOf(
-    JSON.parse(readFileSync(overridePath, "utf8")) as RunKnobOverrides,
-  );
+export function loadRunKnobs(
+  overridePath: string,
+  clonePaths: Record<string, string>,
+): RunKnobs {
+  return {
+    ...runKnobsOf(
+      JSON.parse(readFileSync(overridePath, "utf8")) as RunKnobOverrides,
+    ),
+    clonePaths,
+  };
 }
 
-// For a reader that must still work without the override file, such as a hook that fails open.
+// For a reader that must still work without the override file, such as a hook that fails open; it gets no repo map.
 export function runKnobsOrDefaults(overridePath: string): RunKnobs {
   try {
-    return loadRunKnobs(overridePath);
+    return loadRunKnobs(overridePath, {});
   } catch {
     return defaultRunKnobs;
   }

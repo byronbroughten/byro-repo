@@ -27,17 +27,17 @@ function overrideFile(content: string): string {
 }
 
 describe("loadRunKnobs", () => {
-  it("lays the override file over the defaults, one nested knob at a time", () => {
+  it("lays the override file over the defaults, one nested knob at a time, and takes the repo map from its caller", () => {
     const path = overrideFile(
       JSON.stringify({
-        clonePaths: { "byro-repo": "." },
+        clonePaths: { stale: "packages/stale" },
         allowedTools: { review: ["Read"] },
         wallClockMs: { review: 5_000 },
         handoffDocPath: "docs/handoffs.md",
       }),
     );
 
-    const knobs = loadRunKnobs(path);
+    const knobs = loadRunKnobs(path, { "byro-repo": "." });
 
     expect(knobs.clonePaths).toEqual({ "byro-repo": "." });
     expect(knobs.allowedTools).toEqual({
@@ -62,17 +62,17 @@ describe("loadRunKnobs", () => {
   });
 
   it("checks GitHub auth and the default claude login unless the auth checks are overridden", () => {
-    expect(loadRunKnobs(overrideFile("{}")).authChecks).toEqual([
+    expect(loadRunKnobs(overrideFile("{}"), {}).authChecks).toEqual([
       ["gh", "auth", "status"],
       ["claude", "auth", "status"],
     ]);
     expect(
-      loadRunKnobs(overrideFile('{ "authChecks": [["true"]] }')).authChecks,
+      loadRunKnobs(overrideFile('{ "authChecks": [["true"]] }'), {}).authChecks,
     ).toEqual([["true"]]);
   });
 
   it("throws on an unreadable override file", () => {
-    expect(() => loadRunKnobs(join(temp, "missing.json"))).toThrow();
+    expect(() => loadRunKnobs(join(temp, "missing.json"), {})).toThrow();
   });
 });
 

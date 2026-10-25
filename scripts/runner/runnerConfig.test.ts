@@ -3,6 +3,8 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { runKnobs } from "./runnerConfig.ts";
+
 const primaryRoot = join(import.meta.dirname, "..", "..");
 
 interface PackageFile {
@@ -12,12 +14,9 @@ interface PackageFile {
   peerDependencies?: Record<string, string>;
 }
 
-describe("runner.config.json", () => {
+describe("runKnobs", () => {
   it("lists each clone after every clone it depends on, the order wrap-up lands them in", () => {
-    const { clonePaths } = JSON.parse(
-      readFileSync(join(import.meta.dirname, "runner.config.json"), "utf8"),
-    ) as { clonePaths: Record<string, string> };
-    const clones = Object.values(clonePaths)
+    const clones = Object.values(runKnobs.clonePaths)
       .filter((clonePath) => clonePath !== ".")
       // CI checks out only this repo, so its clones are absent there.
       .filter((clonePath) => existsSync(packageFilePathOf(clonePath)))
