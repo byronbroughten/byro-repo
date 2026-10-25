@@ -31,11 +31,13 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 
 ## Tier 2: ranked
 
-- **In order: developer attention, fewest concepts, agent cost, code run-time.** A large gain lower down can offset a small loss higher up; aim to satisfy them together.
+- **In order: developer attention, fewest concepts, agent cost, code run-time.**
   1. **Developer attention**: the decisions, approvals, manual steps and reading a Recommendation asks of the developer.
   2. **Fewest concepts**: the fewest names, parameters, layers, shapes and copies of a fact a reader has to hold, so the code stays comprehensible and easy to change; not the fewest characters.
   3. **Agent cost**: the tokens a session reads and carries, and the wall-clock time it spends.
   4. **Code run-time**: the wall-clock time of code: app runs, mostly Sheets round trips, plus `tsc`, tests and scripts.
+- **A large gain lower down can offset a small loss higher up.**
+- **Aim to satisfy them together.**
 
 ## Explaining a tradeoff
 
