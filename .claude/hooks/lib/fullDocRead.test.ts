@@ -50,18 +50,34 @@ describe("isFullDocRead", () => {
     ).toBe(false);
   });
 
+  it("is true for a full Read of a workspace's copy", () => {
+    expect(read("/repo/.claude/worktrees/ws-1/docs/prose-style.md")).toBe(true);
+    expect(
+      read("docs/prose-style.md", {}, "/repo/.claude/worktrees/ws-1"),
+    ).toBe(true);
+  });
+
+  it("judges a ranged Read of a workspace copy by that copy's own length", () => {
+    const workspaceCopy = "/repo/.claude/worktrees/ws-1/docs/prose-style.md";
+    expect(read(workspaceCopy, { limit: 39, totalLines: 40 })).toBe(false);
+    expect(read(workspaceCopy, { limit: 40, totalLines: 40 })).toBe(true);
+  });
+
   it("is false for any other file", () => {
     expect(read("/repo/docs/prose-style/smells.md")).toBe(false);
     expect(read("/other/docs/prose-style.md")).toBe(false);
     expect(read("/repo/config/docs/code-style.md")).toBe(false);
+    expect(read("/repo/.claude/worktrees/ws-1/docs/prose-style/x.md")).toBe(
+      false,
+    );
   });
 });
 
 describe("isFullDocBashRead", () => {
-  function bashRead(command: string): boolean {
+  function bashRead(command: string, cwd = projectDir): boolean {
     const wholeFilePaths = BashReads.init({
       command,
-      cwd: projectDir,
+      cwd,
       projectDir,
     }).wholeFilePaths();
     return isFullDocBashRead(projectDir, wholeFilePaths, docPath);
@@ -70,6 +86,15 @@ describe("isFullDocBashRead", () => {
   it("counts a whole-file cat, beside other files", () => {
     expect(bashRead("cat docs/prose-style.md")).toBe(true);
     expect(bashRead("cat AGENTS.md docs/prose-style.md")).toBe(true);
+  });
+
+  it("counts a whole-file cat of a workspace's copy", () => {
+    expect(bashRead("cat .claude/worktrees/ws-1/docs/prose-style.md")).toBe(
+      true,
+    );
+    expect(
+      bashRead("cat docs/prose-style.md", "/repo/.claude/worktrees/ws-1"),
+    ).toBe(true);
   });
 
   it("doesn't count a cat a pipe trims", () => {

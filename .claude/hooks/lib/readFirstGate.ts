@@ -6,7 +6,7 @@ import type { ToolInput } from "./hookIo.ts";
 import {
   isLintedSource,
   isUnignoredProjectFile,
-  projectRelative,
+  rootRelative,
 } from "./lintSet.ts";
 
 // marker names the session's record of a full read of path.
@@ -33,7 +33,7 @@ export interface ReadFirstCall {
   generatedDirs: string[];
 }
 
-// target is the project-relative file_path, when the call has one.
+// target is the file_path relative to its own root, when the call has one.
 interface CoveredCall {
   toolName: string;
   toolInput: ToolInput;
@@ -48,7 +48,6 @@ export const writingDocPaths = {
   voice: join("docs", "writing-voice.md"),
   craft: join("docs", "writing-craft.md"),
 } as const;
-const workspacesRoot = join(".claude", "worktrees") + sep;
 const tierCode = {
   folder: join(".claude", "hooks", "lib", "tiers") + sep,
   files: new Set([
@@ -87,9 +86,7 @@ export const readFirstRows: ReadFirstRow[] = [
       "Change a tier rule only when your ticket or the developer's request calls for it; then no extra yes is needed. When neither does, leave the rule alone and don't ask.",
       "The tier table and the tier code change in the same commit.",
     ],
-    ...fileEdits(
-      (target) => isTierCode(rootRelative(target)) || isSettingsFile(target),
-    ),
+    ...fileEdits((target) => isTierCode(target) || isSettingsFile(target)),
   },
   {
     docs: [
@@ -144,7 +141,7 @@ export function readFirstDecision(
     toolInput,
     target:
       typeof filePath === "string"
-        ? projectRelative({ projectDir, cwd, filePath })
+        ? rootRelative({ projectDir, cwd, filePath })
         : undefined,
     generatedDirs,
   };
@@ -196,12 +193,6 @@ function skipReasoningRule(reasoningDir: string): string {
 
 function isTierCode(target: string): boolean {
   return target.startsWith(tierCode.folder) || tierCode.files.has(target);
-}
-
-// Relative to the workspace root for a path inside a workspace, else unchanged.
-function rootRelative(target: string): string {
-  if (!target.startsWith(workspacesRoot)) return target;
-  return target.split(sep).slice(3).join(sep);
 }
 
 // A settings file at any root: the primary root, a package or a workspace.

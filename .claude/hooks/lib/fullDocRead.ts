@@ -1,7 +1,5 @@
 // Whether a Read or a Bash read covered a whole doc, the deny message's wording, and the decision shape. Pure; used by the read-first gate.
-import { join } from "node:path";
-
-import { type FileLocation, projectRelative } from "./lintSet.ts";
+import { type FileLocation, rootRelative } from "./lintSet.ts";
 
 export interface EditDecision {
   denyReason: string | undefined;
@@ -23,7 +21,7 @@ export function isFullDocRead(
   { projectDir, cwd, filePath, offset, limit, totalLines }: FullDocRead,
   docPath: string,
 ): boolean {
-  if (projectRelative({ projectDir, cwd, filePath }) !== docPath) return false;
+  if (rootRelative({ projectDir, cwd, filePath }) !== docPath) return false;
   if (offset == null && limit == null) return true;
   if ((offset ?? 1) > 1) return false;
   return (
@@ -40,5 +38,8 @@ export function isFullDocBashRead(
   wholeFilePaths: string[],
   docPath: string,
 ): boolean {
-  return wholeFilePaths.includes(join(projectDir, docPath));
+  return wholeFilePaths.some(
+    (filePath) =>
+      rootRelative({ projectDir, cwd: projectDir, filePath }) === docPath,
+  );
 }
