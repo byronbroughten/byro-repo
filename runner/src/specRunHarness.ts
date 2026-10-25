@@ -446,6 +446,15 @@ export function runStatePath(): string {
   return join(stateFolder(), "byro-repo-213.run.json");
 }
 
+export function runLockPath(): string {
+  return join(stateFolder(), "byro-repo-213.run.lock");
+}
+
+// A killed run's pid is dead, so a rerun takes its lock over; a run left hung in this process still holds it.
+export function killHungRun(): void {
+  rmSync(runLockPath());
+}
+
 // Ticket 1's facts file.
 export function ticketFacts(): Partial<WrapUpFacts> {
   const path = join(stateFolder(), "byro-repo-1.facts.json");

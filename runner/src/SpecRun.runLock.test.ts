@@ -19,6 +19,7 @@ import {
   implemented,
   refOf,
   reviewed,
+  runLockPath,
   spec,
   specRun,
   stateFolder,
@@ -27,13 +28,9 @@ import {
 
 useSpecRunHarness();
 
-function lockPath(): string {
-  return join(stateFolder(), "byro-repo-213.run.lock");
-}
-
 function seedLock(content: string): void {
   mkdirSync(stateFolder(), { recursive: true });
-  writeFileSync(lockPath(), content);
+  writeFileSync(runLockPath(), content);
 }
 
 function seedHolder(holder: LockHolder): void {
@@ -65,7 +62,7 @@ describe("run's run lock", () => {
     });
     expect(agentStep.requests).toEqual([]);
     expect(github.comments).toEqual([]);
-    expect(existsSync(lockPath())).toBe(true);
+    expect(existsSync(runLockPath())).toBe(true);
     expect(existsSync(stopRequest)).toBe(true);
   });
 
@@ -113,7 +110,7 @@ describe("run's run lock", () => {
     const result = await specRun(agentStep).run(spec);
 
     expect(result.kind).toBe("finished");
-    expect(existsSync(lockPath())).toBe(false);
+    expect(existsSync(runLockPath())).toBe(false);
   });
 
   it("leaves no lock after a stopped run", async () => {
@@ -128,7 +125,7 @@ describe("run's run lock", () => {
     }).run(spec);
 
     expect(result.kind).toBe("stopped");
-    expect(existsSync(lockPath())).toBe(false);
+    expect(existsSync(runLockPath())).toBe(false);
   });
 
   it("leaves no lock after a run refused for another reason", async () => {
@@ -138,7 +135,7 @@ describe("run's run lock", () => {
     const result = await specRun(FakeAgentStep.init()).run(spec);
 
     expect(result.kind).toBe("refused");
-    expect(existsSync(lockPath())).toBe(false);
+    expect(existsSync(runLockPath())).toBe(false);
   });
 
   it("leaves no lock after a run that throws", async () => {
@@ -153,6 +150,6 @@ describe("run's run lock", () => {
     }).run(spec);
 
     await expect(run).rejects.toThrow("The clock broke.");
-    expect(existsSync(lockPath())).toBe(false);
+    expect(existsSync(runLockPath())).toBe(false);
   });
 });

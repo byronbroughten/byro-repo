@@ -15,6 +15,7 @@ import {
   findingOf,
   github,
   implemented,
+  killHungRun,
   masterSubjects,
   notices,
   primaryOf,
@@ -45,6 +46,7 @@ describe("run's resume", () => {
       }),
     ).run(spec);
     await reachedReview;
+    killHungRun();
     const framework = primaryOf("sheets-framework");
     writeFileSync(join(framework, "later.ts"), "export {};\n");
     git(framework, "add", "later.ts");
@@ -88,6 +90,7 @@ describe("run's resume", () => {
       ),
     ).run(spec);
     await reachedResolve;
+    killHungRun();
     const saved = JSON.parse(readFileSync(runStatePath(), "utf8")) as {
       tickets: Record<string, { findings?: unknown[] }>;
     };
@@ -210,6 +213,7 @@ describe("run's resume", () => {
       github: hangingGitHub,
     }).run(spec);
     await reachedWrapUp;
+    killHungRun();
     expect(ticketState()["byro-repo #1"]?.step).toBe("wrap-up");
     const rerunStep = FakeAgentStep.init();
 
@@ -233,6 +237,7 @@ describe("run's resume", () => {
       }),
     ).run(spec);
     await reachedReview;
+    killHungRun();
     github.edit(1, { isOpen: false });
 
     const result = await specRun(
@@ -356,6 +361,7 @@ async function killAtResolveSavedAs(
     ),
   ).run(spec);
   await reachedResolve;
+  killHungRun();
   const saved = JSON.parse(readFileSync(runStatePath(), "utf8")) as {
     tickets: Record<string, Record<string, unknown>>;
   };
