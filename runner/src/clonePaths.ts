@@ -11,13 +11,10 @@ interface Clone {
   dependencyNames: string[];
 }
 
-export function clonePathsOf(
-  primaryRoot: string,
-  packagesFolder = "packages",
-): Record<string, string> {
-  const clones = packageFoldersOf(primaryRoot, packagesFolder)
+export function clonePathsOf(primaryRoot: string): Record<string, string> {
+  const clones = packageFoldersOf(primaryRoot)
     .filter((entry) => entry.isDirectory())
-    .map(({ name }) => join(packagesFolder, name))
+    .map(({ name }) => join("packages", name))
     .sort()
     .filter((clonePath) => existsSync(join(primaryRoot, clonePath, ".git")))
     .map((clonePath) => cloneOf(primaryRoot, clonePath));
@@ -31,11 +28,8 @@ export function clonePathsOf(
 }
 
 // A checkout of the root repo alone, such as CI's, has no packages folder.
-function packageFoldersOf(
-  primaryRoot: string,
-  packagesFolder: string,
-): Dirent[] {
-  const folder = join(primaryRoot, packagesFolder);
+function packageFoldersOf(primaryRoot: string): Dirent[] {
+  const folder = join(primaryRoot, "packages");
   if (!existsSync(folder)) return [];
   return readdirSync(folder, { withFileTypes: true });
 }
