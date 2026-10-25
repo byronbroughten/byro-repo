@@ -34,7 +34,7 @@ describe("implementCodeSkillOf", () => {
     const steps = [
       "`npm run runner -- review <owner>/<repo> <n>`",
       "`npm run runner -- resolve <owner>/<repo> <n> .runner/resolve-<n>.json`",
-      "what review caught, what was fixed and what is Proposed",
+      "each Propose on its own line, the item then `→` and its record's `recommendation`",
       "Wait for the developer's go-ahead",
       "`ExitWorktree` with `keep`",
       '`npm run wrap-up -- <repo> <n> --closing "<what landed>" [--undone "<box>: <reason>"]...`',
