@@ -65,6 +65,7 @@ const freeScripts = new Map([
   ["issue:start", "a workspace it starts comes off with `issue:remove`"],
   ["issue:list", "it only reads the workspaces"],
   ["issue:remove", "a plain remove refuses a workspace holding unlanded work"],
+  ["issue:backlink", "a further `gh issue edit` undoes it"],
 ]);
 const readPrograms = new Set(["grep", "rg", "cat", "head", "tail", "wc", "ls"]);
 const gitReadVerbs = new Set([

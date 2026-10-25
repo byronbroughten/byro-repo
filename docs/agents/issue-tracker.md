@@ -26,6 +26,7 @@ Issues and specs live as GitHub issues, in the repo of the package they concern.
 - **Comment on an issue**: `gh issue comment -R <repo> <number> --body "..."`
 - **Apply / remove labels**: `gh issue edit -R <repo> <number> --add-label "..."` / `--remove-label "..."`
 - **Close**: `gh issue close -R <repo> <number> --comment "..."`
+- **Backlink an ADR**: `npm run issue:backlink -- <repo> <number> <adr-path>`, with the bare repo name. It ends the body with the `Design decision:` line below, and leaves a body already ending with it unchanged.
 
 **An issue whose body ends with a `Design decision: <owner/repo>/docs/adr/NNNN-slug.md` line backs that ADR.** Editing such an issue, update the ADR to match, or mark it `superseded` when the edit reverses it.
 
