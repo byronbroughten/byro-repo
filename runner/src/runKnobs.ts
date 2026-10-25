@@ -21,7 +21,7 @@ export type KnobbedStep = keyof StepKnobs<number>;
 export type ReviewListCadence = "end-of-run" | "per-ticket";
 
 export interface RunKnobs {
-  // Repo name to its clone's path relative to the primary root; the root repo's is ".". Never from the override file: clonePathsOf() builds it.
+  // Repo name to its clone's path relative to the primary root; the root repo's is ".".
   clonePaths: Record<string, string>;
   skillNames: { review: string };
   // Run from a workspace or primary root: after review in each ticket, and in a master set when they go red in a ticket.
