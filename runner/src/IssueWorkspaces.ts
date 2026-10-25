@@ -13,6 +13,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   rmSync,
   statSync,
   symlinkSync,
@@ -789,10 +790,12 @@ async function worktreesInside(
   folder: string,
 ): Promise<string[]> {
   const listing = await git(primaryClone, "worktree", "list", "--porcelain");
+  // Git records each worktree at its real path, so a symlinked workspace folder would match none.
+  const realFolder = realpathSync(folder);
   return lines(listing).flatMap((line) => {
     if (!line.startsWith("worktree ")) return [];
     const worktree = line.slice("worktree ".length);
-    return worktree.startsWith(`${folder}${sep}`) ? [worktree] : [];
+    return worktree.startsWith(`${realFolder}${sep}`) ? [worktree] : [];
   });
 }
 

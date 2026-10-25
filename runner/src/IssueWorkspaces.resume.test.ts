@@ -3,6 +3,7 @@ import {
   readFileSync,
   realpathSync,
   renameSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
@@ -16,6 +17,7 @@ import {
   clonePaths,
   primaryRoot,
   primaryStates,
+  temp,
   useIssueWorkspacesHarness,
   workspaces,
 } from "./issueWorkspacesHarness.ts";
@@ -270,6 +272,27 @@ describe("after a primary clone moves", () => {
     expect(branchOf(tools)).toBe("issue-7-spans");
     expect(readFileSync(join(tools, "README.md"), "utf8")).toBe("edited");
     expect(existsSync(join(workspace.path, "packages/utils"))).toBe(false);
+  });
+
+  it("finds the moved worktree when the workspace folder is reached through a symlink", async () => {
+    const linkedTemp = join(temp, "linked");
+    symlinkSync(temp, linkedTemp);
+    const workspaceFolder = join(linkedTemp, "workspaces");
+    const workspace = await workspaces({ workspaceFolder }).create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "spans", extraRepos: ["utils"] },
+    );
+    moveUtilsClone();
+
+    const found = await workspaces({
+      workspaceFolder,
+      clonePaths: movedClonePaths,
+    }).find({ repo: "byro-repo", number: 7 });
+
+    expect(found?.branchedRepos).toEqual(["byro-repo", "utils"]);
+    expect(branchOf(join(workspace.path, "packages/tools"))).toBe(
+      "issue-7-spans",
+    );
   });
 
   it("points a moved worktree's shared-file links at the moved clone", async () => {
