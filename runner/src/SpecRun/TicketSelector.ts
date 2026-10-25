@@ -50,7 +50,7 @@ interface Survey {
   stoppedAgain?: { ticket: TrackedIssue; stop: string };
 }
 
-type Selection =
+export type Selection =
   | { kind: "launch"; ticket: TrackedIssue }
   | { kind: "stopped-again"; ticket: TrackedIssue; stop: string }
   | { kind: "stop-spec"; halts: Halt[] }

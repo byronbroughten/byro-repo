@@ -60,7 +60,7 @@ describe("run's preflight", () => {
       kind: "stopped",
       landed: [],
       message:
-        "Preflight stopped the run: node -e process.exit(1) failed: GitHub auth or the claude login is missing",
+        "Preflight stopped the run: node -e process.exit(1) failed: GitHub auth or the claude login is missing; sign in to whichever it checks, and rerun",
     });
   });
 
@@ -75,7 +75,7 @@ describe("run's preflight", () => {
     });
 
     expect(result.message).toBe(
-      "Preflight stopped the run: the live ceiling of 180000 isn't above the ticket budget of 180000",
+      "Preflight stopped the run: the live ceiling of 180000 isn't above the ticket budget of 180000; raise the live ceiling or lower the ticket budget, and rerun",
     );
   });
 
@@ -85,7 +85,7 @@ describe("run's preflight", () => {
     const result = await preflightOf();
 
     expect(result.message).toBe(
-      `Preflight stopped the run: sheets-framework's primary clone is missing at ${primaryOf("sheets-framework")}`,
+      `Preflight stopped the run: sheets-framework's primary clone is missing at ${primaryOf("sheets-framework")}; clone sheets-framework into ${primaryOf("sheets-framework")} and rerun`,
     );
   });
 
@@ -95,7 +95,7 @@ describe("run's preflight", () => {
     const result = await preflightOf();
 
     expect(result.message).toBe(
-      "Preflight stopped the run: sheets-framework's primary checkout is on elsewhere, not master",
+      "Preflight stopped the run: sheets-framework's primary checkout is on elsewhere, not master; switch it to master and rerun",
     );
   });
 
@@ -238,7 +238,7 @@ describe("run's unhandled Stops", () => {
         `Log: \`${join(stateFolder(), logFile)}\``,
       );
       expect(notices.sent.map(({ summary }) => summary)).toEqual([
-        "Run started on 2 tickets as account 1: 5-hour 10%, weekly 20%.",
+        "Run started on 2 tickets as account 1: 5-hour 10%, weekly 20%. Launching byro-repo #1.",
         result.message,
       ]);
     },

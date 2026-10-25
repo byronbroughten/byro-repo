@@ -45,7 +45,7 @@ import {
   waitsTextOf,
 } from "./runState.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
-import { TicketSelector } from "./TicketSelector.ts";
+import { type Selection, TicketSelector } from "./TicketSelector.ts";
 import { TicketSequencer } from "./TicketSequencer.ts";
 
 export class RunLoop extends SpecRunBase {
@@ -109,13 +109,14 @@ export class RunLoop extends SpecRunBase {
       if (!(error instanceof RunStop)) throw error;
       return this._end(run, "stopped", error.message);
     }
-    await this._announce(
-      run,
-      `Run started on ${run.tickets.length} tickets as ${readingLabelOf(reading)}.`,
-    );
+    let isStartAnnounced = false;
     let isIdle = false;
     for (;;) {
       const selection = await this.ticketSelector._select(run);
+      if (!isStartAnnounced) {
+        await this._announceStart(run, reading, selection);
+        isStartAnnounced = true;
+      }
       if (selection.kind === "stop-spec") {
         return this._end(
           run,
@@ -160,6 +161,26 @@ export class RunLoop extends SpecRunBase {
       run.landed.push(selection.ticket.issue);
       run.failureStreak = [];
     }
+  }
+
+  // Sent at the first pick, so it can name the ticket about to launch; a first pick with no launch still shows startup passed.
+  private async _announceStart(
+    run: Run,
+    reading: AccountReading,
+    selection: Selection,
+  ): Promise<void> {
+    const started = `Run started on ${run.tickets.length} tickets as ${readingLabelOf(reading)}.`;
+    const ticket =
+      selection.kind === "launch" ? selection.ticket.issue : undefined;
+    const summary =
+      ticket === undefined
+        ? started
+        : `${started} Launching ${issueLabelOf(ticket)}.`;
+    await this._announce(run, summary, {
+      kind: "run-started",
+      warnings: [],
+      ...(ticket && { ticket }),
+    });
   }
 
   // Read by the run between tickets and while idle; a request made with no run going is dropped as the next run starts.
@@ -233,21 +254,21 @@ export class RunLoop extends SpecRunBase {
   private async _preflightStop(): Promise<string | undefined> {
     const { knobs, primaryRoot } = this.config;
     if (knobs.liveCeiling <= knobs.ticketBudget) {
-      return `${liveCeilingPhraseOf(knobs)} isn't above the ticket budget of ${knobs.ticketBudget}`;
+      return `${liveCeilingPhraseOf(knobs)} isn't above the ticket budget of ${knobs.ticketBudget}; raise the live ceiling or lower the ticket budget, and rerun`;
     }
     for (const command of knobs.authChecks) {
       if ((await runCommand(command, primaryRoot)) !== undefined) {
-        return `${commandLabelOf(command)} failed: GitHub auth or the claude login is missing`;
+        return `${commandLabelOf(command)} failed: GitHub auth or the claude login is missing; sign in to whichever it checks, and rerun`;
       }
     }
     for (const [repo, clonePath] of Object.entries(knobs.clonePaths)) {
       const clone = join(primaryRoot, clonePath);
       if (!existsSync(join(clone, ".git"))) {
-        return `${repo}'s primary clone is missing at ${clone}`;
+        return `${repo}'s primary clone is missing at ${clone}; clone ${repo} into ${clone} and rerun`;
       }
       const branch = currentBranchOf(clone);
       if (branch !== "master") {
-        return `${repo}'s primary checkout is on ${branch || "a detached HEAD"}, not master`;
+        return `${repo}'s primary checkout is on ${branch || "a detached HEAD"}, not master; switch it to master and rerun`;
       }
     }
     return undefined;
