@@ -87,6 +87,10 @@ _Avoid_: cooldown, throttle
 Nothing is runnable, but an open Halt or another holder's Lease may clear while the run waits, so it pushes once and polls for answers rather than ending.
 _Avoid_: sleep, paused
 
+**Vanished**:
+The run's process is gone and nothing recorded how it ended, so only the Supervisor can notice. A crash, by contrast, reports itself.
+_Avoid_: died, lost
+
 **Review list**:
 The comment the runner posts on the spec issue for each landed ticket with a Propose, one checkbox per Propose and the Dismisses in a collapsed audit. The gap check posts the last one.
 _Avoid_: todo list, report
@@ -118,6 +122,10 @@ _Avoid_: hand session, manual session
 **Supervisor**:
 An interactive session that launches or rejoins one run, explains each of its events to the developer, and posts replies the developer approved. It never edits code or holds a lease while its run is running.
 _Avoid_: monitor, watcher, babysitter
+
+**Run board**:
+A read-only, live view of every running run's ticket, step and time on step. It is never streamed to the Supervisor, which looks at it only to diagnose.
+_Avoid_: dashboard
 
 **Lease**:
 A run's or interactive session's hold on one workspace, which keeps every other run and session out of it until the holder moves on, ends or closes out. A lease whose holder has died is abandoned, and the next taker takes it over.
