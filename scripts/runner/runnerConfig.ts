@@ -101,6 +101,10 @@ export const wrapUpConfig: WrapUpConfig = {
         { cwd: root, encoding: "utf8" },
       ),
     ) as WrittenOutcomeRow,
+  // Workspaces copy node_modules rather than install, so this is how a landed prepare change reaches the primaries.
+  async afterFastForward(root) {
+    execFileSync("npm", ["run", "prepare"], { cwd: root, stdio: "inherit" });
+  },
   log: (line) => console.log(line),
 };
 
