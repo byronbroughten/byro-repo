@@ -1,17 +1,12 @@
-import { execFileSync } from "node:child_process";
-import {
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { LandingLock, type LockHolder } from "./LandingLock.ts";
+import { LandingLock } from "./LandingLock.ts";
+import { deadPid, seedHolder } from "./lockFixture.ts";
+import type { LockHolder } from "./PidLock.ts";
 
 let gitDir: string;
 
@@ -27,14 +22,6 @@ function lockPath(): string {
   return join(gitDir, "landing.lock");
 }
 
-function seedHolder(holder: LockHolder): void {
-  writeFileSync(lockPath(), JSON.stringify(holder));
-}
-
-function deadPid(): number {
-  return Number(execFileSync("node", ["-e", "console.log(process.pid)"]));
-}
-
 describe("LandingLock.acquire", () => {
   it("writes this process's pid, host and start time", async () => {
     await LandingLock.acquire(gitDir, { pollMs: 1, sleep: async () => {} });
@@ -44,7 +31,11 @@ describe("LandingLock.acquire", () => {
   });
 
   it("takes over a lock whose pid is no longer running on this host", async () => {
-    seedHolder({ pid: deadPid(), host: hostname(), startedAt: "2026-01-01" });
+    seedHolder(lockPath(), {
+      pid: deadPid(),
+      host: hostname(),
+      startedAt: "2026-01-01",
+    });
     let waits = 0;
     await LandingLock.acquire(gitDir, {
       pollMs: 1,
@@ -58,7 +49,11 @@ describe("LandingLock.acquire", () => {
   });
 
   it("waits on a live holder until it releases", async () => {
-    seedHolder({ pid: process.pid, host: hostname(), startedAt: "2026-01-01" });
+    seedHolder(lockPath(), {
+      pid: process.pid,
+      host: hostname(),
+      startedAt: "2026-01-01",
+    });
     let waits = 0;
     await LandingLock.acquire(gitDir, {
       pollMs: 1,
@@ -71,7 +66,11 @@ describe("LandingLock.acquire", () => {
   });
 
   it("waits on another host's lock even when the pid is dead here", async () => {
-    seedHolder({ pid: deadPid(), host: "elsewhere", startedAt: "2026-01-01" });
+    seedHolder(lockPath(), {
+      pid: deadPid(),
+      host: "elsewhere",
+      startedAt: "2026-01-01",
+    });
     let waits = 0;
     await LandingLock.acquire(gitDir, {
       pollMs: 1,

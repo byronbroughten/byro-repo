@@ -1,0 +1,14 @@
+// The pid-lock fixtures LandingLock's, RunLock's and SpecRun's run-lock tests share.
+
+import { execFileSync } from "node:child_process";
+import { writeFileSync } from "node:fs";
+
+import type { LockHolder } from "./PidLock.ts";
+
+export function seedHolder(path: string, holder: LockHolder): void {
+  writeFileSync(path, JSON.stringify(holder));
+}
+
+export function deadPid(): number {
+  return Number(execFileSync("node", ["-e", "console.log(process.pid)"]));
+}
