@@ -44,6 +44,7 @@ interface ResultEvent {
   api_error_status?: unknown;
   result?: unknown;
   structured_output?: unknown;
+  permission_denials?: unknown;
 }
 
 const tooManyRequests = 429;
@@ -102,6 +103,7 @@ export class StepStream {
       errorText: this._errorText,
       usage: this.rateLimit && usageOf(this.rateLimit),
       limitHit: this._limitHit,
+      deniedTools: deniedToolsOf(this.result?.permission_denials),
     };
   }
 
@@ -167,6 +169,14 @@ function windowOf(raw: RawWindow | undefined): UsageWindow | undefined {
   const resetsAt = dateOf(raw?.resetsAt);
   if (typeof raw?.utilization !== "number" || !resetsAt) return undefined;
   return { utilization: raw.utilization, resetsAt };
+}
+
+function deniedToolsOf(denials: unknown): string[] {
+  if (!Array.isArray(denials)) return [];
+  return denials.flatMap((denial) => {
+    const toolName = stringOrUndefined(denial?.tool_name);
+    return toolName === undefined ? [] : [toolName];
+  });
 }
 
 function outputOf(

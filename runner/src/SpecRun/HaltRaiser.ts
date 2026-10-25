@@ -37,6 +37,12 @@ import {
 } from "./runState.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 
+// An implement record's blockers, with the tools its step's stream recorded as denied.
+interface RecordedBlockers {
+  blockers: Blocker[];
+  deniedTools: string[];
+}
+
 export class HaltRaiser extends SpecRunBase {
   // Snapshots a step that edits; a crash past the retries is a Failure Halt.
   async _takeCrash(ticketRun: TicketRun, crash: Crash): Promise<void> {
@@ -86,7 +92,7 @@ export class HaltRaiser extends SpecRunBase {
 
   async _raiseBlockerHalts(
     ticketRun: TicketRun,
-    blockers: Blocker[],
+    { blockers, deniedTools }: RecordedBlockers,
   ): Promise<void> {
     if (blockers.length === 0) return;
     const downstream = await this._downstreamOf(
@@ -95,7 +101,9 @@ export class HaltRaiser extends SpecRunBase {
     );
     raiseHalts(ticketRun.run, {
       ticket: ticketRun.ticket.issue,
-      drafts: blockers.map((blocker) => blockerHaltOf(blocker, downstream)),
+      drafts: blockers.map((blocker) =>
+        blockerHaltOf(blocker, { downstream, deniedTools }),
+      ),
     });
   }
 

@@ -236,6 +236,7 @@ export interface LaunchedStep {
   record: unknown;
   logPath: string;
   peakContext: number | undefined;
+  deniedTools: string[];
 }
 
 export type StepLaunch = Pick<StepRequest, "prompt" | "jsonSchema"> &
@@ -458,7 +459,8 @@ export function launchedOf(
   { result, logPath }: RanStep,
 ): LaunchedStep {
   const record = recordOf(agent, result, logPath);
-  return { record, logPath, peakContext: result.peakContext };
+  const { peakContext, deniedTools } = result;
+  return { record, logPath, peakContext, deniedTools };
 }
 
 export function recordOf(
