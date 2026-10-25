@@ -110,6 +110,7 @@ export function implementPrompt(input: ImplementPromptInput): string {
     workspaceSection(input),
     gitHubSection(),
     workingSection(input),
+    ticketBindsSection(),
     promptSections.finishing,
     promptSections.handoff,
     ...(latestHandoff ? [previousHandoffSection(latestHandoff)] : []),
@@ -161,7 +162,21 @@ export const implementBody = {
   onlyWrites:
     "Those commits and the GitHub writes the ticket describes are your only writes outside the workspace's files: never push, merge, rebase or reset, never close an issue",
   resolving: resolveRules,
+  ticketCode:
+    "A ticket's code binds its decision. It's your job to fit it to code-style and existing structures, folding it into an existing structure or renaming it where that fits, and to report in the closing comment any departure or any shape that couldn't fit.",
+  ticketProse:
+    "Ticket prose follows prose-style unless the ticket marks it verbatim.",
+  operatorText:
+    "Text an operator sees (CLI flags, script names, sheet text) stays as the ticket has it.",
 } as const;
+
+export function ticketBindsSection(): string {
+  return sectionOf("What the ticket binds", [
+    implementBody.ticketCode,
+    implementBody.ticketProse,
+    implementBody.operatorText,
+  ]);
+}
 
 const promptSections = {
   finishing: `## When you're done

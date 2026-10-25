@@ -30,6 +30,11 @@ describe("implementCodeSkillOf", () => {
     );
   });
 
+  it("says a ticket's code binds only its decision", () => {
+    expect(skill).toContain("## What the ticket binds");
+    expect(skill).toContain("A ticket's code binds its decision.");
+  });
+
   it("ends with review, resolve, report, wait, ExitWorktree keep and wrap-up, in that order", () => {
     const steps = [
       "`npm run runner -- review <owner>/<repo> <n>`",

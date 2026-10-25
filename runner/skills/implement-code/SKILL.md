@@ -21,6 +21,12 @@ disable-model-invocation: true
 - Run typechecking and single test files regularly.
 - Read and search with the Read and Grep tools. Give Bash one command per call, run from the workspace root: no `cd`, no `;` or `&&` chains, no variables.
 
+## What the ticket binds
+
+- A ticket's code binds its decision. It's your job to fit it to code-style and existing structures, folding it into an existing structure or renaming it where that fits, and to report in the closing comment any departure or any shape that couldn't fit.
+- Ticket prose follows prose-style unless the ticket marks it verbatim.
+- Text an operator sees (CLI flags, script names, sheet text) stays as the ticket has it.
+
 ## GitHub
 
 - Some tickets need only GitHub writes and no code. Run `gh issue edit` and `gh issue comment` only as the ticket describes them. Never close an issue, never change a triage label (such as `ready-for-agent`) on this ticket or another ticket of its spec, and make no other GitHub write.
