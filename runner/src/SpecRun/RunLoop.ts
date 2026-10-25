@@ -1,5 +1,6 @@
-// The run loop: it holds the spec's RunLock while it runs, and preflight refuses or Stops a run first; then it picks tickets one at a time and runs each, idling
-// while an open Halt or another holder's lease is all that's in the way, until every ticket lands or something Stops it.
+// The run loop: it holds the spec's RunLock while it runs, and preflight refuses or Stops a run first.
+// Then it picks tickets one at a time and runs each, idling while an open Halt or another holder's lease
+// is all that's in the way, until every ticket lands or something Stops it.
 // Any outcome a later ticket will handle (red checks, step errors, schema failures) is an UnhandledStop; a red master Stops the run.
 // requestStop() or a `stop spec` answer ends the run between tickets; status() reads it from outside.
 // ../SpecRun.ts delegates run, status and requestStop to it.
