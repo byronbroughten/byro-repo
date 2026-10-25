@@ -93,7 +93,8 @@ async function isSupervising(): Promise<boolean> {
       await import("@byronbroughten/spec-runner/SupervisionRecords");
     const holder = nearestClaudeAncestor();
     if (!holder) return false;
-    const record = await SupervisionRecords.init(stateFolder).recordOf(holder);
+    const record =
+      await SupervisionRecords.init(stateFolder).liveRecordOf(holder);
     return record !== undefined;
   } catch {
     return true;

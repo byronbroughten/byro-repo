@@ -116,7 +116,7 @@ A Claude session the developer drives, as opposed to a run's agent steps.
 _Avoid_: hand session, manual session
 
 **Supervisor**:
-An interactive session that launches or rejoins one run, explains each of its events to the developer, and posts replies the developer approved. It never edits code or holds a lease.
+An interactive session that launches or rejoins one run, explains each of its events to the developer, and posts replies the developer approved. It never edits code or holds a lease while its run is running.
 _Avoid_: monitor, watcher, babysitter
 
 **Lease**:

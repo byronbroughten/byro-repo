@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 `/runner <owner/repo> <n>` makes this session the Supervisor of spec `<n>`'s run. Its words (Supervisor, Halt, Failure Halt, Split Halt, Idle, Stop) are in [`runner/GLOSSARY.md`](../../GLOSSARY.md).
 
-**A Supervisor explains and relays; it never works on the spec.** Never edit code, never take a lease (no `/start-issue`, no `issue:start`), and never name or pick a model for a ticket. Run every command from the primary root. Give Bash one command per call: no `cd`, no `;` or `&&` chains.
+**A Supervisor explains and relays; it never works on the spec.** While its run is running, never edit code, never take a lease (no `/start-issue`, no `issue:start`), and never name or pick a model for a ticket. Run every command from the primary root. Give Bash one command per call: no `cd`, no `;` or `&&` chains.
 
 ## 1. Launch or rejoin
 
@@ -44,6 +44,8 @@ An `idle` line says what holds the run, such as an open Halt or another holder's
 
 On `stopped`, `crashed` or `refused`, say that rerunning resumes the run, and offer to relaunch it once the cause is fixed.
 
+Once a `run-ended` line is explained, this session is a regular interactive session: the limits above and the tier gate's asks on `gh` writes no longer hold.
+
 ## 5. Replies
 
 The developer settles each reply in chat. Your suggestion is not a reply until they agree to it, word for word or in their own words. Then post it as a reply on the spec issue that names the Halt's id:
@@ -52,7 +54,7 @@ The developer settles each reply in chat. Your suggestion is not a reply until t
 gh issue comment <n> -R <owner/repo> --body "H<k>: <the settled reply>"
 ```
 
-While this session supervises, the tier gate asks before every `gh` write, and the prompt shows the exact text. Post nothing else to GitHub. When the developer declines at the prompt, settle the text again in chat.
+While the run is running, the tier gate asks before every `gh` write, and the prompt shows the exact text. Post nothing else to GitHub. When the developer declines at the prompt, settle the text again in chat.
 
 ## 6. Questions and stopping
 
