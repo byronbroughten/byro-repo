@@ -117,6 +117,7 @@ describe("the code-style row", () => {
     "/repo/scripts/docLint.ts",
     "/repo/packages/framework/scripts/rollupPreset.js",
     "/repo/eslint.config.mjs",
+    "/repo/.claude/worktrees/agent-1/scripts/docLint.ts",
   ])(
     "refuses %s, which ESLint lints, before the code rules are read",
     (path) => {
@@ -138,13 +139,26 @@ describe("the code-style row", () => {
 
   it("allows a linted edit after the code rules are read", () => {
     expect(edit(frameworkFile, [codeStylePath])).toEqual(allowed);
+    expect(
+      edit("/repo/.claude/worktrees/agent-1/scripts/docLint.ts", [
+        codeStylePath,
+      ]),
+    ).toEqual(allowed);
+  });
+
+  it("skips a workspace's generated configs", () => {
+    expect(
+      edit(
+        "/repo/.claude/worktrees/agent-1/packages/real-estate/src/generated/sheetConfigs.ts",
+        unread,
+      ),
+    ).toEqual(allowed);
   });
 
   it.each([
     "/repo/packages/framework/dist/bundle.js",
     "/repo/coverage/prettify.js",
     "/repo/node_modules/x/index.js",
-    "/repo/.claude/worktrees/agent-1/scripts/docLint.ts",
     "/elsewhere/packages/framework/src/x.ts",
     "/repo/packages/framework/src/AGENTS.md",
     "/repo/packages/framework/sheets.config.json",
@@ -172,6 +186,7 @@ describe("the prose-style row", () => {
     "/repo/.claude/skills/tdd/SKILL.md",
     "/repo/packages/framework/README.md",
     "/repo/docs/adr/0011-x.md",
+    "/repo/.claude/worktrees/agent-1/AGENTS.md",
   ])("refuses %s before the prose rules are read", (path) => {
     expect(edit(path, unread).denyReason).toMatch(
       /docs\/prose-style\.md \(the prose rules\)/,
@@ -189,6 +204,9 @@ describe("the prose-style row", () => {
 
   it("allows a markdown edit after the prose rules are read", () => {
     expect(edit("/repo/AGENTS.md", [proseStylePath])).toEqual(allowed);
+    expect(
+      edit("/repo/.claude/worktrees/agent-1/AGENTS.md", [proseStylePath]),
+    ).toEqual(allowed);
   });
 
   it.each([
@@ -197,7 +215,7 @@ describe("the prose-style row", () => {
     "/repo/package.json",
     "/elsewhere/AGENTS.md",
     "/repo/node_modules/x/README.md",
-    "/repo/.claude/worktrees/agent-1/AGENTS.md",
+    "/repo/.claude/worktrees/agent-1/packages/writing/pieces/a.md",
   ])("allows %s, which the row skips", (path) => {
     expect(edit(path, unread)).toEqual(allowed);
   });

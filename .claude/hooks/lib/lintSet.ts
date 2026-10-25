@@ -42,6 +42,13 @@ export function projectRelative({
   return relative(projectDir, resolve(cwd ?? projectDir, filePath));
 }
 
+// Relative to its own root: the workspace's for a path inside one, else the project's.
+export function rootRelative(location: FileLocation): string {
+  const target = projectRelative(location);
+  if (!target.startsWith(lintedFiles.ignoredRoot)) return target;
+  return target.split(sep).slice(3).join(sep);
+}
+
 // `eslint .` lints every code file in the project outside its ignored folders, at any depth.
 function isLinted(target: string): boolean {
   if (!isUnignoredProjectFile(target)) return false;

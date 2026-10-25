@@ -1,6 +1,6 @@
 // PostToolUse on Read or Bash records a full read of each read-first doc; PreToolUse on a row's tools denies a call the row covers until each of its docs is recorded.
 import { existsSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { resolve } from "node:path";
 
 import { isFullDocBashRead, isFullDocRead } from "./lib/fullDocRead.ts";
 import {
@@ -11,7 +11,7 @@ import {
   sessionStatePath,
   writeDenyOutput,
 } from "./lib/hookIo.ts";
-import { projectRelative } from "./lib/lintSet.ts";
+import { rootRelative } from "./lib/lintSet.ts";
 import {
   readFirstDecision,
   type ReadFirstDoc,
@@ -67,7 +67,7 @@ function docsReadBy(input: HookInput, projectDir: string): ReadFirstDoc[] {
   const filePath = input.tool_input?.file_path;
   if (input.tool_name !== "Read" || typeof filePath !== "string") return [];
   const where = { projectDir, cwd, filePath };
-  const target = projectRelative(where);
+  const target = rootRelative(where);
   const { offset, limit } = input.tool_input ?? {};
   return readFirstDocs.filter(
     (doc) =>
@@ -77,7 +77,7 @@ function docsReadBy(input: HookInput, projectDir: string): ReadFirstDoc[] {
           ...where,
           offset,
           limit,
-          totalLines: lineCount(join(projectDir, doc.path)),
+          totalLines: lineCount(resolve(cwd, filePath)),
         },
         doc.path,
       ),
