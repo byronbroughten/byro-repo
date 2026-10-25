@@ -243,11 +243,12 @@ describe("resume", () => {
 describe("after a primary clone moves", () => {
   const movedClonePaths = { ...clonePaths, utils: "packages/tools" };
 
+  function moveClone(from: string, to: string): void {
+    renameSync(join(primaryRoot, from), join(primaryRoot, to));
+  }
+
   function moveUtilsClone(): void {
-    renameSync(
-      join(primaryRoot, "packages/utils"),
-      join(primaryRoot, "packages/tools"),
-    );
+    moveClone("packages/utils", "packages/tools");
   }
 
   it("finds a workspace built before the move with its worktree at the clone's new folder", async () => {
@@ -276,10 +277,7 @@ describe("after a primary clone moves", () => {
       { repo: "byro-repo", number: 7 },
       { slug: "spans" },
     );
-    renameSync(
-      join(primaryRoot, "packages/framework"),
-      join(primaryRoot, "packages/sheets"),
-    );
+    moveClone("packages/framework", "packages/sheets");
 
     await workspaces({
       clonePaths: { ...clonePaths, "sheets-framework": "packages/sheets" },
