@@ -89,7 +89,6 @@ export function haltKindLabelOf(kind: HaltKind): string {
 
 export interface BlockerHaltFacts {
   downstream: string[];
-  // The tools the step's stream recorded as denied.
   deniedTools: string[];
 }
 
