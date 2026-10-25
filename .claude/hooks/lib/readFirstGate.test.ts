@@ -528,6 +528,7 @@ describe("readFirstDecision over a given table", () => {
         toolName: "Edit",
         toolInput: { file_path: "/repo/AGENTS.md" },
         generatedDirs,
+        clonePaths,
       },
       [],
       [throwingRow, markdownRow],
