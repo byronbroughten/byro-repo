@@ -24,13 +24,14 @@ export interface ReadFirstRow {
   covers: (call: CoveredCall) => boolean;
 }
 
-// generatedDirs are project-relative, one per package's sheets.config.json.
+// generatedDirs are project-relative, one per package's sheets.config.json; clonePaths is the repo→clone map.
 export interface ReadFirstCall {
   projectDir: string;
   cwd: string | undefined;
   toolName: string | undefined;
   toolInput: ToolInput | undefined;
   generatedDirs: string[];
+  clonePaths: Record<string, string>;
 }
 
 // target is the file_path relative to its own root, when the call has one.
@@ -39,6 +40,7 @@ interface CoveredCall {
   toolInput: ToolInput;
   target: string | undefined;
   generatedDirs: string[];
+  clonePaths: Record<string, string>;
 }
 
 export const tierTablePath = join("docs", "targets-and-gates.md");
@@ -66,10 +68,8 @@ const frameworkRoots = [
   join("packages", "framework"),
   join("packages", "real-estate"),
 ].map((root) => root + sep);
-const proseSkippedRoots = [
-  join("packages", "writing"),
-  join("docs", "agents", "outcomes"),
-].map((root) => root + sep);
+const personalRepo = "personal";
+const outcomesRoot = join("docs", "agents", "outcomes");
 const textOperationTypes = new Set([
   "insert_text",
   "replace_text",
@@ -125,7 +125,9 @@ export const readFirstRows: ReadFirstRow[] = [
       { path: proseStylePath, name: "the prose rules", marker: "prose-read" },
     ],
     rules: [skipReasoningRule(join("docs", "prose-style") + sep)],
-    ...fileEdits(isGatedProse),
+    tools: ["Edit", "Write"],
+    covers: ({ target, clonePaths }) =>
+      target !== undefined && isGatedProse(target, clonePaths),
   },
   {
     docs: [
@@ -152,7 +154,14 @@ export const readFirstRows: ReadFirstRow[] = [
 
 // docsRead are project-relative; a row whose rule throws fails open alone.
 export function readFirstDecision(
-  { projectDir, cwd, toolName, toolInput = {}, generatedDirs }: ReadFirstCall,
+  {
+    projectDir,
+    cwd,
+    toolName,
+    toolInput = {},
+    generatedDirs,
+    clonePaths,
+  }: ReadFirstCall,
   docsRead: string[],
   rows: ReadFirstRow[] = readFirstRows,
 ): EditDecision {
@@ -166,6 +175,7 @@ export function readFirstDecision(
         ? rootRelative({ projectDir, cwd, filePath })
         : undefined,
     generatedDirs,
+    clonePaths,
   };
   const missing = rows.filter(
     (row) =>
@@ -236,9 +246,23 @@ function isFrameworkSource(target: string, generatedDirs: string[]): boolean {
   );
 }
 
-function isGatedProse(target: string): boolean {
+function isGatedProse(
+  target: string,
+  clonePaths: Record<string, string>,
+): boolean {
   if (!target.endsWith(".md") || !isUnignoredProjectFile(target)) return false;
-  return !proseSkippedRoots.some((root) => target.startsWith(root));
+  return !proseSkippedRootsOf(clonePaths).some((root) =>
+    target.startsWith(root),
+  );
+}
+
+function proseSkippedRootsOf(clonePaths: Record<string, string>): string[] {
+  const personalClonePath = clonePaths[personalRepo];
+  const roots = [outcomesRoot];
+  if (personalClonePath !== undefined) {
+    roots.push(join(personalClonePath, "writing"));
+  }
+  return roots.map((root) => root + sep);
 }
 
 function hasText(value: unknown): boolean {
