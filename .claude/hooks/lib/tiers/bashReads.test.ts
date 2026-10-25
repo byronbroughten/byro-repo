@@ -73,6 +73,15 @@ describe("BashReads columnConfigs", () => {
     "packages/framework/dev/generated/columnConfigs.ts": "small\n",
   });
 
+  it("denies a long ranged read of a workspace's columnConfigs.ts", () => {
+    expect(
+      denyReasonOf(
+        projectDir,
+        "sed -n '1,400p' .claude/worktrees/agent-1/packages/real-estate/src/generated/columnConfigs.ts",
+      ),
+    ).toMatch(/columnConfigs\.ts beyond one block/);
+  });
+
   it("denies a whole read of every package's columnConfigs.ts, found through its generatedDir", () => {
     expect(
       denyReasonOf(

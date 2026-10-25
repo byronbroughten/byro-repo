@@ -1,5 +1,5 @@
 // Decides the AGENTS.md cost nudge: the first edit to the root AGENTS.md in a session carries a reminder of what growing it costs. Pure; agentsCostNudge.ts does the I/O.
-import { type FileLocation, projectRelative } from "./lintSet.ts";
+import { type FileLocation, rootRelative } from "./lintSet.ts";
 
 export const agentsCostReminder =
   "AGENTS.md cost reminder: this file loads on every turn for every agent, so each byte is paid on every task and dilutes the rest. " +
@@ -17,7 +17,7 @@ export function agentsCostContext({
   hasReminded,
   ...target
 }: EditTarget): string | undefined {
-  return projectRelative(target) === rootAgentsPath && !hasReminded
+  return rootRelative(target) === rootAgentsPath && !hasReminded
     ? agentsCostReminder
     : undefined;
 }
