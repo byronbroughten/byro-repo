@@ -172,23 +172,76 @@ describe("reads and git add", () => {
     "branch --list 'issue-*'",
   ];
 
+  const reads = [
+    "grep -rn verdictOf .claude/hooks",
+    "rg -n freeScripts",
+    "cat AGENTS.md",
+    "head -20 AGENTS.md",
+    "tail -n 5 AGENTS.md",
+    "wc -l AGENTS.md",
+    "ls -la .claude",
+    "sed -n '1,40p' AGENTS.md",
+    "sed -n -e '12p' -e '/^## /p' AGENTS.md",
+    "sed -n 's/verdict/Verdict/gp' AGENTS.md",
+    "sed -n '$=' AGENTS.md",
+    "sed -n '/^## /,/^## /p' AGENTS.md",
+    "sed -n '1,3l;5q' AGENTS.md",
+    "find . -name '*.ts' -not -path './node_modules/*'",
+  ];
+  const everyRead = [
+    ...reads,
+    ...gitForms.flatMap((git) => gitReads.map((read) => `${git} ${read}`)),
+    "git add docs/adr/0009-x.md",
+  ];
+
   it("allows each read", () => {
+    reads.forEach((command) => expect(decisionOf(command)).toBe("allow"));
+  });
+
+  it("allows each read that sends output to a descriptor or /dev/null, in a runner step too", () => {
+    const redirects = [
+      "2>&1",
+      "1>&2",
+      ">&2",
+      ">/dev/null",
+      "2>/dev/null",
+      "&>/dev/null",
+      ">> /dev/null",
+    ];
+    everyRead.forEach((read) =>
+      redirects.forEach((redirect) => {
+        const command = `${read} ${redirect}`;
+        expect(decisionOf(command)).toBe("allow");
+        expect(runnerStepDecisionOf(command)).toBe("allow");
+      }),
+    );
+  });
+
+  it("allows a chain of reads with a descriptor redirect", () => {
     [
-      "grep -rn verdictOf .claude/hooks",
-      "rg -n freeScripts",
-      "cat AGENTS.md",
-      "head -20 AGENTS.md",
-      "tail -n 5 AGENTS.md",
-      "wc -l AGENTS.md",
-      "ls -la .claude",
-      "sed -n '1,40p' AGENTS.md",
-      "sed -n -e '12p' -e '/^## /p' AGENTS.md",
-      "sed -n 's/verdict/Verdict/gp' AGENTS.md",
-      "sed -n '$=' AGENTS.md",
-      "sed -n '/^## /,/^## /p' AGENTS.md",
-      "sed -n '1,3l;5q' AGENTS.md",
-      "find . -name '*.ts' -not -path './node_modules/*'",
+      "git status 2>&1 | head -5",
+      "grep -n x AGENTS.md 2>/dev/null; ls docs/adr 2>&1",
     ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
+  });
+
+  it("allows no read that redirects to any other file", () => {
+    const redirects = [
+      "> out.txt",
+      ">> out.txt",
+      "2> err.txt",
+      ">&out.txt",
+      "&> 2",
+      "> 2",
+      "<> f",
+      "<>/dev/null",
+      "2>&1 > out.txt",
+      ">",
+    ];
+    everyRead.forEach((read) =>
+      redirects.forEach((redirect) =>
+        expect(decisionOf(`${read} ${redirect}`)).not.toBe("allow"),
+      ),
+    );
   });
 
   it("allows each git read in each form", () => {
@@ -280,7 +333,7 @@ describe("reads and git add", () => {
       "git -c core.pager=less log",
       "cat AGENTS.md > copy.md",
       "git log >> log.txt",
-      "ls 2>&1",
+      "ls >/dev/null 2>err.txt",
       "cat AGENTS.md; > AGENTS.md",
       "PAGER=./run.sh git log",
       "sudo cat /etc/hosts",
