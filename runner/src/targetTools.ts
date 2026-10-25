@@ -80,7 +80,7 @@ export function toolsOf(targets: Target[]): string[] {
   return [...new Set(tools)];
 }
 
-// A Sheets or Docs write, the only kind of tool a ticket's `## Targets` can let a step call.
+// A denied Sheets or Docs write is the one denial adding a target can lift.
 export function isTargetWrite(toolName: string): boolean {
   return gworkspaceWrites.has(toolName);
 }
