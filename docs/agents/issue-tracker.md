@@ -26,9 +26,9 @@ Issues and specs live as GitHub issues, in the repo of the package they concern.
 - **Comment on an issue**: `gh issue comment -R <repo> <number> --body "..."`
 - **Apply / remove labels**: `gh issue edit -R <repo> <number> --add-label "..."` / `--remove-label "..."`
 - **Close**: `gh issue close -R <repo> <number> --comment "..."`
-- **Backlink an ADR**: `npm run issue:backlink -- <repo> <number> <adr-path>`, with the bare repo name. It ends the body with the `Design decision:` line below, and leaves a body already ending with it unchanged.
+- **Backlink an ADR**: `npm run issue:backlink -- <repo> <number> <adr-path>`, with the issue's bare repo name and the ADR's path from the workspace root, which names the ADR's repo. It adds the `Design decision:` line below to the body's backlink block, and leaves a body whose block already holds it unchanged.
 
-**An issue whose body ends with a `Design decision: <owner/repo>/docs/adr/NNNN-slug.md` line backs that ADR.** Editing such an issue, update the ADR to match, or mark it `superseded` when the edit reverses it.
+**An issue whose body ends with a block of `Design decision: <owner/repo>/docs/adr/NNNN-slug.md` lines, one per ADR, consecutive after a blank line, backs each of those ADRs.** Editing such an issue, update the ADR to match, or mark it `superseded` when the edit reverses it.
 
 Triage labels are separate: [`triage-labels.md`](./triage-labels.md).
 
