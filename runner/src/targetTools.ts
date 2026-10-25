@@ -15,7 +15,12 @@ const liveAliases = {
   dev: [...appAliases, "push", "run"],
 } satisfies Record<SpreadsheetName, string[]>;
 
-const gworkspaceTools = {
+interface GworkspaceKindTools {
+  reads: string[];
+  writes: string[];
+}
+
+const gworkspaceTools: Record<"sheets" | "docs", GworkspaceKindTools> = {
   sheets: {
     reads: [
       "list_spreadsheets",
@@ -85,10 +90,7 @@ export function isTargetWrite(toolName: string): boolean {
   return gworkspaceWrites.has(toolName);
 }
 
-function kindToolsOf({
-  reads,
-  writes,
-}: (typeof gworkspaceTools)["sheets"]): string[] {
+function kindToolsOf({ reads, writes }: GworkspaceKindTools): string[] {
   return gworkspaceToolsOf([...reads, ...writes]);
 }
 
