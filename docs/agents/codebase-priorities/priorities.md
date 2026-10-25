@@ -30,3 +30,5 @@ The existing rules that show each Tier 2 priority, and why security, undo and da
 ## Why the floor is a floor
 
 A loss of security, undo or data integrity is often the kind no undo fixes. The cost-to-undo tiers in [`targets-and-gates.md`](../../targets-and-gates.md#which-tier-an-action-is-in) already gate actions; the floor covers Recommendations that would weaken those gates or make data harder to recover.
+
+A gain above the floor is only a Tier 2 gain, so the containment [ADR 0007](../../adr/0007-keep-untrusted-text-out-of-instructions-and-defer-containment.md) defers stays deferred.

@@ -27,7 +27,7 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 - **Security, undo and data integrity are never weakened without saying so; any weakening is named and left to the developer, never settled by Tier 2 gains.**
 - **Weakening security**: letting Untrusted text into an agent's instructions, exposing a credential or token more widely, moving an action to a cheaper gate tier, or adding an outward action that can't be undone.
 - **Weakening undo**: making an action harder to undo. **Weakening data integrity**: putting live-sheet data where version history can't recover it.
-- **A gain above the floor is weighed as a Tier 2 gain**, so deliberately deferred hardening stays deferred.
+- **A gain above the floor is weighed as a Tier 2 gain.**
 
 ## Tier 2: ranked
 
