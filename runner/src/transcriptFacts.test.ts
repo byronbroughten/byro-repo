@@ -15,6 +15,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
   handoffSessionIdOf,
+  latestPairOf,
   type RecordedSession,
   type StepAgent,
   type TicketSessions,
@@ -221,5 +222,51 @@ describe("handoffSessionIdOf", () => {
     expect(
       handoffSessionIdOf("session: abc-123\n\nA later note."),
     ).toBeUndefined();
+  });
+});
+
+describe("latestPairOf", () => {
+  function reply(model: string, effort?: string, isSidechain = false): string {
+    return JSON.stringify({
+      type: "assistant",
+      isSidechain,
+      ...(effort === undefined ? {} : { effort }),
+      message: { model },
+    });
+  }
+
+  it("reads the latest main-loop reply's pair", () => {
+    const text = [
+      reply("claude-sonnet-5-5", "high"),
+      JSON.stringify({ type: "user", message: {} }),
+      reply("claude-opus-5-5", "medium"),
+    ].join("\n");
+    expect(latestPairOf(text)).toBe("Opus medium");
+  });
+
+  it("skips a later subagent or synthetic reply", () => {
+    const text = [
+      reply("claude-opus-5-5", "low"),
+      reply("claude-haiku-5-5", "high", true),
+      reply("<synthetic>", "high"),
+    ].join("\n");
+    expect(latestPairOf(text)).toBe("Opus low");
+  });
+
+  it("finds no pair when the latest main-loop reply has no effort", () => {
+    const text = [
+      reply("claude-opus-5-5", "medium"),
+      reply("claude-opus-5-5"),
+    ].join("\n");
+    expect(latestPairOf(text)).toBeUndefined();
+  });
+
+  it("finds no pair in a transcript with no main-loop reply", () => {
+    const text = [
+      JSON.stringify({ type: "user", message: {} }),
+      reply("claude-opus-5-5", "medium", true),
+      "not json",
+    ].join("\n");
+    expect(latestPairOf(text)).toBeUndefined();
   });
 });
