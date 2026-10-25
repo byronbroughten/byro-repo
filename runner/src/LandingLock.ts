@@ -20,7 +20,12 @@ export class LandingLock extends PidLock {
     { pollMs, sleep }: LandingLockOptions,
   ): Promise<LandingLock> {
     const path = join(gitDir, lockFileName);
-    while (PidLock.tryTake(path).kind === "held") await sleep(pollMs);
-    return new LandingLock(path);
+    for (;;) {
+      const attempt = PidLock.tryTake(path);
+      if (attempt.kind === "taken") {
+        return new LandingLock(path, attempt.holder);
+      }
+      await sleep(pollMs);
+    }
   }
 }
