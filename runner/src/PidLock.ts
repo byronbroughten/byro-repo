@@ -45,6 +45,9 @@ export class PidLock {
         return { kind: "held", holder: current };
       }
       beforeTakeover?.();
+      if (!takeGuard(path, holder)) {
+        return { kind: "held", holder: readHolder(guardPathOf(path)) };
+      }
       if (takeOver(path, current, holder)) return { kind: "taken", holder };
     }
   }
@@ -85,29 +88,33 @@ function isStale(holder: LockHolder): boolean {
   return holder.host === hostname() && !isRunning(holder.pid);
 }
 
+// A live guard answers held rather than looping, since an unreadable or reused-pid guard may never clear.
+function takeGuard(path: string, holder: LockHolder): boolean {
+  const guardPath = guardPathOf(path);
+  if (tryCreate(guardPath, holder)) return true;
+  const guard = readHolder(guardPath);
+  if (guard === undefined || !isStale(guard)) return false;
+  // Two takers clearing one dead guard can still both proceed; a crash inside the guard is microseconds wide.
+  rmSync(guardPath, { force: true });
+  return tryCreate(guardPath, holder);
+}
+
+function guardPathOf(path: string): string {
+  return `${path}.takeover`;
+}
+
 function takeOver(
   path: string,
   stale: LockHolder,
   holder: LockHolder,
 ): boolean {
-  const guardPath = `${path}.takeover`;
-  if (!tryCreate(guardPath, holder)) {
-    removeStaleGuard(guardPath);
-    return false;
-  }
   try {
     if (!isSameHolder(readHolder(path), stale)) return false;
     rmSync(path, { force: true });
     return tryCreate(path, holder);
   } finally {
-    rmSync(guardPath, { force: true });
+    rmSync(guardPathOf(path), { force: true });
   }
-}
-
-// Two takers clearing one dead guard can still both proceed; a crash inside the guard is microseconds wide.
-function removeStaleGuard(guardPath: string): void {
-  const guard = readHolder(guardPath);
-  if (guard !== undefined && isStale(guard)) rmSync(guardPath, { force: true });
 }
 
 function isSameHolder(

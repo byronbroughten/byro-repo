@@ -56,6 +56,17 @@ describe("PidLock.tryTake", () => {
     expect(readLock().token).toBe(holder.token);
     expect(existsSync(`${lockPath()}.takeover`)).toBe(false);
   });
+
+  it("answers held, naming the guard's holder, while a live taker holds the guard", () => {
+    seedDeadHolder(lockPath());
+    seedHolder(`${lockPath()}.takeover`, {
+      pid: process.pid,
+      host: hostname(),
+      startedAt: "2026-01-01",
+    });
+    const attempt = PidLock.tryTake(lockPath());
+    expect([attempt.kind, attempt.holder?.pid]).toEqual(["held", process.pid]);
+  });
 });
 
 describe("release", () => {
