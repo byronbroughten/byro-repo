@@ -36,6 +36,7 @@
     "issue:start": "node scripts/runner/issue.ts start",
     "issue:promote": "node scripts/runner/issue.ts promote",
     "issue:read": "node scripts/runner/issueRead.ts",
+    "issue:backlink": "node scripts/runner/issueBacklink.ts",
     "issue:remove": "node scripts/runner/issue.ts remove",
     "runner": "node scripts/runner/run.ts",
     "runner:tmux": "bash scripts/runner/tmux.sh",

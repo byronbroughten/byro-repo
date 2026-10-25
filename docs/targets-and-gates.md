@@ -34,6 +34,7 @@ Reads need no yes in any tier.
 | `manage_drive_access`, `set_drive_file_permissions`, an `update_drive_file` that changes sharing or moves a file into a folder | 3 |
 | A `gmail` filter, label or message-label change | 3: Gmail keeps no version history. The yes is the developer's `/inbox` Sign-off in the chat; `gmailGate.ts` allows a call one `signed-off` Proposal covers and asks for any other. Settings deny sending and drafting |
 | `gh issue close`, `gh issue edit`, `gh issue comment` | free: `gh issue reopen` and a further edit or comment undo them |
+| `npm run issue:backlink` | free: a further `gh issue edit` undoes it |
 | A raw `git push` | 3 |
 | `npm publish` | 3, [below](#npm-publish) |
 | A bare `clasp …` or `npx sheets-framework …` | 3: it names no target |
