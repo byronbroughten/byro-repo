@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { clonePathsOf } from "./clonePaths.ts";
-import { GitFixture } from "./GitFixture.ts";
+import { git, GitFixture } from "./GitFixture.ts";
 
 let fixture: GitFixture;
 let folder: string;
@@ -55,6 +55,30 @@ describe("clonePathsOf", () => {
       "sheets-framework",
       "personal",
     ]);
+  });
+
+  it("refuses two clones with one origin repo name, naming both folders", () => {
+    const twins = mkdtempSync(join(tmpdir(), "clone-paths-twins-"));
+    fixture.copyTo(twins);
+    const root = join(twins, "byro-repo");
+    const utilsRemote = git(
+      join(root, "packages/utils"),
+      "remote",
+      "get-url",
+      "origin",
+    );
+    git(
+      join(root, "packages/writing"),
+      "remote",
+      "set-url",
+      "origin",
+      utilsRemote,
+    );
+
+    expect(() => clonePathsOf(root)).toThrow(
+      "packages/utils and packages/writing both have origin repo utils",
+    );
+    rmSync(twins, { recursive: true, force: true });
   });
 });
 

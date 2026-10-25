@@ -20,6 +20,11 @@ export function clonePathsOf(primaryRoot: string): Record<string, string> {
     .map((clonePath) => cloneOf(primaryRoot, clonePath));
   return dependencyOrderOf(clones).reduce<Record<string, string>>(
     (paths, { repo, clonePath }) => {
+      if (paths[repo] !== undefined) {
+        throw new Error(
+          `${paths[repo]} and ${clonePath} both have origin repo ${repo}`,
+        );
+      }
       paths[repo] = clonePath;
       return paths;
     },
