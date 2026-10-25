@@ -23,4 +23,4 @@ An index of measured costs a tradeoff's estimate can come from, grouped by subje
 ## Sheets calls
 
 - A round trip costs ~250–450ms against ~20–60ms of the framework's own CPU per trigger; Sept 2026; [`round-trips.md`](../../../packages/framework/docs/architecture/round-trips.md#the-chokepoints). Code run-time.
-- Growing a Table by 1,500–5,000 rows in one batch costs 8–18% more than `appendCells`, before the format copy; sheets-framework#53–#61; [`falsifiable-claims.md`](../../../packages/framework/docs/design/falsifiable-claims.md). Code run-time.
+- Growing a Table by 1,500–5,000 rows in one batch costs 8–18% more than `appendCells`, before the format copy; undated, sheets-framework#53–#61; [`falsifiable-claims.md`](../../../packages/framework/docs/design/falsifiable-claims.md). Code run-time.
