@@ -14,6 +14,7 @@ import { handoffOnlyPrompt, treeResetNote } from "../implementStep.ts";
 import { fileStemOf, issueLabelOf } from "../IssueWorkspaces.ts";
 import { decideStep, defaultLimitGuardKnobs } from "../limitGuard.ts";
 import { nextStrongerPairOf, pairLabelOf } from "../modelFit.ts";
+import { limitWaitLineOf, stepLaunchLineOf } from "../progressLines.ts";
 import type { RunKnobs } from "../runKnobs.ts";
 import { RunStop } from "../RunStop.ts";
 import { minutesOf, percentOf, type StepAgent } from "../transcriptFacts.ts";
@@ -153,7 +154,11 @@ export class StepLauncher extends SpecRunBase {
     );
     this._log(
       run,
-      `${issueLabelOf(ticket.issue)}: ${agent} step on account ${account}, raw stream in ${logPath}.`,
+      stepLaunchLineOf({
+        subject: `${issueLabelOf(ticket.issue)}: ${agent}`,
+        account,
+        streamPath: logPath,
+      }),
     );
     let result: StepResult;
     try {
@@ -202,7 +207,11 @@ export class StepLauncher extends SpecRunBase {
     const account = await this._waitForLaunch(run, undefined);
     this._log(
       run,
-      `${sentenceCaseOf(step)} step on account ${account}, raw stream in ${logPath}.`,
+      stepLaunchLineOf({
+        subject: sentenceCaseOf(step),
+        account,
+        streamPath: logPath,
+      }),
     );
     const result = await this._agentResultOf(step, {
       ...request,
@@ -260,7 +269,9 @@ export class StepLauncher extends SpecRunBase {
         hasAnnouncedWait = true;
         await this._announce(
           run,
-          `Limit wait: account ${account} is at ${percentOf(usage.fiveHour.utilization)} of its 5-hour limit; continuing after ${decision.until.toISOString()}. ${waitEndNoteOf(recordedAccount)}`,
+          limitWaitLineOf(
+            `account ${account} is at ${percentOf(usage.fiveHour.utilization)} of its 5-hour limit; continuing after ${decision.until.toISOString()}. ${waitEndNoteOf(recordedAccount)}`,
+          ),
         );
       }
       await this._sleep(this._limitPollMsOf(decision.until));

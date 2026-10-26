@@ -7,6 +7,12 @@
 import { existsSync, readFileSync } from "node:fs";
 
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
+import {
+  isLimitWaitLine,
+  isStepBoundaryLine,
+  stepLaunchOfLine,
+  ticketOfLine,
+} from "./progressLines.ts";
 import { RunLock } from "./RunLock.ts";
 import { runStateOf } from "./savedFormats.ts";
 import { progressLogPathOf, runStatePathOf } from "./SpecRun/runState.ts";
@@ -81,18 +87,14 @@ function ticketTextOf(
   lines: ProgressLine[],
   now: Date,
 ): string {
-  const ticket = lines.flatMap(({ text }) => ticketLabelOf(text) ?? []).at(-1);
+  const ticket = lines.flatMap(({ text }) => ticketOfLine(text) ?? []).at(-1);
   if (ticket === undefined) return "none yet";
   const step = stepOf(statePath, ticket) ?? "step unknown";
   const stepStart = lines.findLast(({ text }) =>
-    isStepBoundaryOf(text, ticket),
+    isStepBoundaryLine(text, ticket),
   );
   if (stepStart === undefined) return `${ticket}, ${step}`;
   return `${ticket}, ${step}, ${durationOf(stepStart.time, now)} on this step`;
-}
-
-function ticketLabelOf(text: string): string | undefined {
-  return /^(\S+ #\d+): /.exec(text)?.[1];
 }
 
 function stepOf(statePath: string, ticket: string): string | undefined {
@@ -101,22 +103,15 @@ function stepOf(statePath: string, ticket: string): string | undefined {
   return state.tickets[ticket]?.step;
 }
 
-function isStepBoundaryOf(text: string, ticket: string): boolean {
-  if (!text.startsWith(`${ticket}: `)) return false;
-  return text.includes(": launching on ") || / took \d+s\.$/.test(text);
-}
-
 // A Limit wait newer than the last launch is the account's state until the next launch.
 function accountTextOf(lines: ProgressLine[]): string {
   const latest = lines.findLast(
-    ({ text }) => text.startsWith("Limit wait: ") || accountOf(text),
+    ({ text }) => isLimitWaitLine(text) || stepLaunchOfLine(text),
   );
   if (latest === undefined) return "none launched yet";
-  return accountOf(latest.text) ?? latest.text;
-}
-
-function accountOf(text: string): string | undefined {
-  return / step on account (\d+), /.exec(text)?.[1];
+  const launch = stepLaunchOfLine(latest.text);
+  if (launch === undefined) return latest.text;
+  return String(launch.account);
 }
 
 function latestTextOf(lines: ProgressLine[], now: Date): string {

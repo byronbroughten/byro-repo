@@ -40,6 +40,7 @@ import {
   type UsageReader,
 } from "../limitGuard.ts";
 import type { Notice, Notices } from "../Notices.ts";
+import { stepTookLineOf } from "../progressLines.ts";
 import type { RunKnobs } from "../runKnobs.ts";
 import { runStateOf } from "../savedFormats.ts";
 import { sleep } from "../sleep.ts";
@@ -273,7 +274,7 @@ export class SpecRunBase {
     } finally {
       this._log(
         run,
-        `${issueLabelOf(ticket.issue)}: ${step} took ${this._secondsSince(startedAt)}s.`,
+        stepTookLineOf(ticket.issue, step, this._secondsSince(startedAt)),
       );
     }
   }
