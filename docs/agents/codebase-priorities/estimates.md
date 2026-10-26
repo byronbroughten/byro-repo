@@ -9,7 +9,7 @@ An index of measured costs a tradeoff's estimate can come from, grouped by subje
 
 ## Tickets
 
-- Per-ticket peak context, cost and duration, one file per landed issue, dated by its session ids: [`docs/agents/outcomes/`](../outcomes/), with older rows in [`legacy.md`](../outcomes/legacy.md); Research and older Pieces in the writing repo's `docs/model-fit.md`. Agent cost, developer attention.
+- Per-ticket peak context, cost and duration, one file per landed issue, dated by its session ids: [`docs/agents/outcomes/`](../outcomes/), with older rows in [`legacy.md`](../outcomes/legacy.md); Research and older Pieces in the `personal` repo's `writing/docs/model-fit.md`. Agent cost, developer attention.
 
 ## Checks
 

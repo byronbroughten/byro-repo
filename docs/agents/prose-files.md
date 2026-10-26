@@ -41,7 +41,7 @@ The words for the repo's prose, which file holds which fact, what the root AGENT
 | `docs/agents/codebase-priorities.md` | What every Recommendation about the codebase or agent tooling is weighed against, one line per rule, rule only: scope, the Tier 1 gate, the floor, Tier 2's ranked priorities with their definitions, and explaining a tradeoff. |
 | `docs/agents/codebase-priorities/*.md` | Each priority's pointers to the rules that express it and the floor's reason, and the Estimates index of measured costs, indexed by `docs/agents/codebase-priorities.md`'s "When \| File" table. |
 | `docs/agents/verdicts/*.md` | Each rule's reasoning and examples, indexed by `docs/agents/verdicts.md`'s "When \| File" table. |
-| `README.md` | The workspace overview, derived prose for people on GitHub; it links each public clone by github.com URL, since the clones don't exist there, and names the private writing clone without a link. Nothing routes agents to it. Update it when a fact it mirrors changes (tables below). |
+| `README.md` | The workspace overview, derived prose for people on GitHub; it links each public clone by github.com URL, since the clones don't exist there, and names the private personal clone without a link. Nothing routes agents to it. Update it when a fact it mirrors changes (tables below). |
 
 ### Framework (`packages/framework/`, its own repo)
 
@@ -87,9 +87,9 @@ The same as the framework's: its docs ship with its repo, so they link only insi
 | `AGENTS.md` | How a utility is written: bundle names, where a utility type lives, `for…in`, and the structural-cast escape hatch. |
 | `README.md` | What the package is, install, and the subpath imports. Derived prose mirroring its `package.json`. |
 
-### Writing (`packages/writing/`, its own repo)
+### Writing (`packages/personal/writing/`, in the `personal` repo)
 
-A private repo holding piece specs as issues; the Pieces' text lives in their Google Docs, apart from each Piece's Snapshot. Its docs link only inside it (its own lint) and name a root doc in plain text.
+The `personal` repo is private and holds piece specs as issues; the Pieces' text lives in their Google Docs, apart from each Piece's Snapshot. Its docs link only inside it (its own lint) and name a root doc in plain text.
 | File | Holds |
 | --- | --- |
 | `CLAUDE.md` | The restart-at-root notice, plus `@AGENTS.md`. |
@@ -155,7 +155,7 @@ The bar for an addition: [`docs/prose-style.md`](../prose-style.md#placement).
 | Docs | The framework's `docs/` indexes and `GLOSSARY.md` |
 | History | Nothing; a fixed link to `byronbroughten/byro-repo` for the history before the split |
 
-### The writing repo
+### The personal repo
 
 It has no README: a private repo has no outside reader.
 

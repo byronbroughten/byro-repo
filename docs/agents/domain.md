@@ -36,9 +36,10 @@ Four contexts, one per package:
     │   ├── GLOSSARY.md             # the app's terms: units, the occupancy ledger
     │   ├── src/AGENTS.md
     │   └── docs/occupancy-ledger.md
-    └── writing/
-        ├── GLOSSARY.md             # a prose spec's terms: Piece, Deliverable, Supporting Material, Reference
-        └── AGENTS.md               # implementing a piece spec
+    └── personal/
+        └── writing/
+            ├── GLOSSARY.md         # a prose spec's terms: Piece, Deliverable, Supporting Material, Reference
+            └── AGENTS.md           # implementing a piece spec
 ```
 
 ## Which context a term belongs to
