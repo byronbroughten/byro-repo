@@ -32,6 +32,10 @@ Fifteen Node hooks in `.claude/hooks/`: six gate a call, six add feedback or a r
 - **`contextNudge.ts`** (PostToolUse, every tool) is byro-repo's shim over the runner's context nudge ([runner README](../runner/README.md#context-nudge)), with the budget and handoff doc from `scripts/runner/runner.config.json`. It binds only ticket work: a runner step or a session whose claude holds an issue workspace's lease, so a session workspace or a plain root session runs unbudgeted; the leases are read only once the budget is passed (`lib/contextNudge.ts`, tested beside it). It resolves the runner as `@byronbroughten/spec-runner`, so a checkout needs `npm install` first; without it the hook exits with an error, which doesn't block the tool call.
 - **`.claude/agents/repo-explorer.md`** is a read-only (Read/Grep/Glob) Sonnet agent for sweeps of about 5+ files. It returns `file:line` plus verbatim quotes.
 
+## Accounts
+
+**Never suggest `/logout`**, which can revoke the stored refresh token; switch Claude accounts with `/login` or `cswap`.
+
 ## Seeing what a hook sees
 
 Never edit a hook to record what it sees; auto mode blocks it, and rightly. `npm run session:probe -- <folder>` starts a one-turn headless session there with its own SessionStart hook added through `--settings`, and prints `$CLAUDE_PROJECT_DIR`, the hook's cwd and its input. For anything else a hook can see, extend `runner/src/SessionProbe.ts`.

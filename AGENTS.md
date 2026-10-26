@@ -1,6 +1,6 @@
 # Agent instructions for this repo
 
-An npm-workspaces root: `packages/framework` (`@byronbroughten/sheets-framework`, a clone of its own repo), a TypeScript framework for typed apps on Google Sheets + Apps Script, and `packages/real-estate` (`sheets-real-estate`, a clone of its own repo), the real-estate endpoints built on it; a live spreadsheet is both database and UI. `packages/personal` (`personal`, a clone of its own private repo) is where everything the developer keeps off public GitHub lives, with piece specs as one part.
+An npm-workspaces root: `packages/framework` (`@byronbroughten/sheets-framework`, a clone of its own repo), a TypeScript framework for typed apps on Google Sheets + Apps Script, and `packages/real-estate` (`sheets-real-estate`, a clone of its own repo), the real-estate endpoints built on it; a live spreadsheet is both database and UI. `packages/personal` (`personal`, a clone of its own private repo) is where everything the developer keeps off public GitHub lives; see its `private/` for accounts and Google resource IDs. Piece specs are one part.
 
 Open only the section or disclosed doc the task needs.
 
