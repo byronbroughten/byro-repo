@@ -4,20 +4,20 @@
 import { setTimeout as sleep } from "node:timers/promises";
 
 import { stateFolder } from "./runnerConfig.ts";
-import { awaitRunStart } from "./runWatch.ts";
+import { awaitRunStart, tmuxSessionOf } from "./runWatch.ts";
 
 const waitOptions = { timeoutMs: 120_000, pollMs: 1_000 } as const;
 
 const [ownerRepo = "", number = "", launchedAt = ""] = process.argv.slice(2);
-const repo = ownerRepo.split("/")[1] ?? "";
+const spec = { repo: ownerRepo.split("/")[1] ?? "", number: Number(number) };
 const result = await awaitRunStart(
-  { repo, number: Number(number) },
+  spec,
   { ...waitOptions, launchedAt: new Date(launchedAt) },
   { stateFolder, now: () => new Date(), sleep },
 );
 if (result.kind === "unknown") {
   console.log(
-    `The run's state is unknown: no run-started or run-ended line after ${waitOptions.timeoutMs / 1_000}s; read its pane with: tmux attach -t runner-${repo}-${number}`,
+    `The run's state is unknown: no run-started or run-ended line after ${waitOptions.timeoutMs / 1_000}s; read its pane with: tmux attach -t ${tmuxSessionOf(spec)}`,
   );
   process.exitCode = 1;
 } else {

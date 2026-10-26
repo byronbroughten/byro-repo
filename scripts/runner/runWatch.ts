@@ -38,6 +38,11 @@ interface WatchDeps extends WatchClock {
   print: (line: string) => void;
 }
 
+// tmux.sh names the session the same way.
+export function tmuxSessionOf({ repo, number }: IssueRef): string {
+  return `runner-${repo}-${number}`;
+}
+
 // The first run-started or run-ended line no older than the launch, so an earlier run's end is never taken for this one's.
 export async function awaitRunStart(
   spec: IssueRef,
@@ -99,7 +104,7 @@ function lastBoundaryOf(lines: string[]): EventLine["kind"] | undefined {
 
 // Shaped as an event line, so the Supervisor reads it as one, though no file holds it.
 function vanishedLineOf({ owner, spec }: WatchedRun, time: Date): string {
-  const session = `runner-${spec.repo}-${spec.number}`;
+  const session = tmuxSessionOf(spec);
   return JSON.stringify({
     time: time.toISOString(),
     spec: `${spec.repo}#${spec.number}`,
