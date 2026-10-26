@@ -1,6 +1,4 @@
-// The stale-path check: every packages/<dir> mention in a repo's tracked text, test files aside, whose folder holds no
-// clone in the repo map. The run's start warns with the whole map's findings; wrap-up refuses a landing whose changed
-// files have any. Never part of the cached `npm run check`, since a clone move changes no committed file.
+// The stale-path check: each packages/<dir> mention in tracked text, test files aside, whose folder holds no clone.
 import { execFile } from "node:child_process";
 import { join } from "node:path";
 import { promisify } from "node:util";
