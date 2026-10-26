@@ -586,10 +586,8 @@ export class WrapUp {
 
   // Only the files the change touches, so a migration's tickets land one at a time past stale paths elsewhere.
   private async _refuseStalePaths(landing: Landing): Promise<void> {
-    const { primaryRoot, clonePaths } = this.config.workspaces;
     const found = await stalePathsTouchedBy(
-      primaryRoot,
-      clonePaths,
+      this.config.workspaces,
       landing.branches,
     );
     if (found.length === 0) return;

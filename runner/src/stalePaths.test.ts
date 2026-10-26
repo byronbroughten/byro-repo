@@ -66,7 +66,7 @@ describe("stalePathsOf", () => {
       "docs/app.md": "The app sits in packages/real-estate.\n",
     });
 
-    expect(await stalePathsOf(primaryRoot, clonePaths)).toEqual([
+    expect(await stalePathsOf({ primaryRoot, clonePaths })).toEqual([
       {
         repo: "byro-repo",
         file: "docs/guide.md",
@@ -87,7 +87,7 @@ describe("stalePathsOf", () => {
       "AGENTS.md": "Read ./packages/framework/src/AGENTS.md.\n",
     });
 
-    expect(await stalePathsOf(primaryRoot, clonePaths)).toEqual([]);
+    expect(await stalePathsOf({ primaryRoot, clonePaths })).toEqual([]);
   });
 
   it("skips test files, so fixtures can name made-up folders", async () => {
@@ -96,7 +96,7 @@ describe("stalePathsOf", () => {
       "runner/src/__snapshots__/move.test.ts.snap": "packages/tools\n",
     });
 
-    expect(await stalePathsOf(primaryRoot, clonePaths)).toEqual([]);
+    expect(await stalePathsOf({ primaryRoot, clonePaths })).toEqual([]);
   });
 });
 
@@ -108,7 +108,7 @@ describe("stalePathsTouchedBy", () => {
     git(primaryRoot, "switch", "-q", "master");
 
     expect(
-      await stalePathsTouchedBy(primaryRoot, clonePaths, [
+      await stalePathsTouchedBy({ primaryRoot, clonePaths }, [
         { repo: "byro-repo", branch: "issue-1-fix" },
       ]),
     ).toEqual([

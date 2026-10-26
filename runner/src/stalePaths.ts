@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 
 import { git, lines } from "./git.ts";
+import type { IssueWorkspacesConfig } from "./IssueWorkspaces.ts";
 import type { LandingBranch } from "./WrapUp.ts";
 
 const execFileAsync = promisify(execFile);
@@ -18,10 +19,12 @@ export interface StalePath {
   path: string;
 }
 
-export async function stalePathsOf(
-  primaryRoot: string,
-  clonePaths: Record<string, string>,
-): Promise<StalePath[]> {
+export type RepoMap = Pick<IssueWorkspacesConfig, "primaryRoot" | "clonePaths">;
+
+export async function stalePathsOf({
+  primaryRoot,
+  clonePaths,
+}: RepoMap): Promise<StalePath[]> {
   const found: StalePath[] = [];
   for (const [repo, clonePath] of Object.entries(clonePaths)) {
     const output = await grepOf(join(primaryRoot, clonePath), []);
@@ -32,8 +35,7 @@ export async function stalePathsOf(
 
 // Read at each branch's tip, so the worktree's state doesn't matter; a deleted file names nothing.
 export async function stalePathsTouchedBy(
-  primaryRoot: string,
-  clonePaths: Record<string, string>,
+  { primaryRoot, clonePaths }: RepoMap,
   branches: LandingBranch[],
 ): Promise<StalePath[]> {
   const found: StalePath[] = [];

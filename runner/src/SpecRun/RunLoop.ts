@@ -187,7 +187,10 @@ export class RunLoop extends SpecRunBase {
   // Warned, never refused, so stale prose can't block the ticket that would fix it.
   private async _stalePathWarnings(): Promise<string[]> {
     const { primaryRoot, knobs } = this.config;
-    const found = await stalePathsOf(primaryRoot, knobs.clonePaths);
+    const found = await stalePathsOf({
+      primaryRoot,
+      clonePaths: knobs.clonePaths,
+    });
     return found.map(stalePathLabelOf);
   }
 
