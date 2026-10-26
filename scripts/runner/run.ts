@@ -3,6 +3,7 @@
 // Exit 1 is a run short of finished, a review short of reviewed or its findings, or refused records; 2 is a crash, which tmux.sh pushes.
 // `supervise` records the caller's claude as the spec's Supervisor and prints its unexplained event lines; `--advance` marks one more explained.
 // `watch` streams the spec's new event lines for a Supervisor's Monitor and prints a `vanished` line if the run's process dies unreported (runWatch.ts).
+// `status` and `watch` with no spec print the Run board once or redraw it every 5s (runBoard.ts).
 import { readFileSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
 
@@ -10,6 +11,7 @@ import {
   isSameIssue,
   type IssueRef,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
+import { runBoardOf, watchBoard } from "@byronbroughten/spec-runner/runBoard";
 import { RunLock } from "@byronbroughten/spec-runner/RunLock";
 import { reviewPrintoutOf, SpecRun } from "@byronbroughten/spec-runner/SpecRun";
 import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
@@ -19,8 +21,9 @@ import { ntfyTopic, specRunConfigOf, stateFolder } from "./runnerConfig.ts";
 import { watchRun } from "./runWatch.ts";
 
 const plainVerbs = ["status", "stop", "review", "watch"];
+const boardVerbs = ["status", "watch"];
 const verbs = [...plainVerbs, "resolve", "supervise"];
-const usage = `Usage: npm run runner -- [${plainVerbs.join("|")}] <owner/repo> <n>, resolve <owner/repo> <n> <records.json>, or supervise <owner/repo> <n> [--advance]`;
+const usage = `Usage: npm run runner -- [${plainVerbs.join("|")}] <owner/repo> <n>, resolve <owner/repo> <n> <records.json>, supervise <owner/repo> <n> [--advance], or [${boardVerbs.join("|")}] alone for the Run board`;
 
 try {
   const args = process.argv.slice(2);
@@ -29,6 +32,37 @@ try {
     command = args[0] ?? "";
     args.shift();
   }
+  if (args.length === 0 && boardVerbs.includes(command)) {
+    await showBoard(command);
+  } else {
+    await runOnSpec(command, args);
+  }
+} catch (error) {
+  console.error(error instanceof Error ? error.message : error);
+  process.exitCode = 2;
+}
+
+async function showBoard(command: string): Promise<void> {
+  if (command === "status") {
+    console.log(boardNow());
+    return;
+  }
+  await watchBoard({
+    render: boardNow,
+    draw: (board) => {
+      console.clear();
+      console.log(board);
+    },
+    pollMs: 5_000,
+    sleep,
+  });
+}
+
+function boardNow(): string {
+  return runBoardOf(stateFolder, new Date());
+}
+
+async function runOnSpec(command: string, args: string[]): Promise<void> {
   const [ownerRepo = "", number, flag] = args;
   const [owner, repo] = ownerRepo.split("/");
   const isAdvance = flag === "--advance";
@@ -57,9 +91,6 @@ try {
   } else {
     await runSpec(command, owner, issue, flag);
   }
-} catch (error) {
-  console.error(error instanceof Error ? error.message : error);
-  process.exitCode = 2;
 }
 
 async function runSpec(

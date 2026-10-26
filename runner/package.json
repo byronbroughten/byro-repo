@@ -24,6 +24,7 @@
     "./IssueReader": "./src/IssueReader.ts",
     "./IssueWorkspaces": "./src/IssueWorkspaces.ts",
     "./LandingLock": "./src/LandingLock.ts",
+    "./runBoard": "./src/runBoard.ts",
     "./RunLock": "./src/RunLock.ts",
     "./modelFit": "./src/modelFit.ts",
     "./Notices": "./src/Notices.ts",
