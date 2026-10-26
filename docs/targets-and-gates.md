@@ -21,6 +21,7 @@ Reads need no yes in any tier.
 | `git commit`, on any branch | 1; the branch guard still keeps a primary checkout on its branch, and the primary-edit guard keeps the commit out of one |
 | `git add`, and `git branch` without a delete or force flag (`-d`, `-D`, `-f`, `-M`, `-C`), in the same forms as the git reads | 1: git can undo it |
 | `npm run issue:start`, `issue:list`, and `issue:remove` without `--force`, which refuses unlanded work | 1 |
+| `.claude/skills/inbox/record.sh`, which writes `/inbox` data in the session's `personal` clone | 1 |
 | `npm run issue:remove … --force`, which discards a workspace's unlanded work | 3 |
 | `npm run wrap-up -- <repo> <n>` or `-- --session <slug> [--keep]`, which pushes | a standing yes to push, behind its secret scan |
 | `probe`, `chore <name>` (dry run), `configs:diff` on either target | free: reads |

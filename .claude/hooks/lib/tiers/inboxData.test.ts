@@ -1,11 +1,4 @@
-import { spawnSync } from "node:child_process";
-import {
-  mkdirSync,
-  mkdtempSync,
-  realpathSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -31,26 +24,15 @@ const archive = {
 let root: string;
 
 beforeEach(() => {
-  root = realpathSync(mkdtempSync(join(tmpdir(), "inbox-data-")));
-  git(root, "init", "-q", "-b", "master");
-  git(root, "commit", "-q", "--allow-empty", "-m", "root");
+  root = mkdtempSync(join(tmpdir(), "inbox-data-"));
 });
 
 afterEach(() => {
   rmSync(root, { recursive: true, force: true });
 });
 
-function git(cwd: string, ...args: string[]) {
-  const result = spawnSync(
-    "git",
-    ["-c", "user.name=t", "-c", "user.email=t@t", ...args],
-    { cwd },
-  );
-  if (result.status !== 0) throw new Error(result.stderr.toString());
-}
-
-function writeInbox(proposalsText: string) {
-  const inbox = join(root, "packages", "personal", "inbox");
+function writeInbox(checkout: string, proposalsText: string) {
+  const inbox = join(checkout, "packages", "personal", "inbox");
   mkdirSync(inbox, { recursive: true });
   writeFileSync(join(inbox, "proposals.md"), proposalsText);
   writeFileSync(join(inbox, "changes.md"), "# Change log\n");
@@ -59,14 +41,14 @@ function writeInbox(proposalsText: string) {
 
 describe("gmailGateDecisionAt", () => {
   it("allows a call a signed-off Proposal in the personal clone covers", () => {
-    writeInbox(proposals);
+    writeInbox(root, proposals);
     expect(gmailGateDecisionAt(root, archive)?.permissionDecision).toBe(
       "allow",
     );
   });
 
   it("asks when no Proposal covers the call", () => {
-    writeInbox(proposals.replace("signed-off", "pending"));
+    writeInbox(root, proposals.replace("signed-off", "pending"));
     expect(gmailGateDecisionAt(root, archive)?.permissionDecision).toBe("ask");
   });
 
@@ -75,17 +57,17 @@ describe("gmailGateDecisionAt", () => {
   });
 
   it("asks when a data file can't be read", () => {
-    const inbox = writeInbox(proposals);
+    const inbox = writeInbox(root, proposals);
     // A folder, not chmod 000, so the read fails even when tests run as root.
     rmSync(join(inbox, "proposals.md"));
     mkdirSync(join(inbox, "proposals.md"));
     expect(gmailGateDecisionAt(root, archive)?.permissionDecision).toBe("ask");
   });
 
-  it("reads the primary root's data from a session in a workspace", () => {
-    writeInbox(proposals);
-    const workspace = join(root, ".claude", "worktrees", "issue-1");
-    git(root, "worktree", "add", "-q", workspace);
+  it("reads a workspace session's own copy, not the primary root's", () => {
+    writeInbox(root, proposals.replace("signed-off", "pending"));
+    const workspace = join(root, ".claude", "worktrees", "session-inbox");
+    writeInbox(workspace, proposals);
     expect(gmailGateDecisionAt(workspace, archive)?.permissionDecision).toBe(
       "allow",
     );

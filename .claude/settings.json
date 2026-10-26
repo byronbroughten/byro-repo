@@ -67,7 +67,9 @@
       "EnterWorktree",
       "ExitWorktree",
       "Bash(npm run issue:start*)",
-      "Bash(npm run issue:read*)"
+      "Bash(npm run issue:read*)",
+      "Bash(.claude/skills/inbox/record.sh *)",
+      "Bash(bash .claude/skills/inbox/record.sh *)"
     ],
     "ask": [
       "Bash(git push*)",

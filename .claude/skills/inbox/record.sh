@@ -3,9 +3,8 @@
 #   record.sh status <n|n-m> <pending|signed-off|applied|declined>
 #   record.sh log <n> <tool and action> <what changed> <what reverses it>
 set -euo pipefail
-# The primary root's personal clone, the folder the gmail gate reads, even from a workspace.
-primary_root=$(dirname "$(git -C "$(dirname "$0")" rev-parse --path-format=absolute --git-common-dir)")
-data=${INBOX_DATA:-$primary_root/packages/personal/inbox}
+# This checkout's personal clone, the copy the gmail gate reads for this session.
+data=${INBOX_DATA:-$(git -C "$(dirname "$0")" rev-parse --show-toplevel)/packages/personal/inbox}
 
 case "${1:-}" in
   status)
