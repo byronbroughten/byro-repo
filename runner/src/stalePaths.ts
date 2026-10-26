@@ -7,7 +7,6 @@ import { git, lines } from "./git.ts";
 
 const execFileAsync = promisify(execFile);
 
-const mentionPattern = "packages/[A-Za-z0-9_.-]";
 // Not inside a longer name, and a trailing dot ends a sentence, not the folder.
 const mentionRegex = /(?<![\w-])packages\/([\w.-]*[\w-])/g;
 
@@ -70,12 +69,12 @@ export function stalePathLabelOf({
   return `${repo} ${file}:${line} names ${path}, which holds no clone`;
 }
 
-// git grep exits 1 when nothing matches.
+// Only a prefilter for the lines mentionRegex reads; git grep exits 1 when nothing matches.
 async function grepOf(folder: string, args: string[]): Promise<string> {
   try {
     const { stdout } = await execFileAsync(
       "git",
-      ["grep", "-I", "-n", "-z", "--no-color", "-E", mentionPattern, ...args],
+      ["grep", "-I", "-n", "-z", "--no-color", "-F", "packages/", ...args],
       { cwd: folder, maxBuffer: 64 * 1024 * 1024 },
     );
     return stdout;
