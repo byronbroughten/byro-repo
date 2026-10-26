@@ -375,9 +375,9 @@ describe("resolvePrompt", () => {
     );
   });
 
-  it("asks for one record per finding and a commit per Fix", () => {
+  it("asks for one record per finding and one commit for the Fixes", () => {
     expect(prompt).toContain("exactly one record per finding");
-    expect(prompt).toContain("Each Fix lands in its own commit");
+    expect(prompt).toContain("The Fixes land together in one commit");
   });
 
   it("halts on a spec-axis fix it can't land, and Proposes any other", () => {

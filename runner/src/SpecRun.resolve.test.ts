@@ -169,7 +169,7 @@ describe("run's resolve", () => {
     expect(ticketFacts().reviewFixes).toBe("none");
   });
 
-  it("resolves in one session resumed from the implementer under the ticket budget, landing the fix as its own commit and the Propose on the review list", async () => {
+  it("resolves in one session resumed from the implementer under the ticket budget, landing the fixes as one commit and the Propose on the review list", async () => {
     addSpec([1]);
     github.edit(1, { body: bodyWithTargets("app spreadsheet") });
     const agentStep = FakeAgentStep.init(

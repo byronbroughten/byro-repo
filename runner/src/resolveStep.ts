@@ -48,7 +48,7 @@ export interface ResolveRecord {
 
 // How any resolver judges, shared with the implementer through implementBody.resolving.
 export const resolveRules =
-  "Give each finding exactly one verdict, Dismiss, Fix, Propose or Halt, by the rules in `docs/agents/verdicts.md`; read it before you judge. Fix by default, and Dismiss, Propose or Halt only where that doc says, with evidence. You may overrule a reviewer's suggested verdict, saying why in `evidence`, except that a suggested Halt resolves only as a Halt or a Propose `decision`. Each Fix lands in its own commit.";
+  "Give each finding exactly one verdict, Dismiss, Fix, Propose or Halt, by the rules in `docs/agents/verdicts.md`; read it before you judge. Fix by default, and Dismiss, Propose or Halt only where that doc says, with evidence. You may overrule a reviewer's suggested verdict, saying why in `evidence`, except that a suggested Halt resolves only as a Halt or a Propose `decision`. The Fixes land together in one commit, its message naming each finding by number.";
 
 // The resolve prompt's and the /implement-code skill's one description of a record, after "Return `records`, ".
 export const resolveRecordFields = `exactly one record per finding: \`finding\` (its number in the list), \`axis\` (the finding's own, or for a finding without one, \`standards\` or \`spec\`), \`where\` (its file:line or area), \`claim\` (what the finding says, in a line), \`verdict\` (\`dismiss\`, \`fix\`, \`propose\` or \`halt\`), \`evidence\` (what you checked and found, and why, when you overruled the suggested verdict), and the fields its verdict needs:
