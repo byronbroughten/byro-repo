@@ -119,7 +119,7 @@ describe("readCswapList", () => {
 
 describe("decideStep", () => {
   it("launches an account under both thresholds", () => {
-    expect(decideStep(usageOf(0.89, 0.94))).toEqual({ kind: "launch" });
+    expect(decideStep(usageOf(0.89, 0.99))).toEqual({ kind: "launch" });
   });
 
   it("waits until the account's 5-hour reset plus the margin at the 5-hour pause", () => {
@@ -131,7 +131,7 @@ describe("decideStep", () => {
   });
 
   it("Stops at the weekly reserve, even when the 5-hour window is also past its pause", () => {
-    expect(decideStep(usageOf(0.1, 0.95))).toEqual({ kind: "stop" });
-    expect(decideStep(usageOf(0.99, 0.99))).toEqual({ kind: "stop" });
+    expect(decideStep(usageOf(0.1, 1))).toEqual({ kind: "stop" });
+    expect(decideStep(usageOf(0.99, 1))).toEqual({ kind: "stop" });
   });
 });

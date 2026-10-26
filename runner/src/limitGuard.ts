@@ -13,7 +13,7 @@ export interface LimitGuardKnobs {
 
 export const defaultLimitGuardKnobs: LimitGuardKnobs = {
   fiveHourPauseAt: 0.9,
-  weeklyReserveAt: 0.95,
+  weeklyReserveAt: 1,
   limitWaitMarginMs: 5 * 60_000,
 };
 
