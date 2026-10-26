@@ -8,7 +8,7 @@ How `npm run jev:style` compared with `/review-piece`'s Voice and Craft sub-agen
 
 ## Columns
 
-- **Issue**: the Piece's issue in `byronbroughten/writing`.
+- **Issue**: the Piece's issue in `byronbroughten/personal`.
 - **Jev pin**: the `jevPin` the run used.
 - **Jev flags** and **Style findings**: each one's count for the scope reviewed.
 - **Matches**: a Jev flag and a Style finding on the same paragraph and rule.
