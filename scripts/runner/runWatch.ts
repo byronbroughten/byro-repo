@@ -63,6 +63,21 @@ export async function awaitRunStart(
   }
 }
 
+// The launcher exits 0 only once the run has started.
+export function launchReportOf(
+  spec: IssueRef,
+  start: RunStart,
+  { timeoutMs }: Pick<StartWaitOptions, "timeoutMs">,
+): { text: string; exitCode: number } {
+  if (start.kind === "unknown") {
+    return {
+      text: `The run's state is unknown: no run-started or run-ended line after ${timeoutMs / 1_000}s; read its pane with: tmux attach -t ${tmuxSessionOf(spec)}`,
+      exitCode: 1,
+    };
+  }
+  return { text: start.line, exitCode: start.kind === "started" ? 0 : 1 };
+}
+
 // Prints each line written after it starts and returns once the last run-ended; a run found dead on two checks in a row, with no run-ended line, is vanished.
 export async function watchRun(
   { owner, spec }: WatchedRun,

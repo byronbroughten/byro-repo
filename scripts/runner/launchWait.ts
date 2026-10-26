@@ -4,7 +4,7 @@
 import { setTimeout as sleep } from "node:timers/promises";
 
 import { stateFolder } from "./runnerConfig.ts";
-import { awaitRunStart, tmuxSessionOf } from "./runWatch.ts";
+import { awaitRunStart, launchReportOf } from "./runWatch.ts";
 
 const waitOptions = { timeoutMs: 120_000, pollMs: 1_000 } as const;
 
@@ -15,12 +15,6 @@ const result = await awaitRunStart(
   { ...waitOptions, launchedAt: new Date(launchedAt) },
   { stateFolder, now: () => new Date(), sleep },
 );
-if (result.kind === "unknown") {
-  console.log(
-    `The run's state is unknown: no run-started or run-ended line after ${waitOptions.timeoutMs / 1_000}s; read its pane with: tmux attach -t ${tmuxSessionOf(spec)}`,
-  );
-  process.exitCode = 1;
-} else {
-  console.log(result.line);
-  if (result.kind === "ended") process.exitCode = 1;
-}
+const { text, exitCode } = launchReportOf(spec, result, waitOptions);
+console.log(text);
+process.exitCode = exitCode;

@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { eventFilePathOf } from "@byronbroughten/spec-runner/EventFileNotices";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { awaitRunStart, watchRun } from "./runWatch.ts";
+import { awaitRunStart, launchReportOf, watchRun } from "./runWatch.ts";
 
 const spec = { repo: "byro-repo", number: 412 };
 const launchedAt = new Date("2026-10-25T10:00:00.000Z");
@@ -55,7 +55,7 @@ function fakeClock(scheduled: Array<{ atMs: number; run: () => void }> = []) {
   };
 }
 
-describe("awaitRunStart", () => {
+describe("the launcher's wait", () => {
   const options = { launchedAt, timeoutMs: 60_000, pollMs: 1_000 };
 
   it("returns the run-started line written after the launch, skipping an older run's end", async () => {
@@ -68,7 +68,10 @@ describe("awaitRunStart", () => {
       ...clock,
     });
 
-    expect(result).toEqual({ kind: "started", line: started });
+    expect(launchReportOf(spec, result, options)).toEqual({
+      text: started,
+      exitCode: 0,
+    });
   });
 
   it("returns a run-ended line written after the launch", async () => {
@@ -80,7 +83,10 @@ describe("awaitRunStart", () => {
       ...clock,
     });
 
-    expect(result).toEqual({ kind: "ended", line: ended });
+    expect(launchReportOf(spec, result, options)).toEqual({
+      text: ended,
+      exitCode: 1,
+    });
   });
 
   it("reports unknown once the wait runs out", async () => {
@@ -91,7 +97,10 @@ describe("awaitRunStart", () => {
       ...clock,
     });
 
-    expect(result).toEqual({ kind: "unknown" });
+    expect(launchReportOf(spec, result, options)).toEqual({
+      text: "The run's state is unknown: no run-started or run-ended line after 60s; read its pane with: tmux attach -t runner-byro-repo-412",
+      exitCode: 1,
+    });
     expect(clock.now()).toEqual(at(60_000));
   });
 });
