@@ -80,6 +80,12 @@ export function fileStemOf({ repo, number }: IssueRef): string {
   return `${repo}-${number}`;
 }
 
+// The repo may hold dashes, so only the last one splits off the number.
+export function issueOfFileStem(stem: string): IssueRef {
+  const dash = stem.lastIndexOf("-");
+  return { repo: stem.slice(0, dash), number: Number(stem.slice(dash + 1)) };
+}
+
 export interface CreateOptions {
   slug?: string;
   // Repos besides the issue's own to start on the issue branch.

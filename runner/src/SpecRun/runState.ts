@@ -6,6 +6,7 @@
 
 import { execFile } from "node:child_process";
 import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { promisify } from "node:util";
 
 import type { Pair, StepRequest, StepResult } from "../AgentStep.ts";
@@ -24,6 +25,7 @@ import {
 import { type Handoff, type ImplementRecord } from "../implementStep.ts";
 import { type BodyAuthorship } from "../IssueReader.ts";
 import {
+  fileStemOf,
   isSameIssue,
   issueLabelOf,
   type IssueRef,
@@ -588,4 +590,12 @@ export function waitsTextOf(waits: Wait[]): string {
 export function landedTextOf(landed: IssueRef[]): string {
   if (landed.length === 0) return "landed nothing";
   return `landed ${landed.map(issueLabelOf).join(", ")}`;
+}
+
+export function runStatePathOf(stateFolder: string, spec: IssueRef): string {
+  return join(stateFolder, `${fileStemOf(spec)}.run.json`);
+}
+
+export function progressLogPathOf(stateFolder: string, spec: IssueRef): string {
+  return join(stateFolder, `${fileStemOf(spec)}.log`);
 }

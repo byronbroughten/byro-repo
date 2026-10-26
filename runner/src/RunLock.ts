@@ -2,10 +2,14 @@
 // It is a PidLock, as LandingLock.ts is, but a live holder is never waited on: the second run is refused.
 // SpecRun/RunLoop.ts takes it.
 
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { fileStemOf, type IssueRef } from "./IssueWorkspaces.ts";
+import {
+  fileStemOf,
+  issueOfFileStem,
+  type IssueRef,
+} from "./IssueWorkspaces.ts";
 import { type HeldLock, PidLock } from "./PidLock.ts";
 
 export interface HeldRunLock extends HeldLock {
@@ -28,8 +32,19 @@ export class RunLock extends PidLock {
   static isHeld(stateFolder: string, spec: IssueRef): boolean {
     return PidLock.isHeldAt(lockPathOf(stateFolder, spec));
   }
+
+  // Every spec with a lock file, held or left behind by a dead pid.
+  static specsOf(stateFolder: string): IssueRef[] {
+    if (!existsSync(stateFolder)) return [];
+    return readdirSync(stateFolder)
+      .filter((name) => name.endsWith(lockSuffix))
+      .sort()
+      .map((name) => issueOfFileStem(name.slice(0, -lockSuffix.length)));
+  }
 }
 
+const lockSuffix = ".run.lock";
+
 function lockPathOf(stateFolder: string, spec: IssueRef): string {
-  return join(stateFolder, `${fileStemOf(spec)}.run.lock`);
+  return join(stateFolder, `${fileStemOf(spec)}${lockSuffix}`);
 }

@@ -3,12 +3,12 @@
 // byro-repo's `npm run runner -- status` prints it once and `-- watch` redraws it, both with no spec.
 // RunLock.ts names the lock files and SpecRun/SpecRunBase.ts writes the run state and progress log.
 
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
 
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
-import { PidLock } from "./PidLock.ts";
+import { RunLock } from "./RunLock.ts";
 import { runStateOf } from "./savedFormats.ts";
+import { progressLogPathOf, runStatePathOf } from "./SpecRun/runState.ts";
 
 interface ProgressLine {
   time: Date;
@@ -22,14 +22,10 @@ interface BoardWatch {
   sleep: (ms: number) => Promise<void>;
 }
 
-const lockSuffix = ".run.lock";
-
 export function runBoardOf(stateFolder: string, now: Date): string {
-  if (!existsSync(stateFolder)) return noRunsText();
-  const blocks = readdirSync(stateFolder)
-    .filter((name) => name.endsWith(lockSuffix))
-    .sort()
-    .map((name) => runBlockOf(stateFolder, name, now));
+  const blocks = RunLock.specsOf(stateFolder).map((spec) =>
+    runBlockOf(stateFolder, spec, now),
+  );
   if (blocks.length === 0) return noRunsText();
   return blocks.join("\n\n");
 }
@@ -51,14 +47,13 @@ function noRunsText(): string {
   return "No runs are running.";
 }
 
-function runBlockOf(stateFolder: string, lockName: string, now: Date): string {
-  const stem = lockName.slice(0, -lockSuffix.length);
-  const spec = specOfStem(stem);
-  const lines = progressLinesOf(join(stateFolder, `${stem}.log`));
-  const isLive = PidLock.isHeldAt(join(stateFolder, lockName));
+function runBlockOf(stateFolder: string, spec: IssueRef, now: Date): string {
+  const lines = progressLinesOf(progressLogPathOf(stateFolder, spec));
+  const isLive = RunLock.isHeld(stateFolder, spec);
+  const statePath = runStatePathOf(stateFolder, spec);
   return [
     isLive ? issueLabelOf(spec) : `${issueLabelOf(spec)}: ${goneText()}`,
-    `  Ticket: ${ticketTextOf(join(stateFolder, `${stem}.run.json`), lines, now)}`,
+    `  Ticket: ${ticketTextOf(statePath, lines, now)}`,
     `  Account: ${accountTextOf(lines)}`,
     `  ${latestTextOf(lines, now)}`,
   ].join("\n");
@@ -66,12 +61,6 @@ function runBlockOf(stateFolder: string, lockName: string, now: Date): string {
 
 function goneText(): string {
   return "process gone; Vanished unless its event file ends in a run-ended line";
-}
-
-// The repo may hold dashes, so only the last one splits off the number.
-function specOfStem(stem: string): IssueRef {
-  const dash = stem.lastIndexOf("-");
-  return { repo: stem.slice(0, dash), number: Number(stem.slice(dash + 1)) };
 }
 
 function progressLinesOf(path: string): ProgressLine[] {
