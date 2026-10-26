@@ -17,6 +17,7 @@ import { approvalLineOf, bodyHashOf } from "../IssueReader.ts";
 import { issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
 import { LeaseHeld } from "../LeaseHeld.ts";
 import { pairLabelOf, pairOf } from "../modelFit.ts";
+import { ticketLaunchLineOf } from "../progressLines.ts";
 import { RunStop } from "../RunStop.ts";
 import { SchemaFailure } from "../SchemaFailure.ts";
 import { TicketHalted } from "../TicketHalted.ts";
@@ -92,7 +93,7 @@ export class TicketSequencer extends SpecRunBase {
       await this._haltOnUntrustedBody({ run, ticket, pair, state });
       this._log(
         run,
-        `${issueLabelOf(ticket.issue)}: launching on ${pairLabelOf(pair)} from ${state.step}.`,
+        ticketLaunchLineOf(ticket.issue, pairLabelOf(pair), state.step),
       );
       if (state.step !== "wrap-up") {
         const workspace = await this._timed({ run, ticket }, "workspace", () =>

@@ -70,6 +70,10 @@ export class StepStream {
     return peak > this.liveCeiling;
   }
 
+  get usage(): UsageReading | undefined {
+    return this.rateLimit && usageOf(this.rateLimit);
+  }
+
   // cswap and claude can print plain lines too; only JSON events count.
   observeLine(line: string): this {
     const event = parseLine(line);
@@ -101,7 +105,7 @@ export class StepStream {
       hang: undefined,
       exitSubtype: stringOrUndefined(this.result?.subtype),
       errorText: this._errorText,
-      usage: this.rateLimit && usageOf(this.rateLimit),
+      usage: this.usage,
       limitHit: this._limitHit,
       deniedTools: deniedToolsOf(this.result?.permission_denials),
     };

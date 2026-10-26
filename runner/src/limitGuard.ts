@@ -2,7 +2,8 @@
 // readCswapList turns `cswap list --json` into readings and the active account; decideStep is the pure decision over one account's usage.
 // AgentStep.ts owns UsageWindow, the same shape a step's own rate-limit events report.
 
-import type { UsageWindow } from "./AgentStep.ts";
+import type { UsageReading, UsageWindow } from "./AgentStep.ts";
+import { percentOf } from "./transcriptFacts.ts";
 
 export interface LimitGuardKnobs {
   fiveHourPauseAt: number; // A fraction of the window's limit, 0 to 1.
@@ -115,4 +116,18 @@ export function decideStep(
     return { kind: "limitWait", until: new Date(until) };
   }
   return { kind: "launch" };
+}
+
+// A step's own stream may lack a window that cswap always reports, so either may be unknown.
+export function readingLabelOf(
+  account: number,
+  usage: UsageReading | undefined,
+): string {
+  if (usage === undefined) return `account ${account}: no usage reading`;
+  return `account ${account}: 5-hour ${windowLabelOf(usage.fiveHour)}, weekly ${windowLabelOf(usage.sevenDay)}`;
+}
+
+function windowLabelOf(window: UsageWindow | undefined): string {
+  if (window === undefined) return "unknown";
+  return percentOf(window.utilization);
 }

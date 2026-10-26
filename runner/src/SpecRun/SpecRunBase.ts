@@ -27,7 +27,6 @@ import {
 import { runnerMark } from "../halts.ts";
 import { approvalLineOf, untrustedBodyReasonOf } from "../IssueReader.ts";
 import {
-  fileStemOf,
   issueLabelOf,
   type IssueRef,
   IssueWorkspaces,
@@ -41,6 +40,7 @@ import {
   type UsageReader,
 } from "../limitGuard.ts";
 import type { Notice, Notices } from "../Notices.ts";
+import { stepTookLineOf } from "../progressLines.ts";
 import type { RunKnobs } from "../runKnobs.ts";
 import { runStateOf } from "../savedFormats.ts";
 import { sleep } from "../sleep.ts";
@@ -51,10 +51,12 @@ import {
   isTreeKept,
   type LandingTicket,
   onlyDeveloperEditsTextOf,
+  progressLogPathOf,
   rerunCommandOf,
   type Run,
   type RunResult,
   type RunState,
+  runStatePathOf,
   type TicketRun,
   type TicketState,
   type TicketStep,
@@ -205,7 +207,7 @@ export class SpecRunBase {
   }
 
   protected _statePathOf(spec: IssueRef): string {
-    return join(this.config.stateFolder, `${fileStemOf(spec)}.run.json`);
+    return runStatePathOf(this.config.stateFolder, spec);
   }
 
   protected _saveState(run: Run): void {
@@ -272,7 +274,7 @@ export class SpecRunBase {
     } finally {
       this._log(
         run,
-        `${issueLabelOf(ticket.issue)}: ${step} took ${this._secondsSince(startedAt)}s.`,
+        stepTookLineOf(ticket.issue, step, this._secondsSince(startedAt)),
       );
     }
   }
@@ -378,7 +380,7 @@ export class SpecRunBase {
   }
 
   protected _progressPathOf(run: Run): string {
-    return join(this.config.stateFolder, `${fileStemOf(run.spec.issue)}.log`);
+    return progressLogPathOf(this.config.stateFolder, run.spec.issue);
   }
 
   // Each dirty worktree's uncommitted work goes to a backup branch, and the tree back to its last commit unless a handoff's next step needs it.
