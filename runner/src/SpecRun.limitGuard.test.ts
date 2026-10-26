@@ -138,7 +138,7 @@ describe("run's limit guard", () => {
 
   it("Stops before a step past the weekly reserve, with one notice, leaving the ticket for a rerun to resume", async () => {
     addSpec([1]);
-    scriptUsage(usageListOf(0.3, 0.96));
+    scriptUsage(usageListOf(0.3, 1));
     const agentStep = FakeAgentStep.init();
 
     const result = await specRun(agentStep).run(spec);
@@ -147,11 +147,11 @@ describe("run's limit guard", () => {
       kind: "stopped",
       landed: [],
       message:
-        "Account 1 is at 96% of its weekly limit, past the reserve; switch with cswap and rerun, or rerun after it resets at 2026-10-15T00:00:00.000Z.",
+        "Account 1 is at 100% of its weekly limit, past the reserve; switch with cswap and rerun, or rerun after it resets at 2026-10-15T00:00:00.000Z.",
     });
     expect(agentStep.requests).toEqual([]);
     expect(noticeSummaries()).toEqual([
-      "Run started on 1 tickets as account 1: 5-hour 30%, weekly 96%. Launching byro-repo #1.",
+      "Run started on 1 tickets as account 1: 5-hour 30%, weekly 100%. Launching byro-repo #1.",
       result.message,
     ]);
     scriptUsage(usageListOf(0.3, 0.5));

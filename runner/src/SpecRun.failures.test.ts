@@ -278,7 +278,7 @@ describe("run's retries across a rerun", () => {
     scriptUsage(
       usageListOf(0.1, 0.2),
       usageListOf(0.1, 0.2),
-      usageListOf(0.3, 0.96),
+      usageListOf(0.3, 1),
     );
     const first = await specRun(FakeAgentStep.init(implemented("one.ts"))).run(
       spec,
