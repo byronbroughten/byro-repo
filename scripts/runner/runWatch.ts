@@ -23,10 +23,10 @@ interface StartWaitOptions {
   pollMs: number;
 }
 
-export type RunStart =
+type RunStart =
   { kind: "started" | "ended"; line: string } | { kind: "unknown" };
 
-export interface WatchedRun {
+interface WatchedRun {
   owner: string;
   spec: IssueRef;
 }
