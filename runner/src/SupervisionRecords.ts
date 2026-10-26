@@ -10,7 +10,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 
-import { eventFilePathOf } from "./EventFileNotices.ts";
+import { rawEventLinesOf } from "./EventFileNotices.ts";
 import {
   isSameIssue,
   type IssueRef,
@@ -84,7 +84,7 @@ export class SupervisionRecords {
   async unexplainedLinesOf(holder: LeaseHolder): Promise<string[]> {
     const record = await this.recordOf(holder);
     if (record === undefined) return [];
-    return this._eventLinesOf(record.spec).slice(record.offset);
+    return rawEventLinesOf(this.stateFolder, record.spec).slice(record.offset);
   }
 
   // One line explained; never past the last line the run has written.
@@ -92,7 +92,7 @@ export class SupervisionRecords {
     const record = await this.recordOf(holder);
     const file = this._fileOf(holder.pid);
     if (record === undefined || file === undefined) return undefined;
-    const lineCount = this._eventLinesOf(record.spec).length;
+    const lineCount = rawEventLinesOf(this.stateFolder, record.spec).length;
     const offset = Math.min(record.offset + 1, lineCount);
     this._write({ ...file, offset });
     return { ...record, offset };
@@ -100,14 +100,6 @@ export class SupervisionRecords {
 
   async release({ pid }: LeaseHolder): Promise<void> {
     this._remove(pid);
-  }
-
-  private _eventLinesOf(spec: IssueRef): string[] {
-    const path = eventFilePathOf(this.stateFolder, spec);
-    if (!existsSync(path)) return [];
-    return readFileSync(path, "utf8")
-      .split("\n")
-      .filter((line) => line !== "");
   }
 
   private _files(): RecordFile[] {
