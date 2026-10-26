@@ -2,19 +2,23 @@
 // Usage below; `review` and `resolve` take a session's ticket, not a spec, and `resolve` the path of the session's records.
 // Exit 1 is a run short of finished, a review short of reviewed or its findings, or refused records; 2 is a crash, which tmux.sh pushes.
 // `supervise` records the caller's claude as the spec's Supervisor and prints its unexplained event lines; `--advance` marks one more explained.
+// `watch` streams the spec's new event lines for a Supervisor's Monitor and prints a `vanished` line if the run's process dies unreported (runWatch.ts).
 import { readFileSync } from "node:fs";
+import { setTimeout as sleep } from "node:timers/promises";
 
 import {
   isSameIssue,
   type IssueRef,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
+import { RunLock } from "@byronbroughten/spec-runner/RunLock";
 import { reviewPrintoutOf, SpecRun } from "@byronbroughten/spec-runner/SpecRun";
 import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
 
 import { nearestClaudeAncestor } from "./claudeAncestor.ts";
 import { ntfyTopic, specRunConfigOf, stateFolder } from "./runnerConfig.ts";
+import { watchRun } from "./runWatch.ts";
 
-const plainVerbs = ["status", "stop", "review"];
+const plainVerbs = ["status", "stop", "review", "watch"];
 const verbs = [...plainVerbs, "resolve", "supervise"];
 const usage = `Usage: npm run runner -- [${plainVerbs.join("|")}] <owner/repo> <n>, resolve <owner/repo> <n> <records.json>, or supervise <owner/repo> <n> [--advance]`;
 
@@ -38,6 +42,18 @@ try {
   const issue = { repo, number: Number(number) };
   if (command === "supervise") {
     await supervise(owner, issue, isAdvance);
+  } else if (command === "watch") {
+    await watchRun(
+      { owner, spec: issue },
+      {
+        stateFolder,
+        pollMs: 3_000,
+        isRunLive: () => RunLock.isHeld(stateFolder, issue),
+        now: () => new Date(),
+        sleep,
+        print: (line) => console.log(line),
+      },
+    );
   } else {
     await runSpec(command, owner, issue, flag);
   }

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Starts the spec runner in a detached tmux session under caffeinate, so it outlives the terminal and the Mac stays awake.
 # Usage: npm run runner:tmux -- <owner/repo> <n>; attach with `tmux attach -t runner-<repo>-<n>`.
+# It then waits for the run's run-started or run-ended line (launchWait.ts): exit 0 on run-started, 1 on run-ended or a state still unknown.
 # An exit above 1 is a crash, not a Stop or an end of run, so it sends the one push and run-ended line the runner itself couldn't.
 set -euo pipefail
 
@@ -21,7 +22,10 @@ if [[ $# -ne 2 || "$1" != */* ]]; then
   exit 2
 fi
 session="runner-${1#*/}-$2"
+launched_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 tmux new-session -d -s "$session" -c "$root" "bash '$root/scripts/runner/tmux.sh' --inside '$1' '$2'"
 # Keeps the pane after exit, so a crash's message is still there to read.
 tmux set-option -t "$session" remain-on-exit on >/dev/null
 echo "Started tmux session $session; attach with: tmux attach -t $session"
+# A startup that stops within seconds is reported here, before any Supervisor's watch could miss its line.
+exec node "$root/scripts/runner/launchWait.ts" "$1" "$2" "$launched_at"
