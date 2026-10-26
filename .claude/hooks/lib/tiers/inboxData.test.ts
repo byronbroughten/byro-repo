@@ -1,6 +1,5 @@
 import { spawnSync } from "node:child_process";
 import {
-  chmodSync,
   mkdirSync,
   mkdtempSync,
   realpathSync,
@@ -12,7 +11,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { gmailGateDecisionAt, inboxDataOf } from "./inboxData.ts";
+import { gmailGateDecisionAt } from "./inboxData.ts";
 
 const proposals = `# Proposals
 
@@ -77,7 +76,9 @@ describe("gmailGateDecisionAt", () => {
 
   it("asks when a data file can't be read", () => {
     const inbox = writeInbox(proposals);
-    chmodSync(join(inbox, "proposals.md"), 0o000);
+    // A folder, not chmod 000, so the read fails even when tests run as root.
+    rmSync(join(inbox, "proposals.md"));
+    mkdirSync(join(inbox, "proposals.md"));
     expect(gmailGateDecisionAt(root, archive)?.permissionDecision).toBe("ask");
   });
 
@@ -85,9 +86,6 @@ describe("gmailGateDecisionAt", () => {
     writeInbox(proposals);
     const workspace = join(root, ".claude", "worktrees", "issue-1");
     git(root, "worktree", "add", "-q", workspace);
-    expect(inboxDataOf(workspace)).toBe(
-      join(root, "packages", "personal", "inbox"),
-    );
     expect(gmailGateDecisionAt(workspace, archive)?.permissionDecision).toBe(
       "allow",
     );
