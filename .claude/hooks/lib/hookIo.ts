@@ -48,6 +48,10 @@ export function readHookInput(): HookInput | undefined {
   }
 }
 
+export function projectDirOf(input: HookInput | undefined): string {
+  return process.env.CLAUDE_PROJECT_DIR ?? input?.cwd ?? process.cwd();
+}
+
 export function writeHookOutput(output: object): void {
   process.stdout.write(JSON.stringify(output));
 }

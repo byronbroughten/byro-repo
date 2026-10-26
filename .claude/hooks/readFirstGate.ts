@@ -8,6 +8,7 @@ import { isFullDocBashRead, isFullDocRead } from "./lib/fullDocRead.ts";
 import {
   type HookInput,
   lineCount,
+  projectDirOf,
   readHookInput,
   runFailOpen,
   sessionStatePath,
@@ -27,8 +28,7 @@ const readFirstDocs = readFirstRows.flatMap((row) => row.docs);
 await runFailOpen(() => {
   const input = readHookInput();
   if (!input) return;
-  const projectDir =
-    process.env.CLAUDE_PROJECT_DIR ?? input.cwd ?? process.cwd();
+  const projectDir = projectDirOf(input);
   if (input.hook_event_name === "PostToolUse") {
     docsReadBy(input, projectDir).forEach((doc) => {
       writeFileSync(markerPath(input, doc), "");

@@ -4,7 +4,12 @@ import { existsSync, realpathSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
 import { primaryCheckoutsOf, primaryRootOf } from "./lib/branchRecords.ts";
-import { readHookInput, runFailOpen, writeDenyOutput } from "./lib/hookIo.ts";
+import {
+  projectDirOf,
+  readHookInput,
+  runFailOpen,
+  writeDenyOutput,
+} from "./lib/hookIo.ts";
 import { primaryEditDecision } from "./lib/primaryEditGuard.ts";
 
 const guardedTools = new Set(["Edit", "Write", "NotebookEdit", "Bash"]);
@@ -15,8 +20,7 @@ await runFailOpen(() => {
   if (!guardedTools.has(input?.tool_name ?? "") || toolInput === undefined) {
     return;
   }
-  const projectDir =
-    process.env.CLAUDE_PROJECT_DIR ?? input?.cwd ?? process.cwd();
+  const projectDir = projectDirOf(input);
   const primaryRoot = primaryRootOf(projectDir);
   if (primaryRoot === undefined) return;
   const decision = primaryEditDecision({

@@ -3,7 +3,12 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-import { readHookInput, runFailOpen, writeHookOutput } from "./lib/hookIo.ts";
+import {
+  projectDirOf,
+  readHookInput,
+  runFailOpen,
+  writeHookOutput,
+} from "./lib/hookIo.ts";
 import { lintFeedback } from "./lib/lintFeedback.ts";
 import { isInLintSet, projectRelative, rootOf } from "./lib/lintSet.ts";
 import { prettierWriteArgsOf } from "./lib/prettierArgs.ts";
@@ -14,8 +19,7 @@ await runFailOpen(() => {
   if (!input || !["Edit", "Write"].includes(input.tool_name ?? "")) return;
   const filePath = input.tool_input?.file_path;
   if (typeof filePath !== "string") return;
-  const projectDir =
-    process.env.CLAUDE_PROJECT_DIR ?? input.cwd ?? process.cwd();
+  const projectDir = projectDirOf(input);
   const location = { projectDir, cwd: input.cwd ?? projectDir, filePath };
   const root = rootOf(location);
   const absolutePath = resolve(location.cwd, filePath);
