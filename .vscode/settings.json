@@ -10,7 +10,7 @@
     "packages/framework",
     "packages/real-estate",
     "packages/utils",
-    "packages/writing"
+    "packages/personal"
   ],
   "search.exclude": {
     "**/node_modules": true,
