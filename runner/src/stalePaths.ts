@@ -21,45 +21,43 @@ export interface StalePath {
 
 export type RepoMap = Pick<IssueWorkspacesConfig, "primaryRoot" | "clonePaths">;
 
-export async function stalePathsOf({
-  primaryRoot,
-  clonePaths,
-}: RepoMap): Promise<StalePath[]> {
-  const found: StalePath[] = [];
-  for (const [repo, clonePath] of Object.entries(clonePaths)) {
-    const output = await grepOf(join(primaryRoot, clonePath), []);
-    found.push(...stalePathsIn(repo, output, clonePaths));
-  }
-  return found;
+interface RepoGrep {
+  repo: string;
+  // A branch and the files to read at its tip; unset, every tracked file in the worktree.
+  touched?: { branch: string; files: string[] };
+}
+
+export async function stalePathsOf(repoMap: RepoMap): Promise<StalePath[]> {
+  const found = await Promise.all(
+    Object.keys(repoMap.clonePaths).map((repo) =>
+      repoStalePathsOf(repoMap, { repo }),
+    ),
+  );
+  return found.flat();
 }
 
 // Read at each branch's tip, so the worktree's state doesn't matter; a deleted file names nothing.
 export async function stalePathsTouchedBy(
-  { primaryRoot, clonePaths }: RepoMap,
+  repoMap: RepoMap,
   branches: LandingBranch[],
 ): Promise<StalePath[]> {
-  const found: StalePath[] = [];
-  for (const { repo, branch } of branches) {
-    const clonePath = clonePaths[repo];
-    if (clonePath === undefined) {
-      throw new Error(`${repo} has no clone in the repo map`);
-    }
-    const folder = join(primaryRoot, clonePath);
-    const files = lines(
-      await git(
-        folder,
-        "diff",
-        "--name-only",
-        "--diff-filter=d",
-        "--no-renames",
-        `master...${branch}`,
-      ),
-    );
-    if (files.length === 0) continue;
-    const output = await grepOf(folder, [branch, "--", ...files]);
-    found.push(...stalePathsIn(repo, output, clonePaths, `${branch}:`));
-  }
-  return found;
+  const found = await Promise.all(
+    branches.map(async ({ repo, branch }) => {
+      const files = lines(
+        await git(
+          folderOf(repoMap, repo),
+          "diff",
+          "--name-only",
+          "--diff-filter=d",
+          "--no-renames",
+          `master...${branch}`,
+        ),
+      );
+      if (files.length === 0) return [];
+      return repoStalePathsOf(repoMap, { repo, touched: { branch, files } });
+    }),
+  );
+  return found.flat();
 }
 
 export function stalePathLabelOf({
@@ -69,6 +67,33 @@ export function stalePathLabelOf({
   path,
 }: StalePath): string {
   return `${repo} ${file}:${line} names ${path}, which holds no clone`;
+}
+
+async function repoStalePathsOf(
+  repoMap: RepoMap,
+  { repo, touched }: RepoGrep,
+): Promise<StalePath[]> {
+  const args = touched ? [touched.branch, "--", ...touched.files] : [];
+  const output = await grepOf(folderOf(repoMap, repo), args);
+  // git grep names a file read at a branch as `<branch>:<file>`.
+  const refPrefix = touched ? `${touched.branch}:` : "";
+  const cloneFolders = new Set(Object.values(repoMap.clonePaths));
+  return lines(output).flatMap((grepLine) => {
+    const [prefixedFile = "", line = "", text = ""] = grepLine.split("\0");
+    const file = prefixedFile.slice(refPrefix.length);
+    if (isTestFile(file)) return [];
+    return [...text.matchAll(mentionRegex)].flatMap(([path = ""]) =>
+      cloneFolders.has(path) ? [] : [{ repo, file, line: Number(line), path }],
+    );
+  });
+}
+
+function folderOf({ primaryRoot, clonePaths }: RepoMap, repo: string): string {
+  const clonePath = clonePaths[repo];
+  if (clonePath === undefined) {
+    throw new Error(`${repo} has no clone in the repo map`);
+  }
+  return join(primaryRoot, clonePath);
 }
 
 // Only a prefilter for the lines mentionRegex reads; git grep exits 1 when nothing matches.
@@ -84,23 +109,6 @@ async function grepOf(folder: string, args: string[]): Promise<string> {
     if ((error as { code?: unknown }).code === 1) return "";
     throw error;
   }
-}
-
-function stalePathsIn(
-  repo: string,
-  output: string,
-  clonePaths: Record<string, string>,
-  refPrefix = "",
-): StalePath[] {
-  const cloneFolders = new Set(Object.values(clonePaths));
-  return lines(output).flatMap((grepLine) => {
-    const [prefixedFile = "", line = "", text = ""] = grepLine.split("\0");
-    const file = prefixedFile.slice(refPrefix.length);
-    if (isTestFile(file)) return [];
-    return [...text.matchAll(mentionRegex)].flatMap(([path = ""]) =>
-      cloneFolders.has(path) ? [] : [{ repo, file, line: Number(line), path }],
-    );
-  });
 }
 
 function isTestFile(file: string): boolean {
