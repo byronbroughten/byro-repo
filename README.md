@@ -39,7 +39,7 @@ Every command that touches a live spreadsheet names its target: `dev:*` for `She
 
 ## Words
 
-[`GLOSSARY-MAP.md`](./GLOSSARY-MAP.md) points at the four glossaries: the framework's operator-facing words, the app's units and occupancy ledger, the words of a writing spec, and the spec runner's.
+[`GLOSSARY-MAP.md`](./GLOSSARY-MAP.md) points at the five glossaries: the framework's operator-facing words, the app's units and occupancy ledger, the words of a writing spec, the `/inbox` skill's, and the spec runner's.
 
 ## Testing
 

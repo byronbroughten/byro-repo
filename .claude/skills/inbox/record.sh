@@ -23,7 +23,7 @@ for n in range(int(first), int(last or first) + 1):
         sys.exit(f"no Proposal P{n}")
 open(path, "w").write(text)
 PY
-    grep -E '^## P|^- status' "$data/proposals.md" | paste - - | tail -5
+    grep -E '^## P|^- status' "$data/proposals.md" | paste - - | grep -E "^## P($(seq "${2%-*}" "${2#*-}" | paste -sd'|' -)):"
     ;;
   log)
     printf '\n## %s: P%s\n- tool: %s\n- changed: %s\n- reverse: %s\n' \

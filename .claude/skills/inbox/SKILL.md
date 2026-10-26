@@ -22,9 +22,9 @@ Write both through [`record.sh`](record.sh): `record.sh status <n|n-m> <status>`
 
 - **Nothing changes in Gmail without Sign-off on one specific Proposal**, in a session the owner started and is present for. Never run unattended or on a schedule.
 - **Sign-off is the owner's yes in the chat to that Proposal's id**, recorded as `signed-off` before its first Gmail call. A yes to a design, a step or a batch of Proposals at once signs off nothing. The repo's gmail gate then allows only a call one `signed-off` Proposal covers, and asks the owner for any other; a call that asks means the Proposal and the call disagree, so fix the Proposal or redraft it.
-- **Trash is the strongest removal**, filters included, and only under Sign-off. Never mark mail as spam, send, reply or draft.
+- **Trash, filters included, only under Sign-off.** Never mark mail as spam, send, reply or draft.
 - **When unsure, leave mail in the Inbox.** Check every Proposal against the always-inbox list and name any overlap in it; a Proposal that would move always-inbox mail says so in its overlap field before Sign-off is asked.
-- **The Inbox is all of `in:inbox`**, any category tab, and holds only mail that needs the owner's action, reply or a look.
+- **The Inbox is all of `in:inbox`**, any category tab.
 - **Existing topic labels stay** as the places mail is filed. The only new labels are `Reading/<source>`, `Waiting` and `Unsubscribe`.
 - **A declined Proposal stays on the list, marked `declined`**, and is never raised again; a different query or action is a new Proposal.
 - **One Sign-off covers one bulk Proposal, carried by one `batch_modify_gmail_message_labels` call.** Gmail caps that call at 1000 message ids, so a bulk pass over more is drafted as several Proposals of at most 1000 each.

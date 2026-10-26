@@ -22,7 +22,7 @@ The words for the repo's prose, which file holds which fact, what the root AGENT
 | --- | --- |
 | `AGENTS.md` | Only what changes an agent's behavior on every task: commands, gates, git rules, the README line, the router. Loaded every turn; read [What an addition to AGENTS.md costs](#what-an-addition-to-agentsmd-costs) before growing it. |
 | `CLAUDE.md` | `@AGENTS.md` plus pointers to Claude Code-only mechanics (subagents, hooks). |
-| `GLOSSARY-MAP.md` | Which `GLOSSARY.md` each context owns, how the app's glossary relates to the framework's, and that writing's and the runner's relate to neither. |
+| `GLOSSARY-MAP.md` | Which `GLOSSARY.md` each context owns, how the app's glossary relates to the framework's, and that writing's, the inbox's and the runner's relate to neither. |
 | `docs/agent-behavior-design.md` | Why the agent tooling (hooks, gates, delegation, this doc scheme) is shaped as it is, each principle citing ADRs. It never goes in the framework's `docs/design.md`. |
 | `docs/adr/*.md` | One agent-behavior decision per file, in the `domain-modeling` skill's ADR format with its `Source:` line. Each repo has its own `docs/adr/`, created with its first ADR. |
 | `docs/targets-and-gates.md` | The tier list of what needs a yes first, ticket targets, the `dev`/`app` targets, the agent account, and the gworkspace MCP rules. |
