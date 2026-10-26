@@ -1,10 +1,10 @@
 # Pair mode's setup
 
-Run these before step 1 of [`SKILL.md`](./SKILL.md), keeping every file in the scratchpad. The words Piece, Deliverable, Section and Snapshot are [`packages/writing/GLOSSARY.md`](../../../packages/writing/GLOSSARY.md)'s; the Snapshot's path and shape are in [`packages/writing/docs/snapshots.md`](../../../packages/writing/docs/snapshots.md).
+Run these before step 1 of [`SKILL.md`](./SKILL.md), keeping every file in the scratchpad. The words Piece, Deliverable, Section and Snapshot are [`packages/personal/writing/GLOSSARY.md`](../../../packages/personal/writing/GLOSSARY.md)'s; the Snapshot's path and shape are in [`packages/personal/writing/docs/snapshots.md`](../../../packages/personal/writing/docs/snapshots.md).
 
 ## 1. Read the spec
 
-`gh issue view -R byronbroughten/writing <n> --json title,body,comments`, and the parent's too when `<n>` is a sub-issue. Note:
+`gh issue view -R byronbroughten/personal <n> --json title,body,comments`, and the parent's too when `<n>` is a sub-issue. Note:
 
 - the Deliverable's Doc ID;
 - the Sections in scope: a sub-issue's named Sections, or every Section in the Snapshot for the parent;
@@ -15,7 +15,7 @@ With two Docs instead of an issue, skip this step; every Section the two share i
 ## 2. Make the pair
 
 - `get_doc_as_markdown` the Deliverable to `deliverable.md`, with each Section heading rewritten as `## <heading text>`, the Snapshot's shape.
-- `git -C packages/writing fetch origin master`, then `git -C packages/writing show origin/master:snapshots/<spec n>.md > snapshot.md`. A sub-issue's Snapshot blocks are in its parent's file.
+- `git -C packages/personal fetch origin master`, then `git -C packages/personal show origin/master:writing/snapshots/<spec n>.md > snapshot.md`. A sub-issue's Snapshot blocks are in its parent's file.
 - Keep only the Sections in scope, in both files.
 - With two Docs, convert each the same way, the agent's Doc as `snapshot.md`.
 
