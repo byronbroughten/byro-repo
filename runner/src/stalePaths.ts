@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 
 import { git, lines } from "./git.ts";
+import type { LandingBranch } from "./WrapUp.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -15,11 +16,6 @@ export interface StalePath {
   file: string;
   line: number;
   path: string;
-}
-
-export interface BranchOfRepo {
-  repo: string;
-  branch: string;
 }
 
 export async function stalePathsOf(
@@ -38,7 +34,7 @@ export async function stalePathsOf(
 export async function stalePathsTouchedBy(
   primaryRoot: string,
   clonePaths: Record<string, string>,
-  branches: BranchOfRepo[],
+  branches: LandingBranch[],
 ): Promise<StalePath[]> {
   const found: StalePath[] = [];
   for (const { repo, branch } of branches) {
