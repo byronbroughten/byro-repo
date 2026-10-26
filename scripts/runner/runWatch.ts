@@ -31,8 +31,7 @@ export interface WatchedRun {
   spec: IssueRef;
 }
 
-interface WatchDeps extends WatchClock {
-  stateFolder: string;
+interface WatchDeps extends StartWaitDeps {
   pollMs: number;
   isRunLive: () => boolean;
   print: (line: string) => void;
