@@ -44,8 +44,31 @@ function seedRun({ stem, pid, steps, log }: FixtureRun): void {
   writeFileSync(join(stateFolder, `${stem}.log`), `${log.join("\n")}\n`);
 }
 
+interface FixtureUsage {
+  fiveHour: number;
+  sevenDay: number;
+}
+
+// One rate-limit event, as a step's raw stream carries it.
+function seedStream(path: string, { fiveHour, sevenDay }: FixtureUsage): void {
+  const resetsAt = Date.parse("2026-10-25T14:00:00.000Z") / 1000;
+  const event = {
+    type: "rate_limit_event",
+    rate_limit_info: {
+      status: "allowed",
+      unifiedWindows: {
+        five_hour: { utilization: fiveHour, resetsAt },
+        seven_day: { utilization: sevenDay, resetsAt },
+      },
+    },
+  };
+  writeFileSync(path, `${JSON.stringify(event)}\n`);
+}
+
 describe("runBoardOf", () => {
-  it("shows a running run's ticket, step, time on step, account and latest line", () => {
+  it("shows a running run's ticket, step, time on step, account limits and latest line", () => {
+    const streamPath = join(stateFolder, "review.jsonl");
+    seedStream(streamPath, { fiveHour: 0.62, sevenDay: 0.3 });
     seedRun({
       stem: "byro-repo-424",
       pid: process.pid,
@@ -55,15 +78,15 @@ describe("runBoardOf", () => {
         "2026-10-25T11:00:06.000Z byro-repo #431: launching on Opus medium from implement.",
         "2026-10-25T11:00:07.000Z byro-repo #431: implement step on account 2, raw stream in /s/1.jsonl.",
         "2026-10-25T11:48:30.000Z byro-repo #431: implement took 2903s.",
-        "2026-10-25T11:48:31.000Z byro-repo #431: review step on account 2, raw stream in /s/2.jsonl.",
+        `2026-10-25T11:48:31.000Z byro-repo #431: review step on account 2, raw stream in ${streamPath}.`,
       ],
     });
     expect(runBoardOf(stateFolder, now)).toBe(
       [
         "byro-repo #424",
         "  Ticket: byro-repo #431, review, 11m 30s on this step",
-        "  Account: 2",
-        "  Latest (11m 29s ago): byro-repo #431: review step on account 2, raw stream in /s/2.jsonl.",
+        "  Account: account 2: 5-hour 62%, weekly 30%",
+        `  Latest (11m 29s ago): byro-repo #431: review step on account 2, raw stream in ${streamPath}.`,
       ].join("\n"),
     );
   });
@@ -119,7 +142,7 @@ describe("runBoardOf", () => {
       [
         "personal #21: process gone; Vanished unless its event file ends in a run-ended line",
         "  Ticket: personal #22, implement, 2h 0m on this step",
-        "  Account: 1",
+        "  Account: account 1: no usage reading",
         "  Latest (1h 59m ago): personal #22: implement step on account 1, raw stream in /s/3.jsonl.",
       ].join("\n"),
     );

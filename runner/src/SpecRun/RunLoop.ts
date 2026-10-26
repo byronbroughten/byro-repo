@@ -22,12 +22,11 @@ import {
   issueLabelOf,
   type IssueRef,
 } from "../IssueWorkspaces.ts";
-import { type AccountReading } from "../limitGuard.ts";
+import { type AccountReading, readingLabelOf } from "../limitGuard.ts";
 import { pairOf } from "../modelFit.ts";
 import { type HeldRunLock, RunLock } from "../RunLock.ts";
 import { RunStop } from "../RunStop.ts";
 import { stalePathLabelOf, stalePathsOf } from "../stalePaths.ts";
-import { percentOf } from "../transcriptFacts.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
 import {
   idListOf,
@@ -170,7 +169,7 @@ export class RunLoop extends SpecRunBase {
     reading: AccountReading,
     selection: Selection,
   ): Promise<void> {
-    const started = `Run started on ${run.tickets.length} tickets as ${readingLabelOf(reading)}.`;
+    const started = `Run started on ${run.tickets.length} tickets as ${readingLabelOf(reading.account, reading.usage)}.`;
     const ticket =
       selection.kind === "launch" ? selection.ticket.issue : undefined;
     const summary =
@@ -226,7 +225,8 @@ export class RunLoop extends SpecRunBase {
 
   private async _activeReadingLabelOf(run: Run): Promise<string> {
     try {
-      return readingLabelOf(await this._activeReadingOf(run));
+      const { account, usage } = await this._activeReadingOf(run);
+      return readingLabelOf(account, usage);
     } catch (error) {
       if (!(error instanceof ActiveAccountUnknown)) throw error;
       return `unknown; ${noActiveAccountPhraseOf()}`;
@@ -348,9 +348,4 @@ function currentTextOf(run: Run, { ticket, holder }: Wait): string[] {
   if (holder?.kind !== "run") return [];
   const step = run.state.tickets[issueLabelOf(ticket)]?.step ?? "implement";
   return [`${issueLabelOf(ticket)} at ${step} (${holderLabelOf(holder)})`];
-}
-
-function readingLabelOf({ account, usage }: AccountReading): string {
-  if (usage === undefined) return `account ${account}: no usage reading`;
-  return `account ${account}: 5-hour ${percentOf(usage.fiveHour.utilization)}, weekly ${percentOf(usage.sevenDay.utilization)}`;
 }

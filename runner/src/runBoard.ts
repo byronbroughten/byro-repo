@@ -6,7 +6,9 @@
 
 import { existsSync, readFileSync } from "node:fs";
 
+import type { UsageReading } from "./AgentStep.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
+import { readingLabelOf } from "./limitGuard.ts";
 import {
   isLimitWaitLine,
   isStepBoundaryLine,
@@ -16,6 +18,7 @@ import {
 import { RunLock } from "./RunLock.ts";
 import { runStateOf } from "./savedFormats.ts";
 import { progressLogPathOf, runStatePathOf } from "./SpecRun/runState.ts";
+import { StepStream } from "./StepStream.ts";
 
 interface ProgressLine {
   time: Date;
@@ -118,7 +121,17 @@ function accountTextOf(lines: ProgressLine[]): string {
   if (latest === undefined) return "none launched yet";
   const launch = stepLaunchOfLine(latest.text);
   if (launch === undefined) return latest.text;
-  return String(launch.account);
+  return readingLabelOf(launch.account, streamUsageOf(launch.streamPath));
+}
+
+// The step's own rate-limit events, so the board reads no account state the runs didn't write.
+function streamUsageOf(streamPath: string): UsageReading | undefined {
+  if (!existsSync(streamPath)) return undefined;
+  const stream = StepStream.init();
+  readFileSync(streamPath, "utf8")
+    .split("\n")
+    .forEach((line) => stream.observeLine(line));
+  return stream.usage;
 }
 
 function latestTextOf(lines: ProgressLine[], now: Date): string {
