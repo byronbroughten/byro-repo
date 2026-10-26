@@ -1,3 +1,6 @@
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import type { StepResult } from "./AgentStep.ts";
@@ -8,6 +11,7 @@ import {
 } from "./EventFileNotices.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { commentUrlOf } from "./FakeGitHub.ts";
+import { git } from "./GitFixture.ts";
 import type { Blocker } from "./implementStep.ts";
 import { composedNotices } from "./Notices.ts";
 import { runKnobsOf } from "./runKnobs.ts";
@@ -21,6 +25,7 @@ import {
   implemented,
   notices,
   passes,
+  primaryRoot,
   reviewed,
   spec,
   specRun,
@@ -141,6 +146,24 @@ describe("run's event file", () => {
       summary: expect.stringContaining("Launching byro-repo #1."),
     });
     expect(notices.sent[0]).toMatchObject({ kind: "run-started" });
+  });
+
+  it("warns on the run-started line of each mention of a folder holding no clone, and runs on", async () => {
+    addSpec([1]);
+    writeFileSync(join(primaryRoot, "guide.md"), "See packages/personal.\n");
+    git(primaryRoot, "add", "guide.md");
+    git(primaryRoot, "commit", "-m", "Name a moved clone");
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    const result = await specRun(agentStep, withEventFile()).run(spec);
+
+    expect(eventLines()[0]).toMatchObject({
+      kind: "run-started",
+      warnings: [
+        "byro-repo guide.md:1 names packages/personal, which holds no clone",
+      ],
+    });
+    expect(result.kind).toBe("finished");
   });
 
   it("writes no run-started line for a run stopped in preflight, its run-ended summary naming the fix", async () => {

@@ -26,6 +26,7 @@ import { type AccountReading } from "../limitGuard.ts";
 import { pairOf } from "../modelFit.ts";
 import { type HeldRunLock, RunLock } from "../RunLock.ts";
 import { RunStop } from "../RunStop.ts";
+import { stalePathLabelOf, stalePathsOf } from "../stalePaths.ts";
 import { percentOf } from "../transcriptFacts.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
 import {
@@ -178,9 +179,16 @@ export class RunLoop extends SpecRunBase {
         : `${started} Launching ${issueLabelOf(ticket)}.`;
     await this._announce(run, summary, {
       kind: "run-started",
-      warnings: [],
+      warnings: await this._stalePathWarnings(),
       ...(ticket && { ticket }),
     });
+  }
+
+  // Warned, never refused, so stale prose can't block the ticket that would fix it.
+  private async _stalePathWarnings(): Promise<string[]> {
+    const { primaryRoot, knobs } = this.config;
+    const found = await stalePathsOf(primaryRoot, knobs.clonePaths);
+    return found.map(stalePathLabelOf);
   }
 
   // Read by the run between tickets and while idle; a request made with no run going is dropped as the next run starts.

@@ -58,6 +58,7 @@ import {
 } from "./outcomeRowWriter.ts";
 import { secretShapeOf } from "./secretShapes.ts";
 import { sleep } from "./sleep.ts";
+import { stalePathLabelOf, stalePathsTouchedBy } from "./stalePaths.ts";
 import { handoffSessionIdOf } from "./transcriptFacts.ts";
 import { WrapUpFailure } from "./WrapUpFailure.ts";
 
@@ -488,6 +489,7 @@ export class WrapUp {
     await this._step(landing, "files-changed", async () => {
       landing.progress.filesChanged = await this._filesChanged(landing);
     });
+    await this._refuseStalePaths(landing);
     for (;;) {
       await landing.kind.build(landing, workspace);
       if (await this._fastForward(landing)) return;
@@ -580,6 +582,21 @@ export class WrapUp {
       count += lines(files).length;
     }
     return count;
+  }
+
+  // Only the files the change touches, so a migration's tickets land one at a time past stale paths elsewhere.
+  private async _refuseStalePaths(landing: Landing): Promise<void> {
+    const { primaryRoot, clonePaths } = this.config.workspaces;
+    const found = await stalePathsTouchedBy(
+      primaryRoot,
+      clonePaths,
+      landing.branches,
+    );
+    if (found.length === 0) return;
+    throw new WrapUpFailure(
+      "stale-path",
+      `The change names folders that hold no clone, so nothing was merged:\n${found.map(stalePathLabelOf).join("\n")}`,
+    );
   }
 
   private async _mergeAndCheck(
