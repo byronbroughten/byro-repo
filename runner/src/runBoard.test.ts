@@ -90,6 +90,21 @@ describe("runBoardOf", () => {
     );
   });
 
+  it("shows a spec-level step, such as the gap check, in place of a ticket", () => {
+    seedRun({
+      stem: "byro-repo-424",
+      pid: process.pid,
+      steps: { "byro-repo #431": "landed" },
+      log: [
+        "2026-10-25T11:40:00.000Z byro-repo #431: wrap-up took 30s.",
+        "2026-10-25T11:50:00.000Z Gap check step on account 1, raw stream in /s/g.jsonl.",
+      ],
+    });
+    expect(runBoardOf(stateFolder, now).split("\n")[1]).toBe(
+      "  Ticket: none; Gap check, 10m 0s on this step",
+    );
+  });
+
   it("marks a run whose lock's pid is dead", () => {
     seedRun({
       stem: "personal-21",

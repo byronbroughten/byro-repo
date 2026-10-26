@@ -87,8 +87,15 @@ function ticketTextOf(
   lines: ProgressLine[],
   now: Date,
 ): string {
-  const ticket = lines.flatMap(({ text }) => ticketOfLine(text) ?? []).at(-1);
-  if (ticket === undefined) return "none yet";
+  const latest = lines.findLast(
+    ({ text }) => ticketOfLine(text) !== undefined || stepLaunchOfLine(text),
+  );
+  if (latest === undefined) return "none yet";
+  const ticket = ticketOfLine(latest.text);
+  if (ticket === undefined) {
+    const subject = stepLaunchOfLine(latest.text)?.subject;
+    return `none; ${subject}, ${durationOf(latest.time, now)} on this step`;
+  }
   const step = stepOf(statePath, ticket) ?? "step unknown";
   const stepStart = lines.findLast(({ text }) =>
     isStepBoundaryLine(text, ticket),
