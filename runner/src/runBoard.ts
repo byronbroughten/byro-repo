@@ -22,11 +22,16 @@ interface BoardWatch {
   sleep: (ms: number) => Promise<void>;
 }
 
+const boardTexts = {
+  noRuns: "No runs are running.",
+  gone: "process gone; Vanished unless its event file ends in a run-ended line",
+} as const;
+
 export function runBoardOf(stateFolder: string, now: Date): string {
   const blocks = RunLock.specsOf(stateFolder).map((spec) =>
     runBlockOf(stateFolder, spec, now),
   );
-  if (blocks.length === 0) return noRunsText();
+  if (blocks.length === 0) return boardTexts.noRuns;
   return blocks.join("\n\n");
 }
 
@@ -43,24 +48,16 @@ export async function watchBoard({
   }
 }
 
-function noRunsText(): string {
-  return "No runs are running.";
-}
-
 function runBlockOf(stateFolder: string, spec: IssueRef, now: Date): string {
   const lines = progressLinesOf(progressLogPathOf(stateFolder, spec));
   const isLive = RunLock.isHeld(stateFolder, spec);
   const statePath = runStatePathOf(stateFolder, spec);
   return [
-    isLive ? issueLabelOf(spec) : `${issueLabelOf(spec)}: ${goneText()}`,
+    isLive ? issueLabelOf(spec) : `${issueLabelOf(spec)}: ${boardTexts.gone}`,
     `  Ticket: ${ticketTextOf(statePath, lines, now)}`,
     `  Account: ${accountTextOf(lines)}`,
     `  ${latestTextOf(lines, now)}`,
   ].join("\n");
-}
-
-function goneText(): string {
-  return "process gone; Vanished unless its event file ends in a run-ended line";
 }
 
 function progressLinesOf(path: string): ProgressLine[] {
