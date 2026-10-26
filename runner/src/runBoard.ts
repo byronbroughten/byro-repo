@@ -1,7 +1,8 @@
 // The Run board: one block per run lock in the state folder, read from that spec's run state and progress log.
 // It writes nothing, so it's safe beside any run; a lock whose pid is dead is marked rather than skipped.
 // byro-repo's `npm run runner -- status` prints it once and `-- watch` redraws it, both with no spec.
-// RunLock.ts names the lock files and SpecRun/SpecRunBase.ts writes the run state and progress log.
+// RunLock.ts lists the lock files and SpecRun/runState.ts names the run state and progress log paths.
+// SpecRun/SpecRunBase.ts writes both; the progress lines the board reads are worded where the run writes them.
 
 import { existsSync, readFileSync } from "node:fs";
 
