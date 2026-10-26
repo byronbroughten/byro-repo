@@ -59,7 +59,7 @@
         "skills/engineering/pr": {
           "status": "vendored",
           "syncedSha": "49dd158d1076134a641b33efb035946536778336",
-          "notes": "Divergence: the component-tree example's `(packages/ui)` reads `(libs/ui)`, since the runner's stale-path check flags a packages/<dir> mention with no clone."
+          "notes": "Divergence: the component-tree example names `libs/ui` where upstream names a ui folder under packages, since the runner's stale-path check flags a mention of a packages folder with no clone."
         },
         "skills/engineering/prototype": {
           "status": "vendored",
