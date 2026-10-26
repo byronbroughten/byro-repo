@@ -3,8 +3,8 @@
 #   record.sh status <n|n-m> <pending|signed-off|applied|declined>
 #   record.sh log <n> <tool and action> <what changed> <what reverses it>
 set -euo pipefail
-# Still the gate's location; #423 re-points both to personal/inbox.
-data=${INBOX_DATA:-$HOME/.claude/inbox-data}
+# This checkout's personal clone, the copy the gmail gate reads for this session.
+data=${INBOX_DATA:-$(git -C "$(dirname "$0")" rev-parse --show-toplevel)/packages/personal/inbox}
 
 case "${1:-}" in
   status)

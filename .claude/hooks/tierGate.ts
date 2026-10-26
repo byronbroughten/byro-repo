@@ -4,6 +4,7 @@ import { writeFileSync } from "node:fs";
 
 import {
   type HookInput,
+  projectDirOf,
   readHookInput,
   readJsonFile,
   runFailOpen,
@@ -37,8 +38,7 @@ await runFailOpen(async () => {
   if (input.tool_name === "Bash") {
     decision = await bashDecision(input);
   } else {
-    const projectDir =
-      process.env.CLAUDE_PROJECT_DIR ?? input.cwd ?? process.cwd();
+    const projectDir = projectDirOf(input);
     decision = await driveGateDecision({
       toolName: input.tool_name,
       // A spread copy fits the gate's Record of every argument.

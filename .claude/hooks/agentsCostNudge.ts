@@ -3,6 +3,7 @@ import { existsSync, writeFileSync } from "node:fs";
 
 import { agentsCostContext } from "./lib/agentsCostNudge.ts";
 import {
+  projectDirOf,
   readHookInput,
   runFailOpen,
   sessionStatePath,
@@ -19,8 +20,7 @@ await runFailOpen(() => {
   ) {
     return;
   }
-  const projectDir =
-    process.env.CLAUDE_PROJECT_DIR ?? input.cwd ?? process.cwd();
+  const projectDir = projectDirOf(input);
   const markerPath = sessionStatePath(input.session_id, "agents-cost");
   const context = agentsCostContext({
     projectDir,

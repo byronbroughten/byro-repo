@@ -9,7 +9,7 @@ import {
   readRecord,
   writeRecord,
 } from "./lib/branchRecords.ts";
-import { readHookInput, runFailOpen } from "./lib/hookIo.ts";
+import { projectDirOf, readHookInput, runFailOpen } from "./lib/hookIo.ts";
 
 await runFailOpen(() => {
   const input = readHookInput();
@@ -21,8 +21,7 @@ await runFailOpen(() => {
     return;
   }
   if (input.hook_event_name !== "SessionStart") return;
-  const projectDir =
-    process.env.CLAUDE_PROJECT_DIR ?? input.cwd ?? process.cwd();
+  const projectDir = projectDirOf(input);
   const primaryRoot = primaryRootOf(projectDir);
   // A session in an issue workspace works its own branches, so it holds no primary checkout's branch.
   if (

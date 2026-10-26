@@ -14,7 +14,12 @@ import {
   readRecord,
   writeRecord,
 } from "./lib/branchRecords.ts";
-import { readHookInput, runFailOpen, writeDenyOutput } from "./lib/hookIo.ts";
+import {
+  projectDirOf,
+  readHookInput,
+  runFailOpen,
+  writeDenyOutput,
+} from "./lib/hookIo.ts";
 
 // The runner works every ticket in an issue workspace, so a primary checkout's branch never moves.
 const mode: GuardMode = "strict";
@@ -30,8 +35,7 @@ await runFailOpen(() => {
   ) {
     return;
   }
-  const projectDir =
-    process.env.CLAUDE_PROJECT_DIR ?? input.cwd ?? process.cwd();
+  const projectDir = projectDirOf(input);
   const cwd = input.cwd ?? projectDir;
   const primaryRoot = primaryRootOf(projectDir);
   if (primaryRoot === undefined) return;
