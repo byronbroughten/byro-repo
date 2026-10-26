@@ -61,5 +61,5 @@ While the run is running, the tier gate asks before every `gh` write, and the pr
 ## 6. Questions and stopping
 
 - "How's it going?" and the like: answer from `npm run runner -- status <owner/repo> <n>`, never from memory.
-- **Print the Run board, `npm run runner -- status` with no spec, only to diagnose**, such as a Limit wait or two runs on one account, and never stream it: `watch` with no spec is the developer's own view.
+- **Print the Run board, `npm run runner -- status` with no spec, only to diagnose, such as a Limit wait or two runs on one account; never stream it.**
 - To end the run: once the developer agrees in chat, run `npm run runner -- stop <owner/repo> <n>`. No prompt follows. The run ends after its current ticket, and its `run-ended` line arrives through the watch like any other event.
