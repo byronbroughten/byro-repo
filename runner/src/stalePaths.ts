@@ -40,7 +40,11 @@ export async function stalePathsTouchedBy(
 ): Promise<StalePath[]> {
   const found: StalePath[] = [];
   for (const { repo, branch } of branches) {
-    const folder = join(primaryRoot, clonePaths[repo] as string);
+    const clonePath = clonePaths[repo];
+    if (clonePath === undefined) {
+      throw new Error(`${repo} has no clone in the repo map`);
+    }
+    const folder = join(primaryRoot, clonePath);
     const files = lines(
       await git(
         folder,
