@@ -37,7 +37,7 @@ For every event, tell the developer:
 - **What each answer would do**: every option the Halt offers, such as `retry`, `continue`, `continue +1 handoff`, `resume +<turns>`, `skip` or `stop spec`, plus free text, and what the run does next on each one.
 - **Your suggestion**: the reply you would send, with your reasons.
 
-A `run-started` line: say the run is working, and on which ticket. An `idle` line says what holds the run, such as an open Halt or another holder's lease. Say what clears it. A `vanished` line: as for `crashed` below, point the developer to the tmux pane. A `run-ended` line carries its `ending`:
+A `run-started` line: say the run is working, and on which ticket. List its `warnings`, each a stale clone path; they never stop the run, but wrap-up refuses a ticket that touches one of their files. An `idle` line says what holds the run, such as an open Halt or another holder's lease. Say what clears it. A `vanished` line: as for `crashed` below, point the developer to the tmux pane. A `run-ended` line carries its `ending`:
 
 - `finished`: suggest `/judge-findings <repo> #<n>`.
 - `stopped`: say what stopped it.
