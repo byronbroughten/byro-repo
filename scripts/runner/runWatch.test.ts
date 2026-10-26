@@ -178,4 +178,46 @@ describe("watchRun", () => {
 
     expect(printed).toEqual([crashed]);
   });
+
+  it("keeps watching a live run that hasn't started yet, past an earlier run's run-ended line", async () => {
+    write(lineOf("run-ended", at(-60_000), "stopped"));
+    const started = lineOf("run-started", at(4_000));
+    const ended = lineOf("run-ended", at(7_000), "stopped");
+    const printed: string[] = [];
+    const clock = fakeClock([
+      { atMs: 4_000, run: () => write(started) },
+      { atMs: 7_000, run: () => write(ended) },
+    ]);
+
+    await watchRun(
+      { owner: "byronbroughten", spec },
+      {
+        stateFolder,
+        ...clock,
+        pollMs,
+        isRunLive: () => true,
+        print: (line) => printed.push(line),
+      },
+    );
+
+    expect(printed).toEqual([started, ended]);
+  });
+
+  it("returns quietly when the run has already ended and its process is gone", async () => {
+    write(lineOf("run-ended", at(-1_000), "stopped"));
+    const printed: string[] = [];
+
+    await watchRun(
+      { owner: "byronbroughten", spec },
+      {
+        stateFolder,
+        ...fakeClock(),
+        pollMs,
+        isRunLive: () => false,
+        print: (line) => printed.push(line),
+      },
+    );
+
+    expect(printed).toEqual([]);
+  });
 });

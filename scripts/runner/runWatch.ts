@@ -78,7 +78,7 @@ export function launchReportOf(
   return { text: start.line, exitCode: start.kind === "started" ? 0 : 1 };
 }
 
-// Prints each line written after it starts and returns once the last run-ended; a run found dead on two checks in a row, with no run-ended line, is vanished.
+// Prints each line written after it starts and returns after a run-ended one; a run found dead on two checks in a row, with no run-ended line, is vanished.
 export async function watchRun(
   { owner, spec }: WatchedRun,
   deps: WatchDeps,
@@ -88,10 +88,13 @@ export async function watchRun(
   let isDeadOnLastCheck = false;
   for (;;) {
     const lines = rawEventLinesOf(stateFolder, spec);
-    lines.slice(printedCount).forEach((line) => print(line));
+    const newLines = lines.slice(printedCount);
+    newLines.forEach((line) => print(line));
     printedCount = lines.length;
-    if (lastBoundaryOf(lines) === "run-ended") return;
+    if (lastBoundaryOf(newLines) === "run-ended") return;
     const isDead = !isRunLive();
+    // An earlier run's end counts only once no process holds the lock, since a relaunch may not have started yet.
+    if (isDead && lastBoundaryOf(lines) === "run-ended") return;
     if (isDead && isDeadOnLastCheck) {
       print(vanishedLineOf({ owner, spec }, deps.now()));
       return;
