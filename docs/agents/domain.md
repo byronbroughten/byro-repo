@@ -12,11 +12,12 @@ If any of these files don't exist, **proceed silently**. Don't flag their absenc
 
 ## File structure
 
-Four contexts, one per package:
+Five contexts, four of them one per package:
 
 ```
 /
-├── GLOSSARY-MAP.md                 # points at the four glossaries
+├── GLOSSARY-MAP.md                 # points at the five glossaries
+├── .claude/skills/inbox/GLOSSARY.md # an /inbox session's terms: Proposal, Sign-off
 ├── runner/GLOSSARY.md              # the spec runner's terms: steps, verdicts, Halts
 ├── docs/adr/                       # agent-behavior decisions; framework and real-estate get their own
 ├── docs/targets-and-gates.md
@@ -44,7 +45,7 @@ Four contexts, one per package:
 
 ## Which context a term belongs to
 
-Ask "would this make sense in a different Sheets-backed app?" Yes: the framework's `GLOSSARY.md`. No: the app's. A word for a piece of writing: the writing `GLOSSARY.md`. A word for an unattended spec run: the runner's. How the glossaries relate is [`GLOSSARY-MAP.md`](../../GLOSSARY-MAP.md)'s; a new term that would redefine a framework one is a conflict to raise, not to resolve silently.
+Ask "would this make sense in a different Sheets-backed app?" Yes: the framework's `GLOSSARY.md`. No: the app's. A word for a piece of writing: the writing `GLOSSARY.md`. A word for an unattended spec run: the runner's. A word for organizing Gmail: the inbox's. How the glossaries relate is [`GLOSSARY-MAP.md`](../../GLOSSARY-MAP.md)'s; a new term that would redefine a framework one is a conflict to raise, not to resolve silently.
 
 ## Use the glossary's vocabulary
 
