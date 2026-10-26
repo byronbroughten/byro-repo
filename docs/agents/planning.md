@@ -50,6 +50,7 @@
 - **`/code-spec` writes the section on a spec meant for one session.** A spec that won't fit one session is still published, without the section, and a chat line recommends `/code-tickets` for sub-issues; say nothing if the developer has explicitly agreed in the conversation that it becomes tickets.
 - **`/piece-tickets` and `/piece-spec` stay chat only**: the same read-back list or one chat line, never in a ticket, comment or parent issue, with `/piece-tickets` as the recommendation for a spec too big for one session.
 - **The developer switches with `/model` and `/effort`**; never dispatch an implementer.
+- **A Model fit check compares the model only**: the agent can't see `/effort`, so it names an effort only when the developer has said what it is.
 - **Pick from five pairs only:** Sonnet medium, Sonnet high, Opus low, Opus medium, Opus high. Criteria for each and their evidence: [`model-fit.md`](./model-fit.md).
 - **Tie-break: the cheapest pair likely to pass review on the first try.** Cost is the Claude Code weekly limit.
 
