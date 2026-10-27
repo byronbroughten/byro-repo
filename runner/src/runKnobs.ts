@@ -47,7 +47,7 @@ export interface RunKnobs {
   ticketBudget: number;
   // A step crossing this is killed: an implementer is resumed for a handoff, or its resolve goes to a fresh resolver.
   liveCeiling: number;
-  // The fresh resolver runs on the stronger of this and the ticket's pair.
+  // The fresh resolver runs on the stronger of this and the ticket's pair, since it starts cold on the diff.
   resolverPair: Pair;
   gapCheckPair: Pair;
   reviewListCadence: ReviewListCadence;
