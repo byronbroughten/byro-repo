@@ -1,6 +1,6 @@
 # Reading another session's transcript
 
-How a skill that mines a past session, `/to-code-style` or `/to-writing-style`, finds that session's transcript and reads the user's turns in it. A transcript is mostly tool output, so it is never read whole.
+How a skill that mines a past session finds that session's transcript and reads the user's turns in it. A transcript is mostly tool output, so it is never read whole.
 
 **"The last session"** is the newest `~/.claude/projects/<project dir>/*.jsonl` that is not your own. Yours is the most recently modified. A session that ran in a worktree is under a different project directory.
 
