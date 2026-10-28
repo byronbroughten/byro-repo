@@ -287,14 +287,14 @@ function headingSlugs(text) {
  * @param {Report} report
  */
 function checkLineCitations(text, report) {
-  for (const { line, content } of proseLines(text)) {
-    for (const [citation] of content.matchAll(/[\w./-]+\.md:\d+/g)) {
+  proseLines(text).forEach(({ line, content }) => {
+    Array.from(content.matchAll(/[\w./-]+\.md:\d+/g)).forEach(([citation]) => {
       report(
         line,
         `line-number citation ${citation}; cite a heading anchor, since a line number drifts`,
       );
-    }
-  }
+    });
+  });
 }
 
 // A read-by-heading doc's lead: the non-blank lines after its title and before its first `##` heading.
