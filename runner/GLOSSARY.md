@@ -119,8 +119,12 @@ _Avoid_: scratch workspace, one-off workspace
 A Claude session the developer drives, as opposed to a run's agent steps.
 _Avoid_: hand session, manual session
 
+**Interactive ticket**:
+A ticket an agent can do only in an Interactive session, because its work needs the developer's yes; during a run the Supervisor takes it. A ticket only the developer can do, such as a Phase gate or a step in the real world, is a human ticket instead.
+_Avoid_: supervisor ticket, permission ticket, escalation ticket
+
 **Supervisor**:
-An interactive session that launches or rejoins one run, explains each of its events to the developer, and does the work the run's steps can't: unasked for a blocked edit the ticket already specifies or a ticket set aside for it, and anything else when the developer asks. Every other reply it posts is one the developer settled.
+An interactive session that launches or rejoins one run, explains each of its events to the developer, and does the work the run's steps can't: unasked for a blocked edit the ticket already specifies or an Interactive ticket, and anything else when the developer asks. Every other reply it posts is one the developer settled.
 _Avoid_: monitor, watcher, babysitter
 
 **Run board**:
