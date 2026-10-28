@@ -6,6 +6,7 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Numbers and evid
 
 - "This would equate to about $40,000 per year in revenue" — DealLab - Brand Presentation
 - Seen in 5 of 6. The usual openers are "This means…", "This would equate to…" and "meaning…".
+- Comparing the figure with a second one doesn't say what it means:
 - Agent: "each of the new property's rental units loses at least $1,900 of rent, more than twice the $750 a month the return target needs" Developer: struck the comparison — Assessment 1 Next Draft (personal#4), Drive edit after session 66510c6, by 2026-10-18
 
 ## Show the arithmetic, then the total

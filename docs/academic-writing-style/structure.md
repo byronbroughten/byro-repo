@@ -8,9 +8,3 @@ The rubric-driven structure in the samples (title pages, fixed section lists, fr
 
 - "This report is to inform whether to grant the loan to Ace Company. To that end, the report summarizes and analyzes" — Assessment 3 - Accounting
 - Seen in 5 of 6. Flagged in review as a stock assignment intro, and kept: the "is to inform" wording recurs across courses. The "In this paper I will…" form was dropped as rubric.
-
-## Retired: a one-line takeaway closes a subsection
-
-- "In brief summary, Saint Paul further emphasizes equity and the rights of renters." — Assessment 3 - Code of Ethics and Business Conduct
-- Seen in 1 of 6. Flagged in review as close to the dropped "Summary of Key Points" recaps, and kept.
-- Retired when the developer sorted the Assessment 1 closers: not every subsection needs a closing line, so academic work follows the writing style sheet's section-ending rule ([the kept and struck lines](../writing-voice/structure.md#a-closing-line-that-ties)) — session 2ebcdf61, 2026-10-18

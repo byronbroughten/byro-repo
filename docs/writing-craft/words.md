@@ -14,6 +14,7 @@ Disclosed from [`docs/writing-craft.md`](../writing-craft.md), "Words". The rule
 ## Coined names in plain words
 
 - Before: "Under Option B, the BH covers any overrun." After: "If repairs overrun, the backup HELOC covers the rest." — invented; Pinker, Ch. 3, PDF pp. 72–73. _From Pinker; not yet seen in your writing._
+- Coined names the rule bars: a letter ("Option B"), a number ("Scenario 2"), an initialism ("BH"). A plain-word name: "the backup HELOC".
 - The Voice sheet's acronym rule still governs an established acronym (CapEx, HELOC); this rule covers names invented for the piece. "Refer back by a short name" keeps "Table 2" by the exception.
 
 ## Gloss a term of the trade

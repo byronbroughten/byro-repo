@@ -1,4 +1,4 @@
-# Sources of the writing style sheets
+# Sources of the Voice, Craft and academic sheets
 
 Where the rules in [`docs/writing-voice.md`](../writing-voice.md), [`docs/writing-craft.md`](../writing-craft.md) and [`docs/academic-writing-style.md`](../academic-writing-style.md) came from, and what was read but not kept. The developer reviewed every candidate rule before it became one (#171).
 

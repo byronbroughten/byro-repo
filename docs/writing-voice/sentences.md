@@ -100,6 +100,7 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Sentences and pu
 - Agent: "between the Planning estimates and the purchase" Developer: "between when estimates are made during the planning phase and when a property would actually be purchased" — Assessment 1 Next Draft (personal#4), Drive edit after session 66510c6, by 2026-10-18
 - Agent: "before an offer goes in" Developer: "before making an offer" — same
 - Agent: "from those units' lease rents and, for the owner's unit, the rent it is projected to earn if leased, as estimated in Planning" Developer: "and the measurement is based on lease rents and the rent that the owner's unit is projected to earn if it were leased" — same
+- The clause stays even when it runs longer than the noun phrase, as the first instance does.
 - This doesn't contradict "Wrapper phrases": a wrapper carries no meaning, while the clause's verb names the event the noun phrase hid. A passive clause here passes "Active voice", since the actor is beside the point.
 - Pinker, Ch. 2, PDF pp. 57–59: a verb turned into a noun ("prevention", "assessment") drops its actor, so the reader can't picture who did what.
 - No count was recorded; from a session.
