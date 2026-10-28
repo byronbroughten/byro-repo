@@ -72,7 +72,7 @@
         "skills/engineering/retro": {
           "status": "vendored",
           "syncedSha": "49dd158d1076134a641b33efb035946536778336",
-          "notes": "Divergence: every `CODING_STANDARDS.md` mention, in the Coding standards candidate category and in the Files list, names this repo's standards files instead: config/docs/code-style.md and packages/framework/docs/code-style.md for code, docs/prose-style.md for prose. The Files entry also says that here both the implementer and the reviewer read them, since the read-first gate requires the rules file before a code edit. Why: the rules files hold one line per rule, so they're cheap to load; mechanical rules are already lint, and the judgement rules left over shape structure that's costly to change once review finds it."
+          "notes": "Divergence: every `CODING_STANDARDS.md` mention, in the Coding standards candidate category and in the Files list, names this repo's standards files instead: config/docs/code-style.md and packages/framework/docs/code-style.md for code, docs/prose-style.md for prose. The Files entry also says that here both the implementer and the reviewer read them, since the read-first gate (linked to docs/claude-code-guardrails.md#the-hooks-and-the-project-agent) requires each one before an edit it covers. Why: the rules files hold one line per rule, so they're cheap to load; mechanical rules are already lint, and the judgement rules left over shape structure that's costly to change once review finds it."
         },
         "skills/engineering/tdd": {
           "status": "vendored",
