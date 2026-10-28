@@ -1,0 +1,7 @@
+# sheets-framework#175 outcome
+
+Spec: [sheets-framework#166](https://github.com/byronbroughten/sheets-framework/issues/166)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #175 | Opus medium | unrecorded | 19 | unrecorded | Fix (resumed implementer) | 0 | 1 | 0 | unrecorded | unrecorded | unrecorded | Fixed: Middle Man Pointer: it points through queued-writes.md and the index instead of at the files that hold the rules. (packages/framework/src/02_SpreadsheetRaw/AGENTS.md:8); Mysterious Heading: '## Flush order' repeats the title. (packages/framework/docs/architecture/flush-order.md:7); Mysterious Heading: the section heading repeats the title, though the section covers three stale flags. (packages/framework/docs/architecture/stale-row-indexes.md:7); Weak Pointer: the stacked Tables link lost its section anchor. (packages/framework/docs/architecture/stale-row-indexes.md:9); The heading says 'on the sheet', the body says 'on the Table', and the next sentence says 'sheet, row or cell'. (packages/framework/docs/architecture/queued-writes.md:11-13); The paragraph on added-tab cell values and the checkbox slot sat under the add-sheet/add-Table heading. (packages/framework/docs/architecture/flush-order.md:15). | unrecorded |
