@@ -51,8 +51,8 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Confidence and c
 ## Empty qualifiers
 
 - From Strunk and White V.8, which calls "rather, very, little, pretty" "the leeches that infest the pond of prose".
-- Agent: "its outcomes and budget can be estimated up front within a predictable, relatively small margin of error" — Assessment 1 Next Draft (writing#4)
-- Agent: "Whatever the life cycle, project phases generally run in sequence" — Assessment 1 Next Draft (writing#4)
+- Agent: "its outcomes and budget can be estimated up front within a predictable, relatively small margin of error" — Assessment 1 Next Draft (personal#4)
+- Agent: "Whatever the life cycle, project phases generally run in sequence" — Assessment 1 Next Draft (personal#4)
 - An "about" before an estimated figure states a real limit, and stays.
 - Pinker, Ch. 2, PDF pp. 51–53: a qualifier is a reflex hedge; an intensifier ("very honest") turns a yes-or-no quality into a scale and so weakens it.
 - The developer endorsed the rule — session 2ebcdf61, 2026-10-18
