@@ -17,6 +17,8 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 ## One home per fact
 
 - **Each file has one job, and each fact lives in exactly one file; everywhere else points to it.** The one exception is a behavior-changing rule, repeated on purpose where it gets followed.
+- **A rule one skill carries out lives in that skill, and docs point to it.**
+- **A rule several places follow lives in its doc, and a skill repeats only its bolded line.**
 - **A fact the environment already states (`package.json`, a config file, `--help`) stays there; a doc never restates it.**
 - **A library repo may point at a repo that uses it, for cases relevant to the library, but never at a private one**; from a published doc that pointer is a github.com URL.
 
