@@ -64,6 +64,9 @@ export function checkDocs({ docs, paths = [], published = [] }) {
       });
     }
     if (!isRecord(path)) checkLineCitations(text, report);
+    if (!isRecord(path) && posix.basename(path) !== "README.md") {
+      checkReadmeLinks(path, text, report);
+    }
     if (isDocsFolderFile(path)) checkLead(text, report);
     if (posix.basename(path) === "AGENTS.md" && path !== "AGENTS.md") {
       checkClaudePairing(path, docs, report);
@@ -294,6 +297,21 @@ function checkLineCitations(text, report) {
         `line-number citation ${citation}; cite a heading anchor, since a line number drifts`,
       );
     });
+  });
+}
+
+// The wording alone didn't keep agent facts out of READMEs, so a non-README doc can't send an agent to one.
+/**
+ * @param {string} path
+ * @param {string} text
+ * @param {Report} report
+ */
+function checkReadmeLinks(path, text, report) {
+  linksIn(text).forEach(({ line, target }) => {
+    const file = target.split("#")[0] ?? "";
+    if (posix.basename(decodeURIComponent(file)) === "README.md") {
+      report(line, "A README is for humans; link the fact's home instead.");
+    }
   });
 }
 

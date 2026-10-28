@@ -8,7 +8,7 @@ Each file under `src/`, with its job and any export, is listed in [`src/AGENTS.m
 
 ## Context nudge
 
-`contextNudge` decides and words the nudge; a repo registers a Claude Code hook that calls it, since Claude Code loads hooks only from the root's settings. The hook is a PostToolUse shim on every tool: it reads the hook input, skips subagents, reads the transcript at `transcript_path`, passes `contextNudgeOf()` the session's id and the `ticketBudget` and `handoffDocPath` knobs (through `runKnobsOrDefaults()` from the repo's override file), and writes any reminder as `additionalContext`. Firing once per session, deciding which sessions the budget binds and failing open are the shim's. byro-repo's shim is `.claude/hooks/contextNudge.ts`, registered in `.claude/settings.json`.
+Once a ticket session's context reaches its budget, the runner reminds it to write a handoff. `contextNudge` words the reminder, and each repo registers its own Claude Code hook to call it; `src/contextNudge.ts`'s header says how.
 
 ## Running under tmux
 
