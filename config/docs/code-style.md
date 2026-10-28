@@ -14,7 +14,7 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 | A shared message phrase, a skip-and-log | [`docs/code-style/error-handling.md`](./code-style/error-handling.md) |
 | Writing or changing a test | [`docs/code-style/tests.md`](./code-style/tests.md) |
 | A comment, or a file-level navigation block | [`docs/code-style/comments.md`](./code-style/comments.md) |
-| `reduce`, a chaining mutator, a combined option | [`docs/code-style/idioms.md`](./code-style/idioms.md) |
+| `reduce`, a chaining mutator, a combined option, a ternary, a named state flag | [`docs/code-style/idioms.md`](./code-style/idioms.md) |
 | Imports, barrels, file names | [`docs/code-style/file-organization.md`](./code-style/file-organization.md) |
 
 ## Class shape

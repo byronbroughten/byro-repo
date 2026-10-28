@@ -2,7 +2,7 @@
 
 Style fragment. The one-line rules live in [`docs/code-style.md`](../code-style.md); this file holds the reasoning and the worked examples.
 
-One heading per class-shape rule, most of them with the refactor that produced it; a sub-rule sits under its parent's heading, and the collaborator-naming rule's reasoning is in [`naming.md`](./naming.md#a-collaborator-is-subjectrole). Grep `^## ` for the rule you're applying and read that section.
+One heading per class-shape rule, most of them with the refactor that produced it; a sub-rule either has a heading of its own or shares the heading before it, and the collaborator-naming rule's reasoning is in [`naming.md`](./naming.md#a-collaborator-is-subjectrole). Grep `^## ` for the rule you're applying and read that section.
 
 ## Extract the shared piece when the second caller is foreseen, not when it arrives
 

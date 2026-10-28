@@ -1,6 +1,6 @@
 # Functional vs. imperative idioms: examples
 
-Disclosed from [`docs/code-style.md`](../code-style.md), "Functional vs. imperative idioms". The rules are there, one line each; this file holds the examples.
+Disclosed from [`docs/code-style.md`](../code-style.md), "Functional vs. imperative idioms". The rules are there, one line each; this file holds the examples and the why.
 
 ## `reduce` builds a new object
 
