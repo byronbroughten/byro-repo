@@ -1,12 +1,14 @@
 # Priorities
 
-The existing rules that show each Tier 2 priority, and why security, undo and data integrity are a floor. Pointers only: each rule keeps its one home.
+The existing rules that show each Tier 2 priority, why fewer concepts help, and why security, undo and data integrity are a floor. The rule lists are pointers only: each rule keeps its one home.
 
 ## Developer attention
 
 - The review list collapses the agreed Dismisses, with no checkboxes, so the developer reads only what needs a decision: `runner/src/reviewList.ts:227`.
 
 ## Fewest concepts
+
+Each name, parameter, layer, shape or copy of a fact is one more thing a reader holds, so fewer keep the code comprehensible and easy to change.
 
 - Helpers passing one value around become a helper class: [`config/docs/code-style.md#class-shape`](../../../config/docs/code-style.md#class-shape), **Helpers sharing a subject and passing nothing between them**.
 - A helper whose arguments are one collaborator and its state moves onto it, and a helper that only renames is deleted: [`config/docs/code-style.md#class-shape`](../../../config/docs/code-style.md#class-shape), **A helper whose arguments are one collaborator and its state**.

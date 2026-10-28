@@ -79,7 +79,7 @@ Its "What qualifies" list names the kinds of decision that pass. Offer the ADR a
 
 ### Backlink the issue
 
-When an ADR is written, backlink it from the issue its `Source:` names, by the command and line format in the [issue-tracker doc](../../../docs/agents/issue-tracker.md#conventions), never by hand-editing the body.
+When an ADR is written, backlink it from the issue its `Source:` names, by the command and line format in the [issue-tracker doc](../../../docs/agents/issue-tracker.md#commands-for-each-operation), never by hand-editing the body.
 
 ### Build principles on ADRs
 

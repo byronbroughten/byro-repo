@@ -4,7 +4,7 @@ The words for the repo's prose, which file holds which fact, what the root AGENT
 
 ## Terms
 
-- **Rules file**: an index file under `docs/`, `config/docs/` or `packages/*/docs/` of bolded one-line rules (`config/docs/code-style.md`, and the framework's `docs/code-style.md`, `docs/vocabulary.md` and `docs/design.md`, and the root's `docs/prose-style.md`, `docs/writing-voice.md`, `docs/writing-craft.md`, `docs/academic-writing-style.md` and `docs/agents/verdicts.md`), with one-sentence scope, the fixed sentence on when to open reasoning, and a "When | File" table under `## Reasoning files` into its reasoning folder.
+- **Rules file**: an index file under `docs/`, `config/docs/` or `packages/*/docs/` of bolded one-line rules (`config/docs/code-style.md`, and the framework's `docs/code-style.md`, `docs/vocabulary.md` and `docs/design.md`, and the root's `docs/prose-style.md`, `docs/writing-voice.md`, `docs/writing-craft.md`, `docs/academic-writing-style.md`, `docs/agents/verdicts.md` and `docs/agents/codebase-priorities.md`), with one-sentence scope, the fixed sentence on when to open reasoning, and a "When | File" table under `## Reasoning files` into its reasoning folder.
 - **Reasoning file**: a file under a rules file's `docs/<name>/` folder holding the why, examples, instances and history.
 - **Router**: the Read-by-task table in the root AGENTS.md. It is the only one, with rows into every package.
 - **Nested AGENTS.md**: a folder's own rules, loaded when an agent works there, paired with a one-line `CLAUDE.md` holding `@AGENTS.md`.
@@ -37,7 +37,7 @@ The words for the repo's prose, which file holds which fact, what the root AGENT
 | `docs/writing-craft/*.md` | Each rule's before-and-after example and the chapter and page it came from, indexed by `docs/writing-craft.md`'s "When \| File" table. Which books were read, and when, is in `docs/writing-voice/sources.md`. |
 | `docs/academic-writing-style.md` | Academic conventions layered on `docs/writing-voice.md` and `docs/writing-craft.md`, one line per rule, rule only, with APA 7 as the citation standard. |
 | `docs/academic-writing-style/*.md` | Each rule's quoted instances and sources, indexed by `docs/academic-writing-style.md`'s "When \| File" table. |
-| `docs/agents/*.md` | Agent workflow: git, planning, delegation, issues, vendored upstream skills, handing judgements to Jev and its trial log. |
+| `docs/agents/*.md` | Agent workflow: git, planning, model fit, delegation, issues and triage labels, domain docs, vendored upstream skills, which prose file a fact belongs in, handing judgements to Jev and its trial log. |
 | `docs/agents/verdicts.md` | How any review finding is judged, one line per rule, rule only: the four verdicts and their reasons, the Standards and Spec rules, Halt, overruling a suggested verdict, and the approved exceptions. |
 | `docs/agents/codebase-priorities.md` | What every Recommendation about the codebase or agent tooling is weighed against, one line per rule, rule only: scope, the Tier 1 gate, the floor, Tier 2's ranked priorities with their definitions, and explaining a tradeoff. |
 | `docs/agents/codebase-priorities/*.md` | Each priority's pointers to the rules that express it and the floor's reason, and the Estimates index of measured costs, indexed by `docs/agents/codebase-priorities.md`'s "When \| File" table. |
