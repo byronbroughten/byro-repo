@@ -8,7 +8,7 @@ Split a piece spec into sub-issues in `byronbroughten/personal`. The Piece rules
 
 ## 1. Read the spec
 
-Fetch it with `gh issue view -R byronbroughten/personal <n> --json title,body,comments --jq '{title, body, comments: [.comments[].body]}'` and state its title. Read its Research, Final pass, Split, Form and Outline fields. Done when all five are found; a missing one is asked for, never inferred.
+Fetch it with `npm run issue:read -- personal <n> --body` and state its title. Read its Research, Final pass, Split, Form and Outline fields. Done when all five are found; a missing one is asked for, never inferred.
 
 ## 2. Propose the split
 
@@ -61,4 +61,4 @@ Leave the parent spec's body unchanged.
 
 ## 4. Read back the tickets
 
-Print the filed tickets as one flat list in completion order, `#n Title: <Model> <effort> (reason)`, each pair chosen by [model fit](../../../docs/agents/planning.md#model-fit) and the writing outcome log in [`docs/model-fit.md`](../../../packages/personal/writing/docs/model-fit.md). The pairs stay in chat. Done when every filed ticket appears; end by recommending `/implement-piece` on the first.
+Print the filed tickets as one flat list in completion order, `#n Title: <Model> <effort> (reason)`, each pair chosen by [model fit](../../../docs/agents/planning.md#model-fit) and the writing outcome log in [`docs/model-fit.md`](../../../packages/personal/writing/docs/model-fit.md). **`/piece-tickets` and `/piece-spec` stay chat only.** Done when every filed ticket appears; end by recommending `/implement-piece` on the first.

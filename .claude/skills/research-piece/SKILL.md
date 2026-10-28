@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 Research the Research issue described in `byronbroughten/personal`. Its output is a verified fact list posted as a comment on the issue; it writes nothing to the Deliverable and has no branch.
 
-Fetch the issue with `gh issue view -R byronbroughten/personal <n> --json title,body,comments --jq '{title, body, comments: [.comments[].body]}'` and state its title before starting. If the reference is ambiguous, ask. If the issue is a Piece rather than Research, stop and point the developer to `/implement-piece`.
+Fetch the issue with `npm run issue:read -- personal <n> --body` and state its title before starting. If the reference is ambiguous, ask. If the issue is a Piece rather than Research, stop and point the developer to `/implement-piece`.
 
 **Work at the primary root or in a session workspace.** Research edits no files in a repo, so no issue workspace is needed. Scratch files go in the scratchpad.
 

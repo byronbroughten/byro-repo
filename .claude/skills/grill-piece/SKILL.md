@@ -28,7 +28,7 @@ Dispatch them all at once, reads only, each told the file IDs and to cite by tit
 
 Call the Skill tool with "grilling" for its round format; the rounds rule here and this skill's done criterion win over that skill's. **Rounds rule**: every question whose answer doesn't wait on another goes in one round, and each voice question is asked alone, one at a time, so its answer stays in the developer's words. Ask the Long reads question against step 2's chapter lists: "which of these matter?"
 
-**Before writing the grill's first draft, read the root's [`docs/writing-voice.md`](../../../docs/writing-voice.md) and [`docs/writing-craft.md`](../../../docs/writing-craft.md) in full**, and for an Academic Piece [`docs/academic-writing-style.md`](../../../docs/academic-writing-style.md); every draft in the grill, the calibration paragraph included, follows them.
+**Before drafting, read the root's `docs/writing-voice.md` and `docs/writing-craft.md` with a Read that has no offset or limit, or a whole-file `cat`**, and for an Academic Piece `docs/academic-writing-style.md`, by the writing [`AGENTS.md`](../../../packages/personal/writing/AGENTS.md#implementing-a-piece-spec)'s Style bullets. Read them before the grill's first draft; every draft in the grill, the calibration paragraph included, follows them.
 
 Every question carries a recommendation:
 
