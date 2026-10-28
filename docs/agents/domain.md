@@ -45,11 +45,9 @@ Five contexts, four of them one per package:
 
 ## Which context a term belongs to
 
-Ask "would this make sense in a different Sheets-backed app?" Yes: the framework's `GLOSSARY.md`. No: the app's. A word for a piece of writing: the writing `GLOSSARY.md`. A word for an unattended spec run: the runner's. A word for organizing Gmail: the inbox's. How the glossaries relate is [`GLOSSARY-MAP.md`](../../GLOSSARY-MAP.md)'s; a new term that would redefine a framework one is a conflict to raise, not to resolve silently.
+Which context owns a term, how the glossaries relate and where the architecture words live are [`GLOSSARY-MAP.md`](../../GLOSSARY-MAP.md)'s. A new term that would redefine a framework one is a conflict to raise, not to resolve silently.
 
 ## Use the glossary's vocabulary
-
-The architecture words (Raw, Identified, Named, profile, Operator) are [`docs/vocabulary.md`](../../packages/framework/docs/vocabulary.md)'s, not the glossary's.
 
 When your output names a domain concept (in an issue title, a refactor proposal, a hypothesis, a test name), use the term as defined in the `GLOSSARY.md` that owns it, per `GLOSSARY-MAP.md`. Don't drift to synonyms the glossary explicitly avoids.
 

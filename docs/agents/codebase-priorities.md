@@ -8,7 +8,7 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 
 | When | File |
 | --- | --- |
-| What a priority means in practice, the rules that express it, why the floor is a floor | [`docs/agents/codebase-priorities/priorities.md`](./codebase-priorities/priorities.md) |
+| What a priority means in practice, the rules that express it, why fewer concepts help, why the floor is a floor | [`docs/agents/codebase-priorities/priorities.md`](./codebase-priorities/priorities.md) |
 | Estimating a cost: reads, checks, type-check, Sheets calls, tickets | [`docs/agents/codebase-priorities/estimates.md`](./codebase-priorities/estimates.md) |
 
 ## Scope
@@ -34,7 +34,7 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 
 - **In order: developer attention, fewest concepts, agent cost, code run-time.**
   1. **Developer attention**: the decisions, approvals, manual steps and reading a Recommendation asks of the developer.
-  2. **Fewest concepts**: the fewest names, parameters, layers, shapes and copies of a fact a reader has to hold, so the code stays comprehensible and easy to change; not the fewest characters.
+  2. **Fewest concepts**: the fewest names, parameters, layers, shapes and copies of a fact a reader has to hold; not the fewest characters.
   3. **Agent cost**: the tokens a session reads and carries, and the wall-clock time it spends.
   4. **Code run-time**: the wall-clock time of code: app runs, mostly Sheets round trips, plus `tsc`, tests and scripts.
 - **A large gain lower down can offset a small loss higher up.**

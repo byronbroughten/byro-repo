@@ -54,5 +54,5 @@ A suggested verdict may be overruled with a reason. A suggested Halt becomes onl
 
 Recurring keep reasons the developer has said yes to. Each suspends the rule it names, everywhere it applies.
 
-- **Suspends Speculative Generality: a public member with no callers is kept only in a library package** (the framework and utils packages), unless another member does the same job with the same or fewer parameters, and within one only where its style doc allows. In an app package (real-estate, runner) it is flagged; an older caller-less member found there predates the branch, so it is a Propose `ticket`. Types are left out: an exported type with no callers is flagged.
-- **Suspends Middle Man: a type in use stays even when it only names another type, a primitive or a literal union** (`type SheetGid = number`).
+- **Suspends Speculative Generality: a public member with no callers, never a type, is kept only in a library package (framework, utils) where its style doc allows**, unless another member does the same job with the same or fewer parameters.
+- **Suspends Middle Man: a type in use stays even when it only names another type, a primitive or a literal union.**

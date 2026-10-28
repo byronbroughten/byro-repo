@@ -14,7 +14,7 @@ TypeSafe's Jev model answers narrow, typed questions about a text, with probabil
 - **Multi-step reasoning.** A judgement that needs a plan, a chain of inferences or a look at code stays with the session model.
 - **A costly single wrong answer.** A gate, a write, a deletion or anything shipped on one answer stays with the session model or the developer.
 
-## Calling it
+## Running a request
 
 Write the request to a file in your scratchpad and pass its path. Never put the text on the command line, where the shell can cut or mangle it.
 
