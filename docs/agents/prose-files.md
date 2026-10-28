@@ -62,7 +62,8 @@ Its `docs/`, `GLOSSARY.md`, `README.md`, `AGENTS.md` and `CLAUDE.md` files all s
 | `docs/design/*.md` | Each principle's argument and instances, one file per principle. |
 | `docs/adr/*.md` | One codebase decision per file, cited by `docs/design.md`'s principles. |
 | `docs/architecture/*.md` | Mechanics, one file per heading, indexed by `docs/architecture.md`. |
-| `docs/how-it-runs.md` | The two hosts, the rollup preset, the `sheets-framework` bin, the dev project, the chore dry run, auth failure, the probe, what the gworkspace MCP can see. |
+| `docs/how-it-runs.md` | The two hosts in one lead, then an index of `docs/how-it-runs/`. |
+| `docs/how-it-runs/*.md` | One subject per file: the Apps Script host with the rollup and ESLint presets, the Node host and its transport, the `sheets-framework` bin, the dev project, `gen-configs` and `configs-diff`, the chore dry run, auth failure, the probe, what the gworkspace MCP can see. |
 | `docs/generated-data.md`, `docs/generated-data/*.md` | The generated configs: the index and regen path, then one file per constant, the config sync and the floor. |
 | `docs/testing.md` | The fakes, the seams and the exemplar columns. |
 | `README.md` | The consumer's face: install, the public entry, the bin. Derived prose like the root one (table below). |
@@ -153,7 +154,7 @@ The bar for an addition: [`docs/prose-style.md`](../prose-style.md#placement).
 | Opening paragraph | What the package is: its `package.json` description |
 | Install | `peerDependencies` and `exports` in its `package.json` |
 | The public entry | `src/framework.ts` and `src/frameworkTesting.ts` |
-| The bin | The bin's usage text (`scripts/cli.ts`) and [`how-it-runs.md`](../../packages/framework/docs/how-it-runs.md#the-sheets-framework-bin) |
+| The bin | The bin's usage text (`scripts/cli.ts`) and [`how-it-runs/bin.md`](../../packages/framework/docs/how-it-runs/bin.md) |
 | Docs | The framework's `docs/` indexes and `GLOSSARY.md` |
 | History | Nothing; a fixed link to `byronbroughten/byro-repo` for the history before the split |
 
