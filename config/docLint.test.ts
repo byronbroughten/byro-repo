@@ -338,6 +338,42 @@ describe("checkDocs", () => {
     });
   });
 
+  describe("line-number citations", () => {
+    it("fails a .md:<n> citation in any markdown file, naming its line", () => {
+      const violations = check({
+        "notes/a.md": "# A\n\nSee [`b.md:38`](./b.md#ticket-size).\n",
+      });
+      expect(violations).toEqual([
+        {
+          path: "notes/a.md",
+          line: 3,
+          message:
+            "line-number citation b.md:38; cite a heading anchor, since a line number drifts",
+        },
+      ]);
+    });
+
+    it("passes a citation inside a record folder", () => {
+      const cited = "Cited `planning.md:38` at a fixed commit.\n";
+      expect(
+        check({
+          "docs/agents/outcomes/r-1/r-2.md": cited,
+          "packages/personal/writing/snapshots/s.md": cited,
+          "packages/personal/inbox/changes.md": cited,
+          "inbox/proposals.md": cited,
+        }),
+      ).toEqual([]);
+    });
+
+    it("passes an anchor link", () => {
+      const docs = {
+        "docs/a.md": "[Ticket size, **Split**](./b.md#ticket-size)\n",
+        "docs/b.md": "## Ticket size\n",
+      };
+      expect(check(docs)).toEqual([]);
+    });
+  });
+
   describe("leads", () => {
     function withLead(lines: number, width = 6): string {
       return `# Doc\n\n${Array.from({ length: lines }, (_, i) => `line ${i}`.padEnd(width, "x")).join("\n\n")}\n\n## Section\n\nBody.\n`;

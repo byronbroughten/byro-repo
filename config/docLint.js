@@ -14,6 +14,13 @@ const linkedRootFiles = new Set([
   "README.md",
 ]);
 const workspaceFolders = new Set(["config"]);
+// Records that cite lines at a fixed commit on purpose, relative to their doc root.
+const recordPrefixes = [
+  "docs/agents/outcomes/",
+  "writing/snapshots/",
+  "inbox/changes.md",
+  "inbox/proposals.md",
+];
 
 /** @typedef {Record<string, string>} Docs */
 /** @typedef {{ path: string, line: number, message: string }} Violation */
@@ -56,6 +63,7 @@ export function checkDocs({ docs, paths = [], published = [] }) {
         report,
       });
     }
+    if (!isRecord(path)) checkLineCitations(text, report);
     if (isDocsFolderFile(path)) checkLead(text, report);
     if (posix.basename(path) === "AGENTS.md" && path !== "AGENTS.md") {
       checkClaudePairing(path, docs, report);
@@ -85,6 +93,12 @@ function inRoot(path) {
 /** @param {string} path */
 function isDocsFolderFile(path) {
   return inRoot(path).startsWith("docs/");
+}
+
+/** @param {string} path */
+function isRecord(path) {
+  const local = inRoot(path);
+  return recordPrefixes.some((prefix) => local.startsWith(prefix));
 }
 
 /** @param {string} path */
@@ -265,6 +279,22 @@ function headingSlugs(text) {
     slugs.add(count === 0 ? base : `${base}-${count}`);
   }
   return slugs;
+}
+
+// A line number drifts with every edit above it; a heading anchor is checked by checkLinks.
+/**
+ * @param {string} text
+ * @param {Report} report
+ */
+function checkLineCitations(text, report) {
+  proseLines(text).forEach(({ line, content }) => {
+    Array.from(content.matchAll(/[\w./-]+\.md:\d+/g)).forEach(([citation]) => {
+      report(
+        line,
+        `line-number citation ${citation}; cite a heading anchor, since a line number drifts`,
+      );
+    });
+  });
 }
 
 // A read-by-heading doc's lead: the non-blank lines after its title and before its first `##` heading.

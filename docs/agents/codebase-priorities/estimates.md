@@ -4,8 +4,8 @@ An index of measured costs a tradeoff's estimate can come from, grouped by subje
 
 ## Reads
 
-- Code costs ~1K tokens per 2K characters (~20 a line), Docs prose ~1K per 2.5K; undated, over sessions up to #154; [`planning.md:38`](../planning.md#ticket-size). Agent cost.
-- ~25K tokens of fixed overhead before a session's first prompt; [`planning.md:36`](../planning.md#ticket-size). Agent cost.
+- Code costs ~1K tokens per 2K characters (~20 a line), Docs prose ~1K per 2.5K; undated, over sessions up to #154; [`planning.md#ticket-size`](../planning.md#ticket-size), **A ticket that reads a body of text in full**. Agent cost.
+- ~25K tokens of fixed overhead before a session's first prompt; [`planning.md#ticket-size`](../planning.md#ticket-size), **Size each ticket so one session finishes it**. Agent cost.
 
 ## Tickets
 
