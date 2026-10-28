@@ -114,7 +114,7 @@ The `personal` repo is private and holds piece specs as issues; the Pieces' text
 
 | File | Holds |
 | --- | --- |
-| `README.md` | What the runner is, its routing table and how to run its tests. Derived prose mirroring its `package.json` exports and the files under `src/`: one row per file, each one line naming the file's job. |
+| `README.md` | What the runner is, its routing table, where its config lives, how a repo registers the context nudge, running a spec under tmux, its skills and how to run its tests. Derived prose mirroring its `package.json` exports and the files under `src/`: one row per file, each one line naming the file's job. |
 | `skills/<name>/SKILL.md` | An interactive skill for the runner's records, such as `/judge-findings` for the review list, loaded through `.claude/skills/` ([layout](./upstream-skills.md#layout)). |
 | `GLOSSARY.md` | The spec runner's words, as [`GLOSSARY-MAP.md`](../../GLOSSARY-MAP.md) describes them. |
 

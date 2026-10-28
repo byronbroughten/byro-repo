@@ -16,7 +16,7 @@ disable-model-invocation: true
 
 ## 2. Watch
 
-Before catching up, start the `Monitor` tool on `npm run runner -- watch <owner/repo> <n>`. It prints each event line written after it starts, and exits after a `run-ended` line, or at once when the run's process is gone and the file's last start or end line is a `run-ended`. It checks the run lock's pid every few seconds; when two checks in a row find it gone with no `run-ended` line, it prints one `vanished` line, shaped as an event line but written to no file, and exits.
+Before catching up, start the `Monitor` tool on `npm run runner -- watch <owner/repo> <n>`. It prints each event line written after it starts, and exits after a `run-ended` line, or at once when the run's process is gone and the file's last start or end line is a `run-ended`. When the process stays gone with no `run-ended` line, it prints one `vanished` line, written to no file, and exits.
 
 The watch only wakes you. On each wake, go to step 3: run `supervise` and explain the lines it prints. They start at the record's offset, so a line the watch and the catch-up both saw is explained once. `supervise` never prints a `vanished` line, since no file holds it: explain it from the watch's output, with no `--advance`. Keep watching until you have explained a `run-ended` or `vanished` line.
 
