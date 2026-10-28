@@ -86,7 +86,7 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Structure and re
 ## Refer back by name
 
 - From Strunk and White II.17, "Omit needless words": every word should "tell".
-- Short names in use: "the Build gate", "Table 2". A pointer back that only shows two sections agree fails the rule, since the reader doesn't need it to follow the point; the struck pointer to "the second assumption above" below is one.
+- Short names in use: "the Build gate", "Table 2".
 - The HELOC gate before Build is explained in full in Approach (Table 2 and the paragraph after it), again in each of the two Dependencies, and again in Roles. The developer: "I definitely don't like that the HELOC gate is retold." — Assessment 1 Next Draft (personal#4), session 2ebcdf61, 2026-10-18
 - Agent: "Saint Paul's rent stabilization ordinance, described under Dependencies, caps rent increases at 3% in a 12-month period" — Assessment 1 Next Draft (personal#4), Regulatory section, which the developer had not edited. The pointer back is right; restating the cap after it is not.
 - Agent: "Build and Test assume that Jesus Fernandez of Fernandez Remodeling carries out the repairs, as the second assumption above sets out." Developer: struck the pointer — Assessment 1 Next Draft (personal#4), Drive edit after session 66510c6, by 2026-10-18

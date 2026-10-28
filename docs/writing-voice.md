@@ -28,7 +28,7 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 
 ## Numbers and evidence
 
-- **After a figure, say in the next sentence what it means for the reader, unless its size is already plain.**
+- **After a figure, say in the next sentence what it means for the reader, unless its size is already plain; never just compare it with a second figure.**
 - **Show arithmetic step by step in prose, then state the total in its own short sentence, unless the last step already reaches it; never state the same figure twice.**
 - **State the assumption behind a projection inline, and call it conservative when it is.**
 - **Give the exact figure, then a rounded, human-scale equivalent, such as the cost per month.**
@@ -87,7 +87,7 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - **Use bullets for short parallel items (costs with their figures, tips, one-sentence reasons after "Here's why:"); keep multi-sentence reasoning in prose.**
 - **Put a side point in its own "Note that…" sentence.**
 - **Make each point once, with the support it needs; cut whatever only repeats, reinforces or qualifies it.**
-- **Once a fact or mechanism is set out, refer back to it by a short name instead of explaining it again, and only when the reader needs it to follow the point.**
+- **Once a fact or mechanism is set out, refer back to it by a short name instead of explaining it again, and only when the reader needs it to follow the point, never to show that sections agree.**
 - **Don't preview the items that the next paragraphs take up one by one.**
 - **Add a table only when the developer or the assignment asks for one, and never one that restates the prose.**
 - **State an assumption the rest of the piece shares once, where it first applies, and say there that it holds throughout.**
@@ -100,7 +100,7 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - **Say the thing directly, cutting any wrapper phrase that carries no meaning ("the mitigation strategy for if…", "which is", "it is assumed that", "aforementioned").**
 - **Combine a run of short sentences that build one point into a single sentence; arithmetic keeps its steps.**
 - **Never put a short sentence before a calculation or example that only names what it will show ("A rate rise cuts the return."); let the sentence that shows it say so.**
-- **Write an event as a clause with its own verb, not a packed noun phrase; split a sentence whose modifiers nest into plain joined clauses.**
+- **Write an event as a clause with its own verb, not a packed noun phrase, even when the clause runs longer; split a sentence whose modifiers nest into plain joined clauses.**
 - **Use the active voice, unless the actor is unknown or beside the point, or the passive keeps given before new.**
 - **Use the serial comma ("reliability, trustworthiness, and ingenuity").**
 - **Order a list to build, ending on its weightiest item ("in my rental units, around my tenants, and in my home").**
@@ -115,7 +115,8 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 
 ## Person and register
 
-- `general` **Address the reader as "you", speak as "we", and guide with "let's"; name the product, and say "users" only when describing app users to someone else.**
+- `general` **Address the reader as "you", speak as "we", and guide with "let's"; name the product.**
+- **Say "users" or "app user" only for the app's users, when describing them to someone else.**
 - `general` **Use contractions ("isn't", "doesn't", "that's").**
 - `formal` **Write no contractions.**
 - **Prefer plain words to Latinate ones.**
