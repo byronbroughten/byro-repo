@@ -67,4 +67,4 @@ The Piece is done by the done checks in the writing package's `AGENTS.md`.
 
 </piece-spec-template>
 
-End by recommending `/piece-tickets` when Research is needed or Split names Sections, and `/implement-piece` otherwise.
+End by recommending `/piece-tickets` when Research is needed or Split names Sections, and `/implement-piece` otherwise, with its pair as one chat line, `/implement-piece #n: <Model> <effort> (reason)`, chosen by [model fit](../../../docs/agents/planning.md#model-fit) and the writing outcome log in [`docs/model-fit.md`](../../../packages/personal/writing/docs/model-fit.md). **`/piece-tickets` and `/piece-spec` stay chat only.**
