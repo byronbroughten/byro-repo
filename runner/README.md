@@ -8,7 +8,7 @@ Each file under `src/`, with its job and any export, is listed in [`src/AGENTS.m
 
 ## Context nudge
 
-Once a ticket session's context reaches its budget, the runner reminds it to write a handoff. `contextNudge` words the reminder, and each repo registers its own Claude Code hook to call it; `src/contextNudge.ts`'s header says how.
+Once a ticket session's context reaches its budget, it is reminded to write a handoff: `contextNudge` words the reminder, and a Claude Code hook each repo registers delivers it. `src/contextNudge.ts`'s header says how a repo registers one.
 
 ## Running under tmux
 

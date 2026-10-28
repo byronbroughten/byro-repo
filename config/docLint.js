@@ -63,9 +63,9 @@ export function checkDocs({ docs, paths = [], published = [] }) {
         report,
       });
     }
-    if (!isRecord(path)) checkLineCitations(text, report);
-    if (!isRecord(path) && posix.basename(path) !== "README.md") {
-      checkReadmeLinks(path, text, report);
+    if (!isRecord(path)) {
+      checkLineCitations(text, report);
+      if (posix.basename(path) !== "README.md") checkReadmeLinks(text, report);
     }
     if (isDocsFolderFile(path)) checkLead(text, report);
     if (posix.basename(path) === "AGENTS.md" && path !== "AGENTS.md") {
@@ -173,11 +173,10 @@ function checkLinks(
   const scope = publishedIn === "" ? "the repo" : publishedIn;
   for (const { line, target } of linksIn(text)) {
     const hashAt = target.indexOf("#");
-    const file = hashAt === -1 ? target : target.slice(0, hashAt);
+    const file = fileOf(target);
     const anchor =
       hashAt === -1 ? null : decodeURIComponent(target.slice(hashAt + 1));
-    const resolved =
-      file === "" ? path : resolveLink(path, decodeURIComponent(file));
+    const resolved = file === "" ? path : resolveLink(path, file);
     if (publishedIn !== undefined && !isInside(resolved, publishedIn)) {
       report(
         line,
@@ -207,6 +206,13 @@ function checkLinks(
 function isUntrackedPackagePath(resolved, trackedRoots) {
   const root = packageRootOf(resolved);
   return root !== undefined && !trackedRoots.has(root);
+}
+
+// A link target's file part, before any `#anchor`, decoded.
+/** @param {string} target */
+function fileOf(target) {
+  const hashAt = target.indexOf("#");
+  return decodeURIComponent(hashAt === -1 ? target : target.slice(0, hashAt));
 }
 
 /**
@@ -302,14 +308,12 @@ function checkLineCitations(text, report) {
 
 // The wording alone didn't keep agent facts out of READMEs, so a non-README doc can't send an agent to one.
 /**
- * @param {string} path
  * @param {string} text
  * @param {Report} report
  */
-function checkReadmeLinks(path, text, report) {
+function checkReadmeLinks(text, report) {
   linksIn(text).forEach(({ line, target }) => {
-    const file = target.split("#")[0] ?? "";
-    if (posix.basename(decodeURIComponent(file)) === "README.md") {
+    if (posix.basename(fileOf(target)) === "README.md") {
       report(line, "A README is for humans; link the fact's home instead.");
     }
   });
