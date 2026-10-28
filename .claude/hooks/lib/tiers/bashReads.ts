@@ -169,7 +169,7 @@ export class BashReads {
       }
       return (
         `Bash-read guard: \`${name}\` would read columnConfigs.ts beyond one block. ` +
-        `Grep it for the sheet key (e.g. \`"occupancy":\`) with -A to read that object, ` +
+        `Grep it for the Table key (e.g. \`"occupancy":\`) with -A to read that object, ` +
         `or \`sed -n 'a,bp'\` a range of at most ${largeFileLines} lines. (AGENTS.md, "Read the block, not the file".)`
       );
     }

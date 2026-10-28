@@ -1,6 +1,6 @@
 ---
 name: retarget-after-gen-configs
-description: Retarget hand-written sheet and column names onto the last generated-config cache. Use when gen:configs tsc fails; when hand-written keys disagree with generated configs; or when the developer asks to retarget after regen.
+description: Retarget hand-written Table and column names onto the last generated-config cache. Use when gen:configs tsc fails; when hand-written keys disagree with generated configs; or when the developer asks to retarget after regen.
 ---
 
 Point the same live column or sheet (same column ID or sheet GID) at the new generated key. The live spreadsheet is the source of truth; the four generated config files from the last successful regen are the cache; hand-written names follow identity in that cache.
@@ -15,7 +15,7 @@ Operator, endpoint, and chore logic stay as they are. A leftover pin stays a lef
 
 ## 1. Diff the cache
 
-`git diff` the four generated config files from the regen that just ran. For every changed entry record column ID or sheet GID, old key, new key, and which traits moved. When you need the regenerated object, grep the sheet key and read that object only.
+`git diff` the four generated config files from the regen that just ran. For every changed entry record column ID or sheet GID, old key, new key, and which traits moved. When you need the regenerated object, grep the Table key and read that object only.
 
 Done when every generated hunk is attributed to an identity (same ID/GID, new key), a trait-only change (same key), an add/remove, or "cannot classify."
 
@@ -31,7 +31,7 @@ One tag per error: **identity** / **incidental trait** / **skipped pin** / **ask
 
 | Kind | Action |
 | --- | --- |
-| Same column ID, new key (header rename); same GID, new sheet key (tab title) | **identity** — always retarget, including type-equality unions and `Object.keys` lists |
+| Same column ID, new key (header rename); same GID, new Table key (tab title) | **identity** — always retarget, including type-equality unions and `Object.keys` lists |
 | New or vanished column ID on Test-sheet fetch lists or complete-row bags | **identity** — follow regen |
 | New or vanished key on a business-sheet writable-key snapshot (e.g. Occupancy Terms `CompleteAppendBag` keyof) | **ask** |
 | New sheet added to a name group | **ask** |
@@ -39,18 +39,18 @@ One tag per error: **identity** / **incidental trait** / **skipped pin** / **ask
 | Trait-only diff whose assertion subject *is* the trait | **skipped pin** even if retargeting would make `tsc` green |
 | Cannot classify from cache + `tsc` line | **unclassified** — leave unpatched |
 
-**Pin detector** (sampled-trait change on an existing column ID). Open [`docs/testing.md`](../../../packages/framework/docs/testing.md#exemplar-columns-in-type-level-tests)'s exemplar-columns section only for this step.
+**Pin detector** (sampled-trait change on an existing column ID). Open [`docs/testing.md`](../../../packages/framework/docs/testing.md#the-dev-fixtures-and-their-exemplar-columns)'s exemplar-columns section only for this step.
 
 1. Documented exemplar → **skipped pin**.
 2. Assertion subject is the trait (`ColumnIsFormula`, value name, empty-value-allowed, checkbox vs sampled boolean, writability-because-formula) → **skipped pin**.
 3. Else read the test title and comments: would this spec still read the same if the trait flipped? Yes → **incidental trait**. No → **skipped pin**.
 4. Unsure → **ask**. No third category.
 
-Done when every paired error has exactly one tag, with column ID or sheet GID when the cache has one. Regenerated entries were grepped by sheet key, not read as a whole file.
+Done when every paired error has exactly one tag, with column ID or sheet GID when the cache has one. Regenerated entries were grepped by Table key, not read as a whole file.
 
 ## 4. Retarget
 
-Apply every **identity** and **incidental trait**. Open only the `describe` (or production call site) you are changing. Grep a sheet key and read that generated object only.
+Apply every **identity** and **incidental trait**. Open only the `describe` (or production call site) you are changing. Grep a Table key and read that generated object only.
 
 Done when every allowed retarget is in the working tree and no pin, ask, unclassified error, or logic change was edited.
 
