@@ -31,7 +31,7 @@ Five contexts, four of them one per package:
     │       ├── vocabulary.md       # architecture words; elaboration in vocabulary/
     │       ├── architecture.md, architecture/
     │       ├── generated-data.md, generated-data/
-    │       ├── how-it-runs.md
+    │       ├── how-it-runs.md, how-it-runs/
     │       └── testing.md
     ├── real-estate/
     │   ├── GLOSSARY.md             # the app's terms: units, the occupancy ledger

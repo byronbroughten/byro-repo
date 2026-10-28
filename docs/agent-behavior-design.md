@@ -36,7 +36,7 @@ _Instances:_ [ADR 0008](./adr/0008-gate-agent-actions-by-what-they-cost-to-undo.
 
 Whatever enters the context is paid for on every later turn. A full payload, printed once, rides along through unrelated work. Show a summary that is enough to decide the next step, and keep the complete record somewhere a ranged read can reach it, so the summary never hides needed detail.
 
-_Instances:_ a chore dry run prints one rendered line per request, and `-- --json` is the escape hatch for when a line looks wrong (the framework's `docs/how-it-runs.md`, "The chore and its dry run"). `npm run app:probe` prints keys, counts and sheet titles, and writes the full response to `.probe/last.json` for a ranged `Read` (#53).
+_Instances:_ a chore dry run prints one rendered line per request, and `-- --json` is the escape hatch for when a line looks wrong (the framework's `docs/how-it-runs/chore-dry-run.md`). `npm run app:probe` prints keys, counts and sheet titles, and writes the full response to `.probe/last.json` for a ranged `Read` (#53).
 
 ### Delegate the reading, not the judgment
 
