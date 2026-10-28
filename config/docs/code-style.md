@@ -23,11 +23,13 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 - **Member order:** `static init()`, then collaborator getters, then public behavior methods, then `_`-prefixed private helpers — a single-caller helper sits right after its caller.
   - **A private helper that never reads `this` is an unexported module function below the class, not a `_` method**, ordered by first use. A helper that reads `this` only to reach a collaborator stays a method. Lint backs it for `private` and `#` methods.
   - **A helper whose arguments are one collaborator and its state belongs on that collaborator.** A public method that doesn't read `this` stays put; a helper that only renames a function in scope is deleted.
-  - **Helpers sharing a subject and passing nothing between them become an object bundle; helpers passing one value around become a helper class** in its own file.
+  - **Helpers sharing a subject and passing nothing between them become an object bundle.**
+  - **Helpers passing one value around become a helper class** in its own file.
 - **Delete dead scaffolding in a file you touch**, but **ask before deleting commented-out code.** Zero callers is a list of candidates, not a verdict.
 - **A "why" comment carries over verbatim across a restructure.**
 - **One class per file, custom `Error` subclasses included.** Lint backs it.
-- **Split a class into collaborators when its private helpers fall into groups that share nothing with each other**, not when it passes a method or line count. The class keeps its public methods as one-line delegations, and the collaborators go in a subfolder named after it.
+- **Split a class into collaborators when its private helpers fall into groups that share nothing with each other**, not when it passes a method or line count ([why](./code-style/class-shape.md#split-a-class-when-its-helpers-fall-into-groups-that-share-nothing)).
+  - **The split class keeps its public methods as one-line delegations**, and its collaborators go in a subfolder named after it.
   - **A Base class holds the coordinator's props and every helper more than one collaborator calls**; the coordinator and each collaborator extend it ([why](./code-style/class-shape.md#a-split-class-shares-a-base-and-layers-its-collaborators)).
   - **Collaborators layer without cycles: each builds the ones below it in lazy getters, and the Base never imports a collaborator**; a getter back to a coordinator that holds shared state is the one upward reference ([why](./code-style/class-shape.md#a-split-class-shares-a-base-and-layers-its-collaborators)).
   - **A collaborator is named `<Subject><Role>`, plus the tier suffix where the codebase has tiers**: the role is an agent noun, or a plain descriptive noun where no verb fits ([why](./code-style/naming.md#a-collaborator-is-subjectrole)).
