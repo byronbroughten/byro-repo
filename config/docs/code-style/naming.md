@@ -2,7 +2,7 @@
 
 Style fragment. The one-line rules live in [`docs/code-style.md`](../code-style.md); this file holds the reasoning and the worked examples.
 
-One heading per naming rule, in docs/code-style.md's order: grep `^## ` for the rule you're applying and read that section.
+The first heading is Class shape's collaborator-naming rule; the rest follow docs/code-style.md's Naming section in order, and the destructure rule's two sequels, hoisting one argument and grouping fields, have headings of their own. Grep `^## ` for the rule you're applying and read that section.
 
 ## A collaborator is `<Subject><Role>`
 

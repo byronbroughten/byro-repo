@@ -14,7 +14,7 @@ Two letters, not one, even where one would be unambiguous: a lone `F` or `I` rea
 
 ## Specificity over branded fallbacks
 
-A branded fallback string also stops working, without any error, in constraint position: the intersection that satisfies the parent's constraint collapses it back to `never`.
+A fallback value that explains the empty case still lets the case arise, and every reader of the value has to handle it; a type narrowed until the case can't arise makes the compiler rule it out. A branded fallback string also stops working, without any error, in constraint position: the intersection that satisfies the parent's constraint collapses it back to `never`.
 
 ## Lookup tables are keyed by the producer's union
 

@@ -8,7 +8,7 @@ A block that would need a comment saying _what_ it does becomes a small private 
 
 ## A comment explains a "why not the obvious thing"
 
-A comment sits trailing or immediately above its line and never restates the line. `action: "boolean", // Should perhaps be "boolean" | "string"` is the shape: it tells the reader why the obvious value isn't there.
+A comment sits trailing or immediately above its line and never restates the line. `action: "boolean", // Should perhaps be "boolean" | "string"` is the shape: it tells the reader why the obvious value isn't there. A why that doesn't fit on one short line belongs with the change that made it, in the commit message or PR description, where the history keeps it beside the diff it explains.
 
 ## File-level navigation blocks
 

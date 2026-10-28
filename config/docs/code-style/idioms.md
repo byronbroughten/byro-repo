@@ -14,6 +14,10 @@ A mutator method returns `this` so calls chain: `fetchAndUpdateAll(): this { ...
 
 `prepFetch`'s `"all"` case calls itself for `"headers"`, `"actions"` and `"data"` rather than repeating their bodies.
 
+## `if`/`else` over a ternary
+
+A ternary stays only for a single trivial value pick with no side effects. One inside `${}` must also fit on one line; otherwise it becomes a named local, so the template reads as text with names in it.
+
 ## State is a named flag, not a trick
 
-`lazy` tracks "already computed" with `let ready = false` and `if (!ready) { value = make(); ready = true; }`. It doesn't use `made ??= { value: make() }`, which needs a box to tell "computed as `undefined`" from "not computed" and hides that reason. The flag version is a few lines longer, but a reader doesn't have to derive why it's shaped that way.
+A wrapper object or a compact operator makes the reader reconstruct what state it encodes; a named variable and an explicit `if` state it. `lazy` tracks "already computed" with `let ready = false` and `if (!ready) { value = make(); ready = true; }`. It doesn't use `made ??= { value: make() }`, which needs a box to tell "computed as `undefined`" from "not computed" and hides that reason. The flag version is a few lines longer, but a reader doesn't have to derive why it's shaped that way.
