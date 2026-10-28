@@ -22,9 +22,9 @@ _Instances:_ [ADR 0013](./adr/0013-every-edit-happens-in-a-workspace-never-a-pri
 
 ### Gate by what it costs to undo
 
-Whether an action needs the developer's yes follows from one question: what would undoing it cost? An action git can undo is free, a commit on any branch included. An action whose undo point is Google's version history is free too: an `app:*` or `dev:*` live command, a new Drive file, or a write to a Sheet, Doc or Drive file one of the developer's accounts owns. An action that can't be undone, or that reaches someone else, asks: a raw push, a publish, a sharing change, a write to someone else's file, spending money, touching credentials. Which action sits in which tier is listed in [`docs/targets-and-gates.md`](./targets-and-gates.md#which-tier-an-action-is-in).
+Whether an action needs the developer's yes follows from one question: what would undoing it cost? The tiers that answer it, and which action sits in which, are in [`docs/targets-and-gates.md`](./targets-and-gates.md#the-tiers).
 
-The session mode decides what an ask does. An Interactive session asks the developer. A runner step has nobody to answer, so its call is refused with a reason, and the step records a blocker and carries on. A stalled run has cost more than any action an agent has taken.
+A runner step's ask is refused rather than prompted because nobody is there to answer, and a stalled run has cost more than any action an agent has taken.
 
 The gates are designed against a fallible agent: one that means well and makes a mistake. [ADR 0007](./adr/0007-keep-untrusted-text-out-of-instructions-and-defer-containment.md) keeps Untrusted text out of agents' instructions, and hardening against the agent itself waits for its [containment triggers](./adr/0007-keep-untrusted-text-out-of-instructions-and-defer-containment.md#consequences), so no such gate is built ahead of them.
 
