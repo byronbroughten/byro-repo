@@ -41,7 +41,7 @@ The step after review where the resolver gives each finding a verdict and fixes 
 _Avoid_: finding triage, triage, classification, label
 
 **Resolver**:
-The agent that resolves: either the resumed implementer, or a fresh session when the implementer's peak context is past ~150K, or after an implementer resolving is killed at ~180K.
+The agent that resolves: either the resumed implementer, or a fresh session when the implementer's peak context is past the ticket budget, or after an implementer resolving is killed at the live ceiling (the defaults are `ticketBudget` and `liveCeiling` in `src/runKnobs.ts`).
 _Avoid_: triage agent, judge, fixer
 
 **Suggested verdict**:
