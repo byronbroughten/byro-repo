@@ -76,6 +76,7 @@ The same as the framework's: its docs ship with its repo, so they link only insi
 | `CLAUDE.md` | Only the restart-at-root notice for a session started inside the package. |
 | `GLOSSARY.md` | The app's operator-facing words (units, the occupancy ledger). It opens with a pointer to the framework glossary, links to a framework term rather than redefining it, and lists same-word conflicts under "Same word, two meanings". |
 | `docs/occupancy-ledger.md` | How the occupancy ledger is built, beyond GLOSSARY.md's words for it. |
+| `docs/endpoint-layout.md` | Why `src/businessEndpoints/AGENTS.md`'s layout rules hold: one endpoint per file, the two body shapes, no occupancy-row operator. |
 | `src/AGENTS.md` | Rules an agent can only break by touching the app's `src/`: the boundary question, the one framework import, generated data. Kept short, with a `CLAUDE.md` beside it. |
 | `src/businessEndpoints/` and `src/chores/` `AGENTS.md` | That folder's rules, kept short, each with a `CLAUDE.md` beside it. The chore gates for `app:chore` live in `src/chores/`. |
 | `README.md` | Short derived prose: what the app is, how it builds, its folders, its `app:*` commands (table below). |
