@@ -21,6 +21,7 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Structure and re
 - "Unlike the initial investment, monthly operating expenses can be substantial for PM companies." — Assessment 4 - Code of Ethics and Business Conduct
 - "Oftentimes renting is less work than owning." — blog: Rent vs Buy
 - Seen in 2 of 6. In 4 of 5 posts.
+- Agent, a topic label: "His work is broad." — session 517e5e68, 2026-10-05 ([the revision](./sentences.md#long-then-short-and-blunt))
 - Agent: "Three jobs show the quality of that work." Developer: "I can say without a doubt that Jesus has more creativity and ingenuity than I have encountered in any other contractor." — session 517e5e68, 2026-10-05
 - Agent: "This section identifies conditions the project charter is based on that are believed to be true." — Assessment 1 Next Draft (personal#4). The announcement clause is from Strunk and White V.9, whose good example "plunges directly into the news"; the developer endorsed it — session 2ebcdf61, 2026-10-18
 
@@ -72,6 +73,7 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Structure and re
 
 ## Make each point once
 
+- What gets cut: a second calculation, a source's side conclusion or a rule's fine print that only reinforces or qualifies the point, or a result the reader already draws from the sentence before. The instances below take each in turn.
 - Agent: "The schedule leaves little slack. This project is planned for eight months, which leaves 31 of the 39 months for the four acquisitions after it, or just under eight months each. If this project ran two months late, the four would share 29 months instead." Developer: struck; the paragraph before already says an overrun "compresses the time available for the rest" — Assessment 1 Next Draft (personal#4), 2026-10-13
 - Agent: "Because the new property will be the owner's principal residence, its loan falls outside the 10-property cap… Once financed, however, the property counts toward the 10" Developer: struck — Assessment 1 Next Draft (personal#4), 2026-10-13
 - Agent: "Every $10,000 added to the price raises the down payment by $1,500 and closing costs by about $300… It could absorb a price of up to about $266,000" Developer: struck the whole paragraph — Assessment 1 Next Draft (personal#4), 2026-10-13
@@ -84,6 +86,7 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Structure and re
 ## Refer back by name
 
 - From Strunk and White II.17, "Omit needless words": every word should "tell".
+- Short names in use: "the Build gate", "Table 2".
 - The HELOC gate before Build is explained in full in Approach (Table 2 and the paragraph after it), again in each of the two Dependencies, and again in Roles. The developer: "I definitely don't like that the HELOC gate is retold." — Assessment 1 Next Draft (personal#4), session 2ebcdf61, 2026-10-18
 - Agent: "Saint Paul's rent stabilization ordinance, described under Dependencies, caps rent increases at 3% in a 12-month period" — Assessment 1 Next Draft (personal#4), Regulatory section, which the developer had not edited. The pointer back is right; restating the cap after it is not.
 - Agent: "Build and Test assume that Jesus Fernandez of Fernandez Remodeling carries out the repairs, as the second assumption above sets out." Developer: struck the pointer — Assessment 1 Next Draft (personal#4), Drive edit after session 66510c6, by 2026-10-18
@@ -111,6 +114,7 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Structure and re
 ## A closing line that ties
 
 - The default is Strunk and White II.22: the emphatic place is the end, of a sentence, a paragraph or a whole piece. The developer: "not every subsection needs a closing sentence like that. It should probably only be used when one such sentence is applicable." — session 2ebcdf61, 2026-10-18
+- A tying line says what the points share, how they trade off, how they sort, or what they add up to. A struck closer retells the points in turn or echoes the section's opening.
 - The tying line refines II.21, which asks for "an orderly discussion" rather than summary. The developer drew the line between these closers from the draft — Assessment 1 Next Draft (personal#4), session 2ebcdf61, 2026-10-18:
 - Kept: "Each acquisition is planned to help pay for the one after it." (Business Need; it boils the sentence before it down to a takeaway)
 - Kept: "The first and last assumptions are confirmed before the purchase closes, while the second and third stay open until the project ends." (Assumptions)

@@ -1,6 +1,6 @@
 # Writing voice
 
-The developer's voice for reader-facing prose ([defined in `prose-files.md`](./agents/prose-files.md#terms)), drawn from their own writing, plus the rules they endorsed from Strunk and White's *The Elements of Style*; academic work layers [`academic-writing-style.md`](./academic-writing-style.md) on top. It calls its reader "the reader", and says "app user" only for the app's user.
+The developer's voice for reader-facing prose ([defined in `prose-files.md`](./agents/prose-files.md#terms)), drawn from their own writing, plus the rules they endorsed from Strunk and White's *The Elements of Style*; academic work layers [`academic-writing-style.md`](./academic-writing-style.md) on top. It calls its reader "the reader".
 
 One line per rule. The quoted instances and their sources are one file away. Open a reasoning file only when you're changing the rule, or the rule's line doesn't decide your case.
 
@@ -16,14 +16,14 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 
 | When | File |
 | --- | --- |
-| A figure, a calculation, a projection or a caveat | [`docs/writing-voice/numbers.md`](./writing-voice/numbers.md) |
-| An example, a comparison, a term, a reason | [`docs/writing-voice/explaining.md`](./writing-voice/explaining.md) |
+| A figure, a calculation, a projection, a caveat, a statistic's source, a changed input | [`docs/writing-voice/numbers.md`](./writing-voice/numbers.md) |
+| An example, a comparison, a restatement, a term, a wrong reading, a reason, a factor, an anecdote, praise, a before and after | [`docs/writing-voice/explaining.md`](./writing-voice/explaining.md) |
 | A borrowed fact, a quote | [`docs/writing-voice/borrowing.md`](./writing-voice/borrowing.md) |
-| A feature, a competitor, the product's story | [`docs/writing-voice/product.md`](./writing-voice/product.md) |
-| A hedge, a weakness, a trade-off | [`docs/writing-voice/candor.md`](./writing-voice/candor.md) |
-| A section opening, a recommendation, a list | [`docs/writing-voice/structure.md`](./writing-voice/structure.md) |
-| Sentence length, dashes, colons, connectives | [`docs/writing-voice/sentences.md`](./writing-voice/sentences.md) |
-| Person, contractions, word choice | [`docs/writing-voice/register.md`](./writing-voice/register.md) |
+| A feature, a competitor, the product's story, its value words | [`docs/writing-voice/product.md`](./writing-voice/product.md) |
+| A hedge, a qualifier, a weakness, a trade-off, a caveat's turn, reassurance, vouching, talking up a point | [`docs/writing-voice/candor.md`](./writing-voice/candor.md) |
+| A piece's or section's opening or close, a recommendation, a list, a side note, a point made twice, a reference back, a preview, a table, a shared assumption | [`docs/writing-voice/structure.md`](./writing-voice/structure.md) |
+| Sentence length, dashes, colons, connectives, a stock phrase, a list's order, "etc.", the serial comma, active voice, a wrapper phrase, a signpost, an event as a clause, a bare "This" | [`docs/writing-voice/sentences.md`](./writing-voice/sentences.md) |
+| Person, contractions, word choice, a person's name, a phase's name, an idiom, a wry aside | [`docs/writing-voice/register.md`](./writing-voice/register.md) |
 | Where the rules came from, or what was dropped | [`docs/writing-voice/sources.md`](./writing-voice/sources.md) |
 
 ## Numbers and evidence
@@ -36,7 +36,7 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - **Make a caveat specific: say how far off, or in which range**, not just "may be inaccurate".
 - `firsthand` **Cite no published source.**
 - `sourced` **Name a statistic's source in the same sentence ("according to Redfin", "per Bankrate").**
-- `cited` **Cite every borrowed fact in APA 7, per [`academic-writing-style.md`](./academic-writing-style.md).**
+- `cited` **Cite every borrowed fact by [the academic doc's citation rules](./academic-writing-style.md#citations).**
 - **Restate a borrowed fact in your own words and sentence shape: no run of four or more words from a passage you read for it.** Proper names, fixed terms and runs of common function words don't count.
 - **Quote only when the wording is notably better than any paraphrase, in quotation marks, naming who said it.**
 - **Show what a choice is worth by changing one input in a baseline example and stating the dollar change per month.**
@@ -51,10 +51,10 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - **Before the real answer, name the tempting wrong reading or the reader's obvious objection, often as a question ("why doesn't everyone just…?"), and answer it.**
 - **Back a claim with an explicit reason: "After all," or "That's because".**
 - **Put a cause-and-effect pair before the principle it supports.**
-- **Define a factor in one plain sentence, then say which way it moves the result ("A longer loan term means lower monthly payments").**
+- **Define a factor in one plain sentence, then say which way it moves the result.**
 - `general` **Back a tip with a short first-person anecdote ("I was once quoted…"), in parentheses, with its real figures.**
-- **Back praise of a person or thing with what the writer relies on it for ("His reliable quotes are the basis on which I decide whether to invest").**
-- **Show a change with its before and after side by side, each described concretely ("the dingy, rundown space… into the warm, welcoming home").**
+- **Back praise of a person or thing with what the writer relies on it for.**
+- **Show a change with its before and after side by side, each described concretely.**
 
 ## Describing the product
 
@@ -72,26 +72,26 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - **Weigh a point's upside and risk together ("On the one hand… On the other hand…").**
 - **Turn to a caveat or exception with "That said,", "Of course," or "Still,".**
 - **Let the specifics show a piece is trustworthy; never vouch for the piece itself ("Everything in this letter is firsthand").**
-- **State a point plainly; never talk up its importance with an intensifier ("markedly"), a label that announces it ("is deliberate:") or a "therefore" the logic already carries.**
+- **State a point plainly; never talk up its importance with an intensifier ("markedly") or a "therefore" the logic already carries.**
 - `general` **When a figure is discouraging, reassure the reader and point to the fix ("don't despair just yet").**
 
 ## Structure and recommendations
 
 - **Open a piece with a striking figure or a blunt claim, then say in one sentence what the piece covers.**
 - **Right after the opening, say what the piece doesn't cover and where to find it.**
-- **Open a section with one sentence stating its claim at full strength ("I can say without a doubt…"), not a topic label ("His work is broad.") or an announcement of what the section does ("This section identifies…"), then support it.**
+- **Open a section with one sentence stating its claim at full strength, not a topic label or an announcement of what the section does, then support it.**
 - **State the recommendation early and flatly, then give the reasons.**
 - **Lay out each option's pros and cons, then eliminate options until the recommendation is left.**
 - **Advise the reader in the imperative, "you'll want to" or "we recommend"; advise a third party with "should" or "would do well to", never a passive "it is recommended".**
 - **Number parallel reasons in prose ("First, … Second, … And third, …") when each needs a sentence or more.**
 - **Use bullets for short parallel items (costs with their figures, tips, one-sentence reasons after "Here's why:"); keep multi-sentence reasoning in prose.**
 - **Put a side point in its own "Note that…" sentence.**
-- **Make each point once, with the support it needs; cut a second calculation, a source's side conclusion or a rule's fine print that only reinforces or qualifies it, or a result the reader already draws from the sentence before.**
-- **Once a fact or mechanism is set out, refer back to it by a short name ("the Build gate", "Table 2") instead of explaining it again, and only when the reader needs it to follow the point, never to show that sections agree.**
+- **Make each point once, with the support it needs; cut whatever only repeats, reinforces or qualifies it.**
+- **Once a fact or mechanism is set out, refer back to it by a short name instead of explaining it again, and only when the reader needs it to follow the point, never to show that sections agree.**
 - **Don't preview the items that the next paragraphs take up one by one.**
 - **Add a table only when the developer or the assignment asks for one, and never one that restates the prose.**
 - **State an assumption the rest of the piece shares once, where it first applies, and say there that it holds throughout.**
-- **End a section on its weightiest point; when one short sentence can tie its points together (what they share, how they trade off, how they sort, or what they add up to), close with that instead, never with one that retells the points in turn or echoes the section's opening.**
+- **End a section on its weightiest point, or on one short sentence that ties its points together when one can; never on one that retells them or echoes the opening.**
 - **Close by returning to the opening question or figure, answer it, and say what makes the answer vary for the reader.**
 
 ## Sentences and punctuation
@@ -100,22 +100,23 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - **Say the thing directly, cutting any wrapper phrase that carries no meaning ("the mitigation strategy for if…", "which is", "it is assumed that", "aforementioned").**
 - **Combine a run of short sentences that build one point into a single sentence; arithmetic keeps its steps.**
 - **Never put a short sentence before a calculation or example that only names what it will show ("A rate rise cuts the return."); let the sentence that shows it say so.**
-- **Write an event as a clause with its own verb ("when estimates are made"), not a packed noun phrase ("the Planning estimates"), even when the clause runs longer; split a sentence whose modifiers nest into plain joined clauses.**
+- **Write an event as a clause with its own verb, not a packed noun phrase, even when the clause runs longer; split a sentence whose modifiers nest into plain joined clauses.**
 - **Use the active voice, unless the actor is unknown or beside the point, or the passive keeps given before new.**
 - **Use the serial comma ("reliability, trustworthiness, and ingenuity").**
 - **Order a list to build, ending on its weightiest item ("in my rental units, around my tenants, and in my home").**
 - **Use paired em dashes for a mid-sentence aside or example list when commas would confuse.**
-- **Put a colon after a verdict, then the explanation; when the words before the colon only signal that a reason follows ("is deliberate:"), write "because" instead.**
+- **Put a colon after a verdict, then the explanation; when the words before the colon only signal that a reason follows, write "because" instead.**
 - **Give a punchline, consequence or comparison its own sentence, not a trailing em dash.**
 - **Start a sentence with "And" or "But" to add a point or turn on one.**
-- **Open a sentence on a bare "This" when it refers to the phrase that ends the sentence before ("…screening grew lenient. This ultimately led to…"); don't replace it with a noun phrase.**
+- **Open a sentence on a bare "This" when it refers to the phrase that ends the sentence before; don't replace it with a noun phrase.**
 - **End an open-ended list of everyday examples with "etc." or "and so on".**
 - **Never reuse one stock phrase, such as "In other words,", in sentences or paragraphs in a row.**
 - **Link sentences with plain connectives such as "Additionally" and "Finally"; "Conversely", "To that end" and "albeit" are fine too, but "Furthermore" and "Moreover" are academic.**
 
 ## Person and register
 
-- `general` **Address the reader as "you", speak as "we", and guide with "let's"; name the product, and say "users" only when describing app users to someone else.**
+- `general` **Address the reader as "you", speak as "we", and guide with "let's"; name the product.**
+- **Say "users" or "app user" only for the app's users, when describing them to someone else.**
 - `general` **Use contractions ("isn't", "doesn't", "that's").**
 - `formal` **Write no contractions.**
 - **Prefer plain words to Latinate ones.**
