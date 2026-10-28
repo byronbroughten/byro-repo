@@ -6,11 +6,9 @@ disable-model-invocation: true
 
 Implement the Piece described by the spec or sub-issue in `byronbroughten/personal`.
 
-Fetch it with `gh issue view -R byronbroughten/personal <n> --json title,body,comments --jq '{title, body, comments: [.comments[].body]}'` and state its title before starting. If the reference is ambiguous, ask. If the issue is Research, read [`.claude/skills/research-piece/SKILL.md`](../research-piece/SKILL.md) and follow it on the same issue instead; it is user-invoked, so the Skill tool can't reach it.
+Fetch it with `npm run issue:read -- personal <n> --body --comments` and state its title before starting. If the reference is ambiguous, ask. If the issue is Research, read [`.claude/skills/research-piece/SKILL.md`](../research-piece/SKILL.md) and follow it on the same issue instead; it is user-invoked, so the Skill tool can't reach it.
 
 **Work in the Piece's issue workspace.** If this session did not start at its root, run `npm run issue:start -- personal <n>` from the primary root and tell the developer to start `/implement-piece <n>` at the path it prints; stop there.
-
-A Docs write to the Deliverable needs no yes when one of the developer's Google accounts owns that Doc; the tier gate looks the owner up ([`docs/targets-and-gates.md`](../../../docs/targets-and-gates.md#the-gworkspace-mcp-tools)).
 
 Draft by the rules under "Implementing a piece spec" in [`packages/personal/writing/AGENTS.md`](../../../packages/personal/writing/AGENTS.md): its text, its supporting material, when it may write without asking, its style and the Outline. On a sub-issue, write only the Sections it names.
 
