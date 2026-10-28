@@ -65,7 +65,7 @@ The verdict that leaves the finding for the developer on the review list: `decis
 _Avoid_: Defer, postpone, backlog
 
 **Halt**:
-The verdict that blocks the tickets in its scope until the developer answers: named later tickets and their downstream, or `spec`. A blocker in the implement record is one too. It is posted as a spec-issue comment and a push; an interactive session's review of its own ticket posts its Halts with no push and takes the answers in the session.
+The verdict that blocks the tickets in its scope until it is answered: named later tickets and their downstream, or `spec`. A blocker in the implement record is one too. It is posted as a spec-issue comment and answered there, by the developer or, for a blocker the Supervisor cleared itself, by the Supervisor; an interactive session's review of its own ticket takes the answers in the session.
 _Avoid_: pause, block, question
 
 **Failure Halt**:
@@ -84,7 +84,7 @@ The run pauses because the account a step would run on is past its 5-hour thresh
 _Avoid_: cooldown, throttle
 
 **Idle**:
-Nothing is runnable, but an open Halt or another holder's Lease may clear while the run waits, so it pushes once and polls for answers rather than ending.
+Nothing is runnable, but an open Halt or another holder's Lease may clear while the run waits, so it polls for answers rather than ending.
 _Avoid_: sleep, paused
 
 **Vanished**:
@@ -119,8 +119,12 @@ _Avoid_: scratch workspace, one-off workspace
 A Claude session the developer drives, as opposed to a run's agent steps.
 _Avoid_: hand session, manual session
 
+**Interactive ticket**:
+A ticket an agent can do only in an Interactive session, because its work needs the developer's yes; during a run the Supervisor takes it. A ticket only the developer can do, such as a Phase gate or a step in the real world, is a human ticket instead.
+_Avoid_: supervisor ticket, permission ticket, escalation ticket
+
 **Supervisor**:
-An interactive session that launches or rejoins one run, explains each of its events to the developer, and posts replies the developer approved. It never edits code or holds a lease while its run is running.
+An interactive session that launches or rejoins one run, explains each of its events to the developer, and does the work the run's steps can't: unasked for a blocked edit the ticket already specifies or an Interactive ticket, and anything else when the developer asks. Every other reply it posts is one the developer settled.
 _Avoid_: monitor, watcher, babysitter
 
 **Run board**:
