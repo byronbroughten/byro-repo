@@ -40,7 +40,7 @@ The words for the repo's prose, which file holds which fact, what the root AGENT
 | `docs/agents/*.md` | Agent workflow: git, planning, model fit, delegation, issues and triage labels, domain docs, vendored upstream skills, which prose file a fact belongs in, handing judgements to Jev and its trial log. |
 | `docs/agents/verdicts.md` | How any review finding is judged, one line per rule, rule only: the four verdicts and their reasons, the Standards and Spec rules, Halt, overruling a suggested verdict, and the approved exceptions. |
 | `docs/agents/codebase-priorities.md` | What every Recommendation about the codebase or agent tooling is weighed against, one line per rule, rule only: scope, the Tier 1 gate, the floor, Tier 2's ranked priorities with their definitions, and explaining a tradeoff. |
-| `docs/agents/codebase-priorities/*.md` | Each priority's pointers to the rules that express it and the floor's reason, and the Estimates index of measured costs, indexed by `docs/agents/codebase-priorities.md`'s "When \| File" table. |
+| `docs/agents/codebase-priorities/*.md` | Each priority's pointers to the rules that express it, why fewer concepts help and the floor's reason, and the Estimates index of measured costs, indexed by `docs/agents/codebase-priorities.md`'s "When \| File" table. |
 | `docs/agents/verdicts/*.md` | Each rule's reasoning and examples, indexed by `docs/agents/verdicts.md`'s "When \| File" table. |
 | `README.md` | The workspace overview, derived prose for people on GitHub; it links each public clone by github.com URL, since the clones don't exist there, and names the private personal clone without a link. Nothing routes agents to it. Update it when a fact it mirrors changes (tables below). |
 
