@@ -18,7 +18,7 @@ Disclosed from [`docs/writing-craft.md`](../writing-craft.md), "Words". The rule
 
 ## Gloss a term of the trade
 
-- Agent and developer both: "cash-on-cash return, i.e., the property's annual net cash flow, after the mortgage payment and operating costs, divided by the cash invested to acquire it" — Assessment 1 Next Draft (writing#4), a gloss the draft got right.
+- Agent and developer both: "cash-on-cash return, i.e., the property's annual net cash flow, after the mortgage payment and operating costs, divided by the cash invested to acquire it" — Assessment 1 Next Draft (personal#4), a gloss the draft got right.
 - Before: "The property must clear a 1.25 DSCR." After: "The property must clear a 1.25 DSCR, i.e., its rent must cover the mortgage payment 1.25 times." — invented; Pinker, Ch. 3, PDF pp. 71–72, 76–77. _From Pinker; not yet seen in your writing._
 - The Voice sheet's "i.e.," rule decides the gloss's form; this rule decides when one is needed.
 

@@ -32,7 +32,7 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Explaining". The
 
 - "weighted average cost of capital (WACC), i.e., the average, weighted interest rate on the money needed to get a project off the ground" — Assessment 2 - Capital Budgeting Tools
 - Seen in 4 of 6.
-- Agent: "uses work the Planning phase already does, since Planning makes detailed estimates…" Developer: "uses work from the Planning phase, i.e., detailed estimates…" — Assessment 1 Next Draft (writing#4), Drive edit after session 66510c6, by 2026-10-18
+- Agent: "uses work the Planning phase already does, since Planning makes detailed estimates…" Developer: "uses work from the Planning phase, i.e., detailed estimates…" — Assessment 1 Next Draft (personal#4), Drive edit after session 66510c6, by 2026-10-18
 
 ## Name the wrong reading first
 
