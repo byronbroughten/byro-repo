@@ -12,7 +12,7 @@ Each name, parameter, layer, shape or copy of a fact is one more thing a reader 
 
 - Helpers passing one value around become a helper class: [`config/docs/code-style.md#class-shape`](../../../config/docs/code-style.md#class-shape), **Helpers sharing a subject and passing nothing between them**.
 - A helper whose arguments are one collaborator and its state moves onto it, and a helper that only renames is deleted: [`config/docs/code-style.md#class-shape`](../../../config/docs/code-style.md#class-shape), **A helper whose arguments are one collaborator and its state**.
-- A parameter its only caller already holds as state makes the query the instance's: [`packages/framework/docs/code-style.md#class-shape`](../../../packages/framework/docs/code-style.md#class-shape), **A composition of collaborator calls that answers one domain question**.
+- A parameter its only caller already holds as state makes the query the instance's: [`packages/framework/docs/code-style.md#class-shape`](../../../packages/framework/docs/code-style.md#class-shape), **A query taking a parameter its only caller already holds as its own state**.
 - An optional parameter's second job becomes a second function: [`config/docs/code-style.md#type-modeling`](../../../config/docs/code-style.md#type-modeling), **An optional parameter that switches a function to a second job**.
 - Use the named type that already exists: [`config/docs/code-style.md#type-modeling`](../../../config/docs/code-style.md#type-modeling), **Use the named type that already exists**.
 - Extract only at a named second caller: [`config/docs/code-style.md#class-shape`](../../../config/docs/code-style.md#class-shape), **Extract the shared piece when you can name the second caller**.
