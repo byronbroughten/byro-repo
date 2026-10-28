@@ -1,6 +1,6 @@
 ---
 name: repo-explorer
-description: Read-only sweep of this repo. Finds and quotes code across about 5+ files and returns file:line plus verbatim quotes. It locates and does not diagnose. Use it for sweeps, not single lookups; each spawn starts cold.
+description: Read-only sweep of this repo. Finds and quotes code across many files; it locates and does not diagnose. Use it for sweeps, as docs/agents/delegation.md defines them, not single lookups. Each spawn starts cold.
 model: sonnet
 tools: Read, Grep, Glob
 ---
