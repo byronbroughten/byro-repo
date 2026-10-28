@@ -79,7 +79,7 @@ Its "What qualifies" list names the kinds of decision that pass. Offer the ADR a
 
 ### Backlink the issue
 
-When an ADR is written, the issue its `Source:` names ends its body with one line per ADR: `Design decision: <owner/repo>/docs/adr/NNNN-slug.md`. Add it with `npm run issue:backlink -- <repo> <n> <adr-path>`, never by hand-editing the body. An agent editing that issue later keeps the ADR in step ([issue-tracker doc](../../../docs/agents/issue-tracker.md)).
+When an ADR is written, backlink it from the issue its `Source:` names, by the command and line format in the [issue-tracker doc](../../../docs/agents/issue-tracker.md#conventions), never by hand-editing the body.
 
 ### Build principles on ADRs
 
