@@ -35,7 +35,7 @@ Look for the originating spec, in this order:
 
 Search the repo for every file that documents how code should be written. When `CODING_STANDARDS.md` or `CONTRIBUTING.md` exists, it must be on the list. When the diff touches a `.md` file, the prose rules file, [`docs/prose-style.md`](../../../docs/prose-style.md), is always on it too.
 
-On top of whatever the repo documents, the Standards axis always carries the **smell baseline** below: a fixed set of Fowler code smells (_Refactoring_, ch.3) that applies even when a repo documents nothing. Two rules bind it:
+On top of whatever the repo documents, the Standards axis always carries the **smell baseline** below: a fixed set of Fowler code smells (_Refactoring_, ch.3) that applies even when a repo documents nothing. Three rules bind it:
 
 - **The repo overrides.** A documented repo standard always wins; where it endorses something the baseline would flag, suppress the smell.
 - **Fix or explain.** A smell is fixed by default and stays only when its site carries a one-line reason that is still true; every new keep needs the developer's yes. The rule, the re-check of a kept smell's reason, and the approved exceptions are in [`docs/agents/verdicts.md`](../../../docs/agents/verdicts.md). Like any standard here, skip anything tooling already enforces.
