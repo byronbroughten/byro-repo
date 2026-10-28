@@ -82,7 +82,7 @@ Route each ruling to one of three sheets. The **Craft test** splits the first tw
 - **The rule line** goes under the style sheet's existing section that fits, in its shape: one bolded line, the rule only, plus at most a short clause of scope or its one exception ([rules file](../../../docs/agents/prose-files.md#terms)).
 - **The instance** goes in the reasoning file whose row in the style sheet's "When | File" table matches the rule's topic, under a `##` heading named for the rule. Match the file's bullets, `- "<quote>" — <source>`: for a rewrite, one bullet `- Agent: "<draft>" Developer: "<version>" — session <short id>, <date>`. A pair-mode instance ends `— personal#<n> Snapshot, <date>` instead, `<date>` being the Snapshot commit's date; mined from two Docs, it names the agent's Doc in place of `Snapshot`. Close a new heading with `- No count was recorded; from a session.` (in pair mode, `from a Snapshot.`), and leave `docs/writing-voice/sources.md` and every "Seen in" count alone: those describe the Drive samples, not sessions.
 
-- **A grilling question** goes in the grilling doc's `## Questions` list, in its shape: a bolded label, what to ask, and the session's instance as `(#<spec number>: "<quote>")`. A change to the calibration step edits `/grill-piece`'s step 4 instead, through `/writing-for-agents`. The doc lives in the writing clone, its own repo.
+- **A grilling question** goes in the grilling doc's `## Questions` list, in its shape: a bolded label, what to ask, and the session's instance as `(#<spec number>: "<quote>")`. A change to the calibration step edits `/grill-piece`'s step 4 instead, through `/writing-for-agents`. The doc lives in the `personal` repo's `writing/` folder.
 
 Rank by how often the correction recurred, and say so. A ranked list lets the developer take the top three and stop.
 
@@ -117,4 +117,4 @@ Then stop. Do not edit until the developer approves; an agent running this skill
 
 The Snapshot stays as `/implement-piece` committed it, and the edited Deliverable stays in its Doc, in both modes.
 
-Write only the approved items, then `npx prettier --check` the touched files and `npm run lint`. Then ask whether to commit, and on which branch in each repo touched (a grilling-doc edit is a commit in the writing clone): the reviewed session may have left work in flight, and a docs-only commit should not ride along with it.
+Write only the approved items, then `npx prettier --check` the touched files and `npm run lint`. Then ask whether to commit, and on which branch in each repo touched (a grilling-doc edit is a commit in the `personal` clone): the reviewed session may have left work in flight, and a docs-only commit should not ride along with it.

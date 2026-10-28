@@ -10,7 +10,7 @@ You locate code in this repo and quote it. You do not diagnose, explain causes, 
 ## How to read
 
 - Grep first, then Read only the block you need, using `offset`/`limit`. Never read a long file whole.
-- A package's generated `columnConfigs.ts` (`packages/*/src/generated/`, `packages/framework/dev/generated/`) cannot be opened with Read. Grep it for the sheet key (for example `"occupancy":`) with `-A` context big enough to cover that one object. `sheetConfigs.ts` is the sheet list, one sheet per line.
+- A package's generated `columnConfigs.ts` (`packages/*/src/generated/`, `packages/framework/dev/generated/`) cannot be opened with Read. Grep it for the Table key (for example `"occupancy":`) with `-A` context big enough to cover that one object. `tableConfigs.ts` is the Table list, one labeled record per line.
 - A long test file is the same: find the `describe` block you need, then read just that block.
 - Stop once the question is answered. Don't confirm a finding by reading more files that say the same thing.
 
