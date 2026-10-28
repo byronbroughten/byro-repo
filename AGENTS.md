@@ -12,7 +12,7 @@ Open only the section or disclosed doc the task needs.
 
 ## Every task
 
-- **README.md is for humans.** Nothing in it is needed for a task here; open it only to keep it accurate ([`docs/agents/prose-files.md`](./docs/agents/prose-files.md)).
+- **Every README.md is for humans.** Nothing in one is needed for a task; open it only to keep it accurate ([`docs/agents/prose-files.md`](./docs/agents/prose-files.md)).
 - **Which package: first "would this make sense with no Sheets at all?" Yes: `packages/utils`, never started in the framework. Then "in a different Sheets-backed app?"** Yes: `packages/framework`. No: `packages/real-estate`. A lint, format or tsconfig setting any TypeScript project would want: `config`. A reader-facing Piece: `packages/personal`.
 - **Public repos never depend on private ones; private may depend on public.**
 - **Working in a folder with its own `AGENTS.md`**, read it first; each package's `src/` and several folders under it have one.

@@ -1,6 +1,6 @@
 # Git workflow
 
-Primary checkouts and workspaces, branches and commits, landing a spec or a session with the wrap-up script, and closing a parent once its last sub-issue lands.
+Primary checkouts and workspaces, branches and commits, landing a spec or a session with the wrap-up script, a skill's own session workspace, and closing a parent once its last sub-issue lands.
 
 ## Primary checkouts and workspaces
 
@@ -32,8 +32,16 @@ Primary checkouts and workspaces, branches and commits, landing a spec or a sess
 
 ## Landing a session
 
-- **Once a session workspace's edits are done, land it without asking**: `npm run wrap-up -- --session <slug>`. Wrap-up holds the standing yes to push, behind its secret scan (#273). It fast-forwards master in each repo whose `session-<slug>` branch is ahead, clones before the root, with no checks, outcome row or GitHub calls, then deletes the session branches, releases the lease and removes the workspace. It refuses uncommitted changes, so commit first.
+- **Once a session workspace's edits are done, land it without asking**: `npm run wrap-up -- --session <slug>`. Wrap-up holds the standing yes to push, behind its secret scan (#273). It fast-forwards master in each repo whose `session-<slug>` branch is ahead, clones before the root, with no checks, outcome row or GitHub calls, then deletes the session branches, releases the lease and removes the workspace. It refuses uncommitted changes, so commit first. From an entered worktree, call `ExitWorktree` with `keep` first, so wrap-up can remove it.
 - **To land mid-session and keep working, add `--keep`**: the edits so far land the same way, and the workspace stays leased with every session branch level with master. Land this way whenever a finished piece of work would otherwise wait on the rest of the session.
+
+## A skill's session workspace
+
+A skill that edits files opens and lands its own session workspace, since `/start-issue` is the developer's to invoke.
+
+- **Open**: `npm run issue:start -- --session <slug>`, then `EnterWorktree` with `path` set to the printed path.
+- **Work**: give Bash one plain command per call, with no `cd`, chains or heredoc scripts: Claude Code refuses what it can't confine to the worktree.
+- **Land**: commit, then land it as [Landing a session](#landing-a-session) says.
 
 ## Closing a parent
 

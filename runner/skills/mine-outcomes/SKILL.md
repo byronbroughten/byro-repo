@@ -55,8 +55,8 @@ Then ask which proposals to file. File each one the developer picks with `gh iss
 
 Only once the developer has seen step 5, and has answered on filing and on `/retro`, ask whether to clear the section. A `/retro` they want first goes ahead of the clearing. Git history keeps the files after that. On a yes:
 
-1. `npm run issue:start -- --session mine-outcomes-<spec repo>-<spec n>`, and work in the workspace it prints.
+1. Open a [session workspace](../../../docs/agents/git-workflow.md#a-skills-session-workspace) named `mine-outcomes-<spec repo>-<spec n>`.
 2. `git rm -r docs/agents/outcomes/<spec repo>-<spec n>`, then commit: `Clear the <spec repo>#<spec n> outcome rows after mining.`
-3. `npm run wrap-up -- --session mine-outcomes-<spec repo>-<spec n>`.
+3. Land it.
 
 On a no, leave the folder; a later run mines it again.

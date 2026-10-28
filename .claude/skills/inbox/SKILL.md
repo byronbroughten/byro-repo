@@ -12,7 +12,7 @@ The Gmail tools (`mcp__gmail__*`) exist only where the `gmail` server is registe
 
 The owner's data lives in the private `personal` repo's `inbox/` folder, beside `writing/`. This skill holds rules and steps only; every sender, label, keyword and person belongs in that folder or the session.
 
-**`/inbox` runs in a session workspace**, since a primary checkout takes no edits: start with `/start-issue --session inbox-<date>`, and land the data with `npm run wrap-up -- --session inbox-<date>` when the session ends. The gmail gate and `record.sh` read that workspace's own `packages/personal/inbox/`.
+**`/inbox` runs in a [session workspace](../../../docs/agents/git-workflow.md#a-skills-session-workspace) named `inbox-<date>`**, since a primary checkout takes no edits, and lands the data when the session ends. The gmail gate and `record.sh` read that workspace's own `packages/personal/inbox/`.
 
 - `always-inbox.md`: Gmail queries for mail that always stays in the Inbox.
 - `proposals.md`: one entry per Proposal, in the format at its top.

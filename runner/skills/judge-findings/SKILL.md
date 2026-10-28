@@ -51,7 +51,7 @@ Each answer is one of four:
 
 After the last round:
 
-- **Now**: make every such fix in one session workspace (`npm run issue:start -- --session judge-<spec>`, then `EnterWorktree` on the printed path), one commit per item naming its `R<n>.<k>`. Run `npm run check`, then land it with `npm run wrap-up -- --session judge-<spec>`.
+- **Now**: make every such fix in one [session workspace](../../../docs/agents/git-workflow.md#a-skills-session-workspace) named `judge-<spec>`, one commit per item naming its `R<n>.<k>`, and land it once `npm run check` passes.
 - **File**: by [`/code-tickets`](../../../.claude/skills/code-tickets/SKILL.md)' conventions, its ticket templates, `## Model fit` section and read-back included. Group a repo's filed fixes into one ticket unless one is big enough to stand alone; each decision is its own ticket. Use an item's drafted issue title when its ticket holds only that item.
 
 **Every filed ticket asks "blocks this spec?"**, all in one message before filing, each pre-filled with your answer: yes when the spec's stories or decisions aren't met until it lands, no otherwise. A keep's fix and a Propose `ticket` default to no; a gap defaults to yes.
