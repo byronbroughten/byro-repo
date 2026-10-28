@@ -27,6 +27,7 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 - **A mechanics doc opens with a lead of 5 lines and 800 bytes or fewer, and over 4 KB it needs `##` headings**; lint checks both.
 - **A mechanics doc's headings are specific enough to grep; a rule found in one moves up to a rules file or nested AGENTS.md, leaving a pointer.**
 - **A mechanics doc covering subjects that share nothing is split and indexed.**
+- **A durable doc cites a heading anchor, never a line number**; lint checks it.
 
 ## Placement
 

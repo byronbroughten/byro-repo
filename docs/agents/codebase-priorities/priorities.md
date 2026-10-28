@@ -8,15 +8,15 @@ The existing rules that show each Tier 2 priority, and why security, undo and da
 
 ## Fewest concepts
 
-- Helpers passing one value around become a helper class: [`config/docs/code-style.md:26`](../../../config/docs/code-style.md#class-shape).
-- A helper whose arguments are one collaborator and its state moves onto it, and a helper that only renames is deleted: [`config/docs/code-style.md:25`](../../../config/docs/code-style.md#class-shape).
-- A parameter its only caller already holds as state makes the query the instance's: [`packages/framework/docs/code-style.md:26`](../../../packages/framework/docs/code-style.md#class-shape).
-- An optional parameter's second job becomes a second function: [`config/docs/code-style.md:70`](../../../config/docs/code-style.md#type-modeling).
-- Use the named type that already exists: [`config/docs/code-style.md:71`](../../../config/docs/code-style.md#type-modeling).
-- Extract only at a named second caller: [`config/docs/code-style.md:22`](../../../config/docs/code-style.md#class-shape).
-- Delete dead scaffolding: [`config/docs/code-style.md:27`](../../../config/docs/code-style.md#class-shape).
-- One home per fact: [`docs/prose-style.md:19`](../../prose-style.md#one-home-per-fact).
-- The boundary, "not the fewest characters": an explicit `if` over a compact operator whose meaning the reader has to reconstruct: [`config/docs/code-style.md:84`](../../../config/docs/code-style.md#functional-vs-imperative-idioms).
+- Helpers passing one value around become a helper class: [`config/docs/code-style.md#class-shape`](../../../config/docs/code-style.md#class-shape), **Helpers sharing a subject and passing nothing between them**.
+- A helper whose arguments are one collaborator and its state moves onto it, and a helper that only renames is deleted: [`config/docs/code-style.md#class-shape`](../../../config/docs/code-style.md#class-shape), **A helper whose arguments are one collaborator and its state**.
+- A parameter its only caller already holds as state makes the query the instance's: [`packages/framework/docs/code-style.md#class-shape`](../../../packages/framework/docs/code-style.md#class-shape), **A composition of collaborator calls that answers one domain question**.
+- An optional parameter's second job becomes a second function: [`config/docs/code-style.md#type-modeling`](../../../config/docs/code-style.md#type-modeling), **An optional parameter that switches a function to a second job**.
+- Use the named type that already exists: [`config/docs/code-style.md#type-modeling`](../../../config/docs/code-style.md#type-modeling), **Use the named type that already exists**.
+- Extract only at a named second caller: [`config/docs/code-style.md#class-shape`](../../../config/docs/code-style.md#class-shape), **Extract the shared piece when you can name the second caller**.
+- Delete dead scaffolding: [`config/docs/code-style.md#class-shape`](../../../config/docs/code-style.md#class-shape), **Delete dead scaffolding in a file you touch**.
+- One home per fact: [`docs/prose-style.md#one-home-per-fact`](../../prose-style.md#one-home-per-fact), **Each file has one job**.
+- The boundary, "not the fewest characters": an explicit `if` over a compact operator whose meaning the reader has to reconstruct: [`config/docs/code-style.md#functional-vs-imperative-idioms`](../../../config/docs/code-style.md#functional-vs-imperative-idioms), **Encode state as a named variable and an explicit `if`**.
 
 ## Agent cost
 
