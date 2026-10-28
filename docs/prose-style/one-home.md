@@ -10,6 +10,8 @@ A fact stated in two files is changed in one of them and goes stale in the other
 
 A rule an agent has to go looking for is a rule it skips. So a rule that changes what an agent does is repeated where the agent is when it acts: the root AGENTS.md says "Commit freely; push only through wrap-up", and `docs/agents/git-workflow.md` holds the full branch rules. Facts that only inform, like a file's job or a command's output, are never repeated.
 
+A skill runs without its doc loaded, so a rule only that skill carries out sits in the skill, where it gets followed, and the doc points to it: only `/code-tickets` writes a Phase gate, so the gate template lives in that skill. A rule several places follow would drift across full copies, so it lives in its doc and each skill carries only its bolded line: both `/code-spec` and `/code-tickets` decide whether a spec has Phases, so `planning.md` keeps the boundary rule.
+
 ## The environment is a home too
 
 `package.json` scripts, config files and `--help` output are read by looking, and a doc that restates them is a cache that goes stale the next time they change. Cache only what can't be found by looking, as [`writing-for-agents`](../../.claude/skills/writing-for-agents/SKILL.md) says under Pruning.
