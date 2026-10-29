@@ -44,9 +44,15 @@ Break the work into **tracer bullet** tickets.
 
 </vertical-slice-rules>
 
-Give each ticket a **kind**: agent work (`ready-for-agent`) or developer work (`ready-for-human`), never both. Split a slice that needs both into an agent ticket and a human ticket; when the developer's part needs the agent's output, the agent ticket blocks the human ticket.
+Give each ticket one **kind**:
 
-Give each `ready-for-agent` ticket its **model fit**: one of the pairs in [`planning.md`](../../../docs/agents/planning.md#model-fit) and a one-line reason.
+- **Agent** (`ready-for-agent`): work a runner step can do.
+- **Interactive** (`ready-for-interactive`): agent work a step can't do, by the [tier list](../../../docs/targets-and-gates.md#which-tier-an-action-is-in): a tier-3 action, or a write outside the issue workspace, such as to `~/.claude`. Group it by where the chain needs it, usually one per spec, and make each downstream ticket blocked by it.
+- **Human** (`ready-for-human`): work only the developer can do.
+
+Split a slice that needs two kinds into one ticket per kind; when one part needs another's output, that part's ticket blocks the other.
+
+Give each `ready-for-agent` and `ready-for-interactive` ticket its **model fit**: one of the pairs in [`planning.md`](../../../docs/agents/planning.md#model-fit) and a one-line reason.
 
 Give each ticket its **blocking edges**: the other tickets that must complete before it can start. A ticket with no blockers can start immediately.
 
@@ -58,7 +64,7 @@ Present the proposed breakdown as a numbered list. For each ticket, show:
 
 - **Title**: short descriptive name
 - **Blocked by**: which other tickets (if any) must complete first
-- **Kind**: agent or human; for an agent ticket, its model fit
+- **Kind**: agent, interactive or human; for an agent or interactive ticket, its model fit
 - **What it delivers**: the end-to-end behaviour this ticket makes work
 - **Files**: the count from the slice rules' grep, with the names; split a ticket over ~10 before showing it
 
@@ -77,7 +83,7 @@ Iterate until the user approves the breakdown.
 Publish the approved tickets. **How** depends on the tracker in `docs/agents/issue-tracker.md`; the tickets are the same either way, only the shape of the blocking edges changes:
 
 - **Local files** → write one file per ticket under `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01` in dependency order (blockers first). Each file's "Blocked by" lists the numbers/titles it depends on. Use the per-ticket file template below: one ticket per file, never a single combined file.
-- **A real issue tracker (GitHub, Linear, …)** → publish one issue per ticket in dependency order (blockers first) so each ticket's blocking edges can reference real identifiers. Use the platform's native blocking relationship where it has one; otherwise set each ticket's "Blocked by" to the blocking issues. If the source was an existing issue, make each ticket its sub-issue (tracker doc's operation). Apply each ticket's kind as its triage label, `ready-for-agent` or `ready-for-human`, unless instructed otherwise.
+- **A real issue tracker (GitHub, Linear, …)** → publish one issue per ticket in dependency order (blockers first) so each ticket's blocking edges can reference real identifiers. Use the platform's native blocking relationship where it has one; otherwise set each ticket's "Blocked by" to the blocking issues. If the source was an existing issue, make each ticket its sub-issue (tracker doc's operation). Apply each ticket's kind as its triage label, `ready-for-agent`, `ready-for-interactive` or `ready-for-human`, unless instructed otherwise.
 
 Work the **frontier**: any ticket whose blockers are all done. For a purely linear chain that means top to bottom.
 
@@ -98,7 +104,7 @@ Do NOT close or modify any parent issue, except its `## Phases` section.
 
 **Blocked by:** the numbers/titles of the tickets that gate this one, or "None (can start immediately)".
 
-**Status:** ready-for-agent or ready-for-human
+**Status:** ready-for-agent, ready-for-interactive or ready-for-human
 
 - [ ] Acceptance criterion 1
 - [ ] Acceptance criterion 2
@@ -163,7 +169,7 @@ Phase <N>: a reference to each of its tickets.
 
 A Phase gate is labelled `ready-for-human` and has no `## Model fit`.
 
-In either form, `## Model fit` is the last section of a `ready-for-agent` ticket: a pair line, then a one-line reason. A `ready-for-human` ticket has none.
+In either form, `## Model fit` is the last section of a `ready-for-agent` or `ready-for-interactive` ticket: a pair line, then a one-line reason. A `ready-for-human` ticket has none.
 
 A `ready-for-human` ticket's body names what the developer runs: the skill (e.g. `/inbox`) or the numbered steps.
 
@@ -171,7 +177,7 @@ In either form, avoid specific file paths or code snippets: they go stale fast. 
 
 ### 6. Read back the model fit
 
-Print the published tickets as one flat list in completion order, `#n Title: <Model> <effort> (reason)`, the read-back of each ticket's `## Model fit` section. Done when every `ready-for-agent` ticket appears with the pair its section names.
+Print the published tickets as one flat list in completion order, `#n Title: <Model> <effort> (reason)`, the read-back of each ticket's `## Model fit` section. Done when every `ready-for-agent` and `ready-for-interactive` ticket appears with the pair its section names.
 
 ## From a Phase gate
 
