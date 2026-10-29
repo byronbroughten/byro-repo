@@ -1,4 +1,4 @@
-// The crash notice for a runner that exited above 1: its run-ended line, since a crashed run writes none itself.
+// The run-ended line for a runner that exited above 1, since a crashed run writes none itself.
 // crash.ts is the command tmux.sh calls.
 import { EventFileNotices } from "@byronbroughten/spec-runner/EventFileNotices";
 import type { IssueRef } from "@byronbroughten/spec-runner/IssueWorkspaces";
@@ -10,13 +10,9 @@ export interface Crash {
   code: string;
 }
 
-interface CrashNotices {
-  stateFolder: string;
-}
-
-export async function sendCrashPush(
+export async function writeCrashLine(
   { owner, spec, code }: Crash,
-  { stateFolder }: CrashNotices,
+  stateFolder: string,
 ): Promise<void> {
   const ownerRepo = `${owner}/${spec.repo}`;
   const command = rerunCommandOf(owner, spec);
