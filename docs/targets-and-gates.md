@@ -16,8 +16,10 @@ Reads need no yes in any tier.
 
 | Action | Tier |
 | --- | --- |
-| Editing repo files; `npm run tsc`, `npm test`, `npm run lint` | 1 |
-| `grep`, `rg`, `cat`, `head`, `tail`, `wc`, `ls`, `cd`; `sed -n` with printing scripts and no `-i`; `find`; `git log`, `show`, `status`, `diff`, `rev-parse`, `ls-files` and `blame`, plain or through `-C`, `--git-dir` or `--work-tree` | free: reads. Not with an option that runs a program or writes a file, a redirect into a file (`> out.txt`, `>&name`, `<>`; but `2>&1`, `>&2` and `>/dev/null` are fine), an env prefix, `git -c`, a heredoc or `$(…)` |
+| Editing repo files; `npm run check`, `npm run tsc`, `npm test`, `npm run lint` | 1 |
+| `rm`, `mkdir`, `cp`, `mv`, `sed -i` and a redirect into a file, when every path resolves inside the session's root or `$TMPDIR`, outside `.git` at any depth and `$TMPDIR/claude-guardrails/`; `node` on a scratch helper: an existing file in `$TMPDIR` or gitignored in the session's root outside `node_modules`; `npx vitest run`, `npx tsc --noEmit`, `npx eslint` without `--fix` and `npx prettier --check`, with no flag that writes a file; `git mv` and `git rm` without a force flag; a runner step's `git restore` in its own workspace | 1. A path with a variable other than a leading `$TMPDIR`, a glob, braces or `~` counts as outside |
+| `grep`, `rg`, `cat`, `head`, `tail`, `wc`, `ls`, `cd`, `find`; the stdout filters `sort`, `uniq`, `cut`, `tr`, `echo`, `printf`, `pwd`, and `sed` or `awk` with no write or exec; `git log`, `show`, `status`, `diff`, `rev-parse`, `ls-files`, `merge-base` and `blame`, plain or through `-C`, `--git-dir` or `--work-tree` | free: reads. Not with an option that runs a program or writes a file (`find -exec`, `rg --pre`, `sort -o`, `uniq`'s second operand, `sed`'s `w` or `e`, `awk`'s `system` or `>`), a redirect the row above doesn't cover (`2>&1`, `>&2` and `>/dev/null` are fine), an env prefix, `git -c`, a heredoc or `$(…)` |
+| `node -e`, `node -p`, `python3 -c`, and `node` on a tracked file or anything else but a scratch helper or `--version` | 3: a deliverable script can open the `clasp` credential or reach the network unseen, so a script being built runs through its tests or its `npm run` alias |
 | `git commit`, on any branch | 1; the branch guard still keeps a primary checkout on its branch, and the primary-edit guard keeps the commit out of one |
 | `git add`, and `git branch` without a delete or force flag (`-d`, `-D`, `-f`, `-M`, `-C`), in the same forms as the git reads | 1: git can undo it |
 | `npm run issue:start`, `issue:list`, and `issue:remove` without `--force`, which refuses unlanded work | 1 |
@@ -42,6 +44,8 @@ Reads need no yes in any tier.
 | Any other script that opens the `clasp` credential | 3 |
 | Spending money; touching credentials | 3; no tool does either yet, so the first one lands gated |
 | `npm run jev`, `npm run jev:style` | a standing yes: Deliverable text and repo docs, never secrets, `.env` files or credential files ([the Jev doc](./agents/jev.md#what-may-be-sent)) |
+
+**`timeout` and `npm run -s` leave a command's tier as it is.**
 
 ### npm publish
 
