@@ -21,8 +21,7 @@
 
 ## Settings changes
 
-- **A `.claude/settings.json` change is agent work**: a runner step can write the file in its workspace.
-- **A step's settings edit can add a hook or permission rule for later steps on its own ticket, but never removes a primary gate.**
+- **A `.claude/settings.json` change is agent work**: a step's edit can add a hook or permission rule for later steps on its own ticket, but can't remove a primary gate ([guardrails](../claude-code-guardrails.md#the-hooks-and-the-project-agent)).
 
 ## Phases
 

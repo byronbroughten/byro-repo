@@ -47,7 +47,7 @@ Break the work into **tracer bullet** tickets.
 Give each ticket one **kind**:
 
 - **Agent** (`ready-for-agent`): work a runner step can do.
-- **Interactive** (`ready-for-interactive`): agent work a step can't do, by the [tier list](../../../docs/targets-and-gates.md#which-tier-an-action-is-in): a tier-3 action, or a write outside the issue workspace, such as to `~/.claude`. Group it by where the chain needs it, usually one per spec, and make each downstream ticket blocked by it.
+- **Interactive** (`ready-for-interactive`): agent work a step can't do: a tier-3 action by the [tier list](../../../docs/targets-and-gates.md#which-tier-an-action-is-in), or a write outside the issue workspace, such as to `~/.claude`, by the [step write rule](../../../docs/claude-code-guardrails.md#the-hooks-and-the-project-agent). Group it by where the chain needs it, usually one per spec, and make each downstream ticket blocked by it.
 - **Human** (`ready-for-human`): work only the developer can do.
 
 Split a slice that needs two kinds into one ticket per kind; when one part needs another's output, that part's ticket blocks the other.
