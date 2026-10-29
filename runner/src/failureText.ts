@@ -15,9 +15,11 @@ export function outputTailOf(error: unknown): string {
     stdout?: string;
     stderr?: string;
   };
-  return lines(`${stdout}\n${stderr}`.trim())
-    .slice(-outputTailLines)
-    .join("\n");
+  return tailOf(`${stdout}\n${stderr}`);
+}
+
+export function tailOf(output: string): string {
+  return lines(output.trim()).slice(-outputTailLines).join("\n");
 }
 
 export function commandLabelOf(command: Command): string {

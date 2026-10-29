@@ -5,6 +5,7 @@ import { join } from "node:path";
 import {
   Checks,
   type CommandDuration,
+  stampFolderOf,
 } from "@byronbroughten/spec-runner/Checks";
 import { commandLabelOf } from "@byronbroughten/spec-runner/failureText";
 import type { Command } from "@byronbroughten/spec-runner/runKnobs";
@@ -27,7 +28,7 @@ const result = await Checks.init({
   commands,
   root: join(import.meta.dirname, "../.."),
   clonePaths: runKnobs.clonePaths,
-  stampFolder: join(stateFolder, "check-stamps"),
+  stampFolder: stampFolderOf(stateFolder),
   nodeVersion: process.version,
 }).run({ isFresh: args.includes("--fresh") });
 
