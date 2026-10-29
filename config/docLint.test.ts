@@ -209,7 +209,9 @@ describe("checkDocs", () => {
     it("passes a published framework doc linking inside the framework", () => {
       const docs = {
         "packages/framework/docs/a.md":
-          "[src](../src/x.ts) [b](./b.md#b) [readme](../README.md)\n",
+          "[src](../src/x.ts) [b](./b.md#b) [agents](../AGENTS.md)\n",
+        "packages/framework/AGENTS.md": "# Framework\n",
+        "packages/framework/CLAUDE.md": "@AGENTS.md\n",
         "packages/framework/docs/b.md": "# B\n",
         "packages/framework/README.md":
           "[a](./docs/a.md) [abs](/packages/framework/src/x.ts)\n",
@@ -318,7 +320,7 @@ describe("checkDocs", () => {
 
     it("holds the repo's own docs when the repo root is the published package", () => {
       const docs = {
-        "docs/a.md": "[b](./b.md) [README](../README.md)\n",
+        "docs/a.md": "[b](./b.md) [agents](../AGENTS.md)\n",
         "docs/b.md": "# B\n",
         "docs/c.md": "[out](../../elsewhere.md)\n",
         "README.md": "[a](/docs/a.md)\n",
@@ -371,6 +373,49 @@ describe("checkDocs", () => {
         "docs/b.md": "## Ticket size\n",
       };
       expect(check(docs)).toEqual([]);
+    });
+  });
+
+  describe("README links", () => {
+    const readmes = {
+      "README.md": "# Repo\n",
+      "runner/README.md": "## Context nudge\n",
+    };
+
+    it("fails a non-README doc's link to a README, anchored or not, naming its line", () => {
+      const violations = check({
+        ...readmes,
+        "docs/a.md": "# A\n\nSee [r](../runner/README.md#context-nudge).\n",
+        ".claude/skills/x/SKILL.md": "[r](../../../README.md)\n",
+      });
+      expect(violations).toEqual([
+        {
+          path: "docs/a.md",
+          line: 3,
+          message: "A README is for humans; link the fact's home instead.",
+        },
+        {
+          path: ".claude/skills/x/SKILL.md",
+          line: 1,
+          message: "A README is for humans; link the fact's home instead.",
+        },
+      ]);
+    });
+
+    it("passes a README linking a README", () => {
+      expect(
+        check({ ...readmes, "README.md": "[r](./runner/README.md)\n" }),
+      ).toEqual([]);
+    });
+
+    it("passes a README link in code or a record", () => {
+      expect(
+        check({
+          ...readmes,
+          "docs/a.md": "`[r](../README.md)`\n",
+          "docs/agents/outcomes/r-1.md": "[r](../../../README.md)\n",
+        }),
+      ).toEqual([]);
     });
   });
 

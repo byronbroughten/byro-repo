@@ -1,4 +1,10 @@
 // The context nudge: once a session's peak context reaches the ticket budget, the handoff reminder it gets; a repo's hook does the I/O.
+// Claude Code loads hooks only from a root's settings, so each repo registers its own PostToolUse shim on every tool.
+// The shim reads the hook input, skips subagents, reads the transcript at `transcript_path`,
+// passes `contextNudgeOf()` the session's id and the `ticketBudget` and `handoffDocPath` knobs
+// (through `runKnobsOrDefaults()` from the repo's override file), and writes any reminder as `additionalContext`.
+// Firing once per session, deciding which sessions the budget binds and failing open are the shim's.
+// byro-repo's shim is `.claude/hooks/contextNudge.ts`, registered in `.claude/settings.json`.
 import { ContextMeter } from "./contextMeter.ts";
 import type { RunKnobs } from "./runKnobs.ts";
 

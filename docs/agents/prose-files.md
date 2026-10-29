@@ -117,7 +117,7 @@ The `personal` repo is private and holds piece specs as issues; the Pieces' text
 
 | File | Holds |
 | --- | --- |
-| `README.md` | What the runner is, where its file table and config live, how a repo registers the context nudge, running a spec under tmux, its skills and how to run its tests. Derived prose. |
+| `README.md` | What the runner is, where its file table and config live, where the context nudge's registration is, running a spec under tmux, its skills and how to run its tests. Derived prose. |
 | `src/AGENTS.md` | The rules for working in `src/`, and its file table: one row per file under `src/`, tests aside, each one line naming the file's job and any `package.json` export. |
 | `skills/<name>/SKILL.md` | An interactive skill for the runner's records, such as `/judge-findings` for the review list, loaded through `.claude/skills/` ([layout](./upstream-skills.md#layout)). |
 | `GLOSSARY.md` | The spec runner's words, as [`GLOSSARY-MAP.md`](../../GLOSSARY-MAP.md) describes them. |
@@ -173,4 +173,4 @@ It has no README: a private repo has no outside reader.
 | Commands | The root `package.json`'s `app:*` scripts and [`targets-and-gates.md`](../targets-and-gates.md#targets-dev-and-app) |
 | History | Nothing; a fixed link to `byronbroughten/byro-repo` for the history before the split |
 
-`npm run lint` checks the links, the leads and the headings above with the `lint-docs` bin from `config/`, which the config package's README describes. The root runs it with `--published config` and each clone's repo with `--published .`, which holds each package's published docs (its `docs/`, `GLOSSARY.md`, `README.md`, `AGENTS.md` and `CLAUDE.md`) to links inside that package. The root's `npm run lint` runs every clone's `lint:docs` too.
+`npm run lint` checks the links, the leads and the headings above with the `lint-docs` bin from `config/`, whose checks are `checkDocs` in `config/docLint.js`. The root runs it with `--published config` and each clone's repo with `--published .`, which holds each package's published docs (its `docs/`, `GLOSSARY.md`, `README.md`, `AGENTS.md` and `CLAUDE.md`) to links inside that package. The root's `npm run lint` runs every clone's `lint:docs` too.
