@@ -51,7 +51,7 @@ Reads need no yes in any tier.
 
 **A runner step writes outside the repo only to the targets its ticket names**, in a `## Targets` section just before `## Model fit`, one per line: `app spreadsheet`, `dev spreadsheet` or `doc <id>`.
 
-- **A spreadsheet target gives the step that target's live `npm run` aliases and the gworkspace Sheets tools; a Doc target gives the Docs tools.** A ticket naming no targets launches with the runner config's fixed tools and no Google access at all.
+- **A spreadsheet target gives the step that target's live `npm run` aliases and the gworkspace Sheets tools; a Doc target gives the Docs tools.** A ticket naming no targets launches with no tools beyond what the primary's gate allows, and no Google access at all.
 - **A step's gworkspace write to a file its ticket doesn't name is refused, listing the ticket's targets.** The `app` and `dev` spreadsheet IDs come from each package's `sheets.config.json`.
 - **The runner reads the section with the Model fit pair just before each launch**, so a target added mid-run takes effect, and its preflight refuses a run with a malformed line.
 

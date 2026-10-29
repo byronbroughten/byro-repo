@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import type { StepRequest, StepResult } from "./AgentStep.ts";
-import { ClaudeAgentStep } from "./ClaudeAgentStep.ts";
+import { ClaudeAgentStep, type ProjectSettings } from "./ClaudeAgentStep.ts";
 
 const fixturesFolder = fileURLToPath(
   new URL("../fixtures/stream/", import.meta.url),
@@ -70,15 +70,7 @@ interface Replay {
   cwd: string;
 }
 
-interface HookEntry {
-  matcher?: string;
-  hooks: { type: string; command: string }[];
-}
-
-interface PassedSettings {
-  permissions?: { deny: string[] };
-  hooks: Record<string, HookEntry[] | undefined>;
-}
+type PassedSettings = ProjectSettings & { permissions?: unknown };
 
 function passedSettingsOf(argv: string[]): PassedSettings {
   return JSON.parse(
@@ -87,10 +79,16 @@ function passedSettingsOf(argv: string[]): PassedSettings {
 }
 
 function permissionRequestCommandOf(argv: string[]): string {
-  const entry = passedSettingsOf(argv).hooks.PermissionRequest?.find(
+  const entry = passedSettingsOf(argv).hooks?.PermissionRequest?.find(
     ({ matcher }) => matcher === "Edit|Write",
   );
-  return entry?.hooks[0]?.command ?? "";
+  const command = entry?.hooks[0]?.command;
+  if (command === undefined) {
+    throw new Error(
+      "The step's --settings has no Edit|Write PermissionRequest hook.",
+    );
+  }
+  return command;
 }
 
 // Runs the real adapter against a stand-in cswap that records its argv and prints a recorded stream.
@@ -180,8 +178,10 @@ describe("ClaudeAgentStep's command", () => {
     expect(argv).not.toContain("--setting-sources");
     const settings = passedSettingsOf(argv);
     expect(settings.permissions).toEqual(primarySettings.permissions);
-    expect(settings.hooks.PreToolUse).toEqual(primarySettings.hooks.PreToolUse);
-    expect(settings.hooks.PermissionRequest).toEqual([
+    expect(settings.hooks?.PreToolUse).toEqual(
+      primarySettings.hooks.PreToolUse,
+    );
+    expect(settings.hooks?.PermissionRequest).toEqual([
       { matcher: "Bash", hooks: [primaryPermissionHook] },
       {
         matcher: "Edit|Write",

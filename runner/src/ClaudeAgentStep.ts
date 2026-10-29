@@ -143,21 +143,19 @@ function commandArgs(request: StepRequest): string[] {
   return args;
 }
 
-interface HookEntry {
+export interface HookEntry {
   matcher?: string;
-  hooks: object[];
+  hooks: { type: string; command: string }[];
 }
 
-interface ProjectSettings {
+export interface ProjectSettings {
   hooks?: Record<string, HookEntry[]>;
 }
 
 // The primary's project settings, layered on the workspace's own: identical hook commands dedupe, so a workspace edit can't drop a primary gate.
-// Project settings stay in the sources, since leaving them out also drops the workspace's skills and agents.
-function settingsOf({ cwd, gateRoot, allowedWriteGlobs }: StepRequest): object {
-  const primary = JSON.parse(
-    readFileSync(join(gateRoot, ".claude", "settings.json"), "utf8"),
-  ) as ProjectSettings;
+function settingsOf(request: StepRequest): ProjectSettings {
+  const { cwd, allowedWriteGlobs } = request;
+  const primary = primarySettingsOf(request.gateRoot);
   const hookArgs: ClaudeWriteHookArgs = {
     workspaceRoot: cwd,
     allowedGlobs: allowedWriteGlobs,
@@ -178,6 +176,12 @@ function settingsOf({ cwd, gateRoot, allowedWriteGlobs }: StepRequest): object {
       ],
     },
   };
+}
+
+function primarySettingsOf(gateRoot: string): ProjectSettings {
+  return JSON.parse(
+    readFileSync(join(gateRoot, ".claude", "settings.json"), "utf8"),
+  ) as ProjectSettings;
 }
 
 // A ticket with no targets gets no Google access at all.
