@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import { fakePlaces } from "./fakePlaces.ts";
 import {
   blockerInstead,
-  callsGh,
   decisionInMode,
   dryRunChoresOf,
   gateDecision,
@@ -658,126 +657,17 @@ describe("a runner step's unclassified call", () => {
   });
 });
 
-describe("a supervising session's gh calls", () => {
-  function supervisedDecisionOf(command: string) {
-    return gateDecision({
-      command,
-      mode: "interactive",
-      dryRuns: [],
-      supervising: true,
-    });
-  }
-  const writes = [
-    'gh issue comment 331 --body "Approved reply"',
-    "gh issue edit 341 -R byronbroughten/byro-repo --add-label ready-for-agent",
-    "gh issue close 341",
-    'gh pr comment 12 -b "Looks right"',
-    "gh api -X PATCH repos/o/r/issues/341 -f state=closed",
-    "gh api --method=DELETE repos/o/r/issues/comments/9",
-    "gh api -XPOST repos/o/r/issues/341/comments",
-    "gh api repos/o/r/issues/341/comments -f body=hi",
-    "gh api repos/o/r/issues/341/comments --input body.json",
-    "gh api graphql -f query='mutation { x }'",
-    "/opt/homebrew/bin/gh issue comment 331 -b hi",
-    "env -i gh issue close 341",
-    "bash -c 'gh issue close 341'",
-    'echo "$(gh issue close 341)"',
-    "git log | xargs gh issue comment 331 -b",
-    'gh issue view "$(gh issue close 341)"',
-    "xargs /opt/homebrew/bin/gh issue close 341",
-    "env -i /opt/homebrew/bin/gh issue close 341",
-    "bash -c '/opt/homebrew/bin/gh issue close 341'",
-    'echo "$(/opt/homebrew/bin/gh issue close 341)"',
-    "gh api -iXPOST repos/o/r/issues/341/comments",
-    "gh api -X post repos/o/r/issues/341/comments",
-    "sh -c 'git fetch && gh issue comment 1 -b hi'",
-    "bash -lc 'cd x; gh issue close 341'",
-    "echo `gh issue close 341`",
-    'echo "`gh issue close 341`"',
-    'echo "$(cd x; gh issue close 341)"',
-    "eval 'gh issue close 341'",
-    "find . -name x -exec /bin/sh -c 'gh issue close 341' \\;",
-  ];
-
-  it("asks for each write, naming the exact command", () => {
-    writes.forEach((command) => {
-      const decision = supervisedDecisionOf(command);
-      expect(decision?.permissionDecision).toBe("ask");
-      expect(decision?.reason).toContain(`\`${command}\``);
-    });
-  });
-
-  it("lets reads through as before", () => {
+describe("a Supervisor's gh writes", () => {
+  // The gate takes no supervision input, so a session holding a record gets the same call as one without.
+  it("leaves a gh issue comment and edit to the allow rules, as for any interactive session", () => {
     [
-      "gh issue view 341 --comments",
-      "gh pr list --state open",
-      "gh pr diff 12",
-      "gh api repos/o/r/issues/341",
-      "gh api -X GET search/issues -f q=repo:o/r",
-      "gh api --method HEAD repos/o/r",
-      "gh search issues tier gate",
-      "gh auth status",
+      'gh issue comment 331 --body "Approved reply"',
+      "gh issue edit 341 -R byronbroughten/byro-repo --add-label ready-for-agent",
     ].forEach((command) =>
-      expect(supervisedDecisionOf(command)).toBeUndefined(),
-    );
-  });
-
-  it("reads a gh in a quoted argument to another command as text", () => {
-    [
-      'grep -n "a\\|gh b" f',
-      'grep -n "git \\|gh \\|issue:" f',
-      'rg "gh issue" .',
-      "sed -n '/gh x/p' f",
-      "git log --grep='; gh issue close'",
-    ].forEach((command) =>
-      expect(supervisedDecisionOf(command)?.permissionDecision).toBe("allow"),
-    );
-  });
-
-  it("asks for a gh command it doesn't know to be a read", () => {
-    expect(
-      supervisedDecisionOf("gh release create v1")?.permissionDecision,
-    ).toBe("ask");
-    expect(
-      supervisedDecisionOf("gh label delete bug")?.permissionDecision,
-    ).toBe("ask");
-  });
-
-  it("decides the same writes as today in a session that isn't supervising", () => {
-    writes.forEach((command) => {
       expect(
         gateDecision({ command, mode: "interactive", dryRuns: [] }),
-      ).toBeUndefined();
-    });
-  });
-
-  it("decides a runner step's writes as today, since a runner step is never a supervisor", () => {
-    writes.forEach((command) => {
-      expect(
-        gateDecision({
-          command,
-          mode: "runnerStep",
-          dryRuns: [],
-          supervising: true,
-        }),
-      ).toBeUndefined();
-    });
-  });
-
-  it("still asks in a compound command beside an allowed one", () => {
-    expect(
-      supervisedDecisionOf('git commit -m wip && gh issue comment 3 -b "x"')
-        ?.permissionDecision,
-    ).toBe("ask");
-  });
-});
-
-describe("callsGh", () => {
-  it("is true only when a command's text could run gh", () => {
-    expect(callsGh("gh issue view 341")).toBe(true);
-    expect(callsGh("bash -c 'gh issue close 3'")).toBe(true);
-    expect(callsGh("npm test")).toBe(false);
-    expect(callsGh("git log --oneline highlight")).toBe(false);
+      ).toBeUndefined(),
+    );
   });
 });
 
