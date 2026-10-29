@@ -1,10 +1,23 @@
 // Decides the gate for a Bash call by tier: 1 and 2 are free (git or Google's version history undoes them), 3 asks. Pure; tierGate.ts does the I/O, and driveTiers.ts decides gworkspace calls.
+import { isAbsolute } from "node:path";
+
 import {
   npmScriptOf,
-  sedPartsOf,
   type SimpleCommand,
   simpleCommandsOf,
 } from "./bashReads.ts";
+import {
+  isSedScriptPrinting,
+  isStdoutFilter,
+  sedCallOf,
+  stdoutFilters,
+} from "./stdoutFilters.ts";
+import {
+  isStepWritable,
+  partsInside,
+  resolvedPathOf,
+  type WritePlaces,
+} from "./stepWrites.ts";
 
 export interface Decision {
   permissionDecision: "allow" | "ask" | "deny";
@@ -21,12 +34,27 @@ export const stepTargetsVariable = "BYRO_STEP_TARGETS";
 export const blockerInstead =
   "record a `denied-tool` blocker for the developer instead";
 
+// Where the call runs, for the write rule and scratch `node`; isIgnored asks the checkout holding a path.
+export interface ShellPlaces extends WritePlaces {
+  cwd: string;
+  isIgnored: (path: string) => boolean;
+}
+
 export interface ShellCall {
   command: string;
   mode: SessionMode;
   dryRuns: string[];
   // This session's claude holds a supervision record, so its gh writes ask.
   supervising?: boolean;
+  // Absent, no write passes the write rule and no `node` file is scratch.
+  places?: ShellPlaces;
+}
+
+// What a simple command's verdict reads beyond its own words; places carries the cwd as of that command.
+interface CallContext {
+  mode: SessionMode;
+  dryRuns: string[];
+  places: ShellPlaces | undefined;
 }
 
 // One simple command's verdict; `why` finishes a sentence about it.
@@ -57,6 +85,7 @@ const untargetedPrograms = new Set([
 ]);
 const npmExecVerbs = new Set(["exec", "x"]);
 const deployWhy = "a deployment can be rolled back to an earlier version";
+const checkWhy = "the repo's checks write nothing git can't undo";
 const freeScripts = new Map([
   ["wrap-up", "`npm run wrap-up` is the standing yes to push"],
   ["app:build", "Apps Script keeps the pushed code's version history"],
@@ -66,6 +95,23 @@ const freeScripts = new Map([
   ["issue:list", "it only reads the workspaces"],
   ["issue:remove", "a plain remove refuses a workspace holding unlanded work"],
   ["issue:backlink", "a further `gh issue edit` undoes it"],
+  ["issue:read", "it only reads an issue"],
+  ["issue:promote", "a promoted repo comes off with its workspace"],
+  ["check", checkWhy],
+  ["tsc", checkWhy],
+  ["lint", checkWhy],
+  ["test", checkWhy],
+]);
+const npxChecks = new Map<string, (args: string[]) => boolean>([
+  ["vitest", (args) => args[0] === "run"],
+  ["tsc", () => true],
+  ["eslint", () => true],
+  [
+    "prettier",
+    (args) =>
+      args.includes("--check") &&
+      !args.some((arg) => arg === "--write" || arg === "-w"),
+  ],
 ]);
 const readPrograms = new Set(["grep", "rg", "cat", "head", "tail", "wc", "ls"]);
 const gitReadVerbs = new Set([
@@ -76,7 +122,23 @@ const gitReadVerbs = new Set([
   "rev-parse",
   "ls-files",
   "blame",
+  "merge-base",
 ]);
+const gitFileVerbs = new Set(["mv", "rm"]);
+const fileCommands = new Set(["rm", "mkdir", "cp", "mv"]);
+const interpreters = {
+  nodeScratchFlags: new Set([
+    "--experimental-strip-types",
+    "--no-warnings",
+    "--enable-source-maps",
+  ]),
+  python: new Set(["python", "python3"]),
+  nodeWhy:
+    "runs code that isn't a scratch helper: `node` runs only scratch helpers, in `$TMPDIR` or a gitignored folder of the workspace, and a script being built runs through its tests or its `npm run` alias",
+  pythonWhy: "runs inline Python, which no test or `npm run` alias covers",
+} as const;
+// Claude Code's allow rules still decide a step's gh writes and the live aliases its targets give it.
+const leftToAllowRules = /\bgh\b|\bnpm run (?:-s )?(?:app|dev):/;
 const gitPathOptions = new Set(["-C", "--git-dir", "--work-tree"]);
 const findActions = new Set([
   "-exec",
@@ -91,12 +153,6 @@ const findActions = new Set([
 ]);
 // ripgrep runs the program each of these names.
 const rgRunFlags = ["--pre", "--hostname-bin"];
-const sedReadFlags = /^-[nEsrz]+$/;
-const sedAddress = String.raw`(\d+|\$|/[^/\\]*/)`;
-// Printing pieces only, as `12,40p`, `$=` or `s/a/b/gp`: sed's own w and e commands write a file or run one.
-const sedPrint = new RegExp(
-  String.raw`^(${sedAddress}(,${sedAddress})?)?(p|=|l|q\d*|s/[^/\\]*/[^/\\]*/[gpI\d]*)$`,
-);
 // Deleting a branch, or forcing one over another, loses commits git can't bring back but by its reflog.
 const branchDropFlags = new Set(["--delete", "--force"]);
 const branchDropShorthands = /^-[^-]*[dDfMC]/;
@@ -118,8 +174,17 @@ const ghWriteWhy =
 export function gateDecision(call: ShellCall): Decision | undefined {
   // A runner step is never a supervisor, whatever record its claude holds.
   const supervising = call.mode === "interactive" && call.supervising;
-  const decision = baseDecision({ ...call, supervising });
+  const decision =
+    baseDecision({ ...call, supervising }) ?? undecidedDecision(call);
   return decision && decisionInMode(decision, call.mode);
+}
+
+// An Interactive session's unclassified call falls through to Claude Code; a runner step's is refused, as nobody can answer Claude Code's prompt.
+function undecidedDecision({ command, mode }: ShellCall): Decision | undefined {
+  if (mode === "interactive" || leftToAllowRules.test(command)) {
+    return undefined;
+  }
+  return needsYes(`\`${command}\` is a call the tier gate doesn't classify`);
 }
 
 export function sessionModeOf(env: NodeJS.ProcessEnv): SessionMode {
@@ -146,8 +211,10 @@ export function callsGh(command: string): boolean {
 
 function baseDecision({
   command,
+  mode,
   dryRuns,
   supervising,
+  places,
 }: ShellCall): Decision | undefined {
   const commands = parsedCommandsOf(command);
   if (!commands) {
@@ -155,11 +222,18 @@ function baseDecision({
       ? needsYes(`\`${command}\` ${ghWriteWhy}`)
       : undefined;
   }
-  const verdicts = commands.map((simple) =>
-    supervising && ghWriteOf(simple.words)
+  // A `cd` inside a subshell or a pipe doesn't carry on, so after one there the cwd is unknown.
+  const cdCarriesOn = !/[()|]/.test(command);
+  let cwd = places?.cwd;
+  const verdicts = commands.map((simple) => {
+    const here = places && cwd !== undefined ? { ...places, cwd } : undefined;
+    if (simple.words[0] === "cd") {
+      cwd = cdCarriesOn ? cdTargetOf(cwd, simple.words[1]) : undefined;
+    }
+    return supervising && ghWriteOf(simple.words)
       ? { permissionDecision: "ask" as const, why: ghWriteWhy }
-      : verdictOf(simple, dryRuns),
-  );
+      : verdictOf(simple, { mode, dryRuns, places: here });
+  });
   const deny = verdicts.find(
     (verdict) => verdict?.permissionDecision === "deny",
   );
@@ -213,18 +287,53 @@ export function needsYes(why: string): Decision {
   return gateOf("ask", `${why}, so it needs a yes.`);
 }
 
+function cdTargetOf(
+  cwd: string | undefined,
+  target: string | undefined,
+): string | undefined {
+  if (cwd === undefined || target === undefined || target === "-") {
+    return undefined;
+  }
+  return isPlainPath(target) ? absoluteOf(target, cwd) : undefined;
+}
+
+// Each redirect's file passes the write rule, or the command asks whatever it runs.
 function verdictOf(
   simple: SimpleCommand,
-  dryRuns: string[],
+  context: CallContext,
+): Verdict | undefined {
+  const blocked = simple.outputFiles.find(
+    (file) => !isWritablePath(file, context.places),
+  );
+  if (blocked !== undefined) return writeAskOf(blocked);
+  if (simple.words.length === 0) {
+    return {
+      permissionDecision: "allow",
+      why: "a bare redirect writes only inside the workspace or `$TMPDIR`",
+      needsPlainText: true,
+    };
+  }
+  return commandVerdictOf(simple, context);
+}
+
+// `timeout` is decided on the command it wraps.
+function commandVerdictOf(
+  simple: SimpleCommand,
+  context: CallContext,
 ): Verdict | undefined {
   const { words } = simple;
+  const { dryRuns, places } = context;
+  const wrapped = timeoutWrappedOf(words);
+  if (wrapped) {
+    return commandVerdictOf({ ...simple, words: wrapped }, context);
+  }
   const chore = appChoreOf(words);
   if (chore?.isSend) return sendVerdictOf(chore.name, dryRuns);
   const git = gitCallOf(words);
   if (git?.verb === "commit") {
     return { permissionDecision: "allow", why: "git can undo a commit" };
   }
-  const isPlainGit = git?.isPlain === true && isBareCommand(simple);
+  const isPlainGit = git?.isPlain === true && simple.isBare;
   if (isPlainGit && git.verb === "add") {
     return {
       permissionDecision: "allow",
@@ -239,10 +348,30 @@ function verdictOf(
       needsPlainText: true,
     };
   }
-  const readWhy = isBareCommand(simple) ? readWhyOf(words, git) : undefined;
+  if (isPlainGit && isTrackedFileChange(git)) {
+    return {
+      permissionDecision: "allow",
+      why: "git can undo moving or removing a tracked file",
+      needsPlainText: true,
+    };
+  }
+  if (
+    isPlainGit &&
+    git.verb === "restore" &&
+    isOwnStepCheckout(words, context)
+  ) {
+    return {
+      permissionDecision: "allow",
+      why: "a runner step's `git restore` changes only its own workspace",
+      needsPlainText: true,
+    };
+  }
+  const readWhy = simple.isBare ? readWhyOf(words, git) : undefined;
   if (readWhy) {
     return { permissionDecision: "allow", why: readWhy, needsPlainText: true };
   }
+  const fileVerdict = simple.isBare ? fileVerdictOf(words, places) : undefined;
+  if (fileVerdict) return fileVerdict;
   if (git?.verb === "push") {
     return {
       permissionDecision: "ask",
@@ -269,9 +398,158 @@ function verdictOf(
       why: "discards a workspace's unlanded work, which git can't bring back",
     };
   }
-  const freeWhy = script && freeScripts.get(script.name);
+  // A --prefix runs another folder's scripts under the same name.
+  const scriptName = words.some((word) => word.startsWith("--prefix"))
+    ? undefined
+    : (script?.name ?? npmTestOf(words));
+  const freeWhy = scriptName && freeScripts.get(scriptName);
   if (freeWhy) return { permissionDecision: "allow", why: freeWhy };
-  return undefined;
+  if (isNpxCheck(words)) return { permissionDecision: "allow", why: checkWhy };
+  return simple.isBare ? interpreterVerdictOf(words, places) : undefined;
+}
+
+// `npm test` and `npm t`, which need no `run`.
+function npmTestOf(words: string[]): string | undefined {
+  if (!isNpm(words)) return undefined;
+  const verb = nonFlagsOf(words)[1];
+  return verb === "test" || verb === "t" ? "test" : undefined;
+}
+
+function isNpxCheck([program, tool = "", ...args]: string[]): boolean {
+  if (program !== "npx") return false;
+  return npxChecks.get(tool)?.(args) ?? false;
+}
+
+// The duration and the timeout's own flags dropped, or undefined when the words aren't a timeout.
+function timeoutWrappedOf(words: string[]): string[] | undefined {
+  if (words[0] !== "timeout") return undefined;
+  let at = 1;
+  while ((words[at] ?? "").startsWith("-")) {
+    if (["-s", "-k", "--signal", "--kill-after"].includes(words[at] ?? "")) {
+      at++;
+    }
+    at++;
+  }
+  const wrapped = words.slice(at + 1);
+  return wrapped.length > 0 ? wrapped : undefined;
+}
+
+// rm, mkdir, cp, mv and sed -i: tier 1 when every path passes the write rule, tier 3 otherwise; a stdout filter that may write or run asks.
+function fileVerdictOf(
+  words: string[],
+  places: ShellPlaces | undefined,
+): Verdict | undefined {
+  const [program = "", ...args] = words;
+  const paths = writtenPathsOf(program, args);
+  if (paths) {
+    const blocked = paths.find((path) => !isWritablePath(path, places));
+    if (blocked !== undefined) return writeAskOf(blocked);
+    return {
+      permissionDecision: "allow",
+      why: `\`${program}\` writes only inside the workspace or \`$TMPDIR\``,
+      needsPlainText: true,
+    };
+  }
+  if (!stdoutFilters.has(program) || isStdoutFilter(program, args)) {
+    return undefined;
+  }
+  return {
+    permissionDecision: "ask",
+    why: "may write a file or run a command, which the gate can't check",
+  };
+}
+
+function writtenPathsOf(program: string, args: string[]): string[] | undefined {
+  if (program === "sed") {
+    const call = sedCallOf(args);
+    if (!call?.isInPlace || !isSedScriptPrinting(call)) return undefined;
+    return call.files.length > 0 ? call.files : [""];
+  }
+  if (!fileCommands.has(program)) return undefined;
+  const paths: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i] ?? "";
+    if (arg === "--") {
+      paths.push(...args.slice(i + 1));
+      break;
+    }
+    if (arg.startsWith("--target-directory=")) {
+      paths.push(arg.slice("--target-directory=".length));
+    } else if (program === "mkdir" && arg === "-m") i++;
+    else if (!arg.startsWith("-")) paths.push(arg);
+  }
+  return paths.length > 0 ? paths : [""];
+}
+
+function writeAskOf(path: string): Verdict {
+  return {
+    permissionDecision: "ask",
+    why: `writes \`${path}\`, which isn't inside the workspace or \`$TMPDIR\`, or is in \`.git\``,
+  };
+}
+
+// node runs a scratch helper, in $TMPDIR or gitignored in the workspace, at tier 1; any other node or inline python is tier 3.
+function interpreterVerdictOf(
+  words: string[],
+  places: ShellPlaces | undefined,
+): Verdict | undefined {
+  const [program = "", ...args] = words;
+  if (interpreters.python.has(program)) {
+    return args.some((arg) => /^-[a-zA-Z]*c/.test(arg))
+      ? { permissionDecision: "ask", why: interpreters.pythonWhy }
+      : undefined;
+  }
+  if (program !== "node") return undefined;
+  if (args.length === 1 && (args[0] === "-v" || args[0] === "--version")) {
+    return { permissionDecision: "allow", why: "`node --version` only reads" };
+  }
+  const at = args.findIndex((arg) => !arg.startsWith("-"));
+  const isScratch =
+    at >= 0 &&
+    args
+      .slice(0, at)
+      .every((flag) => interpreters.nodeScratchFlags.has(flag)) &&
+    isScratchFile(args[at] ?? "", places);
+  if (!isScratch) {
+    return { permissionDecision: "ask", why: interpreters.nodeWhy };
+  }
+  return {
+    permissionDecision: "allow",
+    why: "`node` runs a scratch helper",
+    needsPlainText: true,
+  };
+}
+
+// An existing file gitignored inside the workspace, or anywhere in $TMPDIR outside .git.
+function isScratchFile(path: string, places: ShellPlaces | undefined): boolean {
+  if (!places || !isPlainPath(path)) return false;
+  const resolved = resolvedPathOf(absoluteOf(path, places.cwd), places);
+  if (resolved === undefined || places.realPathOf(resolved) === undefined) {
+    return false;
+  }
+  if (partsInside(resolved, places.workspaceRoot, places)) {
+    return places.isIgnored(resolved);
+  }
+  const tmpParts = partsInside(resolved, places.tmpDir, places);
+  return tmpParts !== undefined && !tmpParts.includes(".git");
+}
+
+function isWritablePath(
+  path: string,
+  places: ShellPlaces | undefined,
+): boolean {
+  if (!places || !isPlainPath(path)) return false;
+  return isStepWritable(absoluteOf(path, places.cwd), places);
+}
+
+// No expansion the gate can't follow: a variable, a glob, braces or `~`.
+function isPlainPath(path: string): boolean {
+  return path !== "" && !path.startsWith("~") && !/[$`*?[\]{}]/.test(path);
+}
+
+// Joined, not resolved, so the write rule walks each `..` through any symlink.
+function absoluteOf(path: string, cwd: string): string {
+  return isAbsolute(path) ? path : `${cwd}/${path}`;
 }
 
 // Every gh call but a known read writes, and so does a gh this gate can't see into.
@@ -360,10 +638,6 @@ function appChoreOf(words: string[]): AppChore | undefined {
   return { name, isSend };
 }
 
-function isBareCommand({ isBare, writesFile }: SimpleCommand): boolean {
-  return isBare && !writesFile;
-}
-
 // Programs match by bare name only, since a path could be any program.
 function readWhyOf(
   words: string[],
@@ -380,7 +654,7 @@ function readWhyOf(
 }
 
 function isProgramRead(program: string, args: string[]): boolean {
-  if (program === "sed") return isSedRead(args);
+  if (stdoutFilters.has(program)) return isStdoutFilter(program, args);
   if (program === "find") return !args.some((arg) => findActions.has(arg));
   if (program === "rg") {
     return !args.some((arg) => rgRunFlags.some((flag) => arg.startsWith(flag)));
@@ -405,25 +679,33 @@ function isBranchChange({ verb, args }: GitCall): boolean {
   );
 }
 
-function isSedRead(args: string[]): boolean {
-  let isQuiet = false;
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i] ?? "";
-    if (arg === "-e") i++;
-    else if (arg === "--quiet" || arg === "--silent") isQuiet = true;
-    else if (sedReadFlags.test(arg)) {
-      if (arg.includes("n")) isQuiet = true;
-    } else if (arg.startsWith("-") && arg !== "-") return false;
-  }
+// A forced move or removal can overwrite or drop changes git never saw.
+function isTrackedFileChange({ verb, args }: GitCall): boolean {
   return (
-    isQuiet &&
-    sedPartsOf(args).scripts.every((script) =>
-      script
-        .split(/[;\n]/)
-        .map((piece) => piece.trim())
-        .every((piece) => sedPrint.test(piece)),
-    )
+    gitFileVerbs.has(verb) &&
+    !args.some((arg) => arg === "--force" || /^-[^-]*f/.test(arg))
   );
+}
+
+// A runner step's workspace holds only that step's work, so a restore there loses nothing anyone else made.
+function isOwnStepCheckout(
+  words: string[],
+  { mode, places }: CallContext,
+): boolean {
+  if (mode !== "runnerStep" || !places) return false;
+  const pointsElsewhere = words.some((word) =>
+    gitPathOptions.has(word.split("=")[0] ?? ""),
+  );
+  if (pointsElsewhere) return false;
+  const cwd = resolvedPathOf(places.cwd, places);
+  if (cwd === undefined) return false;
+  if (
+    cwd === (places.realPathOf(places.workspaceRoot) ?? places.workspaceRoot)
+  ) {
+    return true;
+  }
+  const parts = partsInside(cwd, places.workspaceRoot, places);
+  return parts !== undefined && !parts.includes(".git");
 }
 
 function gitCallOf(words: string[]): GitCall | undefined {

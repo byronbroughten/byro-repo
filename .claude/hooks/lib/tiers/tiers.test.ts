@@ -1,16 +1,32 @@
 import { describe, expect, it } from "vitest";
 
+import { fakePlaces } from "./fakePlaces.ts";
 import {
+  blockerInstead,
   callsGh,
   decisionInMode,
   dryRunChoresOf,
   gateDecision,
+  type SessionMode,
   sessionModeOf,
 } from "./tiers.ts";
 
 function decisionOf(command: string, dryRuns: string[] = []) {
   return gateDecision({ command, mode: "interactive", dryRuns })
     ?.permissionDecision;
+}
+
+function placedDecisionOf(
+  command: string,
+  mode: SessionMode = "interactive",
+  cwd = "/ws",
+) {
+  return gateDecision({
+    command,
+    mode,
+    dryRuns: [],
+    places: fakePlaces(cwd),
+  });
 }
 
 function runnerStepDecisionOf(command: string) {
@@ -67,10 +83,14 @@ describe("gateDecision", () => {
   });
 
   it("has no opinion on a command it doesn't list, alone or beside an allowed one", () => {
-    expect(decisionOf("npm test")).toBeUndefined();
+    expect(decisionOf("make build")).toBeUndefined();
     expect(decisionOf("npm run app:gen:configs")).toBeUndefined();
-    expect(decisionOf("rm -rf dist")).toBeUndefined();
-    expect(decisionOf("git commit -m wip && rm -rf dist")).toBeUndefined();
+    expect(decisionOf("git commit -m wip && make build")).toBeUndefined();
+  });
+
+  it("asks for a file write when it has no places to check the path against", () => {
+    expect(decisionOf("rm -rf dist")).toBe("ask");
+    expect(decisionOf("git commit -m wip && rm -rf dist")).toBe("ask");
   });
 
   it("allows a chore's send once that chore's dry run is recorded", () => {
@@ -306,7 +326,6 @@ describe("reads and git add", () => {
       "sed -i '' 's/a/b/' AGENTS.md",
       "sed -ni '1p' AGENTS.md",
       "sed --in-place -n 1p AGENTS.md",
-      "sed 's/a/b/' AGENTS.md",
       "sed -n '1w out.txt' AGENTS.md",
       "sed -n '1e rm -rf dist' AGENTS.md",
       "sed -n -f script.sed AGENTS.md",
@@ -378,6 +397,199 @@ describe("reads and git add", () => {
   it("still denies a gh read in a runner step", () => {
     ["gh issue view 389", "gh issue list"].forEach((command) =>
       expect(runnerStepDecisionOf(command)).not.toBe("allow"),
+    );
+  });
+});
+
+describe("stdout filters and wrappers", () => {
+  it("allows each filter alone", () => {
+    [
+      "sort AGENTS.md",
+      "sort -u -k2 AGENTS.md",
+      "uniq -c AGENTS.md",
+      "cut -d, -f1 AGENTS.md",
+      "tr a-z A-Z",
+      "sed 's|a|b|' AGENTS.md",
+      "sed -E 's/a+/b/g' AGENTS.md",
+      "awk '{print $1}' AGENTS.md",
+      "awk -F: '{print $2}' AGENTS.md",
+      "echo hi",
+      "printf '%s\\n' x",
+      "pwd",
+    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
+  });
+
+  it("allows each filter piped after a read", () => {
+    [
+      "cat AGENTS.md | sort | uniq -c",
+      "git log --oneline | awk '{print $1}'",
+      "grep -n x AGENTS.md | cut -d: -f1 | tr -d ' '",
+      "ls | sed 's/a/b/'",
+    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
+  });
+
+  it("decides `npm run -s` and `timeout` on what they wrap", () => {
+    [
+      "npm run -s check",
+      "npm run -s issue:read -- byro-repo 447 --body --hide-others",
+      "timeout 60 npm test",
+      "timeout -k 5 60 grep -n x AGENTS.md",
+    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
+    expect(decisionOf("timeout 60 git push")).toBe("ask");
+  });
+
+  it("asks for sed with a write or exec, and awk with system or a redirect", () => {
+    [
+      "sed 's/a/b/w out.txt' AGENTS.md",
+      "sed 's/a/b/e' AGENTS.md",
+      "sed '1w out.txt' AGENTS.md",
+      "sed '1e ls' AGENTS.md",
+      "awk '{system(\"ls\")}' AGENTS.md",
+      "awk '{print > \"out.txt\"}' AGENTS.md",
+      "awk '{print | \"sh\"}' AGENTS.md",
+      "sort -o out.txt AGENTS.md",
+    ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
+  });
+});
+
+describe("file writes by the step write rule", () => {
+  it("allows rm, mkdir, cp, mv, sed -i and a redirect inside the workspace or $TMPDIR", () => {
+    [
+      "rm -rf dist",
+      "rm /tmp/scratch.txt",
+      "mkdir -p .scratch/a",
+      "mkdir /tmp/work",
+      "cp AGENTS.md /tmp/copy.md",
+      "mv dist out",
+      "mv /tmp/helper.mjs .scratch/helper.mjs",
+      "sed -i '' 's/a/b/' AGENTS.md",
+      "echo x > out.txt",
+      "cat AGENTS.md > /tmp/copy.md",
+      "git log >> .scratch/log.txt",
+      "cd packages/framework && rm -rf src/old",
+    ].forEach((command) =>
+      expect(placedDecisionOf(command)?.permissionDecision).toBe("allow"),
+    );
+  });
+
+  it("asks for each with a path outside them, through `..` or a symlink included", () => {
+    [
+      "rm -rf /outside",
+      "rm ../outside/x",
+      "rm escape/x",
+      "rm linkdir/../x",
+      "rm dangling",
+      "rm /ws",
+      "mkdir /outside/new",
+      "cp AGENTS.md /outside/",
+      "mv AGENTS.md ../x",
+      "sed -i '' 's/a/b/' /outside/x",
+      "echo x > /outside/x",
+      "echo x > escape/y",
+      "cd /outside && rm x",
+      "rm ~/x",
+      "rm $HOME/x",
+      "rm *.md",
+      "rm /tmp/claude-guardrails/chore-dry-runs.json",
+    ].forEach((command) =>
+      expect(placedDecisionOf(command)?.permissionDecision).toBe("ask"),
+    );
+  });
+
+  it("asks for a path into `.git` at the workspace root or in a package", () => {
+    [
+      "rm .git",
+      "rm -rf .git/hooks",
+      "echo x > packages/framework/.git",
+      "mkdir packages/framework/.git/x",
+      "cp AGENTS.md .git/config",
+    ].forEach((command) =>
+      expect(placedDecisionOf(command)?.permissionDecision).toBe("ask"),
+    );
+  });
+
+  it("turns each ask into the blocker deny in a runner step", () => {
+    const decision = placedDecisionOf("rm -rf /outside", "runnerStep");
+    expect(decision?.permissionDecision).toBe("deny");
+    expect(decision?.reason).toContain(blockerInstead);
+  });
+});
+
+describe("interpreters", () => {
+  it("allows node on a gitignored or $TMPDIR file", () => {
+    [
+      "node .runner/helper.ts",
+      "node --experimental-strip-types .runner/helper.ts",
+      "node /tmp/helper.mjs",
+    ].forEach((command) =>
+      expect(placedDecisionOf(command)?.permissionDecision).toBe("allow"),
+    );
+  });
+
+  it("asks for node on a tracked file, new or committed, and for node -e or -p, saying node runs only scratch helpers", () => {
+    [
+      "node scripts/tool.ts",
+      "node scripts/new.ts",
+      "node -e 'console.log(1)'",
+      "node -p 1",
+      "node --require ./x.js .runner/helper.ts",
+    ].forEach((command) => {
+      const decision = placedDecisionOf(command);
+      expect(decision?.permissionDecision).toBe("ask");
+      expect(decision?.reason).toContain("`node` runs only scratch helpers");
+      expect(decision?.reason).toContain(
+        "a script being built runs through its tests or its `npm run` alias",
+      );
+    });
+  });
+
+  it("asks for python3 -c", () => {
+    expect(placedDecisionOf("python3 -c 'print(1)'")?.permissionDecision).toBe(
+      "ask",
+    );
+  });
+});
+
+describe("a runner step's unclassified call", () => {
+  it("is denied with the blocker text in a runner step, and left undecided in an Interactive session", () => {
+    const decision = placedDecisionOf("make build", "runnerStep");
+    expect(decision?.permissionDecision).toBe("deny");
+    expect(decision?.reason).toContain("`make build`");
+    expect(decision?.reason).toContain(blockerInstead);
+    expect(placedDecisionOf("make build")).toBeUndefined();
+  });
+
+  it("leaves a call naming gh or a live alias to Claude Code's allow rules in either mode", () => {
+    [
+      "gh issue edit 447 --body-file /tmp/body.md",
+      "gh issue comment 447 -b done",
+      "npm run app:gen:configs",
+      "npm run -s dev:push",
+    ].forEach((command) => {
+      expect(placedDecisionOf(command)).toBeUndefined();
+      expect(placedDecisionOf(command, "runnerStep")).toBeUndefined();
+    });
+  });
+
+  it("allows git restore in a runner step's own workspace only", () => {
+    [
+      ["git restore AGENTS.md", "/ws"],
+      ["git restore --staged src/x.ts", "/ws/packages/framework"],
+    ].forEach(([command = "", cwd]) =>
+      expect(
+        placedDecisionOf(command, "runnerStep", cwd)?.permissionDecision,
+      ).toBe("allow"),
+    );
+    expect(placedDecisionOf("git restore AGENTS.md")).toBeUndefined();
+    [
+      ["git restore x", "/outside"],
+      ["git -C /outside restore x", "/ws"],
+      ["git --work-tree=/outside restore x", "/ws"],
+      ["git restore config", "/ws/.git"],
+    ].forEach(([command = "", cwd]) =>
+      expect(
+        placedDecisionOf(command, "runnerStep", cwd)?.permissionDecision,
+      ).toBe("deny"),
     );
   });
 });
