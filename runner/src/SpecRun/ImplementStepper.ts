@@ -234,7 +234,6 @@ export class ImplementStepper extends SpecRunBase {
       branch: workspace.branch,
       branchedRepos: workspace.branchedRepos,
       promoteCommand: this.config.promoteCommandOf(ticket.issue),
-      allowedWriteGlobs: this.config.knobs.allowedWriteGlobs,
       latestHandoff: state.latestHandoff,
     });
   }

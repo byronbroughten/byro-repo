@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   ClaudeAgentStep,
+  type HookEntry,
   type McpServerConfig,
 } from "@byronbroughten/spec-runner/ClaudeAgentStep";
 import { clonePathsOf } from "@byronbroughten/spec-runner/clonePaths";
@@ -87,6 +88,18 @@ export const issueWorkspacesConfig: IssueWorkspacesConfig = {
   },
 };
 
+// Registered per step rather than in .claude/settings.json; rooted like every gate, so a step's edit to it waits for master.
+const stepPermissionHook: HookEntry = {
+  matcher: "Edit|Write|Bash|Read",
+  hooks: [
+    {
+      type: "command",
+      command:
+        'node "${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/stepPermission.ts"',
+    },
+  ],
+};
+
 export const stateFolder = join(primaryRoot, ".runner");
 const outcomeFolder = "docs/agents/outcomes";
 
@@ -117,7 +130,11 @@ export function specRunConfigOf(owner: string): SpecRunConfig {
     issueWorkspacesConfig;
   return {
     knobs: runKnobs,
-    agentStep: ClaudeAgentStep.init("cswap", gworkspaceServer()),
+    agentStep: ClaudeAgentStep.init(
+      "cswap",
+      gworkspaceServer(),
+      stepPermissionHook,
+    ),
     github: new GhCli(owner),
     notices: composedNotices(
       // Read on each send, so review, status and stop, which never send, need no topic.

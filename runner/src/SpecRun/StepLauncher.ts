@@ -171,7 +171,6 @@ export class StepLauncher extends SpecRunBase {
         maxTurns: knobs.maxTurns[agent],
         silenceTimeoutMs: knobs.silenceTimeoutMs,
         wallClockMs: knobs.wallClockMs[agent],
-        allowedWriteGlobs: knobs.allowedWriteGlobs,
         targets,
         jsonSchema,
         logPath,

@@ -7,10 +7,8 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
-import { fileURLToPath } from "node:url";
 
 import type { AgentStep, Hang, StepRequest, StepResult } from "./AgentStep.ts";
-import type { ClaudeWriteHookArgs } from "./claudeWriteHook.ts";
 import { StepStream } from "./StepStream.ts";
 import { toolsOf } from "./targetTools.ts";
 
@@ -23,34 +21,35 @@ const gateRootVariable = "BYRO_GATE_ROOT";
 // One `mcpServers` entry, as Claude Code's config files hold it.
 export type McpServerConfig = Record<string, unknown>;
 
-const claudeWriteHookPath = fileURLToPath(
-  new URL("./claudeWriteHook.ts", import.meta.url),
-);
-
 // Runs `claude -p` under `cswap run <account> --`, which hands everything after `--` to claude as that account.
 export class ClaudeAgentStep implements AgentStep {
   private readonly cswapPath: string;
   // The gworkspace MCP server's config, passed only to a step whose ticket names a target.
   private readonly gworkspaceServer: McpServerConfig | undefined;
+  // Answers the permission prompts nobody is there to answer, added to each step's PermissionRequest hooks.
+  private readonly permissionHook: HookEntry | undefined;
 
   constructor(
     cswapPath: string,
     gworkspaceServer: McpServerConfig | undefined,
+    permissionHook: HookEntry | undefined,
   ) {
     this.cswapPath = cswapPath;
     this.gworkspaceServer = gworkspaceServer;
+    this.permissionHook = permissionHook;
   }
 
   static init(
     cswapPath = "cswap",
     gworkspaceServer?: McpServerConfig,
+    permissionHook?: HookEntry,
   ): ClaudeAgentStep {
-    return new ClaudeAgentStep(cswapPath, gworkspaceServer);
+    return new ClaudeAgentStep(cswapPath, gworkspaceServer, permissionHook);
   }
 
   async run(request: StepRequest): Promise<StepResult> {
     const args = [
-      ...commandArgs(request),
+      ...commandArgs(request, this.permissionHook),
       ...mcpConfigArgsOf(request, this.gworkspaceServer),
     ];
     const log = openLog(request.logPath);
@@ -114,7 +113,10 @@ function openLog(logPath: string | undefined): WriteStream | undefined {
 }
 
 // Never bypassPermissions, and never `cswap switch`: the developer's active account stays theirs.
-function commandArgs(request: StepRequest): string[] {
+function commandArgs(
+  request: StepRequest,
+  permissionHook: HookEntry | undefined,
+): string[] {
   const args = [
     "run",
     String(request.account),
@@ -135,7 +137,7 @@ function commandArgs(request: StepRequest): string[] {
     "--json-schema",
     JSON.stringify(request.jsonSchema),
     "--settings",
-    JSON.stringify(settingsOf(request)),
+    JSON.stringify(settingsOf(request.gateRoot, permissionHook)),
   ];
   if (request.resumeSessionId) args.push("--resume", request.resumeSessionId);
   const targetTools = toolsOf(request.targets);
@@ -153,26 +155,19 @@ export interface ProjectSettings {
 }
 
 // The primary's project settings, layered on the workspace's own: identical hook commands dedupe, so a workspace edit can't drop a primary gate.
-function settingsOf(request: StepRequest): ProjectSettings {
-  const { cwd, allowedWriteGlobs } = request;
-  const primary = primarySettingsOf(request.gateRoot);
-  const hookArgs: ClaudeWriteHookArgs = {
-    workspaceRoot: cwd,
-    allowedGlobs: allowedWriteGlobs,
-  };
-  const command = ["node", claudeWriteHookPath, JSON.stringify(hookArgs)].map(
-    shellQuoted,
-  );
+function settingsOf(
+  gateRoot: string,
+  permissionHook: HookEntry | undefined,
+): ProjectSettings {
+  const primary = primarySettingsOf(gateRoot);
+  if (permissionHook === undefined) return primary;
   return {
     ...primary,
     hooks: {
       ...primary.hooks,
       PermissionRequest: [
         ...(primary.hooks?.PermissionRequest ?? []),
-        {
-          matcher: "Edit|Write",
-          hooks: [{ type: "command", command: command.join(" ") }],
-        },
+        permissionHook,
       ],
     },
   };
@@ -209,8 +204,4 @@ function stepEnvOf({ targets, gateRoot }: StepRequest): NodeJS.ProcessEnv {
   };
   if (targets.length > 0) env[stepTargetsVariable] = JSON.stringify(targets);
   return env;
-}
-
-function shellQuoted(word: string): string {
-  return `'${word.replaceAll("'", "'\\''")}'`;
 }

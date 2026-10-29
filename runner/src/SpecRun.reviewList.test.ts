@@ -234,7 +234,6 @@ describe("run's review list", () => {
     const gapCheck = agentStep.requests[2];
     expect(gapCheck?.jsonSchema).toBe(gapCheckOutputSchema);
     expect(gapCheck?.targets).toEqual([]);
-    expect(gapCheck?.allowedWriteGlobs).toEqual([]);
     expect(gapCheck?.pair).toEqual(opusMedium);
     expect(gapCheck?.cwd).toBe(primaryRoot);
     expect(gapCheck?.prompt).toContain('- byro-repo #1, "Ticket 1"');

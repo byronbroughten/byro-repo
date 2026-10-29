@@ -22,7 +22,6 @@ export interface StepRequest {
   // The primary checkout, whose settings and hook files gate the step whatever its workspace's branch holds.
   gateRoot: string;
   maxTurns: number;
-  allowedWriteGlobs: string[];
   // The ticket's targets outside the repo; the adapter allows their tools.
   targets: Target[];
   jsonSchema: object;

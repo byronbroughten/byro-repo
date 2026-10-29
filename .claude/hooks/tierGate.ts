@@ -1,11 +1,9 @@
 // PreToolUse on Bash and the gworkspace write and create tools applies the tier gate; PostToolUse on Bash records each app chore dry run that ran, for a later --send.
 // A Bash call naming gh also reads this claude's supervision record, since a supervising session's gh writes ask.
 // Every Bash call gets the file-system lookups the step write rule and scratch `node` need, so the decision stays pure.
-import { spawnSync } from "node:child_process";
-import { lstatSync, realpathSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname } from "node:path";
+import { writeFileSync } from "node:fs";
 
+import { dryRuns, shellPlacesOf } from "./lib/gateLookups.ts";
 import {
   type HookInput,
   projectDirOf,
@@ -29,11 +27,9 @@ import {
   dryRunChoresOf,
   gateDecision,
   sessionModeOf,
-  type ShellPlaces,
   stepTargetsVariable,
 } from "./lib/tiers/tiers.ts";
 
-const dryRunSuffix = "chore-dry-runs.json";
 const ownersSuffix = "drive-owners.json";
 
 await runFailOpen(async () => {
@@ -72,56 +68,19 @@ await runFailOpen(async () => {
 async function bashDecision(input: HookInput): Promise<Decision | undefined> {
   const command = input.tool_input?.command;
   if (typeof command !== "string") return undefined;
-  const dryRunsPath = sessionStatePath(input.session_id, dryRunSuffix);
   if (input.hook_event_name === "PostToolUse") {
-    recordDryRuns(dryRunsPath, dryRunChoresOf(command));
+    dryRuns.record(input.session_id, dryRunChoresOf(command));
     return undefined;
   }
   const mode = sessionModeOf(process.env);
   return gateDecision({
     command,
     mode,
-    dryRuns: readDryRuns(dryRunsPath),
+    dryRuns: dryRuns.read(input.session_id),
     supervising:
       mode === "interactive" && callsGh(command) && (await isSupervising()),
     places: shellPlacesOf(input),
   });
-}
-
-function shellPlacesOf(input: HookInput): ShellPlaces {
-  const workspaceRoot = projectDirOf(input);
-  return {
-    workspaceRoot,
-    tmpDir: tmpdir(),
-    cwd: input.cwd ?? workspaceRoot,
-    realPathOf: (path) => {
-      try {
-        return realpathSync.native(path);
-      } catch {
-        return undefined;
-      }
-    },
-    isLink: (path) => {
-      try {
-        return lstatSync(path).isSymbolicLink();
-      } catch {
-        return false;
-      }
-    },
-    isIgnored: isGitIgnored,
-  };
-}
-
-// Asked of the path's own checkout, since the root ignores each package clone whole.
-function isGitIgnored(path: string): boolean {
-  const checked = spawnSync("git", [
-    "-C",
-    dirname(path),
-    "check-ignore",
-    "-q",
-    path,
-  ]);
-  return checked.status === 0;
 }
 
 // Loaded here, not at the top, so only a gh call pays for the runner config; a failed lookup counts as supervising, so gh writes ask.
@@ -141,17 +100,6 @@ async function isSupervising(): Promise<boolean> {
   } catch {
     return true;
   }
-}
-
-function recordDryRuns(path: string, chores: string[]): void {
-  if (chores.length === 0) return;
-  const recorded = new Set([...readDryRuns(path), ...chores]);
-  writeFileSync(path, JSON.stringify([...recorded]));
-}
-
-function readDryRuns(path: string): string[] {
-  const recorded = readJsonFile(path);
-  return Array.isArray(recorded) ? recorded : [];
 }
 
 function ownerCacheOf(path: string): OwnerCache {
