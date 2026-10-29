@@ -3,19 +3,13 @@
 // AgentStep.ts owns UsageWindow, the same shape a step's own rate-limit events report.
 
 import type { UsageReading, UsageWindow } from "./AgentStep.ts";
+import type { RunKnobs } from "./runKnobs.ts";
 import { percentOf } from "./transcriptFacts.ts";
 
-export interface LimitGuardKnobs {
-  fiveHourPauseAt: number; // A fraction of the window's limit, 0 to 1.
-  weeklyReserveAt: number; // A fraction of the window's limit, 0 to 1.
-  limitWaitMarginMs: number;
-}
-
-export const defaultLimitGuardKnobs: LimitGuardKnobs = {
-  fiveHourPauseAt: 0.9,
-  weeklyReserveAt: 1,
-  limitWaitMarginMs: 5 * 60_000,
-};
+export type LimitGuardKnobs = Pick<
+  RunKnobs,
+  "fiveHourPauseAt" | "weeklyReserveAt" | "limitWaitMarginMs"
+>;
 
 export interface AccountUsage {
   fiveHour: UsageWindow;
@@ -106,7 +100,7 @@ function windowOf(raw: RawWindow | undefined): UsageWindow | undefined {
 
 export function decideStep(
   usage: AccountUsage,
-  knobs: LimitGuardKnobs = defaultLimitGuardKnobs,
+  knobs: LimitGuardKnobs,
 ): GuardDecision {
   if (usage.sevenDay.utilization >= knobs.weeklyReserveAt) {
     return { kind: "stop" };
