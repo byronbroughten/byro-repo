@@ -2,7 +2,7 @@
 # Starts the spec runner in a detached tmux session under caffeinate, so it outlives the terminal and the Mac stays awake.
 # Usage: npm run runner:tmux -- <owner/repo> <n>; attach with `tmux attach -t runner-<repo>-<n>`.
 # It then waits for the run's run-started or run-ended line (launchWait.ts): exit 0 on run-started, 1 on run-ended or a state still unknown.
-# An exit above 1 is a crash, not a Stop or an end of run, so it sends the one push and run-ended line the runner itself couldn't.
+# An exit above 1 is a crash, not a Stop or an end of run, so it writes the run-ended line the runner itself couldn't.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"

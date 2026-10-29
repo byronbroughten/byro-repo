@@ -17,7 +17,7 @@ import { reviewPrintoutOf, SpecRun } from "@byronbroughten/spec-runner/SpecRun";
 import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
 
 import { nearestClaudeAncestor } from "./claudeAncestor.ts";
-import { ntfyTopic, specRunConfigOf, stateFolder } from "./runnerConfig.ts";
+import { specRunConfigOf, stateFolder } from "./runnerConfig.ts";
 import { watchRun } from "./runWatch.ts";
 
 const plainVerbs = ["status", "stop", "review", "watch"];
@@ -122,8 +122,6 @@ async function runSpec(
     console.log(reviewPrintoutOf(result));
     if (result.kind !== "reviewed") process.exitCode = 1;
   } else {
-    // Only a run sends notices, so only a run needs the topic before it starts.
-    ntfyTopic();
     const result = await specRun.run(issue);
     if (result.kind !== "finished") process.exitCode = 1;
   }
