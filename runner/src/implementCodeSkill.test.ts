@@ -24,6 +24,12 @@ describe("implementCodeSkillOf", () => {
     );
   });
 
+  it("implements a ready-for-interactive ticket in the session", () => {
+    expect(skill).toContain(
+      "A `ready-for-interactive` ticket is an Interactive ticket: implement it here",
+    );
+  });
+
   it("carries every bullet of the implement step's shared body", () => {
     Object.values(implementBody).forEach((bullet) =>
       expect(skill).toContain(bullet),

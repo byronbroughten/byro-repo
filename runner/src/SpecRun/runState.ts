@@ -47,6 +47,7 @@ import { stopOutcomes, UnhandledStop } from "../UnhandledStop.ts";
 const execFileAsync = promisify(execFile);
 
 export const readyLabel = "ready-for-agent";
+export const interactiveLabel = "ready-for-interactive";
 
 export const gapCheckLabel = "gap check";
 

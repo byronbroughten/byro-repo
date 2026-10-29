@@ -40,6 +40,7 @@ function openingSection({ promoteCommand }: ImplementCodeSkillInput): string {
   return sectionOf("Before you start", [
     "Read the ticket and state its title before starting. If the reference is ambiguous, ask.",
     "A `ready-for-human` ticket: state its title, name the skill or steps its body says to run, and stop.",
+    "A `ready-for-interactive` ticket is an Interactive ticket: implement it here, since its work needs the developer's yes, which this session can ask for.",
     "Work only in the ticket's issue workspace. When your working directory is a primary checkout, stop and tell the developer to move this session into the workspace first.",
     `The repos the workspace put on the ticket's \`issue-<n>-*\` branch take edits; every other repo is detached at master. To change one, first run \`${promoteCommand} <repo-to-promote>\`. Never switch, create or delete a branch yourself.`,
   ]);
