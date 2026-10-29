@@ -21,8 +21,8 @@ import { nearestClaudeAncestor } from "./claudeAncestor.ts";
 import { specRunConfigOf, stateFolder } from "./runnerConfig.ts";
 import { watchRun } from "./runWatch.ts";
 
-// tmux.sh relaunches the run on this code alone.
-const restartExitCode = 3;
+// tmux.sh pushes a crash and relaunches only on a restart.
+const exitCodes = { short: 1, crash: 2, restart: 3 } as const;
 const plainVerbs = ["status", "stop", "review", "watch"];
 const boardVerbs = ["status", "watch"];
 const verbs = [...plainVerbs, "resolve", "supervise"];
@@ -42,7 +42,7 @@ try {
   }
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
-  process.exitCode = 2;
+  process.exitCode = exitCodes.crash;
 }
 
 async function showBoard(command: string): Promise<void> {
@@ -114,7 +114,7 @@ async function runSpec(
     });
     console.log(reviewPrintoutOf(result));
     if (result.kind !== "reviewed" && result.kind !== "findings") {
-      process.exitCode = 1;
+      process.exitCode = exitCodes.short;
     }
   } else if (command === "resolve") {
     if (recordsPath === undefined) throw new Error(usage);
@@ -123,13 +123,13 @@ async function runSpec(
       output: JSON.parse(readFileSync(recordsPath, "utf8")),
     });
     console.log(reviewPrintoutOf(result));
-    if (result.kind !== "reviewed") process.exitCode = 1;
+    if (result.kind !== "reviewed") process.exitCode = exitCodes.short;
   } else {
     const result = await specRun.run(issue);
     if (result.kind === "restarting") {
-      process.exitCode = restartExitCode;
+      process.exitCode = exitCodes.restart;
     } else if (result.kind !== "finished") {
-      process.exitCode = 1;
+      process.exitCode = exitCodes.short;
     }
   }
 }

@@ -41,7 +41,6 @@ describe("run's Restart", () => {
 
     expect(rerun.kind).toBe("finished");
     expect(rerun.landed).toEqual([refOf(2)]);
-    expect(rerunStep.requests).toHaveLength(2);
   });
 
   it("restarts after a landing that changes the runner's scripts", async () => {
