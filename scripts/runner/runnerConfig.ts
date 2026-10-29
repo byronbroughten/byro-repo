@@ -1,5 +1,5 @@
 // byro-repo's values for the spec runner's injected config. Every root script that drives the runner reads them here.
-// The knobs, checks included, come from runner.config.json; the repo map from the primary root's clones; the ntfy topic from gitignored runner.local.json.
+// The knobs, checks included, come from runner.config.json; the repo map from the primary root's clones.
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -20,8 +20,6 @@ import type {
   IssueRef,
   IssueWorkspacesConfig,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
-import { composedNotices } from "@byronbroughten/spec-runner/Notices";
-import { NtfyNotices } from "@byronbroughten/spec-runner/NtfyNotices";
 import type { WrittenOutcomeRow } from "@byronbroughten/spec-runner/outcomeRowWriter";
 import { loadRunKnobs } from "@byronbroughten/spec-runner/runKnobs";
 import type { SpecRunConfig } from "@byronbroughten/spec-runner/SpecRun";
@@ -47,14 +45,6 @@ const primaryRoot = dirname(
     { cwd: scriptFolder, encoding: "utf8" },
   ).trim(),
 );
-// Gitignored, so only the primary root has it.
-const localConfigPath = join(
-  primaryRoot,
-  "scripts",
-  "runner",
-  "runner.local.json",
-);
-
 export const runKnobs = loadRunKnobs(
   join(scriptFolder, "runner.config.json"),
   clonePathsOf(primaryRoot),
@@ -135,11 +125,7 @@ export function specRunConfigOf(owner: string): SpecRunConfig {
       permissionHook: stepPermissionHook,
     }),
     github: new GhCli(owner),
-    notices: composedNotices(
-      // Read on each send, so review, status and stop, which never send, need no topic.
-      { send: (notice) => NtfyNotices.init(ntfyTopic()).send(notice) },
-      EventFileNotices.init(stateFolder),
-    ),
+    notices: EventFileNotices.init(stateFolder),
     usageReader: CswapUsageReader.init(),
     clock: { now: () => new Date() },
     githubOwner: owner,
@@ -164,18 +150,6 @@ function gworkspaceServer(): McpServerConfig | undefined {
     projects?: Record<string, { mcpServers?: Record<string, McpServerConfig> }>;
   };
   return config.projects?.[primaryRoot]?.mcpServers?.gworkspace;
-}
-
-export function ntfyTopic(): string {
-  const missing = `Put {"ntfyTopic": "<a long random string>"} in ${localConfigPath}, then subscribe to that topic in the ntfy app.`;
-  if (!existsSync(localConfigPath)) throw new Error(missing);
-  const { ntfyTopic } = JSON.parse(readFileSync(localConfigPath, "utf8")) as {
-    ntfyTopic?: unknown;
-  };
-  if (typeof ntfyTopic !== "string" || ntfyTopic === "") {
-    throw new Error(missing);
-  }
-  return ntfyTopic;
 }
 
 function promoteCommandOf(repo: string, number: string): string {
