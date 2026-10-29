@@ -95,11 +95,11 @@ async function replay(
     `#!/bin/sh\nprintf '%s\\n' "$@" > '${argvPath}'\nprintf '%s' "$BYRO_RUNNER_STEP" > '${join(dir, "mark")}'\nprintf '%s' "$BYRO_STEP_TARGETS" > '${join(dir, "targets")}'\nprintf '%s' "$BYRO_GATE_ROOT" > '${join(dir, "gateRoot")}'\ncat '${join(fixturesFolder, fixture)}'\n`,
     { mode: 0o755 },
   );
-  const result = await ClaudeAgentStep.init(
+  const result = await ClaudeAgentStep.init({
     cswapPath,
     gworkspaceServer,
     permissionHook,
-  ).run(request({ cwd: dir, ...overrides }));
+  }).run(request({ cwd: dir, ...overrides }));
   const argv = readFileSync(argvPath, "utf8").split("\n").slice(0, -1);
   return { result, argv, cwd: dir };
 }
@@ -346,7 +346,7 @@ describe("ClaudeAgentStep's live ceiling", () => {
       `#!/bin/sh\nprintf '%s\\n' '${reply}'\nexec sleep ${peak > liveCeiling ? 30 : 0}\n`,
       { mode: 0o755 },
     );
-    return ClaudeAgentStep.init(cswapPath).run(
+    return ClaudeAgentStep.init({ cswapPath }).run(
       request({ cwd: dir, liveCeiling }),
     );
   }
@@ -375,7 +375,7 @@ describe("ClaudeAgentStep's hang limits", () => {
     const dir = mkdtempSync(join(tmpdir(), "agent-step-hang-"));
     const cswapPath = join(dir, "cswap");
     writeFileSync(cswapPath, `#!/bin/sh\n${script}\n`, { mode: 0o755 });
-    return ClaudeAgentStep.init(cswapPath).run(
+    return ClaudeAgentStep.init({ cswapPath }).run(
       request({ cwd: dir, ...overrides }),
     );
   }

@@ -130,11 +130,10 @@ export function specRunConfigOf(owner: string): SpecRunConfig {
     issueWorkspacesConfig;
   return {
     knobs: runKnobs,
-    agentStep: ClaudeAgentStep.init(
-      "cswap",
-      gworkspaceServer(),
-      stepPermissionHook,
-    ),
+    agentStep: ClaudeAgentStep.init({
+      gworkspaceServer: gworkspaceServer(),
+      permissionHook: stepPermissionHook,
+    }),
     github: new GhCli(owner),
     notices: composedNotices(
       // Read on each send, so review, status and stop, which never send, need no topic.

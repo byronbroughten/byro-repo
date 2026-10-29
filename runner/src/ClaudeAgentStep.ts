@@ -21,6 +21,12 @@ const gateRootVariable = "BYRO_GATE_ROOT";
 // One `mcpServers` entry, as Claude Code's config files hold it.
 export type McpServerConfig = Record<string, unknown>;
 
+export interface ClaudeAgentStepOptions {
+  cswapPath?: string;
+  gworkspaceServer?: McpServerConfig;
+  permissionHook?: HookEntry;
+}
+
 // Runs `claude -p` under `cswap run <account> --`, which hands everything after `--` to claude as that account.
 export class ClaudeAgentStep implements AgentStep {
   private readonly cswapPath: string;
@@ -29,22 +35,18 @@ export class ClaudeAgentStep implements AgentStep {
   // Answers the permission prompts nobody is there to answer, added to each step's PermissionRequest hooks.
   private readonly permissionHook: HookEntry | undefined;
 
-  constructor(
-    cswapPath: string,
-    gworkspaceServer: McpServerConfig | undefined,
-    permissionHook: HookEntry | undefined,
-  ) {
+  constructor({
+    cswapPath = "cswap",
+    gworkspaceServer,
+    permissionHook,
+  }: ClaudeAgentStepOptions) {
     this.cswapPath = cswapPath;
     this.gworkspaceServer = gworkspaceServer;
     this.permissionHook = permissionHook;
   }
 
-  static init(
-    cswapPath = "cswap",
-    gworkspaceServer?: McpServerConfig,
-    permissionHook?: HookEntry,
-  ): ClaudeAgentStep {
-    return new ClaudeAgentStep(cswapPath, gworkspaceServer, permissionHook);
+  static init(options: ClaudeAgentStepOptions = {}): ClaudeAgentStep {
+    return new ClaudeAgentStep(options);
   }
 
   async run(request: StepRequest): Promise<StepResult> {
