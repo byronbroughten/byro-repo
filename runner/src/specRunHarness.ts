@@ -1,6 +1,7 @@
 // The fixture and helpers SpecRun's test files share; each file calls useSpecRunHarness() once at its top.
 
 import {
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   realpathSync,
@@ -8,7 +9,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
 
@@ -173,6 +174,7 @@ export function specRun(
     clonePaths,
     checks: [greenUnlessRed],
     authChecks: [passes],
+    runnerPaths: ["runner/", "scripts/runner/"],
   });
   const run = SpecRun.init({
     knobs,
@@ -279,6 +281,7 @@ export function implemented(
 ): StepScript {
   return async (request: StepRequest) => {
     act();
+    mkdirSync(dirname(join(request.cwd, file)), { recursive: true });
     writeFileSync(join(request.cwd, file), content);
     git(request.cwd, "add", file);
     git(request.cwd, "commit", "-m", `Add ${file}`);

@@ -1,6 +1,7 @@
 // Runs a spec's tickets to landed, one at a time; rerunning the same command resumes. Progress is in .runner/<repo>-<n>.log.
 // Usage below; `review` and `resolve` take a session's ticket, not a spec, and `resolve` the path of the session's records.
-// Exit 1 is a run short of finished, a review short of reviewed or its findings, or refused records; 2 is a crash, which tmux.sh pushes.
+// Exit 1 is a run short of finished, a review short of reviewed or its findings, or refused records; 2 is a crash, which tmux.sh pushes;
+// 3 is a Restart, which tmux.sh relaunches.
 // `supervise` records the caller's claude as the spec's Supervisor and prints its unexplained event lines; `--advance` marks one more explained.
 // `watch` streams the spec's new event lines for a Supervisor's Monitor and prints a `vanished` line if the run's process dies unreported (runWatch.ts).
 // `status` and `watch` with no spec print the Run board once or redraw it every 5s (runBoard.ts).
@@ -20,6 +21,8 @@ import { nearestClaudeAncestor } from "./claudeAncestor.ts";
 import { specRunConfigOf, stateFolder } from "./runnerConfig.ts";
 import { watchRun } from "./runWatch.ts";
 
+// tmux.sh relaunches the run on this code alone.
+const restartExitCode = 3;
 const plainVerbs = ["status", "stop", "review", "watch"];
 const boardVerbs = ["status", "watch"];
 const verbs = [...plainVerbs, "resolve", "supervise"];
@@ -123,7 +126,11 @@ async function runSpec(
     if (result.kind !== "reviewed") process.exitCode = 1;
   } else {
     const result = await specRun.run(issue);
-    if (result.kind !== "finished") process.exitCode = 1;
+    if (result.kind === "restarting") {
+      process.exitCode = restartExitCode;
+    } else if (result.kind !== "finished") {
+      process.exitCode = 1;
+    }
   }
 }
 

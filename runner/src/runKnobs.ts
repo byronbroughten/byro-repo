@@ -50,6 +50,8 @@ export interface RunKnobs {
   reviewListCadence: ReviewListCadence;
   // How often an idle run reads the spec issue for answers and its tickets for released leases.
   idlePollMs: number;
+  // The root repo's folders holding the runner's own source; a landing that changes one ends the run in a Restart.
+  runnerPaths: string[];
   // Named in the context nudge's message; unset, the message says to write a handoff with no link.
   handoffDocPath?: string;
 }
@@ -86,6 +88,7 @@ export const defaultRunKnobs: RunKnobs = {
   gapCheckPair: { model: "opus", effort: "medium" },
   reviewListCadence: "end-of-run",
   idlePollMs: 60_000,
+  runnerPaths: [],
 };
 
 export function loadRunKnobs(
