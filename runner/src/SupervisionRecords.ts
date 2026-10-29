@@ -1,5 +1,5 @@
 // The supervision record: which spec's run a Supervisor's claude process watches, and how many of its event lines it has explained.
-// One file per pid under the state folder's supervision/, live while that same process runs, as a lease is; the tier gate and session hooks read it.
+// One file per pid under the state folder's supervision/, live while that same process runs, as a lease is; the session hooks read it.
 import {
   existsSync,
   mkdirSync,

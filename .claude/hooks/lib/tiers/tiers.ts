@@ -44,8 +44,6 @@ export interface ShellCall {
   command: string;
   mode: SessionMode;
   dryRuns: string[];
-  // This session's claude holds a supervision record, so its gh writes ask.
-  supervising?: boolean;
   // Absent, no write passes the write rule and no `node` file is scratch.
   places?: ShellPlaces;
 }
@@ -177,26 +175,9 @@ const rgRunFlags = ["--pre", "--hostname-bin"];
 // Deleting a branch, or forcing one over another, loses commits git can't bring back but by its reflog.
 const branchDropFlags = new Set(["--delete", "--force"]);
 const branchDropShorthands = /^-[^-]*[dDfMC]/;
-const ghReadVerbs = new Set(["view", "list", "status", "diff", "checks"]);
-const ghReadGroups = new Set(["search", "status", "version", "--version"]);
-// gh api's shorthand flags that take a value, which ends a cluster such as `-iXPOST`.
-const ghApiValueShorthands = new Set(["X", "f", "F", "H", "q", "t", "p"]);
-const ghApiFieldFlags = new Set(["--field", "--raw-field", "--input"]);
-const ghReadMethods = new Set(["GET", "HEAD"]);
-// A quoted gh is text unless a shell's -c, eval or a substitution runs it.
-const shellRunners = {
-  shells: new Set(["bash", "sh", "zsh", "dash", "ksh"]),
-  scriptFlag: /^-[a-zA-Z]*c/,
-  substitutionOpen: /\$\(|`/,
-} as const;
-const ghWriteWhy =
-  "writes to GitHub from a session supervising a run, and the developer approves its exact text";
 
 export function gateDecision(call: ShellCall): Decision | undefined {
-  // A runner step is never a supervisor, whatever record its claude holds.
-  const supervising = call.mode === "interactive" && call.supervising;
-  const decision =
-    baseDecision({ ...call, supervising }) ?? undecidedDecision(call);
+  const decision = baseDecision(call) ?? undecidedDecision(call);
   return decision && decisionInMode(decision, call.mode);
 }
 
@@ -225,24 +206,14 @@ export function decisionInMode(
   };
 }
 
-// Cheap enough for every Bash call, so the hook reads the supervision record only when this is true.
-export function callsGh(command: string): boolean {
-  return /\bgh\b/.test(command);
-}
-
 function baseDecision({
   command,
   mode,
   dryRuns,
-  supervising,
   places,
 }: ShellCall): Decision | undefined {
   const commands = parsedCommandsOf(command);
-  if (!commands) {
-    return supervising && callsGh(command)
-      ? needsYes(`\`${command}\` ${ghWriteWhy}`)
-      : undefined;
-  }
+  if (!commands) return undefined;
   // A `cd` carries on only when every separator is `&&`: a failed one stops the command; in a subshell, pipe or background job it doesn't carry; after `;` or `||` it may have failed.
   const cdCarriesOn = !/[()|;&\n]/.test(command.replace(/&&|[<>]&|&>/g, ""));
   let cwd = places?.cwd;
@@ -251,9 +222,7 @@ function baseDecision({
     if (simple.words[0] === "cd") {
       cwd = cdCarriesOn ? cdTargetOf(cwd, simple.words[1]) : undefined;
     }
-    return supervising && ghWriteOf(simple.words)
-      ? { permissionDecision: "ask" as const, why: ghWriteWhy }
-      : verdictOf(simple, { mode, dryRuns, places: here });
+    return verdictOf(simple, { mode, dryRuns, places: here });
   });
   const deny = verdicts.find(
     (verdict) => verdict?.permissionDecision === "deny",
@@ -591,67 +560,6 @@ function isPlainPath(path: string): boolean {
 // Joined, not resolved, so the write rule walks each `..` through any symlink.
 function absoluteOf(path: string, cwd: string): string {
   return isAbsolute(path) ? path : `${cwd}/${path}`;
-}
-
-// Every gh call but a known read writes, and so does a gh this gate can't see into.
-function ghWriteOf(words: string[]): boolean {
-  const hidesGh =
-    words.slice(1).some((word) => basenameOf(word) === "gh") ||
-    shellScriptsOf(words).some(callsGh) ||
-    words.flatMap(substitutionsOf).some(callsGh);
-  if (hidesGh) return true;
-  if (basenameOf(words[0] ?? "") !== "gh") return false;
-  const [group = "", verb = ""] = words.slice(1);
-  if (group === "api") return !isGhApiRead(words.slice(2));
-  if (ghReadGroups.has(group)) return false;
-  if (group === "auth" && verb === "status") return false;
-  return group.startsWith("-") || !ghReadVerbs.has(verb);
-}
-
-// Found anywhere in the words, so a wrapper such as `env -i`, `xargs` or `find -exec` can't hide the shell.
-function shellScriptsOf(words: string[]): string[] {
-  return words.flatMap((word, at) => {
-    const rest = words.slice(at + 1);
-    if (word === "eval") return rest;
-    if (!shellRunners.shells.has(basenameOf(word))) return [];
-    return rest.some((arg) => shellRunners.scriptFlag.test(arg)) ? rest : [];
-  });
-}
-
-// The text after each `$(` or backtick the parser kept inside a quoted word.
-function substitutionsOf(word: string): string[] {
-  return word.split(shellRunners.substitutionOpen).slice(1);
-}
-
-// gh api sends a POST once it has a field, unless a method says otherwise; graphql is always a POST.
-function isGhApiRead(args: string[]): boolean {
-  let method: string | undefined;
-  let hasFields = false;
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i] ?? "";
-    if (arg === "graphql") return false;
-    if (arg.startsWith("--")) {
-      const [name = "", value] = arg.split(/=(.*)/s);
-      const isField = ghApiFieldFlags.has(name);
-      if (name !== "--method" && !isField) continue;
-      const flagValue = value ?? args[++i];
-      if (isField) hasFields = true;
-      else method = flagValue;
-      continue;
-    }
-    if (!arg.startsWith("-")) continue;
-    // Each shorthand is one flag, until one that takes a value, which is the rest or the next word.
-    for (let at = 1; at < arg.length; at++) {
-      const shorthand = arg[at] ?? "";
-      if (!ghApiValueShorthands.has(shorthand)) continue;
-      const flagValue = arg.slice(at + 1) || args[++i];
-      if (shorthand === "X") method = flagValue;
-      if (shorthand === "f" || shorthand === "F") hasFields = true;
-      break;
-    }
-  }
-  if (method !== undefined) return ghReadMethods.has(method.toUpperCase());
-  return !hasFields;
 }
 
 function sendVerdictOf(name: string, dryRuns: string[]): Verdict {

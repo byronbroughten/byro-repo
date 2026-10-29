@@ -1,5 +1,4 @@
 // PreToolUse on Bash and the gworkspace write and create tools applies the tier gate; PostToolUse on Bash records each app chore dry run that ran, for a later --send.
-// A Bash call naming gh also reads this claude's supervision record, since a supervising session's gh writes ask.
 // Every Bash call gets the file-system lookups the step write rule and scratch `node` need, so the decision stays pure.
 import { writeFileSync } from "node:fs";
 
@@ -22,7 +21,6 @@ import {
   stepTargetsOf,
 } from "./lib/tiers/driveTiers.ts";
 import {
-  callsGh,
   type Decision,
   dryRunChoresOf,
   gateDecision,
@@ -72,34 +70,12 @@ async function bashDecision(input: HookInput): Promise<Decision | undefined> {
     dryRuns.record(input.session_id, dryRunChoresOf(command));
     return undefined;
   }
-  const mode = sessionModeOf(process.env);
   return gateDecision({
     command,
-    mode,
+    mode: sessionModeOf(process.env),
     dryRuns: dryRuns.read(input.session_id),
-    supervising:
-      mode === "interactive" && callsGh(command) && (await isSupervising()),
     places: shellPlacesOf(input),
   });
-}
-
-// Loaded here, not at the top, so only a gh call pays for the runner config; a failed lookup counts as supervising, so gh writes ask.
-async function isSupervising(): Promise<boolean> {
-  try {
-    const { nearestClaudeAncestor } =
-      await import("../../scripts/runner/claudeAncestor.ts");
-    const { stateFolder } =
-      await import("../../scripts/runner/runnerConfig.ts");
-    const { SupervisionRecords } =
-      await import("@byronbroughten/spec-runner/SupervisionRecords");
-    const holder = nearestClaudeAncestor();
-    if (!holder) return false;
-    const record =
-      await SupervisionRecords.init(stateFolder).runningRecordOf(holder);
-    return record !== undefined;
-  } catch {
-    return true;
-  }
 }
 
 function ownerCacheOf(path: string): OwnerCache {
