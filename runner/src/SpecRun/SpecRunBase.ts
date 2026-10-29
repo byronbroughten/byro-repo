@@ -35,7 +35,6 @@ import {
 } from "../IssueWorkspaces.ts";
 import {
   type AccountReading,
-  type LimitGuardKnobs,
   type UsageList,
   type UsageReader,
 } from "../limitGuard.ts";
@@ -85,7 +84,6 @@ export interface SpecRunConfig {
   // Holds the run state, progress log and step logs, and the wrap-up's facts and progress files; gitignored.
   stateFolder: string;
   wrapUpKnobs?: Partial<WrapUpKnobs>;
-  limitGuardKnobs?: Partial<LimitGuardKnobs>;
   sleep?(ms: number): Promise<void>;
   log?(line: string): void;
 }
