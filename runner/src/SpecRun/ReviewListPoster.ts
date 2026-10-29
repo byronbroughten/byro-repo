@@ -200,7 +200,6 @@ export class ReviewListPoster extends SpecRunBase {
       maxTurns: knobs.maxTurns.gapCheck,
       silenceTimeoutMs: knobs.silenceTimeoutMs,
       wallClockMs: knobs.wallClockMs.gapCheck,
-      allowedWriteGlobs: [],
       targets: [],
       jsonSchema: gapCheckOutputSchema,
     };

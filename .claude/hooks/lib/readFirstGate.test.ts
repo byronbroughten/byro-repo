@@ -57,10 +57,10 @@ const tierPaths = [
   "/repo/.claude/settings.local.json",
   "/repo/packages/framework/.claude/settings.json",
   "/repo/.claude/worktrees/byro-repo-issue-1-x/.claude/settings.json",
-  "/repo/runner/src/claudeWriteDecision.ts",
+  "/repo/.claude/hooks/stepPermission.ts",
   "/repo/.claude/worktrees/byro-repo-issue-1-x/.claude/hooks/lib/tiers/tiers.ts",
   "/repo/.claude/worktrees/byro-repo-issue-1-x/.claude/hooks/tierGate.ts",
-  "/repo/.claude/worktrees/byro-repo-issue-1-x/runner/src/claudeWriteDecision.ts",
+  "/repo/.claude/worktrees/byro-repo-issue-1-x/.claude/hooks/stepPermission.ts",
 ];
 
 describe("the tiers row", () => {

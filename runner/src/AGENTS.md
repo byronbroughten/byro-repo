@@ -15,9 +15,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `ActiveAccountUnknown.ts` | | The Stop raised when no Active account can be read for a fresh step. |
 | `AgentStep.ts` | `AgentStep` | The port that launches one headless `claude -p` step and its `StepResult`. |
 | `Checks.ts` | `Checks` | Runs `npm run check`'s commands at once, skipped on a check stamp. |
-| `ClaudeAgentStep.ts` | `ClaudeAgentStep` | The real agent-step adapter over `cswap run`, launching under the primary's gate root and settings, with the targets' tools and environment. |
-| `claudeWriteDecision.ts` | | Decides whether a step may Edit or Write a `.claude/` file the allowed write globs name. |
-| `claudeWriteHook.ts` | | The PermissionRequest hook script `ClaudeAgentStep` registers over that decision. |
+| `ClaudeAgentStep.ts` | `ClaudeAgentStep` | The real agent-step adapter over `cswap run`, launching under the primary's gate root and settings plus an injected permission hook, with the targets' tools and environment. |
 | `clonePaths.ts` | `clonePaths` | Builds the repo map, each clone in landing order, from a primary root. |
 | `contextMeter.ts` | `contextMeter` | Measures a session's peak context from stream events or a transcript. |
 | `contextNudge.ts` | `contextNudge` | Words the handoff reminder once a transcript reaches the ticket budget. |

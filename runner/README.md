@@ -4,7 +4,7 @@ Runs a spec's tickets through implement, review, resolve (which commits the fixe
 
 ## Files
 
-Each file under `src/`, with its job and any export, is listed in [`src/AGENTS.md`](./src/AGENTS.md#files). byro-repo's config for all of them is `scripts/runner/runnerConfig.ts`, its knob overrides `scripts/runner/runner.config.json`.
+Each file under `src/`, with its job and any export, is listed in [`src/AGENTS.md`](./src/AGENTS.md#files). byro-repo's config for all of them is `scripts/runner/runnerConfig.ts`, its knob overrides `scripts/runner/runner.config.json`. What a step may write is the repo's too: `ClaudeAgentStep` adds the PermissionRequest hook the config injects to each step's settings, and byro-repo's is [`stepPermission.ts`](../docs/claude-code-guardrails.md#the-hooks-and-the-project-agent).
 
 ## Context nudge
 

@@ -10,7 +10,6 @@ const request: StepRequest = {
   cwd: "/Users/dev/byro-repo",
   gateRoot: "/Users/dev/byro-repo",
   maxTurns: 40,
-  allowedWriteGlobs: [],
   targets: [],
   jsonSchema: {},
 };

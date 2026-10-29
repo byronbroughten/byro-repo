@@ -200,7 +200,6 @@ describe("implementPrompt", () => {
     branch: "issue-224-implement-step-prompt",
     branchedRepos: ["byro-repo", "sheets-framework"],
     promoteCommand: "npm run issue:promote -- byro-repo 224",
-    allowedWriteGlobs: [".claude/skills/**", ".claude/hooks/**"],
   };
   const noReset = "Don't reset, stash, check out or clean it";
 
@@ -237,10 +236,12 @@ describe("implementPrompt", () => {
     expect(prompt).not.toContain("never comment on or close an issue");
   });
 
-  it("names the .claude/ globs a step may write and the settings it may not", () => {
-    expect(implementPrompt(input)).toContain(
-      "You can Edit or Write skills, agent definitions and hooks under `.claude/` matching `.claude/skills/**` or `.claude/hooks/**`; you can't move or delete them with Bash, and can't write `.claude/settings*.json`",
+  it("allows what the tier list allows in the workspace, and a blocker for a denied write", () => {
+    const prompt = implementPrompt(input);
+    expect(prompt).toContain(
+      "- You may do what the tier list allows in your workspace. `node` runs only scratch helpers, in `$TMPDIR` or a gitignored folder; a script being built runs through its tests or its `npm run` alias. Use `git -C <dir>` rather than `cd <dir> && git`. When a write is denied, record one `denied-tool` blocker instead of trying a workaround.",
     );
+    expect(prompt).not.toContain("`.claude/settings*.json`");
   });
 
   it("runs npm run check once, after committing", () => {

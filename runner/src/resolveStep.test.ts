@@ -409,6 +409,12 @@ describe("resolvePrompt", () => {
   it("names the issue reader for the spec read", () => {
     expect(prompt).toContain("npm run issue:read -- <repo> <n> --hide-others");
   });
+
+  it("allows what the tier list allows in the workspace, and a blocker for a denied write", () => {
+    expect(prompt).toContain(
+      "- You may do what the tier list allows in your workspace. `node` runs only scratch helpers, in `$TMPDIR` or a gitignored folder; a script being built runs through its tests or its `npm run` alias. Use `git -C <dir>` rather than `cd <dir> && git`. When a write is denied, record one `denied-tool` blocker instead of trying a workaround.",
+    );
+  });
 });
 
 describe("resolveCommitProblems", () => {

@@ -61,7 +61,7 @@ const tierCode = {
   files: new Set([
     join(".claude", "hooks", "tierGate.ts"),
     join(".claude", "hooks", "gmailGate.ts"),
-    join("runner", "src", "claudeWriteDecision.ts"),
+    join(".claude", "hooks", "stepPermission.ts"),
   ]),
 } as const;
 const frameworkRoots = [

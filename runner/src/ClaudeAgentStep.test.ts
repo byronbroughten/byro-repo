@@ -1,4 +1,3 @@
-import { execSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -51,7 +50,6 @@ function request(overrides: Partial<StepRequest> = {}): StepRequest {
     cwd: "/Users/dev/byro-repo/.claude/worktrees/byro-repo-issue-216",
     gateRoot: primaryRoot,
     maxTurns: 40,
-    allowedWriteGlobs: [".claude/skills/**"],
     targets: [],
     jsonSchema: answerSchema,
     ...overrides,
@@ -78,18 +76,11 @@ function passedSettingsOf(argv: string[]): PassedSettings {
   ) as PassedSettings;
 }
 
-function permissionRequestCommandOf(argv: string[]): string {
-  const entry = passedSettingsOf(argv).hooks?.PermissionRequest?.find(
-    ({ matcher }) => matcher === "Edit|Write",
-  );
-  const command = entry?.hooks[0]?.command;
-  if (command === undefined) {
-    throw new Error(
-      "The step's --settings has no Edit|Write PermissionRequest hook.",
-    );
-  }
-  return command;
-}
+// The step's own permission hook, which the repo's config injects.
+const permissionHook = {
+  matcher: "Edit|Write|Bash|Read",
+  hooks: [{ type: "command", command: "node stepPermission.ts" }],
+};
 
 // Runs the real adapter against a stand-in cswap that records its argv and prints a recorded stream.
 async function replay(
@@ -104,9 +95,11 @@ async function replay(
     `#!/bin/sh\nprintf '%s\\n' "$@" > '${argvPath}'\nprintf '%s' "$BYRO_RUNNER_STEP" > '${join(dir, "mark")}'\nprintf '%s' "$BYRO_STEP_TARGETS" > '${join(dir, "targets")}'\nprintf '%s' "$BYRO_GATE_ROOT" > '${join(dir, "gateRoot")}'\ncat '${join(fixturesFolder, fixture)}'\n`,
     { mode: 0o755 },
   );
-  const result = await ClaudeAgentStep.init(cswapPath, gworkspaceServer).run(
-    request({ cwd: dir, ...overrides }),
-  );
+  const result = await ClaudeAgentStep.init({
+    cswapPath,
+    gworkspaceServer,
+    permissionHook,
+  }).run(request({ cwd: dir, ...overrides }));
   const argv = readFileSync(argvPath, "utf8").split("\n").slice(0, -1);
   return { result, argv, cwd: dir };
 }
@@ -183,33 +176,8 @@ describe("ClaudeAgentStep's command", () => {
     );
     expect(settings.hooks?.PermissionRequest).toEqual([
       { matcher: "Bash", hooks: [primaryPermissionHook] },
-      {
-        matcher: "Edit|Write",
-        hooks: [{ type: "command", command: expect.any(String) }],
-      },
+      permissionHook,
     ]);
-  });
-
-  it("registers a PermissionRequest hook that allows a skill write in the step's workspace", async () => {
-    const { argv, cwd } = await replay("success.ndjson");
-    const command = permissionRequestCommandOf(argv);
-    const skillWrite = (path: string) =>
-      execSync(command, {
-        cwd,
-        encoding: "utf8",
-        input: JSON.stringify({
-          hook_event_name: "PermissionRequest",
-          tool_name: "Write",
-          tool_input: { file_path: join(cwd, path), content: "# Skill\n" },
-        }),
-      });
-    expect(JSON.parse(skillWrite(".claude/skills/tdd/SKILL.md"))).toEqual({
-      hookSpecificOutput: {
-        hookEventName: "PermissionRequest",
-        decision: { behavior: "allow" },
-      },
-    });
-    expect(skillWrite(".claude/agents/explorer.md")).toBe("");
   });
 
   it("launches the step with the runner-step mark in its environment", async () => {
@@ -378,7 +346,7 @@ describe("ClaudeAgentStep's live ceiling", () => {
       `#!/bin/sh\nprintf '%s\\n' '${reply}'\nexec sleep ${peak > liveCeiling ? 30 : 0}\n`,
       { mode: 0o755 },
     );
-    return ClaudeAgentStep.init(cswapPath).run(
+    return ClaudeAgentStep.init({ cswapPath }).run(
       request({ cwd: dir, liveCeiling }),
     );
   }
@@ -407,7 +375,7 @@ describe("ClaudeAgentStep's hang limits", () => {
     const dir = mkdtempSync(join(tmpdir(), "agent-step-hang-"));
     const cswapPath = join(dir, "cswap");
     writeFileSync(cswapPath, `#!/bin/sh\n${script}\n`, { mode: 0o755 });
-    return ClaudeAgentStep.init(cswapPath).run(
+    return ClaudeAgentStep.init({ cswapPath }).run(
       request({ cwd: dir, ...overrides }),
     );
   }
