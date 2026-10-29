@@ -19,9 +19,9 @@
 
 - **A spec's test seams name the outcome each test asserts**: for a Sheets write, the grid it leaves, not the requests it sends ([framework style](../../packages/framework/docs/code-style.md#tests)).
 
-## Developer boxes
+## Settings changes
 
-- **A `.claude/settings.json` change is a developer box.** Auto mode blocks an agent's edit to it as self-modification, so the spec quotes the exact lines and the implementer lists them in its hand-back for the developer to add.
+- **A `.claude/settings.json` change is agent work**: a step's edit can add a hook or permission rule for later steps on its own ticket, but can't remove a primary gate ([guardrails](../claude-code-guardrails.md#the-hooks-and-the-project-agent)).
 
 ## Phases
 

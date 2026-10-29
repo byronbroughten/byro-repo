@@ -44,7 +44,13 @@ Break the work into **tracer bullet** tickets.
 
 </vertical-slice-rules>
 
-Give each ticket one **kind**: agent work (`ready-for-agent`), interactive work (`ready-for-interactive`) or developer work (`ready-for-human`). Interactive work is agent work that needs the developer's yes partway through, such as a write the [tier list](../../../docs/targets-and-gates.md#which-tier-an-action-is-in) gates; an [Interactive ticket](../../../runner/GLOSSARY.md) is done in an Interactive session, or by the Supervisor during a run. Split a slice that needs more than one kind into one ticket per kind; when the developer's part needs the agent's output, the agent ticket blocks the human ticket.
+Give each ticket one **kind**:
+
+- **Agent** (`ready-for-agent`): work a runner step can do.
+- **Interactive** (`ready-for-interactive`): agent work a step can't do: a tier-3 action by the [tier list](../../../docs/targets-and-gates.md#which-tier-an-action-is-in), or a write outside the issue workspace, such as to `~/.claude`, by the [step write rule](../../../docs/claude-code-guardrails.md#the-hooks-and-the-project-agent). Group it by where the chain needs it, usually one per spec, and make each downstream ticket blocked by it.
+- **Human** (`ready-for-human`): work only the developer can do.
+
+Split a slice that needs two kinds into one ticket per kind; when one part needs another's output, that part's ticket blocks the other.
 
 Give each `ready-for-agent` and `ready-for-interactive` ticket its **model fit**: one of the pairs in [`planning.md`](../../../docs/agents/planning.md#model-fit) and a one-line reason.
 
