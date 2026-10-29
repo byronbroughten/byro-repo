@@ -19,10 +19,11 @@ export interface StepRequest {
   account: number;
   // The byro-repo root, so root settings and hooks load.
   cwd: string;
+  // The primary checkout, whose settings and hook files gate the step whatever its workspace's branch holds.
+  gateRoot: string;
   maxTurns: number;
-  allowedTools: string[];
   allowedWriteGlobs: string[];
-  // The ticket's targets outside the repo; the adapter adds their tools to allowedTools.
+  // The ticket's targets outside the repo; the adapter allows their tools.
   targets: Target[];
   jsonSchema: object;
   resumeSessionId?: string;

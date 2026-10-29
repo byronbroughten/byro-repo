@@ -7,7 +7,7 @@ import type { Pair } from "./AgentStep.ts";
 
 export type Command = [string, ...string[]];
 
-export interface StepKnobs<VL extends number | string[]> {
+export interface StepKnobs<VL extends number> {
   implement: VL;
   review: VL;
   resolve: VL;
@@ -28,7 +28,6 @@ export interface RunKnobs {
   checks: Command[];
   // Each must exit 0 at preflight; unset, GitHub auth and the default claude login, which is cswap's active account.
   authChecks: Command[];
-  allowedTools: StepKnobs<string[]>;
   // Workspace-relative globs under the protected .claude/ that a step's Edit or Write may still change.
   allowedWriteGlobs: string[];
   maxTurns: StepKnobs<number>;
@@ -71,12 +70,6 @@ export const defaultRunKnobs: RunKnobs = {
     ["gh", "auth", "status"],
     ["claude", "auth", "status"],
   ],
-  allowedTools: {
-    implement: [],
-    review: [],
-    resolve: [],
-    gapCheck: [],
-  },
   allowedWriteGlobs: [
     ".claude/skills/**",
     ".claude/agents/**",
@@ -124,8 +117,7 @@ export function runKnobsOrDefaults(overridePath: string): RunKnobs {
 }
 
 type RunKnobOverrides = Partial<
-  Omit<RunKnobs, "allowedTools" | "maxTurns" | "wallClockMs"> & {
-    allowedTools: Partial<StepKnobs<string[]>>;
+  Omit<RunKnobs, "maxTurns" | "wallClockMs"> & {
     maxTurns: Partial<StepKnobs<number>>;
     wallClockMs: Partial<StepKnobs<number>>;
   }
@@ -136,10 +128,6 @@ export function runKnobsOf(overrides: RunKnobOverrides): RunKnobs {
     ...defaultRunKnobs,
     ...overrides,
     skillNames: { ...defaultRunKnobs.skillNames, ...overrides.skillNames },
-    allowedTools: {
-      ...defaultRunKnobs.allowedTools,
-      ...overrides.allowedTools,
-    },
     maxTurns: { ...defaultRunKnobs.maxTurns, ...overrides.maxTurns },
     wallClockMs: { ...defaultRunKnobs.wallClockMs, ...overrides.wallClockMs },
   };
