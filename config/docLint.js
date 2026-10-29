@@ -7,12 +7,10 @@ const limits = {
   leadBytes: 800,
   unheadedDocBytes: 4 * 1024,
 };
-const linkedRootFiles = new Set([
-  "AGENTS.md",
-  "CLAUDE.md",
-  "GLOSSARY.md",
-  "README.md",
-]);
+const linkedFileNames = {
+  atRoot: new Set(["AGENTS.md", "CLAUDE.md", "GLOSSARY.md", "README.md"]),
+  anywhere: new Set(["AGENTS.md", "CLAUDE.md", "SKILL.md"]),
+};
 const workspaceFolders = new Set(["config"]);
 // Records that cite lines at a fixed commit on purpose, relative to their doc root.
 const recordPrefixes = [
@@ -108,13 +106,8 @@ function isRecord(path) {
 function isLinkChecked(path) {
   const name = posix.basename(path);
   const local = inRoot(path);
-  if (!local.includes("/")) return linkedRootFiles.has(local);
-  return (
-    isDocsFolderFile(path) ||
-    name === "AGENTS.md" ||
-    name === "CLAUDE.md" ||
-    name === "SKILL.md"
-  );
+  if (!local.includes("/")) return linkedFileNames.atRoot.has(local);
+  return isDocsFolderFile(path) || linkedFileNames.anywhere.has(name);
 }
 
 // The repo root is "", a workspace folder is its name and a package is `packages/<name>`, however the caller spells it; an untracked one is a typo, not a no-op.
