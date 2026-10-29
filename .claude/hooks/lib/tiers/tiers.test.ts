@@ -450,6 +450,35 @@ describe("stdout filters and wrappers", () => {
       "sort -o out.txt AGENTS.md",
     ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
   });
+
+  it("asks for a macOS sed -i whose next word is a backup suffix rather than ''", () => {
+    expect(
+      placedDecisionOf("sed -i p 'w /outside/x' AGENTS.md")?.permissionDecision,
+    ).toBe("ask");
+    expect(
+      placedDecisionOf("sed -Ei p 's/a/b/' AGENTS.md")?.permissionDecision,
+    ).toBe("ask");
+  });
+
+  it("allows an npx check only with no flag that writes a file", () => {
+    [
+      "npx tsc --noEmit",
+      "npx eslint .",
+      "npx vitest run .claude/hooks",
+    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
+    [
+      "npx tsc",
+      "npx tsc --outDir /outside",
+      "npx tsc -b --noEmit",
+      "npx tsc --build --noEmit",
+      "npx eslint --fix /outside/x",
+      "npx eslint --fix-dry-run .",
+      "npx eslint -o /outside/report .",
+      "npx eslint --output-file=/outside/report .",
+      "npx vitest run --outputFile=/outside/report",
+      "npx vitest run --outputFile /outside/report",
+    ].forEach((command) => expect(decisionOf(command)).not.toBe("allow"));
+  });
 });
 
 describe("file writes by the step write rule", () => {
@@ -467,8 +496,36 @@ describe("file writes by the step write rule", () => {
       "cat AGENTS.md > /tmp/copy.md",
       "git log >> .scratch/log.txt",
       "cd packages/framework && rm -rf src/old",
+      "cd packages/framework && rm -rf src/old 2>&1",
+      "rm $TMPDIR/scratch.txt",
+      'rm "${TMPDIR}/scratch.txt"',
+      "echo x > $TMPDIR/out.txt",
     ].forEach((command) =>
       expect(placedDecisionOf(command)?.permissionDecision).toBe("allow"),
+    );
+  });
+
+  it("asks once a cd may not have carried on, or takes a flag for its target", () => {
+    [
+      "cd packages/framework; rm -rf src/old",
+      "cd packages/framework || rm -rf src/old",
+      "cd packages/framework & rm -rf src/old",
+      "cd packages/framework\nrm -rf src/old",
+      "cd -P packages/framework && rm -rf src/old",
+      "cd -- packages/framework && rm -rf src/old",
+    ].forEach((command) =>
+      expect(placedDecisionOf(command)?.permissionDecision).toBe("ask"),
+    );
+  });
+
+  it("follows only a leading $TMPDIR, by the value the gate knows", () => {
+    [
+      "rm $TMPDIR/claude-guardrails/chore-dry-runs.json",
+      "rm $TMPDIRX/x",
+      "rm /ws/$TMPDIR/x",
+      "rm $OTHER/x",
+    ].forEach((command) =>
+      expect(placedDecisionOf(command)?.permissionDecision).toBe("ask"),
     );
   });
 
@@ -521,9 +578,16 @@ describe("interpreters", () => {
       "node .runner/helper.ts",
       "node --experimental-strip-types .runner/helper.ts",
       "node /tmp/helper.mjs",
+      "node $TMPDIR/helper.mjs",
     ].forEach((command) =>
       expect(placedDecisionOf(command)?.permissionDecision).toBe("allow"),
     );
+  });
+
+  it("asks for node on an installed package's file, though node_modules is gitignored", () => {
+    const decision = placedDecisionOf("node node_modules/clasp/cli.js");
+    expect(decision?.permissionDecision).toBe("ask");
+    expect(decision?.reason).toContain("`node` runs only scratch helpers");
   });
 
   it("asks for node on a tracked file, new or committed, and for node -e or -p, saying node runs only scratch helpers", () => {

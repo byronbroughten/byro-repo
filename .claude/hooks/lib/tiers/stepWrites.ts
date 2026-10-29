@@ -17,11 +17,23 @@ export function isStepWritable(path: string, places: WritePlaces): boolean {
   if (!isAbsolute(path)) return false;
   const resolved = resolvedPathOf(path, places);
   if (resolved === undefined) return false;
-  const workspaceParts = partsInside(resolved, places.workspaceRoot, places);
-  if (workspaceParts) return !workspaceParts.includes(".git");
-  const tmpParts = partsInside(resolved, places.tmpDir, places);
-  if (!tmpParts) return false;
-  return !tmpParts.includes(".git") && tmpParts[0] !== guardrailStateDir;
+  if (partsInside(resolved, places.workspaceRoot, places)) {
+    return (
+      partsClearOfGit(resolved, places.workspaceRoot, places) !== undefined
+    );
+  }
+  const tmpParts = partsClearOfGit(resolved, places.tmpDir, places);
+  return tmpParts !== undefined && tmpParts[0] !== guardrailStateDir;
+}
+
+// The path's parts below a root, or undefined when it isn't strictly inside it or is in .git at any depth.
+export function partsClearOfGit(
+  resolved: string,
+  root: string,
+  places: WritePlaces,
+): string[] | undefined {
+  const parts = partsInside(resolved, root, places);
+  return parts?.includes(".git") ? undefined : parts;
 }
 
 // The path's parts below a root, or undefined when it isn't strictly inside it.

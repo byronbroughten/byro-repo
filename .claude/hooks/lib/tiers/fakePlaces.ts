@@ -16,6 +16,9 @@ const existing = new Set([
   "/ws/packages/framework",
   "/ws/packages/framework/.git",
   "/ws/packages/framework/src",
+  "/ws/node_modules",
+  "/ws/node_modules/clasp",
+  "/ws/node_modules/clasp/cli.js",
   "/tmp",
   "/tmp/helper.mjs",
   "/outside",
@@ -27,7 +30,7 @@ const links = new Map([
   ["/ws/linkdir", "/outside/deep"],
   ["/ws/dangling", "/nowhere"],
 ]);
-const ignoredFolders = ["/ws/.runner", "/ws/.scratch"];
+const ignoredFolders = ["/ws/.runner", "/ws/.scratch", "/ws/node_modules"];
 
 export function fakePlaces(cwd = "/ws"): ShellPlaces {
   return {

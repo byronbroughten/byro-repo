@@ -21,6 +21,8 @@ const sedFlags = {
   ]),
   cluster: /^-[nEsrzu]+$/,
   inPlaceCluster: /^-[nEsrzu]*i/,
+  // macOS sed's `-i` takes the next word as its backup suffix, so only `-i ''` leaves the script where GNU sed reads it.
+  bareInPlace: /^-[nEsrzu]*i$/,
 } as const;
 // Commands that print, delete or move between lines; q, Q, l and L may take a number.
 const sedPrintCommands = new Set([..."pPlL=dDnNgGhHxzqQF"]);
@@ -29,14 +31,6 @@ const sedSubstituteFlags = /[gpiImM\d]/;
 const awkRunsOrWrites = /system|[|>@]/;
 const sortWriteFlags = ["--output", "--compress-program"];
 const uniqValueFlags = new Set(["-f", "-s", "-w"]);
-const plainFilters = new Set(["cut", "tr", "echo", "printf", "pwd"]);
-export const stdoutFilters = new Set([
-  "sed",
-  "awk",
-  "sort",
-  "uniq",
-  ...plainFilters,
-]);
 
 // Undefined when a flag or a missing script leaves what sed does unknown.
 export function sedCallOf(args: string[]): SedCall | undefined {
@@ -52,12 +46,16 @@ export function sedCallOf(args: string[]): SedCall | undefined {
     if (arg === "-e" || arg === "--expression") scripts.push(args[++i] ?? "");
     else if (arg.startsWith("--expression=")) {
       scripts.push(arg.slice("--expression=".length));
-    } else if (arg === "-i" || arg.startsWith("--in-place")) {
+    } else if (sedFlags.bareInPlace.test(arg)) {
+      if (args[i + 1] !== "") return undefined;
       isInPlace = true;
-      // BSD sed takes the backup suffix as its own word, `-i ''`.
-      if (arg === "-i" && args[i + 1] === "") i++;
-    } else if (sedFlags.inPlaceCluster.test(arg)) isInPlace = true;
-    else if (sedFlags.cluster.test(arg) || sedFlags.plain.has(arg)) continue;
+      i++;
+    } else if (
+      arg.startsWith("--in-place") ||
+      sedFlags.inPlaceCluster.test(arg)
+    ) {
+      isInPlace = true;
+    } else if (sedFlags.cluster.test(arg) || sedFlags.plain.has(arg)) continue;
     else if (arg.startsWith("-") && arg !== "-") return undefined;
     else files.push(arg);
   }
@@ -69,7 +67,7 @@ export function sedCallOf(args: string[]): SedCall | undefined {
   return { scripts, files, isInPlace };
 }
 
-export function isSedRead(args: string[]): boolean {
+function isSedRead(args: string[]): boolean {
   const call = sedCallOf(args);
   return call !== undefined && !call.isInPlace && isSedScriptPrinting(call);
 }
@@ -200,10 +198,19 @@ function isUniqRead(args: string[]): boolean {
   return operands <= 1;
 }
 
-export function isStdoutFilter(program: string, args: string[]): boolean {
-  if (program === "sed") return isSedRead(args);
-  if (program === "awk") return isAwkRead(args);
-  if (program === "sort") return isSortRead(args);
-  if (program === "uniq") return isUniqRead(args);
-  return plainFilters.has(program);
+function printsOnly(): boolean {
+  return true;
 }
+
+// Each filter program, and whether its args only print.
+export const stdoutFilters = new Map<string, (args: string[]) => boolean>([
+  ["sed", isSedRead],
+  ["awk", isAwkRead],
+  ["sort", isSortRead],
+  ["uniq", isUniqRead],
+  ["cut", printsOnly],
+  ["tr", printsOnly],
+  ["echo", printsOnly],
+  ["printf", printsOnly],
+  ["pwd", printsOnly],
+]);

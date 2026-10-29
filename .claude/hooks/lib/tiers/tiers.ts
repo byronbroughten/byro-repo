@@ -8,12 +8,12 @@ import {
 } from "./bashReads.ts";
 import {
   isSedScriptPrinting,
-  isStdoutFilter,
   sedCallOf,
   stdoutFilters,
 } from "./stdoutFilters.ts";
 import {
   isStepWritable,
+  partsClearOfGit,
   partsInside,
   resolvedPathOf,
   type WritePlaces,
@@ -102,10 +102,29 @@ const freeScripts = new Map([
   ["lint", checkWhy],
   ["test", checkWhy],
 ]);
+// Each check only with no flag that writes a file the write rule never sees.
 const npxChecks = new Map<string, (args: string[]) => boolean>([
-  ["vitest", (args) => args[0] === "run"],
-  ["tsc", () => true],
-  ["eslint", () => true],
+  [
+    "vitest",
+    (args) =>
+      args[0] === "run" && !args.some((arg) => arg.startsWith("--outputFile")),
+  ],
+  [
+    "tsc",
+    (args) =>
+      args.includes("--noEmit") &&
+      !args.some((arg) => arg === "-b" || arg === "--build"),
+  ],
+  [
+    "eslint",
+    (args) =>
+      !args.some(
+        (arg) =>
+          arg.startsWith("--fix") ||
+          arg === "-o" ||
+          arg.startsWith("--output-file"),
+      ),
+  ],
   [
     "prettier",
     (args) =>
@@ -133,6 +152,8 @@ const interpreters = {
     "--enable-source-maps",
   ]),
   python: new Set(["python", "python3"]),
+  // Gitignored, but an installed package's bin is a tool such as clasp, not a scratch helper.
+  installedPackages: "node_modules",
   nodeWhy:
     "runs code that isn't a scratch helper: `node` runs only scratch helpers, in `$TMPDIR` or a gitignored folder of the workspace, and a script being built runs through its tests or its `npm run` alias",
   pythonWhy: "runs inline Python, which no test or `npm run` alias covers",
@@ -222,8 +243,8 @@ function baseDecision({
       ? needsYes(`\`${command}\` ${ghWriteWhy}`)
       : undefined;
   }
-  // A `cd` inside a subshell or a pipe doesn't carry on, so after one there the cwd is unknown.
-  const cdCarriesOn = !/[()|]/.test(command);
+  // A `cd` carries on only when every separator is `&&`: a failed one stops the command; in a subshell, pipe or background job it doesn't carry; after `;` or `||` it may have failed.
+  const cdCarriesOn = !/[()|;&\n]/.test(command.replace(/&&|[<>]&|&>/g, ""));
   let cwd = places?.cwd;
   const verdicts = commands.map((simple) => {
     const here = places && cwd !== undefined ? { ...places, cwd } : undefined;
@@ -291,7 +312,8 @@ function cdTargetOf(
   cwd: string | undefined,
   target: string | undefined,
 ): string | undefined {
-  if (cwd === undefined || target === undefined || target === "-") {
+  // A flag such as `-P` or `--` would be taken for the target.
+  if (cwd === undefined || target === undefined || target.startsWith("-")) {
     return undefined;
   }
   return isPlainPath(target) ? absoluteOf(target, cwd) : undefined;
@@ -302,10 +324,8 @@ function verdictOf(
   simple: SimpleCommand,
   context: CallContext,
 ): Verdict | undefined {
-  const blocked = simple.outputFiles.find(
-    (file) => !isWritablePath(file, context.places),
-  );
-  if (blocked !== undefined) return writeAskOf(blocked);
+  const writeAsk = writeAskAmong(simple.outputFiles, context.places);
+  if (writeAsk) return writeAsk;
   if (simple.words.length === 0) {
     return {
       permissionDecision: "allow",
@@ -442,17 +462,16 @@ function fileVerdictOf(
   const [program = "", ...args] = words;
   const paths = writtenPathsOf(program, args);
   if (paths) {
-    const blocked = paths.find((path) => !isWritablePath(path, places));
-    if (blocked !== undefined) return writeAskOf(blocked);
+    const writeAsk = writeAskAmong(paths, places);
+    if (writeAsk) return writeAsk;
     return {
       permissionDecision: "allow",
       why: `\`${program}\` writes only inside the workspace or \`$TMPDIR\``,
       needsPlainText: true,
     };
   }
-  if (!stdoutFilters.has(program) || isStdoutFilter(program, args)) {
-    return undefined;
-  }
+  const isFilterRead = stdoutFilters.get(program);
+  if (!isFilterRead || isFilterRead(args)) return undefined;
   return {
     permissionDecision: "ask",
     why: "may write a file or run a command, which the gate can't check",
@@ -481,10 +500,16 @@ function writtenPathsOf(program: string, args: string[]): string[] | undefined {
   return paths.length > 0 ? paths : [""];
 }
 
-function writeAskOf(path: string): Verdict {
+// The ask for the first path that fails the write rule, or undefined when every one passes.
+function writeAskAmong(
+  paths: string[],
+  places: ShellPlaces | undefined,
+): Verdict | undefined {
+  const blockedPath = paths.find((path) => !isWritablePath(path, places));
+  if (blockedPath === undefined) return undefined;
   return {
     permissionDecision: "ask",
-    why: `writes \`${path}\`, which isn't inside the workspace or \`$TMPDIR\`, or is in \`.git\``,
+    why: `writes \`${blockedPath}\`, which isn't inside the workspace or \`$TMPDIR\`, or is in \`.git\``,
   };
 }
 
@@ -495,9 +520,10 @@ function interpreterVerdictOf(
 ): Verdict | undefined {
   const [program = "", ...args] = words;
   if (interpreters.python.has(program)) {
-    return args.some((arg) => /^-[a-zA-Z]*c/.test(arg))
-      ? { permissionDecision: "ask", why: interpreters.pythonWhy }
-      : undefined;
+    if (args.some((arg) => /^-[a-zA-Z]*c/.test(arg))) {
+      return { permissionDecision: "ask", why: interpreters.pythonWhy };
+    }
+    return undefined;
   }
   if (program !== "node") return undefined;
   if (args.length === 1 && (args[0] === "-v" || args[0] === "--version")) {
@@ -520,26 +546,41 @@ function interpreterVerdictOf(
   };
 }
 
-// An existing file gitignored inside the workspace, or anywhere in $TMPDIR outside .git.
-function isScratchFile(path: string, places: ShellPlaces | undefined): boolean {
-  if (!places || !isPlainPath(path)) return false;
+// An existing file gitignored inside the workspace but outside node_modules, or anywhere in $TMPDIR outside .git.
+function isScratchFile(
+  written: string,
+  places: ShellPlaces | undefined,
+): boolean {
+  if (!places) return false;
+  const path = tmpDirExpanded(written, places);
+  if (!isPlainPath(path)) return false;
   const resolved = resolvedPathOf(absoluteOf(path, places.cwd), places);
   if (resolved === undefined || places.realPathOf(resolved) === undefined) {
     return false;
   }
-  if (partsInside(resolved, places.workspaceRoot, places)) {
-    return places.isIgnored(resolved);
+  const workspaceParts = partsInside(resolved, places.workspaceRoot, places);
+  if (workspaceParts) {
+    return (
+      !workspaceParts.includes(interpreters.installedPackages) &&
+      places.isIgnored(resolved)
+    );
   }
-  const tmpParts = partsInside(resolved, places.tmpDir, places);
-  return tmpParts !== undefined && !tmpParts.includes(".git");
+  return partsClearOfGit(resolved, places.tmpDir, places) !== undefined;
 }
 
 function isWritablePath(
-  path: string,
+  written: string,
   places: ShellPlaces | undefined,
 ): boolean {
-  if (!places || !isPlainPath(path)) return false;
+  if (!places) return false;
+  const path = tmpDirExpanded(written, places);
+  if (!isPlainPath(path)) return false;
   return isStepWritable(absoluteOf(path, places.cwd), places);
+}
+
+// A leading `$TMPDIR` or `${TMPDIR}` is the one variable the gate can follow, since it knows the value.
+function tmpDirExpanded(path: string, places: ShellPlaces): string {
+  return path.replace(/^(?:\$TMPDIR|\$\{TMPDIR\})(?=\/|$)/, places.tmpDir);
 }
 
 // No expansion the gate can't follow: a variable, a glob, braces or `~`.
@@ -654,7 +695,8 @@ function readWhyOf(
 }
 
 function isProgramRead(program: string, args: string[]): boolean {
-  if (stdoutFilters.has(program)) return isStdoutFilter(program, args);
+  const isFilterRead = stdoutFilters.get(program);
+  if (isFilterRead) return isFilterRead(args);
   if (program === "find") return !args.some((arg) => findActions.has(arg));
   if (program === "rg") {
     return !args.some((arg) => rgRunFlags.some((flag) => arg.startsWith(flag)));
@@ -704,8 +746,7 @@ function isOwnStepCheckout(
   ) {
     return true;
   }
-  const parts = partsInside(cwd, places.workspaceRoot, places);
-  return parts !== undefined && !parts.includes(".git");
+  return partsClearOfGit(cwd, places.workspaceRoot, places) !== undefined;
 }
 
 function gitCallOf(words: string[]): GitCall | undefined {

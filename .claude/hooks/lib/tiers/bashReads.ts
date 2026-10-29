@@ -6,6 +6,7 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { HookInput } from "../hookIo.ts";
 import { rootRelative } from "../lintSet.ts";
 import { readSheetsConfigs } from "../sheetsConfigs.ts";
+import { sedCallOf } from "./stdoutFilters.ts";
 
 export const largeFileLines = 150;
 const unguardedDirs = ["node_modules", ".git", ".probe", "dist", "coverage"];
@@ -318,38 +319,19 @@ function optionValue(arg: string): string | undefined {
 }
 
 function sedRead(args: string[], segment: Segment): FileRead | undefined {
-  if (
-    args.some((arg) => /^-[a-zA-Z]*i/.test(arg) || arg.startsWith("--in-place"))
-  ) {
-    return undefined;
-  }
+  const call = sedCallOf(args);
+  if (!call || call.isInPlace) return undefined;
   const isQuiet = args.some(
     (arg) => /^-[a-zA-Z]*n/.test(arg) || arg === "--quiet",
   );
-  const { scripts, operands } = sedPartsOf(args);
-  const files = operands.filter((arg) => !isGlob(arg));
+  const { scripts } = call;
+  const files = call.files.filter((arg) => !isGlob(arg));
   const isToEnd = scripts.some((script) => /\d+\s*,\s*\$\s*p/.test(script));
   if (!isQuiet || isToEnd) return fileRead(files, segment, "whole");
   const span = rangeSpanOf(scripts.join(";"));
   return span === undefined
     ? fileRead(files, segment, "filter")
     : fileRead(files, segment, "range", { span });
-}
-
-// A sed call's scripts, from -e and -f or else its first operand, and its other operands.
-export function sedPartsOf(args: string[]): {
-  scripts: string[];
-  operands: string[];
-} {
-  const scripts: string[] = [];
-  const operands: string[] = [];
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i] ?? "";
-    if (arg === "-e" || arg === "-f") scripts.push(args[++i] ?? "");
-    else if (!arg.startsWith("-")) operands.push(arg);
-  }
-  if (scripts.length === 0) scripts.push(operands.shift() ?? "");
-  return { scripts, operands };
 }
 
 // `12,40p` or `12p` pieces only; anything else (a pattern, `$`) is not a numeric range.
