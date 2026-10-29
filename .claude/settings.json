@@ -92,12 +92,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/branchRecord.ts\"",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/branchRecord.ts\"",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/sessionIdContext.ts\"",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/sessionIdContext.ts\"",
             "timeout": 10
           }
         ]
@@ -108,12 +108,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/leaseRelease.ts\"",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/leaseRelease.ts\"",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/branchRecord.ts\"",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/branchRecord.ts\"",
             "timeout": 10
           }
         ]
@@ -125,7 +125,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/primaryEditGuard.ts\""
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/primaryEditGuard.ts\""
           }
         ]
       },
@@ -134,7 +134,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/branchGuard.ts\"",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/branchGuard.ts\"",
             "timeout": 10
           }
         ]
@@ -145,7 +145,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/bashReadGuard.ts\"",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/bashReadGuard.ts\"",
             "timeout": 10
           }
         ]
@@ -155,7 +155,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/tierGate.ts\"",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/tierGate.ts\"",
             "timeout": 10
           }
         ]
@@ -165,7 +165,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/tierGate.ts\"",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/tierGate.ts\"",
             "timeout": 15
           }
         ]
@@ -175,7 +175,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/gmailGate.ts\"",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/gmailGate.ts\"",
             "timeout": 10
           }
         ]
@@ -185,17 +185,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/generatedEditWarning.ts\"",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/generatedEditWarning.ts\"",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/agentsCostNudge.ts\"",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/agentsCostNudge.ts\"",
             "timeout": 10
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/readFirstGate.ts\"",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/readFirstGate.ts\"",
             "timeout": 10
           }
         ]
@@ -205,7 +205,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/readFirstGate.ts\"",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/readFirstGate.ts\"",
             "timeout": 10
           }
         ]
@@ -217,7 +217,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/formatAndLint.ts\"",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/formatAndLint.ts\"",
             "timeout": 40,
             "statusMessage": "Formatting with Prettier and ESLint"
           }
@@ -228,7 +228,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/readCountNudge.ts\"",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/readCountNudge.ts\"",
             "timeout": 10
           }
         ]
@@ -237,17 +237,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/contextNudge.ts\"",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/readFirstGate.ts\"",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/contextNudge.ts\"",
             "timeout": 10
           }
         ]
@@ -257,7 +247,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/tierGate.ts\"",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/readFirstGate.ts\"",
             "timeout": 10
           }
         ]
@@ -267,7 +257,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/sessionPairContext.ts\"",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/tierGate.ts\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/sessionPairContext.ts\"",
             "timeout": 10
           }
         ]
@@ -277,7 +277,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/readFirstGate.ts\"",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/readFirstGate.ts\"",
             "timeout": 10
           }
         ]
@@ -288,7 +288,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/readCountNudge.ts\"",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/readCountNudge.ts\"",
             "timeout": 10
           }
         ]
