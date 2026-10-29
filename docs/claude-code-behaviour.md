@@ -4,7 +4,7 @@ An index of what Claude Code itself does that the repo's gates rest on, grouped 
 
 ## What a hook's allow clears
 
-- In a headless `-p` step under `acceptEdits`, a PermissionRequest allow clears an Edit or Write to `.claude/skills/`, `.claude/hooks/`, `.claude/settings.json`, `.vscode/settings.json` and `.mcp.json`, and a Bash write into `.claude/`; 2.1.312, 2026-10-28; [#446 on #445](https://github.com/byronbroughten/byro-repo/issues/445#issuecomment-6482122578).
+- In a headless `-p` step under `acceptEdits`, a PermissionRequest allow clears an Edit or Write to `.claude/skills/`, `.claude/hooks/`, `.claude/settings.json`, `.vscode/settings.json`, an Edit to `.mcp.json`, and a Bash write into `.claude/`; 2.1.312, 2026-10-28; [#446 on #445](https://github.com/byronbroughten/byro-repo/issues/445#issuecomment-6482122578).
 - A PreToolUse allow does not clear a Bash write into a protected path: Claude Code's own path check still denies it; 2.1.312, 2026-10-28; [#446 on #445](https://github.com/byronbroughten/byro-repo/issues/445#issuecomment-6482122578).
 - Either hook's allow clears `cd <dir> && git`, and a PermissionRequest allow clears a Read outside the cwd; 2.1.312, 2026-10-28; [#446 on #445](https://github.com/byronbroughten/byro-repo/issues/445#issuecomment-6482122578).
 - A settings deny rule acts before any hook: neither PreToolUse nor PermissionRequest fires; 2.1.312, 2026-10-28; [#446 on #445](https://github.com/byronbroughten/byro-repo/issues/445#issuecomment-6482122578).
@@ -20,7 +20,7 @@ An index of what Claude Code itself does that the repo's gates rest on, grouped 
 
 - One hook command string in both the project's `.claude/settings.json` and `--settings` runs once: Claude Code dedupes on the unexpanded string; 2.1.312, 2026-10-28; [#456 on #445](https://github.com/byronbroughten/byro-repo/issues/445#issuecomment-6485345747).
 - `node "${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/<hook>.ts"` expands from the spawn's environment, so with `BYRO_GATE_ROOT` set the deduped command runs the gate root's file, and with it unset the project's; 2.1.312, 2026-10-28; [#456 on #445](https://github.com/byronbroughten/byro-repo/issues/445#issuecomment-6485345747).
-- A project copy changed to a different command runs beside the `--settings` one, and a deny from either wins over the other's allow; 2.1.312, 2026-10-28; [#456 on #445](https://github.com/byronbroughten/byro-repo/issues/445#issuecomment-6485345747).
+- A project copy changed to a different command runs beside the `--settings` one, and the `--settings` copy's deny wins over the project copy's allow; 2.1.312, 2026-10-28; [#456 on #445](https://github.com/byronbroughten/byro-repo/issues/445#issuecomment-6485345747).
 
 ## Symlinks and protection
 

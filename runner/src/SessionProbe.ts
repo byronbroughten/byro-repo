@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 export interface SessionReading {
-  // $CLAUDE_PROJECT_DIR as a hook sees it; the project's hooks resolve their paths from it.
+  // $CLAUDE_PROJECT_DIR as a hook sees it; the project's hooks resolve their paths from it unless BYRO_GATE_ROOT is set.
   projectDir: string | undefined;
   hookCwd: string;
   // The SessionStart hook's stdin JSON.
