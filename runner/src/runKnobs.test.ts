@@ -31,7 +31,6 @@ describe("loadRunKnobs", () => {
     const path = overrideFile(
       JSON.stringify({
         clonePaths: { stale: "packages/stale" },
-        allowedTools: { review: ["Read"] },
         wallClockMs: { review: 5_000 },
         handoffDocPath: "docs/handoffs.md",
       }),
@@ -40,10 +39,6 @@ describe("loadRunKnobs", () => {
     const knobs = loadRunKnobs(path, { "byro-repo": "." });
 
     expect(knobs.clonePaths).toEqual({ "byro-repo": "." });
-    expect(knobs.allowedTools).toEqual({
-      ...defaultRunKnobs.allowedTools,
-      review: ["Read"],
-    });
     expect(knobs.handoffDocPath).toBe("docs/handoffs.md");
     expect(knobs.ticketBudget).toBe(150_000);
     expect(knobs.liveCeiling).toBe(180_000);

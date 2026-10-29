@@ -1,5 +1,11 @@
 import { spawn } from "node:child_process";
-import { createWriteStream, openSync, type WriteStream } from "node:fs";
+import {
+  createWriteStream,
+  openSync,
+  readFileSync,
+  type WriteStream,
+} from "node:fs";
+import { join } from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 
@@ -11,6 +17,8 @@ import { toolsOf } from "./targetTools.ts";
 // The tier gate's runner-step mark and targets variable, named the same in .claude/hooks/lib/tiers/tiers.ts.
 export const runnerStepMark = "BYRO_RUNNER_STEP";
 export const stepTargetsVariable = "BYRO_STEP_TARGETS";
+// Every hook command in .claude/settings.json runs its file from here, falling back to $CLAUDE_PROJECT_DIR.
+const gateRootVariable = "BYRO_GATE_ROOT";
 
 // One `mcpServers` entry, as Claude Code's config files hold it.
 export type McpServerConfig = Record<string, unknown>;
@@ -130,13 +138,24 @@ function commandArgs(request: StepRequest): string[] {
     JSON.stringify(settingsOf(request)),
   ];
   if (request.resumeSessionId) args.push("--resume", request.resumeSessionId);
-  const allowedTools = [...request.allowedTools, ...toolsOf(request.targets)];
-  if (allowedTools.length > 0) args.push("--allowedTools", ...allowedTools);
+  const targetTools = toolsOf(request.targets);
+  if (targetTools.length > 0) args.push("--allowedTools", ...targetTools);
   return args;
 }
 
-// Settings layered on the workspace's own, registering the hook that answers the prompt an allowed .claude/ write raises.
-function settingsOf({ cwd, allowedWriteGlobs }: StepRequest): object {
+export interface HookEntry {
+  matcher?: string;
+  hooks: { type: string; command: string }[];
+}
+
+export interface ProjectSettings {
+  hooks?: Record<string, HookEntry[]>;
+}
+
+// The primary's project settings, layered on the workspace's own: identical hook commands dedupe, so a workspace edit can't drop a primary gate.
+function settingsOf(request: StepRequest): ProjectSettings {
+  const { cwd, allowedWriteGlobs } = request;
+  const primary = primarySettingsOf(request.gateRoot);
   const hookArgs: ClaudeWriteHookArgs = {
     workspaceRoot: cwd,
     allowedGlobs: allowedWriteGlobs,
@@ -145,8 +164,11 @@ function settingsOf({ cwd, allowedWriteGlobs }: StepRequest): object {
     shellQuoted,
   );
   return {
+    ...primary,
     hooks: {
+      ...primary.hooks,
       PermissionRequest: [
+        ...(primary.hooks?.PermissionRequest ?? []),
         {
           matcher: "Edit|Write",
           hooks: [{ type: "command", command: command.join(" ") }],
@@ -154,6 +176,12 @@ function settingsOf({ cwd, allowedWriteGlobs }: StepRequest): object {
       ],
     },
   };
+}
+
+function primarySettingsOf(gateRoot: string): ProjectSettings {
+  return JSON.parse(
+    readFileSync(join(gateRoot, ".claude", "settings.json"), "utf8"),
+  ) as ProjectSettings;
 }
 
 // A ticket with no targets gets no Google access at all.
@@ -173,8 +201,12 @@ function mcpConfigArgsOf(
   ];
 }
 
-function stepEnvOf({ targets }: StepRequest): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = { ...process.env, [runnerStepMark]: "1" };
+function stepEnvOf({ targets, gateRoot }: StepRequest): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    [runnerStepMark]: "1",
+    [gateRootVariable]: gateRoot,
+  };
   if (targets.length > 0) env[stepTargetsVariable] = JSON.stringify(targets);
   return env;
 }

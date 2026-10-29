@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import type { StepRequest, StepResult } from "./AgentStep.ts";
-import { ClaudeAgentStep } from "./ClaudeAgentStep.ts";
+import { ClaudeAgentStep, type ProjectSettings } from "./ClaudeAgentStep.ts";
 
 const fixturesFolder = fileURLToPath(
   new URL("../fixtures/stream/", import.meta.url),
@@ -20,14 +20,37 @@ const answerSchema = {
   required: ["answer"],
 };
 
+// A stand-in primary's settings: one gate on PreToolUse and a PermissionRequest hook of its own.
+const gateHook = {
+  type: "command",
+  command: `node "\${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/tierGate.ts"`,
+};
+const primaryPermissionHook = {
+  type: "command",
+  command: `node "\${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/ask.ts"`,
+};
+const primarySettings = {
+  permissions: { deny: ["Edit(**/.env*)"] },
+  hooks: {
+    PreToolUse: [{ matcher: "Bash", hooks: [gateHook] }],
+    PermissionRequest: [{ matcher: "Bash", hooks: [primaryPermissionHook] }],
+  },
+};
+const primaryRoot = mkdtempSync(join(tmpdir(), "agent-step-primary-"));
+mkdirSync(join(primaryRoot, ".claude"));
+writeFileSync(
+  join(primaryRoot, ".claude", "settings.json"),
+  JSON.stringify(primarySettings),
+);
+
 function request(overrides: Partial<StepRequest> = {}): StepRequest {
   return {
     prompt: "/implement byro-repo #216",
     pair: { model: "opus", effort: "medium" },
     account: 2,
-    cwd: "/Users/dev/byro-repo",
+    cwd: "/Users/dev/byro-repo/.claude/worktrees/byro-repo-issue-216",
+    gateRoot: primaryRoot,
     maxTurns: 40,
-    allowedTools: ["Bash(npm run tsc)", "Bash(git commit *)"],
     allowedWriteGlobs: [".claude/skills/**"],
     targets: [],
     jsonSchema: answerSchema,
@@ -47,11 +70,25 @@ interface Replay {
   cwd: string;
 }
 
+type PassedSettings = ProjectSettings & { permissions?: unknown };
+
+function passedSettingsOf(argv: string[]): PassedSettings {
+  return JSON.parse(
+    argv[argv.indexOf("--settings") + 1] ?? "",
+  ) as PassedSettings;
+}
+
 function permissionRequestCommandOf(argv: string[]): string {
-  const settings = JSON.parse(argv[argv.indexOf("--settings") + 1] ?? "") as {
-    hooks: { PermissionRequest: [{ hooks: [{ command: string }] }] };
-  };
-  return settings.hooks.PermissionRequest[0].hooks[0].command;
+  const entry = passedSettingsOf(argv).hooks?.PermissionRequest?.find(
+    ({ matcher }) => matcher === "Edit|Write",
+  );
+  const command = entry?.hooks[0]?.command;
+  if (command === undefined) {
+    throw new Error(
+      "The step's --settings has no Edit|Write PermissionRequest hook.",
+    );
+  }
+  return command;
 }
 
 // Runs the real adapter against a stand-in cswap that records its argv and prints a recorded stream.
@@ -64,7 +101,7 @@ async function replay(
   const cswapPath = join(dir, "cswap");
   writeFileSync(
     cswapPath,
-    `#!/bin/sh\nprintf '%s\\n' "$@" > '${argvPath}'\nprintf '%s' "$BYRO_RUNNER_STEP" > '${join(dir, "mark")}'\nprintf '%s' "$BYRO_STEP_TARGETS" > '${join(dir, "targets")}'\ncat '${join(fixturesFolder, fixture)}'\n`,
+    `#!/bin/sh\nprintf '%s\\n' "$@" > '${argvPath}'\nprintf '%s' "$BYRO_RUNNER_STEP" > '${join(dir, "mark")}'\nprintf '%s' "$BYRO_STEP_TARGETS" > '${join(dir, "targets")}'\nprintf '%s' "$BYRO_GATE_ROOT" > '${join(dir, "gateRoot")}'\ncat '${join(fixturesFolder, fixture)}'\n`,
     { mode: 0o755 },
   );
   const result = await ClaudeAgentStep.init(cswapPath, gworkspaceServer).run(
@@ -109,7 +146,7 @@ describe("ClaudeAgentStep on a recorded success", () => {
 });
 
 describe("ClaudeAgentStep's command", () => {
-  it("runs claude as the account in acceptEdits with the pair, cap, schema and tools", async () => {
+  it("runs claude as the account in acceptEdits with the pair, cap and schema", async () => {
     const { argv } = await replay("success.ndjson");
     expect(argv).toEqual([
       "run",
@@ -132,9 +169,24 @@ describe("ClaudeAgentStep's command", () => {
       '{"type":"object","properties":{"answer":{"type":"string"}},"required":["answer"]}',
       "--settings",
       expect.any(String),
-      "--allowedTools",
-      "Bash(npm run tsc)",
-      "Bash(git commit *)",
+    ]);
+  });
+
+  it("runs the step under the primary's gate, with project settings still loaded", async () => {
+    const { argv, cwd } = await replay("success.ndjson");
+    expect(readFileSync(join(cwd, "gateRoot"), "utf8")).toBe(primaryRoot);
+    expect(argv).not.toContain("--setting-sources");
+    const settings = passedSettingsOf(argv);
+    expect(settings.permissions).toEqual(primarySettings.permissions);
+    expect(settings.hooks?.PreToolUse).toEqual(
+      primarySettings.hooks.PreToolUse,
+    );
+    expect(settings.hooks?.PermissionRequest).toEqual([
+      { matcher: "Bash", hooks: [primaryPermissionHook] },
+      {
+        matcher: "Edit|Write",
+        hooks: [{ type: "command", command: expect.any(String) }],
+      },
     ]);
   });
 
@@ -185,10 +237,6 @@ describe("ClaudeAgentStep's command", () => {
       targets: [{ kind: "spreadsheet", name: "app" }],
     });
     const tools = argv.slice(argv.indexOf("--allowedTools") + 1);
-    expect(tools.slice(0, 2)).toEqual([
-      "Bash(npm run tsc)",
-      "Bash(git commit *)",
-    ]);
     expect(tools).toContain("Bash(npm run app:chore*)");
     expect(tools).toContain("mcp__gworkspace__modify_sheet_values");
     expect(tools).not.toContain("Bash(npm run dev:chore*)");
@@ -203,7 +251,6 @@ describe("ClaudeAgentStep's command", () => {
 
   it("adds a Doc target's Docs tools and no live aliases", async () => {
     const { argv } = await replay("success.ndjson", {
-      allowedTools: [],
       targets: [{ kind: "doc", id: "doc1" }],
     });
     const tools = argv.slice(argv.indexOf("--allowedTools") + 1);
@@ -213,15 +260,11 @@ describe("ClaudeAgentStep's command", () => {
     expect(argv).toContain("--mcp-config");
   });
 
-  it("passes no gworkspace server and no targets when the ticket names none", async () => {
+  it("passes no gworkspace server, no targets and no --allowedTools when the ticket names none", async () => {
     const { argv, cwd } = await replay("success.ndjson");
     expect(argv).not.toContain("--mcp-config");
-    expect(readFileSync(join(cwd, "targets"), "utf8")).toBe("");
-  });
-
-  it("leaves out --allowedTools when the list is empty", async () => {
-    const { argv } = await replay("success.ndjson", { allowedTools: [] });
     expect(argv).not.toContain("--allowedTools");
+    expect(readFileSync(join(cwd, "targets"), "utf8")).toBe("");
   });
 });
 

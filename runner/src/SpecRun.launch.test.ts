@@ -7,7 +7,6 @@ import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { FakeIssueSource } from "./FakeIssueSource.ts";
 import { implementOutputSchema } from "./implementStep.ts";
 import { IssueReader } from "./IssueReader.ts";
-import { runKnobsOf } from "./runKnobs.ts";
 import type { RunResult } from "./SpecRun.ts";
 import {
   addIssue,
@@ -15,14 +14,12 @@ import {
   applied,
   bodyWith,
   bodyWithTargets,
-  clonePaths,
   github,
-  greenUnlessRed,
   haltComments,
   implemented,
   masterSubjects,
   ntfyNotices,
-  passes,
+  primaryRoot,
   refOf,
   reviewed,
   spec,
@@ -41,29 +38,22 @@ const bodyWithApproval =
   "Approved body: sha256:c558a51de72dcd2bb13e6d8af1c265d8050936ca30dd09bf3314c8f9be105fe0";
 
 describe("run", () => {
-  it("launches a ticket naming the app spreadsheet with that target beside its step's own tools", async () => {
+  it("launches a ticket naming the app spreadsheet with that target, each step under the primary's gate", async () => {
     addSpec([1]);
     github.edit(1, { body: bodyWithTargets("app spreadsheet") });
     const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
 
-    await specRun(agentStep, {
-      knobs: runKnobsOf({
-        clonePaths,
-        checks: [greenUnlessRed],
-        authChecks: [passes],
-        allowedTools: { implement: ["Bash(npm run tsc)"] },
-      }),
-    }).run(spec);
+    await specRun(agentStep).run(spec);
 
     const app = [{ kind: "spreadsheet", name: "app" }];
     expect(
-      agentStep.requests.map(({ targets, allowedTools }) => ({
+      agentStep.requests.map(({ targets, gateRoot }) => ({
         targets,
-        allowedTools,
+        gateRoot,
       })),
     ).toEqual([
-      { targets: app, allowedTools: ["Bash(npm run tsc)"] },
-      { targets: app, allowedTools: [] },
+      { targets: app, gateRoot: primaryRoot },
+      { targets: app, gateRoot: primaryRoot },
     ]);
   });
 
