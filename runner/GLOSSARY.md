@@ -13,7 +13,7 @@ One stage of a ticket's run, in order: implement, review, resolve, checks and wr
 _Avoid_: phase, stage, job
 
 **Active account**:
-The Claude account the developer is logged in with right now, as cswap reports it. A fresh agent step runs on it; a resumed session stays on the account it started on.
+The Claude account the developer is logged in with right now, as cswap reports it. Every agent step runs on it, a resumed session included.
 _Avoid_: configured account, current account, runner account
 
 **Checks**:
@@ -41,7 +41,7 @@ The step after review where the resolver gives each finding a verdict and fixes 
 _Avoid_: finding triage, triage, classification, label
 
 **Resolver**:
-The agent that resolves: either the resumed implementer, or a fresh session when the implementer's peak context is past the ticket budget, or after an implementer resolving is killed at the live ceiling (the defaults are `ticketBudget` and `liveCeiling` in `src/runKnobs.ts`).
+The agent that resolves: either the resumed implementer, or a fresh session when the implementer's session can't be resumed, when its peak context is past the ticket budget, or after an implementer resolving is killed at the live ceiling (the defaults are `ticketBudget` and `liveCeiling` in `src/runKnobs.ts`).
 _Avoid_: triage agent, judge, fixer
 
 **Suggested verdict**:
@@ -76,12 +76,16 @@ _Avoid_: error, crash
 A Halt raised in place of a fresh implement step when a handoff proposes splitting the ticket, carrying the proposed slices. The developer splits the ticket, then answers `continue`. It is not a Failure Halt, so the stuck detector ignores it.
 
 **Stop**:
-The run ends early: on a failure no answer can fix inside the run (GitHub or `claude` unreachable or logged out, a clone missing or dirty, a red master, the account a step would run on past its weekly reserve, or a runner exception), or after the current ticket on a stop request (`npm run runner -- stop`) or a `stop spec` answer, which leaves a halted ticket committed and unlanded with its other Halts open. Rerunning resumes it.
+The run ends early: on a failure no answer can fix inside the run (GitHub or `claude` unreachable or logged out, a clone missing or dirty, a red master, the account a step would run on past its weekly reserve, or a runner exception), or after the current ticket on a stop request (`npm run runner -- stop`) or a `stop spec` answer, which leaves a halted ticket committed and unlanded with its other Halts open. Rerunning resumes it, taking a `stop spec` answer as `retry`.
 _Avoid_: abort, exit, kill
 
 **Limit wait**:
-The run pauses because the account a step would run on is past its 5-hour threshold, and continues unaided once that window resets or a fresh step's active account is under it.
+The run pauses because the Active account is past its 5-hour threshold, and continues unaided once that window resets or the developer switches to an account under it. The runner never picks an account itself.
 _Avoid_: cooldown, throttle
+
+**Restart**:
+The run ends after landing a ticket that changed the runner itself, and relaunches at once, resuming where it ended, so later tickets run on the code that landed. It is not a Stop, and the Supervisor doesn't report it.
+_Avoid_: reload, reboot
 
 **Idle**:
 Nothing is runnable, but an open Halt or another holder's Lease may clear while the run waits, so it polls for answers rather than ending.
