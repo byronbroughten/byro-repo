@@ -27,6 +27,7 @@ The words for the repo's prose, which file holds which fact, what the root AGENT
 | `docs/adr/*.md` | One agent-behavior decision per file, in the `domain-modeling` skill's ADR format with its `Source:` line. Each repo has its own `docs/adr/`, created with its first ADR. |
 | `docs/targets-and-gates.md` | The tier list of what needs a yes first, ticket targets, the `dev`/`app` targets, the agent account, and the gworkspace MCP rules. |
 | `docs/claude-code-guardrails.md` | The Claude Code hooks and project agent, and the rule on switching Claude accounts. |
+| `docs/claude-code-behaviour.md` | What Claude Code itself does that the gates rest on, grouped by behaviour, each line dated, versioned and linked to the issue comment holding its probe table. |
 | `docs/pdf-pages.md` | How a piece stage reads a long PDF by page: download it, count its pages, print a page range, PDF against printed pages, and delete the download. Shared by every piece skill, since user-invoked skills can't reach each other. |
 | `docs/session-transcripts.md` | How a skill that mines a past session finds "the last session" and reads the user's turns in its transcript. Shared by `/to-code-style` and `/to-writing-style`, for the same reason. |
 | `docs/prose-style.md` | How developer-facing prose is shaped, one line per rule, rule only: one home per fact, rule lines, reasoning files, mechanics docs, placement and the AGENTS.md bar, then the `## Smells` baseline with its two derived-prose rules. |
