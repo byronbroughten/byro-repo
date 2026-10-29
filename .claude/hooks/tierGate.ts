@@ -1,6 +1,10 @@
 // PreToolUse on Bash and the gworkspace write and create tools applies the tier gate; PostToolUse on Bash records each app chore dry run that ran, for a later --send.
 // A Bash call naming gh also reads this claude's supervision record, since a supervising session's gh writes ask.
-import { writeFileSync } from "node:fs";
+// Every Bash call gets the file-system lookups the step write rule and scratch `node` need, so the decision stays pure.
+import { spawnSync } from "node:child_process";
+import { lstatSync, realpathSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname } from "node:path";
 
 import {
   type HookInput,
@@ -25,6 +29,7 @@ import {
   dryRunChoresOf,
   gateDecision,
   sessionModeOf,
+  type ShellPlaces,
   stepTargetsVariable,
 } from "./lib/tiers/tiers.ts";
 
@@ -79,7 +84,44 @@ async function bashDecision(input: HookInput): Promise<Decision | undefined> {
     dryRuns: readDryRuns(dryRunsPath),
     supervising:
       mode === "interactive" && callsGh(command) && (await isSupervising()),
+    places: shellPlacesOf(input),
   });
+}
+
+function shellPlacesOf(input: HookInput): ShellPlaces {
+  const workspaceRoot = projectDirOf(input);
+  return {
+    workspaceRoot,
+    tmpDir: tmpdir(),
+    cwd: input.cwd ?? workspaceRoot,
+    realPathOf: (path) => {
+      try {
+        return realpathSync.native(path);
+      } catch {
+        return undefined;
+      }
+    },
+    isLink: (path) => {
+      try {
+        return lstatSync(path).isSymbolicLink();
+      } catch {
+        return false;
+      }
+    },
+    isIgnored: isGitIgnored,
+  };
+}
+
+// Asked of the path's own checkout, since the root ignores each package clone whole.
+function isGitIgnored(path: string): boolean {
+  const checked = spawnSync("git", [
+    "-C",
+    dirname(path),
+    "check-ignore",
+    "-q",
+    path,
+  ]);
+  return checked.status === 0;
 }
 
 // Loaded here, not at the top, so only a gh call pays for the runner config; a failed lookup counts as supervising, so gh writes ask.

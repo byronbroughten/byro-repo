@@ -6,6 +6,7 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { HookInput } from "../hookIo.ts";
 import { rootRelative } from "../lintSet.ts";
 import { readSheetsConfigs } from "../sheetsConfigs.ts";
+import { sedCallOf } from "./stdoutFilters.ts";
 
 export const largeFileLines = 150;
 const unguardedDirs = ["node_modules", ".git", ".probe", "dist", "coverage"];
@@ -49,7 +50,7 @@ interface Segment {
   words: string[];
   inputFiles: string[];
   isPiped: boolean;
-  writesFile: boolean;
+  outputFiles: string[];
 }
 
 interface FileRead {
@@ -70,11 +71,11 @@ interface Token {
   value: string;
 }
 
-// isBare: no wrapper or env assignment was dropped from its words.
+// isBare: no wrapper or env assignment was dropped from its words. outputFiles: each file a redirect writes.
 export interface SimpleCommand {
   words: string[];
   isBare: boolean;
-  writesFile: boolean;
+  outputFiles: string[];
 }
 
 export interface NpmScript {
@@ -244,10 +245,12 @@ export function simpleCommandsOf(command: string): SimpleCommand[] {
       return {
         words,
         isBare: words.length === segment.words.length,
-        writesFile: segment.writesFile,
+        outputFiles: segment.outputFiles,
       };
     })
-    .filter(({ words, writesFile }) => words.length > 0 || writesFile);
+    .filter(
+      ({ words, outputFiles }) => words.length > 0 || outputFiles.length > 0,
+    );
 }
 
 // An `npm run` script and its args; flags drop out except `--` and `--send`.
@@ -316,38 +319,19 @@ function optionValue(arg: string): string | undefined {
 }
 
 function sedRead(args: string[], segment: Segment): FileRead | undefined {
-  if (
-    args.some((arg) => /^-[a-zA-Z]*i/.test(arg) || arg.startsWith("--in-place"))
-  ) {
-    return undefined;
-  }
+  const call = sedCallOf(args);
+  if (!call || call.isInPlace) return undefined;
   const isQuiet = args.some(
     (arg) => /^-[a-zA-Z]*n/.test(arg) || arg === "--quiet",
   );
-  const { scripts, operands } = sedPartsOf(args);
-  const files = operands.filter((arg) => !isGlob(arg));
+  const { scripts } = call;
+  const files = call.files.filter((arg) => !isGlob(arg));
   const isToEnd = scripts.some((script) => /\d+\s*,\s*\$\s*p/.test(script));
   if (!isQuiet || isToEnd) return fileRead(files, segment, "whole");
   const span = rangeSpanOf(scripts.join(";"));
   return span === undefined
     ? fileRead(files, segment, "filter")
     : fileRead(files, segment, "range", { span });
-}
-
-// A sed call's scripts, from -e and -f or else its first operand, and its other operands.
-export function sedPartsOf(args: string[]): {
-  scripts: string[];
-  operands: string[];
-} {
-  const scripts: string[] = [];
-  const operands: string[] = [];
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i] ?? "";
-    if (arg === "-e" || arg === "-f") scripts.push(args[++i] ?? "");
-    else if (!arg.startsWith("-")) operands.push(arg);
-  }
-  if (scripts.length === 0) scripts.push(operands.shift() ?? "");
-  return { scripts, operands };
 }
 
 // `12,40p` or `12p` pieces only; anything else (a pattern, `$`) is not a numeric range.
@@ -421,27 +405,33 @@ function segmentsOf(tokens: Token[]): Segment[] {
   const segments: Segment[] = [];
   let current = newSegment(false);
   let redirect: string | undefined;
-  let didWriteBefore = false;
+  // A write redirect with no file after it still writes, so it keeps an empty name no path check passes.
+  function endRedirect(): void {
+    if (redirect?.includes(">")) current.outputFiles.push("");
+    redirect = undefined;
+  }
   for (const token of tokens) {
     if (token.type === "word") {
       if (redirect === "<") current.inputFiles.push(token.value);
       else if (!redirect) current.words.push(token.value);
-      else if (isDiscardRedirect(redirect, token.value)) {
-        current.writesFile = didWriteBefore;
+      else if (
+        redirect.includes(">") &&
+        !isDiscardRedirect(redirect, token.value)
+      ) {
+        current.outputFiles.push(token.value);
       }
       redirect = undefined;
       continue;
     }
+    endRedirect();
     if (token.type === "redirect") {
       redirect = token.value;
-      didWriteBefore = current.writesFile;
-      if (token.value.includes(">")) current.writesFile = true;
       continue;
     }
-    redirect = undefined;
     segments.push(current);
     current = newSegment(operators.pipes.has(token.value));
   }
+  endRedirect();
   segments.push(current);
   return segments;
 }
@@ -455,7 +445,7 @@ function isDiscardRedirect(redirect: string, target: string): boolean {
 }
 
 function newSegment(isPiped: boolean): Segment {
-  return { words: [], inputFiles: [], isPiped, writesFile: false };
+  return { words: [], inputFiles: [], isPiped, outputFiles: [] };
 }
 
 function tokenize(command: string): Token[] {
