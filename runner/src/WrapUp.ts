@@ -3,7 +3,7 @@
 // master under its landing lock, then pushes, deletes the branches, removes the workspace, closes the issue and checks
 // its parent. Steps are recorded in a progress file, so a rerun skips what already landed; a failure throws a
 // WrapUpFailure naming its kind.
-// A session workspace lands the same way from its session branches, with no facts file, checks or issue steps.
+// A session workspace lands the same way from its session branches, with no facts file or issue steps.
 // The outcome row is written by outcomeRowWriter.ts with the merged code; the lock is LandingLock.ts;
 // workspaces are IssueWorkspaces.ts.
 
@@ -117,7 +117,7 @@ export interface WrapUpConfig {
   workspaces: IssueWorkspacesConfig;
   github: WrapUpGitHub;
   githubOwner: string;
-  // Each a command and its args, run from the issue workspace's root after the merges.
+  // Each a command and its args, run from the workspace's root after the merges.
   checks: [string, ...string[]][];
   // Relative to the root repo.
   outcomeFolder: string;
@@ -413,11 +413,10 @@ export class WrapUp {
     };
   }
 
-  // A session runs its checks before landing, as every edit does, so its build is the merges alone.
   private get _sessionLanding(): LandingKind {
     return {
       build: async (landing, workspace) =>
-        this._step(landing, "merges", () => this._merge(landing, workspace)),
+        this._mergeAndCheck(landing, workspace),
       cleanRepos: () => Object.keys(this.config.workspaces.clonePaths),
       branchesToDelete: async (landing) => {
         await this._switchToMaster(await this._workspaceOf(landing.key));

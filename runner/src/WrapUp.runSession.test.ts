@@ -157,6 +157,40 @@ describe("runSession", () => {
     );
   });
 
+  it("stops on a red check before any fast-forward, naming it, and lands on a rerun after the fix", async () => {
+    const workspace = await sessionWorkspace();
+    commitIn(workspace, "byro-repo", "RED", "");
+    const masterBefore = git(primaryRoot, "rev-parse", "master");
+
+    const failure = await sessionWrapUp()
+      .runSession(session)
+      .catch((error: unknown) => error);
+
+    expect((failure as WrapUpFailure).kind).toBe("red-checks");
+    expect((failure as WrapUpFailure).message).toContain(
+      "sh -c test ! -f RED failed after the merges",
+    );
+    expect(git(primaryRoot, "rev-parse", "master")).toBe(masterBefore);
+    expect(git(remoteOf("byro-repo"), "rev-parse", "master")).toBe(
+      masterBefore,
+    );
+
+    git(workspace.path, "rm", "-q", "RED");
+    git(workspace.path, "commit", "-m", "Drop RED");
+    await sessionWrapUp().runSession(session);
+
+    expect(subjectsOf("byro-repo")[0]).toBe("Drop RED");
+  });
+
+  it("runs the checks on a kept landing too", async () => {
+    const workspace = await sessionWorkspace();
+    commitIn(workspace, "byro-repo", "RED", "");
+
+    expect(await failureOf(sessionWrapUp().keepSession(session))).toBe(
+      "red-checks",
+    );
+  });
+
   it("refuses uncommitted work in any repo of the workspace", async () => {
     const workspace = await sessionWorkspace();
     commitIn(workspace, "byro-repo", "terms.md", "# Terms\n");
@@ -229,6 +263,7 @@ describe("runSession", () => {
       "clean-check",
       "files-changed",
       "merges",
+      "checks",
       "fast-forward",
       "secret-scan",
       "push",
