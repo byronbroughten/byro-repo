@@ -7,13 +7,18 @@ const limits = {
   leadBytes: 800,
   unheadedDocBytes: 4 * 1024,
 };
-const linkedRootFiles = new Set([
-  "AGENTS.md",
-  "CLAUDE.md",
-  "GLOSSARY.md",
-  "README.md",
-]);
+const linkedFileNames = {
+  atRoot: new Set(["AGENTS.md", "CLAUDE.md", "GLOSSARY.md", "README.md"]),
+  anywhere: new Set(["AGENTS.md", "CLAUDE.md", "SKILL.md"]),
+};
 const workspaceFolders = new Set(["config"]);
+// Records that cite lines at a fixed commit on purpose, relative to their doc root.
+const recordPrefixes = [
+  "docs/agents/outcomes/",
+  "writing/snapshots/",
+  "inbox/changes.md",
+  "inbox/proposals.md",
+];
 
 /** @typedef {Record<string, string>} Docs */
 /** @typedef {{ path: string, line: number, message: string }} Violation */
@@ -56,6 +61,10 @@ export function checkDocs({ docs, paths = [], published = [] }) {
         report,
       });
     }
+    if (!isRecord(path)) {
+      checkLineCitations(text, report);
+      if (posix.basename(path) !== "README.md") checkReadmeLinks(text, report);
+    }
     if (isDocsFolderFile(path)) checkLead(text, report);
     if (posix.basename(path) === "AGENTS.md" && path !== "AGENTS.md") {
       checkClaudePairing(path, docs, report);
@@ -88,11 +97,17 @@ function isDocsFolderFile(path) {
 }
 
 /** @param {string} path */
+function isRecord(path) {
+  const local = inRoot(path);
+  return recordPrefixes.some((prefix) => local.startsWith(prefix));
+}
+
+/** @param {string} path */
 function isLinkChecked(path) {
   const name = posix.basename(path);
   const local = inRoot(path);
-  if (!local.includes("/")) return linkedRootFiles.has(local);
-  return isDocsFolderFile(path) || name === "AGENTS.md" || name === "CLAUDE.md";
+  if (!local.includes("/")) return linkedFileNames.atRoot.has(local);
+  return isDocsFolderFile(path) || linkedFileNames.anywhere.has(name);
 }
 
 // The repo root is "", a workspace folder is its name and a package is `packages/<name>`, however the caller spells it; an untracked one is a typo, not a no-op.
@@ -156,11 +171,10 @@ function checkLinks(
   const scope = publishedIn === "" ? "the repo" : publishedIn;
   for (const { line, target } of linksIn(text)) {
     const hashAt = target.indexOf("#");
-    const file = hashAt === -1 ? target : target.slice(0, hashAt);
+    const file = fileOf(target);
     const anchor =
       hashAt === -1 ? null : decodeURIComponent(target.slice(hashAt + 1));
-    const resolved =
-      file === "" ? path : resolveLink(path, decodeURIComponent(file));
+    const resolved = file === "" ? path : resolveLink(path, file);
     if (publishedIn !== undefined && !isInside(resolved, publishedIn)) {
       report(
         line,
@@ -190,6 +204,13 @@ function checkLinks(
 function isUntrackedPackagePath(resolved, trackedRoots) {
   const root = packageRootOf(resolved);
   return root !== undefined && !trackedRoots.has(root);
+}
+
+// A link target's file part, before any `#anchor`, decoded.
+/** @param {string} target */
+function fileOf(target) {
+  const hashAt = target.indexOf("#");
+  return decodeURIComponent(hashAt === -1 ? target : target.slice(0, hashAt));
 }
 
 /**
@@ -265,6 +286,35 @@ function headingSlugs(text) {
     slugs.add(count === 0 ? base : `${base}-${count}`);
   }
   return slugs;
+}
+
+// A line number drifts with every edit above it; a heading anchor is checked by checkLinks.
+/**
+ * @param {string} text
+ * @param {Report} report
+ */
+function checkLineCitations(text, report) {
+  proseLines(text).forEach(({ line, content }) => {
+    Array.from(content.matchAll(/[\w./-]+\.md:\d+/g)).forEach(([citation]) => {
+      report(
+        line,
+        `line-number citation ${citation}; cite a heading anchor, since a line number drifts`,
+      );
+    });
+  });
+}
+
+// The wording alone didn't keep agent facts out of READMEs, so a non-README doc can't send an agent to one.
+/**
+ * @param {string} text
+ * @param {Report} report
+ */
+function checkReadmeLinks(text, report) {
+  linksIn(text).forEach(({ line, target }) => {
+    if (posix.basename(fileOf(target)) === "README.md") {
+      report(line, "A README is for humans; link the fact's home instead.");
+    }
+  });
 }
 
 // A read-by-heading doc's lead: the non-blank lines after its title and before its first `##` heading.

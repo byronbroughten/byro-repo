@@ -14,13 +14,13 @@ Disclosed from [`docs/writing-craft.md`](../writing-craft.md), "Sentences". The 
 
 ## Use the passive to keep the topic first
 
-- Agent: "in which Build constructs the deliverable, Test inspects it before acceptance, and Deploy puts it into use" Developer: "in which the deliverable is constructed in the Build phase, inspected before acceptance in the Test phase, and put into use in the Deploy phase" — Assessment 1 Next Draft - AI against the edited Assessment 1 Next Draft (writing#4), 2026-10-13
+- Agent: "in which Build constructs the deliverable, Test inspects it before acceptance, and Deploy puts it into use" Developer: "in which the deliverable is constructed in the Build phase, inspected before acceptance in the Test phase, and put into use in the Deploy phase" — Assessment 1 Next Draft - AI against the edited Assessment 1 Next Draft (personal#4), 2026-10-13
 - Before: "the inspector whom Property Science hired after the 2024 flood to check each unit" After: "the inspector who was hired by Property Science after the 2024 flood to check each unit" — invented.
 - Pinker, Ch. 4, PDF pp. 135–138: the passive puts the done-to first when it is the topic, saves a heavy doer for the end, and brings a relative clause's noun next to its role. How it meets the Voice sheet's active-voice rule: [`precedence.md`](./precedence.md#the-passive-that-keeps-the-topic-first).
 
 ## Reword a garden path
 
-- Agent: "The return is measured once every unit other than the owner's is leased" Developer: "The return is measured when every unit other than the owner's is leased" — Assessment 1 Next Draft - AI against the edited Assessment 1 Next Draft (writing#4), 2026-10-13
+- Agent: "The return is measured once every unit other than the owner's is leased" Developer: "The return is measured when every unit other than the owner's is leased" — Assessment 1 Next Draft - AI against the edited Assessment 1 Next Draft (personal#4), 2026-10-13
 - Pinker, Ch. 4, PDF pp. 124–125, 129: a reader takes a word in its more frequent sense, and a garden path costs a backtrack even when it doesn't stop the reader.
 
 ## Keep the words that mark a phrase
@@ -34,7 +34,7 @@ Disclosed from [`docs/writing-craft.md`](../writing-craft.md), "Sentences". The 
 
 ## Don't nest a clause in the middle of another
 
-- Agent: "The return is measured once every unit other than the owner's is leased, from those units' lease rents and, for the owner's unit, the rent it is projected to earn if leased, as estimated in Planning." Developer: "The return is measured when every unit other than the owner's is leased, and the measurement is based on lease rents and the rent that the owner's unit is projected to earn if it were leased." — Assessment 1 Next Draft - AI against the edited Assessment 1 Next Draft (writing#4), 2026-10-13
+- Agent: "The return is measured once every unit other than the owner's is leased, from those units' lease rents and, for the owner's unit, the rent it is projected to earn if leased, as estimated in Planning." Developer: "The return is measured when every unit other than the owner's is leased, and the measurement is based on lease rents and the rent that the owner's unit is projected to earn if it were leased." — Assessment 1 Next Draft - AI against the edited Assessment 1 Next Draft (personal#4), 2026-10-13
 - Pinker, Ch. 4, PDF pp. 118–121: center-embedding makes the reader hold the outer phrase open until it resumes; set the clauses side by side, then split them. The Voice sheet's "split a sentence whose modifiers nest" overlaps; #321's audit decides whether it moves.
 
 ## Parallel items
@@ -43,7 +43,7 @@ Disclosed from [`docs/writing-craft.md`](../writing-craft.md), "Sentences". The 
 
 ## Same shape for parallel points
 
-- Agent: "The first is time: each month the project runs past May 31, 2027, is a month taken from the four acquisitions that follow it. The second is capital: costs above the $60,000 budget draw on cash and credit that the next purchase needs… The third is cash flow: a unit finished below a marketable standard draws fewer qualified applicants…" Revised, approved by the developer: "First, work added beyond the plan pushes the finish date past May 31, 2027, and each month of delay is a month taken from the four acquisitions that follow. Second, costs added beyond the $60,000 budget must come from the backup HELOC, which leaves less cash and credit for the next down payment. And third, repairs cut below a marketable standard draw fewer qualified applicants…" Each point now runs cause, then effect — Assessment 2 grill (writing#16), session 27f9c715, 2026-10-22
+- Agent: "The first is time: each month the project runs past May 31, 2027, is a month taken from the four acquisitions that follow it. The second is capital: costs above the $60,000 budget draw on cash and credit that the next purchase needs… The third is cash flow: a unit finished below a marketable standard draws fewer qualified applicants…" Revised, approved by the developer: "First, work added beyond the plan pushes the finish date past May 31, 2027, and each month of delay is a month taken from the four acquisitions that follow. Second, costs added beyond the $60,000 budget must come from the backup HELOC, which leaves less cash and credit for the next down payment. And third, repairs cut below a marketable standard draw fewer qualified applicants…" Each point now runs cause, then effect — Assessment 2 grill (personal#16), session 27f9c715, 2026-10-22
 - Pinker, Ch. 4, PDF pp. 129–131.
 - Pinker's other half, one name for one thing, is left to Ch. 5 (#318).
 

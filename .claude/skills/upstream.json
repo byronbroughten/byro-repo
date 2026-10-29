@@ -38,13 +38,13 @@
         "skills/engineering/code-review": {
           "status": "vendored",
           "syncedSha": "49dd158d1076134a641b33efb035946536778336",
-          "notes": "Divergences: (1) the /setup-matt-pocock-skills fallback points at docs/agents/issue-tracker.md instead. (2) Step 3's \"Always a judgement call\" rule becomes \"Fix or explain\", pointing at docs/agents/verdicts.md; the Standards brief's judgement-call sentence becomes the same pointer, with the re-check of a kept smell's reason and a stale reason reported as a fresh smell. (3) A \"Code only\" rule in step 3, and the brief's matching sentence: the baseline applies to code, and prose findings cite docs/agents/prose-files.md's one-fact-one-home rule and its exception, or writing-for-agents' single source of truth. (4) The Standards brief asks for each smell's \"→ how to fix\" line with the finding. (5) Step 4's opening sentence names the tool: call the Agent tool twice in one message, `subagent_type: \"general-purpose\"`, one per axis, since runner review sessions never spawned the reviewers when nothing named it. (6) Step 4 adds a verdict line both briefs end with, a suggested verdict and its reason for each finding under docs/agents/verdicts.md; step 5 presents each finding with it, and its no-merge sentence becomes keeping each finding under its own axis's heading in its reviewer's order.",
+          "notes": "Divergences: (1) the /setup-matt-pocock-skills fallback points at docs/agents/issue-tracker.md instead. (2) Step 3's \"Always a judgement call\" rule becomes \"Fix or explain\", pointing at docs/agents/verdicts.md; the Standards brief's judgement-call sentence becomes the same pointer, with the re-check of a kept smell's reason and a stale reason reported as a fresh smell. (3) Step 3 always adds docs/prose-style.md, the prose rules file, to the standards sources when the diff touches a `.md` file; a \"Code only\" rule in step 3, and the brief's matching sentence: prose findings cite the prose rules file, its smell baseline included, never the code baseline. The prose baseline stays in docs/prose-style.md, never pasted into the skill, since it is specific to this repo. (4) The Standards brief asks for each smell's \"→ how to fix\" line with the finding, for a code-baseline smell in code or a prose-rules-file smell in prose. (5) Step 4's opening sentence names the tool: call the Agent tool twice in one message, `subagent_type: \"general-purpose\"`, one per axis, since runner review sessions never spawned the reviewers when nothing named it. (6) Step 4 adds a verdict line both briefs end with, a suggested verdict and its reason for each finding under docs/agents/verdicts.md; step 5 presents each finding with it, and its no-merge sentence becomes keeping each finding under its own axis's heading in its reviewer's order. (7) Step 3's \"Two rules bind it:\" reads \"Three rules bind it:\", matching the three bullets once (3) adds \"Code only\".",
           "derivedInto": ["review-piece"]
         },
         "skills/engineering/domain-modeling": {
           "status": "vendored",
           "syncedSha": "5beb35b040e3de97e54fa9e386d7e42d15c295c2",
-          "notes": "Divergences: (1) ADR-FORMAT.md's template ends with a required `Source:` line naming the backing issues as owner/repo#n and/or commits, plus a sentence saying it is required; SKILL.md adds a \"Backlink the issue\" section: the backing issue's body ends with `Design decision: <owner/repo>/docs/adr/NNNN-slug.md`, kept in step by docs/agents/issue-tracker.md. (2) SKILL.md adds, after \"Offer ADRs sparingly\", a paragraph pointing at the \"What qualifies\" list, writing only after a yes, and offering an ADR when the developer rejects a suggestion for a reason that bears weight; and a \"Build principles on ADRs\" section: an instance added to a principle's reasoning without asking as a link plus one clause, a pair proposed as a one-line principle and written only after approval, pair-spotting reading every ADR body with no index, a superseded ADR stops counting and a principle below two ADRs goes to the developer rather than being deleted, deliberate-absence bullets name the gap and its reason, and cross-repo citations only from a repo using the library, by absolute GitHub URL, and never from a private repo; it opens by naming the design docs that hold principles (packages/framework/docs/design.md, docs/agent-behavior-design.md) and the at-least-two-ADRs rule. (3) File structure: the multi-context tree shows one docs/adr/ per repo root (byro-repo root for agent behavior, packages/framework, packages/real-estate), not per context, and says packages/writing gets none."
+          "notes": "Divergences: (1) ADR-FORMAT.md's template ends with a required `Source:` line naming the backing issues as owner/repo#n and/or commits, plus a sentence saying it is required; SKILL.md adds a \"Backlink the issue\" section of one sentence: when an ADR is written, backlink it from the issue its `Source:` names by the command and line format in docs/agents/issue-tracker.md#commands-for-each-operation, never by hand-editing the body. The line format and the `npm run issue:backlink` command live only in that doc; reapply the section as that pointer, never restating either. (2) SKILL.md adds, after \"Offer ADRs sparingly\", a paragraph pointing at the \"What qualifies\" list, writing only after a yes, and offering an ADR when the developer rejects a suggestion for a reason that bears weight; and a \"Build principles on ADRs\" section: an instance added to a principle's reasoning without asking as a link plus one clause, a pair proposed as a one-line principle and written only after approval, pair-spotting reading every ADR body with no index, a superseded ADR stops counting and a principle below two ADRs goes to the developer rather than being deleted, deliberate-absence bullets name the gap and its reason, and cross-repo citations only from a repo using the library, by absolute GitHub URL, and never from a private repo; it opens by naming the design docs that hold principles (packages/framework/docs/design.md, docs/agent-behavior-design.md) and the at-least-two-ADRs rule. (3) File structure: the multi-context tree shows one docs/adr/ per repo root (byro-repo root for agent behavior, packages/framework, packages/real-estate), not per context, and says packages/personal gets none."
         },
         "skills/engineering/grill-with-docs": {
           "status": "vendored",
@@ -58,7 +58,8 @@
         },
         "skills/engineering/pr": {
           "status": "vendored",
-          "syncedSha": "49dd158d1076134a641b33efb035946536778336"
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336",
+          "notes": "Divergence: the component-tree example names `libs/ui` where upstream names a ui folder under packages, since the runner's stale-path check flags a mention of a packages folder with no clone."
         },
         "skills/engineering/prototype": {
           "status": "vendored",
@@ -70,7 +71,8 @@
         },
         "skills/engineering/retro": {
           "status": "vendored",
-          "syncedSha": "49dd158d1076134a641b33efb035946536778336"
+          "syncedSha": "49dd158d1076134a641b33efb035946536778336",
+          "notes": "Divergence: every `CODING_STANDARDS.md` mention, in the Coding standards candidate category and in the Files list, names this repo's standards files instead: config/docs/code-style.md and packages/framework/docs/code-style.md for code, docs/prose-style.md for prose. The Files entry also says that here both the implementer and the reviewer read them, since the read-first gate (linked to docs/claude-code-guardrails.md#the-hooks-and-the-project-agent) requires each one before an edit it covers. Why: the rules files hold one line per rule, so they're cheap to load; mechanical rules are already lint, and the judgement rules left over shape structure that's costly to change once review finds it."
         },
         "skills/engineering/tdd": {
           "status": "vendored",
@@ -142,17 +144,17 @@
         "skills/in-progress/writing-beats": {
           "status": "reference-only",
           "syncedSha": "49dd158d1076134a641b33efb035946536778336",
-          "notes": "Relevant to packages/writing."
+          "notes": "Relevant to packages/personal/writing."
         },
         "skills/in-progress/writing-fragments": {
           "status": "reference-only",
           "syncedSha": "49dd158d1076134a641b33efb035946536778336",
-          "notes": "Relevant to packages/writing."
+          "notes": "Relevant to packages/personal/writing."
         },
         "skills/in-progress/writing-shape": {
           "status": "reference-only",
           "syncedSha": "49dd158d1076134a641b33efb035946536778336",
-          "notes": "Relevant to packages/writing."
+          "notes": "Relevant to packages/personal/writing."
         },
         "skills/engineering/ask-matt": {
           "status": "declined",

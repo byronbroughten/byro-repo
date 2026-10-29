@@ -1,3 +1,6 @@
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import type { StepResult } from "./AgentStep.ts";
@@ -8,16 +11,21 @@ import {
 } from "./EventFileNotices.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { commentUrlOf } from "./FakeGitHub.ts";
+import { git } from "./GitFixture.ts";
 import type { Blocker } from "./implementStep.ts";
 import { composedNotices } from "./Notices.ts";
+import { runKnobsOf } from "./runKnobs.ts";
 import type { SpecRunConfig } from "./SpecRun.ts";
 import {
   addSpec,
   blocked,
+  clonePaths,
   crashed,
   github,
   implemented,
   notices,
+  passes,
+  primaryRoot,
   reviewed,
   spec,
   specRun,
@@ -53,7 +61,7 @@ function haltCommentUrl(): string {
 }
 
 describe("run's event file", () => {
-  it("writes a line per Halt, idle, Stop and end, leaving the ntfy notices as they were", async () => {
+  it("writes a line per start, Halt, idle, Stop and end, leaving the ntfy notices as they were", async () => {
     addSpec([1]);
     const specUrl = "https://github.com/byronbroughten/byro-repo/issues/213";
 
@@ -76,6 +84,12 @@ describe("run's event file", () => {
     ).toEqual([
       {
         ticket: "byro-repo#1",
+        kind: "run-started",
+        ending: undefined,
+        commentUrl: specUrl,
+      },
+      {
+        ticket: "byro-repo#1",
         kind: "halt",
         ending: undefined,
         commentUrl: haltCommentUrl(),
@@ -93,13 +107,19 @@ describe("run's event file", () => {
         commentUrl: specUrl,
       },
       {
+        ticket: "byro-repo#1",
+        kind: "run-started",
+        ending: undefined,
+        commentUrl: specUrl,
+      },
+      {
         ticket: undefined,
         kind: "run-ended",
         ending: "finished",
         commentUrl: specUrl,
       },
     ]);
-    expect(eventLines()[0]).toMatchObject({
+    expect(eventLines()[1]).toMatchObject({
       time: "2026-10-12T09:00:00.000Z",
       spec: "byro-repo#213",
       summary: notices.sent.find(({ kind }) => kind === "halt")?.summary,
@@ -111,6 +131,65 @@ describe("run's event file", () => {
     );
   });
 
+  it("writes the run-started line, naming the first ticket and carrying no warnings, before any step runs", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    await specRun(agentStep, withEventFile()).run(spec);
+
+    expect(eventLines()[0]).toMatchObject({
+      time: "2026-10-12T09:00:00.000Z",
+      spec: "byro-repo#213",
+      ticket: "byro-repo#1",
+      kind: "run-started",
+      warnings: [],
+      summary: expect.stringContaining("Launching byro-repo #1."),
+    });
+    expect(notices.sent[0]).toMatchObject({ kind: "run-started" });
+  });
+
+  it("warns on the run-started line of each mention of a folder holding no clone, and runs on", async () => {
+    addSpec([1]);
+    writeFileSync(join(primaryRoot, "guide.md"), "See packages/personal.\n");
+    git(primaryRoot, "add", "guide.md");
+    git(primaryRoot, "commit", "-m", "Name a moved clone");
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    const result = await specRun(agentStep, withEventFile()).run(spec);
+
+    expect(eventLines()[0]).toMatchObject({
+      kind: "run-started",
+      warnings: [
+        "byro-repo guide.md:1 names packages/personal, which holds no clone",
+      ],
+    });
+    expect(result.kind).toBe("finished");
+  });
+
+  it("writes no run-started line for a run stopped in preflight, its run-ended summary naming the fix", async () => {
+    addSpec([1]);
+    const knobs = runKnobsOf({
+      clonePaths,
+      checks: [],
+      authChecks: [passes],
+      ticketBudget: 180_000,
+    });
+
+    const result = await specRun(FakeAgentStep.init(), {
+      ...withEventFile(),
+      knobs,
+    }).run(spec);
+
+    expect(eventLines()).toEqual([
+      expect.objectContaining({
+        kind: "run-ended",
+        ending: "stopped",
+        summary: result.message,
+      }),
+    ]);
+    expect(result.message).toContain("raise the live ceiling");
+  });
+
   it("writes a failure-halt line for a Failure Halt, naming its ticket and comment", async () => {
     addSpec([1]);
 
@@ -118,7 +197,7 @@ describe("run's event file", () => {
       spec,
     );
 
-    expect(eventLines()[0]).toMatchObject({
+    expect(eventLines()[1]).toMatchObject({
       ticket: "byro-repo#1",
       kind: "failure-halt",
       commentUrl: haltCommentUrl(),
@@ -134,7 +213,10 @@ describe("run's event file", () => {
     ).run(spec);
 
     expect(notices.sent.length).toBeGreaterThan(1);
-    expect(eventLines().map(({ kind }) => kind)).toEqual(["run-ended"]);
+    expect(eventLines().map(({ kind }) => kind)).toEqual([
+      "run-started",
+      "run-ended",
+    ]);
   });
 
   it("names the ticket and its Stop comment on a ticket Stop's run-ended line", async () => {
@@ -150,7 +232,7 @@ describe("run's event file", () => {
       withEventFile(),
     ).run(spec);
 
-    expect(eventLines()).toEqual([
+    expect(eventLines().slice(1)).toEqual([
       expect.objectContaining({
         ticket: "byro-repo#1",
         kind: "run-ended",

@@ -5,12 +5,15 @@
 
 ## Piece specs
 
-- **A piece spec is grilled with `/grill-piece`**, which runs [`packages/writing/docs/grilling.md`](../../packages/writing/docs/grilling.md).
+- **A piece spec is grilled with `/grill-piece`**, which runs [`packages/personal/writing/docs/grilling.md`](../../packages/personal/writing/docs/grilling.md).
 - **A piece spec is filed with `/piece-spec` and split with `/piece-tickets`**, never `/code-spec` or `/code-tickets`.
 
 ## Code in specs
 
-- **Code in a spec or ticket is only a shape that is itself the decision**: a record, type or schema, or a state machine. Its names are binding, so write them as the code will land ([naming](../../config/docs/code-style.md#naming)).
+- **Inline a shape (a record, type, schema or state machine) only when prose can't state the decision as precisely.**
+- **A shape binds what it decides: which facts a record carries, which states and transitions exist, what a type allows.** Its form doesn't bind: names, how it's split, or whether it's a new type at all ([the implementer's precedence](../../runner/skills/implement-code/SKILL.md#what-the-ticket-binds)).
+- **Wording is verbatim only when the developer has said it is exact.** A planner never treats the developer's casual phrasing as verbatim.
+- **A ticket that changes a tier rule quotes the row of the tier table it changes and says whether the change is stricter or looser.**
 
 ## Test seams
 
@@ -26,9 +29,7 @@
 - **A Phase is not a tracer bullet**: a tracer bullet is one verifiable slice, and a Phase is usually several that together can be used in real work.
 - **Phase 1 is the smallest usable Phase**, and the spec names the stand-ins it runs on until a later Phase replaces them.
 - **A phased spec has a `## Phases` section**: one line per Phase with its user story numbers and a status, `planned`, `ticketed`, `done` or `dropped`, a dropped one linking the gate that dropped it. Every Phase after the next is an outline marked provisional.
-- **Only the next Phase is ticketed.** `/code-tickets` publishes its tickets and its Phase gate in one pass, the gate blocked by every ticket in the Phase, adding them as sub-issues after the earlier Phases' so the runner's order follows the Phases. The last Phase has no gate; closing the spec plays that role.
-- **A Phase gate is a `ready-for-human` ticket** listing its Phase's tickets, a test checklist, note boxes for the data to record, and a `## Decision` section with three boxes: go, reshape, drop the rest. The developer's findings and any reshape details go in comments on the gate.
-- **Only `/code-tickets` closes a Phase gate.** The developer ticks one decision box, runs `/code-tickets` on the gate, then reruns the runner.
+- **Only the next Phase is ticketed, by `/code-tickets`, which also writes and closes each Phase gate**, the developer's `ready-for-human` go, reshape or drop ticket ending every Phase but the last: its [publish step](../../.claude/skills/code-tickets/SKILL.md#5-publish-the-tickets-to-the-configured-tracker), the gate template after that step's list, and [From a Phase gate](../../.claude/skills/code-tickets/SKILL.md#from-a-phase-gate).
 
 ## Ticket size
 
@@ -43,10 +44,10 @@
 ## Model fit
 
 - **The pair lives in the ticket: a `## Model fit` section, last in the body, holding a pair line, then a one-line reason**, with `~NK` in the reason only for a ticket near its budget.
-- **`/code-tickets` writes the section on every `ready-for-agent` ticket and none on a `ready-for-human` one**, then prints the tickets as one flat list in completion order, `#n Title: <Model> <effort> (reason)`, as a read-back.
-- **`/code-spec` writes the section on a spec meant for one session.** A spec that won't fit one session is still published, without the section, and a chat line recommends `/code-tickets` for sub-issues; say nothing if the developer has explicitly agreed in the conversation that it becomes tickets.
-- **`/piece-tickets` and `/piece-spec` stay chat only**: the same read-back list or one chat line, never in a ticket, comment or parent issue, with `/piece-tickets` as the recommendation for a spec too big for one session.
+- **`/code-tickets` and `/code-spec` write the section**, each by its own rule: [which tickets, and the read-back](../../.claude/skills/code-tickets/SKILL.md#6-read-back-the-model-fit), and [which specs](../../.claude/skills/code-spec/SKILL.md), in the paragraph after its spec template.
+- **`/piece-tickets` and `/piece-spec` stay chat only**: a read-back list like `/code-tickets`' or one chat line, never in a ticket, comment or parent issue, with `/piece-tickets` as the recommendation for a spec too big for one session.
 - **The developer switches with `/model` and `/effort`**; never dispatch an implementer.
+- **A Model fit check compares the model only**: the agent can't see `/effort`, so it names an effort only when the developer has said what it is.
 - **Pick from five pairs only:** Sonnet medium, Sonnet high, Opus low, Opus medium, Opus high. Criteria for each and their evidence: [`model-fit.md`](./model-fit.md).
 - **Tie-break: the cheapest pair likely to pass review on the first try.** Cost is the Claude Code weekly limit.
 

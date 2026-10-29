@@ -10,10 +10,10 @@ A smell is a heuristic, so some code that trips one is forced on it: a library's
 
 Re-check a kept smell's reason when a change touches its site or what the reason relies on: the same function, a type it names, a spec decision it cites. A reason that's no longer true protects nothing.
 
-## A spec protects decisions, not wording
-
-A fix may change how a decision is met as long as the decision still holds. An implementation sketch taken literally isn't a decision. Only a fix that would reverse a User Story or an Implementation Decision goes to the developer.
-
 ## Approved exceptions
 
 A reason the developer approves more than once becomes an exception in the verdict rules, and the review stops flagging that pattern.
+
+The Speculative Generality exception covers only the library packages because their consumers live outside them, so a public member's caller may not exist yet. In an app package (real-estate, runner) every caller is in reach, so a caller-less public member is flagged; an older one found there predates the branch, so it is a Propose `ticket`.
+
+The Middle Man exception keeps a name like `type SheetGid = number`, which says what the number means at every site that uses it.

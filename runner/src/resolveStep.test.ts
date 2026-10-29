@@ -82,7 +82,7 @@ describe("resolveRecordProblems", () => {
     expect(
       resolveRecordProblems(1, [{ ...fix, quote: "`// Retry once`" }]),
     ).toEqual([
-      "finding 1: a Fix needs `quote`, the quoted code with its file:line",
+      "finding 1: a Fix needs `quote`, the quoted code or text, with its file:line",
     ]);
   });
 
@@ -90,7 +90,7 @@ describe("resolveRecordProblems", () => {
     expect(
       resolveRecordProblems(1, [{ ...fix, quote: "retries at 12:30" }]),
     ).toEqual([
-      "finding 1: a Fix needs `quote`, the quoted code with its file:line",
+      "finding 1: a Fix needs `quote`, the quoted code or text, with its file:line",
     ]);
   });
 
@@ -375,9 +375,9 @@ describe("resolvePrompt", () => {
     );
   });
 
-  it("asks for one record per finding and a commit per Fix", () => {
+  it("asks for one record per finding and one commit for the Fixes", () => {
     expect(prompt).toContain("exactly one record per finding");
-    expect(prompt).toContain("Each Fix lands in its own commit");
+    expect(prompt).toContain("The Fixes land together in one commit");
   });
 
   it("halts on a spec-axis fix it can't land, and Proposes any other", () => {

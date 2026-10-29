@@ -216,9 +216,12 @@ describe("run's Halts", () => {
     expect(fresh?.prompt).toContain("H1: I ran it.");
   });
 
-  it("offers adding a denied tool's target, and the resumed step launches with the ticket's targets read again", async () => {
+  it("offers adding a denied Sheets write's target, and the resumed step launches with the ticket's targets read again", async () => {
     addSpec([1]);
-    await specRun(FakeAgentStep.init(blocked([denied]))).run(spec);
+    const deniedTools = ["Bash", "mcp__gworkspace__modify_sheet_values"];
+    await specRun(FakeAgentStep.init(blocked([denied], { deniedTools }))).run(
+      spec,
+    );
     expect(haltComments()[0]).toContain(
       "1. Skip the write.\n2. Add it to the ticket's `## Targets`, then resume\n3. `stop spec`",
     );
@@ -233,6 +236,24 @@ describe("run's Halts", () => {
       { kind: "spreadsheet", name: "app" },
     ]);
     expect(ticketFacts().halt).toBe("denied-tool blocker");
+  });
+
+  it("offers no target for a denied tool when the step's only denial was a Bash call", async () => {
+    addSpec([1]);
+    const deniedGitAdd: Blocker = {
+      kind: "denied-tool",
+      detail: "The gate refused `git add`.",
+      recommendation: "Stage the file by hand.",
+    };
+
+    await specRun(
+      FakeAgentStep.init(blocked([deniedGitAdd], { deniedTools: ["Bash"] })),
+    ).run(spec);
+
+    expect(haltComments()[0]).toContain(
+      "1. Stage the file by hand.\n2. `stop spec`",
+    );
+    expect(haltComments()[0]).not.toContain("## Targets");
   });
 
   it("halts on a blocker in a committed record only after the work is reviewed, then resumes at checks", async () => {

@@ -2,15 +2,9 @@
 // A Bash call naming gh also reads this claude's supervision record, since a supervising session's gh writes ask.
 import { writeFileSync } from "node:fs";
 
-import { driveOwnersOf } from "./lib/driveOwners.ts";
-import {
-  cachedOwnerLookup,
-  driveGateDecision,
-  type OwnerCache,
-  stepTargetsOf,
-} from "./lib/driveTiers.ts";
 import {
   type HookInput,
+  projectDirOf,
   readHookInput,
   readJsonFile,
   runFailOpen,
@@ -18,6 +12,13 @@ import {
   writeHookOutput,
 } from "./lib/hookIo.ts";
 import { readSheetsConfigs } from "./lib/sheetsConfigs.ts";
+import { driveOwnersOf } from "./lib/tiers/driveOwners.ts";
+import {
+  cachedOwnerLookup,
+  driveGateDecision,
+  type OwnerCache,
+  stepTargetsOf,
+} from "./lib/tiers/driveTiers.ts";
 import {
   callsGh,
   type Decision,
@@ -25,7 +26,7 @@ import {
   gateDecision,
   sessionModeOf,
   stepTargetsVariable,
-} from "./lib/tiers.ts";
+} from "./lib/tiers/tiers.ts";
 
 const dryRunSuffix = "chore-dry-runs.json";
 const ownersSuffix = "drive-owners.json";
@@ -37,8 +38,7 @@ await runFailOpen(async () => {
   if (input.tool_name === "Bash") {
     decision = await bashDecision(input);
   } else {
-    const projectDir =
-      process.env.CLAUDE_PROJECT_DIR ?? input.cwd ?? process.cwd();
+    const projectDir = projectDirOf(input);
     decision = await driveGateDecision({
       toolName: input.tool_name,
       // A spread copy fits the gate's Record of every argument.
@@ -93,7 +93,8 @@ async function isSupervising(): Promise<boolean> {
       await import("@byronbroughten/spec-runner/SupervisionRecords");
     const holder = nearestClaudeAncestor();
     if (!holder) return false;
-    const record = await SupervisionRecords.init(stateFolder).recordOf(holder);
+    const record =
+      await SupervisionRecords.init(stateFolder).runningRecordOf(holder);
     return record !== undefined;
   } catch {
     return true;

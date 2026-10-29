@@ -9,7 +9,7 @@ import {
 } from "../../scripts/runner/runnerConfig.ts";
 import { readHookInput, runFailOpen } from "./lib/hookIo.ts";
 import { endsProcess, leasedWorkspacesOf } from "./lib/leaseRelease.ts";
-import { sessionModeOf } from "./lib/tiers.ts";
+import { sessionModeOf } from "./lib/tiers/tiers.ts";
 
 await runFailOpen(async () => {
   // A runner step's claude holds no lease; the run holds it under its own pid.

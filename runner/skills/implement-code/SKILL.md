@@ -21,6 +21,12 @@ disable-model-invocation: true
 - Run typechecking and single test files regularly.
 - Read and search with the Read and Grep tools. Give Bash one command per call, run from the workspace root: no `cd`, no `;` or `&&` chains, no variables.
 
+## What the ticket binds
+
+- A ticket's code binds its decision. It's your job to fit it to code-style and existing structures, folding it into an existing structure or renaming it where that fits, and to report in the closing comment any departure or any shape that couldn't fit.
+- Ticket prose follows prose-style unless the ticket marks it verbatim.
+- Text an operator sees (CLI flags, script names, sheet text) stays as the ticket has it.
+
 ## GitHub
 
 - Some tickets need only GitHub writes and no code. Run `gh issue edit` and `gh issue comment` only as the ticket describes them. Never close an issue, never change a triage label (such as `ready-for-agent`) on this ticket or another ticket of its spec, and make no other GitHub write.
@@ -28,21 +34,22 @@ disable-model-invocation: true
 
 ## When you're done
 
+- Before review, grep the docs for every name, command or behavior the change renamed, removed or altered, and fix or delete each statement it made untrue.
 - Commit in each repo you changed, on the ticket's branch, then run `npm run check`. When it fails on your change, fix it in a further commit and run it again; never amend. When it fails only on something your change didn't cause, carry on and name the failure in your report.
 - Those commits and the GitHub writes the ticket describes are your only writes outside the workspace's files: never push, merge, rebase or reset, never close an issue. The review and wrap-up commands in the ending make every other write.
 - Run git commands one at a time: inside an entered worktree, Claude Code refuses a compound git command.
 - Then, in order:
   1. **Review**: run `npm run runner -- review <owner>/<repo> <n>`, resolving `<repo>` to `<owner>/<repo>` here and in resolve. It runs the runner's review session on this ticket and records it. While this session's context is under the ticket budget, it prints the findings, numbered, each with its axis and suggested verdict, for you to resolve; past it, a fresh resolver resolves them instead and it goes straight to the review list.
-  2. **Resolve**, when it printed findings: Give each finding exactly one verdict, Dismiss, Fix, Propose or Halt, by the rules in `docs/agents/verdicts.md`; read it before you judge. Fix by default, and Dismiss, Propose or Halt only where that doc says, with evidence. You may overrule a reviewer's suggested verdict, saying why in `evidence`, except that a suggested Halt resolves only as a Halt or a Propose `decision`. Each Fix lands in its own commit. Then run `npm run check`. Write `.runner/resolve-<n>.json`, gitignored, as `{ "records": [...] }`, exactly one record per finding: `finding` (its number in the list), `axis` (the finding's own, or for a finding without one, `standards` or `spec`), `where` (its file:line or area), `claim` (what the finding says, in a line), `verdict` (`dismiss`, `fix`, `propose` or `halt`), `evidence` (what you checked and found, and why, when you overruled the suggested verdict), and the fields its verdict needs:
+  2. **Resolve**, when it printed findings: Give each finding exactly one verdict, Dismiss, Fix, Propose or Halt, by the rules in `docs/agents/verdicts.md`; read it before you judge. Fix by default, and Dismiss, Propose or Halt only where that doc says, with evidence. You may overrule a reviewer's suggested verdict, saying why in `evidence`, except that a suggested Halt resolves only as a Halt or a Propose `decision`. The Fixes land together in one commit, its message naming each finding by number. Then run `npm run check`. Write `.runner/resolve-<n>.json`, gitignored, as `{ "records": [...] }`, exactly one record per finding: `finding` (its number in the list), `axis` (the finding's own, or for a finding without one, `standards` or `spec`), `where` (its file:line or area), `claim` (what the finding says, in a line), `verdict` (`dismiss`, `fix`, `propose` or `halt`), `evidence` (what you checked and found, and why, when you overruled the suggested verdict), and the fields its verdict needs:
 
      - **Dismiss**: `reason`, one of `false-positive`, `covered-later`, `kept`, `tooling-enforced` or `serves-spec`; for `covered-later`, `coveredBy`, the later ticket as `<repo>#<n>`; for `kept`, `quote`, the site's reason with its file:line.
-     - **Fix**: `quote`, the quoted code with its file:line, and `rule`, the documented rule or spec line it breaks.
+     - **Fix**: `quote`, the quoted code or text, with its file:line, and `rule`, the documented rule or spec line it breaks.
      - **Propose**: `reason`, `decision` or `ticket`, and `recommendation`; for `ticket`, `draftIssueTitle`; for a `decision` asking the developer's yes to a new keep, `draftKeepReason`, the drafted one-line reason.
      - **Halt**: `recommendation`, and `haltScope`, the later tickets it blocks as `<repo>#<n>`, or `spec`; omit it to block the whole spec.
 
      Then run `npm run runner -- resolve <owner>/<repo> <n> .runner/resolve-<n>.json`. It checks the records and your commits by the run's rules; when it refuses them, correct what it names and run it again.
   3. Either way, review or resolve prints the review list, by axis then verdict with each suggested verdict overruled, and writes the review facts. It prints each Halt as `S<n>.<k>`; answer it with the developer in the session. When it exits short of reviewed, report why and stop.
-  4. **Report**: post in the session what review caught, what was fixed and what is Proposed.
+  4. **Report**: post in the session what review caught and what was fixed, then each Propose on its own line, the item then `→` and its record's `recommendation`.
   5. **Wait for the developer's go-ahead.** Land nothing before it.
   6. Call `ExitWorktree` with `keep`, so wrap-up can remove the workspace.
   7. **Land**: `npm run wrap-up -- <repo> <n> --closing "<what landed>" [--undone "<box>: <reason>"]...`, one `--undone` per acceptance box left undone. A ticket with no branch ahead of master, one that needed only GitHub or Doc writes, adds `--no-code`: `npm run wrap-up -- <repo> <n> --no-code --closing "<what landed>"`. A ticket that changes wrap-up or the facts file's format lands through its workspace's own script instead, by `docs/agents/git-workflow.md`.

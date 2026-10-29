@@ -2,7 +2,7 @@
 
 The criteria behind the model and effort pair in a ticket's `## Model fit` section. The rule lines live in [`planning.md`](./planning.md#model-fit); open this guide when they don't decide a ticket, or when a new model version ships.
 
-## Based on
+## Model versions and review date
 
 Checked against Opus 5.5 and Sonnet 5.5. Reviewed 2026-09-30; Grok left the pairs in 2026-10, and its figures below stay as history.
 
@@ -16,7 +16,7 @@ Checked against Opus 5.5 and Sonnet 5.5. Reviewed 2026-09-30; Grok left the pair
 
 ## Ticket size
 
-A bigger pair never fixes a ticket that won't fit one session: #8 and #17 were Opus high picks and still too large, and #21 needed fixes after nearly 200K. Split it instead ([`planning.md`](./planning.md#ticket-size)). The Peak context column below checks the ticket budget (default ~150K). In the log as of 2026-10-08, tickets changing 3–10 files peaked at a median of ~147K and those changing 14–18 at ~212K, so the fixed reads weigh as much as the diff. Thinking counts toward the budget too: #336, an Opus high pick in a 3,000-line file, spent ~66K of output on diagnosis and hit the budget before writing code, so an Opus high ticket in a large file gets split or drops to medium.
+A bigger pair never fixes a ticket that won't fit one session: #8 and #17 were Opus high picks and still too large, and #21 needed fixes after nearly 200K. Split it instead ([`planning.md`](./planning.md#ticket-size)). Each ticket's peak context in the [outcome log](#outcome-log) checks the ticket budget (default ~150K). In the log as of 2026-10-08, tickets changing 3–10 files peaked at a median of ~147K and those changing 14–18 at ~212K, so the fixed reads weigh as much as the diff. Thinking counts toward the budget too: #336, an Opus high pick in a 3,000-line file, spent ~66K of output on diagnosis and hit the budget before writing code, so an Opus high ticket in a large file gets split or drops to medium.
 
 ## Sonnet
 
@@ -27,7 +27,7 @@ Sonnet 5.5 is back in the pairs (checked 2026-09-30), on probation for code-only
 - **Cost per task** on [CursorBench 4.0](https://cursor.com/cursorbench) (Sep 10, 2026), the only source comparing every pair on one harness. Score and API cost per task: Sonnet 5.5 low 35.8% $0.50, medium 39.2% $0.70, high 47.8% $1.67, xhigh 53.1% $3.88; Opus 5.5 low 43.7% $1.17, medium 52.5% $2.91, high 56.0% $3.97; and, as history, Grok 4.7 low 33.1% $1.58, against Grok 4.6 low's 33.4% $2.25. Sonnet 5 scored below all of these (24.1–34.1%). Cost per task is the best stand-in for weekly-limit use.
 - **Artificial Analysis index**: Opus 5.5 low scores 42 using 20M output tokens, Sonnet 5.5 medium 41 using 29M ([Opus low](https://artificialanalysis.ai/models/claude-opus-5-5-low), [Sonnet medium](https://artificialanalysis.ai/models/claude-sonnet-5-5-medium)).
 - **Weekly limits are one cap shared across Claude models**, with no published weighting by model or effort ([Max plan](https://support.claude.com/en/articles/11049741-what-is-the-max-plan), [best practices](https://support.claude.com/en/articles/9797557-usage-limit-best-practices), [how limits work](https://support.claude.com/en/articles/11647753-how-do-usage-and-length-limits-work)).
-- **History: Grok 4.7 is in Cursor's "Cursor Models" pool**, which resets monthly; past it, usage is on-demand at API rates ([usage limits](https://cursor.com/help/models-and-usage/usage-limits), [models and pricing](https://cursor.com/docs/models-and-pricing)). Cursor publishes no weighting by effort. Grok 4.7 has low, medium, high and xhigh effort ([reasoning](https://docs.x.ai/developers/model-capabilities/text/reasoning)); low scored below Sonnet 5.5 low on CursorBench, and xAI publishes no SWE-bench score ([announcement](https://x.ai/news/grok-4-7)). Grok 4.6 broke style rules here, though before the rules were fleshed out; 4.7 has no record here yet.
+- **History: Grok 4.7 is in Cursor's "Cursor Models" pool**, which resets monthly; past it, usage is on-demand at API rates ([usage limits](https://cursor.com/help/models-and-usage/usage-limits), [models and pricing](https://cursor.com/docs/models-and-pricing)). Cursor publishes no weighting by effort. Grok 4.7 has low, medium, high and xhigh effort ([reasoning](https://docs.x.ai/developers/model-capabilities/text/reasoning)); low scored below Sonnet 5.5 low on CursorBench, and xAI publishes no SWE-bench score ([announcement](https://x.ai/news/grok-4-7)). Grok 4.6 broke style rules here, though before the rules were fleshed out; 4.7 left the pairs with no record here.
 - **Higher Claude effort writes more comprehensive comments**, against this repo's short-comment rule. Opus 5.5 medium matches the previous Opus at high on coding; low comes close for much less ([effort](https://platform.claude.com/docs/en/build-with-claude/effort), [prompting Opus 5.5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5), [model config](https://code.claude.com/docs/en/model-config)). Sonnet 5.5 tends to produce longer outputs than Opus 5.5 ([system card §6.1.2](https://www.anthropic.com/claude-sonnet-5-5-system-card)).
 - **FrontierCode**, the closest benchmark to style-guide adherence, grades against a repo's guidelines and penalizes out-of-scope changes. Opus 5.5 leads it and scores best at medium ([Opus 5.5 system card §8.4](https://www.anthropic.com/claude-opus-5-5-system-card)). Sonnet 5.5 scores 52.1% at xhigh and 46.2% at max, against Opus 5.5's 54.4% ([Sonnet 5.5 system card §8.4](https://www.anthropic.com/claude-sonnet-5-5-system-card)).
 - **Sonnet 5.5's constraint behavior** improves on Sonnet 5 on nearly every misalignment metric, but Opus 5.5 is strictly better on approval-gate bypass and circumventing constraints ([system card §6.2.5](https://www.anthropic.com/claude-sonnet-5-5-system-card)). Sonnet 5 listed scope creep and rationalizing around an explicit constraint ([system card](https://www.anthropic.com/claude-sonnet-5-system-card)).
@@ -39,7 +39,7 @@ No public benchmark measures style-guide adherence for these models, and none of
 
 ## When a new model version ships
 
-1. Update the pinned versions under [Based on](#based-on).
+1. Update the pinned versions under [Model versions and review date](#model-versions-and-review-date).
 2. Re-run the research brief.
 3. Re-check each boundary against the new evidence and the outcome log.
 4. Refresh the price table in `runner/src/transcriptFacts.ts`.
@@ -49,4 +49,4 @@ Research brief: "For each current model: API price, context window and release d
 
 ## Outcome log
 
-One file per landed issue, written by the wrap-up script (`npm run wrap-up -- <repo> <n>`) at [`outcomes/`](./outcomes/)`<spec repo>-<spec n>/<repo>-<n>.md`; a ticketless spec is its own one-ticket folder. Once a spec lands, `/mine-outcomes <repo> #<spec>` turns its folder into proposals and then clears it. The rows from before the move are in [`outcomes/legacy.md`](./outcomes/legacy.md). A writing Piece lands by the script too and logs here, told from a writing code issue by its spec; Research and older Pieces log in `packages/writing/docs/model-fit.md`.
+One file per landed issue, written by the wrap-up script (`npm run wrap-up -- <repo> <n>`) at [`outcomes/`](./outcomes/)`<spec repo>-<spec n>/<repo>-<n>.md`; a ticketless spec is its own one-ticket folder. Once a spec lands, `/mine-outcomes <repo> #<spec>` turns its folder into proposals and then clears it. The rows from before the move are in [`outcomes/legacy.md`](./outcomes/legacy.md). A writing Piece lands by the script too and logs here, told from a writing code issue by its spec; Research and older Pieces log in `packages/personal/writing/docs/model-fit.md`.

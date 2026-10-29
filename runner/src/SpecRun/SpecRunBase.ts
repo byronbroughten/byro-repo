@@ -13,6 +13,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 
+import { ActiveAccountUnknown } from "../ActiveAccountUnknown.ts";
 import type { AgentStep } from "../AgentStep.ts";
 import { FactsFile } from "../FactsFile.ts";
 import { messageOf } from "../failureText.ts";
@@ -26,7 +27,6 @@ import {
 import { runnerMark } from "../halts.ts";
 import { approvalLineOf, untrustedBodyReasonOf } from "../IssueReader.ts";
 import {
-  fileStemOf,
   issueLabelOf,
   type IssueRef,
   IssueWorkspaces,
@@ -36,9 +36,11 @@ import {
 import {
   type AccountReading,
   type LimitGuardKnobs,
+  type UsageList,
   type UsageReader,
 } from "../limitGuard.ts";
 import type { Notice, Notices } from "../Notices.ts";
+import { stepTookLineOf } from "../progressLines.ts";
 import type { RunKnobs } from "../runKnobs.ts";
 import { runStateOf } from "../savedFormats.ts";
 import { sleep } from "../sleep.ts";
@@ -49,10 +51,12 @@ import {
   isTreeKept,
   type LandingTicket,
   onlyDeveloperEditsTextOf,
+  progressLogPathOf,
   rerunCommandOf,
   type Run,
   type RunResult,
   type RunState,
+  runStatePathOf,
   type TicketRun,
   type TicketState,
   type TicketStep,
@@ -99,7 +103,10 @@ export interface RunGitHub extends WrapUpGitHub {
 }
 
 // What an announced event adds to its notice beyond the spec and summary.
-export type RunEvent = Pick<Notice, "kind" | "ticket" | "commentUrl">;
+export type RunEvent = Pick<
+  Notice,
+  "kind" | "ticket" | "commentUrl" | "warnings"
+>;
 
 export interface Clock {
   now(): Date;
@@ -200,7 +207,7 @@ export class SpecRunBase {
   }
 
   protected _statePathOf(spec: IssueRef): string {
-    return join(this.config.stateFolder, `${fileStemOf(spec)}.run.json`);
+    return runStatePathOf(this.config.stateFolder, spec);
   }
 
   protected _saveState(run: Run): void {
@@ -230,16 +237,28 @@ export class SpecRunBase {
     return peak < this.config.knobs.ticketBudget;
   }
 
-  // Usage is undefined when the reader fails or has no usable reading for the configured account.
-  protected async _readingOf(run: Run): Promise<AccountReading> {
-    const { account } = this.config.knobs;
+  // A fresh step's reading; usage is undefined when the read gives none for the Active account.
+  protected async _activeReadingOf(run: Run): Promise<AccountReading> {
+    const list = await this._usageListOf(run);
+    const account = list?.activeAccount;
+    if (account === undefined) throw new ActiveAccountUnknown();
+    return readingIn(list, account);
+  }
+
+  // A resume's reading, on the account its session recorded.
+  protected async _recordedReadingOf(
+    run: Run,
+    account: number,
+  ): Promise<AccountReading> {
+    return readingIn(await this._usageListOf(run), account);
+  }
+
+  private async _usageListOf(run: Run): Promise<UsageList | undefined> {
     try {
-      const readings = await this.config.usageReader.read();
-      const usage = readings.find((r) => r.account === account)?.usage;
-      return { account, usage };
+      return await this.config.usageReader.read();
     } catch (error) {
       this._log(run, `The usage read failed: ${messageOf(error)}`);
-      return { account, usage: undefined };
+      return undefined;
     }
   }
 
@@ -255,7 +274,7 @@ export class SpecRunBase {
     } finally {
       this._log(
         run,
-        `${issueLabelOf(ticket.issue)}: ${step} took ${this._secondsSince(startedAt)}s.`,
+        stepTookLineOf(ticket.issue, step, this._secondsSince(startedAt)),
       );
     }
   }
@@ -361,7 +380,7 @@ export class SpecRunBase {
   }
 
   protected _progressPathOf(run: Run): string {
-    return join(this.config.stateFolder, `${fileStemOf(run.spec.issue)}.log`);
+    return progressLogPathOf(this.config.stateFolder, run.spec.issue);
   }
 
   // Each dirty worktree's uncommitted work goes to a backup branch, and the tree back to its last commit unless a handoff's next step needs it.
@@ -427,4 +446,12 @@ export class SpecRunBase {
     );
     return { heads, dirtyRepos: dirtyReposOf(worktrees) };
   }
+}
+
+function readingIn(
+  list: UsageList | undefined,
+  account: number,
+): AccountReading {
+  const usage = list?.readings.find((r) => r.account === account)?.usage;
+  return { account, usage };
 }

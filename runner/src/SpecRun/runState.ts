@@ -6,6 +6,7 @@
 
 import { execFile } from "node:child_process";
 import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { promisify } from "node:util";
 
 import type { Pair, StepRequest, StepResult } from "../AgentStep.ts";
@@ -24,6 +25,7 @@ import {
 import { type Handoff, type ImplementRecord } from "../implementStep.ts";
 import { type BodyAuthorship } from "../IssueReader.ts";
 import {
+  fileStemOf,
   isSameIssue,
   issueLabelOf,
   type IssueRef,
@@ -236,6 +238,7 @@ export interface LaunchedStep {
   record: unknown;
   logPath: string;
   peakContext: number | undefined;
+  deniedTools: string[];
 }
 
 export type StepLaunch = Pick<StepRequest, "prompt" | "jsonSchema"> &
@@ -245,6 +248,9 @@ export type StepLaunch = Pick<StepRequest, "prompt" | "jsonSchema"> &
       "pair" | "targets" | "resumeSessionId" | "liveCeiling" | "maxTurns"
     >
   >;
+
+// A spec-level step's request before the launcher picks its account.
+export type SpecStepRequest = Omit<StepRequest, "account">;
 
 export type Crash = Pick<StepFailure, "detail" | "logPath">;
 
@@ -398,15 +404,13 @@ export function lastSessionOf(
     ?.sessionId;
 }
 
-// A session saved before #367 takes the configured account and the ticket's last config folder; one with no folder is left out.
-export function recordedSessionsOf(
-  state: TicketState,
-  account: number,
-): RecordedSession[] {
+// A session saved before #367 takes the ticket's last config folder; one with no folder or account is left out.
+export function recordedSessionsOf(state: TicketState): RecordedSession[] {
   return state.sessions.flatMap((session) => {
     const configFolder = session.configFolder ?? state.configFolder;
-    if (configFolder === undefined) return [];
-    return [{ account, ...session, configFolder }];
+    const { account } = session;
+    if (configFolder === undefined || account === undefined) return [];
+    return [{ ...session, account, configFolder }];
   });
 }
 
@@ -457,7 +461,8 @@ export function launchedOf(
   { result, logPath }: RanStep,
 ): LaunchedStep {
   const record = recordOf(agent, result, logPath);
-  return { record, logPath, peakContext: result.peakContext };
+  const { peakContext, deniedTools } = result;
+  return { record, logPath, peakContext, deniedTools };
 }
 
 export function recordOf(
@@ -585,4 +590,12 @@ export function waitsTextOf(waits: Wait[]): string {
 export function landedTextOf(landed: IssueRef[]): string {
   if (landed.length === 0) return "landed nothing";
   return `landed ${landed.map(issueLabelOf).join(", ")}`;
+}
+
+export function runStatePathOf(stateFolder: string, spec: IssueRef): string {
+  return join(stateFolder, `${fileStemOf(spec)}.run.json`);
+}
+
+export function progressLogPathOf(stateFolder: string, spec: IssueRef): string {
+  return join(stateFolder, `${fileStemOf(spec)}.log`);
 }

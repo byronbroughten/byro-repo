@@ -23,12 +23,10 @@ export type ReviewListCadence = "end-of-run" | "per-ticket";
 export interface RunKnobs {
   // Repo name to its clone's path relative to the primary root; the root repo's is ".".
   clonePaths: Record<string, string>;
-  // The cswap account every step runs as.
-  account: number;
   skillNames: { review: string };
   // Run from a workspace or primary root: after review in each ticket, and in a master set when they go red in a ticket.
   checks: Command[];
-  // Each must exit 0 at preflight; unset, GitHub auth and the configured account's claude login.
+  // Each must exit 0 at preflight; unset, GitHub auth and the default claude login, which is cswap's active account.
   authChecks: Command[];
   allowedTools: StepKnobs<string[]>;
   // Workspace-relative globs under the protected .claude/ that a step's Edit or Write may still change.
@@ -49,7 +47,7 @@ export interface RunKnobs {
   ticketBudget: number;
   // A step crossing this is killed: an implementer is resumed for a handoff, or its resolve goes to a fresh resolver.
   liveCeiling: number;
-  // The fresh resolver runs on the stronger of this and the ticket's pair.
+  // The fresh resolver runs on the stronger of this and the ticket's pair, since it starts cold on the diff.
   resolverPair: Pair;
   gapCheckPair: Pair;
   reviewListCadence: ReviewListCadence;
@@ -59,26 +57,20 @@ export interface RunKnobs {
   handoffDocPath?: string;
 }
 
-const defaultAccount = 1;
 const minuteMs = 60_000;
-
-function authChecksOf(account: number): Command[] {
-  return [
-    ["gh", "auth", "status"],
-    ["cswap", "run", String(account), "--", "auth", "status"],
-  ];
-}
 
 export const defaultRunKnobs: RunKnobs = {
   clonePaths: {},
-  account: defaultAccount,
   skillNames: { review: "code-review" },
   checks: [
     ["npm", "run", "tsc"],
     ["npm", "test"],
     ["npm", "run", "lint"],
   ],
-  authChecks: authChecksOf(defaultAccount),
+  authChecks: [
+    ["gh", "auth", "status"],
+    ["claude", "auth", "status"],
+  ],
   allowedTools: {
     implement: [],
     review: [],
@@ -110,16 +102,22 @@ export const defaultRunKnobs: RunKnobs = {
   idlePollMs: 60_000,
 };
 
-export function loadRunKnobs(overridePath: string): RunKnobs {
-  return runKnobsOf(
-    JSON.parse(readFileSync(overridePath, "utf8")) as RunKnobOverrides,
-  );
+export function loadRunKnobs(
+  overridePath: string,
+  clonePaths: Record<string, string>,
+): RunKnobs {
+  return {
+    ...runKnobsOf(
+      JSON.parse(readFileSync(overridePath, "utf8")) as RunKnobOverrides,
+    ),
+    clonePaths,
+  };
 }
 
-// For a reader that must still work without the override file, such as a hook that fails open.
+// For a reader that must still work without the override file, such as a hook that fails open; it gets no repo map.
 export function runKnobsOrDefaults(overridePath: string): RunKnobs {
   try {
-    return loadRunKnobs(overridePath);
+    return loadRunKnobs(overridePath, {});
   } catch {
     return defaultRunKnobs;
   }
@@ -144,7 +142,5 @@ export function runKnobsOf(overrides: RunKnobOverrides): RunKnobs {
     },
     maxTurns: { ...defaultRunKnobs.maxTurns, ...overrides.maxTurns },
     wallClockMs: { ...defaultRunKnobs.wallClockMs, ...overrides.wallClockMs },
-    authChecks:
-      overrides.authChecks ?? authChecksOf(overrides.account ?? defaultAccount),
   };
 }

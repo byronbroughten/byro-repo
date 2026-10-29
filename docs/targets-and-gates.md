@@ -17,8 +17,11 @@ Reads need no yes in any tier.
 | Action | Tier |
 | --- | --- |
 | Editing repo files; `npm run tsc`, `npm test`, `npm run lint` | 1 |
+| `grep`, `rg`, `cat`, `head`, `tail`, `wc`, `ls`, `cd`; `sed -n` with printing scripts and no `-i`; `find`; `git log`, `show`, `status`, `diff`, `rev-parse`, `ls-files` and `blame`, plain or through `-C`, `--git-dir` or `--work-tree` | free: reads. Not with an option that runs a program or writes a file, a redirect into a file (`> out.txt`, `>&name`, `<>`; but `2>&1`, `>&2` and `>/dev/null` are fine), an env prefix, `git -c`, a heredoc or `$(…)` |
 | `git commit`, on any branch | 1; the branch guard still keeps a primary checkout on its branch, and the primary-edit guard keeps the commit out of one |
+| `git add`, and `git branch` without a delete or force flag (`-d`, `-D`, `-f`, `-M`, `-C`), in the same forms as the git reads | 1: git can undo it |
 | `npm run issue:start`, `issue:list`, and `issue:remove` without `--force`, which refuses unlanded work | 1 |
+| `.claude/skills/inbox/record.sh`, which writes `/inbox` data in the session's `personal` clone | 1 |
 | `npm run issue:remove … --force`, which discards a workspace's unlanded work | 3 |
 | `npm run wrap-up -- <repo> <n>` or `-- --session <slug> [--keep]`, which pushes | a standing yes to push, behind its secret scan |
 | `probe`, `chore <name>` (dry run), `configs:diff` on either target | free: reads |
@@ -32,6 +35,7 @@ Reads need no yes in any tier.
 | `manage_drive_access`, `set_drive_file_permissions`, an `update_drive_file` that changes sharing or moves a file into a folder | 3 |
 | A `gmail` filter, label or message-label change | 3: Gmail keeps no version history. The yes is the developer's `/inbox` Sign-off in the chat; `gmailGate.ts` allows a call one `signed-off` Proposal covers and asks for any other. Settings deny sending and drafting |
 | `gh issue close`, `gh issue edit`, `gh issue comment` | free: `gh issue reopen` and a further edit or comment undo them |
+| `npm run issue:backlink` | free: a further `gh issue edit` undoes it |
 | A raw `git push` | 3 |
 | `npm publish` | 3, [below](#npm-publish) |
 | A bare `clasp …` or `npx sheets-framework …` | 3: it names no target |
@@ -58,14 +62,15 @@ Reads need no yes in any tier.
 The threat model is accidents, with tampering made visible. Both clasp credentials cover the whole Google account, so OAuth can't isolate the two spreadsheets; the aliases and hooks do.
 
 - **Bare `npx sheets-framework …`, `node packages/framework/scripts/sheets-framework.js …`, a package-level `npm run chore …` and `npm run … -w …` match no allow rule, so they ask.**
-- **`dev:build`, `dev:push`, `dev:deploy` and `dev:run` run the framework package's `build`, `push`, `deploy` and `run` scripts** against the dev project named in its `.clasp.json` ([the dev project](../packages/framework/docs/how-it-runs.md#the-dev-project)); `app:build` and `app:deploy` run the app's.
-- **Both targets' Node-host credential comes from GCP project `real-estate-manager-sheets`**, whose consent screen is published to production so its refresh tokens don't expire ([why](../packages/framework/docs/how-it-runs.md#when-the-node-host-fails-to-authenticate)).
+- **`dev:build`, `dev:push`, `dev:deploy` and `dev:run` run the framework package's `build`, `push`, `deploy` and `run` scripts** against the dev project named in its `.clasp.json` ([the dev project](../packages/framework/docs/how-it-runs/dev-project.md)); `app:build` and `app:deploy` run the app's.
+- **Both targets' Node-host credential comes from GCP project `real-estate-manager-sheets`**, whose consent screen is published to production so its refresh tokens don't expire ([why](../packages/framework/docs/how-it-runs/auth.md)).
+- **Never read `~/.clasprc.json` by hand or print its token.**
 - **The dev spreadsheet is not a rehearsal copy of the app one.** Sheet configs key every sheet by its GID, and the dev sheet carries its own fixture sheets, not a copy of the business ones.
 - **The agent verifies a chore's preview before sending it** (the rule: [`src/chores/AGENTS.md`](../packages/framework/src/chores/AGENTS.md)), comparing the rendered requests against what the chore was meant to do and calling out anything wrong or larger than intended. That is a workflow obligation, not a code feature.
 
 ## gen-configs' standing permission
 
-`npm run app:gen:configs` **writes** to the live spreadsheet ([what it writes](../packages/framework/docs/how-it-runs.md#what-gen-configs-writes)). It has **standing permission** under four conditions, all of which must hold. `dev:gen:configs` needs only the last two, since the dev spreadsheet holds no business data:
+`npm run app:gen:configs` **writes** to the live spreadsheet ([what it writes](../packages/framework/docs/how-it-runs/gen-configs.md#what-gen-configs-writes)). It has **standing permission** under four conditions, all of which must hold. `dev:gen:configs` needs only the last two, since the dev spreadsheet holds no business data:
 
 - no uncommitted changes in the framework's `src/01_SpreadsheetSchema/` or the app's `src/generated/`;
 - no uncommitted changes in the framework's `src/05_Operators/`, because the command now executes local, possibly unreviewed operator code against the live config sheets;
@@ -78,8 +83,8 @@ The threat model is accidents, with tampering made visible. Both clasp credentia
 
 **The agent account is `byronbroughtenai@gmail.com`, the one Google identity behind agent access to Docs, Drive and Sheets.** To grant access to a file or folder, share it with the agent account, as Editor, from the main account. `clasp` and the Node-host credential stay on the main account.
 
-The `gworkspace` MCP server signs in as the agent account; what it is and what it can see: [the framework's notes](../packages/framework/docs/how-it-runs.md#the-gworkspace-mcp-tools). It is registered in `~/.claude.json` under this project, never in a repo file. Setting it up, re-authorizing after a dead token, or adding a service is a re-run of `scripts/setup-agent-account-mcp.sh`; `scripts/retire-gsheets-service-account.sh` retired the old service account once that passed.
+The `gworkspace` MCP server signs in as the agent account; what it is and what it can see: [the framework's notes](../packages/framework/docs/how-it-runs/gworkspace-mcp.md). It is registered in `~/.claude.json` under this project, never in a repo file. Setting it up, re-authorizing after a dead token, or adding a service is a re-run of `scripts/setup-agent-account-mcp.sh`; `scripts/retire-gsheets-service-account.sh` retired the old service account once that passed.
 
-- **A write's owner is looked up in Drive and cached for the session**; the tool lists are in `.claude/hooks/lib/driveTiers.ts`.
+- **A write's owner is looked up in Drive and cached for the session**; the tool lists are in `.claude/hooks/lib/tiers/driveTiers.ts`.
 - **A share's yes is its own**, separate from any data-write approval: state exactly who gets access and at what permission level, and get sign-off on that.
-- **The server's version is pinned; upgrades are manual.** Read the release notes, bump the pin in the setup wizard, check the tool names in `.claude/settings.json` and `lib/driveTiers.ts` against the new version, re-run the wizard's registration stage, and re-test on the dev spreadsheet.
+- **The server's version is pinned; upgrades are manual.** Read the release notes, bump the pin in the setup wizard, check the tool names in `.claude/settings.json` and `lib/tiers/driveTiers.ts` against the new version, re-run the wizard's registration stage, and re-test on the dev spreadsheet.

@@ -1,0 +1,7 @@
+# byro-repo#383 outcome
+
+Spec: [byro-repo#382](https://github.com/byronbroughten/byro-repo/issues/382)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #383 | Opus medium | 1, 2 | 10 | 114K | Fix (resumed implementer) | 0 | 1 | 0 | 11 min | $2.10 | $0.89 | Fixed: 'Everything else goes in the other two' is untrue now that prose-style.md is a target. (.claude/skills/to-code-style/SKILL.md:74); Restates agent-behavior-design.md:57's reasoning on the byte-capped lead and 4 KB headings. (docs/prose-style/file-shapes.md:17); placement.md only points on, a pointer to a pointer. (docs/prose-style/placement.md:7,11); Both credit the AGENTS.md admission bar to prose-files.md, but it moved to prose-style.md#placement. (docs/claude-code-guardrails.md:22; .claude/hooks/lib/agentsCostNudge.ts:9); The rule-line rule carries a second why clause about length caps. (docs/prose-style.md:20); Still says 'the other two' after prose-style.md became a target. (.claude/skills/to-code-style/SKILL.md:74); The Duplicated Fact example (#233) is a fact in one wrong file, not one fact in two files. (docs/prose-style/smells.md:7; docs/prose-style/one-home.md:9). | 9467348e-ad33-4eae-b2b6-d7a77e42f3d7, 77530367-e0b2-4290-9acc-a930116646dd |

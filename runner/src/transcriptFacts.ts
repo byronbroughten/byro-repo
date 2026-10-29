@@ -150,6 +150,12 @@ export function handoffSessionIdOf(comment: string): string | undefined {
   return lastLine?.match(handoffSessionLine)?.[1];
 }
 
+// The `<Family> <effort>` of a transcript's latest main-loop reply; undefined when it has none or that reply has no effort.
+export function latestPairOf(text: string): string | undefined {
+  const latest = entriesOf(text).findLast(isMainLoopReply);
+  return latest && entryPairOf(latest)[0];
+}
+
 // A recorded session is looked for in its own config folder; a handoff, which records none, in every recorded one.
 function projectDirsBySessionOf(
   { steps }: TicketSessions,
@@ -256,14 +262,19 @@ function pairOf(implementers: Transcript[]): string | undefined {
 
 // Empty for a subagent, synthetic or effortless entry.
 function entryPairOf(entry: TranscriptEntry): string[] {
-  if (entry.type !== "assistant" || entry.isSidechain === true) return [];
-  const model = entry.message?.model;
-  if (typeof model !== "string" || model === syntheticModel) return [];
-  if (typeof entry.effort !== "string") return [];
-  const family = priceKeyOf(model).split("-")[0] ?? "";
+  if (!isMainLoopReply(entry) || typeof entry.effort !== "string") return [];
+  const family = priceKeyOf(entry.message.model).split("-")[0] ?? "";
   return [
     `${family.charAt(0).toUpperCase()}${family.slice(1)} ${entry.effort}`,
   ];
+}
+
+function isMainLoopReply(
+  entry: TranscriptEntry,
+): entry is TranscriptEntry & { message: { model: string } } {
+  if (entry.type !== "assistant" || entry.isSidechain === true) return false;
+  const model = entry.message?.model;
+  return typeof model === "string" && model !== syntheticModel;
 }
 
 function peaksOf(implementers: Transcript[]): number[] | undefined {

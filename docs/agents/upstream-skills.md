@@ -4,7 +4,7 @@ Some skills in `.claude/skills/` are copies of another repo's skills, vendored s
 
 ## Layout
 
-Every skill sits flat at `.claude/skills/<name>/`, vendored or this repo's own, since nested folders load lazily. A runner skill lives in `runner/skills/<name>/` and sits here as a symlink, `.claude/skills/<name>` → `../../runner/skills/<name>`, so it is invoked as `/<name>` where a plugin would namespace it as `/<plugin>:<name>`; its relative links resolve from `runner/skills/<name>/`. A vendored skill keeps its upstream supporting files and `agents/openai.yaml` as upstream has them.
+Every skill sits flat at `.claude/skills/<name>/`, vendored or this repo's own, since nested folders load lazily. A runner skill lives in `runner/skills/<name>/` and sits here as a symlink, `.claude/skills/<name>` → `../../runner/skills/<name>`, so it is invoked as `/<name>` where a plugin would namespace it as `/<plugin>:<name>`. **A runner skill's link out of its own folder climbs to the repo root first**, as in `../../../runner/GLOSSARY.md`, with the repo-root path as its text: Claude Code gives the model `.claude/skills/<name>/` as the base directory ([symlinks and protection](../claude-code-behaviour.md#symlinks-and-protection)), and only a link through the root resolves the same from it and from `runner/skills/<name>/`, which are equally deep. A vendored skill keeps its upstream supporting files and `agents/openai.yaml` as upstream has them.
 
 ## The manifest
 

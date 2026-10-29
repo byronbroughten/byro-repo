@@ -8,7 +8,7 @@ import {
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
 import { runKnobsOrDefaults } from "@byronbroughten/spec-runner/runKnobs";
 
-import type { SessionMode } from "./tiers.ts";
+import type { SessionMode } from "./tiers/tiers.ts";
 
 const runnerConfigPath = join(
   import.meta.dirname,

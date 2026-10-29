@@ -51,7 +51,7 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Person and regis
 
 ## A phase gets its noun
 
-- Agent: "the $9,000 repairs line in Table 1 rests on what Planning can see" Developer: "depends on what can be seen during the planning phase" — Assessment 1 Next Draft (writing#4), Drive edit after session 66510c6, by 2026-10-18
+- Agent: "the $9,000 repairs line in Table 1 rests on what Planning can see" Developer: "depends on what can be seen during the planning phase" — Assessment 1 Next Draft (personal#4), Drive edit after session 66510c6, by 2026-10-18
 - Agent: "Build and Test assume that Jesus Fernandez…" Developer: "The Build and Test phases assume Jesus Fernandez…" — same
 - Agent: "the sponsor delays the start of Build" Developer: "the start of the Build phase"; likewise "gate into Build", "in Test" — same
 - Agent: "or move the finish past May 31, 2027" Developer: "or move the project's finish date past May 31, 2027" — same

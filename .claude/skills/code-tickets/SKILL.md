@@ -16,7 +16,7 @@ The issue tracker and triage label vocabulary should have been provided to you. 
 
 Work from whatever is already in the conversation context. If the user passes a reference (a spec path, an issue number or URL) as an argument, fetch it and read its full body and comments.
 
-Then pick the entry point. A spec can be split into **Phases**, usable batches of its tickets, each but the last closed by a **Phase gate**, the developer's go, reshape or drop ticket ([`planning.md`](../../../docs/agents/planning.md#phases)).
+Then pick the entry point. **Split a spec into Phases only at a boundary where real use could change or cancel what follows** ([`planning.md`](../../../docs/agents/planning.md#phases)). Each Phase but the last ends at a **Phase gate**, the developer's go, reshape or drop ticket, which this skill writes and closes; closing the spec ends the last.
 
 - **A Phase gate** (a `ready-for-human` issue with a `## Decision` section): go to [From a Phase gate](#from-a-phase-gate).
 - **A phased spec** (one with a `## Phases` section): steps 2–6 for its next Phase, unless an earlier Phase is `ticketed` but not `done`: its gate is still open, so point the developer to it and stop.

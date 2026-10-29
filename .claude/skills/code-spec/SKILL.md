@@ -16,7 +16,7 @@ The issue tracker and triage label vocabulary should have been provided to you. 
 
 Check with the user that these seams match their expectations.
 
-3. Decide whether the spec has **Phases**, usable batches of its tickets, each but the last closed by a **Phase gate**, the developer's go, reshape or drop ticket. Apply the boundary criterion in [`planning.md`](../../../docs/agents/planning.md#phases) yourself, without asking. When it applies, write the proposed `## Phases` section of the template, naming Phase 1's stand-ins; the developer reviews it with the rest of the spec. With no boundary, leave the section out.
+3. Decide whether the spec has **Phases**, yourself, without asking: **split a spec into Phases only at a boundary where real use could change or cancel what follows** ([`planning.md`](../../../docs/agents/planning.md#phases)). When it applies, write the proposed `## Phases` section of the template, naming Phase 1's stand-ins; the developer reviews it with the rest of the spec. With no boundary, leave the section out.
 
 4. Write the spec using the template below, then publish it to the project issue tracker. Apply the `ready-for-agent` triage label - no need for additional triage.
 
@@ -86,4 +86,4 @@ Any further notes about the feature.
 
 </spec-template>
 
-`## Model fit` is the last section of a spec meant for one session: a pair line naming one of the pairs in [`planning.md`](../../../docs/agents/planning.md#model-fit), then a one-line reason. A spec bound for `/code-tickets` has none.
+`## Model fit` is the last section of a spec meant for one session: a pair line naming one of the pairs in [`planning.md`](../../../docs/agents/planning.md#model-fit), then a one-line reason. A spec that won't fit one session is still published, without the section, and a chat line recommends `/code-tickets` for sub-issues; say nothing if the developer has explicitly agreed in the conversation that it becomes tickets.

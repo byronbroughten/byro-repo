@@ -3,7 +3,7 @@
 // master under its landing lock, then pushes, deletes the branches, removes the workspace, closes the issue and checks
 // its parent. Steps are recorded in a progress file, so a rerun skips what already landed; a failure throws a
 // WrapUpFailure naming its kind.
-// A session workspace lands the same way from its session branches, with no facts file, checks or issue steps.
+// A session workspace lands the same way from its session branches, with no facts file or issue steps.
 // The outcome row is written by outcomeRowWriter.ts with the merged code; the lock is LandingLock.ts;
 // workspaces are IssueWorkspaces.ts.
 
@@ -58,6 +58,7 @@ import {
 } from "./outcomeRowWriter.ts";
 import { secretShapeOf } from "./secretShapes.ts";
 import { sleep } from "./sleep.ts";
+import { stalePathLabelOf, stalePathsTouchedBy } from "./stalePaths.ts";
 import { handoffSessionIdOf } from "./transcriptFacts.ts";
 import { WrapUpFailure } from "./WrapUpFailure.ts";
 
@@ -116,7 +117,7 @@ export interface WrapUpConfig {
   workspaces: IssueWorkspacesConfig;
   github: WrapUpGitHub;
   githubOwner: string;
-  // Each a command and its args, run from the issue workspace's root after the merges.
+  // Each a command and its args, run from the workspace's root after the merges.
   checks: [string, ...string[]][];
   // Relative to the root repo.
   outcomeFolder: string;
@@ -127,6 +128,8 @@ export interface WrapUpConfig {
     root: string,
     request: OutcomeRowRequest,
   ): Promise<WrittenOutcomeRow>;
+  // Run at the primary root once the primaries are fast-forwarded; a failure only warns.
+  afterFastForward?(primaryRoot: string): Promise<void>;
   knobs?: Partial<WrapUpKnobs>;
   sleep?(ms: number): Promise<void>;
   log?(line: string): void;
@@ -410,11 +413,10 @@ export class WrapUp {
     };
   }
 
-  // A session runs its checks before landing, as every edit does, so its build is the merges alone.
   private get _sessionLanding(): LandingKind {
     return {
       build: async (landing, workspace) =>
-        this._step(landing, "merges", () => this._merge(landing, workspace)),
+        this._mergeAndCheck(landing, workspace),
       cleanRepos: () => Object.keys(this.config.workspaces.clonePaths),
       branchesToDelete: async (landing) => {
         await this._switchToMaster(await this._workspaceOf(landing.key));
@@ -486,6 +488,7 @@ export class WrapUp {
     await this._step(landing, "files-changed", async () => {
       landing.progress.filesChanged = await this._filesChanged(landing);
     });
+    await this._refuseStalePaths(landing);
     for (;;) {
       await landing.kind.build(landing, workspace);
       if (await this._fastForward(landing)) return;
@@ -578,6 +581,19 @@ export class WrapUp {
       count += lines(files).length;
     }
     return count;
+  }
+
+  // Only the files the change touches, so a migration's tickets land one at a time past stale paths elsewhere.
+  private async _refuseStalePaths(landing: Landing): Promise<void> {
+    const found = await stalePathsTouchedBy(
+      this.config.workspaces,
+      landing.branches,
+    );
+    if (found.length === 0) return;
+    throw new WrapUpFailure(
+      "stale-path",
+      `The change names folders that hold no clone, so nothing was merged:\n${found.map(stalePathLabelOf).join("\n")}`,
+    );
   }
 
   private async _mergeAndCheck(
@@ -738,10 +754,21 @@ export class WrapUp {
         await this._fastForwardRepo(repo, built[repo] as BuiltRepo);
       }
       await this._markDone(landing, "fast-forward");
+      await this._runAfterFastForward();
       await this._scanAndPush(landing);
       return true;
     } finally {
       locks.forEach((lock) => lock.release());
+    }
+  }
+
+  private async _runAfterFastForward(): Promise<void> {
+    try {
+      await this.config.afterFastForward?.(this.config.workspaces.primaryRoot);
+    } catch (error) {
+      this._log(
+        `Warning: the after-fast-forward hook failed, continuing: ${messageOf(error)}`,
+      );
     }
   }
 

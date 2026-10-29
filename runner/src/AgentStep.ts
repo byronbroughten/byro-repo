@@ -51,6 +51,8 @@ export interface StepResult {
   errorText: string | undefined;
   usage: UsageReading | undefined;
   limitHit: LimitHit | undefined;
+  // The tool name of each permission denial the result recorded, in its order.
+  deniedTools: string[];
 }
 
 // Which limit a hung session ran past: its stream's silence timeout or its wall clock.

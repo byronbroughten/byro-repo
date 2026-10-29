@@ -81,6 +81,23 @@ describe("send", () => {
     expect(received).toEqual([]);
   });
 
+  it("pushes a run-started notice", async () => {
+    await notices().send({
+      spec,
+      specTitle: "Spec runner",
+      summary: "Run started on 2 tickets. Launching r #1.",
+      link: "l",
+      kind: "run-started",
+      warnings: [],
+    });
+
+    expect(received).toEqual([
+      expect.objectContaining({
+        body: "Run started on 2 tickets. Launching r #1.",
+      }),
+    ]);
+  });
+
   it("throws when ntfy refuses the notice", async () => {
     status = 429;
 

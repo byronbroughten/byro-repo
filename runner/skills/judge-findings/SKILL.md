@@ -1,12 +1,14 @@
 ---
 name: judge-findings
-description: "Walk a spec's undecided review-list items one question at a time, record each decision on its comment, file what the developer chooses to file, and close the spec when nothing is left. Invoked as /judge-findings <repo> #<spec>."
+description: "Put a spec's undecided review-list items to the developer in grilling rounds, record each decision on its comment, make the small fixes in a session workspace and file the rest as tickets, and close the spec when nothing is left. Invoked as /judge-findings <repo> #<spec>."
 disable-model-invocation: true
 ---
 
-`/judge-findings <repo> #<spec>` clears the review list the spec runner left on a spec issue. Its words (review list, Propose, Halt, Dismiss `kept`) are in [`runner/GLOSSARY.md`](../../GLOSSARY.md).
+`/judge-findings <repo> #<spec>` clears the review list the spec runner left on a spec issue. Its words (review list, Propose, Halt, Dismiss `kept`) are in [`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md).
 
 **The runner only creates review-list comments; this skill only edits them.** Never post a new review-list comment, never delete one, never remove an item.
+
+**Weigh your pre-filled answers and the recommendations you put to the developer against the Codebase Priorities, [`docs/agents/codebase-priorities.md`](../../../docs/agents/codebase-priorities.md).**
 
 ## 1. Read the list
 
@@ -18,49 +20,54 @@ disable-model-invocation: true
   - **hand-ticked**: its box is ticked with no `Decided:` line, which counts as accepting the recommendation;
   - **decided**: it has a `Decided:` line.
 
-## 2. Hand-ticked items, asked once
+## 2. The rounds
 
-List every hand-ticked item whose recommendation needs a filing: a Propose `ticket` or a gap with a drafted issue, a recommendation that says to file or fix something, and a keep (step 4). Ask about them in one message: which to file, and for each, "blocks this spec?" with your pre-filled answer. File each one the developer confirms as in step 4, then write its `Decided:` line; one they decline gets `Decided: accepted, not filed.` A hand-ticked item needing no filing gets `Decided: accepted (ticked by hand).` with no question.
-
-## 3. The order
-
-Ask one question per undecided item, one item per message, in this order:
+Put every undecided item to the developer in one round, in `/grilling`'s format ([`.claude/skills/grilling/SKILL.md`](../../../.claude/skills/grilling/SKILL.md)): one numbered question per item, titled with its `R<n>.<k>` and shortened heading, with its recommendation as yours, in this order:
 
 1. **Halt-adjacent first**: items on a ticket that raised a Halt, or that a Halt's `Blocks:` line names (`<tickets> and their downstream`, `the whole spec` or `only this ticket`). A Halt comment opens with a `**Halt H<n>** · …, "<ticket title>"` line naming its ticket.
 2. Then the remaining tickets' items, oldest comment first, in item order.
 3. The gap check's items last.
 
-Use `/grilling`'s question format, one question at a time, titled with the item's `R<n>.<k>` and its shortened heading, and with the item's recommendation as yours.
+**An item whose answer clearly depends on another's waits for the next round**, as in `/grilling`; so does a question an answer opens. Ask rounds until none is left.
 
-The developer can stop at any answer ("stop", "that's enough"). Stop then: every item answered so far is already written, and the rest stay unticked for the next run. Say how many are left.
+**Hand-ticked items join the first round.** One whose recommendation changes something (a Propose `ticket` or a gap with a drafted issue, a recommendation that says to file or fix something, a keep) asks only "now, file or neither?" (step 3); neither gets `Decided: accepted, not filed.` A hand-ticked item changing nothing gets `Decided: accepted (ticked by hand).` with no question.
 
-## 4. The answers
+The developer can stop at any round ("stop", "that's enough"). Stop then: write and make what is settled, as below, and leave the rest unticked for the next run. Say how many are left.
+
+## 3. The answers
 
 Each answer is one of four:
 
-- **Accept** the recommendation. A recommendation that is only a judgement needs nothing more. One that says to file something files it as below. A keep files a fix (below).
+- **Accept** the recommendation. A recommendation that is only a judgement needs nothing more. One that says to file or fix something is a fix (below).
 - **Dismiss** with a reason: ask for the reason when the developer gives none.
-- **File a fix**: an issue that says what to change, where (`file:line` from the evidence) and why, with the finding quoted.
-- **File a decision**: a grilling ticket with the question, the options and your recommendation, labelled `wayfinder:grilling` where the repo has that label.
+- **Fix**: change what the evidence names (`file:line`), for the reason the finding gives.
+- **Decision**: a grilling ticket with the question, the options and your recommendation, labelled `wayfinder:grilling` where the repo has that label.
 
-**A keep is a fix.** An item with a `Drafted keep: "<reason>"` line asks for the developer's yes to keeping a smell for that reason (`docs/agents/verdicts.md`). A list posted before #298 has no such line: there, a keep is a Propose `decision` whose finding names a smell and whose recommendation is a drafted one-line reason for keeping it, not a smell whose fix would reverse a spec decision. Accepting it files a fix that writes that reason as a comment at the smell's site; never just mark it decided. Its `Decided:` line names the reason, so step 5 can find it.
+**A keep is a fix.** An item with a `Drafted keep: "<reason>"` line asks for the developer's yes to keeping a smell for that reason (`docs/agents/verdicts.md`). A list posted before #298 has no such line: there, a keep is a Propose `decision` whose finding names a smell and whose recommendation is a drafted one-line reason for keeping it, not a smell whose fix would reverse a spec decision. Accepting it writes that reason as a comment at the smell's site; never just mark it decided. Its `Decided:` line names the reason, so step 5 can find it.
 
-**Every filing asks "blocks this spec?"**, pre-filled with your answer: yes when the spec's stories or decisions aren't met until it lands, no otherwise. The keep's fix and a Propose `ticket` default to no; a gap defaults to yes.
+**Every fix settles "now or file?"**, pre-filled with your answer: now when it is small and in a clone this session can open a workspace in, file otherwise.
+
+## 4. Making and filing
+
+After the last round:
+
+- **Now**: make every such fix in one session workspace ([`docs/agents/git-workflow.md#a-skills-session-workspace`](../../../docs/agents/git-workflow.md#a-skills-session-workspace)) named `judge-<spec>`, one commit per item naming its `R<n>.<k>`, and land it.
+- **File**: by `/code-tickets`' conventions ([`.claude/skills/code-tickets/SKILL.md`](../../../.claude/skills/code-tickets/SKILL.md)), its ticket templates, `## Model fit` section and read-back included. Group a repo's filed fixes into one ticket unless one is big enough to stand alone; each decision is its own ticket. Use an item's drafted issue title when its ticket holds only that item.
+
+**Every filed ticket asks "blocks this spec?"**, all in one message before filing, each pre-filled with your answer: yes when the spec's stories or decisions aren't met until it lands, no otherwise. A keep's fix and a Propose `ticket` default to no; a gap defaults to yes.
 
 - Yes: `gh issue create -R <owner>/<repo>`, then make it a sub-issue of the spec: `gh api --method POST repos/<owner>/<repo>/issues/<spec>/sub_issues -F sub_issue_id=<db id>`, where the db id is `gh api repos/<owner>/<repo>/issues/<new> --jq .id`.
 - No: a standalone issue whose body links the spec as `<owner>/<repo>#<spec>`.
 
-Use the item's drafted issue title when it has one. A ticket for an agent ends with the `## Model fit` section [`docs/agents/model-fit.md`](../../../docs/agents/model-fit.md) asks for.
-
 ## Writing a decision
 
-After each answer, edit that item in its comment: tick its box and add one indented line under it, keeping every other line as it was.
+Edit each item in its comment once it is settled: a dismissal, an accepted judgement or a filing as soon as its round is answered or its ticket filed, a "now" fix only once wrap-up has landed its commit, so a session that stops early never claims an unmade fix. Tick its box and add one indented line under it, keeping every other line as it was.
 
 ```
 - [x] **R<n>.<k>** · <heading>
   Evidence: …
   Recommendation: …
-  Decided: <accepted | dismissed: <reason> | fix filed | decision filed | keep approved: "<reason>"> · <link to any filed issue>
+  Decided: <accepted | dismissed: <reason> | fixed in session | fix filed | decision filed | keep approved: "<reason>"> · <link to the filed issue or landed commit>
 ```
 
 Re-fetch the comment right before each edit and change only that item, since the developer may tick boxes on their phone meanwhile:

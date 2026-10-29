@@ -1,12 +1,4 @@
 {
-  "account": 2,
-  "clonePaths": {
-    "byro-repo": ".",
-    "utils": "packages/utils",
-    "sheets-framework": "packages/framework",
-    "sheets-real-estate": "packages/real-estate",
-    "writing": "packages/writing"
-  },
   "skillNames": { "review": "code-review" },
   "checks": [["npm", "run", "check"]],
   "allowedTools": {

@@ -15,7 +15,7 @@ import {
   writeHookOutput,
 } from "./lib/hookIo.ts";
 import { leasedWorkspacesOf } from "./lib/leaseRelease.ts";
-import { sessionModeOf } from "./lib/tiers.ts";
+import { sessionModeOf } from "./lib/tiers/tiers.ts";
 
 await runFailOpen(async () => {
   const input = readHookInput();

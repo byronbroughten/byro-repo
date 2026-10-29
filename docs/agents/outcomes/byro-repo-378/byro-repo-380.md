@@ -1,0 +1,7 @@
+# byro-repo#380 outcome
+
+Spec: [byro-repo#378](https://github.com/byronbroughten/byro-repo/issues/378)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #380 | Opus medium | 1 | 16 | 156K → 123K | Fix (resumed implementer) | 0 | 1 | 0 | 82 min | $6.15 | $1.15 | Fixed: The no-active-account phrase is written out in both the status label and the Stop message. (runner/src/SpecRun/RunLoop.ts and runner/src/ActiveAccountUnknown.ts); Omit<StepRequest, "account"> is repeated inline at three sites. (runner/src/SpecRun/ReviewListPoster.ts:195, :241 and runner/src/SpecRun/StepLauncher.ts:195); The LeaseHeld and ActiveAccountUnknown branches have the same body. (runner/src/SpecRun/SessionReviewer.ts:335-338); An optional recordedAccount parameter switches the reader between the Active account and a recorded one. (runner/src/SpecRun/SpecRunBase.ts:236 _launchReadingOf); The Active-account clause splits the frontier pick from its tie-break, and the auth-check default reads as 'unset'. (runner/README.md runKnobs and SpecRun rows); A failed usage read also says 'cswap reported no active account', which is inaccurate when the read threw. (runner/src/ActiveAccountUnknown.ts:7). | 3bef2b4c-6f14-4486-88ea-523ea8c6de65, 264d2068-c269-4836-9471-9636e9650be6, 2afcaac5-d36f-4f16-bf09-f6fabaf138ea |

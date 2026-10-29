@@ -37,7 +37,7 @@ If a `GLOSSARY-MAP.md` exists at the root, the repo has multiple contexts. The m
 │       └── docs/adr/                 ← real-estate decisions (its own repo)
 ```
 
-An ADR goes in the repo its argument concerns. `packages/writing` gets no `docs/adr/`.
+An ADR goes in the repo its argument concerns. `packages/personal` gets no `docs/adr/`.
 
 Create files lazily: only when you have something to write. If no `GLOSSARY.md` exists, create one when the first term is resolved. If no `docs/adr/` exists, create it when the first ADR is needed.
 
@@ -79,7 +79,7 @@ Its "What qualifies" list names the kinds of decision that pass. Offer the ADR a
 
 ### Backlink the issue
 
-When an ADR is written, the issue its `Source:` names ends its body with one line: `Design decision: <owner/repo>/docs/adr/NNNN-slug.md`. An agent editing that issue later keeps the ADR in step ([issue-tracker doc](../../../docs/agents/issue-tracker.md)).
+When an ADR is written, backlink it from the issue its `Source:` names, by the command and line format in the [issue-tracker doc](../../../docs/agents/issue-tracker.md#commands-for-each-operation), never by hand-editing the body.
 
 ### Build principles on ADRs
 

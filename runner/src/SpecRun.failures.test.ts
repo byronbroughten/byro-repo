@@ -19,7 +19,6 @@ import {
   masterSubjects,
   primaryOf,
   progressLines,
-  readingOf,
   refOf,
   resultOf,
   reviewed,
@@ -32,6 +31,7 @@ import {
   ticketFacts,
   ticketState,
   timed,
+  usageListOf,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
 
@@ -275,12 +275,16 @@ describe("run's retries across a rerun", () => {
 
   it("keeps the retry for a rerun after a weekly-reserve Stop at a launch", async () => {
     addSpec([1]);
-    scriptUsage(readingOf(0.1, 0.2), readingOf(0.1, 0.2), readingOf(0.3, 0.96));
+    scriptUsage(
+      usageListOf(0.1, 0.2),
+      usageListOf(0.1, 0.2),
+      usageListOf(0.3, 1),
+    );
     const first = await specRun(FakeAgentStep.init(implemented("one.ts"))).run(
       spec,
     );
     expect(first.kind).toBe("stopped");
-    scriptUsage(readingOf(0.1, 0.2));
+    scriptUsage(usageListOf(0.1, 0.2));
 
     const result = await specRun(FakeAgentStep.init(crashed, reviewed())).run(
       spec,

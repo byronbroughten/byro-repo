@@ -105,6 +105,43 @@ describe("run", () => {
       );
     });
 
+    it("refuses a change whose touched file names a folder holding no clone, naming it and leaving master alone", async () => {
+      const workspace = await workspaceWith();
+      commitIn(
+        workspace,
+        "byro-repo",
+        "guide.md",
+        "Intro.\nSee packages/personal.\n",
+      );
+      const masterBefore = git(primaryRoot, "rev-parse", "master");
+      writeFacts();
+
+      const failure = await wrapUp()
+        .run(ticket)
+        .catch((error: unknown) => error);
+
+      expect((failure as WrapUpFailure).kind).toBe("stale-path");
+      expect((failure as WrapUpFailure).message).toContain(
+        "byro-repo guide.md:2 names packages/personal",
+      );
+      expect(git(primaryRoot, "rev-parse", "master")).toBe(masterBefore);
+    });
+
+    it("lands a change while stale paths sit only in files it didn't touch", async () => {
+      writeFileSync(join(primaryRoot, "old.md"), "Was in packages/writing.\n");
+      git(primaryRoot, "add", "old.md");
+      git(primaryRoot, "commit", "-m", "Name a moved clone");
+      const workspace = await workspaceWith();
+      commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
+      writeFacts();
+
+      await wrapUp().run(ticket);
+
+      expect(git(remoteOf("byro-repo"), "rev-parse", "master")).toBe(
+        git(primaryRoot, "rev-parse", "master"),
+      );
+    });
+
     it("refuses a primary checkout that isn't on master", async () => {
       const workspace = await workspaceWith();
       commitIn(workspace, "byro-repo", "script.ts", "export {};\n");

@@ -1,9 +1,8 @@
 import { execFileSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { delimiter, dirname } from "node:path";
 
-import { defineConfig } from "vitest/config";
-
-import { frameworkProjects } from "./packages/framework/vitest.config.ts";
+import { defineConfig, type TestProjectConfiguration } from "vitest/config";
 
 // macOS's /usr/bin/git is an xcrun shim that doubles each git call's cost, and the runner tests make thousands.
 function pathWithDirectGitFirst(): string {
@@ -17,6 +16,27 @@ function pathWithDirectGitFirst(): string {
   }
 }
 
+// packages/* are separate clones, so the root's own CI checks out none of them.
+async function packageProjects(): Promise<TestProjectConfiguration[]> {
+  const frameworkConfig = new URL(
+    "packages/framework/vitest.config.ts",
+    import.meta.url,
+  );
+  const utilsConfig = "packages/utils/vitest.config.ts";
+  const projects: TestProjectConfiguration[] = [];
+  if (existsSync(frameworkConfig)) {
+    // A URL, not a literal path: vite runs this file from a temp copy, and tsc resolves literals.
+    const framework = (await import(frameworkConfig.href)) as {
+      frameworkProjects: TestProjectConfiguration[];
+    };
+    projects.push(...framework.frameworkProjects);
+  }
+  if (existsSync(new URL(utilsConfig, import.meta.url))) {
+    projects.push(utilsConfig);
+  }
+  return projects;
+}
+
 // The framework's and utils' own projects join the root's, so one vitest run covers every package.
 export default defineConfig({
   // Tests run in Vite's server environment, so the source condition goes on ssr.
@@ -27,8 +47,7 @@ export default defineConfig({
     restoreMocks: true,
     unstubGlobals: true,
     projects: [
-      ...frameworkProjects,
-      "packages/utils/vitest.config.ts",
+      ...(await packageProjects()),
       {
         extends: true,
         test: {

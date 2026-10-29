@@ -41,7 +41,7 @@ The step after review where the resolver gives each finding a verdict and fixes 
 _Avoid_: finding triage, triage, classification, label
 
 **Resolver**:
-The agent that resolves: either the resumed implementer, or a fresh session when the implementer's peak context is past ~150K, or after an implementer resolving is killed at ~180K.
+The agent that resolves: either the resumed implementer, or a fresh session when the implementer's peak context is past the ticket budget, or after an implementer resolving is killed at the live ceiling (the defaults are `ticketBudget` and `liveCeiling` in `src/runKnobs.ts`).
 _Avoid_: triage agent, judge, fixer
 
 **Suggested verdict**:
@@ -65,7 +65,7 @@ The verdict that leaves the finding for the developer on the review list: `decis
 _Avoid_: Defer, postpone, backlog
 
 **Halt**:
-The verdict that blocks the tickets in its scope until the developer answers: named later tickets and their downstream, or `spec`. A blocker in the implement record is one too. It is posted as a spec-issue comment and a push; an interactive session's review of its own ticket posts its Halts with no push and takes the answers in the session.
+The verdict that blocks the tickets in its scope until it is answered: named later tickets and their downstream, or `spec`. A blocker in the implement record is one too. It is posted as a spec-issue comment and answered there, by the developer or, for a blocker the Supervisor cleared itself, by the Supervisor; an interactive session's review of its own ticket takes the answers in the session.
 _Avoid_: pause, block, question
 
 **Failure Halt**:
@@ -84,8 +84,12 @@ The run pauses because the account a step would run on is past its 5-hour thresh
 _Avoid_: cooldown, throttle
 
 **Idle**:
-Nothing is runnable, but an open Halt or another holder's Lease may clear while the run waits, so it pushes once and polls for answers rather than ending.
+Nothing is runnable, but an open Halt or another holder's Lease may clear while the run waits, so it polls for answers rather than ending.
 _Avoid_: sleep, paused
+
+**Vanished**:
+The run's process is gone and nothing recorded how it ended, so only the Supervisor can notice. A crash, by contrast, reports itself.
+_Avoid_: died, lost
 
 **Review list**:
 The comment the runner posts on the spec issue for each landed ticket with a Propose, one checkbox per Propose and the Dismisses in a collapsed audit. The gap check posts the last one.
@@ -115,9 +119,17 @@ _Avoid_: scratch workspace, one-off workspace
 A Claude session the developer drives, as opposed to a run's agent steps.
 _Avoid_: hand session, manual session
 
+**Interactive ticket**:
+A ticket an agent can do only in an Interactive session, because its work needs the developer's yes; during a run the Supervisor takes it. A ticket only the developer can do, such as a Phase gate or a step in the real world, is a human ticket instead.
+_Avoid_: supervisor ticket, permission ticket, escalation ticket
+
 **Supervisor**:
-An interactive session that launches or rejoins one run, explains each of its events to the developer, and posts replies the developer approved. It never edits code or holds a lease.
+An interactive session that launches or rejoins one run, explains each of its events to the developer, and does the work the run's steps can't: unasked for a blocked edit the ticket already specifies or an Interactive ticket, and anything else when the developer asks. Every other reply it posts is one the developer settled.
 _Avoid_: monitor, watcher, babysitter
+
+**Run board**:
+A read-only, live view of every running run's ticket, step and time on step. It is never streamed to the Supervisor, which looks at it only to diagnose.
+_Avoid_: dashboard
 
 **Lease**:
 A run's or interactive session's hold on one workspace, which keeps every other run and session out of it until the holder moves on, ends or closes out. A lease whose holder has died is abandoned, and the next taker takes it over.
@@ -126,6 +138,14 @@ _Avoid_: lock, claim
 **Developer**:
 The one person whose text is Trusted text, under any of their logins: their GitHub login and both of their Google accounts.
 _Avoid_: owner
+
+**Codebase Priorities**:
+The tiers an agent weighs a Recommendation about the codebase or agent tooling against: a gate, a floor, and four ranked priorities. They are not design principles, which rest on ADRs.
+_Avoid_: suggestion principles, code principles, values
+
+**Recommendation**:
+An agent's proposed answer to a decision that is the developer's: a grilling question's recommended answer, a Propose's recommendation, a review-list pre-fill. It is not a Suggested verdict.
+_Avoid_: suggestion, advice, proposal
 
 **Trusted text**:
 Text an agent may take as instructions: text the developer wrote and nobody else edited, or text the developer approved word for word, on GitHub or in a Doc or Sheet, or content committed to master in one of the developer's repos. A Sheet's cell values are data even so.

@@ -22,7 +22,7 @@ import {
   supervisingLineOf,
   whereYouAreLineOf,
 } from "./lib/sessionRecord.ts";
-import { sessionModeOf } from "./lib/tiers.ts";
+import { sessionModeOf } from "./lib/tiers/tiers.ts";
 
 await runFailOpen(async () => {
   const input = readHookInput();
@@ -73,7 +73,8 @@ async function supervisionLinesOf({ source }: HookInput): Promise<string[]> {
     }
     const holder = nearestClaudeAncestor();
     if (!holder) return [];
-    const record = await SupervisionRecords.init(stateFolder).recordOf(holder);
+    const record =
+      await SupervisionRecords.init(stateFolder).runningRecordOf(holder);
     const line = supervisingLineOf({ source, record });
     return line === undefined ? [] : [line];
   } catch {

@@ -1,6 +1,6 @@
 # Academic writing style
 
-Academic conventions layered on the writing style sheet, [`writing-voice.md`](./writing-voice.md). An academic Piece is `cited` and `formal`, so read that first: its untagged, `cited` and `formal` rules apply here too, except where a rule below overrides one. APA 7 is the citation standard.
+Academic conventions layered on the Voice sheet, [`writing-voice.md`](./writing-voice.md), and the Craft sheet, [`writing-craft.md`](./writing-craft.md). An academic Piece is `cited` and `formal`, so read both first: Voice's untagged, `cited` and `formal` rules and every Craft rule apply here too, except where a rule below overrides one. APA 7 is the citation standard.
 
 One line per rule. The quoted instances and their sources are one file away. Open a reasoning file only when you're changing the rule, or the rule's line doesn't decide your case.
 
@@ -10,12 +10,12 @@ One line per rule. The quoted instances and their sources are one file away. Ope
 | --- | --- |
 | A citation, a source named in the sentence, a framework concept | [`docs/academic-writing-style/citations.md`](./academic-writing-style/citations.md) |
 | Person, a recommendation, word choice, connectives | [`docs/academic-writing-style/register.md`](./academic-writing-style/register.md) |
-| An introduction, a subsection's close | [`docs/academic-writing-style/structure.md`](./academic-writing-style/structure.md) |
+| An introduction, a purpose statement | [`docs/academic-writing-style/structure.md`](./academic-writing-style/structure.md) |
 
 ## Citations
 
 - **Cite every borrowed fact in APA 7: an (Author, Year) parenthetical and a reference-list entry.**
-- **Quote nothing; paraphrase every borrowed fact.** This overrides the writing style sheet's quote rule.
+- **Quote nothing; paraphrase every borrowed fact.** This overrides the Voice sheet's quote rule.
 - **Name the source in the sentence ("According to X (2025), …") when the source matters to the claim.**
 - **Define a framework concept, with its citation, before applying it to the case.**
 - **Cite a source's framework where the piece adopts it; when a later section applies that framework, don't cite it again.** A new claim from the same source still gets its own citation.
@@ -23,9 +23,9 @@ One line per rule. The quoted instances and their sources are one file away. Ope
 ## Register
 
 - **Write in the impersonal third person ("this report", "one finds"); use "we" only as the narrator guiding the reader.**
-- **Put a formal recommendation in the passive: "it is recommended that…".** This overrides the writing style sheet's "should".
+- **Put a formal recommendation in the passive: "it is recommended that…".** This overrides the Voice sheet's "should".
 - **Plain words stay the default, but take the Latinate word more readily when it is more precise.**
-- **Link paragraphs with "Furthermore" and "Moreover"**, on top of the writing style sheet's connectives.
+- **Link paragraphs with "Furthermore" and "Moreover"**, on top of the Voice sheet's connectives.
 
 ## Structure
 

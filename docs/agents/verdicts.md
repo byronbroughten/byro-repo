@@ -18,8 +18,8 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
   - `kept`: a Standards finding whose site carries a one-line reason that is still true, quoted with its `file:line`.
   - `tooling-enforced`: lint, the typecheck or a test already catches it.
   - `serves-spec`: scope creep that serves a user story the spec has, named in the evidence.
-- **Fix**: fixed now, quoting the code with its `file:line` and naming the documented rule or spec line it breaks. Doc drift the diff caused is a Fix.
-- **Propose**: left for the developer, with a recommendation. `decision` is a judgement only they can make, unverifiable findings included; `ticket` is a problem that predates this branch, with a drafted issue title.
+- **Fix**: fixed now, quoting the code or text with its `file:line` and naming the documented rule or spec line it breaks. Doc drift the diff caused is a Fix.
+- **Propose**: left for the developer, with a recommendation. `decision` is a judgement only they can make, unverifiable findings included; `ticket` is a problem that predates this branch, with a drafted issue title. The recommendation is weighed against the [Codebase Priorities](./codebase-priorities.md), which never decide which verdict a finding gets.
 - **Halt**: blocks the spec's scope, the named later tickets with their downstream or the whole spec, until the developer answers. In a run it posts on the spec; in an interactive session it is answered there.
 
 ## Standards findings
@@ -54,5 +54,5 @@ A suggested verdict may be overruled with a reason. A suggested Halt becomes onl
 
 Recurring keep reasons the developer has said yes to. Each suspends the rule it names, everywhere it applies.
 
-- **Suspends Speculative Generality: a public member with no callers is kept only in a library package** (the framework and utils packages), unless another member does the same job with the same or fewer parameters, and within one only where its style doc allows. In an app package (real-estate, runner) it is flagged; an older caller-less member found there predates the branch, so it is a Propose `ticket`. Types are left out: an exported type with no callers is flagged.
-- **Suspends Middle Man: a type in use stays even when it only names another type, a primitive or a literal union** (`type SheetGid = number`).
+- **Suspends Speculative Generality: a public member with no callers, never a type, is kept only in a library package (framework, utils) where its style doc allows**, unless another member does the same job with the same or fewer parameters.
+- **Suspends Middle Man: a type in use stays even when it only names another type, a primitive or a literal union.**

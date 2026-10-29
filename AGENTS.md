@@ -1,6 +1,6 @@
 # Agent instructions for this repo
 
-An npm-workspaces root: `packages/framework` (`@byronbroughten/sheets-framework`, a clone of its own repo), a TypeScript framework for typed apps on Google Sheets + Apps Script, and `packages/real-estate` (`sheets-real-estate`, a clone of its own repo), the real-estate endpoints built on it; a live spreadsheet is both database and UI. `packages/writing` (`writing`, a clone of its own private repo) is where prose piece specs are filed.
+An npm-workspaces root: `packages/framework` (`@byronbroughten/sheets-framework`, a clone of its own repo), a TypeScript framework for typed apps on Google Sheets + Apps Script, and `packages/real-estate` (`sheets-real-estate`, a clone of its own repo), the real-estate endpoints built on it; a live spreadsheet is both database and UI. `packages/personal` (`personal`, a clone of its own private repo) is where everything the developer keeps off public GitHub lives; see its `private/` for accounts and Google resource IDs.
 
 Open only the section or disclosed doc the task needs.
 
@@ -12,11 +12,11 @@ Open only the section or disclosed doc the task needs.
 
 ## Every task
 
-- **README.md is for humans.** Nothing in it is needed for a task here; open it only to keep it accurate ([`docs/agents/prose-files.md`](./docs/agents/prose-files.md)).
-- **Which package: first "would this make sense with no Sheets at all?" Yes: `packages/utils`, never started in the framework. Then "in a different Sheets-backed app?"** Yes: `packages/framework`. No: `packages/real-estate`. A lint, format or tsconfig setting any TypeScript project would want: `config`. A reader-facing Piece: `packages/writing`.
+- **Every README.md is for humans.** Nothing in one is needed for a task; open it only to keep it accurate ([`docs/agents/prose-files.md`](./docs/agents/prose-files.md)).
+- **Which package: first "would this make sense with no Sheets at all?" Yes: `packages/utils`, never started in the framework. Then "in a different Sheets-backed app?"** Yes: `packages/framework`. No: `packages/real-estate`. A lint, format or tsconfig setting any TypeScript project would want: `config`. A reader-facing Piece: `packages/personal`.
 - **Public repos never depend on private ones; private may depend on public.**
 - **Working in a folder with its own `AGENTS.md`**, read it first; each package's `src/` and several folders under it have one.
-- **Every edit happens in a workspace, closed out with `npm run wrap-up -- <repo> <n>` (or `-- --session <slug>`) however it was opened.** `/start-issue <repo> <n>` moves this session in and follows `/implement-code`'s SKILL.md; `/start-issue --session <slug>` only moves it in; `npm run issue:start` on the same arguments opens one without moving.
+- **Every edit happens in a workspace, closed out with `npm run wrap-up -- <repo> <n>` (or `-- --session <slug>`) however it was opened.** [`/start-issue`](./.claude/skills/start-issue/SKILL.md) moves this session in; `npm run issue:start` on the same arguments opens one without moving.
 - **Commit freely; push only through wrap-up, or with a yes. Implement a spec on its `issue-<n>-<slug>` branch**, even when a skill says to commit to the current branch. Starting a runner run is the yes for what the runner's own code writes on that spec's issue tree in the named repo: comments, closing its tickets, pushing `issue-*` branches and wrap-up merges, and for the implement step's `gh issue edit` and `gh issue comment` as the ticket describes them; never for an agent step closing an issue or changing a triage label on a ticket of the running spec, a write outside its ticket's targets, or any other write an agent step attempts. Branch rules: [`docs/agents/git-workflow.md`](./docs/agents/git-workflow.md).
 
 ## Read by task
@@ -35,13 +35,13 @@ Open only the section or disclosed doc the task needs.
 | A one-off job against the live sheet | [chores](./packages/framework/docs/architecture/chores.md) |
 | Hosts, bin, chore dry run, Sheets probe, gworkspace MCP | [how-it-runs](./packages/framework/docs/how-it-runs.md); gates: [targets-and-gates](./docs/targets-and-gates.md) |
 | Runner code (`runner/`), `SpecRun.ts` included | [`runner/src/AGENTS.md`](./runner/src/AGENTS.md) |
-| Claude Code hooks and the project agent | [`docs/claude-code-guardrails.md`](./docs/claude-code-guardrails.md) |
+| Claude Code hooks, the project agent, switching Claude accounts | [`docs/claude-code-guardrails.md`](./docs/claude-code-guardrails.md) |
 | Tests and fakes | [testing](./packages/framework/docs/testing.md) |
 | Regen `tsc` fails, or hand-written sheet/column keys disagree with generated configs | [retarget-after-gen-configs](./.claude/skills/retarget-after-gen-configs/SKILL.md) |
 | Branches, landing a spec, closing an issue, `backup/*` or `research/*` branches | [`docs/agents/git-workflow.md`](./docs/agents/git-workflow.md) |
 | Design, grilling, specs, tickets, a long session's handoff | [`docs/agents/planning.md`](./docs/agents/planning.md) |
-| Writing reader-facing prose: a shared Google Doc, a blog post, in-app text, a piece spec | [`docs/writing-voice.md`](./docs/writing-voice.md) and [`docs/writing-craft.md`](./docs/writing-craft.md); academic work adds [`academic-writing-style.md`](./docs/academic-writing-style.md); a piece spec adds [`packages/writing/AGENTS.md`](./packages/writing/AGENTS.md) |
-| Editing a prose doc or AGENTS.md: which file a fact belongs in | [`docs/agents/prose-files.md`](./docs/agents/prose-files.md) |
+| Writing reader-facing prose: a shared Google Doc, a blog post, in-app text, a piece spec | [`docs/writing-voice.md`](./docs/writing-voice.md) and [`docs/writing-craft.md`](./docs/writing-craft.md); academic work adds [`academic-writing-style.md`](./docs/academic-writing-style.md); a piece spec adds [`packages/personal/writing/AGENTS.md`](./packages/personal/writing/AGENTS.md) |
+| Editing a prose doc or AGENTS.md: which file a fact belongs in | [`docs/prose-style.md`](./docs/prose-style.md), then the map in [`prose-files.md`](./docs/agents/prose-files.md) |
 | Issues and labels | [`docs/agents/issue-tracker.md`](./docs/agents/issue-tracker.md), [`docs/agents/triage-labels.md`](./docs/agents/triage-labels.md) |
 | A yes/no, pick-one or scale judgement an agent could hand off | [`docs/agents/jev.md`](./docs/agents/jev.md) |
 | Domain vs architecture vocabulary | [`docs/agents/domain.md`](./docs/agents/domain.md) |

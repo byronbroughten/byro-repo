@@ -13,6 +13,7 @@ import {
   addSpec,
   applied,
   findingOf,
+  freeHungRunLock,
   github,
   implemented,
   masterSubjects,
@@ -45,6 +46,7 @@ describe("run's resume", () => {
       }),
     ).run(spec);
     await reachedReview;
+    freeHungRunLock();
     const framework = primaryOf("sheets-framework");
     writeFileSync(join(framework, "later.ts"), "export {};\n");
     git(framework, "add", "later.ts");
@@ -88,6 +90,7 @@ describe("run's resume", () => {
       ),
     ).run(spec);
     await reachedResolve;
+    freeHungRunLock();
     const saved = JSON.parse(readFileSync(runStatePath(), "utf8")) as {
       tickets: Record<string, { findings?: unknown[] }>;
     };
@@ -145,7 +148,7 @@ describe("run's resume", () => {
     expect(ticketFacts().reviewFixes).toBe("fresh");
   });
 
-  it("records a resumed state's sessions each under its own saved account and folder, and an older one under the run's", async () => {
+  it("records a resumed state's sessions each under its own saved account and folder, leaving out an older one with no account", async () => {
     await killAtResolveSavedAs({
       configFolder: "/config/account-1",
       sessions: [
@@ -161,20 +164,16 @@ describe("run's resume", () => {
 
     await specRun(dismissingResolver()).run(spec);
 
-    expect(ticketFacts().sessions?.steps.slice(0, 2)).toEqual([
-      {
-        agent: "implement",
-        sessionId: "implement-session",
-        account: 2,
-        configFolder: "/config/account-2",
-      },
-      {
-        agent: "resolve",
-        sessionId: "triage-session",
-        account: 1,
-        configFolder: "/config/account-1",
-      },
-    ]);
+    const steps = ticketFacts().sessions?.steps ?? [];
+    expect(steps[0]).toEqual({
+      agent: "implement",
+      sessionId: "implement-session",
+      account: 2,
+      configFolder: "/config/account-2",
+    });
+    expect(steps.map(({ sessionId }) => sessionId)).not.toContain(
+      "triage-session",
+    );
   });
 
   it("counts a crash saved under the resolve step's old name against resolve", async () => {
@@ -214,6 +213,7 @@ describe("run's resume", () => {
       github: hangingGitHub,
     }).run(spec);
     await reachedWrapUp;
+    freeHungRunLock();
     expect(ticketState()["byro-repo #1"]?.step).toBe("wrap-up");
     const rerunStep = FakeAgentStep.init();
 
@@ -237,6 +237,7 @@ describe("run's resume", () => {
       }),
     ).run(spec);
     await reachedReview;
+    freeHungRunLock();
     github.edit(1, { isOpen: false });
 
     const result = await specRun(
@@ -360,6 +361,7 @@ async function killAtResolveSavedAs(
     ),
   ).run(spec);
   await reachedResolve;
+  freeHungRunLock();
   const saved = JSON.parse(readFileSync(runStatePath(), "utf8")) as {
     tickets: Record<string, Record<string, unknown>>;
   };

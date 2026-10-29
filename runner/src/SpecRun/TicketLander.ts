@@ -275,7 +275,7 @@ export class TicketLander extends SpecRunBase {
       facts.reviewRounds = 0;
       facts.githubWrites = record.githubWrites;
     }
-    const steps = recordedSessionsOf(state, this.config.knobs.account);
+    const steps = recordedSessionsOf(state);
     if (steps.length > 0) facts.sessions = { steps };
     this.factsFile.write(ticket.issue, facts);
   }

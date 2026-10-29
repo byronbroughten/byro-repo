@@ -1,0 +1,7 @@
+# byro-repo#429 outcome
+
+Spec: [byro-repo#424](https://github.com/byronbroughten/byro-repo/issues/424)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #429 | Opus medium | 2 | 9 | 136K | Fix (resumed implementer) | 1 | 1 | 0 | 33 min | $3.20 | $1.05 | Fixed: The tmux session name is built in two places that both print it. (scripts/runner/runWatch.ts:102, scripts/runner/launchWait.ts:21); StartWaitDeps and WatchDeps each declare stateFolder over the same clock fields. (scripts/runner/runWatch.ts:16-18, 34-39); RunStart and WatchedRun are exported with no importer. (scripts/runner/runWatch.ts:26, 29); The raw reader's comment restates the function and names a caller need nobody has. (runner/src/EventFileNotices.ts:71); The README implies eventLinesOf() also returns none before the first event, though it throws. (runner/README.md:11); The launcher's mapping from result to exit code is untested. (scripts/runner/launchWait.ts:18-26); An earlier run's run-ended line makes the watch exit at once, even while a relaunched run is starting. (scripts/runner/runWatch.ts:74). Proposed: The vanished line's `spec` field copies shortRefOf() from runner/src/halts.ts. (scripts/runner/runWatch.ts:105). | 8de103aa-d383-41d5-b30e-2f4db68e6d9f, d3d0b055-6bd8-40dc-b395-bce0472c4d22 |

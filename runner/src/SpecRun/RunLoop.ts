@@ -1,5 +1,6 @@
-// The run loop: preflight refuses or Stops a run first, then it picks tickets one at a time and runs each, idling
-// while an open Halt or another holder's lease is all that's in the way, until every ticket lands or something Stops it.
+// The run loop: it holds the spec's RunLock while it runs, and preflight refuses or Stops a run first.
+// Then it picks tickets one at a time and runs each, idling while an open Halt or another holder's lease
+// is all that's in the way, until every ticket lands or something Stops it.
 // Any outcome a later ticket will handle (red checks, step errors, schema failures) is an UnhandledStop; a red master Stops the run.
 // requestStop() or a `stop spec` answer ends the run between tickets; status() reads it from outside.
 // ../SpecRun.ts delegates run, status and requestStop to it.
@@ -8,6 +9,10 @@
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import {
+  ActiveAccountUnknown,
+  noActiveAccountPhraseOf,
+} from "../ActiveAccountUnknown.ts";
 import { commandLabelOf } from "../failureText.ts";
 import { currentBranchOf } from "../git.ts";
 import { type Halt } from "../halts.ts";
@@ -17,10 +22,11 @@ import {
   issueLabelOf,
   type IssueRef,
 } from "../IssueWorkspaces.ts";
-import { type AccountReading } from "../limitGuard.ts";
+import { type AccountReading, readingLabelOf } from "../limitGuard.ts";
 import { pairOf } from "../modelFit.ts";
+import { type HeldRunLock, RunLock } from "../RunLock.ts";
 import { RunStop } from "../RunStop.ts";
-import { percentOf } from "../transcriptFacts.ts";
+import { stalePathLabelOf, stalePathsOf } from "../stalePaths.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
 import {
   idListOf,
@@ -39,7 +45,7 @@ import {
   waitsTextOf,
 } from "./runState.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
-import { TicketSelector } from "./TicketSelector.ts";
+import { type Selection, TicketSelector } from "./TicketSelector.ts";
 import { TicketSequencer } from "./TicketSequencer.ts";
 
 export class RunLoop extends SpecRunBase {
@@ -56,6 +62,23 @@ export class RunLoop extends SpecRunBase {
   }
 
   async run(specIssue: IssueRef): Promise<RunResult> {
+    const taken = RunLock.take(this.config.stateFolder, specIssue);
+    // Announced, the refusal would land in the live run's event file as its run-ended line.
+    if (taken.kind === "held") {
+      return {
+        kind: "refused",
+        landed: [],
+        message: runLockRefusalOf(specIssue, taken),
+      };
+    }
+    try {
+      return await this._runHoldingLock(specIssue);
+    } finally {
+      taken.lock.release();
+    }
+  }
+
+  private async _runHoldingLock(specIssue: IssueRef): Promise<RunResult> {
     const startedAt = this.config.clock.now();
     // A request left by a stop command with no run going would end this run at its first pick.
     rmSync(this._stopRequestPathOf(specIssue), { force: true });
@@ -79,14 +102,21 @@ export class RunLoop extends SpecRunBase {
       );
     }
     this._log(run, `Preflight passed in ${this._secondsSince(startedAt)}s.`);
-    const reading = await this._readingOf(run);
-    await this._announce(
-      run,
-      `Run started on ${run.tickets.length} tickets as ${readingLabelOf(reading)}.`,
-    );
+    let reading: AccountReading;
+    try {
+      reading = await this._activeReadingOf(run);
+    } catch (error) {
+      if (!(error instanceof RunStop)) throw error;
+      return this._end(run, "stopped", error.message);
+    }
+    let isStartAnnounced = false;
     let isIdle = false;
     for (;;) {
       const selection = await this.ticketSelector._select(run);
+      if (!isStartAnnounced) {
+        await this._announceStart(run, reading, selection);
+        isStartAnnounced = true;
+      }
       if (selection.kind === "stop-spec") {
         return this._end(
           run,
@@ -133,6 +163,36 @@ export class RunLoop extends SpecRunBase {
     }
   }
 
+  // Sent at the first pick, so it can name the ticket about to launch; a first pick with no launch still shows startup passed.
+  private async _announceStart(
+    run: Run,
+    reading: AccountReading,
+    selection: Selection,
+  ): Promise<void> {
+    const started = `Run started on ${run.tickets.length} tickets as ${readingLabelOf(reading.account, reading.usage)}.`;
+    const ticket =
+      selection.kind === "launch" ? selection.ticket.issue : undefined;
+    const summary =
+      ticket === undefined
+        ? started
+        : `${started} Launching ${issueLabelOf(ticket)}.`;
+    await this._announce(run, summary, {
+      kind: "run-started",
+      warnings: await this._stalePathWarnings(),
+      ...(ticket && { ticket }),
+    });
+  }
+
+  // Warned, never refused, so stale prose can't block the ticket that would fix it.
+  private async _stalePathWarnings(): Promise<string[]> {
+    const { primaryRoot, knobs } = this.config;
+    const found = await stalePathsOf({
+      primaryRoot,
+      clonePaths: knobs.clonePaths,
+    });
+    return found.map(stalePathLabelOf);
+  }
+
   // Read by the run between tickets and while idle; a request made with no run going is dropped as the next run starts.
   requestStop(specIssue: IssueRef): void {
     mkdirSync(this.config.stateFolder, { recursive: true });
@@ -155,12 +215,22 @@ export class RunLoop extends SpecRunBase {
       `Current: ${joinedOrNone(current)}.`,
       `Open Halts: ${joinedOrNone(openHalts.map(openHaltTextOf))}.`,
       `Waiting: ${others.length === 0 ? "none" : waitsTextOf(others)}.`,
-      `Account: ${readingLabelOf(await this._readingOf(run))}.`,
+      `Account: ${await this._activeReadingLabelOf(run)}.`,
     ];
     if (existsSync(this._stopRequestPathOf(specIssue))) {
       lines.push("A stop is requested; the run ends after its current ticket.");
     }
     return lines.join("\n");
+  }
+
+  private async _activeReadingLabelOf(run: Run): Promise<string> {
+    try {
+      const { account, usage } = await this._activeReadingOf(run);
+      return readingLabelOf(account, usage);
+    } catch (error) {
+      if (!(error instanceof ActiveAccountUnknown)) throw error;
+      return `unknown; ${noActiveAccountPhraseOf()}`;
+    }
   }
 
   // Taken once read, so a later run never sees it.
@@ -195,21 +265,21 @@ export class RunLoop extends SpecRunBase {
   private async _preflightStop(): Promise<string | undefined> {
     const { knobs, primaryRoot } = this.config;
     if (knobs.liveCeiling <= knobs.ticketBudget) {
-      return `${liveCeilingPhraseOf(knobs)} isn't above the ticket budget of ${knobs.ticketBudget}`;
+      return `${liveCeilingPhraseOf(knobs)} isn't above the ticket budget of ${knobs.ticketBudget}; raise the live ceiling or lower the ticket budget, and rerun`;
     }
     for (const command of knobs.authChecks) {
       if ((await runCommand(command, primaryRoot)) !== undefined) {
-        return `${commandLabelOf(command)} failed: GitHub auth or the claude login is missing`;
+        return `${commandLabelOf(command)} failed: GitHub auth or the claude login is missing; sign in to whichever it checks, and rerun`;
       }
     }
     for (const [repo, clonePath] of Object.entries(knobs.clonePaths)) {
       const clone = join(primaryRoot, clonePath);
       if (!existsSync(join(clone, ".git"))) {
-        return `${repo}'s primary clone is missing at ${clone}`;
+        return `${repo}'s primary clone is missing at ${clone}; clone ${repo} into ${clone} and rerun`;
       }
       const branch = currentBranchOf(clone);
       if (branch !== "master") {
-        return `${repo}'s primary checkout is on ${branch || "a detached HEAD"}, not master`;
+        return `${repo}'s primary checkout is on ${branch || "a detached HEAD"}, not master; switch it to master and rerun`;
       }
     }
     return undefined;
@@ -218,6 +288,17 @@ export class RunLoop extends SpecRunBase {
   private _stopRequestPathOf(spec: IssueRef): string {
     return join(this.config.stateFolder, `${fileStemOf(spec)}.stop`);
   }
+}
+
+function runLockRefusalOf(
+  spec: IssueRef,
+  { holder, path }: HeldRunLock,
+): string {
+  const label = issueLabelOf(spec);
+  if (holder === undefined) {
+    return `${label}'s run lock is unreadable, so it counts as held; remove ${path} if no run of it is going.`;
+  }
+  return `${label} already has a run going: pid ${holder.pid}, started ${holder.startedAt}.`;
 }
 
 // A split spec's own body is never checked; tickets the runner won't launch need no section.
@@ -267,9 +348,4 @@ function currentTextOf(run: Run, { ticket, holder }: Wait): string[] {
   if (holder?.kind !== "run") return [];
   const step = run.state.tickets[issueLabelOf(ticket)]?.step ?? "implement";
   return [`${issueLabelOf(ticket)} at ${step} (${holderLabelOf(holder)})`];
-}
-
-function readingLabelOf({ account, usage }: AccountReading): string {
-  if (usage === undefined) return `account ${account}: no usage reading`;
-  return `account ${account}: 5-hour ${percentOf(usage.fiveHour.utilization)}, weekly ${percentOf(usage.sevenDay.utilization)}`;
 }

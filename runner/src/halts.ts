@@ -16,6 +16,7 @@ import {
   type ResolveRecord,
 } from "./resolveStep.ts";
 import type { IssueComment, TicketStep } from "./SpecRun.ts";
+import { isTargetWrite } from "./targetTools.ts";
 
 // Marks every comment the runner posts, which carries the developer's login too, so none is read as an answer.
 export const runnerMark = "<!-- spec-runner -->";
@@ -86,13 +87,18 @@ export function haltKindLabelOf(kind: HaltKind): string {
   return kindLabels[kind];
 }
 
+export interface BlockerHaltFacts {
+  downstream: string[];
+  deniedTools: string[];
+}
+
 // A blocker's Halt holds its own ticket and the tickets downstream of it.
 export function blockerHaltOf(
   { kind, detail, recommendation }: Blocker,
-  downstream: string[],
+  { downstream, deniedTools }: BlockerHaltFacts,
 ): HaltDraft {
   const options = [recommendation];
-  if (kind === "denied-tool") {
+  if (kind === "denied-tool" && deniedTools.some(isTargetWrite)) {
     options.push("Add it to the ticket's `## Targets`, then resume");
   }
   return { kind, question: detail, options, scope: downstream };

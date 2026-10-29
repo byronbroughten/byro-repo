@@ -13,7 +13,7 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Sentences and pu
 
 - "Users input information about a potential deal—the offer price for a property, loan information, anticipated costs, etc.—and the app calculates" — Assessment 1 - Information and Marketing Strategy
 - Seen in 5 of 6.
-- Agent: "costs about a month to return to the candidate list, tour, and make a new offer" Developer: "costs about a month—touring properties, drafting an offer, the inspection contingency window, etc.—" — Assessment 1 Next Draft (writing#4), Drive edit after session 66510c6, by 2026-10-18
+- Agent: "costs about a month to return to the candidate list, tour, and make a new offer" Developer: "costs about a month—touring properties, drafting an offer, the inspection contingency window, etc.—" — Assessment 1 Next Draft (personal#4), Drive edit after session 66510c6, by 2026-10-18
 
 ## A colon after a verdict
 
@@ -67,16 +67,16 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Sentences and pu
 ## Wrapper phrases
 
 - From Strunk and White II.17, whose list includes "the question as to whether" for "whether" and "the fact that", which it would revise "out of every sentence in which it occurs".
-- Agent: "The mitigation strategy for if this dependency is not obtained is the phase gate into the project's Build phase." — Assessment 1 Next Draft (writing#4)
-- Agent: "The first such dependency is a new, aforementioned HELOC with TruStone Financial" — Assessment 1 Next Draft (writing#4)
-- Agent: "This charter authorizes the first step of that plan, which is acquiring, repairing, and leasing one residential rental property" — Assessment 1 Next Draft (writing#4)
+- Agent: "The mitigation strategy for if this dependency is not obtained is the phase gate into the project's Build phase." — Assessment 1 Next Draft (personal#4)
+- Agent: "The first such dependency is a new, aforementioned HELOC with TruStone Financial" — Assessment 1 Next Draft (personal#4)
+- Agent: "This charter authorizes the first step of that plan, which is acquiring, repairing, and leasing one residential rental property" — Assessment 1 Next Draft (personal#4)
 - The developer endorsed the rule — session 2ebcdf61, 2026-10-18
 - Where cutting "which" or "that" would leave a garden path, the Craft sheet keeps it; the case is in its [precedence file](../writing-craft/precedence.md#a-wrapper-phrase-against-a-signal-word).
 
 ## One point, one sentence
 
 - From Strunk and White II.17: a common way into wordiness is to give one idea "step by step, in a series of sentences that might to advantage be combined into one".
-- Agent: "That date falls partway through the project, so the new property could be inspected under either standard. One requirement applies under both. Since December 29, 2024, smoke alarms must be either hardwired or sealed devices with 10-year batteries" — Assessment 1 Next Draft (writing#4), Regulatory section, which the developer had not edited
+- Agent: "That date falls partway through the project, so the new property could be inspected under either standard. One requirement applies under both. Since December 29, 2024, smoke alarms must be either hardwired or sealed devices with 10-year batteries" — Assessment 1 Next Draft (personal#4), Regulatory section, which the developer had not edited
 - Arithmetic is the exception: the numbers rule's step-by-step working is the developer's own habit, and it wins over the borrowed rule ([sources](./sources.md#the-elements-of-style)).
 - The developer endorsed the rule — session 2ebcdf61, 2026-10-18
 
@@ -85,19 +85,19 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Sentences and pu
 - From Strunk and White II.14, which keeps the passive where the actor doesn't matter or the receiver must be the subject. The academic sheet's passive recommendation overrides this rule.
 - The given-before-new exception is from Pinker, Ch. 4 (#316); its case is in the Craft sheet's [precedence file](../writing-craft/precedence.md#the-passive-that-keeps-the-topic-first).
 - Pinker, Ch. 2, PDF pp. 59–63, argues the same, and keeps the passive for leaving out a minor actor or keeping the reader's eye on one character.
-- Agent: "Based on an initial assessment, it is assumed that the four conditions below will hold through May 31, 2027." — Assessment 1 Next Draft (writing#4)
+- Agent: "Based on an initial assessment, it is assumed that the four conditions below will hold through May 31, 2027." — Assessment 1 Next Draft (personal#4)
 - The developer endorsed the rule — session 2ebcdf61, 2026-10-18
 
 ## A signpost before the point
 
-- Agent: "The impact falls on the schedule. Assuming each failed negotiation costs about a month…" Developer: struck the first sentence — Assessment 1 Next Draft (writing#4), Drive edit after session 66510c6, by 2026-10-18
+- Agent: "The impact falls on the schedule. Assuming each failed negotiation costs about a month…" Developer: struck the first sentence — Assessment 1 Next Draft (personal#4), Drive edit after session 66510c6, by 2026-10-18
 - Agent: "A rate rise cuts the return. Assuming a 30-year mortgage of $212,500 at 7.5%…" Developer: struck the first sentence — same
 - Agent: "An appraisal shortfall cuts the equity target instead." Developer: struck — same
 - No count was recorded; from a session.
 
 ## An event as a clause
 
-- Agent: "between the Planning estimates and the purchase" Developer: "between when estimates are made during the planning phase and when a property would actually be purchased" — Assessment 1 Next Draft (writing#4), Drive edit after session 66510c6, by 2026-10-18
+- Agent: "between the Planning estimates and the purchase" Developer: "between when estimates are made during the planning phase and when a property would actually be purchased" — Assessment 1 Next Draft (personal#4), Drive edit after session 66510c6, by 2026-10-18
 - Agent: "before an offer goes in" Developer: "before making an offer" — same
 - Agent: "from those units' lease rents and, for the owner's unit, the rent it is projected to earn if leased, as estimated in Planning" Developer: "and the measurement is based on lease rents and the rent that the owner's unit is projected to earn if it were leased" — same
 - This doesn't contradict "Wrapper phrases": a wrapper carries no meaning, while the clause's verb names the event the noun phrase hid. A passive clause here passes "Active voice", since the actor is beside the point.
@@ -106,6 +106,6 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Sentences and pu
 
 ## A "This" that follows its phrase
 
-- Agent: flagged "screening grew lenient. This ultimately led to lease non-renewals, high turnover costs, and extended vacancies." and proposed "Lenient screening ultimately led to…" Developer: "the "This" referred to what was immediately before the "This", in this case right at the end of the sentence preceding it: "screening grew lenient"." — Assessment 2 grill (writing#16), session 27f9c715, 2026-10-22
+- Agent: flagged "screening grew lenient. This ultimately led to lease non-renewals, high turnover costs, and extended vacancies." and proposed "Lenient screening ultimately led to…" Developer: "the "This" referred to what was immediately before the "This", in this case right at the end of the sentence preceding it: "screening grew lenient"." — Assessment 2 grill (personal#16), session 27f9c715, 2026-10-22
 - It passes the Craft sheet's precedence line: the reader can't misread what "This" points to, so "Name the thing itself" doesn't override it. A "This" that points further back, or at a whole paragraph, still gets its noun.
 - No count was recorded; from a session.

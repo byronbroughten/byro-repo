@@ -10,13 +10,14 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 
-import { eventFilePathOf } from "./EventFileNotices.ts";
+import { rawEventLinesOf } from "./EventFileNotices.ts";
 import {
   isSameIssue,
   type IssueRef,
   type LeaseHolder,
 } from "./IssueWorkspaces.ts";
 import { startTimeOf } from "./processStart.ts";
+import { RunLock } from "./RunLock.ts";
 
 export interface SupervisionRecord {
   pid: number;
@@ -70,11 +71,20 @@ export class SupervisionRecords {
     return { pid, owner, spec, offset };
   }
 
+  // The tier gate and SessionStart read this one: a Supervisor whose run has ended is a regular session.
+  async runningRecordOf(
+    holder: LeaseHolder,
+  ): Promise<SupervisionRecord | undefined> {
+    const record = await this.recordOf(holder);
+    if (record === undefined) return undefined;
+    return RunLock.isHeld(this.stateFolder, record.spec) ? record : undefined;
+  }
+
   // Raw lines, so the record needs only the event file's location, never its line format.
   async unexplainedLinesOf(holder: LeaseHolder): Promise<string[]> {
     const record = await this.recordOf(holder);
     if (record === undefined) return [];
-    return this._eventLinesOf(record.spec).slice(record.offset);
+    return rawEventLinesOf(this.stateFolder, record.spec).slice(record.offset);
   }
 
   // One line explained; never past the last line the run has written.
@@ -82,7 +92,7 @@ export class SupervisionRecords {
     const record = await this.recordOf(holder);
     const file = this._fileOf(holder.pid);
     if (record === undefined || file === undefined) return undefined;
-    const lineCount = this._eventLinesOf(record.spec).length;
+    const lineCount = rawEventLinesOf(this.stateFolder, record.spec).length;
     const offset = Math.min(record.offset + 1, lineCount);
     this._write({ ...file, offset });
     return { ...record, offset };
@@ -90,14 +100,6 @@ export class SupervisionRecords {
 
   async release({ pid }: LeaseHolder): Promise<void> {
     this._remove(pid);
-  }
-
-  private _eventLinesOf(spec: IssueRef): string[] {
-    const path = eventFilePathOf(this.stateFolder, spec);
-    if (!existsSync(path)) return [];
-    return readFileSync(path, "utf8")
-      .split("\n")
-      .filter((line) => line !== "");
   }
 
   private _files(): RecordFile[] {

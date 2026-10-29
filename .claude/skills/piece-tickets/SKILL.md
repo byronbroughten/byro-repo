@@ -4,17 +4,17 @@ description: "Split a piece spec into sub-issues chosen from Research, Sections 
 disable-model-invocation: true
 ---
 
-Split a piece spec into sub-issues in `byronbroughten/writing`. The Piece rules live in the writing package: [`packages/writing/AGENTS.md`](../../../packages/writing/AGENTS.md) and its `GLOSSARY.md`. Use their words (Piece, Deliverable, Section, Supporting Material, Reference); never restate them here.
+Split a piece spec into sub-issues in `byronbroughten/personal`. The Piece rules live in the writing package: [`packages/personal/writing/AGENTS.md`](../../../packages/personal/writing/AGENTS.md) and its `GLOSSARY.md`. Use their words (Piece, Deliverable, Section, Supporting Material, Reference); never restate them here.
 
 ## 1. Read the spec
 
-Fetch it with `gh issue view -R byronbroughten/writing <n> --json title,body,comments --jq '{title, body, comments: [.comments[].body]}'` and state its title. Read its Research, Final pass, Split, Form and Outline fields. Done when all five are found; a missing one is asked for, never inferred.
+Fetch it with `npm run issue:read -- personal <n> --body` and state its title. Read its Research, Final pass, Split, Form and Outline fields. Done when all five are found; a missing one is asked for, never inferred.
 
 ## 2. Propose the split
 
 Choose only the stages the fields call for:
 
-- **Research**, when the Research field says needed: verifies the sources and facts it names and posts its list as a comment. It writes nothing to the Deliverable, and revises the spec's Outline only as [`docs/outlining.md`](../../../packages/writing/docs/outlining.md#when-research-revises-it) allows.
+- **Research**, when the Research field says needed: verifies the sources and facts it names and posts its list as a comment. It writes nothing to the Deliverable, and revises the spec's Outline only as [`docs/outlining.md`](../../../packages/personal/writing/docs/outlining.md#when-research-revises-it) allows.
 - **Sections**, when Split names Sections: each ticket names its Sections by their exact heading text in the Deliverable. A Piece with no headings, such as a letter, gets no Section tickets; flag a Split that names Sections for one.
 - **Final pass**, when the Final pass field says needed and there are Section tickets: covers the whole Deliverable, as that field describes, and checks that each short name coined in one Section is used the same way throughout.
 
@@ -61,4 +61,4 @@ Leave the parent spec's body unchanged.
 
 ## 4. Read back the tickets
 
-Print the filed tickets as one flat list in completion order, `#n Title: <Model> <effort> (reason)`, each pair chosen by [model fit](../../../docs/agents/planning.md#model-fit) and the writing outcome log in [`docs/model-fit.md`](../../../packages/writing/docs/model-fit.md). The pairs stay in chat. Done when every filed ticket appears; end by recommending `/implement-piece` on the first.
+Print the filed tickets as one flat list in completion order, `#n Title: <Model> <effort> (reason)`, each pair chosen by [model fit](../../../docs/agents/planning.md#model-fit) and the writing outcome log in [`docs/model-fit.md`](../../../packages/personal/writing/docs/model-fit.md). **`/piece-tickets` and `/piece-spec` stay chat only.** Done when every filed ticket appears; end by recommending `/implement-piece` on the first.

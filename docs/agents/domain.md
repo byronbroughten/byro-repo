@@ -12,11 +12,12 @@ If any of these files don't exist, **proceed silently**. Don't flag their absenc
 
 ## File structure
 
-Four contexts, one per package:
+Five contexts, four of them one per package:
 
 ```
 /
-├── GLOSSARY-MAP.md                 # points at the four glossaries
+├── GLOSSARY-MAP.md                 # points at the five glossaries
+├── .claude/skills/inbox/GLOSSARY.md # an /inbox session's terms: Proposal, Sign-off
 ├── runner/GLOSSARY.md              # the spec runner's terms: steps, verdicts, Halts
 ├── docs/adr/                       # agent-behavior decisions; framework and real-estate get their own
 ├── docs/targets-and-gates.md
@@ -30,24 +31,23 @@ Four contexts, one per package:
     │       ├── vocabulary.md       # architecture words; elaboration in vocabulary/
     │       ├── architecture.md, architecture/
     │       ├── generated-data.md, generated-data/
-    │       ├── how-it-runs.md
+    │       ├── how-it-runs.md, how-it-runs/
     │       └── testing.md
     ├── real-estate/
     │   ├── GLOSSARY.md             # the app's terms: units, the occupancy ledger
     │   ├── src/AGENTS.md
     │   └── docs/occupancy-ledger.md
-    └── writing/
-        ├── GLOSSARY.md             # a prose spec's terms: Piece, Deliverable, Supporting Material, Reference
-        └── AGENTS.md               # implementing a piece spec
+    └── personal/
+        └── writing/
+            ├── GLOSSARY.md         # a prose spec's terms: Piece, Deliverable, Supporting Material, Reference
+            └── AGENTS.md           # implementing a piece spec
 ```
 
 ## Which context a term belongs to
 
-Ask "would this make sense in a different Sheets-backed app?" Yes: the framework's `GLOSSARY.md`. No: the app's. A word for a piece of writing: the writing `GLOSSARY.md`. A word for an unattended spec run: the runner's. How the glossaries relate is [`GLOSSARY-MAP.md`](../../GLOSSARY-MAP.md)'s; a new term that would redefine a framework one is a conflict to raise, not to resolve silently.
+Which context owns a term, how the glossaries relate and where the architecture words live are [`GLOSSARY-MAP.md`](../../GLOSSARY-MAP.md)'s. A new term that would redefine a framework one is a conflict to raise, not to resolve silently.
 
 ## Use the glossary's vocabulary
-
-The architecture words (Raw, Identified, Named, profile, Operator) are [`docs/vocabulary.md`](../../packages/framework/docs/vocabulary.md)'s, not the glossary's.
 
 When your output names a domain concept (in an issue title, a refactor proposal, a hypothesis, a test name), use the term as defined in the `GLOSSARY.md` that owns it, per `GLOSSARY-MAP.md`. Don't drift to synonyms the glossary explicitly avoids.
 
