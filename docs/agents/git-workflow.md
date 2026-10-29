@@ -32,7 +32,7 @@ Primary checkouts and workspaces, branches and commits, landing a spec or a sess
 
 ## Landing a session
 
-- **Once a session workspace's edits are done, land it without asking**: `npm run wrap-up -- --session <slug>`. Wrap-up holds the standing yes to push, behind its secret scan (#273). It merges each repo whose `session-<slug>` branch is ahead, clones before the root, and runs `npm run check`'s commands on the result, skipped on a check stamp for the same files and stopping on red before anything lands, naming the check. It then fast-forwards master in each, with no outcome row or GitHub calls, deletes the session branches, releases the lease and removes the workspace. It refuses uncommitted changes, so commit first. From an entered worktree, call `ExitWorktree` with `keep` first, so wrap-up can remove it.
+- **Once a session workspace's edits are done, land it without asking**: `npm run wrap-up -- --session <slug>`. Wrap-up holds the standing yes to push, behind its secret scan (#273). It merges each repo whose `session-<slug>` branch is ahead, clones before the root, and runs the checks, which a check stamp skips, stopping on red before anything lands. It then fast-forwards master in each, with no outcome row or GitHub calls, deletes the session branches, releases the lease and removes the workspace. It refuses uncommitted changes, so commit first. From an entered worktree, call `ExitWorktree` with `keep` first, so wrap-up can remove it.
 - **To land mid-session and keep working, add `--keep`**: the edits so far land the same way, and the workspace stays leased with every session branch level with master. Land this way whenever a finished piece of work would otherwise wait on the rest of the session.
 
 ## A skill's session workspace

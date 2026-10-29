@@ -1,8 +1,8 @@
 // Runs the checks for `npm run check`: every command at once, skipped on a check stamp for the same committed files.
 // A stamp's key hashes each repo's committed tree, the root lockfile and the Node version; one file per key in the
 // stamp folder, written only on a pass with every repo clean and holding that pass's per-command durations.
-// SpecRun.ts and an issue's wrap-up run whatever commands their checks setting names and know nothing of stamps; a
-// session's wrap-up runs its checks here, in the stamp folder `npm run check` uses. scripts/runner/check.ts names the commands and prints the result; the label a failure is listed under comes from
+// SpecRun.ts and WrapUp.ts run whatever commands their checks setting names and know nothing of stamps.
+// scripts/runner/check.ts names the commands and prints the result; the label a failure is listed under comes from
 // failureText.ts.
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -118,10 +118,6 @@ export class Checks {
       ),
     );
   }
-}
-
-export function stampFolderOf(stateFolder: string): string {
-  return join(stateFolder, "check-stamps");
 }
 
 // The lockfile is gitignored, so its bytes go into the key directly; a missing one hashes as a marker.

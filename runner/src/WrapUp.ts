@@ -3,8 +3,7 @@
 // master under its landing lock, then pushes, deletes the branches, removes the workspace, closes the issue and checks
 // its parent. Steps are recorded in a progress file, so a rerun skips what already landed; a failure throws a
 // WrapUpFailure naming its kind.
-// A session workspace lands the same way from its session branches, with no facts file or issue steps; its checks
-// run through Checks.ts, so a check stamp skips them.
+// A session workspace lands the same way from its session branches, with no facts file or issue steps.
 // The outcome row is written by outcomeRowWriter.ts with the merged code; the lock is LandingLock.ts;
 // workspaces are IssueWorkspaces.ts.
 
@@ -19,19 +18,13 @@ import {
 import { join } from "node:path";
 import { promisify } from "node:util";
 
-import { Checks, stampFolderOf } from "./Checks.ts";
 import {
   type ClosingFacts,
   FactsFile,
   type GitHubWrite,
   type WrapUpFacts,
 } from "./FactsFile.ts";
-import {
-  commandLabelOf,
-  messageOf,
-  outputTailOf,
-  tailOf,
-} from "./failureText.ts";
+import { commandLabelOf, messageOf, outputTailOf } from "./failureText.ts";
 import {
   currentBranchOf,
   git,
@@ -63,7 +56,6 @@ import {
   writeOutcomeRow,
   type WrittenOutcomeRow,
 } from "./outcomeRowWriter.ts";
-import type { Command } from "./runKnobs.ts";
 import { secretShapeOf } from "./secretShapes.ts";
 import { sleep } from "./sleep.ts";
 import { stalePathLabelOf, stalePathsTouchedBy } from "./stalePaths.ts";
@@ -126,7 +118,7 @@ export interface WrapUpConfig {
   github: WrapUpGitHub;
   githubOwner: string;
   // Each a command and its args, run from the workspace's root after the merges.
-  checks: Command[];
+  checks: [string, ...string[]][];
   // Relative to the root repo.
   outcomeFolder: string;
   // Holds each ticket's facts and progress files; gitignored.
@@ -412,9 +404,7 @@ export class WrapUp {
     }
     return {
       build: async (landing, workspace) => {
-        await this._mergeAndCheck(landing, workspace, (root) =>
-          this._runChecks(root),
-        );
+        await this._mergeAndCheck(landing, workspace);
         await this._logRow({ issue, facts, landing, workspace });
       },
       cleanRepos: listedReposOf,
@@ -423,13 +413,10 @@ export class WrapUp {
     };
   }
 
-  // Its checks skip on a check stamp, so a session that already ran `npm run check` on the landed files pays nothing.
   private get _sessionLanding(): LandingKind {
     return {
       build: async (landing, workspace) =>
-        this._mergeAndCheck(landing, workspace, (root) =>
-          this._runStampedChecks(root),
-        ),
+        this._mergeAndCheck(landing, workspace),
       cleanRepos: () => Object.keys(this.config.workspaces.clonePaths),
       branchesToDelete: async (landing) => {
         await this._switchToMaster(await this._workspaceOf(landing.key));
@@ -612,12 +599,11 @@ export class WrapUp {
   private async _mergeAndCheck(
     landing: Landing,
     workspace: Workspace,
-    runChecks: (workspaceRoot: string) => Promise<void>,
   ): Promise<void> {
     await this._step(landing, "merges", () => this._merge(landing, workspace));
     await this._step(landing, "checks", async () => {
       try {
-        await runChecks(workspace.path);
+        await this._runChecks(workspace.path);
       } catch (error) {
         await this._restore(landing, workspace);
         throw error;
@@ -684,27 +670,10 @@ export class WrapUp {
       } catch (error) {
         throw new WrapUpFailure(
           "red-checks",
-          redCheckLineOf([command, ...args], outputTailOf(error)),
+          `${commandLabelOf([command, ...args])} failed after the merges:\n${outputTailOf(error)}`,
         );
       }
     }
-  }
-
-  private async _runStampedChecks(workspaceRoot: string): Promise<void> {
-    const result = await Checks.init({
-      commands: this.config.checks,
-      root: workspaceRoot,
-      clonePaths: this.config.workspaces.clonePaths,
-      stampFolder: stampFolderOf(this.config.stateFolder),
-      nodeVersion: process.version,
-    }).run();
-    if (result.kind !== "failed") return;
-    throw new WrapUpFailure(
-      "red-checks",
-      result.failures
-        .map(({ command, output }) => redCheckLineOf(command, tailOf(output)))
-        .join("\n\n"),
-    );
   }
 
   private async _logRow(target: LogRowTarget): Promise<void> {
@@ -1079,10 +1048,6 @@ function listedReposOf({ branches }: Pick<Landing, "branches">): string[] {
 
 function issueMergeArgsOf({ number }: IssueRef, branch: string): string[] {
   return ["--no-ff", "-m", `Merge ${branch} into master (#${number})`, branch];
-}
-
-function redCheckLineOf(command: Command, outputTail: string): string {
-  return `${commandLabelOf(command)} failed after the merges:\n${outputTail}`;
 }
 
 // A session's branch fast-forwards master when it can, so a mid-session landing adds no merge commit.

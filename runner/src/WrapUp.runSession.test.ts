@@ -1,13 +1,11 @@
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { Checks, stampFolderOf } from "./Checks.ts";
 import { git } from "./GitFixture.ts";
 import { IssueWorkspaces, type Workspace } from "./IssueWorkspaces.ts";
 import { LeaseHeld } from "./LeaseHeld.ts";
-import type { Command } from "./runKnobs.ts";
 import type { WrapUp, WrapUpConfig } from "./WrapUp.ts";
 import type { WrapUpFailure } from "./WrapUpFailure.ts";
 import {
@@ -18,7 +16,6 @@ import {
   primaryRoot,
   remoteOf,
   subjectsOf,
-  temp,
   useWrapUpHarness,
   workspacesConfig,
   wrapUp,
@@ -192,25 +189,6 @@ describe("runSession", () => {
     expect(await failureOf(sessionWrapUp().keepSession(session))).toBe(
       "red-checks",
     );
-  });
-
-  it("skips the checks on a stamped, unchanged tree", async () => {
-    const workspace = await sessionWorkspace();
-    commitIn(workspace, "byro-repo", "terms.md", "# Terms\n");
-    const ranLog = join(temp, "ran.log");
-    const counted: Command = ["sh", "-c", `echo ran >> ${ranLog}`];
-    await Checks.init({
-      commands: [counted],
-      root: workspace.path,
-      clonePaths,
-      stampFolder: stampFolderOf(join(temp, "state")),
-      nodeVersion: process.version,
-    }).run();
-
-    await wrapUp({ github: noGitHub, checks: [counted] }).runSession(session);
-
-    expect(readFileSync(ranLog, "utf8")).toBe("ran\n");
-    expect(subjectsOf("byro-repo")[0]).toBe("Add terms.md");
   });
 
   it("refuses uncommitted work in any repo of the workspace", async () => {
