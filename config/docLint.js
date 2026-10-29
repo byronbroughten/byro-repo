@@ -109,7 +109,12 @@ function isLinkChecked(path) {
   const name = posix.basename(path);
   const local = inRoot(path);
   if (!local.includes("/")) return linkedRootFiles.has(local);
-  return isDocsFolderFile(path) || name === "AGENTS.md" || name === "CLAUDE.md";
+  return (
+    isDocsFolderFile(path) ||
+    name === "AGENTS.md" ||
+    name === "CLAUDE.md" ||
+    name === "SKILL.md"
+  );
 }
 
 // The repo root is "", a workspace folder is its name and a package is `packages/<name>`, however the caller spells it; an untracked one is a typo, not a no-op.

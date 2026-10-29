@@ -4,7 +4,7 @@ description: "Supervise one spec run from an interactive session: launch or rejo
 disable-model-invocation: true
 ---
 
-`/runner <owner/repo> <n>` makes this session the Supervisor of spec `<n>`'s run. Its words (Supervisor, Halt, Failure Halt, Split Halt, Idle, Vanished, Stop) are in `runner/GLOSSARY.md`.
+`/runner <owner/repo> <n>` makes this session the Supervisor of spec `<n>`'s run. Its words (Supervisor, Halt, Failure Halt, Split Halt, Idle, Vanished, Stop) are in [`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md).
 
 **A Supervisor explains and relays; it never works on the spec.** While its run is running, never edit code, never take a lease (no `/start-issue`, no `issue:start`), and never name or pick a model for a ticket. Run every command from the primary root. Give Bash one command per call: no `cd`, no `;` or `&&` chains.
 

@@ -132,9 +132,21 @@ describe("checkDocs", () => {
       ]);
     });
 
-    it("leaves unlisted docs such as skills unchecked", () => {
+    it("checks every SKILL.md", () => {
       expect(
-        check({ ".claude/skills/x/SKILL.md": "[gone](./gone.md)\n" }),
+        messages({
+          ".claude/skills/x/SKILL.md": "[gone](./gone.md)\n",
+          "runner/skills/x/SKILL.md": "[gone](./gone.md)\n",
+        }),
+      ).toEqual([
+        ".claude/skills/x/SKILL.md: broken link ./gone.md: no file .claude/skills/x/gone.md",
+        "runner/skills/x/SKILL.md: broken link ./gone.md: no file runner/skills/x/gone.md",
+      ]);
+    });
+
+    it("leaves unlisted docs unchecked", () => {
+      expect(
+        check({ ".claude/skills/x/notes.md": "[gone](./gone.md)\n" }),
       ).toEqual([]);
     });
   });
