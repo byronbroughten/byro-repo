@@ -24,6 +24,7 @@ import {
   downstreamIn,
   haltsOf,
   idListOf,
+  interactiveLabel,
   isGapCheckHalt,
   isLaunchable,
   isStopSpec,
@@ -130,6 +131,7 @@ export class TicketSelector extends SpecRunBase {
       if (!isLaunchable(tracked)) {
         const text = developerWaitTextOf(
           ticket,
+          tracked.labels,
           await this._downstreamLabelsOf(run, ticket),
         );
         waits.push({ ticket, reason: "developer", text });
@@ -245,9 +247,18 @@ function isSkipAnswered(halt: Halt): boolean {
   return failureAnswerOf(halt, halt.answer).kind === "skip";
 }
 
-function developerWaitTextOf(ticket: IssueRef, downstream: string[]): string {
+function developerWaitTextOf(
+  ticket: IssueRef,
+  labels: string[],
+  downstream: string[],
+): string {
   const { repo, number } = ticket;
-  const waits = `${issueLabelOf(ticket)} waits on you (\`/start-issue ${repo} ${number}\`)`;
+  const waits = `${issueLabelOf(ticket)} ${waitPhraseOf(labels)} (\`/start-issue ${repo} ${number}\`)`;
   if (downstream.length === 0) return waits;
   return `${waits} and blocks ${downstream.join(", ")}`;
+}
+
+function waitPhraseOf(labels: string[]): string {
+  if (!labels.includes(interactiveLabel)) return "waits on you";
+  return "is an Interactive ticket the Supervisor or an Interactive session takes";
 }

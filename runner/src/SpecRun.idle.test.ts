@@ -126,6 +126,34 @@ describe("run's idle and stops", () => {
     );
   });
 
+  it("waits on an Interactive ticket without launching it, then carries on once it closes", async () => {
+    addSpec([1, 2, 3]);
+    github.edit(2, { labels: ["ready-for-interactive"] });
+    github.blockers.set(3, [2]);
+    const agentStep = FakeAgentStep.init(
+      blocked([gated]),
+      implemented("one.ts"),
+      reviewed(),
+      implemented("three.ts"),
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep, {
+      async sleep() {
+        github.reply(213, "H1: I ran it.");
+        github.edit(2, { isOpen: false });
+      },
+    }).run(spec);
+
+    expect(
+      noticeSummaries().filter((line) => line.startsWith("Idle:")),
+    ).toEqual([
+      "Idle: nothing runnable. byro-repo #1 waits on Halt H1; byro-repo #2 is an Interactive ticket the Supervisor or an Interactive session takes (`/start-issue byro-repo 2`) and blocks byro-repo #3; byro-repo #3 is blocked by byro-repo #2.",
+    ]);
+    expect(result.landed.map(({ number }) => number)).toEqual([1, 3]);
+    expect(agentStep.requests).toHaveLength(5);
+  });
+
   it("names the rerun command on a stop request while a ticket waits on the developer", async () => {
     addSpec([1, 2]);
     github.edit(2, { labels: ["ready-for-human"] });
