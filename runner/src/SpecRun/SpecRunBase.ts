@@ -242,7 +242,8 @@ export class SpecRunBase {
     const list = await this._usageListOf(run);
     const account = list?.activeAccount;
     if (account === undefined) throw new ActiveAccountUnknown();
-    return readingIn(list, account);
+    const usage = list?.readings.find((r) => r.account === account)?.usage;
+    return { account, usage };
   }
 
   private async _usageListOf(run: Run): Promise<UsageList | undefined> {
@@ -438,12 +439,4 @@ export class SpecRunBase {
     );
     return { heads, dirtyRepos: dirtyReposOf(worktrees) };
   }
-}
-
-function readingIn(
-  list: UsageList | undefined,
-  account: number,
-): AccountReading {
-  const usage = list?.readings.find((r) => r.account === account)?.usage;
-  return { account, usage };
 }
