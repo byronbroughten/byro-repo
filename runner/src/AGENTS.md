@@ -12,7 +12,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | --- | --- | --- |
 | `AGENTS.md` | | The rules for working in `src/`; `CLAUDE.md` loads it. |
 | `CLAUDE.md` | | Loads `AGENTS.md` for Claude Code. |
-| `ActiveAccountUnknown.ts` | | The Stop raised when no Active account can be read for a fresh step. |
+| `ActiveAccountUnknown.ts` | | The Stop raised when no Active account can be read for a step. |
 | `AgentStep.ts` | `AgentStep` | The port that launches one headless `claude -p` step and its `StepResult`. |
 | `Checks.ts` | `Checks` | Runs `npm run check`'s commands at once, skipped on a check stamp. |
 | `ClaudeAgentStep.ts` | `ClaudeAgentStep` | The real agent-step adapter over `cswap run`, launching under the primary's gate root and settings plus an injected permission hook, with the targets' tools and environment. |

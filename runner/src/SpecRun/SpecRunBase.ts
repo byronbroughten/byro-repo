@@ -237,20 +237,12 @@ export class SpecRunBase {
     return peak < this.config.knobs.ticketBudget;
   }
 
-  // A fresh step's reading; usage is undefined when the read gives none for the Active account.
+  // Usage is undefined when the read gives none for the Active account.
   protected async _activeReadingOf(run: Run): Promise<AccountReading> {
     const list = await this._usageListOf(run);
     const account = list?.activeAccount;
     if (account === undefined) throw new ActiveAccountUnknown();
     return readingIn(list, account);
-  }
-
-  // A resume's reading, on the account its session recorded.
-  protected async _recordedReadingOf(
-    run: Run,
-    account: number,
-  ): Promise<AccountReading> {
-    return readingIn(await this._usageListOf(run), account);
   }
 
   private async _usageListOf(run: Run): Promise<UsageList | undefined> {

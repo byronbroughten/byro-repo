@@ -139,11 +139,12 @@ describe("ClaudeAgentStep on a recorded success", () => {
 });
 
 describe("ClaudeAgentStep's command", () => {
-  it("runs claude as the account in acceptEdits with the pair, cap and schema", async () => {
+  it("runs claude as the account with shared history, in acceptEdits with the pair, cap and schema", async () => {
     const { argv } = await replay("success.ndjson");
     expect(argv).toEqual([
       "run",
       "2",
+      "--share-history",
       "--",
       "-p",
       "/implement byro-repo #216",

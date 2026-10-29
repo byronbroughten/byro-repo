@@ -115,6 +115,7 @@ function openLog(logPath: string | undefined): WriteStream | undefined {
 }
 
 // Never bypassPermissions, and never `cswap switch`: the developer's active account stays theirs.
+// Shared history lets a session resume on whichever account is active, not resting on the global run.shareHistory.
 function commandArgs(
   request: StepRequest,
   permissionHook: HookEntry | undefined,
@@ -122,6 +123,7 @@ function commandArgs(
   const args = [
     "run",
     String(request.account),
+    "--share-history",
     "--",
     "-p",
     request.prompt,
