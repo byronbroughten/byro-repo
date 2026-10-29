@@ -1,6 +1,6 @@
 # Triage Labels
 
-The skills speak in terms of five canonical triage roles. This file maps those roles to the actual label strings used in this repo's issue tracker, plus `ready-for-interactive`, which only this repo has.
+The skills speak in terms of five canonical triage roles. This file maps those roles to the actual label strings used in our issue trackers, plus `ready-for-interactive`. Every repo in [Which repo](./issue-tracker.md#which-repo) has all six labels.
 
 | Label in mattpocock/skills | Label in our tracker | Meaning                                  |
 | -------------------------- | -------------------- | ---------------------------------------- |
