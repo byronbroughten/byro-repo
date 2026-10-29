@@ -148,7 +148,7 @@ describe("run's idle and stops", () => {
     expect(
       noticeSummaries().filter((line) => line.startsWith("Idle:")),
     ).toEqual([
-      "Idle: nothing runnable. byro-repo #1 waits on Halt H1; byro-repo #2 waits on an Interactive ticket the Supervisor or an Interactive session takes (`/start-issue byro-repo 2`) and blocks byro-repo #3; byro-repo #3 is blocked by byro-repo #2.",
+      "Idle: nothing runnable. byro-repo #1 waits on Halt H1; byro-repo #2 is an Interactive ticket the Supervisor or an Interactive session takes (`/start-issue byro-repo 2`) and blocks byro-repo #3; byro-repo #3 is blocked by byro-repo #2.",
     ]);
     expect(result.landed.map(({ number }) => number)).toEqual([1, 3]);
     expect(agentStep.requests).toHaveLength(5);

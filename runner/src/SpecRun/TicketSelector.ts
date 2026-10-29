@@ -253,12 +253,12 @@ function developerWaitTextOf(
   downstream: string[],
 ): string {
   const { repo, number } = ticket;
-  let waiter = "you";
-  if (labels.includes(interactiveLabel)) {
-    waiter =
-      "an Interactive ticket the Supervisor or an Interactive session takes";
-  }
-  const waits = `${issueLabelOf(ticket)} waits on ${waiter} (\`/start-issue ${repo} ${number}\`)`;
+  const waits = `${issueLabelOf(ticket)} ${waitPhraseOf(labels)} (\`/start-issue ${repo} ${number}\`)`;
   if (downstream.length === 0) return waits;
   return `${waits} and blocks ${downstream.join(", ")}`;
+}
+
+function waitPhraseOf(labels: string[]): string {
+  if (!labels.includes(interactiveLabel)) return "waits on you";
+  return "is an Interactive ticket the Supervisor or an Interactive session takes";
 }
