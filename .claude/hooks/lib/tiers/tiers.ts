@@ -46,6 +46,8 @@ export interface ShellCall {
   dryRuns: string[];
   // Absent, no write passes the write rule and no `node` file is scratch.
   places?: ShellPlaces;
+  // The spreadsheets (`app`, `dev`) a runner step's ticket targets; absent, it targets none.
+  spreadsheetTargets?: string[];
 }
 
 // What a simple command's verdict reads beyond its own words; places carries the cwd as of that command.
@@ -53,6 +55,14 @@ interface CallContext {
   mode: SessionMode;
   dryRuns: string[];
   places: ShellPlaces | undefined;
+  spreadsheetTargets: string[];
+}
+
+// One entry of the targets JSON, unchecked until a reader narrows it.
+export interface TargetEntry {
+  kind?: unknown;
+  name?: unknown;
+  id?: unknown;
 }
 
 // One simple command's verdict; `why` finishes a sentence about it.
@@ -156,8 +166,21 @@ const interpreters = {
     "runs code that isn't a scratch helper: `node` runs only scratch helpers, in `$TMPDIR` or a gitignored folder of the workspace, and a script being built runs through its tests or its `npm run` alias",
   pythonWhy: "runs inline Python, which no test or `npm run` alias covers",
 } as const;
-// Claude Code's allow rules still decide a step's gh writes and the live aliases its targets give it.
-const leftToAllowRules = /\bgh\b|\bnpm run (?:-s )?(?:app|dev):/;
+const targetAliases = [
+  "chore",
+  "gen:configs",
+  "probe",
+  "build",
+  "deploy",
+  "configs:diff",
+];
+// The live aliases each spreadsheet target gives a runner step; runner/src/targetTools.ts mirrors them, as it can't import across the hooks boundary.
+const liveAliases = new Map([
+  ["app", targetAliases],
+  ["dev", [...targetAliases, "push", "run"]],
+]);
+// A runner step's gh writes; a further edit or comment undoes either.
+const ghStepWrites = new Set(["edit", "comment"]);
 const gitPathOptions = new Set(["-C", "--git-dir", "--work-tree"]);
 const findActions = new Set([
   "-exec",
@@ -183,10 +206,30 @@ export function gateDecision(call: ShellCall): Decision | undefined {
 
 // An Interactive session's unclassified call falls through to Claude Code; a runner step's is refused, as nobody can answer Claude Code's prompt.
 function undecidedDecision({ command, mode }: ShellCall): Decision | undefined {
-  if (mode === "interactive" || leftToAllowRules.test(command)) {
-    return undefined;
-  }
+  if (mode === "interactive") return undefined;
   return needsYes(`\`${command}\` is a call the tier gate doesn't classify`);
+}
+
+// The spreadsheet names among the targets ClaudeAgentStep.ts hands a runner step.
+export function spreadsheetTargetsOf(json: string | undefined): string[] {
+  return stepTargetEntriesOf(json).flatMap((target) =>
+    target?.kind === "spreadsheet" && typeof target.name === "string"
+      ? [target.name]
+      : [],
+  );
+}
+
+// The targets ClaudeAgentStep.ts hands a runner step as JSON; anything unreadable names none, so the step may reach nothing outside the repo.
+export function stepTargetEntriesOf(
+  json: string | undefined,
+): (TargetEntry | null)[] {
+  let targets: unknown;
+  try {
+    targets = JSON.parse(json ?? "[]");
+  } catch {
+    return [];
+  }
+  return Array.isArray(targets) ? targets : [];
 }
 
 export function sessionModeOf(env: NodeJS.ProcessEnv): SessionMode {
@@ -211,6 +254,7 @@ function baseDecision({
   mode,
   dryRuns,
   places,
+  spreadsheetTargets = [],
 }: ShellCall): Decision | undefined {
   const commands = parsedCommandsOf(command);
   if (!commands) return undefined;
@@ -222,7 +266,12 @@ function baseDecision({
     if (simple.words[0] === "cd") {
       cwd = cdCarriesOn ? cdTargetOf(cwd, simple.words[1]) : undefined;
     }
-    return verdictOf(simple, { mode, dryRuns, places: here });
+    return verdictOf(simple, {
+      mode,
+      dryRuns,
+      places: here,
+      spreadsheetTargets,
+    });
   });
   const deny = verdicts.find(
     (verdict) => verdict?.permissionDecision === "deny",
@@ -315,6 +364,11 @@ function commandVerdictOf(
   const wrapped = timeoutWrappedOf(words);
   if (wrapped) {
     return commandVerdictOf({ ...simple, words: wrapped }, context);
+  }
+  if (context.mode === "runnerStep") {
+    const stepVerdict =
+      ghVerdictOf(words) ?? liveAliasVerdictOf(words, context);
+    if (stepVerdict) return stepVerdict;
   }
   const chore = appChoreOf(words);
   if (chore?.isSend) return sendVerdictOf(chore.name, dryRuns);
@@ -421,6 +475,60 @@ function timeoutWrappedOf(words: string[]): string[] | undefined {
   }
   const wrapped = words.slice(at + 1);
   return wrapped.length > 0 ? wrapped : undefined;
+}
+
+// A runner step edits and comments on issues; closing one is the runner's or the developer's, and any other gh call is unclassified.
+function ghVerdictOf(words: string[]): Verdict | undefined {
+  if (words[0] !== "gh" || words[1] !== "issue") return undefined;
+  if (words[2] === "close") {
+    return {
+      permissionDecision: "ask",
+      why: "closes an issue, which only the runner or the developer does",
+    };
+  }
+  if (!ghStepWrites.has(words[2] ?? "")) return undefined;
+  return {
+    permissionDecision: "allow",
+    why: "a further `gh issue edit` or comment undoes it",
+    needsPlainText: true,
+  };
+}
+
+// A runner step runs a live alias only against a spreadsheet its ticket targets.
+function liveAliasVerdictOf(
+  words: string[],
+  { dryRuns, spreadsheetTargets }: CallContext,
+): Verdict | undefined {
+  const name = npmScriptOf(words)?.name ?? "";
+  const [, spreadsheet = "", alias = ""] = /^(\w+):(.+)$/.exec(name) ?? [];
+  const aliases = liveAliases.get(spreadsheet);
+  if (!aliases) return undefined;
+  // A --prefix runs another folder's scripts under the same name.
+  if (words.some((word) => word.startsWith("--prefix"))) {
+    return {
+      permissionDecision: "ask",
+      why: "runs another folder's script under a live alias's name",
+    };
+  }
+  if (!spreadsheetTargets.includes(spreadsheet)) {
+    return {
+      permissionDecision: "ask",
+      why: `runs against the \`${spreadsheet}\` spreadsheet, which the ticket doesn't target`,
+    };
+  }
+  if (!aliases.includes(alias)) {
+    return {
+      permissionDecision: "ask",
+      why: `isn't an alias the \`${spreadsheet}\` spreadsheet target gives a step`,
+    };
+  }
+  const chore = appChoreOf(words);
+  if (chore?.isSend) return sendVerdictOf(chore.name, dryRuns);
+  return {
+    permissionDecision: "allow",
+    why: `the ticket targets the \`${spreadsheet}\` spreadsheet`,
+    needsPlainText: true,
+  };
 }
 
 // rm, mkdir, cp, mv and sed -i: tier 1 when every path passes the write rule, tier 3 otherwise; a stdout filter that may write or run asks.

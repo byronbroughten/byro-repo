@@ -7,6 +7,7 @@ import {
   gateOf,
   needsYes,
   type SessionMode,
+  stepTargetEntriesOf,
 } from "./tiers.ts";
 
 // A file's owner emails; undefined when the lookup failed.
@@ -119,19 +120,12 @@ async function baseDecision({
   return writeDecision({ ...call, fileId: stringOf(input[fileIdKey]) });
 }
 
-// The targets ClaudeAgentStep.ts hands a runner step as JSON; anything unreadable names none, so every write is denied.
+// The files a runner step's ticket names; anything unreadable names none, so every write is denied.
 export function stepTargetsOf(
   json: string | undefined,
   sheetsConfigs: SheetsConfigEntry[],
 ): StepTarget[] {
-  let targets: unknown;
-  try {
-    targets = JSON.parse(json ?? "[]");
-  } catch {
-    return [];
-  }
-  if (!Array.isArray(targets)) return [];
-  return targets.flatMap((target) => {
+  return stepTargetEntriesOf(json).flatMap((target) => {
     if (target?.kind === "doc" && typeof target.id === "string") {
       return [{ label: "doc", id: target.id }];
     }

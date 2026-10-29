@@ -36,7 +36,7 @@ Reads need no yes in any tier.
 | gworkspace write on a file someone else owns, or whose owner can't be looked up | 3 |
 | `manage_drive_access`, `set_drive_file_permissions`, an `update_drive_file` that changes sharing or moves a file into a folder | 3 |
 | A `gmail` filter, label or message-label change | 3: Gmail keeps no version history. The yes is the developer's `/inbox` Sign-off in the chat; `gmailGate.ts` allows a call one `signed-off` Proposal covers and asks for any other. Settings deny sending and drafting |
-| `gh issue close`, `gh issue edit`, `gh issue comment` | free: `gh issue reopen` and a further edit or comment undo them |
+| `gh issue close`, `gh issue edit`, `gh issue comment` | free: `gh issue reopen` and a further edit or comment undo them. A runner step gets only `edit` and `comment`; its `close` and every other `gh` call are refused |
 | `npm run issue:backlink` | free: a further `gh issue edit` undoes it |
 | A raw `git push` | 3 |
 | `npm publish` | 3, [below](#npm-publish) |
@@ -56,6 +56,7 @@ Reads need no yes in any tier.
 **A runner step writes outside the repo only to the targets its ticket names**, in a `## Targets` section just before `## Model fit`, one per line: `app spreadsheet`, `dev spreadsheet` or `doc <id>`.
 
 - **A spreadsheet target gives the step that target's live `npm run` aliases and the gworkspace Sheets tools; a Doc target gives the Docs tools.** A ticket naming no targets launches with no tools beyond what the primary's gate allows, and no Google access at all.
+- **A step's live alias for a spreadsheet its ticket doesn't target is refused**, as is one the target doesn't give (`liveAliases` in `.claude/hooks/lib/tiers/tiers.ts`).
 - **A step's gworkspace write to a file its ticket doesn't name is refused, listing the ticket's targets.** The `app` and `dev` spreadsheet IDs come from each package's `sheets.config.json`.
 - **The runner reads the section with the Model fit pair just before each launch**, so a target added mid-run takes effect, and its preflight refuses a run with a malformed line.
 

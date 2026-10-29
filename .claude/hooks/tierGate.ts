@@ -25,6 +25,7 @@ import {
   dryRunChoresOf,
   gateDecision,
   sessionModeOf,
+  spreadsheetTargetsOf,
   stepTargetsVariable,
 } from "./lib/tiers/tiers.ts";
 
@@ -75,6 +76,7 @@ async function bashDecision(input: HookInput): Promise<Decision | undefined> {
     mode: sessionModeOf(process.env),
     dryRuns: dryRuns.read(input.session_id),
     places: shellPlacesOf(input),
+    spreadsheetTargets: spreadsheetTargetsOf(process.env[stepTargetsVariable]),
   });
 }
 

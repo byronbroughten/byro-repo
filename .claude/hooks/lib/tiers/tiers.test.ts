@@ -8,6 +8,7 @@ import {
   gateDecision,
   type SessionMode,
   sessionModeOf,
+  spreadsheetTargetsOf,
 } from "./tiers.ts";
 
 function decisionOf(command: string, dryRuns: string[] = []) {
@@ -622,16 +623,14 @@ describe("a runner step's unclassified call", () => {
     expect(placedDecisionOf("make build")).toBeUndefined();
   });
 
-  it("leaves a call naming gh or a live alias to Claude Code's allow rules in either mode", () => {
+  it("leaves a call naming gh or a live alias to Claude Code's allow rules in an Interactive session", () => {
     [
       "gh issue edit 447 --body-file /tmp/body.md",
-      "gh issue comment 447 -b done",
+      "gh issue close 447",
+      "gh api repos/x/y/issues",
       "npm run app:gen:configs",
       "npm run -s dev:push",
-    ].forEach((command) => {
-      expect(placedDecisionOf(command)).toBeUndefined();
-      expect(placedDecisionOf(command, "runnerStep")).toBeUndefined();
-    });
+    ].forEach((command) => expect(placedDecisionOf(command)).toBeUndefined());
   });
 
   it("allows git restore in a runner step's own workspace only", () => {
@@ -654,6 +653,122 @@ describe("a runner step's unclassified call", () => {
         placedDecisionOf(command, "runnerStep", cwd)?.permissionDecision,
       ).toBe("deny"),
     );
+  });
+});
+
+describe("a runner step's gh calls", () => {
+  it("allows an issue edit or comment on any issue", () => {
+    [
+      "gh issue edit 447 --body-file /tmp/body.md",
+      "gh issue edit 341 -R byronbroughten/byro-repo --add-label ready-for-agent",
+      "gh issue comment 447 -b done",
+    ].forEach((command) => expect(runnerStepDecisionOf(command)).toBe("allow"));
+  });
+
+  it("denies closing an issue with the blocker text", () => {
+    const decision = placedDecisionOf("gh issue close 447", "runnerStep");
+    expect(decision?.permissionDecision).toBe("deny");
+    expect(decision?.reason).toContain(blockerInstead);
+  });
+
+  it("denies every other gh call as unclassified, reads included", () => {
+    [
+      "gh api repos/x/y/issues/1/comments",
+      "gh pr create --fill",
+      "gh issue view 389",
+      "gh issue reopen 447",
+    ].forEach((command) => {
+      const decision = placedDecisionOf(command, "runnerStep");
+      expect(decision?.permissionDecision).toBe("deny");
+      expect(decision?.reason).toContain("doesn't classify");
+    });
+  });
+
+  it("denies a write whose body a heredoc could hide a command behind", () => {
+    expect(
+      runnerStepDecisionOf("gh issue comment 447 --body-file - <<EOF\nok\nEOF"),
+    ).toBe("deny");
+  });
+});
+
+describe("a runner step's live aliases", () => {
+  function targetedDecisionOf(command: string, spreadsheetTargets: string[]) {
+    return gateDecision({
+      command,
+      mode: "runnerStep",
+      dryRuns: [],
+      spreadsheetTargets,
+    });
+  }
+
+  it("allows the aliases a spreadsheet target gives", () => {
+    [
+      "npm run app:probe -- --sheet Units",
+      "npm run -s app:configs:diff",
+      "npm run app:chore fixRents",
+      "npm run app:gen:configs",
+    ].forEach((command) =>
+      expect(targetedDecisionOf(command, ["app"])?.permissionDecision).toBe(
+        "allow",
+      ),
+    );
+    ["npm run dev:push", "npm run dev:run fixtures"].forEach((command) =>
+      expect(targetedDecisionOf(command, ["dev"])?.permissionDecision).toBe(
+        "allow",
+      ),
+    );
+  });
+
+  it("denies a spreadsheet the ticket doesn't target, with the blocker text", () => {
+    const untargeted: [string, string[]][] = [
+      ["npm run app:probe", []],
+      ["npm run app:deploy", ["dev"]],
+      ["npm run -s dev:push", ["app"]],
+    ];
+    untargeted.forEach(([command, targets]) => {
+      const decision = targetedDecisionOf(command, targets);
+      expect(decision?.permissionDecision).toBe("deny");
+      expect(decision?.reason).toContain(blockerInstead);
+    });
+  });
+
+  it("denies an alias no target gives", () => {
+    ["npm run app:push", "npm run app:run x", "npm run dev:clean"].forEach(
+      (command) =>
+        expect(
+          targetedDecisionOf(command, ["app", "dev"])?.permissionDecision,
+        ).toBe("deny"),
+    );
+  });
+
+  it("still needs a dry run before an app chore's send", () => {
+    const send = "npm run app:chore fixRents -- --send";
+    expect(targetedDecisionOf(send, ["app"])?.reason).toContain("no dry run");
+    expect(
+      gateDecision({
+        command: send,
+        mode: "runnerStep",
+        dryRuns: ["fixRents"],
+        spreadsheetTargets: ["app"],
+      })?.permissionDecision,
+    ).toBe("allow");
+  });
+});
+
+describe("spreadsheetTargetsOf", () => {
+  it("names each spreadsheet target, skipping Docs", () => {
+    const targets = JSON.stringify([
+      { kind: "spreadsheet", name: "app" },
+      { kind: "doc", id: "1abc" },
+      { kind: "spreadsheet", name: "dev" },
+    ]);
+    expect(spreadsheetTargetsOf(targets)).toEqual(["app", "dev"]);
+  });
+
+  it("names none when the variable is unset or unreadable", () => {
+    expect(spreadsheetTargetsOf(undefined)).toEqual([]);
+    expect(spreadsheetTargetsOf("not json")).toEqual([]);
+    expect(spreadsheetTargetsOf('{"kind":"spreadsheet"}')).toEqual([]);
   });
 });
 
@@ -708,7 +823,12 @@ describe("runnerStep mode", () => {
     ['git commit -m "wip"', "npm run app:chore fixRents -- --send"].forEach(
       (command) => {
         expect(
-          gateDecision({ command, mode: "runnerStep", dryRuns: [] }),
+          gateDecision({
+            command,
+            mode: "runnerStep",
+            dryRuns: [],
+            spreadsheetTargets: ["app"],
+          }),
         ).toEqual(gateDecision({ command, mode: "interactive", dryRuns: [] }));
       },
     );
