@@ -2,7 +2,7 @@
 
 Why the agent tooling around this repo is shaped the way it is: the hooks, gates, delegation rules and helper commands that decide how agents work here. [docs/design.md](../packages/framework/docs/design.md) holds the arguments for the codebase itself; this file holds the arguments for how agents work on it. The mechanics live in [`docs/claude-code-guardrails.md`](./claude-code-guardrails.md) and the rules in [AGENTS.md](../AGENTS.md) and [`docs/agents/`](./agents/).
 
-Decisions are ADRs in [`docs/adr/`](./adr/), and every principle cites at least two from this repo; the issue and commit citations left below are ones their migration kept. A new ADR making a principle's argument is added to it as a link plus one clause. A new principle is proposed to the developer and added only once approved.
+Decisions are ADRs in [`docs/adr/`](./adr/), and every principle cites at least two from this repo; the issue and commit citations left are ones their migration kept. A new ADR making a principle's argument is added to it as a link plus one clause. A new principle is proposed to the developer and added only once approved.
 
 ## Principles
 
