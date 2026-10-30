@@ -9,4 +9,4 @@ A dispatched agent starts **cold**: it re-pays the root instructions plus every 
 - **Parallel agents read; one agent edits.** They share one working tree. Run `tsc` and the tests once, in the main session, after the edits land.
 - **During design or grilling, dispatch only reads.** Findings come back in the report. Filing waits for the skill the user invokes, `/research` included.
 
-Why it is shaped this way: [`docs/agent-behavior-design.md`](../agent-behavior-design.md).
+Why it is shaped this way: [ADR 0016](../adr/0016-dispatched-agents-locate-and-quote-while-diagnosis-and-gates-stay-in-the-main-session.md).

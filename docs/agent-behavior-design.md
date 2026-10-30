@@ -2,7 +2,9 @@
 
 Why the agent tooling around this repo is shaped the way it is: the hooks, gates, delegation rules and helper commands that decide how agents work here. [docs/design.md](../packages/framework/docs/design.md) holds the arguments for the codebase itself; this file holds the arguments for how agents work on it. The mechanics live in [`docs/claude-code-guardrails.md`](./claude-code-guardrails.md) and the rules in [AGENTS.md](../AGENTS.md) and [`docs/agents/`](./agents/).
 
-Decisions are ADRs in [`docs/adr/`](./adr/), and every principle cites at least two from this repo; the issue and commit citations left are ones their migration kept. A new ADR making a principle's argument is added to it as a link plus one clause. A new principle is proposed to the developer and added only once approved.
+## Adding a principle
+
+Decisions are ADRs in [`docs/adr/`](./adr/). A principle may rest on one ADR from this repo, and earns its heading only by deciding cases its ADRs don't name; it gets an argument and instances only for what no single ADR holds, the argument across several ADRs or a citable case beyond its one ADR, and otherwise its heading links its ADR directly ([ADR 0020](./adr/0020-a-principle-may-rest-on-one-adr-and-a-reasoning-file-holds-only-what-no-adr-holds.md)). A new ADR making a principle's argument is added to it as a link plus one clause. A new principle is proposed to the developer and added only once approved.
 
 ## Principles
 
@@ -11,14 +13,6 @@ Decisions are ADRs in [`docs/adr/`](./adr/), and every principle cites at least 
 A block that starves the agent of information costs more than it saves: the agent retries, works around it, or stalls. So a hard block is kept for a pattern that is both narrow and never right, and its message names the route that is allowed. Anything that is only usually wrong gets a reminder instead. Every guard fails open, so a bug in a hook can't stop unrelated work.
 
 _Instances:_ [ADR 0011](./adr/0011-hard-block-only-narrow-patterns-and-nudge-the-rest.md) hard-blocks only two read patterns, each naming its alternative, and leaves the read count and size warnings as reminders that never stop a turn. An edit inside the generated folder is usually wrong but not never, since the config-sheet floor is hand-edited, so it draws a warning rather than a block (#71). [ADR 0012](./adr/0012-replace-agents-md-size-caps-with-a-stated-cost-of-adding.md) meets the first edit to the root AGENTS.md with a cost reminder rather than a cap or a block, since growing the file is sometimes right. [ADR 0018](./adr/0018-a-code-edit-is-denied-until-the-style-doc-is-read-in-full.md) denies a code edit only until the style doc is read in full, and its refusal names that read as the way through. [ADR 0013](./adr/0013-every-edit-happens-in-a-workspace-never-a-primary-checkout.md) has the primary-edit guard deny only an edit or commit in a primary checkout, with `issue:start` named as the way through. [ADR 0009](./adr/0009-runner-steps-get-refusals-not-prompts.md) gives a runner step's refusal a reason that names its way through, recording a blocker, rather than leaving the step to stall.
-
-### Primary checkouts take no edits; every edit happens in a workspace
-
-Parallel sessions share one set of primary checkouts, so one session's branch switch moves another's, and runs land into those same checkouts, so a session's uncommitted edit there can collide with a landing or get mixed into it. So no session edits a primary checkout or moves its branch. Each ticket is implemented in its own issue workspace, any other work in a session workspace, and a primary only fast-forwards when a workspace lands.
-
-The guards, `branchGuard.ts` and the primary-edit guard, decide where an edit or commit happens, not whether it needs a yes, so the tiers leave them alone: a commit stays free once it is in a workspace.
-
-_Instances:_ [ADR 0013](./adr/0013-every-edit-happens-in-a-workspace-never-a-primary-checkout.md) moves every edit, ticket or not, out of the primary checkouts into a workspace, since one session's branch switch had moved another's checkout and runs land where sessions edited.
 
 ### Gate by what it costs to undo
 
@@ -38,17 +32,9 @@ Whatever enters the context is paid for on every later turn. A full payload, pri
 
 _Instances:_ a chore dry run prints one rendered line per request, and `-- --json` is the escape hatch for when a line looks wrong (the framework's `docs/how-it-runs/chore-dry-run.md`). [ADR 0015](./adr/0015-the-sheets-probe-prints-a-summary-and-keeps-the-full-response-on-disk.md) has the Sheets probe print keys, counts and sheet titles, and write the full response to disk for a ranged `Read`. [ADR 0016](./adr/0016-dispatched-agents-locate-and-quote-while-diagnosis-and-gates-stay-in-the-main-session.md) sends a sweep's reading to a dispatched agent, so only its quotes enter the main session's context. [ADR 0017](./adr/0017-a-rules-file-holds-only-the-rule-with-its-reasoning-one-pointer-away.md) keeps a rules file to its rule lines, so a rule's reasoning is paid only by a turn that follows the pointer to it.
 
-### Delegate the reading, not the judgment
-
-A dispatched agent starts cold and sees only what it is handed, so it is good at finding things and poor at deciding what they mean. Send out work that reads a lot and returns a little. Keep the diagnosis, and any action that needs the operator's yes, in the session that holds the task context.
-
-_Instances:_ [ADR 0016](./adr/0016-dispatched-agents-locate-and-quote-while-diagnosis-and-gates-stay-in-the-main-session.md) gives sweeps to a read-only explorer that locates without diagnosing, has every dispatched agent return `file:line` with verbatim quotes, and keeps the gates in the main session, which runs the command the agent reports. A `ready-for-agent` ticket keeps the design forks and flush shapes with its writer, and the implementer carries them out: #80 left its flush and naming rules to be inferred, and #89 had to restate them (#91).
-
 ### Approval covers what was named, and nothing next to it
 
-A yes is scoped to the specific thing the operator saw. A general go-ahead, or approval of a neighbouring step, is not consent to an action whose effects they didn't see named.
-
-_Instances:_ [ADR 0008](./adr/0008-gate-agent-actions-by-what-they-cost-to-undo.md) makes a share ask on its own, naming who gets access and at what permission, even on a file whose writes are free. [ADR 0005](./adr/0005-approve-an-issue-body-by-its-exact-text.md) ties an issue body's approval to its exact text, so any later edit falls outside it. During design or grilling, nothing is written until the operator invokes the skill that files it: approving a design is not approving its publication (`5d5c77c`).
+_Instances:_ [ADR 0008](./adr/0008-gate-agent-actions-by-what-they-cost-to-undo.md) makes a share ask on its own, naming who gets access and at what permission, even on a file whose writes are free. [ADR 0005](./adr/0005-approve-an-issue-body-by-its-exact-text.md) ties an issue body's approval to its exact text, so any later edit falls outside it.
 
 ### Put each rule where it gets followed, and its reasoning one pointer away
 
