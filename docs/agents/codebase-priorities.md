@@ -9,7 +9,7 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 | When | File |
 | --- | --- |
 | What a priority means in practice, the rules that express it, why fewer concepts help, why the floor is a floor | [`docs/agents/codebase-priorities/priorities.md`](./codebase-priorities/priorities.md) |
-| Estimating a cost: reads, checks, type-check, Sheets calls, tickets | [`docs/agents/codebase-priorities/estimates.md`](./codebase-priorities/estimates.md) |
+| Estimating a cost: reads, checks, command latency (gh, git, issue:start, wrap-up), type-check, Sheets calls, tickets | [`docs/agents/codebase-priorities/estimates.md`](./codebase-priorities/estimates.md) |
 
 ## Scope
 
@@ -44,5 +44,5 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 
 - **A Recommendation that wins or ties on every priority says nothing about them.**
 - **One that gives a priority up names it in one line, with a realistic estimate**, or `no estimate: <how to get one>` when none exists; never an invented number.
-- **A measurement stays in its source beside its conclusion, and the Estimates only index it**; one with no conclusion to sit beside is recorded in the Estimates with its date.
+- **A measurement stays in its source beside its conclusion, and the Estimates only index it**; one with no conclusion to sit beside, or whose conclusion is a rule line, is recorded in the Estimates with its date.
 - **Whoever records a new measurement at its source adds its line to the Estimates.**
