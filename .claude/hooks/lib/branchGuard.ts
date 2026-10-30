@@ -47,7 +47,7 @@ export interface GuardDecision {
 
 type GitActionKind = "branchMove" | "commit" | "other";
 
-interface GitAction {
+export interface GitAction {
   kind: GitActionKind;
   subcommand: string;
   // The primary checkout acted on.
@@ -106,9 +106,12 @@ export function headMovingCheckouts(target: CommandTarget): string[] {
   );
 }
 
-// The primary checkouts the command commits in, for the primary-edit guard.
-export function commitCheckouts(target: CommandTarget): string[] {
-  return checkoutsActedOn(target, ({ kind }) => kind === "commit");
+// The command's commits and merges in a primary checkout, for the primary-edit guard.
+export function historyWritesOf(target: CommandTarget): GitAction[] {
+  return actionsActedOn(
+    target,
+    ({ kind, subcommand }) => kind === "commit" || subcommand === "merge",
+  );
 }
 
 export function isLive(
@@ -155,10 +158,17 @@ function checkoutsActedOn(
   target: CommandTarget,
   isActedOn: (action: GitAction) => boolean,
 ): string[] {
-  const checkouts = gitActionsOf(target, () => false)
-    .filter(isActedOn)
-    .map(({ checkout }) => checkout);
+  const checkouts = actionsActedOn(target, isActedOn).map(
+    ({ checkout }) => checkout,
+  );
   return [...new Set(checkouts)];
+}
+
+function actionsActedOn(
+  target: CommandTarget,
+  isActedOn: (action: GitAction) => boolean,
+): GitAction[] {
+  return gitActionsOf(target, () => false).filter(isActedOn);
 }
 
 // Interim leaves branch moves to the developer, who keeps agents off a branch while it lands.

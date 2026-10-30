@@ -122,12 +122,6 @@ export class TicketSelector extends SpecRunBase {
         waits.push({ ticket, reason: "halted", text });
         continue;
       }
-      const stopSpecs = undeliveredHaltsOf(run, ticket).filter(isStopSpec);
-      if (stopSpecs.length > 0) {
-        const text = `${label}'s Halt ${idListOf(stopSpecs)} was answered \`stop spec\``;
-        waits.push({ ticket, reason: "stop-spec", text });
-        continue;
-      }
       if (!isLaunchable(tracked)) {
         const text = developerWaitTextOf(
           ticket,

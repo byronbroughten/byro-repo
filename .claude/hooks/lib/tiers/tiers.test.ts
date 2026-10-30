@@ -303,11 +303,30 @@ describe("reads and git add", () => {
     );
   });
 
+  it("allows a plain git merge in each form, as git can undo it", () => {
+    gitForms.forEach((git) =>
+      expect(decisionOf(`${git} merge master`)).toBe("allow"),
+    );
+  });
+
+  it("allows no merge that skips hooks or is chained with a push", () => {
+    [
+      "git merge --no-verify master",
+      "git merge --no-veri master",
+      "git -c core.hooksPath=/tmp merge master",
+      "git merge master && git push",
+    ].forEach((command) => {
+      expect(decisionOf(command)).not.toBe("allow");
+      expect(runnerStepDecisionOf(command)).not.toBe("allow");
+    });
+  });
+
   it("gives the same allows in a runner step", () => {
     [
       "cat AGENTS.md",
       "git -C packages/framework log -3",
       "git add docs/adr/0009-x.md",
+      "git merge master",
     ].forEach((command) => expect(runnerStepDecisionOf(command)).toBe("allow"));
   });
 

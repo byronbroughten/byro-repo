@@ -66,6 +66,14 @@ describe("loadRunKnobs", () => {
     ).toEqual([["true"]]);
   });
 
+  it("replaces an overridden limit guard knob and leaves the other two at their defaults", () => {
+    const knobs = loadRunKnobs(overrideFile('{ "fiveHourPauseAt": 0.5 }'), {});
+
+    expect(knobs.fiveHourPauseAt).toBe(0.5);
+    expect(knobs.weeklyReserveAt).toBe(1);
+    expect(knobs.limitWaitMarginMs).toBe(300_000);
+  });
+
   it("throws on an unreadable override file", () => {
     expect(() => loadRunKnobs(join(temp, "missing.json"), {})).toThrow();
   });

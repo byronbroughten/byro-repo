@@ -12,7 +12,7 @@ import { messageOf } from "../failureText.ts";
 import { guidanceSectionOf } from "../halts.ts";
 import { handoffOnlyPrompt, treeResetNote } from "../implementStep.ts";
 import { fileStemOf, issueLabelOf } from "../IssueWorkspaces.ts";
-import { decideStep, defaultLimitGuardKnobs } from "../limitGuard.ts";
+import { decideStep } from "../limitGuard.ts";
 import { nextStrongerPairOf, pairLabelOf } from "../modelFit.ts";
 import { limitWaitLineOf, stepLaunchLineOf } from "../progressLines.ts";
 import type { RunKnobs } from "../runKnobs.ts";
@@ -241,7 +241,7 @@ export class StepLauncher extends SpecRunBase {
     run: Run,
     recordedAccount: number | undefined,
   ): Promise<number> {
-    const knobs = { ...defaultLimitGuardKnobs, ...this.config.limitGuardKnobs };
+    const { knobs } = this.config;
     let hasAnnouncedWait = false;
     for (;;) {
       const reading =

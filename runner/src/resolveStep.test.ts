@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   haltScopeOf,
+  hasFileLine,
   resolveCommitProblems,
   resolveOutputSchema,
   resolvePrompt,
@@ -277,6 +278,22 @@ describe("resolveRecordProblems", () => {
     expect(resolveRecordProblems(1, [fix, { ...halt, finding: 4 }])).toEqual([
       "finding 4: the review has no finding 4; findings run 1 to 1",
     ]);
+  });
+});
+
+describe("hasFileLine", () => {
+  it.each([
+    ".gitignore:23",
+    "./.gitignore:23",
+    ".githooks/pre-commit:5",
+    "runner/src/SpecRun.ts:88",
+    "runner/src/SpecRun.ts:88 `// Retry once`",
+  ])("accepts %s", (quote) => {
+    expect(hasFileLine(quote)).toBe(true);
+  });
+
+  it.each(["foo:3", "no line here", "", undefined])("rejects %s", (quote) => {
+    expect(hasFileLine(quote)).toBe(false);
   });
 });
 

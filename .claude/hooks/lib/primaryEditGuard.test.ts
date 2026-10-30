@@ -80,12 +80,23 @@ describe("primaryEditDecision, Bash", () => {
     ["git -C packages/framework commit -m x", root],
     ["cd packages/framework && git commit -m x", root],
     ["git commit --amend --no-edit", `${framework}/src`],
+    ["git merge master", root],
+    ["git -C packages/framework merge master", root],
+    ["cd packages/framework && git merge master", root],
   ])("denies `%s` from %s", (command, cwd) => {
     expect(decideBash(command, cwd).permissionDecision).toBe("deny");
   });
 
+  it("names the merge in a merge's denial", () => {
+    expect(decideBash("git merge master", root).reason).toContain(
+      "`git merge` would merge in the primary checkout",
+    );
+  });
+
   it.each([
     ["git commit -m x", workspace],
+    ["git merge master", workspace],
+    [`cd ${workspace} && git merge master`, root],
     [`cd ${workspace} && git commit -m x`, root],
     [`git -C ${workspace}/packages/framework commit -m x`, root],
     ["git status", root],
