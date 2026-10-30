@@ -13,9 +13,15 @@ export class NtfyNotices implements Notices {
     return new NtfyNotices(`${server}/${topic}`);
   }
 
-  // A refusal is never pushed: it ends the run before it starts, and the pane shows it.
-  async send({ specTitle, summary, link, kind }: Notice): Promise<void> {
-    if (kind === "refused") return;
+  // A refusal is never pushed: it ends the run before it starts, and the pane shows it. Nor is a Restart's relaunch.
+  async send({
+    specTitle,
+    summary,
+    link,
+    kind,
+    isRelaunch,
+  }: Notice): Promise<void> {
+    if (kind === "refused" || isRelaunch) return;
     const response = await fetch(this.topicUrl, {
       method: "POST",
       headers: { Title: headerValueOf(specTitle), Click: link },

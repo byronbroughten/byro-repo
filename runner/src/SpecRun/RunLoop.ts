@@ -50,6 +50,12 @@ import { SpecRunBase } from "./SpecRunBase.ts";
 import { type Selection, TicketSelector } from "./TicketSelector.ts";
 import { TicketSequencer } from "./TicketSequencer.ts";
 
+interface RunStart {
+  reading: AccountReading;
+  selection: Selection;
+  isRelaunch: boolean;
+}
+
 export class RunLoop extends SpecRunBase {
   private get ticketSelector(): TicketSelector {
     return new TicketSelector(this.config);
@@ -85,6 +91,7 @@ export class RunLoop extends SpecRunBase {
     // A request left by a stop command with no run going would end this run at its first pick.
     rmSync(this._stopRequestPathOf(specIssue), { force: true });
     const run = await this._startRun(specIssue);
+    const isRelaunch = this._takeRestart(run);
     const launchable = await this._launchableTicketsOf(run);
     // A ticket's body is left to the launch-time check, whose Halt can approve it.
     const refusal =
@@ -117,7 +124,7 @@ export class RunLoop extends SpecRunBase {
     for (;;) {
       const selection = await this.ticketSelector._select(run);
       if (!isStartAnnounced) {
-        await this._announceStart(run, reading, selection);
+        await this._announceStart(run, { reading, selection, isRelaunch });
         isStartAnnounced = true;
       }
       if (selection.kind === "stop-spec") {
@@ -188,15 +195,26 @@ export class RunLoop extends SpecRunBase {
   // Logged, never announced: tmux.sh relaunches the run at once, so a Supervisor has nothing to explain.
   private _restart(run: Run, ticket: IssueRef): RunResult {
     const message = `Restarting: the runner changed since the run started, found after landing ${issueLabelOf(ticket)}; relaunching on the landed code.`;
+    run.state.restart = { landed: run.landed };
+    this._saveState(run);
     this._log(run, message);
     return { kind: "restarting", landed: run.landed, message };
+  }
+
+  // Saved at once, so a crash before the end can't make a later rerun read as a relaunch.
+  private _takeRestart(run: Run): boolean {
+    const { restart } = run.state;
+    if (restart === undefined) return false;
+    run.landed.push(...restart.landed);
+    delete run.state.restart;
+    this._saveState(run);
+    return true;
   }
 
   // Sent at the first pick, so it can name the ticket about to launch; a first pick with no launch still shows startup passed.
   private async _announceStart(
     run: Run,
-    reading: AccountReading,
-    selection: Selection,
+    { reading, selection, isRelaunch }: RunStart,
   ): Promise<void> {
     const started = `Run started on ${run.tickets.length} tickets as ${readingLabelOf(reading.account, reading.usage)}.`;
     const ticket =
@@ -209,6 +227,7 @@ export class RunLoop extends SpecRunBase {
       kind: "run-started",
       warnings: await this._stalePathWarnings(),
       ...(ticket && { ticket }),
+      ...(isRelaunch && { isRelaunch }),
     });
   }
 

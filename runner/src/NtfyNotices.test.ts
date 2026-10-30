@@ -98,6 +98,20 @@ describe("send", () => {
     ]);
   });
 
+  it("pushes nothing for a Restart's relaunch", async () => {
+    await notices().send({
+      spec,
+      specTitle: "Spec runner",
+      summary: "Run started on 2 tickets. Launching r #2.",
+      link: "l",
+      kind: "run-started",
+      warnings: [],
+      isRelaunch: true,
+    });
+
+    expect(received).toEqual([]);
+  });
+
   it("throws when ntfy refuses the notice", async () => {
     status = 429;
 

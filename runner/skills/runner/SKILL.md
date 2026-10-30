@@ -46,7 +46,7 @@ A `run-started` line: say the run is working, and on which ticket. List its `war
 - `crashed`: point the developer to the tmux pane, `tmux attach -t runner-<repo>-<n>`.
 - `refused`: say what the run refused.
 
-A Restart is expected and quiet: a run that lands a change to the runner itself ends with no event line and relaunches at once in the same tmux session, resuming where it ended. Its only event line is the relaunch's `run-started` line: say the run carries on, and keep watching.
+A Restart is expected and quiet: a run that lands a change to the runner itself ends with no event line and relaunches at once in the same tmux session, resuming where it ended. Its only event line is the relaunch's `run-started` line, which ntfy doesn't push: say the run carries on, and keep watching. The run's end message counts the landings from before the Restart too.
 
 On `vanished`, `stopped`, `crashed` or `refused`, say that rerunning resumes the run, and offer to relaunch it once the cause is fixed.
 

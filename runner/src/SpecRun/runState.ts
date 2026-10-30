@@ -168,6 +168,8 @@ export interface RunState {
   tickets: Record<string, TicketState>;
   // Every ticket's, answered ones included, in the order raised; absent from a state file written before Halts.
   halts?: Halt[];
+  // Set by a Restart and taken by its relaunch, which carries on its landings.
+  restart?: { landed: IssueRef[] };
 }
 
 export interface Run {
