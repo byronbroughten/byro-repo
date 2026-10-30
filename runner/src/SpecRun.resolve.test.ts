@@ -14,12 +14,15 @@ import {
   bodyWith,
   bodyWithTargets,
   capped,
+  eventOf,
   findingOf,
   github,
   greened,
   handoffResultOf,
   implemented,
+  noConversation,
   primaryOf,
+  progressLines,
   refOf,
   resolved,
   resultOf,
@@ -266,6 +269,29 @@ describe("run's resolve", () => {
     expect(ticketFacts().reviewFixes).toBe("fresh");
   });
 
+  it("resolves in a fresh session when the implementer's session has no conversation, and lands", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      reviewed(findings),
+      noConversation,
+      freshResolved([recordOf(1, "fix"), recordOf(2, "fix")], "fix.ts"),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(agentStep.requests[2]?.resumeSessionId).toBe("implement-session");
+    const resolver = agentStep.requests[3];
+    expect(resolver?.resumeSessionId).toBeUndefined();
+    expect(resolver?.prompt).toContain("You are the resolve step");
+    expect(landedSubjects(2)).toEqual(["Fix fix.ts", "Add one.ts"]);
+    expect(ticketFacts().reviewFixes).toBe("fresh");
+    expect(progressLines().map(eventOf)).toContain(
+      "byro-repo #1: the resolve step's session implement-session has no conversation; running it as a fresh session.",
+    );
+  });
+
   it.each([
     {
       resolver: "implementer",
@@ -365,6 +391,28 @@ describe("run's resolve", () => {
       "finding 1: a Fix needs `quote`, the quoted code or text, with its file:line",
     );
     expect(landedSubjects(2)).toEqual(["Fix fix.ts", "Add one.ts"]);
+  });
+
+  it("gives a fresh resolver the findings and the refusal when the retry's session has no conversation", async () => {
+    addSpec([1]);
+    const noQuote = { ...recordOf(1, "fix"), quote: undefined };
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      reviewed(findings),
+      resolved([noQuote, recordOf(2, "dismiss")], "fix.ts"),
+      noConversation,
+      freshResolved([recordOf(1, "fix"), recordOf(2, "dismiss")]),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    const resolver = agentStep.requests[4];
+    expect(resolver?.resumeSessionId).toBeUndefined();
+    expect(resolver?.prompt).toContain("You are the resolve step");
+    expect(resolver?.prompt).toContain(
+      "finding 1: a Fix needs `quote`, the quoted code or text, with its file:line",
+    );
   });
 
   it("hands the findings to a fresh resolver, its work discarded, when the implementer's retry crosses the live ceiling", async () => {

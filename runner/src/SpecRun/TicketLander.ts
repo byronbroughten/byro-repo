@@ -109,16 +109,19 @@ export class TicketLander extends SpecRunBase {
     this._markStepStarted(ticketRun);
     const { result, logPath } = await this.reviewStepper._runResolverStep(
       ticketRun,
-      resolver,
       {
-        prompt: redChecksPrompt({
-          issue: ticket.issue,
-          title: ticket.title,
-          branch: workspace.branch,
-          branchedRepos: branchedReposOf(ticketRun),
-          failures: failure,
-        }),
-        jsonSchema: redChecksOutputSchema,
+        step: "red-checks",
+        resolver,
+        launch: {
+          prompt: redChecksPrompt({
+            issue: ticket.issue,
+            title: ticket.title,
+            branch: workspace.branch,
+            branchedRepos: branchedReposOf(ticketRun),
+            failures: failure,
+          }),
+          jsonSchema: redChecksOutputSchema,
+        },
       },
     );
     state.redChecksLogPath = logPath;
@@ -222,16 +225,19 @@ export class TicketLander extends SpecRunBase {
     );
     const { result, logPath } = await this.reviewStepper._runResolverStep(
       ticketRun,
-      "implementer",
       {
-        prompt: mergeMasterPrompt({
-          issue: ticket.issue,
-          title: ticket.title,
-          branch: workspace.branch,
-          branchedRepos: branchedReposOf(ticketRun),
-          conflict,
-        }),
-        jsonSchema: mergeMasterOutputSchema,
+        step: "merge-master",
+        resolver: "implementer",
+        launch: {
+          prompt: mergeMasterPrompt({
+            issue: ticket.issue,
+            title: ticket.title,
+            branch: workspace.branch,
+            branchedRepos: branchedReposOf(ticketRun),
+            conflict,
+          }),
+          jsonSchema: mergeMasterOutputSchema,
+        },
       },
     );
     this._saveState(run);

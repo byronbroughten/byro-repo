@@ -119,6 +119,7 @@ describe("ClaudeAgentStep on a recorded success", () => {
       hang: undefined,
       exitSubtype: "success",
       errorText: undefined,
+      hasNoConversation: false,
       usage: {
         fiveHour: { utilization: 0.01, resetsAt: new Date(1791781200_000) },
         sevenDay: { utilization: 0.5, resetsAt: new Date(1791903600_000) },
@@ -296,6 +297,15 @@ describe("ClaudeAgentStep on failed runs", () => {
   it("returns no error text on a run that wasn't an error", async () => {
     const { result } = await replay("maxTurns.ndjson");
     expect(result.errorText).toBeUndefined();
+    expect(result.hasNoConversation).toBe(false);
+  });
+
+  // Recorded from a resolve resume whose transcript was gone.
+  it("says a resume found no conversation for its session", async () => {
+    const { result } = await replay("noConversation.ndjson");
+    expect(result.hasNoConversation).toBe(true);
+    expect(result.exitSubtype).toBe("error_during_execution");
+    expect(result.output).toEqual({ status: "none" });
   });
 
   // Derived from the success recording: a rejected rate_limit_event and a 429 result.

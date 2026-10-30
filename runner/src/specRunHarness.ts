@@ -213,6 +213,7 @@ export function resultOf(record: unknown): StepResult {
     hang: undefined,
     exitSubtype: "success",
     errorText: undefined,
+    hasNoConversation: false,
     usage: undefined,
     limitHit: undefined,
     deniedTools: [],
@@ -258,6 +259,15 @@ export const crashed: StepResult = {
   output: { status: "none" },
   sessionId: "crashed-session",
   exitSubtype: "error_during_execution",
+};
+
+// A resume whose session's transcript is gone.
+export const noConversation: StepResult = {
+  ...resultOf(undefined),
+  output: { status: "none" },
+  sessionId: "lost-session",
+  exitSubtype: "error_during_execution",
+  hasNoConversation: true,
 };
 
 export const capped: StepResult = {

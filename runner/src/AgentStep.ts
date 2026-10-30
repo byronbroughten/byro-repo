@@ -49,6 +49,8 @@ export interface StepResult {
   exitSubtype: string | undefined;
   // The result text of a result flagged is_error, which can still carry subtype success.
   errorText: string | undefined;
+  // Set when a resume found no conversation for its session id, as when its transcript is gone.
+  hasNoConversation: boolean;
   usage: UsageReading | undefined;
   limitHit: LimitHit | undefined;
   // The tool name of each permission denial the result recorded, in its order.

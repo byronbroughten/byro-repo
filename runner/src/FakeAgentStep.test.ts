@@ -26,6 +26,7 @@ function result(sessionId: string): StepResult {
     hang: undefined,
     exitSubtype: "success",
     errorText: undefined,
+    hasNoConversation: false,
     usage: undefined,
     limitHit: undefined,
     deniedTools: [],

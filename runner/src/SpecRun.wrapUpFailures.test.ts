@@ -12,6 +12,7 @@ import {
   github,
   haltComments,
   implemented,
+  noConversation,
   primaryOf,
   progressLines,
   refOf,
@@ -84,6 +85,28 @@ describe("run's wrap-up failures", () => {
     expect(merge?.prompt).toContain("Merging issue-1-");
     expect(progressLines().map(eventOf)).toContain(
       "byro-repo #1: the wrap-up conflicted with master; resuming the implementer to merge it.",
+    );
+  });
+
+  it("merges master in a fresh session when the implementer's session has no conversation, then lands", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      conflicting,
+      reviewed(),
+      noConversation,
+      mergedMaster,
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(agentStep.requests[2]?.resumeSessionId).toBe("session");
+    const merge = agentStep.requests[3];
+    expect(merge?.resumeSessionId).toBeUndefined();
+    expect(merge?.prompt).toMatch(/^You are the merge-master step/);
+    expect(haltComments()).toEqual([]);
+    expect(progressLines().map(eventOf)).toContain(
+      "byro-repo #1: the merge-master step's session session has no conversation; running it as a fresh session.",
     );
   });
 
