@@ -20,6 +20,7 @@ import { SpecRunBase, type SpecRunConfig } from "./SpecRun/SpecRunBase.ts";
 export type { Clock, RunGitHub, SpecRunConfig } from "./SpecRun/SpecRunBase.ts";
 export {
   type IssueComment,
+  progressLogPathOf,
   rerunCommandOf,
   type ResolveOptions,
   type ReviewOptions,

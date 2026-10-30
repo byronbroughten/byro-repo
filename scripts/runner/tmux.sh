@@ -27,6 +27,21 @@ if [[ $# -ne 2 || "$1" != */* ]]; then
   exit 2
 fi
 session="runner-${1#*/}-$2"
+if tmux has-session -t "=$session" 2>/dev/null; then
+  # A pane target needs the trailing colon: "=$session" alone resolves to no pane.
+  if [[ "$(tmux display-message -p -t "=$session:" '#{pane_dead}')" != "1" ]]; then
+    echo "tmux session $session is still running its run; attach with: tmux attach -t $session" >&2
+    exit 1
+  fi
+  # An ended run's pane, kept by remain-on-exit: its last lines go to the progress log before the session is replaced.
+  log="$(node "$root/scripts/runner/progressLog.ts" "$1" "$2")"
+  mkdir -p "$(dirname "$log")"
+  {
+    echo "Replaced dead tmux session $session; its last lines:"
+    tmux capture-pane -p -t "=$session:" -S -20
+  } >>"$log"
+  tmux kill-session -t "=$session"
+fi
 launched_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 tmux new-session -d -s "$session" -c "$root" "bash '$root/scripts/runner/tmux.sh' --inside '$1' '$2'"
 # Keeps the pane after exit, so a crash's message is still there to read.
