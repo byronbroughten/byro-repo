@@ -45,9 +45,11 @@ interface ResultEvent {
   result?: unknown;
   structured_output?: unknown;
   permission_denials?: unknown;
+  errors?: unknown;
 }
 
 const tooManyRequests = 429;
+const noConversationError = "No conversation found";
 
 export class StepStream {
   private readonly meter = ContextMeter.init();
@@ -105,6 +107,7 @@ export class StepStream {
       hang: undefined,
       exitSubtype: stringOrUndefined(this.result?.subtype),
       errorText: this._errorText,
+      hasNoConversation: this._hasNoConversation,
       usage: this.usage,
       limitHit: this._limitHit,
       deniedTools: deniedToolsOf(this.result?.permission_denials),
@@ -114,6 +117,16 @@ export class StepStream {
   private get _errorText(): string | undefined {
     if (this.result?.is_error !== true) return undefined;
     return stringOrUndefined(this.result.result);
+  }
+
+  // The result carries it in `errors`, not `result`, so errorText never sees it.
+  private get _hasNoConversation(): boolean {
+    const errors = this.result?.errors;
+    if (!Array.isArray(errors)) return false;
+    return errors.some(
+      (error) =>
+        typeof error === "string" && error.startsWith(noConversationError),
+    );
   }
 
   private get _sessionId(): string | undefined {

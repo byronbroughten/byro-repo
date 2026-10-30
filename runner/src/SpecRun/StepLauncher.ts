@@ -1,5 +1,6 @@
 // A spec run's agent step launches: waits out the limit guard before each, runs every step on the Active account, a resume
 // included, with its guidance and the run's knobs, logs its raw stream, and retries a crash, resuming its session when it has one; a hit limit is an UnhandledStop.
+// A resolver's resume that finds no conversation goes back to its caller, which reruns it as a fresh session.
 // An implement step that hits its turn cap halts, offering more turns or a stronger pair; other crashes past their retries halt too.
 // It builds its own HaltRaiser, and every collaborator that launches a step builds a StepLauncher.
 // Steps run through ../AgentStep.ts; limit decisions are ../limitGuard.ts; the coordinator callers build is ../SpecRun.ts.
@@ -82,6 +83,14 @@ export class StepLauncher extends SpecRunBase {
         continue;
       }
       const { result } = ran;
+      // A resolver's caller reruns it as a fresh session; a crash retry's missing conversation stays a crash.
+      if (
+        agent === "resolve" &&
+        attempt === launch &&
+        result.hasNoConversation
+      ) {
+        return { result, logPath };
+      }
       if (isTurnCapped(result)) {
         // A resolver's caller resets what it left before taking the crash.
         if (agent === "resolve") return { result, logPath };
