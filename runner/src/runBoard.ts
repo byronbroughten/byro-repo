@@ -9,10 +9,10 @@ import { existsSync, readFileSync } from "node:fs";
 import type { UsageReading } from "./AgentStep.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 import { readingLabelOf } from "./limitGuard.ts";
+import type { StampedLine } from "./localTime.ts";
 import {
   isLimitWaitLine,
   isStepBoundaryLine,
-  type StampedLine,
   stampedLineOf,
   stepLaunchOfLine,
   ticketOfLine,

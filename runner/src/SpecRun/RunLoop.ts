@@ -327,7 +327,14 @@ function runLockRefusalOf(
   if (holder === undefined) {
     return `${label}'s run lock is unreadable, so it counts as held; remove ${path} if no run of it is going.`;
   }
-  return `${label} already has a run going: pid ${holder.pid}, started ${localTimeOf(new Date(holder.startedAt))}.`;
+  return `${label} already has a run going: pid ${holder.pid}, started ${startedTextOf(holder.startedAt)}.`;
+}
+
+// The lock file is read unchecked, so a start time that isn't a date is quoted as written.
+function startedTextOf(startedAt: string): string {
+  const time = new Date(startedAt);
+  if (Number.isNaN(time.getTime())) return startedAt;
+  return localTimeOf(time);
 }
 
 // A split spec's own body is never checked; tickets the runner won't launch need no section.
