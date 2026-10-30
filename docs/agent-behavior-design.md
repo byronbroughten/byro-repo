@@ -36,19 +36,19 @@ _Instances:_ [ADR 0008](./adr/0008-gate-agent-actions-by-what-they-cost-to-undo.
 
 Whatever enters the context is paid for on every later turn. A full payload, printed once, rides along through unrelated work. Show a summary that is enough to decide the next step, and keep the complete record somewhere a ranged read can reach it, so the summary never hides needed detail.
 
-_Instances:_ a chore dry run prints one rendered line per request, and `-- --json` is the escape hatch for when a line looks wrong (the framework's `docs/how-it-runs/chore-dry-run.md`). `npm run app:probe` prints keys, counts and sheet titles, and writes the full response to `.probe/last.json` for a ranged `Read` (#53).
+_Instances:_ a chore dry run prints one rendered line per request, and `-- --json` is the escape hatch for when a line looks wrong (the framework's `docs/how-it-runs/chore-dry-run.md`). [ADR 0015](./adr/0015-the-sheets-probe-prints-a-summary-and-keeps-the-full-response-on-disk.md) has the Sheets probe print keys, counts and sheet titles, and write the full response to disk for a ranged `Read`. [ADR 0016](./adr/0016-dispatched-agents-locate-and-quote-while-diagnosis-and-gates-stay-in-the-main-session.md) sends a sweep's reading to a dispatched agent, so only its quotes enter the main session's context.
 
 ### Delegate the reading, not the judgment
 
 A dispatched agent starts cold and sees only what it is handed, so it is good at finding things and poor at deciding what they mean. Send out work that reads a lot and returns a little. Keep the diagnosis, and any action that needs the operator's yes, in the session that holds the task context.
 
-_Instances:_ dispatched agents report the command they would run rather than running a gate, and must return `file:line` with verbatim quotes ([`docs/agents/delegation.md`](./agents/delegation.md), `d6b8ae3`). `repo-explorer` runs on Sonnet with read-only tools, and it locates code without diagnosing (#53). A `ready-for-agent` ticket keeps the design forks and flush shapes with its writer, and the implementer carries them out: #80 left its flush and naming rules to be inferred, and #89 had to restate them (#91).
+_Instances:_ [ADR 0016](./adr/0016-dispatched-agents-locate-and-quote-while-diagnosis-and-gates-stay-in-the-main-session.md) gives sweeps to a read-only explorer that locates without diagnosing, has every dispatched agent return `file:line` with verbatim quotes, and keeps the gates in the main session, which runs the command the agent reports. A `ready-for-agent` ticket keeps the design forks and flush shapes with its writer, and the implementer carries them out: #80 left its flush and naming rules to be inferred, and #89 had to restate them (#91).
 
 ### Approval covers what was named, and nothing next to it
 
 A yes is scoped to the specific thing the operator saw. A general go-ahead, or approval of a neighbouring step, is not consent to an action whose effects they didn't see named.
 
-_Instances:_ [ADR 0008](./adr/0008-gate-agent-actions-by-what-they-cost-to-undo.md) makes a share ask on its own, naming who gets access and at what permission, even on a file whose writes are free. During design or grilling, nothing is written until the operator invokes the skill that files it: approving a design is not approving its publication (`5d5c77c`).
+_Instances:_ [ADR 0008](./adr/0008-gate-agent-actions-by-what-they-cost-to-undo.md) makes a share ask on its own, naming who gets access and at what permission, even on a file whose writes are free. [ADR 0005](./adr/0005-approve-an-issue-body-by-its-exact-text.md) ties an issue body's approval to its exact text, so any later edit falls outside it. During design or grilling, nothing is written until the operator invokes the skill that files it: approving a design is not approving its publication (`5d5c77c`).
 
 ### Put each rule where it gets followed, and its reasoning one pointer away
 
