@@ -49,6 +49,23 @@ describe("run's Failure Halt answers", () => {
     expect(github.issues.get(1)?.isOpen).toBe(true);
   });
 
+  it("resumes a ticket stopped by `stop spec` on the rerun, as on `retry`", async () => {
+    addSpec([1]);
+    await specRun(FakeAgentStep.init(crashed, crashed), {
+      async sleep() {
+        github.reply(213, "H1: stop spec");
+      },
+    }).run(spec);
+    const rerunStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    const result = await specRun(rerunStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(rerunStep.requests[0]?.prompt).not.toContain(
+      guidanceSectionOf("H1: stop spec"),
+    );
+  });
+
   it("keeps a `rerun on <pair>` pair for a later `retry`", async () => {
     addSpec([1]);
     github.edit(1, { body: bodyWith("Opus medium") });
