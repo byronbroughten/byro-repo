@@ -33,8 +33,7 @@ if tmux has-session -t "=$session" 2>/dev/null; then
     exit 1
   fi
   # An ended run's pane, kept by remain-on-exit: its last lines go to the progress log before the session is replaced.
-  primary="$(dirname "$(git -C "$root" rev-parse --path-format=absolute --git-common-dir)")"
-  log="$primary/.runner/${1#*/}-$2.log"
+  log="$(node "$root/scripts/runner/progressLog.ts" "$1" "$2")"
   mkdir -p "$(dirname "$log")"
   {
     echo "Replaced dead tmux session $session; its last lines:"
