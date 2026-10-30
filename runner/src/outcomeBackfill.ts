@@ -36,9 +36,11 @@ export function backfillOutcomeRows({
   return Object.entries(tickets).flatMap(([key, { sessions }]) => {
     const path = join(specFolder, `${key.replace(" #", "-")}.md`);
     if (!existsSync(path) || sessions.length === 0) return [];
+    // A step with no recorded account would leave every summed fact short, so the row stays as written.
     const withAccounts = sessions.flatMap(({ agent, sessionId, account }) =>
       account === undefined ? [] : [{ agent, sessionId, account }],
     );
+    if (withAccounts.length < sessions.length) return [];
     const file = readFileSync(path, "utf8");
     writeFileSync(
       path,
@@ -61,10 +63,12 @@ function recordedOf(
   session: AccountSession,
   configFolders: string[],
 ): RecordedSession {
+  const [firstFolder] = configFolders;
+  if (firstFolder === undefined) throw new Error("No config folder given.");
+  // A transcript in no folder is missing from each, so any one leaves its facts unrecorded.
   const configFolder =
     configFolders.find((folder) => hasTranscript(folder, session.sessionId)) ??
-    configFolders[0] ??
-    "";
+    firstFolder;
   return { ...session, configFolder };
 }
 

@@ -24,6 +24,8 @@ const columns = [
   "Session ids",
 ] as const;
 
+type Column = (typeof columns)[number];
+
 // Who resolve's Fixes were made by; `skipped` is a ticket that needed only GitHub writes, so review had no diff to read.
 export type ReviewFixes = "none" | "implementer" | "fresh" | "skipped";
 
@@ -106,8 +108,8 @@ export function withTranscriptCells(file: string, facts: OutcomeFacts): string {
 
 function transcriptCellsOf(
   facts: OutcomeFacts,
-): Partial<Record<(typeof columns)[number], string>> {
-  const cells: Partial<Record<(typeof columns)[number], string>> = {};
+): Partial<Record<Column, string>> {
+  const cells: Partial<Record<Column, string>> = {};
   if (facts.pair !== undefined) cells.Pair = facts.pair;
   if (facts.account !== undefined) cells.Account = facts.account;
   if (facts.peakContext !== undefined) {
