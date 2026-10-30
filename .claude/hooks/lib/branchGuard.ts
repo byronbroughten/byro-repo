@@ -107,8 +107,9 @@ export function headMovingCheckouts(target: CommandTarget): string[] {
 }
 
 // The command's commits and merges in a primary checkout, for the primary-edit guard.
-export function primaryCommitsOf(target: CommandTarget): GitAction[] {
-  return gitActionsOf(target, () => false).filter(
+export function historyWritesOf(target: CommandTarget): GitAction[] {
+  return actionsActedOn(
+    target,
     ({ kind, subcommand }) => kind === "commit" || subcommand === "merge",
   );
 }
@@ -157,10 +158,17 @@ function checkoutsActedOn(
   target: CommandTarget,
   isActedOn: (action: GitAction) => boolean,
 ): string[] {
-  const checkouts = gitActionsOf(target, () => false)
-    .filter(isActedOn)
-    .map(({ checkout }) => checkout);
+  const checkouts = actionsActedOn(target, isActedOn).map(
+    ({ checkout }) => checkout,
+  );
   return [...new Set(checkouts)];
+}
+
+function actionsActedOn(
+  target: CommandTarget,
+  isActedOn: (action: GitAction) => boolean,
+): GitAction[] {
+  return gitActionsOf(target, () => false).filter(isActedOn);
 }
 
 // Interim leaves branch moves to the developer, who keeps agents off a branch while it lands.

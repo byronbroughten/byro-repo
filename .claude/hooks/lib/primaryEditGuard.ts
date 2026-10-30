@@ -3,8 +3,8 @@ import { resolve } from "node:path";
 
 import {
   type GuardDecision,
+  historyWritesOf,
   primaryCheckoutOf,
-  primaryCommitsOf,
 } from "./branchGuard.ts";
 import type { ToolInput } from "./hookIo.ts";
 
@@ -21,7 +21,7 @@ const workspaceWay =
   "Runs land there, so work in a workspace: `/start-issue <repo> <n>` moves this session into an issue's; otherwise `npm run issue:start -- <repo> <n>` for an issue, or `npm run issue:start -- --session <slug>` for anything else, then continue at the printed path.";
 
 export function primaryEditDecision(props: PrimaryEditInput): GuardDecision {
-  const reason = fileDenyReason(props) ?? commitDenyReason(props);
+  const reason = fileDenyReason(props) ?? historyWriteDenyReason(props);
   if (reason) {
     return {
       permissionDecision: "deny",
@@ -49,13 +49,13 @@ function fileDenyReason({
   return `${path} is in the primary checkout ${checkout}.`;
 }
 
-function commitDenyReason({
+function historyWriteDenyReason({
   toolInput: { command },
   cwd,
   primaryCheckouts,
 }: PrimaryEditInput): string | undefined {
   if (command === undefined) return undefined;
-  const [action] = primaryCommitsOf({ command, cwd, primaryCheckouts });
+  const [action] = historyWritesOf({ command, cwd, primaryCheckouts });
   if (!action) return undefined;
   return `\`git ${action.subcommand}\` would ${action.subcommand} in the primary checkout ${action.checkout}.`;
 }
