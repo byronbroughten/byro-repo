@@ -7,6 +7,7 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# Mirrors exitCodes.restart in run.ts; bash can't import it.
 restart_code=3
 
 if [[ "${1:-}" == "--inside" ]]; then
