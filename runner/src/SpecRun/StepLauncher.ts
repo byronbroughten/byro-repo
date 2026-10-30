@@ -14,6 +14,7 @@ import { guidanceSectionOf } from "../halts.ts";
 import { handoffOnlyPrompt, treeResetNote } from "../implementStep.ts";
 import { fileStemOf, issueLabelOf } from "../IssueWorkspaces.ts";
 import { decideStep } from "../limitGuard.ts";
+import { localTimeOf } from "../localTime.ts";
 import { nextStrongerPairOf, pairLabelOf } from "../modelFit.ts";
 import { limitWaitLineOf, stepLaunchLineOf } from "../progressLines.ts";
 import type { RunKnobs } from "../runKnobs.ts";
@@ -257,7 +258,7 @@ export class StepLauncher extends SpecRunBase {
       if (decision.kind === "launch") return account;
       if (decision.kind === "stop") {
         throw new RunStop(
-          `Account ${account} is at ${percentOf(usage.sevenDay.utilization)} of its weekly limit, past the reserve; switch with cswap and rerun, or rerun after it resets at ${usage.sevenDay.resetsAt.toISOString()}.`,
+          `Account ${account} is at ${percentOf(usage.sevenDay.utilization)} of its weekly limit, past the reserve; switch with cswap and rerun, or rerun after it resets at ${localTimeOf(usage.sevenDay.resetsAt)}.`,
         );
       }
       if (!hasAnnouncedWait) {
@@ -265,7 +266,7 @@ export class StepLauncher extends SpecRunBase {
         await this._announce(
           run,
           limitWaitLineOf(
-            `account ${account} is at ${percentOf(usage.fiveHour.utilization)} of its 5-hour limit; continuing after ${decision.until.toISOString()}. Switching to an account with headroom with cswap continues the run now.`,
+            `account ${account} is at ${percentOf(usage.fiveHour.utilization)} of its 5-hour limit; continuing after ${localTimeOf(decision.until)}. Switching to an account with headroom with cswap continues the run now.`,
           ),
         );
       }
@@ -319,7 +320,7 @@ export class StepLauncher extends SpecRunBase {
     }
     throw new UnhandledStop(
       "limit-hit",
-      `The step hit the ${window ?? "usage"} limit; it resets at ${resetsAt.toISOString()}.`,
+      `The step hit the ${window ?? "usage"} limit; it resets at ${localTimeOf(resetsAt)}.`,
       logPath,
     );
   }

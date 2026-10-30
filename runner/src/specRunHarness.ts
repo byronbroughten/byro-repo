@@ -25,6 +25,7 @@ import type { Blocker, Handoff, ImplementRecord } from "./implementStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { UsageList, UsageReader } from "./limitGuard.ts";
 import type { Notice } from "./Notices.ts";
+import { stampedLineOf } from "./progressLines.ts";
 import type { ResolveRecord } from "./resolveStep.ts";
 import type { ReviewFinding } from "./reviewStep.ts";
 import { type Command, runKnobsOf } from "./runKnobs.ts";
@@ -414,10 +415,8 @@ export function progressLines(): string[] {
     .split("\n");
 }
 
-const timestampLength = "2026-10-12T09:00:00.000Z ".length;
-
 export function eventOf(line: string): string {
-  return line.slice(timestampLength);
+  return stampedLineOf(line).text;
 }
 
 let time: number;

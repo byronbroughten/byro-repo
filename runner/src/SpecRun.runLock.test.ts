@@ -48,12 +48,27 @@ describe("run's run lock", () => {
     expect(result).toEqual<RunResult>({
       kind: "refused",
       landed: [],
-      message: `byro-repo #213 already has a run going: pid ${process.pid}, started 2026-10-12T08:00:00Z.`,
+      message: `byro-repo #213 already has a run going: pid ${process.pid}, started 2026-10-12 03:00:00 CDT.`,
     });
     expect(agentStep.requests).toEqual([]);
     expect(github.comments).toEqual([]);
     expect(existsSync(runLockPath())).toBe(true);
     expect(existsSync(stopRequest)).toBe(true);
+  });
+
+  it("refuses a run whose live holder's start time isn't a date, quoting it as written", async () => {
+    addSpec([1]);
+    seedHolder(runLockPath(), {
+      pid: process.pid,
+      host: hostname(),
+      startedAt: "not a date",
+    });
+
+    const result = await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(result.message).toBe(
+      `byro-repo #213 already has a run going: pid ${process.pid}, started not a date.`,
+    );
   });
 
   it("counts an unreadable lock as held", async () => {

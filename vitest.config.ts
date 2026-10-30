@@ -60,6 +60,8 @@ export default defineConfig({
         extends: true,
         test: {
           name: "tooling",
+          // The runner words human-facing times in the machine's zone, so its tests pin one.
+          env: { TZ: "America/Chicago" },
           include: [
             "*.test.ts",
             "config/**/*.test.ts",

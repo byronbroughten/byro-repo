@@ -41,6 +41,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `LandingLock.ts` | `LandingLock` | The per-primary lock wrap-up lands under. |
 | `LeaseHeld.ts` | | The error for another holder's live workspace lease. |
 | `limitGuard.ts` | `limitGuard` | The limit guard: reads usage and picks launch, Limit wait or Stop. |
+| `localTime.ts` | | Words and reads a human-facing time: local, with its zone. |
 | `lockFixture.ts` | | Pid-lock fixtures the lock tests share. |
 | `mergeMasterStep.ts` | | The merge-master step's prompt and record. |
 | `modelFit.ts` | `modelFit` | Reads a ticket's Model fit pair and compares pairs. |

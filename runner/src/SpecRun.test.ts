@@ -112,7 +112,7 @@ describe("run", () => {
 
     const lines = progressLines();
     expect(
-      lines.every((line) => line.startsWith("2026-10-12T09:00:00.000Z ")),
+      lines.every((line) => line.startsWith("2026-10-12 04:00:00 CDT ")),
     ).toBe(true);
     expect(lines.map(eventOf)).toEqual(
       expect.arrayContaining([
@@ -139,7 +139,7 @@ describe("run", () => {
 
     const lines = progressLines();
     expect(
-      lines.every((line) => line.startsWith("2026-10-12T09:00:00.000Z ")),
+      lines.every((line) => line.startsWith("2026-10-12 04:00:00 CDT ")),
     ).toBe(true);
     expect(lines.map(eventOf)).toContain(
       "byro-repo #1: The implement step ended on an error: API Error: 500 overloaded Retrying, 1 of 1.",
