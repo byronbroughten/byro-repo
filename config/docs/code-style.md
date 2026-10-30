@@ -106,4 +106,4 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
   - PascalCase mirroring the exported class name.
   - A short PascalCase abbreviation for a file exporting one static-bundle object of related functions. A fat bundle's pieces split into a same-named subfolder and are re-assembled in the parent file.
   - camelCase for plain data/config or entry-point files.
-  - A long module's helpers split by subject into a same-named subfolder of camelCase files, each exporting camelCase bundles written with method shorthand.
+  - A module whose helpers fall into groups that share nothing splits by subject into a same-named subfolder of camelCase files, each exporting camelCase bundles written with method shorthand.

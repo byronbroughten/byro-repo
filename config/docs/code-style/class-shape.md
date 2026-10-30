@@ -46,7 +46,7 @@ A comment explaining a non-obvious invariant (e.g. why two tables must be writte
 
 ## Split a class when its helpers fall into groups that share nothing
 
-A method or line count says how big a class is, not whether it holds separate concerns; private helpers that fall into groups calling nothing in each other's group do. `SpecRun` grew into one class whose methods an agent had to grep by phase rather than read, and its split gave each phase's helpers a collaborator of their own (#344). The class keeps its public methods as one-line delegations, so its callers don't change, and the subfolder named after it keeps the collaborators together.
+A method or line count says how big a class is, not whether it holds separate concerns; private helpers that fall into groups calling nothing in each other's group do. A line count may trigger a look but is never a lint, since [ADR-0012](../../../docs/adr/0012-replace-agents-md-size-caps-with-a-stated-cost-of-adding.md) found that size caps act as targets. `SpecRun` grew into one class whose methods an agent had to grep by phase rather than read, and its split gave each phase's helpers a collaborator of their own (#344). The class keeps its public methods as one-line delegations, so its callers don't change, and the subfolder named after it keeps the collaborators together.
 
 ## A split class shares a Base and layers its collaborators
 
