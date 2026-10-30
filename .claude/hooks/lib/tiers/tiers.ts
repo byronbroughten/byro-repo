@@ -6,6 +6,7 @@ import {
   type SimpleCommand,
   simpleCommandsOf,
 } from "./bashReads.ts";
+import { GhApiCall } from "./GhApiCall.ts";
 import {
   isSedScriptPrinting,
   sedCallOf,
@@ -97,6 +98,8 @@ const untargetedPrograms = new Set([
 const npmExecVerbs = new Set(["exec", "x"]);
 const deployWhy = "a deployment can be rolled back to an earlier version";
 const checkWhy = "the repo's checks write nothing git can't undo";
+const jevWhy =
+  "agents have a standing yes to send Jev Deliverable text and repo docs";
 const freeScripts = new Map([
   ["wrap-up", "`npm run wrap-up` is the standing yes to push"],
   ["app:build", "Apps Script keeps the pushed code's version history"],
@@ -108,6 +111,12 @@ const freeScripts = new Map([
   ["issue:backlink", "a further `gh issue edit` undoes it"],
   ["issue:read", "it only reads an issue"],
   ["issue:promote", "a promoted repo comes off with its workspace"],
+  ["jev", jevWhy],
+  ["jev:style", jevWhy],
+  [
+    "session:probe",
+    "its one-turn session only reports what the folder's hooks see",
+  ],
   ["check", checkWhy],
   ["tsc", checkWhy],
   ["lint", checkWhy],
@@ -405,6 +414,9 @@ function commandVerdictOf(
     const stepVerdict =
       ghVerdictOf(words) ?? liveAliasVerdictOf(words, context);
     if (stepVerdict) return stepVerdict;
+  } else {
+    const sessionVerdict = sessionGhVerdictOf(words);
+    if (sessionVerdict) return sessionVerdict;
   }
   const chore = appChoreOf(words);
   if (chore?.isSend) return sendVerdictOf(chore.name, dryRuns);
@@ -536,6 +548,34 @@ function ghVerdictOf(words: string[]): Verdict | undefined {
     needsPlainText: true,
     plainTextFix:
       "write the text to a file under `/tmp` and pass it with `--body-file`, then run the call again",
+  };
+}
+
+// An Interactive session's issue create, issue links and `gh api` reads; a runner step's stay refused, as its reads go through `issue:read`'s Trusted and Untrusted labels.
+function sessionGhVerdictOf([program, verb, ...args]: string[]):
+  Verdict | undefined {
+  if (program !== "gh") return undefined;
+  if (verb === "issue" && args[0] === "create") {
+    return {
+      permissionDecision: "allow",
+      why: "`gh issue close` undoes it",
+      needsPlainText: true,
+    };
+  }
+  if (verb !== "api") return undefined;
+  const call = GhApiCall.init(args);
+  if (call?.isRead) {
+    return {
+      permissionDecision: "allow",
+      why: "a `gh api` call with no body only reads",
+      needsPlainText: true,
+    };
+  }
+  if (!call?.isIssueLink) return undefined;
+  return {
+    permissionDecision: "allow",
+    why: "the opposite `gh api` call undoes an issue link",
+    needsPlainText: true,
   };
 }
 
@@ -773,6 +813,7 @@ function isProgramRead(program: string, args: string[]): boolean {
   if (program === "rg") {
     return !args.some((arg) => rgRunFlags.some((flag) => arg.startsWith(flag)));
   }
+  if (program === "gh") return args[0] === "label" && args[1] === "list";
   return readPrograms.has(program);
 }
 

@@ -18,7 +18,7 @@ Reads need no yes in any tier.
 | --- | --- |
 | Editing repo files; `npm run check`, `npm run tsc`, `npm test`, `npm run lint` | 1 |
 | `rm`, `mkdir`, `cp`, `mv`, `sed -i` and a redirect into a file, when every path resolves inside the session's root, `$TMPDIR` or `/tmp`, outside `.git` at any depth and `claude-guardrails/` in either temp folder; `node` on a scratch helper: an existing file in `$TMPDIR`, in `/tmp` or gitignored in the session's root outside `node_modules`; `npx vitest run`, `npx tsc --noEmit`, `npx eslint` without `--fix` and `npx prettier --check`, with no flag that writes a file; `git mv` and `git rm` without a force flag; a runner step's `git restore` in its own workspace | 1. A path with a variable other than a leading `$TMPDIR`, a glob, braces or `~` counts as outside |
-| `grep`, `rg`, `cat`, `head`, `tail`, `wc`, `ls`, `jq`, `cd`, `find`; the stdout filters `sort`, `uniq`, `cut`, `tr`, `echo`, `printf`, `pwd`, and `sed` or `awk` with no write or exec; `git log`, `show`, `status`, `diff`, `rev-parse`, `ls-files`, `merge-base`, `blame` and `grep`, plain or through `-C`, `--git-dir` or `--work-tree` | free: reads. Not with an option that runs a program or writes a file (`find -exec`, `rg --pre`, `git grep -O`, `sort -o`, `uniq`'s second operand, `sed`'s `w` or `e`, `awk`'s `system` or `>`), a redirect the row above doesn't cover (`2>&1`, `>&2` and `>/dev/null` are fine), an env prefix, `git -c`, a heredoc or `$(…)` |
+| `grep`, `rg`, `cat`, `head`, `tail`, `wc`, `ls`, `jq`, `cd`, `find`; the stdout filters `sort`, `uniq`, `cut`, `tr`, `echo`, `printf`, `pwd`, and `sed` or `awk` with no write or exec; `git log`, `show`, `status`, `diff`, `rev-parse`, `ls-files`, `merge-base`, `blame` and `grep`, plain or through `-C`, `--git-dir` or `--work-tree`; `gh label list` | free: reads. Not with an option that runs a program or writes a file (`find -exec`, `rg --pre`, `git grep -O`, `sort -o`, `uniq`'s second operand, `sed`'s `w` or `e`, `awk`'s `system` or `>`), a redirect the row above doesn't cover (`2>&1`, `>&2` and `>/dev/null` are fine), an env prefix, `git -c`, a heredoc or `$(…)` |
 | Inline code: `node -e`, `-p` or their long forms, `node` with no script (stdin), `python3 -c` | refused, naming `jq` and a scratch helper, since that way through is free |
 | `node` on a tracked file or anything else but a scratch helper, inline code or `--version` | 3: a deliverable script can open the `clasp` credential or reach the network unseen, so a script being built runs through its tests or its `npm run` alias |
 | `git commit`, on any branch | 1; the branch guard still keeps a primary checkout on its branch, and the primary-edit guard keeps the commit out of one |
@@ -38,14 +38,16 @@ Reads need no yes in any tier.
 | gworkspace write on a file someone else owns, or whose owner can't be looked up | 3 |
 | `manage_drive_access`, `set_drive_file_permissions`, an `update_drive_file` that changes sharing or moves a file into a folder | 3 |
 | A `gmail` filter, label or message-label change | 3: Gmail keeps no version history. The yes is the developer's `/inbox` Sign-off in the chat; `gmailGate.ts` allows a call one `signed-off` Proposal covers and asks for any other. Settings deny sending and drafting |
-| `gh issue close`, `gh issue edit`, `gh issue comment` | free: `gh issue reopen` and a further edit or comment undo them. A runner step gets only `edit` and `comment`; its `close` and every other `gh` call are refused. Its `edit` or `comment` holding a backtick, `$(…)`, heredoc or `$'…'` is refused naming `--body-file`, since that way through is free |
+| `gh issue close`, `gh issue edit`, `gh issue comment` | free: `gh issue reopen` and a further edit or comment undo them. A runner step gets only `edit` and `comment`; its `close` and every other `gh` call but `gh label list` are refused. Its `edit` or `comment` holding a backtick, `$(…)`, heredoc or `$'…'` is refused naming `--body-file`, since that way through is free |
+| In an Interactive session: `gh issue create`; `gh api` sending no body, or with `-X GET`; `gh api` POST or DELETE on an issue's `dependencies/blocked_by` or `sub_issues` (`sub_issue` to remove) | free: `gh issue close` undoes a create, and the opposite call a link. A runner step's are refused: it reads issues through `npm run issue:read`, which labels Trusted and Untrusted text |
 | `npm run issue:backlink` | free: a further `gh issue edit` undoes it |
 | A raw `git push` | 3 |
 | `npm publish` | 3, [below](#npm-publish) |
 | A bare `clasp …` or `npx sheets-framework …` | 3: it names no target |
 | Any other script that opens the `clasp` credential | 3 |
 | Spending money; touching credentials | 3; no tool does either yet, so the first one lands gated |
-| `npm run jev`, `npm run jev:style` | a standing yes: Deliverable text and repo docs, never secrets, `.env` files or credential files ([the Jev doc](./agents/jev.md#what-may-be-sent)) |
+| `npm run jev`, `npm run jev:style` | a standing yes, a runner step's included: Deliverable text and repo docs, never secrets, `.env` files or credential files ([the Jev doc](./agents/jev.md#what-may-be-sent)) |
+| `npm run session:probe -- <folder>` | free: its one-turn session only reports what the folder's hooks see |
 
 **`timeout` and `npm run -s` leave a command's tier as it is.**
 
