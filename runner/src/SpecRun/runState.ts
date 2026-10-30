@@ -67,7 +67,7 @@ export interface IssueComment {
 }
 
 export interface RunResult {
-  kind: "finished" | "refused" | "stopped";
+  kind: "finished" | "refused" | "stopped" | "restarting";
   landed: IssueRef[];
   message: string;
 }

@@ -50,6 +50,8 @@ export interface RunKnobs {
   reviewListCadence: ReviewListCadence;
   // How often an idle run reads the spec issue for answers and its tickets for released leases.
   idlePollMs: number;
+  // The root repo's folders holding the runner's own source; a landing that changes one ends the run in a Restart.
+  runnerPaths: string[];
   // The limit guard holds a step while the Active account's five-hour window is at or past this fraction of its limit.
   fiveHourPauseAt: number;
   // The limit guard Stops, rather than waits, once the weekly window is at or past this fraction of its limit.
@@ -92,6 +94,7 @@ export const defaultRunKnobs: RunKnobs = {
   gapCheckPair: { model: "opus", effort: "medium" },
   reviewListCadence: "end-of-run",
   idlePollMs: 60_000,
+  runnerPaths: [],
   fiveHourPauseAt: 0.9,
   weeklyReserveAt: 1,
   limitWaitMarginMs: 5 * minuteMs,
