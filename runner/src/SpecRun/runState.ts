@@ -32,6 +32,7 @@ import {
   type LeaseHolder,
   type Workspace,
 } from "../IssueWorkspaces.ts";
+import { type MergeMasterRecord } from "../mergeMasterStep.ts";
 import { type ResolveRecord, whatReviewCaughtOf } from "../resolveStep.ts";
 import type { Finding } from "../reviewStep.ts";
 import type { Command, RunKnobs } from "../runKnobs.ts";
@@ -142,6 +143,8 @@ export interface TicketState {
   redChecksLogPath?: string;
   // Counts the wrap-up conflict's merge-master resumes; cleared when a Failure Halt is answered.
   conflictResumes?: number;
+  // The latest merge-master record, shown on the review list once the ticket lands.
+  mergeMasterRecord?: MergeMasterRecord;
   // The heads before the latest implement step, which a continued session's record is checked against.
   implementBase?: Heads;
   // Kept across a rerun, so the step after a handoff starts from it; cleared by any other implement record.

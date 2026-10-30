@@ -2,7 +2,7 @@
 
 import { stepReadLine } from "./IssueReader.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
-import { objectSchema, stringSchema } from "./recordSchema.ts";
+import { arraySchema, objectSchema, stringSchema } from "./recordSchema.ts";
 
 export interface MergeMasterPromptInput {
   issue: IssueRef;
@@ -32,11 +32,19 @@ Landing ${issue.repo}#${issue.number}, "${title}", conflicted with master, which
 
 ## When you're done
 
-Return \`summary\`: one or two sentences on what conflicted and how you resolved it.
+Return \`summary\`, one or two sentences on what conflicted and how you resolved it, and \`files\`, each file that conflicted as \`<repo> <path>\`.
 
 ## The conflict
 
 ${conflict}`;
 }
 
-export const mergeMasterOutputSchema = objectSchema({ summary: stringSchema });
+export interface MergeMasterRecord {
+  summary: string;
+  files: string[];
+}
+
+export const mergeMasterOutputSchema = objectSchema({
+  summary: stringSchema,
+  files: arraySchema(stringSchema, { minItems: 1 }),
+});

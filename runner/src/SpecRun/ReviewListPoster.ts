@@ -1,4 +1,4 @@
-// The review lists and the gap check. At landing a ticket with resolve records gets one review-list comment on the spec and each
+// The review lists and the gap check. At landing a ticket with resolve records or a merge-master record gets one review-list comment on the spec and each
 // covered-later Dismiss a note on its later ticket, each checked for its marker first; once every ticket is closed, _finish
 // posts any review list a killed run missed and runs the gap check, whose gaps become the last review list.
 // RunLoop.ts calls _finish; SessionReviewer.ts calls _runnersSpecCommentsOf and _postCoveredLaterNotes; TicketLander.ts calls _postReviewList at landing.
@@ -80,6 +80,7 @@ export class ReviewListPoster extends SpecRunBase {
       ticket: ticket.issue,
       title: ticket.title,
       records,
+      mergeMasterRecord: state.mergeMasterRecord,
     });
     if (body !== undefined && !(await this._hasReviewList(run, ticket.issue))) {
       await this._postReviewListComment(run, ticket.issue, body);
