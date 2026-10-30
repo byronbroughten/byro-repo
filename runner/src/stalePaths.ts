@@ -1,4 +1,4 @@
-// The stale-path check: each packages/<dir> mention in tracked text, test files aside, whose folder holds no clone.
+// The stale-path check: each packages/<dir> mention in tracked text, test files and outcome records aside, whose folder holds no clone.
 import { execFile } from "node:child_process";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -81,7 +81,7 @@ async function repoStalePathsOf(
   return lines(output).flatMap((grepLine) => {
     const [prefixedFile = "", line = "", text = ""] = grepLine.split("\0");
     const file = prefixedFile.slice(refPrefix.length);
-    if (isTestFile(file)) return [];
+    if (isTestFile(file) || isOutcomeRecord(file)) return [];
     return [...text.matchAll(mentionRegex)].flatMap(([path = ""]) =>
       cloneFolders.has(path) ? [] : [{ repo, file, line: Number(line), path }],
     );
@@ -113,4 +113,9 @@ async function grepOf(folder: string, args: string[]): Promise<string> {
 
 function isTestFile(file: string): boolean {
   return /\.test\.[^/]+$/.test(file) || file.includes("__snapshots__/");
+}
+
+// Outcome records quote history, so they keep naming old paths.
+function isOutcomeRecord(file: string): boolean {
+  return file.startsWith("docs/agents/outcomes/");
 }

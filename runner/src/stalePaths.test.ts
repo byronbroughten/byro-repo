@@ -98,9 +98,43 @@ describe("stalePathsOf", () => {
 
     expect(await stalePathsOf({ primaryRoot, clonePaths })).toEqual([]);
   });
+
+  it("skips outcome records, which quote old paths, but not the same mention elsewhere", async () => {
+    commitFiles(primaryRoot, {
+      "docs/agents/outcomes/byro-repo-412/personal-21.md":
+        "Moved packages/writing.\n",
+      "docs/agents/guide.md": "Moved packages/writing.\n",
+    });
+
+    expect(await stalePathsOf({ primaryRoot, clonePaths })).toEqual([
+      {
+        repo: "byro-repo",
+        file: "docs/agents/guide.md",
+        line: 1,
+        path: "packages/writing",
+      },
+    ]);
+  });
 });
 
 describe("stalePathsTouchedBy", () => {
+  it("skips outcome records in the files a branch changes", async () => {
+    git(primaryRoot, "switch", "-q", "-c", "issue-1-fix");
+    commitFiles(primaryRoot, {
+      "docs/agents/outcomes/a/b-1.md": "Was packages/writing.\n",
+      "new.md": "Was packages/writing.\n",
+    });
+    git(primaryRoot, "switch", "-q", "master");
+
+    expect(
+      await stalePathsTouchedBy({ primaryRoot, clonePaths }, [
+        { repo: "byro-repo", branch: "issue-1-fix" },
+      ]),
+    ).toEqual([
+      { repo: "byro-repo", file: "new.md", line: 1, path: "packages/writing" },
+    ]);
+  });
+
   it("finds stale mentions only in the files a branch changes", async () => {
     commitFiles(primaryRoot, { "old.md": "Was in packages/writing.\n" });
     git(primaryRoot, "switch", "-q", "-c", "issue-1-fix");
