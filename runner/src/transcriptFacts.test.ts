@@ -182,6 +182,23 @@ describe("transcriptFactsOf", () => {
     ).toBeUndefined();
   });
 
+  it("prices a Haiku transcript", () => {
+    const fix = join(
+      configFolder,
+      "projects",
+      "-workspace-byro-repo",
+      "session-fix.jsonl",
+    );
+    writeFileSync(
+      fix,
+      readFileSync(fix, "utf8").replace("claude-opus-5-5", "claude-haiku-5-5"),
+    );
+    expect(transcriptFactsOf(sessions(), handoffs).reviewCostUsd).toBeCloseTo(
+      0.085,
+      6,
+    );
+  });
+
   it("leaves cost unrecorded when an implementer's model has no price", () => {
     const implement = join(
       configFolder,

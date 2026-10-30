@@ -22,8 +22,18 @@ describe("pairOf", () => {
     });
   });
 
-  it("refuses a pair outside the five", () => {
+  it("reads Haiku medium", () => {
+    expect(pairOf(bodyWith("## Model fit\nHaiku medium\nTiny."))).toEqual({
+      model: "haiku",
+      effort: "medium",
+    });
+  });
+
+  it("refuses a pair outside the six", () => {
     expect(pairOf(bodyWith("## Model fit\n\nSonnet low\nToo cheap."))).toBe(
+      undefined,
+    );
+    expect(pairOf(bodyWith("## Model fit\n\nHaiku high\nToo much."))).toBe(
       undefined,
     );
   });

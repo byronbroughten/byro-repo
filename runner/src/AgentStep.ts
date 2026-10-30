@@ -9,7 +9,7 @@ export interface AgentStep {
 }
 
 export interface Pair {
-  model: "sonnet" | "opus";
+  model: "haiku" | "sonnet" | "opus";
   effort: "low" | "medium" | "high";
 }
 

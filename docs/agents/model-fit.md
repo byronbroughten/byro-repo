@@ -4,10 +4,11 @@ The criteria behind the model and effort pair in a ticket's `## Model fit` secti
 
 ## Model versions and review date
 
-Checked against Opus 5.5 and Sonnet 5.5. Reviewed 2026-09-30; Grok left the pairs in 2026-10, and its figures below stay as history.
+Checked against Opus 5.5, Sonnet 5.5 and Haiku 5.5. Reviewed 2026-09-30; Grok left the pairs in 2026-10, and its figures below stay as history.
 
 ## Criteria for each pair
 
+- **Haiku medium:** smaller than the Sonnet medium shape: code only, one or two files, with the names and changes the ticket states word for word.
 - **Sonnet medium:** code only, and `tsc`, tests or lint check the whole diff: a pattern followed across several files, or names the ticket states word for word.
 - **Sonnet high:** the Opus low shape (fully specified, an existing pattern, one package) when the ticket writes no prose or comment and chooses no names.
 - **Opus low:** fully specified, an existing pattern, one package. Examples: a chore, an endpoint on existing machinery, a migrate batch needing some judgment, a retarget needing new names.

@@ -48,7 +48,7 @@
 - **`/piece-tickets` and `/piece-spec` stay chat only**: a read-back list like `/code-tickets`' or one chat line, never in a ticket, comment or parent issue, with `/piece-tickets` as the recommendation for a spec too big for one session.
 - **The developer switches with `/model` and `/effort`**; never dispatch an implementer.
 - **A Model fit check compares the model only**: the agent can't see `/effort`, so it names an effort only when the developer has said what it is.
-- **Pick from five pairs only:** Sonnet medium, Sonnet high, Opus low, Opus medium, Opus high. Criteria for each and their evidence: [`model-fit.md`](./model-fit.md).
+- **Pick from six pairs only:** Haiku medium, Sonnet medium, Sonnet high, Opus low, Opus medium, Opus high. Criteria for each and their evidence: [`model-fit.md`](./model-fit.md).
 - **Tie-break: the cheapest pair likely to pass review on the first try.** Cost is the Claude Code weekly limit.
 
 ## Handoffs

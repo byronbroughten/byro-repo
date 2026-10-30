@@ -1,4 +1,4 @@
-// Reads a ticket's `## Model fit` section: the last section of its body, a pair line naming one of the five pairs, then a reason.
+// Reads a ticket's `## Model fit` section: the last section of its body, a pair line naming one of the six pairs, then a reason.
 // The pairs and their criteria are byro-repo's docs/agents/model-fit.md; SpecRun.ts reads the pair just before each launch.
 
 import type { Pair } from "./AgentStep.ts";
@@ -6,6 +6,7 @@ import type { Pair } from "./AgentStep.ts";
 const sectionHeading = "## Model fit";
 
 const pairs: Record<string, Pair> = {
+  "haiku medium": { model: "haiku", effort: "medium" },
   "sonnet medium": { model: "sonnet", effort: "medium" },
   "sonnet high": { model: "sonnet", effort: "high" },
   "opus low": { model: "opus", effort: "low" },
@@ -43,7 +44,7 @@ const pairRanks: {
   model: Record<Pair["model"], number>;
   effort: Record<Pair["effort"], number>;
 } = {
-  model: { sonnet: 0, opus: 1 },
+  model: { haiku: 0, sonnet: 1, opus: 2 },
   effort: { low: 0, medium: 1, high: 2 },
 };
 
