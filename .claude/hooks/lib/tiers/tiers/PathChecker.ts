@@ -1,16 +1,16 @@
-// The paths a call names, checked against the places it runs in: the write rule, scratch `node` files and `cd` targets.
+// The paths a call names, checked against the places it runs in: the write rule, scratch `node` files, `cd` targets and the step's own checkout.
 import { isAbsolute } from "node:path";
 
-import { isSedScriptPrinting, sedCallOf } from "../stdoutFilters.ts";
 import {
   isStepWritable,
+  partsClearOfGit,
   partsInside,
   resolvedPathOf,
   tmpPartsOf,
 } from "../stepWrites.ts";
 import type { ShellPlaces, Verdict } from "../tiers.ts";
 
-export class ShellPaths {
+export class PathChecker {
   // Absent, no write passes the write rule and no `node` file is scratch.
   readonly places: ShellPlaces | undefined;
 
@@ -18,8 +18,8 @@ export class ShellPaths {
     this.places = places;
   }
 
-  static init(places: ShellPlaces | undefined): ShellPaths {
-    return new ShellPaths(places);
+  static init(places: ShellPlaces | undefined): PathChecker {
+    return new PathChecker(places);
   }
 
   cdTargetOf(target: string | undefined): string | undefined {
@@ -69,38 +69,25 @@ export class ShellPaths {
     if (!isPlainPath(path)) return false;
     return isStepWritable(absoluteOf(path, places.cwd), places);
   }
+
+  // The workspace root, or a folder under it that no nested `.git` holds.
+  get isCwdInWorkspaceCheckout(): boolean {
+    const { places } = this;
+    if (!places) return false;
+    const cwd = resolvedPathOf(places.cwd, places);
+    if (cwd === undefined) return false;
+    if (
+      cwd === (places.realPathOf(places.workspaceRoot) ?? places.workspaceRoot)
+    ) {
+      return true;
+    }
+    return partsClearOfGit(cwd, places.workspaceRoot, places) !== undefined;
+  }
 }
 
 // The step write rule's places, as every write verdict names them.
 export const writablePlaces = "inside the workspace, `$TMPDIR` or `/tmp`";
 
-// The paths rm, mkdir, cp, mv or sed -i writes, or undefined for any other program.
-export function writtenPathsOf(
-  program: string,
-  args: string[],
-): string[] | undefined {
-  if (program === "sed") {
-    const call = sedCallOf(args);
-    if (!call?.isInPlace || !isSedScriptPrinting(call)) return undefined;
-    return call.files.length > 0 ? call.files : [""];
-  }
-  if (!fileCommands.has(program)) return undefined;
-  const paths: string[] = [];
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i] ?? "";
-    if (arg === "--") {
-      paths.push(...args.slice(i + 1));
-      break;
-    }
-    if (arg.startsWith("--target-directory=")) {
-      paths.push(arg.slice("--target-directory=".length));
-    } else if (program === "mkdir" && arg === "-m") i++;
-    else if (!arg.startsWith("-")) paths.push(arg);
-  }
-  return paths.length > 0 ? paths : [""];
-}
-
-const fileCommands = new Set(["rm", "mkdir", "cp", "mv"]);
 // Gitignored, but an installed package's bin is a tool such as clasp, not a scratch helper.
 const installedPackages = "node_modules";
 

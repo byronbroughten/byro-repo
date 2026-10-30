@@ -1,5 +1,5 @@
 // Decides the gate for a Bash call by tier: 1 and 2 are free (git or Google's version history undoes them), 3 asks. Pure; tierGate.ts does the I/O, and driveTiers.ts decides gworkspace calls.
-// The classifiers' helpers live in tiers/: git calls, paths, npm commands and runner-step verdicts.
+// The classifiers' helpers live in tiers/: git calls, paths, file commands, npm commands and runner-step verdicts.
 import {
   npmScriptOf,
   type SimpleCommand,
@@ -8,14 +8,11 @@ import {
 import { GhApiCall } from "./GhApiCall.ts";
 import { stdoutFilters } from "./stdoutFilters.ts";
 import type { WritePlaces } from "./stepWrites.ts";
+import { fileCommands } from "./tiers/fileCommands.ts";
 import { GitCall } from "./tiers/GitCall.ts";
-import { checkWhy, freeScripts, npmCommands } from "./tiers/npmCommands.ts";
+import { npmCommands } from "./tiers/npmCommands.ts";
+import { PathChecker, writablePlaces } from "./tiers/PathChecker.ts";
 import { runnerStep } from "./tiers/runnerStep.ts";
-import {
-  ShellPaths,
-  writablePlaces,
-  writtenPathsOf,
-} from "./tiers/ShellPaths.ts";
 
 export interface Decision {
   permissionDecision: "allow" | "ask" | "deny";
@@ -192,7 +189,7 @@ function baseDecision({
     const here = places && cwd !== undefined ? { ...places, cwd } : undefined;
     if (simple.words[0] === "cd") {
       cwd = cdCarriesOn
-        ? ShellPaths.init(here).cdTargetOf(simple.words[1])
+        ? PathChecker.init(here).cdTargetOf(simple.words[1])
         : undefined;
     }
     return verdictOf(simple, {
@@ -273,7 +270,7 @@ function verdictOf(
   simple: SimpleCommand,
   context: CallContext,
 ): Verdict | undefined {
-  const writeAsk = ShellPaths.init(context.places).writeAskAmong(
+  const writeAsk = PathChecker.init(context.places).writeAskAmong(
     simple.outputFiles,
   );
   if (writeAsk) return writeAsk;
@@ -317,10 +314,10 @@ function timeoutWrappedOf(words: string[]): string[] | undefined {
   return wrapped.length > 0 ? wrapped : undefined;
 }
 
-// The tier table's rows in docs/targets-and-gates.md, in the order they're tried; the first verdict wins, so the order decides which of two matching rows applies.
+// The tier table's rules in docs/targets-and-gates.md, in the order they're tried, which isn't the table's; a row may take several entries. The first verdict wins, so the order decides which of two matching rules applies.
 const classifiers: Classifier[] = [
-  stepGhVerdictOf,
-  stepLiveAliasVerdictOf,
+  runnerStep.ghVerdictOf,
+  runnerStep.liveAliasVerdictOf,
   sessionGhVerdictOf,
   choreSendVerdictOf,
   commitVerdictOf,
@@ -328,7 +325,7 @@ const classifiers: Classifier[] = [
   branchVerdictOf,
   mergeVerdictOf,
   trackedFileVerdictOf,
-  stepRestoreVerdictOf,
+  runnerStep.restoreVerdictOf,
   readVerdictOf,
   fileVerdictOf,
   pushVerdictOf,
@@ -339,22 +336,6 @@ const classifiers: Classifier[] = [
   npxCheckVerdictOf,
   interpreterVerdictOf,
 ];
-
-function stepGhVerdictOf(
-  { words }: SimpleCommand,
-  { mode }: CallContext,
-): Verdict | undefined {
-  if (mode !== "runnerStep") return undefined;
-  return runnerStep.ghVerdictOf(words);
-}
-
-function stepLiveAliasVerdictOf(
-  { words }: SimpleCommand,
-  context: CallContext,
-): Verdict | undefined {
-  if (context.mode !== "runnerStep") return undefined;
-  return runnerStep.liveAliasVerdictOf(words, context);
-}
 
 // An Interactive session's issue create, issue links and `gh api` reads; a runner step's stay refused, as its reads go through `issue:read`'s Trusted and Untrusted labels.
 function sessionGhVerdictOf(
@@ -398,9 +379,7 @@ function choreSendVerdictOf(
   { words }: SimpleCommand,
   { dryRuns }: CallContext,
 ): Verdict | undefined {
-  const chore = npmCommands.appChoreOf(words);
-  if (!chore?.isSend) return undefined;
-  return npmCommands.sendVerdictOf(chore.name, dryRuns);
+  return npmCommands.choreSendVerdictOf(words, dryRuns);
 }
 
 function commitVerdictOf({ words }: SimpleCommand): Verdict | undefined {
@@ -440,19 +419,6 @@ function trackedFileVerdictOf(simple: SimpleCommand): Verdict | undefined {
   return {
     permissionDecision: "allow",
     why: "git can undo moving or removing a tracked file",
-    needsPlainText: true,
-  };
-}
-
-function stepRestoreVerdictOf(
-  simple: SimpleCommand,
-  context: CallContext,
-): Verdict | undefined {
-  if (plainGitOf(simple)?.verb !== "restore") return undefined;
-  if (!runnerStep.isOwnStepCheckout(simple.words, context)) return undefined;
-  return {
-    permissionDecision: "allow",
-    why: "a runner step's `git restore` changes only its own workspace",
     needsPlainText: true,
   };
 }
@@ -500,9 +466,9 @@ function fileVerdictOf(
 ): Verdict | undefined {
   if (!isBare) return undefined;
   const [program = "", ...args] = words;
-  const paths = writtenPathsOf(program, args);
+  const paths = fileCommands.writtenPathsOf(program, args);
   if (paths) {
-    const writeAsk = ShellPaths.init(places).writeAskAmong(paths);
+    const writeAsk = PathChecker.init(places).writeAskAmong(paths);
     if (writeAsk) return writeAsk;
     return {
       permissionDecision: "allow",
@@ -560,17 +526,14 @@ function forcedRemoveVerdictOf({ words }: SimpleCommand): Verdict | undefined {
 }
 
 function freeScriptVerdictOf({ words }: SimpleCommand): Verdict | undefined {
-  // A --prefix runs another folder's scripts under the same name.
-  const scriptName = words.some((word) => word.startsWith("--prefix"))
-    ? undefined
-    : (npmScriptOf(words)?.name ?? npmCommands.npmTestOf(words));
-  const freeWhy = scriptName && freeScripts.get(scriptName);
+  const freeWhy = npmCommands.freeScriptWhyOf(words);
   if (!freeWhy) return undefined;
   return { permissionDecision: "allow", why: freeWhy };
 }
 
 function npxCheckVerdictOf({ words }: SimpleCommand): Verdict | undefined {
-  if (!npmCommands.isNpxCheck(words)) return undefined;
+  const checkWhy = npmCommands.npxCheckWhyOf(words);
+  if (!checkWhy) return undefined;
   return { permissionDecision: "allow", why: checkWhy };
 }
 
@@ -600,7 +563,7 @@ function interpreterVerdictOf(
     args
       .slice(0, at)
       .every((flag) => interpreters.nodeScratchFlags.has(flag)) &&
-    ShellPaths.init(places).isScratchFile(args[at] ?? "");
+    PathChecker.init(places).isScratchFile(args[at] ?? "");
   if (!isScratch) {
     return { permissionDecision: "ask", why: interpreters.nodeWhy };
   }
