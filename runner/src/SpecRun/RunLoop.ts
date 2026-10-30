@@ -350,7 +350,7 @@ function modelFitRefusalOf(
     pairOf(body) === undefined ? [issueLabelOf(issue)] : [],
   );
   if (offenders.length === 0) return undefined;
-  return `Each open ${readyLabel} ticket needs a ## Model fit section naming one of the five pairs; missing or invalid in ${offenders.join(", ")}.`;
+  return `Each open ${readyLabel} ticket needs a ## Model fit section naming one of the six pairs; missing or invalid in ${offenders.join(", ")}.`;
 }
 
 // An open Halt may be answered, and a lease released, while the run waits; anything else needs a rerun.

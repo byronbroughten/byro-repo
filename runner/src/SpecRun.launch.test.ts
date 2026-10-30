@@ -162,7 +162,7 @@ describe("run's Model fit refusal", () => {
       kind: "refused",
       landed: [],
       message:
-        "Each open ready-for-agent ticket needs a ## Model fit section naming one of the five pairs; missing or invalid in byro-repo #2, byro-repo #3.",
+        "Each open ready-for-agent ticket needs a ## Model fit section naming one of the six pairs; missing or invalid in byro-repo #2, byro-repo #3.",
     });
     expect(agentStep.requests).toEqual([]);
     expect(ntfyNotices()).toEqual([]);
