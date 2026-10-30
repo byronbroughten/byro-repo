@@ -1,4 +1,4 @@
-// The supervision record: which spec's run a Supervisor's claude process watches, and how many of its event lines it has explained.
+// The supervision record: which spec's run a Supervisor's claude process watches, how many of its event lines it has explained, and its one watch.
 // One file per pid under the state folder's supervision/, live while that same process runs, as a lease is; the session hooks read it.
 import {
   existsSync,
@@ -27,8 +27,21 @@ export interface SupervisionRecord {
   offset: number;
 }
 
+// A watch process, named as the record names its Supervisor, so a reused pid never passes for the watch it replaced.
+export interface Watcher {
+  pid: number;
+  startedAt?: string;
+}
+
+export interface WatchStart {
+  watcher: Watcher;
+  offset: number;
+}
+
 interface RecordFile extends SupervisionRecord {
   startedAt?: string;
+  // The spec's one watch: a later one replaces it, and it exits once the record names another.
+  watcher?: Watcher;
 }
 
 export class SupervisionRecords {
@@ -54,10 +67,25 @@ export class SupervisionRecords {
       isSameIssue(file.spec, spec),
     );
     const offset = Math.max(0, ...sameSpec.map((file) => file.offset));
+    const watcher = sameSpec.find((file) => file.watcher)?.watcher;
     for (const file of sameSpec) this._remove(file.pid);
     const record = { pid, owner, spec, offset };
-    this._write({ ...record, startedAt: await startTimeOf(pid) });
+    this._write({ ...record, startedAt: await startTimeOf(pid), watcher });
     return record;
+  }
+
+  // Names the pid as the spec's watch, replacing any other; undefined when nobody supervises the spec.
+  async watch(spec: IssueRef, pid: number): Promise<WatchStart | undefined> {
+    const file = this._specFileOf(spec);
+    if (file === undefined) return undefined;
+    const watcher = { pid, startedAt: await startTimeOf(pid) };
+    this._write({ ...file, watcher });
+    return { watcher, offset: file.offset };
+  }
+
+  isWatchedBy(spec: IssueRef, { pid, startedAt }: Watcher): boolean {
+    const watcher = this._specFileOf(spec)?.watcher;
+    return watcher?.pid === pid && watcher.startedAt === startedAt;
   }
 
   async recordOf({ pid }: LeaseHolder): Promise<SupervisionRecord | undefined> {
@@ -107,6 +135,11 @@ export class SupervisionRecords {
     return readdirSync(this.folder)
       .map((name) => this._fileOf(Number(name.replace(/\.json$/, ""))))
       .filter((file): file is RecordFile => file !== undefined);
+  }
+
+  // `supervise` leaves one record per spec.
+  private _specFileOf(spec: IssueRef): RecordFile | undefined {
+    return this._files().find((file) => isSameIssue(file.spec, spec));
   }
 
   // An unreadable record counts as none, so a torn write never leaves a session supervising for good.

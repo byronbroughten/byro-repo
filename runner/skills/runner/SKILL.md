@@ -16,15 +16,21 @@ disable-model-invocation: true
 
 ## 2. Watch
 
-Before catching up, start the `Monitor` tool on `npm run runner -- watch <owner/repo> <n>`. It prints each event line written after it starts, and exits after a `run-ended` line, or at once when the run's process is gone and the file's last start or end line is a `run-ended`. When the process stays gone with no `run-ended` line, it prints one `vanished` line, written to no file, and exits.
+Catch up first (step 3): the watch starts from this session's supervision record. Then run `npm run runner -- watch <owner/repo> <n> --once` as a background Bash call (`run_in_background`), never through the `Monitor` tool. The Bash tool's timeout covers foreground commands only, so an idle run costs no wakes.
 
-The watch only wakes you. On each wake, go to step 3: run `supervise` and explain the lines it prints. They start at the record's offset, so a line the watch and the catch-up both saw is explained once. `supervise` never prints a `vanished` line, since no file holds it: explain it from the watch's output, with no `--advance`. Keep watching until you have explained a `run-ended` or `vanished` line.
+The watch starts at the first event line you haven't explained, so a line written while you explained the last one still wakes you. It prints one line and exits: an event line, or, when the run's process stays gone with no `run-ended` line, one `vanished` line, written to no file. A run that has already ended, with its `run-ended` line explained, ends the watch at once with no output.
+
+Its exit only wakes you. On each one:
+
+- **An event line**: go to step 3, run `supervise` and explain the lines it prints. They start at the record's offset, so a line the watch and the catch-up both saw is explained once. Then re-arm: run the same watch in the background again. After explaining a `run-ended` line, don't re-arm: the run is over.
+- **A `vanished` line**: `supervise` never prints it, since no file holds it: explain it from the watch's output, with no `--advance`, and don't re-arm.
+- **An empty exit**: a newer watch on this spec replaced this one. There is nothing to explain; don't re-arm.
 
 ## 3. Catch up
 
 Run `npm run runner -- supervise <owner/repo> <n>`. It records this session as the spec's Supervisor and prints each unexplained event line, oldest first.
 
-Explain those lines one at a time, oldest first, as step 4 says. After each one, run `npm run runner -- supervise <owner/repo> <n> --advance` before going on to the next. Advance once per line explained, never in a batch: a `/clear` partway through carries on from the line where you stopped.
+Explain those lines one at a time, oldest first, as step 4 says. After each one, run `npm run runner -- supervise <owner/repo> <n> --advance` before going on to the next. Advance once per line explained, never in a batch: a `/clear` partway through carries on from the line where you stopped. Then start or re-arm the watch (step 2).
 
 ## 4. Explain each event
 

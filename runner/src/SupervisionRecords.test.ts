@@ -57,6 +57,12 @@ function deadHolder(): LeaseHolder {
   return { kind: "session", pid };
 }
 
+async function startedWatch(pid: number) {
+  const watch = await records().watch(spec, pid);
+  if (watch === undefined) throw new Error("The spec has no record to watch");
+  return watch;
+}
+
 describe("a supervision record", () => {
   it("is written for a pid and read back with its spec and a zero offset", async () => {
     await records().supervise(me, owner, spec);
@@ -191,5 +197,55 @@ describe("a running supervision record", () => {
     seedRunLock(spec, process.pid);
 
     expect(await records().runningRecordOf(me)).toBeUndefined();
+  });
+});
+
+describe("a spec's watch", () => {
+  it("is recorded in the spec's record, with the record's offset to start from", async () => {
+    appendEvents(spec, "a", "b");
+    await records().supervise(otherLive, owner, spec);
+    await records().advance(otherLive);
+
+    const watch = await startedWatch(process.pid);
+
+    expect(watch).toEqual({
+      offset: 1,
+      watcher: { pid: process.pid, startedAt: expect.any(String) },
+    });
+    expect(records().isWatchedBy(spec, watch.watcher)).toBe(true);
+  });
+
+  it("is replaced by a later watch on the same spec", async () => {
+    await records().supervise(me, owner, spec);
+    const first = await startedWatch(process.pid);
+
+    const second = await startedWatch(process.ppid);
+
+    expect(records().isWatchedBy(spec, first.watcher)).toBe(false);
+    expect(records().isWatchedBy(spec, second.watcher)).toBe(true);
+  });
+
+  it("survives its Supervisor catching up again", async () => {
+    await records().supervise(me, owner, spec);
+    const watch = await startedWatch(process.pid);
+
+    await records().supervise(me, owner, spec);
+
+    expect(records().isWatchedBy(spec, watch.watcher)).toBe(true);
+  });
+
+  it("isn't recorded on a spec nobody supervises", async () => {
+    await records().supervise(me, owner, otherSpec);
+
+    expect(await records().watch(spec, process.pid)).toBeUndefined();
+  });
+
+  it("is over once its record is released", async () => {
+    await records().supervise(me, owner, spec);
+    const watch = await startedWatch(process.pid);
+
+    await records().release(me);
+
+    expect(records().isWatchedBy(spec, watch.watcher)).toBe(false);
   });
 });

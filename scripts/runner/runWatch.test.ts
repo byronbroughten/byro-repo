@@ -3,9 +3,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { eventFilePathOf } from "@byronbroughten/spec-runner/EventFileNotices";
+import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { awaitRunStart, launchReportOf, watchRun } from "./runWatch.ts";
+import {
+  awaitRunStart,
+  launchReportOf,
+  watchOnce,
+  watchRun,
+} from "./runWatch.ts";
 
 const spec = { repo: "byro-repo", number: 412 };
 const launchedAt = new Date("2026-10-25T10:00:00.000Z");
@@ -40,17 +46,19 @@ function at(ms: number): Date {
 }
 
 // Its sleep advances the time, then runs each action scheduled up to the new time.
-function fakeClock(scheduled: Array<{ atMs: number; run: () => void }> = []) {
+function fakeClock(
+  scheduled: Array<{ atMs: number; run: () => void | Promise<void> }> = [],
+) {
   let elapsedMs = 0;
   return {
     now: () => at(elapsedMs),
     async sleep(ms: number) {
       elapsedMs += ms;
       const due = scheduled.filter(({ atMs }) => atMs <= elapsedMs);
-      due.forEach((action) => {
-        action.run();
+      for (const action of due) {
+        await action.run();
         scheduled.splice(scheduled.indexOf(action), 1);
-      });
+      }
     },
   };
 }
@@ -219,5 +227,169 @@ describe("watchRun", () => {
     );
 
     expect(printed).toEqual([]);
+  });
+});
+
+describe("watchOnce", () => {
+  const pollMs = 3_000;
+  const owner = "byronbroughten";
+  const supervisor = { kind: "session", pid: process.pid } as const;
+
+  // A Supervisor that has explained the first `explained` lines of the file.
+  async function supervised(explained: number): Promise<SupervisionRecords> {
+    const records = SupervisionRecords.init(stateFolder);
+    await records.supervise(supervisor, owner, spec);
+    for (let line = 0; line < explained; line++) {
+      await records.advance(supervisor);
+    }
+    return records;
+  }
+
+  it("prints one event line and returns, though the run writes more", async () => {
+    write(lineOf("run-started", at(-5_000)));
+    const records = await supervised(1);
+    const halt = lineOf("halt", at(4_000));
+    const printed: string[] = [];
+    const clock = fakeClock([
+      {
+        atMs: 4_000,
+        run: () => {
+          write(halt);
+          write(lineOf("idle", at(4_000)));
+        },
+      },
+    ]);
+
+    await watchOnce(
+      { owner, spec },
+      {
+        stateFolder,
+        ...clock,
+        pollMs,
+        isRunLive: () => true,
+        print: (line) => printed.push(line),
+        records,
+        pid: process.pid,
+      },
+    );
+
+    expect(printed).toEqual([halt]);
+  });
+
+  it("prints at once a line written before it started but not yet explained", async () => {
+    write(lineOf("run-started", at(-5_000)));
+    const halt = lineOf("halt", at(-1_000));
+    write(halt);
+    const records = await supervised(1);
+    const printed: string[] = [];
+
+    await watchOnce(
+      { owner, spec },
+      {
+        stateFolder,
+        ...fakeClock(),
+        pollMs,
+        isRunLive: () => true,
+        print: (line) => printed.push(line),
+        records,
+        pid: process.pid,
+      },
+    );
+
+    expect(printed).toEqual([halt]);
+  });
+
+  it("prints one vanished line when the run's process is gone with no run-ended line", async () => {
+    write(lineOf("run-started", at(-5_000)));
+    const records = await supervised(1);
+    const printed: string[] = [];
+
+    await watchOnce(
+      { owner, spec },
+      {
+        stateFolder,
+        ...fakeClock(),
+        pollMs,
+        isRunLive: () => false,
+        print: (line) => printed.push(line),
+        records,
+        pid: process.pid,
+      },
+    );
+
+    expect(printed.map((line) => JSON.parse(line))).toEqual([
+      expect.objectContaining({ spec: "byro-repo#412", kind: "vanished" }),
+    ]);
+  });
+
+  it("returns quietly when the run has already ended and its end is explained", async () => {
+    write(lineOf("run-ended", at(-1_000), "stopped"));
+    const records = await supervised(1);
+    const printed: string[] = [];
+
+    await watchOnce(
+      { owner, spec },
+      {
+        stateFolder,
+        ...fakeClock(),
+        pollMs,
+        isRunLive: () => false,
+        print: (line) => printed.push(line),
+        records,
+        pid: process.pid,
+      },
+    );
+
+    expect(printed).toEqual([]);
+  });
+
+  it("refuses a spec nobody supervises", async () => {
+    write(lineOf("run-started", at(-5_000)));
+
+    await expect(
+      watchOnce(
+        { owner, spec },
+        {
+          stateFolder,
+          ...fakeClock(),
+          pollMs,
+          isRunLive: () => true,
+          print: () => undefined,
+          records: SupervisionRecords.init(stateFolder),
+          pid: process.pid,
+        },
+      ),
+    ).rejects.toThrow("run supervise before watch --once");
+  });
+
+  it("exits with no output once another watch replaces it", async () => {
+    write(lineOf("run-started", at(-5_000)));
+    const records = await supervised(1);
+    const printed: string[] = [];
+    const clock = fakeClock([
+      {
+        atMs: 3_000,
+        run: async () => {
+          await records.watch(spec, process.ppid);
+        },
+      },
+      { atMs: 6_000, run: () => write(lineOf("halt", at(6_000))) },
+    ]);
+
+    await watchOnce(
+      { owner, spec },
+      {
+        stateFolder,
+        ...clock,
+        pollMs,
+        isRunLive: () => true,
+        print: (line) => printed.push(line),
+        records,
+        pid: process.pid,
+      },
+    );
+
+    expect(printed).toEqual([]);
+    expect(clock.now()).toEqual(at(3_000));
   });
 });
