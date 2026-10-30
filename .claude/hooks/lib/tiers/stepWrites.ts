@@ -11,8 +11,10 @@ export interface WritePlaces {
 
 // The hooks' per-session state, which a write could forge, such as a chore's dry-run record.
 const guardrailStateDir = "claude-guardrails";
+// On a one-person machine the shared /tmp is as throwaway as $TMPDIR, which on macOS sits elsewhere.
+const sharedTmpDir = "/tmp";
 
-// A path passes when it resolves strictly inside the workspace or $TMPDIR and isn't .git at any depth: a workspace's .git points into the primary's git folder.
+// A path passes when it resolves strictly inside the workspace, $TMPDIR or /tmp and isn't .git at any depth: a workspace's .git points into the primary's git folder.
 export function isStepWritable(path: string, places: WritePlaces): boolean {
   if (!isAbsolute(path)) return false;
   const resolved = resolvedPathOf(path, places);
@@ -22,8 +24,19 @@ export function isStepWritable(path: string, places: WritePlaces): boolean {
       partsClearOfGit(resolved, places.workspaceRoot, places) !== undefined
     );
   }
-  const tmpParts = partsClearOfGit(resolved, places.tmpDir, places);
+  const tmpParts = tmpPartsOf(resolved, places);
   return tmpParts !== undefined && tmpParts[0] !== guardrailStateDir;
+}
+
+// The path's parts below $TMPDIR or /tmp, or undefined when it is strictly inside neither or is in .git at any depth.
+export function tmpPartsOf(
+  resolved: string,
+  places: WritePlaces,
+): string[] | undefined {
+  return (
+    partsClearOfGit(resolved, places.tmpDir, places) ??
+    partsClearOfGit(resolved, sharedTmpDir, places)
+  );
 }
 
 // The path's parts below a root, or undefined when it isn't strictly inside it or is in .git at any depth.
