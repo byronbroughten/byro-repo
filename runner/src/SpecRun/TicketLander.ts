@@ -1,6 +1,6 @@
 // A ticket's checks and landing. Checks run in the workspace until green, resuming whoever made the last commit on red;
 // a red master Stops the run. Landing writes the facts file, runs the wrap-up, resumes the implementer once to merge master
-// on a conflict, and posts the ticket's review list.
+// on a conflict, and posts the ticket's review list, that merge's resolution on it as a Propose `decision`.
 // TicketSequencer.ts calls _check after the resolve step and _land at wrap-up.
 // It builds its own ReviewStepper, ReviewListPoster and HaltRaiser; prompts are ../redChecksStep.ts and ../mergeMasterStep.ts.
 
@@ -11,6 +11,7 @@ import { issueLabelOf } from "../IssueWorkspaces.ts";
 import {
   mergeMasterOutputSchema,
   mergeMasterPrompt,
+  type MergeMasterRecord,
 } from "../mergeMasterStep.ts";
 import { pairLabelOf } from "../modelFit.ts";
 import { redChecksOutputSchema, redChecksPrompt } from "../redChecksStep.ts";
@@ -246,7 +247,12 @@ export class TicketLander extends SpecRunBase {
       return;
     }
     try {
-      recordOf("merge-master", result, logPath);
+      landingTicket.state.mergeMasterRecord = recordOf(
+        "merge-master",
+        result,
+        logPath,
+      ) as MergeMasterRecord;
+      this._saveState(run);
     } catch (error) {
       if (!(error instanceof SchemaFailure)) throw error;
       await this.haltRaiser._failureHalt(landingTicket, {

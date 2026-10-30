@@ -8,6 +8,7 @@
 import type { Gap, GapCheckRecord } from "./gapCheck.ts";
 import { shortRefOf } from "./halts.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
+import type { MergeMasterRecord } from "./mergeMasterStep.ts";
 import { issueRefOf, type ResolveRecord } from "./resolveStep.ts";
 import type { Axis, Verdict } from "./verdicts.ts";
 
@@ -89,6 +90,8 @@ export interface TicketReviewList {
   title: string;
   // Every resolve record the ticket kept, from either side of a Halt.
   records: ResolveRecord[];
+  // Set when a merge-master step resolved the wrap-up's conflict.
+  mergeMaster?: MergeMasterRecord;
 }
 
 // A ticket's groups, each key order the order shown.
@@ -111,13 +114,14 @@ const reviewGroups = {
 const shownAxes = Object.keys(reviewGroups.axes) as Axis[];
 const shownVerdicts = Object.keys(reviewGroups.verdicts) as Verdict[];
 
-// The run's comment and the interactive printout alike; undefined for a review that kept no records.
+// The run's comment and the interactive printout alike; undefined for a review that kept no records and no merge.
 export function ticketReviewListOf({
   ticket,
   title,
   records,
+  mergeMaster,
 }: TicketReviewList): string | undefined {
-  if (records.length === 0) return undefined;
+  if (records.length === 0 && mergeMaster === undefined) return undefined;
   const groups = groupsOf(records);
   // Numbered in the order shown, so R<ticket>.1 is the first Proposal read.
   const proposals = shownAxes.flatMap((axis) => groups[axis].propose);
@@ -129,11 +133,29 @@ export function ticketReviewListOf({
     );
     return shown.length === 0 ? [] : [reviewGroups.axes[axis], ...shown];
   });
+  if (mergeMaster !== undefined) {
+    const id = itemIdOf(ticket, proposals.length);
+    sections.push(mergeMasterSectionOf(id, mergeMaster));
+  }
   return [
     reviewListMarkOf(ticket),
     `**Review list** · ${issueLabelOf(ticket)}, "${title}"`,
     ...sections,
   ].join("\n\n");
+}
+
+// Checks catch a broken merge, not a wrong call on whose intent won, so the developer confirms each resolution.
+function mergeMasterSectionOf(
+  id: string,
+  { summary, files }: MergeMasterRecord,
+): string {
+  const item = itemOf(id, {
+    heading: `Propose \`decision\` · The merge with master resolved conflicts in ${files.join(", ")}`,
+    evidenceLine: `Evidence: ${summary}`,
+    recommendation:
+      "Confirm each resolution kept the intent you want from both sides; correct it on master if not.",
+  });
+  return `### Merge with master\n\n${groupBlockOf("propose", [item])}`;
 }
 
 type RecordGroups = Record<Axis, Record<Verdict, ResolveRecord[]>>;

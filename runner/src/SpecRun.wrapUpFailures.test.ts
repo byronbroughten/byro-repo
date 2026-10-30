@@ -60,11 +60,14 @@ function remoteMaster(): string {
 // Merges master into the ticket's branch keeping the branch's side, as a merge-master step would.
 const mergedMaster: StepScript = async (request) => {
   git(request.cwd, "merge", "-X", "ours", "-m", "Merge master", "master");
-  return resultOf({ summary: "Kept the branch's one.ts." });
+  return resultOf({
+    summary: "Kept the branch's one.ts.",
+    files: ["byro-repo one.ts"],
+  });
 };
 
 const unmerged: StepScript = async () =>
-  resultOf({ summary: "Left it alone." });
+  resultOf({ summary: "Left it alone.", files: ["byro-repo one.ts"] });
 
 // Commits one.ts on the branch after master gained its own, so the wrap-up conflicts.
 const conflicting = implemented("one.ts", {
@@ -86,6 +89,26 @@ describe("run's wrap-up failures", () => {
     expect(progressLines().map(eventOf)).toContain(
       "byro-repo #1: the wrap-up conflicted with master; resuming the implementer to merge it.",
     );
+  });
+
+  it("posts the merge-master resolution as the review list's one `decision` Propose, naming its files and summary", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(conflicting, reviewed(), mergedMaster);
+
+    await specRun(agentStep).run(spec);
+
+    const lists = github.comments
+      .filter(({ issue }) => issue.number === 213)
+      .map(({ body }) => body)
+      .filter((body) => body.includes("<!-- review-list ticket=#1 -->"));
+    expect(lists).toEqual([
+      [
+        "<!-- spec-runner -->\n<!-- review-list ticket=#1 -->",
+        '**Review list** · byro-repo #1, "Ticket 1"',
+        "### Merge with master",
+        "**Proposed**\n\n- [ ] **R1.1** · Propose `decision` · The merge with master resolved conflicts in byro-repo one.ts\n  Evidence: Kept the branch's one.ts.\n  Recommendation: Confirm each resolution kept the intent you want from both sides; correct it on master if not.",
+      ].join("\n\n"),
+    ]);
   });
 
   it("merges master in a fresh session when the implementer's session has no conversation, then lands", async () => {
