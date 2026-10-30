@@ -1,0 +1,7 @@
+# sheets-framework#159 outcome
+
+Spec: [byro-repo#372](https://github.com/byronbroughten/byro-repo/issues/372)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #159 | Opus medium | 3, 1 | 7 | 141K | Halted then passed (denied-tool blocker) | 2 | 1 | 0 | 19 min | $5.34 | $6.48 | Fixed: ADR 0018 says the host installs a script property, but node-host.md says there is no PropertiesService stub. (packages/framework/docs/adr/0018-give-the-framework-a-node-host-that-reaches-sheets-and-nothing-else.md:3); The rejected fixed-GID alternative was deleted and ADR 0017 doesn't carry it. (packages/framework/docs/design/structure-vs-identity.md:11); Both lines point at ADR 0017 and still restate its content. (packages/framework/docs/design/structure-vs-identity.md:11; deliberate-absence.md:15); The fixed-GID rejection argument was lost. (packages/framework/docs/design/structure-vs-identity.md:11). Proposed: The findings comment hasn't been posted. (sheets-framework#159 comments); Bullets 1, 3, 6 and 8 have no ADR link and nothing records why. (packages/framework/docs/design/deliberate-absence.md bullets 1, 3, 6, 8). | fe6fc4ca-468b-4637-bcf4-13fff4d8ba85, af64af85-8988-4bf5-9445-7979a3fff9c5 |
