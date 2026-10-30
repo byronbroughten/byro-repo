@@ -269,7 +269,7 @@ export class GhCli implements RunGitHub, IssueSource {
 
 function isTransient(error: unknown): boolean {
   const stderr = String((error as { stderr?: unknown }).stderr ?? "");
-  return /HTTP 5\d\d|error connecting to|connection reset|i\/o timeout|TLS handshake timeout|EOF$/m.test(
+  return /HTTP 5\d\d|error connecting to|connection reset|i\/o timeout|TLS handshake timeout/.test(
     stderr,
   );
 }
