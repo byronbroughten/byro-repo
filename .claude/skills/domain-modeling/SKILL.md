@@ -83,7 +83,7 @@ When an ADR is written, backlink it from the issue its `Source:` names, by the c
 
 ### Build principles on ADRs
 
-Principles live in the repo's design doc: `packages/framework/docs/design.md` with its reasoning files for the framework, and `docs/agent-behavior-design.md` for agent behavior. A principle may rest on one ADR, and earns its line only by deciding cases its ADRs don't name. It gets a reasoning file only for what no single ADR holds, the argument across several ADRs or a citable case beyond its one ADR; otherwise its line links its ADR directly. After writing an ADR:
+Principles live in the repo's design doc: `packages/framework/docs/design.md` with its reasoning files for the framework, and `docs/agent-behavior-design.md` for agent behavior. **A principle may rest on one ADR, and gets a reasoning file only for what no single ADR holds** ([ADR 0020](../../../docs/adr/0020-a-principle-may-rest-on-one-adr-and-a-reasoning-file-holds-only-what-no-adr-holds.md)). After writing an ADR:
 
 - **An instance**: when it makes an existing principle's argument, add it to that principle's reasoning without asking, as a link plus one clause on how the ADR makes the argument. A principle whose line linked its one ADR directly gets a reasoning file once it has a second.
 - **A new principle**: read every ADR body in the repo's `docs/adr/`; there is no index file. When the new ADR, alone or with past ones, makes an argument no principle covers that decides cases the ADRs don't name, propose a one-line principle citing them. Write its line, and any reasoning file, only after the developer approves.
