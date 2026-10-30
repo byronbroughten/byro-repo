@@ -39,6 +39,7 @@
     "./contextMeter": "./src/contextMeter.ts",
     "./contextNudge": "./src/contextNudge.ts",
     "./limitGuard": "./src/limitGuard.ts",
+    "./outcomeBackfill": "./src/outcomeBackfill.ts",
     "./outcomeLog": "./src/outcomeLog.ts",
     "./outcomeRowWriter": "./src/outcomeRowWriter.ts",
     "./transcriptFacts": "./src/transcriptFacts.ts",

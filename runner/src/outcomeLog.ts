@@ -24,6 +24,8 @@ const columns = [
   "Session ids",
 ] as const;
 
+type Column = (typeof columns)[number];
+
 // Who resolve's Fixes were made by; `skipped` is a ticket that needed only GitHub writes, so review had no diff to read.
 export type ReviewFixes = "none" | "implementer" | "fresh" | "skipped";
 
@@ -85,6 +87,47 @@ export function outcomeCommitMessage(row: OutcomeRow): string {
 export function peakContextOf({ peakContext }: OutcomeFacts): string {
   if (peakContext === undefined || peakContext.length === 0) return unrecorded;
   return peakContext.map((peak) => `${Math.round(peak / 1000)}K`).join(" → ");
+}
+
+// A written row file with each transcript fact `facts` defines put in its cell; every other cell is kept as written.
+export function withTranscriptCells(file: string, facts: OutcomeFacts): string {
+  const fresh = transcriptCellsOf(facts);
+  const lines = file.split("\n");
+  const rowIndex = lines.findLastIndex((line) => line.startsWith("| "));
+  const cells = (lines[rowIndex] ?? "")
+    .slice(2, -2)
+    .split(/ (?<!\\)\| /)
+    .map((cell, index) => {
+      const column = columns[index];
+      const value = column === undefined ? undefined : fresh[column];
+      return value ?? cell;
+    });
+  lines[rowIndex] = `| ${cells.join(" | ")} |`;
+  return lines.join("\n");
+}
+
+function transcriptCellsOf(
+  facts: OutcomeFacts,
+): Partial<Record<Column, string>> {
+  const cells: Partial<Record<Column, string>> = {};
+  if (facts.pair !== undefined) cells.Pair = facts.pair;
+  if (facts.account !== undefined) cells.Account = facts.account;
+  if (facts.peakContext !== undefined) {
+    cells["Peak context"] = peakContextOf(facts);
+  }
+  if (facts.durationMinutes !== undefined) {
+    cells.Duration = `${facts.durationMinutes} min`;
+  }
+  if (facts.costUsd !== undefined) {
+    cells["Cost (API-equivalent)"] = dollarsOf(facts.costUsd);
+  }
+  if (facts.reviewCostUsd !== undefined) {
+    cells["Review cost"] = dollarsOf(facts.reviewCostUsd);
+  }
+  if (facts.sessionIds !== undefined) {
+    cells["Session ids"] = facts.sessionIds.join(", ");
+  }
+  return cells;
 }
 
 function cellsOf({ issue, filesChanged, facts }: OutcomeRow): string[] {
