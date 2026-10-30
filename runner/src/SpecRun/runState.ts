@@ -143,6 +143,8 @@ export interface TicketState {
   conflictResumes?: number;
   // The latest merge-master record, shown on the review list once the ticket lands.
   mergeMasterRecord?: MergeMasterRecord;
+  // Why a merge-master resume kept no record, shown in the record's place once the ticket lands.
+  unrecordedMerge?: string;
   // The heads before the latest implement step, which a continued session's record is checked against.
   implementBase?: Heads;
   // Kept across a rerun, so the step after a handoff starts from it; cleared by any other implement record.

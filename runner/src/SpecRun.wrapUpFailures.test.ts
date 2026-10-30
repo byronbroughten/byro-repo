@@ -69,6 +69,18 @@ const mergedMaster: StepScript = async (request) => {
 const unmerged: StepScript = async () =>
   resultOf({ summary: "Left it alone.", files: ["byro-repo one.ts"] });
 
+// Each review-list item for a merge-master resolution with no record, up to its recommendation.
+function unrecordedMergeItems(): string[] {
+  return github.comments
+    .filter(({ body }) => body.includes("<!-- review-list ticket=#1 -->"))
+    .flatMap(({ body }) =>
+      body
+        .split("\n- ")
+        .filter((item) => item.includes("kept no record of"))
+        .map((item) => `- ${item.split("\n  Recommendation:")[0]}`),
+    );
+}
+
 // Commits one.ts on the branch after master gained its own, so the wrap-up conflicts.
 const conflicting = implemented("one.ts", {
   act: () => commitOnMaster("one.ts", "export const a = 1;\n"),
@@ -197,6 +209,48 @@ describe("run's wrap-up failures", () => {
     expect(haltComments()[0]).toContain(
       "The wrap-up still conflicts after the merge-master resume",
     );
+  });
+
+  it("posts a `decision` Propose for a turn-capped merge-master's committed merge once it lands", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      conflicting,
+      reviewed(),
+      async (request) => {
+        await mergedMaster(request);
+        return capped;
+      },
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(unrecordedMergeItems()).toEqual([
+      "- [ ] **R1.1** · Propose `decision` · The merge with master resolved conflicts it kept no record of\n  Evidence: The merge-master session hit its turn cap before returning its record.",
+    ]);
+  });
+
+  it("posts a `decision` Propose for a merge whose record failed its schema, once a `retry` lands it", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      conflicting,
+      reviewed(),
+      async (request) => {
+        await mergedMaster(request);
+        return unmatched;
+      },
+    );
+    await specRun(agentStep).run(spec);
+
+    github.reply(213, "H1: retry");
+    const result = await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    const [item] = unrecordedMergeItems();
+    expect(item).toContain(
+      "Evidence: The merge-master session's record failed its checks:",
+    );
+    expect(item).toContain("summary must be a string");
   });
 
   it("posts a Failure Halt on a merge-master record that fails its schema", async () => {

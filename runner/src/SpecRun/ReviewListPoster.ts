@@ -81,6 +81,7 @@ export class ReviewListPoster extends SpecRunBase {
       title: ticket.title,
       records,
       mergeMasterRecord: state.mergeMasterRecord,
+      unrecordedMerge: state.unrecordedMerge,
     });
     if (body !== undefined && !(await this._hasReviewList(run, ticket.issue))) {
       await this._postReviewListComment(run, ticket.issue, body);

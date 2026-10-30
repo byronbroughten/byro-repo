@@ -196,6 +196,7 @@ export class TicketLander extends SpecRunBase {
     if (error.kind === "conflict") {
       // Its resolution never landed, so a ticket landed some other way after the Halt doesn't show it.
       state.mergeMasterRecord = undefined;
+      state.unrecordedMerge = undefined;
       this._saveState(run);
       detail = `The wrap-up still conflicts after the merge-master resume: ${detail}`;
     }
@@ -249,6 +250,10 @@ export class TicketLander extends SpecRunBase {
     );
     this._saveState(run);
     if (isTurnCapped(result)) {
+      // It may have committed its merge first, which the rerun wrap-up then lands.
+      landingTicket.state.unrecordedMerge =
+        "The merge-master session hit its turn cap before returning its record.";
+      this._saveState(run);
       await this._snapshot(ticketRun, "wrap-up");
       return;
     }
@@ -258,9 +263,12 @@ export class TicketLander extends SpecRunBase {
         result,
         logPath,
       ) as MergeMasterRecord;
+      landingTicket.state.unrecordedMerge = undefined;
       this._saveState(run);
     } catch (error) {
       if (!(error instanceof SchemaFailure)) throw error;
+      landingTicket.state.unrecordedMerge = `The merge-master session's record failed its checks: ${error.message}`;
+      this._saveState(run);
       await this.haltRaiser._failureHalt(landingTicket, {
         step: "wrap-up",
         detail: error.message,

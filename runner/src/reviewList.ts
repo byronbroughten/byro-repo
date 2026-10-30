@@ -92,6 +92,8 @@ export interface TicketReviewList {
   records: ResolveRecord[];
   // Set when a merge-master step resolved the wrap-up's conflict.
   mergeMasterRecord?: MergeMasterRecord;
+  // Set when a merge-master step ran but kept no record, so its merge still gets a Propose.
+  unrecordedMerge?: string;
 }
 
 // A ticket's groups, each key order the order shown; the merge with master comes after the axes.
@@ -122,8 +124,10 @@ export function ticketReviewListOf({
   title,
   records,
   mergeMasterRecord,
+  unrecordedMerge,
 }: TicketReviewList): string | undefined {
-  if (records.length === 0 && mergeMasterRecord === undefined) return undefined;
+  const mergeItem = mergeItemOf(mergeMasterRecord, unrecordedMerge);
+  if (records.length === 0 && mergeItem === undefined) return undefined;
   const groups = groupsOf(records);
   // Numbered in the order shown, so R<ticket>.1 is the first Proposal read.
   const proposals = shownAxes.flatMap((axis) => groups[axis].propose);
@@ -135,9 +139,9 @@ export function ticketReviewListOf({
     );
     return shown.length === 0 ? [] : [reviewGroups.axes[axis], ...shown];
   });
-  if (mergeMasterRecord !== undefined) {
+  if (mergeItem !== undefined) {
     const id = itemIdOf(ticket, proposals.length);
-    sections.push(mergeMasterSectionOf(id, mergeMasterRecord));
+    sections.push(mergeMasterSectionOf(id, mergeItem));
   }
   return [
     reviewListMarkOf(ticket),
@@ -147,19 +151,35 @@ export function ticketReviewListOf({
 }
 
 // Checks catch a broken merge, not a wrong call on whose intent won, so the developer confirms each resolution.
-function mergeMasterSectionOf(
-  id: string,
-  { summary, files }: MergeMasterRecord,
-): string {
-  const item = itemOf(id, {
+function mergeItemOf(
+  record: MergeMasterRecord | undefined,
+  unrecordedMerge: string | undefined,
+): ReviewItem | undefined {
+  if (record !== undefined) {
+    return {
+      heading: proposeHeadingOf(
+        "decision",
+        `The merge with master resolved conflicts in ${record.files.join(", ")}`,
+      ),
+      evidenceLine: `Evidence: ${record.summary}`,
+      recommendation:
+        "Confirm each resolution kept the intent you want from both sides; correct it on master if not.",
+    };
+  }
+  if (unrecordedMerge === undefined) return undefined;
+  return {
     heading: proposeHeadingOf(
       "decision",
-      `The merge with master resolved conflicts in ${files.join(", ")}`,
+      "The merge with master resolved conflicts it kept no record of",
     ),
-    evidenceLine: `Evidence: ${summary}`,
+    evidenceLine: `Evidence: ${unrecordedMerge}`,
     recommendation:
-      "Confirm each resolution kept the intent you want from both sides; correct it on master if not.",
-  });
+      "Read the merge commit on the ticket's branch, and confirm each resolution kept the intent you want from both sides; correct it on master if not.",
+  };
+}
+
+function mergeMasterSectionOf(id: string, mergeItem: ReviewItem): string {
+  const item = itemOf(id, mergeItem);
   return `${reviewGroups.mergeMaster}\n\n${groupBlockOf("propose", [item])}`;
 }
 
