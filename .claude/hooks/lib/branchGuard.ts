@@ -47,7 +47,7 @@ export interface GuardDecision {
 
 type GitActionKind = "branchMove" | "commit" | "other";
 
-interface GitAction {
+export interface GitAction {
   kind: GitActionKind;
   subcommand: string;
   // The primary checkout acted on.
@@ -106,9 +106,11 @@ export function headMovingCheckouts(target: CommandTarget): string[] {
   );
 }
 
-// The primary checkouts the command commits in, for the primary-edit guard.
-export function commitCheckouts(target: CommandTarget): string[] {
-  return checkoutsActedOn(target, ({ kind }) => kind === "commit");
+// The command's commits and merges in a primary checkout, for the primary-edit guard.
+export function primaryCommitsOf(target: CommandTarget): GitAction[] {
+  return gitActionsOf(target, () => false).filter(
+    ({ kind, subcommand }) => kind === "commit" || subcommand === "merge",
+  );
 }
 
 export function isLive(

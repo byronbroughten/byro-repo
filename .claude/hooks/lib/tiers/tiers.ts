@@ -391,6 +391,13 @@ function commandVerdictOf(
       needsPlainText: true,
     };
   }
+  if (isPlainGit && isHookedMerge(git)) {
+    return {
+      permissionDecision: "allow",
+      why: "git can undo a merge (`git merge --abort`, or a reset to `ORIG_HEAD`)",
+      needsPlainText: true,
+    };
+  }
   if (isPlainGit && isTrackedFileChange(git)) {
     return {
       permissionDecision: "allow",
@@ -743,6 +750,11 @@ function isTrackedFileChange({ verb, args }: GitCall): boolean {
     gitFileVerbs.has(verb) &&
     !args.some((arg) => arg === "--force" || /^-[^-]*f/.test(arg))
   );
+}
+
+// Git takes any unambiguous prefix of `--no-verify`, which skips the merge's hooks.
+function isHookedMerge({ verb, args }: GitCall): boolean {
+  return verb === "merge" && !args.some((arg) => arg.startsWith("--no-v"));
 }
 
 // A runner step's workspace holds only that step's work, so a restore there loses nothing anyone else made.

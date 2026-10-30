@@ -1,10 +1,10 @@
-// Decides the primary-edit guard: no session leaves an edit or commit in a primary checkout, where runs land. Pure; primaryEditGuard.ts does the I/O.
+// Decides the primary-edit guard: no session leaves an edit, commit or merge in a primary checkout, where runs land. Pure; primaryEditGuard.ts does the I/O.
 import { resolve } from "node:path";
 
 import {
-  commitCheckouts,
   type GuardDecision,
   primaryCheckoutOf,
+  primaryCommitsOf,
 } from "./branchGuard.ts";
 import type { ToolInput } from "./hookIo.ts";
 
@@ -55,9 +55,9 @@ function commitDenyReason({
   primaryCheckouts,
 }: PrimaryEditInput): string | undefined {
   if (command === undefined) return undefined;
-  const [checkout] = commitCheckouts({ command, cwd, primaryCheckouts });
-  if (!checkout) return undefined;
-  return `\`git commit\` would commit in the primary checkout ${checkout}.`;
+  const [action] = primaryCommitsOf({ command, cwd, primaryCheckouts });
+  if (!action) return undefined;
+  return `\`git ${action.subcommand}\` would ${action.subcommand} in the primary checkout ${action.checkout}.`;
 }
 
 function guardMessage(reason: string): string {
