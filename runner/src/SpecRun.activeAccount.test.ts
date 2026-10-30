@@ -74,11 +74,11 @@ describe("run's active account", () => {
     ]);
   });
 
-  it("resumes a crashed session on the account it recorded, even after the active account changes", async () => {
+  it("resumes a crashed session that ran on account 2 on the Active account 1", async () => {
     addSpec([1]);
-    activeAccount = 1;
+    activeAccount = 2;
     const agentStep = FakeAgentStep.init(
-      thenSwitchTo(2, crashed),
+      thenSwitchTo(1, { ...crashed, account: 2 }),
       implemented("one.ts"),
       reviewed(),
     );
@@ -94,9 +94,9 @@ describe("run's active account", () => {
         resumeSessionId,
       })),
     ).toEqual([
-      { account: 1, resumeSessionId: undefined },
-      { account: 1, resumeSessionId: "crashed-session" },
       { account: 2, resumeSessionId: undefined },
+      { account: 1, resumeSessionId: "crashed-session" },
+      { account: 1, resumeSessionId: undefined },
     ]);
   });
 

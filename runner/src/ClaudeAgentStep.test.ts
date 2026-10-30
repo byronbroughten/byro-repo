@@ -139,11 +139,12 @@ describe("ClaudeAgentStep on a recorded success", () => {
 });
 
 describe("ClaudeAgentStep's command", () => {
-  it("runs claude as the account in acceptEdits with the pair, cap and schema", async () => {
+  it("runs claude as the account with shared history, in acceptEdits with the pair, cap and schema", async () => {
     const { argv } = await replay("success.ndjson");
     expect(argv).toEqual([
       "run",
       "2",
+      "--share-history",
       "--",
       "-p",
       "/implement byro-repo #216",
@@ -185,10 +186,11 @@ describe("ClaudeAgentStep's command", () => {
     expect(readFileSync(join(cwd, "mark"), "utf8")).toBe("1");
   });
 
-  it("resumes the given session", async () => {
+  it("resumes the given session with shared history", async () => {
     const { argv } = await replay("success.ndjson", {
       resumeSessionId: "0e3dc8b3-fd87-4381-b3dc-8c36c1e03e1b",
     });
+    expect(argv.slice(0, 4)).toEqual(["run", "2", "--share-history", "--"]);
     const flag = argv.indexOf("--resume");
     expect(argv[flag + 1]).toBe("0e3dc8b3-fd87-4381-b3dc-8c36c1e03e1b");
   });

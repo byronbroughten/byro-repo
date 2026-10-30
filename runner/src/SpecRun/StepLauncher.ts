@@ -1,5 +1,5 @@
-// A spec run's agent step launches: waits out the limit guard before each, runs a fresh step on the Active account and a
-// resume on its session's recorded one, with its guidance and the run's knobs, logs its raw stream, and retries a crash, resuming its session when it has one; a hit limit is an UnhandledStop.
+// A spec run's agent step launches: waits out the limit guard before each, runs every step on the Active account, a resume
+// included, with its guidance and the run's knobs, logs its raw stream, and retries a crash, resuming its session when it has one; a hit limit is an UnhandledStop.
 // An implement step that hits its turn cap halts, offering more turns or a stronger pair; other crashes past their retries halt too.
 // It builds its own HaltRaiser, and every collaborator that launches a step builds a StepLauncher.
 // Steps run through ../AgentStep.ts; limit decisions are ../limitGuard.ts; the coordinator callers build is ../SpecRun.ts.
@@ -148,10 +148,7 @@ export class StepLauncher extends SpecRunBase {
   ): Promise<StepAttempt> {
     const { run, ticket, pair, workspace, state, targets } = ticketRun;
     const { knobs } = this.config;
-    const account = await this._waitForLaunch(
-      run,
-      resumedAccountOf(ticketRun, overrides.resumeSessionId),
-    );
+    const account = await this._waitForLaunch(run);
     this._log(
       run,
       stepLaunchLineOf({
@@ -203,7 +200,7 @@ export class StepLauncher extends SpecRunBase {
       this._stepsFolderOf(run),
       `${step.replaceAll(" ", "-")}.jsonl`,
     );
-    const account = await this._waitForLaunch(run, undefined);
+    const account = await this._waitForLaunch(run);
     this._log(
       run,
       stepLaunchLineOf({
@@ -236,19 +233,12 @@ export class StepLauncher extends SpecRunBase {
     }
   }
 
-  // Asks the limit guard about the account the step will run on until it says launch, and returns that account.
-  private async _waitForLaunch(
-    run: Run,
-    recordedAccount: number | undefined,
-  ): Promise<number> {
+  // Asks the limit guard about the Active account until it says launch, and returns that account.
+  private async _waitForLaunch(run: Run): Promise<number> {
     const { knobs } = this.config;
     let hasAnnouncedWait = false;
     for (;;) {
-      const reading =
-        recordedAccount === undefined
-          ? await this._activeReadingOf(run)
-          : await this._recordedReadingOf(run, recordedAccount);
-      const { account, usage } = reading;
+      const { account, usage } = await this._activeReadingOf(run);
       if (usage === undefined) {
         await this._warnOnce(
           run,
@@ -269,7 +259,7 @@ export class StepLauncher extends SpecRunBase {
         await this._announce(
           run,
           limitWaitLineOf(
-            `account ${account} is at ${percentOf(usage.fiveHour.utilization)} of its 5-hour limit; continuing after ${decision.until.toISOString()}. ${waitEndNoteOf(recordedAccount)}`,
+            `account ${account} is at ${percentOf(usage.fiveHour.utilization)} of its 5-hour limit; continuing after ${decision.until.toISOString()}. Switching to an account with headroom with cswap continues the run now.`,
           ),
         );
       }
@@ -336,32 +326,6 @@ export class StepLauncher extends SpecRunBase {
     mkdirSync(folder, { recursive: true });
     return folder;
   }
-}
-
-// Undefined for a fresh launch; a resume's transcript lives under the account its session ran on.
-function resumedAccountOf(
-  { ticket, state }: TicketRun,
-  resumeSessionId: string | undefined,
-): number | undefined {
-  if (resumeSessionId === undefined) return undefined;
-  const session = state.sessions.findLast(
-    ({ sessionId }) => sessionId === resumeSessionId,
-  );
-  if (session?.account === undefined) {
-    throw new RunStop(
-      `${issueLabelOf(ticket.issue)}: session ${resumeSessionId} has no recorded account to resume on.`,
-      { ticket: ticket.issue },
-    );
-  }
-  return session.account;
-}
-
-// A resume's transcript lives under its recorded account, so only a fresh step follows a switch.
-function waitEndNoteOf(recordedAccount: number | undefined): string {
-  if (recordedAccount === undefined) {
-    return "Switching to an account with headroom with cswap continues the run now.";
-  }
-  return "A resumed session stays on its recorded account, so switching with cswap won't end this wait.";
 }
 
 function guidedLaunchOf(

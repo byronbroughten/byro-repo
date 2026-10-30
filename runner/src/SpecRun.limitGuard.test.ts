@@ -98,7 +98,7 @@ describe("run's limit guard", () => {
     expect(agentStep.requests.map(({ account }) => account)).toEqual([2, 2]);
   });
 
-  it("keeps a resumed step's Limit wait on its recorded account after a switch", async () => {
+  it("ends a resumed step's Limit wait on a switch to an account under its threshold", async () => {
     addSpec([1]);
     let activeAccount = 1;
     let account1FiveHour = 0.1;
@@ -108,14 +108,13 @@ describe("run's limit guard", () => {
         activeAccount,
       }),
     };
-    const crashThenSwitch: ScriptedStep = async () => {
-      activeAccount = 2;
+    const crashPastThreshold: ScriptedStep = async () => {
       account1FiveHour = 0.92;
       return crashed;
     };
     const sleeps: number[] = [];
     const agentStep = FakeAgentStep.init(
-      crashThenSwitch,
+      crashPastThreshold,
       implemented("one.ts"),
       reviewed(),
     );
@@ -124,15 +123,24 @@ describe("run's limit guard", () => {
       usageReader,
       async sleep(ms) {
         sleeps.push(ms);
-        if (sleeps.length === 2) account1FiveHour = 0.1;
+        activeAccount = 2;
       },
     }).run(spec);
 
     expect(result.landed).toEqual([refOf(1)]);
-    expect(sleeps).toEqual([60_000, 60_000]);
-    expect(agentStep.requests.map(({ account }) => account)).toEqual([1, 1, 2]);
+    expect(sleeps).toEqual([60_000]);
+    expect(
+      agentStep.requests.map(({ account, resumeSessionId }) => ({
+        account,
+        resumeSessionId,
+      })),
+    ).toEqual([
+      { account: 1, resumeSessionId: undefined },
+      { account: 2, resumeSessionId: "crashed-session" },
+      { account: 2, resumeSessionId: undefined },
+    ]);
     expect(noticeSummaries()).toContain(
-      "Limit wait: account 1 is at 92% of its 5-hour limit; continuing after 2026-10-12T11:05:00.000Z. A resumed session stays on its recorded account, so switching with cswap won't end this wait.",
+      "Limit wait: account 1 is at 92% of its 5-hour limit; continuing after 2026-10-12T11:05:00.000Z. Switching to an account with headroom with cswap continues the run now.",
     );
   });
 
