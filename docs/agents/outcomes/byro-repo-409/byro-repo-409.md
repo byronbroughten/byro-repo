@@ -1,0 +1,7 @@
+# byro-repo#409 outcome
+
+Spec: [byro-repo#409](https://github.com/byronbroughten/byro-repo/issues/409)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #409 | Opus medium | 2 | 3 | 101K | Fix (resumed implementer) | 1 | 1 | 0 | 15 min | $1.96 | $0.66 | Fixed: The Estimates index row doesn't name the new Commands section. (docs/agents/codebase-priorities.md:12); The Commands lines name no source on the line. (docs/agents/codebase-priorities/estimates.md:24-28); A citation sits inside a bolded rule line. (docs/agents/planning.md:38); Git commands share one band instead of each having a median, spread and count. (docs/agents/codebase-priorities/estimates.md:26); The ~43K pre-2026-10-23 figure has no sample size or window. (docs/agents/codebase-priorities/estimates.md:8); The Commands lines name their source only in the section lead. (docs/agents/codebase-priorities/estimates.md:22-28). Proposed: The read-rate samples live in the Estimates rather than beside planning's conclusion, against codebase-priorities.md:47, while prose-style's File shapes keeps evidence out of rule lines. (docs/agents/codebase-priorities/estimates.md:7; docs/agents/planning.md:38). | 91194d9f-44e6-4620-92bd-1f04d0180aea, eede993d-df8a-4d49-b14b-bea3e34f734e |
