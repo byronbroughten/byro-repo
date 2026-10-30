@@ -12,6 +12,8 @@ import { readingLabelOf } from "./limitGuard.ts";
 import {
   isLimitWaitLine,
   isStepBoundaryLine,
+  type StampedLine,
+  stampedLineOf,
   stepLaunchOfLine,
   ticketOfLine,
 } from "./progressLines.ts";
@@ -19,11 +21,6 @@ import { RunLock } from "./RunLock.ts";
 import { runStateOf } from "./savedFormats.ts";
 import { progressLogPathOf, runStatePathOf } from "./SpecRun/runState.ts";
 import { StepStream } from "./StepStream.ts";
-
-interface ProgressLine {
-  time: Date;
-  text: string;
-}
 
 interface BoardWatch {
   render: () => string;
@@ -70,24 +67,18 @@ function runBlockOf(stateFolder: string, spec: IssueRef, now: Date): string {
   ].join("\n");
 }
 
-function progressLinesOf(path: string): ProgressLine[] {
+function progressLinesOf(path: string): StampedLine[] {
   if (!existsSync(path)) return [];
   return readFileSync(path, "utf8")
     .split("\n")
     .filter((line) => line !== "")
-    .map((line) => {
-      const space = line.indexOf(" ");
-      return {
-        time: new Date(line.slice(0, space)),
-        text: line.slice(space + 1),
-      };
-    });
+    .map(stampedLineOf);
 }
 
 // The current ticket is the one the latest ticket line names; its step started at its latest launch or step end.
 function ticketTextOf(
   statePath: string,
-  lines: ProgressLine[],
+  lines: StampedLine[],
   now: Date,
 ): string {
   const latest = lines.findLast(
@@ -114,7 +105,7 @@ function stepOf(statePath: string, ticket: string): string | undefined {
 }
 
 // A Limit wait newer than the last launch is the account's state until the next launch.
-function accountTextOf(lines: ProgressLine[]): string {
+function accountTextOf(lines: StampedLine[]): string {
   const latest = lines.findLast(
     ({ text }) => isLimitWaitLine(text) || stepLaunchOfLine(text),
   );
@@ -134,7 +125,7 @@ function streamUsageOf(streamPath: string): UsageReading | undefined {
   return stream.usage;
 }
 
-function latestTextOf(lines: ProgressLine[], now: Date): string {
+function latestTextOf(lines: StampedLine[], now: Date): string {
   const latest = lines.at(-1);
   if (latest === undefined) return "Latest: none";
   return `Latest (${durationOf(latest.time, now)} ago): ${latest.text}`;

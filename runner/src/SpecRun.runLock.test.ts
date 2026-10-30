@@ -48,7 +48,7 @@ describe("run's run lock", () => {
     expect(result).toEqual<RunResult>({
       kind: "refused",
       landed: [],
-      message: `byro-repo #213 already has a run going: pid ${process.pid}, started 2026-10-12T08:00:00Z.`,
+      message: `byro-repo #213 already has a run going: pid ${process.pid}, started 2026-10-12 03:00:00 CDT.`,
     });
     expect(agentStep.requests).toEqual([]);
     expect(github.comments).toEqual([]);

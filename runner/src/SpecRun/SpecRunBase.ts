@@ -39,7 +39,7 @@ import {
   type UsageReader,
 } from "../limitGuard.ts";
 import type { Notice, Notices } from "../Notices.ts";
-import { stepTookLineOf } from "../progressLines.ts";
+import { progressLineOf, stepTookLineOf } from "../progressLines.ts";
 import type { RunKnobs } from "../runKnobs.ts";
 import { runStateOf } from "../savedFormats.ts";
 import { sleep } from "../sleep.ts";
@@ -366,7 +366,7 @@ export class SpecRunBase {
     const oneLine = line.replace(/\s*\n\s*/g, " ");
     appendFileSync(
       this._progressPathOf(run),
-      `${this.config.clock.now().toISOString()} ${oneLine}\n`,
+      `${progressLineOf(this.config.clock.now(), oneLine)}\n`,
     );
   }
 

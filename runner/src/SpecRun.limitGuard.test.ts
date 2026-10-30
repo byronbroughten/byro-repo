@@ -52,7 +52,7 @@ describe("run's limit guard", () => {
     expect(sleeps).toEqual([60_000, 60_000]);
     expect(noticeSummaries()).toEqual([
       "Run started on 1 tickets as account 1: 5-hour 92%, weekly 50%. Launching byro-repo #1.",
-      "Limit wait: account 1 is at 92% of its 5-hour limit; continuing after 2026-10-12T11:05:00.000Z. Switching to an account with headroom with cswap continues the run now.",
+      "Limit wait: account 1 is at 92% of its 5-hour limit; continuing after 2026-10-12 06:05:00 CDT. Switching to an account with headroom with cswap continues the run now.",
       result.message,
     ]);
   });
@@ -140,7 +140,7 @@ describe("run's limit guard", () => {
       { account: 2, resumeSessionId: undefined },
     ]);
     expect(noticeSummaries()).toContain(
-      "Limit wait: account 1 is at 92% of its 5-hour limit; continuing after 2026-10-12T11:05:00.000Z. Switching to an account with headroom with cswap continues the run now.",
+      "Limit wait: account 1 is at 92% of its 5-hour limit; continuing after 2026-10-12 06:05:00 CDT. Switching to an account with headroom with cswap continues the run now.",
     );
   });
 
@@ -155,7 +155,7 @@ describe("run's limit guard", () => {
       kind: "stopped",
       landed: [],
       message:
-        "Account 1 is at 100% of its weekly limit, past the reserve; switch with cswap and rerun, or rerun after it resets at 2026-10-15T00:00:00.000Z.",
+        "Account 1 is at 100% of its weekly limit, past the reserve; switch with cswap and rerun, or rerun after it resets at 2026-10-14 19:00:00 CDT.",
     });
     expect(agentStep.requests).toEqual([]);
     expect(noticeSummaries()).toEqual([
@@ -206,7 +206,7 @@ describe("run's limit guard", () => {
     );
     expect(github.issues.get(1)?.isOpen).toBe(true);
     expect(github.comments[0]?.body).toContain(
-      "The step hit the five_hour limit; it resets at 2026-10-12T11:00:00.000Z.",
+      "The step hit the five_hour limit; it resets at 2026-10-12 06:00:00 CDT.",
     );
     expect(github.comments[0]?.body).toContain(
       "The ticket is left at its implement step in its issue workspace; rerun to retry it: `npm run runner -- byronbroughten/byro-repo 213`.",
