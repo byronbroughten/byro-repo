@@ -4,7 +4,7 @@ The criteria behind the model and effort pair in a ticket's `## Model fit` secti
 
 ## Model versions and review date
 
-Checked against Opus 5.5, Sonnet 5.5 and Haiku 5.5. Reviewed 2026-09-30; Grok left the pairs in 2026-10, and its figures below stay as history.
+Checked against Opus 5.5 and Sonnet 5.5. Reviewed 2026-09-30; Haiku 5.5 joined the pairs in 2026-10, as Haiku medium only; Grok left the pairs in 2026-10, and its figures below stay as history.
 
 ## Criteria for each pair
 
