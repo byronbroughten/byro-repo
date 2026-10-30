@@ -5,7 +5,6 @@ const memberIndent = "  ";
 const typeKeywords = {
   [ts.SyntaxKind.InterfaceDeclaration]: "interface",
   [ts.SyntaxKind.TypeAliasDeclaration]: "type",
-  [ts.SyntaxKind.EnumDeclaration]: "enum",
 } as const;
 
 export function fileOutline(fileName: string, sourceText: string): string {
@@ -68,14 +67,18 @@ function statementLinesOf(statement: ts.Statement): string[] {
   }
   if (
     ts.isInterfaceDeclaration(statement) ||
-    ts.isTypeAliasDeclaration(statement) ||
-    ts.isEnumDeclaration(statement)
+    ts.isTypeAliasDeclaration(statement)
   ) {
     return [
       lineOf(
         statement,
         `${modifiersOf(statement)}${typeKeywords[statement.kind]} ${statement.name.text}${typeParametersOf(statement)}`,
       ),
+    ];
+  }
+  if (ts.isEnumDeclaration(statement)) {
+    return [
+      lineOf(statement, `${modifiersOf(statement)}enum ${statement.name.text}`),
     ];
   }
   return [];
