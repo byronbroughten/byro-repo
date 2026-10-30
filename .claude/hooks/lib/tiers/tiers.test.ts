@@ -459,7 +459,6 @@ describe("stdout filters and wrappers", () => {
     [
       "npm run -s check",
       "npm run -s issue:read -- byro-repo 447 --body --hide-others",
-      "npm run outline -- scripts/overlap/overlap.ts",
       "timeout 60 npm test",
       "timeout -k 5 60 grep -n x AGENTS.md",
     ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
@@ -835,13 +834,14 @@ describe("an Interactive session's gh calls", () => {
 });
 
 describe("free reads and standing yeses in both modes", () => {
-  it("allows gh label list, Jev and the session probe in a session and a runner step", () => {
+  it("allows gh label list, Jev, the session probe and the outline in a session and a runner step", () => {
     [
       "gh label list -R ByronBroughten/byro-repo",
       "npm run jev -- /tmp/request.json",
       "npm run -s jev -- /tmp/request.json",
       "npm run jev:style -- writing/piece.md",
       "npm run session:probe -- /tmp/folder",
+      "npm run outline -- scripts/overlap/overlap.ts",
     ].forEach((command) => {
       expect(decisionOf(command)).toBe("allow");
       expect(runnerStepDecisionOf(command)).toBe("allow");

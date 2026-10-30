@@ -32,28 +32,17 @@ function throwOnParseError(fileName: string, sourceText: string): void {
 
 function diagnosticLineOf(diagnostic: ts.Diagnostic): string {
   if (!diagnostic.file || diagnostic.start === undefined) return "?";
-  const { line } = diagnostic.file.getLineAndCharacterOfPosition(
-    diagnostic.start,
-  );
-  return String(line + 1);
+  return String(lineNumberOf(diagnostic.file, diagnostic.start));
 }
 
 function statementLinesOf(statement: ts.Statement): string[] {
   if (ts.isFunctionDeclaration(statement)) {
-    return [
-      lineOf(
-        statement,
-        `${modifiersOf(statement)}function ${statement.name?.text ?? ""}${signatureOf(statement)}`,
-      ),
-    ];
+    return [declarationLineOf(statement, "function", signatureOf(statement))];
   }
   if (ts.isClassDeclaration(statement)) {
     return [
-      lineOf(
-        statement,
-        `${modifiersOf(statement)}class ${statement.name?.text ?? ""}`,
-      ),
-      ...nested(statement.members.flatMap(classMemberLinesOf)),
+      declarationLineOf(statement, "class"),
+      ...indented(statement.members.flatMap(classMemberLinesOf)),
     ];
   }
   if (ts.isVariableStatement(statement)) {
@@ -61,7 +50,7 @@ function statementLinesOf(statement: ts.Statement): string[] {
     return statement.declarationList.declarations.flatMap((declaration) =>
       variableLinesOf(
         declaration,
-        `${modifiersOf(statement)}${keyword} ${flat(declaration.name.getText())}`,
+        `${modifiersOf(statement)}${keyword} ${oneLine(declaration.name.getText())}`,
       ),
     );
   }
@@ -70,25 +59,35 @@ function statementLinesOf(statement: ts.Statement): string[] {
     ts.isTypeAliasDeclaration(statement)
   ) {
     return [
-      lineOf(
+      declarationLineOf(
         statement,
-        `${modifiersOf(statement)}${typeKeywords[statement.kind]} ${statement.name.text}${typeParametersOf(statement)}`,
+        typeKeywords[statement.kind],
+        typeParametersOf(statement),
       ),
     ];
   }
   if (ts.isEnumDeclaration(statement)) {
-    return [
-      lineOf(statement, `${modifiersOf(statement)}enum ${statement.name.text}`),
-    ];
+    return [declarationLineOf(statement, "enum")];
   }
   return [];
+}
+
+function declarationLineOf(
+  statement: ts.Statement & ts.HasModifiers & { name?: ts.Identifier },
+  keyword: string,
+  rest = "",
+): string {
+  return lineOf(
+    statement,
+    `${modifiersOf(statement)}${keyword} ${statement.name?.text ?? ""}${rest}`,
+  );
 }
 
 function typeParametersOf(
   node: ts.DeclarationWithTypeParameterChildren,
 ): string {
   if (!node.typeParameters) return "";
-  return `<${node.typeParameters.map((parameter) => flat(parameter.getText())).join(", ")}>`;
+  return `<${node.typeParameters.map((parameter) => oneLine(parameter.getText())).join(", ")}>`;
 }
 
 function classMemberLinesOf(member: ts.ClassElement): string[] {
@@ -97,6 +96,15 @@ function classMemberLinesOf(member: ts.ClassElement): string[] {
   }
   if (ts.isPropertyDeclaration(member)) {
     const optional = member.questionToken ? "?" : "";
+    const value = member.initializer && unwrapped(member.initializer);
+    if (value && isFunctionValue(value)) {
+      return [
+        lineOf(
+          member,
+          `${memberNameOf(member)}${optional}${signatureOf(value)}`,
+        ),
+      ];
+    }
     return [
       lineOf(
         member,
@@ -104,11 +112,11 @@ function classMemberLinesOf(member: ts.ClassElement): string[] {
       ),
     ];
   }
-  return methodLinesOf(member);
+  return methodOrAccessorLinesOf(member);
 }
 
-// A method or accessor, which a class and a bundle write the same way.
-function methodLinesOf(member: ts.Node): string[] {
+// Takes any node, as a class's members and a bundle's share no narrower type.
+function methodOrAccessorLinesOf(member: ts.Node): string[] {
   if (ts.isMethodDeclaration(member)) {
     return [lineOf(member, `${memberNameOf(member)}${signatureOf(member)}`)];
   }
@@ -128,7 +136,7 @@ function methodLinesOf(member: ts.Node): string[] {
 function memberNameOf(
   member: ts.HasModifiers & { name: ts.PropertyName },
 ): string {
-  return `${modifiersOf(member)}${flat(member.name.getText())}`;
+  return `${modifiersOf(member)}${oneLine(member.name.getText())}`;
 }
 
 function variableLinesOf(
@@ -144,18 +152,17 @@ function variableLinesOf(
     `${heading}${typeAnnotationOf(declaration.type)}`,
   );
   if (value && ts.isObjectLiteralExpression(value)) {
-    return [line, ...nested(value.properties.flatMap(bundleMemberLinesOf))];
+    return [line, ...indented(value.properties.flatMap(bundleFunctionLinesOf))];
   }
   return [line];
 }
 
-// A bundle's functions, the rest of its properties being data.
-function bundleMemberLinesOf(member: ts.ObjectLiteralElementLike): string[] {
-  if (!ts.isPropertyAssignment(member)) return methodLinesOf(member);
+function bundleFunctionLinesOf(member: ts.ObjectLiteralElementLike): string[] {
+  if (!ts.isPropertyAssignment(member)) return methodOrAccessorLinesOf(member);
   const value = unwrapped(member.initializer);
   if (!isFunctionValue(value)) return [];
   return [
-    lineOf(member, `${flat(member.name.getText())}${signatureOf(value)}`),
+    lineOf(member, `${oneLine(member.name.getText())}${signatureOf(value)}`),
   ];
 }
 
@@ -177,15 +184,16 @@ function isFunctionValue(
   return ts.isArrowFunction(expression) || ts.isFunctionExpression(expression);
 }
 
-function nested(lines: string[]): string[] {
+function indented(lines: string[]): string[] {
   return lines.map((line) => `${memberIndent}${line}`);
 }
 
 function lineOf(node: ts.Node, text: string): string {
-  const { line } = node
-    .getSourceFile()
-    .getLineAndCharacterOfPosition(node.getStart());
-  return `${line + 1}: ${text}`;
+  return `${lineNumberOf(node.getSourceFile(), node.getStart())}: ${text}`;
+}
+
+function lineNumberOf(sourceFile: ts.SourceFile, position: number): number {
+  return sourceFile.getLineAndCharacterOfPosition(position).line + 1;
 }
 
 function modifiersOf(node: ts.HasModifiers): string {
@@ -198,17 +206,20 @@ function signatureOf(node: ts.SignatureDeclaration): string {
   return `${typeParametersOf(node)}(${parameters})${typeAnnotationOf(node.type)}`;
 }
 
-// A default value is body, not signature, so it's left out.
+// A default value is body, not signature, so it's left out and only its optionality shows.
 function parameterOf(parameter: ts.ParameterDeclaration): string {
   const rest = parameter.dotDotDotToken ? "..." : "";
-  const optional = parameter.questionToken ? "?" : "";
-  return `${modifiersOf(parameter)}${rest}${flat(parameter.name.getText())}${optional}${typeAnnotationOf(parameter.type)}`;
+  const isOptional =
+    parameter.questionToken !== undefined ||
+    parameter.initializer !== undefined;
+  const optional = isOptional ? "?" : "";
+  return `${modifiersOf(parameter)}${rest}${oneLine(parameter.name.getText())}${optional}${typeAnnotationOf(parameter.type)}`;
 }
 
 function typeAnnotationOf(type: ts.TypeNode | undefined): string {
-  return type ? `: ${flat(type.getText())}` : "";
+  return type ? `: ${oneLine(type.getText())}` : "";
 }
 
-function flat(text: string): string {
+function oneLine(text: string): string {
   return text.replace(/\s+/g, " ");
 }

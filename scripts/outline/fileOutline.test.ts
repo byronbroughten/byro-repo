@@ -73,6 +73,17 @@ describe("fileOutline", () => {
     );
   });
 
+  it("writes a class property holding a function with its signature", () => {
+    const source = lines(
+      "class Gate {",
+      "  readonly onDeny = (why: string): void => {};",
+      "}",
+    );
+    expect(fileOutline("Gate.ts", source)).toBe(
+      lines("1: class Gate", "  2: readonly onDeny(why: string): void"),
+    );
+  });
+
   it("nests a bundle's methods and function-valued properties under it", () => {
     const source = lines(
       "export const npmCommands = {",
@@ -105,7 +116,7 @@ describe("fileOutline", () => {
     expect(fileOutline("overlapHits.ts", source)).toBe(
       lines(
         "1: export function overlapHits({ deliverable, passages, }: OverlapInput): OverlapHit[]",
-        "7: export const firstOf = ([head]: string[], fallback)",
+        "7: export const firstOf = ([head]: string[], fallback?)",
       ),
     );
   });
