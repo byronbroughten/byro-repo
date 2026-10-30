@@ -5,7 +5,7 @@ An index of measured costs a tradeoff's estimate can come from, grouped by subje
 ## Reads
 
 - Code costs ~1K tokens per 2K characters (median 2.0 characters a token, p10–p90 1.9–2.1, ~16 tokens a line; 146 reads), Docs prose ~1K per 2.5K (median 2.6, p10–p90 2.4–2.7; 266 reads); Opus 5.5 reads of 4K+ characters in session transcripts from 2026-10-01 to 10-30, measured by byro-repo#409; [`planning.md#ticket-size`](../planning.md#ticket-size), **A ticket that reads a body of text in full**. Agent cost.
-- ~25K tokens of fixed overhead before a session's first prompt: an interactive session's first request is a median 26.0K (p10–p90 24.1–27.1K, 107 sessions, its short first prompt included), a runner step's 21.9K (20.5–25.1K, 142 steps); Opus 5.5 transcripts from 2026-10-24 to 10-30, measured by byro-repo#409. Before 2026-10-23 an interactive session's was ~43K. [`planning.md#ticket-size`](../planning.md#ticket-size), **Size each ticket so one session finishes it**. Agent cost.
+- ~25K tokens of fixed overhead before a session's first prompt: an interactive session's first request is a median 26.0K (p10–p90 24.1–27.1K, 107 sessions, its short first prompt included), a runner step's 21.9K (20.5–25.1K, 142 steps); Opus 5.5 transcripts from 2026-10-24 to 10-30, measured by byro-repo#409. Before 2026-10-23 an interactive session's was higher: daily medians 42.4–43.3K over 146 sessions from 2026-10-18 to 10-22. [`planning.md#ticket-size`](../planning.md#ticket-size), **Size each ticket so one session finishes it**. Agent cost.
 
 ## Tickets
 
@@ -21,11 +21,11 @@ An index of measured costs a tradeoff's estimate can come from, grouped by subje
 
 Wall clock from a Bash call to its result in this machine's session transcripts, hooks included, so it is what a session waits; measured by byro-repo#409, leaving out backgrounded calls, calls the developer approved at a prompt, and calls sent alongside another tool call.
 
-- `gh issue view` median 1.1s (p90 2.0s, 86 calls); `npm run issue:read` 1.3s (1.7s, 112); 2026-09-30 to 10-30. Agent cost.
-- `gh issue create` median 2.1s (p90 3.2s, 25 calls); `gh issue comment` 1.5s (2.0s, 24); `gh api` 1.6s (5.2s, 20); 2026-10-01 to 10-30. `gh issue edit` (3 calls, 1.6–2.8s) and `gh issue list` (1 call) are too few to rely on. Agent cost.
-- One git command: `status`, `diff`, `log`, `show`, `add`, `branch`, `rev-parse` and `commit` each a median 0.4–0.6s, p90 at most 1.2s (7 to 68 calls each); `git worktree` 1.0s (range 0.9–1.2s, 7 calls); 2026-10-06 to 10-30. Agent cost.
-- `npm run issue:start` median 4.7s (p90 8.2s, 46 calls); 2026-10-22 to 10-30. Agent cost.
-- `npm run wrap-up` median 10.6s, p90 61.4s, range 0.5–113s, 34 calls, a landing running the checks and a run stopping early both counted; 2026-10-22 to 10-30. Agent cost.
+- `gh issue view` median 1.1s (p90 2.0s, 86 calls); `npm run issue:read` 1.3s (1.7s, 112); 2026-09-30 to 10-30, byro-repo#409. Agent cost.
+- `gh issue create` median 2.1s (p90 3.2s, 25 calls); `gh issue comment` 1.5s (2.0s, 24); `gh api` 1.6s (5.2s, 20); 2026-10-01 to 10-30, byro-repo#409. `gh issue edit` (3 calls, 1.6–2.8s) and `gh issue list` (1 call) are too few to rely on. Agent cost.
+- One git command: `status` median 0.5s (p90 0.7s, 34 calls), `diff` 0.4s (0.8s, 44), `log` 0.5s (1.1s, 31), `commit` 0.6s (range 0.5–1.5s, 7), `worktree` 1.0s (range 0.9–1.2s, 7); 2026-10-06 to 10-30, byro-repo#409. Agent cost.
+- `npm run issue:start` median 4.7s (p90 8.2s, 46 calls); 2026-10-22 to 10-30, byro-repo#409. Agent cost.
+- `npm run wrap-up` median 10.6s, p90 61.4s, range 0.5–113s, 34 calls, a landing running the checks and a run stopping early both counted; 2026-10-22 to 10-30, byro-repo#409. Agent cost.
 
 ## Type-check
 
