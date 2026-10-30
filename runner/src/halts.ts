@@ -204,11 +204,10 @@ export type FailureAnswer =
   | { kind: "skip" }
   | { kind: "guidance"; text: string };
 
-// `stop spec` is read apart by isStopSpecAnswer(); any other unnamed reply is guidance.
-export function failureAnswerOf(
-  halt: Halt,
-  { text }: HaltAnswer,
-): FailureAnswer {
+// `stop spec` ends the run that reads it, so a later run delivers it as `retry`; any other unnamed reply is guidance.
+export function failureAnswerOf(halt: Halt, answer: HaltAnswer): FailureAnswer {
+  if (isStopSpecAnswer(answer)) return { kind: "retry" };
+  const { text } = answer;
   const answerWords = text
     .replace(haltIdPatternOf(halt, "g"), " ")
     .replace(/[`*:.,!]/g, " ")
