@@ -187,7 +187,7 @@ export class RunLoop extends SpecRunBase {
 
   // Logged, never announced: tmux.sh relaunches the run at once, so a Supervisor has nothing to explain.
   private _restart(run: Run, ticket: IssueRef): RunResult {
-    const message = `Restarting: ${issueLabelOf(ticket)} changed the runner; relaunching on the landed code.`;
+    const message = `Restarting: the runner changed since the run started, found after landing ${issueLabelOf(ticket)}; relaunching on the landed code.`;
     this._log(run, message);
     return { kind: "restarting", landed: run.landed, message };
   }

@@ -18,7 +18,7 @@ import {
 useSpecRunHarness();
 
 const restartMessage =
-  "Restarting: byro-repo #1 changed the runner; relaunching on the landed code.";
+  "Restarting: the runner changed since the run started, found after landing byro-repo #1; relaunching on the landed code.";
 
 describe("run's Restart", () => {
   it("ends the run restarting after a landing that changes the runner, and the next run resumes at the following ticket", async () => {
