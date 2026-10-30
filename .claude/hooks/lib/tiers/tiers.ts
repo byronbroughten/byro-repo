@@ -535,7 +535,7 @@ function ghVerdictOf(words: string[]): Verdict | undefined {
     why: "a further `gh issue edit` or comment undoes it",
     needsPlainText: true,
     plainTextFix:
-      "write the text to a file under `$TMPDIR` and pass it with `--body-file`, then run the call again",
+      "write the text to a file under `/tmp` and pass it with `--body-file`, then run the call again",
   };
 }
 
