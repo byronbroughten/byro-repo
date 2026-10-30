@@ -49,7 +49,7 @@ interface ResultEvent {
 }
 
 const tooManyRequests = 429;
-const noConversationError = "No conversation found";
+const noConversationPrefix = "No conversation found";
 
 export class StepStream {
   private readonly meter = ContextMeter.init();
@@ -125,7 +125,7 @@ export class StepStream {
     if (!Array.isArray(errors)) return false;
     return errors.some(
       (error) =>
-        typeof error === "string" && error.startsWith(noConversationError),
+        typeof error === "string" && error.startsWith(noConversationPrefix),
     );
   }
 

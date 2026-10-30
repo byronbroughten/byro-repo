@@ -22,6 +22,7 @@ import {
   withReviewerFields,
 } from "../resolveStep.ts";
 import {
+  type Finding,
   reviewPrompt,
   type ReviewRecord,
   reviewRecordSchema,
@@ -53,21 +54,26 @@ import { StepLauncher } from "./StepLauncher.ts";
 
 type ResolverSession = Pick<StepRequest, "pair" | "resumeSessionId">;
 
-// The step names the launch in the progress log; resolve, red checks and merge-master all run as resolve.
+// Names the launch in the progress log; red checks and merge-master run as the resolve agent too.
+type ResolverStep = "resolve" | "red-checks" | "merge-master";
+
+// A fresh fallback gets freshPrompt when the resume's own prompt leans on the lost conversation.
 interface ResolverLaunch {
-  step: string;
+  step: ResolverStep;
   resolver: Resolver;
   launch: StepLaunch;
+  freshPrompt?: string;
 }
 
 type ResolverRan = RanStep & { resolver: Resolver };
 
-// Each names the resolver that ran, a fresh one when the resume found no conversation.
-type ResolveAttempt = { resolver: Resolver } & (
+type ResolveOutcome =
   | { kind: "done"; records: ResolveRecord[]; logPath: string }
   | { kind: "crossed"; logPath: string }
-  | { kind: "capped"; logPath: string }
-);
+  | { kind: "capped"; logPath: string };
+
+// Names the resolver that ran, a fresh one when the resume found no conversation.
+type ResolveAttempt = ResolveOutcome & { resolver: Resolver };
 
 interface KeptRecords {
   resolver: Resolver;
@@ -197,14 +203,7 @@ export class ReviewStepper extends SpecRunBase {
     ticketRun: TicketRun,
     resolver: Resolver,
   ): Promise<ResolveAttempt> {
-    const { ticket, workspace, state } = ticketRun;
-    const prompt = resolvePrompt({
-      issue: ticket.issue,
-      title: ticket.title,
-      branch: workspace.branch,
-      branchedRepos: branchedReposOf(ticketRun),
-      findings: state.findings ?? [],
-    });
+    const prompt = resolvePromptOf(ticketRun);
     if (resolver === "fresh") {
       return this._launchResolver(ticketRun, resolver, {
         prompt,
@@ -214,21 +213,26 @@ export class ReviewStepper extends SpecRunBase {
     return this._launchResolver(ticketRun, resolver, { prompt });
   }
 
-  // Resumes the session that returned the refused record.
+  // Resumes the session that returned the refused record; a fresh fallback gets the findings with the refusal.
   private async _retryResolver(
     ticketRun: TicketRun,
     resolver: Resolver,
     problems: string[],
   ): Promise<ResolveAttempt> {
-    return this._launchResolver(ticketRun, resolver, {
-      prompt: resolveRetryPrompt(problems),
-    });
+    const prompt = resolveRetryPrompt(problems);
+    return this._launchResolver(
+      ticketRun,
+      resolver,
+      { prompt },
+      `${resolvePromptOf(ticketRun)}\n\n${prompt}`,
+    );
   }
 
   private async _launchResolver(
     ticketRun: TicketRun,
     resolver: Resolver,
     launch: Pick<StepLaunch, "prompt" | "resumeSessionId">,
+    freshPrompt?: string,
   ): Promise<ResolveAttempt> {
     const ran = await this._runResolverStep(ticketRun, {
       step: "resolve",
@@ -238,24 +242,16 @@ export class ReviewStepper extends SpecRunBase {
         jsonSchema: resolveOutputSchema,
         ...launch,
       },
+      freshPrompt,
     });
-    const { result, logPath } = ran;
-    if (result.hasCrossedCeiling) {
-      return { kind: "crossed", logPath, resolver: ran.resolver };
-    }
-    if (isTurnCapped(result)) {
-      return { kind: "capped", logPath, resolver: ran.resolver };
-    }
-    const record = recordOf("resolve", result, logPath);
     const findings = ticketRun.state.findings ?? [];
-    const records = withReviewerFields(resolveRecordsOf(record), findings);
-    return { kind: "done", records, logPath, resolver: ran.resolver };
+    return { ...resolveOutcomeOf(ran, findings), resolver: ran.resolver };
   }
 
   // A resume that finds no conversation reruns once as a fresh resolver, which is the resolver it returns.
   async _runResolverStep(
     ticketRun: TicketRun,
-    { step, resolver, launch }: ResolverLaunch,
+    { step, resolver, launch, freshPrompt }: ResolverLaunch,
   ): Promise<ResolverRan> {
     const resumed = {
       ...this._resolverSessionOf(ticketRun, resolver),
@@ -271,6 +267,7 @@ export class ReviewStepper extends SpecRunBase {
     const freshRan = await this._runResolverSession(ticketRun, "fresh", {
       ...this._resolverSessionOf(ticketRun, "fresh"),
       ...launch,
+      prompt: freshPrompt ?? launch.prompt,
       resumeSessionId: undefined,
     });
     return { ...freshRan, resolver: "fresh" };
@@ -313,6 +310,28 @@ export class ReviewStepper extends SpecRunBase {
       await this.stepLauncher._runStep(ticketRun, agent, launch),
     );
   }
+}
+
+function resolvePromptOf(ticketRun: TicketRun): string {
+  const { ticket, workspace, state } = ticketRun;
+  return resolvePrompt({
+    issue: ticket.issue,
+    title: ticket.title,
+    branch: workspace.branch,
+    branchedRepos: branchedReposOf(ticketRun),
+    findings: state.findings ?? [],
+  });
+}
+
+function resolveOutcomeOf(
+  { result, logPath }: RanStep,
+  findings: Finding[],
+): ResolveOutcome {
+  if (result.hasCrossedCeiling) return { kind: "crossed", logPath };
+  if (isTurnCapped(result)) return { kind: "capped", logPath };
+  const record = recordOf("resolve", result, logPath);
+  const records = withReviewerFields(resolveRecordsOf(record), findings);
+  return { kind: "done", records, logPath };
 }
 
 function isHalt({ verdict }: ResolveRecord): boolean {

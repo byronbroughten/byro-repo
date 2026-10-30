@@ -84,11 +84,8 @@ export class StepLauncher extends SpecRunBase {
       }
       const { result } = ran;
       // A resolver's caller reruns it as a fresh session; a crash retry's missing conversation stays a crash.
-      if (
-        agent === "resolve" &&
-        attempt === launch &&
-        result.hasNoConversation
-      ) {
+      const isCrashRetry = attempt !== launch;
+      if (agent === "resolve" && !isCrashRetry && result.hasNoConversation) {
         return { result, logPath };
       }
       if (isTurnCapped(result)) {

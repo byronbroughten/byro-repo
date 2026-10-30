@@ -393,6 +393,28 @@ describe("run's resolve", () => {
     expect(landedSubjects(2)).toEqual(["Fix fix.ts", "Add one.ts"]);
   });
 
+  it("gives a fresh resolver the findings and the refusal when the retry's session has no conversation", async () => {
+    addSpec([1]);
+    const noQuote = { ...recordOf(1, "fix"), quote: undefined };
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      reviewed(findings),
+      resolved([noQuote, recordOf(2, "dismiss")], "fix.ts"),
+      noConversation,
+      freshResolved([recordOf(1, "fix"), recordOf(2, "dismiss")]),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    const resolver = agentStep.requests[4];
+    expect(resolver?.resumeSessionId).toBeUndefined();
+    expect(resolver?.prompt).toContain("You are the resolve step");
+    expect(resolver?.prompt).toContain(
+      "finding 1: a Fix needs `quote`, the quoted code or text, with its file:line",
+    );
+  });
+
   it("hands the findings to a fresh resolver, its work discarded, when the implementer's retry crosses the live ceiling", async () => {
     addSpec([1]);
     const noQuote = { ...recordOf(1, "fix"), quote: undefined };
