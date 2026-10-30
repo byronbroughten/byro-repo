@@ -46,6 +46,7 @@
     "jev": "node scripts/jev/jev.ts",
     "jev:style": "node scripts/jev/jevStyle.ts",
     "overlap": "node scripts/overlap/overlap.ts",
+    "outline": "node scripts/outline/outline.ts",
     "pdf:text": "node scripts/quotes/pdfText.ts",
     "verify:quotes": "node scripts/quotes/verifyQuotes.ts"
   },

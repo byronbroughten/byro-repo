@@ -48,6 +48,7 @@ Reads need no yes in any tier.
 | Spending money; touching credentials | 3; no tool does either yet, so the first one lands gated |
 | `npm run jev`, `npm run jev:style` | a standing yes, a runner step's included: Deliverable text and repo docs, never secrets, `.env` files or credential files ([the Jev doc](./agents/jev.md#what-may-be-sent)) |
 | `npm run session:probe -- <folder>` | free: its one-turn session only reports what the folder's hooks see |
+| `npm run outline -- <file>` | free: a read, a runner step's included |
 
 **`timeout` and `npm run -s` leave a command's tier as it is.**
 

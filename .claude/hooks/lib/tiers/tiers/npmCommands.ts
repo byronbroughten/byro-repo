@@ -25,6 +25,7 @@ const freeScripts = new Map<string, string>([
   ["issue:promote", "a promoted repo comes off with its workspace"],
   ["jev", freeWhys.jev],
   ["jev:style", freeWhys.jev],
+  ["outline", "it only reads a file"],
   [
     "session:probe",
     "its one-turn session only reports what the folder's hooks see",
