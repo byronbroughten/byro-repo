@@ -1,5 +1,5 @@
 // The tools ClaudeAgentStep.ts adds to a step for each of its ticket's targets, on top of the primary's settings.
-// The write lists mirror .claude/hooks/lib/tiers/driveTiers.ts and the live aliases tiers.ts, which decides them; neither can be imported across the hooks boundary.
+// The write lists mirror .claude/hooks/lib/tiers/driveTiers.ts and the live aliases tiers/runnerStep.ts, which decides them; neither can be imported across the hooks boundary.
 import type { SpreadsheetName, Target } from "./ticketTargets.ts";
 
 const appAliases = [
