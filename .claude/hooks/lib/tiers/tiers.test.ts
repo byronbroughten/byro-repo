@@ -459,6 +459,7 @@ describe("stdout filters and wrappers", () => {
     [
       "npm run -s check",
       "npm run -s issue:read -- byro-repo 447 --body --hide-others",
+      "npm run outline -- scripts/overlap/overlap.ts",
       "timeout 60 npm test",
       "timeout -k 5 60 grep -n x AGENTS.md",
     ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
