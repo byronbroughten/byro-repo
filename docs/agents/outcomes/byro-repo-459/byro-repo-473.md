@@ -1,0 +1,7 @@
+# byro-repo#473 outcome
+
+Spec: [byro-repo#459](https://github.com/byronbroughten/byro-repo/issues/459)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #473 | Opus medium | unrecorded | 23 | unrecorded | Fix (resumed implementer) | 0 | 1 | 0 | unrecorded | unrecorded | unrecorded | Fixed: unrecordedFactsOf rebuilds the per-fact session-id lists beside transcriptFactsOf's, so the two can drift. (runner/src/transcriptFacts.ts:155-203); Each FactRead pairs a fact with a free-string label instead of a lookup keyed by the fact-name union. (runner/src/transcriptFacts.ts:36-41, 160-193); `folder` holds a step session, not a folder. (runner/src/transcriptFacts.ts:208); `folder?.configFolder` guards a case that can't happen, and would print 'under undefined' if it did. (runner/src/transcriptFacts.ts:209); _warnOnUnrecordedFacts calls recordedSessionsOf(state) again right after _writeFacts does. (runner/src/SpecRun/TicketLander.ts:301-315); TicketState.configFolder is now only an old-format field, with its fallback outside savedFormats.ts. (runner/src/SpecRun/runState.ts:134-135, 408); The diff adds another clause to an already bloated rule line. (docs/agents/git-workflow.md, 'After a spec is implemented' bullet). | unrecorded |
