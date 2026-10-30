@@ -4,7 +4,7 @@ description: "Supervise one spec run from an interactive session: launch or rejo
 disable-model-invocation: true
 ---
 
-`/runner <owner/repo> <n>` makes this session the Supervisor of spec `<n>`'s run. Its words (Supervisor, Halt, Failure Halt, Split Halt, Idle, Vanished, Stop, Interactive ticket) are in [`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md).
+`/runner <owner/repo> <n>` makes this session the Supervisor of spec `<n>`'s run. Its words (Supervisor, Halt, Failure Halt, Split Halt, Idle, Vanished, Stop, Restart, Interactive ticket) are in [`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md).
 
 **A Supervisor explains the run's events and does the work its steps can't.** Unasked, it makes a blocked edit the ticket already specifies and works an Interactive ticket (step 6); anything else it does only when the developer asks. Every other reply it posts is one the developer settled (step 5). Run every command from the primary root, except while working in an issue workspace. Give Bash one command per call: no `cd`, no `;` or `&&` chains.
 
@@ -45,6 +45,8 @@ A `run-started` line: say the run is working, and on which ticket. List its `war
 - `stopped`: say what stopped it.
 - `crashed`: point the developer to the tmux pane, `tmux attach -t runner-<repo>-<n>`.
 - `refused`: say what the run refused.
+
+A Restart is expected and quiet: a run that lands a change to the runner itself ends with no event line and relaunches at once in the same tmux session, resuming where it ended. Its only event line is the relaunch's `run-started` line: say the run carries on, and keep watching.
 
 On `vanished`, `stopped`, `crashed` or `refused`, say that rerunning resumes the run, and offer to relaunch it once the cause is fixed.
 

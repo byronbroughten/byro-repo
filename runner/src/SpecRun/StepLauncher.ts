@@ -12,7 +12,7 @@ import { messageOf } from "../failureText.ts";
 import { guidanceSectionOf } from "../halts.ts";
 import { handoffOnlyPrompt, treeResetNote } from "../implementStep.ts";
 import { fileStemOf, issueLabelOf } from "../IssueWorkspaces.ts";
-import { decideStep, defaultLimitGuardKnobs } from "../limitGuard.ts";
+import { decideStep } from "../limitGuard.ts";
 import { nextStrongerPairOf, pairLabelOf } from "../modelFit.ts";
 import { limitWaitLineOf, stepLaunchLineOf } from "../progressLines.ts";
 import type { RunKnobs } from "../runKnobs.ts";
@@ -235,7 +235,7 @@ export class StepLauncher extends SpecRunBase {
 
   // Asks the limit guard about the Active account until it says launch, and returns that account.
   private async _waitForLaunch(run: Run): Promise<number> {
-    const knobs = { ...defaultLimitGuardKnobs, ...this.config.limitGuardKnobs };
+    const { knobs } = this.config;
     let hasAnnouncedWait = false;
     for (;;) {
       const { account, usage } = await this._activeReadingOf(run);

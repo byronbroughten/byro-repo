@@ -67,7 +67,7 @@ export interface IssueComment {
 }
 
 export interface RunResult {
-  kind: "finished" | "refused" | "stopped";
+  kind: "finished" | "refused" | "stopped" | "restarting";
   landed: IssueRef[];
   message: string;
 }
@@ -216,13 +216,7 @@ export interface Wait {
 }
 
 type WaitReason =
-  | "leased"
-  | "halted"
-  | "stop-spec"
-  | "stopped"
-  | "skipped"
-  | "developer"
-  | "blocked";
+  "leased" | "halted" | "stopped" | "skipped" | "developer" | "blocked";
 
 interface DownstreamSearch {
   run: Run;

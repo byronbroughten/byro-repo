@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  type AccountUsage,
-  decideStep,
-  defaultLimitGuardKnobs,
-  readCswapList,
-} from "./limitGuard.ts";
+import { type AccountUsage, decideStep, readCswapList } from "./limitGuard.ts";
+import { defaultRunKnobs } from "./runKnobs.ts";
 
 const fiveHourReset = new Date("2026-10-12T05:00:00Z");
 
@@ -119,11 +115,19 @@ describe("readCswapList", () => {
 
 describe("decideStep", () => {
   it("launches an account under both thresholds", () => {
-    expect(decideStep(usageOf(0.89, 0.99))).toEqual({ kind: "launch" });
+    expect(decideStep(usageOf(0.89, 0.99), defaultRunKnobs)).toEqual({
+      kind: "launch",
+    });
+  });
+
+  it("pauses at an overridden 5-hour pause", () => {
+    const knobs = { ...defaultRunKnobs, fiveHourPauseAt: 0.5 };
+    expect(decideStep(usageOf(0.6, 0.1), knobs).kind).toBe("limitWait");
+    expect(decideStep(usageOf(0.6, 0.1), defaultRunKnobs).kind).toBe("launch");
   });
 
   it("waits until the account's 5-hour reset plus the margin at the 5-hour pause", () => {
-    const knobs = { ...defaultLimitGuardKnobs, limitWaitMarginMs: 60_000 };
+    const knobs = { ...defaultRunKnobs, limitWaitMarginMs: 60_000 };
     expect(decideStep(usageOf(0.9, 0.5), knobs)).toEqual({
       kind: "limitWait",
       until: new Date("2026-10-12T05:01:00Z"),
@@ -131,7 +135,11 @@ describe("decideStep", () => {
   });
 
   it("Stops at the weekly reserve, even when the 5-hour window is also past its pause", () => {
-    expect(decideStep(usageOf(0.1, 1))).toEqual({ kind: "stop" });
-    expect(decideStep(usageOf(0.99, 1))).toEqual({ kind: "stop" });
+    expect(decideStep(usageOf(0.1, 1), defaultRunKnobs)).toEqual({
+      kind: "stop",
+    });
+    expect(decideStep(usageOf(0.99, 1), defaultRunKnobs)).toEqual({
+      kind: "stop",
+    });
   });
 });

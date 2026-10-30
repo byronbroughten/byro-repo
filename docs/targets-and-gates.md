@@ -22,6 +22,7 @@ Reads need no yes in any tier.
 | `node -e`, `node -p`, `python3 -c`, and `node` on a tracked file or anything else but a scratch helper or `--version` | 3: a deliverable script can open the `clasp` credential or reach the network unseen, so a script being built runs through its tests or its `npm run` alias |
 | `git commit`, on any branch | 1; the branch guard still keeps a primary checkout on its branch, and the primary-edit guard keeps the commit out of one |
 | `git add`, and `git branch` without a delete or force flag (`-d`, `-D`, `-f`, `-M`, `-C`), in the same forms as the git reads | 1: git can undo it |
+| `git merge` without `--no-verify`, in the same forms as the git reads | 1: `git merge --abort` or a reset to `ORIG_HEAD` undoes it; the primary-edit guard keeps it out of a primary checkout |
 | `npm run issue:start`, `issue:list`, and `issue:remove` without `--force`, which refuses unlanded work | 1 |
 | `.claude/skills/inbox/record.sh`, which writes `/inbox` data in the session's `personal` clone | 1 |
 | `npm run issue:remove … --force`, which discards a workspace's unlanded work | 3 |

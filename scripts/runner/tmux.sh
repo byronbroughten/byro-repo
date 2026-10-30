@@ -2,15 +2,20 @@
 # Starts the spec runner in a detached tmux session under caffeinate, so it outlives the terminal and the Mac stays awake.
 # Usage: npm run runner:tmux -- <owner/repo> <n>; attach with `tmux attach -t runner-<repo>-<n>`.
 # It then waits for the run's run-started or run-ended line (launchWait.ts): exit 0 on run-started, 1 on run-ended or a state still unknown.
-# An exit above 1 is a crash, not a Stop or an end of run, so it writes the run-ended line the runner itself couldn't.
+# Exit 3 is a Restart, so the run relaunches in the same session on the code it just landed (run.ts).
+# Any other exit above 1 is a crash, not a Stop or an end of run, so it writes the run-ended line the runner itself couldn't.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+restart_code=3
 
 if [[ "${1:-}" == "--inside" ]]; then
   shift
-  code=0
-  caffeinate -is node "$root/scripts/runner/run.ts" "$@" || code=$?
+  code="$restart_code"
+  while (( code == restart_code )); do
+    code=0
+    caffeinate -is node "$root/scripts/runner/run.ts" "$@" || code=$?
+  done
   if (( code > 1 )); then
     node "$root/scripts/runner/crash.ts" "$@" "$code"
   fi

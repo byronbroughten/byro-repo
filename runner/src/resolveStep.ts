@@ -385,9 +385,9 @@ export function issueRefOf(text: string | undefined): IssueRef | undefined {
   return { repo, number: Number(number) };
 }
 
-// A path with an extension, then a line: `runner/src/SpecRun.ts:88`.
-function hasFileLine(quote: string | undefined): boolean {
-  return /[\w./-]+\.\w+:\d+/.test(quote ?? "");
+// A token with a `/` or a `.`, then a line: `runner/src/SpecRun.ts:88`, `.gitignore:23`. A bare `foo:3` fails.
+export function hasFileLine(quote: string | undefined): boolean {
+  return /[\w./-]*[./][\w./-]*:\d+/.test(quote ?? "");
 }
 
 function isBlank(text: string | undefined): boolean {

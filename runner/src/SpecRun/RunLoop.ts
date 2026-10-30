@@ -3,6 +3,7 @@
 // is all that's in the way, until every ticket lands or something Stops it.
 // Any outcome a later ticket will handle (red checks, step errors, schema failures) is an UnhandledStop; a red master Stops the run.
 // requestStop() or a `stop spec` answer ends the run between tickets; status() reads it from outside.
+// A landing that changes the runner's own source ends it restarting, for tmux.sh to relaunch.
 // ../SpecRun.ts delegates run, status and requestStop to it.
 // It builds its own TicketSelector, TicketSequencer and ReviewListPoster.
 
@@ -14,7 +15,7 @@ import {
   noActiveAccountPhraseOf,
 } from "../ActiveAccountUnknown.ts";
 import { commandLabelOf } from "../failureText.ts";
-import { currentBranchOf } from "../git.ts";
+import { currentBranchOf, git } from "../git.ts";
 import { type Halt } from "../halts.ts";
 import {
   fileStemOf,
@@ -109,6 +110,7 @@ export class RunLoop extends SpecRunBase {
       if (!(error instanceof RunStop)) throw error;
       return this._end(run, "stopped", error.message);
     }
+    const startHead = await git(this.config.primaryRoot, "rev-parse", "HEAD");
     let isStartAnnounced = false;
     let isIdle = false;
     for (;;) {
@@ -160,7 +162,33 @@ export class RunLoop extends SpecRunBase {
       if (outcome === "leased" || outcome === "halted") continue;
       run.landed.push(selection.ticket.issue);
       run.failureStreak = [];
+      if (await this._hasRunnerChangedSince(startHead)) {
+        return this._restart(run, selection.ticket.issue);
+      }
     }
+  }
+
+  // Diffed from the run's start rather than the landing's merge, since the start is the code this process runs.
+  private async _hasRunnerChangedSince(startHead: string): Promise<boolean> {
+    const { primaryRoot, knobs } = this.config;
+    if (knobs.runnerPaths.length === 0) return false;
+    const changed = await git(
+      primaryRoot,
+      "diff",
+      "--name-only",
+      startHead,
+      "HEAD",
+      "--",
+      ...knobs.runnerPaths,
+    );
+    return changed !== "";
+  }
+
+  // Logged, never announced: tmux.sh relaunches the run at once, so a Supervisor has nothing to explain.
+  private _restart(run: Run, ticket: IssueRef): RunResult {
+    const message = `Restarting: ${issueLabelOf(ticket)} changed the runner; relaunching on the landed code.`;
+    this._log(run, message);
+    return { kind: "restarting", landed: run.landed, message };
   }
 
   // Sent at the first pick, so it can name the ticket about to launch; a first pick with no launch still shows startup passed.
