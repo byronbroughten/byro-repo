@@ -680,7 +680,7 @@ describe("a runner step's unclassified call", () => {
     [
       "gh issue edit 447 --body-file /tmp/body.md",
       "gh issue close 447",
-      "gh api repos/x/y/issues",
+      "gh pr view 12",
       "npm run app:gen:configs",
       "npm run -s dev:push",
     ].forEach((command) => expect(placedDecisionOf(command)).toBeUndefined());
@@ -759,6 +759,84 @@ describe("a runner step's gh calls", () => {
   it("names no --body-file for another call with a backtick", () => {
     const decision = placedDecisionOf("git add `ls`", "runnerStep");
     expect(decision?.reason).not.toContain("--body-file");
+  });
+});
+
+describe("an Interactive session's gh calls", () => {
+  it("allows creating an issue, and refuses it in a runner step", () => {
+    const command =
+      "gh issue create -R ByronBroughten/byro-repo --title T --body-file /tmp/body.md --label ready-for-agent";
+    expect(decisionOf(command)).toBe("allow");
+    expect(runnerStepDecisionOf(command)).toBe("deny");
+  });
+
+  it("allows a gh api read, and refuses it in a runner step", () => {
+    [
+      "gh api repos/x/y/issues/475 --jq .id",
+      "gh api -X GET search/issues -f q=repo:x/y",
+      "gh api --method=get repos/x/y/issues/476/sub_issues --paginate",
+      "gh api repos/x/y/issues/476/dependencies/blocked_by --jq '.[].number'",
+    ].forEach((command) => {
+      expect(decisionOf(command)).toBe("allow");
+      expect(runnerStepDecisionOf(command)).toBe("deny");
+    });
+  });
+
+  it("allows adding or removing a blocked-by link or a sub-issue, and refuses it in a runner step", () => {
+    [
+      "gh api --method POST repos/x/y/issues/477/dependencies/blocked_by -F issue_id=123",
+      "gh api -X DELETE /repos/x/y/issues/477/dependencies/blocked_by/123",
+      "gh api -XPOST repos/x/y/issues/476/sub_issues -F sub_issue_id=456",
+      "gh api --method=DELETE repos/x/y/issues/476/sub_issue -F sub_issue_id=456",
+    ].forEach((command) => {
+      expect(decisionOf(command)).toBe("allow");
+      expect(runnerStepDecisionOf(command)).toBe("deny");
+    });
+  });
+
+  it("leaves any other gh api write to Claude Code", () => {
+    [
+      // A field with no method named makes gh send a POST.
+      "gh api repos/x/y/issues -f title=T",
+      "gh api graphql --input /tmp/query.json",
+      "gh api -X PATCH repos/x/y/issues/476 -f state=closed",
+      "gh api -X DELETE repos/x/y/git/refs/heads/main",
+      "gh api --method POST repos/x/y/issues/476/comments -f body=hi",
+      // The issue-link path sits in a flag's value; the endpoint is the ref.
+      "gh api -X DELETE -q repos/x/y/issues/1/sub_issue repos/x/y/git/refs/heads/main",
+      "gh api -X DELETE repos/x/y/issues/1/sub_issue repos/x/y/git/refs/heads/main",
+      "gh api --unknown-flag repos/x/y/issues/1",
+      "gh api -iX DELETE repos/x/y/issues/1/sub_issue",
+      "gh api -X",
+    ].forEach((command) => expect(decisionOf(command)).toBeUndefined());
+  });
+
+  it("leaves a create or api call hiding a command to Claude Code", () => {
+    [
+      'gh issue create --title T --body "$(cat notes.md)"',
+      "gh issue create --title T --body-file - <<EOF\nok\nEOF",
+      "gh api repos/x/y/issues/`id`",
+    ].forEach((command) => expect(decisionOf(command)).toBeUndefined());
+  });
+});
+
+describe("free reads and standing yeses in both modes", () => {
+  it("allows gh label list, Jev and the session probe in a session and a runner step", () => {
+    [
+      "gh label list -R ByronBroughten/byro-repo",
+      "npm run jev -- /tmp/request.json",
+      "npm run -s jev -- /tmp/request.json",
+      "npm run jev:style -- writing/piece.md",
+      "npm run session:probe -- /tmp/folder",
+    ].forEach((command) => {
+      expect(decisionOf(command)).toBe("allow");
+      expect(runnerStepDecisionOf(command)).toBe("allow");
+    });
+  });
+
+  it("leaves other gh label calls to Claude Code", () => {
+    expect(decisionOf("gh label create urgent")).toBeUndefined();
+    expect(decisionOf("gh label delete urgent")).toBeUndefined();
   });
 });
 
