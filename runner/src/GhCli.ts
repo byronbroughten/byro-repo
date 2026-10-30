@@ -1,4 +1,4 @@
-// The run loop's and wrap-up's GitHub port over the `gh` CLI. WrapUp.ts retries each call; this only maps gh's output.
+// The run loop's and wrap-up's GitHub port over the `gh` CLI. WrapUp.ts retries each call; this retries only transient read failures.
 
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -10,6 +10,7 @@ import type {
   ReadableIssue,
 } from "./IssueReader.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
+import { sleep } from "./sleep.ts";
 import type { IssueComment, RunGitHub, TrackedIssue } from "./SpecRun.ts";
 import type { ParentIssue } from "./WrapUp.ts";
 
@@ -76,11 +77,20 @@ interface RawListedIssue {
   state?: unknown;
 }
 
+type GhProcess = (...args: string[]) => Promise<string>;
+
+// A read's waits before each retry: three tries in all.
+const readRetryWaitsMs = [2000, 8000];
+
 export class GhCli implements RunGitHub, IssueSource {
   private readonly owner: string;
+  private readonly gh: GhProcess;
+  private readonly wait: (ms: number) => Promise<void>;
 
-  constructor(owner: string) {
+  constructor(owner: string, ghProcess: GhProcess = gh, wait = sleep) {
     this.owner = owner;
+    this.gh = ghProcess;
+    this.wait = wait;
   }
 
   async issueOf(issue: IssueRef): Promise<TrackedIssue> {
@@ -97,14 +107,14 @@ export class GhCli implements RunGitHub, IssueSource {
   }
 
   async subIssuesOf({ repo, number }: IssueRef): Promise<IssueRef[]> {
-    const listed = await listedIssuesOf(
+    const listed = await this._listedIssuesOf(
       `repos/${this.owner}/${repo}/issues/${number}/sub_issues`,
     );
     return listed.map(({ issue }) => issue);
   }
 
   async openBlockersOf({ repo, number }: IssueRef): Promise<IssueRef[]> {
-    const listed = await listedIssuesOf(
+    const listed = await this._listedIssuesOf(
       `repos/${this.owner}/${repo}/issues/${number}/dependencies/blocked_by`,
     );
     return listed.flatMap(({ issue, isOpen }) => (isOpen ? [issue] : []));
@@ -112,7 +122,7 @@ export class GhCli implements RunGitHub, IssueSource {
 
   // gh prints the new comment's URL.
   async comment({ repo, number }: IssueRef, body: string): Promise<string> {
-    const stdout = await gh(
+    const stdout = await this.gh(
       "issue",
       "comment",
       String(number),
@@ -125,7 +135,7 @@ export class GhCli implements RunGitHub, IssueSource {
   }
 
   async closeIssue({ repo, number }: IssueRef, comment: string): Promise<void> {
-    await gh(
+    await this.gh(
       "issue",
       "close",
       String(number),
@@ -144,7 +154,7 @@ export class GhCli implements RunGitHub, IssueSource {
     repo,
     number,
   }: IssueRef): Promise<IssueComment[]> {
-    const output = await gh(
+    const output = await this._read(
       "issue",
       "view",
       String(number),
@@ -164,7 +174,7 @@ export class GhCli implements RunGitHub, IssueSource {
   async parentOf({ repo, number }: IssueRef): Promise<ParentIssue | undefined> {
     let output: string;
     try {
-      output = await gh(
+      output = await this._read(
         "api",
         `repos/${this.owner}/${repo}/issues/${number}/parent`,
       );
@@ -180,7 +190,7 @@ export class GhCli implements RunGitHub, IssueSource {
       number: Number(raw.number),
     };
     // Counted from each sub-issue's state: the stored sub_issues_summary lags a close made just before.
-    const subIssues = await listedIssuesOf(
+    const subIssues = await this._listedIssuesOf(
       `repos/${this.owner}/${issue.repo}/issues/${issue.number}/sub_issues`,
     );
     return {
@@ -202,7 +212,7 @@ export class GhCli implements RunGitHub, IssueSource {
     issue: IssueRef,
     fields: string,
   ): Promise<RawIssue> {
-    const output = await gh(
+    const output = await this._read(
       "api",
       "graphql",
       "-F",
@@ -219,6 +229,49 @@ export class GhCli implements RunGitHub, IssueSource {
     if (!raw) throw new Error(`No issue ${issueLabelOf(issue)}`);
     return raw;
   }
+
+  // One JSON object per line, so every page of a paginated list parses.
+  private async _listedIssuesOf(
+    path: string,
+  ): Promise<{ issue: IssueRef; isOpen: boolean }[]> {
+    const output = await this._read(
+      "api",
+      "--paginate",
+      path,
+      "--jq",
+      ".[] | {number, repository_url, state}",
+    );
+    return lines(output.trim()).map((line) => {
+      const raw = JSON.parse(line) as RawListedIssue;
+      return {
+        issue: {
+          repo: repoOfUrl(raw.repository_url),
+          number: Number(raw.number),
+        },
+        isOpen: raw.state === "open",
+      };
+    });
+  }
+
+  // Only reads retry: a write that got a 504 may still have gone through, and a retry would post it twice.
+  private async _read(...args: string[]): Promise<string> {
+    for (const waitMs of readRetryWaitsMs) {
+      try {
+        return await this.gh(...args);
+      } catch (error) {
+        if (!isTransient(error)) throw error;
+      }
+      await this.wait(waitMs);
+    }
+    return this.gh(...args);
+  }
+}
+
+function isTransient(error: unknown): boolean {
+  const stderr = String((error as { stderr?: unknown }).stderr ?? "");
+  return /HTTP 5\d\d|error connecting to|connection reset|i\/o timeout|TLS handshake timeout|EOF$/m.test(
+    stderr,
+  );
 }
 
 function issueQueryOf(fields: string): string {
@@ -285,29 +338,6 @@ function refOfRaw(raw: RawRef): IssueRef {
 // GitHub gives a deleted account no login; "ghost" is the name it shows for one.
 function loginOf(raw: RawLogin | null | undefined): string {
   return typeof raw?.login === "string" ? raw.login : "ghost";
-}
-
-// One JSON object per line, so every page of a paginated list parses.
-async function listedIssuesOf(
-  path: string,
-): Promise<{ issue: IssueRef; isOpen: boolean }[]> {
-  const output = await gh(
-    "api",
-    "--paginate",
-    path,
-    "--jq",
-    ".[] | {number, repository_url, state}",
-  );
-  return lines(output.trim()).map((line) => {
-    const raw = JSON.parse(line) as RawListedIssue;
-    return {
-      issue: {
-        repo: repoOfUrl(raw.repository_url),
-        number: Number(raw.number),
-      },
-      isOpen: raw.state === "open",
-    };
-  });
 }
 
 async function gh(...args: string[]): Promise<string> {
