@@ -1,4 +1,4 @@
-// A fake file system for the tier tests: a workspace at /ws, $TMPDIR at /tmp, and a few links out of the workspace.
+// A fake file system for the tier tests, laid out like macOS: a workspace at /ws, $TMPDIR at /var/T, /tmp linked to /private/tmp, and a few links out of the workspace.
 import { dirname, join } from "node:path";
 
 import type { ShellPlaces } from "./tiers.ts";
@@ -19,8 +19,12 @@ const existing = new Set([
   "/ws/node_modules",
   "/ws/node_modules/clasp",
   "/ws/node_modules/clasp/cli.js",
-  "/tmp",
-  "/tmp/helper.mjs",
+  "/var",
+  "/var/T",
+  "/var/T/helper.mjs",
+  "/private",
+  "/private/tmp",
+  "/private/tmp/helper.mjs",
   "/outside",
   "/outside/x",
   "/outside/deep",
@@ -29,13 +33,14 @@ const links = new Map([
   ["/ws/escape", "/outside"],
   ["/ws/linkdir", "/outside/deep"],
   ["/ws/dangling", "/nowhere"],
+  ["/tmp", "/private/tmp"],
 ]);
 const ignoredFolders = ["/ws/.runner", "/ws/.scratch", "/ws/node_modules"];
 
 export function fakePlaces(cwd = "/ws"): ShellPlaces {
   return {
     workspaceRoot: "/ws",
-    tmpDir: "/tmp",
+    tmpDir: "/var/T",
     cwd,
     realPathOf: fakeRealPathOf,
     isLink: (path) => links.has(path),

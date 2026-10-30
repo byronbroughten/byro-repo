@@ -16,6 +16,7 @@ import {
   partsClearOfGit,
   partsInside,
   resolvedPathOf,
+  tmpPartsOf,
   type WritePlaces,
 } from "./stepWrites.ts";
 
@@ -140,7 +141,17 @@ const npxChecks = new Map<string, (args: string[]) => boolean>([
       !args.some((arg) => arg === "--write" || arg === "-w"),
   ],
 ]);
-const readPrograms = new Set(["grep", "rg", "cat", "head", "tail", "wc", "ls"]);
+// jq has no option that runs a program or writes a file.
+const readPrograms = new Set([
+  "grep",
+  "rg",
+  "cat",
+  "head",
+  "tail",
+  "wc",
+  "ls",
+  "jq",
+]);
 const gitReadVerbs = new Set([
   "log",
   "show",
@@ -156,18 +167,25 @@ const gitReadVerbs = new Set([
 const gitGrepPagerFlags = /^(-[^-]*O|--open-files-in-pager)/;
 const gitFileVerbs = new Set(["mv", "rm"]);
 const fileCommands = new Set(["rm", "mkdir", "cp", "mv"]);
+// The step write rule's places, as every write verdict names them.
+const writablePlaces = "inside the workspace, `$TMPDIR` or `/tmp`";
 const interpreters = {
   nodeScratchFlags: new Set([
     "--experimental-strip-types",
     "--no-warnings",
     "--enable-source-maps",
   ]),
+  // `-e`, `-p` and their pairing `-pe`, long forms included.
+  nodeInlineFlag: /^(-[ep]{1,2}|--eval|--print)(=|$)/,
+  pythonInlineFlag: /^-[a-zA-Z]*c/,
   python: new Set(["python", "python3"]),
   // Gitignored, but an installed package's bin is a tool such as clasp, not a scratch helper.
   installedPackages: "node_modules",
   nodeWhy:
-    "runs code that isn't a scratch helper: `node` runs only scratch helpers, in `$TMPDIR` or a gitignored folder of the workspace, and a script being built runs through its tests or its `npm run` alias",
-  pythonWhy: "runs inline Python, which no test or `npm run` alias covers",
+    "runs code that isn't a scratch helper: `node` runs only scratch helpers, in `$TMPDIR`, `/tmp` or a gitignored folder of the workspace, and a script being built runs through its tests or its `npm run` alias",
+  // A deny, not an ask: the way through is free, so asking would only interrupt the developer.
+  inlineWhy:
+    "inline code is refused because the gate can't read it; read JSON with `jq`, or write a scratch helper in `$TMPDIR` and run `node` on it",
 } as const;
 const targetAliases = [
   "chore",
@@ -350,7 +368,7 @@ function verdictOf(
   if (simple.words.length === 0) {
     return {
       permissionDecision: "allow",
-      why: "a bare redirect writes only inside the workspace or `$TMPDIR`",
+      why: `a bare redirect writes only ${writablePlaces}`,
       needsPlainText: true,
     };
   }
@@ -553,7 +571,7 @@ function fileVerdictOf(
     if (writeAsk) return writeAsk;
     return {
       permissionDecision: "allow",
-      why: `\`${program}\` writes only inside the workspace or \`$TMPDIR\``,
+      why: `\`${program}\` writes only ${writablePlaces}`,
       needsPlainText: true,
     };
   }
@@ -596,19 +614,19 @@ function writeAskAmong(
   if (blockedPath === undefined) return undefined;
   return {
     permissionDecision: "ask",
-    why: `writes \`${blockedPath}\`, which isn't inside the workspace or \`$TMPDIR\`, or is in \`.git\``,
+    why: `writes \`${blockedPath}\`, which isn't ${writablePlaces}, or is in \`.git\``,
   };
 }
 
-// node runs a scratch helper, in $TMPDIR or gitignored in the workspace, at tier 1; any other node or inline python is tier 3.
+// node runs a scratch helper, in $TMPDIR, /tmp or gitignored in the workspace, at tier 1; inline code is refused, naming the way through; any other node is tier 3.
 function interpreterVerdictOf(
   words: string[],
   places: ShellPlaces | undefined,
 ): Verdict | undefined {
   const [program = "", ...args] = words;
   if (interpreters.python.has(program)) {
-    if (args.some((arg) => /^-[a-zA-Z]*c/.test(arg))) {
-      return { permissionDecision: "ask", why: interpreters.pythonWhy };
+    if (args.some((arg) => interpreters.pythonInlineFlag.test(arg))) {
+      return { permissionDecision: "deny", why: interpreters.inlineWhy };
     }
     return undefined;
   }
@@ -617,6 +635,9 @@ function interpreterVerdictOf(
     return { permissionDecision: "allow", why: "`node --version` only reads" };
   }
   const at = args.findIndex((arg) => !arg.startsWith("-"));
+  if (isInlineNode(args, at)) {
+    return { permissionDecision: "deny", why: interpreters.inlineWhy };
+  }
   const isScratch =
     at >= 0 &&
     args
@@ -633,7 +654,15 @@ function interpreterVerdictOf(
   };
 }
 
-// An existing file gitignored inside the workspace but outside node_modules, or anywhere in $TMPDIR outside .git.
+// Code passed by flag, or read from stdin when no script is named (`-` included); a flag after the script is the script's own.
+function isInlineNode(args: string[], scriptAt: number): boolean {
+  if (scriptAt === -1) return true;
+  return args
+    .slice(0, scriptAt)
+    .some((flag) => interpreters.nodeInlineFlag.test(flag));
+}
+
+// An existing file gitignored inside the workspace but outside node_modules, or anywhere in $TMPDIR or /tmp outside .git.
 function isScratchFile(
   written: string,
   places: ShellPlaces | undefined,
@@ -652,7 +681,7 @@ function isScratchFile(
       places.isIgnored(resolved)
     );
   }
-  return partsClearOfGit(resolved, places.tmpDir, places) !== undefined;
+  return tmpPartsOf(resolved, places) !== undefined;
 }
 
 function isWritablePath(

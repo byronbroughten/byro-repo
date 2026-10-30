@@ -215,6 +215,8 @@ describe("reads and git add", () => {
     "sed -n '/^## /,/^## /p' AGENTS.md",
     "sed -n '1,3l;5q' AGENTS.md",
     "find . -name '*.ts' -not -path './node_modules/*'",
+    "jq -r '.tickets | keys[]' .runner/run.json",
+    "jq --slurpfile prior old.json '.a' new.json",
   ];
   const everyRead = [
     ...reads,
@@ -507,7 +509,7 @@ describe("stdout filters and wrappers", () => {
 });
 
 describe("file writes by the step write rule", () => {
-  it("allows rm, mkdir, cp, mv, sed -i and a redirect inside the workspace or $TMPDIR", () => {
+  it("allows rm, mkdir, cp, mv, sed -i and a redirect inside the workspace, $TMPDIR or /tmp", () => {
     [
       "rm -rf dist",
       "rm /tmp/scratch.txt",
@@ -525,6 +527,9 @@ describe("file writes by the step write rule", () => {
       "rm $TMPDIR/scratch.txt",
       'rm "${TMPDIR}/scratch.txt"',
       "echo x > $TMPDIR/out.txt",
+      "mkdir -p /tmp/s372",
+      "cat AGENTS.md > /tmp/s372/copy.md",
+      "echo x > /private/tmp/out.txt",
     ].forEach((command) =>
       expect(placedDecisionOf(command)?.permissionDecision).toBe("allow"),
     );
@@ -598,12 +603,13 @@ describe("file writes by the step write rule", () => {
 });
 
 describe("interpreters", () => {
-  it("allows node on a gitignored or $TMPDIR file", () => {
+  it("allows node on a gitignored, $TMPDIR or /tmp file", () => {
     [
       "node .runner/helper.ts",
       "node --experimental-strip-types .runner/helper.ts",
-      "node /tmp/helper.mjs",
+      "node /var/T/helper.mjs",
       "node $TMPDIR/helper.mjs",
+      "node /tmp/helper.mjs",
     ].forEach((command) =>
       expect(placedDecisionOf(command)?.permissionDecision).toBe("allow"),
     );
@@ -615,12 +621,10 @@ describe("interpreters", () => {
     expect(decision?.reason).toContain("`node` runs only scratch helpers");
   });
 
-  it("asks for node on a tracked file, new or committed, and for node -e or -p, saying node runs only scratch helpers", () => {
+  it("asks for node on a tracked file, new or committed, saying node runs only scratch helpers", () => {
     [
       "node scripts/tool.ts",
       "node scripts/new.ts",
-      "node -e 'console.log(1)'",
-      "node -p 1",
       "node --require ./x.js .runner/helper.ts",
     ].forEach((command) => {
       const decision = placedDecisionOf(command);
@@ -632,10 +636,34 @@ describe("interpreters", () => {
     });
   });
 
-  it("asks for python3 -c", () => {
-    expect(placedDecisionOf("python3 -c 'print(1)'")?.permissionDecision).toBe(
-      "ask",
-    );
+  it("denies inline code, naming jq and a scratch helper, the same in a runner step", () => {
+    [
+      "node -e 'console.log(1)'",
+      "node -p 1",
+      "node -pe 1",
+      "node --eval 'console.log(1)'",
+      "node --print=1",
+      "node --no-warnings -e 1",
+      "node",
+      "node - < script.js",
+      "cat x.json | node",
+      "python3 -c 'print(1)'",
+      "python -Ic 'print(1)'",
+    ].forEach((command) => {
+      (["interactive", "runnerStep"] as const).forEach((mode) => {
+        const decision = placedDecisionOf(command, mode);
+        expect(decision?.permissionDecision).toBe("deny");
+        expect(decision?.reason).toContain("`jq`");
+        expect(decision?.reason).toContain("scratch helper in `$TMPDIR`");
+        expect(decision?.reason).not.toContain(blockerInstead);
+      });
+    });
+  });
+
+  it("leaves an argument after the script to the script", () => {
+    expect(
+      placedDecisionOf("node /tmp/helper.mjs -e")?.permissionDecision,
+    ).toBe("allow");
   });
 });
 
