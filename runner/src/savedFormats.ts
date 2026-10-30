@@ -1,7 +1,8 @@
 // Reads a run state or facts file saved by an older runner into today's shapes, the one place old names are known:
 // before #297 Propose was Defer and Proposals were `defers`; before #364 resolve was the `triage` and `fix` steps,
 // a fresh resolver was `triage`, and its records, session and base were `triage`, `triageSession` and `fixBase`;
-// before #367 a facts file's sessions shared one ticket-level account and config folder, and a run state's had neither.
+// before #367 a facts file's sessions shared one ticket-level account and config folder, and a run state's had neither;
+// before #473 a run state kept the latest step's config folder on the ticket, which a session with none takes.
 // SpecRun/SpecRunBase.ts reads run state through runStateOf(), and FactsFile.ts reads facts through factsOf().
 
 import type { WrapUpFacts } from "./FactsFile.ts";
@@ -55,6 +56,7 @@ interface SavedTicketState extends Omit<
   fixer?: "implementer" | "triage";
   triageSession?: string;
   fixBase?: Heads;
+  configFolder?: string;
 }
 
 interface SavedHalt extends Omit<Halt, "failedStep"> {
@@ -117,15 +119,17 @@ function ticketStateOf({
   fixer,
   triageSession,
   fixBase,
+  configFolder,
   ...ticket
 }: SavedTicketState): TicketState {
   const state: TicketState = {
     ...ticket,
     step: stepOf(step),
-    sessions: sessions.map((session) => ({
-      ...session,
-      ...sessionOf(session),
-    })),
+    sessions: sessions.map((session) => {
+      const saved = { ...session, ...sessionOf(session) };
+      const folder = session.configFolder ?? configFolder;
+      return folder === undefined ? saved : { ...saved, configFolder: folder };
+    }),
   };
   const records = resolveRecords ?? triage;
   if (records !== undefined) state.resolveRecords = records.map(recordOf);

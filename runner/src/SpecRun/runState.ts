@@ -131,8 +131,6 @@ export interface TicketState {
   // The heads before the resolve step, which a killed resolver or a rerun resets to.
   resolveBase?: Heads;
   sessions: TicketSession[];
-  // The latest step's config folder, which only a runner before #473 saves.
-  configFolder?: string;
   stop?: string;
   // Set while a step runs, so a rerun after the process died takes the step as crashed.
   isStepStarted?: boolean;
@@ -402,11 +400,10 @@ export function lastSessionOf(
     ?.sessionId;
 }
 
-// A session saved before #367 takes the ticket's last config folder; one with no folder or account is left out.
+// A session with no folder or account, as one saved before #367, is left out.
 export function recordedSessionsOf(state: TicketState): RecordedSession[] {
   return state.sessions.flatMap((session) => {
-    const configFolder = session.configFolder ?? state.configFolder;
-    const { account } = session;
+    const { account, configFolder } = session;
     if (configFolder === undefined || account === undefined) return [];
     return [{ ...session, account, configFolder }];
   });

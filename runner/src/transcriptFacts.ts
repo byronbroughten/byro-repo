@@ -1,6 +1,7 @@
 // The outcome facts a wrap-up computes from transcripts instead of asking: pair, peak context, duration, API-equivalent
 // cost, review cost, accounts and session ids, from each session id the runner records with its account and config folder.
-// A fact is computed only when every transcript it reads is found; otherwise it stays undefined and is written `unrecorded`.
+// A fact is computed only when every transcript it reads is found; otherwise it stays undefined and is written `unrecorded`,
+// and a run's landing logs a warning naming it and why (SpecRun/TicketLander.ts).
 // Peak context is contextMeter.ts; the row format is outcomeLog.ts; WrapUp.ts merges these over the passed facts.
 // Refresh the price table when a new model version ships (docs/agents/model-fit.md).
 
@@ -33,15 +34,27 @@ export interface UnrecordedFact {
   reason: string;
 }
 
-// The sessions a fact reads, and why it stays unrecorded with every transcript found; none for a fact that can't.
-interface FactRead {
-  fact: keyof OutcomeFacts;
+type TranscriptFact =
+  "pair" | "peakContext" | "durationMinutes" | "costUsd" | "reviewCostUsd";
+
+// Each fact's name in a warning, and why it stays unrecorded with every transcript found; none for a fact that can't.
+interface FactWording {
   label: string;
-  ids: string[];
   otherwise?: string;
 }
 
 const unpricedReason = "a model it used is missing from the price table";
+
+const factWordings: Record<TranscriptFact, FactWording> = {
+  pair: { label: "pair", otherwise: "no implementer reply names its effort" },
+  peakContext: {
+    label: "peak context",
+    otherwise: "no implementer transcript has a reply",
+  },
+  durationMinutes: { label: "duration" },
+  costUsd: { label: "cost", otherwise: unpricedReason },
+  reviewCostUsd: { label: "review cost", otherwise: unpricedReason },
+};
 
 export interface ModelPrice {
   // Dollars per million tokens; a 5-minute cache write is 1.25× input and a 1-hour write 2×.
@@ -116,99 +129,82 @@ export function transcriptFactsOf(
   handoffSessionIds: string[],
 ): OutcomeFacts {
   const projectDirs = projectDirsBySessionOf(sessions, handoffSessionIds);
-  const implementerIds = unique([
-    ...handoffSessionIds,
-    ...stepIdsOf(sessions, "implement"),
-  ]);
-  const sessionIds = unique([
-    ...handoffSessionIds,
-    ...sessions.steps.map(({ sessionId }) => sessionId),
-  ]);
-  // With no implementer recorded, its facts are unrecorded rather than zero.
-  const implementers =
-    implementerIds.length === 0
-      ? undefined
-      : transcriptsOf(projectDirs, implementerIds);
-  const reviewIds = stepIdsOf(sessions, "review");
-  // With no review recorded, review cost is unrecorded rather than zero.
-  const reviewSteps =
-    reviewIds.length === 0
-      ? undefined
-      : transcriptsOf(
-          projectDirs,
-          unique([...reviewIds, ...stepIdsOf(sessions, "resolve")]),
-        );
-  const allSessions = transcriptsOf(projectDirs, sessionIds);
+  const ids = factIdsOf(sessions, handoffSessionIds);
+  const implementers = transcriptsOf(projectDirs, ids.pair);
   const accounts = unique(sessions.steps.map(({ account }) => String(account)));
   return {
     account: accounts.length === 0 ? undefined : accounts.join(", "),
-    sessionIds,
+    sessionIds: ids.durationMinutes,
     pair: factOf(implementers, pairOf),
     peakContext: factOf(implementers, peaksOf),
-    durationMinutes: factOf(allSessions, durationMinutesOf),
+    durationMinutes: factOf(
+      transcriptsOf(projectDirs, ids.durationMinutes),
+      durationMinutesOf,
+    ),
     costUsd: factOf(implementers, costUsdOf),
-    reviewCostUsd: factOf(reviewSteps, costUsdOf),
+    reviewCostUsd: factOf(
+      transcriptsOf(projectDirs, ids.reviewCostUsd),
+      costUsdOf,
+    ),
   };
 }
 
 // Each transcript fact transcriptFactsOf leaves unrecorded although a step it reads ran, and why.
 export function unrecordedFactsOf(sessions: TicketSessions): UnrecordedFact[] {
   const facts = transcriptFactsOf(sessions, []);
-  const projectDirs = projectDirsBySessionOf(sessions, []);
-  const implementerIds = stepIdsOf(sessions, "implement");
-  const reads: FactRead[] = [
-    {
-      fact: "pair",
-      label: "pair",
-      ids: implementerIds,
-      otherwise: "no implementer reply names its effort",
-    },
-    {
-      fact: "peakContext",
-      label: "peak context",
-      ids: implementerIds,
-      otherwise: "no implementer transcript has a reply",
-    },
-    {
-      fact: "durationMinutes",
-      label: "duration",
-      ids: sessions.steps.map(({ sessionId }) => sessionId),
-    },
-    {
-      fact: "costUsd",
-      label: "cost",
-      ids: implementerIds,
-      otherwise: unpricedReason,
-    },
-    {
-      fact: "reviewCostUsd",
-      label: "review cost",
-      ids: [
-        ...stepIdsOf(sessions, "review"),
-        ...stepIdsOf(sessions, "resolve"),
-      ],
-      otherwise: unpricedReason,
-    },
+  const ids = factIdsOf(sessions, []);
+  const steps = [
+    ...new Map(sessions.steps.map((step) => [step.sessionId, step])).values(),
   ];
-  return reads.flatMap(({ fact, label, ids, otherwise }) => {
-    if (ids.length === 0 || facts[fact] !== undefined) return [];
-    const missing = unique(ids).flatMap((id) => {
-      const dirs = projectDirs.get(id) ?? [];
-      return transcriptOf(dirs, id) === undefined ? [id] : [];
-    });
+  const wordings = Object.entries(factWordings) as [
+    TranscriptFact,
+    FactWording,
+  ][];
+  return wordings.flatMap(([fact, { label, otherwise }]) => {
+    if (ids[fact].length === 0 || facts[fact] !== undefined) return [];
+    const missing = steps.filter(
+      ({ sessionId, configFolder }) =>
+        ids[fact].includes(sessionId) &&
+        transcriptOf(projectDirsOf(configFolder), sessionId) === undefined,
+    );
     if (missing.length > 0) {
-      return [{ label, reason: missingReasonOf(sessions, missing) }];
+      return [{ label, reason: missingReasonOf(missing) }];
     }
     return otherwise === undefined ? [] : [{ label, reason: otherwise }];
   });
 }
 
-function missingReasonOf(sessions: TicketSessions, missing: string[]): string {
+// The session ids each transcript fact reads; the review steps' resolves count toward review cost only once a review ran.
+function factIdsOf(
+  sessions: TicketSessions,
+  handoffSessionIds: string[],
+): Record<TranscriptFact, string[]> {
+  const implementerIds = unique([
+    ...handoffSessionIds,
+    ...stepIdsOf(sessions, "implement"),
+  ]);
+  const reviewIds = stepIdsOf(sessions, "review");
+  return {
+    pair: implementerIds,
+    peakContext: implementerIds,
+    durationMinutes: unique([
+      ...handoffSessionIds,
+      ...sessions.steps.map(({ sessionId }) => sessionId),
+    ]),
+    costUsd: implementerIds,
+    reviewCostUsd:
+      reviewIds.length === 0
+        ? []
+        : unique([...reviewIds, ...stepIdsOf(sessions, "resolve")]),
+  };
+}
+
+function missingReasonOf(missing: RecordedSession[]): string {
   return missing
-    .map((id) => {
-      const folder = sessions.steps.find(({ sessionId }) => sessionId === id);
-      return `no transcript for session ${id} under ${folder?.configFolder}`;
-    })
+    .map(
+      ({ sessionId, configFolder }) =>
+        `no transcript for session ${sessionId} under ${configFolder}`,
+    )
     .join("; ");
 }
 
@@ -266,11 +262,12 @@ function projectDirsOf(configFolder: string): string[] {
   return readdirSync(projects).map((name) => join(projects, name));
 }
 
-// Undefined when any id's transcript is missing.
+// Undefined when any id's transcript is missing, or with no id, so a fact with no session is unrecorded rather than zero.
 function transcriptsOf(
   projectDirs: Map<string, string[]>,
   ids: string[],
 ): Transcript[] | undefined {
+  if (ids.length === 0) return undefined;
   const found = ids.flatMap((id) => {
     const transcript = transcriptOf(projectDirs.get(id) ?? [], id);
     return transcript === undefined ? [] : [transcript];
