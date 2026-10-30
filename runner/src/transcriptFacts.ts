@@ -27,6 +27,22 @@ export interface TicketSessions {
   steps: RecordedSession[];
 }
 
+// A transcript fact written `unrecorded`, by the name a progress-log warning gives it.
+export interface UnrecordedFact {
+  label: string;
+  reason: string;
+}
+
+// The sessions a fact reads, and why it stays unrecorded with every transcript found; none for a fact that can't.
+interface FactRead {
+  fact: keyof OutcomeFacts;
+  label: string;
+  ids: string[];
+  otherwise?: string;
+}
+
+const unpricedReason = "a model it used is missing from the price table";
+
 export interface ModelPrice {
   // Dollars per million tokens; a 5-minute cache write is 1.25× input and a 1-hour write 2×.
   input: number;
@@ -87,6 +103,14 @@ interface Transcript {
 const syntheticModel = "<synthetic>";
 const handoffSessionLine = /^session: (\S+)$/;
 
+// The config folder a claude process started from `env` writes its transcripts under.
+export function configFolderOf(
+  env: NodeJS.ProcessEnv,
+  homeFolder: string,
+): string {
+  return env.CLAUDE_CONFIG_DIR ?? join(homeFolder, ".claude");
+}
+
 export function transcriptFactsOf(
   sessions: TicketSessions,
   handoffSessionIds: string[],
@@ -125,6 +149,67 @@ export function transcriptFactsOf(
     costUsd: factOf(implementers, costUsdOf),
     reviewCostUsd: factOf(reviewSteps, costUsdOf),
   };
+}
+
+// Each transcript fact transcriptFactsOf leaves unrecorded although a step it reads ran, and why.
+export function unrecordedFactsOf(sessions: TicketSessions): UnrecordedFact[] {
+  const facts = transcriptFactsOf(sessions, []);
+  const projectDirs = projectDirsBySessionOf(sessions, []);
+  const implementerIds = stepIdsOf(sessions, "implement");
+  const reads: FactRead[] = [
+    {
+      fact: "pair",
+      label: "pair",
+      ids: implementerIds,
+      otherwise: "no implementer reply names its effort",
+    },
+    {
+      fact: "peakContext",
+      label: "peak context",
+      ids: implementerIds,
+      otherwise: "no implementer transcript has a reply",
+    },
+    {
+      fact: "durationMinutes",
+      label: "duration",
+      ids: sessions.steps.map(({ sessionId }) => sessionId),
+    },
+    {
+      fact: "costUsd",
+      label: "cost",
+      ids: implementerIds,
+      otherwise: unpricedReason,
+    },
+    {
+      fact: "reviewCostUsd",
+      label: "review cost",
+      ids: [
+        ...stepIdsOf(sessions, "review"),
+        ...stepIdsOf(sessions, "resolve"),
+      ],
+      otherwise: unpricedReason,
+    },
+  ];
+  return reads.flatMap(({ fact, label, ids, otherwise }) => {
+    if (ids.length === 0 || facts[fact] !== undefined) return [];
+    const missing = unique(ids).flatMap((id) => {
+      const dirs = projectDirs.get(id) ?? [];
+      return transcriptOf(dirs, id) === undefined ? [id] : [];
+    });
+    if (missing.length > 0) {
+      return [{ label, reason: missingReasonOf(sessions, missing) }];
+    }
+    return otherwise === undefined ? [] : [{ label, reason: otherwise }];
+  });
+}
+
+function missingReasonOf(sessions: TicketSessions, missing: string[]): string {
+  return missing
+    .map((id) => {
+      const folder = sessions.steps.find(({ sessionId }) => sessionId === id);
+      return `no transcript for session ${id} under ${folder?.configFolder}`;
+    })
+    .join("; ");
 }
 
 // The latest recorded implementer's peak, as an interactive session is when its review runs; undefined when unreadable.
@@ -277,12 +362,13 @@ function isMainLoopReply(
   return typeof model === "string" && model !== syntheticModel;
 }
 
+// A transcript with no reply, as a `/clear` successor's or a session quit at once, has no peak to spoil the others.
 function peaksOf(implementers: Transcript[]): number[] | undefined {
   const peaks = implementers.flatMap(({ text }) => {
     const peak = ContextMeter.ofTranscript(text);
     return peak === undefined ? [] : [peak];
   });
-  return peaks.length === implementers.length ? peaks : undefined;
+  return peaks.length === 0 ? undefined : peaks;
 }
 
 function durationMinutesOf(transcripts: Transcript[]): number {

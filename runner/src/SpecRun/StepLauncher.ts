@@ -182,13 +182,12 @@ export class StepLauncher extends SpecRunBase {
     } catch (error) {
       return { kind: "unrun", detail: unrunDetailOf(agent, error) };
     }
-    state.configFolder = result.configFolder ?? state.configFolder;
     if (result.sessionId !== undefined) {
       state.sessions.push({
         agent,
         sessionId: result.sessionId,
         account: result.account,
-        configFolder: state.configFolder,
+        configFolder: this.config.configFolder,
       });
     }
     this._saveState(run);

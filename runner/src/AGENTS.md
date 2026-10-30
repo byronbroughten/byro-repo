@@ -88,7 +88,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `targetTools.ts` | | The tools a step gets for each of its ticket's targets. |
 | `TicketHalted.ts` | | The error raised once a ticket's Halts are posted. |
 | `ticketTargets.ts` | | Reads a ticket's `## Targets` section. |
-| `transcriptFacts.ts` | `transcriptFacts` | Outcome facts computed from transcripts: pair, peaks, duration and cost. |
+| `transcriptFacts.ts` | `transcriptFacts` | Outcome facts computed from transcripts: pair, peaks, duration and cost, and why one is unrecorded. |
 | `UnhandledStop.ts` | `UnhandledStop` | The outcomes the run loop doesn't handle yet, and their error. |
 | `verdicts.ts` | | A finding's axes and verdicts. |
 | `WrapUp.ts` | `WrapUp` | `npm run wrap-up`: lands an issue or session workspace. |

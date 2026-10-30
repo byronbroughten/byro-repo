@@ -12,11 +12,13 @@ import {
   type IssueRef,
   IssueWorkspaces,
   type Lease,
+  type LeaseHolder,
   type Workspace,
   type WorkspaceKey,
   workspaceLabelOf,
   type WorkspaceStatus,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
+import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
 
 import { nearestClaudeAncestor } from "./claudeAncestor.ts";
 import { activeAccount } from "./cswapAccount.ts";
@@ -67,7 +69,7 @@ async function start(args: string[]): Promise<void> {
       ticketText: await ticketTextOf(key),
     }),
   );
-  if (holder) recordSession(key);
+  if (holder) await recordSession(key, holder);
 }
 
 // The Model fit section and the comments a session reads on entering; a session workspace has no ticket.
@@ -83,12 +85,18 @@ async function ticketTextOf(key: WorkspaceKey): Promise<string | undefined> {
 }
 
 // SessionStart records a session that starts in the workspace; this records one that moves in later.
-function recordSession(key: WorkspaceKey): void {
+async function recordSession(
+  key: WorkspaceKey,
+  holder: LeaseHolder,
+): Promise<void> {
+  const supervision =
+    await SupervisionRecords.init(stateFolder).recordOf(holder);
   const started = startedSessionOf({
     key,
     env: process.env,
     account: activeAccount(),
     homeFolder: homedir(),
+    isSupervisor: supervision !== undefined,
   });
   if (started === undefined) return;
   FactsFile.init(stateFolder).addSession(started.issue, started.session);

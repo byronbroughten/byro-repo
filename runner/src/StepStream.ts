@@ -1,5 +1,3 @@
-import { dirname, join } from "node:path";
-
 import type {
   LimitHit,
   StepOutput,
@@ -16,7 +14,6 @@ interface InitEvent {
   type: "system";
   subtype: "init";
   session_id?: unknown;
-  memory_paths?: { auto?: unknown };
 }
 
 interface RateLimitEvent {
@@ -93,15 +90,10 @@ export class StepStream {
   }
 
   toResult({ account, jsonSchema }: StepRequest): StepResult {
-    const sessionId = this._sessionId;
-    const projectFolder = this._projectFolder;
     return {
       output: outputOf(this.result, jsonSchema),
-      sessionId,
+      sessionId: this._sessionId,
       account,
-      configFolder: projectFolder && dirname(dirname(projectFolder)),
-      transcriptPath:
-        projectFolder && sessionId && join(projectFolder, `${sessionId}.jsonl`),
       peakContext: this.meter.peak,
       hasCrossedCeiling: this.hasCrossedCeiling,
       hang: undefined,
@@ -134,12 +126,6 @@ export class StepStream {
       stringOrUndefined(this.result?.session_id) ??
       stringOrUndefined(this.init?.session_id)
     );
-  }
-
-  // The init event names the account's auto-memory folder, `<config>/projects/<cwd>/memory/`.
-  private get _projectFolder(): string | undefined {
-    const memoryPath = stringOrUndefined(this.init?.memory_paths?.auto);
-    return memoryPath && dirname(memoryPath);
   }
 
   private get _limitHit(): LimitHit | undefined {

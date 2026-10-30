@@ -105,15 +105,12 @@ async function replay(
 }
 
 describe("ClaudeAgentStep on a recorded success", () => {
-  it("returns the validated record and where the session lives", async () => {
+  it("returns the validated record and its session", async () => {
     const { result } = await replay("success.ndjson");
     expect(result).toEqual({
       output: { status: "valid", record: { answer: "ok" } },
       sessionId: "0e3dc8b3-fd87-4381-b3dc-8c36c1e03e1b",
       account: 2,
-      configFolder: "/Users/dev/.claude-swap-backup/sessions/2-dev_example.com",
-      transcriptPath:
-        "/Users/dev/.claude-swap-backup/sessions/2-dev_example.com/projects/-Users-dev-byro-repo/0e3dc8b3-fd87-4381-b3dc-8c36c1e03e1b.jsonl",
       peakContext: 20_221,
       hasCrossedCeiling: false,
       hang: undefined,

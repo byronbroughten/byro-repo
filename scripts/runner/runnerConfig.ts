@@ -23,6 +23,7 @@ import type {
 import type { WrittenOutcomeRow } from "@byronbroughten/spec-runner/outcomeRowWriter";
 import { loadRunKnobs } from "@byronbroughten/spec-runner/runKnobs";
 import type { SpecRunConfig } from "@byronbroughten/spec-runner/SpecRun";
+import { configFolderOf } from "@byronbroughten/spec-runner/transcriptFacts";
 import type { WrapUpConfig } from "@byronbroughten/spec-runner/WrapUp";
 
 export const githubOwner = "byronbroughten";
@@ -138,6 +139,7 @@ export function specRunConfigOf(owner: string): SpecRunConfig {
       promoteCommandOf(repo, `${number}`),
     outcomeFolder,
     stateFolder,
+    configFolder: configFolderOf(process.env, homedir()),
     log: (line) => console.log(line),
   };
 }

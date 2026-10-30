@@ -192,6 +192,7 @@ export function specRun(
     promoteCommandOf: () => "npm run issue:promote -- byro-repo 1",
     outcomeFolder: "docs/agents/outcomes",
     stateFolder: stateFolder(),
+    configFolder: "/config/account-1",
     wrapUpKnobs: { backoffMs: 1, lockPollMs: 1 },
     async sleep(ms) {
       if (ms === knobs.idlePollMs) run.requestStop(spec);
@@ -206,8 +207,6 @@ export function resultOf(record: unknown): StepResult {
     output: { status: "valid", record },
     sessionId: "session",
     account: 1,
-    configFolder: undefined,
-    transcriptPath: undefined,
     peakContext: undefined,
     hasCrossedCeiling: false,
     hang: undefined,

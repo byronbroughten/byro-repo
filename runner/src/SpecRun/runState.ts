@@ -131,7 +131,7 @@ export interface TicketState {
   // The heads before the resolve step, which a killed resolver or a rerun resets to.
   resolveBase?: Heads;
   sessions: TicketSession[];
-  // The latest step's config folder.
+  // The latest step's config folder, which only a runner before #473 saves.
   configFolder?: string;
   stop?: string;
   // Set while a step runs, so a rerun after the process died takes the step as crashed.

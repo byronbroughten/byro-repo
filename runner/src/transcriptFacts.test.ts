@@ -20,6 +20,7 @@ import {
   type StepAgent,
   type TicketSessions,
   transcriptFactsOf,
+  unrecordedFactsOf,
 } from "./transcriptFacts.ts";
 
 const fixtures = join(import.meta.dirname, "..", "fixtures", "transcripts");
@@ -166,6 +167,24 @@ describe("transcriptFactsOf", () => {
     expect(facts.reviewCostUsd).toBeCloseTo(0.114, 6);
   });
 
+  // The #453 cause: a `/clear` successor that inherited the lease and never replied was recorded as an implementer.
+  it("takes the pair and peak from the run's implementer when a reply-less interactive session joins it", () => {
+    writeFileSync(
+      join(
+        configFolder,
+        "projects",
+        "-workspace-byro-repo",
+        "session-clear.jsonl",
+      ),
+      `${JSON.stringify({ type: "user", timestamp: "2026-10-06T10:00:00Z" })}\n`,
+    );
+    const steps = [...sessions().steps, step("implement", "session-clear")];
+
+    const facts = transcriptFactsOf(sessions({ steps }), []);
+
+    expect([facts.pair, facts.peakContext]).toEqual(["Opus medium", [90_000]]);
+  });
+
   it("leaves review cost unrecorded when a model has no price", () => {
     const fix = join(
       configFolder,
@@ -208,6 +227,36 @@ describe("transcriptFactsOf", () => {
       facts.costUsd,
       facts.durationMinutes,
     ]).toEqual([undefined, undefined, undefined, 12]);
+  });
+});
+
+describe("unrecordedFactsOf", () => {
+  it("names nothing when every fact is recorded", () => {
+    expect(unrecordedFactsOf(sessions())).toEqual([]);
+  });
+
+  it("names a fact left unrecorded with every transcript found, and why", () => {
+    const fix = join(
+      configFolder,
+      "projects",
+      "-workspace-byro-repo",
+      "session-fix.jsonl",
+    );
+    writeFileSync(
+      fix,
+      readFileSync(fix, "utf8").replace("claude-opus-5-5", "claude-mystery-9"),
+    );
+    expect(unrecordedFactsOf(sessions())).toEqual([
+      {
+        label: "review cost",
+        reason: "a model it used is missing from the price table",
+      },
+    ]);
+  });
+
+  it("names nothing for a step that never ran", () => {
+    const steps = sessions().steps.filter(({ agent }) => agent === "implement");
+    expect(unrecordedFactsOf(sessions({ steps }))).toEqual([]);
   });
 });
 
