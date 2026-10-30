@@ -200,6 +200,7 @@ describe("run's implement handoff", () => {
       agent: "implement",
       sessionId: "handoff-session",
       account: 1,
+      configFolder: "/config/account-1",
     });
   });
 });

@@ -19,8 +19,6 @@ function result(sessionId: string): StepResult {
     output: { status: "valid", record: { sessionId } },
     sessionId,
     account: 1,
-    configFolder: undefined,
-    transcriptPath: undefined,
     peakContext: 90_000,
     hasCrossedCeiling: false,
     hang: undefined,

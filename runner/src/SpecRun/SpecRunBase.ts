@@ -83,6 +83,8 @@ export interface SpecRunConfig {
   outcomeFolder: string;
   // Holds the run state, progress log and step logs, and the wrap-up's facts and progress files; gitignored.
   stateFolder: string;
+  // Read from the runner's own environment, not the stream: shared history writes every account's transcripts under it.
+  configFolder: string;
   wrapUpKnobs?: Partial<WrapUpKnobs>;
   sleep?(ms: number): Promise<void>;
   log?(line: string): void;

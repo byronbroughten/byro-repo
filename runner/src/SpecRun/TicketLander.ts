@@ -17,6 +17,7 @@ import { pairLabelOf } from "../modelFit.ts";
 import { redChecksOutputSchema, redChecksPrompt } from "../redChecksStep.ts";
 import { RunStop } from "../RunStop.ts";
 import { SchemaFailure } from "../SchemaFailure.ts";
+import { type RecordedSession, unrecordedFactsOf } from "../transcriptFacts.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
 import { WrapUpFailure } from "../WrapUpFailure.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
@@ -156,8 +157,10 @@ export class TicketLander extends SpecRunBase {
 
   // Needs no workspace: a wrap-up killed after removing it resumes from its own progress file.
   async _land(landingTicket: LandingTicket): Promise<void> {
-    const { run, ticket } = landingTicket;
-    this._writeFacts(landingTicket);
+    const { run, ticket, state } = landingTicket;
+    const steps = recordedSessionsOf(state);
+    this._writeFacts(landingTicket, steps);
+    this._warnOnUnrecordedFacts(landingTicket, steps);
     this._log(run, `${issueLabelOf(ticket.issue)}: wrapping up.`);
     for (;;) {
       try {
@@ -266,7 +269,10 @@ export class TicketLander extends SpecRunBase {
     }
   }
 
-  private _writeFacts({ run, ticket, pair, state }: LandingTicket): void {
+  private _writeFacts(
+    { run, ticket, pair, state }: LandingTicket,
+    steps: RecordedSession[],
+  ): void {
     const { record } = state;
     if (record === undefined) {
       throw new Error(
@@ -290,9 +296,27 @@ export class TicketLander extends SpecRunBase {
       facts.reviewRounds = 0;
       facts.githubWrites = record.githubWrites;
     }
-    const steps = recordedSessionsOf(state);
     if (steps.length > 0) facts.sessions = { steps };
     this.factsFile.write(ticket.issue, facts);
+  }
+
+  // So a regression in the session facts shows on the first ticket it hits, not in a later audit of the rows.
+  private _warnOnUnrecordedFacts(
+    { run, ticket, state }: LandingTicket,
+    steps: RecordedSession[],
+  ): void {
+    const prefix = `${issueLabelOf(ticket.issue)}: warning:`;
+    const dropped = state.sessions.length - steps.length;
+    if (dropped > 0) {
+      this._log(
+        run,
+        `${prefix} ${dropped} step session(s) left out of the facts file, saved with no account or config folder.`,
+      );
+    }
+    if (steps.length === 0) return;
+    unrecordedFactsOf({ steps }).forEach(({ label, reason }) => {
+      this._log(run, `${prefix} ${label} written unrecorded: ${reason}.`);
+    });
   }
 }
 

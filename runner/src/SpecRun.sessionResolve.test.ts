@@ -109,7 +109,6 @@ describe("a session resolving its own review", () => {
     const agentStep = FakeAgentStep.init({
       ...reviewed(findings),
       sessionId: "review-session",
-      configFolder: "/config/account-1",
     });
     const result = await specRun(agentStep).review(refOf(1), { holder });
     return { agentStep, result };
@@ -257,7 +256,6 @@ describe("a session resolving its own review", () => {
       {
         ...reviewed(findings),
         sessionId: "review-session",
-        configFolder: "/config/account-1",
       },
       async (request) => ({
         ...(await resolved([fix, decision, coveredLater], "fix.ts")(request)),

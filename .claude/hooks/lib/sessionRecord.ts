@@ -73,7 +73,7 @@ export function supervisingLineOf({
   return `This session supervises ${issueLabelOf(spec)}'s run: \`/runner ${owner}/${spec.repo} ${spec.number}\` carries on from its last explained event, and \`/runner\` on another spec switches to that run.`;
 }
 
-// A transcript sits at <config folder>/projects/<project>/<session>.jsonl, as StepStream.ts reads a step's.
+// A transcript sits at <config folder>/projects/<project>/<session>.jsonl, as transcriptFacts.ts reads a step's.
 export function configFolderOf(
   transcriptPath: string | undefined,
 ): string | undefined {

@@ -110,7 +110,7 @@ describe("review of one ticket outside a run", () => {
     );
 
     expect(result).toMatchObject({ kind: "reviewed", halts: [] });
-    expect(ticketFacts()).toEqual({ reviewFixes: "none", proposals: 0 });
+    expect(ticketFacts()).toMatchObject({ reviewFixes: "none", proposals: 0 });
     expect(github.comments).toEqual([]);
   });
 
@@ -133,7 +133,7 @@ describe("review of one ticket outside a run", () => {
       ].join("\n\n"),
     );
     expect(commentsOn(2, "byro-repo#1's review left this")).toHaveLength(1);
-    expect(ticketFacts()).toEqual({
+    expect(ticketFacts()).toMatchObject({
       reviewFixes: "fresh",
       whatReviewCaught:
         "Fixed: Line 2 is wrong. (one.ts:2). Proposed: Line 1 is wrong. (one.ts:1).",
@@ -150,15 +150,10 @@ describe("review of one ticket outside a run", () => {
     } as const;
     FactsFile.init(stateFolder()).addSession(refOf(1), implement);
     const agentStep = FakeAgentStep.init(
-      {
-        ...reviewed(findings),
-        sessionId: "review-session",
-        configFolder: "/config/account-1",
-      },
+      { ...reviewed(findings), sessionId: "review-session" },
       async (request) => ({
         ...(await resolved([propose, fix, coveredLater], "fix.ts")(request)),
         sessionId: "resolve-session",
-        configFolder: "/config/account-1",
       }),
     );
 
@@ -174,18 +169,12 @@ describe("review of one ticket outside a run", () => {
     });
   });
 
-  it("records each step session under the account and config folder its own step ran as", async () => {
+  it("records each step session under the account its own step ran as, in the runner's own config folder", async () => {
     const agentStep = FakeAgentStep.init(
-      {
-        ...reviewed(findings),
-        sessionId: "review-session",
-        account: 2,
-        configFolder: "/config/account-2",
-      },
+      { ...reviewed(findings), sessionId: "review-session", account: 2 },
       async (request) => ({
         ...(await resolved([propose, fix, coveredLater], "fix.ts")(request)),
         sessionId: "resolve-session",
-        configFolder: "/config/account-1",
       }),
     );
 
@@ -197,7 +186,7 @@ describe("review of one ticket outside a run", () => {
           agent: "review",
           sessionId: "review-session",
           account: 2,
-          configFolder: "/config/account-2",
+          configFolder: "/config/account-1",
         },
         {
           agent: "resolve",
@@ -209,13 +198,9 @@ describe("review of one ticket outside a run", () => {
     });
   });
 
-  it("records a halted review's sessions under the step's own config folder when no implement session was recorded", async () => {
+  it("records a halted review's sessions under the runner's config folder when no implement session was recorded", async () => {
     const agentStep = FakeAgentStep.init(
-      {
-        ...reviewed(findings.slice(0, 1)),
-        sessionId: "review-session",
-        configFolder: "/config/account-1",
-      },
+      { ...reviewed(findings.slice(0, 1)), sessionId: "review-session" },
       async (request) => ({
         ...(await resolvedAs(halt)(request)),
         sessionId: "resolve-session",
@@ -278,7 +263,7 @@ describe("review of one ticket outside a run", () => {
     expect(result.halts[0]).toContain("Options:\n1. Answer it.\n\n");
     expect(result.halts[0]).not.toContain("stop spec");
     expect(notices.sent).toEqual([]);
-    expect(ticketFacts()).toEqual({
+    expect(ticketFacts()).toMatchObject({
       reviewFixes: "none",
       whatReviewCaught: "Halted: Line 1 is wrong. (one.ts:1).",
       proposals: 0,

@@ -38,8 +38,6 @@ export interface StepResult {
   output: StepOutput;
   sessionId: string | undefined;
   account: number;
-  configFolder: string | undefined;
-  transcriptPath: string | undefined;
   peakContext: number | undefined;
   // Set when the adapter killed the session for crossing the request's live ceiling.
   hasCrossedCeiling: boolean;

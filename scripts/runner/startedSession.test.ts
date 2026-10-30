@@ -8,6 +8,7 @@ const started = {
   env: { CLAUDE_CODE_SESSION_ID: "session-1" },
   account: 1,
   homeFolder: "/Users/dev",
+  isSupervisor: false,
 };
 
 describe("startedSessionOf", () => {
@@ -39,6 +40,13 @@ describe("startedSessionOf", () => {
         ...started,
         env: { ...started.env, BYRO_RUNNER_STEP: "1" },
       }),
+    ).toBeUndefined();
+  });
+
+  // The #453 cause: a Supervisor answering a Halt starts the ticket's workspace, and was listed as its implementer.
+  it("records nothing for a Supervisor, whose session worked other tickets too", () => {
+    expect(
+      startedSessionOf({ ...started, isSupervisor: true }),
     ).toBeUndefined();
   });
 
