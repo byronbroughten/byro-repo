@@ -191,6 +191,9 @@ export class TicketLander extends SpecRunBase {
     }
     let detail = error.message;
     if (error.kind === "conflict") {
+      // Its resolution never landed, so a ticket landed some other way after the Halt doesn't show it.
+      state.mergeMasterRecord = undefined;
+      this._saveState(run);
       detail = `The wrap-up still conflicts after the merge-master resume: ${detail}`;
     }
     await this.haltRaiser._failureHalt(landingTicket, {

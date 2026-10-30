@@ -91,15 +91,16 @@ export interface TicketReviewList {
   // Every resolve record the ticket kept, from either side of a Halt.
   records: ResolveRecord[];
   // Set when a merge-master step resolved the wrap-up's conflict.
-  mergeMaster?: MergeMasterRecord;
+  mergeMasterRecord?: MergeMasterRecord;
 }
 
-// A ticket's groups, each key order the order shown.
+// A ticket's groups, each key order the order shown; the merge with master comes after the axes.
 const reviewGroups = {
   axes: {
     standards: "### Standards",
     spec: "### Spec",
   },
+  mergeMaster: "### Merge with master",
   verdicts: {
     fix: { heading: "Fixed", word: "Fix" },
     propose: { heading: "Proposed", word: "Propose" },
@@ -108,6 +109,7 @@ const reviewGroups = {
   },
 } as const satisfies {
   axes: Record<Axis, string>;
+  mergeMaster: string;
   verdicts: Record<Verdict, { heading: string; word: string }>;
 };
 
@@ -119,9 +121,9 @@ export function ticketReviewListOf({
   ticket,
   title,
   records,
-  mergeMaster,
+  mergeMasterRecord,
 }: TicketReviewList): string | undefined {
-  if (records.length === 0 && mergeMaster === undefined) return undefined;
+  if (records.length === 0 && mergeMasterRecord === undefined) return undefined;
   const groups = groupsOf(records);
   // Numbered in the order shown, so R<ticket>.1 is the first Proposal read.
   const proposals = shownAxes.flatMap((axis) => groups[axis].propose);
@@ -133,9 +135,9 @@ export function ticketReviewListOf({
     );
     return shown.length === 0 ? [] : [reviewGroups.axes[axis], ...shown];
   });
-  if (mergeMaster !== undefined) {
+  if (mergeMasterRecord !== undefined) {
     const id = itemIdOf(ticket, proposals.length);
-    sections.push(mergeMasterSectionOf(id, mergeMaster));
+    sections.push(mergeMasterSectionOf(id, mergeMasterRecord));
   }
   return [
     reviewListMarkOf(ticket),
@@ -150,12 +152,19 @@ function mergeMasterSectionOf(
   { summary, files }: MergeMasterRecord,
 ): string {
   const item = itemOf(id, {
-    heading: `Propose \`decision\` · The merge with master resolved conflicts in ${files.join(", ")}`,
+    heading: proposeHeadingOf(
+      "decision",
+      `The merge with master resolved conflicts in ${files.join(", ")}`,
+    ),
     evidenceLine: `Evidence: ${summary}`,
     recommendation:
       "Confirm each resolution kept the intent you want from both sides; correct it on master if not.",
   });
-  return `### Merge with master\n\n${groupBlockOf("propose", [item])}`;
+  return `${reviewGroups.mergeMaster}\n\n${groupBlockOf("propose", [item])}`;
+}
+
+function proposeHeadingOf(reason: string, subject: string): string {
+  return `${reviewGroups.verdicts.propose.word} \`${reason}\` · ${subject}`;
 }
 
 type RecordGroups = Record<Axis, Record<Verdict, ResolveRecord[]>>;
@@ -237,7 +246,7 @@ function haltRowOf(record: ResolveRecord): string {
 function proposeItemOf(record: ResolveRecord): ReviewItem {
   const reason = requiredOf(record, "reason");
   return {
-    heading: `Propose \`${reason}\` · ${findingHeadOf(record)}`,
+    heading: proposeHeadingOf(reason, findingHeadOf(record)),
     evidenceLine: evidenceLineOf(record),
     recommendation: requiredOf(record, "recommendation"),
     draftIssueTitle:

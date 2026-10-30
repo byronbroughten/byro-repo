@@ -150,6 +150,31 @@ describe("run's wrap-up failures", () => {
     );
   });
 
+  it("shows no merge-master resolution that never landed, once a `retry` lands a hand merge", async () => {
+    addSpec([1]);
+    let workspace = "";
+    const agentStep = FakeAgentStep.init(
+      conflicting,
+      reviewed(),
+      async (request) => {
+        workspace = request.cwd;
+        return unmerged(request);
+      },
+    );
+    await specRun(agentStep).run(spec);
+
+    git(workspace, "merge", "-X", "ours", "-m", "Merge master", "master");
+    github.reply(213, "H1: retry");
+    const result = await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(
+      github.comments.filter(({ body }) =>
+        body.includes("<!-- review-list ticket=#1 -->"),
+      ),
+    ).toEqual([]);
+  });
+
   it("sets a turn-capped merge-master's uncommitted work aside, then halts on the conflict it left", async () => {
     addSpec([1]);
     let branch = "";
