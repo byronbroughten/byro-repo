@@ -16,4 +16,4 @@ A reason the developer approves more than once becomes an exception in the verdi
 
 The Speculative Generality exception covers only the library packages because their consumers live outside them, so a public member's caller may not exist yet. In an app package (real-estate, runner) every caller is in reach, so a caller-less public member is flagged; an older one found there predates the branch, so it is a Propose `ticket`.
 
-The Middle Man exception keeps a name like `type SheetGid = number`, which says what the number means at every site that uses it.
+The Middle Man exception keeps a name like `type SheetGid = number`, which says what the number means at every site that uses it. Middle Man is defined for classes and functions, but read loosely it would cut the alias for passing straight through to `number`; the alias is the cure for Primitive Obsession, so the exception names Middle Man as the smell it suspends.
