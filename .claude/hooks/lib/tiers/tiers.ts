@@ -571,6 +571,13 @@ function sessionGhVerdictOf([program, verb, ...args]: string[]):
       needsPlainText: true,
     };
   }
+  if (call?.isCommentEdit) {
+    return {
+      permissionDecision: "allow",
+      why: "a further edit undoes an issue comment's edit",
+      needsPlainText: true,
+    };
+  }
   if (!call?.isIssueLink) return undefined;
   return {
     permissionDecision: "allow",

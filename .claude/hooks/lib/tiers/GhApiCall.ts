@@ -45,6 +45,10 @@ export class GhApiCall {
       issueLinks.endpoint.test(this.endpoint)
     );
   }
+
+  get isCommentEdit(): boolean {
+    return this.method === "PATCH" && commentEndpoint.test(this.endpoint);
+  }
 }
 
 const apiFlags = {
@@ -85,6 +89,8 @@ const issueLinks = {
   endpoint:
     /^\/?repos\/[^/]+\/[^/]+\/issues\/\d+\/(dependencies\/blocked_by(\/\d+)?|sub_issues?)$/,
 } as const;
+
+const commentEndpoint = /^\/?repos\/[^/]+\/[^/]+\/issues\/comments\/\d+$/;
 
 function flagPartsOf(word: string): [string, string | undefined] {
   if (word.startsWith("--")) {
