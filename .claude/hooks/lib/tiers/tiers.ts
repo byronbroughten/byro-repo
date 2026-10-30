@@ -150,7 +150,10 @@ const gitReadVerbs = new Set([
   "ls-files",
   "blame",
   "merge-base",
+  "grep",
 ]);
+// `git grep -O` opens the matched files in a pager, which can be any program.
+const gitGrepPagerFlags = /^(-[^-]*O|--open-files-in-pager)/;
 const gitFileVerbs = new Set(["mv", "rm"]);
 const fileCommands = new Set(["rm", "mkdir", "cp", "mv"]);
 const interpreters = {
@@ -729,7 +732,12 @@ function isProgramRead(program: string, args: string[]): boolean {
 
 function isGitRead({ verb, args }: GitCall): boolean {
   return (
-    gitReadVerbs.has(verb) && !args.some((arg) => arg.startsWith("--output"))
+    gitReadVerbs.has(verb) &&
+    !args.some(
+      (arg) =>
+        arg.startsWith("--output") ||
+        (verb === "grep" && gitGrepPagerFlags.test(arg)),
+    )
   );
 }
 

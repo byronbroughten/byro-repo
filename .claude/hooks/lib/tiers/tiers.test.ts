@@ -337,6 +337,8 @@ describe("reads and git add", () => {
       "ls; wc -l AGENTS.md",
       "cd packages/framework && git log -3",
       "cd packages/framework && git add src/x.ts && git commit -m wip",
+      "git grep -n toISOString",
+      "git -C packages/framework grep -nE 'a|b' -- src",
     ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
   });
 
@@ -375,6 +377,10 @@ describe("reads and git add", () => {
       "git branch issue-400-x <<EOF\nrm -rf dist\nEOF",
       "git diff --output=patch.diff",
       "git log -p --output patch.diff",
+      "git grep -O x",
+      "git grep -Ovim x",
+      "git grep -nO x",
+      "git grep --open-files-in-pager=./run.sh x",
       "git -c core.fsmonitor='rm -rf dist' status",
       "git -c core.pager=less log",
       "cat AGENTS.md > copy.md",
