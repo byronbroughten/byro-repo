@@ -794,8 +794,21 @@ describe("an Interactive session's gh calls", () => {
     });
   });
 
+  it("allows editing an issue comment, and refuses it in a runner step", () => {
+    [
+      "gh api --method PATCH repos/x/y/issues/comments/987 -F body=@/tmp/body.md",
+      "gh api -X patch /repos/x/y/issues/comments/987 -f body=Fixed",
+    ].forEach((command) => {
+      expect(decisionOf(command)).toBe("allow");
+      expect(runnerStepDecisionOf(command)).toBe("deny");
+    });
+  });
+
   it("leaves any other gh api write to Claude Code", () => {
     [
+      "gh api -X DELETE repos/x/y/issues/comments/987",
+      "gh api repos/x/y/issues/comments/987 -f body=Fixed",
+      "gh api -X PATCH repos/x/y/pulls/comments/987 -f body=Fixed",
       // A field with no method named makes gh send a POST.
       "gh api repos/x/y/issues -f title=T",
       "gh api graphql --input /tmp/query.json",
