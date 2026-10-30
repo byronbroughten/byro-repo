@@ -737,10 +737,28 @@ describe("a runner step's gh calls", () => {
     });
   });
 
-  it("denies a write whose body a heredoc could hide a command behind", () => {
+  it("denies a write whose body could hide a command, naming --body-file instead of a blocker", () => {
+    [
+      "gh issue comment 447 --body-file - <<EOF\nok\nEOF",
+      'gh issue comment 447 --body "Fails at `Api.ts`"',
+      'gh issue edit 447 --body "$(cat notes.md)"',
+    ].forEach((command) => {
+      const decision = placedDecisionOf(command, "runnerStep");
+      expect(decision?.permissionDecision).toBe("deny");
+      expect(decision?.reason).toContain("--body-file");
+      expect(decision?.reason).not.toContain(blockerInstead);
+    });
+  });
+
+  it("leaves an Interactive session's write with a backtick to Claude Code", () => {
     expect(
-      runnerStepDecisionOf("gh issue comment 447 --body-file - <<EOF\nok\nEOF"),
-    ).toBe("deny");
+      placedDecisionOf('gh issue comment 447 --body "Fails at `Api.ts`"'),
+    ).toBeUndefined();
+  });
+
+  it("names no --body-file for another call with a backtick", () => {
+    const decision = placedDecisionOf("git add `ls`", "runnerStep");
+    expect(decision?.reason).not.toContain("--body-file");
   });
 });
 

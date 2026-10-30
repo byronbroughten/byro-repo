@@ -230,7 +230,7 @@ describe("implementPrompt", () => {
   it("allows the GitHub writes the ticket describes and never a close", () => {
     const prompt = implementPrompt(input);
     expect(prompt).toContain(
-      "Run `gh issue edit` and `gh issue comment` only as the ticket describes them.",
+      "Run `gh issue edit` and `gh issue comment` only as the ticket describes them, writing each body to a file under `$TMPDIR` and passing it with `--body-file`.",
     );
     expect(prompt).toContain("never close an issue");
     expect(prompt).not.toContain("never comment on or close an issue");

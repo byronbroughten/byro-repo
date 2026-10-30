@@ -72,6 +72,8 @@ interface Verdict {
   why: string;
   // Allowed only in a command with no heredoc or $'…' to hide another behind it.
   needsPlainText?: boolean;
+  // A runner step's way past the plain-text check, said instead of recording a blocker.
+  plainTextFix?: string;
 }
 
 // isPlain: no global option but a path one, so no `-c` config can run a command.
@@ -303,13 +305,13 @@ function baseDecision({
     return needsYes(`\`${command}\` ${ask.why}`);
   }
   // The parser doesn't look inside quoted substitutions, so one could hide a command.
-  if (/\$\(|`/.test(command)) return undefined;
+  if (/\$\(|`/.test(command)) return plainTextRefusalOf(verdicts, mode);
   // It also strips heredoc bodies and misreads $'…', so either could hide a command after one.
   if (
     verdicts.some((verdict) => verdict?.needsPlainText) &&
     /<<|\$'/.test(command)
   ) {
-    return undefined;
+    return plainTextRefusalOf(verdicts, mode);
   }
   if (!verdicts.every((verdict) => verdict?.permissionDecision === "allow")) {
     return undefined;
@@ -317,6 +319,19 @@ function baseDecision({
   return gateOf(
     "allow",
     `${verdicts.map((verdict) => verdict?.why).join("; ")}.`,
+  );
+}
+
+// A runner step told how to retry doesn't halt; any other call stays unclassified.
+function plainTextRefusalOf(
+  verdicts: (Verdict | undefined)[],
+  mode: SessionMode,
+): Decision | undefined {
+  const fix = verdicts.find((verdict) => verdict?.plainTextFix)?.plainTextFix;
+  if (mode !== "runnerStep" || fix === undefined) return undefined;
+  return gateOf(
+    "deny",
+    `a backtick, \`$(\`, heredoc or \`$'…'\` could hide a command, so ${fix}.`,
   );
 }
 
@@ -519,6 +534,8 @@ function ghVerdictOf(words: string[]): Verdict | undefined {
     permissionDecision: "allow",
     why: "a further `gh issue edit` or comment undoes it",
     needsPlainText: true,
+    plainTextFix:
+      "write the text to a file under `$TMPDIR` and pass it with `--body-file`, then run the call again",
   };
 }
 
