@@ -28,7 +28,8 @@ if [[ $# -ne 2 || "$1" != */* ]]; then
 fi
 session="runner-${1#*/}-$2"
 if tmux has-session -t "=$session" 2>/dev/null; then
-  if [[ "$(tmux display-message -p -t "=$session" '#{pane_dead}')" != "1" ]]; then
+  # A pane target needs the trailing colon: "=$session" alone resolves to no pane.
+  if [[ "$(tmux display-message -p -t "=$session:" '#{pane_dead}')" != "1" ]]; then
     echo "tmux session $session is still running its run; attach with: tmux attach -t $session" >&2
     exit 1
   fi
@@ -37,7 +38,7 @@ if tmux has-session -t "=$session" 2>/dev/null; then
   mkdir -p "$(dirname "$log")"
   {
     echo "Replaced dead tmux session $session; its last lines:"
-    tmux capture-pane -p -t "=$session" -S -20
+    tmux capture-pane -p -t "=$session:" -S -20
   } >>"$log"
   tmux kill-session -t "=$session"
 fi
