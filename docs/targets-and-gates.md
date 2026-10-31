@@ -24,7 +24,7 @@ Reads need no yes in any tier.
 | `git commit`, on any branch | 1; the branch guard still keeps a primary checkout on its branch, and the primary-edit guard keeps the commit out of one |
 | `git add`, and `git branch` without a delete or force flag (`-d`, `-D`, `-f`, `-M`, `-C`), in the same forms as the git reads | 1: git can undo it |
 | `git merge` without `--no-verify`, in the same forms as the git reads | 1: `git merge --abort` or a reset to `ORIG_HEAD` undoes it; the primary-edit guard keeps it out of a primary checkout |
-| `npm run issue:start`, `issue:list`, and `issue:remove` without `--force`, which refuses unlanded work | 1 |
+| `npm run issue:start`, `issue:list`, `issue:release`, whose lease `issue:start` takes back, and `issue:remove` without `--force`, which refuses unlanded work | 1 |
 | `.claude/skills/inbox/record.sh`, which writes `/inbox` data in the session's `personal` clone | 1 |
 | `npm run issue:remove … --force`, which discards a workspace's unlanded work | 3 |
 | `npm run wrap-up -- <repo> <n>` or `-- --session <slug> [--keep]`, which pushes | a standing yes to push, behind its secret scan |
@@ -40,6 +40,7 @@ Reads need no yes in any tier.
 | A `gmail` filter, label or message-label change | 3: Gmail keeps no version history. The yes is the developer's `/inbox` Sign-off in the chat; `gmailGate.ts` allows a call one `signed-off` Proposal covers and asks for any other. Settings deny sending and drafting |
 | `gh issue close`, `gh issue edit`, `gh issue comment` | free: `gh issue reopen` and a further edit or comment undo them. A runner step gets only `edit` and `comment`; its `close` and every other `gh` call but `gh label list` are refused. Its `edit` or `comment` holding a backtick, `$(…)`, heredoc or `$'…'` is refused naming `--body-file`, since that way through is free |
 | In an Interactive session: `gh issue create`; `gh api` sending no body, or with `-X GET`; `gh api` POST or DELETE on an issue's `dependencies/blocked_by` or `sub_issues` (`sub_issue` to remove); `gh api` PATCH on `issues/comments/<id>` | free: `gh issue close` undoes a create, the opposite call a link, and a further PATCH a comment edit. A runner step's are refused: it reads issues through `npm run issue:read`, which labels Trusted and Untrusted text |
+| In an Interactive session: `npm run runner -- decide`, which edits one item of the developer's own review-list comment | free: a further edit undoes it, as for a raw comment PATCH. A runner step's is refused |
 | `npm run issue:backlink` | free: a further `gh issue edit` undoes it |
 | A raw `git push` | 3 |
 | `npm publish` | 3, [below](#npm-publish) |

@@ -59,6 +59,13 @@ describe("gateDecision", () => {
     ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
   });
 
+  it("allows releasing a workspace's lease, which issue:start takes back", () => {
+    [
+      "npm run issue:release -- byro-repo 484",
+      "npm run issue:release -- --session glossary-fix",
+    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
+  });
+
   it("allows a backlink in a session and a runner step, beside gh issue edit", () => {
     const command =
       "npm run issue:backlink -- byro-repo 372 docs/adr/0007-issue-reader.md";
@@ -802,6 +809,19 @@ describe("an Interactive session's gh calls", () => {
       expect(decisionOf(command)).toBe("allow");
       expect(runnerStepDecisionOf(command)).toBe("deny");
     });
+  });
+
+  it("allows the runner's decide, and refuses it in a runner step", () => {
+    [
+      'npm run runner -- decide ByronBroughten/byro-repo 372 R159.1 "accepted"',
+      'npm run runner -- decide ByronBroughten/byro-repo 372 R159.1 --handled "filed #490"',
+    ].forEach((command) => {
+      expect(decisionOf(command)).toBe("allow");
+      expect(runnerStepDecisionOf(command)).toBe("deny");
+    });
+    expect(
+      decisionOf("npm run runner -- ByronBroughten/byro-repo 372"),
+    ).toBeUndefined();
   });
 
   it("leaves any other gh api write to Claude Code", () => {

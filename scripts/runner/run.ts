@@ -6,6 +6,7 @@
 // `watch` streams the spec's new event lines and prints a `vanished` line if the run's process dies unreported (runWatch.ts);
 // `--once` prints the first unexplained line, or that `vanished` line, and exits, or exits silently once a newer watch replaces it.
 // `status` and `watch` with no spec print the Run board once or redraw it every 5s (runBoard.ts).
+// `decide` ticks one review-list item and adds its `Decided:` line, or with `--handled` adds a `Handled:` line unticked (SpecRun/ReviewItemDecider.ts).
 import { readFileSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
 
@@ -13,6 +14,7 @@ import {
   isSameIssue,
   type IssueRef,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
+import { isItemId } from "@byronbroughten/spec-runner/reviewList";
 import { runBoardOf, watchBoard } from "@byronbroughten/spec-runner/runBoard";
 import { RunLock } from "@byronbroughten/spec-runner/RunLock";
 import { reviewPrintoutOf, SpecRun } from "@byronbroughten/spec-runner/SpecRun";
@@ -26,8 +28,8 @@ import { type WatchDeps, watchOnce, watchRun } from "./runWatch.ts";
 const exitCodes = { short: 1, crash: 2, restart: 3 } as const;
 const plainVerbs = ["status", "stop", "review"];
 const boardVerbs = ["status", "watch"];
-const verbs = [...plainVerbs, "watch", "resolve", "supervise"];
-const usage = `Usage: npm run runner -- [${plainVerbs.join("|")}] <owner/repo> <n>, watch <owner/repo> <n> [--once], resolve <owner/repo> <n> <records.json>, supervise <owner/repo> <n> [--advance], or [${boardVerbs.join("|")}] alone for the Run board`;
+const verbs = [...plainVerbs, "watch", "resolve", "supervise", "decide"];
+const usage = `Usage: npm run runner -- [${plainVerbs.join("|")}] <owner/repo> <n>, watch <owner/repo> <n> [--once], resolve <owner/repo> <n> <records.json>, supervise <owner/repo> <n> [--advance], decide <owner/repo> <spec> R<n>.<k> [--handled] "<text>", or [${boardVerbs.join("|")}] alone for the Run board`;
 
 try {
   const args = process.argv.slice(2);
@@ -38,6 +40,8 @@ try {
   }
   if (args.length === 0 && boardVerbs.includes(command)) {
     await showBoard(command);
+  } else if (command === "decide") {
+    await decide(args);
   } else {
     await runOnSpec(command, args);
   }
@@ -66,9 +70,23 @@ function boardNow(): string {
   return runBoardOf(stateFolder, new Date());
 }
 
+interface SpecArgs {
+  owner: string;
+  issue: IssueRef;
+}
+
+// Throws the usage for anything but `<owner/repo> <n>`.
+function specArgsOf(ownerRepo: string, number: string | undefined): SpecArgs {
+  const [owner, repo] = ownerRepo.split("/");
+  if (!owner || !repo || !Number.isInteger(Number(number))) {
+    throw new Error(usage);
+  }
+  return { owner, issue: { repo, number: Number(number) } };
+}
+
 async function runOnSpec(command: string, args: string[]): Promise<void> {
   const [ownerRepo = "", number, flag] = args;
-  const [owner, repo] = ownerRepo.split("/");
+  const { owner, issue } = specArgsOf(ownerRepo, number);
   const isAdvance = flag === "--advance";
   const isOnce = flag === "--once";
   const isFlagValid =
@@ -77,10 +95,7 @@ async function runOnSpec(command: string, args: string[]): Promise<void> {
       : flag === undefined ||
         (command === "supervise" && isAdvance) ||
         (command === "watch" && isOnce);
-  if (!owner || !repo || !Number.isInteger(Number(number)) || !isFlagValid) {
-    throw new Error(usage);
-  }
-  const issue = { repo, number: Number(number) };
+  if (!isFlagValid) throw new Error(usage);
   if (command === "supervise") {
     await supervise(owner, issue, isAdvance);
   } else if (command === "watch" && isOnce) {
@@ -146,6 +161,31 @@ async function runSpec(
       process.exitCode = exitCodes.short;
     }
   }
+}
+
+// `--handled` may sit anywhere after the item id.
+async function decide(args: string[]): Promise<void> {
+  const [ownerRepo = "", number, itemId, ...rest] = args;
+  const { owner, issue } = specArgsOf(ownerRepo, number);
+  const isHandled = rest.includes("--handled");
+  const texts = rest.filter((arg) => arg !== "--handled");
+  const [text] = texts;
+  if (
+    itemId === undefined ||
+    !isItemId(itemId) ||
+    texts.length !== 1 ||
+    !text
+  ) {
+    throw new Error(usage);
+  }
+  const specRun = SpecRun.init(specRunConfigOf(owner));
+  console.log(
+    await specRun.decide(issue, {
+      itemId,
+      kind: isHandled ? "handled" : "decided",
+      text,
+    }),
+  );
 }
 
 async function supervise(

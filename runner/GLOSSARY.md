@@ -128,7 +128,7 @@ A ticket an agent can do only in an Interactive session, because its work needs 
 _Avoid_: supervisor ticket, permission ticket, escalation ticket
 
 **Supervisor**:
-An interactive session that launches or rejoins one run, explains each of its events to the developer, and does the work the run's steps can't: unasked for a blocked edit the ticket already specifies or an Interactive ticket, and anything else when the developer asks. Every other reply it posts is one the developer settled.
+An interactive session that launches or rejoins one run, explains each of its events to the developer, and does the work the run's steps can't: unasked for a blocked edit the ticket already specifies or an Interactive ticket, and anything else when the developer asks. Every other reply it posts is one the developer settled. It decides, or marks handled, the review-list items its Halt replies did.
 _Avoid_: monitor, watcher, babysitter
 
 **Run board**:
@@ -136,7 +136,7 @@ A read-only, live view of every running run's ticket, step and time on step. It 
 _Avoid_: dashboard
 
 **Lease**:
-A run's or interactive session's hold on one workspace, which keeps every other run and session out of it until the holder moves on, ends or closes out. A lease whose holder has died is abandoned, and the next taker takes it over.
+A run's or interactive session's hold on one workspace, which keeps every other run and session out of it until the holder moves on, releases it, ends or closes out. A lease whose holder has died is abandoned, and the next taker takes it over.
 _Avoid_: lock, claim
 
 **Developer**:

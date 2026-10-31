@@ -1,0 +1,7 @@
+# byro-repo#484 outcome
+
+Spec: [byro-repo#480](https://github.com/byronbroughten/byro-repo/issues/480)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #484 | Opus medium | 3 | 9 | 84K | Fix (resumed implementer) | 1 | 1 | 0 | 9 min | $1.81 | $2.66 | Fixed: An existing test name lost its space: "taken,leaving". (runner/src/IssueWorkspaces.lease.test.ts:142); The header comment leaves out release. (scripts/runner/issue.ts:1); The names release and releaseLease don't say which one checks the holder. (runner/src/IssueWorkspaces.ts:247); The comment restates what the method does. (runner/src/IssueWorkspaces.ts:246); "which `issue:start` takes back" reads as if it takes back the command. (docs/targets-and-gates.md:27); The referent of "that" is unclear, and the bullet carries its whys inline. (runner/skills/runner/SKILL.md:69); Releasing a dead holder's lease prints a message that reads as the caller's own, and no test covers it. (runner/src/IssueWorkspaces.ts:247, scripts/runner/issue.ts:182); An unrequested edit dropped a space from an existing test name. (runner/src/IssueWorkspaces.lease.test.ts:142). Proposed: The build/dependency helpers and the lease helpers share nothing and should be split into collaborators. (runner/src/IssueWorkspaces.ts). | c155de39-24c9-42be-a7a4-fb507b4a06ef, 1b1a5d7d-62e0-4c74-ae64-473542011de5 |

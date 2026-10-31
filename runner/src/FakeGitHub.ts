@@ -14,6 +14,8 @@ export class FakeGitHub implements RunGitHub {
   readonly parents = new Map<number, ParentIssue>();
   readonly comments: { issue: IssueRef; body: string; author: string }[] = [];
   readonly closed: { issue: IssueRef; comment: string }[] = [];
+  // Each runs before one comment read, in order, as a hand edit made meanwhile.
+  readonly beforeCommentReads: (() => void)[] = [];
   // How many calls throw a network error before one succeeds.
   failuresLeft = 0;
 
@@ -89,10 +91,18 @@ export class FakeGitHub implements RunGitHub {
 
   async authoredCommentsOf({ number }: IssueRef): Promise<IssueComment[]> {
     this._failIfScripted();
+    this.beforeCommentReads.shift()?.();
     return this.comments.flatMap(({ issue, body, author }, index) => {
       if (issue.number !== number) return [];
-      return [{ id: `comment-${index + 1}`, author, body }];
+      return [{ id: commentIdOf(index), author, body }];
     });
+  }
+
+  async editComment(id: string, body: string): Promise<void> {
+    this._failIfScripted();
+    const comment = this.comments.find((_, index) => commentIdOf(index) === id);
+    if (!comment) throw new Error(`No comment ${id}`);
+    comment.body = body;
   }
 
   edit(number: number, change: Partial<TrackedIssue>): void {
@@ -106,6 +116,10 @@ export class FakeGitHub implements RunGitHub {
     this.failuresLeft -= 1;
     throw new Error("gh: connection reset");
   }
+}
+
+function commentIdOf(index: number): string {
+  return `comment-${index + 1}`;
 }
 
 export function commentUrlOf(

@@ -1,0 +1,7 @@
+# byro-repo#486 outcome
+
+Spec: [byro-repo#480](https://github.com/byronbroughten/byro-repo/issues/480)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #486 | Opus medium | 1 | 3 | 49K | Fix (resumed implementer) | 0 | 1 | 0 | 7 min | $0.89 | $1.97 | Fixed: R<n>.<k> reuses the spec's <n>, but item ids are keyed by the ticket number or gap-check. (runner/skills/runner/SKILL.md:71); The summaries say 'settled replies', but step 6 also covers blocked-edit replies, which the developer doesn't settle. (runner/GLOSSARY.md:131, runner/skills/runner/SKILL.md:9); <decision> values are never named and nothing points to their list. (runner/skills/runner/SKILL.md:71); Same as finding 1: R<n>.<k> uses the spec number as the item key, so decide fails. (runner/skills/runner/SKILL.md:71); The opening paragraph omits 'marks handled' and blocked-edit replies, so it doesn't agree with step 6. (runner/skills/runner/SKILL.md:9); 'its settled replies' leaves out blocked-edit replies. (runner/GLOSSARY.md:131); The decision word isn't named, so Supervisors may write different free text. (runner/skills/runner/SKILL.md:71). | ba318626-3c92-415c-bcde-dd127b087d65, 5f94a259-d090-46d6-b69c-e6354d0d525e |

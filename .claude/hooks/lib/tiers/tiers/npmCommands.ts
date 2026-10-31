@@ -19,6 +19,7 @@ const freeScripts = new Map<string, string>([
   ["dev:deploy", freeWhys.deploy],
   ["issue:start", "a workspace it starts comes off with `issue:remove`"],
   ["issue:list", "it only reads the workspaces"],
+  ["issue:release", "`issue:start` takes the lease back"],
   ["issue:remove", "a plain remove refuses a workspace holding unlanded work"],
   ["issue:backlink", "a further `gh issue edit` undoes it"],
   ["issue:read", "it only reads an issue"],
