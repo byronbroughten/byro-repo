@@ -1,18 +1,20 @@
 ---
 name: runner
-description: "Supervise one spec run from an interactive session: launch or rejoin it, explain each of its events to the developer, do the work its steps can't, suggest replies, post the ones the developer approves, and stop it when they agree. Invoked as /runner <owner/repo> <n>."
+description: "Supervise one spec run or one Batch from an interactive session: launch or rejoin it, explain each of its events to the developer, do the work its steps can't, suggest replies, post the ones the developer approves, and stop it when they agree. Invoked as /runner <owner/repo> <n> [<n>…]."
 disable-model-invocation: true
 ---
 
-`/runner <owner/repo> <n>` makes this session the Supervisor of spec `<n>`'s run. Its words (Supervisor, Halt, Failure Halt, Split Halt, Idle, Vanished, Stop, Restart, Interactive ticket) are in [`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md).
+`/runner <owner/repo> <n>` makes this session the Supervisor of spec `<n>`'s run; `/runner <owner/repo> <n> <n>…` does the same for the Batch of those specs, in one tmux session with one watch. Its words (Supervisor, Batch, Halt, Failure Halt, Split Halt, Idle, Vanished, Stop, Restart, Interactive ticket) are in [`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md).
+
+For a Batch, `<n>` in every command below except the launch is any one member's number: `status`, `watch`, `supervise` and `stop` each reach the whole Batch through it. The launch takes the whole list.
 
 **A Supervisor explains the run's events and does the work its steps can't.** Unasked, it makes a blocked edit the ticket already specifies, works an Interactive ticket, and decides or marks handled the review-list items its Halt replies did (step 6); anything else it does only when the developer asks. Every other reply it posts is one the developer settled (step 5). Run every command from the primary root, except while working in an issue workspace. Give Bash one command per call: no `cd`, no `;` or `&&` chains.
 
 ## 1. Launch or rejoin
 
 1. Read the run: `npm run runner -- status <owner/repo> <n>`.
-2. With no run live, launch it: `npm run runner:tmux -- <owner/repo> <n>`. It starts the run in its own detached tmux session, `runner-<repo>-<n>`, then waits for the run's `run-started` or `run-ended` line and prints it; when the wait runs out it says the run's state is unknown instead. Never start `npm run runner` itself, in the foreground or as a background Bash call: the run must outlive this session.
-3. With a run already live, rejoin it as it is. Never launch a second one.
+2. With no run live, launch it with every number the developer named: `npm run runner:tmux -- <owner/repo> <n> [<n>…]`. It starts the run in its own detached tmux session and prints that session's attach line, then waits for the run's `run-started` or `run-ended` line and prints it; when the wait runs out it says the run's state is unknown instead. Never start `npm run runner` itself, in the foreground or as a background Bash call: the run must outlive this session.
+3. With a run already live, rejoin it as it is. Never launch a second one. A live Batch holding any named number is rejoined as it is too, with the list it was launched with.
 
 ## 2. Watch
 
@@ -48,12 +50,12 @@ A Halt on a `denied-tool` blocker whose edit the ticket already specifies is you
 
 A `run-started` line: say the run is working, and on which ticket. List its `warnings`, each a stale clone path; they never stop the run, but wrap-up refuses a ticket that touches one of their files. An `idle` line says what holds the run, such as an open Halt or another holder's lease. Say what clears it. A `vanished` line: as for `crashed` below, point the developer to the tmux pane. A `run-ended` line carries its `ending`:
 
-- `finished`: suggest `/judge-findings <repo> #<n>`.
+- `finished`: suggest `/judge-findings <repo> #<n>`, naming every member of a Batch, `/judge-findings <repo> #<n> #<n>…`.
 - `stopped`: say what stopped it.
-- `crashed`: point the developer to the tmux pane, `tmux attach -t runner-<repo>-<n>`.
+- `crashed`: point the developer to the tmux pane, through the `tmux attach` command the line's summary names.
 - `refused`: say what the run refused.
 
-A Restart is expected and quiet: a run that lands a change to the runner itself ends with no event line and relaunches at once in the same tmux session, resuming where it ended. Its only event line is the relaunch's `run-started` line, which ntfy doesn't push: say the run carries on, and keep watching. The run's end message counts the landings from before the Restart too.
+A Restart is expected and quiet: a run that lands a change to the runner itself ends with no event line and relaunches at once in the same tmux session, a Batch with the same list, resuming where it ended. Its only event line is the relaunch's `run-started` line, which ntfy doesn't push: say the run carries on, and keep watching. The run's end message counts the landings from before the Restart too.
 
 On `vanished`, `stopped`, `crashed` or `refused`, say that rerunning resumes the run, and offer to relaunch it once the cause is fixed.
 

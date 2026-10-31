@@ -350,7 +350,7 @@ describe("a Batch's supervision record", () => {
 });
 
 describe("a spec's watch", () => {
-  it("is recorded in the spec's record, with the record's offset to start from", async () => {
+  it("is recorded in the spec's record, with the record's offset and members to start from", async () => {
     appendEvents(spec, "a", "b");
     await records().supervise(otherLive, owner, spec);
     await records().advance(otherLive);
@@ -360,6 +360,7 @@ describe("a spec's watch", () => {
     expect(watch).toEqual({
       offset: 1,
       watchProcess: { pid: process.pid, startedAt: expect.any(String) },
+      members: [spec],
     });
     expect(records().isWatchedBy(spec, watch.watchProcess)).toBe(true);
   });

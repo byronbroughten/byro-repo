@@ -1,12 +1,13 @@
-// The Run board: one block per run lock in the state folder, read from that spec's run state and progress log.
+// The Run board: one block per run lock in the state folder, or per Batch for its members' locks, read from that spec's run state and progress log.
 // It writes nothing, so it's safe beside any run; a lock whose pid is dead is marked rather than skipped.
 // byro-repo's `npm run runner -- status` prints it once and `-- watch` redraws it, both with no spec.
-// RunLock.ts lists the lock files and SpecRun/runState.ts names the run state and progress log paths.
+// RunLock.ts lists the lock files, BatchRecords.ts finds a member's Batch and SpecRun/runState.ts names the run state and progress log paths.
 // SpecRun/SpecRunBase.ts writes both; the progress lines the board reads are worded where the run writes them.
 
 import { existsSync, readFileSync } from "node:fs";
 
 import type { UsageReading } from "./AgentStep.ts";
+import { BatchRecords, isMemberOf } from "./BatchRecords.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 import { readingLabelOf } from "./limitGuard.ts";
 import type { StampedLine } from "./localTime.ts";
@@ -19,7 +20,11 @@ import {
 } from "./progressLines.ts";
 import { RunLock } from "./RunLock.ts";
 import { runStateOf } from "./savedFormats.ts";
-import { progressLogPathOf, runStatePathOf } from "./SpecRun/runState.ts";
+import {
+  type MemberList,
+  progressLogPathOf,
+  runStatePathOf,
+} from "./SpecRun/runState.ts";
 import { StepStream } from "./StepStream.ts";
 
 interface BoardWatch {
@@ -35,11 +40,21 @@ const boardTexts = {
 } as const;
 
 export function runBoardOf(stateFolder: string, now: Date): string {
-  const blocks = RunLock.specsOf(stateFolder).map((spec) =>
-    runBlockOf(stateFolder, spec, now),
+  const blocks = boardRunsOf(stateFolder).map((members) =>
+    runBlockOf(stateFolder, members, now),
   );
   if (blocks.length === 0) return boardTexts.noRuns;
   return blocks.join("\n\n");
+}
+
+// A Batch's members' locks make one entry, at its first-listed lock's place.
+function boardRunsOf(stateFolder: string): MemberList[] {
+  const batchRecords = BatchRecords.init(stateFolder);
+  return RunLock.specsOf(stateFolder).reduce<MemberList[]>((runs, spec) => {
+    const isListed = runs.some((members) => isMemberOf(members, spec));
+    if (!isListed) runs.push(batchRecords.membersOf(spec));
+    return runs;
+  }, []);
 }
 
 // Returns only by throwing, which a Ctrl-C does by ending the process instead.
@@ -55,16 +70,61 @@ export async function watchBoard({
   }
 }
 
-function runBlockOf(stateFolder: string, spec: IssueRef, now: Date): string {
-  const lines = progressLinesOf(progressLogPathOf(stateFolder, spec));
-  const isLive = RunLock.isHeld(stateFolder, spec);
+// A Batch's block reads its current member's run state and progress log.
+function runBlockOf(
+  stateFolder: string,
+  members: MemberList,
+  now: Date,
+): string {
+  const { spec, lines } = currentMemberOf(stateFolder, members);
+  const isLive = members.some((member) => RunLock.isHeld(stateFolder, member));
+  const label = runLabelOf(members);
   const statePath = runStatePathOf(stateFolder, spec);
   return [
-    isLive ? issueLabelOf(spec) : `${issueLabelOf(spec)}: ${boardTexts.gone}`,
+    isLive ? label : `${label}: ${boardTexts.gone}`,
+    ...(members.length > 1 ? [`  Member: ${issueLabelOf(spec)}`] : []),
     `  Ticket: ${ticketTextOf(statePath, lines, now)}`,
     `  Account: ${accountTextOf(lines)}`,
     `  ${latestTextOf(lines, now)}`,
   ].join("\n");
+}
+
+interface MemberProgress {
+  spec: IssueRef;
+  lines: StampedLine[];
+}
+
+// The member whose ticket or launch line is latest, or the first while none has one.
+function currentMemberOf(
+  stateFolder: string,
+  members: MemberList,
+): MemberProgress {
+  const [lead, ...rest] = members;
+  return rest
+    .map((spec) => memberProgressOf(stateFolder, spec))
+    .reduce(
+      (current, member) => {
+        const memberTime =
+          latestTicketLineOf(member.lines)?.time.getTime() ?? 0;
+        const currentTime =
+          latestTicketLineOf(current.lines)?.time.getTime() ?? 0;
+        return memberTime > currentTime ? member : current;
+      },
+      memberProgressOf(stateFolder, lead),
+    );
+}
+
+function memberProgressOf(stateFolder: string, spec: IssueRef): MemberProgress {
+  return {
+    spec,
+    lines: progressLinesOf(progressLogPathOf(stateFolder, spec)),
+  };
+}
+
+function runLabelOf([lead, ...rest]: MemberList): string {
+  if (rest.length === 0) return issueLabelOf(lead);
+  const numbers = rest.map(({ number }) => `#${number}`);
+  return `Batch ${[issueLabelOf(lead), ...numbers].join(", ")}`;
 }
 
 function progressLinesOf(path: string): StampedLine[] {
@@ -81,9 +141,7 @@ function ticketTextOf(
   lines: StampedLine[],
   now: Date,
 ): string {
-  const latest = lines.findLast(
-    ({ text }) => ticketOfLine(text) !== undefined || stepLaunchOfLine(text),
-  );
+  const latest = latestTicketLineOf(lines);
   if (latest === undefined) return "none yet";
   const ticket = ticketOfLine(latest.text);
   if (ticket === undefined) {
@@ -96,6 +154,12 @@ function ticketTextOf(
   );
   if (stepStart === undefined) return `${ticket}, ${step}`;
   return `${ticket}, ${step}, ${durationOf(stepStart.time, now)} on this step`;
+}
+
+function latestTicketLineOf(lines: StampedLine[]): StampedLine | undefined {
+  return lines.findLast(
+    ({ text }) => ticketOfLine(text) !== undefined || stepLaunchOfLine(text),
+  );
 }
 
 function stepOf(statePath: string, ticket: string): string | undefined {

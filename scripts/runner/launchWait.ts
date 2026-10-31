@@ -1,20 +1,24 @@
 // Waits for a just-launched run's run-started or run-ended line and prints it; tmux.sh calls it after starting the run's session.
-// Usage: node scripts/runner/launchWait.ts <owner/repo> <n> <launch time, ISO>.
+// Usage: node scripts/runner/launchWait.ts <launch time, ISO> <owner/repo> <n> [<n>…].
 // Exits 0 on run-started and 1 on run-ended or once the wait runs out with neither.
 import { setTimeout as sleep } from "node:timers/promises";
 
+import { launchArgsOf } from "./launchArgs.ts";
 import { stateFolder } from "./runnerConfig.ts";
 import { awaitRunStart, launchReportOf } from "./runWatch.ts";
 
 const waitOptions = { timeoutMs: 120_000, pollMs: 1_000 } as const;
 
-const [ownerRepo = "", number = "", launchedAt = ""] = process.argv.slice(2);
-const spec = { repo: ownerRepo.split("/")[1] ?? "", number: Number(number) };
+const [launchedAt = "", ...args] = process.argv.slice(2);
+const launch = launchArgsOf(args);
+if (launch === undefined) {
+  throw new Error(`launchWait.ts can't read ${args.join(" ")}.`);
+}
 const result = await awaitRunStart(
-  spec,
+  launch.members,
   { ...waitOptions, launchedAt: new Date(launchedAt) },
   { stateFolder, now: () => new Date(), sleep },
 );
-const { text, exitCode } = launchReportOf(spec, result, waitOptions);
+const { text, exitCode } = launchReportOf(launch.members, result, waitOptions);
 console.log(text);
 process.exitCode = exitCode;

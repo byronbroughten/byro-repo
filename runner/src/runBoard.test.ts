@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { BatchRecords } from "./BatchRecords.ts";
 import { deadPid, seedHolder } from "./lockFixture.ts";
 import { runBoardOf, watchBoard } from "./runBoard.ts";
 
@@ -169,6 +170,51 @@ describe("runBoardOf", () => {
     seedRun({ stem: "byro-repo-424", pid: process.pid, steps: {}, log: [] });
     seedRun({ stem: "personal-21", pid: process.pid, steps: {}, log: [] });
     expect(runBoardOf(stateFolder, now).split("\n\n")).toHaveLength(2);
+  });
+
+  it("shows a Batch as one block naming its current member, ticket and step", async () => {
+    seedRun({
+      stem: "byro-repo-498",
+      pid: process.pid,
+      steps: { "byro-repo #510": "landed" },
+      log: [
+        "2026-10-25T11:00:06.000Z byro-repo #510: launching on Opus medium from implement.",
+        "2026-10-25T11:00:07.000Z byro-repo #510: implement step on account 2, raw stream in /s/1.jsonl.",
+        "2026-10-25T11:20:00.000Z byro-repo #510: wrap-up took 30s.",
+      ],
+    });
+    seedRun({
+      stem: "byro-repo-499",
+      pid: process.pid,
+      steps: { "byro-repo #520": "implement" },
+      log: [
+        "2026-10-25T11:30:00.000Z byro-repo #520: launching on Opus high from implement.",
+        "2026-10-25T11:30:01.000Z byro-repo #520: implement step on account 1, raw stream in /s/2.jsonl.",
+      ],
+    });
+    seedRun({ stem: "byro-repo-450", pid: process.pid, steps: {}, log: [] });
+    seedRun({ stem: "personal-21", pid: process.pid, steps: {}, log: [] });
+    await BatchRecords.init(stateFolder).open(
+      [
+        { repo: "byro-repo", number: 498 },
+        { repo: "byro-repo", number: 499 },
+        { repo: "byro-repo", number: 450 },
+      ],
+      process.pid,
+    );
+
+    const blocks = runBoardOf(stateFolder, now).split("\n\n");
+
+    expect(blocks).toHaveLength(2);
+    expect(blocks).toContain(
+      [
+        "Batch byro-repo #498, #499, #450",
+        "  Member: byro-repo #499",
+        "  Ticket: byro-repo #520, implement, 30m 0s on this step",
+        "  Account: account 1: no usage reading",
+        "  Latest (29m 59s ago): byro-repo #520: implement step on account 1, raw stream in /s/2.jsonl.",
+      ].join("\n"),
+    );
   });
 
   it("says so when the state folder doesn't exist yet", () => {

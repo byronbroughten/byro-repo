@@ -1,12 +1,16 @@
-// The two waits on a spec's event file: the launcher's for its run to start, and the Supervisor's watch, which also notices a vanished run.
-// A vanished run can't report itself, so the watch, not the runner, reads the run lock's liveness.
-// launchWait.ts is tmux.sh's command for the first; run.ts's `watch` verb runs the second, and `watch --once` its one-line form, one per spec.
+// The two waits on a spec's or a Batch's event file: the launcher's for its run to start, and the Supervisor's watch, which also notices a vanished run.
+// A vanished run can't report itself, so the watch, not the runner, reads the run locks' liveness.
+// launchWait.ts is tmux.sh's command for the first; run.ts's `watch` verb runs the second, and `watch --once` its one-line form, one per spec or Batch.
 import {
   type EventLine,
-  rawEventLinesOf,
+  eventStreamPathOf,
+  rawLinesAt,
 } from "@byronbroughten/spec-runner/EventFileNotices";
 import type { IssueRef } from "@byronbroughten/spec-runner/IssueWorkspaces";
-import { rerunCommandOf } from "@byronbroughten/spec-runner/SpecRun";
+import {
+  type MemberList,
+  rerunCommandOf,
+} from "@byronbroughten/spec-runner/SpecRun";
 import type { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
 
 interface WatchClock {
@@ -29,12 +33,18 @@ type RunStart =
 
 interface WatchedRun {
   owner: string;
+  members: MemberList;
+}
+
+// A watch named by one member's number; the supervision record holds the Batch's list.
+interface WatchedMember {
+  owner: string;
   spec: IssueRef;
 }
 
 export interface WatchDeps extends StartWaitDeps {
   pollMs: number;
-  isRunLive: () => boolean;
+  isRunLive: (members: MemberList) => boolean;
   print: (line: string) => void;
 }
 
@@ -50,20 +60,22 @@ interface WatchMode {
   isReplaced: () => boolean;
 }
 
-// tmux.sh names the session the same way.
-export function tmuxSessionOf({ repo, number }: IssueRef): string {
-  return `runner-${repo}-${number}`;
+// tmux.sh asks launchArgs.ts for it; one number keeps its old name.
+export function tmuxSessionOf(members: MemberList): string {
+  const [{ repo }] = members;
+  const numbers = members.map(({ number }) => number).join("-");
+  return `runner-${repo}-${numbers}`;
 }
 
 // The first run-started or run-ended line no older than the launch, so an earlier run's end is never taken for this one's.
 export async function awaitRunStart(
-  spec: IssueRef,
+  members: MemberList,
   { launchedAt, timeoutMs, pollMs }: StartWaitOptions,
   { stateFolder, now, sleep }: StartWaitDeps,
 ): Promise<RunStart> {
   const deadline = launchedAt.getTime() + timeoutMs;
   for (;;) {
-    const line = rawEventLinesOf(stateFolder, spec).find((raw) => {
+    const line = linesOf(stateFolder, members).find((raw) => {
       const { time, kind } = parsedLineOf(raw);
       return isBoundary(kind) && Date.parse(time) >= launchedAt.getTime();
     });
@@ -78,13 +90,13 @@ export async function awaitRunStart(
 
 // The launcher exits 0 only once the run has started.
 export function launchReportOf(
-  spec: IssueRef,
+  members: MemberList,
   start: RunStart,
   { timeoutMs }: Pick<StartWaitOptions, "timeoutMs">,
 ): { text: string; exitCode: number } {
   if (start.kind === "unknown") {
     return {
-      text: `The run's state is unknown: no run-started or run-ended line after ${timeoutMs / 1_000}s; read its pane with: tmux attach -t ${tmuxSessionOf(spec)}`,
+      text: `The run's state is unknown: no run-started or run-ended line after ${timeoutMs / 1_000}s; read its pane with: tmux attach -t ${tmuxSessionOf(members)}`,
       exitCode: 1,
     };
   }
@@ -96,7 +108,7 @@ export async function watchRun(
   watched: WatchedRun,
   deps: WatchDeps,
 ): Promise<void> {
-  const printedCount = rawEventLinesOf(deps.stateFolder, watched.spec).length;
+  const printedCount = linesOf(deps.stateFolder, watched.members).length;
   await watchFrom(printedCount, watched, deps, {
     printNew(newLines) {
       newLines.forEach((line) => deps.print(line));
@@ -108,29 +120,30 @@ export async function watchRun(
 
 // Returns after one line; starting at the record's offset, a line written while the Supervisor explained the last still wakes it.
 export async function watchOnce(
-  watched: WatchedRun,
+  { owner, spec }: WatchedMember,
   deps: OnceWatchDeps,
 ): Promise<void> {
   const { records, pid } = deps;
-  const start = await records.watch(watched.spec, pid);
+  const start = await records.watch(spec, pid);
   if (start === undefined) {
     throw new Error(
-      `Nobody supervises ${specLabelOf(watched.spec)}: run supervise before watch --once.`,
+      `Nobody supervises ${specLabelOf(spec)}: run supervise before watch --once.`,
     );
   }
+  const watched = { owner, members: start.members };
   await watchFrom(start.offset, watched, deps, {
     printNew([firstLine]) {
       if (firstLine === undefined) return false;
       deps.print(firstLine);
       return true;
     },
-    isReplaced: () => !records.isWatchedBy(watched.spec, start.watchProcess),
+    isReplaced: () => !records.isWatchedBy(spec, start.watchProcess),
   });
 }
 
 async function watchFrom(
   printedFrom: number,
-  { owner, spec }: WatchedRun,
+  watched: WatchedRun,
   deps: WatchDeps,
   { printNew, isReplaced }: WatchMode,
 ): Promise<void> {
@@ -139,19 +152,23 @@ async function watchFrom(
   let isDeadOnLastCheck = false;
   for (;;) {
     if (isReplaced()) return;
-    const lines = rawEventLinesOf(stateFolder, spec);
+    const lines = linesOf(stateFolder, watched.members);
     if (printNew(lines.slice(printedCount))) return;
     printedCount = lines.length;
-    const isDead = !isRunLive();
+    const isDead = !isRunLive(watched.members);
     // An earlier run's end counts only once no process holds the lock, since a relaunch may not have started yet.
     if (isDead && lastBoundaryOf(lines) === "run-ended") return;
     if (isDead && isDeadOnLastCheck) {
-      print(vanishedLineOf({ owner, spec }, deps.now()));
+      print(vanishedLineOf(watched, deps.now()));
       return;
     }
     isDeadOnLastCheck = isDead;
     await sleep(pollMs);
   }
+}
+
+function linesOf(stateFolder: string, members: MemberList): string[] {
+  return rawLinesAt(eventStreamPathOf(stateFolder, members));
 }
 
 function parsedLineOf(line: string): EventLine {
@@ -173,13 +190,14 @@ function specLabelOf({ repo, number }: IssueRef): string {
   return `${repo}#${number}`;
 }
 
-// Shaped as an event line, so the Supervisor reads it as one, though no file holds it.
-function vanishedLineOf({ owner, spec }: WatchedRun, time: Date): string {
-  const session = tmuxSessionOf(spec);
+// Shaped as an event line, so the Supervisor reads it as one, though no file holds it; a Batch's names its first member.
+function vanishedLineOf({ owner, members }: WatchedRun, time: Date): string {
+  const session = tmuxSessionOf(members);
+  const [lead] = members;
   return JSON.stringify({
     time: time.toISOString(),
-    spec: specLabelOf(spec),
+    spec: specLabelOf(lead),
     kind: "vanished",
-    summary: `The runner's process is gone and wrote no run-ended line; read its tmux pane with \`tmux attach -t ${session}\`, then rerun \`${rerunCommandOf(owner, spec)}\`.`,
+    summary: `The runner's process is gone and wrote no run-ended line; read its tmux pane with \`tmux attach -t ${session}\`, then rerun \`${rerunCommandOf(owner, ...members)}\`.`,
   });
 }

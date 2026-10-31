@@ -29,14 +29,22 @@ export interface EventLine {
 export class EventFileNotices implements Notices {
   private readonly stateFolder: string;
   private readonly now: () => Date;
+  // Fixed members, whose stream every line goes to whatever the Batch records say.
+  private readonly members: MemberList | undefined;
 
-  constructor(stateFolder: string, now: () => Date) {
+  constructor(stateFolder: string, now: () => Date, members?: MemberList) {
     this.stateFolder = stateFolder;
     this.now = now;
+    this.members = members;
   }
 
   static init(stateFolder: string, now = () => new Date()): EventFileNotices {
     return new EventFileNotices(stateFolder, now);
+  }
+
+  // For a run whose Batch record may already be gone, such as a crashed one's.
+  static forStream(stateFolder: string, members: MemberList): EventFileNotices {
+    return new EventFileNotices(stateFolder, () => new Date(), members);
   }
 
   async send(notice: Notice): Promise<void> {
@@ -48,6 +56,9 @@ export class EventFileNotices implements Notices {
 
   // A Batch member's line goes to the Batch's one file, its `spec` naming the member.
   private _pathOf(spec: IssueRef): string {
+    if (this.members !== undefined) {
+      return eventStreamPathOf(this.stateFolder, this.members);
+    }
     const batchFile = BatchRecords.init(this.stateFolder).eventFilePathOf(spec);
     return batchFile ?? eventFilePathOf(this.stateFolder, spec);
   }
