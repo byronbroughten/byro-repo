@@ -24,7 +24,7 @@ Its exit only wakes you. On each one:
 
 - **An event line**: go to step 3, run `supervise` and explain the lines it prints. They start at the record's offset, so a line the watch and the catch-up both saw is explained once. Then re-arm: run the same watch in the background again. After explaining a `run-ended` line, don't re-arm: the run is over.
 - **A `vanished` line**: `supervise` never prints it, since no file holds it: explain it from the watch's output, with no `--advance`, and don't re-arm.
-- **An empty exit**: a newer watch on this spec replaced this one. There is nothing to explain; don't re-arm.
+- **An empty exit**: the watch was replaced, by a newer watch on this spec or by this session no longer supervising it, or the run had already ended with its `run-ended` line explained. There is nothing to explain; don't re-arm.
 
 ## 3. Catch up
 

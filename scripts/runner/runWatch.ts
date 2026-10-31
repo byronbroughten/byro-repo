@@ -32,7 +32,7 @@ interface WatchedRun {
   spec: IssueRef;
 }
 
-interface WatchDeps extends StartWaitDeps {
+export interface WatchDeps extends StartWaitDeps {
   pollMs: number;
   isRunLive: () => boolean;
   print: (line: string) => void;
@@ -45,7 +45,8 @@ interface OnceWatchDeps extends WatchDeps {
 }
 
 interface WatchMode {
-  isOnce: boolean;
+  // Prints what it takes of the lines new since the last check, and says whether the watch is done.
+  printNew: (newLines: string[]) => boolean;
   isReplaced: () => boolean;
 }
 
@@ -97,7 +98,10 @@ export async function watchRun(
 ): Promise<void> {
   const printedCount = rawEventLinesOf(deps.stateFolder, watched.spec).length;
   await watchFrom(printedCount, watched, deps, {
-    isOnce: false,
+    printNew(newLines) {
+      newLines.forEach((line) => deps.print(line));
+      return lastBoundaryOf(newLines) === "run-ended";
+    },
     isReplaced: () => false,
   });
 }
@@ -111,12 +115,16 @@ export async function watchOnce(
   const start = await records.watch(watched.spec, pid);
   if (start === undefined) {
     throw new Error(
-      `Nobody supervises ${watched.spec.repo}#${watched.spec.number}: run supervise before watch --once.`,
+      `Nobody supervises ${specLabelOf(watched.spec)}: run supervise before watch --once.`,
     );
   }
   await watchFrom(start.offset, watched, deps, {
-    isOnce: true,
-    isReplaced: () => !records.isWatchedBy(watched.spec, start.watcher),
+    printNew([firstLine]) {
+      if (firstLine === undefined) return false;
+      deps.print(firstLine);
+      return true;
+    },
+    isReplaced: () => !records.isWatchedBy(watched.spec, start.watchProcess),
   });
 }
 
@@ -124,7 +132,7 @@ async function watchFrom(
   printedFrom: number,
   { owner, spec }: WatchedRun,
   deps: WatchDeps,
-  { isOnce, isReplaced }: WatchMode,
+  { printNew, isReplaced }: WatchMode,
 ): Promise<void> {
   const { stateFolder, pollMs, isRunLive, print, sleep } = deps;
   let printedCount = printedFrom;
@@ -132,15 +140,8 @@ async function watchFrom(
   for (;;) {
     if (isReplaced()) return;
     const lines = rawEventLinesOf(stateFolder, spec);
-    const newLines = lines.slice(printedCount);
-    const [firstLine] = newLines;
-    if (isOnce && firstLine !== undefined) {
-      print(firstLine);
-      return;
-    }
-    newLines.forEach((line) => print(line));
+    if (printNew(lines.slice(printedCount))) return;
     printedCount = lines.length;
-    if (lastBoundaryOf(newLines) === "run-ended") return;
     const isDead = !isRunLive();
     // An earlier run's end counts only once no process holds the lock, since a relaunch may not have started yet.
     if (isDead && lastBoundaryOf(lines) === "run-ended") return;
@@ -168,12 +169,16 @@ function lastBoundaryOf(lines: string[]): EventLine["kind"] | undefined {
     .at(-1);
 }
 
+function specLabelOf({ repo, number }: IssueRef): string {
+  return `${repo}#${number}`;
+}
+
 // Shaped as an event line, so the Supervisor reads it as one, though no file holds it.
 function vanishedLineOf({ owner, spec }: WatchedRun, time: Date): string {
   const session = tmuxSessionOf(spec);
   return JSON.stringify({
     time: time.toISOString(),
-    spec: `${spec.repo}#${spec.number}`,
+    spec: specLabelOf(spec),
     kind: "vanished",
     summary: `The runner's process is gone and wrote no run-ended line; read its tmux pane with \`tmux attach -t ${session}\`, then rerun \`${rerunCommandOf(owner, spec)}\`.`,
   });

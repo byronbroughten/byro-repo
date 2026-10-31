@@ -20,7 +20,7 @@ import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecor
 
 import { nearestClaudeAncestor } from "./claudeAncestor.ts";
 import { specRunConfigOf, stateFolder } from "./runnerConfig.ts";
-import { watchOnce, watchRun } from "./runWatch.ts";
+import { type WatchDeps, watchOnce, watchRun } from "./runWatch.ts";
 
 // tmux.sh pushes a crash and relaunches only on a restart.
 const exitCodes = { short: 1, crash: 2, restart: 3 } as const;
@@ -83,19 +83,24 @@ async function runOnSpec(command: string, args: string[]): Promise<void> {
   const issue = { repo, number: Number(number) };
   if (command === "supervise") {
     await supervise(owner, issue, isAdvance);
+  } else if (command === "watch" && isOnce) {
+    await watchOnce(
+      { owner, spec: issue },
+      {
+        ...watchDepsOf(issue),
+        records: SupervisionRecords.init(stateFolder),
+        pid: process.pid,
+      },
+    );
   } else if (command === "watch") {
-    await watch(owner, issue, isOnce);
+    await watchRun({ owner, spec: issue }, watchDepsOf(issue));
   } else {
     await runSpec(command, owner, issue, flag);
   }
 }
 
-async function watch(
-  owner: string,
-  spec: IssueRef,
-  isOnce: boolean,
-): Promise<void> {
-  const deps = {
+function watchDepsOf(spec: IssueRef): WatchDeps {
+  return {
     stateFolder,
     pollMs: 3_000,
     isRunLive: () => RunLock.isHeld(stateFolder, spec),
@@ -103,18 +108,6 @@ async function watch(
     sleep,
     print: (line: string) => console.log(line),
   };
-  if (!isOnce) {
-    await watchRun({ owner, spec }, deps);
-    return;
-  }
-  await watchOnce(
-    { owner, spec },
-    {
-      ...deps,
-      records: SupervisionRecords.init(stateFolder),
-      pid: process.pid,
-    },
-  );
 }
 
 async function runSpec(

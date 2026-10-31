@@ -245,11 +245,32 @@ describe("watchOnce", () => {
     return records;
   }
 
+  // Runs one watch as this process and returns what it printed.
+  async function printedBy(
+    records: SupervisionRecords,
+    isRunLive: boolean,
+    clock = fakeClock(),
+  ): Promise<string[]> {
+    const printed: string[] = [];
+    await watchOnce(
+      { owner, spec },
+      {
+        stateFolder,
+        ...clock,
+        pollMs,
+        isRunLive: () => isRunLive,
+        print: (line) => printed.push(line),
+        records,
+        pid: process.pid,
+      },
+    );
+    return printed;
+  }
+
   it("prints one event line and returns, though the run writes more", async () => {
     write(lineOf("run-started", at(-5_000)));
     const records = await supervised(1);
     const halt = lineOf("halt", at(4_000));
-    const printed: string[] = [];
     const clock = fakeClock([
       {
         atMs: 4_000,
@@ -260,20 +281,7 @@ describe("watchOnce", () => {
       },
     ]);
 
-    await watchOnce(
-      { owner, spec },
-      {
-        stateFolder,
-        ...clock,
-        pollMs,
-        isRunLive: () => true,
-        print: (line) => printed.push(line),
-        records,
-        pid: process.pid,
-      },
-    );
-
-    expect(printed).toEqual([halt]);
+    expect(await printedBy(records, true, clock)).toEqual([halt]);
   });
 
   it("prints at once a line written before it started but not yet explained", async () => {
@@ -281,41 +289,15 @@ describe("watchOnce", () => {
     const halt = lineOf("halt", at(-1_000));
     write(halt);
     const records = await supervised(1);
-    const printed: string[] = [];
 
-    await watchOnce(
-      { owner, spec },
-      {
-        stateFolder,
-        ...fakeClock(),
-        pollMs,
-        isRunLive: () => true,
-        print: (line) => printed.push(line),
-        records,
-        pid: process.pid,
-      },
-    );
-
-    expect(printed).toEqual([halt]);
+    expect(await printedBy(records, true)).toEqual([halt]);
   });
 
   it("prints one vanished line when the run's process is gone with no run-ended line", async () => {
     write(lineOf("run-started", at(-5_000)));
     const records = await supervised(1);
-    const printed: string[] = [];
 
-    await watchOnce(
-      { owner, spec },
-      {
-        stateFolder,
-        ...fakeClock(),
-        pollMs,
-        isRunLive: () => false,
-        print: (line) => printed.push(line),
-        records,
-        pid: process.pid,
-      },
-    );
+    const printed = await printedBy(records, false);
 
     expect(printed.map((line) => JSON.parse(line))).toEqual([
       expect.objectContaining({ spec: "byro-repo#412", kind: "vanished" }),
@@ -325,47 +307,21 @@ describe("watchOnce", () => {
   it("returns quietly when the run has already ended and its end is explained", async () => {
     write(lineOf("run-ended", at(-1_000), "stopped"));
     const records = await supervised(1);
-    const printed: string[] = [];
 
-    await watchOnce(
-      { owner, spec },
-      {
-        stateFolder,
-        ...fakeClock(),
-        pollMs,
-        isRunLive: () => false,
-        print: (line) => printed.push(line),
-        records,
-        pid: process.pid,
-      },
-    );
-
-    expect(printed).toEqual([]);
+    expect(await printedBy(records, false)).toEqual([]);
   });
 
   it("refuses a spec nobody supervises", async () => {
     write(lineOf("run-started", at(-5_000)));
 
     await expect(
-      watchOnce(
-        { owner, spec },
-        {
-          stateFolder,
-          ...fakeClock(),
-          pollMs,
-          isRunLive: () => true,
-          print: () => undefined,
-          records: SupervisionRecords.init(stateFolder),
-          pid: process.pid,
-        },
-      ),
+      printedBy(SupervisionRecords.init(stateFolder), true),
     ).rejects.toThrow("run supervise before watch --once");
   });
 
   it("exits with no output once another watch replaces it", async () => {
     write(lineOf("run-started", at(-5_000)));
     const records = await supervised(1);
-    const printed: string[] = [];
     const clock = fakeClock([
       {
         atMs: 3_000,
@@ -376,20 +332,7 @@ describe("watchOnce", () => {
       { atMs: 6_000, run: () => write(lineOf("halt", at(6_000))) },
     ]);
 
-    await watchOnce(
-      { owner, spec },
-      {
-        stateFolder,
-        ...clock,
-        pollMs,
-        isRunLive: () => true,
-        print: (line) => printed.push(line),
-        records,
-        pid: process.pid,
-      },
-    );
-
-    expect(printed).toEqual([]);
+    expect(await printedBy(records, true, clock)).toEqual([]);
     expect(clock.now()).toEqual(at(3_000));
   });
 });

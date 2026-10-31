@@ -210,9 +210,9 @@ describe("a spec's watch", () => {
 
     expect(watch).toEqual({
       offset: 1,
-      watcher: { pid: process.pid, startedAt: expect.any(String) },
+      watchProcess: { pid: process.pid, startedAt: expect.any(String) },
     });
-    expect(records().isWatchedBy(spec, watch.watcher)).toBe(true);
+    expect(records().isWatchedBy(spec, watch.watchProcess)).toBe(true);
   });
 
   it("is replaced by a later watch on the same spec", async () => {
@@ -221,8 +221,8 @@ describe("a spec's watch", () => {
 
     const second = await startedWatch(process.ppid);
 
-    expect(records().isWatchedBy(spec, first.watcher)).toBe(false);
-    expect(records().isWatchedBy(spec, second.watcher)).toBe(true);
+    expect(records().isWatchedBy(spec, first.watchProcess)).toBe(false);
+    expect(records().isWatchedBy(spec, second.watchProcess)).toBe(true);
   });
 
   it("survives its Supervisor catching up again", async () => {
@@ -231,7 +231,7 @@ describe("a spec's watch", () => {
 
     await records().supervise(me, owner, spec);
 
-    expect(records().isWatchedBy(spec, watch.watcher)).toBe(true);
+    expect(records().isWatchedBy(spec, watch.watchProcess)).toBe(true);
   });
 
   it("isn't recorded on a spec nobody supervises", async () => {
@@ -246,6 +246,6 @@ describe("a spec's watch", () => {
 
     await records().release(me);
 
-    expect(records().isWatchedBy(spec, watch.watcher)).toBe(false);
+    expect(records().isWatchedBy(spec, watch.watchProcess)).toBe(false);
   });
 });
