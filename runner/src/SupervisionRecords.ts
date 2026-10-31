@@ -1,4 +1,4 @@
-// The supervision record: which spec's run a Supervisor's claude process watches, how many of its event lines it has explained, and its one watch.
+// The supervision record: which spec's run a Supervisor's claude process watches, or watched until its session ended, how many of its event lines it has explained, and its one watch.
 // One file per pid under the state folder's supervision/, live while that same process runs, as a lease is; the session hooks read it.
 import {
   existsSync,
@@ -25,9 +25,11 @@ export interface SupervisionRecord {
   spec: IssueRef;
   // Event lines explained, oldest first, so the next unexplained one is at this index.
   offset: number;
-  // The SessionEnd reason that ended this session's supervision; supervising the spec again rejoins from the offset.
-  endedBy?: string;
+  // The session end that ended this session's supervision; supervising the spec again rejoins from the offset.
+  endedBy?: SupervisionEnd;
 }
+
+export type SupervisionEnd = "clear" | "resume" | "processEnd";
 
 // A watch process, named as the record names its Supervisor, so a reused pid never passes for the watch it replaced.
 export interface WatchProcess {
@@ -91,17 +93,17 @@ export class SupervisionRecords {
     return watch?.pid === pid && watch.startedAt === startedAt;
   }
 
-  // Only a supervision that hasn't ended: its session is the spec's Supervisor.
   async recordOf(holder: LeaseHolder): Promise<SupervisionRecord | undefined> {
-    const record = await this._liveRecordOf(holder);
-    return record?.endedBy === undefined ? record : undefined;
+    const record = await this._recordOfLiveProcess(holder);
+    if (record === undefined || !isSupervising(record)) return undefined;
+    return record;
   }
 
   // SessionStart reads this one, an ended supervision included so it can name the rejoin; a Supervisor whose run has ended is a regular session.
   async runningRecordOf(
     holder: LeaseHolder,
   ): Promise<SupervisionRecord | undefined> {
-    const record = await this._liveRecordOf(holder);
+    const record = await this._recordOfLiveProcess(holder);
     if (record === undefined) return undefined;
     return RunLock.isHeld(this.stateFolder, record.spec) ? record : undefined;
   }
@@ -125,13 +127,14 @@ export class SupervisionRecords {
   }
 
   // Keeps the record and its offset for the rejoin; dropping the watch makes a running one exit unprinted.
-  async end({ pid }: LeaseHolder, endedBy: string): Promise<void> {
+  async end({ pid }: LeaseHolder, endedBy: SupervisionEnd): Promise<void> {
     const file = this._fileOf(pid);
     if (file === undefined) return;
     this._write({ ...file, endedBy, watch: undefined });
   }
 
-  private async _liveRecordOf({
+  // Ended supervisions included; a dead or reused pid has none.
+  private async _recordOfLiveProcess({
     pid,
   }: LeaseHolder): Promise<SupervisionRecord | undefined> {
     const file = this._fileOf(pid);
@@ -154,7 +157,7 @@ export class SupervisionRecords {
   // `supervise` leaves one record per spec; an ended one names no Supervisor to watch for.
   private _specFileOf(spec: IssueRef): RecordFile | undefined {
     return this._files().find(
-      (file) => isSameIssue(file.spec, spec) && file.endedBy === undefined,
+      (file) => isSameIssue(file.spec, spec) && isSupervising(file),
     );
   }
 
@@ -179,4 +182,9 @@ export class SupervisionRecords {
   private _pathOf(pid: number): string {
     return join(this.folder, `${pid}.json`);
   }
+}
+
+// Only a supervision that hasn't ended makes its session the spec's Supervisor.
+function isSupervising({ endedBy }: SupervisionRecord): boolean {
+  return endedBy === undefined;
 }

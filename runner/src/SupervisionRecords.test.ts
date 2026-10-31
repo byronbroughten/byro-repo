@@ -147,7 +147,7 @@ describe("an ended supervision", () => {
     appendEvents(spec, "a", "b");
     await records().supervise(otherLive, owner, spec);
     await records().advance(otherLive);
-    await records().end(otherLive, "prompt_input_exit");
+    await records().end(otherLive, "processEnd");
 
     await records().supervise(me, owner, spec);
 

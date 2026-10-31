@@ -17,6 +17,7 @@ import {
 } from "./lib/hookIo.ts";
 import {
   configFolderOf,
+  isSameProcessStart,
   type RecordedSession,
   recordedSessionOf,
   supervisingLineOf,
@@ -65,10 +66,15 @@ async function leaseLinesOf(
   }
 }
 
-// Its own fail-open too; supervisingLineOf says which starts can yield the line, and a runner step is never a Supervisor.
+// Its own fail-open too; only a clear or resume start can yield the line, so others skip the I/O, and a runner step is never a Supervisor.
 async function supervisionLinesOf({ source }: HookInput): Promise<string[]> {
   try {
-    if (sessionModeOf(process.env) === "runnerStep") return [];
+    if (
+      !isSameProcessStart(source) ||
+      sessionModeOf(process.env) === "runnerStep"
+    ) {
+      return [];
+    }
     const holder = nearestClaudeAncestor();
     if (!holder) return [];
     const record =

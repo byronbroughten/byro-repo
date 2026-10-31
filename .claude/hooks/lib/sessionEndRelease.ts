@@ -4,13 +4,11 @@ import {
   type LeasedWorkspace,
   type LeaseHolder,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
-
-// SessionEnd reasons after which the same claude process carries on working in its workspace.
-const processContinuingReasons = new Set(["clear", "resume"]);
+import type { SupervisionEnd } from "@byronbroughten/spec-runner/SupervisionRecords";
 
 export interface SessionEndRelease {
-  // The SessionEnd reason the supervision record keeps, so SessionStart can say how the supervision ended.
-  endedBy: string;
+  // Kept in the supervision record, so SessionStart can say how the supervision ended.
+  endedBy: SupervisionEnd;
   isLeaseReleased: boolean;
 }
 
@@ -18,11 +16,11 @@ export interface SessionEndRelease {
 export function sessionEndReleaseOf(
   reason: string | undefined,
 ): SessionEndRelease {
-  return { endedBy: reason ?? "other", isLeaseReleased: endsProcess(reason) };
-}
-
-export function endsProcess(reason: string | undefined): boolean {
-  return reason === undefined || !processContinuingReasons.has(reason);
+  // After these, the same claude process carries on working in its workspace.
+  if (reason === "clear" || reason === "resume") {
+    return { endedBy: reason, isLeaseReleased: false };
+  }
+  return { endedBy: "processEnd", isLeaseReleased: true };
 }
 
 export function leasedWorkspacesOf(

@@ -141,6 +141,15 @@ describe("supervisingLineOf", () => {
     ).toContain("until `/resume`;");
   });
 
+  it("says nothing for a supervision a process end ended", () => {
+    expect(
+      supervisingLineOf({
+        source: "clear",
+        record: { ...record, endedBy: "processEnd" },
+      }),
+    ).toBeUndefined();
+  });
+
   it("says nothing after /clear without a supervision record", () => {
     expect(
       supervisingLineOf({ source: "clear", record: undefined }),

@@ -71,14 +71,16 @@ export function supervisingLineOf({
   if (!isSameProcessStart(source) || record === undefined) return undefined;
   const { owner, spec, endedBy } = record;
   const command = `/runner ${owner}/${spec.repo} ${spec.number}`;
-  // Only /clear and /resume end a session with its process still running to start the next.
+  // A process end leaves no session of that process to start.
+  if (endedBy === "processEnd") return undefined;
   if (endedBy !== undefined) {
     return `This session supervised ${issueLabelOf(spec)}'s run until \`/${endedBy}\`; \`${command}\` rejoins from its last explained event.`;
   }
   return `This session supervises ${issueLabelOf(spec)}'s run: \`${command}\` carries on from its last explained event, and \`/runner\` on another spec switches to that run.`;
 }
 
-function isSameProcessStart(source: HookInput["source"]): boolean {
+// Only these starts follow a session end in the same claude process, so only they can find its supervision record.
+export function isSameProcessStart(source: HookInput["source"]): boolean {
   return source === "clear" || source === "resume";
 }
 
