@@ -51,7 +51,7 @@ export class SpecRun extends SpecRunBase {
   }
 
   run(specIssue: IssueRef): Promise<RunResult> {
-    return this.runLoop.run(specIssue);
+    return this.runLoop.run([specIssue]);
   }
 
   requestStop(specIssue: IssueRef): void {
