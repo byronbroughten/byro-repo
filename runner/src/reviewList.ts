@@ -17,6 +17,9 @@ const markPrefix = "<!-- review-list ";
 const listMarkPrefix = `${markPrefix}ticket=`;
 const undecidedBox = /^- \[ \] \*\*R/gm;
 
+// The words every review list's heading shows, which GitHub's comment search can find, unlike the hidden mark.
+export const reviewListHeading = "Review list";
+
 export const gapCheckSubject = "gap-check";
 
 // What one review-list comment is for: a landed ticket, or the gap check.
@@ -146,7 +149,7 @@ export function ticketReviewListOf({
   }
   return [
     reviewListMarkOf(ticket),
-    `**Review list** · ${issueLabelOf(ticket)}, "${title}"`,
+    `**${reviewListHeading}** · ${issueLabelOf(ticket)}, "${title}"`,
     ...sections,
   ].join("\n\n");
 }
@@ -338,7 +341,7 @@ export function gapCheckListOf(
   specTitle: string,
   record: GapCheckRecord,
 ): string {
-  const heading = `**Review list** · gap check, "${specTitle}"`;
+  const heading = `**${reviewListHeading}** · gap check, "${specTitle}"`;
   const mark = reviewListMarkOf(gapCheckSubject);
   if (record.gaps.length === 0) {
     return [mark, heading, "The gap check found no gaps."].join("\n\n");
@@ -395,22 +398,24 @@ export interface UndecidedCount {
   hasUndecidedGaps: boolean;
 }
 
+export function isReviewList(body: string): boolean {
+  return body.includes(listMarkPrefix);
+}
+
 // Counts unticked boxes, so an item /judge-findings or a hand tick decided no longer counts.
 export function undecidedCountOf(bodies: string[]): UndecidedCount {
   const gapCheckMark = reviewListMarkOf(gapCheckSubject);
-  return bodies
-    .filter((body) => body.includes(listMarkPrefix))
-    .reduce<UndecidedCount>(
-      (count, body) => {
-        const items = body.match(undecidedBox)?.length ?? 0;
-        count.items += items;
-        if (items === 0) return count;
-        if (body.includes(gapCheckMark)) count.hasUndecidedGaps = true;
-        else count.tickets += 1;
-        return count;
-      },
-      { items: 0, tickets: 0, hasUndecidedGaps: false },
-    );
+  return bodies.filter(isReviewList).reduce<UndecidedCount>(
+    (count, body) => {
+      const items = body.match(undecidedBox)?.length ?? 0;
+      count.items += items;
+      if (items === 0) return count;
+      if (body.includes(gapCheckMark)) count.hasUndecidedGaps = true;
+      else count.tickets += 1;
+      return count;
+    },
+    { items: 0, tickets: 0, hasUndecidedGaps: false },
+  );
 }
 
 // The gap check is named on its own, since it is no ticket.
@@ -500,7 +505,7 @@ export function reviewListHoldingOf(
 ): IssueComment {
   const holding = comments.filter(
     ({ body }) =>
-      body.includes(listMarkPrefix) &&
+      isReviewList(body) &&
       body.split("\n").some((line) => itemIdOfLine(line) === itemId),
   );
   const comment = holding.find(({ author }) => author === developer);

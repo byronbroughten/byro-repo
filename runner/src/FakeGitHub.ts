@@ -111,6 +111,22 @@ export class FakeGitHub implements RunGitHub {
     comment.body = body;
   }
 
+  // Matched exactly, by anyone's comment, in the order the issues were added.
+  async openIssuesCommentedWith(
+    repo: string,
+    phrase: string,
+  ): Promise<IssueRef[]> {
+    this._failIfScripted();
+    return [...this.issues.values()].flatMap(({ issue, isOpen }) => {
+      const isCommented = this.comments.some(
+        (comment) =>
+          comment.issue.number === issue.number &&
+          comment.body.includes(phrase),
+      );
+      return isOpen && isCommented ? [{ repo, number: issue.number }] : [];
+    });
+  }
+
   edit(number: number, change: Partial<TrackedIssue>): void {
     const issue = this.issues.get(number);
     if (!issue) throw new Error(`No issue #${number}`);
