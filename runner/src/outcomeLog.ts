@@ -89,7 +89,8 @@ export function peakContextOf({ peakContext }: OutcomeFacts): string {
   return peakContext.map((peak) => `${Math.round(peak / 1000)}K`).join(" → ");
 }
 
-// A written row file with each `unrecorded` cell filled from the transcript fact `facts` defines; every other cell is kept as written.
+// A written row file with each `unrecorded` cell filled from the transcript fact `facts` defines; every other cell is
+// kept as written.
 export function withUnrecordedTranscriptCells(
   file: string,
   facts: OutcomeFacts,
