@@ -416,6 +416,72 @@ describe("reads and git add", () => {
     ].forEach((command) => expect(decisionOf(command)).not.toBe("allow"));
   });
 
+  it("allows a free read whose substitutions hold only free reads, quoted or not", () => {
+    [
+      'echo "#488: $(cat AGENTS.md)"',
+      "wc -l $(git ls-files)",
+      'cat "$(git rev-parse --show-toplevel)/AGENTS.md"',
+      "grep -n gate `git ls-files`",
+      'echo "Branch: `git branch --show-current`"',
+      "echo 'x' \"$(grep -c ')' AGENTS.md)\"",
+    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
+  });
+
+  it("allows a substitution nested in another when every command in it is a free read", () => {
+    [
+      'cat "$(ls "$(git rev-parse --show-toplevel)")"',
+      "cat $(head -1 `ls`)",
+      'echo "`echo \\`ls\\``"',
+    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
+  });
+
+  it("gives a call the tier of the strictest command in its substitutions", () => {
+    [
+      'echo "$(git push origin master)"',
+      "cat `git push`",
+      'cat "$(ls "$(git push)")"',
+      "cat $(rm -rf dist)",
+    ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
+    expect(decisionOf('echo "$(node -e 1)"')).toBe("deny");
+    expect(decisionOf('echo "$(make notes)"')).toBeUndefined();
+  });
+
+  it("never takes a substitution's output for a known program or a checked path", () => {
+    expect(decisionOf("$(echo cat) AGENTS.md")).toBeUndefined();
+    expect(
+      placedDecisionOf("cd $(git rev-parse --show-toplevel) && rm -f x")
+        ?.permissionDecision,
+    ).toBe("ask");
+    expect(placedDecisionOf("rm -f $(ls)")?.permissionDecision).toBe("ask");
+    expect(
+      placedDecisionOf("cd /etc && ls `cd /ws` `rm -f passwd`")
+        ?.permissionDecision,
+    ).toBe("ask");
+  });
+
+  it("allows no call whose substitution it can't read", () => {
+    [
+      'cat "$(ls"',
+      "cat `ls",
+      'echo "$(cat AGENTS.md # )\nrm -rf dist\n)"',
+      "git commit -F - <<EOF\n$(git push)\nEOF",
+      "git commit -m $'\\'' $(git push) $'\\''",
+      'echo "$(case a in a) rm -rf dist;; esac)"',
+    ].forEach((command) => expect(decisionOf(command)).not.toBe("allow"));
+  });
+
+  it("allows no substitution beside a `${…}` or a comment, which bash reads differently", () => {
+    [
+      "echo $(echo ${x#) #} ; git push)",
+      "echo $(echo ${x#) #} ; rm -rf x)",
+      'echo "$(echo "${x#")"}" ; git push)"',
+      "echo ${y:-a #} $(git push)",
+      "(( # )) ; $(git push)",
+      'echo "$( (( #)) ; git push\n)))"',
+      "echo $(( #))",
+    ].forEach((command) => expect(decisionOf(command)).toBeUndefined());
+  });
+
   it("allows no git verb that changes anything, and git add only plain", () => {
     [
       "git checkout master",
@@ -759,6 +825,8 @@ describe("a runner step's gh calls", () => {
       "gh issue comment 447 --body-file - <<EOF\nok\nEOF",
       'gh issue comment 447 --body "Fails at `Api.ts`"',
       'gh issue edit 447 --body "$(cat notes.md)"',
+      "gh issue comment 447 --body `cat notes.md`",
+      'gh issue edit 447 --body "$(git push)"',
     ].forEach((command) => {
       const decision = placedDecisionOf(command, "runnerStep");
       expect(decision?.permissionDecision).toBe("deny");
@@ -854,9 +922,15 @@ describe("an Interactive session's gh calls", () => {
     ].forEach((command) => expect(decisionOf(command)).toBeUndefined());
   });
 
+  it("allows a create whose body is a free read's output", () => {
+    expect(
+      decisionOf('gh issue create --title T --body "$(cat notes.md)"'),
+    ).toBe("allow");
+  });
+
   it("leaves a create or api call hiding a command to Claude Code", () => {
     [
-      'gh issue create --title T --body "$(cat notes.md)"',
+      'gh issue create --title T --body "$(make notes)"',
       "gh issue create --title T --body-file - <<EOF\nok\nEOF",
       "gh api repos/x/y/issues/`id`",
     ].forEach((command) => expect(decisionOf(command)).toBeUndefined());

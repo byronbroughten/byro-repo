@@ -3,7 +3,7 @@
 import {
   npmScriptOf,
   type SimpleCommand,
-  simpleCommandsOf,
+  substitutedCommandsOf,
 } from "./bashReads.ts";
 import { GhApiCall } from "./GhApiCall.ts";
 import { stdoutFilters } from "./stdoutFilters.ts";
@@ -182,8 +182,8 @@ function baseDecision({
 }: ShellCall): Decision | undefined {
   const commands = parsedCommandsOf(command);
   if (!commands) return undefined;
-  // A `cd` carries on only when every separator is `&&`: a failed one stops the command; in a subshell, pipe or background job it doesn't carry; after `;` or `||` it may have failed.
-  const cdCarriesOn = !/[()|;&\n]/.test(command.replace(/&&|[<>]&|&>/g, ""));
+  // A `cd` carries on only when every separator is `&&`: a failed one stops the command; in a subshell, substitution, pipe or background job it doesn't carry; after `;` or `||` it may have failed.
+  const cdCarriesOn = !/[()|;&\n`]/.test(command.replace(/&&|[<>]&|&>/g, ""));
   let cwd = places?.cwd;
   const verdicts = commands.map((simple) => {
     const here = places && cwd !== undefined ? { ...places, cwd } : undefined;
@@ -199,6 +199,16 @@ function baseDecision({
       spreadsheetTargets,
     });
   });
+  // The parser reads each command inside `$(…)` and backticks, quoted or not, as a verdict of its own; a runner step's body still goes through `--body-file`, whatever the substitution runs.
+  const hasSubstitution = /\$\(|`/.test(command);
+  const bodyRefusal = hasSubstitution
+    ? plainTextRefusalOf(
+        verdicts,
+        mode,
+        "a backtick or `$(` puts a command's output in the text",
+      )
+    : undefined;
+  if (bodyRefusal) return bodyRefusal;
   const deny = verdicts.find(
     (verdict) => verdict?.permissionDecision === "deny",
   );
@@ -207,14 +217,16 @@ function baseDecision({
   if (ask) {
     return needsYes(`\`${command}\` ${ask.why}`);
   }
-  // The parser doesn't look inside quoted substitutions, so one could hide a command.
-  if (/\$\(|`/.test(command)) return plainTextRefusalOf(verdicts, mode);
-  // It also strips heredoc bodies and misreads $'…', so either could hide a command after one.
+  // It strips heredoc bodies and misreads $'…', so either could hide a command or a substitution after one.
   if (
-    verdicts.some((verdict) => verdict?.needsPlainText) &&
+    (hasSubstitution || verdicts.some((verdict) => verdict?.needsPlainText)) &&
     /<<|\$'/.test(command)
   ) {
-    return plainTextRefusalOf(verdicts, mode);
+    return plainTextRefusalOf(
+      verdicts,
+      mode,
+      "a heredoc or `$'…'` could hide a command",
+    );
   }
   if (!verdicts.every((verdict) => verdict?.permissionDecision === "allow")) {
     return undefined;
@@ -229,13 +241,11 @@ function baseDecision({
 function plainTextRefusalOf(
   verdicts: (Verdict | undefined)[],
   mode: SessionMode,
+  cause: string,
 ): Decision | undefined {
   const fix = verdicts.find((verdict) => verdict?.plainTextFix)?.plainTextFix;
   if (mode !== "runnerStep" || fix === undefined) return undefined;
-  return gateOf(
-    "deny",
-    `a backtick, \`$(\`, heredoc or \`$'…'\` could hide a command, so ${fix}.`,
-  );
+  return gateOf("deny", `${cause}, so ${fix}.`);
 }
 
 // The chore names a command dry-runs, for the session's dry-run record.
@@ -248,7 +258,7 @@ export function dryRunChoresOf(command: string): string[] {
 
 function parsedCommandsOf(command: string): SimpleCommand[] | undefined {
   try {
-    return simpleCommandsOf(command);
+    return substitutedCommandsOf(command);
   } catch {
     return undefined;
   }

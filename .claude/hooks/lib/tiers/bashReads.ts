@@ -7,6 +7,7 @@ import type { HookInput } from "../hookIo.ts";
 import { rootRelative } from "../lintSet.ts";
 import { readSheetsConfigs } from "../sheetsConfigs.ts";
 import { sedCallOf } from "./stdoutFilters.ts";
+import { closingQuoteOf, SubstitutionScanner } from "./SubstitutionScanner.ts";
 
 export const largeFileLines = 150;
 const unguardedDirs = ["node_modules", ".git", ".probe", "dist", "coverage"];
@@ -253,6 +254,13 @@ export function simpleCommandsOf(command: string): SimpleCommand[] {
     );
 }
 
+// The simple commands of every layer of `$(…)` and backtick substitution, quoted or not, each substitution a word of its own in the layer around it; throws on one left open.
+export function substitutedCommandsOf(command: string): SimpleCommand[] {
+  return SubstitutionScanner.init(stripHeredocBodies(command)).layers.flatMap(
+    simpleCommandsOf,
+  );
+}
+
 // An `npm run` script and its args; flags drop out except `--` and `--send`.
 export function npmScriptOf(words: string[]): NpmScript | undefined {
   if (words[0] !== "npm" && words[0] !== "npm.cmd") return undefined;
@@ -459,7 +467,7 @@ function tokenize(command: string): Token[] {
     const char = command.charAt(i);
     const next = command[i + 1];
     if (char === "'" || char === '"') {
-      const close = findClosingQuote(command, i);
+      const close = closingQuoteOf(command, i);
       word =
         (word ?? "") +
         command
@@ -513,13 +521,4 @@ function tokenize(command: string): Token[] {
   }
   endWord();
   return tokens;
-}
-
-function findClosingQuote(command: string, open: number): number {
-  const quote = command[open];
-  for (let i = open + 1; i < command.length; i++) {
-    if (quote === '"' && command[i] === "\\") i++;
-    else if (command[i] === quote) return i;
-  }
-  throw new Error("Unbalanced quote");
 }
