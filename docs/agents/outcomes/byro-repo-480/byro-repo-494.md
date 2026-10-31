@@ -1,0 +1,7 @@
+# byro-repo#494 outcome
+
+Spec: [byro-repo#480](https://github.com/byronbroughten/byro-repo/issues/480)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #494 | Opus medium | 3, 1 | 7 | 94K | Fix (resumed implementer) | 2 | 1 | 0 | 37 min | $2.28 | $3.19 | Fixed: The getter commandWords and the exported commandWordsOf(words) share a name but do different jobs. (.claude/hooks/lib/tiers/ShellParser.ts:47, :198); BashReads strips wrappers from each segment again, which ShellParser.simpleCommands already does. (.claude/hooks/lib/tiers/bashReads.ts:96); isDiscardRedirect came before newSegment, though segments uses newSegment first. (.claude/hooks/lib/tiers/ShellParser.ts module functions); commandWordsOf stays an exported free function, and BashReads calls it directly. (.claude/hooks/lib/tiers/ShellParser.ts:196, bashReads.ts:96). Proposed: Getters recompute values that the readonly command fixes; the rule wants them as plain fields. (.claude/hooks/lib/tiers/ShellParser.ts segments, _tokens, _withoutHeredocBodies); bashReads and npmCommands each have a near-copy of the same two helpers. (bashReads.ts basename/nonFlags vs npmCommands.ts basenameOf/nonFlagsOf). | bb996d0e-ab9e-4979-b500-0486cb28d661, 2a2821ef-df64-4a07-af5f-f9a511070b6d |
