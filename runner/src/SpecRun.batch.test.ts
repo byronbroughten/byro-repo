@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
 import type { Blocker } from "./implementStep.ts";
 import type { ResolveRecord } from "./resolveStep.ts";
-import type { Clock, MemberList, RunResult } from "./SpecRun.ts";
+import type { Clock, MemberList, RunResult, SpecRunConfig } from "./SpecRun.ts";
 import {
   addIssue,
   addSpec,
@@ -18,7 +18,6 @@ import {
   reviewed,
   spec,
   specRun,
-  type SpecRunOverrides,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
 
@@ -53,9 +52,9 @@ const propose: ResolveRecord = {
 // Runs `members` as a Batch, an idle poll requesting a stop on each.
 function runBatch(
   agentStep: FakeAgentStep,
-  overrides: SpecRunOverrides & { members: MemberList },
+  { members, ...overrides }: Partial<SpecRunConfig> & { members: MemberList },
 ): Promise<RunResult> {
-  return specRun(agentStep, overrides).run(...overrides.members);
+  return specRun(agentStep, { members, ...overrides }).run(...members);
 }
 
 function commentsOn(number: number): string[] {
