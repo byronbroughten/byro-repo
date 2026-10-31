@@ -3,17 +3,14 @@
 // Exits 0 on run-started and 1 on run-ended or once the wait runs out with neither.
 import { setTimeout as sleep } from "node:timers/promises";
 
-import { launchArgsOf } from "./launchArgs.ts";
+import { requiredLaunchArgsOf } from "./launchArgs.ts";
 import { stateFolder } from "./runnerConfig.ts";
 import { awaitRunStart, launchReportOf } from "./runWatch.ts";
 
 const waitOptions = { timeoutMs: 120_000, pollMs: 1_000 } as const;
 
 const [launchedAt = "", ...args] = process.argv.slice(2);
-const launch = launchArgsOf(args);
-if (launch === undefined) {
-  throw new Error(`launchWait.ts can't read ${args.join(" ")}.`);
-}
+const launch = requiredLaunchArgsOf(args, "launchWait.ts");
 const result = await awaitRunStart(
   launch.members,
   { ...waitOptions, launchedAt: new Date(launchedAt) },

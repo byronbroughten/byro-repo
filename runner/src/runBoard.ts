@@ -40,21 +40,7 @@ const boardTexts = {
 } as const;
 
 export function runBoardOf(stateFolder: string, now: Date): string {
-  const blocks = boardRunsOf(stateFolder).map((members) =>
-    runBlockOf(stateFolder, members, now),
-  );
-  if (blocks.length === 0) return boardTexts.noRuns;
-  return blocks.join("\n\n");
-}
-
-// A Batch's members' locks make one entry, at its first-listed lock's place.
-function boardRunsOf(stateFolder: string): MemberList[] {
-  const batchRecords = BatchRecords.init(stateFolder);
-  return RunLock.specsOf(stateFolder).reduce<MemberList[]>((runs, spec) => {
-    const isListed = runs.some((members) => isMemberOf(members, spec));
-    if (!isListed) runs.push(batchRecords.membersOf(spec));
-    return runs;
-  }, []);
+  return new RunBoard(stateFolder).textAt(now);
 }
 
 // Returns only by throwing, which a Ctrl-C does by ending the process instead.
@@ -70,55 +56,72 @@ export async function watchBoard({
   }
 }
 
-// A Batch's block reads its current member's run state and progress log.
-function runBlockOf(
-  stateFolder: string,
-  members: MemberList,
-  now: Date,
-): string {
-  const { spec, lines } = currentMemberOf(stateFolder, members);
-  const isLive = members.some((member) => RunLock.isHeld(stateFolder, member));
-  const label = runLabelOf(members);
-  const statePath = runStatePathOf(stateFolder, spec);
-  return [
-    isLive ? label : `${label}: ${boardTexts.gone}`,
-    ...(members.length > 1 ? [`  Member: ${issueLabelOf(spec)}`] : []),
-    `  Ticket: ${ticketTextOf(statePath, lines, now)}`,
-    `  Account: ${accountTextOf(lines)}`,
-    `  ${latestTextOf(lines, now)}`,
-  ].join("\n");
-}
-
 interface MemberProgress {
   spec: IssueRef;
   lines: StampedLine[];
 }
 
-// The member whose ticket or launch line is latest, or the first while none has one.
-function currentMemberOf(
-  stateFolder: string,
-  members: MemberList,
-): MemberProgress {
-  const [lead, ...rest] = members;
-  return rest
-    .map((spec) => memberProgressOf(stateFolder, spec))
-    .reduce(
-      (current, member) => {
-        const memberTime =
-          latestTicketLineOf(member.lines)?.time.getTime() ?? 0;
-        const currentTime =
-          latestTicketLineOf(current.lines)?.time.getTime() ?? 0;
-        return memberTime > currentTime ? member : current;
+// The board over one state folder; its line readers below take only the lines.
+class RunBoard {
+  private readonly stateFolder: string;
+
+  constructor(stateFolder: string) {
+    this.stateFolder = stateFolder;
+  }
+
+  textAt(now: Date): string {
+    const blocks = this._runs().map((members) => this._blockOf(members, now));
+    if (blocks.length === 0) return boardTexts.noRuns;
+    return blocks.join("\n\n");
+  }
+
+  // A Batch's members' locks make one entry, at its first-listed lock's place.
+  private _runs(): MemberList[] {
+    const batchRecords = BatchRecords.init(this.stateFolder);
+    return RunLock.specsOf(this.stateFolder).reduce<MemberList[]>(
+      (runs, spec) => {
+        const isListed = runs.some((members) => isMemberOf(members, spec));
+        if (!isListed) runs.push(batchRecords.membersOf(spec));
+        return runs;
       },
-      memberProgressOf(stateFolder, lead),
+      [],
     );
+  }
+
+  // A Batch's block reads its current member's run state and progress log.
+  private _blockOf(members: MemberList, now: Date): string {
+    const { spec, lines } = currentMemberOf(
+      members.map((member) => this._progressOf(member)),
+    );
+    const isLive = RunLock.isAnyHeld(this.stateFolder, members);
+    const label = runLabelOf(members);
+    const statePath = runStatePathOf(this.stateFolder, spec);
+    return [
+      isLive ? label : `${label}: ${boardTexts.gone}`,
+      ...(members.length > 1 ? [`  Member: ${issueLabelOf(spec)}`] : []),
+      `  Ticket: ${ticketTextOf(statePath, lines, now)}`,
+      `  Account: ${accountTextOf(lines)}`,
+      `  ${latestTextOf(lines, now)}`,
+    ].join("\n");
+  }
+
+  private _progressOf(spec: IssueRef): MemberProgress {
+    return {
+      spec,
+      lines: progressLinesOf(progressLogPathOf(this.stateFolder, spec)),
+    };
+  }
 }
 
-function memberProgressOf(stateFolder: string, spec: IssueRef): MemberProgress {
-  return {
-    spec,
-    lines: progressLinesOf(progressLogPathOf(stateFolder, spec)),
-  };
+// The member whose ticket or launch line is latest, or the first while none has one; a Batch is never empty.
+function currentMemberOf(members: MemberProgress[]): MemberProgress {
+  return members.reduce((current, member) =>
+    ticketTimeOf(member) > ticketTimeOf(current) ? member : current,
+  );
+}
+
+function ticketTimeOf({ lines }: MemberProgress): number {
+  return latestTicketLineOf(lines)?.time.getTime() ?? 0;
 }
 
 function runLabelOf([lead, ...rest]: MemberList): string {

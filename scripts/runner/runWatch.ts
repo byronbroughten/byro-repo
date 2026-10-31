@@ -13,6 +13,8 @@ import {
 } from "@byronbroughten/spec-runner/SpecRun";
 import type { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
 
+import { tmuxSessionOf } from "./launchArgs.ts";
+
 interface WatchClock {
   now: () => Date;
   sleep: (ms: number) => Promise<void>;
@@ -58,13 +60,6 @@ interface WatchMode {
   // Prints what it takes of the lines new since the last check, and says whether the watch is done.
   printNew: (newLines: string[]) => boolean;
   isReplaced: () => boolean;
-}
-
-// tmux.sh asks launchArgs.ts for it; one number keeps its old name.
-export function tmuxSessionOf(members: MemberList): string {
-  const [{ repo }] = members;
-  const numbers = members.map(({ number }) => number).join("-");
-  return `runner-${repo}-${numbers}`;
 }
 
 // The first run-started or run-ended line no older than the launch, so an earlier run's end is never taken for this one's.

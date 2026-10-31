@@ -144,8 +144,7 @@ function watchDepsOf(): WatchDeps {
   return {
     stateFolder,
     pollMs: 3_000,
-    isRunLive: (members) =>
-      members.some((member) => RunLock.isHeld(stateFolder, member)),
+    isRunLive: (members) => RunLock.isAnyHeld(stateFolder, members),
     now: () => new Date(),
     sleep,
     print: (line: string) => console.log(line),

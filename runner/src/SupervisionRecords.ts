@@ -101,8 +101,7 @@ export class SupervisionRecords {
     const file = this._specFileOf(spec);
     if (file === undefined) return undefined;
     this._write({ ...file, watch: watchProcess });
-    const [, ...rest] = membersOf(file);
-    return { watchProcess, offset: file.offset, members: [file.spec, ...rest] };
+    return { watchProcess, offset: file.offset, members: membersOf(file) };
   }
 
   isWatchedBy(spec: IssueRef, watchProcess: ProcessIdentity): boolean {

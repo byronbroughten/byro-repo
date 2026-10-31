@@ -6,7 +6,7 @@ import {
   rerunCommandOf,
 } from "@byronbroughten/spec-runner/SpecRun";
 
-import { tmuxSessionOf } from "./runWatch.ts";
+import { tmuxSessionOf } from "./launchArgs.ts";
 
 export interface Crash {
   owner: string;

@@ -23,6 +23,23 @@ function lockPath(): string {
   return join(stateFolder, "byro-repo-213.run.lock");
 }
 
+describe("RunLock.isAnyHeld", () => {
+  const other: IssueRef = { repo: "byro-repo", number: 214 };
+
+  it("answers yes while any listed spec's lock is held", () => {
+    seedHolder(lockPath(), {
+      pid: process.pid,
+      host: hostname(),
+      startedAt: "2026-01-01",
+    });
+    expect(RunLock.isAnyHeld(stateFolder, [other, spec])).toBe(true);
+  });
+
+  it("answers no while none is", () => {
+    expect(RunLock.isAnyHeld(stateFolder, [other, spec])).toBe(false);
+  });
+});
+
 describe("RunLock.isHeld", () => {
   it("answers yes for a lock this host's running pid holds", () => {
     seedHolder(lockPath(), {

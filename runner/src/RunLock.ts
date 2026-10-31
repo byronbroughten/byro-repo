@@ -33,6 +33,11 @@ export class RunLock extends PidLock {
     return PidLock.isHeldAt(lockPathOf(stateFolder, spec));
   }
 
+  // A Batch is live while any member's run lock is held.
+  static isAnyHeld(stateFolder: string, specs: IssueRef[]): boolean {
+    return specs.some((spec) => RunLock.isHeld(stateFolder, spec));
+  }
+
   // Every spec with a lock file, held or left behind by a dead pid.
   static specsOf(stateFolder: string): IssueRef[] {
     if (!existsSync(stateFolder)) return [];
