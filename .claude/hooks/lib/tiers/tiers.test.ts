@@ -59,6 +59,13 @@ describe("gateDecision", () => {
     ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
   });
 
+  it("allows releasing a workspace's lease, which issue:start takes back", () => {
+    [
+      "npm run issue:release -- byro-repo 484",
+      "npm run issue:release -- --session glossary-fix",
+    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
+  });
+
   it("allows a backlink in a session and a runner step, beside gh issue edit", () => {
     const command =
       "npm run issue:backlink -- byro-repo 372 docs/adr/0007-issue-reader.md";

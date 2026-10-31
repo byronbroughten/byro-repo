@@ -66,8 +66,8 @@ Post nothing else on the spec issue.
 
 Keep explaining events while you work: the watch still wakes you, and each wake goes to step 3 as before.
 
-- **A blocked edit the ticket already specifies**: take the halted ticket's released lease with `/start-issue <repo> <ticket>`, stopping once inside its worktree rather than following `/implement-code`, make the edit on its branch and commit. Leave with `ExitWorktree` and `keep`, then answer the Halt with a reply naming the commit: `H<k>: <sha> makes the blocked edit`.
-- **A `ready-for-interactive` ticket**: take it on your own with `/start-issue <repo> <ticket>`, follow `/implement-code` on it, and close it out with `npm run wrap-up -- <repo> <ticket>`.
+- **A blocked edit the ticket already specifies**: Read `.claude/skills/start-issue/SKILL.md` by path and follow it for `<repo> <ticket>` up to its `EnterWorktree`, rather than invoking `/start-issue`, which is user-only; that takes the halted ticket's released lease. Make the edit on its branch and commit. Leave with `ExitWorktree` and `keep`, run `npm run issue:release -- <repo> <ticket>` so the run can take the lease back, then answer the Halt with a reply naming the commit: `H<k>: <sha> makes the blocked edit`.
+- **A `ready-for-interactive` ticket**: take it on your own by reading `.claude/skills/start-issue/SKILL.md` by path and following it for `<repo> <ticket>`, follow `/implement-code` on it, and close it out with `npm run wrap-up -- <repo> <ticket>`.
 - **A `ready-for-human` ticket**: report it, and help with it as the developer asks. Never start it unasked.
 
 When Claude Code prompts you during this work, tell the developer what it asks and why, and carry on once they answer.

@@ -38,6 +38,7 @@
     "issue:read": "node scripts/runner/issueRead.ts",
     "issue:backlink": "node scripts/runner/issueBacklink.ts",
     "issue:remove": "node scripts/runner/issue.ts remove",
+    "issue:release": "node scripts/runner/issue.ts release",
     "outcome:backfill": "node scripts/runner/outcomeBackfill.ts",
     "runner": "node scripts/runner/run.ts",
     "runner:tmux": "bash scripts/runner/tmux.sh",
