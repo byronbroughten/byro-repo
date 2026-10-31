@@ -549,7 +549,7 @@ function freeScriptVerdictOf({ words }: SimpleCommand): Verdict | undefined {
   return { permissionDecision: "allow", why: freeWhy };
 }
 
-// A runner step's npx check missing only `--noEmit` is refused naming it, as that way through is free; an Interactive session's falls through to Claude Code's allow rules.
+// A runner step's `npx tsc` missing only `--noEmit` is refused naming it, as that way through is free; an Interactive session's falls through to Claude Code's allow rules.
 function npxCheckVerdictOf(
   { words }: SimpleCommand,
   { mode }: CallContext,

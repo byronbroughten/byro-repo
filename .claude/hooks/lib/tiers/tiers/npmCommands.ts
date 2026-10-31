@@ -98,13 +98,12 @@ export const npmCommands = {
     if (program !== "npx") return undefined;
     return npxChecks.get(tool)?.(args) ? freeWhys.check : undefined;
   },
-  // The fix for an `npx tsc` that `--noEmit` alone would make free, or undefined for any other words.
-  npxCheckFixOf([program, tool = "", ...args]: string[]): string | undefined {
+  // Only when `--noEmit` alone frees it, so a `--build` keeps the generic refusal.
+  npxCheckFixOf(words: string[]): string | undefined {
     const isFixedByNoEmit =
-      program === "npx" &&
-      tool === "tsc" &&
-      !args.includes("--noEmit") &&
-      npxChecks.get(tool)?.([...args, "--noEmit"]);
+      words[1] === "tsc" &&
+      !words.includes("--noEmit") &&
+      npmCommands.npxCheckWhyOf([...words, "--noEmit"]);
     if (!isFixedByNoEmit) return undefined;
     return "`npx tsc` without `--noEmit` writes compiled files; add `--noEmit` to only type-check";
   },
