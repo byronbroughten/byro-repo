@@ -3,7 +3,8 @@
 // Exit 1 is a run short of finished, a review short of reviewed or its findings, or refused records; 2 is a crash, which tmux.sh pushes;
 // 3 is a Restart, which tmux.sh relaunches.
 // `supervise` records the caller's claude as the spec's Supervisor and prints its unexplained event lines; `--advance` marks one more explained.
-// `watch` streams the spec's new event lines for a Supervisor's Monitor and prints a `vanished` line if the run's process dies unreported (runWatch.ts).
+// `watch` streams the spec's new event lines and prints a `vanished` line if the run's process dies unreported (runWatch.ts);
+// `--once` prints the first unexplained line, or that `vanished` line, and exits, or exits silently once a newer watch replaces it.
 // `status` and `watch` with no spec print the Run board once or redraw it every 5s (runBoard.ts).
 // `decide` ticks one review-list item and adds its `Decided:` line, or with `--handled` adds a `Handled:` line unticked (SpecRun/ReviewItemDecider.ts).
 import { readFileSync } from "node:fs";
@@ -21,14 +22,14 @@ import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecor
 
 import { nearestClaudeAncestor } from "./claudeAncestor.ts";
 import { specRunConfigOf, stateFolder } from "./runnerConfig.ts";
-import { watchRun } from "./runWatch.ts";
+import { type WatchDeps, watchOnce, watchRun } from "./runWatch.ts";
 
 // tmux.sh pushes a crash and relaunches only on a restart.
 const exitCodes = { short: 1, crash: 2, restart: 3 } as const;
-const plainVerbs = ["status", "stop", "review", "watch"];
+const plainVerbs = ["status", "stop", "review"];
 const boardVerbs = ["status", "watch"];
-const verbs = [...plainVerbs, "resolve", "supervise", "decide"];
-const usage = `Usage: npm run runner -- [${plainVerbs.join("|")}] <owner/repo> <n>, resolve <owner/repo> <n> <records.json>, supervise <owner/repo> <n> [--advance], decide <owner/repo> <spec> R<n>.<k> [--handled] "<text>", or [${boardVerbs.join("|")}] alone for the Run board`;
+const verbs = [...plainVerbs, "watch", "resolve", "supervise", "decide"];
+const usage = `Usage: npm run runner -- [${plainVerbs.join("|")}] <owner/repo> <n>, watch <owner/repo> <n> [--once], resolve <owner/repo> <n> <records.json>, supervise <owner/repo> <n> [--advance], decide <owner/repo> <spec> R<n>.<k> [--handled] "<text>", or [${boardVerbs.join("|")}] alone for the Run board`;
 
 try {
   const args = process.argv.slice(2);
@@ -87,28 +88,41 @@ async function runOnSpec(command: string, args: string[]): Promise<void> {
   const [ownerRepo = "", number, flag] = args;
   const { owner, issue } = specArgsOf(ownerRepo, number);
   const isAdvance = flag === "--advance";
+  const isOnce = flag === "--once";
   const isFlagValid =
     command === "resolve"
       ? flag !== undefined
-      : flag === undefined || (command === "supervise" && isAdvance);
+      : flag === undefined ||
+        (command === "supervise" && isAdvance) ||
+        (command === "watch" && isOnce);
   if (!isFlagValid) throw new Error(usage);
   if (command === "supervise") {
     await supervise(owner, issue, isAdvance);
-  } else if (command === "watch") {
-    await watchRun(
+  } else if (command === "watch" && isOnce) {
+    await watchOnce(
       { owner, spec: issue },
       {
-        stateFolder,
-        pollMs: 3_000,
-        isRunLive: () => RunLock.isHeld(stateFolder, issue),
-        now: () => new Date(),
-        sleep,
-        print: (line) => console.log(line),
+        ...watchDepsOf(issue),
+        records: SupervisionRecords.init(stateFolder),
+        pid: process.pid,
       },
     );
+  } else if (command === "watch") {
+    await watchRun({ owner, spec: issue }, watchDepsOf(issue));
   } else {
     await runSpec(command, owner, issue, flag);
   }
+}
+
+function watchDepsOf(spec: IssueRef): WatchDeps {
+  return {
+    stateFolder,
+    pollMs: 3_000,
+    isRunLive: () => RunLock.isHeld(stateFolder, spec),
+    now: () => new Date(),
+    sleep,
+    print: (line: string) => console.log(line),
+  };
 }
 
 async function runSpec(
