@@ -4,6 +4,7 @@
 // idling while open Halts and other holders' leases are all that's in the way, until every member is done or something Stops it.
 // Any outcome a later ticket will handle (red checks, step errors, schema failures) is an UnhandledStop; a red master Stops the run.
 // requestStop() ends the run between tickets, and a `stop spec` answer its own member; status() reads it from outside.
+// A Batch's record (../BatchRecords.ts) lets either take any member's number for the whole Batch.
 // A landing that changes the runner's own source ends it restarting, for tmux.sh to relaunch.
 // ../SpecRun.ts delegates run, status and requestStop to it.
 // It builds its own TicketSelector, TicketSequencer and ReviewListPoster.
@@ -15,6 +16,7 @@ import {
   ActiveAccountUnknown,
   noActiveAccountPhraseOf,
 } from "../ActiveAccountUnknown.ts";
+import { BatchRecords } from "../BatchRecords.ts";
 import { commandLabelOf } from "../failureText.ts";
 import { currentBranchOf, git } from "../git.ts";
 import { type Halt } from "../halts.ts";
@@ -97,15 +99,26 @@ export class RunLoop extends SpecRunBase {
     return new ReviewListPoster(this.config);
   }
 
+  private get batchRecords(): BatchRecords {
+    return BatchRecords.init(this.config.stateFolder);
+  }
+
   async run(memberIssues: MemberList): Promise<RunResult> {
     const taken = this._takeRunLocks(memberIssues);
     // Announced, the refusal would land in the live run's event file as its run-ended line.
     if (taken.kind === "refused") {
       return refusedOf(taken.refusals);
     }
+    let isRestarting = false;
     try {
-      return await this._runHoldingLocks(memberIssues);
+      // Opened once every lock is held, so the record never names a member another run holds.
+      await this.batchRecords.open(memberIssues, process.pid);
+      const result = await this._runHoldingLocks(memberIssues);
+      isRestarting = result.kind === "restarting";
+      return result;
     } finally {
+      // Closed on a throw too, so status and supervise never find a dead Batch.
+      if (!isRestarting) this.batchRecords.close(memberIssues);
       taken.locks.forEach((lock) => lock.release());
     }
   }
@@ -419,32 +432,56 @@ export class RunLoop extends SpecRunBase {
     return found.map(stalePathLabelOf);
   }
 
-  // Read by the run between tickets and while idle; a request made with no run going is dropped as the next run starts.
+  // Read between tickets and while idle, a Batch's on its first member whichever member named it; one made with no run going is dropped as the next run starts.
   requestStop(specIssue: IssueRef): void {
+    const [lead] = this.batchRecords.membersOf(specIssue);
     mkdirSync(this.config.stateFolder, { recursive: true });
-    writeFileSync(this._stopRequestPathOf(specIssue), "");
+    writeFileSync(this._stopRequestPathOf(lead), "");
   }
 
   // Posts nothing and saves no run state, so it's safe beside a live run; an answer the run hasn't read yet shows as open.
   async status(specIssue: IssueRef): Promise<string> {
-    const run = await this._startRun(specIssue);
+    const memberIssues = this.batchRecords.membersOf(specIssue);
+    const [leadIssue, ...otherIssues] = memberIssues;
+    const isBatch = otherIssues.length > 0;
+    const lead = await this._startRun(leadIssue);
+    const blocks = [await this._statusBlockOf(lead)];
+    for (const otherIssue of otherIssues) {
+      blocks.push(await this._statusBlockOf(await this._startRun(otherIssue)));
+    }
+    const lines: string[] = [];
+    if (isBatch) {
+      lines.push(`Batch of ${memberIssues.map(issueLabelOf).join(", ")}.`, "");
+    }
+    lines.push(
+      blocks.join("\n\n"),
+      `Account: ${await this._activeReadingLabelOf(lead)}.`,
+    );
+    const isStopRequested = memberIssues.some((memberIssue) =>
+      existsSync(this._stopRequestPathOf(memberIssue)),
+    );
+    if (isStopRequested) {
+      const subject = isBatch ? "Batch" : "run";
+      lines.push(
+        `A stop is requested; the ${subject} ends after its current ticket.`,
+      );
+    }
+    return lines.join("\n");
+  }
+
+  private async _statusBlockOf(run: Run): Promise<string> {
     const openHalts = openHaltsOf(run);
     const { waits } = await this.ticketSelector._survey(run, openHalts);
     const landed = run.tickets.filter((ticket) => isLanded(run, ticket));
     const current = waits.flatMap((wait) => currentTextOf(run, wait));
     const others = waits.filter(({ holder }) => holder?.kind !== "run");
-    const lines = [
-      `${issueLabelOf(specIssue)}, "${run.spec.title}"`,
+    return [
+      `${issueLabelOf(run.spec.issue)}, "${run.spec.title}"`,
       `Landed: ${joinedOrNone(landed.map(issueLabelOf))}.`,
       `Current: ${joinedOrNone(current)}.`,
       `Open Halts: ${joinedOrNone(openHalts.map(openHaltTextOf))}.`,
       `Waiting: ${others.length === 0 ? "none" : waitsTextOf(others)}.`,
-      `Account: ${await this._activeReadingLabelOf(run)}.`,
-    ];
-    if (existsSync(this._stopRequestPathOf(specIssue))) {
-      lines.push("A stop is requested; the run ends after its current ticket.");
-    }
-    return lines.join("\n");
+    ].join("\n");
   }
 
   private async _activeReadingLabelOf(run: Run): Promise<string> {

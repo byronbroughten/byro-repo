@@ -5,6 +5,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { batchEventFilePathOf, BatchRecords } from "./BatchRecords.ts";
 import { eventFilePathOf } from "./EventFileNotices.ts";
 import {
   fileStemOf,
@@ -12,6 +13,7 @@ import {
   type LeaseHolder,
 } from "./IssueWorkspaces.ts";
 import { deadPid, seedHolder } from "./lockFixture.ts";
+import type { MemberList } from "./SpecRun.ts";
 import { SupervisionRecords } from "./SupervisionRecords.ts";
 
 const owner = "byronbroughten";
@@ -254,6 +256,96 @@ describe("a running supervision record", () => {
     seedRunLock(spec, process.pid);
 
     expect(await records().runningRecordOf(me)).toBeUndefined();
+  });
+});
+
+describe("a Batch's supervision record", () => {
+  const batch: MemberList = [spec, otherSpec];
+  const loneSpec: IssueRef = { repo: "byro-repo", number: 500 };
+
+  async function openBatch(): Promise<void> {
+    await BatchRecords.init(stateFolder).open(batch, process.pid);
+  }
+
+  function appendBatchEvents(...lines: string[]): void {
+    for (const line of lines) {
+      appendFileSync(batchEventFilePathOf(stateFolder, batch), `${line}\n`);
+    }
+  }
+
+  it("holds the Batch when supervised by any member's number", async () => {
+    await openBatch();
+
+    await records().supervise(me, owner, otherSpec);
+
+    expect(await records().recordOf(me)).toEqual({
+      pid: me.pid,
+      owner,
+      spec,
+      members: batch,
+      offset: 0,
+    });
+  });
+
+  it("catches up from the Batch's event file", async () => {
+    await openBatch();
+    appendBatchEvents("first", "second");
+    appendEvents(otherSpec, "a member's own, from an earlier run");
+
+    await records().supervise(me, owner, otherSpec);
+    await records().advance(me);
+
+    expect(await records().unexplainedLinesOf(me)).toEqual(["second"]);
+  });
+
+  it("replaces another live record on any of its members, carrying on from its offset", async () => {
+    appendEvents(otherSpec, "a", "b");
+    await records().supervise(otherLive, owner, otherSpec);
+    await openBatch();
+    appendBatchEvents("first", "second", "third");
+    await records().supervise(me, owner, spec);
+    await records().advance(me);
+    await records().advance(me);
+
+    await records().supervise(otherLive, owner, otherSpec);
+
+    expect(await records().recordOf(me)).toBeUndefined();
+    expect((await records().recordOf(otherLive))?.offset).toBe(2);
+  });
+
+  it("leaves another live record on a spec outside the Batch", async () => {
+    await records().supervise(otherLive, owner, loneSpec);
+    await openBatch();
+
+    await records().supervise(me, owner, spec);
+
+    expect((await records().recordOf(otherLive))?.spec).toEqual(loneSpec);
+  });
+
+  it("is replaced by the same pid supervising another spec", async () => {
+    await openBatch();
+    await records().supervise(me, owner, otherSpec);
+
+    await records().supervise(me, owner, loneSpec);
+
+    expect(await records().recordOf(me)).toEqual({
+      pid: me.pid,
+      owner,
+      spec: loneSpec,
+      offset: 0,
+    });
+  });
+
+  it("is the one a watch on any member's number joins", async () => {
+    await openBatch();
+    await records().supervise(me, owner, spec);
+
+    const watch = await records().watch(otherSpec, process.pid);
+
+    expect(watch?.offset).toBe(0);
+    expect(
+      watch !== undefined && records().isWatchedBy(spec, watch.watchProcess),
+    ).toBe(true);
   });
 });
 

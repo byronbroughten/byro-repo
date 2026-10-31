@@ -1,6 +1,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { batchEventFilePathOf, BatchRecords } from "./BatchRecords.ts";
 import { shortRefOf } from "./halts.ts";
 import { fileStemOf, type IssueRef } from "./IssueWorkspaces.ts";
 import {
@@ -9,6 +10,7 @@ import {
   type Notices,
   type RunEnding,
 } from "./Notices.ts";
+import type { MemberList } from "./SpecRun/runState.ts";
 
 // One line of a spec's event file; a run's end is a `run-ended` line, its `ending` saying how.
 export interface EventLine {
@@ -41,10 +43,13 @@ export class EventFileNotices implements Notices {
     const line = this._lineOf(notice);
     if (line === undefined) return;
     mkdirSync(this.stateFolder, { recursive: true });
-    appendFileSync(
-      eventFilePathOf(this.stateFolder, notice.spec),
-      `${JSON.stringify(line)}\n`,
-    );
+    appendFileSync(this._pathOf(notice.spec), `${JSON.stringify(line)}\n`);
+  }
+
+  // A Batch member's line goes to the Batch's one file, its `spec` naming the member.
+  private _pathOf(spec: IssueRef): string {
+    const batchFile = BatchRecords.init(this.stateFolder).eventFilePathOf(spec);
+    return batchFile ?? eventFilePathOf(this.stateFolder, spec);
   }
 
   private _lineOf(notice: Notice): EventLine | undefined {
@@ -68,8 +73,21 @@ export function eventFilePathOf(stateFolder: string, spec: IssueRef): string {
   return join(stateFolder, `${fileStemOf(spec)}.events.jsonl`);
 }
 
+// A Batch's one event file, or a member alone's own.
+export function eventStreamPathOf(
+  stateFolder: string,
+  members: MemberList,
+): string {
+  const [lead] = members;
+  if (members.length === 1) return eventFilePathOf(stateFolder, lead);
+  return batchEventFilePathOf(stateFolder, members);
+}
+
 export function rawEventLinesOf(stateFolder: string, spec: IssueRef): string[] {
-  const path = eventFilePathOf(stateFolder, spec);
+  return rawLinesAt(eventFilePathOf(stateFolder, spec));
+}
+
+export function rawLinesAt(path: string): string[] {
   if (!existsSync(path)) return [];
   return readFileSync(path, "utf8")
     .split("\n")
@@ -77,8 +95,7 @@ export function rawEventLinesOf(stateFolder: string, spec: IssueRef): string[] {
 }
 
 export function eventLinesOf(stateFolder: string, spec: IssueRef): EventLine[] {
-  return readFileSync(eventFilePathOf(stateFolder, spec), "utf8")
-    .trimEnd()
-    .split("\n")
-    .map((line) => JSON.parse(line) as EventLine);
+  return rawEventLinesOf(stateFolder, spec).map(
+    (line) => JSON.parse(line) as EventLine,
+  );
 }
