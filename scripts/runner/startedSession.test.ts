@@ -95,14 +95,18 @@ describe("recordStartedSession", () => {
     });
   }
 
+  function supervisionRecords(): SupervisionRecords {
+    return SupervisionRecords.init(stateFolder);
+  }
+
+  async function supervise(): Promise<void> {
+    await supervisionRecords().supervise(me, "byronbroughten", spec);
+  }
+
   // The #475 and #479 cause: a claude that supervised a run and then /cleared still read as its Supervisor, so its implement session went unrecorded.
   it("records the implement session of a claude whose supervision ended with a /clear", async () => {
-    await SupervisionRecords.init(stateFolder).supervise(
-      me,
-      "byronbroughten",
-      spec,
-    );
-    await SupervisionRecords.init(stateFolder).end(me, "clear");
+    await supervise();
+    await supervisionRecords().end(me, "clear");
 
     await record();
 
@@ -117,11 +121,7 @@ describe("recordStartedSession", () => {
   });
 
   it("records nothing for a claude still supervising a run", async () => {
-    await SupervisionRecords.init(stateFolder).supervise(
-      me,
-      "byronbroughten",
-      spec,
-    );
+    await supervise();
 
     await record();
 

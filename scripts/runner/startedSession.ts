@@ -1,4 +1,4 @@
-// Decides and records the implement session `issue:start` records when a Claude Code session leases an issue workspace mid-session, which SessionStart can't see.
+// Decides and records the implement session for a Claude Code session that leases an issue workspace mid-session, which SessionStart can't see.
 import { FactsFile } from "@byronbroughten/spec-runner/FactsFile";
 import type {
   IssueRef,
@@ -25,7 +25,7 @@ interface StartedWorkspace extends LeasingSession {
   isSupervisor: boolean;
 }
 
-interface RecordedWorkspace extends LeasingSession {
+interface SessionToRecord extends LeasingSession {
   holder: LeaseHolder;
   stateFolder: string;
 }
@@ -40,7 +40,7 @@ export async function recordStartedSession({
   holder,
   stateFolder,
   ...leasing
-}: RecordedWorkspace): Promise<void> {
+}: SessionToRecord): Promise<void> {
   const supervision =
     await SupervisionRecords.init(stateFolder).recordOf(holder);
   const started = startedSessionOf({

@@ -64,8 +64,8 @@ import { WrapUpFailure } from "./WrapUpFailure.ts";
 
 const execFileAsync = promisify(execFile);
 
-const mapLabel = "wayfinder:map";
-const humanLabel = "ready-for-human";
+// The GitHub labels wrap-up acts on.
+const labels = { map: "wayfinder:map", human: "ready-for-human" } as const;
 
 export interface ParentIssue {
   issue: IssueRef;
@@ -687,11 +687,11 @@ export class WrapUp {
   }
 
   private async _isHumanTicket(issue: IssueRef): Promise<boolean> {
-    const labels = await this._withRetries(
+    const issueLabels = await this._withRetries(
       `Reading ${issueLabelOf(issue)}'s labels`,
       () => this.config.github.labelsOf(issue),
     );
-    return labels.includes(humanLabel);
+    return issueLabels.includes(labels.human);
   }
 
   private async _commitLogRow({
@@ -1121,7 +1121,7 @@ function isListed(landing: Landing, repo: string): boolean {
 
 function parentCheckOf(parent: ParentIssue | undefined): ParentCheck {
   if (parent === undefined) return { kind: "none" };
-  if (parent.labels.includes(mapLabel)) {
+  if (parent.labels.includes(labels.map)) {
     return { kind: "map", parent: parent.issue };
   }
   if (parent.subIssues === undefined) {
