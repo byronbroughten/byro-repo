@@ -1,7 +1,7 @@
-// Starts, lists, promotes and removes workspaces, each keyed by an issue or, for a session workspace, by a slug.
+// Starts, lists, promotes, releases and removes workspaces, each keyed by an issue or, for a session workspace, by a slug.
 // The runner creates its own issue workspaces; `start` is the interactive session's way into one, leased to its claude.
 // Usage: npm run issue:start -- (<repo> <n> | --session <slug>) [--claude [--no-prompt]], npm run issue:list,
-// npm run issue:promote -- <repo> <n> <repo-to-promote>,
+// npm run issue:promote -- <repo> <n> <repo-to-promote>, npm run issue:release -- (<repo> <n> | --session <slug>),
 // or npm run issue:remove -- (<repo> <n> | --session <slug>) [--force].
 import { spawn } from "node:child_process";
 import { homedir } from "node:os";
@@ -38,11 +38,13 @@ try {
     await list();
   } else if (command === "promote") {
     await promote(args);
+  } else if (command === "release") {
+    await release(args);
   } else if (command === "remove") {
     await remove(args);
   } else {
     throw new Error(
-      `Unknown command "${command}"; use start, list, promote or remove`,
+      `Unknown command "${command}"; use start, list, promote, release or remove`,
     );
   }
 } catch (error) {
@@ -165,6 +167,30 @@ async function promote(args: string[]): Promise<void> {
   const workspace = await workspaceOf(issueOf(repo, number, usage));
   const { branch } = await workspaces.promote(workspace, promoted);
   console.log(`${promoted} is on ${branch} in ${workspace.path}`);
+}
+
+// Only the lease goes, so the workspace keeps its commits and dirty files for whoever starts it next.
+async function release(args: string[]): Promise<void> {
+  const workspace = await workspaceOf(
+    keyOf(args, `Usage: npm run issue:release -- ${keyUsage}`),
+  );
+  const released = await workspaces.releaseOwnLease(
+    workspace,
+    nearestClaudeAncestor(),
+  );
+  if (!released) {
+    console.log(`${workspace.path} has no lease`);
+    return;
+  }
+  if (!released.isLive) {
+    console.log(
+      `Released the lease abandoned by ${holderLabelOf(released)} on ${workspace.path}`,
+    );
+    return;
+  }
+  console.log(
+    `Released ${holderLabelOf(released)}'s lease on ${workspace.path}`,
+  );
 }
 
 async function remove(args: string[]): Promise<void> {

@@ -99,6 +99,64 @@ describe("a lease", () => {
     await workspaces().takeLease(workspace, { kind: "run", pid: process.pid });
   });
 
+  it("is released by its holder, leaving the workspace's commits and dirty files", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "released" },
+    );
+    writeFileSync(join(workspace.path, "kept.txt"), "committed");
+    git(workspace.path, "add", "kept.txt");
+    git(workspace.path, "commit", "-m", "Kept work");
+    writeFileSync(join(workspace.path, "work.txt"), "in progress");
+    await workspaces().takeLease(workspace, liveSession);
+
+    expect(await workspaces().releaseOwnLease(workspace, liveSession)).toEqual({
+      ...liveSession,
+      isLive: true,
+    });
+
+    expect(await workspaces().leaseOf(workspace)).toBeUndefined();
+    expect(git(workspace.path, "log", "-1", "--format=%s")).toBe("Kept work");
+    expect(readFileSync(join(workspace.path, "work.txt"), "utf8")).toBe(
+      "in progress",
+    );
+  });
+
+  it("is not released by a caller other than its live holder, naming the holder", async () => {
+    const workspace = await workspaces().create({ session: "glossary-fix" });
+    await workspaces().takeLease(workspace, liveSession);
+
+    await expect(
+      workspaces().releaseOwnLease(workspace, {
+        kind: "session",
+        pid: process.pid,
+      }),
+    ).rejects.toThrow(`a session (pid ${process.ppid})`);
+
+    expect(await workspaces().leaseOf(workspace)).toMatchObject(liveSession);
+  });
+
+  it("is released by any caller once its holder dies, read back as abandoned", async () => {
+    const workspace = await workspaces().create({ session: "glossary-fix" });
+    const dead: LeaseHolder = { kind: "session", pid: deadPid() };
+    await workspaces().takeLease(workspace, dead);
+
+    expect(await workspaces().releaseOwnLease(workspace, liveSession)).toEqual({
+      ...dead,
+      isLive: false,
+    });
+
+    expect(await workspaces().leaseOf(workspace)).toBeUndefined();
+  });
+
+  it("releases nothing from a workspace with no lease", async () => {
+    const workspace = await workspaces().create({ session: "glossary-fix" });
+
+    expect(
+      await workspaces().releaseOwnLease(workspace, liveSession),
+    ).toBeUndefined();
+  });
+
   it("releases its holder's other lease when taken, leaving that workspace's branch and files in place", async () => {
     const first = await workspaces().create(
       { repo: "byro-repo", number: 7 },
