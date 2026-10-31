@@ -47,17 +47,18 @@ describe("GhCli reads", () => {
     expect(await cli.subIssuesOf(issue)).toHaveLength(1);
   });
 
-  it("throws the last error after three tries", async () => {
+  it("throws the last error after four tries", async () => {
     const { cli, calls, waits } = scriptedGh([
       ghError("HTTP 502"),
       ghError("HTTP 503"),
       ghError("HTTP 504"),
+      ghError("HTTP 500"),
     ]);
     await expect(cli.openBlockersOf(issue)).rejects.toMatchObject({
-      stderr: "HTTP 504",
+      stderr: "HTTP 500",
     });
-    expect(calls).toHaveLength(3);
-    expect(waits).toEqual([2000, 8000]);
+    expect(calls).toHaveLength(4);
+    expect(waits).toEqual([2000, 8000, 30000]);
   });
 
   it("throws a non-transient error without retrying", async () => {

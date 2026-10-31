@@ -83,8 +83,8 @@ interface RawListedIssue {
 
 type GhProcess = (...args: string[]) => Promise<string>;
 
-// A read's waits before each retry: three tries in all.
-const readRetryWaitsMs = [2000, 8000];
+// A read's waits before each retry: four tries in all.
+const readRetryWaitsMs = [2000, 8000, 30000];
 
 export class GhCli implements RunGitHub, IssueSource {
   private readonly owner: string;
