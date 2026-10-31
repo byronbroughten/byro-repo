@@ -651,6 +651,19 @@ describe("file writes by the step write rule", () => {
     ).toBe("allow");
   });
 
+  it("follows a cd into a leading $TMPDIR, by the value the gate knows", () => {
+    [
+      'cd "$TMPDIR/work" && echo x > out.txt',
+      "cd ${TMPDIR}/work && rm ../helper.mjs",
+    ].forEach((command) =>
+      expect(placedDecisionOf(command)?.permissionDecision).toBe("allow"),
+    );
+    ["cd $TMPDIRX && echo x > out.txt", "cd $HOME && echo x > out.txt"].forEach(
+      (command) =>
+        expect(placedDecisionOf(command)?.permissionDecision).toBe("ask"),
+    );
+  });
+
   it("follows only a leading $TMPDIR, by the value the gate knows", () => {
     [
       "rm $TMPDIR/claude-guardrails/chore-dry-runs.json",

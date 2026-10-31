@@ -27,9 +27,8 @@ export class PathChecker {
     if (!this.places || target === undefined || target.startsWith("-")) {
       return undefined;
     }
-    return isPlainPath(target)
-      ? absoluteOf(target, this.places.cwd)
-      : undefined;
+    const path = tmpDirExpanded(target, this.places);
+    return isPlainPath(path) ? absoluteOf(path, this.places.cwd) : undefined;
   }
 
   // The ask for the first path that fails the write rule, or undefined when every one passes.
