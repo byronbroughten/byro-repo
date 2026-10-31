@@ -95,6 +95,8 @@ export class TicketSelector extends SpecRunBase {
       const tracked = await this.config.github.issueOf(ticket);
       if (!tracked.isOpen) continue;
       const label = issueLabelOf(ticket);
+      // A Standalone ticket lands and stays open while its review list has undecided items.
+      if (run.state.tickets[label]?.step === "landed") continue;
       const holder = await this.leaseKeeper._otherHolderOf(ticket);
       if (holder !== undefined) {
         const text = `${label} is leased by ${holderLabelOf(holder)}`;

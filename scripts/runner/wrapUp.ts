@@ -61,6 +61,11 @@ async function landIssue(args: string[]): Promise<void> {
   });
   console.log(`Landed ${issueLabelOf(issue)}: ${result.filesChanged} files.`);
   logBranchDeleteFailures(result.branchDeleteFailures);
+  if (result.isLeftOpen) {
+    console.log(
+      `${issueLabelOf(issue)} stays open: its review list has undecided items, and /judge-findings closes it once they're decided.`,
+    );
+  }
   console.log(parentLineOf(result.parent));
 }
 

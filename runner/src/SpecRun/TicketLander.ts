@@ -168,6 +168,8 @@ export class TicketLander extends SpecRunBase {
         break;
       } catch (error) {
         await this._takeWrapUpFailure(landingTicket, error);
+        // A merge-master resume adds an item to the review list, which the rerun's close step reads.
+        this.factsFile.setReviewFacts(ticket.issue, reviewFactsOf(state));
       }
     }
     this._advance(landingTicket, "landed");

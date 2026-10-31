@@ -467,9 +467,9 @@ export function freeHungRunLock(): void {
   rmSync(runLockPath());
 }
 
-// Ticket 1's facts file.
-export function ticketFacts(): Partial<WrapUpFacts> {
-  const path = join(stateFolder(), "byro-repo-1.facts.json");
+// Ticket 1's facts file unless another is named, such as a ticketless spec's.
+export function ticketFacts(number = 1): Partial<WrapUpFacts> {
+  const path = join(stateFolder(), `byro-repo-${number}.facts.json`);
   return JSON.parse(readFileSync(path, "utf8")) as Partial<WrapUpFacts>;
 }
 

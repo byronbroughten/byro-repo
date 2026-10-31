@@ -111,6 +111,7 @@ describe("review of one ticket outside a run", () => {
 
     expect(result).toMatchObject({ kind: "reviewed", halts: [] });
     expect(ticketFacts()).toMatchObject({ reviewFixes: "none", proposals: 0 });
+    expect(ticketFacts().hasUndecidedReviewItems).toBeUndefined();
     expect(github.comments).toEqual([]);
   });
 
@@ -138,6 +139,7 @@ describe("review of one ticket outside a run", () => {
       whatReviewCaught:
         "Fixed: Line 2 is wrong. (one.ts:2). Proposed: Line 1 is wrong. (one.ts:1).",
       proposals: 1,
+      hasUndecidedReviewItems: true,
     });
   });
 

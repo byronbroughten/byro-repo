@@ -145,6 +145,8 @@ export interface LandingResult {
 
 export interface WrapUpResult extends LandingResult {
   parent: ParentCheck;
+  // A Standalone ticket whose review list has undecided items; /judge-findings closes it once they're decided.
+  isLeftOpen?: boolean;
 }
 
 export interface LandingBranch {
@@ -178,6 +180,7 @@ interface Progress {
   // A ticket's derived branches, kept so a rerun past the fast-forward, when none is ahead any more, deletes them.
   branches?: LandingBranch[];
   branchDeleteFailures?: string[];
+  isLeftOpen?: boolean;
   parent?: ParentCheck;
 }
 
@@ -186,6 +189,11 @@ interface LogRowTarget {
   facts: WrapUpFacts;
   landing: Landing;
   workspace: Workspace;
+}
+
+interface ClosingTarget {
+  issue: IssueRef;
+  facts: WrapUpFacts;
 }
 
 interface IssueLandingTarget {
@@ -271,14 +279,18 @@ export class WrapUp {
     };
     if (!isDone(landing, "fast-forward")) await this._land(landing);
     await this._landAndRemove(landing);
-    await this._step(landing, "close", () => this._close(issue, facts));
+    await this._step(landing, "close", () =>
+      this._close(landing, { issue, facts }),
+    );
     await this._step(landing, "parent-check", () =>
       this._checkParent(landing, issue),
     );
-    return {
+    const result: WrapUpResult = {
       ...landingResultOf(landing),
       parent: landing.progress.parent ?? { kind: "none" },
     };
+    if (landing.progress.isLeftOpen) result.isLeftOpen = true;
+    return result;
   }
 
   async runSession(
@@ -908,7 +920,21 @@ export class WrapUp {
     }
   }
 
-  private async _close(issue: IssueRef, facts: WrapUpFacts): Promise<void> {
+  // A Standalone ticket is its own spec, so every Propose on it is decided before it closes.
+  private async _close(
+    landing: Landing,
+    { issue, facts }: ClosingTarget,
+  ): Promise<void> {
+    const isLeftOpen =
+      facts.hasUndecidedReviewItems === true &&
+      (await this._parentOf(issue)) === undefined;
+    if (isLeftOpen) {
+      landing.progress.isLeftOpen = true;
+      this._log(
+        `Leaving ${issueLabelOf(issue)} open: its review list has undecided items.`,
+      );
+      return;
+    }
     await this._withRetries(`Closing #${issue.number}`, () =>
       this.config.github.closeIssue(issue, closingCommentOf(facts)),
     );

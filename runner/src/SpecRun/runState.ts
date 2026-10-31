@@ -496,13 +496,22 @@ export function recordOf(
 export function reviewFactsOf({
   resolver,
   resolveRecords = [],
+  mergeMasterRecord,
+  unrecordedMerge,
 }: TicketState): ReviewFacts {
-  return {
+  const proposals = resolveRecords.filter(
+    ({ verdict }) => verdict === "propose",
+  ).length;
+  const facts: ReviewFacts = {
     reviewFixes: resolver ?? "none",
     whatReviewCaught: whatReviewCaughtOf(resolveRecords),
-    proposals: resolveRecords.filter(({ verdict }) => verdict === "propose")
-      .length,
+    proposals,
   };
+  // The merge with master is a Propose on the review list too.
+  const hasMergeItem =
+    mergeMasterRecord !== undefined || unrecordedMerge !== undefined;
+  if (proposals > 0 || hasMergeItem) facts.hasUndecidedReviewItems = true;
+  return facts;
 }
 
 export function stoppedOnTextOf({

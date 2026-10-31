@@ -9,6 +9,7 @@ import { git } from "./GitFixture.ts";
 import type { Handoff } from "./implementStep.ts";
 import type { ResolveRecord } from "./resolveStep.ts";
 import {
+  addIssue,
   addSpec,
   after,
   bodyWith,
@@ -203,6 +204,39 @@ describe("run's resolve", () => {
       whatReviewCaught:
         "Fixed: Line 1 is wrong. (one.ts:1). Proposed: Line 2 is wrong. (one.ts:2).",
     });
+  });
+
+  it("records a Propose as an undecided review item before the wrap-up, so a Standalone ticket lands and stays open", async () => {
+    addIssue(spec.number);
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      reviewed(findings),
+      resolved([recordOf(1, "fix"), recordOf(2, "propose")], "fix.ts"),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.kind).toBe("finished");
+    expect(ticketFacts(spec.number)).toMatchObject({
+      hasUndecidedReviewItems: true,
+    });
+    expect(github.closed).toEqual([]);
+    expect(reviewListOf(spec.number)).toContain("**R213.1** · Propose");
+  });
+
+  it("records no undecided review item when the resolve gives no Propose, so a Standalone ticket closes", async () => {
+    addIssue(spec.number);
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      reviewed(findings),
+      resolved([recordOf(1, "fix"), recordOf(2, "fix")], "fix.ts"),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.kind).toBe("finished");
+    expect(ticketFacts(spec.number).hasUndecidedReviewItems).toBeUndefined();
+    expect(github.closed.map(({ issue }) => issue)).toEqual([spec]);
   });
 
   it("keeps a Dismiss, a Propose and a Halt with no commit and halts the ticket", async () => {
