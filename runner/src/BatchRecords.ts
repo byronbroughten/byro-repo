@@ -15,9 +15,10 @@ import { join } from "node:path";
 
 import { fileStemOf, isSameIssue, type IssueRef } from "./IssueWorkspaces.ts";
 import { identityOf, type ProcessIdentity } from "./processIdentity.ts";
+import type { MemberList } from "./SpecRun/runState.ts";
 
 export interface BatchRecord {
-  members: IssueRef[];
+  members: MemberList;
   process: ProcessIdentity;
   // The file's name in the state folder.
   eventFile: string;
@@ -36,13 +37,13 @@ export class BatchRecords {
     return new BatchRecords(stateFolder);
   }
 
-  // Several members write the Batch's record; one alone only drops a stale record naming it, so its events go to its own file.
-  async open(members: IssueRef[], pid: number): Promise<void> {
+  // One member alone only drops a stale record naming it, so its events go to its own file.
+  async open(members: MemberList, pid: number): Promise<void> {
     members.forEach((member) => {
       this._dropHolding(member);
     });
     const [lead] = members;
-    if (lead === undefined || members.length === 1) return;
+    if (members.length === 1) return;
     const record: BatchRecord = {
       members,
       process: await identityOf(pid),
@@ -52,17 +53,24 @@ export class BatchRecords {
     writeFileSync(this._pathOf(lead), JSON.stringify(record));
   }
 
-  close([lead]: IssueRef[]): void {
-    if (lead !== undefined) rmSync(this._pathOf(lead), { force: true });
+  close([lead]: MemberList): void {
+    rmSync(this._pathOf(lead), { force: true });
   }
 
   batchOf(member: IssueRef): BatchRecord | undefined {
-    return this._records().find((record) => isMemberOf(record, member));
+    return this._records().find(({ members }) => isMemberOf(members, member));
   }
 
   // The Batch's members, or the member alone when no Batch holds it.
-  membersOf(member: IssueRef): IssueRef[] {
+  membersOf(member: IssueRef): MemberList {
     return this.batchOf(member)?.members ?? [member];
+  }
+
+  // The Batch's one event file, or undefined for a member no Batch holds.
+  eventFilePathOf(member: IssueRef): string | undefined {
+    const record = this.batchOf(member);
+    if (record === undefined) return undefined;
+    return join(this.stateFolder, record.eventFile);
   }
 
   private _dropHolding(member: IssueRef): void {
@@ -88,19 +96,15 @@ export class BatchRecords {
   }
 }
 
-export function isMemberOf(
-  { members }: Pick<BatchRecord, "members">,
-  issue: IssueRef,
-): boolean {
+export function isMemberOf(members: IssueRef[], issue: IssueRef): boolean {
   return members.some((member) => isSameIssue(member, issue));
 }
 
 // Named by its first member, apart from that member's own event file.
 export function batchEventFilePathOf(
   stateFolder: string,
-  [lead]: IssueRef[],
+  [lead]: MemberList,
 ): string {
-  if (lead === undefined) throw new Error("A Batch has no members.");
   return join(stateFolder, batchEventFileOf(lead));
 }
 

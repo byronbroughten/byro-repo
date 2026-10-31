@@ -10,6 +10,7 @@ import {
   type Notices,
   type RunEnding,
 } from "./Notices.ts";
+import type { MemberList } from "./SpecRun/runState.ts";
 
 // One line of a spec's event file; a run's end is a `run-ended` line, its `ending` saying how.
 export interface EventLine {
@@ -47,8 +48,8 @@ export class EventFileNotices implements Notices {
 
   // A Batch member's line goes to the Batch's one file, its `spec` naming the member.
   private _pathOf(spec: IssueRef): string {
-    const members = BatchRecords.init(this.stateFolder).membersOf(spec);
-    return eventStreamPathOf(this.stateFolder, members);
+    const batchFile = BatchRecords.init(this.stateFolder).eventFilePathOf(spec);
+    return batchFile ?? eventFilePathOf(this.stateFolder, spec);
   }
 
   private _lineOf(notice: Notice): EventLine | undefined {
@@ -75,10 +76,9 @@ export function eventFilePathOf(stateFolder: string, spec: IssueRef): string {
 // A Batch's one event file, or a member alone's own.
 export function eventStreamPathOf(
   stateFolder: string,
-  members: IssueRef[],
+  members: MemberList,
 ): string {
   const [lead] = members;
-  if (lead === undefined) throw new Error("An event stream has no member.");
   if (members.length === 1) return eventFilePathOf(stateFolder, lead);
   return batchEventFilePathOf(stateFolder, members);
 }
@@ -95,8 +95,7 @@ export function rawLinesAt(path: string): string[] {
 }
 
 export function eventLinesOf(stateFolder: string, spec: IssueRef): EventLine[] {
-  return readFileSync(eventFilePathOf(stateFolder, spec), "utf8")
-    .trimEnd()
-    .split("\n")
-    .map((line) => JSON.parse(line) as EventLine);
+  return rawEventLinesOf(stateFolder, spec).map(
+    (line) => JSON.parse(line) as EventLine,
+  );
 }

@@ -13,6 +13,7 @@ import {
   type LeaseHolder,
 } from "./IssueWorkspaces.ts";
 import { deadPid, seedHolder } from "./lockFixture.ts";
+import type { MemberList } from "./SpecRun.ts";
 import { SupervisionRecords } from "./SupervisionRecords.ts";
 
 const owner = "byronbroughten";
@@ -259,7 +260,7 @@ describe("a running supervision record", () => {
 });
 
 describe("a Batch's supervision record", () => {
-  const batch = [spec, otherSpec];
+  const batch: MemberList = [spec, otherSpec];
   const loneSpec: IssueRef = { repo: "byro-repo", number: 500 };
 
   async function openBatch(): Promise<void> {

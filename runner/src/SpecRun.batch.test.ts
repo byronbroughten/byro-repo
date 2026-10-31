@@ -313,7 +313,7 @@ function withEventFile(): Partial<SpecRunConfig> {
   return { notices: composedNotices(notices, eventFile) };
 }
 
-function batchEventLines(members: IssueRef[]): EventLine[] {
+function batchEventLines(members: MemberList): EventLine[] {
   return readFileSync(batchEventFilePathOf(stateFolder(), members), "utf8")
     .trimEnd()
     .split("\n")

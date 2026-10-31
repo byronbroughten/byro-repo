@@ -20,6 +20,7 @@ import {
   type ProcessIdentity,
 } from "./processIdentity.ts";
 import { RunLock } from "./RunLock.ts";
+import type { MemberList } from "./SpecRun/runState.ts";
 
 export interface SupervisionRecord {
   pid: number;
@@ -27,7 +28,7 @@ export interface SupervisionRecord {
   // A Batch's first member when it watches a Batch.
   spec: IssueRef;
   // The Batch's members in typed order; none for a spec run alone.
-  members?: IssueRef[];
+  members?: MemberList;
   // Event lines explained, oldest first, so the next unexplained one is at this index.
   offset: number;
   // The session end that ended this session's supervision; supervising the spec again rejoins from the offset.
@@ -61,18 +62,16 @@ export class SupervisionRecords {
     return new SupervisionRecords(stateFolder);
   }
 
-  // Any member's number names the Batch holding it, which the record then holds.
-  // Replaces the pid's own record and takes over any other on the same spec or a member of the Batch,
-  // carrying on from the furthest offset among those reading the same event file.
+  // Takes over any record sharing a member, its offset only from one reading the same event file, since an offset counts lines in one file.
   async supervise(
     { pid }: LeaseHolder,
     owner: string,
     named: IssueRef,
   ): Promise<SupervisionRecord> {
     const members = BatchRecords.init(this.stateFolder).membersOf(named);
-    const [spec = named] = members;
+    const [spec] = members;
     const overlapping = this._files().filter((file) =>
-      membersOf(file).some((member) => isMemberOf({ members }, member)),
+      membersOf(file).some((member) => isMemberOf(members, member)),
     );
     const eventFile = eventStreamPathOf(this.stateFolder, members);
     const sameStream = overlapping.filter(
@@ -211,9 +210,9 @@ export function isWatching(
   record: SupervisionRecord,
   issue: IssueRef,
 ): boolean {
-  return isMemberOf({ members: membersOf(record) }, issue);
+  return isMemberOf(membersOf(record), issue);
 }
 
-function membersOf({ spec, members }: SupervisionRecord): IssueRef[] {
+function membersOf({ spec, members }: SupervisionRecord): MemberList {
   return members ?? [spec];
 }

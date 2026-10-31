@@ -109,13 +109,16 @@ export class RunLoop extends SpecRunBase {
     if (taken.kind === "refused") {
       return refusedOf(taken.refusals);
     }
+    let isRestarting = false;
     try {
       // Opened once every lock is held, so the record never names a member another run holds.
       await this.batchRecords.open(memberIssues, process.pid);
       const result = await this._runHoldingLocks(memberIssues);
-      if (result.kind !== "restarting") this.batchRecords.close(memberIssues);
+      isRestarting = result.kind === "restarting";
       return result;
     } finally {
+      // Closed on a throw too, so status and supervise never find a dead Batch.
+      if (!isRestarting) this.batchRecords.close(memberIssues);
       taken.locks.forEach((lock) => lock.release());
     }
   }
@@ -429,28 +432,23 @@ export class RunLoop extends SpecRunBase {
     return found.map(stalePathLabelOf);
   }
 
-  // Read by the run between tickets and while idle; a request made with no run going is dropped as the next run starts.
-  // A Batch's goes on its first member, so it stops the whole Batch whichever member named it.
+  // Read between tickets and while idle, a Batch's on its first member whichever member named it; one made with no run going is dropped as the next run starts.
   requestStop(specIssue: IssueRef): void {
-    const [lead = specIssue] = this.batchRecords.membersOf(specIssue);
+    const [lead] = this.batchRecords.membersOf(specIssue);
     mkdirSync(this.config.stateFolder, { recursive: true });
     writeFileSync(this._stopRequestPathOf(lead), "");
   }
 
   // Posts nothing and saves no run state, so it's safe beside a live run; an answer the run hasn't read yet shows as open.
-  // Any member's number reports on the Batch holding it, a block per member in typed order.
   async status(specIssue: IssueRef): Promise<string> {
     const memberIssues = this.batchRecords.membersOf(specIssue);
-    const isBatch = memberIssues.length > 1;
-    const runs: Run[] = [];
-    const blocks: string[] = [];
-    for (const memberIssue of memberIssues) {
-      const run = await this._startRun(memberIssue);
-      runs.push(run);
-      blocks.push(await this._statusBlockOf(run));
+    const [leadIssue, ...otherIssues] = memberIssues;
+    const isBatch = otherIssues.length > 0;
+    const lead = await this._startRun(leadIssue);
+    const blocks = [await this._statusBlockOf(lead)];
+    for (const otherIssue of otherIssues) {
+      blocks.push(await this._statusBlockOf(await this._startRun(otherIssue)));
     }
-    const [lead] = runs;
-    if (lead === undefined) throw new Error("A status has no member.");
     const lines: string[] = [];
     if (isBatch) {
       lines.push(`Batch of ${memberIssues.map(issueLabelOf).join(", ")}.`, "");
