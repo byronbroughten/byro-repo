@@ -4,13 +4,13 @@ description: "Put a spec's undecided review-list items to the developer in grill
 disable-model-invocation: true
 ---
 
-`/judge-findings <repo> #<spec>` clears the review list the spec runner left on a spec issue. Its words (review list, Propose, Halt, Dismiss `kept`, Standalone ticket) are in [`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md).
+`/judge-findings <repo> #<spec>` clears the review list the spec runner left on a spec issue. Its words (review list, Propose, Halt, Dismiss `kept`) are in [`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md).
 
 ## A list or `all`
 
-**A list, such as `/judge-findings byro-repo 498 499 450`, does what one `/judge-findings` per spec would, one spec at a time in the order given**: each spec runs steps 1 to 5 on its own, with its own rounds, its own `judge-<spec>` session workspace for its "now" fixes, and its own close. Finish a spec, its close or its what's-left included, before reading the next.
+**A list does what one `/judge-findings` per spec would, one spec at a time in the order given**: each spec runs steps 1 to 5 on its own, with its own rounds, its own `judge-<spec>` session workspace for its "now" fixes, and its own close. Finish a spec, its close or its what's-left included, before reading the next.
 
-**`/judge-findings <repo> all` takes its list from the runner, never from a `gh` call per issue:** run `npm run runner -- judgeable <owner>/<repo>` and work the issues it prints as a list, in its order (oldest first). One it prints as ready to close needs no rounds: go straight to step 5.
+**`/judge-findings <repo> all` takes its list from the runner, never from a `gh` call per issue:** run `npm run runner -- judgeable <owner>/<repo>` and work the issues it prints as a list, in its order. One it prints as ready to close still runs step 1, since the verb counts only unticked boxes and a hand-ticked item still gets its round.
 
 **"Stop" ends the whole sitting**, not just the spec in hand: write and make what that spec has settled, as step 2 says, and leave every later spec untouched. Then report what is left across every spec not finished: each one's undecided items and open sub-issues.
 
@@ -81,7 +81,7 @@ npm run runner -- decide <owner>/<repo> <spec> R<n>.<k> '<decision> · <link to 
 
 ## 5. Closing the spec
 
-When every review-list item on the spec is decided (no unticked box, no hand-ticked box missing its filing) and every sub-issue is closed (a Standalone ticket has none, so every item decided is the whole condition):
+When every review-list item on the spec is decided (no unticked box, no hand-ticked box missing its filing) and every sub-issue is closed:
 
 1. Close the spec: `gh issue close -R <owner>/<repo> <spec> --comment "Every review-list item is decided and every sub-issue is closed."`
 2. Remind the developer to run `/to-code-style`. Name each keep reason approved more than once (the `Drafted keep:` line of each item decided `keep approved`, or for a list posted before #298 its `keep approved:` reason, across the spec's review lists, same reason in different words included) as a candidate approved exception for `docs/agents/verdicts.md`.
