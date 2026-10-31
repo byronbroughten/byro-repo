@@ -121,6 +121,35 @@ describe("supervisingLineOf", () => {
     );
   });
 
+  it("names the run supervised until /clear and the command that rejoins it, once the clear ended the supervision", () => {
+    expect(
+      supervisingLineOf({
+        source: "clear",
+        record: { ...record, endedBy: "clear" },
+      }),
+    ).toBe(
+      "This session supervised byro-repo #331's run until `/clear`; `/runner byronbroughten/byro-repo 331` rejoins from its last explained event.",
+    );
+  });
+
+  it("names /resume as the end after a resume ended the supervision", () => {
+    expect(
+      supervisingLineOf({
+        source: "resume",
+        record: { ...record, endedBy: "resume" },
+      }),
+    ).toContain("until `/resume`;");
+  });
+
+  it("says nothing for a supervision a process end ended", () => {
+    expect(
+      supervisingLineOf({
+        source: "clear",
+        record: { ...record, endedBy: "processEnd" },
+      }),
+    ).toBeUndefined();
+  });
+
   it("says nothing after /clear without a supervision record", () => {
     expect(
       supervisingLineOf({ source: "clear", record: undefined }),

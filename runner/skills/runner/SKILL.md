@@ -31,7 +31,7 @@ Its exit only wakes you. On each one:
 
 Run `npm run runner -- supervise <owner/repo> <n>`. It records this session as the spec's Supervisor and prints each unexplained event line, oldest first.
 
-Explain those lines one at a time, oldest first, as step 4 says. After each one, run `npm run runner -- supervise <owner/repo> <n> --advance` before going on to the next. Advance once per line explained, never in a batch: a `/clear` partway through carries on from the line where you stopped. Then start or re-arm the watch (step 2).
+Explain those lines one at a time, oldest first, as step 4 says. After each one, run `npm run runner -- supervise <owner/repo> <n> --advance` before going on to the next. Advance once per line explained, never in a batch: a `/clear` partway through ends this session's supervision, and `/runner` on the same spec afterwards rejoins from the line where you stopped. Then start or re-arm the watch (step 2).
 
 ## 4. Explain each event
 

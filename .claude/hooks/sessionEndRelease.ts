@@ -1,4 +1,4 @@
-// SessionEnd releases every workspace lease and the supervision record held by this session's claude process, so none is released by hand.
+// SessionEnd ends this session's supervision, keeping its offset for /runner to rejoin from, and on a process end releases every workspace lease its claude process holds, so none is released by hand.
 import { IssueWorkspaces } from "@byronbroughten/spec-runner/IssueWorkspaces";
 import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
 
@@ -8,19 +8,22 @@ import {
   stateFolder,
 } from "../../scripts/runner/runnerConfig.ts";
 import { readHookInput, runFailOpen } from "./lib/hookIo.ts";
-import { endsProcess, leasedWorkspacesOf } from "./lib/leaseRelease.ts";
+import {
+  leasedWorkspacesOf,
+  sessionEndReleaseOf,
+} from "./lib/sessionEndRelease.ts";
 import { sessionModeOf } from "./lib/tiers/tiers.ts";
 
 await runFailOpen(async () => {
   // A runner step's claude holds no lease; the run holds it under its own pid.
   if (sessionModeOf(process.env) === "runnerStep") return;
   const input = readHookInput();
-  if (input?.hook_event_name !== "SessionEnd" || !endsProcess(input.reason)) {
-    return;
-  }
+  if (input?.hook_event_name !== "SessionEnd") return;
   const holder = nearestClaudeAncestor();
   if (!holder) return;
-  await SupervisionRecords.init(stateFolder).release(holder);
+  const { endedBy, isLeaseReleased } = sessionEndReleaseOf(input.reason);
+  await SupervisionRecords.init(stateFolder).end(holder, endedBy);
+  if (!isLeaseReleased) return;
   const workspaces = IssueWorkspaces.init(issueWorkspacesConfig);
   const leased = leasedWorkspacesOf(await workspaces.leases(), holder);
   for (const workspace of leased) await workspaces.releaseLease(workspace);

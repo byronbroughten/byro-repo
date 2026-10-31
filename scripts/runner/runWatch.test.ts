@@ -335,4 +335,16 @@ describe("watchOnce", () => {
     expect(await printedBy(records, true, clock)).toEqual([]);
     expect(clock.now()).toEqual(at(3_000));
   });
+
+  it("exits with no output once its Supervisor's session ends", async () => {
+    write(lineOf("run-started", at(-5_000)));
+    const records = await supervised(1);
+    const clock = fakeClock([
+      { atMs: 3_000, run: () => records.end(supervisor, "clear") },
+      { atMs: 6_000, run: () => write(lineOf("halt", at(6_000))) },
+    ]);
+
+    expect(await printedBy(records, true, clock)).toEqual([]);
+    expect(clock.now()).toEqual(at(3_000));
+  });
 });

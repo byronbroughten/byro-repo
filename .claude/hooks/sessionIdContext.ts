@@ -1,4 +1,4 @@
-// SessionStart: puts the session's id in context; in an issue workspace this claude leases, records the session and says where it is; after /clear, names the run it supervises.
+// SessionStart: puts the session's id in context; in an issue workspace this claude leases, records the session and says where it is; after /clear or /resume, names the run it supervises or supervised until then.
 import { FactsFile } from "@byronbroughten/spec-runner/FactsFile";
 import { IssueWorkspaces } from "@byronbroughten/spec-runner/IssueWorkspaces";
 import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
@@ -17,6 +17,7 @@ import {
 } from "./lib/hookIo.ts";
 import {
   configFolderOf,
+  isSameProcessStart,
   type RecordedSession,
   recordedSessionOf,
   supervisingLineOf,
@@ -65,10 +66,13 @@ async function leaseLinesOf(
   }
 }
 
-// Its own fail-open too; only a clear start can yield the line, and a runner step is never a Supervisor.
+// Its own fail-open too; only a clear or resume start can yield the line, so others skip the I/O, and a runner step is never a Supervisor.
 async function supervisionLinesOf({ source }: HookInput): Promise<string[]> {
   try {
-    if (source !== "clear" || sessionModeOf(process.env) === "runnerStep") {
+    if (
+      !isSameProcessStart(source) ||
+      sessionModeOf(process.env) === "runnerStep"
+    ) {
       return [];
     }
     const holder = nearestClaudeAncestor();

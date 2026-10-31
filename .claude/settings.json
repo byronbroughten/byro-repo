@@ -109,7 +109,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/leaseRelease.ts\"",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/sessionEndRelease.ts\"",
             "timeout": 10
           },
           {

@@ -12,7 +12,7 @@ import type { SupervisionRecord } from "@byronbroughten/spec-runner/SupervisionR
 import type { StepSession } from "@byronbroughten/spec-runner/transcriptFacts";
 
 import type { HookInput } from "./hookIo.ts";
-import { leasedWorkspacesOf } from "./leaseRelease.ts";
+import { leasedWorkspacesOf } from "./sessionEndRelease.ts";
 import type { SessionMode } from "./tiers/tiers.ts";
 
 export interface StartingSession {
@@ -68,9 +68,20 @@ export function supervisingLineOf({
   source,
   record,
 }: SupervisingSession): string | undefined {
-  if (source !== "clear" || record === undefined) return undefined;
-  const { owner, spec } = record;
-  return `This session supervises ${issueLabelOf(spec)}'s run: \`/runner ${owner}/${spec.repo} ${spec.number}\` carries on from its last explained event, and \`/runner\` on another spec switches to that run.`;
+  if (!isSameProcessStart(source) || record === undefined) return undefined;
+  const { owner, spec, endedBy } = record;
+  const command = `/runner ${owner}/${spec.repo} ${spec.number}`;
+  // A process end leaves no session of that process to start.
+  if (endedBy === "processEnd") return undefined;
+  if (endedBy !== undefined) {
+    return `This session supervised ${issueLabelOf(spec)}'s run until \`/${endedBy}\`; \`${command}\` rejoins from its last explained event.`;
+  }
+  return `This session supervises ${issueLabelOf(spec)}'s run: \`${command}\` carries on from its last explained event, and \`/runner\` on another spec switches to that run.`;
+}
+
+// Only these starts follow a session end in the same claude process, so only they can find its supervision record.
+export function isSameProcessStart(source: HookInput["source"]): boolean {
+  return source === "clear" || source === "resume";
 }
 
 // A transcript sits at <config folder>/projects/<project>/<session>.jsonl, as transcriptFacts.ts reads a step's.
