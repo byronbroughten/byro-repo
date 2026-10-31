@@ -86,4 +86,17 @@ describe("backfilledOutcomeFile", () => {
       "| #9 | Opus medium | 1, 2 | 3 | 90K | Pass | 0 | 1 | 0 | unrecorded | $0.17 | unrecorded | a \\| b | session-implement-2, session-review |",
     );
   });
+
+  it("never changes a recorded cell, even when a transcript gives a different value", () => {
+    const recorded = blankRow.replace(
+      "| #9 | unrecorded | unrecorded | 3 | unrecorded |",
+      "| #9 | Sonnet low | 7 | 3 | 12K |",
+    );
+    const file = backfilledOutcomeFile(recorded, sessions, [
+      join(home, "shared"),
+    ]);
+    expect(rowOf(file)).toBe(
+      "| #9 | Sonnet low | 7 | 3 | 12K | Pass | 0 | 1 | 0 | 24 min | $0.17 | $0.02 | a \\| b | session-implement-2, session-review |",
+    );
+  });
 });

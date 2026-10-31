@@ -47,7 +47,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `modelFit.ts` | `modelFit` | Reads a ticket's Model fit pair and compares pairs. |
 | `Notices.ts` | `Notices` | The notice port and `composedNotices`. |
 | `NtfyNotices.ts` | `NtfyNotices` | The ntfy push adapter. |
-| `outcomeBackfill.ts` | `outcomeBackfill` | A one-off chore's core: rewrites written outcome rows' transcript facts from a run state's sessions. |
+| `outcomeBackfill.ts` | `outcomeBackfill` | A one-off chore's core: fills written outcome rows' `unrecorded` transcript cells from a run state's sessions. |
 | `outcomeLog.ts` | `outcomeLog` | The outcome row file's path, table and commit message, and a written row's transcript cells. |
 | `outcomeRowWriter.ts` | `outcomeRowWriter` | Writes a ticket's outcome row from its facts file. |
 | `PidLock.ts` | | The pid lock file `LandingLock` and `RunLock` extend. |
