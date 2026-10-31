@@ -1,5 +1,5 @@
 // The verdicts only a runner step gets: its gh issue writes, its targets' live aliases and a restore in its own workspace.
-import { npmScriptOf, type SimpleCommand } from "../bashReads.ts";
+import type { SimpleCommand } from "../ShellParser.ts";
 import type { CallContext, Verdict } from "../tiers.ts";
 import { GitCall, gitPathOptions } from "./GitCall.ts";
 import { npmCommands } from "./npmCommands.ts";
@@ -50,7 +50,7 @@ export const runnerStep = {
     { mode, dryRuns, spreadsheetTargets }: CallContext,
   ): Verdict | undefined {
     if (mode !== "runnerStep") return undefined;
-    const name = npmScriptOf(words)?.name ?? "";
+    const name = npmCommands.scriptOf(words)?.name ?? "";
     const [, spreadsheet = "", alias = ""] = /^(\w+):(.+)$/.exec(name) ?? [];
     const aliases = liveAliases.get(spreadsheet);
     if (!aliases) return undefined;

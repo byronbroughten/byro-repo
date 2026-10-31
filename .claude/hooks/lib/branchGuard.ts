@@ -2,7 +2,7 @@
 import { homedir } from "node:os";
 import { isAbsolute, join, relative, resolve } from "node:path";
 
-import { commandWordsOf } from "./tiers/bashReads.ts";
+import { ShellParser } from "./tiers/ShellParser.ts";
 
 export type GuardMode = "interim" | "strict";
 
@@ -213,7 +213,7 @@ function gitActionsOf(
 ): GitAction[] {
   let commands: string[][];
   try {
-    commands = commandWordsOf(command);
+    commands = ShellParser.init(command).commandWords;
   } catch {
     return [];
   }
