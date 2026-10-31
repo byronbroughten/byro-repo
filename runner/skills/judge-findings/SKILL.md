@@ -1,10 +1,18 @@
 ---
 name: judge-findings
-description: "Put a spec's undecided review-list items to the developer in grilling rounds, record each decision on its comment, make the small fixes in a session workspace and file the rest as tickets, and close the spec when nothing is left. Invoked as /judge-findings <repo> #<spec>."
+description: "Put a spec's undecided review-list items to the developer in grilling rounds, record each decision on its comment, make the small fixes in a session workspace and file the rest as tickets, and close the spec when nothing is left. Invoked as /judge-findings <repo> #<spec> for one spec, /judge-findings <repo> <spec> <spec>... for a list, or /judge-findings <repo> all for every issue the runner lists as needing judgement."
 disable-model-invocation: true
 ---
 
-`/judge-findings <repo> #<spec>` clears the review list the spec runner left on a spec issue. Its words (review list, Propose, Halt, Dismiss `kept`) are in [`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md).
+`/judge-findings <repo> #<spec>` clears the review list the spec runner left on a spec issue. Its words (review list, Propose, Halt, Dismiss `kept`, Standalone ticket) are in [`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md).
+
+## A list or `all`
+
+**A list, such as `/judge-findings byro-repo 498 499 450`, does what one `/judge-findings` per spec would, one spec at a time in the order given**: each spec runs steps 1 to 5 on its own, with its own rounds, its own `judge-<spec>` session workspace for its "now" fixes, and its own close. Finish a spec, its close or its what's-left included, before reading the next.
+
+**`/judge-findings <repo> all` takes its list from the runner, never from a `gh` call per issue:** run `npm run runner -- judgeable <owner>/<repo>` and work the issues it prints as a list, in its order (oldest first). One it prints as ready to close needs no rounds: go straight to step 5.
+
+**"Stop" ends the whole sitting**, not just the spec in hand: write and make what that spec has settled, as step 2 says, and leave every later spec untouched. Then report what is left across every spec not finished: each one's undecided items and open sub-issues.
 
 **The runner creates review-list comments; this skill only edits them, through `npm run runner -- decide`.** Never post a new review-list comment, never delete one, never remove an item.
 
@@ -34,7 +42,7 @@ Put every undecided item to the developer in one round, in `/grilling`'s format 
 
 **Hand-ticked items join the first round.** One whose recommendation changes something (a Propose `ticket` or a gap with a drafted issue, a recommendation that says to file or fix something, a keep) asks only "now, file or neither?" (step 3); neither gets `Decided: accepted, not filed.` A hand-ticked item changing nothing gets `Decided: accepted (ticked by hand).` with no question.
 
-The developer can stop at any round ("stop", "that's enough"). Stop then: write and make what is settled, as below, and leave the rest unticked for the next run. Say how many are left.
+The developer can stop at any round ("stop", "that's enough"). Stop then: write and make what is settled, as below, and leave the rest unticked for the next run. Say how many are left. Over a list, stop ends the sitting ([A list or `all`](#a-list-or-all)).
 
 ## 3. The answers
 
@@ -73,7 +81,7 @@ npm run runner -- decide <owner>/<repo> <spec> R<n>.<k> '<decision> · <link to 
 
 ## 5. Closing the spec
 
-When every review-list item on the spec is decided (no unticked box, no hand-ticked box missing its filing) and every sub-issue is closed:
+When every review-list item on the spec is decided (no unticked box, no hand-ticked box missing its filing) and every sub-issue is closed (a Standalone ticket has none, so every item decided is the whole condition):
 
 1. Close the spec: `gh issue close -R <owner>/<repo> <spec> --comment "Every review-list item is decided and every sub-issue is closed."`
 2. Remind the developer to run `/to-code-style`. Name each keep reason approved more than once (the `Drafted keep:` line of each item decided `keep approved`, or for a list posted before #298 its `keep approved:` reason, across the spec's review lists, same reason in different words included) as a candidate approved exception for `docs/agents/verdicts.md`.
