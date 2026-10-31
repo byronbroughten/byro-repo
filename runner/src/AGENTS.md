@@ -57,7 +57,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `recordSchema.ts` | | Schema parts the step records share, and their validator. |
 | `redChecksStep.ts` | | The red-checks step's prompt and record. |
 | `resolveStep.ts` | `resolveStep` | The resolve step's prompt, record and record and commit checks. |
-| `reviewList.ts` | `reviewList` | The review list's comment formats and undecided count, and `runner decide`'s edit: ticks one item and adds its `Decided:` line, or adds a `Handled:` line unticked, leaving every other line as it was. |
+| `reviewList.ts` | `reviewList` | The review list's comment formats and undecided count, and `runner decide`'s edit marking one item decided or handled. |
 | `reviewStep.ts` | `reviewStep` | The review step's prompt, record and finding types. |
 | `runBoard.ts` | `runBoard` | The Run board behind `runner status` and `runner watch` with no spec. |
 | `runCollecting.ts` | `runCollecting` | Runs one process with its output collected. |
@@ -73,7 +73,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/HaltRaiser.ts` | | Raises and posts a ticket's Halts and finds its downstream. |
 | `SpecRun/ImplementStepper.ts` | | Runs a ticket's implement step and its handoffs. |
 | `SpecRun/LeaseKeeper.ts` | | Takes and releases a ticket's workspace lease and finds its workspace. |
-| `SpecRun/ReviewItemDecider.ts` | | Records one item of the developer's own review list as decided or handled, re-fetching its comment first. |
+| `SpecRun/ReviewItemDecider.ts` | | `runner decide`: records one item of the developer's own review list as decided or handled. |
 | `SpecRun/ReviewListPoster.ts` | | Posts review lists and covered-later notes, and ends the run with the gap check. |
 | `SpecRun/ReviewStepper.ts` | | Runs a ticket's review and resolve steps. |
 | `SpecRun/RunLoop.ts` | | The run's preflight, ticket loop, idling and end. |

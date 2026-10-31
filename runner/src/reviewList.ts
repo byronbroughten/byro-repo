@@ -432,13 +432,23 @@ const decisionLabels = {
   handled: "Handled",
 } as const satisfies Record<DecisionKind, string>;
 
-const itemHead = /^- \[[ xX]\] \*\*(R[^*\s]+)\*\*/;
-const itemLine = /^ {2}\S/;
-const decidedLine = /^ {2}Decided:/;
+// An id itemIdOf builds: `R`, the subject's key, a dot and the item's number.
+const itemIdPattern = String.raw`R[^*\s]+\.\d+`;
+
+// What an item's lines look like, for finding and editing one.
+const itemLinePatterns = {
+  head: new RegExp(String.raw`^- \[[ xX]\] \*\*(${itemIdPattern})\*\*`),
+  indented: /^ {2}\S/,
+  decided: /^ {2}Decided:/,
+} as const;
+
+export function isItemId(text: string): boolean {
+  return new RegExp(`^${itemIdPattern}$`).test(text);
+}
 
 // Undefined where the line heads no item.
 function itemIdOfLine(line: string): string | undefined {
-  return itemHead.exec(line)?.[1];
+  return itemLinePatterns.head.exec(line)?.[1];
 }
 
 // The developer may tick boxes on their phone, so every other line, its line end included, stays as it was.
@@ -455,8 +465,14 @@ export function decidedListOf({
   const head = lines.findIndex((line) => itemIdOfLine(line) === itemId);
   if (head < 0) throw new Error(`The review list holds no item ${itemId}.`);
   let end = head + 1;
-  while (end < lines.length && itemLine.test(lines[end] ?? "")) end += 1;
-  if (lines.slice(head + 1, end).some((line) => decidedLine.test(line))) {
+  while (
+    end < lines.length &&
+    itemLinePatterns.indented.test(lines[end] ?? "")
+  ) {
+    end += 1;
+  }
+  const itemLines = lines.slice(head + 1, end);
+  if (itemLines.some((line) => itemLinePatterns.decided.test(line))) {
     throw new Error(`${itemId} is already decided.`);
   }
   const headLine = lines[head] ?? "";

@@ -13,6 +13,7 @@ import {
   isSameIssue,
   type IssueRef,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
+import { isItemId } from "@byronbroughten/spec-runner/reviewList";
 import { runBoardOf, watchBoard } from "@byronbroughten/spec-runner/runBoard";
 import { RunLock } from "@byronbroughten/spec-runner/RunLock";
 import { reviewPrintoutOf, SpecRun } from "@byronbroughten/spec-runner/SpecRun";
@@ -68,18 +69,29 @@ function boardNow(): string {
   return runBoardOf(stateFolder, new Date());
 }
 
+interface SpecArgs {
+  owner: string;
+  issue: IssueRef;
+}
+
+// Throws the usage for anything but `<owner/repo> <n>`.
+function specArgsOf(ownerRepo: string, number: string | undefined): SpecArgs {
+  const [owner, repo] = ownerRepo.split("/");
+  if (!owner || !repo || !Number.isInteger(Number(number))) {
+    throw new Error(usage);
+  }
+  return { owner, issue: { repo, number: Number(number) } };
+}
+
 async function runOnSpec(command: string, args: string[]): Promise<void> {
   const [ownerRepo = "", number, flag] = args;
-  const [owner, repo] = ownerRepo.split("/");
+  const { owner, issue } = specArgsOf(ownerRepo, number);
   const isAdvance = flag === "--advance";
   const isFlagValid =
     command === "resolve"
       ? flag !== undefined
       : flag === undefined || (command === "supervise" && isAdvance);
-  if (!owner || !repo || !Number.isInteger(Number(number)) || !isFlagValid) {
-    throw new Error(usage);
-  }
-  const issue = { repo, number: Number(number) };
+  if (!isFlagValid) throw new Error(usage);
   if (command === "supervise") {
     await supervise(owner, issue, isAdvance);
   } else if (command === "watch") {
@@ -140,16 +152,13 @@ async function runSpec(
 // `--handled` may sit anywhere after the item id.
 async function decide(args: string[]): Promise<void> {
   const [ownerRepo = "", number, itemId, ...rest] = args;
-  const [owner, repo] = ownerRepo.split("/");
+  const { owner, issue } = specArgsOf(ownerRepo, number);
   const isHandled = rest.includes("--handled");
   const texts = rest.filter((arg) => arg !== "--handled");
   const [text] = texts;
   if (
-    !owner ||
-    !repo ||
-    !Number.isInteger(Number(number)) ||
     itemId === undefined ||
-    !/^R\S+\.\d+$/.test(itemId) ||
+    !isItemId(itemId) ||
     texts.length !== 1 ||
     !text
   ) {
@@ -157,10 +166,11 @@ async function decide(args: string[]): Promise<void> {
   }
   const specRun = SpecRun.init(specRunConfigOf(owner));
   console.log(
-    await specRun.decide(
-      { repo, number: Number(number) },
-      { itemId, kind: isHandled ? "handled" : "decided", text },
-    ),
+    await specRun.decide(issue, {
+      itemId,
+      kind: isHandled ? "handled" : "decided",
+      text,
+    }),
   );
 }
 

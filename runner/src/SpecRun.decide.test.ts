@@ -17,6 +17,11 @@ const listBody = [
   "  Recommendation: r2",
 ].join("\n");
 
+const decidedBody = listBody.replace(
+  "  Recommendation: r1",
+  "  Recommendation: r1\n  Decided: accepted",
+);
+
 function decider() {
   return specRun(FakeAgentStep.init());
 }
@@ -46,22 +51,20 @@ describe("decide", () => {
     });
 
     expect(message).toBe("R7.1 decided on byro-repo #213.");
-    expect(github.commentEdits).toEqual([
-      {
-        id: "comment-2",
-        body: [
-          "<!-- spec-runner -->",
-          "<!-- review-list ticket=#7 -->",
-          "",
-          "- [x] **R7.1** · Propose `decision` · a",
-          "  Evidence: e1",
-          "  Recommendation: r1",
-          "  Decided: accepted",
-          "- [x] **R7.2** · Propose `ticket` · b",
-          "  Evidence: e2",
-          "  Recommendation: r2",
-        ].join("\n"),
-      },
+    expect(bodies()).toEqual([
+      "A note.",
+      [
+        "<!-- spec-runner -->",
+        "<!-- review-list ticket=#7 -->",
+        "",
+        "- [x] **R7.1** · Propose `decision` · a",
+        "  Evidence: e1",
+        "  Recommendation: r1",
+        "  Decided: accepted",
+        "- [x] **R7.2** · Propose `ticket` · b",
+        "  Evidence: e2",
+        "  Recommendation: r2",
+      ].join("\n"),
     ]);
   });
 
@@ -78,28 +81,30 @@ describe("decide", () => {
     expect(bodies()).toEqual([`${listBody}\n  Handled: filed #12`]);
   });
 
-  it("refuses an unknown id, a decided item and someone else's list, editing nothing", async () => {
-    github.reply(spec.number, listBody, "someone");
-    github.reply(
-      spec.number,
-      listBody
-        .replace(
-          "- [ ] **R7.1** · Propose `decision` · a\n  Evidence: e1\n  Recommendation: r1",
-          "- [x] **R7.1** · Propose `decision` · a\n  Evidence: e1\n  Recommendation: r1\n  Decided: accepted",
-        )
-        .replaceAll("R7.2", "R8.1"),
-    );
-    const run = decider();
+  it("refuses an id no list holds, editing nothing", async () => {
+    github.reply(spec.number, listBody);
 
     await expect(
-      run.decide(spec, { itemId: "R7.9", kind: "decided", text: "x" }),
+      decider().decide(spec, { itemId: "R7.9", kind: "decided", text: "x" }),
     ).rejects.toThrow("No review list of byronbroughten's holds R7.9.");
+    expect(bodies()).toEqual([listBody]);
+  });
+
+  it("refuses an item already decided, editing nothing", async () => {
+    github.reply(spec.number, decidedBody);
+
     await expect(
-      run.decide(spec, { itemId: "R7.1", kind: "decided", text: "x" }),
+      decider().decide(spec, { itemId: "R7.1", kind: "decided", text: "x" }),
     ).rejects.toThrow("R7.1 is already decided.");
+    expect(bodies()).toEqual([decidedBody]);
+  });
+
+  it("refuses a list someone else authored, editing nothing", async () => {
+    github.reply(spec.number, listBody, "someone");
+
     await expect(
-      run.decide(spec, { itemId: "R7.2", kind: "decided", text: "x" }),
+      decider().decide(spec, { itemId: "R7.2", kind: "decided", text: "x" }),
     ).rejects.toThrow("Only someone's comment holds R7.2");
-    expect(github.commentEdits).toEqual([]);
+    expect(bodies()).toEqual([listBody]);
   });
 });

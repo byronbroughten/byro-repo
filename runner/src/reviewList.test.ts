@@ -290,7 +290,18 @@ describe("decidedListOf", () => {
     );
   });
 
-  it("refuses an item the list doesn't hold, an item already decided and a multi-line text", () => {
+  it("refuses an item the list doesn't hold", () => {
+    expect(() =>
+      decidedListOf({
+        body: listBody,
+        itemId: "R7.9",
+        kind: "decided",
+        text: "x",
+      }),
+    ).toThrow("holds no item R7.9");
+  });
+
+  it("refuses an item already decided", () => {
     const decided = decidedListOf({
       body: listBody,
       itemId: "R7.1",
@@ -300,20 +311,15 @@ describe("decidedListOf", () => {
 
     expect(() =>
       decidedListOf({
-        body: listBody,
-        itemId: "R7.9",
-        kind: "decided",
-        text: "x",
-      }),
-    ).toThrow("holds no item R7.9");
-    expect(() =>
-      decidedListOf({
         body: decided,
         itemId: "R7.1",
         kind: "handled",
         text: "x",
       }),
     ).toThrow("R7.1 is already decided");
+  });
+
+  it("refuses a multi-line text", () => {
     expect(() =>
       decidedListOf({
         body: listBody,
@@ -337,12 +343,15 @@ describe("reviewListHoldingOf", () => {
     expect(reviewListHoldingOf(comments, developer, "R7.1")).toBe(comments[1]);
   });
 
-  it("refuses an item only someone else's comment holds, and an item no list holds", () => {
+  it("refuses an item only someone else's comment holds", () => {
     const comments = [{ id: "c1", author: "someone", body: listBody }];
 
     expect(() => reviewListHoldingOf(comments, developer, "R7.1")).toThrow(
       "Only someone's comment holds R7.1",
     );
+  });
+
+  it("refuses an item no list holds", () => {
     expect(() => reviewListHoldingOf([], developer, "R7.1")).toThrow(
       "No review list of byronbroughten's holds R7.1",
     );

@@ -14,7 +14,6 @@ export class FakeGitHub implements RunGitHub {
   readonly parents = new Map<number, ParentIssue>();
   readonly comments: { issue: IssueRef; body: string; author: string }[] = [];
   readonly closed: { issue: IssueRef; comment: string }[] = [];
-  readonly commentEdits: { id: string; body: string }[] = [];
   // Each runs before one comment read, in order, as a hand edit made meanwhile.
   readonly beforeCommentReads: (() => void)[] = [];
   // How many calls throw a network error before one succeeds.
@@ -104,7 +103,6 @@ export class FakeGitHub implements RunGitHub {
     const comment = this.comments.find((_, index) => commentIdOf(index) === id);
     if (!comment) throw new Error(`No comment ${id}`);
     comment.body = body;
-    this.commentEdits.push({ id, body });
   }
 
   edit(number: number, change: Partial<TrackedIssue>): void {
