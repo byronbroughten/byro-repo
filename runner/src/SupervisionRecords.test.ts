@@ -119,13 +119,70 @@ describe("a supervision record", () => {
 
     expect(await records().recordOf(dead)).toBeUndefined();
   });
+});
 
-  it("is gone once released", async () => {
+describe("an ended supervision", () => {
+  it("no longer makes its session the spec's Supervisor", async () => {
     await records().supervise(me, owner, spec);
 
-    await records().release(me);
+    await records().end(me, "clear");
 
     expect(await records().recordOf(me)).toBeUndefined();
+    expect(await records().advance(me)).toBeUndefined();
+  });
+
+  it("keeps its offset, so supervising the spec again rejoins from its last explained event", async () => {
+    appendEvents(spec, "a", "b", "c");
+    await records().supervise(me, owner, spec);
+    await records().advance(me);
+    await records().advance(me);
+
+    await records().end(me, "clear");
+    await records().supervise(me, owner, spec);
+
+    expect(await records().unexplainedLinesOf(me)).toEqual(["c"]);
+  });
+
+  it("keeps its offset after its process ends, for another session to rejoin from", async () => {
+    appendEvents(spec, "a", "b");
+    await records().supervise(otherLive, owner, spec);
+    await records().advance(otherLive);
+    await records().end(otherLive, "prompt_input_exit");
+
+    await records().supervise(me, owner, spec);
+
+    expect((await records().recordOf(me))?.offset).toBe(1);
+  });
+
+  it("is read back with how it ended while its run goes on", async () => {
+    await records().supervise(me, owner, spec);
+    seedRunLock(spec, process.pid);
+
+    await records().end(me, "clear");
+
+    expect(await records().runningRecordOf(me)).toEqual({
+      pid: me.pid,
+      owner,
+      spec,
+      offset: 0,
+      endedBy: "clear",
+    });
+  });
+
+  it("is supervising again, with no end, once its session supervises the spec again", async () => {
+    await records().supervise(me, owner, spec);
+    seedRunLock(spec, process.pid);
+    await records().end(me, "clear");
+
+    await records().supervise(me, owner, spec);
+
+    expect((await records().runningRecordOf(me))?.endedBy).toBeUndefined();
+  });
+
+  it("leaves nothing to end for a session that supervises nothing", async () => {
+    await records().end(me, "clear");
+
+    expect(await records().runningRecordOf(me)).toBeUndefined();
   });
 });
 
@@ -240,12 +297,19 @@ describe("a spec's watch", () => {
     expect(await records().watch(spec, process.pid)).toBeUndefined();
   });
 
-  it("is over once its record is released", async () => {
+  it("is over once its Supervisor's session ends", async () => {
     await records().supervise(me, owner, spec);
     const watch = await startedWatch(process.pid);
 
-    await records().release(me);
+    await records().end(me, "clear");
 
     expect(records().isWatchedBy(spec, watch.watchProcess)).toBe(false);
+  });
+
+  it("isn't recorded on a spec whose supervision has ended", async () => {
+    await records().supervise(me, owner, spec);
+    await records().end(me, "clear");
+
+    expect(await records().watch(spec, process.pid)).toBeUndefined();
   });
 });

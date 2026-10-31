@@ -25,6 +25,8 @@ export interface SupervisionRecord {
   spec: IssueRef;
   // Event lines explained, oldest first, so the next unexplained one is at this index.
   offset: number;
+  // The SessionEnd reason that ended this session's supervision; supervising the spec again rejoins from the offset.
+  endedBy?: string;
 }
 
 // A watch process, named as the record names its Supervisor, so a reused pid never passes for the watch it replaced.
@@ -89,22 +91,17 @@ export class SupervisionRecords {
     return watch?.pid === pid && watch.startedAt === startedAt;
   }
 
-  async recordOf({ pid }: LeaseHolder): Promise<SupervisionRecord | undefined> {
-    const file = this._fileOf(pid);
-    if (file === undefined) return undefined;
-    const startedNow = await startTimeOf(pid);
-    if (startedNow === undefined || startedNow !== file.startedAt) {
-      return undefined;
-    }
-    const { owner, spec, offset } = file;
-    return { pid, owner, spec, offset };
+  // Only a supervision that hasn't ended: its session is the spec's Supervisor.
+  async recordOf(holder: LeaseHolder): Promise<SupervisionRecord | undefined> {
+    const record = await this._liveRecordOf(holder);
+    return record?.endedBy === undefined ? record : undefined;
   }
 
-  // The tier gate and SessionStart read this one: a Supervisor whose run has ended is a regular session.
+  // SessionStart reads this one, an ended supervision included so it can name the rejoin; a Supervisor whose run has ended is a regular session.
   async runningRecordOf(
     holder: LeaseHolder,
   ): Promise<SupervisionRecord | undefined> {
-    const record = await this.recordOf(holder);
+    const record = await this._liveRecordOf(holder);
     if (record === undefined) return undefined;
     return RunLock.isHeld(this.stateFolder, record.spec) ? record : undefined;
   }
@@ -127,8 +124,24 @@ export class SupervisionRecords {
     return { ...record, offset };
   }
 
-  async release({ pid }: LeaseHolder): Promise<void> {
-    this._remove(pid);
+  // Keeps the record and its offset for the rejoin; dropping the watch makes a running one exit unprinted.
+  async end({ pid }: LeaseHolder, endedBy: string): Promise<void> {
+    const file = this._fileOf(pid);
+    if (file === undefined) return;
+    this._write({ ...file, endedBy, watch: undefined });
+  }
+
+  private async _liveRecordOf({
+    pid,
+  }: LeaseHolder): Promise<SupervisionRecord | undefined> {
+    const file = this._fileOf(pid);
+    if (file === undefined) return undefined;
+    const startedNow = await startTimeOf(pid);
+    if (startedNow === undefined || startedNow !== file.startedAt) {
+      return undefined;
+    }
+    const { owner, spec, offset, endedBy } = file;
+    return { pid, owner, spec, offset, endedBy };
   }
 
   private _files(): RecordFile[] {
@@ -138,9 +151,11 @@ export class SupervisionRecords {
       .filter((file): file is RecordFile => file !== undefined);
   }
 
-  // `supervise` leaves one record per spec.
+  // `supervise` leaves one record per spec; an ended one names no Supervisor to watch for.
   private _specFileOf(spec: IssueRef): RecordFile | undefined {
-    return this._files().find((file) => isSameIssue(file.spec, spec));
+    return this._files().find(
+      (file) => isSameIssue(file.spec, spec) && file.endedBy === undefined,
+    );
   }
 
   // An unreadable record counts as none, so a torn write never leaves a session supervising for good.

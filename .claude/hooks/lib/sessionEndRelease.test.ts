@@ -4,7 +4,11 @@ import type {
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
 import { describe, expect, it } from "vitest";
 
-import { endsProcess, leasedWorkspacesOf } from "./leaseRelease.ts";
+import {
+  endsProcess,
+  leasedWorkspacesOf,
+  sessionEndReleaseOf,
+} from "./sessionEndRelease.ts";
 
 const session = { kind: "session", pid: 100 } as const;
 
@@ -42,16 +46,39 @@ describe("leasedWorkspacesOf", () => {
   });
 });
 
-// endsProcess gates both the leases' release and the supervision record's deletion.
 describe("endsProcess", () => {
-  it("is true when the session ends with its claude process, which releases its leases and deletes its supervision record", () => {
+  it("is true when the session ends with its claude process", () => {
     expect(endsProcess("prompt_input_exit")).toBe(true);
     expect(endsProcess("logout")).toBe(true);
     expect(endsProcess(undefined)).toBe(true);
   });
 
-  it("is false for /clear and /resume, which keep the same process working and supervising", () => {
+  it("is false for /clear and /resume, which keep the same process working", () => {
     expect(endsProcess("clear")).toBe(false);
     expect(endsProcess("resume")).toBe(false);
+  });
+});
+
+describe("sessionEndReleaseOf", () => {
+  it("ends the supervision on /clear and /resume, naming the end, and keeps the leases", () => {
+    expect(sessionEndReleaseOf("clear")).toEqual({
+      endedBy: "clear",
+      isLeaseReleased: false,
+    });
+    expect(sessionEndReleaseOf("resume")).toEqual({
+      endedBy: "resume",
+      isLeaseReleased: false,
+    });
+  });
+
+  it("ends the supervision and releases the leases on a process end", () => {
+    expect(sessionEndReleaseOf("prompt_input_exit")).toEqual({
+      endedBy: "prompt_input_exit",
+      isLeaseReleased: true,
+    });
+    expect(sessionEndReleaseOf(undefined)).toEqual({
+      endedBy: "other",
+      isLeaseReleased: true,
+    });
   });
 });

@@ -14,7 +14,7 @@ import {
   sessionStatePath,
   writeHookOutput,
 } from "./lib/hookIo.ts";
-import { leasedWorkspacesOf } from "./lib/leaseRelease.ts";
+import { leasedWorkspacesOf } from "./lib/sessionEndRelease.ts";
 import { sessionModeOf } from "./lib/tiers/tiers.ts";
 
 await runFailOpen(async () => {

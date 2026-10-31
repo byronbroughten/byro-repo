@@ -1,4 +1,4 @@
-// SessionStart: puts the session's id in context; in an issue workspace this claude leases, records the session and says where it is; after /clear, names the run it supervises.
+// SessionStart: puts the session's id in context; in an issue workspace this claude leases, records the session and says where it is; after /clear or /resume, names the run it supervises or supervised until then.
 import { FactsFile } from "@byronbroughten/spec-runner/FactsFile";
 import { IssueWorkspaces } from "@byronbroughten/spec-runner/IssueWorkspaces";
 import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
@@ -65,12 +65,10 @@ async function leaseLinesOf(
   }
 }
 
-// Its own fail-open too; only a clear start can yield the line, and a runner step is never a Supervisor.
+// Its own fail-open too; supervisingLineOf says which starts can yield the line, and a runner step is never a Supervisor.
 async function supervisionLinesOf({ source }: HookInput): Promise<string[]> {
   try {
-    if (source !== "clear" || sessionModeOf(process.env) === "runnerStep") {
-      return [];
-    }
+    if (sessionModeOf(process.env) === "runnerStep") return [];
     const holder = nearestClaudeAncestor();
     if (!holder) return [];
     const record =
