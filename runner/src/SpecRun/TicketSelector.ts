@@ -15,6 +15,7 @@ import {
 } from "../halts.ts";
 import {
   holderLabelOf,
+  isSameIssue,
   issueLabelOf,
   type IssueRef,
 } from "../IssueWorkspaces.ts";
@@ -46,6 +47,11 @@ interface HoldCheck {
   downstreamOf: Map<string, string[]>;
 }
 
+interface Surveying {
+  openHalts: Halt[];
+  cleared: IssueRef[];
+}
+
 interface Survey {
   waits: Wait[];
   answered: { ticket: TrackedIssue; at: string }[];
@@ -70,11 +76,15 @@ export class TicketSelector extends SpecRunBase {
   }
 
   // Read afresh each pick; a ticket with every Halt answered goes first, oldest answered set first, then the frontier.
-  async _select(run: Run): Promise<Selection> {
+  // `cleared` are a Batch's landed members, which no longer block though GitHub may still show them open.
+  async _select(run: Run, cleared: IssueRef[]): Promise<Selection> {
     await this.haltRaiser._postUnpostedHalts(run);
     const stopSpecs = await this._readAnswers(run);
     if (stopSpecs.length > 0) return { kind: "stop-spec", halts: stopSpecs };
-    const survey = await this._survey(run, openHaltsOf(run));
+    const survey = await this._survey(run, {
+      openHalts: openHaltsOf(run),
+      cleared,
+    });
     const { waits, answered, launchable, stoppedAgain } = survey;
     if (stoppedAgain !== undefined) {
       return { kind: "stopped-again", ...stoppedAgain };
@@ -88,7 +98,7 @@ export class TicketSelector extends SpecRunBase {
     return { kind: "launch", ticket: next };
   }
 
-  async _survey(run: Run, openHalts: Halt[]): Promise<Survey> {
+  async _survey(run: Run, { openHalts, cleared }: Surveying): Promise<Survey> {
     const downstreamOf = await this._scopeDownstreamOf(run, openHalts);
     const survey: Survey = { waits: [], answered: [], launchable: [] };
     const { waits } = survey;
@@ -138,7 +148,9 @@ export class TicketSelector extends SpecRunBase {
         waits.push({ ticket, reason: "developer", text });
         continue;
       }
-      const blockers = await this.config.github.openBlockersOf(ticket);
+      const blockers = (await this.config.github.openBlockersOf(ticket)).filter(
+        (blocker) => !cleared.some((issue) => isSameIssue(issue, blocker)),
+      );
       if (blockers.length > 0) {
         const text = `${label} is blocked by ${blockers.map(issueLabelOf).join(", ")}`;
         waits.push({ ticket, reason: "blocked", text });

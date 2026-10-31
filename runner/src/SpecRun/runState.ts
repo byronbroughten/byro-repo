@@ -224,8 +224,15 @@ export interface Wait {
   holder?: LeaseHolder;
 }
 
+// `member-blocked` is a Batch member waiting on another member to land.
 type WaitReason =
-  "leased" | "halted" | "stopped" | "skipped" | "developer" | "blocked";
+  | "leased"
+  | "halted"
+  | "stopped"
+  | "skipped"
+  | "developer"
+  | "blocked"
+  | "member-blocked";
 
 interface DownstreamSearch {
   run: Run;

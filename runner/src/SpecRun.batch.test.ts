@@ -45,6 +45,8 @@ useSpecRunHarness();
 const first = refOf(301);
 const second = refOf(302);
 const third = refOf(303);
+const blocker = refOf(498);
+const dependent = refOf(499);
 
 const gated: Blocker = {
   kind: "gated-action",
@@ -309,6 +311,119 @@ describe("run's Batch", () => {
       "Open Halts: H2 on byro-repo #301.",
     );
   });
+
+  it("runs a member blocked by a member, though typed first, after its blocker lands", async () => {
+    addIssue(blocker.number);
+    addIssue(dependent.number);
+    github.blockers.set(dependent.number, [blocker.number]);
+    const agentStep = FakeAgentStep.init(
+      implemented("blocker.ts"),
+      reviewed(),
+      implemented("dependent.ts"),
+      reviewed(),
+    );
+
+    const result = await runBatch(agentStep, {
+      members: [dependent, blocker],
+    });
+
+    expect(result.kind).toBe("finished");
+    expect(landingOrder()).toEqual([498, 499]);
+  });
+
+  it("holds a member blocked by a halted member while an unblocked one lands, and lands both once the Halt is answered", async () => {
+    [blocker, dependent, first].forEach(({ number }) => {
+      addIssue(number);
+    });
+    github.blockers.set(dependent.number, [blocker.number]);
+    let polls = 0;
+    const agentStep = FakeAgentStep.init(
+      blocked([gated]),
+      implemented("first.ts"),
+      reviewed(),
+      implemented("blocker.ts"),
+      reviewed(),
+      implemented("dependent.ts"),
+      reviewed(),
+    );
+
+    const result = await runBatch(agentStep, {
+      members: [dependent, blocker, first],
+      async sleep() {
+        polls += 1;
+        github.reply(blocker.number, "H1: I ran it.");
+      },
+    });
+
+    expect(polls).toBe(1);
+    expect(result.kind).toBe("finished");
+    expect(landingOrder()).toEqual([301, 498, 499]);
+    expect(noticesOn(dependent.number)).toContain(
+      "Idle: nothing runnable. byro-repo #499 waits on byro-repo #498 to land.",
+    );
+  });
+
+  it("counts a blocker member landed but left open on GitHub as cleared", async () => {
+    addIssue(blocker.number);
+    addIssue(dependent.number);
+    github.blockers.set(dependent.number, [blocker.number]);
+    const agentStep = FakeAgentStep.init(
+      ...proposed("blocker.ts"),
+      implemented("dependent.ts"),
+      reviewed(),
+    );
+
+    const result = await runBatch(agentStep, {
+      members: [dependent, blocker],
+    });
+
+    expect(github.issues.get(blocker.number)?.isOpen).toBe(true);
+    expect(result.kind).toBe("finished");
+    expect(landingOrder()).toEqual([498, 499]);
+  });
+
+  it("ends members blocking each other once only they are left, rather than idling on them", async () => {
+    [blocker, dependent, first].forEach(({ number }) => {
+      addIssue(number);
+    });
+    github.blockers.set(dependent.number, [blocker.number]);
+    github.blockers.set(blocker.number, [dependent.number]);
+    const agentStep = FakeAgentStep.init(implemented("first.ts"), reviewed());
+
+    const result = await runBatch(agentStep, {
+      members: [dependent, blocker, first],
+    });
+
+    expect(result.kind).toBe("stopped");
+    expect(result.landed).toEqual([first]);
+    expect(noticesOn(dependent.number).at(-1)).toBe(
+      "byro-repo #499 waits on byro-repo #498 to land, which waits on it in turn; remove one blocked-by link on GitHub, then rerun: `npm run runner -- byronbroughten/byro-repo 499 498`.",
+    );
+  });
+
+  it("ends a member whose blocker member a `stop spec` ended, naming why with its rerun line", async () => {
+    addIssue(blocker.number);
+    addIssue(dependent.number);
+    github.blockers.set(dependent.number, [blocker.number]);
+    const agentStep = FakeAgentStep.init(blocked([gated]));
+
+    const result = await runBatch(agentStep, {
+      members: [dependent, blocker],
+      async sleep() {
+        github.reply(blocker.number, "H1: stop spec");
+      },
+    });
+
+    expect(result.kind).toBe("stopped");
+    expect(result.landed).toEqual([]);
+    expect(agentStep.requests).toHaveLength(1);
+    expect(noticesOn(dependent.number).at(-1)).toBe(
+      "byro-repo #499 is blocked by byro-repo #498, which ended without landing; rerun them together once it can land: `npm run runner -- byronbroughten/byro-repo 499 498`.",
+    );
+    expect(result.message).toBe(
+      "Batch ended: none landed; byro-repo #499, byro-repo #498 wait on you. Rerun the unfinished ones: `npm run runner -- byronbroughten/byro-repo 499 498`.",
+    );
+  });
 });
 
 const noModelFit = "## What to build\n\nA thing.\n";
@@ -359,17 +474,20 @@ describe("a Batch's refusal", () => {
     );
   });
 
-  it("counts a blocker inside the Batch as an open blocker", async () => {
+  it("accepts a member blocked by a member, and still refuses one blocked by an open issue outside the Batch", async () => {
     addIssue(first.number);
     addIssue(second.number);
+    addIssue(third.number);
+    addIssue(9);
     github.blockers.set(second.number, [first.number]);
+    github.blockers.set(third.number, [first.number, 9]);
 
     const result = await runBatch(FakeAgentStep.init(), {
-      members: [first, second],
+      members: [first, second, third],
     });
 
     expect(result.message).toBe(
-      "byro-repo #302: it's blocked by byro-repo #301, still open; land that first, or drop it from the list.",
+      "byro-repo #303: it's blocked by byro-repo #9, still open; land that first, or drop it from the list.",
     );
   });
 
