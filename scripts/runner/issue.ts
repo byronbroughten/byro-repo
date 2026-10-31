@@ -6,25 +6,22 @@
 import { spawn } from "node:child_process";
 import { homedir } from "node:os";
 
-import { FactsFile } from "@byronbroughten/spec-runner/FactsFile";
 import {
   holderLabelOf,
   type IssueRef,
   IssueWorkspaces,
   type Lease,
-  type LeaseHolder,
   type Workspace,
   type WorkspaceKey,
   workspaceLabelOf,
   type WorkspaceStatus,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
-import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
 
 import { nearestClaudeAncestor } from "./claudeAncestor.ts";
 import { activeAccount } from "./cswapAccount.ts";
 import { issueReader } from "./issueReader.ts";
 import { issueWorkspacesConfig, stateFolder } from "./runnerConfig.ts";
-import { startedSessionOf } from "./startedSession.ts";
+import { recordStartedSession } from "./startedSession.ts";
 import { startReportOf } from "./startReport.ts";
 
 const workspaces = IssueWorkspaces.init(issueWorkspacesConfig);
@@ -71,7 +68,15 @@ async function start(args: string[]): Promise<void> {
       ticketText: await ticketTextOf(key),
     }),
   );
-  if (holder) await recordSession(key, holder);
+  if (!holder) return;
+  await recordStartedSession({
+    key,
+    env: process.env,
+    account: activeAccount(),
+    homeFolder: homedir(),
+    holder,
+    stateFolder,
+  });
 }
 
 // The Model fit section and the comments a session reads on entering; a session workspace has no ticket.
@@ -84,24 +89,6 @@ async function ticketTextOf(key: WorkspaceKey): Promise<string | undefined> {
     "--comments",
     "--hide-others",
   ]);
-}
-
-// SessionStart records a session that starts in the workspace; this records one that moves in later.
-async function recordSession(
-  key: WorkspaceKey,
-  holder: LeaseHolder,
-): Promise<void> {
-  const supervision =
-    await SupervisionRecords.init(stateFolder).recordOf(holder);
-  const started = startedSessionOf({
-    key,
-    env: process.env,
-    account: activeAccount(),
-    homeFolder: homedir(),
-    isSupervisor: supervision !== undefined,
-  });
-  if (started === undefined) return;
-  FactsFile.init(stateFolder).addSession(started.issue, started.session);
 }
 
 // Opens at the primary root, not the workspace, so hooks never point into a folder wrap-up removes.

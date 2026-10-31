@@ -32,6 +32,19 @@ Disclosed from [`docs/writing-craft.md`](../writing-craft.md), "Words". The rule
 
 - Before: "Jose is a 'go-to' contractor for turnovers." After: "Jose is our go-to contractor for turnovers." — invented; Pinker, Ch. 2, PDF pp. 50–51. _From Pinker; not yet seen in your writing._
 - It sits with the Voice sheet's idiom rule: use the idiom plainly, or don't use it.
+- Agent: "added good working order to the marketable standard" Developer: "added “good working order” to the marketable standard" — personal#16 Snapshot, 2026-10-26
+
+## A lowercase label in quotation marks
+
+- Agent: "the project documents listed under In scope … set out in the Out of scope list" Developer: "listed under “In scope” … set out in the “Out of scope” list" — personal#16 Snapshot, 2026-10-26
+- The developer: the labels weren't in title case, so without quotation marks the reader couldn't tell where each label stopped.
+- No count was recorded; from a Snapshot.
+
+## The table's own words
+
+- Agent: "That is why the parties in Table 3 are ones Property Science has established relationships with." Developer: "That is why the relevant stakeholders in Table 4 are ones that Property Science has established relationships with." — personal#16 Snapshot, 2026-10-26
+- The developer: the sentence refers to what Table 4 lists, so it takes the table's term.
+- No count was recorded; from a Snapshot.
 
 ## No clashing idioms
 

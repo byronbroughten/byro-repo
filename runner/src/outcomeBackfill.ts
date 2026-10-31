@@ -1,11 +1,12 @@
-// A one-off chore's core (#474): rewrites a written outcome row's transcript facts from sessions a run state recorded
-// before it kept each session's config folder. Each session is looked for under every candidate config folder; a fact
-// whose transcript is in none of them keeps its written cell. scripts/runner/outcomeBackfill.ts runs it over a spec.
+// A one-off chore's core (#474): fills a written outcome row's `unrecorded` transcript cells from sessions a run state
+// recorded before it kept each session's config folder; a recorded cell is never changed (#489). Each session is looked
+// for under every candidate config folder; a fact whose transcript is in none of them stays `unrecorded`.
+// scripts/runner/outcomeBackfill.ts runs it over a spec.
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { withTranscriptCells } from "./outcomeLog.ts";
+import { withUnrecordedTranscriptCells } from "./outcomeLog.ts";
 import { runStateOf } from "./savedFormats.ts";
 import {
   hasTranscript,
@@ -57,7 +58,7 @@ export function backfilledOutcomeFile(
   configFolders: string[],
 ): string {
   const steps = sessions.map((session) => recordedOf(session, configFolders));
-  return withTranscriptCells(file, transcriptFactsOf({ steps }, []));
+  return withUnrecordedTranscriptCells(file, transcriptFactsOf({ steps }, []));
 }
 
 function recordedOf(

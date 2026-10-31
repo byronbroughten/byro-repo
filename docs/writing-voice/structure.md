@@ -49,6 +49,8 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Structure and re
 - "First is the 1% Rule… Second is the Square Footage Rule… Finally, there's the hybrid method" — blog: Costs of Owning a Home
 - Seen in 5 of 6. In 1 of 5 posts.
 - Agent: "The first is time: … The second is capital: … The third is cash flow: …" Revised, approved by the developer: "First, work added beyond the plan pushes … Second, costs added beyond … And third, repairs cut below …" — Assessment 2 grill (personal#16), session 27f9c715, 2026-10-22
+- Agent: "This project is the first of them, so the cash flow and equity it adds are what the second acquisition draws on. Holding the project to its scope protects what the next acquisition depends on. First, …" Developer: "More specifically, because this project is the first of the five planned acquisitions, keeping it within scope will contribute to the others in three important ways. First, …" — personal#16 Snapshot, 2026-10-26
+- Agent: "Property Science learned that the project manager needs a firm repair price" Developer: "Finally, Property Science learned that the project manager needs a firm repair price" — personal#16 Snapshot, 2026-10-26
 
 ## Bullets for short parallel items
 
@@ -89,11 +91,21 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Structure and re
 - Short names in use: "the Build gate", "Table 2".
 - The HELOC gate before Build is explained in full in Approach (Table 2 and the paragraph after it), again in each of the two Dependencies, and again in Roles. The developer: "I definitely don't like that the HELOC gate is retold." — Assessment 1 Next Draft (personal#4), session 2ebcdf61, 2026-10-18
 - Agent: "Saint Paul's rent stabilization ordinance, described under Dependencies, caps rent increases at 3% in a 12-month period" — Assessment 1 Next Draft (personal#4), Regulatory section, which the developer had not edited. The pointer back is right; restating the cap after it is not.
+
+## Refer back only when needed
+
 - Agent: "Build and Test assume that Jesus Fernandez of Fernandez Remodeling carries out the repairs, as the second assumption above sets out." Developer: struck the pointer — Assessment 1 Next Draft (personal#4), Drive edit after session 66510c6, by 2026-10-18
 - Agent: "go to a second contractor only after a written quote, which fixes the price that the second assumption leaves unknown before any work starts" Developer: "go to a second contractor." — same
 - Agent: "and no step in the project can make a seller agree" Developer: struck; Constraints already says it — same
 - Agent: "two of the five months between the January 1, 2027, budget date and the May 31, 2027, finish" Developer: "two of the project's five scheduled months" — same
 - Agent: "The down payment and closing costs alone come to $45,000, more than the $20,000 backup line can cover, so the purchase cannot go ahead without the new HELOC." Developer: struck — same
+- Agent: "Table 4 gives each stakeholder's criterion and the gate at which it is checked, and Table 3 gives each stakeholder's role, responsibilities, and contact information. TruStone Financial is left out of Table 4, because its criteria belong to the new HELOC" Developer: "Table 4 gives each stakeholder's criterion and the gate at which it is checked." — personal#16 Snapshot, 2026-10-26
+
+## End on this section's point
+
+- Agent: "The project now gets a repair quote from Cortez Remodeling within the inspection contingency window, and the charter's Risk 2 already uses that quote as a leading indicator." Developer: "…within the inspection contingency window, at which time the repair scope is established and solidifies the lead contractor's acceptance criteria." — personal#16 Snapshot, 2026-10-26
+- The developer worded the rule as a conditional so it binds only a paragraph that would end on a pointer, not every paragraph's close.
+- No count was recorded; from a Snapshot.
 
 ## No preview list
 

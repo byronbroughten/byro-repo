@@ -66,7 +66,7 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 
 ## Confidence and candor
 
-- **Hedge only predictions, causes and plans, one hedge per claim at most; state facts, decisions and verdicts flatly.**
+- **Hedge every prediction, cause and plan, and every general claim that has exceptions, once each; state facts, decisions and verdicts flatly.**
 - **Keep a qualifier ("rather", "very", "relatively", "generally") only when it states a real limit.**
 - **Admit a weakness or limit in one flat clause**, often with "however" or a closing "though", or in a parenthetical.
 - **Weigh a point's upside and risk together ("On the one hand… On the other hand…").**
@@ -83,11 +83,13 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - **State the recommendation early and flatly, then give the reasons.**
 - **Lay out each option's pros and cons, then eliminate options until the recommendation is left.**
 - **Advise the reader in the imperative, "you'll want to" or "we recommend"; advise a third party with "should" or "would do well to", never a passive "it is recommended".**
-- **Number parallel reasons in prose ("First, … Second, … And third, …") when each needs a sentence or more.**
+- **Number parallel reasons in prose ("First, … Second, … And third, …") when each needs a sentence or more, with their count in the sentence that leads in ("in three ways"); across paragraphs, open the last with "Finally,".**
 - **Use bullets for short parallel items (costs with their figures, tips, one-sentence reasons after "Here's why:"); keep multi-sentence reasoning in prose.**
 - **Put a side point in its own "Note that…" sentence.**
 - **Make each point once, with the support it needs; cut whatever only repeats, reinforces or qualifies it.**
-- **Once a fact or mechanism is set out, refer back to it by a short name instead of explaining it again, and only when the reader needs it to follow the point, never to show that sections agree.**
+- **Once a fact or mechanism is set out, refer back to it by a short name instead of explaining it again.**
+- **Refer back only when the reader needs it to follow the point, never to show that sections agree.**
+- **If a paragraph would end on a pointer to another section, end it instead on what its point means for the section it sits in.**
 - **Don't preview the items that the next paragraphs take up one by one.**
 - **Add a table only when the developer or the assignment asks for one, and never one that restates the prose.**
 - **State an assumption the rest of the piece shares once, where it first applies, and say there that it holds throughout.**
@@ -124,4 +126,5 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - **Call the person a piece is about by name, not "he" or "him", in each paragraph's claim and key sentences**, so no reader wonders who is meant.
 - **Give a phase, stage or deadline its noun ("the Build phase", "the finish date"), not a bare shorthand ("Build", "the finish"), and never make it the actor ("what Planning can see").**
 - `general` **Prefer everyday idioms, often slightly twisted ("blow out of the pond"), or a fresh, concrete image, to neutral business phrasing.**
+- `formal` **Use the literal verb, not a figurative one ("informs", not "turns on"; "become", not "harden into").**
 - `general` **Allow the occasional wry aside, in parentheses or between dashes.**

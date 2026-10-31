@@ -121,12 +121,17 @@ function cellsOfLine(line: string): string[] {
   return line.slice(2, -2).split(/ (?<!\\)\| /);
 }
 
-// A written row file with each transcript fact `facts` defines put in its cell; every other cell is kept as written.
-export function withTranscriptCells(file: string, facts: OutcomeFacts): string {
+// A written row file with each `unrecorded` cell filled from the transcript fact `facts` defines; every other cell is
+// kept as written.
+export function withUnrecordedTranscriptCells(
+  file: string,
+  facts: OutcomeFacts,
+): string {
   const fresh = transcriptCellsOf(facts);
   const lines = file.split("\n");
   const rowIndex = lines.findLastIndex((line) => line.startsWith("| "));
   const cells = cellsOfLine(lines[rowIndex] ?? "").map((cell, index) => {
+    if (cell !== unrecorded) return cell;
     const column = columns[index];
     const value = column === undefined ? undefined : fresh[column];
     return value ?? cell;

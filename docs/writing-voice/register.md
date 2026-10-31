@@ -35,6 +35,13 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Person and regis
 - The developer ruled in review (2026-10-02) that they now prefer idioms slightly twisted, such as "blow out of the pond".
 - Pinker, Ch. 2, PDF pp. 53–55: a stock idiom stops the reader picturing anything; playing with its literal image keeps it alive. Pinker's fresh simile (pp. 55–56) does the same job, and the developer counts either as fine (#317).
 
+## A literal verb in formal prose
+
+- Agent: "each turns on how the sponsor or the project manager leads" Developer: "each informs how the sponsor and project manager leads" — personal#16 Snapshot, 2026-10-26
+- Agent: "rough figures made on incomplete information tend to harden into targets" Developer: "tend to become targets" — personal#16 Snapshot, 2026-10-26
+- Agent: "PMI (2021) draws a similar line: it measures a deliverable's quality by" Developer: "PMI (2021) backs up this approach, stating that a deliverable's quality is measured by" — personal#16 Snapshot, 2026-10-26
+- No count was recorded; from a Snapshot.
+
 ## The wry aside
 
 - "Buy a less expensive property with simpler components (do you really need an AI laundry machine?)." — blog: Costs of Owning a Home

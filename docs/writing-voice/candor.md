@@ -2,13 +2,15 @@
 
 Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Confidence and candor". The rules are there, one line each; this file holds the quoted instances and their sources. "Seen in" counts the reading batches, out of 6, that reported the habit ([sources](./sources.md)). "In N of 5 posts" counts the blog posts.
 
-## Hedge predictions only, once
+## Hedge predictions and general claims, once
 
 - "DealLab's paid tier will be priced in the range of $10-$20 per month… DealLab may also offer the option" — Assessment 2 - Brand Presentation
 - "The risk of ZXY becoming financially insolvent as a result of this investment is low." — Assessment 4 - Accounting
 - Typical hedges: "may", "could", "likely".
 - Seen in 6 of 6. The report samples stack hedges ("could possibly", "at least in part"); the deck never does, and the deck wins.
 - Counter-instance: "That's probably at least part of why 72% of renters would prefer to own a home." — blog: Rent vs Buy (one of the posts' few stacked hedges)
+- Agent: "the vacancies, damage, and missed rent that follow reduce the monthly cash flow" Developer: "the vacancies, damage, and missed rent that may follow reduce monthly cash flow" — personal#16 Snapshot, 2026-10-26
+- Agent: "since a WBS lists the work without sequencing it" Developer: "since a WBS lists the work without necessarily sequencing it" — personal#16 Snapshot, 2026-10-26
 
 ## A weakness in one flat clause
 
