@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 `/judge-findings <repo> #<spec>` clears the review list the spec runner left on a spec issue. Its words (review list, Propose, Halt, Dismiss `kept`) are in [`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md).
 
-**The runner only creates review-list comments; this skill only edits them.** Never post a new review-list comment, never delete one, never remove an item.
+**The runner creates review-list comments; this skill only edits them, through `npm run runner -- decide`.** Never post a new review-list comment, never delete one, never remove an item.
 
 **Weigh your pre-filled answers and the recommendations you put to the developer against the Codebase Priorities, [`docs/agents/codebase-priorities.md`](../../../docs/agents/codebase-priorities.md).**
 
@@ -18,7 +18,7 @@ disable-model-invocation: true
 - Each item is a `- [ ] **R<n>.<k>** · <heading>` line and its indented lines (`Evidence:`, `Recommendation:`, `Drafted issue:` for a Propose `ticket` or a gap, and `Drafted keep:` for a keep). A list posted before #297 heads these items Defer, Propose's old name; read it as Propose. An item is:
   - **undecided**: its box is unticked;
   - **hand-ticked**: its box is ticked with no `Decided:` line, which counts as accepting the recommendation;
-  - **decided**: it has a `Decided:` line.
+  - **decided**: it has a `Decided:` line. One with only a `Handled:` line is undecided.
 
 ## 2. The rounds
 
@@ -61,20 +61,13 @@ After the last round:
 
 ## Writing a decision
 
-Edit each item in its comment once it is settled: a dismissal, an accepted judgement or a filing as soon as its round is answered or its ticket filed, a "now" fix only once wrap-up has landed its commit, so a session that stops early never claims an unmade fix. Tick its box and add one indented line under it, keeping every other line as it was.
+Record each item once it is settled: a dismissal, an accepted judgement or a filing as soon as its round is answered or its ticket filed, a "now" fix only once wrap-up has landed its commit, so a session that stops early never claims an unmade fix. **Record it with `npm run runner -- decide`, never by editing the comment by hand:**
 
 ```
-- [x] **R<n>.<k>** · <heading>
-  Evidence: …
-  Recommendation: …
-  Decided: <accepted | dismissed: <reason> | fixed in session | fix filed | decision filed | keep approved: "<reason>"> · <link to the filed issue or landed commit>
+npm run runner -- decide <owner>/<repo> <spec> R<n>.<k> '<decision> · <link to the filed issue or landed commit>'
 ```
 
-Re-fetch the comment right before each edit and change only that item, since the developer may tick boxes on their phone meanwhile:
-
-```
-gh api --method PATCH repos/<owner>/<repo>/issues/comments/<id> -F body=@<file>
-```
+`<decision>` is one of `accepted`, `dismissed: <reason>`, `fixed in session`, `fix filed`, `decision filed` or `keep approved: "<reason>"`. It ticks the item's box and adds the `Decided:` line under it, re-fetching the comment first and keeping every other line as it was. With `--handled` it adds a `Handled:` line and leaves the box unticked, for an item partly done and partly still the developer's; such an item stays undecided.
 
 ## 5. Closing the spec
 

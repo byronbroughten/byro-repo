@@ -811,6 +811,19 @@ describe("an Interactive session's gh calls", () => {
     });
   });
 
+  it("allows the runner's decide, and refuses it in a runner step", () => {
+    [
+      'npm run runner -- decide ByronBroughten/byro-repo 372 R159.1 "accepted"',
+      'npm run runner -- decide ByronBroughten/byro-repo 372 R159.1 --handled "filed #490"',
+    ].forEach((command) => {
+      expect(decisionOf(command)).toBe("allow");
+      expect(runnerStepDecisionOf(command)).toBe("deny");
+    });
+    expect(
+      decisionOf("npm run runner -- ByronBroughten/byro-repo 372"),
+    ).toBeUndefined();
+  });
+
   it("leaves any other gh api write to Claude Code", () => {
     [
       "gh api -X DELETE repos/x/y/issues/comments/987",

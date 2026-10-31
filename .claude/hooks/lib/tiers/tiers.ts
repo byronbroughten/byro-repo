@@ -319,6 +319,7 @@ const classifiers: Classifier[] = [
   runnerStep.ghVerdictOf,
   runnerStep.liveAliasVerdictOf,
   sessionGhVerdictOf,
+  sessionDecideVerdictOf,
   choreSendVerdictOf,
   commitVerdictOf,
   gitAddVerdictOf,
@@ -371,6 +372,23 @@ function sessionGhVerdictOf(
   return {
     permissionDecision: "allow",
     why: "the opposite `gh api` call undoes an issue link",
+    needsPlainText: true,
+  };
+}
+
+// An Interactive session's review-list decision, free as a raw comment PATCH is; a runner step's stays refused.
+function sessionDecideVerdictOf(
+  { words }: SimpleCommand,
+  { mode }: CallContext,
+): Verdict | undefined {
+  if (mode !== "interactive" || npmCommands.isPrefixed(words)) return undefined;
+  const script = npmScriptOf(words);
+  if (script?.name !== "runner") return undefined;
+  const [verb] = script.args.filter((arg) => arg !== "--");
+  if (verb !== "decide") return undefined;
+  return {
+    permissionDecision: "allow",
+    why: "a further edit undoes a review-list item's decision",
     needsPlainText: true,
   };
 }

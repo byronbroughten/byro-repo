@@ -68,6 +68,7 @@
       "ExitWorktree",
       "Bash(npm run issue:start*)",
       "Bash(npm run issue:read*)",
+      "Bash(npm run runner -- decide*)",
       "Bash(.claude/skills/inbox/record.sh *)",
       "Bash(bash .claude/skills/inbox/record.sh *)"
     ],

@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import type { ResolveRecord } from "./resolveStep.ts";
 import {
   coveredLaterNotesOf,
+  decidedListOf,
   gapCheckListOf,
+  reviewListHoldingOf,
   ticketReviewListOf,
   undecidedCountOf,
   undecidedLineOf,
@@ -182,6 +184,176 @@ describe("undecidedCountOf", () => {
     expect(count).toEqual({ items: 3, tickets: 1, hasUndecidedGaps: true });
     expect(undecidedLineOf(count)).toBe(
       "review list: 3 undecided across 1 ticket and the gap check",
+    );
+  });
+});
+
+const listBody = [
+  "<!-- spec-runner -->",
+  "<!-- review-list ticket=#7 -->",
+  "",
+  "- [ ] **R7.1** · Propose `decision` · a",
+  "  Evidence: e1",
+  "  Recommendation: r1",
+  "- [x] **R7.2** · Propose `ticket` · b",
+  "  Evidence: e2",
+  "  Recommendation: r2",
+  "- [ ] **R7.3** · Propose `decision` · c",
+  "  Evidence: e3",
+  "  Recommendation: r3",
+  "",
+].join("\n");
+
+describe("decidedListOf", () => {
+  it("ticks the item and adds its Decided line, leaving every other line as it was", () => {
+    const body = decidedListOf({
+      body: listBody,
+      itemId: "R7.1",
+      kind: "decided",
+      text: "accepted",
+    });
+
+    expect(body).toBe(
+      listBody.replace(
+        "- [ ] **R7.1** · Propose `decision` · a\n  Evidence: e1\n  Recommendation: r1\n",
+        "- [x] **R7.1** · Propose `decision` · a\n  Evidence: e1\n  Recommendation: r1\n  Decided: accepted\n",
+      ),
+    );
+  });
+
+  it("adds a Handled line and leaves the box unticked", () => {
+    const body = decidedListOf({
+      body: listBody,
+      itemId: "R7.3",
+      kind: "handled",
+      text: "filed #12; the rest is yours",
+    });
+
+    expect(body).toBe(
+      listBody.replace(
+        "  Recommendation: r3\n",
+        "  Recommendation: r3\n  Handled: filed #12; the rest is yours\n",
+      ),
+    );
+  });
+
+  it("decides a handled item, keeping its Handled line", () => {
+    const handled = decidedListOf({
+      body: listBody,
+      itemId: "R7.3",
+      kind: "handled",
+      text: "half",
+    });
+
+    const body = decidedListOf({
+      body: handled,
+      itemId: "R7.3",
+      kind: "decided",
+      text: "fix filed",
+    });
+
+    expect(body).toContain(
+      "- [x] **R7.3** · Propose `decision` · c\n  Evidence: e3\n  Recommendation: r3\n  Handled: half\n  Decided: fix filed\n",
+    );
+  });
+
+  it("decides a hand-ticked item, keeping its tick", () => {
+    const body = decidedListOf({
+      body: listBody,
+      itemId: "R7.2",
+      kind: "decided",
+      text: "accepted (ticked by hand)",
+    });
+
+    expect(body).toContain(
+      "- [x] **R7.2** · Propose `ticket` · b\n  Evidence: e2\n  Recommendation: r2\n  Decided: accepted (ticked by hand)\n- [ ] **R7.3**",
+    );
+  });
+
+  it("keeps a body's CRLF line ends", () => {
+    const crlf = listBody.replaceAll("\n", "\r\n");
+
+    const body = decidedListOf({
+      body: crlf,
+      itemId: "R7.1",
+      kind: "decided",
+      text: "accepted",
+    });
+
+    expect(body).toBe(
+      decidedListOf({
+        body: listBody,
+        itemId: "R7.1",
+        kind: "decided",
+        text: "accepted",
+      }).replaceAll("\n", "\r\n"),
+    );
+  });
+
+  it("refuses an item the list doesn't hold", () => {
+    expect(() =>
+      decidedListOf({
+        body: listBody,
+        itemId: "R7.9",
+        kind: "decided",
+        text: "x",
+      }),
+    ).toThrow("holds no item R7.9");
+  });
+
+  it("refuses an item already decided", () => {
+    const decided = decidedListOf({
+      body: listBody,
+      itemId: "R7.1",
+      kind: "decided",
+      text: "accepted",
+    });
+
+    expect(() =>
+      decidedListOf({
+        body: decided,
+        itemId: "R7.1",
+        kind: "handled",
+        text: "x",
+      }),
+    ).toThrow("R7.1 is already decided");
+  });
+
+  it("refuses a multi-line text", () => {
+    expect(() =>
+      decidedListOf({
+        body: listBody,
+        itemId: "R7.1",
+        kind: "decided",
+        text: "one\ntwo",
+      }),
+    ).toThrow("one line");
+  });
+});
+
+describe("reviewListHoldingOf", () => {
+  const developer = "byronbroughten";
+
+  it("finds the developer's review list holding the item", () => {
+    const comments = [
+      { id: "c1", author: developer, body: "- [ ] **R7.1** · not a list" },
+      { id: "c2", author: developer, body: listBody },
+    ];
+
+    expect(reviewListHoldingOf(comments, developer, "R7.1")).toBe(comments[1]);
+  });
+
+  it("refuses an item only someone else's comment holds", () => {
+    const comments = [{ id: "c1", author: "someone", body: listBody }];
+
+    expect(() => reviewListHoldingOf(comments, developer, "R7.1")).toThrow(
+      "Only someone's comment holds R7.1",
+    );
+  });
+
+  it("refuses an item no list holds", () => {
+    expect(() => reviewListHoldingOf([], developer, "R7.1")).toThrow(
+      "No review list of byronbroughten's holds R7.1",
     );
   });
 });
