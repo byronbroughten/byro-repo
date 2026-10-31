@@ -595,6 +595,15 @@ export function rerunCommandOf(owner: string, ...members: MemberList): string {
   return `npm run runner -- ${owner}/${repo} ${numbers}`;
 }
 
+// Answered Halts go oldest answer first, within one spec and across a Batch's members.
+export function oldestAnsweredOf<AN extends { at: string }>(
+  answered: AN[],
+): AN | undefined {
+  return [...answered].sort((first, second) =>
+    first.at.localeCompare(second.at),
+  )[0];
+}
+
 export function openHaltsOf(run: Run): Halt[] {
   return haltsOf(run).filter(({ answer }) => answer === undefined);
 }

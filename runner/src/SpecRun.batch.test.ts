@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
 import type { Blocker } from "./implementStep.ts";
 import type { ResolveRecord } from "./resolveStep.ts";
-import type { Clock } from "./SpecRun.ts";
+import type { Clock, MemberList, RunResult } from "./SpecRun.ts";
 import {
   addIssue,
   addSpec,
@@ -18,6 +18,7 @@ import {
   reviewed,
   spec,
   specRun,
+  type SpecRunOverrides,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
 
@@ -48,6 +49,14 @@ const propose: ResolveRecord = {
   reason: "decision",
   recommendation: "Pick the first.",
 };
+
+// Runs `members` as a Batch, an idle poll requesting a stop on each.
+function runBatch(
+  agentStep: FakeAgentStep,
+  overrides: SpecRunOverrides & { members: MemberList },
+): Promise<RunResult> {
+  return specRun(agentStep, overrides).run(...overrides.members);
+}
 
 function commentsOn(number: number): string[] {
   return github.comments
@@ -107,7 +116,7 @@ function proposed(file: string): ScriptedStep[] {
   ];
 }
 
-describe("a Batch", () => {
+describe("run's Batch", () => {
   it("lands two Standalone members in typed order, each with its review list on its own issue", async () => {
     addIssue(first.number);
     addIssue(second.number);
@@ -116,10 +125,7 @@ describe("a Batch", () => {
       ...proposed("first.ts"),
     );
 
-    const result = await specRun(agentStep, {}, [second, first]).run(
-      second,
-      first,
-    );
+    const result = await runBatch(agentStep, { members: [second, first] });
 
     expect(result.kind).toBe("finished");
     expect(result.landed).toEqual([second, first]);
@@ -144,15 +150,12 @@ describe("a Batch", () => {
       reviewed(),
     );
 
-    const result = await specRun(
-      agentStep,
-      {
-        async sleep() {
-          github.reply(spec.number, "H1: I ran it.");
-        },
+    const result = await runBatch(agentStep, {
+      members: [first, spec, second],
+      async sleep() {
+        github.reply(spec.number, "H1: I ran it.");
       },
-      [first, spec, second],
-    ).run(first, spec, second);
+    });
 
     expect(result.kind).toBe("finished");
     expect(landingOrder()).toEqual([301, 1, 302, 2]);
@@ -218,7 +221,7 @@ describe("a Batch", () => {
       blocked([gated]),
     );
 
-    const result = await specRun(agentStep, {}, [spec, first]).run(spec, first);
+    const result = await runBatch(agentStep, { members: [spec, first] });
 
     expect(result.kind).toBe("stopped");
     expect(result.landed).toEqual([refOf(1)]);
@@ -239,19 +242,18 @@ describe("a Batch", () => {
   it("resumes a member of a stopped Batch alone from its own run state", async () => {
     addIssue(first.number);
     addIssue(second.number);
-    await specRun(
+    await runBatch(
       FakeAgentStep.init(
         blocked([gated]),
         implemented("second.ts"),
         reviewed(),
       ),
-      {},
-      [first, second],
-    ).run(first, second);
+      { members: [first, second] },
+    );
     github.reply(first.number, "H1: I ran it.");
     const agentStep = FakeAgentStep.init(implemented("first.ts"), reviewed());
 
-    const result = await specRun(agentStep, {}, [first]).run(first);
+    const result = await runBatch(agentStep, { members: [first] });
 
     expect(result.kind).toBe("finished");
     expect(result.landed).toEqual([first]);
@@ -272,9 +274,9 @@ describe("a Batch", () => {
       implemented("third.ts"),
       reviewed(),
     );
-    const run = specRun(agentStep, {}, [first, second, third]);
-
-    const result = await run.run(first, second, third);
+    const result = await runBatch(agentStep, {
+      members: [first, second, third],
+    });
 
     expect(result.kind).toBe("stopped");
     expect(result.landed).toEqual([second, third]);
@@ -285,7 +287,7 @@ describe("a Batch", () => {
       "Stopped on `stop spec` for Halt H1: landed nothing; byro-repo #301 stays unlanded.",
     );
     expect(github.issues.get(first.number)?.isOpen).toBe(true);
-    expect(await run.status(first)).toContain(
+    expect(await specRun(FakeAgentStep.init()).status(first)).toContain(
       "Open Halts: H2 on byro-repo #301.",
     );
   });

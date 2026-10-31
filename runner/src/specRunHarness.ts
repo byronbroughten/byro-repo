@@ -160,12 +160,16 @@ export function stateFolder(): string {
   return join(temp, "state");
 }
 
+// A config override, plus the members an idle run's first poll requests a stop on.
+export type SpecRunOverrides = Partial<SpecRunConfig> & {
+  members?: IssueRef[];
+};
+
 // The gap check finds no gaps unless a test passes its own agentStep to script it; an idle run stops at its first poll,
 // through a stop request on each of `members`, the spec unless a Batch test names its own.
 export function specRun(
   agentStep: FakeAgentStep,
-  overrides: Partial<SpecRunConfig> = {},
-  members: IssueRef[] = [spec],
+  { members = [spec], ...overrides }: SpecRunOverrides = {},
 ): SpecRun {
   const withGapCheck: AgentStep = {
     run: async (request) =>

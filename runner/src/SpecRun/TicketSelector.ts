@@ -29,6 +29,7 @@ import {
   isLanded,
   isLaunchable,
   isStopSpec,
+  oldestAnsweredOf,
   openHaltsOf,
   type Run,
   ticketStateOf,
@@ -78,8 +79,7 @@ export class TicketSelector extends SpecRunBase {
     if (stoppedAgain !== undefined) {
       return { kind: "stopped-again", ...stoppedAgain };
     }
-    answered.sort((first, second) => first.at.localeCompare(second.at));
-    const [oldest] = answered;
+    const oldest = oldestAnsweredOf(answered);
     if (oldest !== undefined) {
       return { kind: "launch", ticket: oldest.ticket, answeredAt: oldest.at };
     }
