@@ -51,6 +51,7 @@ Reads need no yes in any tier.
 | `npm run session:probe -- <folder>` | free: its one-turn session only reports what the folder's hooks see |
 | `npm run outline -- <file>` | free: a read, a runner step's included |
 | `npm run outcome:summary -- …` | free: a read |
+| `npm run prompt:scan` | free: a read of this repo's session transcripts |
 
 **`timeout` and `npm run -s` leave a command's tier as it is.**
 

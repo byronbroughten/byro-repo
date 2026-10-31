@@ -66,6 +66,12 @@ export interface Verdict {
   plainTextFix?: string;
 }
 
+// A simple command's words beside its verdict; undefined leaves it to Claude Code.
+export interface CommandVerdict {
+  words: string[];
+  verdict: Verdict | undefined;
+}
+
 // One row's rule, or a part of one: its verdict on a simple command, or undefined when the row doesn't match.
 type Classifier = (
   simple: SimpleCommand,
@@ -169,32 +175,11 @@ export function decisionInMode(
   };
 }
 
-function baseDecision({
-  command,
-  mode,
-  dryRuns,
-  places,
-  spreadsheetTargets = [],
-}: ShellCall): Decision | undefined {
-  const commands = parsedCommandsOf(command);
-  if (!commands) return undefined;
-  // A `cd` carries on only when every separator is `&&`: a failed one stops the command; in a subshell, substitution, pipe or background job it doesn't carry; after `;` or `||` it may have failed.
-  const cdCarriesOn = !/[()|;&\n`]/.test(command.replace(/&&|[<>]&|&>/g, ""));
-  let cwd = places?.cwd;
-  const verdicts = commands.map((simple) => {
-    const here = places && cwd !== undefined ? { ...places, cwd } : undefined;
-    if (simple.words[0] === "cd") {
-      cwd = cdCarriesOn
-        ? PathChecker.init(here).cdTargetOf(simple.words[1])
-        : undefined;
-    }
-    return verdictOf(simple, {
-      mode,
-      dryRuns,
-      places: here,
-      spreadsheetTargets,
-    });
-  });
+function baseDecision(call: ShellCall): Decision | undefined {
+  const { command, mode } = call;
+  const commandVerdicts = commandVerdictsOf(call);
+  if (!commandVerdicts) return undefined;
+  const verdicts = commandVerdicts.map(({ verdict }) => verdict);
   // The parser reads each command inside `$(…)` and backticks, quoted or not, as a verdict of its own; a runner step's body still goes through `--body-file`, whatever the substitution runs.
   const hasSubstitution = /\$\(|`/.test(command);
   const bodyRefusal = hasSubstitution
@@ -231,6 +216,36 @@ function baseDecision({
     "allow",
     `${verdicts.map((verdict) => verdict?.why).join("; ")}.`,
   );
+}
+
+// Each simple command's own verdict, undefined when the gate can't parse the call; the prompt scan reads them to name the part that asked.
+export function commandVerdictsOf({
+  command,
+  mode,
+  dryRuns,
+  places,
+  spreadsheetTargets = [],
+}: ShellCall): CommandVerdict[] | undefined {
+  const commands = parsedCommandsOf(command);
+  if (!commands) return undefined;
+  // A `cd` carries on only when every separator is `&&`: a failed one stops the command; in a subshell, substitution, pipe or background job it doesn't carry; after `;` or `||` it may have failed.
+  const cdCarriesOn = !/[()|;&\n`]/.test(command.replace(/&&|[<>]&|&>/g, ""));
+  let cwd = places?.cwd;
+  return commands.map((simple) => {
+    const here = places && cwd !== undefined ? { ...places, cwd } : undefined;
+    if (simple.words[0] === "cd") {
+      cwd = cdCarriesOn
+        ? PathChecker.init(here).cdTargetOf(simple.words[1])
+        : undefined;
+    }
+    const verdict = verdictOf(simple, {
+      mode,
+      dryRuns,
+      places: here,
+      spreadsheetTargets,
+    });
+    return { words: simple.words, verdict };
+  });
 }
 
 // A runner step told how to retry doesn't halt; any other call stays unclassified.

@@ -960,6 +960,12 @@ describe("free reads and standing yeses in both modes", () => {
     ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
   });
 
+  it("allows the prompt scan as a read", () => {
+    ["npm run prompt:scan", "npm run -s prompt:scan -- --sessions 20"].forEach(
+      (command) => expect(decisionOf(command)).toBe("allow"),
+    );
+  });
+
   it("leaves other gh label calls to Claude Code", () => {
     expect(decisionOf("gh label create urgent")).toBeUndefined();
     expect(decisionOf("gh label delete urgent")).toBeUndefined();

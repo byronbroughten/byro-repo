@@ -37,6 +37,10 @@ Mechanics of the Claude Code hooks and project agent. Why they are shaped this w
 
 **Never suggest `/logout`**, which can revoke the stored refresh token; switch Claude accounts with `/login` or `cswap`.
 
+## Cutting permission prompts
+
+**Cut a permission prompt with [`/prompt-scan`](../.claude/skills/prompt-scan/SKILL.md), not the built-in `/fewer-permission-prompts`.** The tier gate answers a Bash call before Claude Code's allow rules, so a `permissions.allow` Bash rule reaches only a call the gate leaves to Claude Code, and never a runner step.
+
 ## Seeing what a hook sees
 
 To see what a hook sees, run `npm run session:probe -- <folder>`: it starts a one-turn headless session there with its own SessionStart hook added through `--settings`, and prints `$CLAUDE_PROJECT_DIR`, the hook's cwd and its input. For anything else a hook can see, extend `runner/src/SessionProbe.ts`.

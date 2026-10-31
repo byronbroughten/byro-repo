@@ -41,6 +41,7 @@
     "issue:release": "node scripts/runner/issue.ts release",
     "outcome:backfill": "node scripts/runner/outcomeBackfill.ts",
     "outcome:summary": "node scripts/runner/outcomeSummary.ts",
+    "prompt:scan": "node scripts/promptScan/promptScan.ts",
     "runner": "node scripts/runner/run.ts",
     "runner:tmux": "bash scripts/runner/tmux.sh",
     "session:probe": "node scripts/runner/sessionProbe.ts",
