@@ -34,6 +34,7 @@ import {
 } from "../IssueWorkspaces.ts";
 import { type MergeMasterRecord } from "../mergeMasterStep.ts";
 import { type ResolveRecord, whatReviewCaughtOf } from "../resolveStep.ts";
+import { hasUndecidedItems } from "../reviewList.ts";
 import type { Finding } from "../reviewStep.ts";
 import type { Command, RunKnobs } from "../runKnobs.ts";
 import { SchemaFailure } from "../SchemaFailure.ts";
@@ -499,18 +500,18 @@ export function reviewFactsOf({
   mergeMasterRecord,
   unrecordedMerge,
 }: TicketState): ReviewFacts {
-  const proposals = resolveRecords.filter(
-    ({ verdict }) => verdict === "propose",
-  ).length;
   const facts: ReviewFacts = {
     reviewFixes: resolver ?? "none",
     whatReviewCaught: whatReviewCaughtOf(resolveRecords),
-    proposals,
+    proposals: resolveRecords.filter(({ verdict }) => verdict === "propose")
+      .length,
   };
-  // The merge with master is a Propose on the review list too.
-  const hasMergeItem =
-    mergeMasterRecord !== undefined || unrecordedMerge !== undefined;
-  if (proposals > 0 || hasMergeItem) facts.hasUndecidedReviewItems = true;
+  const review = {
+    records: resolveRecords,
+    mergeMasterRecord,
+    unrecordedMerge,
+  };
+  if (hasUndecidedItems(review)) facts.hasUndecidedReviewItems = true;
   return facts;
 }
 
@@ -526,6 +527,10 @@ export function ticketStateOf(run: Run, ticket: IssueRef): TicketState {
   const key = issueLabelOf(ticket);
   run.state.tickets[key] ??= { step: "implement", sessions: [] };
   return run.state.tickets[key];
+}
+
+export function isLanded(run: Run, ticket: IssueRef): boolean {
+  return run.state.tickets[issueLabelOf(ticket)]?.step === "landed";
 }
 
 export function targetsRefusalOf(

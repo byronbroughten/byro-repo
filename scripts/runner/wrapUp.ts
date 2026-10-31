@@ -11,7 +11,11 @@ import {
   issueLabelOf,
   workspaceLabelOf,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
-import { type ParentCheck, WrapUp } from "@byronbroughten/spec-runner/WrapUp";
+import {
+  leftOpenLineOf,
+  type ParentCheck,
+  WrapUp,
+} from "@byronbroughten/spec-runner/WrapUp";
 import { WrapUpFailure } from "@byronbroughten/spec-runner/WrapUpFailure";
 
 import { nearestClaudeAncestor } from "./claudeAncestor.ts";
@@ -61,11 +65,7 @@ async function landIssue(args: string[]): Promise<void> {
   });
   console.log(`Landed ${issueLabelOf(issue)}: ${result.filesChanged} files.`);
   logBranchDeleteFailures(result.branchDeleteFailures);
-  if (result.isLeftOpen) {
-    console.log(
-      `${issueLabelOf(issue)} stays open: its review list has undecided items, and /judge-findings closes it once they're decided.`,
-    );
-  }
+  if (result.isLeftOpen) console.log(leftOpenLineOf(issue));
   console.log(parentLineOf(result.parent));
 }
 

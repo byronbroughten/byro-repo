@@ -32,6 +32,7 @@ import { stalePathLabelOf, stalePathsOf } from "../stalePaths.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
 import {
   idListOf,
+  isLanded,
   isLaunchable,
   landedTextOf,
   liveCeilingPhraseOf,
@@ -252,9 +253,7 @@ export class RunLoop extends SpecRunBase {
     const run = await this._startRun(specIssue);
     const openHalts = openHaltsOf(run);
     const { waits } = await this.ticketSelector._survey(run, openHalts);
-    const landed = run.tickets.filter(
-      (ticket) => run.state.tickets[issueLabelOf(ticket)]?.step === "landed",
-    );
+    const landed = run.tickets.filter((ticket) => isLanded(run, ticket));
     const current = waits.flatMap((wait) => currentTextOf(run, wait));
     const others = waits.filter(({ holder }) => holder?.kind !== "run");
     const lines = [

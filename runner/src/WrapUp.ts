@@ -77,6 +77,7 @@ export interface ParentIssue {
 export interface WrapUpGitHub {
   closeIssue(issue: IssueRef, comment: string): Promise<void>;
   parentOf(issue: IssueRef): Promise<ParentIssue | undefined>;
+  subIssuesOf(issue: IssueRef): Promise<IssueRef[]>;
   labelsOf(issue: IssueRef): Promise<string[]>;
   commentsOf(issue: IssueRef): Promise<string[]>;
 }
@@ -927,17 +928,25 @@ export class WrapUp {
   ): Promise<void> {
     const isLeftOpen =
       facts.hasUndecidedReviewItems === true &&
-      (await this._parentOf(issue)) === undefined;
+      (await this._isStandalone(issue));
     if (isLeftOpen) {
       landing.progress.isLeftOpen = true;
-      this._log(
-        `Leaving ${issueLabelOf(issue)} open: its review list has undecided items.`,
-      );
+      this._log(leftOpenLineOf(issue));
       return;
     }
     await this._withRetries(`Closing #${issue.number}`, () =>
       this.config.github.closeIssue(issue, closingCommentOf(facts)),
     );
+  }
+
+  // No parent spec and no sub-issues.
+  private async _isStandalone(issue: IssueRef): Promise<boolean> {
+    if ((await this._parentOf(issue)) !== undefined) return false;
+    const subIssues = await this._withRetries(
+      `Reading ${issueLabelOf(issue)}'s sub-issues`,
+      () => this.config.github.subIssuesOf(issue),
+    );
+    return subIssues.length === 0;
   }
 
   private async _checkParent(landing: Landing, issue: IssueRef): Promise<void> {
@@ -1039,6 +1048,11 @@ export class WrapUp {
     }
     return clonePath;
   }
+}
+
+// The wrap-up log and the CLI's result line alike.
+export function leftOpenLineOf(issue: IssueRef): string {
+  return `${issueLabelOf(issue)} stays open: its review list has undecided items, and /judge-findings closes it once they're decided.`;
 }
 
 function isDone(landing: Pick<Landing, "progress">, step: WrapUpStep): boolean {

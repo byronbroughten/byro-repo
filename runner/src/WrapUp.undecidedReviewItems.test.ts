@@ -66,6 +66,19 @@ describe("run's close step", () => {
     expect(result.isLeftOpen).toBeUndefined();
   });
 
+  it("closes an issue with sub-issues whatever its facts say", async () => {
+    github.parents.clear();
+    github.subIssues.set(ticket.number, [219]);
+    const workspace = await workspaceWith();
+    commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
+    writeFacts({ hasUndecidedReviewItems: true });
+
+    const result = await wrapUp().run(ticket);
+
+    expect(github.closed.map(({ issue }) => issue)).toEqual([ticket]);
+    expect(result.isLeftOpen).toBeUndefined();
+  });
+
   it("closes a Standalone ticket from an older facts file with Proposals but no such fact", async () => {
     github.parents.clear();
     const workspace = await workspaceWith();
