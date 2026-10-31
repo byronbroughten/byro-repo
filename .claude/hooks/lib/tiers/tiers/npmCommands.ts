@@ -98,6 +98,15 @@ export const npmCommands = {
     if (program !== "npx") return undefined;
     return npxChecks.get(tool)?.(args) ? freeWhys.check : undefined;
   },
+  // Only when `--noEmit` alone frees it, so a `--build` keeps the generic refusal.
+  npxCheckFixOf(words: string[]): string | undefined {
+    const isFixedByNoEmit =
+      words[1] === "tsc" &&
+      !words.includes("--noEmit") &&
+      npmCommands.npxCheckWhyOf([...words, "--noEmit"]);
+    if (!isFixedByNoEmit) return undefined;
+    return "`npx tsc` without `--noEmit` writes compiled files; add `--noEmit` to only type-check";
+  },
   // npm keeps a `--send` before its `--` as its own config, so only one after it reaches the chore.
   appChoreOf(words: string[]): AppChore | undefined {
     const script = npmScriptOf(words);
