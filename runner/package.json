@@ -42,6 +42,7 @@
     "./outcomeBackfill": "./src/outcomeBackfill.ts",
     "./outcomeLog": "./src/outcomeLog.ts",
     "./outcomeRowWriter": "./src/outcomeRowWriter.ts",
+    "./outcomeSummary": "./src/outcomeSummary.ts",
     "./transcriptFacts": "./src/transcriptFacts.ts",
     "./UnhandledStop": "./src/UnhandledStop.ts",
     "./WrapUp": "./src/WrapUp.ts",

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { IssueRef } from "./IssueWorkspaces.ts";
+import { modelFitTextOf } from "./modelFit.ts";
 
 const usage =
   "Usage: npm run issue:read -- <repo> <n> [--body] [--comments] [--hide-others]";
@@ -80,12 +81,7 @@ export class IssueReader {
     if (repo === undefined || !/^\d+$/.test(number ?? "")) {
       throw new Error(usage);
     }
-    const { allowedRepos } = this.config;
-    if (!allowedRepos.includes(repo)) {
-      throw new Error(
-        `Repo "${repo}" is not one of ${allowedRepos.join(", ")}`,
-      );
-    }
+    this._assertAllowed(repo);
     const unknown = flags.find((flag) => !knownFlags.includes(flag));
     if (unknown !== undefined) {
       throw new Error(`Unknown flag "${unknown}"; ${usage}`);
@@ -105,6 +101,26 @@ export class IssueReader {
       printed.push("", ...this._commentsOf(issue, hidesOthers));
     }
     return printed.join("\n");
+  }
+
+  // `npm run outcome:summary`'s Model fit line, read from a Trusted body alone.
+  async modelFitOf(issue: IssueRef): Promise<string> {
+    this._assertAllowed(issue.repo);
+    const readable = await this.config.source.readableIssueOf(issue);
+    const reason = untrustedBodyReasonOf(this.config.developer, readable);
+    if (reason !== undefined) {
+      return `not read: the body is Untrusted text, ${reason}`;
+    }
+    return modelFitTextOf(readable.body) ?? "no Model fit section";
+  }
+
+  private _assertAllowed(repo: string): void {
+    const { allowedRepos } = this.config;
+    if (!allowedRepos.includes(repo)) {
+      throw new Error(
+        `Repo "${repo}" is not one of ${allowedRepos.join(", ")}`,
+      );
+    }
   }
 
   private _bodyOf(issue: ReadableIssue): string[] {

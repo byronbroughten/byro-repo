@@ -16,15 +16,28 @@ const pairs: Record<string, Pair> = {
 
 // Undefined when the section is missing, isn't last, or names no allowed pair.
 export function pairOf(body: string): Pair | undefined {
+  const [pairLine = ""] = modelFitLinesOf(body) ?? [];
+  return pairNamed(pairLine);
+}
+
+// The pair line and its reason as one line, for `npm run outcome:summary`; undefined when the section is missing or isn't last.
+export function modelFitTextOf(body: string): string | undefined {
+  const lines = modelFitLinesOf(body);
+  if (lines === undefined || lines.length === 0) return undefined;
+  const [pairLine, ...reason] = lines;
+  if (reason.length === 0) return pairLine;
+  return `${pairLine}: ${reason.join(" ")}`;
+}
+
+function modelFitLinesOf(body: string): string[] | undefined {
   const sections = body.split(/^(?=## )/m);
   const last = sections.at(-1) ?? "";
   if (!last.startsWith(sectionHeading)) return undefined;
-  const [pairLine = ""] = last
+  return last
     .slice(sectionHeading.length)
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line !== "");
-  return pairNamed(pairLine);
 }
 
 export function pairNamed(name: string): Pair | undefined {

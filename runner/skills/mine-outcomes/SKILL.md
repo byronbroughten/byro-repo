@@ -1,62 +1,69 @@
 ---
 name: mine-outcomes
-description: "Turn a landed spec's outcome-log rows into model-fit and process proposals phrased as changes to named runner knobs, offer /retro on the outlier tickets, then clear the spec's rows. Invoked as /mine-outcomes <repo> #<spec>."
+description: "Turn landed specs' outcome-log rows into model-fit and process proposals phrased as changes to named runner knobs, offer /retro on the outlier tickets, then clear the mined sections. Invoked as /mine-outcomes <repo> #<spec>, --recent <N> or --all."
 disable-model-invocation: true
 ---
 
-`/mine-outcomes <repo> #<spec>` reads what a landed spec's tickets cost and how they went, and turns it into proposals, so the outcome log stays short and its lessons are kept as changes. Its words (Halt, Propose) are in [`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md); the Result strings (Pass, Fix (resumed implementer), Fix (fresh resolver)) are `resultByReviewFixes` in [`runner/src/outcomeLog.ts`](../../../runner/src/outcomeLog.ts).
+`/mine-outcomes` reads what landed specs' tickets cost and how they went, and turns it into proposals, so the outcome log stays short and its lessons are kept as changes. Its words (Halt, Propose) are in [`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md); the Result strings (Pass, Fix (resumed implementer), Fix (fresh resolver)) are `resultByReviewFixes` in [`runner/src/outcomeLog.ts`](../../../runner/src/outcomeLog.ts).
 
-## 1. Read the section
+## 1. Read the summary
 
-The spec's section is the folder `docs/agents/outcomes/<spec repo>-<spec n>/`, one file per landed ticket, each holding a one-row table ([`docs/agents/model-fit.md#outcome-log`](../../../docs/agents/model-fit.md#outcome-log)). Read every file in it. With no folder, say so and stop.
+The batch is the spec sections the invocation names; a section is the folder `docs/agents/outcomes/<spec repo>-<spec n>/`, one row file per landed ticket ([`docs/agents/model-fit.md#outcome-log`](../../../docs/agents/model-fit.md#outcome-log)). Run the summary for it:
 
-- The columns are `columns` in `outcomeLog.ts`. A file written before #297 heads Proposals `Defers`, one before #364 says `Fix` for Fix (resumed implementer) and `Triage fix` for Fix (fresh resolver), and one before the #213 addendum calls Fix (fresh resolver) `Handoff fix`. Read each by the new names. One before #330 has a Limit used column; ignore it.
-- `unrecorded` is a missing fact. Leave it out of a sum or a median and say how many rows each figure rests on. Never guess one.
-- Peak context lists one peak per implementer session, in order: `150K → 90K` is a handoff. A row's **peak sum** adds them.
+| Invocation | Command | Batch |
+| --- | --- | --- |
+| `/mine-outcomes <repo> #<spec>` | `npm run outcome:summary -- <repo>-<spec>` | that one section |
+| `/mine-outcomes --recent <N>` | `npm run outcome:summary -- --recent <N>` | the N sections whose newest row landed most recently, by that row's commit date |
+| `/mine-outcomes --all` | `npm run outcome:summary -- --all` | every section; the legacy log is never mined |
 
-Read the knobs the proposals will name: `defaultRunKnobs` in [`runner/src/runKnobs.ts`](../../../runner/src/runKnobs.ts), laid over by `scripts/runner/runner.config.json`, and the pair criteria in [`docs/agents/model-fit.md#criteria-for-each-pair`](../../../docs/agents/model-fit.md#criteria-for-each-pair). For each ticket, read its `## Model fit` section with `npm run issue:read -- <repo> <n>`.
+When it names no section, say so and stop. The summary is what you read in place of the row files and each ticket's `issue:read`. It already reads older rows under today's names, leaves `unrecorded` out of every sum and median with the rows each figure rests on, and sums each row's peaks (`150K → 90K` is a handoff, its peak sum 240K). It gives:
 
-## 2. Transcripts
+- review's share of cost for the batch, each repo and each spec: the sum of Review cost over the sum of Cost and Review cost, on rows recording both, rows with an older Triage cost column left out;
+- each repo's medians per file changed, pooled over the batch;
+- per spec, each row's figures, its outliers with the rules they trip and their session ids, and each ticket's Model fit pair line and reason;
+- the expired, partly expired and never-recorded transcripts.
 
-A row's transcripts are the `<session id>.jsonl` files its Session ids name, under `~/.claude/projects/*/` or `~/.claude-swap-backup/sessions/*/projects/*/`. A row is **expired** when none of its listed session files is found, and **partly expired** when some are missing. One whose Session ids is `unrecorded` never had any. Name all three kinds by issue number. They still count in every aggregate below; only `/retro` needs a transcript.
+Read the knobs the proposals will name: `defaultRunKnobs` in [`runner/src/runKnobs.ts`](../../../runner/src/runKnobs.ts), laid over by `scripts/runner/runner.config.json`, and the pair criteria in [`docs/agents/model-fit.md#criteria-for-each-pair`](../../../docs/agents/model-fit.md#criteria-for-each-pair).
 
-## 3. Outliers
+## 2. Outliers
 
-A row is an outlier when any of these holds. Name every rule it trips:
+The summary flags a row an outlier on each of these rules, naming every one it trips:
 
 - Result is `Fix (resumed implementer)`, `Fix (fresh resolver)` or `Halted then passed (<kind>)`.
 - Retries is above 0.
 - **Over budget**: its peak sum is above `ticketBudget`. A ticket with a handoff counts, since its peaks are summed.
-- **Long or costly for its size**: Duration or Cost per file changed is more than twice the spec's median of that figure, on a spec with at least three rows recording it.
+- **Long or costly for its size**: Duration or Cost per file changed is more than twice the median of that figure over the batch's rows in the same repo, with at least three rows recording it.
 
-## 4. Proposals
+A row is **expired** when none of its Session ids has a transcript under `~/.claude/projects/*/` or `~/.claude-swap-backup/sessions/*/projects/*/`, and **partly expired** when some are missing; one whose Session ids is `unrecorded` never had any. They still count in every figure; only `/retro` needs a transcript.
 
-Make two kinds. Each names the knob, criterion or file it would change, the change, and the rows behind it by issue number:
+For each outlier, and each row a pattern below rests on, read its What review caught from its row file, `docs/agents/outcomes/<spec repo>-<spec n>/<repo>-<n>.md`.
+
+## 3. Proposals
+
+Make two kinds. Each names the knob, criterion or file it would change, the change, and the rows behind it by issue number; the rows may come from any spec in the batch:
 
 - **Model-fit boundary**: move a ticket shape from one pair to another in a criterion of `model-fit.md`, or change `resolverPair`, `gapCheckPair`, `ticketBudget` or `liveCeiling`. Compare each ticket's pair and its Model fit reason with its Result, peak sum and cost. A pair that passed first try on a shape its criterion puts higher is evidence for moving the boundary down. A cheaper pair that needed a Fix is evidence against.
 - **Process**: one in one of the categories in `/retro` ([`.claude/skills/retro/SKILL.md`](../../../.claude/skills/retro/SKILL.md)), drawn mainly from What review caught. The same kind of catch on two or more tickets is a proposal. Name the knob when one fits, such as `maxTurns.<step>`, `wallClockMs.<step>`, `skillNames.review` or `reviewListCadence`. Otherwise name the doc or check to change.
 
 A pattern on one row is not a proposal; leave it to `/retro`.
 
-Report review's share of cost: the sum of Review cost over the sum of Cost and Review cost, on the rows where both are recorded, as a percentage with the row count. Review cost is the review and resolve sessions; Cost is the implementer sessions alone. Leave out older rows with a Triage cost column instead: theirs is triage alone, with the fixer counted under Cost.
-
-## 5. Present
+## 4. Present
 
 In one message, give:
 
-1. Review's share of cost.
+1. Review's share of cost, for the batch, then each repo and spec, each with its row count.
 2. The proposals, model fit first, each with its knob, change and rows.
-3. The outliers, each with the rules it trips. Offer `/retro` on each that has transcripts, naming its session ids and any that are missing.
+3. The outliers by spec, each with the rules it trips. Offer `/retro` on each that has transcripts, naming its session ids and any that are missing.
 4. The expired and partly expired rows, and the rows that never had transcripts.
 
-Then ask which proposals to file. File each one the developer picks with `gh issue create -R <owner>/<repo>`, resolving `<repo>` the way [`docs/agents/issue-tracker.md`](../../../docs/agents/issue-tracker.md) does, as a standalone issue whose body links the spec as `<owner>/<repo>#<spec>`. A ticket for an agent ends with the `## Model fit` section [`docs/agents/model-fit.md`](../../../docs/agents/model-fit.md) asks for.
+Then ask which proposals to file. File each one the developer picks with `gh issue create -R <owner>/<repo>`, resolving `<repo>` the way [`docs/agents/issue-tracker.md`](../../../docs/agents/issue-tracker.md) does, as a standalone issue whose body links each spec its rows come from as `<owner>/<repo>#<spec>`. A ticket for an agent ends with the `## Model fit` section [`docs/agents/model-fit.md`](../../../docs/agents/model-fit.md) asks for.
 
-## 6. Clear the section
+## 5. Clear the batch
 
-Only once the developer has seen step 5, and has answered on filing and on `/retro`, ask whether to clear the section. A `/retro` they want first goes ahead of the clearing. Git history keeps the files after that. On a yes:
+Only once the developer has seen step 4, and has answered on filing and on `/retro`, ask once whether to clear every section in the batch. A `/retro` they want goes ahead of the question. Git history keeps the files after that. On a yes:
 
-1. Open a session workspace ([`docs/agents/git-workflow.md#a-skills-session-workspace`](../../../docs/agents/git-workflow.md#a-skills-session-workspace)) named `mine-outcomes-<spec repo>-<spec n>`.
-2. `git rm -r docs/agents/outcomes/<spec repo>-<spec n>`, then commit: `Clear the <spec repo>#<spec n> outcome rows after mining.`
+1. Open one session workspace ([`docs/agents/git-workflow.md#a-skills-session-workspace`](../../../docs/agents/git-workflow.md#a-skills-session-workspace)) named `mine-outcomes-<spec repo>-<spec n>`, `mine-outcomes-recent-<N>` or `mine-outcomes-all`, after the invocation.
+2. `git rm -r` each mined section's folder, then make one commit: `Clear the <spec repo>#<spec n>, … outcome rows after mining.`, listing every spec.
 3. Land it.
 
-On a no, leave the folder; a later run mines it again.
+On a no, leave the folders; a later run mines them again.

@@ -50,6 +50,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `outcomeBackfill.ts` | `outcomeBackfill` | A one-off chore's core: rewrites written outcome rows' transcript facts from a run state's sessions. |
 | `outcomeLog.ts` | `outcomeLog` | The outcome row file's path, table and commit message, and a written row's transcript cells. |
 | `outcomeRowWriter.ts` | `outcomeRowWriter` | Writes a ticket's outcome row from its facts file. |
+| `outcomeSummary.ts` | `outcomeSummary` | `npm run outcome:summary`'s core: picks spec sections of the outcome log and reports their costs, outliers, transcripts and Model fit for `/mine-outcomes`. |
 | `PidLock.ts` | | The pid lock file `LandingLock` and `RunLock` extend. |
 | `processStart.ts` | | A process's start time, for leases and supervision records. |
 | `progressLines.ts` | | The progress-log lines, written and parsed in pairs. |

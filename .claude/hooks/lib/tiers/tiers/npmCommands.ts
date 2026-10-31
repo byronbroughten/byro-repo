@@ -27,6 +27,7 @@ const freeScripts = new Map<string, string>([
   ["jev", freeWhys.jev],
   ["jev:style", freeWhys.jev],
   ["outline", "it only reads a file"],
+  ["outcome:summary", "it only reads the outcome log and issues"],
   [
     "session:probe",
     "its one-turn session only reports what the folder's hooks see",
