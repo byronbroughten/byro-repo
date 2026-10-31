@@ -104,7 +104,7 @@ const interpreters = {
   pythonInlineFlag: /^-[a-zA-Z]*c/,
   python: new Set(["python", "python3"]),
   nodeWhy:
-    "runs code that isn't a scratch helper: `node` runs only scratch helpers, in `$TMPDIR`, `/tmp` or a gitignored folder of the workspace, and a script being built runs through its tests or its `npm run` alias",
+    "runs code that isn't a scratch helper: `node` runs only scratch helpers, in `$TMPDIR`, `/tmp` or a gitignored folder of the workspace, and a script being built runs through its tests, or through its `npm run` alias only when that alias is in `freeScripts` in `.claude/hooks/lib/tiers/tiers/npmCommands.ts`; any other script asks",
   // A deny, not an ask: the way through is free, so asking would only interrupt the developer.
   inlineWhy:
     "inline code is refused because the gate can't read it; read JSON with `jq`, or write a scratch helper in `$TMPDIR` and run `node` on it",
@@ -549,10 +549,17 @@ function freeScriptVerdictOf({ words }: SimpleCommand): Verdict | undefined {
   return { permissionDecision: "allow", why: freeWhy };
 }
 
-function npxCheckVerdictOf({ words }: SimpleCommand): Verdict | undefined {
+// A runner step's npx check missing only `--noEmit` is refused naming it, as that way through is free; an Interactive session's falls through to Claude Code's allow rules.
+function npxCheckVerdictOf(
+  { words }: SimpleCommand,
+  { mode }: CallContext,
+): Verdict | undefined {
   const checkWhy = npmCommands.npxCheckWhyOf(words);
-  if (!checkWhy) return undefined;
-  return { permissionDecision: "allow", why: checkWhy };
+  if (checkWhy) return { permissionDecision: "allow", why: checkWhy };
+  const fix =
+    mode === "runnerStep" ? npmCommands.npxCheckFixOf(words) : undefined;
+  if (!fix) return undefined;
+  return { permissionDecision: "deny", why: fix };
 }
 
 // node runs a scratch helper, in $TMPDIR, /tmp or gitignored in the workspace, at tier 1; inline code is refused, naming the way through; any other node is tier 3.

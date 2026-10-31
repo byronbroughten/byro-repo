@@ -98,6 +98,16 @@ export const npmCommands = {
     if (program !== "npx") return undefined;
     return npxChecks.get(tool)?.(args) ? freeWhys.check : undefined;
   },
+  // The fix for an `npx tsc` that `--noEmit` alone would make free, or undefined for any other words.
+  npxCheckFixOf([program, tool = "", ...args]: string[]): string | undefined {
+    const isFixedByNoEmit =
+      program === "npx" &&
+      tool === "tsc" &&
+      !args.includes("--noEmit") &&
+      npxChecks.get(tool)?.([...args, "--noEmit"]);
+    if (!isFixedByNoEmit) return undefined;
+    return "`npx tsc` without `--noEmit` writes compiled files; add `--noEmit` to only type-check";
+  },
   // npm keeps a `--send` before its `--` as its own config, so only one after it reaches the chore.
   appChoreOf(words: string[]): AppChore | undefined {
     const script = npmScriptOf(words);

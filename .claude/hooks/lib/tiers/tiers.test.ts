@@ -513,6 +513,15 @@ describe("stdout filters and wrappers", () => {
       "npx vitest run --outputFile /outside/report",
     ].forEach((command) => expect(decisionOf(command)).not.toBe("allow"));
   });
+
+  it("refuses a runner step's `npx tsc` without `--noEmit`, saying to add it", () => {
+    ["npx tsc", "npx tsc -p tsconfig.json"].forEach((command) => {
+      const decision = placedDecisionOf(command, "runnerStep");
+      expect(decision?.permissionDecision).toBe("deny");
+      expect(decision?.reason).toContain("add `--noEmit`");
+      expect(decision?.reason).not.toContain(blockerInstead);
+    });
+  });
 });
 
 describe("file writes by the step write rule", () => {
@@ -628,7 +637,7 @@ describe("interpreters", () => {
     expect(decision?.reason).toContain("`node` runs only scratch helpers");
   });
 
-  it("asks for node on a tracked file, new or committed, saying node runs only scratch helpers", () => {
+  it("asks for node on a tracked file, new or committed, naming where the free scripts are listed and that any other script asks", () => {
     [
       "node scripts/tool.ts",
       "node scripts/new.ts",
@@ -638,8 +647,9 @@ describe("interpreters", () => {
       expect(decision?.permissionDecision).toBe("ask");
       expect(decision?.reason).toContain("`node` runs only scratch helpers");
       expect(decision?.reason).toContain(
-        "a script being built runs through its tests or its `npm run` alias",
+        "`freeScripts` in `.claude/hooks/lib/tiers/tiers/npmCommands.ts`",
       );
+      expect(decision?.reason).toContain("any other script asks");
     });
   });
 
