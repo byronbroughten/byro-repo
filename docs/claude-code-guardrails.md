@@ -43,4 +43,4 @@ To see what a hook sees, run `npm run session:probe -- <folder>`: it starts a on
 
 ## Per-session state
 
-Per-session state lives in `$TMPDIR/claude-guardrails/`, keyed by session id: the branch record, the read log, the chore dry runs, the Drive owner cache, a marker for each doc the read-first rows record, and whether the AGENTS.md cost reminder and the context nudge fired. Supervision records and the facts file's session records live under `.runner/`, as their hooks' bullets say, and a workspace's lease is a `workspace.lease` file in its root worktree's git folder (`runner/src/IssueWorkspaces.ts`).
+Per-session state lives in `$TMPDIR/claude-guardrails/`, keyed by session id: the branch record, the read log, the chore dry runs, the Drive owner cache, a marker for each doc the read-first rows record, and whether the AGENTS.md cost reminder and the context nudge fired. Supervision records and the facts file's session records live under `.runner/`, as their hooks' bullets say, and a workspace's lease is a `workspace.lease` file in its root worktree's git folder (`runner/src/IssueWorkspaces/WorkspaceLeaser.ts`).

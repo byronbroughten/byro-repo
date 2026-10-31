@@ -36,7 +36,11 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `implementCodeSkill.ts` | `implementCodeSkill` | Generates the `/implement-code` skill from the implement step's shared body. |
 | `implementStep.ts` | `implementStep` | The implement step's prompt, record, handoff comment and record checks. |
 | `IssueReader.ts` | `IssueReader` | `npm run issue:read`: prints an issue as Trusted and Untrusted text, and reads a Trusted body's Model fit line for `npm run outcome:summary`. |
-| `IssueWorkspaces.ts` | `IssueWorkspaces` | Creates, promotes, resumes, leases, lists and removes issue and session workspaces. |
+| `IssueWorkspaces.ts` | `IssueWorkspaces` | Creates, promotes, resumes, leases, lists and removes issue and session workspaces, delegating to `IssueWorkspaces/`. |
+| `IssueWorkspaces/IssueWorkspacesBase.ts` | | The Base `IssueWorkspaces` and its collaborators share: the config, finding a workspace's folder by key and the free-lease check. |
+| `IssueWorkspaces/WorkspaceBuilder.ts` | | Builds, finds, promotes, resumes and removes workspaces and seeds their dependencies. |
+| `IssueWorkspaces/WorkspaceLeaser.ts` | | Takes, releases and reads workspace leases. |
+| `IssueWorkspaces/workspaceTypes.ts` | | The workspace, key and lease types and the helpers callers and collaborators share. |
 | `issueWorkspacesHarness.ts` | | The fixture `IssueWorkspaces` tests share. |
 | `LandingLock.ts` | `LandingLock` | The per-primary lock wrap-up lands under. |
 | `LeaseHeld.ts` | | The error for another holder's live workspace lease. |
@@ -54,7 +58,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `outcomeSummary/OutcomeReport.ts` | | Words the outcome summary for a batch of sections. |
 | `outcomeSummary/summarySections.ts` | | Reads the outcome log's spec sections from row files and picks the batch. |
 | `PidLock.ts` | | The pid lock file `LandingLock` and `RunLock` extend. |
-| `processStart.ts` | | A process's start time, for leases and supervision records. |
+| `processIdentity.ts` | | A process named by its pid and start time, for leases and supervision records. |
 | `progressLines.ts` | | The progress-log lines, written and parsed in pairs. |
 | `promptText.ts` | | Wording helpers the step prompts share. |
 | `recordSchema.ts` | | Schema parts the step records share, and their validator. |
