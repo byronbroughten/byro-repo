@@ -160,10 +160,12 @@ export function stateFolder(): string {
   return join(temp, "state");
 }
 
-// The gap check finds no gaps unless a test passes its own agentStep to script it; an idle run stops at its first poll.
+// The gap check finds no gaps unless a test passes its own agentStep to script it; an idle run stops at its first poll,
+// through a stop request on each of `members`, the spec unless a Batch test names its own.
 export function specRun(
   agentStep: FakeAgentStep,
   overrides: Partial<SpecRunConfig> = {},
+  members: IssueRef[] = [spec],
 ): SpecRun {
   const withGapCheck: AgentStep = {
     run: async (request) =>
@@ -196,7 +198,10 @@ export function specRun(
     configFolder: "/config/account-1",
     wrapUpKnobs: { backoffMs: 1, lockPollMs: 1 },
     async sleep(ms) {
-      if (ms === knobs.idlePollMs) run.requestStop(spec);
+      if (ms !== knobs.idlePollMs) return;
+      members.forEach((member) => {
+        run.requestStop(member);
+      });
     },
     ...overrides,
   });

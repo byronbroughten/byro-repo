@@ -74,6 +74,9 @@ export interface RunResult {
   message: string;
 }
 
+// A run's member issues in typed order; non-empty, so the run always has a first member to tell what concerns it as a whole.
+export type MemberList = [IssueRef, ...IssueRef[]];
+
 export interface ReviewOptions {
   // The interactive session's, which may hold the workspace's lease.
   holder?: LeaseHolder;
@@ -585,11 +588,11 @@ export function onlyDeveloperEditsTextOf(
   return `Only ${developer} may write or edit ${bodies}`;
 }
 
-export function rerunCommandOf(
-  owner: string,
-  { repo, number }: IssueRef,
-): string {
-  return `npm run runner -- ${owner}/${repo} ${number}`;
+// Every member is in one repo, the first's.
+export function rerunCommandOf(owner: string, ...members: MemberList): string {
+  const [{ repo }] = members;
+  const numbers = members.map(({ number }) => number).join(" ");
+  return `npm run runner -- ${owner}/${repo} ${numbers}`;
 }
 
 export function openHaltsOf(run: Run): Halt[] {
