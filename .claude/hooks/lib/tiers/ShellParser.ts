@@ -1,4 +1,5 @@
 // Parses a Bash command into its simple commands, for the tier gate, the branch guard and BashReads; throws on an unbalanced quote.
+import { type Heredoc, HeredocScanner } from "./HeredocScanner.ts";
 import { closingQuoteOf, SubstitutionScanner } from "./SubstitutionScanner.ts";
 
 const wrappers = new Set([
@@ -68,6 +69,19 @@ export class ShellParser {
     return SubstitutionScanner.init(this._withoutHeredocBodies).layers.flatMap(
       (layer) => ShellParser.init(layer).simpleCommands,
     );
+  }
+  // Undefined unless the heredoc scan strips the bodies the text match does; beside a heredoc, a substitution, `${…}`, `$'…'` or `((` nests quotes or `<<` in ways that scan doesn't follow.
+  get heredocs(): Heredoc[] | undefined {
+    let scan;
+    try {
+      scan = HeredocScanner.init(this.command).scan;
+    } catch {
+      return undefined;
+    }
+    if (scan.withoutBodies !== this._withoutHeredocBodies) return undefined;
+    const hasNesting = /\$[({']|`|\(\(/.test(scan.withoutBodies);
+    if (scan.heredocs.length > 0 && hasNesting) return undefined;
+    return scan.heredocs;
   }
   // Every operator `&&` and no word holding a substitution, so each command runs only once all before it succeeded, in the same shell.
   get isAndList(): boolean {

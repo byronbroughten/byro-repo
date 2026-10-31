@@ -60,7 +60,7 @@ export interface TargetEntry {
 export interface Verdict {
   permissionDecision: Decision["permissionDecision"];
   why: string;
-  // Allowed only in a command with no heredoc or $'…' to hide another behind it.
+  // Allowed only in a command with no heredoc bash may expand, nor $'…', to hide another behind it.
   needsPlainText?: boolean;
   // A runner step's way past the plain-text check, said instead of recording a blocker.
   plainTextFix?: string;
@@ -198,16 +198,24 @@ function baseDecision(call: ShellCall): Decision | undefined {
   if (ask) {
     return needsYes(`\`${command}\` ${ask.why}`);
   }
-  // It strips heredoc bodies and misreads $'…', so either could hide a command or a substitution after one.
-  if (
-    (hasSubstitution || verdicts.some((verdict) => verdict?.needsPlainText)) &&
-    /<<|\$'/.test(command)
-  ) {
-    return plainTextRefusalOf(
+  // It strips heredoc bodies and misreads $'…', so either could hide a command or a substitution after one; a body the heredoc scan confirms, behind a quoted delimiter, hides neither.
+  if (/<<|\$'/.test(command)) {
+    const refusal = plainTextRefusalOf(
       verdicts,
       mode,
       "a heredoc or `$'…'` could hide a command",
     );
+    if (refusal) return refusal;
+    const { heredocs } = ShellParser.init(command);
+    if (!heredocs) return undefined;
+    const isPlainText =
+      !/\$'/.test(command) && heredocs.every(({ isQuoted }) => isQuoted);
+    if (
+      !isPlainText &&
+      (hasSubstitution || verdicts.some((verdict) => verdict?.needsPlainText))
+    ) {
+      return undefined;
+    }
   }
   if (!verdicts.every((verdict) => verdict?.permissionDecision === "allow")) {
     return undefined;

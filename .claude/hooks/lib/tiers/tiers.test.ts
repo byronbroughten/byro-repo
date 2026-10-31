@@ -416,6 +416,33 @@ describe("reads and git add", () => {
     ].forEach((command) => expect(decisionOf(command)).not.toBe("allow"));
   });
 
+  it("reads a heredoc behind a quoted delimiter as plain text, since bash expands nothing in its body", () => {
+    [
+      "cat > /tmp/s372/a.md <<'EOF'\nA `code` span, a | pipe and $(rm -rf dist)\nEOF",
+      'cd /tmp/s372 && cat > a.md <<"EOF"\n# Title; with a ( paren\nEOF',
+      "cat > /tmp/s372/a.md <<'EOF'\nx\nEOF\ngrep x /tmp/s372/a.md",
+      "cat <<<'one line'",
+    ].forEach((command) =>
+      expect(placedDecisionOf(command)?.permissionDecision).toBe("allow"),
+    );
+  });
+
+  it("allows no heredoc bash may expand, nor one its scan reads differently from the text match", () => {
+    [
+      "cat <<EOF\nhi\nEOF",
+      "git commit -m x <<< y\ngit push",
+      "git commit -m x <<< y\nrm -rf /outside",
+      "git commit -m x # <<'EOF'\ngit push\nEOF",
+      "echo '<<EOF'\nrm -rf /outside\nEOF",
+      "cat <<'EOF' \\\n> /tmp/s372/a.md\nbody\nEOF",
+      'echo "$(echo " <<\'X\'")"\nrm -rf /outside\nX',
+      'echo "${a:-" <<\'X\'"}"\nrm -rf /outside\nX',
+      'echo $((1<<"2"))\nrm -rf /outside\n2',
+    ].forEach((command) =>
+      expect(placedDecisionOf(command)?.permissionDecision).not.toBe("allow"),
+    );
+  });
+
   it("allows a free read whose substitutions hold only free reads, quoted or not", () => {
     [
       'echo "#488: $(cat AGENTS.md)"',
@@ -857,6 +884,7 @@ describe("a runner step's gh calls", () => {
   it("denies a write whose body could hide a command, naming --body-file instead of a blocker", () => {
     [
       "gh issue comment 447 --body-file - <<EOF\nok\nEOF",
+      "gh issue comment 447 --body-file - <<'EOF'\nok\nEOF",
       'gh issue comment 447 --body "Fails at `Api.ts`"',
       'gh issue edit 447 --body "$(cat notes.md)"',
       "gh issue comment 447 --body `cat notes.md`",

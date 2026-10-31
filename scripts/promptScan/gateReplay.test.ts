@@ -32,7 +32,7 @@ describe("gateReplayOf", () => {
   });
 
   it("says when every part is free but a heredoc leaves the call to Claude Code", () => {
-    const replay = replayOf("cat <<'EOF'\nhi\nEOF");
+    const replay = replayOf("cat <<EOF\nhi\nEOF");
     expect(replay.outcome).toBe("unclassified");
     expect(replay.why).toMatch(/heredoc/);
   });
