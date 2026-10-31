@@ -27,6 +27,10 @@ const readableIssueFields = `${trackedIssueFields}
       timelineItems(itemTypes: [RENAMED_TITLE_EVENT], last: 1) { nodes { ... on RenamedTitleEvent { actor { login } } } }
       comments(first: 100) { pageInfo { hasNextPage } nodes { author { login } body } }`;
 
+const editCommentMutation = `mutation($id: ID!, $body: String!) {
+  updateIssueComment(input: { id: $id, body: $body }) { issueComment { id } }
+}`;
+
 interface RawLogin {
   login?: unknown;
 }
@@ -168,6 +172,20 @@ export class GhCli implements RunGitHub, IssueSource {
       if (typeof body !== "string") return [];
       return [{ id: String(id), author: String(author?.login ?? ""), body }];
     });
+  }
+
+  // GraphQL, because `gh issue view --json comments` gives node ids, which the REST comment PATCH doesn't take.
+  async editComment(id: string, body: string): Promise<void> {
+    await this.gh(
+      "api",
+      "graphql",
+      "-f",
+      `id=${id}`,
+      "-f",
+      `body=${body}`,
+      "-f",
+      `query=${editCommentMutation}`,
+    );
   }
 
   // GitHub answers 404 for an issue with no parent.

@@ -1,15 +1,16 @@
 // The review list: a ticket's resolve records by axis then verdict, its Proposals as R items, its agreed Dismisses in a
 // collapsed audit, each departure from a suggested verdict with its why; a run posts it on the spec, a session prints it.
 // Also the gap check's comment in the same format, the note a `covered-later` Dismiss leaves on its later ticket,
-// and the count of undecided items the end-of-run push gives. The runner only creates these; /judge-findings edits them.
+// and the count of undecided items the end-of-run push gives, and the edit `runner decide` makes to one item.
 // SpecRun/ReviewListPoster.ts posts them, TicketLander.ts calling it at landing; SpecRun/SessionReviewer.ts returns a
-// ticket's to print; gapCheck.ts supplies the gaps.
+// ticket's to print; SpecRun/ReviewItemDecider.ts edits one; gapCheck.ts supplies the gaps.
 
 import type { Gap, GapCheckRecord } from "./gapCheck.ts";
 import { shortRefOf } from "./halts.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 import type { MergeMasterRecord } from "./mergeMasterStep.ts";
 import { issueRefOf, type ResolveRecord } from "./resolveStep.ts";
+import type { IssueComment } from "./SpecRun.ts";
 import type { Axis, Verdict } from "./verdicts.ts";
 
 const markPrefix = "<!-- review-list ";
@@ -415,6 +416,76 @@ export function undecidedLineOf({
     ...(hasUndecidedGaps ? ["the gap check"] : []),
   ];
   return `review list: ${items} undecided across ${across.join(" and ")}`;
+}
+
+export type DecisionKind = "decided" | "handled";
+
+export interface ItemDecision {
+  itemId: string;
+  kind: DecisionKind;
+  text: string;
+}
+
+// Handled is for an item partly done and partly still the developer's, so only Decided ticks the box.
+const decisionLabels = {
+  decided: "Decided",
+  handled: "Handled",
+} as const satisfies Record<DecisionKind, string>;
+
+const itemHead = /^- \[[ xX]\] \*\*(R[^*\s]+)\*\*/;
+const itemLine = /^ {2}\S/;
+const decidedLine = /^ {2}Decided:/;
+
+// Undefined where the line heads no item.
+function itemIdOfLine(line: string): string | undefined {
+  return itemHead.exec(line)?.[1];
+}
+
+// The developer may tick boxes on their phone, so every other line, its line end included, stays as it was.
+export function decidedListOf({
+  body,
+  itemId,
+  kind,
+  text,
+}: ItemDecision & { body: string }): string {
+  if (/[\r\n]/.test(text)) {
+    throw new Error("A decision's text must be one line.");
+  }
+  const lines = body.split("\n");
+  const head = lines.findIndex((line) => itemIdOfLine(line) === itemId);
+  if (head < 0) throw new Error(`The review list holds no item ${itemId}.`);
+  let end = head + 1;
+  while (end < lines.length && itemLine.test(lines[end] ?? "")) end += 1;
+  if (lines.slice(head + 1, end).some((line) => decidedLine.test(line))) {
+    throw new Error(`${itemId} is already decided.`);
+  }
+  const headLine = lines[head] ?? "";
+  const lineEnd = headLine.endsWith("\r") ? "\r" : "";
+  if (kind === "decided") lines[head] = headLine.replace("- [ ] ", "- [x] ");
+  lines.splice(end, 0, `  ${decisionLabels[kind]}: ${text}${lineEnd}`);
+  return lines.join("\n");
+}
+
+// Only the developer's review lists are read, as /judge-findings reads them; anyone else's comment is Untrusted text.
+export function reviewListHoldingOf(
+  comments: IssueComment[],
+  developer: string,
+  itemId: string,
+): IssueComment {
+  const holding = comments.filter(
+    ({ body }) =>
+      body.includes(listMarkPrefix) &&
+      body.split("\n").some((line) => itemIdOfLine(line) === itemId),
+  );
+  const comment = holding.find(({ author }) => author === developer);
+  if (comment !== undefined) return comment;
+  const [other] = holding;
+  if (other !== undefined) {
+    throw new Error(
+      `Only ${other.author}'s comment holds ${itemId}, which is Untrusted text; decide edits only ${developer}'s review lists.`,
+    );
+  }
+  throw new Error(`No review list of ${developer}'s holds ${itemId}.`);
 }
 
 export function ticketPushOf(

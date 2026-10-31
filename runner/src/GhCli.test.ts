@@ -73,4 +73,13 @@ describe("GhCli writes", () => {
     await expect(cli.comment(issue, "hi")).rejects.toThrow();
     expect(calls).toHaveLength(1);
   });
+
+  it("edits a comment by the node id its comments read gives, once", async () => {
+    const { cli, calls } = scriptedGh([ghError("HTTP 504")]);
+    await expect(cli.editComment("IC_kw1", "- [x] done")).rejects.toThrow();
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toEqual(
+      expect.arrayContaining(["id=IC_kw1", "body=- [x] done"]),
+    );
+  });
 });

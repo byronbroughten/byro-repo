@@ -100,6 +100,8 @@ export interface RunGitHub extends WrapUpGitHub {
   comment(issue: IssueRef, body: string): Promise<string>;
   // Oldest first.
   authoredCommentsOf(issue: IssueRef): Promise<IssueComment[]>;
+  // Takes an id authoredCommentsOf gave.
+  editComment(id: string, body: string): Promise<void>;
 }
 
 // What an announced event adds to its notice beyond the spec and summary.
