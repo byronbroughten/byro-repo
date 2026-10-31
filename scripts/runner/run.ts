@@ -11,15 +11,15 @@
 import { readFileSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
 
-import {
-  isSameIssue,
-  type IssueRef,
-} from "@byronbroughten/spec-runner/IssueWorkspaces";
+import { type IssueRef } from "@byronbroughten/spec-runner/IssueWorkspaces";
 import { isItemId } from "@byronbroughten/spec-runner/reviewList";
 import { runBoardOf, watchBoard } from "@byronbroughten/spec-runner/runBoard";
 import { RunLock } from "@byronbroughten/spec-runner/RunLock";
 import { reviewPrintoutOf, SpecRun } from "@byronbroughten/spec-runner/SpecRun";
-import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
+import {
+  isWatching,
+  SupervisionRecords,
+} from "@byronbroughten/spec-runner/SupervisionRecords";
 
 import { nearestClaudeAncestor } from "./claudeAncestor.ts";
 import { specRunConfigOf, stateFolder } from "./runnerConfig.ts";
@@ -226,7 +226,7 @@ async function supervise(
   const records = SupervisionRecords.init(stateFolder);
   if (isAdvance) {
     const record = await records.recordOf(holder);
-    if (record === undefined || !isSameIssue(record.spec, spec)) {
+    if (record === undefined || !isWatching(record, spec)) {
       throw new Error(
         `This session doesn't supervise ${ownerRepoOf(owner, spec)}.`,
       );

@@ -1,7 +1,18 @@
+import { existsSync, readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
+import { batchEventFilePathOf, BatchRecords } from "./BatchRecords.ts";
+import {
+  EventFileNotices,
+  eventFilePathOf,
+  type EventLine,
+  eventLinesOf,
+} from "./EventFileNotices.ts";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
 import type { Blocker } from "./implementStep.ts";
+import type { IssueRef } from "./IssueWorkspaces.ts";
+import { composedNotices } from "./Notices.ts";
 import type { ResolveRecord } from "./resolveStep.ts";
 import type { Clock, MemberList, RunResult, SpecRunConfig } from "./SpecRun.ts";
 import {
@@ -18,6 +29,7 @@ import {
   reviewed,
   spec,
   specRun,
+  stateFolder,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
 
@@ -289,5 +301,182 @@ describe("run's Batch", () => {
     expect(await specRun(FakeAgentStep.init()).status(first)).toContain(
       "Open Halts: H2 on byro-repo #301.",
     );
+  });
+});
+
+function batchRecords(): BatchRecords {
+  return BatchRecords.init(stateFolder());
+}
+
+function withEventFile(): Partial<SpecRunConfig> {
+  const eventFile = EventFileNotices.init(stateFolder());
+  return { notices: composedNotices(notices, eventFile) };
+}
+
+function batchEventLines(members: IssueRef[]): EventLine[] {
+  return readFileSync(batchEventFilePathOf(stateFolder(), members), "utf8")
+    .trimEnd()
+    .split("\n")
+    .map((line) => JSON.parse(line) as EventLine);
+}
+
+describe("a Batch's record", () => {
+  it("names the members in typed order while the Batch runs, reached by any member, and is gone once it ends", async () => {
+    addIssue(first.number);
+    addIssue(second.number);
+    let held: IssueRef[] | undefined;
+    const agentStep = FakeAgentStep.init(
+      implemented("second.ts", {
+        act: () => {
+          held = batchRecords().batchOf(first)?.members;
+        },
+      }),
+      reviewed(),
+      implemented("first.ts"),
+      reviewed(),
+    );
+
+    await runBatch(agentStep, { members: [second, first] });
+
+    expect(held).toEqual([second, first]);
+    expect(batchRecords().batchOf(first)).toBeUndefined();
+  });
+
+  it("writes one event file whose every line names its member, and no member's own", async () => {
+    addIssue(first.number);
+    addIssue(second.number);
+    const agentStep = FakeAgentStep.init(
+      implemented("first.ts"),
+      reviewed(),
+      implemented("second.ts"),
+      reviewed(),
+    );
+
+    await runBatch(agentStep, {
+      members: [first, second],
+      ...withEventFile(),
+    });
+
+    const lines = batchEventLines([first, second]);
+    expect(lines.map(({ spec, kind }) => ({ spec, kind }))).toEqual([
+      { spec: "byro-repo#301", kind: "run-started" },
+      { spec: "byro-repo#302", kind: "run-started" },
+      { spec: "byro-repo#301", kind: "run-ended" },
+      { spec: "byro-repo#302", kind: "run-ended" },
+    ]);
+    expect(existsSync(eventFilePathOf(stateFolder(), first))).toBe(false);
+    expect(existsSync(eventFilePathOf(stateFolder(), second))).toBe(false);
+  });
+
+  it("isn't written for a member run alone, whose events go to its own file even after a crashed Batch left one", async () => {
+    addIssue(first.number);
+    addIssue(second.number);
+    await batchRecords().open([second, first], process.pid);
+    const agentStep = FakeAgentStep.init(implemented("first.ts"), reviewed());
+
+    await runBatch(agentStep, { members: [first], ...withEventFile() });
+
+    expect(batchRecords().batchOf(first)).toBeUndefined();
+    expect(eventLinesOf(stateFolder(), first).map(({ kind }) => kind)).toEqual([
+      "run-started",
+      "run-ended",
+    ]);
+  });
+
+  it("lets status on any member report on the whole Batch", async () => {
+    addIssue(first.number);
+    addIssue(second.number);
+    let status = "";
+    const agentStep = FakeAgentStep.init(
+      async (request) => {
+        status = await specRun(FakeAgentStep.init()).status(second);
+        return implemented("first.ts")(request);
+      },
+      reviewed(),
+      implemented("second.ts"),
+      reviewed(),
+    );
+
+    await runBatch(agentStep, { members: [first, second] });
+
+    expect(status).toContain("Batch of byro-repo #301, byro-repo #302.");
+    expect(status).toContain('byro-repo #301, "Ticket 301"');
+    expect(status).toContain('byro-repo #302, "Ticket 302"');
+  });
+
+  it("stops the whole Batch after its current ticket on a stop requested on any member", async () => {
+    [first, second, third].forEach(({ number }) => {
+      addIssue(number);
+    });
+    const agentStep = FakeAgentStep.init(
+      implemented("first.ts", {
+        act: () => {
+          specRun(FakeAgentStep.init()).requestStop(third);
+        },
+      }),
+      reviewed(),
+    );
+
+    const result = await runBatch(agentStep, {
+      members: [first, second, third],
+    });
+
+    expect(result.kind).toBe("stopped");
+    expect(result.landed).toEqual([first]);
+    expect(noticesOn(second.number).at(-1)).toContain("Stopped on request");
+    expect(noticesOn(third.number).at(-1)).toContain("Stopped on request");
+  });
+
+  it("reports a stop requested on one member in status on another", async () => {
+    addIssue(first.number);
+    addIssue(second.number);
+    let status = "";
+    const agentStep = FakeAgentStep.init(async (request) => {
+      const outside = specRun(FakeAgentStep.init());
+      outside.requestStop(first);
+      status = await outside.status(second);
+      return implemented("first.ts")(request);
+    }, reviewed());
+
+    await runBatch(agentStep, { members: [first, second] });
+
+    expect(status).toContain(
+      "A stop is requested; the Batch ends after its current ticket.",
+    );
+  });
+
+  it("keeps the member list across a Restart, and the relaunch resumes each member from its state", async () => {
+    addSpec([1, 2]);
+    addIssue(first.number);
+    const result = await runBatch(
+      FakeAgentStep.init(implemented("runner/one.ts"), reviewed()),
+      { members: [spec, first] },
+    );
+
+    expect(result.kind).toBe("restarting");
+    expect(batchRecords().batchOf(first)?.members).toEqual([spec, first]);
+
+    const relaunch = await runBatch(
+      FakeAgentStep.init(
+        implemented("two.ts"),
+        reviewed(),
+        implemented("first.ts"),
+        reviewed(),
+      ),
+      { members: [spec, first] },
+    );
+
+    expect(relaunch.kind).toBe("finished");
+    expect(relaunch.landed).toEqual([refOf(1), refOf(2), first]);
+    expect(
+      notices.sent
+        .filter(({ kind }) => kind === "run-started")
+        .map(({ spec: member, isRelaunch }) => [member.number, isRelaunch]),
+    ).toEqual([
+      [213, undefined],
+      [301, undefined],
+      [213, true],
+      [301, true],
+    ]);
   });
 });

@@ -14,6 +14,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `CLAUDE.md` | | Loads `AGENTS.md` for Claude Code. |
 | `ActiveAccountUnknown.ts` | | The Stop raised when no Active account can be read for a step. |
 | `AgentStep.ts` | `AgentStep` | The port that launches one headless `claude -p` step and its `StepResult`. |
+| `BatchRecords.ts` | | A Batch's record: its members, process and one event file, found by any member. |
 | `Checks.ts` | `Checks` | Runs `npm run check`'s commands at once, skipped on a check stamp. |
 | `ClaudeAgentStep.ts` | `ClaudeAgentStep` | The real agent-step adapter over `cswap run`, launching under the primary's gate root and settings plus an injected permission hook, with the targets' tools and environment. |
 | `clonePaths.ts` | `clonePaths` | Builds the repo map, each clone in landing order, from a primary root. |
@@ -96,7 +97,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `specRunHarness.ts` | | The fixture `SpecRun` tests share. |
 | `stalePaths.ts` | | The stale-path check for `packages/<dir>` mentions with no clone. |
 | `StepStream.ts` | | Reads a step's stream-json into its `StepResult`. |
-| `SupervisionRecords.ts` | `SupervisionRecords` | A Supervisor's record of the run it watches and the lines explained. |
+| `SupervisionRecords.ts` | `SupervisionRecords` | A Supervisor's record of the run or Batch it watches and the lines explained. |
 | `targetTools.ts` | | The tools a step gets for each of its ticket's targets. |
 | `TicketHalted.ts` | | The error raised once a ticket's Halts are posted. |
 | `ticketTargets.ts` | | Reads a ticket's `## Targets` section. |

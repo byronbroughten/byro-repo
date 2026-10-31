@@ -1,6 +1,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { batchEventFilePathOf, BatchRecords } from "./BatchRecords.ts";
 import { shortRefOf } from "./halts.ts";
 import { fileStemOf, type IssueRef } from "./IssueWorkspaces.ts";
 import {
@@ -41,10 +42,13 @@ export class EventFileNotices implements Notices {
     const line = this._lineOf(notice);
     if (line === undefined) return;
     mkdirSync(this.stateFolder, { recursive: true });
-    appendFileSync(
-      eventFilePathOf(this.stateFolder, notice.spec),
-      `${JSON.stringify(line)}\n`,
-    );
+    appendFileSync(this._pathOf(notice.spec), `${JSON.stringify(line)}\n`);
+  }
+
+  // A Batch member's line goes to the Batch's one file, its `spec` naming the member.
+  private _pathOf(spec: IssueRef): string {
+    const members = BatchRecords.init(this.stateFolder).membersOf(spec);
+    return eventStreamPathOf(this.stateFolder, members);
   }
 
   private _lineOf(notice: Notice): EventLine | undefined {
@@ -68,8 +72,22 @@ export function eventFilePathOf(stateFolder: string, spec: IssueRef): string {
   return join(stateFolder, `${fileStemOf(spec)}.events.jsonl`);
 }
 
+// A Batch's one event file, or a member alone's own.
+export function eventStreamPathOf(
+  stateFolder: string,
+  members: IssueRef[],
+): string {
+  const [lead] = members;
+  if (lead === undefined) throw new Error("An event stream has no member.");
+  if (members.length === 1) return eventFilePathOf(stateFolder, lead);
+  return batchEventFilePathOf(stateFolder, members);
+}
+
 export function rawEventLinesOf(stateFolder: string, spec: IssueRef): string[] {
-  const path = eventFilePathOf(stateFolder, spec);
+  return rawLinesAt(eventFilePathOf(stateFolder, spec));
+}
+
+export function rawLinesAt(path: string): string[] {
   if (!existsSync(path)) return [];
   return readFileSync(path, "utf8")
     .split("\n")
