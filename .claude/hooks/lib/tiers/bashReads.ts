@@ -7,6 +7,7 @@ import type { HookInput } from "../hookIo.ts";
 import { rootRelative } from "../lintSet.ts";
 import { readSheetsConfigs } from "../sheetsConfigs.ts";
 import { sedCallOf } from "./stdoutFilters.ts";
+import { substitutionLayersOf } from "./substitutionLayers.ts";
 
 export const largeFileLines = 150;
 const unguardedDirs = ["node_modules", ".git", ".probe", "dist", "coverage"];
@@ -251,6 +252,13 @@ export function simpleCommandsOf(command: string): SimpleCommand[] {
     .filter(
       ({ words, outputFiles }) => words.length > 0 || outputFiles.length > 0,
     );
+}
+
+// The simple commands of every layer of `$(…)` and backtick substitution, quoted or not, each substitution a word of its own in the layer around it; throws on one left open.
+export function substitutedCommandsOf(command: string): SimpleCommand[] {
+  return substitutionLayersOf(stripHeredocBodies(command)).flatMap(
+    simpleCommandsOf,
+  );
 }
 
 // An `npm run` script and its args; flags drop out except `--` and `--send`.
