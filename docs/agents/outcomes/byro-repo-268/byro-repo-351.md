@@ -1,7 +1,0 @@
-# byro-repo#351 outcome
-
-Spec: [byro-repo#268](https://github.com/byronbroughten/byro-repo/issues/268)
-
-| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Triage cost | What review caught | Session ids |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| #351 | unrecorded | unrecorded | 11 | unrecorded | Triage fix | 1 | 1 | 0 | unrecorded | unrecorded | unrecorded | Fixed: No test reads the runner's own posted approval comment (runner mark, then the line, then 'Approved by answering…') back through IssueReader to show `## Body (Trusted text)`. (runner/src/SpecRun.launch.test.ts:313-333; runner/src/IssueReader.test.ts); _authorshipRefusal's `bodies` parameter holds a phrase naming the bodies ('the spec and the reviewed ticket'), while the actual bodies come in `issues`. (runner/src/SpecRun/SpecRunBase.ts:288); The ticketless-spec test expects spec #213's refusal to carry `ticketApproval`, a constant named for the ticket body, so the spec appears to be approved with the ticket's hash. (runner/src/SpecRun.launch.test.ts:272 (constant at :38)). Proposed: The interactive review refusal now carries paste-ready approval lines and tells the session's agent to comment them, though the spec only asks for the line on run()'s spec refusal, printed to the terminal. (runner/src/SpecRun/SessionReviewer.ts:97 (via runner/src/SpecRun/SpecRunBase.ts:287)). | unrecorded |
