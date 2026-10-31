@@ -110,7 +110,7 @@ describe("a lease", () => {
     writeFileSync(join(workspace.path, "work.txt"), "in progress");
     await workspaces().takeLease(workspace, liveSession);
 
-    expect(await workspaces().release(workspace, liveSession)).toEqual({
+    expect(await workspaces().releaseOwnLease(workspace, liveSession)).toEqual({
       ...liveSession,
       isLive: true,
     });
@@ -127,19 +127,37 @@ describe("a lease", () => {
     await workspaces().takeLease(workspace, liveSession);
 
     await expect(
-      workspaces().release(workspace, { kind: "session", pid: process.pid }),
+      workspaces().releaseOwnLease(workspace, {
+        kind: "session",
+        pid: process.pid,
+      }),
     ).rejects.toThrow(`a session (pid ${process.ppid})`);
 
     expect(await workspaces().leaseOf(workspace)).toMatchObject(liveSession);
   });
 
+  it("is released by any caller once its holder dies, read back as abandoned", async () => {
+    const workspace = await workspaces().create({ session: "glossary-fix" });
+    const dead: LeaseHolder = { kind: "session", pid: deadPid() };
+    await workspaces().takeLease(workspace, dead);
+
+    expect(await workspaces().releaseOwnLease(workspace, liveSession)).toEqual({
+      ...dead,
+      isLive: false,
+    });
+
+    expect(await workspaces().leaseOf(workspace)).toBeUndefined();
+  });
+
   it("releases nothing from a workspace with no lease", async () => {
     const workspace = await workspaces().create({ session: "glossary-fix" });
 
-    expect(await workspaces().release(workspace, liveSession)).toBeUndefined();
+    expect(
+      await workspaces().releaseOwnLease(workspace, liveSession),
+    ).toBeUndefined();
   });
 
-  it("releases its holder's other lease when taken,leaving that workspace's branch and files in place", async () => {
+  it("releases its holder's other lease when taken, leaving that workspace's branch and files in place", async () => {
     const first = await workspaces().create(
       { repo: "byro-repo", number: 7 },
       { slug: "first" },

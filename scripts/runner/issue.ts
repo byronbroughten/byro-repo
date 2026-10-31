@@ -1,4 +1,4 @@
-// Starts, lists, promotes and removes workspaces, each keyed by an issue or, for a session workspace, by a slug.
+// Starts, lists, promotes, releases and removes workspaces, each keyed by an issue or, for a session workspace, by a slug.
 // The runner creates its own issue workspaces; `start` is the interactive session's way into one, leased to its claude.
 // Usage: npm run issue:start -- (<repo> <n> | --session <slug>) [--claude [--no-prompt]], npm run issue:list,
 // npm run issue:promote -- <repo> <n> <repo-to-promote>, npm run issue:release -- (<repo> <n> | --session <slug>),
@@ -174,9 +174,18 @@ async function release(args: string[]): Promise<void> {
   const workspace = await workspaceOf(
     keyOf(args, `Usage: npm run issue:release -- ${keyUsage}`),
   );
-  const released = await workspaces.release(workspace, nearestClaudeAncestor());
+  const released = await workspaces.releaseOwnLease(
+    workspace,
+    nearestClaudeAncestor(),
+  );
   if (!released) {
     console.log(`${workspace.path} has no lease`);
+    return;
+  }
+  if (!released.isLive) {
+    console.log(
+      `Released the lease abandoned by ${holderLabelOf(released)} on ${workspace.path}`,
+    );
     return;
   }
   console.log(

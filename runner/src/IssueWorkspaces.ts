@@ -243,8 +243,7 @@ export class IssueWorkspaces {
     }
   }
 
-  // The caller's own release, refused while another holder lives; returns the lease it dropped.
-  async release(
+  async releaseOwnLease(
     workspace: Pick<Workspace, "path">,
     holder?: LeaseHolder,
   ): Promise<Lease | undefined> {
