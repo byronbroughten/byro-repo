@@ -15,13 +15,13 @@ import {
 } from "../halts.ts";
 import {
   holderLabelOf,
-  isSameIssue,
   issueLabelOf,
   type IssueRef,
 } from "../IssueWorkspaces.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import { LeaseKeeper } from "./LeaseKeeper.ts";
 import {
+  blockedByTextOf,
   downstreamIn,
   haltsOf,
   idListOf,
@@ -30,6 +30,7 @@ import {
   isLanded,
   isLaunchable,
   isStopSpec,
+  issuesOutside,
   oldestAnsweredOf,
   openHaltsOf,
   type Run,
@@ -49,7 +50,7 @@ interface HoldCheck {
 
 interface Surveying {
   openHalts: Halt[];
-  cleared: IssueRef[];
+  landedMembers: IssueRef[];
 }
 
 interface Survey {
@@ -76,14 +77,14 @@ export class TicketSelector extends SpecRunBase {
   }
 
   // Read afresh each pick; a ticket with every Halt answered goes first, oldest answered set first, then the frontier.
-  // `cleared` are a Batch's landed members, which no longer block though GitHub may still show them open.
-  async _select(run: Run, cleared: IssueRef[]): Promise<Selection> {
+  // A Batch's landed members no longer block, though GitHub may still show them open.
+  async _select(run: Run, landedMembers: IssueRef[]): Promise<Selection> {
     await this.haltRaiser._postUnpostedHalts(run);
     const stopSpecs = await this._readAnswers(run);
     if (stopSpecs.length > 0) return { kind: "stop-spec", halts: stopSpecs };
     const survey = await this._survey(run, {
       openHalts: openHaltsOf(run),
-      cleared,
+      landedMembers,
     });
     const { waits, answered, launchable, stoppedAgain } = survey;
     if (stoppedAgain !== undefined) {
@@ -98,7 +99,10 @@ export class TicketSelector extends SpecRunBase {
     return { kind: "launch", ticket: next };
   }
 
-  async _survey(run: Run, { openHalts, cleared }: Surveying): Promise<Survey> {
+  async _survey(
+    run: Run,
+    { openHalts, landedMembers }: Surveying,
+  ): Promise<Survey> {
     const downstreamOf = await this._scopeDownstreamOf(run, openHalts);
     const survey: Survey = { waits: [], answered: [], launchable: [] };
     const { waits } = survey;
@@ -148,11 +152,12 @@ export class TicketSelector extends SpecRunBase {
         waits.push({ ticket, reason: "developer", text });
         continue;
       }
-      const blockers = (await this.config.github.openBlockersOf(ticket)).filter(
-        (blocker) => !cleared.some((issue) => isSameIssue(issue, blocker)),
+      const blockers = issuesOutside(
+        await this.config.github.openBlockersOf(ticket),
+        landedMembers,
       );
       if (blockers.length > 0) {
-        const text = `${label} is blocked by ${blockers.map(issueLabelOf).join(", ")}`;
+        const text = blockedByTextOf(label, blockers.map(issueLabelOf));
         waits.push({ ticket, reason: "blocked", text });
         continue;
       }

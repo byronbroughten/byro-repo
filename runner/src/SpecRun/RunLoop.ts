@@ -24,7 +24,6 @@ import { type Halt } from "../halts.ts";
 import {
   fileStemOf,
   holderLabelOf,
-  isSameIssue,
   issueLabelOf,
   type IssueRef,
 } from "../IssueWorkspaces.ts";
@@ -36,15 +35,19 @@ import { RunStop } from "../RunStop.ts";
 import { stalePathLabelOf, stalePathsOf } from "../stalePaths.ts";
 import {
   type Member,
+  memberIssueOf,
   type MemberSelection,
   MemberSelections,
 } from "./MemberSelections.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
 import {
+  blockedByTextOf,
   idListOf,
   interactiveLabel,
+  isAmong,
   isLanded,
   isLaunchable,
+  issuesOutside,
   landedTextOf,
   liveCeilingPhraseOf,
   type MemberList,
@@ -59,6 +62,7 @@ import {
   type TrackedIssue,
   type Wait,
   waitsTextOf,
+  waitsToLandTextOf,
 } from "./runState.ts";
 import { type RunEvent, SpecRunBase } from "./SpecRunBase.ts";
 import { TicketSelector } from "./TicketSelector.ts";
@@ -101,8 +105,14 @@ type MemberBlockers = Map<Member, Member[]>;
 
 interface Picking {
   blockersOf: MemberBlockers;
-  // The landed members' issues.
-  cleared: IssueRef[];
+  landedMembers: IssueRef[];
+}
+
+// A member and the members it waits on, for its end message.
+interface BlockedMember {
+  owner: string;
+  member: Member;
+  blockers: Member[];
 }
 
 type Finishing =
@@ -229,10 +239,10 @@ export class RunLoop extends SpecRunBase {
       const unfinished = members.filter(({ end }) => end === undefined);
       if (unfinished.length === 0) return this._resultOf(members);
       const blockersOf = await this._memberBlockersOf(unfinished, members);
-      if (await this._endUnclearable(blockersOf, unfinished)) continue;
+      if (await this._endUnlandableWaits(blockersOf, unfinished)) continue;
       const selections = await this._selectEach(unfinished, {
         blockersOf,
-        cleared: landedIssuesOf(members),
+        landedMembers: landedIssuesOf(members),
       });
       const launch = selections.nextLaunch;
       if (!isStartAnnounced) {
@@ -362,8 +372,9 @@ export class RunLoop extends SpecRunBase {
       return `it belongs to the spec ${issueLabelOf(parent.issue)}; run it through its spec.`;
     }
     // A member blocker is waited on in the run; a landed but unjudged issue outside the Batch still refuses.
-    const blockers = (await github.openBlockersOf(ticket.issue)).filter(
-      (blocker) => !memberIssues.some((issue) => isSameIssue(issue, blocker)),
+    const blockers = issuesOutside(
+      await github.openBlockersOf(ticket.issue),
+      memberIssues,
     );
     if (blockers.length === 0) return undefined;
     const pronoun = blockers.length === 1 ? "that" : "those";
@@ -379,12 +390,11 @@ export class RunLoop extends SpecRunBase {
     if (members.length === 1) return blockersOf;
     for (const member of unfinished) {
       const open = await this.config.github.openBlockersOf(
-        member.run.spec.issue,
+        memberIssueOf(member),
       );
       const blockers = members.filter(
-        ({ run, end }) =>
-          end?.isLanded !== true &&
-          open.some((issue) => isSameIssue(issue, run.spec.issue)),
+        (each) =>
+          each.end?.isLanded !== true && isAmong(memberIssueOf(each), open),
       );
       if (blockers.length > 0) blockersOf.set(member, blockers);
     }
@@ -392,20 +402,23 @@ export class RunLoop extends SpecRunBase {
   }
 
   // A member whose blocker member ended without landing is done too, as is each member of a blocking cycle once only the cycle is left; true when one ended.
-  private async _endUnclearable(
+  private async _endUnlandableWaits(
     blockersOf: MemberBlockers,
     unfinished: Member[],
   ): Promise<boolean> {
+    const owner = this.config.githubOwner;
     // Every unfinished member waiting on an unfinished one is a cycle no landing breaks.
     const isCycle = blockersOf.size === unfinished.length;
     let isEnded = false;
     for (const [member, blockers] of blockersOf) {
       const ended = blockers.filter(({ end }) => end !== undefined);
       if (ended.length === 0 && !isCycle) continue;
-      const message =
-        ended.length === 0
-          ? cycleMessageOf(this.config.githubOwner, member, blockers)
-          : unlandedBlockerMessageOf(this.config.githubOwner, member, ended);
+      let message: string;
+      if (ended.length === 0) {
+        message = cycleMessageOf({ owner, member, blockers });
+      } else {
+        message = unlandedBlockerMessageOf({ owner, member, blockers: ended });
+      }
       await this._stopMember({ member, message });
       isEnded = true;
     }
@@ -415,7 +428,7 @@ export class RunLoop extends SpecRunBase {
   // Every member not waiting on another is read, since a `stop spec` answer is returned only by the pick that reads it, and answers are ordered across members.
   private async _selectEach(
     members: Member[],
-    { blockersOf, cleared }: Picking,
+    { blockersOf, landedMembers }: Picking,
   ): Promise<MemberSelections> {
     const selections: MemberSelection[] = [];
     for (const member of members) {
@@ -425,7 +438,10 @@ export class RunLoop extends SpecRunBase {
         selections.push({ member, kind: "none", waits });
         continue;
       }
-      const selection = await this.ticketSelector._select(member.run, cleared);
+      const selection = await this.ticketSelector._select(
+        member.run,
+        landedMembers,
+      );
       selections.push({ member, ...selection });
     }
     return new MemberSelections(selections);
@@ -625,7 +641,7 @@ export class RunLoop extends SpecRunBase {
     const openHalts = openHaltsOf(run);
     const { waits } = await this.ticketSelector._survey(run, {
       openHalts,
-      cleared: [],
+      landedMembers: [],
     });
     const landed = run.tickets.filter((ticket) => isLanded(run, ticket));
     const current = waits.flatMap((wait) => currentTextOf(run, wait));
@@ -768,51 +784,48 @@ function batchSummaryOf(owner: string, members: Member[]): string {
 }
 
 function landedIssuesOf(members: Member[]): IssueRef[] {
-  return members.flatMap(({ run, end }) =>
-    end?.isLanded === true ? [run.spec.issue] : [],
+  return members.flatMap((member) =>
+    member.end?.isLanded === true ? [memberIssueOf(member)] : [],
   );
 }
 
-function memberLabelsOf(members: Member[]): string {
-  return members.map(({ run }) => issueLabelOf(run.spec.issue)).join(", ");
+function memberLabelsOf(members: Member[]): string[] {
+  return members.map((member) => issueLabelOf(memberIssueOf(member)));
 }
 
 function memberBlockedWaitOf(member: Member, blockers: Member[]): Wait {
-  const ticket = member.run.spec.issue;
-  const text = `${issueLabelOf(ticket)} waits on ${memberLabelsOf(blockers)} to land`;
+  const ticket = memberIssueOf(member);
+  const text = waitsToLandTextOf(
+    issueLabelOf(ticket),
+    memberLabelsOf(blockers),
+  );
   return { ticket, reason: "member-blocked", text };
 }
 
 // Rerun with its blockers, since alone it would find them open and wait on you.
-function unlandedBlockerMessageOf(
-  owner: string,
-  member: Member,
-  ended: Member[],
-): string {
-  const label = issueLabelOf(member.run.spec.issue);
-  const which = ended.length === 1 ? "it can" : "they can";
-  const command = blockedRerunCommandOf(owner, member, ended);
-  return `${label} is blocked by ${memberLabelsOf(ended)}, which ended without landing; rerun them together once ${which} land: \`${command}\`.`;
+function unlandedBlockerMessageOf(blocked: BlockedMember): string {
+  const { member, blockers } = blocked;
+  const label = issueLabelOf(memberIssueOf(member));
+  const which = blockers.length === 1 ? "it can" : "they can";
+  const blockedBy = blockedByTextOf(label, memberLabelsOf(blockers));
+  return `${blockedBy}, which ended without landing; rerun them together once ${which} land: \`${blockedRerunCommandOf(blocked)}\`.`;
 }
 
-function cycleMessageOf(
-  owner: string,
-  member: Member,
-  blockers: Member[],
-): string {
-  const label = issueLabelOf(member.run.spec.issue);
-  const command = blockedRerunCommandOf(owner, member, blockers);
+function cycleMessageOf(blocked: BlockedMember): string {
+  const { member, blockers } = blocked;
+  const label = issueLabelOf(memberIssueOf(member));
   const verb = blockers.length === 1 ? "waits" : "wait";
-  return `${label} waits on ${memberLabelsOf(blockers)} to land, which ${verb} on it in turn; remove one blocked-by link on GitHub, then rerun: \`${command}\`.`;
+  const waitsToLand = waitsToLandTextOf(label, memberLabelsOf(blockers));
+  return `${waitsToLand}, which ${verb} on it in turn; remove one blocked-by link on GitHub, then rerun: \`${blockedRerunCommandOf(blocked)}\`.`;
 }
 
-function blockedRerunCommandOf(
-  owner: string,
-  member: Member,
-  blockers: Member[],
-): string {
-  const blockerIssues = blockers.map(({ run }) => run.spec.issue);
-  return rerunCommandOf(owner, member.run.spec.issue, ...blockerIssues);
+function blockedRerunCommandOf({
+  owner,
+  member,
+  blockers,
+}: BlockedMember): string {
+  const blockerIssues = blockers.map(memberIssueOf);
+  return rerunCommandOf(owner, memberIssueOf(member), ...blockerIssues);
 }
 
 // An open Halt may be answered, a lease released and a blocker member landed while the run waits; anything else needs a rerun.
