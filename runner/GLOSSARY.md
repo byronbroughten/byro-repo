@@ -9,8 +9,12 @@ The program that runs one spec or one Batch: it picks each ready ticket in turn,
 _Avoid_: orchestrator, driver, pipeline
 
 **Batch**:
-A run of several specs in one repo, named at launch, each worked as its own run would work it. A standalone ticket, one with no parent spec and no sub-issues, counts as a spec of one ticket.
+A run of several specs in one repo, named at launch, each worked as its own run would work it, a Standalone ticket among them.
 _Avoid_: queue, group, ticket set
+
+**Standalone ticket**:
+A ticket with no parent spec and no sub-issues; it is run, judged and closed as a spec of one ticket.
+_Avoid_: orphan, loose ticket, ticketless spec
 
 **Step**:
 One stage of a ticket's run, in order: implement, review, resolve, checks and wrap-up, with the gap check once at the end of the spec. An agent step is one `claude -p` session; checks and wrap-up the runner does itself.
