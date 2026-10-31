@@ -224,8 +224,15 @@ export interface Wait {
   holder?: LeaseHolder;
 }
 
+// `member-blocked` is a Batch member waiting on another member to land.
 type WaitReason =
-  "leased" | "halted" | "stopped" | "skipped" | "developer" | "blocked";
+  | "leased"
+  | "halted"
+  | "stopped"
+  | "skipped"
+  | "developer"
+  | "blocked"
+  | "member-blocked";
 
 interface DownstreamSearch {
   run: Run;
@@ -593,6 +600,27 @@ export function rerunCommandOf(owner: string, ...members: MemberList): string {
   const [{ repo }] = members;
   const numbers = members.map(({ number }) => number).join(" ");
   return `npm run runner -- ${owner}/${repo} ${numbers}`;
+}
+
+export function isAmong(issue: IssueRef, issues: IssueRef[]): boolean {
+  return issues.some((each) => isSameIssue(each, issue));
+}
+
+export function issuesOutside(
+  issues: IssueRef[],
+  excluded: IssueRef[],
+): IssueRef[] {
+  return issues.filter((issue) => !isAmong(issue, excluded));
+}
+
+// A ticket's blocked wait and a Batch member's end both say it alike.
+export function blockedByTextOf(label: string, blockers: string[]): string {
+  return `${label} is blocked by ${blockers.join(", ")}`;
+}
+
+// A Batch member's wait on its blocker members and its cycle end both say it alike.
+export function waitsToLandTextOf(label: string, blockers: string[]): string {
+  return `${label} waits on ${blockers.join(", ")} to land`;
 }
 
 // Answered Halts go oldest answer first, within one spec and across a Batch's members.
