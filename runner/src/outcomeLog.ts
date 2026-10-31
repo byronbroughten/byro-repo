@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import type { IssueRef } from "./IssueWorkspaces.ts";
 
-const unrecorded = "unrecorded";
+export const unrecorded = "unrecorded";
 
 const columns = [
   "Issue",
@@ -25,6 +25,12 @@ const columns = [
 ] as const;
 
 type Column = (typeof columns)[number];
+
+// The columns an older row has that today's doesn't; its Defers is today's Proposals.
+const olderColumns = ["Triage cost", "Limit used"] as const;
+const currentColumnByOlder: Record<string, Column> = { Defers: "Proposals" };
+
+export type WrittenColumn = Column | (typeof olderColumns)[number];
 
 // Who resolve's Fixes were made by; `skipped` is a ticket that needed only GitHub writes, so review had no diff to read.
 export type ReviewFixes = "none" | "implementer" | "fresh" | "skipped";
@@ -86,7 +92,33 @@ export function outcomeCommitMessage(row: OutcomeRow): string {
 
 export function peakContextOf({ peakContext }: OutcomeFacts): string {
   if (peakContext === undefined || peakContext.length === 0) return unrecorded;
-  return peakContext.map((peak) => `${Math.round(peak / 1000)}K`).join(" → ");
+  return peakContext.map(kiloOf).join(" → ");
+}
+
+export function kiloOf(tokens: number): string {
+  return `${Math.round(tokens / 1000)}K`;
+}
+
+// A written row file's cells by column, an older row's read under today's column names; a column no row format has is left out.
+export function writtenCellsOf(file: string): Map<WrittenColumn, string> {
+  const lines = file.split("\n").filter((line) => line.startsWith("| "));
+  const [header = "", , row = ""] = lines;
+  const cells = cellsOfLine(row);
+  return cellsOfLine(header).reduce((byColumn, written, index) => {
+    const column = writtenColumnOf(written);
+    if (column !== undefined) byColumn.set(column, cells[index] ?? "");
+    return byColumn;
+  }, new Map<WrittenColumn, string>());
+}
+
+function writtenColumnOf(written: string): WrittenColumn | undefined {
+  const current = currentColumnByOlder[written];
+  if (current !== undefined) return current;
+  return [...columns, ...olderColumns].find((column) => column === written);
+}
+
+function cellsOfLine(line: string): string[] {
+  return line.slice(2, -2).split(/ (?<!\\)\| /);
 }
 
 // A written row file with each transcript fact `facts` defines put in its cell; every other cell is kept as written.
@@ -94,14 +126,11 @@ export function withTranscriptCells(file: string, facts: OutcomeFacts): string {
   const fresh = transcriptCellsOf(facts);
   const lines = file.split("\n");
   const rowIndex = lines.findLastIndex((line) => line.startsWith("| "));
-  const cells = (lines[rowIndex] ?? "")
-    .slice(2, -2)
-    .split(/ (?<!\\)\| /)
-    .map((cell, index) => {
-      const column = columns[index];
-      const value = column === undefined ? undefined : fresh[column];
-      return value ?? cell;
-    });
+  const cells = cellsOfLine(lines[rowIndex] ?? "").map((cell, index) => {
+    const column = columns[index];
+    const value = column === undefined ? undefined : fresh[column];
+    return value ?? cell;
+  });
   lines[rowIndex] = `| ${cells.join(" | ")} |`;
   return lines.join("\n");
 }
@@ -186,11 +215,11 @@ function whatReviewCaughtCellOf({
   return reviewFixes === "none" || reviewFixes === "skipped" ? "—" : unrecorded;
 }
 
-function dollarsOf(usd: number | undefined): string {
+export function dollarsOf(usd: number | undefined): string {
   return usd === undefined ? unrecorded : `$${usd.toFixed(2)}`;
 }
 
-function labelOf({ repo, number }: IssueRef, separator: string): string {
+export function labelOf({ repo, number }: IssueRef, separator: string): string {
   return `${repo}${separator}${number}`;
 }
 

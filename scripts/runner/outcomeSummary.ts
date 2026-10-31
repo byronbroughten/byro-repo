@@ -13,28 +13,33 @@ import {
   outcomeSummaryOf,
   type SectionSelection,
 } from "@byronbroughten/spec-runner/outcomeSummary";
+import {
+  configFolderOf,
+  hasTranscript,
+} from "@byronbroughten/spec-runner/transcriptFacts";
 
 import { issueReader } from "./issueReader.ts";
-import { runKnobs } from "./runnerConfig.ts";
+import { outcomeFolder, runKnobs } from "./runnerConfig.ts";
 
 const usage =
   "Usage: npm run outcome:summary -- <spec section, such as byro-repo-480> | --recent <N> | --all";
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
-const outcomeFolder = join("docs", "agents", "outcomes");
 
 const selection = selectionOf(process.argv.slice(2));
 if (selection === undefined) {
   console.error(usage);
   process.exitCode = 1;
 } else {
-  const transcripts = transcriptIds();
+  const folders = configFolders();
   process.stdout.write(
     await outcomeSummaryOf({
       rowFiles: rowFiles(),
       selection,
+      outcomeFolder,
       ticketBudget: runKnobs.ticketBudget,
       modelFitOf,
-      hasTranscript: (sessionId) => transcripts.has(sessionId),
+      hasTranscript: (sessionId) =>
+        folders.some((folder) => hasTranscript(folder, sessionId)),
     }),
   );
 }
@@ -100,31 +105,16 @@ function landingDates(): Map<string, Date> {
   return landings;
 }
 
-// The session ids with a transcript in any config folder: the live one and each cswap account's backup.
-function transcriptIds(): Set<string> {
+// The config folders a transcript may be under: the live one and each cswap account's backup.
+function configFolders(): string[] {
   const home = homedir();
   const backups = join(home, ".claude-swap-backup", "sessions");
-  const configFolders = [
-    join(home, ".claude"),
-    ...subfoldersOf(backups).map((account) => join(backups, account)),
-  ];
-  return new Set(
-    configFolders.flatMap((configFolder) => {
-      const projects = join(configFolder, "projects");
-      return subfoldersOf(projects).flatMap((project) =>
-        readdirSync(join(projects, project))
-          .filter((name) => name.endsWith(".jsonl"))
-          .map((name) => name.slice(0, -".jsonl".length)),
-      );
-    }),
-  );
-}
-
-function subfoldersOf(folder: string): string[] {
-  if (!existsSync(folder)) return [];
-  return readdirSync(folder, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name);
+  const accounts = existsSync(backups)
+    ? readdirSync(backups, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => join(backups, entry.name))
+    : [];
+  return [configFolderOf(process.env, home), ...accounts];
 }
 
 async function modelFitOf(issue: IssueRef): Promise<string> {
