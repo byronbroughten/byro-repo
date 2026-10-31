@@ -1,4 +1,5 @@
-// The run loop: it holds the spec's RunLock while it runs, and preflight refuses or Stops a run first.
+// The run loop works a list of Runs, one per spec, and holds each one's RunLock while it runs.
+// Preflight refuses or Stops a run first: a per-Run part collects every Run's refusal, and a shared part runs once.
 // Then it picks tickets one at a time and runs each, idling while an open Halt or another holder's lease
 // is all that's in the way, until every ticket lands or something Stops it.
 // Any outcome a later ticket will handle (red checks, step errors, schema failures) is an UnhandledStop; a red master Stops the run.
@@ -51,11 +52,31 @@ import { SpecRunBase } from "./SpecRunBase.ts";
 import { type Selection, TicketSelector } from "./TicketSelector.ts";
 import { TicketSequencer } from "./TicketSequencer.ts";
 
+// Non-empty, so the run always has a first Run to tell what concerns it as a whole.
+type RunList<RN> = [RN, ...RN[]];
+
 interface RunStart {
   reading: AccountReading;
-  selection: Selection;
+  // The ticket the first pick launches, if it launches one.
+  ticket: IssueRef | undefined;
   isRelaunch: boolean;
 }
+
+type LocksTaken =
+  { kind: "taken"; locks: RunLock[] } | { kind: "refused"; refusals: string[] };
+
+interface RunWaits {
+  run: Run;
+  waits: Wait[];
+}
+
+type Pick =
+  | {
+      kind: "picked";
+      run: Run;
+      selection: Exclude<Selection, { kind: "none" }>;
+    }
+  | { kind: "none"; waiting: RunWaits[] };
 
 export class RunLoop extends SpecRunBase {
   private get ticketSelector(): TicketSelector {
@@ -70,64 +91,106 @@ export class RunLoop extends SpecRunBase {
     return new ReviewListPoster(this.config);
   }
 
-  async run(specIssue: IssueRef): Promise<RunResult> {
-    const taken = RunLock.take(this.config.stateFolder, specIssue);
+  // Today's caller passes one spec; the list is the shape a Batch fills.
+  async run(specIssues: RunList<IssueRef>): Promise<RunResult> {
+    const taken = this._takeRunLocks(specIssues);
     // Announced, the refusal would land in the live run's event file as its run-ended line.
-    if (taken.kind === "held") {
-      return {
-        kind: "refused",
-        landed: [],
-        message: runLockRefusalOf(specIssue, taken),
-      };
+    if (taken.kind === "refused") {
+      return refusedOf(taken.refusals);
     }
     try {
-      return await this._runHoldingLock(specIssue);
+      return await this._runHoldingLocks(specIssues);
     } finally {
-      taken.lock.release();
+      taken.locks.forEach((lock) => lock.release());
     }
   }
 
-  private async _runHoldingLock(specIssue: IssueRef): Promise<RunResult> {
+  // The per-Run preflight's first check; no lock is kept unless every one is taken.
+  private _takeRunLocks(specIssues: IssueRef[]): LocksTaken {
+    const locks: RunLock[] = [];
+    const refusals: string[] = [];
+    specIssues.forEach((specIssue) => {
+      const taken = RunLock.take(this.config.stateFolder, specIssue);
+      if (taken.kind === "held") {
+        refusals.push(runLockRefusalOf(specIssue, taken));
+      } else {
+        locks.push(taken.lock);
+      }
+    });
+    if (refusals.length === 0) return { kind: "taken", locks };
+    locks.forEach((lock) => lock.release());
+    return { kind: "refused", refusals };
+  }
+
+  private async _runHoldingLocks(
+    specIssues: RunList<IssueRef>,
+  ): Promise<RunResult> {
     const startedAt = this.config.clock.now();
-    // A request left by a stop command with no run going would end this run at its first pick.
-    rmSync(this._stopRequestPathOf(specIssue), { force: true });
-    const run = await this._startRun(specIssue);
-    const isRelaunch = this._takeRestart(run);
-    const launchable = await this._launchableTicketsOf(run);
-    // A ticket's body is left to the launch-time check, whose Halt can approve it.
-    const refusal =
-      (await this._authorshipRefusal("the spec", [run.spec])) ??
-      modelFitRefusalOf(run, launchable) ??
-      targetsRefusalOf(run, launchable);
-    if (refusal !== undefined) {
-      await this._announce(run, `Refused: ${refusal}`, { kind: "refused" });
-      return { kind: "refused", landed: [], message: refusal };
-    }
+    const runs = await this._startRuns(specIssues);
+    // Each Run's restart is taken, whichever relaunches, so no later rerun reads one again.
+    let isRelaunch = false;
+    runs.forEach((run) => {
+      if (this._takeRestart(run)) isRelaunch = true;
+    });
+    const refusals = await this._runRefusalsOf(runs);
+    if (refusals.length > 0) return refusedOf(refusals);
+    // What concerns the whole run, its shared preflight, start, idling and stop request, is told on the first Run.
+    const [lead] = runs;
     const preflightStop = await this._preflightStop();
     if (preflightStop !== undefined) {
       return this._end(
-        run,
+        lead,
         "stopped",
         `Preflight stopped the run: ${preflightStop}`,
       );
     }
-    this._log(run, `Preflight passed in ${this._secondsSince(startedAt)}s.`);
+    runs.forEach((run) => {
+      this._log(run, `Preflight passed in ${this._secondsSince(startedAt)}s.`);
+    });
     let reading: AccountReading;
     try {
-      reading = await this._activeReadingOf(run);
+      reading = await this._activeReadingOf(lead);
     } catch (error) {
       if (!(error instanceof RunStop)) throw error;
-      return this._end(run, "stopped", error.message);
+      return this._end(lead, "stopped", error.message);
     }
     const startHead = await git(this.config.primaryRoot, "rev-parse", "HEAD");
     let isStartAnnounced = false;
     let isIdle = false;
     for (;;) {
-      const selection = await this.ticketSelector._select(run);
+      const pick = await this._pickOf(runs);
       if (!isStartAnnounced) {
-        await this._announceStart(run, { reading, selection, isRelaunch });
+        await this._announceStart(lead, {
+          reading,
+          ticket: launchedTicketOf(pick),
+          isRelaunch,
+        });
         isStartAnnounced = true;
       }
+      if (pick.kind === "none") {
+        const unheld = pick.waiting.find(
+          ({ waits }) => !waits.some(isIdleWait),
+        );
+        if (unheld !== undefined) {
+          const finished = await this.reviewListPoster._finish(
+            unheld.run,
+            unheld.waits,
+          );
+          if (finished !== undefined) return finished;
+          continue;
+        }
+        const waits = pick.waiting.flatMap((waiting) => waiting.waits);
+        if (this._takeStopRequest(runs)) {
+          return this._stopOnRequest(lead, waits);
+        }
+        if (!isIdle) {
+          await this._announce(lead, idleMessageOf(waits), { kind: "idle" });
+        }
+        isIdle = true;
+        await this._sleep(this.config.knobs.idlePollMs);
+        continue;
+      }
+      const { run, selection } = pick;
       if (selection.kind === "stop-spec") {
         return this._end(
           run,
@@ -135,23 +198,8 @@ export class RunLoop extends SpecRunBase {
           stopSpecMessageOf(run, selection.halts),
         );
       }
-      if (selection.kind === "none") {
-        const { waits } = selection;
-        if (!waits.some(isIdleWait)) {
-          const finished = await this.reviewListPoster._finish(run, waits);
-          if (finished !== undefined) return finished;
-          continue;
-        }
-        if (this._takeStopRequest(run)) return this._stopOnRequest(run, waits);
-        if (!isIdle) {
-          await this._announce(run, idleMessageOf(waits), { kind: "idle" });
-        }
-        isIdle = true;
-        await this._sleep(this.config.knobs.idlePollMs);
-        continue;
-      }
       isIdle = false;
-      if (this._takeStopRequest(run)) return this._stopOnRequest(run, []);
+      if (this._takeStopRequest(runs)) return this._stopOnRequest(lead, []);
       if (selection.kind === "stopped-again") {
         const label = issueLabelOf(selection.ticket.issue);
         return this._end(
@@ -175,6 +223,53 @@ export class RunLoop extends SpecRunBase {
         return this._restart(run, selection.ticket.issue);
       }
     }
+  }
+
+  private _startRuns(specIssues: RunList<IssueRef>): Promise<RunList<Run>> {
+    const [first, ...rest] = specIssues;
+    return Promise.all([
+      this._startRunClearingStop(first),
+      ...rest.map((specIssue) => this._startRunClearingStop(specIssue)),
+    ]);
+  }
+
+  private async _startRunClearingStop(specIssue: IssueRef): Promise<Run> {
+    // A request left by a stop command with no run going would end this run at its first pick.
+    rmSync(this._stopRequestPathOf(specIssue), { force: true });
+    return this._startRun(specIssue);
+  }
+
+  // The per-Run preflight's spec checks, each Run's refusal announced on its own Run and every one returned.
+  private async _runRefusalsOf(runs: Run[]): Promise<string[]> {
+    const refusals: string[] = [];
+    for (const run of runs) {
+      const refusal = await this._runRefusalOf(run);
+      if (refusal === undefined) continue;
+      await this._announce(run, `Refused: ${refusal}`, { kind: "refused" });
+      refusals.push(refusal);
+    }
+    return refusals;
+  }
+
+  private async _runRefusalOf(run: Run): Promise<string | undefined> {
+    const launchable = await this._launchableTicketsOf(run);
+    // A ticket's body is left to the launch-time check, whose Halt can approve it.
+    return (
+      (await this._authorshipRefusal("the spec", [run.spec])) ??
+      modelFitRefusalOf(run, launchable) ??
+      targetsRefusalOf(run, launchable)
+    );
+  }
+
+  // The first Run, in list order, with something to do is picked; with none, every Run's waits are returned.
+  private async _pickOf(runs: Run[]): Promise<Pick> {
+    const waiting: RunWaits[] = [];
+    for (const run of runs) {
+      const selection = await this.ticketSelector._select(run);
+      if (selection.kind !== "none") return { kind: "picked", run, selection };
+      waiting.push({ run, waits: selection.waits });
+    }
+    return { kind: "none", waiting };
   }
 
   // Diffed from the run's start rather than the landing's merge, since the start is the code this process runs.
@@ -215,11 +310,9 @@ export class RunLoop extends SpecRunBase {
   // Sent at the first pick, so it can name the ticket about to launch; a first pick with no launch still shows startup passed.
   private async _announceStart(
     run: Run,
-    { reading, selection, isRelaunch }: RunStart,
+    { reading, ticket, isRelaunch }: RunStart,
   ): Promise<void> {
     const started = `Run started on ${run.tickets.length} tickets as ${readingLabelOf(reading.account, reading.usage)}.`;
-    const ticket =
-      selection.kind === "launch" ? selection.ticket.issue : undefined;
     const summary =
       ticket === undefined
         ? started
@@ -280,12 +373,13 @@ export class RunLoop extends SpecRunBase {
     }
   }
 
-  // Taken once read, so a later run never sees it.
-  private _takeStopRequest(run: Run): boolean {
-    const path = this._stopRequestPathOf(run.spec.issue);
-    if (!existsSync(path)) return false;
-    rmSync(path, { force: true });
-    return true;
+  // Taken once read, so a later run never sees it; a request on any Run stops them all.
+  private _takeStopRequest(runs: Run[]): boolean {
+    const paths = runs
+      .map((run) => this._stopRequestPathOf(run.spec.issue))
+      .filter((path) => existsSync(path));
+    paths.forEach((path) => rmSync(path, { force: true }));
+    return paths.length > 0;
   }
 
   private _stopOnRequest(run: Run, waits: Wait[]): Promise<RunResult> {
@@ -337,6 +431,11 @@ export class RunLoop extends SpecRunBase {
   }
 }
 
+// One Run's refusal is its message as written; several are told apart by a blank line.
+function refusedOf(refusals: string[]): RunResult {
+  return { kind: "refused", landed: [], message: refusals.join("\n\n") };
+}
+
 function runLockRefusalOf(
   spec: IssueRef,
   { holder, path }: HeldRunLock,
@@ -355,20 +454,11 @@ function startedTextOf(startedAt: string): string {
   return localTimeOf(time);
 }
 
-// A split spec's own body is never checked; tickets the runner won't launch need no section.
-function modelFitRefusalOf(
-  run: Run,
-  launchable: TrackedIssue[],
-): string | undefined {
-  if (run.isTicketless) {
-    if (pairOf(run.spec.body) !== undefined) return undefined;
-    return `${issueLabelOf(run.spec.issue)} has no sub-issues and no valid ## Model fit section: split it with /code-tickets, or add the section.`;
+function launchedTicketOf(pick: Pick): IssueRef | undefined {
+  if (pick.kind !== "picked" || pick.selection.kind !== "launch") {
+    return undefined;
   }
-  const offenders = launchable.flatMap(({ issue, body }) =>
-    pairOf(body) === undefined ? [issueLabelOf(issue)] : [],
-  );
-  if (offenders.length === 0) return undefined;
-  return `Each open ${readyLabel} ticket needs a ## Model fit section naming one of the six pairs; missing or invalid in ${offenders.join(", ")}.`;
+  return pick.selection.ticket.issue;
 }
 
 // An open Halt may be answered, and a lease released, while the run waits; anything else needs a rerun.
@@ -392,6 +482,22 @@ function stopRequestMessageOf(run: Run, waits: Wait[]): string {
 function stopSpecMessageOf(run: Run, halts: Halt[]): string {
   const tickets = [...new Set(halts.map(({ ticket }) => issueLabelOf(ticket)))];
   return `Stopped on \`stop spec\` for Halt ${idListOf(halts)}: ${landedTextOf(run.landed)}; ${tickets.join(", ")} stays unlanded.`;
+}
+
+// A split spec's own body is never checked; tickets the runner won't launch need no section.
+function modelFitRefusalOf(
+  run: Run,
+  launchable: TrackedIssue[],
+): string | undefined {
+  if (run.isTicketless) {
+    if (pairOf(run.spec.body) !== undefined) return undefined;
+    return `${issueLabelOf(run.spec.issue)} has no sub-issues and no valid ## Model fit section: split it with /code-tickets, or add the section.`;
+  }
+  const offenders = launchable.flatMap(({ issue, body }) =>
+    pairOf(body) === undefined ? [issueLabelOf(issue)] : [],
+  );
+  if (offenders.length === 0) return undefined;
+  return `Each open ${readyLabel} ticket needs a ## Model fit section naming one of the six pairs; missing or invalid in ${offenders.join(", ")}.`;
 }
 
 function openHaltTextOf(halt: Halt): string {
