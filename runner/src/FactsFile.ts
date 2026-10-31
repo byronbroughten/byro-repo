@@ -36,6 +36,8 @@ export interface WrapUpFacts extends OutcomeFacts {
   sessions?: TicketSessions;
   // A session's review whose findings the session is resolving itself.
   pendingResolve?: PendingResolve;
+  // Recorded here because the runner posts the review list after wrap-up, which leaves a Standalone ticket open on it.
+  hasUndecidedReviewItems?: boolean;
 }
 
 export interface PendingResolve {
@@ -46,7 +48,7 @@ export interface PendingResolve {
 
 export type ReviewFacts = Pick<
   WrapUpFacts,
-  "reviewFixes" | "whatReviewCaught" | "proposals"
+  "reviewFixes" | "whatReviewCaught" | "proposals" | "hasUndecidedReviewItems"
 >;
 
 export type ClosingFacts = Pick<WrapUpFacts, "closingComment" | "boxesUndone">;
@@ -96,13 +98,19 @@ export class FactsFile {
 
   setReviewFacts(
     issue: IssueRef,
-    { reviewFixes, whatReviewCaught, proposals }: ReviewFacts,
+    {
+      reviewFixes,
+      whatReviewCaught,
+      proposals,
+      hasUndecidedReviewItems,
+    }: ReviewFacts,
   ): FactsFile {
     return this._store(issue, {
       ...this._storedOf(issue),
       reviewFixes,
       whatReviewCaught,
       proposals,
+      hasUndecidedReviewItems,
     });
   }
 

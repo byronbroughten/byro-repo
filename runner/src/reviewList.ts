@@ -151,6 +151,16 @@ export function ticketReviewListOf({
   ].join("\n\n");
 }
 
+// Whether the list ticketReviewListOf builds holds an item for the developer to decide.
+export function hasUndecidedItems({
+  records,
+  mergeMasterRecord,
+  unrecordedMerge,
+}: Omit<TicketReviewList, "ticket" | "title">): boolean {
+  if (records.some(({ verdict }) => verdict === "propose")) return true;
+  return mergeItemOf(mergeMasterRecord, unrecordedMerge) !== undefined;
+}
+
 // Checks catch a broken merge, not a wrong call on whose intent won, so the developer confirms each resolution.
 function mergeItemOf(
   record: MergeMasterRecord | undefined,
