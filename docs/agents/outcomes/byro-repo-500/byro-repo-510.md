@@ -1,0 +1,7 @@
+# byro-repo#510 outcome
+
+Spec: [byro-repo#500](https://github.com/ByronBroughten/byro-repo/issues/500)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #510 | Opus medium | 2 | 2 | 109K | Fix (resumed implementer) | 1 | 1 | 0 | 12 min | $2.48 | $3.37 | Fixed: _refuseBesideLiveRuns and _runRefusalsOf duplicate the per-member refusal loop body. (runner/src/SpecRun/RunLoop.ts:154-171, :282-294); liveRunRefusals is keyed by a label string instead of the member. (runner/src/SpecRun/RunLoop.ts:76, :140-145); memberIssues.length === 1 is tested twice, and memberIssues is threaded through only to be counted. (runner/src/SpecRun/RunLoop.ts:308, refusedOf); "drop it from the list" is written out in three messages. (runner/src/SpecRun/RunLoop.ts:316, :321, :331); The comment clause about label keying says what the code does, not why. (runner/src/SpecRun/RunLoop.ts:137); "The first failing check only" describes what the method does. (runner/src/SpecRun/RunLoop.ts:296). Proposed: The preflight helpers form a group that shares nothing with the ticket loop and should be their own collaborator. (runner/src/SpecRun/RunLoop.ts, the preflight helpers). | dc8b5aa5-a32d-4b02-8aa7-04b286f431b9, 1f427cde-084a-4b2a-9773-1de9583b6985 |
