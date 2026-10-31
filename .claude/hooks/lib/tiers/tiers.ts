@@ -199,6 +199,16 @@ function baseDecision({
       spreadsheetTargets,
     });
   });
+  // The parser reads each command inside `$(…)` and backticks, quoted or not, as a verdict of its own; a runner step's body still goes through `--body-file`, whatever the substitution runs.
+  const hasSubstitution = /\$\(|`/.test(command);
+  const bodyRefusal = hasSubstitution
+    ? plainTextRefusalOf(
+        verdicts,
+        mode,
+        "a backtick or `$(` puts a command's output in the text",
+      )
+    : undefined;
+  if (bodyRefusal) return bodyRefusal;
   const deny = verdicts.find(
     (verdict) => verdict?.permissionDecision === "deny",
   );
@@ -207,20 +217,16 @@ function baseDecision({
   if (ask) {
     return needsYes(`\`${command}\` ${ask.why}`);
   }
-  // The parser reads each command inside `$(…)` and backticks, quoted or not, as a verdict of its own; a runner step's body still goes through `--body-file`.
-  const hasSubstitution = /\$\(|`/.test(command);
-  if (
-    hasSubstitution &&
-    verdicts.some((verdict) => verdict?.plainTextFix !== undefined)
-  ) {
-    return plainTextRefusalOf(verdicts, mode);
-  }
   // It strips heredoc bodies and misreads $'…', so either could hide a command or a substitution after one.
   if (
     (hasSubstitution || verdicts.some((verdict) => verdict?.needsPlainText)) &&
     /<<|\$'/.test(command)
   ) {
-    return plainTextRefusalOf(verdicts, mode);
+    return plainTextRefusalOf(
+      verdicts,
+      mode,
+      "a heredoc or `$'…'` could hide a command",
+    );
   }
   if (!verdicts.every((verdict) => verdict?.permissionDecision === "allow")) {
     return undefined;
@@ -235,13 +241,11 @@ function baseDecision({
 function plainTextRefusalOf(
   verdicts: (Verdict | undefined)[],
   mode: SessionMode,
+  cause: string,
 ): Decision | undefined {
   const fix = verdicts.find((verdict) => verdict?.plainTextFix)?.plainTextFix;
   if (mode !== "runnerStep" || fix === undefined) return undefined;
-  return gateOf(
-    "deny",
-    `a backtick, \`$(\`, heredoc or \`$'…'\` could hide a command, so ${fix}.`,
-  );
+  return gateOf("deny", `${cause}, so ${fix}.`);
 }
 
 // The chore names a command dry-runs, for the session's dry-run record.

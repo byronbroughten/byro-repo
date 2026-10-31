@@ -470,6 +470,18 @@ describe("reads and git add", () => {
     ].forEach((command) => expect(decisionOf(command)).not.toBe("allow"));
   });
 
+  it("allows no substitution beside a `${…}` or a comment, which bash reads differently", () => {
+    [
+      "echo $(echo ${x#) #} ; git push)",
+      "echo $(echo ${x#) #} ; rm -rf x)",
+      'echo "$(echo "${x#")"}" ; git push)"',
+      "echo ${y:-a #} $(git push)",
+      "(( # )) ; $(git push)",
+      'echo "$( (( #)) ; git push\n)))"',
+      "echo $(( #))",
+    ].forEach((command) => expect(decisionOf(command)).toBeUndefined());
+  });
+
   it("allows no git verb that changes anything, and git add only plain", () => {
     [
       "git checkout master",
@@ -814,6 +826,7 @@ describe("a runner step's gh calls", () => {
       'gh issue comment 447 --body "Fails at `Api.ts`"',
       'gh issue edit 447 --body "$(cat notes.md)"',
       "gh issue comment 447 --body `cat notes.md`",
+      'gh issue edit 447 --body "$(git push)"',
     ].forEach((command) => {
       const decision = placedDecisionOf(command, "runnerStep");
       expect(decision?.permissionDecision).toBe("deny");
