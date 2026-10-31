@@ -82,6 +82,12 @@ export class FakeGitHub implements RunGitHub {
     return undefined;
   }
 
+  // An issue the fake doesn't track has none, so wrap-up tests script only the labels they test.
+  async labelsOf({ number }: IssueRef): Promise<string[]> {
+    this._failIfScripted();
+    return [...(this.issues.get(number)?.labels ?? [])];
+  }
+
   async commentsOf({ number }: IssueRef): Promise<string[]> {
     this._failIfScripted();
     return this.comments
