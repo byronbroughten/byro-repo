@@ -1,11 +1,7 @@
 // Decides the gate for a Bash call by tier: 1 and 2 are free (git or Google's version history undoes them), 3 asks. Pure; tierGate.ts does the I/O, and driveTiers.ts decides gworkspace calls.
 // The classifiers' helpers live in tiers/: git calls, paths, file commands, npm commands and runner-step verdicts.
-import {
-  npmScriptOf,
-  type SimpleCommand,
-  substitutedCommandsOf,
-} from "./bashReads.ts";
 import { GhApiCall } from "./GhApiCall.ts";
+import { ShellParser, type SimpleCommand } from "./ShellParser.ts";
 import { stdoutFilters } from "./stdoutFilters.ts";
 import type { WritePlaces } from "./stepWrites.ts";
 import { fileCommands } from "./tiers/fileCommands.ts";
@@ -258,7 +254,7 @@ export function dryRunChoresOf(command: string): string[] {
 
 function parsedCommandsOf(command: string): SimpleCommand[] | undefined {
   try {
-    return substitutedCommandsOf(command);
+    return ShellParser.init(command).substitutedCommands;
   } catch {
     return undefined;
   }
@@ -392,7 +388,7 @@ function sessionDecideVerdictOf(
   { mode }: CallContext,
 ): Verdict | undefined {
   if (mode !== "interactive" || npmCommands.isPrefixed(words)) return undefined;
-  const script = npmScriptOf(words);
+  const script = npmCommands.scriptOf(words);
   if (script?.name !== "runner") return undefined;
   const [verb] = script.args.filter((arg) => arg !== "--");
   if (verb !== "decide") return undefined;
@@ -532,7 +528,7 @@ function untargetedVerdictOf({ words }: SimpleCommand): Verdict | undefined {
 
 function publishVerdictOf({ words }: SimpleCommand): Verdict | undefined {
   const isPublish =
-    !npmScriptOf(words) &&
+    !npmCommands.scriptOf(words) &&
     npmCommands.isNpm(words) &&
     words.includes("publish");
   if (!isPublish) return undefined;
@@ -542,10 +538,11 @@ function publishVerdictOf({ words }: SimpleCommand): Verdict | undefined {
   };
 }
 
-// npmScriptOf drops flags, so the raw words are searched for --force.
+// npmCommands.scriptOf drops flags, so the raw words are searched for --force.
 function forcedRemoveVerdictOf({ words }: SimpleCommand): Verdict | undefined {
   const isForcedRemove =
-    npmScriptOf(words)?.name === "issue:remove" && words.includes("--force");
+    npmCommands.scriptOf(words)?.name === "issue:remove" &&
+    words.includes("--force");
   if (!isForcedRemove) return undefined;
   return {
     permissionDecision: "ask",

@@ -1,6 +1,10 @@
 // What an npm, npx or npm exec call runs, read off its words: the program, a free script or npx check, and an app chore.
-import { npmScriptOf } from "../bashReads.ts";
 import type { Verdict } from "../tiers.ts";
+
+export interface NpmScript {
+  name: string;
+  args: string[];
+}
 
 interface AppChore {
   name: string;
@@ -67,16 +71,28 @@ const npxChecks = new Map<string, (args: string[]) => boolean>([
       !args.some((arg) => arg === "--write" || arg === "-w"),
   ],
 ]);
-const npmExecVerbs = new Set(["exec", "x"]);
+const npmVerbs = {
+  exec: new Set(["exec", "x"]),
+  run: new Set(["run", "run-script"]),
+} as const;
 
 export const npmCommands = {
+  // An `npm run` script and its args; flags drop out except `--` and `--send`.
+  scriptOf(words: string[]): NpmScript | undefined {
+    if (!npmCommands.isNpm(words)) return undefined;
+    const rest = words
+      .slice(1)
+      .filter((word) => !/^-/.test(word) || word === "--" || word === "--send");
+    if (!npmVerbs.run.has(rest[0] ?? "") || !rest[1]) return undefined;
+    return { name: rest[1], args: rest.slice(2) };
+  },
   // The program a command runs, through npx or npm exec, without its path or version.
   programOf(words: string[]): string | undefined {
     let rest = words;
     if (basenameOf(words[0] ?? "") === "npx") rest = words.slice(1);
     else if (
       npmCommands.isNpm(words) &&
-      npmExecVerbs.has(nonFlagsOf(words)[1] ?? "")
+      npmVerbs.exec.has(nonFlagsOf(words)[1] ?? "")
     ) {
       rest = words.slice(words.indexOf(nonFlagsOf(words)[1] ?? "") + 1);
     }
@@ -91,7 +107,7 @@ export const npmCommands = {
   // Why the script a command runs is free, or undefined when it isn't one.
   freeScriptWhyOf(words: string[]): string | undefined {
     if (npmCommands.isPrefixed(words)) return undefined;
-    const scriptName = npmScriptOf(words)?.name ?? npmTestOf(words);
+    const scriptName = npmCommands.scriptOf(words)?.name ?? npmTestOf(words);
     return scriptName && freeScripts.get(scriptName);
   },
   // Why an npx check is free, or undefined when the words aren't one.
@@ -110,7 +126,7 @@ export const npmCommands = {
   },
   // npm keeps a `--send` before its `--` as its own config, so only one after it reaches the chore.
   appChoreOf(words: string[]): AppChore | undefined {
-    const script = npmScriptOf(words);
+    const script = npmCommands.scriptOf(words);
     if (script?.name !== "app:chore") return undefined;
     const name = script.args.find((arg) => !arg.startsWith("-"));
     if (!name) return undefined;
