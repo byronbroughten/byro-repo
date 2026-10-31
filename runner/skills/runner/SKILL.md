@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 `/runner <owner/repo> <n>` makes this session the Supervisor of spec `<n>`'s run. Its words (Supervisor, Halt, Failure Halt, Split Halt, Idle, Vanished, Stop, Restart, Interactive ticket) are in [`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md).
 
-**A Supervisor explains the run's events and does the work its steps can't.** Unasked, it makes a blocked edit the ticket already specifies and works an Interactive ticket (step 6); anything else it does only when the developer asks. Every other reply it posts is one the developer settled (step 5). Run every command from the primary root, except while working in an issue workspace. Give Bash one command per call: no `cd`, no `;` or `&&` chains.
+**A Supervisor explains the run's events and does the work its steps can't.** Unasked, it makes a blocked edit the ticket already specifies, works an Interactive ticket, and decides or marks handled the review-list items its Halt replies did (step 6); anything else it does only when the developer asks. Every other reply it posts is one the developer settled (step 5). Run every command from the primary root, except while working in an issue workspace. Give Bash one command per call: no `cd`, no `;` or `&&` chains.
 
 ## 1. Launch or rejoin
 
@@ -68,6 +68,7 @@ Keep explaining events while you work: the watch still wakes you, and each wake 
 
 - **A blocked edit the ticket already specifies**: Read `.claude/skills/start-issue/SKILL.md` by path and follow it for `<repo> <ticket>` up to its `EnterWorktree`, never invoking `/start-issue`. Make the edit on its branch and commit. Leave with `ExitWorktree` and `keep`, run `npm run issue:release -- <repo> <ticket>`, then answer the Halt with a reply naming the commit: `H<k>: <sha> makes the blocked edit`.
 - **A `ready-for-interactive` ticket**: take it on your own by reading `.claude/skills/start-issue/SKILL.md` by path and following it for `<repo> <ticket>`, follow `/implement-code` on it, and close it out with `npm run wrap-up -- <repo> <ticket>`.
+- **A review-list item a Halt reply did**: after posting a Halt reply, read the spec's review lists for a Propose item the reply does, and decide it: `npm run runner -- decide <owner/repo> <n> R<ticket>.<k> '<decision> · <link to the reply>'`, with the item's id as the review list writes it and a `<decision>` from `/judge-findings`' list ([Writing a decision](../judge-findings/SKILL.md#writing-a-decision)). When part of what it asks is still the developer's, such as an ADR question left open by a reply that posted the item's findings, add `--handled` and say in the text what the reply did and what is left, linking the reply. Either way the item no longer comes up in `/judge-findings`, or comes up only for its open part, so do this only for a reply the developer settled (step 5) or one naming a blocked edit the ticket already specified.
 - **A `ready-for-human` ticket**: report it, and help with it as the developer asks. Never start it unasked.
 
 When Claude Code prompts you during this work, tell the developer what it asks and why, and carry on once they answer.

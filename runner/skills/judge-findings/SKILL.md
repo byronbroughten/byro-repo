@@ -28,6 +28,8 @@ Put every undecided item to the developer in one round, in `/grilling`'s format 
 2. Then the remaining tickets' items, oldest comment first, in item order.
 3. The gap check's items last.
 
+**An item with a `Handled:` line asks only about what that line leaves open**, with the line's link, never about what the Supervisor's reply already did.
+
 **An item whose answer clearly depends on another's waits for the next round**, as in `/grilling`; so does a question an answer opens. Ask rounds until none is left.
 
 **Hand-ticked items join the first round.** One whose recommendation changes something (a Propose `ticket` or a gap with a drafted issue, a recommendation that says to file or fix something, a keep) asks only "now, file or neither?" (step 3); neither gets `Decided: accepted, not filed.` A hand-ticked item changing nothing gets `Decided: accepted (ticked by hand).` with no question.
@@ -67,7 +69,7 @@ Record each item once it is settled: a dismissal, an accepted judgement or a fil
 npm run runner -- decide <owner>/<repo> <spec> R<n>.<k> '<decision> · <link to the filed issue or landed commit>'
 ```
 
-`<decision>` is one of `accepted`, `dismissed: <reason>`, `fixed in session`, `fix filed`, `decision filed` or `keep approved: "<reason>"`. It ticks the item's box and adds the `Decided:` line under it, re-fetching the comment first and keeping every other line as it was. With `--handled` it adds a `Handled:` line and leaves the box unticked, for an item partly done and partly still the developer's; such an item stays undecided.
+`<decision>` is one of `accepted`, `dismissed: <reason>`, `fixed in session`, `fix filed`, `decision filed` or `keep approved: "<reason>"`. It ticks the item's box and adds the `Decided:` line under it, re-fetching the comment first and keeping every other line and item as it was, so it changes only the settled item. With `--handled` it adds a `Handled:` line and leaves the box unticked, for an item partly done and partly still the developer's; such an item stays undecided.
 
 ## 5. Closing the spec
 

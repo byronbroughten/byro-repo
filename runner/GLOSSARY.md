@@ -128,7 +128,7 @@ A ticket an agent can do only in an Interactive session, because its work needs 
 _Avoid_: supervisor ticket, permission ticket, escalation ticket
 
 **Supervisor**:
-An interactive session that launches or rejoins one run, explains each of its events to the developer, and does the work the run's steps can't: unasked for a blocked edit the ticket already specifies or an Interactive ticket, and anything else when the developer asks. Every other reply it posts is one the developer settled.
+An interactive session that launches or rejoins one run, explains each of its events to the developer, and does the work the run's steps can't: unasked for a blocked edit the ticket already specifies or an Interactive ticket, and anything else when the developer asks. Every other reply it posts is one the developer settled. It decides, or marks handled, the review-list items its Halt replies did.
 _Avoid_: monitor, watcher, babysitter
 
 **Run board**:
