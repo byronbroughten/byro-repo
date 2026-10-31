@@ -92,7 +92,7 @@ const stepPermissionHook: HookEntry = {
 };
 
 export const stateFolder = join(primaryRoot, ".runner");
-const outcomeFolder = "docs/agents/outcomes";
+export const outcomeFolder = "docs/agents/outcomes";
 
 export const wrapUpConfig: WrapUpConfig = {
   workspaces: issueWorkspacesConfig,

@@ -35,7 +35,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `halts.ts` | | Halts: their comments, notices, answers and the resume prompt. |
 | `implementCodeSkill.ts` | `implementCodeSkill` | Generates the `/implement-code` skill from the implement step's shared body. |
 | `implementStep.ts` | `implementStep` | The implement step's prompt, record, handoff comment and record checks. |
-| `IssueReader.ts` | `IssueReader` | `npm run issue:read`: prints an issue as Trusted and Untrusted text. |
+| `IssueReader.ts` | `IssueReader` | `npm run issue:read`: prints an issue as Trusted and Untrusted text, and reads a Trusted body's Model fit line for `npm run outcome:summary`. |
 | `IssueWorkspaces.ts` | `IssueWorkspaces` | Creates, promotes, resumes, leases, lists and removes issue and session workspaces. |
 | `issueWorkspacesHarness.ts` | | The fixture `IssueWorkspaces` tests share. |
 | `LandingLock.ts` | `LandingLock` | The per-primary lock wrap-up lands under. |
@@ -48,8 +48,11 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Notices.ts` | `Notices` | The notice port and `composedNotices`. |
 | `NtfyNotices.ts` | `NtfyNotices` | The ntfy push adapter. |
 | `outcomeBackfill.ts` | `outcomeBackfill` | A one-off chore's core: fills written outcome rows' `unrecorded` transcript cells from a run state's sessions. |
-| `outcomeLog.ts` | `outcomeLog` | The outcome row file's path, table and commit message, and a written row's transcript cells. |
+| `outcomeLog.ts` | `outcomeLog` | The outcome row file's path, table and commit message, and a written row's cells by column and its transcript cells. |
 | `outcomeRowWriter.ts` | `outcomeRowWriter` | Writes a ticket's outcome row from its facts file. |
+| `outcomeSummary.ts` | `outcomeSummary` | `npm run outcome:summary`'s core: picks spec sections of the outcome log and reports their costs, outliers, transcripts and Model fit for `/mine-outcomes`. |
+| `outcomeSummary/OutcomeReport.ts` | | Words the outcome summary for a batch of sections. |
+| `outcomeSummary/summarySections.ts` | | Reads the outcome log's spec sections from row files and picks the batch. |
 | `PidLock.ts` | | The pid lock file `LandingLock` and `RunLock` extend. |
 | `processStart.ts` | | A process's start time, for leases and supervision records. |
 | `progressLines.ts` | | The progress-log lines, written and parsed in pairs. |
@@ -91,7 +94,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `targetTools.ts` | | The tools a step gets for each of its ticket's targets. |
 | `TicketHalted.ts` | | The error raised once a ticket's Halts are posted. |
 | `ticketTargets.ts` | | Reads a ticket's `## Targets` section. |
-| `transcriptFacts.ts` | `transcriptFacts` | Outcome facts computed from transcripts: pair, peaks, duration and cost, and why one is unrecorded. |
+| `transcriptFacts.ts` | `transcriptFacts` | Outcome facts computed from transcripts: pair, peaks, duration and cost, and why one is unrecorded; where a session's transcript is. |
 | `UnhandledStop.ts` | `UnhandledStop` | The outcomes the run loop doesn't handle yet, and their error. |
 | `verdicts.ts` | | A finding's axes and verdicts. |
 | `WrapUp.ts` | `WrapUp` | `npm run wrap-up`: lands an issue or session workspace. |

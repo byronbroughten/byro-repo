@@ -952,6 +952,14 @@ describe("free reads and standing yeses in both modes", () => {
     });
   });
 
+  it("allows the outcome summary as a read", () => {
+    [
+      "npm run outcome:summary -- byro-repo-480",
+      "npm run outcome:summary -- --recent 3",
+      "npm run -s outcome:summary -- --all",
+    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
+  });
+
   it("leaves other gh label calls to Claude Code", () => {
     expect(decisionOf("gh label create urgent")).toBeUndefined();
     expect(decisionOf("gh label delete urgent")).toBeUndefined();

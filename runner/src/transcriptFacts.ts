@@ -124,6 +124,17 @@ export function configFolderOf(
   return env.CLAUDE_CONFIG_DIR ?? join(homeFolder, ".claude");
 }
 
+export function hasTranscript(
+  configFolder: string,
+  sessionId: string,
+): boolean {
+  const projects = join(configFolder, "projects");
+  if (!existsSync(projects)) return false;
+  return readdirSync(projects).some((name) =>
+    existsSync(join(projects, name, `${sessionId}.jsonl`)),
+  );
+}
+
 export function transcriptFactsOf(
   sessions: TicketSessions,
   handoffSessionIds: string[],

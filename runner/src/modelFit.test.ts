@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { pairOf, strongerPairOf } from "./modelFit.ts";
+import { modelFitTextOf, pairOf, strongerPairOf } from "./modelFit.ts";
 
 function bodyWith(section: string): string {
   return `## What to build\n\nA thing.\n\n${section}`;
@@ -46,6 +46,30 @@ describe("pairOf", () => {
     const body = "## Model fit\n\nOpus low\nWhy.\n\n## Notes\n\nMore.";
 
     expect(pairOf(body)).toBe(undefined);
+  });
+});
+
+describe("modelFitTextOf", () => {
+  it("joins a last Model fit section's pair line and reason", () => {
+    const body = bodyWith(
+      "## Model fit\n\nOpus medium\nA new module's shape.\nWithin a settled design.\n",
+    );
+
+    expect(modelFitTextOf(body)).toBe(
+      "Opus medium: A new module's shape. Within a settled design.",
+    );
+  });
+
+  it("keeps a pair line outside the six as written", () => {
+    expect(modelFitTextOf(bodyWith("## Model fit\n\nSonnet low"))).toBe(
+      "Sonnet low",
+    );
+  });
+
+  it("is undefined with no last Model fit section", () => {
+    expect(modelFitTextOf("## Model fit\n\nOpus low\n\n## Notes")).toBe(
+      undefined,
+    );
   });
 });
 

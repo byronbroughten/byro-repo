@@ -3,12 +3,13 @@
 // for under every candidate config folder; a fact whose transcript is in none of them stays `unrecorded`.
 // scripts/runner/outcomeBackfill.ts runs it over a spec.
 
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { withUnrecordedTranscriptCells } from "./outcomeLog.ts";
 import { runStateOf } from "./savedFormats.ts";
 import {
+  hasTranscript,
   type RecordedSession,
   type StepSession,
   transcriptFactsOf,
@@ -71,12 +72,4 @@ function recordedOf(
     configFolders.find((folder) => hasTranscript(folder, session.sessionId)) ??
     firstFolder;
   return { ...session, configFolder };
-}
-
-function hasTranscript(configFolder: string, sessionId: string): boolean {
-  const projects = join(configFolder, "projects");
-  if (!existsSync(projects)) return false;
-  return readdirSync(projects).some((name) =>
-    existsSync(join(projects, name, `${sessionId}.jsonl`)),
-  );
 }

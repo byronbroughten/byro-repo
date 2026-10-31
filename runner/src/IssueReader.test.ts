@@ -297,6 +297,32 @@ describe("IssueReader.read", () => {
   });
 });
 
+describe("IssueReader.modelFitOf", () => {
+  const issue = { repo: "byro-repo", number: 7 };
+  const body =
+    "## What to build\n\nA thing.\n\n## Model fit\n\nOpus low\nSmall.";
+
+  it("gives a Trusted body's Model fit pair line and reason", async () => {
+    expect(await readerOf({ body }).modelFitOf(issue)).toBe("Opus low: Small.");
+  });
+
+  it("reads no Model fit from an Untrusted body, saying why", async () => {
+    expect(
+      await readerOf({ body, bodyEditors: ["stranger"] }).modelFitOf(issue),
+    ).toBe("not read: the body is Untrusted text, edited by stranger");
+  });
+
+  it("says when the body has no Model fit section", async () => {
+    expect(await readerOf().modelFitOf(issue)).toBe("no Model fit section");
+  });
+
+  it("refuses a repo outside the allowed ones", async () => {
+    await expect(
+      readerOf().modelFitOf({ repo: "elsewhere", number: 7 }),
+    ).rejects.toThrow('Repo "elsewhere" is not one of');
+  });
+});
+
 function threadWithAStranger(): IssueComment[] {
   return [
     { author: developer, body: "Handoff." },
