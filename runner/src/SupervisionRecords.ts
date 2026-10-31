@@ -16,7 +16,12 @@ import {
   type IssueRef,
   type LeaseHolder,
 } from "./IssueWorkspaces.ts";
-import { startTimeOf } from "./processStart.ts";
+import {
+  identityOf,
+  isRunning,
+  isSameProcess,
+  type ProcessIdentity,
+} from "./processStart.ts";
 import { RunLock } from "./RunLock.ts";
 
 export interface SupervisionRecord {
@@ -31,21 +36,16 @@ export interface SupervisionRecord {
 
 export type SupervisionEnd = "clear" | "resume" | "processEnd";
 
-// A watch process, named as the record names its Supervisor, so a reused pid never passes for the watch it replaced.
-export interface WatchProcess {
-  pid: number;
-  startedAt?: string;
-}
-
 export interface WatchStart {
-  watchProcess: WatchProcess;
+  // Named as the record names its Supervisor, so a reused pid never passes for the watch it replaced.
+  watchProcess: ProcessIdentity;
   offset: number;
 }
 
-interface RecordFile extends SupervisionRecord {
-  startedAt?: string;
+// The Supervisor's own identity, so a reused pid never inherits its record.
+interface RecordFile extends SupervisionRecord, ProcessIdentity {
   // The spec's one watch: a later one replaces it, and it exits once the record names another.
-  watch?: WatchProcess;
+  watch?: ProcessIdentity;
 }
 
 export class SupervisionRecords {
@@ -73,24 +73,24 @@ export class SupervisionRecords {
     const offset = Math.max(0, ...sameSpec.map((file) => file.offset));
     const watch = sameSpec.find((file) => file.watch)?.watch;
     // Read before the removal, so a polling watch never finds the spec with no record and takes itself for replaced.
-    const startedAt = await startTimeOf(pid);
+    const supervisor = await identityOf(pid);
     for (const file of sameSpec) this._remove(file.pid);
     const record = { pid, owner, spec, offset };
-    this._write({ ...record, startedAt, watch });
+    this._write({ ...record, ...supervisor, watch });
     return record;
   }
 
   async watch(spec: IssueRef, pid: number): Promise<WatchStart | undefined> {
-    const watchProcess = { pid, startedAt: await startTimeOf(pid) };
+    const watchProcess = await identityOf(pid);
     const file = this._specFileOf(spec);
     if (file === undefined) return undefined;
     this._write({ ...file, watch: watchProcess });
     return { watchProcess, offset: file.offset };
   }
 
-  isWatchedBy(spec: IssueRef, { pid, startedAt }: WatchProcess): boolean {
+  isWatchedBy(spec: IssueRef, watchProcess: ProcessIdentity): boolean {
     const watch = this._specFileOf(spec)?.watch;
-    return watch?.pid === pid && watch.startedAt === startedAt;
+    return watch !== undefined && isSameProcess(watch, watchProcess);
   }
 
   async recordOf(holder: LeaseHolder): Promise<SupervisionRecord | undefined> {
@@ -139,10 +139,7 @@ export class SupervisionRecords {
   }: LeaseHolder): Promise<SupervisionRecord | undefined> {
     const file = this._fileOf(pid);
     if (file === undefined) return undefined;
-    const startedNow = await startTimeOf(pid);
-    if (startedNow === undefined || startedNow !== file.startedAt) {
-      return undefined;
-    }
+    if (!(await isRunning(file))) return undefined;
     const { owner, spec, offset, endedBy } = file;
     return { pid, owner, spec, offset, endedBy };
   }
