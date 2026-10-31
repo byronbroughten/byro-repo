@@ -56,7 +56,8 @@ type RunList<RN> = [RN, ...RN[]];
 
 interface RunStart {
   reading: AccountReading;
-  launching: IssueRef | undefined;
+  // The ticket the first pick launches, if it launches one.
+  ticket: IssueRef | undefined;
   isRelaunch: boolean;
 }
 
@@ -126,7 +127,10 @@ export class RunLoop extends SpecRunBase {
     const startedAt = this.config.clock.now();
     const runs = await this._startRuns(specIssues);
     // Each Run's restart is taken, whichever relaunches, so no later rerun reads one again.
-    const isRelaunch = runs.map((run) => this._takeRestart(run)).some(Boolean);
+    let isRelaunch = false;
+    runs.forEach((run) => {
+      if (this._takeRestart(run)) isRelaunch = true;
+    });
     const refusals = await this._runRefusalsOf(runs);
     if (refusals.length > 0) return refusedOf(refusals);
     // What concerns the whole run, its shared preflight, start, idling and stop request, is told on the first Run.
@@ -157,7 +161,7 @@ export class RunLoop extends SpecRunBase {
       if (!isStartAnnounced) {
         await this._announceStart(lead, {
           reading,
-          launching: launchingOf(pick),
+          ticket: launchedTicketOf(pick),
           isRelaunch,
         });
         isStartAnnounced = true;
@@ -194,7 +198,7 @@ export class RunLoop extends SpecRunBase {
         );
       }
       isIdle = false;
-      if (this._takeStopRequest(runs)) return this._stopOnRequest(run, []);
+      if (this._takeStopRequest(runs)) return this._stopOnRequest(lead, []);
       if (selection.kind === "stopped-again") {
         const label = issueLabelOf(selection.ticket.issue);
         return this._end(
@@ -220,15 +224,12 @@ export class RunLoop extends SpecRunBase {
     }
   }
 
-  private async _startRuns(
-    specIssues: RunList<IssueRef>,
-  ): Promise<RunList<Run>> {
+  private _startRuns(specIssues: RunList<IssueRef>): Promise<RunList<Run>> {
     const [first, ...rest] = specIssues;
-    const runs: RunList<Run> = [await this._startRunClearingStop(first)];
-    for (const specIssue of rest) {
-      runs.push(await this._startRunClearingStop(specIssue));
-    }
-    return runs;
+    return Promise.all([
+      this._startRunClearingStop(first),
+      ...rest.map((specIssue) => this._startRunClearingStop(specIssue)),
+    ]);
   }
 
   private async _startRunClearingStop(specIssue: IssueRef): Promise<Run> {
@@ -308,7 +309,7 @@ export class RunLoop extends SpecRunBase {
   // Sent at the first pick, so it can name the ticket about to launch; a first pick with no launch still shows startup passed.
   private async _announceStart(
     run: Run,
-    { reading, launching: ticket, isRelaunch }: RunStart,
+    { reading, ticket, isRelaunch }: RunStart,
   ): Promise<void> {
     const started = `Run started on ${run.tickets.length} tickets as ${readingLabelOf(reading.account, reading.usage)}.`;
     const summary =
@@ -454,23 +455,7 @@ function startedTextOf(startedAt: string): string {
   return localTimeOf(time);
 }
 
-// A split spec's own body is never checked; tickets the runner won't launch need no section.
-function modelFitRefusalOf(
-  run: Run,
-  launchable: TrackedIssue[],
-): string | undefined {
-  if (run.isTicketless) {
-    if (pairOf(run.spec.body) !== undefined) return undefined;
-    return `${issueLabelOf(run.spec.issue)} has no sub-issues and no valid ## Model fit section: split it with /code-tickets, or add the section.`;
-  }
-  const offenders = launchable.flatMap(({ issue, body }) =>
-    pairOf(body) === undefined ? [issueLabelOf(issue)] : [],
-  );
-  if (offenders.length === 0) return undefined;
-  return `Each open ${readyLabel} ticket needs a ## Model fit section naming one of the six pairs; missing or invalid in ${offenders.join(", ")}.`;
-}
-
-function launchingOf(pick: Pick): IssueRef | undefined {
+function launchedTicketOf(pick: Pick): IssueRef | undefined {
   if (pick.kind !== "picked" || pick.selection.kind !== "launch") {
     return undefined;
   }
@@ -498,6 +483,22 @@ function stopRequestMessageOf(run: Run, waits: Wait[]): string {
 function stopSpecMessageOf(run: Run, halts: Halt[]): string {
   const tickets = [...new Set(halts.map(({ ticket }) => issueLabelOf(ticket)))];
   return `Stopped on \`stop spec\` for Halt ${idListOf(halts)}: ${landedTextOf(run.landed)}; ${tickets.join(", ")} stays unlanded.`;
+}
+
+// A split spec's own body is never checked; tickets the runner won't launch need no section.
+function modelFitRefusalOf(
+  run: Run,
+  launchable: TrackedIssue[],
+): string | undefined {
+  if (run.isTicketless) {
+    if (pairOf(run.spec.body) !== undefined) return undefined;
+    return `${issueLabelOf(run.spec.issue)} has no sub-issues and no valid ## Model fit section: split it with /code-tickets, or add the section.`;
+  }
+  const offenders = launchable.flatMap(({ issue, body }) =>
+    pairOf(body) === undefined ? [issueLabelOf(issue)] : [],
+  );
+  if (offenders.length === 0) return undefined;
+  return `Each open ${readyLabel} ticket needs a ## Model fit section naming one of the six pairs; missing or invalid in ${offenders.join(", ")}.`;
 }
 
 function openHaltTextOf(halt: Halt): string {
