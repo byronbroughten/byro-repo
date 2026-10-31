@@ -29,6 +29,7 @@ import {
   isLanded,
   isLaunchable,
   isStopSpec,
+  oldestAnsweredOf,
   openHaltsOf,
   type Run,
   ticketStateOf,
@@ -53,7 +54,8 @@ interface Survey {
 }
 
 export type Selection =
-  | { kind: "launch"; ticket: TrackedIssue }
+  // `answeredAt` is set on a halted ticket whose Halts are all answered: the latest answer's time, which a Batch orders by.
+  | { kind: "launch"; ticket: TrackedIssue; answeredAt?: string }
   | { kind: "stopped-again"; ticket: TrackedIssue; stop: string }
   | { kind: "stop-spec"; halts: Halt[] }
   | { kind: "none"; waits: Wait[] };
@@ -77,10 +79,13 @@ export class TicketSelector extends SpecRunBase {
     if (stoppedAgain !== undefined) {
       return { kind: "stopped-again", ...stoppedAgain };
     }
-    answered.sort((first, second) => first.at.localeCompare(second.at));
-    const [first] = [...answered.map(({ ticket }) => ticket), ...launchable];
-    if (first === undefined) return { kind: "none", waits };
-    return { kind: "launch", ticket: first };
+    const oldest = oldestAnsweredOf(answered);
+    if (oldest !== undefined) {
+      return { kind: "launch", ticket: oldest.ticket, answeredAt: oldest.at };
+    }
+    const [next] = launchable;
+    if (next === undefined) return { kind: "none", waits };
+    return { kind: "launch", ticket: next };
   }
 
   async _survey(run: Run, openHalts: Halt[]): Promise<Survey> {

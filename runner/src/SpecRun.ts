@@ -12,6 +12,7 @@ import { JudgeableIssueLister } from "./SpecRun/JudgeableIssueLister.ts";
 import { ReviewItemDecider } from "./SpecRun/ReviewItemDecider.ts";
 import { RunLoop } from "./SpecRun/RunLoop.ts";
 import {
+  type MemberList,
   type ResolveOptions,
   type ReviewOptions,
   type ReviewResult,
@@ -23,6 +24,7 @@ import { SpecRunBase, type SpecRunConfig } from "./SpecRun/SpecRunBase.ts";
 export type { Clock, RunGitHub, SpecRunConfig } from "./SpecRun/SpecRunBase.ts";
 export {
   type IssueComment,
+  type MemberList,
   progressLogPathOf,
   rerunCommandOf,
   type ResolveOptions,
@@ -55,8 +57,9 @@ export class SpecRun extends SpecRunBase {
     return new JudgeableIssueLister(this.config);
   }
 
-  run(specIssue: IssueRef): Promise<RunResult> {
-    return this.runLoop.run([specIssue]);
+  // One member is a spec's run, a Standalone ticket's included; several are a Batch.
+  run(...members: MemberList): Promise<RunResult> {
+    return this.runLoop.run(members);
   }
 
   requestStop(specIssue: IssueRef): void {

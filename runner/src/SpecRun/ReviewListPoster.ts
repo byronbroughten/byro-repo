@@ -34,7 +34,6 @@ import {
   undecidedCountOf,
   undecidedLineOf,
 } from "../reviewList.ts";
-import { RunStop } from "../RunStop.ts";
 import { SchemaFailure } from "../SchemaFailure.ts";
 import { TicketHalted } from "../TicketHalted.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
@@ -133,6 +132,7 @@ export class ReviewListPoster extends SpecRunBase {
   }
 
   // The gap check waits for every ticket to close, since an open one may still land what it would report; undefined once it halts.
+  // A RunStop is thrown on to the run loop, which ends every unfinished member on it.
   async _finish(run: Run, waits: Wait[]): Promise<RunResult | undefined> {
     await this._postLandedReviewLists(run);
     if (waits.length === 0) {
@@ -140,9 +140,6 @@ export class ReviewListPoster extends SpecRunBase {
         await this._gapCheck(run);
       } catch (error) {
         if (error instanceof TicketHalted) return undefined;
-        if (error instanceof RunStop) {
-          return this._end(run, "stopped", error.message, error.event);
-        }
         if (!(error instanceof UnhandledStop)) throw error;
         return this._end(
           run,

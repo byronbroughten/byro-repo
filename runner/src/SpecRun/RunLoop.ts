@@ -1,9 +1,9 @@
-// The run loop works a list of Runs, one per spec, and holds each one's RunLock while it runs.
+// The run loop works a list of members, one Run each, and holds each one's RunLock while it runs; several are a Batch.
 // Preflight refuses or Stops a run first: a per-Run part collects every Run's refusal, and a shared part runs once.
-// Then it picks tickets one at a time and runs each, idling while an open Halt or another holder's lease
-// is all that's in the way, until every ticket lands or something Stops it.
+// Then it picks tickets one at a time across members and runs each, a member held by a Halt stepping aside,
+// idling while open Halts and other holders' leases are all that's in the way, until every member is done or something Stops it.
 // Any outcome a later ticket will handle (red checks, step errors, schema failures) is an UnhandledStop; a red master Stops the run.
-// requestStop() or a `stop spec` answer ends the run between tickets; status() reads it from outside.
+// requestStop() ends the run between tickets, and a `stop spec` answer its own member; status() reads it from outside.
 // A landing that changes the runner's own source ends it restarting, for tmux.sh to relaunch.
 // ../SpecRun.ts delegates run, status and requestStop to it.
 // It builds its own TicketSelector, TicketSequencer and ReviewListPoster.
@@ -30,6 +30,11 @@ import { pairOf } from "../modelFit.ts";
 import { type HeldRunLock, RunLock } from "../RunLock.ts";
 import { RunStop } from "../RunStop.ts";
 import { stalePathLabelOf, stalePathsOf } from "../stalePaths.ts";
+import {
+  type Member,
+  type MemberSelection,
+  MemberSelections,
+} from "./MemberSelections.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
 import {
   idListOf,
@@ -37,8 +42,10 @@ import {
   isLaunchable,
   landedTextOf,
   liveCeilingPhraseOf,
+  type MemberList,
   openHaltsOf,
   readyLabel,
+  rerunCommandOf,
   type Run,
   runCommand,
   type RunResult,
@@ -48,8 +55,8 @@ import {
   type Wait,
   waitsTextOf,
 } from "./runState.ts";
-import { SpecRunBase } from "./SpecRunBase.ts";
-import { type Selection, TicketSelector } from "./TicketSelector.ts";
+import { type RunEvent, SpecRunBase } from "./SpecRunBase.ts";
+import { TicketSelector } from "./TicketSelector.ts";
 import { TicketSequencer } from "./TicketSequencer.ts";
 
 // Non-empty, so the run always has a first Run to tell what concerns it as a whole.
@@ -57,26 +64,25 @@ type RunList<RN> = [RN, ...RN[]];
 
 interface RunStart {
   reading: AccountReading;
-  // The ticket the first pick launches, if it launches one.
-  ticket: IssueRef | undefined;
+  // The launch the first pick makes, if it makes one.
+  launch: MemberSelection<"launch"> | undefined;
   isRelaunch: boolean;
 }
 
 type LocksTaken =
   { kind: "taken"; locks: RunLock[] } | { kind: "refused"; refusals: string[] };
 
-interface RunWaits {
-  run: Run;
-  waits: Wait[];
+// A Stop's message, and the event on the member it came from.
+interface MemberStop {
+  member: Member;
+  message: string;
+  event?: RunEvent;
 }
 
-type Pick =
-  | {
-      kind: "picked";
-      run: Run;
-      selection: Exclude<Selection, { kind: "none" }>;
-    }
-  | { kind: "none"; waiting: RunWaits[] };
+type Finishing =
+  | { kind: "none" }
+  | { kind: "finishing" }
+  | { kind: "stopped"; stop: MemberStop };
 
 export class RunLoop extends SpecRunBase {
   private get ticketSelector(): TicketSelector {
@@ -91,28 +97,27 @@ export class RunLoop extends SpecRunBase {
     return new ReviewListPoster(this.config);
   }
 
-  // Today's caller passes one spec; the list is the shape a Batch fills.
-  async run(specIssues: RunList<IssueRef>): Promise<RunResult> {
-    const taken = this._takeRunLocks(specIssues);
+  async run(memberIssues: MemberList): Promise<RunResult> {
+    const taken = this._takeRunLocks(memberIssues);
     // Announced, the refusal would land in the live run's event file as its run-ended line.
     if (taken.kind === "refused") {
       return refusedOf(taken.refusals);
     }
     try {
-      return await this._runHoldingLocks(specIssues);
+      return await this._runHoldingLocks(memberIssues);
     } finally {
       taken.locks.forEach((lock) => lock.release());
     }
   }
 
   // The per-Run preflight's first check; no lock is kept unless every one is taken.
-  private _takeRunLocks(specIssues: IssueRef[]): LocksTaken {
+  private _takeRunLocks(memberIssues: IssueRef[]): LocksTaken {
     const locks: RunLock[] = [];
     const refusals: string[] = [];
-    specIssues.forEach((specIssue) => {
-      const taken = RunLock.take(this.config.stateFolder, specIssue);
+    memberIssues.forEach((memberIssue) => {
+      const taken = RunLock.take(this.config.stateFolder, memberIssue);
       if (taken.kind === "held") {
-        refusals.push(runLockRefusalOf(specIssue, taken));
+        refusals.push(runLockRefusalOf(memberIssue, taken));
       } else {
         locks.push(taken.lock);
       }
@@ -122,11 +127,10 @@ export class RunLoop extends SpecRunBase {
     return { kind: "refused", refusals };
   }
 
-  private async _runHoldingLocks(
-    specIssues: RunList<IssueRef>,
-  ): Promise<RunResult> {
+  // A member ends on its own, by finishing or a `stop spec`, while the others carry on; a Stop ends every unfinished one.
+  private async _runHoldingLocks(memberIssues: MemberList): Promise<RunResult> {
     const startedAt = this.config.clock.now();
-    const runs = await this._startRuns(specIssues);
+    const runs = await this._startRuns(memberIssues);
     // Each Run's restart is taken, whichever relaunches, so no later rerun reads one again.
     let isRelaunch = false;
     runs.forEach((run) => {
@@ -134,99 +138,90 @@ export class RunLoop extends SpecRunBase {
     });
     const refusals = await this._runRefusalsOf(runs);
     if (refusals.length > 0) return refusedOf(refusals);
-    // What concerns the whole run, its shared preflight, start, idling and stop request, is told on the first Run.
-    const [lead] = runs;
+    const members = membersOf(runs);
+    // The account and the primary checkout concern every member alike; the first member reads them.
+    const [lead] = members;
     const preflightStop = await this._preflightStop();
     if (preflightStop !== undefined) {
-      return this._end(
-        lead,
-        "stopped",
-        `Preflight stopped the run: ${preflightStop}`,
-      );
+      return this._stopAll(members, {
+        member: lead,
+        message: `Preflight stopped the run: ${preflightStop}`,
+      });
     }
     runs.forEach((run) => {
       this._log(run, `Preflight passed in ${this._secondsSince(startedAt)}s.`);
     });
     let reading: AccountReading;
     try {
-      reading = await this._activeReadingOf(lead);
+      reading = await this._activeReadingOf(lead.run);
     } catch (error) {
       if (!(error instanceof RunStop)) throw error;
-      return this._end(lead, "stopped", error.message);
+      return this._stopAll(members, { member: lead, message: error.message });
     }
     const startHead = await git(this.config.primaryRoot, "rev-parse", "HEAD");
     let isStartAnnounced = false;
     let isIdle = false;
     for (;;) {
-      const pick = await this._pickOf(runs);
+      const unfinished = members.filter(({ end }) => end === undefined);
+      if (unfinished.length === 0) return this._resultOf(members);
+      const selections = await this._selectEach(unfinished);
+      const launch = selections.nextLaunch;
       if (!isStartAnnounced) {
-        await this._announceStart(lead, {
-          reading,
-          ticket: launchedTicketOf(pick),
-          isRelaunch,
-        });
+        await this._announceStart(unfinished, { reading, launch, isRelaunch });
         isStartAnnounced = true;
       }
-      if (pick.kind === "none") {
-        const unheld = pick.waiting.find(
-          ({ waits }) => !waits.some(isIdleWait),
-        );
-        if (unheld !== undefined) {
-          const finished = await this.reviewListPoster._finish(
-            unheld.run,
-            unheld.waits,
-          );
-          if (finished !== undefined) return finished;
-          continue;
-        }
-        const waits = pick.waiting.flatMap((waiting) => waiting.waits);
-        if (this._takeStopRequest(runs)) {
-          return this._stopOnRequest(lead, waits);
-        }
-        if (!isIdle) {
-          await this._announce(lead, idleMessageOf(waits), { kind: "idle" });
-        }
+      if (await this._endStopSpecs(selections.stopSpecs)) continue;
+      const { waiting } = selections;
+      const finishing = await this._finishUnheld(waiting);
+      if (finishing.kind === "stopped") {
+        return this._stopAll(members, finishing.stop);
+      }
+      if (finishing.kind === "finishing") continue;
+      if (this._takeStopRequest(runs)) {
+        return this._stopOnRequest(members, waiting);
+      }
+      const { stoppedAgain } = selections;
+      if (stoppedAgain !== undefined) {
+        const { member, ticket, stop } = stoppedAgain;
+        const label = issueLabelOf(ticket.issue);
+        await this._stopMember({
+          member,
+          message: `${label} is still open after its Stop (${stop}); finish and land it by hand, then rerun.`,
+          event: { ticket: ticket.issue },
+        });
+        continue;
+      }
+      if (launch === undefined) {
+        if (!isIdle) await this._announceIdle(waiting);
         isIdle = true;
         await this._sleep(this.config.knobs.idlePollMs);
         continue;
       }
-      const { run, selection } = pick;
-      if (selection.kind === "stop-spec") {
-        return this._end(
-          run,
-          "stopped",
-          stopSpecMessageOf(run, selection.halts),
-        );
-      }
       isIdle = false;
-      if (this._takeStopRequest(runs)) return this._stopOnRequest(lead, []);
-      if (selection.kind === "stopped-again") {
-        const label = issueLabelOf(selection.ticket.issue);
-        return this._end(
-          run,
-          "stopped",
-          `${label} is still open after its Stop (${selection.stop}); finish and land it by hand, then rerun.`,
-          { ticket: selection.ticket.issue },
-        );
-      }
+      const { member, ticket } = launch;
+      const { run } = member;
       let outcome: TicketOutcome;
       try {
-        outcome = await this.ticketSequencer._runTicket(run, selection.ticket);
+        outcome = await this.ticketSequencer._runTicket(run, ticket);
       } catch (error) {
         if (!(error instanceof RunStop)) throw error;
-        return this._end(run, "stopped", error.message, error.event);
+        return this._stopAll(members, {
+          member,
+          message: error.message,
+          event: error.event,
+        });
       }
       if (outcome === "leased" || outcome === "halted") continue;
-      run.landed.push(selection.ticket.issue);
+      run.landed.push(ticket.issue);
       run.failureStreak = [];
       if (await this._hasRunnerChangedSince(startHead)) {
-        return this._restart(run, selection.ticket.issue);
+        return this._restart(members, ticket.issue);
       }
     }
   }
 
-  private _startRuns(specIssues: RunList<IssueRef>): Promise<RunList<Run>> {
-    const [first, ...rest] = specIssues;
+  private _startRuns(memberIssues: MemberList): Promise<RunList<Run>> {
+    const [first, ...rest] = memberIssues;
     return Promise.all([
       this._startRunClearingStop(first),
       ...rest.map((specIssue) => this._startRunClearingStop(specIssue)),
@@ -261,15 +256,95 @@ export class RunLoop extends SpecRunBase {
     );
   }
 
-  // The first Run, in list order, with something to do is picked; with none, every Run's waits are returned.
-  private async _pickOf(runs: Run[]): Promise<Pick> {
-    const waiting: RunWaits[] = [];
-    for (const run of runs) {
-      const selection = await this.ticketSelector._select(run);
-      if (selection.kind !== "none") return { kind: "picked", run, selection };
-      waiting.push({ run, waits: selection.waits });
+  // Every member is read, since a `stop spec` answer is returned only by the pick that reads it, and answers are ordered across members.
+  private async _selectEach(members: Member[]): Promise<MemberSelections> {
+    const selections: MemberSelection[] = [];
+    for (const member of members) {
+      const selection = await this.ticketSelector._select(member.run);
+      selections.push({ member, ...selection });
     }
-    return { kind: "none", waiting };
+    return new MemberSelections(selections);
+  }
+
+  // A `stop spec` ends its own member only; true when one did.
+  private async _endStopSpecs(
+    stopSpecs: MemberSelection<"stop-spec">[],
+  ): Promise<boolean> {
+    for (const { member, halts } of stopSpecs) {
+      const message = stopSpecMessageOf(member.run, halts);
+      await this._stopMember({ member, message });
+    }
+    return stopSpecs.length > 0;
+  }
+
+  // A member with no Halt or lease to wait out is done for this run; finishing when one was finished or its gap check halted.
+  private async _finishUnheld(
+    waiting: MemberSelection<"none">[],
+  ): Promise<Finishing> {
+    const unheld = waiting.filter(({ waits }) => !waits.some(isIdleWait));
+    for (const { member, waits } of unheld) {
+      let result: RunResult | undefined;
+      try {
+        result = await this.reviewListPoster._finish(member.run, waits);
+      } catch (error) {
+        if (!(error instanceof RunStop)) throw error;
+        const { message, event } = error;
+        return { kind: "stopped", stop: { member, message, event } };
+      }
+      if (result === undefined) continue;
+      member.end = {
+        result,
+        isLanded: result.kind === "finished" && waits.length === 0,
+      };
+    }
+    if (unheld.length === 0) return { kind: "none" };
+    return { kind: "finishing" };
+  }
+
+  private async _announceIdle(
+    waiting: MemberSelection<"none">[],
+  ): Promise<void> {
+    for (const { member, waits } of waiting) {
+      await this._announce(member.run, idleMessageOf(waits), { kind: "idle" });
+    }
+  }
+
+  // Ends every unfinished member on one Stop, its event told only on the member it came from.
+  private async _stopAll(
+    members: RunList<Member>,
+    stop: MemberStop,
+  ): Promise<RunResult> {
+    for (const member of members) {
+      if (member.end !== undefined) continue;
+      const event = member === stop.member ? stop.event : undefined;
+      await this._stopMember({ member, message: stop.message, event });
+    }
+    return this._resultOf(members, stop.message);
+  }
+
+  private async _stopMember({
+    member,
+    message,
+    event,
+  }: MemberStop): Promise<void> {
+    member.end = {
+      result: await this._end(member.run, "stopped", message, event),
+      isLanded: false,
+    };
+  }
+
+  // One member's result is its own; a Batch's names which members landed and reruns the rest, its landed grouped by member in typed order.
+  private _resultOf(members: RunList<Member>, cause?: string): RunResult {
+    const [first, ...others] = members;
+    if (others.length === 0 && first.end !== undefined) return first.end.result;
+    const ends = members.flatMap(({ end }) => (end === undefined ? [] : [end]));
+    const isFinished = ends.every(({ result }) => result.kind === "finished");
+    const summary = batchSummaryOf(this.config.githubOwner, members);
+    return {
+      kind: isFinished ? "finished" : "stopped",
+      landed: ends.flatMap(({ result }) => result.landed),
+      message: cause === undefined ? summary : `${cause} ${summary}`,
+    };
   }
 
   // Diffed from the run's start rather than the landing's merge, since the start is the code this process runs.
@@ -289,12 +364,15 @@ export class RunLoop extends SpecRunBase {
   }
 
   // Logged, never announced: tmux.sh relaunches the run at once, so a Supervisor has nothing to explain.
-  private _restart(run: Run, ticket: IssueRef): RunResult {
+  private _restart(members: Member[], ticket: IssueRef): RunResult {
     const message = `Restarting: the runner changed since the run started, found after landing ${issueLabelOf(ticket)}; relaunching on the landed code.`;
-    run.state.restart = { landed: run.landed };
-    this._saveState(run);
-    this._log(run, message);
-    return { kind: "restarting", landed: run.landed, message };
+    members.forEach(({ run }) => {
+      run.state.restart = { landed: run.landed };
+      this._saveState(run);
+      this._log(run, message);
+    });
+    const landed = members.flatMap(({ run }) => run.landed);
+    return { kind: "restarting", landed, message };
   }
 
   // Saved at once, so a crash before the end can't make a later rerun read as a relaunch.
@@ -307,22 +385,28 @@ export class RunLoop extends SpecRunBase {
     return true;
   }
 
-  // Sent at the first pick, so it can name the ticket about to launch; a first pick with no launch still shows startup passed.
+  // Sent at the first pick, so it can name the ticket about to launch, on its own member only; a first pick with no launch still shows startup passed.
   private async _announceStart(
-    run: Run,
-    { reading, ticket, isRelaunch }: RunStart,
+    members: Member[],
+    { reading, launch, isRelaunch }: RunStart,
   ): Promise<void> {
-    const started = `Run started on ${run.tickets.length} tickets as ${readingLabelOf(reading.account, reading.usage)}.`;
-    const summary =
-      ticket === undefined
-        ? started
-        : `${started} Launching ${issueLabelOf(ticket)}.`;
-    await this._announce(run, summary, {
-      kind: "run-started",
-      warnings: await this._stalePathWarnings(),
-      ...(ticket && { ticket }),
-      ...(isRelaunch && { isRelaunch }),
-    });
+    const warnings = await this._stalePathWarnings();
+    for (const member of members) {
+      const { run } = member;
+      const ticket =
+        launch?.member === member ? launch.ticket.issue : undefined;
+      const started = `Run started on ${run.tickets.length} tickets as ${readingLabelOf(reading.account, reading.usage)}.`;
+      const summary =
+        ticket === undefined
+          ? started
+          : `${started} Launching ${issueLabelOf(ticket)}.`;
+      await this._announce(run, summary, {
+        kind: "run-started",
+        warnings,
+        ...(ticket && { ticket }),
+        ...(isRelaunch && { isRelaunch }),
+      });
+    }
   }
 
   // Warned, never refused, so stale prose can't block the ticket that would fix it.
@@ -382,13 +466,23 @@ export class RunLoop extends SpecRunBase {
     return paths.length > 0;
   }
 
-  private _stopOnRequest(run: Run, waits: Wait[]): Promise<RunResult> {
-    const message = this._withRerunLine(
-      run,
-      stopRequestMessageOf(run, waits),
-      waits,
-    );
-    return this._end(run, "stopped", message);
+  // Each unfinished member ends with its own waits; one picked to launch has none.
+  private async _stopOnRequest(
+    members: RunList<Member>,
+    waiting: MemberSelection<"none">[],
+  ): Promise<RunResult> {
+    for (const member of members) {
+      if (member.end !== undefined) continue;
+      const { run } = member;
+      const waits = waiting.find((each) => each.member === member)?.waits ?? [];
+      const message = this._withRerunLine(
+        run,
+        stopRequestMessageOf(run, waits),
+        waits,
+      );
+      await this._stopMember({ member, message });
+    }
+    return this._resultOf(members);
   }
 
   // A ticketless spec has none; the preflight refusals check the spec itself.
@@ -454,11 +548,22 @@ function startedTextOf(startedAt: string): string {
   return localTimeOf(time);
 }
 
-function launchedTicketOf(pick: Pick): IssueRef | undefined {
-  if (pick.kind !== "picked" || pick.selection.kind !== "launch") {
-    return undefined;
-  }
-  return pick.selection.ticket.issue;
+function membersOf([first, ...rest]: RunList<Run>): RunList<Member> {
+  return [{ run: first }, ...rest.map((run) => ({ run }))];
+}
+
+// Landed is finished with nothing waiting; the rest wait on the developer, whatever ended them.
+function batchSummaryOf(owner: string, members: Member[]): string {
+  const landed = members.filter(({ end }) => end?.isLanded === true);
+  const [firstUnlanded, ...restUnlanded] = members
+    .filter(({ end }) => end?.isLanded !== true)
+    .map(({ run }) => run.spec.issue);
+  const landedText = `${joinedOrNone(landed.map(({ run }) => issueLabelOf(run.spec.issue)))} landed`;
+  if (firstUnlanded === undefined) return `Batch ended: ${landedText}.`;
+  const unlanded = [firstUnlanded, ...restUnlanded];
+  const verb = unlanded.length === 1 ? "waits" : "wait";
+  const command = rerunCommandOf(owner, firstUnlanded, ...restUnlanded);
+  return `Batch ended: ${landedText}; ${unlanded.map(issueLabelOf).join(", ")} ${verb} on you. Rerun the unfinished ones: \`${command}\`.`;
 }
 
 // An open Halt may be answered, and a lease released, while the run waits; anything else needs a rerun.
