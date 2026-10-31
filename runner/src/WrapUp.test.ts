@@ -236,6 +236,32 @@ describe("run", () => {
     expect(existsSync(join(primaryRoot, ownFolder))).toBe(true);
   });
 
+  // No agent session ran, so its row would be nearly all unrecorded and only add noise to /mine-outcomes.
+  it("lands a ready-for-human ticket with no outcome row", async () => {
+    github.issues.set(ticket.number, {
+      issue: ticket,
+      title: "Wrap-up script",
+      body: "",
+      isOpen: true,
+      labels: ["ready-for-human"],
+      url: "",
+      author: "byronbroughten",
+      bodyEditors: [],
+    });
+    const workspace = await workspaceWith();
+    commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
+    writeFacts();
+
+    await wrapUp().run(ticket);
+
+    expect(subjectsOf("byro-repo").slice(0, 2)).toEqual([
+      "Merge issue-218-wrap-up-script into master (#218)",
+      "Add script.ts",
+    ]);
+    expect(existsSync(join(primaryRoot, outcomePath))).toBe(false);
+    expect(github.closed.map(({ issue }) => issue)).toEqual([ticket]);
+  });
+
   it("derives each repo's branch ahead of master and lands them in landing order, the clone before the root", async () => {
     const workspace = await workspaceWith(["sheets-framework"]);
     commitIn(workspace, "sheets-framework", "core.ts", "export {};\n");

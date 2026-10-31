@@ -32,6 +32,9 @@ describe("runSession", () => {
     async parentOf() {
       throw new Error("A session landing read a parent");
     },
+    async labelsOf() {
+      throw new Error("A session landing read labels");
+    },
     async commentsOf() {
       throw new Error("A session landing read comments");
     },

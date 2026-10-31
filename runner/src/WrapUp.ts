@@ -65,6 +65,7 @@ import { WrapUpFailure } from "./WrapUpFailure.ts";
 const execFileAsync = promisify(execFile);
 
 const mapLabel = "wayfinder:map";
+const humanLabel = "ready-for-human";
 
 export interface ParentIssue {
   issue: IssueRef;
@@ -76,6 +77,7 @@ export interface ParentIssue {
 export interface WrapUpGitHub {
   closeIssue(issue: IssueRef, comment: string): Promise<void>;
   parentOf(issue: IssueRef): Promise<ParentIssue | undefined>;
+  labelsOf(issue: IssueRef): Promise<string[]>;
   commentsOf(issue: IssueRef): Promise<string[]>;
 }
 
@@ -676,10 +678,20 @@ export class WrapUp {
     }
   }
 
+  // A ready-for-human ticket ran no agent session, so its row would be nearly all unrecorded.
   private async _logRow(target: LogRowTarget): Promise<void> {
-    await this._step(target.landing, "log-row", () =>
-      this._commitLogRow(target),
+    await this._step(target.landing, "log-row", async () => {
+      if (await this._isHumanTicket(target.issue)) return;
+      await this._commitLogRow(target);
+    });
+  }
+
+  private async _isHumanTicket(issue: IssueRef): Promise<boolean> {
+    const labels = await this._withRetries(
+      `Reading ${issueLabelOf(issue)}'s labels`,
+      () => this.config.github.labelsOf(issue),
     );
+    return labels.includes(humanLabel);
   }
 
   private async _commitLogRow({
