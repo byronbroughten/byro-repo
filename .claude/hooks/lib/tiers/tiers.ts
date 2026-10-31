@@ -228,24 +228,53 @@ export function commandVerdictsOf({
 }: ShellCall): CommandVerdict[] | undefined {
   const commands = parsedCommandsOf(command);
   if (!commands) return undefined;
-  // A `cd` carries on only when every separator is `&&`: a failed one stops the command; in a subshell, substitution, pipe or background job it doesn't carry; after `;` or `||` it may have failed.
-  const cdCarriesOn = !/[()|;&\n`]/.test(command.replace(/&&|[<>]&|&>/g, ""));
-  let cwd = places?.cwd;
+  // A `cd` carries on only in an AND list: a failed one stops the command; in a subshell, substitution, pipe or background job it doesn't carry; after `;` or `||` it may have failed.
+  const cdCarriesOn = isAndListOf(command);
+  // Each folder the command may be in by now, undefined for one the gate can't follow.
+  let cwds = [places?.cwd];
   return commands.map((simple) => {
-    const here = places && cwd !== undefined ? { ...places, cwd } : undefined;
+    const verdict = strictestOf(
+      cwds.map((cwd) =>
+        verdictOf(simple, {
+          mode,
+          dryRuns,
+          places: placesAt(places, cwd),
+          spreadsheetTargets,
+        }),
+      ),
+    );
     if (simple.words[0] === "cd") {
-      cwd = cdCarriesOn
-        ? PathChecker.init(here).cdTargetOf(simple.words[1])
-        : undefined;
+      const targets = cwds.map((cwd) =>
+        PathChecker.init(placesAt(places, cwd)).cdTargetOf(simple.words[1]),
+      );
+      cwds = [...new Set(cdCarriesOn ? targets : [...cwds, ...targets])];
     }
-    const verdict = verdictOf(simple, {
-      mode,
-      dryRuns,
-      places: here,
-      spreadsheetTargets,
-    });
     return { words: simple.words, verdict };
   });
+}
+
+function isAndListOf(command: string): boolean {
+  try {
+    return ShellParser.init(command).isAndList;
+  } catch {
+    return false;
+  }
+}
+
+function placesAt(
+  places: ShellPlaces | undefined,
+  cwd: string | undefined,
+): ShellPlaces | undefined {
+  return places && cwd !== undefined ? { ...places, cwd } : undefined;
+}
+
+// A command that may run from more than one folder gets the strictest of its verdicts there.
+function strictestOf(verdicts: (Verdict | undefined)[]): Verdict | undefined {
+  const strictest =
+    verdicts.find((verdict) => verdict?.permissionDecision === "deny") ??
+    verdicts.find((verdict) => verdict?.permissionDecision === "ask");
+  if (strictest) return strictest;
+  return verdicts.includes(undefined) ? undefined : verdicts[0];
 }
 
 // A runner step told how to retry doesn't halt; any other call stays unclassified.

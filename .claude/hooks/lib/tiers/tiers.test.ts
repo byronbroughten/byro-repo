@@ -617,17 +617,38 @@ describe("file writes by the step write rule", () => {
     );
   });
 
-  it("asks once a cd may not have carried on, or takes a flag for its target", () => {
+  it("allows a write after a cd that may not have carried on when it passes from every folder the call may be in", () => {
     [
       "cd packages/framework; rm -rf src/old",
       "cd packages/framework || rm -rf src/old",
       "cd packages/framework & rm -rf src/old",
       "cd packages/framework\nrm -rf src/old",
+      "cd packages/framework | rm -rf src/old",
+      "cd /outside; cat AGENTS.md > /tmp/copy.md",
+      "cd /tmp/s372 && git status | head -2 && echo x > out.txt",
+      "cd /tmp/s372 && jq -r '.[] | .a; .b' in.json > out.json",
+      "cd /tmp/s372 && cat in.json > out.json",
+      'cd /tmp/s372 && echo "a | b" > out.txt',
+    ].forEach((command) =>
+      expect(placedDecisionOf(command)?.permissionDecision).toBe("allow"),
+    );
+  });
+
+  it("asks for a write after a cd that fails the write rule from any folder the call may be in, or a cd it can't follow", () => {
+    [
+      "cd /tmp/s372; rm ../x",
+      "cd /tmp/s372 | rm ../x",
+      "cd /tmp/s372 && cd /outside; rm x",
+      'cd /tmp/s372 && echo "$(pwd)" && rm ../x',
       "cd -P packages/framework && rm -rf src/old",
       "cd -- packages/framework && rm -rf src/old",
+      "cd -P packages/framework; rm -rf src/old",
     ].forEach((command) =>
       expect(placedDecisionOf(command)?.permissionDecision).toBe("ask"),
     );
+    expect(
+      placedDecisionOf("cd /tmp/s372 && rm ../x")?.permissionDecision,
+    ).toBe("allow");
   });
 
   it("follows only a leading $TMPDIR, by the value the gate knows", () => {

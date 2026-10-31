@@ -69,6 +69,12 @@ export class ShellParser {
       (layer) => ShellParser.init(layer).simpleCommands,
     );
   }
+  // Every operator `&&` and no word holding a substitution, so each command runs only once all before it succeeded, in the same shell.
+  get isAndList(): boolean {
+    return this._tokens.every(({ type, value }) =>
+      type === "op" ? value === "&&" : !/\$\(|`/.test(value),
+    );
+  }
   get segments(): Segment[] {
     const segments: Segment[] = [];
     let current = newSegment(false);
