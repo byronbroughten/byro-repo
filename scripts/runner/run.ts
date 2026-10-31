@@ -85,12 +85,22 @@ interface SpecArgs {
   issue: IssueRef;
 }
 
+interface RepoArgs {
+  owner: string;
+  repo: string;
+}
+
+// Throws the usage for anything but `<owner/repo>`.
+function repoArgsOf(ownerRepo: string): RepoArgs {
+  const [owner, repo] = ownerRepo.split("/");
+  if (!owner || !repo) throw new Error(usage);
+  return { owner, repo };
+}
+
 // Throws the usage for anything but `<owner/repo> <n>`.
 function specArgsOf(ownerRepo: string, number: string | undefined): SpecArgs {
-  const [owner, repo] = ownerRepo.split("/");
-  if (!owner || !repo || !Number.isInteger(Number(number))) {
-    throw new Error(usage);
-  }
+  const { owner, repo } = repoArgsOf(ownerRepo);
+  if (!Number.isInteger(Number(number))) throw new Error(usage);
   return { owner, issue: { repo, number: Number(number) } };
 }
 
@@ -200,8 +210,8 @@ async function decide(args: string[]): Promise<void> {
 
 async function listJudgeable(args: string[]): Promise<void> {
   const [ownerRepo = "", ...rest] = args;
-  const [owner, repo] = ownerRepo.split("/");
-  if (!owner || !repo || rest.length > 0) throw new Error(usage);
+  const { owner, repo } = repoArgsOf(ownerRepo);
+  if (rest.length > 0) throw new Error(usage);
   const specRun = SpecRun.init(specRunConfigOf(owner));
   console.log(await specRun.judgeable(repo));
 }
