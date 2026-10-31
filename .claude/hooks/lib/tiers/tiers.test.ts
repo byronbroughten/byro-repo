@@ -574,8 +574,24 @@ describe("stdout filters and wrappers", () => {
       "awk '{system(\"ls\")}' AGENTS.md",
       "awk '{print > \"out.txt\"}' AGENTS.md",
       "awk '{print | \"sh\"}' AGENTS.md",
+      "awk '{print $1/2 > \"out\"; x = 3/4}' AGENTS.md",
+      "awk '{x++ /2 > \"out\"/ 1}' AGENTS.md",
+      "awk '/a|b/ {print > \"out\"}' AGENTS.md",
+      'awk \'{print "|" | "sh"}\' AGENTS.md',
+      "awk '/[/]|x/ {print}' AGENTS.md",
+      "awk '{print \"open|}' AGENTS.md",
+      "awk '/system|x/' AGENTS.md",
       "sort -o out.txt AGENTS.md",
     ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
+  });
+
+  it("allows awk whose pipe or angle bracket sits inside a string or regex", () => {
+    [
+      "awk -F'|' '{r=$7; gsub(/^ +| +$/,\"\",r); print r \" :: pair=\" p}' AGENTS.md",
+      "awk '/^- \\[[ x]\\] \\*\\*R/{p=1} p&&/^(- [^\\[]|###|\\*\\*)/&&!/^- \\[/{p=0} p' AGENTS.md",
+      "awk '{print $1 \" -> \" $2}' AGENTS.md",
+      "awk '$1 ~ /a|b/ && !/c>d/ {print $1/2}' AGENTS.md",
+    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
   });
 
   it("asks for a macOS sed -i whose next word is a backup suffix rather than ''", () => {

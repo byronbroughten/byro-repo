@@ -28,7 +28,9 @@ const sedFlags = {
 const sedPrintCommands = new Set([..."pPlL=dDnNgGhHxzqQF"]);
 const sedLabelCommands = new Set([..."btT:"]);
 const sedSubstituteFlags = /[gpiImM\d]/;
-const awkRunsOrWrites = /system|[|>@]/;
+const awkRunsOrWrites = /[|>@]/;
+// A `/` opens a regex only where no operand can come before it, so a `/` that could divide stays in the code checked for `|` and `>`.
+const awkRegexMayOpen = /(?:^|[(,~!{};&|=\n])\s*$/;
 const sortWriteFlags = ["--output", "--compress-program"];
 const uniqValueFlags = new Set(["-f", "-s", "-w"]);
 
@@ -162,7 +164,7 @@ function endOfLine(script: string, start: number): number {
   return end < 0 ? script.length : end;
 }
 
-// awk's program, the first word but -F and -v values; no -f file, and no system, pipe, redirect or gawk @ directive in it.
+// awk's program, the first word but -F and -v values; no -f file, no system in it, and no pipe, redirect or gawk @ directive outside a string or regex.
 function isAwkRead(args: string[]): boolean {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i] ?? "";
@@ -176,7 +178,34 @@ function isAwkRead(args: string[]): boolean {
 }
 
 function isAwkProgramRead(program: string | undefined): boolean {
-  return program !== undefined && !awkRunsOrWrites.test(program);
+  if (program === undefined || /system/.test(program)) return false;
+  const code = awkCodeOf(program);
+  return code !== undefined && !awkRunsOrWrites.test(code);
+}
+
+// The program with each string and regex emptied, so a `|` or `>` in one isn't a pipe or redirect; undefined when one is left open.
+function awkCodeOf(program: string): string | undefined {
+  let code = "";
+  for (let at = 0; at < program.length; at++) {
+    const char = program.charAt(at);
+    if (char !== '"' && !(char === "/" && awkRegexMayOpen.test(code))) {
+      code += char;
+      continue;
+    }
+    at = awkLiteralEndOf(program, at);
+    if (at < 0) return undefined;
+    code += char + char;
+  }
+  return code;
+}
+
+// The index of the quote or slash closing the literal opened at `open`, or -1.
+function awkLiteralEndOf(program: string, open: number): number {
+  for (let at = open + 1; at < program.length; at++) {
+    if (program[at] === "\\") at++;
+    else if (program[at] === program[open]) return at;
+  }
+  return -1;
 }
 
 function isSortRead(args: string[]): boolean {
