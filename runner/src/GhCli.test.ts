@@ -47,6 +47,34 @@ describe("GhCli reads", () => {
     expect(await cli.subIssuesOf(issue)).toHaveLength(1);
   });
 
+  it("searches open issues' comments for the quoted phrase", async () => {
+    const { cli, calls } = scriptedGh([
+      ghError("HTTP 502"),
+      '[{"number":12},{"number":4}]',
+    ]);
+    expect(
+      await cli.openIssuesCommentedWith("sheets-framework", "Review list"),
+    ).toEqual([
+      { repo: "sheets-framework", number: 12 },
+      { repo: "sheets-framework", number: 4 },
+    ]);
+    expect(calls[1]).toEqual([
+      "search",
+      "issues",
+      '"Review list"',
+      "--repo",
+      "o/sheets-framework",
+      "--state",
+      "open",
+      "--match",
+      "comments",
+      "--limit",
+      "1000",
+      "--json",
+      "number",
+    ]);
+  });
+
   it("throws the last error after four tries", async () => {
     const { cli, calls, waits } = scriptedGh([
       ghError("HTTP 502"),

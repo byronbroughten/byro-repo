@@ -192,6 +192,30 @@ export class GhCli implements RunGitHub, IssueSource {
     );
   }
 
+  // GitHub's search returns at most 1000 results, far more open issues than a repo here holds.
+  async openIssuesCommentedWith(
+    repo: string,
+    phrase: string,
+  ): Promise<IssueRef[]> {
+    const output = await this._read(
+      "search",
+      "issues",
+      `"${phrase}"`,
+      "--repo",
+      `${this.owner}/${repo}`,
+      "--state",
+      "open",
+      "--match",
+      "comments",
+      "--limit",
+      "1000",
+      "--json",
+      "number",
+    );
+    const found = JSON.parse(output) as { number?: unknown }[];
+    return found.map(({ number }) => ({ repo, number: Number(number) }));
+  }
+
   // GitHub answers 404 for an issue with no parent.
   async parentOf({ repo, number }: IssueRef): Promise<ParentIssue | undefined> {
     let output: string;

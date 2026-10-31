@@ -7,6 +7,7 @@
 // `--once` prints the first unexplained line, or that `vanished` line, and exits, or exits silently once a newer watch replaces it.
 // `status` and `watch` with no spec print the Run board once or redraw it every 5s (runBoard.ts).
 // `decide` ticks one review-list item and adds its `Decided:` line, or with `--handled` adds a `Handled:` line unticked (SpecRun/ReviewItemDecider.ts).
+// `judgeable` lists the repo's open issues with undecided review-list items or ready to close, for /judge-findings (SpecRun/JudgeableIssueLister.ts).
 import { readFileSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
 
@@ -28,8 +29,15 @@ import { type WatchDeps, watchOnce, watchRun } from "./runWatch.ts";
 const exitCodes = { short: 1, crash: 2, restart: 3 } as const;
 const plainVerbs = ["status", "stop", "review"];
 const boardVerbs = ["status", "watch"];
-const verbs = [...plainVerbs, "watch", "resolve", "supervise", "decide"];
-const usage = `Usage: npm run runner -- [${plainVerbs.join("|")}] <owner/repo> <n>, watch <owner/repo> <n> [--once], resolve <owner/repo> <n> <records.json>, supervise <owner/repo> <n> [--advance], decide <owner/repo> <spec> R<n>.<k> [--handled] "<text>", or [${boardVerbs.join("|")}] alone for the Run board`;
+const verbs = [
+  ...plainVerbs,
+  "watch",
+  "resolve",
+  "supervise",
+  "decide",
+  "judgeable",
+];
+const usage = `Usage: npm run runner -- [${plainVerbs.join("|")}] <owner/repo> <n>, watch <owner/repo> <n> [--once], resolve <owner/repo> <n> <records.json>, supervise <owner/repo> <n> [--advance], decide <owner/repo> <spec> R<n>.<k> [--handled] "<text>", judgeable <owner/repo>, or [${boardVerbs.join("|")}] alone for the Run board`;
 
 try {
   const args = process.argv.slice(2);
@@ -42,6 +50,8 @@ try {
     await showBoard(command);
   } else if (command === "decide") {
     await decide(args);
+  } else if (command === "judgeable") {
+    await listJudgeable(args);
   } else {
     await runOnSpec(command, args);
   }
@@ -75,12 +85,22 @@ interface SpecArgs {
   issue: IssueRef;
 }
 
+interface RepoArgs {
+  owner: string;
+  repo: string;
+}
+
+// Throws the usage for anything but `<owner/repo>`.
+function repoArgsOf(ownerRepo: string): RepoArgs {
+  const [owner, repo] = ownerRepo.split("/");
+  if (!owner || !repo) throw new Error(usage);
+  return { owner, repo };
+}
+
 // Throws the usage for anything but `<owner/repo> <n>`.
 function specArgsOf(ownerRepo: string, number: string | undefined): SpecArgs {
-  const [owner, repo] = ownerRepo.split("/");
-  if (!owner || !repo || !Number.isInteger(Number(number))) {
-    throw new Error(usage);
-  }
+  const { owner, repo } = repoArgsOf(ownerRepo);
+  if (!Number.isInteger(Number(number))) throw new Error(usage);
   return { owner, issue: { repo, number: Number(number) } };
 }
 
@@ -186,6 +206,14 @@ async function decide(args: string[]): Promise<void> {
       text,
     }),
   );
+}
+
+async function listJudgeable(args: string[]): Promise<void> {
+  const [ownerRepo = "", ...rest] = args;
+  const { owner, repo } = repoArgsOf(ownerRepo);
+  if (rest.length > 0) throw new Error(usage);
+  const specRun = SpecRun.init(specRunConfigOf(owner));
+  console.log(await specRun.judgeable(repo));
 }
 
 async function supervise(
