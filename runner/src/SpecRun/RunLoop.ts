@@ -40,6 +40,7 @@ import {
 import { ReviewListPoster } from "./ReviewListPoster.ts";
 import {
   idListOf,
+  interactiveLabel,
   isLanded,
   isLaunchable,
   landedTextOf,
@@ -71,8 +72,20 @@ interface RunStart {
   isRelaunch: boolean;
 }
 
-type LocksTaken =
-  { kind: "taken"; locks: RunLock[] } | { kind: "refused"; refusals: string[] };
+interface LocksTaken {
+  locks: RunLock[];
+  liveRunRefusals: Map<IssueRef, string>;
+}
+
+interface LiveRunRefusing {
+  liveRunRefusals: Map<IssueRef, string>;
+  isBatch: boolean;
+}
+
+interface MemberRefusal {
+  member: IssueRef;
+  refusal: string;
+}
 
 // A Stop's message, and the event on the member it came from.
 interface MemberStop {
@@ -104,44 +117,71 @@ export class RunLoop extends SpecRunBase {
   }
 
   async run(memberIssues: MemberList): Promise<RunResult> {
-    const taken = this._takeRunLocks(memberIssues);
-    // Announced, the refusal would land in the live run's event file as its run-ended line.
-    if (taken.kind === "refused") {
-      return refusedOf(taken.refusals);
+    const isBatch = memberIssues.length > 1;
+    const { locks, liveRunRefusals } = this._takeRunLocks(memberIssues);
+    if (liveRunRefusals.size > 0) {
+      try {
+        return await this._refuseBesideLiveRuns(memberIssues, {
+          liveRunRefusals,
+          isBatch,
+        });
+      } finally {
+        locks.forEach((lock) => lock.release());
+      }
     }
     let isRestarting = false;
     try {
       // Opened once every lock is held, so the record never names a member another run holds.
       await this.batchRecords.open(memberIssues, process.pid);
-      const result = await this._runHoldingLocks(memberIssues);
+      const result = await this._runHoldingLocks(memberIssues, isBatch);
       isRestarting = result.kind === "restarting";
       return result;
     } finally {
       // Closed on a throw too, so status and supervise never find a dead Batch.
       if (!isRestarting) this.batchRecords.close(memberIssues);
-      taken.locks.forEach((lock) => lock.release());
+      locks.forEach((lock) => lock.release());
     }
   }
 
-  // The per-Run preflight's first check; no lock is kept unless every one is taken.
+  // The per-Run preflight's first check.
   private _takeRunLocks(memberIssues: IssueRef[]): LocksTaken {
     const locks: RunLock[] = [];
-    const refusals: string[] = [];
+    const liveRunRefusals = new Map<IssueRef, string>();
     memberIssues.forEach((memberIssue) => {
       const taken = RunLock.take(this.config.stateFolder, memberIssue);
       if (taken.kind === "held") {
-        refusals.push(runLockRefusalOf(memberIssue, taken));
+        liveRunRefusals.set(memberIssue, runLockRefusalOf(memberIssue, taken));
       } else {
         locks.push(taken.lock);
       }
     });
-    if (refusals.length === 0) return { kind: "taken", locks };
-    locks.forEach((lock) => lock.release());
-    return { kind: "refused", refusals };
+    return { locks, liveRunRefusals };
+  }
+
+  // Announced, the refusal would land in a live run's event file as its run-ended line; no stop request is cleared, so a live run's survives.
+  private async _refuseBesideLiveRuns(
+    memberIssues: MemberList,
+    { liveRunRefusals, isBatch }: LiveRunRefusing,
+  ): Promise<RunResult> {
+    const refusals: MemberRefusal[] = [];
+    for (const memberIssue of memberIssues) {
+      const liveRunRefusal = liveRunRefusals.get(memberIssue);
+      if (liveRunRefusal !== undefined) {
+        refusals.push({ member: memberIssue, refusal: liveRunRefusal });
+        continue;
+      }
+      const run = await this._startRun(memberIssue);
+      const refusal = await this._memberRefusalOf(run, isBatch);
+      if (refusal !== undefined) refusals.push(refusal);
+    }
+    return refusedOf(refusals, isBatch);
   }
 
   // A member ends on its own, by finishing or a `stop spec`, while the others carry on; a Stop ends every unfinished one.
-  private async _runHoldingLocks(memberIssues: MemberList): Promise<RunResult> {
+  private async _runHoldingLocks(
+    memberIssues: MemberList,
+    isBatch: boolean,
+  ): Promise<RunResult> {
     const startedAt = this.config.clock.now();
     const runs = await this._startRuns(memberIssues);
     // Each Run's restart is taken, whichever relaunches, so no later rerun reads one again.
@@ -149,8 +189,8 @@ export class RunLoop extends SpecRunBase {
     runs.forEach((run) => {
       if (this._takeRestart(run)) isRelaunch = true;
     });
-    const refusals = await this._runRefusalsOf(runs);
-    if (refusals.length > 0) return refusedOf(refusals);
+    const refusals = await this._runRefusalsOf(runs, isBatch);
+    if (refusals.length > 0) return refusedOf(refusals, isBatch);
     const members = membersOf(runs);
     // The account and the primary checkout concern every member alike; the first member reads them.
     const [lead] = members;
@@ -248,25 +288,67 @@ export class RunLoop extends SpecRunBase {
   }
 
   // The per-Run preflight's spec checks, each Run's refusal announced on its own Run and every one returned.
-  private async _runRefusalsOf(runs: Run[]): Promise<string[]> {
-    const refusals: string[] = [];
+  private async _runRefusalsOf(
+    runs: Run[],
+    isBatch: boolean,
+  ): Promise<MemberRefusal[]> {
+    const refusals: MemberRefusal[] = [];
     for (const run of runs) {
-      const refusal = await this._runRefusalOf(run);
+      const refusal = await this._memberRefusalOf(run, isBatch);
       if (refusal === undefined) continue;
-      await this._announce(run, `Refused: ${refusal}`, { kind: "refused" });
+      await this._announce(run, `Refused: ${refusal.refusal}`, {
+        kind: "refused",
+      });
       refusals.push(refusal);
     }
     return refusals;
   }
 
-  private async _runRefusalOf(run: Run): Promise<string | undefined> {
+  private async _memberRefusalOf(
+    run: Run,
+    isBatch: boolean,
+  ): Promise<MemberRefusal | undefined> {
+    const refusal = await this._runRefusalOf(run, isBatch);
+    if (refusal === undefined) return undefined;
+    return { member: run.spec.issue, refusal };
+  }
+
+  // A list of one skips the Standalone checks, as before Batches.
+  private async _runRefusalOf(
+    run: Run,
+    isBatch: boolean,
+  ): Promise<string | undefined> {
     const launchable = await this._launchableTicketsOf(run);
     // A ticket's body is left to the launch-time check, whose Halt can approve it.
-    return (
+    const refusal =
       (await this._authorshipRefusal("the spec", [run.spec])) ??
       modelFitRefusalOf(run, launchable) ??
-      targetsRefusalOf(run, launchable)
+      targetsRefusalOf(run, launchable);
+    if (refusal !== undefined) return refusal;
+    if (!isBatch || !run.isTicketless) return undefined;
+    return this._standaloneRefusalOf(run.spec);
+  }
+
+  private async _standaloneRefusalOf(
+    ticket: TrackedIssue,
+  ): Promise<string | undefined> {
+    const { github } = this.config;
+    if (!ticket.isOpen) return `it's closed; ${dropPhraseOf()}.`;
+    const isReady = [readyLabel, interactiveLabel].some((label) =>
+      ticket.labels.includes(label),
     );
+    if (!isReady) {
+      return `it has neither ${readyLabel} nor ${interactiveLabel}; label it, or ${dropPhraseOf()}.`;
+    }
+    const parent = await github.parentOf(ticket.issue);
+    if (parent !== undefined) {
+      return `it belongs to the spec ${issueLabelOf(parent.issue)}; run it through its spec.`;
+    }
+    // A blocker inside the Batch counts too, until members wait on each other.
+    const blockers = await github.openBlockersOf(ticket.issue);
+    if (blockers.length === 0) return undefined;
+    const pronoun = blockers.length === 1 ? "that" : "those";
+    return `it's blocked by ${blockers.map(issueLabelOf).join(", ")}, still open; land ${pronoun} first, or ${dropPhraseOf()}.`;
   }
 
   // Every member is read, since a `stop spec` answer is returned only by the pick that reads it, and answers are ordered across members.
@@ -562,9 +644,18 @@ export class RunLoop extends SpecRunBase {
   }
 }
 
-// One Run's refusal is its message as written; several are told apart by a blank line.
-function refusedOf(refusals: string[]): RunResult {
-  return { kind: "refused", landed: [], message: refusals.join("\n\n") };
+// A list of one's refusal is its message as written; a Batch's names each member, told apart by a blank line.
+function refusedOf(refusals: MemberRefusal[], isBatch: boolean): RunResult {
+  const reasons = refusals.map(({ member, refusal }) => {
+    if (!isBatch) return refusal;
+    return `${issueLabelOf(member)}: ${refusal}`;
+  });
+  return { kind: "refused", landed: [], message: reasons.join("\n\n") };
+}
+
+// A Standalone refusal's way out, said alike by each.
+function dropPhraseOf(): string {
+  return "drop it from the list";
 }
 
 function runLockRefusalOf(

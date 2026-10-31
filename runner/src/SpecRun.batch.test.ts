@@ -1,4 +1,6 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { hostname } from "node:os";
+import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
@@ -12,15 +14,20 @@ import {
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
 import type { Blocker } from "./implementStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
+import { seedHolder } from "./lockFixture.ts";
 import { composedNotices } from "./Notices.ts";
 import type { ResolveRecord } from "./resolveStep.ts";
+import { runKnobsOf } from "./runKnobs.ts";
+import { RunLock } from "./RunLock.ts";
 import type { Clock, MemberList, RunResult, SpecRunConfig } from "./SpecRun.ts";
 import {
   addIssue,
   addSpec,
   blocked,
+  clonePaths,
   findingOf,
   github,
+  greenUnlessRed,
   implemented,
   masterSubjects,
   notices,
@@ -301,6 +308,140 @@ describe("run's Batch", () => {
     expect(await specRun(FakeAgentStep.init()).status(first)).toContain(
       "Open Halts: H2 on byro-repo #301.",
     );
+  });
+});
+
+const noModelFit = "## What to build\n\nA thing.\n";
+
+describe("a Batch's refusal", () => {
+  it("refuses every refused member in one message, each with its first failing check, before any step launches", async () => {
+    addIssue(first.number, { body: noModelFit });
+    addIssue(second.number);
+    addIssue(third.number, { labels: [] });
+    github.edit(third.number, { isOpen: false });
+    const agentStep = FakeAgentStep.init();
+
+    const result = await runBatch(agentStep, {
+      members: [first, second, third],
+    });
+
+    expect(result).toEqual<RunResult>({
+      kind: "refused",
+      landed: [],
+      message:
+        "byro-repo #301: byro-repo #301 has no sub-issues and no valid ## Model fit section: split it with /code-tickets, or add the section.\n\nbyro-repo #303: it's closed; drop it from the list.",
+    });
+    expect(agentStep.requests).toEqual([]);
+    expect(github.comments).toEqual([]);
+  });
+
+  it("refuses a Standalone member that's closed, has no ready label, has a parent spec or has an open blocker, and lets a ready-for-interactive one through", async () => {
+    addSpec([1]);
+    addIssue(first.number);
+    github.edit(first.number, { isOpen: false });
+    addIssue(second.number, { labels: ["ready-for-human"] });
+    addIssue(third.number);
+    addIssue(9);
+    github.blockers.set(third.number, [9]);
+    addIssue(304, { labels: ["ready-for-interactive"] });
+
+    const result = await runBatch(FakeAgentStep.init(), {
+      members: [first, second, refOf(1), third, refOf(304)],
+    });
+
+    expect(result.message).toBe(
+      [
+        "byro-repo #301: it's closed; drop it from the list.",
+        "byro-repo #302: it has neither ready-for-agent nor ready-for-interactive; label it, or drop it from the list.",
+        "byro-repo #1: it belongs to the spec byro-repo #213; run it through its spec.",
+        "byro-repo #303: it's blocked by byro-repo #9, still open; land that first, or drop it from the list.",
+      ].join("\n\n"),
+    );
+  });
+
+  it("counts a blocker inside the Batch as an open blocker", async () => {
+    addIssue(first.number);
+    addIssue(second.number);
+    github.blockers.set(second.number, [first.number]);
+
+    const result = await runBatch(FakeAgentStep.init(), {
+      members: [first, second],
+    });
+
+    expect(result.message).toBe(
+      "byro-repo #302: it's blocked by byro-repo #301, still open; land that first, or drop it from the list.",
+    );
+  });
+
+  it("lists a member with a live run among the others, writing no event file and leaving its stop request", async () => {
+    addIssue(first.number);
+    addIssue(second.number);
+    github.edit(second.number, { isOpen: false });
+    mkdirSync(stateFolder(), { recursive: true });
+    seedHolder(join(stateFolder(), "byro-repo-301.run.lock"), {
+      pid: process.pid,
+      host: hostname(),
+      startedAt: "2026-10-12T08:00:00Z",
+    });
+    const stopRequest = join(stateFolder(), "byro-repo-301.stop");
+    writeFileSync(stopRequest, "");
+    const agentStep = FakeAgentStep.init();
+
+    const result = await runBatch(agentStep, {
+      members: [first, second],
+      ...withEventFile(),
+    });
+
+    expect(result.kind).toBe("refused");
+    expect(result.message).toBe(
+      `byro-repo #301: byro-repo #301 already has a run going: pid ${process.pid}, started 2026-10-12 03:00:00 CDT.\n\nbyro-repo #302: it's closed; drop it from the list.`,
+    );
+    expect(agentStep.requests).toEqual([]);
+    expect(existsSync(stopRequest)).toBe(true);
+    expect(existsSync(eventFilePathOf(stateFolder(), first))).toBe(false);
+    expect(existsSync(eventFilePathOf(stateFolder(), second))).toBe(false);
+    expect(
+      existsSync(batchEventFilePathOf(stateFolder(), [first, second])),
+    ).toBe(false);
+    expect(RunLock.isHeld(stateFolder(), second)).toBe(false);
+  });
+
+  it("refuses a Batch the shared preflight would also stop", async () => {
+    addIssue(first.number);
+    addIssue(second.number);
+    github.edit(second.number, { isOpen: false });
+
+    const result = await runBatch(FakeAgentStep.init(), {
+      members: [first, second],
+      knobs: runKnobsOf({
+        clonePaths,
+        checks: [greenUnlessRed],
+        authChecks: [["false"]],
+      }),
+    });
+
+    expect(result.kind).toBe("refused");
+    expect(result.message).toBe(
+      "byro-repo #302: it's closed; drop it from the list.",
+    );
+  });
+
+  it("refuses a list of one with today's message, unprefixed", async () => {
+    addIssue(first.number, { body: noModelFit });
+
+    const result = await runBatch(FakeAgentStep.init(), { members: [first] });
+
+    expect(result.message).toBe(
+      "byro-repo #301 has no sub-issues and no valid ## Model fit section: split it with /code-tickets, or add the section.",
+    );
+  });
+
+  it("skips the Standalone checks for a list of one", async () => {
+    addIssue(first.number, { labels: ["ready-for-human"] });
+
+    const result = await runBatch(FakeAgentStep.init(), { members: [first] });
+
+    expect(result.kind).not.toBe("refused");
   });
 });
 
