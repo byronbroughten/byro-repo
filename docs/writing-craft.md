@@ -51,6 +51,8 @@ One line per rule. The examples and their sources are one file away. Open a reas
 - **The first time a term of the trade appears, add a few plain words saying what it is, unless every reader of the piece uses it daily.** The Voice sheet's "i.e.," rule decides the form; this rule decides when.
 - **When everyday words say exactly what a term of the trade says, use them ("rent", not "gross scheduled income").**
 - **Put quotation marks around words only to quote someone, to cite a term rather than use it, or to show you reject another's use of it; never to hold your own phrasing at arm's length.**
+- **Put quotation marks around a heading or label you name when it isn't in title case, so the reader can see where it ends (the "Out of scope" list).**
+- **When the prose refers to what a table or figure lists, use the words the table or figure uses ("stakeholders", for a table titled "Stakeholder Acceptance Criteria").**
 - **Never let two idioms whose pictures clash share a sentence.**
 
 ## Explaining
@@ -62,3 +64,5 @@ One line per rule. The examples and their sources are one file away. Open a reas
 ## Signposts
 
 - **Point back or ahead through the reader ("as we saw", "let's turn to") or with a question the next paragraphs answer, never by making the text the actor ("The previous section showed", "This section examines").** A table or figure may still "list" or "show".
+- **Mark a reference to a later section, table or figure as one ("the upcoming WBS"); a bare reference reads as pointing back.**
+- **When a section you name shares its name with the one the reader is in, say which you mean ("the Constraints earlier", written inside "Constraint(s)").**

@@ -17,7 +17,7 @@ One line per rule. The quoted instances and their sources are one file away. Ope
 - **Cite every borrowed fact in APA 7: an (Author, Year) parenthetical and a reference-list entry.**
 - **Quote nothing; paraphrase every borrowed fact.** This overrides the Voice sheet's quote rule.
 - **Name the source in the sentence ("According to X (2025), …") when the source matters to the claim.**
-- **Define a framework concept, with its citation, before applying it to the case.**
+- **Open a section that applies a framework concept on its definition, with its citation, then apply it to the case.** This overrides the Voice sheet's rule to open a section on its claim.
 - **Cite a source's framework where the piece adopts it; when a later section applies that framework, don't cite it again.** A new claim from the same source still gets its own citation.
 
 ## Register

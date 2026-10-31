@@ -16,6 +16,8 @@ Disclosed from [`docs/academic-writing-style.md`](../academic-writing-style.md),
 
 - "a Blue Ocean strategy, which is the successful synthesis of cost leadership and differentiation via value innovation (Rothaermel, 2023)." — Paylocity - Strategic Analysis and Recommendations.pptx
 - Seen in 1 of 6. Flagged in review because assignments ask for framework knowledge, and kept.
+- Agent: "The project succeeds when its required work clears each phase gate in Table 2 and every stakeholder's acceptance criterion is met. … Under PMI's (2021) definition, a deliverable is accepted only once it satisfies a set of stated conditions" Developer: "Under PMI's (2021) definition, a deliverable is accepted only once it satisfies a set of stated conditions, its acceptance criteria (p. 305). This project succeeds when its required work clears each phase gate…" — personal#16 Snapshot, 2026-10-26
+- Agent: "The project's scope covers the work needed to acquire one property… In PMI's (2021) definition, a project scope statement names the main deliverables…" Developer: "In PMI's (2021) definition, a project scope statement names the main deliverables… The scope of this project includes and excludes the following items:" — personal#16 Snapshot, 2026-10-26
 
 ## Cite a framework once
 
