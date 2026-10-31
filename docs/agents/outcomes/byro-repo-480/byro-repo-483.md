@@ -1,0 +1,7 @@
+# byro-repo#483 outcome
+
+Spec: [byro-repo#480](https://github.com/byronbroughten/byro-repo/issues/480)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #483 | Opus medium | 1 | 14 | 116K | Fix (resumed implementer) | 0 | 1 | 0 | 13 min | $3.27 | $4.27 | Fixed: endedBy is a plain string with an "other" fallback, and a /${endedBy} command is built from it. (runner/src/SupervisionRecords.ts:29; .claude/hooks/lib/sessionEndRelease.ts:21; .claude/hooks/lib/sessionRecord.ts:76); _liveRecordOf reads as 'not ended' when it means 'the pid is alive'. (runner/src/SupervisionRecords.ts:136); The not-ended check `endedBy === undefined` is duplicated in recordOf and _specFileOf. (runner/src/SupervisionRecords.ts:99 and :159); endsProcess is exported only for its own test and duplicates sessionEndReleaseOf's cases. (.claude/hooks/lib/sessionEndRelease.ts:24); 'a live supervision record' is stale now that the record may be ended. (docs/claude-code-guardrails.md:21); The file header says the record names the spec a Supervisor watches, but an ended record names no Supervisor. (runner/src/SupervisionRecords.ts:1); Removing the source early return makes every SessionStart walk the process tree and read the record. (.claude/hooks/sessionIdContext.ts:71). | fe2ee1a3-2616-4795-8236-f713ed4e6f8a, f1052cd1-92ea-47fd-9f60-5b3dc40e55a4 |
