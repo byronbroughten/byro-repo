@@ -1,4 +1,4 @@
-// A one-off chore (#474): rewrites a spec's outcome rows' transcript facts from the sessions its run state recorded.
+// A one-off chore (#474): fills a spec's outcome rows' `unrecorded` transcript cells from the sessions its run state recorded.
 // Usage: node scripts/runner/outcomeBackfill.ts <run state file> <spec's outcome folder> <config folder>...
 import { backfillOutcomeRows } from "@byronbroughten/spec-runner/outcomeBackfill";
 
