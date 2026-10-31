@@ -6,7 +6,7 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { HookInput } from "../hookIo.ts";
 import { rootRelative } from "../lintSet.ts";
 import { readSheetsConfigs } from "../sheetsConfigs.ts";
-import { commandWordsOf, type Segment, ShellParser } from "./ShellParser.ts";
+import { type Segment, ShellParser } from "./ShellParser.ts";
 import { sedCallOf } from "./stdoutFilters.ts";
 
 export const largeFileLines = 150;
@@ -93,7 +93,7 @@ export class BashReads {
     const reads: SegmentRead[] = [];
     const { segments } = ShellParser.init(this.command);
     segments.forEach((segment, index) => {
-      const [first, ...args] = commandWordsOf(segment.words);
+      const [first, ...args] = segment.commandWords;
       if (first === undefined) return;
       const name = basename(first);
       if (name === "cd") {

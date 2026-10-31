@@ -16,8 +16,10 @@ const operators = {
   pipes: new Set(["|", "|&"]),
 } as const;
 
+// commandWords: its words with leading wrappers and env assignments dropped.
 export interface Segment {
   words: string[];
+  commandWords: string[];
   inputFiles: string[];
   isPiped: boolean;
   outputFiles: string[];
@@ -52,14 +54,11 @@ export class ShellParser {
   // Keeps a bare redirect such as `> file`, which has no words but writes.
   get simpleCommands(): SimpleCommand[] {
     return this.segments
-      .map((segment) => {
-        const words = commandWordsOf(segment.words);
-        return {
-          words,
-          isBare: words.length === segment.words.length,
-          outputFiles: segment.outputFiles,
-        };
-      })
+      .map(({ words, commandWords, outputFiles }) => ({
+        words: commandWords,
+        isBare: commandWords.length === words.length,
+        outputFiles,
+      }))
       .filter(
         ({ words, outputFiles }) => words.length > 0 || outputFiles.length > 0,
       );
@@ -102,7 +101,10 @@ export class ShellParser {
     }
     endRedirect();
     segments.push(current);
-    return segments;
+    return segments.map((segment) => ({
+      ...segment,
+      commandWords: withoutWrappersOf(segment.words),
+    }));
   }
   get _tokens(): Token[] {
     const command = this._withoutHeredocBodies;
@@ -192,16 +194,14 @@ export class ShellParser {
   }
 }
 
-// A segment's words with its leading wrappers and env assignments dropped.
-export function commandWordsOf(words: string[]): string[] {
-  let start = 0;
-  while (
-    start < words.length &&
-    (/^\w+=/.test(words[start] ?? "") || wrappers.has(words[start] ?? ""))
-  ) {
-    start++;
-  }
-  return words.slice(start);
+function newSegment(isPiped: boolean): Segment {
+  return {
+    words: [],
+    commandWords: [],
+    inputFiles: [],
+    isPiped,
+    outputFiles: [],
+  };
 }
 
 // A copy to a descriptor number, or /dev/null; bash opens `>&name` and `&>2` as files.
@@ -212,6 +212,13 @@ function isDiscardRedirect(redirect: string, target: string): boolean {
   );
 }
 
-function newSegment(isPiped: boolean): Segment {
-  return { words: [], inputFiles: [], isPiped, outputFiles: [] };
+function withoutWrappersOf(words: string[]): string[] {
+  let start = 0;
+  while (
+    start < words.length &&
+    (/^\w+=/.test(words[start] ?? "") || wrappers.has(words[start] ?? ""))
+  ) {
+    start++;
+  }
+  return words.slice(start);
 }
