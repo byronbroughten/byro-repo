@@ -1,13 +1,17 @@
-// The Base IssueWorkspaces and its collaborators share: the config and the workspace folders found by key, with no git process.
-// It imports no collaborator, so `extends IssueWorkspacesBase` loads first.
+// The Base IssueWorkspaces and its collaborators share, importing no collaborator so `extends IssueWorkspacesBase` loads first.
 
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
+import { LeaseHeld } from "../LeaseHeld.ts";
 import {
+  holderLabelOf,
   isSameKey,
   type IssueWorkspacesConfig,
   type KeyedFolder,
+  type Lease,
+  type LeaseHolder,
+  otherLiveHolderOf,
   sessionBranchPrefix,
   type WorkspaceKey,
 } from "./workspaceTypes.ts";
@@ -49,6 +53,20 @@ export class IssueWorkspacesBase {
     }
     return undefined;
   }
+}
+
+interface LeaseCheck {
+  path: string;
+  lease: Lease | undefined;
+  holder?: LeaseHolder;
+}
+
+export function assertLeaseFree({ path, lease, holder }: LeaseCheck): void {
+  const other = otherLiveHolderOf(lease, holder);
+  if (!other) return;
+  throw new LeaseHeld(
+    `${path} is leased by ${holderLabelOf(other)}, which is still running`,
+  );
 }
 
 function escapeRegExp(text: string): string {

@@ -1,5 +1,4 @@
-// Builds, finds, promotes, resumes and removes workspaces, each a byro-repo worktree in the workspace folder with a worktree
-// of every package clone inside it, and seeds each new one's dependencies; leases are WorkspaceLeaser's.
+// Builds, finds, promotes, resumes and removes workspaces and seeds each new one's dependencies; leases are WorkspaceLeaser's.
 
 import { execFile } from "node:child_process";
 import {
@@ -25,8 +24,8 @@ import {
   type RepoWorktree,
   worktreeStateOf,
 } from "../git.ts";
-import { IssueWorkspacesBase } from "./IssueWorkspacesBase.ts";
-import { assertLeaseFree, WorkspaceLeaser } from "./WorkspaceLeaser.ts";
+import { assertLeaseFree, IssueWorkspacesBase } from "./IssueWorkspacesBase.ts";
+import { WorkspaceLeaser } from "./WorkspaceLeaser.ts";
 import {
   type CreateOptions,
   fileStemOf,

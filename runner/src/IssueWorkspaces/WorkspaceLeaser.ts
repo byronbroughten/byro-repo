@@ -1,25 +1,21 @@
-// Takes, releases and reads workspace leases. A lease is a file in the root worktree's git folder so it never shows as dirty;
-// it is live while the process that took it runs on this machine, a dead holder's lease is taken over, and a holder holds one at a time.
+// Takes, releases and reads workspace leases: a lease is a file in the root worktree's git folder so it never shows as dirty; it is live while the process that took it runs on this machine, a dead holder's lease is taken over, and a holder holds one at a time.
 
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { gitDirOf } from "../git.ts";
-import { LeaseHeld } from "../LeaseHeld.ts";
 import {
   identityOf,
-  isRunning,
+  isStillRunning,
   type ProcessIdentity,
-} from "../processStart.ts";
-import { IssueWorkspacesBase } from "./IssueWorkspacesBase.ts";
+} from "../processIdentity.ts";
+import { assertLeaseFree, IssueWorkspacesBase } from "./IssueWorkspacesBase.ts";
 import {
-  holderLabelOf,
   isSameHolder,
   type Lease,
   type LeasedWorkspace,
   type LeaseHolder,
   type MaybeLeasedFolder,
-  otherLiveHolderOf,
   type Workspace,
   type WorkspaceKey,
 } from "./workspaceTypes.ts";
@@ -33,12 +29,12 @@ export class WorkspaceLeaser extends IssueWorkspacesBase {
   ): Promise<void> {
     const leasePath = leasePathOf(workspace.path);
     const { kind, pid } = holder;
-    const { startedAt } = await identityOf(pid);
+    const leaseFile: LeaseFile = { kind, ...(await identityOf(pid)) };
     for (;;) {
       const lease = await readLease(leasePath);
       assertLeaseFree({ path: workspace.path, lease, holder });
       if (lease) rmSync(leasePath, { force: true });
-      const content = JSON.stringify({ kind, pid, startedAt });
+      const content = JSON.stringify(leaseFile);
       if (tryCreate(leasePath, content)) break;
     }
     await this._releaseOtherLeasesOf(workspace, holder);
@@ -98,20 +94,6 @@ export class WorkspaceLeaser extends IssueWorkspacesBase {
   }
 }
 
-interface LeaseCheck {
-  path: string;
-  lease: Lease | undefined;
-  holder?: LeaseHolder;
-}
-
-export function assertLeaseFree({ path, lease, holder }: LeaseCheck): void {
-  const other = otherLiveHolderOf(lease, holder);
-  if (!other) return;
-  throw new LeaseHeld(
-    `${path} is leased by ${holderLabelOf(other)}, which is still running`,
-  );
-}
-
 // A worktree's .git file names its git folder, so the lease is found without a git process.
 function leasePathOf(workspacePath: string): string {
   return join(gitDirOf(workspacePath), leaseFileName);
@@ -126,7 +108,7 @@ async function readLease(path: string): Promise<Lease | undefined> {
     return undefined;
   }
   const { kind, pid } = file;
-  return { kind, pid, isLive: await isRunning(file) };
+  return { kind, pid, isLive: await isStillRunning(file) };
 }
 
 interface LeaseFile extends LeaseHolder, ProcessIdentity {}

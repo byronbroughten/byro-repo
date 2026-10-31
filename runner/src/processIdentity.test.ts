@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 
 import { describe, expect, it } from "vitest";
 
-import { identityOf, isRunning } from "./processStart.ts";
+import { identityOf, isStillRunning } from "./processIdentity.ts";
 
 function deadPid(): number {
   const { pid } = spawnSync("node", ["-e", ""]);
@@ -16,19 +16,19 @@ describe("a process identity", () => {
 
     expect(identity.pid).toBe(process.pid);
     expect(identity.startedAt).toEqual(expect.any(String));
-    expect(await isRunning(identity)).toBe(true);
+    expect(await isStillRunning(identity)).toBe(true);
   });
 
   it("is not running once its pid is reused by a later process", async () => {
     const reused = { pid: process.pid, startedAt: "Thu Jan  1 00:00:00 1970" };
 
-    expect(await isRunning(reused)).toBe(false);
+    expect(await isStillRunning(reused)).toBe(false);
   });
 
   it("is not running once its process has exited", async () => {
     const identity = await identityOf(deadPid());
 
     expect(identity.startedAt).toBeUndefined();
-    expect(await isRunning(identity)).toBe(false);
+    expect(await isStillRunning(identity)).toBe(false);
   });
 });

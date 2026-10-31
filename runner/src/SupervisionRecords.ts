@@ -18,10 +18,10 @@ import {
 } from "./IssueWorkspaces.ts";
 import {
   identityOf,
-  isRunning,
   isSameProcess,
+  isStillRunning,
   type ProcessIdentity,
-} from "./processStart.ts";
+} from "./processIdentity.ts";
 import { RunLock } from "./RunLock.ts";
 
 export interface SupervisionRecord {
@@ -139,7 +139,7 @@ export class SupervisionRecords {
   }: LeaseHolder): Promise<SupervisionRecord | undefined> {
     const file = this._fileOf(pid);
     if (file === undefined) return undefined;
-    if (!(await isRunning(file))) return undefined;
+    if (!(await isStillRunning(file))) return undefined;
     const { owner, spec, offset, endedBy } = file;
     return { pid, owner, spec, offset, endedBy };
   }
