@@ -32,6 +32,8 @@ export interface Notice {
   warnings?: string[];
   // A Restart's relaunch's run-started notice, which ntfy doesn't push, since a Restart is quiet.
   isRelaunch?: boolean;
+  // A Batch's own end, sent on its first member once every member has ended; each member's end is a notice of its own.
+  isBatchEnd?: boolean;
 }
 
 // Every adapter gets every notice, even after one fails; the first failure is rethrown.

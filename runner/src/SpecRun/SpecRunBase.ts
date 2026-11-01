@@ -111,7 +111,7 @@ export interface RunGitHub extends WrapUpGitHub {
 // What an announced event adds to its notice beyond the spec and summary.
 export type RunEvent = Pick<
   Notice,
-  "kind" | "ticket" | "commentUrl" | "warnings" | "isRelaunch"
+  "kind" | "ticket" | "commentUrl" | "warnings" | "isRelaunch" | "isBatchEnd"
 >;
 
 export interface Clock {

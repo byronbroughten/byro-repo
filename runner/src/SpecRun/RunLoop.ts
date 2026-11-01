@@ -135,10 +135,19 @@ export class RunLoop extends SpecRunBase {
     }
   }
 
-  // A member ends on its own, by finishing or a `stop spec`, while the others carry on; a Stop ends every unfinished one.
   private async _runHoldingLocks(): Promise<RunResult> {
     const startedAt = this.config.clock.now();
     const runs = await this._startRuns();
+    const result = await this._runMembers(runs, startedAt);
+    await this._announceBatchEnd(runs, result);
+    return result;
+  }
+
+  // A member ends on its own, by finishing or a `stop spec`, while the others carry on; a Stop ends every unfinished one.
+  private async _runMembers(
+    runs: RunList<Run>,
+    startedAt: Date,
+  ): Promise<RunResult> {
     // Each Run's restart is taken, whichever relaunches, so no later rerun reads one again.
     let isRelaunch = false;
     runs.forEach((run) => {
@@ -233,6 +242,16 @@ export class RunLoop extends SpecRunBase {
     }
   }
 
+  // Sent while the Batch record is open, so the line reaches the Batch's file; a Restart's relaunch carries the run on, so it ends nothing.
+  private async _announceBatchEnd(
+    runs: RunList<Run>,
+    { kind, message }: RunResult,
+  ): Promise<void> {
+    if (!isBatch(runs) || kind === "restarting") return;
+    const [lead] = runs;
+    await this._announce(lead, message, { kind, isBatchEnd: true });
+  }
+
   private _startRuns(): Promise<RunList<Run>> {
     const [first, ...rest] = this.memberIssues;
     return Promise.all([
@@ -253,7 +272,7 @@ export class RunLoop extends SpecRunBase {
     members: RunList<Member>,
   ): Promise<MemberBlockers> {
     const blockersOf: MemberBlockers = new Map();
-    if (members.length === 1) return blockersOf;
+    if (!isBatch(members)) return blockersOf;
     const batch: BatchView = {
       memberIssues: this.memberIssues,
       landedMembers: landedIssuesOf(members),
@@ -391,8 +410,8 @@ export class RunLoop extends SpecRunBase {
 
   // One member's result is its own; a Batch's names which members landed and reruns the rest, its landed grouped by member in typed order.
   private _resultOf(members: RunList<Member>, cause?: string): RunResult {
-    const [first, ...others] = members;
-    if (others.length === 0 && first.end !== undefined) return first.end.result;
+    const [first] = members;
+    if (!isBatch(members) && first.end !== undefined) return first.end.result;
     const ends = members.flatMap(({ end }) => (end === undefined ? [] : [end]));
     const isFinished = ends.every(({ result }) => result.kind === "finished");
     const summary = batchSummaryOf(this.config.githubOwner, members);
@@ -506,6 +525,10 @@ export class RunLoop extends SpecRunBase {
 
 function membersOf([first, ...rest]: RunList<Run>): RunList<Member> {
   return [{ run: first }, ...rest.map((run) => ({ run }))];
+}
+
+function isBatch(list: RunList<Run> | RunList<Member>): boolean {
+  return list.length > 1;
 }
 
 // Landed is finished with nothing waiting; the rest wait on the developer, whatever ended them.
