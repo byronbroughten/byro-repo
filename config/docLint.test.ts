@@ -488,6 +488,65 @@ describe("checkDocs", () => {
     });
   });
 
+  describe("observation indexes", () => {
+    const index = "docs/claude-code-behaviour.md";
+    const evidence = "[#1](https://github.com/o/r/issues/1#issuecomment-2)";
+    const untagged = `${index}: observation line starts with neither "Observed:" nor "Documented:"`;
+    function withBullets(...bullets: string[]): string {
+      const body = bullets.map((bullet) => `- ${bullet}`).join("\n");
+      return `# Index\n\n- Lead bullet, untagged.\n\n## Section\n\n${body}\n`;
+    }
+
+    it("passes a listed index whose every bullet is tagged, dated and linked", () => {
+      expect(
+        check({
+          [index]: withBullets(
+            `Observed: a read; 2026-10-28; ${evidence}.`,
+            `Documented: the docs say so; 2026-10-29; ${evidence}.`,
+          ),
+        }),
+      ).toEqual([]);
+    });
+
+    it("fails a bullet with no tag", () => {
+      expect(
+        messages({ [index]: withBullets(`A read; 2026-10-28; ${evidence}.`) }),
+      ).toEqual([untagged]);
+    });
+
+    it("fails a bullet with no YYYY-MM-DD date", () => {
+      expect(
+        messages({
+          [index]: withBullets(`Observed: a read; Sept 2026; ${evidence}.`),
+        }),
+      ).toEqual([`${index}: observation line has no YYYY-MM-DD date`]);
+    });
+
+    it("fails a bullet with no link", () => {
+      expect(
+        messages({ [index]: withBullets("Observed: a read; 2026-10-28; #1.") }),
+      ).toEqual([`${index}: observation line links no evidence`]);
+    });
+
+    it("fails an Open: bullet", () => {
+      expect(
+        messages({
+          [index]: withBullets(`Open: does it? 2026-10-28; ${evidence}.`),
+        }),
+      ).toEqual([untagged]);
+    });
+
+    it("leaves bullets in the lead unchecked", () => {
+      expect(check({ [index]: withBullets() })).toEqual([]);
+    });
+
+    it("leaves an unlisted file's bullets unchecked", () => {
+      expect(
+        check({ "docs/a.md": withBullets("A read, undated and unlinked.") }),
+      ).toEqual([]);
+    });
+  });
+
   describe("CLAUDE.md pairing", () => {
     it("fails a nested AGENTS.md with no sibling CLAUDE.md", () => {
       expect(messages({ "scripts/AGENTS.md": nested(2) })).toEqual([

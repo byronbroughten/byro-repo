@@ -1,5 +1,5 @@
 // @ts-check
-// Checks a repo's agent-facing docs' links and size limits; a doc map in, violations out. lintDocs.js runs it on the repo it is invoked in.
+// Checks a repo's agent-facing docs' links, size limits and observation lines; a doc map in, violations out. lintDocs.js runs it on the repo it is invoked in.
 import { posix } from "node:path";
 
 const limits = {
@@ -19,6 +19,11 @@ const recordPrefixes = [
   "inbox/changes.md",
   "inbox/proposals.md",
 ];
+// Docs whose every line under a `##` heading records one tagged, dated, linked observation.
+const observationIndexes = new Set([
+  "docs/agents/codebase-priorities/estimates.md",
+  "docs/claude-code-behaviour.md",
+]);
 
 /** @typedef {Record<string, string>} Docs */
 /** @typedef {{ path: string, line: number, message: string }} Violation */
@@ -66,6 +71,7 @@ export function checkDocs({ docs, paths = [], published = [] }) {
       if (posix.basename(path) !== "README.md") checkReadmeLinks(text, report);
     }
     if (isDocsFolderFile(path)) checkLead(text, report);
+    if (observationIndexes.has(path)) checkObservations(text, report);
     if (posix.basename(path) === "AGENTS.md" && path !== "AGENTS.md") {
       checkClaudePairing(path, docs, report);
     }
@@ -324,7 +330,7 @@ function checkReadmeLinks(text, report) {
  */
 function checkLead(text, report) {
   const lines = proseLines(text);
-  const firstSection = lines.findIndex(({ content }) => /^##\s/.test(content));
+  const firstSection = firstSectionIndex(lines);
   if (firstSection === -1) {
     const bytes = byteLength(text);
     if (bytes > limits.unheadedDocBytes) {
@@ -353,6 +359,39 @@ function checkLead(text, report) {
       `lead is ${bytes} bytes before the first ## heading; keep it to ${limits.leadBytes} and move the rest under a heading`,
     );
   }
+}
+
+// Each bullet after the first `##` heading; the lead's bullets describe the index rather than record an observation.
+/**
+ * @param {string} text
+ * @param {Report} report
+ */
+function checkObservations(text, report) {
+  const lines = proseLines(text);
+  const firstSection = firstSectionIndex(lines);
+  if (firstSection === -1) return;
+  for (const { line, content } of lines.slice(firstSection)) {
+    const bullet = /^\s*[-*]\s+(.*)$/.exec(content)?.[1];
+    if (bullet === undefined) continue;
+    if (!/^(Observed|Documented):/.test(bullet)) {
+      report(
+        line,
+        'observation line starts with neither "Observed:" nor "Documented:"',
+      );
+    }
+    if (!/\b\d{4}-\d{2}-\d{2}\b/.test(bullet)) {
+      report(line, "observation line has no YYYY-MM-DD date");
+    }
+    if (!/\]\([^)\s]+\)/.test(bullet.replace(/`[^`]*`/g, ""))) {
+      report(line, "observation line links no evidence");
+    }
+  }
+}
+
+// The index of the first `##` heading among a doc's prose lines, or -1.
+/** @param {ProseLine[]} lines */
+function firstSectionIndex(lines) {
+  return lines.findIndex(({ content }) => /^##\s/.test(content));
 }
 
 /** @param {string} text */

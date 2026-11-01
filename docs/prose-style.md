@@ -13,6 +13,7 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 | Which rung a rule goes on | [`agent-behavior-design.md`](./agent-behavior-design.md#put-each-rule-where-it-gets-followed-and-its-reasoning-one-pointer-away) |
 | An addition to AGENTS.md | [`prose-files.md`](./agents/prose-files.md#what-an-addition-to-agentsmd-costs) |
 | A prose smell: what it looks like, derived prose | [`docs/prose-style/smells.md`](./prose-style/smells.md) |
+| An observation index: why it is the home, why no conclusions or questions, `Documented:` lines | [ADR 0022](./adr/0022-an-observation-index-is-the-observations-home-and-records-only-what-was-seen.md) |
 
 ## One home per fact
 
@@ -30,6 +31,18 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 - **A mechanics doc's headings are specific enough to grep; a rule found in one moves up to a rules file or nested AGENTS.md, leaving a pointer.**
 - **A mechanics doc covering subjects that share nothing is split and indexed.**
 - **A durable doc cites a heading anchor, never a line number**; lint checks it everywhere but the record folders `recordPrefixes` in `config/docLint.js` lists.
+
+## Observation indexes
+
+These cover every [observation index](./agents/prose-files.md#terms), for the reasons in [ADR 0022](./adr/0022-an-observation-index-is-the-observations-home-and-records-only-what-was-seen.md); lint checks the tag, date and link in the files `observationIndexes` in `config/docLint.js` lists.
+
+- **Each line is tagged `Observed:` or `Documented:`, then states the action, the result, the conditions and the date, and links to its evidence.**
+- **A line says only what was seen: no "always", "never", "covers" or "can", and no cause.**
+- **A line holds no open or withdrawn question**; an open question lives in the doc that relies on it, or in an issue when a decision waits on it.
+- **A `Documented:` line goes in only when a doc, an ADR or the code relies on it.**
+- **The same result seen again updates the line's date and evidence link; a different result goes in as a new line above the old one, which stays.**
+- **Evidence is an issue comment, or the file on a research branch**; an observation recorded before this rule may link the commit that recorded it.
+- **Whoever settles or overturns an observation adds or updates its line in the same change as the finding.**
 
 ## Placement
 
