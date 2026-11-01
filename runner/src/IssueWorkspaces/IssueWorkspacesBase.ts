@@ -28,6 +28,18 @@ export class IssueWorkspacesBase {
     return this._keyedFolders().find((keyed) => isSameKey(keyed.key, key));
   }
 
+  protected _clonePathOf(repo: string): string {
+    const clonePath = this.config.clonePaths[repo];
+    if (clonePath === undefined) {
+      throw new Error(`${repo} is not in the workspace config's clone paths`);
+    }
+    return clonePath;
+  }
+
+  protected _primaryCloneOf(clonePath: string): string {
+    return join(this.config.primaryRoot, clonePath);
+  }
+
   protected _keyedFolders(): KeyedFolder[] {
     if (!existsSync(this.config.workspaceFolder)) return [];
     return readdirSync(this.config.workspaceFolder)

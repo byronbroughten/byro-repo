@@ -1,20 +1,16 @@
-// Builds, finds, promotes, resumes and removes workspaces and seeds each new one's dependencies; leases are WorkspaceLeaser's.
+// Keeps the workspace lifecycle: creates, finds, lists, promotes, resumes and removes workspaces.
+// Branch names are BranchNamer's, dependency seeding WorkspaceSeeder's and leases WorkspaceLeaser's.
 
-import { execFile } from "node:child_process";
 import {
-  copyFileSync,
   existsSync,
   lstatSync,
   mkdirSync,
-  readdirSync,
-  readFileSync,
   realpathSync,
   rmSync,
   statSync,
   symlinkSync,
 } from "node:fs";
 import { basename, dirname, join, sep } from "node:path";
-import { promisify } from "node:util";
 
 import {
   currentBranchOf,
@@ -24,8 +20,10 @@ import {
   type RepoWorktree,
   worktreeStateOf,
 } from "../git.ts";
+import { BranchNamer, branchOriginOf } from "./BranchNamer.ts";
 import { assertLeaseFree, IssueWorkspacesBase } from "./IssueWorkspacesBase.ts";
 import { WorkspaceLeaser } from "./WorkspaceLeaser.ts";
+import { WorkspaceSeeder } from "./WorkspaceSeeder.ts";
 import {
   type CreateOptions,
   fileStemOf,
@@ -34,24 +32,23 @@ import {
   type IssueRef,
   type LeaseHolder,
   type RemoveOptions,
-  sessionBranchOf,
   type SessionKey,
   type Workspace,
   type WorkspaceKey,
   type WorkspaceStatus,
 } from "./workspaceTypes.ts";
 
-const execFileAsync = promisify(execFile);
-
-const maxSlugWords = 6;
-const lockfileName = "package-lock.json";
-const hiddenLockfileName = ".package-lock.json";
-const cloneFlags =
-  process.platform === "darwin" ? ["-cR"] : ["-R", "--reflink=auto"];
-
-export class WorkspaceBuilder extends IssueWorkspacesBase {
+export class WorkspaceKeeper extends IssueWorkspacesBase {
   private get leaser(): WorkspaceLeaser {
     return new WorkspaceLeaser(this.config);
+  }
+
+  private get namer(): BranchNamer {
+    return new BranchNamer(this.config);
+  }
+
+  private get seeder(): WorkspaceSeeder {
+    return new WorkspaceSeeder(this.config);
   }
 
   async create(
@@ -69,7 +66,7 @@ export class WorkspaceBuilder extends IssueWorkspacesBase {
         branchedRepos: existing.branchedRepos,
       };
     }
-    const branch = await this._branchName(key, options.slug);
+    const branch = await this.namer.branchName(key, options.slug);
     const path = join(
       this.config.workspaceFolder,
       `${folderPrefixOf(key)}${branch}`,
@@ -184,41 +181,6 @@ export class WorkspaceBuilder extends IssueWorkspacesBase {
     return branchedRepos;
   }
 
-  private async _branchName(
-    key: WorkspaceKey,
-    slug: string | undefined,
-  ): Promise<string> {
-    if (isSessionKey(key)) return sessionBranchOf(key);
-    return this._issueBranchName(key, slug);
-  }
-
-  private async _issueBranchName(
-    issue: IssueRef,
-    slug: string | undefined,
-  ): Promise<string> {
-    const existing = await this._existingIssueBranch(issue);
-    if (existing !== undefined) return existing;
-    const title = slug ?? (await this.config.issueTitle(issue));
-    return `${issueBranchPrefix(issue.number)}${slugOf(title)}`;
-  }
-
-  // The issue's own repo is asked first, since another repo's same-numbered branch may be a different issue.
-  private async _existingIssueBranch(
-    issue: IssueRef,
-  ): Promise<string | undefined> {
-    const repos = Object.keys(this.config.clonePaths).sort(
-      (a, b) => Number(b === issue.repo) - Number(a === issue.repo),
-    );
-    for (const repo of repos) {
-      const [branch] = await issueBranchesOf(
-        join(this.config.primaryRoot, this._clonePathOf(repo)),
-        issue.number,
-      );
-      if (branch !== undefined) return branch;
-    }
-    return undefined;
-  }
-
   private async _buildOrTearDown(target: BuildTarget): Promise<void> {
     mkdirSync(this.config.workspaceFolder, { recursive: true });
     try {
@@ -237,13 +199,13 @@ export class WorkspaceBuilder extends IssueWorkspacesBase {
   }: BuildTarget): Promise<void> {
     for (const [repo, clonePath] of this._clonesRootFirst) {
       await addWorktree({
-        primaryClone: join(this.config.primaryRoot, clonePath),
+        primaryClone: this._primaryCloneOf(clonePath),
         worktree: join(path, clonePath),
         branch: branchedRepos.includes(repo) ? branch : undefined,
       });
     }
     this._linkSharedFiles(path);
-    await this._seedDependencies(path);
+    await this.seeder.seedDependencies(path);
   }
 
   private _linkSharedFiles(path: string): void {
@@ -255,68 +217,10 @@ export class WorkspaceBuilder extends IssueWorkspacesBase {
   private _linkSharedFilesOf(path: string, clonePath: string): void {
     this.config.symlinkedFiles.forEach((file) =>
       linkSharedFile({
-        target: join(this.config.primaryRoot, clonePath, file),
+        target: join(this._primaryCloneOf(clonePath), file),
         link: join(path, clonePath, file),
       }),
     );
-  }
-
-  // macOS clones with -c and Linux with --reflink=auto (plain copy without it); npm-workspace links are relative, so they resolve to the workspace's own packages.
-  private async _seedDependencies(path: string): Promise<void> {
-    let copyFailed = false;
-    for (const folder of this._dependencyFolders) {
-      const from = join(this.config.primaryRoot, folder, "node_modules");
-      const to = join(path, folder, "node_modules");
-      if (!existsSync(from) || !existsSync(join(path, folder))) continue;
-      try {
-        await execFileAsync("cp", [...cloneFlags, from, to]);
-      } catch {
-        copyFailed = true;
-        rmSync(to, { recursive: true, force: true });
-      }
-    }
-    this._copyLockfile(path);
-    if (copyFailed || this._primaryIsStale || !this._lockfileMatches(path)) {
-      await this.config.installDependencies(path);
-    }
-  }
-
-  // The lockfile is gitignored, so a new worktree has none until the primary's is copied in.
-  private _copyLockfile(path: string): void {
-    const primary = join(this.config.primaryRoot, lockfileName);
-    if (existsSync(primary)) copyFileSync(primary, join(path, lockfileName));
-  }
-
-  // A missing lockfile counts as differing, so the installer still runs.
-  private _lockfileMatches(path: string): boolean {
-    const primary = join(this.config.primaryRoot, lockfileName);
-    const workspace = join(path, lockfileName);
-    if (!existsSync(primary) || !existsSync(workspace)) return false;
-    return readFileSync(primary).equals(readFileSync(workspace));
-  }
-
-  // npm rewrites its hidden lockfile on every install, so one older than the lockfile means landing changed deps without a reinstall.
-  private get _primaryIsStale(): boolean {
-    const lockfile = join(this.config.primaryRoot, lockfileName);
-    const hidden = join(
-      this.config.primaryRoot,
-      "node_modules",
-      hiddenLockfileName,
-    );
-    if (!existsSync(lockfile) || !existsSync(hidden)) return true;
-    return statSync(hidden).mtimeMs < statSync(lockfile).mtimeMs;
-  }
-
-  // Top-level folders too, since npm workspaces such as runner/ keep their own node_modules.
-  private get _dependencyFolders(): string[] {
-    const topLevel = readdirSync(this.config.primaryRoot, {
-      withFileTypes: true,
-    })
-      .filter((entry) => entry.isDirectory() && entry.name !== "node_modules")
-      .map((entry) => entry.name);
-    return [
-      ...new Set([".", ...topLevel, ...Object.values(this.config.clonePaths)]),
-    ];
   }
 
   private _worktreeOf(workspace: Workspace, repo: string): string {
@@ -345,7 +249,7 @@ export class WorkspaceBuilder extends IssueWorkspacesBase {
   private async _relocateMovedWorktrees(path: string): Promise<void> {
     for (const clonePath of Object.values(this.config.clonePaths)) {
       const worktree = join(path, clonePath);
-      const primaryClone = join(this.config.primaryRoot, clonePath);
+      const primaryClone = this._primaryCloneOf(clonePath);
       if (existsSync(worktree) || !existsSync(primaryClone)) continue;
       // The moved primary's linked worktrees still point at its old folder until repaired.
       await git(primaryClone, "worktree", "repair");
@@ -355,14 +259,6 @@ export class WorkspaceBuilder extends IssueWorkspacesBase {
       await git(primaryClone, "worktree", "move", moved, worktree);
       this._linkSharedFilesOf(path, clonePath);
     }
-  }
-
-  private _clonePathOf(repo: string): string {
-    const clonePath = this.config.clonePaths[repo];
-    if (clonePath === undefined) {
-      throw new Error(`${repo} is not in the workspace config's clone paths`);
-    }
-    return clonePath;
   }
 
   private get _clonesRootFirst(): [string, string][] {
@@ -396,7 +292,7 @@ export class WorkspaceBuilder extends IssueWorkspacesBase {
     const deepestFirst = this._clonesRootFirst.reverse();
     for (const [, clonePath] of deepestFirst) {
       await removeWorktree({
-        primaryClone: join(this.config.primaryRoot, clonePath),
+        primaryClone: this._primaryCloneOf(clonePath),
         worktree: join(path, clonePath),
         force,
       });
@@ -407,7 +303,7 @@ export class WorkspaceBuilder extends IssueWorkspacesBase {
 
   private async _pruneWorktrees(): Promise<void> {
     for (const clonePath of Object.values(this.config.clonePaths)) {
-      await git(join(this.config.primaryRoot, clonePath), "worktree", "prune");
+      await git(this._primaryCloneOf(clonePath), "worktree", "prune");
     }
   }
 }
@@ -417,17 +313,6 @@ interface BuildTarget {
   path: string;
   branch?: string;
   branchedRepos: string[];
-}
-
-type BranchOrigin =
-  | { kind: "local" }
-  | { kind: "remote"; remoteBranch: string }
-  | { kind: "new" };
-
-interface MatchingBranches {
-  local: string[];
-  // Each names its remote, as `origin/<branch>`.
-  remote: string[];
 }
 
 interface WorktreeTarget {
@@ -453,56 +338,6 @@ function assertSessionCreate(
   throw new Error(
     `"${session}" is not a session slug; use lowercase words joined by hyphens`,
   );
-}
-
-function issueBranchPrefix(issueNumber: number): string {
-  return `issue-${issueNumber}-`;
-}
-
-function slugOf(title: string): string {
-  const words = title.toLowerCase().match(/[a-z0-9]+/g) ?? [];
-  return words.slice(0, maxSlugWords).join("-");
-}
-
-async function issueBranchesOf(
-  clone: string,
-  issueNumber: number,
-): Promise<string[]> {
-  const { local, remote } = await matchingBranchesOf(
-    clone,
-    `${issueBranchPrefix(issueNumber)}*`,
-  );
-  return [...local, ...remote.map(withoutRemoteName)];
-}
-
-// One for-each-ref over both patterns, read apart by prefix, so each ask starts one git process instead of two.
-async function matchingBranchesOf(
-  clone: string,
-  pattern: string,
-): Promise<MatchingBranches> {
-  const refs = lines(
-    await git(
-      clone,
-      "for-each-ref",
-      "--format=%(refname)",
-      `refs/heads/${pattern}`,
-      `refs/remotes/*/${pattern}`,
-    ),
-  );
-  return {
-    local: refsUnder(refs, "refs/heads/"),
-    remote: refsUnder(refs, "refs/remotes/"),
-  };
-}
-
-function refsUnder(refs: string[], prefix: string): string[] {
-  return refs.flatMap((ref) =>
-    ref.startsWith(prefix) ? [ref.slice(prefix.length)] : [],
-  );
-}
-
-function withoutRemoteName(remoteBranch: string): string {
-  return remoteBranch.slice(remoteBranch.indexOf("/") + 1);
 }
 
 async function addWorktree({
@@ -543,17 +378,6 @@ async function switchArgs(worktree: string, branch: string): Promise<string[]> {
     return ["--track", "-c", branch, origin.remoteBranch];
   }
   return ["-c", branch];
-}
-
-async function branchOriginOf(
-  clone: string,
-  branch: string,
-): Promise<BranchOrigin> {
-  const { local, remote } = await matchingBranchesOf(clone, branch);
-  if (local.length > 0) return { kind: "local" };
-  const [remoteBranch] = remote;
-  if (remoteBranch !== undefined) return { kind: "remote", remoteBranch };
-  return { kind: "new" };
 }
 
 // A link a moved primary clone left pointing at its old folder is replaced; a real file in its place is the developer's and stays.

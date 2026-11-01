@@ -2,11 +2,11 @@
 // workspace folder with a worktree of every package clone inside it, so work never moves a primary checkout's branch.
 // An issue workspace is keyed by an IssueRef; a session workspace by a SessionKey, with every repo on its session branch.
 // A lease is a run's or session's hold on one workspace; a holder holds one at a time.
-// This class only delegates: building and finding workspaces is IssueWorkspaces/WorkspaceBuilder.ts, leases IssueWorkspaces/WorkspaceLeaser.ts.
+// This class only delegates: the workspace lifecycle is IssueWorkspaces/WorkspaceKeeper.ts, leases IssueWorkspaces/WorkspaceLeaser.ts.
 // Everything repo-specific comes in as IssueWorkspacesConfig; byro-repo's values live in scripts/runner/.
 
 import { IssueWorkspacesBase } from "./IssueWorkspaces/IssueWorkspacesBase.ts";
-import { WorkspaceBuilder } from "./IssueWorkspaces/WorkspaceBuilder.ts";
+import { WorkspaceKeeper } from "./IssueWorkspaces/WorkspaceKeeper.ts";
 import { WorkspaceLeaser } from "./IssueWorkspaces/WorkspaceLeaser.ts";
 import {
   type CreateOptions,
@@ -51,8 +51,8 @@ export class IssueWorkspaces extends IssueWorkspacesBase {
     return new IssueWorkspaces(config);
   }
 
-  private get builder(): WorkspaceBuilder {
-    return new WorkspaceBuilder(this.config);
+  private get keeper(): WorkspaceKeeper {
+    return new WorkspaceKeeper(this.config);
   }
 
   private get leaser(): WorkspaceLeaser {
@@ -60,11 +60,11 @@ export class IssueWorkspaces extends IssueWorkspacesBase {
   }
 
   create(key: WorkspaceKey, options?: CreateOptions): Promise<Workspace> {
-    return this.builder.create(key, options);
+    return this.keeper.create(key, options);
   }
 
   start(key: WorkspaceKey, holder?: LeaseHolder): Promise<Workspace> {
-    return this.builder.start(key, holder);
+    return this.keeper.start(key, holder);
   }
 
   takeLease(
@@ -94,11 +94,11 @@ export class IssueWorkspaces extends IssueWorkspacesBase {
   }
 
   masterSet(spec: IssueRef): Promise<string> {
-    return this.builder.masterSet(spec);
+    return this.keeper.masterSet(spec);
   }
 
   find(key: WorkspaceKey): Promise<WorkspaceStatus | undefined> {
-    return this.builder.find(key);
+    return this.keeper.find(key);
   }
 
   leasedFolderOf(key: WorkspaceKey): Promise<MaybeLeasedFolder | undefined> {
@@ -106,21 +106,21 @@ export class IssueWorkspaces extends IssueWorkspacesBase {
   }
 
   list(): Promise<WorkspaceStatus[]> {
-    return this.builder.list();
+    return this.keeper.list();
   }
 
   promote(workspace: Workspace, repo: string): Promise<Workspace> {
-    return this.builder.promote(workspace, repo);
+    return this.keeper.promote(workspace, repo);
   }
 
   resume(workspace: Workspace): Promise<void> {
-    return this.builder.resume(workspace);
+    return this.keeper.resume(workspace);
   }
 
   remove(
     workspace: Pick<Workspace, "path">,
     options?: RemoveOptions,
   ): Promise<void> {
-    return this.builder.remove(workspace, options);
+    return this.keeper.remove(workspace, options);
   }
 }
