@@ -21,7 +21,6 @@ import {
 import { HaltRaiser } from "./HaltRaiser.ts";
 import { LeaseKeeper } from "./LeaseKeeper.ts";
 import {
-  blockedByTextOf,
   interactiveLabel,
   isLanded,
   isLaunchable,
@@ -32,6 +31,7 @@ import {
   type Wait,
 } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
+import { runText } from "./runState/runText.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 
 interface HoldCheck {
@@ -150,7 +150,7 @@ export class TicketSelector extends SpecRunBase {
         landedMembers,
       );
       if (blockers.length > 0) {
-        const text = blockedByTextOf(label, blockers.map(issueLabelOf));
+        const text = runText.blockedByTextOf(label, blockers.map(issueLabelOf));
         waits.push({ ticket, reason: "blocked", text });
         continue;
       }

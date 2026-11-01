@@ -1,18 +1,15 @@
 // The Run board: one block per run lock in the state folder, or per Batch for its members' locks, read from that spec's run state and progress log.
 // It writes nothing, so it's safe beside any run; a lock whose pid is dead is marked rather than skipped.
 // byro-repo's `npm run runner -- status` prints it once and `-- watch` redraws it, both with no spec.
-// RunLock.ts lists the lock files, BatchRecords.ts finds a member's Batch and SpecRun/runState.ts names the run state and progress log paths.
+// RunLock.ts lists the lock files, BatchRecords.ts finds a member's Batch and SpecRun/runState/statePaths.ts names the run state and progress log paths.
 // SpecRun/SpecRunBase.ts writes both; ProgressLog.ts reads the progress lines, worded where the run writes them.
 
 import { BatchRecords, isMemberOf } from "./BatchRecords.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 import { ProgressLog } from "./ProgressLog.ts";
 import { RunLock } from "./RunLock.ts";
-import {
-  type MemberList,
-  progressLogPathOf,
-  runStatePathOf,
-} from "./SpecRun/runState.ts";
+import { type MemberList } from "./SpecRun/runState.ts";
+import { statePaths } from "./SpecRun/runState/statePaths.ts";
 
 interface BoardWatch {
   render: () => string;
@@ -82,7 +79,7 @@ class RunBoard {
     );
     const isLive = RunLock.isAnyHeld(this.stateFolder, members);
     const label = runLabelOf(members);
-    const statePath = runStatePathOf(this.stateFolder, spec);
+    const statePath = statePaths.runStatePathOf(this.stateFolder, spec);
     return [
       isLive ? label : `${label}: ${boardTexts.gone}`,
       ...(members.length > 1 ? [`  Member: ${issueLabelOf(spec)}`] : []),
@@ -95,7 +92,7 @@ class RunBoard {
   private _progressOf(spec: IssueRef): MemberProgress {
     return {
       spec,
-      log: ProgressLog.at(progressLogPathOf(this.stateFolder, spec)),
+      log: ProgressLog.at(statePaths.progressLogPathOf(this.stateFolder, spec)),
     };
   }
 }

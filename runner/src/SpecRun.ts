@@ -26,8 +26,6 @@ export type { Clock, RunGitHub, SpecRunConfig } from "./SpecRun/SpecRunBase.ts";
 export {
   type IssueComment,
   type MemberList,
-  progressLogPathOf,
-  rerunCommandOf,
   type ResolveOptions,
   type ReviewOptions,
   type ReviewResult,
@@ -35,6 +33,8 @@ export {
   type TicketStep,
   type TrackedIssue,
 } from "./SpecRun/runState.ts";
+export { runText } from "./SpecRun/runState/runText.ts";
+export { statePaths } from "./SpecRun/runState/statePaths.ts";
 export { reviewPrintoutOf } from "./SpecRun/SessionReviewer.ts";
 
 export class SpecRun extends SpecRunBase {

@@ -1,12 +1,12 @@
 // The run's state and shapes: the Run, each ticket's TicketState and the step it reached, a ticket's TicketRun,
 // and the Waits that keep a ticket from launching, plus the module functions more than one SpecRun collaborator calls:
-// a ticket's state, and the run's end and wait messages.
+// a ticket's state, its targets and launchability, and a Batch member's blockers.
 // A declaration here is exported only when another file uses it; a function with one caller sits below that caller's class instead.
 // The class that saves this state is SpecRunBase.ts; the coordinator callers build is ../SpecRun.ts; the Halt helpers are runState/runHalts.ts;
-// the session and step-record helpers are runState/ticketSteps.ts.
+// the session and step-record helpers are runState/ticketSteps.ts; the end, wait and refusal wording is runState/runText.ts;
+// the state file and progress log paths are runState/statePaths.ts.
 
 import { execFile } from "node:child_process";
-import { join } from "node:path";
 import { promisify } from "node:util";
 
 import type { Pair, StepRequest, StepResult } from "../AgentStep.ts";
@@ -15,7 +15,6 @@ import { type Halt, type StepFailure } from "../halts.ts";
 import { type Handoff, type ImplementRecord } from "../implementStep.ts";
 import { type BodyAuthorship } from "../IssueReader.ts";
 import {
-  fileStemOf,
   isSameIssue,
   issueLabelOf,
   type IssueRef,
@@ -28,7 +27,8 @@ import type { Finding } from "../reviewStep.ts";
 import type { Command } from "../runKnobs.ts";
 import { type Target, targetLineShapes, targetsOf } from "../ticketTargets.ts";
 import { type RecordedSession, type StepSession } from "../transcriptFacts.ts";
-import { stopOutcomes, UnhandledStop } from "../UnhandledStop.ts";
+import { UnhandledStop } from "../UnhandledStop.ts";
+import { runText } from "./runState/runText.ts";
 
 const execFileAsync = promisify(execFile);
 
@@ -249,14 +249,6 @@ export type SpecStepRequest = Omit<StepRequest, "account">;
 
 export type Crash = Pick<StepFailure, "detail" | "logPath">;
 
-export function stoppedOnTextOf({
-  outcome,
-  message,
-  logPath,
-}: UnhandledStop): string {
-  return `stopped on ${stopOutcomes[outcome]}: ${message} Log: \`${logPath}\``;
-}
-
 export function ticketStateOf(run: Run, ticket: IssueRef): TicketState {
   const key = issueLabelOf(ticket);
   run.state.tickets[key] ??= { step: "implement", sessions: [] };
@@ -312,20 +304,6 @@ export async function runCommand(
   }
 }
 
-export function onlyDeveloperEditsTextOf(
-  developer: string,
-  bodies: string,
-): string {
-  return `Only ${developer} may write or edit ${bodies}`;
-}
-
-// Every member is in one repo, the first's.
-export function rerunCommandOf(owner: string, ...members: MemberList): string {
-  const [{ repo }] = members;
-  const numbers = members.map(({ number }) => number).join(" ");
-  return `npm run runner -- ${owner}/${repo} ${numbers}`;
-}
-
 export function isAmong(issue: IssueRef, issues: IssueRef[]): boolean {
   return issues.some((each) => isSameIssue(each, issue));
 }
@@ -335,16 +313,6 @@ export function issuesOutside(
   excluded: IssueRef[],
 ): IssueRef[] {
   return issues.filter((issue) => !isAmong(issue, excluded));
-}
-
-// A ticket's blocked wait and a Batch member's end both say it alike.
-export function blockedByTextOf(label: string, blockers: string[]): string {
-  return `${label} is blocked by ${blockers.join(", ")}`;
-}
-
-// A Batch member's wait on its blocker members and its cycle end both say it alike.
-export function waitsToLandTextOf(label: string, blockers: string[]): string {
-  return `${label} waits on ${blockers.join(", ")} to land`;
 }
 
 // The Batch's members among a member's open blockers that haven't landed; a landed one counts as cleared though GitHub may show it open.
@@ -363,30 +331,9 @@ export function memberBlockedWaitOf(
   member: IssueRef,
   blockers: IssueRef[],
 ): Wait {
-  const text = waitsToLandTextOf(
+  const text = runText.waitsToLandTextOf(
     issueLabelOf(member),
     blockers.map(issueLabelOf),
   );
   return { ticket: member, reason: "member-blocked", text };
-}
-
-export function waitsTextOf(waits: Wait[]): string {
-  return waits.map(({ text }) => text).join("; ");
-}
-
-export function joinedOrNone(items: string[]): string {
-  return items.length === 0 ? "none" : items.join(", ");
-}
-
-export function landedTextOf(landed: IssueRef[]): string {
-  if (landed.length === 0) return "landed nothing";
-  return `landed ${landed.map(issueLabelOf).join(", ")}`;
-}
-
-export function runStatePathOf(stateFolder: string, spec: IssueRef): string {
-  return join(stateFolder, `${fileStemOf(spec)}.run.json`);
-}
-
-export function progressLogPathOf(stateFolder: string, spec: IssueRef): string {
-  return join(stateFolder, `${fileStemOf(spec)}.log`);
 }
