@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import type { Pair, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
+import { gapCheckOutputSchema } from "./gapCheck.ts";
 import { guidanceSectionOf } from "./halts.ts";
 import { runKnobsOf } from "./runKnobs.ts";
 import type { RunResult, SpecRunConfig } from "./SpecRun.ts";
 import {
+  addIssue,
   addSpec,
   capped,
   clonePaths,
@@ -234,5 +236,22 @@ describe("run's gap-check Failure Halt answers", () => {
       model: "opus",
       effort: "medium",
     });
+  });
+});
+
+describe("run's gap-check scope", () => {
+  it("lands a Standalone ticket run alone with no gap check launched", async () => {
+    addIssue(spec.number);
+    const agentStep = FakeAgentStep.init(implemented("spec.ts"), reviewed());
+
+    const result = await specRun(agentStep, { agentStep }).run(spec);
+
+    expect(result.kind).toBe("finished");
+    expect(
+      agentStep.requests.filter(
+        ({ jsonSchema }) => jsonSchema === gapCheckOutputSchema,
+      ),
+    ).toEqual([]);
+    expect(gapCheckLists()).toEqual([]);
   });
 });
