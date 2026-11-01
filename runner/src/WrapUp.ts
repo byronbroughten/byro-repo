@@ -4,8 +4,8 @@
 // its parent. Steps are recorded in a progress file, so a rerun skips what already landed; a failure throws a
 // WrapUpFailure naming its kind.
 // A session workspace lands the same way from its session branches, with no facts file or issue steps.
-// The outcome row is written by outcomeRowWriter.ts with the merged code; the lock is LandingLock.ts;
-// workspaces are IssueWorkspaces.ts.
+// Closing the issue is WrapUp/IssueCloser.ts; the outcome row is written by outcomeRowWriter.ts with the merged code;
+// the lock is LandingLock.ts; workspaces are IssueWorkspaces.ts.
 
 import { execFile } from "node:child_process";
 import {
@@ -18,12 +18,7 @@ import {
 import { join } from "node:path";
 import { promisify } from "node:util";
 
-import {
-  type ClosingFacts,
-  FactsFile,
-  type GitHubWrite,
-  type WrapUpFacts,
-} from "./FactsFile.ts";
+import { type ClosingFacts, FactsFile, type WrapUpFacts } from "./FactsFile.ts";
 import { commandLabelOf, messageOf, outputTailOf } from "./failureText.ts";
 import {
   currentBranchOf,
@@ -40,7 +35,6 @@ import {
   issueLabelOf,
   type IssueRef,
   IssueWorkspaces,
-  type IssueWorkspacesConfig,
   type LeaseHolder,
   otherLiveHolderOf,
   sessionBranchOf,
@@ -51,49 +45,29 @@ import {
 } from "./IssueWorkspaces.ts";
 import { LandingLock } from "./LandingLock.ts";
 import { LeaseHeld } from "./LeaseHeld.ts";
-import {
-  type OutcomeRowRequest,
-  writeOutcomeRow,
-  type WrittenOutcomeRow,
-} from "./outcomeRowWriter.ts";
-import {
-  developersReviewListsOf,
-  reviewListMarkOf,
-  undecidedCountOf,
-} from "./reviewList.ts";
+import { writeOutcomeRow } from "./outcomeRowWriter.ts";
 import { secretShapeOf } from "./secretShapes.ts";
-import { sleep } from "./sleep.ts";
-import type { IssueComment } from "./SpecRun.ts";
 import { stalePathLabelOf, stalePathsTouchedBy } from "./stalePaths.ts";
-import { handoffSessionIdOf } from "./transcriptFacts.ts";
+import { IssueCloser } from "./WrapUp/IssueCloser.ts";
+import { WrapUpBase } from "./WrapUp/WrapUpBase.ts";
+import {
+  labels,
+  type ParentCheck,
+  type WrapUpConfig,
+} from "./WrapUp/wrapUpTypes.ts";
 import { WrapUpFailure } from "./WrapUpFailure.ts";
 
+export { leftOpenLineOf } from "./WrapUp/IssueCloser.ts";
+export {
+  defaultWrapUpKnobs,
+  type ParentCheck,
+  type ParentIssue,
+  type WrapUpConfig,
+  type WrapUpGitHub,
+  type WrapUpKnobs,
+} from "./WrapUp/wrapUpTypes.ts";
+
 const execFileAsync = promisify(execFile);
-
-// The GitHub labels wrap-up acts on.
-const labels = { map: "wayfinder:map", human: "ready-for-human" } as const;
-
-export interface ParentIssue {
-  issue: IssueRef;
-  labels: string[];
-  // Undefined when GitHub's response carried no readable sub-issue summary.
-  subIssues: { total: number; completed: number } | undefined;
-}
-
-export interface WrapUpGitHub {
-  closeIssue(issue: IssueRef, comment: string): Promise<void>;
-  parentOf(issue: IssueRef): Promise<ParentIssue | undefined>;
-  subIssuesOf(issue: IssueRef): Promise<IssueRef[]>;
-  labelsOf(issue: IssueRef): Promise<string[]>;
-  commentsOf(issue: IssueRef): Promise<string[]>;
-  authoredCommentsOf(issue: IssueRef): Promise<IssueComment[]>;
-}
-
-export type ParentCheck =
-  | { kind: "none" }
-  | { kind: "map"; parent: IssueRef }
-  | { kind: "open-sub-issues"; parent: IssueRef }
-  | { kind: "ready-to-close"; parent: IssueRef };
 
 export type WrapUpStep =
   | "clean-check"
@@ -109,43 +83,6 @@ export type WrapUpStep =
   | "level-workspace"
   | "close"
   | "parent-check";
-
-export interface WrapUpKnobs {
-  networkTries: number;
-  // The wait after the first failed try, doubled after each later one.
-  backoffMs: number;
-  lockPollMs: number;
-}
-
-export const defaultWrapUpKnobs: WrapUpKnobs = {
-  networkTries: 3,
-  backoffMs: 2000,
-  lockPollMs: 5000,
-};
-
-export interface WrapUpConfig {
-  workspaces: IssueWorkspacesConfig;
-  github: WrapUpGitHub;
-  githubOwner: string;
-  // The one login whose review lists the close step counts.
-  developer: string;
-  // Each a command and its args, run from the workspace's root after the merges.
-  checks: [string, ...string[]][];
-  // Relative to the root repo.
-  outcomeFolder: string;
-  // Holds each ticket's facts and progress files; gitignored.
-  stateFolder: string;
-  // Writes the row file into the merged root checkout with that checkout's code; unset, with the code already loaded.
-  writeOutcomeRow?(
-    root: string,
-    request: OutcomeRowRequest,
-  ): Promise<WrittenOutcomeRow>;
-  // Run at the primary root once the primaries are fast-forwarded; a failure only warns.
-  afterFastForward?(primaryRoot: string): Promise<void>;
-  knobs?: Partial<WrapUpKnobs>;
-  sleep?(ms: number): Promise<void>;
-  log?(line: string): void;
-}
 
 export interface LandingResult {
   completed: WrapUpStep[];
@@ -201,11 +138,6 @@ interface LogRowTarget {
   workspace: Workspace;
 }
 
-interface ClosingTarget {
-  issue: IssueRef;
-  facts: WrapUpFacts;
-}
-
 interface IssueLandingTarget {
   branches: LandingBranch[];
   facts: WrapUpFacts;
@@ -248,17 +180,13 @@ interface LandingKind {
 
 const buildSteps: WrapUpStep[] = ["merges", "checks", "log-row"];
 
-export class WrapUp {
-  private readonly config: WrapUpConfig;
-  private readonly knobs: WrapUpKnobs;
-
-  constructor(config: WrapUpConfig) {
-    this.config = config;
-    this.knobs = { ...defaultWrapUpKnobs, ...config.knobs };
-  }
-
+export class WrapUp extends WrapUpBase {
   static init(config: WrapUpConfig): WrapUp {
     return new WrapUp(config);
+  }
+
+  private get closer(): IssueCloser {
+    return new IssueCloser(this.config);
   }
 
   get workspaces(): IssueWorkspaces {
@@ -289,12 +217,14 @@ export class WrapUp {
     };
     if (!isDone(landing, "fast-forward")) await this._land(landing);
     await this._landAndRemove(landing);
-    await this._step(landing, "close", () =>
-      this._close(landing, { issue, facts }),
-    );
-    await this._step(landing, "parent-check", () =>
-      this._checkParent(landing, issue),
-    );
+    await this._step(landing, "close", async () => {
+      if (await this.closer._close(issue, facts)) {
+        landing.progress.isLeftOpen = true;
+      }
+    });
+    await this._step(landing, "parent-check", async () => {
+      landing.progress.parent = await this.closer._checkParent(issue);
+    });
     const result: WrapUpResult = {
       ...landingResultOf(landing),
       parent: landing.progress.parent ?? { kind: "none" },
@@ -728,12 +658,12 @@ export class WrapUp {
       built[this._rootRepo]?.base ?? (await revOf(worktree, "master"));
     let handoffSessionIds: string[] = [];
     if (facts.sessions !== undefined) {
-      handoffSessionIds = await this._handoffSessionIdsOf(issue);
+      handoffSessionIds = await this.closer._handoffSessionIdsOf(issue);
     }
     const writeRow = this.config.writeOutcomeRow ?? writeOutcomeRow;
     const { path, commitMessage } = await writeRow(worktree, {
       issue,
-      spec: await this._specOf(issue),
+      spec: await this.closer._specOf(issue),
       githubOwner: this.config.githubOwner,
       filesChanged: landing.progress.filesChanged ?? 0,
       handoffSessionIds,
@@ -747,21 +677,6 @@ export class WrapUp {
     }
     built[this._rootRepo] = { base, head: await revOf(worktree, "HEAD") };
     landing.progress.built = built;
-  }
-
-  private async _handoffSessionIdsOf(issue: IssueRef): Promise<string[]> {
-    const comments = await this._withRetries(
-      `Reading ${issueLabelOf(issue)}'s comments`,
-      () => this.config.github.commentsOf(issue),
-    );
-    return comments.flatMap((comment) => {
-      const sessionId = handoffSessionIdOf(comment);
-      return sessionId === undefined ? [] : [sessionId];
-    });
-  }
-
-  private async _specOf(issue: IssueRef): Promise<IssueRef> {
-    return (await this._parentOf(issue))?.issue ?? issue;
   }
 
   // Locks are taken root first, the same order for every lander, so two landings never deadlock; the push runs under the locks too.
@@ -930,61 +845,6 @@ export class WrapUp {
     }
   }
 
-  // A Standalone ticket is its own spec, so every Propose on it is decided before it closes.
-  private async _close(
-    landing: Landing,
-    { issue, facts }: ClosingTarget,
-  ): Promise<void> {
-    const isLeftOpen =
-      (await this._isStandalone(issue)) &&
-      (await this._hasUndecidedReviewItems(issue, facts));
-    if (isLeftOpen) {
-      landing.progress.isLeftOpen = true;
-      this._log(leftOpenLineOf(issue));
-      return;
-    }
-    await this._withRetries(`Closing #${issue.number}`, () =>
-      this.config.github.closeIssue(issue, closingCommentOf(facts)),
-    );
-  }
-
-  // No parent spec and no sub-issues.
-  private async _isStandalone(issue: IssueRef): Promise<boolean> {
-    if ((await this._parentOf(issue)) !== undefined) return false;
-    const subIssues = await this._withRetries(
-      `Reading ${issueLabelOf(issue)}'s sub-issues`,
-      () => this.config.github.subIssuesOf(issue),
-    );
-    return subIssues.length === 0;
-  }
-
-  // A run posts its list only after wrap-up, so until this ticket's is posted the facts stand in for it.
-  private async _hasUndecidedReviewItems(
-    issue: IssueRef,
-    facts: WrapUpFacts,
-  ): Promise<boolean> {
-    const comments = await this._withRetries(
-      `Reading ${issueLabelOf(issue)}'s comments`,
-      () => this.config.github.authoredCommentsOf(issue),
-    );
-    const lists = developersReviewListsOf(comments, this.config.developer);
-    const mark = reviewListMarkOf(issue);
-    if (!lists.some((body) => body.includes(mark))) {
-      return facts.hasUndecidedReviewItems === true;
-    }
-    return undecidedCountOf(lists).items > 0;
-  }
-
-  private async _checkParent(landing: Landing, issue: IssueRef): Promise<void> {
-    landing.progress.parent = parentCheckOf(await this._parentOf(issue));
-  }
-
-  private async _parentOf(issue: IssueRef): Promise<ParentIssue | undefined> {
-    return this._withRetries(`Reading ${issueLabelOf(issue)}'s parent`, () =>
-      this.config.github.parentOf(issue),
-    );
-  }
-
   private async _step(
     landing: Landing,
     step: WrapUpStep,
@@ -1006,34 +866,6 @@ export class WrapUp {
       `${JSON.stringify(landing.progress, undefined, 2)}\n`,
     );
     this._log(`Done: ${step}.`);
-  }
-
-  private async _withRetries<RV>(
-    label: string,
-    action: () => Promise<RV>,
-  ): Promise<RV> {
-    const tries = this.knobs.networkTries;
-    for (let attempt = 1; ; attempt += 1) {
-      try {
-        return await action();
-      } catch (error) {
-        if (attempt >= tries) {
-          throw new WrapUpFailure(
-            "network",
-            `${label} failed after ${tries} tries: ${messageOf(error)}`,
-          );
-        }
-        await this._sleep(this.knobs.backoffMs * 2 ** (attempt - 1));
-      }
-    }
-  }
-
-  private get _sleep(): (ms: number) => Promise<void> {
-    return this.config.sleep ?? sleep;
-  }
-
-  private _log(line: string): void {
-    this.config.log?.(line);
   }
 
   // The listed repos in landing order, then the root repo, which takes the log row.
@@ -1074,11 +906,6 @@ export class WrapUp {
     }
     return clonePath;
   }
-}
-
-// The wrap-up log and the CLI's result line alike.
-export function leftOpenLineOf(issue: IssueRef): string {
-  return `${issueLabelOf(issue)} stays open: its review list has undecided items, and /judge-findings closes it once they're decided.`;
 }
 
 function isDone(landing: Pick<Landing, "progress">, step: WrapUpStep): boolean {
@@ -1133,32 +960,6 @@ function sessionMergeArgsOf(branch: string): string[] {
   return ["-m", `Merge ${branch} into master`, branch];
 }
 
-function closingCommentOf({
-  closingComment,
-  boxesUndone = [],
-  githubWrites = [],
-}: WrapUpFacts): string {
-  const parts = [closingComment];
-  if (githubWrites.length > 0) {
-    parts.push("", "GitHub writes:", ...githubWrites.map(gitHubWriteLineOf));
-  }
-  if (boxesUndone.length > 0) {
-    const undone = boxesUndone.map(({ box, reason }) => `- ${box}: ${reason}`);
-    parts.push("", "Left undone:", ...undone);
-  }
-  return parts.join("\n");
-}
-
-function gitHubWriteLineOf({
-  issue,
-  action,
-  url,
-  summary,
-}: GitHubWrite): string {
-  const preposition = action === "comment" ? "on" : "of";
-  return `- ${action} ${preposition} ${issue}: ${summary} ${url}`;
-}
-
 // Each line a unified diff adds, with its file and line number in the new version.
 function addedLinesOf(diff: string): AddedLine[] {
   const added: AddedLine[] = [];
@@ -1183,23 +984,6 @@ function addedLinesOf(diff: string): AddedLine[] {
 
 function isListed(landing: Landing, repo: string): boolean {
   return landing.branches.some((branch) => branch.repo === repo);
-}
-
-function parentCheckOf(parent: ParentIssue | undefined): ParentCheck {
-  if (parent === undefined) return { kind: "none" };
-  if (parent.labels.includes(labels.map)) {
-    return { kind: "map", parent: parent.issue };
-  }
-  if (parent.subIssues === undefined) {
-    throw new WrapUpFailure(
-      "parent-check",
-      `${issueLabelOf(parent.issue)}'s sub-issue summary could not be read`,
-    );
-  }
-  if (parent.subIssues.completed < parent.subIssues.total) {
-    return { kind: "open-sub-issues", parent: parent.issue };
-  }
-  return { kind: "ready-to-close", parent: parent.issue };
 }
 
 async function levelRepo(worktree: string, branch: string): Promise<void> {
