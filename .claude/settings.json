@@ -105,12 +105,12 @@
       "git ls-remote *",
       "git clone *",
       "gh *",
-      "npm run issue:*",
+      "npm run issue*",
       "npm run wrap-up *",
       "npm run runner *",
       "npm run outcome:summary *",
-      "npm run app:*",
-      "npm run dev:*",
+      "npm run app*",
+      "npm run dev*",
       "git commit *",
       "git add *",
       "git merge *",
@@ -163,6 +163,10 @@
         "~/.config/gmail-mcp",
         "~/.claude.json",
         "~/.ssh"
+      ],
+      "allowRead": [
+        "./packages/*/src/generated/columnConfigs.ts",
+        "./packages/*/dev/generated/columnConfigs.ts"
       ]
     },
     "network": {
