@@ -25,7 +25,7 @@ const readableIssueFields = `${trackedIssueFields}
       parent { number repository { name } }
       subIssues(first: 100) { nodes { number repository { name } } }
       timelineItems(itemTypes: [RENAMED_TITLE_EVENT], last: 1) { nodes { ... on RenamedTitleEvent { actor { login } } } }
-      comments(first: 100) { pageInfo { hasNextPage } nodes { author { login } body } }`;
+      comments(first: 100) { pageInfo { hasNextPage } nodes { author { login } body url } }`;
 
 const editCommentMutation = `mutation($id: ID!, $body: String!) {
   updateIssueComment(input: { id: $id, body: $body }) { issueComment { id } }
@@ -61,7 +61,7 @@ interface RawIssue {
   userContentEdits?: RawPage & { nodes?: { editor?: RawLogin | null }[] };
   timelineItems?: { nodes?: { actor?: RawLogin | null }[] };
   comments?: RawPage & {
-    nodes?: { author?: RawLogin | null; body?: unknown }[];
+    nodes?: { author?: RawLogin | null; body?: unknown; url?: unknown }[];
   };
 }
 
@@ -373,6 +373,7 @@ function readableOfRaw(issue: IssueRef, raw: RawIssue): ReadableIssue {
     comments: (comments?.nodes ?? []).map((comment) => ({
       author: loginOf(comment.author),
       body: String(comment.body),
+      url: String(comment.url),
     })),
   };
 }

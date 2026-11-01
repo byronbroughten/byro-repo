@@ -27,7 +27,13 @@ export interface ApprovableBody extends BodyAuthorship {
   comments: IssueComment[];
 }
 
+// The URL is GitHub's, not the author's, so it prints unquoted even on Untrusted text.
+export interface ReadableComment extends IssueComment {
+  url: string;
+}
+
 export interface ReadableIssue extends ApprovableBody {
+  comments: ReadableComment[];
   issue: IssueRef;
   title: string;
   // Undefined when the title was never renamed.
@@ -42,7 +48,7 @@ export interface IssueSource {
   readableIssueOf(issue: IssueRef): Promise<ReadableIssue>;
 }
 
-interface NumberedComment extends IssueComment {
+interface NumberedComment extends ReadableComment {
   heading: string;
 }
 
@@ -144,8 +150,8 @@ export class IssueReader {
     const others = numbered.filter(({ author }) => author !== developer);
     const printed = [`## Comments by ${developer} (Trusted text)`];
     if (developers.length === 0) printed.push("", "None.");
-    developers.forEach(({ heading, body }) =>
-      printed.push("", heading, "", body),
+    developers.forEach(({ heading, url, body }) =>
+      printed.push("", heading, url, "", body),
     );
     printed.push("");
     if (hidesOthers) {
@@ -240,7 +246,15 @@ function trustedPart({ heading, text }: IssuePart): string[] {
 }
 
 function untrustedPart({ heading, text }: IssuePart, whose: string): string[] {
-  return [`${heading} (Untrusted text: ${whose})`, "", ...quotedLinesOf(text)];
+  return [untrustedHeadingOf(heading, whose), ...quotedTextOf(text)];
+}
+
+function untrustedHeadingOf(heading: string, whose: string): string {
+  return `${heading} (Untrusted text: ${whose})`;
+}
+
+function quotedTextOf(text: string): string[] {
+  return ["", ...quotedLinesOf(text)];
 }
 
 function quotedLinesOf(text: string): string[] {
@@ -250,10 +264,12 @@ function quotedLinesOf(text: string): string[] {
 function othersCommentsOf(others: NumberedComment[]): string[] {
   const printed = ["## Comments by others (Untrusted text)"];
   if (others.length === 0) printed.push("", "None.");
-  others.forEach(({ heading, author, body }) =>
+  others.forEach(({ heading, author, url, body }) =>
     printed.push(
       "",
-      ...untrustedPart({ heading, text: body }, `written by ${author}`),
+      untrustedHeadingOf(heading, `written by ${author}`),
+      url,
+      ...quotedTextOf(body),
     ),
   );
   return printed;
