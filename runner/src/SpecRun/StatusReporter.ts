@@ -9,7 +9,6 @@ import {
   ActiveAccountUnknown,
   noActiveAccountPhraseOf,
 } from "../ActiveAccountUnknown.ts";
-import { BatchRecords } from "../BatchRecords.ts";
 import { type Halt } from "../halts.ts";
 import {
   holderLabelOf,
@@ -31,10 +30,6 @@ import { TicketSelector } from "./TicketSelector.ts";
 export class StatusReporter extends SpecRunBase {
   private get ticketSelector(): TicketSelector {
     return new TicketSelector(this.config);
-  }
-
-  private get batchRecords(): BatchRecords {
-    return BatchRecords.init(this.config.stateFolder);
   }
 
   // Posts nothing and saves no run state, so it's safe beside a live run; an answer the run hasn't read yet shows as open.

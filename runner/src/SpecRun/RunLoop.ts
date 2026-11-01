@@ -10,7 +10,6 @@
 
 import { existsSync, rmSync } from "node:fs";
 
-import { BatchRecords } from "../BatchRecords.ts";
 import { git } from "../git.ts";
 import { type Halt } from "../halts.ts";
 import { issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
@@ -93,7 +92,7 @@ export class RunLoop extends SpecRunBase {
     this.memberIssues = memberIssues;
   }
 
-  private get preflight(): PreflightChecker {
+  private get preflightChecker(): PreflightChecker {
     return new PreflightChecker(this.config, this.memberIssues);
   }
 
@@ -109,16 +108,12 @@ export class RunLoop extends SpecRunBase {
     return new ReviewListPoster(this.config);
   }
 
-  private get batchRecords(): BatchRecords {
-    return BatchRecords.init(this.config.stateFolder);
-  }
-
   async run(): Promise<RunResult> {
-    const { preflight, memberIssues } = this;
-    const { locks, liveRunRefusals } = preflight._takeRunLocks();
+    const { preflightChecker, memberIssues } = this;
+    const { locks, liveRunRefusals } = preflightChecker._takeRunLocks();
     if (liveRunRefusals.size > 0) {
       try {
-        return await preflight._refuseBesideLiveRuns(liveRunRefusals);
+        return await preflightChecker._refuseBesideLiveRuns(liveRunRefusals);
       } finally {
         locks.forEach((lock) => lock.release());
       }
@@ -146,12 +141,12 @@ export class RunLoop extends SpecRunBase {
     runs.forEach((run) => {
       if (this._takeRestart(run)) isRelaunch = true;
     });
-    const refused = await this.preflight._refusalOf(runs);
+    const refused = await this.preflightChecker._refusalOf(runs);
     if (refused !== undefined) return refused;
     const members = membersOf(runs);
     // The account and the primary checkout concern every member alike; the first member reads them.
     const [lead] = members;
-    const preflightStop = await this.preflight._preflightStop();
+    const preflightStop = await this.preflightChecker._preflightStop();
     if (preflightStop !== undefined) {
       return this._stopAll(members, {
         member: lead,

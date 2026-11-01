@@ -1,7 +1,7 @@
 // The run's preflight, which refuses or Stops a run before its first pick: it takes each member's RunLock,
 // collects every member's refusal (a live run, the spec's authorship, Model fit, targets and, in a Batch, the Standalone checks),
 // and runs the shared preflight Stop once. It holds the member list, so a list of one skips the Standalone checks.
-// RunLoop.ts builds one per run and calls _takeRunLocks, _refuseBesideLiveRuns, _refusalOf and _preflightStop in turn.
+// RunLoop.ts calls _takeRunLocks, then _refuseBesideLiveRuns or _refusalOf and _preflightStop.
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";

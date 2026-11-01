@@ -15,6 +15,7 @@ import { join } from "node:path";
 
 import { ActiveAccountUnknown } from "../ActiveAccountUnknown.ts";
 import type { AgentStep } from "../AgentStep.ts";
+import { BatchRecords } from "../BatchRecords.ts";
 import { FactsFile } from "../FactsFile.ts";
 import { messageOf } from "../failureText.ts";
 import {
@@ -140,6 +141,10 @@ export class SpecRunBase {
 
   get workspaces(): IssueWorkspaces {
     return IssueWorkspaces.init(this._workspacesConfig);
+  }
+
+  get batchRecords(): BatchRecords {
+    return BatchRecords.init(this.config.stateFolder);
   }
 
   get factsFile(): FactsFile {
