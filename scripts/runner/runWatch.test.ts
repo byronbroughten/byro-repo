@@ -2,7 +2,12 @@ import { appendFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import {
+  batchEventFilePathOf,
+  BatchRecords,
+} from "@byronbroughten/spec-runner/BatchRecords";
 import { eventFilePathOf } from "@byronbroughten/spec-runner/EventFileNotices";
+import type { MemberList } from "@byronbroughten/spec-runner/SpecRun";
 import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -71,12 +76,12 @@ describe("the launcher's wait", () => {
     const started = lineOf("run-started", at(3_000));
     const clock = fakeClock([{ atMs: 3_000, run: () => write(started) }]);
 
-    const result = await awaitRunStart(spec, options, {
+    const result = await awaitRunStart([spec], options, {
       stateFolder,
       ...clock,
     });
 
-    expect(launchReportOf(spec, result, options)).toEqual({
+    expect(launchReportOf([spec], result, options)).toEqual({
       text: started,
       exitCode: 0,
     });
@@ -86,12 +91,12 @@ describe("the launcher's wait", () => {
     const ended = lineOf("run-ended", at(2_000), "stopped");
     const clock = fakeClock([{ atMs: 2_000, run: () => write(ended) }]);
 
-    const result = await awaitRunStart(spec, options, {
+    const result = await awaitRunStart([spec], options, {
       stateFolder,
       ...clock,
     });
 
-    expect(launchReportOf(spec, result, options)).toEqual({
+    expect(launchReportOf([spec], result, options)).toEqual({
       text: ended,
       exitCode: 1,
     });
@@ -100,16 +105,97 @@ describe("the launcher's wait", () => {
   it("reports unknown once the wait runs out", async () => {
     const clock = fakeClock();
 
-    const result = await awaitRunStart(spec, options, {
+    const result = await awaitRunStart([spec], options, {
       stateFolder,
       ...clock,
     });
 
-    expect(launchReportOf(spec, result, options)).toEqual({
+    expect(launchReportOf([spec], result, options)).toEqual({
       text: "The run's state is unknown: no run-started or run-ended line after 60s; read its pane with: tmux attach -t runner-byro-repo-412",
       exitCode: 1,
     });
     expect(clock.now()).toEqual(at(60_000));
+  });
+});
+
+describe("a Batch's watches", () => {
+  const owner = "byronbroughten";
+  const pollMs = 3_000;
+  const member = { repo: "byro-repo", number: 499 };
+  const members: MemberList = [{ repo: "byro-repo", number: 498 }, member];
+
+  function writeBatch(line: string): void {
+    appendFileSync(batchEventFilePathOf(stateFolder, members), `${line}\n`);
+  }
+
+  it("waits for the launch on the Batch's event file and names its tmux session", async () => {
+    const options = { launchedAt, timeoutMs: 60_000, pollMs: 1_000 };
+    const started = lineOf("run-started", at(2_000));
+    const clock = fakeClock([{ atMs: 2_000, run: () => writeBatch(started) }]);
+
+    const result = await awaitRunStart(members, options, {
+      stateFolder,
+      ...clock,
+    });
+
+    expect(result).toEqual({ kind: "started", line: started });
+    expect(
+      launchReportOf(members, { kind: "unknown" }, options).text,
+    ).toContain("tmux attach -t runner-byro-repo-498-499");
+  });
+
+  it("watchRun prints the Batch's lines, and its vanished line names the Batch's session and list", async () => {
+    writeBatch(lineOf("run-started", at(-5_000)));
+    const halt = lineOf("halt", at(1_000));
+    const printed: string[] = [];
+    const clock = fakeClock([{ atMs: 1_000, run: () => writeBatch(halt) }]);
+
+    await watchRun(
+      { owner, members },
+      {
+        stateFolder,
+        ...clock,
+        pollMs,
+        isRunLive: () => false,
+        print: (line) => printed.push(line),
+      },
+    );
+
+    const [first, vanished = ""] = printed;
+    expect(first).toBe(halt);
+    expect(JSON.parse(vanished).summary).toContain(
+      "tmux attach -t runner-byro-repo-498-499",
+    );
+    expect(JSON.parse(vanished).summary).toContain(
+      "npm run runner -- byronbroughten/byro-repo 498 499",
+    );
+  });
+
+  it("watchOnce on any member's number prints the Batch's next unexplained line", async () => {
+    await BatchRecords.init(stateFolder).open(members, process.pid);
+    writeBatch(lineOf("run-started", at(-5_000)));
+    const halt = lineOf("halt", at(-1_000));
+    writeBatch(halt);
+    const supervisor = { kind: "session", pid: process.pid } as const;
+    const records = SupervisionRecords.init(stateFolder);
+    await records.supervise(supervisor, owner, member);
+    await records.advance(supervisor);
+    const printed: string[] = [];
+
+    await watchOnce(
+      { owner, spec: member },
+      {
+        stateFolder,
+        ...fakeClock(),
+        pollMs,
+        isRunLive: () => true,
+        print: (line) => printed.push(line),
+        records,
+        pid: process.pid,
+      },
+    );
+
+    expect(printed).toEqual([halt]);
   });
 });
 
@@ -121,7 +207,7 @@ describe("watchRun", () => {
     const printed: string[] = [];
 
     await watchRun(
-      { owner: "byronbroughten", spec },
+      { owner: "byronbroughten", members: [spec] },
       {
         stateFolder,
         ...fakeClock(),
@@ -154,7 +240,7 @@ describe("watchRun", () => {
     ]);
 
     await watchRun(
-      { owner: "byronbroughten", spec },
+      { owner: "byronbroughten", members: [spec] },
       {
         stateFolder,
         ...clock,
@@ -174,7 +260,7 @@ describe("watchRun", () => {
     const clock = fakeClock([{ atMs: 1_000, run: () => write(crashed) }]);
 
     await watchRun(
-      { owner: "byronbroughten", spec },
+      { owner: "byronbroughten", members: [spec] },
       {
         stateFolder,
         ...clock,
@@ -198,7 +284,7 @@ describe("watchRun", () => {
     ]);
 
     await watchRun(
-      { owner: "byronbroughten", spec },
+      { owner: "byronbroughten", members: [spec] },
       {
         stateFolder,
         ...clock,
@@ -216,7 +302,7 @@ describe("watchRun", () => {
     const printed: string[] = [];
 
     await watchRun(
-      { owner: "byronbroughten", spec },
+      { owner: "byronbroughten", members: [spec] },
       {
         stateFolder,
         ...fakeClock(),

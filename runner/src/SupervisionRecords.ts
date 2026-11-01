@@ -41,6 +41,8 @@ export interface WatchStart {
   // Named as the record names its Supervisor, so a reused pid never passes for the watch it replaced.
   watchProcess: ProcessIdentity;
   offset: number;
+  // The record's own, so the watch reads the file its offset counts in.
+  members: MemberList;
 }
 
 // The Supervisor's own identity, so a reused pid never inherits its record.
@@ -99,7 +101,7 @@ export class SupervisionRecords {
     const file = this._specFileOf(spec);
     if (file === undefined) return undefined;
     this._write({ ...file, watch: watchProcess });
-    return { watchProcess, offset: file.offset };
+    return { watchProcess, offset: file.offset, members: membersOf(file) };
   }
 
   isWatchedBy(spec: IssueRef, watchProcess: ProcessIdentity): boolean {

@@ -1,9 +1,9 @@
-// Runs a spec's tickets to landed, one at a time; rerunning the same command resumes. Progress is in .runner/<repo>-<n>.log.
-// Usage below; `review` and `resolve` take a session's ticket, not a spec, and `resolve` the path of the session's records.
+// Runs a spec's tickets to landed, one at a time, or a Batch's given several numbers; rerunning the same command resumes. Progress is in .runner/<repo>-<n>.log.
+// Usage below; every verb but the run itself takes one number, a Batch's any member's. `review` and `resolve` take a session's ticket, not a spec, and `resolve` the path of the session's records.
 // Exit 1 is a run short of finished, a review short of reviewed or its findings, or refused records; 2 is a crash, which tmux.sh pushes;
 // 3 is a Restart, which tmux.sh relaunches.
-// `supervise` records the caller's claude as the spec's Supervisor and prints its unexplained event lines; `--advance` marks one more explained.
-// `watch` streams the spec's new event lines and prints a `vanished` line if the run's process dies unreported (runWatch.ts);
+// `supervise` records the caller's claude as the spec's or Batch's Supervisor and prints its unexplained event lines; `--advance` marks one more explained.
+// `watch` streams the spec's or Batch's new event lines and prints a `vanished` line if the run's process dies unreported (runWatch.ts);
 // `--once` prints the first unexplained line, or that `vanished` line, and exits, or exits silently once a newer watch replaces it.
 // `status` and `watch` with no spec print the Run board once or redraw it every 5s (runBoard.ts).
 // `decide` ticks one review-list item and adds its `Decided:` line, or with `--handled` adds a `Handled:` line unticked (SpecRun/ReviewItemDecider.ts).
@@ -11,6 +11,7 @@
 import { readFileSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
 
+import { BatchRecords } from "@byronbroughten/spec-runner/BatchRecords";
 import { type IssueRef } from "@byronbroughten/spec-runner/IssueWorkspaces";
 import { isItemId } from "@byronbroughten/spec-runner/reviewList";
 import { runBoardOf, watchBoard } from "@byronbroughten/spec-runner/runBoard";
@@ -22,6 +23,7 @@ import {
 } from "@byronbroughten/spec-runner/SupervisionRecords";
 
 import { nearestClaudeAncestor } from "./claudeAncestor.ts";
+import { launchArgsOf } from "./launchArgs.ts";
 import { specRunConfigOf, stateFolder } from "./runnerConfig.ts";
 import { type WatchDeps, watchOnce, watchRun } from "./runWatch.ts";
 
@@ -37,7 +39,7 @@ const verbs = [
   "decide",
   "judgeable",
 ];
-const usage = `Usage: npm run runner -- [${plainVerbs.join("|")}] <owner/repo> <n>, watch <owner/repo> <n> [--once], resolve <owner/repo> <n> <records.json>, supervise <owner/repo> <n> [--advance], decide <owner/repo> <spec> R<n>.<k> [--handled] "<text>", judgeable <owner/repo>, or [${boardVerbs.join("|")}] alone for the Run board`;
+const usage = `Usage: npm run runner -- <owner/repo> <n> [<n>…] to run one spec or a Batch, ${plainVerbs.join("|")} <owner/repo> <n>, watch <owner/repo> <n> [--once], resolve <owner/repo> <n> <records.json>, supervise <owner/repo> <n> [--advance], decide <owner/repo> <spec> R<n>.<k> [--handled] "<text>", judgeable <owner/repo>, or [${boardVerbs.join("|")}] alone for the Run board`;
 
 try {
   const args = process.argv.slice(2);
@@ -52,6 +54,8 @@ try {
     await decide(args);
   } else if (command === "judgeable") {
     await listJudgeable(args);
+  } else if (command === "run") {
+    await runBatch(args);
   } else {
     await runOnSpec(command, args);
   }
@@ -122,27 +126,42 @@ async function runOnSpec(command: string, args: string[]): Promise<void> {
     await watchOnce(
       { owner, spec: issue },
       {
-        ...watchDepsOf(issue),
+        ...watchDepsOf(),
         records: SupervisionRecords.init(stateFolder),
         pid: process.pid,
       },
     );
   } else if (command === "watch") {
-    await watchRun({ owner, spec: issue }, watchDepsOf(issue));
+    const members = BatchRecords.init(stateFolder).membersOf(issue);
+    await watchRun({ owner, members }, watchDepsOf());
   } else {
     await runSpec(command, owner, issue, flag);
   }
 }
 
-function watchDepsOf(spec: IssueRef): WatchDeps {
+// A watch's run is live while any member's run lock is held.
+function watchDepsOf(): WatchDeps {
   return {
     stateFolder,
     pollMs: 3_000,
-    isRunLive: () => RunLock.isHeld(stateFolder, spec),
+    isRunLive: (members) => RunLock.isAnyHeld(stateFolder, members),
     now: () => new Date(),
     sleep,
     print: (line: string) => console.log(line),
   };
+}
+
+// Several numbers run one Batch; a Restart reruns the same list (tmux.sh).
+async function runBatch(args: string[]): Promise<void> {
+  const launch = launchArgsOf(args);
+  if (launch === undefined) throw new Error(usage);
+  const specRun = SpecRun.init(specRunConfigOf(launch.owner));
+  const result = await specRun.run(...launch.members);
+  if (result.kind === "restarting") {
+    process.exitCode = exitCodes.restart;
+  } else if (result.kind !== "finished") {
+    process.exitCode = exitCodes.short;
+  }
 }
 
 async function runSpec(
@@ -174,12 +193,7 @@ async function runSpec(
     console.log(reviewPrintoutOf(result));
     if (result.kind !== "reviewed") process.exitCode = exitCodes.short;
   } else {
-    const result = await specRun.run(issue);
-    if (result.kind === "restarting") {
-      process.exitCode = exitCodes.restart;
-    } else if (result.kind !== "finished") {
-      process.exitCode = exitCodes.short;
-    }
+    throw new Error(usage);
   }
 }
 

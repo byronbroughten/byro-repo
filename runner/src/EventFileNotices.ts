@@ -29,27 +29,41 @@ export interface EventLine {
 export class EventFileNotices implements Notices {
   private readonly stateFolder: string;
   private readonly now: () => Date;
+  private readonly pathOf: (spec: IssueRef) => string;
 
-  constructor(stateFolder: string, now: () => Date) {
+  constructor(
+    stateFolder: string,
+    now: () => Date,
+    pathOf: (spec: IssueRef) => string,
+  ) {
     this.stateFolder = stateFolder;
     this.now = now;
+    this.pathOf = pathOf;
   }
 
+  // A Batch member's line goes to the Batch's one file, its `spec` naming the member.
   static init(stateFolder: string, now = () => new Date()): EventFileNotices {
-    return new EventFileNotices(stateFolder, now);
+    return new EventFileNotices(stateFolder, now, (spec) => {
+      const batchFile = BatchRecords.init(stateFolder).eventFilePathOf(spec);
+      return batchFile ?? eventFilePathOf(stateFolder, spec);
+    });
+  }
+
+  // Every line goes to these members' stream, for a run whose Batch record may already be gone, such as a crashed one's.
+  static forStream(stateFolder: string, members: MemberList): EventFileNotices {
+    const path = eventStreamPathOf(stateFolder, members);
+    return new EventFileNotices(
+      stateFolder,
+      () => new Date(),
+      () => path,
+    );
   }
 
   async send(notice: Notice): Promise<void> {
     const line = this._lineOf(notice);
     if (line === undefined) return;
     mkdirSync(this.stateFolder, { recursive: true });
-    appendFileSync(this._pathOf(notice.spec), `${JSON.stringify(line)}\n`);
-  }
-
-  // A Batch member's line goes to the Batch's one file, its `spec` naming the member.
-  private _pathOf(spec: IssueRef): string {
-    const batchFile = BatchRecords.init(this.stateFolder).eventFilePathOf(spec);
-    return batchFile ?? eventFilePathOf(this.stateFolder, spec);
+    appendFileSync(this.pathOf(notice.spec), `${JSON.stringify(line)}\n`);
   }
 
   private _lineOf(notice: Notice): EventLine | undefined {
