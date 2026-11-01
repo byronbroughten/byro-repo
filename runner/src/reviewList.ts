@@ -1,9 +1,9 @@
 // The review list: a ticket's resolve records by axis then verdict, its Proposals as R items, its agreed Dismisses in a
-// collapsed audit, each departure from a suggested verdict with its why; a run posts it on the spec, a session prints it.
+// collapsed audit, each departure from a suggested verdict with its why; a run posts it on the spec, a session posts and prints it.
 // Also the gap check's comment in the same format, the note a `covered-later` Dismiss leaves on its later ticket,
 // and the count of undecided items the end-of-run push gives, and the edit `runner decide` makes to one item.
-// SpecRun/ReviewListPoster.ts posts them, TicketLander.ts calling it at landing; SpecRun/SessionReviewer.ts returns a
-// ticket's to print; SpecRun/ReviewItemDecider.ts edits one; gapCheck.ts supplies the gaps.
+// SpecRun/ReviewListPoster.ts posts them, TicketLander.ts calling it at landing and SpecRun/SessionReviewer.ts after a
+// session's review, which also returns the ticket's to print; WrapUp.ts counts a Standalone ticket's; SpecRun/ReviewItemDecider.ts edits one; gapCheck.ts supplies the gaps.
 
 import type { Gap, GapCheckRecord } from "./gapCheck.ts";
 import { shortRefOf } from "./halts.ts";

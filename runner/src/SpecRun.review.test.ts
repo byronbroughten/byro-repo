@@ -9,15 +9,19 @@ import { git } from "./GitFixture.ts";
 import type { LeaseHolder } from "./IssueWorkspaces.ts";
 import type { UsageReader } from "./limitGuard.ts";
 import type { ResolveRecord } from "./resolveStep.ts";
+import { runKnobsOf } from "./runKnobs.ts";
 import { reviewPrintoutOf } from "./SpecRun.ts";
 import {
   addSpec,
+  clonePaths,
   crashed,
   findingOf,
   github,
+  greenUnlessRed,
   haltComments,
   implemented,
   notices,
+  passes,
   progressLines,
   refOf,
   resolved,
@@ -115,13 +119,15 @@ describe("review of one ticket outside a run", () => {
     expect(github.comments).toEqual([]);
   });
 
-  it("prints the run's review list rather than posting it, posts the covered-later note, and writes the same review facts, a fresh resolver fixing", async () => {
+  it("prints the run's review list and posts it on the spec, posts the covered-later note, and writes the same review facts, a fresh resolver fixing", async () => {
     const result = await specRun(reviewsWithFix()).review(refOf(1), {
       holder,
     });
 
     expect(result).toMatchObject({ kind: "reviewed", halts: [] });
-    expect(commentsOn(213, "<!-- review-list ")).toEqual([]);
+    expect(commentsOn(213, "<!-- review-list ")).toEqual([
+      expect.stringContaining(result.reviewList ?? "no list"),
+    ]);
     expect(reviewPrintoutOf(result)).toBe(
       [
         "Reviewed byro-repo #1, findings: 3. Fixed: Line 2 is wrong. (one.ts:2). Proposed: Line 1 is wrong. (one.ts:1).",
@@ -233,7 +239,7 @@ describe("review of one ticket outside a run", () => {
     expect(progressLines().at(-1)).toContain(result.message);
   });
 
-  it("finds its markers on a second review and posts no note twice", async () => {
+  it("finds its markers on a second review and posts no note or review list twice", async () => {
     await specRun(reviewsWithFix()).review(refOf(1), { holder });
 
     const result = await specRun(reviewsWithFix("fix-again.ts")).review(
@@ -243,6 +249,42 @@ describe("review of one ticket outside a run", () => {
 
     expect(result.kind).toBe("reviewed");
     expect(commentsOn(2, "byro-repo#1's review left this")).toHaveLength(1);
+    expect(commentsOn(213, "<!-- review-list ticket=#1 -->")).toHaveLength(1);
+  });
+
+  it("pushes nothing for its review list under the per-ticket cadence", async () => {
+    const knobs = runKnobsOf({
+      clonePaths,
+      checks: [greenUnlessRed],
+      authChecks: [passes],
+      reviewListCadence: "per-ticket",
+    });
+
+    await specRun(reviewsWithFix(), { knobs }).review(refOf(1), { holder });
+
+    expect(commentsOn(213, "<!-- review-list ticket=#1 -->")).toHaveLength(1);
+    expect(notices.sent).toEqual([]);
+  });
+
+  it("leaves a later run that lands the ticket to find its review list and post none twice", async () => {
+    const reviewing = specRun(reviewsWithFix());
+    await reviewing.review(refOf(1), { holder });
+    const workspace = await reviewing.workspaces.find(refOf(1));
+    if (workspace) await reviewing.workspaces.releaseLease(workspace);
+
+    const result = await specRun(
+      FakeAgentStep.init(
+        implemented("two.ts"),
+        reviewed(findings),
+        resolved([propose, fix, coveredLater], "fix-again.ts"),
+        implemented("three.ts"),
+        reviewed(findings.slice(0, 1)),
+        resolvedAs(halt),
+      ),
+    ).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(commentsOn(213, "<!-- review-list ticket=#1 -->")).toHaveLength(1);
   });
 
   it("posts a Halt verdict on the spec as a session Halt, returns it to print and pushes nothing", async () => {

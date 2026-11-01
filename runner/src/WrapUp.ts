@@ -33,6 +33,7 @@ import {
   lines,
   worktreeStateOf,
 } from "./git.ts";
+import { runnerMark } from "./halts.ts";
 import {
   fileStemOf,
   holderLabelOf,
@@ -56,6 +57,11 @@ import {
   writeOutcomeRow,
   type WrittenOutcomeRow,
 } from "./outcomeRowWriter.ts";
+import {
+  isReviewList,
+  reviewListMarkOf,
+  undecidedCountOf,
+} from "./reviewList.ts";
 import { secretShapeOf } from "./secretShapes.ts";
 import { sleep } from "./sleep.ts";
 import { stalePathLabelOf, stalePathsTouchedBy } from "./stalePaths.ts";
@@ -927,8 +933,8 @@ export class WrapUp {
     { issue, facts }: ClosingTarget,
   ): Promise<void> {
     const isLeftOpen =
-      facts.hasUndecidedReviewItems === true &&
-      (await this._isStandalone(issue));
+      (await this._isStandalone(issue)) &&
+      (await this._hasUndecidedReviewItems(issue, facts));
     if (isLeftOpen) {
       landing.progress.isLeftOpen = true;
       this._log(leftOpenLineOf(issue));
@@ -947,6 +953,26 @@ export class WrapUp {
       () => this.config.github.subIssuesOf(issue),
     );
     return subIssues.length === 0;
+  }
+
+  // Counts the posted lists, so an item `runner decide` settled no longer counts; a run posts its list only after
+  // wrap-up, so until this ticket's is posted the facts stand in for it.
+  private async _hasUndecidedReviewItems(
+    issue: IssueRef,
+    facts: WrapUpFacts,
+  ): Promise<boolean> {
+    const comments = await this._withRetries(
+      `Reading ${issueLabelOf(issue)}'s comments`,
+      () => this.config.github.commentsOf(issue),
+    );
+    const lists = comments.filter(
+      (body) => body.includes(runnerMark) && isReviewList(body),
+    );
+    const mark = reviewListMarkOf(issue);
+    if (!lists.some((body) => body.includes(mark))) {
+      return facts.hasUndecidedReviewItems === true;
+    }
+    return undecidedCountOf(lists).items > 0;
   }
 
   private async _checkParent(landing: Landing, issue: IssueRef): Promise<void> {

@@ -34,6 +34,7 @@ export const implementCodeCommands: ImplementCodeSkillInput = {
   promoteCommand: promoteCommandOf("<repo>", "<n>"),
   reviewCommand: "npm run runner -- review <owner>/<repo> <n>",
   resolveCommand: "npm run runner -- resolve <owner>/<repo> <n>",
+  decideCommand: "npm run runner -- decide <owner>/<repo> <spec> R<n>.<k>",
   wrapUpCommand: "npm run wrap-up -- <repo> <n>",
 };
 const scriptFolder = fileURLToPath(new URL(".", import.meta.url));

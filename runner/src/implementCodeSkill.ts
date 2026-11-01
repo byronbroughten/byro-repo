@@ -13,6 +13,8 @@ export interface ImplementCodeSkillInput {
   reviewCommand: string;
   // Takes the records file's path last.
   resolveCommand: string;
+  // Written with `<spec>` and the item id in place of `<n>`; takes the decision's text last.
+  decideCommand: string;
   wrapUpCommand: string;
 }
 
@@ -61,6 +63,7 @@ function gitHubSection(): string {
 function endingSection({
   reviewCommand,
   resolveCommand,
+  decideCommand,
   wrapUpCommand,
 }: ImplementCodeSkillInput): string {
   return `## When you're done
@@ -74,9 +77,9 @@ function endingSection({
   2. **Resolve**, when it printed findings: ${implementBody.resolving} Then run \`npm run check\`. Write \`.runner/resolve-<n>.json\`, gitignored, as \`{ "records": [...] }\`, ${indentedOf(resolveRecordFields)}
 
      Then run \`${resolveCommand} .runner/resolve-<n>.json\`. It checks the records and your commits by the run's rules; when it refuses them, correct what it names and run it again.
-  3. Either way, review or resolve prints the review list, by axis then verdict with each suggested verdict overruled, and writes the review facts. It prints each Halt as \`S<n>.<k>\`; answer it with the developer in the session. When it exits short of reviewed, report why and stop.
+  3. Either way, review or resolve prints the review list, by axis then verdict with each suggested verdict overruled, posts it on the spec, and writes the review facts. It prints each Halt as \`S<n>.<k>\`; answer it with the developer in the session. When it exits short of reviewed, report why and stop.
   4. **Report**: post in the session what review caught and what was fixed, then each Propose on its own line, the item then \`→\` and its record's \`recommendation\`.
-  5. **Wait for the developer's go-ahead.** Land nothing before it.
+  5. **Wait for the developer's go-ahead.** Land nothing before it. When the developer has this session implement a Propose before landing, commit it, then record the item with \`${decideCommand} 'fixed in session · <commit>'\`, never \`--handled\`, which leaves it undecided, so wrap-up leaves a Standalone ticket open on it.
   6. Call \`ExitWorktree\` with \`keep\`, so wrap-up can remove the workspace.
   7. **Land**: \`${wrapUpCommand} --closing "<what landed>" [--undone "<box>: <reason>"]...\`, one \`--undone\` per acceptance box left undone. A ticket with no branch ahead of master, one that needed only GitHub or Doc writes, adds \`--no-code\`: \`${wrapUpCommand} --no-code --closing "<what landed>"\`. A ticket that changes wrap-up or the facts file's format lands through its workspace's own script instead, by \`docs/agents/git-workflow.md\`.`;
 }

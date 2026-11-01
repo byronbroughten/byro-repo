@@ -1,7 +1,8 @@
 // A session's review: runs review on one ticket's issue workspace outside any run, refusing a workspace another holder
 // leases or one with uncommitted changes. Under the ticket budget it saves the findings to the facts file and returns them,
 // for the session to resolve itself and hand its records to resolve, which checks them as a run's resolve records are;
-// past it, a fresh resolver resolves them. Either way it returns the run's review list to print and posts Halts as a run would.
+// past it, a fresh resolver resolves them. Either way it returns the run's review list to print and posts Halts as a run
+// would; unhalted, it posts the list on the spec too, with no push, as a run's landing would.
 // Its Halts are numbered S<n>.<k> and returned to print, to be answered in the session rather than on the spec.
 // Each step session it starts goes into the ticket's facts file, halted or not.
 // ../SpecRun.ts delegates review and resolve to it; its authorship refusal is the Base's, shared with PreflightChecker.ts.
@@ -240,6 +241,8 @@ export class SessionReviewer extends SpecRunBase {
       state.resolveRecords ?? [],
     );
     await this.haltRaiser._haltOnUnpostedHalts(ticketRun);
+    // Posted before landing, unlike a run's, so `runner decide` can settle its items before wrap-up reads them.
+    await this.reviewListPoster._postReviewList(ticketRun.run, ticket);
     return {
       kind: "reviewed",
       message: reviewedMessageOf(ticketRun),
