@@ -44,5 +44,5 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 
 - **A Recommendation that wins or ties on every priority says nothing about them.**
 - **One that gives a priority up names it in one line, with a realistic estimate**, or `no estimate: <how to get one>` when none exists; never an invented number.
-- **A measurement stays in its source beside its conclusion, and the Estimates only index it**; one with no conclusion to sit beside, or whose conclusion is a rule line, is recorded in the Estimates with its date.
-- **Whoever records a new measurement at its source adds its line to the Estimates.**
+- **A measurement's home is the Estimates, and the source doc keeps only its conclusion and a link to the line**; a rule line whose rule is a number keeps the number, and its Estimates line names it instead of being linked from it.
+- **Whoever records a new measurement adds its line to the Estimates.**
