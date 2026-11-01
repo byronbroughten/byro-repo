@@ -22,23 +22,16 @@ import { HaltRaiser } from "./HaltRaiser.ts";
 import { LeaseKeeper } from "./LeaseKeeper.ts";
 import {
   blockedByTextOf,
-  downstreamIn,
-  haltsOf,
-  idListOf,
   interactiveLabel,
-  isGapCheckHalt,
   isLanded,
   isLaunchable,
-  isStopSpec,
   issuesOutside,
-  oldestAnsweredOf,
-  openHaltsOf,
   type Run,
   ticketStateOf,
   type TrackedIssue,
-  undeliveredHaltsOf,
   type Wait,
 } from "./runState.ts";
+import { runHalts } from "./runState/runHalts.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 
 interface HoldCheck {
@@ -83,14 +76,14 @@ export class TicketSelector extends SpecRunBase {
     const stopSpecs = await this._readAnswers(run);
     if (stopSpecs.length > 0) return { kind: "stop-spec", halts: stopSpecs };
     const survey = await this._survey(run, {
-      openHalts: openHaltsOf(run),
+      openHalts: runHalts.openOf(run),
       landedMembers,
     });
     const { waits, answered, launchable, stoppedAgain } = survey;
     if (stoppedAgain !== undefined) {
       return { kind: "stopped-again", ...stoppedAgain };
     }
-    const oldest = oldestAnsweredOf(answered);
+    const oldest = runHalts.oldestAnsweredOf(answered);
     if (oldest !== undefined) {
       return { kind: "launch", ticket: oldest.ticket, answeredAt: oldest.at };
     }
@@ -106,9 +99,9 @@ export class TicketSelector extends SpecRunBase {
     const downstreamOf = await this._scopeDownstreamOf(run, openHalts);
     const survey: Survey = { waits: [], answered: [], launchable: [] };
     const { waits } = survey;
-    const gapCheckHalts = openHalts.filter(isGapCheckHalt);
+    const gapCheckHalts = openHalts.filter(runHalts.isGapCheck);
     if (gapCheckHalts.length > 0) {
-      const text = `The gap check waits on Halt ${idListOf(gapCheckHalts)}`;
+      const text = `The gap check waits on Halt ${runHalts.idListOf(gapCheckHalts)}`;
       waits.push({ ticket: run.spec.issue, reason: "halted", text });
     }
     for (const ticket of run.tickets) {
@@ -139,7 +132,7 @@ export class TicketSelector extends SpecRunBase {
         isHeldBy({ halt, ticket: shortRefOf(ticket), downstreamOf }),
       );
       if (holding.length > 0) {
-        const text = `${label} waits on Halt ${idListOf(holding)}`;
+        const text = `${label} waits on Halt ${runHalts.idListOf(holding)}`;
         waits.push({ ticket, reason: "halted", text });
         continue;
       }
@@ -185,7 +178,7 @@ export class TicketSelector extends SpecRunBase {
 
   // The first reply naming an open Halt answers it; a later one is noted as ignored, once.
   private async _readAnswers(run: Run): Promise<Halt[]> {
-    const posted = haltsOf(run).filter(({ isPosted }) => isPosted);
+    const posted = runHalts.of(run).filter(({ isPosted }) => isPosted);
     if (posted.length === 0) return [];
     const stopSpecs: Halt[] = [];
     const comments = await this.config.github.authoredCommentsOf(
@@ -207,8 +200,8 @@ export class TicketSelector extends SpecRunBase {
           `${haltNameOf(halt)} on ${issueLabelOf(halt.ticket)} is answered.`,
         );
         await this._comment(run, answeredNoteOf(halt));
-        if (isStopSpec(halt)) stopSpecs.push(halt);
-        if (isSkipAnswered(halt) && !isGapCheckHalt(halt)) {
+        if (runHalts.isStopSpec(halt)) stopSpecs.push(halt);
+        if (isSkipAnswered(halt) && !runHalts.isGapCheck(halt)) {
           run.skipped.add(issueLabelOf(halt.ticket));
         }
       }
@@ -237,7 +230,10 @@ export class TicketSelector extends SpecRunBase {
     if (named.size === 0) return downstreamOf;
     const blockersOf = await this.haltRaiser._blockersByTicketOf(run);
     named.forEach((ticket) => {
-      downstreamOf.set(ticket, downstreamIn({ run, blockersOf, ticket }));
+      downstreamOf.set(
+        ticket,
+        runHalts.downstreamIn({ run, blockersOf, ticket }),
+      );
     });
     return downstreamOf;
   }
@@ -254,9 +250,9 @@ function isHeldBy({ halt, ticket, downstreamOf }: HoldCheck): boolean {
 }
 
 function lastAnswerAtOf(run: Run, ticket: IssueRef): string {
-  const times = undeliveredHaltsOf(run, ticket).map(
-    ({ answer }) => answer?.at ?? "",
-  );
+  const times = runHalts
+    .undeliveredOf(run, ticket)
+    .map(({ answer }) => answer?.at ?? "");
   return times.sort().at(-1) ?? "";
 }
 

@@ -39,14 +39,13 @@ import {
   launchedOf,
   type LaunchedStep,
   liveCeilingPhraseOf,
-  raiseHalts,
   type RanStep,
   schemaFailureOf,
   type StepLaunch,
   type TicketRun,
   type TicketState,
-  undeliveredHaltsOf,
 } from "./runState.ts";
+import { runHalts } from "./runState/runHalts.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 import { StepLauncher } from "./StepLauncher.ts";
 
@@ -218,7 +217,7 @@ export class ImplementStepper extends SpecRunBase {
     }
     if (!isSplitUnhalted) return;
     const downstream = await this.haltRaiser._downstreamOf(run, ticket.issue);
-    raiseHalts(run, {
+    runHalts.raise(run, {
       ticket: ticket.issue,
       drafts: [splitHaltOf(proposedSplit, downstream)],
     });
@@ -283,7 +282,7 @@ export class ImplementStepper extends SpecRunBase {
   // The resumed implementer gets every answer while its session is under the ticket budget and no handoff is pending; otherwise a fresh agent does.
   async _resume(ticketRun: TicketRun): Promise<void> {
     const { run, ticket } = ticketRun;
-    const halts = undeliveredHaltsOf(run, ticket.issue);
+    const halts = runHalts.undeliveredOf(run, ticket.issue);
     await this._runImplement(
       ticketRun,
       () => this._resumeLaunchOf(ticketRun, halts),

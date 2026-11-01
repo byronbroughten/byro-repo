@@ -24,17 +24,13 @@ import { RunStop } from "../RunStop.ts";
 import { TicketHalted } from "../TicketHalted.ts";
 import {
   type Crash,
-  downstreamIn,
-  haltsOf,
-  haltsOfTicket,
-  isGapCheckHalt,
   isSnapshotted,
   type LandingTicket,
-  raiseHalts,
   type Run,
   type TicketRun,
   ticketStateOf,
 } from "./runState.ts";
+import { runHalts } from "./runState/runHalts.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 
 export class HaltRaiser extends SpecRunBase {
@@ -64,7 +60,7 @@ export class HaltRaiser extends SpecRunBase {
   ): Promise<never> {
     const { run, ticket } = landingTicket;
     const downstream = await this._downstreamOf(run, ticket.issue);
-    raiseHalts(run, {
+    runHalts.raise(run, {
       ticket: ticket.issue,
       drafts: [failureHaltOf(failure, downstream)],
     });
@@ -94,7 +90,7 @@ export class HaltRaiser extends SpecRunBase {
       ticketRun.run,
       ticketRun.ticket.issue,
     );
-    raiseHalts(ticketRun.run, {
+    runHalts.raise(ticketRun.run, {
       ticket: ticketRun.ticket.issue,
       drafts: blockers.map((blocker) =>
         blockerHaltOf(blocker, { downstream, deniedTools }),
@@ -105,9 +101,9 @@ export class HaltRaiser extends SpecRunBase {
   // Posts the ticket's new Halts and halts it; with none, the ticket goes on.
   async _haltOnUnpostedHalts(ticketRun: TicketRun): Promise<void> {
     const { run, ticket } = ticketRun;
-    const unposted = haltsOfTicket(run, ticket.issue).filter(
-      ({ isPosted }) => !isPosted,
-    );
+    const unposted = runHalts
+      .ofTicket(run, ticket.issue)
+      .filter(({ isPosted }) => !isPosted);
     if (unposted.length === 0) return;
     await this._halt(ticketRun);
   }
@@ -125,12 +121,14 @@ export class HaltRaiser extends SpecRunBase {
   // Also picks up the Halts of a ticket that halted in a run killed before they were all posted.
   async _postUnpostedHalts(run: Run): Promise<void> {
     // The gap check's is checked first, so it never creates a ticket state for the spec.
-    const unposted = haltsOf(run).filter(
-      (halt) =>
-        !halt.isPosted &&
-        (isGapCheckHalt(halt) ||
-          ticketStateOf(run, halt.ticket).step === "halted"),
-    );
+    const unposted = runHalts
+      .of(run)
+      .filter(
+        (halt) =>
+          !halt.isPosted &&
+          (runHalts.isGapCheck(halt) ||
+            ticketStateOf(run, halt.ticket).step === "halted"),
+      );
     for (const halt of unposted) {
       const batch = unposted.filter(({ ticket }) =>
         isSameIssue(ticket, halt.ticket),
@@ -161,7 +159,11 @@ export class HaltRaiser extends SpecRunBase {
   // The run's tickets this one blocks, directly or through another, each `<repo>#<n>`.
   async _downstreamOf(run: Run, issue: IssueRef): Promise<string[]> {
     const blockersOf = await this._blockersByTicketOf(run);
-    return downstreamIn({ run, blockersOf, ticket: shortRefOf(issue) });
+    return runHalts.downstreamIn({
+      run,
+      blockersOf,
+      ticket: shortRefOf(issue),
+    });
   }
 
   // Each of the run's tickets, `<repo>#<n>`, to its open blockers.

@@ -39,7 +39,6 @@ import {
   launchedOf,
   type LaunchedStep,
   liveCeilingPhraseOf,
-  raiseHalts,
   type RanStep,
   recordOf,
   type Resolver,
@@ -49,6 +48,7 @@ import {
   type TicketState,
   turnCapDetailOf,
 } from "./runState.ts";
+import { runHalts } from "./runState/runHalts.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 import { StepLauncher } from "./StepLauncher.ts";
 
@@ -178,7 +178,7 @@ export class ReviewStepper extends SpecRunBase {
     if (!isSameHeads(base, await this._headsOf(workspace))) {
       state.resolver = resolver;
     }
-    raiseHalts(run, {
+    runHalts.raise(run, {
       ticket: ticket.issue,
       drafts: records.filter(isHalt).map(verdictHaltOf),
     });
