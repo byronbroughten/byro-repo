@@ -16,6 +16,17 @@ describe("reviewPrompt", () => {
       "Read issues only through the issue reader, `npm run issue:read -- <repo> <n> --hide-others`",
     );
   });
+
+  it("tells the reviewer to run the issue reader in a call of its own", () => {
+    const prompt = reviewPrompt({
+      issue: { repo: "byro-repo", number: 522 },
+      title: "Turn on the sandbox",
+      skillName: "code-review",
+      branch: "issue-522-turn-on-the-sandbox",
+      branchedRepos: ["byro-repo"],
+    });
+    expect(prompt).toContain("Run it in a Bash call of its own, with no pipe");
+  });
 });
 
 describe("reviewRecordSchema", () => {
