@@ -97,10 +97,11 @@ describe("SandboxProbe", () => {
     });
   });
 
-  it("launches with only the folder's sandbox block, its escape hatch shut and no command excluded", async () => {
+  it("launches with only the folder's sandbox block, its escape hatch shut, its sandboxed calls allowed and no command excluded", async () => {
     writeSandboxBlock({
       enabled: true,
       allowUnsandboxedCommands: true,
+      autoAllowBashIfSandboxed: false,
       excludedCommands: ["gh"],
     });
     const probe = SandboxProbe.init(executable("claude.mjs", fakeClaude));
@@ -108,7 +109,11 @@ describe("SandboxProbe", () => {
     await probe.run(projectDir, commandsFile("touch ./inside\n"));
 
     expect(JSON.parse(argAfter("--settings") ?? "")).toEqual({
-      sandbox: { enabled: true, allowUnsandboxedCommands: false },
+      sandbox: {
+        enabled: true,
+        allowUnsandboxedCommands: false,
+        autoAllowBashIfSandboxed: true,
+      },
     });
     expect(argAfter("--setting-sources")).toBe("");
     expect(argAfter("--tools")).toBe("Bash");

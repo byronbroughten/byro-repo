@@ -89,6 +89,7 @@ function commandList(text: string): string[] {
 }
 
 // Only the folder's sandbox block, with no escape hatch or excluded commands: its hooks would refuse some commands before the box saw them, and which commands need excluding is what the probe finds.
+// Sandboxed calls are allowed outright because the session has no permission rules or prompts, so the box is the only thing that can stop one.
 function sandboxSettings(cwd: string): SandboxSettings {
   const path = join(cwd, ".claude", "settings.json");
   if (!existsSync(path)) throw new Error(`${path} doesn't exist`);
@@ -99,7 +100,13 @@ function sandboxSettings(cwd: string): SandboxSettings {
     throw new Error(`${path} has no sandbox block`);
   }
   const { excludedCommands: _excluded, ...sandbox } = project.sandbox;
-  return { sandbox: { ...sandbox, allowUnsandboxedCommands: false } };
+  return {
+    sandbox: {
+      ...sandbox,
+      allowUnsandboxedCommands: false,
+      autoAllowBashIfSandboxed: true,
+    },
+  };
 }
 
 function sandboxLaunch(

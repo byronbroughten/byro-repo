@@ -84,8 +84,86 @@
       "Edit(**/client_secret*.json)",
       "Edit(**/.env*)",
       "mcp__gmail__send_gmail_message",
-      "mcp__gmail__draft_gmail_message"
+      "mcp__gmail__draft_gmail_message",
+      "Read(~/.clasprc.json)",
+      "Read(~/.npmrc)",
+      "Read(~/.config/gworkspace-mcp/**)",
+      "Read(~/.config/gmail-mcp/**)",
+      "Read(~/.claude.json)",
+      "Read(~/.ssh/**)"
     ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "autoAllowBashIfSandboxed": false,
+    "allowUnsandboxedCommands": false,
+    "excludedCommands": [
+      "git push *",
+      "git fetch *",
+      "git pull *",
+      "git ls-remote *",
+      "git clone *",
+      "gh *",
+      "npm run issue*",
+      "npm run wrap-up *",
+      "npm run runner*",
+      "npm run outcome:summary *",
+      "npm run app*",
+      "npm run dev*",
+      "git commit *",
+      "git add *",
+      "git merge *",
+      "git mv *",
+      "git rm *",
+      "git branch *",
+      "git restore *",
+      "npm run session:probe *",
+      "npm run check",
+      "npm run check *",
+      "npm test",
+      "npm test *",
+      "npm run jev *",
+      "npm run jev:style *"
+    ],
+    "filesystem": {
+      "denyWrite": [
+        "~/Documents/Code/byro-repo/.git",
+        "~/Documents/Code/byro-repo/packages/*/.git",
+        "/tmp/claude-guardrails",
+        "/private/tmp/claude-guardrails",
+        "/var/folders/ps/xsbr1bg15c754_cksb6zr1c80000gn/T/claude-guardrails"
+      ],
+      "allowWrite": [
+        "~/Documents/Code/byro-repo/.claude/worktrees",
+        "/tmp",
+        "/private/tmp",
+        "/var/folders/ps/xsbr1bg15c754_cksb6zr1c80000gn/T",
+        "~/.npm",
+        "~/Documents/Code/byro-repo/.runner",
+        "~/Documents/Code/byro-repo/.probe",
+        "~/Documents/Code/byro-repo/node_modules",
+        "~/Documents/Code/byro-repo/packages/framework/.runner",
+        "~/Documents/Code/byro-repo/packages/framework/.probe",
+        "~/Documents/Code/byro-repo/packages/framework/node_modules",
+        "~/Documents/Code/byro-repo/packages/real-estate/.runner",
+        "~/Documents/Code/byro-repo/packages/real-estate/.probe",
+        "~/Documents/Code/byro-repo/packages/real-estate/node_modules",
+        "~/Documents/Code/byro-repo/packages/utils/.runner",
+        "~/Documents/Code/byro-repo/packages/utils/.probe",
+        "~/Documents/Code/byro-repo/packages/utils/node_modules",
+        "~/Documents/Code/byro-repo/packages/personal/.runner",
+        "~/Documents/Code/byro-repo/packages/personal/.probe",
+        "~/Documents/Code/byro-repo/packages/personal/node_modules"
+      ],
+      "allowRead": [
+        "./packages/*/src/generated/columnConfigs.ts",
+        "./packages/*/dev/generated/columnConfigs.ts"
+      ]
+    },
+    "network": {
+      "allowedDomains": ["registry.npmjs.org"]
+    }
   },
   "hooks": {
     "SessionStart": [
