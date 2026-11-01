@@ -244,10 +244,11 @@ export class RunLoop extends SpecRunBase {
 
   // Sent while the Batch record is open, so the line reaches the Batch's file; a Restart's relaunch carries the run on, so it ends nothing.
   private async _announceBatchEnd(
-    [lead, ...others]: RunList<Run>,
+    runs: RunList<Run>,
     { kind, message }: RunResult,
   ): Promise<void> {
-    if (others.length === 0 || kind === "restarting") return;
+    if (!isBatch(runs) || kind === "restarting") return;
+    const [lead] = runs;
     await this._announce(lead, message, { kind, isBatchEnd: true });
   }
 
@@ -271,7 +272,7 @@ export class RunLoop extends SpecRunBase {
     members: RunList<Member>,
   ): Promise<MemberBlockers> {
     const blockersOf: MemberBlockers = new Map();
-    if (members.length === 1) return blockersOf;
+    if (!isBatch(members)) return blockersOf;
     const batch: BatchView = {
       memberIssues: this.memberIssues,
       landedMembers: landedIssuesOf(members),
@@ -409,8 +410,8 @@ export class RunLoop extends SpecRunBase {
 
   // One member's result is its own; a Batch's names which members landed and reruns the rest, its landed grouped by member in typed order.
   private _resultOf(members: RunList<Member>, cause?: string): RunResult {
-    const [first, ...others] = members;
-    if (others.length === 0 && first.end !== undefined) return first.end.result;
+    const [first] = members;
+    if (!isBatch(members) && first.end !== undefined) return first.end.result;
     const ends = members.flatMap(({ end }) => (end === undefined ? [] : [end]));
     const isFinished = ends.every(({ result }) => result.kind === "finished");
     const summary = batchSummaryOf(this.config.githubOwner, members);
@@ -524,6 +525,10 @@ export class RunLoop extends SpecRunBase {
 
 function membersOf([first, ...rest]: RunList<Run>): RunList<Member> {
   return [{ run: first }, ...rest.map((run) => ({ run }))];
+}
+
+function isBatch(list: RunList<Run> | RunList<Member>): boolean {
+  return list.length > 1;
 }
 
 // Landed is finished with nothing waiting; the rest wait on the developer, whatever ended them.

@@ -12,19 +12,15 @@ import {
 } from "./Notices.ts";
 import type { MemberList } from "./SpecRun/runState.ts";
 
-// One line of a spec's event file; a run's end is a `run-ended` line, its `ending` saying how.
-// A Batch member's end is a `member-ended` line, and only the Batch's own end is `run-ended`.
+// A Batch member's end, then the whole run's.
+type EndKind = "member-ended" | "run-ended";
+
+// One line of a spec's event file; only the whole run's end is `run-ended`, a Batch member's `member-ended`, each `ending` saying how.
 export interface EventLine {
   time: string;
   spec: string;
   ticket?: string;
-  kind:
-    | "run-started"
-    | "halt"
-    | "failure-halt"
-    | "idle"
-    | "member-ended"
-    | "run-ended";
+  kind: "run-started" | "halt" | "failure-halt" | "idle" | EndKind;
   ending?: RunEnding;
   summary: string;
   warnings?: string[];
@@ -66,12 +62,12 @@ export class EventFileNotices implements Notices {
   }
 
   // Every line goes to these members' stream, for a run whose Batch record may already be gone, such as a crashed one's.
-  // Its ending is the whole run's, since a crash ends every member at once.
   static forStream(stateFolder: string, members: MemberList): EventFileNotices {
     const path = eventStreamPathOf(stateFolder, members);
     return new EventFileNotices(
       stateFolder,
       () => new Date(),
+      // Its ending is the whole run's, since a crash ends every member at once.
       () => ({ path, isBatch: false }),
     );
   }
@@ -101,10 +97,7 @@ export class EventFileNotices implements Notices {
   }
 }
 
-function endKindOf(
-  { isBatchEnd }: Notice,
-  isBatch: boolean,
-): "member-ended" | "run-ended" {
+function endKindOf({ isBatchEnd }: Notice, isBatch: boolean): EndKind {
   if (isBatch && isBatchEnd !== true) return "member-ended";
   return "run-ended";
 }
