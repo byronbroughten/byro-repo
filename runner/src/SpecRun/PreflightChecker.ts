@@ -135,7 +135,7 @@ export class PreflightChecker extends SpecRunBase {
       targetsRefusalOf(run, launchable);
     if (refusal !== undefined) return refusal;
     if (!this.isBatch || !run.isTicketless) return undefined;
-    return this._standaloneRefusalOf(run.spec);
+    return this._standaloneRefusalOf(run.spec, isLandedByThisRun(run));
   }
 
   // A ticketless spec has none; the preflight refusals check the spec itself.
@@ -151,9 +151,11 @@ export class PreflightChecker extends SpecRunBase {
 
   private async _standaloneRefusalOf(
     ticket: TrackedIssue,
+    isLanded: boolean,
   ): Promise<string | undefined> {
     const { github } = this.config;
-    if (!ticket.isOpen) return `it's closed; ${dropPhraseOf()}.`;
+    // A member this run landed before its Restart closed by landing; the relaunch resumes it.
+    if (!ticket.isOpen && !isLanded) return `it's closed; ${dropPhraseOf()}.`;
     const isReady = [readyLabel, interactiveLabel].some((label) =>
       ticket.labels.includes(label),
     );
@@ -182,6 +184,12 @@ export class PreflightChecker extends SpecRunBase {
     });
     return { kind: "refused", landed: [], message: reasons.join("\n\n") };
   }
+}
+
+// Filled before preflight only from a taken Restart, so a fresh launch's is empty.
+function isLandedByThisRun(run: Run): boolean {
+  const label = issueLabelOf(run.spec.issue);
+  return run.landed.some((landed) => issueLabelOf(landed) === label);
 }
 
 function runLockRefusalOf(
