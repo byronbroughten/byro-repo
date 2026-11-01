@@ -187,7 +187,7 @@ export interface RunState {
 export interface Run {
   spec: TrackedIssue;
   tickets: IssueRef[];
-  isTicketless: boolean;
+  isStandalone: boolean;
   state: RunState;
   landed: IssueRef[];
   warnings: Set<RunWarning>;
@@ -553,7 +553,7 @@ export function targetsRefusalOf(
   run: Run,
   launchable: TrackedIssue[],
 ): string | undefined {
-  const checked = run.isTicketless ? [run.spec] : launchable;
+  const checked = run.isStandalone ? [run.spec] : launchable;
   const offenders = checked.flatMap(({ issue, body }) => {
     const reading = targetsOf(body);
     if (reading.status === "valid") return [];

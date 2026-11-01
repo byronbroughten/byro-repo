@@ -201,7 +201,7 @@ export class SpecRunBase {
     return {
       spec,
       tickets: subIssues.length > 0 ? subIssues : [specIssue],
-      isTicketless: subIssues.length === 0,
+      isStandalone: subIssues.length === 0,
       state,
       landed: [],
       warnings: new Set(),

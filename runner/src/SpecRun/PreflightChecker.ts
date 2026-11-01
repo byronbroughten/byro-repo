@@ -134,13 +134,13 @@ export class PreflightChecker extends SpecRunBase {
       modelFitRefusalOf(run, launchable) ??
       targetsRefusalOf(run, launchable);
     if (refusal !== undefined) return refusal;
-    if (!this.isBatch || !run.isTicketless) return undefined;
+    if (!this.isBatch || !run.isStandalone) return undefined;
     return this._standaloneRefusalOf(run.spec, isLandedByThisRun(run));
   }
 
-  // A ticketless spec has none; the preflight refusals check the spec itself.
+  // A Standalone ticket has none; the preflight refusals check the spec itself.
   private async _launchableTicketsOf(run: Run): Promise<TrackedIssue[]> {
-    if (run.isTicketless) return [];
+    if (run.isStandalone) return [];
     const launchable: TrackedIssue[] = [];
     for (const ticket of run.tickets) {
       const tracked = await this.config.github.issueOf(ticket);
@@ -215,7 +215,7 @@ function modelFitRefusalOf(
   run: Run,
   launchable: TrackedIssue[],
 ): string | undefined {
-  if (run.isTicketless) {
+  if (run.isStandalone) {
     if (pairOf(run.spec.body) !== undefined) return undefined;
     return `${issueLabelOf(run.spec.issue)} has no sub-issues and no valid ## Model fit section: split it with /code-tickets, or add the section.`;
   }
