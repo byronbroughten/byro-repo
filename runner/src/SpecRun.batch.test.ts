@@ -874,4 +874,43 @@ describe("a Batch's record", () => {
       [301, true],
     ]);
   });
+
+  it("relaunches past preflight with a Standalone member the Restart landed and closed, and runs the next", async () => {
+    addIssue(first.number);
+    addIssue(second.number);
+    const result = await runBatch(
+      FakeAgentStep.init(implemented("runner/one.ts"), reviewed()),
+      { members: [first, second] },
+    );
+    expect(result.kind).toBe("restarting");
+    github.edit(first.number, { isOpen: false });
+
+    const relaunch = await runBatch(
+      FakeAgentStep.init(implemented("second.ts"), reviewed()),
+      { members: [first, second] },
+    );
+
+    expect(relaunch.kind).toBe("finished");
+    expect(relaunch.landed).toEqual([first, second]);
+  });
+
+  it("still refuses a closed Standalone member on a relaunch when the Restart didn't land it", async () => {
+    addIssue(first.number);
+    addIssue(second.number);
+    addIssue(third.number);
+    await runBatch(
+      FakeAgentStep.init(implemented("runner/one.ts"), reviewed()),
+      { members: [first, second, third] },
+    );
+    github.edit(third.number, { isOpen: false });
+
+    const relaunch = await runBatch(FakeAgentStep.init(), {
+      members: [first, second, third],
+    });
+
+    expect(relaunch).toMatchObject({
+      kind: "refused",
+      message: "byro-repo #303: it's closed; drop it from the list.",
+    });
+  });
 });
