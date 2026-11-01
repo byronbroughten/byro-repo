@@ -26,3 +26,12 @@ An [observation index](./agents/prose-files.md#terms) of what Claude Code itself
 
 - Observed: An Edit to a skill's real file outside `.claude/` passed with no prompt, while an Edit through the `.claude/skills/<name>` symlink to it was denied, the denial naming the target; 2.1.312, 2026-10-28; [#456 on #445](https://github.com/byronbroughten/byro-repo/issues/445#issuecomment-6485345747).
 - Observed: A symlinked skill's announced base directory was the symlink's path, `.claude/skills/<name>`, not its real folder, and the model resolved relative links from there: a link written from the real folder reached the same file when it climbed to a folder both paths share, and missed it otherwise; 2.1.312 and earlier, 2026-10-28, from every load of `/runner`, `/judge-findings` and `/mine-outcomes` in this repo's session transcripts; [recorded in 27957349](https://github.com/byronbroughten/byro-repo/commit/27957349382f7ef2e5734ca1355ea5bf2b9d616d).
+
+## The Bash sandbox
+
+- Observed: In a headless `-p` run whose `--settings` enabled the sandbox with `allowUnsandboxedCommands: false`, a `touch` and a `node -e` write to `~` failed with "Operation not permitted", leaving no file, and a `touch` in the cwd succeeded; 2.1.316, 2026-10-31; [spike on #519](https://github.com/byronbroughten/byro-repo/issues/519#issuecomment-6562317317).
+- Observed: In the same run, with `denyRead` on `~/.clasprc.json`, `head -c 1` of it failed with "Operation not permitted"; 2.1.316, 2026-10-31; [spike on #519](https://github.com/byronbroughten/byro-repo/issues/519#issuecomment-6562317317).
+- Observed: In the same run, with `github.com` and `api.github.com` in `allowedDomains`, `git ls-remote` of a private repo through the `osxkeychain` credential helper printed a commit sha, and `gh api user` failed with `x509: OSStatus -26276`; 2.1.316, 2026-10-31; [spike on #519](https://github.com/byronbroughten/byro-repo/issues/519#issuecomment-6562317317).
+- Observed: In the same run, a PreToolUse hook on Bash logged one entry for each of the 6 sandboxed calls, and no call prompted; 2.1.316, 2026-10-31; [spike on #519](https://github.com/byronbroughten/byro-repo/issues/519#issuecomment-6562317317).
+- Documented: Command hooks and local MCP servers run outside the sandbox, with the user's full access; 2026-10-31; [Sandboxing](https://code.claude.com/docs/en/sandboxing).
+- Documented: With `sandbox.allowUnsandboxedCommands: false`, Claude Code ignores a Bash call's `dangerouslyDisableSandbox`; 2026-10-31; [Sandboxing](https://code.claude.com/docs/en/sandboxing).
