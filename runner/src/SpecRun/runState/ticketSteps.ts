@@ -1,4 +1,4 @@
-// A ticket's steps: its sessions and heads, its turn cap and snapshots, and reading a step's record,
+// A ticket's steps: its sessions and heads, its turn cap, the live-ceiling phrase and snapshots, and reading a step's record,
 // its schema failure and the review facts its records give.
 // The TicketState these read is ../runState.ts; the Halt helpers are runHalts.ts.
 
