@@ -36,6 +36,10 @@ export class IssueWorkspacesBase {
     return clonePath;
   }
 
+  protected _primaryCloneOf(clonePath: string): string {
+    return join(this.config.primaryRoot, clonePath);
+  }
+
   protected _keyedFolders(): KeyedFolder[] {
     if (!existsSync(this.config.workspaceFolder)) return [];
     return readdirSync(this.config.workspaceFolder)

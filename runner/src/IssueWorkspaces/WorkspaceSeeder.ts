@@ -56,13 +56,13 @@ export class WorkspaceSeeder extends IssueWorkspacesBase {
 
   // The lockfile is gitignored, so a new worktree has none until the primary's is copied in.
   private _copyLockfile(path: string): void {
-    const primary = join(this.config.primaryRoot, lockfileName);
+    const primary = this._primaryLockfile;
     if (existsSync(primary)) copyFileSync(primary, join(path, lockfileName));
   }
 
   // npm rewrites its hidden lockfile on every install, so one older than the lockfile means landing changed deps without a reinstall.
   private get _primaryIsStale(): boolean {
-    const lockfile = join(this.config.primaryRoot, lockfileName);
+    const lockfile = this._primaryLockfile;
     const hidden = join(
       this.config.primaryRoot,
       "node_modules",
@@ -74,9 +74,13 @@ export class WorkspaceSeeder extends IssueWorkspacesBase {
 
   // A missing lockfile counts as differing, so the installer still runs.
   private _lockfileMatches(path: string): boolean {
-    const primary = join(this.config.primaryRoot, lockfileName);
+    const primary = this._primaryLockfile;
     const workspace = join(path, lockfileName);
     if (!existsSync(primary) || !existsSync(workspace)) return false;
     return readFileSync(primary).equals(readFileSync(workspace));
+  }
+
+  private get _primaryLockfile(): string {
+    return join(this.config.primaryRoot, lockfileName);
   }
 }

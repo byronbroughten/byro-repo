@@ -199,7 +199,7 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
   }: BuildTarget): Promise<void> {
     for (const [repo, clonePath] of this._clonesRootFirst) {
       await addWorktree({
-        primaryClone: join(this.config.primaryRoot, clonePath),
+        primaryClone: this._primaryCloneOf(clonePath),
         worktree: join(path, clonePath),
         branch: branchedRepos.includes(repo) ? branch : undefined,
       });
@@ -217,7 +217,7 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
   private _linkSharedFilesOf(path: string, clonePath: string): void {
     this.config.symlinkedFiles.forEach((file) =>
       linkSharedFile({
-        target: join(this.config.primaryRoot, clonePath, file),
+        target: join(this._primaryCloneOf(clonePath), file),
         link: join(path, clonePath, file),
       }),
     );
@@ -249,7 +249,7 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
   private async _relocateMovedWorktrees(path: string): Promise<void> {
     for (const clonePath of Object.values(this.config.clonePaths)) {
       const worktree = join(path, clonePath);
-      const primaryClone = join(this.config.primaryRoot, clonePath);
+      const primaryClone = this._primaryCloneOf(clonePath);
       if (existsSync(worktree) || !existsSync(primaryClone)) continue;
       // The moved primary's linked worktrees still point at its old folder until repaired.
       await git(primaryClone, "worktree", "repair");
@@ -292,7 +292,7 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
     const deepestFirst = this._clonesRootFirst.reverse();
     for (const [, clonePath] of deepestFirst) {
       await removeWorktree({
-        primaryClone: join(this.config.primaryRoot, clonePath),
+        primaryClone: this._primaryCloneOf(clonePath),
         worktree: join(path, clonePath),
         force,
       });
@@ -303,7 +303,7 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
 
   private async _pruneWorktrees(): Promise<void> {
     for (const clonePath of Object.values(this.config.clonePaths)) {
-      await git(join(this.config.primaryRoot, clonePath), "worktree", "prune");
+      await git(this._primaryCloneOf(clonePath), "worktree", "prune");
     }
   }
 }

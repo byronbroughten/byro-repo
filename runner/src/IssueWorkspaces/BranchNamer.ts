@@ -1,7 +1,5 @@
 // BranchNamer names a workspace's branch, reusing an issue's existing branch in any repo; branchOriginOf, which WorkspaceKeeper calls, finds where a branch already exists.
 
-import { join } from "node:path";
-
 import { git, lines } from "../git.ts";
 import { IssueWorkspacesBase } from "./IssueWorkspacesBase.ts";
 import {
@@ -46,7 +44,7 @@ export class BranchNamer extends IssueWorkspacesBase {
     );
     for (const repo of repos) {
       const [branch] = await issueBranchesOf(
-        join(this.config.primaryRoot, this._clonePathOf(repo)),
+        this._primaryCloneOf(this._clonePathOf(repo)),
         issue.number,
       );
       if (branch !== undefined) return branch;
