@@ -1,0 +1,7 @@
+# byro-repo#522 outcome
+
+Spec: [byro-repo#519](https://github.com/byronbroughten/byro-repo/issues/519)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #522 | Opus medium | 2, 4 | 11 | 160K → 157K → 194K | Fix (fresh resolver) | 1 | 1 | 0 | 105 min | $13.98 | $4.28 | Fixed: The new test copies the whole reviewPrompt input from the test above it. (runner/src/reviewStep.test.ts:20-29); A mechanics doc holds a rule: 'A wildcard entry ends in `*`, never `:*`'. (docs/claude-code-guardrails.md:43, excludedCommands bullet); Two Claude Code claims (no variables in sandbox paths; ps blocked in the box) have no link to an observation line. (docs/claude-code-guardrails.md:40 and :43). Proposed: `npm run runner:tmux` stays in the box because the entry has a space before `*`, so the runner launched that way fails on gh and git push. (.claude/settings.json:107 (the "npm run runner *" entry)). | db08b961-d60f-4105-bb06-48b83e45b5bd, f9bb9055-edaf-4f8f-b430-701b3898e6a5, b98ef73d-b24b-4e49-877b-ebdd0246500b, 0afd36d9-c3a3-447c-b3bf-597e2780ad7c, 81a98783-5fe0-4366-9dbf-fd2c873e74b1, 8ee535e2-e6a2-4351-b2ae-86f4fe523b02, c395789a-7f80-4258-87df-c28bf6981a2a, a67203de-bdfe-4647-8285-914676d445ef |
