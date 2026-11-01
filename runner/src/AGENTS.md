@@ -111,6 +111,9 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `transcriptFacts.ts` | `transcriptFacts` | Outcome facts computed from transcripts: pair, peaks, duration and cost, and why one is unrecorded; where a session's transcript is. |
 | `UnhandledStop.ts` | `UnhandledStop` | The outcomes the run loop doesn't handle yet, and their error. |
 | `verdicts.ts` | | A finding's axes and verdicts. |
-| `WrapUp.ts` | `WrapUp` | `npm run wrap-up`: lands an issue or session workspace. |
+| `WrapUp.ts` | `WrapUp` | `npm run wrap-up`: lands an issue or session workspace, delegating closing the issue to `WrapUp/`. |
+| `WrapUp/IssueCloser.ts` | | Closes a landed ticket's issue or leaves a Standalone one open, and reads its parent, spec and handoff sessions. |
+| `WrapUp/WrapUpBase.ts` | | The Base `WrapUp` and its collaborator share: the config, knobs, network retries and log. |
+| `WrapUp/wrapUpTypes.ts` | | The config, GitHub port and parent types and the labels `WrapUp` and its collaborator share. |
 | `WrapUpFailure.ts` | `WrapUpFailure` | The typed failure a wrap-up stops on. |
 | `wrapUpHarness.ts` | | The fixture `WrapUp` tests share. |
