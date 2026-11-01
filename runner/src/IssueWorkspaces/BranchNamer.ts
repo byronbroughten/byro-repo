@@ -1,4 +1,4 @@
-// Names a workspace's branch, reusing an issue's existing branch in any repo, and finds where a branch already exists.
+// BranchNamer names a workspace's branch, reusing an issue's existing branch in any repo; branchOriginOf, which WorkspaceKeeper calls, finds where a branch already exists.
 
 import { join } from "node:path";
 
@@ -13,7 +13,7 @@ import {
 
 const maxSlugWords = 6;
 
-export type BranchOrigin =
+type BranchOrigin =
   | { kind: "local" }
   | { kind: "remote"; remoteBranch: string }
   | { kind: "new" };
