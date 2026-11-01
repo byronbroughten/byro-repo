@@ -1,36 +1,19 @@
 // The run loop works a list of members, one Run each, and holds each one's RunLock while it runs; several are a Batch.
-// Preflight refuses or Stops a run first: a per-Run part collects every Run's refusal, and a shared part runs once.
-// Then it picks tickets one at a time across members and runs each, a member held by a Halt stepping aside,
+// Its PreflightChecker refuses or Stops the run first. Then it picks tickets one at a time across members and runs each, a member held by a Halt stepping aside,
 // as does one blocked by a member not yet landed, which ends once that member ends unlanded;
 // idling while open Halts and other holders' leases are all that's in the way, until every member is done or something Stops it.
 // Any outcome a later ticket will handle (red checks, step errors, schema failures) is an UnhandledStop; a red master Stops the run.
-// requestStop() ends the run between tickets, and a `stop spec` answer its own member; status() reads it from outside.
-// A Batch's record (../BatchRecords.ts) lets either take any member's number for the whole Batch.
+// A stop request (StatusReporter.ts) ends the run between tickets, and a `stop spec` answer its own member.
 // A landing that changes the runner's own source ends it restarting, for tmux.sh to relaunch.
-// ../SpecRun.ts delegates run, status and requestStop to it.
-// It builds its own TicketSelector, TicketSequencer and ReviewListPoster.
+// ../SpecRun.ts builds one per run, with its member list, and delegates run to it.
+// It builds its own PreflightChecker, TicketSelector, TicketSequencer and ReviewListPoster.
 
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, rmSync } from "node:fs";
 
-import {
-  ActiveAccountUnknown,
-  noActiveAccountPhraseOf,
-} from "../ActiveAccountUnknown.ts";
-import { BatchRecords } from "../BatchRecords.ts";
-import { commandLabelOf } from "../failureText.ts";
-import { currentBranchOf, git } from "../git.ts";
+import { git } from "../git.ts";
 import { type Halt } from "../halts.ts";
-import {
-  fileStemOf,
-  holderLabelOf,
-  issueLabelOf,
-  type IssueRef,
-} from "../IssueWorkspaces.ts";
+import { issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
 import { type AccountReading, readingLabelOf } from "../limitGuard.ts";
-import { localTimeOf } from "../localTime.ts";
-import { pairOf } from "../modelFit.ts";
-import { type HeldRunLock, RunLock } from "../RunLock.ts";
 import { RunStop } from "../RunStop.ts";
 import { stalePathLabelOf, stalePathsOf } from "../stalePaths.ts";
 import {
@@ -39,32 +22,28 @@ import {
   type MemberSelection,
   MemberSelections,
 } from "./MemberSelections.ts";
+import { PreflightChecker } from "./PreflightChecker.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
 import {
   blockedByTextOf,
   idListOf,
-  interactiveLabel,
   isAmong,
-  isLanded,
-  isLaunchable,
-  issuesOutside,
+  joinedOrNone,
   landedTextOf,
-  liveCeilingPhraseOf,
   type MemberList,
-  openHaltsOf,
-  readyLabel,
   rerunCommandOf,
   type Run,
-  runCommand,
   type RunResult,
-  targetsRefusalOf,
   type TicketOutcome,
-  type TrackedIssue,
   type Wait,
   waitsTextOf,
   waitsToLandTextOf,
 } from "./runState.ts";
-import { type RunEvent, SpecRunBase } from "./SpecRunBase.ts";
+import {
+  type RunEvent,
+  SpecRunBase,
+  type SpecRunConfig,
+} from "./SpecRunBase.ts";
 import { TicketSelector } from "./TicketSelector.ts";
 import { TicketSequencer } from "./TicketSequencer.ts";
 
@@ -76,21 +55,6 @@ interface RunStart {
   // The launch the first pick makes, if it makes one.
   launch: MemberSelection<"launch"> | undefined;
   isRelaunch: boolean;
-}
-
-interface LocksTaken {
-  locks: RunLock[];
-  liveRunRefusals: Map<IssueRef, string>;
-}
-
-interface LiveRunRefusing {
-  liveRunRefusals: Map<IssueRef, string>;
-  isBatch: boolean;
-}
-
-interface MemberRefusal {
-  member: IssueRef;
-  refusal: string;
 }
 
 // A Stop's message, and the event on the member it came from.
@@ -121,6 +85,17 @@ type Finishing =
   | { kind: "stopped"; stop: MemberStop };
 
 export class RunLoop extends SpecRunBase {
+  private readonly memberIssues: MemberList;
+
+  constructor(config: SpecRunConfig, memberIssues: MemberList) {
+    super(config);
+    this.memberIssues = memberIssues;
+  }
+
+  private get preflightChecker(): PreflightChecker {
+    return new PreflightChecker(this.config, this.memberIssues);
+  }
+
   private get ticketSelector(): TicketSelector {
     return new TicketSelector(this.config);
   }
@@ -133,19 +108,12 @@ export class RunLoop extends SpecRunBase {
     return new ReviewListPoster(this.config);
   }
 
-  private get batchRecords(): BatchRecords {
-    return BatchRecords.init(this.config.stateFolder);
-  }
-
-  async run(memberIssues: MemberList): Promise<RunResult> {
-    const isBatch = memberIssues.length > 1;
-    const { locks, liveRunRefusals } = this._takeRunLocks(memberIssues);
+  async run(): Promise<RunResult> {
+    const { preflightChecker, memberIssues } = this;
+    const { locks, liveRunRefusals } = preflightChecker._takeRunLocks();
     if (liveRunRefusals.size > 0) {
       try {
-        return await this._refuseBesideLiveRuns(memberIssues, {
-          liveRunRefusals,
-          isBatch,
-        });
+        return await preflightChecker._refuseBesideLiveRuns(liveRunRefusals);
       } finally {
         locks.forEach((lock) => lock.release());
       }
@@ -154,7 +122,7 @@ export class RunLoop extends SpecRunBase {
     try {
       // Opened once every lock is held, so the record never names a member another run holds.
       await this.batchRecords.open(memberIssues, process.pid);
-      const result = await this._runHoldingLocks(memberIssues, isBatch);
+      const result = await this._runHoldingLocks();
       isRestarting = result.kind === "restarting";
       return result;
     } finally {
@@ -164,58 +132,21 @@ export class RunLoop extends SpecRunBase {
     }
   }
 
-  // The per-Run preflight's first check.
-  private _takeRunLocks(memberIssues: IssueRef[]): LocksTaken {
-    const locks: RunLock[] = [];
-    const liveRunRefusals = new Map<IssueRef, string>();
-    memberIssues.forEach((memberIssue) => {
-      const taken = RunLock.take(this.config.stateFolder, memberIssue);
-      if (taken.kind === "held") {
-        liveRunRefusals.set(memberIssue, runLockRefusalOf(memberIssue, taken));
-      } else {
-        locks.push(taken.lock);
-      }
-    });
-    return { locks, liveRunRefusals };
-  }
-
-  // Announced, the refusal would land in a live run's event file as its run-ended line; no stop request is cleared, so a live run's survives.
-  private async _refuseBesideLiveRuns(
-    memberIssues: MemberList,
-    { liveRunRefusals, isBatch }: LiveRunRefusing,
-  ): Promise<RunResult> {
-    const refusals: MemberRefusal[] = [];
-    for (const memberIssue of memberIssues) {
-      const liveRunRefusal = liveRunRefusals.get(memberIssue);
-      if (liveRunRefusal !== undefined) {
-        refusals.push({ member: memberIssue, refusal: liveRunRefusal });
-        continue;
-      }
-      const run = await this._startRun(memberIssue);
-      const refusal = await this._memberRefusalOf(run, memberIssues);
-      if (refusal !== undefined) refusals.push(refusal);
-    }
-    return refusedOf(refusals, isBatch);
-  }
-
   // A member ends on its own, by finishing or a `stop spec`, while the others carry on; a Stop ends every unfinished one.
-  private async _runHoldingLocks(
-    memberIssues: MemberList,
-    isBatch: boolean,
-  ): Promise<RunResult> {
+  private async _runHoldingLocks(): Promise<RunResult> {
     const startedAt = this.config.clock.now();
-    const runs = await this._startRuns(memberIssues);
+    const runs = await this._startRuns();
     // Each Run's restart is taken, whichever relaunches, so no later rerun reads one again.
     let isRelaunch = false;
     runs.forEach((run) => {
       if (this._takeRestart(run)) isRelaunch = true;
     });
-    const refusals = await this._runRefusalsOf(runs, memberIssues);
-    if (refusals.length > 0) return refusedOf(refusals, isBatch);
+    const refused = await this.preflightChecker._refusalOf(runs);
+    if (refused !== undefined) return refused;
     const members = membersOf(runs);
     // The account and the primary checkout concern every member alike; the first member reads them.
     const [lead] = members;
-    const preflightStop = await this._preflightStop();
+    const preflightStop = await this.preflightChecker._preflightStop();
     if (preflightStop !== undefined) {
       return this._stopAll(members, {
         member: lead,
@@ -299,8 +230,8 @@ export class RunLoop extends SpecRunBase {
     }
   }
 
-  private _startRuns(memberIssues: MemberList): Promise<RunList<Run>> {
-    const [first, ...rest] = memberIssues;
+  private _startRuns(): Promise<RunList<Run>> {
+    const [first, ...rest] = this.memberIssues;
     return Promise.all([
       this._startRunClearingStop(first),
       ...rest.map((specIssue) => this._startRunClearingStop(specIssue)),
@@ -311,74 +242,6 @@ export class RunLoop extends SpecRunBase {
     // A request left by a stop command with no run going would end this run at its first pick.
     rmSync(this._stopRequestPathOf(specIssue), { force: true });
     return this._startRun(specIssue);
-  }
-
-  // The per-Run preflight's spec checks, each Run's refusal announced on its own Run and every one returned.
-  private async _runRefusalsOf(
-    runs: Run[],
-    memberIssues: MemberList,
-  ): Promise<MemberRefusal[]> {
-    const refusals: MemberRefusal[] = [];
-    for (const run of runs) {
-      const refusal = await this._memberRefusalOf(run, memberIssues);
-      if (refusal === undefined) continue;
-      await this._announce(run, `Refused: ${refusal.refusal}`, {
-        kind: "refused",
-      });
-      refusals.push(refusal);
-    }
-    return refusals;
-  }
-
-  private async _memberRefusalOf(
-    run: Run,
-    memberIssues: MemberList,
-  ): Promise<MemberRefusal | undefined> {
-    const refusal = await this._runRefusalOf(run, memberIssues);
-    if (refusal === undefined) return undefined;
-    return { member: run.spec.issue, refusal };
-  }
-
-  // A list of one skips the Standalone checks, as before Batches.
-  private async _runRefusalOf(
-    run: Run,
-    memberIssues: MemberList,
-  ): Promise<string | undefined> {
-    const launchable = await this._launchableTicketsOf(run);
-    // A ticket's body is left to the launch-time check, whose Halt can approve it.
-    const refusal =
-      (await this._authorshipRefusal("the spec", [run.spec])) ??
-      modelFitRefusalOf(run, launchable) ??
-      targetsRefusalOf(run, launchable);
-    if (refusal !== undefined) return refusal;
-    if (memberIssues.length === 1 || !run.isTicketless) return undefined;
-    return this._standaloneRefusalOf(run.spec, memberIssues);
-  }
-
-  private async _standaloneRefusalOf(
-    ticket: TrackedIssue,
-    memberIssues: MemberList,
-  ): Promise<string | undefined> {
-    const { github } = this.config;
-    if (!ticket.isOpen) return `it's closed; ${dropPhraseOf()}.`;
-    const isReady = [readyLabel, interactiveLabel].some((label) =>
-      ticket.labels.includes(label),
-    );
-    if (!isReady) {
-      return `it has neither ${readyLabel} nor ${interactiveLabel}; label it, or ${dropPhraseOf()}.`;
-    }
-    const parent = await github.parentOf(ticket.issue);
-    if (parent !== undefined) {
-      return `it belongs to the spec ${issueLabelOf(parent.issue)}; run it through its spec.`;
-    }
-    // A member blocker is waited on in the run; a landed but unjudged issue outside the Batch still refuses.
-    const blockers = issuesOutside(
-      await github.openBlockersOf(ticket.issue),
-      memberIssues,
-    );
-    if (blockers.length === 0) return undefined;
-    const pronoun = blockers.length === 1 ? "that" : "those";
-    return `it's blocked by ${blockers.map(issueLabelOf).join(", ")}, still open; land ${pronoun} first, or ${dropPhraseOf()}.`;
   }
 
   // Each unfinished member's blockers among the members that haven't landed; a landed one counts as cleared though GitHub may show it open.
@@ -600,71 +463,6 @@ export class RunLoop extends SpecRunBase {
     return found.map(stalePathLabelOf);
   }
 
-  // Read between tickets and while idle, a Batch's on its first member whichever member named it; one made with no run going is dropped as the next run starts.
-  requestStop(specIssue: IssueRef): void {
-    const [lead] = this.batchRecords.membersOf(specIssue);
-    mkdirSync(this.config.stateFolder, { recursive: true });
-    writeFileSync(this._stopRequestPathOf(lead), "");
-  }
-
-  // Posts nothing and saves no run state, so it's safe beside a live run; an answer the run hasn't read yet shows as open.
-  async status(specIssue: IssueRef): Promise<string> {
-    const memberIssues = this.batchRecords.membersOf(specIssue);
-    const [leadIssue, ...otherIssues] = memberIssues;
-    const isBatch = otherIssues.length > 0;
-    const lead = await this._startRun(leadIssue);
-    const blocks = [await this._statusBlockOf(lead)];
-    for (const otherIssue of otherIssues) {
-      blocks.push(await this._statusBlockOf(await this._startRun(otherIssue)));
-    }
-    const lines: string[] = [];
-    if (isBatch) {
-      lines.push(`Batch of ${memberIssues.map(issueLabelOf).join(", ")}.`, "");
-    }
-    lines.push(
-      blocks.join("\n\n"),
-      `Account: ${await this._activeReadingLabelOf(lead)}.`,
-    );
-    const isStopRequested = memberIssues.some((memberIssue) =>
-      existsSync(this._stopRequestPathOf(memberIssue)),
-    );
-    if (isStopRequested) {
-      const subject = isBatch ? "Batch" : "run";
-      lines.push(
-        `A stop is requested; the ${subject} ends after its current ticket.`,
-      );
-    }
-    return lines.join("\n");
-  }
-
-  private async _statusBlockOf(run: Run): Promise<string> {
-    const openHalts = openHaltsOf(run);
-    const { waits } = await this.ticketSelector._survey(run, {
-      openHalts,
-      landedMembers: [],
-    });
-    const landed = run.tickets.filter((ticket) => isLanded(run, ticket));
-    const current = waits.flatMap((wait) => currentTextOf(run, wait));
-    const others = waits.filter(({ holder }) => holder?.kind !== "run");
-    return [
-      `${issueLabelOf(run.spec.issue)}, "${run.spec.title}"`,
-      `Landed: ${joinedOrNone(landed.map(issueLabelOf))}.`,
-      `Current: ${joinedOrNone(current)}.`,
-      `Open Halts: ${joinedOrNone(openHalts.map(openHaltTextOf))}.`,
-      `Waiting: ${others.length === 0 ? "none" : waitsTextOf(others)}.`,
-    ].join("\n");
-  }
-
-  private async _activeReadingLabelOf(run: Run): Promise<string> {
-    try {
-      const { account, usage } = await this._activeReadingOf(run);
-      return readingLabelOf(account, usage);
-    } catch (error) {
-      if (!(error instanceof ActiveAccountUnknown)) throw error;
-      return `unknown; ${noActiveAccountPhraseOf()}`;
-    }
-  }
-
   // Taken once read, so a later run never sees it; a request on any Run stops them all.
   private _takeStopRequest(runs: Run[]): boolean {
     const paths = runs
@@ -692,77 +490,6 @@ export class RunLoop extends SpecRunBase {
     }
     return this._resultOf(members);
   }
-
-  // A ticketless spec has none; the preflight refusals check the spec itself.
-  private async _launchableTicketsOf(run: Run): Promise<TrackedIssue[]> {
-    if (run.isTicketless) return [];
-    const launchable: TrackedIssue[] = [];
-    for (const ticket of run.tickets) {
-      const tracked = await this.config.github.issueOf(ticket);
-      if (isLaunchable(tracked)) launchable.push(tracked);
-    }
-    return launchable;
-  }
-
-  // Runs no checks: master moves only through wrap-up, which checked the commits it landed.
-  private async _preflightStop(): Promise<string | undefined> {
-    const { knobs, primaryRoot } = this.config;
-    if (knobs.liveCeiling <= knobs.ticketBudget) {
-      return `${liveCeilingPhraseOf(knobs)} isn't above the ticket budget of ${knobs.ticketBudget}; raise the live ceiling or lower the ticket budget, and rerun`;
-    }
-    for (const command of knobs.authChecks) {
-      if ((await runCommand(command, primaryRoot)) !== undefined) {
-        return `${commandLabelOf(command)} failed: GitHub auth or the claude login is missing; sign in to whichever it checks, and rerun`;
-      }
-    }
-    for (const [repo, clonePath] of Object.entries(knobs.clonePaths)) {
-      const clone = join(primaryRoot, clonePath);
-      if (!existsSync(join(clone, ".git"))) {
-        return `${repo}'s primary clone is missing at ${clone}; clone ${repo} into ${clone} and rerun`;
-      }
-      const branch = currentBranchOf(clone);
-      if (branch !== "master") {
-        return `${repo}'s primary checkout is on ${branch || "a detached HEAD"}, not master; switch it to master and rerun`;
-      }
-    }
-    return undefined;
-  }
-
-  private _stopRequestPathOf(spec: IssueRef): string {
-    return join(this.config.stateFolder, `${fileStemOf(spec)}.stop`);
-  }
-}
-
-// A list of one's refusal is its message as written; a Batch's names each member, told apart by a blank line.
-function refusedOf(refusals: MemberRefusal[], isBatch: boolean): RunResult {
-  const reasons = refusals.map(({ member, refusal }) => {
-    if (!isBatch) return refusal;
-    return `${issueLabelOf(member)}: ${refusal}`;
-  });
-  return { kind: "refused", landed: [], message: reasons.join("\n\n") };
-}
-
-// A Standalone refusal's way out, said alike by each.
-function dropPhraseOf(): string {
-  return "drop it from the list";
-}
-
-function runLockRefusalOf(
-  spec: IssueRef,
-  { holder, path }: HeldRunLock,
-): string {
-  const label = issueLabelOf(spec);
-  if (holder === undefined) {
-    return `${label}'s run lock is unreadable, so it counts as held; remove ${path} if no run of it is going.`;
-  }
-  return `${label} already has a run going: pid ${holder.pid}, started ${startedTextOf(holder.startedAt)}.`;
-}
-
-// The lock file is read unchecked, so a start time that isn't a date is quoted as written.
-function startedTextOf(startedAt: string): string {
-  const time = new Date(startedAt);
-  if (Number.isNaN(time.getTime())) return startedAt;
-  return localTimeOf(time);
 }
 
 function membersOf([first, ...rest]: RunList<Run>): RunList<Member> {
@@ -835,10 +562,6 @@ function isIdleWait({ reason }: Wait): boolean {
   );
 }
 
-function joinedOrNone(items: string[]): string {
-  return items.length === 0 ? "none" : items.join(", ");
-}
-
 function idleMessageOf(waits: Wait[]): string {
   return `Idle: nothing runnable. ${waitsTextOf(waits)}.`;
 }
@@ -851,30 +574,4 @@ function stopRequestMessageOf(run: Run, waits: Wait[]): string {
 function stopSpecMessageOf(run: Run, halts: Halt[]): string {
   const tickets = [...new Set(halts.map(({ ticket }) => issueLabelOf(ticket)))];
   return `Stopped on \`stop spec\` for Halt ${idListOf(halts)}: ${landedTextOf(run.landed)}; ${tickets.join(", ")} stays unlanded.`;
-}
-
-// A split spec's own body is never checked; tickets the runner won't launch need no section.
-function modelFitRefusalOf(
-  run: Run,
-  launchable: TrackedIssue[],
-): string | undefined {
-  if (run.isTicketless) {
-    if (pairOf(run.spec.body) !== undefined) return undefined;
-    return `${issueLabelOf(run.spec.issue)} has no sub-issues and no valid ## Model fit section: split it with /code-tickets, or add the section.`;
-  }
-  const offenders = launchable.flatMap(({ issue, body }) =>
-    pairOf(body) === undefined ? [issueLabelOf(issue)] : [],
-  );
-  if (offenders.length === 0) return undefined;
-  return `Each open ${readyLabel} ticket needs a ## Model fit section naming one of the six pairs; missing or invalid in ${offenders.join(", ")}.`;
-}
-
-function openHaltTextOf(halt: Halt): string {
-  return `${halt.id} on ${issueLabelOf(halt.ticket)}`;
-}
-
-function currentTextOf(run: Run, { ticket, holder }: Wait): string[] {
-  if (holder?.kind !== "run") return [];
-  const step = run.state.tickets[issueLabelOf(ticket)]?.step ?? "implement";
-  return [`${issueLabelOf(ticket)} at ${step} (${holderLabelOf(holder)})`];
 }

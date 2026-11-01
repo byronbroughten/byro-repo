@@ -640,6 +640,10 @@ export function waitsTextOf(waits: Wait[]): string {
   return waits.map(({ text }) => text).join("; ");
 }
 
+export function joinedOrNone(items: string[]): string {
+  return items.length === 0 ? "none" : items.join(", ");
+}
+
 export function landedTextOf(landed: IssueRef[]): string {
   if (landed.length === 0) return "landed nothing";
   return `landed ${landed.map(issueLabelOf).join(", ")}`;

@@ -1,6 +1,6 @@
 // The run lock: one file per spec in the runner's state folder, held while that spec's run goes.
 // It is a PidLock, as LandingLock.ts is, but a live holder is never waited on: the second run is refused.
-// SpecRun/RunLoop.ts takes it.
+// SpecRun/PreflightChecker.ts takes it; SpecRun/RunLoop.ts releases it.
 
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";

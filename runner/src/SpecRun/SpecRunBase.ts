@@ -15,6 +15,7 @@ import { join } from "node:path";
 
 import { ActiveAccountUnknown } from "../ActiveAccountUnknown.ts";
 import type { AgentStep } from "../AgentStep.ts";
+import { BatchRecords } from "../BatchRecords.ts";
 import { FactsFile } from "../FactsFile.ts";
 import { messageOf } from "../failureText.ts";
 import {
@@ -27,6 +28,7 @@ import {
 import { runnerMark } from "../halts.ts";
 import { approvalLineOf, untrustedBodyReasonOf } from "../IssueReader.ts";
 import {
+  fileStemOf,
   issueLabelOf,
   type IssueRef,
   IssueWorkspaces,
@@ -141,6 +143,10 @@ export class SpecRunBase {
     return IssueWorkspaces.init(this._workspacesConfig);
   }
 
+  get batchRecords(): BatchRecords {
+    return BatchRecords.init(this.config.stateFolder);
+  }
+
   get factsFile(): FactsFile {
     return FactsFile.init(this.config.stateFolder);
   }
@@ -212,6 +218,11 @@ export class SpecRunBase {
 
   protected _statePathOf(spec: IssueRef): string {
     return runStatePathOf(this.config.stateFolder, spec);
+  }
+
+  // Written by StatusReporter.ts from outside the run, taken by RunLoop.ts between tickets.
+  protected _stopRequestPathOf(spec: IssueRef): string {
+    return join(this.config.stateFolder, `${fileStemOf(spec)}.stop`);
   }
 
   protected _saveState(run: Run): void {
