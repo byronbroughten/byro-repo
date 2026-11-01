@@ -2,7 +2,7 @@
 
 // The implement and resolve steps' write scope; the why is in byro-repo's docs/claude-code-guardrails.md.
 export const stepWriteLine =
-  "You may do what the tier list allows in your workspace. `node` runs only scratch helpers, in `$TMPDIR` or a gitignored folder; a script being built runs through its tests or its `npm run` alias. Use `git -C <dir>` rather than `cd <dir> && git`. When a write is denied, record one `denied-tool` blocker instead of trying a workaround.";
+  "You may do what the tier list allows in your workspace. `node` runs only scratch helpers, in `$TMPDIR` or a gitignored folder; a script being built runs through its tests or its `npm run` alias. Use `git -C <dir>` rather than `cd <dir> && git`. When a write is denied, record one `denied-tool` blocker instead of trying a workaround. A refused read whose answer you got another way, or didn't need, is not a blocker: name it in your closing comment instead.";
 
 export function codeListOf(words: readonly string[]): string {
   const quoted = words.map((word) => `\`${word}\``);

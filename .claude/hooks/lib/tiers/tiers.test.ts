@@ -339,6 +339,124 @@ describe("reads and git add", () => {
     ].forEach((command) => expect(runnerStepDecisionOf(command)).toBe("allow"));
   });
 
+  it("allows git's local reads in a session and a runner step, through a path option too", () => {
+    [
+      "git remote",
+      "git remote -v",
+      "git -C packages/framework remote get-url origin",
+      "git --git-dir=.git remote get-url --push origin",
+      "git cat-file -p HEAD",
+      "git rev-list --count master..HEAD",
+      "git for-each-ref refs/heads",
+      "git describe --tags",
+      "git shortlog -sn",
+      "git reflog",
+      "git reflog show issue-514-x",
+      "git reflog -10",
+      "git reflog -n 20 --date=iso",
+      "git reflog HEAD",
+      "git reflog HEAD@{2}",
+      "git reflog issue-514-x",
+      "git reflog exists HEAD",
+      "git worktree list",
+      "git --work-tree=. worktree list --porcelain",
+      "git config --get user.name",
+      "git config --get-all remote.origin.fetch",
+      "git config --get-regexp '^remote'",
+      "git config --list",
+      "git config -l --show-origin",
+      "git config user.email",
+      "git config --global user.name",
+      "git config --type=bool core.bare",
+      "git config get user.name",
+      "git config list --global",
+      "git branch --list 'issue-*'",
+      "git branch -l",
+      "git tag",
+      "git tag -l 'v*'",
+      "git tag --list",
+      "git tag --contains HEAD",
+      "git tag -n5",
+      "git tag --sort=-v:refname",
+      "git stash list",
+      "git stash show -p stash@{1}",
+      "git symbolic-ref --short HEAD",
+      "git symbolic-ref refs/remotes/origin/HEAD",
+      "git ls-tree -r HEAD",
+      "git show-ref --heads",
+      "git name-rev HEAD",
+      "git check-ignore -v .runner/x",
+      "git check-attr -a AGENTS.md",
+      "git cherry -v master",
+      "git range-diff master...HEAD",
+      "git count-objects -v",
+      "git whatchanged -3",
+      "git diff-tree --no-commit-id -r HEAD",
+      "git diff-index --cached HEAD",
+      "git diff-files",
+      "git var GIT_EDITOR",
+      "git version",
+    ].forEach((command) => {
+      expect(decisionOf(command)).toBe("allow");
+      expect(runnerStepDecisionOf(command)).toBe("allow");
+    });
+  });
+
+  it("allows no write or network form of the verbs git also reads with", () => {
+    [
+      "git remote add fork https://x",
+      "git remote set-url origin https://x",
+      "git remote remove origin",
+      "git remote rename origin upstream",
+      "git remote -v add fork https://x",
+      "git remote show origin",
+      "git remote update",
+      "git remote prune origin",
+      "git ls-remote origin",
+      "git fetch",
+      "git config user.name x",
+      "git config --unset user.name",
+      "git config --add remote.origin.fetch x",
+      "git config --get-all x --add y",
+      "git config set user.name x",
+      "git config unset user.name",
+      "git config edit",
+      "git config --file get set user.name x",
+      "git config --global --edit",
+      "git tag v1",
+      "git tag -a v1 -m x",
+      "git tag -fa v1",
+      "git tag -f v1",
+      "git tag -d v1",
+      "git tag -l -d v1",
+      "git reflog expire --all",
+      "git reflog delete HEAD@{1}",
+      "git reflog -n1 expire --all",
+      "git reflog drop",
+      "git reflog master",
+      "git stash",
+      "git stash -p",
+      "git stash push -m x",
+      "git stash pop",
+      "git stash drop",
+      "git symbolic-ref HEAD refs/heads/x",
+      "git symbolic-ref -d HEAD",
+      "git symbolic-ref -m why HEAD",
+      "git worktree add /tmp/w",
+      "git worktree remove /tmp/w",
+      "git reset --hard",
+      "git clean -fd",
+      "git checkout -- AGENTS.md",
+    ].forEach((command) => {
+      expect(decisionOf(command)).not.toBe("allow");
+      expect(runnerStepDecisionOf(command)).not.toBe("allow");
+    });
+    ["git branch -d old", "git branch -l -D old"].forEach((command) => {
+      expect(decisionOf(command)).not.toBe("allow");
+      expect(runnerStepDecisionOf(command)).not.toBe("allow");
+    });
+  });
+
   it("allows chained reads and a read after cd", () => {
     [
       "git status && git diff",
