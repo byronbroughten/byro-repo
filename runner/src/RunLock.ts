@@ -33,6 +33,12 @@ export class RunLock extends PidLock {
     return PidLock.isHeldAt(lockPathOf(stateFolder, spec));
   }
 
+  // The held lock's file, or undefined when no live run holds it.
+  static heldPathOf(stateFolder: string, spec: IssueRef): string | undefined {
+    const path = lockPathOf(stateFolder, spec);
+    return PidLock.isHeldAt(path) ? path : undefined;
+  }
+
   // A Batch is live while any member's run lock is held.
   static isAnyHeld(stateFolder: string, specs: IssueRef[]): boolean {
     return specs.some((spec) => RunLock.isHeld(stateFolder, spec));
