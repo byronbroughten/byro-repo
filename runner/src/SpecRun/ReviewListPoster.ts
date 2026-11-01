@@ -42,11 +42,8 @@ import { UnhandledStop } from "../UnhandledStop.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import {
   gapCheckLabel,
-  haltsOf,
-  isGapCheckHalt,
   isTurnCapped,
   landedTextOf,
-  raiseHalts,
   type RanStep,
   recordOf,
   type Run,
@@ -59,6 +56,7 @@ import {
   type Wait,
   waitsTextOf,
 } from "./runState.ts";
+import { runHalts } from "./runState/runHalts.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 import { StepLauncher } from "./StepLauncher.ts";
 
@@ -175,9 +173,9 @@ export class ReviewListPoster extends SpecRunBase {
   // A `skip` answer delivers the gap check's Halt and posts no list, so a delivered one counts as done too; a Standalone ticket needs none.
   async _isGapChecked(run: Run): Promise<boolean> {
     if (run.isStandalone) return true;
-    const isSkipped = haltsOf(run).some(
-      (halt) => isGapCheckHalt(halt) && halt.isDelivered,
-    );
+    const isSkipped = runHalts
+      .haltsOf(run)
+      .some((halt) => runHalts.isGapCheckHalt(halt) && halt.isDelivered);
     return isSkipped || (await this._hasReviewList(run, gapCheckSubject));
   }
 
@@ -259,7 +257,7 @@ export class ReviewListPoster extends SpecRunBase {
     failure: Omit<StepFailure, "step">,
   ): Promise<never> {
     deliverGapCheckHalts(run);
-    raiseHalts(run, {
+    runHalts.raiseHalts(run, {
       ticket: run.spec.issue,
       drafts: [failureHaltOf({ ...failure, step: "gap-check" }, [])],
     });
@@ -278,8 +276,9 @@ export class ReviewListPoster extends SpecRunBase {
 
 // The latest answer the gap check hasn't acted on; a `stop spec` read on a later run is a skip.
 function gapCheckAnswerOf(run: Run): FailureAnswer | undefined {
-  const latest = haltsOf(run)
-    .filter((halt) => isGapCheckHalt(halt) && !halt.isDelivered)
+  const latest = runHalts
+    .haltsOf(run)
+    .filter((halt) => runHalts.isGapCheckHalt(halt) && !halt.isDelivered)
     .at(-1);
   if (latest?.answer === undefined) return undefined;
   if (isStopSpecAnswer(latest.answer)) return { kind: "skip" };
@@ -287,8 +286,9 @@ function gapCheckAnswerOf(run: Run): FailureAnswer | undefined {
 }
 
 function deliverGapCheckHalts(run: Run): void {
-  haltsOf(run)
-    .filter(isGapCheckHalt)
+  runHalts
+    .haltsOf(run)
+    .filter(runHalts.isGapCheckHalt)
     .forEach((halt) => {
       halt.isDelivered = true;
     });

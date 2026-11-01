@@ -27,7 +27,6 @@ import { ReviewListPoster } from "./ReviewListPoster.ts";
 import {
   type BatchView,
   blockedByTextOf,
-  idListOf,
   isAmong,
   joinedOrNone,
   landedTextOf,
@@ -42,6 +41,7 @@ import {
   waitsTextOf,
   waitsToLandTextOf,
 } from "./runState.ts";
+import { runHalts } from "./runState/runHalts.ts";
 import {
   type RunEvent,
   SpecRunBase,
@@ -599,5 +599,5 @@ function stopRequestMessageOf(run: Run, waits: Wait[]): string {
 
 function stopSpecMessageOf(run: Run, halts: Halt[]): string {
   const tickets = [...new Set(halts.map(({ ticket }) => issueLabelOf(ticket)))];
-  return `Stopped on \`stop spec\` for Halt ${idListOf(halts)}: ${landedTextOf(run.landed)}; ${tickets.join(", ")} stays unlanded.`;
+  return `Stopped on \`stop spec\` for Halt ${runHalts.idListOf(halts)}: ${landedTextOf(run.landed)}; ${tickets.join(", ")} stays unlanded.`;
 }

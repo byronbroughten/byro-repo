@@ -1,8 +1,8 @@
 // The run's state and shapes: the Run, each ticket's TicketState and the step it reached, a ticket's TicketRun,
 // and the Waits that keep a ticket from launching, plus the module functions more than one SpecRun collaborator calls:
-// raising and delivering Halts, a ticket's state, step-record reads, and the run's end and wait messages.
+// a ticket's state, step-record reads, and the run's end and wait messages.
 // A declaration here is exported only when another file uses it; a function with one caller sits below that caller's class instead.
-// The class that saves this state is SpecRunBase.ts; the coordinator callers build is ../SpecRun.ts.
+// The class that saves this state is SpecRunBase.ts; the coordinator callers build is ../SpecRun.ts; the Halt helpers are runState/runHalts.ts.
 
 import { execFile } from "node:child_process";
 import { writeFileSync } from "node:fs";
@@ -12,16 +12,7 @@ import { promisify } from "node:util";
 import type { Pair, StepRequest, StepResult } from "../AgentStep.ts";
 import { type ReviewFacts } from "../FactsFile.ts";
 import { messageOf, outputTailOf } from "../failureText.ts";
-import {
-  failureAnswerOf,
-  failureOptions,
-  type Halt,
-  type HaltDraft,
-  isStopSpecAnswer,
-  sessionHaltIdOf,
-  shortRefOf,
-  type StepFailure,
-} from "../halts.ts";
+import { type Halt, type StepFailure } from "../halts.ts";
 import { type Handoff, type ImplementRecord } from "../implementStep.ts";
 import { type BodyAuthorship } from "../IssueReader.ts";
 import {
@@ -240,12 +231,6 @@ type WaitReason =
   | "blocked"
   | "member-blocked";
 
-interface DownstreamSearch {
-  run: Run;
-  blockersOf: Map<string, string[]>;
-  ticket: string;
-}
-
 export interface RanStep {
   result: StepResult;
   logPath: string;
@@ -270,132 +255,6 @@ export type StepLaunch = Pick<StepRequest, "prompt" | "jsonSchema"> &
 export type SpecStepRequest = Omit<StepRequest, "account">;
 
 export type Crash = Pick<StepFailure, "detail" | "logPath">;
-
-// Saved with the step's own state when it advances, so a rerun of the step never raises them twice.
-export function raiseHalts(
-  run: Run,
-  { ticket, drafts }: { ticket: IssueRef; drafts: HaltDraft[] },
-): void {
-  run.state.halts ??= [];
-  const { halts } = run.state;
-  const { sessionReview } = run;
-  drafts.forEach((draft) => {
-    const index = halts.length + 1;
-    halts.push({
-      ...draft,
-      id:
-        sessionReview === undefined
-          ? `H${index}`
-          : sessionHaltIdOf(ticket, sessionReview.earlierHalts + index),
-      ticket,
-      isPosted: false,
-      isDelivered: false,
-      ignoredReplies: [],
-    });
-  });
-}
-
-export function haltsOf(run: Run): Halt[] {
-  return run.state.halts ?? [];
-}
-
-export function haltsOfTicket(run: Run, ticket: IssueRef): Halt[] {
-  return haltsOf(run).filter((halt) => isSameIssue(halt.ticket, ticket));
-}
-
-export function isAuthorshipHalt({ bodyHash }: Halt): boolean {
-  return bodyHash !== undefined;
-}
-
-export function isStopSpec({ answer }: Halt): boolean {
-  return answer !== undefined && isStopSpecAnswer(answer);
-}
-
-export function undeliveredHaltsOf(run: Run, ticket: IssueRef): Halt[] {
-  return haltsOfTicket(run, ticket).filter(({ isDelivered }) => !isDelivered);
-}
-
-export function idListOf(halts: Halt[]): string {
-  return halts.map(({ id }) => id).join(", ");
-}
-
-// Marks answered Failure Halts delivered, clears the retry counts and acts on the latest answer; a `skip` read on a later run is a retry.
-export function deliverFailureHalts(
-  run: Run,
-  { ticket, extraTurns }: { ticket: IssueRef; extraTurns: number },
-): TicketStep | undefined {
-  const state = ticketStateOf(run, ticket);
-  const failures = undeliveredHaltsOf(run, ticket).filter(isTicketFailureHalt);
-  const latest = failures.at(-1);
-  if (latest?.answer === undefined) return undefined;
-  failures.forEach((halt) => {
-    halt.isDelivered = true;
-  });
-  state.crashes = undefined;
-  state.redCheckResumes = undefined;
-  state.redChecksLogPath = undefined;
-  state.conflictResumes = undefined;
-  state.continuation = undefined;
-  state.guidance = undefined;
-  const answer = failureAnswerOf(latest, latest.answer);
-  // A continuation another Halt never offered would resume a session with nothing to continue.
-  if (
-    answer.kind === "retry-record" &&
-    isOffered(latest, failureOptions.retryRecord)
-  ) {
-    state.continuation = { kind: "record" };
-  }
-  if (answer.kind === "more-turns" && isOffered(latest, "`resume +")) {
-    state.continuation = { kind: "turns", turns: answer.turns ?? extraTurns };
-  }
-  if (
-    answer.kind === "more-handoffs" &&
-    isOffered(latest, failureOptions.moreHandoffs)
-  ) {
-    state.extraHandoffs = (state.extraHandoffs ?? 0) + 1;
-  }
-  if (answer.kind === "rerun") state.pair = answer.pair;
-  if (answer.kind === "guidance") state.guidance = answer.text;
-  return latest.failedStep;
-}
-
-function isTicketFailureHalt(
-  halt: Halt,
-): halt is Halt & { failedStep: TicketStep } {
-  return (
-    halt.kind === "failure" &&
-    halt.failedStep !== undefined &&
-    !isGapCheckHalt(halt)
-  );
-}
-
-function isOffered(halt: Halt, option: string): boolean {
-  return halt.options.some((offered) => offered.startsWith(option));
-}
-
-export function isGapCheckHalt({ failedStep }: Halt): boolean {
-  return failedStep === "gap-check";
-}
-
-// The tickets downstream of one, each `<repo>#<n>`, through the blocking graph.
-export function downstreamIn({
-  run,
-  blockersOf,
-  ticket,
-}: DownstreamSearch): string[] {
-  const downstream: string[] = [];
-  let frontier = [ticket];
-  while (frontier.length > 0) {
-    const next = run.tickets.map(shortRefOf).filter((label) => {
-      if (label === ticket || downstream.includes(label)) return false;
-      const blockers = blockersOf.get(label) ?? [];
-      return blockers.some((blocker) => frontier.includes(blocker));
-    });
-    downstream.push(...next);
-    frontier = next;
-  }
-  return downstream;
-}
 
 export function isSameHeads(first: Heads, second: Heads): boolean {
   return JSON.stringify(first) === JSON.stringify(second);
@@ -650,19 +509,6 @@ export function memberBlockedWaitOf(
     blockers.map(issueLabelOf),
   );
   return { ticket: member, reason: "member-blocked", text };
-}
-
-// Answered Halts go oldest answer first, within one spec and across a Batch's members.
-export function oldestAnsweredOf<AN extends { at: string }>(
-  answered: AN[],
-): AN | undefined {
-  return [...answered].sort((first, second) =>
-    first.at.localeCompare(second.at),
-  )[0];
-}
-
-export function openHaltsOf(run: Run): Halt[] {
-  return haltsOf(run).filter(({ answer }) => answer === undefined);
 }
 
 export function waitsTextOf(waits: Wait[]): string {

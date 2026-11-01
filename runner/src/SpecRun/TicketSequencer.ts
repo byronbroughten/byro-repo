@@ -31,9 +31,6 @@ import { ImplementStepper } from "./ImplementStepper.ts";
 import { LeaseKeeper } from "./LeaseKeeper.ts";
 import { ReviewStepper } from "./ReviewStepper.ts";
 import {
-  deliverFailureHalts,
-  haltsOfTicket,
-  isAuthorshipHalt,
   isSameHeads,
   type LandingTicket,
   onlyDeveloperEditsTextOf,
@@ -47,6 +44,7 @@ import {
   type TicketStep,
   type TrackedIssue,
 } from "./runState.ts";
+import { runHalts } from "./runState/runHalts.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 import { TicketLander } from "./TicketLander.ts";
 
@@ -79,8 +77,10 @@ export class TicketSequencer extends SpecRunBase {
       if (state.step === "halted") {
         const { extraTurns } = this.config.knobs;
         state.step =
-          deliverFailureHalts(run, { ticket: ticket.issue, extraTurns }) ??
-          "resume";
+          runHalts.deliverFailureHalts(run, {
+            ticket: ticket.issue,
+            extraTurns,
+          }) ?? "resume";
       }
       const pair = state.pair ?? pairOf(ticket.body);
       if (pair === undefined) {
@@ -296,7 +296,9 @@ function approvingHaltOf(
   ticket: IssueRef,
   bodyHash: string,
 ): Halt | undefined {
-  const latest = haltsOfTicket(run, ticket).findLast(isAuthorshipHalt);
+  const latest = runHalts
+    .haltsOfTicket(run, ticket)
+    .findLast(runHalts.isAuthorshipHalt);
   if (latest?.answer === undefined || latest.bodyHash !== bodyHash) {
     return undefined;
   }

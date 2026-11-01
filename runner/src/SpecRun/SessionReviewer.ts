@@ -39,8 +39,6 @@ import { LeaseKeeper } from "./LeaseKeeper.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
 import { ReviewStepper } from "./ReviewStepper.ts";
 import {
-  haltsOf,
-  idListOf,
   recordedSessionsOf,
   type ResolveOptions,
   reviewFactsOf,
@@ -52,6 +50,7 @@ import {
   type TicketRun,
   type TicketState,
 } from "./runState.ts";
+import { runHalts } from "./runState/runHalts.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 import { TicketSequencer } from "./TicketSequencer.ts";
 
@@ -327,7 +326,7 @@ function reviewEndOf(ticketRun: TicketRun, error: unknown): ReviewResult {
   const label = issueLabelOf(ticket.issue);
   const halts = run.sessionReview?.postedHalts ?? [];
   if (error instanceof TicketHalted) {
-    const message = `The review of ${label} halted on Halt ${idListOf(haltsOf(run))}; answer it in this session.`;
+    const message = `The review of ${label} halted on Halt ${runHalts.idListOf(runHalts.haltsOf(run))}; answer it in this session.`;
     return {
       kind: "halted",
       message,

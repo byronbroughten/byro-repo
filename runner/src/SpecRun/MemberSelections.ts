@@ -2,7 +2,8 @@
 // RunLoop.ts builds one per pick from TicketSelector._select and reads which members stop, wait, or launch next.
 
 import { type IssueRef } from "../IssueWorkspaces.ts";
-import { oldestAnsweredOf, type Run, type RunResult } from "./runState.ts";
+import { type Run, type RunResult } from "./runState.ts";
+import { runHalts } from "./runState/runHalts.ts";
 import { type Selection } from "./TicketSelector.ts";
 
 // One member's Run in a list, ended once it is done for this run.
@@ -52,7 +53,7 @@ export class MemberSelections {
         ? []
         : [{ launch, at: launch.answeredAt }],
     );
-    return oldestAnsweredOf(answered)?.launch ?? launches[0];
+    return runHalts.oldestAnsweredOf(answered)?.launch ?? launches[0];
   }
 
   private _ofKind<KN extends Selection["kind"]>(

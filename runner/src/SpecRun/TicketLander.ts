@@ -25,7 +25,6 @@ import { ReviewListPoster } from "./ReviewListPoster.ts";
 import { ReviewStepper } from "./ReviewStepper.ts";
 import {
   branchedReposOf,
-  haltsOfTicket,
   isTurnCapped,
   type LandingTicket,
   recordedSessionsOf,
@@ -37,6 +36,7 @@ import {
   type TicketRun,
   type TicketState,
 } from "./runState.ts";
+import { runHalts } from "./runState/runHalts.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 
 const resolverLabels: Record<Resolver, string> = {
@@ -298,7 +298,9 @@ export class TicketLander extends SpecRunBase {
       pair: pairLabelOf(pair),
     };
     const haltKinds = new Set(
-      haltsOfTicket(run, ticket.issue).map(({ kind }) => haltKindLabelOf(kind)),
+      runHalts
+        .haltsOfTicket(run, ticket.issue)
+        .map(({ kind }) => haltKindLabelOf(kind)),
     );
     if (haltKinds.size > 0) facts.halt = [...haltKinds].join(", ");
     if (record.status === "applied") {
