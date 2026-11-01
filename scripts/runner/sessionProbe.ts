@@ -1,6 +1,6 @@
 // Starts a one-turn headless session in a folder and prints what its hooks see, $CLAUDE_PROJECT_DIR first.
 // Usage: npm run session:probe -- <folder>, e.g. an issue workspace's path from npm run issue:list.
-// Sandbox mode: npm run session:probe -- --sandbox <folder> <commands-file> runs each line of the file once under the folder's sandbox block and prints ran or stopped for each.
+// Sandbox check: npm run session:probe -- --sandbox-check <folder> <commands-file> runs each line of the file once under the folder's sandbox block and prints ran or stopped for each.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
@@ -12,15 +12,15 @@ import { SessionProbe } from "@byronbroughten/spec-runner/SessionProbe";
 
 const usage = [
   "Usage: npm run session:probe -- <folder>",
-  "       npm run session:probe -- --sandbox <folder> <commands-file>",
-  "The sandbox mode runs every listed command for real, inside the box: list only reads, dry-run forms and writes into a throwaway repo in temp.",
+  "       npm run session:probe -- --sandbox-check <folder> <commands-file>",
+  "--sandbox-check runs every listed command for real, inside the box: list only reads, dry-run forms and writes into a throwaway repo in temp.",
 ].join("\n");
 
 const sandboxReportPath = ".probe/sandbox-last.json";
 
 try {
   const args = process.argv.slice(2);
-  if (args[0] === "--sandbox") {
+  if (args[0] === "--sandbox-check") {
     await probeSandbox(args.slice(1));
   } else {
     await probeSession(args);

@@ -97,8 +97,12 @@ describe("SandboxProbe", () => {
     });
   });
 
-  it("launches with only the folder's sandbox block, its escape hatch shut", async () => {
-    writeSandboxBlock({ enabled: true, allowUnsandboxedCommands: true });
+  it("launches with only the folder's sandbox block, its escape hatch shut and no command excluded", async () => {
+    writeSandboxBlock({
+      enabled: true,
+      allowUnsandboxedCommands: true,
+      excludedCommands: ["gh"],
+    });
     const probe = SandboxProbe.init(executable("claude.mjs", fakeClaude));
 
     await probe.run(projectDir, commandsFile("touch ./inside\n"));

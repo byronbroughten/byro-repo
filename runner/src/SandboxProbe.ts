@@ -88,7 +88,7 @@ function commandList(text: string): string[] {
   return commands;
 }
 
-// Only the folder's sandbox block, with no escape hatch: the folder's own hooks would refuse some commands before the box saw them.
+// Only the folder's sandbox block, with no escape hatch or excluded commands: its hooks would refuse some commands before the box saw them, and which commands need excluding is what the probe finds.
 function sandboxSettings(cwd: string): SandboxSettings {
   const path = join(cwd, ".claude", "settings.json");
   if (!existsSync(path)) throw new Error(`${path} doesn't exist`);
@@ -98,7 +98,8 @@ function sandboxSettings(cwd: string): SandboxSettings {
   if (project.sandbox === undefined) {
     throw new Error(`${path} has no sandbox block`);
   }
-  return { sandbox: { ...project.sandbox, allowUnsandboxedCommands: false } };
+  const { excludedCommands: _excluded, ...sandbox } = project.sandbox;
+  return { sandbox: { ...sandbox, allowUnsandboxedCommands: false } };
 }
 
 function sandboxLaunch(

@@ -74,7 +74,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `runKnobs.ts` | `runKnobs` | Every knob a run reads, its defaults and the override-file loader. |
 | `RunLock.ts` | `RunLock` | The per-spec run lock. |
 | `RunStop.ts` | | The error that ends a run with a Stop. |
-| `SandboxProbe.ts` | `SandboxProbe` | `npm run session:probe -- --sandbox`: which listed commands a folder's sandbox stops. |
+| `SandboxProbe.ts` | `SandboxProbe` | `npm run session:probe -- --sandbox-check`: which listed commands a folder's sandbox stops. |
 | `savedFormats.ts` | | Reads an older runner's run state, facts file and supervision record into today's shapes. |
 | `SchemaFailure.ts` | | The error for a step record that fails its checks. |
 | `secretShapes.ts` | | The token shapes wrap-up's secret scan looks for. |
