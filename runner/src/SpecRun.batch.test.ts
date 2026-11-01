@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import type { StepRequest, StepResult } from "./AgentStep.ts";
 import { batchEventFilePathOf, BatchRecords } from "./BatchRecords.ts";
 import {
   EventFileNotices,
@@ -661,6 +662,40 @@ describe("a Batch's record", () => {
     expect(status).toContain("Batch of byro-repo #301, byro-repo #302.");
     expect(status).toContain('byro-repo #301, "Ticket 301"');
     expect(status).toContain('byro-repo #302, "Ticket 302"');
+  });
+
+  it("shows a member waiting on a blocker member, and counts a blocker landed but left open on GitHub as cleared, as the loop does", async () => {
+    addIssue(blocker.number);
+    addIssue(dependent.number);
+    github.blockers.set(dependent.number, [blocker.number]);
+    const statuses: string[] = [];
+    function statusDuring(
+      step: (request: StepRequest) => Promise<StepResult>,
+    ): ScriptedStep {
+      return async (request) => {
+        statuses.push(await specRun(FakeAgentStep.init()).status(dependent));
+        return step(request);
+      };
+    }
+    const agentStep = FakeAgentStep.init(
+      statusDuring(implemented("blocker.ts")),
+      reviewed([findingOf(1)]),
+      resultOf({ records: [propose] }),
+      statusDuring(implemented("dependent.ts")),
+      reviewed(),
+    );
+
+    await runBatch(agentStep, { members: [dependent, blocker] });
+
+    const [whileBlocked, afterBlockerLanded] = statuses;
+    expect(whileBlocked).toContain(
+      "Waiting: byro-repo #499 waits on byro-repo #498 to land.",
+    );
+    expect(afterBlockerLanded).not.toContain("is blocked by");
+    expect(afterBlockerLanded).not.toContain("to land");
+    expect(afterBlockerLanded).toContain(
+      'byro-repo #498, "Ticket 498"\nLanded: byro-repo #498.',
+    );
   });
 
   it("stops the whole Batch after its current ticket on a stop requested on any member", async () => {

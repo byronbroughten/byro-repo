@@ -69,7 +69,8 @@ export function supervisingLineOf({
   record,
 }: SupervisingSession): string | undefined {
   if (!isSameProcessStart(source) || record === undefined) return undefined;
-  const { owner, spec, endedBy } = record;
+  const { owner, members, endedBy } = record;
+  const [spec] = members;
   const command = `/runner ${owner}/${spec.repo} ${spec.number}`;
   // A process end leaves no session of that process to start.
   if (endedBy === "processEnd") return undefined;

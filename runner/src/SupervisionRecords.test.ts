@@ -1,5 +1,12 @@
 import { spawnSync } from "node:child_process";
-import { appendFileSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import {
+  appendFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { hostname, tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -13,6 +20,7 @@ import {
   type LeaseHolder,
 } from "./IssueWorkspaces.ts";
 import { deadPid, seedHolder } from "./lockFixture.ts";
+import { identityOf } from "./processIdentity.ts";
 import type { MemberList } from "./SpecRun.ts";
 import { SupervisionRecords } from "./SupervisionRecords.ts";
 
@@ -66,13 +74,13 @@ async function startedWatch(pid: number) {
 }
 
 describe("a supervision record", () => {
-  it("is written for a pid and read back with its spec and a zero offset", async () => {
+  it("is written for a pid and read back with its one member and a zero offset", async () => {
     await records().supervise(me, owner, spec);
 
     expect(await records().recordOf(me)).toEqual({
       pid: me.pid,
       owner,
-      spec,
+      members: [spec],
       offset: 0,
     });
   });
@@ -82,7 +90,7 @@ describe("a supervision record", () => {
 
     await records().supervise(me, owner, otherSpec);
 
-    expect((await records().recordOf(me))?.spec).toEqual(otherSpec);
+    expect((await records().recordOf(me))?.members).toEqual([otherSpec]);
   });
 
   it("keeps its offset when the same pid supervises the same spec again", async () => {
@@ -112,7 +120,7 @@ describe("a supervision record", () => {
 
     await records().supervise(me, owner, spec);
 
-    expect((await records().recordOf(otherLive))?.spec).toEqual(otherSpec);
+    expect((await records().recordOf(otherLive))?.members).toEqual([otherSpec]);
   });
 
   it("isn't read back once its process has died", async () => {
@@ -165,7 +173,7 @@ describe("an ended supervision", () => {
     expect(await records().runningRecordOf(me)).toEqual({
       pid: me.pid,
       owner,
-      spec,
+      members: [spec],
       offset: 0,
       endedBy: "clear",
     });
@@ -227,7 +235,7 @@ describe("a running supervision record", () => {
     expect(await records().runningRecordOf(me)).toEqual({
       pid: me.pid,
       owner,
-      spec,
+      members: [spec],
       offset: 0,
     });
   });
@@ -281,7 +289,6 @@ describe("a Batch's supervision record", () => {
     expect(await records().recordOf(me)).toEqual({
       pid: me.pid,
       owner,
-      spec,
       members: batch,
       offset: 0,
     });
@@ -319,7 +326,7 @@ describe("a Batch's supervision record", () => {
 
     await records().supervise(me, owner, spec);
 
-    expect((await records().recordOf(otherLive))?.spec).toEqual(loneSpec);
+    expect((await records().recordOf(otherLive))?.members).toEqual([loneSpec]);
   });
 
   it("is replaced by the same pid supervising another spec", async () => {
@@ -331,7 +338,7 @@ describe("a Batch's supervision record", () => {
     expect(await records().recordOf(me)).toEqual({
       pid: me.pid,
       owner,
-      spec: loneSpec,
+      members: [loneSpec],
       offset: 0,
     });
   });
@@ -346,6 +353,59 @@ describe("a Batch's supervision record", () => {
     expect(
       watch !== undefined && records().isWatchedBy(spec, watch.watchProcess),
     ).toBe(true);
+  });
+});
+
+describe("a supervision record saved before it held one member list", () => {
+  const batch: MemberList = [spec, otherSpec];
+
+  // The old shape: `spec`, and for a Batch `members` with the spec repeating its first.
+  async function seedOldRecord(saved: object): Promise<void> {
+    mkdirSync(join(stateFolder, "supervision"), { recursive: true });
+    writeFileSync(
+      join(stateFolder, "supervision", `${me.pid}.json`),
+      JSON.stringify({
+        ...(await identityOf(me.pid)),
+        owner,
+        offset: 2,
+        ...saved,
+      }),
+    );
+  }
+
+  it("reads a spec alone as a list of one", async () => {
+    await seedOldRecord({ spec });
+
+    expect(await records().recordOf(me)).toEqual({
+      pid: me.pid,
+      owner,
+      members: [spec],
+      offset: 2,
+    });
+  });
+
+  it("reads a Batch's members, dropping the spec that repeated the first", async () => {
+    await seedOldRecord({ spec, members: batch });
+
+    expect(await records().recordOf(me)).toEqual({
+      pid: me.pid,
+      owner,
+      members: batch,
+      offset: 2,
+    });
+  });
+
+  it("is written back in the new shape when it advances", async () => {
+    appendEvents(spec, "a", "b", "c");
+    await seedOldRecord({ spec });
+
+    await records().advance(me);
+
+    const saved = JSON.parse(
+      readFileSync(join(stateFolder, "supervision", `${me.pid}.json`), "utf8"),
+    ) as object;
+    expect(saved).toMatchObject({ members: [spec], offset: 3 });
+    expect(saved).not.toHaveProperty("spec");
   });
 });
 

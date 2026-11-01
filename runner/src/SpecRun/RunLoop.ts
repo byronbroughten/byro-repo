@@ -25,16 +25,19 @@ import {
 import { PreflightChecker } from "./PreflightChecker.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
 import {
+  type BatchView,
   blockedByTextOf,
   idListOf,
   isAmong,
   joinedOrNone,
   landedTextOf,
+  memberBlockedWaitOf,
   type MemberList,
   rerunCommandOf,
   type Run,
   type RunResult,
   type TicketOutcome,
+  unlandedBlockersOf,
   type Wait,
   waitsTextOf,
   waitsToLandTextOf,
@@ -251,13 +254,17 @@ export class RunLoop extends SpecRunBase {
   ): Promise<MemberBlockers> {
     const blockersOf: MemberBlockers = new Map();
     if (members.length === 1) return blockersOf;
+    const batch: BatchView = {
+      memberIssues: this.memberIssues,
+      landedMembers: landedIssuesOf(members),
+    };
     for (const member of unfinished) {
       const open = await this.config.github.openBlockersOf(
         memberIssueOf(member),
       );
-      const blockers = members.filter(
-        (each) =>
-          each.end?.isLanded !== true && isAmong(memberIssueOf(each), open),
+      const blockerIssues = unlandedBlockersOf(open, batch);
+      const blockers = members.filter((each) =>
+        isAmong(memberIssueOf(each), blockerIssues),
       );
       if (blockers.length > 0) blockersOf.set(member, blockers);
     }
@@ -297,7 +304,12 @@ export class RunLoop extends SpecRunBase {
     for (const member of members) {
       const blockers = blockersOf.get(member);
       if (blockers !== undefined) {
-        const waits = [memberBlockedWaitOf(member, blockers)];
+        const waits = [
+          memberBlockedWaitOf(
+            memberIssueOf(member),
+            blockers.map(memberIssueOf),
+          ),
+        ];
         selections.push({ member, kind: "none", waits });
         continue;
       }
@@ -518,15 +530,6 @@ function landedIssuesOf(members: Member[]): IssueRef[] {
 
 function memberLabelsOf(members: Member[]): string[] {
   return members.map((member) => issueLabelOf(memberIssueOf(member)));
-}
-
-function memberBlockedWaitOf(member: Member, blockers: Member[]): Wait {
-  const ticket = memberIssueOf(member);
-  const text = waitsToLandTextOf(
-    issueLabelOf(ticket),
-    memberLabelsOf(blockers),
-  );
-  return { ticket, reason: "member-blocked", text };
 }
 
 // Rerun with its blockers, since alone it would find them open and wait on you.

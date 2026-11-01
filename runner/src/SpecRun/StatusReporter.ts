@@ -17,15 +17,22 @@ import {
 } from "../IssueWorkspaces.ts";
 import { readingLabelOf } from "../limitGuard.ts";
 import {
+  type BatchView,
   isLanded,
   joinedOrNone,
+  memberBlockedWaitOf,
   openHaltsOf,
   type Run,
+  unlandedBlockersOf,
   type Wait,
   waitsTextOf,
 } from "./runState.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 import { TicketSelector } from "./TicketSelector.ts";
+
+interface Waiting extends BatchView {
+  openHalts: Halt[];
+}
 
 export class StatusReporter extends SpecRunBase {
   private get ticketSelector(): TicketSelector {
@@ -38,9 +45,21 @@ export class StatusReporter extends SpecRunBase {
     const [leadIssue, ...otherIssues] = memberIssues;
     const isBatch = otherIssues.length > 0;
     const lead = await this._startRun(leadIssue);
-    const blocks = [await this._statusBlockOf(lead)];
+    const runs = [lead];
     for (const otherIssue of otherIssues) {
-      blocks.push(await this._statusBlockOf(await this._startRun(otherIssue)));
+      runs.push(await this._startRun(otherIssue));
+    }
+    const landedMembers: IssueRef[] = [];
+    if (isBatch) {
+      for (const run of runs) {
+        if (await this._isMemberLanded(run)) landedMembers.push(run.spec.issue);
+      }
+    }
+    const blocks: string[] = [];
+    for (const run of runs) {
+      blocks.push(
+        await this._statusBlockOf(run, { memberIssues, landedMembers }),
+      );
     }
     const lines: string[] = [];
     if (isBatch) {
@@ -69,12 +88,19 @@ export class StatusReporter extends SpecRunBase {
     writeFileSync(this._stopRequestPathOf(lead), "");
   }
 
-  private async _statusBlockOf(run: Run): Promise<string> {
+  // The loop's reading of a member finished with nothing waiting, taken from the saved state: every ticket landed or closed, no open Halt.
+  private async _isMemberLanded(run: Run): Promise<boolean> {
+    if (openHaltsOf(run).length > 0) return false;
+    for (const ticket of run.tickets) {
+      if (isLanded(run, ticket)) continue;
+      if ((await this.config.github.issueOf(ticket)).isOpen) return false;
+    }
+    return true;
+  }
+
+  private async _statusBlockOf(run: Run, batch: BatchView): Promise<string> {
     const openHalts = openHaltsOf(run);
-    const { waits } = await this.ticketSelector._survey(run, {
-      openHalts,
-      landedMembers: [],
-    });
+    const waits = await this._waitsOf(run, { ...batch, openHalts });
     const landed = run.tickets.filter((ticket) => isLanded(run, ticket));
     const current = waits.flatMap((wait) => currentTextOf(run, wait));
     const others = waits.filter(({ holder }) => holder?.kind !== "run");
@@ -85,6 +111,30 @@ export class StatusReporter extends SpecRunBase {
       `Open Halts: ${joinedOrNone(openHalts.map(openHaltTextOf))}.`,
       `Waiting: ${others.length === 0 ? "none" : waitsTextOf(others)}.`,
     ].join("\n");
+  }
+
+  // A member held by blocker members shows only that wait, as the loop picks nothing from it.
+  private async _waitsOf(
+    run: Run,
+    { openHalts, ...batch }: Waiting,
+  ): Promise<Wait[]> {
+    const member = run.spec.issue;
+    const blockers = await this._memberBlockersOf(member, batch);
+    if (blockers.length > 0) return [memberBlockedWaitOf(member, blockers)];
+    const survey = await this.ticketSelector._survey(run, {
+      openHalts,
+      landedMembers: batch.landedMembers,
+    });
+    return survey.waits;
+  }
+
+  private async _memberBlockersOf(
+    member: IssueRef,
+    batch: BatchView,
+  ): Promise<IssueRef[]> {
+    if (batch.memberIssues.length === 1) return [];
+    const open = await this.config.github.openBlockersOf(member);
+    return unlandedBlockersOf(open, batch);
   }
 
   private async _activeReadingLabelOf(run: Run): Promise<string> {

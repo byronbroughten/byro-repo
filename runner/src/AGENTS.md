@@ -61,6 +61,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `PidLock.ts` | | The pid lock file `LandingLock` and `RunLock` extend. |
 | `processIdentity.ts` | | A process named by its pid and start time, for leases and supervision records. |
 | `progressLines.ts` | | The progress-log lines, written and parsed in pairs. |
+| `ProgressLog.ts` | | A progress log's lines and what the Run board reads from them: the current ticket, the account and the latest line. |
 | `promptText.ts` | | Wording helpers the step prompts share. |
 | `recordSchema.ts` | | Schema parts the step records share, and their validator. |
 | `redChecksStep.ts` | | The red-checks step's prompt and record. |
@@ -72,7 +73,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `runKnobs.ts` | `runKnobs` | Every knob a run reads, its defaults and the override-file loader. |
 | `RunLock.ts` | `RunLock` | The per-spec run lock. |
 | `RunStop.ts` | | The error that ends a run with a Stop. |
-| `savedFormats.ts` | | Reads an older runner's run state and facts file into today's shapes. |
+| `savedFormats.ts` | | Reads an older runner's run state, facts file and supervision record into today's shapes. |
 | `SchemaFailure.ts` | | The error for a step record that fails its checks. |
 | `secretShapes.ts` | | The token shapes wrap-up's secret scan looks for. |
 | `SessionProbe.ts` | `SessionProbe` | `npm run session:probe`: what a SessionStart hook sees in a folder. |

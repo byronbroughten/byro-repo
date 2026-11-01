@@ -20,15 +20,14 @@ import {
   type ProcessIdentity,
 } from "./processIdentity.ts";
 import { RunLock } from "./RunLock.ts";
+import { supervisionFileOf } from "./savedFormats.ts";
 import type { MemberList } from "./SpecRun/runState.ts";
 
 export interface SupervisionRecord {
   pid: number;
   owner: string;
-  // A Batch's first member when it watches a Batch.
-  spec: IssueRef;
-  // The Batch's members in typed order; none for a spec run alone.
-  members?: MemberList;
+  // The members in typed order: the one spec watched alone, or a Batch's.
+  members: MemberList;
   // Event lines explained, oldest first, so the next unexplained one is at this index.
   offset: number;
   // The session end that ended this session's supervision; supervising the spec again rejoins from the offset.
@@ -46,7 +45,7 @@ export interface WatchStart {
 }
 
 // The Supervisor's own identity, so a reused pid never inherits its record.
-interface RecordFile extends SupervisionRecord, ProcessIdentity {
+export interface RecordFile extends SupervisionRecord, ProcessIdentity {
   // The spec's one watch: a later one replaces it, and it exits once the record names another.
   watch?: ProcessIdentity;
 }
@@ -71,9 +70,8 @@ export class SupervisionRecords {
     named: IssueRef,
   ): Promise<SupervisionRecord> {
     const members = BatchRecords.init(this.stateFolder).membersOf(named);
-    const [spec] = members;
     const overlapping = this._files().filter((file) =>
-      membersOf(file).some((member) => isMemberOf(members, member)),
+      file.members.some((member) => isMemberOf(members, member)),
     );
     const eventFile = eventStreamPathOf(this.stateFolder, members);
     const sameStream = overlapping.filter(
@@ -84,13 +82,7 @@ export class SupervisionRecords {
     // Read before the removal, so a polling watch never finds the spec with no record and takes itself for replaced.
     const supervisor = await identityOf(pid);
     for (const file of overlapping) this._remove(file.pid);
-    const record: SupervisionRecord = {
-      pid,
-      owner,
-      spec,
-      ...(members.length > 1 && { members }),
-      offset,
-    };
+    const record: SupervisionRecord = { pid, owner, members, offset };
     this._write({ ...record, ...supervisor, watch });
     return record;
   }
@@ -101,7 +93,7 @@ export class SupervisionRecords {
     const file = this._specFileOf(spec);
     if (file === undefined) return undefined;
     this._write({ ...file, watch: watchProcess });
-    return { watchProcess, offset: file.offset, members: membersOf(file) };
+    return { watchProcess, offset: file.offset, members: file.members };
   }
 
   isWatchedBy(spec: IssueRef, watchProcess: ProcessIdentity): boolean {
@@ -121,7 +113,8 @@ export class SupervisionRecords {
   ): Promise<SupervisionRecord | undefined> {
     const record = await this._recordOfLiveProcess(holder);
     if (record === undefined) return undefined;
-    return RunLock.isHeld(this.stateFolder, record.spec) ? record : undefined;
+    const [lead] = record.members;
+    return RunLock.isHeld(this.stateFolder, lead) ? record : undefined;
   }
 
   // Raw lines, so the record needs only the event file's location, never its line format.
@@ -156,13 +149,13 @@ export class SupervisionRecords {
     const file = this._fileOf(pid);
     if (file === undefined) return undefined;
     if (!(await isStillRunning(file))) return undefined;
-    const { owner, spec, members, offset, endedBy } = file;
-    return { pid, owner, spec, ...(members && { members }), offset, endedBy };
+    const { owner, members, offset, endedBy } = file;
+    return { pid, owner, members, offset, endedBy };
   }
 
   // Read from the record's own members, so a Batch ending later never moves the file its offset counts in.
-  private _eventFileOf(record: SupervisionRecord): string {
-    return eventStreamPathOf(this.stateFolder, membersOf(record));
+  private _eventFileOf({ members }: SupervisionRecord): string {
+    return eventStreamPathOf(this.stateFolder, members);
   }
 
   private _files(): RecordFile[] {
@@ -182,7 +175,9 @@ export class SupervisionRecords {
   // An unreadable record counts as none, so a torn write never leaves a session supervising for good.
   private _fileOf(pid: number): RecordFile | undefined {
     try {
-      return JSON.parse(readFileSync(this._pathOf(pid), "utf8")) as RecordFile;
+      return supervisionFileOf(
+        JSON.parse(readFileSync(this._pathOf(pid), "utf8")),
+      );
     } catch {
       return undefined;
     }
@@ -209,12 +204,8 @@ function isSupervising({ endedBy }: SupervisionRecord): boolean {
 
 // The spec it watches, or a member of the Batch it watches.
 export function isWatching(
-  record: SupervisionRecord,
+  { members }: SupervisionRecord,
   issue: IssueRef,
 ): boolean {
-  return isMemberOf(membersOf(record), issue);
-}
-
-function membersOf({ spec, members }: SupervisionRecord): MemberList {
-  return members ?? [spec];
+  return isMemberOf(members, issue);
 }

@@ -77,6 +77,12 @@ export interface RunResult {
 // A run's member issues in typed order; non-empty, so the run always has a first member to tell what concerns it as a whole.
 export type MemberList = [IssueRef, ...IssueRef[]];
 
+// A Batch's members and those of them finished with nothing waiting, which no longer block.
+export interface BatchView {
+  memberIssues: MemberList;
+  landedMembers: IssueRef[];
+}
+
 export interface ReviewOptions {
   // The interactive session's, which may hold the workspace's lease.
   holder?: LeaseHolder;
@@ -621,6 +627,29 @@ export function blockedByTextOf(label: string, blockers: string[]): string {
 // A Batch member's wait on its blocker members and its cycle end both say it alike.
 export function waitsToLandTextOf(label: string, blockers: string[]): string {
   return `${label} waits on ${blockers.join(", ")} to land`;
+}
+
+// The Batch's members among a member's open blockers that haven't landed; a landed one counts as cleared though GitHub may show it open.
+export function unlandedBlockersOf(
+  open: IssueRef[],
+  { memberIssues, landedMembers }: BatchView,
+): IssueRef[] {
+  return issuesOutside(
+    memberIssues.filter((each) => isAmong(each, open)),
+    landedMembers,
+  );
+}
+
+// The wait the run loop and status both show for a member held by blocker members.
+export function memberBlockedWaitOf(
+  member: IssueRef,
+  blockers: IssueRef[],
+): Wait {
+  const text = waitsToLandTextOf(
+    issueLabelOf(member),
+    blockers.map(issueLabelOf),
+  );
+  return { ticket: member, reason: "member-blocked", text };
 }
 
 // Answered Halts go oldest answer first, within one spec and across a Batch's members.
