@@ -107,7 +107,7 @@
       "gh *",
       "npm run issue*",
       "npm run wrap-up *",
-      "npm run runner *",
+      "npm run runner*",
       "npm run outcome:summary *",
       "npm run app*",
       "npm run dev*",
