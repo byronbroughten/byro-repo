@@ -41,6 +41,9 @@ describe("runSession", () => {
     async commentsOf() {
       throw new Error("A session landing read comments");
     },
+    async authoredCommentsOf() {
+      throw new Error("A session landing read comments");
+    },
   };
 
   function sessionWrapUp(): WrapUp {

@@ -1,7 +1,8 @@
 // The review lists and the gap check. At landing a ticket with resolve records or a merge-master record gets one review-list comment on the spec and each
 // covered-later Dismiss a note on its later ticket, each checked for its marker first; once every ticket is closed, _finish
 // posts any review list a killed run missed and runs the gap check, whose gaps become the last review list.
-// RunLoop.ts calls _finish; SessionReviewer.ts calls _runnersSpecCommentsOf and _postCoveredLaterNotes; TicketLander.ts calls _postReviewList at landing;
+// RunLoop.ts calls _finish; SessionReviewer.ts calls _runnersSpecCommentsOf, _postCoveredLaterNotes and _postReviewList,
+// the Base skipping a session's push and state save; TicketLander.ts calls _postReviewList at landing;
 // StatusReporter.ts calls _isGapChecked.
 // It builds its own StepLauncher and HaltRaiser; formats are ../reviewList.ts, the gap check's prompt ../gapCheck.ts.
 

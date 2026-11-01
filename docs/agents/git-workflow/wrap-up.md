@@ -7,5 +7,5 @@ Disclosed from [`docs/agents/git-workflow.md`](../git-workflow.md#landing-a-spec
 - **An interactive agent passes only the closing facts**: `npm run wrap-up -- <repo> <n> --closing "…" [--undone "<box>: <reason>"]...`, adding `--no-code` for a ticket with no branch ahead and no GitHub writes, such as one that only edited a Doc.
 - **A wrap-up with no closing comment in either place fails naming `--closing`.**
 - **When the facts file carries the recorded session ids, each with its account and config folder (`sessions`), the script computes pair, peak context, duration, cost and review cost from them**, reading earlier implementer sessions from each handoff comment's `session: <id>` line. A fact it can't compute is written `unrecorded`.
-- **A Standalone ticket whose facts record undecided review-list items (`hasUndecidedReviewItems`) lands and stays open**, and wrap-up says so; `/judge-findings` closes it.
+- **A Standalone ticket whose posted review lists hold undecided items lands and stays open**, and wrap-up says so; `/judge-findings` closes it. Before a run posts its list, the facts' `hasUndecidedReviewItems` stands in.
 - **It stops at the first failure, naming its kind, and a rerun skips the steps already done.**

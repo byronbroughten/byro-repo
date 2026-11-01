@@ -12,8 +12,8 @@ import { reviewPrintoutOf } from "./SpecRun.ts";
 import type { ReviewResult } from "./SpecRun/runState.ts";
 import {
   addSpec,
+  commentsOn,
   findingOf,
-  github,
   refOf,
   resolved,
   reviewed,
@@ -158,11 +158,10 @@ describe("a session resolving its own review", () => {
       proposals: 1,
     });
     expect(ticketFacts().pendingResolve).toBeUndefined();
-    const notes = github.comments.filter(
-      ({ issue, body }) =>
-        issue.number === 2 && body.includes("byro-repo#1's review left this"),
-    );
-    expect(notes).toHaveLength(1);
+    expect(commentsOn(213, "<!-- review-list ticket=#1 -->")).toEqual([
+      expect.stringContaining(result.reviewList ?? "no list"),
+    ]);
+    expect(commentsOn(2, "byro-repo#1's review left this")).toHaveLength(1);
   });
 
   it("refuses a suggested Halt resolved as a Fix, naming the rule, and keeps the findings for a corrected resolve", async () => {

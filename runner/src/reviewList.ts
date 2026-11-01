@@ -1,12 +1,12 @@
 // The review list: a ticket's resolve records by axis then verdict, its Proposals as R items, its agreed Dismisses in a
-// collapsed audit, each departure from a suggested verdict with its why; a run posts it on the spec, a session prints it.
+// collapsed audit, each departure from a suggested verdict with its why; a run posts it on the spec, a session posts and prints it.
 // Also the gap check's comment in the same format, the note a `covered-later` Dismiss leaves on its later ticket,
 // and the count of undecided items the end-of-run push gives, and the edit `runner decide` makes to one item.
-// SpecRun/ReviewListPoster.ts posts them, TicketLander.ts calling it at landing; SpecRun/SessionReviewer.ts returns a
-// ticket's to print; SpecRun/ReviewItemDecider.ts edits one; gapCheck.ts supplies the gaps.
+// SpecRun/ReviewListPoster.ts posts them, TicketLander.ts calling it at landing and SpecRun/SessionReviewer.ts after a
+// session's review, which also returns the ticket's to print; WrapUp.ts counts a Standalone ticket's; SpecRun/ReviewItemDecider.ts edits one; gapCheck.ts supplies the gaps.
 
 import type { Gap, GapCheckRecord } from "./gapCheck.ts";
-import { shortRefOf } from "./halts.ts";
+import { isRunnersComment, shortRefOf } from "./halts.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 import type { MergeMasterRecord } from "./mergeMasterStep.ts";
 import { issueRefOf, type ResolveRecord } from "./resolveStep.ts";
@@ -400,6 +400,21 @@ export interface UndecidedCount {
 
 export function isReviewList(body: string): boolean {
   return body.includes(listMarkPrefix);
+}
+
+// Only the developer's runner comments count, as `runner decide` and /judge-findings read them; anyone else's is Untrusted text.
+export function developersReviewListsOf(
+  comments: IssueComment[],
+  developer: string,
+): string[] {
+  return comments
+    .filter(
+      (comment) =>
+        comment.author === developer &&
+        isRunnersComment(comment) &&
+        isReviewList(comment.body),
+    )
+    .map(({ body }) => body);
 }
 
 // Counts unticked boxes, so an item /judge-findings or a hand tick decided no longer counts.

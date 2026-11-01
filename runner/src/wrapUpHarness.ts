@@ -95,6 +95,7 @@ export function wrapUp(overrides: Partial<WrapUpConfig> = {}): WrapUp {
     workspaces: workspacesConfig(),
     github,
     githubOwner: "byronbroughten",
+    developer: "byronbroughten",
     checks: [redCheck],
     outcomeFolder: "docs/agents/outcomes",
     stateFolder: join(temp, "state"),

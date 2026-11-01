@@ -99,7 +99,7 @@ export interface ReviewResult {
   message: string;
   // Each Halt comment the review posted on the spec, for the session to print.
   halts: string[];
-  // The run's review-list rendering, printed rather than posted; absent when resolve kept no records.
+  // The run's review-list rendering, printed as well as posted; absent when resolve kept no records.
   reviewList?: string;
   // The numbered findings, each with its axis and suggested verdict, when the session resolves them.
   findings?: string;

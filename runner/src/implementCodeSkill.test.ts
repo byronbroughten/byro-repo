@@ -7,6 +7,7 @@ const skill = implementCodeSkillOf({
   promoteCommand: "npm run issue:promote -- <repo> <n>",
   reviewCommand: "npm run runner -- review <owner>/<repo> <n>",
   resolveCommand: "npm run runner -- resolve <owner>/<repo> <n>",
+  decideCommand: "npm run runner -- decide <owner>/<repo> <spec> R<n>.<k>",
   wrapUpCommand: "npm run wrap-up -- <repo> <n>",
 });
 
@@ -57,6 +58,12 @@ describe("implementCodeSkillOf", () => {
 
   it("lands a ticket with no code through --no-code", () => {
     expect(skill).toContain("`npm run wrap-up -- <repo> <n> --no-code");
+  });
+
+  it("records a Propose the session fixed before landing as decided, not handled", () => {
+    expect(skill).toContain(
+      "`npm run runner -- decide <owner>/<repo> <spec> R<n>.<k> 'fixed in session · <commit>'`, never `--handled`:",
+    );
   });
 
   it("says to run git commands one at a time", () => {

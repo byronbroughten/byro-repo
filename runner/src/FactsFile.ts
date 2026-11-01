@@ -36,7 +36,7 @@ export interface WrapUpFacts extends OutcomeFacts {
   sessions?: TicketSessions;
   // A session's review whose findings the session is resolving itself.
   pendingResolve?: PendingResolve;
-  // Recorded here because the runner posts the review list after wrap-up, which leaves a Standalone ticket open on it.
+  // Recorded here because a run posts the review list after wrap-up, which leaves a Standalone ticket open on it until the list is posted.
   hasUndecidedReviewItems?: boolean;
 }
 
