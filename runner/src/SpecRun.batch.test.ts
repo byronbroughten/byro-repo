@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import type { StepRequest, StepResult } from "./AgentStep.ts";
 import { batchEventFilePathOf, BatchRecords } from "./BatchRecords.ts";
 import {
   EventFileNotices,
@@ -668,7 +669,9 @@ describe("a Batch's record", () => {
     addIssue(dependent.number);
     github.blockers.set(dependent.number, [blocker.number]);
     const statuses: string[] = [];
-    function statusDuring(step: ScriptedStep): ScriptedStep {
+    function statusDuring(
+      step: (request: StepRequest) => Promise<StepResult>,
+    ): ScriptedStep {
       return async (request) => {
         statuses.push(await specRun(FakeAgentStep.init()).status(dependent));
         return step(request);
