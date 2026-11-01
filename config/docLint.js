@@ -19,10 +19,11 @@ const recordPrefixes = [
   "inbox/changes.md",
   "inbox/proposals.md",
 ];
-// Docs whose every line under a `##` heading records one tagged, dated, linked observation.
+// Docs whose every line under a `##` heading records one tagged, dated, linked observation, relative to their repo root.
 const observationIndexes = new Set([
   "docs/agents/codebase-priorities/estimates.md",
   "docs/claude-code-behaviour.md",
+  "docs/sheets-behaviour.md",
 ]);
 
 /** @typedef {Record<string, string>} Docs */
