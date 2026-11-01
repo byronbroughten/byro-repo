@@ -1,26 +1,42 @@
-import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-export type SandboxStatus = "ran" | "stopped" | "not run";
+import { type HeadlessRun, runHeadless } from "./headlessProbe.ts";
 
-export interface SandboxLine {
-  command: string;
-  status: SandboxStatus;
-  // The first line of a stopped command's output.
-  error: string | undefined;
+export type CommandOutcome =
+  | { command: string; status: "ran" | "not run" }
+  | { command: string; status: "stopped"; error: string };
+
+export interface SandboxSettings {
+  sandbox: Record<string, unknown>;
 }
 
 export interface SandboxReport {
-  settings: Record<string, unknown>;
-  lines: SandboxLine[];
-  // The session's stream-json events, in order.
+  settings: SandboxSettings;
+  outcomes: CommandOutcome[];
+  exitCode: HeadlessRun["exitCode"];
+  stderr: string;
   events: unknown[];
+}
+
+interface BashCall {
+  id: string;
+  command: string;
 }
 
 interface BashResult {
   isError: boolean;
   text: string;
+}
+
+interface ContentBlock {
+  type?: unknown;
+  id?: unknown;
+  name?: unknown;
+  input?: { command?: unknown };
+  tool_use_id?: unknown;
+  is_error?: unknown;
+  content?: unknown;
 }
 
 // Claude Code 2.1.316 has no command that runs its sandbox runtime alone, so each command goes through one headless session's Bash tool.
@@ -38,22 +54,27 @@ export class SandboxProbe {
   async run(cwd: string, commandsPath: string): Promise<SandboxReport> {
     const commands = commandList(readFileSync(commandsPath, "utf8"));
     const settings = sandboxSettings(cwd);
-    const stdout = await runSession(
+    const { exitCode, stdout, stderr } = await runHeadless(
       this.claudePath,
       cwd,
       sandboxLaunch(commands, settings),
     );
     const events = streamEvents(stdout);
     if (events.length === 0) {
-      throw new Error(`The sandbox probe session in ${cwd} printed no events`);
+      throw new Error(
+        `The sandbox probe session in ${cwd} exited with ${exitCode} and printed no events: ${stderr.trim()}`,
+      );
     }
-    return { settings, lines: sandboxLines(events, commands), events };
+    const outcomes = commandOutcomes(events, commands);
+    return { settings, outcomes, exitCode, stderr, events };
   }
 }
 
-export function sandboxLineText(line: SandboxLine): string {
-  if (line.error === undefined) return `${line.status}: ${line.command}`;
-  return `${line.status}: ${line.command} (${line.error})`;
+export function commandOutcomeText(outcome: CommandOutcome): string {
+  if (outcome.status !== "stopped") {
+    return `${outcome.status}: ${outcome.command}`;
+  }
+  return `${outcome.status}: ${outcome.command} (${outcome.error})`;
 }
 
 function commandList(text: string): string[] {
@@ -68,12 +89,12 @@ function commandList(text: string): string[] {
 }
 
 // Only the folder's sandbox block, with no escape hatch: the folder's own hooks would refuse some commands before the box saw them.
-function sandboxSettings(cwd: string): Record<string, unknown> {
+function sandboxSettings(cwd: string): SandboxSettings {
   const path = join(cwd, ".claude", "settings.json");
   if (!existsSync(path)) throw new Error(`${path} doesn't exist`);
-  const project = JSON.parse(readFileSync(path, "utf8")) as {
-    sandbox?: Record<string, unknown>;
-  };
+  const project = JSON.parse(
+    readFileSync(path, "utf8"),
+  ) as Partial<SandboxSettings>;
   if (project.sandbox === undefined) {
     throw new Error(`${path} has no sandbox block`);
   }
@@ -82,7 +103,7 @@ function sandboxSettings(cwd: string): Record<string, unknown> {
 
 function sandboxLaunch(
   commands: string[],
-  settings: Record<string, unknown>,
+  settings: SandboxSettings,
 ): string[] {
   return [
     "-p",
@@ -97,12 +118,9 @@ function sandboxLaunch(
     "none",
     "--max-turns",
     String(commands.length + 1),
-    "--model",
-    "haiku",
     "--output-format",
     "stream-json",
     "--verbose",
-    "--no-session-persistence",
   ];
 }
 
@@ -116,24 +134,6 @@ function sandboxPrompt(commands: string[]): string {
   ].join("\n");
 }
 
-async function runSession(
-  claudePath: string,
-  cwd: string,
-  args: string[],
-): Promise<string> {
-  const child = spawn(claudePath, args, {
-    cwd,
-    stdio: ["ignore", "pipe", "ignore"],
-  });
-  let stdout = "";
-  child.stdout.on("data", (chunk) => (stdout += chunk));
-  await new Promise<void>((resolve, reject) => {
-    child.on("error", reject);
-    child.on("close", () => resolve());
-  });
-  return stdout;
-}
-
 function streamEvents(stdout: string): unknown[] {
   return stdout.split("\n").flatMap((line) => {
     try {
@@ -144,49 +144,43 @@ function streamEvents(stdout: string): unknown[] {
   });
 }
 
-function sandboxLines(events: unknown[], commands: string[]): SandboxLine[] {
+// A command listed twice matches the session's calls of it in order.
+function commandOutcomes(
+  events: unknown[],
+  commands: string[],
+): CommandOutcome[] {
   const calls = bashCalls(events);
   const results = bashResults(events);
-  return commands.map((command) => {
-    const id = [...calls].find(([, called]) => called === command)?.[0];
-    const result = id === undefined ? undefined : results.get(id);
-    if (result === undefined) {
-      return { command, status: "not run", error: undefined };
-    }
-    if (!result.isError) return { command, status: "ran", error: undefined };
-    return { command, status: "stopped", error: firstErrorLine(result.text) };
+  return commands.map((command, index) => {
+    const occurrence = commands
+      .slice(0, index)
+      .filter((earlier) => earlier === command).length;
+    const call = calls.filter((made) => made.command === command)[occurrence];
+    const result = call === undefined ? undefined : results.get(call.id);
+    if (result === undefined) return { command, status: "not run" };
+    if (!result.isError) return { command, status: "ran" };
+    const error = firstErrorLine(result.text) ?? "no output";
+    return { command, status: "stopped", error };
   });
 }
 
-interface ContentBlock {
-  type?: unknown;
-  id?: unknown;
-  name?: unknown;
-  input?: { command?: unknown };
-  tool_use_id?: unknown;
-  is_error?: unknown;
-  content?: unknown;
-}
-
 function contentBlocks(event: unknown, type: string): ContentBlock[] {
-  const message = (event as { type?: unknown; message?: { content?: unknown } })
-    .message;
+  const message = (event as { message?: { content?: unknown } }).message;
   if (!Array.isArray(message?.content)) return [];
   return (message.content as ContentBlock[]).filter(
     (block) => block.type === type,
   );
 }
 
-// Each Bash call's tool-use id and command, in call order.
-function bashCalls(events: unknown[]): Map<string, string> {
+function bashCalls(events: unknown[]): BashCall[] {
   return events
     .flatMap((event) => contentBlocks(event, "tool_use"))
-    .reduce((calls, block) => {
-      if (block.name === "Bash" && typeof block.input?.command === "string") {
-        calls.set(String(block.id), block.input.command.trim());
+    .flatMap((block) => {
+      if (block.name !== "Bash" || typeof block.input?.command !== "string") {
+        return [];
       }
-      return calls;
-    }, new Map<string, string>());
+      return [{ id: String(block.id), command: block.input.command.trim() }];
+    });
 }
 
 function bashResults(events: unknown[]): Map<string, BashResult> {

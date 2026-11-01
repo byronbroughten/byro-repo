@@ -2,10 +2,10 @@
 // Usage: npm run session:probe -- <folder>, e.g. an issue workspace's path from npm run issue:list.
 // Sandbox mode: npm run session:probe -- --sandbox <folder> <commands-file> runs each line of the file once under the folder's sandbox block and prints ran or stopped for each.
 import { mkdirSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 
 import {
-  sandboxLineText,
+  commandOutcomeText,
   SandboxProbe,
 } from "@byronbroughten/spec-runner/SandboxProbe";
 import { SessionProbe } from "@byronbroughten/spec-runner/SessionProbe";
@@ -49,8 +49,10 @@ async function probeSandbox([folder, commandsPath]: string[]): Promise<void> {
     resolve(folder),
     resolve(commandsPath),
   );
-  mkdirSync(".probe", { recursive: true });
+  mkdirSync(dirname(sandboxReportPath), { recursive: true });
   writeFileSync(sandboxReportPath, JSON.stringify(report, null, 2));
-  report.lines.forEach((line) => console.log(sandboxLineText(line)));
+  report.outcomes.forEach((outcome) =>
+    console.log(commandOutcomeText(outcome)),
+  );
   console.log(`Full output: ${sandboxReportPath}`);
 }

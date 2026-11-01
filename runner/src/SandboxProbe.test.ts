@@ -12,9 +12,9 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { sandboxLineText, SandboxProbe } from "./SandboxProbe.ts";
+import { commandOutcomeText, SandboxProbe } from "./SandboxProbe.ts";
 
-// Stands in for claude: records its args, then answers each prompt command with a Bash call, failing the ones that say "denied" and skipping the ones that say "skipped".
+// Stands in for claude: records its args, then answers each prompt command with a Bash call, failing the ones that say "denied" or repeat an earlier one, and skipping the ones that say "skipped".
 const fakeClaude = `#!/usr/bin/env node
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -26,7 +26,7 @@ console.log("not json");
 commands.forEach((command, index) => {
   if (command.includes("skipped")) return;
   const id = "toolu_" + index;
-  const isError = command.includes("denied");
+  const isError = command.includes("denied") || commands.indexOf(command) !== index;
   const content = isError ? "Exit code 1\\n" + command + ": Operation not permitted\\nmore" : "";
   console.log(JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", id, name: "Bash", input: { command } }] } }));
   console.log(JSON.stringify({ type: "user", message: { content: [{ type: "tool_result", tool_use_id: id, content, is_error: isError }] } }));
@@ -86,7 +86,7 @@ describe("SandboxProbe", () => {
       commandsFile("touch ./inside\n\ntouch ~/denied\n  ls skipped  \n"),
     );
 
-    expect(report.lines.map(sandboxLineText)).toEqual([
+    expect(report.outcomes.map(commandOutcomeText)).toEqual([
       "ran: touch ./inside",
       "stopped: touch ~/denied (touch ~/denied: Operation not permitted)",
       "not run: ls skipped",
@@ -139,13 +139,30 @@ describe("SandboxProbe", () => {
     ).rejects.toThrow("has no sandbox block");
   });
 
-  it("throws when the session prints no events", async () => {
+  it("matches a command listed twice to the session's calls of it in order", async () => {
+    const probe = SandboxProbe.init(executable("claude.mjs", fakeClaude));
+
+    const report = await probe.run(
+      projectDir,
+      commandsFile("touch ./inside\ntouch ./inside\n"),
+    );
+
+    expect(report.outcomes.map((outcome) => outcome.status)).toEqual([
+      "ran",
+      "stopped",
+    ]);
+  });
+
+  it("throws with the exit code and stderr when the session prints no events", async () => {
     const probe = SandboxProbe.init(
-      executable("claude.mjs", "#!/usr/bin/env node\nprocess.exit(2);\n"),
+      executable(
+        "claude.mjs",
+        "#!/usr/bin/env node\nconsole.error('not logged in');\nprocess.exit(2);\n",
+      ),
     );
 
     await expect(
       probe.run(projectDir, commandsFile("touch ./inside\n")),
-    ).rejects.toThrow("printed no events");
+    ).rejects.toThrow("exited with 2 and printed no events: not logged in");
   });
 });

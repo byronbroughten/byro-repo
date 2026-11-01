@@ -1,4 +1,3 @@
-import { spawn } from "node:child_process";
 import {
   existsSync,
   mkdtempSync,
@@ -8,6 +7,8 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
+import { runHeadless } from "./headlessProbe.ts";
 
 export interface SessionReading {
   // $CLAUDE_PROJECT_DIR as a hook sees it; the project's hooks resolve their paths from it unless BYRO_GATE_ROOT is set.
@@ -82,15 +83,8 @@ async function runSession(
     "",
     "--max-turns",
     "1",
-    "--model",
-    "haiku",
-    "--no-session-persistence",
   ];
-  const child = spawn(claudePath, args, { cwd, stdio: "ignore" });
-  const exitCode = await new Promise<number | null>((resolve, reject) => {
-    child.on("error", reject);
-    child.on("close", resolve);
-  });
+  const { exitCode } = await runHeadless(claudePath, cwd, args);
   if (exitCode !== 0) {
     throw new Error(`The probe session in ${cwd} exited with ${exitCode}`);
   }
