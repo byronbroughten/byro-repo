@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { webGateDecision } from "./webTools.ts";
+import { webGateDecisions } from "./webTools.ts";
 
 function decisionOf(toolName: string, url?: string) {
-  return webGateDecision(toolName, url === undefined ? {} : { url })
+  return webGateDecisions.get(toolName)?.(url === undefined ? {} : { url })
     ?.permissionDecision;
 }
 
-describe("webGateDecision", () => {
+describe("webGateDecisions", () => {
   it.each([
     "https://developers.google.com/workspace/sheets/api/reference/rest",
     "https://support.google.com/docs/answer/3093281",

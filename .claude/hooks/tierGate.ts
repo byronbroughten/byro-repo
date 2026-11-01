@@ -28,19 +28,19 @@ import {
   spreadsheetTargetsOf,
   stepTargetsVariable,
 } from "./lib/tiers/tiers.ts";
-import { webGateDecision } from "./lib/tiers/webTools.ts";
+import { webGateDecisions } from "./lib/tiers/webTools.ts";
 
 const ownersSuffix = "drive-owners.json";
-const webTools = new Set(["WebFetch", "WebSearch"]);
 
 await runFailOpen(async () => {
   const input = readHookInput();
   if (!input?.tool_name) return;
   let decision: Decision | undefined;
+  const webDecisionOf = webGateDecisions.get(input.tool_name);
   if (input.tool_name === "Bash") {
     decision = await bashDecision(input);
-  } else if (webTools.has(input.tool_name)) {
-    decision = webGateDecision(input.tool_name, { ...input.tool_input });
+  } else if (webDecisionOf) {
+    decision = webDecisionOf({ ...input.tool_input });
   } else {
     const projectDir = projectDirOf(input);
     decision = await driveGateDecision({

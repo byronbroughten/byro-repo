@@ -9,18 +9,25 @@ const docHosts = new Set([
 ]);
 const webProtocols = new Set(["https:", "http:"]);
 
-export function webGateDecision(
-  toolName: string,
-  input: Record<string, unknown>,
-): Decision | undefined {
-  if (toolName === "WebSearch") {
-    return {
+// A Map, so a tool name such as `constructor` finds nothing.
+export const webGateDecisions = new Map<
+  string,
+  (input: Record<string, unknown>) => Decision | undefined
+>([
+  ["WebFetch", fetchDecisionOf],
+  [
+    "WebSearch",
+    () => ({
       permissionDecision: "allow",
       reason: "a search's query goes only to the search provider.",
-    };
-  }
-  if (toolName !== "WebFetch") return undefined;
-  const host = docHostOf(input.url);
+    }),
+  ],
+]);
+
+function fetchDecisionOf({
+  url,
+}: Record<string, unknown>): Decision | undefined {
+  const host = docHostOf(url);
   if (!host) return undefined;
   return {
     permissionDecision: "allow",

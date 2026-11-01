@@ -49,7 +49,7 @@ export class GitCall {
   // A forced move or removal can overwrite or drop changes git never saw.
   get isTrackedFileChange(): boolean {
     return (
-      gitVerbs.file.has(this.verb) &&
+      trackedFileVerbs.has(this.verb) &&
       !this.args.some((arg) => arg === "--force" || /^-[^-]*f/.test(arg))
     );
   }
@@ -65,15 +65,14 @@ export class GitCall {
 
 export const gitPathOptions = new Set(["-C", "--git-dir", "--work-tree"]);
 
-const gitVerbs = {
-  file: new Set(["mv", "rm"]),
-} as const;
+const trackedFileVerbs = new Set(["mv", "rm"]);
 // `git grep -O` opens the matched files in a pager, which can be any program.
 const gitGrepPagerFlags = /^(-[^-]*O|--open-files-in-pager)/;
-// Deleting a branch, or forcing one over another, loses commits git can't bring back but by its reflog.
-const branchDrops = {
-  flags: new Set(["--delete", "--force"]),
-  shorthands: /^-[^-]*[dDfMC]/,
+// Deleting a branch or tag, or forcing one over another, loses commits git can't bring back but by its reflog.
+const refDrops = {
+  branchFlags: new Set(["--delete", "--force"]),
+  branchShorthands: /^-[^-]*[dDfMC]/,
+  tagFlags: new Set(["-d", "--delete", "-f", "--force"]),
 } as const;
 // The flags that tell a read form of a writing verb from its writes. Git takes one action per `config` call, so a read action beside a write one fails.
 const readFormFlags = {
@@ -90,7 +89,6 @@ const readFormFlags = {
     "-e",
     "--edit",
   ]),
-  tagDrops: new Set(["-d", "--delete", "-f", "--force"]),
 } as const;
 
 // Each git read by verb and, for a verb that also writes, its read forms: listed reads, since a blocklist of writes would miss the next `reset --hard`. The network reads (`ls-remote`, `fetch`, `remote show`, `update`, `prune`) stay out.
@@ -120,28 +118,34 @@ const gitReads = new Map<string, (args: string[]) => boolean>([
   [
     "config",
     (args) =>
-      args.some((arg) => readFormFlags.configReads.has(arg)) &&
-      !args.some((arg) => readFormFlags.configWrites.has(arg)),
+      isFlaggedRead(args, readFormFlags.configReads, (arg) =>
+        readFormFlags.configWrites.has(arg),
+      ),
   ],
-  [
-    "branch",
-    (args) =>
-      args.some((arg) => readFormFlags.list.has(arg)) &&
-      !args.some(isBranchDrop),
-  ],
+  ["branch", (args) => isFlaggedRead(args, readFormFlags.list, isBranchDrop)],
   [
     "tag",
     (args) =>
-      args.some((arg) => readFormFlags.list.has(arg)) &&
-      !args.some((arg) => readFormFlags.tagDrops.has(arg)),
+      isFlaggedRead(args, readFormFlags.list, (arg) =>
+        refDrops.tagFlags.has(arg),
+      ),
   ],
 ]);
 
 function isBranchDrop(arg: string): boolean {
   return (
-    branchDrops.flags.has(arg.split("=")[0] ?? "") ||
-    branchDrops.shorthands.test(arg)
+    refDrops.branchFlags.has(arg.split("=")[0] ?? "") ||
+    refDrops.branchShorthands.test(arg)
   );
+}
+
+// A verb's read form: one of its read flags, and none of its writes.
+function isFlaggedRead(
+  args: string[],
+  readFlags: ReadonlySet<string>,
+  isWrite: (arg: string) => boolean,
+): boolean {
+  return args.some((arg) => readFlags.has(arg)) && !args.some(isWrite);
 }
 
 // `git remote` with no subcommand lists, as does `-v`; `get-url` reads one remote's URL.

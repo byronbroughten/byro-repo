@@ -397,9 +397,10 @@ describe("reads and git add", () => {
       expect(decisionOf(command)).not.toBe("allow");
       expect(runnerStepDecisionOf(command)).not.toBe("allow");
     });
-    ["git branch -d old", "git branch -l -D old"].forEach((command) =>
-      expect(runnerStepDecisionOf(command)).not.toBe("allow"),
-    );
+    ["git branch -d old", "git branch -l -D old"].forEach((command) => {
+      expect(decisionOf(command)).not.toBe("allow");
+      expect(runnerStepDecisionOf(command)).not.toBe("allow");
+    });
   });
 
   it("allows chained reads and a read after cd", () => {
