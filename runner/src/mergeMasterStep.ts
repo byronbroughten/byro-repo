@@ -2,6 +2,7 @@
 
 import { stepReadLine } from "./IssueReader.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
+import { commitMessageLine } from "./promptText.ts";
 import { arraySchema, objectSchema, stringSchema } from "./recordSchema.ts";
 
 export interface MergeMasterPromptInput {
@@ -29,6 +30,7 @@ Landing ${issue.repo}#${issue.number}, "${title}", conflicted with master, which
 - Read and search with the Read and Grep tools. Give Bash one command per call, run from the workspace root: no \`cd\`, no \`;\` or \`&&\` chains, no variables.
 - In each conflicting repo, merge \`master\` into the ticket's branch, resolve every conflict keeping both sides' intent, and commit the merge on the ticket's branch.
 - Run \`npm run check\` until it passes, committing any fix. Never amend, push, rebase or reset, never comment on or close an issue, and never run the wrap-up.
+- ${commitMessageLine}
 
 ## When you're done
 

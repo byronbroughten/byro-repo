@@ -244,6 +244,12 @@ describe("implementPrompt", () => {
     expect(prompt).not.toContain("`.claude/settings*.json`");
   });
 
+  it("keeps a closing keyword away from an issue reference in a commit message", () => {
+    expect(implementPrompt(input)).toContain(
+      "- In a commit message, never put a closing keyword (`close`, `fix`, `resolve` or one of their forms) before an issue reference: GitHub would close the issue once the commit reaches master. Write `review of #512` or `for #512` instead.",
+    );
+  });
+
   it("runs npm run check once, after committing", () => {
     const prompt = implementPrompt(input);
     expect(prompt).toContain(

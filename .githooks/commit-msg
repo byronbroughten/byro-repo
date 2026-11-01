@@ -1,0 +1,3 @@
+#!/bin/sh
+# Set as core.hooksPath in the root and each package clone by the root's prepare, beside pre-commit; found from this file's folder, since a clone runs it from its own top.
+exec node "$(dirname "$0")/../scripts/lint/commitMsg.ts" "$1"
