@@ -60,8 +60,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `outcomeSummary/summarySections.ts` | | Reads the outcome log's spec sections from row files and picks the batch. |
 | `PidLock.ts` | | The pid lock file `LandingLock` and `RunLock` extend. |
 | `processIdentity.ts` | | A process named by its pid and start time, for leases and supervision records. |
-| `ProgressLog.ts` | | A progress log's lines and what the Run board reads from them: the current ticket, the account and the latest line. |
 | `progressLines.ts` | | The progress-log lines, written and parsed in pairs. |
+| `ProgressLog.ts` | | A progress log's lines and what the Run board reads from them: the current ticket, the account and the latest line. |
 | `promptText.ts` | | Wording helpers the step prompts share. |
 | `recordSchema.ts` | | Schema parts the step records share, and their validator. |
 | `redChecksStep.ts` | | The red-checks step's prompt and record. |

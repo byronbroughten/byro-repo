@@ -25,6 +25,7 @@ import {
 import { PreflightChecker } from "./PreflightChecker.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
 import {
+  type BatchView,
   blockedByTextOf,
   idListOf,
   isAmong,
@@ -36,6 +37,7 @@ import {
   type Run,
   type RunResult,
   type TicketOutcome,
+  unlandedBlockersOf,
   type Wait,
   waitsTextOf,
   waitsToLandTextOf,
@@ -252,13 +254,17 @@ export class RunLoop extends SpecRunBase {
   ): Promise<MemberBlockers> {
     const blockersOf: MemberBlockers = new Map();
     if (members.length === 1) return blockersOf;
+    const batch: BatchView = {
+      memberIssues: this.memberIssues,
+      landedMembers: landedIssuesOf(members),
+    };
     for (const member of unfinished) {
       const open = await this.config.github.openBlockersOf(
         memberIssueOf(member),
       );
-      const blockers = members.filter(
-        (each) =>
-          each.end?.isLanded !== true && isAmong(memberIssueOf(each), open),
+      const blockerIssues = unlandedBlockersOf(open, batch);
+      const blockers = members.filter((each) =>
+        isAmong(memberIssueOf(each), blockerIssues),
       );
       if (blockers.length > 0) blockersOf.set(member, blockers);
     }

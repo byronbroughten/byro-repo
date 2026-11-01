@@ -56,7 +56,7 @@ export class ProgressLog {
   }
 
   // A Limit wait newer than the last launch is the account's state until the next launch.
-  get accountText(): string {
+  accountText(): string {
     const latest = this.lines.findLast(
       ({ text }) => isLimitWaitLine(text) || stepLaunchOfLine(text),
     );

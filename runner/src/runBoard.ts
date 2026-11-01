@@ -87,7 +87,7 @@ class RunBoard {
       isLive ? label : `${label}: ${boardTexts.gone}`,
       ...(members.length > 1 ? [`  Member: ${issueLabelOf(spec)}`] : []),
       `  Ticket: ${log.ticketText(statePath, now)}`,
-      `  Account: ${log.accountText}`,
+      `  Account: ${log.accountText()}`,
       `  ${log.latestText(now)}`,
     ].join("\n");
   }

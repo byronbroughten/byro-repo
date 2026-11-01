@@ -14,6 +14,7 @@ import type { ReviewFixes } from "./outcomeLog.ts";
 import type { ResolveRecord } from "./resolveStep.ts";
 import type {
   Heads,
+  MemberList,
   Resolver,
   RunState,
   TicketSession,
@@ -83,7 +84,7 @@ interface SavedFacts extends Omit<
 
 interface SavedSupervisionFile extends Omit<RecordFile, "members"> {
   spec?: IssueRef;
-  members?: RecordFile["members"];
+  members?: MemberList;
 }
 
 export function supervisionFileOf(parsed: unknown): RecordFile {

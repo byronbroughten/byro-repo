@@ -17,25 +17,21 @@ import {
 } from "../IssueWorkspaces.ts";
 import { readingLabelOf } from "../limitGuard.ts";
 import {
-  isAmong,
+  type BatchView,
   isLanded,
-  issuesOutside,
   joinedOrNone,
   memberBlockedWaitOf,
-  type MemberList,
   openHaltsOf,
   type Run,
+  unlandedBlockersOf,
   type Wait,
   waitsTextOf,
 } from "./runState.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 import { TicketSelector } from "./TicketSelector.ts";
 
-interface Waiting {
+interface Waiting extends BatchView {
   openHalts: Halt[];
-  // The Batch members finished with nothing waiting, which no longer block.
-  landedMembers: IssueRef[];
-  memberIssues: MemberList;
 }
 
 export class StatusReporter extends SpecRunBase {
@@ -61,7 +57,9 @@ export class StatusReporter extends SpecRunBase {
     }
     const blocks: string[] = [];
     for (const run of runs) {
-      blocks.push(await this._statusBlockOf(run, landedMembers, memberIssues));
+      blocks.push(
+        await this._statusBlockOf(run, { memberIssues, landedMembers }),
+      );
     }
     const lines: string[] = [];
     if (isBatch) {
@@ -100,17 +98,9 @@ export class StatusReporter extends SpecRunBase {
     return true;
   }
 
-  private async _statusBlockOf(
-    run: Run,
-    landedMembers: IssueRef[],
-    memberIssues: MemberList,
-  ): Promise<string> {
+  private async _statusBlockOf(run: Run, batch: BatchView): Promise<string> {
     const openHalts = openHaltsOf(run);
-    const waits = await this._waitsOf(run, {
-      openHalts,
-      landedMembers,
-      memberIssues,
-    });
+    const waits = await this._waitsOf(run, { ...batch, openHalts });
     const landed = run.tickets.filter((ticket) => isLanded(run, ticket));
     const current = waits.flatMap((wait) => currentTextOf(run, wait));
     const others = waits.filter(({ holder }) => holder?.kind !== "run");
@@ -126,34 +116,25 @@ export class StatusReporter extends SpecRunBase {
   // A member held by blocker members shows only that wait, as the loop picks nothing from it.
   private async _waitsOf(
     run: Run,
-    { openHalts, landedMembers, memberIssues }: Waiting,
+    { openHalts, ...batch }: Waiting,
   ): Promise<Wait[]> {
     const member = run.spec.issue;
-    const blockers = await this._memberBlockersOf(member, {
-      landedMembers,
-      memberIssues,
-    });
+    const blockers = await this._memberBlockersOf(member, batch);
     if (blockers.length > 0) return [memberBlockedWaitOf(member, blockers)];
     const survey = await this.ticketSelector._survey(run, {
       openHalts,
-      landedMembers,
+      landedMembers: batch.landedMembers,
     });
     return survey.waits;
   }
 
   private async _memberBlockersOf(
     member: IssueRef,
-    {
-      landedMembers,
-      memberIssues,
-    }: Pick<Waiting, "landedMembers" | "memberIssues">,
+    batch: BatchView,
   ): Promise<IssueRef[]> {
-    if (memberIssues.length === 1) return [];
+    if (batch.memberIssues.length === 1) return [];
     const open = await this.config.github.openBlockersOf(member);
-    return issuesOutside(
-      memberIssues.filter((each) => isAmong(each, open)),
-      landedMembers,
-    );
+    return unlandedBlockersOf(open, batch);
   }
 
   private async _activeReadingLabelOf(run: Run): Promise<string> {
