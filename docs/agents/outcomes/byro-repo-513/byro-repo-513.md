@@ -1,0 +1,7 @@
+# byro-repo#513 outcome
+
+Spec: [byro-repo#513](https://github.com/byronbroughten/byro-repo/issues/513)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #513 | Sonnet high | 1 | 12 | 155K | Fix (resumed implementer) | 1 | 1 | 0 | 16 min | $2.85 | $3.62 | Fixed: Three positional params; landedMembers and memberIssues travel together (Data Clump). (runner/src/SpecRun/StatusReporter.ts _statusBlockOf); Both copies fetch open blockers, keep the members among them and drop landed ones. (runner/src/SpecRun/StatusReporter.ts _memberBlockersOf; runner/src/SpecRun/RunLoop.ts _memberBlockersOf); The ProgressLog.ts row sits before progressLines.ts, against the table's alphabetical order. (runner/src/AGENTS.md Files table); members?: RecordFile["members"] repeats the named type MemberList. (runner/src/savedFormats.ts SavedSupervisionFile); A no-arg getter reads and parses the whole stream file. (runner/src/ProgressLog.ts accountText). Proposed: Status calls a member landed from saved state (no open Halt, every ticket landed or closed), while the loop counts it landed only after _finish returns finished with no waits. (runner/src/SpecRun/StatusReporter.ts:94-100 vs runner/src/SpecRun/RunLoop.ts:344-348). | a2d08abf-6b03-416a-8faf-b2c5ed51783d, 574ab4a9-6574-4378-a501-5218b20c4a11 |
