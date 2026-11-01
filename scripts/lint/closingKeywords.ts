@@ -12,7 +12,7 @@ export function closingPhrasesOf(message: string): string[] {
   );
 }
 
-export function refusalOf(phrases: string[]): string {
+export function refusalOf(phrases: [string, ...string[]]): string {
   const quoted = phrases.map((phrase) => `"${phrase}"`).join(" and ");
   const reference = referenceOf(phrases[0]);
   const issues = phrases.length > 1 ? "their issues" : "its issue";
@@ -20,7 +20,8 @@ export function refusalOf(phrases: string[]): string {
 }
 
 function messageTextOf(message: string): string {
-  const [kept] = message.split(scissorsLine);
+  const scissorsAt = message.indexOf(scissorsLine);
+  const kept = scissorsAt === -1 ? message : message.slice(0, scissorsAt);
   return kept
     .split("\n")
     .filter((line) => !line.startsWith("#"))

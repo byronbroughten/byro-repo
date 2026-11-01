@@ -4,8 +4,12 @@ import { readFileSync } from "node:fs";
 import { closingPhrasesOf, refusalOf } from "./closingKeywords.ts";
 
 // Git passes the path relative to the top of the committing repo's worktree, where it runs the hook.
-const phrases = closingPhrasesOf(readFileSync(process.argv[2], "utf8"));
-if (phrases.length > 0) {
-  console.error(`\n${refusalOf(phrases)}`);
+const messageFile = process.argv[2];
+if (messageFile === undefined) {
+  throw new Error("commit-msg: git passed no commit message file.");
+}
+const [first, ...rest] = closingPhrasesOf(readFileSync(messageFile, "utf8"));
+if (first !== undefined) {
+  console.error(`\n${refusalOf([first, ...rest])}`);
   process.exitCode = 1;
 }
