@@ -30,6 +30,7 @@ import {
   isAmong,
   joinedOrNone,
   landedTextOf,
+  memberBlockedWaitOf,
   type MemberList,
   rerunCommandOf,
   type Run,
@@ -297,7 +298,12 @@ export class RunLoop extends SpecRunBase {
     for (const member of members) {
       const blockers = blockersOf.get(member);
       if (blockers !== undefined) {
-        const waits = [memberBlockedWaitOf(member, blockers)];
+        const waits = [
+          memberBlockedWaitOf(
+            memberIssueOf(member),
+            blockers.map(memberIssueOf),
+          ),
+        ];
         selections.push({ member, kind: "none", waits });
         continue;
       }
@@ -518,15 +524,6 @@ function landedIssuesOf(members: Member[]): IssueRef[] {
 
 function memberLabelsOf(members: Member[]): string[] {
   return members.map((member) => issueLabelOf(memberIssueOf(member)));
-}
-
-function memberBlockedWaitOf(member: Member, blockers: Member[]): Wait {
-  const ticket = memberIssueOf(member);
-  const text = waitsToLandTextOf(
-    issueLabelOf(ticket),
-    memberLabelsOf(blockers),
-  );
-  return { ticket, reason: "member-blocked", text };
 }
 
 // Rerun with its blockers, since alone it would find them open and wait on you.

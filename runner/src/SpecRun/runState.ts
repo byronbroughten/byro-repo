@@ -623,6 +623,18 @@ export function waitsToLandTextOf(label: string, blockers: string[]): string {
   return `${label} waits on ${blockers.join(", ")} to land`;
 }
 
+// The wait the run loop and status both show for a member held by blocker members.
+export function memberBlockedWaitOf(
+  member: IssueRef,
+  blockers: IssueRef[],
+): Wait {
+  const text = waitsToLandTextOf(
+    issueLabelOf(member),
+    blockers.map(issueLabelOf),
+  );
+  return { ticket: member, reason: "member-blocked", text };
+}
+
 // Answered Halts go oldest answer first, within one spec and across a Batch's members.
 export function oldestAnsweredOf<AN extends { at: string }>(
   answered: AN[],

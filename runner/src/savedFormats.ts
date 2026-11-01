@@ -2,11 +2,14 @@
 // before #297 Propose was Defer and Proposals were `defers`; before #364 resolve was the `triage` and `fix` steps,
 // a fresh resolver was `triage`, and its records, session and base were `triage`, `triageSession` and `fixBase`;
 // before #367 a facts file's sessions shared one ticket-level account and config folder, and a run state's had neither;
-// before #473 a run state kept the latest step's config folder on the ticket, which a session with none takes.
-// SpecRun/SpecRunBase.ts reads run state through runStateOf(), and FactsFile.ts reads facts through factsOf().
+// before #473 a run state kept the latest step's config folder on the ticket, which a session with none takes;
+// before #513 a supervision record kept its `spec` and, for a Batch, `members` too, the spec repeating the first.
+// SpecRun/SpecRunBase.ts reads run state through runStateOf(), FactsFile.ts reads facts through factsOf(),
+// and SupervisionRecords.ts reads its files through supervisionFileOf(), the one reader of that file the session hooks go through.
 
 import type { WrapUpFacts } from "./FactsFile.ts";
 import type { Halt } from "./halts.ts";
+import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { ReviewFixes } from "./outcomeLog.ts";
 import type { ResolveRecord } from "./resolveStep.ts";
 import type {
@@ -17,6 +20,7 @@ import type {
   TicketState,
   TicketStep,
 } from "./SpecRun/runState.ts";
+import type { RecordFile } from "./SupervisionRecords.ts";
 import type {
   RecordedSession,
   StepAgent,
@@ -75,6 +79,20 @@ interface SavedFacts extends Omit<
   defers?: number;
   reviewFixes?: ReviewFixes | "triage";
   sessions?: SavedTicketSessions;
+}
+
+interface SavedSupervisionFile extends Omit<RecordFile, "members"> {
+  spec?: IssueRef;
+  members?: RecordFile["members"];
+}
+
+export function supervisionFileOf(parsed: unknown): RecordFile {
+  const { spec, members, ...rest } = parsed as SavedSupervisionFile;
+  if (members !== undefined) return { ...rest, members };
+  if (spec === undefined) {
+    throw new Error("A supervision record names no spec.");
+  }
+  return { ...rest, members: [spec] };
 }
 
 export function runStateOf(parsed: unknown): RunState {

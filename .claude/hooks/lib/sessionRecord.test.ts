@@ -2,6 +2,7 @@ import type {
   LeasedWorkspace,
   WorkspaceKey,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
+import type { SupervisionRecord } from "@byronbroughten/spec-runner/SupervisionRecords";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -108,10 +109,10 @@ describe("whereYouAreLineOf", () => {
 });
 
 describe("supervisingLineOf", () => {
-  const record = {
+  const record: SupervisionRecord = {
     pid: holder.pid,
     owner: "byronbroughten",
-    spec: { repo: "byro-repo", number: 331 },
+    members: [{ repo: "byro-repo", number: 331 }],
     offset: 2,
   };
 
