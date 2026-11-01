@@ -74,9 +74,9 @@ export class SupervisionRecords {
     const overlapping = this._files().filter((file) =>
       file.members.some((member) => isMemberOf(members, member)),
     );
-    const eventFile = eventStreamPathOf(this.stateFolder, members);
+    const eventFile = this._eventFileOf(members);
     const sameStream = overlapping.filter(
-      (file) => this._eventFileOf(file) === eventFile,
+      (file) => this._eventFileOf(file.members) === eventFile,
     );
     const offset = Math.max(0, ...sameStream.map((file) => file.offset));
     const watch = sameStream.find((file) => file.watch)?.watch;
@@ -92,13 +92,22 @@ export class SupervisionRecords {
   private _membersOf(named: IssueRef): MemberList {
     const batch = BatchRecords.init(this.stateFolder).batchOf(named);
     if (batch !== undefined) return batch.members;
-    const ended = this._files().find(
-      (file) => file.members.length > 1 && isWatching(file, named),
+    const onBatch = this._files().find(
+      (file) => isBatchRecord(file) && isWatching(file, named),
     );
-    if (ended === undefined) return [named];
-    const ownFile = eventStreamPathOf(this.stateFolder, [named]);
-    if (isWrittenAfter(ownFile, this._eventFileOf(ended))) return [named];
-    return ended.members;
+    if (onBatch === undefined) return [named];
+    const batchFile = this._eventFileOf(onBatch.members);
+    if (this._isRunAloneSince(named, batchFile)) return [named];
+    return onBatch.members;
+  }
+
+  // A run alone takes its lock before writing a line, so a lock newer than the Batch's last line is that run's; the ended Batch's own locks are older.
+  private _isRunAloneSince(named: IssueRef, batchFile: string): boolean {
+    const ownFile = this._eventFileOf([named]);
+    const lockFile = RunLock.heldPathOf(this.stateFolder, named);
+    return [ownFile, lockFile].some(
+      (path) => path !== undefined && isWrittenAfter(path, batchFile),
+    );
   }
 
   // Joins the record holding the spec, a Batch's included when the spec is one of its members.
@@ -135,7 +144,7 @@ export class SupervisionRecords {
   async unexplainedLinesOf(holder: LeaseHolder): Promise<string[]> {
     const record = await this.recordOf(holder);
     if (record === undefined) return [];
-    return rawLinesAt(this._eventFileOf(record)).slice(record.offset);
+    return rawLinesAt(this._eventFileOf(record.members)).slice(record.offset);
   }
 
   // One line explained; never past the last line the run has written.
@@ -143,7 +152,7 @@ export class SupervisionRecords {
     const record = await this.recordOf(holder);
     const file = this._fileOf(holder.pid);
     if (record === undefined || file === undefined) return undefined;
-    const lineCount = rawLinesAt(this._eventFileOf(record)).length;
+    const lineCount = rawLinesAt(this._eventFileOf(record.members)).length;
     const offset = Math.min(record.offset + 1, lineCount);
     this._write({ ...file, offset });
     return { ...record, offset };
@@ -168,7 +177,7 @@ export class SupervisionRecords {
   }
 
   // Read from the record's own members, so a Batch ending later never moves the file its offset counts in.
-  private _eventFileOf({ members }: SupervisionRecord): string {
+  private _eventFileOf(members: MemberList): string {
     return eventStreamPathOf(this.stateFolder, members);
   }
 
@@ -216,6 +225,10 @@ function isWrittenAfter(path: string, otherPath: string): boolean {
   if (!existsSync(path)) return false;
   if (!existsSync(otherPath)) return true;
   return statSync(path).mtimeMs > statSync(otherPath).mtimeMs;
+}
+
+function isBatchRecord({ members }: SupervisionRecord): boolean {
+  return members.length > 1;
 }
 
 // Only a supervision that hasn't ended makes its session the spec's Supervisor.

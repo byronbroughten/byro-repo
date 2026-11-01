@@ -404,6 +404,51 @@ describe("a Batch's supervision record", () => {
       expect(await records().recordOf(me)).toMatchObject({ members: [spec] });
       expect(await records().unexplainedLinesOf(me)).toEqual(["alone"]);
     });
+
+    it("moves to the member's own file once it runs alone, before that run writes a line", async () => {
+      await supervisedToEnd();
+      const later = new Date(Date.now() + 60_000);
+      seedRunLock(spec, process.pid);
+      utimesSync(
+        join(stateFolder, `${fileStemOf(spec)}.run.lock`),
+        later,
+        later,
+      );
+
+      await records().supervise(me, owner, spec);
+
+      expect(await records().recordOf(me)).toMatchObject({ members: [spec] });
+    });
+
+    it("stays on the Batch while the ended run still holds its locks", async () => {
+      const earlier = new Date(Date.now() - 60_000);
+      seedRunLock(spec, process.pid);
+      utimesSync(
+        join(stateFolder, `${fileStemOf(spec)}.run.lock`),
+        earlier,
+        earlier,
+      );
+      await supervisedToEnd();
+
+      await records().supervise(me, owner, spec);
+
+      expect(await records().unexplainedLinesOf(me)).toEqual(["ended"]);
+    });
+  });
+
+  it("prints only lines not yet explained after a Restart's relaunch of the same list", async () => {
+    await openBatch();
+    appendBatchEvents("started", "restarting");
+    await records().supervise(me, owner, spec);
+    await records().advance(me);
+    await records().advance(me);
+
+    // A Restart keeps the Batch's record, and the relaunch opens it again.
+    await openBatch();
+    appendBatchEvents("relaunched");
+    await records().supervise(me, owner, otherSpec);
+
+    expect(await records().unexplainedLinesOf(me)).toEqual(["relaunched"]);
   });
 });
 
