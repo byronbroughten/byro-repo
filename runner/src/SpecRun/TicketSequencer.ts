@@ -77,7 +77,7 @@ export class TicketSequencer extends SpecRunBase {
       if (state.step === "halted") {
         const { extraTurns } = this.config.knobs;
         state.step =
-          runHalts.deliverFailureHalts(run, {
+          runHalts.deliverFailures(run, {
             ticket: ticket.issue,
             extraTurns,
           }) ?? "resume";
@@ -296,9 +296,7 @@ function approvingHaltOf(
   ticket: IssueRef,
   bodyHash: string,
 ): Halt | undefined {
-  const latest = runHalts
-    .haltsOfTicket(run, ticket)
-    .findLast(runHalts.isAuthorshipHalt);
+  const latest = runHalts.ofTicket(run, ticket).findLast(runHalts.isAuthorship);
   if (latest?.answer === undefined || latest.bodyHash !== bodyHash) {
     return undefined;
   }

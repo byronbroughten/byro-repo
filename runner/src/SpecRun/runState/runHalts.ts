@@ -22,7 +22,7 @@ interface DownstreamSearch {
 
 export const runHalts = {
   // Saved with the step's own state when it advances, so a rerun of the step never raises them twice.
-  raiseHalts(
+  raise(
     run: Run,
     { ticket, drafts }: { ticket: IssueRef; drafts: HaltDraft[] },
   ): void {
@@ -45,17 +45,15 @@ export const runHalts = {
     });
   },
 
-  haltsOf(run: Run): Halt[] {
+  of(run: Run): Halt[] {
     return run.state.halts ?? [];
   },
 
-  haltsOfTicket(run: Run, ticket: IssueRef): Halt[] {
-    return runHalts
-      .haltsOf(run)
-      .filter((halt) => isSameIssue(halt.ticket, ticket));
+  ofTicket(run: Run, ticket: IssueRef): Halt[] {
+    return runHalts.of(run).filter((halt) => isSameIssue(halt.ticket, ticket));
   },
 
-  isAuthorshipHalt({ bodyHash }: Halt): boolean {
+  isAuthorship({ bodyHash }: Halt): boolean {
     return bodyHash !== undefined;
   },
 
@@ -63,9 +61,9 @@ export const runHalts = {
     return answer !== undefined && isStopSpecAnswer(answer);
   },
 
-  undeliveredHaltsOf(run: Run, ticket: IssueRef): Halt[] {
+  undeliveredOf(run: Run, ticket: IssueRef): Halt[] {
     return runHalts
-      .haltsOfTicket(run, ticket)
+      .ofTicket(run, ticket)
       .filter(({ isDelivered }) => !isDelivered);
   },
 
@@ -74,13 +72,13 @@ export const runHalts = {
   },
 
   // Marks answered Failure Halts delivered, clears the retry counts and acts on the latest answer; a `skip` read on a later run is a retry.
-  deliverFailureHalts(
+  deliverFailures(
     run: Run,
     { ticket, extraTurns }: { ticket: IssueRef; extraTurns: number },
   ): TicketStep | undefined {
     const state = ticketStateOf(run, ticket);
     const failures = runHalts
-      .undeliveredHaltsOf(run, ticket)
+      .undeliveredOf(run, ticket)
       .filter(isTicketFailureHalt);
     const latest = failures.at(-1);
     if (latest?.answer === undefined) return undefined;
@@ -115,7 +113,7 @@ export const runHalts = {
     return latest.failedStep;
   },
 
-  isGapCheckHalt({ failedStep }: Halt): boolean {
+  isGapCheck({ failedStep }: Halt): boolean {
     return failedStep === "gap-check";
   },
 
@@ -142,8 +140,8 @@ export const runHalts = {
     )[0];
   },
 
-  openHaltsOf(run: Run): Halt[] {
-    return runHalts.haltsOf(run).filter(({ answer }) => answer === undefined);
+  openOf(run: Run): Halt[] {
+    return runHalts.of(run).filter(({ answer }) => answer === undefined);
   },
 };
 
@@ -153,7 +151,7 @@ function isTicketFailureHalt(
   return (
     halt.kind === "failure" &&
     halt.failedStep !== undefined &&
-    !runHalts.isGapCheckHalt(halt)
+    !runHalts.isGapCheck(halt)
   );
 }
 

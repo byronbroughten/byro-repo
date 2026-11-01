@@ -174,8 +174,8 @@ export class ReviewListPoster extends SpecRunBase {
   async _isGapChecked(run: Run): Promise<boolean> {
     if (run.isStandalone) return true;
     const isSkipped = runHalts
-      .haltsOf(run)
-      .some((halt) => runHalts.isGapCheckHalt(halt) && halt.isDelivered);
+      .of(run)
+      .some((halt) => runHalts.isGapCheck(halt) && halt.isDelivered);
     return isSkipped || (await this._hasReviewList(run, gapCheckSubject));
   }
 
@@ -257,7 +257,7 @@ export class ReviewListPoster extends SpecRunBase {
     failure: Omit<StepFailure, "step">,
   ): Promise<never> {
     deliverGapCheckHalts(run);
-    runHalts.raiseHalts(run, {
+    runHalts.raise(run, {
       ticket: run.spec.issue,
       drafts: [failureHaltOf({ ...failure, step: "gap-check" }, [])],
     });
@@ -277,8 +277,8 @@ export class ReviewListPoster extends SpecRunBase {
 // The latest answer the gap check hasn't acted on; a `stop spec` read on a later run is a skip.
 function gapCheckAnswerOf(run: Run): FailureAnswer | undefined {
   const latest = runHalts
-    .haltsOf(run)
-    .filter((halt) => runHalts.isGapCheckHalt(halt) && !halt.isDelivered)
+    .of(run)
+    .filter((halt) => runHalts.isGapCheck(halt) && !halt.isDelivered)
     .at(-1);
   if (latest?.answer === undefined) return undefined;
   if (isStopSpecAnswer(latest.answer)) return { kind: "skip" };
@@ -287,8 +287,8 @@ function gapCheckAnswerOf(run: Run): FailureAnswer | undefined {
 
 function deliverGapCheckHalts(run: Run): void {
   runHalts
-    .haltsOf(run)
-    .filter(runHalts.isGapCheckHalt)
+    .of(run)
+    .filter(runHalts.isGapCheck)
     .forEach((halt) => {
       halt.isDelivered = true;
     });

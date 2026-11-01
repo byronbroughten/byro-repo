@@ -178,7 +178,7 @@ export class ReviewStepper extends SpecRunBase {
     if (!isSameHeads(base, await this._headsOf(workspace))) {
       state.resolver = resolver;
     }
-    runHalts.raiseHalts(run, {
+    runHalts.raise(run, {
       ticket: ticket.issue,
       drafts: records.filter(isHalt).map(verdictHaltOf),
     });

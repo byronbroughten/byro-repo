@@ -326,7 +326,7 @@ function reviewEndOf(ticketRun: TicketRun, error: unknown): ReviewResult {
   const label = issueLabelOf(ticket.issue);
   const halts = run.sessionReview?.postedHalts ?? [];
   if (error instanceof TicketHalted) {
-    const message = `The review of ${label} halted on Halt ${runHalts.idListOf(runHalts.haltsOf(run))}; answer it in this session.`;
+    const message = `The review of ${label} halted on Halt ${runHalts.idListOf(runHalts.of(run))}; answer it in this session.`;
     return {
       kind: "halted",
       message,

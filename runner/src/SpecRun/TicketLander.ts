@@ -299,7 +299,7 @@ export class TicketLander extends SpecRunBase {
     };
     const haltKinds = new Set(
       runHalts
-        .haltsOfTicket(run, ticket.issue)
+        .ofTicket(run, ticket.issue)
         .map(({ kind }) => haltKindLabelOf(kind)),
     );
     if (haltKinds.size > 0) facts.halt = [...haltKinds].join(", ");

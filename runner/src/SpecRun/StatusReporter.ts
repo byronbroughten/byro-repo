@@ -97,7 +97,7 @@ export class StatusReporter extends SpecRunBase {
   // The loop's reading of a member finished with nothing waiting, taken from the saved state and the spec's comments:
   // every ticket landed or closed, no open Halt, and a spec member's gap check done.
   private async _isMemberLanded(run: Run): Promise<boolean> {
-    if (runHalts.openHaltsOf(run).length > 0) return false;
+    if (runHalts.openOf(run).length > 0) return false;
     for (const ticket of run.tickets) {
       if (isLanded(run, ticket)) continue;
       if ((await this.config.github.issueOf(ticket)).isOpen) return false;
@@ -106,7 +106,7 @@ export class StatusReporter extends SpecRunBase {
   }
 
   private async _statusBlockOf(run: Run, batch: BatchView): Promise<string> {
-    const openHalts = runHalts.openHaltsOf(run);
+    const openHalts = runHalts.openOf(run);
     const waits = await this._waitsOf(run, { ...batch, openHalts });
     const landed = run.tickets.filter((ticket) => isLanded(run, ticket));
     const current = waits.flatMap((wait) => currentTextOf(run, wait));

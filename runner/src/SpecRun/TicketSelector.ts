@@ -76,7 +76,7 @@ export class TicketSelector extends SpecRunBase {
     const stopSpecs = await this._readAnswers(run);
     if (stopSpecs.length > 0) return { kind: "stop-spec", halts: stopSpecs };
     const survey = await this._survey(run, {
-      openHalts: runHalts.openHaltsOf(run),
+      openHalts: runHalts.openOf(run),
       landedMembers,
     });
     const { waits, answered, launchable, stoppedAgain } = survey;
@@ -99,7 +99,7 @@ export class TicketSelector extends SpecRunBase {
     const downstreamOf = await this._scopeDownstreamOf(run, openHalts);
     const survey: Survey = { waits: [], answered: [], launchable: [] };
     const { waits } = survey;
-    const gapCheckHalts = openHalts.filter(runHalts.isGapCheckHalt);
+    const gapCheckHalts = openHalts.filter(runHalts.isGapCheck);
     if (gapCheckHalts.length > 0) {
       const text = `The gap check waits on Halt ${runHalts.idListOf(gapCheckHalts)}`;
       waits.push({ ticket: run.spec.issue, reason: "halted", text });
@@ -178,7 +178,7 @@ export class TicketSelector extends SpecRunBase {
 
   // The first reply naming an open Halt answers it; a later one is noted as ignored, once.
   private async _readAnswers(run: Run): Promise<Halt[]> {
-    const posted = runHalts.haltsOf(run).filter(({ isPosted }) => isPosted);
+    const posted = runHalts.of(run).filter(({ isPosted }) => isPosted);
     if (posted.length === 0) return [];
     const stopSpecs: Halt[] = [];
     const comments = await this.config.github.authoredCommentsOf(
@@ -201,7 +201,7 @@ export class TicketSelector extends SpecRunBase {
         );
         await this._comment(run, answeredNoteOf(halt));
         if (runHalts.isStopSpec(halt)) stopSpecs.push(halt);
-        if (isSkipAnswered(halt) && !runHalts.isGapCheckHalt(halt)) {
+        if (isSkipAnswered(halt) && !runHalts.isGapCheck(halt)) {
           run.skipped.add(issueLabelOf(halt.ticket));
         }
       }
@@ -251,7 +251,7 @@ function isHeldBy({ halt, ticket, downstreamOf }: HoldCheck): boolean {
 
 function lastAnswerAtOf(run: Run, ticket: IssueRef): string {
   const times = runHalts
-    .undeliveredHaltsOf(run, ticket)
+    .undeliveredOf(run, ticket)
     .map(({ answer }) => answer?.at ?? "");
   return times.sort().at(-1) ?? "";
 }
