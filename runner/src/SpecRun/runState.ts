@@ -1,16 +1,15 @@
 // The run's state and shapes: the Run, each ticket's TicketState and the step it reached, a ticket's TicketRun,
 // and the Waits that keep a ticket from launching, plus the module functions more than one SpecRun collaborator calls:
-// a ticket's state, step-record reads, and the run's end and wait messages.
+// a ticket's state, and the run's end and wait messages.
 // A declaration here is exported only when another file uses it; a function with one caller sits below that caller's class instead.
-// The class that saves this state is SpecRunBase.ts; the coordinator callers build is ../SpecRun.ts; the Halt helpers are runState/runHalts.ts.
+// The class that saves this state is SpecRunBase.ts; the coordinator callers build is ../SpecRun.ts; the Halt helpers are runState/runHalts.ts;
+// the session and step-record helpers are runState/ticketSteps.ts.
 
 import { execFile } from "node:child_process";
-import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { promisify } from "node:util";
 
 import type { Pair, StepRequest, StepResult } from "../AgentStep.ts";
-import { type ReviewFacts } from "../FactsFile.ts";
 import { messageOf, outputTailOf } from "../failureText.ts";
 import { type Halt, type StepFailure } from "../halts.ts";
 import { type Handoff, type ImplementRecord } from "../implementStep.ts";
@@ -24,17 +23,11 @@ import {
   type Workspace,
 } from "../IssueWorkspaces.ts";
 import { type MergeMasterRecord } from "../mergeMasterStep.ts";
-import { type ResolveRecord, whatReviewCaughtOf } from "../resolveStep.ts";
-import { hasUndecidedItems } from "../reviewList.ts";
+import { type ResolveRecord } from "../resolveStep.ts";
 import type { Finding } from "../reviewStep.ts";
-import type { Command, RunKnobs } from "../runKnobs.ts";
-import { SchemaFailure } from "../SchemaFailure.ts";
+import type { Command } from "../runKnobs.ts";
 import { type Target, targetLineShapes, targetsOf } from "../ticketTargets.ts";
-import {
-  type RecordedSession,
-  type StepAgent,
-  type StepSession,
-} from "../transcriptFacts.ts";
+import { type RecordedSession, type StepSession } from "../transcriptFacts.ts";
 import { stopOutcomes, UnhandledStop } from "../UnhandledStop.ts";
 
 const execFileAsync = promisify(execFile);
@@ -255,140 +248,6 @@ export type StepLaunch = Pick<StepRequest, "prompt" | "jsonSchema"> &
 export type SpecStepRequest = Omit<StepRequest, "account">;
 
 export type Crash = Pick<StepFailure, "detail" | "logPath">;
-
-export function isSameHeads(first: Heads, second: Heads): boolean {
-  return JSON.stringify(first) === JSON.stringify(second);
-}
-
-// A session review has no implement record, so its workspace's branched repos stand in.
-export function branchedReposOf({ workspace, state }: TicketRun): string[] {
-  return (
-    state.record?.branches.map(({ repo }) => repo) ?? workspace.branchedRepos
-  );
-}
-
-// Absent from a state file written before Halts, where the last implement session is the implementer's.
-export function implementerSessionOf(state: TicketState): string | undefined {
-  return state.implementerSession ?? lastSessionOf(state, "implement");
-}
-
-export function lastSessionOf(
-  state: TicketState,
-  agent: StepAgent,
-): string | undefined {
-  return state.sessions.findLast((session) => session.agent === agent)
-    ?.sessionId;
-}
-
-// A session with no folder or account, as one saved before #367, is left out.
-export function recordedSessionsOf(state: TicketState): RecordedSession[] {
-  return state.sessions.flatMap((session) => {
-    const { account, configFolder } = session;
-    if (configFolder === undefined || account === undefined) return [];
-    return [{ ...session, account, configFolder }];
-  });
-}
-
-// A live-ceiling kill is the resolver's crossing, whatever its subtype.
-export function isTurnCapped(result: StepResult): boolean {
-  return result.exitSubtype === "error_max_turns" && !result.hasCrossedCeiling;
-}
-
-export function turnCapDetailOf(
-  step: StepAgent | typeof gapCheckLabel,
-  turns: number,
-): string {
-  return `The ${step} step hit its ${turns}-turn cap.`;
-}
-
-// Review edits nothing, so it has no work of its own to set aside.
-export function isSnapshotted(step: TicketStep): boolean {
-  return step !== "review";
-}
-
-// After a handoff the implement step builds on the uncommitted work, so a snapshot saves it without a reset.
-export function isTreeKept({ step, latestHandoff }: TicketState): boolean {
-  const isImplement = step === "implement" || step === "resume";
-  return isImplement && latestHandoff !== undefined;
-}
-
-// Writes the raw output beside the step's log, so the Failure Halt can link it.
-export function schemaFailureOf(
-  logPath: string,
-  { problems, output }: { problems: string[]; output: unknown },
-): SchemaFailure {
-  const outputPath = logPath.replace(/\.jsonl$/, ".output.txt");
-  const raw =
-    typeof output === "string" ? output : JSON.stringify(output, undefined, 2);
-  writeFileSync(outputPath, raw);
-  return new SchemaFailure(
-    `${problems.join("; ")}\n\nRaw output: \`${outputPath}\``,
-    logPath,
-  );
-}
-
-export function liveCeilingPhraseOf({ liveCeiling }: RunKnobs): string {
-  return `the live ceiling of ${liveCeiling}`;
-}
-
-export function launchedOf(
-  agent: StepAgent,
-  { result, logPath }: RanStep,
-): LaunchedStep {
-  const record = recordOf(agent, result, logPath);
-  const { peakContext, deniedTools } = result;
-  return { record, logPath, peakContext, deniedTools };
-}
-
-export function recordOf(
-  step: string,
-  result: StepResult,
-  logPath: string,
-): unknown {
-  const { output } = result;
-  if (output.status === "schemaFailure") {
-    throw schemaFailureOf(logPath, {
-      problems: output.problems,
-      output: output.rawOutput,
-    });
-  }
-  if (result.errorText !== undefined) {
-    throw new UnhandledStop(
-      "step-error",
-      `The ${step} step ended on an error: ${result.errorText}`,
-      logPath,
-    );
-  }
-  if (result.exitSubtype !== "success" || output.status !== "valid") {
-    throw new UnhandledStop(
-      "step-error",
-      `The ${step} step ended ${result.exitSubtype ?? "without a result"}.`,
-      logPath,
-    );
-  }
-  return output.record;
-}
-
-export function reviewFactsOf({
-  resolver,
-  resolveRecords = [],
-  mergeMasterRecord,
-  unrecordedMerge,
-}: TicketState): ReviewFacts {
-  const facts: ReviewFacts = {
-    reviewFixes: resolver ?? "none",
-    whatReviewCaught: whatReviewCaughtOf(resolveRecords),
-    proposals: resolveRecords.filter(({ verdict }) => verdict === "propose")
-      .length,
-  };
-  const review = {
-    records: resolveRecords,
-    mergeMasterRecord,
-    unrecordedMerge,
-  };
-  if (hasUndecidedItems(review)) facts.hasUndecidedReviewItems = true;
-  return facts;
-}
 
 export function stoppedOnTextOf({
   outcome,

@@ -42,21 +42,19 @@ import { UnhandledStop } from "../UnhandledStop.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import {
   gapCheckLabel,
-  isTurnCapped,
   landedTextOf,
   type RanStep,
-  recordOf,
   type Run,
   type RunResult,
   type SpecStepRequest,
   stoppedOnTextOf,
   ticketStateOf,
   type TrackedIssue,
-  turnCapDetailOf,
   type Wait,
   waitsTextOf,
 } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
+import { ticketSteps } from "./runState/ticketSteps.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 import { StepLauncher } from "./StepLauncher.ts";
 
@@ -215,19 +213,24 @@ export class ReviewListPoster extends SpecRunBase {
     let ran = await this._runGapCheck(run, request);
     for (
       let retries = 0;
-      isTurnCapped(ran.result) && retries < knobs.retriesPerFailure;
+      ticketSteps.isTurnCapped(ran.result) && retries < knobs.retriesPerFailure;
       retries += 1
     ) {
       ran = await this._runGapCheck(run, request);
     }
     const { result, logPath } = ran;
-    if (isTurnCapped(result)) {
-      const detail = turnCapDetailOf(gapCheckLabel, knobs.maxTurns.gapCheck);
+    if (ticketSteps.isTurnCapped(result)) {
+      const detail = ticketSteps.turnCapDetailOf(
+        gapCheckLabel,
+        knobs.maxTurns.gapCheck,
+      );
       await this._gapCheckHalt(run, { detail, logPath });
     }
     let record: GapCheckRecord;
     try {
-      record = gapCheckRecordOf(recordOf(gapCheckLabel, result, logPath));
+      record = gapCheckRecordOf(
+        ticketSteps.recordOf(gapCheckLabel, result, logPath),
+      );
     } catch (error) {
       if (!(error instanceof SchemaFailure)) throw error;
       return this._gapCheckHalt(run, {

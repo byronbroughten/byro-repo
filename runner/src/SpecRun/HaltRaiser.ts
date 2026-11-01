@@ -24,13 +24,13 @@ import { RunStop } from "../RunStop.ts";
 import { TicketHalted } from "../TicketHalted.ts";
 import {
   type Crash,
-  isSnapshotted,
   type LandingTicket,
   type Run,
   type TicketRun,
   ticketStateOf,
 } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
+import { ticketSteps } from "./runState/ticketSteps.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 
 export class HaltRaiser extends SpecRunBase {
@@ -39,7 +39,7 @@ export class HaltRaiser extends SpecRunBase {
     const { run, ticket, state } = ticketRun;
     const { step } = state;
     const { detail } = crash;
-    if (isSnapshotted(step)) await this._snapshot(ticketRun, step);
+    if (ticketSteps.isSnapshotted(step)) await this._snapshot(ticketRun, step);
     state.crashes ??= {};
     const taken = state.crashes[step] ?? 0;
     const { retriesPerFailure } = this.config.knobs;

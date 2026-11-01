@@ -32,20 +32,14 @@ import { HaltRaiser } from "./HaltRaiser.ts";
 import {
   type Continuation,
   type Heads,
-  implementerSessionOf,
-  isSameHeads,
-  isTreeKept,
-  lastSessionOf,
-  launchedOf,
   type LaunchedStep,
-  liveCeilingPhraseOf,
   type RanStep,
-  schemaFailureOf,
   type StepLaunch,
   type TicketRun,
   type TicketState,
 } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
+import { ticketSteps } from "./runState/ticketSteps.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 import { StepLauncher } from "./StepLauncher.ts";
 
@@ -126,7 +120,7 @@ export class ImplementStepper extends SpecRunBase {
     if (ran.result.hasCrossedCeiling) {
       return this._handOffAtCeiling(ticketRun, { ranStep: ran, headsBefore });
     }
-    const launched = launchedOf("implement", ran);
+    const launched = ticketSteps.launchedOf("implement", ran);
     return this._takeImplementRecord({ ticketRun, launched, headsBefore });
   }
 
@@ -145,10 +139,10 @@ export class ImplementStepper extends SpecRunBase {
       ),
     });
     try {
-      const launched = launchedOf("implement", ran);
+      const launched = ticketSteps.launchedOf("implement", ran);
       const { status } = implementRecordOf(launched.record);
       if (status !== "handoff") {
-        throw schemaFailureOf(ran.logPath, {
+        throw ticketSteps.schemaFailureOf(ran.logPath, {
           problems: [`the record is ${status}, not a handoff`],
           output: launched.record,
         });
@@ -163,7 +157,7 @@ export class ImplementStepper extends SpecRunBase {
       await this._snapshot(ticketRun, state.step);
       // Rethrown so the Failure Halt offers `retry record` when the step had committed.
       throw new SchemaFailure(
-        `The implement step crossed ${liveCeilingPhraseOf(this.config.knobs)}, and its handoff record failed: ${error.message}`,
+        `The implement step crossed ${ticketSteps.liveCeilingPhraseOf(this.config.knobs)}, and its handoff record failed: ${error.message}`,
         error.logPath,
       );
     }
@@ -247,8 +241,8 @@ export class ImplementStepper extends SpecRunBase {
     const record = implementRecordOf(launched.record);
     const { logPath } = launched;
     state.implementPeak = launched.peakContext;
-    state.implementerSession = lastSessionOf(state, "implement");
-    const hasNewCommit = !isSameHeads(
+    state.implementerSession = ticketSteps.lastSessionOf(state, "implement");
+    const hasNewCommit = !ticketSteps.isSameHeads(
       headsBefore,
       await this._headsOf(workspace),
     );
@@ -260,7 +254,7 @@ export class ImplementStepper extends SpecRunBase {
       hasNewCommit || isRecommit,
     );
     if (problems.length > 0) {
-      throw schemaFailureOf(logPath, {
+      throw ticketSteps.schemaFailureOf(logPath, {
         problems,
         output: launched.record,
       });
@@ -296,7 +290,7 @@ export class ImplementStepper extends SpecRunBase {
 
   private _resumeLaunchOf(ticketRun: TicketRun, halts: Halt[]): StepLaunch {
     const { state } = ticketRun;
-    const sessionId = implementerSessionOf(state);
+    const sessionId = ticketSteps.implementerSessionOf(state);
     const isUnderBudget = this._isUnderBudget(state);
     const isHandedOff = state.latestHandoff !== undefined;
     if (sessionId !== undefined && isUnderBudget && !isHandedOff) {
@@ -323,14 +317,14 @@ function continuationLaunchOf(
   liveCeiling: number,
 ): StepLaunch {
   const launch = {
-    resumeSessionId: lastSessionOf(state, "implement"),
+    resumeSessionId: ticketSteps.lastSessionOf(state, "implement"),
     jsonSchema: implementOutputSchema,
   };
   if (continuation.kind === "record") {
     return { ...launch, prompt: recordOnlyPrompt };
   }
   const { turns } = continuation;
-  const prompt = moreTurnsPrompt(turns, !isTreeKept(state));
+  const prompt = moreTurnsPrompt(turns, !ticketSteps.isTreeKept(state));
   return { ...launch, prompt, maxTurns: turns, liveCeiling };
 }
 

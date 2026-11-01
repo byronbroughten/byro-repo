@@ -24,19 +24,15 @@ import { HaltRaiser } from "./HaltRaiser.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
 import { ReviewStepper } from "./ReviewStepper.ts";
 import {
-  branchedReposOf,
-  isTurnCapped,
   type LandingTicket,
-  recordedSessionsOf,
-  recordOf,
   type Resolver,
-  reviewFactsOf,
   runCommand,
   targetsAtLaunchOf,
   type TicketRun,
   type TicketState,
 } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
+import { ticketSteps } from "./runState/ticketSteps.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 
 const resolverLabels: Record<Resolver, string> = {
@@ -119,7 +115,7 @@ export class TicketLander extends SpecRunBase {
             issue: ticket.issue,
             title: ticket.title,
             branch: workspace.branch,
-            branchedRepos: branchedReposOf(ticketRun),
+            branchedRepos: ticketSteps.branchedReposOf(ticketRun),
             failures: failure,
           }),
           jsonSchema: redChecksOutputSchema,
@@ -130,11 +126,11 @@ export class TicketLander extends SpecRunBase {
     state.isStepStarted = undefined;
     this._saveState(run);
     // The checks loop judges what a capped resolver committed.
-    if (isTurnCapped(result)) {
+    if (ticketSteps.isTurnCapped(result)) {
       await this._snapshot(ticketRun, "checks");
       return;
     }
-    recordOf("resolve", result, logPath);
+    ticketSteps.recordOf("resolve", result, logPath);
   }
 
   // Checks run in a master set, so neither another session's uncommitted edit nor a local fix hides master's own state.
@@ -158,7 +154,7 @@ export class TicketLander extends SpecRunBase {
   // Needs no workspace: a wrap-up killed after removing it resumes from its own progress file.
   async _land(landingTicket: LandingTicket): Promise<void> {
     const { run, ticket, state } = landingTicket;
-    const steps = recordedSessionsOf(state);
+    const steps = ticketSteps.recordedSessionsOf(state);
     this._writeFacts(landingTicket, steps);
     this._warnOnUnrecordedFacts(landingTicket, steps);
     this._log(run, `${issueLabelOf(ticket.issue)}: wrapping up.`);
@@ -169,7 +165,10 @@ export class TicketLander extends SpecRunBase {
       } catch (error) {
         await this._takeWrapUpFailure(landingTicket, error);
         // A merge-master resume adds an item to the review list, which the rerun's close step reads.
-        this.factsFile.setReviewFacts(ticket.issue, reviewFactsOf(state));
+        this.factsFile.setReviewFacts(
+          ticket.issue,
+          ticketSteps.reviewFactsOf(state),
+        );
       }
     }
     this._advance(landingTicket, "landed");
@@ -243,7 +242,7 @@ export class TicketLander extends SpecRunBase {
             issue: ticket.issue,
             title: ticket.title,
             branch: workspace.branch,
-            branchedRepos: branchedReposOf(ticketRun),
+            branchedRepos: ticketSteps.branchedReposOf(ticketRun),
             conflict,
           }),
           jsonSchema: mergeMasterOutputSchema,
@@ -251,7 +250,7 @@ export class TicketLander extends SpecRunBase {
       },
     );
     this._saveState(run);
-    if (isTurnCapped(result)) {
+    if (ticketSteps.isTurnCapped(result)) {
       // It may have committed its merge first, which the rerun wrap-up then lands.
       landingTicket.state.unrecordedMerge =
         "The merge-master session hit its turn cap before returning its record.";
@@ -260,7 +259,7 @@ export class TicketLander extends SpecRunBase {
       return;
     }
     try {
-      landingTicket.state.mergeMasterRecord = recordOf(
+      landingTicket.state.mergeMasterRecord = ticketSteps.recordOf(
         "merge-master",
         result,
         logPath,
@@ -292,7 +291,7 @@ export class TicketLander extends SpecRunBase {
     const facts: WrapUpFacts = {
       closingComment: record.closingComment,
       boxesUndone: record.boxesUndone,
-      ...reviewFactsOf(state),
+      ...ticketSteps.reviewFactsOf(state),
       reviewRounds: 1,
       retries: retriesOf(state),
       pair: pairLabelOf(pair),

@@ -39,9 +39,7 @@ import { LeaseKeeper } from "./LeaseKeeper.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
 import { ReviewStepper } from "./ReviewStepper.ts";
 import {
-  recordedSessionsOf,
   type ResolveOptions,
-  reviewFactsOf,
   type ReviewOptions,
   type ReviewResult,
   stoppedOnTextOf,
@@ -51,6 +49,7 @@ import {
   type TicketState,
 } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
+import { ticketSteps } from "./runState/ticketSteps.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 import { TicketSequencer } from "./TicketSequencer.ts";
 
@@ -234,7 +233,10 @@ export class SessionReviewer extends SpecRunBase {
 
   private async _finishReview(ticketRun: TicketRun): Promise<ReviewResult> {
     const { ticket, state } = ticketRun;
-    this.factsFile.setReviewFacts(ticket.issue, reviewFactsOf(state));
+    this.factsFile.setReviewFacts(
+      ticket.issue,
+      ticketSteps.reviewFactsOf(state),
+    );
     await this.reviewListPoster._postCoveredLaterNotes(
       ticket.issue,
       state.resolveRecords ?? [],
@@ -253,7 +255,7 @@ export class SessionReviewer extends SpecRunBase {
   // Beside the implement session, each under the account and config folder it ran as, so wrap-up prices them as review cost.
   private _recordSessions({ run, ticket, state }: TicketRun): void {
     try {
-      for (const step of recordedSessionsOf(state)) {
+      for (const step of ticketSteps.recordedSessionsOf(state)) {
         this.factsFile.addSession(ticket.issue, step);
       }
     } catch (error) {
@@ -307,7 +309,7 @@ function brokenRulesOf(problems: string[]): ReviewResult {
 }
 
 function reviewedMessageOf({ ticket, state }: TicketRun): string {
-  const { whatReviewCaught } = reviewFactsOf(state);
+  const { whatReviewCaught } = ticketSteps.reviewFactsOf(state);
   const findings = state.findings?.length ?? 0;
   return `Reviewed ${issueLabelOf(ticket.issue)}, findings: ${findings}. ${whatReviewCaught ?? "Nothing to fix or decide."}`;
 }
