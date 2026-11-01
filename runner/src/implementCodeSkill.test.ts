@@ -62,7 +62,7 @@ describe("implementCodeSkillOf", () => {
 
   it("records a Propose the session fixed before landing as decided, not handled", () => {
     expect(skill).toContain(
-      "`npm run runner -- decide <owner>/<repo> <spec> R<n>.<k> 'fixed in session · <commit>'`, never `--handled`",
+      "`npm run runner -- decide <owner>/<repo> <spec> R<n>.<k> 'fixed in session · <commit>'`, never `--handled`:",
     );
   });
 

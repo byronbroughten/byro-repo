@@ -14,6 +14,7 @@ import { reviewPrintoutOf } from "./SpecRun.ts";
 import {
   addSpec,
   clonePaths,
+  commentsOn,
   crashed,
   findingOf,
   github,
@@ -98,13 +99,6 @@ describe("review of one ticket outside a run", () => {
       reviewed(findings),
       resolved([propose, fix, coveredLater], file),
     );
-  }
-
-  function commentsOn(number: number, mark: string): string[] {
-    return github.comments
-      .filter(({ issue }) => issue.number === number)
-      .map(({ body }) => body)
-      .filter((body) => body.includes(mark));
   }
 
   it("writes reviewFixes none and posts nothing when the review finds nothing", async () => {

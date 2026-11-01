@@ -99,6 +99,7 @@ export const wrapUpConfig: WrapUpConfig = {
   workspaces: issueWorkspacesConfig,
   github: new GhCli(githubOwner),
   githubOwner,
+  developer,
   checks: runKnobs.checks,
   outcomeFolder,
   stateFolder,

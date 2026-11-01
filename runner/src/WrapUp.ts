@@ -33,7 +33,6 @@ import {
   lines,
   worktreeStateOf,
 } from "./git.ts";
-import { runnerMark } from "./halts.ts";
 import {
   fileStemOf,
   holderLabelOf,
@@ -58,12 +57,13 @@ import {
   type WrittenOutcomeRow,
 } from "./outcomeRowWriter.ts";
 import {
-  isReviewList,
+  developersReviewListsOf,
   reviewListMarkOf,
   undecidedCountOf,
 } from "./reviewList.ts";
 import { secretShapeOf } from "./secretShapes.ts";
 import { sleep } from "./sleep.ts";
+import type { IssueComment } from "./SpecRun.ts";
 import { stalePathLabelOf, stalePathsTouchedBy } from "./stalePaths.ts";
 import { handoffSessionIdOf } from "./transcriptFacts.ts";
 import { WrapUpFailure } from "./WrapUpFailure.ts";
@@ -86,6 +86,7 @@ export interface WrapUpGitHub {
   subIssuesOf(issue: IssueRef): Promise<IssueRef[]>;
   labelsOf(issue: IssueRef): Promise<string[]>;
   commentsOf(issue: IssueRef): Promise<string[]>;
+  authoredCommentsOf(issue: IssueRef): Promise<IssueComment[]>;
 }
 
 export type ParentCheck =
@@ -126,6 +127,8 @@ export interface WrapUpConfig {
   workspaces: IssueWorkspacesConfig;
   github: WrapUpGitHub;
   githubOwner: string;
+  // The one login whose review lists the close step counts.
+  developer: string;
   // Each a command and its args, run from the workspace's root after the merges.
   checks: [string, ...string[]][];
   // Relative to the root repo.
@@ -955,19 +958,16 @@ export class WrapUp {
     return subIssues.length === 0;
   }
 
-  // Counts the posted lists, so an item `runner decide` settled no longer counts; a run posts its list only after
-  // wrap-up, so until this ticket's is posted the facts stand in for it.
+  // A run posts its list only after wrap-up, so until this ticket's is posted the facts stand in for it.
   private async _hasUndecidedReviewItems(
     issue: IssueRef,
     facts: WrapUpFacts,
   ): Promise<boolean> {
     const comments = await this._withRetries(
       `Reading ${issueLabelOf(issue)}'s comments`,
-      () => this.config.github.commentsOf(issue),
+      () => this.config.github.authoredCommentsOf(issue),
     );
-    const lists = comments.filter(
-      (body) => body.includes(runnerMark) && isReviewList(body),
-    );
+    const lists = developersReviewListsOf(comments, this.config.developer);
     const mark = reviewListMarkOf(issue);
     if (!lists.some((body) => body.includes(mark))) {
       return facts.hasUndecidedReviewItems === true;

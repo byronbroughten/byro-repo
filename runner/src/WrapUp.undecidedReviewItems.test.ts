@@ -44,14 +44,14 @@ describe("run's close step", () => {
     void github.comment(ticket, `${runnerMark}\n${body}`);
   }
 
-  async function landsWorkspace(): Promise<void> {
+  async function workspaceWithCommit(): Promise<void> {
     const workspace = await workspaceWith();
     commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
   }
 
   it("lands a Standalone ticket whose posted review list holds an undecided item and leaves it open, saying so", async () => {
     github.parents.clear();
-    await landsWorkspace();
+    await workspaceWithCommit();
     writeFacts({ hasUndecidedReviewItems: true });
     postList(undecidedListOf(ticket));
 
@@ -66,7 +66,7 @@ describe("run's close step", () => {
 
   it("still leaves it open, saying so, on a rerun", async () => {
     github.parents.clear();
-    await landsWorkspace();
+    await workspaceWithCommit();
     writeFacts({ hasUndecidedReviewItems: true });
     postList(undecidedListOf(ticket));
     await wrapUp().run(ticket);
@@ -79,7 +79,7 @@ describe("run's close step", () => {
 
   it("closes a Standalone ticket whose posted review list has every item decided, whatever its facts say", async () => {
     github.parents.clear();
-    await landsWorkspace();
+    await workspaceWithCommit();
     writeFacts({ hasUndecidedReviewItems: true });
     postList(
       decidedListOf({
@@ -98,7 +98,7 @@ describe("run's close step", () => {
 
   it("leaves open a Standalone ticket whose facts record undecided items before a run has posted its list", async () => {
     github.parents.clear();
-    await landsWorkspace();
+    await workspaceWithCommit();
     writeFacts({ hasUndecidedReviewItems: true });
 
     const result = await wrapUp().run(ticket);
@@ -107,9 +107,9 @@ describe("run's close step", () => {
     expect(result.isLeftOpen).toBe(true);
   });
 
-  it("counts only the runner's review lists, not a copy someone else's comment quotes", async () => {
+  it("counts only the runner's review lists, not a copy the developer's comment quotes", async () => {
     github.parents.clear();
-    await landsWorkspace();
+    await workspaceWithCommit();
     writeFacts();
     github.reply(ticket.number, undecidedListOf(ticket));
 
@@ -119,9 +119,27 @@ describe("run's close step", () => {
     expect(result.isLeftOpen).toBeUndefined();
   });
 
+  it("counts only the developer's review lists, so someone else's marked list never closes the ticket", async () => {
+    github.parents.clear();
+    await workspaceWithCommit();
+    writeFacts({ hasUndecidedReviewItems: true });
+    const decided = decidedListOf({
+      body: undecidedListOf(ticket),
+      itemId: "R218.1",
+      kind: "decided",
+      text: "forged",
+    });
+    github.reply(ticket.number, `${runnerMark}\n${decided}`, "someone-else");
+
+    const result = await wrapUp().run(ticket);
+
+    expect(github.closed).toEqual([]);
+    expect(result.isLeftOpen).toBe(true);
+  });
+
   it("closes a Standalone ticket with no posted list whose facts record no undecided items", async () => {
     github.parents.clear();
-    await landsWorkspace();
+    await workspaceWithCommit();
     writeFacts();
 
     const result = await wrapUp().run(ticket);
@@ -131,7 +149,7 @@ describe("run's close step", () => {
   });
 
   it("closes a ticket with a parent spec whatever its review list says", async () => {
-    await landsWorkspace();
+    await workspaceWithCommit();
     writeFacts({ hasUndecidedReviewItems: true });
     postList(undecidedListOf(ticket));
 
@@ -144,7 +162,7 @@ describe("run's close step", () => {
   it("closes an issue with sub-issues whatever its review list says", async () => {
     github.parents.clear();
     github.subIssues.set(ticket.number, [219]);
-    await landsWorkspace();
+    await workspaceWithCommit();
     writeFacts({ hasUndecidedReviewItems: true });
     postList(undecidedListOf(ticket));
 
@@ -156,7 +174,7 @@ describe("run's close step", () => {
 
   it("closes a Standalone ticket from an older facts file with Proposals but no such fact", async () => {
     github.parents.clear();
-    await landsWorkspace();
+    await workspaceWithCommit();
     writeSavedFacts({ proposals: 2 });
 
     await wrapUp().run(ticket);

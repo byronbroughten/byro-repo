@@ -2,10 +2,9 @@
 // reads one summary instead of a `gh` call per issue. One comment search finds the candidates; each is then read for the
 // developer's own review lists, counted by ../reviewList.ts. SpecRun.ts delegates here.
 
-import { isRunnersComment } from "../halts.ts";
 import { issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
 import {
-  isReviewList,
+  developersReviewListsOf,
   reviewListHeading,
   undecidedCountOf,
 } from "../reviewList.ts";
@@ -41,14 +40,10 @@ export class JudgeableIssueLister extends SpecRunBase {
   // Only the developer's own review lists count, as `runner decide` and /judge-findings read them.
   private async _judgementOf(issue: IssueRef): Promise<Judgement | undefined> {
     const { github, developer } = this.config;
-    const lists = (await github.authoredCommentsOf(issue))
-      .filter(
-        (comment) =>
-          comment.author === developer &&
-          isRunnersComment(comment) &&
-          isReviewList(comment.body),
-      )
-      .map(({ body }) => body);
+    const lists = developersReviewListsOf(
+      await github.authoredCommentsOf(issue),
+      developer,
+    );
     if (lists.length === 0) return undefined;
     const { items } = undecidedCountOf(lists);
     if (items > 0) return items;

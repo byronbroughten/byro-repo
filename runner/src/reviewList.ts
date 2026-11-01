@@ -6,7 +6,7 @@
 // session's review, which also returns the ticket's to print; WrapUp.ts counts a Standalone ticket's; SpecRun/ReviewItemDecider.ts edits one; gapCheck.ts supplies the gaps.
 
 import type { Gap, GapCheckRecord } from "./gapCheck.ts";
-import { shortRefOf } from "./halts.ts";
+import { isRunnersComment, shortRefOf } from "./halts.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
 import type { MergeMasterRecord } from "./mergeMasterStep.ts";
 import { issueRefOf, type ResolveRecord } from "./resolveStep.ts";
@@ -400,6 +400,21 @@ export interface UndecidedCount {
 
 export function isReviewList(body: string): boolean {
   return body.includes(listMarkPrefix);
+}
+
+// Only the developer's runner comments count, as `runner decide` and /judge-findings read them; anyone else's is Untrusted text.
+export function developersReviewListsOf(
+  comments: IssueComment[],
+  developer: string,
+): string[] {
+  return comments
+    .filter(
+      (comment) =>
+        comment.author === developer &&
+        isRunnersComment(comment) &&
+        isReviewList(comment.body),
+    )
+    .map(({ body }) => body);
 }
 
 // Counts unticked boxes, so an item /judge-findings or a hand tick decided no longer counts.

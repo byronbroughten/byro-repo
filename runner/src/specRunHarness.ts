@@ -397,6 +397,13 @@ export function haltComments(): string[] {
     .filter((body) => body.includes("**Halt H"));
 }
 
+export function commentsOn(number: number, mark: string): string[] {
+  return github.comments
+    .filter(({ issue }) => issue.number === number)
+    .map(({ body }) => body)
+    .filter((body) => body.includes(mark));
+}
+
 // The notices the ntfy adapter pushes, with the three fields it sends.
 export function ntfyNotices(): Pick<
   Notice,

@@ -152,12 +152,19 @@ export class SpecRunBase {
   }
 
   get wrapUp(): WrapUp {
-    const { github, githubOwner, knobs, outcomeFolder, stateFolder } =
-      this.config;
+    const {
+      github,
+      githubOwner,
+      developer,
+      knobs,
+      outcomeFolder,
+      stateFolder,
+    } = this.config;
     return WrapUp.init({
       workspaces: this._workspacesConfig,
       github,
       githubOwner,
+      developer,
       checks: knobs.checks,
       outcomeFolder,
       stateFolder,
