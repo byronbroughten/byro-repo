@@ -218,9 +218,8 @@ export class WrapUp extends WrapUpBase {
     if (!isDone(landing, "fast-forward")) await this._land(landing);
     await this._landAndRemove(landing);
     await this._step(landing, "close", async () => {
-      if (await this.closer._close(issue, facts)) {
-        landing.progress.isLeftOpen = true;
-      }
+      const isLeftOpen = await this.closer._closeOrLeaveOpen(issue, facts);
+      if (isLeftOpen) landing.progress.isLeftOpen = true;
     });
     await this._step(landing, "parent-check", async () => {
       landing.progress.parent = await this.closer._checkParent(issue);

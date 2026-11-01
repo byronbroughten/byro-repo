@@ -14,7 +14,10 @@ import { labels, type ParentCheck, type ParentIssue } from "./wrapUpTypes.ts";
 
 export class IssueCloser extends WrapUpBase {
   // A Standalone ticket is its own spec, so every Propose on it is decided before it closes.
-  async _close(issue: IssueRef, facts: WrapUpFacts): Promise<boolean> {
+  async _closeOrLeaveOpen(
+    issue: IssueRef,
+    facts: WrapUpFacts,
+  ): Promise<boolean> {
     const isLeftOpen =
       (await this._isStandalone(issue)) &&
       (await this._hasUndecidedReviewItems(issue, facts));
