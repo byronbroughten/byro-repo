@@ -1,7 +1,8 @@
 // What a caller outside the run asks of it: `status`, each member's block and the account's reading,
 // and `requestStop`, which leaves the stop request RunLoop.ts takes between tickets; the request's path is the Base's.
 // A Batch's record (../BatchRecords.ts) lets either take any member's number for the whole Batch.
-// ../SpecRun.ts delegates status and requestStop to it; it builds its own TicketSelector for each member's waits.
+// ../SpecRun.ts delegates status and requestStop to it; it builds its own TicketSelector for each member's waits,
+// and its own ReviewListPoster to read whether a member's gap check is done.
 
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 
@@ -16,6 +17,7 @@ import {
   type IssueRef,
 } from "../IssueWorkspaces.ts";
 import { readingLabelOf } from "../limitGuard.ts";
+import { ReviewListPoster } from "./ReviewListPoster.ts";
 import {
   type BatchView,
   isLanded,
@@ -35,6 +37,10 @@ interface Waiting extends BatchView {
 }
 
 export class StatusReporter extends SpecRunBase {
+  private get reviewListPoster(): ReviewListPoster {
+    return new ReviewListPoster(this.config);
+  }
+
   private get ticketSelector(): TicketSelector {
     return new TicketSelector(this.config);
   }
@@ -88,14 +94,15 @@ export class StatusReporter extends SpecRunBase {
     writeFileSync(this._stopRequestPathOf(lead), "");
   }
 
-  // The loop's reading of a member finished with nothing waiting, taken from the saved state: every ticket landed or closed, no open Halt.
+  // The loop's reading of a member finished with nothing waiting, taken from the saved state and the spec's comments:
+  // every ticket landed or closed, no open Halt, and its gap check done.
   private async _isMemberLanded(run: Run): Promise<boolean> {
     if (openHaltsOf(run).length > 0) return false;
     for (const ticket of run.tickets) {
       if (isLanded(run, ticket)) continue;
       if ((await this.config.github.issueOf(ticket)).isOpen) return false;
     }
-    return true;
+    return this.reviewListPoster._isGapChecked(run);
   }
 
   private async _statusBlockOf(run: Run, batch: BatchView): Promise<string> {
