@@ -246,11 +246,15 @@ function trustedPart({ heading, text }: IssuePart): string[] {
 }
 
 function untrustedPart({ heading, text }: IssuePart, whose: string): string[] {
-  return [untrustedHeadingOf(heading, whose), "", ...quotedLinesOf(text)];
+  return [untrustedHeadingOf(heading, whose), ...quotedTextOf(text)];
 }
 
 function untrustedHeadingOf(heading: string, whose: string): string {
   return `${heading} (Untrusted text: ${whose})`;
+}
+
+function quotedTextOf(text: string): string[] {
+  return ["", ...quotedLinesOf(text)];
 }
 
 function quotedLinesOf(text: string): string[] {
@@ -265,8 +269,7 @@ function othersCommentsOf(others: NumberedComment[]): string[] {
       "",
       untrustedHeadingOf(heading, `written by ${author}`),
       url,
-      "",
-      ...quotedLinesOf(body),
+      ...quotedTextOf(body),
     ),
   );
   return printed;
