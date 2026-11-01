@@ -133,10 +133,11 @@ export class ReviewListPoster extends SpecRunBase {
   }
 
   // The gap check waits for every ticket to close, since an open one may still land what it would report; undefined once it halts.
+  // A Standalone ticket gets none: it has no User Stories or Implementation Decisions to check, and its review checked its acceptance criteria.
   // A RunStop is thrown on to the run loop, which ends every unfinished member on it.
   async _finish(run: Run, waits: Wait[]): Promise<RunResult | undefined> {
     await this._postLandedReviewLists(run);
-    if (waits.length === 0) {
+    if (waits.length === 0 && !run.isTicketless) {
       try {
         await this._gapCheck(run);
       } catch (error) {
@@ -170,8 +171,9 @@ export class ReviewListPoster extends SpecRunBase {
     }
   }
 
-  // A `skip` answer delivers the gap check's Halt and posts no list, so a delivered one counts as done too.
+  // A `skip` answer delivers the gap check's Halt and posts no list, so a delivered one counts as done too; a Standalone ticket needs none.
   async _isGapChecked(run: Run): Promise<boolean> {
+    if (run.isTicketless) return true;
     const isSkipped = haltsOf(run).some(
       (halt) => isGapCheckHalt(halt) && halt.isDelivered,
     );

@@ -112,7 +112,7 @@ The step at the end of a spec that lists what the spec asked for that no landed 
 _Avoid_: audit, retro
 
 **Land**:
-A ticket lands when its work is merged into master and pushed, which is not closing its issue: that happens at landing or, while its review list has undecided items, at `/judge-findings`. A Batch member lands once each of its tickets has landed or closed, no Halt is open and its gap check is done, and only then stops blocking the members after it.
+A ticket lands when its work is merged into master and pushed, which is not closing its issue: that happens at landing or, while its review list has undecided items, at `/judge-findings`. A Batch member lands once each of its tickets has landed or closed, no Halt is open and, unless it is a Standalone ticket, its gap check is done, and only then stops blocking the members after it.
 _Avoid_: merge, ship, done, closed (for a landing)
 
 **Primary checkout**:

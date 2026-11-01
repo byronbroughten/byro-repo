@@ -95,7 +95,7 @@ export class StatusReporter extends SpecRunBase {
   }
 
   // The loop's reading of a member finished with nothing waiting, taken from the saved state and the spec's comments:
-  // every ticket landed or closed, no open Halt, and its gap check done.
+  // every ticket landed or closed, no open Halt, and a spec member's gap check done.
   private async _isMemberLanded(run: Run): Promise<boolean> {
     if (openHaltsOf(run).length > 0) return false;
     for (const ticket of run.tickets) {

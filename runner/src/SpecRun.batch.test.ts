@@ -13,6 +13,7 @@ import {
   eventLinesOf,
 } from "./EventFileNotices.ts";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
+import { gapCheckOutputSchema } from "./gapCheck.ts";
 import type { Blocker } from "./implementStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import { seedHolder } from "./lockFixture.ts";
@@ -734,10 +735,10 @@ describe("a Batch's record", () => {
     );
   });
 
-  it("keeps a member waiting on a landed blocker member until the blocker's gap check is done, as the loop does", async () => {
-    addIssue(blocker.number);
+  it("keeps a member waiting on a landed blocker spec member until the blocker's gap check is done, as the loop does", async () => {
+    addSpec([1]);
     addIssue(dependent.number);
-    github.blockers.set(dependent.number, [blocker.number]);
+    github.blockers.set(dependent.number, [spec.number]);
     const statuses: string[] = [];
     const noGaps = resultOf({ gaps: [] });
     const agentStep = FakeAgentStep.init(
@@ -745,25 +746,24 @@ describe("a Batch's record", () => {
       statusDuring(statuses, async () => noGaps),
       statusDuring(statuses, implemented("dependent.ts")),
       reviewed(),
-      noGaps,
     );
 
-    await runBatch(agentStep, { members: [dependent, blocker], agentStep });
+    await runBatch(agentStep, { members: [dependent, spec], agentStep });
 
     const [duringBlockerGapCheck, afterBlockerGapCheck] = statuses;
     expect(duringBlockerGapCheck).toContain(
-      'byro-repo #498, "Ticket 498"\nLanded: byro-repo #498.',
+      'byro-repo #213, "The spec"\nLanded: byro-repo #1.',
     );
     expect(duringBlockerGapCheck).toContain(
-      "Waiting: byro-repo #499 waits on byro-repo #498 to land.",
+      "Waiting: byro-repo #499 waits on byro-repo #213 to land.",
     );
     expect(afterBlockerGapCheck).not.toContain("to land");
   });
 
-  it("counts a blocker member whose gap check a `skip` answer skipped as cleared, though it posted no gap-check list", async () => {
-    addIssue(blocker.number);
+  it("counts a blocker spec member whose gap check a `skip` answer skipped as cleared, though it posted no gap-check list", async () => {
+    addSpec([1]);
     addIssue(dependent.number);
-    github.blockers.set(dependent.number, [blocker.number]);
+    github.blockers.set(dependent.number, [spec.number]);
     const unmatched: StepResult = {
       ...resultOf(undefined),
       output: {
@@ -774,29 +774,59 @@ describe("a Batch's record", () => {
     };
     const halting = FakeAgentStep.init(...proposed("blocker.ts"), unmatched);
     await runBatch(halting, {
-      members: [dependent, blocker],
+      members: [dependent, spec],
       agentStep: halting,
     });
-    github.reply(blocker.number, "H1: skip");
+    github.reply(spec.number, "H1: skip");
     const statuses: string[] = [];
     const resuming = FakeAgentStep.init(
       statusDuring(statuses, implemented("dependent.ts")),
       reviewed(),
-      resultOf({ gaps: [] }),
     );
 
     await runBatch(resuming, {
-      members: [dependent, blocker],
+      members: [dependent, spec],
       agentStep: resuming,
     });
 
     const [whileDependentRuns] = statuses;
+    expect(gapCheckListsOn(spec.number)).toEqual([]);
+    expect(whileDependentRuns).toContain(
+      'byro-repo #213, "The spec"\nLanded: byro-repo #1.\nCurrent: none.\nOpen Halts: none.',
+    );
+    expect(whileDependentRuns).not.toContain("to land");
+    expect(landingOrder()).toEqual([1, 499]);
+  });
+
+  it("lands a Standalone member with no gap check launched, and status counts it landed for the member it blocks", async () => {
+    addIssue(blocker.number);
+    addIssue(dependent.number);
+    github.blockers.set(dependent.number, [blocker.number]);
+    const statuses: string[] = [];
+    const agentStep = FakeAgentStep.init(
+      ...proposed("blocker.ts"),
+      statusDuring(statuses, implemented("dependent.ts")),
+      reviewed(),
+    );
+
+    const result = await runBatch(agentStep, {
+      members: [dependent, blocker],
+      agentStep,
+    });
+
+    expect(result.kind).toBe("finished");
+    expect(landingOrder()).toEqual([498, 499]);
+    expect(
+      agentStep.requests.filter(
+        ({ jsonSchema }) => jsonSchema === gapCheckOutputSchema,
+      ),
+    ).toEqual([]);
     expect(gapCheckListsOn(blocker.number)).toEqual([]);
+    const [whileDependentRuns] = statuses;
     expect(whileDependentRuns).toContain(
       'byro-repo #498, "Ticket 498"\nLanded: byro-repo #498.\nCurrent: none.\nOpen Halts: none.',
     );
     expect(whileDependentRuns).not.toContain("to land");
-    expect(landingOrder()).toEqual([498, 499]);
   });
 
   it("stops the whole Batch after its current ticket on a stop requested on any member", async () => {
