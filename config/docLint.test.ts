@@ -536,6 +536,17 @@ describe("checkDocs", () => {
       ).toEqual([untagged]);
     });
 
+    it("checks the framework's Sheets index, keyed from the framework clone's root", () => {
+      const sheetsIndex = "docs/sheets-behaviour.md";
+      expect(
+        messages({
+          [sheetsIndex]: withBullets(`A read; 2026-10-28; ${evidence}.`),
+        }),
+      ).toEqual([
+        `${sheetsIndex}: observation line starts with neither "Observed:" nor "Documented:"`,
+      ]);
+    });
+
     it("leaves bullets in the lead unchecked", () => {
       expect(check({ [index]: withBullets() })).toEqual([]);
     });

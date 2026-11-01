@@ -33,7 +33,7 @@ Open only the section or disclosed doc the task needs.
 | Architecture mechanics: dispatch, schema classes, class chains, queued writes, round trips, type-check cost | [architecture](./packages/framework/docs/architecture.md) index, then one file |
 | Adding a deletion path | [blank-row](./packages/framework/docs/architecture/blank-row.md) |
 | A one-off job against the live sheet | [chores](./packages/framework/docs/architecture/chores.md) |
-| Hosts, bin, chore dry run, Sheets probe, gworkspace MCP | [how-it-runs](./packages/framework/docs/how-it-runs.md); gates: [targets-and-gates](./docs/targets-and-gates.md) |
+| A Sheets or Apps Script fact; hosts, bin, chore dry run, Sheets probe, gworkspace MCP | [Sheets index](./packages/framework/docs/sheets-behaviour.md); [how-it-runs](./packages/framework/docs/how-it-runs.md); gates: [targets-and-gates](./docs/targets-and-gates.md) |
 | Runner code (`runner/`), `SpecRun.ts` included | [`runner/src/AGENTS.md`](./runner/src/AGENTS.md) |
 | Claude Code hooks, the project agent, switching Claude accounts | [`docs/claude-code-guardrails.md`](./docs/claude-code-guardrails.md) |
 | Tests and fakes | [testing](./packages/framework/docs/testing.md) |
