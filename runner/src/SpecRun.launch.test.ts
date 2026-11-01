@@ -433,7 +433,12 @@ async function ticketTwoAsAStepReadsIt(): Promise<string> {
     body,
     author,
     bodyEditors,
-    comments: await github.authoredCommentsOf(refOf(2)),
+    comments: (await github.authoredCommentsOf(refOf(2))).map(
+      (comment, index) => ({
+        ...comment,
+        url: `https://github.com/byronbroughten/byro-repo/issues/2#issuecomment-${index + 1}`,
+      }),
+    ),
   });
   const reader = IssueReader.init({
     source,

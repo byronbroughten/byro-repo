@@ -94,6 +94,39 @@ describe("GhCli reads", () => {
     await expect(cli.openBlockersOf(issue)).rejects.toThrow();
     expect(calls).toHaveLength(1);
   });
+
+  it("carries each comment's URL on a readable issue", async () => {
+    const commentUrl =
+      "https://github.com/o/sheets-framework/issues/165#issuecomment-1";
+    const response = {
+      data: {
+        repository: {
+          issue: {
+            title: "Read issues",
+            body: "Build the reader.",
+            state: "OPEN",
+            author: { login: "developer" },
+            comments: {
+              nodes: [
+                {
+                  author: { login: "developer" },
+                  body: "Done.",
+                  url: commentUrl,
+                },
+              ],
+            },
+          },
+        },
+      },
+    };
+    const { cli } = scriptedGh([JSON.stringify(response)]);
+
+    const { comments } = await cli.readableIssueOf(issue);
+
+    expect(comments).toEqual([
+      { author: "developer", body: "Done.", url: commentUrl },
+    ]);
+  });
 });
 
 describe("GhCli writes", () => {
