@@ -1,0 +1,7 @@
+# byro-repo#514 outcome
+
+Spec: [byro-repo#514](https://github.com/byronbroughten/byro-repo/issues/514)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #514 | Opus medium | 1 | 13 | 185K | Fix (resumed implementer) | 1 | 1 | 0 | 44 min | $4.06 | $1.11 | Fixed: The config, branch and tag read forms repeat one shape, a read flag present and no write. (.claude/hooks/lib/tiers/tiers/GitCall.ts:121-136); tierGate.ts and webTools.ts both switch on the WebFetch and WebSearch names. (.claude/hooks/tierGate.ts:34,42; .claude/hooks/lib/tiers/webTools.ts:16,22); gitVerbs holds only file, and branchDrops and tagDrops serve one purpose in two objects. (.claude/hooks/lib/tiers/tiers/GitCall.ts:68-94); No test shows tierGate routes WebFetch, or that another host is refused in a step and asks in a session. (.claude/hooks/lib/tiers/webTools.test.ts; .claude/hooks/tierGate.ts:42); branch -d and branch -l -D were checked only in a runner step. (.claude/hooks/lib/tiers/tiers.test.ts:398-400). Proposed: reflog is free only bare or as show, so git reflog -10 and git reflog HEAD still ask. (.claude/hooks/lib/tiers/tiers/GitCall.ts gitReads reflog entry). | e4d0d2c2-f7fc-42e8-8e33-fe8813db94b4, c48c053c-02d8-4609-b140-e3598f5c15ba |
