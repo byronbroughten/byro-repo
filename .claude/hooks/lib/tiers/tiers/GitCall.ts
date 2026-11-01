@@ -74,11 +74,30 @@ const refDrops = {
   branchShorthands: /^-[^-]*[dDfMC]/,
   tagFlags: new Set(["-d", "--delete", "-f", "--force"]),
 } as const;
-// The flags that tell a read form of a writing verb from its writes. Git takes one action per `config` call, so a read action beside a write one fails.
-const readFormFlags = {
+// The flags and words that tell a read form of a writing verb from its writes.
+const readForms = {
   verbose: new Set(["-v", "--verbose"]),
   list: new Set(["-l", "--list"]),
-  configReads: new Set(["--get", "--get-all", "--list", "-l"]),
+  // Each sets git's list mode, in which a tag name is only a pattern.
+  tagLists: new Set([
+    "-l",
+    "--list",
+    "--contains",
+    "--no-contains",
+    "--merged",
+    "--no-merged",
+    "--points-at",
+  ]),
+  tagLineCounts: /^-n\d*$/,
+  // Git takes one action per `config` call, so a read action beside a write one fails.
+  configReads: new Set([
+    "--get",
+    "--get-all",
+    "--get-regexp",
+    "--get-urlmatch",
+    "--list",
+    "-l",
+  ]),
   configWrites: new Set([
     "--add",
     "--unset",
@@ -89,6 +108,21 @@ const readFormFlags = {
     "-e",
     "--edit",
   ]),
+  configSubcommandReads: new Set(["get", "list"]),
+  // Options whose value may come as the next word, which would shift which word is the key or subcommand.
+  configValueOptions: new Set([
+    "-f",
+    "--file",
+    "--blob",
+    "--type",
+    "--default",
+    "--comment",
+  ]),
+  reflogReads: new Set(["show", "exists", "list"]),
+  // A word git could take as a reflog subcommand: theirs are bare lowercase words.
+  reflogSubcommandShape: /^[a-z-]+$/,
+  stashReads: new Set(["list", "show"]),
+  symbolicRefWrites: new Set(["-d", "--delete", "-m"]),
 } as const;
 
 // Each git read by verb and, for a verb that also writes, its read forms: listed reads, since a blocklist of writes would miss the next `reset --hard`. The network reads (`ls-remote`, `fetch`, `remote show`, `update`, `prune`) stay out.
@@ -108,28 +142,38 @@ const gitReads = new Map<string, (args: string[]) => boolean>([
     "for-each-ref",
     "describe",
     "shortlog",
+    "ls-tree",
+    "show-ref",
+    "name-rev",
+    "check-ignore",
+    "check-attr",
+    "cherry",
+    "range-diff",
+    "count-objects",
+    "whatchanged",
+    "diff-tree",
+    "diff-index",
+    "diff-files",
+    "var",
+    "version",
   ].map((verb): [string, () => boolean] => [verb, () => true]),
   ["remote", isRemoteRead],
-  [
-    "reflog",
-    ([subcommand]) => subcommand === undefined || subcommand === "show",
-  ],
+  ["reflog", isReflogRead],
   ["worktree", ([subcommand]) => subcommand === "list"],
+  ["stash", ([subcommand = ""]) => readForms.stashReads.has(subcommand)],
   [
-    "config",
+    "symbolic-ref",
     (args) =>
-      isFlaggedRead(args, readFormFlags.configReads, (arg) =>
-        readFormFlags.configWrites.has(arg),
-      ),
+      wordsOf(args).length <= 1 &&
+      !args.some((arg) => readForms.symbolicRefWrites.has(arg)),
   ],
-  ["branch", (args) => isFlaggedRead(args, readFormFlags.list, isBranchDrop)],
+  ["config", isConfigRead],
   [
-    "tag",
+    "branch",
     (args) =>
-      isFlaggedRead(args, readFormFlags.list, (arg) =>
-        refDrops.tagFlags.has(arg),
-      ),
+      args.some((arg) => readForms.list.has(arg)) && !args.some(isBranchDrop),
   ],
+  ["tag", isTagRead],
 ]);
 
 function isBranchDrop(arg: string): boolean {
@@ -139,17 +183,46 @@ function isBranchDrop(arg: string): boolean {
   );
 }
 
-// A verb's read form: one of its read flags, and none of its writes.
-function isFlaggedRead(
-  args: string[],
-  readFlags: ReadonlySet<string>,
-  isWrite: (arg: string) => boolean,
-): boolean {
-  return args.some((arg) => readFlags.has(arg)) && !args.some(isWrite);
+// The arguments that aren't options: an option's separate value among them.
+function wordsOf(args: string[]): string[] {
+  return args.filter((arg) => !arg.startsWith("-"));
 }
 
 // `git remote` with no subcommand lists, as does `-v`; `get-url` reads one remote's URL.
 function isRemoteRead(args: string[]): boolean {
-  const [subcommand] = args.filter((arg) => !readFormFlags.verbose.has(arg));
+  const [subcommand] = args.filter((arg) => !readForms.verbose.has(arg));
   return subcommand === undefined || subcommand === "get-url";
+}
+
+// Git reads the first word as a subcommand, and any word that isn't one sends it and the rest to `show`, so a ref there, or an option's value, reads.
+function isReflogRead(args: string[]): boolean {
+  const [word] = wordsOf(args);
+  return (
+    word === undefined ||
+    readForms.reflogReads.has(word) ||
+    !readForms.reflogSubcommandShape.test(word)
+  );
+}
+
+// `git config <key>` with one dotted key reads it; a subcommand has no dot, so `git config edit` stays out.
+function isConfigRead(args: string[]): boolean {
+  if (args.some((arg) => readForms.configWrites.has(arg))) return false;
+  if (args.some((arg) => readForms.configReads.has(arg))) return true;
+  if (args.some((arg) => readForms.configValueOptions.has(arg))) return false;
+  const words = wordsOf(args);
+  if (readForms.configSubcommandReads.has(words[0] ?? "")) return true;
+  return words.length === 1 && (words[0] ?? "").includes(".");
+}
+
+// Git lists tags with no tag name, or under a flag that sets its list mode.
+function isTagRead(args: string[]): boolean {
+  if (args.some((arg) => refDrops.tagFlags.has(arg))) return false;
+  return (
+    wordsOf(args).length === 0 ||
+    args.some(
+      (arg) =>
+        readForms.tagLists.has(arg.split("=")[0] ?? "") ||
+        readForms.tagLineCounts.test(arg),
+    )
+  );
 }
