@@ -111,9 +111,10 @@ function landingOrder(): number[] {
     .reverse();
 }
 
+// The member's own, leaving out the Batch's end, which is sent on its first member.
 function noticesOn(number: number): string[] {
   return notices.sent
-    .filter(({ spec }) => spec.number === number)
+    .filter(({ spec, isBatchEnd }) => spec.number === number && !isBatchEnd)
     .map(({ summary }) => summary);
 }
 
@@ -632,11 +633,43 @@ describe("a Batch's record", () => {
     expect(lines.map(({ spec, kind }) => ({ spec, kind }))).toEqual([
       { spec: "byro-repo#301", kind: "run-started" },
       { spec: "byro-repo#302", kind: "run-started" },
+      { spec: "byro-repo#301", kind: "member-ended" },
+      { spec: "byro-repo#302", kind: "member-ended" },
       { spec: "byro-repo#301", kind: "run-ended" },
-      { spec: "byro-repo#302", kind: "run-ended" },
     ]);
     expect(existsSync(eventFilePathOf(stateFolder(), first))).toBe(false);
     expect(existsSync(eventFilePathOf(stateFolder(), second))).toBe(false);
+  });
+
+  it("ends each member with a member-ended line saying how, and the whole Batch with one run-ended line carrying its result", async () => {
+    addIssue(blocker.number);
+    addIssue(dependent.number);
+    github.blockers.set(dependent.number, [blocker.number]);
+    const agentStep = FakeAgentStep.init(
+      implemented("blocker.ts"),
+      reviewed(),
+      implemented("dependent.ts"),
+      reviewed(),
+    );
+
+    await runBatch(agentStep, {
+      members: [blocker, dependent],
+      ...withEventFile(),
+    });
+
+    const lines = batchEventLines([blocker, dependent]);
+    expect(lines.map(({ spec, kind, ending }) => [spec, kind, ending])).toEqual(
+      [
+        ["byro-repo#498", "run-started", undefined],
+        ["byro-repo#499", "run-started", undefined],
+        ["byro-repo#498", "member-ended", "finished"],
+        ["byro-repo#499", "member-ended", "finished"],
+        ["byro-repo#498", "run-ended", "finished"],
+      ],
+    );
+    expect(lines.at(-1)?.summary).toBe(
+      "Batch ended: byro-repo #498, byro-repo #499 landed.",
+    );
   });
 
   it("isn't written for a member run alone, whose events go to its own file even after a crashed Batch left one", async () => {

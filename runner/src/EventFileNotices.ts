@@ -13,11 +13,18 @@ import {
 import type { MemberList } from "./SpecRun/runState.ts";
 
 // One line of a spec's event file; a run's end is a `run-ended` line, its `ending` saying how.
+// A Batch member's end is a `member-ended` line, and only the Batch's own end is `run-ended`.
 export interface EventLine {
   time: string;
   spec: string;
   ticket?: string;
-  kind: "run-started" | "halt" | "failure-halt" | "idle" | "run-ended";
+  kind:
+    | "run-started"
+    | "halt"
+    | "failure-halt"
+    | "idle"
+    | "member-ended"
+    | "run-ended";
   ending?: RunEnding;
   summary: string;
   warnings?: string[];
@@ -25,48 +32,59 @@ export interface EventLine {
   commentUrl: string;
 }
 
+// Where a spec's lines go, and whether that file is a Batch's.
+interface EventFile {
+  path: string;
+  isBatch: boolean;
+}
+
 // Appends one JSON line per notice to the spec's event file, which a Supervisor watches; a notice with no kind adds none.
 export class EventFileNotices implements Notices {
   private readonly stateFolder: string;
   private readonly now: () => Date;
-  private readonly pathOf: (spec: IssueRef) => string;
+  private readonly eventFileOf: (spec: IssueRef) => EventFile;
 
   constructor(
     stateFolder: string,
     now: () => Date,
-    pathOf: (spec: IssueRef) => string,
+    eventFileOf: (spec: IssueRef) => EventFile,
   ) {
     this.stateFolder = stateFolder;
     this.now = now;
-    this.pathOf = pathOf;
+    this.eventFileOf = eventFileOf;
   }
 
   // A Batch member's line goes to the Batch's one file, its `spec` naming the member.
   static init(stateFolder: string, now = () => new Date()): EventFileNotices {
     return new EventFileNotices(stateFolder, now, (spec) => {
       const batchFile = BatchRecords.init(stateFolder).eventFilePathOf(spec);
-      return batchFile ?? eventFilePathOf(stateFolder, spec);
+      if (batchFile === undefined) {
+        return { path: eventFilePathOf(stateFolder, spec), isBatch: false };
+      }
+      return { path: batchFile, isBatch: true };
     });
   }
 
   // Every line goes to these members' stream, for a run whose Batch record may already be gone, such as a crashed one's.
+  // Its ending is the whole run's, since a crash ends every member at once.
   static forStream(stateFolder: string, members: MemberList): EventFileNotices {
     const path = eventStreamPathOf(stateFolder, members);
     return new EventFileNotices(
       stateFolder,
       () => new Date(),
-      () => path,
+      () => ({ path, isBatch: false }),
     );
   }
 
   async send(notice: Notice): Promise<void> {
-    const line = this._lineOf(notice);
+    const { path, isBatch } = this.eventFileOf(notice.spec);
+    const line = this._lineOf(notice, isBatch);
     if (line === undefined) return;
     mkdirSync(this.stateFolder, { recursive: true });
-    appendFileSync(this.pathOf(notice.spec), `${JSON.stringify(line)}\n`);
+    appendFileSync(path, `${JSON.stringify(line)}\n`);
   }
 
-  private _lineOf(notice: Notice): EventLine | undefined {
+  private _lineOf(notice: Notice, isBatch: boolean): EventLine | undefined {
     const { kind } = notice;
     if (kind === undefined) return undefined;
     const isEnd = isRunEnding(kind);
@@ -74,13 +92,21 @@ export class EventFileNotices implements Notices {
       time: this.now().toISOString(),
       spec: shortRefOf(notice.spec),
       ...(notice.ticket && { ticket: shortRefOf(notice.ticket) }),
-      kind: isEnd ? "run-ended" : kind,
+      kind: isEnd ? endKindOf(notice, isBatch) : kind,
       ...(isEnd && { ending: kind }),
       summary: notice.summary,
       ...(notice.warnings && { warnings: notice.warnings }),
       commentUrl: notice.commentUrl ?? notice.link,
     };
   }
+}
+
+function endKindOf(
+  { isBatchEnd }: Notice,
+  isBatch: boolean,
+): "member-ended" | "run-ended" {
+  if (isBatch && isBatchEnd !== true) return "member-ended";
+  return "run-ended";
 }
 
 export function eventFilePathOf(stateFolder: string, spec: IssueRef): string {

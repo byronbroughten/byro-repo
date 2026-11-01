@@ -253,6 +253,37 @@ describe("watchRun", () => {
     expect(printed).toEqual([halt, ended]);
   });
 
+  it("prints a Batch member's member-ended line and keeps going until the run-ended line", async () => {
+    write(lineOf("run-started", at(-5_000)));
+    const memberEnded = lineOf("member-ended", at(4_000), "finished");
+    const ended = lineOf("run-ended", at(7_000), "finished");
+    let isLive = true;
+    const printed: string[] = [];
+    const clock = fakeClock([
+      { atMs: 4_000, run: () => write(memberEnded) },
+      {
+        atMs: 7_000,
+        run: () => {
+          isLive = false;
+          write(ended);
+        },
+      },
+    ]);
+
+    await watchRun(
+      { owner: "byronbroughten", members: [spec] },
+      {
+        stateFolder,
+        ...clock,
+        pollMs,
+        isRunLive: () => isLive,
+        print: (line) => printed.push(line),
+      },
+    );
+
+    expect(printed).toEqual([memberEnded, ended]);
+  });
+
   it("checks a dead run once more before calling it vanished, so a crash's own line wins", async () => {
     write(lineOf("run-started", at(-5_000)));
     const crashed = lineOf("run-ended", at(1_000), "crashed");

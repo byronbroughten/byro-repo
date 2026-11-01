@@ -135,10 +135,19 @@ export class RunLoop extends SpecRunBase {
     }
   }
 
-  // A member ends on its own, by finishing or a `stop spec`, while the others carry on; a Stop ends every unfinished one.
   private async _runHoldingLocks(): Promise<RunResult> {
     const startedAt = this.config.clock.now();
     const runs = await this._startRuns();
+    const result = await this._runMembers(runs, startedAt);
+    await this._announceBatchEnd(runs, result);
+    return result;
+  }
+
+  // A member ends on its own, by finishing or a `stop spec`, while the others carry on; a Stop ends every unfinished one.
+  private async _runMembers(
+    runs: RunList<Run>,
+    startedAt: Date,
+  ): Promise<RunResult> {
     // Each Run's restart is taken, whichever relaunches, so no later rerun reads one again.
     let isRelaunch = false;
     runs.forEach((run) => {
@@ -231,6 +240,15 @@ export class RunLoop extends SpecRunBase {
         return this._restart(members, ticket.issue);
       }
     }
+  }
+
+  // Sent while the Batch record is open, so the line reaches the Batch's file; a Restart's relaunch carries the run on, so it ends nothing.
+  private async _announceBatchEnd(
+    [lead, ...others]: RunList<Run>,
+    { kind, message }: RunResult,
+  ): Promise<void> {
+    if (others.length === 0 || kind === "restarting") return;
+    await this._announce(lead, message, { kind, isBatchEnd: true });
   }
 
   private _startRuns(): Promise<RunList<Run>> {

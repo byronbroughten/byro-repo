@@ -55,6 +55,8 @@ A `run-started` line: say the run is working, and on which ticket. List its `war
 - `crashed`: point the developer to the tmux pane, through the `tmux attach` command the line's summary names.
 - `refused`: say what the run refused.
 
+A `member-ended` line is one Batch member's end, never the run's: say which member its `spec` names and how it ended, by its `ending` and summary, and that the Batch goes on with the rest. The Batch's one `run-ended` line, its summary naming which members landed, comes once every member has ended.
+
 A Restart is expected and quiet: a run that lands a change to the runner itself ends with no event line and relaunches at once in the same tmux session, a Batch with the same list, resuming where it ended. Its only event line is the relaunch's `run-started` line, which ntfy doesn't push: say the run carries on, and keep watching. The run's end message counts the landings from before the Restart too.
 
 On `vanished`, `stopped`, `crashed` or `refused`, say that rerunning resumes the run, and offer to relaunch it once the cause is fixed.
