@@ -128,6 +128,17 @@ function ticking(): Clock {
   };
 }
 
+// Reads the dependent member's status into `statuses` as `step` launches.
+function statusDuring(
+  statuses: string[],
+  step: (request: StepRequest) => Promise<StepResult>,
+): ScriptedStep {
+  return async (request) => {
+    statuses.push(await specRun(FakeAgentStep.init()).status(dependent));
+    return step(request);
+  };
+}
+
 // Resolved as a Propose, so the ticket's landing posts a review list.
 function proposed(file: string): ScriptedStep[] {
   return [
@@ -669,19 +680,11 @@ describe("a Batch's record", () => {
     addIssue(dependent.number);
     github.blockers.set(dependent.number, [blocker.number]);
     const statuses: string[] = [];
-    function statusDuring(
-      step: (request: StepRequest) => Promise<StepResult>,
-    ): ScriptedStep {
-      return async (request) => {
-        statuses.push(await specRun(FakeAgentStep.init()).status(dependent));
-        return step(request);
-      };
-    }
     const agentStep = FakeAgentStep.init(
-      statusDuring(implemented("blocker.ts")),
+      statusDuring(statuses, implemented("blocker.ts")),
       reviewed([findingOf(1)]),
       resultOf({ records: [propose] }),
-      statusDuring(implemented("dependent.ts")),
+      statusDuring(statuses, implemented("dependent.ts")),
       reviewed(),
     );
 
@@ -696,6 +699,71 @@ describe("a Batch's record", () => {
     expect(afterBlockerLanded).toContain(
       'byro-repo #498, "Ticket 498"\nLanded: byro-repo #498.',
     );
+  });
+
+  it("keeps a member waiting on a landed blocker member until the blocker's gap check is done, as the loop does", async () => {
+    addIssue(blocker.number);
+    addIssue(dependent.number);
+    github.blockers.set(dependent.number, [blocker.number]);
+    const statuses: string[] = [];
+    const noGaps = resultOf({ gaps: [] });
+    const agentStep = FakeAgentStep.init(
+      ...proposed("blocker.ts"),
+      statusDuring(statuses, async () => noGaps),
+      statusDuring(statuses, implemented("dependent.ts")),
+      reviewed(),
+      noGaps,
+    );
+
+    await runBatch(agentStep, { members: [dependent, blocker], agentStep });
+
+    const [duringBlockerGapCheck, afterBlockerGapCheck] = statuses;
+    expect(duringBlockerGapCheck).toContain(
+      'byro-repo #498, "Ticket 498"\nLanded: byro-repo #498.',
+    );
+    expect(duringBlockerGapCheck).toContain(
+      "Waiting: byro-repo #499 waits on byro-repo #498 to land.",
+    );
+    expect(afterBlockerGapCheck).not.toContain("to land");
+  });
+
+  it("counts a blocker member whose gap check a `skip` answer skipped as cleared, though it posted no gap-check list", async () => {
+    addIssue(blocker.number);
+    addIssue(dependent.number);
+    github.blockers.set(dependent.number, [blocker.number]);
+    const unmatched: StepResult = {
+      ...resultOf(undefined),
+      output: {
+        status: "schemaFailure",
+        rawOutput: '{"gaps":"none"}',
+        problems: ["gaps must be an array"],
+      },
+    };
+    const halting = FakeAgentStep.init(...proposed("blocker.ts"), unmatched);
+    await runBatch(halting, {
+      members: [dependent, blocker],
+      agentStep: halting,
+    });
+    github.reply(blocker.number, "H1: skip");
+    const statuses: string[] = [];
+    const resuming = FakeAgentStep.init(
+      statusDuring(statuses, implemented("dependent.ts")),
+      reviewed(),
+      resultOf({ gaps: [] }),
+    );
+
+    await runBatch(resuming, {
+      members: [dependent, blocker],
+      agentStep: resuming,
+    });
+
+    const [whileDependentRuns] = statuses;
+    expect(gapCheckListsOn(blocker.number)).toEqual([]);
+    expect(whileDependentRuns).toContain(
+      'byro-repo #498, "Ticket 498"\nLanded: byro-repo #498.\nCurrent: none.\nOpen Halts: none.',
+    );
+    expect(whileDependentRuns).not.toContain("to land");
+    expect(landingOrder()).toEqual([498, 499]);
   });
 
   it("stops the whole Batch after its current ticket on a stop requested on any member", async () => {
