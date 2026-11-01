@@ -69,6 +69,7 @@ describe("stepPermissionDecision", () => {
     ).toBe("allow");
   });
 
+  // tierGate.ts allows a documentation host's fetch before any prompt, so a step's fetch of another host stays refused.
   it("decides nothing for another tool or an input with no path or command", () => {
     [
       call("NotebookEdit", { notebook_path: "/ws/a.ipynb" }),

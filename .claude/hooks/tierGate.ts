@@ -1,4 +1,4 @@
-// PreToolUse on Bash and the gworkspace write and create tools applies the tier gate; PostToolUse on Bash records each app chore dry run that ran, for a later --send.
+// PreToolUse on Bash, WebFetch, WebSearch and the gworkspace write and create tools applies the tier gate; PostToolUse on Bash records each app chore dry run that ran, for a later --send.
 // Every Bash call gets the file-system lookups the step write rule and scratch `node` need, so the decision stays pure.
 import { writeFileSync } from "node:fs";
 
@@ -28,8 +28,10 @@ import {
   spreadsheetTargetsOf,
   stepTargetsVariable,
 } from "./lib/tiers/tiers.ts";
+import { webGateDecision } from "./lib/tiers/webTools.ts";
 
 const ownersSuffix = "drive-owners.json";
+const webTools = new Set(["WebFetch", "WebSearch"]);
 
 await runFailOpen(async () => {
   const input = readHookInput();
@@ -37,6 +39,8 @@ await runFailOpen(async () => {
   let decision: Decision | undefined;
   if (input.tool_name === "Bash") {
     decision = await bashDecision(input);
+  } else if (webTools.has(input.tool_name)) {
+    decision = webGateDecision(input.tool_name, { ...input.tool_input });
   } else {
     const projectDir = projectDirOf(input);
     decision = await driveGateDecision({

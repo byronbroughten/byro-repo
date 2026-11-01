@@ -339,6 +339,69 @@ describe("reads and git add", () => {
     ].forEach((command) => expect(runnerStepDecisionOf(command)).toBe("allow"));
   });
 
+  it("allows git's local reads in a session and a runner step, through a path option too", () => {
+    [
+      "git remote",
+      "git remote -v",
+      "git -C packages/framework remote get-url origin",
+      "git --git-dir=.git remote get-url --push origin",
+      "git cat-file -p HEAD",
+      "git rev-list --count master..HEAD",
+      "git for-each-ref refs/heads",
+      "git describe --tags",
+      "git shortlog -sn",
+      "git reflog",
+      "git reflog show issue-514-x",
+      "git worktree list",
+      "git --work-tree=. worktree list --porcelain",
+      "git config --get user.name",
+      "git config --get-all remote.origin.fetch",
+      "git config --list",
+      "git config -l --show-origin",
+      "git branch --list 'issue-*'",
+      "git branch -l",
+      "git tag -l 'v*'",
+      "git tag --list",
+    ].forEach((command) => {
+      expect(decisionOf(command)).toBe("allow");
+      expect(runnerStepDecisionOf(command)).toBe("allow");
+    });
+  });
+
+  it("allows no write or network form of the verbs git also reads with", () => {
+    [
+      "git remote add fork https://x",
+      "git remote set-url origin https://x",
+      "git remote remove origin",
+      "git remote rename origin upstream",
+      "git remote -v add fork https://x",
+      "git remote show origin",
+      "git remote update",
+      "git remote prune origin",
+      "git ls-remote origin",
+      "git fetch",
+      "git config user.name x",
+      "git config --unset user.name",
+      "git config --add remote.origin.fetch x",
+      "git config --get-all x --add y",
+      "git tag -d v1",
+      "git tag -l -d v1",
+      "git reflog expire --all",
+      "git reflog delete HEAD@{1}",
+      "git worktree add /tmp/w",
+      "git worktree remove /tmp/w",
+      "git reset --hard",
+      "git clean -fd",
+      "git checkout -- AGENTS.md",
+    ].forEach((command) => {
+      expect(decisionOf(command)).not.toBe("allow");
+      expect(runnerStepDecisionOf(command)).not.toBe("allow");
+    });
+    ["git branch -d old", "git branch -l -D old"].forEach((command) =>
+      expect(runnerStepDecisionOf(command)).not.toBe("allow"),
+    );
+  });
+
   it("allows chained reads and a read after cd", () => {
     [
       "git status && git diff",

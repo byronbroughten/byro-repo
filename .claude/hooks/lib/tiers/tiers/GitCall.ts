@@ -33,7 +33,7 @@ export class GitCall {
 
   get isRead(): boolean {
     return (
-      gitVerbs.read.has(this.verb) &&
+      (gitReads.get(this.verb)?.(this.args) ?? false) &&
       !this.args.some(
         (arg) =>
           arg.startsWith("--output") ||
@@ -43,14 +43,7 @@ export class GitCall {
   }
 
   get isBranchChange(): boolean {
-    return (
-      this.verb === "branch" &&
-      !this.args.some(
-        (arg) =>
-          branchDrops.flags.has(arg.split("=")[0] ?? "") ||
-          branchDrops.shorthands.test(arg),
-      )
-    );
+    return this.verb === "branch" && !this.args.some(isBranchDrop);
   }
 
   // A forced move or removal can overwrite or drop changes git never saw.
@@ -73,17 +66,6 @@ export class GitCall {
 export const gitPathOptions = new Set(["-C", "--git-dir", "--work-tree"]);
 
 const gitVerbs = {
-  read: new Set([
-    "log",
-    "show",
-    "status",
-    "diff",
-    "rev-parse",
-    "ls-files",
-    "blame",
-    "merge-base",
-    "grep",
-  ]),
   file: new Set(["mv", "rm"]),
 } as const;
 // `git grep -O` opens the matched files in a pager, which can be any program.
@@ -93,3 +75,77 @@ const branchDrops = {
   flags: new Set(["--delete", "--force"]),
   shorthands: /^-[^-]*[dDfMC]/,
 } as const;
+// The flags that tell a read form of a writing verb from its writes. Git takes one action per `config` call, so a read action beside a write one fails.
+const readFormFlags = {
+  verbose: new Set(["-v", "--verbose"]),
+  list: new Set(["-l", "--list"]),
+  configReads: new Set(["--get", "--get-all", "--list", "-l"]),
+  configWrites: new Set([
+    "--add",
+    "--unset",
+    "--unset-all",
+    "--replace-all",
+    "--rename-section",
+    "--remove-section",
+    "-e",
+    "--edit",
+  ]),
+  tagDrops: new Set(["-d", "--delete", "-f", "--force"]),
+} as const;
+
+// Each git read by verb and, for a verb that also writes, its read forms: listed reads, since a blocklist of writes would miss the next `reset --hard`. The network reads (`ls-remote`, `fetch`, `remote show`, `update`, `prune`) stay out.
+const gitReads = new Map<string, (args: string[]) => boolean>([
+  ...[
+    "log",
+    "show",
+    "status",
+    "diff",
+    "rev-parse",
+    "ls-files",
+    "blame",
+    "merge-base",
+    "grep",
+    "cat-file",
+    "rev-list",
+    "for-each-ref",
+    "describe",
+    "shortlog",
+  ].map((verb): [string, () => boolean] => [verb, () => true]),
+  ["remote", isRemoteRead],
+  [
+    "reflog",
+    ([subcommand]) => subcommand === undefined || subcommand === "show",
+  ],
+  ["worktree", ([subcommand]) => subcommand === "list"],
+  [
+    "config",
+    (args) =>
+      args.some((arg) => readFormFlags.configReads.has(arg)) &&
+      !args.some((arg) => readFormFlags.configWrites.has(arg)),
+  ],
+  [
+    "branch",
+    (args) =>
+      args.some((arg) => readFormFlags.list.has(arg)) &&
+      !args.some(isBranchDrop),
+  ],
+  [
+    "tag",
+    (args) =>
+      args.some((arg) => readFormFlags.list.has(arg)) &&
+      !args.some((arg) => readFormFlags.tagDrops.has(arg)),
+  ],
+]);
+
+function isBranchDrop(arg: string): boolean {
+  return (
+    branchDrops.flags.has(arg.split("=")[0] ?? "") ||
+    branchDrops.shorthands.test(arg)
+  );
+}
+
+// `git remote` with no subcommand lists, as does `-v`; `get-url` reads one remote's URL.
+function isRemoteRead(args: string[]): boolean {
+  const [subcommand] = args.filter((arg) => !readFormFlags.verbose.has(arg));
+  return subcommand === undefined || subcommand === "get-url";
+}
