@@ -222,7 +222,7 @@ export class SpecRunBase {
   }
 
   protected _statePathOf(spec: IssueRef): string {
-    return statePaths.runStatePathOf(this.config.stateFolder, spec);
+    return statePaths.runStateOf(this.config.stateFolder, spec);
   }
 
   // Written by StatusReporter.ts from outside the run, taken by RunLoop.ts between tickets.
@@ -331,7 +331,7 @@ export class SpecRunBase {
       ({ issue }) =>
         `${issueLabelOf(issue.issue)}:\n${approvalLineOf(issue.body)}`,
     );
-    return `${runText.onlyDeveloperEditsTextOf(this.config.developer, subject)}; refused ${offenders.join(", ")}. For the developer to paste after reading the body, as a comment on it; an agent never posts this line.\n\n${approvals.join("\n\n")}`;
+    return `${runText.onlyDeveloperEdits(this.config.developer, subject)}; refused ${offenders.join(", ")}. For the developer to paste after reading the body, as a comment on it; an agent never posts this line.\n\n${approvals.join("\n\n")}`;
   }
 
   // Its comments are read only when its edit history alone leaves the body untrusted.
@@ -396,10 +396,7 @@ export class SpecRunBase {
   }
 
   protected _progressPathOf(run: Run): string {
-    return statePaths.progressLogPathOf(
-      this.config.stateFolder,
-      run.spec.issue,
-    );
+    return statePaths.progressLogOf(this.config.stateFolder, run.spec.issue);
   }
 
   // Each dirty worktree's uncommitted work goes to a backup branch, and the tree back to its last commit unless a handoff's next step needs it.

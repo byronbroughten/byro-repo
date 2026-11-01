@@ -141,7 +141,7 @@ export class ReviewListPoster extends SpecRunBase {
         return this._end(
           run,
           "stopped",
-          `The gap check ${runText.stoppedOnTextOf(error)}. Rerun to retry it.`,
+          `The gap check ${runText.stoppedOn(error)}. Rerun to retry it.`,
         );
       }
     }
@@ -299,6 +299,6 @@ function endMessageOf(landed: IssueRef[], waits: Wait[]): string {
   const waitingPart =
     waits.length === 0
       ? "Every ticket is closed."
-      : `${runText.waitsTextOf(waits)}.`;
-  return `Run ended: ${runText.landedTextOf(landed)}. ${waitingPart}`;
+      : `${runText.waitsOf(waits)}.`;
+  return `Run ended: ${runText.landedOf(landed)}. ${waitingPart}`;
 }

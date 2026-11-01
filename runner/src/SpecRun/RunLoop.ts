@@ -555,7 +555,7 @@ function unlandedBlockerMessageOf(blocked: BlockedMember): string {
   const { member, blockers } = blocked;
   const label = issueLabelOf(memberIssueOf(member));
   const which = blockers.length === 1 ? "it can" : "they can";
-  const blockedBy = runText.blockedByTextOf(label, memberLabelsOf(blockers));
+  const blockedBy = runText.blockedBy(label, memberLabelsOf(blockers));
   return `${blockedBy}, which ended without landing; rerun them together once ${which} land: \`${blockedRerunCommandOf(blocked)}\`.`;
 }
 
@@ -563,10 +563,7 @@ function cycleMessageOf(blocked: BlockedMember): string {
   const { member, blockers } = blocked;
   const label = issueLabelOf(memberIssueOf(member));
   const verb = blockers.length === 1 ? "waits" : "wait";
-  const waitsToLand = runText.waitsToLandTextOf(
-    label,
-    memberLabelsOf(blockers),
-  );
+  const waitsToLand = runText.waitsToLand(label, memberLabelsOf(blockers));
   return `${waitsToLand}, which ${verb} on it in turn; remove one blocked-by link on GitHub, then rerun: \`${blockedRerunCommandOf(blocked)}\`.`;
 }
 
@@ -587,17 +584,15 @@ function isIdleWait({ reason }: Wait): boolean {
 }
 
 function idleMessageOf(waits: Wait[]): string {
-  return `Idle: nothing runnable. ${runText.waitsTextOf(waits)}.`;
+  return `Idle: nothing runnable. ${runText.waitsOf(waits)}.`;
 }
 
 function stopRequestMessageOf(run: Run, waits: Wait[]): string {
-  const message = `Stopped on request: ${runText.landedTextOf(run.landed)}.`;
-  return waits.length === 0
-    ? message
-    : `${message} ${runText.waitsTextOf(waits)}.`;
+  const message = `Stopped on request: ${runText.landedOf(run.landed)}.`;
+  return waits.length === 0 ? message : `${message} ${runText.waitsOf(waits)}.`;
 }
 
 function stopSpecMessageOf(run: Run, halts: Halt[]): string {
   const tickets = [...new Set(halts.map(({ ticket }) => issueLabelOf(ticket)))];
-  return `Stopped on \`stop spec\` for Halt ${runHalts.idListOf(halts)}: ${runText.landedTextOf(run.landed)}; ${tickets.join(", ")} stays unlanded.`;
+  return `Stopped on \`stop spec\` for Halt ${runHalts.idListOf(halts)}: ${runText.landedOf(run.landed)}; ${tickets.join(", ")} stays unlanded.`;
 }

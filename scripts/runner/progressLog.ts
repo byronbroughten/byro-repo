@@ -7,4 +7,4 @@ import { stateFolder } from "./runnerConfig.ts";
 
 const launch = requiredLaunchArgsOf(process.argv.slice(2), "progressLog.ts");
 const [lead] = launch.members;
-console.log(statePaths.progressLogPathOf(stateFolder, lead));
+console.log(statePaths.progressLogOf(stateFolder, lead));

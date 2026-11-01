@@ -7,11 +7,11 @@ import { stopOutcomes, type UnhandledStop } from "../../UnhandledStop.ts";
 import { type MemberList, type Wait } from "../runState.ts";
 
 export const runText = {
-  stoppedOnTextOf({ outcome, message, logPath }: UnhandledStop): string {
+  stoppedOn({ outcome, message, logPath }: UnhandledStop): string {
     return `stopped on ${stopOutcomes[outcome]}: ${message} Log: \`${logPath}\``;
   },
 
-  onlyDeveloperEditsTextOf(developer: string, bodies: string): string {
+  onlyDeveloperEdits(developer: string, bodies: string): string {
     return `Only ${developer} may write or edit ${bodies}`;
   },
 
@@ -23,16 +23,16 @@ export const runText = {
   },
 
   // A ticket's blocked wait and a Batch member's end both say it alike.
-  blockedByTextOf(label: string, blockers: string[]): string {
+  blockedBy(label: string, blockers: string[]): string {
     return `${label} is blocked by ${blockers.join(", ")}`;
   },
 
   // A Batch member's wait on its blocker members and its cycle end both say it alike.
-  waitsToLandTextOf(label: string, blockers: string[]): string {
+  waitsToLand(label: string, blockers: string[]): string {
     return `${label} waits on ${blockers.join(", ")} to land`;
   },
 
-  waitsTextOf(waits: Wait[]): string {
+  waitsOf(waits: Wait[]): string {
     return waits.map(({ text }) => text).join("; ");
   },
 
@@ -40,7 +40,7 @@ export const runText = {
     return items.length === 0 ? "none" : items.join(", ");
   },
 
-  landedTextOf(landed: IssueRef[]): string {
+  landedOf(landed: IssueRef[]): string {
     if (landed.length === 0) return "landed nothing";
     return `landed ${landed.map(issueLabelOf).join(", ")}`;
   },

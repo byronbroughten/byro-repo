@@ -150,7 +150,7 @@ export class TicketSelector extends SpecRunBase {
         landedMembers,
       );
       if (blockers.length > 0) {
-        const text = runText.blockedByTextOf(label, blockers.map(issueLabelOf));
+        const text = runText.blockedBy(label, blockers.map(issueLabelOf));
         waits.push({ ticket, reason: "blocked", text });
         continue;
       }

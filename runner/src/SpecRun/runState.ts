@@ -331,7 +331,7 @@ export function memberBlockedWaitOf(
   member: IssueRef,
   blockers: IssueRef[],
 ): Wait {
-  const text = runText.waitsToLandTextOf(
+  const text = runText.waitsToLand(
     issueLabelOf(member),
     blockers.map(issueLabelOf),
   );

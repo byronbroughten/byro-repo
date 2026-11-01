@@ -144,7 +144,7 @@ export class TicketSequencer extends SpecRunBase {
     const { approve, skip } = failureOptions;
     await this.haltRaiser._failureHalt(landingTicket, {
       step: state.step,
-      detail: `${issueLabelOf(ticket.issue)}'s body was ${reason}. ${runText.onlyDeveloperEditsTextOf(this.config.developer, "a ticket the run launches")}, unless they approve its text. Read the body and its edit history at ${ticket.url}; this Halt saw it as sha256:${bodyHash.slice(0, 12)}. An ${approve} posts the approval of that text on the ticket; a body changed since raises a fresh Halt instead, so to revert an edit, revert it, then ${approve} the fresh Halt. A ${skip} approves nothing.`,
+      detail: `${issueLabelOf(ticket.issue)}'s body was ${reason}. ${runText.onlyDeveloperEdits(this.config.developer, "a ticket the run launches")}, unless they approve its text. Read the body and its edit history at ${ticket.url}; this Halt saw it as sha256:${bodyHash.slice(0, 12)}. An ${approve} posts the approval of that text on the ticket; a body changed since raises a fresh Halt instead, so to revert an edit, revert it, then ${approve} the fresh Halt. A ${skip} approves nothing.`,
       logPath: this._progressPathOf(run),
       options: [approve, skip],
       bodyHash,

@@ -79,7 +79,7 @@ class RunBoard {
     );
     const isLive = RunLock.isAnyHeld(this.stateFolder, members);
     const label = runLabelOf(members);
-    const statePath = statePaths.runStatePathOf(this.stateFolder, spec);
+    const statePath = statePaths.runStateOf(this.stateFolder, spec);
     return [
       isLive ? label : `${label}: ${boardTexts.gone}`,
       ...(members.length > 1 ? [`  Member: ${issueLabelOf(spec)}`] : []),
@@ -92,7 +92,7 @@ class RunBoard {
   private _progressOf(spec: IssueRef): MemberProgress {
     return {
       spec,
-      log: ProgressLog.at(statePaths.progressLogPathOf(this.stateFolder, spec)),
+      log: ProgressLog.at(statePaths.progressLogOf(this.stateFolder, spec)),
     };
   }
 }

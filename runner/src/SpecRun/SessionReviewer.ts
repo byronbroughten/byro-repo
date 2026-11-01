@@ -340,7 +340,7 @@ function reviewEndOf(ticketRun: TicketRun, error: unknown): ReviewResult {
     return refusedReviewOf(error.message);
   }
   if (error instanceof UnhandledStop) {
-    const message = `The review of ${label} ${runText.stoppedOnTextOf(error)}.`;
+    const message = `The review of ${label} ${runText.stoppedOn(error)}.`;
     return { kind: "stopped", message, halts };
   }
   if (error instanceof RunStop) {

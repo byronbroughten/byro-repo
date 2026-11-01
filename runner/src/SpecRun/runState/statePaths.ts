@@ -6,11 +6,11 @@ import { join } from "node:path";
 import { fileStemOf, type IssueRef } from "../../IssueWorkspaces.ts";
 
 export const statePaths = {
-  runStatePathOf(stateFolder: string, spec: IssueRef): string {
+  runStateOf(stateFolder: string, spec: IssueRef): string {
     return join(stateFolder, `${fileStemOf(spec)}.run.json`);
   },
 
-  progressLogPathOf(stateFolder: string, spec: IssueRef): string {
+  progressLogOf(stateFolder: string, spec: IssueRef): string {
     return join(stateFolder, `${fileStemOf(spec)}.log`);
   },
 };

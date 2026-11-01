@@ -115,7 +115,7 @@ export class StatusReporter extends SpecRunBase {
       `Landed: ${runText.joinedOrNone(landed.map(issueLabelOf))}.`,
       `Current: ${runText.joinedOrNone(current)}.`,
       `Open Halts: ${runText.joinedOrNone(openHalts.map(openHaltTextOf))}.`,
-      `Waiting: ${others.length === 0 ? "none" : runText.waitsTextOf(others)}.`,
+      `Waiting: ${others.length === 0 ? "none" : runText.waitsOf(others)}.`,
     ].join("\n");
   }
 
