@@ -7,10 +7,7 @@ import {
   rawLinesAt,
 } from "@byronbroughten/spec-runner/EventFileNotices";
 import type { IssueRef } from "@byronbroughten/spec-runner/IssueWorkspaces";
-import {
-  type MemberList,
-  rerunCommandOf,
-} from "@byronbroughten/spec-runner/SpecRun";
+import { type MemberList, runText } from "@byronbroughten/spec-runner/SpecRun";
 import type { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
 
 import { tmuxSessionOf } from "./launchArgs.ts";
@@ -193,6 +190,6 @@ function vanishedLineOf({ owner, members }: WatchedRun, time: Date): string {
     time: time.toISOString(),
     spec: specLabelOf(lead),
     kind: "vanished",
-    summary: `The runner's process is gone and wrote no run-ended line; read its tmux pane with \`tmux attach -t ${session}\`, then rerun \`${rerunCommandOf(owner, ...members)}\`.`,
+    summary: `The runner's process is gone and wrote no run-ended line; read its tmux pane with \`tmux attach -t ${session}\`, then rerun \`${runText.rerunCommandOf(owner, ...members)}\`.`,
   });
 }

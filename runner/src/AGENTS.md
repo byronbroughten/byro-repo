@@ -100,8 +100,10 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/TicketLander.ts` | | Runs a ticket's checks and lands it. |
 | `SpecRun/TicketSelector.ts` | | Picks the run's next ticket and reads Halt answers. |
 | `SpecRun/TicketSequencer.ts` | | Runs one ticket's steps from the one it reached. |
-| `SpecRun/runState.ts` | | The run-state types and the ticket-state, target and message helpers several collaborators share. |
+| `SpecRun/runState.ts` | | The run-state types and the ticket-state, launch and member-blocking helpers several collaborators share. |
 | `SpecRun/runState/runHalts.ts` | | Raises, reads, delivers and orders a run's Halts, and finds a ticket's downstream. |
+| `SpecRun/runState/runText.ts` | | Words a run's end, waits and refusals, and its rerun command. |
+| `SpecRun/runState/statePaths.ts` | | A spec's run state file and progress log paths in the state folder. |
 | `SpecRun/runState/ticketSteps.ts` | | A ticket's step sessions, heads, turn caps, live-ceiling phrase and snapshots, and reads a step's record and its review facts. |
 | `specRunHarness.ts` | | The fixture `SpecRun` tests share. |
 | `stalePaths.ts` | | The stale-path check for `packages/<dir>` mentions with no clone. |

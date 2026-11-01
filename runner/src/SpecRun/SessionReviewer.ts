@@ -42,13 +42,13 @@ import {
   type ResolveOptions,
   type ReviewOptions,
   type ReviewResult,
-  stoppedOnTextOf,
   targetsAtLaunchOf,
   targetsRefusalOf,
   type TicketRun,
   type TicketState,
 } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
+import { runText } from "./runState/runText.ts";
 import { ticketSteps } from "./runState/ticketSteps.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 import { TicketSequencer } from "./TicketSequencer.ts";
@@ -340,7 +340,7 @@ function reviewEndOf(ticketRun: TicketRun, error: unknown): ReviewResult {
     return refusedReviewOf(error.message);
   }
   if (error instanceof UnhandledStop) {
-    const message = `The review of ${label} ${stoppedOnTextOf(error)}.`;
+    const message = `The review of ${label} ${runText.stoppedOn(error)}.`;
     return { kind: "stopped", message, halts };
   }
   if (error instanceof RunStop) {

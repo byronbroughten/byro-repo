@@ -21,14 +21,13 @@ import { ReviewListPoster } from "./ReviewListPoster.ts";
 import {
   type BatchView,
   isLanded,
-  joinedOrNone,
   memberBlockedWaitOf,
   type Run,
   unlandedBlockersOf,
   type Wait,
-  waitsTextOf,
 } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
+import { runText } from "./runState/runText.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 import { TicketSelector } from "./TicketSelector.ts";
 
@@ -113,10 +112,10 @@ export class StatusReporter extends SpecRunBase {
     const others = waits.filter(({ holder }) => holder?.kind !== "run");
     return [
       `${issueLabelOf(run.spec.issue)}, "${run.spec.title}"`,
-      `Landed: ${joinedOrNone(landed.map(issueLabelOf))}.`,
-      `Current: ${joinedOrNone(current)}.`,
-      `Open Halts: ${joinedOrNone(openHalts.map(openHaltTextOf))}.`,
-      `Waiting: ${others.length === 0 ? "none" : waitsTextOf(others)}.`,
+      `Landed: ${runText.joinedOrNone(landed.map(issueLabelOf))}.`,
+      `Current: ${runText.joinedOrNone(current)}.`,
+      `Open Halts: ${runText.joinedOrNone(openHalts.map(openHaltTextOf))}.`,
+      `Waiting: ${others.length === 0 ? "none" : runText.waitsOf(others)}.`,
     ].join("\n");
   }
 

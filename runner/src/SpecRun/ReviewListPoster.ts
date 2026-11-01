@@ -42,18 +42,16 @@ import { UnhandledStop } from "../UnhandledStop.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import {
   gapCheckLabel,
-  landedTextOf,
   type RanStep,
   type Run,
   type RunResult,
   type SpecStepRequest,
-  stoppedOnTextOf,
   ticketStateOf,
   type TrackedIssue,
   type Wait,
-  waitsTextOf,
 } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
+import { runText } from "./runState/runText.ts";
 import { ticketSteps } from "./runState/ticketSteps.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 import { StepLauncher } from "./StepLauncher.ts";
@@ -143,7 +141,7 @@ export class ReviewListPoster extends SpecRunBase {
         return this._end(
           run,
           "stopped",
-          `The gap check ${stoppedOnTextOf(error)}. Rerun to retry it.`,
+          `The gap check ${runText.stoppedOn(error)}. Rerun to retry it.`,
         );
       }
     }
@@ -299,6 +297,8 @@ function deliverGapCheckHalts(run: Run): void {
 
 function endMessageOf(landed: IssueRef[], waits: Wait[]): string {
   const waitingPart =
-    waits.length === 0 ? "Every ticket is closed." : `${waitsTextOf(waits)}.`;
-  return `Run ended: ${landedTextOf(landed)}. ${waitingPart}`;
+    waits.length === 0
+      ? "Every ticket is closed."
+      : `${runText.waitsOf(waits)}.`;
+  return `Run ended: ${runText.landedOf(landed)}. ${waitingPart}`;
 }
