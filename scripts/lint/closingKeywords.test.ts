@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import { closingPhrasesOf, refusalOf } from "./closingKeywords.ts";
 
+function phrasesIn(message: string): string[] {
+  return closingPhrasesOf(message).map(({ phrase }) => phrase);
+}
+
 describe("closingPhrasesOf", () => {
   it.each([
     ["Resolve #512 review: fix findings 1 and 2", "Resolve #512"],
@@ -12,7 +16,7 @@ describe("closingPhrasesOf", () => {
     ["close #1", "close #1"],
     ["Closes:#2", "Closes:#2"],
   ])("finds the closing phrase in %j", (message, phrase) => {
-    expect(closingPhrasesOf(message)).toEqual([phrase]);
+    expect(phrasesIn(message)).toEqual([phrase]);
   });
 
   it.each([
@@ -23,20 +27,26 @@ describe("closingPhrasesOf", () => {
     "Fix findings 1 and 2 for #512",
     "Add the prefix#3 guard",
   ])("passes %j", (message) => {
-    expect(closingPhrasesOf(message)).toEqual([]);
+    expect(phrasesIn(message)).toEqual([]);
   });
 
-  it("finds every closing phrase", () => {
-    expect(closingPhrasesOf("Fix #1 and close #2")).toEqual([
-      "Fix #1",
-      "close #2",
+  it("finds every closing phrase, each with the reference it would close", () => {
+    expect(closingPhrasesOf("Fix #1 and close o/r#2")).toEqual([
+      { phrase: "Fix #1", reference: "#1" },
+      { phrase: "close o/r#2", reference: "o/r#2" },
     ]);
   });
 
-  it("skips git's comment lines and the diff under a verbose commit's scissors", () => {
+  it("checks a `#` line, which `git commit -m` keeps in the message", () => {
+    expect(phrasesIn("Record the #514 outcome\n# Fixes #1")).toEqual([
+      "Fixes #1",
+    ]);
+  });
+
+  it("skips the diff under a verbose commit's scissors", () => {
     expect(
-      closingPhrasesOf(
-        "Record the #514 outcome\n# Fixes #1 is only a comment\n# ------------------------ >8 ------------------------\n+fixes #2 in the diff",
+      phrasesIn(
+        "Record the #514 outcome\n# ------------------------ >8 ------------------------\n+fixes #2 in the diff",
       ),
     ).toEqual([]);
   });
@@ -44,7 +54,7 @@ describe("closingPhrasesOf", () => {
 
 describe("refusalOf", () => {
   it("names each phrase and says to reword it", () => {
-    expect(refusalOf(["Resolve #512"])).toBe(
+    expect(refusalOf([{ phrase: "Resolve #512", reference: "#512" }])).toBe(
       'commit-msg: "Resolve #512" would close its issue once the commit reaches the default branch, and only the runner or /judge-findings closes a ticket. Reword it, for example "review of #512" or "for #512", and commit again.',
     );
   });
