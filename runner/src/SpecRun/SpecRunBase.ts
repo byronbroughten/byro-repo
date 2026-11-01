@@ -49,7 +49,6 @@ import { WrapUp, type WrapUpGitHub, type WrapUpKnobs } from "../WrapUp.ts";
 import {
   type Heads,
   type IssueComment,
-  isTreeKept,
   type LandingTicket,
   onlyDeveloperEditsTextOf,
   progressLogPathOf,
@@ -64,6 +63,7 @@ import {
   type TrackedIssue,
   type Wait,
 } from "./runState.ts";
+import { ticketSteps } from "./runState/ticketSteps.ts";
 
 export interface SpecRunConfig {
   knobs: RunKnobs;
@@ -403,7 +403,7 @@ export class SpecRunBase {
     ticketRun: TicketRun,
     step: TicketStep,
   ): Promise<void> {
-    const save = isTreeKept(ticketRun.state)
+    const save = ticketSteps.isTreeKept(ticketRun.state)
       ? saveUncommitted
       : snapshotUncommitted;
     await this._backUp(ticketRun, step, save);

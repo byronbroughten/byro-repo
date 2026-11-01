@@ -31,24 +31,16 @@ import type { StepAgent } from "../transcriptFacts.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import {
-  branchedReposOf,
   type Heads,
-  implementerSessionOf,
-  isSameHeads,
-  isTurnCapped,
-  launchedOf,
   type LaunchedStep,
-  liveCeilingPhraseOf,
   type RanStep,
-  recordOf,
   type Resolver,
-  schemaFailureOf,
   type StepLaunch,
   type TicketRun,
   type TicketState,
-  turnCapDetailOf,
 } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
+import { ticketSteps } from "./runState/ticketSteps.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 import { StepLauncher } from "./StepLauncher.ts";
 
@@ -99,7 +91,7 @@ export class ReviewStepper extends SpecRunBase {
         title: ticket.title,
         skillName: this.config.knobs.skillNames.review,
         branch: workspace.branch,
-        branchedRepos: branchedReposOf(ticketRun),
+        branchedRepos: ticketSteps.branchedReposOf(ticketRun),
       }),
       jsonSchema: reviewRecordSchema,
     });
@@ -129,7 +121,7 @@ export class ReviewStepper extends SpecRunBase {
         if (resolver === "fresh") {
           throw new UnhandledStop(
             "step-error",
-            `The fresh resolver crossed ${liveCeilingPhraseOf(this.config.knobs)}; its work is discarded.`,
+            `The fresh resolver crossed ${ticketSteps.liveCeilingPhraseOf(this.config.knobs)}; its work is discarded.`,
             attempt.logPath,
           );
         }
@@ -141,7 +133,7 @@ export class ReviewStepper extends SpecRunBase {
       } else if (attempt.kind === "capped") {
         const turns = this.config.knobs.maxTurns.resolve;
         await this.haltRaiser._takeCrash(ticketRun, {
-          detail: turnCapDetailOf("resolve", turns),
+          detail: ticketSteps.turnCapDetailOf("resolve", turns),
           logPath: attempt.logPath,
         });
         await resetTo(workspace, base);
@@ -158,7 +150,10 @@ export class ReviewStepper extends SpecRunBase {
           return;
         }
         if (isRetry) {
-          throw schemaFailureOf(logPath, { problems, output: records });
+          throw ticketSteps.schemaFailureOf(logPath, {
+            problems,
+            output: records,
+          });
         }
         isRetry = true;
         attempt = await this._retryResolver(ticketRun, resolver, problems);
@@ -175,7 +170,7 @@ export class ReviewStepper extends SpecRunBase {
   ): Promise<void> {
     const { run, ticket, workspace, state } = ticketRun;
     state.resolveRecords = records;
-    if (!isSameHeads(base, await this._headsOf(workspace))) {
+    if (!ticketSteps.isSameHeads(base, await this._headsOf(workspace))) {
       state.resolver = resolver;
     }
     runHalts.raise(run, {
@@ -292,7 +287,7 @@ export class ReviewStepper extends SpecRunBase {
     resolver: Resolver,
   ): ResolverSession {
     if (resolver === "implementer") {
-      return { pair, resumeSessionId: implementerSessionOf(state) };
+      return { pair, resumeSessionId: ticketSteps.implementerSessionOf(state) };
     }
     return {
       pair: strongerPairOf(this.config.knobs.resolverPair, pair),
@@ -305,7 +300,7 @@ export class ReviewStepper extends SpecRunBase {
     agent: StepAgent,
     launch: StepLaunch,
   ): Promise<LaunchedStep> {
-    return launchedOf(
+    return ticketSteps.launchedOf(
       agent,
       await this.stepLauncher._runStep(ticketRun, agent, launch),
     );
@@ -318,7 +313,7 @@ function resolvePromptOf(ticketRun: TicketRun): string {
     issue: ticket.issue,
     title: ticket.title,
     branch: workspace.branch,
-    branchedRepos: branchedReposOf(ticketRun),
+    branchedRepos: ticketSteps.branchedReposOf(ticketRun),
     findings: state.findings ?? [],
   });
 }
@@ -328,8 +323,8 @@ function resolveOutcomeOf(
   findings: Finding[],
 ): ResolveOutcome {
   if (result.hasCrossedCeiling) return { kind: "crossed", logPath };
-  if (isTurnCapped(result)) return { kind: "capped", logPath };
-  const record = recordOf("resolve", result, logPath);
+  if (ticketSteps.isTurnCapped(result)) return { kind: "capped", logPath };
+  const record = ticketSteps.recordOf("resolve", result, logPath);
   const records = withReviewerFields(resolveRecordsOf(record), findings);
   return { kind: "done", records, logPath };
 }

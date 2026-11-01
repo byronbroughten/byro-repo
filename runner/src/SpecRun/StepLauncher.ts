@@ -24,9 +24,6 @@ import { UnhandledStop } from "../UnhandledStop.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import {
   type Crash,
-  isSnapshotted,
-  isTreeKept,
-  isTurnCapped,
   type RanStep,
   type Run,
   type RunWarning,
@@ -34,8 +31,8 @@ import {
   type StepLaunch,
   type TicketRun,
   type TicketState,
-  turnCapDetailOf,
 } from "./runState.ts";
+import { ticketSteps } from "./runState/ticketSteps.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 
 type LoggedStepRequest = StepRequest & { logPath: string };
@@ -89,11 +86,14 @@ export class StepLauncher extends SpecRunBase {
       if (agent === "resolve" && !isCrashRetry && result.hasNoConversation) {
         return { result, logPath };
       }
-      if (isTurnCapped(result)) {
+      if (ticketSteps.isTurnCapped(result)) {
         // A resolver's caller resets what it left before taking the crash.
         if (agent === "resolve") return { result, logPath };
         const turns = attempt.maxTurns ?? this.config.knobs.maxTurns[agent];
-        const cap = { detail: turnCapDetailOf(agent, turns), logPath };
+        const cap = {
+          detail: ticketSteps.turnCapDetailOf(agent, turns),
+          logPath,
+        };
         if (agent === "implement") {
           return this._haltOnImplementCap(ticketRun, cap);
         }
@@ -380,7 +380,7 @@ function retryPromptOf(launch: StepLaunch, state: TicketState): string {
 
 function interruptedPromptOf(state: TicketState): string {
   let setAside = "";
-  if (isSnapshotted(state.step) && !isTreeKept(state)) {
+  if (ticketSteps.isSnapshotted(state.step) && !ticketSteps.isTreeKept(state)) {
     setAside = ` ${treeResetNote}`;
   }
   return `The previous run was interrupted; continue.${setAside} Nobody is watching this session: never ask a question or wait for an answer.`;

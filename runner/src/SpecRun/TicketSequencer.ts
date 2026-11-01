@@ -31,7 +31,6 @@ import { ImplementStepper } from "./ImplementStepper.ts";
 import { LeaseKeeper } from "./LeaseKeeper.ts";
 import { ReviewStepper } from "./ReviewStepper.ts";
 import {
-  isSameHeads,
   type LandingTicket,
   onlyDeveloperEditsTextOf,
   rerunCommandOf,
@@ -45,6 +44,7 @@ import {
   type TrackedIssue,
 } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
+import { ticketSteps } from "./runState/ticketSteps.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 import { TicketLander } from "./TicketLander.ts";
 
@@ -222,7 +222,7 @@ export class TicketSequencer extends SpecRunBase {
       if (
         isImplement &&
         base !== undefined &&
-        !isSameHeads(base, await this._headsOf(workspace))
+        !ticketSteps.isSameHeads(base, await this._headsOf(workspace))
       ) {
         failure.options = [failureOptions.retryRecord, failureOptions.retry];
       }

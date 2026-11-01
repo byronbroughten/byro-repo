@@ -16,7 +16,6 @@ import {
   interactiveLabel,
   isLaunchable,
   issuesOutside,
-  liveCeilingPhraseOf,
   type MemberList,
   readyLabel,
   type Run,
@@ -25,6 +24,7 @@ import {
   targetsRefusalOf,
   type TrackedIssue,
 } from "./runState.ts";
+import { ticketSteps } from "./runState/ticketSteps.ts";
 import { SpecRunBase, type SpecRunConfig } from "./SpecRunBase.ts";
 
 interface LocksTaken {
@@ -99,7 +99,7 @@ export class PreflightChecker extends SpecRunBase {
   async _preflightStop(): Promise<string | undefined> {
     const { knobs, primaryRoot } = this.config;
     if (knobs.liveCeiling <= knobs.ticketBudget) {
-      return `${liveCeilingPhraseOf(knobs)} isn't above the ticket budget of ${knobs.ticketBudget}; raise the live ceiling or lower the ticket budget, and rerun`;
+      return `${ticketSteps.liveCeilingPhraseOf(knobs)} isn't above the ticket budget of ${knobs.ticketBudget}; raise the live ceiling or lower the ticket budget, and rerun`;
     }
     for (const command of knobs.authChecks) {
       if ((await runCommand(command, primaryRoot)) !== undefined) {
