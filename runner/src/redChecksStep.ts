@@ -3,6 +3,7 @@
 
 import { stepReadLine } from "./IssueReader.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
+import { commitMessageLine } from "./promptText.ts";
 import { objectSchema, stringSchema } from "./recordSchema.ts";
 
 export interface RedChecksPromptInput {
@@ -30,6 +31,7 @@ The runner's checks failed on ${issue.repo}#${issue.number}, "${title}", after i
 - Read and search with the Read and Grep tools. Give Bash one command per call, run from the workspace root: no \`cd\`, no \`;\` or \`&&\` chains, no variables.
 - Fix the cause, never the check: don't skip, delete or loosen a test or a lint rule to get past it.
 - Commit the fix in each repo you changed, on the ticket's branch, then run \`npm run check\` until it passes. Never amend, push, merge, rebase or reset, never comment on or close an issue, and never run the wrap-up.
+- ${commitMessageLine}
 
 ## When you're done
 

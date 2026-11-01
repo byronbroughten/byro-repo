@@ -432,6 +432,12 @@ describe("resolvePrompt", () => {
       "- You may do what the tier list allows in your workspace. `node` runs only scratch helpers, in `$TMPDIR` or a gitignored folder; a script being built runs through its tests or its `npm run` alias. Use `git -C <dir>` rather than `cd <dir> && git`. When a write is denied, record one `denied-tool` blocker instead of trying a workaround. A refused read whose answer you got another way, or didn't need, is not a blocker: name it in your closing comment instead.",
     );
   });
+
+  it("keeps a closing keyword away from an issue reference in a commit message", () => {
+    expect(prompt).toContain(
+      "- In a commit message, never put a closing keyword (`close`, `fix`, `resolve` or one of their forms) before an issue reference: GitHub would close the issue once the commit reaches master. Write `review of #512` or `for #512` instead.",
+    );
+  });
 });
 
 describe("resolveCommitProblems", () => {
