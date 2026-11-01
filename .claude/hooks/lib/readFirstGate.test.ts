@@ -9,6 +9,7 @@ import {
   frameworkStylePath,
   proseStylePath,
   readFirstDecision,
+  readFirstNudge,
   type ReadFirstRow,
   readFirstRows,
   tierTablePath,
@@ -536,6 +537,54 @@ describe("readFirstDecision over a given table", () => {
     expect(decision.denyReason).toMatch(/docs\/notes\.md \(the notes\)/);
     expect(decision.denyReason).toContain("Keep it short.");
     expect(decision.denyReason).not.toMatch(/broken/);
+  });
+});
+
+describe("readFirstNudge", () => {
+  function nudge(filePath: string, docsRead: string[], nudged: string[] = []) {
+    return readFirstNudge(
+      {
+        projectDir,
+        cwd: projectDir,
+        toolInput: { file_path: filePath },
+        generatedDirs,
+        clonePaths,
+      },
+      docsRead,
+      nudged,
+    );
+  }
+  const quiet = { context: undefined, markers: [] };
+
+  it("names the code rules for a linted source file, then stays quiet once nudged", () => {
+    const first = nudge("/repo/scripts/foo.ts", except(codeStylePath));
+    expect(first.context).toContain(codeStylePath);
+    expect(
+      nudge("/repo/scripts/foo.ts", except(codeStylePath), first.markers),
+    ).toEqual(quiet);
+  });
+
+  it("names every unread doc once for a file two rows cover", () => {
+    const { context } = nudge(
+      "/repo/packages/framework/src/Foo.ts",
+      except(codeStylePath, frameworkStylePath),
+    );
+    [codeStylePath, frameworkStylePath].forEach((path) => {
+      expect(context?.split(path)).toHaveLength(2);
+    });
+  });
+
+  it.each([
+    ["an uncovered file", "/repo/package.json", except()],
+    ["a covered file whose docs are read", "/repo/scripts/foo.ts", allDocs],
+  ])("adds nothing for %s", (_, filePath, docsRead) => {
+    expect(nudge(filePath, docsRead)).toEqual(quiet);
+  });
+
+  it("doesn't nudge for the row whose doc this Read recorded", () => {
+    const { context } = nudge(`/repo/${codeStylePath}`, except(proseStylePath));
+    expect(context).toContain(proseStylePath);
+    expect(context).not.toContain("(the code rules)");
   });
 });
 

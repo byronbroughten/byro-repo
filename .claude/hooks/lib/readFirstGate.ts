@@ -189,6 +189,46 @@ export function readFirstDecision(
   };
 }
 
+// The PostToolUse Read nudge, and the nudge markers to record so each row nudges once per session.
+export interface ReadFirstNudge {
+  context: string | undefined;
+  markers: string[];
+}
+
+// Names each unread doc of every row not yet nudged that would refuse an Edit of the file just read; docsRead includes any doc this Read recorded.
+export function readFirstNudge(
+  call: Omit<ReadFirstCall, "toolName">,
+  docsRead: string[],
+  nudged: string[],
+  rows: ReadFirstRow[] = readFirstRows,
+): ReadFirstNudge {
+  const due = rows.filter(
+    (row) =>
+      !nudged.includes(nudgeMarker(row)) &&
+      readFirstDecision({ ...call, toolName: "Edit" }, docsRead, [row])
+        .denyReason !== undefined,
+  );
+  if (due.length === 0) return { context: undefined, markers: [] };
+  return {
+    context:
+      `Read-first: an Edit of this file waits for ${unreadDocs(due, docsRead).join(" and ")}. ` +
+      `Read each in full before your first edit. ${fullReadHowTo}.`,
+    markers: due.map(nudgeMarker),
+  };
+}
+
+export function nudgeMarker(row: ReadFirstRow): string {
+  return `${row.docs.map((doc) => doc.marker).join("+")}-nudged`;
+}
+
+function unreadDocs(rows: ReadFirstRow[], docsRead: string[]): string[] {
+  const docs = rows
+    .flatMap((row) => row.docs)
+    .filter((doc) => !docsRead.includes(doc.path))
+    .map((doc) => `${doc.path} (${doc.name})`);
+  return [...new Set(docs)];
+}
+
 function fileEdits(
   isCovered: (target: string, generatedDirs: string[]) => boolean,
 ): Pick<ReadFirstRow, "tools" | "covers"> {
@@ -208,10 +248,7 @@ function isCovered(row: ReadFirstRow, call: CoveredCall): boolean {
 }
 
 function readFirstReason(missing: ReadFirstRow[], docsRead: string[]): string {
-  const docs = missing
-    .flatMap((row) => row.docs)
-    .filter((doc) => !docsRead.includes(doc.path))
-    .map((doc) => `${doc.path} (${doc.name})`);
+  const docs = unreadDocs(missing, docsRead);
   const rules = missing.flatMap((row) => row.rules).join(" ");
   return (
     `Read ${docs.join(" and ")} in full before this write, then retry. ` +
