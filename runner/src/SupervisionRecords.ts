@@ -6,6 +6,7 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
@@ -69,7 +70,7 @@ export class SupervisionRecords {
     owner: string,
     named: IssueRef,
   ): Promise<SupervisionRecord> {
-    const members = BatchRecords.init(this.stateFolder).membersOf(named);
+    const members = this._membersOf(named);
     const overlapping = this._files().filter((file) =>
       file.members.some((member) => isMemberOf(members, member)),
     );
@@ -85,6 +86,19 @@ export class SupervisionRecords {
     const record: SupervisionRecord = { pid, owner, members, offset };
     this._write({ ...record, ...supervisor, watch });
     return record;
+  }
+
+  // An ended Batch's record is gone, so a record already on that Batch keeps its members, and the file its watch read, until the spec runs alone after it.
+  private _membersOf(named: IssueRef): MemberList {
+    const batch = BatchRecords.init(this.stateFolder).batchOf(named);
+    if (batch !== undefined) return batch.members;
+    const ended = this._files().find(
+      (file) => file.members.length > 1 && isWatching(file, named),
+    );
+    if (ended === undefined) return [named];
+    const ownFile = eventStreamPathOf(this.stateFolder, [named]);
+    if (isWrittenAfter(ownFile, this._eventFileOf(ended))) return [named];
+    return ended.members;
   }
 
   // Joins the record holding the spec, a Batch's included when the spec is one of its members.
@@ -195,6 +209,13 @@ export class SupervisionRecords {
   private _pathOf(pid: number): string {
     return join(this.folder, `${pid}.json`);
   }
+}
+
+// A missing file was never written; a modified time keeps the record from reading the event file's line format.
+function isWrittenAfter(path: string, otherPath: string): boolean {
+  if (!existsSync(path)) return false;
+  if (!existsSync(otherPath)) return true;
+  return statSync(path).mtimeMs > statSync(otherPath).mtimeMs;
 }
 
 // Only a supervision that hasn't ended makes its session the spec's Supervisor.

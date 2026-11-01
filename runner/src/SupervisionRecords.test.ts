@@ -5,6 +5,7 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  utimesSync,
   writeFileSync,
 } from "node:fs";
 import { hostname, tmpdir } from "node:os";
@@ -353,6 +354,56 @@ describe("a Batch's supervision record", () => {
     expect(
       watch !== undefined && records().isWatchedBy(spec, watch.watchProcess),
     ).toBe(true);
+  });
+
+  describe("once its Batch has ended", () => {
+    // The run loop closes the Batch's record at any end but a Restart.
+    async function supervisedToEnd(): Promise<void> {
+      await openBatch();
+      appendBatchEvents("started");
+      await records().supervise(me, owner, spec);
+      await records().advance(me);
+      appendBatchEvents("ended");
+      BatchRecords.init(stateFolder).close(batch);
+    }
+
+    it("prints the run-ended line the watch printed, once", async () => {
+      await supervisedToEnd();
+      const watch = await startedWatch(process.pid);
+
+      await records().supervise(me, owner, otherSpec);
+
+      expect(watch.members).toEqual(batch);
+      expect(await records().unexplainedLinesOf(me)).toEqual(["ended"]);
+      await records().advance(me);
+      await records().supervise(me, owner, spec);
+      expect(await records().unexplainedLinesOf(me)).toEqual([]);
+    });
+
+    it("prints only lines not yet explained after a relaunch of the same list", async () => {
+      await supervisedToEnd();
+      await records().supervise(me, owner, spec);
+      await records().advance(me);
+
+      await openBatch();
+      appendBatchEvents("relaunched");
+      await records().supervise(me, owner, spec);
+
+      expect(await records().unexplainedLinesOf(me)).toEqual(["relaunched"]);
+    });
+
+    it("moves to the member's own file once that member runs alone", async () => {
+      await supervisedToEnd();
+      await records().supervise(me, owner, spec);
+      const later = new Date(Date.now() + 60_000);
+      appendEvents(spec, "alone");
+      utimesSync(eventFilePathOf(stateFolder, spec), later, later);
+
+      await records().supervise(me, owner, spec);
+
+      expect(await records().recordOf(me)).toMatchObject({ members: [spec] });
+      expect(await records().unexplainedLinesOf(me)).toEqual(["alone"]);
+    });
   });
 });
 
