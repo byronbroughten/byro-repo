@@ -4,7 +4,7 @@
 // past it, a fresh resolver resolves them. Either way it returns the run's review list to print and posts Halts as a run would.
 // Its Halts are numbered S<n>.<k> and returned to print, to be answered in the session rather than on the spec.
 // Each step session it starts goes into the ticket's facts file, halted or not.
-// ../SpecRun.ts delegates review and resolve to it; its authorship refusal is the Base's, shared with RunLoop.ts.
+// ../SpecRun.ts delegates review and resolve to it; its authorship refusal is the Base's, shared with PreflightChecker.ts.
 // It builds its own TicketSequencer, ReviewStepper, LeaseKeeper, ReviewListPoster and HaltRaiser.
 
 import { ActiveAccountUnknown } from "../ActiveAccountUnknown.ts";

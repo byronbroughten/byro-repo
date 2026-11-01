@@ -27,6 +27,7 @@ import {
 import { runnerMark } from "../halts.ts";
 import { approvalLineOf, untrustedBodyReasonOf } from "../IssueReader.ts";
 import {
+  fileStemOf,
   issueLabelOf,
   type IssueRef,
   IssueWorkspaces,
@@ -212,6 +213,11 @@ export class SpecRunBase {
 
   protected _statePathOf(spec: IssueRef): string {
     return runStatePathOf(this.config.stateFolder, spec);
+  }
+
+  // Written by StatusReporter.ts from outside the run, taken by RunLoop.ts between tickets.
+  protected _stopRequestPathOf(spec: IssueRef): string {
+    return join(this.config.stateFolder, `${fileStemOf(spec)}.stop`);
   }
 
   protected _saveState(run: Run): void {
