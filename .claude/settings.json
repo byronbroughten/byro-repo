@@ -156,14 +156,6 @@
         "~/Documents/Code/byro-repo/packages/personal/.probe",
         "~/Documents/Code/byro-repo/packages/personal/node_modules"
       ],
-      "denyRead": [
-        "~/.clasprc.json",
-        "~/.npmrc",
-        "~/.config/gworkspace-mcp",
-        "~/.config/gmail-mcp",
-        "~/.claude.json",
-        "~/.ssh"
-      ],
       "allowRead": [
         "./packages/*/src/generated/columnConfigs.ts",
         "./packages/*/dev/generated/columnConfigs.ts"
