@@ -1,0 +1,7 @@
+# byro-repo#521 outcome
+
+Spec: [byro-repo#519](https://github.com/byronbroughten/byro-repo/issues/519)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #521 | Opus medium | 3 | 11 | 140K | Fix (resumed implementer) | 1 | 1 | 0 | 69 min | $4.14 | $0.92 | Fixed: runSession's spawn and the haiku/no-session-persistence args duplicate SessionProbe.ts. (runner/src/SandboxProbe.ts:118-133); Three comments only say what something is. (runner/src/SandboxProbe.ts:10, 17, 186); SandboxLine lets ran carry an error and stopped carry none. (runner/src/SandboxProbe.ts:7-12); Record<string, unknown> stands in for the probe's settings shape. (runner/src/SandboxProbe.ts:15, 39-50, 83-86); The calls map is searched by value, and a repeated command always resolves to the first call. (runner/src/SandboxProbe.ts:149); SandboxLine names the printed format, not the command's outcome. (runner/src/SandboxProbe.ts:5-19); The .probe folder is written out twice. (scripts/runner/sessionProbe.ts:19, 51); stderr and the exit code are dropped, so a failed launch leaves nothing on disk. (runner/src/SandboxProbe.ts:120-133). Proposed: Any failed Bash call reads stopped, so a plain nonzero exit looks like a sandbox stop. (runner/src/SandboxProbe.ts sandboxLines). | 1599781c-32c7-4982-bda1-810a83a28d04, 8cef27d0-af13-4c44-9c29-dfe796f22687 |
