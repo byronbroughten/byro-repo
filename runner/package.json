@@ -34,6 +34,7 @@
     "./reviewStep": "./src/reviewStep.ts",
     "./runCollecting": "./src/runCollecting.ts",
     "./runKnobs": "./src/runKnobs.ts",
+    "./SandboxProbe": "./src/SandboxProbe.ts",
     "./SessionProbe": "./src/SessionProbe.ts",
     "./SpecRun": "./src/SpecRun.ts",
     "./SupervisionRecords": "./src/SupervisionRecords.ts",
