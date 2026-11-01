@@ -35,7 +35,7 @@ const freeScripts = new Map<string, string>([
   ["prompt:scan", "it only reads transcripts"],
   [
     "session:probe",
-    "its one-turn session only reports what the folder's hooks see",
+    "its one-turn session only reports what the folder's hooks see, or with --sandbox-check runs each listed command once inside the folder's sandbox",
   ],
   ["check", freeWhys.check],
   ["tsc", freeWhys.check],

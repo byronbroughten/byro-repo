@@ -34,6 +34,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `git.ts` | | Git helpers the workspaces, run loop and wrap-up share. |
 | `GitFixture.ts` | | A test primary root of clones with bare remotes. |
 | `halts.ts` | | Halts: their comments, notices, answers and the resume prompt. |
+| `headlessProbe.ts` | | Launches the one-turn headless session both probes run. |
 | `implementCodeSkill.ts` | `implementCodeSkill` | Generates the `/implement-code` skill from the implement step's shared body. |
 | `implementStep.ts` | `implementStep` | The implement step's prompt, record, handoff comment and record checks. |
 | `IssueReader.ts` | `IssueReader` | `npm run issue:read`: prints an issue as Trusted and Untrusted text, and reads a Trusted body's Model fit line for `npm run outcome:summary`. |
@@ -75,6 +76,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `runKnobs.ts` | `runKnobs` | Every knob a run reads, its defaults and the override-file loader. |
 | `RunLock.ts` | `RunLock` | The per-spec run lock. |
 | `RunStop.ts` | | The error that ends a run with a Stop. |
+| `SandboxProbe.ts` | `SandboxProbe` | `npm run session:probe -- --sandbox-check`: which listed commands a folder's sandbox stops. |
 | `savedFormats.ts` | | Reads an older runner's run state, facts file and supervision record into today's shapes. |
 | `SchemaFailure.ts` | | The error for a step record that fails its checks. |
 | `secretShapes.ts` | | The token shapes wrap-up's secret scan looks for. |
