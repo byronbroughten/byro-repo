@@ -78,6 +78,7 @@ export const issueWorkspacesConfig: IssueWorkspacesConfig = {
       { encoding: "utf8" },
     ).trim();
   },
+  removeCommand: "npm run issue:remove",
 };
 
 // Registered per step rather than in .claude/settings.json; rooted like every gate, so a step's edit to it waits for master.
@@ -119,8 +120,12 @@ export const wrapUpConfig: WrapUpConfig = {
 };
 
 export function specRunConfigOf(owner: string): SpecRunConfig {
-  const { workspaceFolder, symlinkedFiles, installDependencies } =
-    issueWorkspacesConfig;
+  const {
+    workspaceFolder,
+    symlinkedFiles,
+    installDependencies,
+    removeCommand,
+  } = issueWorkspacesConfig;
   return {
     knobs: runKnobs,
     agentStep: ClaudeAgentStep.init({
@@ -139,6 +144,7 @@ export function specRunConfigOf(owner: string): SpecRunConfig {
     installDependencies,
     promoteCommandOf: ({ repo, number }: IssueRef) =>
       promoteCommandOf(repo, `${number}`),
+    removeCommand,
     outcomeFolder,
     stateFolder,
     configFolder: configFolderOf(process.env, homedir()),

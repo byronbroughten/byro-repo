@@ -79,6 +79,7 @@ export interface SpecRunConfig {
   installDependencies(workspaceRoot: string): Promise<void>;
   // The command an implement step runs to promote a repo, taking the repo as its last argument.
   promoteCommandOf(issue: IssueRef): string;
+  removeCommand: string;
   // Relative to the root repo.
   outcomeFolder: string;
   // Holds the run state, progress log and step logs, and the wrap-up's facts and progress files; gitignored.
@@ -180,6 +181,7 @@ export class SpecRunBase {
       symlinkedFiles,
       installDependencies,
       github,
+      removeCommand,
     } = this.config;
     return {
       primaryRoot,
@@ -188,6 +190,7 @@ export class SpecRunBase {
       symlinkedFiles,
       installDependencies,
       issueTitle: async (issue) => (await github.issueOf(issue)).title,
+      removeCommand,
     };
   }
 

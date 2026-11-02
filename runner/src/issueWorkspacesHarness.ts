@@ -93,6 +93,7 @@ export function workspaces(
       titleLookups += 1;
       return "Workspace module: create, list and remove";
     },
+    removeCommand: "npm run issue:remove",
     ...overrides,
   });
 }

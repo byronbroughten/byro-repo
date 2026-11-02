@@ -21,6 +21,7 @@ import {
   worktreeStateOf,
 } from "../git.ts";
 import { BranchNamer, branchOriginOf } from "./BranchNamer.ts";
+import { assertClaudeEntriesDeletable } from "./claudeEntries.ts";
 import { assertLeaseFree, IssueWorkspacesBase } from "./IssueWorkspacesBase.ts";
 import { WorkspaceLeaser } from "./WorkspaceLeaser.ts";
 import { WorkspaceSeeder } from "./WorkspaceSeeder.ts";
@@ -168,6 +169,11 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
         `${workspace.path} has ${unsavedWork(dirtyRepos, orphanedRepos)}; remove it with force to discard them`,
       );
     }
+    assertClaudeEntriesDeletable({
+      path: workspace.path,
+      clonePaths: Object.values(this.config.clonePaths),
+      removeCommand: this.config.removeCommand,
+    });
     await this._tearDown(workspace.path, force);
   }
 
@@ -233,16 +239,29 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
 
   private async _repoWorktreesOf(path: string): Promise<RepoWorktree[]> {
     await this._relocateMovedWorktrees(path);
-    const present = this._clonesRootFirst
-      .map(([repo, clonePath]) => ({ repo, worktree: join(path, clonePath) }))
-      .filter(({ worktree }) => existsSync(worktree));
+    const registered = await this._registeredWorktreesOf(path);
     return Promise.all(
-      present.map(async ({ repo, worktree }) => ({
+      registered.map(async ({ repo, worktree }) => ({
         repo,
         worktree,
         state: await worktreeStateOf(worktree),
       })),
     );
+  }
+
+  // A folder git no longer lists, left by a removal stopped part-way, has no git state, and a git process in it would read an outer repo's.
+  private async _registeredWorktreesOf(
+    path: string,
+  ): Promise<RepoWorktreeTarget[]> {
+    const present = this._clonesRootFirst
+      .map(([repo, clonePath]) => ({
+        repo,
+        primaryClone: this._primaryCloneOf(clonePath),
+        worktree: join(path, clonePath),
+      }))
+      .filter(({ worktree }) => existsSync(worktree));
+    const isEachRegistered = await Promise.all(present.map(isRegistered));
+    return present.filter((_, index) => isEachRegistered[index]);
   }
 
   // A workspace built before its primary clone moved holds that repo's worktree at the old folder, which every path here would miss.
@@ -276,7 +295,9 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
       .filter(({ state }) => state.branch !== "")
       .map(({ repo }) => repo);
     const dirtyRepos = dirtyReposOf(worktrees);
+    const isBroken = !worktrees.some(({ worktree }) => worktree === path);
     return {
+      ...(isBroken && { isBroken }),
       path,
       key,
       // From the folder, which create() names after the branch, so it survives the repos being detached.
@@ -288,14 +309,11 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
     };
   }
 
+  // A repo's folder git no longer lists goes with the folder; the prune then clears any record left.
   private async _tearDown(path: string, force: boolean): Promise<void> {
-    const deepestFirst = this._clonesRootFirst.reverse();
-    for (const [, clonePath] of deepestFirst) {
-      await removeWorktree({
-        primaryClone: this._primaryCloneOf(clonePath),
-        worktree: join(path, clonePath),
-        force,
-      });
+    const deepestFirst = (await this._registeredWorktreesOf(path)).reverse();
+    for (const { primaryClone, worktree } of deepestFirst) {
+      await removeWorktree({ primaryClone, worktree, force });
     }
     rmSync(path, { recursive: true, force: true });
     await this._pruneWorktrees();
@@ -318,6 +336,10 @@ interface BuildTarget {
 interface WorktreeTarget {
   primaryClone: string;
   worktree: string;
+}
+
+interface RepoWorktreeTarget extends WorktreeTarget {
+  repo: string;
 }
 
 interface SharedFileLink {
@@ -393,14 +415,27 @@ async function worktreesInside(
   primaryClone: string,
   folder: string,
 ): Promise<string[]> {
-  const listing = await git(primaryClone, "worktree", "list", "--porcelain");
   // Git records each worktree at its real path, so a symlinked workspace folder would match none.
   const realFolder = realpathSync(folder);
-  return lines(listing).flatMap((line) => {
-    if (!line.startsWith("worktree ")) return [];
-    const worktree = line.slice("worktree ".length);
-    return worktree.startsWith(`${realFolder}${sep}`) ? [worktree] : [];
-  });
+  return (await registeredWorktreesOf(primaryClone)).filter((worktree) =>
+    worktree.startsWith(`${realFolder}${sep}`),
+  );
+}
+
+async function registeredWorktreesOf(primaryClone: string): Promise<string[]> {
+  const listing = await git(primaryClone, "worktree", "list", "--porcelain");
+  return lines(listing).flatMap((line) =>
+    line.startsWith("worktree ") ? [line.slice("worktree ".length)] : [],
+  );
+}
+
+async function isRegistered({
+  primaryClone,
+  worktree,
+}: WorktreeTarget): Promise<boolean> {
+  return (await registeredWorktreesOf(primaryClone)).includes(
+    realpathSync(worktree),
+  );
 }
 
 async function removeWorktree({

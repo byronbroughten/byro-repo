@@ -10,19 +10,19 @@ import {
   holderLabelOf,
   type IssueRef,
   IssueWorkspaces,
-  type Lease,
   type Workspace,
   type WorkspaceKey,
   workspaceLabelOf,
-  type WorkspaceStatus,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
 
 import { nearestClaudeAncestor } from "./claudeAncestor.ts";
 import { activeAccount } from "./cswapAccount.ts";
 import { issueReader } from "./issueReader.ts";
+import { keyArgsOf } from "./keyArgs.ts";
 import { issueWorkspacesConfig, stateFolder } from "./runnerConfig.ts";
 import { recordStartedSession } from "./startedSession.ts";
 import { startReportOf } from "./startReport.ts";
+import { workspaceLineOf } from "./workspaceLine.ts";
 
 const workspaces = IssueWorkspaces.init(issueWorkspacesConfig);
 const keyUsage = "(<repo> <n> | --session <slug>)";
@@ -109,42 +109,17 @@ async function openClaude(
 }
 
 function startIssuePromptOf(key: WorkspaceKey): string {
-  if ("session" in key) return `/start-issue --session ${key.session}`;
-  return `/start-issue ${key.repo} ${key.number}`;
+  return `/start-issue ${keyArgsOf(key)}`;
 }
 
 async function list(): Promise<void> {
   const listed = await workspaces.list();
   if (listed.length === 0) console.log("No workspaces.");
-  listed.forEach((workspace) => console.log(lineOf(workspace)));
-}
-
-function lineOf(workspace: WorkspaceStatus): string {
-  const { key, branch, branchedRepos, dirtyRepos, createdAt, path, lease } =
-    workspace;
-  const dirty =
-    dirtyRepos.length === 0 ? "clean" : `dirty: ${dirtyRepos.join(", ")}`;
-  return [
-    workspaceLabelOf(key),
-    branch,
-    `on branch: ${branchedRepos.join(", ")}`,
-    dirty,
-    leaseLabelOf(lease),
-    `age ${ageOf(createdAt)}`,
-    path,
-  ].join("  ");
-}
-
-function leaseLabelOf(lease: Lease | undefined): string {
-  if (!lease) return "no lease";
-  if (!lease.isLive) return `lease abandoned by ${holderLabelOf(lease)}`;
-  return `leased by ${holderLabelOf(lease)}`;
-}
-
-function ageOf(createdAt: Date): string {
-  const hours = Math.floor((Date.now() - createdAt.getTime()) / 3_600_000);
-  if (hours < 24) return `${hours}h`;
-  return `${Math.floor(hours / 24)}d ${hours % 24}h`;
+  listed.forEach((workspace) =>
+    console.log(
+      workspaceLineOf(workspace, issueWorkspacesConfig.removeCommand),
+    ),
+  );
 }
 
 async function promote(args: string[]): Promise<void> {

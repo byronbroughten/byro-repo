@@ -1,6 +1,6 @@
 // Takes, releases and reads workspace leases: a lease is a file in the root worktree's git folder so it never shows as dirty; it is live while the process that took it runs on this machine, a dead holder's lease is taken over, and a holder holds one at a time.
 
-import { readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { gitDirOf } from "../git.ts";
@@ -70,7 +70,9 @@ export class WorkspaceLeaser extends IssueWorkspacesBase {
     rmSync(leasePathOf(path), { force: true });
   }
 
+  // A folder whose root has no .git has no git folder to hold a lease file; whether it is broken is the keeper's call.
   async leaseOf({ path }: Pick<Workspace, "path">): Promise<Lease | undefined> {
+    if (!existsSync(join(path, ".git"))) return undefined;
     return readLease(leasePathOf(path));
   }
 

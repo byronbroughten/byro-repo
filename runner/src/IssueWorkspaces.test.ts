@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -18,6 +18,13 @@ import {
 } from "./issueWorkspacesHarness.ts";
 
 useIssueWorkspacesHarness();
+
+// What Claude Code recreates for a session whose working directory still points at a removed workspace.
+function makeBrokenFolder(): string {
+  const brokenPath = join(temp, "workspaces/session-broken");
+  mkdirSync(join(brokenPath, ".claude/.cc-writes"), { recursive: true });
+  return brokenPath;
+}
 
 describe("create", () => {
   it("puts the issue's repo on the issue branch and detaches every other repo at master", async () => {
@@ -242,6 +249,46 @@ describe("list", () => {
         started - 1000,
       );
     });
+  });
+
+  it("shows a folder whose root has no .git as broken beside a whole workspace", async () => {
+    await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "whole" },
+    );
+    makeBrokenFolder();
+
+    const listed = await workspaces().list();
+
+    expect(
+      listed.map(({ key, branchedRepos, isBroken }) => ({
+        key,
+        branchedRepos,
+        isBroken,
+      })),
+    ).toEqual([
+      {
+        key: { repo: "byro-repo", number: 7 },
+        branchedRepos: ["byro-repo"],
+        isBroken: undefined,
+      },
+      { key: { session: "broken" }, branchedRepos: [], isBroken: true },
+    ]);
+  });
+
+  it("removes a folder whose root has no .git, leaving a whole workspace registered", async () => {
+    await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "whole" },
+    );
+    const brokenPath = makeBrokenFolder();
+    const broken = await workspaces().find({ session: "broken" });
+    if (!broken) throw new Error("The broken folder wasn't found");
+
+    await workspaces().remove(broken);
+
+    expect(existsSync(brokenPath)).toBe(false);
+    expect(registeredWorktrees()).toHaveLength(3);
   });
 
   it("is empty before any workspace exists", async () => {

@@ -58,6 +58,8 @@ export interface IssueWorkspacesConfig {
   symlinkedFiles: string[];
   installDependencies(workspaceRoot: string): Promise<void>;
   issueTitle(issue: IssueRef): Promise<string>;
+  // The command that removes a workspace, before its key's arguments; a refused removal names it.
+  removeCommand: string;
 }
 
 export interface Workspace {
@@ -112,6 +114,8 @@ export interface WorkspaceStatus extends Workspace {
   dirtyRepos: string[];
   createdAt: Date;
   lease?: Lease;
+  // Set on a folder git no longer lists as the root's worktree, which only remove clears.
+  isBroken?: boolean;
 }
 
 export interface RemoveOptions {
