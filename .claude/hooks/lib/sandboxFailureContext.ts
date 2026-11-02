@@ -30,8 +30,13 @@ const fixedRows = [
   },
 ];
 
-const permissionLine = /operation not permitted/i;
-const pathInLine = /(?:^|[\s'"`(:])((?:\/|~\/)[^\s'"`:,)]+)/g;
+const deniedPathPatterns = {
+  line: /operation not permitted/i,
+  path: /(?:^|[\s'"`(:])((?:\/|~\/)[^\s'"`:,)]+)/g,
+} as const;
+
+// macOS reports a path through its real name, `/private/var` for `/var`, while settings may list either.
+const privateAlias = /^\/private(?=\/(?:var|tmp|etc)(?:\/|$))/;
 
 export function sandboxContextOf(
   error: string,
@@ -43,7 +48,7 @@ export function sandboxContextOf(
   const denied = deniedPathsOf(error, scope);
   if (denied.length > 0) {
     says.push(
-      `This is the sandbox: it denies writes to ${denied.map((path) => `\`${path}\``).join(", ")}. It writes only in the workspace, the temp folders and the \`allowWrite\` folders, and never under a primary checkout's \`.git\` or \`claude-guardrails/\`.`,
+      `This is the sandbox: it denies writes to ${denied.map((path) => `\`${path}\``).join(", ")}, and reads of the credential paths it denies. It writes only in the workspace, the temp folders and the \`allowWrite\` folders, and never under a primary checkout's \`.git\` or \`claude-guardrails/\`.`,
     );
   }
   if (says.length === 0) return undefined;
@@ -75,9 +80,11 @@ function listedPaths(value: unknown, home: string): string[] {
 function deniedPathsOf(error: string, scope: WriteScope): string[] {
   const paths = error
     .split("\n")
-    .filter((line) => permissionLine.test(line))
+    .filter((line) => deniedPathPatterns.line.test(line))
     .flatMap((line) =>
-      [...line.matchAll(pathInLine)].map((match) => match[1] as string),
+      [...line.matchAll(deniedPathPatterns.path)].map(
+        (match) => match[1] as string,
+      ),
     );
   return [...new Set(paths)].filter((path) => !writableIn(path, scope));
 }
@@ -89,7 +96,9 @@ function writableIn(path: string, scope: WriteScope): boolean {
 }
 
 function isUnder(path: string, folder: string): boolean {
-  return path === folder || path.startsWith(join(folder, "/"));
+  const real = path.replace(privateAlias, "");
+  const realFolder = folder.replace(privateAlias, "");
+  return real === realFolder || real.startsWith(join(realFolder, "/"));
 }
 
 function expandHome(path: string, home: string): string {

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { sandboxContextOf, writeScopeOf } from "./sandboxFailureContext.ts";
 
 const scope = {
-  allow: ["/work/space", "/tmp", "/Users/me/.npm"],
+  allow: ["/work/space", "/tmp", "/var/folders/q/T", "/Users/me/.npm"],
   deny: ["/Users/me/code/.git", "/tmp/claude-guardrails"],
 };
 
@@ -57,6 +57,8 @@ describe("sandboxContextOf", () => {
     "Exit code 1\ntouch: /work/space/a.txt: Operation not permitted",
     "Exit code 1\ntouch: /tmp/x/a.txt: Operation not permitted",
     "Exit code 1\ntouch: a.txt: Operation not permitted",
+    "Exit code 1\ntouch: /private/tmp/x/a.txt: Operation not permitted",
+    "Exit code 1\ntouch: /private/var/folders/q/T/a.txt: Operation not permitted",
     "Exit code 1\nError: Cannot find module 'express'",
     "Exit code 1\ncurl: (6) Could not resolve host: example.invalid",
     "Exit code 2\nps is not installed",
