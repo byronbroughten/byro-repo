@@ -12,6 +12,7 @@ import { npmVerdicts } from "./tiers/npmVerdicts.ts";
 import { PathChecker, writablePlaces } from "./tiers/PathChecker.ts";
 import { readCommands } from "./tiers/readCommands.ts";
 import { runnerStep } from "./tiers/runnerStep.ts";
+import { timeoutWrappedOf } from "./timeoutWrapped.ts";
 
 export interface Decision {
   permissionDecision: "allow" | "ask" | "deny";
@@ -314,20 +315,6 @@ function commandVerdictOf(
     if (verdict) return verdict;
   }
   return undefined;
-}
-
-// The duration and the timeout's own flags dropped, or undefined when the words aren't a timeout.
-function timeoutWrappedOf(words: string[]): string[] | undefined {
-  if (words[0] !== "timeout") return undefined;
-  let at = 1;
-  while ((words[at] ?? "").startsWith("-")) {
-    if (["-s", "-k", "--signal", "--kill-after"].includes(words[at] ?? "")) {
-      at++;
-    }
-    at++;
-  }
-  const wrapped = words.slice(at + 1);
-  return wrapped.length > 0 ? wrapped : undefined;
 }
 
 // The tier table's rules in docs/targets-and-gates.md, in the order they're tried, which isn't the table's; a row may take several entries. The first verdict wins, so the order decides which of two matching rules applies.

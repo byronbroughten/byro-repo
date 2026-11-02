@@ -1,7 +1,10 @@
 // The settings' `excludedCommands`, and the refusal of a call that holds one but stays in the sandbox, where it fails without naming the box.
 // Claude Code lets a call out only when every command in it matches an entry, with nothing beside them but `&&`, `||`, `;` or `2>&1`.
+import { callOfItsOwn } from "@byronbroughten/spec-runner/callOfItsOwn";
+
 import { ShellParser, type SimpleCommand } from "./ShellParser.ts";
 import { npmCommands } from "./tiers/npmCommands.ts";
+import { timeoutWrappedOf } from "./timeoutWrapped.ts";
 
 const sandboxCant = {
   google: "can't reach Google",
@@ -38,17 +41,15 @@ export const excludedCommands = {
     const commands = parser.parsedCommands;
     if (!commands) return undefined;
     const held = commands.flatMap((simple) => {
-      const form = npmCommands.unflaggedFormOf(simple.words);
+      // A timed command keeps the box as its wrapped command does.
+      const words = timeoutWrappedOf(simple.words) ?? simple.words;
+      const form = npmCommands.unflaggedFormOf(words);
       const entry = entries.find((pattern) => matchesEntry(form, pattern));
       return entry ? [{ form, entry }] : [];
     });
     const [first] = held;
     if (!first || leavesTheBox(parser, commands, entries)) return undefined;
-    return `\`${command}\` keeps \`${first.form}\` in the sandbox, where it fails without naming the box: the sandbox ${reasonOf(first.entry)}. ${excludedCommands.callOfItsOwn(`Run \`${first.form}\``)}`;
-  },
-  // The way out of the box, for every message that names it.
-  callOfItsOwn(instruction: string): string {
-    return `${instruction} in a call of its own, with no pipe, \`cd\`, \`$(…)\`, redirect other than \`2>&1\`, heredoc, flag before the script name, env prefix or other command beside it`;
+    return `\`${command}\` keeps \`${first.form}\` in the sandbox, where it fails without naming the box: the sandbox ${reasonOf(first.entry)}. ${callOfItsOwn(`Run \`${first.form}\``)}`;
   },
 };
 

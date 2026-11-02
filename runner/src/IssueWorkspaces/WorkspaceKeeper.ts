@@ -5,22 +5,26 @@ import {
   existsSync,
   lstatSync,
   mkdirSync,
-  realpathSync,
   rmSync,
   statSync,
   symlinkSync,
 } from "node:fs";
-import { basename, dirname, join, sep } from "node:path";
+import { basename, dirname, join } from "node:path";
 
 import {
+  addWorktree,
   currentBranchOf,
   dirtyReposOf,
   git,
-  lines,
+  isRegistered,
+  removeWorktree,
   type RepoWorktree,
+  switchArgs,
+  worktreesInside,
   worktreeStateOf,
+  type WorktreeTarget,
 } from "../git.ts";
-import { BranchNamer, branchOriginOf } from "./BranchNamer.ts";
+import { BranchNamer } from "./BranchNamer.ts";
 import { assertClaudeEntriesDeletable } from "./claudeEntries.ts";
 import { assertLeaseFree, IssueWorkspacesBase } from "./IssueWorkspacesBase.ts";
 import { WorkspaceLeaser } from "./WorkspaceLeaser.ts";
@@ -333,11 +337,6 @@ interface BuildTarget {
   branchedRepos: string[];
 }
 
-interface WorktreeTarget {
-  primaryClone: string;
-  worktree: string;
-}
-
 interface RepoWorktreeTarget extends WorktreeTarget {
   repo: string;
 }
@@ -362,46 +361,6 @@ function assertSessionCreate(
   );
 }
 
-async function addWorktree({
-  primaryClone,
-  worktree,
-  branch,
-}: WorktreeTarget & { branch: string | undefined }): Promise<void> {
-  if (branch === undefined) {
-    await git(primaryClone, "worktree", "add", "--detach", worktree, "master");
-    return;
-  }
-  await git(
-    primaryClone,
-    "worktree",
-    "add",
-    ...(await branchedWorktreeArgs({ primaryClone, worktree, branch })),
-  );
-}
-
-async function branchedWorktreeArgs({
-  primaryClone,
-  worktree,
-  branch,
-}: WorktreeTarget & { branch: string }): Promise<string[]> {
-  const origin = await branchOriginOf(primaryClone, branch);
-  if (origin.kind === "local") return [worktree, branch];
-  if (origin.kind === "remote") {
-    return ["--track", "-b", branch, worktree, origin.remoteBranch];
-  }
-  return ["-b", branch, worktree, "master"];
-}
-
-// A new branch starts at the worktree's own HEAD, so edits made on the detached repo come along.
-async function switchArgs(worktree: string, branch: string): Promise<string[]> {
-  const origin = await branchOriginOf(worktree, branch);
-  if (origin.kind === "local") return [branch];
-  if (origin.kind === "remote") {
-    return ["--track", "-c", branch, origin.remoteBranch];
-  }
-  return ["-c", branch];
-}
-
 // A link a moved primary clone left pointing at its old folder is replaced; a real file in its place is the developer's and stays.
 function linkSharedFile({ target, link }: SharedFileLink): void {
   if (!existsSync(target)) return;
@@ -409,43 +368,6 @@ function linkSharedFile({ target, link }: SharedFileLink): void {
     rmSync(link);
   }
   if (!existsSync(link)) symlinkSync(target, link);
-}
-
-async function worktreesInside(
-  primaryClone: string,
-  folder: string,
-): Promise<string[]> {
-  // Git records each worktree at its real path, so a symlinked workspace folder would match none.
-  const realFolder = realpathSync(folder);
-  return (await registeredWorktreesOf(primaryClone)).filter((worktree) =>
-    worktree.startsWith(`${realFolder}${sep}`),
-  );
-}
-
-async function registeredWorktreesOf(primaryClone: string): Promise<string[]> {
-  const listing = await git(primaryClone, "worktree", "list", "--porcelain");
-  return lines(listing).flatMap((line) =>
-    line.startsWith("worktree ") ? [line.slice("worktree ".length)] : [],
-  );
-}
-
-async function isRegistered({
-  primaryClone,
-  worktree,
-}: WorktreeTarget): Promise<boolean> {
-  return (await registeredWorktreesOf(primaryClone)).includes(
-    realpathSync(worktree),
-  );
-}
-
-async function removeWorktree({
-  primaryClone,
-  worktree,
-  force,
-}: WorktreeTarget & { force: boolean }): Promise<void> {
-  if (!existsSync(worktree)) return;
-  const forceArgs = force ? ["--force"] : [];
-  await git(primaryClone, "worktree", "remove", ...forceArgs, worktree);
 }
 
 function detachedOf(worktrees: RepoWorktree[]): RepoWorktree[] {

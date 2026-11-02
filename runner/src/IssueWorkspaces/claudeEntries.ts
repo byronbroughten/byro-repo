@@ -3,8 +3,10 @@
 import { lstatSync, renameSync } from "node:fs";
 import { join } from "node:path";
 
+import { callOfItsOwn } from "../callOfItsOwn.ts";
+
 // Protected in every worktree, whatever the settings say.
-const protectedClaudeEntries = [
+export const protectedClaudeEntries = [
   "settings.json",
   "settings.local.json",
   "skills",
@@ -42,7 +44,7 @@ function assertDeletable(entry: string, removeCommand: string): void {
     renameSync(entry, moved);
   } catch (error) {
     throw new Error(
-      `Can't delete ${entry}, since the sandbox can't delete a worktree's .claude/ files; nothing was removed, so run ${removeCommand} in a call of its own`,
+      `Can't delete ${entry}, since the sandbox can't delete a worktree's .claude/ files; nothing was removed, so ${callOfItsOwn(`run ${removeCommand}`)}`,
       { cause: error },
     );
   }
