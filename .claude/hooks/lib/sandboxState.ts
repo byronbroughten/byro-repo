@@ -13,6 +13,14 @@ export interface SandboxState {
   isOn: boolean;
   excludedCommands: string[];
   filesystem: SandboxFilesystem;
+  off: SandboxOff | undefined;
+}
+
+// What made the sandbox off, how to turn it back on, and the entries a call may still be made of to get its tier rows: none when a layer can't be parsed.
+export interface SandboxOff {
+  cause: string;
+  fix: string;
+  excludedCommands: string[];
 }
 
 export interface SandboxFilesystem {
@@ -41,7 +49,8 @@ export function sessionSandboxStateOf(
 }
 
 export function sandboxStateOf(layers: SettingsLayers): SandboxState {
-  const parsedLayers = layerPathsOf(layers).map(layerAt);
+  const paths = layerPathsOf(layers);
+  const parsedLayers = paths.map(layerAt);
   const sandbox = parsedLayers.reduce<Record<string, unknown>>(
     (merged, layer) => {
       if (layer === undefined || layer === "malformed") return merged;
@@ -50,19 +59,50 @@ export function sandboxStateOf(layers: SettingsLayers): SandboxState {
     {},
   );
   const isEnabled = sandbox.enabled === true;
-  // A broken file asks rather than frees.
-  const isMalformed = parsedLayers.includes("malformed");
+  const excludedCommands = stringsOf(sandbox.excludedCommands);
+  const malformedPath = paths[parsedLayers.indexOf("malformed")];
   const filesystem = objectOf(sandbox.filesystem);
+  const off = offOf(sandbox, malformedPath);
   return {
     isEnabled,
-    isOn:
-      !isMalformed && isEnabled && sandbox.allowUnsandboxedCommands === false,
-    excludedCommands: stringsOf(sandbox.excludedCommands),
+    isOn: off === undefined,
+    excludedCommands,
     filesystem: {
       allowWrite: stringsOf(filesystem.allowWrite),
       denyWrite: stringsOf(filesystem.denyWrite),
     },
+    off,
   };
+}
+
+// A broken file asks rather than frees, so it reads no entries.
+function offOf(
+  sandbox: Record<string, unknown>,
+  malformedPath: string | undefined,
+): SandboxOff | undefined {
+  const excludedCommands = stringsOf(sandbox.excludedCommands);
+  if (malformedPath !== undefined) {
+    return {
+      cause: `the settings layer \`${malformedPath}\` can't be parsed`,
+      fix: "fix that file's JSON",
+      excludedCommands: [],
+    };
+  }
+  if (sandbox.enabled !== true) {
+    return {
+      cause: "`sandbox.enabled` isn't true",
+      fix: 'set `"enabled": true` in the `sandbox` block',
+      excludedCommands,
+    };
+  }
+  if (sandbox.allowUnsandboxedCommands !== false) {
+    return {
+      cause: "`sandbox.allowUnsandboxedCommands` isn't false",
+      fix: 'set `"allowUnsandboxedCommands": false` in the `sandbox` block',
+      excludedCommands,
+    };
+  }
+  return undefined;
 }
 
 // Lowest precedence first, as Claude Code's settings docs order them.

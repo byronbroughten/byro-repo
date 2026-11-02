@@ -10,7 +10,7 @@ Map fragment routed from `AGENTS.md`. Read the heading the task needs.
 2. **Free: Google's version history is the undo point.**
 3. **Ask: it can't be undone, or it reaches someone else.** An Interactive session asks the developer, naming the command, or the file, who and at what permission. A runner step's call is refused with that reason instead; record a `denied-tool` blocker and carry on. A refused read whose answer the step got another way, or didn't need, isn't a blocker: the step names it in its closing comment.
 
-Reads need no yes in any tier.
+Reads need no yes in any tier, but a Bash read needs one with the sandbox off ([below](#which-tier-an-action-is-in)); Claude's own Read tool never does.
 
 ## Which tier an action is in
 
@@ -58,6 +58,8 @@ Reads need no yes in any tier.
 | `npm run prompt:scan` | free: a read of this repo's session transcripts |
 
 **`timeout` and `npm run -s` leave a command's tier as it is**, but an `excludedCommands` script spelled with `-s`, or under a `timeout`, is refused, as the box keeps it in ([the Bash sandbox](./claude-code-guardrails.md#the-bash-sandbox)).
+
+**With the sandbox off, only a call made of `excludedCommands` entries gets its rows; every other Bash call asks**, reads included, and a runner step's is refused ([what off is](./claude-code-guardrails.md#the-bash-sandbox)).
 
 **A loop, conditional, group or function takes the strictest tier among the commands inside it.**
 

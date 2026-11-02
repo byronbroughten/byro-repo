@@ -68,6 +68,7 @@ describe("sandboxStateOf", () => {
       isOn: true,
       excludedCommands: ["npm test", "npm run app*", "npm run jev"],
       filesystem: { allowWrite: ["~/.npm", "/tmp"], denyWrite: ["~/.ssh"] },
+      off: undefined,
     });
   });
 
@@ -104,6 +105,11 @@ describe("sandboxStateOf", () => {
     expect(state.isOn).toBe(false);
     expect(state.isEnabled).toBe(false);
     expect(state.excludedCommands).toEqual(["npm test"]);
+    expect(state.off).toEqual({
+      cause: "`sandbox.enabled` isn't true",
+      fix: 'set `"enabled": true` in the `sandbox` block',
+      excludedCommands: ["npm test"],
+    });
   });
 
   it("reads `allowUnsandboxedCommands: true` as off", () => {
@@ -118,26 +124,33 @@ describe("sandboxStateOf", () => {
     );
     expect(state.isOn).toBe(false);
     expect(state.isEnabled).toBe(true);
+    expect(state.off?.cause).toBe(
+      "`sandbox.allowUnsandboxedCommands` isn't false",
+    );
   });
 
   it.each([["{ not json"], ["[]"], ["null"]])(
     "reads a layer that exists but isn't a settings object (%s) as off",
     (content) => {
-      const state = sandboxStateOf(
-        layersOf({
-          user: { "settings.json": content },
-          project: {
-            "settings.json": {
-              sandbox: { ...onBlock, excludedCommands: ["npm test"] },
-            },
+      const layers = layersOf({
+        user: { "settings.json": content },
+        project: {
+          "settings.json": {
+            sandbox: { ...onBlock, excludedCommands: ["npm test"] },
           },
-        }),
-      );
+        },
+      });
+      const state = sandboxStateOf(layers);
       expect(state).toEqual({
         isEnabled: true,
         isOn: false,
         excludedCommands: ["npm test"],
         filesystem: { allowWrite: [], denyWrite: [] },
+        off: {
+          cause: `the settings layer \`${join(layers.userConfigDir, "settings.json")}\` can't be parsed`,
+          fix: "fix that file's JSON",
+          excludedCommands: [],
+        },
       });
     },
   );
@@ -155,6 +168,7 @@ describe("sandboxStateOf", () => {
       isOn: true,
       excludedCommands: [],
       filesystem: { allowWrite: [], denyWrite: [] },
+      off: undefined,
     });
   });
 
