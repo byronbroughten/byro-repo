@@ -16,6 +16,7 @@ import { git } from "./GitFixture.ts";
 import type { LeaseHolder } from "./IssueWorkspaces.ts";
 import {
   branchOf,
+  makeBrokenFolder,
   primaryRoot,
   primaryStates,
   registeredWorktrees,
@@ -186,6 +187,25 @@ describe("a lease", () => {
     expect(readFileSync(join(first.path, "work.txt"), "utf8")).toBe(
       "in progress",
     );
+  });
+
+  it("is taken beside a folder whose root has no .git, still releasing its holder's other live lease", async () => {
+    const first = await workspaces().create({ session: "first" });
+    await workspaces().takeLease(first, liveSession);
+    makeBrokenFolder();
+    const second = await workspaces().create({ session: "second" });
+
+    await workspaces().takeLease(second, liveSession);
+
+    expect(await workspaces().leaseOf(first)).toBeUndefined();
+    expect(await workspaces().leaseOf(second)).toMatchObject(liveSession);
+    expect(await workspaces().leases()).toEqual([
+      {
+        path: second.path,
+        key: { session: "second" },
+        lease: { ...liveSession, isLive: true },
+      },
+    ]);
   });
 
   it("leaves another holder's lease alone when taken", async () => {

@@ -3,6 +3,7 @@ export const stopOutcomes = {
   "step-error": "a step error",
   "wrap-up-failure": "a wrap-up failure",
   workspace: "a workspace that can't resume",
+  lease: "a workspace lease that couldn't be taken",
   "model-fit": "a missing or invalid Model fit",
   targets: "a malformed Targets section",
   "limit-hit": "a limit hit",
@@ -14,6 +15,7 @@ export type StopOutcome = keyof typeof stopOutcomes;
 export const rerunRetriedOutcomes: readonly StopOutcome[] = [
   "limit-hit",
   "wrap-up-failure",
+  "lease",
   "model-fit",
   "targets",
 ];

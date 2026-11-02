@@ -138,6 +138,13 @@ export function registeredWorktrees(): string[] {
   );
 }
 
+// What Claude Code recreates for a session whose working directory still points at a removed workspace.
+export function makeBrokenFolder(): string {
+  const brokenPath = join(temp, "workspaces/session-broken");
+  mkdirSync(join(brokenPath, ".claude/.cc-writes"), { recursive: true });
+  return brokenPath;
+}
+
 export function advanceMaster(clonePath: string, file: string): string {
   const clone = join(primaryRoot, clonePath);
   writeFileSync(join(clone, file), "newer");
