@@ -1,5 +1,5 @@
 // The outcome log: one file per landed ticket, in a folder per spec, each holding that ticket's one-row table.
-// WrapUp.ts writes and commits the file; a fact nobody computed or passed is written `unrecorded`, never guessed.
+// WrapUp/LogRowCommitter.ts writes and commits the file; a fact nobody computed or passed is written `unrecorded`, never guessed.
 
 import { join } from "node:path";
 

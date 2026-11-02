@@ -1,6 +1,6 @@
 // The landing lock: one file per primary checkout, held while a wrap-up fast-forwards that checkout's master.
 // It is a PidLock, so it is stale only when its pid is no longer running on this host, and a live holder is
-// always waited on. WrapUp.ts takes it.
+// always waited on. WrapUp/MasterFastForwarder.ts takes it.
 
 import { join } from "node:path";
 
