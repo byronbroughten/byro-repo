@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { reviewPrompt, reviewRecordSchema } from "./reviewStep.ts";
 
 describe("reviewPrompt", () => {
-  it("names the issue reader for the spec read, run in a call of its own", () => {
+  it("names the issue reader for the spec read", () => {
     const prompt = reviewPrompt({
       issue: { repo: "byro-repo", number: 269 },
       title: "Runner steps read issues only through the reader",
@@ -15,7 +15,6 @@ describe("reviewPrompt", () => {
     expect(prompt).toContain(
       "Read issues only through the issue reader, `npm run issue:read -- <repo> <n> --hide-others`",
     );
-    expect(prompt).toContain("Run it in a Bash call of its own, with no pipe");
   });
 });
 

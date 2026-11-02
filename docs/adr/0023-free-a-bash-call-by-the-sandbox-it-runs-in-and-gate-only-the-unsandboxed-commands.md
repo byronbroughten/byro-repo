@@ -1,3 +1,7 @@
+---
+status: partly superseded by ADR-0024
+---
+
 # Free a Bash call by the sandbox it runs in, and gate only the unsandboxed commands
 
 The tier gate freed a Bash call only when its text proved where its writes land and that it opens no credential, so `node` on a script, inline code and writes to variable paths asked. Every Bash call now runs in Claude Code's sandbox, in Interactive sessions and runner steps alike, with unsandboxed commands disabled. The kernel holds a sandboxed call's writes to the workspaces and temp, its reads off the credential files, and its network to the npm registry, so git or discarding temp undoes it, and it is free. Commands that need a credential, GitHub, Google or the primary's git folder run unsandboxed by name, from `excludedCommands`, under today's tier rows. With the sandbox off, every other call asks.
@@ -13,6 +17,7 @@ Source: ByronBroughten/byro-repo#519
 
 ## Consequences
 
+- ADR 0024 supersedes this ADR's rejection of GitHub on the allowlist and its denial of the git folders: GitHub and the git folders are now in the box, and the commands that needed them run sandboxed.
 - This is not the containment ADR 0007 defers: unsandboxed commands and Claude's own tools still act with full access, so ADR 0007 stands.
 - `excludedCommands` is the one list of unsandboxed commands, and the gate reads it from settings.
 - A domain added to the allowlist is weighed as a place a script could send what it reads, since the read denies name credential files one at a time.

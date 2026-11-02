@@ -98,33 +98,13 @@
     "failIfUnavailable": true,
     "autoAllowBashIfSandboxed": false,
     "allowUnsandboxedCommands": false,
+    "enableWeakerNetworkIsolation": true,
     "excludedCommands": [
-      "git push *",
-      "git fetch *",
-      "git pull *",
-      "git ls-remote *",
-      "git clone *",
-      "gh *",
       "npm run issue*",
       "npm run wrap-up *",
       "npm run runner*",
-      "npm run outcome:summary *",
       "npm run app*",
       "npm run dev*",
-      "git commit *",
-      "git add *",
-      "git merge *",
-      "git mv *",
-      "git rm *",
-      "git branch *",
-      "git restore *",
-      "git -C * commit *",
-      "git -C * add *",
-      "git -C * merge *",
-      "git -C * mv *",
-      "git -C * rm *",
-      "git -C * branch *",
-      "git -C * restore *",
       "npm run session:probe *",
       "npm run check",
       "npm run check *",
@@ -135,13 +115,16 @@
     ],
     "filesystem": {
       "denyWrite": [
-        "~/Documents/Code/byro-repo/.git",
-        "~/Documents/Code/byro-repo/packages/*/.git",
         "/tmp/claude-guardrails",
         "/private/tmp/claude-guardrails",
         "/var/folders/ps/xsbr1bg15c754_cksb6zr1c80000gn/T/claude-guardrails"
       ],
       "allowWrite": [
+        "~/Documents/Code/byro-repo/.git",
+        "~/Documents/Code/byro-repo/packages/framework/.git",
+        "~/Documents/Code/byro-repo/packages/real-estate/.git",
+        "~/Documents/Code/byro-repo/packages/utils/.git",
+        "~/Documents/Code/byro-repo/packages/personal/.git",
         "~/Documents/Code/byro-repo/.claude/worktrees",
         "/tmp",
         "/private/tmp",
@@ -169,7 +152,12 @@
       ]
     },
     "network": {
-      "allowedDomains": ["registry.npmjs.org"]
+      "allowedDomains": [
+        "registry.npmjs.org",
+        "github.com",
+        "api.github.com",
+        "api.typesafe.ai"
+      ]
     }
   },
   "hooks": {
