@@ -2,9 +2,9 @@
 // Claude Code lets a call out only when every command in it matches an entry, with nothing beside them but `&&`, `||`, `;` or `2>&1`.
 import { callOfItsOwn } from "@byronbroughten/spec-runner/callOfItsOwn";
 
-import { ShellParser, type SimpleCommand } from "./ShellParser.ts";
-import { npmCommands } from "./tiers/npmCommands.ts";
-import { timeoutWrappedOf } from "./timeoutWrapped.ts";
+import { ShellParser, type SimpleCommand } from "../ShellParser.ts";
+import { timeoutWrappedOf } from "../timeoutWrapped.ts";
+import { npmCommands } from "./npmCommands.ts";
 
 const sandboxCant = {
   google: "can't reach Google",

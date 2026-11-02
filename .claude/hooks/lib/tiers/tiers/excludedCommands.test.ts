@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { gateDecision } from "../tiers.ts";
 import { excludedCommands } from "./excludedCommands.ts";
-import { gateDecision } from "./tiers.ts";
 
 const entries = [
   "npm run issue*",

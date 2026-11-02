@@ -1,14 +1,16 @@
 // Decides the gate for a Bash call by tier: 1 and 2 are free (git or Google's version history undoes them), 3 asks. Pure; tierGate.ts does the I/O, and driveTiers.ts decides gworkspace calls.
-// The classifiers' helpers live in tiers/: git calls, paths, file commands, npm commands and runner-step verdicts.
-import { excludedCommands } from "./excludedCommands.ts";
-import { GhApiCall } from "./GhApiCall.ts";
+// The classifiers live in tiers/, a file per subject: git writes, reads, file commands, npm verdicts, interpreters, and the verdicts only a runner step or an Interactive session gets. excludedCommands.ts there refuses a call that keeps an excluded command in the box.
 import { ShellParser, type SimpleCommand } from "./ShellParser.ts";
-import { stdoutFilters } from "./stdoutFilters.ts";
 import type { WritePlaces } from "./stepWrites.ts";
+import { excludedCommands } from "./tiers/excludedCommands.ts";
 import { fileCommands } from "./tiers/fileCommands.ts";
-import { GitCall } from "./tiers/GitCall.ts";
+import { gitWrites } from "./tiers/gitWrites.ts";
+import { interactiveSession } from "./tiers/interactiveSession.ts";
+import { interpreterCommands } from "./tiers/interpreterCommands.ts";
 import { npmCommands } from "./tiers/npmCommands.ts";
+import { npmVerdicts } from "./tiers/npmVerdicts.ts";
 import { PathChecker, writablePlaces } from "./tiers/PathChecker.ts";
+import { readCommands } from "./tiers/readCommands.ts";
 import { runnerStep } from "./tiers/runnerStep.ts";
 import { timeoutWrappedOf } from "./timeoutWrapped.ts";
 
@@ -81,53 +83,6 @@ type Classifier = (
   simple: SimpleCommand,
   context: CallContext,
 ) => Verdict | undefined;
-
-const untargetedPrograms = new Set([
-  "clasp",
-  "@google/clasp",
-  "sheets-framework",
-  "@byronbroughten/sheets-framework",
-]);
-// jq has no option that runs a program or writes a file.
-const readPrograms = new Set([
-  "grep",
-  "rg",
-  "cat",
-  "head",
-  "tail",
-  "wc",
-  "ls",
-  "jq",
-]);
-const interpreters = {
-  nodeScratchFlags: new Set([
-    "--experimental-strip-types",
-    "--no-warnings",
-    "--enable-source-maps",
-  ]),
-  // `-e`, `-p` and their pairing `-pe`, long forms included.
-  nodeInlineFlag: /^(-[ep]{1,2}|--eval|--print)(=|$)/,
-  pythonInlineFlag: /^-[a-zA-Z]*c/,
-  python: new Set(["python", "python3"]),
-  nodeWhy:
-    "runs code that isn't a scratch helper: `node` runs only scratch helpers, in `$TMPDIR`, `/tmp` or a gitignored folder of the workspace, and a script being built runs through its tests, or through its `npm run` alias only when that alias is in `freeScripts` in `.claude/hooks/lib/tiers/tiers/npmCommands.ts`; any other script asks",
-  // A deny, not an ask: the way through is free, so asking would only interrupt the developer.
-  inlineWhy:
-    "inline code is refused because the gate can't read it; read JSON with `jq`, or write a scratch helper in `$TMPDIR` and run `node` on it",
-} as const;
-const findActions = new Set([
-  "-exec",
-  "-execdir",
-  "-ok",
-  "-okdir",
-  "-delete",
-  "-fprint",
-  "-fprint0",
-  "-fprintf",
-  "-fls",
-]);
-// ripgrep runs the program each of these names.
-const rgRunFlags = ["--pre", "--hostname-bin"];
 
 // A call keeping an excluded command in the box is refused before any tier row, since it would fail there whatever its tier.
 export function gateDecision(call: ShellCall): Decision | undefined {
@@ -366,292 +321,22 @@ function commandVerdictOf(
 const classifiers: Classifier[] = [
   runnerStep.ghVerdictOf,
   runnerStep.liveAliasVerdictOf,
-  sessionGhVerdictOf,
-  sessionDecideVerdictOf,
-  choreSendVerdictOf,
-  commitVerdictOf,
-  gitAddVerdictOf,
-  branchVerdictOf,
-  mergeVerdictOf,
-  trackedFileVerdictOf,
+  interactiveSession.ghVerdictOf,
+  interactiveSession.decideVerdictOf,
+  npmVerdicts.choreSendVerdictOf,
+  gitWrites.commitVerdictOf,
+  gitWrites.addVerdictOf,
+  gitWrites.branchVerdictOf,
+  gitWrites.mergeVerdictOf,
+  gitWrites.trackedFileVerdictOf,
   runnerStep.restoreVerdictOf,
-  readVerdictOf,
-  fileVerdictOf,
-  pushVerdictOf,
-  untargetedVerdictOf,
-  publishVerdictOf,
-  forcedRemoveVerdictOf,
-  freeScriptVerdictOf,
-  npxCheckVerdictOf,
-  interpreterVerdictOf,
+  readCommands.verdictOf,
+  fileCommands.verdictOf,
+  gitWrites.pushVerdictOf,
+  npmVerdicts.untargetedVerdictOf,
+  npmVerdicts.publishVerdictOf,
+  npmVerdicts.forcedRemoveVerdictOf,
+  npmVerdicts.freeScriptVerdictOf,
+  npmVerdicts.npxCheckVerdictOf,
+  interpreterCommands.verdictOf,
 ];
-
-// An Interactive session's issue create, issue links and `gh api` reads; a runner step's stay refused, as its reads go through `issue:read`'s Trusted and Untrusted labels.
-function sessionGhVerdictOf(
-  { words }: SimpleCommand,
-  { mode }: CallContext,
-): Verdict | undefined {
-  const [program, verb, ...args] = words;
-  if (mode !== "interactive" || program !== "gh") return undefined;
-  if (verb === "issue" && args[0] === "create") {
-    return {
-      permissionDecision: "allow",
-      why: "`gh issue close` undoes it",
-      needsPlainText: true,
-    };
-  }
-  if (verb !== "api") return undefined;
-  const call = GhApiCall.init(args);
-  if (call?.isRead) {
-    return {
-      permissionDecision: "allow",
-      why: "a `gh api` call with no body only reads",
-      needsPlainText: true,
-    };
-  }
-  if (call?.isCommentEdit) {
-    return {
-      permissionDecision: "allow",
-      why: "a further edit undoes an issue comment's edit",
-      needsPlainText: true,
-    };
-  }
-  if (!call?.isIssueLink) return undefined;
-  return {
-    permissionDecision: "allow",
-    why: "the opposite `gh api` call undoes an issue link",
-    needsPlainText: true,
-  };
-}
-
-// An Interactive session's review-list decision, free as a raw comment PATCH is; a runner step's stays refused.
-function sessionDecideVerdictOf(
-  { words }: SimpleCommand,
-  { mode }: CallContext,
-): Verdict | undefined {
-  if (mode !== "interactive" || npmCommands.isPrefixed(words)) return undefined;
-  const script = npmCommands.scriptOf(words);
-  if (script?.name !== "runner") return undefined;
-  const [verb] = script.args.filter((arg) => arg !== "--");
-  if (verb !== "decide") return undefined;
-  return {
-    permissionDecision: "allow",
-    why: "a further edit undoes a review-list item's decision",
-    needsPlainText: true,
-  };
-}
-
-function choreSendVerdictOf(
-  { words }: SimpleCommand,
-  { dryRuns }: CallContext,
-): Verdict | undefined {
-  return npmCommands.choreSendVerdictOf(words, dryRuns);
-}
-
-function commitVerdictOf({ words }: SimpleCommand): Verdict | undefined {
-  if (GitCall.init(words)?.verb !== "commit") return undefined;
-  return { permissionDecision: "allow", why: "git can undo a commit" };
-}
-
-function gitAddVerdictOf(simple: SimpleCommand): Verdict | undefined {
-  if (plainGitOf(simple)?.verb !== "add") return undefined;
-  return {
-    permissionDecision: "allow",
-    why: "git can undo staging a file",
-    needsPlainText: true,
-  };
-}
-
-function branchVerdictOf(simple: SimpleCommand): Verdict | undefined {
-  if (!plainGitOf(simple)?.isBranchChange) return undefined;
-  return {
-    permissionDecision: "allow",
-    why: "git can undo a branch create, copy, rename or upstream change",
-    needsPlainText: true,
-  };
-}
-
-function mergeVerdictOf(simple: SimpleCommand): Verdict | undefined {
-  if (!plainGitOf(simple)?.isHookedMerge) return undefined;
-  return {
-    permissionDecision: "allow",
-    why: "git can undo a merge (`git merge --abort`, or a reset to `ORIG_HEAD`)",
-    needsPlainText: true,
-  };
-}
-
-function trackedFileVerdictOf(simple: SimpleCommand): Verdict | undefined {
-  if (!plainGitOf(simple)?.isTrackedFileChange) return undefined;
-  return {
-    permissionDecision: "allow",
-    why: "git can undo moving or removing a tracked file",
-    needsPlainText: true,
-  };
-}
-
-// A git call with no global option but a path one, and no env prefix or redirect around it.
-function plainGitOf(simple: SimpleCommand): GitCall | undefined {
-  const git = GitCall.init(simple.words);
-  return git?.isPlain && simple.isBare ? git : undefined;
-}
-
-function readVerdictOf(simple: SimpleCommand): Verdict | undefined {
-  const readWhy = simple.isBare ? readWhyOf(simple.words) : undefined;
-  if (!readWhy) return undefined;
-  return { permissionDecision: "allow", why: readWhy, needsPlainText: true };
-}
-
-// Programs match by bare name only, since a path could be any program.
-function readWhyOf(words: string[]): string | undefined {
-  const [program = "", ...args] = words;
-  if (program === "cd") return "`cd` changes no file";
-  const git = GitCall.init(words);
-  if (git) {
-    return git.isPlain && git.isRead
-      ? `\`git ${git.verb}\` only reads`
-      : undefined;
-  }
-  return isProgramRead(program, args) ? `\`${program}\` only reads` : undefined;
-}
-
-function isProgramRead(program: string, args: string[]): boolean {
-  const isFilterRead = stdoutFilters.get(program);
-  if (isFilterRead) return isFilterRead(args);
-  if (program === "find") return !args.some((arg) => findActions.has(arg));
-  if (program === "rg") {
-    return !args.some((arg) => rgRunFlags.some((flag) => arg.startsWith(flag)));
-  }
-  if (program === "gh") return args[0] === "label" && args[1] === "list";
-  return readPrograms.has(program);
-}
-
-// rm, mkdir, cp, mv and sed -i: tier 1 when every path passes the write rule, tier 3 otherwise; a stdout filter that may write or run asks.
-function fileVerdictOf(
-  { words, isBare }: SimpleCommand,
-  { places }: CallContext,
-): Verdict | undefined {
-  if (!isBare) return undefined;
-  const [program = "", ...args] = words;
-  const paths = fileCommands.writtenPathsOf(program, args);
-  if (paths) {
-    const writeAsk = PathChecker.init(places).writeAskAmong(paths);
-    if (writeAsk) return writeAsk;
-    return {
-      permissionDecision: "allow",
-      why: `\`${program}\` writes only ${writablePlaces}`,
-      needsPlainText: true,
-    };
-  }
-  const isFilterRead = stdoutFilters.get(program);
-  if (!isFilterRead || isFilterRead(args)) return undefined;
-  return {
-    permissionDecision: "ask",
-    why: "may write a file or run a command, which the gate can't check",
-  };
-}
-
-function pushVerdictOf({ words }: SimpleCommand): Verdict | undefined {
-  if (GitCall.init(words)?.verb !== "push") return undefined;
-  return {
-    permissionDecision: "ask",
-    why: "pushes outside `npm run wrap-up`, and a push can't be taken back",
-  };
-}
-
-function untargetedVerdictOf({ words }: SimpleCommand): Verdict | undefined {
-  if (!untargetedPrograms.has(npmCommands.programOf(words) ?? "")) {
-    return undefined;
-  }
-  return {
-    permissionDecision: "ask",
-    why: "names no target; use a `dev:*` or `app:*` script",
-  };
-}
-
-function publishVerdictOf({ words }: SimpleCommand): Verdict | undefined {
-  const isPublish =
-    !npmCommands.scriptOf(words) &&
-    npmCommands.isNpm(words) &&
-    words.includes("publish");
-  if (!isPublish) return undefined;
-  return {
-    permissionDecision: "ask",
-    why: "publishes a package, which reaches everyone who installs it",
-  };
-}
-
-// npmCommands.scriptOf drops flags, so the raw words are searched for --force.
-function forcedRemoveVerdictOf({ words }: SimpleCommand): Verdict | undefined {
-  const isForcedRemove =
-    npmCommands.scriptOf(words)?.name === "issue:remove" &&
-    words.includes("--force");
-  if (!isForcedRemove) return undefined;
-  return {
-    permissionDecision: "ask",
-    why: "discards a workspace's unlanded work, which git can't bring back",
-  };
-}
-
-function freeScriptVerdictOf({ words }: SimpleCommand): Verdict | undefined {
-  const freeWhy = npmCommands.freeScriptWhyOf(words);
-  if (!freeWhy) return undefined;
-  return { permissionDecision: "allow", why: freeWhy };
-}
-
-// A runner step's `npx tsc` missing only `--noEmit` is refused naming it, as that way through is free; an Interactive session's falls through to Claude Code's allow rules.
-function npxCheckVerdictOf(
-  { words }: SimpleCommand,
-  { mode }: CallContext,
-): Verdict | undefined {
-  const checkWhy = npmCommands.npxCheckWhyOf(words);
-  if (checkWhy) return { permissionDecision: "allow", why: checkWhy };
-  const fix =
-    mode === "runnerStep" ? npmCommands.npxCheckFixOf(words) : undefined;
-  if (!fix) return undefined;
-  return { permissionDecision: "deny", why: fix };
-}
-
-// node runs a scratch helper, in $TMPDIR, /tmp or gitignored in the workspace, at tier 1; inline code is refused, naming the way through; any other node is tier 3.
-function interpreterVerdictOf(
-  { words, isBare }: SimpleCommand,
-  { places }: CallContext,
-): Verdict | undefined {
-  if (!isBare) return undefined;
-  const [program = "", ...args] = words;
-  if (interpreters.python.has(program)) {
-    if (args.some((arg) => interpreters.pythonInlineFlag.test(arg))) {
-      return { permissionDecision: "deny", why: interpreters.inlineWhy };
-    }
-    return undefined;
-  }
-  if (program !== "node") return undefined;
-  if (args.length === 1 && (args[0] === "-v" || args[0] === "--version")) {
-    return { permissionDecision: "allow", why: "`node --version` only reads" };
-  }
-  const at = args.findIndex((arg) => !arg.startsWith("-"));
-  if (isInlineNode(args, at)) {
-    return { permissionDecision: "deny", why: interpreters.inlineWhy };
-  }
-  const isScratch =
-    at >= 0 &&
-    args
-      .slice(0, at)
-      .every((flag) => interpreters.nodeScratchFlags.has(flag)) &&
-    PathChecker.init(places).isScratchFile(args[at] ?? "");
-  if (!isScratch) {
-    return { permissionDecision: "ask", why: interpreters.nodeWhy };
-  }
-  return {
-    permissionDecision: "allow",
-    why: "`node` runs a scratch helper",
-    needsPlainText: true,
-  };
-}
-
-// Code passed by flag, or read from stdin when no script is named (`-` included); a flag after the script is the script's own.
-function isInlineNode(args: string[], scriptAt: number): boolean {
-  if (scriptAt === -1) return true;
-  return args
-    .slice(0, scriptAt)
-    .some((flag) => interpreters.nodeInlineFlag.test(flag));
-}
