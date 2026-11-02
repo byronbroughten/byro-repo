@@ -70,6 +70,14 @@ export class ShellParser {
       (layer) => ShellParser.init(layer).simpleCommands,
     );
   }
+  // Undefined for a command the gate can't parse, which callers leave to another rule.
+  get parsedCommands(): SimpleCommand[] | undefined {
+    try {
+      return this.substitutedCommands;
+    } catch {
+      return undefined;
+    }
+  }
   // Undefined unless the heredoc scan strips the bodies the text match does; beside a heredoc, a substitution, `${…}`, `$'…'` or `((` nests quotes or `<<` in ways that scan doesn't follow.
   get heredocs(): Heredoc[] | undefined {
     let scan;
@@ -88,6 +96,12 @@ export class ShellParser {
     return this._tokens.every(({ type, value }) =>
       type === "op" ? value === "&&" : !/\$\(|`/.test(value),
     );
+  }
+  // Each operator and redirect between the words, in order, a heredoc's `<<` included.
+  get operators(): string[] {
+    return this._tokens
+      .filter(({ type }) => type !== "word")
+      .map(({ value }) => value);
   }
   get segments(): Segment[] {
     const segments: Segment[] = [];

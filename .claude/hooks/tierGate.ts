@@ -4,6 +4,8 @@ import { writeFileSync } from "node:fs";
 
 import { dryRuns, shellPlacesOf } from "./lib/gateLookups.ts";
 import {
+  gateRootOf,
+  gateRootSettingsOf,
   type HookInput,
   projectDirOf,
   readHookInput,
@@ -20,6 +22,7 @@ import {
   type OwnerCache,
   stepTargetsOf,
 } from "./lib/tiers/driveTiers.ts";
+import { excludedCommands } from "./lib/tiers/excludedCommands.ts";
 import {
   type Decision,
   dryRunChoresOf,
@@ -81,6 +84,9 @@ async function bashDecision(input: HookInput): Promise<Decision | undefined> {
     dryRuns: dryRuns.read(input.session_id),
     places: shellPlacesOf(input),
     spreadsheetTargets: spreadsheetTargetsOf(process.env[stepTargetsVariable]),
+    excludedCommands: excludedCommands.entriesOf(
+      gateRootSettingsOf(gateRootOf(input)),
+    ),
   });
 }
 
