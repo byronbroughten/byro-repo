@@ -37,6 +37,38 @@ describe("gateReplayOf", () => {
     expect(replay.why).toMatch(/heredoc/);
   });
 
+  describe("a call the sandbox runs", () => {
+    const command = 'node -e "console.log(1)"';
+
+    it("replays as free under an on state", () => {
+      const replay = gateReplayOf({
+        command,
+        mode: "interactive",
+        dryRuns: [],
+        sandbox: { isOn: true, excludedCommands: [] },
+      });
+      expect(replay.outcome).toBe("free");
+    });
+
+    it("replays as asking under an off state", () => {
+      const replay = gateReplayOf({
+        command,
+        mode: "interactive",
+        dryRuns: [],
+        sandbox: {
+          isOn: false,
+          excludedCommands: [],
+          off: {
+            cause: "`sandbox.enabled` isn't true",
+            fix: 'set `"enabled": true` in the `sandbox` block',
+            excludedCommands: [],
+          },
+        },
+      });
+      expect(replay.outcome).toBe("asks");
+    });
+  });
+
   it("says when the gate can't parse a call", () => {
     expect(replayOf("echo $(ls")).toEqual({
       outcome: "unclassified",

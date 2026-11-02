@@ -12,7 +12,7 @@ import {
   sessionStatePath,
   writeHookOutput,
 } from "./lib/hookIo.ts";
-import { sessionSandboxStateOf } from "./lib/sandboxState.ts";
+import { callSandboxOf, sessionSandboxStateOf } from "./lib/sandboxState.ts";
 import { readSheetsConfigs } from "./lib/sheetsConfigs.ts";
 import { driveOwnersOf } from "./lib/tiers/driveOwners.ts";
 import {
@@ -76,19 +76,13 @@ async function bashDecision(input: HookInput): Promise<Decision | undefined> {
     dryRuns.record(input.session_id, dryRunChoresOf(command));
     return undefined;
   }
-  const sandbox = sessionSandboxStateOf(input);
   return gateDecision({
     command,
     mode: sessionModeOf(process.env),
     dryRuns: dryRuns.read(input.session_id),
     places: shellPlacesOf(input),
     spreadsheetTargets: spreadsheetTargetsOf(process.env[stepTargetsVariable]),
-    sandbox: {
-      isOn: sandbox.isOn,
-      // A disabled sandbox keeps no excluded command in the box.
-      excludedCommands: sandbox.isEnabled ? sandbox.excludedCommands : [],
-      off: sandbox.off,
-    },
+    sandbox: callSandboxOf(sessionSandboxStateOf(input)),
   });
 }
 

@@ -1,5 +1,5 @@
 // Prints the calls the developer or auto mode's classifier had to answer in this repo's recent sessions, grouped by command, with what the tier gate says about each now.
-// The transcripts record who answered each call (transcriptCalls.ts), each Bash call replays through the gate at its own folder (gateReplay.ts), and promptReport.ts words the report.
+// The transcripts record who answered each call (transcriptCalls.ts), each Bash call replays through the gate at its own folder, under this checkout's sandbox state (gateReplay.ts), and promptReport.ts words the report.
 // What to do with the report: the /prompt-scan skill.
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
@@ -10,7 +10,14 @@ import { parseArgs } from "node:util";
 import { configFolderOf } from "@byronbroughten/spec-runner/transcriptFacts";
 
 import { shellPlacesAt } from "../../.claude/hooks/lib/gateLookups.ts";
-import { dryRunChoresOf } from "../../.claude/hooks/lib/tiers/tiers.ts";
+import {
+  callSandboxOf,
+  sessionSandboxStateOf,
+} from "../../.claude/hooks/lib/sandboxState.ts";
+import {
+  type CallSandbox,
+  dryRunChoresOf,
+} from "../../.claude/hooks/lib/tiers/tiers.ts";
 import { type GateReplay, gateReplayOf } from "./gateReplay.ts";
 import {
   answererOf,
@@ -33,8 +40,10 @@ try {
     0,
     countOf(values.sessions),
   );
+  // Read once: every call replays under this checkout's sandbox, as the tier gate reads it.
+  const sandbox = callSandboxOf(sessionSandboxStateOf(undefined));
   const calls = transcripts.flatMap((path) =>
-    scannedCallsOf(readFileSync(path, "utf8"), primaryRoot),
+    scannedCallsOf(readFileSync(path, "utf8"), primaryRoot, sandbox),
   );
   console.log(
     promptReportOf({
@@ -84,12 +93,19 @@ function transcriptPathsOf(primaryRoot: string): string[] {
 }
 
 // Replayed in order, so an `app:chore --send` sees the dry runs its session ran before it.
-function scannedCallsOf(jsonl: string, primaryRoot: string): ScannedCall[] {
+function scannedCallsOf(
+  jsonl: string,
+  primaryRoot: string,
+  sandbox: CallSandbox,
+): ScannedCall[] {
   const dryRuns: string[] = [];
   const scanned: ScannedCall[] = [];
   recordedCallsOf(jsonl).forEach((call) => {
     if (answererOf(call.permission)) {
-      scanned.push({ call, replay: replayOf(call, primaryRoot, dryRuns) });
+      scanned.push({
+        call,
+        replay: replayOf(call, primaryRoot, dryRuns, sandbox),
+      });
     }
     if (call.command) dryRuns.push(...dryRunChoresOf(call.command));
   });
@@ -101,6 +117,7 @@ function replayOf(
   call: RecordedCall,
   primaryRoot: string,
   dryRuns: string[],
+  sandbox: CallSandbox,
 ): GateReplay | undefined {
   const { command, cwd = primaryRoot } = call;
   if (command === undefined) return undefined;
@@ -111,6 +128,7 @@ function replayOf(
     mode: "interactive",
     dryRuns: [...dryRuns],
     places: shellPlacesAt(standIn, cwd.replaceAll(sessionRoot, standIn)),
+    sandbox,
   });
 }
 

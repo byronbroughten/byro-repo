@@ -5,6 +5,7 @@ import {
   type PermissionCall,
   stepPermissionDecision,
 } from "./stepPermission.ts";
+import type { CallSandbox } from "./tiers.ts";
 
 function call(
   toolName: string,
@@ -61,6 +62,38 @@ describe("stepPermissionDecision", () => {
           stepPermissionDecision(call("Bash", { command })),
         ).toBeUndefined(),
     );
+  });
+
+  describe("a Bash call the sandbox runs", () => {
+    const command = 'node -e "console.log(1)"';
+    const withSandbox = (sandbox: CallSandbox): PermissionCall => ({
+      ...call("Bash", { command }),
+      sandbox,
+    });
+
+    it("is allowed under an on state", () => {
+      expect(
+        stepPermissionDecision(
+          withSandbox({ isOn: true, excludedCommands: [] }),
+        ),
+      ).toBe("allow");
+    });
+
+    it("gets no decision under an off state", () => {
+      expect(
+        stepPermissionDecision(
+          withSandbox({
+            isOn: false,
+            excludedCommands: [],
+            off: {
+              cause: "`sandbox.enabled` isn't true",
+              fix: 'set `"enabled": true` in the `sandbox` block',
+              excludedCommands: [],
+            },
+          }),
+        ),
+      ).toBeUndefined();
+    });
   });
 
   it("allows a Read outside the workspace", () => {
