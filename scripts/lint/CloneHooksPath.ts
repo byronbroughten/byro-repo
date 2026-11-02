@@ -3,7 +3,11 @@ import { spawnSync } from "node:child_process";
 import { relative } from "node:path";
 
 export class CloneHooksPath {
-  constructor(private readonly cloneRoot: string) {}
+  private readonly cloneRoot: string;
+
+  constructor(cloneRoot: string) {
+    this.cloneRoot = cloneRoot;
+  }
 
   static init(cloneRoot: string): CloneHooksPath {
     return new CloneHooksPath(cloneRoot);
