@@ -49,11 +49,13 @@ describe("BashReads unguarded folders", () => {
     ).toBeUndefined();
   });
 
-  it("still guards a large file after a cd inside a loop, conditional, group, subshell or function", () => {
+  it("still guards a large file after a cd inside a loop, conditional, group, subshell, substitution or function", () => {
     [
       "if c; then cd /elsewhere; fi; cat src/big.ts",
       "{ cd /elsewhere; }; cat src/big.ts",
       "(cd /elsewhere); cat src/big.ts",
+      "x=$(cd /elsewhere); cat src/big.ts",
+      "x=`cd /elsewhere`; cat src/big.ts",
       "for d in a; do cd /elsewhere; done; cat src/big.ts",
       "e(){ cd /elsewhere; }; e; cat src/big.ts",
       "! cd /elsewhere && cat src/big.ts",
@@ -153,6 +155,16 @@ describe("BashReads.wholeFilePaths", () => {
       wholeFilePathsOf("if c; then cd /repo/config; fi; cat a.md"),
     ).toEqual(["/repo/a.md", "/repo/config/a.md"]);
   });
+
+  it.each(["x=$(cd /repo/config); cat a.md", "x=`cd /repo/config`; cat a.md"])(
+    "resolves a file from the folder before and after a cd inside a substitution, in `%s`",
+    (command) => {
+      expect(wholeFilePathsOf(command)).toEqual([
+        "/repo/a.md",
+        "/repo/config/a.md",
+      ]);
+    },
+  );
 
   it("leaves out a cat whose output a pipe trims", () => {
     expect(wholeFilePathsOf("cat a.md | head -5")).toEqual([]);

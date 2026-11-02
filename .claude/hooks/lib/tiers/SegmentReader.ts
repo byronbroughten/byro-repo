@@ -1,4 +1,4 @@
-// Reads a Bash call's tokens into the segments of its simple commands, through loops, conditionals, groups, subshells and functions; ShellParser.ts tokenizes the call and serves the segments.
+// Reads a Bash call's tokens into the segments of its simple commands, through loops, conditionals, groups, subshells, substitutions and functions; ShellParser.ts tokenizes the call and serves the segments.
 // A reserved word gives no command of its own, and a `for` list, a `case` word and its patterns are data. A function's body is read where it's defined, and again at each later call, with the call's arguments for `$1`, `$2` ….
 // What it can't read as bash would, such as a closer with no opener or a call of a function it can't expand, it still reads as best it can but marks the reading unreadable, which the gate leaves unclassified.
 const wrappers = new Set([
@@ -62,8 +62,8 @@ export interface SegmentReading {
   calledNames: Set<string>;
 }
 
-// A `(` frame stands for a subshell or a `$(`, as `)` closes either.
-type Frame = "{" | "(" | "if" | "loop" | "case";
+// A `(` frame stands for a subshell or a `$(`, as `)` closes either; a "`" frame for a backtick substitution.
+type Frame = "{" | "(" | "`" | "if" | "loop" | "case";
 
 type Mode =
   "command" | "listName" | "listIn" | "listHead" | "caseHead" | "casePattern";
@@ -83,7 +83,7 @@ export class SegmentReader {
   readonly definitions = new Map<string, Segment[]>();
   readonly calledNames = new Set<string>();
   readonly functionNames: Set<string>;
-  // The data mode each open `$(` in a `for` list or `case` word returns to, and the frame depth it opened.
+  // The data mode each open substitution in a `for` list or `case` word returns to, and the frame depth it opened.
   readonly dataModes: { depth: number; mode: Mode }[] = [];
   isReadable = true;
   current = newSegment(false);
@@ -220,8 +220,9 @@ export class SegmentReader {
     this.at++;
   }
   _readOperator(op: string): void {
-    if (op === "$(" && this.mode !== "command") {
-      this._readDataSubstitution();
+    const substitution = substitutionOpenedBy(op, this.frames);
+    if (substitution && this.mode !== "command") {
+      this._readDataSubstitution(substitution);
       return;
     }
     if (this.mode === "caseHead") {
@@ -236,19 +237,22 @@ export class SegmentReader {
     this._flush(pipes.has(op));
     if (this.mode === "listName") this.isReadable = false;
     if (listModes.has(this.mode)) this.mode = "command";
-    if (op === "(" || op === "$(") this._open("(");
-    else if (op === ")") this._closeParens();
+    if (op === "(") this._open("(");
+    else if (substitution) this._open(substitution);
+    else if (op === ")") this._closeSubstitution("(");
+    else if (op === "`") this._closeSubstitution("`");
     else if (op === ";;") this._endCaseItem();
   }
-  // A `$(…)` in a `for` list or a `case` word runs its commands, and the data words go on after it.
-  _readDataSubstitution(): void {
+  // A substitution in a `for` list or a `case` word runs its commands, and the data words go on after it.
+  _readDataSubstitution(frame: Frame): void {
     this.dataModes.push({ depth: this.frames.length + 1, mode: this.mode });
     this.mode = "command";
-    this._open("(");
+    this._open(frame);
   }
-  _closeParens(): void {
+  // A `)` closes a subshell too, which opened no data mode.
+  _closeSubstitution(frame: Frame): void {
     const depth = this.frames.length;
-    this._close("(");
+    this._close(frame);
     const dataMode = this.dataModes.at(-1);
     if (dataMode?.depth !== depth) return;
     this.dataModes.pop();
@@ -363,6 +367,13 @@ function functionNamesOf(tokens: Token[]): Set<string> {
       return hasParens ? [token.value] : [];
     }),
   );
+}
+
+// Bash nests no unescaped backtick, so one inside a backtick frame closes it.
+function substitutionOpenedBy(op: string, frames: Frame[]): Frame | undefined {
+  if (op === "$(") return "(";
+  if (op === "`" && !frames.includes("`")) return "`";
+  return undefined;
 }
 
 function isReserved(token: Token, word: string): boolean {
