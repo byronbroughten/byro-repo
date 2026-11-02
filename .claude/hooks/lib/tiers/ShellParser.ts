@@ -1,14 +1,17 @@
 // Parses a Bash command into its simple commands, for the tier gate, the branch guard and BashReads; throws on an unbalanced quote.
-// SegmentReader.ts reads the tokens through loops, conditionals, groups and functions.
-import { type Heredoc, HeredocScanner } from "./HeredocScanner.ts";
+// ShellParser/SegmentReader.ts reads the tokens through loops, conditionals, groups, substitutions and functions.
+import { type Heredoc, HeredocScanner } from "./ShellParser/HeredocScanner.ts";
 import {
   pipes,
   type Segment,
   SegmentReader,
   type SegmentReading,
   type Token,
-} from "./SegmentReader.ts";
-import { closingQuoteOf, SubstitutionScanner } from "./SubstitutionScanner.ts";
+} from "./ShellParser/SegmentReader.ts";
+import {
+  closingQuoteOf,
+  SubstitutionScanner,
+} from "./ShellParser/SubstitutionScanner.ts";
 
 const separators = new Set([";", ";;", "&&", "||", "&", "$(", "(", ")", "`"]);
 

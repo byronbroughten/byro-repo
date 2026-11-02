@@ -1,5 +1,5 @@
 // Finds each heredoc as bash does: a `<<` outside quotes and comments, not a `<<<` here-string, its body the lines after it up to its delimiter.
-// ShellParser.ts strips bodies by a text match and checks it against this scan; this scan throws on a quote left open or a `<<` the text match reads differently.
+// ../ShellParser.ts strips bodies by a text match and checks it against this scan; this scan throws on a quote left open or a `<<` the text match reads differently.
 import { closingQuoteOf } from "./SubstitutionScanner.ts";
 
 // isQuoted: its delimiter is quoted, so bash expands nothing in its body.

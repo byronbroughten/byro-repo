@@ -1,8 +1,8 @@
 // Decides the gate for a Bash call by tier: 1 and 2 are free (git or Google's version history undoes them), 3 asks. Pure; tierGate.ts does the I/O, and driveTiers.ts decides gworkspace calls.
 // The classifiers live in tiers/, a file per subject: git writes, reads, file commands, npm verdicts, interpreters, and the verdicts only a runner step or an Interactive session gets. excludedCommands.ts there refuses a call that keeps an excluded command in the box.
 import type { SandboxOff } from "../sandboxState.ts";
-import { foldersAfterCdOf } from "./SegmentReader.ts";
 import { ShellParser, type SimpleCommand } from "./ShellParser.ts";
+import { foldersAfterCdOf } from "./ShellParser/SegmentReader.ts";
 import type { WritePlaces } from "./stepWrites.ts";
 import { excludedCommands } from "./tiers/excludedCommands.ts";
 import { fileCommands } from "./tiers/fileCommands.ts";
