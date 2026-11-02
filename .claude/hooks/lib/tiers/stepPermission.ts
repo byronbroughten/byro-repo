@@ -2,7 +2,12 @@
 import { isAbsolute, resolve } from "node:path";
 
 import { isStepWritable } from "./stepWrites.ts";
-import { gateDecision, type SessionMode, type ShellPlaces } from "./tiers.ts";
+import {
+  type CallSandbox,
+  gateDecision,
+  type SessionMode,
+  type ShellPlaces,
+} from "./tiers.ts";
 
 export interface PermissionCall {
   toolName: string;
@@ -14,6 +19,8 @@ export interface PermissionCall {
   mode: SessionMode;
   dryRuns: string[];
   places: ShellPlaces;
+  // The sandbox the tier gate reads; absent, no call counts as sandboxed.
+  sandbox?: CallSandbox;
 }
 
 // A Map, so a tool name such as `constructor` finds nothing.
@@ -48,8 +55,9 @@ function isGateAllowed({
   mode,
   dryRuns,
   places,
+  sandbox,
 }: PermissionCall): boolean {
   if (typeof command !== "string") return false;
-  const decision = gateDecision({ command, mode, dryRuns, places });
+  const decision = gateDecision({ command, mode, dryRuns, places, sandbox });
   return decision?.permissionDecision === "allow";
 }

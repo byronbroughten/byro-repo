@@ -5,6 +5,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { type HookInput, projectDirOf } from "./hookIo.ts";
+import type { CallSandbox } from "./tiers/tiers.ts";
 
 export interface SandboxState {
   // `enabled` after merging, whatever `allowUnsandboxedCommands` says.
@@ -46,6 +47,16 @@ export function sessionSandboxStateOf(
     sessionRoot: projectDirOf(input),
     gateRoot: process.env.BYRO_GATE_ROOT,
   });
+}
+
+// The sandbox as the tier gate reads it, shared by every caller of `gateDecision`.
+export function callSandboxOf(state: SandboxState): CallSandbox {
+  return {
+    isOn: state.isOn,
+    // A disabled sandbox keeps no excluded command in the box.
+    excludedCommands: state.isEnabled ? state.excludedCommands : [],
+    off: state.off,
+  };
 }
 
 export function sandboxStateOf(layers: SettingsLayers): SandboxState {
