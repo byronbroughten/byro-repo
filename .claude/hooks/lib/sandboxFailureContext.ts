@@ -1,7 +1,7 @@
 // What sandboxFailureContext.ts adds after a failed Bash call whose output shows the sandbox stopped it. See docs/claude-code-guardrails.md.
 import { join } from "node:path";
 
-import { excludedCommands } from "./tiers/excludedCommands.ts";
+import { excludedCommands } from "./tiers/tiers/excludedCommands.ts";
 
 export interface WriteScope {
   allow: string[];

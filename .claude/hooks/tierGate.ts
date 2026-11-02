@@ -22,7 +22,6 @@ import {
   type OwnerCache,
   stepTargetsOf,
 } from "./lib/tiers/driveTiers.ts";
-import { excludedCommands } from "./lib/tiers/excludedCommands.ts";
 import {
   type Decision,
   dryRunChoresOf,
@@ -31,6 +30,7 @@ import {
   spreadsheetTargetsOf,
   stepTargetsVariable,
 } from "./lib/tiers/tiers.ts";
+import { excludedCommands } from "./lib/tiers/tiers/excludedCommands.ts";
 import { webGateDecisions } from "./lib/tiers/webTools.ts";
 
 const ownersSuffix = "drive-owners.json";
