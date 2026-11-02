@@ -45,7 +45,3 @@ Wall clock from a Bash call to its result in this machine's session transcripts,
 What each typed change measured when it landed is a record of measurements, kept in [`type-check-cost.md`](../../../packages/framework/docs/architecture/type-check-cost.md#measurements-after-each-change). Code run-time.
 
 - Observed: baseline ~286k instantiations and ~1.2s check time, ~48k per mapped-filter instantiation; 2026-09-02, the date of [ecd32996](https://github.com/byronbroughten/byro-repo/commit/ecd32996faf29f3daa60dd820c8e817a37181e4f), which recorded it; [`type-check-cost.md`](../../../packages/framework/docs/architecture/type-check-cost.md#baseline-and-the-lazy-mapped-filter). Code run-time.
-## Sheets calls
-
-- Observed: a round trip costs ~250–450ms against ~20–60ms of the framework's own CPU per trigger; 2026-09-01, the date of [933351eb](https://github.com/byronbroughten/byro-repo/commit/933351eb4f6cc87f6b8c82869b397f918e913cbd), which recorded it; [`round-trips.md`](../../../packages/framework/docs/architecture/round-trips.md#the-chokepoints). Code run-time.
-- Observed: growing a Table by 1,500–5,000 rows in one batch costs 8–18% more than `appendCells`, before the format copy; 2026-10-01 to 2026-10-02, [sheets-framework#53](https://github.com/byronbroughten/sheets-framework/issues/53)–#61; [`falsifiable-claims.md`](../../../packages/framework/docs/design/falsifiable-claims.md). Code run-time.

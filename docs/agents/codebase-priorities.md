@@ -9,7 +9,8 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 | When | File |
 | --- | --- |
 | What a priority means in practice, the rules that express it, why fewer concepts help, why the floor is a floor | [`docs/agents/codebase-priorities/priorities.md`](./codebase-priorities/priorities.md) |
-| Estimating a cost: reads, checks, command latency (gh, git, issue:start, wrap-up), type-check, Sheets calls, tickets | [`docs/agents/codebase-priorities/estimates.md`](./codebase-priorities/estimates.md) |
+| Estimating a cost: reads, checks, command latency (gh, git, issue:start, wrap-up), type-check, tickets | [`docs/agents/codebase-priorities/estimates.md`](./codebase-priorities/estimates.md) |
+| Estimating a Sheets call's cost | the Sheets index's [Round trips and cost](../../packages/framework/docs/sheets-behaviour.md#round-trips-and-cost) |
 
 ## Scope
 
@@ -44,5 +45,5 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 
 - **A Recommendation that wins or ties on every priority says nothing about them.**
 - **One that gives a priority up names it in one line, with a realistic estimate**, or `no estimate: <how to get one>` when none exists; never an invented number.
-- **A measurement's home is the Estimates, and the source doc keeps only its conclusion and a link to the line**; a rule line whose rule is a number keeps the number, and its Estimates line names it instead of being linked from it.
-- **Whoever records a new measurement adds its line to the Estimates.**
+- **A measurement's home is the Estimates, or the Sheets index for a Sheets call, and the source doc keeps only its conclusion and a link to the line**; a rule line whose rule is a number keeps the number, and its index line names it instead of being linked from it.
+- **Whoever records a new measurement adds its line to its index.**
