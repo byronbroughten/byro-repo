@@ -1,35 +1,16 @@
 // Parses a Bash command into its simple commands, for the tier gate, the branch guard and BashReads; throws on an unbalanced quote.
+// SegmentReader.ts reads the tokens through loops, conditionals, groups and functions.
 import { type Heredoc, HeredocScanner } from "./HeredocScanner.ts";
+import {
+  pipes,
+  type Segment,
+  SegmentReader,
+  type SegmentReading,
+  type Token,
+} from "./SegmentReader.ts";
 import { closingQuoteOf, SubstitutionScanner } from "./SubstitutionScanner.ts";
 
-const wrappers = new Set([
-  "sudo",
-  "command",
-  "env",
-  "time",
-  "nice",
-  "nohup",
-  "exec",
-  "builtin",
-]);
-const operators = {
-  separators: new Set([";", "&&", "||", "&", "$(", "(", ")", "`"]),
-  pipes: new Set(["|", "|&"]),
-} as const;
-
-// commandWords: its words with leading wrappers and env assignments dropped.
-export interface Segment {
-  words: string[];
-  commandWords: string[];
-  inputFiles: string[];
-  isPiped: boolean;
-  outputFiles: string[];
-}
-
-interface Token {
-  type: "word" | "redirect" | "op";
-  value: string;
-}
+const separators = new Set([";", ";;", "&&", "||", "&", "$(", "(", ")", "`"]);
 
 // isBare: no wrapper or env assignment was dropped from its words. outputFiles: each file a redirect writes.
 export interface SimpleCommand {
@@ -46,29 +27,31 @@ export class ShellParser {
   static init(command: string): ShellParser {
     return new ShellParser(command);
   }
-  // Each simple command's words, wrappers and env assignments dropped.
-  get commandWords(): string[][] {
-    return this.simpleCommands
-      .map(({ words }) => words)
-      .filter((words) => words.length > 0);
-  }
-  // Keeps a bare redirect such as `> file`, which has no words but writes.
+  // Keeps a bare redirect such as `> file`, which has no words but writes. Never throws on compound syntax it can't read, as the branch guard and BashReads read a throw as nothing to refuse.
   get simpleCommands(): SimpleCommand[] {
-    return this.segments
-      .map(({ words, commandWords, outputFiles }) => ({
-        words: commandWords,
-        isBare: commandWords.length === words.length,
-        outputFiles,
-      }))
-      .filter(
-        ({ words, outputFiles }) => words.length > 0 || outputFiles.length > 0,
-      );
+    return simpleCommandsOf(this.segments);
   }
-  // The simple commands of every layer of `$(…)` and backtick substitution, quoted or not, each substitution a word of its own in the layer around it; throws on one left open.
+  // The simple commands of every layer of `$(…)` and backtick substitution, quoted or not, each substitution a word of its own in the layer around it; throws on one left open, on compound syntax it can't read as bash would, and on a call of a function another layer defines.
   get substitutedCommands(): SimpleCommand[] {
-    return SubstitutionScanner.init(this._withoutHeredocBodies).layers.flatMap(
-      (layer) => ShellParser.init(layer).simpleCommands,
-    );
+    const readings = SubstitutionScanner.init(
+      this._withoutHeredocBodies,
+    ).layers.map((layer) => ShellParser.init(layer).reading);
+    readings.forEach((reading, at) => {
+      if (!reading.isReadable) {
+        throw new Error("The call holds compound syntax the gate can't read.");
+      }
+      const isCallingOtherLayer = readings.some(
+        (other, otherAt) =>
+          otherAt !== at &&
+          [...other.functionNames].some((name) =>
+            reading.calledNames.has(name),
+          ),
+      );
+      if (isCallingOtherLayer) {
+        throw new Error("The call runs a function across a substitution.");
+      }
+    });
+    return readings.flatMap(({ segments }) => simpleCommandsOf(segments));
   }
   // Undefined for a command the gate can't parse, which callers leave to another rule.
   get parsedCommands(): SimpleCommand[] | undefined {
@@ -91,11 +74,12 @@ export class ShellParser {
     if (scan.heredocs.length > 0 && hasNesting) return undefined;
     return scan.heredocs;
   }
-  // Every operator `&&` and no word holding a substitution, so each command runs only once all before it succeeded, in the same shell.
+  // Every operator `&&`, no word holding a substitution and no command nested or negated by `!`, so each command runs only once all before it succeeded, in the same shell.
   get isAndList(): boolean {
-    return this._tokens.every(({ type, value }) =>
+    const isJoinedByAnd = this._tokens.every(({ type, value }) =>
       type === "op" ? value === "&&" : !/\$\(|`/.test(value),
     );
+    return isJoinedByAnd && this.segments.every(({ isNested }) => !isNested);
   }
   // Each operator and redirect between the words, in order, a heredoc's `<<` included.
   get operators(): string[] {
@@ -104,49 +88,26 @@ export class ShellParser {
       .map(({ value }) => value);
   }
   get segments(): Segment[] {
-    const segments: Segment[] = [];
-    let current = newSegment(false);
-    let redirect: string | undefined;
-    // A write redirect with no file after it still writes, so it keeps an empty name no path check passes.
-    function endRedirect(): void {
-      if (redirect?.includes(">")) current.outputFiles.push("");
-      redirect = undefined;
-    }
-    for (const token of this._tokens) {
-      if (token.type === "word") {
-        if (redirect === "<") current.inputFiles.push(token.value);
-        else if (!redirect) current.words.push(token.value);
-        else if (
-          redirect.includes(">") &&
-          !isDiscardRedirect(redirect, token.value)
-        ) {
-          current.outputFiles.push(token.value);
-        }
-        redirect = undefined;
-        continue;
-      }
-      endRedirect();
-      if (token.type === "redirect") {
-        redirect = token.value;
-        continue;
-      }
-      segments.push(current);
-      current = newSegment(operators.pipes.has(token.value));
-    }
-    endRedirect();
-    segments.push(current);
-    return segments.map((segment) => ({
-      ...segment,
-      commandWords: withoutWrappersOf(segment.words),
-    }));
+    return this.reading.segments;
+  }
+  get reading(): SegmentReading {
+    return SegmentReader.init(this._tokens).read();
   }
   get _tokens(): Token[] {
     const command = this._withoutHeredocBodies;
     const tokens: Token[] = [];
     let word: string | undefined;
+    let isQuoted = false;
     function endWord(): void {
-      if (word !== undefined) tokens.push({ type: "word", value: word });
+      if (word !== undefined) {
+        tokens.push({
+          type: "word",
+          value: word,
+          ...(isQuoted ? { isQuoted } : {}),
+        });
+      }
       word = undefined;
+      isQuoted = false;
     }
     for (let i = 0; i < command.length; i++) {
       const char = command.charAt(i);
@@ -158,9 +119,13 @@ export class ShellParser {
           command
             .slice(i + 1, close)
             .replace(/\\(["\\$`])/g, char === '"' ? "$1" : "\\$1");
+        isQuoted = true;
         i = close;
       } else if (char === "\\") {
-        if (next !== "\n") word = (word ?? "") + (next ?? "");
+        if (next !== "\n") {
+          word = (word ?? "") + (next ?? "");
+          isQuoted = true;
+        }
         i++;
       } else if (char === " " || char === "\t") {
         endWord();
@@ -199,10 +164,7 @@ export class ShellParser {
         if (value.length === 2) i++;
         tokens.push({
           type: "op",
-          value:
-            operators.separators.has(value) || operators.pipes.has(value)
-              ? value
-              : ";",
+          value: separators.has(value) || pipes.has(value) ? value : ";",
         });
       } else {
         word = (word ?? "") + char;
@@ -228,31 +190,14 @@ export class ShellParser {
   }
 }
 
-function newSegment(isPiped: boolean): Segment {
-  return {
-    words: [],
-    commandWords: [],
-    inputFiles: [],
-    isPiped,
-    outputFiles: [],
-  };
-}
-
-// A copy to a descriptor number, or /dev/null; bash opens `>&name` and `&>2` as files.
-function isDiscardRedirect(redirect: string, target: string): boolean {
-  if (redirect === "<>") return false;
-  return (
-    target === "/dev/null" || (redirect.endsWith("&") && /^\d+$/.test(target))
-  );
-}
-
-function withoutWrappersOf(words: string[]): string[] {
-  let start = 0;
-  while (
-    start < words.length &&
-    (/^\w+=/.test(words[start] ?? "") || wrappers.has(words[start] ?? ""))
-  ) {
-    start++;
-  }
-  return words.slice(start);
+function simpleCommandsOf(segments: Segment[]): SimpleCommand[] {
+  return segments
+    .map(({ words, commandWords, outputFiles }) => ({
+      words: commandWords,
+      isBare: commandWords.length === words.length,
+      outputFiles,
+    }))
+    .filter(
+      ({ words, outputFiles }) => words.length > 0 || outputFiles.length > 0,
+    );
 }

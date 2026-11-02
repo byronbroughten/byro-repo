@@ -1133,6 +1133,88 @@ describe("an Interactive session's gh calls", () => {
   });
 });
 
+describe("loops, conditionals, groups and functions", () => {
+  it("allows one made only of free commands in an Interactive session", () => {
+    [
+      "for id in 1 2; do gh api --method POST repos/o/r/issues/519/sub_issues -F sub_issue_id=$id; done",
+      "e(){ gh api --method POST repos/o/r/issues/519/sub_issues -F sub_issue_id=$1; }; e 1",
+      "function e { gh api repos/o/r/issues/$1; }\ne 1\ne 2",
+      "for f in a b\ndo\n  ls $f\ndone",
+      "while git status; do ls; done",
+      "until git status; do ls; done",
+      "if git status; then ls; elif pwd; then ls; else pwd; fi",
+      "! git status",
+      "{ ls; pwd; }",
+      "(ls; pwd)",
+      "case x in a|b) ls;; *) pwd;; esac",
+      "case x in\n  (a) ls ;;\n  b) pwd\nesac",
+      "for f in $(ls); do echo $f; done",
+      "for f in a; do echo done; done",
+      "{ git status; } 2>&1 | head -5",
+    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
+  });
+
+  it("asks for one holding a command that asks, a function's call included", () => {
+    [
+      "for i in 1; do git push; done",
+      "{ git push; }",
+      "if git status; then git push; fi",
+      "ls(){ git push; }; ls",
+      "e(){ ls; }; e; git push",
+      "for f in $(git push); do ls; done",
+      "for i do git push; done",
+      "for i\ndo git push\ndone",
+      "select i do git push; done",
+      "f(){ for i do git push; done; }; f 1",
+    ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
+  });
+
+  it("asks for a loop's write to a variable path, as for one outside a loop", () => {
+    expect(
+      placedDecisionOf("for f in *.md; do rm $f; done")?.permissionDecision,
+    ).toBe("ask");
+  });
+
+  it("checks a write after a cd inside one from every folder the call may be in", () => {
+    [
+      "{ cd /tmp/s372 && rm ../x; }",
+      "if git status; then cd /tmp/s372; fi; rm ../x",
+      "e(){ cd /tmp/s372; }; e; rm ../x",
+      "! cd /tmp/s372 && rm ../x",
+    ].forEach((command) =>
+      expect(placedDecisionOf(command)?.permissionDecision).toBe("ask"),
+    );
+  });
+
+  it("refuses a runner step's loop as it refuses the command inside", () => {
+    const decision = placedDecisionOf(
+      "for n in 1 2; do gh issue close $n; done",
+      "runnerStep",
+    );
+    expect(decision?.permissionDecision).toBe("deny");
+    expect(decision?.reason).toContain(blockerInstead);
+  });
+
+  it("leaves one it can't read as bash would unclassified", () => {
+    [
+      "for i in 1; do ls",
+      "{ ls",
+      "ls; }",
+      "if ls; then pwd; done",
+      "f(){ f; }; f",
+      "f; f(){ ls; }",
+      "e(){ ls; }; echo $(e)",
+      "e(){ ls $1; }; e 'a b'",
+      "f() ls",
+      '"for" x in 1; do ls; done',
+      "case x in a) ls;; esac; ;;",
+      "for; do ls; done",
+      "for i x; do ls; done",
+      "f(){ shift; git $1; }; f status push",
+    ].forEach((command) => expect(decisionOf(command)).toBeUndefined());
+  });
+});
+
 describe("free reads and standing yeses in both modes", () => {
   it("allows gh label list, Jev, the session probe and the outline in a session and a runner step", () => {
     [

@@ -49,9 +49,10 @@ function leavesTheBox(
   entries: string[],
 ): boolean {
   if (/\$\(|`|<</.test(parser.command)) return false;
-  const isJoinedOnly = parser.operators.every((operator) =>
-    callJoiners.has(operator),
-  );
+  // A reserved word such as `if` or `{` is no operator, so a compound call isn't taken for commands only joined.
+  const isJoinedOnly =
+    parser.operators.every((operator) => callJoiners.has(operator)) &&
+    parser.segments.every(({ isNested }) => !isNested);
   return (
     isJoinedOnly &&
     commands.every(

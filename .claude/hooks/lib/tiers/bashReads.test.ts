@@ -49,6 +49,29 @@ describe("BashReads unguarded folders", () => {
     ).toBeUndefined();
   });
 
+  it("still guards a large file after a cd inside a loop, conditional, group, subshell or function", () => {
+    [
+      "if c; then cd /elsewhere; fi; cat src/big.ts",
+      "{ cd /elsewhere; }; cat src/big.ts",
+      "(cd /elsewhere); cat src/big.ts",
+      "for d in a; do cd /elsewhere; done; cat src/big.ts",
+      "e(){ cd /elsewhere; }; e; cat src/big.ts",
+      "! cd /elsewhere && cat src/big.ts",
+    ].forEach((command) =>
+      expect(denyReasonOf(projectDir, command)).toMatch(/would dump all/),
+    );
+  });
+
+  it("guards a large file read inside one", () => {
+    [
+      "for f in a; do cat src/big.ts; done",
+      "if c; then cat src/big.ts; fi",
+      "r(){ cat $1; }; r src/big.ts",
+    ].forEach((command) =>
+      expect(denyReasonOf(projectDir, command)).toMatch(/would dump all/),
+    );
+  });
+
   it("does not exempt a file merely named like an unguarded folder", () => {
     const withNamedFile = projectWith({ "src/dist": bigFile });
     expect(denyReasonOf(withNamedFile, "cat src/dist")).toMatch(
@@ -123,6 +146,12 @@ describe("BashReads.wholeFilePaths", () => {
     expect(
       wholeFilePathsOf("cd /repo/config && cat docs/code-style.md"),
     ).toEqual(["/repo/config/docs/code-style.md"]);
+  });
+
+  it("resolves a file from the folder before and after a cd that may not run", () => {
+    expect(
+      wholeFilePathsOf("if c; then cd /repo/config; fi; cat a.md"),
+    ).toEqual(["/repo/a.md", "/repo/config/a.md"]);
   });
 
   it("leaves out a cat whose output a pipe trims", () => {

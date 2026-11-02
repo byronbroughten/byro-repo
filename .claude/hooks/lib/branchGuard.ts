@@ -2,6 +2,7 @@
 import { homedir } from "node:os";
 import { isAbsolute, join, relative, resolve } from "node:path";
 
+import { foldersAfterCdOf, type Segment } from "./tiers/SegmentReader.ts";
 import { ShellParser } from "./tiers/ShellParser.ts";
 
 export type GuardMode = "interim" | "strict";
@@ -211,24 +212,27 @@ function gitActionsOf(
   { command, cwd, primaryCheckouts }: CommandTarget,
   isExistingPath: BranchGuardInput["isExistingPath"],
 ): GitAction[] {
-  let commands: string[][];
+  let segments: Segment[];
   try {
-    commands = ShellParser.init(command).commandWords;
+    ({ segments } = ShellParser.init(command));
   } catch {
     return [];
   }
-  let dir = cwd;
-  return commands.flatMap((words) => {
+  let dirs = [cwd];
+  return segments.flatMap(({ commandWords: words, isNested }) => {
     if (words[0] === "cd") {
-      dir = cdTarget(dir, words[1]);
+      const targets = dirs.map((dir) => cdTarget(dir, words[1]));
+      dirs = foldersAfterCdOf(dirs, targets, !isNested);
       return [];
     }
-    const action = gitActionOf(
-      words,
-      { command, cwd: dir, primaryCheckouts },
-      isExistingPath,
-    );
-    return action ? [action] : [];
+    return dirs.flatMap((dir) => {
+      const action = gitActionOf(
+        words,
+        { command, cwd: dir, primaryCheckouts },
+        isExistingPath,
+      );
+      return action ? [action] : [];
+    });
   });
 }
 
