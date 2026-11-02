@@ -100,6 +100,7 @@ describe("branchDecision, strict", () => {
     `for d in a; do cd ${workspace}; done; git checkout master`,
     `w(){ cd ${workspace}; }; w; git checkout master`,
     `echo $(cd ${workspace}); git checkout master`,
+    `! cd ${workspace} && git checkout master`,
   ])(
     "denies `%s` from a primary checkout, as a nested cd may not run",
     (command) => {

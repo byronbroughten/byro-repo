@@ -56,6 +56,7 @@ describe("BashReads unguarded folders", () => {
       "(cd /elsewhere); cat src/big.ts",
       "for d in a; do cd /elsewhere; done; cat src/big.ts",
       "e(){ cd /elsewhere; }; e; cat src/big.ts",
+      "! cd /elsewhere && cat src/big.ts",
     ].forEach((command) =>
       expect(denyReasonOf(projectDir, command)).toMatch(/would dump all/),
     );

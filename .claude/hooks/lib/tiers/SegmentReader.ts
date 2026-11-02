@@ -29,10 +29,11 @@ const reservedWords = {
   ]),
   // Each leaves the word after it in command position.
   joiners: new Set(["then", "elif", "else", "do", "!", "function"]),
-  // Each starts a list of data words that ends at the next operator.
+  // Each names a loop variable, then after `in` a list of data words that ends at the next operator.
   listHeads: new Set(["for", "select"]),
 } as const;
-const pipes = new Set(["|", "|&"]);
+export const pipes = new Set(["|", "|&"]);
+const listModes = new Set<Mode>(["listName", "listIn", "listHead"]);
 // The operators a case pattern holds: a newline before it, its leading `(` and the `|` between alternatives.
 const patternOperators = new Set([";", "(", "|"]);
 
@@ -43,7 +44,7 @@ export interface Token {
   isQuoted?: boolean;
 }
 
-// commandWords: its words with leading wrappers and env assignments dropped. isNested: inside a loop, conditional, group, subshell, substitution or function, so it may run any number of times, none, or in a subshell.
+// commandWords: its words with leading wrappers and env assignments dropped. isNested: inside a loop, conditional, group, subshell, substitution or function, or negated by `!`, so a later command can't count on it having run once, in this shell, and succeeded.
 export interface Segment {
   words: string[];
   commandWords: string[];
@@ -64,7 +65,8 @@ export interface SegmentReading {
 // A `(` frame stands for a subshell or a `$(`, as `)` closes either.
 type Frame = "{" | "(" | "if" | "loop" | "case";
 
-type Mode = "command" | "listHead" | "caseHead" | "casePattern";
+type Mode =
+  "command" | "listName" | "listIn" | "listHead" | "caseHead" | "casePattern";
 
 // A function body being read: its name, the frame depth its opener reached, and the first segment it holds.
 interface Body {
@@ -90,6 +92,7 @@ export class SegmentReader {
   // The name a definition gave before its body's opener.
   pendingName: string | undefined;
   hasPatternWord = false;
+  isNegated = false;
   at = 0;
   constructor(tokens: Token[]) {
     this.tokens = tokens;
@@ -148,6 +151,14 @@ export class SegmentReader {
       this._readRedirectTarget(token.value);
       return;
     }
+    if (this.mode === "listName") {
+      this.mode = "listIn";
+      return;
+    }
+    if (this.mode === "listIn") {
+      this._readListIn(token);
+      return;
+    }
     if (this.mode === "listHead") return;
     if (this.mode === "caseHead") {
       if (isReserved(token, "in")) this._startPatterns();
@@ -167,6 +178,16 @@ export class SegmentReader {
       this.current.outputFiles.push(file);
     }
   }
+  // With no `in` after its name, a loop runs over the arguments and `do` starts its body.
+  _readListIn(token: Token): void {
+    this.mode = "command";
+    if (isReserved(token, "in")) {
+      this.mode = "listHead";
+      return;
+    }
+    if (!isReserved(token, "do")) this.isReadable = false;
+    this._readWord(token);
+  }
   // A write redirect with no file after it still writes, so it keeps an empty name no path check passes.
   _endRedirect(): void {
     if (this.redirect?.includes(">")) this.current.outputFiles.push("");
@@ -183,8 +204,9 @@ export class SegmentReader {
     }
     if (opened) this._open(opened);
     if (closed) this._close(closed);
-    if (reservedWords.listHeads.has(word)) this.mode = "listHead";
+    if (reservedWords.listHeads.has(word)) this.mode = "listName";
     if (word === "case") this.mode = "caseHead";
+    if (word === "!") this.isNegated = true;
     return true;
   }
   // `function name` names a definition whose `()` is optional.
@@ -212,7 +234,8 @@ export class SegmentReader {
       this._dropPendingName();
     }
     this._flush(pipes.has(op));
-    if (this.mode === "listHead") this.mode = "command";
+    if (this.mode === "listName") this.isReadable = false;
+    if (listModes.has(this.mode)) this.mode = "command";
     if (op === "(" || op === "$(") this._open("(");
     else if (op === ")") this._closeParens();
     else if (op === ";;") this._endCaseItem();
@@ -288,9 +311,10 @@ export class SegmentReader {
     const segment: Segment = {
       ...this.current,
       commandWords: withoutWrappersOf(this.current.words),
-      ...(this.frames.length > 0 ? { isNested: true } : {}),
+      ...(this.frames.length > 0 || this.isNegated ? { isNested: true } : {}),
     };
     this.current = newSegment(isPipedNext);
+    this.isNegated = false;
     const [name, ...args] = segment.commandWords;
     if (name !== undefined) this.calledNames.add(name);
     const body = name === undefined ? undefined : this.definitions.get(name);
@@ -321,10 +345,6 @@ function newSegment(isPiped: boolean): Segment {
   };
 }
 
-function isReserved(token: Token, word: string): boolean {
-  return token.type === "word" && !token.isQuoted && token.value === word;
-}
-
 // Every word a `name ()` or `function name` could define; reading too many only leaves more calls unreadable.
 function functionNamesOf(tokens: Token[]): Set<string> {
   return new Set(
@@ -343,6 +363,10 @@ function functionNamesOf(tokens: Token[]): Set<string> {
       return hasParens ? [token.value] : [];
     }),
   );
+}
+
+function isReserved(token: Token, word: string): boolean {
+  return token.type === "word" && !token.isQuoted && token.value === word;
 }
 
 // A copy to a descriptor number, or /dev/null; bash opens `>&name` and `&>2` as files.
@@ -385,4 +409,13 @@ function withArgumentsIn(word: string, args: string[]): string {
     (_match, braced: string | undefined, bare: string | undefined) =>
       args[Number(braced ?? bare) - 1] ?? "",
   );
+}
+
+// The folders a later command may run in after a `cd` to targets: the targets alone when the `cd` surely ran and carries on, else the folders before it too.
+export function foldersAfterCdOf<FD extends string | undefined>(
+  folders: FD[],
+  targets: FD[],
+  isCarriedOn: boolean,
+): FD[] {
+  return [...new Set(isCarriedOn ? targets : [...folders, ...targets])];
 }

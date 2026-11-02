@@ -2,6 +2,7 @@
 // SegmentReader.ts reads the tokens through loops, conditionals, groups and functions.
 import { type Heredoc, HeredocScanner } from "./HeredocScanner.ts";
 import {
+  pipes,
   type Segment,
   SegmentReader,
   type SegmentReading,
@@ -9,10 +10,7 @@ import {
 } from "./SegmentReader.ts";
 import { closingQuoteOf, SubstitutionScanner } from "./SubstitutionScanner.ts";
 
-const operators = {
-  separators: new Set([";", ";;", "&&", "||", "&", "$(", "(", ")", "`"]),
-  pipes: new Set(["|", "|&"]),
-} as const;
+const separators = new Set([";", ";;", "&&", "||", "&", "$(", "(", ")", "`"]);
 
 // isBare: no wrapper or env assignment was dropped from its words. outputFiles: each file a redirect writes.
 export interface SimpleCommand {
@@ -76,11 +74,12 @@ export class ShellParser {
     if (scan.heredocs.length > 0 && hasNesting) return undefined;
     return scan.heredocs;
   }
-  // Every operator `&&` and no word holding a substitution, so each command runs only once all before it succeeded, in the same shell.
+  // Every operator `&&`, no word holding a substitution and no command nested or negated by `!`, so each command runs only once all before it succeeded, in the same shell.
   get isAndList(): boolean {
-    return this._tokens.every(({ type, value }) =>
+    const isJoinedByAnd = this._tokens.every(({ type, value }) =>
       type === "op" ? value === "&&" : !/\$\(|`/.test(value),
     );
+    return isJoinedByAnd && this.segments.every(({ isNested }) => !isNested);
   }
   // Each operator and redirect between the words, in order, a heredoc's `<<` included.
   get operators(): string[] {
@@ -165,10 +164,7 @@ export class ShellParser {
         if (value.length === 2) i++;
         tokens.push({
           type: "op",
-          value:
-            operators.separators.has(value) || operators.pipes.has(value)
-              ? value
-              : ";",
+          value: separators.has(value) || pipes.has(value) ? value : ";",
         });
       } else {
         word = (word ?? "") + char;

@@ -1162,6 +1162,10 @@ describe("loops, conditionals, groups and functions", () => {
       "ls(){ git push; }; ls",
       "e(){ ls; }; e; git push",
       "for f in $(git push); do ls; done",
+      "for i do git push; done",
+      "for i\ndo git push\ndone",
+      "select i do git push; done",
+      "f(){ for i do git push; done; }; f 1",
     ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
   });
 
@@ -1176,6 +1180,7 @@ describe("loops, conditionals, groups and functions", () => {
       "{ cd /tmp/s372 && rm ../x; }",
       "if git status; then cd /tmp/s372; fi; rm ../x",
       "e(){ cd /tmp/s372; }; e; rm ../x",
+      "! cd /tmp/s372 && rm ../x",
     ].forEach((command) =>
       expect(placedDecisionOf(command)?.permissionDecision).toBe("ask"),
     );
@@ -1203,6 +1208,9 @@ describe("loops, conditionals, groups and functions", () => {
       "f() ls",
       '"for" x in 1; do ls; done',
       "case x in a) ls;; esac; ;;",
+      "for; do ls; done",
+      "for i x; do ls; done",
+      "f(){ shift; git $1; }; f status push",
     ].forEach((command) => expect(decisionOf(command)).toBeUndefined());
   });
 });

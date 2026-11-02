@@ -2,7 +2,7 @@
 import { homedir } from "node:os";
 import { isAbsolute, join, relative, resolve } from "node:path";
 
-import type { Segment } from "./tiers/SegmentReader.ts";
+import { foldersAfterCdOf, type Segment } from "./tiers/SegmentReader.ts";
 import { ShellParser } from "./tiers/ShellParser.ts";
 
 export type GuardMode = "interim" | "strict";
@@ -218,12 +218,11 @@ function gitActionsOf(
   } catch {
     return [];
   }
-  // A `cd` inside a loop, conditional, group, subshell or function may not run, so it adds its folder rather than replacing one.
   let dirs = [cwd];
   return segments.flatMap(({ commandWords: words, isNested }) => {
     if (words[0] === "cd") {
       const targets = dirs.map((dir) => cdTarget(dir, words[1]));
-      dirs = [...new Set(isNested ? [...dirs, ...targets] : targets)];
+      dirs = foldersAfterCdOf(dirs, targets, !isNested);
       return [];
     }
     return dirs.flatMap((dir) => {

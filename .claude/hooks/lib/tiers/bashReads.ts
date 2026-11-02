@@ -6,7 +6,7 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { HookInput } from "../hookIo.ts";
 import { rootRelative } from "../lintSet.ts";
 import { readSheetsConfigs } from "../sheetsConfigs.ts";
-import type { Segment } from "./SegmentReader.ts";
+import { foldersAfterCdOf, type Segment } from "./SegmentReader.ts";
 import { ShellParser } from "./ShellParser.ts";
 import { sedCallOf } from "./stdoutFilters.ts";
 
@@ -90,7 +90,6 @@ export class BashReads {
       .flatMap(({ paths }) => paths);
   }
   _segmentReads(): SegmentRead[] {
-    // A `cd` inside a loop, conditional, group, subshell or function may not run, so it adds its folder rather than replacing one.
     let cwds = [this.cwd];
     const reads: SegmentRead[] = [];
     const { segments } = ShellParser.init(this.command);
@@ -102,7 +101,7 @@ export class BashReads {
       if (name === "cd") {
         if (!target) return;
         const targets = cwds.map((cwd) => resolve(cwd, expandHome(target)));
-        cwds = [...new Set(segment.isNested ? [...cwds, ...targets] : targets)];
+        cwds = foldersAfterCdOf(cwds, targets, !segment.isNested);
         return;
       }
       const read = readOf(name, args, segment);
