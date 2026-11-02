@@ -3,6 +3,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { callOfItsOwn } from "@byronbroughten/spec-runner/callOfItsOwn";
 import { describe, expect, it } from "vitest";
 
 import { CloneHooksPath, hooksPathOf } from "./CloneHooksPath.ts";
@@ -25,7 +26,7 @@ describe("CloneHooksPath.set", () => {
     const repo = repoWithHooksPath("old-hooks");
     lockConfigOf(repo);
     expect(() => CloneHooksPath.init(repo).set(".githooks")).toThrow(
-      `Claude Code's sandbox protects .git/config, so core.hooksPath in ${repo} can't change from inside it. Run \`git -C ${repo} config core.hooksPath .githooks\` in a Bash call of its own.`,
+      `Claude Code's sandbox protects .git/config, so core.hooksPath in ${repo} can't change from inside it. ${callOfItsOwn(`Run \`git -C ${repo} config core.hooksPath .githooks\``)}.`,
     );
   });
 

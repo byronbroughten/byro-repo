@@ -8,7 +8,9 @@
   "exports": {
     "./AgentStep": "./src/AgentStep.ts",
     "./BatchRecords": "./src/BatchRecords.ts",
+    "./callOfItsOwn": "./src/callOfItsOwn.ts",
     "./Checks": "./src/Checks.ts",
+    "./claudeEntries": "./src/IssueWorkspaces/claudeEntries.ts",
     "./ClaudeAgentStep": "./src/ClaudeAgentStep.ts",
     "./clonePaths": "./src/clonePaths.ts",
     "./CswapUsageReader": "./src/CswapUsageReader.ts",
