@@ -1,4 +1,7 @@
 {
+  "env": {
+    "TMPDIR": "/tmp/claude-501"
+  },
   "permissions": {
     "allow": [
       "Bash(npm run check)",
@@ -109,6 +112,8 @@
     ],
     "filesystem": {
       "denyWrite": [
+        "/tmp/claude-501/claude-guardrails",
+        "/private/tmp/claude-501/claude-guardrails",
         "/tmp/claude-guardrails",
         "/private/tmp/claude-guardrails",
         "/var/folders/ps/xsbr1bg15c754_cksb6zr1c80000gn/T/claude-guardrails"
