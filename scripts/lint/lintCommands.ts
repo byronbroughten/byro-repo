@@ -1,4 +1,4 @@
-// The lint commands lint.ts and preCommit.ts share, the runner that runs every one of them, and the hook paths prepare.ts sets.
+// The lint commands lint.ts and preCommit.ts share, the runner that runs every one of them, and the hook paths prepare.ts sets and how it sets them.
 import { spawnSync } from "node:child_process";
 import { basename, join, relative } from "node:path";
 
@@ -60,8 +60,33 @@ export function hooksPathOf(clonePath: string): string {
   return relative(clonePath, ".githooks");
 }
 
+// Reads before writing: Claude Code's sandbox protects .git/config even inside an allowed .git, so a boxed npm install must not write a value already set.
+export function setHooksPath(cloneRoot: string, hooksPath: string): void {
+  if (hooksPathIn(cloneRoot) === hooksPath) return;
+  const { status, stderr } = spawnSync(
+    "git",
+    ["config", "core.hooksPath", hooksPath],
+    { cwd: cloneRoot, encoding: "utf8" },
+  );
+  if (status === 0) return;
+  throw new Error(
+    `Claude Code's sandbox protects .git/config, so core.hooksPath in ${cloneRoot} can't change from inside it. Run \`git -C ${cloneRoot} config core.hooksPath ${hooksPath}\` in a Bash call of its own. git: ${stderr.trim()}`,
+  );
+}
+
 export function commandLabelOf([file, ...args]: Command): string {
   return [basename(file), ...args].join(" ");
+}
+
+// git config --get exits 1 when the key is unset.
+function hooksPathIn(cloneRoot: string): string | undefined {
+  const { status, stdout } = spawnSync(
+    "git",
+    ["config", "--get", "core.hooksPath"],
+    { cwd: cloneRoot, encoding: "utf8" },
+  );
+  if (status !== 0) return undefined;
+  return stdout.trim();
 }
 
 function binOf(name: string): string {
