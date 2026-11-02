@@ -18,6 +18,7 @@ import {
 import { nearestClaudeAncestor } from "./claudeAncestor.ts";
 import { activeAccount } from "./cswapAccount.ts";
 import { issueReader } from "./issueReader.ts";
+import { keyArgsOf } from "./keyArgs.ts";
 import { issueWorkspacesConfig, stateFolder } from "./runnerConfig.ts";
 import { recordStartedSession } from "./startedSession.ts";
 import { startReportOf } from "./startReport.ts";
@@ -108,14 +109,17 @@ async function openClaude(
 }
 
 function startIssuePromptOf(key: WorkspaceKey): string {
-  if ("session" in key) return `/start-issue --session ${key.session}`;
-  return `/start-issue ${key.repo} ${key.number}`;
+  return `/start-issue ${keyArgsOf(key)}`;
 }
 
 async function list(): Promise<void> {
   const listed = await workspaces.list();
   if (listed.length === 0) console.log("No workspaces.");
-  listed.forEach((workspace) => console.log(workspaceLineOf(workspace)));
+  listed.forEach((workspace) =>
+    console.log(
+      workspaceLineOf(workspace, issueWorkspacesConfig.removeCommand),
+    ),
+  );
 }
 
 async function promote(args: string[]): Promise<void> {

@@ -58,6 +58,8 @@ export interface IssueWorkspacesConfig {
   symlinkedFiles: string[];
   installDependencies(workspaceRoot: string): Promise<void>;
   issueTitle(issue: IssueRef): Promise<string>;
+  // The command that removes a workspace, before its key's arguments; a refused removal names it.
+  removeCommand: string;
 }
 
 export interface Workspace {

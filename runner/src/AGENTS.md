@@ -40,6 +40,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `IssueReader.ts` | `IssueReader` | `npm run issue:read`: prints an issue as Trusted and Untrusted text, and reads a Trusted body's Model fit line for `npm run outcome:summary`. |
 | `IssueWorkspaces.ts` | `IssueWorkspaces` | Creates, promotes, resumes, leases, lists and removes issue and session workspaces, delegating to `IssueWorkspaces/`. |
 | `IssueWorkspaces/BranchNamer.ts` | | Names a workspace's branch, and exports the lookup of where a branch already exists. |
+| `IssueWorkspaces/claudeEntries.ts` | | The `.claude/` entries the sandbox write-protects in a worktree, and the check that a removal can delete them. |
 | `IssueWorkspaces/IssueWorkspacesBase.ts` | | The Base `IssueWorkspaces` and its collaborators share: the config, a repo's clone path and its primary clone, finding a workspace's folder by key and the free-lease check. |
 | `IssueWorkspaces/WorkspaceKeeper.ts` | | The workspace lifecycle: creates, finds, lists, promotes, resumes and removes workspaces. |
 | `IssueWorkspaces/WorkspaceLeaser.ts` | | Takes, releases and reads workspace leases. |

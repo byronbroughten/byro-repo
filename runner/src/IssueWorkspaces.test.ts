@@ -19,6 +19,13 @@ import {
 
 useIssueWorkspacesHarness();
 
+// What Claude Code recreates for a session whose working directory still points at a removed workspace.
+function makeBrokenFolder(): string {
+  const brokenPath = join(temp, "workspaces/session-broken");
+  mkdirSync(join(brokenPath, ".claude/.cc-writes"), { recursive: true });
+  return brokenPath;
+}
+
 describe("create", () => {
   it("puts the issue's repo on the issue branch and detaches every other repo at master", async () => {
     const before = primaryStates();
@@ -244,13 +251,12 @@ describe("list", () => {
     });
   });
 
-  it("shows a folder whose root has no .git as broken beside a whole workspace, and remove deletes it", async () => {
+  it("shows a folder whose root has no .git as broken beside a whole workspace", async () => {
     await workspaces().create(
       { repo: "byro-repo", number: 7 },
       { slug: "whole" },
     );
-    const brokenPath = join(temp, "workspaces/session-broken");
-    mkdirSync(join(brokenPath, ".claude/.cc-writes"), { recursive: true });
+    makeBrokenFolder();
 
     const listed = await workspaces().list();
 
@@ -268,6 +274,14 @@ describe("list", () => {
       },
       { key: { session: "broken" }, branchedRepos: [], isBroken: true },
     ]);
+  });
+
+  it("removes a folder whose root has no .git, leaving a whole workspace registered", async () => {
+    await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "whole" },
+    );
+    const brokenPath = makeBrokenFolder();
     const broken = await workspaces().find({ session: "broken" });
     if (!broken) throw new Error("The broken folder wasn't found");
 

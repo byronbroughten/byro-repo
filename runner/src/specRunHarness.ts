@@ -197,6 +197,7 @@ export function specRun(
     symlinkedFiles: [],
     async installDependencies() {},
     promoteCommandOf: () => "npm run issue:promote -- byro-repo 1",
+    removeCommand: "npm run issue:remove",
     outcomeFolder: "docs/agents/outcomes",
     stateFolder: stateFolder(),
     configFolder: "/config/account-1",

@@ -70,7 +70,7 @@ export class WorkspaceLeaser extends IssueWorkspacesBase {
     rmSync(leasePathOf(path), { force: true });
   }
 
-  // A broken folder, its root's .git gone, has nowhere to hold a lease.
+  // A folder whose root has no .git has no git folder to hold a lease file; whether it is broken is the keeper's call.
   async leaseOf({ path }: Pick<Workspace, "path">): Promise<Lease | undefined> {
     if (!existsSync(join(path, ".git"))) return undefined;
     return readLease(leasePathOf(path));

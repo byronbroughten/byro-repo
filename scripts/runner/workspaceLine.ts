@@ -2,18 +2,22 @@
 import {
   holderLabelOf,
   type Lease,
-  type WorkspaceKey,
   workspaceLabelOf,
   type WorkspaceStatus,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
 
-export function workspaceLineOf(workspace: WorkspaceStatus): string {
+import { keyArgsOf } from "./keyArgs.ts";
+
+export function workspaceLineOf(
+  workspace: WorkspaceStatus,
+  removeCommand: string,
+): string {
   const { key, branch, branchedRepos, dirtyRepos, createdAt, path, lease } =
     workspace;
   if (workspace.isBroken) {
     return [
       workspaceLabelOf(key),
-      `broken: clear it with ${removeCommandOf(key)}`,
+      `broken: clear it with ${removeCommand} -- ${keyArgsOf(key)}`,
       `age ${ageOf(createdAt)}`,
       path,
     ].join("  ");
@@ -29,13 +33,6 @@ export function workspaceLineOf(workspace: WorkspaceStatus): string {
     `age ${ageOf(createdAt)}`,
     path,
   ].join("  ");
-}
-
-function removeCommandOf(key: WorkspaceKey): string {
-  if ("session" in key) {
-    return `npm run issue:remove -- --session ${key.session}`;
-  }
-  return `npm run issue:remove -- ${key.repo} ${key.number}`;
 }
 
 function leaseLabelOf(lease: Lease | undefined): string {

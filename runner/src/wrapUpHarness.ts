@@ -87,6 +87,7 @@ export function workspacesConfig(): IssueWorkspacesConfig {
     async issueTitle() {
       return "Wrap-up script";
     },
+    removeCommand: "npm run issue:remove",
   };
 }
 

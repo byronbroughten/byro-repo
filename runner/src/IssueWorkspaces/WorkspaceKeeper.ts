@@ -6,7 +6,6 @@ import {
   lstatSync,
   mkdirSync,
   realpathSync,
-  renameSync,
   rmSync,
   statSync,
   symlinkSync,
@@ -22,6 +21,7 @@ import {
   worktreeStateOf,
 } from "../git.ts";
 import { BranchNamer, branchOriginOf } from "./BranchNamer.ts";
+import { assertClaudeEntriesDeletable } from "./claudeEntries.ts";
 import { assertLeaseFree, IssueWorkspacesBase } from "./IssueWorkspacesBase.ts";
 import { WorkspaceLeaser } from "./WorkspaceLeaser.ts";
 import { WorkspaceSeeder } from "./WorkspaceSeeder.ts";
@@ -38,15 +38,6 @@ import {
   type WorkspaceKey,
   type WorkspaceStatus,
 } from "./workspaceTypes.ts";
-
-// Claude Code's sandbox write-protects these in every worktree, whatever the settings say.
-const protectedClaudeEntries = [
-  "settings.json",
-  "settings.local.json",
-  "skills",
-  "hooks",
-  ".cc-writes",
-];
 
 export class WorkspaceKeeper extends IssueWorkspacesBase {
   private get leaser(): WorkspaceLeaser {
@@ -178,20 +169,12 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
         `${workspace.path} has ${unsavedWork(dirtyRepos, orphanedRepos)}; remove it with force to discard them`,
       );
     }
-    this._assertClaudeEntriesDeletable(workspace.path);
+    assertClaudeEntriesDeletable({
+      path: workspace.path,
+      clonePaths: Object.values(this.config.clonePaths),
+      removeCommand: this.config.removeCommand,
+    });
     await this._tearDown(workspace.path, force);
-  }
-
-  // A git worktree remove stopped by one has already deleted the rest of the folder and dropped git's record of it.
-  private _assertClaudeEntriesDeletable(path: string): void {
-    Object.values(this.config.clonePaths)
-      .flatMap((clonePath) =>
-        protectedClaudeEntries.map((entry) =>
-          join(path, clonePath, ".claude", entry),
-        ),
-      )
-      .filter((entry) => lstatSync(entry, { throwIfNoEntry: false }))
-      .forEach(assertDeletable);
   }
 
   private _branchedReposOf(
@@ -277,11 +260,8 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
         worktree: join(path, clonePath),
       }))
       .filter(({ worktree }) => existsSync(worktree));
-    const registered: RepoWorktreeTarget[] = [];
-    for (const target of present) {
-      if (await isRegistered(target)) registered.push(target);
-    }
-    return registered;
+    const isEachRegistered = await Promise.all(present.map(isRegistered));
+    return present.filter((_, index) => isEachRegistered[index]);
   }
 
   // A workspace built before its primary clone moved holds that repo's worktree at the old folder, which every path here would miss.
@@ -456,20 +436,6 @@ async function isRegistered({
   return (await registeredWorktreesOf(primaryClone)).includes(
     realpathSync(worktree),
   );
-}
-
-// A rename within its folder needs the same permission as the delete, and is undone at once.
-function assertDeletable(entry: string): void {
-  const moved = `${entry}.remove-check`;
-  try {
-    renameSync(entry, moved);
-  } catch (error) {
-    throw new Error(
-      `Can't delete ${entry}, since the sandbox can't delete a worktree's .claude/ files; nothing was removed, so run npm run issue:remove in a call of its own`,
-      { cause: error },
-    );
-  }
-  renameSync(moved, entry);
 }
 
 async function removeWorktree({
