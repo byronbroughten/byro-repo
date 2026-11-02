@@ -13,7 +13,6 @@ export interface SandboxState {
   isOn: boolean;
   excludedCommands: string[];
   filesystem: SandboxFilesystem;
-  // Undefined when on.
   off: SandboxOff | undefined;
 }
 
@@ -63,7 +62,7 @@ export function sandboxStateOf(layers: SettingsLayers): SandboxState {
   const excludedCommands = stringsOf(sandbox.excludedCommands);
   const malformedPath = paths[parsedLayers.indexOf("malformed")];
   const filesystem = objectOf(sandbox.filesystem);
-  const off = offOf(sandbox, malformedPath, excludedCommands);
+  const off = offOf(sandbox, malformedPath);
   return {
     isEnabled,
     isOn: off === undefined,
@@ -80,8 +79,8 @@ export function sandboxStateOf(layers: SettingsLayers): SandboxState {
 function offOf(
   sandbox: Record<string, unknown>,
   malformedPath: string | undefined,
-  excludedCommands: string[],
 ): SandboxOff | undefined {
+  const excludedCommands = stringsOf(sandbox.excludedCommands);
   if (malformedPath !== undefined) {
     return {
       cause: `the settings layer \`${malformedPath}\` can't be parsed`,

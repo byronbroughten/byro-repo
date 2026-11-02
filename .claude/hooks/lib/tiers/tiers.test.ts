@@ -1463,11 +1463,8 @@ describe("a call with the sandbox off", () => {
   };
   const modes: SessionMode[] = ["interactive", "runnerStep"];
 
-  function offDecisionOf(
-    command: string,
-    mode: SessionMode,
-    excludedCommands = entries,
-  ) {
+  // The entries go in beside `off` as tierGate.ts passes them for an enabled box.
+  function offDecisionOf(command: string, mode: SessionMode) {
     return gateDecision({
       command,
       mode,
@@ -1475,8 +1472,26 @@ describe("a call with the sandbox off", () => {
       places: fakePlaces("/ws"),
       sandbox: {
         isOn: false,
-        excludedCommands: [],
-        off: { ...off, excludedCommands },
+        excludedCommands: entries,
+        off: { ...off, excludedCommands: entries },
+      },
+    });
+  }
+
+  function unreadableDecisionOf(command: string) {
+    return gateDecision({
+      command,
+      mode: "interactive",
+      dryRuns: [],
+      places: fakePlaces("/ws"),
+      sandbox: {
+        isOn: false,
+        excludedCommands: entries,
+        off: {
+          cause: "the settings layer `x` can't be parsed",
+          fix: "fix that file's JSON",
+          excludedCommands: [],
+        },
       },
     });
   }
@@ -1543,10 +1558,15 @@ describe("a call with the sandbox off", () => {
   });
 
   it("asks for every call when no entry is readable", () => {
-    ["npm test", "npm run check", "ls", "git status"].forEach((command) =>
-      expect(
-        offDecisionOf(command, "interactive", [])?.permissionDecision,
-      ).toBe("ask"),
+    [
+      "npm test",
+      "npm run check",
+      "ls",
+      "git status",
+      "npm test | tail",
+      "timeout 60 npm test",
+    ].forEach((command) =>
+      expect(unreadableDecisionOf(command)?.permissionDecision).toBe("ask"),
     );
   });
 });

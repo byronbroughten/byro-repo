@@ -105,11 +105,11 @@ describe("the tierGate hook on an excluded command", () => {
     expect(boxedCallDecision()).not.toBe("deny");
   });
 
-  it("still refuses one with a user settings file that doesn't parse", () => {
+  it("asks for it, not refuses, with a user settings file that doesn't parse", () => {
     projectSandbox({ enabled: true, allowUnsandboxedCommands: false });
     writeSettings(homeDir, "{ not json");
     try {
-      expect(boxedCallDecision()).toBe("deny");
+      expect(boxedCallDecision()).toBe("ask");
     } finally {
       writeSettings(homeDir, "{}");
     }

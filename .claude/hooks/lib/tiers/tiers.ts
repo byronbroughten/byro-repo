@@ -101,7 +101,10 @@ type Classifier = (
 // With the box off, only a call of excluded commands gets the rows, so a misconfigured box shows up as asks, never as silent freedom.
 export function gateDecision(call: ShellCall): Decision | undefined {
   const { isOn, excludedCommands: entries, off } = call.sandbox ?? noSandbox;
-  const boxRefusal = excludedCommands.refusalOf(call.command, entries);
+  // An off box may not keep anything in, and a layer that can't be parsed must ask, not refuse.
+  const boxRefusal = off
+    ? undefined
+    : excludedCommands.refusalOf(call.command, entries);
   if (boxRefusal) return gateOf("deny", `${boxRefusal}.`);
   if (isOn && sandboxedCalls.isFree(call.command, entries)) {
     return gateOf("allow", sandboxedCalls.reasonOf(call.command));
@@ -120,10 +123,13 @@ function offDecisionOf(
   if (!off || excludedCommands.isMadeOf(command, off.excludedCommands)) {
     return undefined;
   }
-  return gateOf(
-    "ask",
-    `\`${command}\` needs a yes: the sandbox is off, as ${off.cause}, and with it off only a call made of \`excludedCommands\` entries gets the tier rows. To turn the box back on, ${off.fix}.`,
+  const ask = needsYes(
+    `\`${command}\` isn't made only of \`excludedCommands\` entries and the sandbox is off, as ${off.cause}`,
   );
+  return {
+    ...ask,
+    reason: `${ask.reason} To turn the box back on, ${off.fix}.`,
+  };
 }
 
 // An Interactive session's unclassified call falls through to Claude Code; a runner step's is refused, as nobody can answer Claude Code's prompt.

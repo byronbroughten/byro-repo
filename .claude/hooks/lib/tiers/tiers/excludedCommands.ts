@@ -31,7 +31,7 @@ export const excludedCommands = {
     if (!commands) return undefined;
     const held = commands.flatMap(({ words }) => {
       const form = boxFormOf(words);
-      const entry = entries.find((pattern) => matchesEntry(form, pattern));
+      const entry = entryOf(form, entries);
       return entry ? [{ form, entry }] : [];
     });
     const [first] = held;
@@ -46,8 +46,8 @@ export const excludedCommands = {
     const parser = excludedCommands.boxParserOf(command);
     const commands = parser.parsedCommands;
     if (!commands || !parser.isPlainText) return false;
-    return commands.every(({ words }) =>
-      entries.some((entry) => matchesEntry(boxFormOf(words), entry)),
+    return commands.every(
+      ({ words }) => entryOf(boxFormOf(words), entries) !== undefined,
     );
   },
 
@@ -71,8 +71,7 @@ export const excludedCommands = {
       isJoinedOnly &&
       commands.every(
         ({ words, isBare }) =>
-          isBare &&
-          entries.some((entry) => matchesEntry(words.join(" "), entry)),
+          isBare && entryOf(words.join(" "), entries) !== undefined,
       )
     );
   },
@@ -81,6 +80,10 @@ export const excludedCommands = {
 // A timed command keeps the box as its wrapped command does.
 function boxFormOf(words: string[]): string {
   return npmCommands.unflaggedFormOf(timeoutWrappedOf(words) ?? words);
+}
+
+function entryOf(command: string, entries: string[]): string | undefined {
+  return entries.find((entry) => matchesEntry(command, entry));
 }
 
 // Claude Code's rule matching: `*` matches anything, a space before it included, and a legacy `:*` suffix matches the prefix as a whole word.
