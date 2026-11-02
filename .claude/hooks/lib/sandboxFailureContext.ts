@@ -1,6 +1,8 @@
 // What sandboxFailureContext.ts adds after a failed Bash call whose output shows the sandbox stopped it. See docs/claude-code-guardrails.md.
 import { join } from "node:path";
 
+import { excludedCommands } from "./tiers/excludedCommands.ts";
+
 export interface WriteScope {
   allow: string[];
   deny: string[];
@@ -12,8 +14,7 @@ export interface ScopeEnv {
   tmpdir: string;
 }
 
-const wayThrough =
-  "The call ran in the sandbox. If the command is on `excludedCommands` in `.claude/settings.json`, run it in a call of its own, with no `cd`, pipe, `$(…)`, heredoc or other command beside it. Otherwise this is a limit of the sandbox: report it to the developer with the error, and never retry with `dangerouslyDisableSandbox`. A runner step records a blocker naming the sandbox.";
+const wayThrough = `The call ran in the sandbox. If the command is on \`excludedCommands\` in \`.claude/settings.json\`, ${excludedCommands.callOfItsOwn("run it")}. Otherwise this is a limit of the sandbox: report it to the developer with the error, and never retry with \`dangerouslyDisableSandbox\`. A runner step records a blocker naming the sandbox.`;
 
 const fixedRows = [
   {

@@ -75,7 +75,20 @@ const npxChecks = new Map<string, (args: string[]) => boolean>([
 const npmVerbs = {
   exec: new Set(["exec", "x"]),
   run: new Set(["run", "run-script"]),
+  test: new Set(["test", "t"]),
 } as const;
+// npm options that take the next word as their value.
+const npmValueFlags = new Set([
+  "--prefix",
+  "-C",
+  "-w",
+  "--workspace",
+  "--loglevel",
+  "--userconfig",
+  "--cache",
+  "--registry",
+  "--script-shell",
+]);
 
 export const npmCommands = {
   // An `npm run` script and its args; flags drop out except `--` and `--send`.
@@ -145,13 +158,32 @@ export const npmCommands = {
   isNpm(words: string[]): boolean {
     return words[0] === "npm" || words[0] === "npm.cmd";
   },
+  // The words as a settings rule spells them: npm's flags before the script name dropped, and `npm t` written `npm test`.
+  unflaggedFormOf(words: string[]): string {
+    if (!npmCommands.isNpm(words)) return words.join(" ");
+    const verbAt = afterFlagsOf(words, 1);
+    const verb = words[verbAt] ?? "";
+    if (npmVerbs.test.has(verb)) {
+      return ["npm", "test", ...words.slice(verbAt + 1)].join(" ");
+    }
+    if (!npmVerbs.run.has(verb)) return words.join(" ");
+    const scriptAt = afterFlagsOf(words, verbAt + 1);
+    return ["npm", "run", ...words.slice(scriptAt)].join(" ");
+  },
 };
 
 // `npm test` and `npm t`, which need no `run`.
 function npmTestOf(words: string[]): string | undefined {
   if (!npmCommands.isNpm(words)) return undefined;
-  const verb = nonFlagsOf(words)[1];
-  return verb === "test" || verb === "t" ? "test" : undefined;
+  return npmVerbs.test.has(nonFlagsOf(words)[1] ?? "") ? "test" : undefined;
+}
+
+function afterFlagsOf(words: string[], at: number): number {
+  let index = at;
+  while ((words[index] ?? "").startsWith("-") && words[index] !== "--") {
+    index += npmValueFlags.has(words[index] ?? "") ? 2 : 1;
+  }
+  return index;
 }
 
 function sendVerdictOf(name: string, dryRuns: string[]): Verdict {

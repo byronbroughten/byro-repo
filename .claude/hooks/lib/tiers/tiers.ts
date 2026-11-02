@@ -243,7 +243,7 @@ export function commandVerdictsOf({
   places,
   spreadsheetTargets = [],
 }: ShellCall): CommandVerdict[] | undefined {
-  const commands = parsedCommandsOf(command);
+  const commands = ShellParser.init(command).parsedCommands;
   if (!commands) return undefined;
   // A `cd` carries on only in an AND list: a failed one stops the command; in a subshell, substitution, pipe or background job it doesn't carry; after `;` or `||` it may have failed.
   const cdCarriesOn = isAndListOf(command);
@@ -307,18 +307,12 @@ function plainTextRefusalOf(
 
 // The chore names a command dry-runs, for the session's dry-run record.
 export function dryRunChoresOf(command: string): string[] {
-  return (parsedCommandsOf(command) ?? []).flatMap(({ words }) => {
-    const chore = npmCommands.appChoreOf(words);
-    return chore && !chore.isSend ? [chore.name] : [];
-  });
-}
-
-function parsedCommandsOf(command: string): SimpleCommand[] | undefined {
-  try {
-    return ShellParser.init(command).substitutedCommands;
-  } catch {
-    return undefined;
-  }
+  return (ShellParser.init(command).parsedCommands ?? []).flatMap(
+    ({ words }) => {
+      const chore = npmCommands.appChoreOf(words);
+      return chore && !chore.isSend ? [chore.name] : [];
+    },
+  );
 }
 
 export function gateOf(
