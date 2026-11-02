@@ -112,6 +112,8 @@ export interface WorkspaceStatus extends Workspace {
   dirtyRepos: string[];
   createdAt: Date;
   lease?: Lease;
+  // Set on a folder git no longer lists as the root's worktree, which only remove clears.
+  isBroken?: boolean;
 }
 
 export interface RemoveOptions {

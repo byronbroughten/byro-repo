@@ -1,5 +1,13 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -19,6 +27,10 @@ useIssueWorkspacesHarness();
 
 // The test runner's parent outlives every test, so it stands in for another live holder.
 const liveSession: LeaseHolder = { kind: "session", pid: process.ppid };
+
+function filesOf(path: string): string[] {
+  return readdirSync(path, { recursive: true, encoding: "utf8" }).sort();
+}
 
 function deadPid(): number {
   const { pid } = spawnSync("node", ["-e", ""]);
@@ -350,6 +362,51 @@ describe("remove", () => {
         "utf8",
       ),
     ).toBe("{}");
+  });
+
+  it("refuses before touching anything when a protected .claude/ entry can't be deleted", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "protected" },
+    );
+    const claude = join(workspace.path, ".claude");
+    mkdirSync(join(claude, "hooks"), { recursive: true });
+    writeFileSync(join(claude, "settings.json"), "{}");
+    const before = filesOf(workspace.path);
+    chmodSync(claude, 0o555);
+    try {
+      await expect(
+        workspaces().remove(workspace, { force: true }),
+      ).rejects.toThrow(/\.claude.*npm run issue:remove in a call of its own/);
+    } finally {
+      chmodSync(claude, 0o755);
+    }
+
+    expect(registeredWorktrees()).toHaveLength(3);
+    expect(filesOf(workspace.path)).toEqual(before);
+  });
+
+  it("finishes a half-removed workspace whose root git no longer lists", async () => {
+    const workspace = await workspaces().create(
+      { repo: "byro-repo", number: 7 },
+      { slug: "half-removed" },
+    );
+    ["packages/utils", "packages/framework"].forEach((clonePath) =>
+      git(
+        join(primaryRoot, clonePath),
+        "worktree",
+        "remove",
+        join(workspace.path, clonePath),
+      ),
+    );
+    rmSync(join(workspace.path, ".git"));
+    git(primaryRoot, "worktree", "prune");
+    mkdirSync(join(workspace.path, ".claude/.cc-writes"), { recursive: true });
+
+    await workspaces().remove(workspace);
+
+    expect(existsSync(workspace.path)).toBe(false);
+    expect(registeredWorktrees()).toEqual([]);
   });
 
   it("removes a dirty workspace with force", async () => {

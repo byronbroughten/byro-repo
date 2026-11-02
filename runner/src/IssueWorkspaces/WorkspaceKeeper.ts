@@ -6,6 +6,7 @@ import {
   lstatSync,
   mkdirSync,
   realpathSync,
+  renameSync,
   rmSync,
   statSync,
   symlinkSync,
@@ -37,6 +38,15 @@ import {
   type WorkspaceKey,
   type WorkspaceStatus,
 } from "./workspaceTypes.ts";
+
+// Claude Code's sandbox write-protects these in every worktree, whatever the settings say.
+const protectedClaudeEntries = [
+  "settings.json",
+  "settings.local.json",
+  "skills",
+  "hooks",
+  ".cc-writes",
+];
 
 export class WorkspaceKeeper extends IssueWorkspacesBase {
   private get leaser(): WorkspaceLeaser {
@@ -168,7 +178,20 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
         `${workspace.path} has ${unsavedWork(dirtyRepos, orphanedRepos)}; remove it with force to discard them`,
       );
     }
+    this._assertClaudeEntriesDeletable(workspace.path);
     await this._tearDown(workspace.path, force);
+  }
+
+  // A git worktree remove stopped by one has already deleted the rest of the folder and dropped git's record of it.
+  private _assertClaudeEntriesDeletable(path: string): void {
+    Object.values(this.config.clonePaths)
+      .flatMap((clonePath) =>
+        protectedClaudeEntries.map((entry) =>
+          join(path, clonePath, ".claude", entry),
+        ),
+      )
+      .filter((entry) => lstatSync(entry, { throwIfNoEntry: false }))
+      .forEach(assertDeletable);
   }
 
   private _branchedReposOf(
@@ -233,16 +256,32 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
 
   private async _repoWorktreesOf(path: string): Promise<RepoWorktree[]> {
     await this._relocateMovedWorktrees(path);
-    const present = this._clonesRootFirst
-      .map(([repo, clonePath]) => ({ repo, worktree: join(path, clonePath) }))
-      .filter(({ worktree }) => existsSync(worktree));
+    const registered = await this._registeredWorktreesOf(path);
     return Promise.all(
-      present.map(async ({ repo, worktree }) => ({
+      registered.map(async ({ repo, worktree }) => ({
         repo,
         worktree,
         state: await worktreeStateOf(worktree),
       })),
     );
+  }
+
+  // A folder git no longer lists, left by a removal stopped part-way, has no git state, and a git process in it would read an outer repo's.
+  private async _registeredWorktreesOf(
+    path: string,
+  ): Promise<RepoWorktreeTarget[]> {
+    const present = this._clonesRootFirst
+      .map(([repo, clonePath]) => ({
+        repo,
+        primaryClone: this._primaryCloneOf(clonePath),
+        worktree: join(path, clonePath),
+      }))
+      .filter(({ worktree }) => existsSync(worktree));
+    const registered: RepoWorktreeTarget[] = [];
+    for (const target of present) {
+      if (await isRegistered(target)) registered.push(target);
+    }
+    return registered;
   }
 
   // A workspace built before its primary clone moved holds that repo's worktree at the old folder, which every path here would miss.
@@ -276,7 +315,9 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
       .filter(({ state }) => state.branch !== "")
       .map(({ repo }) => repo);
     const dirtyRepos = dirtyReposOf(worktrees);
+    const isBroken = !worktrees.some(({ worktree }) => worktree === path);
     return {
+      ...(isBroken && { isBroken }),
       path,
       key,
       // From the folder, which create() names after the branch, so it survives the repos being detached.
@@ -288,14 +329,11 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
     };
   }
 
+  // A repo's folder git no longer lists goes with the folder; the prune then clears any record left.
   private async _tearDown(path: string, force: boolean): Promise<void> {
-    const deepestFirst = this._clonesRootFirst.reverse();
-    for (const [, clonePath] of deepestFirst) {
-      await removeWorktree({
-        primaryClone: this._primaryCloneOf(clonePath),
-        worktree: join(path, clonePath),
-        force,
-      });
+    const deepestFirst = (await this._registeredWorktreesOf(path)).reverse();
+    for (const { primaryClone, worktree } of deepestFirst) {
+      await removeWorktree({ primaryClone, worktree, force });
     }
     rmSync(path, { recursive: true, force: true });
     await this._pruneWorktrees();
@@ -318,6 +356,10 @@ interface BuildTarget {
 interface WorktreeTarget {
   primaryClone: string;
   worktree: string;
+}
+
+interface RepoWorktreeTarget extends WorktreeTarget {
+  repo: string;
 }
 
 interface SharedFileLink {
@@ -393,14 +435,41 @@ async function worktreesInside(
   primaryClone: string,
   folder: string,
 ): Promise<string[]> {
-  const listing = await git(primaryClone, "worktree", "list", "--porcelain");
   // Git records each worktree at its real path, so a symlinked workspace folder would match none.
   const realFolder = realpathSync(folder);
-  return lines(listing).flatMap((line) => {
-    if (!line.startsWith("worktree ")) return [];
-    const worktree = line.slice("worktree ".length);
-    return worktree.startsWith(`${realFolder}${sep}`) ? [worktree] : [];
-  });
+  return (await registeredWorktreesOf(primaryClone)).filter((worktree) =>
+    worktree.startsWith(`${realFolder}${sep}`),
+  );
+}
+
+async function registeredWorktreesOf(primaryClone: string): Promise<string[]> {
+  const listing = await git(primaryClone, "worktree", "list", "--porcelain");
+  return lines(listing).flatMap((line) =>
+    line.startsWith("worktree ") ? [line.slice("worktree ".length)] : [],
+  );
+}
+
+async function isRegistered({
+  primaryClone,
+  worktree,
+}: WorktreeTarget): Promise<boolean> {
+  return (await registeredWorktreesOf(primaryClone)).includes(
+    realpathSync(worktree),
+  );
+}
+
+// A rename within its folder needs the same permission as the delete, and is undone at once.
+function assertDeletable(entry: string): void {
+  const moved = `${entry}.remove-check`;
+  try {
+    renameSync(entry, moved);
+  } catch (error) {
+    throw new Error(
+      `Can't delete ${entry}, since the sandbox can't delete a worktree's .claude/ files; nothing was removed, so run npm run issue:remove in a call of its own`,
+      { cause: error },
+    );
+  }
+  renameSync(moved, entry);
 }
 
 async function removeWorktree({
