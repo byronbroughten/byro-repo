@@ -15,6 +15,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `ActiveAccountUnknown.ts` | | The Stop raised when no Active account can be read for a step. |
 | `AgentStep.ts` | `AgentStep` | The port that launches one headless `claude -p` step and its `StepResult`. |
 | `BatchRecords.ts` | `BatchRecords` | A Batch's record: its members, process and one event file, found by any member. |
+| `callOfItsOwn.ts` | `callOfItsOwn` | Words the advice to run a command in a call of its own, once for the hooks, the runner and the scripts lint. |
 | `Checks.ts` | `Checks` | Runs `npm run check`'s commands at once, skipped on a check stamp. |
 | `ClaudeAgentStep.ts` | `ClaudeAgentStep` | The real agent-step adapter over `cswap run`, launching under the primary's gate root and settings plus an injected permission hook, with the targets' tools and environment. |
 | `clonePaths.ts` | `clonePaths` | Builds the repo map, each clone in landing order, from a primary root. |
@@ -31,7 +32,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `FakeUsageReader.ts` | | The scripted usage reader run-loop tests use. |
 | `gapCheck.ts` | `gapCheck` | The gap check's prompt and record. |
 | `GhCli.ts` | `GhCli` | The real `gh` port. |
-| `git.ts` | | Git helpers the workspaces, run loop and wrap-up share. |
+| `git.ts` | | Git helpers the workspaces, run loop and wrap-up share, the worktree add, remove, list and switch helpers and the branch lookup included. |
 | `GitFixture.ts` | | A test primary root of clones with bare remotes. |
 | `halts.ts` | | Halts: their comments, notices, answers and the resume prompt. |
 | `headlessProbe.ts` | | Launches the one-turn headless session both probes run. |
@@ -39,8 +40,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `implementStep.ts` | `implementStep` | The implement step's prompt, record, handoff comment and record checks. |
 | `IssueReader.ts` | `IssueReader` | `npm run issue:read`: prints an issue as Trusted and Untrusted text, and reads a Trusted body's Model fit line for `npm run outcome:summary`. |
 | `IssueWorkspaces.ts` | `IssueWorkspaces` | Creates, promotes, resumes, leases, lists and removes issue and session workspaces, delegating to `IssueWorkspaces/`. |
-| `IssueWorkspaces/BranchNamer.ts` | | Names a workspace's branch, and exports the lookup of where a branch already exists. |
-| `IssueWorkspaces/claudeEntries.ts` | | The `.claude/` entries the sandbox write-protects in a worktree, and the check that a removal can delete them. |
+| `IssueWorkspaces/BranchNamer.ts` | | Names a workspace's branch, reusing an issue's existing branch in any repo. |
+| `IssueWorkspaces/claudeEntries.ts` | `claudeEntries` | The `.claude/` entries the sandbox write-protects in a worktree, and the check that a removal can delete them. |
 | `IssueWorkspaces/IssueWorkspacesBase.ts` | | The Base `IssueWorkspaces` and its collaborators share: the config, a repo's clone path and its primary clone, finding a workspace's folder by key and the free-lease check. |
 | `IssueWorkspaces/WorkspaceKeeper.ts` | | The workspace lifecycle: creates, finds, lists, promotes, resumes and removes workspaces. |
 | `IssueWorkspaces/WorkspaceLeaser.ts` | | Takes, releases and reads workspace leases. |

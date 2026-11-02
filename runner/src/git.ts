@@ -1,8 +1,8 @@
 // The git helpers IssueWorkspaces.ts, WrapUp.ts and SpecRun.ts share.
 
 import { execFile } from "node:child_process";
-import { readFileSync, statSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
+import { join, resolve, sep } from "node:path";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -63,6 +63,141 @@ export interface RepoWorktree {
 
 export function dirtyReposOf(worktrees: RepoWorktree[]): string[] {
   return worktrees.filter(({ state }) => state.isDirty).map(({ repo }) => repo);
+}
+
+export interface WorktreeTarget {
+  primaryClone: string;
+  worktree: string;
+}
+
+type BranchOrigin =
+  | { kind: "local" }
+  | { kind: "remote"; remoteBranch: string }
+  | { kind: "new" };
+
+interface MatchingBranches {
+  local: string[];
+  // Each names its remote, as `origin/<branch>`.
+  remote: string[];
+}
+
+export async function addWorktree({
+  primaryClone,
+  worktree,
+  branch,
+}: WorktreeTarget & { branch: string | undefined }): Promise<void> {
+  if (branch === undefined) {
+    await git(primaryClone, "worktree", "add", "--detach", worktree, "master");
+    return;
+  }
+  await git(
+    primaryClone,
+    "worktree",
+    "add",
+    ...(await branchedWorktreeArgs({ primaryClone, worktree, branch })),
+  );
+}
+
+export async function removeWorktree({
+  primaryClone,
+  worktree,
+  force,
+}: WorktreeTarget & { force: boolean }): Promise<void> {
+  if (!existsSync(worktree)) return;
+  const forceArgs = force ? ["--force"] : [];
+  await git(primaryClone, "worktree", "remove", ...forceArgs, worktree);
+}
+
+export async function registeredWorktreesOf(
+  primaryClone: string,
+): Promise<string[]> {
+  const listing = await git(primaryClone, "worktree", "list", "--porcelain");
+  return lines(listing).flatMap((line) =>
+    line.startsWith("worktree ") ? [line.slice("worktree ".length)] : [],
+  );
+}
+
+export async function isRegistered({
+  primaryClone,
+  worktree,
+}: WorktreeTarget): Promise<boolean> {
+  return (await registeredWorktreesOf(primaryClone)).includes(
+    realpathSync(worktree),
+  );
+}
+
+export async function worktreesInside(
+  primaryClone: string,
+  folder: string,
+): Promise<string[]> {
+  // Git records each worktree at its real path, so a symlinked workspace folder would match none.
+  const realFolder = realpathSync(folder);
+  return (await registeredWorktreesOf(primaryClone)).filter((worktree) =>
+    worktree.startsWith(`${realFolder}${sep}`),
+  );
+}
+
+// A new branch starts at the worktree's own HEAD, so edits made on the detached repo come along.
+export async function switchArgs(
+  worktree: string,
+  branch: string,
+): Promise<string[]> {
+  const origin = await branchOriginOf(worktree, branch);
+  if (origin.kind === "local") return [branch];
+  if (origin.kind === "remote") {
+    return ["--track", "-c", branch, origin.remoteBranch];
+  }
+  return ["-c", branch];
+}
+
+export async function branchOriginOf(
+  clone: string,
+  branch: string,
+): Promise<BranchOrigin> {
+  const { local, remote } = await matchingBranchesOf(clone, branch);
+  if (local.length > 0) return { kind: "local" };
+  const [remoteBranch] = remote;
+  if (remoteBranch !== undefined) return { kind: "remote", remoteBranch };
+  return { kind: "new" };
+}
+
+// One for-each-ref over both patterns, read apart by prefix, so each ask starts one git process instead of two.
+export async function matchingBranchesOf(
+  clone: string,
+  pattern: string,
+): Promise<MatchingBranches> {
+  const refs = lines(
+    await git(
+      clone,
+      "for-each-ref",
+      "--format=%(refname)",
+      `refs/heads/${pattern}`,
+      `refs/remotes/*/${pattern}`,
+    ),
+  );
+  return {
+    local: refsUnder(refs, "refs/heads/"),
+    remote: refsUnder(refs, "refs/remotes/"),
+  };
+}
+
+async function branchedWorktreeArgs({
+  primaryClone,
+  worktree,
+  branch,
+}: WorktreeTarget & { branch: string }): Promise<string[]> {
+  const origin = await branchOriginOf(primaryClone, branch);
+  if (origin.kind === "local") return [worktree, branch];
+  if (origin.kind === "remote") {
+    return ["--track", "-b", branch, worktree, origin.remoteBranch];
+  }
+  return ["-b", branch, worktree, "master"];
+}
+
+function refsUnder(refs: string[], prefix: string): string[] {
+  return refs.flatMap((ref) =>
+    ref.startsWith(prefix) ? [ref.slice(prefix.length)] : [],
+  );
 }
 
 // Read from HEAD itself, so no git process starts.

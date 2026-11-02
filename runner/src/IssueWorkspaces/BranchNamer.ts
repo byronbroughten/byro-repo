@@ -1,6 +1,6 @@
-// BranchNamer names a workspace's branch, reusing an issue's existing branch in any repo; branchOriginOf, which WorkspaceKeeper calls, finds where a branch already exists.
+// BranchNamer names a workspace's branch, reusing an issue's existing branch in any repo; git.ts's branchOriginOf finds where a branch already exists.
 
-import { git, lines } from "../git.ts";
+import { matchingBranchesOf } from "../git.ts";
 import { IssueWorkspacesBase } from "./IssueWorkspacesBase.ts";
 import {
   isSessionKey,
@@ -10,11 +10,6 @@ import {
 } from "./workspaceTypes.ts";
 
 const maxSlugWords = 6;
-
-type BranchOrigin =
-  | { kind: "local" }
-  | { kind: "remote"; remoteBranch: string }
-  | { kind: "new" };
 
 export class BranchNamer extends IssueWorkspacesBase {
   async branchName(
@@ -53,23 +48,6 @@ export class BranchNamer extends IssueWorkspacesBase {
   }
 }
 
-interface MatchingBranches {
-  local: string[];
-  // Each names its remote, as `origin/<branch>`.
-  remote: string[];
-}
-
-export async function branchOriginOf(
-  clone: string,
-  branch: string,
-): Promise<BranchOrigin> {
-  const { local, remote } = await matchingBranchesOf(clone, branch);
-  if (local.length > 0) return { kind: "local" };
-  const [remoteBranch] = remote;
-  if (remoteBranch !== undefined) return { kind: "remote", remoteBranch };
-  return { kind: "new" };
-}
-
 function issueBranchPrefix(issueNumber: number): string {
   return `issue-${issueNumber}-`;
 }
@@ -88,32 +66,6 @@ async function issueBranchesOf(
     `${issueBranchPrefix(issueNumber)}*`,
   );
   return [...local, ...remote.map(withoutRemoteName)];
-}
-
-// One for-each-ref over both patterns, read apart by prefix, so each ask starts one git process instead of two.
-async function matchingBranchesOf(
-  clone: string,
-  pattern: string,
-): Promise<MatchingBranches> {
-  const refs = lines(
-    await git(
-      clone,
-      "for-each-ref",
-      "--format=%(refname)",
-      `refs/heads/${pattern}`,
-      `refs/remotes/*/${pattern}`,
-    ),
-  );
-  return {
-    local: refsUnder(refs, "refs/heads/"),
-    remote: refsUnder(refs, "refs/remotes/"),
-  };
-}
-
-function refsUnder(refs: string[], prefix: string): string[] {
-  return refs.flatMap((ref) =>
-    ref.startsWith(prefix) ? [ref.slice(prefix.length)] : [],
-  );
 }
 
 function withoutRemoteName(remoteBranch: string): string {
