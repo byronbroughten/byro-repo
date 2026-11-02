@@ -14,6 +14,7 @@ export interface HookInput {
   prompt?: string;
   tool_name?: string;
   tool_input?: ToolInput;
+  error?: string;
   agent_id?: string;
   agent_type?: string;
 }
