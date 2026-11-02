@@ -1,5 +1,5 @@
 ---
-status: partly superseded by ADR-0024
+status: partly superseded by ADR-0024, amended by ByronBroughten/byro-repo#547, which keeps the tier rows for a sandboxed call holding `gh` or `git push`
 ---
 
 # Free a Bash call by the sandbox it runs in, and gate only the unsandboxed commands
@@ -18,6 +18,7 @@ Source: ByronBroughten/byro-repo#519
 ## Consequences
 
 - ADR 0024 supersedes this ADR's rejection of GitHub on the allowlist and its denial of the git folders: GitHub and the git folders are now in the box, and the commands that needed them run sandboxed.
+- Amended by ByronBroughten/byro-repo#547: with GitHub in the box, Phase 2 of ByronBroughten/byro-repo#519 frees every sandboxed call except one holding `gh` or `git push`, which keeps its tier row, since nothing undoes a GitHub write. A script's own GitHub calls stay ADR 0024's accepted risk, left to the scoped token of ByronBroughten/byro-repo#520.
 - This is not the containment ADR 0007 defers: unsandboxed commands and Claude's own tools still act with full access, so ADR 0007 stands.
 - `excludedCommands` is the one list of unsandboxed commands, and the gate reads it from settings.
 - A domain added to the allowlist is weighed as a place a script could send what it reads, since the read denies name credential files one at a time.

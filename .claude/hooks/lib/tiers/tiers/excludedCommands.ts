@@ -40,6 +40,13 @@ export const excludedCommands = {
     if (!first || leavesTheBox(parser, commands, entries)) return undefined;
     return `\`${command}\` keeps \`${first.form}\` in the sandbox, where it fails without naming the box: the sandbox ${reasonOf(first.entry)}. ${callOfItsOwn(`Run \`${first.form}\``)}`;
   },
+
+  // A call the gate can't parse may leave it, as far as the gate knows.
+  leavesTheBox(command: string, entries: string[]): boolean {
+    const parser = ShellParser.init(command.replace(stderrToStdout, "$1"));
+    const commands = parser.parsedCommands;
+    return !commands || leavesTheBox(parser, commands, entries);
+  },
 };
 
 // The parser has already read the whole call, so its operators can't throw.

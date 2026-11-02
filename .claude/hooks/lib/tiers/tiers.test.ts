@@ -1361,6 +1361,105 @@ describe("dryRunChoresOf", () => {
   });
 });
 
+describe("a sandboxed call", () => {
+  const entries = ["npm run app*", "npm run check"];
+  const modes: SessionMode[] = ["interactive", "runnerStep"];
+
+  function sandboxedDecisionOf(command: string, mode: SessionMode) {
+    return gateDecision({
+      command,
+      mode,
+      dryRuns: [],
+      places: fakePlaces("/ws"),
+      excludedCommands: entries,
+      isSandboxOn: true,
+    });
+  }
+
+  function todaysDecisionOf(command: string, mode: SessionMode) {
+    return gateDecision({
+      command,
+      mode,
+      dryRuns: [],
+      places: fakePlaces("/ws"),
+      excludedCommands: entries,
+    });
+  }
+
+  it("is allowed, naming the box, in both modes", () => {
+    [
+      "node .scratch/x.ts",
+      "node -e 'console.log(1)'",
+      "python3 -c 'print(1)'",
+      "for n in 1 2; do echo $n > /tmp/x-$n.md; done",
+      "git checkout -b x",
+      "git reset --hard HEAD~1",
+    ].forEach((command) =>
+      modes.forEach((mode) => {
+        const decision = sandboxedDecisionOf(command, mode);
+        expect(decision?.permissionDecision).toBe("allow");
+        expect(decision?.reason).toContain("sandbox");
+      }),
+    );
+  });
+
+  it("gets today's decision when it holds gh or a git push, or can't be parsed", () => {
+    [
+      "cd x && git push",
+      "git -C x push",
+      "git --git-dir=x/.git push",
+      "git --work-tree x push origin",
+      "echo $(gh api -X POST repos/o/r/issues)",
+      "echo `gh api -X POST repos/o/r/issues`",
+      "gh issue close 5",
+      "gh issue view 5",
+      "for i in 1; do git push; done",
+      "if true; then gh issue close 5; fi",
+      "{ git push; }",
+      "e(){ gh issue close $1; }; e 5",
+      "echo 5 | xargs gh issue close",
+      "find . -name x -exec gh issue close 5 ;",
+      "timeout 5 git push",
+      "env -u X gh issue close 5",
+      "nice -n 5 git push",
+      "/usr/bin/gh issue close 5",
+      "cat <<EOF\n$(gh issue close 5)\nEOF",
+      "echo $'\\x67h'",
+      "for i in 1; do ls",
+      "npm run app:deploy",
+    ].forEach((command) =>
+      modes.forEach((mode) =>
+        expect(sandboxedDecisionOf(command, mode)).toEqual(
+          todaysDecisionOf(command, mode),
+        ),
+      ),
+    );
+  });
+
+  it("keeps the asks and refusals the ticket names", () => {
+    expect(
+      sandboxedDecisionOf("cd x && git push", "interactive")
+        ?.permissionDecision,
+    ).toBe("ask");
+    expect(sandboxedDecisionOf("gh issue view 5", "interactive")).toBe(
+      undefined,
+    );
+    expect(
+      sandboxedDecisionOf("gh issue view 5", "runnerStep")?.permissionDecision,
+    ).toBe("deny");
+    expect(
+      sandboxedDecisionOf("npm run app:deploy", "interactive")?.reason,
+    ).not.toContain("sandbox");
+  });
+
+  it("still refuses a call keeping an excluded command in the box", () => {
+    expect(
+      sandboxedDecisionOf("npm run check | tail", "interactive")
+        ?.permissionDecision,
+    ).toBe("deny");
+  });
+});
+
 describe("runnerStep mode", () => {
   const asks = ["git push origin master", "npx clasp push", "npm publish"];
 

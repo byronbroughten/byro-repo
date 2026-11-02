@@ -13,6 +13,7 @@ import { npmVerdicts } from "./tiers/npmVerdicts.ts";
 import { PathChecker, writablePlaces } from "./tiers/PathChecker.ts";
 import { readCommands } from "./tiers/readCommands.ts";
 import { runnerStep } from "./tiers/runnerStep.ts";
+import { sandboxedCalls } from "./tiers/sandboxedCalls.ts";
 import { timeoutWrappedOf } from "./timeoutWrapped.ts";
 
 export interface Decision {
@@ -46,6 +47,8 @@ export interface ShellCall {
   spreadsheetTargets?: string[];
   // The session's sandbox `excludedCommands` entries; absent, no call is refused for keeping one in the box.
   excludedCommands?: string[];
+  // The session's sandbox is on, as `SandboxState.isOn` reads it; absent, no call is freed for running in the box.
+  isSandboxOn?: boolean;
 }
 
 // What a simple command's verdict reads beyond its own words; places carries the cwd as of that command.
@@ -85,13 +88,19 @@ type Classifier = (
   context: CallContext,
 ) => Verdict | undefined;
 
-// A call keeping an excluded command in the box is refused before any tier row, since it would fail there whatever its tier.
+// A call keeping an excluded command in the box is refused before any tier row, since it would fail there whatever its tier; one the box runs is then free unless it reaches GitHub.
 export function gateDecision(call: ShellCall): Decision | undefined {
   const boxRefusal = excludedCommands.refusalOf(
     call.command,
     call.excludedCommands ?? [],
   );
   if (boxRefusal) return gateOf("deny", `${boxRefusal}.`);
+  if (
+    call.isSandboxOn &&
+    sandboxedCalls.isFree(call.command, call.excludedCommands ?? [])
+  ) {
+    return gateOf("allow", sandboxedCalls.reasonOf(call.command));
+  }
   const decision = baseDecision(call) ?? undecidedDecision(call);
   return decision && decisionInMode(decision, call.mode);
 }
