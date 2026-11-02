@@ -1,5 +1,5 @@
 ---
-status: partly superseded by ADR-0024, amended by #547 for `gh` and `git push`
+status: partly superseded by ADR-0024, amended by #547
 ---
 
 # Free a Bash call by the sandbox it runs in, and gate only the unsandboxed commands
