@@ -9,6 +9,7 @@ import { git } from "./GitFixture.ts";
 import type { LeaseHolder } from "./IssueWorkspaces.ts";
 import type { UsageReader } from "./limitGuard.ts";
 import type { ResolveRecord } from "./resolveStep.ts";
+import type { ItemDecision } from "./reviewList.ts";
 import { runKnobsOf } from "./runKnobs.ts";
 import { reviewPrintoutOf } from "./SpecRun.ts";
 import {
@@ -246,6 +247,99 @@ describe("review of one ticket outside a run", () => {
     expect(commentsOn(213, "<!-- review-list ticket=#1 -->")).toHaveLength(1);
   });
 
+  it("edits nothing on a second review whose list is the posted one", async () => {
+    await specRun(reviewsWithFix()).review(refOf(1), { holder });
+    const [posted] = commentsOn(213, "<!-- review-list ticket=#1 -->");
+
+    await specRun(reviewsWithFix("fix-again.ts")).review(refOf(1), { holder });
+
+    expect(commentsOn(213, "<!-- review-list ticket=#1 -->")).toEqual([posted]);
+  });
+
+  describe("a second review whose list differs", () => {
+    const newPropose: ResolveRecord = {
+      ...base(4),
+      verdict: "propose",
+      reason: "decision",
+      recommendation: "Pick the fourth.",
+    };
+
+    async function reviewTwice(
+      decision: Omit<ItemDecision, "itemId">,
+      ...records: ResolveRecord[]
+    ): Promise<string> {
+      await specRun(reviewsWithFix()).review(refOf(1), { holder });
+      await specRun(FakeAgentStep.init()).decide(spec, {
+        itemId: "R1.1",
+        ...decision,
+      });
+      const hasFix = records.some(({ verdict }) => verdict === "fix");
+      await specRun(
+        FakeAgentStep.init(
+          reviewed(records.map(({ finding }) => findingOf(finding))),
+          resolved(records, hasFix ? "fix-again.ts" : undefined),
+        ),
+      ).review(refOf(1), { holder });
+      const lists = commentsOn(213, "<!-- review-list ticket=#1 -->");
+      expect(lists).toHaveLength(1);
+      return lists[0] ?? "";
+    }
+
+    it("edits the posted list in place, keeping a decided item and adding the new Propose after it, undecided", async () => {
+      const list = await reviewTwice(
+        { kind: "decided", text: "fixed in session · abc123" },
+        propose,
+        fix,
+        coveredLater,
+        newPropose,
+      );
+
+      expect(list).toContain(
+        "- [x] **R1.1** · Propose `decision` · Finding 1: Line 1 is wrong. (one.ts:1)\n  suggested Fix → Propose: Checked it.\n  Recommendation: Pick the first.\n  Decided: fixed in session · abc123",
+      );
+      expect(list).toContain(
+        "- [ ] **R1.2** · Propose `decision` · Finding 4: Line 4 is wrong. (one.ts:4)\n  suggested Fix → Propose: Checked it.\n  Recommendation: Pick the fourth.",
+      );
+      expect(list.match(/Finding 1: Line 1 is wrong/g)).toHaveLength(1);
+      expect(list.indexOf("**R1.1**")).toBeLessThan(list.indexOf("**R1.2**"));
+    });
+
+    it("keeps a handled item the re-review no longer raises, and takes its other sections from the new review", async () => {
+      const fixOf = (finding: number): ResolveRecord => ({
+        ...fix,
+        ...base(finding),
+      });
+
+      const list = await reviewTwice(
+        { kind: "handled", text: "half done" },
+        fixOf(1),
+        fixOf(2),
+        fixOf(3),
+        newPropose,
+      );
+
+      expect(list).toBe(
+        [
+          "<!-- spec-runner -->\n<!-- review-list ticket=#1 -->",
+          '**Review list** · byro-repo #1, "Ticket 1"',
+          "### Standards",
+          "**Fixed**\n\n- Finding 1: Line 1 is wrong. (one.ts:1)\n- Finding 2: Line 2 is wrong. (one.ts:2)\n- Finding 3: Line 3 is wrong. (one.ts:3)",
+          "### Proposed",
+          "- [ ] **R1.1** · Propose `decision` · Finding 1: Line 1 is wrong. (one.ts:1)\n  suggested Fix → Propose: Checked it.\n  Recommendation: Pick the first.\n  Handled: half done\n- [ ] **R1.2** · Propose `decision` · Finding 4: Line 4 is wrong. (one.ts:4)\n  suggested Fix → Propose: Checked it.\n  Recommendation: Pick the fourth.",
+        ].join("\n\n"),
+      );
+    });
+  });
+
+  it("posts no second list where the ticket's runner-marked list is someone else's, and edits none", async () => {
+    const theirs = `<!-- spec-runner -->\n<!-- review-list ticket=#1 -->\n\n**Review list** · byro-repo #1, "Ticket 1"`;
+    github.reply(213, theirs, "someone-else");
+
+    await specRun(reviewsWithFix()).review(refOf(1), { holder });
+
+    expect(commentsOn(213, "<!-- review-list ticket=#1 -->")).toEqual([theirs]);
+  });
+
   it("pushes nothing for its review list under the per-ticket cadence", async () => {
     const knobs = runKnobsOf({
       clonePaths,
@@ -260,17 +354,19 @@ describe("review of one ticket outside a run", () => {
     expect(notices.sent).toEqual([]);
   });
 
-  it("leaves a later run that lands the ticket to find its review list and post none twice", async () => {
+  it("leaves a later run that lands the ticket to find its review list and post none twice, editing none though its own list differs", async () => {
     const reviewing = specRun(reviewsWithFix());
     await reviewing.review(refOf(1), { holder });
     const workspace = await reviewing.workspaces.find(refOf(1));
     if (workspace) await reviewing.workspaces.releaseLease(workspace);
+    const posted = commentsOn(213, "<!-- review-list ticket=#1 -->");
+    const reworded = { ...propose, recommendation: "Pick the second." };
 
     const result = await specRun(
       FakeAgentStep.init(
         implemented("two.ts"),
         reviewed(findings),
-        resolved([propose, fix, coveredLater], "fix-again.ts"),
+        resolved([reworded, fix, coveredLater], "fix-again.ts"),
         implemented("three.ts"),
         reviewed(findings.slice(0, 1)),
         resolvedAs(halt),
@@ -278,7 +374,7 @@ describe("review of one ticket outside a run", () => {
     ).run(spec);
 
     expect(result.landed).toEqual([refOf(1)]);
-    expect(commentsOn(213, "<!-- review-list ticket=#1 -->")).toHaveLength(1);
+    expect(commentsOn(213, "<!-- review-list ticket=#1 -->")).toEqual(posted);
   });
 
   it("posts a Halt verdict on the spec as a session Halt, returns it to print and pushes nothing", async () => {

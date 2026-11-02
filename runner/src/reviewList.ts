@@ -1,7 +1,7 @@
 // The review list: a ticket's resolve records by axis then verdict, its Proposals as R items, its agreed Dismisses in a
 // collapsed audit, each departure from a suggested verdict with its why; a run posts it on the spec, a session posts and prints it.
 // Also the gap check's comment in the same format, the note a `covered-later` Dismiss leaves on its later ticket,
-// and the count of undecided items the end-of-run push gives, and the edit `runner decide` makes to one item.
+// the count of undecided items the end-of-run push gives, the edit `runner decide` makes to one item, and a session re-review's merge into the posted list.
 // SpecRun/ReviewListPoster.ts posts them, TicketLander.ts calling it at landing and SpecRun/SessionReviewer.ts after a
 // session's review, which also returns the ticket's to print; WrapUp.ts counts a Standalone ticket's; SpecRun/ReviewItemDecider.ts edits one; gapCheck.ts supplies the gaps.
 
@@ -107,6 +107,8 @@ const reviewGroups = {
     spec: "### Spec",
   },
   mergeMaster: "### Merge with master",
+  // A re-reviewed list's items, old and new, after every other section.
+  proposals: "### Proposed",
   verdicts: {
     fix: { heading: "Fixed", word: "Fix" },
     propose: { heading: "Proposed", word: "Propose" },
@@ -116,6 +118,7 @@ const reviewGroups = {
 } as const satisfies {
   axes: Record<Axis, string>;
   mergeMaster: string;
+  proposals: string;
   verdicts: Record<Verdict, { heading: string; word: string }>;
 };
 
@@ -135,23 +138,129 @@ export function ticketReviewListOf({
   const groups = groupsOf(records);
   // Numbered in the order shown, so R<ticket>.1 is the first Proposal read.
   const proposals = shownAxes.flatMap((axis) => groups[axis].propose);
-  const sections = shownAxes.flatMap((axis) => {
-    const shown = shownVerdicts.flatMap((verdict) =>
-      verdictGroupOf(groups[axis][verdict], verdict, (record) =>
-        itemIdOf(ticket, proposals.indexOf(record)),
-      ),
-    );
-    return shown.length === 0 ? [] : [reviewGroups.axes[axis], ...shown];
-  });
+  const sections = axisSectionsOf(groups, (record) =>
+    itemIdOf(ticket, proposals.indexOf(record)),
+  );
   if (mergeItem !== undefined) {
     const id = itemIdOf(ticket, proposals.length);
     sections.push(mergeMasterSectionOf(id, mergeItem));
   }
+  return listOf(ticket, title, sections);
+}
+
+function axisSectionsOf(
+  groups: RecordGroups,
+  proposalIdOf: (record: ResolveRecord) => string,
+): string[] {
+  return shownAxes.flatMap((axis) => {
+    const shown = shownVerdicts.flatMap((verdict) =>
+      verdictGroupOf(groups[axis][verdict], verdict, proposalIdOf),
+    );
+    return shown.length === 0 ? [] : [reviewGroups.axes[axis], ...shown];
+  });
+}
+
+function listOf(ticket: IssueRef, title: string, sections: string[]): string {
   return [
     reviewListMarkOf(ticket),
     `**${reviewListHeading}** · ${issueLabelOf(ticket)}, "${title}"`,
     ...sections,
   ].join("\n\n");
+}
+
+export interface ReReviewedList extends TicketReviewList {
+  // The comment holding the ticket's list as the spec has it, the developer's ticks and decisions included.
+  posted: string;
+}
+
+// The comment's body to write, keeping what precedes the list; undefined when the merged list is the posted one.
+export function reReviewedCommentOf({
+  posted,
+  ...list
+}: ReReviewedList): string | undefined {
+  const markAt = posted.indexOf(reviewListMarkOf(list.ticket));
+  if (markAt < 0) {
+    throw new Error(
+      `The comment holds no review list of ${issueLabelOf(list.ticket)}.`,
+    );
+  }
+  const postedList = posted.slice(markAt);
+  const merged = mergedListOf(postedList, list);
+  if (merged === undefined || merged === postedList) return undefined;
+  return `${posted.slice(0, markAt)}${merged}`;
+}
+
+// Ids are positional and a fresh review rewords its findings, so the old items stay as posted and only new heads are appended.
+// The posted list, unchanged, when the re-review's own list is the posted one.
+function mergedListOf(
+  posted: string,
+  list: TicketReviewList,
+): string | undefined {
+  const fresh = ticketReviewListOf(list);
+  if (fresh === undefined) return undefined;
+  if (fresh === posted) return posted;
+  const old = listedItemsOf(posted);
+  const oldHeads = new Set(old.map(({ head }) => head));
+  const lastNumber = Math.max(0, ...old.map(({ number }) => number));
+  const added = listedItemsOf(fresh)
+    .filter(({ head }) => !oldHeads.has(head))
+    .map((item, index) =>
+      renumberedOf(item, itemIdOf(list.ticket, lastNumber + index)),
+    );
+  const blocks = [...old, ...added].map(({ lines }) => lines.join("\n"));
+  const sections = axisSectionsOf(
+    groupsOf(list.records.filter(({ verdict }) => verdict !== "propose")),
+    () => {
+      throw new Error("The list's other sections hold no Proposal.");
+    },
+  );
+  if (blocks.length > 0) {
+    sections.push(`${reviewGroups.proposals}\n\n${blocks.join("\n")}`);
+  }
+  return listOf(list.ticket, list.title, sections);
+}
+
+interface ListedItem {
+  id: string;
+  number: number;
+  // The finding head, or the merge's subject, after the item's Propose and reason.
+  head: string;
+  // The head line and each indented line under it, as posted.
+  lines: string[];
+}
+
+function listedItemsOf(body: string): ListedItem[] {
+  const lines = body.split("\n");
+  return lines.flatMap((line, index) => {
+    const id = itemIdOfLine(line);
+    if (id === undefined) return [];
+    const number = Number(id.slice(id.lastIndexOf(".") + 1));
+    const itemLines = lines.slice(index, itemEndOf(lines, index));
+    return [{ id, number, head: itemHeadOf(line), lines: itemLines }];
+  });
+}
+
+// The index just past the indented lines under an item's head line.
+function itemEndOf(lines: string[], head: number): number {
+  let end = head + 1;
+  while (
+    end < lines.length &&
+    itemLinePatterns.indented.test(lines[end] ?? "")
+  ) {
+    end += 1;
+  }
+  return end;
+}
+
+function itemHeadOf(line: string): string {
+  const heading = line.replace(itemLinePatterns.head, "").replace(/\r$/, "");
+  return heading.replace(itemLinePatterns.proposeLead, "");
+}
+
+function renumberedOf(item: ListedItem, id: string): ListedItem {
+  const [head = "", ...rest] = item.lines;
+  const renumbered = head.replace(`**${item.id}**`, `**${id}**`);
+  return { ...item, id, lines: [renumbered, ...rest] };
 }
 
 // Whether the list ticketReviewListOf builds holds an item for the developer to decide.
@@ -403,17 +512,23 @@ export function isReviewList(body: string): boolean {
 }
 
 // Only the developer's runner comments count, as `runner decide` and /judge-findings read them; anyone else's is Untrusted text.
+export function isDevelopersReviewList(
+  comment: IssueComment,
+  developer: string,
+): boolean {
+  return (
+    comment.author === developer &&
+    isRunnersComment(comment) &&
+    isReviewList(comment.body)
+  );
+}
+
 export function developersReviewListsOf(
   comments: IssueComment[],
   developer: string,
 ): string[] {
   return comments
-    .filter(
-      (comment) =>
-        comment.author === developer &&
-        isRunnersComment(comment) &&
-        isReviewList(comment.body),
-    )
+    .filter((comment) => isDevelopersReviewList(comment, developer))
     .map(({ body }) => body);
 }
 
@@ -470,6 +585,10 @@ const itemLinePatterns = {
   head: new RegExp(String.raw`^- \[[ xX]\] \*\*(${itemIdPattern})\*\*`),
   indented: /^ {2}\S/,
   decided: /^ {2}Decided:/,
+  // What proposeHeadingOf puts before an item's subject.
+  proposeLead: new RegExp(
+    String.raw`^ · ${reviewGroups.verdicts.propose.word} \x60[^\x60]*\x60 · `,
+  ),
 } as const;
 
 export function isItemId(text: string): boolean {
@@ -494,13 +613,7 @@ export function decidedListOf({
   const lines = body.split("\n");
   const head = lines.findIndex((line) => itemIdOfLine(line) === itemId);
   if (head < 0) throw new Error(`The review list holds no item ${itemId}.`);
-  let end = head + 1;
-  while (
-    end < lines.length &&
-    itemLinePatterns.indented.test(lines[end] ?? "")
-  ) {
-    end += 1;
-  }
+  const end = itemEndOf(lines, head);
   const itemLines = lines.slice(head + 1, end);
   if (itemLines.some((line) => itemLinePatterns.decided.test(line))) {
     throw new Error(`${itemId} is already decided.`);
