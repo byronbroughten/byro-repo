@@ -127,6 +127,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `WrapUp/LandingPusher.ts` | | Scans a landing's added lines for token shapes, then pushes each master. |
 | `WrapUp/LogRowCommitter.ts` | | Writes a ticket's outcome row into the merged root checkout and commits it. |
 | `WrapUp/MasterFastForwarder.ts` | | Fast-forwards each primary's master under the landing locks, then runs the after hook and pushes. |
+| `WrapUp/WorkspaceFinisher.ts` | | Checks a workspace's lease is free, levels a kept session's repos with master and removes the workspace. |
 | `WrapUp/WorktreeRestorer.ts` | | Puts a landing's worktrees back where they were before a build. |
 | `WrapUp/WrapUpBase.ts` | | The Base `WrapUp` and its collaborators share: the config, knobs, network retries, log, a landing's step progress and where its repos and workspace are. |
 | `WrapUp/wrapUpTypes.ts` | | The config, GitHub port, parent and landing types and the labels `WrapUp` and its collaborators share. |

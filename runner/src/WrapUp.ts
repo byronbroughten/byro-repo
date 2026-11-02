@@ -5,25 +5,20 @@
 // WrapUpFailure naming its kind.
 // A session workspace lands the same way from its session branches, with no facts file or issue steps.
 // The landing's helpers are the WrapUp/ collaborators: BranchLander.ts runs it up to the fast-forward, LandingPusher.ts
-// scans and pushes, BranchDeleter.ts deletes the branches and IssueCloser.ts closes the issue. The outcome row is
+// scans and pushes, BranchDeleter.ts deletes the branches, IssueCloser.ts closes the issue and WorkspaceFinisher.ts levels or removes the
+// workspace. The outcome row is
 // written by outcomeRowWriter.ts with the merged code; the lock is LandingLock.ts; workspaces are IssueWorkspaces.ts.
 
 import { existsSync, readFileSync, rmSync } from "node:fs";
 
 import { type ClosingFacts, FactsFile } from "./FactsFile.ts";
-import { messageOf } from "./failureText.ts";
-import { currentBranchOf, git, isAncestor } from "./git.ts";
 import {
-  holderLabelOf,
   issueLabelOf,
   type IssueRef,
   type LeaseHolder,
-  otherLiveHolderOf,
   type SessionKey,
   type WorkspaceKey,
-  workspaceLabelOf,
 } from "./IssueWorkspaces.ts";
-import { LeaseHeld } from "./LeaseHeld.ts";
 import { BranchDeleter } from "./WrapUp/BranchDeleter.ts";
 import { BranchLander } from "./WrapUp/BranchLander.ts";
 import { IssueCloser } from "./WrapUp/IssueCloser.ts";
@@ -33,6 +28,7 @@ import {
   LandingKindPicker,
 } from "./WrapUp/LandingKindPicker.ts";
 import { LandingPusher } from "./WrapUp/LandingPusher.ts";
+import { WorkspaceFinisher } from "./WrapUp/WorkspaceFinisher.ts";
 import { isDone, listedReposOf, WrapUpBase } from "./WrapUp/WrapUpBase.ts";
 import {
   type Landing,
@@ -41,7 +37,6 @@ import {
   type WrapUpConfig,
   type WrapUpStep,
 } from "./WrapUp/wrapUpTypes.ts";
-import { WrapUpFailure } from "./WrapUpFailure.ts";
 
 export { leftOpenLineOf } from "./WrapUp/IssueCloser.ts";
 export {
@@ -112,6 +107,10 @@ export class WrapUp extends WrapUpBase {
     return new BranchDeleter(this.config);
   }
 
+  private get workspaceFinisher(): WorkspaceFinisher {
+    return new WorkspaceFinisher(this.config);
+  }
+
   get factsFile(): FactsFile {
     return FactsFile.init(this.config.stateFolder);
   }
@@ -170,7 +169,7 @@ export class WrapUp extends WrapUpBase {
     const landing = await this._landSession(key, holder);
     await this.pusher._scanAndPush(landing);
     await this._step(landing, "level-workspace", () =>
-      this._levelWorkspace(key),
+      this.workspaceFinisher._levelWorkspace(key),
     );
     return this._endSession(landing, "level-workspace");
   }
@@ -179,7 +178,7 @@ export class WrapUp extends WrapUpBase {
     key: SessionKey,
     holder: LeaseHolder | undefined,
   ): Promise<Landing> {
-    await this._assertLeaseFree(key, holder);
+    await this.workspaceFinisher._assertLeaseFree(key, holder);
     const landing: Landing = {
       key,
       branches: [],
@@ -203,34 +202,6 @@ export class WrapUp extends WrapUpBase {
     return landingResultOf(landing);
   }
 
-  private async _assertLeaseFree(
-    key: SessionKey,
-    holder: LeaseHolder | undefined,
-  ): Promise<void> {
-    const folder = await this.workspaces.leasedFolderOf(key);
-    const other = otherLiveHolderOf(folder?.lease, holder);
-    if (!other) return;
-    throw new LeaseHeld(
-      `${workspaceLabelOf(key)} is leased by ${holderLabelOf(other)}, which is still running`,
-    );
-  }
-
-  // A landed repo sits detached on master, so its branch moves there, keeping any commit or edit made since.
-  private async _levelWorkspace(key: SessionKey): Promise<void> {
-    const workspace = await this._workspaceOf(key);
-    for (const repo of Object.keys(this.config.workspaces.clonePaths)) {
-      const worktree = this._worktreeOf(workspace, repo);
-      try {
-        await levelRepo(worktree, workspace.branch);
-      } catch (error) {
-        throw new WrapUpFailure(
-          "dirty-tree",
-          `Leveling ${repo} in ${workspace.path} with master failed, likely over changes made since the landing: ${messageOf(error)}`,
-        );
-      }
-    }
-  }
-
   private async _landAndRemove(landing: Landing): Promise<void> {
     await this.pusher._scanAndPush(landing);
     await this._step(landing, "delete-branches", () =>
@@ -238,7 +209,7 @@ export class WrapUp extends WrapUpBase {
     );
     if ((landing.progress.branchDeleteFailures ?? []).length === 0) {
       await this._step(landing, "remove-workspace", () =>
-        this._removeWorkspace(landing.key),
+        this.workspaceFinisher._removeWorkspace(landing.key),
       );
     }
   }
@@ -247,22 +218,6 @@ export class WrapUp extends WrapUpBase {
     const path = this._progressPathOf(key);
     if (!existsSync(path)) return { completed: [] };
     return JSON.parse(readFileSync(path, "utf8")) as Progress;
-  }
-
-  private async _removeWorkspace(key: WorkspaceKey): Promise<void> {
-    const folder = await this.workspaces.leasedFolderOf(key);
-    if (!folder) return;
-    const { lease } = folder;
-    await this.workspaces.releaseLease(folder);
-    try {
-      await this.workspaces.remove(folder);
-    } catch (error) {
-      // A half torn-down workspace may have nowhere left to hold a lease.
-      if (lease?.isLive) {
-        await this.workspaces.takeLease(folder, lease).catch(() => {});
-      }
-      throw error;
-    }
   }
 }
 
@@ -294,17 +249,4 @@ function assertLandable(
   throw new Error(
     `${issueLabelOf(issue)} has no issue branch ahead of master and no GitHub writes; pass --no-code to land it without code`,
   );
-}
-
-async function levelRepo(worktree: string, branch: string): Promise<void> {
-  if (currentBranchOf(worktree) !== branch) {
-    if (await isAncestor(worktree, branch, "HEAD")) {
-      await git(worktree, "switch", "-C", branch);
-    } else {
-      await git(worktree, "switch", branch);
-    }
-  }
-  if (await isAncestor(worktree, branch, "master")) {
-    await git(worktree, "merge", "--ff-only", "master");
-  }
 }
