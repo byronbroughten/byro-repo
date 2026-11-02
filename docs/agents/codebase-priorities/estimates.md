@@ -44,4 +44,4 @@ Wall clock from a Bash call to its result in this machine's session transcripts,
 
 What each typed change measured when it landed is a record of measurements, kept in [`type-check-cost.md`](../../../packages/framework/docs/architecture/type-check-cost.md#measurements-after-each-change). Code run-time.
 
-- Observed: baseline ~286k instantiations and ~1.2s check time, ~48k per mapped-filter instantiation; 2026-09-02, the date of [ecd32996](https://github.com/byronbroughten/byro-repo/commit/ecd32996faf29f3daa60dd820c8e817a37181e4f), which recorded it; [`type-check-cost.md`](../../../packages/framework/docs/architecture/type-check-cost.md#baseline-and-the-lazy-mapped-filter). Code run-time.
+- Observed: baseline ~286k instantiations and ~1.2s check time, ~48k per mapped-filter instantiation; 2026-09-02, the date of [ecd32996](https://github.com/byronbroughten/byro-repo/commit/ecd32996faf29f3daa60dd820c8e817a37181e4f), which recorded it. Code run-time.
