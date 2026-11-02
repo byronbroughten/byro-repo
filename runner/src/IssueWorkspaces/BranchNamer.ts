@@ -1,4 +1,4 @@
-// BranchNamer names a workspace's branch, reusing an issue's existing branch in any repo; git.ts's branchOriginOf finds where a branch already exists.
+// BranchNamer names a workspace's branch, reusing an issue's existing branch in any repo; git.ts's branch lookup finds where a branch already exists.
 
 import { matchingBranchesOf } from "../git.ts";
 import { IssueWorkspacesBase } from "./IssueWorkspacesBase.ts";

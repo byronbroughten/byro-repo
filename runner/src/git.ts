@@ -98,6 +98,19 @@ export async function addWorktree({
   );
 }
 
+async function branchedWorktreeArgs({
+  primaryClone,
+  worktree,
+  branch,
+}: WorktreeTarget & { branch: string }): Promise<string[]> {
+  const origin = await branchOriginOf(primaryClone, branch);
+  if (origin.kind === "local") return [worktree, branch];
+  if (origin.kind === "remote") {
+    return ["--track", "-b", branch, worktree, origin.remoteBranch];
+  }
+  return ["-b", branch, worktree, "master"];
+}
+
 export async function removeWorktree({
   primaryClone,
   worktree,
@@ -108,9 +121,7 @@ export async function removeWorktree({
   await git(primaryClone, "worktree", "remove", ...forceArgs, worktree);
 }
 
-export async function registeredWorktreesOf(
-  primaryClone: string,
-): Promise<string[]> {
+async function registeredWorktreesOf(primaryClone: string): Promise<string[]> {
   const listing = await git(primaryClone, "worktree", "list", "--porcelain");
   return lines(listing).flatMap((line) =>
     line.startsWith("worktree ") ? [line.slice("worktree ".length)] : [],
@@ -150,7 +161,7 @@ export async function switchArgs(
   return ["-c", branch];
 }
 
-export async function branchOriginOf(
+async function branchOriginOf(
   clone: string,
   branch: string,
 ): Promise<BranchOrigin> {
@@ -179,19 +190,6 @@ export async function matchingBranchesOf(
     local: refsUnder(refs, "refs/heads/"),
     remote: refsUnder(refs, "refs/remotes/"),
   };
-}
-
-async function branchedWorktreeArgs({
-  primaryClone,
-  worktree,
-  branch,
-}: WorktreeTarget & { branch: string }): Promise<string[]> {
-  const origin = await branchOriginOf(primaryClone, branch);
-  if (origin.kind === "local") return [worktree, branch];
-  if (origin.kind === "remote") {
-    return ["--track", "-b", branch, worktree, origin.remoteBranch];
-  }
-  return ["-b", branch, worktree, "master"];
 }
 
 function refsUnder(refs: string[], prefix: string): string[] {

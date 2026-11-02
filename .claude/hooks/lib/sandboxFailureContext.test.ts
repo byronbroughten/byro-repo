@@ -45,6 +45,16 @@ describe("sandboxContextOf", () => {
       "denies writes to `.claude/hooks/x`",
     ],
     [
+      "a write under a protected .claude/ folder, named from a parent folder",
+      "Exit code 1\ntouch: ../.claude/hooks/x: Operation not permitted",
+      "denies writes to `../.claude/hooks/x`",
+    ],
+    [
+      "a write under a clone's protected .claude/ folder, named from the workspace root",
+      "Exit code 1\ntouch: packages/framework/.claude/hooks/x: Operation not permitted",
+      "denies writes to `packages/framework/.claude/hooks/x`",
+    ],
+    [
       "a write to a protected .claude/ file inside the workspace",
       "Exit code 1\nbash: /work/space/.claude/settings.json: Operation not permitted",
       "denies writes to `/work/space/.claude/settings.json`",
@@ -69,6 +79,7 @@ describe("sandboxContextOf", () => {
     "Exit code 1\ntouch: a.txt: Operation not permitted",
     "Exit code 1\ntouch: /work/space/.claude/notes.md: Operation not permitted",
     "Exit code 1\ntouch: .claude/notes.md: Operation not permitted",
+    "Exit code 1\ntouch: packages/framework/.claude/notes.md: Operation not permitted",
     "Exit code 1\ntouch: /private/tmp/x/a.txt: Operation not permitted",
     "Exit code 1\ntouch: /private/var/folders/q/T/a.txt: Operation not permitted",
     "Exit code 1\nError: Cannot find module 'express'",

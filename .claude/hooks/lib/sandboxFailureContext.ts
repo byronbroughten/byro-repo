@@ -33,14 +33,23 @@ const fixedRows = [
 ];
 
 // Claude Code protects these in every worktree without listing them in `denyWrite`, and the shell names them relative to the cwd, as `.claude/hooks/x`.
-const protectedClaudeEntry = protectedClaudeEntries
+const protectedEntryAlternation = protectedClaudeEntries
   .map((entry) => entry.replaceAll(".", "\\."))
   .join("|");
+
+const pathParts = {
+  // What may stand before a path in an error line.
+  before: `(?:^|[\\s'"\`(:])`,
+  absolute: "(?:\\/|~\\/)",
+  // A relative path counts only when it reaches a protected `.claude/` entry, however many folders lead to it.
+  protectedRelative: `(?:[^\\s'"\`:,)/]+\\/)*\\.claude\\/(?=(?:${protectedEntryAlternation})(?:[\\s'"\`:,)/]|$))`,
+  body: `[^\\s'"\`:,)]+`,
+};
 
 const deniedPathPatterns = {
   line: /operation not permitted/i,
   path: new RegExp(
-    `(?:^|[\\s'"\`(:])((?:\\/|~\\/|(?:\\.{1,2}\\/)*\\.claude\\/(?=(?:${protectedClaudeEntry})(?:[\\s'"\`:,)/]|$)))[^\\s'"\`:,)]+)`,
+    `${pathParts.before}((?:${pathParts.absolute}|${pathParts.protectedRelative})${pathParts.body})`,
     "g",
   ),
 } as const;
