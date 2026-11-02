@@ -1,7 +1,9 @@
 // Hook stdin/stdout plumbing shared by the guardrail hooks. See docs/claude-code-guardrails.md.
 import { mkdirSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
+
+import type { SettingsLayers } from "./sandboxState.ts";
 
 // The fields of Claude Code's hook payload these hooks read; every one may be absent.
 export interface HookInput {
@@ -58,8 +60,12 @@ export function gateRootOf(input: HookInput | undefined): string {
   return process.env.BYRO_GATE_ROOT ?? projectDirOf(input);
 }
 
-export function gateRootSettingsOf(root: string): unknown {
-  return readJsonFile(join(root, ".claude", "settings.json"));
+export function settingsLayersOf(input: HookInput | undefined): SettingsLayers {
+  return {
+    home: homedir(),
+    sessionRoot: projectDirOf(input),
+    gateRoot: process.env.BYRO_GATE_ROOT,
+  };
 }
 
 export function writeHookOutput(output: object): void {

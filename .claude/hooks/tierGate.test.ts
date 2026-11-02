@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 
 const hookPath = fileURLToPath(new URL("./tierGate.ts", import.meta.url));
 const projectDir = mkdtempSync(join(tmpdir(), "tier-gate-"));
+const homeDir = mkdtempSync(join(tmpdir(), "tier-gate-home-"));
 
 function hookOutputOf(
   toolName: string,
@@ -19,6 +20,8 @@ function hookOutputOf(
     encoding: "utf8",
     env: {
       ...process.env,
+      // The developer's own user settings stay out of the gate's sandbox state.
+      HOME: homeDir,
       CLAUDE_PROJECT_DIR: projectDir,
       BYRO_GATE_ROOT: projectDir,
       BYRO_RUNNER_STEP: isRunnerStep ? "1" : "",
@@ -73,12 +76,16 @@ describe("the tierGate hook on the web tools", () => {
 });
 
 describe("the tierGate hook on an excluded command", () => {
-  it("refuses one the call keeps in the box, by the gate root's settings", () => {
+  it("refuses one the call keeps in the box, by the session's sandbox state", () => {
     mkdirSync(join(projectDir, ".claude"), { recursive: true });
     writeFileSync(
       join(projectDir, ".claude", "settings.json"),
       JSON.stringify({
-        sandbox: { enabled: true, excludedCommands: ["npm test"] },
+        sandbox: {
+          enabled: true,
+          allowUnsandboxedCommands: false,
+          excludedCommands: ["npm test"],
+        },
       }),
     );
     expect(

@@ -4,16 +4,16 @@ import { writeFileSync } from "node:fs";
 
 import { dryRuns, shellPlacesOf } from "./lib/gateLookups.ts";
 import {
-  gateRootOf,
-  gateRootSettingsOf,
   type HookInput,
   projectDirOf,
   readHookInput,
   readJsonFile,
   runFailOpen,
   sessionStatePath,
+  settingsLayersOf,
   writeHookOutput,
 } from "./lib/hookIo.ts";
+import { sandboxStateOf } from "./lib/sandboxState.ts";
 import { readSheetsConfigs } from "./lib/sheetsConfigs.ts";
 import { driveOwnersOf } from "./lib/tiers/driveOwners.ts";
 import {
@@ -30,7 +30,6 @@ import {
   spreadsheetTargetsOf,
   stepTargetsVariable,
 } from "./lib/tiers/tiers.ts";
-import { excludedCommands } from "./lib/tiers/tiers/excludedCommands.ts";
 import { webGateDecisions } from "./lib/tiers/webTools.ts";
 
 const ownersSuffix = "drive-owners.json";
@@ -84,10 +83,14 @@ async function bashDecision(input: HookInput): Promise<Decision | undefined> {
     dryRuns: dryRuns.read(input.session_id),
     places: shellPlacesOf(input),
     spreadsheetTargets: spreadsheetTargetsOf(process.env[stepTargetsVariable]),
-    excludedCommands: excludedCommands.entriesOf(
-      gateRootSettingsOf(gateRootOf(input)),
-    ),
+    excludedCommands: boxedExcludedCommandsOf(input),
   });
+}
+
+// Only a box with no way out keeps an excluded command in it.
+function boxedExcludedCommandsOf(input: HookInput): string[] {
+  const state = sandboxStateOf(settingsLayersOf(input));
+  return state.isOn ? state.excludedCommands : [];
 }
 
 function ownerCacheOf(path: string): OwnerCache {

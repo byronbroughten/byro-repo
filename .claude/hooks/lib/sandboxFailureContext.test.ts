@@ -102,14 +102,7 @@ describe("sandboxContextOf", () => {
 describe("writeScopeOf", () => {
   it("expands ~, and adds the cwd, the temp folder and /dev", () => {
     const result = writeScopeOf(
-      {
-        sandbox: {
-          filesystem: {
-            allowWrite: ["~/.npm", "/tmp"],
-            denyWrite: ["~/code/.git"],
-          },
-        },
-      },
+      { allowWrite: ["~/.npm", "/tmp"], denyWrite: ["~/code/.git"] },
       { home: "/Users/me", cwd: "/work/space", tmpdir: "/var/T" },
     );
     expect(result.allow).toEqual([
@@ -122,9 +115,10 @@ describe("writeScopeOf", () => {
     expect(result.deny).toEqual(["/Users/me/code/.git"]);
   });
 
-  it("reads a settings file without a sandbox block as the defaults", () => {
-    expect(
-      writeScopeOf(undefined, { home: "/h", cwd: "/c", tmpdir: "/t" }),
-    ).toEqual({ allow: ["/c", "/t", "/dev"], deny: [] });
+  it("reads an empty filesystem block as the defaults", () => {
+    expect(writeScopeOf({}, { home: "/h", cwd: "/c", tmpdir: "/t" })).toEqual({
+      allow: ["/c", "/t", "/dev"],
+      deny: [],
+    });
   });
 });

@@ -24,17 +24,6 @@ const stderrToStdout = /(^|[ \t])2>&1(?=[ \t]|$)/gm;
 const callJoiners = new Set(["&&", "||", ";"]);
 
 export const excludedCommands = {
-  // None when the sandbox is off or the settings are unreadable.
-  entriesOf(settings: unknown): string[] {
-    const sandbox = (settings as { sandbox?: unknown } | undefined)?.sandbox;
-    if (!sandbox || typeof sandbox !== "object") return [];
-    const { enabled, excludedCommands: entries } = sandbox as {
-      enabled?: unknown;
-      excludedCommands?: unknown;
-    };
-    if (enabled !== true || !Array.isArray(entries)) return [];
-    return entries.filter((entry) => typeof entry === "string");
-  },
   refusalOf(command: string, entries: string[]): string | undefined {
     if (entries.length === 0) return undefined;
     const parser = ShellParser.init(command.replace(stderrToStdout, "$1"));
