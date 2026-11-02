@@ -3,11 +3,12 @@ import { join } from "node:path";
 
 import { clonePathsOf } from "@byronbroughten/spec-runner/clonePaths";
 
-import { hooksPathOf, repoRoot, setHooksPath } from "./lintCommands.ts";
+import { CloneHooksPath, hooksPathOf } from "./CloneHooksPath.ts";
+import { repoRoot } from "./lintCommands.ts";
 
 try {
   Object.values(clonePathsOf(repoRoot)).forEach((clonePath) => {
-    setHooksPath(join(repoRoot, clonePath), hooksPathOf(clonePath));
+    CloneHooksPath.init(join(repoRoot, clonePath)).set(hooksPathOf(clonePath));
   });
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
