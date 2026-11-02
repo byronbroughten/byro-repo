@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { runnerMark } from "./halts.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
-import { decidedListOf, ticketReviewListOf } from "./reviewList.ts";
+import {
+  decidedListOf,
+  reReviewedListOf,
+  ticketReviewListOf,
+} from "./reviewList.ts";
 import {
   commitIn,
   github,
@@ -94,6 +98,43 @@ describe("run's close step", () => {
 
     expect(github.closed.map(({ issue }) => issue)).toEqual([ticket]);
     expect(result.isLeftOpen).toBeUndefined();
+  });
+
+  it("leaves open a Standalone ticket whose re-review added an undecided item to an otherwise decided list", async () => {
+    github.parents.clear();
+    await workspaceWithCommit();
+    writeFacts();
+    const decided = decidedListOf({
+      body: undecidedListOf(ticket),
+      itemId: "R218.1",
+      kind: "decided",
+      text: "fixed in session · abc123",
+    });
+    const reReviewed = reReviewedListOf({
+      ticket,
+      title: "Ticket",
+      posted: decided,
+      records: [
+        {
+          finding: 1,
+          axis: "spec",
+          where: "two.ts:1",
+          claim: "Line 1 of two.ts is wrong.",
+          evidence: "Checked it.",
+          verdict: "propose",
+          reason: "decision",
+          recommendation: "Pick the second.",
+        },
+      ],
+    });
+    postList(reReviewed ?? "no list");
+
+    const result = await wrapUp().run(ticket);
+
+    expect(reReviewed).toContain("- [x] **R218.1**");
+    expect(reReviewed).toContain("- [ ] **R218.2**");
+    expect(github.closed).toEqual([]);
+    expect(result.isLeftOpen).toBe(true);
   });
 
   it("leaves open a Standalone ticket whose facts record undecided items before a run has posted its list", async () => {

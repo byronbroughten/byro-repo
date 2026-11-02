@@ -69,7 +69,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `recordSchema.ts` | | Schema parts the step records share, and their validator. |
 | `redChecksStep.ts` | | The red-checks step's prompt and record. |
 | `resolveStep.ts` | `resolveStep` | The resolve step's prompt, record and record and commit checks. |
-| `reviewList.ts` | `reviewList` | The review list's comment formats and undecided count, and `runner decide`'s edit marking one item decided or handled. |
+| `reviewList.ts` | `reviewList` | The review list's comment formats and undecided count, `runner decide`'s edit marking one item decided or handled, and a session re-review's merge into the posted list. |
 | `reviewStep.ts` | `reviewStep` | The review step's prompt, record and finding types. |
 | `runBoard.ts` | `runBoard` | The Run board behind `runner status` and `runner watch` with no spec. |
 | `runCollecting.ts` | `runCollecting` | Runs one process with its output collected. |

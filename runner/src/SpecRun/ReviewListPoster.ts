@@ -1,8 +1,8 @@
 // The review lists and the gap check. At landing a ticket with resolve records or a merge-master record gets one review-list comment on the spec and each
 // covered-later Dismiss a note on its later ticket, each checked for its marker first; once every ticket is closed, _finish
 // posts any review list a killed run missed and runs the gap check, whose gaps become the last review list.
-// RunLoop.ts calls _finish; SessionReviewer.ts calls _runnersSpecCommentsOf, _postCoveredLaterNotes and _postReviewList,
-// the Base skipping a session's push and state save; TicketLander.ts calls _postReviewList at landing;
+// RunLoop.ts calls _finish; SessionReviewer.ts calls _runnersSpecCommentsOf, _postCoveredLaterNotes and _postSessionReviewList,
+// which edits a posted list in place where a re-review's differs, the Base skipping a session's push; TicketLander.ts calls _postReviewList at landing;
 // StatusReporter.ts calls _isGapChecked.
 // It builds its own StepLauncher and HaltRaiser; formats are ../reviewList.ts, the gap check's prompt ../gapCheck.ts.
 
@@ -29,6 +29,7 @@ import {
   coveredLaterNotesOf,
   gapCheckListOf,
   gapCheckSubject,
+  reReviewedListOf,
   reviewListMarkOf,
   type ReviewListSubject,
   ticketPushOf,
@@ -37,6 +38,7 @@ import {
   undecidedLineOf,
 } from "../reviewList.ts";
 import { SchemaFailure } from "../SchemaFailure.ts";
+import type { IssueComment } from "../SpecRun.ts";
 import { TicketHalted } from "../TicketHalted.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
@@ -83,6 +85,46 @@ export class ReviewListPoster extends SpecRunBase {
     }
     state.isReviewListPosted = true;
     this._saveState(run);
+  }
+
+  // A run's landing never edits a posted list, but a session's re-review does, so a Propose it adds reaches the spec.
+  async _postSessionReviewList(run: Run, ticket: TrackedIssue): Promise<void> {
+    const list = {
+      ticket: ticket.issue,
+      title: ticket.title,
+      records: ticketStateOf(run, ticket.issue).resolveRecords ?? [],
+    };
+    const posted = await this._developersReviewListOf(run, ticket.issue);
+    if (posted === undefined) {
+      const body = ticketReviewListOf(list);
+      if (body !== undefined) {
+        await this._postReviewListComment(run, ticket.issue, body);
+      }
+      return;
+    }
+    const postedList = posted.body.slice(
+      posted.body.indexOf(reviewListMarkOf(ticket.issue)),
+    );
+    const merged = reReviewedListOf({ ...list, posted: postedList });
+    if (merged === undefined || merged === postedList) return;
+    await this.config.github.editComment(posted.id, `${runnerMark}\n${merged}`);
+  }
+
+  // Only the developer's, as `runner decide` edits only theirs.
+  private async _developersReviewListOf(
+    run: Run,
+    ticket: IssueRef,
+  ): Promise<IssueComment | undefined> {
+    const mark = reviewListMarkOf(ticket);
+    const comments = await this.config.github.authoredCommentsOf(
+      run.spec.issue,
+    );
+    return comments.find(
+      (comment) =>
+        comment.author === this.config.developer &&
+        isRunnersComment(comment) &&
+        comment.body.includes(mark),
+    );
   }
 
   // Each checks the later ticket for its mark first, so a rerun never posts it twice.
