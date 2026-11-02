@@ -38,6 +38,16 @@ export class WrapUpBase {
     return IssueWorkspaces.init(this.config.workspaces);
   }
 
+  protected get _rootRepo(): string {
+    const entry = Object.entries(this.config.workspaces.clonePaths).find(
+      ([, clonePath]) => clonePath === ".",
+    );
+    if (!entry) {
+      throw new Error("The workspace config's clone paths name no root repo");
+    }
+    return entry[0];
+  }
+
   protected async _step(
     landing: Landing,
     step: WrapUpStep,
@@ -80,16 +90,6 @@ export class WrapUpBase {
       "foreign-branch",
       `${repo}'s primary checkout is on ${checkedOut || "a detached HEAD"}, not master`,
     );
-  }
-
-  protected get _rootRepo(): string {
-    const entry = Object.entries(this.config.workspaces.clonePaths).find(
-      ([, clonePath]) => clonePath === ".",
-    );
-    if (!entry) {
-      throw new Error("The workspace config's clone paths name no root repo");
-    }
-    return entry[0];
   }
 
   protected _primaryOf(repo: string): string {
@@ -142,6 +142,12 @@ export function isDone(
   step: WrapUpStep,
 ): boolean {
   return landing.progress.completed.includes(step);
+}
+
+export function listedReposOf({
+  branches,
+}: Pick<Landing, "branches">): string[] {
+  return branches.map(({ repo }) => repo);
 }
 
 function stateStemOf(key: WorkspaceKey): string {

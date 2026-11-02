@@ -6,9 +6,9 @@ import { git, isDirty, lines } from "../git.ts";
 import { type Workspace } from "../IssueWorkspaces.ts";
 import { stalePathLabelOf, stalePathsTouchedBy } from "../stalePaths.ts";
 import { WrapUpFailure } from "../WrapUpFailure.ts";
-import { FastForwarder } from "./FastForwarder.ts";
+import { MasterFastForwarder } from "./MasterFastForwarder.ts";
 import { WorktreeRestorer } from "./WorktreeRestorer.ts";
-import { WrapUpBase } from "./WrapUpBase.ts";
+import { listedReposOf, WrapUpBase } from "./WrapUpBase.ts";
 import {
   type Landing,
   type UnswitchedDirtiness,
@@ -27,8 +27,8 @@ export class BranchLander extends WrapUpBase {
     return new WorktreeRestorer(this.config);
   }
 
-  private get fastForwarder(): FastForwarder {
-    return new FastForwarder(this.config);
+  private get fastForwarder(): MasterFastForwarder {
+    return new MasterFastForwarder(this.config);
   }
 
   async _land(landing: Landing): Promise<void> {
@@ -78,9 +78,7 @@ export class BranchLander extends WrapUpBase {
 
   // The listed repos in landing order, then the root repo, which takes the log row.
   private _landedRepos(landing: Landing): string[] {
-    return [
-      ...new Set([...landing.branches.map(({ repo }) => repo), this._rootRepo]),
-    ];
+    return [...new Set([...listedReposOf(landing), this._rootRepo])];
   }
 
   private async _filesChanged(landing: Landing): Promise<number> {

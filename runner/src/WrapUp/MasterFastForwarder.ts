@@ -9,12 +9,12 @@ import { LandingPusher } from "./LandingPusher.ts";
 import { WrapUpBase } from "./WrapUpBase.ts";
 import { type BuiltRepo, type Landing } from "./wrapUpTypes.ts";
 
-export class FastForwarder extends WrapUpBase {
+export class MasterFastForwarder extends WrapUpBase {
   private get pusher(): LandingPusher {
     return new LandingPusher(this.config);
   }
 
-  // Locks are taken root first, the same order for every lander, so two landings never deadlock; the push runs under the locks too.
+  // Locks are taken root first for every lander, so two landings never deadlock; the push runs under them too.
   async _fastForward(landing: Landing): Promise<boolean> {
     const built = landing.progress.built ?? {};
     const repos = this._rootFirst(Object.keys(built));

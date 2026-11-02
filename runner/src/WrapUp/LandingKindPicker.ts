@@ -6,12 +6,8 @@ import { type IssueRef } from "../IssueWorkspaces.ts";
 import { BranchMerger } from "./BranchMerger.ts";
 import { LandingBranchFinder } from "./LandingBranchFinder.ts";
 import { LogRowCommitter } from "./LogRowCommitter.ts";
-import { WrapUpBase } from "./WrapUpBase.ts";
-import {
-  type Landing,
-  type LandingBranch,
-  type LandingKind,
-} from "./wrapUpTypes.ts";
+import { listedReposOf, WrapUpBase } from "./WrapUpBase.ts";
+import { type LandingBranch, type LandingKind } from "./wrapUpTypes.ts";
 
 export interface IssueLandingTarget {
   branches: LandingBranch[];
@@ -31,43 +27,6 @@ export class LandingKindPicker extends WrapUpBase {
     return new LandingBranchFinder(this.config);
   }
 
-  _issueLandingOf(
-    issue: IssueRef,
-    { branches, facts }: IssueLandingTarget,
-  ): LandingKind {
-    if (branches.length === 0) {
-      return {
-        build: async (landing, workspace) => {
-          await this.merger._switchToMaster(workspace);
-          await this.logRowCommitter._logRow({
-            issue,
-            facts,
-            landing,
-            workspace,
-          });
-        },
-        cleanRepos: () => [this._rootRepo],
-        branchesToDelete: (landing) =>
-          this.branchFinder._workspaceBranchesOf(landing),
-        mergeArgs: (branch) => issueMergeArgsOf(issue, branch),
-      };
-    }
-    return {
-      build: async (landing, workspace) => {
-        await this.merger._mergeAndCheck(landing, workspace);
-        await this.logRowCommitter._logRow({
-          issue,
-          facts,
-          landing,
-          workspace,
-        });
-      },
-      cleanRepos: listedReposOf,
-      branchesToDelete: async ({ branches }) => branches,
-      mergeArgs: (branch) => issueMergeArgsOf(issue, branch),
-    };
-  }
-
   get _sessionLanding(): LandingKind {
     return {
       build: async (landing, workspace) =>
@@ -80,12 +39,37 @@ export class LandingKindPicker extends WrapUpBase {
       mergeArgs: sessionMergeArgsOf,
     };
   }
-}
 
-export function listedReposOf({
-  branches,
-}: Pick<Landing, "branches">): string[] {
-  return branches.map(({ repo }) => repo);
+  _issueLandingOf(
+    issue: IssueRef,
+    { branches, facts }: IssueLandingTarget,
+  ): LandingKind {
+    const hasCode = branches.length > 0;
+    return {
+      build: async (landing, workspace) => {
+        if (hasCode) {
+          await this.merger._mergeAndCheck(landing, workspace);
+        } else {
+          await this.merger._switchToMaster(workspace);
+        }
+        await this.logRowCommitter._logRow({
+          issue,
+          facts,
+          landing,
+          workspace,
+        });
+      },
+      cleanRepos: (landing) => {
+        if (hasCode) return listedReposOf(landing);
+        return [this._rootRepo];
+      },
+      branchesToDelete: async (landing) => {
+        if (hasCode) return landing.branches;
+        return this.branchFinder._workspaceBranchesOf(landing);
+      },
+      mergeArgs: (branch) => issueMergeArgsOf(issue, branch),
+    };
+  }
 }
 
 function issueMergeArgsOf({ number }: IssueRef, branch: string): string[] {

@@ -1,6 +1,6 @@
-// Writes a ticket's outcome row file into a checkout from its facts file and transcripts. WrapUp.ts runs it with the
-// merged workspace's own code, through scripts/runner/outcomeRow.ts, so a ticket that changes the row lands its own row
-// in the new format; WrapUp.ts gathers what needs GitHub and commits the file. The format is outcomeLog.ts.
+// Writes a ticket's outcome row file into a checkout from its facts file and transcripts. WrapUp/LogRowCommitter.ts runs
+// it with the merged workspace's own code, through scripts/runner/outcomeRow.ts, so a ticket that changes the row lands
+// its own row in the new format; it also gathers what needs GitHub and commits the file. The format is outcomeLog.ts.
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";

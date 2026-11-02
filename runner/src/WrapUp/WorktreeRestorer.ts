@@ -1,12 +1,11 @@
-// Puts a landing's worktrees back where they were before a build: each listed repo on its branch, the root off an unlanded log-row commit.
+// Undoes any earlier build: each listed repo back on its branch and the root off an unlanded log-row commit.
 
 import { git, isMerging, worktreeStateOf } from "../git.ts";
 import { type Workspace } from "../IssueWorkspaces.ts";
-import { WrapUpBase } from "./WrapUpBase.ts";
+import { listedReposOf, WrapUpBase } from "./WrapUpBase.ts";
 import { type Landing, type UnswitchedDirtiness } from "./wrapUpTypes.ts";
 
 export class WorktreeRestorer extends WrapUpBase {
-  // Puts each listed repo back on its branch and the root off an unlanded log-row commit, undoing any earlier build.
   async _restore(
     landing: Landing,
     workspace: Workspace,
@@ -26,7 +25,7 @@ export class WorktreeRestorer extends WrapUpBase {
     const rootWorktree = this._worktreeOf(workspace, this._rootRepo);
     const { branch, head, isDirty } = await worktreeStateOf(rootWorktree);
     if (
-      !isListed(landing, this._rootRepo) &&
+      !listedReposOf(landing).includes(this._rootRepo) &&
       branch === "" &&
       head === rootHead
     ) {
@@ -37,8 +36,4 @@ export class WorktreeRestorer extends WrapUpBase {
     delete landing.progress.built;
     return unswitchedDirtiness;
   }
-}
-
-function isListed(landing: Landing, repo: string): boolean {
-  return landing.branches.some((branch) => branch.repo === repo);
 }

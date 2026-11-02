@@ -31,10 +31,9 @@ import { LandingBranchFinder } from "./WrapUp/LandingBranchFinder.ts";
 import {
   type IssueLandingTarget,
   LandingKindPicker,
-  listedReposOf,
 } from "./WrapUp/LandingKindPicker.ts";
 import { LandingPusher } from "./WrapUp/LandingPusher.ts";
-import { isDone, WrapUpBase } from "./WrapUp/WrapUpBase.ts";
+import { isDone, listedReposOf, WrapUpBase } from "./WrapUp/WrapUpBase.ts";
 import {
   type Landing,
   type ParentCheck,
