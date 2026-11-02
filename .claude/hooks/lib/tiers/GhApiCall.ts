@@ -84,13 +84,21 @@ const apiFlags = {
   body: new Set(["-F", "--field", "-f", "--raw-field", "--input"]),
 } as const;
 
+// An agent links tickets in a loop or function, so a number may be `$n`, `${n}` or `$1`.
+const number = String.raw`(?:\d+|\$\w+|\$\{\w+\})`;
+// An owner or repo is never a variable.
+const name = String.raw`[^/$]+`;
+
 const issueLinks = {
   methods: new Set(["POST", "DELETE"]),
-  endpoint:
-    /^\/?repos\/[^/]+\/[^/]+\/issues\/\d+\/(dependencies\/blocked_by(\/\d+)?|sub_issues?)$/,
+  endpoint: new RegExp(
+    String.raw`^/?repos/${name}/${name}/issues/${number}/(dependencies/blocked_by(/${number})?|sub_issues?)$`,
+  ),
 } as const;
 
-const commentEndpoint = /^\/?repos\/[^/]+\/[^/]+\/issues\/comments\/\d+$/;
+const commentEndpoint = new RegExp(
+  String.raw`^/?repos/${name}/${name}/issues/comments/${number}$`,
+);
 
 function flagPartsOf(word: string): [string, string | undefined] {
   if (word.startsWith("--")) {
