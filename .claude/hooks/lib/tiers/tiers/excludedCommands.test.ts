@@ -31,6 +31,8 @@ describe("an excluded command the call keeps in the box", () => {
     ["echo $(npm run dev:configs:diff)", "npm run dev:configs:diff"],
     ["timeout 60 npm test", "npm test"],
     ["timeout -k 5 60 npm run app:probe -- x", "npm run app:probe -- x"],
+    ["for i in 1; do npm test; done", "npm test"],
+    ["{ npm test; }", "npm test"],
   ])("refuses `%s`, naming `%s`", (command, form) => {
     const decision = decisionOf(command);
     expect(decision?.permissionDecision).toBe("deny");

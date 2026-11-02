@@ -58,6 +58,8 @@ Reads need no yes in any tier.
 
 **`timeout` and `npm run -s` leave a command's tier as it is**, but an `excludedCommands` script spelled with `-s`, or under a `timeout`, is refused, as the box keeps it in ([the Bash sandbox](./claude-code-guardrails.md#the-bash-sandbox)).
 
+**A loop, conditional, group or function takes the strictest tier among the commands inside it.**
+
 ### npm publish
 
 **`npm publish` is one yes per version.** It publishes `@byronbroughten/config` or `@byronbroughten/utils` to the public npm registry, where a version can't be replaced and a removal is time-limited, so the agent shows the `npm pack --dry-run` file list before asking. For utils, `npm run smoke` in `packages/utils` passes first. `npm adduser` is the developer's own step.
