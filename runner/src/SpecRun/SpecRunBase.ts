@@ -20,7 +20,7 @@ import { FactsFile } from "../FactsFile.ts";
 import { messageOf } from "../failureText.ts";
 import {
   dirtyReposOf,
-  git,
+  revOf,
   saveUncommitted,
   snapshotUncommitted,
   worktreeStateOf,
@@ -436,7 +436,7 @@ export class SpecRunBase {
     const entries = await Promise.all(
       this._worktreesOf(workspace).map(
         async ({ clonePath, worktree }) =>
-          [clonePath, await git(worktree, "rev-parse", "HEAD")] as const,
+          [clonePath, await revOf(worktree, "HEAD")] as const,
       ),
     );
     return Object.fromEntries(entries);

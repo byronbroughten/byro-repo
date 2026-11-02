@@ -10,7 +10,7 @@
 
 import { existsSync, rmSync } from "node:fs";
 
-import { git } from "../git.ts";
+import { git, revOf } from "../git.ts";
 import { type Halt } from "../halts.ts";
 import { issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
 import { type AccountReading, readingLabelOf } from "../limitGuard.ts";
@@ -170,7 +170,7 @@ export class RunLoop extends SpecRunBase {
       if (!(error instanceof RunStop)) throw error;
       return this._stopAll(members, { member: lead, message: error.message });
     }
-    const startHead = await git(this.config.primaryRoot, "rev-parse", "HEAD");
+    const startHead = await revOf(this.config.primaryRoot, "HEAD");
     let isStartAnnounced = false;
     let isIdle = false;
     for (;;) {
