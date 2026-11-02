@@ -1365,25 +1365,18 @@ describe("a sandboxed call", () => {
   const entries = ["npm run app*", "npm run check"];
   const modes: SessionMode[] = ["interactive", "runnerStep"];
 
-  function sandboxedDecisionOf(command: string, mode: SessionMode) {
+  function decisionUnder(command: string, mode: SessionMode, isOn: boolean) {
     return gateDecision({
       command,
       mode,
       dryRuns: [],
       places: fakePlaces("/ws"),
-      excludedCommands: entries,
-      isSandboxOn: true,
+      sandbox: { isOn, excludedCommands: entries },
     });
   }
 
-  function todaysDecisionOf(command: string, mode: SessionMode) {
-    return gateDecision({
-      command,
-      mode,
-      dryRuns: [],
-      places: fakePlaces("/ws"),
-      excludedCommands: entries,
-    });
+  function sandboxedDecisionOf(command: string, mode: SessionMode) {
+    return decisionUnder(command, mode, true);
   }
 
   it("is allowed, naming the box, in both modes", () => {
@@ -1403,7 +1396,7 @@ describe("a sandboxed call", () => {
     );
   });
 
-  it("gets today's decision when it holds gh or a git push, or can't be parsed", () => {
+  it("gets the tier rows' decision when it holds gh or a git push, or can't be parsed", () => {
     [
       "cd x && git push",
       "git -C x push",
@@ -1427,10 +1420,12 @@ describe("a sandboxed call", () => {
       "echo $'\\x67h'",
       "for i in 1; do ls",
       "npm run app:deploy",
+      "{gh,issue} close 5",
+      "git{,} push",
     ].forEach((command) =>
       modes.forEach((mode) =>
         expect(sandboxedDecisionOf(command, mode)).toEqual(
-          todaysDecisionOf(command, mode),
+          decisionUnder(command, mode, false),
         ),
       ),
     );

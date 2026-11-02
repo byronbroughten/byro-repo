@@ -19,7 +19,7 @@ function decisionOf(command: string) {
     command,
     mode: "interactive",
     dryRuns: [],
-    excludedCommands: entries,
+    sandbox: { isOn: false, excludedCommands: entries },
   });
 }
 

@@ -45,11 +45,17 @@ export interface ShellCall {
   places?: ShellPlaces;
   // The spreadsheets (`app`, `dev`) a runner step's ticket targets; absent, it targets none.
   spreadsheetTargets?: string[];
-  // The session's sandbox `excludedCommands` entries; absent, no call is refused for keeping one in the box.
-  excludedCommands?: string[];
-  // The session's sandbox is on, as `SandboxState.isOn` reads it; absent, no call is freed for running in the box.
-  isSandboxOn?: boolean;
+  // Absent, no call is refused for keeping an excluded command in the box, and none is freed for running in it.
+  sandbox?: CallSandbox;
 }
+
+// The session's sandbox as the gate reads it: `isOn` as `SandboxState.isOn`, and the `excludedCommands` entries that keep a command in the box, none when it's disabled.
+export interface CallSandbox {
+  isOn: boolean;
+  excludedCommands: string[];
+}
+
+const noSandbox: CallSandbox = { isOn: false, excludedCommands: [] };
 
 // What a simple command's verdict reads beyond its own words; places carries the cwd as of that command.
 export interface CallContext {
@@ -90,15 +96,10 @@ type Classifier = (
 
 // A call keeping an excluded command in the box is refused before any tier row, since it would fail there whatever its tier; one the box runs is then free unless it reaches GitHub.
 export function gateDecision(call: ShellCall): Decision | undefined {
-  const boxRefusal = excludedCommands.refusalOf(
-    call.command,
-    call.excludedCommands ?? [],
-  );
+  const { isOn, excludedCommands: entries } = call.sandbox ?? noSandbox;
+  const boxRefusal = excludedCommands.refusalOf(call.command, entries);
   if (boxRefusal) return gateOf("deny", `${boxRefusal}.`);
-  if (
-    call.isSandboxOn &&
-    sandboxedCalls.isFree(call.command, call.excludedCommands ?? [])
-  ) {
+  if (isOn && sandboxedCalls.isFree(call.command, entries)) {
     return gateOf("allow", sandboxedCalls.reasonOf(call.command));
   }
   const decision = baseDecision(call) ?? undecidedDecision(call);
@@ -181,12 +182,10 @@ function baseDecision(call: ShellCall): Decision | undefined {
       "a heredoc or `$'…'` could hide a command",
     );
     if (refusal) return refusal;
-    const { heredocs } = ShellParser.init(command);
-    if (!heredocs) return undefined;
-    const isPlainText =
-      !/\$'/.test(command) && heredocs.every(({ isQuoted }) => isQuoted);
+    const parser = ShellParser.init(command);
+    if (!parser.heredocs) return undefined;
     if (
-      !isPlainText &&
+      !parser.isPlainText &&
       (hasSubstitution || verdicts.some((verdict) => verdict?.needsPlainText))
     ) {
       return undefined;

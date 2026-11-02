@@ -83,9 +83,11 @@ async function bashDecision(input: HookInput): Promise<Decision | undefined> {
     dryRuns: dryRuns.read(input.session_id),
     places: shellPlacesOf(input),
     spreadsheetTargets: spreadsheetTargetsOf(process.env[stepTargetsVariable]),
-    // A disabled sandbox keeps no excluded command in the box.
-    excludedCommands: sandbox.isEnabled ? sandbox.excludedCommands : [],
-    isSandboxOn: sandbox.isOn,
+    sandbox: {
+      isOn: sandbox.isOn,
+      // A disabled sandbox keeps no excluded command in the box.
+      excludedCommands: sandbox.isEnabled ? sandbox.excludedCommands : [],
+    },
   });
 }
 
