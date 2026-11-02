@@ -1,5 +1,5 @@
 ---
-status: accepted, partly superseded by ADR-0024, which puts GitHub on the allowlist and opens the git folders to the box
+status: partly superseded by ADR-0024
 ---
 
 # Free a Bash call by the sandbox it runs in, and gate only the unsandboxed commands
@@ -16,6 +16,8 @@ Source: ByronBroughten/byro-repo#519
 - **Today's rules when the sandbox is off**: rejected, since that keeps all the parsing alive for a misconfigured state that a run of asks makes plain.
 
 ## Consequences
+
+- ADR 0024 supersedes this ADR's rejection of GitHub on the allowlist and its denial of the git folders: GitHub and the git folders are now in the box, and the commands that needed them run sandboxed.
 
 - This is not the containment ADR 0007 defers: unsandboxed commands and Claude's own tools still act with full access, so ADR 0007 stands.
 - `excludedCommands` is the one list of unsandboxed commands, and the gate reads it from settings.
