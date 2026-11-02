@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -312,6 +312,50 @@ describe("run's leases", () => {
       "Run ended: landed nothing. Every ticket is closed.",
     );
     expect(rerunStep.requests).toEqual([]);
+  });
+
+  it("Stops on a lease it can't take but leaves the ticket at its step, so a rerun launches it from there", async () => {
+    addSpec([1]);
+    const run = specRun(FakeAgentStep.init());
+    const workspace = await run.workspaces.create(refOf(1));
+    // A git folder with no write permission fails the lease file's creation.
+    const gitDir = git(workspace.path, "rev-parse", "--absolute-git-dir");
+    chmodSync(gitDir, 0o555);
+    let result: RunResult;
+    try {
+      result = await run.run(spec);
+    } finally {
+      chmodSync(gitDir, 0o755);
+    }
+
+    expect(result.message).toBe(
+      "Stopped on byro-repo #1: a workspace lease that couldn't be taken; rerun to retry it.",
+    );
+    expect(github.comments[0]?.body).toContain(
+      "The ticket is left at its implement step in its issue workspace; rerun to retry it: `npm run runner -- byronbroughten/byro-repo 213`.",
+    );
+    expect(ticketState()["byro-repo #1"]?.step).toBe("implement");
+
+    const rerun = await specRun(
+      FakeAgentStep.init(implemented("one.ts"), reviewed()),
+    ).run(spec);
+
+    expect(rerun.landed).toEqual([refOf(1)]);
+  });
+
+  it("still stops a ticket whose workspace can't resume, for good", async () => {
+    addSpec([1]);
+    const run = specRun(FakeAgentStep.init());
+    const workspace = await run.workspaces.create(refOf(1));
+    writeFileSync(join(workspace.path, "packages/framework/dirty.txt"), "work");
+
+    const result = await run.run(spec);
+
+    expect(result.message).toBe(
+      "Stopped on byro-repo #1: a workspace that can't resume.",
+    );
+    expect(github.comments[0]?.body).toContain("a rerun won't retry it");
+    expect(ticketState()["byro-repo #1"]?.step).toBe("stopped");
   });
 
   it("holds the lease on the ticket it works and releases it when it moves off, here on a Stop", async () => {

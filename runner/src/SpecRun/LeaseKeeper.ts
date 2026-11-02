@@ -43,7 +43,7 @@ export class LeaseKeeper extends SpecRunBase {
     } catch (error) {
       if (error instanceof LeaseHeld) throw error;
       throw new UnhandledStop(
-        "workspace",
+        "lease",
         messageOf(error),
         this._progressPathOf(run),
       );

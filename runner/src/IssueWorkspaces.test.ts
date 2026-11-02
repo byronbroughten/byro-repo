@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -8,6 +8,7 @@ import {
   advanceMaster,
   branchOf,
   installs,
+  makeBrokenFolder,
   primaryRoot,
   primaryStates,
   registeredWorktrees,
@@ -18,13 +19,6 @@ import {
 } from "./issueWorkspacesHarness.ts";
 
 useIssueWorkspacesHarness();
-
-// What Claude Code recreates for a session whose working directory still points at a removed workspace.
-function makeBrokenFolder(): string {
-  const brokenPath = join(temp, "workspaces/session-broken");
-  mkdirSync(join(brokenPath, ".claude/.cc-writes"), { recursive: true });
-  return brokenPath;
-}
 
 describe("create", () => {
   it("puts the issue's repo on the issue branch and detaches every other repo at master", async () => {
