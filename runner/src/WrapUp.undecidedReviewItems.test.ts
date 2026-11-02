@@ -4,7 +4,7 @@ import { runnerMark } from "./halts.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import {
   decidedListOf,
-  reReviewedListOf,
+  reReviewedCommentOf,
   ticketReviewListOf,
 } from "./reviewList.ts";
 import {
@@ -110,7 +110,7 @@ describe("run's close step", () => {
       kind: "decided",
       text: "fixed in session · abc123",
     });
-    const reReviewed = reReviewedListOf({
+    const reReviewed = reReviewedCommentOf({
       ticket,
       title: "Ticket",
       posted: decided,
@@ -131,8 +131,12 @@ describe("run's close step", () => {
 
     const result = await wrapUp().run(ticket);
 
-    expect(reReviewed).toContain("- [x] **R218.1**");
-    expect(reReviewed).toContain("- [ ] **R218.2**");
+    expect(reReviewed).toContain(
+      [
+        "### Proposed",
+        "- [x] **R218.1** · Propose `decision` · Finding 1: Line 1 is wrong. (one.ts:1)\n  Evidence: Checked it.\n  Recommendation: Pick the first.\n  Decided: fixed in session · abc123\n- [ ] **R218.2** · Propose `decision` · Finding 1: Line 1 of two.ts is wrong. (two.ts:1)\n  Evidence: Checked it.\n  Recommendation: Pick the second.",
+      ].join("\n\n"),
+    );
     expect(github.closed).toEqual([]);
     expect(result.isLeftOpen).toBe(true);
   });

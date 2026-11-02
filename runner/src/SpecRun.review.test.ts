@@ -318,15 +318,26 @@ describe("review of one ticket outside a run", () => {
         newPropose,
       );
 
-      expect(list).toContain(
-        "- [ ] **R1.1** · Propose `decision` · Finding 1: Line 1 is wrong. (one.ts:1)\n  suggested Fix → Propose: Checked it.\n  Recommendation: Pick the first.\n  Handled: half done",
+      expect(list).toBe(
+        [
+          "<!-- spec-runner -->\n<!-- review-list ticket=#1 -->",
+          '**Review list** · byro-repo #1, "Ticket 1"',
+          "### Standards",
+          "**Fixed**\n\n- Finding 1: Line 1 is wrong. (one.ts:1)\n- Finding 2: Line 2 is wrong. (one.ts:2)\n- Finding 3: Line 3 is wrong. (one.ts:3)",
+          "### Proposed",
+          "- [ ] **R1.1** · Propose `decision` · Finding 1: Line 1 is wrong. (one.ts:1)\n  suggested Fix → Propose: Checked it.\n  Recommendation: Pick the first.\n  Handled: half done\n- [ ] **R1.2** · Propose `decision` · Finding 4: Line 4 is wrong. (one.ts:4)\n  suggested Fix → Propose: Checked it.\n  Recommendation: Pick the fourth.",
+        ].join("\n\n"),
       );
-      expect(list).toContain("- [ ] **R1.2** · Propose `decision` · Finding 4");
-      expect(list).toContain(
-        "**Fixed**\n\n- Finding 1: Line 1 is wrong. (one.ts:1)\n- Finding 2",
-      );
-      expect(list).not.toContain("Covered by byro-repo#2.");
     });
+  });
+
+  it("posts no second list where the ticket's runner-marked list is someone else's, and edits none", async () => {
+    const theirs = `<!-- spec-runner -->\n<!-- review-list ticket=#1 -->\n\n**Review list** · byro-repo #1, "Ticket 1"`;
+    github.reply(213, theirs, "someone-else");
+
+    await specRun(reviewsWithFix()).review(refOf(1), { holder });
+
+    expect(commentsOn(213, "<!-- review-list ticket=#1 -->")).toEqual([theirs]);
   });
 
   it("pushes nothing for its review list under the per-ticket cadence", async () => {

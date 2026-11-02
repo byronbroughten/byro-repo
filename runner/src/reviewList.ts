@@ -169,16 +169,33 @@ function listOf(ticket: IssueRef, title: string, sections: string[]): string {
 }
 
 export interface ReReviewedList extends TicketReviewList {
-  // The ticket's list as the spec holds it, from its mark on, the developer's ticks and decisions included.
+  // The comment holding the ticket's list as the spec has it, the developer's ticks and decisions included.
   posted: string;
+}
+
+// The comment's body to write, keeping what precedes the list; undefined when the merged list is the posted one.
+export function reReviewedCommentOf({
+  posted,
+  ...list
+}: ReReviewedList): string | undefined {
+  const markAt = posted.indexOf(reviewListMarkOf(list.ticket));
+  if (markAt < 0) {
+    throw new Error(
+      `The comment holds no review list of ${issueLabelOf(list.ticket)}.`,
+    );
+  }
+  const postedList = posted.slice(markAt);
+  const merged = mergedListOf(postedList, list);
+  if (merged === undefined || merged === postedList) return undefined;
+  return `${posted.slice(0, markAt)}${merged}`;
 }
 
 // Ids are positional and a fresh review rewords its findings, so the old items stay as posted and only new heads are appended.
 // The posted list, unchanged, when the re-review's own list is the posted one.
-export function reReviewedListOf({
-  posted,
-  ...list
-}: ReReviewedList): string | undefined {
+function mergedListOf(
+  posted: string,
+  list: TicketReviewList,
+): string | undefined {
   const fresh = ticketReviewListOf(list);
   if (fresh === undefined) return undefined;
   if (fresh === posted) return posted;
@@ -217,18 +234,22 @@ function listedItemsOf(body: string): ListedItem[] {
   return lines.flatMap((line, index) => {
     const id = itemIdOfLine(line);
     if (id === undefined) return [];
-    let end = index + 1;
-    while (
-      end < lines.length &&
-      itemLinePatterns.indented.test(lines[end] ?? "")
-    ) {
-      end += 1;
-    }
     const number = Number(id.slice(id.lastIndexOf(".") + 1));
-    return [
-      { id, number, head: itemHeadOf(line), lines: lines.slice(index, end) },
-    ];
+    const itemLines = lines.slice(index, itemEndOf(lines, index));
+    return [{ id, number, head: itemHeadOf(line), lines: itemLines }];
   });
+}
+
+// The index just past the indented lines under an item's head line.
+function itemEndOf(lines: string[], head: number): number {
+  let end = head + 1;
+  while (
+    end < lines.length &&
+    itemLinePatterns.indented.test(lines[end] ?? "")
+  ) {
+    end += 1;
+  }
+  return end;
 }
 
 function itemHeadOf(line: string): string {
@@ -491,17 +512,23 @@ export function isReviewList(body: string): boolean {
 }
 
 // Only the developer's runner comments count, as `runner decide` and /judge-findings read them; anyone else's is Untrusted text.
+export function isDevelopersReviewList(
+  comment: IssueComment,
+  developer: string,
+): boolean {
+  return (
+    comment.author === developer &&
+    isRunnersComment(comment) &&
+    isReviewList(comment.body)
+  );
+}
+
 export function developersReviewListsOf(
   comments: IssueComment[],
   developer: string,
 ): string[] {
   return comments
-    .filter(
-      (comment) =>
-        comment.author === developer &&
-        isRunnersComment(comment) &&
-        isReviewList(comment.body),
-    )
+    .filter((comment) => isDevelopersReviewList(comment, developer))
     .map(({ body }) => body);
 }
 
@@ -586,13 +613,7 @@ export function decidedListOf({
   const lines = body.split("\n");
   const head = lines.findIndex((line) => itemIdOfLine(line) === itemId);
   if (head < 0) throw new Error(`The review list holds no item ${itemId}.`);
-  let end = head + 1;
-  while (
-    end < lines.length &&
-    itemLinePatterns.indented.test(lines[end] ?? "")
-  ) {
-    end += 1;
-  }
+  const end = itemEndOf(lines, head);
   const itemLines = lines.slice(head + 1, end);
   if (itemLines.some((line) => itemLinePatterns.decided.test(line))) {
     throw new Error(`${itemId} is already decided.`);

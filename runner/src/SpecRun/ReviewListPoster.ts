@@ -29,7 +29,8 @@ import {
   coveredLaterNotesOf,
   gapCheckListOf,
   gapCheckSubject,
-  reReviewedListOf,
+  isDevelopersReviewList,
+  reReviewedCommentOf,
   reviewListMarkOf,
   type ReviewListSubject,
   ticketPushOf,
@@ -38,7 +39,6 @@ import {
   undecidedLineOf,
 } from "../reviewList.ts";
 import { SchemaFailure } from "../SchemaFailure.ts";
-import type { IssueComment } from "../SpecRun.ts";
 import { TicketHalted } from "../TicketHalted.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
@@ -94,37 +94,27 @@ export class ReviewListPoster extends SpecRunBase {
       title: ticket.title,
       records: ticketStateOf(run, ticket.issue).resolveRecords ?? [],
     };
-    const posted = await this._developersReviewListOf(run, ticket.issue);
-    if (posted === undefined) {
-      const body = ticketReviewListOf(list);
+    const mark = reviewListMarkOf(ticket.issue);
+    const listed = (
+      await this.config.github.authoredCommentsOf(run.spec.issue)
+    ).filter(
+      (comment) => isRunnersComment(comment) && comment.body.includes(mark),
+    );
+    // Only the developer's is edited, as `runner decide` edits only theirs; anyone else's still counts as posted.
+    const posted = listed.find((comment) =>
+      isDevelopersReviewList(comment, this.config.developer),
+    );
+    if (posted !== undefined) {
+      const body = reReviewedCommentOf({ ...list, posted: posted.body });
       if (body !== undefined) {
-        await this._postReviewListComment(run, ticket.issue, body);
+        await this.config.github.editComment(posted.id, body);
       }
       return;
     }
-    const postedList = posted.body.slice(
-      posted.body.indexOf(reviewListMarkOf(ticket.issue)),
-    );
-    const merged = reReviewedListOf({ ...list, posted: postedList });
-    if (merged === undefined || merged === postedList) return;
-    await this.config.github.editComment(posted.id, `${runnerMark}\n${merged}`);
-  }
-
-  // Only the developer's, as `runner decide` edits only theirs.
-  private async _developersReviewListOf(
-    run: Run,
-    ticket: IssueRef,
-  ): Promise<IssueComment | undefined> {
-    const mark = reviewListMarkOf(ticket);
-    const comments = await this.config.github.authoredCommentsOf(
-      run.spec.issue,
-    );
-    return comments.find(
-      (comment) =>
-        comment.author === this.config.developer &&
-        isRunnersComment(comment) &&
-        comment.body.includes(mark),
-    );
+    const body = ticketReviewListOf(list);
+    if (body !== undefined && listed.length === 0) {
+      await this._postReviewListComment(run, ticket.issue, body);
+    }
   }
 
   // Each checks the later ticket for its mark first, so a rerun never posts it twice.
