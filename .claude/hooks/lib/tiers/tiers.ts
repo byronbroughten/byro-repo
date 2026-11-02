@@ -1,5 +1,6 @@
 // Decides the gate for a Bash call by tier: 1 and 2 are free (git or Google's version history undoes them), 3 asks. Pure; tierGate.ts does the I/O, and driveTiers.ts decides gworkspace calls.
 // The classifiers live in tiers/, a file per subject: git writes, reads, file commands, npm verdicts, interpreters, and the verdicts only a runner step or an Interactive session gets. excludedCommands.ts there refuses a call that keeps an excluded command in the box.
+import type { SandboxOff } from "../sandboxState.ts";
 import { foldersAfterCdOf } from "./SegmentReader.ts";
 import { ShellParser, type SimpleCommand } from "./ShellParser.ts";
 import type { WritePlaces } from "./stepWrites.ts";
@@ -49,10 +50,12 @@ export interface ShellCall {
   sandbox?: CallSandbox;
 }
 
-// The session's sandbox as the gate reads it: `isOn` as `SandboxState.isOn`, and the `excludedCommands` entries that keep a command in the box, none when it's disabled.
+// The session's sandbox as the gate reads it: `isOn` and `off` as `SandboxState` has them, and the `excludedCommands` entries that keep a command in the box, none when it's disabled.
 export interface CallSandbox {
   isOn: boolean;
   excludedCommands: string[];
+  // Absent, an off sandbox asks for nothing beyond the tier rows.
+  off?: SandboxOff;
 }
 
 const noSandbox: CallSandbox = { isOn: false, excludedCommands: [] };
@@ -95,15 +98,32 @@ type Classifier = (
 ) => Verdict | undefined;
 
 // A call keeping an excluded command in the box is refused before any tier row, since it would fail there whatever its tier; one the box runs is then free unless it reaches GitHub.
+// With the box off, only a call of excluded commands gets the rows, so a misconfigured box shows up as asks, never as silent freedom.
 export function gateDecision(call: ShellCall): Decision | undefined {
-  const { isOn, excludedCommands: entries } = call.sandbox ?? noSandbox;
+  const { isOn, excludedCommands: entries, off } = call.sandbox ?? noSandbox;
   const boxRefusal = excludedCommands.refusalOf(call.command, entries);
   if (boxRefusal) return gateOf("deny", `${boxRefusal}.`);
   if (isOn && sandboxedCalls.isFree(call.command, entries)) {
     return gateOf("allow", sandboxedCalls.reasonOf(call.command));
   }
-  const decision = baseDecision(call) ?? undecidedDecision(call);
+  const decision =
+    offDecisionOf(call.command, off) ??
+    baseDecision(call) ??
+    undecidedDecision(call);
   return decision && decisionInMode(decision, call.mode);
+}
+
+function offDecisionOf(
+  command: string,
+  off: SandboxOff | undefined,
+): Decision | undefined {
+  if (!off || excludedCommands.isMadeOf(command, off.excludedCommands)) {
+    return undefined;
+  }
+  return gateOf(
+    "ask",
+    `\`${command}\` needs a yes: the sandbox is off, as ${off.cause}, and with it off only a call made of \`excludedCommands\` entries gets the tier rows. To turn the box back on, ${off.fix}.`,
+  );
 }
 
 // An Interactive session's unclassified call falls through to Claude Code; a runner step's is refused, as nobody can answer Claude Code's prompt.

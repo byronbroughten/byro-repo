@@ -29,10 +29,8 @@ export const excludedCommands = {
     const parser = excludedCommands.boxParserOf(command);
     const commands = parser.parsedCommands;
     if (!commands) return undefined;
-    const held = commands.flatMap((simple) => {
-      // A timed command keeps the box as its wrapped command does.
-      const words = timeoutWrappedOf(simple.words) ?? simple.words;
-      const form = npmCommands.unflaggedFormOf(words);
+    const held = commands.flatMap(({ words }) => {
+      const form = boxFormOf(words);
       const entry = entries.find((pattern) => matchesEntry(form, pattern));
       return entry ? [{ form, entry }] : [];
     });
@@ -41,6 +39,16 @@ export const excludedCommands = {
       return undefined;
     }
     return `\`${command}\` keeps \`${first.form}\` in the sandbox, where it fails without naming the box: the sandbox ${reasonOf(first.entry)}. ${callOfItsOwn(`Run \`${first.form}\``)}`;
+  },
+
+  // Every command in the call matches an entry, read as the refusal reads it; a heredoc the scan can't confirm as plain text, or `$'…'`, could hide one that doesn't.
+  isMadeOf(command: string, entries: string[]): boolean {
+    const parser = excludedCommands.boxParserOf(command);
+    const commands = parser.parsedCommands;
+    if (!commands || !parser.isPlainText) return false;
+    return commands.every(({ words }) =>
+      entries.some((entry) => matchesEntry(boxFormOf(words), entry)),
+    );
   },
 
   // The call as the box reads it, `2>&1` dropped.
@@ -69,6 +77,11 @@ export const excludedCommands = {
     );
   },
 };
+
+// A timed command keeps the box as its wrapped command does.
+function boxFormOf(words: string[]): string {
+  return npmCommands.unflaggedFormOf(timeoutWrappedOf(words) ?? words);
+}
 
 // Claude Code's rule matching: `*` matches anything, a space before it included, and a legacy `:*` suffix matches the prefix as a whole word.
 function matchesEntry(command: string, entry: string): boolean {

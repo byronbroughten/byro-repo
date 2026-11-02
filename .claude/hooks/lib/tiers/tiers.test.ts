@@ -1455,6 +1455,102 @@ describe("a sandboxed call", () => {
   });
 });
 
+describe("a call with the sandbox off", () => {
+  const entries = ["npm run issue*", "npm run check", "npm test", "npm test *"];
+  const off = {
+    cause: "`sandbox.enabled` isn't true",
+    fix: 'set `"enabled": true` in the `sandbox` block',
+  };
+  const modes: SessionMode[] = ["interactive", "runnerStep"];
+
+  function offDecisionOf(
+    command: string,
+    mode: SessionMode,
+    excludedCommands = entries,
+  ) {
+    return gateDecision({
+      command,
+      mode,
+      dryRuns: [],
+      places: fakePlaces("/ws"),
+      sandbox: {
+        isOn: false,
+        excludedCommands: [],
+        off: { ...off, excludedCommands },
+      },
+    });
+  }
+
+  const unsandboxed = [
+    "node .scratch/x.ts",
+    "node -e 'console.log(1)'",
+    "python3 -c 'print(1)'",
+    "grep x y",
+    "for n in 1 2; do echo $n > /tmp/x-$n.md; done",
+  ];
+
+  it("asks for any other call in an Interactive session, naming the off state and its fix", () => {
+    unsandboxed.forEach((command) => {
+      const decision = offDecisionOf(command, "interactive");
+      expect(decision?.permissionDecision).toBe("ask");
+      expect(decision?.reason).toContain("the sandbox is off");
+      expect(decision?.reason).toContain(off.cause);
+      expect(decision?.reason).toContain(off.fix);
+    });
+  });
+
+  it("refuses it in a runner step with the blocker text", () => {
+    unsandboxed.forEach((command) => {
+      const decision = offDecisionOf(command, "runnerStep");
+      expect(decision?.permissionDecision).toBe("deny");
+      expect(decision?.reason).toContain(off.cause);
+      expect(decision?.reason).toContain("`denied-tool` blocker");
+    });
+  });
+
+  it("gives a call of excluded commands only its tier rows", () => {
+    [
+      "npm test",
+      "timeout 60 npm test",
+      "npm run -s check",
+      "npm run issue:start -- byro-repo 548",
+      "npm test && npm run check",
+    ].forEach((command) =>
+      modes.forEach((mode) =>
+        expect(offDecisionOf(command, mode)).toEqual(
+          gateDecision({
+            command,
+            mode,
+            dryRuns: [],
+            places: fakePlaces("/ws"),
+          }),
+        ),
+      ),
+    );
+    expect(
+      offDecisionOf("npm run issue:start -- byro-repo 548", "interactive")
+        ?.permissionDecision,
+    ).toBe("allow");
+  });
+
+  it("asks for a call mixing an excluded command with another", () => {
+    ["npm test | tail", "cd x && npm test", "echo $(npm test)"].forEach(
+      (command) =>
+        expect(offDecisionOf(command, "interactive")?.permissionDecision).toBe(
+          "ask",
+        ),
+    );
+  });
+
+  it("asks for every call when no entry is readable", () => {
+    ["npm test", "npm run check", "ls", "git status"].forEach((command) =>
+      expect(
+        offDecisionOf(command, "interactive", [])?.permissionDecision,
+      ).toBe("ask"),
+    );
+  });
+});
+
 describe("runnerStep mode", () => {
   const asks = ["git push origin master", "npx clasp push", "npm publish"];
 

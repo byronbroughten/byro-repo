@@ -87,6 +87,7 @@ async function bashDecision(input: HookInput): Promise<Decision | undefined> {
       isOn: sandbox.isOn,
       // A disabled sandbox keeps no excluded command in the box.
       excludedCommands: sandbox.isEnabled ? sandbox.excludedCommands : [],
+      off: sandbox.off,
     },
   });
 }
