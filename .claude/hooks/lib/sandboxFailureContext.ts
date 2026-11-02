@@ -1,7 +1,8 @@
 // What sandboxFailureContext.ts adds after a failed Bash call whose output shows the sandbox stopped it. See docs/claude-code-guardrails.md.
 import { join } from "node:path";
 
-import { excludedCommands } from "./tiers/excludedCommands.ts";
+import { callOfItsOwn } from "@byronbroughten/spec-runner/callOfItsOwn";
+import { protectedClaudeEntries } from "@byronbroughten/spec-runner/claudeEntries";
 
 export interface WriteScope {
   allow: string[];
@@ -14,7 +15,7 @@ export interface ScopeEnv {
   tmpdir: string;
 }
 
-const wayThrough = `The call ran in the sandbox. If the command is on \`excludedCommands\` in \`.claude/settings.json\`, ${excludedCommands.callOfItsOwn("run it")}. Otherwise this is a limit of the sandbox: report it to the developer with the error, and never retry with \`dangerouslyDisableSandbox\`. A runner step records a blocker naming the sandbox.`;
+const wayThrough = `The call ran in the sandbox. If the command is on \`excludedCommands\` in \`.claude/settings.json\`, ${callOfItsOwn("run it")}. Otherwise this is a limit of the sandbox: report it to the developer with the error, and never retry with \`dangerouslyDisableSandbox\`. A runner step records a blocker naming the sandbox.`;
 
 const fixedRows = [
   {
@@ -31,9 +32,17 @@ const fixedRows = [
   },
 ];
 
+// Claude Code protects these in every worktree without listing them in `denyWrite`, and the shell names them relative to the cwd, as `.claude/hooks/x`.
+const protectedClaudeEntry = protectedClaudeEntries
+  .map((entry) => entry.replaceAll(".", "\\."))
+  .join("|");
+
 const deniedPathPatterns = {
   line: /operation not permitted/i,
-  path: /(?:^|[\s'"`(:])((?:\/|~\/)[^\s'"`:,)]+)/g,
+  path: new RegExp(
+    `(?:^|[\\s'"\`(:])((?:\\/|~\\/|(?:\\.{1,2}\\/)*\\.claude\\/(?=(?:${protectedClaudeEntry})(?:[\\s'"\`:,)/]|$)))[^\\s'"\`:,)]+)`,
+    "g",
+  ),
 } as const;
 
 // macOS reports a path through its real name, `/private/var` for `/var`, while settings may list either.
@@ -91,9 +100,19 @@ function deniedPathsOf(error: string, scope: WriteScope): string[] {
 }
 
 function writableIn(path: string, scope: WriteScope): boolean {
-  if (path.split("/").includes("claude-guardrails")) return false;
+  const segments = path.split("/");
+  if (segments.includes("claude-guardrails")) return false;
+  if (isProtectedClaudeEntry(segments)) return false;
   if (scope.deny.some((folder) => isUnder(path, folder))) return false;
   return scope.allow.some((folder) => isUnder(path, folder));
+}
+
+function isProtectedClaudeEntry(segments: string[]): boolean {
+  return segments.some(
+    (segment, index) =>
+      segment === ".claude" &&
+      protectedClaudeEntries.includes(segments[index + 1] ?? ""),
+  );
 }
 
 function isUnder(path: string, folder: string): boolean {
