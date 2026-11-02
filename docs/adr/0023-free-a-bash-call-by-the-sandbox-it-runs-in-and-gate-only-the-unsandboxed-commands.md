@@ -18,7 +18,6 @@ Source: ByronBroughten/byro-repo#519
 ## Consequences
 
 - ADR 0024 supersedes this ADR's rejection of GitHub on the allowlist and its denial of the git folders: GitHub and the git folders are now in the box, and the commands that needed them run sandboxed.
-
 - This is not the containment ADR 0007 defers: unsandboxed commands and Claude's own tools still act with full access, so ADR 0007 stands.
 - `excludedCommands` is the one list of unsandboxed commands, and the gate reads it from settings.
 - A domain added to the allowlist is weighed as a place a script could send what it reads, since the read denies name credential files one at a time.
