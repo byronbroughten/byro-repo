@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest";
 
 const hookPath = fileURLToPath(new URL("./tierGate.ts", import.meta.url));
 const projectDir = mkdtempSync(join(tmpdir(), "tier-gate-"));
+const homeDir = mkdtempSync(join(tmpdir(), "tier-gate-home-"));
 
 function hookOutputOf(
   toolName: string,
@@ -19,6 +20,9 @@ function hookOutputOf(
     encoding: "utf8",
     env: {
       ...process.env,
+      // The developer's own user settings stay out of the gate's sandbox state.
+      HOME: homeDir,
+      CLAUDE_CONFIG_DIR: join(homeDir, ".claude"),
       CLAUDE_PROJECT_DIR: projectDir,
       BYRO_GATE_ROOT: projectDir,
       BYRO_RUNNER_STEP: isRunnerStep ? "1" : "",
@@ -72,17 +76,42 @@ describe("the tierGate hook on the web tools", () => {
   );
 });
 
+function writeSettings(folder: string, content: string): void {
+  mkdirSync(join(folder, ".claude"), { recursive: true });
+  writeFileSync(join(folder, ".claude", "settings.json"), content);
+}
+
+function projectSandbox(sandbox: Record<string, unknown>): void {
+  writeSettings(
+    projectDir,
+    JSON.stringify({ sandbox: { ...sandbox, excludedCommands: ["npm test"] } }),
+  );
+}
+
+function boxedCallDecision(): unknown {
+  return decisionOf(
+    hookOutputOf("Bash", { command: "cd . && npm test" }, false),
+  );
+}
+
 describe("the tierGate hook on an excluded command", () => {
-  it("refuses one the call keeps in the box, by the gate root's settings", () => {
-    mkdirSync(join(projectDir, ".claude"), { recursive: true });
-    writeFileSync(
-      join(projectDir, ".claude", "settings.json"),
-      JSON.stringify({
-        sandbox: { enabled: true, excludedCommands: ["npm test"] },
-      }),
-    );
-    expect(
-      decisionOf(hookOutputOf("Bash", { command: "cd . && npm test" }, false)),
-    ).toBe("deny");
+  it("refuses one the call keeps in the box, by the session's sandbox state", () => {
+    projectSandbox({ enabled: true, allowUnsandboxedCommands: false });
+    expect(boxedCallDecision()).toBe("deny");
+  });
+
+  it("refuses nothing when the sandbox is disabled", () => {
+    projectSandbox({ enabled: false });
+    expect(boxedCallDecision()).not.toBe("deny");
+  });
+
+  it("still refuses one with a user settings file that doesn't parse", () => {
+    projectSandbox({ enabled: true, allowUnsandboxedCommands: false });
+    writeSettings(homeDir, "{ not json");
+    try {
+      expect(boxedCallDecision()).toBe("deny");
+    } finally {
+      writeSettings(homeDir, "{}");
+    }
   });
 });

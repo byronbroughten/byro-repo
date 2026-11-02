@@ -53,15 +53,6 @@ export function projectDirOf(input: HookInput | undefined): string {
   return process.env.CLAUDE_PROJECT_DIR ?? input?.cwd ?? process.cwd();
 }
 
-// A runner step runs under the gate root's settings, passed in `--settings`; an Interactive session, which leaves it unset, under its project's.
-export function gateRootOf(input: HookInput | undefined): string {
-  return process.env.BYRO_GATE_ROOT ?? projectDirOf(input);
-}
-
-export function gateRootSettingsOf(root: string): unknown {
-  return readJsonFile(join(root, ".claude", "settings.json"));
-}
-
 export function writeHookOutput(output: object): void {
   process.stdout.write(JSON.stringify(output));
 }

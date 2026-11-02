@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import { gateDecision } from "../tiers.ts";
-import { excludedCommands } from "./excludedCommands.ts";
 
 const entries = [
   "npm run issue*",
@@ -77,22 +76,5 @@ describe("a call the box lets out, or holding no excluded command", () => {
     expect(
       decisionOf("npm run session:probe:x | head")?.permissionDecision,
     ).not.toBe("deny");
-  });
-});
-
-describe("excludedCommands.entriesOf", () => {
-  it("reads the sandbox block's excluded commands", () => {
-    expect(
-      excludedCommands.entriesOf({
-        sandbox: { enabled: true, excludedCommands: ["npm test", 3] },
-      }),
-    ).toEqual(["npm test"]);
-  });
-
-  it.each([
-    ["a disabled sandbox", { sandbox: { excludedCommands: ["npm test"] } }],
-    ["unreadable settings", undefined],
-  ])("reads none from %s", (_case, settings) => {
-    expect(excludedCommands.entriesOf(settings)).toEqual([]);
   });
 });

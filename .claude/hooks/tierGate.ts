@@ -4,8 +4,6 @@ import { writeFileSync } from "node:fs";
 
 import { dryRuns, shellPlacesOf } from "./lib/gateLookups.ts";
 import {
-  gateRootOf,
-  gateRootSettingsOf,
   type HookInput,
   projectDirOf,
   readHookInput,
@@ -14,6 +12,7 @@ import {
   sessionStatePath,
   writeHookOutput,
 } from "./lib/hookIo.ts";
+import { sessionSandboxStateOf } from "./lib/sandboxState.ts";
 import { readSheetsConfigs } from "./lib/sheetsConfigs.ts";
 import { driveOwnersOf } from "./lib/tiers/driveOwners.ts";
 import {
@@ -30,7 +29,6 @@ import {
   spreadsheetTargetsOf,
   stepTargetsVariable,
 } from "./lib/tiers/tiers.ts";
-import { excludedCommands } from "./lib/tiers/tiers/excludedCommands.ts";
 import { webGateDecisions } from "./lib/tiers/webTools.ts";
 
 const ownersSuffix = "drive-owners.json";
@@ -84,10 +82,14 @@ async function bashDecision(input: HookInput): Promise<Decision | undefined> {
     dryRuns: dryRuns.read(input.session_id),
     places: shellPlacesOf(input),
     spreadsheetTargets: spreadsheetTargetsOf(process.env[stepTargetsVariable]),
-    excludedCommands: excludedCommands.entriesOf(
-      gateRootSettingsOf(gateRootOf(input)),
-    ),
+    excludedCommands: boxedExcludedCommandsOf(input),
   });
+}
+
+// A disabled sandbox keeps no excluded command in the box.
+function boxedExcludedCommandsOf(input: HookInput): string[] {
+  const state = sessionSandboxStateOf(input);
+  return state.isEnabled ? state.excludedCommands : [];
 }
 
 function ownerCacheOf(path: string): OwnerCache {
