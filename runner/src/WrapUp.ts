@@ -5,9 +5,9 @@
 // WrapUpFailure naming its kind.
 // A session workspace lands the same way from its session branches, with no facts file or issue steps.
 // The landing's helpers are the WrapUp/ collaborators: BranchLander.ts runs it up to the fast-forward, LandingPusher.ts
-// scans and pushes, BranchDeleter.ts deletes the branches, IssueCloser.ts closes the issue and WorkspaceFinisher.ts levels or removes the
-// workspace. The outcome row is
-// written by outcomeRowWriter.ts with the merged code; the lock is LandingLock.ts; workspaces are IssueWorkspaces.ts.
+// scans and pushes, BranchDeleter.ts deletes the branches, IssueCloser.ts closes the issue and WorkspaceFinisher.ts
+// levels or removes the workspace. The outcome row is written by outcomeRowWriter.ts with the merged code; the lock is
+// LandingLock.ts; workspaces are IssueWorkspaces.ts.
 
 import { existsSync, readFileSync, rmSync } from "node:fs";
 
