@@ -1,12 +1,28 @@
-// The Base WrapUp and its collaborators share, importing no collaborator so `extends WrapUpBase` loads first.
+// The Base WrapUp and its collaborators share: the config, knobs, network retries, log, a landing's step progress and
+// where its repos and workspace are. It imports no collaborator, so `extends WrapUpBase` loads first.
+
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { messageOf } from "../failureText.ts";
+import { currentBranchOf } from "../git.ts";
+import {
+  fileStemOf,
+  isSessionKey,
+  IssueWorkspaces,
+  sessionBranchOf,
+  type Workspace,
+  type WorkspaceKey,
+  workspaceLabelOf,
+} from "../IssueWorkspaces.ts";
 import { sleep } from "../sleep.ts";
 import { WrapUpFailure } from "../WrapUpFailure.ts";
 import {
   defaultWrapUpKnobs,
+  type Landing,
   type WrapUpConfig,
   type WrapUpKnobs,
+  type WrapUpStep,
 } from "./wrapUpTypes.ts";
 
 export class WrapUpBase {
@@ -16,6 +32,80 @@ export class WrapUpBase {
   constructor(config: WrapUpConfig) {
     this.config = config;
     this.knobs = { ...defaultWrapUpKnobs, ...config.knobs };
+  }
+
+  get workspaces(): IssueWorkspaces {
+    return IssueWorkspaces.init(this.config.workspaces);
+  }
+
+  protected async _step(
+    landing: Landing,
+    step: WrapUpStep,
+    action: () => Promise<void>,
+  ): Promise<void> {
+    if (isDone(landing, step)) {
+      this._log(`Skipping ${step}: done on an earlier run.`);
+      return;
+    }
+    await action();
+    await this._markDone(landing, step);
+  }
+
+  protected async _markDone(landing: Landing, step: WrapUpStep): Promise<void> {
+    landing.progress.completed.push(step);
+    mkdirSync(this.config.stateFolder, { recursive: true });
+    writeFileSync(
+      this._progressPathOf(landing.key),
+      `${JSON.stringify(landing.progress, undefined, 2)}\n`,
+    );
+    this._log(`Done: ${step}.`);
+  }
+
+  protected _progressPathOf(key: WorkspaceKey): string {
+    return join(this.config.stateFolder, `${stateStemOf(key)}.progress.json`);
+  }
+
+  protected async _workspaceOf(key: WorkspaceKey): Promise<Workspace> {
+    const workspace = await this.workspaces.find(key);
+    if (!workspace) {
+      throw new Error(`No workspace for ${workspaceLabelOf(key)}`);
+    }
+    return workspace;
+  }
+
+  protected async _assertOnMaster(repo: string): Promise<void> {
+    const checkedOut = currentBranchOf(this._primaryOf(repo));
+    if (checkedOut === "master") return;
+    throw new WrapUpFailure(
+      "foreign-branch",
+      `${repo}'s primary checkout is on ${checkedOut || "a detached HEAD"}, not master`,
+    );
+  }
+
+  protected get _rootRepo(): string {
+    const entry = Object.entries(this.config.workspaces.clonePaths).find(
+      ([, clonePath]) => clonePath === ".",
+    );
+    if (!entry) {
+      throw new Error("The workspace config's clone paths name no root repo");
+    }
+    return entry[0];
+  }
+
+  protected _primaryOf(repo: string): string {
+    return join(this.config.workspaces.primaryRoot, this._clonePathOf(repo));
+  }
+
+  protected _worktreeOf(workspace: Workspace, repo: string): string {
+    return join(workspace.path, this._clonePathOf(repo));
+  }
+
+  protected _clonePathOf(repo: string): string {
+    const clonePath = this.config.workspaces.clonePaths[repo];
+    if (clonePath === undefined) {
+      throw new Error(`${repo} is not in the workspace config's clone paths`);
+    }
+    return clonePath;
   }
 
   protected async _withRetries<RV>(
@@ -45,4 +135,16 @@ export class WrapUpBase {
   protected _log(line: string): void {
     this.config.log?.(line);
   }
+}
+
+export function isDone(
+  landing: Pick<Landing, "progress">,
+  step: WrapUpStep,
+): boolean {
+  return landing.progress.completed.includes(step);
+}
+
+function stateStemOf(key: WorkspaceKey): string {
+  if (isSessionKey(key)) return sessionBranchOf(key);
+  return fileStemOf(key);
 }

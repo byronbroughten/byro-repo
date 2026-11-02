@@ -85,6 +85,32 @@ export async function hasRef(clone: string, ref: string): Promise<boolean> {
   return (await git(clone, "for-each-ref", "--format=%(refname)", ref)) !== "";
 }
 
+export async function revOf(worktree: string, ref: string): Promise<string> {
+  return git(worktree, "rev-parse", ref);
+}
+
+export async function isMerging(worktree: string): Promise<boolean> {
+  try {
+    await git(worktree, "rev-parse", "-q", "--verify", "MERGE_HEAD");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function isAncestor(
+  worktree: string,
+  ancestor: string,
+  descendant: string,
+): Promise<boolean> {
+  try {
+    await git(worktree, "merge-base", "--is-ancestor", ancestor, descendant);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function lines(output: string): string[] {
   return output === "" ? [] : output.split("\n");
 }

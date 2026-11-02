@@ -1,6 +1,11 @@
-// The config, port and parent types WrapUp and its collaborators share, and the GitHub labels wrap-up acts on.
+// The config, port, parent and landing types WrapUp and its collaborators share, and the GitHub labels wrap-up acts on.
 
-import type { IssueRef, IssueWorkspacesConfig } from "../IssueWorkspaces.ts";
+import type {
+  IssueRef,
+  IssueWorkspacesConfig,
+  Workspace,
+  WorkspaceKey,
+} from "../IssueWorkspaces.ts";
 import type {
   OutcomeRowRequest,
   WrittenOutcomeRow,
@@ -11,6 +16,64 @@ export const labels = {
   map: "wayfinder:map",
   human: "ready-for-human",
 } as const;
+
+export type WrapUpStep =
+  | "clean-check"
+  | "files-changed"
+  | "merges"
+  | "checks"
+  | "log-row"
+  | "fast-forward"
+  | "secret-scan"
+  | "push"
+  | "delete-branches"
+  | "remove-workspace"
+  | "level-workspace"
+  | "close"
+  | "parent-check";
+
+export interface LandingBranch {
+  repo: string;
+  branch: string;
+}
+
+export interface BuiltRepo {
+  // The primary's master the build started from, and the commit master fast-forwards to.
+  base: string;
+  head: string;
+}
+
+export interface Progress {
+  completed: WrapUpStep[];
+  filesChanged?: number;
+  // Repo name to its build, in landing order with the root repo last.
+  built?: Record<string, BuiltRepo>;
+  // A ticket's derived branches, kept so a rerun past the fast-forward, when none is ahead any more, deletes them.
+  branches?: LandingBranch[];
+  branchDeleteFailures?: string[];
+  isLeftOpen?: boolean;
+  parent?: ParentCheck;
+}
+
+export interface Landing {
+  key: WorkspaceKey;
+  // In landing order: the repos whose branch was ahead of master.
+  branches: LandingBranch[];
+  progress: Progress;
+  kind: LandingKind;
+}
+
+// What differs between a ticket that lands branches, one with no code and a session, chosen once up front.
+export interface LandingKind {
+  // Leaves each landed repo's worktree on the commit its master fast-forwards to.
+  build(landing: Landing, workspace: Workspace): Promise<void>;
+  cleanRepos(landing: Landing): string[];
+  branchesToDelete(landing: Landing): Promise<LandingBranch[]>;
+  mergeArgs(branch: string): string[];
+}
+
+// Read before any switch and only for repos left unswitched, so a switch never leaves a stale answer.
+export type UnswitchedDirtiness = Record<string, boolean>;
 
 export interface ParentIssue {
   issue: IssueRef;

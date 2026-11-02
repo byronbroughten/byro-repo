@@ -116,9 +116,18 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `transcriptFacts.ts` | `transcriptFacts` | Outcome facts computed from transcripts: pair, peaks, duration and cost, and why one is unrecorded; where a session's transcript is. |
 | `UnhandledStop.ts` | `UnhandledStop` | The outcomes the run loop doesn't handle yet, and their error. |
 | `verdicts.ts` | | A finding's axes and verdicts. |
-| `WrapUp.ts` | `WrapUp` | `npm run wrap-up`: lands an issue or session workspace, delegating closing the issue to `WrapUp/`. |
+| `WrapUp.ts` | `WrapUp` | `npm run wrap-up`: lands an issue or session workspace, delegating its landing steps and closing the issue to `WrapUp/`. |
+| `WrapUp/BranchDeleter.ts` | | Deletes a landing's branches on each remote and locally, recording the ones that failed. |
+| `WrapUp/BranchLander.ts` | | Lands a landing's branches up to the fast-forward: restores, clean check, files changed, stale paths, build and rebuild. |
+| `WrapUp/BranchMerger.ts` | | Merges a landing's branches in the workspace and runs the checks, or switches the workspace's repos to master. |
+| `WrapUp/FastForwarder.ts` | | Fast-forwards each primary's master under the landing locks, then runs the after hook and pushes. |
 | `WrapUp/IssueCloser.ts` | | Closes a landed ticket's issue or leaves a Standalone one open, and reads its parent, spec and handoff sessions. |
-| `WrapUp/WrapUpBase.ts` | | The Base `WrapUp` and its collaborator share: the config, knobs, network retries and log. |
-| `WrapUp/wrapUpTypes.ts` | | The config, GitHub port and parent types and the labels `WrapUp` and its collaborator share. |
+| `WrapUp/LandingBranchFinder.ts` | | Finds the branches a landing merges, the repos whose workspace branch is ahead of master, and the branches its workspace made. |
+| `WrapUp/LandingKindPicker.ts` | | Picks what differs between a ticket that lands branches, one with no code and a session. |
+| `WrapUp/LandingPusher.ts` | | Scans a landing's added lines for token shapes, then pushes each master. |
+| `WrapUp/LogRowCommitter.ts` | | Writes a ticket's outcome row into the merged root checkout and commits it. |
+| `WrapUp/WorktreeRestorer.ts` | | Puts a landing's worktrees back where they were before a build. |
+| `WrapUp/WrapUpBase.ts` | | The Base `WrapUp` and its collaborators share: the config, knobs, network retries, log, a landing's step progress and where its repos and workspace are. |
+| `WrapUp/wrapUpTypes.ts` | | The config, GitHub port, parent and landing types and the labels `WrapUp` and its collaborators share. |
 | `WrapUpFailure.ts` | `WrapUpFailure` | The typed failure a wrap-up stops on. |
 | `wrapUpHarness.ts` | | The fixture `WrapUp` tests share. |
