@@ -1085,6 +1085,28 @@ describe("an Interactive session's gh calls", () => {
     });
   });
 
+  it("allows a variable issue number or comment id, and refuses it in a runner step", () => {
+    [
+      "gh api --method POST repos/o/r/issues/$n/dependencies/blocked_by -F issue_id=$id",
+      "gh api --method POST repos/o/r/issues/${n}/dependencies/blocked_by -F issue_id=$id",
+      "gh api --method POST repos/o/r/issues/$1/dependencies/blocked_by -F issue_id=$2",
+      "gh api -X DELETE repos/o/r/issues/$n/dependencies/blocked_by/$id",
+      "gh api --method POST repos/o/r/issues/$n/sub_issues -F sub_issue_id=$id",
+      "gh api --method PATCH repos/o/r/issues/comments/$c -f body=x",
+      "e(){ gh api --method POST repos/o/r/issues/$1/dependencies/blocked_by -F issue_id=$2; }; e 547 1",
+    ].forEach((command) => {
+      expect(decisionOf(command)).toBe("allow");
+      expect(runnerStepDecisionOf(command)).toBe("deny");
+    });
+  });
+
+  it("leaves a variable owner or repo to Claude Code", () => {
+    [
+      "gh api --method POST repos/$o/r/issues/1/dependencies/blocked_by -F issue_id=2",
+      "gh api --method POST repos/o/$r/issues/$n/sub_issues -F sub_issue_id=2",
+    ].forEach((command) => expect(decisionOf(command)).toBeUndefined());
+  });
+
   it("allows the runner's decide, and refuses it in a runner step", () => {
     [
       'npm run runner -- decide ByronBroughten/byro-repo 372 R159.1 "accepted"',
