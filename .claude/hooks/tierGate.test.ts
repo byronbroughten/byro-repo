@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,6 +20,7 @@ function hookOutputOf(
     env: {
       ...process.env,
       CLAUDE_PROJECT_DIR: projectDir,
+      BYRO_GATE_ROOT: projectDir,
       BYRO_RUNNER_STEP: isRunnerStep ? "1" : "",
     },
     input: JSON.stringify({
@@ -69,4 +70,19 @@ describe("the tierGate hook on the web tools", () => {
       ).toBeUndefined();
     },
   );
+});
+
+describe("the tierGate hook on an excluded command", () => {
+  it("refuses one the call keeps in the box, by the gate root's settings", () => {
+    mkdirSync(join(projectDir, ".claude"), { recursive: true });
+    writeFileSync(
+      join(projectDir, ".claude", "settings.json"),
+      JSON.stringify({
+        sandbox: { enabled: true, excludedCommands: ["npm test"] },
+      }),
+    );
+    expect(
+      decisionOf(hookOutputOf("Bash", { command: "cd . && npm test" }, false)),
+    ).toBe("deny");
+  });
 });

@@ -89,6 +89,12 @@ export class ShellParser {
       type === "op" ? value === "&&" : !/\$\(|`/.test(value),
     );
   }
+  // Each operator and redirect between the words, in order, a heredoc's `<<` included.
+  get operators(): string[] {
+    return this._tokens
+      .filter(({ type }) => type !== "word")
+      .map(({ value }) => value);
+  }
   get segments(): Segment[] {
     const segments: Segment[] = [];
     let current = newSegment(false);

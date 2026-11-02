@@ -1,5 +1,6 @@
 // Decides the gate for a Bash call by tier: 1 and 2 are free (git or Google's version history undoes them), 3 asks. Pure; tierGate.ts does the I/O, and driveTiers.ts decides gworkspace calls.
 // The classifiers' helpers live in tiers/: git calls, paths, file commands, npm commands and runner-step verdicts.
+import { excludedCommands } from "./excludedCommands.ts";
 import { GhApiCall } from "./GhApiCall.ts";
 import { ShellParser, type SimpleCommand } from "./ShellParser.ts";
 import { stdoutFilters } from "./stdoutFilters.ts";
@@ -39,6 +40,8 @@ export interface ShellCall {
   places?: ShellPlaces;
   // The spreadsheets (`app`, `dev`) a runner step's ticket targets; absent, it targets none.
   spreadsheetTargets?: string[];
+  // The session's sandbox `excludedCommands` entries; absent, no call is refused for keeping one in the box.
+  excludedCommands?: string[];
 }
 
 // What a simple command's verdict reads beyond its own words; places carries the cwd as of that command.
@@ -125,7 +128,13 @@ const findActions = new Set([
 // ripgrep runs the program each of these names.
 const rgRunFlags = ["--pre", "--hostname-bin"];
 
+// A call keeping an excluded command in the box is refused before any tier row, since it would fail there whatever its tier.
 export function gateDecision(call: ShellCall): Decision | undefined {
+  const boxRefusal = excludedCommands.refusalOf(
+    call.command,
+    call.excludedCommands ?? [],
+  );
+  if (boxRefusal) return gateOf("deny", `${boxRefusal}.`);
   const decision = baseDecision(call) ?? undecidedDecision(call);
   return decision && decisionInMode(decision, call.mode);
 }

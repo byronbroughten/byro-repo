@@ -1,6 +1,7 @@
 // PreToolUse on Bash, WebFetch, WebSearch and the gworkspace write and create tools applies the tier gate; PostToolUse on Bash records each app chore dry run that ran, for a later --send.
 // Every Bash call gets the file-system lookups the step write rule and scratch `node` need, so the decision stays pure.
 import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { dryRuns, shellPlacesOf } from "./lib/gateLookups.ts";
 import {
@@ -20,6 +21,7 @@ import {
   type OwnerCache,
   stepTargetsOf,
 } from "./lib/tiers/driveTiers.ts";
+import { excludedCommands } from "./lib/tiers/excludedCommands.ts";
 import {
   type Decision,
   dryRunChoresOf,
@@ -81,7 +83,14 @@ async function bashDecision(input: HookInput): Promise<Decision | undefined> {
     dryRuns: dryRuns.read(input.session_id),
     places: shellPlacesOf(input),
     spreadsheetTargets: spreadsheetTargetsOf(process.env[stepTargetsVariable]),
+    excludedCommands: excludedCommands.entriesOf(sessionSettingsOf(input)),
   });
+}
+
+// A runner step runs under the gate root's settings, passed in `--settings`; an Interactive session under its project's.
+function sessionSettingsOf(input: HookInput): unknown {
+  const root = process.env.BYRO_GATE_ROOT ?? projectDirOf(input);
+  return readJsonFile(join(root, ".claude", "settings.json"));
 }
 
 function ownerCacheOf(path: string): OwnerCache {
