@@ -2,6 +2,8 @@
 import { spawnSync } from "node:child_process";
 import { relative } from "node:path";
 
+import { callOfItsOwn } from "@byronbroughten/spec-runner/callOfItsOwn";
+
 export class CloneHooksPath {
   private readonly cloneRoot: string;
 
@@ -34,7 +36,7 @@ export class CloneHooksPath {
     );
     if (status === 0) return;
     throw new Error(
-      `Claude Code's sandbox protects .git/config, so core.hooksPath in ${this.cloneRoot} can't change from inside it. Run \`git -C ${this.cloneRoot} config core.hooksPath ${hooksPath}\` in a Bash call of its own. git: ${stderr.trim()}`,
+      `Claude Code's sandbox protects .git/config, so core.hooksPath in ${this.cloneRoot} can't change from inside it. ${callOfItsOwn(`Run \`git -C ${this.cloneRoot} config core.hooksPath ${hooksPath}\``)}. git: ${stderr.trim()}`,
     );
   }
 }

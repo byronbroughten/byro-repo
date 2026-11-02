@@ -56,7 +56,7 @@ Reads need no yes in any tier.
 | `npm run outcome:summary -- …` | free: a read |
 | `npm run prompt:scan` | free: a read of this repo's session transcripts |
 
-**`timeout` and `npm run -s` leave a command's tier as it is**, but an `excludedCommands` script spelled with `-s` is refused, as the box keeps it in ([the Bash sandbox](./claude-code-guardrails.md#the-bash-sandbox)).
+**`timeout` and `npm run -s` leave a command's tier as it is**, but an `excludedCommands` script spelled with `-s`, or under a `timeout`, is refused, as the box keeps it in ([the Bash sandbox](./claude-code-guardrails.md#the-bash-sandbox)).
 
 ### npm publish
 
