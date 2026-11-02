@@ -1,3 +1,7 @@
+---
+status: accepted, partly superseded by ADR-0024, which puts GitHub on the allowlist and opens the git folders to the box
+---
+
 # Free a Bash call by the sandbox it runs in, and gate only the unsandboxed commands
 
 The tier gate freed a Bash call only when its text proved where its writes land and that it opens no credential, so `node` on a script, inline code and writes to variable paths asked. Every Bash call now runs in Claude Code's sandbox, in Interactive sessions and runner steps alike, with unsandboxed commands disabled. The kernel holds a sandboxed call's writes to the workspaces and temp, its reads off the credential files, and its network to the npm registry, so git or discarding temp undoes it, and it is free. Commands that need a credential, GitHub, Google or the primary's git folder run unsandboxed by name, from `excludedCommands`, under today's tier rows. With the sandbox off, every other call asks.
