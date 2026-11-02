@@ -26,7 +26,7 @@ const callJoiners = new Set(["&&", "||", ";"]);
 export const excludedCommands = {
   refusalOf(command: string, entries: string[]): string | undefined {
     if (entries.length === 0) return undefined;
-    const parser = ShellParser.init(command.replace(stderrToStdout, "$1"));
+    const parser = excludedCommands.boxParserOf(command);
     const commands = parser.parsedCommands;
     if (!commands) return undefined;
     const held = commands.flatMap((simple) => {
@@ -37,30 +37,38 @@ export const excludedCommands = {
       return entry ? [{ form, entry }] : [];
     });
     const [first] = held;
-    if (!first || leavesTheBox(parser, commands, entries)) return undefined;
+    if (!first || excludedCommands.leavesTheBox(parser, commands, entries)) {
+      return undefined;
+    }
     return `\`${command}\` keeps \`${first.form}\` in the sandbox, where it fails without naming the box: the sandbox ${reasonOf(first.entry)}. ${callOfItsOwn(`Run \`${first.form}\``)}`;
   },
-};
 
-// The parser has already read the whole call, so its operators can't throw.
-function leavesTheBox(
-  parser: ShellParser,
-  commands: SimpleCommand[],
-  entries: string[],
-): boolean {
-  if (/\$\(|`|<</.test(parser.command)) return false;
-  // A reserved word such as `if` or `{` is no operator, so a compound call isn't taken for commands only joined.
-  const isJoinedOnly =
-    parser.operators.every((operator) => callJoiners.has(operator)) &&
-    parser.segments.every(({ isNested }) => !isNested);
-  return (
-    isJoinedOnly &&
-    commands.every(
-      ({ words, isBare }) =>
-        isBare && entries.some((entry) => matchesEntry(words.join(" "), entry)),
-    )
-  );
-}
+  // The call as the box reads it, `2>&1` dropped.
+  boxParserOf(command: string): ShellParser {
+    return ShellParser.init(command.replace(stderrToStdout, "$1"));
+  },
+
+  // The parser has already read the whole call, so its operators can't throw.
+  leavesTheBox(
+    parser: ShellParser,
+    commands: SimpleCommand[],
+    entries: string[],
+  ): boolean {
+    if (/\$\(|`|<</.test(parser.command)) return false;
+    // A reserved word such as `if` or `{` is no operator, so a compound call isn't taken for commands only joined.
+    const isJoinedOnly =
+      parser.operators.every((operator) => callJoiners.has(operator)) &&
+      parser.segments.every(({ isNested }) => !isNested);
+    return (
+      isJoinedOnly &&
+      commands.every(
+        ({ words, isBare }) =>
+          isBare &&
+          entries.some((entry) => matchesEntry(words.join(" "), entry)),
+      )
+    );
+  },
+};
 
 // Claude Code's rule matching: `*` matches anything, a space before it included, and a legacy `:*` suffix matches the prefix as a whole word.
 function matchesEntry(command: string, entry: string): boolean {

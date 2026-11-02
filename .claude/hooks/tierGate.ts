@@ -76,20 +76,19 @@ async function bashDecision(input: HookInput): Promise<Decision | undefined> {
     dryRuns.record(input.session_id, dryRunChoresOf(command));
     return undefined;
   }
+  const sandbox = sessionSandboxStateOf(input);
   return gateDecision({
     command,
     mode: sessionModeOf(process.env),
     dryRuns: dryRuns.read(input.session_id),
     places: shellPlacesOf(input),
     spreadsheetTargets: spreadsheetTargetsOf(process.env[stepTargetsVariable]),
-    excludedCommands: boxedExcludedCommandsOf(input),
+    sandbox: {
+      isOn: sandbox.isOn,
+      // A disabled sandbox keeps no excluded command in the box.
+      excludedCommands: sandbox.isEnabled ? sandbox.excludedCommands : [],
+    },
   });
-}
-
-// A disabled sandbox keeps no excluded command in the box.
-function boxedExcludedCommandsOf(input: HookInput): string[] {
-  const state = sessionSandboxStateOf(input);
-  return state.isEnabled ? state.excludedCommands : [];
 }
 
 function ownerCacheOf(path: string): OwnerCache {

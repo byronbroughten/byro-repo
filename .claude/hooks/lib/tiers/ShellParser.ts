@@ -74,6 +74,13 @@ export class ShellParser {
     if (scan.heredocs.length > 0 && hasNesting) return undefined;
     return scan.heredocs;
   }
+  // No `$'…'`, which the parse misreads, and every heredoc one the scan confirms behind a quoted delimiter, so neither hides a command from the parse.
+  get isPlainText(): boolean {
+    return (
+      !/\$'/.test(this.command) &&
+      (this.heredocs?.every(({ isQuoted }) => isQuoted) ?? false)
+    );
+  }
   // Every operator `&&`, no word holding a substitution and no command nested or negated by `!`, so each command runs only once all before it succeeded, in the same shell.
   get isAndList(): boolean {
     const isJoinedByAnd = this._tokens.every(({ type, value }) =>
