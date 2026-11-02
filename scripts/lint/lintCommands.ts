@@ -1,4 +1,4 @@
-// The lint commands lint.ts and preCommit.ts share, the runner that runs every one of them, and the hook paths prepare.ts sets.
+// The lint commands lint.ts and preCommit.ts share, and the runner that runs every one of them; the hook paths prepare.ts sets are CloneHooksPath.ts.
 import { spawnSync } from "node:child_process";
 import { basename, join, relative } from "node:path";
 
@@ -53,11 +53,6 @@ export function failedCommandsOf(
 export function rootPathsOf(cloneRoot: string, paths: string[]): string[] {
   const prefix = relative(repoRoot, cloneRoot);
   return paths.map((path) => join(prefix, path));
-}
-
-// Relative, so a workspace clone, sharing its primary's config, finds its own root's hooks.
-export function hooksPathOf(clonePath: string): string {
-  return relative(clonePath, ".githooks");
 }
 
 export function commandLabelOf([file, ...args]: Command): string {

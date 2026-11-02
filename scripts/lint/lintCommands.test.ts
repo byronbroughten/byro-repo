@@ -5,7 +5,6 @@ import { describe, expect, it } from "vitest";
 import {
   type Command,
   failedCommandsOf,
-  hooksPathOf,
   repoRoot,
   rootPathsOf,
 } from "./lintCommands.ts";
@@ -44,11 +43,5 @@ describe("rootPathsOf", () => {
     expect(rootPathsOf(repoRoot, ["scripts/lint/lint.ts"])).toEqual([
       "scripts/lint/lint.ts",
     ]);
-  });
-});
-
-describe("hooksPathOf", () => {
-  it("points a clone back at the root's .githooks", () => {
-    expect(hooksPathOf("packages/framework")).toBe("../../.githooks");
   });
 });
