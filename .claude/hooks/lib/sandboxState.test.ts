@@ -30,7 +30,7 @@ function layersOf({
   commandLine?: Record<string, unknown>;
 }): SettingsLayers {
   return {
-    home: folderWith(user),
+    userConfigDir: join(folderWith(user), ".claude"),
     sessionRoot: folderWith(project),
     gateRoot: commandLine ? folderWith(commandLine) : undefined,
   };
@@ -64,6 +64,7 @@ describe("sandboxStateOf", () => {
       }),
     );
     expect(state).toEqual({
+      isEnabled: true,
       isOn: true,
       excludedCommands: ["npm test", "npm run app*", "npm run jev"],
       filesystem: { allowWrite: ["~/.npm", "/tmp"], denyWrite: ["~/.ssh"] },
@@ -101,6 +102,7 @@ describe("sandboxStateOf", () => {
       }),
     );
     expect(state.isOn).toBe(false);
+    expect(state.isEnabled).toBe(false);
     expect(state.excludedCommands).toEqual(["npm test"]);
   });
 
@@ -115,6 +117,7 @@ describe("sandboxStateOf", () => {
       }),
     );
     expect(state.isOn).toBe(false);
+    expect(state.isEnabled).toBe(true);
   });
 
   it.each([["{ not json"], ["[]"], ["null"]])(
@@ -131,22 +134,28 @@ describe("sandboxStateOf", () => {
         }),
       );
       expect(state).toEqual({
+        isEnabled: true,
         isOn: false,
         excludedCommands: ["npm test"],
-        filesystem: {},
+        filesystem: { allowWrite: [], denyWrite: [] },
       });
     },
   );
 
   it("skips a missing layer", () => {
     const state = sandboxStateOf({
-      home: join(tmpdir(), "no-such-home"),
+      userConfigDir: join(tmpdir(), "no-such-home", ".claude"),
       sessionRoot: folderWith({
         "settings.json": { sandbox: onBlock },
       }),
       gateRoot: undefined,
     });
-    expect(state).toEqual({ isOn: true, excludedCommands: [], filesystem: {} });
+    expect(state).toEqual({
+      isEnabled: true,
+      isOn: true,
+      excludedCommands: [],
+      filesystem: { allowWrite: [], denyWrite: [] },
+    });
   });
 
   it("drops entries that aren't strings", () => {

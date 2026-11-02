@@ -1,17 +1,28 @@
 // The sandbox a session's Bash calls run under, merged from the settings layers Claude Code reads. See docs/claude-code-guardrails.md.
 // Managed settings aren't read: the repo deploys none, and a session's own layers are the ones a step or the developer can change.
 import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 
+import { type HookInput, projectDirOf } from "./hookIo.ts";
+
 export interface SandboxState {
-  // `enabled` and no way out through `allowUnsandboxedCommands`.
+  // `enabled` after merging, whatever `allowUnsandboxedCommands` says.
+  isEnabled: boolean;
+  // Enabled, with no way out through `allowUnsandboxedCommands`, and every layer parsed.
   isOn: boolean;
   excludedCommands: string[];
-  filesystem: Record<string, unknown>;
+  filesystem: SandboxFilesystem;
+}
+
+export interface SandboxFilesystem {
+  allowWrite: string[];
+  denyWrite: string[];
 }
 
 export interface SettingsLayers {
-  home: string;
+  // `CLAUDE_CONFIG_DIR`, or `~/.claude`.
+  userConfigDir: string;
   sessionRoot: string;
   // A runner step's `--settings` is the gate root's settings.json; an Interactive session has none.
   gateRoot: string | undefined;
@@ -19,38 +30,55 @@ export interface SettingsLayers {
 
 type Layer = Record<string, unknown> | "malformed" | undefined;
 
+export function sessionSandboxStateOf(
+  input: HookInput | undefined,
+): SandboxState {
+  return sandboxStateOf({
+    userConfigDir: process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude"),
+    sessionRoot: projectDirOf(input),
+    gateRoot: process.env.BYRO_GATE_ROOT,
+  });
+}
+
+export function sandboxStateOf(layers: SettingsLayers): SandboxState {
+  const parsedLayers = layerPathsOf(layers).map(layerAt);
+  const sandbox = parsedLayers.reduce<Record<string, unknown>>(
+    (merged, layer) => {
+      if (layer === undefined || layer === "malformed") return merged;
+      return mergedOf(merged, objectOf(layer.sandbox));
+    },
+    {},
+  );
+  const isEnabled = sandbox.enabled === true;
+  // A broken file asks rather than frees.
+  const isMalformed = parsedLayers.includes("malformed");
+  const filesystem = objectOf(sandbox.filesystem);
+  return {
+    isEnabled,
+    isOn:
+      !isMalformed && isEnabled && sandbox.allowUnsandboxedCommands === false,
+    excludedCommands: stringsOf(sandbox.excludedCommands),
+    filesystem: {
+      allowWrite: stringsOf(filesystem.allowWrite),
+      denyWrite: stringsOf(filesystem.denyWrite),
+    },
+  };
+}
+
 // Lowest precedence first, as Claude Code's settings docs order them.
 function layerPathsOf({
-  home,
+  userConfigDir,
   sessionRoot,
   gateRoot,
 }: SettingsLayers): string[] {
   return [
-    join(home, ".claude", "settings.json"),
+    join(userConfigDir, "settings.json"),
     join(sessionRoot, ".claude", "settings.json"),
     join(sessionRoot, ".claude", "settings.local.json"),
     ...(gateRoot === undefined
       ? []
       : [join(gateRoot, ".claude", "settings.json")]),
   ];
-}
-
-export function sandboxStateOf(layers: SettingsLayers): SandboxState {
-  const read = layerPathsOf(layers).map(layerAt);
-  const sandbox = read.reduce<Record<string, unknown>>((merged, layer) => {
-    if (layer === undefined || layer === "malformed") return merged;
-    return mergedOf(merged, objectOf(layer.sandbox));
-  }, {});
-  // A broken file asks rather than frees.
-  const isMalformed = read.includes("malformed");
-  return {
-    isOn:
-      !isMalformed &&
-      sandbox.enabled === true &&
-      sandbox.allowUnsandboxedCommands === false,
-    excludedCommands: stringsOf(sandbox.excludedCommands),
-    filesystem: objectOf(sandbox.filesystem),
-  };
 }
 
 function layerAt(path: string): Layer {

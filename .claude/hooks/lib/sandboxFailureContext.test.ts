@@ -116,7 +116,10 @@ describe("writeScopeOf", () => {
   });
 
   it("reads an empty filesystem block as the defaults", () => {
-    expect(writeScopeOf({}, { home: "/h", cwd: "/c", tmpdir: "/t" })).toEqual({
+    const filesystem = { allowWrite: [], denyWrite: [] };
+    expect(
+      writeScopeOf(filesystem, { home: "/h", cwd: "/c", tmpdir: "/t" }),
+    ).toEqual({
       allow: ["/c", "/t", "/dev"],
       deny: [],
     });

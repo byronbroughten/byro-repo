@@ -10,10 +10,9 @@ import {
   readJsonFile,
   runFailOpen,
   sessionStatePath,
-  settingsLayersOf,
   writeHookOutput,
 } from "./lib/hookIo.ts";
-import { sandboxStateOf } from "./lib/sandboxState.ts";
+import { sessionSandboxStateOf } from "./lib/sandboxState.ts";
 import { readSheetsConfigs } from "./lib/sheetsConfigs.ts";
 import { driveOwnersOf } from "./lib/tiers/driveOwners.ts";
 import {
@@ -87,10 +86,10 @@ async function bashDecision(input: HookInput): Promise<Decision | undefined> {
   });
 }
 
-// Only a box with no way out keeps an excluded command in it.
+// A disabled sandbox keeps no excluded command in the box.
 function boxedExcludedCommandsOf(input: HookInput): string[] {
-  const state = sandboxStateOf(settingsLayersOf(input));
-  return state.isOn ? state.excludedCommands : [];
+  const state = sessionSandboxStateOf(input);
+  return state.isEnabled ? state.excludedCommands : [];
 }
 
 function ownerCacheOf(path: string): OwnerCache {

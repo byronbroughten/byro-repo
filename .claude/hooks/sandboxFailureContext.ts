@@ -2,22 +2,21 @@
 import { homedir, tmpdir } from "node:os";
 
 import {
-  gateRootOf,
+  projectDirOf,
   readHookInput,
   runFailOpen,
-  settingsLayersOf,
   writeHookOutput,
 } from "./lib/hookIo.ts";
 import { sandboxContextOf, writeScopeOf } from "./lib/sandboxFailureContext.ts";
-import { sandboxStateOf } from "./lib/sandboxState.ts";
+import { sessionSandboxStateOf } from "./lib/sandboxState.ts";
 
 await runFailOpen(() => {
   const input = readHookInput();
   if (typeof input?.error !== "string") return;
-  const { filesystem } = sandboxStateOf(settingsLayersOf(input));
+  const { filesystem } = sessionSandboxStateOf(input);
   const scope = writeScopeOf(filesystem, {
     home: homedir(),
-    cwd: input.cwd ?? gateRootOf(input),
+    cwd: input.cwd ?? projectDirOf(input),
     tmpdir: tmpdir(),
   });
   const context = sandboxContextOf(input.error, scope);

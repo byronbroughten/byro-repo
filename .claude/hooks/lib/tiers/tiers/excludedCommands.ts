@@ -1,4 +1,4 @@
-// The settings' `excludedCommands`, and the refusal of a call that holds one but stays in the sandbox, where it fails without naming the box.
+// The refusal of a call that holds an `excludedCommands` entry but stays in the sandbox, where it fails without naming the box.
 // Claude Code lets a call out only when every command in it matches an entry, with nothing beside them but `&&`, `||`, `;` or `2>&1`.
 import { callOfItsOwn } from "@byronbroughten/spec-runner/callOfItsOwn";
 

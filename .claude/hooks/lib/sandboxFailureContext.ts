@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { callOfItsOwn } from "@byronbroughten/spec-runner/callOfItsOwn";
 import { protectedClaudeEntries } from "@byronbroughten/spec-runner/claudeEntries";
 
-import type { SandboxState } from "./sandboxState.ts";
+import type { SandboxFilesystem } from "./sandboxState.ts";
 
 export interface WriteScope {
   allow: string[];
@@ -77,25 +77,18 @@ export function sandboxContextOf(
 }
 
 export function writeScopeOf(
-  filesystem: SandboxState["filesystem"],
+  filesystem: SandboxFilesystem,
   env: ScopeEnv,
 ): WriteScope {
   return {
     allow: [
-      ...listedPaths(filesystem.allowWrite, env.home),
+      ...filesystem.allowWrite.map((path) => expandHome(path, env.home)),
       env.cwd,
       env.tmpdir,
       "/dev",
     ],
-    deny: listedPaths(filesystem.denyWrite, env.home),
+    deny: filesystem.denyWrite.map((path) => expandHome(path, env.home)),
   };
-}
-
-function listedPaths(value: unknown, home: string): string[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .filter((entry): entry is string => typeof entry === "string")
-    .map((entry) => expandHome(entry, home));
 }
 
 function deniedPathsOf(error: string, scope: WriteScope): string[] {
