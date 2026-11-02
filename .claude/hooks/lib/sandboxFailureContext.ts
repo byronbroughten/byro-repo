@@ -1,0 +1,97 @@
+// What sandboxFailureContext.ts adds after a failed Bash call whose output shows the sandbox stopped it. See docs/claude-code-guardrails.md.
+import { join } from "node:path";
+
+export interface WriteScope {
+  allow: string[];
+  deny: string[];
+}
+
+export interface ScopeEnv {
+  home: string;
+  cwd: string;
+  tmpdir: string;
+}
+
+const wayThrough =
+  "The call ran in the sandbox. If the command is on `excludedCommands` in `.claude/settings.json`, run it in a call of its own, with no `cd`, pipe, `$(…)`, heredoc or other command beside it. Otherwise this is a limit of the sandbox: report it to the developer with the error, and never retry with `dangerouslyDisableSandbox`. A runner step records a blocker naming the sandbox.";
+
+const fixedRows = [
+  {
+    output: /x509: OSStatus -26276/,
+    says: "This is the sandbox, not the network: it blocked a Go tool's TLS check (`x509: OSStatus -26276`).",
+  },
+  {
+    output: /CONNECT tunnel failed, response 403/,
+    says: "This is the sandbox: the host isn't on its `allowedDomains` (`CONNECT tunnel failed, response 403`).",
+  },
+  {
+    output: /operation not permitted: ps\b/i,
+    says: "This is the sandbox: it blocks `ps`.",
+  },
+];
+
+const permissionLine = /operation not permitted/i;
+const pathInLine = /(?:^|[\s'"`(:])((?:\/|~\/)[^\s'"`:,)]+)/g;
+
+export function sandboxContextOf(
+  error: string,
+  scope: WriteScope,
+): string | undefined {
+  const says = fixedRows
+    .filter((row) => row.output.test(error))
+    .map((row) => row.says);
+  const denied = deniedPathsOf(error, scope);
+  if (denied.length > 0) {
+    says.push(
+      `This is the sandbox: it denies writes to ${denied.map((path) => `\`${path}\``).join(", ")}. It writes only in the workspace, the temp folders and the \`allowWrite\` folders, and never under a primary checkout's \`.git\` or \`claude-guardrails/\`.`,
+    );
+  }
+  if (says.length === 0) return undefined;
+  return [...says, wayThrough].join(" ");
+}
+
+export function writeScopeOf(settings: unknown, env: ScopeEnv): WriteScope {
+  const filesystem = (
+    settings as { sandbox?: { filesystem?: Record<string, unknown> } }
+  )?.sandbox?.filesystem;
+  return {
+    allow: [
+      ...listedPaths(filesystem?.allowWrite, env.home),
+      env.cwd,
+      env.tmpdir,
+      "/dev",
+    ],
+    deny: listedPaths(filesystem?.denyWrite, env.home),
+  };
+}
+
+function listedPaths(value: unknown, home: string): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((entry): entry is string => typeof entry === "string")
+    .map((entry) => expandHome(entry, home));
+}
+
+function deniedPathsOf(error: string, scope: WriteScope): string[] {
+  const paths = error
+    .split("\n")
+    .filter((line) => permissionLine.test(line))
+    .flatMap((line) =>
+      [...line.matchAll(pathInLine)].map((match) => match[1] as string),
+    );
+  return [...new Set(paths)].filter((path) => !writableIn(path, scope));
+}
+
+function writableIn(path: string, scope: WriteScope): boolean {
+  if (path.split("/").includes("claude-guardrails")) return false;
+  if (scope.deny.some((folder) => isUnder(path, folder))) return false;
+  return scope.allow.some((folder) => isUnder(path, folder));
+}
+
+function isUnder(path: string, folder: string): boolean {
+  return path === folder || path.startsWith(join(folder, "/"));
+}
+
+function expandHome(path: string, home: string): string {
+  return path.startsWith("~/") ? join(home, path.slice(2)) : path;
+}

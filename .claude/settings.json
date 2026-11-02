@@ -369,6 +369,18 @@
         ]
       }
     ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/sandboxFailureContext.ts\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "hooks": [
