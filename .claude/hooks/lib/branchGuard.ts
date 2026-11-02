@@ -2,8 +2,11 @@
 import { homedir } from "node:os";
 import { isAbsolute, join, relative, resolve } from "node:path";
 
-import { foldersAfterCdOf, type Segment } from "./tiers/SegmentReader.ts";
 import { ShellParser } from "./tiers/ShellParser.ts";
+import {
+  foldersAfterCdOf,
+  type Segment,
+} from "./tiers/ShellParser/SegmentReader.ts";
 
 export type GuardMode = "interim" | "strict";
 
