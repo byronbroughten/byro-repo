@@ -9,6 +9,7 @@ import { gapCheckOutputSchema } from "./gapCheck.ts";
 import type { ResolveRecord } from "./resolveStep.ts";
 import { runKnobsOf } from "./runKnobs.ts";
 import {
+  addIssue,
   addSpec,
   clonePaths,
   findingOf,
@@ -265,6 +266,32 @@ describe("run's review list", () => {
 
     expect(notices.sent.at(-1)?.summary).toBe(
       "Run ended: landed byro-repo #1, byro-repo #2. Every ticket is closed. review list: 1 undecided across 1 ticket.",
+    );
+  });
+
+  it("ends a Standalone run whose ticket stays open for its undecided items saying so, never that every ticket is closed", async () => {
+    addIssue(spec.number);
+    const agentStep = FakeAgentStep.init(
+      implemented("one.ts"),
+      reviewed(findings),
+      resolvedAs(propose, kept, coveredLater),
+    );
+
+    await specRun(agentStep).run(spec);
+
+    expect(notices.sent.at(-1)?.summary).toBe(
+      "Run ended: landed byro-repo #213. The ticket is left open until /judge-findings decides its review list. review list: 1 undecided across 1 ticket.",
+    );
+  });
+
+  it("ends a Standalone run whose ticket closes at landing as before", async () => {
+    addIssue(spec.number);
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    await specRun(agentStep).run(spec);
+
+    expect(notices.sent.at(-1)?.summary).toBe(
+      "Run ended: landed byro-repo #213. Every ticket is closed.",
     );
   });
 
