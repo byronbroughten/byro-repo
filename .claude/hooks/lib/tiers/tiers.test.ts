@@ -749,6 +749,9 @@ describe("a sandboxed call", () => {
       "interactive",
     );
     expect(view).toEqual(sandboxedDecisionOf("gh issue view 5", "interactive"));
+  });
+
+  it("denies a runner step's gh issue view even beside a free command", () => {
     expect(
       sandboxedDecisionOf("node x.ts && gh issue view 5", "runnerStep")
         ?.permissionDecision,
