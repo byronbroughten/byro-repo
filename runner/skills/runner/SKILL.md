@@ -1,10 +1,10 @@
 ---
 name: runner
-description: "Supervise one spec run or one Batch from an interactive session: launch or rejoin it, explain each of its events to the developer, do the work its steps can't, suggest replies, post the ones the developer approves, and stop it when they agree. Invoked as /runner <owner/repo> <n> [<n>…]."
+description: "Supervise one spec run or one Batch from an interactive session: launch or rejoin it, explain each of its events to the developer, do the work its steps can't, suggest replies, post the ones the developer approves, and stop it when they agree. Invoked as /runner <owner/repo> <n> [<n>…], or /runner <owner/repo> standalone to list the repo's launchable Standalone tickets and launch them as a Batch after a yes."
 disable-model-invocation: true
 ---
 
-`/runner <owner/repo> <n>` makes this session the Supervisor of spec `<n>`'s run; `/runner <owner/repo> <n> <n>…` does the same for the Batch of those specs, in one tmux session with one watch. Its words (Supervisor, Batch, Halt, Failure Halt, Split Halt, Idle, Vanished, Stop, Restart, Interactive ticket) are in [`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md).
+`/runner <owner/repo> <n>` makes this session the Supervisor of spec `<n>`'s run; `/runner <owner/repo> <n> <n>…` does the same for the Batch of those specs, in one tmux session with one watch. `/runner <owner/repo> standalone` names that list by the repo's launchable Standalone tickets: step 1 shows it and launches it after a yes. Its words (Supervisor, Batch, Halt, Failure Halt, Split Halt, Idle, Vanished, Stop, Restart, Interactive ticket) are in [`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md).
 
 For a Batch, `<n>` in every command below except the launch is any one member's number: `status`, `watch`, `supervise` and `stop` each reach the whole Batch through it. The launch takes the whole list.
 
@@ -15,6 +15,13 @@ For a Batch, `<n>` in every command below except the launch is any one member's 
 1. Read the run: `npm run runner -- status <owner/repo> <n>`.
 2. With no run live, launch it with every number the developer named: `npm run runner:tmux -- <owner/repo> <n> [<n>…]`. It starts the run in its own detached tmux session and prints that session's attach line, then waits for the run's `run-started` or `run-ended` line and prints it; when the wait runs out it says the run's state is unknown instead. Never start `npm run runner` itself, in the foreground or as a background Bash call: the run must outlive this session.
 3. With a run already live, rejoin it as it is. Never launch a second one. A live Batch holding any named number is rejoined as it is too, with the list it was launched with.
+
+**`/runner <owner/repo> standalone`** has no number yet, so read the list first: run `npm run runner -- standalone <repo>` and show the developer what it printed, the launchable tickets and the left-out ones with their reasons.
+
+- **Nothing launchable**: say so with the left-out reasons, and stop.
+- **Before launching, read `status`** (step 1.1) for each listed number, so a live Batch holding a listed ticket is rejoined, not launched beside.
+- **Launch only after the developer's yes in chat**, with no yes, no launch. Launch exactly the listed numbers, through step 1.2's `npm run runner:tmux -- <owner/repo> <n> [<n>…]`. The list never grows during the run, and a ticket the developer hasn't seen is never added.
+- From then on, supervise the Batch as any other (steps 2 onward).
 
 ## 2. Watch
 
