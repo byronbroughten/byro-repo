@@ -29,6 +29,7 @@ import {
   isAmong,
   memberBlockedWaitOf,
   type MemberList,
+  type Restart,
   type Run,
   type RunResult,
   type TicketOutcome,
@@ -143,14 +144,17 @@ export class RunLoop extends SpecRunBase {
     runs: RunList<Run>,
     startedAt: Date,
   ): Promise<RunResult> {
+    const members = membersOf(runs);
     // Each Run's restart is taken, whichever relaunches, so no later rerun reads one again.
     let isRelaunch = false;
-    runs.forEach((run) => {
-      if (this._takeRestart(run)) isRelaunch = true;
-    });
+    for (const member of members) {
+      const restart = this._takeRestart(member.run);
+      if (restart === undefined) continue;
+      isRelaunch = true;
+      member.end = restart.end;
+    }
     const refused = await this.preflightChecker._refusalOf(runs);
     if (refused !== undefined) return refused;
-    const members = membersOf(runs);
     // The account and the primary checkout concern every member alike; the first member reads them.
     const [lead] = members;
     const preflightStop = await this.preflightChecker._preflightStop();
@@ -436,8 +440,8 @@ export class RunLoop extends SpecRunBase {
   // Logged, never announced: tmux.sh relaunches the run at once, so a Supervisor has nothing to explain.
   private _restart(members: Member[], ticket: IssueRef): RunResult {
     const message = `Restarting: the runner changed since the run started, found after landing ${issueLabelOf(ticket)}; relaunching on the landed code.`;
-    members.forEach(({ run }) => {
-      run.state.restart = { landed: run.landed };
+    members.forEach(({ run, end }) => {
+      run.state.restart = { landed: run.landed, ...(end && { end }) };
       this._saveState(run);
       this._log(run, message);
     });
@@ -446,22 +450,23 @@ export class RunLoop extends SpecRunBase {
   }
 
   // Saved at once, so a crash before the end can't make a later rerun read as a relaunch.
-  private _takeRestart(run: Run): boolean {
+  private _takeRestart(run: Run): Restart | undefined {
     const { restart } = run.state;
-    if (restart === undefined) return false;
+    if (restart === undefined) return undefined;
     run.landed.push(...restart.landed);
     delete run.state.restart;
     this._saveState(run);
-    return true;
+    return restart;
   }
 
   // Sent at the first pick, so it can name the ticket about to launch, on its own member only; a first pick with no launch still shows startup passed.
   private async _announceStart(
-    members: Member[],
-    { reading, launch, isRelaunch }: RunStart,
+    unfinished: Member[],
+    start: RunStart,
   ): Promise<void> {
+    const { reading, launch, isRelaunch } = start;
     const warnings = await this._stalePathWarnings();
-    for (const member of members) {
+    for (const member of startedMembersOf(unfinished, start)) {
       const { run } = member;
       const ticket =
         launch?.member === member ? launch.ticket.issue : undefined;
@@ -585,6 +590,16 @@ function isIdleWait({ reason }: Wait): boolean {
 
 function idleMessageOf(waits: Wait[]): string {
   return `Idle: nothing runnable. ${runText.waitsOf(waits)}.`;
+}
+
+// A relaunch carries the run on, so one line marks it: on the member it launches, or the first unfinished one.
+function startedMembersOf(
+  unfinished: Member[],
+  { launch, isRelaunch }: RunStart,
+): Member[] {
+  if (!isRelaunch) return unfinished;
+  const member = launch?.member ?? unfinished[0];
+  return member === undefined ? [] : [member];
 }
 
 function stopRequestMessageOf(run: Run, waits: Wait[]): string {

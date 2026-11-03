@@ -2,7 +2,7 @@
 // RunLoop.ts builds one per pick from TicketSelector._select and reads which members stop, wait, or launch next.
 
 import { type IssueRef } from "../IssueWorkspaces.ts";
-import { type Run, type RunResult } from "./runState.ts";
+import { type MemberEnd, type Run } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
 import { type Selection } from "./TicketSelector.ts";
 
@@ -10,12 +10,6 @@ import { type Selection } from "./TicketSelector.ts";
 export interface Member {
   run: Run;
   end?: MemberEnd;
-}
-
-export interface MemberEnd {
-  result: RunResult;
-  // Finished with nothing left waiting.
-  isLanded: boolean;
 }
 
 // The issue a member was typed as: its spec, or its Standalone ticket.

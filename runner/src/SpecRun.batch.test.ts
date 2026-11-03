@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { hostname } from "node:os";
 import { join } from "node:path";
 
@@ -6,18 +6,12 @@ import { describe, expect, it } from "vitest";
 
 import type { StepRequest, StepResult } from "./AgentStep.ts";
 import { batchEventFilePathOf, BatchRecords } from "./BatchRecords.ts";
-import {
-  EventFileNotices,
-  eventFilePathOf,
-  type EventLine,
-  eventLinesOf,
-} from "./EventFileNotices.ts";
+import { eventFilePathOf, eventLinesOf } from "./EventFileNotices.ts";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
 import { gapCheckOutputSchema } from "./gapCheck.ts";
 import type { Blocker } from "./implementStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import { seedHolder } from "./lockFixture.ts";
-import { composedNotices } from "./Notices.ts";
 import type { ResolveRecord } from "./resolveStep.ts";
 import { runKnobsOf } from "./runKnobs.ts";
 import { RunLock } from "./RunLock.ts";
@@ -25,6 +19,7 @@ import type { Clock, MemberList, RunResult, SpecRunConfig } from "./SpecRun.ts";
 import {
   addIssue,
   addSpec,
+  batchEventLines,
   blocked,
   clonePaths,
   findingOf,
@@ -40,6 +35,7 @@ import {
   specRun,
   stateFolder,
   useSpecRunHarness,
+  withEventFile,
 } from "./specRunHarness.ts";
 
 useSpecRunHarness();
@@ -581,18 +577,6 @@ function batchRecords(): BatchRecords {
   return BatchRecords.init(stateFolder());
 }
 
-function withEventFile(): Partial<SpecRunConfig> {
-  const eventFile = EventFileNotices.init(stateFolder());
-  return { notices: composedNotices(notices, eventFile) };
-}
-
-function batchEventLines(members: MemberList): EventLine[] {
-  return readFileSync(batchEventFilePathOf(stateFolder(), members), "utf8")
-    .trimEnd()
-    .split("\n")
-    .map((line) => JSON.parse(line) as EventLine);
-}
-
 describe("a Batch's record", () => {
   it("names the members in typed order while the Batch runs, reached by any member, and is gone once it ends", async () => {
     addIssue(first.number);
@@ -901,7 +885,6 @@ describe("a Batch's record", () => {
       [213, undefined],
       [301, undefined],
       [213, true],
-      [301, true],
     ]);
   });
 
