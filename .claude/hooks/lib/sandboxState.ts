@@ -24,6 +24,17 @@ export interface SandboxOff {
   excludedCommands: string[];
 }
 
+// The phrases the gate's off ask and the session-start warning share, so the two say the same thing.
+export const sandboxOffWords = {
+  madeOfEntries: "made only of `excludedCommands` entries",
+  offClause({ cause }: SandboxOff): string {
+    return `the sandbox is off, as ${cause}`;
+  },
+  turnBackOn({ fix }: SandboxOff): string {
+    return `To turn the box back on, ${fix}.`;
+  },
+};
+
 export interface SandboxFilesystem {
   allowWrite: string[];
   denyWrite: string[];
