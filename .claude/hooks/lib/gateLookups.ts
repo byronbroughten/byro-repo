@@ -1,8 +1,6 @@
 // The file-system lookups the tier gate's Bash decision reads, shared by tierGate.ts and stepPermission.ts so both decide a call alike.
-import { spawnSync } from "node:child_process";
 import { lstatSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname } from "node:path";
 
 import {
   type HookInput,
@@ -39,20 +37,7 @@ export function shellPlacesAt(workspaceRoot: string, cwd: string): ShellPlaces {
         return false;
       }
     },
-    isIgnored: isGitIgnored,
   };
-}
-
-// Asked of the path's own checkout, since the root ignores each package clone whole.
-function isGitIgnored(path: string): boolean {
-  const checked = spawnSync("git", [
-    "-C",
-    dirname(path),
-    "check-ignore",
-    "-q",
-    path,
-  ]);
-  return checked.status === 0;
 }
 
 export const dryRuns = {

@@ -8,17 +8,10 @@ const existing = new Set([
   "/ws/AGENTS.md",
   "/ws/dist",
   "/ws/.git",
-  "/ws/.runner",
-  "/ws/.runner/helper.ts",
-  "/ws/scripts",
-  "/ws/scripts/tool.ts",
   "/ws/packages",
   "/ws/packages/framework",
   "/ws/packages/framework/.git",
   "/ws/packages/framework/src",
-  "/ws/node_modules",
-  "/ws/node_modules/clasp",
-  "/ws/node_modules/clasp/cli.js",
   "/var",
   "/var/T",
   "/var/T/helper.mjs",
@@ -35,7 +28,6 @@ const links = new Map([
   ["/ws/dangling", "/nowhere"],
   ["/tmp", "/private/tmp"],
 ]);
-const ignoredFolders = ["/ws/.runner", "/ws/.scratch", "/ws/node_modules"];
 
 export function fakePlaces(cwd = "/ws"): ShellPlaces {
   return {
@@ -44,8 +36,6 @@ export function fakePlaces(cwd = "/ws"): ShellPlaces {
     cwd,
     realPathOf: fakeRealPathOf,
     isLink: (path) => links.has(path),
-    isIgnored: (path) =>
-      ignoredFolders.some((folder) => path.startsWith(`${folder}/`)),
   };
 }
 

@@ -1,5 +1,5 @@
 // PreToolUse on Bash, WebFetch, WebSearch and the gworkspace write and create tools applies the tier gate; PostToolUse on Bash records each app chore dry run that ran, for a later --send.
-// Every Bash call gets the file-system lookups the step write rule and scratch `node` need, so the decision stays pure.
+// Every Bash call gets the file-system lookups following a `cd` and a runner step's `git restore` need, so the decision stays pure.
 import { writeFileSync } from "node:fs";
 
 import { dryRuns, shellPlacesOf } from "./lib/gateLookups.ts";

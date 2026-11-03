@@ -1,4 +1,4 @@
-// The step write rule: where a write is tier 1. Pure; the caller passes the file-system lookups, so an Edit and a Bash write get one answer.
+// The step write rule: where a write is tier 1. Pure; the caller passes the file-system lookups, so a runner step's Edit or Write is decided without touching the disk.
 import { dirname, isAbsolute, join, relative, sep } from "node:path";
 
 // realPathOf is undefined when nothing is there; isLink is true for a symlink, dangling or not.
@@ -29,7 +29,7 @@ export function isStepWritable(path: string, places: WritePlaces): boolean {
 }
 
 // The path's parts below $TMPDIR or /tmp, or undefined when it is strictly inside neither or is in .git at any depth.
-export function tmpPartsOf(
+function tmpPartsOf(
   resolved: string,
   places: WritePlaces,
 ): string[] | undefined {
@@ -50,7 +50,7 @@ export function partsClearOfGit(
 }
 
 // The path's parts below a root, or undefined when it isn't strictly inside it.
-export function partsInside(
+function partsInside(
   resolved: string,
   root: string,
   places: WritePlaces,

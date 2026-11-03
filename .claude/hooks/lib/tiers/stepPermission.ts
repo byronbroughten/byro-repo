@@ -27,7 +27,7 @@ export interface PermissionCall {
 const toolAnswers = new Map<string, (call: PermissionCall) => boolean>([
   ["Edit", isWritable],
   ["Write", isWritable],
-  // The gate's own decision, so a Bash write and an Edit to one path get one answer.
+  // The gate's own decision, so a call the gate frees gets its allow here too.
   ["Bash", isGateAllowed],
   ["Read", () => true],
 ]);

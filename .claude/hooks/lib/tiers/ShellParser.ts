@@ -15,11 +15,10 @@ import {
 
 const separators = new Set([";", ";;", "&&", "||", "&", "$(", "(", ")", "`"]);
 
-// isBare: no wrapper or env assignment was dropped from its words. outputFiles: each file a redirect writes.
+// isBare: no wrapper or env assignment was dropped from its words.
 export interface SimpleCommand {
   words: string[];
   isBare: boolean;
-  outputFiles: string[];
 }
 
 export class ShellParser {
@@ -202,12 +201,12 @@ export class ShellParser {
 
 function simpleCommandsOf(segments: Segment[]): SimpleCommand[] {
   return segments
-    .map(({ words, commandWords, outputFiles }) => ({
+    .filter(
+      ({ commandWords, outputFiles }) =>
+        commandWords.length > 0 || outputFiles.length > 0,
+    )
+    .map(({ words, commandWords }) => ({
       words: commandWords,
       isBare: commandWords.length === words.length,
-      outputFiles,
-    }))
-    .filter(
-      ({ words, outputFiles }) => words.length > 0 || outputFiles.length > 0,
-    );
+    }));
 }

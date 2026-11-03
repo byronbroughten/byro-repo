@@ -15,15 +15,11 @@ function call(
   return { toolName, toolInput, mode, dryRuns: [], places: fakePlaces() };
 }
 
-// Each path through an Edit, a Write, an `mv` and a redirect, which must all get the one answer.
+// Each path through an Edit and a Write, which must get the one answer.
 function answersFor(path: string): (string | undefined)[] {
   return [
     stepPermissionDecision(call("Edit", { file_path: path })),
     stepPermissionDecision(call("Write", { file_path: path })),
-    stepPermissionDecision(
-      call("Bash", { command: `mv /tmp/helper.mjs ${path}` }),
-    ),
-    stepPermissionDecision(call("Bash", { command: `echo x > ${path}` })),
   ];
 }
 
@@ -35,8 +31,8 @@ describe("stepPermissionDecision", () => {
     "/ws/.mcp.json",
     "/ws/.githooks/pre-commit",
     "/tmp/out.txt",
-  ])("allows %s through an Edit and a Bash write alike", (path) => {
-    expect(answersFor(path)).toEqual(["allow", "allow", "allow", "allow"]);
+  ])("allows %s through an Edit and a Write alike", (path) => {
+    expect(answersFor(path)).toEqual(["allow", "allow"]);
   });
 
   it.each([
@@ -46,13 +42,8 @@ describe("stepPermissionDecision", () => {
     "/ws/escape/x",
     "/ws/dangling",
     "/Users/dev/.claude/settings.json",
-  ])("decides nothing for %s through an Edit or a Bash write", (path) => {
-    expect(answersFor(path)).toEqual([
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-    ]);
+  ])("decides nothing for %s through an Edit or a Write", (path) => {
+    expect(answersFor(path)).toEqual([undefined, undefined]);
   });
 
   it("decides nothing for a Bash call the gate doesn't allow", () => {

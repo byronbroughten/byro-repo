@@ -42,7 +42,7 @@ const freeScripts = new Map<string, string>([
   ["lint", freeWhys.check],
   ["test", freeWhys.check],
 ]);
-// Each check only with no flag that writes a file the write rule never sees.
+// Each check only with no flag that writes a file, since nothing checks where that file goes.
 const npxChecks = new Map<string, (args: string[]) => boolean>([
   [
     "vitest",
