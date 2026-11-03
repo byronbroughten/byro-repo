@@ -127,6 +127,14 @@ export class FakeGitHub implements RunGitHub {
     });
   }
 
+  // In the order the issues were added.
+  async openIssuesLabelled(repo: string, label: string): Promise<IssueRef[]> {
+    this._failIfScripted();
+    return [...this.issues.values()].flatMap(({ issue, isOpen, labels }) =>
+      isOpen && labels.includes(label) ? [{ repo, number: issue.number }] : [],
+    );
+  }
+
   edit(number: number, change: Partial<TrackedIssue>): void {
     const issue = this.issues.get(number);
     if (!issue) throw new Error(`No issue #${number}`);

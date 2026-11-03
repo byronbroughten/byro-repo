@@ -75,6 +75,33 @@ describe("GhCli reads", () => {
     ]);
   });
 
+  it("lists a repo's open issues by label", async () => {
+    const { cli, calls } = scriptedGh([
+      ghError("HTTP 502"),
+      '[{"number":12},{"number":4}]',
+    ]);
+    expect(
+      await cli.openIssuesLabelled("sheets-framework", "ready-for-agent"),
+    ).toEqual([
+      { repo: "sheets-framework", number: 12 },
+      { repo: "sheets-framework", number: 4 },
+    ]);
+    expect(calls[1]).toEqual([
+      "issue",
+      "list",
+      "-R",
+      "o/sheets-framework",
+      "--label",
+      "ready-for-agent",
+      "--state",
+      "open",
+      "--limit",
+      "1000",
+      "--json",
+      "number",
+    ]);
+  });
+
   it("throws the last error after four tries", async () => {
     const { cli, calls, waits } = scriptedGh([
       ghError("HTTP 502"),

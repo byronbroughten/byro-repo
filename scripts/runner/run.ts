@@ -8,6 +8,7 @@
 // `status` and `watch` with no spec print the Run board once or redraw it every 5s (runBoard.ts).
 // `decide` ticks one review-list item and adds its `Decided:` line, or with `--handled` adds a `Handled:` line unticked (SpecRun/ReviewItemDecider.ts).
 // `judgeable` lists the repo's open issues with undecided review-list items or ready to close, for /judge-findings (SpecRun/JudgeableIssueLister.ts).
+// `standalone` lists the repo's launchable Standalone tickets, the left-out ones with their reasons, and the line that launches the list; nothing launches (SpecRun/StandaloneTicketLister.ts).
 import { readFileSync } from "node:fs";
 import { setTimeout as sleep } from "node:timers/promises";
 
@@ -38,8 +39,10 @@ const verbs = [
   "supervise",
   "decide",
   "judgeable",
+  "standalone",
 ];
-const usage = `Usage: npm run runner -- <owner/repo> <n> [<n>…] to run one spec or a Batch, ${plainVerbs.join("|")} <owner/repo> <n>, watch <owner/repo> <n> [--once], resolve <owner/repo> <n> <records.json>, supervise <owner/repo> <n> [--advance], decide <owner/repo> <spec> R<n>.<k> [--handled] "<text>", judgeable <owner/repo>, or [${boardVerbs.join("|")}] alone for the Run board`;
+const repoVerbs = ["judgeable", "standalone"];
+const usage = `Usage: npm run runner -- <owner/repo> <n> [<n>…] to run one spec or a Batch, ${plainVerbs.join("|")} <owner/repo> <n>, watch <owner/repo> <n> [--once], resolve <owner/repo> <n> <records.json>, supervise <owner/repo> <n> [--advance], decide <owner/repo> <spec> R<n>.<k> [--handled] "<text>", ${repoVerbs.join("|")} <owner/repo>, or [${boardVerbs.join("|")}] alone for the Run board`;
 
 try {
   const args = process.argv.slice(2);
@@ -52,8 +55,8 @@ try {
     await showBoard(command);
   } else if (command === "decide") {
     await decide(args);
-  } else if (command === "judgeable") {
-    await listJudgeable(args);
+  } else if (repoVerbs.includes(command)) {
+    await listForRepo(command, args);
   } else if (command === "run") {
     await runBatch(args);
   } else {
@@ -222,12 +225,16 @@ async function decide(args: string[]): Promise<void> {
   );
 }
 
-async function listJudgeable(args: string[]): Promise<void> {
+async function listForRepo(command: string, args: string[]): Promise<void> {
   const [ownerRepo = "", ...rest] = args;
   const { owner, repo } = repoArgsOf(ownerRepo);
   if (rest.length > 0) throw new Error(usage);
   const specRun = SpecRun.init(specRunConfigOf(owner));
-  console.log(await specRun.judgeable(repo));
+  if (command === "judgeable") {
+    console.log(await specRun.judgeable(repo));
+  } else {
+    console.log(await specRun.standalone(repo));
+  }
 }
 
 async function supervise(

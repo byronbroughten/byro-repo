@@ -3,7 +3,7 @@
 // A blocker or a Halt verdict is a Halt: posted once the ticket's other work is committed, it holds the
 // tickets in its scope, and the ticket resumes once every one of its Halts is answered (halts.ts).
 // GitHub and git hold what's durable; a per-spec state file holds the step each ticket reached, so a rerun resumes there.
-// This class only delegates: the run loop, its preflight, status and stop requests, ticket selection, a session's review, a review-list decision, the list of issues to judge and every step they run are SpecRun/,
+// This class only delegates: the run loop, its preflight, status and stop requests, ticket selection, a session's review, a review-list decision, the list of issues to judge, the list of launchable Standalone tickets and every step they run are SpecRun/,
 // one collaborator per concern. Steps launch through AgentStep.ts; landing is WrapUp.ts; knobs are runKnobs.ts.
 
 import { type IssueRef } from "./IssueWorkspaces.ts";
@@ -20,6 +20,7 @@ import {
 } from "./SpecRun/runState.ts";
 import { SessionReviewer } from "./SpecRun/SessionReviewer.ts";
 import { SpecRunBase, type SpecRunConfig } from "./SpecRun/SpecRunBase.ts";
+import { StandaloneTicketLister } from "./SpecRun/StandaloneTicketLister.ts";
 import { StatusReporter } from "./SpecRun/StatusReporter.ts";
 
 export type { Clock, RunGitHub, SpecRunConfig } from "./SpecRun/SpecRunBase.ts";
@@ -58,6 +59,10 @@ export class SpecRun extends SpecRunBase {
     return new JudgeableIssueLister(this.config);
   }
 
+  private get standaloneTicketLister(): StandaloneTicketLister {
+    return new StandaloneTicketLister(this.config);
+  }
+
   // One member is a spec's run, a Standalone ticket's included; several are a Batch.
   // Its run loop is built here rather than in a getter, since it holds the member list this call names.
   run(...members: MemberList): Promise<RunResult> {
@@ -86,5 +91,9 @@ export class SpecRun extends SpecRunBase {
 
   judgeable(repo: string): Promise<string> {
     return this.judgeableIssueLister.judgeable(repo);
+  }
+
+  standalone(repo: string): Promise<string> {
+    return this.standaloneTicketLister.standalone(repo);
   }
 }

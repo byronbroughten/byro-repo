@@ -212,8 +212,26 @@ export class GhCli implements RunGitHub, IssueSource {
       "--json",
       "number",
     );
-    const found = JSON.parse(output) as { number?: unknown }[];
-    return found.map(({ number }) => ({ repo, number: Number(number) }));
+    return numberedIssuesOf(repo, output);
+  }
+
+  // `gh issue list` leaves pull requests out; its limit is far above the open issues a repo here holds.
+  async openIssuesLabelled(repo: string, label: string): Promise<IssueRef[]> {
+    const output = await this._read(
+      "issue",
+      "list",
+      "-R",
+      `${this.owner}/${repo}`,
+      "--label",
+      label,
+      "--state",
+      "open",
+      "--limit",
+      "1000",
+      "--json",
+      "number",
+    );
+    return numberedIssuesOf(repo, output);
   }
 
   // GitHub answers 404 for an issue with no parent.
@@ -311,6 +329,11 @@ export class GhCli implements RunGitHub, IssueSource {
     }
     return this.gh(...args);
   }
+}
+
+function numberedIssuesOf(repo: string, output: string): IssueRef[] {
+  const found = JSON.parse(output) as { number?: unknown }[];
+  return found.map(({ number }) => ({ repo, number: Number(number) }));
 }
 
 function isTransient(error: unknown): boolean {
