@@ -106,11 +106,17 @@ export function gateDecision(call: ShellCall): Decision | undefined {
     ? undefined
     : excludedCommands.refusalOf(call.command, entries);
   if (boxRefusal) return gateOf("deny", `${boxRefusal}.`);
-  if (isOn && sandboxedCalls.isFree(call.command, entries)) {
+  const boxCommands = isOn
+    ? sandboxedCalls.boxCommandsOf(call.command, entries)
+    : undefined;
+  const isBoxRun = boxCommands !== undefined;
+  if (
+    isBoxRun &&
+    !boxCommands.some(({ words }) => sandboxedCalls.holdsGitHubCall(words))
+  ) {
     return gateOf("allow", sandboxedCalls.reasonOf(call.command));
   }
-  const boxRun = isOn && sandboxedCalls.runsInBox(call.command, entries);
-  const rowsDecision = boxRun ? gitHubDecisionOf(call) : baseDecision(call);
+  const rowsDecision = isBoxRun ? gitHubDecisionOf(call) : baseDecision(call);
   const decision =
     offDecisionOf(call.command, off) ?? rowsDecision ?? undecidedDecision(call);
   return decision && decisionInMode(decision, call.mode);
@@ -132,7 +138,7 @@ function gitHubDecisionOf(call: ShellCall): Decision | undefined {
   }
   return {
     ...decision,
-    reason: `${decision.reason} ${sandboxedCalls.othersReasonOf(call.command)}`,
+    reason: `${decision.reason} ${sandboxedCalls.restReasonOf(call.command)}`,
   };
 }
 
@@ -202,7 +208,6 @@ function baseDecision(call: ShellCall): Decision | undefined {
   return commandVerdicts && decisionAmong(call, commandVerdicts);
 }
 
-// The call's decision from the verdicts that count toward it.
 function decisionAmong(
   { command, mode }: ShellCall,
   commandVerdicts: CommandVerdict[],
