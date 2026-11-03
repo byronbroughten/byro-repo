@@ -3,7 +3,7 @@ import type { SimpleCommand } from "../ShellParser.ts";
 import type { Verdict } from "../tiers.ts";
 
 export const readCommands = {
-  verdictOf({ words, isBare }: SimpleCommand): Verdict | undefined {
+  labelListVerdictOf({ words, isBare }: SimpleCommand): Verdict | undefined {
     const [program, noun, verb] = words;
     if (!isBare || program !== "gh" || noun !== "label" || verb !== "list") {
       return undefined;

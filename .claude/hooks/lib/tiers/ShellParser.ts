@@ -83,13 +83,6 @@ export class ShellParser {
       (this.heredocs?.every(({ isQuoted }) => isQuoted) ?? false)
     );
   }
-  // Every operator `&&`, no word holding a substitution and no command nested or negated by `!`, so each command runs only once all before it succeeded, in the same shell.
-  get isAndList(): boolean {
-    const isJoinedByAnd = this._tokens.every(({ type, value }) =>
-      type === "op" ? value === "&&" : !/\$\(|`/.test(value),
-    );
-    return isJoinedByAnd && this.segments.every(({ isNested }) => !isNested);
-  }
   // Each operator and redirect between the words, in order, a heredoc's `<<` included.
   get operators(): string[] {
     return this._tokens

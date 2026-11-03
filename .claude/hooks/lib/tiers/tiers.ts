@@ -313,7 +313,7 @@ const classifiers: Classifier[] = [
   interactiveSession.ghVerdictOf,
   interactiveSession.decideVerdictOf,
   npmVerdicts.choreSendVerdictOf,
-  readCommands.verdictOf,
+  readCommands.labelListVerdictOf,
   gitWrites.pushVerdictOf,
   npmVerdicts.untargetedVerdictOf,
   npmVerdicts.forcedRemoveVerdictOf,
