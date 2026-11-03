@@ -1,9 +1,7 @@
-// The verdicts only a runner step gets: its gh issue writes, its targets' live aliases and a restore in its own workspace.
+// The verdicts only a runner step gets: its gh issue writes and its targets' live aliases.
 import type { SimpleCommand } from "../ShellParser.ts";
 import type { CallContext, Verdict } from "../tiers.ts";
-import { GitCall, gitPathOptions } from "./GitCall.ts";
 import { npmCommands } from "./npmCommands.ts";
-import { PathChecker } from "./PathChecker.ts";
 
 const targetAliases = [
   "chore",
@@ -77,25 +75,6 @@ export const runnerStep = {
     return {
       permissionDecision: "allow",
       why: `the ticket targets the \`${spreadsheet}\` spreadsheet`,
-      needsPlainText: true,
-    };
-  },
-  // A runner step's workspace holds only that step's work, so a restore there loses nothing anyone else made.
-  restoreVerdictOf(
-    { words, isBare }: SimpleCommand,
-    { mode, places }: CallContext,
-  ): Verdict | undefined {
-    if (mode !== "runnerStep") return undefined;
-    const git = GitCall.init(words);
-    if (!git?.isPlain || !isBare || git.verb !== "restore") return undefined;
-    const pointsElsewhere = words.some((word) =>
-      gitPathOptions.has(word.split("=")[0] ?? ""),
-    );
-    if (pointsElsewhere) return undefined;
-    if (!PathChecker.init(places).isCwdInWorkspaceCheckout) return undefined;
-    return {
-      permissionDecision: "allow",
-      why: "a runner step's `git restore` changes only its own workspace",
       needsPlainText: true,
     };
   },

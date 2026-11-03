@@ -12,7 +12,6 @@ function toolUseLine(id: string, name: string, input: object): string {
 function resultLine(id: string, permissionDecision?: object): string {
   return JSON.stringify({
     type: "user",
-    cwd: "/repo",
     message: { content: [{ type: "tool_result", tool_use_id: id }] },
     permissionDecision,
   });
@@ -36,7 +35,6 @@ describe("recordedCallsOf", () => {
         tool: "Bash",
         command: "gh issue view 3",
         target: undefined,
-        cwd: "/repo",
         permission: {
           source: "user_temporary",
           decision: "accept",

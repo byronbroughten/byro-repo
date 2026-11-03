@@ -9,6 +9,11 @@ export interface WritePlaces {
   isLink: (path: string) => boolean;
 }
 
+// Where a runner step's call runs, for resolving a relative path it writes.
+export interface ShellPlaces extends WritePlaces {
+  cwd: string;
+}
+
 // The hooks' per-session state, which a write could forge, such as a chore's dry-run record.
 const guardrailStateDir = "claude-guardrails";
 // On a one-person machine the shared /tmp is as throwaway as $TMPDIR, which on macOS sits elsewhere.
@@ -40,7 +45,7 @@ function tmpPartsOf(
 }
 
 // The path's parts below a root, or undefined when it isn't strictly inside it or is in .git at any depth.
-export function partsClearOfGit(
+function partsClearOfGit(
   resolved: string,
   root: string,
   places: WritePlaces,
@@ -62,10 +67,7 @@ function partsInside(
 }
 
 // Walked a part at a time, so `..` follows a symlink as the kernel does; undefined through a dangling link.
-export function resolvedPathOf(
-  path: string,
-  places: WritePlaces,
-): string | undefined {
+function resolvedPathOf(path: string, places: WritePlaces): string | undefined {
   let current = "/";
   for (const part of path.split("/")) {
     if (part === "" || part === ".") continue;

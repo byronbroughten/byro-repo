@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { fakePlaces } from "./fakePlaces.ts";
 import {
   blockerInstead,
   decisionInMode,
@@ -16,36 +15,15 @@ function decisionOf(command: string, dryRuns: string[] = []) {
     ?.permissionDecision;
 }
 
-function placedDecisionOf(
-  command: string,
-  mode: SessionMode = "interactive",
-  cwd = "/ws",
-) {
-  return gateDecision({
-    command,
-    mode,
-    dryRuns: [],
-    places: fakePlaces(cwd),
-  });
-}
-
-function placedStepDecisionOf(command: string) {
-  return placedDecisionOf(command, "runnerStep")?.permissionDecision;
+function modeDecisionOf(command: string, mode: SessionMode = "interactive") {
+  return gateDecision({ command, mode, dryRuns: [] });
 }
 
 function runnerStepDecisionOf(command: string) {
-  return gateDecision({ command, mode: "runnerStep", dryRuns: [] })
-    ?.permissionDecision;
+  return modeDecisionOf(command, "runnerStep")?.permissionDecision;
 }
 
 describe("gateDecision", () => {
-  it("allows a commit on any branch", () => {
-    expect(decisionOf('git commit -m "Add the gate"')).toBe("allow");
-    expect(decisionOf("git -C packages/framework commit -am wip")).toBe(
-      "allow",
-    );
-  });
-
   it("allows wrap-up, the app build and both deploy aliases", () => {
     expect(decisionOf("npm run wrap-up -- byro-repo 274")).toBe("allow");
     expect(decisionOf("npm run app:build")).toBe("allow");
@@ -85,18 +63,17 @@ describe("gateDecision", () => {
       "npm run issue:remove --force -- --session glossary-fix",
     ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
     expect(
-      gateDecision({
-        command: "npm run issue:remove -- --session glossary-fix --force",
-        mode: "runnerStep",
-        dryRuns: [],
-      })?.permissionDecision,
+      runnerStepDecisionOf(
+        "npm run issue:remove -- --session glossary-fix --force",
+      ),
     ).toBe("deny");
   });
 
   it("has no opinion on a command it doesn't list, alone or beside an allowed one", () => {
     expect(decisionOf("make build")).toBeUndefined();
     expect(decisionOf("npm run app:gen:configs")).toBeUndefined();
-    expect(decisionOf("git commit -m wip && make build")).toBeUndefined();
+    expect(decisionOf("git commit -m wip")).toBeUndefined();
+    expect(decisionOf("npm run lint && make build")).toBeUndefined();
   });
 
   it("allows a chore's send once that chore's dry run is recorded", () => {
@@ -134,20 +111,15 @@ describe("gateDecision", () => {
     ).toBe("deny");
   });
 
-  it("asks for a raw push, a publish, and a bare clasp or sheets-framework, naming the command", () => {
+  it("asks for a raw push and a bare clasp or sheets-framework, naming the command", () => {
     [
       "git push origin issue-274-gate",
       "git -C packages/framework push",
-      "npm publish --access public",
       "clasp deploy",
       "npx clasp push",
       "npx sheets-framework gen:configs",
     ].forEach((command) => {
-      const decision = gateDecision({
-        command,
-        mode: "interactive",
-        dryRuns: [],
-      });
+      const decision = modeDecisionOf(command);
       expect(decision?.permissionDecision).toBe("ask");
       expect(decision?.reason).toContain(`\`${command}\``);
     });
@@ -163,16 +135,15 @@ describe("gateDecision", () => {
     ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
   });
 
-  it("asks for a publish behind npm's own flags", () => {
-    expect(decisionOf("npm --prefix packages/utils publish")).toBe("ask");
-    expect(decisionOf("npm -w @byronbroughten/utils publish")).toBe("ask");
-  });
-
   it("allows nothing whose words hide a command substitution", () => {
-    expect(decisionOf('git commit -m "$(git push origin master)"')).not.toBe(
+    expect(
+      decisionOf(
+        'gh issue create --title T --body "$(git push origin master)"',
+      ),
+    ).not.toBe("allow");
+    expect(decisionOf('gh issue create --title "`git push`"')).not.toBe(
       "allow",
     );
-    expect(decisionOf('git commit -m "`git push`"')).not.toBe("allow");
   });
 
   it("has no opinion on an npm script named after an object built-in", () => {
@@ -181,401 +152,71 @@ describe("gateDecision", () => {
   });
 
   it("asks when any part of a compound command asks", () => {
-    expect(decisionOf("git commit -m wip && git push")).toBe("ask");
+    expect(decisionOf("npm run lint && git push")).toBe("ask");
+  });
+
+  it("decides `npm run -s` and `timeout` on what they wrap", () => {
+    [
+      "npm run -s check",
+      "npm run -s issue:read -- byro-repo 447 --body --hide-others",
+      "timeout 60 npm test",
+    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
+    expect(decisionOf("timeout 60 git push")).toBe("ask");
   });
 });
 
-describe("reads and git add", () => {
-  const gitForms = [
-    "git",
-    "git -C packages/framework",
-    "git --git-dir=.git --work-tree=.",
-    "git --git-dir .git --work-tree .",
-  ];
-  const gitReads = [
-    "log --oneline -5",
-    "show HEAD:AGENTS.md",
-    "status --short",
-    "diff master...HEAD",
-    "rev-parse HEAD",
-    "ls-files .claude",
-    "blame -L 1,20 AGENTS.md",
-    "branch",
-    "branch --show-current",
-    "branch -avv",
-    "branch --list 'issue-*'",
-  ];
-
-  const reads = [
-    "grep -rn verdictOf .claude/hooks",
-    "rg -n freeScripts",
-    "cat AGENTS.md",
-    "head -20 AGENTS.md",
-    "tail -n 5 AGENTS.md",
-    "wc -l AGENTS.md",
-    "ls -la .claude",
-    "sed -n '1,40p' AGENTS.md",
-    "sed -n -e '12p' -e '/^## /p' AGENTS.md",
-    "sed -n 's/verdict/Verdict/gp' AGENTS.md",
-    "sed -n '$=' AGENTS.md",
-    "sed -n '/^## /,/^## /p' AGENTS.md",
-    "sed -n '1,3l;5q' AGENTS.md",
-    "find . -name '*.ts' -not -path './node_modules/*'",
-    "jq -r '.tickets | keys[]' .runner/run.json",
-    "jq --slurpfile prior old.json '.a' new.json",
-  ];
-  const everyRead = [
-    ...reads,
-    ...gitForms.flatMap((git) => gitReads.map((read) => `${git} ${read}`)),
-    "git add docs/adr/0009-x.md",
-  ];
-
-  it("allows each read", () => {
-    reads.forEach((command) => expect(decisionOf(command)).toBe("allow"));
-  });
-
-  it("allows each read that sends output to a descriptor or /dev/null, in a runner step too", () => {
-    const redirects = [
-      "2>&1",
-      "1>&2",
-      ">&2",
-      ">/dev/null",
-      "2>/dev/null",
-      "&>/dev/null",
-      ">> /dev/null",
-    ];
-    everyRead.forEach((read) =>
-      redirects.forEach((redirect) => {
-        const command = `${read} ${redirect}`;
-        expect(decisionOf(command)).toBe("allow");
-        expect(runnerStepDecisionOf(command)).toBe("allow");
-      }),
-    );
-  });
-
-  it("allows a chain of reads with a descriptor redirect", () => {
-    [
-      "git status 2>&1 | head -5",
-      "grep -n x AGENTS.md 2>/dev/null; ls docs/adr 2>&1",
-    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
-  });
-
-  it("allows each git read in each form", () => {
-    gitForms.forEach((git) =>
-      gitReads.forEach((read) =>
-        expect(decisionOf(`${git} ${read}`)).toBe("allow"),
-      ),
-    );
-  });
-
-  it("allows a branch create, copy, rename or upstream change in each form, as git can undo it", () => {
-    gitForms.forEach((git) =>
-      [
-        "branch issue-400-x",
-        "branch issue-400-x master",
-        "branch -c old copy",
-        "branch -m old new",
-        "branch --move old new",
-        "branch -u origin/master",
-        "branch --unset-upstream",
-        "branch --merged master",
-      ].forEach((change) =>
-        expect(decisionOf(`${git} ${change}`)).toBe("allow"),
-      ),
-    );
-  });
-
-  it("allows git add in each form, as git can undo it", () => {
-    gitForms.forEach((git) =>
-      expect(decisionOf(`${git} add docs/adr/0009-x.md`)).toBe("allow"),
-    );
-  });
-
-  it("allows a plain git merge in each form, as git can undo it", () => {
-    gitForms.forEach((git) =>
-      expect(decisionOf(`${git} merge master`)).toBe("allow"),
-    );
-  });
-
-  it("allows no merge that skips hooks or is chained with a push", () => {
-    [
-      "git merge --no-verify master",
-      "git merge --no-veri master",
-      "git -c core.hooksPath=/tmp merge master",
-      "git merge master && git push",
-    ].forEach((command) => {
-      expect(decisionOf(command)).not.toBe("allow");
-      expect(runnerStepDecisionOf(command)).not.toBe("allow");
-    });
-  });
-
-  it("gives the same allows in a runner step", () => {
-    [
-      "cat AGENTS.md",
-      "git -C packages/framework log -3",
-      "git add docs/adr/0009-x.md",
-      "git merge master",
-    ].forEach((command) => expect(runnerStepDecisionOf(command)).toBe("allow"));
-  });
-
-  it("allows git's local reads in a session and a runner step, through a path option too", () => {
-    [
-      "git remote",
-      "git remote -v",
-      "git -C packages/framework remote get-url origin",
-      "git --git-dir=.git remote get-url --push origin",
-      "git cat-file -p HEAD",
-      "git rev-list --count master..HEAD",
-      "git for-each-ref refs/heads",
-      "git describe --tags",
-      "git shortlog -sn",
-      "git reflog",
-      "git reflog show issue-514-x",
-      "git reflog -10",
-      "git reflog -n 20 --date=iso",
-      "git reflog HEAD",
-      "git reflog HEAD@{2}",
-      "git reflog issue-514-x",
-      "git reflog exists HEAD",
-      "git worktree list",
-      "git --work-tree=. worktree list --porcelain",
-      "git config --get user.name",
-      "git config --get-all remote.origin.fetch",
-      "git config --get-regexp '^remote'",
-      "git config --list",
-      "git config -l --show-origin",
-      "git config user.email",
-      "git config --global user.name",
-      "git config --type=bool core.bare",
-      "git config get user.name",
-      "git config list --global",
-      "git branch --list 'issue-*'",
-      "git branch -l",
-      "git tag",
-      "git tag -l 'v*'",
-      "git tag --list",
-      "git tag --contains HEAD",
-      "git tag -n5",
-      "git tag --sort=-v:refname",
-      "git stash list",
-      "git stash show -p stash@{1}",
-      "git symbolic-ref --short HEAD",
-      "git symbolic-ref refs/remotes/origin/HEAD",
-      "git ls-tree -r HEAD",
-      "git show-ref --heads",
-      "git name-rev HEAD",
-      "git check-ignore -v .runner/x",
-      "git check-attr -a AGENTS.md",
-      "git cherry -v master",
-      "git range-diff master...HEAD",
-      "git count-objects -v",
-      "git whatchanged -3",
-      "git diff-tree --no-commit-id -r HEAD",
-      "git diff-index --cached HEAD",
-      "git diff-files",
-      "git var GIT_EDITOR",
-      "git version",
-    ].forEach((command) => {
-      expect(decisionOf(command)).toBe("allow");
-      expect(runnerStepDecisionOf(command)).toBe("allow");
-    });
-  });
-
-  it("allows no write or network form of the verbs git also reads with", () => {
-    [
-      "git remote add fork https://x",
-      "git remote set-url origin https://x",
-      "git remote remove origin",
-      "git remote rename origin upstream",
-      "git remote -v add fork https://x",
-      "git remote show origin",
-      "git remote update",
-      "git remote prune origin",
-      "git ls-remote origin",
-      "git fetch",
-      "git config user.name x",
-      "git config --unset user.name",
-      "git config --add remote.origin.fetch x",
-      "git config --get-all x --add y",
-      "git config set user.name x",
-      "git config unset user.name",
-      "git config edit",
-      "git config --file get set user.name x",
-      "git config --global --edit",
-      "git tag v1",
-      "git tag -a v1 -m x",
-      "git tag -fa v1",
-      "git tag -f v1",
-      "git tag -d v1",
-      "git tag -l -d v1",
-      "git reflog expire --all",
-      "git reflog delete HEAD@{1}",
-      "git reflog -n1 expire --all",
-      "git reflog drop",
-      "git reflog master",
-      "git stash",
-      "git stash -p",
-      "git stash push -m x",
-      "git stash pop",
-      "git stash drop",
-      "git symbolic-ref HEAD refs/heads/x",
-      "git symbolic-ref -d HEAD",
-      "git symbolic-ref -m why HEAD",
-      "git worktree add /tmp/w",
-      "git worktree remove /tmp/w",
-      "git reset --hard",
-      "git clean -fd",
-      "git checkout -- AGENTS.md",
-    ].forEach((command) => {
-      expect(decisionOf(command)).not.toBe("allow");
-      expect(runnerStepDecisionOf(command)).not.toBe("allow");
-    });
-    ["git branch -d old", "git branch -l -D old"].forEach((command) => {
-      expect(decisionOf(command)).not.toBe("allow");
-      expect(runnerStepDecisionOf(command)).not.toBe("allow");
-    });
-  });
-
-  it("allows chained reads and a read after cd", () => {
-    [
-      "git status && git diff",
-      "git log --oneline | head -5",
-      "ls; wc -l AGENTS.md",
-      "cd packages/framework && git log -3",
-      "cd packages/framework && git add src/x.ts && git commit -m wip",
-      "git grep -n toISOString",
-      "git -C packages/framework grep -nE 'a|b' -- src",
-    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
-  });
-
-  it("allows no read that edits, runs a command or writes a file", () => {
-    [
-      "sed -i '' 's/a/b/' AGENTS.md",
-      "sed -ni '1p' AGENTS.md",
-      "sed --in-place -n 1p AGENTS.md",
-      "sed -n '1w out.txt' AGENTS.md",
-      "sed -n '1e rm -rf dist' AGENTS.md",
-      "sed -n -f script.sed AGENTS.md",
-      "sed -n 's/a/b/w out.txt' AGENTS.md",
-      "sed -n 's/a/b/e' AGENTS.md",
-      "sed -n '1{p;w out.txt' -e '}' AGENTS.md",
-      "find . -exec rm {} ;",
-      "find . -execdir rm {} +",
-      "find . -ok rm {} ;",
-      "find . -name '*.tmp' -delete",
-      "find . -fprint out.txt",
-      "find . -fprint0 out.txt",
-      "find . -fprintf out.txt %p",
-      "find . -fls out.txt",
-      "find . -okdir rm {} ;",
-      "rg --pre ./run.sh x",
-      "rg --pre=./run.sh x",
-      "rg --hostname-bin=./run.sh --hyperlink-format=default x",
-      "git branch -d old",
-      "git branch -D old",
-      "git branch --delete old",
-      "git branch -df old",
-      "git branch -f master HEAD~3",
-      "git branch --force master HEAD~3",
-      "git branch -M old master",
-      "git branch -C old master",
-      "git branch -m --force old master",
-      "git branch issue-400-x <<EOF\nrm -rf dist\nEOF",
-      "git diff --output=patch.diff",
-      "git log -p --output patch.diff",
-      "git grep -O x",
-      "git grep -Ovim x",
-      "git grep -nO x",
-      "git grep --open-files-in-pager=./run.sh x",
-      "git -c core.fsmonitor='rm -rf dist' status",
-      "git -c core.pager=less log",
-      "PAGER=./run.sh git log",
-      "sudo cat /etc/hosts",
-      "/tmp/cat AGENTS.md",
-    ].forEach((command) => expect(decisionOf(command)).not.toBe("allow"));
-  });
-
-  it("allows no chain holding an unallowed part, nor a hidden substitution", () => {
-    [
-      "cat AGENTS.md && rm -rf dist",
-      "git log | xargs rm",
-      "cd dist && rm -rf .",
-      "cat $(rm -rf dist)",
-      "cat `rm -rf dist`",
-      "cat <(rm -rf dist)",
-      "git log | tee >(cat)",
-      "grep '<<EOF' AGENTS.md\nrm -rf dist\nEOF",
-      "cat $'\\'' ; rm -rf dist ; echo '",
-    ].forEach((command) => expect(decisionOf(command)).not.toBe("allow"));
-  });
-
+describe("heredocs and substitutions", () => {
   it("reads a heredoc behind a quoted delimiter as plain text, since bash expands nothing in its body", () => {
     [
-      "cat > /tmp/s372/a.md <<'EOF'\nA `code` span, a | pipe and $(rm -rf dist)\nEOF",
-      'cd /tmp/s372 && cat > a.md <<"EOF"\n# Title; with a ( paren\nEOF',
-      "cat > /tmp/s372/a.md <<'EOF'\nx\nEOF\ngrep x /tmp/s372/a.md",
-      "cat <<<'one line'",
-    ].forEach((command) =>
-      expect(placedDecisionOf(command)?.permissionDecision).toBe("allow"),
-    );
+      "gh issue create --title T --body-file - <<'EOF'\nA `code` span, a | pipe and $(rm -rf dist)\nEOF",
+      'gh issue create --title T --body-file - <<"EOF"\n# Title; with a ( paren\nEOF',
+      "gh label list <<'EOF'\nx\nEOF\ngh label list",
+    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
   });
 
   it("allows no heredoc bash may expand, nor one its scan reads differently from the text match", () => {
     [
-      "cat <<EOF\nhi\nEOF",
-      "git commit -m x <<< y\ngit push",
-      "git commit -m x <<< y\nrm -rf /outside",
-      "git commit -m x # <<'EOF'\ngit push\nEOF",
-      "echo '<<EOF'\nrm -rf /outside\nEOF",
-      "cat <<'EOF' \\\n> /tmp/s372/a.md\nbody\nEOF",
-      'echo "$(echo " <<\'X\'")"\nrm -rf /outside\nX',
-      'echo "${a:-" <<\'X\'"}"\nrm -rf /outside\nX',
-      'echo $((1<<"2"))\nrm -rf /outside\n2',
-    ].forEach((command) =>
-      expect(placedDecisionOf(command)?.permissionDecision).not.toBe("allow"),
-    );
+      "gh label list <<EOF\nhi\nEOF",
+      "gh issue create --title T --body-file - <<EOF\nok\nEOF",
+      "gh label list <<< y\ngit push",
+      "gh label list # <<'EOF'\ngit push\nEOF",
+      "gh label list '<<EOF'\ngit push\nEOF",
+      "gh label list <<'EOF' \\\n> /tmp/s372/a.md\nbody\nEOF",
+      'gh label list "$(gh label list " <<\'X\'")"\ngit push\nX',
+      'gh label list "${a:-" <<\'X\'"}"\ngit push\nX',
+      'gh label list $((1<<"2"))\ngit push\n2',
+    ].forEach((command) => expect(decisionOf(command)).not.toBe("allow"));
   });
 
-  it("allows a free read whose substitutions hold only free reads, quoted or not", () => {
+  it("allows a free call whose substitutions hold only free calls, quoted or not", () => {
     [
-      'echo "#488: $(cat AGENTS.md)"',
-      "wc -l $(git ls-files)",
-      'cat "$(git rev-parse --show-toplevel)/AGENTS.md"',
-      "grep -n gate `git ls-files`",
-      'echo "Branch: `git branch --show-current`"',
-      "echo 'x' \"$(grep -c ')' AGENTS.md)\"",
-    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
-  });
-
-  it("allows a substitution nested in another when every command in it is a free read", () => {
-    [
-      'cat "$(ls "$(git rev-parse --show-toplevel)")"',
-      "cat $(head -1 `ls`)",
-      'echo "`echo \\`ls\\``"',
+      'gh issue create --title T --body "#488: $(gh label list)"',
+      "gh issue create --title `gh label list`",
+      'gh issue create --title "$(gh label list "$(gh label list)")"',
     ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
   });
 
   it("gives a call the tier of the strictest command in its substitutions", () => {
     [
-      'echo "$(git push origin master)"',
-      "cat `git push`",
-      'cat "$(ls "$(git push)")"',
+      'gh issue create --title "$(git push origin master)"',
+      "gh label list `git push`",
+      'gh label list "$(gh label list "$(git push)")"',
     ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
-    expect(decisionOf('echo "$(make notes)"')).toBeUndefined();
+    expect(decisionOf('gh label list "$(make notes)"')).toBeUndefined();
   });
 
   it("never takes a substitution's output for a known program", () => {
-    expect(decisionOf("$(echo cat) AGENTS.md")).toBeUndefined();
+    expect(decisionOf("$(echo gh) label list")).toBeUndefined();
   });
 
   it("allows no call whose substitution it can't read", () => {
     [
-      'cat "$(ls"',
-      "cat `ls",
-      'echo "$(cat AGENTS.md # )\nrm -rf dist\n)"',
-      "git commit -F - <<EOF\n$(git push)\nEOF",
-      "git commit -m $'\\'' $(git push) $'\\''",
-      'echo "$(case a in a) rm -rf dist;; esac)"',
+      'gh label list "$(gh label list"',
+      "gh label list `gh label list",
+      'gh label list "$(gh label list # )\nrm -rf dist\n)"',
+      "gh issue create --title T --body-file - <<EOF\n$(git push)\nEOF",
+      "gh label list $'\\'' $(git push) $'\\''",
+      'gh label list "$(case a in a) rm -rf dist;; esac)"',
     ].forEach((command) => expect(decisionOf(command)).not.toBe("allow"));
   });
 
@@ -590,160 +231,15 @@ describe("reads and git add", () => {
       "echo $(( #))",
     ].forEach((command) => expect(decisionOf(command)).toBeUndefined());
   });
-
-  it("allows no git verb that changes anything, and git add only plain", () => {
-    [
-      "git checkout master",
-      "git restore AGENTS.md",
-      "git reset --hard",
-      "git stash",
-      "git rebase master",
-      "git -c core.fsmonitor=./run.sh add x",
-      "GIT_DIR=/tmp/x git add x",
-    ].forEach((command) => expect(decisionOf(command)).not.toBe("allow"));
-  });
-
-  it("still denies a gh read in a runner step", () => {
-    ["gh issue view 389", "gh issue list"].forEach((command) =>
-      expect(runnerStepDecisionOf(command)).not.toBe("allow"),
-    );
-  });
-});
-
-describe("stdout filters and wrappers", () => {
-  it("allows each filter alone", () => {
-    [
-      "sort AGENTS.md",
-      "sort -u -k2 AGENTS.md",
-      "uniq -c AGENTS.md",
-      "cut -d, -f1 AGENTS.md",
-      "tr a-z A-Z",
-      "sed 's|a|b|' AGENTS.md",
-      "sed -E 's/a+/b/g' AGENTS.md",
-      "awk '{print $1}' AGENTS.md",
-      "awk -F: '{print $2}' AGENTS.md",
-      "echo hi",
-      "printf '%s\\n' x",
-      "pwd",
-    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
-  });
-
-  it("allows each filter piped after a read", () => {
-    [
-      "cat AGENTS.md | sort | uniq -c",
-      "git log --oneline | awk '{print $1}'",
-      "grep -n x AGENTS.md | cut -d: -f1 | tr -d ' '",
-      "ls | sed 's/a/b/'",
-    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
-  });
-
-  it("decides `npm run -s` and `timeout` on what they wrap", () => {
-    [
-      "npm run -s check",
-      "npm run -s issue:read -- byro-repo 447 --body --hide-others",
-      "timeout 60 npm test",
-      "timeout -k 5 60 grep -n x AGENTS.md",
-    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
-    expect(decisionOf("timeout 60 git push")).toBe("ask");
-  });
-
-  it("allows no sed with a write, exec or in-place edit, nor awk with system or a redirect", () => {
-    [
-      "sed 's/a/b/w out.txt' AGENTS.md",
-      "sed 's/a/b/e' AGENTS.md",
-      "sed '1w out.txt' AGENTS.md",
-      "sed '1e ls' AGENTS.md",
-      "awk '{system(\"ls\")}' AGENTS.md",
-      "awk '{print > \"out.txt\"}' AGENTS.md",
-      "awk '{print | \"sh\"}' AGENTS.md",
-      "awk '{print $1/2 > \"out\"; x = 3/4}' AGENTS.md",
-      "awk '{x++ /2 > \"out\"/ 1}' AGENTS.md",
-      "awk '/a|b/ {print > \"out\"}' AGENTS.md",
-      'awk \'{print "|" | "sh"}\' AGENTS.md',
-      "awk '/[/]|x/ {print}' AGENTS.md",
-      "awk '{print \"open|}' AGENTS.md",
-      "awk '/system|x/' AGENTS.md",
-      "sort -o out.txt AGENTS.md",
-      "sed -i p 'w /outside/x' AGENTS.md",
-      "sed -Ei p 's/a/b/' AGENTS.md",
-    ].forEach((command) => expect(decisionOf(command)).not.toBe("allow"));
-  });
-
-  it("allows awk whose pipe or angle bracket sits inside a string or regex", () => {
-    [
-      "awk -F'|' '{r=$7; gsub(/^ +| +$/,\"\",r); print r \" :: pair=\" p}' AGENTS.md",
-      "awk '/^- \\[[ x]\\] \\*\\*R/{p=1} p&&/^(- [^\\[]|###|\\*\\*)/&&!/^- \\[/{p=0} p' AGENTS.md",
-      "awk '{print $1 \" -> \" $2}' AGENTS.md",
-      "awk '$1 ~ /a|b/ && !/c>d/ {print $1/2}' AGENTS.md",
-    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
-  });
-
-  it("allows an npx check only with no flag that writes a file", () => {
-    [
-      "npx tsc --noEmit",
-      "npx eslint .",
-      "npx vitest run .claude/hooks",
-    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
-    [
-      "npx tsc",
-      "npx tsc --outDir /outside",
-      "npx tsc -b --noEmit",
-      "npx tsc --build --noEmit",
-      "npx eslint --fix /outside/x",
-      "npx eslint --fix-dry-run .",
-      "npx eslint -o /outside/report .",
-      "npx eslint --output-file=/outside/report .",
-      "npx vitest run --outputFile=/outside/report",
-      "npx vitest run --outputFile /outside/report",
-    ].forEach((command) => expect(decisionOf(command)).not.toBe("allow"));
-  });
-
-  it("refuses a runner step's `npx tsc` without `--noEmit`, saying to add it", () => {
-    ["npx tsc", "npx tsc -p tsconfig.json"].forEach((command) => {
-      const decision = placedDecisionOf(command, "runnerStep");
-      expect(decision?.permissionDecision).toBe("deny");
-      expect(decision?.reason).toContain("add `--noEmit`");
-      expect(decision?.reason).not.toContain(blockerInstead);
-    });
-  });
-});
-
-describe("a cd before a runner step's git restore", () => {
-  it("follows a cd into the workspace, through an AND list", () => {
-    [
-      "cd packages/framework && git restore src/x.ts",
-      "cd /outside && cd /ws && git restore AGENTS.md",
-    ].forEach((command) => expect(placedStepDecisionOf(command)).toBe("allow"));
-  });
-
-  it("checks every folder the call may be in after a cd that may not have carried on, or one it can't follow", () => {
-    [
-      "cd /outside; git restore x",
-      "cd /outside || git restore x",
-      "cd /ws; cd /outside; git restore x",
-      "cd -P packages/framework && git restore x",
-      "cd -- packages/framework && git restore x",
-      "cd $HOME && git restore x",
-      "cd $(git rev-parse --show-toplevel) && git restore x",
-      "cd ${TMPDIR}/work && git restore x",
-      "cd /outside && echo `cd /ws` && git restore x",
-    ].forEach((command) => expect(placedStepDecisionOf(command)).toBe("deny"));
-  });
-
-  it("allows a restore after a cd that may not have carried on when every folder is the workspace", () => {
-    expect(placedStepDecisionOf("cd packages/framework; git restore x")).toBe(
-      "allow",
-    );
-  });
 });
 
 describe("a runner step's unclassified call", () => {
   it("is denied with the blocker text in a runner step, and left undecided in an Interactive session", () => {
-    const decision = placedDecisionOf("make build", "runnerStep");
+    const decision = modeDecisionOf("make build", "runnerStep");
     expect(decision?.permissionDecision).toBe("deny");
     expect(decision?.reason).toContain("`make build`");
     expect(decision?.reason).toContain(blockerInstead);
-    expect(placedDecisionOf("make build")).toBeUndefined();
+    expect(modeDecisionOf("make build")).toBeUndefined();
   });
 
   it("leaves a call naming gh or a live alias to Claude Code's allow rules in an Interactive session", () => {
@@ -753,29 +249,7 @@ describe("a runner step's unclassified call", () => {
       "gh pr view 12",
       "npm run app:gen:configs",
       "npm run -s dev:push",
-    ].forEach((command) => expect(placedDecisionOf(command)).toBeUndefined());
-  });
-
-  it("allows git restore in a runner step's own workspace only", () => {
-    [
-      ["git restore AGENTS.md", "/ws"],
-      ["git restore --staged src/x.ts", "/ws/packages/framework"],
-    ].forEach(([command = "", cwd]) =>
-      expect(
-        placedDecisionOf(command, "runnerStep", cwd)?.permissionDecision,
-      ).toBe("allow"),
-    );
-    expect(placedDecisionOf("git restore AGENTS.md")).toBeUndefined();
-    [
-      ["git restore x", "/outside"],
-      ["git -C /outside restore x", "/ws"],
-      ["git --work-tree=/outside restore x", "/ws"],
-      ["git restore config", "/ws/.git"],
-    ].forEach(([command = "", cwd]) =>
-      expect(
-        placedDecisionOf(command, "runnerStep", cwd)?.permissionDecision,
-      ).toBe("deny"),
-    );
+    ].forEach((command) => expect(modeDecisionOf(command)).toBeUndefined());
   });
 });
 
@@ -789,7 +263,7 @@ describe("a runner step's gh calls", () => {
   });
 
   it("denies closing an issue with the blocker text", () => {
-    const decision = placedDecisionOf("gh issue close 447", "runnerStep");
+    const decision = modeDecisionOf("gh issue close 447", "runnerStep");
     expect(decision?.permissionDecision).toBe("deny");
     expect(decision?.reason).toContain(blockerInstead);
   });
@@ -799,9 +273,10 @@ describe("a runner step's gh calls", () => {
       "gh api repos/x/y/issues/1/comments",
       "gh pr create --fill",
       "gh issue view 389",
+      "gh issue list",
       "gh issue reopen 447",
     ].forEach((command) => {
-      const decision = placedDecisionOf(command, "runnerStep");
+      const decision = modeDecisionOf(command, "runnerStep");
       expect(decision?.permissionDecision).toBe("deny");
       expect(decision?.reason).toContain("doesn't classify");
     });
@@ -816,7 +291,7 @@ describe("a runner step's gh calls", () => {
       "gh issue comment 447 --body `cat notes.md`",
       'gh issue edit 447 --body "$(git push)"',
     ].forEach((command) => {
-      const decision = placedDecisionOf(command, "runnerStep");
+      const decision = modeDecisionOf(command, "runnerStep");
       expect(decision?.permissionDecision).toBe("deny");
       expect(decision?.reason).toContain("--body-file");
       expect(decision?.reason).not.toContain(blockerInstead);
@@ -825,12 +300,12 @@ describe("a runner step's gh calls", () => {
 
   it("leaves an Interactive session's write with a backtick to Claude Code", () => {
     expect(
-      placedDecisionOf('gh issue comment 447 --body "Fails at `Api.ts`"'),
+      modeDecisionOf('gh issue comment 447 --body "Fails at `Api.ts`"'),
     ).toBeUndefined();
   });
 
   it("names no --body-file for another call with a backtick", () => {
-    const decision = placedDecisionOf("git add `ls`", "runnerStep");
+    const decision = modeDecisionOf("make `ls`", "runnerStep");
     expect(decision?.reason).not.toContain("--body-file");
   });
 });
@@ -932,12 +407,6 @@ describe("an Interactive session's gh calls", () => {
     ].forEach((command) => expect(decisionOf(command)).toBeUndefined());
   });
 
-  it("allows a create whose body is a free read's output", () => {
-    expect(
-      decisionOf('gh issue create --title T --body "$(cat notes.md)"'),
-    ).toBe("allow");
-  });
-
   it("leaves a create or api call hiding a command to Claude Code", () => {
     [
       'gh issue create --title T --body "$(make notes)"',
@@ -953,18 +422,18 @@ describe("loops, conditionals, groups and functions", () => {
       "for id in 1 2; do gh api --method POST repos/o/r/issues/519/sub_issues -F sub_issue_id=$id; done",
       "e(){ gh api --method POST repos/o/r/issues/519/sub_issues -F sub_issue_id=$1; }; e 1",
       "function e { gh api repos/o/r/issues/$1; }\ne 1\ne 2",
-      "for f in a b\ndo\n  ls $f\ndone",
-      "while git status; do ls; done",
-      "until git status; do ls; done",
-      "if git status; then ls; elif pwd; then ls; else pwd; fi",
-      "! git status",
-      "{ ls; pwd; }",
-      "(ls; pwd)",
-      "case x in a|b) ls;; *) pwd;; esac",
-      "case x in\n  (a) ls ;;\n  b) pwd\nesac",
-      "for f in $(ls); do echo $f; done",
-      "for f in a; do echo done; done",
-      "{ git status; } 2>&1 | head -5",
+      "for f in a b\ndo\n  npm run lint\ndone",
+      "while npm run lint; do npm run tsc; done",
+      "until npm run lint; do npm run tsc; done",
+      "if npm run lint; then npm run tsc; elif npm test; then npm run tsc; else npm test; fi",
+      "! npm run lint",
+      "{ npm run lint; npm run tsc; }",
+      "(npm run lint; npm run tsc)",
+      "case x in a|b) npm run lint;; *) npm run tsc;; esac",
+      "case x in\n  (a) npm run lint ;;\n  b) npm run tsc\nesac",
+      "for f in $(gh label list); do npm run lint; done",
+      "for f in a; do gh label list done; done",
+      "{ npm run lint; } 2>&1",
     ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
   });
 
@@ -972,10 +441,10 @@ describe("loops, conditionals, groups and functions", () => {
     [
       "for i in 1; do git push; done",
       "{ git push; }",
-      "if git status; then git push; fi",
+      "if npm run lint; then git push; fi",
       "ls(){ git push; }; ls",
-      "e(){ ls; }; e; git push",
-      "for f in $(git push); do ls; done",
+      "e(){ npm run lint; }; e; git push",
+      "for f in $(git push); do npm run lint; done",
       "for i do git push; done",
       "for i\ndo git push\ndone",
       "select i do git push; done",
@@ -983,17 +452,8 @@ describe("loops, conditionals, groups and functions", () => {
     ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
   });
 
-  it("checks a runner step's restore after a cd inside one from every folder the call may be in", () => {
-    [
-      "{ cd /outside && git restore x; }",
-      "if git status; then cd /outside; fi; git restore x",
-      "e(){ cd /outside; }; e; git restore x",
-      "! cd /outside && git restore x",
-    ].forEach((command) => expect(placedStepDecisionOf(command)).toBe("deny"));
-  });
-
   it("refuses a runner step's loop as it refuses the command inside", () => {
-    const decision = placedDecisionOf(
+    const decision = modeDecisionOf(
       "for n in 1 2; do gh issue close $n; done",
       "runnerStep",
     );
@@ -1003,19 +463,19 @@ describe("loops, conditionals, groups and functions", () => {
 
   it("leaves one it can't read as bash would unclassified", () => {
     [
-      "for i in 1; do ls",
-      "{ ls",
-      "ls; }",
-      "if ls; then pwd; done",
+      "for i in 1; do npm run lint",
+      "{ npm run lint",
+      "npm run lint; }",
+      "if npm run lint; then npm run tsc; done",
       "f(){ f; }; f",
-      "f; f(){ ls; }",
-      "e(){ ls; }; echo $(e)",
-      "e(){ ls $1; }; e 'a b'",
-      "f() ls",
-      '"for" x in 1; do ls; done',
-      "case x in a) ls;; esac; ;;",
-      "for; do ls; done",
-      "for i x; do ls; done",
+      "f; f(){ npm run lint; }",
+      "e(){ npm run lint; }; echo $(e)",
+      "e(){ gh label list $1; }; e 'a b'",
+      "f() npm run lint",
+      '"for" x in 1; do npm run lint; done',
+      "case x in a) npm run lint;; esac; ;;",
+      "for; do npm run lint; done",
+      "for i x; do npm run lint; done",
       "f(){ shift; git $1; }; f status push",
     ].forEach((command) => expect(decisionOf(command)).toBeUndefined());
   });
@@ -1144,11 +604,7 @@ describe("a Supervisor's gh writes", () => {
     [
       'gh issue comment 331 --body "Approved reply"',
       "gh issue edit 341 -R byronbroughten/byro-repo --add-label ready-for-agent",
-    ].forEach((command) =>
-      expect(
-        gateDecision({ command, mode: "interactive", dryRuns: [] }),
-      ).toBeUndefined(),
-    );
+    ].forEach((command) => expect(modeDecisionOf(command)).toBeUndefined());
   });
 });
 
@@ -1176,7 +632,6 @@ describe("a sandboxed call", () => {
       command,
       mode,
       dryRuns: [],
-      places: fakePlaces("/ws"),
       sandbox: { isOn, excludedCommands: entries },
     });
   }
@@ -1193,6 +648,8 @@ describe("a sandboxed call", () => {
       "for n in 1 2; do echo $n > /tmp/x-$n.md; done",
       "git checkout -b x",
       "git reset --hard HEAD~1",
+      "git commit -m x",
+      "git status && grep -n x AGENTS.md | sort",
     ].forEach((command) =>
       modes.forEach((mode) => {
         const decision = sandboxedDecisionOf(command, mode);
@@ -1253,6 +710,27 @@ describe("a sandboxed call", () => {
     ).not.toContain("sandbox");
   });
 
+  it("asks for the push in a commit chained with one", () => {
+    const decision = sandboxedDecisionOf(
+      "git commit -m x && git push",
+      "interactive",
+    );
+    expect(decision?.permissionDecision).toBe("ask");
+    expect(decision?.reason).toContain("pushes outside `npm run wrap-up`");
+  });
+
+  it("gives a free command piped into a gh call the gh row's decision", () => {
+    const gh = "gh issue comment 5 --body-file b.md";
+    modes.forEach((mode) =>
+      expect(
+        sandboxedDecisionOf(`grep x | ${gh}`, mode)?.permissionDecision,
+      ).toBe(sandboxedDecisionOf(gh, mode)?.permissionDecision),
+    );
+    expect(
+      sandboxedDecisionOf(`grep x | ${gh}`, "runnerStep")?.permissionDecision,
+    ).toBe("allow");
+  });
+
   it("is decided by its gh and git push rows alone, naming the box for the rest", () => {
     const loop =
       "for i in 1 2 3; do tail -n +2 $i.md > body$i.md; gh issue create --title t --body-file body$i.md; done";
@@ -1275,6 +753,15 @@ describe("a sandboxed call", () => {
       sandboxedDecisionOf("node x.ts && gh issue view 5", "runnerStep")
         ?.permissionDecision,
     ).toBe("deny");
+  });
+
+  it("allows a create whose body is a free command's output", () => {
+    expect(
+      sandboxedDecisionOf(
+        'gh issue create --title T --body "$(cat notes.md)"',
+        "interactive",
+      )?.permissionDecision,
+    ).toBe("allow");
   });
 
   it("still refuses a runner step's `$(…)` body, naming --body-file", () => {
@@ -1308,7 +795,6 @@ describe("a call with the sandbox off", () => {
       command,
       mode,
       dryRuns: [],
-      places: fakePlaces("/ws"),
       sandbox: {
         isOn: false,
         excludedCommands: entries,
@@ -1322,7 +808,6 @@ describe("a call with the sandbox off", () => {
       command,
       mode: "interactive",
       dryRuns: [],
-      places: fakePlaces("/ws"),
       sandbox: {
         isOn: false,
         excludedCommands: entries,
@@ -1340,6 +825,7 @@ describe("a call with the sandbox off", () => {
     "node -e 'console.log(1)'",
     "python3 -c 'print(1)'",
     "grep x y",
+    "git status",
     "for n in 1 2; do echo $n > /tmp/x-$n.md; done",
   ];
 
@@ -1372,12 +858,7 @@ describe("a call with the sandbox off", () => {
     ].forEach((command) =>
       modes.forEach((mode) =>
         expect(offDecisionOf(command, mode)).toEqual(
-          gateDecision({
-            command,
-            mode,
-            dryRuns: [],
-            places: fakePlaces("/ws"),
-          }),
+          modeDecisionOf(command, mode),
         ),
       ),
     );
@@ -1411,16 +892,12 @@ describe("a call with the sandbox off", () => {
 });
 
 describe("runnerStep mode", () => {
-  const asks = ["git push origin master", "npx clasp push", "npm publish"];
+  const asks = ["git push origin master", "npx clasp push"];
 
   it("turns every ask into a deny that says to record a blocker", () => {
     asks.forEach((command) => {
-      const ask = gateDecision({ command, mode: "interactive", dryRuns: [] });
-      const decision = gateDecision({
-        command,
-        mode: "runnerStep",
-        dryRuns: [],
-      });
+      const ask = modeDecisionOf(command);
+      const decision = modeDecisionOf(command, "runnerStep");
       expect(ask?.permissionDecision).toBe("ask");
       expect(decision?.permissionDecision).toBe("deny");
       expect(decision?.reason).toContain(ask?.reason);
@@ -1429,7 +906,7 @@ describe("runnerStep mode", () => {
   });
 
   it("leaves allow and deny alone", () => {
-    ['git commit -m "wip"', "npm run app:chore fixRents -- --send"].forEach(
+    ["npm run lint", "npm run app:chore fixRents -- --send"].forEach(
       (command) => {
         expect(
           gateDecision({
@@ -1438,7 +915,7 @@ describe("runnerStep mode", () => {
             dryRuns: [],
             spreadsheetTargets: ["app"],
           }),
-        ).toEqual(gateDecision({ command, mode: "interactive", dryRuns: [] }));
+        ).toEqual(modeDecisionOf(command));
       },
     );
   });

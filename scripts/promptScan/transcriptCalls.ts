@@ -14,13 +14,11 @@ export interface RecordedCall {
   command?: string;
   // What another tool acted on: its file, URL, query or command.
   target?: string;
-  cwd?: string;
   permission: PermissionAnswer;
 }
 
 interface TranscriptEntry {
   type?: unknown;
-  cwd?: unknown;
   message?: { content?: unknown };
   permissionDecision?: unknown;
 }
@@ -93,8 +91,7 @@ function recordedCallOf(
   const use = typeof useId === "string" ? toolUses.get(useId) : undefined;
   if (!use) return undefined;
   const { tool, command, target } = use;
-  const cwd = typeof entry.cwd === "string" ? entry.cwd : undefined;
-  return { tool, command, target, cwd, permission };
+  return { tool, command, target, permission };
 }
 
 function contentBlocksOf(entry: TranscriptEntry): ContentBlock[] {

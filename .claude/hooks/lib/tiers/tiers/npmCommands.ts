@@ -1,4 +1,4 @@
-// What an npm, npx or npm exec call runs, read off its words: the program, a free script or npx check, and an app chore.
+// What an npm, npx or npm exec call runs, read off its words: the program, a free script and an app chore.
 import type { Verdict } from "../tiers.ts";
 
 export interface NpmScript {
@@ -41,36 +41,6 @@ const freeScripts = new Map<string, string>([
   ["tsc", freeWhys.check],
   ["lint", freeWhys.check],
   ["test", freeWhys.check],
-]);
-// Each check only with no flag that writes a file, since nothing checks where that file goes.
-const npxChecks = new Map<string, (args: string[]) => boolean>([
-  [
-    "vitest",
-    (args) =>
-      args[0] === "run" && !args.some((arg) => arg.startsWith("--outputFile")),
-  ],
-  [
-    "tsc",
-    (args) =>
-      args.includes("--noEmit") &&
-      !args.some((arg) => arg === "-b" || arg === "--build"),
-  ],
-  [
-    "eslint",
-    (args) =>
-      !args.some(
-        (arg) =>
-          arg.startsWith("--fix") ||
-          arg === "-o" ||
-          arg.startsWith("--output-file"),
-      ),
-  ],
-  [
-    "prettier",
-    (args) =>
-      args.includes("--check") &&
-      !args.some((arg) => arg === "--write" || arg === "-w"),
-  ],
 ]);
 const npmVerbs = {
   exec: new Set(["exec", "x"]),
@@ -123,20 +93,6 @@ export const npmCommands = {
     if (npmCommands.isPrefixed(words)) return undefined;
     const scriptName = npmCommands.scriptOf(words)?.name ?? npmTestOf(words);
     return scriptName && freeScripts.get(scriptName);
-  },
-  // Why an npx check is free, or undefined when the words aren't one.
-  npxCheckWhyOf([program, tool = "", ...args]: string[]): string | undefined {
-    if (program !== "npx") return undefined;
-    return npxChecks.get(tool)?.(args) ? freeWhys.check : undefined;
-  },
-  // Only when `--noEmit` alone frees it, so a `--build` keeps the generic refusal.
-  npxCheckFixOf(words: string[]): string | undefined {
-    const isFixedByNoEmit =
-      words[1] === "tsc" &&
-      !words.includes("--noEmit") &&
-      npmCommands.npxCheckWhyOf([...words, "--noEmit"]);
-    if (!isFixedByNoEmit) return undefined;
-    return "`npx tsc` without `--noEmit` writes compiled files; add `--noEmit` to only type-check";
   },
   // npm keeps a `--send` before its `--` as its own config, so only one after it reaches the chore.
   appChoreOf(words: string[]): AppChore | undefined {
