@@ -1,13 +1,7 @@
 // The step write rule: where a write is tier 1. Pure; the caller passes the file-system lookups, so a runner step's Edit or Write is decided without touching the disk.
-import { dirname, isAbsolute, join, relative, sep } from "node:path";
+import { isAbsolute } from "node:path";
 
-// realPathOf is undefined when nothing is there; isLink is true for a symlink, dangling or not.
-export interface WritePlaces {
-  workspaceRoot: string;
-  tmpDir: string;
-  realPathOf: (path: string) => string | undefined;
-  isLink: (path: string) => boolean;
-}
+import { WritePathResolver, type WritePlaces } from "./WritePathResolver.ts";
 
 // Where a runner step's call runs, for resolving a relative path it writes.
 export interface ShellPlaces extends WritePlaces {
@@ -16,70 +10,18 @@ export interface ShellPlaces extends WritePlaces {
 
 // The hooks' per-session state, which a write could forge, such as a chore's dry-run record.
 const guardrailStateDir = "claude-guardrails";
-// On a one-person machine the shared /tmp is as throwaway as $TMPDIR, which on macOS sits elsewhere.
-const sharedTmpDir = "/tmp";
 
 // A path passes when it resolves strictly inside the workspace, $TMPDIR or /tmp and isn't .git at any depth: a workspace's .git points into the primary's git folder.
 export function isStepWritable(path: string, places: WritePlaces): boolean {
   if (!isAbsolute(path)) return false;
-  const resolved = resolvedPathOf(path, places);
+  const resolver = WritePathResolver.init(places);
+  const resolved = resolver.resolvedPathOf(path);
   if (resolved === undefined) return false;
-  if (partsInside(resolved, places.workspaceRoot, places)) {
+  if (resolver.partsInside(resolved, places.workspaceRoot)) {
     return (
-      partsClearOfGit(resolved, places.workspaceRoot, places) !== undefined
+      resolver.partsClearOfGit(resolved, places.workspaceRoot) !== undefined
     );
   }
-  const tmpParts = tmpPartsOf(resolved, places);
+  const tmpParts = resolver.tmpPartsOf(resolved);
   return tmpParts !== undefined && tmpParts[0] !== guardrailStateDir;
-}
-
-// The path's parts below $TMPDIR or /tmp, or undefined when it is strictly inside neither or is in .git at any depth.
-function tmpPartsOf(
-  resolved: string,
-  places: WritePlaces,
-): string[] | undefined {
-  return (
-    partsClearOfGit(resolved, places.tmpDir, places) ??
-    partsClearOfGit(resolved, sharedTmpDir, places)
-  );
-}
-
-// The path's parts below a root, or undefined when it isn't strictly inside it or is in .git at any depth.
-function partsClearOfGit(
-  resolved: string,
-  root: string,
-  places: WritePlaces,
-): string[] | undefined {
-  const parts = partsInside(resolved, root, places);
-  return parts?.includes(".git") ? undefined : parts;
-}
-
-// The path's parts below a root, or undefined when it isn't strictly inside it.
-function partsInside(
-  resolved: string,
-  root: string,
-  places: WritePlaces,
-): string[] | undefined {
-  const inside = relative(places.realPathOf(root) ?? root, resolved);
-  if (inside === "" || isAbsolute(inside)) return undefined;
-  if (inside === ".." || inside.startsWith(`..${sep}`)) return undefined;
-  return inside.split(sep);
-}
-
-// Walked a part at a time, so `..` follows a symlink as the kernel does; undefined through a dangling link.
-function resolvedPathOf(path: string, places: WritePlaces): string | undefined {
-  let current = "/";
-  for (const part of path.split("/")) {
-    if (part === "" || part === ".") continue;
-    if (part === "..") {
-      current = dirname(current);
-      continue;
-    }
-    const next = join(current, part);
-    const real = places.realPathOf(next);
-    if (real !== undefined) current = real;
-    else if (places.isLink(next)) return undefined;
-    else current = next;
-  }
-  return current;
 }
