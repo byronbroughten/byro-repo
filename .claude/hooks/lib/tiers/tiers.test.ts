@@ -95,11 +95,6 @@ describe("gateDecision", () => {
     expect(decisionOf("git commit -m wip && make build")).toBeUndefined();
   });
 
-  it("asks for a file write when it has no places to check the path against", () => {
-    expect(decisionOf("rm -rf dist")).toBe("ask");
-    expect(decisionOf("git commit -m wip && rm -rf dist")).toBe("ask");
-  });
-
   it("allows a chore's send once that chore's dry run is recorded", () => {
     expect(
       decisionOf("npm run app:chore fixRents -- --send", ["fixRents"]),
@@ -259,26 +254,6 @@ describe("reads and git add", () => {
       "git status 2>&1 | head -5",
       "grep -n x AGENTS.md 2>/dev/null; ls docs/adr 2>&1",
     ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
-  });
-
-  it("allows no read that redirects to any other file", () => {
-    const redirects = [
-      "> out.txt",
-      ">> out.txt",
-      "2> err.txt",
-      ">&out.txt",
-      "&> 2",
-      "> 2",
-      "<> f",
-      "<>/dev/null",
-      "2>&1 > out.txt",
-      ">",
-    ];
-    everyRead.forEach((read) =>
-      redirects.forEach((redirect) =>
-        expect(decisionOf(`${read} ${redirect}`)).not.toBe("allow"),
-      ),
-    );
   });
 
   it("allows each git read in each form", () => {
@@ -510,10 +485,6 @@ describe("reads and git add", () => {
       "git grep --open-files-in-pager=./run.sh x",
       "git -c core.fsmonitor='rm -rf dist' status",
       "git -c core.pager=less log",
-      "cat AGENTS.md > copy.md",
-      "git log >> log.txt",
-      "ls >/dev/null 2>err.txt",
-      "cat AGENTS.md; > AGENTS.md",
       "PAGER=./run.sh git log",
       "sudo cat /etc/hosts",
       "/tmp/cat AGENTS.md",
@@ -585,23 +556,12 @@ describe("reads and git add", () => {
       'echo "$(git push origin master)"',
       "cat `git push`",
       'cat "$(ls "$(git push)")"',
-      "cat $(rm -rf dist)",
     ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
-    expect(decisionOf('echo "$(node -e 1)"')).toBe("deny");
     expect(decisionOf('echo "$(make notes)"')).toBeUndefined();
   });
 
-  it("never takes a substitution's output for a known program or a checked path", () => {
+  it("never takes a substitution's output for a known program", () => {
     expect(decisionOf("$(echo cat) AGENTS.md")).toBeUndefined();
-    expect(
-      placedDecisionOf("cd $(git rev-parse --show-toplevel) && rm -f x")
-        ?.permissionDecision,
-    ).toBe("ask");
-    expect(placedDecisionOf("rm -f $(ls)")?.permissionDecision).toBe("ask");
-    expect(
-      placedDecisionOf("cd /etc && ls `cd /ws` `rm -f passwd`")
-        ?.permissionDecision,
-    ).toBe("ask");
   });
 
   it("allows no call whose substitution it can't read", () => {
@@ -683,7 +643,7 @@ describe("stdout filters and wrappers", () => {
     expect(decisionOf("timeout 60 git push")).toBe("ask");
   });
 
-  it("asks for sed with a write or exec, and awk with system or a redirect", () => {
+  it("allows no sed with a write, exec or in-place edit, nor awk with system or a redirect", () => {
     [
       "sed 's/a/b/w out.txt' AGENTS.md",
       "sed 's/a/b/e' AGENTS.md",
@@ -700,7 +660,9 @@ describe("stdout filters and wrappers", () => {
       "awk '{print \"open|}' AGENTS.md",
       "awk '/system|x/' AGENTS.md",
       "sort -o out.txt AGENTS.md",
-    ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
+      "sed -i p 'w /outside/x' AGENTS.md",
+      "sed -Ei p 's/a/b/' AGENTS.md",
+    ].forEach((command) => expect(decisionOf(command)).not.toBe("allow"));
   });
 
   it("allows awk whose pipe or angle bracket sits inside a string or regex", () => {
@@ -710,15 +672,6 @@ describe("stdout filters and wrappers", () => {
       "awk '{print $1 \" -> \" $2}' AGENTS.md",
       "awk '$1 ~ /a|b/ && !/c>d/ {print $1/2}' AGENTS.md",
     ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
-  });
-
-  it("asks for a macOS sed -i whose next word is a backup suffix rather than ''", () => {
-    expect(
-      placedDecisionOf("sed -i p 'w /outside/x' AGENTS.md")?.permissionDecision,
-    ).toBe("ask");
-    expect(
-      placedDecisionOf("sed -Ei p 's/a/b/' AGENTS.md")?.permissionDecision,
-    ).toBe("ask");
   });
 
   it("allows an npx check only with no flag that writes a file", () => {
@@ -751,197 +704,36 @@ describe("stdout filters and wrappers", () => {
   });
 });
 
-describe("file writes by the step write rule", () => {
-  it("allows rm, mkdir, cp, mv, sed -i and a redirect inside the workspace, $TMPDIR or /tmp", () => {
+describe("a cd before a runner step's git restore", () => {
+  function restoreDecisionOf(command: string) {
+    return placedDecisionOf(command, "runnerStep")?.permissionDecision;
+  }
+
+  it("follows a cd into the workspace, through an AND list", () => {
     [
-      "rm -rf dist",
-      "rm /tmp/scratch.txt",
-      "mkdir -p .scratch/a",
-      "mkdir /tmp/work",
-      "cp AGENTS.md /tmp/copy.md",
-      "mv dist out",
-      "mv /tmp/helper.mjs .scratch/helper.mjs",
-      "sed -i '' 's/a/b/' AGENTS.md",
-      "echo x > out.txt",
-      "cat AGENTS.md > /tmp/copy.md",
-      "git log >> .scratch/log.txt",
-      "cd packages/framework && rm -rf src/old",
-      "cd packages/framework && rm -rf src/old 2>&1",
-      "rm $TMPDIR/scratch.txt",
-      'rm "${TMPDIR}/scratch.txt"',
-      "echo x > $TMPDIR/out.txt",
-      "mkdir -p /tmp/s372",
-      "cat AGENTS.md > /tmp/s372/copy.md",
-      "echo x > /private/tmp/out.txt",
-    ].forEach((command) =>
-      expect(placedDecisionOf(command)?.permissionDecision).toBe("allow"),
+      "cd packages/framework && git restore src/x.ts",
+      "cd /outside && cd /ws && git restore AGENTS.md",
+    ].forEach((command) => expect(restoreDecisionOf(command)).toBe("allow"));
+  });
+
+  it("checks every folder the call may be in after a cd that may not have carried on, or one it can't follow", () => {
+    [
+      "cd /outside; git restore x",
+      "cd /outside || git restore x",
+      "cd /ws; cd /outside; git restore x",
+      "cd -P packages/framework && git restore x",
+      "cd -- packages/framework && git restore x",
+      "cd $HOME && git restore x",
+      "cd $(git rev-parse --show-toplevel) && git restore x",
+      "cd ${TMPDIR}/work && git restore x",
+      "cd /outside && echo `cd /ws` && git restore x",
+    ].forEach((command) => expect(restoreDecisionOf(command)).toBe("deny"));
+  });
+
+  it("allows a restore after a cd that may not have carried on when every folder is the workspace", () => {
+    expect(restoreDecisionOf("cd packages/framework; git restore x")).toBe(
+      "allow",
     );
-  });
-
-  it("allows a write after a cd that may not have carried on when it passes from every folder the call may be in", () => {
-    [
-      "cd packages/framework; rm -rf src/old",
-      "cd packages/framework || rm -rf src/old",
-      "cd packages/framework & rm -rf src/old",
-      "cd packages/framework\nrm -rf src/old",
-      "cd packages/framework | rm -rf src/old",
-      "cd /outside; cat AGENTS.md > /tmp/copy.md",
-      "cd /tmp/s372 && git status | head -2 && echo x > out.txt",
-      "cd /tmp/s372 && jq -r '.[] | .a; .b' in.json > out.json",
-      "cd /tmp/s372 && cat in.json > out.json",
-      'cd /tmp/s372 && echo "a | b" > out.txt',
-    ].forEach((command) =>
-      expect(placedDecisionOf(command)?.permissionDecision).toBe("allow"),
-    );
-  });
-
-  it("asks for a write after a cd that fails the write rule from any folder the call may be in, or a cd it can't follow", () => {
-    [
-      "cd /tmp/s372; rm ../x",
-      "cd /tmp/s372 | rm ../x",
-      "cd /tmp/s372 && cd /outside; rm x",
-      'cd /tmp/s372 && echo "$(pwd)" && rm ../x',
-      "cd -P packages/framework && rm -rf src/old",
-      "cd -- packages/framework && rm -rf src/old",
-      "cd -P packages/framework; rm -rf src/old",
-    ].forEach((command) =>
-      expect(placedDecisionOf(command)?.permissionDecision).toBe("ask"),
-    );
-    expect(
-      placedDecisionOf("cd /tmp/s372 && rm ../x")?.permissionDecision,
-    ).toBe("allow");
-  });
-
-  it("follows a cd into a leading $TMPDIR, by the value the gate knows", () => {
-    [
-      'cd "$TMPDIR/work" && echo x > out.txt',
-      "cd ${TMPDIR}/work && rm ../helper.mjs",
-    ].forEach((command) =>
-      expect(placedDecisionOf(command)?.permissionDecision).toBe("allow"),
-    );
-    ["cd $TMPDIRX && echo x > out.txt", "cd $HOME && echo x > out.txt"].forEach(
-      (command) =>
-        expect(placedDecisionOf(command)?.permissionDecision).toBe("ask"),
-    );
-  });
-
-  it("follows only a leading $TMPDIR, by the value the gate knows", () => {
-    [
-      "rm $TMPDIR/claude-guardrails/chore-dry-runs.json",
-      "rm $TMPDIRX/x",
-      "rm /ws/$TMPDIR/x",
-      "rm $OTHER/x",
-    ].forEach((command) =>
-      expect(placedDecisionOf(command)?.permissionDecision).toBe("ask"),
-    );
-  });
-
-  it("asks for each with a path outside them, through `..` or a symlink included", () => {
-    [
-      "rm -rf /outside",
-      "rm ../outside/x",
-      "rm escape/x",
-      "rm linkdir/../x",
-      "rm dangling",
-      "rm /ws",
-      "mkdir /outside/new",
-      "cp AGENTS.md /outside/",
-      "mv AGENTS.md ../x",
-      "sed -i '' 's/a/b/' /outside/x",
-      "echo x > /outside/x",
-      "echo x > escape/y",
-      "cd /outside && rm x",
-      "rm ~/x",
-      "rm $HOME/x",
-      "rm *.md",
-      "rm /tmp/claude-guardrails/chore-dry-runs.json",
-    ].forEach((command) =>
-      expect(placedDecisionOf(command)?.permissionDecision).toBe("ask"),
-    );
-  });
-
-  it("asks for a path into `.git` at the workspace root or in a package", () => {
-    [
-      "rm .git",
-      "rm -rf .git/hooks",
-      "echo x > packages/framework/.git",
-      "mkdir packages/framework/.git/x",
-      "cp AGENTS.md .git/config",
-    ].forEach((command) =>
-      expect(placedDecisionOf(command)?.permissionDecision).toBe("ask"),
-    );
-  });
-
-  it("turns each ask into the blocker deny in a runner step", () => {
-    const decision = placedDecisionOf("rm -rf /outside", "runnerStep");
-    expect(decision?.permissionDecision).toBe("deny");
-    expect(decision?.reason).toContain(blockerInstead);
-  });
-});
-
-describe("interpreters", () => {
-  it("allows node on a gitignored, $TMPDIR or /tmp file", () => {
-    [
-      "node .runner/helper.ts",
-      "node --experimental-strip-types .runner/helper.ts",
-      "node /var/T/helper.mjs",
-      "node $TMPDIR/helper.mjs",
-      "node /tmp/helper.mjs",
-    ].forEach((command) =>
-      expect(placedDecisionOf(command)?.permissionDecision).toBe("allow"),
-    );
-  });
-
-  it("asks for node on an installed package's file, though node_modules is gitignored", () => {
-    const decision = placedDecisionOf("node node_modules/clasp/cli.js");
-    expect(decision?.permissionDecision).toBe("ask");
-    expect(decision?.reason).toContain("`node` runs only scratch helpers");
-  });
-
-  it("asks for node on a tracked file, new or committed, naming where the free scripts are listed and that any other script asks", () => {
-    [
-      "node scripts/tool.ts",
-      "node scripts/new.ts",
-      "node --require ./x.js .runner/helper.ts",
-    ].forEach((command) => {
-      const decision = placedDecisionOf(command);
-      expect(decision?.permissionDecision).toBe("ask");
-      expect(decision?.reason).toContain("`node` runs only scratch helpers");
-      expect(decision?.reason).toContain(
-        "`freeScripts` in `.claude/hooks/lib/tiers/tiers/npmCommands.ts`",
-      );
-      expect(decision?.reason).toContain("any other script asks");
-    });
-  });
-
-  it("denies inline code, naming jq and a scratch helper, the same in a runner step", () => {
-    [
-      "node -e 'console.log(1)'",
-      "node -p 1",
-      "node -pe 1",
-      "node --eval 'console.log(1)'",
-      "node --print=1",
-      "node --no-warnings -e 1",
-      "node",
-      "node - < script.js",
-      "cat x.json | node",
-      "python3 -c 'print(1)'",
-      "python -Ic 'print(1)'",
-    ].forEach((command) => {
-      (["interactive", "runnerStep"] as const).forEach((mode) => {
-        const decision = placedDecisionOf(command, mode);
-        expect(decision?.permissionDecision).toBe("deny");
-        expect(decision?.reason).toContain("`jq`");
-        expect(decision?.reason).toContain("scratch helper in `$TMPDIR`");
-        expect(decision?.reason).not.toContain(blockerInstead);
-      });
-    });
-  });
-
-  it("leaves an argument after the script to the script", () => {
-    expect(
-      placedDecisionOf("node /tmp/helper.mjs -e")?.permissionDecision,
-    ).toBe("allow");
   });
 });
 
@@ -1191,20 +983,16 @@ describe("loops, conditionals, groups and functions", () => {
     ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
   });
 
-  it("asks for a loop's write to a variable path, as for one outside a loop", () => {
-    expect(
-      placedDecisionOf("for f in *.md; do rm $f; done")?.permissionDecision,
-    ).toBe("ask");
-  });
-
-  it("checks a write after a cd inside one from every folder the call may be in", () => {
+  it("checks a runner step's restore after a cd inside one from every folder the call may be in", () => {
     [
-      "{ cd /tmp/s372 && rm ../x; }",
-      "if git status; then cd /tmp/s372; fi; rm ../x",
-      "e(){ cd /tmp/s372; }; e; rm ../x",
-      "! cd /tmp/s372 && rm ../x",
+      "{ cd /outside && git restore x; }",
+      "if git status; then cd /outside; fi; git restore x",
+      "e(){ cd /outside; }; e; git restore x",
+      "! cd /outside && git restore x",
     ].forEach((command) =>
-      expect(placedDecisionOf(command)?.permissionDecision).toBe("ask"),
+      expect(placedDecisionOf(command, "runnerStep")?.permissionDecision).toBe(
+        "deny",
+      ),
     );
   });
 
@@ -1482,9 +1270,6 @@ describe("a sandboxed call", () => {
     });
     expect(decision?.permissionDecision).toBe("allow");
     expect(decision?.reason).toContain("runs in the sandbox");
-    expect(decisionUnder(loop, "interactive", false)?.permissionDecision).toBe(
-      "ask",
-    );
     const view = sandboxedDecisionOf(
       "node x.ts && gh issue view 5",
       "interactive",

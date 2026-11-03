@@ -26,9 +26,9 @@ describe("gateReplayOf", () => {
   });
 
   it("names the part that's refused", () => {
-    const replay = replayOf("python3 -c 'print(1)'");
+    const replay = replayOf("ls && npm run app:chore fixRows -- --send");
     expect(replay.outcome).toBe("refuses");
-    expect(replay.words?.[0]).toBe("python3");
+    expect(replay.words?.[0]).toBe("npm");
   });
 
   it("says when every part is free but a heredoc leaves the call to Claude Code", () => {

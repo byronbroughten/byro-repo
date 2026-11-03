@@ -29,7 +29,7 @@ export function isStepWritable(path: string, places: WritePlaces): boolean {
 }
 
 // The path's parts below $TMPDIR or /tmp, or undefined when it is strictly inside neither or is in .git at any depth.
-export function tmpPartsOf(
+function tmpPartsOf(
   resolved: string,
   places: WritePlaces,
 ): string[] | undefined {
@@ -50,7 +50,7 @@ export function partsClearOfGit(
 }
 
 // The path's parts below a root, or undefined when it isn't strictly inside it.
-export function partsInside(
+function partsInside(
   resolved: string,
   root: string,
   places: WritePlaces,

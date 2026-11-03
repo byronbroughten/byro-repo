@@ -1,17 +1,15 @@
 // Decides the gate for a Bash call by tier: 1 and 2 are free (git or Google's version history undoes them), 3 asks. Pure; tierGate.ts does the I/O, and driveTiers.ts decides gworkspace calls.
-// The classifiers live in tiers/, a file per subject: git writes, reads, file commands, npm verdicts, interpreters, and the verdicts only a runner step or an Interactive session gets. excludedCommands.ts there refuses a call that keeps an excluded command in the box.
+// The classifiers live in tiers/, a file per subject: git writes, reads, npm verdicts, and the verdicts only a runner step or an Interactive session gets. excludedCommands.ts there refuses a call that keeps an excluded command in the box.
 import { type SandboxOff, sandboxOffWords } from "../sandboxState.ts";
 import { ShellParser, type SimpleCommand } from "./ShellParser.ts";
 import { foldersAfterCdOf } from "./ShellParser/SegmentReader.ts";
 import type { WritePlaces } from "./stepWrites.ts";
 import { excludedCommands } from "./tiers/excludedCommands.ts";
-import { fileCommands } from "./tiers/fileCommands.ts";
 import { gitWrites } from "./tiers/gitWrites.ts";
 import { interactiveSession } from "./tiers/interactiveSession.ts";
-import { interpreterCommands } from "./tiers/interpreterCommands.ts";
 import { npmCommands } from "./tiers/npmCommands.ts";
 import { npmVerdicts } from "./tiers/npmVerdicts.ts";
-import { PathChecker, writablePlaces } from "./tiers/PathChecker.ts";
+import { PathChecker } from "./tiers/PathChecker.ts";
 import { readCommands } from "./tiers/readCommands.ts";
 import { runnerStep } from "./tiers/runnerStep.ts";
 import { sandboxedCalls } from "./tiers/sandboxedCalls.ts";
@@ -32,17 +30,16 @@ export const stepTargetsVariable = "BYRO_STEP_TARGETS";
 export const blockerInstead =
   "record a `denied-tool` blocker for the developer instead";
 
-// Where the call runs, for the write rule and scratch `node`; isIgnored asks the checkout holding a path.
+// Where the call runs, for following its `cd`s and a runner step's `git restore`.
 export interface ShellPlaces extends WritePlaces {
   cwd: string;
-  isIgnored: (path: string) => boolean;
 }
 
 export interface ShellCall {
   command: string;
   mode: SessionMode;
   dryRuns: string[];
-  // Absent, no write passes the write rule and no `node` file is scratch.
+  // Absent, no `cd` is followed and no `git restore` is in the step's own workspace.
   places?: ShellPlaces;
   // The spreadsheets (`app`, `dev`) a runner step's ticket targets; absent, it targets none.
   spreadsheetTargets?: string[];
@@ -274,7 +271,7 @@ export function commandVerdictsOf({
   return commands.map((simple) => {
     const verdict = strictestOf(
       cwds.map((cwd) =>
-        verdictOf(simple, {
+        commandVerdictOf(simple, {
           mode,
           dryRuns,
           places: placesAt(places, cwd),
@@ -348,25 +345,6 @@ export function needsYes(why: string): Decision {
   return gateOf("ask", `${why}, so it needs a yes.`);
 }
 
-// Each redirect's file passes the write rule, or the command asks whatever it runs.
-function verdictOf(
-  simple: SimpleCommand,
-  context: CallContext,
-): Verdict | undefined {
-  const writeAsk = PathChecker.init(context.places).writeAskAmong(
-    simple.outputFiles,
-  );
-  if (writeAsk) return writeAsk;
-  if (simple.words.length === 0) {
-    return {
-      permissionDecision: "allow",
-      why: `a bare redirect writes only ${writablePlaces}`,
-      needsPlainText: true,
-    };
-  }
-  return commandVerdictOf(simple, context);
-}
-
 // `timeout` is decided on the command it wraps.
 function commandVerdictOf(
   simple: SimpleCommand,
@@ -397,12 +375,10 @@ const classifiers: Classifier[] = [
   gitWrites.trackedFileVerdictOf,
   runnerStep.restoreVerdictOf,
   readCommands.verdictOf,
-  fileCommands.verdictOf,
   gitWrites.pushVerdictOf,
   npmVerdicts.untargetedVerdictOf,
   npmVerdicts.publishVerdictOf,
   npmVerdicts.forcedRemoveVerdictOf,
   npmVerdicts.freeScriptVerdictOf,
   npmVerdicts.npxCheckVerdictOf,
-  interpreterCommands.verdictOf,
 ];
