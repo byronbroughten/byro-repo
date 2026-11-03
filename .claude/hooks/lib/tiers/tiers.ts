@@ -1,15 +1,12 @@
 // Decides the gate for a Bash call by tier: 1 and 2 are free (git or Google's version history undoes them), 3 asks. Pure; tierGate.ts does the I/O, and driveTiers.ts decides gworkspace calls.
-// The classifiers live in tiers/, a file per subject: git writes, reads, npm verdicts, and the verdicts only a runner step or an Interactive session gets. excludedCommands.ts there refuses a call that keeps an excluded command in the box.
+// The classifiers live in tiers/, a file per subject: the raw push, `gh label list`, npm verdicts, and the verdicts only a runner step or an Interactive session gets. Each matches an `excludedCommands` entry, `gh` or `git push`, as the box frees any other command. excludedCommands.ts there refuses a call that keeps an excluded command in the box.
 import { type SandboxOff, sandboxOffWords } from "../sandboxState.ts";
 import { ShellParser, type SimpleCommand } from "./ShellParser.ts";
-import { foldersAfterCdOf } from "./ShellParser/SegmentReader.ts";
-import type { WritePlaces } from "./stepWrites.ts";
 import { excludedCommands } from "./tiers/excludedCommands.ts";
 import { gitWrites } from "./tiers/gitWrites.ts";
 import { interactiveSession } from "./tiers/interactiveSession.ts";
 import { npmCommands } from "./tiers/npmCommands.ts";
 import { npmVerdicts } from "./tiers/npmVerdicts.ts";
-import { PathChecker } from "./tiers/PathChecker.ts";
 import { readCommands } from "./tiers/readCommands.ts";
 import { runnerStep } from "./tiers/runnerStep.ts";
 import { sandboxedCalls } from "./tiers/sandboxedCalls.ts";
@@ -30,17 +27,10 @@ export const stepTargetsVariable = "BYRO_STEP_TARGETS";
 export const blockerInstead =
   "record a `denied-tool` blocker for the developer instead";
 
-// Where the call runs, for following its `cd`s and a runner step's `git restore`.
-export interface ShellPlaces extends WritePlaces {
-  cwd: string;
-}
-
 export interface ShellCall {
   command: string;
   mode: SessionMode;
   dryRuns: string[];
-  // Absent, no `cd` is followed and no `git restore` is in the step's own workspace.
-  places?: ShellPlaces;
   // The spreadsheets (`app`, `dev`) a runner step's ticket targets; absent, it targets none.
   spreadsheetTargets?: string[];
   // Absent, no call is refused for keeping an excluded command in the box, and none is freed for running in it.
@@ -57,11 +47,10 @@ export interface CallSandbox {
 
 const noSandbox: CallSandbox = { isOn: false, excludedCommands: [] };
 
-// What a simple command's verdict reads beyond its own words; places carries the cwd as of that command.
+// What a simple command's verdict reads beyond its own words.
 export interface CallContext {
   mode: SessionMode;
   dryRuns: string[];
-  places: ShellPlaces | undefined;
   spreadsheetTargets: string[];
 }
 
@@ -259,58 +248,14 @@ export function commandVerdictsOf({
   command,
   mode,
   dryRuns,
-  places,
   spreadsheetTargets = [],
 }: ShellCall): CommandVerdict[] | undefined {
   const commands = ShellParser.init(command).parsedCommands;
   if (!commands) return undefined;
-  // A `cd` carries on only in an AND list: a failed one stops the command; in a subshell, substitution, pipe or background job it doesn't carry; after `;` or `||` it may have failed.
-  const cdCarriesOn = isAndListOf(command);
-  // Each folder the command may be in by now, undefined for one the gate can't follow.
-  let cwds = [places?.cwd];
-  return commands.map((simple) => {
-    const verdict = strictestOf(
-      cwds.map((cwd) =>
-        commandVerdictOf(simple, {
-          mode,
-          dryRuns,
-          places: placesAt(places, cwd),
-          spreadsheetTargets,
-        }),
-      ),
-    );
-    if (simple.words[0] === "cd") {
-      const targets = cwds.map((cwd) =>
-        PathChecker.init(placesAt(places, cwd)).cdTargetOf(simple.words[1]),
-      );
-      cwds = foldersAfterCdOf(cwds, targets, cdCarriesOn);
-    }
-    return { words: simple.words, verdict };
-  });
-}
-
-function isAndListOf(command: string): boolean {
-  try {
-    return ShellParser.init(command).isAndList;
-  } catch {
-    return false;
-  }
-}
-
-function placesAt(
-  places: ShellPlaces | undefined,
-  cwd: string | undefined,
-): ShellPlaces | undefined {
-  return places && cwd !== undefined ? { ...places, cwd } : undefined;
-}
-
-// A command that may run from more than one folder gets the strictest of its verdicts there.
-function strictestOf(verdicts: (Verdict | undefined)[]): Verdict | undefined {
-  const strictest =
-    verdicts.find((verdict) => verdict?.permissionDecision === "deny") ??
-    verdicts.find((verdict) => verdict?.permissionDecision === "ask");
-  if (strictest) return strictest;
-  return verdicts.includes(undefined) ? undefined : verdicts[0];
+  return commands.map((simple) => ({
+    words: simple.words,
+    verdict: commandVerdictOf(simple, { mode, dryRuns, spreadsheetTargets }),
+  }));
 }
 
 // A runner step told how to retry doesn't halt; any other call stays unclassified.
@@ -368,17 +313,9 @@ const classifiers: Classifier[] = [
   interactiveSession.ghVerdictOf,
   interactiveSession.decideVerdictOf,
   npmVerdicts.choreSendVerdictOf,
-  gitWrites.commitVerdictOf,
-  gitWrites.addVerdictOf,
-  gitWrites.branchVerdictOf,
-  gitWrites.mergeVerdictOf,
-  gitWrites.trackedFileVerdictOf,
-  runnerStep.restoreVerdictOf,
   readCommands.verdictOf,
   gitWrites.pushVerdictOf,
   npmVerdicts.untargetedVerdictOf,
-  npmVerdicts.publishVerdictOf,
   npmVerdicts.forcedRemoveVerdictOf,
   npmVerdicts.freeScriptVerdictOf,
-  npmVerdicts.npxCheckVerdictOf,
 ];

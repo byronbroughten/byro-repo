@@ -8,11 +8,11 @@ function replayOf(command: string) {
 
 describe("gateReplayOf", () => {
   it("names a free call as free", () => {
-    expect(replayOf("git log --oneline").outcome).toBe("free");
+    expect(replayOf("npm run lint").outcome).toBe("free");
   });
 
   it("names the part of a call no tier row matches", () => {
-    expect(replayOf("git status && gh issue view 3")).toEqual({
+    expect(replayOf("npm run lint && gh issue view 3")).toEqual({
       outcome: "unclassified",
       words: ["gh", "issue", "view", "3"],
       why: "no tier row matches it",
@@ -20,19 +20,21 @@ describe("gateReplayOf", () => {
   });
 
   it("names the part that asks, with the gate's own reason", () => {
-    const replay = replayOf("ls && git push");
+    const replay = replayOf("npm run lint && git push");
     expect(replay.outcome).toBe("asks");
     expect(replay.words).toEqual(["git", "push"]);
   });
 
   it("names the part that's refused", () => {
-    const replay = replayOf("ls && npm run app:chore fixRows -- --send");
+    const replay = replayOf(
+      "npm run lint && npm run app:chore fixRows -- --send",
+    );
     expect(replay.outcome).toBe("refuses");
     expect(replay.words?.[0]).toBe("npm");
   });
 
   it("says when every part is free but a heredoc leaves the call to Claude Code", () => {
-    const replay = replayOf("cat <<EOF\nhi\nEOF");
+    const replay = replayOf("gh label list <<EOF\nhi\nEOF");
     expect(replay.outcome).toBe("unclassified");
     expect(replay.why).toMatch(/heredoc/);
   });

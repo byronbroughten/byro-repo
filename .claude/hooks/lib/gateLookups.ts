@@ -8,21 +8,16 @@ import {
   readJsonFile,
   sessionStatePath,
 } from "./hookIo.ts";
-import type { ShellPlaces } from "./tiers/tiers.ts";
+import type { ShellPlaces } from "./tiers/stepWrites.ts";
 
 const dryRunSuffix = "chore-dry-runs.json";
 
 export function shellPlacesOf(input: HookInput): ShellPlaces {
   const workspaceRoot = projectDirOf(input);
-  return shellPlacesAt(workspaceRoot, input.cwd ?? workspaceRoot);
-}
-
-// Also for a replay of a past call, whose session root and cwd come from its transcript.
-export function shellPlacesAt(workspaceRoot: string, cwd: string): ShellPlaces {
   return {
     workspaceRoot,
     tmpDir: tmpdir(),
-    cwd,
+    cwd: input.cwd ?? workspaceRoot,
     realPathOf: (path) => {
       try {
         return realpathSync.native(path);

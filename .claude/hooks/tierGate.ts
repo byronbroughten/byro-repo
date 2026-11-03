@@ -2,7 +2,7 @@
 // Every Bash call gets the file-system lookups following a `cd` and a runner step's `git restore` need, so the decision stays pure.
 import { writeFileSync } from "node:fs";
 
-import { dryRuns, shellPlacesOf } from "./lib/gateLookups.ts";
+import { dryRuns } from "./lib/gateLookups.ts";
 import {
   type HookInput,
   projectDirOf,
@@ -80,7 +80,6 @@ async function bashDecision(input: HookInput): Promise<Decision | undefined> {
     command,
     mode: sessionModeOf(process.env),
     dryRuns: dryRuns.read(input.session_id),
-    places: shellPlacesOf(input),
     spreadsheetTargets: spreadsheetTargetsOf(process.env[stepTargetsVariable]),
     sandbox: callSandboxOf(sessionSandboxStateOf(input)),
   });
