@@ -172,6 +172,11 @@
             "type": "command",
             "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/sessionIdContext.ts\"",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node \"${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/sandboxOffContext.ts\"",
+            "timeout": 10
           }
         ]
       }

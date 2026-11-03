@@ -1,6 +1,6 @@
 // Decides the gate for a Bash call by tier: 1 and 2 are free (git or Google's version history undoes them), 3 asks. Pure; tierGate.ts does the I/O, and driveTiers.ts decides gworkspace calls.
 // The classifiers live in tiers/, a file per subject: git writes, reads, file commands, npm verdicts, interpreters, and the verdicts only a runner step or an Interactive session gets. excludedCommands.ts there refuses a call that keeps an excluded command in the box.
-import type { SandboxOff } from "../sandboxState.ts";
+import { type SandboxOff, sandboxOffWords } from "../sandboxState.ts";
 import { ShellParser, type SimpleCommand } from "./ShellParser.ts";
 import { foldersAfterCdOf } from "./ShellParser/SegmentReader.ts";
 import type { WritePlaces } from "./stepWrites.ts";
@@ -124,11 +124,11 @@ function offDecisionOf(
     return undefined;
   }
   const ask = needsYes(
-    `\`${command}\` isn't made only of \`excludedCommands\` entries and the sandbox is off, as ${off.cause}`,
+    `\`${command}\` isn't ${sandboxOffWords.madeOfEntries} and ${sandboxOffWords.offClause(off)}`,
   );
   return {
     ...ask,
-    reason: `${ask.reason} To turn the box back on, ${off.fix}.`,
+    reason: `${ask.reason} ${sandboxOffWords.turnBackOn(off)}`,
   };
 }
 

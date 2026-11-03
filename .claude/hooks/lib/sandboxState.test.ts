@@ -1,40 +1,10 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { sandboxStateOf, type SettingsLayers } from "./sandboxState.ts";
-
-function folderWith(files: Record<string, unknown>): string {
-  const root = mkdtempSync(join(tmpdir(), "sandbox-state-"));
-  mkdirSync(join(root, ".claude"));
-  Object.entries(files).forEach(([name, content]) => {
-    writeFileSync(
-      join(root, ".claude", name),
-      typeof content === "string" ? content : JSON.stringify(content),
-    );
-  });
-  return root;
-}
-
-const onBlock = { enabled: true, allowUnsandboxedCommands: false };
-
-function layersOf({
-  user = {},
-  project = {},
-  commandLine,
-}: {
-  user?: Record<string, unknown>;
-  project?: Record<string, unknown>;
-  commandLine?: Record<string, unknown>;
-}): SettingsLayers {
-  return {
-    userConfigDir: join(folderWith(user), ".claude"),
-    sessionRoot: folderWith(project),
-    gateRoot: commandLine ? folderWith(commandLine) : undefined,
-  };
-}
+import { sandboxStateOf } from "./sandboxState.ts";
+import { folderWith, layersOf, onBlock } from "./settingsLayersFixture.ts";
 
 describe("sandboxStateOf", () => {
   it("merges the user, project and local layers as Claude Code does", () => {
