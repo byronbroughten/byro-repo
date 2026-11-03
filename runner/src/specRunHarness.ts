@@ -14,6 +14,8 @@ import { dirname, join } from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
 
 import type { AgentStep, StepRequest, StepResult } from "./AgentStep.ts";
+import { batchEventFilePathOf } from "./BatchRecords.ts";
+import { EventFileNotices, type EventLine } from "./EventFileNotices.ts";
 import type { WrapUpFacts } from "./FactsFile.ts";
 import type { FakeAgentStep, ScriptedStep } from "./FakeAgentStep.ts";
 import { FakeGitHub } from "./FakeGitHub.ts";
@@ -24,12 +26,12 @@ import { git, GitFixture } from "./GitFixture.ts";
 import type { Blocker, Handoff, ImplementRecord } from "./implementStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { UsageList, UsageReader } from "./limitGuard.ts";
-import type { Notice } from "./Notices.ts";
+import { composedNotices, type Notice } from "./Notices.ts";
 import { stampedLineOf } from "./progressLines.ts";
 import type { ResolveRecord } from "./resolveStep.ts";
 import type { ReviewFinding } from "./reviewStep.ts";
 import { type Command, runKnobsOf } from "./runKnobs.ts";
-import { SpecRun, type SpecRunConfig } from "./SpecRun.ts";
+import { type MemberList, SpecRun, type SpecRunConfig } from "./SpecRun.ts";
 import type { StepSession } from "./transcriptFacts.ts";
 
 export const clonePaths = {
@@ -471,8 +473,22 @@ interface SavedTicket {
   sessions: StepSession[];
 }
 
-export function runStatePath(): string {
-  return join(stateFolder(), "byro-repo-213.run.json");
+// The spec's run state unless another member is named, such as a Standalone one's.
+export function runStatePath(number = spec.number): string {
+  return join(stateFolder(), `byro-repo-${number}.run.json`);
+}
+
+// A config override that also writes the event files a Supervisor watches.
+export function withEventFile(): Partial<SpecRunConfig> {
+  const eventFile = EventFileNotices.init(stateFolder());
+  return { notices: composedNotices(notices, eventFile) };
+}
+
+export function batchEventLines(members: MemberList): EventLine[] {
+  return readFileSync(batchEventFilePathOf(stateFolder(), members), "utf8")
+    .trimEnd()
+    .split("\n")
+    .map((line) => JSON.parse(line) as EventLine);
 }
 
 export function runLockPath(): string {

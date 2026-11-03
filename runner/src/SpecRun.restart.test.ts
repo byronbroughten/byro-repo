@@ -1,17 +1,14 @@
 import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { batchEventFilePathOf } from "./BatchRecords.ts";
-import { EventFileNotices, type EventLine } from "./EventFileNotices.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
-import { composedNotices } from "./Notices.ts";
 import type { MemberList, RunResult } from "./SpecRun.ts";
 import {
   addIssue,
   addSpec,
+  batchEventLines,
   eventOf,
   github,
   implemented,
@@ -19,10 +16,11 @@ import {
   progressLines,
   refOf,
   reviewed,
+  runStatePath,
   spec,
   specRun,
-  stateFolder,
   useSpecRunHarness,
+  withEventFile,
 } from "./specRunHarness.ts";
 
 useSpecRunHarness();
@@ -135,22 +133,11 @@ async function restartBatch(): Promise<number> {
     ),
   );
   expect(result.kind).toBe("restarting");
-  return batchEventLines().length;
+  return batchEventLines(members).length;
 }
 
 function runBatch(agentStep: FakeAgentStep): Promise<RunResult> {
-  const eventFile = EventFileNotices.init(stateFolder());
-  return specRun(agentStep, {
-    members,
-    notices: composedNotices(notices, eventFile),
-  }).run(...members);
-}
-
-function batchEventLines(): EventLine[] {
-  return readFileSync(batchEventFilePathOf(stateFolder(), members), "utf8")
-    .trimEnd()
-    .split("\n")
-    .map((line) => JSON.parse(line) as EventLine);
+  return specRun(agentStep, { members, ...withEventFile() }).run(...members);
 }
 
 // The members whose run-started notice carries the relaunch mark, which the event line leaves out.
@@ -169,7 +156,7 @@ describe("a Batch's Restart", () => {
     );
 
     expect(relaunch.kind).toBe("finished");
-    const lines = batchEventLines().slice(before);
+    const lines = batchEventLines(members).slice(before);
     expect(lines.map(({ spec, kind }) => [spec, kind])).toEqual([
       ["byro-repo#303", "run-started"],
       ["byro-repo#302", "member-ended"],
@@ -190,7 +177,7 @@ describe("a Batch's Restart", () => {
 
     await runBatch(FakeAgentStep.init(implemented("third.ts"), reviewed()));
 
-    const started = batchEventLines()
+    const started = batchEventLines(members)
       .slice(before)
       .filter(({ kind }) => kind === "run-started");
     expect(started.map(({ spec }) => spec)).toEqual(["byro-repo#302"]);
@@ -198,8 +185,8 @@ describe("a Batch's Restart", () => {
   });
 
   it("relaunches from a restart saved before it kept each member's end, ending that member again", async () => {
-    await restartBatch();
-    const path = join(stateFolder(), "byro-repo-301.run.json");
+    const before = await restartBatch();
+    const path = runStatePath(first.number);
     const state = JSON.parse(readFileSync(path, "utf8")) as {
       restart: { landed: IssueRef[] };
     };
@@ -214,5 +201,13 @@ describe("a Batch's Restart", () => {
 
     expect(relaunch.kind).toBe("finished");
     expect(relaunch.landed).toEqual(members);
+    const ended = batchEventLines(members)
+      .slice(before)
+      .filter(({ kind }) => kind === "member-ended");
+    expect(ended.map(({ spec }) => spec)).toEqual([
+      "byro-repo#301",
+      "byro-repo#302",
+      "byro-repo#303",
+    ]);
   });
 });
