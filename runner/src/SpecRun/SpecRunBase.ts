@@ -105,6 +105,8 @@ export interface RunGitHub extends WrapUpGitHub {
   editComment(id: string, body: string): Promise<void>;
   // In no set order; a search match is fuzzy, so callers read the comments to confirm it.
   openIssuesCommentedWith(repo: string, phrase: string): Promise<IssueRef[]>;
+  // In no set order.
+  openIssuesLabelled(repo: string, label: string): Promise<IssueRef[]>;
 }
 
 // What an announced event adds to its notice beyond the spec and summary.

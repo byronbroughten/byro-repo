@@ -1,7 +1,7 @@
 // The run's preflight, which refuses or Stops a run before its first pick: it takes each member's RunLock,
 // collects every member's refusal (a live run, the spec's authorship, Model fit, targets and, in a Batch, the Standalone checks),
 // and runs the shared preflight Stop once. It holds the member list, so a list of one skips the Standalone checks.
-// RunLoop.ts calls _takeRunLocks, then _refuseBesideLiveRuns or _refusalOf and _preflightStop.
+// RunLoop.ts calls _takeRunLocks, then _refuseBesideLiveRuns or _refusalOf and _preflightStop; StandaloneTicketLister.ts calls _batchMemberRefusalOf.
 
 import { existsSync } from "node:fs";
 import { join } from "node:path";
@@ -119,6 +119,14 @@ export class PreflightChecker extends SpecRunBase {
     return undefined;
   }
 
+  // `runner standalone`'s check of one listed ticket: a Batch member's refusal, whatever the list's length.
+  async _batchMemberRefusalOf(run: Run): Promise<string | undefined> {
+    return (
+      (await this._specRefusalOf(run)) ??
+      this._standaloneRefusalOf(run.spec, isLandedByThisRun(run))
+    );
+  }
+
   private async _memberRefusalOf(run: Run): Promise<MemberRefusal | undefined> {
     const refusal = await this._runRefusalOf(run);
     if (refusal === undefined) return undefined;
@@ -127,15 +135,18 @@ export class PreflightChecker extends SpecRunBase {
 
   // A list of one skips the Standalone checks, as before Batches.
   private async _runRefusalOf(run: Run): Promise<string | undefined> {
+    if (!this.isBatch || !run.isStandalone) return this._specRefusalOf(run);
+    return this._batchMemberRefusalOf(run);
+  }
+
+  private async _specRefusalOf(run: Run): Promise<string | undefined> {
     const launchable = await this._launchableTicketsOf(run);
     // A ticket's body is left to the launch-time check, whose Halt can approve it.
-    const refusal =
+    return (
       (await this._authorshipRefusal("the spec", [run.spec])) ??
       modelFitRefusalOf(run, launchable) ??
-      targetsRefusalOf(run, launchable);
-    if (refusal !== undefined) return refusal;
-    if (!this.isBatch || !run.isStandalone) return undefined;
-    return this._standaloneRefusalOf(run.spec, isLandedByThisRun(run));
+      targetsRefusalOf(run, launchable)
+    );
   }
 
   // A Standalone ticket has none; the preflight refusals check the spec itself.
