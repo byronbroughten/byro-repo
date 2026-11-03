@@ -165,7 +165,19 @@ export interface RunState {
   // Every ticket's, answered ones included, in the order raised; absent from a state file written before Halts.
   halts?: Halt[];
   // Set by a Restart and taken by its relaunch, which carries on its landings.
-  restart?: { landed: IssueRef[] };
+  restart?: Restart;
+}
+
+export interface Restart {
+  landed: IssueRef[];
+  // Set when the member ended before the Restart, so its relaunch doesn't announce that end again; absent from an older runner's restart.
+  end?: MemberEnd;
+}
+
+export interface MemberEnd {
+  result: RunResult;
+  // Finished with nothing left waiting.
+  isLanded: boolean;
 }
 
 export interface Run {

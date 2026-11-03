@@ -901,7 +901,6 @@ describe("a Batch's record", () => {
       [213, undefined],
       [301, undefined],
       [213, true],
-      [301, true],
     ]);
   });
 
