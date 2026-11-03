@@ -35,6 +35,7 @@ import {
   type ReviewListSubject,
   ticketPushOf,
   ticketReviewListOf,
+  type UndecidedCount,
   undecidedCountOf,
   undecidedLineOf,
 } from "../reviewList.ts";
@@ -177,16 +178,14 @@ export class ReviewListPoster extends SpecRunBase {
         );
       }
     }
+    const count = undecidedCountOf(await this._runnersSpecCommentsOf(run));
+    const isLeftOpen = run.isStandalone && count.items > 0;
     const message = this._withRerunLine(
       run,
-      endMessageOf(run.landed, waits),
+      endMessageOf(run.landed, waits, isLeftOpen),
       waits,
     );
-    return this._end(
-      run,
-      "finished",
-      await this._withUndecidedLine(run, message),
-    );
+    return this._end(run, "finished", this._withUndecidedLine(message, count));
   }
 
   // Catches a ticket that landed in a run killed before its review list was posted.
@@ -299,9 +298,8 @@ export class ReviewListPoster extends SpecRunBase {
   }
 
   // Counts every review-list comment on the spec, earlier runs' included, since the developer decides them in one place.
-  private async _withUndecidedLine(run: Run, message: string): Promise<string> {
+  private _withUndecidedLine(message: string, count: UndecidedCount): string {
     if (this.config.knobs.reviewListCadence !== "end-of-run") return message;
-    const count = undecidedCountOf(await this._runnersSpecCommentsOf(run));
     if (count.items === 0) return message;
     return `${message} ${undecidedLineOf(count)}.`;
   }
@@ -327,10 +325,16 @@ function deliverGapCheckHalts(run: Run): void {
     });
 }
 
-function endMessageOf(landed: IssueRef[], waits: Wait[]): string {
-  const waitingPart =
-    waits.length === 0
-      ? "Every ticket is closed."
-      : `${runText.waitsOf(waits)}.`;
+function endMessageOf(
+  landed: IssueRef[],
+  waits: Wait[],
+  isLeftOpen: boolean,
+): string {
+  let waitingPart = `${runText.waitsOf(waits)}.`;
+  if (waits.length === 0) {
+    waitingPart = isLeftOpen
+      ? "The ticket is left open until /judge-findings decides its review list."
+      : "Every ticket is closed.";
+  }
   return `Run ended: ${runText.landedOf(landed)}. ${waitingPart}`;
 }
