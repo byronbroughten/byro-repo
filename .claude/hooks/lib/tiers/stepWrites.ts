@@ -1,4 +1,4 @@
-// The step write rule: where a write is tier 1. Pure; the caller passes the file-system lookups, so an Edit and a Bash write get one answer.
+// The step write rule: where a write is tier 1. Pure; the caller passes the file-system lookups, so a runner step's Edit or Write is decided without touching the disk.
 import { dirname, isAbsolute, join, relative, sep } from "node:path";
 
 // realPathOf is undefined when nothing is there; isLink is true for a symlink, dangling or not.

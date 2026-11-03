@@ -29,6 +29,10 @@ function placedDecisionOf(
   });
 }
 
+function placedStepDecisionOf(command: string) {
+  return placedDecisionOf(command, "runnerStep")?.permissionDecision;
+}
+
 function runnerStepDecisionOf(command: string) {
   return gateDecision({ command, mode: "runnerStep", dryRuns: [] })
     ?.permissionDecision;
@@ -705,15 +709,11 @@ describe("stdout filters and wrappers", () => {
 });
 
 describe("a cd before a runner step's git restore", () => {
-  function restoreDecisionOf(command: string) {
-    return placedDecisionOf(command, "runnerStep")?.permissionDecision;
-  }
-
   it("follows a cd into the workspace, through an AND list", () => {
     [
       "cd packages/framework && git restore src/x.ts",
       "cd /outside && cd /ws && git restore AGENTS.md",
-    ].forEach((command) => expect(restoreDecisionOf(command)).toBe("allow"));
+    ].forEach((command) => expect(placedStepDecisionOf(command)).toBe("allow"));
   });
 
   it("checks every folder the call may be in after a cd that may not have carried on, or one it can't follow", () => {
@@ -727,11 +727,11 @@ describe("a cd before a runner step's git restore", () => {
       "cd $(git rev-parse --show-toplevel) && git restore x",
       "cd ${TMPDIR}/work && git restore x",
       "cd /outside && echo `cd /ws` && git restore x",
-    ].forEach((command) => expect(restoreDecisionOf(command)).toBe("deny"));
+    ].forEach((command) => expect(placedStepDecisionOf(command)).toBe("deny"));
   });
 
   it("allows a restore after a cd that may not have carried on when every folder is the workspace", () => {
-    expect(restoreDecisionOf("cd packages/framework; git restore x")).toBe(
+    expect(placedStepDecisionOf("cd packages/framework; git restore x")).toBe(
       "allow",
     );
   });
@@ -989,11 +989,7 @@ describe("loops, conditionals, groups and functions", () => {
       "if git status; then cd /outside; fi; git restore x",
       "e(){ cd /outside; }; e; git restore x",
       "! cd /outside && git restore x",
-    ].forEach((command) =>
-      expect(placedDecisionOf(command, "runnerStep")?.permissionDecision).toBe(
-        "deny",
-      ),
-    );
+    ].forEach((command) => expect(placedStepDecisionOf(command)).toBe("deny"));
   });
 
   it("refuses a runner step's loop as it refuses the command inside", () => {

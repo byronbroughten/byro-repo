@@ -45,7 +45,7 @@ function isPlainPath(path: string): boolean {
   return path !== "" && !path.startsWith("~") && !/[$`*?[\]{}]/.test(path);
 }
 
-// Joined, not resolved, so a later check walks each `..` through any symlink.
+// Joined, not resolved, so resolvedPathOf, in isCwdInWorkspaceCheckout, walks each `..` through any symlink.
 function absoluteOf(path: string, cwd: string): string {
   return isAbsolute(path) ? path : `${cwd}/${path}`;
 }
