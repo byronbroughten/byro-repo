@@ -97,7 +97,7 @@ type Classifier = (
   context: CallContext,
 ) => Verdict | undefined;
 
-// A call keeping an excluded command in the box is refused before any tier row, since it would fail there whatever its tier; one the box runs is then free unless it reaches GitHub.
+// A call keeping an excluded command in the box is refused before any tier row, since it would fail there whatever its tier; one the box runs is then free unless it reaches GitHub, and then only its `gh` and `git push` commands' rows decide.
 // With the box off, only a call of excluded commands gets the rows, so a misconfigured box shows up as asks, never as silent freedom.
 export function gateDecision(call: ShellCall): Decision | undefined {
   const { isOn, excludedCommands: entries, off } = call.sandbox ?? noSandbox;
@@ -106,14 +106,40 @@ export function gateDecision(call: ShellCall): Decision | undefined {
     ? undefined
     : excludedCommands.refusalOf(call.command, entries);
   if (boxRefusal) return gateOf("deny", `${boxRefusal}.`);
-  if (isOn && sandboxedCalls.isFree(call.command, entries)) {
+  const boxCommands = isOn
+    ? sandboxedCalls.boxCommandsOf(call.command, entries)
+    : undefined;
+  const isBoxRun = boxCommands !== undefined;
+  if (
+    isBoxRun &&
+    !boxCommands.some(({ words }) => sandboxedCalls.holdsGitHubCall(words))
+  ) {
     return gateOf("allow", sandboxedCalls.reasonOf(call.command));
   }
+  const rowsDecision = isBoxRun ? gitHubDecisionOf(call) : baseDecision(call);
   const decision =
-    offDecisionOf(call.command, off) ??
-    baseDecision(call) ??
-    undecidedDecision(call);
+    offDecisionOf(call.command, off) ?? rowsDecision ?? undecidedDecision(call);
   return decision && decisionInMode(decision, call.mode);
+}
+
+// A box-run call holding `gh` or `git push` gets only those commands' rows; an allow names the box for the rest.
+function gitHubDecisionOf(call: ShellCall): Decision | undefined {
+  const commandVerdicts = commandVerdictsOf(call);
+  if (!commandVerdicts) return undefined;
+  const gitHubVerdicts = commandVerdicts.filter(({ words }) =>
+    sandboxedCalls.holdsGitHubCall(words),
+  );
+  const decision = decisionAmong(call, gitHubVerdicts);
+  if (
+    decision?.permissionDecision !== "allow" ||
+    gitHubVerdicts.length === commandVerdicts.length
+  ) {
+    return decision;
+  }
+  return {
+    ...decision,
+    reason: `${decision.reason} ${sandboxedCalls.restReasonOf(call.command)}`,
+  };
 }
 
 function offDecisionOf(
@@ -178,9 +204,14 @@ export function decisionInMode(
 }
 
 function baseDecision(call: ShellCall): Decision | undefined {
-  const { command, mode } = call;
   const commandVerdicts = commandVerdictsOf(call);
-  if (!commandVerdicts) return undefined;
+  return commandVerdicts && decisionAmong(call, commandVerdicts);
+}
+
+function decisionAmong(
+  { command, mode }: ShellCall,
+  commandVerdicts: CommandVerdict[],
+): Decision | undefined {
   const verdicts = commandVerdicts.map(({ verdict }) => verdict);
   // The parser reads each command inside `$(…)` and backticks, quoted or not, as a verdict of its own; a runner step's body still goes through `--body-file`, whatever the substitution runs.
   const hasSubstitution = /\$\(|`/.test(command);

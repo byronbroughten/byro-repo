@@ -1469,6 +1469,42 @@ describe("a sandboxed call", () => {
     ).not.toContain("sandbox");
   });
 
+  it("is decided by its gh and git push rows alone, naming the box for the rest", () => {
+    const loop =
+      "for i in 1 2 3; do tail -n +2 $i.md > body$i.md; gh issue create --title t --body-file body$i.md; done";
+    const decision = sandboxedDecisionOf(loop, "interactive");
+    expect(decision).toEqual({
+      ...sandboxedDecisionOf(
+        "gh issue create --title t --body-file body$i.md",
+        "interactive",
+      ),
+      reason: expect.stringContaining("The rest of"),
+    });
+    expect(decision?.permissionDecision).toBe("allow");
+    expect(decision?.reason).toContain("runs in the sandbox");
+    expect(decisionUnder(loop, "interactive", false)?.permissionDecision).toBe(
+      "ask",
+    );
+    const view = sandboxedDecisionOf(
+      "node x.ts && gh issue view 5",
+      "interactive",
+    );
+    expect(view).toEqual(sandboxedDecisionOf("gh issue view 5", "interactive"));
+    expect(
+      sandboxedDecisionOf("node x.ts && gh issue view 5", "runnerStep")
+        ?.permissionDecision,
+    ).toBe("deny");
+  });
+
+  it("still refuses a runner step's `$(…)` body, naming --body-file", () => {
+    const decision = sandboxedDecisionOf(
+      'tail -n +2 x.md > y.md && gh issue comment 5 --body "$(cat y.md)"',
+      "runnerStep",
+    );
+    expect(decision?.permissionDecision).toBe("deny");
+    expect(decision?.reason).toContain("--body-file");
+  });
+
   it("still refuses a call keeping an excluded command in the box", () => {
     expect(
       sandboxedDecisionOf("npm run check | tail", "interactive")
