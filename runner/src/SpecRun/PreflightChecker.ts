@@ -135,10 +135,8 @@ export class PreflightChecker extends SpecRunBase {
 
   // A list of one skips the Standalone checks, as before Batches.
   private async _runRefusalOf(run: Run): Promise<string | undefined> {
-    const refusal = await this._specRefusalOf(run);
-    if (refusal !== undefined) return refusal;
-    if (!this.isBatch || !run.isStandalone) return undefined;
-    return this._standaloneRefusalOf(run.spec, isLandedByThisRun(run));
+    if (!this.isBatch || !run.isStandalone) return this._specRefusalOf(run);
+    return this._batchMemberRefusalOf(run);
   }
 
   private async _specRefusalOf(run: Run): Promise<string | undefined> {

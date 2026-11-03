@@ -24,31 +24,24 @@ export class StandaloneTicketLister extends SpecRunBase {
     const { listed, leftOut } = await this._ticketListOf(
       await this._standaloneTicketsOf(repo),
     );
-    const sections: string[] = [];
-    if (listed.length > 0) {
-      sections.push(
-        [
-          "Launchable:",
-          ...listed.map(
-            ({ spec }) => `${issueLabelOf(spec.issue)} · "${spec.title}"`,
-          ),
-        ].join("\n"),
-      );
-    }
-    if (leftOut.length > 0) {
-      const oldestFirst = [...leftOut].sort(
-        (a, b) => a.run.spec.issue.number - b.run.spec.issue.number,
-      );
-      sections.push(
-        [
-          "Left out:",
-          ...oldestFirst.map(
-            ({ run, reason }) => `${issueLabelOf(run.spec.issue)} · ${reason}`,
-          ),
-        ].join("\n"),
-      );
-    }
-    sections.push(this._launchLineOf(repo, listed));
+    const oldestLeftOut = [...leftOut].sort(
+      (a, b) => a.run.spec.issue.number - b.run.spec.issue.number,
+    );
+    const sections = [
+      ...sectionOf(
+        "Launchable:",
+        listed.map(
+          ({ spec }) => `${issueLabelOf(spec.issue)} · "${spec.title}"`,
+        ),
+      ),
+      ...sectionOf(
+        "Left out:",
+        oldestLeftOut.map(
+          ({ run, reason }) => `${issueLabelOf(run.spec.issue)} · ${reason}`,
+        ),
+      ),
+      this._launchLineOf(repo, listed),
+    ];
     return sections.join("\n\n");
   }
 
@@ -74,7 +67,7 @@ export class StandaloneTicketLister extends SpecRunBase {
     let listed = runs;
     const leftOut: LeftOutTicket[] = [];
     for (;;) {
-      const refused = await this._refusedOf(listed);
+      const refused = await this._leftOutOf(listed);
       if (refused.length === 0) return { listed, leftOut };
       leftOut.push(...refused);
       listed = listed.filter(
@@ -84,7 +77,7 @@ export class StandaloneTicketLister extends SpecRunBase {
   }
 
   // Checked against the list as it stands, so a blocker left out earlier now counts as outside it.
-  private async _refusedOf(listed: Run[]): Promise<LeftOutTicket[]> {
+  private async _leftOutOf(listed: Run[]): Promise<LeftOutTicket[]> {
     const [first, ...rest] = listed.map(({ spec }) => spec.issue);
     if (first === undefined) return [];
     const checker = new PreflightChecker(this.config, [first, ...rest]);
@@ -103,4 +96,10 @@ export class StandaloneTicketLister extends SpecRunBase {
     const numbers = listed.map(({ spec }) => spec.issue.number);
     return `/runner ${ownerRepo} ${numbers.join(" ")}`;
   }
+}
+
+// None for an empty list, so its heading isn't printed.
+function sectionOf(heading: string, lines: string[]): string[] {
+  if (lines.length === 0) return [];
+  return [[heading, ...lines].join("\n")];
 }

@@ -32,16 +32,25 @@ import { type WatchDeps, watchOnce, watchRun } from "./runWatch.ts";
 const exitCodes = { short: 1, crash: 2, restart: 3 } as const;
 const plainVerbs = ["status", "stop", "review"];
 const boardVerbs = ["status", "watch"];
+// Each verb that takes only `<owner/repo>` and prints what its SpecRun method resolves to.
+const repoListers = {
+  judgeable(specRun: SpecRun, repo: string): Promise<string> {
+    return specRun.judgeable(repo);
+  },
+  standalone(specRun: SpecRun, repo: string): Promise<string> {
+    return specRun.standalone(repo);
+  },
+} as const;
+type RepoVerb = keyof typeof repoListers;
+const repoVerbs = Object.keys(repoListers);
 const verbs = [
   ...plainVerbs,
   "watch",
   "resolve",
   "supervise",
   "decide",
-  "judgeable",
-  "standalone",
+  ...repoVerbs,
 ];
-const repoVerbs = ["judgeable", "standalone"];
 const usage = `Usage: npm run runner -- <owner/repo> <n> [<n>…] to run one spec or a Batch, ${plainVerbs.join("|")} <owner/repo> <n>, watch <owner/repo> <n> [--once], resolve <owner/repo> <n> <records.json>, supervise <owner/repo> <n> [--advance], decide <owner/repo> <spec> R<n>.<k> [--handled] "<text>", ${repoVerbs.join("|")} <owner/repo>, or [${boardVerbs.join("|")}] alone for the Run board`;
 
 try {
@@ -55,7 +64,7 @@ try {
     await showBoard(command);
   } else if (command === "decide") {
     await decide(args);
-  } else if (repoVerbs.includes(command)) {
+  } else if (isRepoVerb(command)) {
     await listForRepo(command, args);
   } else if (command === "run") {
     await runBatch(args);
@@ -225,16 +234,16 @@ async function decide(args: string[]): Promise<void> {
   );
 }
 
-async function listForRepo(command: string, args: string[]): Promise<void> {
+function isRepoVerb(command: string): command is RepoVerb {
+  return repoVerbs.includes(command);
+}
+
+async function listForRepo(command: RepoVerb, args: string[]): Promise<void> {
   const [ownerRepo = "", ...rest] = args;
   const { owner, repo } = repoArgsOf(ownerRepo);
   if (rest.length > 0) throw new Error(usage);
   const specRun = SpecRun.init(specRunConfigOf(owner));
-  if (command === "judgeable") {
-    console.log(await specRun.judgeable(repo));
-  } else {
-    console.log(await specRun.standalone(repo));
-  }
+  console.log(await repoListers[command](specRun, repo));
 }
 
 async function supervise(
