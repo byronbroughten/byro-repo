@@ -9,7 +9,7 @@ The program that runs one spec or one Batch: it picks each ready ticket in turn,
 _Avoid_: orchestrator, driver, pipeline
 
 **Batch**:
-A run of several specs in one repo, named at launch, by number or as `standalone`, the repo's listed launchable Standalone tickets, each worked as its own run would work it, a Standalone ticket among them. It runs in one tmux session and is watched, supervised and stopped as one, through any member's number.
+A run of several specs in one repo, named at launch, each worked as its own run would work it, a Standalone ticket among them. It is named by number, or as `standalone`: the repo's listed launchable Standalone tickets. It runs in one tmux session and is watched, supervised and stopped as one, through any member's number.
 _Avoid_: queue, group, ticket set
 
 **Standalone ticket**:
