@@ -2,7 +2,7 @@
 // It reads words, not command position, so a reserved word, wrapper or `xargs` before `gh` can't hide it; a call it can't read gets the tier rows.
 import type { SimpleCommand } from "../ShellParser.ts";
 import { excludedCommands } from "./excludedCommands.ts";
-import { GitCall } from "./GitCall.ts";
+import { gitWrites } from "./gitWrites.ts";
 
 // Shell punctuation a quoted word may hold, and the brace expansion bash would run as `gh`, as in `{gh,x}`.
 const tokenBreaks = /[\s;&|()`{},]+/;
@@ -36,7 +36,7 @@ export const sandboxedCalls = {
     return tokens.some(
       (token, at) =>
         token === "gh" ||
-        (token === "git" && GitCall.init(tokens.slice(at))?.verb === "push"),
+        (token === "git" && gitWrites.isPushOf(tokens.slice(at))),
     );
   },
 
