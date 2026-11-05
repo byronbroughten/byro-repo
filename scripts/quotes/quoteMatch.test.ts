@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { findQuote, isJoined, pagesOf, quotesIn } from "./quoteMatch.ts";
+import {
+  findQuote,
+  isJoined,
+  markedPages,
+  pagesOf,
+  quotesIn,
+} from "./quoteMatch.ts";
 
 const source = {
   file: "pmbok.txt",
@@ -8,6 +14,15 @@ const source = {
     "--- PDF page 104 ---\nEmotional intelligence is the ability to recog-\nnize our own emotions and those of others.\n--- PDF page 105 ---\nﬁnal text, and the work defined at the lowest level\n--- PDF page 106 ---\nof the work breakdown structure.",
   ),
 };
+
+describe("markedPages", () => {
+  it("numbers every page, a blank one included, and drops the empty piece after the last form feed", () => {
+    const pages = pagesOf(markedPages("Title page\f\f  \fChapter 1\f"));
+
+    expect(pages.map((page) => page.number)).toEqual([1, 2, 3, 4]);
+    expect(pages[3]?.text).toBe("\nChapter 1\n");
+  });
+});
 
 describe("quotesIn", () => {
   it("returns quoted spans of four or more words and skips shorter ones", () => {

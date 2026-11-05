@@ -1,4 +1,4 @@
-// Finds each quoted span of a Research comment in the text of its sources, across page breaks.
+// Marks each page of pdftotext's output, and finds each quoted span of a Research comment in the text of its sources, across page breaks.
 // Whitespace, line-end hyphens, ligatures, curly quotes and letter case are ignored; punctuation must match exactly.
 // The command: verifyQuotes.ts.
 
@@ -24,6 +24,15 @@ export function quotesIn(comment: string): string[] {
 
 export function isJoined(quote: string): boolean {
   return /\.\.\.|…/.test(quote);
+}
+
+// pdftotext ends every page with a form feed, so only the empty piece after the last one is dropped; a blank page keeps its number.
+export function markedPages(pdftotextOutput: string): string {
+  const pages = pdftotextOutput.split("\f");
+  if (pages.at(-1)?.trim() === "") pages.pop();
+  return pages
+    .map((page, index) => `--- PDF page ${index + 1} ---\n${page.trimEnd()}\n`)
+    .join("");
 }
 
 export function pagesOf(text: string): Page[] {

@@ -4,6 +4,8 @@ import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 
+import { markedPages, pagesOf } from "./quoteMatch.ts";
+
 const usage = "usage: npm run pdf:text -- <file.pdf> <out.txt>";
 
 try {
@@ -11,12 +13,9 @@ try {
   const [pdf, out] = positionals;
   if (!pdf || !out) throw new Error(usage);
   const raw = execFileSync("pdftotext", [pdf, "-"], { encoding: "utf8" });
-  const pages = raw.split("\f").filter((page) => page.trim() !== "");
-  const text = pages
-    .map((page, index) => `--- PDF page ${index + 1} ---\n${page.trimEnd()}\n`)
-    .join("");
+  const text = markedPages(raw);
   writeFileSync(out, text);
-  console.log(`${pages.length} pages written to ${out}`);
+  console.log(`${pagesOf(text).length} pages written to ${out}`);
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
   process.exitCode = 1;
