@@ -22,7 +22,9 @@ The user has asked for a **retrospective**. You are suggesting improvements to t
 - **No-ops**: look for instructions in steering files that don't modify the agent's behavior. _Use when_ the steering files are large and unwieldy.
 - **Information access**: look for opportunities to increase the agent's access to information. Teeing dev server logs, readonly access to third-party services. _Use when_ a crucial piece of information was not available to the agent.
 
-4. Present these candidates to the user, in order of severity.
+4. Present these candidates to the user as rounds in the format of `/grilling` ([`.claude/skills/grilling/SKILL.md`](../grilling/SKILL.md)): one numbered question per candidate, in order of severity, with the recommended change as its answer and worded so "yes" accepts it.
+
+**Weigh the recommendations you put to the developer against the Codebase Priorities, [`docs/agents/codebase-priorities.md`](../../../docs/agents/codebase-priorities.md).**
 
 ## Reference
 
