@@ -17,7 +17,7 @@ A ticket with no parent spec and no sub-issues; it is run, judged and closed as 
 _Avoid_: orphan, loose ticket, ticketless spec
 
 **Step**:
-One stage of a ticket's run, in order: implement, review, resolve, checks and wrap-up, with the gap check once at the end of the spec. An agent step is one `claude -p` session; checks and wrap-up the runner does itself.
+One part of a ticket's run, in order: implement, review, resolve, checks and wrap-up, with the gap check once at the end of the spec. An agent step is one `claude -p` session; checks and wrap-up the runner does itself.
 _Avoid_: phase, stage, job
 
 **Active account**:
@@ -183,6 +183,11 @@ _Avoid_: stage, milestone, step
 The developer's ticket that closes a Phase. It tests what the Phase built and decides whether the next Phase goes ahead, changes or is dropped.
 _Avoid_: checkpoint, gate (bare), kill point
 
+**Workflow stage**:
+One part of the coding workflow, from planning to process revision, worked by its own skills. Every Step of a run falls in one Workflow stage, implementation.
+_Avoid_: phase, step, stage (bare)
+
 ## Same word, two meanings
 
 - **Runner**: here, the program that runs a spec. In the framework's glossary, an endpoint whose checkbox is a run button.
+- **Stage**: here, only inside Workflow stage, one part of the coding workflow. In the writing glossary, Stage alone is one kind of sub-issue a split Piece is worked in.

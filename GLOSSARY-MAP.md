@@ -8,7 +8,7 @@ Five contexts, each with its own `GLOSSARY.md` glossary. Read the ones the topic
 - [Real estate](./packages/real-estate/GLOSSARY.md): this app's own words: units and the occupancy ledger.
 - [Writing](./packages/personal/writing/GLOSSARY.md): the words of a reader-facing prose spec: Piece, Deliverable, Supporting Material and Reference.
 - [Inbox](./.claude/skills/inbox/GLOSSARY.md): the words of an `/inbox` session: Proposal, Sign-off, Trash and Inbox.
-- [Spec runner](./runner/GLOSSARY.md): the words of an unattended spec run: steps, records, verdicts, Halts and the review list, plus Primary checkout, the workspaces, Interactive session, Lease, Trusted and Untrusted text, Codebase Priorities and Recommendation, which interactive sessions share with runs, and Phase and Phase gate, which planning borrows.
+- [Spec runner](./runner/GLOSSARY.md): the words of an unattended spec run: steps, records, verdicts, Halts and the review list, plus Primary checkout, the workspaces, Interactive session, Lease, Trusted and Untrusted text, Codebase Priorities and Recommendation, which interactive sessions share with runs, and Phase, Phase gate and Workflow stage, which planning borrows.
 
 ## Relationships
 
