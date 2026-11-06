@@ -1,10 +1,10 @@
 # The coding workflow by Workflow stage
 
-The coding workflow's [Workflow stages](../../runner/GLOSSARY.md#language), the skills that work each, how each hands off to the next, and the rules docs, formats and machinery several pieces share, each with its route. A piece is a skill or a runner [Step](../../runner/GLOSSARY.md#language). This doc records what is, not what should be: a gap it shows is a ticket. Each skill keeps its own rules; follow its link for them.
+The coding workflow's [Workflow stages](../../runner/GLOSSARY.md#language), the skills that work each, how each hands off to the next, and the rules docs, formats and machinery several skills or runner [Steps](../../runner/GLOSSARY.md#language) share, each with its route. This doc records what is, not what should be: a gap it shows is a ticket. Each skill keeps its own rules; follow its link for them.
 
 ## Which skills are in scope
 
-A skill is in scope when a Workflow stage calls it or names it as the next step, unless it belongs to the piece workflow. Lint fails when a skill's `SKILL.md` isn't linked here, so a new skill goes in a Workflow stage or the out-of-scope list.
+A skill is in scope when a Workflow stage calls it or names it as the next step, unless it belongs only to [the piece workflow](./piece-workflow.md). Lint fails when a skill's `SKILL.md` is linked from neither map, so a new skill goes in a Workflow stage or the out-of-scope list of one of them.
 
 **An edit that adds or removes a link to a doc in this doc's shared tables, from a skill, a hook's message or a runner prompt, updates this doc.**
 
@@ -25,7 +25,7 @@ A run's Steps are implement, review, resolve, checks and wrap-up for each ticket
 
 ## The hand-off table
 
-"Named" means the skill's own text points to the next piece, so a skill edit can break it; "you invoke it" means the hand-off lives only in the developer's habits.
+"Named" means the skill's own text points to the next skill or Step, so a skill edit can break it; "you invoke it" means the hand-off lives only in the developer's habits.
 
 | Workflow stage | Skills | Hands off to | Named by |
 | --- | --- | --- | --- |
@@ -46,7 +46,7 @@ A run's Steps are implement, review, resolve, checks and wrap-up for each ticket
 
 ## The shared rules docs
 
-A doc is listed when two or more pieces reach it by one of these routes: **directly** (the piece links it), **via a doc** (it links a doc that links it), **via an always-on hook** (the read-first gate's code-style and prose-style rows, which fire on any code or prose edit, and the context nudge, which fires for any session near the ticket budget), **via a hook message**, or **via a runner prompt** (the text the runner gives a Step). A doc reached only through the root `AGENTS.md` router, or by one piece, isn't listed.
+A doc is listed when two or more skills or Steps reach it by one of these routes: **directly** (the skill or Step links it), **via a doc** (it links a doc that links it), **via an always-on hook** (the read-first gate's code-style and prose-style rows, which fire on any code or prose edit, and the context nudge, which fires for any session near the ticket budget), **via a hook message**, or **via a runner prompt** (the text the runner gives a Step). A doc reached only through the root `AGENTS.md` router, or by one skill or Step, isn't listed.
 
 | Doc | Directly | Indirectly |
 | --- | --- | --- |
@@ -67,7 +67,7 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 
 ## The shared formats
 
-| Format | Pieces |
+| Format | Skills and Steps |
 | --- | --- |
 | `grilling`'s round format | `grilling`, `/judge-findings`, `/mine-outcomes`, `/retro` |
 | The `## Model fit` section and its read-back ([`planning.md`](./planning.md#model-fit)) | `/code-spec`, `/code-tickets`, the tickets `/judge-findings` and `/mine-outcomes` file, `/start-issue`'s check |
@@ -77,7 +77,7 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 
 ## The shared machinery
 
-| Machinery | Pieces |
+| Machinery | Skills and Steps |
 | --- | --- |
 | The issue reader (`npm run issue:read`) with Trusted and Untrusted text | `/runner`, `/start-issue` (via `issue:start`), `/implement-code`, `/judge-findings`, `/mine-outcomes`, every agent Step |
 | Session workspaces ([`git-workflow.md`](./git-workflow.md#a-skills-session-workspace)) | `/start-issue`, `/judge-findings`, `/mine-outcomes` |
@@ -86,4 +86,4 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 
 ## Out of scope
 
-[`/inbox`](../../.claude/skills/inbox/SKILL.md), [`/wizard`](../../.claude/skills/wizard/SKILL.md), [`/prompt-scan`](../../.claude/skills/prompt-scan/SKILL.md), [`/pr`](../../.claude/skills/pr/SKILL.md), [`/retarget-after-gen-configs`](../../.claude/skills/retarget-after-gen-configs/SKILL.md), [`/check-upstream-skills`](../../.claude/skills/check-upstream-skills/SKILL.md), and the piece workflow: [`/grill-piece`](../../.claude/skills/grill-piece/SKILL.md), [`/piece-spec`](../../.claude/skills/piece-spec/SKILL.md), [`/piece-tickets`](../../.claude/skills/piece-tickets/SKILL.md), [`/implement-piece`](../../.claude/skills/implement-piece/SKILL.md), [`/review-piece`](../../.claude/skills/review-piece/SKILL.md), [`/research-piece`](../../.claude/skills/research-piece/SKILL.md), [`/review-research`](../../.claude/skills/review-research/SKILL.md), [`/to-writing-style`](../../.claude/skills/to-writing-style/SKILL.md). `/to-code-style` sends prose rulings to `/to-writing-style`, which is still piece workflow.
+[`/inbox`](../../.claude/skills/inbox/SKILL.md), [`/wizard`](../../.claude/skills/wizard/SKILL.md), [`/prompt-scan`](../../.claude/skills/prompt-scan/SKILL.md), [`/pr`](../../.claude/skills/pr/SKILL.md), [`/retarget-after-gen-configs`](../../.claude/skills/retarget-after-gen-configs/SKILL.md), [`/check-upstream-skills`](../../.claude/skills/check-upstream-skills/SKILL.md), and the skills of [the piece workflow](./piece-workflow.md). `/to-code-style` sends prose rulings to `/to-writing-style`, which is piece workflow.

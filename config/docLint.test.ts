@@ -560,42 +560,66 @@ describe("checkDocs", () => {
 
   describe("skill indexes", () => {
     const index = "docs/agents/coding-workflow.md";
+    const pieceIndex = "docs/agents/piece-workflow.md";
     const skills = {
       ".claude/skills/grilling/SKILL.md": "# Grilling\n",
       "runner/skills/runner/SKILL.md": "# Runner\n",
     };
     const linksBoth =
       "# Index\n\n[grilling](../../.claude/skills/grilling/SKILL.md), [runner](../../runner/skills/runner/SKILL.md)\n";
+    const linksGrilling =
+      "# Index\n\n[grilling](../../.claude/skills/grilling/SKILL.md)\n";
+    const linksRunner =
+      "# Index\n\n[runner](../../runner/skills/runner/SKILL.md)\n";
+    const placeIn = `a Workflow stage or the out-of-scope list of ${index} or ${pieceIndex}`;
 
     it("passes an index that links every skill under both skill roots", () => {
       expect(check({ ...skills, [index]: linksBoth })).toEqual([]);
     });
 
     it("fails an index that skips a skill under .claude/skills", () => {
-      expect(
-        messages({
-          ...skills,
-          [index]: "# Index\n\n[runner](../../runner/skills/runner/SKILL.md)\n",
-        }),
-      ).toEqual([
-        `${index}: skill grilling is not linked; place .claude/skills/grilling/SKILL.md in a Workflow stage or the out-of-scope list`,
+      expect(messages({ ...skills, [index]: linksRunner })).toEqual([
+        `${index}: skill grilling is not linked; place .claude/skills/grilling/SKILL.md in ${placeIn}`,
       ]);
     });
 
     it("fails an index that skips a skill under runner/skills", () => {
-      expect(
-        check({
-          ...skills,
-          [index]:
-            "# Index\n\n[grilling](../../.claude/skills/grilling/SKILL.md)\n",
-        }),
-      ).toEqual([
+      expect(check({ ...skills, [index]: linksGrilling })).toEqual([
         {
           path: index,
           line: 1,
-          message:
-            "skill runner is not linked; place runner/skills/runner/SKILL.md in a Workflow stage or the out-of-scope list",
+          message: `skill runner is not linked; place runner/skills/runner/SKILL.md in ${placeIn}`,
         },
+      ]);
+    });
+
+    it("passes a skill linked only from the piece map", () => {
+      expect(
+        check({ ...skills, [index]: linksRunner, [pieceIndex]: linksGrilling }),
+      ).toEqual([]);
+    });
+
+    it("passes a skill linked only from the coding map", () => {
+      expect(
+        check({ ...skills, [index]: linksBoth, [pieceIndex]: linksGrilling }),
+      ).toEqual([]);
+    });
+
+    it("fails a skill linked from neither map once, naming both maps", () => {
+      expect(
+        messages({
+          ...skills,
+          [index]: linksRunner,
+          [pieceIndex]: linksRunner,
+        }),
+      ).toEqual([
+        `${index}: skill grilling is not linked; place .claude/skills/grilling/SKILL.md in ${placeIn}`,
+      ]);
+    });
+
+    it("checks the piece map alone when the coding map is absent", () => {
+      expect(messages({ ...skills, [pieceIndex]: linksGrilling })).toEqual([
+        `${pieceIndex}: skill runner is not linked; place runner/skills/runner/SKILL.md in ${placeIn}`,
       ]);
     });
 
