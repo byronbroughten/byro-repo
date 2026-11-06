@@ -13,7 +13,7 @@ Ask for two things, in one message:
 - **The Deliverable**: the Google Doc's title and Doc ID.
 - **The Supporting Material**: Drive file IDs, a Drive folder to search, or web page URLs.
 
-An ID is always asked for, never guessed. For a folder, list it with the gworkspace tools and read the files found back to the developer, who strikes any that don't belong. Done when both are answered, each web page is saved to Drive and the file list is confirmed.
+An ID is always asked for, never guessed. For a folder, list it with the gworkspace tools and read the files found back to the developer, who strikes any that don't belong. Done when both are answered, each web page is saved to Drive and the file list is confirmed; section 2 can still send a saved page down the paste path.
 
 **Every source is a Drive file**, read by its ID here and in every Workflow stage after the grill; a web page is saved to Drive in this round, and no later stage reads it live.
 
@@ -21,10 +21,10 @@ An ID is always asked for, never guessed. For a folder, list it with the gworksp
 
 Fetch the page's own bytes with `curl`, the URL written out in the command so the sandbox sees its host ([the Bash sandbox](../../../docs/claude-code-guardrails.md#the-bash-sandbox)). Never use `WebFetch`: it returns a small model's answer about the page, not its text. Files go in `/tmp/claude/`, the one folder the gworkspace server reads local files from (`ALLOWED_FILE_DIRS` in [`scripts/setup-agent-account-mcp.sh`](../../../scripts/setup-agent-account-mcp.sh)).
 
-1. **Fetch**: `curl -sSL -o /tmp/claude/<name>.page -w "%{http_code} %{content_type}\n" "<url>"`.
+1. **Fetch**: `curl -sSL --create-dirs -o /tmp/claude/<name>.page -w "%{http_code} %{content_type}\n" "<url>"`.
 2. **A PDF** (`application/pdf`) is saved as that PDF, so it keeps its pages: `create_drive_file` with `fileUrl` `file:///tmp/claude/<name>.page` and `mime_type` `application/pdf`.
 3. **An HTML page** becomes a Google Doc whose first line is the URL and the date fetched. Write `<p><url>, fetched <YYYY-MM-DD></p>` to `/tmp/claude/<name>-head.html`, join the two with `cat /tmp/claude/<name>-head.html /tmp/claude/<name>.page > /tmp/claude/<name>.html`, and import that with `import_to_google_doc`, `file_path` set to it and `source_format` `html`. Drive's conversion keeps the article's text word for word and some of its headings, which serve as locators; the page's menus and footer come too.
-4. **The paste path**, when `curl`'s status isn't 200 or step 2's report finds the Doc holds little real text (a page built by scripts, a login wall, a paywall's teaser): say so, trash the Doc, and hand the developer the URL. They open it in a browser's Reader view, paste its text into a new Doc whose first line is the URL and the date, and give its ID.
+4. **The paste path**, when `curl`'s status isn't 200 or [section 2](#2-read-the-files)'s report finds the Doc holds little real text (a page built by scripts, a login wall, a paywall's teaser): say so, trash the Doc if one was made, and hand the developer the URL. They open it in a browser's Reader view, paste its text into a new Doc whose first line is the URL and the date, and give its ID.
 
 Name each file for the page's title, and put it in the Supporting Material folder when the developer named one. Once a page is saved, `rm` its `/tmp/claude/` files. Its new ID joins the file list.
 
