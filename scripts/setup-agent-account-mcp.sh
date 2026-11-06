@@ -320,6 +320,7 @@ if ! done_before MCP_REGISTERED; then
       -e "GOOGLE_CLIENT_SECRET_PATH=$CLIENT_SECRET_PATH" \
       -e "WORKSPACE_MCP_CREDENTIALS_DIR=$CREDENTIALS_DIR" \
       -e "USER_GOOGLE_EMAIL=$AGENT_EMAIL" \
+      -e "ALLOWED_FILE_DIRS=/tmp/claude" \
       -- uvx "$MCP_PIN" --single-user --tools "${SERVICES[@]}"
   )
   mark_done MCP_REGISTERED

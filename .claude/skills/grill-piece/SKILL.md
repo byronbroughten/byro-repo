@@ -11,9 +11,22 @@ Grill the developer on one Piece by the questions in [`packages/personal/writing
 Ask for two things, in one message:
 
 - **The Deliverable**: the Google Doc's title and Doc ID.
-- **The Supporting Material**: Drive file IDs, or a Drive folder to search.
+- **The Supporting Material**: Drive file IDs, a Drive folder to search, or web page URLs.
 
-An ID is always asked for, never guessed. For a folder, list it with the gworkspace tools and read the files found back to the developer, who strikes any that don't belong. Done when both are answered and the file list is confirmed.
+An ID is always asked for, never guessed. For a folder, list it with the gworkspace tools and read the files found back to the developer, who strikes any that don't belong. Done when both are answered, each web page is saved to Drive and the file list is confirmed.
+
+**Every source is a Drive file**, read by its ID here and in every Workflow stage after the grill; a web page is saved to Drive in this round, and no later stage reads it live.
+
+### Saving a web page
+
+Fetch the page's own bytes with `curl`, the URL written out in the command so the sandbox sees its host ([the Bash sandbox](../../../docs/claude-code-guardrails.md#the-bash-sandbox)). Never use `WebFetch`: it returns a small model's answer about the page, not its text. Files go in `/tmp/claude/`, the one folder the gworkspace server reads local files from (`ALLOWED_FILE_DIRS` in [`scripts/setup-agent-account-mcp.sh`](../../../scripts/setup-agent-account-mcp.sh)).
+
+1. **Fetch**: `curl -sSL -o /tmp/claude/<name>.page -w "%{http_code} %{content_type}\n" "<url>"`.
+2. **A PDF** (`application/pdf`) is saved as that PDF, so it keeps its pages: `create_drive_file` with `fileUrl` `file:///tmp/claude/<name>.page` and `mime_type` `application/pdf`.
+3. **An HTML page** becomes a Google Doc whose first line is the URL and the date fetched. Write `<p><url>, fetched <YYYY-MM-DD></p>` to `/tmp/claude/<name>-head.html`, join the two with `cat /tmp/claude/<name>-head.html /tmp/claude/<name>.page > /tmp/claude/<name>.html`, and import that with `import_to_google_doc`, `file_path` set to it and `source_format` `html`. Drive's conversion keeps the article's text word for word and some of its headings, which serve as locators; the page's menus and footer come too.
+4. **The paste path**, when `curl`'s status isn't 200 or step 2's report finds the Doc holds little real text (a page built by scripts, a login wall, a paywall's teaser): say so, trash the Doc, and hand the developer the URL. They open it in a browser's Reader view, paste its text into a new Doc whose first line is the URL and the date, and give its ID.
+
+Name each file for the page's title, and put it in the Supporting Material folder when the developer named one. Once a page is saved, `rm` its `/tmp/claude/` files. Its new ID joins the file list.
 
 ## 2. Read the files
 
@@ -22,7 +35,9 @@ An ID is always asked for, never guessed. For a folder, list it with the gworksp
 - **The short files go to one sub-agent together**, which reads each in full and returns, per file by title: what it is, every fact bearing on grilling.md's questions, and any of the developer's own text, quoted verbatim with where it lives.
 - **Each long file gets its own sub-agent**, which reads only its table of contents and front matter and returns its chapters and sections with page ranges. A long PDF's sub-agent gets its local path and `docs/pdf-pages.md`, reads the first 20 PDF pages and more only while the contents run on, and gives each range as PDF pages with the printed pages beside them. One that finds the file short after all reads it whole and returns what a short-file sub-agent would.
 
-Dispatch them all at once, reads only, each told the file IDs and to cite by title and page. Done when every file has its report: its facts and own text, or its chapter list.
+A web page's Doc also gets a line saying whether it holds the article or little real text, which sends it down the paste path.
+
+Dispatch them all at once, reads only, each told the file IDs and to cite by title and page. Done when every file has its report: its facts and own text, or its chapter list, and each pasted Doc that replaced a page has its own.
 
 ## 3. Ask in rounds
 
