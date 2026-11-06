@@ -71,8 +71,8 @@ A doc is listed when two or more skills reach it by one of these routes: **direc
 | The ten spec fields and the piece-spec template | `/grill-piece` settles them, `/piece-spec` writes them, `/piece-tickets` reads Research, Final pass, Split, Form and Outline, `/review-piece` reads Reader, Outline, Form and Style |
 | The piece-ticket template, its Sections named by exact heading text | `/piece-tickets` writes it; `/implement-piece` drafts only the Sections it names; `/review-piece` scopes to them |
 | The four review axes, Spec, Voice, Craft and Reader, with hard findings and judgement calls | `/review-piece` reports them; `/implement-piece` fixes the hard Spec findings and reports the rest |
-| The Research fact list comment: numbered facts, each with a source and page, quotes verbatim | `/research-piece` posts it; `/review-research` checks it; `/review-piece`'s fact list takes it as verified; `/implement-piece` drafts from its facts, never its quotes |
-| The model-fit chat line, `#n: <Model> <effort> (reason)` | `/piece-spec`, `/piece-tickets` |
+| The Research fact list comment: numbered facts, each with a source and page, quotes verbatim | `/research-piece` posts it; `/review-research` checks it; `/review-piece`'s fact list takes it when it is verified and the spec links it; `/implement-piece` drafts from its facts, never its quotes |
+| The model-fit chat line: `/implement-piece #n: <Model> <effort> (reason)` from `/piece-spec`, `#n Title: <Model> <effort> (reason)` from `/piece-tickets` | `/piece-spec`, `/piece-tickets` |
 | The Snapshot's path and shape | `/implement-piece` saves it; `/to-writing-style`'s pair mode diffs it |
 | The numbered 🪤/📝 items | `/to-writing-style`, and `/to-code-style` from the coding workflow |
 

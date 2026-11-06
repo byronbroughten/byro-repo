@@ -73,7 +73,7 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | The `## Model fit` section and its read-back ([`planning.md`](./planning.md#model-fit)) | `/code-spec`, `/code-tickets`, the tickets `/judge-findings` and `/mine-outcomes` file, `/start-issue`'s check |
 | The review list's `R<n>.<k>` items | the runner posts them; `/judge-findings` and the Supervisor decide them through `runner -- decide` |
 | The quiz on the whole breakdown | `/code-tickets` alone |
-| The numbered 🪤/📝 items | `/to-code-style` alone |
+| The numbered 🪤/📝 items | `/to-code-style`, and `/to-writing-style` from the piece workflow |
 
 ## The shared machinery
 
