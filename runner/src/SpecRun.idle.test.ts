@@ -43,7 +43,8 @@ describe("run's idle and stops", () => {
     expect(result).toEqual<RunResult>({
       kind: "stopped",
       landed: [{ repo: "byro-repo", number: 1 }],
-      message: "Stopped on request: landed byro-repo #1.",
+      message:
+        "Stopped on request: landed byro-repo #1. Review lists: nothing needs judging.",
     });
     expect(agentStep.requests).toHaveLength(2);
     expect(github.issues.get(2)?.isOpen).toBe(true);
@@ -79,7 +80,7 @@ describe("run's idle and stops", () => {
 
     expect(polls).toBe(2);
     expect(result.message).toBe(
-      "Run ended: landed byro-repo #1. Every ticket is closed.",
+      "Run ended: landed byro-repo #1. Every ticket is closed. Review lists: #213 ready to close. Judge them: `/judge-findings byro-repo 213`.",
     );
     expect(
       noticeSummaries().filter((line) => line.startsWith("Idle:")),
@@ -102,7 +103,7 @@ describe("run's idle and stops", () => {
       kind: "stopped",
       landed: [],
       message:
-        "Stopped on `stop spec` for Halt H1: landed nothing; byro-repo #1 stays unlanded.",
+        "Stopped on `stop spec` for Halt H1: landed nothing; byro-repo #1 stays unlanded. Review lists: nothing needs judging.",
     });
     expect(noticeSummaries().at(-1)).toBe(result.message);
     expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
@@ -122,7 +123,7 @@ describe("run's idle and stops", () => {
 
     expect(result.kind).toBe("finished");
     expect(noticeSummaries().at(-1)).toBe(
-      "Run ended: landed byro-repo #3. byro-repo #1 waits on you (`/start-issue byro-repo 1`) and blocks byro-repo #2; byro-repo #2 is blocked by byro-repo #1. Rerun once your tickets close: `npm run runner -- byronbroughten/byro-repo 213`.",
+      "Run ended: landed byro-repo #3. byro-repo #1 waits on you (`/start-issue byro-repo 1`) and blocks byro-repo #2; byro-repo #2 is blocked by byro-repo #1. Rerun once your tickets close: `npm run runner -- byronbroughten/byro-repo 213`. Review lists: nothing needs judging.",
     );
   });
 
@@ -163,7 +164,7 @@ describe("run's idle and stops", () => {
     );
 
     expect(result.message).toBe(
-      "Stopped on request: landed nothing. byro-repo #1 waits on Halt H1; byro-repo #2 waits on you (`/start-issue byro-repo 2`). Rerun once your tickets close: `npm run runner -- byronbroughten/byro-repo 213`.",
+      "Stopped on request: landed nothing. byro-repo #1 waits on Halt H1; byro-repo #2 waits on you (`/start-issue byro-repo 2`). Rerun once your tickets close: `npm run runner -- byronbroughten/byro-repo 213`. Review lists: nothing needs judging.",
     );
   });
 

@@ -3,8 +3,14 @@
 // The Wait and MemberList these word are ../runState.ts; the state file and progress log paths are statePaths.ts.
 
 import { issueLabelOf, type IssueRef } from "../../IssueWorkspaces.ts";
+import { undecidedTextOf } from "../../reviewList.ts";
 import { stopOutcomes, type UnhandledStop } from "../../UnhandledStop.ts";
-import { type MemberList, type Wait } from "../runState.ts";
+import { type Judgement, type MemberList, type Wait } from "../runState.ts";
+
+export interface JudgedMember {
+  issue: IssueRef;
+  judgement: Judgement | undefined;
+}
 
 export const runText = {
   stoppedOn({ outcome, message, logPath }: UnhandledStop): string {
@@ -32,6 +38,18 @@ export const runText = {
     return `${label} waits on ${blockers.join(", ")} to land`;
   },
 
+  // Every member is in one repo, the first's; a member with nothing to judge has undefined.
+  judgeLineOf(judged: JudgedMember[]): string {
+    const toJudge = judged.filter(({ judgement }) => judgement !== undefined);
+    const [first] = toJudge;
+    if (first === undefined) return "Review lists: nothing needs judging.";
+    const counts = judged.map(
+      ({ issue, judgement }) => `#${issue.number} ${judgedTextOf(judgement)}`,
+    );
+    const numbers = toJudge.map(({ issue }) => issue.number).join(" ");
+    return `Review lists: ${counts.join(", ")}. Judge them: \`/judge-findings ${first.issue.repo} ${numbers}\`.`;
+  },
+
   waitsOf(waits: Wait[]): string {
     return waits.map(({ text }) => text).join("; ");
   },
@@ -45,3 +63,9 @@ export const runText = {
     return `landed ${landed.map(issueLabelOf).join(", ")}`;
   },
 };
+
+function judgedTextOf(judgement: Judgement | undefined): string {
+  if (judgement === undefined) return "none";
+  if (judgement === "ready to close") return judgement;
+  return undecidedTextOf(judgement);
+}

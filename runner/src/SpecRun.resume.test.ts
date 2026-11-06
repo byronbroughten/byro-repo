@@ -289,7 +289,7 @@ describe("run's leases", () => {
     expect(result).toEqual<RunResult>({
       kind: "stopped",
       landed: [refOf(2)],
-      message: `Stopped on request: landed byro-repo #2. byro-repo #1 is leased by a session (pid ${process.ppid}).`,
+      message: `Stopped on request: landed byro-repo #2. byro-repo #1 is leased by a session (pid ${process.ppid}). Review lists: nothing needs judging.`,
     });
     expect(github.comments.filter(({ issue }) => issue.number === 1)).toEqual(
       [],
@@ -309,7 +309,7 @@ describe("run's leases", () => {
     const result = await specRun(rerunStep).run(spec);
 
     expect(result.message).toBe(
-      "Run ended: landed nothing. Every ticket is closed.",
+      "Run ended: landed nothing. Every ticket is closed. Review lists: #213 ready to close. Judge them: `/judge-findings byro-repo 213`.",
     );
     expect(rerunStep.requests).toEqual([]);
   });
@@ -329,7 +329,7 @@ describe("run's leases", () => {
     }
 
     expect(result.message).toBe(
-      "Stopped on byro-repo #1: a workspace lease that couldn't be taken; rerun to retry it.",
+      "Stopped on byro-repo #1: a workspace lease that couldn't be taken; rerun to retry it. Review lists: nothing needs judging.",
     );
     expect(github.comments[0]?.body).toContain(
       "The ticket is left at its implement step in its issue workspace; rerun to retry it: `npm run runner -- byronbroughten/byro-repo 213`.",
@@ -352,7 +352,7 @@ describe("run's leases", () => {
     const result = await run.run(spec);
 
     expect(result.message).toBe(
-      "Stopped on byro-repo #1: a workspace that can't resume.",
+      "Stopped on byro-repo #1: a workspace that can't resume. Review lists: nothing needs judging.",
     );
     expect(github.comments[0]?.body).toContain("a rerun won't retry it");
     expect(ticketState()["byro-repo #1"]?.step).toBe("stopped");

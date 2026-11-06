@@ -155,7 +155,7 @@ describe("run's limit guard", () => {
       kind: "stopped",
       landed: [],
       message:
-        "Account 1 is at 100% of its weekly limit, past the reserve; switch with cswap and rerun, or rerun after it resets at 2026-10-14 19:00:00 CDT.",
+        "Account 1 is at 100% of its weekly limit, past the reserve; switch with cswap and rerun, or rerun after it resets at 2026-10-14 19:00:00 CDT. Review lists: nothing needs judging.",
     });
     expect(agentStep.requests).toEqual([]);
     expect(noticeSummaries()).toEqual([
@@ -202,7 +202,7 @@ describe("run's limit guard", () => {
     ).run(spec);
 
     expect(result.message).toBe(
-      "Stopped on byro-repo #1: a limit hit; rerun to retry it.",
+      "Stopped on byro-repo #1: a limit hit; rerun to retry it. Review lists: nothing needs judging.",
     );
     expect(github.issues.get(1)?.isOpen).toBe(true);
     expect(github.comments[0]?.body).toContain(
@@ -233,7 +233,7 @@ describe("run's limit guard", () => {
     ).run(spec);
 
     expect(result.message).toBe(
-      "Stopped on byro-repo #1: a limit hit; rerun to retry it.",
+      "Stopped on byro-repo #1: a limit hit; rerun to retry it. Review lists: nothing needs judging.",
     );
     expect(github.comments[0]?.body).toContain(
       "The step hit an unrecognised limit error; its reset is unknown.",

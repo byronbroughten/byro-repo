@@ -60,7 +60,7 @@ describe("run's preflight", () => {
       kind: "stopped",
       landed: [],
       message:
-        "Preflight stopped the run: node -e process.exit(1) failed: GitHub auth or the claude login is missing; sign in to whichever it checks, and rerun",
+        "Preflight stopped the run: node -e process.exit(1) failed: GitHub auth or the claude login is missing; sign in to whichever it checks, and rerun. Review lists: nothing needs judging.",
     });
   });
 
@@ -75,7 +75,7 @@ describe("run's preflight", () => {
     });
 
     expect(result.message).toBe(
-      "Preflight stopped the run: the live ceiling of 180000 isn't above the ticket budget of 180000; raise the live ceiling or lower the ticket budget, and rerun",
+      "Preflight stopped the run: the live ceiling of 180000 isn't above the ticket budget of 180000; raise the live ceiling or lower the ticket budget, and rerun. Review lists: nothing needs judging.",
     );
   });
 
@@ -85,7 +85,7 @@ describe("run's preflight", () => {
     const result = await preflightOf();
 
     expect(result.message).toBe(
-      `Preflight stopped the run: sheets-framework's primary clone is missing at ${primaryOf("sheets-framework")}; clone sheets-framework into ${primaryOf("sheets-framework")} and rerun`,
+      `Preflight stopped the run: sheets-framework's primary clone is missing at ${primaryOf("sheets-framework")}; clone sheets-framework into ${primaryOf("sheets-framework")} and rerun. Review lists: nothing needs judging.`,
     );
   });
 
@@ -95,7 +95,7 @@ describe("run's preflight", () => {
     const result = await preflightOf();
 
     expect(result.message).toBe(
-      "Preflight stopped the run: sheets-framework's primary checkout is on elsewhere, not master; switch it to master and rerun",
+      "Preflight stopped the run: sheets-framework's primary checkout is on elsewhere, not master; switch it to master and rerun. Review lists: nothing needs judging.",
     );
   });
 
@@ -128,7 +128,7 @@ describe("run's master check", () => {
     expect(result).toEqual<RunResult>({
       kind: "stopped",
       landed: [],
-      message: `Stopped the run at byro-repo #1's checks: ${redMaster}`,
+      message: `Stopped the run at byro-repo #1's checks: ${redMaster}. Review lists: nothing needs judging.`,
     });
     expect(ticketState()["byro-repo #1"]?.step).toBe("checks");
     expect(github.issues.get(1)?.isOpen).toBe(true);
@@ -147,7 +147,7 @@ describe("run's master check", () => {
     const result = await specRun(rerunStep).run(spec);
 
     expect(result.message).toBe(
-      `Stopped the run at byro-repo #1's checks: ${redMaster}`,
+      `Stopped the run at byro-repo #1's checks: ${redMaster}. Review lists: nothing needs judging.`,
     );
     expect(rerunStep.requests).toEqual([]);
   });
@@ -167,7 +167,7 @@ describe("run's master check", () => {
     ).run(spec);
 
     expect(result.message).toBe(
-      "Stopped the run at byro-repo #1's checks: the master set failed to build: npm install failed",
+      "Stopped the run at byro-repo #1's checks: the master set failed to build: npm install failed. Review lists: nothing needs judging.",
     );
     expect(ticketState()["byro-repo #1"]?.step).toBe("checks");
     expect(github.issues.get(1)?.isOpen).toBe(true);
@@ -190,7 +190,7 @@ describe("run's master check", () => {
     ).run(spec);
 
     expect(result.message).toBe(
-      `Stopped the run at byro-repo #1's checks: master red: ${redClone.join(" ")}`,
+      `Stopped the run at byro-repo #1's checks: master red: ${redClone.join(" ")}. Review lists: nothing needs judging.`,
     );
   });
 });
@@ -225,7 +225,7 @@ describe("run's unhandled Stops", () => {
       expect(result).toEqual<RunResult>({
         kind: "stopped",
         landed: [],
-        message: `Stopped on byro-repo #1: ${outcome}.`,
+        message: `Stopped on byro-repo #1: ${outcome}. Review lists: nothing needs judging.`,
       });
       expect(github.issues.get(1)?.isOpen).toBe(true);
       expect(await run.workspaces.find(refOf(1))).toBeDefined();
@@ -273,7 +273,7 @@ describe("run's unhandled Stops", () => {
       kind: "stopped",
       landed: [],
       message:
-        "byro-repo #1 is still open after its Stop (a step error); finish and land it by hand, then rerun.",
+        "byro-repo #1 is still open after its Stop (a step error); finish and land it by hand, then rerun. Review lists: nothing needs judging.",
     });
     expect(rerunStep.requests).toEqual([]);
   });

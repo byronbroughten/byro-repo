@@ -548,19 +548,25 @@ export function undecidedCountOf(bodies: string[]): UndecidedCount {
   );
 }
 
+export function undecidedLineOf(count: UndecidedCount): string {
+  return `review list: ${count.items} undecided across ${acrossOf(count)}`;
+}
+
+// A spec's count in a run's closing line; the gap check is named whenever it holds any.
+export function undecidedTextOf(count: UndecidedCount): string {
+  if (!count.hasUndecidedGaps) return `${count.items} undecided`;
+  return `${count.items} undecided across ${acrossOf(count)}`;
+}
+
 // The gap check is named on its own, since it is no ticket.
-export function undecidedLineOf({
-  items,
-  tickets,
-  hasUndecidedGaps,
-}: UndecidedCount): string {
+function acrossOf({ tickets, hasUndecidedGaps }: UndecidedCount): string {
   const across = [
     ...(tickets > 0
       ? [`${tickets} ${tickets === 1 ? "ticket" : "tickets"}`]
       : []),
     ...(hasUndecidedGaps ? ["the gap check"] : []),
   ];
-  return `review list: ${items} undecided across ${across.join(" and ")}`;
+  return across.join(" and ");
 }
 
 export type DecisionKind = "decided" | "handled";

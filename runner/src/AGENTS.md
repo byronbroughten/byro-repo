@@ -87,7 +87,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun.ts` | `SpecRun` | The run loop's entry: `run` over its members, `status`, `requestStop`, `review`, `resolve`, `decide`, `judgeable` and `standalone`, delegating to `SpecRun/`. |
 | `SpecRun/HaltRaiser.ts` | | Raises and posts a ticket's Halts and finds its downstream. |
 | `SpecRun/ImplementStepper.ts` | | Runs a ticket's implement step and its handoffs. |
-| `SpecRun/JudgeableIssueLister.ts` | | `runner judgeable`: lists a repo's open issues with undecided review-list items or ready to close. |
+| `SpecRun/JudgeableIssueLister.ts` | | `runner judgeable`: lists a repo's open issues by the Base's judgement, undecided review-list items or ready to close. |
 | `SpecRun/LeaseKeeper.ts` | | Takes and releases a ticket's workspace lease and finds its workspace. |
 | `SpecRun/MemberSelections.ts` | | One pick's ticket selections across a run's members. |
 | `SpecRun/PreflightChecker.ts` | | The run's preflight over its member list: run locks, each member's refusals and the shared preflight Stop. |
@@ -96,7 +96,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/ReviewStepper.ts` | | Runs a ticket's review and resolve steps. |
 | `SpecRun/RunLoop.ts` | | The run's ticket loop across its members, idling and end. |
 | `SpecRun/SessionReviewer.ts` | | Runs `review` and `resolve` for an interactive session. |
-| `SpecRun/SpecRunBase.ts` | | The Base every collaborator shares: config, run state, progress log, notices and snapshots. |
+| `SpecRun/SpecRunBase.ts` | | The Base every collaborator shares: config, run state, progress log, notices, snapshots, a run's end and an issue's review-list judgement. |
 | `SpecRun/StandaloneTicketLister.ts` | | `runner standalone`: lists a repo's launchable Standalone tickets, leaving out each the Batch preflight would refuse, with its reason. |
 | `SpecRun/StatusReporter.ts` | | A run's or Batch's status, and its stop request. |
 | `SpecRun/StepLauncher.ts` | | Launches an agent step under the limit guard and retries a crash. |
@@ -105,7 +105,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/TicketSequencer.ts` | | Runs one ticket's steps from the one it reached. |
 | `SpecRun/runState.ts` | | The run-state types and the ticket-state, launch and member-blocking helpers several collaborators share. |
 | `SpecRun/runState/runHalts.ts` | | Raises, reads, delivers and orders a run's Halts, and finds a ticket's downstream. |
-| `SpecRun/runState/runText.ts` | | Words a run's end, waits and refusals, and its rerun command. |
+| `SpecRun/runState/runText.ts` | | Words a run's end, waits and refusals, its rerun command and its review-list judge line. |
 | `SpecRun/runState/statePaths.ts` | | A spec's run state file and progress log paths in the state folder. |
 | `SpecRun/runState/ticketSteps.ts` | | A ticket's step sessions, heads, turn caps, live-ceiling phrase and snapshots, and reads a step's record and its review facts. |
 | `specRunHarness.ts` | | The fixture `SpecRun` tests share. |

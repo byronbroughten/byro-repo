@@ -167,7 +167,7 @@ describe("run's gap-check Failure Halt answers", () => {
 
     expect(agentStep.requests).toEqual([]);
     expect(noticeSummaries().at(-1)).toBe(
-      "Run ended: landed nothing. Every ticket is closed.",
+      "Run ended: landed nothing. Every ticket is closed. Review lists: nothing needs judging.",
     );
     expect(gapCheckLists()).toEqual([]);
   });

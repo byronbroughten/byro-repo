@@ -135,8 +135,7 @@ export class RunLoop extends SpecRunBase {
     const startedAt = this.config.clock.now();
     const runs = await this._startRuns();
     const result = await this._runMembers(runs, startedAt);
-    await this._announceBatchEnd(runs, result);
-    return result;
+    return this._announceBatchEnd(runs, result);
   }
 
   // A member ends on its own, by finishing or a `stop spec`, while the others carry on; a Stop ends every unfinished one.
@@ -242,21 +241,32 @@ export class RunLoop extends SpecRunBase {
   }
 
   // Sent while the Batch record is open, so the line reaches the Batch's file; a Restart's relaunch carries the run on, so it ends nothing.
+  // Every member that ran is judged whatever ended it, since a stopped one may have landed a ticket with a Propose.
   private async _announceBatchEnd(
     runs: RunList<Run>,
-    { kind, message }: RunResult,
-  ): Promise<void> {
-    if (!isBatch(runs) || kind === "restarting") return;
+    result: RunResult,
+  ): Promise<RunResult> {
+    const { kind } = result;
+    if (!isBatch(runs) || kind === "restarting") return result;
+    let { message } = result;
+    if (kind !== "refused") message = await this._withJudgeLine(message, runs);
     const [lead] = runs;
     await this._announce(lead, message, { kind, isBatchEnd: true });
+    return { ...result, message };
   }
 
-  private _startRuns(): Promise<RunList<Run>> {
+  private async _startRuns(): Promise<RunList<Run>> {
     const [first, ...rest] = this.memberIssues;
-    return Promise.all([
+    const runs: RunList<Run> = await Promise.all([
       this._startRunClearingStop(first),
       ...rest.map((specIssue) => this._startRunClearingStop(specIssue)),
     ]);
+    if (isBatch(runs)) {
+      runs.forEach((run) => {
+        run.isBatchMember = true;
+      });
+    }
+    return runs;
   }
 
   private async _startRunClearingStop(specIssue: IssueRef): Promise<Run> {

@@ -305,7 +305,9 @@ describe("run's Stop wording", () => {
 
     const result = await specRun(FakeAgentStep.init(errored)).run(spec);
 
-    expect(result.message).toBe("Stopped on byro-repo #1: a step error.");
+    expect(result.message).toBe(
+      "Stopped on byro-repo #1: a step error. Review lists: nothing needs judging.",
+    );
     expect(github.comments[0]?.body).toContain(
       "a rerun won't retry it. Finish and land it by hand",
     );
