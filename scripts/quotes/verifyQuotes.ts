@@ -6,6 +6,7 @@ import { parseArgs } from "node:util";
 
 import {
   type QuoteFinding,
+  type QuoteFound,
   type SourceText,
   verifyComment,
 } from "./quoteMatch.ts";
@@ -44,17 +45,21 @@ function lineFor(finding: QuoteFinding): string {
     }
     return `NO LOCATOR, ${fact}: no saved text is named ${finding.citedFile}`;
   }
+  if (finding.kind === "found") {
+    return `FOUND, ${fact}, ${placeOf(finding)}: ${finding.quote}`;
+  }
+  if (finding.kind === "outsideLocator") {
+    return `OUTSIDE LOCATOR, ${fact} (found only in ${placeOf(finding)}): ${finding.quote}`;
+  }
   if (finding.kind === "joined") {
     return `JOINED, ${fact} (quote each passage separately): ${finding.quote}`;
   }
-  if (finding.kind === "notFound") {
-    return `NOT FOUND, ${fact}: ${finding.quote}`;
-  }
-  const page = finding.page === undefined ? "" : `, PDF page ${finding.page}`;
-  if (finding.kind === "found") {
-    return `FOUND, ${fact}, ${finding.file}${page}: ${finding.quote}`;
-  }
-  return `OUTSIDE LOCATOR, ${fact} (found only in ${finding.file}${page}): ${finding.quote}`;
+  return `NOT FOUND, ${fact}: ${finding.quote}`;
+}
+
+function placeOf(finding: QuoteFound): string {
+  if (finding.page === undefined) return finding.file;
+  return `${finding.file}, PDF page ${finding.page}`;
 }
 
 function sourceTextsIn(folder: string): SourceText[] {
