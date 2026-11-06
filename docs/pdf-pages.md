@@ -4,7 +4,7 @@ The Drive content tool returns a PDF's whole text and takes no page range, so ev
 
 **Download**: `get_drive_file_download_url` with the file ID saves the whole file under `~/.workspace-mcp/attachments/` and returns its path.
 
-**Dump its text once**, when the file will be read or quoted more than once: `npm run pdf:text -- "<path>" "<scratchpad>/<name>.txt"` writes every page under a `--- PDF page <n> ---` line, which [`npm run verify:quotes`](../scripts/quotes/verifyQuotes.ts) matches against. It needs poppler (`brew install poppler`). Without poppler, use the macOS commands below; each prints one harmless `CoreGraphics PDF has logged an error` line on stderr.
+**Dump its text once**, when the file will be read or quoted more than once: `npm run pdf:text -- "<path>" "<scratchpad>/<name>.txt"` writes every page under a `--- PDF page <n> ---` line, which [`npm run verify:quotes`](../scripts/quotes/verifyQuotes.ts) reads to find each quote on the pages its fact cites. It needs poppler (`brew install poppler`). Without poppler, use the macOS commands below; each prints one harmless `CoreGraphics PDF has logged an error` line on stderr.
 
 **Count its pages** (macOS fallback):
 

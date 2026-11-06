@@ -71,7 +71,7 @@ A doc is listed when two or more skills reach it by one of these routes: **direc
 | The ten spec fields and the piece-spec template | `/grill-piece` settles them, `/piece-spec` writes them, `/piece-tickets` reads Research, Final pass, Split, Form and Outline, `/review-piece` reads Reader, Outline, Form and Style |
 | The piece-ticket template, its Sections named by exact heading text | `/piece-tickets` writes it; `/implement-piece` drafts only the Sections it names; `/review-piece` scopes to them |
 | The four review axes, Spec, Voice, Craft and Reader, with hard findings and judgement calls | `/review-piece` reports them; `/implement-piece` fixes the hard Spec findings and reports the rest |
-| The Research fact list comment: numbered facts, each with a source and page, quotes verbatim | `/research-piece` posts it; `/review-research` checks it; `/review-piece`'s fact list takes it when it is verified and the spec links it; `/implement-piece` drafts from its facts, never its quotes |
+| The Research fact list comment: numbered facts, each ending with a locator naming its saved text and page range or heading, quotes optional and verbatim | `/research-piece` posts it; `/review-research` checks it; `/review-piece`'s fact list takes it when it is verified and the spec links it; `/implement-piece` drafts from its facts, never its quotes |
 | The model-fit chat line: `/implement-piece #n: <Model> <effort> (reason)` from `/piece-spec`, `#n Title: <Model> <effort> (reason)` from `/piece-tickets` | `/piece-spec`, `/piece-tickets` |
 | The Snapshot's path and shape | `/implement-piece` saves it; `/to-writing-style`'s pair mode diffs it |
 | The numbered 🪤/📝 items | `/to-writing-style`, and `/to-code-style` from the coding workflow |
@@ -84,7 +84,7 @@ A doc is listed when two or more skills reach it by one of these routes: **direc
 | Issue and session workspaces (`npm run issue:start`, [`git-workflow.md`](./git-workflow.md#a-skills-session-workspace)) | `/implement-piece`'s issue workspace, the Research wrap-up prompt's session workspace |
 | Wrap-up (`npm run wrap-up`) | `/implement-piece`, the Research wrap-up prompt |
 | `npm run overlap` | `/review-piece` runs it; `/implement-piece` reruns it after a fix |
-| `npm run verify:quotes` | `/research-piece` alone |
+| `npm run verify:quotes`, which checks each Research fact's locator and finds its quotes within the cited range | `/research-piece` alone |
 | `npm run pdf:text` and the page-range command in [`pdf-pages.md`](../pdf-pages.md) | `/research-piece` dumps text; `/review-piece` writes ranges; `/grill-piece` and `/review-research` count and print pages |
 | The Research wrap-up prompt ([the writing `wrap-up.md`](../../packages/personal/writing/docs/wrap-up.md)) | `/research-piece` gives it; the developer runs it |
 | Sub-issues and native blocking edges | `/piece-tickets` sets them; `/review-piece` reads the parent through `gh api` |
