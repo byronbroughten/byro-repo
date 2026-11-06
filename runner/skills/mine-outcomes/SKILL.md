@@ -1,6 +1,6 @@
 ---
 name: mine-outcomes
-description: "Turn landed specs' outcome-log rows into model-fit and process proposals phrased as changes to named runner knobs, offer /retro on the outlier tickets, then clear the mined sections. Invoked as /mine-outcomes <repo> #<spec>, --recent <N> or --all."
+description: "Turn landed specs' outcome-log rows into model-fit and process proposals phrased as changes to named runner knobs, offer /retro on the outlier tickets, then clear the mined sections. Invoked as /mine-outcomes <repo> <spec>, --recent <N> or --all."
 disable-model-invocation: true
 ---
 
@@ -14,7 +14,7 @@ The batch is the spec sections the invocation names; a section is the folder `do
 
 | Invocation | Command | Batch |
 | --- | --- | --- |
-| `/mine-outcomes <repo> #<spec>` | `npm run outcome:summary -- <repo>-<spec>` | that one section |
+| `/mine-outcomes <repo> <spec>` | `npm run outcome:summary -- <repo>-<spec>` | that one section |
 | `/mine-outcomes --recent <N>` | `npm run outcome:summary -- --recent <N>` | the N sections whose newest row landed most recently, by that row's commit date |
 | `/mine-outcomes --all` | `npm run outcome:summary -- --all` | every section; the legacy log is never mined |
 

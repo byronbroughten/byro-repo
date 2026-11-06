@@ -21,7 +21,7 @@ export interface ImplementCodeSkillInput {
 export function implementCodeSkillOf(input: ImplementCodeSkillInput): string {
   return `${[
     frontmatter,
-    "`/implement-code <repo>#<n>` implements one ticket in an interactive session, from the same body as the spec runner's implement step; only the ending differs.",
+    "`/implement-code <repo> <n>` implements one ticket in an interactive session, from the same body as the spec runner's implement step; only the ending differs.",
     openingSection(input),
     workingSection(),
     ticketBindsSection(),
@@ -32,7 +32,7 @@ export function implementCodeSkillOf(input: ImplementCodeSkillInput): string {
 
 const frontmatter = `---
 name: implement-code
-description: "Implement one code ticket in its issue workspace, review it with the spec runner, report, and land it with wrap-up once the developer says go. Invoked as /implement-code <repo>#<n>."
+description: "Implement one code ticket in its issue workspace, review it with the spec runner, report, and land it with wrap-up once the developer says go. Invoked as /implement-code <repo> <n>."
 disable-model-invocation: true
 ---
 

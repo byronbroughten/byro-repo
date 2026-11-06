@@ -1,10 +1,10 @@
 ---
 name: judge-findings
-description: "Put a spec's undecided review-list items to the developer in grilling rounds, record each decision on its comment, make the small fixes in a session workspace and file the rest as tickets, and close the spec when nothing is left. Invoked as /judge-findings <repo> #<spec> for one spec, /judge-findings <repo> <spec> <spec>... for a list, or /judge-findings <repo> all for every issue the runner lists as needing judgement."
+description: "Put a spec's undecided review-list items to the developer in grilling rounds, record each decision on its comment, make the small fixes in a session workspace and file the rest as tickets, and close the spec when nothing is left. Invoked as /judge-findings <repo> <spec> for one spec, /judge-findings <repo> <spec> <spec>... for a list, or /judge-findings <repo> all for every issue the runner lists as needing judgement."
 disable-model-invocation: true
 ---
 
-`/judge-findings <repo> #<spec>` clears the review list the spec runner left on a spec issue. Its words (review list, Propose, Halt, Dismiss `kept`) are in [`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md).
+`/judge-findings <repo> <spec>` clears the review list the spec runner left on a spec issue. Its words (review list, Propose, Halt, Dismiss `kept`) are in [`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md).
 
 ## A list or `all`
 
@@ -85,6 +85,6 @@ When every review-list item on the spec is decided (no unticked box, no hand-tic
 
 1. Close the spec: `gh issue close -R <owner>/<repo> <spec> --comment "Every review-list item is decided and every sub-issue is closed."`
 2. Remind the developer to run `/to-code-style`. Name each keep reason approved more than once (the `Drafted keep:` line of each item decided `keep approved`, or for a list posted before #298 its `keep approved:` reason, across the spec's review lists, same reason in different words included) as a candidate approved exception for `docs/agents/verdicts.md`.
-3. Prompt the developer to run `/mine-outcomes <repo> #<spec>` on the spec's outcome rows.
+3. Prompt the developer to run `/mine-outcomes <repo> <spec>` on the spec's outcome rows.
 
 Otherwise, end by saying what is left: undecided items, and open sub-issues by number.
