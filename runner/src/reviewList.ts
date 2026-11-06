@@ -552,7 +552,7 @@ export function undecidedLineOf(count: UndecidedCount): string {
   return `review list: ${count.items} undecided across ${acrossOf(count)}`;
 }
 
-// A spec's count in a run's closing line; the gap check is named whenever it holds any.
+// An issue's count in a run's judge line and `runner judgeable`; the gap check is named whenever it holds any.
 export function undecidedTextOf(count: UndecidedCount): string {
   if (!count.hasUndecidedGaps) return `${count.items} undecided`;
   return `${count.items} undecided across ${acrossOf(count)}`;

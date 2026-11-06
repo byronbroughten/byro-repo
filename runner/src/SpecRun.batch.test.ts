@@ -184,6 +184,26 @@ describe("run's Batch", () => {
     );
   });
 
+  it("counts a member that stopped after landing a ticket with a Propose", async () => {
+    addSpec([1, 2]);
+    addIssue(first.number);
+    const agentStep = FakeAgentStep.init(
+      ...proposed("one.ts"),
+      blocked([gated]),
+      implemented("first.ts", {
+        act: () => github.reply(spec.number, "H1: stop spec"),
+      }),
+      reviewed(),
+    );
+
+    const result = await runBatch(agentStep, { members: [spec, first] });
+
+    expect(result.kind).toBe("stopped");
+    expect(result.message).toContain(
+      "Review lists: #213 1 undecided, #301 none. Judge them: `/judge-findings byro-repo 213`.",
+    );
+  });
+
   it("ends saying nothing needs judging, with no command, when no member has items", async () => {
     addIssue(first.number);
     addIssue(second.number);

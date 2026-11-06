@@ -219,7 +219,6 @@ export class SpecRunBase {
       warnings: new Set(),
       skipped: new Set(),
       failureStreak: [],
-      isBatchMember: false,
     };
   }
 

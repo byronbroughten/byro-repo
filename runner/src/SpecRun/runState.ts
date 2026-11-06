@@ -196,7 +196,7 @@ export interface Run {
   // The distinct tickets whose Failure Halts came in a row; a landing clears it.
   failureStreak: string[];
   // A member's end is then a member-ended line, and only the Batch's end says what's left to judge.
-  isBatchMember: boolean;
+  isBatchMember?: boolean;
   // One ticket's review outside a run; a flag, not a strategy, as it differs from a run at only a handful of checks.
   sessionReview?: SessionReview;
 }

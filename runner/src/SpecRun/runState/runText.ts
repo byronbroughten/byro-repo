@@ -44,10 +44,17 @@ export const runText = {
     const [first] = toJudge;
     if (first === undefined) return "Review lists: nothing needs judging.";
     const counts = judged.map(
-      ({ issue, judgement }) => `#${issue.number} ${judgedTextOf(judgement)}`,
+      ({ issue, judgement }) =>
+        `#${issue.number} ${judgement === undefined ? "none" : runText.judgementOf(judgement)}`,
     );
     const numbers = toJudge.map(({ issue }) => issue.number).join(" ");
     return `Review lists: ${counts.join(", ")}. Judge them: \`/judge-findings ${first.issue.repo} ${numbers}\`.`;
+  },
+
+  // `runner judgeable`'s lines and a run's judge line both say it alike.
+  judgementOf(judgement: Judgement): string {
+    if (judgement === "ready to close") return judgement;
+    return undecidedTextOf(judgement);
   },
 
   waitsOf(waits: Wait[]): string {
@@ -63,9 +70,3 @@ export const runText = {
     return `landed ${landed.map(issueLabelOf).join(", ")}`;
   },
 };
-
-function judgedTextOf(judgement: Judgement | undefined): string {
-  if (judgement === undefined) return "none";
-  if (judgement === "ready to close") return judgement;
-  return undecidedTextOf(judgement);
-}

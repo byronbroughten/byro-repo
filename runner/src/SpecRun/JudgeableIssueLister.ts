@@ -4,7 +4,7 @@
 
 import { issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
 import { reviewListHeading } from "../reviewList.ts";
-import { type Judgement } from "./runState.ts";
+import { runText } from "./runState/runText.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 
 export class JudgeableIssueLister extends SpecRunBase {
@@ -28,11 +28,6 @@ export class JudgeableIssueLister extends SpecRunBase {
     const judgement = await this._judgementOf(issue);
     if (judgement === undefined) return undefined;
     const { title } = await this.config.github.issueOf(issue);
-    return `${issueLabelOf(issue)} · "${title}" · ${judgementTextOf(judgement)}`;
+    return `${issueLabelOf(issue)} · "${title}" · ${runText.judgementOf(judgement)}`;
   }
-}
-
-function judgementTextOf(judgement: Judgement): string {
-  if (judgement === "ready to close") return judgement;
-  return `${judgement.items} undecided`;
 }
