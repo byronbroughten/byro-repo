@@ -26,8 +26,8 @@ const observationIndexes = new Set([
   "docs/sheets-behaviour.md",
 ]);
 const skillIndex = {
-  // Docs that must link every skill's SKILL.md, relative to their repo root.
-  docs: new Set(["docs/agents/coding-workflow.md"]),
+  // Docs that between them must link every skill's SKILL.md, relative to their repo root; violations go on the first one present.
+  docs: ["docs/agents/coding-workflow.md", "docs/agents/piece-workflow.md"],
   // A skill is a folder holding a SKILL.md under one of these roots; a symlinked skill is tracked only at its target.
   skillPattern: /^(?:\.claude|runner)\/skills\/([^/]+)\/SKILL\.md$/,
 };
@@ -79,11 +79,11 @@ export function checkDocs({ docs, paths = [], published = [] }) {
     }
     if (isDocsFolderFile(path)) checkLead(text, report);
     if (observationIndexes.has(path)) checkObservations(text, report);
-    if (skillIndex.docs.has(path)) checkSkillIndex(path, text, docs, report);
     if (posix.basename(path) === "AGENTS.md" && path !== "AGENTS.md") {
       checkClaudePairing(path, docs, report);
     }
   }
+  violations.push(...skillIndexViolations(docs));
   return violations;
 }
 
@@ -396,24 +396,34 @@ function checkObservations(text, report) {
   }
 }
 
+// The skill indexes present read as one: a skill passes when any of them links it.
 /**
- * @param {string} path
- * @param {string} text
  * @param {Docs} docs
- * @param {Report} report
+ * @returns {Violation[]}
  */
-function checkSkillIndex(path, text, docs, report) {
+function skillIndexViolations(docs) {
+  const present = skillIndex.docs.filter((path) => docs[path] !== undefined);
+  const [reportedOn] = present;
+  if (reportedOn === undefined) return [];
   const linked = new Set(
-    linksIn(text).map(({ target }) => resolveLink(path, fileOf(target))),
+    present.flatMap((path) =>
+      linksIn(docs[path] ?? "").map(({ target }) =>
+        resolveLink(path, fileOf(target)),
+      ),
+    ),
   );
-  for (const doc of Object.keys(docs)) {
+  const placeIn = `a Workflow stage or the out-of-scope list of ${skillIndex.docs.join(" or ")}`;
+  return Object.keys(docs).flatMap((doc) => {
     const skill = skillIndex.skillPattern.exec(doc)?.[1];
-    if (skill === undefined || linked.has(doc)) continue;
-    report(
-      1,
-      `skill ${skill} is not linked; place ${doc} in a Workflow stage or the out-of-scope list`,
-    );
-  }
+    if (skill === undefined || linked.has(doc)) return [];
+    return [
+      {
+        path: reportedOn,
+        line: 1,
+        message: `skill ${skill} is not linked; place ${doc} in ${placeIn}`,
+      },
+    ];
+  });
 }
 
 // The index of the first `##` heading among a doc's prose lines, or -1.

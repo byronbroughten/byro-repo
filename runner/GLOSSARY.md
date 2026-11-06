@@ -184,10 +184,10 @@ The developer's ticket that closes a Phase. It tests what the Phase built and de
 _Avoid_: checkpoint, gate (bare), kill point
 
 **Workflow stage**:
-One part of the coding workflow, from planning to process revision, worked by its own skills. Every Step of a run falls in one Workflow stage, implementation.
+One part of the coding or the piece workflow, from planning to process revision, worked by its own skills. Every Step of a run falls in one Workflow stage, implementation.
 _Avoid_: phase, step, stage (bare)
 
 ## Same word, two meanings
 
 - **Runner**: here, the program that runs a spec. In the framework's glossary, an endpoint whose checkbox is a run button.
-- **Stage**: here, only inside Workflow stage, one part of the coding workflow. In the writing glossary, Stage alone is one kind of sub-issue a split Piece is worked in.
+- **Stage**: here, only inside Workflow stage, one part of the coding or the piece workflow. In the writing glossary, Stage alone is one kind of sub-issue a split Piece is worked in; a piece-workflow Workflow stage holds those Stages.
