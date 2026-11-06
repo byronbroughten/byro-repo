@@ -1,0 +1,7 @@
+# byro-repo#571 outcome
+
+Spec: [byro-repo#570](https://github.com/byronbroughten/byro-repo/issues/570)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #571 | Opus medium | 1 | 6 | 98K | Fix (resumed implementer) | 1 | 1 | 0 | 15 min | $2.65 | $4.06 | Fixed: QuoteFound also covers the outsideLocator failure, and QuoteFinding includes FactUnlocated, which has no quote. (scripts/quotes/quoteMatch.ts:16-36); The { kind, fact, quote, file, page } literal is built twice. (scripts/quotes/quoteMatch.ts:144-181 (quoteFinding)); cited and locator travel together, and the cited pages are worked out again for every quote. (scripts/quotes/quoteMatch.ts:124-126, 158); The header leaves out JOINED as a reason the script exits 1. (scripts/quotes/verifyQuotes.ts:1); The moved matcher tests check only finding.kind, so a wrong page would pass. (scripts/quotes/quoteMatch.test.ts:154, 205, 214, 223, 244 (at 75435440)); The machinery row restates what verify:quotes checks, a fact that lives in /research-piece step 4. (docs/agents/piece-workflow.md:87). Proposed: A PDF-page locator on a source with no page markers fails as OUTSIDE LOCATOR naming the same file, which is the wrong reason. (scripts/quotes/quoteMatch.ts:184-193 (citedPages)). | 13a07fdb-d033-45a5-9011-52f13113e5b0, 33b97992-0cf1-41e1-b457-4af3e13b841a |
