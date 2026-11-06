@@ -6,6 +6,8 @@ The coding workflow's [Workflow stages](../../runner/GLOSSARY.md#language), the 
 
 A skill is in scope when a Workflow stage calls it or names it as the next step, unless it belongs to the piece workflow. Lint fails when a skill's `SKILL.md` isn't linked here, so a new skill goes in a Workflow stage or the out-of-scope list.
 
+**An edit that adds or removes a link to a doc in this doc's shared tables, from a skill, a hook's message or a runner prompt, updates this doc.**
+
 ## The Workflow stages and their skills
 
 1. **Planning**: [`/wayfinder`](../../.claude/skills/wayfinder/SKILL.md), [`/grill-with-docs`](../../.claude/skills/grill-with-docs/SKILL.md), [`/grill-me`](../../.claude/skills/grill-me/SKILL.md), [`grilling`](../../.claude/skills/grilling/SKILL.md), [`domain-modeling`](../../.claude/skills/domain-modeling/SKILL.md), [`/prototype`](../../.claude/skills/prototype/SKILL.md), [`/research`](../../.claude/skills/research/SKILL.md).
@@ -77,11 +79,10 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 
 | Machinery | Pieces |
 | --- | --- |
-| The issue reader (`npm run issue:read`) with Trusted and Untrusted text | `/runner`, `/implement-code`, `/judge-findings`, `/mine-outcomes`, every agent Step |
+| The issue reader (`npm run issue:read`) with Trusted and Untrusted text | `/runner`, `/start-issue` (via `issue:start`), `/implement-code`, `/judge-findings`, `/mine-outcomes`, every agent Step |
 | Session workspaces ([`git-workflow.md`](./git-workflow.md#a-skills-session-workspace)) | `/start-issue`, `/judge-findings`, `/mine-outcomes` |
 | Wrap-up (`npm run wrap-up`) | `/implement-code`, `/judge-findings`, `/mine-outcomes`, the wrap-up Step |
 | `runner -- decide` | `/runner`, `/implement-code`, `/judge-findings` |
-| The issue tracker doc | as in [the shared rules docs](#the-shared-rules-docs) |
 
 ## Out of scope
 
