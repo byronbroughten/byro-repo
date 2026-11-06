@@ -25,6 +25,10 @@ const observationIndexes = new Set([
   "docs/claude-code-behaviour.md",
   "docs/sheets-behaviour.md",
 ]);
+// Docs that must link every skill's SKILL.md, relative to their repo root.
+const skillIndexes = new Set(["docs/agents/coding-workflow.md"]);
+// A skill is a folder holding a SKILL.md under one of these roots; a symlinked skill is tracked only at its target.
+const skillPattern = /^(?:\.claude|runner)\/skills\/([^/]+)\/SKILL\.md$/;
 
 /** @typedef {Record<string, string>} Docs */
 /** @typedef {{ path: string, line: number, message: string }} Violation */
@@ -73,6 +77,7 @@ export function checkDocs({ docs, paths = [], published = [] }) {
     }
     if (isDocsFolderFile(path)) checkLead(text, report);
     if (observationIndexes.has(path)) checkObservations(text, report);
+    if (skillIndexes.has(path)) checkSkillIndex(path, text, docs, report);
     if (posix.basename(path) === "AGENTS.md" && path !== "AGENTS.md") {
       checkClaudePairing(path, docs, report);
     }
@@ -387,6 +392,26 @@ function checkObservations(text, report) {
       report(line, "observation line links no evidence");
     }
   }
+}
+
+/**
+ * @param {string} path
+ * @param {string} text
+ * @param {Docs} docs
+ * @param {Report} report
+ */
+function checkSkillIndex(path, text, docs, report) {
+  const linked = new Set(
+    linksIn(text).map(({ target }) => resolveLink(path, fileOf(target))),
+  );
+  Object.keys(docs).forEach((doc) => {
+    const skill = skillPattern.exec(doc)?.[1];
+    if (skill === undefined || linked.has(doc)) return;
+    report(
+      1,
+      `skill ${skill} is not linked; place ${doc} in a Workflow stage or the out-of-scope list`,
+    );
+  });
 }
 
 // The index of the first `##` heading among a doc's prose lines, or -1.

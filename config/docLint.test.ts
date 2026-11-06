@@ -558,6 +558,54 @@ describe("checkDocs", () => {
     });
   });
 
+  describe("skill indexes", () => {
+    const index = "docs/agents/coding-workflow.md";
+    const skills = {
+      ".claude/skills/grilling/SKILL.md": "# Grilling\n",
+      "runner/skills/runner/SKILL.md": "# Runner\n",
+    };
+    const linksBoth =
+      "# Index\n\n[grilling](../../.claude/skills/grilling/SKILL.md), [runner](../../runner/skills/runner/SKILL.md)\n";
+
+    it("passes an index that links every skill under both skill roots", () => {
+      expect(check({ ...skills, [index]: linksBoth })).toEqual([]);
+    });
+
+    it("fails an index that skips a skill under .claude/skills", () => {
+      expect(
+        messages({
+          ...skills,
+          [index]: "# Index\n\n[runner](../../runner/skills/runner/SKILL.md)\n",
+        }),
+      ).toEqual([
+        `${index}: skill grilling is not linked; place .claude/skills/grilling/SKILL.md in a Workflow stage or the out-of-scope list`,
+      ]);
+    });
+
+    it("fails an index that skips a skill under runner/skills", () => {
+      expect(
+        check({
+          ...skills,
+          [index]:
+            "# Index\n\n[grilling](../../.claude/skills/grilling/SKILL.md)\n",
+        }),
+      ).toEqual([
+        {
+          path: index,
+          line: 1,
+          message:
+            "skill runner is not linked; place runner/skills/runner/SKILL.md in a Workflow stage or the out-of-scope list",
+        },
+      ]);
+    });
+
+    it("leaves a doc not listed as a skill index unchecked for skill links", () => {
+      expect(check({ ...skills, "docs/agents/other.md": "# Other\n" })).toEqual(
+        [],
+      );
+    });
+  });
+
   describe("CLAUDE.md pairing", () => {
     it("fails a nested AGENTS.md with no sibling CLAUDE.md", () => {
       expect(messages({ "scripts/AGENTS.md": nested(2) })).toEqual([
