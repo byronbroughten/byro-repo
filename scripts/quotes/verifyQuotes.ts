@@ -1,12 +1,12 @@
-// Prints quoteMatch.ts's findings on a Research comment, and exits 1 on any fact with no locator or any quote not found within its locator.
+// Prints quoteMatch.ts's findings on a Research comment, and exits 1 on any finding but a quote found within its locator.
 // Each file in the texts folder is one source, named as locators cite it, made by pdfText.ts or copied from a text file.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 
 import {
-  type QuoteFinding,
-  type QuoteFound,
+  type FactFinding,
+  type QuoteLocated,
   type SourceText,
   verifyComment,
 } from "./quoteMatch.ts";
@@ -37,7 +37,7 @@ try {
   process.exitCode = 1;
 }
 
-function lineFor(finding: QuoteFinding): string {
+function lineFor(finding: FactFinding): string {
   const fact = `fact ${finding.fact}`;
   if (finding.kind === "noLocator") {
     if (finding.citedFile === undefined) {
@@ -57,7 +57,7 @@ function lineFor(finding: QuoteFinding): string {
   return `NOT FOUND, ${fact}: ${finding.quote}`;
 }
 
-function placeOf(finding: QuoteFound): string {
+function placeOf(finding: QuoteLocated): string {
   if (finding.page === undefined) return finding.file;
   return `${finding.file}, PDF page ${finding.page}`;
 }

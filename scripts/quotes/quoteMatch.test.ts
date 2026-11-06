@@ -151,8 +151,16 @@ describe("verifyComment", () => {
       verifyComment(
         factCiting('notes.txt, heading "Scope of work"', "Scope creep"),
         sources,
-      ).map((finding) => finding.kind),
-    ).toEqual(["outsideLocator"]);
+      ),
+    ).toEqual([
+      {
+        kind: "outsideLocator",
+        fact: 1,
+        quote: "Scope creep",
+        file: "heagney.txt",
+        page: 46,
+      },
+    ]);
   });
 
   it("skips the Unverified section", () => {
@@ -202,8 +210,17 @@ describe("verifyComment", () => {
           "Emotional intelligence is the ability to recognize our own emotions",
         ),
         sources,
-      ).map((finding) => finding.kind),
-    ).toEqual(["found"]);
+      ),
+    ).toEqual([
+      {
+        kind: "found",
+        fact: 1,
+        quote:
+          "Emotional intelligence is the ability to recognize our own emotions",
+        file: "pmbok.txt",
+        page: 104,
+      },
+    ]);
   });
 
   it("matches ligatures and letter case", () => {
@@ -211,8 +228,16 @@ describe("verifyComment", () => {
       verifyComment(
         factCiting("pmbok.txt, PDF p. 105", "Final text,"),
         sources,
-      ).map((finding) => finding.kind),
-    ).toEqual(["found"]);
+      ),
+    ).toEqual([
+      {
+        kind: "found",
+        fact: 1,
+        quote: "Final text,",
+        file: "pmbok.txt",
+        page: 105,
+      },
+    ]);
   });
 
   it("matches curly quotes around a quote", () => {
@@ -220,8 +245,16 @@ describe("verifyComment", () => {
       verifyComment(
         "1. It starts “on Monday.” (notes.txt, heading “Scope of work”)",
         sources,
-      ).map((finding) => finding.kind),
-    ).toEqual(["found"]);
+      ),
+    ).toEqual([
+      {
+        kind: "found",
+        fact: 1,
+        quote: "on Monday.",
+        file: "notes.txt",
+        page: undefined,
+      },
+    ]);
   });
 
   it("does not match when the punctuation differs", () => {
@@ -241,8 +274,14 @@ describe("verifyComment", () => {
           "the ability to understand one's self",
         ),
         sources,
-      ).map((finding) => finding.kind),
-    ).toEqual(["notFound"]);
+      ),
+    ).toEqual([
+      {
+        kind: "notFound",
+        fact: 1,
+        quote: "the ability to understand one's self",
+      },
+    ]);
   });
 
   it("checks each fact of a list under its own number, a fact running onto a second line included", () => {

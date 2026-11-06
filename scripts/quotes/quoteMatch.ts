@@ -13,7 +13,7 @@ export interface SourceText {
   text: string;
 }
 
-export interface QuoteFound {
+export interface QuoteLocated {
   kind: "found" | "outsideLocator";
   fact: number;
   quote: string;
@@ -33,7 +33,7 @@ export interface FactUnlocated {
   citedFile: string | undefined;
 }
 
-export type QuoteFinding = QuoteFound | QuoteFailed | FactUnlocated;
+export type FactFinding = QuoteLocated | QuoteFailed | FactUnlocated;
 
 interface Fact {
   number: number;
@@ -58,7 +58,7 @@ const locatorPattern =
 export function verifyComment(
   comment: string,
   sourceTexts: SourceText[],
-): QuoteFinding[] {
+): FactFinding[] {
   const sources = sourceTexts
     .map((source) => ({ file: source.file, pages: pagesOf(source.text) }))
     .sort((a, b) => a.file.localeCompare(b.file));
@@ -110,7 +110,7 @@ function factsIn(comment: string): Fact[] {
   return facts;
 }
 
-function factFindings(fact: Fact, sources: Source[]): QuoteFinding[] {
+function factFindings(fact: Fact, sources: Source[]): FactFinding[] {
   const match = locatorPattern.exec(fact.text);
   if (!match) {
     return [{ kind: "noLocator", fact: fact.number, citedFile: undefined }];
@@ -120,9 +120,12 @@ function factFindings(fact: Fact, sources: Source[]): QuoteFinding[] {
   if (!cited) {
     return [{ kind: "noLocator", fact: fact.number, citedFile: locator.file }];
   }
+  const citedRange = { file: cited.file, pages: citedPages(cited, locator) };
+  const others = sources.filter((source) => source !== cited);
+  const outside = [cited, ...others];
   const claim = fact.text.slice(0, match.index);
   return quotesIn(claim).map((quote) =>
-    quoteFinding({ fact: fact.number, quote, cited, locator, sources }),
+    quoteFinding({ fact: fact.number, quote, citedRange, outside }),
   );
 }
 
@@ -141,43 +144,35 @@ function quotesIn(claim: string): string[] {
   );
 }
 
+// `outside` is searched only when the cited range misses: the cited source first, then the others.
 function quoteFinding({
   fact,
   quote,
-  cited,
-  locator,
-  sources,
+  citedRange,
+  outside,
 }: {
   fact: number;
   quote: string;
-  cited: Source;
-  locator: Locator;
-  sources: Source[];
-}): QuoteFinding {
+  citedRange: Source;
+  outside: Source[];
+}): FactFinding {
   if (/\.\.\.|…/.test(quote)) return { kind: "joined", fact, quote };
-  const inRange = pageQuoted(quote, citedPages(cited, locator));
-  if (inRange) {
-    return {
-      kind: "found",
-      fact,
-      quote,
-      file: cited.file,
-      page: inRange.number,
-    };
-  }
-  const others = sources.filter((source) => source !== cited);
-  for (const source of [cited, ...others]) {
+  const inRange = placeQuoted(quote, [citedRange]);
+  const place = inRange ?? placeQuoted(quote, outside);
+  if (!place) return { kind: "notFound", fact, quote };
+  const kind = inRange ? "found" : "outsideLocator";
+  return { kind, fact, quote, file: place.file, page: place.page.number };
+}
+
+function placeQuoted(
+  quote: string,
+  sources: Source[],
+): { file: string; page: Page } | undefined {
+  for (const source of sources) {
     const page = pageQuoted(quote, source.pages);
-    if (!page) continue;
-    return {
-      kind: "outsideLocator",
-      fact,
-      quote,
-      file: source.file,
-      page: page.number,
-    };
+    if (page) return { file: source.file, page };
   }
-  return { kind: "notFound", fact, quote };
+  return undefined;
 }
 
 // A heading locator scopes the match to its whole source file.

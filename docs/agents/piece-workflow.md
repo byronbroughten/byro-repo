@@ -84,7 +84,7 @@ A doc is listed when two or more skills reach it by one of these routes: **direc
 | Issue and session workspaces (`npm run issue:start`, [`git-workflow.md`](./git-workflow.md#a-skills-session-workspace)) | `/implement-piece`'s issue workspace, the Research wrap-up prompt's session workspace |
 | Wrap-up (`npm run wrap-up`) | `/implement-piece`, the Research wrap-up prompt |
 | `npm run overlap` | `/review-piece` runs it; `/implement-piece` reruns it after a fix |
-| `npm run verify:quotes`, which checks each Research fact's locator and finds its quotes within the cited range | `/research-piece` alone |
+| `npm run verify:quotes` | `/research-piece` alone |
 | `npm run pdf:text` and the page-range command in [`pdf-pages.md`](../pdf-pages.md) | `/research-piece` dumps text; `/review-piece` writes ranges; `/grill-piece` and `/review-research` count and print pages |
 | The Research wrap-up prompt ([the writing `wrap-up.md`](../../packages/personal/writing/docs/wrap-up.md)) | `/research-piece` gives it; the developer runs it |
 | Sub-issues and native blocking edges | `/piece-tickets` sets them; `/review-piece` reads the parent through `gh api` |
