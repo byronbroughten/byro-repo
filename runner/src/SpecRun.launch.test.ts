@@ -339,7 +339,7 @@ describe("run's launch-time authorship check", () => {
     const result = await specRun(rerunStep).run(spec);
 
     expect(result.message).toBe(
-      "Stopped on request: landed nothing. byro-repo #2 waits on Halt H2.",
+      "Stopped on request: landed nothing. byro-repo #2 waits on Halt H2. Review lists: nothing needs judging.",
     );
     expect(rerunStep.requests).toEqual([]);
     expect(approvalsOnTicketTwo()).toEqual([]);
@@ -385,7 +385,7 @@ describe("run's launch-time authorship check", () => {
 
     expect(result.landed).toEqual([refOf(1)]);
     expect(result.message).toBe(
-      "Run ended: landed byro-repo #1. byro-repo #2 was skipped.",
+      "Run ended: landed byro-repo #1. byro-repo #2 was skipped. Review lists: nothing needs judging.",
     );
     expect(agentStep.requests).toHaveLength(2);
   });
@@ -402,7 +402,7 @@ describe("run's launch-time authorship check", () => {
     const result = await specRun(rerunStep).run(spec);
 
     expect(result.message).toBe(
-      "Stopped on request: landed nothing. byro-repo #2 waits on Halt H2.",
+      "Stopped on request: landed nothing. byro-repo #2 waits on Halt H2. Review lists: nothing needs judging.",
     );
     expect(rerunStep.requests).toEqual([]);
     expect(approvalsOnTicketTwo()).toEqual([]);

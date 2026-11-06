@@ -23,6 +23,7 @@ import {
 } from "../IssueWorkspaces.ts";
 import { type MergeMasterRecord } from "../mergeMasterStep.ts";
 import { type ResolveRecord } from "../resolveStep.ts";
+import type { UndecidedCount } from "../reviewList.ts";
 import type { Finding } from "../reviewStep.ts";
 import type { Command } from "../runKnobs.ts";
 import { type Target, targetLineShapes, targetsOf } from "../ticketTargets.ts";
@@ -57,6 +58,9 @@ export interface RunResult {
   landed: IssueRef[];
   message: string;
 }
+
+// What an issue leaves to judge: its undecided items, or none and so its close.
+export type Judgement = UndecidedCount | "ready to close";
 
 // A run's member issues in typed order; non-empty, so the run always has a first member to tell what concerns it as a whole.
 export type MemberList = [IssueRef, ...IssueRef[]];
@@ -191,6 +195,8 @@ export interface Run {
   skipped: Set<string>;
   // The distinct tickets whose Failure Halts came in a row; a landing clears it.
   failureStreak: string[];
+  // A member's end is then a member-ended line, and only the Batch's end says what's left to judge.
+  isBatchMember?: boolean;
   // One ticket's review outside a run; a flag, not a strategy, as it differs from a run at only a handful of checks.
   sessionReview?: SessionReview;
 }

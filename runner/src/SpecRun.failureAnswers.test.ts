@@ -43,7 +43,7 @@ describe("run's Failure Halt answers", () => {
       kind: "stopped",
       landed: [],
       message:
-        "Stopped on `stop spec` for Halt H1: landed nothing; byro-repo #1 stays unlanded.",
+        "Stopped on `stop spec` for Halt H1: landed nothing; byro-repo #1 stays unlanded. Review lists: nothing needs judging.",
     });
     expect(agentStep.requests).toHaveLength(2);
     expect(github.issues.get(1)?.isOpen).toBe(true);
@@ -154,7 +154,7 @@ describe("run's stuck detector", () => {
       kind: "stopped",
       landed: [],
       message:
-        "Stopped as stuck: byro-repo #1, byro-repo #2 each ended on a Failure Halt in a row; answer them, then rerun.",
+        "Stopped as stuck: byro-repo #1, byro-repo #2 each ended on a Failure Halt in a row; answer them, then rerun. Review lists: nothing needs judging.",
     });
     expect(noticeSummaries().at(-1)).toBe(result.message);
     expect(haltComments()).toHaveLength(2);
@@ -193,7 +193,7 @@ describe("run's stuck detector", () => {
     const result = await specRun(agentStep).run(spec);
 
     expect(result.message).toBe(
-      "Stopped as stuck: byro-repo #1, byro-repo #3 each ended on a Failure Halt in a row; answer them, then rerun.",
+      "Stopped as stuck: byro-repo #1, byro-repo #3 each ended on a Failure Halt in a row; answer them, then rerun. Review lists: nothing needs judging.",
     );
     expect(haltComments()).toHaveLength(3);
   });

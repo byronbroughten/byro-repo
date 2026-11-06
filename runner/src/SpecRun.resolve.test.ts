@@ -396,7 +396,9 @@ describe("run's resolve", () => {
 
     const result = await run.run(spec);
 
-    expect(result.message).toBe("Stopped on byro-repo #1: a step error.");
+    expect(result.message).toBe(
+      "Stopped on byro-repo #1: a step error. Review lists: nothing needs judging.",
+    );
     const workspace = await run.workspaces.find(refOf(1));
     expect(existsSync(join(workspace?.path ?? "", "half.ts"))).toBe(false);
     expect(github.comments[0]?.body).toContain(

@@ -165,7 +165,7 @@ describe("a Batch's Restart", () => {
     ]);
     expect(relaunchStarts()).toEqual([303]);
     expect(lines.at(-1)?.summary).toBe(
-      "Batch ended: byro-repo #301, byro-repo #302, byro-repo #303 landed.",
+      "Batch ended: byro-repo #301, byro-repo #302, byro-repo #303 landed. Review lists: nothing needs judging.",
     );
   });
 

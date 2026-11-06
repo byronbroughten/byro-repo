@@ -165,6 +165,62 @@ describe("run's Batch", () => {
     expect(reviewListsOn(301).join("\n")).not.toContain("byro-repo #302");
   });
 
+  it("ends with each member's count and one /judge-findings command naming only the member with items", async () => {
+    addIssue(first.number);
+    addIssue(second.number);
+    const agentStep = FakeAgentStep.init(
+      ...proposed("first.ts"),
+      implemented("second.ts"),
+      reviewed(),
+    );
+
+    const result = await runBatch(agentStep, { members: [first, second] });
+
+    expect(result.message).toBe(
+      "Batch ended: byro-repo #301, byro-repo #302 landed. Review lists: #301 1 undecided, #302 none. Judge them: `/judge-findings byro-repo 301`.",
+    );
+    expect(noticesOn(first.number).at(-1)).toContain(
+      "review list: 1 undecided",
+    );
+  });
+
+  it("counts a member that stopped after landing a ticket with a Propose", async () => {
+    addSpec([1, 2]);
+    addIssue(first.number);
+    const agentStep = FakeAgentStep.init(
+      ...proposed("one.ts"),
+      blocked([gated]),
+      implemented("first.ts", {
+        act: () => github.reply(spec.number, "H1: stop spec"),
+      }),
+      reviewed(),
+    );
+
+    const result = await runBatch(agentStep, { members: [spec, first] });
+
+    expect(result.kind).toBe("stopped");
+    expect(result.message).toContain(
+      "Review lists: #213 1 undecided, #301 none. Judge them: `/judge-findings byro-repo 213`.",
+    );
+  });
+
+  it("ends saying nothing needs judging, with no command, when no member has items", async () => {
+    addIssue(first.number);
+    addIssue(second.number);
+    const agentStep = FakeAgentStep.init(
+      implemented("first.ts"),
+      reviewed(),
+      implemented("second.ts"),
+      reviewed(),
+    );
+
+    const result = await runBatch(agentStep, { members: [first, second] });
+
+    expect(result.message).toBe(
+      "Batch ended: byro-repo #301, byro-repo #302 landed. Review lists: nothing needs judging.",
+    );
+  });
+
   it("runs a spec member's tickets in sub-issue order at its typed position, its Halt, review list and gap check on the spec issue", async () => {
     addIssue(first.number);
     addSpec([1, 2]);
@@ -256,7 +312,7 @@ describe("run's Batch", () => {
     expect(result.kind).toBe("stopped");
     expect(result.landed).toEqual([refOf(1)]);
     expect(result.message).toBe(
-      "Batch ended: none landed; byro-repo #213, byro-repo #301 wait on you. Rerun the unfinished ones: `npm run runner -- byronbroughten/byro-repo 213 301`.",
+      "Batch ended: none landed; byro-repo #213, byro-repo #301 wait on you. Rerun the unfinished ones: `npm run runner -- byronbroughten/byro-repo 213 301`. Review lists: nothing needs judging.",
     );
     expect(noticesOn(spec.number).at(-1)).toBe(
       "Run ended: landed byro-repo #1. byro-repo #2 waits on you (`/start-issue byro-repo 2`). Rerun once your tickets close: `npm run runner -- byronbroughten/byro-repo 213`.",
@@ -311,7 +367,7 @@ describe("run's Batch", () => {
     expect(result.kind).toBe("stopped");
     expect(result.landed).toEqual([second, third]);
     expect(result.message).toBe(
-      "Batch ended: byro-repo #302, byro-repo #303 landed; byro-repo #301 waits on you. Rerun the unfinished ones: `npm run runner -- byronbroughten/byro-repo 301`.",
+      "Batch ended: byro-repo #302, byro-repo #303 landed; byro-repo #301 waits on you. Rerun the unfinished ones: `npm run runner -- byronbroughten/byro-repo 301`. Review lists: nothing needs judging.",
     );
     expect(noticesOn(first.number).at(-1)).toBe(
       "Stopped on `stop spec` for Halt H1: landed nothing; byro-repo #301 stays unlanded.",
@@ -431,7 +487,7 @@ describe("run's Batch", () => {
       "byro-repo #499 is blocked by byro-repo #498, which ended without landing; rerun them together once it can land: `npm run runner -- byronbroughten/byro-repo 499 498`.",
     );
     expect(result.message).toBe(
-      "Batch ended: none landed; byro-repo #499, byro-repo #498 wait on you. Rerun the unfinished ones: `npm run runner -- byronbroughten/byro-repo 499 498`.",
+      "Batch ended: none landed; byro-repo #499, byro-repo #498 wait on you. Rerun the unfinished ones: `npm run runner -- byronbroughten/byro-repo 499 498`. Review lists: nothing needs judging.",
     );
   });
 });
@@ -653,7 +709,7 @@ describe("a Batch's record", () => {
       ],
     );
     expect(lines.at(-1)?.summary).toBe(
-      "Batch ended: byro-repo #498, byro-repo #499 landed.",
+      "Batch ended: byro-repo #498, byro-repo #499 landed. Review lists: nothing needs judging.",
     );
   });
 

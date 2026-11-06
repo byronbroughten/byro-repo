@@ -57,8 +57,8 @@ A Halt on a `denied-tool` blocker whose edit the ticket already specifies is you
 
 A `run-started` line: say the run is working, and on which ticket. List its `warnings`, each a stale clone path; they never stop the run, but wrap-up refuses a ticket that touches one of their files. An `idle` line says what holds the run, such as an open Halt or another holder's lease. Say what clears it. A `vanished` line: as for `crashed` below, point the developer to the tmux pane. A `run-ended` line carries its `ending`:
 
-- `finished`: suggest `/judge-findings <repo> #<n>`, naming every member of a Batch, `/judge-findings <repo> #<n> #<n>…`.
-- `stopped`: say what stopped it.
+- `finished`: relay the summary's review-list counts and its `/judge-findings` command, or that nothing needs judging.
+- `stopped`: say what stopped it, then relay its review-list counts and command as for `finished`.
 - `crashed`: point the developer to the tmux pane, through the `tmux attach` command the line's summary names.
 - `refused`: say what the run refused.
 

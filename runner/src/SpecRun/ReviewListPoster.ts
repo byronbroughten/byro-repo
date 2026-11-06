@@ -185,7 +185,11 @@ export class ReviewListPoster extends SpecRunBase {
       endMessageOf(run.landed, waits, isLeftOpen),
       waits,
     );
-    return this._end(run, "finished", this._withUndecidedLine(message, count));
+    return this._end(
+      run,
+      "finished",
+      this._withUndecidedLine(run, message, count),
+    );
   }
 
   // Catches a ticket that landed in a run killed before its review list was posted.
@@ -298,7 +302,13 @@ export class ReviewListPoster extends SpecRunBase {
   }
 
   // Counts every review-list comment on the spec, earlier runs' included, since the developer decides them in one place.
-  private _withUndecidedLine(message: string, count: UndecidedCount): string {
+  // Only a Batch member's end says it, so the developer can judge one while the rest run; a lone run's end gives the judge line instead.
+  private _withUndecidedLine(
+    run: Run,
+    message: string,
+    count: UndecidedCount,
+  ): string {
+    if (!run.isBatchMember) return message;
     if (this.config.knobs.reviewListCadence !== "end-of-run") return message;
     if (count.items === 0) return message;
     return `${message} ${undecidedLineOf(count)}.`;

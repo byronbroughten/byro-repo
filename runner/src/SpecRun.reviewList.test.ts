@@ -259,13 +259,70 @@ describe("run's review list", () => {
     expect(reviewListsOn(213)).toEqual([]);
   });
 
-  it("ends a finished run with one push counting the undecided items across tickets", async () => {
+  it("ends a finished run with one push counting its undecided items once, with the command that judges them", async () => {
     addSpec([1, 2]);
 
     await specRun(landsOneWithPropose()).run(spec);
 
     expect(notices.sent.at(-1)?.summary).toBe(
-      "Run ended: landed byro-repo #1, byro-repo #2. Every ticket is closed. review list: 1 undecided across 1 ticket.",
+      "Run ended: landed byro-repo #1, byro-repo #2. Every ticket is closed. Review lists: #213 1 undecided. Judge them: `/judge-findings byro-repo 213`.",
+    );
+  });
+
+  it("names the gap check on its own in the run's closing count", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      implemented("one.ts"),
+      reviewed(findings.slice(0, 1)),
+      resolvedAs(propose),
+      resultOf({
+        gaps: [
+          {
+            ask: "Story 4",
+            evidence: "No code reads the knob.",
+            recommendation: "File the follow-up.",
+            draftIssueTitle: "Read the knob",
+          },
+        ],
+      }),
+    );
+
+    await specRun(agentStep, { agentStep }).run(spec);
+
+    expect(notices.sent.at(-1)?.summary).toBe(
+      "Run ended: landed byro-repo #1. Every ticket is closed. Review lists: #213 2 undecided across 1 ticket and the gap check. Judge them: `/judge-findings byro-repo 213`.",
+    );
+  });
+
+  it("ends a run whose review lists are all decided, its spec open with every ticket closed, as ready to close", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      implemented("one.ts"),
+      reviewed([findingOf(2, "standards", "dismiss")]),
+      resolvedAs({ ...kept, finding: 1 }),
+    );
+
+    await specRun(agentStep).run(spec);
+
+    expect(notices.sent.at(-1)?.summary).toBe(
+      "Run ended: landed byro-repo #1. Every ticket is closed. Review lists: #213 ready to close. Judge them: `/judge-findings byro-repo 213`.",
+    );
+  });
+
+  it("counts a stopped run's undecided items from a ticket it landed before the Stop", async () => {
+    addSpec([1, 2]);
+    const agentStep = FakeAgentStep.init(
+      implemented("one.ts"),
+      reviewed(findings.slice(0, 1)),
+      resolvedAs(propose),
+      { ...resultOf(undefined), exitSubtype: "error_max_budget_usd" },
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.kind).toBe("stopped");
+    expect(result.message).toContain(
+      "Review lists: #213 1 undecided. Judge them: `/judge-findings byro-repo 213`.",
     );
   });
 
@@ -280,22 +337,22 @@ describe("run's review list", () => {
     await specRun(agentStep).run(spec);
 
     expect(notices.sent.at(-1)?.summary).toBe(
-      "Run ended: landed byro-repo #213. The ticket is left open until /judge-findings decides its review list. review list: 1 undecided across 1 ticket.",
+      "Run ended: landed byro-repo #213. The ticket is left open until /judge-findings decides its review list. Review lists: #213 1 undecided. Judge them: `/judge-findings byro-repo 213`.",
     );
   });
 
-  it("ends a Standalone run whose ticket closes at landing as before", async () => {
+  it("ends a Standalone run whose ticket closes at landing saying nothing needs judging, with no command", async () => {
     addIssue(spec.number);
     const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
 
     await specRun(agentStep).run(spec);
 
     expect(notices.sent.at(-1)?.summary).toBe(
-      "Run ended: landed byro-repo #213. Every ticket is closed.",
+      "Run ended: landed byro-repo #213. Every ticket is closed. Review lists: nothing needs judging.",
     );
   });
 
-  it("pushes per ticket instead under the per-ticket cadence", async () => {
+  it("pushes per ticket under the per-ticket cadence, still ending with the closing count", async () => {
     addSpec([1, 2]);
     const knobs = runKnobsOf({
       clonePaths,
@@ -309,7 +366,7 @@ describe("run's review list", () => {
     const summaries = notices.sent.map(({ summary }) => summary);
     expect(summaries).toContain("review list: 1 undecided on byro-repo #1");
     expect(summaries.at(-1)).toBe(
-      "Run ended: landed byro-repo #1, byro-repo #2. Every ticket is closed.",
+      "Run ended: landed byro-repo #1, byro-repo #2. Every ticket is closed. Review lists: #213 1 undecided. Judge them: `/judge-findings byro-repo 213`.",
     );
   });
 });

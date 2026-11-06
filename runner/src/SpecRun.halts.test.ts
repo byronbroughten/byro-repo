@@ -62,7 +62,7 @@ describe("run's Halts", () => {
 
     expect(result.kind).toBe("stopped");
     expect(result.message).toBe(
-      "Stopped on request: landed byro-repo #2. byro-repo #1 waits on Halt H1, H2.",
+      "Stopped on request: landed byro-repo #2. byro-repo #1 waits on Halt H1, H2. Review lists: nothing needs judging.",
     );
     expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
     const [first, second] = haltComments();
@@ -102,7 +102,7 @@ describe("run's Halts", () => {
     const result = await specRun(agentStep).run(spec);
 
     expect(result.message).toBe(
-      "Stopped on request: landed byro-repo #3. byro-repo #1 waits on Halt H1; byro-repo #2 waits on Halt H1.",
+      "Stopped on request: landed byro-repo #3. byro-repo #1 waits on Halt H1; byro-repo #2 waits on Halt H1. Review lists: nothing needs judging.",
     );
     expect(haltComments()[0]).toContain(
       "Blocks: byro-repo#2 and their downstream.",
@@ -127,7 +127,7 @@ describe("run's Halts", () => {
     const result = await specRun(agentStep, clock).run(spec);
 
     expect(result.message).toBe(
-      "Run ended: landed byro-repo #1. Every ticket is closed.",
+      "Run ended: landed byro-repo #1. Every ticket is closed. Review lists: #213 ready to close. Judge them: `/judge-findings byro-repo 213`.",
     );
     const [resumed] = agentStep.requests;
     expect(resumed?.resumeSessionId).toBe("implement-session");

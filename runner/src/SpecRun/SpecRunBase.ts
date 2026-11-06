@@ -42,6 +42,7 @@ import {
 } from "../limitGuard.ts";
 import type { Notice, Notices } from "../Notices.ts";
 import { progressLineOf, stepTookLineOf } from "../progressLines.ts";
+import { developersReviewListsOf, undecidedCountOf } from "../reviewList.ts";
 import type { RunKnobs } from "../runKnobs.ts";
 import { runStateOf } from "../savedFormats.ts";
 import { sleep } from "../sleep.ts";
@@ -49,6 +50,7 @@ import { WrapUp, type WrapUpGitHub, type WrapUpKnobs } from "../WrapUp.ts";
 import {
   type Heads,
   type IssueComment,
+  type Judgement,
   type LandingTicket,
   type Run,
   type RunResult,
@@ -353,14 +355,61 @@ export class SpecRunBase {
     return untrustedBodyReasonOf(developer, { ...issue, comments });
   }
 
+  // A run of one spec ends here, so its end says what's left to judge; a Batch's end says it once for every member.
   protected async _end(
     run: Run,
     kind: "finished" | "stopped",
     message: string,
     event: RunEvent = {},
   ): Promise<RunResult> {
-    await this._announce(run, message, { ...event, kind });
-    return { kind, landed: run.landed, message };
+    let ended = message;
+    if (!run.isBatchMember) ended = await this._withJudgeLine(message, [run]);
+    await this._announce(run, ended, { ...event, kind });
+    return { kind, landed: run.landed, message: ended };
+  }
+
+  // Read as the run ends, so an item a Halt reply decided during it no longer counts.
+  protected async _withJudgeLine(
+    message: string,
+    runs: Run[],
+  ): Promise<string> {
+    const judged = await Promise.all(
+      runs.map(async ({ spec }) => ({
+        issue: spec.issue,
+        judgement: await this._judgementOf(spec.issue),
+      })),
+    );
+    // A Stop's message may end on a command or path with no full stop of its own.
+    const sentence = message.endsWith(".") ? message : `${message}.`;
+    return `${sentence} ${runText.judgeLineOf(judged)}`;
+  }
+
+  // Only the developer's own review lists count, as `runner decide` and /judge-findings read them; undefined where the issue leaves nothing to judge.
+  protected async _judgementOf(
+    issue: IssueRef,
+  ): Promise<Judgement | undefined> {
+    const { github, developer } = this.config;
+    const lists = developersReviewListsOf(
+      await github.authoredCommentsOf(issue),
+      developer,
+    );
+    if (lists.length === 0) return undefined;
+    const count = undecidedCountOf(lists);
+    if (count.items > 0) return count;
+    if (!(await this._isReadyToClose(issue))) return undefined;
+    return "ready to close";
+  }
+
+  // A Standalone ticket has no sub-issues, so every item decided is its whole close rule.
+  private async _isReadyToClose(issue: IssueRef): Promise<boolean> {
+    const { github } = this.config;
+    const [{ isOpen }, subIssues] = await Promise.all([
+      github.issueOf(issue),
+      Promise.all(
+        (await github.subIssuesOf(issue)).map((sub) => github.issueOf(sub)),
+      ),
+    ]);
+    return isOpen && subIssues.every((sub) => !sub.isOpen);
   }
 
   // A notice that fails is logged, not thrown: the comment and the progress log still hold the event.
