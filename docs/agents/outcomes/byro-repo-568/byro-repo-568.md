@@ -1,0 +1,7 @@
+# byro-repo#568 outcome
+
+Spec: [byro-repo#568](https://github.com/byronbroughten/byro-repo/issues/568)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #568 | Opus medium | 4 | 23 | 153K → 102K | Fix (resumed implementer) | 1 | 1 | 0 | 29 min | $5.24 | $3.62 | Fixed: judgementTextOf and judgedTextOf word one Judgement two ways. (runner/src/SpecRun/JudgeableIssueLister.ts:35, runner/src/SpecRun/runState/runText.ts:67); isBatchMember is a required boolean written out as false. (runner/src/SpecRun/runState.ts:199, runner/src/SpecRun/SpecRunBase.ts:222); The skill relays the judge line only under `finished`, though stopped ends carry it too. (runner/skills/runner/SKILL.md:60-61); No test covers a stopped Batch member with a Propose item. (runner/src/SpecRun.batch.test.ts); runner judgeable words the shared judgement differently from the run end. (runner/src/SpecRun/JudgeableIssueLister.ts:35-38 vs runner/src/reviewList.ts:556). Proposed: Two sites branch on run.isBatchMember to pick which end speaks about review lists. (runner/src/SpecRun/SpecRunBase.ts:367, runner/src/SpecRun/ReviewListPoster.ts:311). | b0c44d9a-6eb5-4e16-9aab-424d545946cb, f4d4e459-c44c-4161-a211-578d30c02787, af848ee7-bde1-401e-a979-f25eea0afdf8 |
