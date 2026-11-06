@@ -26,6 +26,8 @@ Done when the title is stated, the scope is one of the two, and for Sections eve
 
 ## 2. Gather the inputs
 
+**Every source is a Drive file**, read by the ID the spec lists; `/grill-piece` saved each web page to Drive, and no input here is read from the web.
+
 Write each to its own file in the scratchpad, so each sub-agent gets only its own files:
 
 - **Deliverable**: the Google Doc the spec names, read now as Markdown with the gworkspace tools.
