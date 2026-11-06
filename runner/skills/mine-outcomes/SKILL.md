@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 `/mine-outcomes` reads what landed specs' tickets cost and how they went, and turns it into proposals, so the outcome log stays short and its lessons are kept as changes. Its words (Halt, Propose) are in [`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md); the Result strings (Pass, Fix (resumed implementer), Fix (fresh resolver)) are `resultByReviewFixes` in [`runner/src/outcomeLog.ts`](../../../runner/src/outcomeLog.ts).
 
+**Weigh the recommendations you put to the developer against the Codebase Priorities, [`docs/agents/codebase-priorities.md`](../../../docs/agents/codebase-priorities.md).**
+
 ## 1. Read the summary
 
 The batch is the spec sections the invocation names; a section is the folder `docs/agents/outcomes/<spec repo>-<spec n>/`, one row file per landed ticket ([`docs/agents/model-fit.md#outcome-log`](../../../docs/agents/model-fit.md#outcome-log)). Run the summary for it:
@@ -53,14 +55,14 @@ In one message, give:
 
 1. Review's share of cost, for the batch, then each repo and spec, each with its row count.
 2. The proposals, model fit first, each with its knob, change and rows.
-3. The outliers by spec, each with the rules it trips. Offer `/retro` on each that has transcripts, naming its session ids and any that are missing.
+3. The outliers by spec, each with the rules it trips, its session ids and any that are missing.
 4. The expired and partly expired rows, and the rows that never had transcripts.
 
-Then ask which proposals to file. File each one the developer picks with `gh issue create -R <owner>/<repo>`, resolving `<repo>` the way [`docs/agents/issue-tracker.md`](../../../docs/agents/issue-tracker.md) does, as a standalone issue whose body links each spec its rows come from as `<owner>/<repo>#<spec>`. A ticket for an agent ends with the `## Model fit` section [`docs/agents/model-fit.md`](../../../docs/agents/model-fit.md) asks for.
+End it with a round in the format of `/grilling` ([`.claude/skills/grilling/SKILL.md`](../../../.claude/skills/grilling/SKILL.md)): one numbered question per proposal, whether to file it, and one per outlier that has transcripts, whether to run `/retro` on it, each with your recommended answer and worded so "yes" accepts it. File each proposal the developer accepts with `gh issue create -R <owner>/<repo>`, resolving `<repo>` the way [`docs/agents/issue-tracker.md`](../../../docs/agents/issue-tracker.md) does, as a standalone issue whose body links each spec its rows come from as `<owner>/<repo>#<spec>`. A ticket for an agent ends with the `## Model fit` section [`docs/agents/model-fit.md`](../../../docs/agents/model-fit.md) asks for.
 
 ## 5. Clear the batch
 
-Only once the developer has seen step 4, and has answered on filing and on `/retro`, ask once whether to clear every section in the batch. A `/retro` they want goes ahead of the question. Git history keeps the files after that. On a yes:
+Only once the developer has answered step 4's round, ask whether to clear every section in the batch, as one question in a later round of the same format. A `/retro` they want goes ahead of that round. Git history keeps the files after that. On a yes:
 
 1. Open one session workspace ([`docs/agents/git-workflow.md#a-skills-session-workspace`](../../../docs/agents/git-workflow.md#a-skills-session-workspace)) named `mine-outcomes-<spec repo>-<spec n>`, `mine-outcomes-recent-<N>` or `mine-outcomes-all`, after the invocation.
 2. `git rm -r` each mined section's folder, then make one commit: `Clear the <spec repo>#<spec n>, … outcome rows after mining.`, listing every spec.

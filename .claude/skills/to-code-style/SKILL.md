@@ -74,6 +74,8 @@ Rank by time the change would have saved, and say so. A ranked list lets the use
 
 ## 4. Present, then wait
 
+**Weigh the recommendations you put to the developer against the Codebase Priorities, [`docs/agents/codebase-priorities.md`](../../../docs/agents/codebase-priorities.md).**
+
 One block per item, most valuable first, numbered so the user can answer "1, 3, skip 2":
 
 ```
