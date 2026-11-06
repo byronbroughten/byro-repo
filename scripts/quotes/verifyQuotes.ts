@@ -6,6 +6,7 @@ import { parseArgs } from "node:util";
 
 import {
   type FactFinding,
+  type PageRange,
   type QuoteLocated,
   type SourceText,
   verifyComment,
@@ -43,6 +44,9 @@ function lineFor(finding: FactFinding): string {
     if (finding.citedFile === undefined) {
       return `NO LOCATOR, ${fact}: end it with (<file>, PDF pp. <a>–<b>) or (<file>, heading "<heading>")`;
     }
+    if (finding.missingPages) {
+      return `NO LOCATOR, ${fact}: ${finding.citedFile} has no ${rangeText(finding.missingPages)}; cite pages it has, or (${finding.citedFile}, heading "<heading>")`;
+    }
     return `NO LOCATOR, ${fact}: no saved text is named ${finding.citedFile}`;
   }
   if (finding.kind === "found") {
@@ -55,6 +59,11 @@ function lineFor(finding: FactFinding): string {
     return `JOINED, ${fact} (quote each passage separately): ${finding.quote}`;
   }
   return `NOT FOUND, ${fact}: ${finding.quote}`;
+}
+
+function rangeText({ first, last }: PageRange): string {
+  if (first === last) return `PDF page ${first}`;
+  return `PDF pages ${first}–${last}`;
 }
 
 function placeOf(finding: QuoteLocated): string {

@@ -48,6 +48,38 @@ describe("verifyComment", () => {
     ).toEqual([{ kind: "noLocator", fact: 1, citedFile: "gone.txt" }]);
   });
 
+  it("fails a PDF-page locator on a source with no page markers, a quoteless fact included", () => {
+    expect(
+      verifyComment(
+        "1. The crew starts on Monday. (notes.txt, PDF p. 1)",
+        sources,
+      ),
+    ).toEqual([
+      {
+        kind: "noLocator",
+        fact: 1,
+        citedFile: "notes.txt",
+        missingPages: { first: 1, last: 1 },
+      },
+    ]);
+  });
+
+  it("fails a page range that runs past the source's last page", () => {
+    expect(
+      verifyComment(
+        factCiting("heagney.txt, PDF pp. 46–47", "Scope creep is a risk."),
+        sources,
+      ),
+    ).toEqual([
+      {
+        kind: "noLocator",
+        fact: 1,
+        citedFile: "heagney.txt",
+        missingPages: { first: 46, last: 47 },
+      },
+    ]);
+  });
+
   it("passes a fact with a locator and no quote", () => {
     expect(
       verifyComment(

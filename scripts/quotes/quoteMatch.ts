@@ -31,6 +31,12 @@ export interface FactUnlocated {
   kind: "noLocator";
   fact: number;
   citedFile: string | undefined;
+  missingPages?: PageRange;
+}
+
+export interface PageRange {
+  first: number;
+  last: number;
 }
 
 export type FactFinding = QuoteLocated | QuoteFailed | FactUnlocated;
@@ -120,13 +126,36 @@ function factFindings(fact: Fact, sources: Source[]): FactFinding[] {
   if (!cited) {
     return [{ kind: "noLocator", fact: fact.number, citedFile: locator.file }];
   }
-  const citedRange = { file: cited.file, pages: citedPages(cited, locator) };
+  const pages = citedPages(cited, locator);
+  const missingPages = missingPagesOf(locator, pages);
+  if (missingPages) {
+    return [
+      {
+        kind: "noLocator",
+        fact: fact.number,
+        citedFile: cited.file,
+        missingPages,
+      },
+    ];
+  }
+  const citedRange = { file: cited.file, pages };
   const others = sources.filter((source) => source !== cited);
   const outside = [cited, ...others];
   const claim = fact.text.slice(0, match.index);
   return quotesIn(claim).map((quote) =>
     quoteFinding({ fact: fact.number, quote, citedRange, outside }),
   );
+}
+
+// Without this, a fact with no quotes passes on a page its source lacks, every page of an unpaged source included.
+function missingPagesOf(
+  locator: Locator,
+  pages: Page[],
+): PageRange | undefined {
+  const { firstPage, lastPage } = locator;
+  if (firstPage === undefined || lastPage === undefined) return undefined;
+  if (pages.length > lastPage - firstPage) return undefined;
+  return { first: firstPage, last: lastPage };
 }
 
 function locatorOf(match: RegExpExecArray): Locator {
