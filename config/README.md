@@ -20,4 +20,5 @@ General tooling for TypeScript projects: an ESLint flat-config preset, the prett
 - **No line-number citations**: a `<name>.md:<n>` anywhere in a markdown file outside a fenced block is reported, since a line number drifts and an anchor is checked. Records that cite lines at a fixed commit on purpose are exempt: `docs/agents/outcomes/`, `writing/snapshots/`, `inbox/changes.md` and `inbox/proposals.md`, each relative to its repo or package root.
 - **No links to a README from anything but a README**: a README is for humans, so a markdown file that isn't one may not link a `README.md`, and should link the fact's own home instead. Records are exempt, as above.
 - **Observation indexes**: in each file `observationIndexes` in `docLint.js` lists, every bullet after the first `##` heading starts with `Observed:` or `Documented:`, carries a `YYYY-MM-DD` date and holds a link.
+- **Skill indexes**: each file `skillIndex.docs` in `docLint.js` lists links the `SKILL.md` of every skill under `.claude/skills/` or `runner/skills/`.
 - **Each nested `AGENTS.md`** has a sibling `CLAUDE.md` containing `@AGENTS.md`.
