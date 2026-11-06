@@ -18,6 +18,14 @@ describe("implementCodeSkillOf", () => {
     );
   });
 
+  it("is invoked as <repo> <n>, the form the other issue skills take", () => {
+    expect(skill).toContain("Invoked as /implement-code <repo> <n>.");
+    expect(skill).toContain(
+      "`/implement-code <repo> <n>` implements one ticket",
+    );
+    expect(skill).not.toContain("/implement-code <repo>#<n>");
+  });
+
   it("opens on a ticket reference and stops on a ready-for-human ticket", () => {
     expect(skill).toContain("state its title before starting");
     expect(skill).toContain(
