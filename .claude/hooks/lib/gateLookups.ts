@@ -8,7 +8,7 @@ import {
   readJsonFile,
   sessionStatePath,
 } from "./hookIo.ts";
-import type { ShellPlaces } from "./tiers/stepWrites.ts";
+import type { ShellPlaces } from "./tiers/WritePathResolver.ts";
 
 const dryRunSuffix = "chore-dry-runs.json";
 

@@ -4,7 +4,7 @@ import { fakePlaces } from "../fakePlaces.ts";
 import { gateDecision, type SessionMode } from "../tiers.ts";
 
 const entries = ["open", "open *"];
-const notInPlaces = "isn't an existing file in the workspace or temp";
+const notInPlaces = "isn't a file in the workspace or temp";
 
 function decisionOf(command: string, mode: SessionMode = "interactive") {
   return gateDecision({

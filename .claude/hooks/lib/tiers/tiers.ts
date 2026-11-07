@@ -2,7 +2,6 @@
 // The classifiers live in tiers/, a file per subject: the raw push, `gh label list`, `ps` and `pgrep`, `open`, npm verdicts, and the verdicts only a runner step or an Interactive session gets. Each matches an `excludedCommands` entry, `gh` or `git push`, as the box frees any other command. excludedCommands.ts there refuses a call that keeps an excluded command in the box.
 import { type SandboxOff, sandboxOffWords } from "../sandboxState.ts";
 import { ShellParser, type SimpleCommand } from "./ShellParser.ts";
-import type { ShellPlaces } from "./stepWrites.ts";
 import { excludedCommands } from "./tiers/excludedCommands.ts";
 import { gitWrites } from "./tiers/gitWrites.ts";
 import { interactiveSession } from "./tiers/interactiveSession.ts";
@@ -13,6 +12,7 @@ import { readCommands } from "./tiers/readCommands.ts";
 import { runnerStep } from "./tiers/runnerStep.ts";
 import { sandboxedCalls } from "./tiers/sandboxedCalls.ts";
 import { timeoutWrappedOf } from "./timeoutWrapped.ts";
+import type { ShellPlaces } from "./WritePathResolver.ts";
 
 export interface Decision {
   permissionDecision: "allow" | "ask" | "deny";

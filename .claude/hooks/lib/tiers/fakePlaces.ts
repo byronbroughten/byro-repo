@@ -1,7 +1,7 @@
 // A fake file system for the tier tests, laid out like macOS: a workspace at /ws, $TMPDIR at /var/T, /tmp linked to /private/tmp, and a few links out of the workspace.
 import { dirname, join } from "node:path";
 
-import type { ShellPlaces } from "./stepWrites.ts";
+import type { ShellPlaces } from "./WritePathResolver.ts";
 
 const existing = new Set([
   "/ws",
