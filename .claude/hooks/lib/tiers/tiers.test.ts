@@ -387,6 +387,15 @@ describe("an Interactive session's gh calls", () => {
     ).toBeUndefined();
   });
 
+  it("allows the research push, and refuses it in a runner step", () => {
+    expect(decisionOf("npm run research:push")).toBe("allow");
+    const stepDecision = modeDecisionOf("npm run research:push", "runnerStep");
+    expect(stepDecision?.permissionDecision).toBe("deny");
+    expect(stepDecision?.reason).toContain("only an Interactive session");
+    expect(decisionOf("npm --prefix x run research:push")).toBeUndefined();
+    expect(decisionOf("git push -u origin research/x")).toBe("ask");
+  });
+
   it("leaves any other gh api write to Claude Code", () => {
     [
       "gh api -X DELETE repos/x/y/issues/comments/987",

@@ -28,6 +28,7 @@ import {
   LandingKindPicker,
 } from "./WrapUp/LandingKindPicker.ts";
 import { LandingPusher } from "./WrapUp/LandingPusher.ts";
+import { ResearchPusher } from "./WrapUp/ResearchPusher.ts";
 import { WorkspaceFinisher } from "./WrapUp/WorkspaceFinisher.ts";
 import { isDone, listedReposOf, WrapUpBase } from "./WrapUp/WrapUpBase.ts";
 import {
@@ -103,6 +104,10 @@ export class WrapUp extends WrapUpBase {
     return new LandingPusher(this.config);
   }
 
+  private get researchPusher(): ResearchPusher {
+    return new ResearchPusher(this.config);
+  }
+
   private get branchDeleter(): BranchDeleter {
     return new BranchDeleter(this.config);
   }
@@ -172,6 +177,11 @@ export class WrapUp extends WrapUpBase {
       this.workspaceFinisher._levelWorkspace(key),
     );
     return this._endSession(landing, "level-workspace");
+  }
+
+  // `npm run research:push`: a `research/*` branch is never merged, so no landing pushes it. Returns the branch pushed.
+  async pushResearch(checkout: string): Promise<string> {
+    return this.researchPusher.push(checkout);
   }
 
   private async _landSession(

@@ -1,4 +1,4 @@
-// The refusal of a call that holds an `excludedCommands` entry but stays in the sandbox, where it fails without naming the box.
+// The refusal of a call that holds an `excludedCommands` entry but stays in the sandbox, where it fails without naming the box or, for the research push, pushes past the tier gate.
 // Claude Code lets a call out only when every command in it matches an entry, with nothing beside them but `&&`, `||`, `;` or `2>&1`.
 import { callOfItsOwn } from "@byronbroughten/spec-runner/callOfItsOwn";
 
@@ -6,24 +6,31 @@ import { ShellParser, type SimpleCommand } from "../ShellParser.ts";
 import { timeoutWrappedOf } from "../timeoutWrapped.ts";
 import { npmCommands } from "./npmCommands.ts";
 
-const sandboxCant = {
-  google: "can't reach Google",
-  claude: "can't launch `claude`",
-  ps: "can't run `ps`",
-  pgrep: "can't run `pgrep`",
-  open: "can't reach Launch Services, which `open` needs",
-  jev: "can't run the jev client's fetch",
-  other: "can't run it",
+// Why a boxed entry is refused: what the box can't do, or for the research push, that the box would free its push.
+const boxReasons = {
+  cant: {
+    google: "can't reach Google",
+    claude: "can't launch `claude`",
+    ps: "can't run `ps`",
+    pgrep: "can't run `pgrep`",
+    open: "can't reach Launch Services, which `open` needs",
+    jev: "can't run the jev client's fetch",
+    other: "can't run it",
+  },
+  // The box reaches GitHub and frees a call holding no `git push`, so a script's push would go out with no tier row deciding it.
+  hiddenPush:
+    "where the tier gate can't see its push: the box frees a call that names no `git push`, a runner step's included",
 } as const;
+const researchPushScript = /^research:push\b/;
 // Matched against an entry with any `npm run ` dropped, so a bare program's entry is matched whole.
-const reasonsByScript: [RegExp, string][] = [
-  [/^ps\b/, sandboxCant.ps],
-  [/^pgrep\b/, sandboxCant.pgrep],
-  [/^open\b/, sandboxCant.open],
-  [/^(app|dev)\b/, sandboxCant.google],
-  [/^(runner|session:probe)\b/, sandboxCant.claude],
-  [/^(test|check|issue|wrap-up)\b/, sandboxCant.ps],
-  [/^jev\b/, sandboxCant.jev],
+const cantsByScript: [RegExp, string][] = [
+  [/^ps\b/, boxReasons.cant.ps],
+  [/^pgrep\b/, boxReasons.cant.pgrep],
+  [/^open\b/, boxReasons.cant.open],
+  [/^(app|dev)\b/, boxReasons.cant.google],
+  [/^(runner|session:probe)\b/, boxReasons.cant.claude],
+  [/^(test|check|issue|wrap-up)\b/, boxReasons.cant.ps],
+  [/^jev\b/, boxReasons.cant.jev],
 ];
 // Claude Code's Sandboxing page lists it as no bar to leaving the box, and #535's probe saw it leave.
 const stderrToStdout = /(^|[ \t])2>&1(?=[ \t]|$)/gm;
@@ -44,7 +51,7 @@ export const excludedCommands = {
     if (!first || excludedCommands.leavesTheBox(parser, commands, entries)) {
       return undefined;
     }
-    return `\`${command}\` keeps \`${first.form}\` in the sandbox, where it fails without naming the box: the sandbox ${reasonOf(first.entry)}. ${callOfItsOwn(`Run \`${first.form}\``)}`;
+    return `\`${command}\` keeps \`${first.form}\` in the sandbox, ${reasonOf(first.entry)}. ${callOfItsOwn(`Run \`${first.form}\``)}`;
   },
 
   // Every command in the call matches an entry, read as the refusal reads it; a heredoc the scan can't confirm as plain text, or `$'…'`, could hide one that doesn't.
@@ -107,6 +114,9 @@ function matchesEntry(command: string, entry: string): boolean {
 
 function reasonOf(entry: string): string {
   const script = entry.replace(/^npm (run )?/, "");
-  const reason = reasonsByScript.find(([pattern]) => pattern.test(script));
-  return reason?.[1] ?? sandboxCant.other;
+  if (researchPushScript.test(script)) return boxReasons.hiddenPush;
+  const cant =
+    cantsByScript.find(([pattern]) => pattern.test(script))?.[1] ??
+    boxReasons.cant.other;
+  return `where it fails without naming the box: the sandbox ${cant}`;
 }

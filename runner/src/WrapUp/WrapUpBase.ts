@@ -1,11 +1,12 @@
-// The Base WrapUp and its collaborators share: the config, knobs, network retries, log, a landing's step progress and
-// where its repos and workspace are. It imports no collaborator, so `extends WrapUpBase` loads first.
+// The Base WrapUp and its collaborators share: the config, knobs, network retries, log, a landing's step progress,
+// where its repos and workspace are, and the push LandingPusher.ts and ResearchPusher.ts both run. It imports no
+// collaborator, so `extends WrapUpBase` loads first.
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { messageOf } from "../failureText.ts";
-import { currentBranchOf } from "../git.ts";
+import { currentBranchOf, git } from "../git.ts";
 import {
   fileStemOf,
   isSessionKey,
@@ -128,6 +129,19 @@ export class WrapUpBase {
     }
   }
 
+  // Never with force: a rejected push fails after its retries rather than overwriting the remote.
+  protected async _pushToOrigin({
+    label,
+    clone,
+    branch,
+    setsUpstream = false,
+  }: OriginPush): Promise<void> {
+    const upstream = setsUpstream ? ["--set-upstream"] : [];
+    await this._withRetries(label, () =>
+      git(clone, "push", ...upstream, "origin", branch),
+    );
+  }
+
   protected get _sleep(): (ms: number) => Promise<void> {
     return this.config.sleep ?? sleep;
   }
@@ -135,6 +149,14 @@ export class WrapUpBase {
   protected _log(line: string): void {
     this.config.log?.(line);
   }
+}
+
+// What a push sends and how it's named in a failure.
+interface OriginPush {
+  label: string;
+  clone: string;
+  branch: string;
+  setsUpstream?: boolean;
 }
 
 export function isDone(

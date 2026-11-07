@@ -132,10 +132,17 @@ export function commitIn(
   file: string,
   content: string,
 ): void {
-  const worktree = join(workspace.path, clonePaths[repo]);
-  writeFileSync(join(worktree, file), content);
-  git(worktree, "add", file);
-  git(worktree, "commit", "-m", `Add ${file}`);
+  commitFileIn(join(workspace.path, clonePaths[repo]), file, content);
+}
+
+export function commitFileIn(
+  checkout: string,
+  file: string,
+  content: string,
+): void {
+  writeFileSync(join(checkout, file), content);
+  git(checkout, "add", file);
+  git(checkout, "commit", "-m", `Add ${file}`);
 }
 
 export function writeFacts(facts: Partial<WrapUpFacts> = {}): void {
@@ -172,14 +179,20 @@ export function subjectsOf(
   );
 }
 
-export async function failureOf(
-  run: Promise<unknown>,
-): Promise<WrapUpFailureKind> {
+export async function errorOf(run: Promise<unknown>): Promise<Error> {
   try {
     await run;
   } catch (error) {
-    if (error instanceof WrapUpFailure) return error.kind;
+    if (error instanceof Error) return error;
     throw error;
   }
   throw new Error("Expected the wrap-up to fail");
+}
+
+export async function failureOf(
+  run: Promise<unknown>,
+): Promise<WrapUpFailureKind> {
+  const error = await errorOf(run);
+  if (error instanceof WrapUpFailure) return error.kind;
+  throw error;
 }
