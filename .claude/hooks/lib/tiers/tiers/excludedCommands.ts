@@ -22,6 +22,8 @@ const boxReasons = {
     "where the tier gate can't see its push: the box frees a call that names no `git push`, a runner step's included",
 } as const;
 const researchPushScript = /^research:push\b/;
+const wrapUpScript = /^npm run wrap-up\b/;
+const substitutionText = /\$\(|`/;
 // Matched against an entry with any `npm run ` dropped, so a bare program's entry is matched whole.
 const cantsByScript: [RegExp, string][] = [
   [/^ps\b/, boxReasons.cant.ps],
@@ -51,7 +53,11 @@ export const excludedCommands = {
     if (!first || excludedCommands.leavesTheBox(parser, commands, entries)) {
       return undefined;
     }
-    return `\`${command}\` keeps \`${first.form}\` in the sandbox, ${reasonOf(first.entry)}. ${callOfItsOwn(`Run \`${first.form}\``)}`;
+    const refusal = `\`${command}\` keeps \`${first.form}\` in the sandbox, ${reasonOf(first.entry)}. ${callOfItsOwn(`Run \`${first.form}\``)}`;
+    if (!wrapUpScript.test(first.entry) || !substitutionText.test(command)) {
+      return refusal;
+    }
+    return `${refusal}. A \`$(\` or backtick keeps it in the sandbox even quoted or escaped, so pass the closing note with \`--closing-file <path>\``;
   },
 
   // Every command in the call matches an entry, read as the refusal reads it; a heredoc the scan can't confirm as plain text, or `$'…'`, could hide one that doesn't.
@@ -75,7 +81,9 @@ export const excludedCommands = {
     commands: SimpleCommand[],
     entries: string[],
   ): boolean {
-    if (/\$\(|`|<</.test(parser.command)) return false;
+    // #594's probe: Claude Code reads `$(` and a backtick in the raw text, quoted or escaped, but a `<<` only as a heredoc.
+    if (substitutionText.test(parser.command)) return false;
+    if (parser.heredocs?.length !== 0) return false;
     // A reserved word such as `if` or `{` is no operator, so a compound call isn't taken for commands only joined.
     const isJoinedOnly =
       parser.operators.every((operator) => callJoiners.has(operator)) &&

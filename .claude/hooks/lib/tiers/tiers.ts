@@ -326,6 +326,6 @@ const classifiers: Classifier[] = [
   openCommands.openVerdictOf,
   gitWrites.pushVerdictOf,
   npmVerdicts.untargetedVerdictOf,
-  npmVerdicts.forcedRemoveVerdictOf,
+  npmVerdicts.askingFlagVerdictOf,
   npmVerdicts.freeScriptVerdictOf,
 ];

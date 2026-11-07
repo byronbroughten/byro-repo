@@ -121,6 +121,27 @@ describe("SandboxProbe", () => {
     expect(argAfter("--max-turns")).toBe("2");
   });
 
+  it("keeps the folder's excluded commands, and lets them run unprompted, when asked to", async () => {
+    writeSandboxBlock({
+      enabled: true,
+      allowUnsandboxedCommands: true,
+      excludedCommands: ["ps *"],
+    });
+    const probe = SandboxProbe.init(executable("claude.mjs", fakeClaude));
+
+    await probe.runKeepingExcluded(projectDir, commandsFile("ps -p 1\n"));
+
+    expect(JSON.parse(argAfter("--settings") ?? "")).toEqual({
+      sandbox: {
+        enabled: true,
+        allowUnsandboxedCommands: false,
+        autoAllowBashIfSandboxed: true,
+        excludedCommands: ["ps *"],
+      },
+      permissions: { allow: ["Bash"] },
+    });
+  });
+
   it("tells the session to run each command once, never retrying or disabling the sandbox", async () => {
     const probe = SandboxProbe.init(executable("claude.mjs", fakeClaude));
 

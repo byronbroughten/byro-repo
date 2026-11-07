@@ -13,6 +13,7 @@ const entries = [
   "npm test",
   "npm test *",
   "npm run research:push",
+  "npm run wrap-up *",
 ];
 
 function decisionOf(command: string) {
@@ -67,6 +68,24 @@ describe("an excluded command the call keeps in the box", () => {
       "`cd . && npm test` keeps `npm test` in the sandbox",
     );
   });
+
+  // #594's probe: Claude Code keeps a call holding `$(` or a backtick in the box, quoted or escaped.
+  it.each([
+    'npm run wrap-up -- byro-repo 5 --closing "a \\$(cd x) b"',
+    "npm run wrap-up -- byro-repo 5 --closing 'a $(cd x) b'",
+    'npm run wrap-up -- byro-repo 5 --closing "a \\`x\\` b"',
+  ])("refuses `%s`, naming --closing-file", (command) => {
+    const decision = decisionOf(command);
+    expect(decision?.permissionDecision).toBe("deny");
+    expect(decision?.reason).toContain("`--closing-file <path>`");
+  });
+
+  it("names no --closing-file for a call holding no substitution", () => {
+    expect(
+      decisionOf('cd . && npm run wrap-up -- byro-repo 5 --closing "x"')
+        ?.reason,
+    ).not.toContain("--closing-file");
+  });
 });
 
 describe("a call the box lets out, or holding no excluded command", () => {
@@ -82,6 +101,14 @@ describe("a call the box lets out, or holding no excluded command", () => {
       gateDecision({ command, mode: "interactive", dryRuns: [] }),
     );
   });
+
+  // #594's probe saw a quoted `<<` leave the box: Claude Code reads it as text.
+  it.each(['npm run check -- "a<<b"', "npm run check -- 'a<<b'"])(
+    "lets `%s` out, as its `<<` is quoted",
+    (command) => {
+      expect(decisionOf(command)?.permissionDecision).not.toBe("deny");
+    },
+  );
 
   it("matches an entry with a space before its `*` only past that space", () => {
     expect(

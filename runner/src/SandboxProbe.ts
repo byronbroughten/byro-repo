@@ -9,6 +9,7 @@ export type CommandOutcome =
 
 export interface SandboxSettings {
   sandbox: Record<string, unknown>;
+  permissions?: { allow: string[] };
 }
 
 export interface SandboxReport {
@@ -52,8 +53,28 @@ export class SandboxProbe {
   }
 
   async run(cwd: string, commandsPath: string): Promise<SandboxReport> {
+    return this._runUnder(cwd, commandsPath, sandboxSettings(cwd));
+  }
+
+  // The folder's excluded commands kept, to see which calls Claude Code lets out of the box; an allow rule runs one unprompted, as nobody answers a prompt.
+  async runKeepingExcluded(
+    cwd: string,
+    commandsPath: string,
+  ): Promise<SandboxReport> {
+    const { sandbox } = sandboxSettings(cwd);
+    const { excludedCommands } = projectSandboxOf(cwd);
+    return this._runUnder(cwd, commandsPath, {
+      sandbox: { ...sandbox, excludedCommands },
+      permissions: { allow: ["Bash"] },
+    });
+  }
+
+  private async _runUnder(
+    cwd: string,
+    commandsPath: string,
+    settings: SandboxSettings,
+  ): Promise<SandboxReport> {
     const commands = commandList(readFileSync(commandsPath, "utf8"));
-    const settings = sandboxSettings(cwd);
     const { exitCode, stdout, stderr } = await runHeadless(
       this.claudePath,
       cwd,
@@ -91,6 +112,17 @@ function commandList(text: string): string[] {
 // Only the folder's sandbox block, with no escape hatch or excluded commands: its hooks would refuse some commands before the box saw them, and which commands need excluding is what the probe finds.
 // Sandboxed calls are allowed outright because the session has no permission rules or prompts, so the box is the only thing that can stop one.
 function sandboxSettings(cwd: string): SandboxSettings {
+  const { excludedCommands: _excluded, ...sandbox } = projectSandboxOf(cwd);
+  return {
+    sandbox: {
+      ...sandbox,
+      allowUnsandboxedCommands: false,
+      autoAllowBashIfSandboxed: true,
+    },
+  };
+}
+
+function projectSandboxOf(cwd: string): Record<string, unknown> {
   const path = join(cwd, ".claude", "settings.json");
   if (!existsSync(path)) throw new Error(`${path} doesn't exist`);
   const project = JSON.parse(
@@ -99,14 +131,7 @@ function sandboxSettings(cwd: string): SandboxSettings {
   if (project.sandbox === undefined) {
     throw new Error(`${path} has no sandbox block`);
   }
-  const { excludedCommands: _excluded, ...sandbox } = project.sandbox;
-  return {
-    sandbox: {
-      ...sandbox,
-      allowUnsandboxedCommands: false,
-      autoAllowBashIfSandboxed: true,
-    },
-  };
+  return project.sandbox;
 }
 
 function sandboxLaunch(

@@ -49,6 +49,7 @@ Reads need no yes in any tier. A Bash read is free as a sandboxed call and asks 
 | `npm run jev`, `npm run jev:style` | a standing yes, a runner step's included: Deliverable text and repo docs, never secrets, `.env` files or credential files ([the Jev doc](./agents/jev.md#what-may-be-sent)) |
 | `npm run session:probe -- <folder>` | free: its one-turn session only reports what the folder's hooks see |
 | `npm run session:probe -- --sandbox-check <folder> <commands-file>` | free, a runner step's included: its session runs each listed command once, inside the folder's sandbox with unsandboxed commands off, and getting a command out takes a sandbox block loosened on purpose, which the gate doesn't guard against ([ADR 0007](./adr/0007-keep-untrusted-text-out-of-instructions-and-defer-containment.md)) |
+| `npm run session:probe -- --sandbox-check --keep-excluded <folder> <commands-file>` | 3: it runs each listed command an `excludedCommands` entry matches outside the box, in a session no hook gates |
 | `npm run outline -- <file>` | free: a read, a runner step's included |
 | `npm run outcome:summary -- …` | free: a read |
 | `npm run prompt:scan` | free: a read of this repo's session transcripts |

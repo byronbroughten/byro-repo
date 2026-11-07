@@ -69,7 +69,7 @@ export class FactsFile {
     const facts = this._storedOf(issue);
     if (typeof facts.closingComment !== "string") {
       throw new Error(
-        `${issueLabelOf(issue)} has no closing comment in ${this._pathOf(issue)}: pass it to wrap-up with --closing "…"`,
+        `${issueLabelOf(issue)} has no closing comment in ${this._pathOf(issue)}: pass it to wrap-up with --closing "…" or --closing-file <path>`,
       );
     }
     return facts as WrapUpFacts;
