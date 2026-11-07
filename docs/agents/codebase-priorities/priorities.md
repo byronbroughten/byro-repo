@@ -34,3 +34,7 @@ Each name, parameter, layer, shape or copy of a fact is one more thing a reader 
 A loss of security, undo or data integrity is often the kind no undo fixes. The cost-to-undo tiers in [`targets-and-gates.md`](../../targets-and-gates.md#which-tier-an-action-is-in) already gate actions; the floor covers Recommendations that would weaken those gates or make data harder to recover.
 
 A gain above the floor is only a Tier 2 gain, so the containment [ADR 0007](../../adr/0007-keep-untrusted-text-out-of-instructions-and-defer-containment.md) defers stays deferred.
+
+## Routine commands and security measures
+
+"Routine" is a category the prompt scan shows recurring: a process listing, opening a built file, deleting a dead hook file, pushing a `research/*` branch. A Hand-back or a changed workflow is the last resort, and any weakening a reshape leaves is named and left to the developer. Reshaping the measure rather than handing the command to the developer keeps routine use from settling a security trade-off, because the floor still names and leaves any leftover weakening. A gate misread fixed is a correction, not a cheaper tier. [ADR 0025](../../adr/0025-security-measures-accommodate-routine-commands.md) holds the decision and the stops that stay.
