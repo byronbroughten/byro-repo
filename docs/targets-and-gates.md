@@ -104,7 +104,7 @@ The threat model is accidents, with tampering made visible. Both clasp credentia
 
 ## The `gworkspace` MCP tools
 
-**The agent account is `byronbroughtenai@gmail.com`, the one Google identity behind agent access to Docs, Drive and Sheets.** To grant access to a file or folder, share it with the agent account, as Editor, from the main account. `clasp` and the Node-host credential stay on the main account. The Google script route, `npm run google:script`, uses the agent account too, its token minted from the gworkspace server's stored credentials (`.claude/hooks/lib/AgentTokenMinter.ts`), so a script it runs reaches only what is shared with that account ([its tier row](#which-tier-an-action-is-in)).
+**The agent account is `byronbroughtenai@gmail.com`, the one Google identity behind agent access to Docs, Drive and Sheets.** To grant access to a file or folder, share it with the agent account, as Editor, from the main account. `clasp` and the Node-host credential stay on the main account. The Google script route, `npm run google:script`, uses the agent account too, its token minted in `.claude/hooks/lib/AgentTokenMinter.ts` ([its tier row](#which-tier-an-action-is-in)).
 
 The `gworkspace` MCP server signs in as the agent account; what it is and what it can see: [the framework's notes](../packages/framework/docs/how-it-runs/gworkspace-mcp.md). It is registered in `~/.claude.json` under this project, never in a repo file. Setting it up, re-authorizing after a dead token, or adding a service is a re-run of `scripts/setup-agent-account-mcp.sh`; `scripts/retire-gsheets-service-account.sh` retired the old service account once that passed.
 

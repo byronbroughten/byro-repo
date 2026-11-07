@@ -60,40 +60,63 @@ export const interactiveSession = {
       needsPlainText: true,
     };
   },
-  // A standing yes behind wrap-up's secret scan; a runner step's is refused, as nobody reads what it publishes.
   researchPushVerdictOf(
-    { words }: SimpleCommand,
-    { mode }: CallContext,
+    simple: SimpleCommand,
+    context: CallContext,
   ): Verdict | undefined {
-    if (npmCommands.isPrefixed(words)) return undefined;
-    if (npmCommands.scriptOf(words)?.name !== "research:push") return undefined;
-    if (mode !== "interactive") {
-      return {
-        permissionDecision: "ask",
-        why: "pushes a `research/*` branch, which only an Interactive session does",
-      };
-    }
-    return {
-      permissionDecision: "allow",
-      why: "`npm run research:push` is the standing yes to push a `research/*` branch, behind wrap-up's secret scan",
-    };
+    return interactiveScriptVerdictOf(
+      simple,
+      context,
+      interactiveScripts.researchPush,
+    );
   },
-  // Free in an Interactive session, whose developer sees the probe; a runner step's is refused, as runner steps haven't needed one.
   googleScriptVerdictOf(
-    { words }: SimpleCommand,
-    { mode }: CallContext,
+    simple: SimpleCommand,
+    context: CallContext,
   ): Verdict | undefined {
-    if (npmCommands.isPrefixed(words)) return undefined;
-    if (npmCommands.scriptOf(words)?.name !== "google:script") return undefined;
-    if (mode !== "interactive") {
-      return {
-        permissionDecision: "ask",
-        why: "runs an agent-written script holding the agent account's access token, which only an Interactive session does",
-      };
-    }
-    return {
-      permissionDecision: "allow",
-      why: "`npm run google:script` runs the script with the agent account's access token, which reaches only the files shared with that account",
-    };
+    return interactiveScriptVerdictOf(
+      simple,
+      context,
+      interactiveScripts.googleScript,
+    );
   },
 };
+
+// A script free only in an Interactive session: `stepWhy` is a runner step's refusal, `allowWhy` the session's allow.
+interface InteractiveScript {
+  name: string;
+  stepWhy: string;
+  allowWhy: string;
+}
+
+const interactiveScripts = {
+  // A standing yes behind wrap-up's secret scan; a runner step's is refused, as nobody reads what it publishes.
+  researchPush: {
+    name: "research:push",
+    stepWhy:
+      "pushes a `research/*` branch, which only an Interactive session does",
+    allowWhy:
+      "`npm run research:push` is the standing yes to push a `research/*` branch, behind wrap-up's secret scan",
+  },
+  // Free in an Interactive session, whose developer sees the probe; a runner step's is refused, as runner steps haven't needed one.
+  googleScript: {
+    name: "google:script",
+    stepWhy:
+      "runs an agent-written script holding the agent account's access token, which only an Interactive session does",
+    allowWhy:
+      "`npm run google:script` runs the script with the agent account's access token, which reaches only the files shared with that account",
+  },
+} as const satisfies Record<string, InteractiveScript>;
+
+function interactiveScriptVerdictOf(
+  { words }: SimpleCommand,
+  { mode }: CallContext,
+  { name, stepWhy, allowWhy }: InteractiveScript,
+): Verdict | undefined {
+  if (npmCommands.isPrefixed(words)) return undefined;
+  if (npmCommands.scriptOf(words)?.name !== name) return undefined;
+  if (mode !== "interactive") {
+    return { permissionDecision: "ask", why: stepWhy };
+  }
+  return { permissionDecision: "allow", why: allowWhy };
+}

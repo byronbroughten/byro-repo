@@ -1,8 +1,10 @@
 // The tier gate's real owner lookup: the gworkspace server's stored token for the agent account, refreshed when expired, asking Drive for a file's owners only.
-import { AgentTokenMinter } from "../AgentTokenMinter.ts";
+import {
+  AgentTokenMinter,
+  fieldOf,
+  requestTimeoutMs,
+} from "../AgentTokenMinter.ts";
 import type { OwnerLookup } from "./driveTiers.ts";
-
-const requestTimeoutMs = 5000;
 
 // Any failure, a thrown one included, is undefined, which the gate treats as not the developer's.
 export async function driveOwnersOf(fileId: string): ReturnType<OwnerLookup> {
@@ -14,11 +16,7 @@ export async function driveOwnersOf(fileId: string): ReturnType<OwnerLookup> {
       signal: AbortSignal.timeout(requestTimeoutMs),
     });
     if (!response.ok) return undefined;
-    const body: unknown = await response.json();
-    const owners =
-      body && typeof body === "object"
-        ? (body as Record<string, unknown>).owners
-        : undefined;
+    const owners = fieldOf(await response.json(), "owners");
     if (!Array.isArray(owners)) return undefined;
     return owners.flatMap((owner) =>
       typeof owner?.emailAddress === "string" ? [owner.emailAddress] : [],

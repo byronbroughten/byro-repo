@@ -9,7 +9,8 @@ export const agentAccount = "byronbroughtenai@gmail.com";
 // The credentials folder the gworkspace server's registration names; neither the hook nor the script sees the server's env.
 const defaultCredentialsDir = join(homedir(), ".config", "gworkspace-mcp");
 const googleTokenUri = "https://oauth2.googleapis.com/token";
-const requestTimeoutMs = 5000;
+// Shared with the Drive owner lookup, which calls Google with the token minted here.
+export const requestTimeoutMs = 5000;
 const reauthorize =
   "re-authorize the agent account with `scripts/setup-agent-account-mcp.sh`";
 
@@ -28,22 +29,23 @@ interface ClientPair {
   client_secret?: string;
 }
 
-interface MinterPlaces {
+// Where the minter reads the stored credentials from and how it reaches the token endpoint.
+interface MinterSources {
   credentialsDir: string;
   fetch: typeof fetch;
 }
 
 export class AgentTokenMinter {
-  private readonly places: MinterPlaces;
+  private readonly sources: MinterSources;
 
-  constructor(places: MinterPlaces) {
-    this.places = places;
+  constructor(sources: MinterSources) {
+    this.sources = sources;
   }
 
-  static init(places: Partial<MinterPlaces> = {}): AgentTokenMinter {
+  static init(sources: Partial<MinterSources> = {}): AgentTokenMinter {
     return new AgentTokenMinter({
-      credentialsDir: places.credentialsDir ?? defaultCredentialsDir,
-      fetch: places.fetch ?? fetch,
+      credentialsDir: sources.credentialsDir ?? defaultCredentialsDir,
+      fetch: sources.fetch ?? fetch,
     });
   }
 
@@ -62,7 +64,11 @@ export class AgentTokenMinter {
   private get _storedToken(): StoredToken {
     return JSON.parse(
       readFileSync(
-        join(this.places.credentialsDir, "credentials", `${agentAccount}.json`),
+        join(
+          this.sources.credentialsDir,
+          "credentials",
+          `${agentAccount}.json`,
+        ),
         "utf8",
       ),
     );
@@ -80,7 +86,7 @@ export class AgentTokenMinter {
         `The agent account has no OAuth client stored; ${reauthorize}.`,
       );
     }
-    const response = await this.places.fetch(
+    const response = await this.sources.fetch(
       stored.token_uri ?? googleTokenUri,
       {
         method: "POST",
@@ -111,7 +117,7 @@ export class AgentTokenMinter {
     try {
       const secret = JSON.parse(
         readFileSync(
-          join(this.places.credentialsDir, "client_secret.json"),
+          join(this.sources.credentialsDir, "client_secret.json"),
           "utf8",
         ),
       );
@@ -137,7 +143,7 @@ function definedPairOf({ client_id, client_secret }: StoredToken): ClientPair {
   };
 }
 
-function fieldOf(body: unknown, key: string): unknown {
+export function fieldOf(body: unknown, key: string): unknown {
   return body && typeof body === "object"
     ? (body as Record<string, unknown>)[key]
     : undefined;
