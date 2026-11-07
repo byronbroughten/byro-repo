@@ -155,6 +155,10 @@ _Avoid_: lock, claim
 The one person whose text is Trusted text, under any of their logins: their GitHub login and both of their Google accounts.
 _Avoid_: owner
 
+**Hand-back**:
+An agent asking the developer to run a command, or do a step, that the sandbox or a gate stopped it from doing itself. It is not an ask, which the developer answers with a yes or no, nor a refusal, which a runner step records as a blocker. Saying so is right; each one that recurs is a gap for planning to close in the environment.
+_Avoid_: workaround, manual fallback
+
 **Codebase Priorities**:
 The tiers an agent weighs a Recommendation about the codebase or agent tooling against: a gate, a floor, and four ranked priorities. They are not design principles, which rest on ADRs.
 _Avoid_: suggestion principles, code principles, values
