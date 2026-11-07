@@ -1,8 +1,9 @@
 // Answers a runner step's permission prompt: Claude Code prompts for a protected path such as .claude/ or .vscode/ even after the tier gate allows, and a -p step denies what no hook answers. Pure; stepPermission.ts does the I/O.
 import { isAbsolute, resolve } from "node:path";
 
-import { isStepWritable, type ShellPlaces } from "./stepWrites.ts";
+import { isStepWritable } from "./stepWrites.ts";
 import { type CallSandbox, gateDecision, type SessionMode } from "./tiers.ts";
+import type { ShellPlaces } from "./WritePathResolver.ts";
 
 export interface PermissionCall {
   toolName: string;
@@ -49,9 +50,10 @@ function isGateAllowed({
   toolInput: { command },
   mode,
   dryRuns,
+  places,
   sandbox,
 }: PermissionCall): boolean {
   if (typeof command !== "string") return false;
-  const decision = gateDecision({ command, mode, dryRuns, sandbox });
+  const decision = gateDecision({ command, mode, dryRuns, places, sandbox });
   return decision?.permissionDecision === "allow";
 }

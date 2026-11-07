@@ -1,6 +1,7 @@
 {
   "env": {
-    "TMPDIR": "/tmp/claude-501"
+    "TMPDIR": "/tmp/claude-501",
+    "GH_TELEMETRY": "false"
   },
   "permissions": {
     "allow": [
@@ -108,7 +109,13 @@
       "npm test",
       "npm test *",
       "npm run jev *",
-      "npm run jev:style *"
+      "npm run jev:style *",
+      "ps",
+      "ps *",
+      "pgrep",
+      "pgrep *",
+      "open",
+      "open *"
     ],
     "filesystem": {
       "denyWrite": [
@@ -143,7 +150,8 @@
         "~/Documents/Code/byro-repo/packages/utils/node_modules",
         "~/Documents/Code/byro-repo/packages/personal/.runner",
         "~/Documents/Code/byro-repo/packages/personal/.probe",
-        "~/Documents/Code/byro-repo/packages/personal/node_modules"
+        "~/Documents/Code/byro-repo/packages/personal/node_modules",
+        "~/.workspace-mcp/attachments"
       ],
       "allowRead": [
         "./packages/*/src/generated/columnConfigs.ts",

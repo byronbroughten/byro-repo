@@ -1,11 +1,12 @@
 // A fake file system for the tier tests, laid out like macOS: a workspace at /ws, $TMPDIR at /var/T, /tmp linked to /private/tmp, and a few links out of the workspace.
 import { dirname, join } from "node:path";
 
-import type { ShellPlaces } from "./stepWrites.ts";
+import type { ShellPlaces } from "./WritePathResolver.ts";
 
 const existing = new Set([
   "/ws",
   "/ws/AGENTS.md",
+  "/ws/run.command",
   "/ws/dist",
   "/ws/.git",
   "/ws/packages",
@@ -28,6 +29,13 @@ const links = new Map([
   ["/ws/dangling", "/nowhere"],
   ["/tmp", "/private/tmp"],
 ]);
+const files = new Set([
+  "/ws/AGENTS.md",
+  "/ws/run.command",
+  "/var/T/helper.mjs",
+  "/private/tmp/helper.mjs",
+  "/outside/x",
+]);
 
 export function fakePlaces(cwd = "/ws"): ShellPlaces {
   return {
@@ -36,6 +44,7 @@ export function fakePlaces(cwd = "/ws"): ShellPlaces {
     cwd,
     realPathOf: fakeRealPathOf,
     isLink: (path) => links.has(path),
+    isFile: (path) => files.has(fakeRealPathOf(path) ?? ""),
   };
 }
 

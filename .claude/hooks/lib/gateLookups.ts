@@ -1,5 +1,5 @@
 // The file-system lookups the tier gate's Bash decision reads, shared by tierGate.ts and stepPermission.ts so both decide a call alike.
-import { lstatSync, realpathSync, writeFileSync } from "node:fs";
+import { lstatSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 
 import {
@@ -8,7 +8,7 @@ import {
   readJsonFile,
   sessionStatePath,
 } from "./hookIo.ts";
-import type { ShellPlaces } from "./tiers/stepWrites.ts";
+import type { ShellPlaces } from "./tiers/WritePathResolver.ts";
 
 const dryRunSuffix = "chore-dry-runs.json";
 
@@ -28,6 +28,13 @@ export function shellPlacesOf(input: HookInput): ShellPlaces {
     isLink: (path) => {
       try {
         return lstatSync(path).isSymbolicLink();
+      } catch {
+        return false;
+      }
+    },
+    isFile: (path) => {
+      try {
+        return statSync(path).isFile();
       } catch {
         return false;
       }

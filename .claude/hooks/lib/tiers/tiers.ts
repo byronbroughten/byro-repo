@@ -1,5 +1,5 @@
 // Decides the gate for a Bash call by tier: 1 and 2 are free (git or Google's version history undoes them), 3 asks. Pure; tierGate.ts does the I/O, and driveTiers.ts decides gworkspace calls.
-// The classifiers live in tiers/, a file per subject: the raw push, `gh label list`, npm verdicts, and the verdicts only a runner step or an Interactive session gets. Each matches an `excludedCommands` entry, `gh` or `git push`, as the box frees any other command. excludedCommands.ts there refuses a call that keeps an excluded command in the box.
+// The classifiers live in tiers/, a file per subject: the raw push, `gh label list`, `ps` and `pgrep`, `open`, npm verdicts, and the verdicts only a runner step or an Interactive session gets. Each matches an `excludedCommands` entry, `gh` or `git push`, as the box frees any other command. excludedCommands.ts there refuses a call that keeps an excluded command in the box.
 import { type SandboxOff, sandboxOffWords } from "../sandboxState.ts";
 import { ShellParser, type SimpleCommand } from "./ShellParser.ts";
 import { excludedCommands } from "./tiers/excludedCommands.ts";
@@ -7,10 +7,12 @@ import { gitWrites } from "./tiers/gitWrites.ts";
 import { interactiveSession } from "./tiers/interactiveSession.ts";
 import { npmCommands } from "./tiers/npmCommands.ts";
 import { npmVerdicts } from "./tiers/npmVerdicts.ts";
+import { openCommands } from "./tiers/openCommands.ts";
 import { readCommands } from "./tiers/readCommands.ts";
 import { runnerStep } from "./tiers/runnerStep.ts";
 import { sandboxedCalls } from "./tiers/sandboxedCalls.ts";
 import { timeoutWrappedOf } from "./timeoutWrapped.ts";
+import type { ShellPlaces } from "./WritePathResolver.ts";
 
 export interface Decision {
   permissionDecision: "allow" | "ask" | "deny";
@@ -33,6 +35,8 @@ export interface ShellCall {
   dryRuns: string[];
   // The spreadsheets (`app`, `dev`) a runner step's ticket targets; absent, it targets none.
   spreadsheetTargets?: string[];
+  // Where the call runs, for the paths `open` names; absent, every `open` asks.
+  places?: ShellPlaces;
   // Absent, no call is refused for keeping an excluded command in the box, and none is freed for running in it.
   sandbox?: CallSandbox;
 }
@@ -52,6 +56,7 @@ export interface CallContext {
   mode: SessionMode;
   dryRuns: string[];
   spreadsheetTargets: string[];
+  places?: ShellPlaces;
 }
 
 // One entry of the targets JSON, unchecked until a reader narrows it.
@@ -249,12 +254,14 @@ export function commandVerdictsOf({
   mode,
   dryRuns,
   spreadsheetTargets = [],
+  places,
 }: ShellCall): CommandVerdict[] | undefined {
   const commands = ShellParser.init(command).parsedCommands;
   if (!commands) return undefined;
+  const context = { mode, dryRuns, spreadsheetTargets, places };
   return commands.map((simple) => ({
     words: simple.words,
-    verdict: commandVerdictOf(simple, { mode, dryRuns, spreadsheetTargets }),
+    verdict: commandVerdictOf(simple, context),
   }));
 }
 
@@ -314,6 +321,8 @@ const classifiers: Classifier[] = [
   interactiveSession.decideVerdictOf,
   npmVerdicts.choreSendVerdictOf,
   readCommands.labelListVerdictOf,
+  readCommands.processListVerdictOf,
+  openCommands.openVerdictOf,
   gitWrites.pushVerdictOf,
   npmVerdicts.untargetedVerdictOf,
   npmVerdicts.forcedRemoveVerdictOf,

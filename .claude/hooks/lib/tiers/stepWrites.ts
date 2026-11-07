@@ -3,11 +3,6 @@ import { isAbsolute } from "node:path";
 
 import { WritePathResolver, type WritePlaces } from "./WritePathResolver.ts";
 
-// Where a runner step's call runs, for resolving a relative path it writes.
-export interface ShellPlaces extends WritePlaces {
-  cwd: string;
-}
-
 // The hooks' per-session state, which a write could forge, such as a chore's dry-run record.
 const guardrailStateDir = "claude-guardrails";
 

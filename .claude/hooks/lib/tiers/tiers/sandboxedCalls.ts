@@ -8,7 +8,7 @@ import { gitWrites } from "./gitWrites.ts";
 const tokenBreaks = /[\s;&|()`{},]+/;
 
 const boxBounds =
-  "the sandbox, which keeps writes in the workspaces, the git folders and temp and hides the credential files";
+  "the sandbox, which keeps writes in the workspaces, the git folders, temp and the gworkspace attachments folder and hides the credential files";
 
 export const sandboxedCalls = {
   // The call's commands as the box reads them, undefined when it doesn't run them all; a heredoc the scan can't confirm as plain text, or `$'…'`, could hide one from the parse.
