@@ -22,8 +22,10 @@ const boxReasons = {
   hiddenPush:
     "where the tier gate can't see its push: the box frees a call that names no `git push`, a runner step's included",
 } as const;
+// Each is matched against an entry with any `npm run ` dropped, so a bare program's entry is matched whole.
 const researchPushScript = /^research:push\b/;
-// Matched against an entry with any `npm run ` dropped, so a bare program's entry is matched whole.
+const wrapUpScript = /^wrap-up\b/;
+const substitutionText = /\$\(|`/;
 const cantsByScript: [RegExp, string][] = [
   [/^ps\b/, boxReasons.cant.ps],
   [/^pgrep\b/, boxReasons.cant.pgrep],
@@ -53,7 +55,14 @@ export const excludedCommands = {
     if (!first || excludedCommands.leavesTheBox(parser, commands, entries)) {
       return undefined;
     }
-    return `\`${command}\` keeps \`${first.form}\` in the sandbox, ${reasonOf(first.entry)}. ${callOfItsOwn(`Run \`${first.form}\``)}`;
+    const refusal = `\`${command}\` keeps \`${first.form}\` in the sandbox, ${reasonOf(first.entry)}. ${callOfItsOwn(`Run \`${first.form}\``)}`;
+    if (
+      !wrapUpScript.test(scriptOf(first.entry)) ||
+      !substitutionText.test(command)
+    ) {
+      return refusal;
+    }
+    return `${refusal}. A \`$(\` or backtick keeps it in the sandbox even quoted or escaped, so pass the closing note with \`--closing-file <path>\``;
   },
 
   // Every command in the call matches an entry, read as the refusal reads it; a heredoc the scan can't confirm as plain text, or `$'…'`, could hide one that doesn't.
@@ -77,7 +86,9 @@ export const excludedCommands = {
     commands: SimpleCommand[],
     entries: string[],
   ): boolean {
-    if (/\$\(|`|<</.test(parser.command)) return false;
+    // #594's probe: Claude Code reads `$(` and a backtick in the raw text, quoted or escaped, but a `<<` only as a heredoc.
+    if (substitutionText.test(parser.command)) return false;
+    if (parser.heredocs?.length !== 0) return false;
     // A reserved word such as `if` or `{` is no operator, so a compound call isn't taken for commands only joined.
     const isJoinedOnly =
       parser.operators.every((operator) => callJoiners.has(operator)) &&
@@ -115,10 +126,14 @@ function matchesEntry(command: string, entry: string): boolean {
 }
 
 function reasonOf(entry: string): string {
-  const script = entry.replace(/^npm (run )?/, "");
+  const script = scriptOf(entry);
   if (researchPushScript.test(script)) return boxReasons.hiddenPush;
   const cant =
     cantsByScript.find(([pattern]) => pattern.test(script))?.[1] ??
     boxReasons.cant.other;
   return `where it fails without naming the box: the sandbox ${cant}`;
+}
+
+function scriptOf(entry: string): string {
+  return entry.replace(/^npm (run )?/, "");
 }

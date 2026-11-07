@@ -70,6 +70,13 @@ describe("gateDecision", () => {
     ).toBe("deny");
   });
 
+  it("asks for a sandbox check keeping excluded commands, which run outside the box with no hook", () => {
+    const command =
+      "npm run session:probe -- --sandbox-check --keep-excluded . /tmp/commands.txt";
+    expect(decisionOf(command)).toBe("ask");
+    expect(runnerStepDecisionOf(command)).toBe("deny");
+  });
+
   it("has no opinion on a command it doesn't list, alone or beside an allowed one", () => {
     expect(decisionOf("make build")).toBeUndefined();
     expect(decisionOf("npm run app:gen:configs")).toBeUndefined();
@@ -885,6 +892,54 @@ describe("a sandboxed call", () => {
       sandboxedDecisionOf("npm run check | tail", "interactive")
         ?.permissionDecision,
     ).toBe("deny");
+  });
+});
+
+// #594's misreads, each call as its session's transcript holds it, under settings.json's entries.
+describe("a call the gate once misread", () => {
+  const entries = [
+    "npm run issue*",
+    "npm run wrap-up *",
+    "npm run check",
+    "npm run check *",
+    "ps",
+    "ps *",
+  ];
+
+  function interactiveDecisionOf(command: string) {
+    return gateDecision({
+      command,
+      mode: "interactive",
+      dryRuns: [],
+      sandbox: { isOn: true, excludedCommands: entries },
+    });
+  }
+
+  it("refuses a wrap-up whose closing note holds an escaped `$(`, naming --closing-file", () => {
+    const command =
+      'npm run wrap-up -- byro-repo 554 --closing "A cd inside backticks now reads as nested, so the branch guard and the Bash read classifier keep the folder before it, with guard and read cases beside the \\$(cd …) ones; SegmentReader, HeredocScanner and SubstitutionScanner moved into tiers/ShellParser/ with every importer updated."';
+    const decision = interactiveDecisionOf(command);
+    expect(decision?.permissionDecision).toBe("deny");
+    expect(decision?.reason).toContain(
+      "A `$(` or backtick keeps it in the sandbox even quoted or escaped, so pass the closing note with `--closing-file <path>`",
+    );
+  });
+
+  it("lets an excluded call holding a quoted `<<` out of the box", () => {
+    expect(interactiveDecisionOf('ps -p 1 -o "comm=<<x"')).toEqual({
+      permissionDecision: "allow",
+      reason: "Tier gate: `ps` only reads the process list.",
+    });
+  });
+
+  it('allows a loop writing relative to a `cd "$TMPDIR/…"` beside its `$(gh …)`, the rest in the sandbox', () => {
+    const decision = interactiveDecisionOf(
+      'cd "$TMPDIR/ct529" && for i in 1 2 3 4; do title=$(head -1 $i.md | sed \'s/^# //\'); tail -n +2 $i.md > body$i.md; url=$(gh issue create -R ByronBroughten/byro-repo --title "$title" --body-file body$i.md --label ready-for-agent); echo "$i $url"; done',
+    );
+    expect(decision?.permissionDecision).toBe("allow");
+    expect(decision?.reason).toContain("`gh issue close` undoes it.");
+    expect(decision?.reason).toContain("The rest of");
+    expect(decision?.reason).toContain("runs in the sandbox");
   });
 });
 
