@@ -10,7 +10,7 @@ export type GateOutcome = "free" | "asks" | "refuses" | "unclassified";
 
 export interface GateReplay {
   outcome: GateOutcome;
-  // The simple command that decided it; absent when the call as a whole did.
+  // The simple command that decided it, or the call's first when the call as a whole did; absent when the gate can't parse it.
   words?: string[];
   why: string;
 }
@@ -48,7 +48,17 @@ export function gateReplayOf(call: ShellCall): GateReplay {
   );
   return {
     outcome: outcomes[decision.permissionDecision],
-    words: deciding?.words,
+    words: deciding?.words ?? leadingWordsOf(commandVerdicts),
     why: deciding?.verdict?.why ?? decision.reason,
   };
+}
+
+// A call the gate decided as a whole, such as one it sends to the sandbox, is named by its first command past a `cd`.
+function leadingWordsOf(
+  commandVerdicts: { words: string[] }[],
+): string[] | undefined {
+  const leading =
+    commandVerdicts.find(({ words }) => words[0] !== "cd") ??
+    commandVerdicts[0];
+  return leading?.words;
 }

@@ -1,5 +1,5 @@
-// Prints the calls the developer or auto mode's classifier had to answer in this repo's recent sessions, grouped by command, with what the tier gate says about each now.
-// The transcripts record who answered each call (transcriptCalls.ts), each Bash call replays through the gate under this checkout's sandbox state (gateReplay.ts), and promptReport.ts words the report.
+// Prints every stop in this repo's recent sessions: the calls the developer or auto mode's classifier had to answer, the gate's refusals, sandbox denials, Hand-backs and Claude Code's removal check, grouped by command, with what the tier gate says about each now.
+// The transcripts record who answered each call and what stopped it (transcriptCalls.ts), each Bash call replays through the gate under this checkout's sandbox state (gateReplay.ts), and promptReport.ts words the report.
 // What to do with the report: the /prompt-scan skill.
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -19,7 +19,7 @@ import {
 } from "../../.claude/hooks/lib/tiers/tiers.ts";
 import { type GateReplay, gateReplayOf } from "./gateReplay.ts";
 import {
-  answererOf,
+  isReported,
   promptReportOf,
   type ScannedCall,
 } from "./promptReport.ts";
@@ -96,7 +96,7 @@ function scannedCallsOf(jsonl: string, sandbox: CallSandbox): ScannedCall[] {
   const dryRuns: string[] = [];
   const scanned: ScannedCall[] = [];
   recordedCallsOf(jsonl).forEach((call) => {
-    if (answererOf(call.permission)) {
+    if (isReported(call)) {
       scanned.push({
         call,
         replay: replayOf(call, dryRuns, sandbox),
