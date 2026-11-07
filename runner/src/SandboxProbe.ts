@@ -53,7 +53,11 @@ export class SandboxProbe {
   }
 
   async run(cwd: string, commandsPath: string): Promise<SandboxReport> {
-    return this._runUnder(cwd, commandsPath, sandboxSettings(cwd));
+    return this._runUnder(
+      cwd,
+      commandsPath,
+      sandboxSettings(projectSandboxOf(cwd)),
+    );
   }
 
   // The folder's excluded commands kept, to see which calls Claude Code lets out of the box; an allow rule runs one unprompted, as nobody answers a prompt.
@@ -61,10 +65,10 @@ export class SandboxProbe {
     cwd: string,
     commandsPath: string,
   ): Promise<SandboxReport> {
-    const { sandbox } = sandboxSettings(cwd);
-    const { excludedCommands } = projectSandboxOf(cwd);
+    const project = projectSandboxOf(cwd);
+    const { sandbox } = sandboxSettings(project);
     return this._runUnder(cwd, commandsPath, {
-      sandbox: { ...sandbox, excludedCommands },
+      sandbox: { ...sandbox, excludedCommands: project.excludedCommands },
       permissions: { allow: ["Bash"] },
     });
   }
@@ -111,8 +115,8 @@ function commandList(text: string): string[] {
 
 // Only the folder's sandbox block, with no escape hatch or excluded commands: its hooks would refuse some commands before the box saw them, and which commands need excluding is what the probe finds.
 // Sandboxed calls are allowed outright because the session has no permission rules or prompts, so the box is the only thing that can stop one.
-function sandboxSettings(cwd: string): SandboxSettings {
-  const { excludedCommands: _excluded, ...sandbox } = projectSandboxOf(cwd);
+function sandboxSettings(project: Record<string, unknown>): SandboxSettings {
+  const { excludedCommands: _excluded, ...sandbox } = project;
   return {
     sandbox: {
       ...sandbox,

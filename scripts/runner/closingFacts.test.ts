@@ -54,12 +54,12 @@ describe("closingFactsOf", () => {
         closingFile: noteFile("Landed it."),
         undone: [],
       }),
-    ).toThrow("--closing or --closing-file, not both");
+    ).toThrow('Pass --closing "…" or --closing-file <path>, not both');
   });
 
   it("refuses --undone with no closing comment", () => {
     expect(() => closingFactsOf({ undone: ["Docs match: later."] })).toThrow(
-      "--undone needs --closing or --closing-file with it",
+      '--undone needs --closing "…" or --closing-file <path> with it',
     );
   });
 

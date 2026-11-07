@@ -20,6 +20,11 @@ export interface UndoneBox {
 
 export const gitHubWriteActions = ["edit", "comment"] as const;
 
+// Wrap-up's two ways to pass a closing comment, for every message that names them.
+export function closingFlagsText(): string {
+  return '--closing "…" or --closing-file <path>';
+}
+
 export interface GitHubWrite {
   // As owner/repo#n.
   issue: string;
@@ -69,7 +74,7 @@ export class FactsFile {
     const facts = this._storedOf(issue);
     if (typeof facts.closingComment !== "string") {
       throw new Error(
-        `${issueLabelOf(issue)} has no closing comment in ${this._pathOf(issue)}: pass it to wrap-up with --closing "…" or --closing-file <path>`,
+        `${issueLabelOf(issue)} has no closing comment in ${this._pathOf(issue)}: pass it to wrap-up with ${closingFlagsText()}`,
       );
     }
     return facts as WrapUpFacts;

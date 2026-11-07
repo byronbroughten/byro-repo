@@ -7,6 +7,7 @@ import { dirname, resolve } from "node:path";
 import {
   commandOutcomeText,
   SandboxProbe,
+  type SandboxReport,
 } from "@byronbroughten/spec-runner/SandboxProbe";
 import { SessionProbe } from "@byronbroughten/spec-runner/SessionProbe";
 
@@ -50,9 +51,15 @@ async function probeSandbox(args: string[]): Promise<void> {
     throw new Error(usage);
   }
   const probe = SandboxProbe.init();
-  const report = keepsExcluded
-    ? await probe.runKeepingExcluded(resolve(folder), resolve(commandsPath))
-    : await probe.run(resolve(folder), resolve(commandsPath));
+  let report: SandboxReport;
+  if (keepsExcluded) {
+    report = await probe.runKeepingExcluded(
+      resolve(folder),
+      resolve(commandsPath),
+    );
+  } else {
+    report = await probe.run(resolve(folder), resolve(commandsPath));
+  }
   mkdirSync(dirname(sandboxReportPath), { recursive: true });
   writeFileSync(sandboxReportPath, JSON.stringify(report, null, 2));
   report.outcomes.forEach((outcome) =>

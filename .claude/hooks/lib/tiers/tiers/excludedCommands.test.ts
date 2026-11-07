@@ -106,7 +106,11 @@ describe("a call the box lets out, or holding no excluded command", () => {
   it.each(['npm run check -- "a<<b"', "npm run check -- 'a<<b'"])(
     "lets `%s` out, as its `<<` is quoted",
     (command) => {
-      expect(decisionOf(command)?.permissionDecision).not.toBe("deny");
+      const decision = decisionOf(command);
+      expect(decision).toEqual(
+        gateDecision({ command, mode: "interactive", dryRuns: [] }),
+      );
+      expect(decision?.permissionDecision).toBe("allow");
     },
   );
 
