@@ -29,12 +29,14 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 - **Weakening security**: letting Untrusted text into an agent's instructions, exposing a credential or token more widely, moving an action to a cheaper gate tier, or adding an outward action that can't be undone.
 - **Weakening undo**: making an action harder to undo.
 - **Weakening data integrity**: putting live-sheet data where version history can't recover it.
+- **When a routine command meets a security measure, the Recommendation reshapes the measure so the command runs, through a sanctioned route that keeps what it protects**; a Hand-back or a changed workflow is the last resort, and any weakening left over is named and left to the developer.
+- **Fixing a gate misread, where the gate judged a command to be something it isn't, doesn't move an action to a cheaper tier.**
 - **A gain above the floor is weighed as a Tier 2 gain.**
 
 ## Tier 2: ranked
 
 - **In order: developer attention, fewest concepts, agent cost, code run-time.**
-  1. **Developer attention**: the decisions, approvals, manual steps and reading a Recommendation asks of the developer.
+  1. **Developer attention**: the decisions, approvals, Hand-backs, manual steps and reading a Recommendation asks of the developer.
   2. **Fewest concepts**: the fewest names, parameters, layers, shapes and copies of a fact a reader has to hold; not the fewest characters.
   3. **Agent cost**: the tokens a session reads and carries, and the wall-clock time it spends.
   4. **Code run-time**: the wall-clock time of code: app runs, mostly Sheets round trips, plus `tsc`, tests and scripts.
