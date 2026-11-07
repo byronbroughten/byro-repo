@@ -40,7 +40,7 @@ export class ShellParser {
     ).layers.map((layer) => ShellParser.init(layer).reading);
     readings.forEach((reading, at) => {
       if (!reading.isReadable) {
-        throw new Error("The call holds compound syntax the gate can't read.");
+        throw new Error("compound syntax the gate can't read as bash would");
       }
       const isCallingOtherLayer = readings.some(
         (other, otherAt) =>
@@ -50,7 +50,7 @@ export class ShellParser {
           ),
       );
       if (isCallingOtherLayer) {
-        throw new Error("The call runs a function across a substitution.");
+        throw new Error("a function called across a substitution");
       }
     });
     return readings.flatMap(({ segments }) => simpleCommandsOf(segments));
@@ -61,6 +61,15 @@ export class ShellParser {
       return this.substitutedCommands;
     } catch {
       return undefined;
+    }
+  }
+  // What the gate can't read in the call, finishing "it holds …"; undefined for one it parses.
+  get parseFailure(): string | undefined {
+    try {
+      void this.substitutedCommands;
+      return undefined;
+    } catch (error) {
+      return error instanceof Error ? error.message : String(error);
     }
   }
   // Undefined unless the heredoc scan strips the bodies the text match does; beside a heredoc, a substitution, `${…}`, `$'…'` or `((` nests quotes or `<<` in ways that scan doesn't follow.
