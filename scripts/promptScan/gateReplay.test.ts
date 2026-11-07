@@ -52,6 +52,16 @@ describe("gateReplayOf", () => {
       expect(replay.outcome).toBe("free");
     });
 
+    it("names the call's first command past a `cd` when the call as a whole decided it", () => {
+      const replay = gateReplayOf({
+        command: "cd . && git ls-remote origin HEAD",
+        mode: "interactive",
+        dryRuns: [],
+        sandbox: { isOn: true, excludedCommands: [] },
+      });
+      expect(replay.words).toEqual(["git", "ls-remote", "origin", "HEAD"]);
+    });
+
     it("replays as asking under an off state", () => {
       const replay = gateReplayOf({
         command,

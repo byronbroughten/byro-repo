@@ -1,5 +1,5 @@
-// Prints the calls the developer or auto mode's classifier had to answer in this repo's recent sessions, grouped by command, with what the tier gate says about each now.
-// The transcripts record who answered each call (transcriptCalls.ts), each Bash call replays through the gate under this checkout's sandbox state (gateReplay.ts), and promptReport.ts words the report.
+// Prints every stop in this repo's recent sessions: the calls the developer or auto mode's classifier had to answer, hook refusals, sandbox denials, Hand-backs and Claude Code's removal check, grouped by command, with what the tier gate says about each now.
+// The transcripts record who answered each call and what stopped it (transcriptCalls.ts), each Bash call replays through the gate under this checkout's sandbox state (gateReplay.ts), and promptReport.ts words the report.
 // What to do with the report: the /prompt-scan skill.
 import { execFileSync } from "node:child_process";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -13,17 +13,8 @@ import {
   callSandboxOf,
   sessionSandboxStateOf,
 } from "../../.claude/hooks/lib/sandboxState.ts";
-import {
-  type CallSandbox,
-  dryRunChoresOf,
-} from "../../.claude/hooks/lib/tiers/tiers.ts";
-import { type GateReplay, gateReplayOf } from "./gateReplay.ts";
-import {
-  answererOf,
-  promptReportOf,
-  type ScannedCall,
-} from "./promptReport.ts";
-import { type RecordedCall, recordedCallsOf } from "./transcriptCalls.ts";
+import { scannedCallsOf } from "./gateReplay.ts";
+import { promptReportOf } from "./promptReport.ts";
 
 const usage = "usage: npm run prompt:scan [-- --sessions <n>] [--top <n>]";
 
@@ -89,34 +80,4 @@ function transcriptPathsOf(primaryRoot: string): string[] {
     .map((path) => ({ path, modifiedMs: statSync(path).mtimeMs }))
     .sort((left, right) => right.modifiedMs - left.modifiedMs)
     .map(({ path }) => path);
-}
-
-// Replayed in order, so an `app:chore --send` sees the dry runs its session ran before it.
-function scannedCallsOf(jsonl: string, sandbox: CallSandbox): ScannedCall[] {
-  const dryRuns: string[] = [];
-  const scanned: ScannedCall[] = [];
-  recordedCallsOf(jsonl).forEach((call) => {
-    if (answererOf(call.permission)) {
-      scanned.push({
-        call,
-        replay: replayOf(call, dryRuns, sandbox),
-      });
-    }
-    if (call.command) dryRuns.push(...dryRunChoresOf(call.command));
-  });
-  return scanned;
-}
-
-function replayOf(
-  { command }: RecordedCall,
-  dryRuns: string[],
-  sandbox: CallSandbox,
-): GateReplay | undefined {
-  if (command === undefined) return undefined;
-  return gateReplayOf({
-    command,
-    mode: "interactive",
-    dryRuns: [...dryRuns],
-    sandbox,
-  });
 }
