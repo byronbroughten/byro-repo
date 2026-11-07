@@ -1,4 +1,4 @@
-// The verdicts only an Interactive session gets: its gh issue create, issue links and `gh api` reads, and its review-list decisions.
+// The verdicts only an Interactive session gets: its gh issue create, issue links and `gh api` reads, its review-list decisions and its research push.
 import { GhApiCall } from "../GhApiCall.ts";
 import type { SimpleCommand } from "../ShellParser.ts";
 import type { CallContext, Verdict } from "../tiers.ts";
@@ -58,6 +58,24 @@ export const interactiveSession = {
       permissionDecision: "allow",
       why: "a further edit undoes a review-list item's decision",
       needsPlainText: true,
+    };
+  },
+  // A standing yes behind wrap-up's secret scan; a runner step's is refused, as nobody reads what it publishes.
+  researchPushVerdictOf(
+    { words }: SimpleCommand,
+    { mode }: CallContext,
+  ): Verdict | undefined {
+    if (npmCommands.isPrefixed(words)) return undefined;
+    if (npmCommands.scriptOf(words)?.name !== "research:push") return undefined;
+    if (mode !== "interactive") {
+      return {
+        permissionDecision: "ask",
+        why: "pushes a `research/*` branch, which only an Interactive session does",
+      };
+    }
+    return {
+      permissionDecision: "allow",
+      why: "`npm run research:push` is the standing yes to push a `research/*` branch, behind wrap-up's secret scan",
     };
   },
 };
