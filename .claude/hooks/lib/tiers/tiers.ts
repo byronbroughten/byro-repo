@@ -319,6 +319,7 @@ const classifiers: Classifier[] = [
   runnerStep.liveAliasVerdictOf,
   interactiveSession.ghVerdictOf,
   interactiveSession.decideVerdictOf,
+  interactiveSession.researchPushVerdictOf,
   npmVerdicts.choreSendVerdictOf,
   readCommands.labelListVerdictOf,
   readCommands.processListVerdictOf,

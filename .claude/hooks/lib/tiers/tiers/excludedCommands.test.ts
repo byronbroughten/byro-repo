@@ -14,6 +14,7 @@ const entries = [
   "npm test *",
   "npm run ws:rm",
   "npm run ws:rm *",
+  "npm run research:push",
 ];
 
 function decisionOf(command: string) {
@@ -57,6 +58,14 @@ describe("an excluded command the call keeps in the box", () => {
     const decision = decisionOf(command);
     expect(decision?.permissionDecision).toBe("deny");
     expect(decision?.reason).toContain(`the sandbox ${reason}`);
+  });
+
+  it("refuses a boxed research push because the box would free its push", () => {
+    const decision = decisionOf("cd . && npm run research:push");
+    expect(decision?.permissionDecision).toBe("deny");
+    expect(decision?.reason).toContain(
+      "keeps `npm run research:push` in the sandbox, where the tier gate can't see its push",
+    );
   });
 
   it("names the command in the refusal", () => {
