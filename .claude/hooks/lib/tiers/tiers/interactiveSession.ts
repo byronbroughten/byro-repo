@@ -100,7 +100,7 @@ const interactiveScripts = {
       why: "`npm run research:push` is the standing yes to push a `research/*` branch, behind wrap-up's secret scan",
     },
   },
-  // Asks in an Interactive session until the script runs under its own Seatbelt profile; a runner step's is refused, as runner steps haven't needed one.
+  // Asks in an Interactive session, as the script runs outside the box; a runner step's is refused, as runner steps haven't needed one.
   googleScript: {
     name: "google:script",
     stepWhy:
