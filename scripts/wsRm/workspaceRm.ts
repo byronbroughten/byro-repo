@@ -1,6 +1,5 @@
 // `npm run ws:rm`'s core: deletes tracked files in a Workspace through `git rm`, or nothing when any path is refused. wsRm.ts does the I/O.
 // It runs outside the sandbox, which protects a worktree's .claude/hooks and .claude/skills, so every path is checked before any delete.
-import { execFileSync } from "node:child_process";
 import { existsSync, realpathSync } from "node:fs";
 import {
   basename,
@@ -10,6 +9,8 @@ import {
   relative,
   resolve,
 } from "node:path";
+
+import { Checkout } from "./Checkout.ts";
 
 export interface WorkspaceRmRequest {
   paths: string[];
@@ -28,11 +29,20 @@ export interface WorkspaceRmResult {
   refused: RefusedPath[];
 }
 
-// A path git tracks in one of a Workspace's checkouts.
 interface TrackedPath {
   path: string;
-  checkout: string;
+  checkout: Checkout;
   checkoutPath: string;
+}
+
+interface CheckedPaths {
+  tracked: TrackedPath[];
+  refused: RefusedPath[];
+}
+
+interface Containment {
+  path: string;
+  folder: string;
 }
 
 const refusalWhys = {
@@ -40,23 +50,43 @@ const refusalWhys = {
   primary: "is in a Primary checkout",
   outside: "is outside every Workspace",
   untracked: "isn't a file git tracks",
+  gitRefused: (reason: string) => `is refused by git rm: ${reason}`,
 } as const;
 
+const realPaths = {
+  // The parent folders through their symlinks, so a symlinked file is the link git tracks, never its target.
+  parentOf(path: string): string {
+    if (existsSync(dirname(path))) {
+      return join(realpathSync(dirname(path)), basename(path));
+    }
+    if (dirname(path) === path) return path;
+    return join(realPaths.parentOf(dirname(path)), basename(path));
+  },
+  isUnderGitFolder(path: string): boolean {
+    return path.split(/[\\/]/).includes(".git");
+  },
+  // Strictly inside: the folder itself isn't a path in it.
+  isInside({ path, folder }: Containment): boolean {
+    const rest = relative(folder, path);
+    return rest !== "" && !rest.startsWith("..") && !isAbsolute(rest);
+  },
+};
+
 export function workspaceRm(request: WorkspaceRmRequest): WorkspaceRmResult {
-  const checked = request.paths.map((path) => trackedPathOf(path, request));
-  const refused = checked.flatMap((check) => ("why" in check ? [check] : []));
-  const tracked = checked.flatMap((check) => ("why" in check ? [] : [check]));
-  const byCheckout = Map.groupBy(tracked, ({ checkout }) => checkout);
-  // A dry run in every checkout first, so git's own refusal in one leaves the others untouched.
-  byCheckout.forEach((paths, checkout) =>
-    refused.push(...gitRefusalsOf(checkout, paths)),
+  const { tracked, refused } = request.paths.reduce<CheckedPaths>(
+    (checked, path) => {
+      const check = trackedPathOf(path, request);
+      if ("why" in check) checked.refused.push(check);
+      else checked.tracked.push(check);
+      return checked;
+    },
+    { tracked: [], refused: [] },
   );
-  if (refused.length > 0) return { removed: [], refused };
-  byCheckout.forEach((paths, checkout) =>
-    gitRm(
-      checkout,
-      paths.map(({ checkoutPath }) => checkoutPath),
-    ),
+  // A dry run of every path first, so git's own refusal in one checkout leaves the others untouched.
+  const allRefused = [...refused, ...tracked.flatMap(gitRefusalsOf)];
+  if (allRefused.length > 0) return { removed: [], refused: allRefused };
+  Map.groupBy(tracked, ({ checkout }) => checkout.root).forEach((paths) =>
+    paths[0]?.checkout.rm(paths.map(({ checkoutPath }) => checkoutPath)),
   );
   return { removed: tracked.map(({ path }) => path), refused: [] };
 }
@@ -65,88 +95,41 @@ function trackedPathOf(
   path: string,
   { cwd, primaryRoot, workspaceFolder }: WorkspaceRmRequest,
 ): TrackedPath | RefusedPath {
-  const absolute = resolve(cwd, path);
-  const real = realParentOf(absolute);
-  if (isUnderGitFolder(path) || isUnderGitFolder(real)) {
+  const real = realPaths.parentOf(resolve(cwd, path));
+  if (realPaths.isUnderGitFolder(path) || realPaths.isUnderGitFolder(real)) {
     return { path, why: refusalWhys.gitFolder };
   }
-  const workspaces = realParentOf(workspaceFolder);
-  if (!isInside(real, workspaces)) {
-    const why = isInside(real, realParentOf(primaryRoot))
+  const workspaces = realPaths.parentOf(workspaceFolder);
+  if (!realPaths.isInside({ path: real, folder: workspaces })) {
+    const primary = realPaths.parentOf(primaryRoot);
+    const why = realPaths.isInside({ path: real, folder: primary })
       ? refusalWhys.primary
       : refusalWhys.outside;
     return { path, why };
   }
-  const checkout = checkoutOf(dirname(real));
-  if (checkout === undefined) return { path, why: refusalWhys.untracked };
-  if (!isInside(real, checkout) || !isInside(checkout, workspaces)) {
-    return { path, why: refusalWhys.primary };
+  // A Workspace's root, or anything else beside it in the workspaces folder, sits in no checkout of a Workspace.
+  const checkout = Checkout.of(dirname(real));
+  if (
+    checkout === undefined ||
+    !realPaths.isInside({ path: real, folder: checkout.root }) ||
+    !realPaths.isInside({ path: checkout.root, folder: workspaces })
+  ) {
+    return { path, why: refusalWhys.untracked };
   }
-  const checkoutPath = relative(checkout, real);
-  if (!trackedFilesOf(checkout, checkoutPath).includes(checkoutPath)) {
+  const checkoutPath = relative(checkout.root, real);
+  if (!checkout.isTracking(checkoutPath)) {
     return { path, why: refusalWhys.untracked };
   }
   return { path, checkout, checkoutPath };
 }
 
-// The parent folders through their symlinks, so a symlinked file is the link git tracks, never its target.
-function realParentOf(path: string): string {
-  if (existsSync(dirname(path))) {
-    return join(realpathSync(dirname(path)), basename(path));
-  }
-  if (dirname(path) === path) return path;
-  return join(realParentOf(dirname(path)), basename(path));
-}
-
-function isUnderGitFolder(path: string): boolean {
-  return path.split(/[\\/]/).includes(".git");
-}
-
-// Strictly inside: the folder itself isn't a path in it.
-function isInside(path: string, folder: string): boolean {
-  const rest = relative(folder, path);
-  return rest !== "" && !rest.startsWith("..") && !isAbsolute(rest);
-}
-
-function checkoutOf(folder: string): string | undefined {
-  if (!existsSync(folder)) return undefined;
-  try {
-    return realpathSync(git(folder, ["rev-parse", "--show-toplevel"]).trim());
-  } catch {
-    return undefined;
-  }
-}
-
-function trackedFilesOf(checkout: string, checkoutPath: string): string[] {
-  return git(checkout, ["ls-files", "-z", "--", checkoutPath]).split("\0");
-}
-
-function gitRefusalsOf(checkout: string, paths: TrackedPath[]): RefusedPath[] {
-  return paths.flatMap(({ path, checkoutPath }) => {
-    try {
-      git(checkout, ["rm", "-n", "-q", "--", checkoutPath]);
-      return [];
-    } catch (error) {
-      return [{ path, why: `is refused by git rm: ${gitErrorOf(error)}` }];
-    }
-  });
-}
-
-function gitRm(checkout: string, checkoutPaths: string[]): void {
-  git(checkout, ["rm", "-q", "--", ...checkoutPaths]);
-}
-
-function gitErrorOf(error: unknown): string {
-  const stderr = (error as { stderr?: unknown }).stderr;
-  const text = typeof stderr === "string" ? stderr : String(error);
-  return text.trim().replace(/\s+/g, " ");
-}
-
-// Literal pathspecs, so a `*` or `:` in a name matches only that name.
-function git(cwd: string, args: string[]): string {
-  return execFileSync("git", ["--literal-pathspecs", ...args], {
-    cwd,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+function gitRefusalsOf({
+  path,
+  checkout,
+  checkoutPath,
+}: TrackedPath): RefusedPath[] {
+  const reason = checkout.rmRefusalOf(checkoutPath);
+  return reason === undefined
+    ? []
+    : [{ path, why: refusalWhys.gitRefused(reason) }];
 }

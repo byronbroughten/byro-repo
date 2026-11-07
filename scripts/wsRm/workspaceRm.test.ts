@@ -99,6 +99,8 @@ describe("a refused path", () => {
     [() => "untracked.txt", "isn't a file git tracks"],
     [() => "docs", "isn't a file git tracks"],
     [() => "missing.txt", "isn't a file git tracks"],
+    [() => ".", "isn't a file git tracks"],
+    [() => join(workspaceFolder, "stray.txt"), "isn't a file git tracks"],
     [() => join(root, "elsewhere.txt"), "is outside every Workspace"],
   ])("refuses %#, saying it %s, and deletes nothing", (pathOf, why) => {
     writeFileSync(join(root, "elsewhere.txt"), "x\n");
