@@ -397,11 +397,13 @@ describe("an Interactive session's gh calls", () => {
     expect(decisionOf("git push -u origin research/x")).toBe("ask");
   });
 
-  it("frees the Google script route in a session, and refuses it in a runner step", () => {
+  it("asks for the Google script route in a session, naming the box gap, and refuses it in a runner step", () => {
     const command = "npm run google:script -- /tmp/claude-501/probe.ts";
     const sessionDecision = modeDecisionOf(command);
-    expect(sessionDecision?.permissionDecision).toBe("allow");
+    expect(sessionDecision?.permissionDecision).toBe("ask");
     expect(sessionDecision?.reason).toContain("agent account's access token");
+    expect(sessionDecision?.reason).toContain("outside the box");
+    expect(sessionDecision?.reason).toContain("credential files");
     const stepDecision = modeDecisionOf(command, "runnerStep");
     expect(stepDecision?.permissionDecision).toBe("deny");
     expect(stepDecision?.reason).toContain("only an Interactive session");

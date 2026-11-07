@@ -1,4 +1,4 @@
-// The verdicts only an Interactive session gets: its gh issue create, issue links and `gh api` reads, its review-list decisions, its research push and its Google script route.
+// The verdicts only an Interactive session gets: its gh issue create, issue links and `gh api` reads, its review-list decisions, its research push and its ask for the Google script route.
 import { GhApiCall } from "../GhApiCall.ts";
 import type { SimpleCommand } from "../ShellParser.ts";
 import type { CallContext, Verdict } from "../tiers.ts";
@@ -82,11 +82,11 @@ export const interactiveSession = {
   },
 };
 
-// A script free only in an Interactive session: `stepWhy` is a runner step's refusal, `allowWhy` the session's allow.
+// A script only an Interactive session runs: `stepWhy` is a runner step's refusal, `sessionVerdict` the session's.
 interface InteractiveScript {
   name: string;
   stepWhy: string;
-  allowWhy: string;
+  sessionVerdict: Verdict;
 }
 
 const interactiveScripts = {
@@ -95,28 +95,32 @@ const interactiveScripts = {
     name: "research:push",
     stepWhy:
       "pushes a `research/*` branch, which only an Interactive session does",
-    allowWhy:
-      "`npm run research:push` is the standing yes to push a `research/*` branch, behind wrap-up's secret scan",
+    sessionVerdict: {
+      permissionDecision: "allow",
+      why: "`npm run research:push` is the standing yes to push a `research/*` branch, behind wrap-up's secret scan",
+    },
   },
-  // Free in an Interactive session, whose developer sees the probe; a runner step's is refused, as runner steps haven't needed one.
+  // Asks in an Interactive session until the script runs under its own Seatbelt profile; a runner step's is refused, as runner steps haven't needed one.
   googleScript: {
     name: "google:script",
     stepWhy:
       "runs an agent-written script holding the agent account's access token, which only an Interactive session does",
-    allowWhy:
-      "`npm run google:script` runs the script with the agent account's access token, which reaches only the files shared with that account",
+    sessionVerdict: {
+      permissionDecision: "ask",
+      why: "`npm run google:script` runs the script with the agent account's access token, and outside the box, so nothing stops it reading the credential files the box hides",
+    },
   },
 } as const satisfies Record<string, InteractiveScript>;
 
 function interactiveScriptVerdictOf(
   { words }: SimpleCommand,
   { mode }: CallContext,
-  { name, stepWhy, allowWhy }: InteractiveScript,
+  { name, stepWhy, sessionVerdict }: InteractiveScript,
 ): Verdict | undefined {
   if (npmCommands.isPrefixed(words)) return undefined;
   if (npmCommands.scriptOf(words)?.name !== name) return undefined;
   if (mode !== "interactive") {
     return { permissionDecision: "ask", why: stepWhy };
   }
-  return { permissionDecision: "allow", why: allowWhy };
+  return sessionVerdict;
 }
