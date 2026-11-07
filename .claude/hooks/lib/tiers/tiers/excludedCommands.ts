@@ -10,10 +10,16 @@ const sandboxCant = {
   google: "can't reach Google",
   claude: "can't launch `claude`",
   ps: "can't run `ps`",
+  pgrep: "can't run `pgrep`",
+  open: "can't reach Launch Services, which `open` needs",
   jev: "can't run the jev client's fetch",
   other: "can't run it",
 } as const;
+// Matched against an entry with any `npm run ` dropped, so a bare program's entry is matched whole.
 const reasonsByScript: [RegExp, string][] = [
+  [/^ps\b/, sandboxCant.ps],
+  [/^pgrep\b/, sandboxCant.pgrep],
+  [/^open\b/, sandboxCant.open],
   [/^(app|dev)\b/, sandboxCant.google],
   [/^(runner|session:probe)\b/, sandboxCant.claude],
   [/^(test|check|issue|wrap-up)\b/, sandboxCant.ps],

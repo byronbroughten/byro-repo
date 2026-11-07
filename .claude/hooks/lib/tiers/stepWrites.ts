@@ -3,9 +3,11 @@ import { isAbsolute } from "node:path";
 
 import { WritePathResolver, type WritePlaces } from "./WritePathResolver.ts";
 
-// Where a runner step's call runs, for resolving a relative path it writes.
+// Where a call runs, for resolving a relative path it writes or opens.
 export interface ShellPlaces extends WritePlaces {
   cwd: string;
+  // True for a regular file, symlinks followed, so `open` of a folder or app bundle isn't freed.
+  isFile: (path: string) => boolean;
 }
 
 // The hooks' per-session state, which a write could forge, such as a chore's dry-run record.

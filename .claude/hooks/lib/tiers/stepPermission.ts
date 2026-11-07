@@ -49,9 +49,10 @@ function isGateAllowed({
   toolInput: { command },
   mode,
   dryRuns,
+  places,
   sandbox,
 }: PermissionCall): boolean {
   if (typeof command !== "string") return false;
-  const decision = gateDecision({ command, mode, dryRuns, sandbox });
+  const decision = gateDecision({ command, mode, dryRuns, places, sandbox });
   return decision?.permissionDecision === "allow";
 }
