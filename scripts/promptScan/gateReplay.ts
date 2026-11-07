@@ -28,10 +28,16 @@ const outcomes: Record<Decision["permissionDecision"], GateOutcome> = {
 
 export function gateReplayOf(call: ShellCall): GateReplay {
   const commandVerdicts = commandVerdictsOf(call);
+  const decision = gateDecision(call);
   if (!commandVerdicts) {
+    if (decision) {
+      return {
+        outcome: outcomes[decision.permissionDecision],
+        why: decision.reason,
+      };
+    }
     return { outcome: "unclassified", why: "the gate can't parse it" };
   }
-  const decision = gateDecision(call);
   if (!decision) {
     const undecided = commandVerdicts.find(({ verdict }) => !verdict);
     if (undecided) {

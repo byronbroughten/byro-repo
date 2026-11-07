@@ -21,6 +21,12 @@ export interface SimpleCommand {
   isBare: boolean;
 }
 
+// The commands of a call the gate parses, or what it couldn't read.
+interface Parsing {
+  commands?: SimpleCommand[];
+  failure?: string;
+}
+
 export class ShellParser {
   readonly command: string;
   constructor(command: string) {
@@ -57,19 +63,19 @@ export class ShellParser {
   }
   // Undefined for a command the gate can't parse, which callers leave to another rule.
   get parsedCommands(): SimpleCommand[] | undefined {
-    try {
-      return this.substitutedCommands;
-    } catch {
-      return undefined;
-    }
+    return this._parsing.commands;
   }
   // What the gate can't read in the call, finishing "it holds …"; undefined for one it parses.
   get parseFailure(): string | undefined {
+    return this._parsing.failure;
+  }
+  get _parsing(): Parsing {
     try {
-      void this.substitutedCommands;
-      return undefined;
+      return { commands: this.substitutedCommands };
     } catch (error) {
-      return error instanceof Error ? error.message : String(error);
+      return {
+        failure: error instanceof Error ? error.message : String(error),
+      };
     }
   }
   // Undefined unless the heredoc scan strips the bodies the text match does; beside a heredoc, a substitution, `${…}`, `$'…'` or `((` nests quotes or `<<` in ways that scan doesn't follow.
