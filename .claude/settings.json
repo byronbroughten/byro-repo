@@ -101,6 +101,7 @@
       "npm run issue*",
       "npm run wrap-up *",
       "npm run research:push",
+      "npm run google:script *",
       "npm run runner*",
       "npm run app*",
       "npm run dev*",

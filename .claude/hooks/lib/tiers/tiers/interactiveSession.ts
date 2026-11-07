@@ -1,4 +1,4 @@
-// The verdicts only an Interactive session gets: its gh issue create, issue links and `gh api` reads, its review-list decisions and its research push.
+// The verdicts only an Interactive session gets: its gh issue create, issue links and `gh api` reads, its review-list decisions, its research push and its Google script route.
 import { GhApiCall } from "../GhApiCall.ts";
 import type { SimpleCommand } from "../ShellParser.ts";
 import type { CallContext, Verdict } from "../tiers.ts";
@@ -76,6 +76,24 @@ export const interactiveSession = {
     return {
       permissionDecision: "allow",
       why: "`npm run research:push` is the standing yes to push a `research/*` branch, behind wrap-up's secret scan",
+    };
+  },
+  // Free in an Interactive session, whose developer sees the probe; a runner step's is refused, as runner steps haven't needed one.
+  googleScriptVerdictOf(
+    { words }: SimpleCommand,
+    { mode }: CallContext,
+  ): Verdict | undefined {
+    if (npmCommands.isPrefixed(words)) return undefined;
+    if (npmCommands.scriptOf(words)?.name !== "google:script") return undefined;
+    if (mode !== "interactive") {
+      return {
+        permissionDecision: "ask",
+        why: "runs an agent-written script holding the agent account's access token, which only an Interactive session does",
+      };
+    }
+    return {
+      permissionDecision: "allow",
+      why: "`npm run google:script` runs the script with the agent account's access token, which reaches only the files shared with that account",
     };
   },
 };

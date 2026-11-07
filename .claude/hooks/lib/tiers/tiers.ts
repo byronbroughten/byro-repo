@@ -334,6 +334,7 @@ const classifiers: Classifier[] = [
   interactiveSession.ghVerdictOf,
   interactiveSession.decideVerdictOf,
   interactiveSession.researchPushVerdictOf,
+  interactiveSession.googleScriptVerdictOf,
   npmVerdicts.choreSendVerdictOf,
   readCommands.labelListVerdictOf,
   readCommands.processListVerdictOf,

@@ -397,6 +397,20 @@ describe("an Interactive session's gh calls", () => {
     expect(decisionOf("git push -u origin research/x")).toBe("ask");
   });
 
+  it("frees the Google script route in a session, and refuses it in a runner step", () => {
+    const command = "npm run google:script -- /tmp/claude-501/probe.ts";
+    const sessionDecision = modeDecisionOf(command);
+    expect(sessionDecision?.permissionDecision).toBe("allow");
+    expect(sessionDecision?.reason).toContain("agent account's access token");
+    const stepDecision = modeDecisionOf(command, "runnerStep");
+    expect(stepDecision?.permissionDecision).toBe("deny");
+    expect(stepDecision?.reason).toContain("only an Interactive session");
+    expect(stepDecision?.reason).toContain(blockerInstead);
+    expect(
+      decisionOf("npm --prefix x run google:script -- probe.ts"),
+    ).toBeUndefined();
+  });
+
   it("leaves any other gh api write to Claude Code", () => {
     [
       "gh api -X DELETE repos/x/y/issues/comments/987",
