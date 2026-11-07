@@ -21,7 +21,7 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 - **A Recommendation meets the user stories, maintenance and tests included; no Tier 2 gain buys back a failed story.**
 - **The developer's decisions stay theirs.**
 - **Removing a decision point or an alignment check (a review, a required doc read, a gate) is a Tier 1 change**: it may be recommended, always flagged as one, never justified by Tier 2 savings.
-- **Attention and agent cost are saved only by removing work that isn't a decision**: rubber-stamp asks, re-explaining, manual steps, noise in a report.
+- **Attention and agent cost are saved only by removing work that isn't a decision**: rubber-stamp asks, re-explaining, manual steps, Hand-backs and sandbox denials of routine commands, noise in a report.
 
 ## The floor
 
@@ -29,7 +29,7 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 - **Weakening security**: letting Untrusted text into an agent's instructions, exposing a credential or token more widely, moving an action to a cheaper gate tier, or adding an outward action that can't be undone.
 - **Weakening undo**: making an action harder to undo.
 - **Weakening data integrity**: putting live-sheet data where version history can't recover it.
-- **When a routine command meets a security measure, the Recommendation reshapes the measure so the command runs, through a sanctioned route that keeps what it protects**; a Hand-back or a changed workflow is the last resort, and any weakening left over is named and left to the developer.
+- **A routine command that meets a security measure gets the measure reshaped, by a sanctioned route that keeps what it protects**; a Hand-back is the last resort.
 - **Fixing a gate misread, where the gate judged a command to be something it isn't, doesn't move an action to a cheaper tier.**
 - **A gain above the floor is weighed as a Tier 2 gain.**
 
