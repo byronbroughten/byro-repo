@@ -1,5 +1,7 @@
-// Scans the lines a landing adds to each master for token shapes, then pushes each master; a hit pushes nothing.
+// Scans the lines a landing adds to each master for token shapes (secretScan.ts), then pushes each master; a hit
+// pushes nothing.
 
+import { scanForSecrets } from "../secretScan.ts";
 import { WrapUpBase } from "./WrapUpBase.ts";
 import { type Landing } from "./wrapUpTypes.ts";
 
@@ -7,7 +9,7 @@ export class LandingPusher extends WrapUpBase {
   // A refusal leaves secret-scan undone, so a rerun rescans.
   async _scanAndPush(landing: Landing): Promise<void> {
     await this._step(landing, "secret-scan", () =>
-      this._scanForSecrets(
+      scanForSecrets(
         "The landed master",
         builtReposOf(landing).map((repo) => ({
           repo,
@@ -25,7 +27,6 @@ export class LandingPusher extends WrapUpBase {
         label: `Pushing ${repo}'s master`,
         clone: this._primaryOf(repo),
         branch: "master",
-        flags: [],
       });
     }
   }

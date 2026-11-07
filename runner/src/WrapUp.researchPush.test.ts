@@ -1,12 +1,12 @@
 import { execFileSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
 import { git } from "./GitFixture.ts";
 import { WrapUpFailure } from "./WrapUpFailure.ts";
 import {
+  commitFileIn,
+  errorOf,
   primaryOf,
   remoteOf,
   useWrapUpHarness,
@@ -25,12 +25,6 @@ async function checkoutOn(branch: string): Promise<string> {
   return workspace.path;
 }
 
-function commitFile(checkout: string, file: string, content: string): void {
-  writeFileSync(join(checkout, file), content);
-  git(checkout, "add", file);
-  git(checkout, "commit", "-m", `Add ${file}`);
-}
-
 function remoteHeadOf(branch: string): string | undefined {
   try {
     return execFileSync(
@@ -47,19 +41,10 @@ function remoteBranches(): string {
   return git(remoteOf("byro-repo"), "for-each-ref", "--format=%(refname)");
 }
 
-async function refusalOf(run: Promise<unknown>): Promise<Error> {
-  try {
-    await run;
-  } catch (error) {
-    if (error instanceof Error) return error;
-  }
-  throw new Error("Expected the research push to refuse");
-}
-
 describe("WrapUp.pushResearch", () => {
   it("pushes the checkout's research branch to origin, setting its upstream", async () => {
     const checkout = await checkoutOn(research);
-    commitFile(checkout, "notes.md", "# Sheets quotas\n");
+    commitFileIn(checkout, "notes.md", "# Sheets quotas\n");
 
     expect(await wrapUp().pushResearch(checkout)).toBe(research);
 
@@ -71,9 +56,9 @@ describe("WrapUp.pushResearch", () => {
 
   it("pushes a later commit onto the branch it pushed before", async () => {
     const checkout = await checkoutOn(research);
-    commitFile(checkout, "notes.md", "# Sheets quotas\n");
+    commitFileIn(checkout, "notes.md", "# Sheets quotas\n");
     await wrapUp().pushResearch(checkout);
-    commitFile(checkout, "more.md", "More\n");
+    commitFileIn(checkout, "more.md", "More\n");
 
     await wrapUp().pushResearch(checkout);
 
@@ -89,9 +74,9 @@ describe("WrapUp.pushResearch", () => {
     const remoteMaster = remoteHeadOf("master");
     const workspace = await workspaceWith();
     git(workspace.path, ...args);
-    commitFile(workspace.path, "notes.md", "Notes\n");
+    commitFileIn(workspace.path, "notes.md", "Notes\n");
 
-    const refusal = await refusalOf(wrapUp().pushResearch(workspace.path));
+    const refusal = await errorOf(wrapUp().pushResearch(workspace.path));
 
     expect(refusal.message).toContain("not under `research/`");
     expect(remoteBranches()).toBe(before);
@@ -101,9 +86,9 @@ describe("WrapUp.pushResearch", () => {
   it("refuses a primary checkout", async () => {
     const primary = primaryOf("byro-repo");
     git(primary, "switch", "-c", research);
-    commitFile(primary, "notes.md", "Notes\n");
+    commitFileIn(primary, "notes.md", "Notes\n");
 
-    const refusal = await refusalOf(wrapUp().pushResearch(primary));
+    const refusal = await errorOf(wrapUp().pushResearch(primary));
 
     expect(refusal.message).toContain("primary checkout");
     expect(remoteHeadOf(research)).toBeUndefined();
@@ -111,10 +96,10 @@ describe("WrapUp.pushResearch", () => {
 
   it("refuses a planted secret at secret-scan, naming the file and line, and pushes nothing", async () => {
     const checkout = await checkoutOn(research);
-    commitFile(checkout, "notes.md", "# Notes\n");
-    commitFile(checkout, "creds.json", secretLine);
+    commitFileIn(checkout, "notes.md", "# Notes\n");
+    commitFileIn(checkout, "creds.json", secretLine);
 
-    const refusal = await refusalOf(wrapUp().pushResearch(checkout));
+    const refusal = await errorOf(wrapUp().pushResearch(checkout));
 
     expect(refusal).toBeInstanceOf(WrapUpFailure);
     expect((refusal as WrapUpFailure).kind).toBe("secret-scan");
@@ -126,10 +111,10 @@ describe("WrapUp.pushResearch", () => {
 
   it("scans only what the push adds over the remote branch", async () => {
     const checkout = await checkoutOn(research);
-    commitFile(checkout, "creds.json", secretLine);
+    commitFileIn(checkout, "creds.json", secretLine);
     git(checkout, "push", "origin", research);
     const pushed = remoteHeadOf(research);
-    commitFile(checkout, "notes.md", "# Notes\n");
+    commitFileIn(checkout, "notes.md", "# Notes\n");
 
     await wrapUp().pushResearch(checkout);
 

@@ -6,28 +6,31 @@ import { ShellParser, type SimpleCommand } from "../ShellParser.ts";
 import { timeoutWrappedOf } from "../timeoutWrapped.ts";
 import { npmCommands } from "./npmCommands.ts";
 
-const sandboxCant = {
-  google: "can't reach Google",
-  claude: "can't launch `claude`",
-  ps: "can't run `ps`",
-  pgrep: "can't run `pgrep`",
-  open: "can't reach Launch Services, which `open` needs",
-  jev: "can't run the jev client's fetch",
-  other: "can't run it",
+// Why a boxed entry is refused: what the box can't do, or for the research push, that the box would free its push.
+const boxReasons = {
+  cant: {
+    google: "can't reach Google",
+    claude: "can't launch `claude`",
+    ps: "can't run `ps`",
+    pgrep: "can't run `pgrep`",
+    open: "can't reach Launch Services, which `open` needs",
+    jev: "can't run the jev client's fetch",
+    other: "can't run it",
+  },
+  // The box reaches GitHub and frees a call holding no `git push`, so a script's push would go out with no tier row deciding it.
+  hiddenPush:
+    "where the tier gate can't see its push: the box frees a call that names no `git push`, a runner step's included",
 } as const;
-// The box reaches GitHub and frees a call holding no `git push`, so a script's push would go out with no tier row deciding it.
-const hiddenPushReason =
-  "where the tier gate can't see its push: the box frees a call that names no `git push`, a runner step's included";
+const researchPushScript = /^research:push\b/;
 // Matched against an entry with any `npm run ` dropped, so a bare program's entry is matched whole.
-const reasonsByScript: [RegExp, string][] = [
-  [/^ps\b/, boxFailureOf(sandboxCant.ps)],
-  [/^pgrep\b/, boxFailureOf(sandboxCant.pgrep)],
-  [/^open\b/, boxFailureOf(sandboxCant.open)],
-  [/^(app|dev)\b/, boxFailureOf(sandboxCant.google)],
-  [/^(runner|session:probe)\b/, boxFailureOf(sandboxCant.claude)],
-  [/^(test|check|issue|wrap-up)\b/, boxFailureOf(sandboxCant.ps)],
-  [/^jev\b/, boxFailureOf(sandboxCant.jev)],
-  [/^research:push\b/, hiddenPushReason],
+const cantsByScript: [RegExp, string][] = [
+  [/^ps\b/, boxReasons.cant.ps],
+  [/^pgrep\b/, boxReasons.cant.pgrep],
+  [/^open\b/, boxReasons.cant.open],
+  [/^(app|dev)\b/, boxReasons.cant.google],
+  [/^(runner|session:probe)\b/, boxReasons.cant.claude],
+  [/^(test|check|issue|wrap-up)\b/, boxReasons.cant.ps],
+  [/^jev\b/, boxReasons.cant.jev],
 ];
 // Claude Code's Sandboxing page lists it as no bar to leaving the box, and #535's probe saw it leave.
 const stderrToStdout = /(^|[ \t])2>&1(?=[ \t]|$)/gm;
@@ -111,10 +114,9 @@ function matchesEntry(command: string, entry: string): boolean {
 
 function reasonOf(entry: string): string {
   const script = entry.replace(/^npm (run )?/, "");
-  const reason = reasonsByScript.find(([pattern]) => pattern.test(script));
-  return reason?.[1] ?? boxFailureOf(sandboxCant.other);
-}
-
-function boxFailureOf(cant: string): string {
+  if (researchPushScript.test(script)) return boxReasons.hiddenPush;
+  const cant =
+    cantsByScript.find(([pattern]) => pattern.test(script))?.[1] ??
+    boxReasons.cant.other;
   return `where it fails without naming the box: the sandbox ${cant}`;
 }

@@ -1,12 +1,12 @@
 // The Base WrapUp and its collaborators share: the config, knobs, network retries, log, a landing's step progress,
-// where its repos and workspace are, and the secret scan and push LandingPusher.ts and ResearchPusher.ts both run. It
-// imports no collaborator, so `extends WrapUpBase` loads first.
+// where its repos and workspace are, and the push LandingPusher.ts and ResearchPusher.ts both run. It imports no
+// collaborator, so `extends WrapUpBase` loads first.
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { messageOf } from "../failureText.ts";
-import { currentBranchOf, git, lines } from "../git.ts";
+import { currentBranchOf, git } from "../git.ts";
 import {
   fileStemOf,
   isSessionKey,
@@ -16,7 +16,6 @@ import {
   type WorkspaceKey,
   workspaceLabelOf,
 } from "../IssueWorkspaces.ts";
-import { secretShapeOf } from "../secretShapes.ts";
 import { sleep } from "../sleep.ts";
 import { WrapUpFailure } from "../WrapUpFailure.ts";
 import {
@@ -130,31 +129,16 @@ export class WrapUpBase {
     }
   }
 
-  // `subject` opens the failure, as in "The landed master".
-  protected async _scanForSecrets(
-    subject: string,
-    scans: SecretScan[],
-  ): Promise<void> {
-    const hits: string[] = [];
-    for (const scan of scans) {
-      hits.push(...(await secretHitsOf(scan)));
-    }
-    if (hits.length === 0) return;
-    throw new WrapUpFailure(
-      "secret-scan",
-      `${subject} adds token-shaped lines, so nothing was pushed:\n${hits.join("\n")}`,
-    );
-  }
-
   // Never with force: a rejected push fails after its retries rather than overwriting the remote.
   protected async _pushToOrigin({
     label,
     clone,
     branch,
-    flags,
+    setsUpstream = false,
   }: OriginPush): Promise<void> {
+    const upstream = setsUpstream ? ["--set-upstream"] : [];
     await this._withRetries(label, () =>
-      git(clone, "push", ...flags, "origin", branch),
+      git(clone, "push", ...upstream, "origin", branch),
     );
   }
 
@@ -167,25 +151,12 @@ export class WrapUpBase {
   }
 }
 
-interface AddedLine {
-  file: string;
-  line: number;
-  text: string;
-}
-
-// The lines `range`'s diff adds in `clone`; a hit names `repo`.
-interface SecretScan {
-  repo: string;
-  clone: string;
-  range: string;
-}
-
 // What a push sends and how it's named in a failure.
 interface OriginPush {
   label: string;
   clone: string;
   branch: string;
-  flags: string[];
+  setsUpstream?: boolean;
 }
 
 export function isDone(
@@ -204,47 +175,4 @@ export function listedReposOf({
 function stateStemOf(key: WorkspaceKey): string {
   if (isSessionKey(key)) return sessionBranchOf(key);
   return fileStemOf(key);
-}
-
-async function secretHitsOf({
-  repo,
-  clone,
-  range,
-}: SecretScan): Promise<string[]> {
-  const diff = await git(
-    clone,
-    "-c",
-    "core.quotePath=false",
-    "diff",
-    "-U0",
-    "--no-color",
-    "--no-ext-diff",
-    range,
-  );
-  return addedLinesOf(diff).flatMap(({ file, line, text }) => {
-    const shape = secretShapeOf(text);
-    return shape === undefined ? [] : [`${repo} ${file}:${line} (${shape})`];
-  });
-}
-
-// Each line a unified diff adds, with its file and line number in the new version.
-function addedLinesOf(diff: string): AddedLine[] {
-  const added: AddedLine[] = [];
-  let file = "";
-  let line = 0;
-  let isInHunk = false;
-  lines(diff).forEach((diffLine) => {
-    if (diffLine.startsWith("diff --git ")) {
-      isInHunk = false;
-    } else if (!isInHunk && diffLine.startsWith("+++ ")) {
-      file = diffLine.slice(4).replace(/^"?b\/(.*?)"?$/, "$1");
-    } else if (diffLine.startsWith("@@")) {
-      isInHunk = true;
-      line = Number(/\+(\d+)/.exec(diffLine)?.[1] ?? 0);
-    } else if (isInHunk && diffLine.startsWith("+")) {
-      added.push({ file, line, text: diffLine.slice(1) });
-      line += 1;
-    }
-  });
-  return added;
 }

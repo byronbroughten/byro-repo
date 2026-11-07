@@ -81,6 +81,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SandboxProbe.ts` | `SandboxProbe` | `npm run session:probe -- --sandbox-check`: which listed commands a folder's sandbox stops. |
 | `savedFormats.ts` | | Reads an older runner's run state, facts file and supervision record into today's shapes. |
 | `SchemaFailure.ts` | | The error for a step record that fails its checks. |
+| `secretScan.ts` | | Wrap-up's secret scan: the token-shaped lines a diff adds, refused before a push. |
 | `secretShapes.ts` | | The token shapes wrap-up's secret scan looks for. |
 | `SessionProbe.ts` | `SessionProbe` | `npm run session:probe`: what a SessionStart hook sees in a folder. |
 | `sleep.ts` | | A promised delay. |
@@ -126,12 +127,12 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `WrapUp/LandingBranchFinder.ts` | | Finds the branches a landing merges, the repos whose workspace branch is ahead of master, and the branches its workspace made. |
 | `WrapUp/LandingKindPicker.ts` | | Picks what differs between a ticket that lands branches, one with no code and a session. |
 | `WrapUp/LandingPusher.ts` | | Scans a landing's added lines for token shapes, then pushes each master. |
-| `WrapUp/ResearchPusher.ts` | | `npm run research:push`: pushes a Workspace checkout's `research/*` branch behind the secret scan. |
 | `WrapUp/LogRowCommitter.ts` | | Writes a ticket's outcome row into the merged root checkout and commits it. |
 | `WrapUp/MasterFastForwarder.ts` | | Fast-forwards each primary's master under the landing locks, then runs the after hook and pushes. |
+| `WrapUp/ResearchPusher.ts` | | `npm run research:push`: pushes a Workspace checkout's `research/*` branch behind the secret scan. |
 | `WrapUp/WorkspaceFinisher.ts` | | Checks a workspace's lease is free, levels a kept session's repos with master and removes the workspace. |
 | `WrapUp/WorktreeRestorer.ts` | | Puts a landing's worktrees back where they were before a build. |
-| `WrapUp/WrapUpBase.ts` | | The Base `WrapUp` and its collaborators share: the config, knobs, network retries, log, a landing's step progress, where its repos and workspace are, and the secret scan and push. |
+| `WrapUp/WrapUpBase.ts` | | The Base `WrapUp` and its collaborators share: the config, knobs, network retries, log, a landing's step progress, where its repos and workspace are, and the push. |
 | `WrapUp/wrapUpTypes.ts` | | The config, GitHub port, parent and landing types and the labels `WrapUp` and its collaborators share. |
 | `WrapUpFailure.ts` | `WrapUpFailure` | The typed failure a wrap-up stops on. |
 | `wrapUpHarness.ts` | | The fixture `WrapUp` tests share. |
