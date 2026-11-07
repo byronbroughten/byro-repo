@@ -81,10 +81,16 @@ describe("gateReplayOf", () => {
     });
   });
 
-  it("says when the gate can't parse a call", () => {
-    expect(replayOf("echo $(ls")).toEqual({
-      outcome: "unclassified",
-      why: "the gate can't parse it",
-    });
+  it("replays a call the gate can't parse as the refusal the gate gives", () => {
+    const replay = replayOf("echo $(ls");
+    expect(replay.outcome).toBe("refuses");
+    expect(replay.why).toContain("the gate can't parse this call");
+  });
+
+  it("replays a runner step's call the gate can't parse as refused too", () => {
+    expect(
+      gateReplayOf({ command: "echo $(ls", mode: "runnerStep", dryRuns: [] })
+        .outcome,
+    ).toBe("refuses");
   });
 });

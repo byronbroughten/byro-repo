@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   blockerInstead,
+  type CallSandbox,
   decisionInMode,
   dryRunChoresOf,
   gateDecision,
@@ -229,7 +230,7 @@ describe("heredocs and substitutions", () => {
       "(( # )) ; $(git push)",
       'echo "$( (( #)) ; git push\n)))"',
       "echo $(( #))",
-    ].forEach((command) => expect(decisionOf(command)).toBeUndefined());
+    ].forEach((command) => expect(decisionOf(command)).toBe("deny"));
   });
 });
 
@@ -470,7 +471,7 @@ describe("loops, conditionals, groups and functions", () => {
     expect(decision?.reason).toContain(blockerInstead);
   });
 
-  it("leaves one it can't read as bash would unclassified", () => {
+  it("refuses one it can't read as bash would", () => {
     [
       "for i in 1; do npm run lint",
       "{ npm run lint",
@@ -485,8 +486,101 @@ describe("loops, conditionals, groups and functions", () => {
       "case x in a) npm run lint;; esac; ;;",
       "for; do npm run lint; done",
       "for i x; do npm run lint; done",
-      "f(){ shift; git $1; }; f status push",
-    ].forEach((command) => expect(decisionOf(command)).toBeUndefined());
+    ].forEach((command) => expect(decisionOf(command)).toBe("deny"));
+  });
+
+  it("leaves a function whose argument it can't follow to Claude Code", () => {
+    expect(decisionOf("f(){ shift; git $1; }; f status push")).toBeUndefined();
+  });
+});
+
+describe("a call the gate can't parse", () => {
+  const wayThrough =
+    "put text in single quotes, write a body to a file under `/tmp` and pass it with `--body-file`, or run each part in a call of its own";
+  const failures: [string, string, string][] = [
+    ["an unbalanced quote", 'echo "unterminated', "a quote left open"],
+    [
+      "an unclosed substitution",
+      "gh label list $(gh label list",
+      "a command substitution left open",
+    ],
+    [
+      "an unclosed backtick",
+      "gh label list `gh label list",
+      "a command substitution left open",
+    ],
+    [
+      "a `${…}` beside a substitution",
+      "echo ${y:-a #} $(git push)",
+      "a comment or `${…}` beside a command substitution",
+    ],
+    [
+      "a comment inside a substitution",
+      'gh label list "$(gh label list # )\nrm -rf dist\n)"',
+      "a comment or `${…}` beside a command substitution",
+    ],
+    [
+      "compound syntax it can't read",
+      "for i in 1; do npm run lint",
+      "compound syntax the gate can't read as bash would",
+    ],
+    [
+      "a function called across a substitution",
+      "e(){ npm run lint; }; echo $(e)",
+      "a function called across a substitution",
+    ],
+  ];
+
+  it.each(failures)(
+    "refuses %s in an Interactive session, naming it and the way through",
+    (_kind, command, failure) => {
+      const decision = modeDecisionOf(command);
+      expect(decision?.permissionDecision).toBe("deny");
+      expect(decision?.reason).toContain(failure);
+      expect(decision?.reason).toContain(wayThrough);
+    },
+  );
+
+  it.each(failures)(
+    "still refuses %s in a runner step, as an unclassified call with a blocker",
+    (_kind, command) => {
+      const decision = modeDecisionOf(command, "runnerStep");
+      expect(decision?.permissionDecision).toBe("deny");
+      expect(decision?.reason).toContain("doesn't classify");
+      expect(decision?.reason).toContain(blockerInstead);
+    },
+  );
+
+  it("refuses it with the sandbox on or off, and before the sandbox-off ask", () => {
+    const command = 'echo "unterminated';
+    const sandboxes: CallSandbox[] = [
+      { isOn: true, excludedCommands: [] },
+      { isOn: false, excludedCommands: [] },
+      {
+        isOn: false,
+        excludedCommands: [],
+        off: {
+          cause: "`sandbox.enabled` isn't true",
+          fix: "turn it on",
+          excludedCommands: [],
+        },
+      },
+    ];
+    sandboxes.forEach((sandbox) => {
+      const decision = gateDecision({
+        command,
+        mode: "interactive",
+        dryRuns: [],
+        sandbox,
+      });
+      expect(decision?.permissionDecision).toBe("deny");
+      expect(decision?.reason).toContain("a quote left open");
+    });
+  });
+
+  it("leaves a call it parses to its tier", () => {
+    expect(decisionOf("npm run check")).toBe("allow");
+    expect(decisionOf("git push origin master")).toBe("ask");
   });
 });
 

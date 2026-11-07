@@ -1,11 +1,12 @@
 // Splits a command into the text bash runs at each depth of `$(…)` and backtick substitution, quoted or not; ../ShellParser.ts parses each layer.
-// It throws where it can't read a command as bash does, so the gate asks: a quote or substitution left open, a comment inside a substitution or hiding one, and `${…}` beside one, whose `)` or `#` bash reads differently.
+// It throws where it can't read a command as bash does, so the gate refuses the call: a quote or substitution left open, a comment inside a substitution or hiding one, and `${…}` beside one, whose `)` or `#` bash reads differently.
 // Stands in for a substitution in the text around it: its `$` and braces make it no program name and no plain path.
 export const substitutionWord = "${substitution}";
 const scanErrors = {
-  unbalancedQuote: "Unbalanced quote",
-  unclosed: "Unclosed command substitution",
-  unreadable: "Unreadable command substitution",
+  unbalancedQuote: "a quote left open",
+  unclosed: "a command substitution left open",
+  unreadable:
+    "a comment or `${…}` beside a command substitution, which bash reads differently",
 } as const;
 // A `#` after one of these starts a comment, whose `)` or quote bash ignores.
 const wordBreak = /[\s;&|()<>]/;
