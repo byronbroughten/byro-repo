@@ -52,6 +52,7 @@ Reads need no yes in any tier. A Bash read is free as a sandboxed call and asks 
 | `npm run outline -- <file>` | free: a read, a runner step's included |
 | `npm run outcome:summary -- …` | free: a read |
 | `npm run prompt:scan` | free: a read of this repo's session transcripts |
+| `npm run ws:rm -- <paths>` | 1, a runner step's included: `git rm` of files git tracks in a Workspace's checkouts, `.claude/hooks` and `.claude/skills` included, refusing a Primary checkout, any `.git`, an untracked path and anything outside every Workspace, symlinks resolved, and then deleting nothing (`scripts/wsRm/workspaceRm.ts`). It runs outside the box, as an `excludedCommands` entry ([why](./claude-code-guardrails.md#the-bash-sandbox)), and the step permission hook allows it as the gate does |
 
 **`timeout` and `npm run -s` leave a command's tier as it is**, but an `excludedCommands` script spelled with `-s`, or under a `timeout`, is refused, as the box keeps it in ([the Bash sandbox](./claude-code-guardrails.md#the-bash-sandbox)).
 

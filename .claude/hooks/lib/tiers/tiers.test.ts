@@ -500,6 +500,7 @@ describe("free reads and standing yeses in both modes", () => {
       "npm run session:probe -- /tmp/folder",
       "npm run session:probe -- --sandbox-check /tmp/folder /tmp/commands.txt",
       "npm run outline -- scripts/overlap/overlap.ts",
+      "npm run ws:rm -- .claude/hooks/old.ts .claude/skills/old/SKILL.md",
     ].forEach((command) => {
       expect(decisionOf(command)).toBe("allow");
       expect(runnerStepDecisionOf(command)).toBe("allow");

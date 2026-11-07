@@ -12,6 +12,8 @@ const entries = [
   "npm run check *",
   "npm test",
   "npm test *",
+  "npm run ws:rm",
+  "npm run ws:rm *",
   "npm run research:push",
 ];
 
@@ -48,6 +50,10 @@ describe("an excluded command the call keeps in the box", () => {
     ["npm run check > out.txt", "can't run `ps`"],
     ["npm test <<'EOF'\nx\nEOF", "can't run `ps`"],
     ["npm t", "can't run `ps`"],
+    [
+      "cd . && npm run ws:rm -- .claude/hooks/old.ts",
+      "can't delete a worktree's protected `.claude` files",
+    ],
   ])("refuses `%s` because the sandbox %s", (command, reason) => {
     const decision = decisionOf(command);
     expect(decision?.permissionDecision).toBe("deny");
