@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   blockerInstead,
+  type CallSandbox,
   decisionInMode,
   dryRunChoresOf,
   gateDecision,
@@ -552,15 +553,20 @@ describe("a call the gate can't parse", () => {
 
   it("refuses it with the sandbox on or off, and before the sandbox-off ask", () => {
     const command = 'echo "unterminated';
-    [
+    const sandboxes: CallSandbox[] = [
       { isOn: true, excludedCommands: [] },
       { isOn: false, excludedCommands: [] },
       {
         isOn: false,
         excludedCommands: [],
-        off: { cause: "`sandbox.enabled` isn't true", fix: "turn it on" },
+        off: {
+          cause: "`sandbox.enabled` isn't true",
+          fix: "turn it on",
+          excludedCommands: [],
+        },
       },
-    ].forEach((sandbox) => {
+    ];
+    sandboxes.forEach((sandbox) => {
       const decision = gateDecision({
         command,
         mode: "interactive",
