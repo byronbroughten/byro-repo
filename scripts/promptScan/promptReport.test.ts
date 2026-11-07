@@ -1,6 +1,9 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
-import type { GateReplay } from "./gateReplay.ts";
+import { type GateReplay, scannedCallsOf } from "./gateReplay.ts";
 import {
   answererOf,
   promptReportOf,
@@ -151,7 +154,7 @@ describe("promptReportOf, on the stops no one answered", () => {
         hookNo,
       ),
     ]);
-    expect(report).toContain("## The gate refused 3 calls");
+    expect(report).toContain("## A hook refused 3 calls");
     expect(report).toMatch(
       /\| 2 \| npm run wrap-up byro-repo \| Tier gate: keeps it \| refuses: keeps it in the sandbox \| npm run wrap-up -- byro-repo 1 \|\n\| 1 \| rm a \|/,
     );
@@ -217,5 +220,38 @@ describe("promptReportOf, on the stops no one answered", () => {
     );
     expect(report).toContain("## Claude Code's removal check stopped 1 call");
     expect(report).toContain("| 1 | rm $DIR | asks: a delete | rm -rf $DIR |");
+  });
+});
+
+describe("promptReportOf, fixture transcripts in, rows out", () => {
+  const fixtures = join(import.meta.dirname, "fixtures");
+  const calls = readdirSync(fixtures).flatMap((file) =>
+    scannedCallsOf(readFileSync(join(fixtures, file), "utf8"), {
+      isOn: true,
+      excludedCommands: [],
+    }),
+  );
+  const report = reportOf(calls);
+
+  it("puts each real transcript's stop in its own table", () => {
+    expect(report).toContain("## A hook refused 1 call");
+    expect(report).toContain(
+      "| 1 | touch <path> | .claude/hooks/.probe-r538 | free:",
+    );
+    expect(report).toContain("| 1 | (unparsed) | cafe.github.com |");
+    expect(report).toMatch(/## Hand-backs: 1 call[^#]*\| 1 \| rm <path> \|/);
+    expect(report).toContain("## Claude Code's removal check stopped 1 call");
+  });
+
+  it("rows the #588 misreads by their command, each with what the gate does with it now", () => {
+    expect(report).toContain(
+      "| 1 | npm run wrap-up byro-repo | Tier gate: `npm run wrap-up -- byro-repo 554 --closing",
+    );
+    expect(report).toContain(
+      "| free: `npm run wrap-up` is the standing yes to push |",
+    );
+    expect(report).toMatch(
+      /## The developer answered 1 call[^#]*\| 1 \| gh issue create \| a hook \| free: `gh issue close` undoes it \| cd "\$TMPDIR\/ct529"/,
+    );
   });
 });

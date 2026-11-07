@@ -1,5 +1,5 @@
 // Words the prompt scan: every stop in the scanned sessions, one table per kind, each grouped by the command that met it and ranked by count, beside what the tier gate says about it now.
-// The kinds: calls the developer or auto mode's classifier answered, the gate's refusals, sandbox denials, Hand-backs and Claude Code's removal check.
+// The kinds: calls the developer or auto mode's classifier answered, hook refusals, sandbox denials, Hand-backs and Claude Code's removal check.
 import type { GateReplay } from "./gateReplay.ts";
 import type {
   PermissionAnswer,
@@ -38,9 +38,12 @@ interface TableKind {
   note?: string;
   // The cells between the command and the gate's word now.
   fields: RowField[];
-  isMember(call: RecordedCall): boolean;
-  // What splits one command's calls into rows of their own.
-  groupOf?(call: RecordedCall): string;
+}
+
+interface Table {
+  kind: TableKind;
+  calls: ScannedCall[];
+  top: number;
 }
 
 // How many leading words name a command: `npm run runner watch`, `gh issue view`, `git log`.
@@ -56,42 +59,38 @@ const headers: Record<RowField, string> = {
   example: "Example",
 };
 
-const tableKinds: TableKind[] = [
-  {
+const answerTables: Record<Answerer, TableKind> = {
+  developer: {
     heading: (calls) => `The developer answered ${calls}`,
     fields: ["askedBy"],
-    isMember: (call) => answererOf(call.permission) === "developer",
   },
-  {
+  classifier: {
     heading: (calls) => `Auto mode's classifier answered ${calls}`,
     note: "Each is a prompt outside auto mode.",
     fields: [],
-    isMember: (call) => answererOf(call.permission) === "classifier",
   },
-  {
-    heading: (calls) => `The gate refused ${calls}`,
-    note: "Each is a call a hook stopped, its why the refusal's own.",
+};
+
+const stopTables: Record<Stop["kind"], TableKind> = {
+  refusal: {
+    heading: (calls) => `A hook refused ${calls}`,
+    note: "The tier gate, a read-first rule or another guard; its why the refusal's own.",
     fields: ["why"],
-    isMember: (call) => call.stop?.kind === "refusal",
   },
-  {
+  sandboxDenial: {
     heading: (calls) => `The sandbox denied ${calls}`,
     fields: ["denied"],
-    isMember: (call) => call.stop?.kind === "sandboxDenial",
-    groupOf: (call) => deniedOf(call.stop),
   },
-  {
+  handBack: {
     heading: (calls) => `Hand-backs: ${calls}`,
     note: "Each is a command an agent asked the developer to run.",
     fields: [],
-    isMember: (call) => call.stop?.kind === "handBack",
   },
-  {
+  removalCheck: {
     heading: (calls) => `Claude Code's removal check stopped ${calls}`,
     fields: [],
-    isMember: (call) => call.stop?.kind === "removalCheck",
   },
-];
+};
 
 // The developer answered a prompt; auto mode's classifier answered one the developer would see outside auto mode.
 export function answererOf(
@@ -113,43 +112,55 @@ export function promptReportOf({
   sessionCount,
   top,
 }: PromptReportInput): string {
+  const answerSections = Object.entries(answerTables).flatMap(
+    ([answerer, kind]) =>
+      sectionOf({
+        kind,
+        calls: calls.filter(
+          ({ call }) => answererOf(call.permission) === answerer,
+        ),
+        top,
+      }),
+  );
+  const stopSections = Object.entries(stopTables).flatMap(([stop, kind]) =>
+    sectionOf({
+      kind,
+      calls: calls.filter(({ call }) => call.stop?.kind === stop),
+      top,
+    }),
+  );
   return [
     `Prompt scan of the last ${sessionCount} sessions, each Bash call replayed through this checkout's tier gate.`,
-    ...tableKinds.flatMap((kind) => sectionOf(kind, calls, top)),
+    ...answerSections,
+    ...stopSections,
   ].join("\n");
 }
 
-function sectionOf(
-  kind: TableKind,
-  calls: ScannedCall[],
-  top: number,
-): string[] {
-  const rows = rowsOf(
-    calls.filter(({ call }) => kind.isMember(call)),
-    kind,
-  );
+function sectionOf({ kind, calls, top }: Table): string[] {
+  const rows = rowsOf(calls);
   return [
     "",
     `## ${kind.heading(callCountOf(rows))}`,
     "",
     ...(kind.note ? [kind.note, ""] : []),
-    ...tableOf(rows, kind.fields, top),
+    ...tableOf({ rows, fields: kind.fields, top }),
   ];
 }
 
-function rowsOf(calls: ScannedCall[], kind: TableKind): PromptRow[] {
+// A sandbox denial's row is its command and what was denied; every other row is its command alone.
+function rowsOf(calls: ScannedCall[]): PromptRow[] {
   const groups = calls.reduce((grouped, scanned) => {
-    const key = [commandKeyOf(scanned), kind.groupOf?.(scanned.call) ?? ""];
+    const key = [commandKeyOf(scanned), deniedOf(scanned.call.stop)];
     const id = JSON.stringify(key);
     grouped.set(id, [...(grouped.get(id) ?? []), scanned]);
     return grouped;
   }, new Map<string, ScannedCall[]>());
   return [...groups.values()]
-    .map((members) => rowOf(members, kind))
+    .map((members) => rowOf(members))
     .sort((left, right) => right.count - left.count);
 }
 
-function rowOf(members: ScannedCall[], kind: TableKind): PromptRow {
+function rowOf(members: ScannedCall[]): PromptRow {
   const [scanned] = members as [ScannedCall, ...ScannedCall[]];
   const { call, replay } = scanned;
   return {
@@ -163,7 +174,7 @@ function rowOf(members: ScannedCall[], kind: TableKind): PromptRow {
       call.stop?.kind === "refusal"
         ? clipped(call.stop.why, cellLengths.why)
         : "",
-    denied: kind.groupOf?.(call) ?? "",
+    denied: deniedOf(call.stop),
     gateNow: replay
       ? `${replay.outcome}: ${clipped(replay.why, cellLengths.why)}`
       : "not a Bash call",
@@ -208,7 +219,13 @@ function deniedOf(stop: Stop | undefined): string {
     .replace(/\/worktrees\/[^/]+/g, "/worktrees/<name>");
 }
 
-function tableOf(rows: PromptRow[], fields: RowField[], top: number): string[] {
+interface TableRows {
+  rows: PromptRow[];
+  fields: RowField[];
+  top: number;
+}
+
+function tableOf({ rows, fields, top }: TableRows): string[] {
   if (rows.length === 0) return ["None."];
   const columns: RowField[] = ["command", ...fields, "gateNow", "example"];
   const header = ["Calls", ...columns.map((field) => headers[field])];

@@ -57,9 +57,12 @@ interface ToolUse {
 
 // The first of these a tool's input holds names what it acted on.
 const targetFields = ["file_path", "url", "query", "command", "description"];
-const hookErrorPrefix = /^PreToolUse:\w+ hook error: /;
-const removalCheckText = "could not be checked for dangerous rm operations";
-const notPermittedText = "Operation not permitted";
+// What marks a stop in a result's text.
+const stopTexts = {
+  hookErrorPrefix: /^PreToolUse:\w+ hook error: /,
+  removalCheck: "could not be checked for dangerous rm operations",
+  notPermitted: "Operation not permitted",
+} as const;
 // A longer line is output the call printed, such as a transcript it searched, not the error it hit.
 const errorLineLength = 400;
 
@@ -69,10 +72,10 @@ export function recordedCallsOf(jsonl: string): RecordedCall[] {
     toolUsesOf(entry).forEach((use) => uses.set(use.id, use));
     return uses;
   }, new Map<string, ToolUse>());
-  return entries.flatMap((entry) => [
-    ...handBacksOf(entry),
-    ...recordedCallsIn(entry, toolUses),
-  ]);
+  return entries.flatMap((entry) => {
+    const answered = answeredCallOf(entry, toolUses);
+    return [...handBacksOf(entry), ...(answered ? [answered] : [])];
+  });
 }
 
 function entryOf(line: string): TranscriptEntry | undefined {
@@ -115,55 +118,62 @@ function handBacksOf(entry: TranscriptEntry): RecordedCall[] {
   });
 }
 
-// One call at most: the call whose result the entry holds.
-function recordedCallsIn(
+function answeredCallOf(
   entry: TranscriptEntry,
   toolUses: Map<string, ToolUse>,
-): RecordedCall[] {
+): RecordedCall | undefined {
   // Claude Code also logs each request it sends as an `api-request-blob` entry, repeating every tool result.
-  if (entry.type !== "user") return [];
+  if (entry.type !== "user") return undefined;
   const permission = permissionAnswerOf(entry.permissionDecision);
-  if (!permission) return [];
+  if (!permission) return undefined;
   const result = contentBlocksOf(entry).find(
     ({ type }) => type === "tool_result",
   );
   const useId = result?.tool_use_id;
   const use = typeof useId === "string" ? toolUses.get(useId) : undefined;
-  if (!use) return [];
+  if (!use) return undefined;
   const { tool, command, target } = use;
-  const stop = stopOf(entry, permission, use, textOf(result?.content));
-  return [{ tool, command, target, permission, stop }];
+  const resultText = textOf(result?.content);
+  const stop = stopOf({ entry, permission, use, resultText });
+  return { tool, command, target, permission, stop };
 }
 
-function stopOf(
-  entry: TranscriptEntry,
-  permission: PermissionAnswer,
-  use: ToolUse,
-  resultText: string,
-): Stop | undefined {
+interface AnsweredResult {
+  entry: TranscriptEntry;
+  permission: PermissionAnswer;
+  use: ToolUse;
+  resultText: string;
+}
+
+function stopOf({
+  entry,
+  permission,
+  use,
+  resultText,
+}: AnsweredResult): Stop | undefined {
   if (permission.decision === "reject") {
-    if (resultText.includes(removalCheckText)) return { kind: "removalCheck" };
+    if (resultText.includes(stopTexts.removalCheck)) {
+      return { kind: "removalCheck" };
+    }
     if (permission.source === "hook") {
-      return { kind: "refusal", why: resultText.replace(hookErrorPrefix, "") };
+      const why = resultText.replace(stopTexts.hookErrorPrefix, "");
+      return { kind: "refusal", why };
     }
     return undefined;
   }
   if (use.tool !== "Bash" || entry.sandboxed === false) return undefined;
   const denied =
-    violationOf(entry.sandboxViolations) ??
+    deniedHostOf(entry.sandboxViolations) ??
     deniedInErrorOf(errorTextOf(entry.toolUseResult));
   return denied === undefined ? undefined : { kind: "sandboxDenial", denied };
 }
 
-// Claude Code records a denied host as `{ kind: "network", host }`; a file denial, should it record one, as a path.
-function violationOf(raw: unknown): string | undefined {
+// Claude Code records a denied host as `{ kind: "network", host }`, and a file denial only in the error text.
+function deniedHostOf(raw: unknown): string | undefined {
   if (!Array.isArray(raw)) return undefined;
   return raw
-    .map(
-      (violation: unknown) =>
-        stringFieldOf(violation, "host") ?? stringFieldOf(violation, "path"),
-    )
-    .find((denied) => denied !== undefined);
+    .map((violation: unknown) => stringFieldOf(violation, "host"))
+    .find((host) => host !== undefined);
 }
 
 // What the call wrote to stderr, or the error it failed with; never its stdout, which may quote a denial it read.
@@ -180,7 +190,9 @@ function deniedInErrorOf(text: string): string | undefined {
     .map((line) => /^deny \S+ (\S+)/.exec(line)?.[1])
     .find((denied) => denied !== undefined);
   if (blockDenial) return blockDenial.replace(/:\d+$/, "");
-  const notPermitted = lines.find((line) => line.includes(notPermittedText));
+  const notPermitted = lines.find((line) =>
+    line.includes(stopTexts.notPermitted),
+  );
   if (notPermitted === undefined) return undefined;
   return pathInErrorOf(notPermitted);
 }

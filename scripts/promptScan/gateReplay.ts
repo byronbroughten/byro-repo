@@ -1,10 +1,15 @@
 // What the tier gate says now about a Bash call a transcript recorded, and which simple command in it decided that.
 import {
+  type CallSandbox,
+  type CommandVerdict,
   commandVerdictsOf,
   type Decision,
+  dryRunChoresOf,
   gateDecision,
   type ShellCall,
 } from "../../.claude/hooks/lib/tiers/tiers.ts";
+import { isReported, type ScannedCall } from "./promptReport.ts";
+import { type RecordedCall, recordedCallsOf } from "./transcriptCalls.ts";
 
 export type GateOutcome = "free" | "asks" | "refuses" | "unclassified";
 
@@ -55,10 +60,43 @@ export function gateReplayOf(call: ShellCall): GateReplay {
 
 // A call the gate decided as a whole, such as one it sends to the sandbox, is named by its first command past a `cd`.
 function leadingWordsOf(
-  commandVerdicts: { words: string[] }[],
+  commandVerdicts: CommandVerdict[],
 ): string[] | undefined {
   const leading =
     commandVerdicts.find(({ words }) => words[0] !== "cd") ??
     commandVerdicts[0];
   return leading?.words;
+}
+
+// The calls of one transcript the report counts, replayed in order, so an `app:chore --send` sees the dry runs its session ran before it.
+export function scannedCallsOf(
+  jsonl: string,
+  sandbox: CallSandbox,
+): ScannedCall[] {
+  const dryRuns: string[] = [];
+  const scanned: ScannedCall[] = [];
+  recordedCallsOf(jsonl).forEach((call) => {
+    if (isReported(call)) {
+      scanned.push({
+        call,
+        replay: replayOf(call, dryRuns, sandbox),
+      });
+    }
+    if (call.command) dryRuns.push(...dryRunChoresOf(call.command));
+  });
+  return scanned;
+}
+
+function replayOf(
+  { command }: RecordedCall,
+  dryRuns: string[],
+  sandbox: CallSandbox,
+): GateReplay | undefined {
+  if (command === undefined) return undefined;
+  return gateReplayOf({
+    command,
+    mode: "interactive",
+    dryRuns: [...dryRuns],
+    sandbox,
+  });
 }
