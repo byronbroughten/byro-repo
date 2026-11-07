@@ -13,6 +13,7 @@ const sandboxCant = {
   pgrep: "can't run `pgrep`",
   open: "can't reach Launch Services, which `open` needs",
   jev: "can't run the jev client's fetch",
+  claudeFiles: "can't delete a worktree's protected `.claude` files",
   other: "can't run it",
 } as const;
 // Matched against an entry with any `npm run ` dropped, so a bare program's entry is matched whole.
@@ -24,6 +25,7 @@ const reasonsByScript: [RegExp, string][] = [
   [/^(runner|session:probe)\b/, sandboxCant.claude],
   [/^(test|check|issue|wrap-up)\b/, sandboxCant.ps],
   [/^jev\b/, sandboxCant.jev],
+  [/^ws:rm\b/, sandboxCant.claudeFiles],
 ];
 // Claude Code's Sandboxing page lists it as no bar to leaving the box, and #535's probe saw it leave.
 const stderrToStdout = /(^|[ \t])2>&1(?=[ \t]|$)/gm;

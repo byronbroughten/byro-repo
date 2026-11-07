@@ -110,6 +110,8 @@
       "npm test *",
       "npm run jev *",
       "npm run jev:style *",
+      "npm run ws:rm",
+      "npm run ws:rm *",
       "ps",
       "ps *",
       "pgrep",

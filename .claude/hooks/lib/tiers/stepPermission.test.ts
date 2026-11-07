@@ -55,6 +55,19 @@ describe("stepPermissionDecision", () => {
     );
   });
 
+  it("allows the workspace delete script as an excluded command", () => {
+    const command = "npm run ws:rm -- .claude/hooks/old.ts";
+    expect(
+      stepPermissionDecision({
+        ...call("Bash", { command }),
+        sandbox: {
+          isOn: true,
+          excludedCommands: ["npm run ws:rm", "npm run ws:rm *"],
+        },
+      }),
+    ).toBe("allow");
+  });
+
   describe("a Bash call the sandbox runs", () => {
     const command = 'node -e "console.log(1)"';
     const withSandbox = (sandbox: CallSandbox): PermissionCall => ({
