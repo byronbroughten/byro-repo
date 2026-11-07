@@ -15,6 +15,7 @@ const boxReasons = {
     pgrep: "can't run `pgrep`",
     open: "can't reach Launch Services, which `open` needs",
     jev: "can't run the jev client's fetch",
+    claudeFiles: "can't delete a worktree's protected `.claude` files",
     other: "can't run it",
   },
   // The box reaches GitHub and frees a call holding no `git push`, so a script's push would go out with no tier row deciding it.
@@ -33,6 +34,7 @@ const cantsByScript: [RegExp, string][] = [
   [/^(runner|session:probe)\b/, boxReasons.cant.claude],
   [/^(test|check|issue|wrap-up)\b/, boxReasons.cant.ps],
   [/^jev\b/, boxReasons.cant.jev],
+  [/^ws:rm\b/, boxReasons.cant.claudeFiles],
 ];
 // Claude Code's Sandboxing page lists it as no bar to leaving the box, and #535's probe saw it leave.
 const stderrToStdout = /(^|[ \t])2>&1(?=[ \t]|$)/gm;

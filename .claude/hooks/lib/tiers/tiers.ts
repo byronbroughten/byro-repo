@@ -29,6 +29,10 @@ export const stepTargetsVariable = "BYRO_STEP_TARGETS";
 export const blockerInstead =
   "record a `denied-tool` blocker for the developer instead";
 
+// How a call the gate can't parse gets through, whatever it failed on.
+const parseWayThrough =
+  "put text in single quotes, write a body to a file under `/tmp` and pass it with `--body-file`, or run each part in a call of its own";
+
 export interface ShellCall {
   command: string;
   mode: SessionMode;
@@ -97,6 +101,8 @@ export function gateDecision(call: ShellCall): Decision | undefined {
     ? undefined
     : excludedCommands.refusalOf(call.command, entries);
   if (boxRefusal) return gateOf("deny", `${boxRefusal}.`);
+  const parseRefusal = parseRefusalOf(call);
+  if (parseRefusal) return gateOf("deny", parseRefusal);
   const boxCommands = isOn
     ? sandboxedCalls.boxCommandsOf(call.command, entries)
     : undefined;
@@ -111,6 +117,14 @@ export function gateDecision(call: ShellCall): Decision | undefined {
   const decision =
     offDecisionOf(call.command, off) ?? rowsDecision ?? undecidedDecision(call);
   return decision && decisionInMode(decision, call.mode);
+}
+
+// An Interactive session's call the gate can't parse is refused, naming what it can't read and the way through, as no yes could make the gate decide it; a runner step's keeps its unclassified refusal.
+function parseRefusalOf({ command, mode }: ShellCall): string | undefined {
+  if (mode !== "interactive") return undefined;
+  const failure = ShellParser.init(command).parseFailure;
+  if (failure === undefined) return undefined;
+  return `the gate can't parse this call, which holds ${failure}, so it is refused, not asked. Rewrite it: ${parseWayThrough}.`;
 }
 
 // A box-run call holding `gh` or `git push` gets only those commands' rows; an allow names the box for the rest.

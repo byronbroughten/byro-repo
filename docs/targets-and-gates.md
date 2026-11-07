@@ -53,6 +53,7 @@ Reads need no yes in any tier. A Bash read is free as a sandboxed call and asks 
 | `npm run outline -- <file>` | free: a read, a runner step's included |
 | `npm run outcome:summary -- …` | free: a read |
 | `npm run prompt:scan` | free: a read of this repo's session transcripts |
+| `npm run ws:rm -- <paths>` | 1, a runner step's included: `git rm` of files git tracks in a Workspace's checkouts, `.claude/hooks` and `.claude/skills` included, refusing a Primary checkout, any `.git`, an untracked path and anything outside every Workspace, symlinks resolved, and then deleting nothing (`scripts/wsRm/workspaceRm.ts`). It runs outside the box, as an `excludedCommands` entry ([why](./claude-code-guardrails.md#the-bash-sandbox)), and the step permission hook allows it as the gate does |
 
 **`timeout` and `npm run -s` leave a command's tier as it is**, but an `excludedCommands` script spelled with `-s`, or under a `timeout`, is refused, as the box keeps it in ([the Bash sandbox](./claude-code-guardrails.md#the-bash-sandbox)).
 
@@ -60,7 +61,9 @@ Reads need no yes in any tier. A Bash read is free as a sandboxed call and asks 
 
 **A loop, conditional, group or function takes the strictest tier among the commands inside it.**
 
-**A heredoc is plain text only when its delimiter is quoted (`<<'EOF'`) and no `$(…)`, backtick, `${…}`, `$'…'` or `((` sits beside it**, since those nest quotes past the gate's heredoc scan; any other heredoc bash may expand leaves the call to Claude Code. A `<<` the gate reads differently from bash, such as a here-string followed by more lines, leaves any call to Claude Code too. A `$(…)` or backtick, quoted or not and nested included, gives the call the strictest tier among the commands outside and inside it; a call the gate can't parse asks.
+**A heredoc is plain text only when its delimiter is quoted (`<<'EOF'`) and no `$(…)`, backtick, `${…}`, `$'…'` or `((` sits beside it**, since those nest quotes past the gate's heredoc scan; any other heredoc bash may expand leaves the call to Claude Code. A `<<` the gate reads differently from bash, such as a here-string followed by more lines, leaves any call to Claude Code too. A `$(…)` or backtick, quoted or not and nested included, gives the call the strictest tier among the commands outside and inside it.
+
+**A call the gate can't parse is refused, never asked, in an Interactive session too**: an unbalanced quote, a substitution left open, a `${…}` or a comment beside a substitution, or compound syntax it can't read as bash would. The refusal names what it can't read and the way through: single quotes, a body in a file passed with `--body-file`, or each part in a call of its own. A runner step's is refused as a call the gate doesn't classify. Stricter, and a Tier 1 change: the developer can no longer approve a command the gate can't parse.
 
 ### npm publish
 

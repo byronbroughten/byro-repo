@@ -34,6 +34,10 @@ const freeScripts = new Map<string, string>([
   ["outcome:summary", "it only reads the outcome log and issues"],
   ["prompt:scan", "it only reads transcripts"],
   [
+    "ws:rm",
+    "it deletes only files git tracks in a Workspace, which git restores",
+  ],
+  [
     "session:probe",
     "its one-turn session only reports what the folder's hooks see, or with --sandbox-check runs each listed command once inside the folder's sandbox",
   ],
