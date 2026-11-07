@@ -1,0 +1,1 @@
+A probe file for #592: `npm run ws:rm` deletes it in the next commit.
