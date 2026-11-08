@@ -16,6 +16,7 @@ import {
 import {
   failureHaltOf,
   guidanceSectionOf,
+  isAnswered,
   isRunnersComment,
   runnerMark,
   type StepFailure,
@@ -323,9 +324,9 @@ function gapCheckAnswerOf(run: Run): FailureAnswer | undefined {
     .of(run)
     .filter((halt) => runHalts.isGapCheck(halt) && !halt.isDelivered)
     .at(-1);
-  if (latest?.answer === undefined) return undefined;
-  if (isStopSpecAnswer(latest.answer)) return { kind: "skip" };
-  return failureAnswerOf(latest, latest.answer);
+  if (!isAnswered(latest)) return undefined;
+  if (isStopSpecAnswer(latest)) return { kind: "skip" };
+  return failureAnswerOf(latest);
 }
 
 function deliverGapCheckHalts(run: Run): void {

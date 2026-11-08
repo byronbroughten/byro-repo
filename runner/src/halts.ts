@@ -35,7 +35,7 @@ const kindLabels = {
 export type HaltKind = keyof typeof kindLabels;
 
 export interface Halt {
-  // `H<n>`, numbered across the spec's run, which reads a reply naming it; `S<ticket>.<k>` for a session's review.
+  // `H<n>`, numbered across the spec's run, which reads a reply opening with it; `S<ticket>.<k>` for a session's review.
   id: string;
   // The halted ticket.
   ticket: IssueRef;
@@ -63,6 +63,12 @@ export interface HaltAnswer {
   text: string;
   // When the runner read it; the oldest answered set resumes first.
   at: string;
+}
+
+export type AnsweredHalt = Halt & { answer: HaltAnswer };
+
+export function isAnswered(halt: Halt | undefined): halt is AnsweredHalt {
+  return halt?.answer !== undefined;
 }
 
 // What a Halt needs before the run numbers it.
@@ -224,7 +230,7 @@ export function haltCommentOf(post: HaltPost): string {
   const { halt } = post;
   return haltCommentWith(post, {
     options: [...halt.options, stopSpecOption],
-    answerLine: `Answer with a reply naming \`${halt.id}\`: an option, or your own words.`,
+    answerLine: `Answer with a reply that opens with \`${halt.id}:\`, then an option or your own words.`,
   });
 }
 

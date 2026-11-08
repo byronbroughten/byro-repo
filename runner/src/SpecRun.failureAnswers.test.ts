@@ -99,7 +99,7 @@ describe("run's Failure Halt answers", () => {
 
     expect(result.landed).toEqual([refOf(1)]);
     const [first, retried, review] = rerunStep.requests;
-    const section = guidanceSectionOf(`H1: ${guidance}`);
+    const section = guidanceSectionOf(guidance);
     expect(first?.prompt).toContain(section);
     expect(retried?.prompt).toContain(section);
     expect(review?.prompt).not.toContain(guidance);

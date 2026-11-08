@@ -3,8 +3,8 @@
 
 import type { Pair } from "../AgentStep.ts";
 import {
+  type AnsweredHalt,
   type Halt,
-  type HaltAnswer,
   haltHeadingOf,
   isRunnersComment,
 } from "../halts.ts";
@@ -22,15 +22,10 @@ export type FailureAnswer =
   | { kind: "guidance"; text: string };
 
 // `stop spec` ends the run that reads it, so a later run delivers it as `retry`; any other unnamed reply is guidance.
-export function failureAnswerOf(halt: Halt, answer: HaltAnswer): FailureAnswer {
-  if (isStopSpecAnswer(answer)) return { kind: "retry" };
-  const { text } = answer;
-  const answerWords = text
-    .replace(haltIdPatternOf(halt, "g"), " ")
-    .replace(/[`*:.,!]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
+export function failureAnswerOf(halt: AnsweredHalt): FailureAnswer {
+  if (isStopSpecAnswer(halt)) return { kind: "retry" };
+  const text = answerTextOf(halt);
+  const answerWords = wordsOf(text);
   if (answerWords === "retry") return { kind: "retry" };
   if (answerWords === "retry record") return { kind: "retry-record" };
   if (answerWords === "approve") return { kind: "approve" };
@@ -49,6 +44,14 @@ export function failureAnswerOf(halt: Halt, answer: HaltAnswer): FailureAnswer {
   return { kind: "guidance", text };
 }
 
+function wordsOf(text: string): string {
+  return text
+    .replace(/[`*:.,!]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
 export interface ReplySearch {
   halt: Halt;
   // The spec issue's comments, oldest first.
@@ -56,7 +59,7 @@ export interface ReplySearch {
   developer: string;
 }
 
-// The developer's replies naming the Halt since it was last posted, oldest first; never the runner's own comments.
+// The developer's replies opening with the Halt's id since it was last posted, oldest first; never the runner's own comments.
 export function repliesTo({
   halt,
   comments,
@@ -67,21 +70,27 @@ export function repliesTo({
       isRunnersComment(comment) && comment.body.includes(haltHeadingOf(halt)),
   );
   if (postedAt === -1) return [];
-  const naming = haltIdPatternOf(halt);
+  const opening = openingIdPatternOf(halt);
   return comments
     .slice(postedAt + 1)
     .filter(
       (comment) =>
         comment.author === developer &&
         !isRunnersComment(comment) &&
-        naming.test(comment.body),
+        opening.test(comment.body),
     );
 }
 
-function haltIdPatternOf({ id }: Halt, flags = ""): RegExp {
-  return new RegExp(`(^|[^\\w])${id}(?!\\w)`, flags);
+// An id later in a reply is a mention, as in `H8: Same as H7`; Markdown emphasis around the opening one still counts.
+function openingIdPatternOf({ id }: Halt): RegExp {
+  return new RegExp(`^\\s*[*_\`]*${id}(?!\\w)[*_\`]*\\s*:?`);
 }
 
-export function isStopSpecAnswer({ text }: HaltAnswer): boolean {
-  return /\bstop spec\b/i.test(text);
+function answerTextOf(halt: AnsweredHalt): string {
+  return halt.answer.text.replace(openingIdPatternOf(halt), "").trim();
+}
+
+// Only an answer that opens with `stop spec`, so `retry, don't stop spec` is not one.
+export function isStopSpecAnswer(halt: AnsweredHalt): boolean {
+  return /^stop spec\b/.test(wordsOf(answerTextOf(halt)));
 }

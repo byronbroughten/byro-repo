@@ -118,7 +118,7 @@ describe("run's Halts", () => {
     ).run(spec);
     expect(timingLines()).toContain("byro-repo #1: implement took 30s.");
     github.reply(213, "H1: I ran it.");
-    github.reply(213, "For H2, read it the second way.");
+    github.reply(213, "H2: read it the second way.");
     const agentStep = FakeAgentStep.init(
       after(20, implemented("one.ts")),
       reviewed(),
@@ -133,7 +133,7 @@ describe("run's Halts", () => {
     expect(resumed?.resumeSessionId).toBe("implement-session");
     expect(resumed?.prompt).toContain("Answer, verbatim:\n\nH1: I ran it.");
     expect(resumed?.prompt).toContain(
-      "Answer, verbatim:\n\nFor H2, read it the second way.",
+      "Answer, verbatim:\n\nH2: read it the second way.",
     );
     expect(timingLines()).toContain("byro-repo #1: resume took 20s.");
     expect(noteComments()).toEqual([
@@ -186,7 +186,7 @@ describe("run's Halts", () => {
     addSpec([1]);
     await specRun(FakeAgentStep.init(blocked([gated]))).run(spec);
     github.reply(213, "H1: I ran it.");
-    github.reply(213, "Actually, H1: skip it.");
+    github.reply(213, "H1: actually, skip it.");
     const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
 
     await specRun(agentStep).run(spec);
@@ -198,6 +198,39 @@ describe("run's Halts", () => {
       "<!-- spec-runner -->\nHalt H1 answered via a spec-issue reply.",
       "<!-- spec-runner -->\nHalt H1 was already answered; the later reply `comment-3` is ignored.",
     ]);
+  });
+
+  it("answers only the Halt a reply opens with, never one it mentions later", async () => {
+    addSpec([1]);
+    await specRun(FakeAgentStep.init(blocked([gated, ambiguous]))).run(spec);
+    github.reply(213, "H2: Same as H1: read it the first way.");
+
+    const waiting = await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(waiting.message).toContain("byro-repo #1 waits on Halt H1");
+    github.reply(213, "**H1**: I ran it.");
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests[0]?.prompt).toContain(
+      "Answer, verbatim:\n\n**H1**: I ran it.",
+    );
+    expect(noteComments()).toEqual([
+      "<!-- spec-runner -->\nHalt H2 answered via a spec-issue reply.",
+      "<!-- spec-runner -->\nHalt H1 answered via a spec-issue reply.",
+    ]);
+  });
+
+  it("reads `stop spec` only as the answer itself, not a mention after it", async () => {
+    addSpec([1]);
+    await specRun(FakeAgentStep.init(blocked([gated]))).run(spec);
+    github.reply(213, "H1: retry, don't stop spec");
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.message).toContain("landed byro-repo #1");
   });
 
   it("resumes with a fresh implementer on the committed branch once the session reached the ticket budget", async () => {

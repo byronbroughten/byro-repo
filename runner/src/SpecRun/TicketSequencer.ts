@@ -9,6 +9,7 @@ import {
   failureOptions,
   type Halt,
   haltNameOf,
+  isAnswered,
   runnerMark,
   type StepFailure,
 } from "../halts.ts";
@@ -299,10 +300,10 @@ function approvingHaltOf(
   bodyHash: string,
 ): Halt | undefined {
   const latest = runHalts.ofTicket(run, ticket).findLast(runHalts.isAuthorship);
-  if (latest?.answer === undefined || latest.bodyHash !== bodyHash) {
+  if (!isAnswered(latest) || latest.bodyHash !== bodyHash) {
     return undefined;
   }
-  const isApproved = failureAnswerOf(latest, latest.answer).kind === "approve";
+  const isApproved = failureAnswerOf(latest).kind === "approve";
   return isApproved ? latest : undefined;
 }
 

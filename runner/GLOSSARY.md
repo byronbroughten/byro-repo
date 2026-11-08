@@ -73,7 +73,7 @@ The verdict that leaves the finding for the developer on the review list: `decis
 _Avoid_: Defer, postpone, backlog
 
 **Halt**:
-The verdict that blocks the tickets in its scope until it is answered: named later tickets and their downstream, or `spec`. A blocker in the implement record is one too. It is posted as a spec-issue comment and answered there, by the developer or, for a blocker the Supervisor cleared itself, by the Supervisor; an interactive session's review of its own ticket takes the answers in the session.
+The verdict that blocks the tickets in its scope until it is answered: named later tickets and their downstream, or `spec`. A blocker in the implement record is one too. It is posted as a spec-issue comment and answered there, by the developer or, for a blocker the Supervisor cleared itself, by the Supervisor, with a reply that opens with its id. An interactive session's review of its own ticket takes the answers in the session.
 _Avoid_: pause, block, question
 
 **Failure Halt**:

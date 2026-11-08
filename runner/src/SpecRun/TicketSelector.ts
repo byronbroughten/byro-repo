@@ -9,6 +9,7 @@ import {
   type Halt,
   haltNameOf,
   ignoredNoteOf,
+  isAnswered,
   shortRefOf,
 } from "../halts.ts";
 import { failureAnswerOf, repliesTo } from "../halts/haltReplies.ts";
@@ -175,7 +176,7 @@ export class TicketSelector extends SpecRunBase {
       .map(issueLabelOf);
   }
 
-  // The first reply naming an open Halt answers it; a later one is noted as ignored, once.
+  // The first reply opening with an open Halt's id answers it; a later one is noted as ignored, once.
   private async _readAnswers(run: Run): Promise<Halt[]> {
     const posted = runHalts.of(run).filter(({ isPosted }) => isPosted);
     if (posted.length === 0) return [];
@@ -256,8 +257,8 @@ function lastAnswerAtOf(run: Run, ticket: IssueRef): string {
 }
 
 function isSkipAnswered(halt: Halt): boolean {
-  if (halt.kind !== "failure" || halt.answer === undefined) return false;
-  return failureAnswerOf(halt, halt.answer).kind === "skip";
+  if (halt.kind !== "failure" || !isAnswered(halt)) return false;
+  return failureAnswerOf(halt).kind === "skip";
 }
 
 function developerWaitTextOf(
