@@ -116,6 +116,12 @@ export const wrapUpConfig: WrapUpConfig = {
   async afterFastForward(root) {
     execFileSync("npm", ["run", "prepare"], { cwd: root, stdio: "inherit" });
   },
+  async installDependencies(root) {
+    execFileSync("npm", ["install", "--ignore-scripts"], {
+      cwd: root,
+      stdio: "inherit",
+    });
+  },
   log: (line) => console.log(line),
 };
 

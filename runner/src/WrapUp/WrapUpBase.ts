@@ -6,7 +6,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { messageOf } from "../failureText.ts";
-import { currentBranchOf, git } from "../git.ts";
+import { currentBranchOf, git, lines } from "../git.ts";
 import {
   fileStemOf,
   isSessionKey,
@@ -18,8 +18,10 @@ import {
 } from "../IssueWorkspaces.ts";
 import { sleep } from "../sleep.ts";
 import { WrapUpFailure } from "../WrapUpFailure.ts";
+import { dependencyRangesOf } from "./packageDependencies.ts";
 import {
   defaultWrapUpKnobs,
+  type DependencyComparison,
   type Landing,
   type WrapUpConfig,
   type WrapUpKnobs,
@@ -142,6 +144,15 @@ export class WrapUpBase {
     );
   }
 
+  protected async _isAnyDependencyChanged(
+    comparisons: DependencyComparison[],
+  ): Promise<boolean> {
+    for (const comparison of comparisons) {
+      if (await isDependencyChanged(comparison)) return true;
+    }
+    return false;
+  }
+
   protected get _sleep(): (ms: number) => Promise<void> {
     return this.config.sleep ?? sleep;
   }
@@ -170,6 +181,55 @@ export function listedReposOf({
   branches,
 }: Pick<Landing, "branches">): string[] {
   return branches.map(({ repo }) => repo);
+}
+
+async function isDependencyChanged({
+  clone,
+  from,
+  to,
+}: DependencyComparison): Promise<boolean> {
+  // No rename detection, so a moved package.json is seen at both its paths.
+  const changed = await git(
+    clone,
+    "diff",
+    "--name-only",
+    "--no-renames",
+    from,
+    to,
+  );
+  for (const path of lines(changed).filter(isPackageJsonPath)) {
+    const before = dependencyRangesOf(
+      await packageJsonTextAt(clone, from, path),
+    );
+    const after = dependencyRangesOf(await packageJsonTextAt(clone, to, path));
+    if (!areSameRanges(before, after)) return true;
+  }
+  return false;
+}
+
+function isPackageJsonPath(path: string): boolean {
+  return path === "package.json" || path.endsWith("/package.json");
+}
+
+// A commit without the file holds no dependencies there.
+async function packageJsonTextAt(
+  clone: string,
+  rev: string,
+  path: string,
+): Promise<string> {
+  const listed = await git(clone, "ls-tree", "--name-only", rev, "--", path);
+  if (listed === "") return "{}";
+  return git(clone, "show", `${rev}:${path}`);
+}
+
+function areSameRanges(
+  before: Map<string, string>,
+  after: Map<string, string>,
+): boolean {
+  return (
+    before.size === after.size &&
+    [...before].every(([name, range]) => after.get(name) === range)
+  );
 }
 
 function stateStemOf(key: WorkspaceKey): string {

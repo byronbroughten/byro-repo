@@ -1,5 +1,5 @@
-// Fast-forwards each primary checkout's master to its built commit under the landing locks, then runs the after hook and
-// pushes. It builds LandingPusher, whose scan and push run under the same locks.
+// Fast-forwards each primary checkout's master to its built commit under the landing locks, installs any dependencies that
+// changes, then runs the after hook and pushes. It builds LandingPusher, whose scan and push run under the same locks.
 
 import { messageOf } from "../failureText.ts";
 import { git, revOf } from "../git.ts";
@@ -7,7 +7,11 @@ import { LandingLock } from "../LandingLock.ts";
 import { WrapUpFailure } from "../WrapUpFailure.ts";
 import { LandingPusher } from "./LandingPusher.ts";
 import { WrapUpBase } from "./WrapUpBase.ts";
-import { type BuiltRepo, type Landing } from "./wrapUpTypes.ts";
+import {
+  type BuiltRepo,
+  installCommandLabel,
+  type Landing,
+} from "./wrapUpTypes.ts";
 
 export class MasterFastForwarder extends WrapUpBase {
   private get pusher(): LandingPusher {
@@ -38,6 +42,7 @@ export class MasterFastForwarder extends WrapUpBase {
         await this._fastForwardRepo(repo, built[repo] as BuiltRepo);
       }
       await this._markDone(landing, "fast-forward");
+      await this._installChangedDependencies(built);
       await this._runAfterFastForward();
       await this.pusher._scanAndPush(landing);
       return true;
@@ -50,6 +55,28 @@ export class MasterFastForwarder extends WrapUpBase {
     return [...repos].sort(
       (a, b) => this._clonePathOf(a).length - this._clonePathOf(b).length,
     );
+  }
+
+  private async _installChangedDependencies(
+    built: Record<string, BuiltRepo>,
+  ): Promise<void> {
+    const { primaryRoot } = this.config.workspaces;
+    try {
+      const comparisons = Object.entries(built).map(
+        ([repo, { base, head }]) => ({
+          clone: this._primaryOf(repo),
+          from: base,
+          to: head,
+        }),
+      );
+      if (await this._isAnyDependencyChanged(comparisons)) {
+        await this.config.installDependencies?.(primaryRoot);
+      }
+    } catch (error) {
+      this._log(
+        `Warning: the dependency install failed in ${primaryRoot}, continuing; run ${installCommandLabel} in the primary root before the next check: ${messageOf(error)}`,
+      );
+    }
   }
 
   private async _runAfterFastForward(): Promise<void> {

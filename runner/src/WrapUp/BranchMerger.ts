@@ -1,4 +1,4 @@
-// Merges a landing's branches into each repo's master in the workspace and runs the checks on the result, or with
+// Merges a landing's branches into each repo's master in the workspace, installs changed dependencies and runs the checks on the result, or with
 // nothing to merge switches the workspace's repos to master. A failure restores the worktrees through WorktreeRestorer.
 
 import { execFile } from "node:child_process";
@@ -12,6 +12,7 @@ import { WorktreeRestorer } from "./WorktreeRestorer.ts";
 import { WrapUpBase } from "./WrapUpBase.ts";
 import {
   type BuiltRepo,
+  installCommandLabel,
   type Landing,
   type LandingBranch,
 } from "./wrapUpTypes.ts";
@@ -27,6 +28,7 @@ export class BranchMerger extends WrapUpBase {
     await this._step(landing, "merges", () => this._merge(landing, workspace));
     await this._step(landing, "checks", async () => {
       try {
+        await this._installChangedDependencies(landing, workspace);
         await this._runChecks(workspace.path);
       } catch (error) {
         await this.restorer._restore(landing, workspace);
@@ -80,6 +82,27 @@ export class BranchMerger extends WrapUpBase {
       throw new WrapUpFailure(
         "conflict",
         `Merging ${branch} into ${repo}'s master conflicts; the merge was aborted: ${messageOf(error)}`,
+      );
+    }
+  }
+
+  private async _installChangedDependencies(
+    landing: Landing,
+    workspace: Workspace,
+  ): Promise<void> {
+    try {
+      const comparisons = landing.branches.map(({ repo, branch }) => ({
+        clone: this._worktreeOf(workspace, repo),
+        from: branch,
+        to: (landing.progress.built?.[repo] as BuiltRepo).head,
+      }));
+      if (await this._isAnyDependencyChanged(comparisons)) {
+        await this.config.installDependencies?.(workspace.path);
+      }
+    } catch (error) {
+      throw new WrapUpFailure(
+        "install",
+        `${installCommandLabel} failed in ${workspace.path}: ${messageOf(error)}`,
       );
     }
   }

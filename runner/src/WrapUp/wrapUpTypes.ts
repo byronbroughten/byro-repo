@@ -17,6 +17,15 @@ export const labels = {
   human: "ready-for-human",
 } as const;
 
+export const installCommandLabel = "npm install --ignore-scripts";
+
+// A repo and the two commits whose package.json dependencies are compared.
+export interface DependencyComparison {
+  clone: string;
+  from: string;
+  to: string;
+}
+
 export type WrapUpStep =
   | "clean-check"
   | "files-changed"
@@ -129,6 +138,8 @@ export interface WrapUpConfig {
   ): Promise<WrittenOutcomeRow>;
   // Run at the primary root once the primaries are fast-forwarded; a failure only warns.
   afterFastForward?(primaryRoot: string): Promise<void>;
+  // Run at a root whose merge changed a package.json's dependencies, as installCommandLabel words it.
+  installDependencies?(root: string): Promise<void>;
   knobs?: Partial<WrapUpKnobs>;
   sleep?(ms: number): Promise<void>;
   log?(line: string): void;

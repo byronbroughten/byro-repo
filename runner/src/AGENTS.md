@@ -123,13 +123,14 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `WrapUp.ts` | `WrapUp` | `npm run wrap-up`: lands an issue or session workspace, delegating its landing steps and closing the issue to `WrapUp/`; and `npm run research:push`'s push. |
 | `WrapUp/BranchDeleter.ts` | | Deletes a landing's branches on each remote and locally, recording the ones that failed. |
 | `WrapUp/BranchLander.ts` | | Lands a landing's branches up to the fast-forward: restores, clean check, files changed, stale paths, build and rebuild. |
-| `WrapUp/BranchMerger.ts` | | Merges a landing's branches in the workspace and runs the checks, or switches the workspace's repos to master. |
+| `WrapUp/BranchMerger.ts` | | Merges a landing's branches in the workspace, installs changed dependencies and runs the checks, or switches the workspace's repos to master. |
 | `WrapUp/IssueCloser.ts` | | Closes a landed ticket's issue or leaves a Standalone one open, and reads its parent, spec and handoff sessions. |
 | `WrapUp/LandingBranchFinder.ts` | | Finds the branches a landing merges, the repos whose workspace branch is ahead of master, and the branches its workspace made. |
 | `WrapUp/LandingKindPicker.ts` | | Picks what differs between a ticket that lands branches, one with no code and a session. |
 | `WrapUp/LandingPusher.ts` | | Scans a landing's added lines for token shapes, then pushes each master. |
 | `WrapUp/LogRowCommitter.ts` | | Writes a ticket's outcome row into the merged root checkout and commits it. |
-| `WrapUp/MasterFastForwarder.ts` | | Fast-forwards each primary's master under the landing locks, then runs the after hook and pushes. |
+| `WrapUp/MasterFastForwarder.ts` | | Fast-forwards each primary's master under the landing locks, installs changed dependencies, then runs the after hook and pushes. |
+| `WrapUp/packageDependencies.ts` | | Reads a `package.json`'s dependency names and version ranges. |
 | `WrapUp/ResearchPusher.ts` | | `npm run research:push`: pushes a Workspace checkout's `research/*` branch behind the secret scan. |
 | `WrapUp/WorkspaceFinisher.ts` | | Checks a workspace's lease is free, levels a kept session's repos with master and removes the workspace. |
 | `WrapUp/WorktreeRestorer.ts` | | Puts a landing's worktrees back where they were before a build. |
