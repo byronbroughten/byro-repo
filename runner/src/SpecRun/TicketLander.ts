@@ -1,11 +1,12 @@
 // A ticket's checks and landing. Checks run in the workspace until green, resuming whoever made the last commit on red;
-// a red master Stops the run. Landing writes the facts file, runs the wrap-up, resumes the implementer once to merge master
-// on a conflict, and posts the ticket's review list, that merge's resolution on it as a Propose `decision`.
+// a red master Stops the run. Landing writes the facts file, runs the wrap-up, on a conflict starts a merge of master and
+// resumes the implementer once to resolve it, and posts the ticket's review list, that merge's resolution on it as a Propose `decision`.
 // TicketSequencer.ts calls _check after the resolve step and _land at wrap-up.
 // It builds its own ReviewStepper, ReviewListPoster and HaltRaiser; prompts are ../redChecksStep.ts and ../mergeMasterStep.ts.
 
 import { type WrapUpFacts } from "../FactsFile.ts";
 import { commandLabelOf, messageOf } from "../failureText.ts";
+import { git, isMerging } from "../git.ts";
 import { haltKindLabelOf } from "../halts.ts";
 import { issueLabelOf } from "../IssueWorkspaces.ts";
 import {
@@ -25,6 +26,7 @@ import { ReviewListPoster } from "./ReviewListPoster.ts";
 import { ReviewStepper } from "./ReviewStepper.ts";
 import {
   type LandingTicket,
+  type RanStep,
   type Resolver,
   runCommand,
   targetsAtLaunchOf,
@@ -33,7 +35,7 @@ import {
 } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
 import { ticketSteps } from "./runState/ticketSteps.ts";
-import { SpecRunBase } from "./SpecRunBase.ts";
+import { type CloneWorktree, SpecRunBase } from "./SpecRunBase.ts";
 
 const resolverLabels: Record<Resolver, string> = {
   implementer: "implementer",
@@ -209,6 +211,7 @@ export class TicketLander extends SpecRunBase {
   }
 
   // The rerun wrap-up judges what the session merged, so a turn cap only sets its uncommitted work aside.
+  // The runner starts the merge because the step's sandbox blocks a git write to `.claude/` files.
   private async _mergeMaster(
     landingTicket: LandingTicket,
     conflict: string,
@@ -228,13 +231,25 @@ export class TicketLander extends SpecRunBase {
       workspace,
       targets: targetsAtLaunchOf(ticket, progressPath),
     };
-    this._log(
-      run,
-      `${issueLabelOf(ticket.issue)}: the wrap-up conflicted with master; resuming the implementer to merge it.`,
+    const branchedRepos = ticketSteps.branchedReposOf(ticketRun);
+    const worktrees = this._worktreesOf(workspace).filter(({ repo }) =>
+      branchedRepos.includes(repo),
     );
-    const { result, logPath } = await this.reviewStepper._runResolverStep(
-      ticketRun,
-      {
+    let ran: RanStep;
+    try {
+      const mergingRepos = await this._startMerges(ticketRun, worktrees);
+      if (mergingRepos.length === 0) {
+        this._log(
+          run,
+          `${issueLabelOf(ticket.issue)}: the wrap-up conflicted with master, which then merged cleanly; rerunning the wrap-up.`,
+        );
+        return;
+      }
+      this._log(
+        run,
+        `${issueLabelOf(ticket.issue)}: the wrap-up conflicted with master; resuming the implementer to merge it.`,
+      );
+      ran = await this.reviewStepper._runResolverStep(ticketRun, {
         step: "merge-master",
         resolver: "implementer",
         launch: {
@@ -242,40 +257,89 @@ export class TicketLander extends SpecRunBase {
             issue: ticket.issue,
             title: ticket.title,
             branch: workspace.branch,
-            branchedRepos: ticketSteps.branchedReposOf(ticketRun),
+            branchedRepos,
+            mergingRepos,
             conflict,
           }),
           jsonSchema: mergeMasterOutputSchema,
         },
-      },
-    );
-    this._saveState(run);
+      });
+      this._saveState(run);
+      // Before the abort, which would discard the session's partial resolution.
+      if (ticketSteps.isTurnCapped(ran.result)) {
+        await this._snapshot(ticketRun, "wrap-up");
+      }
+    } finally {
+      await abortMerges(worktrees);
+    }
+    await this._takeMergeMasterResult(landingTicket, ran);
+  }
+
+  // Returns the repos left mid-merge with conflicts; a repo that merged cleanly has its merge committed.
+  private async _startMerges(
+    ticketRun: TicketRun,
+    worktrees: CloneWorktree[],
+  ): Promise<string[]> {
+    const mergingRepos: string[] = [];
+    for (const { repo, worktree } of worktrees) {
+      try {
+        await git(worktree, "merge", "--no-edit", "master");
+      } catch (error) {
+        if (!(await isMerging(worktree))) {
+          await this.haltRaiser._failureHalt(ticketRun, {
+            step: "wrap-up",
+            detail: `Merging master into ${repo}'s ticket branch failed: ${messageOf(error)}`,
+            logPath: this._progressPathOf(ticketRun.run),
+          });
+        }
+        mergingRepos.push(repo);
+      }
+    }
+    return mergingRepos;
+  }
+
+  private async _takeMergeMasterResult(
+    landingTicket: LandingTicket,
+    { result, logPath }: RanStep,
+  ): Promise<void> {
+    const { run, state } = landingTicket;
     if (ticketSteps.isTurnCapped(result)) {
       // It may have committed its merge first, which the rerun wrap-up then lands.
-      landingTicket.state.unrecordedMerge =
+      state.unrecordedMerge =
         "The merge-master session hit its turn cap before returning its record.";
       this._saveState(run);
-      await this._snapshot(ticketRun, "wrap-up");
       return;
     }
+    let record: MergeMasterRecord;
     try {
-      landingTicket.state.mergeMasterRecord = ticketSteps.recordOf(
+      record = ticketSteps.recordOf(
         "merge-master",
         result,
         logPath,
       ) as MergeMasterRecord;
-      landingTicket.state.unrecordedMerge = undefined;
-      this._saveState(run);
     } catch (error) {
       if (!(error instanceof SchemaFailure)) throw error;
-      landingTicket.state.unrecordedMerge = `The merge-master session's record failed its checks: ${error.message}`;
+      state.unrecordedMerge = `The merge-master session's record failed its checks: ${error.message}`;
       this._saveState(run);
-      await this.haltRaiser._failureHalt(landingTicket, {
+      return this.haltRaiser._failureHalt(landingTicket, {
         step: "wrap-up",
         detail: error.message,
         logPath: error.logPath,
       });
     }
+    if (record.unsure !== undefined) {
+      state.mergeMasterRecord = undefined;
+      state.unrecordedMerge = undefined;
+      this._saveState(run);
+      return this.haltRaiser._failureHalt(landingTicket, {
+        step: "wrap-up",
+        detail: `The merge-master step couldn't tell how to resolve the conflict with master: ${record.unsure}`,
+        logPath,
+      });
+    }
+    state.mergeMasterRecord = record;
+    state.unrecordedMerge = undefined;
+    this._saveState(run);
   }
 
   private _writeFacts(
@@ -328,6 +392,12 @@ export class TicketLander extends SpecRunBase {
     unrecordedFactsOf({ steps }).forEach(({ label, reason }) => {
       this._log(run, `${prefix} ${label} written unrecorded: ${reason}.`);
     });
+  }
+}
+
+async function abortMerges(worktrees: CloneWorktree[]): Promise<void> {
+  for (const { worktree } of worktrees) {
+    if (await isMerging(worktree)) await git(worktree, "merge", "--abort");
   }
 }
 

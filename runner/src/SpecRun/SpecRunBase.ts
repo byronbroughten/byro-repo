@@ -121,7 +121,7 @@ export interface Clock {
   now(): Date;
 }
 
-interface CloneWorktree {
+export interface CloneWorktree {
   repo: string;
   clonePath: string;
   worktree: string;
