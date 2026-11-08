@@ -61,9 +61,9 @@ Reads need no yes in any tier. A Bash read is free as a sandboxed call and asks 
 
 **A loop, conditional, group or function takes the strictest tier among the commands inside it.**
 
-**A heredoc is plain text only when its delimiter is quoted (`<<'EOF'`) and no `$(…)`, backtick, `${…}`, `$'…'` or `((` sits beside it**, since those nest quotes past the gate's heredoc scan; any other heredoc bash may expand leaves the call to Claude Code. A `<<` the gate reads differently from bash, such as a here-string followed by more lines, leaves any call to Claude Code too. A `$(…)` or backtick, quoted or not and nested included, gives the call the strictest tier among the commands outside and inside it.
+**A heredoc is plain text only when its delimiter is quoted (`<<'EOF'`) and no `$'…'` sits beside it**, since bash rewrites an unquoted body and `$'…'` before a command gets them; a call holding any other heredoc and a substitution, or a command that needs plain text, is left to Claude Code. A `$(…)` or backtick, quoted or not, nested or in a heredoc body or a `${…}`, gives the call the strictest tier among the commands outside and inside it.
 
-**A call the gate can't parse is refused, never asked, in an Interactive session too**: an unbalanced quote, a substitution left open, a `${…}` or a comment beside a substitution, or compound syntax it can't read as bash would. The refusal names what it can't read and the way through: single quotes, a body in a file passed with `--body-file`, or each part in a call of its own. A runner step's is refused as a call the gate doesn't classify. Stricter, and a Tier 1 change: the developer can no longer approve a command the gate can't parse.
+**A call the gate can't parse is refused, never asked, in an Interactive session too**: an unbalanced quote, a substitution left open, other syntax bash rejects too, or compound syntax it can't read as bash would. The refusal names what it can't read and the way through: single quotes, a body in a file passed with `--body-file`, or each part in a call of its own. A runner step's is refused as a call the gate doesn't classify. Stricter, and a Tier 1 change: the developer can no longer approve a command the gate can't parse. A bash parser that won't run is the other refusal ([it fails closed](./claude-code-guardrails.md#the-hooks-and-the-project-agent)).
 
 ### npm publish
 

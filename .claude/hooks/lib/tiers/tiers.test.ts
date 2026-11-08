@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   blockerInstead,
@@ -179,17 +179,17 @@ describe("heredocs and substitutions", () => {
       "gh issue create --title T --body-file - <<'EOF'\nA `code` span, a | pipe and $(rm -rf dist)\nEOF",
       'gh issue create --title T --body-file - <<"EOF"\n# Title; with a ( paren\nEOF',
       "gh label list <<'EOF'\nx\nEOF\ngh label list",
+      "gh label list <<'EOF' \\\n> /tmp/s372/a.md\nbody\nEOF",
     ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
   });
 
-  it("allows no heredoc bash may expand, nor one its scan reads differently from the text match", () => {
+  it("allows no heredoc bash may expand, nor a `<<` that isn't a heredoc beside a command", () => {
     [
       "gh label list <<EOF\nhi\nEOF",
       "gh issue create --title T --body-file - <<EOF\nok\nEOF",
       "gh label list <<< y\ngit push",
       "gh label list # <<'EOF'\ngit push\nEOF",
       "gh label list '<<EOF'\ngit push\nEOF",
-      "gh label list <<'EOF' \\\n> /tmp/s372/a.md\nbody\nEOF",
       'gh label list "$(gh label list " <<\'X\'")"\ngit push\nX',
       'gh label list "${a:-" <<\'X\'"}"\ngit push\nX',
       'gh label list $((1<<"2"))\ngit push\n2',
@@ -228,17 +228,92 @@ describe("heredocs and substitutions", () => {
     ].forEach((command) => expect(decisionOf(command)).not.toBe("allow"));
   });
 
-  it("allows no substitution beside a `${…}` or a comment, which bash reads differently", () => {
+  it("reads a substitution beside a `${…}` or a comment as bash does", () => {
     [
       "echo $(echo ${x#) #} ; git push)",
-      "echo $(echo ${x#) #} ; rm -rf x)",
       'echo "$(echo "${x#")"}" ; git push)"',
       "echo ${y:-a #} $(git push)",
+      'gh label list "$(gh label list # )\ngit push\n)"',
+    ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
+    [
+      "echo $(echo ${x#) #} ; rm -rf x)",
+      'gh label list "$(gh label list # )\nrm -rf dist\n)"',
+    ].forEach((command) => expect(decisionOf(command)).toBeUndefined());
+  });
+
+  it("reads a substitution inside a `${…}`", () => {
+    expect(decisionOf("gh label list ${x:-$(gh label list)}")).toBe("allow");
+    expect(decisionOf("gh label list ${x:-$(git push)}")).toBe("ask");
+    expect(decisionOf("gh label list ${x:-$(date)}")).toBeUndefined();
+  });
+
+  it("reads a substitution in the body of a heredoc bash expands, or beside it", () => {
+    expect(decisionOf("cat <<EOF\n$(git push)\nEOF")).toBe("ask");
+    expect(decisionOf("gh label list <<EOF\n$(git push)\nEOF")).toBe("ask");
+    expect(decisionOf("gh label list <<EOF\nhi\nEOF\necho $(git push)")).toBe(
+      "ask",
+    );
+    expect(
+      decisionOf("gh label list <<EOF\nhi\nEOF\necho $(gh label list)"),
+    ).toBeUndefined();
+  });
+
+  it("refuses an arithmetic `((` bash rejects", () => {
+    [
       "(( # )) ; $(git push)",
       'echo "$( (( #)) ; git push\n)))"',
       "echo $(( #))",
     ].forEach((command) => expect(decisionOf(command)).toBe("deny"));
   });
+});
+
+class ParseError extends Error {}
+
+// ShellParser/shellSyntax.ts loads sh-syntax at module top level, so each case reloads the gate behind its own mock.
+async function gateDecisionWith(shSyntax: () => object) {
+  vi.resetModules();
+  vi.doMock("sh-syntax", shSyntax);
+  const reloaded = await import("./tiers.ts");
+  return reloaded.gateDecision;
+}
+
+describe("a gate whose bash parser won't run", () => {
+  afterEach(() => {
+    vi.doUnmock("sh-syntax");
+  });
+
+  it.each([
+    [
+      "won't load",
+      () => {
+        throw new Error("Cannot find package 'sh-syntax'");
+      },
+    ],
+    [
+      "throws past a syntax error",
+      () => ({
+        ParseError,
+        parseSync() {
+          throw new TypeError("wasm instance gone");
+        },
+      }),
+    ],
+  ])(
+    "refuses every call in either mode when the parser %s, naming npm install",
+    async (_kind, shSyntax) => {
+      const reloadedDecision = await gateDecisionWith(shSyntax);
+      const modes: SessionMode[] = ["interactive", "runnerStep"];
+      modes.forEach((mode) => {
+        const decision = reloadedDecision({
+          command: "gh label list",
+          mode,
+          dryRuns: [],
+        });
+        expect(decision?.permissionDecision).toBe("deny");
+        expect(decision?.reason).toContain("npm install");
+      });
+    },
+  );
 });
 
 describe("a runner step's unclassified call", () => {
@@ -517,18 +592,13 @@ describe("a call the gate can't parse", () => {
       "a command substitution left open",
     ],
     [
-      "a `${…}` beside a substitution",
-      "echo ${y:-a #} $(git push)",
-      "a comment or `${…}` beside a command substitution",
-    ],
-    [
-      "a comment inside a substitution",
-      'gh label list "$(gh label list # )\nrm -rf dist\n)"',
-      "a comment or `${…}` beside a command substitution",
+      "syntax bash rejects",
+      "for i in 1; do npm run lint",
+      "syntax bash rejects too",
     ],
     [
       "compound syntax it can't read",
-      "for i in 1; do npm run lint",
+      "f() npm run lint",
       "compound syntax the gate can't read as bash would",
     ],
     [
