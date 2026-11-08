@@ -1,15 +1,15 @@
 // Halt replies: which of the developer's spec-issue replies answer a Halt, `stop spec`, and what a Failure Halt's answer asks for.
-// The Halt itself, its comment and the resume prompt are ./halts.ts; SpecRun/TicketSelector.ts reads the replies each pick.
+// The Halt itself, its comment and the resume prompt are ../halts.ts; ../SpecRun/TicketSelector.ts reads the replies each pick.
 
-import type { Pair } from "./AgentStep.ts";
+import type { Pair } from "../AgentStep.ts";
 import {
   type Halt,
   type HaltAnswer,
   haltHeadingOf,
   isRunnersComment,
-} from "./halts.ts";
-import { pairNamed } from "./modelFit.ts";
-import type { IssueComment } from "./SpecRun.ts";
+} from "../halts.ts";
+import { pairNamed } from "../modelFit.ts";
+import type { IssueComment } from "../SpecRun.ts";
 
 export type FailureAnswer =
   | { kind: "retry" }

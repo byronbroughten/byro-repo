@@ -1,8 +1,7 @@
 // A run's Halts: raising them into the run state, reading them by ticket, answer or kind,
 // delivering answered Failure Halts, the downstream tickets one holds, and the order answers are read in.
-// The Halt shape and its comments are ../../halts.ts, its answers ../../haltReplies.ts; the run state they live in is ../runState.ts.
+// The Halt shape and its comments are ../../halts.ts, its answers ../../halts/haltReplies.ts; the run state they live in is ../runState.ts.
 
-import { failureAnswerOf, isStopSpecAnswer } from "../../haltReplies.ts";
 import {
   failureOptions,
   type Halt,
@@ -10,6 +9,7 @@ import {
   sessionHaltIdOf,
   shortRefOf,
 } from "../../halts.ts";
+import { failureAnswerOf, isStopSpecAnswer } from "../../halts/haltReplies.ts";
 import { isSameIssue, type IssueRef } from "../../IssueWorkspaces.ts";
 import { type Run, ticketStateOf, type TicketStep } from "../runState.ts";
 

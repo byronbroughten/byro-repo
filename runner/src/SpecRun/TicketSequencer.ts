@@ -5,7 +5,6 @@
 // RunLoop.ts calls _runTicket and SessionReviewer.ts calls _runSteps.
 // It builds its own LeaseKeeper, ImplementStepper, ReviewStepper, TicketLander and HaltRaiser.
 
-import { failureAnswerOf } from "../haltReplies.ts";
 import {
   failureOptions,
   type Halt,
@@ -13,6 +12,7 @@ import {
   runnerMark,
   type StepFailure,
 } from "../halts.ts";
+import { failureAnswerOf } from "../halts/haltReplies.ts";
 import { approvalLineOf, bodyHashOf } from "../IssueReader.ts";
 import { issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
 import { LeaseHeld } from "../LeaseHeld.ts";

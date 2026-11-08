@@ -2,9 +2,8 @@
 // for what holds it (a lease, a Stop, a skip, an open Halt in scope, the developer, a blocker) and picks the next one.
 // A ticket with every Halt answered goes first, oldest answered set first, then the blocking graph's frontier.
 // RunLoop.ts calls _select each pick, and StatusReporter.ts _survey for status().
-// It builds its own LeaseKeeper and HaltRaiser; Halt formats are ../halts.ts and reply matching ../haltReplies.ts.
+// It builds its own LeaseKeeper and HaltRaiser; Halt formats are ../halts.ts and reply matching ../halts/haltReplies.ts.
 
-import { failureAnswerOf, repliesTo } from "../haltReplies.ts";
 import {
   answeredNoteOf,
   type Halt,
@@ -12,6 +11,7 @@ import {
   ignoredNoteOf,
   shortRefOf,
 } from "../halts.ts";
+import { failureAnswerOf, repliesTo } from "../halts/haltReplies.ts";
 import {
   holderLabelOf,
   issueLabelOf,

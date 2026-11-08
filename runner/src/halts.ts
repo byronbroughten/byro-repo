@@ -1,5 +1,5 @@
 // Halts: the Halts a ticket's steps raise, the spec-issue comment and notice line each is posted as, and the prompt
-// that hands every answer back to the ticket's resumed or fresh implementer; which replies answer one is ./haltReplies.ts.
+// that hands every answer back to the ticket's resumed or fresh implementer; which replies answer one is ./halts/haltReplies.ts.
 // SpecRun.ts keeps them in run state, blocks the tickets in their scope and resumes the halted ticket once all are answered.
 
 import {
