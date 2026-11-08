@@ -1,0 +1,7 @@
+# byro-repo#601 outcome
+
+Spec: [byro-repo#601](https://github.com/byronbroughten/byro-repo/issues/601)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #601 | Opus low | 1 | 10 | 115K | Fix (resumed implementer) | 0 | 1 | 0 | 11 min | $3.24 | $4.32 | Fixed: The dependency-comparison helpers share nothing with Base and pass clone around. (runner/src/WrapUp/WrapUpBase.ts:147,186-233); The check-then-install shape is duplicated in both collaborators. (runner/src/WrapUp/BranchMerger.ts:89-108, runner/src/WrapUp/MasterFastForwarder.ts:60-80); packageJsonTextAt has 3 positional params. (runner/src/WrapUp/WrapUpBase.ts:215); areSameRanges has 2 positional params of one type. (runner/src/WrapUp/WrapUpBase.ts:225); The nested-package.json test name doesn't match what it commits. (runner/src/WrapUp.installDependencies.test.ts:65); landedWorkspace returns a path every caller discards. (runner/src/WrapUp.installDependencies.test.ts:30-35); The recording fake is repeated across tests. (runner/src/WrapUp.installDependencies.test.ts:53-122); The try reports a comparison failure as a failed npm install. (runner/src/WrapUp/BranchMerger.ts:93-107). | ff40d4ca-f709-46d5-91c0-158064e48c6b, 41b84027-86fb-44cc-8a7b-95c4e6922db2 |
