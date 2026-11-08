@@ -1,4 +1,4 @@
-// The verdicts only an Interactive session gets: its gh issue create, issue links and `gh api` reads, its review-list decisions and its research push.
+// The verdicts only an Interactive session gets: its gh issue create, issue links and `gh api` reads, its review-list decisions, its research push and its ask for the Google script route.
 import { GhApiCall } from "../GhApiCall.ts";
 import type { SimpleCommand } from "../ShellParser.ts";
 import type { CallContext, Verdict } from "../tiers.ts";
@@ -60,22 +60,67 @@ export const interactiveSession = {
       needsPlainText: true,
     };
   },
-  // A standing yes behind wrap-up's secret scan; a runner step's is refused, as nobody reads what it publishes.
   researchPushVerdictOf(
-    { words }: SimpleCommand,
-    { mode }: CallContext,
+    simple: SimpleCommand,
+    context: CallContext,
   ): Verdict | undefined {
-    if (npmCommands.isPrefixed(words)) return undefined;
-    if (npmCommands.scriptOf(words)?.name !== "research:push") return undefined;
-    if (mode !== "interactive") {
-      return {
-        permissionDecision: "ask",
-        why: "pushes a `research/*` branch, which only an Interactive session does",
-      };
-    }
-    return {
-      permissionDecision: "allow",
-      why: "`npm run research:push` is the standing yes to push a `research/*` branch, behind wrap-up's secret scan",
-    };
+    return interactiveScriptVerdictOf(
+      simple,
+      context,
+      interactiveScripts.researchPush,
+    );
+  },
+  googleScriptVerdictOf(
+    simple: SimpleCommand,
+    context: CallContext,
+  ): Verdict | undefined {
+    return interactiveScriptVerdictOf(
+      simple,
+      context,
+      interactiveScripts.googleScript,
+    );
   },
 };
+
+// A script only an Interactive session runs: `stepWhy` is a runner step's refusal, `sessionVerdict` the session's.
+interface InteractiveScript {
+  name: string;
+  stepWhy: string;
+  sessionVerdict: Verdict;
+}
+
+const interactiveScripts = {
+  // A standing yes behind wrap-up's secret scan; a runner step's is refused, as nobody reads what it publishes.
+  researchPush: {
+    name: "research:push",
+    stepWhy:
+      "pushes a `research/*` branch, which only an Interactive session does",
+    sessionVerdict: {
+      permissionDecision: "allow",
+      why: "`npm run research:push` is the standing yes to push a `research/*` branch, behind wrap-up's secret scan",
+    },
+  },
+  // Asks in an Interactive session, as the script runs outside the box; a runner step's is refused, as runner steps haven't needed one.
+  googleScript: {
+    name: "google:script",
+    stepWhy:
+      "runs an agent-written script holding the agent account's access token, which only an Interactive session does",
+    sessionVerdict: {
+      permissionDecision: "ask",
+      why: "`npm run google:script` runs the script with the agent account's access token, and outside the box, so nothing stops it reading the credential files the box hides",
+    },
+  },
+} as const satisfies Record<string, InteractiveScript>;
+
+function interactiveScriptVerdictOf(
+  { words }: SimpleCommand,
+  { mode }: CallContext,
+  { name, stepWhy, sessionVerdict }: InteractiveScript,
+): Verdict | undefined {
+  if (npmCommands.isPrefixed(words)) return undefined;
+  if (npmCommands.scriptOf(words)?.name !== name) return undefined;
+  if (mode !== "interactive") {
+    return { permissionDecision: "ask", why: stepWhy };
+  }
+  return sessionVerdict;
+}

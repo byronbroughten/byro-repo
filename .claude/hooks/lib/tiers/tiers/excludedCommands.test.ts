@@ -16,6 +16,7 @@ const entries = [
   "npm run ws:rm *",
   "npm run research:push",
   "npm run wrap-up *",
+  "npm run google:script *",
 ];
 
 function decisionOf(command: string) {
@@ -54,6 +55,10 @@ describe("an excluded command the call keeps in the box", () => {
     [
       "cd . && npm run ws:rm -- .claude/hooks/old.ts",
       "can't delete a worktree's protected `.claude` files",
+    ],
+    [
+      "npm run google:script -- probe.ts | head",
+      "can't read the gworkspace server's credentials or reach Google",
     ],
   ])("refuses `%s` because the sandbox %s", (command, reason) => {
     const decision = decisionOf(command);
