@@ -119,11 +119,11 @@ export function gateDecision(call: ShellCall): Decision | undefined {
   return decision && decisionInMode(decision, call.mode);
 }
 
-// An Interactive session's call the gate can't parse is refused, naming what it can't read and the way through, as no yes could make the gate decide it; a runner step's keeps its unclassified refusal.
-// A missing or throwing parser is refused in either mode, naming the fix: failing open would free every call.
+// A call the gate can't parse is refused in an Interactive session, as no yes could make the gate decide it, and in any mode when the parser itself won't run, as failing open would free every call.
 function parseRefusalOf({ command, mode }: ShellCall): string | undefined {
   const parser = ShellParser.init(command);
-  if (parser.isParserMissing) return `${parser.parseFailure}.`;
+  const unavailableRefusal = parser.unavailableParserRefusal;
+  if (unavailableRefusal) return `${unavailableRefusal}.`;
   if (mode !== "interactive") return undefined;
   const failure = parser.parseFailure;
   if (failure === undefined) return undefined;

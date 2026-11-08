@@ -3,15 +3,15 @@
 // What it can't read as bash would, such as a call of a function it can't expand, it still reads as best it can but marks the reading unreadable, which the gate leaves unclassified.
 // Read inline, a substitution's commands come nested just before the segment holding them, as bash runs them first; read in layers, each substitution's commands are left for a reader of their own.
 import type {
-  BinaryCmd,
   Command,
   FuncDecl,
+  IfClause,
   Redirect,
   RedirOperator,
   Stmt,
 } from "sh-syntax";
 
-import { syntaxNodes } from "./syntaxNodes.ts";
+import { operatorCodes as shOperators, syntaxNodes } from "./syntaxNodes.ts";
 import type { WordRenderer } from "./WordRenderer.ts";
 
 const wrappers = new Set([
@@ -24,21 +24,116 @@ const wrappers = new Set([
   "exec",
   "builtin",
 ]);
-// mvdan/sh's operator numbers.
-const operatorCodes = {
-  pipes: new Set([13, 14]),
-  input: 65,
-  readWrite: 66,
-  copyOut: 68,
-  // `>`, `>>`, `<>`, `>&`, `>|`, `>>|`, `&>`, `&>|`, `&>>` and `&>>|`.
-  outputs: new Set<RedirOperator>([63, 64, 66, 68, 69, 70, 74, 75, 76, 77]),
-} as const;
-// The word a test, arithmetic or `let` command stands as: none is a known program, so the gate leaves it to Claude Code.
-const constructWords = {
-  ArithmCmd: "((",
-  TestClause: "[[",
-  LetClause: "let",
-} as const;
+const { binary, redirect } = shOperators;
+const pipeOperators = new Set<number>([binary.Pipe, binary.PipeAll]);
+const outputOperators = new Set<RedirOperator>([
+  redirect.RdrOut,
+  redirect.AppOut,
+  redirect.RdrInOut,
+  redirect.DplOut,
+  redirect.ClbOut,
+  redirect.AppClob,
+  redirect.RdrAll,
+  redirect.RdrAllClob,
+  redirect.AppAll,
+  redirect.AppAllClob,
+]);
+
+type CommandOf<CT extends Command["type"]> = Extract<Command, { type: CT }>;
+// How each kind of command is read: a simple one's words go on one segment with its redirects; any other kind is read through, and its own redirects go on a segment of no words after it.
+type CommandReaders = {
+  [CT in Command["type"]]: (
+    reader: SegmentReader,
+    cmd: CommandOf<CT>,
+    stmt: Stmt,
+    prefix: string[],
+  ) => void;
+};
+
+// A test, arithmetic or `let` command stands as the word "[[", "((" or "let": none is a known program, so the gate leaves it to Claude Code.
+const commandReaders: CommandReaders = {
+  CallExpr(reader, cmd, stmt, prefix) {
+    reader._readSimple(stmt, [
+      ...prefix,
+      ...cmd.assigns.map((assign) => reader.words.assignOf(assign)),
+      ...cmd.args.map((arg) => reader.words.wordOf(arg)),
+    ]);
+  },
+  DeclClause(reader, cmd, stmt, prefix) {
+    reader._readSimple(stmt, [
+      ...prefix,
+      cmd.variant?.value ?? "",
+      ...cmd.args.map((assign) => reader.words.assignOf(assign)),
+    ]);
+  },
+  ArithmCmd(reader, _cmd, stmt, prefix) {
+    reader._readSimple(stmt, [...prefix, "(("]);
+  },
+  TestClause(reader, _cmd, stmt, prefix) {
+    reader._readSimple(stmt, [...prefix, "[["]);
+  },
+  LetClause(reader, _cmd, stmt, prefix) {
+    reader._readSimple(stmt, [...prefix, "let"]);
+  },
+  TimeClause(reader, cmd, stmt, prefix) {
+    const timed = [...prefix, ...(cmd.posixFormat ? ["time", "-p"] : ["time"])];
+    reader._readThrough(stmt, () => {
+      if (cmd.stmt) reader._readStmt(cmd.stmt, timed);
+      else reader._flush(reader._segmentOf(timed, []));
+    });
+  },
+  BinaryCmd(reader, cmd, stmt) {
+    reader._readThrough(stmt, () => {
+      if (cmd.x) reader._readStmt(cmd.x, []);
+      if (pipeOperators.has(cmd.op)) reader.isPipedNext = true;
+      if (cmd.y) reader._readStmt(cmd.y, []);
+    });
+  },
+  FuncDecl(reader, cmd, stmt) {
+    reader._readThrough(stmt, () => reader._readDefinition(cmd));
+  },
+  Block(reader, cmd, stmt) {
+    reader._readNestedThrough(stmt, () => reader._readStmts(cmd.stmts));
+  },
+  Subshell(reader, cmd, stmt) {
+    reader._readNestedThrough(stmt, () => reader._readStmts(cmd.stmts));
+  },
+  IfClause(reader, cmd, stmt) {
+    reader._readNestedThrough(stmt, () => reader._readIf(cmd));
+  },
+  WhileClause(reader, cmd, stmt) {
+    reader._readNestedThrough(stmt, () => {
+      reader._readStmts(cmd.cond);
+      reader._readStmts(cmd.do);
+    });
+  },
+  ForClause(reader, cmd, stmt) {
+    reader._readNestedThrough(stmt, () => {
+      reader._readSubstitutionsIn(cmd.loop);
+      reader._readStmts(cmd.do);
+    });
+  },
+  CaseClause(reader, cmd, stmt) {
+    reader._readNestedThrough(stmt, () => {
+      reader._readSubstitutionsIn(cmd.word);
+      cmd.items.forEach(({ patterns, stmts }) => {
+        reader._readSubstitutionsIn(patterns);
+        reader._readStmts(stmts);
+      });
+    });
+  },
+  CoprocClause(reader, cmd, stmt) {
+    reader.isReadable = false;
+    reader._readNestedThrough(stmt, () => {
+      if (cmd.stmt) reader._readStmt(cmd.stmt, []);
+    });
+  },
+  // A test declaration, which bash has no syntax for.
+  TestDecl(reader, _cmd, stmt) {
+    reader.isReadable = false;
+    reader._readThrough(stmt, () => undefined);
+  },
+};
 
 // commandWords: its words with leading wrappers and env assignments dropped. isNested: inside a loop, conditional, group, subshell, substitution or function, or negated by `!`, so a later command can't count on it having run once, in this shell, and succeeded.
 export interface Segment {
@@ -59,17 +154,17 @@ export interface SegmentReading {
   substitutions: Stmt[][];
 }
 
-// isLayered: leave each substitution's commands to a reader of their own.
+// readInLayers: leave each substitution's commands to a reader of their own.
 interface ReaderSource {
   words: WordRenderer;
   stmts: Stmt[];
-  isLayered: boolean;
+  readInLayers?: boolean;
 }
 
 export class SegmentReader {
   readonly words: WordRenderer;
   readonly stmts: Stmt[];
-  readonly isLayered: boolean;
+  readonly readsInLayers: boolean;
   readonly segments: Segment[] = [];
   readonly definitions = new Map<string, Segment[]>();
   readonly calledNames = new Set<string>();
@@ -78,10 +173,10 @@ export class SegmentReader {
   isReadable = true;
   depth = 0;
   isPipedNext = false;
-  constructor({ words, stmts, isLayered }: ReaderSource) {
+  constructor({ words, stmts, readInLayers = false }: ReaderSource) {
     this.words = words;
     this.stmts = stmts;
-    this.isLayered = isLayered;
+    this.readsInLayers = readInLayers;
     this.functionNames = syntaxNodes.functionNamesIn(stmts);
   }
   static init(source: ReaderSource): SegmentReader {
@@ -107,52 +202,27 @@ export class SegmentReader {
     this._readCommand(stmt, prefix);
     if (stmt.negated) this.depth--;
   }
+  // A bare redirect such as `> file` has no command, and stands as a simple one of no words of its own.
   _readCommand(stmt: Stmt, prefix: string[]): void {
-    const { cmd, redirs } = stmt;
-    const words = cmd ? this._simpleWordsOf(cmd) : [];
-    if (words) {
-      this._readSubstitutionsIn([cmd, redirs]);
-      this._flush(this._segmentOf([...prefix, ...words], redirs));
+    const { cmd } = stmt;
+    if (!cmd) {
+      this._readSimple(stmt, prefix);
       return;
     }
-    if (cmd?.type === "TimeClause") {
-      const timed = cmd.posixFormat ? ["time", "-p"] : ["time"];
-      if (cmd.stmt) this._readStmt(cmd.stmt, [...prefix, ...timed]);
-      else this._flush(this._segmentOf([...prefix, ...timed], []));
-    } else if (cmd?.type === "BinaryCmd") this._readBinary(cmd);
-    else if (cmd?.type === "FuncDecl") this._readDefinition(cmd);
-    else if (cmd) this._nestedRead(() => this._readCompound(cmd));
-    // A compound command's own redirects go on a segment of no words.
+    readCommandOf(this, cmd, stmt, prefix);
+  }
+  _readSimple(stmt: Stmt, words: string[]): void {
+    this._readSubstitutionsIn([stmt.cmd, stmt.redirs]);
+    this._flush(this._segmentOf(words, stmt.redirs));
+  }
+  _readNestedThrough(stmt: Stmt, read: () => void): void {
+    this._readThrough(stmt, () => this._nestedRead(read));
+  }
+  _readThrough({ redirs }: Stmt, read: () => void): void {
+    read();
     if (redirs.length === 0) return;
     this._readSubstitutionsIn(redirs);
     this._flush(this._segmentOf([], redirs));
-  }
-  _simpleWordsOf(cmd: Command): string[] | undefined {
-    if (cmd.type === "CallExpr") {
-      return [
-        ...cmd.assigns.map((assign) => this.words.assignOf(assign)),
-        ...cmd.args.map((arg) => this.words.wordOf(arg)),
-      ];
-    }
-    if (cmd.type === "DeclClause") {
-      return [
-        cmd.variant?.value ?? "",
-        ...cmd.args.map((assign) => this.words.assignOf(assign)),
-      ];
-    }
-    if (
-      cmd.type === "ArithmCmd" ||
-      cmd.type === "TestClause" ||
-      cmd.type === "LetClause"
-    ) {
-      return [constructWords[cmd.type]];
-    }
-    return undefined;
-  }
-  _readBinary(cmd: BinaryCmd): void {
-    if (cmd.x) this._readStmt(cmd.x, []);
-    if (operatorCodes.pipes.has(cmd.op)) this.isPipedNext = true;
-    if (cmd.y) this._readStmt(cmd.y, []);
   }
   // A definition's body must be a group or a subshell; mvdan/sh takes any command there, which bash doesn't.
   _readDefinition(decl: FuncDecl): void {
@@ -165,34 +235,14 @@ export class SegmentReader {
     if (body) this._nestedRead(() => this._readStmt(body, []));
     if (name) this.definitions.set(name.value, this.segments.slice(from));
   }
-  _readCompound(cmd: Command): void {
-    if (cmd.type === "Block" || cmd.type === "Subshell") {
-      this._readStmts(cmd.stmts);
-    } else if (cmd.type === "IfClause") {
-      this._readStmts(cmd.cond);
-      this._readStmts(cmd.then);
-      if (cmd.else) this._readCompound(cmd.else);
-    } else if (cmd.type === "WhileClause") {
-      this._readStmts(cmd.cond);
-      this._readStmts(cmd.do);
-    } else if (cmd.type === "ForClause") {
-      this._readSubstitutionsIn(cmd.loop);
-      this._readStmts(cmd.do);
-    } else if (cmd.type === "CaseClause") {
-      this._readSubstitutionsIn(cmd.word);
-      cmd.items.forEach(({ patterns, stmts }) => {
-        this._readSubstitutionsIn(patterns);
-        this._readStmts(stmts);
-      });
-    } else {
-      // A coprocess, or a test declaration bash has no such syntax for.
-      this.isReadable = false;
-      if (cmd.type === "CoprocClause" && cmd.stmt) this._readStmt(cmd.stmt, []);
-    }
+  _readIf(cmd: IfClause): void {
+    this._readStmts(cmd.cond);
+    this._readStmts(cmd.then);
+    if (cmd.else) this._readIf(cmd.else);
   }
   _readSubstitutionsIn(tree: unknown): void {
     const substitutions = syntaxNodes.substitutionsIn(tree);
-    if (this.isLayered) {
+    if (this.readsInLayers) {
       substitutions.forEach(({ stmts }) => this.substitutions.push(stmts));
       return;
     }
@@ -214,7 +264,7 @@ export class SegmentReader {
       words,
       commandWords: withoutWrappersOf(words),
       inputFiles: redirects.flatMap(({ op, word }) =>
-        op === operatorCodes.input && word ? [this.words.wordOf(word)] : [],
+        op === redirect.RdrIn && word ? [this.words.wordOf(word)] : [],
       ),
       isPiped: this.isPipedNext,
       outputFiles: redirects.flatMap((redirect) =>
@@ -226,7 +276,7 @@ export class SegmentReader {
     return segment;
   }
   _outputFilesOf({ op, word }: Redirect): string[] {
-    if (!operatorCodes.outputs.has(op)) return [];
+    if (!outputOperators.has(op)) return [];
     const file = word ? this.words.wordOf(word) : "";
     return isDiscardRedirect(op, file) ? [] : [file];
   }
@@ -252,12 +302,22 @@ export class SegmentReader {
   }
 }
 
+// TypeScript can't tie a command's own type to its reader's, so the reader is cast to the one its type keys.
+function readCommandOf<CT extends Command["type"]>(
+  reader: SegmentReader,
+  cmd: CommandOf<CT>,
+  stmt: Stmt,
+  prefix: string[],
+): void {
+  const read = commandReaders[cmd.type as CT];
+  read(reader, cmd, stmt, prefix);
+}
+
 // A copy to a descriptor number, or /dev/null; bash opens `>&name` and `&>2` as files.
 function isDiscardRedirect(op: RedirOperator, target: string): boolean {
-  if (op === operatorCodes.readWrite) return false;
+  if (op === redirect.RdrInOut) return false;
   return (
-    target === "/dev/null" ||
-    (op === operatorCodes.copyOut && /^\d+$/.test(target))
+    target === "/dev/null" || (op === redirect.DplOut && /^\d+$/.test(target))
   );
 }
 

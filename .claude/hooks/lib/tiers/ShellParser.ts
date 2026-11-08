@@ -32,8 +32,10 @@ interface Parsing {
 
 export class ShellParser {
   readonly command: string;
+  readonly _words: WordRenderer;
   constructor(command: string) {
     this.command = command;
+    this._words = WordRenderer.init(command);
   }
   static init(command: string): ShellParser {
     return new ShellParser(command);
@@ -66,22 +68,26 @@ export class ShellParser {
   get parsedCommands(): SimpleCommand[] | undefined {
     return this._parsing.commands;
   }
-  // What the gate can't read in the call, finishing "it holds …"; undefined for one it parses. With no parser, the whole refusal.
+  // What the gate can't read in the call, finishing "it holds …"; undefined for one it parses.
   get parseFailure(): string | undefined {
     return this._parsing.failure;
   }
-  get isParserMissing(): boolean {
+  // The whole refusal of every call when the bash parser won't load or run; undefined when it runs.
+  get unavailableParserRefusal(): string | undefined {
     try {
       shellSyntax.treeOf(this.command);
     } catch (error) {
-      return error instanceof ParserUnavailableError;
+      if (error instanceof ParserUnavailableError) return error.message;
     }
-    return false;
+    return undefined;
   }
   get _parsing(): Parsing {
     try {
       return { commands: this.substitutedCommands };
     } catch (error) {
+      if (error instanceof ParserUnavailableError) {
+        return { failure: "a bash parser that won't run" };
+      }
       return {
         failure: error instanceof Error ? error.message : String(error),
       };
@@ -95,12 +101,9 @@ export class ShellParser {
     } catch {
       return undefined;
     }
-    const words = this._words;
     return syntaxNodes.heredocsIn(stmts).map(({ word }) => ({
-      delimiter: word ? words.wordOf(word) : "",
-      isQuoted: (word?.parts ?? []).some(
-        (part) => part.type !== "Lit" || part.value.includes("\\"),
-      ),
+      delimiter: word ? this._words.wordOf(word) : "",
+      isQuoted: word ? this._words.isQuoted(word) : false,
     }));
   }
   // No `$'…'`, and every heredoc behind a quoted delimiter, so the text a command gets is the text the call holds.
@@ -121,20 +124,20 @@ export class ShellParser {
     return SegmentReader.init({
       words: this._words,
       stmts: this._stmts,
-      isLayered: false,
     }).read();
   }
   get _stmts(): Stmt[] {
     return shellSyntax.treeOf(this.command).stmts;
   }
-  get _words(): WordRenderer {
-    return WordRenderer.init(this.command);
-  }
 }
 
 // Each layer's reading, depth-first: the call's own commands, then each substitution's layers in turn.
 function layerReadingsOf(words: WordRenderer, stmts: Stmt[]): SegmentReading[] {
-  const reading = SegmentReader.init({ words, stmts, isLayered: true }).read();
+  const reading = SegmentReader.init({
+    words,
+    stmts,
+    readInLayers: true,
+  }).read();
   return [
     reading,
     ...reading.substitutions.flatMap((inner) => layerReadingsOf(words, inner)),

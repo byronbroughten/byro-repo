@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   blockerInstead,
@@ -247,9 +247,15 @@ describe("heredocs and substitutions", () => {
     expect(decisionOf("gh label list ${x:-$(date)}")).toBeUndefined();
   });
 
-  it("reads a substitution in the body of a heredoc bash expands", () => {
+  it("reads a substitution in the body of a heredoc bash expands, or beside it", () => {
     expect(decisionOf("cat <<EOF\n$(git push)\nEOF")).toBe("ask");
     expect(decisionOf("gh label list <<EOF\n$(git push)\nEOF")).toBe("ask");
+    expect(decisionOf("gh label list <<EOF\nhi\nEOF\necho $(git push)")).toBe(
+      "ask",
+    );
+    expect(
+      decisionOf("gh label list <<EOF\nhi\nEOF\necho $(gh label list)"),
+    ).toBeUndefined();
   });
 
   it("refuses an arithmetic `((` bash rejects", () => {
@@ -259,6 +265,55 @@ describe("heredocs and substitutions", () => {
       "echo $(( #))",
     ].forEach((command) => expect(decisionOf(command)).toBe("deny"));
   });
+});
+
+class ParseError extends Error {}
+
+// ShellParser/shellSyntax.ts loads sh-syntax at module top level, so each case reloads the gate behind its own mock.
+async function gateDecisionWith(shSyntax: () => object) {
+  vi.resetModules();
+  vi.doMock("sh-syntax", shSyntax);
+  const reloaded = await import("./tiers.ts");
+  return reloaded.gateDecision;
+}
+
+describe("a gate whose bash parser won't run", () => {
+  afterEach(() => {
+    vi.doUnmock("sh-syntax");
+  });
+
+  it.each([
+    [
+      "won't load",
+      () => {
+        throw new Error("Cannot find package 'sh-syntax'");
+      },
+    ],
+    [
+      "throws past a syntax error",
+      () => ({
+        ParseError,
+        parseSync() {
+          throw new TypeError("wasm instance gone");
+        },
+      }),
+    ],
+  ])(
+    "refuses every call in either mode when the parser %s, naming npm install",
+    async (_kind, shSyntax) => {
+      const reloadedDecision = await gateDecisionWith(shSyntax);
+      const modes: SessionMode[] = ["interactive", "runnerStep"];
+      modes.forEach((mode) => {
+        const decision = reloadedDecision({
+          command: "gh label list",
+          mode,
+          dryRuns: [],
+        });
+        expect(decision?.permissionDecision).toBe("deny");
+        expect(decision?.reason).toContain("npm install");
+      });
+    },
+  );
 });
 
 describe("a runner step's unclassified call", () => {

@@ -30,7 +30,13 @@ export class WordRenderer {
   wordOf(word: Word): string {
     return word.parts.map((part) => this._partOf(part, false)).join("");
   }
-  // `name=value` as the hand parser read it, so a wrapper's env assignment still drops from the command words.
+  // A quote or backslash anywhere in a heredoc's delimiter quotes it, so bash expands nothing in its body.
+  isQuoted(word: Word): boolean {
+    return word.parts.some(
+      (part) => part.type !== "Lit" || part.value.includes("\\"),
+    );
+  }
+  // `name=value`, the shape SegmentReader.ts's withoutWrappersOf drops, so a wrapper's env assignment leaves the command words.
   assignOf(assign: Assign): string {
     const { name, value } = assign;
     if (assign.naked) return name?.value ?? (value ? this.wordOf(value) : "");
@@ -40,18 +46,14 @@ export class WordRenderer {
   }
   // The node's source text, each substitution inside it swapped for substitutionWord.
   sourceOf(node: Node): string {
-    const { text, at } = syntaxNodes
+    const substitutions = syntaxNodes
       .substitutionsIn(node)
-      .sort((a, b) => a.start - b.start)
-      .reduce(
-        (built, { start, end }) => ({
-          text:
-            built.text + this._textBetween(built.at, start) + substitutionWord,
-          at: end,
-        }),
-        { text: "", at: node.start },
-      );
-    return text + this._textBetween(at, node.end);
+      .sort((a, b) => a.start - b.start);
+    const starts = [node.start, ...substitutions.map(({ end }) => end)];
+    const ends = [...substitutions.map(({ start }) => start), node.end];
+    return starts
+      .map((start, at) => this._textBetween(start, ends[at] ?? node.end))
+      .join(substitutionWord);
   }
   _partOf(part: WordPart, isInDoubleQuotes: boolean): string {
     if (part.type === "Lit") {

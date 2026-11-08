@@ -17,30 +17,70 @@ interface PlacedOperator {
   text: string;
 }
 
-const operatorTexts = {
-  binary: { 11: "&&", 12: "||", 13: "|", 14: "|&" },
+// What a visit of one array or object found; isStopping: its children aren't entered.
+interface Visit<RR> {
+  found: RR[];
+  isStopping?: boolean;
+}
+
+// sh-syntax's own BinCmdOperator and RedirOperator, typed against them, as only shellSyntax.ts may load sh-syntax's values.
+export const operatorCodes = {
+  binary: { AndStmt: 11, OrStmt: 12, Pipe: 13, PipeAll: 14 },
   redirect: {
-    63: ">",
-    64: ">>",
-    65: "<",
-    66: "<>",
-    67: "<&",
-    68: ">&",
-    69: ">|",
-    70: ">>|",
-    71: "<<",
-    72: "<<-",
-    73: "<<<",
-    74: "&>",
-    75: "&>|",
-    76: "&>>",
-    77: "&>>|",
+    RdrOut: 63,
+    AppOut: 64,
+    RdrIn: 65,
+    RdrInOut: 66,
+    DplIn: 67,
+    DplOut: 68,
+    ClbOut: 69,
+    RdrClob: 69,
+    AppClob: 70,
+    Hdoc: 71,
+    DashHdoc: 72,
+    WordHdoc: 73,
+    RdrAll: 74,
+    RdrAllClob: 75,
+    AppAll: 76,
+    AppAllClob: 77,
+  },
+} as const satisfies {
+  binary: typeof BinCmdOperator;
+  redirect: typeof RedirOperator;
+};
+const { binary, redirect } = operatorCodes;
+const operatorTexts = {
+  binary: {
+    [binary.AndStmt]: "&&",
+    [binary.OrStmt]: "||",
+    [binary.Pipe]: "|",
+    [binary.PipeAll]: "|&",
+  },
+  redirect: {
+    [redirect.RdrOut]: ">",
+    [redirect.AppOut]: ">>",
+    [redirect.RdrIn]: "<",
+    [redirect.RdrInOut]: "<>",
+    [redirect.DplIn]: "<&",
+    [redirect.DplOut]: ">&",
+    [redirect.ClbOut]: ">|",
+    [redirect.AppClob]: ">>|",
+    [redirect.Hdoc]: "<<",
+    [redirect.DashHdoc]: "<<-",
+    [redirect.WordHdoc]: "<<<",
+    [redirect.RdrAll]: "&>",
+    [redirect.RdrAllClob]: "&>|",
+    [redirect.AppAll]: "&>>",
+    [redirect.AppAllClob]: "&>>|",
   },
 } as const satisfies {
   binary: Record<BinCmdOperator, string>;
   redirect: Record<RedirOperator, string>;
 };
-const heredocOperators = new Set<RedirOperator>([71, 72]);
+const heredocOperators = new Set<RedirOperator>([
+  redirect.Hdoc,
+  redirect.DashHdoc,
+]);
 
 export const syntaxNodes = {
   // The outermost substitutions in a tree; each one's own commands hold the rest.
@@ -74,40 +114,36 @@ function matchesIn<NN extends Node>(
   isMatch: (node: Node) => node is NN,
   isStoppingAtSubstitutions: boolean,
 ): NN[] {
-  if (Array.isArray(tree)) {
-    return tree.flatMap((item) =>
-      matchesIn(item, isMatch, isStoppingAtSubstitutions),
-    );
-  }
-  if (typeof tree !== "object" || tree === null) return [];
-  if (isNode(tree)) {
-    if (isMatch(tree)) return [tree];
-    if (isStoppingAtSubstitutions && isSubstitution(tree)) return [];
-  }
-  return Object.values(tree).flatMap((child: unknown) =>
-    matchesIn(child, isMatch, isStoppingAtSubstitutions),
-  );
+  return foundIn(tree, (value): Visit<NN> => {
+    if (!isNode(value)) return { found: [] };
+    if (isMatch(value)) return { found: [value], isStopping: true };
+    if (isStoppingAtSubstitutions && isSubstitution(value)) {
+      return { found: [], isStopping: true };
+    }
+    return { found: [] };
+  });
 }
 
-// An expansion's parts, such as `${x:-…}`'s word, sit in objects that are no node, so every object is entered.
 function placedOperatorsIn(tree: unknown): PlacedOperator[] {
-  if (Array.isArray(tree)) {
-    return [
-      ...separatorsAmong(tree),
-      ...tree.flatMap((item) => placedOperatorsIn(item)),
-    ];
-  }
+  return foundIn(tree, (value): Visit<PlacedOperator> => {
+    if (Array.isArray(value)) return { found: separatorsAmong(value) };
+    return { found: isNode(value) ? ownOperatorsOf(value) : [] };
+  });
+}
+
+// An expansion's parts, such as `${x:-…}`'s word, sit in objects that are no node, so every array and object is visited.
+function foundIn<RR>(tree: unknown, visit: (value: object) => Visit<RR>): RR[] {
   if (typeof tree !== "object" || tree === null) return [];
+  const { found, isStopping } = visit(tree);
+  if (isStopping) return found;
   return [
-    ...(isNode(tree) ? ownOperatorsOf(tree) : []),
-    ...Object.values(tree).flatMap((child: unknown) =>
-      placedOperatorsIn(child),
-    ),
+    ...found,
+    ...Object.values(tree).flatMap((child: unknown) => foundIn(child, visit)),
   ];
 }
 
 // The `;` or `&` after each command of a list but the last, and the `&` after a last one sent to the background.
-function separatorsAmong(items: unknown[]): PlacedOperator[] {
+function separatorsAmong(items: readonly unknown[]): PlacedOperator[] {
   return items.flatMap((item, at) => {
     if (!isNode(item) || item.type !== "Stmt") return [];
     if (item.background) return [{ at: item.end, text: "&" }];
