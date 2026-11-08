@@ -1,5 +1,5 @@
 // The Base WrapUp and its collaborators share: the config, knobs, network retries, log, a landing's step progress,
-// where its repos and workspace are, and the push LandingPusher.ts and ResearchPusher.ts both run. It imports no
+// where its repos and workspace are, the dependency install and the push LandingPusher.ts and ResearchPusher.ts both run. It imports no
 // collaborator, so `extends WrapUpBase` loads first.
 
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -19,7 +19,12 @@ import {
 import { sleep } from "../sleep.ts";
 import { WrapUpFailure } from "../WrapUpFailure.ts";
 import {
+  type DependencyComparison,
+  isAnyDependencyChanged,
+} from "./packageDependencies.ts";
+import {
   defaultWrapUpKnobs,
+  installCommandLabel,
   type Landing,
   type WrapUpConfig,
   type WrapUpKnobs,
@@ -140,6 +145,22 @@ export class WrapUpBase {
     await this._withRetries(label, () =>
       git(clone, "push", ...upstream, "origin", branch),
     );
+  }
+
+  // Only the install is worded as one; a failed comparison keeps its own error, since npm never ran.
+  protected async _installIfDependenciesChanged(
+    root: string,
+    comparisons: DependencyComparison[],
+  ): Promise<void> {
+    if (!(await isAnyDependencyChanged(comparisons))) return;
+    try {
+      await this.config.installDependencies?.(root);
+    } catch (error) {
+      throw new WrapUpFailure(
+        "install",
+        `${installCommandLabel} failed in ${root}: ${messageOf(error)}`,
+      );
+    }
   }
 
   protected get _sleep(): (ms: number) => Promise<void> {

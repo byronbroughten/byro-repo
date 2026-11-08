@@ -2,6 +2,7 @@
 export type WrapUpFailureKind =
   | "conflict"
   | "red-checks"
+  | "install"
   | "dirty-tree"
   | "foreign-branch"
   | "parent-check"
