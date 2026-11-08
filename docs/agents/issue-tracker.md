@@ -50,12 +50,7 @@ Used by `/wayfinder`. The **map** is a single issue with **child** issues as tic
 - **Frontier query**: list the map's open children (`gh issue list -R <repo> --state open`, scoped to the map's sub-issues / task list), drop any with an open blocker (`issue_dependencies_summary.blocked_by > 0`, or an open issue in the `Blocked by` line) or an assignee; first in map order wins.
 - **Claim**: `gh issue edit -R <repo> <n> --add-assignee @me`, the session's first write.
 - **Resolve**: `gh issue comment -R <repo> <n> --body "<answer>"`, then `gh issue close -R <repo> <n>`, then append a context pointer (gist + link) to the map's Decisions-so-far.
-- **Arrive**: the session that delivers the map's destination (usually `/code-spec` with the map as its source; or a decision recorded, or a change landed) ends its reply with this prompt in one fenced block, for the developer to hand to a fresh agent:
-
-  ````
-  Close out map #<m> in <owner/repo>; its destination is <link>.
-  1. Confirm the destination exists, and link it in #<m>'s Decisions-so-far if it is not already there.
-  2. Confirm #<m> has no open sub-issues (`gh api repos/<owner/repo>/issues/<m> --jq .sub_issues_summary`) and its Fog holds nothing still in scope.
-  3. If both hold: `gh issue close -R <owner/repo> <m> --comment "Arrived: <destination link>"`. Otherwise leave #<m> open and report what is outstanding.
-  This message is my yes to edit and close #<m> only.
-  ````
+- **Arrive**: the session that delivers the map's destination (usually `/code-spec` with the map as its source; or a decision recorded, or a change landed) closes the map itself as its last step, unless it is a runner step, which gets no `gh issue close` and reports the map ready to close:
+  1. Link the destination in the map's Decisions-so-far, if it isn't there yet.
+  2. Confirm the map has no open sub-issues (`gh api repos/<owner/repo>/issues/<m> --jq .sub_issues_summary`) and its Fog holds nothing still in scope.
+  3. If both hold, `gh issue close -R <owner/repo> <m> --comment "Arrived: <destination link>"`. Otherwise leave the map open and report what is outstanding.

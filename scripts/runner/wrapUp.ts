@@ -3,10 +3,6 @@
 // as arguments, and --no-code lands a ticket with no branch. A rerun skips the steps already done.
 import { parseArgs } from "node:util";
 
-import type {
-  ClosingFacts,
-  UndoneBox,
-} from "@byronbroughten/spec-runner/FactsFile";
 import {
   issueLabelOf,
   workspaceLabelOf,
@@ -19,10 +15,11 @@ import {
 import { WrapUpFailure } from "@byronbroughten/spec-runner/WrapUpFailure";
 
 import { nearestClaudeAncestor } from "./claudeAncestor.ts";
+import { closingFactsOf } from "./closingFacts.ts";
 import { wrapUpConfig } from "./runnerConfig.ts";
 
 const usage =
-  'Usage: npm run wrap-up -- (<repo> <n> [--closing "…" [--undone "<box>: <reason>"]...] [--no-code] | --session <slug> [--keep])';
+  'Usage: npm run wrap-up -- (<repo> <n> [(--closing "…" | --closing-file <path>) [--undone "<box>: <reason>"]...] [--no-code] | --session <slug> [--keep])';
 
 try {
   const args = process.argv.slice(2);
@@ -46,6 +43,7 @@ async function landIssue(args: string[]): Promise<void> {
     allowPositionals: true,
     options: {
       closing: { type: "string" },
+      "closing-file": { type: "string" },
       undone: { type: "string", multiple: true, default: [] },
       "no-code": { type: "boolean", default: false },
     },
@@ -60,35 +58,17 @@ async function landIssue(args: string[]): Promise<void> {
   }
   const issue = { repo, number: Number(number) };
   const result = await WrapUp.init(wrapUpConfig).run(issue, {
-    closing: closingFactsOf(values.closing, values.undone),
+    closing: closingFactsOf({
+      closing: values.closing,
+      closingFile: values["closing-file"],
+      undone: values.undone,
+    }),
     hasNoCode: values["no-code"],
   });
   console.log(`Landed ${issueLabelOf(issue)}: ${result.filesChanged} files.`);
   logBranchDeleteFailures(result.branchDeleteFailures);
   if (result.isLeftOpen) console.log(leftOpenLineOf(issue));
   console.log(parentLineOf(result.parent));
-}
-
-function closingFactsOf(
-  closingComment: string | undefined,
-  undone: string[],
-): ClosingFacts | undefined {
-  if (closingComment === undefined) {
-    if (undone.length > 0) throw new Error("--undone needs --closing with it");
-    return undefined;
-  }
-  return { closingComment, boxesUndone: undone.map(undoneBoxOf) };
-}
-
-function undoneBoxOf(value: string): UndoneBox {
-  const separator = value.indexOf(": ");
-  if (separator === -1) {
-    throw new Error(`--undone takes "<box>: <reason>", not "${value}"`);
-  }
-  return {
-    box: value.slice(0, separator),
-    reason: value.slice(separator + 2),
-  };
 }
 
 async function landSession(args: string[]): Promise<void> {

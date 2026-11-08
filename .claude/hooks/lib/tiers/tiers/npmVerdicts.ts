@@ -9,6 +9,19 @@ const untargetedPrograms = new Set([
   "sheets-framework",
   "@byronbroughten/sheets-framework",
 ]);
+// A free script's flag that takes it out of its free row.
+const askingFlags = [
+  {
+    script: "issue:remove",
+    flag: "--force",
+    why: "discards a workspace's unlanded work, which git can't bring back",
+  },
+  {
+    script: "session:probe",
+    flag: "--keep-excluded",
+    why: "runs each listed command an `excludedCommands` entry matches outside the sandbox, in a session no hook gates",
+  },
+] as const;
 
 export const npmVerdicts = {
   choreSendVerdictOf(
@@ -26,16 +39,14 @@ export const npmVerdicts = {
       why: "names no target; use a `dev:*` or `app:*` script",
     };
   },
-  // npmCommands.scriptOf drops flags, so the raw words are searched for --force.
-  forcedRemoveVerdictOf({ words }: SimpleCommand): Verdict | undefined {
-    const isForcedRemove =
-      npmCommands.scriptOf(words)?.name === "issue:remove" &&
-      words.includes("--force");
-    if (!isForcedRemove) return undefined;
-    return {
-      permissionDecision: "ask",
-      why: "discards a workspace's unlanded work, which git can't bring back",
-    };
+  // npmCommands.scriptOf drops flags, so the raw words are searched for the flag.
+  askingFlagVerdictOf({ words }: SimpleCommand): Verdict | undefined {
+    const scriptName = npmCommands.scriptOf(words)?.name;
+    const why = askingFlags.find(
+      ({ script, flag }) => script === scriptName && words.includes(flag),
+    )?.why;
+    if (!why) return undefined;
+    return { permissionDecision: "ask", why };
   },
   freeScriptVerdictOf({ words }: SimpleCommand): Verdict | undefined {
     const freeWhy = npmCommands.freeScriptWhyOf(words);
