@@ -197,7 +197,7 @@ describe("run's wrap-up failures", () => {
       /^You are the merge-master step/,
     );
     expect(rerunStep.requests[0]?.prompt).toContain(
-      guidanceSectionOf("H1: Keep the branch's side."),
+      guidanceSectionOf("Keep the branch's side."),
     );
   });
 
