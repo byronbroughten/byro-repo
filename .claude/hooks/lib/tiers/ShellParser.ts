@@ -1,24 +1,27 @@
-// Parses a Bash command into its simple commands, for the tier gate, the branch guard and BashReads; throws on an unbalanced quote.
-// ShellParser/SegmentReader.ts reads the tokens through loops, conditionals, groups, substitutions and functions.
-import { type Heredoc, HeredocScanner } from "./ShellParser/HeredocScanner.ts";
+// Parses a Bash call with mvdan/sh's parser into its simple commands, for the tier gate, the branch guard and BashReads; throws on syntax bash rejects too, and on a parser that won't run.
+// ShellParser/shellSyntax.ts loads the parser; ShellParser/SegmentReader.ts reads its tree through loops, conditionals, groups, substitutions and functions.
+import type { Stmt } from "sh-syntax";
+
+import { ParserUnavailableError } from "./ShellParser/ParserUnavailableError.ts";
 import {
-  pipes,
   type Segment,
   SegmentReader,
   type SegmentReading,
-  type Token,
 } from "./ShellParser/SegmentReader.ts";
-import {
-  closingQuoteOf,
-  SubstitutionScanner,
-} from "./ShellParser/SubstitutionScanner.ts";
-
-const separators = new Set([";", ";;", "&&", "||", "&", "$(", "(", ")", "`"]);
+import { shellSyntax } from "./ShellParser/shellSyntax.ts";
+import { syntaxNodes } from "./ShellParser/syntaxNodes.ts";
+import { WordRenderer } from "./ShellParser/WordRenderer.ts";
 
 // isBare: no wrapper or env assignment was dropped from its words.
 export interface SimpleCommand {
   words: string[];
   isBare: boolean;
+}
+
+// isQuoted: its delimiter is quoted, so bash expands nothing in its body.
+export interface Heredoc {
+  delimiter: string;
+  isQuoted: boolean;
 }
 
 // The commands of a call the gate parses, or what it couldn't read.
@@ -39,11 +42,9 @@ export class ShellParser {
   get simpleCommands(): SimpleCommand[] {
     return simpleCommandsOf(this.segments);
   }
-  // The simple commands of every layer of `$(…)` and backtick substitution, quoted or not, each substitution a word of its own in the layer around it; throws on one left open, on compound syntax it can't read as bash would, and on a call of a function another layer defines.
+  // The simple commands of every layer of `$(…)`, backtick and process substitution, quoted or not, each substitution a word of its own in the layer around it; throws on syntax bash rejects, on compound syntax it can't read as bash would, and on a call of a function another layer defines.
   get substitutedCommands(): SimpleCommand[] {
-    const readings = SubstitutionScanner.init(
-      this._withoutHeredocBodies,
-    ).layers.map((layer) => ShellParser.init(layer).reading);
+    const readings = layerReadingsOf(this._words, this._stmts);
     readings.forEach((reading, at) => {
       if (!reading.isReadable) {
         throw new Error("compound syntax the gate can't read as bash would");
@@ -65,9 +66,17 @@ export class ShellParser {
   get parsedCommands(): SimpleCommand[] | undefined {
     return this._parsing.commands;
   }
-  // What the gate can't read in the call, finishing "it holds …"; undefined for one it parses.
+  // What the gate can't read in the call, finishing "it holds …"; undefined for one it parses. With no parser, the whole refusal.
   get parseFailure(): string | undefined {
     return this._parsing.failure;
+  }
+  get isParserMissing(): boolean {
+    try {
+      shellSyntax.treeOf(this.command);
+    } catch (error) {
+      return error instanceof ParserUnavailableError;
+    }
+    return false;
   }
   get _parsing(): Parsing {
     try {
@@ -78,20 +87,23 @@ export class ShellParser {
       };
     }
   }
-  // Undefined unless the heredoc scan strips the bodies the text match does; beside a heredoc, a substitution, `${…}`, `$'…'` or `((` nests quotes or `<<` in ways that scan doesn't follow.
+  // Undefined for a call the gate can't parse.
   get heredocs(): Heredoc[] | undefined {
-    let scan;
+    let stmts: Stmt[];
     try {
-      scan = HeredocScanner.init(this.command).scan;
+      stmts = this._stmts;
     } catch {
       return undefined;
     }
-    if (scan.withoutBodies !== this._withoutHeredocBodies) return undefined;
-    const hasNesting = /\$[({']|`|\(\(/.test(scan.withoutBodies);
-    if (scan.heredocs.length > 0 && hasNesting) return undefined;
-    return scan.heredocs;
+    const words = this._words;
+    return syntaxNodes.heredocsIn(stmts).map(({ word }) => ({
+      delimiter: word ? words.wordOf(word) : "",
+      isQuoted: (word?.parts ?? []).some(
+        (part) => part.type !== "Lit" || part.value.includes("\\"),
+      ),
+    }));
   }
-  // No `$'…'`, which the parse misreads, and every heredoc one the scan confirms behind a quoted delimiter, so neither hides a command from the parse.
+  // No `$'…'`, and every heredoc behind a quoted delimiter, so the text a command gets is the text the call holds.
   get isPlainText(): boolean {
     return (
       !/\$'/.test(this.command) &&
@@ -100,111 +112,33 @@ export class ShellParser {
   }
   // Each operator and redirect between the words, in order, a heredoc's `<<` included.
   get operators(): string[] {
-    return this._tokens
-      .filter(({ type }) => type !== "word")
-      .map(({ value }) => value);
+    return syntaxNodes.operatorsIn(this._stmts);
   }
   get segments(): Segment[] {
     return this.reading.segments;
   }
   get reading(): SegmentReading {
-    return SegmentReader.init(this._tokens).read();
+    return SegmentReader.init({
+      words: this._words,
+      stmts: this._stmts,
+      isLayered: false,
+    }).read();
   }
-  get _tokens(): Token[] {
-    const command = this._withoutHeredocBodies;
-    const tokens: Token[] = [];
-    let word: string | undefined;
-    let isQuoted = false;
-    function endWord(): void {
-      if (word !== undefined) {
-        tokens.push({
-          type: "word",
-          value: word,
-          ...(isQuoted ? { isQuoted } : {}),
-        });
-      }
-      word = undefined;
-      isQuoted = false;
-    }
-    for (let i = 0; i < command.length; i++) {
-      const char = command.charAt(i);
-      const next = command[i + 1];
-      if (char === "'" || char === '"') {
-        const close = closingQuoteOf(command, i);
-        word =
-          (word ?? "") +
-          command
-            .slice(i + 1, close)
-            .replace(/\\(["\\$`])/g, char === '"' ? "$1" : "\\$1");
-        isQuoted = true;
-        i = close;
-      } else if (char === "\\") {
-        if (next !== "\n") {
-          word = (word ?? "") + (next ?? "");
-          isQuoted = true;
-        }
-        i++;
-      } else if (char === " " || char === "\t") {
-        endWord();
-      } else if (char === "#" && word === undefined) {
-        while (i + 1 < command.length && command[i + 1] !== "\n") i++;
-      } else if (char === "\n") {
-        endWord();
-        tokens.push({ type: "op", value: ";" });
-      } else if (char === "$" && next === "(") {
-        endWord();
-        tokens.push({ type: "op", value: "$(" });
-        i++;
-      } else if (
-        char === "<" ||
-        char === ">" ||
-        (char === "&" && next === ">")
-      ) {
-        if (word !== undefined && /^\d+$/.test(word)) word = undefined;
-        endWord();
-        let value = char;
-        while (/[<>&|]/.test(command[i + 1] ?? "") && value.length < 3) {
-          value += command.charAt(++i);
-        }
-        tokens.push({ type: "redirect", value });
-      } else if (
-        char === "|" ||
-        char === "&" ||
-        char === ";" ||
-        char === "(" ||
-        char === ")" ||
-        char === "`"
-      ) {
-        endWord();
-        const pair = char + (next ?? "");
-        const value = ["||", "&&", "|&", ";;"].includes(pair) ? pair : char;
-        if (value.length === 2) i++;
-        tokens.push({
-          type: "op",
-          value: separators.has(value) || pipes.has(value) ? value : ";",
-        });
-      } else {
-        word = (word ?? "") + char;
-      }
-    }
-    endWord();
-    return tokens;
+  get _stmts(): Stmt[] {
+    return shellSyntax.treeOf(this.command).stmts;
   }
-  get _withoutHeredocBodies(): string {
-    const kept: string[] = [];
-    const pending: string[] = [];
-    for (const line of this.command.split("\n")) {
-      if (pending.length > 0) {
-        if (line.trim() === pending[0]) pending.shift();
-        continue;
-      }
-      kept.push(line);
-      for (const match of line.matchAll(/<<-?\s*(['"]?)([\w.-]+)\1/g)) {
-        pending.push(match[2] ?? "");
-      }
-    }
-    return kept.join("\n");
+  get _words(): WordRenderer {
+    return WordRenderer.init(this.command);
   }
+}
+
+// Each layer's reading, depth-first: the call's own commands, then each substitution's layers in turn.
+function layerReadingsOf(words: WordRenderer, stmts: Stmt[]): SegmentReading[] {
+  const reading = SegmentReader.init({ words, stmts, isLayered: true }).read();
+  return [
+    reading,
+    ...reading.substitutions.flatMap((inner) => layerReadingsOf(words, inner)),
+  ];
 }
 
 function simpleCommandsOf(segments: Segment[]): SimpleCommand[] {

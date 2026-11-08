@@ -1,6 +1,19 @@
-// Reads a Bash call's tokens into the segments of its simple commands, through loops, conditionals, groups, subshells, substitutions and functions; ../ShellParser.ts tokenizes the call and serves the segments.
-// A reserved word gives no command of its own, and a `for` list, a `case` word and its patterns are data. A function's body is read where it's defined, and again at each later call, with the call's arguments for `$1`, `$2` ….
-// What it can't read as bash would, such as a closer with no opener or a call of a function it can't expand, it still reads as best it can but marks the reading unreadable, which the gate leaves unclassified.
+// Reads mvdan/sh's syntax tree of a Bash call into the segments of its simple commands, through loops, conditionals, groups, subshells, substitutions and functions; ../ShellParser.ts parses the call and serves the segments.
+// A `for` list, a `case` word and its patterns are data, though their substitutions run. A function's body is read where it's defined, and again at each later call, with the call's arguments for `$1`, `$2` ….
+// What it can't read as bash would, such as a call of a function it can't expand, it still reads as best it can but marks the reading unreadable, which the gate leaves unclassified.
+// Read inline, a substitution's commands come nested just before the segment holding them, as bash runs them first; read in layers, each substitution's commands are left for a reader of their own.
+import type {
+  BinaryCmd,
+  Command,
+  FuncDecl,
+  Redirect,
+  RedirOperator,
+  Stmt,
+} from "sh-syntax";
+
+import { syntaxNodes } from "./syntaxNodes.ts";
+import type { WordRenderer } from "./WordRenderer.ts";
+
 const wrappers = new Set([
   "sudo",
   "command",
@@ -11,38 +24,21 @@ const wrappers = new Set([
   "exec",
   "builtin",
 ]);
-const reservedWords = {
-  openers: new Map<string, Frame>([
-    ["{", "{"],
-    ["if", "if"],
-    ["while", "loop"],
-    ["until", "loop"],
-    ["for", "loop"],
-    ["select", "loop"],
-    ["case", "case"],
-  ]),
-  closers: new Map<string, Frame>([
-    ["}", "{"],
-    ["fi", "if"],
-    ["done", "loop"],
-    ["esac", "case"],
-  ]),
-  // Each leaves the word after it in command position.
-  joiners: new Set(["then", "elif", "else", "do", "!", "function"]),
-  // Each names a loop variable, then after `in` a list of data words that ends at the next operator.
-  listHeads: new Set(["for", "select"]),
+// mvdan/sh's operator numbers.
+const operatorCodes = {
+  pipes: new Set([13, 14]),
+  input: 65,
+  readWrite: 66,
+  copyOut: 68,
+  // `>`, `>>`, `<>`, `>&`, `>|`, `>>|`, `&>`, `&>|`, `&>>` and `&>>|`.
+  outputs: new Set<RedirOperator>([63, 64, 66, 68, 69, 70, 74, 75, 76, 77]),
 } as const;
-export const pipes = new Set(["|", "|&"]);
-const listModes = new Set<Mode>(["listName", "listIn", "listHead"]);
-// The operators a case pattern holds: a newline before it, its leading `(` and the `|` between alternatives.
-const patternOperators = new Set([";", "(", "|"]);
-
-// isQuoted: a quote or backslash in a word, which keeps bash from reading it as a reserved word.
-export interface Token {
-  type: "word" | "redirect" | "op";
-  value: string;
-  isQuoted?: boolean;
-}
+// The word a test, arithmetic or `let` command stands as: none is a known program, so the gate leaves it to Claude Code.
+const constructWords = {
+  ArithmCmd: "((",
+  TestClause: "[[",
+  LetClause: "let",
+} as const;
 
 // commandWords: its words with leading wrappers and env assignments dropped. isNested: inside a loop, conditional, group, subshell, substitution or function, or negated by `!`, so a later command can't count on it having run once, in this shell, and succeeded.
 export interface Segment {
@@ -54,271 +50,188 @@ export interface Segment {
   isNested?: boolean;
 }
 
-// functionNames: each name the call may define as a function. calledNames: each command's first word, before any call is expanded.
+// functionNames: each name the call defines as a function. calledNames: each command's first word, before any call is expanded. substitutions: read in layers, the commands of each substitution left for a reader of their own.
 export interface SegmentReading {
   segments: Segment[];
   isReadable: boolean;
   functionNames: Set<string>;
   calledNames: Set<string>;
+  substitutions: Stmt[][];
 }
 
-// A `(` frame stands for a subshell or a `$(`, as `)` closes either; a "`" frame for a backtick substitution.
-type Frame = "{" | "(" | "`" | "if" | "loop" | "case";
-
-type Mode =
-  "command" | "listName" | "listIn" | "listHead" | "caseHead" | "casePattern";
-
-// A function body being read: its name, the frame depth its opener reached, and the first segment it holds.
-interface Body {
-  name: string;
-  depth: number;
-  from: number;
+// isLayered: leave each substitution's commands to a reader of their own.
+interface ReaderSource {
+  words: WordRenderer;
+  stmts: Stmt[];
+  isLayered: boolean;
 }
 
 export class SegmentReader {
-  readonly tokens: Token[];
+  readonly words: WordRenderer;
+  readonly stmts: Stmt[];
+  readonly isLayered: boolean;
   readonly segments: Segment[] = [];
-  readonly frames: Frame[] = [];
-  readonly bodies: Body[] = [];
   readonly definitions = new Map<string, Segment[]>();
   readonly calledNames = new Set<string>();
   readonly functionNames: Set<string>;
-  // The data mode each open substitution in a `for` list or `case` word returns to, and the frame depth it opened.
-  readonly dataModes: { depth: number; mode: Mode }[] = [];
+  readonly substitutions: Stmt[][] = [];
   isReadable = true;
-  current = newSegment(false);
-  redirect: string | undefined;
-  mode: Mode = "command";
-  // The name a definition gave before its body's opener.
-  pendingName: string | undefined;
-  hasPatternWord = false;
-  isNegated = false;
-  at = 0;
-  constructor(tokens: Token[]) {
-    this.tokens = tokens;
-    this.functionNames = functionNamesOf(tokens);
+  depth = 0;
+  isPipedNext = false;
+  constructor({ words, stmts, isLayered }: ReaderSource) {
+    this.words = words;
+    this.stmts = stmts;
+    this.isLayered = isLayered;
+    this.functionNames = syntaxNodes.functionNamesIn(stmts);
   }
-  static init(tokens: Token[]): SegmentReader {
-    return new SegmentReader(tokens);
+  static init(source: ReaderSource): SegmentReader {
+    return new SegmentReader(source);
   }
-  // Reads the tokens once; a second call would read them onto the first reading.
+  // Reads the tree once; a second call would read it onto the first reading.
   read(): SegmentReading {
-    for (; this.at < this.tokens.length; this.at++) {
-      const token = this.tokens[this.at];
-      if (!token || this._readsPatternToken(token)) continue;
-      if (token.type === "word") {
-        this._readWord(token);
-        continue;
-      }
-      this._endRedirect();
-      if (token.type === "redirect") this.redirect = token.value;
-      else this._readOperator(token.value);
-    }
-    this._endRedirect();
-    this._flush(false);
-    const isClosed =
-      this.frames.length === 0 &&
-      this.mode === "command" &&
-      this.pendingName === undefined;
+    this._readStmts(this.stmts);
     return {
       segments: this.segments,
-      isReadable: this.isReadable && isClosed,
+      isReadable: this.isReadable,
       functionNames: this.functionNames,
       calledNames: this.calledNames,
+      substitutions: this.substitutions,
     };
   }
-  // A case pattern's words and operators are data, up to the `)` that starts its commands; an `esac` in its place ends the case.
-  _readsPatternToken(token: Token): boolean {
-    if (this.mode !== "casePattern") return false;
-    if (token.type === "word") {
-      if (!this.hasPatternWord && isReserved(token, "esac")) {
-        this.mode = "command";
-        this._close("case");
-      }
-      this.hasPatternWord = true;
-      return true;
-    }
-    if (token.type === "op" && patternOperators.has(token.value)) return true;
-    this.mode = "command";
-    if (token.type === "op" && token.value === ")" && this.hasPatternWord) {
-      return true;
-    }
-    this.isReadable = false;
-    return false;
+  _readStmts(stmts: Stmt[]): void {
+    stmts.forEach((stmt) => this._readStmt(stmt, []));
   }
-  _readWord(token: Token): void {
-    if (this.redirect !== undefined) {
-      this._readRedirectTarget(token.value);
+  // prefix: words a `time` before the command adds to it.
+  _readStmt(stmt: Stmt, prefix: string[]): void {
+    if (stmt.negated) this.depth++;
+    this._readCommand(stmt, prefix);
+    if (stmt.negated) this.depth--;
+  }
+  _readCommand(stmt: Stmt, prefix: string[]): void {
+    const { cmd, redirs } = stmt;
+    const words = cmd ? this._simpleWordsOf(cmd) : [];
+    if (words) {
+      this._readSubstitutionsIn([cmd, redirs]);
+      this._flush(this._segmentOf([...prefix, ...words], redirs));
       return;
     }
-    if (this.mode === "listName") {
-      this.mode = "listIn";
-      return;
-    }
-    if (this.mode === "listIn") {
-      this._readListIn(token);
-      return;
-    }
-    if (this.mode === "listHead") return;
-    if (this.mode === "caseHead") {
-      if (isReserved(token, "in")) this._startPatterns();
-      return;
-    }
-    if (this.current.words.length === 0 && !token.isQuoted) {
-      if (this._readsReservedWord(token.value)) return;
-    }
-    if (this.pendingName !== undefined) this._dropPendingName();
-    this.current.words.push(token.value);
+    if (cmd?.type === "TimeClause") {
+      const timed = cmd.posixFormat ? ["time", "-p"] : ["time"];
+      if (cmd.stmt) this._readStmt(cmd.stmt, [...prefix, ...timed]);
+      else this._flush(this._segmentOf([...prefix, ...timed], []));
+    } else if (cmd?.type === "BinaryCmd") this._readBinary(cmd);
+    else if (cmd?.type === "FuncDecl") this._readDefinition(cmd);
+    else if (cmd) this._nestedRead(() => this._readCompound(cmd));
+    // A compound command's own redirects go on a segment of no words.
+    if (redirs.length === 0) return;
+    this._readSubstitutionsIn(redirs);
+    this._flush(this._segmentOf([], redirs));
   }
-  _readRedirectTarget(file: string): void {
-    const { redirect } = this;
-    this.redirect = undefined;
-    if (redirect === "<") this.current.inputFiles.push(file);
-    else if (redirect?.includes(">") && !isDiscardRedirect(redirect, file)) {
-      this.current.outputFiles.push(file);
+  _simpleWordsOf(cmd: Command): string[] | undefined {
+    if (cmd.type === "CallExpr") {
+      return [
+        ...cmd.assigns.map((assign) => this.words.assignOf(assign)),
+        ...cmd.args.map((arg) => this.words.wordOf(arg)),
+      ];
     }
-  }
-  // With no `in` after its name, a loop runs over the arguments and `do` starts its body.
-  _readListIn(token: Token): void {
-    this.mode = "command";
-    if (isReserved(token, "in")) {
-      this.mode = "listHead";
-      return;
+    if (cmd.type === "DeclClause") {
+      return [
+        cmd.variant?.value ?? "",
+        ...cmd.args.map((assign) => this.words.assignOf(assign)),
+      ];
     }
-    if (!isReserved(token, "do")) this.isReadable = false;
-    this._readWord(token);
-  }
-  // A write redirect with no file after it still writes, so it keeps an empty name no path check passes.
-  _endRedirect(): void {
-    if (this.redirect?.includes(">")) this.current.outputFiles.push("");
-    this.redirect = undefined;
-  }
-  _readsReservedWord(word: string): boolean {
-    const opened = reservedWords.openers.get(word);
-    const closed = reservedWords.closers.get(word);
-    if (!opened && !closed && !reservedWords.joiners.has(word)) return false;
-    if (this.pendingName !== undefined && word !== "{") this._dropPendingName();
-    if (word === "function") {
-      this._readFunctionKeyword();
-      return true;
+    if (
+      cmd.type === "ArithmCmd" ||
+      cmd.type === "TestClause" ||
+      cmd.type === "LetClause"
+    ) {
+      return [constructWords[cmd.type]];
     }
-    if (opened) this._open(opened);
-    if (closed) this._close(closed);
-    if (reservedWords.listHeads.has(word)) this.mode = "listName";
-    if (word === "case") this.mode = "caseHead";
-    if (word === "!") this.isNegated = true;
-    return true;
+    return undefined;
   }
-  // `function name` names a definition whose `()` is optional.
-  _readFunctionKeyword(): void {
-    const name = this.tokens[this.at + 1];
-    if (name?.type !== "word") {
+  _readBinary(cmd: BinaryCmd): void {
+    if (cmd.x) this._readStmt(cmd.x, []);
+    if (operatorCodes.pipes.has(cmd.op)) this.isPipedNext = true;
+    if (cmd.y) this._readStmt(cmd.y, []);
+  }
+  // A definition's body must be a group or a subshell; mvdan/sh takes any command there, which bash doesn't.
+  _readDefinition(decl: FuncDecl): void {
+    const { name, body } = decl;
+    const bodyType = body?.cmd?.type;
+    if (!name || (bodyType !== "Block" && bodyType !== "Subshell")) {
       this.isReadable = false;
-      return;
     }
-    this.pendingName = name.value;
-    this.at++;
+    const from = this.segments.length;
+    if (body) this._nestedRead(() => this._readStmt(body, []));
+    if (name) this.definitions.set(name.value, this.segments.slice(from));
   }
-  _readOperator(op: string): void {
-    const substitution = substitutionOpenedBy(op, this.frames);
-    if (substitution && this.mode !== "command") {
-      this._readDataSubstitution(substitution);
-      return;
-    }
-    if (this.mode === "caseHead") {
-      if (op === ";") return;
+  _readCompound(cmd: Command): void {
+    if (cmd.type === "Block" || cmd.type === "Subshell") {
+      this._readStmts(cmd.stmts);
+    } else if (cmd.type === "IfClause") {
+      this._readStmts(cmd.cond);
+      this._readStmts(cmd.then);
+      if (cmd.else) this._readCompound(cmd.else);
+    } else if (cmd.type === "WhileClause") {
+      this._readStmts(cmd.cond);
+      this._readStmts(cmd.do);
+    } else if (cmd.type === "ForClause") {
+      this._readSubstitutionsIn(cmd.loop);
+      this._readStmts(cmd.do);
+    } else if (cmd.type === "CaseClause") {
+      this._readSubstitutionsIn(cmd.word);
+      cmd.items.forEach(({ patterns, stmts }) => {
+        this._readSubstitutionsIn(patterns);
+        this._readStmts(stmts);
+      });
+    } else {
+      // A coprocess, or a test declaration bash has no such syntax for.
       this.isReadable = false;
-      this.mode = "command";
+      if (cmd.type === "CoprocClause" && cmd.stmt) this._readStmt(cmd.stmt, []);
     }
-    if (op === "(" && this._readsFunctionParens()) return;
-    if (this.pendingName !== undefined && op !== ";" && op !== "(") {
-      this._dropPendingName();
-    }
-    this._flush(pipes.has(op));
-    if (this.mode === "listName") this.isReadable = false;
-    if (listModes.has(this.mode)) this.mode = "command";
-    if (op === "(") this._open("(");
-    else if (substitution) this._open(substitution);
-    else if (op === ")") this._closeSubstitution("(");
-    else if (op === "`") this._closeSubstitution("`");
-    else if (op === ";;") this._endCaseItem();
   }
-  // A substitution in a `for` list or a `case` word runs its commands, and the data words go on after it.
-  _readDataSubstitution(frame: Frame): void {
-    this.dataModes.push({ depth: this.frames.length + 1, mode: this.mode });
-    this.mode = "command";
-    this._open(frame);
-  }
-  // A `)` closes a subshell too, which opened no data mode.
-  _closeSubstitution(frame: Frame): void {
-    const depth = this.frames.length;
-    this._close(frame);
-    const dataMode = this.dataModes.at(-1);
-    if (dataMode?.depth !== depth) return;
-    this.dataModes.pop();
-    this.mode = dataMode.mode;
-  }
-  // `name ()` defines a function; so does `function name ()`.
-  _readsFunctionParens(): boolean {
-    const next = this.tokens[this.at + 1];
-    if (next?.type !== "op" || next.value !== ")") return false;
-    const { words, inputFiles, outputFiles } = this.current;
-    const hasRedirect = inputFiles.length > 0 || outputFiles.length > 0;
-    if (this.pendingName !== undefined && words.length === 0) {
-      this.at++;
-      return true;
-    }
-    const [name] = words;
-    if (name === undefined || words.length > 1 || hasRedirect) return false;
-    this.pendingName = name;
-    this.current = newSegment(false);
-    this.at++;
-    return true;
-  }
-  _endCaseItem(): void {
-    if (this.frames.at(-1) === "case") this._startPatterns();
-    else this.isReadable = false;
-  }
-  _startPatterns(): void {
-    this.mode = "casePattern";
-    this.hasPatternWord = false;
-  }
-  // A definition's body must be a group or a subshell.
-  _dropPendingName(): void {
-    this.isReadable = false;
-    this.pendingName = undefined;
-  }
-  _open(frame: Frame): void {
-    this.frames.push(frame);
-    if (this.pendingName === undefined) return;
-    this.bodies.push({
-      name: this.pendingName,
-      depth: this.frames.length,
-      from: this.segments.length,
-    });
-    this.pendingName = undefined;
-  }
-  _close(frame: Frame): void {
-    const depth = this.frames.length;
-    if (this.frames.at(-1) !== frame) {
-      this.isReadable = false;
+  _readSubstitutionsIn(tree: unknown): void {
+    const substitutions = syntaxNodes.substitutionsIn(tree);
+    if (this.isLayered) {
+      substitutions.forEach(({ stmts }) => this.substitutions.push(stmts));
       return;
     }
-    this.frames.pop();
-    const body = this.bodies.at(-1);
-    if (body?.depth !== depth) return;
-    this.bodies.pop();
-    this.definitions.set(body.name, this.segments.slice(body.from));
+    // A pipe feeds the command holding the substitution, not the substitution.
+    const { isPipedNext } = this;
+    this.isPipedNext = false;
+    this._nestedRead(() =>
+      substitutions.forEach(({ stmts }) => this._readStmts(stmts)),
+    );
+    this.isPipedNext = isPipedNext;
+  }
+  _nestedRead(read: () => void): void {
+    this.depth++;
+    read();
+    this.depth--;
+  }
+  _segmentOf(words: string[], redirects: Redirect[]): Segment {
+    const segment: Segment = {
+      words,
+      commandWords: withoutWrappersOf(words),
+      inputFiles: redirects.flatMap(({ op, word }) =>
+        op === operatorCodes.input && word ? [this.words.wordOf(word)] : [],
+      ),
+      isPiped: this.isPipedNext,
+      outputFiles: redirects.flatMap((redirect) =>
+        this._outputFilesOf(redirect),
+      ),
+      ...(this.depth > 0 ? { isNested: true } : {}),
+    };
+    this.isPipedNext = false;
+    return segment;
+  }
+  _outputFilesOf({ op, word }: Redirect): string[] {
+    if (!operatorCodes.outputs.has(op)) return [];
+    const file = word ? this.words.wordOf(word) : "";
+    return isDiscardRedirect(op, file) ? [] : [file];
   }
   // A call of a function read so far reads its body again, with the call's own redirects kept on a segment of no words.
-  _flush(isPipedNext: boolean): void {
-    const segment: Segment = {
-      ...this.current,
-      commandWords: withoutWrappersOf(this.current.words),
-      ...(this.frames.length > 0 || this.isNegated ? { isNested: true } : {}),
-    };
-    this.current = newSegment(isPipedNext);
-    this.isNegated = false;
+  _flush(segment: Segment): void {
     const [name, ...args] = segment.commandWords;
     if (name !== undefined) this.calledNames.add(name);
     const body = name === undefined ? undefined : this.definitions.get(name);
@@ -339,52 +252,12 @@ export class SegmentReader {
   }
 }
 
-function newSegment(isPiped: boolean): Segment {
-  return {
-    words: [],
-    commandWords: [],
-    inputFiles: [],
-    isPiped,
-    outputFiles: [],
-  };
-}
-
-// Every word a `name ()` or `function name` could define; reading too many only leaves more calls unreadable.
-function functionNamesOf(tokens: Token[]): Set<string> {
-  return new Set(
-    tokens.flatMap((token, at) => {
-      const next = tokens[at + 1];
-      const after = tokens[at + 2];
-      if (token.type !== "word") return [];
-      if (isReserved(token, "function") && next?.type === "word") {
-        return [next.value];
-      }
-      const hasParens =
-        next?.type === "op" &&
-        next.value === "(" &&
-        after?.type === "op" &&
-        after.value === ")";
-      return hasParens ? [token.value] : [];
-    }),
-  );
-}
-
-// Bash nests no unescaped backtick, so one inside a backtick frame closes it.
-function substitutionOpenedBy(op: string, frames: Frame[]): Frame | undefined {
-  if (op === "$(") return "(";
-  if (op === "`" && !frames.includes("`")) return "`";
-  return undefined;
-}
-
-function isReserved(token: Token, word: string): boolean {
-  return token.type === "word" && !token.isQuoted && token.value === word;
-}
-
 // A copy to a descriptor number, or /dev/null; bash opens `>&name` and `&>2` as files.
-function isDiscardRedirect(redirect: string, target: string): boolean {
-  if (redirect === "<>") return false;
+function isDiscardRedirect(op: RedirOperator, target: string): boolean {
+  if (op === operatorCodes.readWrite) return false;
   return (
-    target === "/dev/null" || (redirect.endsWith("&") && /^\d+$/.test(target))
+    target === "/dev/null" ||
+    (op === operatorCodes.copyOut && /^\d+$/.test(target))
   );
 }
 

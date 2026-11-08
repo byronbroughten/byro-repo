@@ -120,9 +120,12 @@ export function gateDecision(call: ShellCall): Decision | undefined {
 }
 
 // An Interactive session's call the gate can't parse is refused, naming what it can't read and the way through, as no yes could make the gate decide it; a runner step's keeps its unclassified refusal.
+// A missing or throwing parser is refused in either mode, naming the fix: failing open would free every call.
 function parseRefusalOf({ command, mode }: ShellCall): string | undefined {
+  const parser = ShellParser.init(command);
+  if (parser.isParserMissing) return `${parser.parseFailure}.`;
   if (mode !== "interactive") return undefined;
-  const failure = ShellParser.init(command).parseFailure;
+  const failure = parser.parseFailure;
   if (failure === undefined) return undefined;
   return `the gate can't parse this call, which holds ${failure}, so it is refused, not asked. Rewrite it: ${parseWayThrough}.`;
 }
@@ -236,7 +239,7 @@ function decisionAmong(
   if (ask) {
     return needsYes(`\`${command}\` ${ask.why}`);
   }
-  // It strips heredoc bodies and misreads $'…', so either could hide a command or a substitution after one; a body the heredoc scan confirms, behind a quoted delimiter, hides neither.
+  // The parser reads every body, but bash rewrites an unquoted body and $'…' before a command gets them, so neither is plain text; a body behind a quoted delimiter is.
   if (/<<|\$'/.test(command)) {
     const refusal = plainTextRefusalOf(
       verdicts,
@@ -245,7 +248,6 @@ function decisionAmong(
     );
     if (refusal) return refusal;
     const parser = ShellParser.init(command);
-    if (!parser.heredocs) return undefined;
     if (
       !parser.isPlainText &&
       (hasSubstitution || verdicts.some((verdict) => verdict?.needsPlainText))
