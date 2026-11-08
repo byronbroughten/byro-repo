@@ -10,6 +10,7 @@ import { git } from "./GitFixture.ts";
 import { guidanceSectionOf } from "./halts.ts";
 import {
   addSpec,
+  crashed,
   eventOf,
   github,
   haltComments,
@@ -198,6 +199,25 @@ describe("run's wrap-up failures", () => {
     expect(rerunStep.requests[0]?.prompt).toContain(
       guidanceSectionOf("H1: Keep the branch's side."),
     );
+  });
+
+  it("restarts the merge before a crashed merge-master step's retry, then lands", async () => {
+    addSpec([1]);
+    let wasMerging = false;
+    const agentStep = FakeAgentStep.init(
+      conflicting,
+      reviewed(),
+      crashed,
+      async (request) => {
+        wasMerging = await isMerging(request.cwd);
+        return mergedMaster(request);
+      },
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(wasMerging).toBe(true);
+    expect(result.landed).toEqual([refOf(1)]);
   });
 
   it("leaves no repo mid-merge when the step returns without committing", async () => {

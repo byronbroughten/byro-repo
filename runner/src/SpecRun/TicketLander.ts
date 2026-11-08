@@ -211,7 +211,6 @@ export class TicketLander extends SpecRunBase {
   }
 
   // The rerun wrap-up judges what the session merged, so a turn cap only sets its uncommitted work aside.
-  // The runner starts the merge because the step's sandbox blocks a git write to `.claude/` files.
   private async _mergeMaster(
     landingTicket: LandingTicket,
     conflict: string,
@@ -235,20 +234,19 @@ export class TicketLander extends SpecRunBase {
     const worktrees = this._worktreesOf(workspace).filter(({ repo }) =>
       branchedRepos.includes(repo),
     );
+    const conflicted = `${issueLabelOf(ticket.issue)}: the wrap-up conflicted with master`;
     let ran: RanStep;
     try {
+      // From the runner's own process, since the step's sandbox blocks a git write to `.claude/` files.
       const mergingRepos = await this._startMerges(ticketRun, worktrees);
       if (mergingRepos.length === 0) {
         this._log(
           run,
-          `${issueLabelOf(ticket.issue)}: the wrap-up conflicted with master, which then merged cleanly; rerunning the wrap-up.`,
+          `${conflicted}, which then merged cleanly; rerunning the wrap-up.`,
         );
         return;
       }
-      this._log(
-        run,
-        `${issueLabelOf(ticket.issue)}: the wrap-up conflicted with master; resuming the implementer to merge it.`,
-      );
+      this._log(run, `${conflicted}; resuming the implementer to merge it.`);
       ran = await this.reviewStepper._runResolverStep(ticketRun, {
         step: "merge-master",
         resolver: "implementer",
@@ -262,6 +260,10 @@ export class TicketLander extends SpecRunBase {
             conflict,
           }),
           jsonSchema: mergeMasterOutputSchema,
+          // A crash's snapshot resets the tree, which ends the merge the retry is told is in progress.
+          beforeCrashRetry: async () => {
+            await this._startMerges(ticketRun, worktrees);
+          },
         },
       });
       this._saveState(run);
