@@ -14,16 +14,18 @@ import {
   type GapCheckTicket,
 } from "../gapCheck.ts";
 import {
-  type FailureAnswer,
-  failureAnswerOf,
   failureHaltOf,
   guidanceSectionOf,
   isAnswered,
   isRunnersComment,
-  isStopSpecAnswer,
   runnerMark,
   type StepFailure,
 } from "../halts.ts";
+import {
+  type FailureAnswer,
+  failureAnswerOf,
+  isStopSpecAnswer,
+} from "../halts/haltReplies.ts";
 import { issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
 import { type ResolveRecord } from "../resolveStep.ts";
 import {

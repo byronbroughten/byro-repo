@@ -34,7 +34,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `GhCli.ts` | `GhCli` | The real `gh` port. |
 | `git.ts` | | Git helpers the workspaces, run loop and wrap-up share, the worktree add, remove, list and switch helpers and the branch lookup included. |
 | `GitFixture.ts` | | A test primary root of clones with bare remotes. |
-| `halts.ts` | | Halts: their comments, notices, answers and the resume prompt. |
+| `halts.ts` | | Halts: their comments, notices and the resume prompt. |
+| `halts/haltReplies.ts` | | Reads a developer's replies to a Halt: which answer it, `stop spec` and a Failure Halt's answer. |
 | `headlessProbe.ts` | | Launches the one-turn headless session both probes run. |
 | `implementCodeSkill.ts` | `implementCodeSkill` | Generates the `/implement-code` skill from the implement step's shared body. |
 | `implementStep.ts` | `implementStep` | The implement step's prompt, record, handoff comment and record checks. |

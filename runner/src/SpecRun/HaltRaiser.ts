@@ -2,7 +2,7 @@
 // and halting the ticket; a crash past its retries is a Failure Halt, and a streak of them Stops the run as stuck.
 // It also works out a ticket's downstream, the run's tickets it blocks, which a Halt's scope names.
 // The lowest collaborator: it calls only the Base, and every collaborator that halts a ticket builds one.
-// Halt formats and reply matching are ../halts.ts; the coordinator callers build is ../SpecRun.ts.
+// Halt formats are ../halts.ts and reply matching ../halts/haltReplies.ts; the coordinator callers build is ../SpecRun.ts.
 
 import {
   blockerHaltOf,

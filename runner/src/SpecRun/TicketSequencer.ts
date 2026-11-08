@@ -6,7 +6,6 @@
 // It builds its own LeaseKeeper, ImplementStepper, ReviewStepper, TicketLander and HaltRaiser.
 
 import {
-  failureAnswerOf,
   failureOptions,
   type Halt,
   haltNameOf,
@@ -14,6 +13,7 @@ import {
   runnerMark,
   type StepFailure,
 } from "../halts.ts";
+import { failureAnswerOf } from "../halts/haltReplies.ts";
 import { approvalLineOf, bodyHashOf } from "../IssueReader.ts";
 import { issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
 import { LeaseHeld } from "../LeaseHeld.ts";
