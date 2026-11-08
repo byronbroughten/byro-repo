@@ -8,6 +8,7 @@ export type WrapUpFailureKind =
   | "parent-check"
   | "secret-scan"
   | "stale-path"
+  | "new-dependency"
   | "network";
 
 export class WrapUpFailure extends Error {

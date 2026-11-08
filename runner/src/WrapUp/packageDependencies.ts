@@ -1,4 +1,5 @@
 import { git, lines } from "../git.ts";
+import { type LandingBranch } from "./wrapUpTypes.ts";
 
 const dependencyFields = [
   "dependencies",
@@ -16,6 +17,16 @@ export interface DependencyComparison {
   clone: string;
   from: string;
   to: string;
+}
+
+export interface AddedDependency {
+  repo: string;
+  path: string;
+  name: string;
+}
+
+interface BranchInClone extends LandingBranch {
+  clone: string;
 }
 
 interface PackageJsonAtRev {
@@ -36,6 +47,43 @@ export function dependencyRangesOf(
   return new Map(
     dependencyFields.flatMap((field) => Object.entries(manifest[field] ?? {})),
   );
+}
+
+// Names at the branch head and not at its merge base with master; a version change or removal adds nothing.
+export async function dependenciesAddedBy({
+  repo,
+  branch,
+  clone,
+}: BranchInClone): Promise<AddedDependency[]> {
+  const base = await git(clone, "merge-base", "master", branch);
+  const changed = await git(
+    clone,
+    "diff",
+    "--name-only",
+    "--no-renames",
+    `master...${branch}`,
+  );
+  const added: AddedDependency[] = [];
+  for (const path of lines(changed).filter(isPackageJsonPath)) {
+    const before = dependencyRangesOf(
+      await packageJsonTextAt({ clone, rev: base, path }),
+    );
+    const after = dependencyRangesOf(
+      await packageJsonTextAt({ clone, rev: branch, path }),
+    );
+    for (const name of after.keys()) {
+      if (!before.has(name)) added.push({ repo, path, name });
+    }
+  }
+  return added;
+}
+
+export function addedDependencyLabelOf({
+  repo,
+  path,
+  name,
+}: AddedDependency): string {
+  return `${repo} ${path} adds ${name}`;
 }
 
 export async function isAnyDependencyChanged(

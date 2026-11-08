@@ -29,6 +29,9 @@ describe("runSession", () => {
     async closeIssue() {
       throw new Error("A session landing closed an issue");
     },
+    async bodyOf() {
+      throw new Error("A session landing read an issue body");
+    },
     async parentOf() {
       throw new Error("A session landing read a parent");
     },
