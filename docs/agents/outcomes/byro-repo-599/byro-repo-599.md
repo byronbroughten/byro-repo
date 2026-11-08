@@ -1,0 +1,7 @@
+# byro-repo#599 outcome
+
+Spec: [byro-repo#599](https://github.com/byronbroughten/byro-repo/issues/599)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #599 | Opus high | 2 | 11 | 151K → 124K | Fix (resumed implementer) | 3 | 1 | 0 | 141 min | $6.29 | $1.15 | Fixed: isStopSpecAnswer(halt, answer) makes every caller pass halt and halt.answer side by side (Data Clumps). (runner/src/halts.ts:382); failureAnswerOf(halt, answer) has the same clump at its callers. (runner/src/halts.ts:208); The comment on answerTextOf restates what its name says. (runner/src/halts.ts:372); The Halt entry restated the reply form and the later-id rule that SKILL.md step 5 and the answer line also state. (runner/GLOSSARY.md:76). Proposed: The reply-reading helpers form a group sharing nothing with halts.ts's comment and prompt wording, so they belong in their own module. (runner/src/halts.ts:208-385); `/^stop spec\b/` reads `H1: stop spec, then retry` as stop spec, where the spec's 'counts only as the answer itself' may mean an exact match. (runner/src/halts.ts:383); The colon after the opening id is optional, so `H1 retry` and `H1, H2: x` count as replies to H1; the latter's guidance text is `, H2: x`. (runner/src/halts.ts:369). | 3b1f4748-615a-4743-8e0e-23b4aa4b30b2, 4dbd7c36-6ec0-462a-bf02-1442f9cd1636, a2540289-2f9f-4cfb-a4e5-8a2700296acc |
