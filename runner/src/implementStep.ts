@@ -168,6 +168,8 @@ export const implementBody = {
     "Ticket prose follows prose-style unless the ticket marks it verbatim.",
   operatorText:
     "Text an operator sees (CLI flags, script names, sheet text) stays as the ticket has it.",
+  newDependencies:
+    "Add a package only when the ticket's `## New dependencies` section names it. For any other package, record a `spec-ambiguity` blocker naming the package and why it's needed, rather than adding it.",
 } as const;
 
 export function ticketBindsSection(): string {
@@ -175,6 +177,7 @@ export function ticketBindsSection(): string {
     implementBody.ticketCode,
     implementBody.ticketProse,
     implementBody.operatorText,
+    implementBody.newDependencies,
   ]);
 }
 

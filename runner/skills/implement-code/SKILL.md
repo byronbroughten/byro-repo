@@ -27,6 +27,7 @@ disable-model-invocation: true
 - A ticket's code binds its decision. It's your job to fit it to code-style and existing structures, folding it into an existing structure or renaming it where that fits, and to report in the closing comment any departure or any shape that couldn't fit.
 - Ticket prose follows prose-style unless the ticket marks it verbatim.
 - Text an operator sees (CLI flags, script names, sheet text) stays as the ticket has it.
+- Add a package only when the ticket's `## New dependencies` section names it. For any other package, record a `spec-ambiguity` blocker naming the package and why it's needed, rather than adding it.
 
 ## GitHub
 

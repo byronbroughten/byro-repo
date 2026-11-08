@@ -109,6 +109,10 @@ Do NOT close or modify any parent issue, except its `## Phases` section.
 - [ ] Acceptance criterion 1
 - [ ] Acceptance criterion 2
 
+## New dependencies
+
+- <name>
+
 ## Model fit
 
 <Model> <effort>
@@ -134,6 +138,10 @@ The end-to-end behaviour this ticket makes work, from the user's perspective, no
 ## Blocked by
 
 - A reference to each blocking ticket, or "None (can start immediately)". Omit this section when blockers were set as native edges.
+
+## New dependencies
+
+- <name>
 
 ## Model fit
 
@@ -170,6 +178,8 @@ Phase <N>: a reference to each of its tickets.
 A Phase gate is labelled `ready-for-human` and has no `## Model fit`.
 
 In either form, `## Model fit` is the last section of a `ready-for-agent` or `ready-for-interactive` ticket: a pair line, then a one-line reason. A `ready-for-human` ticket has none.
+
+In either form, `## New dependencies` lists only the packages the ticket adds, one `- <name>` line each; leave the section out when it adds none. Never relist a package that's already a dependency, and a version change to an existing package and the packages a new one depends on need no line.
 
 A `ready-for-human` ticket's body names what the developer runs: the skill (e.g. `/inbox`) or the numbered steps.
 
