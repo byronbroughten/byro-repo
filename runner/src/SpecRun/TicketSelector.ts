@@ -10,6 +10,7 @@ import {
   type Halt,
   haltNameOf,
   ignoredNoteOf,
+  isAnswered,
   repliesTo,
   shortRefOf,
 } from "../halts.ts";
@@ -257,8 +258,8 @@ function lastAnswerAtOf(run: Run, ticket: IssueRef): string {
 }
 
 function isSkipAnswered(halt: Halt): boolean {
-  if (halt.kind !== "failure" || halt.answer === undefined) return false;
-  return failureAnswerOf(halt, halt.answer).kind === "skip";
+  if (halt.kind !== "failure" || !isAnswered(halt)) return false;
+  return failureAnswerOf(halt).kind === "skip";
 }
 
 function developerWaitTextOf(

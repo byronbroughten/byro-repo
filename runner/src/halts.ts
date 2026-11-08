@@ -67,6 +67,12 @@ export interface HaltAnswer {
   at: string;
 }
 
+export type AnsweredHalt = Halt & { answer: HaltAnswer };
+
+export function isAnswered(halt: Halt | undefined): halt is AnsweredHalt {
+  return halt?.answer !== undefined;
+}
+
 // What a Halt needs before the run numbers it.
 export type HaltDraft = Pick<
   Halt,
@@ -205,9 +211,9 @@ export type FailureAnswer =
   | { kind: "guidance"; text: string };
 
 // `stop spec` ends the run that reads it, so a later run delivers it as `retry`; any other unnamed reply is guidance.
-export function failureAnswerOf(halt: Halt, answer: HaltAnswer): FailureAnswer {
-  if (isStopSpecAnswer(halt, answer)) return { kind: "retry" };
-  const text = answerTextOf(halt, answer);
+export function failureAnswerOf(halt: AnsweredHalt): FailureAnswer {
+  if (isStopSpecAnswer(halt)) return { kind: "retry" };
+  const text = answerTextOf(halt);
   const answerWords = wordsOf(text);
   if (answerWords === "retry") return { kind: "retry" };
   if (answerWords === "retry record") return { kind: "retry-record" };
@@ -369,9 +375,8 @@ function openingIdPatternOf({ id }: Halt): RegExp {
   return new RegExp(`^\\s*[*_\`]*${id}(?!\\w)[*_\`]*\\s*:?`);
 }
 
-// The reply after its opening id, as written.
-function answerTextOf(halt: Halt, { text }: HaltAnswer): string {
-  return text.replace(openingIdPatternOf(halt), "").trim();
+function answerTextOf(halt: AnsweredHalt): string {
+  return halt.answer.text.replace(openingIdPatternOf(halt), "").trim();
 }
 
 export function isRunnersComment({ body }: IssueComment): boolean {
@@ -379,8 +384,8 @@ export function isRunnersComment({ body }: IssueComment): boolean {
 }
 
 // Only an answer that opens with `stop spec`, so `retry, don't stop spec` is not one.
-export function isStopSpecAnswer(halt: Halt, answer: HaltAnswer): boolean {
-  return /^stop spec\b/.test(wordsOf(answerTextOf(halt, answer)));
+export function isStopSpecAnswer(halt: AnsweredHalt): boolean {
+  return /^stop spec\b/.test(wordsOf(answerTextOf(halt)));
 }
 
 export function answeredNoteOf(halt: Halt): string {

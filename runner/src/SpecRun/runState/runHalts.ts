@@ -7,6 +7,7 @@ import {
   failureOptions,
   type Halt,
   type HaltDraft,
+  isAnswered,
   isStopSpecAnswer,
   sessionHaltIdOf,
   shortRefOf,
@@ -58,7 +59,7 @@ export const runHalts = {
   },
 
   isStopSpec(halt: Halt): boolean {
-    return halt.answer !== undefined && isStopSpecAnswer(halt, halt.answer);
+    return isAnswered(halt) && isStopSpecAnswer(halt);
   },
 
   undeliveredOf(run: Run, ticket: IssueRef): Halt[] {
@@ -81,7 +82,7 @@ export const runHalts = {
       .undeliveredOf(run, ticket)
       .filter(isTicketFailureHalt);
     const latest = failures.at(-1);
-    if (latest?.answer === undefined) return undefined;
+    if (!isAnswered(latest)) return undefined;
     failures.forEach((halt) => {
       halt.isDelivered = true;
     });
@@ -91,7 +92,7 @@ export const runHalts = {
     state.conflictResumes = undefined;
     state.continuation = undefined;
     state.guidance = undefined;
-    const answer = failureAnswerOf(latest, latest.answer);
+    const answer = failureAnswerOf(latest);
     // A continuation another Halt never offered would resume a session with nothing to continue.
     if (
       answer.kind === "retry-record" &&
