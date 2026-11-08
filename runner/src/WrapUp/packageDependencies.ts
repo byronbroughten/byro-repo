@@ -40,6 +40,10 @@ interface RangesPair {
   after: Map<string, string>;
 }
 
+interface ChangedPackageJson extends RangesPair {
+  path: string;
+}
+
 export function dependencyRangesOf(
   packageJsonText: string,
 ): Map<string, string> {
@@ -55,27 +59,13 @@ export async function dependenciesAddedBy({
   branch,
   clone,
 }: BranchInClone): Promise<AddedDependency[]> {
-  const base = await git(clone, "merge-base", "master", branch);
-  const changed = await git(
-    clone,
-    "diff",
-    "--name-only",
-    "--no-renames",
-    `master...${branch}`,
+  const from = await git(clone, "merge-base", "master", branch);
+  const changed = await changedPackageJsonsOf({ clone, from, to: branch });
+  return changed.flatMap(({ path, before, after }) =>
+    [...after.keys()]
+      .filter((name) => !before.has(name))
+      .map((name) => ({ repo, path, name })),
   );
-  const added: AddedDependency[] = [];
-  for (const path of lines(changed).filter(isPackageJsonPath)) {
-    const before = dependencyRangesOf(
-      await packageJsonTextAt({ clone, rev: base, path }),
-    );
-    const after = dependencyRangesOf(
-      await packageJsonTextAt({ clone, rev: branch, path }),
-    );
-    for (const name of after.keys()) {
-      if (!before.has(name)) added.push({ repo, path, name });
-    }
-  }
-  return added;
 }
 
 export function addedDependencyLabelOf({
@@ -95,11 +85,18 @@ export async function isAnyDependencyChanged(
   return false;
 }
 
-async function isDependencyChanged({
+async function isDependencyChanged(
+  comparison: DependencyComparison,
+): Promise<boolean> {
+  const changed = await changedPackageJsonsOf(comparison);
+  return changed.some((ranges) => !areSameRanges(ranges));
+}
+
+async function changedPackageJsonsOf({
   clone,
   from,
   to,
-}: DependencyComparison): Promise<boolean> {
+}: DependencyComparison): Promise<ChangedPackageJson[]> {
   // No rename detection, so a moved package.json is seen at both its paths.
   const changed = await git(
     clone,
@@ -109,16 +106,19 @@ async function isDependencyChanged({
     from,
     to,
   );
-  for (const path of lines(changed).filter(isPackageJsonPath)) {
-    const before = dependencyRangesOf(
-      await packageJsonTextAt({ clone, rev: from, path }),
-    );
-    const after = dependencyRangesOf(
-      await packageJsonTextAt({ clone, rev: to, path }),
-    );
-    if (!areSameRanges({ before, after })) return true;
-  }
-  return false;
+  return Promise.all(
+    lines(changed)
+      .filter(isPackageJsonPath)
+      .map(async (path) => ({
+        path,
+        before: dependencyRangesOf(
+          await packageJsonTextAt({ clone, rev: from, path }),
+        ),
+        after: dependencyRangesOf(
+          await packageJsonTextAt({ clone, rev: to, path }),
+        ),
+      })),
+  );
 }
 
 function isPackageJsonPath(path: string): boolean {

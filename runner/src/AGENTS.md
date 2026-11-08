@@ -117,6 +117,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `targetTools.ts` | | The tools a step gets for each of its ticket's targets. |
 | `TicketHalted.ts` | | The error raised once a ticket's Halts are posted. |
 | `ticketNewDependencies.ts` | | Reads a ticket's `## New dependencies` section. |
+| `ticketSections.ts` | | Finds one `## ` section of a ticket's body. |
 | `ticketTargets.ts` | | Reads a ticket's `## Targets` section. |
 | `transcriptFacts.ts` | `transcriptFacts` | Outcome facts computed from transcripts: pair, peaks, duration and cost, and why one is unrecorded; where a session's transcript is. |
 | `UnhandledStop.ts` | `UnhandledStop` | The outcomes the run loop doesn't handle yet, and their error. |
