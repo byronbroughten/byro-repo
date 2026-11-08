@@ -16,10 +16,12 @@ import {
 import {
   type FailureAnswer,
   failureAnswerOf,
+  isStopSpecAnswer,
+} from "../haltReplies.ts";
+import {
   failureHaltOf,
   guidanceSectionOf,
   isRunnersComment,
-  isStopSpecAnswer,
   runnerMark,
   type StepFailure,
 } from "../halts.ts";

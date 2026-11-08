@@ -1,15 +1,13 @@
-// Halts: the Halts a ticket's steps raise, the spec-issue comment and notice line each is posted as, how a developer's
-// reply answers one, and the prompt that hands every answer back to the ticket's resumed or fresh implementer.
+// Halts: the Halts a ticket's steps raise, the spec-issue comment and notice line each is posted as, and the prompt
+// that hands every answer back to the ticket's resumed or fresh implementer; which replies answer one is ./haltReplies.ts.
 // SpecRun.ts keeps them in run state, blocks the tickets in their scope and resumes the halted ticket once all are answered.
 
-import type { Pair } from "./AgentStep.ts";
 import {
   type Blocker,
   type ProposedSlice,
   proposedSplitText,
 } from "./implementStep.ts";
 import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
-import { pairNamed } from "./modelFit.ts";
 import {
   type HaltScope,
   haltScopeOf,
@@ -194,44 +192,6 @@ export function failureHaltOf(
   };
 }
 
-export type FailureAnswer =
-  | { kind: "retry" }
-  | { kind: "retry-record" }
-  | { kind: "more-turns"; turns: number | undefined }
-  | { kind: "more-handoffs" }
-  | { kind: "rerun"; pair: Pair }
-  | { kind: "approve" }
-  | { kind: "skip" }
-  | { kind: "guidance"; text: string };
-
-// `stop spec` ends the run that reads it, so a later run delivers it as `retry`; any other unnamed reply is guidance.
-export function failureAnswerOf(halt: Halt, answer: HaltAnswer): FailureAnswer {
-  if (isStopSpecAnswer(answer)) return { kind: "retry" };
-  const { text } = answer;
-  const answerWords = text
-    .replace(haltIdPatternOf(halt, "g"), " ")
-    .replace(/[`*:.,!]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
-  if (answerWords === "retry") return { kind: "retry" };
-  if (answerWords === "retry record") return { kind: "retry-record" };
-  if (answerWords === "approve") return { kind: "approve" };
-  if (answerWords === "skip") return { kind: "skip" };
-  if (answerWords === "continue +1 handoff") return { kind: "more-handoffs" };
-  const moreTurns = /^resume \+(\d+)? ?turns?$/.exec(answerWords);
-  if (moreTurns !== null) {
-    const [, turns] = moreTurns;
-    return {
-      kind: "more-turns",
-      turns: turns === undefined ? undefined : Number(turns),
-    };
-  }
-  const pair = pairNamed(/^rerun on (.+)$/.exec(answerWords)?.[1] ?? "");
-  if (pair !== undefined) return { kind: "rerun", pair };
-  return { kind: "guidance", text };
-}
-
 export function guidanceSectionOf(guidance: string): string {
   return `## The developer's guidance
 
@@ -256,7 +216,7 @@ export function haltNameOf({ id }: Halt): string {
   return `Halt ${id}`;
 }
 
-function haltHeadingOf(halt: Halt): string {
+export function haltHeadingOf(halt: Halt): string {
   return `**${haltNameOf(halt)}**`;
 }
 
@@ -332,45 +292,8 @@ function scopeTextOf(scope: HaltScope): string {
   return `${scope.join(", ")} and their downstream`;
 }
 
-export interface ReplySearch {
-  halt: Halt;
-  // The spec issue's comments, oldest first.
-  comments: IssueComment[];
-  developer: string;
-}
-
-// The developer's replies naming the Halt since it was last posted, oldest first; never the runner's own comments.
-export function repliesTo({
-  halt,
-  comments,
-  developer,
-}: ReplySearch): IssueComment[] {
-  const postedAt = comments.findLastIndex(
-    (comment) =>
-      isRunnersComment(comment) && comment.body.includes(haltHeadingOf(halt)),
-  );
-  if (postedAt === -1) return [];
-  const naming = haltIdPatternOf(halt);
-  return comments
-    .slice(postedAt + 1)
-    .filter(
-      (comment) =>
-        comment.author === developer &&
-        !isRunnersComment(comment) &&
-        naming.test(comment.body),
-    );
-}
-
-function haltIdPatternOf({ id }: Halt, flags = ""): RegExp {
-  return new RegExp(`(^|[^\\w])${id}(?!\\w)`, flags);
-}
-
 export function isRunnersComment({ body }: IssueComment): boolean {
   return body.includes(runnerMark);
-}
-
-export function isStopSpecAnswer({ text }: HaltAnswer): boolean {
-  return /\bstop spec\b/i.test(text);
 }
 
 export function answeredNoteOf(halt: Halt): string {
