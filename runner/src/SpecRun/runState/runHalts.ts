@@ -57,8 +57,8 @@ export const runHalts = {
     return bodyHash !== undefined;
   },
 
-  isStopSpec({ answer }: Halt): boolean {
-    return answer !== undefined && isStopSpecAnswer(answer);
+  isStopSpec(halt: Halt): boolean {
+    return halt.answer !== undefined && isStopSpecAnswer(halt, halt.answer);
   },
 
   undeliveredOf(run: Run, ticket: IssueRef): Halt[] {

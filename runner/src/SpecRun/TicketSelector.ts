@@ -176,7 +176,7 @@ export class TicketSelector extends SpecRunBase {
       .map(issueLabelOf);
   }
 
-  // The first reply naming an open Halt answers it; a later one is noted as ignored, once.
+  // The first reply opening with an open Halt's id answers it; a later one is noted as ignored, once.
   private async _readAnswers(run: Run): Promise<Halt[]> {
     const posted = runHalts.of(run).filter(({ isPosted }) => isPosted);
     if (posted.length === 0) return [];

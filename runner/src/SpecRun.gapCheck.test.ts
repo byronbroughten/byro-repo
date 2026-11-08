@@ -203,7 +203,7 @@ describe("run's gap-check Failure Halt answers", () => {
 
     const agentStep = await runGapChecks(capped, noGaps);
 
-    const section = guidanceSectionOf(`H1: ${guidance}`);
+    const section = guidanceSectionOf(guidance);
     expect(agentStep.requests.map(({ prompt }) => prompt)).toEqual([
       expect.stringContaining(section),
       expect.stringContaining(section),

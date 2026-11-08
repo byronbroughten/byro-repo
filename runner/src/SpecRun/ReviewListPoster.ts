@@ -322,7 +322,7 @@ function gapCheckAnswerOf(run: Run): FailureAnswer | undefined {
     .filter((halt) => runHalts.isGapCheck(halt) && !halt.isDelivered)
     .at(-1);
   if (latest?.answer === undefined) return undefined;
-  if (isStopSpecAnswer(latest.answer)) return { kind: "skip" };
+  if (isStopSpecAnswer(latest, latest.answer)) return { kind: "skip" };
   return failureAnswerOf(latest, latest.answer);
 }
 

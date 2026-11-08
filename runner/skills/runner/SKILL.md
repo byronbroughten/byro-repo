@@ -72,7 +72,7 @@ Once the run has ended, this session is a regular interactive session: the limit
 
 ## 5. Replies
 
-The developer settles each reply in chat, except one answering a Halt you cleared yourself (step 6). Your suggestion is not a reply until they agree to it, word for word or in their own words. Then post it as a reply on the spec issue that names the Halt's id:
+The developer settles each reply in chat, except one answering a Halt you cleared yourself (step 6). Your suggestion is not a reply until they agree to it, word for word or in their own words. Then post it as a reply on the spec issue that opens with the Halt's id, the one Halt a reply answers; an id later in the reply is only a mention:
 
 ```
 gh issue comment <n> -R <owner/repo> --body "H<k>: <the settled reply>"

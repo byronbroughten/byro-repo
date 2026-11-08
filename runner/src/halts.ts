@@ -37,7 +37,7 @@ const kindLabels = {
 export type HaltKind = keyof typeof kindLabels;
 
 export interface Halt {
-  // `H<n>`, numbered across the spec's run, which reads a reply naming it; `S<ticket>.<k>` for a session's review.
+  // `H<n>`, numbered across the spec's run, which reads a reply opening with it; `S<ticket>.<k>` for a session's review.
   id: string;
   // The halted ticket.
   ticket: IssueRef;
@@ -206,14 +206,9 @@ export type FailureAnswer =
 
 // `stop spec` ends the run that reads it, so a later run delivers it as `retry`; any other unnamed reply is guidance.
 export function failureAnswerOf(halt: Halt, answer: HaltAnswer): FailureAnswer {
-  if (isStopSpecAnswer(answer)) return { kind: "retry" };
-  const { text } = answer;
-  const answerWords = text
-    .replace(haltIdPatternOf(halt, "g"), " ")
-    .replace(/[`*:.,!]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
+  if (isStopSpecAnswer(halt, answer)) return { kind: "retry" };
+  const text = answerTextOf(halt, answer);
+  const answerWords = wordsOf(text);
   if (answerWords === "retry") return { kind: "retry" };
   if (answerWords === "retry record") return { kind: "retry-record" };
   if (answerWords === "approve") return { kind: "approve" };
@@ -230,6 +225,14 @@ export function failureAnswerOf(halt: Halt, answer: HaltAnswer): FailureAnswer {
   const pair = pairNamed(/^rerun on (.+)$/.exec(answerWords)?.[1] ?? "");
   if (pair !== undefined) return { kind: "rerun", pair };
   return { kind: "guidance", text };
+}
+
+function wordsOf(text: string): string {
+  return text
+    .replace(/[`*:.,!]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
 }
 
 export function guidanceSectionOf(guidance: string): string {
@@ -264,7 +267,7 @@ export function haltCommentOf(post: HaltPost): string {
   const { halt } = post;
   return haltCommentWith(post, {
     options: [...halt.options, stopSpecOption],
-    answerLine: `Answer with a reply naming \`${halt.id}\`: an option, or your own words.`,
+    answerLine: `Answer with a reply that opens with \`${halt.id}:\`, then an option or your own words.`,
   });
 }
 
@@ -339,7 +342,7 @@ export interface ReplySearch {
   developer: string;
 }
 
-// The developer's replies naming the Halt since it was last posted, oldest first; never the runner's own comments.
+// The developer's replies opening with the Halt's id since it was last posted, oldest first; never the runner's own comments.
 export function repliesTo({
   halt,
   comments,
@@ -350,27 +353,34 @@ export function repliesTo({
       isRunnersComment(comment) && comment.body.includes(haltHeadingOf(halt)),
   );
   if (postedAt === -1) return [];
-  const naming = haltIdPatternOf(halt);
+  const opening = openingIdPatternOf(halt);
   return comments
     .slice(postedAt + 1)
     .filter(
       (comment) =>
         comment.author === developer &&
         !isRunnersComment(comment) &&
-        naming.test(comment.body),
+        opening.test(comment.body),
     );
 }
 
-function haltIdPatternOf({ id }: Halt, flags = ""): RegExp {
-  return new RegExp(`(^|[^\\w])${id}(?!\\w)`, flags);
+// An id later in a reply is a mention, as in `H8: Same as H7`; Markdown emphasis around the opening one still counts.
+function openingIdPatternOf({ id }: Halt): RegExp {
+  return new RegExp(`^\\s*[*_\`]*${id}(?!\\w)[*_\`]*\\s*:?`);
+}
+
+// The reply after its opening id, as written.
+function answerTextOf(halt: Halt, { text }: HaltAnswer): string {
+  return text.replace(openingIdPatternOf(halt), "").trim();
 }
 
 export function isRunnersComment({ body }: IssueComment): boolean {
   return body.includes(runnerMark);
 }
 
-export function isStopSpecAnswer({ text }: HaltAnswer): boolean {
-  return /\bstop spec\b/i.test(text);
+// Only an answer that opens with `stop spec`, so `retry, don't stop spec` is not one.
+export function isStopSpecAnswer(halt: Halt, answer: HaltAnswer): boolean {
+  return /^stop spec\b/.test(wordsOf(answerTextOf(halt, answer)));
 }
 
 export function answeredNoteOf(halt: Halt): string {
