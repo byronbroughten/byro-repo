@@ -2,7 +2,8 @@
 // must be clean, which branches it deletes and how it merges. It builds BranchMerger, LogRowCommitter and LandingBranchFinder.
 
 import { type WrapUpFacts } from "../FactsFile.ts";
-import { type IssueRef } from "../IssueWorkspaces.ts";
+import { issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
+import { newDependenciesOf } from "../ticketNewDependencies.ts";
 import { BranchMerger } from "./BranchMerger.ts";
 import { LandingBranchFinder } from "./LandingBranchFinder.ts";
 import { LogRowCommitter } from "./LogRowCommitter.ts";
@@ -27,8 +28,11 @@ export class LandingKindPicker extends WrapUpBase {
     return new LandingBranchFinder(this.config);
   }
 
-  get _sessionLanding(): LandingKind {
+  _sessionLandingOf(newDependencies: string[]): LandingKind {
     return {
+      allowedNewDependencies: async () => newDependencies,
+      newDependencyAdvice:
+        "Pass `--new-dependency <name>` for each to the wrap-up, or drop it from the change.",
       build: async (landing, workspace) =>
         this.merger._mergeAndCheck(landing, workspace),
       cleanRepos: () => Object.keys(this.config.workspaces.clonePaths),
@@ -46,6 +50,14 @@ export class LandingKindPicker extends WrapUpBase {
   ): LandingKind {
     const hasCode = branches.length > 0;
     return {
+      allowedNewDependencies: async () =>
+        newDependenciesOf(
+          await this._withRetries(`Reading ${issueLabelOf(issue)}`, () =>
+            this.config.github.bodyOf(issue),
+          ),
+        ),
+      newDependencyAdvice:
+        "Add each to the ticket's `## New dependencies` section as a `- <name>` line and rerun, or drop it from the change.",
       build: async (landing, workspace) => {
         if (hasCode) {
           await this.merger._mergeAndCheck(landing, workspace);

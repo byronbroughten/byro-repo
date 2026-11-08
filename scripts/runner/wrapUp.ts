@@ -19,7 +19,7 @@ import { closingFactsOf } from "./closingFacts.ts";
 import { wrapUpConfig } from "./runnerConfig.ts";
 
 const usage =
-  'Usage: npm run wrap-up -- (<repo> <n> [(--closing "…" | --closing-file <path>) [--undone "<box>: <reason>"]...] [--no-code] | --session <slug> [--keep])';
+  'Usage: npm run wrap-up -- (<repo> <n> [(--closing "…" | --closing-file <path>) [--undone "<box>: <reason>"]...] [--no-code] | --session <slug> [--keep] [--new-dependency <name>]...)';
 
 try {
   const args = process.argv.slice(2);
@@ -75,13 +75,19 @@ async function landSession(args: string[]): Promise<void> {
   const { positionals, values } = parseArgs({
     args,
     allowPositionals: true,
-    options: { keep: { type: "boolean", default: false } },
+    options: {
+      keep: { type: "boolean", default: false },
+      "new-dependency": { type: "string", multiple: true, default: [] },
+    },
   });
   const [session, ...rest] = positionals;
   if (session === undefined || rest.length > 0) throw new Error(usage);
   const { keep } = values;
   const wrapUp = WrapUp.init(wrapUpConfig);
-  const options = { holder: nearestClaudeAncestor() };
+  const options = {
+    holder: nearestClaudeAncestor(),
+    newDependencies: values["new-dependency"],
+  };
   const result = keep
     ? await wrapUp.keepSession(session, options)
     : await wrapUp.runSession(session, options);

@@ -73,6 +73,8 @@ export interface IssueOptions {
 export interface SessionOptions {
   // The session landing it; another live holder of the workspace's lease refuses the landing.
   holder?: LeaseHolder;
+  // The packages this landing may add; a ticket names its own in its body.
+  newDependencies?: string[];
 }
 
 interface LandabilityTarget extends IssueLandingTarget {
@@ -157,9 +159,9 @@ export class WrapUp extends WrapUpBase {
 
   async runSession(
     session: string,
-    { holder }: SessionOptions = {},
+    options: SessionOptions = {},
   ): Promise<LandingResult> {
-    const landing = await this._landSession({ session }, holder);
+    const landing = await this._landSession({ session }, options);
     retryBranchDeletes(landing);
     await this._landAndRemove(landing);
     return this._endSession(landing, "remove-workspace");
@@ -168,10 +170,10 @@ export class WrapUp extends WrapUpBase {
   // Lets a session publish its work and carry on, so a long session's edits don't wait for its end.
   async keepSession(
     session: string,
-    { holder }: SessionOptions = {},
+    options: SessionOptions = {},
   ): Promise<LandingResult> {
     const key: SessionKey = { session };
-    const landing = await this._landSession(key, holder);
+    const landing = await this._landSession(key, options);
     await this.pusher._scanAndPush(landing);
     await this._step(landing, "level-workspace", () =>
       this.workspaceFinisher._levelWorkspace(key),
@@ -186,14 +188,14 @@ export class WrapUp extends WrapUpBase {
 
   private async _landSession(
     key: SessionKey,
-    holder: LeaseHolder | undefined,
+    { holder, newDependencies = [] }: SessionOptions,
   ): Promise<Landing> {
     await this.workspaceFinisher._assertLeaseFree(key, holder);
     const landing: Landing = {
       key,
       branches: [],
       progress: this._readProgress(key),
-      kind: this.kindPicker._sessionLanding,
+      kind: this.kindPicker._sessionLandingOf(newDependencies),
     };
     if (!isDone(landing, "fast-forward")) {
       landing.branches = await this.branchFinder._sessionBranchesOf(

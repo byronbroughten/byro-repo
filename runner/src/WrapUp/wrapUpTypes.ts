@@ -72,6 +72,9 @@ export interface LandingKind {
   cleanRepos(landing: Landing): string[];
   branchesToDelete(landing: Landing): Promise<LandingBranch[]>;
   mergeArgs(branch: string): string[];
+  allowedNewDependencies(): Promise<string[]>;
+  // The closing line of a new-dependency refusal: how this kind of landing names a package.
+  newDependencyAdvice: string;
 }
 
 // Read before any switch and only for repos left unswitched, so a switch never leaves a stale answer.
@@ -86,6 +89,7 @@ export interface ParentIssue {
 
 export interface WrapUpGitHub {
   closeIssue(issue: IssueRef, comment: string): Promise<void>;
+  bodyOf(issue: IssueRef): Promise<string>;
   parentOf(issue: IssueRef): Promise<ParentIssue | undefined>;
   subIssuesOf(issue: IssueRef): Promise<IssueRef[]>;
   labelsOf(issue: IssueRef): Promise<string[]>;

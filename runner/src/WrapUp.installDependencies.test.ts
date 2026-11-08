@@ -12,6 +12,7 @@ import {
   commitIn,
   errorOf,
   failureOf,
+  github,
   primaryOf,
   primaryRoot,
   remoteOf,
@@ -29,6 +30,10 @@ useWrapUpHarness();
 const manifest = "package.json";
 const withDependency = JSON.stringify({ dependencies: { "sh-syntax": "^1" } });
 const withScript = JSON.stringify({ scripts: { test: "vitest" } });
+
+function listDependencyOnTicket(): void {
+  github.bodies.set(ticket.number, "## New dependencies\n- sh-syntax\n");
+}
 
 async function landedWorkspace(): Promise<void> {
   const workspace = await workspaceWith();
@@ -61,6 +66,7 @@ describe("installDependencies", () => {
     const workspace = await workspaceWith(["sheets-framework"]);
     commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
     commitIn(workspace, "sheets-framework", manifest, withDependency);
+    listDependencyOnTicket();
     writeFacts();
     commitFileIn(primaryOf("byro-repo"), manifest, withDependency);
     const roots: string[] = [];
@@ -91,6 +97,7 @@ describe("installDependencies", () => {
   it("installs only in the primary when the branch itself adds the dependency", async () => {
     const workspace = await workspaceWith();
     commitIn(workspace, "byro-repo", manifest, withDependency);
+    listDependencyOnTicket();
     writeFacts();
     const { roots, installDependencies } = recordingInstall();
 
@@ -148,6 +155,7 @@ describe("installDependencies", () => {
   it("only warns when the primary install fails", async () => {
     const workspace = await workspaceWith();
     commitIn(workspace, "byro-repo", manifest, withDependency);
+    listDependencyOnTicket();
     writeFacts();
     const lines: string[] = [];
 

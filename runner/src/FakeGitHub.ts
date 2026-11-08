@@ -12,6 +12,8 @@ export class FakeGitHub implements RunGitHub {
   readonly blockers = new Map<number, number[]>();
   // Set to override the parent the sub-issue map gives.
   readonly parents = new Map<number, ParentIssue>();
+  // Set to give an untracked issue a body.
+  readonly bodies = new Map<number, string>();
   readonly comments: { issue: IssueRef; body: string; author: string }[] = [];
   readonly closed: { issue: IssueRef; comment: string }[] = [];
   // Each runs before one comment read, in order, as a hand edit made meanwhile.
@@ -80,6 +82,12 @@ export class FakeGitHub implements RunGitHub {
       };
     }
     return undefined;
+  }
+
+  // An issue the fake doesn't track has an empty body unless a test scripts one.
+  async bodyOf({ number }: IssueRef): Promise<string> {
+    this._failIfScripted();
+    return this.bodies.get(number) ?? this.issues.get(number)?.body ?? "";
   }
 
   // An issue the fake doesn't track has none, so wrap-up tests script only the labels they test.

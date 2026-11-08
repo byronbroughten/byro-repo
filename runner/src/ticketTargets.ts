@@ -1,6 +1,8 @@
 // Reads a ticket's `## Targets` section, placed before `## Model fit`: one target outside the repo per line that the ticket's steps may write.
 // SpecRun.ts reads them with the pair just before each launch; ClaudeAgentStep.ts turns them into tools, and the tier gate checks writes against them.
 
+import { ticketSectionOf } from "./ticketSections.ts";
+
 const sectionHeading = "## Targets";
 const docLine = /^doc ([A-Za-z0-9_-]+)$/;
 // The line shapes targetOf() reads, for a refusal to name.
@@ -23,9 +25,7 @@ const spreadsheetLines: Record<string, SpreadsheetName> = {
 
 // A body with no section names no targets.
 export function targetsOf(body: string): TargetsReading {
-  const section = body
-    .split(/^(?=## )/m)
-    .find((part) => part.split("\n")[0]?.trim() === sectionHeading);
+  const section = ticketSectionOf(body, sectionHeading);
   if (section === undefined) return { status: "valid", targets: [] };
   const targets: Target[] = [];
   const lines = section

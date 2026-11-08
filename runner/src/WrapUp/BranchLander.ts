@@ -1,5 +1,5 @@
 // Lands a ticket's or session's branches up to the fast-forward: restores the worktrees, checks them clean, counts the
-// files changed, refuses stale paths, then builds the merges and fast-forwards, rebuilding when a master moved.
+// files changed, refuses stale paths and packages nothing names, then builds the merges and fast-forwards, rebuilding when a master moved.
 // Nothing reaches a primary checkout before the fast-forward, so an unlanded rerun starts over from the branches.
 
 import { git, isDirty, lines } from "../git.ts";
@@ -7,6 +7,10 @@ import { type Workspace } from "../IssueWorkspaces.ts";
 import { stalePathLabelOf, stalePathsTouchedBy } from "../stalePaths.ts";
 import { WrapUpFailure } from "../WrapUpFailure.ts";
 import { MasterFastForwarder } from "./MasterFastForwarder.ts";
+import {
+  addedDependencyLabelOf,
+  dependenciesAddedBy,
+} from "./packageDependencies.ts";
 import { WorktreeRestorer } from "./WorktreeRestorer.ts";
 import { listedReposOf, WrapUpBase } from "./WrapUpBase.ts";
 import {
@@ -45,6 +49,7 @@ export class BranchLander extends WrapUpBase {
       landing.progress.filesChanged = await this._filesChanged(landing);
     });
     await this._refuseStalePaths(landing);
+    await this._refuseUnnamedDependencies(landing);
     for (;;) {
       await landing.kind.build(landing, workspace);
       if (await this.fastForwarder._fastForward(landing)) return;
@@ -105,6 +110,23 @@ export class BranchLander extends WrapUpBase {
     throw new WrapUpFailure(
       "stale-path",
       `The change names folders that hold no clone, so nothing was merged:\n${found.map(stalePathLabelOf).join("\n")}`,
+    );
+  }
+
+  private async _refuseUnnamedDependencies(landing: Landing): Promise<void> {
+    const added = await Promise.all(
+      landing.branches.map(({ repo, branch }) =>
+        dependenciesAddedBy({ repo, branch, clone: this._primaryOf(repo) }),
+      ),
+    );
+    const found = added.flat();
+    if (found.length === 0) return;
+    const allowed = new Set(await landing.kind.allowedNewDependencies());
+    const refused = found.filter(({ name }) => !allowed.has(name));
+    if (refused.length === 0) return;
+    throw new WrapUpFailure(
+      "new-dependency",
+      `The change adds packages nothing names, so nothing was merged:\n${refused.map(addedDependencyLabelOf).join("\n")}\n${landing.kind.newDependencyAdvice}`,
     );
   }
 }

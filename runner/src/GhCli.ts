@@ -150,6 +150,10 @@ export class GhCli implements RunGitHub, IssueSource {
     );
   }
 
+  async bodyOf(issue: IssueRef): Promise<string> {
+    return (await this.issueOf(issue)).body;
+  }
+
   async labelsOf(issue: IssueRef): Promise<string[]> {
     return (await this.issueOf(issue)).labels;
   }
