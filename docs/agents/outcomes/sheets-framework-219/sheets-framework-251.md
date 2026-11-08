@@ -1,0 +1,7 @@
+# sheets-framework#251 outcome
+
+Spec: [sheets-framework#219](https://github.com/byronbroughten/sheets-framework/issues/219)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #251 | Opus medium | 2 | 3 | 98K | Fix (resumed implementer) | 0 | 1 | 0 | 23 min | $2.52 | $3.80 | Fixed: The same SKIPPED message appears in two places. (packages/framework/scripts/setup-clasp-run-auth.sh:551,563); The mktemp scope dir leaks on a node failure or a Ctrl-C before rm -rf. (packages/framework/scripts/setup-clasp-run-auth.sh:530-551); Two why-comments run to two lines each. (packages/framework/scripts/setup-clasp-run-auth.sh:197-198,528-529); The doc restates the scopes, path and mode from the script, and names a client the script only falls back to. (packages/framework/docs/how-it-runs/auth.md:13); The revoke step hard-codes the app name real-estate-manager-sheets. (packages/framework/docs/how-it-runs/auth.md:15); An exported clasp_config_auth sends stage 4's clasp login into agent-auth.json. (packages/framework/scripts/setup-clasp-run-auth.sh:433); The connections page lists apps by consent-screen name, not by project ID. (auth.md revocation paragraph; setup-clasp-run-auth.sh:561). | f84d4543-0d9c-4aaa-8f58-b680f44331dd, 3ca2dec1-e00d-42f8-992e-df6fbd71cd62 |
