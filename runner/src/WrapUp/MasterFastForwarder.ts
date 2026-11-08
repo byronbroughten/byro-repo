@@ -62,19 +62,17 @@ export class MasterFastForwarder extends WrapUpBase {
   ): Promise<void> {
     const { primaryRoot } = this.config.workspaces;
     try {
-      const comparisons = Object.entries(built).map(
-        ([repo, { base, head }]) => ({
+      await this._installIfDependenciesChanged(
+        primaryRoot,
+        Object.entries(built).map(([repo, { base, head }]) => ({
           clone: this._primaryOf(repo),
           from: base,
           to: head,
-        }),
+        })),
       );
-      if (await this._isAnyDependencyChanged(comparisons)) {
-        await this.config.installDependencies?.(primaryRoot);
-      }
     } catch (error) {
       this._log(
-        `Warning: the dependency install failed in ${primaryRoot}, continuing; run ${installCommandLabel} in the primary root before the next check: ${messageOf(error)}`,
+        `Warning: continuing without the dependency install; run ${installCommandLabel} in the primary root before the next check: ${messageOf(error)}`,
       );
     }
   }

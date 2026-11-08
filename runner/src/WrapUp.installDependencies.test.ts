@@ -5,9 +5,12 @@ import { describe, expect, it } from "vitest";
 
 import { git } from "./GitFixture.ts";
 import { type Command } from "./runKnobs.ts";
+import { type WrapUpConfig } from "./WrapUp.ts";
+import { WrapUpFailure } from "./WrapUpFailure.ts";
 import {
   commitFileIn,
   commitIn,
+  errorOf,
   failureOf,
   primaryOf,
   primaryRoot,
@@ -27,11 +30,10 @@ const manifest = "package.json";
 const withDependency = JSON.stringify({ dependencies: { "sh-syntax": "^1" } });
 const withScript = JSON.stringify({ scripts: { test: "vitest" } });
 
-async function landedWorkspace(): Promise<string> {
+async function landedWorkspace(): Promise<void> {
   const workspace = await workspaceWith();
   commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
   writeFacts();
-  return workspace.path;
 }
 
 function installMarker(): string {
@@ -40,6 +42,18 @@ function installMarker(): string {
 
 function failsUntilInstalled(): Command {
   return ["test", "-f", installMarker()];
+}
+
+function recordingInstall(): Required<
+  Pick<WrapUpConfig, "installDependencies">
+> & { roots: string[] } {
+  const roots: string[] = [];
+  return {
+    roots,
+    async installDependencies(root) {
+      roots.push(root);
+    },
+  };
 }
 
 describe("installDependencies", () => {
@@ -62,18 +76,14 @@ describe("installDependencies", () => {
     expect(roots).toEqual([workspace.path, primaryRoot]);
   });
 
-  it("sees a dependency change in a nested package.json", async () => {
+  it("sees a dependency change in a member clone's package.json", async () => {
     const workspace = await workspaceWith(["sheets-framework"]);
     commitIn(workspace, "sheets-framework", "lib.ts", "export {};\n");
     writeFacts();
     commitFileIn(primaryOf("sheets-framework"), manifest, withDependency);
-    const roots: string[] = [];
+    const { roots, installDependencies } = recordingInstall();
 
-    await wrapUp({
-      async installDependencies(root) {
-        roots.push(root);
-      },
-    }).run(ticket);
+    await wrapUp({ installDependencies }).run(ticket);
 
     expect(roots).toEqual([workspace.path]);
   });
@@ -82,26 +92,18 @@ describe("installDependencies", () => {
     const workspace = await workspaceWith();
     commitIn(workspace, "byro-repo", manifest, withDependency);
     writeFacts();
-    const roots: string[] = [];
+    const { roots, installDependencies } = recordingInstall();
 
-    await wrapUp({
-      async installDependencies(root) {
-        roots.push(root);
-      },
-    }).run(ticket);
+    await wrapUp({ installDependencies }).run(ticket);
 
     expect(roots).toEqual([primaryRoot]);
   });
 
   it("installs nothing for a landing with no dependency change", async () => {
     await landedWorkspace();
-    const roots: string[] = [];
+    const { roots, installDependencies } = recordingInstall();
 
-    await wrapUp({
-      async installDependencies(root) {
-        roots.push(root);
-      },
-    }).run(ticket);
+    await wrapUp({ installDependencies }).run(ticket);
 
     expect(roots).toEqual([]);
   });
@@ -109,13 +111,9 @@ describe("installDependencies", () => {
   it("installs nothing when package.json changes outside the dependency fields", async () => {
     await landedWorkspace();
     commitFileIn(primaryOf("byro-repo"), manifest, withScript);
-    const roots: string[] = [];
+    const { roots, installDependencies } = recordingInstall();
 
-    await wrapUp({
-      async installDependencies(root) {
-        roots.push(root);
-      },
-    }).run(ticket);
+    await wrapUp({ installDependencies }).run(ticket);
 
     expect(roots).toEqual([]);
   });
@@ -136,6 +134,17 @@ describe("installDependencies", () => {
     expect(subjectsOf("byro-repo")).not.toContain("Add script.ts");
   });
 
+  it("doesn't report an unreadable package.json as a failed install", async () => {
+    await landedWorkspace();
+    commitFileIn(primaryOf("byro-repo"), manifest, "not json");
+    const { roots, installDependencies } = recordingInstall();
+
+    const error = await errorOf(wrapUp({ installDependencies }).run(ticket));
+
+    expect(error).not.toBeInstanceOf(WrapUpFailure);
+    expect(roots).toEqual([]);
+  });
+
   it("only warns when the primary install fails", async () => {
     const workspace = await workspaceWith();
     commitIn(workspace, "byro-repo", manifest, withDependency);
@@ -150,7 +159,7 @@ describe("installDependencies", () => {
     }).run(ticket);
 
     expect(lines).toContain(
-      `Warning: the dependency install failed in ${primaryRoot}, continuing; run npm install --ignore-scripts in the primary root before the next check: registry down`,
+      `Warning: continuing without the dependency install; run npm install --ignore-scripts in the primary root before the next check: npm install --ignore-scripts failed in ${primaryRoot}: registry down`,
     );
     expect(git(remoteOf("byro-repo"), "rev-parse", "master")).toBe(
       git(primaryOf("byro-repo"), "rev-parse", "master"),

@@ -12,7 +12,6 @@ import { WorktreeRestorer } from "./WorktreeRestorer.ts";
 import { WrapUpBase } from "./WrapUpBase.ts";
 import {
   type BuiltRepo,
-  installCommandLabel,
   type Landing,
   type LandingBranch,
 } from "./wrapUpTypes.ts";
@@ -90,21 +89,14 @@ export class BranchMerger extends WrapUpBase {
     landing: Landing,
     workspace: Workspace,
   ): Promise<void> {
-    try {
-      const comparisons = landing.branches.map(({ repo, branch }) => ({
+    await this._installIfDependenciesChanged(
+      workspace.path,
+      landing.branches.map(({ repo, branch }) => ({
         clone: this._worktreeOf(workspace, repo),
         from: branch,
         to: (landing.progress.built?.[repo] as BuiltRepo).head,
-      }));
-      if (await this._isAnyDependencyChanged(comparisons)) {
-        await this.config.installDependencies?.(workspace.path);
-      }
-    } catch (error) {
-      throw new WrapUpFailure(
-        "install",
-        `${installCommandLabel} failed in ${workspace.path}: ${messageOf(error)}`,
-      );
-    }
+      })),
+    );
   }
 
   private async _runChecks(workspaceRoot: string): Promise<void> {

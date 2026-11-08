@@ -1,12 +1,12 @@
 // The Base WrapUp and its collaborators share: the config, knobs, network retries, log, a landing's step progress,
-// where its repos and workspace are, and the push LandingPusher.ts and ResearchPusher.ts both run. It imports no
+// where its repos and workspace are, the dependency install and the push LandingPusher.ts and ResearchPusher.ts both run. It imports no
 // collaborator, so `extends WrapUpBase` loads first.
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { messageOf } from "../failureText.ts";
-import { currentBranchOf, git, lines } from "../git.ts";
+import { currentBranchOf, git } from "../git.ts";
 import {
   fileStemOf,
   isSessionKey,
@@ -18,10 +18,13 @@ import {
 } from "../IssueWorkspaces.ts";
 import { sleep } from "../sleep.ts";
 import { WrapUpFailure } from "../WrapUpFailure.ts";
-import { dependencyRangesOf } from "./packageDependencies.ts";
+import {
+  type DependencyComparison,
+  isAnyDependencyChanged,
+} from "./packageDependencies.ts";
 import {
   defaultWrapUpKnobs,
-  type DependencyComparison,
+  installCommandLabel,
   type Landing,
   type WrapUpConfig,
   type WrapUpKnobs,
@@ -144,13 +147,20 @@ export class WrapUpBase {
     );
   }
 
-  protected async _isAnyDependencyChanged(
+  // Only the install is worded as one; a failed comparison keeps its own error, since npm never ran.
+  protected async _installIfDependenciesChanged(
+    root: string,
     comparisons: DependencyComparison[],
-  ): Promise<boolean> {
-    for (const comparison of comparisons) {
-      if (await isDependencyChanged(comparison)) return true;
+  ): Promise<void> {
+    if (!(await isAnyDependencyChanged(comparisons))) return;
+    try {
+      await this.config.installDependencies?.(root);
+    } catch (error) {
+      throw new WrapUpFailure(
+        "install",
+        `${installCommandLabel} failed in ${root}: ${messageOf(error)}`,
+      );
     }
-    return false;
   }
 
   protected get _sleep(): (ms: number) => Promise<void> {
@@ -181,55 +191,6 @@ export function listedReposOf({
   branches,
 }: Pick<Landing, "branches">): string[] {
   return branches.map(({ repo }) => repo);
-}
-
-async function isDependencyChanged({
-  clone,
-  from,
-  to,
-}: DependencyComparison): Promise<boolean> {
-  // No rename detection, so a moved package.json is seen at both its paths.
-  const changed = await git(
-    clone,
-    "diff",
-    "--name-only",
-    "--no-renames",
-    from,
-    to,
-  );
-  for (const path of lines(changed).filter(isPackageJsonPath)) {
-    const before = dependencyRangesOf(
-      await packageJsonTextAt(clone, from, path),
-    );
-    const after = dependencyRangesOf(await packageJsonTextAt(clone, to, path));
-    if (!areSameRanges(before, after)) return true;
-  }
-  return false;
-}
-
-function isPackageJsonPath(path: string): boolean {
-  return path === "package.json" || path.endsWith("/package.json");
-}
-
-// A commit without the file holds no dependencies there.
-async function packageJsonTextAt(
-  clone: string,
-  rev: string,
-  path: string,
-): Promise<string> {
-  const listed = await git(clone, "ls-tree", "--name-only", rev, "--", path);
-  if (listed === "") return "{}";
-  return git(clone, "show", `${rev}:${path}`);
-}
-
-function areSameRanges(
-  before: Map<string, string>,
-  after: Map<string, string>,
-): boolean {
-  return (
-    before.size === after.size &&
-    [...before].every(([name, range]) => after.get(name) === range)
-  );
 }
 
 function stateStemOf(key: WorkspaceKey): string {

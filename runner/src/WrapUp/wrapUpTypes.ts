@@ -19,13 +19,6 @@ export const labels = {
 
 export const installCommandLabel = "npm install --ignore-scripts";
 
-// A repo and the two commits whose package.json dependencies are compared.
-export interface DependencyComparison {
-  clone: string;
-  from: string;
-  to: string;
-}
-
 export type WrapUpStep =
   | "clean-check"
   | "files-changed"
