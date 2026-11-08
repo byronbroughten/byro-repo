@@ -1,13 +1,16 @@
-import { writeFileSync } from "node:fs";
+import { chmodSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
 import type { StepResult } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
+import { isMerging } from "./git.ts";
 import { git } from "./GitFixture.ts";
+import { guidanceSectionOf } from "./halts.ts";
 import {
   addSpec,
+  crashed,
   eventOf,
   github,
   haltComments,
@@ -57,9 +60,18 @@ function remoteMaster(): string {
   )[0] as string;
 }
 
-// Merges master into the ticket's branch keeping the branch's side, as a merge-master step would.
+// Installs a hook in the primary's shared hooks folder, so it fires in the workspace's worktree too.
+function installHook(name: string, script: string): void {
+  const hook = join(primaryOf("byro-repo"), ".git", "hooks", name);
+  writeFileSync(hook, `#!/bin/sh\n${script}\n`);
+  chmodSync(hook, 0o755);
+}
+
+// Finishes the merge the runner left in progress keeping the branch's side, as a merge-master step would; the commit fails if none is.
 const mergedMaster: StepScript = async (request) => {
-  git(request.cwd, "merge", "-X", "ours", "-m", "Merge master", "master");
+  writeFileSync(join(request.cwd, "one.ts"), "export {};\n");
+  git(request.cwd, "add", "one.ts");
+  git(request.cwd, "commit", "--no-edit");
   return resultOf({
     summary: "Kept the branch's one.ts.",
     files: ["byro-repo one.ts"],
@@ -101,6 +113,129 @@ describe("run's wrap-up failures", () => {
     expect(progressLines().map(eventOf)).toContain(
       "byro-repo #1: the wrap-up conflicted with master; resuming the implementer to merge it.",
     );
+  });
+
+  it("lands with no merge-master step when every repo merges master cleanly", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      implemented("one.ts", {
+        act: () => {
+          commitOnMaster("two.ts", "export {};\n");
+          // Fails the wrap-up's merge once, as a conflict; the runner's merge then runs clean.
+          installHook("pre-merge-commit", 'rm "$0"\nexit 1');
+        },
+      }),
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(agentStep.requests).toHaveLength(2);
+    expect(haltComments()).toEqual([]);
+  });
+
+  it("posts a Failure Halt quoting git's error when the runner's merge fails without conflicting", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      implemented("one.ts", {
+        act: () => {
+          commitOnMaster("one.ts", "export const a = 1;\n");
+          commitOnMaster("stray.ts", "export {};\n");
+          // Back on the branch after the wrap-up's merge, an untracked stray.ts blocks the runner's.
+          installHook(
+            "post-checkout",
+            'test -n "$(git branch --show-current)" && echo stray > stray.ts\nexit 0',
+          );
+        },
+      }),
+      reviewed(),
+    );
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests).toHaveLength(2);
+    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+    const [halt] = haltComments();
+    expect(halt).toContain("Failure Halt");
+    expect(halt).toContain("would be overwritten by merge");
+  });
+
+  it("halts on an `unsure` record with no repo left mid-merge, then adds a free-text answer to the next merge-master launch", async () => {
+    addSpec([1]);
+    let workspace = "";
+    const unsure = "byro-repo one.ts: should `a` stay exported?";
+    const agentStep = FakeAgentStep.init(
+      conflicting,
+      reviewed(),
+      async (request) => {
+        workspace = request.cwd;
+        return resultOf({
+          summary: "Couldn't tell.",
+          files: ["byro-repo one.ts"],
+          unsure,
+        });
+      },
+    );
+
+    await specRun(agentStep).run(spec);
+
+    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+    const [halt] = haltComments();
+    expect(halt).toContain("Failure Halt");
+    expect(halt).toContain(
+      `The merge-master step couldn't tell how to resolve the conflict with master: ${unsure}`,
+    );
+    expect(await isMerging(workspace)).toBe(false);
+
+    github.reply(213, "H1: Keep the branch's side.");
+    const rerunStep = FakeAgentStep.init(mergedMaster);
+    const result = await specRun(rerunStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(rerunStep.requests[0]?.prompt).toMatch(
+      /^You are the merge-master step/,
+    );
+    expect(rerunStep.requests[0]?.prompt).toContain(
+      guidanceSectionOf("Keep the branch's side."),
+    );
+  });
+
+  it("restarts the merge before a crashed merge-master step's retry, then lands", async () => {
+    addSpec([1]);
+    let wasMerging = false;
+    const agentStep = FakeAgentStep.init(
+      conflicting,
+      reviewed(),
+      crashed,
+      async (request) => {
+        wasMerging = await isMerging(request.cwd);
+        return mergedMaster(request);
+      },
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(wasMerging).toBe(true);
+    expect(result.landed).toEqual([refOf(1)]);
+  });
+
+  it("leaves no repo mid-merge when the step returns without committing", async () => {
+    addSpec([1]);
+    let workspace = "";
+    const agentStep = FakeAgentStep.init(
+      conflicting,
+      reviewed(),
+      async (request) => {
+        workspace = request.cwd;
+        expect(await isMerging(request.cwd)).toBe(true);
+        return unmerged(request);
+      },
+    );
+
+    await specRun(agentStep).run(spec);
+
+    expect(await isMerging(workspace)).toBe(false);
   });
 
   it("posts the merge-master resolution as the review list's one `decision` Propose, naming its files and summary", async () => {

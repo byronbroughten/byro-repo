@@ -260,7 +260,7 @@ export type StepLaunch = Pick<StepRequest, "prompt" | "jsonSchema"> &
       StepRequest,
       "pair" | "targets" | "resumeSessionId" | "liveCeiling" | "maxTurns"
     >
-  >;
+  > & { beforeCrashRetry?(): Promise<void> };
 
 // A spec-level step's request before the launcher picks its account.
 export type SpecStepRequest = Omit<StepRequest, "account">;

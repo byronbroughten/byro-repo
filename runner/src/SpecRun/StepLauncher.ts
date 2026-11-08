@@ -73,10 +73,11 @@ export class StepLauncher extends SpecRunBase {
       const logPath = this._stepLogPathOf(ticketRun, agent);
       const ran = await this._attemptStep(ticketRun, agent, attempt, logPath);
       if (ran.kind === "unrun") {
-        await this.haltRaiser._takeCrash(ticketRun, {
-          detail: ran.detail,
-          logPath,
-        });
+        await this._takeCrashBeforeRetry(
+          ticketRun,
+          { detail: ran.detail, logPath },
+          launch,
+        );
         attempt = launch;
         continue;
       }
@@ -97,13 +98,13 @@ export class StepLauncher extends SpecRunBase {
         if (agent === "implement") {
           return this._haltOnImplementCap(ticketRun, cap);
         }
-        await this.haltRaiser._takeCrash(ticketRun, cap);
+        await this._takeCrashBeforeRetry(ticketRun, cap, launch);
         attempt = launch;
         continue;
       }
       const detail = crashDetailOf(agent, result, this.config.knobs);
       if (detail === undefined) return { result, logPath };
-      await this.haltRaiser._takeCrash(ticketRun, { detail, logPath });
+      await this._takeCrashBeforeRetry(ticketRun, { detail, logPath }, launch);
       if (result.sessionId === undefined) {
         attempt = launch;
       } else {
@@ -114,6 +115,15 @@ export class StepLauncher extends SpecRunBase {
         };
       }
     }
+  }
+
+  private async _takeCrashBeforeRetry(
+    ticketRun: TicketRun,
+    crash: Crash,
+    launch: StepLaunch,
+  ): Promise<void> {
+    await this.haltRaiser._takeCrash(ticketRun, crash);
+    await launch.beforeCrashRetry?.();
   }
 
   // Skips a path already taken, so a crashed step's log survives its retry.
@@ -150,7 +160,7 @@ export class StepLauncher extends SpecRunBase {
   private async _attemptStep(
     ticketRun: TicketRun,
     agent: StepAgent,
-    { prompt, jsonSchema, ...overrides }: StepLaunch,
+    { prompt, jsonSchema, beforeCrashRetry: _, ...overrides }: StepLaunch,
     logPath: string,
   ): Promise<StepAttempt> {
     const { run, ticket, pair, workspace, state, targets } = ticketRun;
