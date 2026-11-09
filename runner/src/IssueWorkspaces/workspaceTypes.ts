@@ -1,4 +1,4 @@
-// The workspace and lease types and the key and issue-set helpers IssueWorkspaces' callers and collaborators share; IssueWorkspaces.ts re-exports them.
+// The workspace, key and lease types and the key, issue-set and lease helpers IssueWorkspaces' callers and collaborators share; IssueWorkspaces.ts re-exports them.
 
 export interface IssueRef {
   repo: string;

@@ -76,7 +76,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `reviewStep.ts` | `reviewStep` | The review step's prompt, record and finding types. |
 | `runBoard.ts` | `runBoard` | The Run board behind `runner status` and `runner watch` with no spec. |
 | `runCollecting.ts` | `runCollecting` | Runs one process with its output collected. |
-| `runCommand.ts` | | Runs a knob's command and words its failure, for the preflight and the landing. |
+| `runCommand.ts` | | Runs a knob's command, returning its output tail when it fails, for the preflight and the landing. |
 | `runKnobs.ts` | `runKnobs` | Every knob a run reads, its defaults and the override-file loader. |
 | `RunLock.ts` | `RunLock` | The per-spec run lock. |
 | `RunStop.ts` | | The error that ends a run with a Stop. |
