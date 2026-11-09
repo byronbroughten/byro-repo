@@ -28,6 +28,7 @@ import {
   resolved,
   resultOf,
   reviewed,
+  rootCloneOnly,
   spec,
   specRun,
   stateFolder,
@@ -39,7 +40,7 @@ import {
   useSpecRunHarness,
 } from "./specRunHarness.ts";
 
-useSpecRunHarness();
+useSpecRunHarness(rootCloneOnly);
 
 describe("run's resolve", () => {
   const opusMedium: Pair = { model: "opus", effort: "medium" };
