@@ -31,7 +31,6 @@
     "./RunLock": "./src/RunLock.ts",
     "./modelFit": "./src/modelFit.ts",
     "./Notices": "./src/Notices.ts",
-    "./NtfyNotices": "./src/NtfyNotices.ts",
     "./reviewList": "./src/reviewList.ts",
     "./reviewStep": "./src/reviewStep.ts",
     "./runCollecting": "./src/runCollecting.ts",

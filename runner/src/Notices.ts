@@ -19,7 +19,6 @@ export function isRunEnding(kind: NoticeKind): kind is RunEnding {
   return (runEndings as readonly NoticeKind[]).includes(kind);
 }
 
-// The ntfy adapter sends only the title, summary and link, so a notice on a public topic carries nothing else about the run.
 export interface Notice {
   spec: IssueRef;
   specTitle: string;
@@ -30,7 +29,7 @@ export interface Notice {
   commentUrl?: string;
   // What startup found worth a look; a run-started notice's, empty when it found nothing.
   warnings?: string[];
-  // A Restart's relaunch's run-started notice, which ntfy doesn't push, since a Restart is quiet.
+  // Marks a Restart's relaunch's run-started notice.
   isRelaunch?: boolean;
   // A Batch's own end, sent on its first member once every member has ended; each member's end is a notice of its own.
   isBatchEnd?: boolean;

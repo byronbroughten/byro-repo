@@ -15,7 +15,7 @@ import {
   implemented,
   masterSetPath,
   masterSubjects,
-  ntfyNotices,
+  notices,
   primaryOf,
   progressLines,
   refOf,
@@ -64,18 +64,18 @@ describe("run", () => {
       git(join(temp, "remotes", "byro-repo.git"), "rev-parse", "master"),
     ).toBe(git(primaryOf("byro-repo"), "rev-parse", "master"));
     expect(existsSync(masterSetPath())).toBe(false);
-    expect(ntfyNotices()).toEqual([
-      {
+    expect(notices.sent).toEqual([
+      expect.objectContaining({
         specTitle: "The spec",
         summary:
           "Run started on 2 tickets as account 1: 5-hour 10%, weekly 20%. Launching byro-repo #1.",
         link: "https://github.com/byronbroughten/byro-repo/issues/213",
-      },
-      {
+      }),
+      expect.objectContaining({
         specTitle: "The spec",
         summary: result.message,
         link: "https://github.com/byronbroughten/byro-repo/issues/213",
-      },
+      }),
     ]);
   });
 
