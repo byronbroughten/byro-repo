@@ -22,7 +22,7 @@ import { FakeGitHub } from "./FakeGitHub.ts";
 import { FakeNotices } from "./FakeNotices.ts";
 import { FakeUsageReader } from "./FakeUsageReader.ts";
 import { gapCheckOutputSchema } from "./gapCheck.ts";
-import { git, GitFixture } from "./GitFixture.ts";
+import { clonePathIn, git, GitFixture, rootCloneOnly } from "./GitFixture.ts";
 import type { Blocker, Handoff, ImplementRecord } from "./implementStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { UsageList, UsageReader } from "./limitGuard.ts";
@@ -38,8 +38,7 @@ const everyClone = {
   "byro-repo": ".",
   "sheets-framework": "packages/framework",
 };
-// For a file with no test about a second repo: a run's git calls are mostly per clone, so one clone costs fewer of them.
-export const rootCloneOnly: Record<string, string> = { "byro-repo": "." };
+export { rootCloneOnly };
 export let clonePaths: Record<string, string>;
 
 export const spec: IssueRef = { repo: "byro-repo", number: 213 };
@@ -117,11 +116,7 @@ export function refOf(number: number): IssueRef {
 }
 
 export function primaryOf(repo: keyof typeof everyClone): string {
-  const clonePath = clonePaths[repo];
-  if (clonePath === undefined) {
-    throw new Error(`This test file's harness has no ${repo} clone.`);
-  }
-  return join(primaryRoot, clonePath);
+  return join(primaryRoot, clonePathIn(clonePaths, repo));
 }
 
 export function commitRed(clone: string): void {

@@ -9,7 +9,6 @@ import {
   primaryOf,
   primaryRoot,
   remoteOf,
-  rootCloneOnly,
   ticket,
   useWrapUpHarness,
   workspaceWith,
@@ -17,7 +16,7 @@ import {
   writeFacts,
 } from "./wrapUpHarness.ts";
 
-useWrapUpHarness(rootCloneOnly);
+useWrapUpHarness();
 
 describe("afterFastForward", () => {
   it("runs at the primary root once the primaries hold the landed work", async () => {

@@ -14,7 +14,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
 
 import { FactsFile, type WrapUpFacts } from "./FactsFile.ts";
 import { FakeGitHub } from "./FakeGitHub.ts";
-import { git, GitFixture } from "./GitFixture.ts";
+import { clonePathIn, git, GitFixture, rootCloneOnly } from "./GitFixture.ts";
 import {
   type IssueRef,
   issueRef,
@@ -31,8 +31,7 @@ export const clonePaths = {
   "byro-repo": ".",
   "sheets-framework": "packages/framework",
 };
-// For a file with no test about a second repo: a wrap-up's git calls are mostly per clone, so one clone costs fewer of them.
-export const rootCloneOnly: Record<string, string> = { "byro-repo": "." };
+export { rootCloneOnly };
 const redCheck: Command = ["sh", "-c", "test ! -f RED"];
 
 export const ticket: IssueRef = { repo: "byro-repo", number: 218 };
@@ -44,7 +43,7 @@ export let temp: string;
 export let primaryRoot: string;
 export let github: FakeGitHub;
 export let sleeps: number[];
-let fileClones: Record<string, string>;
+let testFileClonePaths: Record<string, string>;
 
 // Each harness owns the temp and primaryRoot its test files import, so a shared setup would hand them back through getters.
 export function useWrapUpHarness(
@@ -52,11 +51,11 @@ export function useWrapUpHarness(
 ): void {
   // Real git runs alongside every other git-heavy test file, which slows a test past the 5s default.
   vi.setConfig({ testTimeout: 15_000 });
-  fileClones = clones;
+  testFileClonePaths = clones;
   let fixture: GitFixture;
 
   beforeAll(() => {
-    fixture = GitFixture.init(fileClones, {
+    fixture = GitFixture.init(testFileClonePaths, {
       gitignoreOf: (repo) => (repo === "byro-repo" ? "packages/*\n" : ""),
     });
   });
@@ -86,7 +85,7 @@ export function useWrapUpHarness(
 export function workspacesConfig(): IssueWorkspacesConfig {
   return {
     primaryRoot,
-    clonePaths: fileClones,
+    clonePaths: testFileClonePaths,
     workspaceFolder: join(temp, "workspaces"),
     symlinkedFiles: [],
     async installDependencies() {},
@@ -114,16 +113,41 @@ export function wrapUp(overrides: Partial<WrapUpConfig> = {}): WrapUp {
   });
 }
 
-export function primaryOf(repo: keyof typeof clonePaths): string {
-  return join(primaryRoot, clonePathOf(repo));
+export const session = "glossary-term";
+export const noGitHub: WrapUpConfig["github"] = {
+  async closeIssue() {
+    throw new Error("A session landing closed an issue");
+  },
+  async bodyOf() {
+    throw new Error("A session landing read an issue body");
+  },
+  async parentOf() {
+    throw new Error("A session landing read a parent");
+  },
+  async subIssuesOf() {
+    throw new Error("A session landing read sub-issues");
+  },
+  async labelsOf() {
+    throw new Error("A session landing read labels");
+  },
+  async commentsOf() {
+    throw new Error("A session landing read comments");
+  },
+  async authoredCommentsOf() {
+    throw new Error("A session landing read comments");
+  },
+};
+
+export function sessionWrapUp(): WrapUp {
+  return wrapUp({ github: noGitHub });
 }
 
-function clonePathOf(repo: keyof typeof clonePaths): string {
-  const clonePath = fileClones[repo];
-  if (clonePath === undefined) {
-    throw new Error(`This test file's harness has no ${repo} clone.`);
-  }
-  return clonePath;
+export async function sessionWorkspace(): Promise<Workspace> {
+  return IssueWorkspaces.init(workspacesConfig()).create({ session });
+}
+
+export function primaryOf(repo: keyof typeof clonePaths): string {
+  return join(primaryRoot, clonePathIn(testFileClonePaths, repo));
 }
 
 export function remoteOf(repo: keyof typeof clonePaths): string {
@@ -146,7 +170,11 @@ export function commitIn(
   file: string,
   content: string,
 ): void {
-  commitFileIn(join(workspace.path, clonePathOf(repo)), file, content);
+  commitFileIn(
+    join(workspace.path, clonePathIn(testFileClonePaths, repo)),
+    file,
+    content,
+  );
 }
 
 export function commitFileIn(
