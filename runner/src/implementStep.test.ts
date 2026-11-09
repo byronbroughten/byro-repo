@@ -250,6 +250,12 @@ describe("implementPrompt", () => {
     );
   });
 
+  it("adds only the packages the ticket's New dependencies section names", () => {
+    expect(implementPrompt(input)).toContain(
+      "- Add a package only when the ticket's `## New dependencies` section names it. For any other package, record a `spec-ambiguity` blocker naming the package and why it's needed, rather than adding it.",
+    );
+  });
+
   it("runs npm run check once, after committing", () => {
     const prompt = implementPrompt(input);
     expect(prompt).toContain(
