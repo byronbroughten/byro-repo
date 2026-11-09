@@ -1,12 +1,12 @@
 ---
 name: review-tickets
-description: "Find a code spec's Halt risks before a run: a fresh sub-agent reads every ticket against the spec, the step permissions and the order, and reports each risk with quoted evidence and a fix or a spec-gap question. Takes /code-tickets' drafts or a spec's published sub-issues, as /review-tickets <repo> <n>."
+description: "Find a code spec's Halt risks before a run: a reader that never wrote the tickets checks every one against the spec, the step permissions and the order, and reports each risk with quoted evidence and a fix or a spec-gap question. Takes /code-tickets' drafts or a spec's published sub-issues, as /review-tickets <repo> <n>."
 disable-model-invocation: true
 ---
 
-Finds the **Halt risks** ([`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md)) in a code spec's tickets before the runner meets them. The reviewer is a **fresh-context sub-agent** on the session's model that never wrote the tickets, so a ticket its writer reads as clear still gets read cold, the way an implement step reads it.
+Finds the **Halt risks** ([`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md)) in a code spec's tickets before the runner meets them. The reviewer never wrote the tickets, so a ticket its writer reads as clear still gets read **cold**, the way an implement step reads it: this session when it wrote none of them, else a fresh sub-agent on the session's model.
 
-The reviewer reports and never edits. Inside `/code-tickets` the writer acts on the report by its own step; run standalone, this skill acts on it by step 4.
+The review reports and never edits. Inside `/code-tickets` the writer acts on the report by its own step; run standalone, this skill acts on it by step 4.
 
 ## 1. Pin the input
 
@@ -19,11 +19,12 @@ A ticket that has landed or is current is **report-only**: its risks are reporte
 
 Done when the spec body, every ticket body and every blocking edge are in hand, and the report-only tickets are named.
 
-## 2. Spawn the reviewer
+## 2. Pick the reviewer
 
-One sub-agent, on the session's model with no `model` override, in the foreground, given every ticket. Split it into parts only when its reading would pass ~60K, by [`planning.md`'s rule](../../../docs/agents/planning.md#ticket-size): each part takes some tickets and also returns, for each, the files it changes and any gate or tier row it adds; then one more fresh sub-agent takes those lists, every title and every edge, and checks the order causes (4 and 9) alone.
+The **reading** is the text the brief has the reviewer read: the spec, the tickets, the brief's permission sections and the code each ticket names, counted at [`planning.md`'s rate](../../../docs/agents/planning.md#ticket-size), not the reviewer's whole context.
 
-The prompt gives the spec body, the ticket bodies, the edges and the brief below, and nothing of how the tickets were written.
+- **This session reviews** when it wrote none of the tickets and the reading comes to ~60K or less. Follow the brief below as your own, from what step 1 gathered.
+- **Fresh sub-agents review** when this session wrote the tickets, as it always has inside `/code-tickets`, or the reading would pass ~60K. Each runs on the session's model with no `model` override, in the foreground. With the reading at ~60K or less, one sub-agent takes every ticket. Past it, split into parts: each part takes some tickets and also returns, for each, the files it changes and any gate or tier row it adds; then the order causes (4 and 9) are checked alone, from those lists, every title and every edge, by this session when it wrote none of the tickets, else by one more fresh sub-agent. Each prompt gives the spec body, the ticket bodies, the edges and the brief below, and nothing of how the tickets were written. Before step 3, check each finding against the evidence it quotes, and correct or drop, saying so, any that doesn't hold.
 
 <brief>
 
@@ -64,7 +65,7 @@ End with each ticket you found no risk in, by number. Under 300 words per five t
 
 </brief>
 
-Done when the reviewer, or every part and the order pass, has reported.
+Done when the review, or every part and the order pass, has reported, and every sub-agent finding is checked.
 
 ## 3. Report
 
@@ -75,6 +76,6 @@ For drafts, stop here and hand the report back to `/code-tickets`.
 ## 4. Act on it, standalone
 
 1. **Spec gaps first**: put them to the developer as one round in the [`grilling`](../grilling/SKILL.md) format, each with a recommended answer. The answers can turn a gap into a fix or an interactive split. When an answer settles what the spec should have said, add a line saying so to the spec's body.
-2. **Fixes and splits**: list each edit you would make (a ticket body, a blocking edge, a label, or a new `ready-for-interactive` ticket that blocks the work downstream of it) and get the developer's one yes for the list. Then make them by the [issue tracker doc](../../../docs/agents/issue-tracker.md)'s operations. Make none on a report-only ticket.
+2. **Fixes and splits**: list each edit you would make (a ticket body, a blocking edge, a label, or a new `ready-for-interactive` ticket) and get the developer's one yes for the list. Then make them by the [issue tracker doc](../../../docs/agents/issue-tracker.md)'s operations. Make none on a report-only ticket. A new ticket's edges go through cause 9 like any other's before the list goes to the developer: it is blocked by each ticket whose output its work needs, and blocks each ticket that needs its output.
 
 Done when every spec gap has an answer, every approved edit is made, and the edits made are listed with links.
