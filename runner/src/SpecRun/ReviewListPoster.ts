@@ -21,11 +21,7 @@ import {
   runnerMark,
   type StepFailure,
 } from "../halts.ts";
-import {
-  type FailureAnswer,
-  failureAnswerOf,
-  isStopSpecAnswer,
-} from "../halts/haltReplies.ts";
+import { type FailureAnswer, haltReplies } from "../halts/haltReplies.ts";
 import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
 import { type ResolveRecord } from "../resolveStep.ts";
 import {
@@ -325,8 +321,8 @@ function gapCheckAnswerOf(run: Run): FailureAnswer | undefined {
     .filter((halt) => runHalts.isGapCheck(halt) && !halt.isDelivered)
     .at(-1);
   if (!isAnswered(latest)) return undefined;
-  if (isStopSpecAnswer(latest)) return { kind: "skip" };
-  return failureAnswerOf(latest);
+  if (haltReplies.isStopSpecAnswer(latest)) return { kind: "skip" };
+  return haltReplies.failureAnswerOf(latest);
 }
 
 function deliverGapCheckHalts(run: Run): void {

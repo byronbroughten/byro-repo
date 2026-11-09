@@ -12,7 +12,7 @@ import {
   isAnswered,
   shortRefOf,
 } from "../halts.ts";
-import { failureAnswerOf, repliesTo } from "../halts/haltReplies.ts";
+import { haltReplies } from "../halts/haltReplies.ts";
 import { type IssueRef, issueRef, leaseHolder } from "../IssueWorkspaces.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import { LeaseKeeper } from "./LeaseKeeper.ts";
@@ -180,7 +180,11 @@ export class TicketSelector extends SpecRunBase {
     );
     const { developer } = this.config;
     for (const halt of posted) {
-      const [first, ...later] = repliesTo({ halt, comments, developer });
+      const [first, ...later] = haltReplies.repliesTo({
+        halt,
+        comments,
+        developer,
+      });
       if (first === undefined) continue;
       if (halt.answer === undefined) {
         halt.answer = {
@@ -252,7 +256,7 @@ function lastAnswerAtOf(run: Run, ticket: IssueRef): string {
 
 function isSkipAnswered(halt: Halt): boolean {
   if (halt.kind !== "failure" || !isAnswered(halt)) return false;
-  return failureAnswerOf(halt).kind === "skip";
+  return haltReplies.failureAnswerOf(halt).kind === "skip";
 }
 
 function developerWaitTextOf(

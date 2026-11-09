@@ -10,7 +10,7 @@ import {
   sessionHaltIdOf,
   shortRefOf,
 } from "../../halts.ts";
-import { failureAnswerOf, isStopSpecAnswer } from "../../halts/haltReplies.ts";
+import { haltReplies } from "../../halts/haltReplies.ts";
 import { type IssueRef, issueRef } from "../../IssueWorkspaces.ts";
 import { type Run, runTickets, type TicketStep } from "../runState.ts";
 
@@ -60,7 +60,7 @@ export const runHalts = {
   },
 
   isStopSpec(halt: Halt): boolean {
-    return isAnswered(halt) && isStopSpecAnswer(halt);
+    return isAnswered(halt) && haltReplies.isStopSpecAnswer(halt);
   },
 
   undeliveredOf(run: Run, ticket: IssueRef): Halt[] {
@@ -93,7 +93,7 @@ export const runHalts = {
     state.conflictResumes = undefined;
     state.continuation = undefined;
     state.guidance = undefined;
-    const answer = failureAnswerOf(latest);
+    const answer = haltReplies.failureAnswerOf(latest);
     // A continuation another Halt never offered would resume a session with nothing to continue.
     if (
       answer.kind === "retry-record" &&

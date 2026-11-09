@@ -13,7 +13,7 @@ import {
   runnerMark,
   type StepFailure,
 } from "../halts.ts";
-import { failureAnswerOf } from "../halts/haltReplies.ts";
+import { haltReplies } from "../halts/haltReplies.ts";
 import { approvalLineOf, bodyHashOf } from "../IssueReader.ts";
 import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
 import { LeaseHeld } from "../LeaseHeld.ts";
@@ -309,7 +309,7 @@ function approvingHaltOf(
   if (!isAnswered(latest) || latest.bodyHash !== bodyHash) {
     return undefined;
   }
-  const isApproved = failureAnswerOf(latest).kind === "approve";
+  const isApproved = haltReplies.failureAnswerOf(latest).kind === "approve";
   return isApproved ? latest : undefined;
 }
 
