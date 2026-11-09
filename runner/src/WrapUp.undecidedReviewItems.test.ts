@@ -10,6 +10,7 @@ import {
 import {
   commitIn,
   github,
+  rootCloneOnly,
   subjectsOf,
   ticket,
   useWrapUpHarness,
@@ -19,7 +20,7 @@ import {
   writeSavedFacts,
 } from "./wrapUpHarness.ts";
 
-useWrapUpHarness();
+useWrapUpHarness(rootCloneOnly);
 
 describe("run's close step", () => {
   // The list a session's review posts on a Standalone ticket, its one Propose undecided.

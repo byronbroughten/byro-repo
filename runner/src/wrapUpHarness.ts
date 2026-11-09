@@ -31,6 +31,8 @@ export const clonePaths = {
   "byro-repo": ".",
   "sheets-framework": "packages/framework",
 };
+// For a file with no test about a second repo: a wrap-up's git calls are mostly per clone, so one clone costs fewer of them.
+export const rootCloneOnly: Record<string, string> = { "byro-repo": "." };
 const redCheck: Command = ["sh", "-c", "test ! -f RED"];
 
 export const ticket: IssueRef = { repo: "byro-repo", number: 218 };
@@ -42,15 +44,19 @@ export let temp: string;
 export let primaryRoot: string;
 export let github: FakeGitHub;
 export let sleeps: number[];
+let fileClones: Record<string, string>;
 
 // Each harness owns the temp and primaryRoot its test files import, so a shared setup would hand them back through getters.
-export function useWrapUpHarness(): void {
+export function useWrapUpHarness(
+  clones: Record<string, string> = clonePaths,
+): void {
   // Real git runs alongside every other git-heavy test file, which slows a test past the 5s default.
   vi.setConfig({ testTimeout: 15_000 });
+  fileClones = clones;
   let fixture: GitFixture;
 
   beforeAll(() => {
-    fixture = GitFixture.init(clonePaths, {
+    fixture = GitFixture.init(fileClones, {
       gitignoreOf: (repo) => (repo === "byro-repo" ? "packages/*\n" : ""),
     });
   });
@@ -80,7 +86,7 @@ export function useWrapUpHarness(): void {
 export function workspacesConfig(): IssueWorkspacesConfig {
   return {
     primaryRoot,
-    clonePaths,
+    clonePaths: fileClones,
     workspaceFolder: join(temp, "workspaces"),
     symlinkedFiles: [],
     async installDependencies() {},
@@ -109,7 +115,15 @@ export function wrapUp(overrides: Partial<WrapUpConfig> = {}): WrapUp {
 }
 
 export function primaryOf(repo: keyof typeof clonePaths): string {
-  return join(primaryRoot, clonePaths[repo]);
+  return join(primaryRoot, clonePathOf(repo));
+}
+
+function clonePathOf(repo: keyof typeof clonePaths): string {
+  const clonePath = fileClones[repo];
+  if (clonePath === undefined) {
+    throw new Error(`This test file's harness has no ${repo} clone.`);
+  }
+  return clonePath;
 }
 
 export function remoteOf(repo: keyof typeof clonePaths): string {
@@ -132,7 +146,7 @@ export function commitIn(
   file: string,
   content: string,
 ): void {
-  commitFileIn(join(workspace.path, clonePaths[repo]), file, content);
+  commitFileIn(join(workspace.path, clonePathOf(repo)), file, content);
 }
 
 export function commitFileIn(

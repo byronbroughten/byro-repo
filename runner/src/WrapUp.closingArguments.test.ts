@@ -12,6 +12,7 @@ import {
   primaryOf,
   primaryRoot,
   remoteOf,
+  rootCloneOnly,
   subjectsOf,
   ticket,
   useWrapUpHarness,
@@ -19,7 +20,7 @@ import {
   wrapUp,
 } from "./wrapUpHarness.ts";
 
-useWrapUpHarness();
+useWrapUpHarness(rootCloneOnly);
 
 describe("run", () => {
   describe("with closing facts passed as arguments", () => {

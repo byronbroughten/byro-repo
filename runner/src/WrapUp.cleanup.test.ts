@@ -11,6 +11,7 @@ import {
   github,
   primaryOf,
   remoteOf,
+  rootCloneOnly,
   sleeps,
   spec,
   ticket,
@@ -21,7 +22,7 @@ import {
   writeFacts,
 } from "./wrapUpHarness.ts";
 
-useWrapUpHarness();
+useWrapUpHarness(rootCloneOnly);
 
 describe("run", () => {
   it("deletes the branch locally and on the remote, removes the workspace and closes the issue", async () => {
