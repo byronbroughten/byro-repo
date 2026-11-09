@@ -20,7 +20,6 @@ export async function writeCrashLine(
   const command = runText.rerunCommandOf(owner, ...members);
   await EventFileNotices.forStream(stateFolder, members).send({
     spec,
-    specTitle: `${ownerRepo} #${spec.number}`,
     summary: `The runner exited unexpectedly with code ${code}; read its tmux pane with \`tmux attach -t ${tmuxSessionOf(members)}\`, then rerun \`${command}\`.`,
     link: `https://github.com/${ownerRepo}/issues/${spec.number}`,
     kind: "crashed",
