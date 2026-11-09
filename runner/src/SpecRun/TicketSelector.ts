@@ -140,7 +140,7 @@ export class TicketSelector extends SpecRunBase {
         waits.push({ ticket, reason: "developer", text });
         continue;
       }
-      const blockers = issueRef.issuesOutside(
+      const blockers = issueRef.outside(
         await this.config.github.openBlockersOf(ticket),
         landedMembers,
       );

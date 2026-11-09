@@ -306,7 +306,7 @@ export function unlandedBlockersOf(
   open: IssueRef[],
   { memberIssues, landedMembers }: BatchView,
 ): IssueRef[] {
-  return issueRef.issuesOutside(
+  return issueRef.outside(
     memberIssues.filter((each) => issueRef.isAmong(each, open)),
     landedMembers,
   );

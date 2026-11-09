@@ -177,7 +177,7 @@ export class PreflightChecker extends SpecRunBase {
       return `it belongs to the spec ${issueRef.labelOf(parent.issue)}; run it through its spec.`;
     }
     // A member blocker is waited on in the run; a landed but unjudged issue outside the Batch still refuses.
-    const blockers = issueRef.issuesOutside(
+    const blockers = issueRef.outside(
       await github.openBlockersOf(ticket.issue),
       this.memberIssues,
     );

@@ -77,7 +77,7 @@ export const issueRef = {
     return issues.some((each) => issueRef.isSame(each, issue));
   },
 
-  issuesOutside(issues: IssueRef[], excluded: IssueRef[]): IssueRef[] {
+  outside(issues: IssueRef[], excluded: IssueRef[]): IssueRef[] {
     return issues.filter((issue) => !issueRef.isAmong(issue, excluded));
   },
 
