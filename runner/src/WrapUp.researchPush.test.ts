@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -30,11 +29,7 @@ async function checkoutOn(branch: string): Promise<string> {
 
 function remoteHeadOf(branch: string): string | undefined {
   try {
-    return execFileSync(
-      "git",
-      ["--git-dir", remoteOf("byro-repo"), "rev-parse", `refs/heads/${branch}`],
-      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
-    ).trim();
+    return git(remoteOf("byro-repo"), "rev-parse", `refs/heads/${branch}`);
   } catch {
     return undefined;
   }
