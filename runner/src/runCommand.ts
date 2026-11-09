@@ -1,4 +1,4 @@
-// Runs one knob Command to its end, for SpecRun/PreflightChecker.ts and SpecRun/TicketLander.ts; the failure wording is failureText.ts.
+// Runs one knob Command to its end, for SpecRun/PreflightChecker.ts and SpecRun/TicketLander/TicketChecker.ts; the failure wording is failureText.ts.
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
