@@ -26,8 +26,8 @@ Each implement session's context at its peak request, split by what put it there
 
 ## Checks
 
-- Observed: `npm run check`'s parts, from its own `Took:` line: tests median 42.9s (p90 48.9s), lint 21.1s (26.3s), `tsc` 13.6s (16.9s); 192 runs, 2026-10-22 to 2026-10-30, measured by byro-repo#409 from session transcripts; [recorded in b75a66e7](https://github.com/byronbroughten/byro-repo/commit/b75a66e7c84a852d977214074a5bbb7b152fb6e8). Code run-time, agent cost.
-- Observed: `npm run check` wall clock, the parts run at once: median 44.5s, p90 68.9s, 210 runs; skipped on a check stamp, median 0.7s, 9 runs; 2026-10-22 to 2026-10-30, byro-repo#409; [recorded in b75a66e7](https://github.com/byronbroughten/byro-repo/commit/b75a66e7c84a852d977214074a5bbb7b152fb6e8). Agent cost.
+- Observed: `npm run check`'s parts, from its own `Took:` line: tests median 42.9s (p90 48.9s), lint 21.1s (26.3s), `tsc` 13.6s (16.9s); 192 runs, each checking every package, before byro-repo#616 narrowed a check to the packages with no check stamp, 2026-10-22 to 2026-10-30, measured by byro-repo#409 from session transcripts; [recorded in b75a66e7](https://github.com/byronbroughten/byro-repo/commit/b75a66e7c84a852d977214074a5bbb7b152fb6e8). Code run-time, agent cost.
+- Observed: `npm run check` wall clock, the parts run at once: median 44.5s, p90 68.9s, 210 runs, each checking every package, before byro-repo#616 narrowed a check to the packages with no check stamp; skipped whole on a check stamp, median 0.7s, 9 runs; 2026-10-22 to 2026-10-30, byro-repo#409; [recorded in b75a66e7](https://github.com/byronbroughten/byro-repo/commit/b75a66e7c84a852d977214074a5bbb7b152fb6e8). Agent cost.
 - Observed: run alone, `npm run tsc` median 5.3s (p90 9.0s, 16 runs), `npm run lint` 5.9s (range 1.0–6.4s, 6 runs); 2026-10-23 to 2026-10-30, byro-repo#409; [recorded in b75a66e7](https://github.com/byronbroughten/byro-repo/commit/b75a66e7c84a852d977214074a5bbb7b152fb6e8). Agent cost.
 
 ## Commands
