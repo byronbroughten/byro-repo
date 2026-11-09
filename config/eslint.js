@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+
 import eslint from "@eslint/js";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import tseslint from "typescript-eslint";
@@ -85,6 +88,64 @@ function privateHelperOf(node) {
     : undefined;
 }
 
+// A package's dependencies are read from its package.json, so a relative import into another package is one nothing declares.
+/** @type {import("eslint").Rule.RuleModule} */
+const noCrossPackageImport = {
+  meta: {
+    type: "problem",
+    messages: {
+      crossPackage:
+        "{{source}} leaves this file's package: import the other package by its name.",
+    },
+  },
+  create(context) {
+    const ownRoot = packageRootOf(dirname(context.filename));
+    /** @param {{ source?: import("estree").Node | null }} node */
+    function check(node) {
+      const { source } = node;
+      if (source?.type !== "Literal" || typeof source.value !== "string") {
+        return;
+      }
+      if (!source.value.startsWith(".")) return;
+      const target = resolve(dirname(context.filename), source.value);
+      if (packageRootOf(target) !== ownRoot) {
+        context.report({
+          node: source,
+          messageId: "crossPackage",
+          data: { source: source.value },
+        });
+      }
+    }
+    return {
+      ImportDeclaration: check,
+      ExportNamedDeclaration: check,
+      ExportAllDeclaration: check,
+      ImportExpression: check,
+    };
+  },
+};
+
+/** @type {Map<string, string | undefined>} */
+const packageRoots = new Map();
+
+// The nearest folder at or above the path holding a package.json; the path need not exist.
+/**
+ * @param {string} path
+ * @returns {string | undefined}
+ */
+function packageRootOf(path) {
+  if (packageRoots.has(path)) return packageRoots.get(path);
+  const parent = dirname(path);
+  let root;
+  if (existsSync(join(path, "package.json"))) {
+    root = path;
+  } else if (parent !== path) {
+    root = packageRootOf(parent);
+  }
+  packageRoots.set(path, root);
+  return root;
+}
+
 export const eslintPreset = [
   { ignores: ["**/dist/**", "**/coverage/**"] },
   eslint.configs.recommended,
@@ -92,10 +153,16 @@ export const eslintPreset = [
   {
     plugins: {
       "simple-import-sort": simpleImportSort,
-      style: { rules: { "private-helper-uses-this": privateHelperUsesThis } },
+      style: {
+        rules: {
+          "no-cross-package-import": noCrossPackageImport,
+          "private-helper-uses-this": privateHelperUsesThis,
+        },
+      },
     },
     rules: {
       "simple-import-sort/imports": "error",
+      "style/no-cross-package-import": "error",
       "style/private-helper-uses-this": "error",
       "@typescript-eslint/consistent-type-imports": [
         "error",
