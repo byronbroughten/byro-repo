@@ -28,7 +28,7 @@ import { launchArgsOf } from "./launchArgs.ts";
 import { specRunConfigOf, stateFolder } from "./runnerConfig.ts";
 import { type WatchDeps, watchOnce, watchRun } from "./runWatch.ts";
 
-// tmux.sh pushes a crash and relaunches only on a restart.
+// tmux.sh writes a crash's run-ended line and relaunches only on a restart.
 const exitCodes = { short: 1, crash: 2, restart: 3 } as const;
 const plainVerbs = ["status", "stop", "review"];
 const boardVerbs = ["status", "watch"];
