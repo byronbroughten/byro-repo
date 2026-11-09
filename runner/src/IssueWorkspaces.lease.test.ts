@@ -1,4 +1,4 @@
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import {
   chmodSync,
   existsSync,
@@ -85,10 +85,7 @@ describe("a lease", () => {
   it("is read as abandoned when its process ID now belongs to a process started since", async () => {
     const workspace = await workspaces().create({ session: "glossary-fix" });
     await workspaces().takeLease(workspace, liveSession);
-    const gitDir = execFileSync("git", ["rev-parse", "--absolute-git-dir"], {
-      cwd: workspace.path,
-      encoding: "utf8",
-    }).trim();
+    const gitDir = git(workspace.path, "rev-parse", "--absolute-git-dir");
     const leasePath = join(gitDir, "workspace.lease");
     const lease = JSON.parse(readFileSync(leasePath, "utf8")) as object;
     writeFileSync(

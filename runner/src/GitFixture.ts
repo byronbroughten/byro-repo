@@ -10,7 +10,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import type { ClonePaths } from "./clonePaths.ts";
 
@@ -19,6 +19,8 @@ export const rootCloneOnly: ClonePaths = { "byro-repo": "." };
 
 interface GitFixtureFiles {
   gitignoreOf: (repo: string) => string;
+  // Contents by path relative to the clone, committed in its initial commit.
+  trackedFilesOf?: (repo: string) => Record<string, string>;
   addUntracked?: (primaryRoot: string) => void;
 }
 
@@ -34,7 +36,11 @@ export class GitFixture {
 
   static init(
     clonePaths: ClonePaths,
-    { gitignoreOf, addUntracked = () => {} }: GitFixtureFiles,
+    {
+      gitignoreOf,
+      trackedFilesOf = () => ({}),
+      addUntracked = () => {},
+    }: GitFixtureFiles,
   ): GitFixture {
     const template = realpathSync(mkdtempSync(join(tmpdir(), "git-fixture-")));
     const primaryRoot = join(template, "byro-repo");
@@ -50,6 +56,7 @@ export class GitFixture {
       git(clone, "remote", "add", "origin", remote);
       writeFileSync(join(clone, ".gitignore"), gitignoreOf(repo));
       writeFileSync(join(clone, "README.md"), `# ${repo}\n`);
+      writeFilesIn(clone, trackedFilesOf(repo));
       git(clone, "add", ".");
       git(clone, "commit", "-m", "Initial commit");
       git(clone, "push", "-u", "origin", "master");
@@ -76,6 +83,14 @@ export class GitFixture {
   remove(): void {
     rmSync(this.template, { recursive: true, force: true });
   }
+}
+
+function writeFilesIn(clone: string, files: Record<string, string>): void {
+  Object.entries(files).forEach(([path, content]) => {
+    const file = join(clone, path);
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, content);
+  });
 }
 
 export function clonePathIn(clones: ClonePaths, repo: string): string {

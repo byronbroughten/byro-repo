@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -13,7 +12,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from "vitest";
 
 import {
   type CheckedPackage,
@@ -22,6 +29,7 @@ import {
   type ChecksConfig,
   type CommandDuration,
 } from "./Checks.ts";
+import { git, GitFixture } from "./GitFixture.ts";
 import { deadPid, liveHolder, seedHolder } from "./lockFixture.ts";
 import { type LockHolder, PidLock } from "./PidLock.ts";
 import type { Command } from "./runKnobs.ts";
@@ -51,13 +59,37 @@ const packages: CheckedPackage[] = [
 
 const everyPackage = ["root", "config", "utils", "framework"];
 
-const clonePaths = [".", "packages/utils", "packages/framework"];
+const clonePaths = {
+  "byro-repo": ".",
+  utils: "packages/utils",
+  framework: "packages/framework",
+};
 
+const rootTrackedFiles: Record<string, string> = {
+  "package.json": "{}\n",
+  "config/README.md": "# config\n",
+};
+
+let fixture: GitFixture;
 let temp: string;
 let root: string;
 let stateFolder: string;
 let stampFolder: string;
 let heldPids: (number | undefined)[];
+
+beforeAll(() => {
+  fixture = GitFixture.init(clonePaths, {
+    gitignoreOf: (repo) =>
+      repo === "byro-repo" ? "packages/*\npackage-lock.json\n" : "",
+    trackedFilesOf: (repo) => (repo === "byro-repo" ? rootTrackedFiles : {}),
+    addUntracked: (primaryRoot) =>
+      writeFileSync(join(primaryRoot, "package-lock.json"), "lock 1"),
+  });
+});
+
+afterAll(() => {
+  fixture.remove();
+});
 
 beforeEach(() => {
   temp = realpathSync(mkdtempSync(join(tmpdir(), "checks-")));
@@ -65,7 +97,7 @@ beforeEach(() => {
   stateFolder = join(temp, ".runner");
   stampFolder = join(stateFolder, "check-stamps");
   heldPids = [];
-  buildRepos();
+  fixture.copyTo(temp);
 });
 
 afterEach(() => {
@@ -89,33 +121,6 @@ function checks(
     slot: { pollMs: 10, sleep, onHeld: (pid) => heldPids.push(pid) },
     ...overrides,
   });
-}
-
-function git(cwd: string, ...args: string[]): string {
-  return execFileSync(
-    "git",
-    ["-c", "user.name=Test", "-c", "user.email=test@example.com", ...args],
-    { cwd, encoding: "utf8" },
-  ).trim();
-}
-
-function buildRepos(): void {
-  clonePaths.forEach((clonePath) => {
-    const clone = join(root, clonePath);
-    mkdirSync(clone, { recursive: true });
-    git(clone, "init", "-b", "master");
-    writeFileSync(join(clone, "README.md"), `# ${clonePath}\n`);
-  });
-  writeFileSync(join(root, ".gitignore"), "packages/*\npackage-lock.json\n");
-  writeFileSync(join(root, "package.json"), "{}\n");
-  mkdirSync(join(root, "config"));
-  writeFileSync(join(root, "config/README.md"), "# config\n");
-  clonePaths.forEach((clonePath) => {
-    const clone = join(root, clonePath);
-    git(clone, "add", ".");
-    git(clone, "commit", "-m", "Initial commit");
-  });
-  writeLockfile("lock 1");
 }
 
 function writeLockfile(content: string): void {
@@ -309,7 +314,7 @@ describe("Checks.run", () => {
     const committing: Command = [
       "sh",
       "-c",
-      `cd ${join(root, "packages/utils")} && echo changed > README.md && git -c user.name=Test -c user.email=test@example.com commit -qam Change`,
+      `cd ${join(root, "packages/utils")} && echo changed > README.md && git commit -qam Change`,
     ];
 
     const result = await checks([committing]).run();
