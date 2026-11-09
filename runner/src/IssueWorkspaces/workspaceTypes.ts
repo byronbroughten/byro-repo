@@ -1,5 +1,4 @@
 // The IssueRef, key and workspace types and the key and issue-set helpers IssueWorkspaces' callers and collaborators share; IssueWorkspaces.ts re-exports them.
-// The lease types and helpers are workspaceLeases.ts.
 
 import type { Lease, LeaseHolder } from "./workspaceLeases.ts";
 
