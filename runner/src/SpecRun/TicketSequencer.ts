@@ -34,11 +34,11 @@ import { ReviewStepper } from "./ReviewStepper.ts";
 import {
   type LandingTicket,
   type Run,
-  targetsAtLaunchOf,
+  runTickets,
+  ticketLaunch,
   type TicketOutcome,
   type TicketRun,
   type TicketState,
-  ticketStateOf,
   type TicketStep,
   type TrackedIssue,
 } from "./runState.ts";
@@ -71,7 +71,7 @@ export class TicketSequencer extends SpecRunBase {
 
   // An UnhandledStop leaves the ticket unlanded, commented on and noticed; a lease taken since the pick leaves it waiting.
   async _runTicket(run: Run, ticket: TrackedIssue): Promise<TicketOutcome> {
-    const state = ticketStateOf(run, ticket.issue);
+    const state = runTickets.stateOf(run, ticket.issue);
     try {
       // Delivered first, so a `rerun on <pair>` answer picks the pair.
       if (state.step === "halted") {
@@ -99,7 +99,10 @@ export class TicketSequencer extends SpecRunBase {
         const workspace = await this._timed({ run, ticket }, "workspace", () =>
           this.leaseKeeper._workspaceFor(run, ticket.issue),
         );
-        const targets = targetsAtLaunchOf(ticket, this._progressPathOf(run));
+        const targets = ticketLaunch.targetsOf(
+          ticket,
+          this._progressPathOf(run),
+        );
         await this._runSteps({ run, ticket, pair, workspace, state, targets });
       } else {
         const landing = this.workspaces.folderOf(ticket.issue);
@@ -170,7 +173,7 @@ export class TicketSequencer extends SpecRunBase {
         stopHeadingOf(ticket, outcome),
         stop.message,
         `Log: \`${stop.logPath}\``,
-        `The ticket is left at its ${ticketStateOf(run, ticket.issue).step} step in its issue workspace; rerun to retry it: \`${command}\`.`,
+        `The ticket is left at its ${runTickets.stateOf(run, ticket.issue).step} step in its issue workspace; rerun to retry it: \`${command}\`.`,
       ].join("\n\n"),
     );
     throw new RunStop(`Stopped on ${label}: ${outcome}; rerun to retry it.`, {
@@ -184,7 +187,7 @@ export class TicketSequencer extends SpecRunBase {
     ticket: TrackedIssue,
     stop: UnhandledStop,
   ): Promise<never> {
-    const state = ticketStateOf(run, ticket.issue);
+    const state = runTickets.stateOf(run, ticket.issue);
     const outcome = stopOutcomes[stop.outcome];
     state.step = "stopped";
     state.stop = outcome;

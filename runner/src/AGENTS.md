@@ -109,7 +109,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/TicketLander/TicketChecker.ts` | | Runs a ticket's checks until green, resuming on red and stopping on a red master. |
 | `SpecRun/TicketSelector.ts` | | Picks the run's next ticket and reads Halt answers. |
 | `SpecRun/TicketSequencer.ts` | | Runs one ticket's steps from the one it reached. |
-| `SpecRun/runState.ts` | | The run-state types and the ticket-state, targets, launch and member-blocking helpers several collaborators share. |
+| `SpecRun/runState.ts` | | The run-state types and the ticket-state, targets, launch and member-blocking helper bundles several collaborators share. |
 | `SpecRun/runState/runHalts.ts` | | Raises, reads, delivers and orders a run's Halts, and finds a ticket's downstream. |
 | `SpecRun/runState/runText.ts` | | Words a run's end, waits and refusals, its rerun command and its review-list judge line. |
 | `SpecRun/runState/statePaths.ts` | | A spec's run state file and progress log paths in the state folder. |

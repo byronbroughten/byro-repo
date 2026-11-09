@@ -1,6 +1,6 @@
 // The run's state and shapes: the Run, each ticket's TicketState and the step it reached, a ticket's TicketRun,
-// and the Waits that keep a ticket from launching, plus the module functions more than one SpecRun collaborator calls:
-// a ticket's state, its targets and launchability, and a Batch member's blockers.
+// and the Waits that keep a ticket from launching, plus the helper bundles more than one SpecRun collaborator calls:
+// runTickets for a ticket's state, ticketLaunch for its targets and launchability, and memberBlocking for a Batch member's blockers.
 // A declaration here is exported only when another file uses it; a function with one caller sits below that caller's class instead.
 // The class that saves this state is SpecRunBase.ts; the coordinator callers build is ../SpecRun.ts; the Halt helpers are runState/runHalts.ts;
 // the session and step-record helpers are runState/ticketSteps.ts; the end, wait and refusal wording is runState/runText.ts;
@@ -260,66 +260,63 @@ export type SpecStepRequest = Omit<StepRequest, "account">;
 
 export type Crash = Pick<StepFailure, "detail" | "logPath">;
 
-export function ticketStateOf(run: Run, ticket: IssueRef): TicketState {
-  const key = issueRef.labelOf(ticket);
-  run.state.tickets[key] ??= { step: "implement", sessions: [] };
-  return run.state.tickets[key];
-}
+export const runTickets = {
+  stateOf(run: Run, ticket: IssueRef): TicketState {
+    const key = issueRef.labelOf(ticket);
+    run.state.tickets[key] ??= { step: "implement", sessions: [] };
+    return run.state.tickets[key];
+  },
 
-export function isLanded(run: Run, ticket: IssueRef): boolean {
-  return run.state.tickets[issueRef.labelOf(ticket)]?.step === "landed";
-}
+  isLanded(run: Run, ticket: IssueRef): boolean {
+    return run.state.tickets[issueRef.labelOf(ticket)]?.step === "landed";
+  },
+};
 
-export function targetsRefusalOf(
-  run: Run,
-  launchable: TrackedIssue[],
-): string | undefined {
-  const checked = run.isStandalone ? [run.spec] : launchable;
-  const offenders = checked.flatMap(({ issue, body }) => {
-    const reading = targetsOf(body);
-    if (reading.status === "valid") return [];
-    return [`${issueRef.labelOf(issue)} (\`${reading.line}\`)`];
-  });
-  if (offenders.length === 0) return undefined;
-  return `Each ## Targets line must be ${targetLineShapes}; malformed in ${offenders.join(", ")}.`;
-}
+export const ticketLaunch = {
+  targetsRefusalOf(run: Run, launchable: TrackedIssue[]): string | undefined {
+    const checked = run.isStandalone ? [run.spec] : launchable;
+    const offenders = checked.flatMap(({ issue, body }) => {
+      const reading = targetsOf(body);
+      if (reading.status === "valid") return [];
+      return [`${issueRef.labelOf(issue)} (\`${reading.line}\`)`];
+    });
+    if (offenders.length === 0) return undefined;
+    return `Each ## Targets line must be ${targetLineShapes}; malformed in ${offenders.join(", ")}.`;
+  },
 
-export function targetsAtLaunchOf(
-  ticket: TrackedIssue,
-  logPath: string,
-): Target[] {
-  const reading = targetsOf(ticket.body);
-  if (reading.status === "valid") return reading.targets;
-  throw new UnhandledStop(
-    "targets",
-    `The ## Targets section changed after preflight: \`${reading.line}\` isn't ${targetLineShapes}.`,
-    logPath,
-  );
-}
+  targetsOf(ticket: TrackedIssue, logPath: string): Target[] {
+    const reading = targetsOf(ticket.body);
+    if (reading.status === "valid") return reading.targets;
+    throw new UnhandledStop(
+      "targets",
+      `The ## Targets section changed after preflight: \`${reading.line}\` isn't ${targetLineShapes}.`,
+      logPath,
+    );
+  },
 
-export function isLaunchable(ticket: TrackedIssue): boolean {
-  return ticket.isOpen && ticket.labels.includes(readyLabel);
-}
+  isReady(ticket: TrackedIssue): boolean {
+    return ticket.isOpen && ticket.labels.includes(readyLabel);
+  },
+};
 
-// The Batch's members among a member's open blockers that haven't landed; a landed one counts as cleared though GitHub may show it open.
-export function unlandedBlockersOf(
-  open: IssueRef[],
-  { memberIssues, landedMembers }: BatchView,
-): IssueRef[] {
-  return issueRef.outside(
-    memberIssues.filter((each) => issueRef.isAmong(each, open)),
-    landedMembers,
-  );
-}
+export const memberBlocking = {
+  // The Batch's members among a member's open blockers that haven't landed; a landed one counts as cleared though GitHub may show it open.
+  unlandedOf(
+    open: IssueRef[],
+    { memberIssues, landedMembers }: BatchView,
+  ): IssueRef[] {
+    return issueRef.outside(
+      memberIssues.filter((each) => issueRef.isAmong(each, open)),
+      landedMembers,
+    );
+  },
 
-// The wait the run loop and status both show for a member held by blocker members.
-export function memberBlockedWaitOf(
-  member: IssueRef,
-  blockers: IssueRef[],
-): Wait {
-  const text = runText.waitsToLand(
-    issueRef.labelOf(member),
-    blockers.map(issueRef.labelOf),
-  );
-  return { ticket: member, reason: "member-blocked", text };
-}
+  // The wait the run loop and status both show for a member held by blocker members.
+  waitOf(member: IssueRef, blockers: IssueRef[]): Wait {
+    const text = runText.waitsToLand(
+      issueRef.labelOf(member),
+      blockers.map(issueRef.labelOf),
+    );
+    return { ticket: member, reason: "member-blocked", text };
+  },
+};

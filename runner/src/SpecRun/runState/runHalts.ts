@@ -12,7 +12,7 @@ import {
 } from "../../halts.ts";
 import { failureAnswerOf, isStopSpecAnswer } from "../../halts/haltReplies.ts";
 import { type IssueRef, issueRef } from "../../IssueWorkspaces.ts";
-import { type Run, ticketStateOf, type TicketStep } from "../runState.ts";
+import { type Run, runTickets, type TicketStep } from "../runState.ts";
 
 interface DownstreamSearch {
   run: Run;
@@ -78,7 +78,7 @@ export const runHalts = {
     run: Run,
     { ticket, extraTurns }: { ticket: IssueRef; extraTurns: number },
   ): TicketStep | undefined {
-    const state = ticketStateOf(run, ticket);
+    const state = runTickets.stateOf(run, ticket);
     const failures = runHalts
       .undeliveredOf(run, ticket)
       .filter(isTicketFailureHalt);

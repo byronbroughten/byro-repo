@@ -19,7 +19,7 @@ import { ReviewStepper } from "../ReviewStepper.ts";
 import {
   type LandingTicket,
   type RanStep,
-  targetsAtLaunchOf,
+  ticketLaunch,
   type TicketRun,
 } from "../runState.ts";
 import { ticketSteps } from "../runState/ticketSteps.ts";
@@ -82,7 +82,7 @@ export class MasterMerger extends SpecRunBase {
     const ticketRun: TicketRun = {
       ...landingTicket,
       workspace,
-      targets: targetsAtLaunchOf(ticket, progressPath),
+      targets: ticketLaunch.targetsOf(ticket, progressPath),
     };
     const branchedRepos = ticketSteps.branchedReposOf(ticketRun);
     const worktrees = this._worktreesOf(workspace).filter(({ repo }) =>

@@ -18,10 +18,9 @@ import { HaltRaiser } from "./HaltRaiser.ts";
 import { LeaseKeeper } from "./LeaseKeeper.ts";
 import {
   interactiveLabel,
-  isLanded,
-  isLaunchable,
   type Run,
-  ticketStateOf,
+  runTickets,
+  ticketLaunch,
   type TrackedIssue,
   type Wait,
 } from "./runState.ts";
@@ -102,7 +101,7 @@ export class TicketSelector extends SpecRunBase {
     for (const ticket of run.tickets) {
       const tracked = await this.config.github.issueOf(ticket);
       // A Standalone ticket lands and stays open while its review list has undecided items.
-      if (!tracked.isOpen || isLanded(run, ticket)) continue;
+      if (!tracked.isOpen || runTickets.isLanded(run, ticket)) continue;
       const label = issueRef.labelOf(ticket);
       const holder = await this.leaseKeeper._otherHolderOf(ticket);
       if (holder !== undefined) {
@@ -110,7 +109,7 @@ export class TicketSelector extends SpecRunBase {
         waits.push({ ticket, reason: "leased", text, holder });
         continue;
       }
-      const { step, stop } = ticketStateOf(run, ticket);
+      const { step, stop } = runTickets.stateOf(run, ticket);
       if (stop !== undefined) {
         if (survey.stoppedAgain === undefined) {
           survey.stoppedAgain = { ticket: tracked, stop };
@@ -131,7 +130,7 @@ export class TicketSelector extends SpecRunBase {
         waits.push({ ticket, reason: "halted", text });
         continue;
       }
-      if (!isLaunchable(tracked)) {
+      if (!ticketLaunch.isReady(tracked)) {
         const text = developerWaitTextOf(
           ticket,
           tracked.labels,

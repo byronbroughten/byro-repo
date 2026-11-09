@@ -22,8 +22,8 @@ import {
   type Crash,
   type LandingTicket,
   type Run,
+  runTickets,
   type TicketRun,
-  ticketStateOf,
 } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
 import { ticketSteps } from "./runState/ticketSteps.ts";
@@ -123,7 +123,7 @@ export class HaltRaiser extends SpecRunBase {
         (halt) =>
           !halt.isPosted &&
           (runHalts.isGapCheck(halt) ||
-            ticketStateOf(run, halt.ticket).step === "halted"),
+            runTickets.stateOf(run, halt.ticket).step === "halted"),
       );
     for (const halt of unposted) {
       const batch = unposted.filter(({ ticket }) =>
