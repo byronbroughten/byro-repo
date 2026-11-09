@@ -12,7 +12,18 @@ The settled rule in `docs/code-style.md` asks a test to assert what a caller can
 
 The whole suite runs before every change is called done, so a cost in one test is paid on every run, and a suite gets slow one reasonable-looking test at a time.
 
-- **A test starts a process only when that process is what it tests.** Spawning a process costs far more than a function call, and most of a test's behaviour doesn't depend on it.
-- **A fixture costing more than a few milliseconds is built once per file and copied or reset for each test.** Each test still starts from a clean fixture, and only the first pays to build it.
-- **A test never really waits: time goes through an injected clock or fake timers.** A real wait costs its full length on every run, and one tuned to pass on a quiet machine flakes on a loaded one.
-- **A test reaches no network and opens no real port.** Either one makes the result depend on what is outside the test, and a port also collides with the tests running beside it.
+### A test starts a process only when that process is what it tests
+
+Spawning a process costs far more than a function call, and most of a test's behaviour doesn't depend on it.
+
+### A fixture costing more than a few milliseconds is built once per file and copied or reset for each test
+
+Each test still starts from a clean fixture, and only the first pays to build it.
+
+### A test never really waits: time goes through an injected clock or fake timers
+
+A real wait costs its full length on every run, and one tuned to pass on a quiet machine flakes on a loaded one.
+
+### A test reaches no network and opens no real port
+
+Either one makes the result depend on what is outside the test, and a port also collides with the tests running beside it.

@@ -56,7 +56,7 @@ A doc is listed when two or more skills or Steps reach it by one of these routes
 | [`verdicts.md`](./verdicts.md) | `/code-review`, `/implement-code`, `/judge-findings` | via runner prompt: the resolve Step; via `/code-review`: the review Step |
 | [`planning.md`](./planning.md) | `/code-spec`, `/code-tickets`, `/review-tickets`, `/start-issue`, `/to-code-style` | via always-on hook: the context nudge, for any session |
 | [`model-fit.md`](./model-fit.md) | `/mine-outcomes` | via `planning.md`: `/code-spec`, `/code-tickets` |
-| The code-style rules: [config's](../../config/docs/code-style.md) and [the framework's](../../packages/framework/docs/code-style.md) | `/code-spec`, `/retro`, `/to-code-style` | via always-on hook: every code edit, by `/implement-code`, the implement and resolve Steps, and `/judge-findings`' "now" fixes |
+| The code-style rules: [config's](../../config/docs/code-style.md) and [the framework's](../../packages/framework/docs/code-style.md) | `/retro`, `/to-code-style` | via always-on hook: every code edit, by `/implement-code`, the implement and resolve Steps, and `/judge-findings`' "now" fixes |
 | [`prose-style.md`](../prose-style.md) | `/code-review`, `/retro`, `/to-code-style` | via always-on hook: every prose edit |
 | [The issue tracker doc](./issue-tracker.md) and [triage labels](./triage-labels.md) | `/wayfinder`, `domain-modeling`, `/code-spec`, `/code-tickets`, `/review-tickets`, `/code-review`, `/judge-findings`, `/mine-outcomes` | |
 | [The git workflow doc](./git-workflow.md) | `/implement-code`, `/judge-findings`, `/mine-outcomes` | via runner prompt: the implement Step |
