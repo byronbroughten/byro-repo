@@ -12,6 +12,7 @@ import {
   eventOf,
   github,
   implemented,
+  noticeKinds,
   notices,
   progressLines,
   refOf,
@@ -42,7 +43,7 @@ describe("run's Restart", () => {
       message: restartMessage,
     });
     expect(progressLines().map(eventOf)).toContain(restartMessage);
-    expect(notices.sent.map(({ kind }) => kind)).toEqual(["run-started"]);
+    expect(noticeKinds()).toEqual(["run-started"]);
 
     const rerunStep = FakeAgentStep.init(implemented("two.ts"), reviewed());
     const rerun = await specRun(rerunStep).run(spec);

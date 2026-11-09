@@ -23,6 +23,7 @@ import {
   crashed,
   github,
   implemented,
+  noticeKinds,
   notices,
   passes,
   primaryRoot,
@@ -61,7 +62,7 @@ function haltCommentUrl(): string {
 }
 
 describe("run's event file", () => {
-  it("writes a line per start, Halt, idle, Stop and end, leaving the notices as they were", async () => {
+  it("writes a line per start, Halt, idle, Stop and end, with every notice carrying the spec's title and link", async () => {
     addSpec([1]);
     const specUrl = "https://github.com/byronbroughten/byro-repo/issues/213";
 
@@ -258,6 +259,6 @@ describe("run's event file", () => {
         summary: `Refused: ${result.message}`,
       }),
     ]);
-    expect(notices.sent.map(({ kind }) => kind)).toEqual(["refused"]);
+    expect(noticeKinds()).toEqual(["refused"]);
   });
 });

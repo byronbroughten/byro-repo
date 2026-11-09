@@ -1,5 +1,3 @@
-// The notice port: one notice per run event, since GitHub never notifies a developer of their own comments.
-// EventFileNotices.ts is the real adapter; FakeNotices.ts is the one run-loop tests read.
 // The ntfy push adapter, NtfyNotices.ts, was removed in commit ba80f06c; if ntfy is ever wanted again, restore it and its test from git history instead of rewriting them.
 import type { IssueRef } from "./IssueWorkspaces.ts";
 
@@ -30,7 +28,6 @@ export interface Notice {
   commentUrl?: string;
   // What startup found worth a look; a run-started notice's, empty when it found nothing.
   warnings?: string[];
-  // Marks a Restart's relaunch's run-started notice.
   isRelaunch?: boolean;
   // A Batch's own end, sent on its first member once every member has ended; each member's end is a notice of its own.
   isBatchEnd?: boolean;

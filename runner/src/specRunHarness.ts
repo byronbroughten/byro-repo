@@ -26,7 +26,7 @@ import { git, GitFixture } from "./GitFixture.ts";
 import type { Blocker, Handoff, ImplementRecord } from "./implementStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { UsageList, UsageReader } from "./limitGuard.ts";
-import { composedNotices } from "./Notices.ts";
+import { composedNotices, type NoticeKind } from "./Notices.ts";
 import { stampedLineOf } from "./progressLines.ts";
 import type { ResolveRecord } from "./resolveStep.ts";
 import type { ReviewFinding } from "./reviewStep.ts";
@@ -405,6 +405,10 @@ export function commentsOn(number: number, mark: string): string[] {
     .filter(({ issue }) => issue.number === number)
     .map(({ body }) => body)
     .filter((body) => body.includes(mark));
+}
+
+export function noticeKinds(): (NoticeKind | undefined)[] {
+  return notices.sent.map(({ kind }) => kind);
 }
 
 export function noticeSummaries(): string[] {
