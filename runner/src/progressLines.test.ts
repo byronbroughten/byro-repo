@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { progressLineOf, stampedLineOf } from "./progressLines.ts";
 
-// The tooling project's tests run in America/Chicago, so local times read as CDT or CST.
+// The runner project's tests run in America/Chicago, so local times read as CDT or CST.
 describe("progress lines", () => {
   it("stamps a line in local time with its zone", () => {
     const time = new Date("2026-10-29T12:49:05.000Z");

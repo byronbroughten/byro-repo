@@ -1,12 +1,19 @@
 // `npm run tsc`: every type-check program at once, the root's and each `&&` part of a workspace's own tsc script.
+// CHECK_PACKAGES narrows it to the programs of the packages it names (scripts/runner/checkPackages.ts).
 // Prints each program's output under its label, then fails when any program does.
-import { existsSync, globSync, readFileSync } from "node:fs";
 import { delimiter, join, relative } from "node:path";
 
 import {
   type CollectedRun,
   runCollecting,
 } from "@byronbroughten/spec-runner/runCollecting";
+
+import {
+  type CheckPackage,
+  checkPackagesOf,
+  rootPackageName,
+  selectedPackagesOf,
+} from "../runner/checkPackages.ts";
 
 interface Program {
   cwd: string;
@@ -19,14 +26,10 @@ interface Outcome extends CollectedRun {
 
 const root = join(import.meta.dirname, "../..");
 
-const programs: Program[] = [
-  { cwd: root, command: "tsc -p ." },
-  ...workspaceFolders().flatMap((cwd) =>
-    tscScriptOf(cwd)
-      .split("&&")
-      .map((command) => ({ cwd, command: command.trim() })),
-  ),
-];
+const programs = selectedPackagesOf(
+  checkPackagesOf(root),
+  process.env.CHECK_PACKAGES,
+).flatMap(programsOf);
 
 const outcomes = await Promise.all(programs.map(outcomeOf));
 outcomes
@@ -38,25 +41,15 @@ if (failed.length > 0) {
   process.exitCode = 1;
 }
 
-function workspaceFolders(): string[] {
-  const { workspaces } = readJson(join(root, "package.json")) as {
-    workspaces: string[];
-  };
-  return workspaces
-    .flatMap((pattern) => globSync(pattern, { cwd: root }))
-    .map((folder) => join(root, folder))
-    .filter((folder) => existsSync(join(folder, "package.json")));
-}
-
-function tscScriptOf(folder: string): string {
-  const { scripts } = readJson(join(folder, "package.json")) as {
-    scripts?: Record<string, string>;
-  };
-  return scripts?.tsc ?? "";
-}
-
-function readJson(path: string): unknown {
-  return JSON.parse(readFileSync(path, "utf8"));
+// The root's own tsc script is this file, so its program is named here.
+function programsOf({ name, path, scripts }: CheckPackage): Program[] {
+  const cwd = join(root, path);
+  if (name === rootPackageName) return [{ cwd, command: "tsc -p ." }];
+  return (scripts.tsc ?? "")
+    .split("&&")
+    .map((command) => command.trim())
+    .filter((command) => command !== "")
+    .map((command) => ({ cwd, command }));
 }
 
 async function outcomeOf({ cwd, command }: Program): Promise<Outcome> {
