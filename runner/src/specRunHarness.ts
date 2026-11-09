@@ -195,7 +195,7 @@ export function specRun(
     github,
     notices,
     usageReader,
-    clock: { now: () => new Date("2026-10-12T09:00:00Z") },
+    clock: { now: startTime },
     githubOwner: "byronbroughten",
     developer: "byronbroughten",
     primaryRoot,
@@ -443,7 +443,7 @@ function advance(seconds: number): void {
 
 // A clock the fakes move on; each workspace build installs dependencies in 4s.
 export function timed(): Partial<SpecRunConfig> {
-  time = new Date("2026-10-12T09:00:00Z").getTime();
+  time = startTime().getTime();
   return {
     clock: { now: () => new Date(time) },
     async installDependencies() {
@@ -477,25 +477,21 @@ export function runStatePath(number = spec.number): string {
 }
 
 // A config override that also writes the event files a Supervisor watches.
-export function withEventFile(now?: () => Date): Partial<SpecRunConfig> {
-  const eventFile = EventFileNotices.init(stateFolder(), now);
+export function withEventFile(): Partial<SpecRunConfig> {
+  const eventFile = EventFileNotices.init(stateFolder(), startTime);
   return { notices: composedNotices(notices, eventFile) };
 }
 
-// Every adapter gets every notice, even after one fails; the first failure is rethrown.
 function composedNotices(...adapters: Notices[]): Notices {
   return {
     async send(notice) {
-      const results = await Promise.allSettled(
-        adapters.map((adapter) => adapter.send(notice)),
-      );
-      const failed = results.find(
-        (result): result is PromiseRejectedResult =>
-          result.status === "rejected",
-      );
-      if (failed !== undefined) throw failed.reason;
+      await Promise.all(adapters.map((adapter) => adapter.send(notice)));
     },
   };
+}
+
+function startTime(): Date {
+  return new Date("2026-10-12T09:00:00Z");
 }
 
 export function batchEventLines(members: MemberList): EventLine[] {
