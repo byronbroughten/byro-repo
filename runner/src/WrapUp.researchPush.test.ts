@@ -1,4 +1,6 @@
 import { execFileSync } from "node:child_process";
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
@@ -121,6 +123,29 @@ describe("WrapUp.pushResearch", () => {
       "byro-repo creds.json:1 (OAuth client secret)",
     );
     expect(remoteHeadOf(research)).toBeUndefined();
+  });
+
+  it("refuses a secret only a merge's own resolution adds, and pushes nothing", async () => {
+    const checkout = await checkoutOn(research);
+    commitFileIn(checkout, "notes.md", "base\n");
+    git(checkout, "push", "origin", research);
+    const pushed = remoteHeadOf(research);
+    git(checkout, "switch", "-c", "side");
+    commitFileIn(checkout, "notes.md", "side\n");
+    git(checkout, "switch", research);
+    commitFileIn(checkout, "notes.md", "mine\n");
+    git(checkout, "merge", "-s", "ours", "--no-commit", "side");
+    writeFileSync(join(checkout, "notes.md"), secretLine);
+    git(checkout, "add", "notes.md");
+    git(checkout, "commit", "-m", "Merge side");
+
+    const refusal = await errorOf(wrapUp().pushResearch(checkout));
+
+    expect((refusal as WrapUpFailure).kind).toBe("secret-scan");
+    expect(refusal.message).toContain(
+      "byro-repo notes.md:1 (OAuth client secret)",
+    );
+    expect(remoteHeadOf(research)).toBe(pushed);
   });
 
   it("scans only what the push adds over the remote branch", async () => {
