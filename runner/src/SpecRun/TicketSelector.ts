@@ -139,10 +139,10 @@ export class TicketSelector extends SpecRunBase {
         waits.push({ ticket, reason: "developer", text });
         continue;
       }
-      const blockers = issueRef.outside(
-        await this.config.github.openBlockersOf(ticket),
-        landedMembers,
-      );
+      const blockers = issueRef.outside({
+        issues: await this.config.github.openBlockersOf(ticket),
+        excluded: landedMembers,
+      });
       if (blockers.length > 0) {
         const text = runText.blockedBy(label, blockers.map(issueRef.labelOf));
         waits.push({ ticket, reason: "blocked", text });

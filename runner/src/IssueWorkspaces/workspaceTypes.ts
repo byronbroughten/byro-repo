@@ -7,6 +7,11 @@ export interface IssueRef {
   number: number;
 }
 
+export interface IssueExclusion {
+  issues: IssueRef[];
+  excluded: IssueRef[];
+}
+
 export interface SessionKey {
   session: string;
 }
@@ -77,7 +82,7 @@ export const issueRef = {
     return issues.some((each) => issueRef.isSame(each, issue));
   },
 
-  outside(issues: IssueRef[], excluded: IssueRef[]): IssueRef[] {
+  outside({ issues, excluded }: IssueExclusion): IssueRef[] {
     return issues.filter((issue) => !issueRef.isAmong(issue, excluded));
   },
 

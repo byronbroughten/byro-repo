@@ -71,6 +71,8 @@ destructures because `FetchProps` already exists as a named type — the method 
 function prepRow(table: Table, rowSpecifier: RowSpecifier, columnId: string): void
 ```
 
+**A symmetric comparator stays positional though its two params share a type.** The rule guards against swapped arguments, and swapping `isSame(a, b)`'s changes nothing, so a bag would add a type name and protect against nothing; the runner's `issueRef.isSame`, `workspaceKey.isSame` and `leaseHolder.isSame` are such comparators. One whose order matters is not exempt: `issueRef.outside` returns a different set when its two lists swap, so it takes `{ issues, excluded }: IssueExclusion` (#654).
+
 ## Hoist the argument every implementation uses
 
 **The one argument every implementation will use is hoisted out of the bag and passed first, positionally.** The grouping rule above is about params that travel together; it doesn't apply to a collaborator that essentially every implementation of a signature needs. A handler's action takes the workbook first and its remaining inputs as a second destructured object, because every action needs the workbook and only some need the rest — burying it in the bag would make every implementation destructure to reach the thing it always wants.

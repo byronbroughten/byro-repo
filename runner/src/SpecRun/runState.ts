@@ -305,10 +305,10 @@ export const memberBlocking = {
     open: IssueRef[],
     { memberIssues, landedMembers }: BatchView,
   ): IssueRef[] {
-    return issueRef.outside(
-      memberIssues.filter((each) => issueRef.isAmong(each, open)),
-      landedMembers,
-    );
+    return issueRef.outside({
+      issues: memberIssues.filter((each) => issueRef.isAmong(each, open)),
+      excluded: landedMembers,
+    });
   },
 
   // The wait the run loop and status both show for a member held by blocker members.

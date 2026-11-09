@@ -47,7 +47,7 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 - **A property of a record or schema we define is camelCase; one mirroring an external wire shape keeps that API's spelling.** Lint doesn't check properties.
 - **A no-arg, side-effect-free member is a getter unless it costs a round trip or a nested loop over a whole sheet's rows**; a value fixed for the object's lifetime is a plain field ([why](./code-style/naming.md#parens-mean-expensive)).
 - **`_` prefix means "narrow-purpose, not general API"**: a true `private` helper, or a step a coordinating class must call that TS won't let you mark `private`.
-- **Destructure params into a named type at 3+ params, 2+ params of one type, or when a named type for the bag already exists**; otherwise stay positional ([why](./code-style/naming.md#destructure-params-or-stay-positional)).
+- **Destructure params into a named type at 3+ params, 2+ params of one type, or when a named type for the bag already exists**, except a symmetric comparator, whose arguments can swap; otherwise stay positional ([why](./code-style/naming.md#destructure-params-or-stay-positional)).
 
 ## Comments
 
