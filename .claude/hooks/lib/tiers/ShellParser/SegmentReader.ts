@@ -354,12 +354,3 @@ function withArgumentsIn(word: string, args: string[]): string {
       args[Number(braced ?? bare) - 1] ?? "",
   );
 }
-
-// The folders a later command may run in after a `cd` to targets: the targets alone when the `cd` surely ran and carries on, else the folders before it too.
-export function foldersAfterCdOf<FD extends string | undefined>(
-  folders: FD[],
-  targets: FD[],
-  isCarriedOn: boolean,
-): FD[] {
-  return [...new Set(isCarriedOn ? targets : [...folders, ...targets])];
-}

@@ -6,8 +6,9 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { HookInput } from "../hookIo.ts";
 import { rootRelative } from "../lintSet.ts";
 import { readSheetsConfigs } from "../sheetsConfigs.ts";
+import { foldersAfterCdOf } from "./cdFolders.ts";
 import { ShellParser } from "./ShellParser.ts";
-import { foldersAfterCdOf, type Segment } from "./ShellParser/SegmentReader.ts";
+import type { Segment } from "./ShellParser/SegmentReader.ts";
 import { sedCallOf } from "./stdoutFilters.ts";
 
 export const largeFileLines = 150;
