@@ -16,6 +16,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
+  type CheckedPackage,
   type CheckResult,
   Checks,
   type ChecksConfig,
@@ -25,10 +26,33 @@ import { deadPid, liveHolder, seedHolder } from "./lockFixture.ts";
 import { type LockHolder, PidLock } from "./PidLock.ts";
 import type { Command } from "./runKnobs.ts";
 
-const clonePaths = {
-  "byro-repo": ".",
-  utils: "packages/utils",
-};
+// The root repo holds the root package and config, a folder of its own; utils and framework are clones of their own.
+// The root package depends on none, so a test can see config carved out of it.
+const packages: CheckedPackage[] = [
+  {
+    name: "root",
+    path: ".",
+    excludedPaths: ["config", "packages/utils", "packages/framework"],
+    dependencies: [],
+  },
+  { name: "config", path: "config", excludedPaths: [], dependencies: [] },
+  {
+    name: "utils",
+    path: "packages/utils",
+    excludedPaths: [],
+    dependencies: ["config"],
+  },
+  {
+    name: "framework",
+    path: "packages/framework",
+    excludedPaths: [],
+    dependencies: ["utils"],
+  },
+];
+
+const everyPackage = ["root", "config", "utils", "framework"];
+
+const clonePaths = [".", "packages/utils", "packages/framework"];
 
 let temp: string;
 let root: string;
@@ -56,7 +80,11 @@ function checks(
   return Checks.init({
     commands,
     root,
-    clonePaths,
+    packages,
+    sharedPaths: ["package.json"],
+    commandEnvOf: (packageNames) => ({
+      CHECK_PACKAGES: packageNames.join(","),
+    }),
     stateFolder,
     nodeVersion: "v22.0.0",
     slot: { pollMs: 10, sleep, onHeld: (pid) => heldPids.push(pid) },
@@ -73,14 +101,18 @@ function git(cwd: string, ...args: string[]): string {
 }
 
 function buildRepos(): void {
-  Object.entries(clonePaths).forEach(([repo, clonePath]) => {
+  clonePaths.forEach((clonePath) => {
     const clone = join(root, clonePath);
     mkdirSync(clone, { recursive: true });
     git(clone, "init", "-b", "master");
-    const ignored =
-      repo === "byro-repo" ? "packages/*\npackage-lock.json\n" : "";
-    writeFileSync(join(clone, ".gitignore"), ignored);
-    writeFileSync(join(clone, "README.md"), `# ${repo}\n`);
+    writeFileSync(join(clone, "README.md"), `# ${clonePath}\n`);
+  });
+  writeFileSync(join(root, ".gitignore"), "packages/*\npackage-lock.json\n");
+  writeFileSync(join(root, "package.json"), "{}\n");
+  mkdirSync(join(root, "config"));
+  writeFileSync(join(root, "config/README.md"), "# config\n");
+  clonePaths.forEach((clonePath) => {
+    const clone = join(root, clonePath);
     git(clone, "add", ".");
     git(clone, "commit", "-m", "Initial commit");
   });
@@ -91,10 +123,11 @@ function writeLockfile(content: string): void {
   writeFileSync(join(root, "package-lock.json"), content);
 }
 
-function commitChange(clonePath: string): void {
-  const clone = join(root, clonePath);
-  writeFileSync(join(clone, "README.md"), "# changed\n");
-  git(clone, "commit", "-am", "Change");
+// Commits a change to one file, from inside the folder that holds it.
+function commitChange(path: string): void {
+  const file = join(root, path);
+  writeFileSync(file, "# changed\n");
+  git(join(file, ".."), "commit", "-am", "Change");
 }
 
 // A shell command that leaves a marker file in temp, so a test can see whether it ran.
@@ -114,8 +147,13 @@ function clearMarkers(...names: string[]): void {
   names.forEach((name) => rmSync(join(temp, name), { force: true }));
 }
 
-function stampCount(): number {
-  return existsSync(stampFolder) ? readdirSync(stampFolder).length : 0;
+function stampedPackages(): string[] {
+  if (!existsSync(stampFolder)) return [];
+  return everyPackage.filter(
+    (name) =>
+      existsSync(join(stampFolder, name)) &&
+      readdirSync(join(stampFolder, name)).length > 0,
+  );
 }
 
 function sleeping(seconds: number): Command {
@@ -127,9 +165,10 @@ function durationsOf(result: CheckResult): CommandDuration[] {
   return result.durations;
 }
 
-function stampContents(): unknown[] {
-  return readdirSync(stampFolder).map((name) =>
-    JSON.parse(readFileSync(join(stampFolder, name), "utf8")),
+function stampContentsOf(name: string): unknown[] {
+  const folder = join(stampFolder, name);
+  return readdirSync(folder).map((stamp) =>
+    JSON.parse(readFileSync(join(folder, stamp), "utf8")),
   );
 }
 
@@ -137,6 +176,15 @@ function stampContents(): unknown[] {
 function waitingFor(own: string, other: string): Command {
   const script = `touch ${join(temp, own)}; i=0; while [ ! -f ${join(temp, other)} ]; do i=$((i+1)); [ $i -gt 100 ] && exit 1; sleep 0.05; done`;
   return ["sh", "-c", script];
+}
+
+// Writes the package list the command was narrowed to into a file in temp.
+function recordingNarrowing(): Command {
+  return ["sh", "-c", `echo "$CHECK_PACKAGES" > ${join(temp, "narrowed")}`];
+}
+
+function narrowing(): string {
+  return readFileSync(join(temp, "narrowed"), "utf8").trim();
 }
 
 function slotPath(): string {
@@ -148,12 +196,22 @@ function seedSlot(holder: Omit<LockHolder, "token">): void {
   seedHolder(slotPath(), holder);
 }
 
+async function stampEveryPackage(): Promise<void> {
+  await checks([marking("a")]).run();
+  clearMarkers("a");
+}
+
 describe("Checks.run", () => {
-  it("passes and writes a stamp when every command is green and every repo clean", async () => {
+  it("passes and stamps every package when every command is green and every package clean", async () => {
     const result = await checks([marking("a"), marking("b")]).run();
 
-    expect(result).toMatchObject({ kind: "passed", isStamped: true });
-    expect(stampCount()).toBe(1);
+    expect(result).toMatchObject({
+      kind: "passed",
+      checked: everyPackage,
+      skipped: [],
+      stamped: everyPackage,
+    });
+    expect(stampedPackages()).toEqual(everyPackage);
   });
 
   it("fails with the red command's output and writes no stamp", async () => {
@@ -161,9 +219,10 @@ describe("Checks.run", () => {
 
     expect(result).toMatchObject({
       kind: "failed",
+      checked: everyPackage,
       failures: [{ command: marking("b", 1), output: "b says hello" }],
     });
-    expect(stampCount()).toBe(0);
+    expect(stampedPackages()).toEqual([]);
   });
 
   it("reports every red command together", async () => {
@@ -182,26 +241,56 @@ describe("Checks.run", () => {
     });
   });
 
-  it("runs but writes no stamp when a repo has an uncommitted change", async () => {
+  it("checks but doesn't stamp a package with an uncommitted change or its dependents, and stamps the clean packages beside it", async () => {
     writeFileSync(join(root, "packages/utils/README.md"), "# edited\n");
 
     const result = await checks([marking("a")]).run();
 
-    expect(result).toMatchObject({ kind: "passed", isStamped: false });
+    expect(result).toMatchObject({
+      kind: "passed",
+      checked: everyPackage,
+      stamped: ["root", "config"],
+    });
     expect(hasRun("a")).toBe(true);
-    expect(stampCount()).toBe(0);
+    expect(stampedPackages()).toEqual(["root", "config"]);
   });
 
-  it("runs but writes no stamp when a repo has an untracked file", async () => {
+  it("checks a package with an uncommitted change again, though its stamp is there", async () => {
+    await stampEveryPackage();
+    writeFileSync(join(root, "packages/framework/README.md"), "# edited\n");
+
+    const result = await checks([marking("a")]).run();
+
+    expect(result).toMatchObject({
+      kind: "passed",
+      checked: ["framework"],
+      skipped: ["root", "config", "utils"],
+    });
+    expect(hasRun("a")).toBe(true);
+  });
+
+  it("doesn't stamp the root package for an untracked file of its own, and stamps the packages beside it", async () => {
     writeFileSync(join(root, "new.txt"), "new\n");
 
     const result = await checks([marking("a")]).run();
 
-    expect(result).toMatchObject({ kind: "passed", isStamped: false });
-    expect(stampCount()).toBe(0);
+    expect(result).toMatchObject({
+      kind: "passed",
+      stamped: ["config", "utils", "framework"],
+    });
+    expect(stampedPackages()).toEqual(["config", "utils", "framework"]);
   });
 
-  it("writes no stamp when a command changes a tracked file", async () => {
+  it("stamps no package while a shared root file has an uncommitted change", async () => {
+    writeFileSync(join(root, "package.json"), '{ "edited": true }\n');
+
+    const result = await checks([marking("a")]).run();
+
+    expect(result).toMatchObject({ kind: "passed", stamped: [] });
+    expect(stampedPackages()).toEqual([]);
+  });
+
+  it("doesn't stamp the package whose tracked file a command changes", async () => {
     const editing: Command = [
       "sh",
       "-c",
@@ -210,11 +299,14 @@ describe("Checks.run", () => {
 
     const result = await checks([editing]).run();
 
-    expect(result).toMatchObject({ kind: "passed", isStamped: false });
-    expect(stampCount()).toBe(0);
+    expect(result).toMatchObject({
+      kind: "passed",
+      stamped: ["config", "utils", "framework"],
+    });
+    expect(stampedPackages()).toEqual(["config", "utils", "framework"]);
   });
 
-  it("writes no stamp when a commit lands while the commands run", async () => {
+  it("doesn't stamp a package, or its dependents, when a commit lands in it while the commands run", async () => {
     const committing: Command = [
       "sh",
       "-c",
@@ -223,11 +315,14 @@ describe("Checks.run", () => {
 
     const result = await checks([committing]).run();
 
-    expect(result).toMatchObject({ kind: "passed", isStamped: false });
-    expect(stampCount()).toBe(0);
+    expect(result).toMatchObject({
+      kind: "passed",
+      stamped: ["root", "config"],
+    });
+    expect(stampedPackages()).toEqual(["root", "config"]);
   });
 
-  it("runs no command on a matching stamp", async () => {
+  it("runs no command when every package has a matching stamp", async () => {
     await checks([marking("a"), marking("b")]).run();
     clearMarkers("a", "b");
 
@@ -237,49 +332,107 @@ describe("Checks.run", () => {
     expect([hasRun("a"), hasRun("b")]).toEqual([false, false]);
   });
 
-  it("runs every command despite a stamp when fresh, and the pass stamps", async () => {
-    await checks([marking("a")]).run();
-    clearMarkers("a");
+  it("checks every package despite their stamps when fresh, and the pass stamps", async () => {
+    await stampEveryPackage();
 
     const result = await checks([marking("a")]).run({ isFresh: true });
 
-    expect(result).toMatchObject({ kind: "passed", isStamped: true });
+    expect(result).toMatchObject({
+      kind: "passed",
+      checked: everyPackage,
+      skipped: [],
+      stamped: everyPackage,
+    });
     expect(hasRun("a")).toBe(true);
-    expect(stampCount()).toBe(1);
   });
 
-  it("misses the stamp after a commit in any repo", async () => {
-    await checks([marking("a")]).run();
-    commitChange("packages/utils");
-    clearMarkers("a");
+  it("puts back only a clone package and its dependents after a commit in it", async () => {
+    await stampEveryPackage();
+    commitChange("packages/utils/README.md");
 
     const result = await checks([marking("a")]).run();
 
-    expect(result).toMatchObject({ kind: "passed", isStamped: true });
+    expect(result).toMatchObject({
+      kind: "passed",
+      checked: ["utils", "framework"],
+      skipped: ["root", "config"],
+      stamped: ["utils", "framework"],
+    });
     expect(hasRun("a")).toBe(true);
   });
 
-  it("misses the stamp after the lockfile changes", async () => {
-    await checks([marking("a")]).run();
+  it("puts back only the root package after a commit to its own files", async () => {
+    await stampEveryPackage();
+    commitChange("README.md");
+
+    const result = await checks([marking("a")]).run();
+
+    expect(result).toMatchObject({
+      kind: "passed",
+      checked: ["root"],
+      skipped: ["config", "utils", "framework"],
+    });
+  });
+
+  it("puts back a folder package of the root repo and its dependents after a commit in it, but not the root package", async () => {
+    await stampEveryPackage();
+    commitChange("config/README.md");
+
+    const result = await checks([marking("a")]).run();
+
+    expect(result).toMatchObject({
+      kind: "passed",
+      checked: ["config", "utils", "framework"],
+      skipped: ["root"],
+    });
+  });
+
+  it("doesn't stamp a folder package with an uncommitted change, and stamps the root package around it", async () => {
+    writeFileSync(join(root, "config/README.md"), "# edited\n");
+
+    const result = await checks([marking("a")]).run();
+
+    expect(result).toMatchObject({ kind: "passed", stamped: ["root"] });
+    expect(stampedPackages()).toEqual(["root"]);
+  });
+
+  it("puts back every package after a commit to a shared root file", async () => {
+    await stampEveryPackage();
+    commitChange("package.json");
+
+    const result = await checks([marking("a")]).run();
+
+    expect(result).toMatchObject({ kind: "passed", checked: everyPackage });
+  });
+
+  it("puts back every package after the lockfile changes", async () => {
+    await stampEveryPackage();
     writeLockfile("lock 2");
-    clearMarkers("a");
 
     const result = await checks([marking("a")]).run();
 
-    expect(result).toMatchObject({ kind: "passed", isStamped: true });
+    expect(result).toMatchObject({ kind: "passed", checked: everyPackage });
     expect(hasRun("a")).toBe(true);
   });
 
-  it("misses the stamp under another Node version", async () => {
-    await checks([marking("a")]).run();
-    clearMarkers("a");
+  it("puts back every package under another Node version", async () => {
+    await stampEveryPackage();
 
     const result = await checks([marking("a")], {
       nodeVersion: "v24.0.0",
     }).run();
 
-    expect(result).toMatchObject({ kind: "passed", isStamped: true });
+    expect(result).toMatchObject({ kind: "passed", checked: everyPackage });
     expect(hasRun("a")).toBe(true);
+  });
+
+  it("narrows the commands to the packages being checked", async () => {
+    await stampEveryPackage();
+    commitChange("packages/utils/README.md");
+
+    await checks([recordingNarrowing()]).run();
+
+    expect(narrowing()).toBe("utils,framework");
   });
 
   it("times each command of a pass, in command order", async () => {
@@ -307,30 +460,31 @@ describe("Checks.run", () => {
     });
   });
 
-  it("keeps a stamped pass's durations in its stamp", async () => {
+  it("keeps a stamped pass's durations in each package's stamp", async () => {
     const result = await checks([marking("a"), marking("b")]).run();
 
-    expect(stampContents()).toEqual([durationsOf(result)]);
+    expect(stampContentsOf("utils")).toEqual([durationsOf(result)]);
+    expect(stampContentsOf("root")).toEqual([durationsOf(result)]);
   });
 
-  it("reports no durations on a skip and leaves the stamp as it was", async () => {
+  it("reports no durations on a skip and leaves the stamps as they were", async () => {
     await checks([marking("a")]).run();
-    const stamped = stampContents();
+    const stamped = stampContentsOf("framework");
 
     const result = await checks([marking("a")]).run();
 
     expect(result).toEqual({ kind: "skipped" });
-    expect(stampContents()).toEqual(stamped);
+    expect(stampContentsOf("framework")).toEqual(stamped);
   });
 
-  it("makes a second check started at once wait, then skip on the first's stamp", async () => {
+  it("makes a second check started at once wait, then skip on the first's stamps", async () => {
     const results = await Promise.all([
       checks([marking("a")]).run(),
       checks([marking("b")]).run(),
     ]);
 
     expect(results).toEqual([
-      expect.objectContaining({ kind: "passed", isStamped: true }),
+      expect.objectContaining({ kind: "passed", stamped: everyPackage }),
       { kind: "skipped" },
     ]);
     expect(heldPids).toEqual([process.pid]);
@@ -343,7 +497,7 @@ describe("Checks.run", () => {
 
     const result = await checks([marking("a")]).run();
 
-    expect(result).toMatchObject({ kind: "passed", isStamped: true });
+    expect(result).toMatchObject({ kind: "passed", stamped: everyPackage });
     expect(heldPids).toEqual([process.pid]);
   });
 
@@ -352,7 +506,7 @@ describe("Checks.run", () => {
 
     const result = await checks([marking("a")]).run();
 
-    expect(result).toMatchObject({ kind: "passed", isStamped: true });
+    expect(result).toMatchObject({ kind: "passed", stamped: everyPackage });
     expect(heldPids).toEqual([]);
   });
 
@@ -374,6 +528,6 @@ describe("Checks.run", () => {
       waitingFor("right", "left"),
     ]).run();
 
-    expect(result).toMatchObject({ kind: "passed", isStamped: true });
+    expect(result).toMatchObject({ kind: "passed", stamped: everyPackage });
   });
 });
