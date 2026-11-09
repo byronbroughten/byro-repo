@@ -26,7 +26,6 @@ import { deadPid, liveHolder, seedHolder } from "./lockFixture.ts";
 import { type LockHolder, PidLock } from "./PidLock.ts";
 import type { Command } from "./runKnobs.ts";
 
-// The root repo holds the root package and config, a folder of its own; utils and framework are clones of their own.
 // The root package depends on none, so a test can see config carved out of it.
 const packages: CheckedPackage[] = [
   {

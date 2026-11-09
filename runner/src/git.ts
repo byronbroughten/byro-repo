@@ -16,11 +16,24 @@ export async function git(cwd: string, ...args: string[]): Promise<string> {
   return stdout.trim();
 }
 
-// No optional locks, so a status read never holds index.lock against a commit running in that worktree.
 export async function isDirty(worktree: string): Promise<boolean> {
-  return (
-    (await git(worktree, "--no-optional-locks", "status", "--porcelain")) !== ""
+  return hasChangesAt(worktree, []);
+}
+
+// No optional locks, so a status read never holds index.lock against a commit running in that worktree.
+export async function hasChangesAt(
+  worktree: string,
+  pathspecs: string[],
+): Promise<boolean> {
+  const status = await git(
+    worktree,
+    "--no-optional-locks",
+    "status",
+    "--porcelain",
+    "--",
+    ...pathspecs,
   );
+  return status !== "";
 }
 
 export interface WorktreeState {

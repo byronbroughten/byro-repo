@@ -1,6 +1,6 @@
 // Runs the checks for `npm run check` inside the check slot (CheckSlot.ts): every command at once, narrowed to the
 // packages with no check stamp for their committed files, and skipped when every package has one.
-// A package's stamp key hashes its committed files, those of every package it depends on, directly or not, the shared
+// A package's stamp key hashes its committed files (CommittedFiles.ts), those of every package it depends on, directly or not, the shared
 // files, the root lockfile and the Node version; one file per key in the package's stamp folder, written only on a pass
 // with those files clean and holding that pass's per-command durations.
 // SpecRun.ts and WrapUp.ts run whatever commands their checks setting names and know nothing of stamps.
@@ -11,7 +11,11 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative } from "node:path";
 
 import { CheckSlot } from "./CheckSlot.ts";
-import { git } from "./git.ts";
+import {
+  CommittedFiles,
+  type FilesSpec,
+  type FilesState,
+} from "./CommittedFiles.ts";
 import type { LockWait } from "./PidLock.ts";
 import { runCollecting } from "./runCollecting.ts";
 import type { Command } from "./runKnobs.ts";
@@ -55,41 +59,29 @@ export interface CommandDuration {
   ms: number;
 }
 
-interface PackageReport {
+export interface PackageReport {
   checked: string[];
   // Skipped on a stamp.
   skipped: string[];
 }
 
-export type CheckResult =
-  | { kind: "skipped" }
-  | (PackageReport & {
-      kind: "passed";
-      stamped: string[];
-      durations: CommandDuration[];
-    })
-  | (PackageReport & {
-      kind: "failed";
-      failures: CommandFailure[];
-      durations: CommandDuration[];
-    });
+export interface PassedCheck extends PackageReport {
+  kind: "passed";
+  stamped: string[];
+  durations: CommandDuration[];
+}
+
+export interface FailedCheck extends PackageReport {
+  kind: "failed";
+  failures: CommandFailure[];
+  durations: CommandDuration[];
+}
+
+export type CheckResult = { kind: "skipped" } | PassedCheck | FailedCheck;
 
 interface CommandOutcome {
   duration: CommandDuration;
   failure?: CommandFailure;
-}
-
-// A set of committed files: a digest of their HEAD listing, and whether any has a change no stamp could describe.
-interface FilesState {
-  digest: string;
-  isDirty: boolean;
-}
-
-interface FilesSpec {
-  folder: string;
-  includedPaths: string[];
-  // Relative to folder.
-  excludedPaths: string[];
 }
 
 interface PackageState {
@@ -155,11 +147,11 @@ export class Checks {
   private async _stampPaths(): Promise<Map<string, string | undefined>> {
     const { packages, sharedPaths, root, nodeVersion } = this.config;
     const [shared, stateByName] = await Promise.all([
-      filesStateOf({
+      CommittedFiles.init({
         folder: root,
         includedPaths: sharedPaths,
         excludedPaths: [],
-      }),
+      }).state(),
       this._packageStates(),
     ]);
     const keyEnding = [
@@ -183,7 +175,9 @@ export class Checks {
     const states = await Promise.all(
       this.config.packages.map(async (pkg) => ({
         pkg,
-        files: await filesStateOf(filesSpecOf(this.config.root, pkg)),
+        files: await CommittedFiles.init(
+          ownFilesSpecOf(this.config.root, pkg),
+        ).state(),
       })),
     );
     return new Map(states.map((state) => [state.pkg.name, state]));
@@ -212,8 +206,7 @@ function writeStamp(stampPath: string, contents: string): void {
   writeFileSync(stampPath, contents);
 }
 
-// The package's own folder, less the folders of the other packages inside it.
-function filesSpecOf(root: string, pkg: CheckedPackage): FilesSpec {
+function ownFilesSpecOf(root: string, pkg: CheckedPackage): FilesSpec {
   const excludedPaths = pkg.excludedPaths
     .map((path) => relative(pkg.path, path))
     .filter(
@@ -224,63 +217,6 @@ function filesSpecOf(root: string, pkg: CheckedPackage): FilesSpec {
     includedPaths: ["."],
     excludedPaths,
   };
-}
-
-async function filesStateOf(spec: FilesSpec): Promise<FilesState> {
-  if (spec.includedPaths.length === 0) return { digest: "", isDirty: false };
-  const [listing, isDirty] = await Promise.all([
-    committedListingOf(spec),
-    hasChangesIn(spec),
-  ]);
-  return {
-    digest: createHash("sha256").update(listing).digest("hex"),
-    isDirty,
-  };
-}
-
-// ls-tree takes no exclude pathspec, so the excluded folders are filtered out of its listing here.
-async function committedListingOf({
-  folder,
-  includedPaths,
-  excludedPaths,
-}: FilesSpec): Promise<string> {
-  const listing = await git(
-    folder,
-    "ls-tree",
-    "-r",
-    "-z",
-    "HEAD",
-    "--",
-    ...includedPaths,
-  );
-  return listing
-    .split("\0")
-    .filter((entry) => {
-      if (entry === "") return false;
-      const path = entry.slice(entry.indexOf("\t") + 1);
-      return !excludedPaths.some(
-        (excluded) => path === excluded || path.startsWith(`${excluded}/`),
-      );
-    })
-    .join("\n");
-}
-
-// No optional locks, as git.ts's isDirty, so a status read never holds index.lock against a commit running there.
-async function hasChangesIn({
-  folder,
-  includedPaths,
-  excludedPaths,
-}: FilesSpec): Promise<boolean> {
-  const status = await git(
-    folder,
-    "--no-optional-locks",
-    "status",
-    "--porcelain",
-    "--",
-    ...includedPaths,
-    ...excludedPaths.map((path) => `:(exclude)${path}`),
-  );
-  return status !== "";
 }
 
 // The package and every package it depends on, directly or not, sorted by name so the key never depends on list order.

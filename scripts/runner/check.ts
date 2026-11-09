@@ -9,6 +9,8 @@ import { setTimeout as sleep } from "node:timers/promises";
 import {
   Checks,
   type CommandDuration,
+  type PackageReport,
+  type PassedCheck,
 } from "@byronbroughten/spec-runner/Checks";
 import { commandLabelOf } from "@byronbroughten/spec-runner/failureText";
 import type { Command } from "@byronbroughten/spec-runner/runKnobs";
@@ -47,11 +49,11 @@ if (result.kind === "skipped") {
     "Skipped on a check stamp: these committed files already passed.",
   );
 } else if (result.kind === "passed") {
-  console.log(packagesLine(result.checked, result.skipped));
-  console.log(`check passed. ${stampLine(result.checked, result.stamped)}`);
+  console.log(packagesLine(result));
+  console.log(`check passed. ${stampLine(result)}`);
   console.log(timingLine(result.durations));
 } else {
-  console.log(packagesLine(result.checked, result.skipped));
+  console.log(packagesLine(result));
   result.failures.forEach(({ command, output }) =>
     console.error(`\n--- ${commandLabelOf(command)} ---\n${output}`),
   );
@@ -67,15 +69,15 @@ function commandEnvOf(packageNames: string[]): Record<string, string> {
   return { CHECK_PACKAGES: packageNames.join(",") };
 }
 
-function packagesLine(checked: string[], skipped: string[]): string {
+function packagesLine({ checked, skipped }: PackageReport): string {
   const skippedText = skipped.length > 0 ? skipped.join(", ") : "none";
   return `Packages checked: ${checked.join(", ")}. Skipped on a check stamp: ${skippedText}.`;
 }
 
-function stampLine(checked: string[], stamped: string[]): string {
+function stampLine({ checked, stamped }: PassedCheck): string {
   const unstamped = checked.filter((name) => !stamped.includes(name));
   if (unstamped.length === 0) return "Stamped.";
-  return `Not stamped: ${unstamped.join(", ")}; it or a package it depends on has uncommitted or untracked changes.`;
+  return `Not stamped: ${unstamped.join(", ")}; its files, or those of a package it depends on, have uncommitted or untracked changes, or changed while the checks ran.`;
 }
 
 function printWaiting(pid: number | undefined): void {
