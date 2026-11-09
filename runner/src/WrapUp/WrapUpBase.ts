@@ -150,9 +150,7 @@ export class WrapUpBase {
     root: string,
     comparisons: DependencyComparison[],
   ): Promise<void> {
-    if (!(await packageDependencies.isAnyDependencyChanged(comparisons))) {
-      return;
-    }
+    if (!(await packageDependencies.isAnyChanged(comparisons))) return;
     try {
       await this.config.installDependencies?.(root);
     } catch (error) {

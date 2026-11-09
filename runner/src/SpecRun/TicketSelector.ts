@@ -180,11 +180,7 @@ export class TicketSelector extends SpecRunBase {
     );
     const { developer } = this.config;
     for (const halt of posted) {
-      const [first, ...later] = haltReplies.repliesTo({
-        halt,
-        comments,
-        developer,
-      });
+      const [first, ...later] = haltReplies.to({ halt, comments, developer });
       if (first === undefined) continue;
       if (halt.answer === undefined) {
         halt.answer = {

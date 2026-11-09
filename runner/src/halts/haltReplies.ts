@@ -53,7 +53,7 @@ export const haltReplies = {
   },
 
   // The developer's replies opening with the Halt's id since it was last posted, oldest first; never the runner's own comments.
-  repliesTo({ halt, comments, developer }: ReplySearch): IssueComment[] {
+  to({ halt, comments, developer }: ReplySearch): IssueComment[] {
     const postedAt = comments.findLastIndex(
       (comment) =>
         isRunnersComment(comment) && comment.body.includes(haltHeadingOf(halt)),

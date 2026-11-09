@@ -45,7 +45,7 @@ interface ChangedPackageJson extends RangesPair {
 }
 
 export const packageDependencies = {
-  dependencyRangesOf(packageJsonText: string): Map<string, string> {
+  rangesOf(packageJsonText: string): Map<string, string> {
     const manifest = JSON.parse(packageJsonText) as PackageManifest;
     return new Map(
       dependencyFields.flatMap((field) =>
@@ -55,7 +55,7 @@ export const packageDependencies = {
   },
 
   // Names at the branch head and not at its merge base with master; a version change or removal adds nothing.
-  async dependenciesAddedBy({
+  async addedBy({
     repo,
     branch,
     clone,
@@ -69,13 +69,11 @@ export const packageDependencies = {
     );
   },
 
-  addedDependencyLabelOf({ repo, path, name }: AddedDependency): string {
+  addedLabelOf({ repo, path, name }: AddedDependency): string {
     return `${repo} ${path} adds ${name}`;
   },
 
-  async isAnyDependencyChanged(
-    comparisons: DependencyComparison[],
-  ): Promise<boolean> {
+  async isAnyChanged(comparisons: DependencyComparison[]): Promise<boolean> {
     for (const comparison of comparisons) {
       if (await isDependencyChanged(comparison)) return true;
     }
@@ -109,10 +107,10 @@ async function changedPackageJsonsOf({
       .filter(isPackageJsonPath)
       .map(async (path) => ({
         path,
-        before: packageDependencies.dependencyRangesOf(
+        before: packageDependencies.rangesOf(
           await packageJsonTextAt({ clone, rev: from, path }),
         ),
-        after: packageDependencies.dependencyRangesOf(
+        after: packageDependencies.rangesOf(
           await packageJsonTextAt({ clone, rev: to, path }),
         ),
       })),

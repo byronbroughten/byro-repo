@@ -113,7 +113,7 @@ export class BranchLander extends WrapUpBase {
   private async _refuseUnnamedDependencies(landing: Landing): Promise<void> {
     const added = await Promise.all(
       landing.branches.map(({ repo, branch }) =>
-        packageDependencies.dependenciesAddedBy({
+        packageDependencies.addedBy({
           repo,
           branch,
           clone: this._primaryOf(repo),
@@ -127,7 +127,7 @@ export class BranchLander extends WrapUpBase {
     if (refused.length === 0) return;
     throw new WrapUpFailure(
       "new-dependency",
-      `The change adds packages nothing names, so nothing was merged:\n${refused.map(packageDependencies.addedDependencyLabelOf).join("\n")}\n${landing.kind.newDependencyAdvice}`,
+      `The change adds packages nothing names, so nothing was merged:\n${refused.map(packageDependencies.addedLabelOf).join("\n")}\n${landing.kind.newDependencyAdvice}`,
     );
   }
 }
