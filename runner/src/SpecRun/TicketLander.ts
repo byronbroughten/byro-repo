@@ -1,6 +1,7 @@
 // A ticket's landing. It writes the facts file, runs the wrap-up, on a conflict starts a merge of master and
 // resumes the implementer once to resolve it, and posts the ticket's review list, that merge's resolution on it as a Propose `decision`.
-// TicketSequencer.ts calls _check after the resolve step, delegated to TicketLander/TicketChecker.ts, and _land at wrap-up.
+// TicketSequencer.ts calls _check after the resolve step and _land at wrap-up.
+// _check only delegates: a ticket's checks are TicketLander/TicketChecker.ts.
 // It builds its own TicketChecker, ReviewStepper, ReviewListPoster and HaltRaiser; the prompt is ../mergeMasterStep.ts.
 
 import { type WrapUpFacts } from "../FactsFile.ts";

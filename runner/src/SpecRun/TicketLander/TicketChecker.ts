@@ -1,6 +1,8 @@
 // A ticket's checks, run in the workspace until green, resuming whoever made the last commit on red;
-// a red master Stops the run. ../TicketLander.ts delegates its _check here; the prompt is ../../redChecksStep.ts.
+// a red master Stops the run, after the same checks run in a master set.
+// ../TicketLander.ts delegates its _check here, which TicketSequencer.ts calls after the resolve step.
 // It builds its own ReviewStepper and HaltRaiser.
+// The prompt is ../../redChecksStep.ts and each check runs through ../../runCommand.ts.
 
 import { commandLabelOf, messageOf } from "../../failureText.ts";
 import { issueLabelOf } from "../../IssueWorkspaces.ts";
