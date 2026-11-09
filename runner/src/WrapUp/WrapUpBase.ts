@@ -18,7 +18,7 @@ import { sleep } from "../sleep.ts";
 import { WrapUpFailure } from "../WrapUpFailure.ts";
 import {
   type DependencyComparison,
-  isAnyDependencyChanged,
+  packageDependencies,
 } from "./packageDependencies.ts";
 import {
   defaultWrapUpKnobs,
@@ -150,7 +150,7 @@ export class WrapUpBase {
     root: string,
     comparisons: DependencyComparison[],
   ): Promise<void> {
-    if (!(await isAnyDependencyChanged(comparisons))) return;
+    if (!(await packageDependencies.isAnyChanged(comparisons))) return;
     try {
       await this.config.installDependencies?.(root);
     } catch (error) {

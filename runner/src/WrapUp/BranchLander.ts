@@ -7,10 +7,7 @@ import { type Workspace } from "../IssueWorkspaces.ts";
 import { stalePathLabelOf, stalePathsTouchedBy } from "../stalePaths.ts";
 import { WrapUpFailure } from "../WrapUpFailure.ts";
 import { MasterFastForwarder } from "./MasterFastForwarder.ts";
-import {
-  addedDependencyLabelOf,
-  dependenciesAddedBy,
-} from "./packageDependencies.ts";
+import { packageDependencies } from "./packageDependencies.ts";
 import { WorktreeRestorer } from "./WorktreeRestorer.ts";
 import { listedReposOf, WrapUpBase } from "./WrapUpBase.ts";
 import {
@@ -116,7 +113,11 @@ export class BranchLander extends WrapUpBase {
   private async _refuseUnnamedDependencies(landing: Landing): Promise<void> {
     const added = await Promise.all(
       landing.branches.map(({ repo, branch }) =>
-        dependenciesAddedBy({ repo, branch, clone: this._primaryOf(repo) }),
+        packageDependencies.addedBy({
+          repo,
+          branch,
+          clone: this._primaryOf(repo),
+        }),
       ),
     );
     const found = added.flat();
@@ -126,7 +127,7 @@ export class BranchLander extends WrapUpBase {
     if (refused.length === 0) return;
     throw new WrapUpFailure(
       "new-dependency",
-      `The change adds packages nothing names, so nothing was merged:\n${refused.map(addedDependencyLabelOf).join("\n")}\n${landing.kind.newDependencyAdvice}`,
+      `The change adds packages nothing names, so nothing was merged:\n${refused.map(packageDependencies.addedLabelOf).join("\n")}\n${landing.kind.newDependencyAdvice}`,
     );
   }
 }
