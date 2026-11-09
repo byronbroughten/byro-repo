@@ -86,12 +86,17 @@ describe("checkPackagesOf", () => {
 });
 
 describe("sharedRootFiles", () => {
-  it("are the four root files every package's checks read", () => {
+  it("are the root files every package's checks read, and the scripts that narrow them", () => {
     expect(sharedRootFiles).toEqual([
       "package.json",
       "eslint.config.mjs",
       "vitest.config.ts",
       ".prettierignore",
+      "scripts/tsc/tsc.ts",
+      "scripts/lint/lint.ts",
+      "scripts/lint/lintCommands.ts",
+      "scripts/runner/checkPackages.ts",
+      "scripts/runner/check.ts",
     ]);
   });
 });

@@ -25,12 +25,17 @@ interface ReadPackage {
   json: PackageJson;
 }
 
-// A change to one of these puts every package back into checking.
+// A change to one of these puts every package back into checking; the scripts narrow every package's checks, so they count too.
 export const sharedRootFiles = [
   "package.json",
   "eslint.config.mjs",
   "vitest.config.ts",
   ".prettierignore",
+  "scripts/tsc/tsc.ts",
+  "scripts/lint/lint.ts",
+  "scripts/lint/lintCommands.ts",
+  "scripts/runner/checkPackages.ts",
+  "scripts/runner/check.ts",
 ];
 
 export const rootPackageName = "root";
