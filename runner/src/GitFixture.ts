@@ -1,6 +1,5 @@
 import { execFileSync } from "node:child_process";
 import {
-  appendFileSync,
   constants,
   cpSync,
   mkdirSync,
@@ -12,10 +11,6 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-
-// A test repo is thrown away, so it needs no fsync, and automatic maintenance would add a child process to every commit, merge and push.
-const cheapWritesConfig =
-  "[core]\n\tfsync = none\n[gc]\n\tauto = 0\n[maintenance]\n\tauto = false\n[receive]\n\tautogc = false\n";
 
 interface GitFixtureFiles {
   gitignoreOf: (repo: string) => string;
@@ -42,11 +37,9 @@ export class GitFixture {
       const remote = join(template, "remotes", `${repo}.git`);
       mkdirSync(remote, { recursive: true });
       git(remote, "init", "--bare", "-b", "master");
-      appendFileSync(join(remote, "config"), cheapWritesConfig);
       const clone = join(primaryRoot, clonePath);
       mkdirSync(clone, { recursive: true });
       git(clone, "init", "-b", "master");
-      appendFileSync(join(clone, ".git", "config"), cheapWritesConfig);
       git(clone, "config", "user.name", "Test");
       git(clone, "config", "user.email", "test@example.com");
       git(clone, "remote", "add", "origin", remote);

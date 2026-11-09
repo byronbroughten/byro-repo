@@ -40,7 +40,7 @@ const everyClone = {
 };
 // For a file with no test about a second repo: a run's git calls are mostly per clone, so one clone costs fewer of them.
 export const rootCloneOnly: Record<string, string> = { "byro-repo": "." };
-export let clonePaths: Record<string, string> = everyClone;
+export let clonePaths: Record<string, string>;
 
 export const spec: IssueRef = { repo: "byro-repo", number: 213 };
 // Small binaries, not node, since every run spawns them and a node process costs several times as much to start.
@@ -57,7 +57,7 @@ export let usageReader: UsageReader;
 export function useSpecRunHarness(
   clones: Record<string, string> = everyClone,
 ): void {
-  // Each run spawns real git over five repos, which a concurrent npm run check slows past the 5s default.
+  // Each run spawns real git over each clone, which a concurrent npm run check slows past the 5s default.
   vi.setConfig({ testTimeout: 15_000 });
   clonePaths = clones;
   let fixture: GitFixture;
@@ -117,7 +117,11 @@ export function refOf(number: number): IssueRef {
 }
 
 export function primaryOf(repo: keyof typeof everyClone): string {
-  return join(primaryRoot, everyClone[repo]);
+  const clonePath = clonePaths[repo];
+  if (clonePath === undefined) {
+    throw new Error(`This test file's harness has no ${repo} clone.`);
+  }
+  return join(primaryRoot, clonePath);
 }
 
 export function commitRed(clone: string): void {
