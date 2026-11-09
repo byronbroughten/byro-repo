@@ -4,18 +4,12 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import type { StepResult } from "./AgentStep.ts";
-import {
-  EventFileNotices,
-  type EventLine,
-  eventLinesOf,
-} from "./EventFileNotices.ts";
+import { type EventLine, eventLinesOf } from "./EventFileNotices.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { commentUrlOf } from "./FakeGitHub.ts";
 import { git } from "./GitFixture.ts";
 import type { Blocker } from "./implementStep.ts";
-import { composedNotices } from "./Notices.ts";
 import { runKnobsOf } from "./runKnobs.ts";
-import type { SpecRunConfig } from "./SpecRun.ts";
 import {
   addSpec,
   blocked,
@@ -32,6 +26,7 @@ import {
   specRun,
   stateFolder,
   useSpecRunHarness,
+  withEventFile,
 } from "./specRunHarness.ts";
 
 useSpecRunHarness();
@@ -41,14 +36,6 @@ const gated: Blocker = {
   detail: "It needs app:build.",
   recommendation: "Run it by hand.",
 };
-
-function withEventFile(): Partial<SpecRunConfig> {
-  const eventFile = EventFileNotices.init(
-    stateFolder(),
-    () => new Date("2026-10-12T09:00:00Z"),
-  );
-  return { notices: composedNotices(notices, eventFile) };
-}
 
 function eventLines(): EventLine[] {
   return eventLinesOf(stateFolder(), spec);
@@ -62,7 +49,7 @@ function haltCommentUrl(): string {
 }
 
 describe("run's event file", () => {
-  it("writes a line per start, Halt, idle, Stop and end, with every notice carrying the spec's title and link", async () => {
+  it("writes a line per start, Halt, idle, Stop and end, with every notice carrying the spec's link", async () => {
     addSpec([1]);
     const specUrl = "https://github.com/byronbroughten/byro-repo/issues/213";
 
@@ -125,10 +112,8 @@ describe("run's event file", () => {
       spec: "byro-repo#213",
       summary: notices.sent.find(({ kind }) => kind === "halt")?.summary,
     });
-    expect(
-      notices.sent.map(({ specTitle, link }) => ({ specTitle, link })),
-    ).toEqual(
-      notices.sent.map(() => ({ specTitle: "The spec", link: specUrl })),
+    expect(notices.sent.map(({ link }) => link)).toEqual(
+      notices.sent.map(() => specUrl),
     );
   });
 

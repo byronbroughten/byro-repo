@@ -472,7 +472,7 @@ export class RunLoop extends SpecRunBase {
     unfinished: Member[],
     start: RunStart,
   ): Promise<void> {
-    const { reading, launch, isRelaunch } = start;
+    const { reading, launch } = start;
     const warnings = await this._stalePathWarnings();
     for (const member of startedMembersOf(unfinished, start)) {
       const { run } = member;
@@ -487,7 +487,6 @@ export class RunLoop extends SpecRunBase {
         kind: "run-started",
         warnings,
         ...(ticket && { ticket }),
-        ...(isRelaunch && { isRelaunch }),
       });
     }
   }

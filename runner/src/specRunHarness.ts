@@ -27,7 +27,7 @@ import { clonePathIn, git, GitFixture, rootCloneOnly } from "./GitFixture.ts";
 import type { Blocker, Handoff, ImplementRecord } from "./implementStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { UsageList, UsageReader } from "./limitGuard.ts";
-import { composedNotices, type NoticeKind } from "./Notices.ts";
+import type { NoticeKind, Notices } from "./Notices.ts";
 import { stampedLineOf } from "./progressLines.ts";
 import type { ResolveRecord } from "./resolveStep.ts";
 import type { ReviewFinding } from "./reviewStep.ts";
@@ -195,7 +195,7 @@ export function specRun(
     github,
     notices,
     usageReader,
-    clock: { now: () => new Date("2026-10-12T09:00:00Z") },
+    clock: { now: startTime },
     githubOwner: "byronbroughten",
     developer: "byronbroughten",
     primaryRoot,
@@ -443,7 +443,7 @@ function advance(seconds: number): void {
 
 // A clock the fakes move on; each workspace build installs dependencies in 4s.
 export function timed(): Partial<SpecRunConfig> {
-  time = new Date("2026-10-12T09:00:00Z").getTime();
+  time = startTime().getTime();
   return {
     clock: { now: () => new Date(time) },
     async installDependencies() {
@@ -478,8 +478,20 @@ export function runStatePath(number = spec.number): string {
 
 // A config override that also writes the event files a Supervisor watches.
 export function withEventFile(): Partial<SpecRunConfig> {
-  const eventFile = EventFileNotices.init(stateFolder());
+  const eventFile = EventFileNotices.init(stateFolder(), startTime);
   return { notices: composedNotices(notices, eventFile) };
+}
+
+function composedNotices(...adapters: Notices[]): Notices {
+  return {
+    async send(notice) {
+      await Promise.all(adapters.map((adapter) => adapter.send(notice)));
+    },
+  };
+}
+
+function startTime(): Date {
+  return new Date("2026-10-12T09:00:00Z");
 }
 
 export function batchEventLines(members: MemberList): EventLine[] {

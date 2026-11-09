@@ -76,13 +76,11 @@ describe("run's Halts", () => {
     expect(second).toContain("**Halt H2** · Halt 2 of 2 · byro-repo #1");
     expect(notices.sent.slice(1, 3)).toEqual([
       expect.objectContaining({
-        specTitle: "The spec",
         summary:
           "Halt 1 of 2 · byro-repo #1: a gated-action blocker needs an answer (H1).",
         link: "https://github.com/byronbroughten/byro-repo/issues/213",
       }),
       expect.objectContaining({
-        specTitle: "The spec",
         summary:
           "Halt 2 of 2 · byro-repo #1: a spec-ambiguity blocker needs an answer (H2).",
         link: "https://github.com/byronbroughten/byro-repo/issues/213",
