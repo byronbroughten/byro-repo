@@ -66,7 +66,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `outcomeSummary.ts` | `outcomeSummary` | `npm run outcome:summary`'s core: picks spec sections of the outcome log and reports their costs, outliers, transcripts and Model fit for `/mine-outcomes`. |
 | `outcomeSummary/OutcomeReport.ts` | | Words the outcome summary for a batch of sections. |
 | `outcomeSummary/summarySections.ts` | | Reads the outcome log's spec sections from row files and picks the batch. |
-| `PidLock.ts` | | The pid lock file `LandingLock`, `RunLock` and `CheckSlot` extend. |
+| `PidLock.ts` | | The pid lock file `LandingLock`, `RunLock` and `CheckSlot` extend, and the wait `LandingLock` and `CheckSlot` poll through. |
 | `processIdentity.ts` | | A process named by its pid and start time, for leases and supervision records. |
 | `progressLines.ts` | | The progress-log lines, written and parsed in pairs. |
 | `ProgressLog.ts` | | A progress log's lines and what the Run board reads from them: the current ticket, the account and the latest line. |

@@ -9,8 +9,9 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { hostname, tmpdir } from "node:os";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { setTimeout as sleep } from "node:timers/promises";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -20,7 +21,7 @@ import {
   type ChecksConfig,
   type CommandDuration,
 } from "./Checks.ts";
-import { deadPid, seedHolder } from "./lockFixture.ts";
+import { deadPid, liveHolder, seedHolder } from "./lockFixture.ts";
 import { type LockHolder, PidLock } from "./PidLock.ts";
 import type { Command } from "./runKnobs.ts";
 
@@ -58,7 +59,7 @@ function checks(
     clonePaths,
     stateFolder,
     nodeVersion: "v22.0.0",
-    slot: { pollMs: 10, onHeld: (pid) => heldPids.push(pid) },
+    slot: { pollMs: 10, sleep, onHeld: (pid) => heldPids.push(pid) },
     ...overrides,
   });
 }
@@ -145,14 +146,6 @@ function slotPath(): string {
 function seedSlot(holder: Omit<LockHolder, "token">): void {
   mkdirSync(stateFolder, { recursive: true });
   seedHolder(slotPath(), holder);
-}
-
-function liveHolder(): Omit<LockHolder, "token"> {
-  return {
-    pid: process.pid,
-    host: hostname(),
-    startedAt: new Date().toISOString(),
-  };
 }
 
 describe("Checks.run", () => {

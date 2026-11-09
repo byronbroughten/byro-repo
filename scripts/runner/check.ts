@@ -2,6 +2,7 @@
 // It waits for the check slot first, one check per primary root at a time.
 // Usage: npm run check [-- --fresh].
 import { join } from "node:path";
+import { setTimeout as sleep } from "node:timers/promises";
 
 import {
   Checks,
@@ -30,7 +31,7 @@ const result = await Checks.init({
   clonePaths: runKnobs.clonePaths,
   stateFolder,
   nodeVersion: process.version,
-  slot: { pollMs: 1000, onHeld: printWaiting },
+  slot: { pollMs: 1000, sleep, onHeld: printWaiting },
 }).run({ isFresh: args.includes("--fresh") });
 
 if (result.kind === "skipped") {

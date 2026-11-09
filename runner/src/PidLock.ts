@@ -21,6 +21,13 @@ export interface HeldLock {
 
 export type LockAttempt = { kind: "taken"; holder: LockHolder } | HeldLock;
 
+export interface LockWait {
+  pollMs: number;
+  sleep(ms: number): Promise<void>;
+  // Called once, when the first try finds the lock held; the pid is undefined while the holder's file is unreadable.
+  onHeld?(pid: number | undefined): void;
+}
+
 interface Takeover {
   stale: LockHolder;
   taker: LockHolder;
@@ -56,6 +63,21 @@ export class PidLock {
       if (takeOver(path, { stale: current, taker: holder })) {
         return { kind: "taken", holder };
       }
+    }
+  }
+
+  // Polls a live holder with no time limit; LandingLock and CheckSlot wait through it.
+  protected static async takeWhenFree(
+    path: string,
+    { pollMs, sleep, onHeld }: LockWait,
+  ): Promise<LockHolder> {
+    let isWaiting = false;
+    for (;;) {
+      const attempt = PidLock.tryTake(path);
+      if (attempt.kind === "taken") return attempt.holder;
+      if (!isWaiting) onHeld?.(attempt.holder?.pid);
+      isWaiting = true;
+      await sleep(pollMs);
     }
   }
 

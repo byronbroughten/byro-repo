@@ -9,8 +9,9 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { CheckSlot, type CheckSlotOptions } from "./CheckSlot.ts";
+import { CheckSlot } from "./CheckSlot.ts";
 import { git, isDirty } from "./git.ts";
+import type { LockWait } from "./PidLock.ts";
 import { runCollecting } from "./runCollecting.ts";
 import type { Command } from "./runKnobs.ts";
 
@@ -23,7 +24,7 @@ export interface ChecksConfig {
   // The primary's state folder, which holds the check stamps and the check slot.
   stateFolder: string;
   nodeVersion: string;
-  slot: CheckSlotOptions;
+  slot: LockWait;
 }
 
 export interface CheckOptions {
@@ -67,7 +68,7 @@ export class Checks {
 
   // The stamp is read only once the slot is taken, so a check that waited sees the stamp the one ahead of it wrote.
   async run(options: CheckOptions = {}): Promise<CheckResult> {
-    const slot = await CheckSlot.take(
+    const slot = await CheckSlot.acquire(
       this.config.stateFolder,
       this.config.slot,
     );
