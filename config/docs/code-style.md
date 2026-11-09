@@ -94,6 +94,10 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 
 - **A test sits beside what it tests (`Foo.test.ts`).**
 - **Assert the outcome a caller can observe, not the calls made to reach it.** A call count stands only where the count is itself the contract.
+- **A test starts a process only when that process is what it tests.**
+- **A fixture costing more than a few milliseconds is built once per file and copied or reset for each test.**
+- **A test never really waits: time goes through an injected clock or fake timers.**
+- **A test reaches no network and opens no real port.**
 
 ## Tooling
 

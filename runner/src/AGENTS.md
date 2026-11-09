@@ -3,6 +3,8 @@
 - **Which file holds a module: the [Files](#files) table below**, one row per file. Its words are [`GLOSSARY.md`](../GLOSSARY.md)'s.
 - **`SpecRun.ts` only delegates; the `SpecRun/` folder holds one collaborator per concern**, and the table's `SpecRun/` rows name each one's job in one line, so pick the file from there rather than reading `SpecRun/` in ranges.
 - **Test `SpecRun` through `specRunHarness.ts`**; each `SpecRun.<subject>.test.ts` covers one group, so the nearest one is the model for a new test.
+- **Runner tests get real git only through the shared git fixture, `GitFixture.ts`.**
+- **A harness's check command is a shell builtin, never `node -e`**, so the runner's tests keep the speed byro-repo#368 bought.
 
 ## Files
 
