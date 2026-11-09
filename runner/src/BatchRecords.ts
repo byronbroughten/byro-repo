@@ -58,7 +58,9 @@ export class BatchRecords {
   }
 
   batchOf(member: IssueRef): BatchRecord | undefined {
-    return this._records().find(({ members }) => isMemberOf(members, member));
+    return this._records().find(({ members }) =>
+      issueRef.isAmong(member, members),
+    );
   }
 
   // The Batch's members, or the member alone when no Batch holds it.
@@ -94,10 +96,6 @@ export class BatchRecords {
   private _pathOf(lead: IssueRef): string {
     return join(this.folder, `${issueRef.fileStemOf(lead)}.json`);
   }
-}
-
-export function isMemberOf(members: IssueRef[], issue: IssueRef): boolean {
-  return members.some((member) => issueRef.isSame(member, issue));
 }
 
 // Named by its first member, apart from that member's own event file.

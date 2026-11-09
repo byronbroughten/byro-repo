@@ -4,7 +4,7 @@
 // RunLock.ts lists the lock files, BatchRecords.ts finds a member's Batch and SpecRun/runState/statePaths.ts names the run state and progress log paths.
 // SpecRun/SpecRunBase.ts writes both; ProgressLog.ts reads the progress lines, worded where the run writes them.
 
-import { BatchRecords, isMemberOf } from "./BatchRecords.ts";
+import { BatchRecords } from "./BatchRecords.ts";
 import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import { ProgressLog } from "./ProgressLog.ts";
 import { RunLock } from "./RunLock.ts";
@@ -64,7 +64,9 @@ class RunBoard {
     const batchRecords = BatchRecords.init(this.stateFolder);
     return RunLock.specsOf(this.stateFolder).reduce<MemberList[]>(
       (runs, spec) => {
-        const isListed = runs.some((members) => isMemberOf(members, spec));
+        const isListed = runs.some((members) =>
+          issueRef.isAmong(spec, members),
+        );
         if (!isListed) runs.push(batchRecords.membersOf(spec));
         return runs;
       },

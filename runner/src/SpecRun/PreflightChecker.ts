@@ -197,8 +197,7 @@ export class PreflightChecker extends SpecRunBase {
 
 // Filled before preflight only from a taken Restart, so a fresh launch's is empty.
 function isLandedByThisRun(run: Run): boolean {
-  const label = issueRef.labelOf(run.spec.issue);
-  return run.landed.some((landed) => issueRef.labelOf(landed) === label);
+  return issueRef.isAmong(run.spec.issue, run.landed);
 }
 
 function runLockRefusalOf(

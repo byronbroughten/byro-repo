@@ -11,9 +11,13 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 
-import { BatchRecords, isMemberOf } from "./BatchRecords.ts";
+import { BatchRecords } from "./BatchRecords.ts";
 import { eventStreamPathOf, rawLinesAt } from "./EventFileNotices.ts";
-import { type IssueRef, type LeaseHolder } from "./IssueWorkspaces.ts";
+import {
+  type IssueRef,
+  issueRef,
+  type LeaseHolder,
+} from "./IssueWorkspaces.ts";
 import {
   identityOf,
   isSameProcess,
@@ -72,7 +76,7 @@ export class SupervisionRecords {
   ): Promise<SupervisionRecord> {
     const members = this._membersOf(named);
     const overlapping = this._files().filter((file) =>
-      file.members.some((member) => isMemberOf(members, member)),
+      file.members.some((member) => issueRef.isAmong(member, members)),
     );
     const eventFile = this._eventFileOf(members);
     const sameStream = overlapping.filter(
@@ -241,5 +245,5 @@ export function isWatching(
   { members }: SupervisionRecord,
   issue: IssueRef,
 ): boolean {
-  return isMemberOf(members, issue);
+  return issueRef.isAmong(issue, members);
 }
