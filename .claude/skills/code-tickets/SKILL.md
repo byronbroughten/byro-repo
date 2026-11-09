@@ -58,7 +58,17 @@ Give each ticket its **blocking edges**: the other tickets that must complete be
 
 **Wide refactors are the exception to vertical slicing.** A **wide refactor** is one mechanical change (rename a column, retype a shared symbol) whose **blast radius** fans across the whole codebase, so a single edit breaks thousands of call sites at once and no vertical slice can land green. Don't force it into a tracer bullet; sequence it as **expand–contract**. First expand: add the new form beside the old so nothing breaks. Then migrate the call sites over in batches sized by blast radius (per package, per directory), each batch its own ticket blocked by the expand, keeping CI green batch to batch because the old form still exists. Finally contract: delete the old form once no caller remains, in a ticket blocked by every migrate batch. When even the batches can't stay green alone, keep the sequence but let them share an integration branch that all block a final integrate-and-verify ticket; green is promised only there.
 
-### 4. Quiz the user
+### 4. Review the drafts for Halt risks
+
+With 6 or more tickets to publish, a Phase gate counted, draft each ticket's full body in the local-ticket template to `<scratchpad>/tickets/<NN>-<slug>.md`, whatever the tracker. Then read [`.claude/skills/review-code-tickets/SKILL.md`](../review-code-tickets/SKILL.md) and follow it on that folder; it is user-invoked, so the Skill tool can't reach it. Act on its report once, before the developer sees the breakdown:
+
+- **Fixes**: make each, as you judge best, true to the spec.
+- **Interactive splits**: split that part into a `ready-for-interactive` ticket, blocking the work that needs it.
+- **Spec gaps**: hold them for step 5's round.
+
+With fewer than 6 tickets, skip this step; the developer can run `/review-code-tickets` on the published tickets.
+
+### 5. Quiz the user
 
 Present the proposed breakdown as a numbered list. For each ticket, show:
 
@@ -76,17 +86,9 @@ Ask the user:
 - Are the blocking edges correct: does each ticket only depend on tickets that genuinely gate it?
 - Should any tickets be merged or split further?
 
-Iterate until the user approves the breakdown.
+Put any spec gaps from step 4 after the list, as one round in the [`grilling`](../grilling/SKILL.md) format, then apply the answers. When an answer settles what the spec should have said, add a line saying so to the spec's body.
 
-### 5. Review the drafts for Halt risks
-
-With 6 or more tickets to publish, a Phase gate counted, draft each ticket's full body in the local-ticket template to `<scratchpad>/tickets/<NN>-<slug>.md`, whatever the tracker. Then read [`.claude/skills/review-tickets/SKILL.md`](../review-tickets/SKILL.md) and follow it on that folder; it is user-invoked, so the Skill tool can't reach it. Act on its report once:
-
-- **Fixes**: make each, as you judge best, true to the spec.
-- **Spec gaps**: put them to the developer as one round in the [`grilling`](../grilling/SKILL.md) format before editing anything, then apply the answers. When an answer settles what the spec should have said, add a line saying so to the spec's body.
-- **Interactive splits**: split that part into a `ready-for-interactive` ticket, blocking the work that needs it.
-
-Publish from the drafts as they stand. With fewer than 6 tickets, skip this step; the developer can run `/review-tickets` on the published tickets.
+Iterate until the user approves the breakdown. Step 4's review runs once: carry the developer's changes into the drafts, where there are drafts, and publish them as they stand.
 
 ### 6. Publish the tickets to the configured tracker
 

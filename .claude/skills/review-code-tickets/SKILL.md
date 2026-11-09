@@ -1,6 +1,6 @@
 ---
-name: review-tickets
-description: "Find a code spec's Halt risks before a run: a reader that never wrote the tickets checks every one against the spec, the step permissions and the order, and reports each risk with quoted evidence and a fix or a spec-gap question. Takes /code-tickets' drafts or a spec's published sub-issues, as /review-tickets <repo> <n>."
+name: review-code-tickets
+description: "Find a code spec's Halt risks before a run: a reader that never wrote the tickets checks every one against the spec, the step permissions and the order, and reports each risk with quoted evidence and a fix or a spec-gap question. Takes /code-tickets' drafts or a spec's published sub-issues, as /review-code-tickets <repo> <n>."
 disable-model-invocation: true
 ---
 
@@ -13,7 +13,7 @@ The review reports and never edits. Inside `/code-tickets` the writer acts on th
 The input is one of:
 
 - **Drafts**: the scratchpad folder of ticket files `/code-tickets` hands over, one per ticket in the local-ticket template, with the spec's repo and number.
-- **A published spec**: `/review-tickets <repo> <n>`. Read the spec with `npm run issue:read -- <repo> <n> --body --comments`, which also lists its sub-issues; read each sub-issue with `npm run issue:read -- <its repo> <m> --body --comments`. Read the edges, and what has landed or started, from `npm run runner -- status <owner/repo> <n>`: its `Landed`, `Current` and `Waiting` lines.
+- **A published spec**: `/review-code-tickets <repo> <n>`. Read the spec with `npm run issue:read -- <repo> <n> --body --comments`, which also lists its sub-issues; read each sub-issue with `npm run issue:read -- <its repo> <m> --body --comments`. Read the edges, and what has landed or started, from `npm run runner -- status <owner/repo> <n>`: its `Landed`, `Current` and `Waiting` lines.
 
 A ticket that has landed or is current is **report-only**: its risks are reported, and no fix is offered for it.
 
