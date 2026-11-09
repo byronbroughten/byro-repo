@@ -141,7 +141,7 @@ function commandArgs(
     "--json-schema",
     JSON.stringify(request.jsonSchema),
     "--settings",
-    JSON.stringify(settingsOf(request.gateRoot, permissionHook)),
+    JSON.stringify(settingsOf(request, permissionHook)),
   ];
   if (request.resumeSessionId) args.push("--resume", request.resumeSessionId);
   const targetTools = toolsOf(request.targets);
@@ -156,14 +156,15 @@ export interface HookEntry {
 
 export interface ProjectSettings {
   hooks?: Record<string, HookEntry[]>;
+  sandbox?: { filesystem?: { allowRead?: string[] } };
 }
 
 // The primary's project settings, layered on the workspace's own: identical hook commands dedupe, so a workspace edit can't drop a primary gate.
 function settingsOf(
-  gateRoot: string,
+  { gateRoot, cwd }: StepRequest,
   permissionHook: HookEntry | undefined,
 ): ProjectSettings {
-  const primary = primarySettingsOf(gateRoot);
+  const primary = withAbsoluteAllowRead(primarySettingsOf(gateRoot), cwd);
   if (permissionHook === undefined) return primary;
   return {
     ...primary,
@@ -181,6 +182,27 @@ function primarySettingsOf(gateRoot: string): ProjectSettings {
   return JSON.parse(
     readFileSync(join(gateRoot, ".claude", "settings.json"), "utf8"),
   ) as ProjectSettings;
+}
+
+// A step's sandbox listed a `./` allowRead from `--settings` under /tmp/claude-501, not its workspace (H1 on #611), so tsc couldn't read the paths it re-opens.
+function withAbsoluteAllowRead(
+  settings: ProjectSettings,
+  cwd: string,
+): ProjectSettings {
+  const filesystem = settings.sandbox?.filesystem;
+  if (filesystem?.allowRead === undefined) return settings;
+  return {
+    ...settings,
+    sandbox: {
+      ...settings.sandbox,
+      filesystem: {
+        ...filesystem,
+        allowRead: filesystem.allowRead.map((path) =>
+          path.startsWith("./") ? join(cwd, path) : path,
+        ),
+      },
+    },
+  };
 }
 
 // A ticket with no targets gets no Google access at all.

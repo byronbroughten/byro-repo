@@ -30,6 +30,13 @@ const primaryPermissionHook = {
 };
 const primarySettings = {
   permissions: { deny: ["Edit(**/.env*)"] },
+  sandbox: {
+    enabled: true,
+    filesystem: {
+      allowWrite: ["./kept-relative"],
+      allowRead: ["./packages/*/generated/big.ts", "~/shared/notes.ts"],
+    },
+  },
   hooks: {
     PreToolUse: [{ matcher: "Bash", hooks: [gateHook] }],
     PermissionRequest: [{ matcher: "Bash", hooks: [primaryPermissionHook] }],
@@ -177,6 +184,20 @@ describe("ClaudeAgentStep's command", () => {
       { matcher: "Bash", hooks: [primaryPermissionHook] },
       permissionHook,
     ]);
+  });
+
+  it("makes the primary's relative allowRead paths absolute under the step's folder, leaving the rest of the sandbox block alone", async () => {
+    const { argv, cwd } = await replay("success.ndjson");
+    expect(passedSettingsOf(argv).sandbox).toEqual({
+      enabled: true,
+      filesystem: {
+        allowWrite: ["./kept-relative"],
+        allowRead: [
+          join(cwd, "packages/*/generated/big.ts"),
+          "~/shared/notes.ts",
+        ],
+      },
+    });
   });
 
   it("launches the step with the runner-step mark in its environment", async () => {
