@@ -29,7 +29,7 @@
 - **A Phase is not a tracer bullet**: a tracer bullet is one verifiable slice, and a Phase is usually several that together can be used in real work.
 - **Phase 1 is the smallest usable Phase**, and the spec names the stand-ins it runs on until a later Phase replaces them.
 - **A phased spec has a `## Phases` section**: one line per Phase with its user story numbers and a status, `planned`, `ticketed`, `done` or `dropped`, a dropped one linking the gate that dropped it. Every Phase after the next is an outline marked provisional.
-- **Only the next Phase is ticketed, by `/code-tickets`, which also writes and closes each Phase gate**, the developer's `ready-for-human` go, reshape or drop ticket ending every Phase but the last: its [publish step](../../.claude/skills/code-tickets/SKILL.md#5-publish-the-tickets-to-the-configured-tracker), the gate template after that step's list, and [From a Phase gate](../../.claude/skills/code-tickets/SKILL.md#from-a-phase-gate).
+- **Only the next Phase is ticketed, by `/code-tickets`, which also writes and closes each Phase gate**, the developer's `ready-for-human` go, reshape or drop ticket ending every Phase but the last: its [publish step](../../.claude/skills/code-tickets/SKILL.md#6-publish-the-tickets-to-the-configured-tracker), the gate template after that step's list, and [From a Phase gate](../../.claude/skills/code-tickets/SKILL.md#from-a-phase-gate).
 
 ## Ticket size
 
@@ -41,12 +41,13 @@
 - **Split a ticket that changes more than ~10 files**, and any other over-budget ticket, at a seam where each piece leaves `tsc` and tests green; each split pays the fixed overhead again. A bigger pair never fixes size ([`model-fit.md`](./model-fit.md#ticket-size)).
 - **A rename or retype across more than ~10 files is a wide refactor**: sequence it expand–migrate–contract as `/code-tickets` describes, with a pure rename as its own mechanical ticket.
 - **Make each ticket self-contained**: quote the spec rules it depends on, name the symbols it touches, and tell the implementer to open the parent spec only when a criterion is ambiguous. No file paths, per the skill.
+- **Leave the implementer every choice the code, the design docs and the code style settle; a ticket must settle only what would otherwise be a contradiction, an undefined term or a case its own rule leaves open**, since the implement step carries on with the reading the ticket best supports and halts only on those.
 - **An over-budget ticket with no green seam becomes two tickets**: an explore ticket (research or diagnosis) whose deliverable is a written finding posted on the implement ticket, and the implement ticket, blocked by it.
 
 ## Model fit
 
 - **The pair lives in the ticket: a `## Model fit` section, last in the body, holding a pair line, then a one-line reason**, with `~NK` in the reason only for a ticket near its budget.
-- **`/code-tickets` and `/code-spec` write the section**, each by its own rule: [which tickets, and the read-back](../../.claude/skills/code-tickets/SKILL.md#6-read-back-the-model-fit), and [which specs](../../.claude/skills/code-spec/SKILL.md), in the paragraph after its spec template.
+- **`/code-tickets` and `/code-spec` write the section**, each by its own rule: [which tickets, and the read-back](../../.claude/skills/code-tickets/SKILL.md#7-read-back-the-model-fit), and [which specs](../../.claude/skills/code-spec/SKILL.md), in the paragraph after its spec template.
 - **`/piece-tickets` and `/piece-spec` stay chat only**: a read-back list like `/code-tickets`' or one chat line, never in a ticket, comment or parent issue, with `/piece-tickets` as the recommendation for a spec too big for one session.
 - **The developer switches with `/model` and `/effort`**; never dispatch an implementer.
 - **A Model fit check compares the model only**: the agent can't see `/effort`, so it names an effort only when the developer has said what it is.
