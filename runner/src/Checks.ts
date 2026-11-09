@@ -1,26 +1,44 @@
-// Runs the checks for `npm run check` inside the check slot (CheckSlot.ts): every command at once, skipped on a check
-// stamp for the same committed files.
-// A stamp's key hashes each repo's committed tree, the root lockfile and the Node version; one file per key in the
-// stamp folder, written only on a pass with every repo clean and holding that pass's per-command durations.
+// Runs the checks for `npm run check` inside the check slot (CheckSlot.ts): every command at once, narrowed to the
+// packages with no check stamp for their committed files, and skipped when every package has one.
+// A package's stamp key hashes its committed files (CommittedFiles.ts), those of every package it depends on, directly or not, the shared
+// files, the root lockfile and the Node version; one file per key in the package's stamp folder, written only on a pass
+// with those files clean and holding that pass's per-command durations.
 // SpecRun.ts and WrapUp.ts run whatever commands their checks setting names and know nothing of stamps.
-// scripts/runner/check.ts names the commands and prints the result; the label a failure is listed under comes from
-// failureText.ts.
+// scripts/runner/check.ts names the commands and packages and prints the result; failureText.ts labels a failure.
+import type { SpawnOptions } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, isAbsolute, join, relative } from "node:path";
 
 import { CheckSlot } from "./CheckSlot.ts";
-import { git, isDirty } from "./git.ts";
+import {
+  CommittedFiles,
+  type FilesSpec,
+  type FilesState,
+} from "./CommittedFiles.ts";
 import type { LockWait } from "./PidLock.ts";
 import { runCollecting } from "./runCollecting.ts";
 import type { Command } from "./runKnobs.ts";
+
+export interface CheckedPackage {
+  name: string;
+  // Relative to the root, as excludedPaths are; a folder of a repo or a whole clone.
+  path: string;
+  // Folders inside path that hold other packages, left out of this package's files.
+  excludedPaths: string[];
+  // The names of the packages it depends on.
+  dependencies: string[];
+}
 
 export interface ChecksConfig {
   commands: Command[];
   // The checkout the commands run in; its package-lock.json is the root lockfile.
   root: string;
-  // Repo name to its clone's path relative to root; the root repo's is ".".
-  clonePaths: Record<string, string>;
+  packages: CheckedPackage[];
+  // Files every package's checks read, relative to the root; a change to one puts every package back.
+  sharedPaths: string[];
+  // The environment that narrows the commands to the packages named.
+  commandEnvOf: (packageNames: string[]) => Record<string, string>;
   // The primary's state folder, which holds the check stamps and the check slot.
   stateFolder: string;
   nodeVersion: string;
@@ -41,18 +59,34 @@ export interface CommandDuration {
   ms: number;
 }
 
-export type CheckResult =
-  | { kind: "skipped" }
-  | { kind: "passed"; isStamped: boolean; durations: CommandDuration[] }
-  | {
-      kind: "failed";
-      failures: CommandFailure[];
-      durations: CommandDuration[];
-    };
+export interface PackageReport {
+  checked: string[];
+  // Skipped on a stamp.
+  skipped: string[];
+}
+
+export interface PassedCheck extends PackageReport {
+  kind: "passed";
+  stamped: string[];
+  durations: CommandDuration[];
+}
+
+export interface FailedCheck extends PackageReport {
+  kind: "failed";
+  failures: CommandFailure[];
+  durations: CommandDuration[];
+}
+
+export type CheckResult = { kind: "skipped" } | PassedCheck | FailedCheck;
 
 interface CommandOutcome {
   duration: CommandDuration;
   failure?: CommandFailure;
+}
+
+interface PackageState {
+  pkg: CheckedPackage;
+  files: FilesState;
 }
 
 export class Checks {
@@ -66,7 +100,7 @@ export class Checks {
     return new Checks(config);
   }
 
-  // The stamp is read only once the slot is taken, so a check that waited sees the stamp the one ahead of it wrote.
+  // The stamps are read only once the slot is taken, so a check that waited sees the stamps the one ahead of it wrote.
   async run(options: CheckOptions = {}): Promise<CheckResult> {
     const slot = await CheckSlot.acquire(
       this.config.stateFolder,
@@ -80,66 +114,144 @@ export class Checks {
   }
 
   private async _runInSlot(options: CheckOptions): Promise<CheckResult> {
-    const before = await this._stampPath();
-    if (before !== undefined && !options.isFresh && existsSync(before)) {
-      return { kind: "skipped" };
-    }
-    const outcomes = await this._outcomes();
+    const before = await this._stampPaths();
+    const names = this.config.packages.map(({ name }) => name);
+    const checked = names.filter(
+      (name) => options.isFresh || !isStampedAt(before.get(name)),
+    );
+    if (checked.length === 0) return { kind: "skipped" };
+    const skipped = names.filter((name) => !checked.includes(name));
+    const outcomes = await this._outcomes(checked);
     const durations = outcomes.map(({ duration }) => duration);
     const failures = outcomes.flatMap(({ failure }) =>
       failure ? [failure] : [],
     );
-    if (failures.length > 0) return { kind: "failed", failures, durations };
-    // Read again: a check, or the operator, may have changed the files while the commands ran.
-    const after = await this._stampPath();
-    if (before === undefined || after !== before) {
-      return { kind: "passed", isStamped: false, durations };
+    if (failures.length > 0) {
+      return { kind: "failed", checked, skipped, failures, durations };
     }
-    mkdirSync(this._stampFolder, { recursive: true });
-    writeFileSync(before, JSON.stringify(durations));
-    return { kind: "passed", isStamped: true, durations };
+    // Read again: a check, or the operator, may have changed the files while the commands ran.
+    const after = await this._stampPaths();
+    const stamps = checked.flatMap((name) => {
+      const stampPath = before.get(name);
+      if (stampPath === undefined || after.get(name) !== stampPath) return [];
+      return [{ name, stampPath }];
+    });
+    stamps.forEach(({ stampPath }) =>
+      writeStamp(stampPath, JSON.stringify(durations)),
+    );
+    const stamped = stamps.map(({ name }) => name);
+    return { kind: "passed", checked, skipped, stamped, durations };
   }
 
-  // Undefined while any repo has a change no stamp could describe.
-  private async _stampPath(): Promise<string | undefined> {
-    if (await this._hasDirtyRepo()) return undefined;
-    return join(this._stampFolder, await this._stampKey());
+  // Each package's stamp path; undefined while it or a package it depends on has a change no stamp could describe.
+  private async _stampPaths(): Promise<Map<string, string | undefined>> {
+    const { packages, sharedPaths, root, nodeVersion } = this.config;
+    const [shared, stateByName] = await Promise.all([
+      CommittedFiles.init({
+        folder: root,
+        includedPaths: sharedPaths,
+        excludedPaths: [],
+      }).state(),
+      this._packageStates(),
+    ]);
+    const keyEnding = [
+      `shared ${shared.digest}\n`,
+      lockfileOf(root),
+      `\n${nodeVersion}`,
+    ];
+    return new Map(
+      packages.map(({ name }) => {
+        const closure = dependencyClosureOf(name, stateByName);
+        if (shared.isDirty || closure.some(({ files }) => files.isDirty)) {
+          return [name, undefined];
+        }
+        const key = stampKeyOf(closure, keyEnding);
+        return [name, join(this._stampFolder, name, key)];
+      }),
+    );
+  }
+
+  private async _packageStates(): Promise<Map<string, PackageState>> {
+    const states = await Promise.all(
+      this.config.packages.map(async (pkg) => ({
+        pkg,
+        files: await CommittedFiles.init(
+          ownFilesSpecOf(this.config.root, pkg),
+        ).state(),
+      })),
+    );
+    return new Map(states.map((state) => [state.pkg.name, state]));
   }
 
   private get _stampFolder(): string {
     return join(this.config.stateFolder, "check-stamps");
   }
 
-  private async _hasDirtyRepo(): Promise<boolean> {
-    const dirty = await Promise.all(this._repoPaths.map(isDirty));
-    return dirty.includes(true);
-  }
-
-  private async _stampKey(): Promise<string> {
-    const trees = await Promise.all(
-      this._repoPaths.map((path) => git(path, "rev-parse", "HEAD^{tree}")),
-    );
-    const hash = createHash("sha256");
-    trees.forEach((tree) => hash.update(`${tree}\n`));
-    hash.update(lockfileOf(this.config.root));
-    hash.update(`\n${this.config.nodeVersion}`);
-    return hash.digest("hex");
-  }
-
-  // Sorted by repo name, so the key never depends on the config's key order.
-  private get _repoPaths(): string[] {
-    return Object.entries(this.config.clonePaths)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([, clonePath]) => join(this.config.root, clonePath));
-  }
-
-  private _outcomes(): Promise<CommandOutcome[]> {
+  private _outcomes(packageNames: string[]): Promise<CommandOutcome[]> {
+    const env = { ...process.env, ...this.config.commandEnvOf(packageNames) };
     return Promise.all(
       this.config.commands.map((command) =>
-        outcomeOf(command, this.config.root),
+        outcomeOf(command, { cwd: this.config.root, env }),
       ),
     );
   }
+}
+
+function isStampedAt(stampPath: string | undefined): boolean {
+  return stampPath !== undefined && existsSync(stampPath);
+}
+
+function writeStamp(stampPath: string, contents: string): void {
+  mkdirSync(dirname(stampPath), { recursive: true });
+  writeFileSync(stampPath, contents);
+}
+
+function ownFilesSpecOf(root: string, pkg: CheckedPackage): FilesSpec {
+  const excludedPaths = pkg.excludedPaths
+    .map((path) => relative(pkg.path, path))
+    .filter(
+      (path) => path !== "" && !path.startsWith("..") && !isAbsolute(path),
+    );
+  return {
+    folder: join(root, pkg.path),
+    includedPaths: ["."],
+    excludedPaths,
+  };
+}
+
+// The package and every package it depends on, directly or not, sorted by name so the key never depends on list order.
+function dependencyClosureOf(
+  name: string,
+  stateByName: Map<string, PackageState>,
+): PackageState[] {
+  const reached = new Map<string, PackageState>();
+  const pending = [name];
+  for (let next = pending.pop(); next !== undefined; next = pending.pop()) {
+    if (reached.has(next)) continue;
+    const state = stateByName.get(next);
+    if (state === undefined) {
+      throw new Error(
+        `A package depends on ${next}, which is no checked package.`,
+      );
+    }
+    reached.set(next, state);
+    pending.push(...state.pkg.dependencies);
+  }
+  return [...reached.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([, state]) => state);
+}
+
+function stampKeyOf(
+  closure: PackageState[],
+  keyEnding: (Buffer | string)[],
+): string {
+  const hash = createHash("sha256");
+  closure.forEach(({ pkg, files }) =>
+    hash.update(`${pkg.name} ${files.digest}\n`),
+  );
+  keyEnding.forEach((part) => hash.update(part));
+  return hash.digest("hex");
 }
 
 // The lockfile is gitignored, so its bytes go into the key directly; a missing one hashes as a marker.
@@ -150,11 +262,11 @@ function lockfileOf(root: string): Buffer | string {
 
 async function outcomeOf(
   command: Command,
-  cwd: string,
+  options: SpawnOptions,
 ): Promise<CommandOutcome> {
   const [file, ...args] = command;
   const start = performance.now();
-  const { isOk, output } = await runCollecting(file, args, { cwd });
+  const { isOk, output } = await runCollecting(file, args, options);
   const duration = { command, ms: Math.round(performance.now() - start) };
   if (isOk) return { duration };
   return { duration, failure: { command, output } };

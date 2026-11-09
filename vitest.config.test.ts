@@ -2,11 +2,19 @@ import { globSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { describe, expect, it } from "vitest";
-
-import vitestConfig from "./vitest.config.ts";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import type { ViteUserConfig } from "vitest/config";
 
 const repoRoot = fileURLToPath(new URL(".", import.meta.url));
+
+let vitestConfig: ViteUserConfig;
+
+// A narrowed check passes CHECK_PACKAGES to this run, and the config would narrow its projects to it on load.
+beforeAll(async () => {
+  vi.stubEnv("CHECK_PACKAGES", "");
+  vitestConfig = (await import("./vitest.config.ts")).default;
+  vi.unstubAllEnvs();
+});
 
 describe("the root vitest projects", () => {
   // A test no project includes never runs, and npm test still passes.
