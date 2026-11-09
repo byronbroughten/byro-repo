@@ -87,6 +87,10 @@ _Avoid_: error, crash
 **Split Halt**:
 A Halt raised in place of a fresh implement step when a handoff proposes splitting the ticket, carrying the proposed slices. The developer splits the ticket, then answers `continue`. It is not a Failure Halt, so the stuck detector ignores it.
 
+**Halt risk**:
+A line in a ticket, or a gap in a spec's ticket order, that would make a run Halt, found by reading the tickets before the run.
+_Avoid_: blocker, finding
+
 **Stop**:
 The run ends early: on a failure no answer can fix inside the run (GitHub or `claude` unreachable or logged out, a clone missing or dirty, a red master, the account a step would run on past its weekly reserve, or a runner exception), or after the current ticket on a stop request (`npm run runner -- stop`) or a `stop spec` answer, which leaves a halted ticket committed and unlanded with its other Halts open. Rerunning resumes it, taking a `stop spec` answer as `retry`.
 _Avoid_: abort, exit, kill
