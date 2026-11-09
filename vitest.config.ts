@@ -41,7 +41,7 @@ function utilsProjects(): TestProjectConfiguration[] {
   return existsSync(new URL(utilsConfig, import.meta.url)) ? [utilsConfig] : [];
 }
 
-function toolingProject(
+function zonePinnedProject(
   name: string,
   include: string[],
 ): TestProjectConfiguration {
@@ -57,15 +57,15 @@ async function projectsByPackage(): Promise<
 > {
   return {
     root: [
-      toolingProject("root", [
+      zonePinnedProject("root", [
         "*.test.ts",
         ".claude/hooks/**/*.test.ts",
         ".claude/skills/**/*.test.ts",
         "scripts/**/*.test.ts",
       ]),
     ],
-    config: [toolingProject("config", ["config/**/*.test.ts"])],
-    runner: [toolingProject("runner", ["runner/**/*.test.ts"])],
+    config: [zonePinnedProject("config", ["config/**/*.test.ts"])],
+    runner: [zonePinnedProject("runner", ["runner/**/*.test.ts"])],
     utils: utilsProjects(),
     framework: await frameworkProjects(),
     "real-estate": [

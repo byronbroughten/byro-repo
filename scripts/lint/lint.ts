@@ -2,6 +2,7 @@
 // CHECK_PACKAGES narrows it to the files of the packages it names (scripts/runner/checkPackages.ts).
 import {
   checkPackagesOf,
+  packageNamesOf,
   selectedPackagesOf,
 } from "../runner/checkPackages.ts";
 import {
@@ -13,17 +14,17 @@ import {
   repoRoot,
 } from "./lintCommands.ts";
 
-const failed = failedCommandsOf(commandsOf(process.env.CHECK_PACKAGES ?? ""));
+const failed = failedCommandsOf(commandsOf(process.env.CHECK_PACKAGES));
 if (failed.length > 0) {
   console.error(`\nlint failed: ${failed.map(commandLabelOf).join("; ")}`);
   process.exitCode = 1;
 }
 
-function commandsOf(packageNames: string): Command[] {
-  if (packageNames.trim() === "") return everyLintCommand();
+function commandsOf(packageNamesText: string | undefined): Command[] {
+  if (packageNamesOf(packageNamesText).length === 0) return everyLintCommand();
   const packages = checkPackagesOf(repoRoot);
   return packageLintCommandsOf(
-    selectedPackagesOf(packages, packageNames),
+    selectedPackagesOf(packages, packageNamesText),
     packages,
   );
 }

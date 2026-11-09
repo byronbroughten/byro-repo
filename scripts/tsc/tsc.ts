@@ -11,7 +11,7 @@ import {
 import {
   type CheckPackage,
   checkPackagesOf,
-  rootPackageName,
+  isRootPackage,
   selectedPackagesOf,
 } from "../runner/checkPackages.ts";
 
@@ -42,10 +42,10 @@ if (failed.length > 0) {
 }
 
 // The root's own tsc script is this file, so its program is named here.
-function programsOf({ name, path, scripts }: CheckPackage): Program[] {
-  const cwd = join(root, path);
-  if (name === rootPackageName) return [{ cwd, command: "tsc -p ." }];
-  return (scripts.tsc ?? "")
+function programsOf(pkg: CheckPackage): Program[] {
+  const cwd = join(root, pkg.path);
+  if (isRootPackage(pkg)) return [{ cwd, command: "tsc -p ." }];
+  return (pkg.scripts.tsc ?? "")
     .split("&&")
     .map((command) => command.trim())
     .filter((command) => command !== "")

@@ -2,7 +2,7 @@
 import { spawnSync } from "node:child_process";
 import { basename, join, relative } from "node:path";
 
-import { type CheckPackage, rootPackageName } from "../runner/checkPackages.ts";
+import { type CheckPackage, isRootPackage } from "../runner/checkPackages.ts";
 
 export type Command = [string, ...string[]];
 
@@ -31,17 +31,18 @@ export function packageLintCommandsOf(
   selected: CheckPackage[],
   packages: CheckPackage[],
 ): Command[] {
-  const others = selected.filter((pkg) => pkg.name !== rootPackageName);
-  const hasRoot = others.length < selected.length;
-  const eslintPaths = hasRoot
-    ? [".", ...unselectedOf(selected, packages).flatMap(eslintIgnoreOf)]
-    : others.map(({ path }) => path);
+  const root = selected.find(isRootPackage);
+  const others = selected.filter((pkg) => !isRootPackage(pkg));
+  const eslintPaths =
+    root === undefined
+      ? others.map(({ path }) => path)
+      : [".", ...unselectedOf(selected, packages).flatMap(eslintIgnoreOf)];
   return [
     eslintOf(["--no-error-on-unmatched-pattern", ...eslintPaths]),
     ...selected
       .filter(({ scripts }) => scripts["lint:docs"] !== undefined)
       .map(lintDocsOf),
-    ...(hasRoot ? [rootPrettierCheckOf(packages)] : []),
+    ...(root === undefined ? [] : [rootPrettierCheckOf(root)]),
     ...others.map(packagePrettierCheckOf),
   ];
 }
@@ -85,16 +86,14 @@ function eslintIgnoreOf({ path }: CheckPackage): string[] {
   return ["--ignore-pattern", `${path}/`];
 }
 
-function lintDocsOf({ name, path }: CheckPackage): Command {
+function lintDocsOf(pkg: CheckPackage): Command {
   const command: Command = ["npm", "run", "-s", "lint:docs"];
-  return name === rootPackageName ? command : [...command, "-w", path];
+  return isRootPackage(pkg) ? command : [...command, "-w", pkg.path];
 }
 
 // The root's own files under its .gitignore, as format:check reads them; every other package is carved out.
-function rootPrettierCheckOf(packages: CheckPackage[]): Command {
-  const carvedOut = packages
-    .filter(({ name }) => name !== rootPackageName)
-    .map(({ path }) => `!${path}/**`);
+function rootPrettierCheckOf({ excludedPaths }: CheckPackage): Command {
+  const carvedOut = excludedPaths.map((path) => `!${path}/**`);
   return [binOf("prettier"), "--check", "--ignore-unknown", ".", ...carvedOut];
 }
 

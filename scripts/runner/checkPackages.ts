@@ -1,6 +1,4 @@
-// byro-repo's packages for its checks: the root plus each npm workspace, read from their package.json files.
-// The root package is the root repo's files outside every other package; dependencies come from package.json alone.
-// `npm run tsc`, `npm test` and `npm run lint` narrow to the packages CHECK_PACKAGES names; the generic Checks never sees this list.
+// byro-repo's packages for its checks, read from package.json files; the generic Checks never sees this list.
 import { existsSync, globSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 
@@ -49,16 +47,17 @@ export function checkPackagesOf(root: string): CheckPackage[] {
         json: packageJsonOf(join(root, path)),
       })),
   );
-  const read: ReadPackage[] = [
+  const readPackages: ReadPackage[] = [
     { name: rootPackageName, path: ".", json: rootJson },
     ...workspaces,
   ];
   const nameByNpmName = new Map(
     workspaces.map(({ name, json }) => [json.name, name]),
   );
-  return read.map(({ name, path, json }) => ({
+  return readPackages.map(({ name, path, json }) => ({
     name,
     path,
+    // The root package is the root repo's files outside every other package.
     excludedPaths:
       name === rootPackageName ? workspaces.map((pkg) => pkg.path) : [],
     dependencies: dependencyNamesOf(json, nameByNpmName),
@@ -66,15 +65,24 @@ export function checkPackagesOf(root: string): CheckPackage[] {
   }));
 }
 
-// The packages a comma-separated CHECK_PACKAGES value names, or every package when it names none.
-export function selectedPackagesOf(
-  packages: CheckPackage[],
-  namesText: string | undefined,
-): CheckPackage[] {
-  const names = (namesText ?? "")
+export function isRootPackage({ name }: CheckPackage): boolean {
+  return name === rootPackageName;
+}
+
+// The names in a comma-separated CHECK_PACKAGES value; none when it is unset or blank.
+export function packageNamesOf(packageNamesText: string | undefined): string[] {
+  return (packageNamesText ?? "")
     .split(",")
     .map((name) => name.trim())
     .filter((name) => name !== "");
+}
+
+// The packages a CHECK_PACKAGES value names, or every package when it names none.
+export function selectedPackagesOf(
+  packages: CheckPackage[],
+  packageNamesText: string | undefined,
+): CheckPackage[] {
+  const names = packageNamesOf(packageNamesText);
   if (names.length === 0) return packages;
   const unknown = names.filter(
     (name) => !packages.some((pkg) => pkg.name === name),

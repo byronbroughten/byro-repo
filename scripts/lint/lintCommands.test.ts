@@ -30,7 +30,10 @@ describe("failedCommandsOf", () => {
 });
 
 describe("packageLintCommandsOf", () => {
-  const root = checkPackage("root", ".", { "lint:docs": "lint-docs" });
+  const root = {
+    ...checkPackage("root", ".", { "lint:docs": "lint-docs" }),
+    excludedPaths: ["runner", "packages/framework", "packages/personal"],
+  };
   const runner = checkPackage("runner", "runner", {});
   const framework = checkPackage("framework", "packages/framework", {
     "lint:docs": "lint-docs --published .",
