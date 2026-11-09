@@ -284,7 +284,7 @@ export const ticketLaunch = {
     return `Each ## Targets line must be ${targetLineShapes}; malformed in ${offenders.join(", ")}.`;
   },
 
-  targetsOf(ticket: TrackedIssue, logPath: string): Target[] {
+  validTargetsOf(ticket: TrackedIssue, logPath: string): Target[] {
     const reading = targetsOf(ticket.body);
     if (reading.status === "valid") return reading.targets;
     throw new UnhandledStop(

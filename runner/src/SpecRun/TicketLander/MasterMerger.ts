@@ -82,7 +82,7 @@ export class MasterMerger extends SpecRunBase {
     const ticketRun: TicketRun = {
       ...landingTicket,
       workspace,
-      targets: ticketLaunch.targetsOf(ticket, progressPath),
+      targets: ticketLaunch.validTargetsOf(ticket, progressPath),
     };
     const branchedRepos = ticketSteps.branchedReposOf(ticketRun);
     const worktrees = this._worktreesOf(workspace).filter(({ repo }) =>

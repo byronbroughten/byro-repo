@@ -209,7 +209,7 @@ export class SessionReviewer extends SpecRunBase {
       pair: pairOf(ticket.body) ?? this.config.knobs.resolverPair,
       workspace,
       state,
-      targets: ticketLaunch.targetsOf(ticket, this._progressPathOf(run)),
+      targets: ticketLaunch.validTargetsOf(ticket, this._progressPathOf(run)),
     };
   }
 

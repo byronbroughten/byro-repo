@@ -99,7 +99,7 @@ export class TicketSequencer extends SpecRunBase {
         const workspace = await this._timed({ run, ticket }, "workspace", () =>
           this.leaseKeeper._workspaceFor(run, ticket.issue),
         );
-        const targets = ticketLaunch.targetsOf(
+        const targets = ticketLaunch.validTargetsOf(
           ticket,
           this._progressPathOf(run),
         );
