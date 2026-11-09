@@ -6,7 +6,7 @@ Open only the section or disclosed doc the task needs.
 
 ## Commands
 
-- `npm run check`: always safe. It waits for the check slot, then runs the type check, tests and lint at once, skipping each package with a check stamp for its committed files; `npm run check -- --fresh` checks every package. Run it before calling a change done, and treat a new type error as yours unless a clean checkout has it too. `npm run tsc`, `npm test` and `npm run lint` each run one check alone, outside the slot.
+- `npm run check`: always safe. It waits for the check slot, then runs the type check, tests and lint, skipping each package with a check stamp for its committed files; `npm run check -- --fresh` checks every package. Run it before calling a change done, and treat a new type error as yours unless a clean checkout has it too. `npm run tsc`, `npm test` and `npm run lint` each run one check, outside the slot.
 - **What needs a yes follows what it costs to undo: [the tier list](./docs/targets-and-gates.md#which-tier-an-action-is-in).** Every live-spreadsheet command names its target, `dev:*` or `app:*`, and `app:gen:configs` has [four conditions](./docs/targets-and-gates.md#gen-configs-standing-permission) to check first.
 - `npm run app:probe`: read-only raw Sheets JSON. Stdout gets a summary and the full response goes to that package's `.probe/last.json`; read a line range of it, never print a full body into the chat.
 
@@ -15,7 +15,7 @@ Open only the section or disclosed doc the task needs.
 - **Every README.md is for humans.** Nothing in one is needed for a task; open it only to keep it accurate ([`docs/agents/prose-files.md`](./docs/agents/prose-files.md)).
 - **Which package: first "would this make sense with no Sheets at all?" Yes: `packages/utils`, never started in the framework. Then "in a different Sheets-backed app?"** Yes: `packages/framework`. No: `packages/real-estate`. A lint, format or tsconfig setting any TypeScript project would want: `config`. A reader-facing Piece: `packages/personal`.
 - **Public repos never depend on private ones; private may depend on public.**
-- **Working in a folder with its own `AGENTS.md`**, read it first; each package's `src/` and several folders under it have one.
+- **Working in a folder with its own `AGENTS.md`**, read it first.
 - **Every edit happens in a workspace, closed out with `npm run wrap-up -- <repo> <n>` (or `-- --session <slug>`) however it was opened.** [`/start-issue`](./.claude/skills/start-issue/SKILL.md) moves this session in; `npm run issue:start` on the same arguments opens one without moving.
 - **Commit freely; push only through wrap-up, or with a yes. Implement a spec on its `issue-<n>-<slug>` branch**, even when a skill says to commit to the current branch. Starting a runner run is the yes for what the runner's own code writes on that spec's issue tree in the named repo: comments, closing its tickets, pushing `issue-*` branches and wrap-up merges, and for the implement step's `gh issue edit` and `gh issue comment` as the ticket describes them; never for an agent step closing an issue or changing a triage label on a ticket of the running spec, a write outside its ticket's targets, or any other write an agent step attempts. Branch rules: [`docs/agents/git-workflow.md`](./docs/agents/git-workflow.md).
 
