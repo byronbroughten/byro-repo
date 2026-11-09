@@ -12,7 +12,7 @@ import { existsSync, rmSync } from "node:fs";
 
 import { git, revOf } from "../git.ts";
 import { type Halt } from "../halts.ts";
-import { issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
+import { isAmong, issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
 import { type AccountReading, readingLabelOf } from "../limitGuard.ts";
 import { RunStop } from "../RunStop.ts";
 import { stalePathLabelOf, stalePathsOf } from "../stalePaths.ts";
@@ -26,7 +26,6 @@ import { PreflightChecker } from "./PreflightChecker.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
 import {
   type BatchView,
-  isAmong,
   memberBlockedWaitOf,
   type MemberList,
   type Restart,

@@ -1,4 +1,4 @@
-// The workspace and lease types and the key helpers IssueWorkspaces' callers and collaborators share; IssueWorkspaces.ts re-exports them.
+// The workspace, key and lease types and the key, issue-set and lease helpers IssueWorkspaces' callers and collaborators share; IssueWorkspaces.ts re-exports them.
 
 export interface IssueRef {
   repo: string;
@@ -7,6 +7,17 @@ export interface IssueRef {
 
 export function isSameIssue(a: IssueRef, b: IssueRef): boolean {
   return a.repo === b.repo && a.number === b.number;
+}
+
+export function isAmong(issue: IssueRef, issues: IssueRef[]): boolean {
+  return issues.some((each) => isSameIssue(each, issue));
+}
+
+export function issuesOutside(
+  issues: IssueRef[],
+  excluded: IssueRef[],
+): IssueRef[] {
+  return issues.filter((issue) => !isAmong(issue, excluded));
 }
 
 export interface SessionKey {

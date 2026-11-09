@@ -17,6 +17,7 @@ import {
   holderLabelOf,
   issueLabelOf,
   type IssueRef,
+  issuesOutside,
 } from "../IssueWorkspaces.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import { LeaseKeeper } from "./LeaseKeeper.ts";
@@ -24,7 +25,6 @@ import {
   interactiveLabel,
   isLanded,
   isLaunchable,
-  issuesOutside,
   type Run,
   ticketStateOf,
   type TrackedIssue,

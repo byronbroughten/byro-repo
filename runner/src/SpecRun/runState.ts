@@ -4,20 +4,18 @@
 // A declaration here is exported only when another file uses it; a function with one caller sits below that caller's class instead.
 // The class that saves this state is SpecRunBase.ts; the coordinator callers build is ../SpecRun.ts; the Halt helpers are runState/runHalts.ts;
 // the session and step-record helpers are runState/ticketSteps.ts; the end, wait and refusal wording is runState/runText.ts;
-// the state file and progress log paths are runState/statePaths.ts.
-
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+// the state file and progress log paths are runState/statePaths.ts; the command runner is ../runCommand.ts;
+// the issue-set helpers sit beside isSameIssue in ../IssueWorkspaces/workspaceTypes.ts.
 
 import type { Pair, StepRequest, StepResult } from "../AgentStep.ts";
-import { messageOf, outputTailOf } from "../failureText.ts";
 import { type Halt, type StepFailure } from "../halts.ts";
 import { type Handoff, type ImplementRecord } from "../implementStep.ts";
 import { type BodyAuthorship } from "../IssueReader.ts";
 import {
-  isSameIssue,
+  isAmong,
   issueLabelOf,
   type IssueRef,
+  issuesOutside,
   type LeaseHolder,
   type Workspace,
 } from "../IssueWorkspaces.ts";
@@ -25,13 +23,10 @@ import { type MergeMasterRecord } from "../mergeMasterStep.ts";
 import { type ResolveRecord } from "../resolveStep.ts";
 import type { UndecidedCount } from "../reviewList.ts";
 import type { Finding } from "../reviewStep.ts";
-import type { Command } from "../runKnobs.ts";
 import { type Target, targetLineShapes, targetsOf } from "../ticketTargets.ts";
 import { type RecordedSession, type StepSession } from "../transcriptFacts.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
 import { runText } from "./runState/runText.ts";
-
-const execFileAsync = promisify(execFile);
 
 export const readyLabel = "ready-for-agent";
 export const interactiveLabel = "ready-for-interactive";
@@ -306,31 +301,6 @@ export function targetsAtLaunchOf(
 
 export function isLaunchable(ticket: TrackedIssue): boolean {
   return ticket.isOpen && ticket.labels.includes(readyLabel);
-}
-
-// The command's output tail when it fails, undefined when it passes.
-export async function runCommand(
-  command: Command,
-  cwd: string,
-): Promise<string | undefined> {
-  const [file, ...args] = command;
-  try {
-    await execFileAsync(file, args, { cwd, maxBuffer: 64 * 1024 * 1024 });
-    return undefined;
-  } catch (error) {
-    return outputTailOf(error) || messageOf(error);
-  }
-}
-
-export function isAmong(issue: IssueRef, issues: IssueRef[]): boolean {
-  return issues.some((each) => isSameIssue(each, issue));
-}
-
-export function issuesOutside(
-  issues: IssueRef[],
-  excluded: IssueRef[],
-): IssueRef[] {
-  return issues.filter((issue) => !isAmong(issue, excluded));
 }
 
 // The Batch's members among a member's open blockers that haven't landed; a landed one counts as cleared though GitHub may show it open.

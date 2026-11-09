@@ -8,18 +8,21 @@ import { join } from "node:path";
 
 import { commandLabelOf } from "../failureText.ts";
 import { currentBranchOf } from "../git.ts";
-import { issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
+import {
+  issueLabelOf,
+  type IssueRef,
+  issuesOutside,
+} from "../IssueWorkspaces.ts";
 import { localTimeOf } from "../localTime.ts";
 import { pairOf } from "../modelFit.ts";
+import { runCommand } from "../runCommand.ts";
 import { type HeldRunLock, RunLock } from "../RunLock.ts";
 import {
   interactiveLabel,
   isLaunchable,
-  issuesOutside,
   type MemberList,
   readyLabel,
   type Run,
-  runCommand,
   type RunResult,
   targetsRefusalOf,
   type TrackedIssue,

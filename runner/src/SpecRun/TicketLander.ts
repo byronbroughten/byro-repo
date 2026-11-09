@@ -16,6 +16,7 @@ import {
 } from "../mergeMasterStep.ts";
 import { pairLabelOf } from "../modelFit.ts";
 import { redChecksOutputSchema, redChecksPrompt } from "../redChecksStep.ts";
+import { runCommand } from "../runCommand.ts";
 import { RunStop } from "../RunStop.ts";
 import { SchemaFailure } from "../SchemaFailure.ts";
 import { type RecordedSession, unrecordedFactsOf } from "../transcriptFacts.ts";
@@ -28,7 +29,6 @@ import {
   type LandingTicket,
   type RanStep,
   type Resolver,
-  runCommand,
   targetsAtLaunchOf,
   type TicketRun,
   type TicketState,

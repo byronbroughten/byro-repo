@@ -47,7 +47,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `IssueWorkspaces/WorkspaceKeeper.ts` | | The workspace lifecycle: creates, finds, lists, promotes, resumes and removes workspaces. |
 | `IssueWorkspaces/WorkspaceLeaser.ts` | | Takes, releases and reads workspace leases. |
 | `IssueWorkspaces/WorkspaceSeeder.ts` | | Seeds a new workspace's dependencies from the primary's. |
-| `IssueWorkspaces/workspaceTypes.ts` | | The workspace, key and lease types and the helpers callers and collaborators share. |
+| `IssueWorkspaces/workspaceTypes.ts` | | The workspace, key and lease types and the key, issue-set and lease helpers callers and collaborators share. |
 | `issueWorkspacesHarness.ts` | | The fixture `IssueWorkspaces` tests share. |
 | `LandingLock.ts` | `LandingLock` | The per-primary lock wrap-up lands under. |
 | `LeaseHeld.ts` | | The error for another holder's live workspace lease. |
@@ -76,6 +76,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `reviewStep.ts` | `reviewStep` | The review step's prompt, record and finding types. |
 | `runBoard.ts` | `runBoard` | The Run board behind `runner status` and `runner watch` with no spec. |
 | `runCollecting.ts` | `runCollecting` | Runs one process with its output collected. |
+| `runCommand.ts` | | Runs a knob's command, returning its output tail when it fails, for the preflight and the landing. |
 | `runKnobs.ts` | `runKnobs` | Every knob a run reads, its defaults and the override-file loader. |
 | `RunLock.ts` | `RunLock` | The per-spec run lock. |
 | `RunStop.ts` | | The error that ends a run with a Stop. |
@@ -105,7 +106,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/TicketLander.ts` | | Runs a ticket's checks and lands it. |
 | `SpecRun/TicketSelector.ts` | | Picks the run's next ticket and reads Halt answers. |
 | `SpecRun/TicketSequencer.ts` | | Runs one ticket's steps from the one it reached. |
-| `SpecRun/runState.ts` | | The run-state types and the ticket-state, launch and member-blocking helpers several collaborators share. |
+| `SpecRun/runState.ts` | | The run-state types and the ticket-state, targets, launch and member-blocking helpers several collaborators share. |
 | `SpecRun/runState/runHalts.ts` | | Raises, reads, delivers and orders a run's Halts, and finds a ticket's downstream. |
 | `SpecRun/runState/runText.ts` | | Words a run's end, waits and refusals, its rerun command and its review-list judge line. |
 | `SpecRun/runState/statePaths.ts` | | A spec's run state file and progress log paths in the state folder. |
