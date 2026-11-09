@@ -11,6 +11,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { setTimeout as sleep } from "node:timers/promises";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -20,6 +21,8 @@ import {
   type ChecksConfig,
   type CommandDuration,
 } from "./Checks.ts";
+import { deadPid, liveHolder, seedHolder } from "./lockFixture.ts";
+import { type LockHolder, PidLock } from "./PidLock.ts";
 import type { Command } from "./runKnobs.ts";
 
 const clonePaths = {
@@ -29,12 +32,16 @@ const clonePaths = {
 
 let temp: string;
 let root: string;
+let stateFolder: string;
 let stampFolder: string;
+let heldPids: (number | undefined)[];
 
 beforeEach(() => {
   temp = realpathSync(mkdtempSync(join(tmpdir(), "checks-")));
   root = join(temp, "byro-repo");
-  stampFolder = join(temp, ".runner", "check-stamps");
+  stateFolder = join(temp, ".runner");
+  stampFolder = join(stateFolder, "check-stamps");
+  heldPids = [];
   buildRepos();
 });
 
@@ -50,8 +57,9 @@ function checks(
     commands,
     root,
     clonePaths,
-    stampFolder,
+    stateFolder,
     nodeVersion: "v22.0.0",
+    slot: { pollMs: 10, sleep, onHeld: (pid) => heldPids.push(pid) },
     ...overrides,
   });
 }
@@ -129,6 +137,15 @@ function stampContents(): unknown[] {
 function waitingFor(own: string, other: string): Command {
   const script = `touch ${join(temp, own)}; i=0; while [ ! -f ${join(temp, other)} ]; do i=$((i+1)); [ $i -gt 100 ] && exit 1; sleep 0.05; done`;
   return ["sh", "-c", script];
+}
+
+function slotPath(): string {
+  return join(stateFolder, "check.slot");
+}
+
+function seedSlot(holder: Omit<LockHolder, "token">): void {
+  mkdirSync(stateFolder, { recursive: true });
+  seedHolder(slotPath(), holder);
 }
 
 describe("Checks.run", () => {
@@ -304,6 +321,51 @@ describe("Checks.run", () => {
 
     expect(result).toEqual({ kind: "skipped" });
     expect(stampContents()).toEqual(stamped);
+  });
+
+  it("makes a second check started at once wait, then skip on the first's stamp", async () => {
+    const results = await Promise.all([
+      checks([marking("a")]).run(),
+      checks([marking("b")]).run(),
+    ]);
+
+    expect(results).toEqual([
+      expect.objectContaining({ kind: "passed", isStamped: true }),
+      { kind: "skipped" },
+    ]);
+    expect(heldPids).toEqual([process.pid]);
+    expect(hasRun("b")).toBe(false);
+  });
+
+  it("waits on a live holder until the slot is free", async () => {
+    seedSlot(liveHolder());
+    setTimeout(() => rmSync(slotPath(), { force: true }), 100);
+
+    const result = await checks([marking("a")]).run();
+
+    expect(result).toMatchObject({ kind: "passed", isStamped: true });
+    expect(heldPids).toEqual([process.pid]);
+  });
+
+  it("takes over a slot whose holder is no longer running", async () => {
+    seedSlot({ ...liveHolder(), pid: deadPid() });
+
+    const result = await checks([marking("a")]).run();
+
+    expect(result).toMatchObject({ kind: "passed", isStamped: true });
+    expect(heldPids).toEqual([]);
+  });
+
+  it("releases the slot when the check passes", async () => {
+    await checks([marking("a")]).run();
+
+    expect(PidLock.isHeldAt(slotPath())).toBe(false);
+  });
+
+  it("releases the slot when the check fails", async () => {
+    await checks([marking("a", 1)]).run();
+
+    expect(PidLock.isHeldAt(slotPath())).toBe(false);
   });
 
   it("runs the commands at the same time", async () => {

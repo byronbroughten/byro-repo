@@ -4,28 +4,14 @@
 
 import { join } from "node:path";
 
-import { PidLock } from "./PidLock.ts";
+import { type LockWait, PidLock } from "./PidLock.ts";
 
 const lockFileName = "landing.lock";
 
-export interface LandingLockOptions {
-  pollMs: number;
-  sleep(ms: number): Promise<void>;
-}
-
 export class LandingLock extends PidLock {
   // gitDir is the primary checkout's own git folder, so the lock is never committed.
-  static async acquire(
-    gitDir: string,
-    { pollMs, sleep }: LandingLockOptions,
-  ): Promise<LandingLock> {
+  static async acquire(gitDir: string, wait: LockWait): Promise<LandingLock> {
     const path = join(gitDir, lockFileName);
-    for (;;) {
-      const attempt = PidLock.tryTake(path);
-      if (attempt.kind === "taken") {
-        return new LandingLock(path, attempt.holder);
-      }
-      await sleep(pollMs);
-    }
+    return new LandingLock(path, await PidLock.takeWhenFree(path, wait));
   }
 }

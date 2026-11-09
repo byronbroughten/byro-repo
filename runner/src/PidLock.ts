@@ -1,6 +1,6 @@
-// The pid lock LandingLock.ts and RunLock.ts share: a file holding its holder's pid, host, start time and token.
-// It is stale only when that pid is no longer running on this host; there is no time-based expiry.
-// tryTake() never waits: LandingLock polls a live holder and RunLock refuses on one.
+// The pid lock LandingLock.ts, RunLock.ts and CheckSlot.ts share: a file holding its holder's pid, host, start time and
+// token. It is stale only when that pid is no longer running on this host; there is no time-based expiry.
+// tryTake() never waits: LandingLock and CheckSlot poll a live holder and RunLock refuses on one.
 // A stale lock is taken over only while holding a `<path>.takeover` guard, so two takers can't both win.
 
 import { randomUUID } from "node:crypto";
@@ -20,6 +20,13 @@ export interface HeldLock {
 }
 
 export type LockAttempt = { kind: "taken"; holder: LockHolder } | HeldLock;
+
+export interface LockWait {
+  pollMs: number;
+  sleep(ms: number): Promise<void>;
+  // Called once, when the first try finds the lock held; the pid is undefined while the holder's file is unreadable.
+  onHeld?(pid: number | undefined): void;
+}
 
 interface Takeover {
   stale: LockHolder;
@@ -56,6 +63,21 @@ export class PidLock {
       if (takeOver(path, { stale: current, taker: holder })) {
         return { kind: "taken", holder };
       }
+    }
+  }
+
+  // Polls a live holder with no time limit; LandingLock and CheckSlot wait through it.
+  protected static async takeWhenFree(
+    path: string,
+    { pollMs, sleep, onHeld }: LockWait,
+  ): Promise<LockHolder> {
+    let isWaiting = false;
+    for (;;) {
+      const attempt = PidLock.tryTake(path);
+      if (attempt.kind === "taken") return attempt.holder;
+      if (!isWaiting) onHeld?.(attempt.holder?.pid);
+      isWaiting = true;
+      await sleep(pollMs);
     }
   }
 

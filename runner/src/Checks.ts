@@ -1,4 +1,5 @@
-// Runs the checks for `npm run check`: every command at once, skipped on a check stamp for the same committed files.
+// Runs the checks for `npm run check` inside the check slot (CheckSlot.ts): every command at once, skipped on a check
+// stamp for the same committed files.
 // A stamp's key hashes each repo's committed tree, the root lockfile and the Node version; one file per key in the
 // stamp folder, written only on a pass with every repo clean and holding that pass's per-command durations.
 // SpecRun.ts and WrapUp.ts run whatever commands their checks setting names and know nothing of stamps.
@@ -8,7 +9,9 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { CheckSlot } from "./CheckSlot.ts";
 import { git, isDirty } from "./git.ts";
+import type { LockWait } from "./PidLock.ts";
 import { runCollecting } from "./runCollecting.ts";
 import type { Command } from "./runKnobs.ts";
 
@@ -18,8 +21,10 @@ export interface ChecksConfig {
   root: string;
   // Repo name to its clone's path relative to root; the root repo's is ".".
   clonePaths: Record<string, string>;
-  stampFolder: string;
+  // The primary's state folder, which holds the check stamps and the check slot.
+  stateFolder: string;
   nodeVersion: string;
+  slot: LockWait;
 }
 
 export interface CheckOptions {
@@ -61,7 +66,20 @@ export class Checks {
     return new Checks(config);
   }
 
+  // The stamp is read only once the slot is taken, so a check that waited sees the stamp the one ahead of it wrote.
   async run(options: CheckOptions = {}): Promise<CheckResult> {
+    const slot = await CheckSlot.acquire(
+      this.config.stateFolder,
+      this.config.slot,
+    );
+    try {
+      return await this._runInSlot(options);
+    } finally {
+      slot.release();
+    }
+  }
+
+  private async _runInSlot(options: CheckOptions): Promise<CheckResult> {
     const before = await this._stampPath();
     if (before !== undefined && !options.isFresh && existsSync(before)) {
       return { kind: "skipped" };
@@ -77,7 +95,7 @@ export class Checks {
     if (before === undefined || after !== before) {
       return { kind: "passed", isStamped: false, durations };
     }
-    mkdirSync(this.config.stampFolder, { recursive: true });
+    mkdirSync(this._stampFolder, { recursive: true });
     writeFileSync(before, JSON.stringify(durations));
     return { kind: "passed", isStamped: true, durations };
   }
@@ -85,7 +103,11 @@ export class Checks {
   // Undefined while any repo has a change no stamp could describe.
   private async _stampPath(): Promise<string | undefined> {
     if (await this._hasDirtyRepo()) return undefined;
-    return join(this.config.stampFolder, await this._stampKey());
+    return join(this._stampFolder, await this._stampKey());
+  }
+
+  private get _stampFolder(): string {
+    return join(this.config.stateFolder, "check-stamps");
   }
 
   private async _hasDirtyRepo(): Promise<boolean> {
