@@ -15,9 +15,12 @@ async function ruleMessages(
   filePath: string,
   ruleId: string,
 ): Promise<string[]> {
-  const [result] = await new ESLint({ cwd: repoRoot }).lintText(code, {
-    filePath,
+  // The lookup flag gives each file its own package's eslint.config.mjs, as `npm run lint` does.
+  const eslint = new ESLint({
+    cwd: repoRoot,
+    flags: ["v10_config_lookup_from_file"],
   });
+  const [result] = await eslint.lintText(code, { filePath });
   return (result?.messages ?? [])
     .filter((message) => message.ruleId === ruleId)
     .map((message) => message.message);
@@ -86,6 +89,61 @@ describe("the runner's import boundary", () => {
     const code =
       'import { x } from "../packages/framework/src/x.ts";\nexport { x };\n';
     expect(await boundaryErrors(code, "scripts/x.ts")).toEqual([]);
+  });
+});
+
+describe("the cross-package import rule", () => {
+  async function crossPackageErrors(
+    code: string,
+    filePath: string,
+  ): Promise<string[]> {
+    return ruleMessages(code, filePath, "style/no-cross-package-import");
+  }
+
+  it.each([
+    ["the root", "scripts/x.ts", "../packages/utils/src/x.ts"],
+    ["config", "config/x.ts", "../runner/src/x.ts"],
+    ["the runner", "runner/src/x.ts", "../../config/x.ts"],
+    ["utils", "packages/utils/src/x.ts", "../../framework/src/x.ts"],
+    ["framework", "packages/framework/src/x.ts", "../../utils/src/x.ts"],
+    ["real-estate", "packages/real-estate/src/x.ts", "../../utils/src/x.ts"],
+    ["personal", "packages/personal/x.ts", "../utils/src/x.ts"],
+  ])(
+    "rejects a relative import out of %s",
+    async (_packageName, filePath, specifier) => {
+      const code = `import { x } from "${specifier}";\nexport { x };\n`;
+      expect(await crossPackageErrors(code, filePath)).toHaveLength(1);
+    },
+  );
+
+  it("rejects a dynamic import out of a package", async () => {
+    const code =
+      'export const loaded = await import("../../utils/src/x.ts");\n';
+    expect(
+      await crossPackageErrors(code, "packages/framework/src/x.ts"),
+    ).toHaveLength(1);
+  });
+
+  it("rejects an import of another package's folder from the root", async () => {
+    const code = 'export * from "../packages/utils";\n';
+    expect(await crossPackageErrors(code, "scripts/x.ts")).toHaveLength(1);
+  });
+
+  it("rejects a relative import from a package up into the root's files", async () => {
+    const code = 'export * from "../scripts/x.ts";\n';
+    expect(await crossPackageErrors(code, "config/x.ts")).toHaveLength(1);
+  });
+
+  it("passes a package-name import and a relative import inside the package", async () => {
+    const code = [
+      'import { x } from "@byronbroughten/utils/Str";',
+      'import { y } from "../sibling/y.ts";',
+      "export { x, y };",
+      "",
+    ].join("\n");
+    expect(
+      await crossPackageErrors(code, "packages/framework/src/deep/x.ts"),
+    ).toEqual([]);
   });
 });
 

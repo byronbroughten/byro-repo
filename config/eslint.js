@@ -2,6 +2,9 @@ import eslint from "@eslint/js";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import tseslint from "typescript-eslint";
 
+import { noCrossPackageImport } from "./eslint/noCrossPackageImport.js";
+import { privateHelperUsesThis } from "./eslint/privateHelperUsesThis.js";
+
 export const variableNaming = {
   selector: "variable",
   format: ["camelCase", "PascalCase"],
@@ -26,65 +29,6 @@ export const styleSyntax = [
   },
 ];
 
-// A `private` or `#` method that never reads `this` belongs below the class as a module function.
-/** @type {import("eslint").Rule.RuleModule} */
-const privateHelperUsesThis = {
-  meta: {
-    type: "suggestion",
-    messages: {
-      noThis:
-        "{{name}} never reads `this`: make it an unexported module function below the class.",
-    },
-  },
-  create(context) {
-    /** @type {{ helper: PrivateHelper | undefined, usesThis: boolean }[]} */
-    const frames = [];
-    /** @param {import("eslint").Rule.Node} node */
-    function enter(node) {
-      frames.push({ helper: privateHelperOf(node), usesThis: false });
-    }
-    function exit() {
-      const frame = frames.pop();
-      if (frame?.helper && !frame.usesThis) {
-        context.report({
-          node: frame.helper.key,
-          messageId: "noThis",
-          data: { name: frame.helper.name },
-        });
-      }
-    }
-    function markThis() {
-      const frame = frames.at(-1);
-      if (frame) frame.usesThis = true;
-    }
-    return {
-      FunctionDeclaration: enter,
-      "FunctionDeclaration:exit": exit,
-      FunctionExpression: enter,
-      "FunctionExpression:exit": exit,
-      ThisExpression: markThis,
-      Super: markThis,
-    };
-  },
-};
-
-/** @typedef {{ key: import("estree").Node, name: string }} PrivateHelper */
-
-/** @param {import("eslint").Rule.Node} node */
-function privateHelperOf(node) {
-  const method = node.parent;
-  if (method?.type !== "MethodDefinition" || method.value !== node) {
-    return undefined;
-  }
-  const { key } = method;
-  if (key.type === "PrivateIdentifier") return { key, name: `#${key.name}` };
-  const isPrivate =
-    "accessibility" in method && method.accessibility === "private";
-  return isPrivate && key.type === "Identifier"
-    ? { key, name: key.name }
-    : undefined;
-}
-
 export const eslintPreset = [
   { ignores: ["**/dist/**", "**/coverage/**"] },
   eslint.configs.recommended,
@@ -92,10 +36,16 @@ export const eslintPreset = [
   {
     plugins: {
       "simple-import-sort": simpleImportSort,
-      style: { rules: { "private-helper-uses-this": privateHelperUsesThis } },
+      style: {
+        rules: {
+          "no-cross-package-import": noCrossPackageImport,
+          "private-helper-uses-this": privateHelperUsesThis,
+        },
+      },
     },
     rules: {
       "simple-import-sort/imports": "error",
+      "style/no-cross-package-import": "error",
       "style/private-helper-uses-this": "error",
       "@typescript-eslint/consistent-type-imports": [
         "error",
