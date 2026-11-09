@@ -5,7 +5,7 @@
 // SpecRun/SpecRunBase.ts writes both; ProgressLog.ts reads the progress lines, worded where the run writes them.
 
 import { BatchRecords, isMemberOf } from "./BatchRecords.ts";
-import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import { ProgressLog } from "./ProgressLog.ts";
 import { RunLock } from "./RunLock.ts";
 import { type MemberList } from "./SpecRun/runState.ts";
@@ -82,7 +82,7 @@ class RunBoard {
     const statePath = statePaths.runStateOf(this.stateFolder, spec);
     return [
       isLive ? label : `${label}: ${boardTexts.gone}`,
-      ...(members.length > 1 ? [`  Member: ${issueLabelOf(spec)}`] : []),
+      ...(members.length > 1 ? [`  Member: ${issueRef.labelOf(spec)}`] : []),
       `  Ticket: ${log.ticketText(statePath, now)}`,
       `  Account: ${log.accountText()}`,
       `  ${log.latestText(now)}`,
@@ -105,7 +105,7 @@ function currentMemberOf(members: MemberProgress[]): MemberProgress {
 }
 
 function runLabelOf([lead, ...rest]: MemberList): string {
-  if (rest.length === 0) return issueLabelOf(lead);
+  if (rest.length === 0) return issueRef.labelOf(lead);
   const numbers = rest.map(({ number }) => `#${number}`);
-  return `Batch ${[issueLabelOf(lead), ...numbers].join(", ")}`;
+  return `Batch ${[issueRef.labelOf(lead), ...numbers].join(", ")}`;
 }

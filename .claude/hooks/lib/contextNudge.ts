@@ -3,8 +3,8 @@ import { join } from "node:path";
 
 import type { ContextNudgeKnobs } from "@byronbroughten/spec-runner/contextNudge";
 import {
-  isSessionKey,
   type LeasedWorkspace,
+  workspaceKey,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
 import { runKnobsOrDefaults } from "@byronbroughten/spec-runner/runKnobs";
 
@@ -20,7 +20,10 @@ export function isTicketWork(
   mode: SessionMode,
   held: LeasedWorkspace[],
 ): boolean {
-  return mode === "runnerStep" || held.some(({ key }) => !isSessionKey(key));
+  return (
+    mode === "runnerStep" ||
+    held.some(({ key }) => !workspaceKey.isSession(key))
+  );
 }
 
 export function contextNudgeKnobs(): ContextNudgeKnobs {

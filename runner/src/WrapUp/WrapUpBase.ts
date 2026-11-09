@@ -8,13 +8,11 @@ import { join } from "node:path";
 import { messageOf } from "../failureText.ts";
 import { currentBranchOf, git } from "../git.ts";
 import {
-  fileStemOf,
-  isSessionKey,
+  issueRef,
   IssueWorkspaces,
-  sessionBranchOf,
   type Workspace,
   type WorkspaceKey,
-  workspaceLabelOf,
+  workspaceKey,
 } from "../IssueWorkspaces.ts";
 import { sleep } from "../sleep.ts";
 import { WrapUpFailure } from "../WrapUpFailure.ts";
@@ -84,7 +82,7 @@ export class WrapUpBase {
   protected async _workspaceOf(key: WorkspaceKey): Promise<Workspace> {
     const workspace = await this.workspaces.find(key);
     if (!workspace) {
-      throw new Error(`No workspace for ${workspaceLabelOf(key)}`);
+      throw new Error(`No workspace for ${workspaceKey.labelOf(key)}`);
     }
     return workspace;
   }
@@ -194,6 +192,6 @@ export function listedReposOf({
 }
 
 function stateStemOf(key: WorkspaceKey): string {
-  if (isSessionKey(key)) return sessionBranchOf(key);
-  return fileStemOf(key);
+  if (workspaceKey.isSession(key)) return workspaceKey.sessionBranchOf(key);
+  return issueRef.fileStemOf(key);
 }

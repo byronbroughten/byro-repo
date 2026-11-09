@@ -15,11 +15,7 @@ import {
   type StepFailure,
 } from "../halts.ts";
 import { type Blocker } from "../implementStep.ts";
-import {
-  isSameIssue,
-  issueLabelOf,
-  type IssueRef,
-} from "../IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
 import { RunStop } from "../RunStop.ts";
 import { TicketHalted } from "../TicketHalted.ts";
 import {
@@ -50,7 +46,7 @@ export class HaltRaiser extends SpecRunBase {
     this._saveState(run);
     this._log(
       run,
-      `${issueLabelOf(ticket.issue)}: ${detail} Retrying, ${taken + 1} of ${retriesPerFailure}.`,
+      `${issueRef.labelOf(ticket.issue)}: ${detail} Retrying, ${taken + 1} of ${retriesPerFailure}.`,
     );
   }
 
@@ -71,7 +67,7 @@ export class HaltRaiser extends SpecRunBase {
   // Posts the last Halt before the Stop, so the developer can answer it.
   private async _stopIfStuck(landingTicket: LandingTicket): Promise<void> {
     const { run, ticket } = landingTicket;
-    const label = issueLabelOf(ticket.issue);
+    const label = issueRef.labelOf(ticket.issue);
     if (!run.failureStreak.includes(label)) run.failureStreak.push(label);
     if (run.failureStreak.length < this.config.knobs.stuckFailureHalts) return;
     await this._postHalts(landingTicket);
@@ -110,7 +106,7 @@ export class HaltRaiser extends SpecRunBase {
 
   private async _halt(landingTicket: LandingTicket): Promise<never> {
     await this._postHalts(landingTicket);
-    throw new TicketHalted(issueLabelOf(landingTicket.ticket.issue));
+    throw new TicketHalted(issueRef.labelOf(landingTicket.ticket.issue));
   }
 
   private async _postHalts(landingTicket: LandingTicket): Promise<void> {
@@ -131,7 +127,7 @@ export class HaltRaiser extends SpecRunBase {
       );
     for (const halt of unposted) {
       const batch = unposted.filter(({ ticket }) =>
-        isSameIssue(ticket, halt.ticket),
+        issueRef.isSame(ticket, halt.ticket),
       );
       const post: HaltPost = {
         halt,

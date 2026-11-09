@@ -6,11 +6,10 @@
 
 import { messageOf } from "../failureText.ts";
 import {
-  isSameHolder,
-  issueLabelOf,
   type IssueRef,
+  issueRef,
   type LeaseHolder,
-  otherLiveHolderOf,
+  leaseHolder,
   type Workspace,
   type WorkspaceStatus,
 } from "../IssueWorkspaces.ts";
@@ -24,12 +23,12 @@ const runHolder: LeaseHolder = { kind: "run", pid: process.pid };
 export class LeaseKeeper extends SpecRunBase {
   async _otherHolderOf(issue: IssueRef): Promise<LeaseHolder | undefined> {
     const folder = await this.workspaces.leasedFolderOf(issue);
-    return otherLiveHolderOf(folder?.lease, runHolder);
+    return leaseHolder.otherLiveOf(folder?.lease, runHolder);
   }
 
   async _releaseLeaseOf(issue: IssueRef): Promise<void> {
     const folder = await this.workspaces.leasedFolderOf(issue);
-    if (folder?.lease && isSameHolder(folder.lease, runHolder)) {
+    if (folder?.lease && leaseHolder.isSame(folder.lease, runHolder)) {
       await this.workspaces.releaseLease(folder);
     }
   }
@@ -52,7 +51,7 @@ export class LeaseKeeper extends SpecRunBase {
 
   // Past the refusals, a live lease is the caller's own.
   async _takeSessionLease(workspace: WorkspaceStatus): Promise<void> {
-    if (otherLiveHolderOf(workspace.lease) === undefined) {
+    if (leaseHolder.otherLiveOf(workspace.lease) === undefined) {
       await this.workspaces.takeLease(workspace, runHolder);
     }
   }
@@ -74,7 +73,7 @@ export class LeaseKeeper extends SpecRunBase {
         this._progressPathOf(run),
       );
     }
-    this._log(run, `${issueLabelOf(issue)}: resumed ${existing.path}.`);
+    this._log(run, `${issueRef.labelOf(issue)}: resumed ${existing.path}.`);
     return existing;
   }
 }

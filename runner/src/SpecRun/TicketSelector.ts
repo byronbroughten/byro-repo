@@ -13,12 +13,7 @@ import {
   shortRefOf,
 } from "../halts.ts";
 import { failureAnswerOf, repliesTo } from "../halts/haltReplies.ts";
-import {
-  holderLabelOf,
-  issueLabelOf,
-  type IssueRef,
-  issuesOutside,
-} from "../IssueWorkspaces.ts";
+import { type IssueRef, issueRef, leaseHolder } from "../IssueWorkspaces.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import { LeaseKeeper } from "./LeaseKeeper.ts";
 import {
@@ -108,10 +103,10 @@ export class TicketSelector extends SpecRunBase {
       const tracked = await this.config.github.issueOf(ticket);
       // A Standalone ticket lands and stays open while its review list has undecided items.
       if (!tracked.isOpen || isLanded(run, ticket)) continue;
-      const label = issueLabelOf(ticket);
+      const label = issueRef.labelOf(ticket);
       const holder = await this.leaseKeeper._otherHolderOf(ticket);
       if (holder !== undefined) {
-        const text = `${label} is leased by ${holderLabelOf(holder)}`;
+        const text = `${label} is leased by ${leaseHolder.labelOf(holder)}`;
         waits.push({ ticket, reason: "leased", text, holder });
         continue;
       }
@@ -145,12 +140,12 @@ export class TicketSelector extends SpecRunBase {
         waits.push({ ticket, reason: "developer", text });
         continue;
       }
-      const blockers = issuesOutside(
+      const blockers = issueRef.outside(
         await this.config.github.openBlockersOf(ticket),
         landedMembers,
       );
       if (blockers.length > 0) {
-        const text = runText.blockedBy(label, blockers.map(issueLabelOf));
+        const text = runText.blockedBy(label, blockers.map(issueRef.labelOf));
         waits.push({ ticket, reason: "blocked", text });
         continue;
       }
@@ -173,7 +168,7 @@ export class TicketSelector extends SpecRunBase {
     const downstream = await this.haltRaiser._downstreamOf(run, issue);
     return run.tickets
       .filter((ticket) => downstream.includes(shortRefOf(ticket)))
-      .map(issueLabelOf);
+      .map(issueRef.labelOf);
   }
 
   // The first reply opening with an open Halt's id answers it; a later one is noted as ignored, once.
@@ -197,12 +192,12 @@ export class TicketSelector extends SpecRunBase {
         this._saveState(run);
         this._log(
           run,
-          `${haltNameOf(halt)} on ${issueLabelOf(halt.ticket)} is answered.`,
+          `${haltNameOf(halt)} on ${issueRef.labelOf(halt.ticket)} is answered.`,
         );
         await this._comment(run, answeredNoteOf(halt));
         if (runHalts.isStopSpec(halt)) stopSpecs.push(halt);
         if (isSkipAnswered(halt) && !runHalts.isGapCheck(halt)) {
-          run.skipped.add(issueLabelOf(halt.ticket));
+          run.skipped.add(issueRef.labelOf(halt.ticket));
         }
       }
       const ignored = [first, ...later].filter(
@@ -267,7 +262,7 @@ function developerWaitTextOf(
   downstream: string[],
 ): string {
   const { repo, number } = ticket;
-  const waits = `${issueLabelOf(ticket)} ${waitPhraseOf(labels)} (\`/start-issue ${repo} ${number}\`)`;
+  const waits = `${issueRef.labelOf(ticket)} ${waitPhraseOf(labels)} (\`/start-issue ${repo} ${number}\`)`;
   if (downstream.length === 0) return waits;
   return `${waits} and blocks ${downstream.join(", ")}`;
 }

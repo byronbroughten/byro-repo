@@ -2,7 +2,7 @@
 // Every other progress line is free text; SpecRun/SpecRunBase.ts appends each with its timestamp, and runBoard.ts reads them.
 // Each line opens with its local time and zone from localTime.ts; an older runner's lines open with an ISO UTC time instead.
 
-import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import {
   localStampedLineOf,
   localTimeOf,
@@ -16,7 +16,7 @@ export interface StepLaunch {
 }
 
 const linePatterns = {
-  ticket: /^(\S+ #\d+): /, // issueLabelOf's shape opening the line.
+  ticket: /^(\S+ #\d+): /, // issueRef.labelOf's shape opening the line.
   stepLaunch: /^(.*) step on account (\d+), raw stream in (.*)\.$/,
   stepTook: / took \d+s\.$/,
 } as const;
@@ -39,7 +39,7 @@ export function ticketLaunchLineOf(
   pairLabel: string,
   step: string,
 ): string {
-  return `${issueLabelOf(ticket)}: launching on ${pairLabel} from ${step}.`;
+  return `${issueRef.labelOf(ticket)}: launching on ${pairLabel} from ${step}.`;
 }
 
 export function stepTookLineOf(
@@ -47,7 +47,7 @@ export function stepTookLineOf(
   step: string,
   seconds: number,
 ): string {
-  return `${issueLabelOf(ticket)}: ${step} took ${seconds}s.`;
+  return `${issueRef.labelOf(ticket)}: ${step} took ${seconds}s.`;
 }
 
 export function stepLaunchLineOf({

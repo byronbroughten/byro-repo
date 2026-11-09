@@ -7,7 +7,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { fileStemOf, issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import type { OutcomeFacts } from "./outcomeLog.ts";
 import type { Finding } from "./reviewStep.ts";
 import { factsOf } from "./savedFormats.ts";
@@ -74,7 +74,7 @@ export class FactsFile {
     const facts = this._storedOf(issue);
     if (typeof facts.closingComment !== "string") {
       throw new Error(
-        `${issueLabelOf(issue)} has no closing comment in ${this._pathOf(issue)}: pass it to wrap-up with ${closingFlagsText()}`,
+        `${issueRef.labelOf(issue)} has no closing comment in ${this._pathOf(issue)}: pass it to wrap-up with ${closingFlagsText()}`,
       );
     }
     return facts as WrapUpFacts;
@@ -158,6 +158,6 @@ export class FactsFile {
   }
 
   private _pathOf(issue: IssueRef): string {
-    return join(this.stateFolder, `${fileStemOf(issue)}.facts.json`);
+    return join(this.stateFolder, `${issueRef.fileStemOf(issue)}.facts.json`);
   }
 }

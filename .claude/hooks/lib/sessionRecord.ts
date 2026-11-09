@@ -2,11 +2,11 @@
 import { basename, dirname } from "node:path";
 
 import {
-  isSessionKey,
-  issueLabelOf,
   type IssueRef,
+  issueRef,
   type LeasedWorkspace,
   type LeaseHolder,
+  workspaceKey,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
 import type { SupervisionRecord } from "@byronbroughten/spec-runner/SupervisionRecords";
 import type { StepSession } from "@byronbroughten/spec-runner/transcriptFacts";
@@ -56,7 +56,7 @@ export function whereYouAreLineOf({
     return undefined;
   }
   const { repo, number } = workspace.key;
-  return `You are in ${issueLabelOf(workspace.key)}'s workspace, leased to this session: \`/start-issue ${repo} ${number}\` continues it from its handoff, and work outside it needs \`ExitWorktree\` with \`keep\` first.`;
+  return `You are in ${issueRef.labelOf(workspace.key)}'s workspace, leased to this session: \`/start-issue ${repo} ${number}\` continues it from its handoff, and work outside it needs \`ExitWorktree\` with \`keep\` first.`;
 }
 
 export interface SupervisingSession {
@@ -75,9 +75,9 @@ export function supervisingLineOf({
   // A process end leaves no session of that process to start.
   if (endedBy === "processEnd") return undefined;
   if (endedBy !== undefined) {
-    return `This session supervised ${issueLabelOf(spec)}'s run until \`/${endedBy}\`; \`${command}\` rejoins from its last explained event.`;
+    return `This session supervised ${issueRef.labelOf(spec)}'s run until \`/${endedBy}\`; \`${command}\` rejoins from its last explained event.`;
   }
-  return `This session supervises ${issueLabelOf(spec)}'s run: \`${command}\` carries on from its last explained event, and \`/runner\` on another spec switches to that run.`;
+  return `This session supervises ${issueRef.labelOf(spec)}'s run: \`${command}\` carries on from its last explained event, and \`/runner\` on another spec switches to that run.`;
 }
 
 // Only these starts follow a session end in the same claude process, so only they can find its supervision record.
@@ -101,7 +101,7 @@ function leasedIssueOf(
 ): LeasedIssueWorkspace | undefined {
   return leasedWorkspacesOf(leased, holder).find(
     (workspace): workspace is LeasedIssueWorkspace =>
-      !isSessionKey(workspace.key),
+      !workspaceKey.isSession(workspace.key),
   );
 }
 

@@ -5,7 +5,7 @@ import { git, hasRef } from "../git.ts";
 import {
   type IssueRef,
   type Workspace,
-  workspaceLabelOf,
+  workspaceKey,
 } from "../IssueWorkspaces.ts";
 import { WrapUpBase } from "./WrapUpBase.ts";
 import {
@@ -35,7 +35,7 @@ export class LandingBranchFinder extends WrapUpBase {
     const branches = await this._branchesAheadOf(workspace);
     if (branches.length === 0) {
       throw new Error(
-        `${workspaceLabelOf(workspace.key)} has no commits ahead of master to land`,
+        `${workspaceKey.labelOf(workspace.key)} has no commits ahead of master to land`,
       );
     }
     return branches;

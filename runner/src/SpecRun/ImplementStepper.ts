@@ -26,7 +26,7 @@ import {
   moreTurnsPrompt,
   recordOnlyPrompt,
 } from "../implementStep.ts";
-import { issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
 import { SchemaFailure } from "../SchemaFailure.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import {
@@ -181,7 +181,7 @@ export class ImplementStepper extends SpecRunBase {
     state.handoffCount = count;
     state.latestHandoff = handoff;
     this._saveState(run);
-    this._log(run, `${issueLabelOf(ticket.issue)}: handoff ${count}.`);
+    this._log(run, `${issueRef.labelOf(ticket.issue)}: handoff ${count}.`);
   }
 
   // Checked at each fresh step's launch, so a crash or an answer other than `continue +1 handoff` never skips it.
@@ -334,7 +334,7 @@ function sessionIdOf(
   sessionId: string | undefined,
 ): string {
   if (sessionId === undefined) {
-    throw new Error(`${issueLabelOf(issue)}'s ${owner} has no session id.`);
+    throw new Error(`${issueRef.labelOf(issue)}'s ${owner} has no session id.`);
   }
   return sessionId;
 }

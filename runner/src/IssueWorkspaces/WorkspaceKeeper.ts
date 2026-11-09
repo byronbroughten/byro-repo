@@ -32,14 +32,13 @@ import { type LeaseHolder } from "./workspaceLeases.ts";
 import { WorkspaceSeeder } from "./WorkspaceSeeder.ts";
 import {
   type CreateOptions,
-  fileStemOf,
-  folderPrefixOf,
-  isSessionKey,
   type IssueRef,
+  issueRef,
   type RemoveOptions,
   type SessionKey,
   type Workspace,
   type WorkspaceKey,
+  workspaceKey,
   type WorkspaceStatus,
 } from "./workspaceTypes.ts";
 
@@ -60,7 +59,7 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
     key: WorkspaceKey,
     options: CreateOptions = {},
   ): Promise<Workspace> {
-    if (isSessionKey(key)) assertSessionCreate(key, options);
+    if (workspaceKey.isSession(key)) assertSessionCreate(key, options);
     const branchedRepos = this._branchedReposOf(key, options);
     const existing = await this.find(key);
     if (existing) {
@@ -74,7 +73,7 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
     const branch = await this.namer.branchName(key, options.slug);
     const path = join(
       this.config.workspaceFolder,
-      `${folderPrefixOf(key)}${branch}`,
+      `${workspaceKey.folderPrefixOf(key)}${branch}`,
     );
     await this._buildOrTearDown({ path, branch, branchedRepos });
     return { path, key, branch, branchedRepos };
@@ -96,7 +95,7 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
   async masterSet(spec: IssueRef): Promise<string> {
     const path = join(
       this.config.workspaceFolder,
-      `master-${fileStemOf(spec)}`,
+      `master-${issueRef.fileStemOf(spec)}`,
     );
     // Removed and pruned rather than torn down, so a half-removed set from a killed run can't block the rebuild.
     rmSync(path, { recursive: true, force: true });
@@ -185,7 +184,9 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
     key: WorkspaceKey,
     options: CreateOptions,
   ): string[] {
-    if (isSessionKey(key)) return this._clonesRootFirst.map(([repo]) => repo);
+    if (workspaceKey.isSession(key)) {
+      return this._clonesRootFirst.map(([repo]) => repo);
+    }
     const branchedRepos = [key.repo, ...(options.extraRepos ?? [])];
     branchedRepos.forEach((repo) => this._clonePathOf(repo));
     return branchedRepos;
@@ -305,7 +306,7 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
       path,
       key,
       // From the folder, which create() names after the branch, so it survives the repos being detached.
-      branch: basename(path).slice(folderPrefixOf(key).length),
+      branch: basename(path).slice(workspaceKey.folderPrefixOf(key).length),
       branchedRepos,
       dirtyRepos,
       createdAt: statSync(path).birthtime,

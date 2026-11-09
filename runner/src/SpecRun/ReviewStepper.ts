@@ -9,7 +9,7 @@ import { join } from "node:path";
 import type { StepRequest, StepResult } from "../AgentStep.ts";
 import { git } from "../git.ts";
 import { verdictHaltOf } from "../halts.ts";
-import { issueLabelOf, type Workspace } from "../IssueWorkspaces.ts";
+import { issueRef, type Workspace } from "../IssueWorkspaces.ts";
 import { strongerPairOf } from "../modelFit.ts";
 import {
   resolveCommitProblems,
@@ -127,7 +127,7 @@ export class ReviewStepper extends SpecRunBase {
         }
         this._log(
           run,
-          `${issueLabelOf(ticket.issue)}: the implementer's resolve crossed the live ceiling; handing the findings to a fresh resolver.`,
+          `${issueRef.labelOf(ticket.issue)}: the implementer's resolve crossed the live ceiling; handing the findings to a fresh resolver.`,
         );
         resolver = "fresh";
       } else if (attempt.kind === "capped") {
@@ -257,7 +257,7 @@ export class ReviewStepper extends SpecRunBase {
     const { run, ticket } = ticketRun;
     this._log(
       run,
-      `${issueLabelOf(ticket.issue)}: the ${step} step's session ${resumed.resumeSessionId} has no conversation; running it as a fresh session.`,
+      `${issueRef.labelOf(ticket.issue)}: the ${step} step's session ${resumed.resumeSessionId} has no conversation; running it as a fresh session.`,
     );
     const freshRan = await this._runResolverSession(ticketRun, "fresh", {
       ...this._resolverSessionOf(ticketRun, "fresh"),

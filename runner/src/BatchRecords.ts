@@ -13,7 +13,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 
-import { fileStemOf, isSameIssue, type IssueRef } from "./IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import { identityOf, type ProcessIdentity } from "./processIdentity.ts";
 import type { MemberList } from "./SpecRun/runState.ts";
 
@@ -92,12 +92,12 @@ export class BatchRecords {
   }
 
   private _pathOf(lead: IssueRef): string {
-    return join(this.folder, `${fileStemOf(lead)}.json`);
+    return join(this.folder, `${issueRef.fileStemOf(lead)}.json`);
   }
 }
 
 export function isMemberOf(members: IssueRef[], issue: IssueRef): boolean {
-  return members.some((member) => isSameIssue(member, issue));
+  return members.some((member) => issueRef.isSame(member, issue));
 }
 
 // Named by its first member, apart from that member's own event file.
@@ -109,5 +109,5 @@ export function batchEventFilePathOf(
 }
 
 function batchEventFileOf(lead: IssueRef): string {
-  return `${fileStemOf(lead)}.batch.events.jsonl`;
+  return `${issueRef.fileStemOf(lead)}.batch.events.jsonl`;
 }

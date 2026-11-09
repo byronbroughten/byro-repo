@@ -3,10 +3,9 @@
 import { matchingBranchesOf } from "../git.ts";
 import { IssueWorkspacesBase } from "./IssueWorkspacesBase.ts";
 import {
-  isSessionKey,
   type IssueRef,
-  sessionBranchOf,
   type WorkspaceKey,
+  workspaceKey,
 } from "./workspaceTypes.ts";
 
 const maxSlugWords = 6;
@@ -16,7 +15,7 @@ export class BranchNamer extends IssueWorkspacesBase {
     key: WorkspaceKey,
     slug: string | undefined,
   ): Promise<string> {
-    if (isSessionKey(key)) return sessionBranchOf(key);
+    if (workspaceKey.isSession(key)) return workspaceKey.sessionBranchOf(key);
     return this._issueBranchName(key, slug);
   }
 

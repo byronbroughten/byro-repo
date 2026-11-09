@@ -8,11 +8,7 @@ import { join } from "node:path";
 
 import { commandLabelOf } from "../failureText.ts";
 import { currentBranchOf } from "../git.ts";
-import {
-  issueLabelOf,
-  type IssueRef,
-  issuesOutside,
-} from "../IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
 import { localTimeOf } from "../localTime.ts";
 import { pairOf } from "../modelFit.ts";
 import { runCommand } from "../runCommand.ts";
@@ -178,23 +174,23 @@ export class PreflightChecker extends SpecRunBase {
     }
     const parent = await github.parentOf(ticket.issue);
     if (parent !== undefined) {
-      return `it belongs to the spec ${issueLabelOf(parent.issue)}; run it through its spec.`;
+      return `it belongs to the spec ${issueRef.labelOf(parent.issue)}; run it through its spec.`;
     }
     // A member blocker is waited on in the run; a landed but unjudged issue outside the Batch still refuses.
-    const blockers = issuesOutside(
+    const blockers = issueRef.outside(
       await github.openBlockersOf(ticket.issue),
       this.memberIssues,
     );
     if (blockers.length === 0) return undefined;
     const pronoun = blockers.length === 1 ? "that" : "those";
-    return `it's blocked by ${blockers.map(issueLabelOf).join(", ")}, still open; land ${pronoun} first, or ${dropPhraseOf()}.`;
+    return `it's blocked by ${blockers.map(issueRef.labelOf).join(", ")}, still open; land ${pronoun} first, or ${dropPhraseOf()}.`;
   }
 
   // A list of one's refusal is its message as written; a Batch's names each member, told apart by a blank line.
   private _refusedOf(refusals: MemberRefusal[]): RunResult {
     const reasons = refusals.map(({ member, refusal }) => {
       if (!this.isBatch) return refusal;
-      return `${issueLabelOf(member)}: ${refusal}`;
+      return `${issueRef.labelOf(member)}: ${refusal}`;
     });
     return { kind: "refused", landed: [], message: reasons.join("\n\n") };
   }
@@ -202,15 +198,15 @@ export class PreflightChecker extends SpecRunBase {
 
 // Filled before preflight only from a taken Restart, so a fresh launch's is empty.
 function isLandedByThisRun(run: Run): boolean {
-  const label = issueLabelOf(run.spec.issue);
-  return run.landed.some((landed) => issueLabelOf(landed) === label);
+  const label = issueRef.labelOf(run.spec.issue);
+  return run.landed.some((landed) => issueRef.labelOf(landed) === label);
 }
 
 function runLockRefusalOf(
   spec: IssueRef,
   { holder, path }: HeldRunLock,
 ): string {
-  const label = issueLabelOf(spec);
+  const label = issueRef.labelOf(spec);
   if (holder === undefined) {
     return `${label}'s run lock is unreadable, so it counts as held; remove ${path} if no run of it is going.`;
   }
@@ -231,10 +227,10 @@ function modelFitRefusalOf(
 ): string | undefined {
   if (run.isStandalone) {
     if (pairOf(run.spec.body) !== undefined) return undefined;
-    return `${issueLabelOf(run.spec.issue)} has no sub-issues and no valid ## Model fit section: split it with /code-tickets, or add the section.`;
+    return `${issueRef.labelOf(run.spec.issue)} has no sub-issues and no valid ## Model fit section: split it with /code-tickets, or add the section.`;
   }
   const offenders = launchable.flatMap(({ issue, body }) =>
-    pairOf(body) === undefined ? [issueLabelOf(issue)] : [],
+    pairOf(body) === undefined ? [issueRef.labelOf(issue)] : [],
   );
   if (offenders.length === 0) return undefined;
   return `Each open ${readyLabel} ticket needs a ## Model fit section naming one of the six pairs; missing or invalid in ${offenders.join(", ")}.`;

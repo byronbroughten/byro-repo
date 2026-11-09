@@ -5,17 +5,15 @@
 // The class that saves this state is SpecRunBase.ts; the coordinator callers build is ../SpecRun.ts; the Halt helpers are runState/runHalts.ts;
 // the session and step-record helpers are runState/ticketSteps.ts; the end, wait and refusal wording is runState/runText.ts;
 // the state file and progress log paths are runState/statePaths.ts; the command runner is ../runCommand.ts;
-// the issue-set helpers sit beside isSameIssue in ../IssueWorkspaces/workspaceTypes.ts.
+// the issue-set helpers sit beside issueRef.isSame in ../IssueWorkspaces/workspaceTypes.ts.
 
 import type { Pair, StepRequest, StepResult } from "../AgentStep.ts";
 import { type Halt, type StepFailure } from "../halts.ts";
 import { type Handoff, type ImplementRecord } from "../implementStep.ts";
 import { type BodyAuthorship } from "../IssueReader.ts";
 import {
-  isAmong,
-  issueLabelOf,
   type IssueRef,
-  issuesOutside,
+  issueRef,
   type LeaseHolder,
   type Workspace,
 } from "../IssueWorkspaces.ts";
@@ -263,13 +261,13 @@ export type SpecStepRequest = Omit<StepRequest, "account">;
 export type Crash = Pick<StepFailure, "detail" | "logPath">;
 
 export function ticketStateOf(run: Run, ticket: IssueRef): TicketState {
-  const key = issueLabelOf(ticket);
+  const key = issueRef.labelOf(ticket);
   run.state.tickets[key] ??= { step: "implement", sessions: [] };
   return run.state.tickets[key];
 }
 
 export function isLanded(run: Run, ticket: IssueRef): boolean {
-  return run.state.tickets[issueLabelOf(ticket)]?.step === "landed";
+  return run.state.tickets[issueRef.labelOf(ticket)]?.step === "landed";
 }
 
 export function targetsRefusalOf(
@@ -280,7 +278,7 @@ export function targetsRefusalOf(
   const offenders = checked.flatMap(({ issue, body }) => {
     const reading = targetsOf(body);
     if (reading.status === "valid") return [];
-    return [`${issueLabelOf(issue)} (\`${reading.line}\`)`];
+    return [`${issueRef.labelOf(issue)} (\`${reading.line}\`)`];
   });
   if (offenders.length === 0) return undefined;
   return `Each ## Targets line must be ${targetLineShapes}; malformed in ${offenders.join(", ")}.`;
@@ -308,8 +306,8 @@ export function unlandedBlockersOf(
   open: IssueRef[],
   { memberIssues, landedMembers }: BatchView,
 ): IssueRef[] {
-  return issuesOutside(
-    memberIssues.filter((each) => isAmong(each, open)),
+  return issueRef.outside(
+    memberIssues.filter((each) => issueRef.isAmong(each, open)),
     landedMembers,
   );
 }
@@ -320,8 +318,8 @@ export function memberBlockedWaitOf(
   blockers: IssueRef[],
 ): Wait {
   const text = runText.waitsToLand(
-    issueLabelOf(member),
-    blockers.map(issueLabelOf),
+    issueRef.labelOf(member),
+    blockers.map(issueRef.labelOf),
   );
   return { ticket: member, reason: "member-blocked", text };
 }

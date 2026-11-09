@@ -5,11 +5,7 @@
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import {
-  fileStemOf,
-  issueOfFileStem,
-  type IssueRef,
-} from "./IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import { type HeldLock, PidLock } from "./PidLock.ts";
 
 export interface HeldRunLock extends HeldLock {
@@ -50,12 +46,12 @@ export class RunLock extends PidLock {
     return readdirSync(stateFolder)
       .filter((name) => name.endsWith(lockSuffix))
       .sort()
-      .map((name) => issueOfFileStem(name.slice(0, -lockSuffix.length)));
+      .map((name) => issueRef.ofFileStem(name.slice(0, -lockSuffix.length)));
   }
 }
 
 const lockSuffix = ".run.lock";
 
 function lockPathOf(stateFolder: string, spec: IssueRef): string {
-  return join(stateFolder, `${fileStemOf(spec)}${lockSuffix}`);
+  return join(stateFolder, `${issueRef.fileStemOf(spec)}${lockSuffix}`);
 }

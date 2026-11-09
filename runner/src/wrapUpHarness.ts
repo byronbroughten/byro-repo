@@ -16,8 +16,8 @@ import { FactsFile, type WrapUpFacts } from "./FactsFile.ts";
 import { FakeGitHub } from "./FakeGitHub.ts";
 import { git, GitFixture } from "./GitFixture.ts";
 import {
-  fileStemOf,
   type IssueRef,
+  issueRef,
   IssueWorkspaces,
   type IssueWorkspacesConfig,
   type Workspace,
@@ -159,7 +159,7 @@ export function writeFacts(facts: Partial<WrapUpFacts> = {}): void {
 // A facts file as an older runner saved it, laid over writeFacts()'s defaults.
 export function writeSavedFacts(saved: Record<string, unknown>): void {
   writeFacts();
-  const path = join(temp, "state", `${fileStemOf(ticket)}.facts.json`);
+  const path = join(temp, "state", `${issueRef.fileStemOf(ticket)}.facts.json`);
   const facts = JSON.parse(readFileSync(path, "utf8")) as object;
   writeFileSync(path, JSON.stringify({ ...facts, ...saved }));
 }

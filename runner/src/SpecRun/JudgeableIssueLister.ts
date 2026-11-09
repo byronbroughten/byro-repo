@@ -2,7 +2,7 @@
 // reads one summary instead of a `gh` call per issue. One comment search finds the candidates; each is then judged by
 // SpecRunBase.ts's _judgementOf, which a run's end shares. SpecRun.ts delegates here.
 
-import { issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
 import { reviewListHeading } from "../reviewList.ts";
 import { runText } from "./runState/runText.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
@@ -28,6 +28,6 @@ export class JudgeableIssueLister extends SpecRunBase {
     const judgement = await this._judgementOf(issue);
     if (judgement === undefined) return undefined;
     const { title } = await this.config.github.issueOf(issue);
-    return `${issueLabelOf(issue)} · "${title}" · ${runText.judgementOf(judgement)}`;
+    return `${issueRef.labelOf(issue)} · "${title}" · ${runText.judgementOf(judgement)}`;
   }
 }

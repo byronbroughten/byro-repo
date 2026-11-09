@@ -1,8 +1,8 @@
 // `npm run issue:list`'s line for one workspace, and for a broken folder the command that clears it.
 import {
-  holderLabelOf,
   type Lease,
-  workspaceLabelOf,
+  leaseHolder,
+  workspaceKey,
   type WorkspaceStatus,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
 
@@ -16,7 +16,7 @@ export function workspaceLineOf(
     workspace;
   if (workspace.isBroken) {
     return [
-      workspaceLabelOf(key),
+      workspaceKey.labelOf(key),
       `broken: clear it with ${removeCommand} -- ${keyArgsOf(key)}`,
       `age ${ageOf(createdAt)}`,
       path,
@@ -25,7 +25,7 @@ export function workspaceLineOf(
   const dirty =
     dirtyRepos.length === 0 ? "clean" : `dirty: ${dirtyRepos.join(", ")}`;
   return [
-    workspaceLabelOf(key),
+    workspaceKey.labelOf(key),
     branch,
     `on branch: ${branchedRepos.join(", ")}`,
     dirty,
@@ -37,8 +37,8 @@ export function workspaceLineOf(
 
 function leaseLabelOf(lease: Lease | undefined): string {
   if (!lease) return "no lease";
-  if (!lease.isLive) return `lease abandoned by ${holderLabelOf(lease)}`;
-  return `leased by ${holderLabelOf(lease)}`;
+  if (!lease.isLive) return `lease abandoned by ${leaseHolder.labelOf(lease)}`;
+  return `leased by ${leaseHolder.labelOf(lease)}`;
 }
 
 function ageOf(createdAt: Date): string {

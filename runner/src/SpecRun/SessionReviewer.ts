@@ -12,13 +12,11 @@ import { ActiveAccountUnknown } from "../ActiveAccountUnknown.ts";
 import { messageOf } from "../failureText.ts";
 import { sessionHaltCountOf } from "../halts.ts";
 import {
-  holderLabelOf,
-  isSameIssue,
-  issueLabelOf,
   type IssueRef,
+  issueRef,
   type LeaseHolder,
-  otherLiveHolderOf,
-  workspaceLabelOf,
+  leaseHolder,
+  workspaceKey,
   type WorkspaceStatus,
 } from "../IssueWorkspaces.ts";
 import { LeaseHeld } from "../LeaseHeld.ts";
@@ -112,7 +110,7 @@ export class SessionReviewer extends SpecRunBase {
       });
       return {
         kind: "findings",
-        message: `Reviewed ${issueLabelOf(issue)}, findings: ${findings.length}. Resolve them in this session by \`docs/agents/verdicts.md\`, then hand your records to resolve.`,
+        message: `Reviewed ${issueRef.labelOf(issue)}, findings: ${findings.length}. Resolve them in this session by \`docs/agents/verdicts.md\`, then hand your records to resolve.`,
         halts: [],
         findings: numberedFindingsOf(findings),
       };
@@ -129,7 +127,7 @@ export class SessionReviewer extends SpecRunBase {
     const pending = this.factsFile.pendingResolveOf(issue);
     if (pending === undefined) {
       return refusedReviewOf(
-        `${issueLabelOf(issue)} has no findings waiting on this session; run review first.`,
+        `${issueRef.labelOf(issue)} has no findings waiting on this session; run review first.`,
       );
     }
     const outputProblems = resolveOutputProblems(output);
@@ -192,9 +190,9 @@ export class SessionReviewer extends SpecRunBase {
     };
     const workspace = await this.workspaces.find(issue);
     if (workspace === undefined) {
-      return `${issueLabelOf(issue)} has no issue workspace; open it with \`npm run issue:start\` first.`;
+      return `${issueRef.labelOf(issue)} has no issue workspace; open it with \`npm run issue:start\` first.`;
     }
-    const checked = isSameIssue(run.spec.issue, issue) ? [] : [ticket];
+    const checked = issueRef.isSame(run.spec.issue, issue) ? [] : [ticket];
     const refusal =
       (await this._authorshipRefusal("the spec and the reviewed ticket", [
         run.spec,
@@ -204,7 +202,7 @@ export class SessionReviewer extends SpecRunBase {
       leaseRefusalOf(workspace, holder) ??
       (isDirtyRefused ? dirtyRefusalOf(workspace) : undefined);
     if (refusal !== undefined) return refusal;
-    run.state.tickets[issueLabelOf(issue)] = state;
+    run.state.tickets[issueRef.labelOf(issue)] = state;
     return {
       run,
       ticket,
@@ -262,7 +260,7 @@ export class SessionReviewer extends SpecRunBase {
       // Logged, not thrown, so a failed write never replaces the review's own result.
       this._log(
         run,
-        `${issueLabelOf(ticket.issue)}: recording the review's sessions failed: ${messageOf(error)}`,
+        `${issueRef.labelOf(ticket.issue)}: recording the review's sessions failed: ${messageOf(error)}`,
       );
     }
   }
@@ -283,9 +281,9 @@ function leaseRefusalOf(
   { key, lease }: WorkspaceStatus,
   holder: LeaseHolder | undefined,
 ): string | undefined {
-  const other = otherLiveHolderOf(lease, holder);
+  const other = leaseHolder.otherLiveOf(lease, holder);
   if (other === undefined) return undefined;
-  return `${workspaceLabelOf(key)}'s workspace is leased by ${holderLabelOf(other)}.`;
+  return `${workspaceKey.labelOf(key)}'s workspace is leased by ${leaseHolder.labelOf(other)}.`;
 }
 
 // The resolve step resets the tree when it is killed or capped, so it would lose them.
@@ -294,7 +292,7 @@ function dirtyRefusalOf({
   dirtyRepos,
 }: WorkspaceStatus): string | undefined {
   if (dirtyRepos.length === 0) return undefined;
-  return `${workspaceLabelOf(key)}'s workspace has uncommitted changes in ${dirtyRepos.join(", ")}; commit them first.`;
+  return `${workspaceKey.labelOf(key)}'s workspace has uncommitted changes in ${dirtyRepos.join(", ")}; commit them first.`;
 }
 
 function refusedReviewOf(message: string): ReviewResult {
@@ -311,7 +309,7 @@ function brokenRulesOf(problems: string[]): ReviewResult {
 function reviewedMessageOf({ ticket, state }: TicketRun): string {
   const { whatReviewCaught } = ticketSteps.reviewFactsOf(state);
   const findings = state.findings?.length ?? 0;
-  return `Reviewed ${issueLabelOf(ticket.issue)}, findings: ${findings}. ${whatReviewCaught ?? "Nothing to fix or decide."}`;
+  return `Reviewed ${issueRef.labelOf(ticket.issue)}, findings: ${findings}. ${whatReviewCaught ?? "Nothing to fix or decide."}`;
 }
 
 // Undefined when resolve kept no records, or halted before it ran.
@@ -325,7 +323,7 @@ function reviewListOf({ ticket, state }: TicketRun): string | undefined {
 
 function reviewEndOf(ticketRun: TicketRun, error: unknown): ReviewResult {
   const { run, ticket } = ticketRun;
-  const label = issueLabelOf(ticket.issue);
+  const label = issueRef.labelOf(ticket.issue);
   const halts = run.sessionReview?.postedHalts ?? [];
   if (error instanceof TicketHalted) {
     const message = `The review of ${label} halted on Halt ${runHalts.idListOf(runHalts.of(run))}; answer it in this session.`;

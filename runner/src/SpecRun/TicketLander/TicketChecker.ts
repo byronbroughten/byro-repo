@@ -5,7 +5,7 @@
 // The prompt is ../../redChecksStep.ts and each check runs through ../../runCommand.ts.
 
 import { commandLabelOf, messageOf } from "../../failureText.ts";
-import { issueLabelOf } from "../../IssueWorkspaces.ts";
+import { issueRef } from "../../IssueWorkspaces.ts";
 import { redChecksOutputSchema, redChecksPrompt } from "../../redChecksStep.ts";
 import { runCommand } from "../../runCommand.ts";
 import { RunStop } from "../../RunStop.ts";
@@ -44,7 +44,7 @@ export class TicketChecker extends SpecRunBase {
     for (const command of this.config.knobs.checks) {
       this._log(
         ticketRun.run,
-        `${issueLabelOf(ticketRun.ticket.issue)}: checking ${commandLabelOf(command)}.`,
+        `${issueRef.labelOf(ticketRun.ticket.issue)}: checking ${commandLabelOf(command)}.`,
       );
       const failure = await runCommand(command, ticketRun.workspace.path);
       if (failure !== undefined) {
@@ -57,7 +57,7 @@ export class TicketChecker extends SpecRunBase {
 
   // Checks run in a master set, so neither another session's uncommitted edit nor a local fix hides master's own state.
   private async _stopOnRedMaster({ run, ticket }: TicketRun): Promise<void> {
-    const prefix = `Stopped the run at ${issueLabelOf(ticket.issue)}'s checks`;
+    const prefix = `Stopped the run at ${issueRef.labelOf(ticket.issue)}'s checks`;
     let masterSet: string;
     try {
       masterSet = await this.workspaces.masterSet(run.spec.issue);
@@ -96,7 +96,7 @@ export class TicketChecker extends SpecRunBase {
     }
     this._log(
       run,
-      `${issueLabelOf(ticket.issue)}: checks red; resuming the ${resolverLabels[resolver]} with the failure.`,
+      `${issueRef.labelOf(ticket.issue)}: checks red; resuming the ${resolverLabels[resolver]} with the failure.`,
     );
     this._markStepStarted(ticketRun);
     const { result, logPath } = await this.reviewStepper._runResolverStep(

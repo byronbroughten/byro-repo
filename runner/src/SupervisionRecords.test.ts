@@ -16,8 +16,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { batchEventFilePathOf, BatchRecords } from "./BatchRecords.ts";
 import { eventFilePathOf } from "./EventFileNotices.ts";
 import {
-  fileStemOf,
   type IssueRef,
+  issueRef,
   type LeaseHolder,
 } from "./IssueWorkspaces.ts";
 import { deadPid, seedHolder } from "./lockFixture.ts";
@@ -55,7 +55,7 @@ function appendEvents(of: IssueRef, ...lines: string[]): void {
 
 function seedRunLock(of: IssueRef, pid: number): void {
   mkdirSync(stateFolder, { recursive: true });
-  seedHolder(join(stateFolder, `${fileStemOf(of)}.run.lock`), {
+  seedHolder(join(stateFolder, `${issueRef.fileStemOf(of)}.run.lock`), {
     pid,
     host: hostname(),
     startedAt: "2026-01-01",
@@ -410,7 +410,7 @@ describe("a Batch's supervision record", () => {
       const later = new Date(Date.now() + 60_000);
       seedRunLock(spec, process.pid);
       utimesSync(
-        join(stateFolder, `${fileStemOf(spec)}.run.lock`),
+        join(stateFolder, `${issueRef.fileStemOf(spec)}.run.lock`),
         later,
         later,
       );
@@ -424,7 +424,7 @@ describe("a Batch's supervision record", () => {
       const earlier = new Date(Date.now() - 60_000);
       seedRunLock(spec, process.pid);
       utimesSync(
-        join(stateFolder, `${fileStemOf(spec)}.run.lock`),
+        join(stateFolder, `${issueRef.fileStemOf(spec)}.run.lock`),
         earlier,
         earlier,
       );
