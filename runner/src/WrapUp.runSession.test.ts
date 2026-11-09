@@ -218,7 +218,7 @@ describe("runSession", () => {
     expect(git(primaryRoot, "rev-parse", "master")).toBe(masterBefore);
   });
 
-  it("refuses to push a token-shaped line, keeping the landing, and pushes once a rerun rescans it clean", async () => {
+  it("refuses to push a token-shaped line, keeping the landing, and pushes once a rerun rescans history without it", async () => {
     const workspace = await sessionWorkspace();
     const key = `AIza${"x7".repeat(18).slice(0, 35)}`;
     commitIn(
@@ -247,8 +247,10 @@ describe("runSession", () => {
     expect(subjectsOf("sheets-framework")[0]).toBe("Add keys.ts");
 
     const framework = primaryOf("sheets-framework");
-    git(framework, "rm", "-q", "keys.ts");
-    git(framework, "commit", "-m", "Drop the key");
+    git(framework, "reset", "-q", "--hard", "origin/master");
+    writeFileSync(join(framework, "notes.md"), "Notes\n");
+    git(framework, "add", "notes.md");
+    git(framework, "commit", "-m", "Add notes");
     await sessionWrapUp().runSession(session);
 
     expect(git(remoteOf("sheets-framework"), "rev-parse", "master")).toBe(

@@ -83,7 +83,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SandboxProbe.ts` | `SandboxProbe` | `npm run session:probe -- --sandbox-check`: which listed commands a folder's sandbox stops. |
 | `savedFormats.ts` | | Reads an older runner's run state, facts file and supervision record into today's shapes. |
 | `SchemaFailure.ts` | | The error for a step record that fails its checks. |
-| `secretScan.ts` | | Wrap-up's secret scan: the token-shaped lines a diff adds, refused before a push. |
+| `secretScan.ts` | | Wrap-up's secret scan: the token-shaped lines each pushed commit adds, refused before a push. |
 | `secretShapes.ts` | | The token shapes wrap-up's secret scan looks for. |
 | `SessionProbe.ts` | `SessionProbe` | `npm run session:probe`: what a SessionStart hook sees in a folder. |
 | `sleep.ts` | | A promised delay. |

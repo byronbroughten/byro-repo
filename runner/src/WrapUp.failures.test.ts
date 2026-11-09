@@ -85,7 +85,37 @@ describe("run", () => {
       );
     });
 
-    it("pushes on a rerun once the token-shaped line is removed from the landed master", async () => {
+    it("refuses a token a later commit of the landing removes, pushing nothing", async () => {
+      const workspace = await workspaceWith(["sheets-framework"]);
+      const key = `AIza${"x7".repeat(18).slice(0, 35)}`;
+      commitIn(
+        workspace,
+        "sheets-framework",
+        "keys.ts",
+        `export const key = "${key}";\n`,
+      );
+      commitIn(workspace, "sheets-framework", "keys.ts", "export {};\n");
+      const remoteBefore = git(
+        remoteOf("sheets-framework"),
+        "rev-parse",
+        "master",
+      );
+      writeFacts();
+
+      const failure = await wrapUp()
+        .run(ticket)
+        .catch((error: unknown) => error);
+
+      expect((failure as WrapUpFailure).kind).toBe("secret-scan");
+      expect((failure as WrapUpFailure).message).toContain(
+        "sheets-framework keys.ts:1",
+      );
+      expect(git(remoteOf("sheets-framework"), "rev-parse", "master")).toBe(
+        remoteBefore,
+      );
+    });
+
+    it("pushes on a rerun once the token-shaped line is dropped from the landed master's history", async () => {
       const workspace = await workspaceWith();
       commitIn(
         workspace,
@@ -96,8 +126,10 @@ describe("run", () => {
       writeFacts();
       expect(await failureOf(wrapUp().run(ticket))).toBe("secret-scan");
 
-      git(primaryRoot, "rm", "-q", "keys.ts");
-      git(primaryRoot, "commit", "-m", "Drop the key");
+      git(primaryRoot, "reset", "-q", "--hard", "origin/master");
+      writeFileSync(join(primaryRoot, "notes.md"), "Notes\n");
+      git(primaryRoot, "add", "notes.md");
+      git(primaryRoot, "commit", "-m", "Add notes");
       await wrapUp().run(ticket);
 
       expect(git(remoteOf("byro-repo"), "rev-parse", "master")).toBe(

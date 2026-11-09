@@ -109,6 +109,20 @@ describe("WrapUp.pushResearch", () => {
     expect(remoteHeadOf(research)).toBeUndefined();
   });
 
+  it("refuses a secret a later commit removes, naming the file and line, and pushes nothing", async () => {
+    const checkout = await checkoutOn(research);
+    commitFileIn(checkout, "creds.json", secretLine);
+    commitFileIn(checkout, "creds.json", "{}\n");
+
+    const refusal = await errorOf(wrapUp().pushResearch(checkout));
+
+    expect((refusal as WrapUpFailure).kind).toBe("secret-scan");
+    expect(refusal.message).toContain(
+      "byro-repo creds.json:1 (OAuth client secret)",
+    );
+    expect(remoteHeadOf(research)).toBeUndefined();
+  });
+
   it("scans only what the push adds over the remote branch", async () => {
     const checkout = await checkoutOn(research);
     commitFileIn(checkout, "creds.json", secretLine);
