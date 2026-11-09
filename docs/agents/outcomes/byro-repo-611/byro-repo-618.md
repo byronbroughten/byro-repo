@@ -1,0 +1,7 @@
+# byro-repo#618 outcome
+
+Spec: [byro-repo#611](https://github.com/byronbroughten/byro-repo/issues/611)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #618 | Opus medium | 3, 1 | 7 | 151K | Fix (resumed implementer) | 3 | 1 | 0 | 32 min | $4.46 | $5.96 | Fixed: The comment's count of five repos is wrong now that a file picks its clones. (runner/src/specRunHarness.ts:60); primaryOf returns a folder that doesn't exist for a clone the file's harness didn't build. (runner/src/specRunHarness.ts:119-120); The clonePaths initializer is dead because useSpecRunHarness always assigns it. (runner/src/specRunHarness.ts:43); The fsync and maintenance config has no measured benefit and reaches fixture users outside SpecRun. (runner/src/GitFixture.ts:17-18,45,49). Proposed: Record<string, string> stands in for the repo-to-clone-path map, which has no named type. (runner/src/specRunHarness.ts:42,43,58); The harness holds helper groups that share little and could split by subject. (runner/src/specRunHarness.ts (outline; :224-402, :403-434, :440-468)); Timing wasn't taken on an idle machine, and the small per-file savings are near the spread between before figures. (byro-repo#618 comment 2 (timing table)). | fed02e75-b093-4319-beac-d521f1b56573, 27f34c30-0475-4cb6-9bf3-fb955ce2080c |
