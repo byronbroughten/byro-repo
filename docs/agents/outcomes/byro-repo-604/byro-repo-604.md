@@ -1,0 +1,7 @@
+# byro-repo#604 outcome
+
+Spec: [byro-repo#604](https://github.com/byronbroughten/byro-repo/issues/604)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #604 | Opus medium | 3 | 10 | 126K | Fix (resumed implementer) | 1 | 1 | 0 | 18 min | $2.59 | $4.28 | Fixed: wrap-up.md's title, lead and map row say it covers only a spec landing, though the diff added session-landing content and a link from Landing a session. (docs/agents/git-workflow/wrap-up.md:1,3 and docs/agents/prose-files.md:48); `## New dependencies` is now a format several skills and Steps share and has no row in the shared formats table. (docs/agents/coding-workflow.md, The shared formats table); The pointers to wrap-up.md omit the name check at :30 and use the link text `how` at :37. (docs/agents/git-workflow.md:30 and :37); The wrap-up row's weakening leaves out that the install runs outside the sandbox. (docs/targets-and-gates.md:25); The workspace install's trigger is overstated: it runs only when the merged result differs from the branch. (docs/agents/git-workflow/wrap-up.md:12). Proposed: The output-schema group shares nothing with the prompt and handoff helpers, so the module could split by subject. (runner/src/implementStep.ts:277-end). | 4a8f4ca0-0284-4438-92b2-fcd0e10d3580, 85a02345-0d70-45a5-8d82-446979d0ea56 |
