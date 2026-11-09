@@ -15,12 +15,11 @@ import { runCommand } from "../runCommand.ts";
 import { type HeldRunLock, RunLock } from "../RunLock.ts";
 import {
   interactiveLabel,
-  isLaunchable,
   type MemberList,
   readyLabel,
   type Run,
   type RunResult,
-  targetsRefusalOf,
+  ticketLaunch,
   type TrackedIssue,
 } from "./runState.ts";
 import { ticketSteps } from "./runState/ticketSteps.ts";
@@ -144,7 +143,7 @@ export class PreflightChecker extends SpecRunBase {
     return (
       (await this._authorshipRefusal("the spec", [run.spec])) ??
       modelFitRefusalOf(run, launchable) ??
-      targetsRefusalOf(run, launchable)
+      ticketLaunch.targetsRefusalOf(run, launchable)
     );
   }
 
@@ -154,7 +153,7 @@ export class PreflightChecker extends SpecRunBase {
     const launchable: TrackedIssue[] = [];
     for (const ticket of run.tickets) {
       const tracked = await this.config.github.issueOf(ticket);
-      if (isLaunchable(tracked)) launchable.push(tracked);
+      if (ticketLaunch.isReady(tracked)) launchable.push(tracked);
     }
     return launchable;
   }

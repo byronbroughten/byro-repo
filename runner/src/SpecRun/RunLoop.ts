@@ -26,13 +26,12 @@ import { PreflightChecker } from "./PreflightChecker.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
 import {
   type BatchView,
-  memberBlockedWaitOf,
+  memberBlocking,
   type MemberList,
   type Restart,
   type Run,
   type RunResult,
   type TicketOutcome,
-  unlandedBlockersOf,
   type Wait,
 } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
@@ -289,7 +288,7 @@ export class RunLoop extends SpecRunBase {
       const open = await this.config.github.openBlockersOf(
         memberIssueOf(member),
       );
-      const blockerIssues = unlandedBlockersOf(open, batch);
+      const blockerIssues = memberBlocking.unlandedOf(open, batch);
       const blockers = members.filter((each) =>
         issueRef.isAmong(memberIssueOf(each), blockerIssues),
       );
@@ -332,7 +331,7 @@ export class RunLoop extends SpecRunBase {
       const blockers = blockersOf.get(member);
       if (blockers !== undefined) {
         const waits = [
-          memberBlockedWaitOf(
+          memberBlocking.waitOf(
             memberIssueOf(member),
             blockers.map(memberIssueOf),
           ),

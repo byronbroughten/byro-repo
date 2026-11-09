@@ -16,10 +16,9 @@ import { readingLabelOf } from "../limitGuard.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
 import {
   type BatchView,
-  isLanded,
-  memberBlockedWaitOf,
+  memberBlocking,
   type Run,
-  unlandedBlockersOf,
+  runTickets,
   type Wait,
 } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
@@ -97,7 +96,7 @@ export class StatusReporter extends SpecRunBase {
   private async _isMemberLanded(run: Run): Promise<boolean> {
     if (runHalts.openOf(run).length > 0) return false;
     for (const ticket of run.tickets) {
-      if (isLanded(run, ticket)) continue;
+      if (runTickets.isLanded(run, ticket)) continue;
       if ((await this.config.github.issueOf(ticket)).isOpen) return false;
     }
     return this.reviewListPoster._isGapChecked(run);
@@ -106,7 +105,9 @@ export class StatusReporter extends SpecRunBase {
   private async _statusBlockOf(run: Run, batch: BatchView): Promise<string> {
     const openHalts = runHalts.openOf(run);
     const waits = await this._waitsOf(run, { ...batch, openHalts });
-    const landed = run.tickets.filter((ticket) => isLanded(run, ticket));
+    const landed = run.tickets.filter((ticket) =>
+      runTickets.isLanded(run, ticket),
+    );
     const current = waits.flatMap((wait) => currentTextOf(run, wait));
     const others = waits.filter(({ holder }) => holder?.kind !== "run");
     return [
@@ -125,7 +126,7 @@ export class StatusReporter extends SpecRunBase {
   ): Promise<Wait[]> {
     const member = run.spec.issue;
     const blockers = await this._memberBlockersOf(member, batch);
-    if (blockers.length > 0) return [memberBlockedWaitOf(member, blockers)];
+    if (blockers.length > 0) return [memberBlocking.waitOf(member, blockers)];
     const survey = await this.ticketSelector._survey(run, {
       openHalts,
       landedMembers: batch.landedMembers,
@@ -139,7 +140,7 @@ export class StatusReporter extends SpecRunBase {
   ): Promise<IssueRef[]> {
     if (batch.memberIssues.length === 1) return [];
     const open = await this.config.github.openBlockersOf(member);
-    return unlandedBlockersOf(open, batch);
+    return memberBlocking.unlandedOf(open, batch);
   }
 
   private async _activeReadingLabelOf(run: Run): Promise<string> {

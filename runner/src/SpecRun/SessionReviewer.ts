@@ -40,8 +40,7 @@ import {
   type ResolveOptions,
   type ReviewOptions,
   type ReviewResult,
-  targetsAtLaunchOf,
-  targetsRefusalOf,
+  ticketLaunch,
   type TicketRun,
   type TicketState,
 } from "./runState.ts";
@@ -198,7 +197,7 @@ export class SessionReviewer extends SpecRunBase {
         run.spec,
         ...checked,
       ])) ??
-      targetsRefusalOf(run, [ticket]) ??
+      ticketLaunch.targetsRefusalOf(run, [ticket]) ??
       leaseRefusalOf(workspace, holder) ??
       (isDirtyRefused ? dirtyRefusalOf(workspace) : undefined);
     if (refusal !== undefined) return refusal;
@@ -210,7 +209,7 @@ export class SessionReviewer extends SpecRunBase {
       pair: pairOf(ticket.body) ?? this.config.knobs.resolverPair,
       workspace,
       state,
-      targets: targetsAtLaunchOf(ticket, this._progressPathOf(run)),
+      targets: ticketLaunch.validTargetsOf(ticket, this._progressPathOf(run)),
     };
   }
 

@@ -51,8 +51,8 @@ import {
   type RanStep,
   type Run,
   type RunResult,
+  runTickets,
   type SpecStepRequest,
-  ticketStateOf,
   type TrackedIssue,
   type Wait,
 } from "./runState.ts";
@@ -73,7 +73,7 @@ export class ReviewListPoster extends SpecRunBase {
 
   // Posts the notes before the comment, so a ticket marked posted has posted both.
   async _postReviewList(run: Run, ticket: TrackedIssue): Promise<void> {
-    const state = ticketStateOf(run, ticket.issue);
+    const state = runTickets.stateOf(run, ticket.issue);
     if (state.isReviewListPosted) return;
     const records = state.resolveRecords ?? [];
     await this._postCoveredLaterNotes(ticket.issue, records);
@@ -96,7 +96,7 @@ export class ReviewListPoster extends SpecRunBase {
     const list = {
       ticket: ticket.issue,
       title: ticket.title,
-      records: ticketStateOf(run, ticket.issue).resolveRecords ?? [],
+      records: runTickets.stateOf(run, ticket.issue).resolveRecords ?? [],
     };
     const mark = reviewListMarkOf(ticket.issue);
     const listed = (
