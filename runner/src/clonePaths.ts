@@ -4,6 +4,8 @@ import { execFileSync } from "node:child_process";
 import { type Dirent, existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
+export type ClonePaths = Record<string, string>;
+
 interface Clone {
   repo: string;
   clonePath: string;
@@ -11,14 +13,14 @@ interface Clone {
   dependencyNames: string[];
 }
 
-export function clonePathsOf(primaryRoot: string): Record<string, string> {
+export function clonePathsOf(primaryRoot: string): ClonePaths {
   const clones = packageFoldersOf(primaryRoot)
     .filter((entry) => entry.isDirectory())
     .map(({ name }) => join("packages", name))
     .sort()
     .filter((clonePath) => existsSync(join(primaryRoot, clonePath, ".git")))
     .map((clonePath) => cloneOf(primaryRoot, clonePath));
-  return dependencyOrderOf(clones).reduce<Record<string, string>>(
+  return dependencyOrderOf(clones).reduce<ClonePaths>(
     (paths, { repo, clonePath }) => {
       if (paths[repo] !== undefined) {
         throw new Error(

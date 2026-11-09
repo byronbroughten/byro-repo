@@ -3,6 +3,8 @@
 import { existsSync } from "node:fs";
 import { join, posix } from "node:path";
 
+import type { ClonePaths } from "@byronbroughten/spec-runner/clonePaths";
+
 const backlinkPrefix = "Design decision: ";
 const adrInClone = /^docs\/adr\/\d{4}-[a-z0-9-]+\.md$/;
 
@@ -10,7 +12,7 @@ export interface Clones {
   owner: string;
   // The workspace root, which an ADR path is relative to.
   root: string;
-  clonePaths: Record<string, string>;
+  clonePaths: ClonePaths;
 }
 
 export function backlinkLineOf(adrPath: string, clones: Clones): string {

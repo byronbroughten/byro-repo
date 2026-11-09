@@ -4,6 +4,7 @@
 import { readFileSync } from "node:fs";
 
 import type { Pair } from "./AgentStep.ts";
+import type { ClonePaths } from "./clonePaths.ts";
 
 export type Command = [string, ...string[]];
 
@@ -22,7 +23,7 @@ export type ReviewListCadence = "end-of-run" | "per-ticket";
 
 export interface RunKnobs {
   // Repo name to its clone's path relative to the primary root; the root repo's is ".".
-  clonePaths: Record<string, string>;
+  clonePaths: ClonePaths;
   skillNames: { review: string };
   // Run from a workspace or primary root: after review in each ticket, and in a master set when they go red in a ticket.
   checks: Command[];
@@ -102,7 +103,7 @@ export const defaultRunKnobs: RunKnobs = {
 
 export function loadRunKnobs(
   overridePath: string,
-  clonePaths: Record<string, string>,
+  clonePaths: ClonePaths,
 ): RunKnobs {
   return {
     ...runKnobsOf(

@@ -12,8 +12,10 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import type { ClonePaths } from "./clonePaths.ts";
+
 // For a file with no test about a second repo: a run's or wrap-up's git calls are mostly per clone, so one clone costs fewer of them.
-export const rootCloneOnly: Record<string, string> = { "byro-repo": "." };
+export const rootCloneOnly: ClonePaths = { "byro-repo": "." };
 
 interface GitFixtureFiles {
   gitignoreOf: (repo: string) => string;
@@ -23,15 +25,15 @@ interface GitFixtureFiles {
 // A primary root of clones, each pushed to a bare remote, built once per test file and copied into each test's folder.
 export class GitFixture {
   private readonly template: string;
-  private readonly clonePaths: Record<string, string>;
+  private readonly clonePaths: ClonePaths;
 
-  constructor(template: string, clonePaths: Record<string, string>) {
+  constructor(template: string, clonePaths: ClonePaths) {
     this.template = template;
     this.clonePaths = clonePaths;
   }
 
   static init(
-    clonePaths: Record<string, string>,
+    clonePaths: ClonePaths,
     { gitignoreOf, addUntracked = () => {} }: GitFixtureFiles,
   ): GitFixture {
     const template = realpathSync(mkdtempSync(join(tmpdir(), "git-fixture-")));
@@ -76,10 +78,7 @@ export class GitFixture {
   }
 }
 
-export function clonePathIn(
-  clones: Record<string, string>,
-  repo: string,
-): string {
+export function clonePathIn(clones: ClonePaths, repo: string): string {
   const clonePath = clones[repo];
   if (clonePath === undefined) {
     throw new Error(`This test file's harness has no ${repo} clone.`);

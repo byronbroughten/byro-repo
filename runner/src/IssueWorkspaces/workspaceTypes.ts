@@ -1,5 +1,6 @@
 // The IssueRef, key and workspace types and the key and issue-set helpers IssueWorkspaces' callers and collaborators share; IssueWorkspaces.ts re-exports them.
 
+import type { ClonePaths } from "../clonePaths.ts";
 import type { Lease, LeaseHolder } from "./workspaceLeases.ts";
 
 export interface IssueRef {
@@ -27,7 +28,7 @@ export interface CreateOptions {
 export interface IssueWorkspacesConfig {
   primaryRoot: string;
   // Repo name to its clone's path relative to the primary root; the root repo's is ".". Wrap-up lands clones in this order.
-  clonePaths: Record<string, string>;
+  clonePaths: ClonePaths;
   workspaceFolder: string;
   // Gitignored files symlinked from each primary clone that has them.
   symlinkedFiles: string[];

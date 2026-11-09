@@ -12,6 +12,7 @@ import { join } from "node:path";
 
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
 
+import type { ClonePaths } from "./clonePaths.ts";
 import { FactsFile, type WrapUpFacts } from "./FactsFile.ts";
 import { FakeGitHub } from "./FakeGitHub.ts";
 import { clonePathIn, git, GitFixture, rootCloneOnly } from "./GitFixture.ts";
@@ -43,12 +44,10 @@ export let temp: string;
 export let primaryRoot: string;
 export let github: FakeGitHub;
 export let sleeps: number[];
-let testFileClonePaths: Record<string, string>;
+let testFileClonePaths: ClonePaths;
 
 // Each harness owns the temp and primaryRoot its test files import, so a shared setup would hand them back through getters.
-export function useWrapUpHarness(
-  clones: Record<string, string> = clonePaths,
-): void {
+export function useWrapUpHarness(clones: ClonePaths = clonePaths): void {
   // Real git runs alongside every other git-heavy test file, which slows a test past the 5s default.
   vi.setConfig({ testTimeout: 15_000 });
   testFileClonePaths = clones;

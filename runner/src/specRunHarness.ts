@@ -15,6 +15,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
 
 import type { AgentStep, StepRequest, StepResult } from "./AgentStep.ts";
 import { batchEventFilePathOf } from "./BatchRecords.ts";
+import type { ClonePaths } from "./clonePaths.ts";
 import { EventFileNotices, type EventLine } from "./EventFileNotices.ts";
 import type { WrapUpFacts } from "./FactsFile.ts";
 import type { FakeAgentStep, ScriptedStep } from "./FakeAgentStep.ts";
@@ -39,7 +40,7 @@ const everyClone = {
   "sheets-framework": "packages/framework",
 };
 export { rootCloneOnly };
-export let clonePaths: Record<string, string>;
+export let clonePaths: ClonePaths;
 
 export const spec: IssueRef = { repo: "byro-repo", number: 213 };
 // Small binaries, not node, since every run spawns them and a node process costs several times as much to start.
@@ -53,9 +54,7 @@ export let notices: FakeNotices;
 export let usageReader: UsageReader;
 
 // The git fixture is built once per file and copied per test, since building it cost about 0.3s of each test.
-export function useSpecRunHarness(
-  clones: Record<string, string> = everyClone,
-): void {
+export function useSpecRunHarness(clones: ClonePaths = everyClone): void {
   // Each run spawns real git over each clone, which a concurrent npm run check slows past the 5s default.
   vi.setConfig({ testTimeout: 15_000 });
   clonePaths = clones;
