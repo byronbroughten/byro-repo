@@ -70,6 +70,11 @@ const rootTrackedFiles: Record<string, string> = {
   "config/README.md": "# config\n",
 };
 
+interface Lockfile {
+  primaryRoot: string;
+  content: string;
+}
+
 let fixture: GitFixture;
 let temp: string;
 let root: string;
@@ -81,9 +86,10 @@ beforeAll(() => {
   fixture = GitFixture.init(clonePaths, {
     gitignoreOf: (repo) =>
       repo === "byro-repo" ? "packages/*\npackage-lock.json\n" : "",
-    trackedFilesOf: (repo) => (repo === "byro-repo" ? rootTrackedFiles : {}),
+    initialCommitFilesOf: (repo) =>
+      repo === "byro-repo" ? rootTrackedFiles : {},
     addUntracked: (primaryRoot) =>
-      writeFileSync(join(primaryRoot, "package-lock.json"), "lock 1"),
+      writeLockfile({ primaryRoot, content: "lock 1" }),
   });
 });
 
@@ -123,8 +129,8 @@ function checks(
   });
 }
 
-function writeLockfile(content: string): void {
-  writeFileSync(join(root, "package-lock.json"), content);
+function writeLockfile({ primaryRoot, content }: Lockfile): void {
+  writeFileSync(join(primaryRoot, "package-lock.json"), content);
 }
 
 // Commits a change to one file, from inside the folder that holds it.
@@ -411,7 +417,7 @@ describe("Checks.run", () => {
 
   it("puts back every package after the lockfile changes", async () => {
     await stampEveryPackage();
-    writeLockfile("lock 2");
+    writeLockfile({ primaryRoot: root, content: "lock 2" });
 
     const result = await checks([marking("a")]).run();
 

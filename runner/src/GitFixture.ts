@@ -19,8 +19,7 @@ export const rootCloneOnly: ClonePaths = { "byro-repo": "." };
 
 interface GitFixtureFiles {
   gitignoreOf: (repo: string) => string;
-  // Contents by path relative to the clone, committed in its initial commit.
-  trackedFilesOf?: (repo: string) => Record<string, string>;
+  initialCommitFilesOf?: (repo: string) => Record<string, string>;
   addUntracked?: (primaryRoot: string) => void;
 }
 
@@ -38,7 +37,7 @@ export class GitFixture {
     clonePaths: ClonePaths,
     {
       gitignoreOf,
-      trackedFilesOf = () => ({}),
+      initialCommitFilesOf = () => ({}),
       addUntracked = () => {},
     }: GitFixtureFiles,
   ): GitFixture {
@@ -56,7 +55,7 @@ export class GitFixture {
       git(clone, "remote", "add", "origin", remote);
       writeFileSync(join(clone, ".gitignore"), gitignoreOf(repo));
       writeFileSync(join(clone, "README.md"), `# ${repo}\n`);
-      writeFilesIn(clone, trackedFilesOf(repo));
+      writeFilesIn(clone, initialCommitFilesOf(repo));
       git(clone, "add", ".");
       git(clone, "commit", "-m", "Initial commit");
       git(clone, "push", "-u", "origin", "master");
