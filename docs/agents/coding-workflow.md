@@ -12,7 +12,7 @@ A skill is in scope when a Workflow stage calls it or names it as the next step,
 
 1. **Planning**: [`/wayfinder`](../../.claude/skills/wayfinder/SKILL.md), [`/grill-with-docs`](../../.claude/skills/grill-with-docs/SKILL.md), [`/grill-me`](../../.claude/skills/grill-me/SKILL.md), [`grilling`](../../.claude/skills/grilling/SKILL.md), [`domain-modeling`](../../.claude/skills/domain-modeling/SKILL.md), [`/prototype`](../../.claude/skills/prototype/SKILL.md), [`/research`](../../.claude/skills/research/SKILL.md).
 2. **Spec**: [`/code-spec`](../../.claude/skills/code-spec/SKILL.md).
-3. **Tickets**: [`/code-tickets`](../../.claude/skills/code-tickets/SKILL.md).
+3. **Tickets**: [`/code-tickets`](../../.claude/skills/code-tickets/SKILL.md), [`/review-tickets`](../../.claude/skills/review-tickets/SKILL.md).
 4. **Implementation**: [`/runner`](../../runner/skills/runner/SKILL.md), the Supervisor; [`/start-issue`](../../.claude/skills/start-issue/SKILL.md); [`/implement-code`](../../runner/skills/implement-code/SKILL.md); [`tdd`](../../.claude/skills/tdd/SKILL.md) and the [`codebase-design`](../../.claude/skills/codebase-design/SKILL.md) it links; and [`/code-review`](../../.claude/skills/code-review/SKILL.md), the review Step's skill.
 5. **Judgement**: [`/judge-findings`](../../runner/skills/judge-findings/SKILL.md).
 6. **Process revision**: [`/mine-outcomes`](../../runner/skills/mine-outcomes/SKILL.md), [`/retro`](../../.claude/skills/retro/SKILL.md), [`/to-code-style`](../../.claude/skills/to-code-style/SKILL.md), and the [`writing-for-agents`](../../.claude/skills/writing-for-agents/SKILL.md) that `/retro` and `/to-code-style` call.
@@ -33,7 +33,9 @@ A run's Steps are implement, review, resolve, checks and wrap-up for each ticket
 | Planning | `/grill-with-docs`, `/grill-me` | `grilling`, and `domain-modeling` for `/grill-with-docs` | named |
 | Planning | any | `/code-spec` | you invoke it |
 | Spec | `/code-spec` | `/code-tickets`, when the spec won't fit one session | named, in its chat line |
-| Tickets | `/code-tickets` | `/runner` | you invoke it |
+| Tickets | `/code-tickets` | `/review-tickets`, at 6 or more tickets, before publishing | named, read by path |
+| Tickets | `/code-tickets`, `/review-tickets` | `grilling`, for the spec gaps a review finds | named |
+| Tickets | `/code-tickets`, `/review-tickets` | `/runner` | you invoke it |
 | Tickets | a Phase gate | `/code-tickets` | named, in the gate's body |
 | Implementation | `/runner` | `/judge-findings` when a run finishes; an Interactive ticket through `/start-issue`'s steps and `/implement-code` | named |
 | Implementation | `/start-issue` | `/implement-code` | named |
@@ -52,14 +54,14 @@ A doc is listed when two or more skills or Steps reach it by one of these routes
 | --- | --- | --- |
 | [Codebase Priorities](./codebase-priorities.md) | `grilling` (and so `/grill-with-docs`, `/grill-me` and `/wayfinder`'s grilling tickets), `/judge-findings`, `/mine-outcomes`, `/retro`, `/to-code-style` | via `verdicts.md`: `/code-review`, `/implement-code`, the review and resolve Steps |
 | [`verdicts.md`](./verdicts.md) | `/code-review`, `/implement-code`, `/judge-findings` | via runner prompt: the resolve Step; via `/code-review`: the review Step |
-| [`planning.md`](./planning.md) | `/code-spec`, `/code-tickets`, `/start-issue`, `/to-code-style` | via always-on hook: the context nudge, for any session |
+| [`planning.md`](./planning.md) | `/code-spec`, `/code-tickets`, `/review-tickets`, `/start-issue`, `/to-code-style` | via always-on hook: the context nudge, for any session |
 | [`model-fit.md`](./model-fit.md) | `/mine-outcomes` | via `planning.md`: `/code-spec`, `/code-tickets` |
 | The code-style rules: [config's](../../config/docs/code-style.md) and [the framework's](../../packages/framework/docs/code-style.md) | `/retro`, `/to-code-style` | via always-on hook: every code edit, by `/implement-code`, the implement and resolve Steps, and `/judge-findings`' "now" fixes |
 | [`prose-style.md`](../prose-style.md) | `/code-review`, `/retro`, `/to-code-style` | via always-on hook: every prose edit |
-| [The issue tracker doc](./issue-tracker.md) and [triage labels](./triage-labels.md) | `/wayfinder`, `domain-modeling`, `/code-spec`, `/code-tickets`, `/code-review`, `/judge-findings`, `/mine-outcomes` | |
+| [The issue tracker doc](./issue-tracker.md) and [triage labels](./triage-labels.md) | `/wayfinder`, `domain-modeling`, `/code-spec`, `/code-tickets`, `/review-tickets`, `/code-review`, `/judge-findings`, `/mine-outcomes` | |
 | [The git workflow doc](./git-workflow.md) | `/implement-code`, `/judge-findings`, `/mine-outcomes` | via runner prompt: the implement Step |
-| [The runner glossary](../../runner/GLOSSARY.md) | `/runner`, `/judge-findings`, `/mine-outcomes` | |
-| [The guardrails doc](../claude-code-guardrails.md) | `/code-tickets`, `/retro` | |
+| [The runner glossary](../../runner/GLOSSARY.md) | `/runner`, `/review-tickets`, `/judge-findings`, `/mine-outcomes` | |
+| [The guardrails doc](../claude-code-guardrails.md) | `/code-tickets`, `/review-tickets`' reviewer, `/retro` | |
 | Design docs, ADRs and glossaries | `/code-spec`, `/code-tickets`, `domain-modeling`, `tdd`, `/to-code-style` | |
 | Skills read as docs | `/code-tickets`' conventions by `/judge-findings`; `/retro`'s categories by `/mine-outcomes`; `grilling`'s format by `/judge-findings`, `/mine-outcomes` and `/retro` | |
 
@@ -69,7 +71,7 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 
 | Format | Skills and Steps |
 | --- | --- |
-| `grilling`'s round format | `grilling`, `/judge-findings`, `/mine-outcomes`, `/retro` |
+| `grilling`'s round format | `grilling`, `/code-tickets`, `/review-tickets`, `/judge-findings`, `/mine-outcomes`, `/retro` |
 | The `## Model fit` section and its read-back ([`planning.md`](./planning.md#model-fit)) | `/code-spec`, `/code-tickets`, the tickets `/judge-findings` and `/mine-outcomes` file, `/start-issue`'s check |
 | A ticket's `## New dependencies` section | `/code-tickets` writes it; `/implement-code` and the implement Step add only what it names; the wrap-up Step refuses any other new package |
 | The review list's `R<n>.<k>` items | the runner posts them; `/judge-findings` and the Supervisor decide them through `runner -- decide` |
@@ -80,7 +82,7 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 
 | Machinery | Skills and Steps |
 | --- | --- |
-| The issue reader (`npm run issue:read`) with Trusted and Untrusted text | `/runner`, `/start-issue` (via `issue:start`), `/implement-code`, `/judge-findings`, `/mine-outcomes`, every agent Step |
+| The issue reader (`npm run issue:read`) with Trusted and Untrusted text | `/runner`, `/review-tickets`, `/start-issue` (via `issue:start`), `/implement-code`, `/judge-findings`, `/mine-outcomes`, every agent Step |
 | Session workspaces ([`git-workflow.md`](./git-workflow.md#a-skills-session-workspace)) | `/start-issue`, `/judge-findings`, `/mine-outcomes` |
 | Wrap-up (`npm run wrap-up`) | `/implement-code`, `/judge-findings`, `/mine-outcomes`, the wrap-up Step |
 | `runner -- decide` | `/runner`, `/implement-code`, `/judge-findings` |

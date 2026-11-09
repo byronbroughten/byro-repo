@@ -19,8 +19,8 @@ Work from whatever is already in the conversation context. If the user passes a 
 Then pick the entry point. **Split a spec into Phases only at a boundary where real use could change or cancel what follows** ([`planning.md`](../../../docs/agents/planning.md#phases)). Each Phase but the last ends at a **Phase gate**, the developer's go, reshape or drop ticket, which this skill writes and closes; closing the spec ends the last.
 
 - **A Phase gate** (a `ready-for-human` issue with a `## Decision` section): go to [From a Phase gate](#from-a-phase-gate).
-- **A phased spec** (one with a `## Phases` section): steps 2–6 for its next Phase, unless an earlier Phase is `ticketed` but not `done`: its gate is still open, so point the developer to it and stop.
-- **Anything else is unphased**: steps 2–6, proposing Phases in step 3 if the spec has a boundary.
+- **A phased spec** (one with a `## Phases` section): steps 2–7 for its next Phase, unless an earlier Phase is `ticketed` but not `done`: its gate is still open, so point the developer to it and stop.
+- **Anything else is unphased**: steps 2–7, proposing Phases in step 3 if the spec has a boundary.
 
 ### 2. Explore the codebase (optional)
 
@@ -78,7 +78,17 @@ Ask the user:
 
 Iterate until the user approves the breakdown.
 
-### 5. Publish the tickets to the configured tracker
+### 5. Review the drafts for Halt risks
+
+With 6 or more tickets to publish, a Phase gate counted, draft each ticket's full body in the local-ticket template to `<scratchpad>/tickets/<NN>-<slug>.md`, whatever the tracker. Then read [`.claude/skills/review-tickets/SKILL.md`](../review-tickets/SKILL.md) and follow it on that folder; it is user-invoked, so the Skill tool can't reach it. Act on its report once:
+
+- **Fixes**: make each, as you judge best, true to the spec.
+- **Spec gaps**: put them to the developer as one round in the [`grilling`](../grilling/SKILL.md) format before editing anything, then apply the answers. When an answer settles what the spec should have said, add a line saying so to the spec's body.
+- **Interactive splits**: split that part into a `ready-for-interactive` ticket, blocking the work that needs it.
+
+Publish from the drafts as they stand. With fewer than 6 tickets, skip this step; the developer can run `/review-tickets` on the published tickets.
+
+### 6. Publish the tickets to the configured tracker
 
 Publish the approved tickets. **How** depends on the tracker in `docs/agents/issue-tracker.md`; the tickets are the same either way, only the shape of the blocking edges changes:
 
@@ -94,7 +104,7 @@ When the work has Phases:
 - Add the Phase's tickets and gate as sub-issues after the earlier Phases' ones, so the runner's order follows the Phases.
 - Set the Phase's status in `## Phases` to `ticketed`.
 
-Do NOT close or modify any parent issue, except its `## Phases` section.
+Do NOT close or modify any parent issue, except its `## Phases` section and the lines step 5 adds.
 
 <local-ticket-template>
 
@@ -185,7 +195,7 @@ A `ready-for-human` ticket's body names what the developer runs: the skill (e.g.
 
 In either form, avoid specific file paths or code snippets: they go stale fast. Exception: if a prototype produced a snippet that encodes a decision more precisely than prose can (state machine, reducer, schema, type shape), inline it and note briefly that it came from a prototype. Trim to the decision-rich parts, not a working demo, just the important bits.
 
-### 6. Read back the model fit
+### 7. Read back the model fit
 
 Print the published tickets as one flat list in completion order, `#n Title: <Model> <effort> (reason)`, the read-back of each ticket's `## Model fit` section. Done when every `ready-for-agent` and `ready-for-interactive` ticket appears with the pair its section names.
 
@@ -194,7 +204,7 @@ Print the published tickets as one flat list in completion order, `#n Title: <Mo
 Read the gate's body, every comment on it, and the spec's `## Phases` section.
 
 - **No box ticked, or more than one**: ask the developer which decision they meant, and stop.
-- **Go**: set the gated Phase's status to `done`, then run steps 2–6 for the next Phase.
+- **Go**: set the gated Phase's status to `done`, then run steps 2–7 for the next Phase.
 - **Reshape**: edit the later Phases' outlines in `## Phases` as the comments say, then do as for Go.
 - **Drop the rest**: set the gated Phase to `done` and every remaining Phase to `dropped`, linking this gate, and publish nothing.
 
