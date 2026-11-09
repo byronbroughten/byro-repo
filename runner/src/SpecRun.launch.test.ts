@@ -22,6 +22,7 @@ import {
   primaryRoot,
   refOf,
   reviewed,
+  rootCloneOnly,
   spec,
   specRun,
   stateFolder,
@@ -29,7 +30,7 @@ import {
   useSpecRunHarness,
 } from "./specRunHarness.ts";
 
-useSpecRunHarness();
+useSpecRunHarness(rootCloneOnly);
 
 // addSpec's spec body and bodyWith()'s default body, which addIssue gives a ticket or a ticketless spec, hashed outside the code under test.
 const specApproval =

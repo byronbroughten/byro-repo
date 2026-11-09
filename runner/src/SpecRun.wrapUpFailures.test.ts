@@ -21,6 +21,7 @@ import {
   refOf,
   resultOf,
   reviewed,
+  rootCloneOnly,
   spec,
   specRun,
   type StepScript,
@@ -28,7 +29,7 @@ import {
   useSpecRunHarness,
 } from "./specRunHarness.ts";
 
-useSpecRunHarness();
+useSpecRunHarness(rootCloneOnly);
 
 const key = `sk-ant-${"q9".repeat(12)}`;
 

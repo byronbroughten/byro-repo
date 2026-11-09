@@ -21,13 +21,14 @@ import {
   primaryRoot,
   resultOf,
   reviewed,
+  rootCloneOnly,
   spec,
   specRun,
   stateFolder,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
 
-useSpecRunHarness();
+useSpecRunHarness(rootCloneOnly);
 
 describe("run's review list", () => {
   const opusMedium: Pair = { model: "opus", effort: "medium" };

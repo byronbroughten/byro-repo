@@ -31,6 +31,7 @@ import {
   refOf,
   resultOf,
   reviewed,
+  rootCloneOnly,
   spec,
   specRun,
   stateFolder,
@@ -38,7 +39,7 @@ import {
   withEventFile,
 } from "./specRunHarness.ts";
 
-useSpecRunHarness();
+useSpecRunHarness(rootCloneOnly);
 
 const first = refOf(301);
 const second = refOf(302);

@@ -17,6 +17,7 @@ import {
   progressLines,
   refOf,
   reviewed,
+  rootCloneOnly,
   runStatePath,
   spec,
   specRun,
@@ -24,7 +25,7 @@ import {
   withEventFile,
 } from "./specRunHarness.ts";
 
-useSpecRunHarness();
+useSpecRunHarness(rootCloneOnly);
 
 const restartMessage =
   "Restarting: the runner changed since the run started, found after landing byro-repo #1; relaunching on the landed code.";
