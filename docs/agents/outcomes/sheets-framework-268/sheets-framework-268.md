@@ -1,0 +1,7 @@
+# sheets-framework#268 outcome
+
+Spec: [sheets-framework#268](https://github.com/byronbroughten/sheets-framework/issues/268)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #268 | Opus high | 1, 3 | 4 | 117K | Fix (resumed implementer) | 2 | 1 | 0 | 17 min | $3.14 | $5.15 | Fixed: The new test asserts a call count on TableProfileRaw.prototype.idPrefix, which is not a count a caller pays for. (packages/framework/src/05_Operators/ColumnConfigOperator.test.ts:1356-1401); sampleIdPrefix.mockRestore() is dead because vitest.config.ts sets restoreMocks: true. (packages/framework/src/05_Operators/ColumnConfigOperator.test.ts:1400). Proposed: ColumnFullNameFiltered duplicates ColumnNameFiltered's test, kept with a site comment whose ground (type-check cost) is not an allowed kept ground. (packages/framework/src/01_SpreadsheetSchema/configReaders/columnConfigsTypes.ts:208); Primitive Obsession: a raw Map<string, string> and its exported lookup idPrefixIn now cross modules. (packages/framework/src/05_Operators/TableConfigOperator.ts:144,288; packages/framework/src/05_Operators/ColumnConfigOperator.ts:37,210-212). | 35f3644b-88e1-4d27-bcc4-5dc5f2c403f2, 2e9d8347-9eab-431a-8650-9fa69e227bb0 |
