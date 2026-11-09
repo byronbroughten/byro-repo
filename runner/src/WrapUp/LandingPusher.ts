@@ -1,5 +1,5 @@
-// Scans the lines a landing adds to each master for token shapes (secretScan.ts), then pushes each master; a hit
-// pushes nothing.
+// Scans each commit a landing pushes to each master for token shapes in its added lines (secretScan.ts), then pushes
+// each master; a hit pushes nothing.
 
 import { scanForSecrets } from "../secretScan.ts";
 import { WrapUpBase } from "./WrapUpBase.ts";
@@ -14,7 +14,7 @@ export class LandingPusher extends WrapUpBase {
         builtReposOf(landing).map((repo) => ({
           repo,
           clone: this._primaryOf(repo),
-          range: "origin/master...master",
+          range: "origin/master..master",
         })),
       ),
     );

@@ -400,7 +400,7 @@ describe("run's wrap-up failures", () => {
     expect(halt).toContain("summary must be a string");
   });
 
-  it("posts a Failure Halt naming each token-shaped line and pushes nothing, then a `retry` once it is removed pushes", async () => {
+  it("posts a Failure Halt naming each token-shaped line and pushes nothing, then a `retry` once it is dropped from history pushes", async () => {
     addSpec([1]);
     const remoteBefore = remoteMaster();
     const agentStep = FakeAgentStep.init(
@@ -421,8 +421,8 @@ describe("run's wrap-up failures", () => {
     expect(remoteMaster()).toBe(remoteBefore);
 
     const primary = primaryOf("byro-repo");
-    git(primary, "rm", "-q", "keys.ts");
-    git(primary, "commit", "-m", "Drop the key");
+    git(primary, "reset", "-q", "--hard", "origin/master");
+    commitOnMaster("notes.md", "Notes\n");
     github.reply(213, "H1: retry");
     const rerunStep = FakeAgentStep.init();
     const result = await specRun(rerunStep).run(spec);

@@ -33,7 +33,7 @@ export class ResearchPusher extends WrapUpBase {
       ? `origin/${branch}`
       : "origin/master";
     await scanForSecrets(`${branch} over ${base}`, [
-      { repo, clone, range: `${base}...HEAD` },
+      { repo, clone, range: `${base}..HEAD` },
     ]);
     await this._pushToOrigin({
       label: `Pushing ${repo}'s ${branch}`,
