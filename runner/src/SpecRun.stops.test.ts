@@ -31,7 +31,7 @@ import {
 
 useSpecRunHarness();
 
-const fails: Command = ["node", "-e", "process.exit(1)"];
+const fails: Command = ["false"];
 
 describe("run's preflight", () => {
   async function preflightOf(
@@ -60,7 +60,7 @@ describe("run's preflight", () => {
       kind: "stopped",
       landed: [],
       message:
-        "Preflight stopped the run: node -e process.exit(1) failed: GitHub auth or the claude login is missing; sign in to whichever it checks, and rerun. Review lists: nothing needs judging.",
+        "Preflight stopped the run: false failed: GitHub auth or the claude login is missing; sign in to whichever it checks, and rerun. Review lists: nothing needs judging.",
     });
   });
 
@@ -174,11 +174,7 @@ describe("run's master check", () => {
   });
 
   it("Stops on a red master commit in a package clone", async () => {
-    const redClone: Command = [
-      "node",
-      "-e",
-      "process.exit(require('fs').existsSync('packages/framework/RED') ? 1 : 0)",
-    ];
+    const redClone: Command = ["sh", "-c", "test ! -f packages/framework/RED"];
     commitRed(primaryOf("sheets-framework"));
     addSpec([1]);
 
