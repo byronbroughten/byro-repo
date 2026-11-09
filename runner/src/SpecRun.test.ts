@@ -66,13 +66,11 @@ describe("run", () => {
     expect(existsSync(masterSetPath())).toBe(false);
     expect(notices.sent).toEqual([
       expect.objectContaining({
-        specTitle: "The spec",
         summary:
           "Run started on 2 tickets as account 1: 5-hour 10%, weekly 20%. Launching byro-repo #1.",
         link: "https://github.com/byronbroughten/byro-repo/issues/213",
       }),
       expect.objectContaining({
-        specTitle: "The spec",
         summary: result.message,
         link: "https://github.com/byronbroughten/byro-repo/issues/213",
       }),

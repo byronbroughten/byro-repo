@@ -27,7 +27,7 @@ import { clonePathIn, git, GitFixture, rootCloneOnly } from "./GitFixture.ts";
 import type { Blocker, Handoff, ImplementRecord } from "./implementStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { UsageList, UsageReader } from "./limitGuard.ts";
-import { composedNotices, type NoticeKind } from "./Notices.ts";
+import type { NoticeKind, Notices } from "./Notices.ts";
 import { stampedLineOf } from "./progressLines.ts";
 import type { ResolveRecord } from "./resolveStep.ts";
 import type { ReviewFinding } from "./reviewStep.ts";
@@ -477,9 +477,25 @@ export function runStatePath(number = spec.number): string {
 }
 
 // A config override that also writes the event files a Supervisor watches.
-export function withEventFile(): Partial<SpecRunConfig> {
-  const eventFile = EventFileNotices.init(stateFolder());
+export function withEventFile(now?: () => Date): Partial<SpecRunConfig> {
+  const eventFile = EventFileNotices.init(stateFolder(), now);
   return { notices: composedNotices(notices, eventFile) };
+}
+
+// Every adapter gets every notice, even after one fails; the first failure is rethrown.
+function composedNotices(...adapters: Notices[]): Notices {
+  return {
+    async send(notice) {
+      const results = await Promise.allSettled(
+        adapters.map((adapter) => adapter.send(notice)),
+      );
+      const failed = results.find(
+        (result): result is PromiseRejectedResult =>
+          result.status === "rejected",
+      );
+      if (failed !== undefined) throw failed.reason;
+    },
+  };
 }
 
 export function batchEventLines(members: MemberList): EventLine[] {

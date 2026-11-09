@@ -4,18 +4,12 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import type { StepResult } from "./AgentStep.ts";
-import {
-  EventFileNotices,
-  type EventLine,
-  eventLinesOf,
-} from "./EventFileNotices.ts";
+import { type EventLine, eventLinesOf } from "./EventFileNotices.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { commentUrlOf } from "./FakeGitHub.ts";
 import { git } from "./GitFixture.ts";
 import type { Blocker } from "./implementStep.ts";
-import { composedNotices } from "./Notices.ts";
 import { runKnobsOf } from "./runKnobs.ts";
-import type { SpecRunConfig } from "./SpecRun.ts";
 import {
   addSpec,
   blocked,
@@ -32,6 +26,7 @@ import {
   specRun,
   stateFolder,
   useSpecRunHarness,
+  withEventFile,
 } from "./specRunHarness.ts";
 
 useSpecRunHarness();
@@ -42,12 +37,8 @@ const gated: Blocker = {
   recommendation: "Run it by hand.",
 };
 
-function withEventFile(): Partial<SpecRunConfig> {
-  const eventFile = EventFileNotices.init(
-    stateFolder(),
-    () => new Date("2026-10-12T09:00:00Z"),
-  );
-  return { notices: composedNotices(notices, eventFile) };
+function eventTime(): Date {
+  return new Date("2026-10-12T09:00:00Z");
 }
 
 function eventLines(): EventLine[] {
@@ -62,17 +53,18 @@ function haltCommentUrl(): string {
 }
 
 describe("run's event file", () => {
-  it("writes a line per start, Halt, idle, Stop and end, with every notice carrying the spec's title and link", async () => {
+  it("writes a line per start, Halt, idle, Stop and end, with every notice carrying the spec's link", async () => {
     addSpec([1]);
     const specUrl = "https://github.com/byronbroughten/byro-repo/issues/213";
 
-    await specRun(FakeAgentStep.init(blocked([gated])), withEventFile()).run(
-      spec,
-    );
+    await specRun(
+      FakeAgentStep.init(blocked([gated])),
+      withEventFile(eventTime),
+    ).run(spec);
     github.reply(213, "H1: I ran it.");
     await specRun(
       FakeAgentStep.init(implemented("one.ts"), reviewed()),
-      withEventFile(),
+      withEventFile(eventTime),
     ).run(spec);
 
     expect(
@@ -125,10 +117,8 @@ describe("run's event file", () => {
       spec: "byro-repo#213",
       summary: notices.sent.find(({ kind }) => kind === "halt")?.summary,
     });
-    expect(
-      notices.sent.map(({ specTitle, link }) => ({ specTitle, link })),
-    ).toEqual(
-      notices.sent.map(() => ({ specTitle: "The spec", link: specUrl })),
+    expect(notices.sent.map(({ link }) => link)).toEqual(
+      notices.sent.map(() => specUrl),
     );
   });
 
@@ -136,7 +126,7 @@ describe("run's event file", () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
 
-    await specRun(agentStep, withEventFile()).run(spec);
+    await specRun(agentStep, withEventFile(eventTime)).run(spec);
 
     expect(eventLines()[0]).toMatchObject({
       time: "2026-10-12T09:00:00.000Z",
@@ -156,7 +146,7 @@ describe("run's event file", () => {
     git(primaryRoot, "commit", "-m", "Name a moved clone");
     const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
 
-    const result = await specRun(agentStep, withEventFile()).run(spec);
+    const result = await specRun(agentStep, withEventFile(eventTime)).run(spec);
 
     expect(eventLines()[0]).toMatchObject({
       kind: "run-started",
@@ -177,7 +167,7 @@ describe("run's event file", () => {
     });
 
     const result = await specRun(FakeAgentStep.init(), {
-      ...withEventFile(),
+      ...withEventFile(eventTime),
       knobs,
     }).run(spec);
 
@@ -194,9 +184,10 @@ describe("run's event file", () => {
   it("writes a failure-halt line for a Failure Halt, naming its ticket and comment", async () => {
     addSpec([1]);
 
-    await specRun(FakeAgentStep.init(crashed, crashed), withEventFile()).run(
-      spec,
-    );
+    await specRun(
+      FakeAgentStep.init(crashed, crashed),
+      withEventFile(eventTime),
+    ).run(spec);
 
     expect(eventLines()[1]).toMatchObject({
       ticket: "byro-repo#1",
@@ -210,7 +201,7 @@ describe("run's event file", () => {
 
     await specRun(
       FakeAgentStep.init(implemented("one.ts"), reviewed()),
-      withEventFile(),
+      withEventFile(eventTime),
     ).run(spec);
 
     expect(notices.sent.length).toBeGreaterThan(1);
@@ -230,7 +221,7 @@ describe("run's event file", () => {
 
     await specRun(
       FakeAgentStep.init(implemented("one.ts"), stepError),
-      withEventFile(),
+      withEventFile(eventTime),
     ).run(spec);
 
     expect(eventLines().slice(1)).toEqual([
@@ -247,9 +238,10 @@ describe("run's event file", () => {
     addSpec([1]);
     github.edit(1, { body: "## What to build\n\nNo section.\n" });
 
-    const result = await specRun(FakeAgentStep.init(), withEventFile()).run(
-      spec,
-    );
+    const result = await specRun(
+      FakeAgentStep.init(),
+      withEventFile(eventTime),
+    ).run(spec);
 
     expect(result.kind).toBe("refused");
     expect(eventLines()).toEqual([

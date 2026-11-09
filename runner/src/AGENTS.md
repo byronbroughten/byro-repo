@@ -61,7 +61,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `lockFixture.ts` | | Pid-lock fixtures the lock tests share. |
 | `mergeMasterStep.ts` | | The merge-master step's prompt and record. |
 | `modelFit.ts` | `modelFit` | Reads a ticket's Model fit pair and compares pairs. |
-| `Notices.ts` | `Notices` | The notice port and `composedNotices`. |
+| `Notices.ts` | `Notices` | The notice port, its notice kinds and the run endings among them. |
 | `outcomeBackfill.ts` | `outcomeBackfill` | A one-off chore's core: fills written outcome rows' `unrecorded` transcript cells from a run state's sessions. |
 | `outcomeLog.ts` | `outcomeLog` | The outcome row file's path, table and commit message, and a written row's cells by column and its transcript cells. |
 | `outcomeRowWriter.ts` | `outcomeRowWriter` | Writes a ticket's outcome row from its facts file. |

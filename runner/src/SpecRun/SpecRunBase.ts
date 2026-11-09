@@ -113,7 +113,7 @@ export interface RunGitHub extends WrapUpGitHub {
 // What an announced event adds to its notice beyond the spec and summary.
 export type RunEvent = Pick<
   Notice,
-  "kind" | "ticket" | "commentUrl" | "warnings" | "isRelaunch" | "isBatchEnd"
+  "kind" | "ticket" | "commentUrl" | "warnings" | "isBatchEnd"
 >;
 
 export interface Clock {
@@ -423,7 +423,6 @@ export class SpecRunBase {
     try {
       await this.config.notices.send({
         spec: run.spec.issue,
-        specTitle: run.spec.title,
         summary,
         link: run.spec.url,
         ...event,

@@ -20,7 +20,6 @@ export function isRunEnding(kind: NoticeKind): kind is RunEnding {
 
 export interface Notice {
   spec: IssueRef;
-  specTitle: string;
   summary: string;
   link: string;
   kind?: NoticeKind;
@@ -28,23 +27,6 @@ export interface Notice {
   commentUrl?: string;
   // What startup found worth a look; a run-started notice's, empty when it found nothing.
   warnings?: string[];
-  isRelaunch?: boolean;
   // A Batch's own end, sent on its first member once every member has ended; each member's end is a notice of its own.
   isBatchEnd?: boolean;
-}
-
-// Every adapter gets every notice, even after one fails; the first failure is rethrown.
-export function composedNotices(...adapters: Notices[]): Notices {
-  return {
-    async send(notice) {
-      const results = await Promise.allSettled(
-        adapters.map((adapter) => adapter.send(notice)),
-      );
-      const failed = results.find(
-        (result): result is PromiseRejectedResult =>
-          result.status === "rejected",
-      );
-      if (failed !== undefined) throw failed.reason;
-    },
-  };
 }

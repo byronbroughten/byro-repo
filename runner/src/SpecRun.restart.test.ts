@@ -13,7 +13,6 @@ import {
   github,
   implemented,
   noticeKinds,
-  notices,
   progressLines,
   refOf,
   reviewed,
@@ -52,23 +51,6 @@ describe("run's Restart", () => {
     expect(rerun.kind).toBe("finished");
     expect(rerun.landed).toEqual([refOf(1), refOf(2)]);
     expect(rerun.message).toContain("landed byro-repo #1, byro-repo #2");
-  });
-
-  it("marks only the relaunch's run-started as a relaunch", async () => {
-    addSpec([1, 2]);
-
-    await specRun(
-      FakeAgentStep.init(implemented("runner/one.ts"), reviewed()),
-    ).run(spec);
-    await specRun(FakeAgentStep.init(implemented("two.ts"), reviewed())).run(
-      spec,
-    );
-
-    expect(
-      notices.sent
-        .filter(({ kind }) => kind === "run-started")
-        .map(({ isRelaunch }) => isRelaunch),
-    ).toEqual([undefined, true]);
   });
 
   it("carries every landing across two Restarts, and none into a later run", async () => {
@@ -142,13 +124,6 @@ function runBatch(agentStep: FakeAgentStep): Promise<RunResult> {
   return specRun(agentStep, { members, ...withEventFile() }).run(...members);
 }
 
-// The members whose run-started notice carries the relaunch mark, which the event line leaves out.
-function relaunchStarts(): number[] {
-  return notices.sent
-    .filter(({ kind, isRelaunch }) => kind === "run-started" && isRelaunch)
-    .map(({ spec: member }) => member.number);
-}
-
 describe("a Batch's Restart", () => {
   it("writes one run-started on the member it launches, and no second member-ended for a member that ended before the Restart", async () => {
     const before = await restartBatch();
@@ -165,7 +140,6 @@ describe("a Batch's Restart", () => {
       ["byro-repo#303", "member-ended"],
       ["byro-repo#301", "run-ended"],
     ]);
-    expect(relaunchStarts()).toEqual([303]);
     expect(lines.at(-1)?.summary).toBe(
       "Batch ended: byro-repo #301, byro-repo #302, byro-repo #303 landed. Review lists: nothing needs judging.",
     );
@@ -183,7 +157,6 @@ describe("a Batch's Restart", () => {
       .slice(before)
       .filter(({ kind }) => kind === "run-started");
     expect(started.map(({ spec }) => spec)).toEqual(["byro-repo#302"]);
-    expect(relaunchStarts()).toEqual([302]);
   });
 
   it("relaunches from a restart saved before it kept each member's end, ending that member again", async () => {
