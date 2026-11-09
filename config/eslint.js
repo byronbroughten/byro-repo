@@ -1,9 +1,9 @@
-import { existsSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
-
 import eslint from "@eslint/js";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import tseslint from "typescript-eslint";
+
+import { noCrossPackageImport } from "./eslint/noCrossPackageImport.js";
+import { privateHelperUsesThis } from "./eslint/privateHelperUsesThis.js";
 
 export const variableNaming = {
   selector: "variable",
@@ -28,123 +28,6 @@ export const styleSyntax = [
     message: "Exports are named, so every import spells the name it wants.",
   },
 ];
-
-// A `private` or `#` method that never reads `this` belongs below the class as a module function.
-/** @type {import("eslint").Rule.RuleModule} */
-const privateHelperUsesThis = {
-  meta: {
-    type: "suggestion",
-    messages: {
-      noThis:
-        "{{name}} never reads `this`: make it an unexported module function below the class.",
-    },
-  },
-  create(context) {
-    /** @type {{ helper: PrivateHelper | undefined, usesThis: boolean }[]} */
-    const frames = [];
-    /** @param {import("eslint").Rule.Node} node */
-    function enter(node) {
-      frames.push({ helper: privateHelperOf(node), usesThis: false });
-    }
-    function exit() {
-      const frame = frames.pop();
-      if (frame?.helper && !frame.usesThis) {
-        context.report({
-          node: frame.helper.key,
-          messageId: "noThis",
-          data: { name: frame.helper.name },
-        });
-      }
-    }
-    function markThis() {
-      const frame = frames.at(-1);
-      if (frame) frame.usesThis = true;
-    }
-    return {
-      FunctionDeclaration: enter,
-      "FunctionDeclaration:exit": exit,
-      FunctionExpression: enter,
-      "FunctionExpression:exit": exit,
-      ThisExpression: markThis,
-      Super: markThis,
-    };
-  },
-};
-
-/** @typedef {{ key: import("estree").Node, name: string }} PrivateHelper */
-
-/** @param {import("eslint").Rule.Node} node */
-function privateHelperOf(node) {
-  const method = node.parent;
-  if (method?.type !== "MethodDefinition" || method.value !== node) {
-    return undefined;
-  }
-  const { key } = method;
-  if (key.type === "PrivateIdentifier") return { key, name: `#${key.name}` };
-  const isPrivate =
-    "accessibility" in method && method.accessibility === "private";
-  return isPrivate && key.type === "Identifier"
-    ? { key, name: key.name }
-    : undefined;
-}
-
-// A package's dependencies are read from its package.json, so a relative import into another package is one nothing declares.
-/** @type {import("eslint").Rule.RuleModule} */
-const noCrossPackageImport = {
-  meta: {
-    type: "problem",
-    messages: {
-      crossPackage:
-        "{{source}} leaves this file's package: import the other package by its name.",
-    },
-  },
-  create(context) {
-    const ownRoot = packageRootOf(dirname(context.filename));
-    /** @param {{ source?: import("estree").Node | null }} node */
-    function check(node) {
-      const { source } = node;
-      if (source?.type !== "Literal" || typeof source.value !== "string") {
-        return;
-      }
-      if (!source.value.startsWith(".")) return;
-      const target = resolve(dirname(context.filename), source.value);
-      if (packageRootOf(target) !== ownRoot) {
-        context.report({
-          node: source,
-          messageId: "crossPackage",
-          data: { source: source.value },
-        });
-      }
-    }
-    return {
-      ImportDeclaration: check,
-      ExportNamedDeclaration: check,
-      ExportAllDeclaration: check,
-      ImportExpression: check,
-    };
-  },
-};
-
-/** @type {Map<string, string | undefined>} */
-const packageRoots = new Map();
-
-// The nearest folder at or above the path holding a package.json; the path need not exist.
-/**
- * @param {string} path
- * @returns {string | undefined}
- */
-function packageRootOf(path) {
-  if (packageRoots.has(path)) return packageRoots.get(path);
-  const parent = dirname(path);
-  let root;
-  if (existsSync(join(path, "package.json"))) {
-    root = path;
-  } else if (parent !== path) {
-    root = packageRootOf(parent);
-  }
-  packageRoots.set(path, root);
-  return root;
-}
 
 export const eslintPreset = [
   { ignores: ["**/dist/**", "**/coverage/**"] },

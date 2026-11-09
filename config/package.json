@@ -17,6 +17,7 @@
   },
   "files": [
     "eslint.js",
+    "eslint",
     "prettier.json",
     "tsconfig.base.json",
     "docLint.js",
