@@ -56,12 +56,8 @@ export interface CallSandbox {
 const noSandbox: CallSandbox = { isOn: false, excludedCommands: [] };
 
 // What a simple command's verdict reads beyond its own words.
-export interface CallContext {
-  mode: SessionMode;
-  dryRuns: string[];
-  spreadsheetTargets: string[];
-  places?: ShellPlaces;
-}
+export type CallContext = Pick<ShellCall, "mode" | "dryRuns" | "places"> &
+  Required<Pick<ShellCall, "spreadsheetTargets">>;
 
 // One entry of the targets JSON, unchecked until a reader narrows it.
 export interface TargetEntry {
