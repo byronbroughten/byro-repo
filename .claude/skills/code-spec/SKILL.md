@@ -14,6 +14,8 @@ The issue tracker and triage label vocabulary should have been provided to you. 
 
 2. Sketch out the seams at which you're going to test the feature. Existing seams should be preferred to new ones. Use the highest seam possible. If new seams are needed, propose them at the highest point you can. The fewer seams across the codebase, the better - the ideal number is one.
 
+Name any planned test that would break a [test speed rule](../../../config/docs/code-style/tests.md#test-speed) and warn about it clearly, saying which rule it breaks. The spec's Testing Decisions repeat the warning, so it reaches the ticket implemented from it. The warning needs no approval of its own.
+
 Check with the user that these seams match their expectations.
 
 3. Decide whether the spec has **Phases**, yourself, without asking: **split a spec into Phases only at a boundary where real use could change or cancel what follows** ([`planning.md`](../../../docs/agents/planning.md#phases)). When it applies, write the proposed `## Phases` section of the template, naming Phase 1's stand-ins; the developer reviews it with the rest of the spec. With no boundary, leave the section out.
@@ -70,6 +72,7 @@ A list of testing decisions that were made. Include:
 - A description of what makes a good test (only test external behavior, not implementation details)
 - Which modules will be tested
 - Prior art for the tests (i.e. similar types of tests in the codebase)
+- A warning for each planned test that would break a test speed rule, naming the test and the rule, repeated from the seam step
 
 ## Out of Scope
 
