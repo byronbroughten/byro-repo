@@ -2,6 +2,8 @@
 import { spawnSync } from "node:child_process";
 import { basename, join, relative } from "node:path";
 
+import { type CheckPackage, isRootPackage } from "../runner/checkPackages.ts";
+
 export type Command = [string, ...string[]];
 
 export const repoRoot = join(import.meta.dirname, "../..");
@@ -21,13 +23,27 @@ export function eslintOf(paths: string[]): Command {
 
 // Only .prettierignore: Prettier's default also reads .gitignore, whose `packages/*` would skip every clone's files.
 export function prettierCheckOf(paths: string[]): Command {
+  return prettierCheckIgnoringOf([join(repoRoot, ".prettierignore")], paths);
+}
+
+// ESLint, lint-docs and Prettier over the selected packages' files; lint.ts runs these when CHECK_PACKAGES names some.
+export function packageLintCommandsOf(
+  selected: CheckPackage[],
+  packages: CheckPackage[],
+): Command[] {
+  const root = selected.find(isRootPackage);
+  const others = selected.filter((pkg) => !isRootPackage(pkg));
+  const eslintPaths =
+    root === undefined
+      ? others.map(({ path }) => path)
+      : [".", ...unselectedOf(selected, packages).flatMap(eslintIgnoreOf)];
   return [
-    binOf("prettier"),
-    "--check",
-    "--ignore-unknown",
-    "--ignore-path",
-    join(repoRoot, ".prettierignore"),
-    ...paths,
+    eslintOf(["--no-error-on-unmatched-pattern", ...eslintPaths]),
+    ...selected
+      .filter(({ scripts }) => scripts["lint:docs"] !== undefined)
+      .map(lintDocsOf),
+    ...(root === undefined ? [] : [rootPrettierCheckOf(root)]),
+    ...others.map(packagePrettierCheckOf),
   ];
 }
 
@@ -57,6 +73,49 @@ export function rootPathsOf(cloneRoot: string, paths: string[]): string[] {
 
 export function commandLabelOf([file, ...args]: Command): string {
   return [basename(file), ...args].join(" ");
+}
+
+function unselectedOf(
+  selected: CheckPackage[],
+  packages: CheckPackage[],
+): CheckPackage[] {
+  return packages.filter((pkg) => !selected.includes(pkg));
+}
+
+function eslintIgnoreOf({ path }: CheckPackage): string[] {
+  return ["--ignore-pattern", `${path}/`];
+}
+
+function lintDocsOf(pkg: CheckPackage): Command {
+  const command: Command = ["npm", "run", "-s", "lint:docs"];
+  return isRootPackage(pkg) ? command : [...command, "-w", pkg.path];
+}
+
+// The root's own files under its .gitignore, as format:check reads them; every other package is carved out.
+function rootPrettierCheckOf({ excludedPaths }: CheckPackage): Command {
+  const carvedOut = excludedPaths.map((path) => `!${path}/**`);
+  return [binOf("prettier"), "--check", "--ignore-unknown", ".", ...carvedOut];
+}
+
+// The root's .gitignore skips every clone, so a package reads its own .gitignore instead.
+function packagePrettierCheckOf({ path }: CheckPackage): Command {
+  return prettierCheckIgnoringOf(
+    [join(repoRoot, ".prettierignore"), `${path}/.gitignore`],
+    [path],
+  );
+}
+
+function prettierCheckIgnoringOf(
+  ignorePaths: string[],
+  paths: string[],
+): Command {
+  return [
+    binOf("prettier"),
+    "--check",
+    "--ignore-unknown",
+    ...ignorePaths.flatMap((ignorePath) => ["--ignore-path", ignorePath]),
+    ...paths,
+  ];
 }
 
 function binOf(name: string): string {
