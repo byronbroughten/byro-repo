@@ -10,7 +10,7 @@ The settled rule in `docs/code-style.md` asks a test to assert what a caller can
 
 ## Test speed
 
-The whole suite runs before every change is called done, so a cost in one test is paid on every run, and a suite gets slow one reasonable-looking test at a time.
+A package's tests run before any change to it, or to a package it depends on, is called done, so a cost in one test is paid on every such run, and a suite gets slow one reasonable-looking test at a time.
 
 ### A test starts a process only when that process is what it tests
 
