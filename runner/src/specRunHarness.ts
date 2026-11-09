@@ -1,7 +1,7 @@
 // The fixture and helpers SpecRun's test files share; each file calls useSpecRunHarness() once at its top.
+// The step-result builders are specRunHarness/stepResults.ts; the test clock is specRunHarness/timing.ts.
 
 import {
-  mkdirSync,
   mkdtempSync,
   readFileSync,
   realpathSync,
@@ -9,31 +9,52 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
 
-import type { AgentStep, StepRequest, StepResult } from "./AgentStep.ts";
+import type { AgentStep } from "./AgentStep.ts";
 import { batchEventFilePathOf } from "./BatchRecords.ts";
 import type { ClonePaths } from "./clonePaths.ts";
 import { EventFileNotices, type EventLine } from "./EventFileNotices.ts";
 import type { WrapUpFacts } from "./FactsFile.ts";
-import type { FakeAgentStep, ScriptedStep } from "./FakeAgentStep.ts";
+import type { FakeAgentStep } from "./FakeAgentStep.ts";
 import { FakeGitHub } from "./FakeGitHub.ts";
 import { FakeNotices } from "./FakeNotices.ts";
 import { FakeUsageReader } from "./FakeUsageReader.ts";
 import { gapCheckOutputSchema } from "./gapCheck.ts";
 import { clonePathIn, git, GitFixture, rootCloneOnly } from "./GitFixture.ts";
-import type { Blocker, Handoff, ImplementRecord } from "./implementStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { UsageList, UsageReader } from "./limitGuard.ts";
 import type { NoticeKind, Notices } from "./Notices.ts";
 import { stampedLineOf } from "./progressLines.ts";
 import type { ResolveRecord } from "./resolveStep.ts";
-import type { ReviewFinding } from "./reviewStep.ts";
 import { type Command, runKnobsOf } from "./runKnobs.ts";
 import { type MemberList, SpecRun, type SpecRunConfig } from "./SpecRun.ts";
+import { stepResults } from "./specRunHarness/stepResults.ts";
+import { timing } from "./specRunHarness/timing.ts";
 import type { StepSession } from "./transcriptFacts.ts";
+
+export type { StepScript } from "./specRunHarness/stepResults.ts";
+
+export const {
+  applied,
+  blocked,
+  capped,
+  crashed,
+  findingOf,
+  greened,
+  handoffResultOf,
+  implemented,
+  implementResultOf,
+  noConversation,
+  recordOf,
+  resolved,
+  resultOf,
+  reviewed,
+  throws,
+} = stepResults;
+export const { after, timed } = timing;
 
 const everyClone = {
   "byro-repo": ".",
@@ -195,7 +216,7 @@ export function specRun(
     github,
     notices,
     usageReader,
-    clock: { now: startTime },
+    clock: { now: timing.startTime },
     githubOwner: "byronbroughten",
     developer: "byronbroughten",
     primaryRoot,
@@ -217,185 +238,6 @@ export function specRun(
     ...overrides,
   });
   return run;
-}
-
-export function resultOf(record: unknown): StepResult {
-  return {
-    output: { status: "valid", record },
-    sessionId: "session",
-    account: 1,
-    peakContext: undefined,
-    hasCrossedCeiling: false,
-    hang: undefined,
-    exitSubtype: "success",
-    errorText: undefined,
-    hasNoConversation: false,
-    usage: undefined,
-    limitHit: undefined,
-    deniedTools: [],
-  };
-}
-
-// An implement step's structured output carries its record under `record`.
-export function implementResultOf(record: ImplementRecord): StepResult {
-  return resultOf({ record });
-}
-
-// A handoff record commits nothing, so it names no branch.
-export function handoffResultOf(handoff: Handoff): StepResult {
-  return implementResultOf({
-    status: "handoff",
-    branches: [],
-    closingComment: "",
-    boxesUndone: [],
-    blockers: [],
-    handoff,
-  });
-}
-
-export function recordOf(
-  branch: string,
-  sha: string,
-  change: Partial<ImplementRecord> = {},
-): ImplementRecord {
-  return {
-    status: "committed",
-    branches: [{ repo: "byro-repo", branch, sha }],
-    closingComment: "Landed it.",
-    boxesUndone: [],
-    blockers: [],
-    ...change,
-  } as ImplementRecord;
-}
-
-export type StepScript = (request: StepRequest) => Promise<StepResult>;
-
-export const crashed: StepResult = {
-  ...resultOf(undefined),
-  output: { status: "none" },
-  sessionId: "crashed-session",
-  exitSubtype: "error_during_execution",
-};
-
-// A resume whose session's transcript is gone.
-export const noConversation: StepResult = {
-  ...resultOf(undefined),
-  output: { status: "none" },
-  sessionId: "lost-session",
-  exitSubtype: "error_during_execution",
-  hasNoConversation: true,
-};
-
-export const capped: StepResult = {
-  ...resultOf(undefined),
-  output: { status: "none" },
-  sessionId: "capped-session",
-  exitSubtype: "error_max_turns",
-};
-
-// The adapter itself throws, so the step never starts.
-export function throws(message: string): StepScript {
-  return async () => {
-    throw new Error(message);
-  };
-}
-
-// Commits `file` on the ticket's branch in the workspace, as a real implement step would.
-export function implemented(
-  file: string,
-  { content = "export {};\n", act = () => {} } = {},
-): StepScript {
-  return async (request: StepRequest) => {
-    act();
-    mkdirSync(dirname(join(request.cwd, file)), { recursive: true });
-    writeFileSync(join(request.cwd, file), content);
-    git(request.cwd, "add", file);
-    git(request.cwd, "commit", "-m", `Add ${file}`);
-    const branch = git(request.cwd, "branch", "--show-current");
-    return implementResultOf(
-      recordOf(branch, git(request.cwd, "rev-parse", "HEAD")),
-    );
-  };
-}
-
-// Commits nothing and returns a blocked record, as an implementer stuck before its first commit would.
-export function blocked(
-  blockers: Blocker[],
-  facts: Partial<StepResult> = {},
-): StepScript {
-  return async (request: StepRequest) => ({
-    ...implementResultOf(
-      recordOf(git(request.cwd, "branch", "--show-current"), "", {
-        status: "blocked",
-        blockers,
-      }),
-    ),
-    sessionId: "implement-session",
-    peakContext: 90_000,
-    ...facts,
-  });
-}
-
-// Makes only GitHub writes and commits nothing, as an implement step on a ticket with no code would.
-export function applied(): StepResult {
-  return implementResultOf({
-    status: "applied",
-    branches: [],
-    githubWrites: [
-      {
-        issue: "byronbroughten/byro-repo#213",
-        action: "comment",
-        url: "https://github.com/byronbroughten/byro-repo/issues/213#issuecomment-1",
-        summary: "Posted the addendum.",
-      },
-    ],
-    closingComment: "Posted the addendum.",
-    boxesUndone: [],
-    blockers: [],
-  });
-}
-
-// Removes the committed RED file, as a red-checks step that turns the checks green would.
-export function greened(): StepScript {
-  return async (request) => {
-    git(request.cwd, "rm", "-q", "RED");
-    git(request.cwd, "commit", "-m", "Remove RED");
-    return resultOf({ summary: "Removed RED." });
-  };
-}
-
-export function reviewed(findings: ReviewFinding[] = []): StepResult {
-  return resultOf({ findings });
-}
-
-// Finding `line` of one.ts, as a reviewer on `axis` reports it.
-export function findingOf(
-  line: number,
-  axis: ReviewFinding["axis"] = "standards",
-  suggestedVerdict: ReviewFinding["suggestedVerdict"] = "fix",
-): ReviewFinding {
-  return {
-    axis,
-    where: `one.ts:${line}`,
-    claim: `Line ${line} is wrong.`,
-    suggestedVerdict,
-    reason: "It breaks a rule.",
-  };
-}
-
-// Commits `fixFile`, as a resolver landing its Fix verdicts would, and returns the records.
-export function resolved(
-  records: ResolveRecord[],
-  fixFile?: string,
-): StepScript {
-  return async (request) => {
-    if (fixFile !== undefined) {
-      writeFileSync(join(request.cwd, fixFile), "export {};\n");
-      git(request.cwd, "add", fixFile);
-      git(request.cwd, "commit", "-m", `Fix ${fixFile}`);
-    }
-    return resultOf({ records });
-  };
 }
 
 export function haltComments(): string[] {
@@ -435,30 +277,6 @@ export function eventOf(line: string): string {
   return stampedLineOf(line).text;
 }
 
-let time: number;
-
-function advance(seconds: number): void {
-  time += seconds * 1000;
-}
-
-// A clock the fakes move on; each workspace build installs dependencies in 4s.
-export function timed(): Partial<SpecRunConfig> {
-  time = startTime().getTime();
-  return {
-    clock: { now: () => new Date(time) },
-    async installDependencies() {
-      advance(4);
-    },
-  };
-}
-
-export function after(seconds: number, step: ScriptedStep): StepScript {
-  return async (request) => {
-    advance(seconds);
-    return typeof step === "function" ? step(request) : step;
-  };
-}
-
 export function timingLines(): string[] {
   return progressLines()
     .map(eventOf)
@@ -478,7 +296,7 @@ export function runStatePath(number = spec.number): string {
 
 // A config override that also writes the event files a Supervisor watches.
 export function withEventFile(): Partial<SpecRunConfig> {
-  const eventFile = EventFileNotices.init(stateFolder(), startTime);
+  const eventFile = EventFileNotices.init(stateFolder(), timing.startTime);
   return { notices: composedNotices(notices, eventFile) };
 }
 
@@ -488,10 +306,6 @@ function composedNotices(...adapters: Notices[]): Notices {
       await Promise.all(adapters.map((adapter) => adapter.send(notice)));
     },
   };
-}
-
-function startTime(): Date {
-  return new Date("2026-10-12T09:00:00Z");
 }
 
 export function batchEventLines(members: MemberList): EventLine[] {

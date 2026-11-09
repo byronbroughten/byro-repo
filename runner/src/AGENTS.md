@@ -118,6 +118,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/runState/statePaths.ts` | | A spec's run state file and progress log paths in the state folder. |
 | `SpecRun/runState/ticketSteps.ts` | | A ticket's step sessions, heads, turn caps, live-ceiling phrase and snapshots, and reads a step's record and its review facts. |
 | `specRunHarness.ts` | | The fixture `SpecRun` tests share. |
+| `specRunHarness/stepResults.ts` | | The step results, records and scripted steps `SpecRun` tests give a fake agent step. |
+| `specRunHarness/timing.ts` | | The clock `SpecRun` tests start a run at and move through its fakes. |
 | `stalePaths.ts` | | The stale-path check for `packages/<dir>` mentions with no clone. |
 | `StepStream.ts` | | Reads a step's stream-json into its `StepResult`. |
 | `SupervisionRecords.ts` | `SupervisionRecords` | A Supervisor's record of the run or Batch it watches and the lines explained. |
