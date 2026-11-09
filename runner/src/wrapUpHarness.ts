@@ -14,7 +14,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
 
 import { FactsFile, type WrapUpFacts } from "./FactsFile.ts";
 import { FakeGitHub } from "./FakeGitHub.ts";
-import { git, GitFixture } from "./GitFixture.ts";
+import { clonePathIn, git, GitFixture, rootCloneOnly } from "./GitFixture.ts";
 import {
   type IssueRef,
   issueRef,
@@ -31,6 +31,7 @@ export const clonePaths = {
   "byro-repo": ".",
   "sheets-framework": "packages/framework",
 };
+export { rootCloneOnly };
 const redCheck: Command = ["sh", "-c", "test ! -f RED"];
 
 export const ticket: IssueRef = { repo: "byro-repo", number: 218 };
@@ -42,15 +43,19 @@ export let temp: string;
 export let primaryRoot: string;
 export let github: FakeGitHub;
 export let sleeps: number[];
+let testFileClonePaths: Record<string, string>;
 
 // Each harness owns the temp and primaryRoot its test files import, so a shared setup would hand them back through getters.
-export function useWrapUpHarness(): void {
+export function useWrapUpHarness(
+  clones: Record<string, string> = clonePaths,
+): void {
   // Real git runs alongside every other git-heavy test file, which slows a test past the 5s default.
   vi.setConfig({ testTimeout: 15_000 });
+  testFileClonePaths = clones;
   let fixture: GitFixture;
 
   beforeAll(() => {
-    fixture = GitFixture.init(clonePaths, {
+    fixture = GitFixture.init(testFileClonePaths, {
       gitignoreOf: (repo) => (repo === "byro-repo" ? "packages/*\n" : ""),
     });
   });
@@ -80,7 +85,7 @@ export function useWrapUpHarness(): void {
 export function workspacesConfig(): IssueWorkspacesConfig {
   return {
     primaryRoot,
-    clonePaths,
+    clonePaths: testFileClonePaths,
     workspaceFolder: join(temp, "workspaces"),
     symlinkedFiles: [],
     async installDependencies() {},
@@ -108,8 +113,41 @@ export function wrapUp(overrides: Partial<WrapUpConfig> = {}): WrapUp {
   });
 }
 
+export const session = "glossary-term";
+export const noGitHub: WrapUpConfig["github"] = {
+  async closeIssue() {
+    throw new Error("A session landing closed an issue");
+  },
+  async bodyOf() {
+    throw new Error("A session landing read an issue body");
+  },
+  async parentOf() {
+    throw new Error("A session landing read a parent");
+  },
+  async subIssuesOf() {
+    throw new Error("A session landing read sub-issues");
+  },
+  async labelsOf() {
+    throw new Error("A session landing read labels");
+  },
+  async commentsOf() {
+    throw new Error("A session landing read comments");
+  },
+  async authoredCommentsOf() {
+    throw new Error("A session landing read comments");
+  },
+};
+
+export function sessionWrapUp(): WrapUp {
+  return wrapUp({ github: noGitHub });
+}
+
+export async function sessionWorkspace(): Promise<Workspace> {
+  return IssueWorkspaces.init(workspacesConfig()).create({ session });
+}
+
 export function primaryOf(repo: keyof typeof clonePaths): string {
-  return join(primaryRoot, clonePaths[repo]);
+  return join(primaryRoot, clonePathIn(testFileClonePaths, repo));
 }
 
 export function remoteOf(repo: keyof typeof clonePaths): string {
@@ -132,7 +170,11 @@ export function commitIn(
   file: string,
   content: string,
 ): void {
-  commitFileIn(join(workspace.path, clonePaths[repo]), file, content);
+  commitFileIn(
+    join(workspace.path, clonePathIn(testFileClonePaths, repo)),
+    file,
+    content,
+  );
 }
 
 export function commitFileIn(

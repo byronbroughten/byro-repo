@@ -12,6 +12,9 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+// For a file with no test about a second repo: a run's or wrap-up's git calls are mostly per clone, so one clone costs fewer of them.
+export const rootCloneOnly: Record<string, string> = { "byro-repo": "." };
+
 interface GitFixtureFiles {
   gitignoreOf: (repo: string) => string;
   addUntracked?: (primaryRoot: string) => void;
@@ -71,6 +74,17 @@ export class GitFixture {
   remove(): void {
     rmSync(this.template, { recursive: true, force: true });
   }
+}
+
+export function clonePathIn(
+  clones: Record<string, string>,
+  repo: string,
+): string {
+  const clonePath = clones[repo];
+  if (clonePath === undefined) {
+    throw new Error(`This test file's harness has no ${repo} clone.`);
+  }
+  return clonePath;
 }
 
 export function git(cwd: string, ...args: string[]): string {

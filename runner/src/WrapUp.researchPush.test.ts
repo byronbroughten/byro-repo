@@ -11,12 +11,13 @@ import {
   errorOf,
   primaryOf,
   remoteOf,
+  rootCloneOnly,
   useWrapUpHarness,
   workspaceWith,
   wrapUp,
 } from "./wrapUpHarness.ts";
 
-useWrapUpHarness();
+useWrapUpHarness(rootCloneOnly);
 
 const research = "research/sheets-quotas";
 const secretLine = `{"client_id":"x","client_secret"` + `: "GOCSPX-abc"}\n`;
