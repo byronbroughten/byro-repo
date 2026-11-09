@@ -76,7 +76,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `reviewStep.ts` | `reviewStep` | The review step's prompt, record and finding types. |
 | `runBoard.ts` | `runBoard` | The Run board behind `runner status` and `runner watch` with no spec. |
 | `runCollecting.ts` | `runCollecting` | Runs one process with its output collected. |
-| `runCommand.ts` | | Runs a knob's command, returning its output tail when it fails, for the preflight and the landing. |
+| `runCommand.ts` | | Runs a knob's command, returning its output tail when it fails, for the preflight and a ticket's checks. |
 | `runKnobs.ts` | `runKnobs` | Every knob a run reads, its defaults and the override-file loader. |
 | `RunLock.ts` | `RunLock` | The per-spec run lock. |
 | `RunStop.ts` | | The error that ends a run with a Stop. |
@@ -103,7 +103,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/StandaloneTicketLister.ts` | | `runner standalone`: lists a repo's launchable Standalone tickets, leaving out each the Batch preflight would refuse, with its reason. |
 | `SpecRun/StatusReporter.ts` | | A run's or Batch's status, and its stop request. |
 | `SpecRun/StepLauncher.ts` | | Launches an agent step under the limit guard and retries a crash. |
-| `SpecRun/TicketLander.ts` | | Runs a ticket's checks and lands it. |
+| `SpecRun/TicketLander.ts` | | Lands a ticket, merging master into its branch on a wrap-up conflict, delegating its checks to `TicketLander/`. |
+| `SpecRun/TicketLander/TicketChecker.ts` | | Runs a ticket's checks until green, resuming on red and stopping on a red master. |
 | `SpecRun/TicketSelector.ts` | | Picks the run's next ticket and reads Halt answers. |
 | `SpecRun/TicketSequencer.ts` | | Runs one ticket's steps from the one it reached. |
 | `SpecRun/runState.ts` | | The run-state types and the ticket-state, targets, launch and member-blocking helpers several collaborators share. |
