@@ -1,0 +1,7 @@
+# byro-repo#620 outcome
+
+Spec: [byro-repo#611](https://github.com/byronbroughten/byro-repo/issues/611)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #620 | Opus medium | 3 | 4 | 86K | Fix (resumed implementer) | 3 | 1 | 0 | 11 min | $1.68 | $3.24 | Fixed: The four bolded speed rules are copied word for word from the code-style index. (config/docs/code-style/tests.md:15-18); The rule line carries a why and a citation. (runner/src/AGENTS.md:7); The 'test speed rule' link lands on a section of six rules, none labelled as speed. (.claude/skills/code-spec/SKILL.md:17); It is unclear whether 'a harness's check command' includes commands a test passes into the harness. (runner/src/AGENTS.md:7); 'Shell builtin' misdescribes the harness commands, which run binaries with no shell. (runner/src/AGENTS.md:7). Proposed: Runner tests already use real git outside the shared fixture, so the new rule has counterexamples. (runner/src/AGENTS.md:6); Existing node -e check commands already break the new rule. (runner/src/SpecRun.stops.test.ts:34, :177-180); Three runner tests bypass the shared git fixture. (runner/src/AGENTS.md:6). | a742ef08-50c3-4fd5-8372-05bc5784a311, aa997469-313a-4553-9f27-16a494d51cb8 |
