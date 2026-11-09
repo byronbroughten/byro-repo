@@ -61,11 +61,20 @@ describe("packageLintCommandsOf", () => {
     ]);
   });
 
-  it("runs lint-docs only for a named package that has it", () => {
+  it("runs the root's lint-docs for a named package with none of its own", () => {
     expect(labelsOf([runner], packages)).toEqual([
       "eslint --flag v10_config_lookup_from_file --no-warn-ignored --no-error-on-unmatched-pattern runner",
+      "npm run -s lint:docs",
       `prettier --check --ignore-unknown --ignore-path ${join(repoRoot, ".prettierignore")} --ignore-path runner/.gitignore runner`,
     ]);
+  });
+
+  it("runs the root's lint-docs once when the root and a package it covers are named", () => {
+    expect(
+      labelsOf([root, runner], packages).filter((label) =>
+        label.startsWith("npm run -s lint:docs"),
+      ),
+    ).toEqual(["npm run -s lint:docs"]);
   });
 });
 

@@ -39,9 +39,7 @@ export function packageLintCommandsOf(
       : [".", ...unselectedOf(selected, packages).flatMap(eslintIgnoreOf)];
   return [
     eslintOf(["--no-error-on-unmatched-pattern", ...eslintPaths]),
-    ...selected
-      .filter(({ scripts }) => scripts["lint:docs"] !== undefined)
-      .map(lintDocsOf),
+    ...lintDocsPackagesOf(selected, packages).map(lintDocsOf),
     ...(root === undefined ? [] : [rootPrettierCheckOf(root)]),
     ...others.map(packagePrettierCheckOf),
   ];
@@ -84,6 +82,23 @@ function unselectedOf(
 
 function eslintIgnoreOf({ path }: CheckPackage): string[] {
   return ["--ignore-pattern", `${path}/`];
+}
+
+// A package with no lint-docs of its own lives in the root repo, whose files the root's one lint-docs run covers.
+function lintDocsPackagesOf(
+  selected: CheckPackage[],
+  packages: CheckPackage[],
+): CheckPackage[] {
+  const root = packages.find(isRootPackage);
+  const docsPackages = selected.flatMap((pkg) => {
+    if (hasLintDocs(pkg)) return [pkg];
+    return root !== undefined && hasLintDocs(root) ? [root] : [];
+  });
+  return [...new Set(docsPackages)];
+}
+
+function hasLintDocs({ scripts }: CheckPackage): boolean {
+  return scripts["lint:docs"] !== undefined;
 }
 
 function lintDocsOf(pkg: CheckPackage): Command {
