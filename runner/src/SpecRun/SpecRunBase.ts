@@ -28,9 +28,8 @@ import {
 import { runnerMark } from "../halts.ts";
 import { approvalLineOf, untrustedBodyReasonOf } from "../IssueReader.ts";
 import {
-  fileStemOf,
-  issueLabelOf,
   type IssueRef,
+  issueRef,
   IssueWorkspaces,
   type IssueWorkspacesConfig,
   type Workspace,
@@ -234,7 +233,7 @@ export class SpecRunBase {
 
   // Written by StatusReporter.ts from outside the run, taken by RunLoop.ts between tickets.
   protected _stopRequestPathOf(spec: IssueRef): string {
-    return join(this.config.stateFolder, `${fileStemOf(spec)}.stop`);
+    return join(this.config.stateFolder, `${issueRef.fileStemOf(spec)}.stop`);
   }
 
   protected _saveState(run: Run): void {
@@ -332,11 +331,11 @@ export class SpecRunBase {
     });
     if (refused.length === 0) return undefined;
     const offenders = refused.map(
-      ({ issue, reason }) => `${issueLabelOf(issue.issue)} (${reason})`,
+      ({ issue, reason }) => `${issueRef.labelOf(issue.issue)} (${reason})`,
     );
     const approvals = refused.map(
       ({ issue }) =>
-        `${issueLabelOf(issue.issue)}:\n${approvalLineOf(issue.body)}`,
+        `${issueRef.labelOf(issue.issue)}:\n${approvalLineOf(issue.body)}`,
     );
     return `${runText.onlyDeveloperEdits(this.config.developer, subject)}; refused ${offenders.join(", ")}. For the developer to paste after reading the body, as a comment on it; an agent never posts this line.\n\n${approvals.join("\n\n")}`;
   }
@@ -477,7 +476,7 @@ export class SpecRunBase {
       if (branch === undefined) continue;
       this._log(
         run,
-        `${issueLabelOf(ticket.issue)}: saved ${repo}'s uncommitted work to ${branch}.`,
+        `${issueRef.labelOf(ticket.issue)}: saved ${repo}'s uncommitted work to ${branch}.`,
       );
     }
   }

@@ -3,7 +3,7 @@
 // reviewList.ts turns its record into the final review-list comment; SpecRun.ts launches it and posts that comment.
 
 import { stepReadLine } from "./IssueReader.ts";
-import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import { arraySchema, objectSchema, stringSchema } from "./recordSchema.ts";
 import type { TrackedIssue } from "./SpecRun.ts";
 
@@ -36,7 +36,7 @@ export function gapCheckPrompt({
 }: GapCheckPromptInput): string {
   const ticketLines = tickets.map(
     ({ issue, title: ticketTitle }) =>
-      `- ${issueLabelOf(issue)}, "${ticketTitle}"`,
+      `- ${issueRef.labelOf(issue)}, "${ticketTitle}"`,
   );
   return `You are the gap check of an unattended run. Nobody is watching this session: never ask a question or wait for an answer.
 

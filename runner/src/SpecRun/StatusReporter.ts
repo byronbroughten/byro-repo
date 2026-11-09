@@ -11,11 +11,7 @@ import {
   noActiveAccountPhraseOf,
 } from "../ActiveAccountUnknown.ts";
 import { type Halt } from "../halts.ts";
-import {
-  holderLabelOf,
-  issueLabelOf,
-  type IssueRef,
-} from "../IssueWorkspaces.ts";
+import { type IssueRef, issueRef, leaseHolder } from "../IssueWorkspaces.ts";
 import { readingLabelOf } from "../limitGuard.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
 import {
@@ -68,7 +64,10 @@ export class StatusReporter extends SpecRunBase {
     }
     const lines: string[] = [];
     if (isBatch) {
-      lines.push(`Batch of ${memberIssues.map(issueLabelOf).join(", ")}.`, "");
+      lines.push(
+        `Batch of ${memberIssues.map(issueRef.labelOf).join(", ")}.`,
+        "",
+      );
     }
     lines.push(
       blocks.join("\n\n"),
@@ -111,8 +110,8 @@ export class StatusReporter extends SpecRunBase {
     const current = waits.flatMap((wait) => currentTextOf(run, wait));
     const others = waits.filter(({ holder }) => holder?.kind !== "run");
     return [
-      `${issueLabelOf(run.spec.issue)}, "${run.spec.title}"`,
-      `Landed: ${runText.joinedOrNone(landed.map(issueLabelOf))}.`,
+      `${issueRef.labelOf(run.spec.issue)}, "${run.spec.title}"`,
+      `Landed: ${runText.joinedOrNone(landed.map(issueRef.labelOf))}.`,
       `Current: ${runText.joinedOrNone(current)}.`,
       `Open Halts: ${runText.joinedOrNone(openHalts.map(openHaltTextOf))}.`,
       `Waiting: ${others.length === 0 ? "none" : runText.waitsOf(others)}.`,
@@ -156,10 +155,12 @@ export class StatusReporter extends SpecRunBase {
 
 function currentTextOf(run: Run, { ticket, holder }: Wait): string[] {
   if (holder?.kind !== "run") return [];
-  const step = run.state.tickets[issueLabelOf(ticket)]?.step ?? "implement";
-  return [`${issueLabelOf(ticket)} at ${step} (${holderLabelOf(holder)})`];
+  const step = run.state.tickets[issueRef.labelOf(ticket)]?.step ?? "implement";
+  return [
+    `${issueRef.labelOf(ticket)} at ${step} (${leaseHolder.labelOf(holder)})`,
+  ];
 }
 
 function openHaltTextOf(halt: Halt): string {
-  return `${halt.id} on ${issueLabelOf(halt.ticket)}`;
+  return `${halt.id} on ${issueRef.labelOf(halt.ticket)}`;
 }

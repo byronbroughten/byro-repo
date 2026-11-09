@@ -9,21 +9,23 @@ export interface Lease extends LeaseHolder {
   isLive: boolean;
 }
 
-export function isSameHolder(a: LeaseHolder, b: LeaseHolder): boolean {
-  return a.kind === b.kind && a.pid === b.pid;
-}
+export const leaseHolder = {
+  isSame(a: LeaseHolder, b: LeaseHolder): boolean {
+    return a.kind === b.kind && a.pid === b.pid;
+  },
 
-// The lease when someone other than the holder holds it live, undefined when the holder may take it.
-export function otherLiveHolderOf(
-  lease: Lease | undefined,
-  holder?: LeaseHolder,
-): Lease | undefined {
-  if (!lease?.isLive || (holder && isSameHolder(holder, lease))) {
-    return undefined;
-  }
-  return lease;
-}
+  // The lease when someone other than the holder holds it live, undefined when the holder may take it.
+  otherLiveOf(
+    lease: Lease | undefined,
+    holder?: LeaseHolder,
+  ): Lease | undefined {
+    if (!lease?.isLive || (holder && leaseHolder.isSame(holder, lease))) {
+      return undefined;
+    }
+    return lease;
+  },
 
-export function holderLabelOf({ kind, pid }: LeaseHolder): string {
-  return `a ${kind} (pid ${pid})`;
-}
+  labelOf({ kind, pid }: LeaseHolder): string {
+    return `a ${kind} (pid ${pid})`;
+  },
+};

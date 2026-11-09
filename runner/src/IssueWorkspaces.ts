@@ -25,30 +25,21 @@ import {
 } from "./IssueWorkspaces/workspaceTypes.ts";
 
 export {
-  holderLabelOf,
-  isSameHolder,
   type Lease,
   type LeaseHolder,
-  otherLiveHolderOf,
+  leaseHolder,
 } from "./IssueWorkspaces/workspaceLeases.ts";
 export {
   type CreateOptions,
-  fileStemOf,
-  isAmong,
   type IssueRef,
-  issueLabelOf,
-  issueOfFileStem,
-  issuesOutside,
+  issueRef,
   type IssueWorkspacesConfig,
-  isSameIssue,
-  isSessionKey,
   type LeasedWorkspace,
   type RemoveOptions,
-  sessionBranchOf,
   type SessionKey,
   type Workspace,
   type WorkspaceKey,
-  workspaceLabelOf,
+  workspaceKey,
   type WorkspaceStatus,
 } from "./IssueWorkspaces/workspaceTypes.ts";
 

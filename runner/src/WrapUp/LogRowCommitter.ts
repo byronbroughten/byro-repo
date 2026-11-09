@@ -2,11 +2,7 @@
 
 import { type WrapUpFacts } from "../FactsFile.ts";
 import { git, revOf } from "../git.ts";
-import {
-  issueLabelOf,
-  type IssueRef,
-  type Workspace,
-} from "../IssueWorkspaces.ts";
+import { type IssueRef, issueRef, type Workspace } from "../IssueWorkspaces.ts";
 import { writeOutcomeRow } from "../outcomeRowWriter.ts";
 import { IssueCloser } from "./IssueCloser.ts";
 import { WrapUpBase } from "./WrapUpBase.ts";
@@ -34,7 +30,7 @@ export class LogRowCommitter extends WrapUpBase {
 
   private async _isHumanTicket(issue: IssueRef): Promise<boolean> {
     const issueLabels = await this._withRetries(
-      `Reading ${issueLabelOf(issue)}'s labels`,
+      `Reading ${issueRef.labelOf(issue)}'s labels`,
       () => this.config.github.labelsOf(issue),
     );
     return issueLabels.includes(labels.human);

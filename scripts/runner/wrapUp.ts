@@ -4,8 +4,8 @@
 import { parseArgs } from "node:util";
 
 import {
-  issueLabelOf,
-  workspaceLabelOf,
+  issueRef,
+  workspaceKey,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
 import {
   leftOpenLineOf,
@@ -65,7 +65,9 @@ async function landIssue(args: string[]): Promise<void> {
     }),
     hasNoCode: values["no-code"],
   });
-  console.log(`Landed ${issueLabelOf(issue)}: ${result.filesChanged} files.`);
+  console.log(
+    `Landed ${issueRef.labelOf(issue)}: ${result.filesChanged} files.`,
+  );
   logBranchDeleteFailures(result.branchDeleteFailures);
   if (result.isLeftOpen) console.log(leftOpenLineOf(issue));
   console.log(parentLineOf(result.parent));
@@ -92,7 +94,7 @@ async function landSession(args: string[]): Promise<void> {
     ? await wrapUp.keepSession(session, options)
     : await wrapUp.runSession(session, options);
   console.log(
-    `Landed ${workspaceLabelOf({ session })}: ${result.filesChanged} files.`,
+    `Landed ${workspaceKey.labelOf({ session })}: ${result.filesChanged} files.`,
   );
   logBranchDeleteFailures(result.branchDeleteFailures);
   if (keep) console.log("The workspace stays, level with master.");
@@ -106,7 +108,7 @@ function logBranchDeleteFailures(failures: string[]): void {
 
 function parentLineOf(check: ParentCheck): string {
   if (check.kind === "none") return "No parent to close.";
-  const parent = issueLabelOf(check.parent);
+  const parent = issueRef.labelOf(check.parent);
   if (check.kind === "ready-to-close") {
     return `Parent ${parent} has every sub-issue closed: close it out with the prompt in docs/agents/git-workflow.md.`;
   }

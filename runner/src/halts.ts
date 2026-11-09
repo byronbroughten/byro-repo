@@ -7,7 +7,7 @@ import {
   type ProposedSlice,
   proposedSplitText,
 } from "./implementStep.ts";
-import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import {
   type HaltScope,
   haltScopeOf,
@@ -139,7 +139,7 @@ export function handoffCapDetailOf({
     slices.length > 0
       ? ` The last handoff proposed splitting the rest into:\n\n${proposedSplitText(slices)}\n\n`
       : " ";
-  return `${issueLabelOf(ticket)} handed off ${count} times, past its cap of ${cap}.${split}${splitTheTicketPhraseOf(failureOptions.moreHandoffs)}.`;
+  return `${issueRef.labelOf(ticket)} handed off ${count} times, past its cap of ${cap}.${split}${splitTheTicketPhraseOf(failureOptions.moreHandoffs)}.`;
 }
 
 function splitTheTicketPhraseOf(answer: string): string {
@@ -215,7 +215,7 @@ export interface HaltPost {
 }
 
 function haltLabelOf({ halt, index, count }: HaltPost): string {
-  return `Halt ${index} of ${count} · ${issueLabelOf(halt.ticket)}`;
+  return `Halt ${index} of ${count} · ${issueRef.labelOf(halt.ticket)}`;
 }
 
 export function haltNameOf({ id }: Halt): string {

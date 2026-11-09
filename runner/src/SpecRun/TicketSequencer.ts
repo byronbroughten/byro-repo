@@ -15,7 +15,7 @@ import {
 } from "../halts.ts";
 import { failureAnswerOf } from "../halts/haltReplies.ts";
 import { approvalLineOf, bodyHashOf } from "../IssueReader.ts";
-import { issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
 import { LeaseHeld } from "../LeaseHeld.ts";
 import { pairLabelOf, pairOf } from "../modelFit.ts";
 import { ticketLaunchLineOf } from "../progressLines.ts";
@@ -111,7 +111,7 @@ export class TicketSequencer extends SpecRunBase {
       return "landed";
     } catch (error) {
       if (error instanceof LeaseHeld) {
-        this._log(run, `${issueLabelOf(ticket.issue)}: ${error.message}`);
+        this._log(run, `${issueRef.labelOf(ticket.issue)}: ${error.message}`);
         return "leased";
       }
       if (error instanceof TicketHalted) return "halted";
@@ -138,14 +138,14 @@ export class TicketSequencer extends SpecRunBase {
     if (approving !== undefined) {
       await this.config.github.comment(
         ticket.issue,
-        `${runnerMark}\n${approvalLineOf(ticket.body)}\n\nApproved by answering ${haltNameOf(approving)} on ${issueLabelOf(run.spec.issue)}.`,
+        `${runnerMark}\n${approvalLineOf(ticket.body)}\n\nApproved by answering ${haltNameOf(approving)} on ${issueRef.labelOf(run.spec.issue)}.`,
       );
       return;
     }
     const { approve, skip } = failureOptions;
     await this.haltRaiser._failureHalt(landingTicket, {
       step: state.step,
-      detail: `${issueLabelOf(ticket.issue)}'s body was ${reason}. ${runText.onlyDeveloperEdits(this.config.developer, "a ticket the run launches")}, unless they approve its text. Read the body and its edit history at ${ticket.url}; this Halt saw it as sha256:${bodyHash.slice(0, 12)}. An ${approve} posts the approval of that text on the ticket; a body changed since raises a fresh Halt instead, so to revert an edit, revert it, then ${approve} the fresh Halt. A ${skip} approves nothing.`,
+      detail: `${issueRef.labelOf(ticket.issue)}'s body was ${reason}. ${runText.onlyDeveloperEdits(this.config.developer, "a ticket the run launches")}, unless they approve its text. Read the body and its edit history at ${ticket.url}; this Halt saw it as sha256:${bodyHash.slice(0, 12)}. An ${approve} posts the approval of that text on the ticket; a body changed since raises a fresh Halt instead, so to revert an edit, revert it, then ${approve} the fresh Halt. A ${skip} approves nothing.`,
       logPath: this._progressPathOf(run),
       options: [approve, skip],
       bodyHash,
@@ -159,7 +159,7 @@ export class TicketSequencer extends SpecRunBase {
     stop: UnhandledStop,
   ): Promise<never> {
     const outcome = stopOutcomes[stop.outcome];
-    const label = issueLabelOf(ticket.issue);
+    const label = issueRef.labelOf(ticket.issue);
     const command = runText.rerunCommandOf(
       this.config.githubOwner,
       run.spec.issue,
@@ -191,7 +191,7 @@ export class TicketSequencer extends SpecRunBase {
     this._saveState(run);
     this._log(
       run,
-      `${issueLabelOf(ticket.issue)}: stopped on ${outcome}; details in the spec-issue comment.`,
+      `${issueRef.labelOf(ticket.issue)}: stopped on ${outcome}; details in the spec-issue comment.`,
     );
     const commentUrl = await this._comment(
       run,
@@ -202,10 +202,13 @@ export class TicketSequencer extends SpecRunBase {
         "The ticket is left unlanded in its issue workspace, and a rerun won't retry it. Finish and land it by hand with the standalone wrap-up; a rerun skips it once it is closed.",
       ].join("\n\n"),
     );
-    throw new RunStop(`Stopped on ${issueLabelOf(ticket.issue)}: ${outcome}.`, {
-      ticket: ticket.issue,
-      commentUrl,
-    });
+    throw new RunStop(
+      `Stopped on ${issueRef.labelOf(ticket.issue)}: ${outcome}.`,
+      {
+        ticket: ticket.issue,
+        commentUrl,
+      },
+    );
   }
 
   // An implementer whose record failed after it committed is offered `retry record`, which keeps those commits.
@@ -312,5 +315,5 @@ function isRerunRetried({ outcome }: UnhandledStop): boolean {
 }
 
 function stopHeadingOf(ticket: TrackedIssue, outcome: string): string {
-  return `The runner stopped on ${issueLabelOf(ticket.issue)}, "${ticket.title}": ${outcome}.`;
+  return `The runner stopped on ${issueRef.labelOf(ticket.issue)}, "${ticket.title}": ${outcome}.`;
 }

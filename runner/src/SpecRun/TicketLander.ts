@@ -6,7 +6,7 @@
 
 import { type WrapUpFacts } from "../FactsFile.ts";
 import { haltKindLabelOf } from "../halts.ts";
-import { issueLabelOf } from "../IssueWorkspaces.ts";
+import { issueRef } from "../IssueWorkspaces.ts";
 import { pairLabelOf } from "../modelFit.ts";
 import { type RecordedSession, unrecordedFactsOf } from "../transcriptFacts.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
@@ -44,7 +44,7 @@ export class TicketLander extends SpecRunBase {
     const steps = ticketSteps.recordedSessionsOf(state);
     this._writeFacts(landingTicket, steps);
     this._warnOnUnrecordedFacts(landingTicket, steps);
-    this._log(run, `${issueLabelOf(ticket.issue)}: wrapping up.`);
+    this._log(run, `${issueRef.labelOf(ticket.issue)}: wrapping up.`);
     for (;;) {
       try {
         await this.wrapUp.run(ticket.issue);
@@ -59,7 +59,7 @@ export class TicketLander extends SpecRunBase {
       }
     }
     this._advance(landingTicket, "landed");
-    this._log(run, `${issueLabelOf(ticket.issue)}: landed.`);
+    this._log(run, `${issueRef.labelOf(ticket.issue)}: landed.`);
     await this.reviewListPoster._postReviewList(run, ticket);
   }
 
@@ -70,7 +70,7 @@ export class TicketLander extends SpecRunBase {
     const { record } = state;
     if (record === undefined) {
       throw new Error(
-        `${issueLabelOf(ticket.issue)} reached its wrap-up with no implement record`,
+        `${issueRef.labelOf(ticket.issue)} reached its wrap-up with no implement record`,
       );
     }
     const facts: WrapUpFacts = {
@@ -101,7 +101,7 @@ export class TicketLander extends SpecRunBase {
     { run, ticket, state }: LandingTicket,
     steps: RecordedSession[],
   ): void {
-    const prefix = `${issueLabelOf(ticket.issue)}: warning:`;
+    const prefix = `${issueRef.labelOf(ticket.issue)}: warning:`;
     const dropped = state.sessions.length - steps.length;
     if (dropped > 0) {
       this._log(

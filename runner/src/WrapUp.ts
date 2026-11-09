@@ -13,8 +13,8 @@ import { existsSync, readFileSync, rmSync } from "node:fs";
 
 import { type ClosingFacts, FactsFile } from "./FactsFile.ts";
 import {
-  issueLabelOf,
   type IssueRef,
+  issueRef,
   type LeaseHolder,
   type SessionKey,
   type WorkspaceKey,
@@ -254,11 +254,11 @@ function assertLandable(
   const hasCode = branches.length > 0;
   if (hasNoCode && hasCode) {
     throw new Error(
-      `${issueLabelOf(issue)} has commits ahead of master in ${listedReposOf({ branches }).join(", ")}; drop --no-code to land them`,
+      `${issueRef.labelOf(issue)} has commits ahead of master in ${listedReposOf({ branches }).join(", ")}; drop --no-code to land them`,
     );
   }
   if (hasNoCode || hasCode || (facts.githubWrites ?? []).length > 0) return;
   throw new Error(
-    `${issueLabelOf(issue)} has no issue branch ahead of master and no GitHub writes; pass --no-code to land it without code`,
+    `${issueRef.labelOf(issue)} has no issue branch ahead of master and no GitHub writes; pass --no-code to land it without code`,
   );
 }

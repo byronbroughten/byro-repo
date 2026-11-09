@@ -7,54 +7,11 @@ export interface IssueRef {
   number: number;
 }
 
-export function isSameIssue(a: IssueRef, b: IssueRef): boolean {
-  return a.repo === b.repo && a.number === b.number;
-}
-
-export function isAmong(issue: IssueRef, issues: IssueRef[]): boolean {
-  return issues.some((each) => isSameIssue(each, issue));
-}
-
-export function issuesOutside(
-  issues: IssueRef[],
-  excluded: IssueRef[],
-): IssueRef[] {
-  return issues.filter((issue) => !isAmong(issue, excluded));
-}
-
 export interface SessionKey {
   session: string;
 }
 
 export type WorkspaceKey = IssueRef | SessionKey;
-
-export function isSessionKey(key: WorkspaceKey): key is SessionKey {
-  return "session" in key;
-}
-
-export function workspaceLabelOf(key: WorkspaceKey): string {
-  if (isSessionKey(key)) return `session ${key.session}`;
-  return issueLabelOf(key);
-}
-
-export function issueLabelOf({ repo, number }: IssueRef): string {
-  return `${repo} #${number}`;
-}
-
-export function sessionBranchOf({ session }: SessionKey): string {
-  return `${sessionBranchPrefix}${session}`;
-}
-
-// The issue as a file name's stem, for the state files kept per issue.
-export function fileStemOf({ repo, number }: IssueRef): string {
-  return `${repo}-${number}`;
-}
-
-// The repo may hold dashes, so only the last one splits off the number.
-export function issueOfFileStem(stem: string): IssueRef {
-  const dash = stem.lastIndexOf("-");
-  return { repo: stem.slice(0, dash), number: Number(stem.slice(dash + 1)) };
-}
 
 export interface CreateOptions {
   slug?: string;
@@ -111,15 +68,63 @@ export interface RemoveOptions {
 
 export const sessionBranchPrefix = "session-";
 
-// A session folder is named for its branch alone; an issue folder leads with its repo, since issue numbers repeat across repos.
-export function folderPrefixOf(key: WorkspaceKey): string {
-  if (isSessionKey(key)) return "";
-  return `${key.repo}-`;
-}
+export const issueRef = {
+  isSame(a: IssueRef, b: IssueRef): boolean {
+    return a.repo === b.repo && a.number === b.number;
+  },
 
-export function isSameKey(a: WorkspaceKey, b: WorkspaceKey): boolean {
-  if (isSessionKey(a) || isSessionKey(b)) {
-    return isSessionKey(a) && isSessionKey(b) && a.session === b.session;
-  }
-  return isSameIssue(a, b);
-}
+  isAmong(issue: IssueRef, issues: IssueRef[]): boolean {
+    return issues.some((each) => issueRef.isSame(each, issue));
+  },
+
+  issuesOutside(issues: IssueRef[], excluded: IssueRef[]): IssueRef[] {
+    return issues.filter((issue) => !issueRef.isAmong(issue, excluded));
+  },
+
+  labelOf({ repo, number }: IssueRef): string {
+    return `${repo} #${number}`;
+  },
+
+  // The issue as a file name's stem, for the state files kept per issue.
+  fileStemOf({ repo, number }: IssueRef): string {
+    return `${repo}-${number}`;
+  },
+
+  // The repo may hold dashes, so only the last one splits off the number.
+  ofFileStem(stem: string): IssueRef {
+    const dash = stem.lastIndexOf("-");
+    return { repo: stem.slice(0, dash), number: Number(stem.slice(dash + 1)) };
+  },
+};
+
+export const workspaceKey = {
+  isSession(key: WorkspaceKey): key is SessionKey {
+    return "session" in key;
+  },
+
+  labelOf(key: WorkspaceKey): string {
+    if (workspaceKey.isSession(key)) return `session ${key.session}`;
+    return issueRef.labelOf(key);
+  },
+
+  sessionBranchOf({ session }: SessionKey): string {
+    return `${sessionBranchPrefix}${session}`;
+  },
+
+  // A session folder is named for its branch alone; an issue folder leads with its repo, since issue numbers repeat across repos.
+  folderPrefixOf(key: WorkspaceKey): string {
+    if (workspaceKey.isSession(key)) return "";
+    return `${key.repo}-`;
+  },
+
+  isSame(a: WorkspaceKey, b: WorkspaceKey): boolean {
+    if (workspaceKey.isSession(a) || workspaceKey.isSession(b)) {
+      return (
+        workspaceKey.isSession(a) &&
+        workspaceKey.isSession(b) &&
+        a.session === b.session
+      );
+    }
+    return issueRef.isSame(a, b);
+  },
+};

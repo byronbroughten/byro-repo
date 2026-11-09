@@ -11,7 +11,7 @@ import {
   shortRefOf,
 } from "../../halts.ts";
 import { failureAnswerOf, isStopSpecAnswer } from "../../halts/haltReplies.ts";
-import { isSameIssue, type IssueRef } from "../../IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "../../IssueWorkspaces.ts";
 import { type Run, ticketStateOf, type TicketStep } from "../runState.ts";
 
 interface DownstreamSearch {
@@ -50,7 +50,9 @@ export const runHalts = {
   },
 
   ofTicket(run: Run, ticket: IssueRef): Halt[] {
-    return runHalts.of(run).filter((halt) => isSameIssue(halt.ticket, ticket));
+    return runHalts
+      .of(run)
+      .filter((halt) => issueRef.isSame(halt.ticket, ticket));
   },
 
   isAuthorship({ bodyHash }: Halt): boolean {

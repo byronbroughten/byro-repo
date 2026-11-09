@@ -1,7 +1,7 @@
 // Closes a landed ticket's issue, or leaves a Standalone one open, and reads its parent, spec and handoff sessions.
 
 import type { GitHubWrite, WrapUpFacts } from "../FactsFile.ts";
-import { issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
 import {
   developersReviewListsOf,
   reviewListMarkOf,
@@ -35,7 +35,7 @@ export class IssueCloser extends WrapUpBase {
   private async _isStandalone(issue: IssueRef): Promise<boolean> {
     if ((await this._parentOf(issue)) !== undefined) return false;
     const subIssues = await this._withRetries(
-      `Reading ${issueLabelOf(issue)}'s sub-issues`,
+      `Reading ${issueRef.labelOf(issue)}'s sub-issues`,
       () => this.config.github.subIssuesOf(issue),
     );
     return subIssues.length === 0;
@@ -47,7 +47,7 @@ export class IssueCloser extends WrapUpBase {
     facts: WrapUpFacts,
   ): Promise<boolean> {
     const comments = await this._withRetries(
-      `Reading ${issueLabelOf(issue)}'s comments`,
+      `Reading ${issueRef.labelOf(issue)}'s comments`,
       () => this.config.github.authoredCommentsOf(issue),
     );
     const lists = developersReviewListsOf(comments, this.config.developer);
@@ -64,7 +64,7 @@ export class IssueCloser extends WrapUpBase {
 
   async _handoffSessionIdsOf(issue: IssueRef): Promise<string[]> {
     const comments = await this._withRetries(
-      `Reading ${issueLabelOf(issue)}'s comments`,
+      `Reading ${issueRef.labelOf(issue)}'s comments`,
       () => this.config.github.commentsOf(issue),
     );
     return comments.flatMap((comment) => {
@@ -78,15 +78,16 @@ export class IssueCloser extends WrapUpBase {
   }
 
   private async _parentOf(issue: IssueRef): Promise<ParentIssue | undefined> {
-    return this._withRetries(`Reading ${issueLabelOf(issue)}'s parent`, () =>
-      this.config.github.parentOf(issue),
+    return this._withRetries(
+      `Reading ${issueRef.labelOf(issue)}'s parent`,
+      () => this.config.github.parentOf(issue),
     );
   }
 }
 
 // The wrap-up log and the CLI's result line alike.
 export function leftOpenLineOf(issue: IssueRef): string {
-  return `${issueLabelOf(issue)} stays open: its review list has undecided items, and /judge-findings closes it once they're decided.`;
+  return `${issueRef.labelOf(issue)} stays open: its review list has undecided items, and /judge-findings closes it once they're decided.`;
 }
 
 function closingCommentOf({
@@ -123,7 +124,7 @@ function parentCheckOf(parent: ParentIssue | undefined): ParentCheck {
   if (parent.subIssues === undefined) {
     throw new WrapUpFailure(
       "parent-check",
-      `${issueLabelOf(parent.issue)}'s sub-issue summary could not be read`,
+      `${issueRef.labelOf(parent.issue)}'s sub-issue summary could not be read`,
     );
   }
   if (parent.subIssues.completed < parent.subIssues.total) {

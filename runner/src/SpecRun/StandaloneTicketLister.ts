@@ -3,7 +3,7 @@
 // PreflightChecker.ts gives a Batch member, its blockers included, so the printed list launches as printed.
 // Leaving one out can leave out a ticket it blocks, so the check repeats until the list stops changing. SpecRun.ts delegates here.
 
-import { issueLabelOf } from "../IssueWorkspaces.ts";
+import { issueRef } from "../IssueWorkspaces.ts";
 import { PreflightChecker } from "./PreflightChecker.ts";
 import { interactiveLabel, readyLabel, type Run } from "./runState.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
@@ -31,13 +31,14 @@ export class StandaloneTicketLister extends SpecRunBase {
       ...sectionOf(
         "Launchable:",
         listed.map(
-          ({ spec }) => `${issueLabelOf(spec.issue)} · "${spec.title}"`,
+          ({ spec }) => `${issueRef.labelOf(spec.issue)} · "${spec.title}"`,
         ),
       ),
       ...sectionOf(
         "Left out:",
         oldestLeftOut.map(
-          ({ run, reason }) => `${issueLabelOf(run.spec.issue)} · ${reason}`,
+          ({ run, reason }) =>
+            `${issueRef.labelOf(run.spec.issue)} · ${reason}`,
         ),
       ),
       this._launchLineOf(repo, listed),

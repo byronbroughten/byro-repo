@@ -7,12 +7,12 @@ import { spawn } from "node:child_process";
 import { homedir } from "node:os";
 
 import {
-  holderLabelOf,
   type IssueRef,
   IssueWorkspaces,
+  leaseHolder,
   type Workspace,
   type WorkspaceKey,
-  workspaceLabelOf,
+  workspaceKey,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
 
 import { nearestClaudeAncestor } from "./claudeAncestor.ts";
@@ -146,12 +146,12 @@ async function release(args: string[]): Promise<void> {
   }
   if (!released.isLive) {
     console.log(
-      `Released the lease abandoned by ${holderLabelOf(released)} on ${workspace.path}`,
+      `Released the lease abandoned by ${leaseHolder.labelOf(released)} on ${workspace.path}`,
     );
     return;
   }
   console.log(
-    `Released ${holderLabelOf(released)}'s lease on ${workspace.path}`,
+    `Released ${leaseHolder.labelOf(released)}'s lease on ${workspace.path}`,
   );
 }
 
@@ -189,6 +189,8 @@ function issueOf(
 
 async function workspaceOf(key: WorkspaceKey): Promise<Workspace> {
   const workspace = await workspaces.find(key);
-  if (!workspace) throw new Error(`No workspace for ${workspaceLabelOf(key)}`);
+  if (!workspace) {
+    throw new Error(`No workspace for ${workspaceKey.labelOf(key)}`);
+  }
   return workspace;
 }

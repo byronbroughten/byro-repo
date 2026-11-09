@@ -11,9 +11,9 @@ import {
 } from "../processIdentity.ts";
 import { assertLeaseFree, IssueWorkspacesBase } from "./IssueWorkspacesBase.ts";
 import {
-  isSameHolder,
   type Lease,
   type LeaseHolder,
+  leaseHolder,
 } from "./workspaceLeases.ts";
 import {
   type LeasedWorkspace,
@@ -51,7 +51,7 @@ export class WorkspaceLeaser extends IssueWorkspacesBase {
       if (
         path !== workspace.path &&
         lease.isLive &&
-        isSameHolder(lease, holder)
+        leaseHolder.isSame(lease, holder)
       ) {
         await this.releaseLease({ path });
       }

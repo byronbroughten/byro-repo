@@ -26,7 +26,7 @@ import {
   failureAnswerOf,
   isStopSpecAnswer,
 } from "../halts/haltReplies.ts";
-import { issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
 import { type ResolveRecord } from "../resolveStep.ts";
 import {
   coveredLaterNotesOf,
@@ -198,7 +198,7 @@ export class ReviewListPoster extends SpecRunBase {
   // Catches a ticket that landed in a run killed before its review list was posted.
   private async _postLandedReviewLists(run: Run): Promise<void> {
     for (const ticket of run.tickets) {
-      const state = run.state.tickets[issueLabelOf(ticket)];
+      const state = run.state.tickets[issueRef.labelOf(ticket)];
       if (state?.step !== "landed" || state.isReviewListPosted) continue;
       await this._postReviewList(run, await this.config.github.issueOf(ticket));
     }
@@ -301,7 +301,7 @@ export class ReviewListPoster extends SpecRunBase {
       drafts: [failureHaltOf({ ...failure, step: "gap-check" }, [])],
     });
     await this.haltRaiser._postUnpostedHalts(run);
-    throw new TicketHalted(issueLabelOf(run.spec.issue));
+    throw new TicketHalted(issueRef.labelOf(run.spec.issue));
   }
 
   // Counts every review-list comment on the spec, earlier runs' included, since the developer decides them in one place.

@@ -2,7 +2,7 @@
 // never hand-edits the comment. It edits only the developer's own review lists, re-fetching the comment just before.
 // The edit itself is ../reviewList.ts's; SpecRun.ts delegates here.
 
-import { issueLabelOf, type IssueRef } from "../IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
 import {
   decidedListOf,
   type ItemDecision,
@@ -29,6 +29,6 @@ export class ReviewItemDecider extends SpecRunBase {
       comment.id,
       decidedListOf({ body: comment.body, ...decision }),
     );
-    return `${itemId} ${decision.kind} on ${issueLabelOf(spec)}.`;
+    return `${itemId} ${decision.kind} on ${issueRef.labelOf(spec)}.`;
   }
 }

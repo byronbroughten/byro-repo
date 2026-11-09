@@ -5,7 +5,7 @@
 
 import { messageOf } from "../../failureText.ts";
 import { git, isMerging } from "../../git.ts";
-import { issueLabelOf } from "../../IssueWorkspaces.ts";
+import { issueRef } from "../../IssueWorkspaces.ts";
 import {
   mergeMasterOutputSchema,
   mergeMasterPrompt,
@@ -75,7 +75,7 @@ export class MasterMerger extends SpecRunBase {
     if (workspace === undefined) {
       throw new UnhandledStop(
         "workspace",
-        `${issueLabelOf(ticket.issue)}'s workspace is gone, so master can't be merged into its branch.`,
+        `${issueRef.labelOf(ticket.issue)}'s workspace is gone, so master can't be merged into its branch.`,
         progressPath,
       );
     }
@@ -88,7 +88,7 @@ export class MasterMerger extends SpecRunBase {
     const worktrees = this._worktreesOf(workspace).filter(({ repo }) =>
       branchedRepos.includes(repo),
     );
-    const conflicted = `${issueLabelOf(ticket.issue)}: the wrap-up conflicted with master`;
+    const conflicted = `${issueRef.labelOf(ticket.issue)}: the wrap-up conflicted with master`;
     let ran: RanStep;
     try {
       // From the runner's own process, since the step's sandbox blocks a git write to `.claude/` files.

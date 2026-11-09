@@ -7,7 +7,7 @@
 
 import type { Gap, GapCheckRecord } from "./gapCheck.ts";
 import { isRunnersComment, shortRefOf } from "./halts.ts";
-import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import type { MergeMasterRecord } from "./mergeMasterStep.ts";
 import { issueRefOf, type ResolveRecord } from "./resolveStep.ts";
 import type { IssueComment } from "./SpecRun.ts";
@@ -44,7 +44,7 @@ function namesOf(subject: ReviewListSubject): SubjectNames {
   return {
     markKey: `#${subject.number}`,
     itemKey: String(subject.number),
-    label: issueLabelOf(subject),
+    label: issueRef.labelOf(subject),
   };
 }
 
@@ -163,7 +163,7 @@ function axisSectionsOf(
 function listOf(ticket: IssueRef, title: string, sections: string[]): string {
   return [
     reviewListMarkOf(ticket),
-    `**${reviewListHeading}** · ${issueLabelOf(ticket)}, "${title}"`,
+    `**${reviewListHeading}** · ${issueRef.labelOf(ticket)}, "${title}"`,
     ...sections,
   ].join("\n\n");
 }
@@ -181,7 +181,7 @@ export function reReviewedCommentOf({
   const markAt = posted.indexOf(reviewListMarkOf(list.ticket));
   if (markAt < 0) {
     throw new Error(
-      `The comment holds no review list of ${issueLabelOf(list.ticket)}.`,
+      `The comment holds no review list of ${issueRef.labelOf(list.ticket)}.`,
     );
   }
   const postedList = posted.slice(markAt);

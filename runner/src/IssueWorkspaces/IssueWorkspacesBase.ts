@@ -5,17 +5,16 @@ import { join } from "node:path";
 
 import { LeaseHeld } from "../LeaseHeld.ts";
 import {
-  holderLabelOf,
   type Lease,
   type LeaseHolder,
-  otherLiveHolderOf,
+  leaseHolder,
 } from "./workspaceLeases.ts";
 import {
-  isSameKey,
   type IssueWorkspacesConfig,
   type KeyedFolder,
   sessionBranchPrefix,
   type WorkspaceKey,
+  workspaceKey,
 } from "./workspaceTypes.ts";
 
 export class IssueWorkspacesBase {
@@ -27,7 +26,9 @@ export class IssueWorkspacesBase {
 
   // The folder alone, with no git process, for a caller that needs only its path or lease.
   folderOf(key: WorkspaceKey): KeyedFolder | undefined {
-    return this._keyedFolders().find((keyed) => isSameKey(keyed.key, key));
+    return this._keyedFolders().find((keyed) =>
+      workspaceKey.isSame(keyed.key, key),
+    );
   }
 
   protected _clonePathOf(repo: string): string {
@@ -76,10 +77,10 @@ interface LeaseCheck {
 }
 
 export function assertLeaseFree({ path, lease, holder }: LeaseCheck): void {
-  const other = otherLiveHolderOf(lease, holder);
+  const other = leaseHolder.otherLiveOf(lease, holder);
   if (!other) return;
   throw new LeaseHeld(
-    `${path} is leased by ${holderLabelOf(other)}, which is still running`,
+    `${path} is leased by ${leaseHolder.labelOf(other)}, which is still running`,
   );
 }
 

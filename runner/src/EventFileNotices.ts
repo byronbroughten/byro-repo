@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { batchEventFilePathOf, BatchRecords } from "./BatchRecords.ts";
 import { shortRefOf } from "./halts.ts";
-import { fileStemOf, type IssueRef } from "./IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import {
   isRunEnding,
   type Notice,
@@ -103,7 +103,7 @@ function endKindOf({ isBatchEnd }: Notice, isBatch: boolean): EndKind {
 }
 
 export function eventFilePathOf(stateFolder: string, spec: IssueRef): string {
-  return join(stateFolder, `${fileStemOf(spec)}.events.jsonl`);
+  return join(stateFolder, `${issueRef.fileStemOf(spec)}.events.jsonl`);
 }
 
 // A Batch's one event file, or a member alone's own.

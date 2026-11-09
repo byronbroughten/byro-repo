@@ -4,12 +4,11 @@
 import { messageOf } from "../failureText.ts";
 import { currentBranchOf, git, isAncestor } from "../git.ts";
 import {
-  holderLabelOf,
   type LeaseHolder,
-  otherLiveHolderOf,
+  leaseHolder,
   type SessionKey,
   type WorkspaceKey,
-  workspaceLabelOf,
+  workspaceKey,
 } from "../IssueWorkspaces.ts";
 import { LeaseHeld } from "../LeaseHeld.ts";
 import { WrapUpFailure } from "../WrapUpFailure.ts";
@@ -21,10 +20,10 @@ export class WorkspaceFinisher extends WrapUpBase {
     holder: LeaseHolder | undefined,
   ): Promise<void> {
     const folder = await this.workspaces.leasedFolderOf(key);
-    const other = otherLiveHolderOf(folder?.lease, holder);
+    const other = leaseHolder.otherLiveOf(folder?.lease, holder);
     if (!other) return;
     throw new LeaseHeld(
-      `${workspaceLabelOf(key)} is leased by ${holderLabelOf(other)}, which is still running`,
+      `${workspaceKey.labelOf(key)} is leased by ${leaseHolder.labelOf(other)}, which is still running`,
     );
   }
 

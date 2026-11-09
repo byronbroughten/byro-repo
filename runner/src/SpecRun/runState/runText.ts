@@ -2,7 +2,7 @@
 // the developer-only edit rule and the command that reruns it.
 // The Wait and MemberList these word are ../runState.ts; the state file and progress log paths are statePaths.ts.
 
-import { issueLabelOf, type IssueRef } from "../../IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "../../IssueWorkspaces.ts";
 import { undecidedTextOf } from "../../reviewList.ts";
 import { stopOutcomes, type UnhandledStop } from "../../UnhandledStop.ts";
 import { type Judgement, type MemberList, type Wait } from "../runState.ts";
@@ -67,6 +67,6 @@ export const runText = {
 
   landedOf(landed: IssueRef[]): string {
     if (landed.length === 0) return "landed nothing";
-    return `landed ${landed.map(issueLabelOf).join(", ")}`;
+    return `landed ${landed.map(issueRef.labelOf).join(", ")}`;
   },
 };

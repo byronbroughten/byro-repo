@@ -1,8 +1,8 @@
 // Decides what a session end lets go of: its supervision always, and its claude process's workspace leases when that process ends too. Pure; sessionEndRelease.ts does the I/O.
 import {
-  isSameHolder,
   type LeasedWorkspace,
   type LeaseHolder,
+  leaseHolder,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
 import type { SupervisionEnd } from "@byronbroughten/spec-runner/SupervisionRecords";
 
@@ -28,6 +28,6 @@ export function leasedWorkspacesOf(
   holder: LeaseHolder,
 ): LeasedWorkspace[] {
   return leased.filter(
-    ({ lease }) => lease.isLive && isSameHolder(lease, holder),
+    ({ lease }) => lease.isLive && leaseHolder.isSame(lease, holder),
   );
 }

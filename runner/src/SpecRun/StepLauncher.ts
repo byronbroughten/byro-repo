@@ -12,7 +12,7 @@ import type { StepRequest, StepResult } from "../AgentStep.ts";
 import { messageOf } from "../failureText.ts";
 import { guidanceSectionOf } from "../halts.ts";
 import { handoffOnlyPrompt, treeResetNote } from "../implementStep.ts";
-import { fileStemOf, issueLabelOf } from "../IssueWorkspaces.ts";
+import { issueRef } from "../IssueWorkspaces.ts";
 import { decideStep } from "../limitGuard.ts";
 import { localTimeOf } from "../localTime.ts";
 import { nextStrongerPairOf, pairLabelOf } from "../modelFit.ts";
@@ -129,7 +129,7 @@ export class StepLauncher extends SpecRunBase {
   // Skips a path already taken, so a crashed step's log survives its retry.
   private _stepLogPathOf(ticketRun: TicketRun, agent: StepAgent): string {
     const folder = this._stepsFolderOf(ticketRun.run);
-    const stem = fileStemOf(ticketRun.ticket.issue);
+    const stem = issueRef.fileStemOf(ticketRun.ticket.issue);
     let index = ticketRun.state.sessions.length + 1;
     // Not shared with git.ts's freeBranchNameOf, which asks git asynchronously and numbers from 2.
     while (existsSync(join(folder, `${stem}-${index}-${agent}.jsonl`))) {
@@ -169,7 +169,7 @@ export class StepLauncher extends SpecRunBase {
     this._log(
       run,
       stepLaunchLineOf({
-        subject: `${issueLabelOf(ticket.issue)}: ${agent}`,
+        subject: `${issueRef.labelOf(ticket.issue)}: ${agent}`,
         account,
         streamPath: logPath,
       }),
@@ -337,7 +337,7 @@ export class StepLauncher extends SpecRunBase {
   private _stepsFolderOf(run: Run): string {
     const folder = join(
       this.config.stateFolder,
-      `${fileStemOf(run.spec.issue)}-steps`,
+      `${issueRef.fileStemOf(run.spec.issue)}-steps`,
     );
     mkdirSync(folder, { recursive: true });
     return folder;

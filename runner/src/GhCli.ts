@@ -9,7 +9,7 @@ import type {
   IssueSource,
   ReadableIssue,
 } from "./IssueReader.ts";
-import { issueLabelOf, type IssueRef } from "./IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import { sleep } from "./sleep.ts";
 import type { IssueComment, RunGitHub, TrackedIssue } from "./SpecRun.ts";
 import type { ParentIssue } from "./WrapUp.ts";
@@ -294,7 +294,7 @@ export class GhCli implements RunGitHub, IssueSource {
     );
     const { data } = JSON.parse(output) as RawIssueResponse;
     const raw = data?.repository?.issue;
-    if (!raw) throw new Error(`No issue ${issueLabelOf(issue)}`);
+    if (!raw) throw new Error(`No issue ${issueRef.labelOf(issue)}`);
     return raw;
   }
 
@@ -378,7 +378,7 @@ function authorshipOfRaw(
 }
 
 function overflowMessageOf(issue: IssueRef, part: string): string {
-  return `${issueLabelOf(issue)} has over 100 ${part}, more than the reader reads`;
+  return `${issueRef.labelOf(issue)} has over 100 ${part}, more than the reader reads`;
 }
 
 function readableOfRaw(issue: IssueRef, raw: RawIssue): ReadableIssue {
