@@ -13,8 +13,10 @@ import { assertLeaseFree, IssueWorkspacesBase } from "./IssueWorkspacesBase.ts";
 import {
   isSameHolder,
   type Lease,
-  type LeasedWorkspace,
   type LeaseHolder,
+} from "./workspaceLeases.ts";
+import {
+  type LeasedWorkspace,
   type MaybeLeasedFolder,
   type Workspace,
   type WorkspaceKey,

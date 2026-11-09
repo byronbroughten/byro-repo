@@ -6,12 +6,14 @@ import { join } from "node:path";
 import { LeaseHeld } from "../LeaseHeld.ts";
 import {
   holderLabelOf,
-  isSameKey,
-  type IssueWorkspacesConfig,
-  type KeyedFolder,
   type Lease,
   type LeaseHolder,
   otherLiveHolderOf,
+} from "./workspaceLeases.ts";
+import {
+  isSameKey,
+  type IssueWorkspacesConfig,
+  type KeyedFolder,
   sessionBranchPrefix,
   type WorkspaceKey,
 } from "./workspaceTypes.ts";
