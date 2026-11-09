@@ -1,4 +1,5 @@
 // `npm run check`: the type check, tests and lint at the same time, skipped on a check stamp for the same committed files.
+// It waits for the check slot first, one check per primary root at a time.
 // Usage: npm run check [-- --fresh].
 import { join } from "node:path";
 
@@ -27,8 +28,9 @@ const result = await Checks.init({
   commands,
   root: join(import.meta.dirname, "../.."),
   clonePaths: runKnobs.clonePaths,
-  stampFolder: join(stateFolder, "check-stamps"),
+  stateFolder,
   nodeVersion: process.version,
+  slot: { pollMs: 1000, onHeld: printWaiting },
 }).run({ isFresh: args.includes("--fresh") });
 
 if (result.kind === "skipped") {
@@ -49,6 +51,14 @@ if (result.kind === "skipped") {
   console.error(`\ncheck failed: ${labels.join("; ")}`);
   process.exitCode = 1;
   console.log(timingLine(result.durations));
+}
+
+function printWaiting(pid: number | undefined): void {
+  const holder =
+    pid === undefined ? "another check" : `the check in pid ${pid}`;
+  console.log(
+    `Waiting for the check slot, held by ${holder}; no time limit, so this is not a hang.`,
+  );
 }
 
 function timingLine(durations: CommandDuration[]): string {

@@ -16,7 +16,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `AgentStep.ts` | `AgentStep` | The port that launches one headless `claude -p` step and its `StepResult`. |
 | `BatchRecords.ts` | `BatchRecords` | A Batch's record: its members, process and one event file, found by any member. |
 | `callOfItsOwn.ts` | `callOfItsOwn` | Words the advice to run a command in a call of its own, once for the hooks, the runner and the scripts lint. |
-| `Checks.ts` | `Checks` | Runs `npm run check`'s commands at once, skipped on a check stamp. |
+| `Checks.ts` | `Checks` | Runs `npm run check`'s commands at once in the check slot, skipped on a check stamp. |
+| `CheckSlot.ts` | | The per-primary check slot `npm run check` waits for. |
 | `ClaudeAgentStep.ts` | `ClaudeAgentStep` | The real agent-step adapter over `cswap run`, launching under the primary's gate root and settings plus an injected permission hook, with the targets' tools and environment. |
 | `clonePaths.ts` | `clonePaths` | Builds the repo map, each clone in landing order, from a primary root. |
 | `contextMeter.ts` | `contextMeter` | Measures a session's peak context from stream events or a transcript. |
@@ -65,7 +66,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `outcomeSummary.ts` | `outcomeSummary` | `npm run outcome:summary`'s core: picks spec sections of the outcome log and reports their costs, outliers, transcripts and Model fit for `/mine-outcomes`. |
 | `outcomeSummary/OutcomeReport.ts` | | Words the outcome summary for a batch of sections. |
 | `outcomeSummary/summarySections.ts` | | Reads the outcome log's spec sections from row files and picks the batch. |
-| `PidLock.ts` | | The pid lock file `LandingLock` and `RunLock` extend. |
+| `PidLock.ts` | | The pid lock file `LandingLock`, `RunLock` and `CheckSlot` extend. |
 | `processIdentity.ts` | | A process named by its pid and start time, for leases and supervision records. |
 | `progressLines.ts` | | The progress-log lines, written and parsed in pairs. |
 | `ProgressLog.ts` | | A progress log's lines and what the Run board reads from them: the current ticket, the account and the latest line. |
