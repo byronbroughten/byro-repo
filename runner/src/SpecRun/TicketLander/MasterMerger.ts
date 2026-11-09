@@ -54,9 +54,7 @@ export class MasterMerger extends SpecRunBase {
     let detail = error.message;
     if (error.kind === "conflict") {
       // Its resolution never landed, so a ticket landed some other way after the Halt doesn't show it.
-      state.mergeMasterRecord = undefined;
-      state.unrecordedMerge = undefined;
-      this._saveState(run);
+      this._saveMergeRecord(landingTicket, undefined);
       detail = `The wrap-up still conflicts after the merge-master resume: ${detail}`;
     }
     await this.haltRaiser._failureHalt(landingTicket, {
@@ -186,15 +184,20 @@ export class MasterMerger extends SpecRunBase {
       });
     }
     if (record.unsure !== undefined) {
-      state.mergeMasterRecord = undefined;
-      state.unrecordedMerge = undefined;
-      this._saveState(run);
+      this._saveMergeRecord(landingTicket, undefined);
       return this.haltRaiser._failureHalt(landingTicket, {
         step: "wrap-up",
         detail: `The merge-master step couldn't tell how to resolve the conflict with master: ${record.unsure}`,
         logPath,
       });
     }
+    this._saveMergeRecord(landingTicket, record);
+  }
+
+  private _saveMergeRecord(
+    { run, state }: LandingTicket,
+    record: MergeMasterRecord | undefined,
+  ): void {
     state.mergeMasterRecord = record;
     state.unrecordedMerge = undefined;
     this._saveState(run);
