@@ -23,6 +23,7 @@ const recordPrefixes = [
 const observationIndexes = new Set([
   "docs/agents/codebase-priorities/estimates.md",
   "docs/claude-code-behaviour.md",
+  "docs/google-docs-behaviour.md",
   "docs/sheets-behaviour.md",
 ]);
 const skillIndex = {
