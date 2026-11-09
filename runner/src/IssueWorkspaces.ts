@@ -9,12 +9,14 @@ import { IssueWorkspacesBase } from "./IssueWorkspaces/IssueWorkspacesBase.ts";
 import { WorkspaceKeeper } from "./IssueWorkspaces/WorkspaceKeeper.ts";
 import { WorkspaceLeaser } from "./IssueWorkspaces/WorkspaceLeaser.ts";
 import {
+  type Lease,
+  type LeaseHolder,
+} from "./IssueWorkspaces/workspaceLeases.ts";
+import {
   type CreateOptions,
   type IssueRef,
   type IssueWorkspacesConfig,
-  type Lease,
   type LeasedWorkspace,
-  type LeaseHolder,
   type MaybeLeasedFolder,
   type RemoveOptions,
   type Workspace,
@@ -23,22 +25,24 @@ import {
 } from "./IssueWorkspaces/workspaceTypes.ts";
 
 export {
+  holderLabelOf,
+  isSameHolder,
+  type Lease,
+  type LeaseHolder,
+  otherLiveHolderOf,
+} from "./IssueWorkspaces/workspaceLeases.ts";
+export {
   type CreateOptions,
   fileStemOf,
-  holderLabelOf,
   isAmong,
   type IssueRef,
   issueLabelOf,
   issueOfFileStem,
   issuesOutside,
   type IssueWorkspacesConfig,
-  isSameHolder,
   isSameIssue,
   isSessionKey,
-  type Lease,
   type LeasedWorkspace,
-  type LeaseHolder,
-  otherLiveHolderOf,
   type RemoveOptions,
   sessionBranchOf,
   type SessionKey,

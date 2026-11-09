@@ -28,6 +28,7 @@ import { BranchNamer } from "./BranchNamer.ts";
 import { assertClaudeEntriesDeletable } from "./claudeEntries.ts";
 import { assertLeaseFree, IssueWorkspacesBase } from "./IssueWorkspacesBase.ts";
 import { WorkspaceLeaser } from "./WorkspaceLeaser.ts";
+import { type LeaseHolder } from "./workspaceLeases.ts";
 import { WorkspaceSeeder } from "./WorkspaceSeeder.ts";
 import {
   type CreateOptions,
@@ -35,7 +36,6 @@ import {
   folderPrefixOf,
   isSessionKey,
   type IssueRef,
-  type LeaseHolder,
   type RemoveOptions,
   type SessionKey,
   type Workspace,

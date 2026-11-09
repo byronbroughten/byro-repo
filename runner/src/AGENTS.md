@@ -47,7 +47,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `IssueWorkspaces/WorkspaceKeeper.ts` | | The workspace lifecycle: creates, finds, lists, promotes, resumes and removes workspaces. |
 | `IssueWorkspaces/WorkspaceLeaser.ts` | | Takes, releases and reads workspace leases. |
 | `IssueWorkspaces/WorkspaceSeeder.ts` | | Seeds a new workspace's dependencies from the primary's. |
-| `IssueWorkspaces/workspaceTypes.ts` | | The workspace, key and lease types and the key, issue-set and lease helpers callers and collaborators share. |
+| `IssueWorkspaces/workspaceLeases.ts` | | The lease and lease-holder types and the lease helpers callers and collaborators share. |
+| `IssueWorkspaces/workspaceTypes.ts` | | The IssueRef, key and workspace types and the key and issue-set helpers callers and collaborators share. |
 | `issueWorkspacesHarness.ts` | | The fixture `IssueWorkspaces` tests share. |
 | `LandingLock.ts` | `LandingLock` | The per-primary lock wrap-up lands under. |
 | `LeaseHeld.ts` | | The error for another holder's live workspace lease. |
