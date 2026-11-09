@@ -25,12 +25,16 @@ The Claude account the developer is logged in with right now, as cswap reports i
 _Avoid_: configured account, current account, runner account
 
 **Checks**:
-The type check, the tests and the lint, which every change passes before it lands, whether a run's steps or an interactive session made it.
+The type check, the tests and the lint of each package a change could affect, which it passes before it lands, whether a run's steps or an interactive session made it.
 _Avoid_: run check, CI, the gate
 
 **Check stamp**:
-Proof that the checks passed on one exact set of committed files, so they are skipped the next time anyone checks those same files.
+Proof that one package's checks passed on its exact committed files and those of the packages it depends on, so they are skipped the next time anyone checks that package on those same files.
 _Avoid_: record, cache, green mark
+
+**Check slot**:
+The one turn the machine gives to a set of checks at a time; checks that start while another set holds it wait for it.
+_Avoid_: check lock, check queue
 
 **Record**:
 The structured output an agent step returns, validated against the runner's schema: the implement record from the implement step and one resolve record per finding from resolve. A record failing the schema gets one retry.
