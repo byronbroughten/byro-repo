@@ -173,8 +173,8 @@ export class SpecRunBase {
       outcomeFolder,
       stateFolder,
       knobs: {
-        silenceTimeoutMs: this.config.knobs.silenceTimeoutMs,
         ...this.config.wrapUpKnobs,
+        silenceTimeoutMs: this.config.knobs.silenceTimeoutMs,
       },
       sleep: this.config.sleep,
       log: (line) => this.config.log?.(line),
