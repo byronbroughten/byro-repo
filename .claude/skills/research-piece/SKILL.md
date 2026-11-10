@@ -1,12 +1,13 @@
 ---
 name: research-piece
-description: "Research a writing Piece's Supporting Material: download its PDFs, have one sub-agent per source read its listed passages, verify every quote against the text, check every fact with /review-research, and post the fact list as a comment on the Research issue. Writes nothing to the Deliverable."
+description: "Research a writing Piece's Supporting Material: download its PDFs, have one sub-agent per source read its listed passages, verify every quote against the text, check every fact with /review-research, and post the fact list as a comment on the Research issue. Writes nothing to the Deliverable. Invoked as /research-piece <repo> <n>."
+argument-hint: "<repo> <n>"
 disable-model-invocation: true
 ---
 
-Research the Research issue described in `byronbroughten/personal`. Its output is a verified fact list posted as a comment on the issue; it writes nothing to the Deliverable and has no branch.
+`/research-piece <repo> <n>` researches the Research issue `<repo>#<n>`. Its output is a verified fact list posted as a comment on the issue; it writes nothing to the Deliverable and has no branch.
 
-Fetch the issue with `npm run issue:read -- personal <n> --body` and state its title before starting. If the reference is ambiguous, ask. If the issue is a Piece rather than Research, stop and point the developer to `/implement-piece`.
+Fetch the issue with `npm run issue:read -- <repo> <n> --body` and state its title before starting. If the reference is ambiguous, ask. If the issue is a Piece rather than Research, stop and point the developer to `/implement-piece`.
 
 **Work at the primary root or in a session workspace.** Research edits no files in a repo, so no issue workspace is needed. Scratch files go in the scratchpad.
 
@@ -19,7 +20,7 @@ Fetch the issue with `npm run issue:read -- personal <n> --body` and state its t
 5. **Review the draft.** Read [`.claude/skills/review-research/SKILL.md`](../review-research/SKILL.md) and follow it on `comment.md` and the texts folder; it is user-invoked, so the Skill tool can't reach it. One pass: the draft is not reviewed again after the next step.
 6. **Act on its verdicts once.** Leave each supported fact as it is. Rewrite each partly supported fact from the reviewer's quote and location, in your own words. Move each unsupported or unverified fact to a `## Unverified` section at the end of `comment.md`, with what was looked for and the reviewer's reason. `## Unverified` is outside the fact list: nothing is drafted from it.
 7. **Verify the quotes again**, by step 4's command and fixes, until it exits 0.
-8. **Post the comment** with `gh issue comment -R byronbroughten/personal <n> --body-file "<scratchpad>/comment.md"`.
+8. **Post the comment** with `gh issue comment -R <owner>/<repo> <n> --body-file "<scratchpad>/comment.md"`, resolving `<repo>` to `<owner>/<repo>`.
 9. **Delete the downloads**: `rm` each path that `get_drive_file_download_url` returned, once the comment is posted.
 
 ## Done when
@@ -28,4 +29,4 @@ Every fact in the posted comment's fact list has a source and a page range, or a
 
 ## Wrap-up
 
-Research wraps up per [`packages/personal/writing/docs/wrap-up.md`](../../../packages/personal/writing/docs/wrap-up.md): the developer is given the prompt there, and nothing is committed, pushed or closed here.
+Research wraps up with `npm run wrap-up -- <repo> <n> --no-code`; nothing is committed, pushed or closed before it.

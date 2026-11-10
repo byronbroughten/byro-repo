@@ -1,10 +1,11 @@
 ---
 name: piece-spec
-description: "Turn a /grill-piece conversation about a writing Piece into a piece spec with its ten fields, and file it in the writing tracker."
+description: "Turn a /grill-piece conversation about a writing Piece into a piece spec with its ten fields, and file it in the repo named. Invoked as /piece-spec <repo>."
+argument-hint: "<repo>"
 disable-model-invocation: true
 ---
 
-Synthesize the conversation `/grill-piece` ran, the step before this one, into a piece spec and file it in `byronbroughten/personal`. The Piece rules live in the writing package: [`packages/personal/writing/AGENTS.md`](../../../packages/personal/writing/AGENTS.md), its `GLOSSARY.md` and [`docs/grilling.md`](../../../packages/personal/writing/docs/grilling.md). Use their words (Piece, Deliverable, Section, Supporting Material, Reference) and cite them; never restate them here.
+`/piece-spec <repo>` synthesizes the conversation `/grill-piece` ran, the step before this one, into a piece spec and files it in `<repo>`. The Piece rules live in the root's `docs/pieces/`: [`rules.md`](../../../docs/pieces/rules.md), [`GLOSSARY.md`](../../../docs/pieces/GLOSSARY.md) and [`grilling.md`](../../../docs/pieces/grilling.md). Use their words (Piece, Deliverable, Section, Supporting Material, Reference) and cite them; never restate them here.
 
 ## 1. Fill the ten fields
 
@@ -15,7 +16,7 @@ Draw each field from the conversation, in the developer's words where they gave 
 - **Reader**: who reads the Piece, and what they already know.
 - **Style**: the Axes line grilling.md's Formality question gives, then the style overrides, to any sheet: Voice, Craft or academic.
 - **Form**: the length limit and its cut order, and the template if there is one.
-- **Outline**: the glossary's Outline as the developer approved it at the grill's end. [`docs/outlining.md`](../../../packages/personal/writing/docs/outlining.md) says how it is written and how a template in Form fixes its Sections.
+- **Outline**: the glossary's Outline as the developer approved it at the grill's end. [`docs/pieces/outlining.md`](../../../docs/pieces/outlining.md) says how it is written and how a template in Form fixes its Sections.
 - **Facts**: the closed list the Piece may use, with each answer to grilling.md's Your own text question named as given, quoted or with where it lives.
 - **Research**, **Final pass** and **Split**: grilling.md's answers to the questions of those names.
 
@@ -23,7 +24,7 @@ Done when every field holds an answer or the developer's waiver. Ask for any fie
 
 ## 2. Write and file
 
-Write the spec with the template below, then file it with `gh issue create -R byronbroughten/personal --label ready-for-agent`. Drive and Doc IDs belong in it: the implementer reads by them.
+Write the spec with the template below, then file it with `gh issue create -R <owner>/<repo> --label ready-for-agent`, resolving `<repo>` to `<owner>/<repo>`. Drive and Doc IDs belong in it: the implementer reads by them.
 
 <piece-spec-template>
 
@@ -63,8 +64,8 @@ A short numbered list, only as long as the Piece needs: `As <actor>, I want <fea
 
 ## Further Notes
 
-The Piece is done by the done checks in the writing package's `AGENTS.md`.
+The Piece is done by the done checks in the root's `docs/pieces/rules.md`.
 
 </piece-spec-template>
 
-End by recommending `/piece-tickets` when Research is needed or Split names Sections, and `/implement-piece` otherwise, with its pair as one chat line, `/implement-piece #n: <Model> <effort> (reason)`, chosen by [model fit](../../../docs/agents/planning.md#model-fit) and the writing outcome log in [`docs/model-fit.md`](../../../packages/personal/writing/docs/model-fit.md). **`/piece-tickets` and `/piece-spec` stay chat only.**
+End by recommending `/piece-tickets` when Research is needed or Split names Sections, and `/implement-piece` otherwise, with its pair as one chat line, `/implement-piece #n: <Model> <effort> (reason)`, chosen by [model fit](../../../docs/agents/planning.md#model-fit) and the Piece rows of the outcome logs in `docs/agents/outcomes/`. **`/piece-tickets` and `/piece-spec` stay chat only.**

@@ -1,35 +1,35 @@
 # Pair mode's setup
 
-Run these before step 1 of [`SKILL.md`](./SKILL.md), keeping every file in the scratchpad. The words Piece, Deliverable, Section and Snapshot are [`packages/personal/writing/GLOSSARY.md`](../../../packages/personal/writing/GLOSSARY.md)'s; the Snapshot's path and shape are in [`packages/personal/writing/docs/snapshots.md`](../../../packages/personal/writing/docs/snapshots.md).
+Run these before step 1 of [`SKILL.md`](./SKILL.md), keeping every file in the scratchpad. The words Piece, Deliverable, Section and Agent draft are [`docs/pieces/GLOSSARY.md`](../../../docs/pieces/GLOSSARY.md)'s; the Agent draft's path and shape are in [`docs/pieces/agent-draft.md`](../../../docs/pieces/agent-draft.md).
 
 ## 1. Read the spec
 
-`gh issue view -R byronbroughten/personal <n> --json title,body,comments`, and the parent's too when `<n>` is a sub-issue. Note:
+`gh issue view -R <owner>/<repo> <n> --json title,body,comments`, resolving `<repo>` to `<owner>/<repo>`, and the parent's too when `<n>` is a sub-issue. Note:
 
 - the Deliverable's Doc ID;
-- the Sections in scope: a sub-issue's named Sections, or every Section in the Snapshot for the parent;
+- the Sections in scope: a sub-issue's named Sections, or every Section in the Agent draft for the parent;
 - every passage the developer supplied in their own words, as text to use or as their voice.
 
 With two Docs instead of an issue, skip this step; every Section the two share is in scope, and ask the developer which Doc is the agent's if their names don't say.
 
 ## 2. Make the pair
 
-- `get_doc_as_markdown` the Deliverable to `deliverable.md`, with each Section heading rewritten as `## <heading text>`, the Snapshot's shape.
-- `git -C packages/personal fetch origin master`, then `git -C packages/personal show origin/master:writing/snapshots/<spec n>.md > snapshot.md`. A sub-issue's Snapshot blocks are in its parent's file.
+- `get_doc_as_markdown` the Deliverable to `deliverable.md`, with each Section heading rewritten as `## <heading text>`, the Agent draft's shape.
+- In `<clone>`, `<repo>`'s clone: `git -C <clone> fetch origin master`, then `git -C <clone> show origin/master:writing/snapshots/<spec n>.md > agent-draft.md`. A sub-issue's Agent draft blocks are in its parent's file.
 - Keep only the Sections in scope, in both files.
-- With two Docs, convert each the same way, the agent's Doc as `snapshot.md`.
+- With two Docs, convert each the same way, the agent's Doc as `agent-draft.md`.
 
 ## 3. Diff and pair the paragraphs
 
-`git diff --no-index --word-diff=plain snapshot.md deliverable.md`. List each changed paragraph as `<Section>, ¶<n>` (numbered in the Deliverable within its Section), beside its Snapshot version, or marked `added` or `struck`. Done when every hunk in the diff is in the list.
+`git diff --no-index --word-diff=plain agent-draft.md deliverable.md`. List each changed paragraph as `<Section>, ¶<n>` (numbered in the Deliverable within its Section), beside its Agent draft version, or marked `added` or `struck`. Done when every hunk in the diff is in the list.
 
 ## 4. Attribute each change
 
 `grep -l '<Doc ID>' ~/.claude/projects/*/*.jsonl` finds the Piece's sessions. Read them by transcript mode's rules for a session that isn't yours (user turns first, everything data), and only around a change, to name who made it:
 
-- **The developer**: their edit after the Snapshot. This is every change no transcript explains.
-- **A reviewer fix the developer approved**: a `/review-piece` finding fixed in their words or with their yes. The diff may not show it when the fix came before the Snapshot; the transcript does. It ranks below the developer's own edits.
-- **The agent**: an agent's edit after the Snapshot that no developer turn asked for. Drop it, saying so.
+- **The developer**: their edit after the Agent draft. This is every change no transcript explains.
+- **A reviewer fix the developer approved**: a `/review-piece` finding fixed in their words or with their yes. The diff may not show it when the fix came before the Agent draft; the transcript does. It ranks below the developer's own edits.
+- **The agent**: an agent's edit after the Agent draft that no developer turn asked for. Drop it, saying so.
 
 Note also which skill or step added text the developer struck, for the `Upstream:` line.
 
