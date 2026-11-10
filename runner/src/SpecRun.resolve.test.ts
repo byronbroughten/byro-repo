@@ -604,7 +604,7 @@ describe("run's resolve", () => {
       implementedAt(150_000),
       reviewed(findings),
       freshResolved([recordOf(1, "fix"), recordOf(2, "dismiss")], "RED"),
-      greened(),
+      greened,
     );
 
     const result = await specRun(agentStep).run(spec);

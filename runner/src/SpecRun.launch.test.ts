@@ -110,7 +110,7 @@ describe("run", () => {
 
   it("lands an applied ticket without review or checks: one agent request, a row commit, the ticket closed with its write list", async () => {
     addSpec([1]);
-    const agentStep = FakeAgentStep.init(applied());
+    const agentStep = FakeAgentStep.init(applied);
     const subjectsBefore = masterSubjects();
 
     const result = await specRun(agentStep).run(spec);

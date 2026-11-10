@@ -236,7 +236,7 @@ describe("run's resolve and red-checks turn caps", () => {
       implemented("RED"),
       reviewed(),
       async (request) => {
-        await greened()(request);
+        await greened(request);
         return capped;
       },
     );
