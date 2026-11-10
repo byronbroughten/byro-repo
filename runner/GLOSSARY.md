@@ -100,7 +100,7 @@ The run pauses because the Active account is past its 5-hour threshold, and cont
 _Avoid_: cooldown, throttle
 
 **Restart**:
-The run ends after landing a ticket that changed the runner itself, and relaunches at once, resuming where it ended, so later tickets run on the code that landed. It is not a Stop, and the Supervisor doesn't report it.
+The run ends after landing a ticket that changed the runner itself, and relaunches at once, resuming where it ended, so later tickets run on the code that landed. It is not a Stop, and its relaunch tells the Supervisor nothing.
 _Avoid_: reload, reboot
 
 **Idle**:

@@ -472,8 +472,8 @@ export class RunLoop extends SpecRunBase {
     unfinished: Member[],
     start: RunStart,
   ): Promise<void> {
-    const { reading, launch } = start;
-    const warnings = await this._stalePathWarnings();
+    const { reading, launch, isRelaunch } = start;
+    const warnings = isRelaunch ? [] : await this._stalePathWarnings();
     for (const member of startedMembersOf(unfinished, start)) {
       const { run } = member;
       const ticket =
@@ -483,6 +483,11 @@ export class RunLoop extends SpecRunBase {
         ticket === undefined
           ? started
           : `${started} Launching ${issueRef.labelOf(ticket)}.`;
+      // Kind-less, so no event line: waking the Supervisor would only say the run carries on, which the progress log shows.
+      if (isRelaunch) {
+        await this._announce(run, summary);
+        continue;
+      }
       await this._announce(run, summary, {
         kind: "run-started",
         warnings,

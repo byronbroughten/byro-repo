@@ -13,6 +13,7 @@ import {
   github,
   implemented,
   noticeKinds,
+  progressEventsAfter,
   progressLines,
   refOf,
   reviewed,
@@ -51,6 +52,27 @@ describe("run's Restart", () => {
     expect(rerun.kind).toBe("finished");
     expect(rerun.landed).toEqual([refOf(1), refOf(2)]);
     expect(rerun.message).toContain("landed byro-repo #1, byro-repo #2");
+  });
+
+  it("sends no run-started on relaunch, its start reaching only the progress log", async () => {
+    addSpec([1, 2]);
+    await specRun(
+      FakeAgentStep.init(implemented("runner/one.ts"), reviewed()),
+    ).run(spec);
+    const before = progressLines().length;
+
+    await specRun(FakeAgentStep.init(implemented("two.ts"), reviewed())).run(
+      spec,
+    );
+
+    expect(noticeKinds().filter((kind) => kind === "run-started")).toEqual([
+      "run-started",
+    ]);
+    expect(progressEventsAfter(before)).toContainEqual(
+      expect.stringMatching(
+        /^Run started on 2 tickets as .+ Launching byro-repo #2\.$/,
+      ),
+    );
   });
 
   it("carries every landing across two Restarts, and none into a later run", async () => {
@@ -125,8 +147,24 @@ function runBatch(agentStep: FakeAgentStep): Promise<RunResult> {
 }
 
 describe("a Batch's Restart", () => {
-  it("writes one run-started on the member it launches, and no second member-ended for a member that ended before the Restart", async () => {
+  it("writes its first launch's run-started on each member, with its warnings and the ticket it launches", async () => {
+    await restartBatch();
+
+    const started = batchEventLines(members).filter(
+      ({ kind }) => kind === "run-started",
+    );
+    expect(
+      started.map(({ spec, warnings, ticket }) => [spec, warnings, ticket]),
+    ).toEqual([
+      ["byro-repo#301", [], "byro-repo#301"],
+      ["byro-repo#302", [], undefined],
+      ["byro-repo#303", [], undefined],
+    ]);
+  });
+
+  it("writes no run-started on relaunch, logging its start on the member it launches, and no second member-ended for a member that ended before the Restart", async () => {
     const before = await restartBatch();
+    const logged = progressLines(third.number).length;
 
     const relaunch = await runBatch(
       FakeAgentStep.init(implemented("third.ts"), reviewed()),
@@ -134,8 +172,10 @@ describe("a Batch's Restart", () => {
 
     expect(relaunch.kind).toBe("finished");
     const lines = batchEventLines(members).slice(before);
+    expect(progressEventsAfter(logged, third.number)).toContainEqual(
+      expect.stringMatching(/^Run started on 1 tickets as /),
+    );
     expect(lines.map(({ spec, kind }) => [spec, kind])).toEqual([
-      ["byro-repo#303", "run-started"],
       ["byro-repo#302", "member-ended"],
       ["byro-repo#303", "member-ended"],
       ["byro-repo#301", "run-ended"],
@@ -145,9 +185,10 @@ describe("a Batch's Restart", () => {
     );
   });
 
-  it("writes its run-started on the first unfinished member when the relaunch launches none", async () => {
+  it("logs its start on the first unfinished member when the relaunch launches none, writing no run-started", async () => {
     github.blockers.set(third.number, [second.number]);
     const before = await restartBatch();
+    const logged = progressLines(second.number).length;
     // Left open by its landing, so the third member waits on it at the relaunch's first pick.
     github.edit(second.number, { isOpen: true });
 
@@ -156,7 +197,10 @@ describe("a Batch's Restart", () => {
     const started = batchEventLines(members)
       .slice(before)
       .filter(({ kind }) => kind === "run-started");
-    expect(started.map(({ spec }) => spec)).toEqual(["byro-repo#302"]);
+    expect(started).toEqual([]);
+    expect(progressEventsAfter(logged, second.number)).toContainEqual(
+      expect.stringMatching(/^Run started on /),
+    );
   });
 
   it("relaunches from a restart saved before it kept each member's end, ending that member again", async () => {
