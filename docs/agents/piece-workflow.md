@@ -13,7 +13,7 @@ A skill is in scope when a piece Workflow stage calls it or names it as the next
 1. **Planning**: [`/grill-piece`](../../.claude/skills/grill-piece/SKILL.md), and the [`grilling`](../../.claude/skills/grilling/SKILL.md) round format it calls.
 2. **Spec**: [`/piece-spec`](../../.claude/skills/piece-spec/SKILL.md).
 3. **Tickets**: [`/piece-tickets`](../../.claude/skills/piece-tickets/SKILL.md), skipped when the spec needs no Research and its Split is one session.
-4. **Implementation**: [`/implement-piece`](../../.claude/skills/implement-piece/SKILL.md) and the [`/review-piece`](../../.claude/skills/review-piece/SKILL.md) it follows; for the Research Stage, [`/research-piece`](../../.claude/skills/research-piece/SKILL.md) and [`/review-research`](../../.claude/skills/review-research/SKILL.md).
+4. **Implementation**: [`/implement-piece`](../../runner/skills/implement-piece/SKILL.md) and the [`/review-piece`](../../.claude/skills/review-piece/SKILL.md) it follows; for the Research Stage, [`/research-piece`](../../.claude/skills/research-piece/SKILL.md) and [`/review-research`](../../.claude/skills/review-research/SKILL.md).
 5. **Judgement**: no skill. The developer's edit of the Deliverable decides the review's judgement calls, and wrap-up waits for it.
 6. **Process revision**: [`/to-writing-style`](../../.claude/skills/to-writing-style/SKILL.md), and the [`writing-for-agents`](../../.claude/skills/writing-for-agents/SKILL.md) it sends a calibration-step edit through.
 
