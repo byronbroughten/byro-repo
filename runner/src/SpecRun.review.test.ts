@@ -54,7 +54,11 @@ describe("review of one ticket outside a run", () => {
     await workspaces.takeLease(workspace, holder);
   });
 
-  const findings = [findingOf(1), findingOf(2), findingOf(3)];
+  const findings = [
+    findingOf({ line: 1 }),
+    findingOf({ line: 2 }),
+    findingOf({ line: 3 }),
+  ];
 
   function base(finding: number): Omit<ResolveRecord, "verdict"> {
     return {
@@ -276,7 +280,7 @@ describe("review of one ticket outside a run", () => {
       const hasFix = records.some(({ verdict }) => verdict === "fix");
       await specRun(
         FakeAgentStep.init(
-          reviewed(records.map(({ finding }) => findingOf(finding))),
+          reviewed(records.map(({ finding }) => findingOf({ line: finding }))),
           resolved(records, hasFix ? "fix-again.ts" : undefined),
         ),
       ).review(refOf(1), { holder });

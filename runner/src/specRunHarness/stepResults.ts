@@ -46,11 +46,15 @@ export const stepResults = {
     });
   },
 
-  recordOf(
-    branch: string,
-    sha: string,
-    change: Partial<ImplementRecord> = {},
-  ): ImplementRecord {
+  recordOf({
+    branch,
+    sha,
+    change = {},
+  }: {
+    branch: string;
+    sha: string;
+    change?: Partial<ImplementRecord>;
+  }): ImplementRecord {
     return {
       status: "committed",
       branches: [{ repo: "byro-repo", branch, sha }],
@@ -61,33 +65,54 @@ export const stepResults = {
     } as ImplementRecord;
   },
 
-  get crashed(): StepResult {
+  // The base of the results of a step that produced no output.
+  noOutputOf(facts: Partial<StepResult>): StepResult {
     return {
       ...stepResults.resultOf(undefined),
       output: { status: "none" },
+      ...facts,
+    };
+  },
+
+  get crashed(): StepResult {
+    return stepResults.noOutputOf({
       sessionId: "crashed-session",
       exitSubtype: "error_during_execution",
-    };
+    });
   },
 
   // A resume whose session's transcript is gone.
   get noConversation(): StepResult {
-    return {
-      ...stepResults.resultOf(undefined),
-      output: { status: "none" },
+    return stepResults.noOutputOf({
       sessionId: "lost-session",
       exitSubtype: "error_during_execution",
       hasNoConversation: true,
-    };
+    });
   },
 
   get capped(): StepResult {
-    return {
-      ...stepResults.resultOf(undefined),
-      output: { status: "none" },
+    return stepResults.noOutputOf({
       sessionId: "capped-session",
       exitSubtype: "error_max_turns",
-    };
+    });
+  },
+
+  // Writes `file` in `cwd` and commits it.
+  commitFile({
+    cwd,
+    file,
+    content,
+    message,
+  }: {
+    cwd: string;
+    file: string;
+    content: string;
+    message: string;
+  }): void {
+    mkdirSync(dirname(join(cwd, file)), { recursive: true });
+    writeFileSync(join(cwd, file), content);
+    git(cwd, "add", file);
+    git(cwd, "commit", "-m", message);
   },
 
   // The adapter itself throws, so the step never starts.
@@ -104,13 +129,17 @@ export const stepResults = {
   ): StepScript {
     return async (request: StepRequest) => {
       act();
-      mkdirSync(dirname(join(request.cwd, file)), { recursive: true });
-      writeFileSync(join(request.cwd, file), content);
-      git(request.cwd, "add", file);
-      git(request.cwd, "commit", "-m", `Add ${file}`);
-      const branch = git(request.cwd, "branch", "--show-current");
+      stepResults.commitFile({
+        cwd: request.cwd,
+        file,
+        content,
+        message: `Add ${file}`,
+      });
       return stepResults.implementResultOf(
-        stepResults.recordOf(branch, git(request.cwd, "rev-parse", "HEAD")),
+        stepResults.recordOf({
+          branch: git(request.cwd, "branch", "--show-current"),
+          sha: git(request.cwd, "rev-parse", "HEAD"),
+        }),
       );
     };
   },
@@ -119,9 +148,10 @@ export const stepResults = {
   blocked(blockers: Blocker[], facts: Partial<StepResult> = {}): StepScript {
     return async (request: StepRequest) => ({
       ...stepResults.implementResultOf(
-        stepResults.recordOf(git(request.cwd, "branch", "--show-current"), "", {
-          status: "blocked",
-          blockers,
+        stepResults.recordOf({
+          branch: git(request.cwd, "branch", "--show-current"),
+          sha: "",
+          change: { status: "blocked", blockers },
         }),
       ),
       sessionId: "implement-session",
@@ -163,11 +193,15 @@ export const stepResults = {
   },
 
   // Finding `line` of one.ts, as a reviewer on `axis` reports it.
-  findingOf(
-    line: number,
-    axis: ReviewFinding["axis"] = "standards",
-    suggestedVerdict: ReviewFinding["suggestedVerdict"] = "fix",
-  ): ReviewFinding {
+  findingOf({
+    line,
+    axis = "standards",
+    suggestedVerdict = "fix",
+  }: {
+    line: number;
+    axis?: ReviewFinding["axis"];
+    suggestedVerdict?: ReviewFinding["suggestedVerdict"];
+  }): ReviewFinding {
     return {
       axis,
       where: `one.ts:${line}`,
@@ -181,9 +215,12 @@ export const stepResults = {
   resolved(records: ResolveRecord[], fixFile?: string): StepScript {
     return async (request) => {
       if (fixFile !== undefined) {
-        writeFileSync(join(request.cwd, fixFile), "export {};\n");
-        git(request.cwd, "add", fixFile);
-        git(request.cwd, "commit", "-m", `Fix ${fixFile}`);
+        stepResults.commitFile({
+          cwd: request.cwd,
+          file: fixFile,
+          content: "export {};\n",
+          message: `Fix ${fixFile}`,
+        });
       }
       return stepResults.resultOf({ records });
     };

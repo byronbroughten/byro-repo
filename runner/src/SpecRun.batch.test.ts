@@ -142,7 +142,7 @@ function statusDuring(
 function proposed(file: string): ScriptedStep[] {
   return [
     implemented(file),
-    reviewed([findingOf(1)]),
+    reviewed([findingOf({ line: 1 })]),
     resultOf({ records: [propose] }),
   ];
 }
@@ -757,7 +757,7 @@ describe("a Batch's record", () => {
     const statuses: string[] = [];
     const agentStep = FakeAgentStep.init(
       statusDuring(statuses, implemented("blocker.ts")),
-      reviewed([findingOf(1)]),
+      reviewed([findingOf({ line: 1 })]),
       resultOf({ records: [propose] }),
       statusDuring(statuses, implemented("dependent.ts")),
       reviewed(),

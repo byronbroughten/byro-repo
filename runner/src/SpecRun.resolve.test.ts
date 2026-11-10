@@ -45,7 +45,7 @@ useSpecRunHarness(rootCloneOnly);
 describe("run's resolve", () => {
   const opusMedium: Pair = { model: "opus", effort: "medium" };
   const opusHigh: Pair = { model: "opus", effort: "high" };
-  const findings = [findingOf(1), findingOf(2)];
+  const findings = [findingOf({ line: 1 }), findingOf({ line: 2 })];
 
   function recordOf(
     finding: number,
@@ -249,7 +249,7 @@ describe("run's resolve", () => {
     ];
     const agentStep = FakeAgentStep.init(
       implementedAt(90_000),
-      reviewed([...findings, findingOf(3, "spec")]),
+      reviewed([...findings, findingOf({ line: 3, axis: "spec" })]),
       resolved(records),
     );
 
@@ -272,7 +272,10 @@ describe("run's resolve", () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(
       implementedAt(90_000),
-      reviewed([findingOf(1, "spec", "dismiss"), findingOf(2)]),
+      reviewed([
+        findingOf({ line: 1, axis: "spec", suggestedVerdict: "dismiss" }),
+        findingOf({ line: 2 }),
+      ]),
       resolved([recordOf(1, "dismiss"), recordOf(2, "dismiss", "spec")]),
     );
 
@@ -495,7 +498,9 @@ describe("run's resolve", () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(
       implementedAt(90_000),
-      reviewed([findingOf(1, "spec", "halt")]),
+      reviewed([
+        findingOf({ line: 1, axis: "spec", suggestedVerdict: "halt" }),
+      ]),
       resolved([recordOf(1, "fix", "spec")], "fix.ts"),
       async (request) => {
         git(request.cwd, "revert", "--no-edit", "HEAD");
