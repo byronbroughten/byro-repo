@@ -1,18 +1,31 @@
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import type {
+  GoogleDocument,
+  NamedStyleType,
+  StructuralElement,
+} from "./Docs/googleDocs.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
+import { git } from "./GitFixture.ts";
 import { defaultRunKnobs } from "./runKnobs.ts";
-import type { RunResult } from "./SpecRun.ts";
 import {
   addSpec,
   commentsOn,
   github,
   haltComments,
+  holdDocs,
   implemented,
   masterSubjects,
+  primaryOf,
   refOf,
   resultOf,
   reviewed,
@@ -23,6 +36,7 @@ import {
   ticketState,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
+import { stepResults } from "./specRunHarness/stepResults.ts";
 import type { ResearchRecord } from "./stepRecords.ts";
 import { toolsOf } from "./targetTools.ts";
 
@@ -36,23 +50,115 @@ function addPieceSpec(tickets: number[]): void {
   });
 }
 
-describe("run on a piece spec", () => {
-  it("refuses a ticket that isn't research at preflight, naming the drafting sequence", async () => {
-    addPieceSpec([1, 2]);
-    github.edit(2, { labels: ["ready-for-agent"] });
+describe("pull on a piece spec's drafting ticket", () => {
+  function addDraftingSpec(): void {
+    addSpec([1]);
+    github.edit(spec.number, {
+      labels: ["piece"],
+      body: `## Deliverable\n\nThe crossing, doc ${deliverableId}.\n`,
+    });
+    holdDocs(
+      docOf({
+        "The harbour": "Gulls circled the quay at dawn.",
+        "The crossing": "The ferry left late.",
+      }),
+    );
+  }
+
+  it("pulls every Section of a first ticket's Doc into the Agent draft, marked as the developer's, and commits it", async () => {
+    addDraftingSpec();
     const agentStep = FakeAgentStep.init();
 
     const result = await specRun(agentStep).run(spec);
 
-    expect(result).toEqual<RunResult>({
-      kind: "refused",
-      landed: [],
-      message:
-        "A piece spec's drafting sequence isn't built yet, so the runner runs only its research tickets; not research: byro-repo #2.",
-    });
     expect(agentStep.requests).toEqual([]);
+    expect(readFileSync(join(workspacePath(), draftPath), "utf8")).toBe(
+      "## The harbour\n<!-- developer -->\n\nGulls circled the quay at dawn.\n\n## The crossing\n<!-- developer -->\n\nThe ferry left late.\n",
+    );
+    expect(git(workspacePath(), "log", "-1", "--format=%s")).toBe(
+      "Pull the Deliverable into the Agent draft of byro-repo #213, for #1",
+    );
+    expect(git(workspacePath(), "status", "--porcelain")).toBe("");
+    expect(result.landed).toEqual([]);
+    expect(ticketState()["byro-repo #1"]?.step).toBe("stopped");
   });
 
+  it("leaves a later ticket's earlier agent Sections as the file has them", async () => {
+    addDraftingSpec();
+    stepResults.commitFile({
+      cwd: primaryOf("byro-repo"),
+      file: draftPath,
+      content:
+        "## The harbour\n<!-- developer -->\n\nAn older dawn.\n\n## The crossing\n<!-- agent -->\n\nThe ferry slipped its moorings at noon.\n",
+      message: "Land an earlier ticket's Agent draft",
+    });
+
+    await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(readFileSync(join(workspacePath(), draftPath), "utf8")).toBe(
+      "## The harbour\n<!-- developer -->\n\nGulls circled the quay at dawn.\n\n## The crossing\n<!-- agent -->\n\nThe ferry slipped its moorings at noon.\n",
+    );
+  });
+
+  it("records each Section's Doc text as the push baseline", async () => {
+    addDraftingSpec();
+
+    await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(ticketState()["byro-repo #1"]?.pullBaseline).toEqual({
+      documentId: deliverableId,
+      revisionId: "crossing-1",
+      sections: {
+        "The harbour": "Gulls circled the quay at dawn.\n",
+        "The crossing": "The ferry left late.\n",
+      },
+    });
+  });
+
+  it("stops a ticket whose spec names no Deliverable Doc, pulling nothing", async () => {
+    addDraftingSpec();
+    github.edit(spec.number, { body: "## Deliverable\n\nThe crossing.\n" });
+
+    await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(ticketState()["byro-repo #1"]?.step).toBe("stopped");
+    expect(commentsOn(spec.number, "names no Doc ID")).toHaveLength(1);
+    expect(existsSync(join(workspacePath(), draftPath))).toBe(false);
+  });
+});
+
+const draftPath = "writing/agent-drafts/213.md";
+
+function workspacePath(): string {
+  return join(temp, "workspaces", "byro-repo-issue-1-ticket-1");
+}
+
+// A Doc of one level-2 heading and one paragraph per Section.
+function docOf(sections: Record<string, string>): GoogleDocument {
+  const content = Object.entries(sections).flatMap(([heading, text]) => [
+    paragraphOf(heading, "HEADING_2"),
+    paragraphOf(text, "NORMAL_TEXT"),
+  ]);
+  return {
+    documentId: deliverableId,
+    revisionId: "crossing-1",
+    body: { content },
+  };
+}
+
+function paragraphOf(
+  text: string,
+  namedStyleType: NamedStyleType,
+): StructuralElement {
+  return {
+    paragraph: {
+      elements: [{ textRun: { content: `${text}\n` } }],
+      paragraphStyle: { namedStyleType },
+    },
+  };
+}
+
+describe("run on a piece spec", () => {
   it("runs a research ticket's research step under its own knobs and keeps its record", async () => {
     addPieceSpec([1]);
     const record = readyRecordOf(scratchFolder());

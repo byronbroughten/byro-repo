@@ -7,7 +7,7 @@ Run these before step 1 of [`SKILL.md`](./SKILL.md), keeping every file in the s
 `gh issue view -R <owner>/<repo> <n> --json title,body,comments`, resolving `<repo>` to `<owner>/<repo>`, and the parent's too when `<n>` is a sub-issue. Note:
 
 - the Deliverable's Doc ID;
-- the Sections in scope: a sub-issue's named Sections, or every Section in the Agent draft for the parent;
+- the Sections in scope: a sub-issue's named Sections, or every Section the Agent draft marks `<!-- agent -->` for the parent;
 - every passage the developer supplied in their own words, as text to use or as their voice.
 
 With two Docs instead of an issue, skip this step; every Section the two share is in scope, and ask the developer which Doc is the agent's if their names don't say.
@@ -15,8 +15,8 @@ With two Docs instead of an issue, skip this step; every Section the two share i
 ## 2. Make the pair
 
 - `get_doc_as_markdown` the Deliverable to `deliverable.md`, with each Section heading rewritten as `## <heading text>`, the Agent draft's shape.
-- In `<clone>`, `<repo>`'s clone: `git -C <clone> fetch origin master`, then `git -C <clone> show origin/master:writing/snapshots/<spec n>.md > agent-draft.md`. A sub-issue's Agent draft blocks are in its parent's file.
-- Keep only the Sections in scope, in both files.
+- In `<clone>`, `<repo>`'s clone: `git -C <clone> fetch origin master`, then `git -C <clone> show origin/master:writing/agent-drafts/<spec n>.md > agent-draft.md`. A sub-issue's Agent draft blocks are in its parent's file.
+- Keep only the Sections in scope, in both files, and delete each author-mark line from `agent-draft.md`.
 - With two Docs, convert each the same way, the agent's Doc as `agent-draft.md`.
 
 ## 3. Diff and pair the paragraphs

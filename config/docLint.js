@@ -16,6 +16,7 @@ const workspaceFolders = new Set(["config"]);
 const recordPrefixes = [
   "docs/agents/outcomes/",
   "writing/snapshots/",
+  "writing/agent-drafts/",
   "inbox/changes.md",
   "inbox/proposals.md",
 ];

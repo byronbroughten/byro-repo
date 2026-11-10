@@ -133,9 +133,6 @@ export function codeWorkflowOf({
     stepsOf() {
       return steps;
     },
-    ticketRefusalOf() {
-      return undefined;
-    },
     // A code ticket reads outside the repo only the targets its own body names.
     sourceTargetsOf() {
       return [];
