@@ -4,9 +4,14 @@ status: accepted
 
 # The Arbiter rules only by a rule the developer approved, and leaves the rest to them
 
-Most of what a run hands the developer is a rubber stamp. In session babae021, all 17 of spec #611's review-list items and its filing question were answered "Agreed", unchanged. sheets-framework#219's run raised 28 Halts. A runner agent step, the [Arbiter](../../runner/GLOSSARY.md), now takes the first pass at a run's review-list items and Halts. It rules on one only by citing a rule the developer approved: the Standards docs, the verdicts doc, the spec's binding parts, the Codebase Priorities, or the Arbiter Principles, which grow only by the developer's yes. It leaves everything else for the developer with a Recommendation, and the runner's own code makes every write. Removing a decision point is a Tier 1 change, and tying each ruling to an approved rule is what makes it one: the decision was made when the rule was approved, so only the rubber stamp goes.
+Most of what a run hands the developer is a rubber stamp. A runner agent step, the [Arbiter](../../runner/GLOSSARY.md), takes the first pass at a run's review-list items and Halts, and rules on one only by citing a rule the developer approved. It leaves the rest for the developer with a Recommendation, and the runner's own code makes every write. Removing a decision point is a Tier 1 change, and tying each ruling to an approved rule is what makes the change acceptable: the decision was made when the rule was approved, so only the rubber stamp goes.
 
 Source: byronbroughten/byro-repo#677, byronbroughten/byro-repo#679
+
+## Evidence and the approved rules
+
+- In session babae021, all 17 of spec #611's review-list items and its filing question were answered "Agreed", unchanged. sheets-framework#219's run raised 28 Halts.
+- The approved rules are the Standards docs, the verdicts doc, the spec's binding parts, the Codebase Priorities and the Arbiter Principles. The Arbiter Principles grow only by the developer's yes.
 
 ## Considered Options
 
