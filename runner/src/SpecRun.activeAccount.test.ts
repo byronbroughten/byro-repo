@@ -160,7 +160,7 @@ describe("run's active account", () => {
 
     expect(result.landed).toEqual([refOf(1)]);
     expect(noticeSummaries()[1]).toMatch(
-      /^Limit wait: account 2 is at 92% of its 5-hour limit/,
+      /^Limit wait: account 2 is at 95% of its 5-hour limit/,
     );
     expect(agentStep.requests.map(({ account }) => account)).toEqual([2, 2]);
   });
@@ -174,7 +174,7 @@ function overAccount2() {
           ...reading,
           usage: {
             ...reading.usage,
-            fiveHour: { ...reading.usage.fiveHour, utilization: 0.92 },
+            fiveHour: { ...reading.usage.fiveHour, utilization: 0.95 },
           },
         }
       : reading,

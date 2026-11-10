@@ -25,7 +25,12 @@ interface RateLimitInfo {
   status?: unknown;
   resetsAt?: unknown;
   rateLimitType?: unknown;
-  unifiedWindows?: { five_hour?: RawWindow; seven_day?: RawWindow };
+  unifiedWindows?: RawWindows;
+}
+
+interface RawWindows {
+  five_hour?: RawWindow;
+  seven_day?: RawWindow;
 }
 
 interface RawWindow {
@@ -44,6 +49,12 @@ interface ResultEvent {
   permission_denials?: unknown;
   errors?: unknown;
 }
+
+// A rejection's rateLimitType names its window as the unifiedWindows keys do.
+const usageKeyOfWindow: Record<keyof RawWindows, keyof UsageReading> = {
+  five_hour: "fiveHour",
+  seven_day: "sevenDay",
+};
 
 const tooManyRequests = 429;
 const noConversationPrefix = "No conversation found";
@@ -137,7 +148,7 @@ export class StepStream {
     if (!rejection && !isLimitError) return undefined;
     // An allowed reading's window isn't the one that was hit, so a bare 429 names none.
     return {
-      window: stringOrUndefined(rejection?.rateLimitType),
+      window: usageKeyOf(rejection?.rateLimitType),
       resetsAt: dateOf(rejection?.resetsAt),
     };
   }
@@ -161,10 +172,15 @@ function dateOf(epochSeconds: unknown): Date | undefined {
   return new Date(epochSeconds * 1000);
 }
 
-function usageOf(info: RateLimitInfo): UsageReading {
+function usageKeyOf(window: unknown): keyof UsageReading | undefined {
+  if (window !== "five_hour" && window !== "seven_day") return undefined;
+  return usageKeyOfWindow[window];
+}
+
+function usageOf({ unifiedWindows }: RateLimitInfo): UsageReading {
   return {
-    fiveHour: windowOf(info.unifiedWindows?.five_hour),
-    sevenDay: windowOf(info.unifiedWindows?.seven_day),
+    fiveHour: windowOf(unifiedWindows?.five_hour),
+    sevenDay: windowOf(unifiedWindows?.seven_day),
   };
 }
 

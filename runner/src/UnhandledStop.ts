@@ -6,14 +6,12 @@ export const stopOutcomes = {
   lease: "a workspace lease that couldn't be taken",
   "model-fit": "a missing or invalid Model fit",
   targets: "a malformed Targets section",
-  "limit-hit": "a limit hit",
 } as const;
 
 export type StopOutcome = keyof typeof stopOutcomes;
 
 // Left at the ticket's step rather than marked stopped, so a rerun retries it.
 export const rerunRetriedOutcomes: readonly StopOutcome[] = [
-  "limit-hit",
   "wrap-up-failure",
   "lease",
   "model-fit",

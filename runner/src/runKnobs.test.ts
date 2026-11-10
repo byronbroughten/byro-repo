@@ -69,8 +69,8 @@ describe("loadRunKnobs", () => {
     const knobs = loadRunKnobs(overrideFile('{ "fiveHourPauseAt": 0.5 }'), {});
 
     expect(knobs.fiveHourPauseAt).toBe(0.5);
-    expect(knobs.weeklyReserveAt).toBe(1);
-    expect(knobs.limitWaitMarginMs).toBe(300_000);
+    expect(knobs.weeklyPauseAt).toBe(1);
+    expect(knobs.limitWaitMarginMs).toBe(60_000);
   });
 
   it("throws on an unreadable override file", () => {

@@ -73,7 +73,8 @@ export interface UsageWindow {
   resetsAt: Date;
 }
 
+// `window` is undefined for a hit whose stream named no window, or one the reader doesn't know.
 export interface LimitHit {
-  window: string | undefined;
+  window: keyof UsageReading | undefined;
   resetsAt: Date | undefined;
 }
