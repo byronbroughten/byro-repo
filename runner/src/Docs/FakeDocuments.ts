@@ -37,15 +37,16 @@ export class FakeDocuments implements DocumentsPort {
           `The required revision ${writeControl.requiredRevisionId} is not the latest.`,
         );
       }
-      const { body } = requests.reduce(
+      const { body, lists } = requests.reduce(
         (fake, request) => fake.apply(request),
-        new FakeBody(document.body ?? { content: [] }),
+        new FakeBody(document.body ?? { content: [] }, document.lists ?? {}),
       );
       this.revisionCount += 1;
       const revisionId = `${documentId}-written-${this.revisionCount}`;
       this.documents.splice(this.documents.indexOf(document), 1, {
         ...document,
         body,
+        lists,
         revisionId,
       });
     });

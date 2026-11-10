@@ -246,6 +246,209 @@ describe("Docs.writeSection", () => {
     });
   });
 
+  it("writes bulleted and numbered lists that read back as written", async () => {
+    const { docs } = await writableDocs();
+    const markdown =
+      "Kettles boil water fast.\n\n" +
+      "- Fill it\n- Boil it\n\n" +
+      "Steam rises.\n\n" +
+      "1. Lift the lid\n2. Pour\n1. Rinse\n\n" +
+      "### Spouts\n\n" +
+      "Most spouts face away.\n";
+
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Boiling",
+      markdown,
+    });
+
+    expect((await docs.read("doc-writable")).sections.get("Boiling")).toBe(
+      markdown,
+    );
+  });
+
+  it("writes a table mid-Section and at the Doc's end, each cell one paragraph", async () => {
+    const { docs, documents } = await writableDocs();
+    const table = "| Kettle | Litres |\n| --- | --- |\n| Steel | 1.7 |";
+    const boiling = `Kettles boil water fast.\n\n${table}\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n`;
+    const pouring = `Pour slowly.\n\n${table}\n`;
+
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Boiling",
+      markdown: boiling,
+    });
+    await docs.read("doc-writable");
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Pouring",
+      markdown: pouring,
+    });
+
+    const read = await docs.read("doc-writable");
+    expect(read.sections.get("Boiling")).toBe(boiling);
+    expect(read.sections.get("Pouring")).toBe(pouring);
+    const cells = (await documents.documentOf("doc-writable")).body?.content
+      .flatMap(({ table: written }) => written?.tableRows ?? [])
+      .flatMap(({ tableCells }) => tableCells);
+    expect(cells).toHaveLength(8);
+    cells?.forEach(({ content }) => {
+      expect(content).toHaveLength(1);
+      expect(content[0]?.paragraph?.paragraphStyle?.namedStyleType).toBe(
+        "NORMAL_TEXT",
+      );
+      expect(content[0]?.paragraph?.bullet).toBeUndefined();
+    });
+  });
+
+  it("gives a table inserted under a heading plain cells", async () => {
+    const { docs, documents } = await writableDocs();
+    const markdown =
+      "Kettles boil water fast.\n\nSteam rises.\n\n### Spouts\n\n| Spout | Angle |\n| --- | --- |\n| Swan | 30 |\n\nMost spouts face away.\n";
+
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Boiling",
+      markdown,
+    });
+
+    expect((await docs.read("doc-writable")).sections.get("Boiling")).toBe(
+      markdown,
+    );
+    const paragraphs = (
+      await documents.documentOf("doc-writable")
+    ).body?.content.flatMap(({ table }) =>
+      (table?.tableRows ?? []).flatMap(({ tableCells }) =>
+        tableCells.flatMap(({ content }) => content),
+      ),
+    );
+    expect(
+      paragraphs?.map(({ paragraph }) => paragraph?.paragraphStyle),
+    ).toEqual(Array(4).fill({ namedStyleType: "NORMAL_TEXT" }));
+  });
+
+  it("styles a paragraph inserted after a heading as plain text", async () => {
+    const { docs, documents } = await writableDocs();
+    const markdown =
+      "Kettles boil water fast.\n\nSteam rises.\n\n### Spouts\n\nSpouts pour.\n\nMost spouts face away.\n";
+
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Boiling",
+      markdown,
+    });
+
+    expect((await docs.read("doc-writable")).sections.get("Boiling")).toBe(
+      markdown,
+    );
+    const inserted = (
+      await documents.documentOf("doc-writable")
+    ).body?.content.find(
+      ({ paragraph }) =>
+        paragraph?.elements[0]?.textRun?.content === "Spouts pour.\n",
+    );
+    expect(inserted?.paragraph?.paragraphStyle).toEqual({
+      namedStyleType: "NORMAL_TEXT",
+    });
+  });
+
+  it("gives a paragraph inserted inside a written list no bullet", async () => {
+    const { docs, documents } = await writableDocs();
+    const listed =
+      "Kettles boil water fast.\n\n1. Fill it\n2. Boil it\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n";
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Boiling",
+      markdown: listed,
+    });
+    await docs.read("doc-writable");
+
+    const split =
+      "Kettles boil water fast.\n\n1. Fill it\n\nWait.\n\n1. Boil it\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n";
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Boiling",
+      markdown: split,
+    });
+
+    expect((await docs.read("doc-writable")).sections.get("Boiling")).toBe(
+      split,
+    );
+    const wait = (
+      await documents.documentOf("doc-writable")
+    ).body?.content.find(
+      ({ paragraph }) => paragraph?.elements[0]?.textRun?.content === "Wait.\n",
+    );
+    expect(wait?.paragraph?.bullet).toBeUndefined();
+  });
+
+  it("adds no empty paragraph after a numbered list at the Doc's end", async () => {
+    const { docs, documents } = await writableDocs();
+    const markdown = "Pour slowly.\n\n1. Tilt\n2. Pour\n";
+
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Pouring",
+      markdown,
+    });
+
+    expect((await docs.read("doc-writable")).sections.get("Pouring")).toBe(
+      markdown,
+    );
+    const last = (await documents.documentOf("doc-writable")).body?.content.at(
+      -1,
+    );
+    expect(last?.paragraph?.elements[0]?.textRun?.content).toBe("Pour\n");
+  });
+
+  it("edits written lists and tables on a second write", async () => {
+    const { docs } = await writableDocs();
+    const first =
+      "Kettles boil water fast.\n\n1. Fill it\n2. Boil it\n\nSteam rises.\n\n| Kettle | Litres |\n| --- | --- |\n| Steel | 1.7 |\n\n### Spouts\n\nMost spouts face away.\n";
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Boiling",
+      markdown: first,
+    });
+    await docs.read("doc-writable");
+
+    const second =
+      "Kettles boil water fast.\n\n1. Fill it\n2. Boil it\n3. Pour it\n- Steam rises.\n\n| Kettle | Litres |\n| --- | --- |\n| Glass | 1.5 |\n\n### Spouts\n\nMost spouts face away.\n";
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Boiling",
+      markdown: second,
+    });
+    expect((await docs.read("doc-writable")).sections.get("Boiling")).toBe(
+      second,
+    );
+
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Boiling",
+      markdown: first,
+    });
+    expect((await docs.read("doc-writable")).sections.get("Boiling")).toBe(
+      first,
+    );
+  });
+
+  it.each([
+    ["a nested list", "- Fill it\n  - To the line\n"],
+    ["a '+ ' item", "+ Fill it\n"],
+    ["a miscounted numbered list", "1. Fill it\n3. Boil it\n"],
+  ])("refuses %s", async (_, markdown) => {
+    const { docs } = await writableDocs();
+
+    await expect(
+      docs.writeSection({
+        documentId: "doc-writable",
+        heading: "Boiling",
+        markdown,
+      }),
+    ).rejects.toThrow();
+  });
+
   it("refuses a write before any read", async () => {
     const docs = docsOf("writable");
 

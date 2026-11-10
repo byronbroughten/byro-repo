@@ -31,12 +31,13 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Docs/DocReader.ts` | | Reads a `documents.get` body into the Markdown dialect. |
 | `Docs/docFixtures.ts` | | Loads the `documents.get` JSON fixtures in `Docs/fixtures/` that Docs tests read. |
 | `Docs/DocsRequestRefused.ts` | | The error for a request the Docs API refused, with its status. |
-| `Docs/FakeBody.ts` | | The character-per-index body `FakeDocuments` applies `batchUpdate` requests to. |
+| `Docs/FakeBody.ts` | | The character-per-index body, its lists and tables included, that `FakeDocuments` applies `batchUpdate` requests to. |
 | `Docs/FakeDocuments.ts` | | The in-memory Docs API Docs tests use: `documents.get` and `batchUpdate` under a revision guard. |
 | `Docs/googleDocs.ts` | | The Google Docs layer: the `documents.get` body types, the `batchUpdate` requests and its port. |
 | `Docs/InlineParser.ts` | | Parses the dialect's inline Markdown back into styled text spans. |
-| `Docs/markdownDialect.ts` | | The Markdown dialect's forms, its split into Sections and its parse of a Section's body. |
-| `Docs/SectionWriter.ts` | | Turns a Section's new Markdown into the `batchUpdate` requests that change only what differs. |
+| `Docs/markdownDialect.ts` | | The Markdown dialect's forms, its split into Sections and its parse of a Section's body into paragraphs, flat lists and tables. |
+| `Docs/sectionDiff.ts` | | Diffs a Section's blocks as held in the Doc against the ones written, into hunks. |
+| `Docs/SectionWriter.ts` | | Turns a Section's new Markdown, its lists and tables included, into the `batchUpdate` requests that change only what differs. |
 | `Docs/StaleRevision.ts` | | The error for a write refused because the Doc changed after the revision read. |
 | `EventFileNotices.ts` | `EventFileNotices` | The event-file notice adapter a Supervisor watches, and its readers. |
 | `FactsFile.ts` | `FactsFile` | Reads and writes a ticket's facts file. |

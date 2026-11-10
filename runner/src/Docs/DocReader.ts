@@ -21,6 +21,7 @@ import type {
 } from "./googleDocs.ts";
 import {
   type InlineRun,
+  type ListKind,
   type MarkdownBlock,
   markdownDialect,
 } from "./markdownDialect.ts";
@@ -118,8 +119,6 @@ export class DocReader {
 
   private _listItemOf(bullet: Bullet, inline: string): string {
     const { listId, nestingLevel = 0 } = bullet;
-    const glyphType =
-      this.lists[listId]?.listProperties.nestingLevels[nestingLevel]?.glyphType;
     const ordinals = (this.listOrdinals.get(listId) ?? []).slice(
       0,
       nestingLevel + 1,
@@ -129,7 +128,8 @@ export class DocReader {
     this.listOrdinals.set(listId, ordinals);
     return markdownDialect.listItem({
       depth: nestingLevel,
-      ordinal: unorderedGlyphTypes.has(glyphType) ? undefined : ordinal,
+      ordinal:
+        listKindOf(this.lists, bullet) === "bulleted" ? undefined : ordinal,
       inline,
     });
   }
@@ -229,6 +229,16 @@ export class DocReader {
     this.pendingFootnotes = [];
     return [{ markdown, isListItem: false }];
   }
+}
+
+/** Whether a bullet's list is bulleted or numbered, by the glyph of its nesting level. */
+export function listKindOf(
+  lists: Record<string, List>,
+  { listId, nestingLevel = 0 }: Bullet,
+): ListKind {
+  const glyphType =
+    lists[listId]?.listProperties.nestingLevels[nestingLevel]?.glyphType;
+  return unorderedGlyphTypes.has(glyphType) ? "bulleted" : "numbered";
 }
 
 /** Each heading's plain text by its headingId, which a heading link targets. */
