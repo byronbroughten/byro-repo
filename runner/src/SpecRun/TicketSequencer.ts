@@ -1,6 +1,6 @@
 // One ticket's run: takes its workspace lease, walks the Step sequence its spec's Workflow supplies from the step it
-// reached, through ../Workflow.ts only, and lands it, releasing the lease however it ends. A Halt or a lease taken since the pick leaves
-// the ticket waiting; an UnhandledStop leaves it unlanded and commented on, or Stops the run for a rerun to retry it.
+// reached, through ../Workflow.ts only, and lands it, releasing the lease however it ends. A Halt or a lease taken
+// since the pick leaves the ticket waiting; an UnhandledStop leaves it unlanded and commented on, or Stops the run for a rerun to retry it.
 // Before launch it raises a Failure Halt on a body ../IssueReader.ts doesn't trust; `approve` posts the text's approval.
 // RunLoop.ts calls _runTicket and SessionReviewer.ts calls _runSteps.
 // It builds its own LeaseKeeper, ImplementStepper, ReviewStepper, TicketLander and HaltRaiser.
@@ -275,22 +275,20 @@ export class TicketSequencer extends SpecRunBase {
     if (!isAgentStep(step)) {
       throw new Error(`The run core has no ${step} step to launch.`);
     }
+    const launch = this._agentLaunchesOf(ticketRun)[step];
     this._markStepStarted(ticketRun);
-    await this._timed(ticketRun, step, () =>
-      this._launchAgentStep(ticketRun, step),
-    );
+    await this._timed(ticketRun, step, launch);
   }
 
-  private _launchAgentStep(
+  private _agentLaunchesOf(
     ticketRun: TicketRun,
-    step: AgentStepName,
-  ): Promise<void> {
-    if (step === "implement") {
-      return this.implementStepper._implement(ticketRun);
-    }
-    if (step === "resume") return this.implementStepper._resume(ticketRun);
-    if (step === "review") return this.reviewStepper._review(ticketRun);
-    return this.reviewStepper._resolve(ticketRun);
+  ): Record<AgentStepName, () => Promise<void>> {
+    return {
+      implement: () => this.implementStepper._implement(ticketRun),
+      resume: () => this.implementStepper._resume(ticketRun),
+      review: () => this.reviewStepper._review(ticketRun),
+      resolve: () => this.reviewStepper._resolve(ticketRun),
+    };
   }
 }
 
