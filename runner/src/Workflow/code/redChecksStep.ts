@@ -2,18 +2,9 @@
 // summary it returns. SpecRun.ts runs it once after red checks, resuming the implementer or the fresh resolver; still red is a Failure Halt.
 
 import { stepReadLine } from "../../IssueReader.ts";
-import type { IssueRef } from "../../IssueWorkspaces.ts";
 import { commitMessageLine } from "../../promptText.ts";
 import { objectSchema, stringSchema } from "../../recordSchema.ts";
-
-export interface RedChecksPromptInput {
-  issue: IssueRef;
-  title: string;
-  branch: string;
-  branchedRepos: string[];
-  // Each failing check's command and the last lines of its output.
-  failures: string;
-}
+import type { RedChecksPromptInput } from "../../Workflow.ts";
 
 export function redChecksPrompt({
   issue,

@@ -4,7 +4,7 @@
 // RunLoop.ts calls _finish; SessionReviewer.ts calls _runnersSpecCommentsOf, _postCoveredLaterNotes and _postSessionReviewList,
 // which edits a posted list in place where a re-review's differs, the Base skipping a session's push; TicketLander.ts calls _postReviewList at landing;
 // StatusReporter.ts calls _isGapChecked.
-// It builds its own StepLauncher and HaltRaiser; formats are ../reviewList.ts, the gap check's prompt ../Workflow/code/gapCheck.ts.
+// It builds its own StepLauncher and HaltRaiser; formats are ../reviewList.ts, the gap check's prompt the spec's Workflow's, through ../Workflow.ts.
 
 import {
   failureHaltOf,
@@ -34,12 +34,7 @@ import { SchemaFailure } from "../SchemaFailure.ts";
 import type { GapCheckRecord, ResolveRecord } from "../stepRecords.ts";
 import { TicketHalted } from "../TicketHalted.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
-import {
-  gapCheckOutputSchema,
-  gapCheckPrompt,
-  gapCheckRecordOf,
-  type GapCheckTicket,
-} from "../Workflow/code/gapCheck.ts";
+import { agentStepsOf, type GapCheckTicket } from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import {
   gapCheckLabel,
@@ -222,7 +217,8 @@ export class ReviewListPoster extends SpecRunBase {
     const tickets: GapCheckTicket[] = await Promise.all(
       run.tickets.map((ticket) => this.config.github.issueOf(ticket)),
     );
-    let prompt = gapCheckPrompt({
+    const rules = agentStepsOf(run.spec).gapCheck;
+    let prompt = rules.promptOf({
       spec: run.spec.issue,
       title: run.spec.title,
       tickets,
@@ -239,7 +235,7 @@ export class ReviewListPoster extends SpecRunBase {
       silenceTimeoutMs: knobs.silenceTimeoutMs,
       wallClockMs: knobs.wallClockMs.gapCheck,
       targets: [],
-      jsonSchema: gapCheckOutputSchema,
+      jsonSchema: rules.outputSchema,
     };
     let ran = await this._runGapCheck(run, request);
     for (
@@ -259,7 +255,7 @@ export class ReviewListPoster extends SpecRunBase {
     }
     let record: GapCheckRecord;
     try {
-      record = gapCheckRecordOf(
+      record = rules.recordOf(
         ticketSteps.recordOf(gapCheckLabel, result, logPath),
       );
     } catch (error) {

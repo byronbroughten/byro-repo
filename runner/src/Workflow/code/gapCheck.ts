@@ -3,19 +3,10 @@
 // reviewList.ts turns its record into the final review-list comment; SpecRun.ts launches it and posts that comment.
 
 import { stepReadLine } from "../../IssueReader.ts";
-import { type IssueRef, issueRef } from "../../IssueWorkspaces.ts";
+import { issueRef } from "../../IssueWorkspaces.ts";
 import { arraySchema, objectSchema, stringSchema } from "../../recordSchema.ts";
-import type { TrackedIssue } from "../../SpecRun.ts";
 import type { GapCheckRecord } from "../../stepRecords.ts";
-
-export type GapCheckTicket = Pick<TrackedIssue, "issue" | "title">;
-
-export interface GapCheckPromptInput {
-  spec: IssueRef;
-  title: string;
-  // Every ticket of the spec, each closed, whether landed or closed as not planned.
-  tickets: GapCheckTicket[];
-}
+import type { GapCheckPromptInput } from "../../Workflow.ts";
 
 export function gapCheckPrompt({
   spec,

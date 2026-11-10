@@ -2,7 +2,8 @@
 // raising its blockers as Halts. A handoff backs up the tree, posts on the ticket and launches a fresh step; one past the
 // live ceiling is resumed for a handoff record only. A fresh step past the handoff cap, or after a proposed split, halts first.
 // A resume hands the ticket's answered Halts to the resumed implementer, or to a fresh one past the ticket budget.
-// It builds its own HaltRaiser and StepLauncher; prompts are ../Workflow/code/implementStep.ts and ../stepPrompts.ts; the coordinator callers build is ../SpecRun.ts.
+// It builds its own HaltRaiser and StepLauncher; the step's prompt, schema and checks are its spec's Workflow's, through
+// ../Workflow.ts, and the resumes' prompts ../stepPrompts.ts; the coordinator callers build is ../SpecRun.ts.
 
 import { saveUncommitted } from "../git.ts";
 import {
@@ -22,13 +23,7 @@ import {
   recordOnlyPrompt,
 } from "../stepPrompts.ts";
 import { type Handoff, type ImplementRecord } from "../stepRecords.ts";
-import {
-  handoffCommentOf,
-  implementOutputSchema,
-  implementPrompt,
-  implementRecordOf,
-  implementRecordProblems,
-} from "../Workflow/code/implementStep.ts";
+import { agentStepsOf, type ImplementRules } from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import {
   type Continuation,
@@ -37,7 +32,6 @@ import {
   type RanStep,
   type StepLaunch,
   type TicketRun,
-  type TicketState,
 } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
 import { ticketSteps } from "./runState/ticketSteps.ts";
@@ -86,7 +80,7 @@ export class ImplementStepper extends SpecRunBase {
   private _freshLaunchOf(ticketRun: TicketRun): StepLaunch {
     return {
       prompt: this._implementPromptOf(ticketRun),
-      jsonSchema: implementOutputSchema,
+      jsonSchema: rulesOf(ticketRun).outputSchema,
     };
   }
 
@@ -108,7 +102,7 @@ export class ImplementStepper extends SpecRunBase {
       this._saveState(run);
       launch = { ...launchOf(), liveCeiling };
     } else {
-      launch = continuationLaunchOf(state, continuation, liveCeiling);
+      launch = continuationLaunchOf(ticketRun, continuation, liveCeiling);
     }
     const headsBefore = state.implementBase;
     const ran = await this.stepLauncher._runStep(
@@ -130,9 +124,10 @@ export class ImplementStepper extends SpecRunBase {
     { ranStep, headsBefore }: CeilingCrossing,
   ): Promise<ImplementRecord> {
     const { ticket, state } = ticketRun;
+    const rules = rulesOf(ticketRun);
     const ran = await this.stepLauncher._runStep(ticketRun, "implement", {
       prompt: handoffOnlyPrompt,
-      jsonSchema: implementOutputSchema,
+      jsonSchema: rules.outputSchema,
       resumeSessionId: sessionIdOf(
         ticket.issue,
         "implement step past the live ceiling",
@@ -141,7 +136,7 @@ export class ImplementStepper extends SpecRunBase {
     });
     try {
       const launched = ticketSteps.launchedOf("implement", ran);
-      const { status } = implementRecordOf(launched.record);
+      const { status } = rules.recordOf(launched.record);
       if (status !== "handoff") {
         throw ticketSteps.schemaFailureOf(ran.logPath, {
           problems: [`the record is ${status}, not a handoff`],
@@ -177,7 +172,7 @@ export class ImplementStepper extends SpecRunBase {
     );
     const count = (state.handoffCount ?? 0) + 1;
     await this._backUp(ticketRun, `handoff-${count}`, saveUncommitted);
-    const comment = handoffCommentOf(handoff, sessionId);
+    const comment = rulesOf(ticketRun).handoffCommentOf(handoff, sessionId);
     await this.config.github.comment(ticket.issue, `${runnerMark}\n${comment}`);
     state.handoffCount = count;
     state.latestHandoff = handoff;
@@ -220,8 +215,9 @@ export class ImplementStepper extends SpecRunBase {
     await this.haltRaiser._haltOnUnpostedHalts(ticketRun);
   }
 
-  private _implementPromptOf({ ticket, workspace, state }: TicketRun): string {
-    return implementPrompt({
+  private _implementPromptOf(ticketRun: TicketRun): string {
+    const { ticket, workspace, state } = ticketRun;
+    return rulesOf(ticketRun).promptOf({
       issue: ticket.issue,
       title: ticket.title,
       body: ticket.body,
@@ -239,7 +235,8 @@ export class ImplementStepper extends SpecRunBase {
     headsBefore,
   }: ImplementTake): Promise<ImplementRecord> {
     const { workspace, state } = ticketRun;
-    const record = implementRecordOf(launched.record);
+    const rules = rulesOf(ticketRun);
+    const record = rules.recordOf(launched.record);
     const { logPath } = launched;
     state.implementPeak = launched.peakContext;
     state.implementerSession = ticketSteps.lastSessionOf(state, "implement");
@@ -250,10 +247,7 @@ export class ImplementStepper extends SpecRunBase {
     // A resumed ticket whose answers needed no change returns its earlier commits again.
     const isRecommit =
       record.status === "committed" && state.record?.status === "committed";
-    const problems = implementRecordProblems(
-      record,
-      hasNewCommit || isRecommit,
-    );
+    const problems = rules.recordProblems(record, hasNewCommit || isRecommit);
     if (problems.length > 0) {
       throw ticketSteps.schemaFailureOf(logPath, {
         problems,
@@ -291,6 +285,7 @@ export class ImplementStepper extends SpecRunBase {
 
   private _resumeLaunchOf(ticketRun: TicketRun, halts: Halt[]): StepLaunch {
     const { state } = ticketRun;
+    const { outputSchema } = rulesOf(ticketRun);
     const sessionId = ticketSteps.implementerSessionOf(state);
     const isUnderBudget = this._isUnderBudget(state);
     const isHandedOff = state.latestHandoff !== undefined;
@@ -298,7 +293,7 @@ export class ImplementStepper extends SpecRunBase {
       return {
         prompt: resumePrompt(halts),
         resumeSessionId: sessionId,
-        jsonSchema: implementOutputSchema,
+        jsonSchema: outputSchema,
       };
     }
     // A split Halt's slices may be stale once the developer narrows the ticket, so only its body speaks for them.
@@ -306,20 +301,21 @@ export class ImplementStepper extends SpecRunBase {
     if (answered.length === 0) return this._freshLaunchOf(ticketRun);
     return {
       prompt: `${this._implementPromptOf(ticketRun)}\n\n${freshResumeSection(answered)}`,
-      jsonSchema: implementOutputSchema,
+      jsonSchema: outputSchema,
     };
   }
 }
 
 // A record-only retry follows commits, which a handoff record can't have, so it gets no live ceiling.
 function continuationLaunchOf(
-  state: TicketState,
+  ticketRun: TicketRun,
   continuation: Continuation,
   liveCeiling: number,
 ): StepLaunch {
+  const { state } = ticketRun;
   const launch = {
     resumeSessionId: ticketSteps.lastSessionOf(state, "implement"),
-    jsonSchema: implementOutputSchema,
+    jsonSchema: rulesOf(ticketRun).outputSchema,
   };
   if (continuation.kind === "record") {
     return { ...launch, prompt: recordOnlyPrompt };
@@ -327,6 +323,10 @@ function continuationLaunchOf(
   const { turns } = continuation;
   const prompt = moreTurnsPrompt(turns, !ticketSteps.isTreeKept(state));
   return { ...launch, prompt, maxTurns: turns, liveCeiling };
+}
+
+function rulesOf({ run }: TicketRun): ImplementRules {
+  return agentStepsOf(run.spec).implement;
 }
 
 function sessionIdOf(

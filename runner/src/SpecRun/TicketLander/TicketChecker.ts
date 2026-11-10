@@ -2,16 +2,13 @@
 // a red master Stops the run, after the same checks run in a master set.
 // ../TicketLander.ts delegates its _check here, which TicketSequencer.ts calls after the resolve step.
 // It builds its own ReviewStepper and HaltRaiser.
-// The prompt is ../../Workflow/code/redChecksStep.ts and each check runs through ../../runCommand.ts.
+// The red-checks prompt is its spec's Workflow's, through ../../Workflow.ts, and each check runs through ../../runCommand.ts.
 
 import { commandLabelOf, messageOf } from "../../failureText.ts";
 import { issueRef } from "../../IssueWorkspaces.ts";
 import { runCommand } from "../../runCommand.ts";
 import { RunStop } from "../../RunStop.ts";
-import {
-  redChecksOutputSchema,
-  redChecksPrompt,
-} from "../../Workflow/code/redChecksStep.ts";
+import { agentStepsOf } from "../../Workflow.ts";
 import { HaltRaiser } from "../HaltRaiser.ts";
 import { ReviewStepper } from "../ReviewStepper.ts";
 import { type Resolver, type TicketRun } from "../runState.ts";
@@ -102,20 +99,21 @@ export class TicketChecker extends SpecRunBase {
       `${issueRef.labelOf(ticket.issue)}: checks red; resuming the ${resolverLabels[resolver]} with the failure.`,
     );
     this._markStepStarted(ticketRun);
+    const rules = agentStepsOf(run.spec).redChecks;
     const { result, logPath } = await this.reviewStepper._runResolverStep(
       ticketRun,
       {
         step: "red-checks",
         resolver,
         launch: {
-          prompt: redChecksPrompt({
+          prompt: rules.promptOf({
             issue: ticket.issue,
             title: ticket.title,
             branch: workspace.branch,
             branchedRepos: ticketSteps.branchedReposOf(ticketRun),
             failures: failure,
           }),
-          jsonSchema: redChecksOutputSchema,
+          jsonSchema: rules.outputSchema,
         },
       },
     );

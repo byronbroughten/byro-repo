@@ -2,17 +2,9 @@
 // SpecRun.ts launches it after the implement step; resolve reads its findings.
 
 import { stepReadLine } from "../../IssueReader.ts";
-import type { IssueRef } from "../../IssueWorkspaces.ts";
 import { stringSchema } from "../../recordSchema.ts";
 import { axes, verdicts } from "../../verdicts.ts";
-
-export interface ReviewPromptInput {
-  issue: IssueRef;
-  title: string;
-  skillName: string;
-  branch: string;
-  branchedRepos: string[];
-}
+import type { ReviewPromptInput } from "../../Workflow.ts";
 
 export function reviewPrompt({
   issue,
