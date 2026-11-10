@@ -1,5 +1,6 @@
 // byro-repo's values for the spec runner's injected config. Every root script that drives the runner reads them here.
-// The knobs, checks included, come from runner.config.json, though wrap-up's merge check is set here; the repo map from the primary root's clones.
+// The knobs come from runner.config.json; the code Workflow's checks and review skill and wrap-up's merge check are set
+// here; the repo map comes from the primary root's clones.
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -12,6 +13,7 @@ import {
   type McpServerConfig,
 } from "@byronbroughten/spec-runner/ClaudeAgentStep";
 import { clonePathsOf } from "@byronbroughten/spec-runner/clonePaths";
+import { codeWorkflowOf } from "@byronbroughten/spec-runner/codeWorkflow";
 import { CswapUsageReader } from "@byronbroughten/spec-runner/CswapUsageReader";
 import { EventFileNotices } from "@byronbroughten/spec-runner/EventFileNotices";
 import { GhCli } from "@byronbroughten/spec-runner/GhCli";
@@ -37,6 +39,11 @@ export const implementCodeCommands: ImplementCodeSkillInput = {
   decideCommand: "npm run runner -- decide <owner>/<repo> <spec> R<n>.<k>",
   wrapUpCommand: "npm run wrap-up -- <repo> <n>",
 };
+// Each ticket's checks after review, and the skill its review step calls.
+const codeWorkflow = codeWorkflowOf({
+  checks: [["npm", "run", "check"]],
+  reviewSkillName: "code-review",
+});
 const scriptFolder = fileURLToPath(new URL(".", import.meta.url));
 
 // The git common dir, not this file's folder, so a script run inside an issue workspace still finds the primary root.
@@ -136,6 +143,7 @@ export function specRunConfigOf(owner: string): SpecRunConfig {
   } = issueWorkspacesConfig;
   return {
     knobs: runKnobs,
+    workflows: { code: codeWorkflow },
     agentStep: ClaudeAgentStep.init({
       gworkspaceServer: gworkspaceServer(),
       permissionHook: stepPermissionHook,

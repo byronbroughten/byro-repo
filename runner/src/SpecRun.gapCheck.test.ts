@@ -12,7 +12,6 @@ import {
   clonePaths,
   crashed,
   github,
-  greenUnlessRed,
   haltComments,
   implemented,
   noticeSummaries,
@@ -133,7 +132,6 @@ describe("run's gap-check failures", () => {
   it("never counts a gap-check Halt toward the stuck detector", async () => {
     const knobs = runKnobsOf({
       clonePaths,
-      checks: [greenUnlessRed],
       authChecks: [passes],
       stuckFailureHalts: 1,
     });

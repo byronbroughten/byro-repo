@@ -13,6 +13,7 @@
     "./claudeEntries": "./src/IssueWorkspaces/claudeEntries.ts",
     "./ClaudeAgentStep": "./src/ClaudeAgentStep.ts",
     "./clonePaths": "./src/clonePaths.ts",
+    "./codeWorkflow": "./src/Workflow/code/codeWorkflow.ts",
     "./CswapUsageReader": "./src/CswapUsageReader.ts",
     "./EventFileNotices": "./src/EventFileNotices.ts",
     "./FactsFile": "./src/FactsFile.ts",

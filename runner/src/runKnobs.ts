@@ -24,9 +24,6 @@ export type ReviewListCadence = "end-of-run" | "per-ticket";
 export interface RunKnobs {
   // Repo name to its clone's path relative to the primary root; the root repo's is ".".
   clonePaths: ClonePaths;
-  skillNames: { review: string };
-  // Run from a workspace or primary root: after review in each ticket, and in a master set when they go red in a ticket.
-  checks: Command[];
   // Each must exit 0 at preflight; unset, GitHub auth and the default claude login, which is cswap's active account.
   authChecks: Command[];
   maxTurns: StepKnobs<number>;
@@ -67,12 +64,6 @@ const minuteMs = 60_000;
 
 export const defaultRunKnobs: RunKnobs = {
   clonePaths: {},
-  skillNames: { review: "code-review" },
-  checks: [
-    ["npm", "run", "tsc"],
-    ["npm", "test"],
-    ["npm", "run", "lint"],
-  ],
   authChecks: [
     ["gh", "auth", "status"],
     ["claude", "auth", "status"],
@@ -133,7 +124,6 @@ export function runKnobsOf(overrides: RunKnobOverrides): RunKnobs {
   return {
     ...defaultRunKnobs,
     ...overrides,
-    skillNames: { ...defaultRunKnobs.skillNames, ...overrides.skillNames },
     maxTurns: { ...defaultRunKnobs.maxTurns, ...overrides.maxTurns },
     wallClockMs: { ...defaultRunKnobs.wallClockMs, ...overrides.wallClockMs },
   };

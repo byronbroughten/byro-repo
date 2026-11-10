@@ -23,6 +23,7 @@ import {
   agentStepsOf,
   type ResolvePromptInput,
   type ResolveRules,
+  workflowOf,
 } from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import {
@@ -86,12 +87,12 @@ export class ReviewStepper extends SpecRunBase {
 
   async _review(ticketRun: TicketRun): Promise<void> {
     const { run, ticket, workspace, state } = ticketRun;
-    const rules = agentStepsOf(run.spec).review;
+    const rules = agentStepsOf(run.spec, this.config.workflows).review;
     const { record } = await this._launch(ticketRun, "review", {
       prompt: rules.promptOf({
         issue: ticket.issue,
         title: ticket.title,
-        skillName: this.config.knobs.skillNames.review,
+        skillName: workflowOf(run.spec, this.config.workflows).reviewSkillName,
         branch: workspace.branch,
         branchedRepos: ticketSteps.branchedReposOf(ticketRun),
       }),
@@ -166,7 +167,7 @@ export class ReviewStepper extends SpecRunBase {
 
   // Resolve resumes the Step its Workflow names only under the ticket budget.
   private _firstResolverOf(ticketRun: TicketRun): Resolver {
-    const { resumes } = resolveRulesOf(ticketRun);
+    const { resumes } = this._resolveRulesOf(ticketRun);
     if (resumes !== undefined && this._isUnderBudget(ticketRun.state)) {
       return "implementer";
     }
@@ -194,7 +195,7 @@ export class ReviewStepper extends SpecRunBase {
     records: ResolveRecord[],
   ): Promise<string[]> {
     const { workspace, state } = ticketRun;
-    const rules = resolveRulesOf(ticketRun);
+    const rules = this._resolveRulesOf(ticketRun);
     const findingCount = (state.findings ?? []).length;
     const { dirtyRepos } = await this._headsAndDirtyReposOf(workspace);
     const hasChangedTree = await hasChangedTreeSince(workspace, base);
@@ -209,7 +210,7 @@ export class ReviewStepper extends SpecRunBase {
     ticketRun: TicketRun,
     resolver: Resolver,
   ): Promise<ResolveAttempt> {
-    const prompt = resolveRulesOf(ticketRun).promptOf(
+    const prompt = this._resolveRulesOf(ticketRun).promptOf(
       resolvePromptInputOf(ticketRun),
     );
     if (resolver === "fresh") {
@@ -227,12 +228,12 @@ export class ReviewStepper extends SpecRunBase {
     resolver: Resolver,
     problems: string[],
   ): Promise<ResolveAttempt> {
-    const { retryPromptOf } = resolveRulesOf(ticketRun);
+    const { retryPromptOf } = this._resolveRulesOf(ticketRun);
     return this._launchResolver(
       ticketRun,
       resolver,
       { prompt: retryPromptOf(problems) },
-      freshRetryPromptOf(ticketRun, problems),
+      freshRetryPromptOf(ticketRun, problems, this._resolveRulesOf(ticketRun)),
     );
   }
 
@@ -242,7 +243,7 @@ export class ReviewStepper extends SpecRunBase {
     launch: Pick<StepLaunch, "prompt" | "resumeSessionId">,
     freshPrompt?: string,
   ): Promise<ResolveAttempt> {
-    const rules = resolveRulesOf(ticketRun);
+    const rules = this._resolveRulesOf(ticketRun);
     const ran = await this._runResolverStep(ticketRun, {
       step: "resolve",
       resolver,
@@ -322,10 +323,10 @@ export class ReviewStepper extends SpecRunBase {
       await this.stepLauncher._runStep(ticketRun, agent, launch),
     );
   }
-}
 
-function resolveRulesOf({ run }: TicketRun): ResolveRules {
-  return agentStepsOf(run.spec).resolve;
+  private _resolveRulesOf({ run }: TicketRun): ResolveRules {
+    return agentStepsOf(run.spec, this.config.workflows).resolve;
+  }
 }
 
 function resolvePromptInputOf(ticketRun: TicketRun): ResolvePromptInput {
@@ -340,8 +341,11 @@ function resolvePromptInputOf(ticketRun: TicketRun): ResolvePromptInput {
 }
 
 // With no resumption every resolver starts fresh, so its fallback still needs the step's prompt beside the refusal.
-function freshRetryPromptOf(ticketRun: TicketRun, problems: string[]): string {
-  const { promptOf, retryPromptOf, resumes } = resolveRulesOf(ticketRun);
+function freshRetryPromptOf(
+  ticketRun: TicketRun,
+  problems: string[],
+  { promptOf, retryPromptOf, resumes }: ResolveRules,
+): string {
   const input = resolvePromptInputOf(ticketRun);
   if (resumes !== undefined) return resumes.freshRetryPromptOf(input, problems);
   return `${promptOf(input)}\n\n${retryPromptOf(problems)}`;

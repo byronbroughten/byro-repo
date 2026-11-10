@@ -12,7 +12,6 @@ import {
   clonePaths,
   findingOf,
   github,
-  greenUnlessRed,
   implemented,
   notices,
   passes,
@@ -365,7 +364,6 @@ describe("run's review list", () => {
     addSpec([1, 2]);
     const knobs = runKnobsOf({
       clonePaths,
-      checks: [greenUnlessRed],
       authChecks: [passes],
       reviewListCadence: "per-ticket",
     });

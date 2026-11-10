@@ -248,7 +248,9 @@ export class TicketSequencer extends SpecRunBase {
       });
     }
     // In the sequence's order, so a step only ever advances the ticket to a later one.
-    const sequence = workflowOf(run.spec).stepsOf(ticketRun.ticket);
+    const sequence = workflowOf(run.spec, this.config.workflows).stepsOf(
+      ticketRun.ticket,
+    );
     for (const { step, nextOf } of sequence) {
       // The last step, wrap-up, is the landing _runTicket runs.
       if (state.step !== step || nextOf === undefined) continue;

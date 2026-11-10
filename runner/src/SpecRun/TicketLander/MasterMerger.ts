@@ -98,7 +98,7 @@ export class MasterMerger extends SpecRunBase {
         return;
       }
       this._log(run, `${conflicted}; resuming the implementer to merge it.`);
-      const rules = agentStepsOf(run.spec).mergeMaster;
+      const rules = agentStepsOf(run.spec, this.config.workflows).mergeMaster;
       ran = await this.reviewStepper._runResolverStep(ticketRun, {
         step: "merge-master",
         resolver: "implementer",
