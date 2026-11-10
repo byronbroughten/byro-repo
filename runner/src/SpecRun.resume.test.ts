@@ -209,7 +209,7 @@ describe("run's resume", () => {
         return typeof value === "function" ? value.bind(target) : value;
       },
     });
-    void specRun(FakeAgentStep.init(applied()), {
+    void specRun(FakeAgentStep.init(applied), {
       github: hangingGitHub,
     }).run(spec);
     await reachedWrapUp;

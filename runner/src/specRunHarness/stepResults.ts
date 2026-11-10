@@ -1,5 +1,4 @@
-// The step results, records and scripted steps SpecRun tests give a FakeAgentStep; none reads the harness's state.
-// ../specRunHarness.ts re-assembles this bundle, so tests import from there.
+// The step results, records and scripted steps SpecRun tests give a FakeAgentStep, re-exported by ../specRunHarness.ts.
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -132,7 +131,7 @@ export const stepResults = {
   },
 
   // Makes only GitHub writes and commits nothing, as an implement step on a ticket with no code would.
-  applied(): StepResult {
+  get applied(): StepResult {
     return stepResults.implementResultOf({
       status: "applied",
       branches: [],
@@ -151,7 +150,7 @@ export const stepResults = {
   },
 
   // Removes the committed RED file, as a red-checks step that turns the checks green would.
-  greened(): StepScript {
+  get greened(): StepScript {
     return async (request) => {
       git(request.cwd, "rm", "-q", "RED");
       git(request.cwd, "commit", "-m", "Remove RED");

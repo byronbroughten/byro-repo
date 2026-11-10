@@ -1,5 +1,4 @@
 // The fixture and helpers SpecRun's test files share; each file calls useSpecRunHarness() once at its top.
-// The step-result builders are specRunHarness/stepResults.ts; the test clock is specRunHarness/timing.ts.
 
 import {
   mkdtempSync,
@@ -216,7 +215,7 @@ export function specRun(
     github,
     notices,
     usageReader,
-    clock: { now: timing.startTime },
+    clock: { now: () => timing.startTime },
     githubOwner: "byronbroughten",
     developer: "byronbroughten",
     primaryRoot,
@@ -296,7 +295,10 @@ export function runStatePath(number = spec.number): string {
 
 // A config override that also writes the event files a Supervisor watches.
 export function withEventFile(): Partial<SpecRunConfig> {
-  const eventFile = EventFileNotices.init(stateFolder(), timing.startTime);
+  const eventFile = EventFileNotices.init(
+    stateFolder(),
+    () => timing.startTime,
+  );
   return { notices: composedNotices(notices, eventFile) };
 }
 

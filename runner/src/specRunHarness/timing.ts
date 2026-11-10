@@ -1,5 +1,4 @@
-// The clock SpecRun tests start a run at and move through its fakes, for the durations a run logs.
-// ../specRunHarness.ts re-assembles this bundle, so tests import from there; it also reads the logged lines back.
+// The clock SpecRun tests start a run at and move through its fakes, re-exported by ../specRunHarness.ts.
 
 import type { ScriptedStep } from "../FakeAgentStep.ts";
 import type { SpecRunConfig } from "../SpecRun.ts";
@@ -8,13 +7,13 @@ import type { StepScript } from "./stepResults.ts";
 let time: number;
 
 export const timing = {
-  startTime(): Date {
+  get startTime(): Date {
     return new Date("2026-10-12T09:00:00Z");
   },
 
   // A clock the fakes move on; each workspace build installs dependencies in 4s.
   timed(): Partial<SpecRunConfig> {
-    time = timing.startTime().getTime();
+    time = timing.startTime.getTime();
     return {
       clock: { now: () => new Date(time) },
       async installDependencies() {

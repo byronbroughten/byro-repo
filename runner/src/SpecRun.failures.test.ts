@@ -179,7 +179,7 @@ describe("run's red-check resume", () => {
         peakContext: 90_000,
       }),
       reviewed(),
-      greened(),
+      greened,
     );
 
     const result = await specRun(agentStep).run(spec);
@@ -199,7 +199,7 @@ describe("run's red-check resume", () => {
         peakContext: 160_000,
       }),
       reviewed(),
-      greened(),
+      greened,
     );
 
     const result = await specRun(agentStep).run(spec);
