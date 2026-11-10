@@ -1,13 +1,20 @@
-// PostToolUse on every tool: a shim over the runner's context nudge, fired once per ticket-work session; never blocks.
+// PostToolUse on every tool: a shim over the runner's context nudge, fired once per session doing ticket work or supervision; never blocks.
 // The budget and handoff doc come from the runner's override file, or the runner's defaults if it can't load.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
-import { contextNudgeOf } from "@byronbroughten/spec-runner/contextNudge";
+import {
+  contextNudgeOf,
+  isPastTicketBudget,
+} from "@byronbroughten/spec-runner/contextNudge";
 import { IssueWorkspaces } from "@byronbroughten/spec-runner/IssueWorkspaces";
+import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
 
 import { nearestClaudeAncestor } from "../../scripts/runner/claudeAncestor.ts";
-import { issueWorkspacesConfig } from "../../scripts/runner/runnerConfig.ts";
-import { contextNudgeKnobs, isTicketWork } from "./lib/contextNudge.ts";
+import {
+  issueWorkspacesConfig,
+  stateFolder,
+} from "../../scripts/runner/runnerConfig.ts";
+import { contextNudgeKnobs, owedHandoffsOf } from "./lib/contextNudge.ts";
 import {
   readHookInput,
   runFailOpen,
@@ -30,20 +37,30 @@ await runFailOpen(async () => {
   }
   const markerPath = sessionStatePath(input.session_id, "context-nudge");
   if (existsSync(markerPath)) return;
-  const nudge = contextNudgeOf(readFileSync(input.transcript_path, "utf8"), {
+  const transcript = readFileSync(input.transcript_path, "utf8");
+  const knobs = contextNudgeKnobs();
+  // Checked first, since reading the leases runs ps per workspace.
+  if (!isPastTicketBudget(transcript, knobs.ticketBudget)) return;
+  const holder = nearestClaudeAncestor();
+  const records = SupervisionRecords.init(stateFolder);
+  const session = {
+    mode: sessionModeOf(process.env),
+    held: holder
+      ? leasedWorkspacesOf(
+          await IssueWorkspaces.init(issueWorkspacesConfig).leases(),
+          holder,
+        )
+      : [],
+    record: holder ? await records.recordOf(holder) : undefined,
+  };
+  const owed = owedHandoffsOf(session, (lead) => records.handoffPathOf(lead));
+  if (owed === undefined) return;
+  const nudge = contextNudgeOf(transcript, {
     sessionId: input.session_id,
-    ...contextNudgeKnobs(),
+    ...knobs,
+    owed,
   });
   if (!nudge) return;
-  // Checked only past the budget, since reading the leases runs ps per workspace.
-  const holder = nearestClaudeAncestor();
-  const held = holder
-    ? leasedWorkspacesOf(
-        await IssueWorkspaces.init(issueWorkspacesConfig).leases(),
-        holder,
-      )
-    : [];
-  if (!isTicketWork(sessionModeOf(process.env), held)) return;
   // "wx" throws if a parallel call already claimed the nudge, so it fires once.
   writeFileSync(markerPath, "", { flag: "wx" });
   writeHookOutput({

@@ -69,15 +69,21 @@ export function supervisingLineOf({
   record,
 }: SupervisingSession): string | undefined {
   if (!isSameProcessStart(source) || record === undefined) return undefined;
-  const { owner, members, endedBy } = record;
+  const { members, endedBy } = record;
   const [spec] = members;
-  const command = `/runner ${owner}/${spec.repo} ${spec.number}`;
+  const command = rejoinCommandOf(record);
   // A process end leaves no session of that process to start.
   if (endedBy === "processEnd") return undefined;
   if (endedBy !== undefined) {
     return `This session supervised ${issueRef.labelOf(spec)}'s run until \`/${endedBy}\`; \`${command}\` rejoins from its last explained event.`;
   }
   return `This session supervises ${issueRef.labelOf(spec)}'s run: \`${command}\` carries on from its last explained event, and \`/runner\` on another spec switches to that run.`;
+}
+
+// Names the lead member, which rejoins a Batch too.
+export function rejoinCommandOf({ owner, members }: SupervisionRecord): string {
+  const [lead] = members;
+  return `/runner ${owner}/${lead.repo} ${lead.number}`;
 }
 
 // Only these starts follow a session end in the same claude process, so only they can find its supervision record.
