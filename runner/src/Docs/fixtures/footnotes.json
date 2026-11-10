@@ -1,0 +1,130 @@
+{
+  "documentId": "doc-footnotes",
+  "revisionId": "rev-footnotes-1",
+  "tabs": [
+    {
+      "tabProperties": { "tabId": "t.0", "title": "Tab 1" },
+      "documentTab": {
+        "body": {
+          "content": [
+            {
+              "paragraph": {
+                "elements": [{ "textRun": { "content": "Scale\n" } }],
+                "paragraphStyle": {
+                  "namedStyleType": "HEADING_2",
+                  "headingId": "h.scale"
+                }
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  { "textRun": { "content": "Hard water leaves scale" } },
+                  {
+                    "footnoteReference": {
+                      "footnoteId": "kix.fn1",
+                      "footnoteNumber": "1"
+                    }
+                  },
+                  { "textRun": { "content": " inside.\n" } }
+                ],
+                "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [{ "textRun": { "content": "Detail\n" } }],
+                "paragraphStyle": {
+                  "namedStyleType": "HEADING_3",
+                  "headingId": "h.detail"
+                }
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  { "textRun": { "content": "Vinegar lifts it" } },
+                  {
+                    "footnoteReference": {
+                      "footnoteId": "kix.fn2",
+                      "footnoteNumber": "2"
+                    }
+                  },
+                  { "textRun": { "content": ".\n" } }
+                ],
+                "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [{ "textRun": { "content": "Rinsing\n" } }],
+                "paragraphStyle": {
+                  "namedStyleType": "HEADING_2",
+                  "headingId": "h.rinsing"
+                }
+              }
+            },
+            {
+              "paragraph": {
+                "elements": [
+                  { "textRun": { "content": "Rinse twice" } },
+                  {
+                    "footnoteReference": {
+                      "footnoteId": "kix.fn3",
+                      "footnoteNumber": "3"
+                    }
+                  },
+                  { "textRun": { "content": ".\n" } }
+                ],
+                "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+              }
+            }
+          ]
+        },
+        "footnotes": {
+          "kix.fn1": {
+            "footnoteId": "kix.fn1",
+            "content": [
+              {
+                "paragraph": {
+                  "elements": [
+                    { "textRun": { "content": " Mostly " } },
+                    {
+                      "textRun": {
+                        "content": "calcium",
+                        "textStyle": { "italic": true }
+                      }
+                    },
+                    { "textRun": { "content": ".\n" } }
+                  ]
+                }
+              }
+            ]
+          },
+          "kix.fn2": {
+            "footnoteId": "kix.fn2",
+            "content": [
+              {
+                "paragraph": {
+                  "elements": [
+                    { "textRun": { "content": " White vinegar.\n" } }
+                  ]
+                }
+              }
+            ]
+          },
+          "kix.fn3": {
+            "footnoteId": "kix.fn3",
+            "content": [
+              {
+                "paragraph": {
+                  "elements": [{ "textRun": { "content": " Cold water.\n" } }]
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
