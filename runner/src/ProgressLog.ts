@@ -13,7 +13,7 @@ import {
   stepLaunchOfLine,
   ticketOfLine,
 } from "./progressLines.ts";
-import { runStateOf } from "./savedFormats.ts";
+import type { RunState } from "./SpecRun/runState.ts";
 import { StepStream } from "./StepStream.ts";
 
 export class ProgressLog {
@@ -39,7 +39,7 @@ export class ProgressLog {
   }
 
   // The current ticket is the one the latest ticket line names; its step started at its latest launch or step end.
-  ticketText(statePath: string, now: Date): string {
+  ticketText(state: RunState | undefined, now: Date): string {
     const latest = this._latestTicketLine();
     if (latest === undefined) return "none yet";
     const ticket = ticketOfLine(latest.text);
@@ -47,7 +47,7 @@ export class ProgressLog {
       const subject = stepLaunchOfLine(latest.text)?.subject;
       return `none; ${subject}, ${durationOf(latest.time, now)} on this step`;
     }
-    const step = stepOf(statePath, ticket) ?? "step unknown";
+    const step = state?.tickets[ticket]?.step ?? "step unknown";
     const stepStart = this.lines.findLast(({ text }) =>
       isStepBoundaryLine(text, ticket),
     );
@@ -77,12 +77,6 @@ export class ProgressLog {
       ({ text }) => ticketOfLine(text) !== undefined || stepLaunchOfLine(text),
     );
   }
-}
-
-function stepOf(statePath: string, ticket: string): string | undefined {
-  if (!existsSync(statePath)) return undefined;
-  const state = runStateOf(JSON.parse(readFileSync(statePath, "utf8")));
-  return state.tickets[ticket]?.step;
 }
 
 // The step's own rate-limit events, so the board reads no account state the runs didn't write.

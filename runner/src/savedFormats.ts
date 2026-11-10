@@ -5,8 +5,10 @@
 // before #473 a run state kept the latest step's config folder on the ticket, which a session with none takes;
 // before #513 a supervision record kept its `spec` and, for a Batch, `members` too, the spec repeating the first;
 // before #673 a run state had no `ticketLabels`, which reads as no ticket list.
-// SpecRun/SpecRunBase.ts reads run state through runStateOf(), FactsFile.ts reads facts through factsOf(),
+// SpecRun/SpecRunBase.ts and the Run board read run state through runStateAt(), FactsFile.ts reads facts through factsOf(),
 // and SupervisionRecords.ts reads its files through supervisionFileOf(), the one reader of that file the session hooks go through.
+
+import { existsSync, readFileSync } from "node:fs";
 
 import type { WrapUpFacts } from "./FactsFile.ts";
 import type { Halt } from "./halts.ts";
@@ -95,6 +97,12 @@ export function supervisionFileOf(parsed: unknown): RecordFile {
     throw new Error("A supervision record names no spec.");
   }
   return { ...rest, members: [spec] };
+}
+
+// None while the run hasn't written its state yet.
+export function runStateAt(path: string): RunState | undefined {
+  if (!existsSync(path)) return undefined;
+  return runStateOf(JSON.parse(readFileSync(path, "utf8")));
 }
 
 export function runStateOf(parsed: unknown): RunState {

@@ -4,13 +4,7 @@
 // Its members are protected so the coordinator and every collaborator reach them, and each keeps its `_` prefix.
 // The run's types and shared helper bundles are runState.ts; the coordinator callers build is ../SpecRun.ts.
 
-import {
-  appendFileSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { ActiveAccountUnknown } from "../ActiveAccountUnknown.ts";
@@ -43,7 +37,7 @@ import type { Notice, Notices } from "../Notices.ts";
 import { progressLineOf, stepTookLineOf } from "../progressLines.ts";
 import { developersReviewListsOf, undecidedCountOf } from "../reviewList.ts";
 import type { RunKnobs } from "../runKnobs.ts";
-import { runStateOf } from "../savedFormats.ts";
+import { runStateAt } from "../savedFormats.ts";
 import { sleep } from "../sleep.ts";
 import { WrapUp, type WrapUpGitHub, type WrapUpKnobs } from "../WrapUp.ts";
 import {
@@ -222,9 +216,7 @@ export class SpecRunBase {
   }
 
   protected _readState(spec: IssueRef): RunState {
-    const path = this._statePathOf(spec);
-    if (!existsSync(path)) return { tickets: {} };
-    return runStateOf(JSON.parse(readFileSync(path, "utf8")));
+    return runStateAt(this._statePathOf(spec)) ?? { tickets: {} };
   }
 
   protected _statePathOf(spec: IssueRef): string {
