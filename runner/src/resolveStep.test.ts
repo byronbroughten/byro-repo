@@ -2,16 +2,18 @@ import { Ajv } from "ajv";
 import { describe, expect, it } from "vitest";
 
 import {
-  haltScopeOf,
   hasFileLine,
   resolveCommitProblems,
   resolveOutputSchema,
   resolvePrompt,
-  type ResolveRecord,
   resolveRecordProblems,
   resolveRecordsOf,
-  whatReviewCaughtOf,
 } from "./resolveStep.ts";
+import {
+  haltScopeOf,
+  type ResolveRecord,
+  whatReviewCaughtOf,
+} from "./stepRecords.ts";
 
 // The same Ajv setup StepStream validates a step's structured output with.
 const validateOutput = new Ajv({ allErrors: true, strict: false }).compile(

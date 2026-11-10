@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import { type EventLine, eventLinesOf } from "./EventFileNotices.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
-import type { Blocker } from "./implementStep.ts";
 import type { RunResult } from "./SpecRun.ts";
 import {
   addSpec,
@@ -22,6 +21,7 @@ import {
   useSpecRunHarness,
   withEventFile,
 } from "./specRunHarness.ts";
+import type { Blocker } from "./stepRecords.ts";
 
 useSpecRunHarness();
 

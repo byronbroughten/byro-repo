@@ -7,11 +7,6 @@ import type { StepRequest, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
 import {
-  type Handoff,
-  handoffOnlyPrompt,
-  type ImplementRecord,
-} from "./implementStep.ts";
-import {
   addSpec,
   bodyWith,
   capped,
@@ -33,6 +28,8 @@ import {
   ticketState,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
+import { handoffOnlyPrompt } from "./stepPrompts.ts";
+import { type Handoff, type ImplementRecord } from "./stepRecords.ts";
 
 useSpecRunHarness();
 

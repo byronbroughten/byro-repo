@@ -14,9 +14,9 @@ import {
   shortRefOf,
   type StepFailure,
 } from "../halts.ts";
-import { type Blocker } from "../implementStep.ts";
 import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
 import { RunStop } from "../RunStop.ts";
+import type { Blocker } from "../stepRecords.ts";
 import { TicketHalted } from "../TicketHalted.ts";
 import {
   type Crash,

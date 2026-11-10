@@ -4,23 +4,7 @@
 import { stepReadLine } from "./IssueReader.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import { stringSchema } from "./recordSchema.ts";
-import { axes, type Axis, type Verdict, verdicts } from "./verdicts.ts";
-
-export interface ReviewFinding {
-  axis: Axis;
-  where: string;
-  claim: string;
-  suggestedVerdict: Verdict;
-  reason: string;
-}
-
-// A run state saved before #362 holds each finding as one prose string.
-export type Finding = ReviewFinding | string;
-
-export interface ReviewRecord {
-  // Each reviewer's findings in its own order, standards then spec; empty when it found nothing.
-  findings: ReviewFinding[];
-}
+import { axes, verdicts } from "./verdicts.ts";
 
 export interface ReviewPromptInput {
   issue: IssueRef;

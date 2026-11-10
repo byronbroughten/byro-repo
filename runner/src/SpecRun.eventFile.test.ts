@@ -8,7 +8,6 @@ import { type EventLine, eventLinesOf } from "./EventFileNotices.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { commentUrlOf } from "./FakeGitHub.ts";
 import { git } from "./GitFixture.ts";
-import type { Blocker } from "./implementStep.ts";
 import { runKnobsOf } from "./runKnobs.ts";
 import {
   addSpec,
@@ -28,6 +27,7 @@ import {
   useSpecRunHarness,
   withEventFile,
 } from "./specRunHarness.ts";
+import type { Blocker } from "./stepRecords.ts";
 
 useSpecRunHarness();
 

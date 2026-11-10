@@ -7,7 +7,6 @@ import { FactsFile } from "./FactsFile.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
 import type { LeaseHolder, Workspace } from "./IssueWorkspaces.ts";
-import type { ResolveRecord } from "./resolveStep.ts";
 import { reviewPrintoutOf } from "./SpecRun.ts";
 import type { ReviewResult } from "./SpecRun/runState.ts";
 import {
@@ -22,6 +21,7 @@ import {
   ticketFacts,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
+import type { ResolveRecord } from "./stepRecords.ts";
 
 useSpecRunHarness();
 

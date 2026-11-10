@@ -2,18 +2,16 @@
 // that hands every answer back to the ticket's resumed or fresh implementer; which replies answer one is ./halts/haltReplies.ts.
 // SpecRun.ts keeps them in run state, blocks the tickets in their scope and resumes the halted ticket once all are answered.
 
+import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
+import type { IssueComment, TicketStep } from "./SpecRun.ts";
+import { proposedSplitText } from "./stepPrompts.ts";
 import {
   type Blocker,
-  type ProposedSlice,
-  proposedSplitText,
-} from "./implementStep.ts";
-import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
-import {
   type HaltScope,
   haltScopeOf,
+  type ProposedSlice,
   type ResolveRecord,
-} from "./resolveStep.ts";
-import type { IssueComment, TicketStep } from "./SpecRun.ts";
+} from "./stepRecords.ts";
 import { isTargetWrite } from "./targetTools.ts";
 
 // Marks every comment the runner posts, which carries the developer's login too, so none is read as an answer.

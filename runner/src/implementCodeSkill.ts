@@ -1,11 +1,14 @@
-// The /implement-code skill's text: the implement step's shared body (implementStep.ts) with an interactive opening and
+// The /implement-code skill's text: the implement step's shared body (stepPrompts.ts) with an interactive opening and
 // ending in place of the step's record-returning one. The committed skill is runner/skills/implement-code/SKILL.md;
 // byro-repo's drift test regenerates it from byro-repo's commands.
 
-import { implementBody, ticketBindsSection } from "./implementStep.ts";
 import { stepReadLine } from "./IssueReader.ts";
 import { sectionOf } from "./promptText.ts";
-import { resolveRecordFields } from "./resolveStep.ts";
+import {
+  implementBody,
+  resolveRecordFields,
+  ticketBindsSection,
+} from "./stepPrompts.ts";
 
 export interface ImplementCodeSkillInput {
   // Each command is written with `<repo>` and `<n>` placeholders; the promote command takes the repo to promote last.

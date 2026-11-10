@@ -6,8 +6,6 @@ import { describe, expect, it } from "vitest";
 import type { Pair, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
-import type { Handoff } from "./implementStep.ts";
-import type { ResolveRecord } from "./resolveStep.ts";
 import {
   addIssue,
   addSpec,
@@ -39,6 +37,7 @@ import {
   timingLines,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
+import type { Handoff, ResolveRecord } from "./stepRecords.ts";
 
 useSpecRunHarness(rootCloneOnly);
 

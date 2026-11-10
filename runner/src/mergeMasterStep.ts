@@ -50,13 +50,6 @@ The wrap-up reported this on its own merge, which it aborted; the merge in progr
 ${conflict}`;
 }
 
-export interface MergeMasterRecord {
-  summary: string;
-  files: string[];
-  // Each file the step couldn't resolve and the question it raises.
-  unsure?: string;
-}
-
 export const mergeMasterOutputSchema = objectSchema(
   {
     summary: stringSchema,

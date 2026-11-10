@@ -5,12 +5,16 @@
 // SpecRun/ReviewListPoster.ts posts them, TicketLander.ts calling it at landing and SpecRun/SessionReviewer.ts after a
 // session's review, which also returns the ticket's to print; WrapUp.ts counts a Standalone ticket's; SpecRun/ReviewItemDecider.ts edits one; gapCheck.ts supplies the gaps.
 
-import type { Gap, GapCheckRecord } from "./gapCheck.ts";
 import { isRunnersComment, shortRefOf } from "./halts.ts";
 import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
-import type { MergeMasterRecord } from "./mergeMasterStep.ts";
-import { issueRefOf, type ResolveRecord } from "./resolveStep.ts";
 import type { IssueComment } from "./SpecRun.ts";
+import {
+  type Gap,
+  type GapCheckRecord,
+  issueRefOf,
+  type MergeMasterRecord,
+  type ResolveRecord,
+} from "./stepRecords.ts";
 import type { Axis, Verdict } from "./verdicts.ts";
 
 const markPrefix = "<!-- review-list ";

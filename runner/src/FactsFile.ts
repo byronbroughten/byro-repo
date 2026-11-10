@@ -9,8 +9,8 @@ import { join } from "node:path";
 
 import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import type { OutcomeFacts } from "./outcomeLog.ts";
-import type { Finding } from "./reviewStep.ts";
 import { factsOf } from "./savedFormats.ts";
+import type { Finding } from "./stepRecords.ts";
 import type { RecordedSession, TicketSessions } from "./transcriptFacts.ts";
 
 export interface UndoneBox {

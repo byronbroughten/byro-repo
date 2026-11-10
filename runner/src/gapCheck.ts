@@ -6,19 +6,7 @@ import { stepReadLine } from "./IssueReader.ts";
 import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import { arraySchema, objectSchema, stringSchema } from "./recordSchema.ts";
 import type { TrackedIssue } from "./SpecRun.ts";
-
-export interface Gap {
-  // What the spec asked for, by its story number or section.
-  ask: string;
-  evidence: string;
-  recommendation: string;
-  // The drafted follow-up; the runner never files it.
-  draftIssueTitle: string;
-}
-
-export interface GapCheckRecord {
-  gaps: Gap[];
-}
+import type { GapCheckRecord } from "./stepRecords.ts";
 
 export type GapCheckTicket = Pick<TrackedIssue, "issue" | "title">;
 

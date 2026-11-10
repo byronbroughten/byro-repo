@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
-import type { Blocker } from "./implementStep.ts";
 import {
   addSpec,
   after,
@@ -24,6 +23,7 @@ import {
   timingLines,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
+import type { Blocker } from "./stepRecords.ts";
 
 useSpecRunHarness();
 
