@@ -2,7 +2,7 @@
 // Usage below; every verb but the run itself takes one number, a Batch's any member's. `review` and `resolve` take a session's ticket, not a spec, and `resolve` the path of the session's records.
 // Exit 1 is a run short of finished, a review short of reviewed or its findings, or refused records; 2 is a crash, which tmux.sh pushes;
 // 3 is a Restart, which tmux.sh relaunches.
-// `supervise` records the caller's claude as the spec's or Batch's Supervisor and prints its unexplained event lines; `--advance` marks one more explained.
+// `supervise` records the caller's claude as the spec's or Batch's Supervisor and prints its unexplained event lines, after the last Supervisor's handoff on a rejoin; `--advance` marks one more explained.
 // `watch` streams the spec's or Batch's new event lines and prints a `vanished` line if the run's process dies unreported (runWatch.ts);
 // `--once` prints the first unexplained line, or that `vanished` line, and exits, or exits silently once a newer watch replaces it.
 // `status` and `watch` with no spec print the Run board once or redraw it every 5s (runBoard.ts).
@@ -52,6 +52,7 @@ const verbs = [
   "decide",
   ...repoVerbs,
 ];
+const handoffHeading = "## Handoff from the last Supervisor";
 const usage = `Usage: npm run runner -- <owner/repo> <n> [<n>…] to run one spec or a Batch, ${plainVerbs.join("|")} <owner/repo> <n>, watch <owner/repo> <n> [--once], resolve <owner/repo> <n> <records.json>, supervise <owner/repo> <n> [--advance], decide <owner/repo> <spec> R<n>.<k> [--handled] "<text>", ${repoVerbs.join("|")} <owner/repo>, or [${boardVerbs.join("|")}] alone for the Run board`;
 
 try {
@@ -266,7 +267,8 @@ async function supervise(
     await records.advance(holder);
     return;
   }
-  await records.supervise(holder, owner, spec);
+  const handoff = await records.supervise(holder, owner, spec);
+  if (handoff !== undefined) console.log(`${handoffHeading}\n\n${handoff}\n`);
   for (const line of await records.unexplainedLinesOf(holder)) {
     console.log(line);
   }

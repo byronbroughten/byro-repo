@@ -40,6 +40,8 @@ Its exit only wakes you. On each one:
 
 Run `npm run runner -- supervise <owner/repo> <n>`. It records this session as the spec's Supervisor and prints each unexplained event line, oldest first.
 
+**On a rejoin, a handoff the last Supervisor wrote prints first, under `## Handoff from the last Supervisor`, and is read once:** `supervise` deletes it as it prints it, so no later catch-up shows it again. It opens with the `/runner <owner/repo> <n>` line and holds only what the last conversation knew and the disk doesn't: suggested replies the developer hasn't settled, standing instructions the developer gave in chat, and work in progress such as an Interactive ticket's workspace or a blocked edit underway. Carry each forward as your own before explaining the lines; `supervise` and `status` stay the source for the events and the run. A catch-up by the session that wrote the handoff, before its `/clear`, leaves it in place.
+
 Explain those lines one at a time, oldest first, as step 4 says. After each one, run `npm run runner -- supervise <owner/repo> <n> --advance` before going on to the next. Advance once per line explained, never in a batch: a `/clear` partway through ends this session's supervision, and `/runner` on the same spec afterwards rejoins from the line where you stopped. Then start or re-arm the watch (step 2).
 
 ## 4. Explain each event
