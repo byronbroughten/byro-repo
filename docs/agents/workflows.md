@@ -26,7 +26,7 @@ The words Piece, Deliverable, Section, Stage and Snapshot are [the writing gloss
    - Both: none.
 4. **Implementation**
    - Code: [`/runner`](../../runner/skills/runner/SKILL.md), the Supervisor; [`/start-issue`](../../.claude/skills/start-issue/SKILL.md); [`/implement-code`](../../runner/skills/implement-code/SKILL.md); [`tdd`](../../.claude/skills/tdd/SKILL.md) and the [`codebase-design`](../../.claude/skills/codebase-design/SKILL.md) it links; and [`/code-review`](../../.claude/skills/code-review/SKILL.md), the review Step's skill.
-   - Piece: [`/implement-piece`](../../.claude/skills/implement-piece/SKILL.md) and the [`/review-piece`](../../.claude/skills/review-piece/SKILL.md) it follows; for the Research Stage, [`/research-piece`](../../.claude/skills/research-piece/SKILL.md) and [`/review-research`](../../.claude/skills/review-research/SKILL.md).
+   - Piece: [`/implement-piece`](../../runner/skills/implement-piece/SKILL.md) and the [`/review-piece`](../../.claude/skills/review-piece/SKILL.md) it follows; for the Research Stage, [`/research-piece`](../../.claude/skills/research-piece/SKILL.md) and [`/review-research`](../../.claude/skills/review-research/SKILL.md).
    - Both: none.
 5. **Judgement**
    - Code: [`/judge-findings`](../../runner/skills/judge-findings/SKILL.md).
