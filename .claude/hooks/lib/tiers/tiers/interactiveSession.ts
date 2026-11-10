@@ -60,35 +60,21 @@ export const interactiveSession = {
       needsPlainText: true,
     };
   },
-  researchPushVerdictOf(
-    simple: SimpleCommand,
-    context: CallContext,
+  // The research push, the Google script route and the Doc print command: a runner step's is refused, an Interactive session's gets its script's verdict.
+  scriptVerdictOf(
+    { words }: SimpleCommand,
+    { mode }: CallContext,
   ): Verdict | undefined {
-    return interactiveScriptVerdictOf(
-      simple,
-      context,
-      interactiveScripts.researchPush,
+    if (npmCommands.isPrefixed(words)) return undefined;
+    const name = npmCommands.scriptOf(words)?.name;
+    const script = Object.values(interactiveScripts).find(
+      (candidate: InteractiveScript) => candidate.name === name,
     );
-  },
-  googleScriptVerdictOf(
-    simple: SimpleCommand,
-    context: CallContext,
-  ): Verdict | undefined {
-    return interactiveScriptVerdictOf(
-      simple,
-      context,
-      interactiveScripts.googleScript,
-    );
-  },
-  docPrintVerdictOf(
-    simple: SimpleCommand,
-    context: CallContext,
-  ): Verdict | undefined {
-    return interactiveScriptVerdictOf(
-      simple,
-      context,
-      interactiveScripts.docPrint,
-    );
+    if (!script) return undefined;
+    if (mode !== "interactive") {
+      return { permissionDecision: "ask", why: script.stepWhy };
+    }
+    return script.sessionVerdict;
   },
 };
 
@@ -120,27 +106,14 @@ const interactiveScripts = {
       why: "`npm run google:script` runs the script with the agent account's access token, and outside the box, so nothing stops it reading the credential files the box hides",
     },
   },
-  // Asks in an Interactive session, as it opens the `clasp` credential outside the box; a runner step's is refused, as no ticket has targeted a Doc it reads.
+  // Asks in an Interactive session, as it opens the Docs `clasp` credential outside the box; a runner step's is refused, as no ticket has targeted a Doc it reads.
   docPrint: {
     name: "doc:print",
     stepWhy:
-      "opens the developer's `clasp` credential to read a Doc, which only an Interactive session does",
+      "opens the developer's Docs `clasp` credential to read a Doc, which only an Interactive session does",
     sessionVerdict: {
       permissionDecision: "ask",
-      why: "`npm run doc:print` opens the developer's `clasp` credential, whose reach is the whole Google account, and runs outside the box",
+      why: "`npm run doc:print` opens the developer's Docs `clasp` credential, whose reach is every Doc and spreadsheet the developer can edit and a read of their Drive, and runs outside the box",
     },
   },
 } as const satisfies Record<string, InteractiveScript>;
-
-function interactiveScriptVerdictOf(
-  { words }: SimpleCommand,
-  { mode }: CallContext,
-  { name, stepWhy, sessionVerdict }: InteractiveScript,
-): Verdict | undefined {
-  if (npmCommands.isPrefixed(words)) return undefined;
-  if (npmCommands.scriptOf(words)?.name !== name) return undefined;
-  if (mode !== "interactive") {
-    return { permissionDecision: "ask", why: stepWhy };
-  }
-  return sessionVerdict;
-}
