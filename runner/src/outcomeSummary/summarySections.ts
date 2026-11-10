@@ -10,6 +10,7 @@ export interface SummaryRow {
   peaks: number[] | undefined;
   result: string | undefined;
   retries: number | undefined;
+  limitResumes: number | undefined;
   durationMinutes: number | undefined;
   costUsd: number | undefined;
   reviewCostUsd: number | undefined;
@@ -98,6 +99,7 @@ function rowOf(text: string, issue: IssueRef): SummaryRow {
     peaks: peakContext?.split("→").map((peak) => parseFloat(peak) * 1000),
     result: result === undefined ? undefined : currentResultOf(result),
     retries: numberOf(recorded.get("Retries")),
+    limitResumes: numberOf(recorded.get("Limit resumes")),
     durationMinutes: numberOf(recorded.get("Duration")),
     costUsd: numberOf(recorded.get("Cost (API-equivalent)")?.replace("$", "")),
     reviewCostUsd: numberOf(recorded.get("Review cost")?.replace("$", "")),

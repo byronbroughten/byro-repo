@@ -38,7 +38,7 @@ function stateAt(
   step: TicketStep,
   change: Partial<TicketState> = {},
 ): TicketState {
-  return { step, sessions: [], ...change };
+  return { step, sessions: [], limitResumes: 0, ...change };
 }
 
 function nextAfter(state: TicketState): TicketStep | undefined {

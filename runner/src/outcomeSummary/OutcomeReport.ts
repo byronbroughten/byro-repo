@@ -110,8 +110,8 @@ export class OutcomeReport {
       "",
       `Rows: \`${this.input.outcomeFolder}/${section.folder}/\`.`,
       "",
-      "| Issue | Pair | Files changed | Peak context | Peak sum | Result | Retries | Duration | Cost | Review cost |",
-      "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+      "| Issue | Pair | Files changed | Peak context | Peak sum | Result | Retries | Duration | Cost | Limit resumes | Review cost |",
+      "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
       ...section.rows.map(tableLineOf),
       "",
       "Outliers:",
@@ -277,6 +277,7 @@ function tableLineOf(row: SummaryRow): string {
       ? unrecorded
       : minutesOf(row.durationMinutes),
     dollarsOf(row.costUsd),
+    textOf(row.limitResumes),
     row.hasTriageCost ? "Triage cost column" : dollarsOf(row.reviewCostUsd),
   ];
   return `| ${cells.join(" | ")} |`;

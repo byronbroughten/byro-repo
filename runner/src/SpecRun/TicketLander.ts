@@ -79,6 +79,7 @@ export class TicketLander extends SpecRunBase {
       ...ticketSteps.reviewFactsOf(state),
       reviewRounds: 1,
       retries: retriesOf(state),
+      limitResumes: state.limitResumes,
       pair: pairLabelOf(pair),
     };
     const haltKinds = new Set(

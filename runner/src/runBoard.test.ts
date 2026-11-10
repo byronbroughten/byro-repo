@@ -37,7 +37,7 @@ function seedRun({ stem, pid, steps, log, ticketLabels }: FixtureRun): void {
   const tickets = Object.fromEntries(
     Object.entries(steps).map(([label, step]) => [
       label,
-      { step, sessions: [] },
+      { step, sessions: [], limitResumes: 0 },
     ]),
   );
   writeFileSync(
