@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import {
   appendFileSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -502,6 +503,100 @@ describe("a supervision record saved before it held one member list", () => {
     ) as object;
     expect(saved).toMatchObject({ members: [spec], offset: 3 });
     expect(saved).not.toHaveProperty("spec");
+  });
+});
+
+describe("a supervision handoff", () => {
+  function writeHandoff(named: IssueRef, text: string): string {
+    const path = records().handoffPathOf(named);
+    mkdirSync(join(stateFolder, "supervision"), { recursive: true });
+    writeFileSync(path, text);
+    return path;
+  }
+
+  it("is printed once by a rejoin after /clear, then deleted", async () => {
+    await records().supervise(me, owner, spec);
+    const path = writeHandoff(spec, "/runner byronbroughten/byro-repo 331");
+    await records().end(me, "clear");
+
+    const rejoin = await records().supervise(me, owner, spec);
+    const again = await records().supervise(me, owner, spec);
+
+    expect(rejoin.handoff).toBe("/runner byronbroughten/byro-repo 331");
+    expect(existsSync(path)).toBe(false);
+    expect(again.handoff).toBeUndefined();
+  });
+
+  it("stays in place for a catch-up by the process holding the live, unended record", async () => {
+    await records().supervise(me, owner, spec);
+    const path = writeHandoff(spec, "mine, not yet cleared");
+
+    const catchUp = await records().supervise(me, owner, spec);
+
+    expect(catchUp.handoff).toBeUndefined();
+    expect(existsSync(path)).toBe(true);
+  });
+
+  it("is printed and deleted by another claude process taking over", async () => {
+    await records().supervise(otherLive, owner, spec);
+    const path = writeHandoff(spec, "from the other session");
+
+    const takeover = await records().supervise(me, owner, spec);
+
+    expect(takeover.handoff).toBe("from the other session");
+    expect(existsSync(path)).toBe(false);
+  });
+
+  it("is printed by a session whose process ended without a record of its end", async () => {
+    await records().supervise(deadHolder(), owner, spec);
+    writeHandoff(spec, "left by a crash");
+
+    expect((await records().supervise(me, owner, spec)).handoff).toBe(
+      "left by a crash",
+    );
+  });
+
+  it("is none with no file written", async () => {
+    await records().supervise(otherLive, owner, spec);
+
+    expect(
+      (await records().supervise(me, owner, spec)).handoff,
+    ).toBeUndefined();
+  });
+
+  it("of a Batch is found through any member", async () => {
+    const batch: MemberList = [spec, otherSpec];
+    await BatchRecords.init(stateFolder).open(batch, process.pid);
+    await records().supervise(otherLive, owner, spec);
+    writeHandoff(spec, "the Batch's");
+
+    expect(records().handoffPathOf(otherSpec)).toBe(
+      records().handoffPathOf(spec),
+    );
+    expect((await records().supervise(me, owner, otherSpec)).handoff).toBe(
+      "the Batch's",
+    );
+  });
+
+  it("of a Batch is apart from its lead's own", async () => {
+    const alone = records().handoffPathOf(spec);
+    await BatchRecords.init(stateFolder).open([spec, otherSpec], process.pid);
+
+    expect(records().handoffPathOf(spec)).not.toBe(alone);
+  });
+
+  it("never reads as a supervision record", async () => {
+    await records().supervise(otherLive, owner, spec);
+    writeHandoff(spec, "123");
+    writeHandoff(otherSpec, "456");
+
+    await records().supervise(me, owner, otherSpec);
+
+    expect(await records().watch(spec, process.pid)).toBeDefined();
+    expect(
+      await records().recordOf({ kind: "session", pid: 123 }),
+    ).toBeUndefined();
+    expect((await records().recordOf(me))?.members).toEqual([otherSpec]);
   });
 });
 

@@ -122,7 +122,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `specRunHarness/timing.ts` | | The clock `SpecRun` tests start a run at and move through its fakes. |
 | `stalePaths.ts` | | The stale-path check for `packages/<dir>` mentions with no clone. |
 | `StepStream.ts` | | Reads a step's stream-json into its `StepResult`. |
-| `SupervisionRecords.ts` | `SupervisionRecords` | A Supervisor's record of the run or Batch it watches and the lines explained. |
+| `SupervisionRecords.ts` | `SupervisionRecords` | A Supervisor's record of the run or Batch it watches and the lines explained, and its handoff file, read once on a rejoin. |
 | `targetTools.ts` | | The tools a step gets for each of its ticket's targets. |
 | `TicketHalted.ts` | | The error raised once a ticket's Halts are posted. |
 | `ticketNewDependencies.ts` | | Reads a ticket's `## New dependencies` section. |

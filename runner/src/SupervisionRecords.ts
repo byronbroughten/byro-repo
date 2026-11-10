@@ -1,5 +1,6 @@
 // The supervision record: which spec's run, or which Batch (BatchRecords.ts), a Supervisor's claude process watches, or watched until its session ended, how many of its event lines it has explained, and its one watch.
 // One file per pid under the state folder's supervision/, live while that same process runs, as a lease is; the session hooks read it.
+// Beside them, one handoff file per spec or Batch, which a Supervisor writes at the context nudge and the next `supervise` reads once.
 import {
   existsSync,
   mkdirSync,
@@ -51,6 +52,18 @@ export interface WatchStart {
   members: MemberList;
 }
 
+export interface Supervision {
+  record: SupervisionRecord;
+  // The last Supervisor's handoff, taken only by a session rejoining an ended record or another process's.
+  handoff?: string;
+}
+
+// The heading `supervise` prints a handoff under, before the unexplained lines.
+export const handoffHeading = "## Handoff from the last Supervisor";
+
+// Only `<pid>.json` names a record; the handoff files beside them never parse as one.
+const recordPidPattern = /^(\d+)\.json$/;
+
 // The Supervisor's own identity, so a reused pid never inherits its record.
 export interface RecordFile extends SupervisionRecord, ProcessIdentity {
   // The spec's one watch: a later one replaces it, and it parks once the record names another.
@@ -75,7 +88,7 @@ export class SupervisionRecords {
     { pid }: LeaseHolder,
     owner: string,
     named: IssueRef,
-  ): Promise<SupervisionRecord> {
+  ): Promise<Supervision> {
     const members = this._membersOf(named);
     const overlapping = this._files().filter((file) =>
       file.members.some((member) => issueRef.isAmong(member, members)),
@@ -91,10 +104,35 @@ export class SupervisionRecords {
     const watch = sameStream.find((file) =>
       isSameProcess(file, supervisor),
     )?.watch;
+    // A Supervisor woken between writing its handoff and its /clear must not read its own.
+    const isTakeover = overlapping.some(
+      (file) => !isSupervising(file) || !isSameProcess(file, supervisor),
+    );
     for (const file of overlapping) this._remove(file.pid);
     const record: SupervisionRecord = { pid, owner, members, offset };
     this._write({ ...record, ...supervisor, watch });
-    return record;
+    if (!isTakeover) return { record };
+    return { record, handoff: this._takenHandoffOf(members) };
+  }
+
+  // One per spec or Batch, named like its event file so any member finds it; never `<pid>.json`, so it never reads as a record.
+  handoffPathOf(named: IssueRef): string {
+    return this._handoffPathOf(this._membersOf(named));
+  }
+
+  // Read once: deleted as it's read, so a later rejoin never finds a stale one.
+  private _takenHandoffOf(members: MemberList): string | undefined {
+    const path = this._handoffPathOf(members);
+    if (!existsSync(path)) return undefined;
+    const handoff = readFileSync(path, "utf8");
+    rmSync(path, { force: true });
+    return handoff;
+  }
+
+  private _handoffPathOf(members: MemberList): string {
+    const [lead] = members;
+    const kind = isBatch(members) ? ".batch" : "";
+    return join(this.folder, `${issueRef.fileStemOf(lead)}${kind}.handoff.md`);
   }
 
   // An ended Batch's record is gone, so a record already on that Batch keeps its members, and the file its watch read, until the spec runs alone after it.
@@ -102,7 +140,7 @@ export class SupervisionRecords {
     const batch = BatchRecords.init(this.stateFolder).batchOf(named);
     if (batch !== undefined) return batch.members;
     const onBatch = this._files().find(
-      (file) => isBatchRecord(file) && isWatching(file, named),
+      (file) => isBatch(file.members) && isWatching(file, named),
     );
     if (onBatch === undefined) return [named];
     const batchFile = this._eventFileOf(onBatch.members);
@@ -198,9 +236,13 @@ export class SupervisionRecords {
 
   private _files(): RecordFile[] {
     if (!existsSync(this.folder)) return [];
-    return readdirSync(this.folder)
-      .map((name) => this._fileOf(Number(name.replace(/\.json$/, ""))))
-      .filter((file): file is RecordFile => file !== undefined);
+    return readdirSync(this.folder).flatMap((name) => {
+      const pid = recordPidPattern.exec(name)?.[1];
+      if (pid === undefined) return [];
+      const file = this._fileOf(Number(pid));
+      if (file === undefined) return [];
+      return [file];
+    });
   }
 
   // `supervise` leaves one record per spec or Batch; an ended one names no Supervisor to watch for.
@@ -242,7 +284,7 @@ function isWrittenAfter(path: string, otherPath: string): boolean {
   return statSync(path).mtimeMs > statSync(otherPath).mtimeMs;
 }
 
-function isBatchRecord({ members }: SupervisionRecord): boolean {
+function isBatch(members: MemberList): boolean {
   return members.length > 1;
 }
 
