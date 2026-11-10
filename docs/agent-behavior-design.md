@@ -34,7 +34,7 @@ _Instances:_ a chore dry run prints one rendered line per request, and `-- --jso
 
 ### Approval covers what was named, and nothing next to it
 
-_Instances:_ [ADR 0008](./adr/0008-gate-agent-actions-by-what-they-cost-to-undo.md) makes a share ask on its own, naming who gets access and at what permission, even on a file whose writes are free. [ADR 0005](./adr/0005-approve-an-issue-body-by-its-exact-text.md) ties an issue body's approval to its exact text, so any later edit falls outside it.
+_Instances:_ [ADR 0008](./adr/0008-gate-agent-actions-by-what-they-cost-to-undo.md) makes a share ask on its own, naming who gets access and at what permission, even on a file whose writes are free. [ADR 0005](./adr/0005-approve-an-issue-body-by-its-exact-text.md) ties an issue body's approval to its exact text, so any later edit falls outside it. [ADR 0026](./adr/0026-the-arbiter-rules-only-by-a-rule-the-developer-approved.md) lets the Arbiter rule only where a rule the developer approved names the case, leaving every case next to it for the developer.
 
 ### Put each rule where it gets followed, and its reasoning one pointer away
 
