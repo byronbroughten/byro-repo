@@ -73,7 +73,7 @@ export interface ReviewPromptInput {
 
 export interface ReviewRules {
   promptOf(input: ReviewPromptInput): string;
-  recordSchema: object;
+  outputSchema: object;
 }
 
 export interface ResolvePromptInput {

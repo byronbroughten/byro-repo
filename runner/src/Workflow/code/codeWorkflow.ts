@@ -74,7 +74,7 @@ const agentSteps: AgentSteps = {
     recordProblems: implementRecordProblems,
     handoffCommentOf,
   },
-  review: { promptOf: reviewPrompt, recordSchema: reviewRecordSchema },
+  review: { promptOf: reviewPrompt, outputSchema: reviewRecordSchema },
   resolve: {
     promptOf: resolvePrompt,
     retryPromptOf: resolveRetryPrompt,

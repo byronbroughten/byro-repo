@@ -162,10 +162,13 @@ export class SessionReviewer extends SpecRunBase {
     return result;
   }
 
-  // A ticket with no parent is its own spec, as a Standalone ticket is.
   private async _specOf(issue: IssueRef): Promise<TrackedIssue> {
-    const { github } = this.config;
-    return github.issueOf((await github.parentOf(issue))?.issue ?? issue);
+    return this.config.github.issueOf(await this._specIssueOf(issue));
+  }
+
+  // A ticket with no parent is its own spec, as a Standalone ticket is.
+  private async _specIssueOf(issue: IssueRef): Promise<IssueRef> {
+    return (await this.config.github.parentOf(issue))?.issue ?? issue;
   }
 
   // Unknown when no implement session is recorded or its transcript is missing, which counts as past budget.
@@ -185,8 +188,9 @@ export class SessionReviewer extends SpecRunBase {
   }: SessionTicket): Promise<SessionTicketRun | string> {
     const { github } = this.config;
     const ticket = await github.issueOf(issue);
-    const specIssue = (await github.parentOf(issue))?.issue ?? issue;
-    const run = await this._runOf(specIssue, { tickets: {} });
+    const run = await this._runOf(await this._specIssueOf(issue), {
+      tickets: {},
+    });
     run.sessionReview = {
       earlierHalts: sessionHaltCountOf(
         issue,

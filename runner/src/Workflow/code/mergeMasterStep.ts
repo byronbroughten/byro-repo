@@ -1,4 +1,4 @@
-// The merge-master step's prompt and record; SpecRun.ts runs it once on a wrap-up conflict.
+// The merge-master step's prompt and record; codeWorkflow.ts supplies it, and SpecRun/TicketLander/MasterMerger.ts runs it once on a wrap-up conflict.
 
 import { stepReadLine } from "../../IssueReader.ts";
 import { commitMessageLine } from "../../promptText.ts";

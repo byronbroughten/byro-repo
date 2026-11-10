@@ -1,6 +1,6 @@
 // The gap check: the prompt that runs once a spec's every ticket is closed, listing what the spec asked for that no
 // landed ticket covered, and the gap-check record it returns. It belongs to the spec, so it launches with no targets.
-// reviewList.ts turns its record into the final review-list comment; SpecRun.ts launches it and posts that comment.
+// reviewList.ts turns its record into the final review-list comment; codeWorkflow.ts supplies it, and SpecRun/ReviewListPoster.ts launches it and posts that comment.
 
 import { stepReadLine } from "../../IssueReader.ts";
 import { issueRef } from "../../IssueWorkspaces.ts";

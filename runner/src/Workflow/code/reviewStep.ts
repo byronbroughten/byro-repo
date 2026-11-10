@@ -1,5 +1,5 @@
 // The review step: the prompt that runs a fresh code review of a ticket's branch on both axes, and the review record it returns.
-// SpecRun.ts launches it after the implement step; resolve reads its findings.
+// codeWorkflow.ts supplies it, and SpecRun/ReviewStepper.ts launches it after the implement step; resolve reads its findings.
 
 import { stepReadLine } from "../../IssueReader.ts";
 import { stringSchema } from "../../recordSchema.ts";

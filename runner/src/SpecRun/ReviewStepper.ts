@@ -95,7 +95,7 @@ export class ReviewStepper extends SpecRunBase {
         branch: workspace.branch,
         branchedRepos: ticketSteps.branchedReposOf(ticketRun),
       }),
-      jsonSchema: rules.recordSchema,
+      jsonSchema: rules.outputSchema,
     });
     state.findings = (record as ReviewRecord).findings;
   }
@@ -166,7 +166,7 @@ export class ReviewStepper extends SpecRunBase {
 
   // Resolve resumes the Step its Workflow names only under the ticket budget.
   private _firstResolverOf(ticketRun: TicketRun): Resolver {
-    const { resumes } = rulesOf(ticketRun);
+    const { resumes } = resolveRulesOf(ticketRun);
     if (resumes !== undefined && this._isUnderBudget(ticketRun.state)) {
       return "implementer";
     }
@@ -194,7 +194,7 @@ export class ReviewStepper extends SpecRunBase {
     records: ResolveRecord[],
   ): Promise<string[]> {
     const { workspace, state } = ticketRun;
-    const rules = rulesOf(ticketRun);
+    const rules = resolveRulesOf(ticketRun);
     const findingCount = (state.findings ?? []).length;
     const { dirtyRepos } = await this._headsAndDirtyReposOf(workspace);
     const hasChangedTree = await hasChangedTreeSince(workspace, base);
@@ -209,7 +209,9 @@ export class ReviewStepper extends SpecRunBase {
     ticketRun: TicketRun,
     resolver: Resolver,
   ): Promise<ResolveAttempt> {
-    const prompt = rulesOf(ticketRun).promptOf(resolvePromptInputOf(ticketRun));
+    const prompt = resolveRulesOf(ticketRun).promptOf(
+      resolvePromptInputOf(ticketRun),
+    );
     if (resolver === "fresh") {
       return this._launchResolver(ticketRun, resolver, {
         prompt,
@@ -225,12 +227,12 @@ export class ReviewStepper extends SpecRunBase {
     resolver: Resolver,
     problems: string[],
   ): Promise<ResolveAttempt> {
-    const { retryPromptOf, resumes } = rulesOf(ticketRun);
+    const { retryPromptOf } = resolveRulesOf(ticketRun);
     return this._launchResolver(
       ticketRun,
       resolver,
       { prompt: retryPromptOf(problems) },
-      resumes?.freshRetryPromptOf(resolvePromptInputOf(ticketRun), problems),
+      freshRetryPromptOf(ticketRun, problems),
     );
   }
 
@@ -240,7 +242,7 @@ export class ReviewStepper extends SpecRunBase {
     launch: Pick<StepLaunch, "prompt" | "resumeSessionId">,
     freshPrompt?: string,
   ): Promise<ResolveAttempt> {
-    const rules = rulesOf(ticketRun);
+    const rules = resolveRulesOf(ticketRun);
     const ran = await this._runResolverStep(ticketRun, {
       step: "resolve",
       resolver,
@@ -322,7 +324,7 @@ export class ReviewStepper extends SpecRunBase {
   }
 }
 
-function rulesOf({ run }: TicketRun): ResolveRules {
+function resolveRulesOf({ run }: TicketRun): ResolveRules {
   return agentStepsOf(run.spec).resolve;
 }
 
@@ -335,6 +337,14 @@ function resolvePromptInputOf(ticketRun: TicketRun): ResolvePromptInput {
     branchedRepos: ticketSteps.branchedReposOf(ticketRun),
     findings: state.findings ?? [],
   };
+}
+
+// With no resumption every resolver starts fresh, so its fallback still needs the step's prompt beside the refusal.
+function freshRetryPromptOf(ticketRun: TicketRun, problems: string[]): string {
+  const { promptOf, retryPromptOf, resumes } = resolveRulesOf(ticketRun);
+  const input = resolvePromptInputOf(ticketRun);
+  if (resumes !== undefined) return resumes.freshRetryPromptOf(input, problems);
+  return `${promptOf(input)}\n\n${retryPromptOf(problems)}`;
 }
 
 function resolveOutcomeOf({

@@ -80,7 +80,7 @@ export class ImplementStepper extends SpecRunBase {
   private _freshLaunchOf(ticketRun: TicketRun): StepLaunch {
     return {
       prompt: this._implementPromptOf(ticketRun),
-      jsonSchema: rulesOf(ticketRun).outputSchema,
+      jsonSchema: implementRulesOf(ticketRun).outputSchema,
     };
   }
 
@@ -124,7 +124,7 @@ export class ImplementStepper extends SpecRunBase {
     { ranStep, headsBefore }: CeilingCrossing,
   ): Promise<ImplementRecord> {
     const { ticket, state } = ticketRun;
-    const rules = rulesOf(ticketRun);
+    const rules = implementRulesOf(ticketRun);
     const ran = await this.stepLauncher._runStep(ticketRun, "implement", {
       prompt: handoffOnlyPrompt,
       jsonSchema: rules.outputSchema,
@@ -172,7 +172,10 @@ export class ImplementStepper extends SpecRunBase {
     );
     const count = (state.handoffCount ?? 0) + 1;
     await this._backUp(ticketRun, `handoff-${count}`, saveUncommitted);
-    const comment = rulesOf(ticketRun).handoffCommentOf(handoff, sessionId);
+    const comment = implementRulesOf(ticketRun).handoffCommentOf(
+      handoff,
+      sessionId,
+    );
     await this.config.github.comment(ticket.issue, `${runnerMark}\n${comment}`);
     state.handoffCount = count;
     state.latestHandoff = handoff;
@@ -217,7 +220,7 @@ export class ImplementStepper extends SpecRunBase {
 
   private _implementPromptOf(ticketRun: TicketRun): string {
     const { ticket, workspace, state } = ticketRun;
-    return rulesOf(ticketRun).promptOf({
+    return implementRulesOf(ticketRun).promptOf({
       issue: ticket.issue,
       title: ticket.title,
       body: ticket.body,
@@ -235,7 +238,7 @@ export class ImplementStepper extends SpecRunBase {
     headsBefore,
   }: ImplementTake): Promise<ImplementRecord> {
     const { workspace, state } = ticketRun;
-    const rules = rulesOf(ticketRun);
+    const rules = implementRulesOf(ticketRun);
     const record = rules.recordOf(launched.record);
     const { logPath } = launched;
     state.implementPeak = launched.peakContext;
@@ -285,7 +288,7 @@ export class ImplementStepper extends SpecRunBase {
 
   private _resumeLaunchOf(ticketRun: TicketRun, halts: Halt[]): StepLaunch {
     const { state } = ticketRun;
-    const { outputSchema } = rulesOf(ticketRun);
+    const { outputSchema } = implementRulesOf(ticketRun);
     const sessionId = ticketSteps.implementerSessionOf(state);
     const isUnderBudget = this._isUnderBudget(state);
     const isHandedOff = state.latestHandoff !== undefined;
@@ -315,7 +318,7 @@ function continuationLaunchOf(
   const { state } = ticketRun;
   const launch = {
     resumeSessionId: ticketSteps.lastSessionOf(state, "implement"),
-    jsonSchema: rulesOf(ticketRun).outputSchema,
+    jsonSchema: implementRulesOf(ticketRun).outputSchema,
   };
   if (continuation.kind === "record") {
     return { ...launch, prompt: recordOnlyPrompt };
@@ -325,7 +328,7 @@ function continuationLaunchOf(
   return { ...launch, prompt, maxTurns: turns, liveCeiling };
 }
 
-function rulesOf({ run }: TicketRun): ImplementRules {
+function implementRulesOf({ run }: TicketRun): ImplementRules {
   return agentStepsOf(run.spec).implement;
 }
 
