@@ -1,12 +1,12 @@
 ---
 name: to-writing-style
-description: "Turn the developer's rewrites and rejections of reader-facing prose an agent wrote (Google Docs, blog posts, in-app text, academic writing) into proposed updates to the writing style sheets (docs/writing-voice.md, docs/writing-craft.md, docs/academic-writing-style.md) and to the piece-spec grilling doc (packages/personal/writing/docs/grilling.md). Mines a session transcript (this session or another agent's), or a Piece's Snapshot against its edited Deliverable. Not for code, comments, commits or agent docs; those go to /to-code-style."
+description: "Turn the developer's rewrites and rejections of reader-facing prose an agent wrote (Google Docs, blog posts, in-app text, academic writing) into proposed updates to the writing style sheets (docs/writing-voice.md, docs/writing-craft.md, docs/academic-writing-style.md) and to the piece-spec grilling doc (docs/pieces/grilling.md). Mines a session transcript (this session or another agent's), or a Piece's Agent draft against its edited Deliverable. Not for code, comments, commits or agent docs; those go to /to-code-style."
 disable-model-invocation: true
 ---
 
 Legend: 🪤 what the developer changed · 📝 what to write.
 
-Mine a session, or a Piece's Snapshot against its edited Deliverable, for **prose rulings**: every place the developer rewrote, struck or rejected reader-facing prose an agent wrote ([defined in `prose-files.md`](../../../docs/agents/prose-files.md#terms)). Propose the edits to the three style sheets ([`docs/writing-voice.md`](../../../docs/writing-voice.md), [`docs/writing-craft.md`](../../../docs/writing-craft.md) and [`docs/academic-writing-style.md`](../../../docs/academic-writing-style.md)) and to the grilling doc, [`packages/personal/writing/docs/grilling.md`](../../../packages/personal/writing/docs/grilling.md), that would let the next draft come out right.
+Mine a session, or a Piece's Agent draft against its edited Deliverable, for **prose rulings**: every place the developer rewrote, struck or rejected reader-facing prose an agent wrote ([defined in `prose-files.md`](../../../docs/agents/prose-files.md#terms)). Propose the edits to the three style sheets ([`docs/writing-voice.md`](../../../docs/writing-voice.md), [`docs/writing-craft.md`](../../../docs/writing-craft.md) and [`docs/academic-writing-style.md`](../../../docs/academic-writing-style.md)) and to the grilling doc, [`docs/pieces/grilling.md`](../../../docs/pieces/grilling.md), that would let the next draft come out right.
 
 The spine test, applied to every candidate:
 
@@ -18,8 +18,8 @@ Do steps 0-3 silently. The developer sees only step 4.
 
 ## 0. Pick the mode and inputs
 
-- **A writing issue number** (`personal#<n>`): pair mode on its Snapshot. The parent spec's number covers the whole Piece; a sub-issue's covers only its Sections.
-- **Two Doc names, IDs or URLs**: pair mode on those Docs, for an older Piece with no Snapshot.
+- **A repo and a writing issue number** (`<repo> <n>`): pair mode on the Agent draft of `<repo>#<n>`. The parent spec's number covers the whole Piece; a sub-issue's covers only its Sections.
+- **Two Doc names, IDs or URLs**: pair mode on those Docs, for an older Piece with no Agent draft.
 - **No argument**: transcript mode on this session.
 - **A session ID or path**: transcript mode on that transcript.
 - **"The last session"**: transcript mode on the newest transcript that is not your own, found by [`docs/session-transcripts.md`](../../../docs/session-transcripts.md).
@@ -66,7 +66,7 @@ Done when every rewrite, rejection, stated rule, broken rule and addition is eit
 - **Beforehand**: could a style sheet have stated this before the draft was written? (A fact the piece got wrong fails here. A ruling on voice passes.) An addition fails for the style sheets but passes for the grilling doc when a question asked before the draft would have drawn it out.
 - **Ownership**: is it already in a style sheet or the grilling doc now, or assigned to an issue? Leave it there and say so; do not write it twice.
 - **Style, not rubric**: is it how the prose should read, not a constraint of this one piece's venue (a word limit, a template, an assignment's required headings)? A venue constraint fails.
-- **Separates**: would the agent's draft (in pair mode, the Snapshot) have broken the proposed rule? A rule the draft already follows fails: it does not tell the draft from the developer's edit.
+- **Separates**: would the agent's draft (in pair mode, the Agent draft) have broken the proposed rule? A rule the draft already follows fails: it does not tell the draft from the developer's edit.
 
 ## 3. Route and rank
 
@@ -76,9 +76,9 @@ Route each ruling to one of three sheets. The **Craft test** splits the first tw
 - **`docs/writing-craft.md`**: what any skilled writer does, whatever their voice: a garden path, an undefined term, new before given, a clashing idiom. A ruling lands here when it passes the Craft test and is not an academic convention.
 - **`docs/academic-writing-style.md`**: citations, academic register, academic structure. A ruling lands here only if it applies to academic work and would be wrong in a blog post or in-app text. A ruling that overrides a Voice or Craft line for academic work goes here, and says which line it overrides.
 - **The rule line** goes under the style sheet's existing section that fits, in its shape: one bolded line, the rule only, plus at most a short clause of scope or its one exception ([rules file](../../../docs/agents/prose-files.md#terms)).
-- **The instance** goes in the reasoning file whose row in the style sheet's "When | File" table matches the rule's topic, under a `##` heading named for the rule. Match the file's bullets, `- "<quote>" — <source>`: for a rewrite, one bullet `- Agent: "<draft>" Developer: "<version>" — session <short id>, <date>`. A pair-mode instance ends `— personal#<n> Snapshot, <date>` instead, `<date>` being the Snapshot commit's date; mined from two Docs, it names the agent's Doc in place of `Snapshot`. Close a new heading with `- No count was recorded; from a session.` (in pair mode, `from a Snapshot.`), and leave `docs/writing-voice/sources.md` and every "Seen in" count alone: those describe the Drive samples, not sessions.
+- **The instance** goes in the reasoning file whose row in the style sheet's "When | File" table matches the rule's topic, under a `##` heading named for the rule. Match the file's bullets, `- "<quote>" — <source>`: for a rewrite, one bullet `- Agent: "<draft>" Developer: "<version>" — session <short id>, <date>`. A pair-mode instance ends `— <repo>#<n> Agent draft, <date>` instead, `<date>` being the Agent draft commit's date; mined from two Docs, it names the agent's Doc in place of `Agent draft`. Close a new heading with `- No count was recorded; from a session.` (in pair mode, `from an Agent draft.`), and leave `docs/writing-voice/sources.md` and every "Seen in" count alone: those describe the Drive samples, not sessions.
 
-- **A grilling question** goes in the grilling doc's `## Questions` list, in its shape: a bolded label, what to ask, and the session's instance as `(#<spec number>: "<quote>")`. A change to the calibration step edits `/grill-piece`'s step 4 instead, through `/writing-for-agents`. The doc lives in the `personal` repo's `writing/` folder.
+- **A grilling question** goes in the grilling doc's `## Questions` list, in its shape: a bolded label, what to ask, and the session's instance as `(<Piece letter>: "<quote>")`, by the letter the doc's Questions lead gives the Piece, or the next free letter for a new one. The quote is the real wording, with each name, institution, amount and spec number replaced by a neutral stand-in, as the doc's examples are (`Sam`, `Example Credit Union`, `$N`). A change to the calibration step edits `/grill-piece`'s step 4 instead, through `/writing-for-agents`.
 
 Rank by how often the correction recurred, and say so. A ranked list lets the developer take the top three and stop.
 
@@ -98,7 +98,7 @@ One block per item, most valuable first, numbered so the developer can answer "1
 🪤 **W2** - ...
 ```
 
-Number grilling-doc items `G1`, `G2`, … in the same shape, after the `W` items, with the 📝 half naming `packages/personal/writing/docs/grilling.md`.
+Number grilling-doc items `G1`, `G2`, … in the same shape, after the `W` items, with the 📝 half naming `docs/pieces/grilling.md`.
 
 - The 🪤 half quotes what the agent wrote and what the developer did, with no fix in it. The 📝 half says what to write, with no story in it. Either half should read alone.
 - Give the wording, not a description of it. The developer is approving the edit, not the idea.
@@ -111,6 +111,6 @@ Then stop. Do not edit until the developer approves; an agent running this skill
 
 ## 5. On approval of items
 
-The Snapshot stays as `/implement-piece` committed it, and the edited Deliverable stays in its Doc, in both modes.
+The Agent draft stays as `/implement-piece` committed it, and the edited Deliverable stays in its Doc, in both modes.
 
-Write only the approved items, then `npx prettier --check` the touched files and `npm run lint`. Then ask whether to commit, and on which branch in each repo touched (a grilling-doc edit is a commit in the `personal` clone): the reviewed session may have left work in flight, and a docs-only commit should not ride along with it.
+Write only the approved items, then `npx prettier --check` the touched files and `npm run lint`. Then ask whether to commit, and on which branch in each repo touched: the reviewed session may have left work in flight, and a docs-only commit should not ride along with it.

@@ -13,7 +13,7 @@ A checked fact list is what `/review-piece`'s Spec axis treats as closed: a veri
 The input is one of:
 
 - **A research file**: a Markdown path from `/research`. Read it.
-- **A Research issue** in `byronbroughten/personal`. Fetch it with `npm run issue:read -- personal <n> --body --comments`, state its title, and take the comment that holds the findings. If more than one comment could be the findings, ask which.
+- **A Research issue**, as `<repo> <n>`. Fetch it with `npm run issue:read -- <repo> <n> --body --comments`, state its title, and take the comment that holds the findings. If more than one comment could be the findings, ask which.
 - **A draft Research comment**: the `comment.md` and texts folder `/research-piece` hands over before posting. Each source is the saved text its locators name, in that folder.
 
 If the reference is ambiguous, or the issue is a Piece rather than Research, stop and say so.

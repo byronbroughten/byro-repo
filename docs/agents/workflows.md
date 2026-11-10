@@ -71,10 +71,10 @@ The words Piece, Deliverable, Section, Stage and Agent draft are [the writing gl
 | Implementation | Code | `tdd` | `codebase-design` | named |
 | Implementation | Piece | `/implement-piece` | `/research-piece` on a Research issue, read as a file since it is user-invoked | named |
 | Implementation | Piece | `/implement-piece` | `/review-piece` once drafted, read as a file since it is user-invoked | named |
-| Implementation | Piece | `/implement-piece` | wrap-up (`npm run wrap-up -- personal <n>`), once the developer has finished editing | named |
+| Implementation | Piece | `/implement-piece` | wrap-up (`npm run wrap-up -- <repo> <n>`), once the developer has finished editing | named |
 | Implementation | Piece | `/research-piece` | `/implement-piece`, when the issue is a Piece | named |
 | Implementation | Piece | `/research-piece` | `/review-research` on the draft comment, before posting, read as a file since it is user-invoked | named |
-| Implementation | Piece | `/research-piece` | the Research wrap-up prompt, in the `personal` repo's writing `wrap-up.md` | named |
+| Implementation | Piece | `/research-piece` | the Research wrap-up (`npm run wrap-up -- <repo> <n> --no-code`) | named |
 | Implementation | Piece | any | `/review-research`, on a posted Research issue's findings | you invoke it |
 | Implementation | Piece | the Research wrap-up | `/implement-piece` on the next ticket | you invoke it |
 | Judgement | Code | `/judge-findings` | `/to-code-style` and `/mine-outcomes` when it closes a spec; tickets filed by `/code-tickets`' conventions | named |
@@ -129,7 +129,7 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | The piece-ticket template, its Sections named by exact heading text | `/piece-tickets` writes it; `/implement-piece` drafts only the Sections it names; `/review-piece` scopes to them |
 | The four review axes, Spec, Voice, Craft and Reader, with hard findings and judgement calls | `/review-piece` reports them; `/implement-piece` fixes the hard Spec findings and reports the rest |
 | The Research fact list comment: numbered facts, each ending with a locator naming its saved text and page range or heading, quotes optional and verbatim, and a `## Unverified` section outside the fact list | `/research-piece` posts it; `/review-research` checks its draft first; `/review-piece`'s fact list takes its facts outside `## Unverified` when the spec links it, and its Read passages take each fact's cited range; `/implement-piece` drafts from its facts, never its quotes or `## Unverified` |
-| The model-fit chat line: `/implement-piece #n: <Model> <effort> (reason)` from `/piece-spec`, `#n Title: <Model> <effort> (reason)` from `/piece-tickets` | `/piece-spec`, `/piece-tickets` |
+| The model-fit chat line: `/implement-piece <repo> <n>: <Model> <effort> (reason)` from `/piece-spec`, `#n Title: <Model> <effort> (reason)` from `/piece-tickets` | `/piece-spec`, `/piece-tickets` |
 | The Agent draft's path and shape | `/implement-piece` saves it; `/to-writing-style`'s pair mode diffs it |
 
 ## The shared machinery
@@ -137,8 +137,8 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | Machinery | Skills and Steps |
 | --- | --- |
 | The issue reader (`npm run issue:read`) with Trusted and Untrusted text | `/runner`, `/review-code-tickets`, `/start-issue` (via `issue:start`), `/implement-code`, `/judge-findings`, `/mine-outcomes`, every agent Step, `/piece-tickets`, `/implement-piece`, `/review-piece`, `/research-piece`, `/review-research` |
-| Issue and session workspaces (`npm run issue:start`, [`git-workflow.md`](./git-workflow.md#a-skills-session-workspace)) | `/start-issue`, `/judge-findings`, `/mine-outcomes`, `/implement-piece`'s issue workspace, the Research wrap-up prompt's session workspace |
-| Wrap-up (`npm run wrap-up`) | `/implement-code`, `/judge-findings`, `/mine-outcomes`, the wrap-up Step, `/implement-piece`, the Research wrap-up prompt |
+| Issue and session workspaces (`npm run issue:start`, [`git-workflow.md`](./git-workflow.md#a-skills-session-workspace)) | `/start-issue`, `/judge-findings`, `/mine-outcomes`, `/implement-piece`'s issue workspace, `/research-piece`'s session workspace |
+| Wrap-up (`npm run wrap-up`) | `/implement-code`, `/judge-findings`, `/mine-outcomes`, the wrap-up Step, `/implement-piece`, `/research-piece` |
 | `runner -- decide` | `/runner`, `/implement-code`, `/judge-findings` |
 | `npm run overlap` | `/review-piece` runs it; `/implement-piece` reruns it after a fix |
 | `npm run pdf:text` and the page-range command in [`pdf-pages.md`](../pdf-pages.md) | `/research-piece` dumps text; `/review-piece` writes ranges; `/grill-piece` and `/review-research` count and print pages |
