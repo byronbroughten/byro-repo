@@ -247,7 +247,7 @@ describe("Docs.writeSection", () => {
   });
 
   it("writes bulleted and numbered lists that read back as written", async () => {
-    const { docs } = await writableDocs();
+    const { docs, documents } = await writableDocs();
     const markdown =
       "Kettles boil water fast.\n\n" +
       "- Fill it\n- Boil it\n\n" +
@@ -265,6 +265,17 @@ describe("Docs.writeSection", () => {
     expect((await docs.read("doc-writable")).sections.get("Boiling")).toBe(
       markdown,
     );
+    const texts = (
+      await documents.documentOf("doc-writable")
+    ).body?.content.flatMap(({ paragraph }) =>
+      paragraph === undefined
+        ? []
+        : [paragraph.elements.map(({ textRun }) => textRun?.content).join("")],
+    );
+    expect(texts?.slice(texts.indexOf("Rinse\n"), -3)).toEqual([
+      "Rinse\n",
+      "Spouts\n",
+    ]);
   });
 
   it("writes a table mid-Section and at the Doc's end, each cell one paragraph", async () => {
@@ -380,6 +391,9 @@ describe("Docs.writeSection", () => {
       ({ paragraph }) => paragraph?.elements[0]?.textRun?.content === "Wait.\n",
     );
     expect(wait?.paragraph?.bullet).toBeUndefined();
+    expect(wait?.paragraph?.paragraphStyle).toEqual({
+      namedStyleType: "NORMAL_TEXT",
+    });
   });
 
   it("adds no empty paragraph after a numbered list at the Doc's end", async () => {

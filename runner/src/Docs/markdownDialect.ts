@@ -257,7 +257,7 @@ function parsedTable(lines: string[]): ParsedTable {
 
 /** A table row's cells, each still inline Markdown, a `\|` kept escaped. */
 function cellsOf(line: string): string[] {
-  if (!/^\|.*\|$/.test(line) || line.length < 2) {
+  if (!/^\|.*\|$/.test(line)) {
     throw new Error(`A table row starts and ends with "|", not "${line}".`);
   }
   return [...line.slice(1).matchAll(/((?:\\.|[^\\|])*)\|/g)].map((match) =>

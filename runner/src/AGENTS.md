@@ -38,6 +38,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Docs/markdownDialect.ts` | | The Markdown dialect's forms, its split into Sections and its parse of a Section's body into paragraphs, flat lists and tables. |
 | `Docs/sectionDiff.ts` | | Diffs a Section's blocks as held in the Doc against the ones written, into hunks. |
 | `Docs/SectionWriter.ts` | | Turns a Section's new Markdown, its lists and tables included, into the `batchUpdate` requests that change only what differs. |
+| `Docs/SectionWriter/BulletPlacer.ts` | | Puts the lists the Section writer writes into bullets, once its text requests have run. |
 | `Docs/StaleRevision.ts` | | The error for a write refused because the Doc changed after the revision read. |
 | `EventFileNotices.ts` | `EventFileNotices` | The event-file notice adapter a Supervisor watches, and its readers. |
 | `FactsFile.ts` | `FactsFile` | Reads and writes a ticket's facts file. |

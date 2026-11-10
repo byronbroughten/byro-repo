@@ -57,6 +57,13 @@ export type NamedStyleType =
 export interface ParagraphStyle {
   namedStyleType?: NamedStyleType;
   headingId?: string;
+  indentStart?: Dimension;
+  indentFirstLine?: Dimension;
+}
+
+export interface Dimension {
+  magnitude?: number;
+  unit?: "PT";
 }
 
 export interface Bullet {
@@ -110,6 +117,8 @@ export interface List {
 export interface NestingLevel {
   glyphType?: string;
   glyphSymbol?: string;
+  indentStart?: Dimension;
+  indentFirstLine?: Dimension;
 }
 
 export interface Table {

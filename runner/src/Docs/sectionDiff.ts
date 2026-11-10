@@ -13,7 +13,7 @@ export interface StyledChar {
 
 /** One list among the written paragraphs: its items share the one object. */
 export interface WrittenList {
-  kind: ListKind;
+  listKind: ListKind;
 }
 
 /** A heading, paragraph or list item as the writer compares it: its level, its list and its text, one character at a time. */
@@ -110,6 +110,11 @@ export const sectionDiff = {
   },
 };
 
+/** The characters' length in the UTF-16 code units Docs indices count. */
+export function unitLengthOf(chars: StyledChar[]): number {
+  return chars.reduce((length, { char }) => length + char.length, 0);
+}
+
 function emptyHunk(afterIndex: number): Hunk {
   return { held: [], wanted: [], afterIndex, kept: undefined };
 }
@@ -144,7 +149,7 @@ function keyOf(block: WrittenBlock): string {
   }
   return JSON.stringify([
     block.level,
-    block.list?.kind,
+    block.list?.listKind,
     charKeysOf(block.chars),
   ]);
 }

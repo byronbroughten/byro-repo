@@ -3,9 +3,10 @@
 // style and bullet held on the newline that ends it, as Docs does. A newline
 // inserted is a new paragraph: it copies the style and bullet of the paragraph
 // it lands in but not its headingId, and a heading with no headingId gets a
-// fresh one. A table is a marker index, then a marker per row and per cell
-// before the cell's paragraphs; its cells copy the paragraph it was inserted
-// into, the worst Docs could do. It holds plain text runs only.
+// fresh one; a paragraph taken out of a list keeps the list's indent. A table
+// is a marker index, then a marker per row and per cell before the cell's
+// paragraphs; its cells copy the paragraph it was inserted into, the worst Docs
+// could do. It holds plain text runs only.
 
 import { DocsRequestRefused } from "./DocsRequestRefused.ts";
 import type {
@@ -48,6 +49,18 @@ interface CharPlace {
 
 const textStyleFields = ["bold", "italic", "underline", "link"] as const;
 
+const paragraphStyleFields = [
+  "namedStyleType",
+  "indentStart",
+  "indentFirstLine",
+] as const;
+
+/** The indent Docs gives a new list's first level. */
+const listIndent = {
+  indentStart: { magnitude: 36, unit: "PT" },
+  indentFirstLine: { magnitude: 18, unit: "PT" },
+} as const;
+
 const outsideTables: CharPlace = { table: undefined, cell: undefined };
 
 export class FakeBody {
@@ -75,15 +88,13 @@ export class FakeBody {
       const { range, textStyle, fields } = updateTextStyle;
       this._styleText(range, textStyle, fields);
     } else if (updateParagraphStyle !== undefined) {
-      const { range, paragraphStyle } = updateParagraphStyle;
-      this._styleParagraphs(range, paragraphStyle.namedStyleType);
+      const { range, paragraphStyle, fields } = updateParagraphStyle;
+      this._styleParagraphs(range, paragraphStyle, fields);
     } else if (createParagraphBullets !== undefined) {
       const { range, bulletPreset } = createParagraphBullets;
       this._bullet(range, bulletPreset);
     } else if (deleteParagraphBullets !== undefined) {
-      this._newlinesIn(deleteParagraphBullets.range).forEach((newline) => {
-        newline.bullet = undefined;
-      });
+      this._unbullet(deleteParagraphBullets.range);
     } else if (insertTable !== undefined) {
       this._insertTable(insertTable);
     } else {
@@ -145,21 +156,15 @@ export class FakeBody {
     }
     this._insert("\n", location.index);
     const landed = this._newlineFrom(position + 1);
-    const tableMarker = markerChar("table", undefined);
-    tableMarker.table = tableMarker;
-    const tableChars = [tableMarker];
-    [...Array(rows).keys()].forEach(() => {
-      tableChars.push(markerChar("row", tableMarker));
-      [...Array(columns).keys()].forEach(() => {
-        const cellMarker = markerChar("cell", tableMarker);
-        const place = { table: tableMarker, cell: cellMarker };
-        tableChars.push(cellMarker, {
+    const cells = [...Array(rows).keys()].map(() =>
+      [...Array(columns).keys()].map(() => (place: CharPlace): BodyChar[] => [
+        {
           ...newlineCopying(landed, place),
           textStyle: { ...landed.textStyle },
-        });
-      });
-    });
-    this.chars.splice(position + 1, 0, ...tableChars);
+        },
+      ]),
+    );
+    this.chars.splice(position + 1, 0, ...tableCharsOf(cells));
   }
 
   private _delete({ startIndex, endIndex }: Range): void {
@@ -218,16 +223,50 @@ export class FakeBody {
     });
   }
 
+  /** Sets each named field, and resets a named field the style leaves out. */
   private _styleParagraphs(
     range: Range,
-    namedStyleType: NamedStyleType | undefined,
+    paragraphStyle: ParagraphStyle,
+    fields: string,
   ): void {
+    const named = fields.split(",");
     this._newlinesIn(range).forEach((newline) => {
-      const style = { ...newline.paragraphStyle, namedStyleType };
-      if (!isHeading(namedStyleType)) {
+      const style = { ...newline.paragraphStyle };
+      paragraphStyleFields
+        .filter((field) => named.includes(field))
+        .forEach((field) => {
+          const value = paragraphStyle[field];
+          if (value === undefined) {
+            delete style[field];
+            return;
+          }
+          Object.assign(style, { [field]: value });
+        });
+      if (!isHeading(style.namedStyleType)) {
         delete style.headingId;
       }
       newline.paragraphStyle = style;
+    });
+  }
+
+  /** Takes each paragraph out of its list, keeping its list's indent as Docs does. */
+  private _unbullet(range: Range): void {
+    this._newlinesIn(range).forEach((newline) => {
+      const { bullet } = newline;
+      if (bullet === undefined) {
+        return;
+      }
+      const nestingLevel =
+        this.heldLists[bullet.listId]?.listProperties.nestingLevels[
+          bullet.nestingLevel ?? 0
+        ];
+      const { indentStart, indentFirstLine } = nestingLevel ?? {};
+      newline.paragraphStyle = {
+        ...newline.paragraphStyle,
+        ...(indentStart === undefined ? {} : { indentStart }),
+        ...(indentFirstLine === undefined ? {} : { indentFirstLine }),
+      };
+      newline.bullet = undefined;
     });
   }
 
@@ -238,9 +277,10 @@ export class FakeBody {
       this.freshListCount += 1;
       listId = `list.fresh${this.freshListCount}`;
     } while (this.heldLists[listId] !== undefined);
-    const nestingLevel = bulletPreset.startsWith("NUMBERED_")
+    const glyph = bulletPreset.startsWith("NUMBERED_")
       ? { glyphType: "DECIMAL" }
       : { glyphSymbol: "●" };
+    const nestingLevel = { ...glyph, ...listIndent };
     this.heldLists[listId] = {
       listProperties: { nestingLevels: [nestingLevel] },
     };
@@ -372,21 +412,34 @@ function charsOf(element: StructuralElement, position: number): BodyChar[] {
 }
 
 function tableChars(table: Table): BodyChar[] {
+  const cells = table.tableRows.map((row) =>
+    row.tableCells.map(
+      (cell) =>
+        (place: CharPlace): BodyChar[] =>
+          cell.content.flatMap(({ paragraph }) => {
+            if (paragraph === undefined) {
+              throw new Error("A fake table's cells hold only paragraphs.");
+            }
+            return paragraphChars(paragraph, place);
+          }),
+    ),
+  );
+  return tableCharsOf(cells);
+}
+
+/** A table's marker, then per row a marker and per cell a marker and the characters its function gives for that cell. */
+function tableCharsOf(
+  cells: ((place: CharPlace) => BodyChar[])[][],
+): BodyChar[] {
   const tableMarker = markerChar("table", undefined);
   tableMarker.table = tableMarker;
-  const rows = table.tableRows.flatMap((row) => [
+  const rows = cells.flatMap((row) => [
     markerChar("row", tableMarker),
-    ...row.tableCells.flatMap((cell) => {
+    ...row.flatMap((cellChars) => {
       const cellMarker = markerChar("cell", tableMarker);
-      const place = { table: tableMarker, cell: cellMarker };
       return [
         cellMarker,
-        ...cell.content.flatMap(({ paragraph }) => {
-          if (paragraph === undefined) {
-            throw new Error("A fake table's cells hold only paragraphs.");
-          }
-          return paragraphChars(paragraph, place);
-        }),
+        ...cellChars({ table: tableMarker, cell: cellMarker }),
       ];
     }),
   ]);

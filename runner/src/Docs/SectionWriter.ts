@@ -4,9 +4,9 @@
 // only the smallest differing range, so comments on unchanged text keep their
 // anchors and unchanged headings their headingIds; a hunk holding a table is
 // rewritten whole. Text requests run from the end of the body back, so each
-// one's indices are the read document's; the bullets go last, by where each
-// list ends up. Every paragraph inserted gets its style and bullets set, so it
-// takes none from a neighbour. The Markdown is parsed by `markdownDialect.ts`,
+// one's indices are the read document's; `SectionWriter/BulletPlacer.ts` adds
+// the bullets last. Every paragraph inserted gets its style and bullets set, so
+// it takes none from a neighbour. The Markdown is parsed by `markdownDialect.ts`,
 // and `Docs.ts` sends the requests under the revision guard.
 
 import {
@@ -16,17 +16,16 @@ import {
   listKindOf,
 } from "./DocReader.ts";
 import type {
-  BulletPreset,
   GoogleDocument,
   Link,
   List,
   Paragraph,
+  Range,
   Request,
   StructuralElement,
   Table,
 } from "./googleDocs.ts";
 import {
-  type ListKind,
   markdownDialect,
   type ParsedBlock,
   type SpanStyle,
@@ -37,10 +36,17 @@ import {
   type Hunk,
   sectionDiff,
   type StyledChar,
+  unitLengthOf,
   type WrittenBlock,
   type WrittenParagraph,
   type WrittenTable,
 } from "./sectionDiff.ts";
+import {
+  BulletPlacer,
+  type LaidParagraph,
+  paragraphRangeOf,
+  type PlacedParagraph,
+} from "./SectionWriter/BulletPlacer.ts";
 
 /** What a character of the written text needs: nothing, a new style, or every style, since it is new text. */
 type CharChange = "unchanged" | "restyled" | "inserted";
@@ -55,13 +61,6 @@ interface StyleRun {
   end: number;
   style: SpanStyle;
   change: CharChange;
-}
-
-/** A written paragraph where the text requests leave it, and the held paragraph whose bullet it keeps. */
-interface PlacedParagraph {
-  paragraph: WrittenParagraph;
-  startIndex: number;
-  origin: HeldParagraph | undefined;
 }
 
 /** Requests, how much they lengthen the body, and the paragraphs they write, placed as if they ran alone. */
@@ -92,21 +91,23 @@ const emptyParagraph: WrittenParagraph = {
   chars: [],
 };
 
-const bulletPresets: Record<ListKind, BulletPreset> = {
-  bulleted: "BULLET_DISC_CIRCLE_SQUARE",
-  numbered: "NUMBERED_DECIMAL_ALPHA_ROMAN",
-};
+/** The paragraph style fields a request sets: a level alone, or everything a new paragraph could inherit. */
+const paragraphStyleFields = {
+  level: "namedStyleType",
+  outright: "namedStyleType,indentStart,indentFirstLine",
+} as const;
 
 export class SectionWriter {
+  private readonly document: GoogleDocument;
   private readonly content: StructuralElement[];
   private readonly lists: Record<string, List>;
   private readonly headingTexts: Map<string, string>;
   private readonly bodyEndIndex: number;
   private readonly tableStartIndices: Set<number>;
-  private readonly listSizes: Map<string, number>;
 
   constructor(document: GoogleDocument) {
     const body = document.body ?? { content: [] };
+    this.document = document;
     this.content = body.content;
     this.lists = document.lists ?? {};
     this.headingTexts = headingTextsOf(body);
@@ -116,48 +117,53 @@ export class SectionWriter {
         table === undefined || startIndex === undefined ? [] : [startIndex],
       ),
     );
-    this.listSizes = this.content.reduce((sizes, { paragraph }) => {
-      const listId = paragraph?.bullet?.listId;
-      if (listId !== undefined) {
-        sizes.set(listId, (sizes.get(listId) ?? 0) + 1);
-      }
-      return sizes;
-    }, new Map<string, number>());
   }
 
   static init(document: GoogleDocument): SectionWriter {
     return new SectionWriter(document);
   }
 
+  private get bulletPlacer(): BulletPlacer {
+    return BulletPlacer.init(this.document);
+  }
+
   /** The requests that make the Section under `heading` read as `markdown`: text last index first, then bullets. */
   requestsFor(heading: string, markdown: string): Request[] {
     const { sectionHeading, held } = this._sectionOf(heading);
     const wanted = markdownDialect.blocksOf(markdown).flatMap(writtenOf);
-    const changes: BodyChange[] = [];
-    const placed: PlacedParagraph[] = [];
-    let lengthChange = 0;
-    sectionDiff.hunksOf(sectionHeading, held, wanted).forEach((hunk) => {
-      const change = this._hunkChange(hunk);
-      const shift = lengthChange;
-      changes.push(change);
-      placed.push(
-        ...change.placed.map((paragraph) => ({
-          ...paragraph,
-          startIndex: paragraph.startIndex + shift,
-        })),
+    const section = sectionDiff
+      .hunksOf(sectionHeading, held, wanted)
+      .reduce<BodyChange>(
+        (written, hunk) => {
+          const change = this._hunkChange(hunk);
+          const shift = written.lengthChange;
+          written.requests.unshift(...change.requests);
+          written.placed.push(
+            ...change.placed.map((paragraph) => ({
+              ...paragraph,
+              startIndex: paragraph.startIndex + shift,
+            })),
+          );
+          written.lengthChange += change.lengthChange;
+          const { kept } = hunk;
+          if (
+            kept?.held.kind === "paragraph" &&
+            kept.wanted.kind === "paragraph"
+          ) {
+            written.placed.push({
+              paragraph: kept.wanted,
+              startIndex: kept.held.startIndex + written.lengthChange,
+              heldParagraph: kept.held,
+            });
+          }
+          return written;
+        },
+        { requests: [], lengthChange: 0, placed: [] },
       );
-      lengthChange += change.lengthChange;
-      const kept = hunk.kept;
-      if (kept?.held.kind === "paragraph" && kept.wanted.kind === "paragraph") {
-        placed.push({
-          paragraph: kept.wanted,
-          startIndex: kept.held.startIndex + lengthChange,
-          origin: kept.held,
-        });
-      }
-    });
-    const textRequests = changes.reverse().flatMap(({ requests }) => requests);
-    return [...textRequests, ...this._bulletRequests(placed)];
+    return [
+      ...section.requests,
+      ...this.bulletPlacer.requestsFor(section.placed),
+    ];
   }
 
   private _sectionOf(heading: string): {
@@ -215,7 +221,7 @@ export class SectionWriter {
         list:
           bullet === undefined
             ? undefined
-            : { kind: listKindOf(this.lists, bullet) },
+            : { listKind: listKindOf(this.lists, bullet) },
         chars: this._charsOf(paragraph),
         bullet,
         ...indicesOf(element),
@@ -281,10 +287,7 @@ export class SectionWriter {
       : markdownDialect.headingTarget(headingText);
   }
 
-  /**
-   * Inserts first, at the hunk's end, then deletes and edits from the last
-   * paragraph back; a hunk holding a table pairs nothing, so it is rewritten whole.
-   */
+  /** Inserts at the hunk's end, then deletes and edits back to front; a hunk with a table pairs nothing, so it is rewritten whole. */
   private _hunkChange({ held, wanted, afterIndex }: Hunk): BodyChange {
     const hasTable = [...held, ...wanted].some(
       (block) => block.kind === "table",
@@ -300,8 +303,8 @@ export class SectionWriter {
         paragraph: wantedParagraph,
         startIndex:
           heldParagraph.startIndex + sumOf(pairedChanges.slice(0, position)),
-        origin:
-          heldParagraph.list?.kind === wantedParagraph.list?.kind
+        heldParagraph:
+          heldParagraph.list?.listKind === wantedParagraph.list?.listKind
             ? heldParagraph
             : undefined,
       }),
@@ -325,7 +328,10 @@ export class SectionWriter {
     const edits = pairs
       .reverse()
       .flatMap(({ heldParagraph, wantedParagraph }) =>
-        this._editRequests(heldParagraph, wantedParagraph),
+        this._editRequests(heldParagraph, {
+          paragraph: wantedParagraph,
+          startIndex: heldParagraph.startIndex,
+        }),
       );
     return {
       requests: [
@@ -344,11 +350,7 @@ export class SectionWriter {
     };
   }
 
-  /**
-   * Inserts before the block at `index`, so existing newlines keep their
-   * paragraphs; at the body's end or a table's start, where nothing can go,
-   * before the newline of the paragraph ending there.
-   */
+  /** Inserts before the block at `index`, or, at the body's end or a table's start, before the newline ending there. */
   private _insertion(blocks: WrittenBlock[], index: number): BodyChange {
     const isBeforeNewline =
       index === this.bodyEndIndex || this.tableStartIndices.has(index);
@@ -373,7 +375,7 @@ export class SectionWriter {
           at;
     const placed = laid.flatMap(({ block, startIndex }) =>
       block.kind === "paragraph"
-        ? [{ paragraph: block, startIndex, origin: undefined }]
+        ? [{ paragraph: block, startIndex, heldParagraph: undefined }]
         : [],
     );
     return { requests, lengthChange, placed };
@@ -392,7 +394,6 @@ export class SectionWriter {
   ): Request[] {
     if (block.kind === "paragraph") {
       const text = block.chars.map(({ char }) => char).join("");
-      const startIndex = at + leading.length;
       return [
         {
           insertText: {
@@ -400,7 +401,10 @@ export class SectionWriter {
             location: { index: at },
           },
         },
-        ...this._newParagraphRequests(startIndex, block),
+        ...this._newParagraphRequests({
+          paragraph: block,
+          startIndex: at + leading.length,
+        }),
       ];
     }
     const requests: Request[] = [
@@ -414,11 +418,17 @@ export class SectionWriter {
     ];
     const { isAfterTable, isFirst, isLast, isBeforeNewline } = neighbours;
     if (isAfterTable || (isFirst && !isBeforeNewline)) {
-      requests.push(...paragraphRequests(at, emptyParagraph));
+      requests.push(
+        ...paragraphRequests({ paragraph: emptyParagraph, startIndex: at }),
+      );
     }
     if (isLast && isBeforeNewline) {
-      const after = at + 1 + bareTableLengthOf(block);
-      requests.push(...paragraphRequests(after, emptyParagraph));
+      requests.push(
+        ...paragraphRequests({
+          paragraph: emptyParagraph,
+          startIndex: at + 1 + bareTableLengthOf(block),
+        }),
+      );
     }
     return [...requests, ...this._cellRequests(block, at + 1)];
   }
@@ -429,46 +439,40 @@ export class SectionWriter {
     return table.rows
       .flatMap((row, rowPosition) =>
         row.map((chars, columnPosition) => ({
-          chars,
+          paragraph: { ...emptyParagraph, chars },
           startIndex:
-            tableStart +
-            3 +
-            rowPosition * (1 + 2 * columns) +
-            2 * columnPosition,
+            tableStart + cellOffsetOf(columns, rowPosition, columnPosition),
         })),
       )
       .reverse()
-      .flatMap(({ chars, startIndex }) => {
-        const paragraph = { ...emptyParagraph, chars };
-        const text = chars.map(({ char }) => char).join("");
+      .flatMap((cell) => {
+        const text = cell.paragraph.chars.map(({ char }) => char).join("");
         return [
           ...(text === ""
             ? []
-            : [{ insertText: { text, location: { index: startIndex } } }]),
-          ...this._newParagraphRequests(startIndex, paragraph),
+            : [
+                {
+                  insertText: { text, location: { index: cell.startIndex } },
+                },
+              ]),
+          ...this._newParagraphRequests(cell),
         ];
       });
   }
 
   /** A new paragraph's text styles, then its paragraph style and no bullet, whatever it landed in. */
-  private _newParagraphRequests(
-    startIndex: number,
-    paragraph: WrittenParagraph,
-  ): Request[] {
-    const inserted = [...paragraph.chars, plainNewline].map((char) => ({
+  private _newParagraphRequests(laid: LaidParagraph): Request[] {
+    const inserted = [...laid.paragraph.chars, plainNewline].map((char) => ({
       ...char,
       change: "inserted" as const,
     }));
     return [
-      ...this._textStyleRequests(startIndex, inserted),
-      ...paragraphRequests(startIndex, paragraph),
+      ...this._textStyleRequests(laid.startIndex, inserted),
+      ...paragraphRequests(laid),
     ];
   }
 
-  /**
-   * Deletes a block; a paragraph before the body's end or a table it isn't
-   * deleted with only loses its text, since Docs keeps that newline.
-   */
+  /** Deletes a block; a paragraph before the body's end or a table it isn't deleted with keeps its newline, as Docs requires. */
   private _deletion(
     block: HeldBlock,
     deletedTableStarts: Set<number>,
@@ -493,7 +497,7 @@ export class SectionWriter {
             range: { startIndex, endIndex: endIndex - 1 },
           },
         },
-        ...paragraphRequests(startIndex, emptyParagraph),
+        ...paragraphRequests({ paragraph: emptyParagraph, startIndex }),
       ],
       lengthChange: startIndex - (endIndex - 1),
       placed: [],
@@ -501,18 +505,16 @@ export class SectionWriter {
   }
 
   /** Rewrites only the range between the text the two share at each end, then restyles what differs. */
-  private _editRequests(
-    held: HeldParagraph,
-    wanted: WrittenParagraph,
-  ): Request[] {
+  private _editRequests(held: HeldParagraph, wanted: LaidParagraph): Request[] {
     const { startIndex } = held;
-    const prefix = sharedLength(held.chars, wanted.chars);
+    const { chars } = wanted.paragraph;
+    const prefix = sharedLength(held.chars, chars);
     const suffix = sharedLength(
       held.chars.slice(prefix).reverse(),
-      wanted.chars.slice(prefix).reverse(),
+      chars.slice(prefix).reverse(),
     );
     const heldEnd = held.chars.length - suffix;
-    const wantedEnd = wanted.chars.length - suffix;
+    const wantedEnd = chars.length - suffix;
     const editIndex = startIndex + unitLengthOf(held.chars.slice(0, prefix));
     const requests: Request[] = [];
     if (heldEnd > prefix) {
@@ -523,14 +525,14 @@ export class SectionWriter {
       });
     }
     if (wantedEnd > prefix) {
-      const text = wanted.chars
+      const text = chars
         .slice(prefix, wantedEnd)
         .map(({ char }) => char)
         .join("");
       requests.push({ insertText: { text, location: { index: editIndex } } });
     }
-    const shift = held.chars.length - wanted.chars.length;
-    const restyled = wanted.chars.map((char, position) => {
+    const shift = held.chars.length - chars.length;
+    const restyled = chars.map((char, position) => {
       let kept: StyledChar | undefined;
       if (position < prefix) {
         kept = held.chars[position];
@@ -540,11 +542,13 @@ export class SectionWriter {
       return { ...char, change: changeOf(char, kept) };
     });
     requests.push(...this._textStyleRequests(startIndex, restyled));
-    if (held.level !== wanted.level) {
-      requests.push(paragraphStyleRequest(startIndex, wanted));
-    }
-    if (held.bullet !== undefined && held.list?.kind !== wanted.list?.kind) {
-      requests.push(bulletsDeletedRequest(startIndex, wanted));
+    if (
+      held.bullet !== undefined &&
+      held.list?.listKind !== wanted.paragraph.list?.listKind
+    ) {
+      requests.push(...paragraphRequests(wanted));
+    } else if (held.level !== wanted.paragraph.level) {
+      requests.push(paragraphStyleRequest(wanted, paragraphStyleFields.level));
     }
     return requests;
   }
@@ -590,49 +594,6 @@ export class SectionWriter {
     }
     return { heading: { id: heading[0] } };
   }
-
-  /**
-   * Puts each written list in one list of its own, by where the text requests
-   * left it, unless its items already make up the whole of one such list.
-   */
-  private _bulletRequests(placed: PlacedParagraph[]): Request[] {
-    return listRunsOf(placed)
-      .filter((run) => !this._isWholeList(run))
-      .reverse()
-      .flatMap((run) => {
-        const first = run[0];
-        const last = run.at(-1);
-        const kind = first?.paragraph.list?.kind;
-        if (first === undefined || last === undefined || kind === undefined) {
-          return [];
-        }
-        const range = {
-          startIndex: first.startIndex,
-          endIndex: last.startIndex + unitLengthOf(last.paragraph.chars) + 1,
-        };
-        return [
-          { deleteParagraphBullets: { range } },
-          {
-            createParagraphBullets: {
-              range,
-              bulletPreset: bulletPresets[kind],
-            },
-          },
-        ];
-      });
-  }
-
-  private _isWholeList(run: PlacedParagraph[]): boolean {
-    const listIds = new Set(run.map(({ origin }) => origin?.bullet?.listId));
-    const [listId] = listIds;
-    const kind = run[0]?.paragraph.list?.kind;
-    return (
-      listIds.size === 1 &&
-      listId !== undefined &&
-      listKindOf(this.lists, { listId }) === kind &&
-      this.listSizes.get(listId) === run.length
-    );
-  }
 }
 
 function writtenOf(block: ParsedBlock): WrittenBlock[] {
@@ -647,7 +608,7 @@ function writtenOf(block: ParsedBlock): WrittenBlock[] {
     ];
   }
   if (block.kind === "list") {
-    const list = { kind: block.listKind };
+    const list = { listKind: block.listKind };
     return block.items.map((spans) => ({
       kind: "paragraph",
       level: undefined,
@@ -664,10 +625,7 @@ function charsOf(spans: (SpanStyle & { text: string })[]): StyledChar[] {
   );
 }
 
-function indicesOf(element: StructuralElement): {
-  startIndex: number;
-  endIndex: number;
-} {
+function indicesOf(element: StructuralElement): Range {
   const { startIndex, endIndex } = element;
   if (startIndex === undefined || endIndex === undefined) {
     throw new Error("The writer needs a Doc read with its indices.");
@@ -706,11 +664,7 @@ function pairsOf(
   });
 }
 
-/**
- * Where each block lands when all are inserted at `at`: a paragraph brings its
- * newline after it, or, before a newline already there, before it; a table
- * brings its own newline before it, so a paragraph next to one brings none.
- */
+/** Where each block lands inserted at `at`: a paragraph brings a newline, but none next to a table, which brings its own. */
 function laidOut(
   blocks: WrittenBlock[],
   at: number,
@@ -745,27 +699,20 @@ function laidLengthOf(block: WrittenBlock): number {
   return 1 + bareTableLengthOf(block) + textLength;
 }
 
-/** A table's length with empty cells: its own index, and per row one plus two per cell. */
+/** A table's length with empty cells: its own index, then its rows. */
 function bareTableLengthOf(table: WrittenTable): number {
   const columns = table.rows[0]?.length ?? 0;
-  return 1 + table.rows.length * (1 + 2 * columns);
+  return 1 + table.rows.length * rowLengthOf(columns);
 }
 
-/** The placed list items in runs, one per written list. */
-function listRunsOf(placed: PlacedParagraph[]): PlacedParagraph[][] {
-  return placed.reduce<PlacedParagraph[][]>((runs, paragraph) => {
-    const { list } = paragraph.paragraph;
-    if (list === undefined) {
-      return runs;
-    }
-    const run = runs.at(-1);
-    if (run?.at(-1)?.paragraph.list === list) {
-      run.push(paragraph);
-      return runs;
-    }
-    runs.push([paragraph]);
-    return runs;
-  }, []);
+/** Where an empty table's cell paragraph starts, from the table's index: past the table, the rows before, the row's and each cell's index. */
+function cellOffsetOf(columns: number, row: number, column: number): number {
+  return 1 + row * rowLengthOf(columns) + 1 + 2 * column + 1;
+}
+
+/** An empty table row's length: its own index, then per cell its index and newline. */
+function rowLengthOf(columns: number): number {
+  return 1 + 2 * columns;
 }
 
 function sumOf(lengths: number[]): number {
@@ -781,11 +728,6 @@ function sharedLength(left: StyledChar[], right: StyledChar[]): number {
     return Math.min(left.length, right.length);
   }
   return differing;
-}
-
-/** The characters' length in the UTF-16 code units Docs indices count. */
-function unitLengthOf(chars: StyledChar[]): number {
-  return chars.reduce((length, { char }) => length + char.length, 0);
 }
 
 function changeOf(char: StyledChar, kept: StyledChar | undefined): CharChange {
@@ -821,46 +763,26 @@ function styleRunsOf(chars: RestyledChar[]): StyleRun[] {
   }, []);
 }
 
-/** A paragraph's style and no bullet, set outright so it keeps none from where it landed. */
-function paragraphRequests(
-  startIndex: number,
-  paragraph: WrittenParagraph,
-): Request[] {
+/** No bullet, then the paragraph's style with the list's indent reset, set outright so it keeps none from where it landed. */
+function paragraphRequests(laid: LaidParagraph): Request[] {
   return [
-    paragraphStyleRequest(startIndex, paragraph),
-    bulletsDeletedRequest(startIndex, paragraph),
+    { deleteParagraphBullets: { range: paragraphRangeOf(laid) } },
+    paragraphStyleRequest(laid, paragraphStyleFields.outright),
   ];
 }
 
 function paragraphStyleRequest(
-  startIndex: number,
-  paragraph: WrittenParagraph,
+  laid: LaidParagraph,
+  fields: (typeof paragraphStyleFields)[keyof typeof paragraphStyleFields],
 ): Request {
+  const { level } = laid.paragraph;
   const namedStyleType =
-    paragraph.level === undefined
-      ? "NORMAL_TEXT"
-      : headingStyleTypes[paragraph.level - 1];
+    level === undefined ? "NORMAL_TEXT" : headingStyleTypes[level - 1];
   return {
     updateParagraphStyle: {
-      range: paragraphRangeOf(startIndex, paragraph),
+      range: paragraphRangeOf(laid),
       paragraphStyle: { namedStyleType },
-      fields: "namedStyleType",
+      fields,
     },
   };
-}
-
-function bulletsDeletedRequest(
-  startIndex: number,
-  paragraph: WrittenParagraph,
-): Request {
-  return {
-    deleteParagraphBullets: { range: paragraphRangeOf(startIndex, paragraph) },
-  };
-}
-
-function paragraphRangeOf(
-  startIndex: number,
-  { chars }: WrittenParagraph,
-): { startIndex: number; endIndex: number } {
-  return { startIndex, endIndex: startIndex + unitLengthOf(chars) + 1 };
 }
