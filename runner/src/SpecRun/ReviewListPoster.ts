@@ -4,14 +4,8 @@
 // RunLoop.ts calls _finish; SessionReviewer.ts calls _runnersSpecCommentsOf, _postCoveredLaterNotes and _postSessionReviewList,
 // which edits a posted list in place where a re-review's differs, the Base skipping a session's push; TicketLander.ts calls _postReviewList at landing;
 // StatusReporter.ts calls _isGapChecked.
-// It builds its own StepLauncher and HaltRaiser; formats are ../reviewList.ts, the gap check's prompt ../gapCheck.ts.
+// It builds its own StepLauncher and HaltRaiser; formats are ../reviewList.ts, the gap check's prompt ../Workflow/code/gapCheck.ts.
 
-import {
-  gapCheckOutputSchema,
-  gapCheckPrompt,
-  gapCheckRecordOf,
-  type GapCheckTicket,
-} from "../gapCheck.ts";
 import {
   failureHaltOf,
   guidanceSectionOf,
@@ -40,6 +34,12 @@ import { SchemaFailure } from "../SchemaFailure.ts";
 import type { GapCheckRecord, ResolveRecord } from "../stepRecords.ts";
 import { TicketHalted } from "../TicketHalted.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
+import {
+  gapCheckOutputSchema,
+  gapCheckPrompt,
+  gapCheckRecordOf,
+  type GapCheckTicket,
+} from "../Workflow/code/gapCheck.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import {
   gapCheckLabel,

@@ -2,13 +2,16 @@
 // a red master Stops the run, after the same checks run in a master set.
 // ../TicketLander.ts delegates its _check here, which TicketSequencer.ts calls after the resolve step.
 // It builds its own ReviewStepper and HaltRaiser.
-// The prompt is ../../redChecksStep.ts and each check runs through ../../runCommand.ts.
+// The prompt is ../../Workflow/code/redChecksStep.ts and each check runs through ../../runCommand.ts.
 
 import { commandLabelOf, messageOf } from "../../failureText.ts";
 import { issueRef } from "../../IssueWorkspaces.ts";
-import { redChecksOutputSchema, redChecksPrompt } from "../../redChecksStep.ts";
 import { runCommand } from "../../runCommand.ts";
 import { RunStop } from "../../RunStop.ts";
+import {
+  redChecksOutputSchema,
+  redChecksPrompt,
+} from "../../Workflow/code/redChecksStep.ts";
 import { HaltRaiser } from "../HaltRaiser.ts";
 import { ReviewStepper } from "../ReviewStepper.ts";
 import { type Resolver, type TicketRun } from "../runState.ts";

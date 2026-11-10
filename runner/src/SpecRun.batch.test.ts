@@ -8,7 +8,6 @@ import type { StepRequest, StepResult } from "./AgentStep.ts";
 import { batchEventFilePathOf, BatchRecords } from "./BatchRecords.ts";
 import { eventFilePathOf, eventLinesOf } from "./EventFileNotices.ts";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
-import { gapCheckOutputSchema } from "./gapCheck.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import { seedHolder } from "./lockFixture.ts";
 import { runKnobsOf } from "./runKnobs.ts";
@@ -40,6 +39,7 @@ import {
   withEventFile,
 } from "./specRunHarness.ts";
 import type { Blocker, ResolveRecord } from "./stepRecords.ts";
+import { gapCheckOutputSchema } from "./Workflow/code/gapCheck.ts";
 
 useSpecRunHarness(rootCloneOnly);
 
