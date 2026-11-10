@@ -1,5 +1,5 @@
-// One ticket's run: takes its workspace lease, runs each step from the one it reached (implement or resume, review,
-// resolve, checks) and lands it, releasing the lease however it ends. A Halt or a lease taken since the pick leaves
+// One ticket's run: takes its workspace lease, walks the Step sequence its spec's Workflow supplies from the step it
+// reached, through ../Workflow.ts only, and lands it, releasing the lease however it ends. A Halt or a lease taken since the pick leaves
 // the ticket waiting; an UnhandledStop leaves it unlanded and commented on, or Stops the run for a rerun to retry it.
 // Before launch it raises a Failure Halt on a body ../IssueReader.ts doesn't trust; `approve` posts the text's approval.
 // RunLoop.ts calls _runTicket and SessionReviewer.ts calls _runSteps.
@@ -27,6 +27,7 @@ import {
   stopOutcomes,
   UnhandledStop,
 } from "../UnhandledStop.ts";
+import { workflowOf } from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import { ImplementStepper } from "./ImplementStepper.ts";
 import { LeaseKeeper } from "./LeaseKeeper.ts";
@@ -38,7 +39,6 @@ import {
   ticketLaunch,
   type TicketOutcome,
   type TicketRun,
-  type TicketState,
   type TicketStep,
   type TrackedIssue,
 } from "./runState.ts";
@@ -247,56 +247,59 @@ export class TicketSequencer extends SpecRunBase {
         logPath: this._progressPathOf(run),
       });
     }
-    if (state.step === "implement") {
-      this._markStepStarted(ticketRun);
-      await this._timed(ticketRun, "implement", () =>
-        this.implementStepper._implement(ticketRun),
-      );
-      // A ticket with no code has nothing to review or check.
-      const next = state.record?.status === "applied" ? "wrap-up" : "review";
-      this._advance(ticketRun, next);
-    }
-    if (state.step === "resume") {
-      this._markStepStarted(ticketRun);
-      await this._timed(ticketRun, "resume", () =>
-        this.implementStepper._resume(ticketRun),
-      );
-      this._advance(ticketRun, stepAfterResumeOf(state));
-    }
-    if (state.step === "review") {
-      this._markStepStarted(ticketRun);
-      await this._timed(ticketRun, "review", () =>
-        this.reviewStepper._review(ticketRun),
-      );
-      const hasFindings = (state.findings ?? []).length > 0;
-      this._advance(ticketRun, hasFindings ? "resolve" : "checks");
-    }
-    // Checks run after the resolve, so a fix that turns them red gets the red-checks resume.
-    if (state.step === "resolve") {
+    // In the sequence's order, so a step only ever advances the ticket to a later one.
+    const sequence = workflowOf(run.spec).stepsOf(ticketRun.ticket);
+    for (const { step, nextOf } of sequence) {
+      // The last step, wrap-up, is the landing _runTicket runs.
+      if (state.step !== step || nextOf === undefined) continue;
       // A session under the ticket budget resolves its own review.
-      if (run.sessionReview?.resolvesItself) return;
-      this._markStepStarted(ticketRun);
-      await this._timed(ticketRun, "resolve", () =>
-        this.reviewStepper._resolve(ticketRun),
-      );
-      this._advance(ticketRun, "checks");
-    }
-    if (state.step === "checks") {
+      if (step === "resolve" && run.sessionReview?.resolvesItself) return;
       // A session's review leaves the checks and wrap-up to the session.
-      if (run.sessionReview !== undefined) return;
+      if (step === "checks" && run.sessionReview !== undefined) return;
+      await this._runStep(ticketRun, step);
+      this._advance(ticketRun, nextOf(state));
+    }
+  }
+
+  private async _runStep(
+    ticketRun: TicketRun,
+    step: TicketStep,
+  ): Promise<void> {
+    if (step === "checks") {
       await this.haltRaiser._haltOnUnpostedHalts(ticketRun);
       await this._timed(ticketRun, "checks", () =>
         this.ticketLander._check(ticketRun),
       );
-      this._advance(ticketRun, "wrap-up");
+      return;
     }
+    if (!isAgentStep(step)) {
+      throw new Error(`The run core has no ${step} step to launch.`);
+    }
+    this._markStepStarted(ticketRun);
+    await this._timed(ticketRun, step, () =>
+      this._launchAgentStep(ticketRun, step),
+    );
+  }
+
+  private _launchAgentStep(
+    ticketRun: TicketRun,
+    step: AgentStepName,
+  ): Promise<void> {
+    if (step === "implement") {
+      return this.implementStepper._implement(ticketRun);
+    }
+    if (step === "resume") return this.implementStepper._resume(ticketRun);
+    if (step === "review") return this.reviewStepper._review(ticketRun);
+    return this.reviewStepper._resolve(ticketRun);
   }
 }
 
-// A ticket halted before review has nothing reviewed yet; one with no code has nothing to review.
-function stepAfterResumeOf(state: TicketState): TicketStep {
-  if (state.record?.status === "applied") return "wrap-up";
-  return state.findings === undefined ? "review" : "checks";
+const agentStepNames = ["implement", "resume", "review", "resolve"] as const;
+
+type AgentStepName = (typeof agentStepNames)[number];
+
+function isAgentStep(step: TicketStep): step is AgentStepName {
+  return (agentStepNames as readonly TicketStep[]).includes(step);
 }
 
 // Only the latest authorship Halt's answer counts, and only for the text that Halt saw.
