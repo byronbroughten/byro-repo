@@ -260,10 +260,7 @@ export class SectionWriter {
           "The writer takes only plain text runs, with no footnote.",
         );
       }
-      if (
-        hasPendingSuggestion(textRun) ||
-        (textRun.suggestedDeletionIds?.length ?? 0) > 0
-      ) {
+      if (hasPendingSuggestion(textRun)) {
         throw new PendingSuggestions(this.document.documentId);
       }
       const style = {
@@ -628,18 +625,22 @@ function charsOf(spans: (SpanStyle & { text: string })[]): StyledChar[] {
   );
 }
 
-function hasPendingSuggestion(item: {
-  suggestedInsertionIds?: string[];
-}): boolean {
-  return (item.suggestedInsertionIds?.length ?? 0) > 0;
-}
-
 function indicesOf(element: StructuralElement): Range {
   const { startIndex, endIndex } = element;
   if (startIndex === undefined || endIndex === undefined) {
     throw new Error("The writer needs a Doc read with its indices.");
   }
   return { startIndex, endIndex };
+}
+
+function hasPendingSuggestion(item: {
+  suggestedInsertionIds?: string[];
+  suggestedDeletionIds?: string[];
+}): boolean {
+  return (
+    (item.suggestedInsertionIds?.length ?? 0) > 0 ||
+    (item.suggestedDeletionIds?.length ?? 0) > 0
+  );
 }
 
 /** A paragraph's inline Markdown, as the reader words it. */

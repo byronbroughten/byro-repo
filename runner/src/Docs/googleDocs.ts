@@ -127,6 +127,7 @@ export interface Table {
   columns: number;
   tableRows: TableRow[];
   suggestedInsertionIds?: string[];
+  suggestedDeletionIds?: string[];
 }
 
 export interface TableRow {
