@@ -1,0 +1,7 @@
+# byro-repo#671 outcome
+
+Spec: [byro-repo#664](https://github.com/byronbroughten/byro-repo/issues/664)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #671 | Opus medium | 2 | 5 | 107K | Fix (resumed implementer) | 2 | 1 | 0 | 12 min | $2.45 | $3.52 | Fixed: The Supervision return wrapper is speculative: no caller reads .record. (runner/src/SupervisionRecords.ts:55-59); handoffHeading is display text that only run.ts uses. (runner/src/SupervisionRecords.ts:61-62); The public handoffPathOf sits between supervise and its single-caller helper. (runner/src/SupervisionRecords.ts:118-136); _takenHandoffOf reads as a side-effect-free query, but it deletes the file. (runner/src/SupervisionRecords.ts:124); The comment on handoffHeading says what, not why. (runner/src/SupervisionRecords.ts:61). Proposed: The handoff helpers form a group that passes members around and might become a helper class. (runner/src/SupervisionRecords.ts:118-136); If the member list changes between writing and reading, the handoff at the old path stays behind and can print stale later. (runner/src/SupervisionRecords.ts _handoffPathOf / _membersOf). | 9e2b2ed6-bc61-4324-8197-2210e1c5d613, 3c663500-850e-4e45-98fe-762429d50a6e |
