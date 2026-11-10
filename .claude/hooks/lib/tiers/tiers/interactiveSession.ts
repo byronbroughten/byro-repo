@@ -1,4 +1,4 @@
-// The verdicts only an Interactive session gets: its gh issue create, issue links and `gh api` reads, its review-list decisions, its research push and its ask for the Google script route.
+// The verdicts only an Interactive session gets: its gh issue create, issue links and `gh api` reads, its review-list decisions, its research push and its asks for the Google script route and the Doc print command.
 import { GhApiCall } from "../GhApiCall.ts";
 import type { SimpleCommand } from "../ShellParser.ts";
 import type { CallContext, Verdict } from "../tiers.ts";
@@ -80,6 +80,16 @@ export const interactiveSession = {
       interactiveScripts.googleScript,
     );
   },
+  docPrintVerdictOf(
+    simple: SimpleCommand,
+    context: CallContext,
+  ): Verdict | undefined {
+    return interactiveScriptVerdictOf(
+      simple,
+      context,
+      interactiveScripts.docPrint,
+    );
+  },
 };
 
 // A script only an Interactive session runs: `stepWhy` is a runner step's refusal, `sessionVerdict` the session's.
@@ -108,6 +118,16 @@ const interactiveScripts = {
     sessionVerdict: {
       permissionDecision: "ask",
       why: "`npm run google:script` runs the script with the agent account's access token, and outside the box, so nothing stops it reading the credential files the box hides",
+    },
+  },
+  // Asks in an Interactive session, as it opens the `clasp` credential outside the box; a runner step's is refused, as no ticket has targeted a Doc it reads.
+  docPrint: {
+    name: "doc:print",
+    stepWhy:
+      "opens the developer's `clasp` credential to read a Doc, which only an Interactive session does",
+    sessionVerdict: {
+      permissionDecision: "ask",
+      why: "`npm run doc:print` opens the developer's `clasp` credential, whose reach is the whole Google account, and runs outside the box",
     },
   },
 } as const satisfies Record<string, InteractiveScript>;
