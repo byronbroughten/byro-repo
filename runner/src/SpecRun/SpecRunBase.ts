@@ -36,7 +36,7 @@ import {
 import type { Notice, Notices } from "../Notices.ts";
 import { progressLineOf, stepTookLineOf } from "../progressLines.ts";
 import { developersReviewListsOf, undecidedCountOf } from "../reviewList.ts";
-import type { RunKnobs } from "../runKnobs.ts";
+import type { Command, RunKnobs } from "../runKnobs.ts";
 import { runStateAt } from "../savedFormats.ts";
 import { sleep } from "../sleep.ts";
 import { WrapUp, type WrapUpGitHub, type WrapUpKnobs } from "../WrapUp.ts";
@@ -75,6 +75,8 @@ export interface SpecRunConfig {
   // The command an implement step runs to promote a repo, taking the repo as its last argument.
   promoteCommandOf(issue: IssueRef): string;
   removeCommand: string;
+  // Wrap-up's checks on the merged workspace, apart from the knobs' checks.
+  mergeChecks: Command[];
   // Relative to the root repo.
   outcomeFolder: string;
   // Holds the run state, progress log and step logs, and the wrap-up's facts and progress files; gitignored.
@@ -152,7 +154,7 @@ export class SpecRunBase {
       github,
       githubOwner,
       developer,
-      knobs,
+      mergeChecks,
       outcomeFolder,
       stateFolder,
     } = this.config;
@@ -161,7 +163,7 @@ export class SpecRunBase {
       github,
       githubOwner,
       developer,
-      checks: knobs.checks,
+      mergeChecks,
       outcomeFolder,
       stateFolder,
       knobs: this.config.wrapUpKnobs,

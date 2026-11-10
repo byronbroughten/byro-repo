@@ -101,7 +101,7 @@ export function wrapUp(overrides: Partial<WrapUpConfig> = {}): WrapUp {
     github,
     githubOwner: "byronbroughten",
     developer: "byronbroughten",
-    checks: [redCheck],
+    mergeChecks: [redCheck],
     outcomeFolder: "docs/agents/outcomes",
     stateFolder: join(temp, "state"),
     knobs: { backoffMs: 100, lockPollMs: 1 },

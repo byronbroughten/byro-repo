@@ -100,7 +100,7 @@ export class BranchMerger extends WrapUpBase {
   }
 
   private async _runChecks(workspaceRoot: string): Promise<void> {
-    for (const [command, ...args] of this.config.checks) {
+    for (const [command, ...args] of this.config.mergeChecks) {
       try {
         await execFileAsync(command, args, {
           cwd: workspaceRoot,

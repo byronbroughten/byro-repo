@@ -1,5 +1,5 @@
 // byro-repo's values for the spec runner's injected config. Every root script that drives the runner reads them here.
-// The knobs, checks included, come from runner.config.json; the repo map from the primary root's clones.
+// The knobs, checks included, come from runner.config.json, though wrap-up's merge check is set here; the repo map from the primary root's clones.
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -95,13 +95,15 @@ const stepPermissionHook: HookEntry = {
 
 export const stateFolder = join(primaryRoot, ".runner");
 export const outcomeFolder = "docs/agents/outcomes";
+// Wrap-up's check on the merged workspace, for every landing, code or piece.
+const mergeChecks: WrapUpConfig["mergeChecks"] = [["npm", "run", "check"]];
 
 export const wrapUpConfig: WrapUpConfig = {
   workspaces: issueWorkspacesConfig,
   github: new GhCli(githubOwner),
   githubOwner,
   developer,
-  checks: runKnobs.checks,
+  mergeChecks,
   outcomeFolder,
   stateFolder,
   writeOutcomeRow: async (root, request) =>
@@ -151,6 +153,7 @@ export function specRunConfigOf(owner: string): SpecRunConfig {
     promoteCommandOf: ({ repo, number }: IssueRef) =>
       promoteCommandOf(repo, `${number}`),
     removeCommand,
+    mergeChecks,
     outcomeFolder,
     stateFolder,
     configFolder: configFolderOf(process.env, homedir()),
