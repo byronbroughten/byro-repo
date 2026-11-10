@@ -7,6 +7,11 @@ import {
   BatchRecords,
 } from "@byronbroughten/spec-runner/BatchRecords";
 import { eventFilePathOf } from "@byronbroughten/spec-runner/EventFileNotices";
+import {
+  identityOf,
+  isSameProcess,
+  type ProcessIdentity,
+} from "@byronbroughten/spec-runner/processIdentity";
 import type { MemberList } from "@byronbroughten/spec-runner/SpecRun";
 import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -14,6 +19,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   awaitRunStart,
   launchReportOf,
+  type OnceWatchDeps,
   watchOnce,
   watchRun,
 } from "./runWatch.ts";
@@ -192,6 +198,7 @@ describe("a Batch's watches", () => {
         print: (line) => printed.push(line),
         records,
         pid: process.pid,
+        isProcessLive: async () => false,
       },
     );
 
@@ -367,6 +374,7 @@ describe("watchOnce", () => {
     records: SupervisionRecords,
     isRunLive: boolean,
     clock = fakeClock(),
+    isProcessLive: OnceWatchDeps["isProcessLive"] = async () => false,
   ): Promise<string[]> {
     const printed: string[] = [];
     await watchOnce(
@@ -379,6 +387,7 @@ describe("watchOnce", () => {
         print: (line) => printed.push(line),
         records,
         pid: process.pid,
+        isProcessLive,
       },
     );
     return printed;
@@ -424,8 +433,12 @@ describe("watchOnce", () => {
   it("returns quietly when the run has already ended and its end is explained", async () => {
     write(lineOf("run-ended", at(-1_000), "stopped"));
     const records = await supervised(1);
+    const clock = fakeClock();
 
-    expect(await printedBy(records, false)).toEqual([]);
+    expect(await printedBy(records, false, clock, async () => true)).toEqual(
+      [],
+    );
+    expect(clock.now()).toEqual(at(0));
   });
 
   it("refuses a spec nobody supervises", async () => {
@@ -436,32 +449,96 @@ describe("watchOnce", () => {
     ).rejects.toThrow("run supervise before watch --once");
   });
 
-  it("exits with no output once another watch replaces it", async () => {
-    write(lineOf("run-started", at(-5_000)));
-    const records = await supervised(1);
-    const clock = fakeClock([
-      {
-        atMs: 3_000,
-        run: async () => {
-          await records.watch(spec, process.ppid);
+  describe("once replaced, it parks", () => {
+    const halt = lineOf("halt", at(6_000));
+
+    // A Supervisor's claude process that ends at `goneAtMs`, its pid then reused by a later process.
+    async function claudeProcessEndingAt(goneAtMs: number) {
+      const claudeProcess = await identityOf(process.pid);
+      let liveProcess: ProcessIdentity = claudeProcess;
+      return {
+        claudeProcess,
+        isProcessLive: async (asked: ProcessIdentity) =>
+          isSameProcess(asked, liveProcess),
+        goneAt: {
+          atMs: goneAtMs,
+          run: () => {
+            liveProcess = { pid: process.pid, startedAt: "a later start" };
+          },
         },
-      },
-      { atMs: 6_000, run: () => write(lineOf("halt", at(6_000))) },
-    ]);
+      };
+    }
 
-    expect(await printedBy(records, true, clock)).toEqual([]);
-    expect(clock.now()).toEqual(at(3_000));
-  });
+    it("prints nothing until its Supervisor's claude process is gone, once its session ends", async () => {
+      write(lineOf("run-started", at(-5_000)));
+      const records = await supervised(1);
+      const { isProcessLive, goneAt } = await claudeProcessEndingAt(40_000);
+      const clock = fakeClock([
+        { atMs: 3_000, run: () => records.end(supervisor, "clear") },
+        { atMs: 6_000, run: () => write(halt) },
+        goneAt,
+      ]);
 
-  it("exits with no output once its Supervisor's session ends", async () => {
-    write(lineOf("run-started", at(-5_000)));
-    const records = await supervised(1);
-    const clock = fakeClock([
-      { atMs: 3_000, run: () => records.end(supervisor, "clear") },
-      { atMs: 6_000, run: () => write(lineOf("halt", at(6_000))) },
-    ]);
+      expect(await printedBy(records, true, clock, isProcessLive)).toEqual([]);
+      expect(clock.now()).toEqual(at(63_000));
+    });
 
-    expect(await printedBy(records, true, clock)).toEqual([]);
-    expect(clock.now()).toEqual(at(3_000));
+    it("prints nothing until its Supervisor's claude process is gone, once another session supervises", async () => {
+      write(lineOf("run-started", at(-5_000)));
+      const records = await supervised(1);
+      const { isProcessLive, goneAt } = await claudeProcessEndingAt(10_000);
+      const clock = fakeClock([
+        {
+          atMs: 3_000,
+          run: async () => {
+            await records.supervise(
+              { kind: "session", pid: process.ppid },
+              owner,
+              spec,
+            );
+          },
+        },
+        { atMs: 6_000, run: () => write(halt) },
+        goneAt,
+      ]);
+
+      expect(await printedBy(records, true, clock, isProcessLive)).toEqual([]);
+      expect(clock.now()).toEqual(at(33_000));
+    });
+
+    it("asks after the Supervisor's claude process, start time included, so a reused pid can't keep it parked", async () => {
+      write(lineOf("run-started", at(-5_000)));
+      const records = await supervised(1);
+      const { claudeProcess, goneAt } = await claudeProcessEndingAt(0);
+      const asked: ProcessIdentity[] = [];
+      const clock = fakeClock([
+        { atMs: 3_000, run: () => records.end(supervisor, "clear") },
+      ]);
+      goneAt.run();
+
+      await printedBy(records, true, clock, async (identity) => {
+        asked.push(identity);
+        return false;
+      });
+
+      expect(asked).toEqual([claudeProcess]);
+      expect(clock.now()).toEqual(at(3_000));
+    });
+
+    it("isn't replaced by its own session supervising again", async () => {
+      write(lineOf("run-started", at(-5_000)));
+      const records = await supervised(1);
+      const clock = fakeClock([
+        {
+          atMs: 3_000,
+          run: async () => {
+            await records.supervise(supervisor, owner, spec);
+          },
+        },
+        { atMs: 6_000, run: () => write(halt) },
+      ]);
+
+      expect(await printedBy(records, true, clock)).toEqual([halt]);
+    });
   });
 });

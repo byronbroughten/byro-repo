@@ -14,6 +14,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 
 import { BatchRecords } from "@byronbroughten/spec-runner/BatchRecords";
 import { type IssueRef } from "@byronbroughten/spec-runner/IssueWorkspaces";
+import { isStillRunning } from "@byronbroughten/spec-runner/processIdentity";
 import { isItemId } from "@byronbroughten/spec-runner/reviewList";
 import { runBoardOf, watchBoard } from "@byronbroughten/spec-runner/runBoard";
 import { RunLock } from "@byronbroughten/spec-runner/RunLock";
@@ -141,6 +142,7 @@ async function runOnSpec(command: string, args: string[]): Promise<void> {
         ...watchDepsOf(),
         records: SupervisionRecords.init(stateFolder),
         pid: process.pid,
+        isProcessLive: isStillRunning,
       },
     );
   } else if (command === "watch") {

@@ -46,6 +46,7 @@
     "./outcomeLog": "./src/outcomeLog.ts",
     "./outcomeRowWriter": "./src/outcomeRowWriter.ts",
     "./outcomeSummary": "./src/outcomeSummary.ts",
+    "./processIdentity": "./src/processIdentity.ts",
     "./transcriptFacts": "./src/transcriptFacts.ts",
     "./UnhandledStop": "./src/UnhandledStop.ts",
     "./WrapUp": "./src/WrapUp.ts",

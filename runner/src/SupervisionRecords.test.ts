@@ -516,6 +516,7 @@ describe("a spec's watch", () => {
     expect(watch).toEqual({
       offset: 1,
       watchProcess: { pid: process.pid, startedAt: expect.any(String) },
+      supervisor: { pid: process.ppid, startedAt: expect.any(String) },
       members: [spec],
     });
     expect(records().isWatchedBy(spec, watch.watchProcess)).toBe(true);
@@ -538,6 +539,23 @@ describe("a spec's watch", () => {
     await records().supervise(me, owner, spec);
 
     expect(records().isWatchedBy(spec, watch.watchProcess)).toBe(true);
+  });
+
+  it("is replaced once another session supervises the spec", async () => {
+    await records().supervise(me, owner, spec);
+    const watch = await startedWatch(process.pid);
+
+    await records().supervise(otherLive, owner, spec);
+
+    expect(records().isWatchedBy(spec, watch.watchProcess)).toBe(false);
+  });
+
+  it("names the Supervisor's claude process it watches for", async () => {
+    await records().supervise(otherLive, owner, spec);
+
+    const watch = await startedWatch(process.pid);
+
+    expect(watch.supervisor).toEqual(await identityOf(process.ppid));
   });
 
   it("isn't recorded on a spec nobody supervises", async () => {
