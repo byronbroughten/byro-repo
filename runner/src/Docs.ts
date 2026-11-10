@@ -1,6 +1,7 @@
 // The Docs module: reads a Google Doc into the repo's Markdown dialect and
 // writes a Section back in place. `Docs/googleDocs.ts` is the Google Docs layer
 // (the `documents.get` body types, the `batchUpdate` requests and the port),
+// `Docs/RestDocuments.ts` the port's REST adapter,
 // `Docs/markdownDialect.ts` the dialect, `Docs/DocReader.ts` the reader and
 // `Docs/SectionWriter.ts` the writer between them.
 
@@ -48,7 +49,7 @@ export class Docs {
     };
   }
 
-  /** Rewrites one Section of the Doc as last read, refusing with `StaleRevision` if it changed since. */
+  /** Rewrites one Section of the Doc as last read, refusing with `PendingSuggestions` before writing, or `StaleRevision` if it changed since. */
   async writeSection({
     documentId,
     heading,

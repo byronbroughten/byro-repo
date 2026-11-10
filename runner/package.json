@@ -15,6 +15,7 @@
     "./clonePaths": "./src/clonePaths.ts",
     "./codeWorkflow": "./src/Workflow/code/codeWorkflow.ts",
     "./CswapUsageReader": "./src/CswapUsageReader.ts",
+    "./docPrint": "./src/docPrint.ts",
     "./EventFileNotices": "./src/EventFileNotices.ts",
     "./FactsFile": "./src/FactsFile.ts",
     "./FakeAgentStep": "./src/FakeAgentStep.ts",
