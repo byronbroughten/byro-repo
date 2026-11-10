@@ -9,7 +9,6 @@ import { issueRef } from "../../IssueWorkspaces.ts";
 import { SchemaFailure } from "../../SchemaFailure.ts";
 import type { MergeMasterRecord } from "../../stepRecords.ts";
 import { UnhandledStop } from "../../UnhandledStop.ts";
-import { agentStepOf } from "../../Workflow.ts";
 import { WrapUpFailure } from "../../WrapUpFailure.ts";
 import { HaltRaiser } from "../HaltRaiser.ts";
 import { ReviewStepper } from "../ReviewStepper.ts";
@@ -98,7 +97,7 @@ export class MasterMerger extends SpecRunBase {
         return;
       }
       this._log(run, `${conflicted}; resuming the implementer to merge it.`);
-      const rules = agentStepOf(this._workflowOf(run.spec), "mergeMaster");
+      const rules = this._agentStepOf(run.spec, "mergeMaster");
       ran = await this.reviewStepper._runResolverStep(ticketRun, {
         step: "merge-master",
         resolver: "implementer",

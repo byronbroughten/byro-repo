@@ -26,7 +26,6 @@ import { RunStop } from "../RunStop.ts";
 import { TicketHalted } from "../TicketHalted.ts";
 import { latestImplementPeakOf } from "../transcriptFacts.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
-import { agentStepOf } from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import { LeaseKeeper } from "./LeaseKeeper.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
@@ -107,8 +106,8 @@ export class SessionReviewer extends SpecRunBase {
         kind: "findings",
         message: `Reviewed ${issueRef.labelOf(issue)}, findings: ${findings.length}. Resolve them in this session by \`docs/agents/verdicts.md\`, then hand your records to resolve.`,
         halts: [],
-        findings: agentStepOf(
-          this._workflowOf(ticketRun.run.spec),
+        findings: this._agentStepOf(
+          ticketRun.run.spec,
           "resolve",
         ).numberedFindingsOf(findings),
       };
@@ -128,10 +127,7 @@ export class SessionReviewer extends SpecRunBase {
         `${issueRef.labelOf(issue)} has no findings waiting on this session; run review first.`,
       );
     }
-    const rules = agentStepOf(
-      this._workflowOf(await this._specOf(issue)),
-      "resolve",
-    );
+    const rules = this._agentStepOf(await this._specOf(issue), "resolve");
     const outputProblems = rules.outputProblems(output);
     if (outputProblems.length > 0) return brokenRulesOf(outputProblems);
     const { findings, base } = pending;
