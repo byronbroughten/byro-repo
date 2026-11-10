@@ -1,5 +1,6 @@
 // The prompt text the implement and resolve steps share with the core and with the /implement-code skill: the resumes'
-// prompts, the shared body of the implement prompt and the resolve rules and record fields. Each step's own prompt stays in its file.
+// prompts, the shared body of the implement prompt, the resolve rules and record fields, and the generated
+// /implement-* skills' shared ending. Each step's own prompt stays in its file.
 
 import { codeListOf, sectionOf } from "./promptText.ts";
 import {
@@ -70,6 +71,54 @@ export function ticketBindsSection(): string {
     implementBody.operatorText,
     implementBody.newDependencies,
   ]);
+}
+
+export interface InteractiveSkillInput {
+  // The skill's text before its ending: frontmatter, opening and the Workflow's own sections.
+  body: string;
+  checkCommand: string;
+  // Each command is written with `<repo>` and `<n>` placeholders.
+  reviewCommand: string;
+  // Takes the records file's path last.
+  resolveCommand: string;
+  // Written with `<spec>` and the item id in place of `<n>`; takes the decision's text last.
+  decideCommand: string;
+  wrapUpCommand: string;
+}
+
+// The ending every generated /implement-* skill shares: review, resolve, report, wait and land.
+export function interactiveSkillOf({
+  body,
+  checkCommand,
+  reviewCommand,
+  resolveCommand,
+  decideCommand,
+  wrapUpCommand,
+}: InteractiveSkillInput): string {
+  return `${body}
+
+## When you're done
+
+- ${implementBody.drift}
+- ${implementBody.committing} When it fails only on something your change didn't cause, carry on and name the failure in your report.
+- ${implementBody.onlyWrites}. The review and wrap-up commands in the ending make every other write.
+- Run git commands one at a time: inside an entered worktree, Claude Code refuses a compound git command.
+- Then, in order:
+  1. **Review**: run \`${reviewCommand}\`, resolving \`<repo>\` to \`<owner>/<repo>\` here and in resolve. It runs the runner's review session on this ticket and records it. While this session's context is under the ticket budget, it prints the findings, numbered, each with its axis and suggested verdict, for you to resolve; past it, a fresh resolver resolves them instead and it goes straight to the review list.
+  2. **Resolve**, when it printed findings: ${implementBody.resolving} Then run \`${checkCommand}\`. Write \`.runner/resolve-<n>.json\`, gitignored, as \`{ "records": [...] }\`, ${indentedOf(resolveRecordFields)}
+
+     Then run \`${resolveCommand} .runner/resolve-<n>.json\`. It checks the records and your commits by the run's rules; when it refuses them, correct what it names and run it again.
+  3. Either way, review or resolve prints the review list, by axis then verdict with each suggested verdict overruled, posts it on the spec or, on a second review, adds its new items to the list posted there, and writes the review facts. It prints each Halt as \`S<n>.<k>\`; answer it with the developer in the session. When it exits short of reviewed, report why and stop.
+  4. **Report**: post in the session what review caught and what was fixed, then each Propose on its own line, the item then \`→\` and its record's \`recommendation\`.
+  5. **Wait for the developer's go-ahead.** Land nothing before it. When the developer has this session implement a Propose before landing, commit it, then record the item with \`${decideCommand} 'fixed in session · <commit>'\`, never \`--handled\`: that leaves it undecided, and wrap-up then leaves a Standalone ticket open.
+  6. Call \`ExitWorktree\` with \`keep\`, so wrap-up can remove the workspace.
+  7. **Land**: \`${wrapUpCommand} --closing "<what landed>" [--undone "<box>: <reason>"]...\`, one \`--undone\` per acceptance box left undone. A note holding \`$(\` or a backtick goes in a file in temp, passed with \`--closing-file <path>\` in place of \`--closing\`, the path written out with no \`$\`. A ticket with no branch ahead of master, one that needed only GitHub or Doc writes, adds \`--no-code\`: \`${wrapUpCommand} --no-code --closing "<what landed>"\`. A ticket that changes wrap-up or the facts file's format lands through its workspace's own script instead, by \`docs/agents/git-workflow.md\`.
+`;
+}
+
+// Under a numbered step's text, so a list inside it stays in the step.
+function indentedOf(text: string): string {
+  return text.replaceAll(/\n(?=.)/g, "\n     ");
 }
 
 export function proposedSplitText(slices: ProposedSlice[]): string {
