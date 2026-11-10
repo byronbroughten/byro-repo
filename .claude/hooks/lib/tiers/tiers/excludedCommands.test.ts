@@ -17,6 +17,7 @@ const entries = [
   "npm run research:push",
   "npm run wrap-up *",
   "npm run google:script *",
+  "npm run doc:print *",
 ];
 
 function decisionOf(command: string) {
@@ -59,6 +60,10 @@ describe("an excluded command the call keeps in the box", () => {
     [
       "npm run google:script -- probe.ts | head",
       "can't read the gworkspace server's credentials or reach Google",
+    ],
+    [
+      "npm run doc:print -- 1AbCdEf | head",
+      "can't read the Docs `clasp` credential or reach Google",
     ],
   ])("refuses `%s` because the sandbox %s", (command, reason) => {
     const decision = decisionOf(command);

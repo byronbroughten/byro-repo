@@ -12,6 +12,7 @@ const boxReasons = {
     google: "can't reach Google",
     agentToken:
       "can't read the gworkspace server's credentials or reach Google",
+    docsLogin: "can't read the Docs `clasp` credential or reach Google",
     claude: "can't launch `claude`",
     ps: "can't run `ps`",
     pgrep: "can't run `pgrep`",
@@ -34,6 +35,7 @@ const cantsByScript: [RegExp, string][] = [
   [/^open\b/, boxReasons.cant.open],
   [/^(app|dev)\b/, boxReasons.cant.google],
   [/^google:script\b/, boxReasons.cant.agentToken],
+  [/^doc:print\b/, boxReasons.cant.docsLogin],
   [/^(runner|session:probe)\b/, boxReasons.cant.claude],
   [/^(test|check|issue|wrap-up)\b/, boxReasons.cant.ps],
   [/^jev\b/, boxReasons.cant.jev],
