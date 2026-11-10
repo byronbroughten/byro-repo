@@ -53,9 +53,15 @@ type SavedTicketStep = TicketStep | SavedStepAgent;
 
 interface SavedTicketState extends Omit<
   TicketState,
-  "step" | "resolveRecords" | "resolver" | "crashes" | "sessions"
+  | "step"
+  | "resolveRecords"
+  | "resolver"
+  | "crashes"
+  | "sessions"
+  | "limitResumes"
 > {
   step: SavedTicketStep;
+  limitResumes?: number;
   resolveRecords?: SavedResolveRecord[];
   resolver?: Resolver;
   crashes?: Partial<Record<SavedTicketStep, number>>;
@@ -148,11 +154,13 @@ function ticketStateOf({
   triageSession,
   fixBase,
   configFolder,
+  limitResumes = 0,
   ...ticket
 }: SavedTicketState): TicketState {
   const state: TicketState = {
     ...ticket,
     step: stepOf(step),
+    limitResumes,
     sessions: sessions.map((session) => {
       const saved = { ...session, ...sessionOf(session) };
       const folder = session.configFolder ?? configFolder;

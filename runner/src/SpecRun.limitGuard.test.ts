@@ -456,7 +456,7 @@ describe("run's limit guard", () => {
     );
   });
 
-  it("waits out a limit hit on the gap check and resumes its session", async () => {
+  it("waits out a limit hit on the gap check and resumes its session, counting it on no ticket", async () => {
     addSpec([1]);
     const account = cappedAccount();
     const agentStep = FakeAgentStep.init(
@@ -476,6 +476,7 @@ describe("run's limit guard", () => {
       resumeSessionId: "session",
       prompt: limitResumePrompt,
     });
+    expect(ticketFacts(1).limitResumes).toBe(0);
   });
 
   it("warns once per run on a missing reading and launches each step unguarded", async () => {

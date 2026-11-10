@@ -88,7 +88,7 @@ export class SessionReviewer extends SpecRunBase {
       issue,
       holder,
       // With no implementPeak, a fresh resolver resolves: the implementer is the live interactive session.
-      state: { step: "review", sessions: [] },
+      state: { step: "review", sessions: [], limitResumes: 0 },
       resolvesItself: this._isSessionUnderBudget(issue),
       isDirtyRefused: true,
     });
@@ -134,7 +134,13 @@ export class SessionReviewer extends SpecRunBase {
     const ticketRun = await this._sessionTicketRunOf({
       issue,
       holder,
-      state: { step: "resolve", sessions: [], findings, resolveBase: base },
+      state: {
+        step: "resolve",
+        sessions: [],
+        limitResumes: 0,
+        findings,
+        resolveBase: base,
+      },
       resolvesItself: true,
       isDirtyRefused: false,
     });
