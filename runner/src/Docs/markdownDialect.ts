@@ -1,13 +1,13 @@
 // The repo's Markdown dialect for a Doc: `## <heading>` per Section, no comment
-// markers. The reader (`DocReader.ts`) and the later writer both build and split
-// Markdown only through this bundle, so a pushed Section pulls back unchanged.
+// markers. The reader (`DocReader.ts`) builds and splits Markdown only through
+// this bundle, so every Markdown form has one home.
 // Nothing here knows the Docs API; that layer is `googleDocs.ts`.
 
 /** One run of inline Markdown, its text already escaped. */
 export interface InlineRun {
   markdown: string;
-  bold: boolean;
-  italic: boolean;
+  isBold: boolean;
+  isItalic: boolean;
   target: string | undefined;
 }
 
@@ -17,13 +17,14 @@ export interface MarkdownBlock {
   isListItem: boolean;
 }
 
-const sectionLevel = 2;
-const listIndent = "    ";
-const lineBreak = "<br>";
+const syntax = {
+  sectionLevel: 2,
+  listIndent: "    ",
+  lineBreak: "<br>",
+} as const;
 
 export const markdownDialect = {
-  sectionLevel,
-  lineBreak,
+  syntax,
 
   escaped(text: string): string {
     return text.replace(/[\\*_[\]]/g, "\\$&");
@@ -77,7 +78,7 @@ export const markdownDialect = {
 
   listItem({ depth, ordinal, inline }: ListItem): string {
     const marker = ordinal === undefined ? "-" : `${ordinal}.`;
-    return `${listIndent.repeat(depth)}${marker} ${inline}`;
+    return `${syntax.listIndent.repeat(depth)}${marker} ${inline}`;
   },
 
   /** A table whose first row is its header row; each cell is inline Markdown. */
@@ -104,7 +105,7 @@ export const markdownDialect = {
   /** Each Section's body by its heading's text, the Markdown before the first Section left out. */
   sectionsOf(markdown: string): Map<string, string> {
     const sections = new Map<string, string>();
-    const prefix = `${"#".repeat(sectionLevel)} `;
+    const prefix = `${"#".repeat(syntax.sectionLevel)} `;
     let heading: string | undefined;
     let lines: string[] = [];
     function keep(): void {
@@ -118,12 +119,13 @@ export const markdownDialect = {
     }
     markdown.split("\n").forEach((line) => {
       const level = headingLevelOf(line);
-      if (level === undefined || level > sectionLevel) {
+      if (level === undefined || level > syntax.sectionLevel) {
         lines.push(line);
         return;
       }
       keep();
-      heading = level === sectionLevel ? line.slice(prefix.length) : undefined;
+      heading =
+        level === syntax.sectionLevel ? line.slice(prefix.length) : undefined;
       lines = [];
     });
     keep();
@@ -151,8 +153,8 @@ function mergedRuns(runs: InlineRun[]): InlineRun[] {
 
 function isSameStyle(left: InlineRun, right: InlineRun): boolean {
   return (
-    left.bold === right.bold &&
-    left.italic === right.italic &&
+    left.isBold === right.isBold &&
+    left.isItalic === right.isItalic &&
     left.target === right.target
   );
 }
@@ -171,7 +173,7 @@ function linkGroupsOf(runs: InlineRun[]): InlineRun[][] {
 
 /** Emphasis markers sit inside the run's edge whitespace, which Markdown needs. */
 function emphasized(run: InlineRun): string {
-  const marker = `${run.italic ? "*" : ""}${run.bold ? "**" : ""}`;
+  const marker = `${run.isItalic ? "*" : ""}${run.isBold ? "**" : ""}`;
   const match = /^(\s*)(.*?)(\s*)$/s.exec(run.markdown);
   if (marker === "" || match === null || match[2] === "") {
     return run.markdown;

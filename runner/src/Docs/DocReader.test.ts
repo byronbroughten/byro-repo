@@ -4,7 +4,7 @@ import { fixtureDocument } from "./docFixtures.ts";
 import { DocReader } from "./DocReader.ts";
 
 function markdownOf(fixture: string): string {
-  return DocReader.init(fixtureDocument(fixture)).markdown;
+  return DocReader.init(fixtureDocument(fixture)).markdown();
 }
 
 describe("DocReader", () => {
@@ -123,6 +123,19 @@ describe("DocReader", () => {
         "Empty the kettle after use.",
         "",
         "Store it dry.",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("reads a pending suggested paragraph split as the one paragraph it was", () => {
+    expect(markdownOf("suggestedSplit")).toBe(
+      [
+        "## Handles",
+        "",
+        "A handle stays cool. Most of the time.",
+        "",
+        "Grip it firmly.",
         "",
       ].join("\n"),
     );

@@ -1,16 +1,19 @@
 // Reads a `documents.get` body into the repo's Markdown dialect: headings,
 // paragraphs, bold and italic, links, lists (nested and numbered), tables,
 // footnotes and internal heading links. Pending suggested insertions are left
-// out, and empty paragraphs, such as those Docs keeps around a table, are dropped.
+// out, a suggested paragraph split included, and empty paragraphs, such as those
+// Docs keeps around a table, are dropped.
 // The body types are `googleDocs.ts`'s; every Markdown form is `markdownDialect.ts`'s.
 
 import type {
   Body,
+  Bullet,
   DocumentTab,
   Footnote,
   GoogleDocument,
   Link,
   List,
+  NamedStyleType,
   Paragraph,
   ParagraphElement,
   StructuralElement,
@@ -22,7 +25,7 @@ import {
   markdownDialect,
 } from "./markdownDialect.ts";
 
-const headingLevels: Record<string, number> = {
+const headingLevels: Partial<Record<NamedStyleType, number>> = {
   TITLE: 1,
   HEADING_1: 1,
   HEADING_2: 2,
@@ -58,11 +61,11 @@ export class DocReader {
     return new DocReader(document.tabs?.[0]?.documentTab ?? document);
   }
 
-  get markdown(): string {
+  markdown(): string {
     this.listOrdinals.clear();
     this.pendingFootnotes = [];
-    const blocks = this.body.content.flatMap((element) =>
-      this._blocksOf(element),
+    const blocks = withSuggestedSplitsJoined(this.body.content).flatMap(
+      (element) => this._blocksOf(element),
     );
     return markdownDialect.document([...blocks, ...this._footnoteBlocks()]);
   }
@@ -82,23 +85,30 @@ export class DocReader {
     if (inline === "") {
       return [];
     }
-    const level = headingLevels[paragraph.paragraphStyle?.namedStyleType ?? ""];
+    const styleType = paragraph.paragraphStyle?.namedStyleType;
+    const level =
+      styleType === undefined ? undefined : headingLevels[styleType];
     if (level !== undefined) {
       const footnotes =
-        level <= markdownDialect.sectionLevel ? this._footnoteBlocks() : [];
+        level <= markdownDialect.syntax.sectionLevel
+          ? this._footnoteBlocks()
+          : [];
       const heading = markdownDialect.heading(level, inline);
       return [...footnotes, { markdown: heading, isListItem: false }];
     }
     if (paragraph.bullet !== undefined) {
       return [
-        { markdown: this._listItemOf(paragraph, inline), isListItem: true },
+        {
+          markdown: this._listItemOf(paragraph.bullet, inline),
+          isListItem: true,
+        },
       ];
     }
     return [{ markdown: markdownDialect.paragraph(inline), isListItem: false }];
   }
 
-  private _listItemOf(paragraph: Paragraph, inline: string): string {
-    const { listId, nestingLevel = 0 } = paragraph.bullet ?? { listId: "" };
+  private _listItemOf(bullet: Bullet, inline: string): string {
+    const { listId, nestingLevel = 0 } = bullet;
     const glyphType =
       this.lists[listId]?.listProperties.nestingLevels[nestingLevel]?.glyphType;
     const ordinals = (this.listOrdinals.get(listId) ?? []).slice(
@@ -118,16 +128,20 @@ export class DocReader {
   private _tableOf(table: Table): string {
     const rows = table.tableRows.map((row) =>
       row.tableCells.map((cell) =>
-        cell.content
-          .flatMap((element) =>
-            element.paragraph === undefined ? [] : [element.paragraph],
-          )
-          .map((paragraph) => this._inlineOf(paragraph).trim())
-          .filter((inline) => inline !== "")
-          .join(markdownDialect.lineBreak),
+        this._inlinesOf(cell.content).join(markdownDialect.syntax.lineBreak),
       ),
     );
     return markdownDialect.table(rows);
+  }
+
+  /** The inline Markdown of each non-empty paragraph in some content. */
+  private _inlinesOf(content: StructuralElement[]): string[] {
+    return withSuggestedSplitsJoined(content)
+      .flatMap((element) =>
+        element.paragraph === undefined ? [] : [element.paragraph],
+      )
+      .map((paragraph) => this._inlineOf(paragraph).trim())
+      .filter((inline) => inline !== "");
   }
 
   private _inlineOf(paragraph: Paragraph): string {
@@ -147,8 +161,8 @@ export class DocReader {
       return [
         {
           markdown: markdownDialect.footnoteReference(footnoteNumber),
-          bold: false,
-          italic: false,
+          isBold: false,
+          isItalic: false,
           target: undefined,
         },
       ];
@@ -158,13 +172,13 @@ export class DocReader {
     }
     const markdown = markdownDialect
       .escaped(textRun.content.replace(/\n$/, ""))
-      .replace(/\v/g, markdownDialect.lineBreak);
+      .replace(/\v/g, markdownDialect.syntax.lineBreak);
     const style = textRun.textStyle ?? {};
     return [
       {
         markdown,
-        bold: style.bold === true,
-        italic: style.italic === true,
+        isBold: style.bold === true,
+        isItalic: style.italic === true,
         target: this._targetOf(style.link),
       },
     ];
@@ -191,13 +205,7 @@ export class DocReader {
     if (footnote === undefined) {
       return;
     }
-    const inline = footnote.content
-      .flatMap((element) =>
-        element.paragraph === undefined ? [] : [element.paragraph],
-      )
-      .map((paragraph) => this._inlineOf(paragraph).trim())
-      .filter((text) => text !== "")
-      .join(" ");
+    const inline = this._inlinesOf(footnote.content).join(" ");
     this.pendingFootnotes.push(
       markdownDialect.footnoteDefinition(footnoteNumber, inline),
     );
@@ -222,6 +230,43 @@ function headingTextsOf(body: Body): Map<string, string> {
     }
     return texts;
   }, new Map<string, string>());
+}
+
+/**
+ * Joins each paragraph ended by a suggested newline to the paragraph after it,
+ * which keeps its style, so a pending split reads as the one paragraph it was.
+ */
+function withSuggestedSplitsJoined(
+  content: StructuralElement[],
+): StructuralElement[] {
+  return content.reduce<StructuralElement[]>((joined, element) => {
+    const previous = joined.at(-1)?.paragraph;
+    if (
+      previous !== undefined &&
+      element.paragraph !== undefined &&
+      endsInSuggestedNewline(previous)
+    ) {
+      joined[joined.length - 1] = {
+        ...element,
+        paragraph: {
+          ...element.paragraph,
+          elements: [...previous.elements, ...element.paragraph.elements],
+        },
+      };
+      return joined;
+    }
+    joined.push(element);
+    return joined;
+  }, []);
+}
+
+function endsInSuggestedNewline(paragraph: Paragraph): boolean {
+  const textRun = paragraph.elements.at(-1)?.textRun;
+  return (
+    textRun !== undefined &&
+    textRun.content.endsWith("\n") &&
+    isSuggestedInsertion(textRun)
+  );
 }
 
 function plainTextOf(paragraph: Paragraph): string {
