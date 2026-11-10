@@ -96,20 +96,21 @@ The same as the framework's: its docs ship with its repo, so they link only insi
 | `AGENTS.md` | How a utility is written: bundle names, where a utility type lives, `for…in`, and the structural-cast escape hatch. |
 | `README.md` | What the package is, install, and the subpath imports. Derived prose mirroring its `package.json`. |
 
-### Writing (`packages/personal/writing/`, in the `personal` repo)
+### Pieces (`docs/pieces/`)
 
-The `personal` repo is private and holds piece specs as issues; the Pieces' text lives in their Google Docs, apart from each Piece's Snapshot. Its docs link only inside it (its own lint) and name a root doc in plain text.
+The rules for writing any Piece, whichever repo files its spec. The Pieces' text lives in their Google Docs, apart from each Piece's Agent draft. Nothing here holds Piece text, names, institutions, amounts or private spec numbers, since this repo is public.
+
 | File | Holds |
 | --- | --- |
-| `CLAUDE.md` | The restart-at-root notice, plus `@AGENTS.md`. |
-| `AGENTS.md` | The pointers to `/grill-piece` and the outlining guide, and how to implement a piece spec: the Deliverable as the text's working home, Drive IDs and long PDFs, when a Deliverable write needs no yes, the style sheets to apply, a Piece's branch and landing, the pointer to the Snapshot doc, and the four done checks. Kept short: it loads on every task there. |
-| `GLOSSARY.md` | The writing context's words: Piece, Deliverable, Section, Outline, Snapshot, Supporting Material and Reference. |
-| `docs/grilling.md` | The questions a grill asks before a piece spec is filed, one per spec field it settles, each with an example from a past spec. `/grill-piece` asks them; `/to-writing-style` adds to them. |
-| `docs/outlining.md` | How a spec's Outline is written: what each entry holds, a template's fixed Sections, and when Research revises it. |
-| `docs/wrap-up.md` | The wrap-up prompt for a Research spec, which has no branch. |
-| `docs/snapshots.md` | A Snapshot's path, its shape and how a save replaces its blocks. |
-| `snapshots/` | One Snapshot per Piece, written by `/implement-piece` only. |
-| `docs/model-fit.md` | The outcome log for piece specs: kind, pair and peak context. |
+| `rules.md` | The pointers to `/grill-piece` and the outlining guide, and how to implement a piece spec: the Deliverable as the text's working home, Drive IDs and long PDFs, when a Deliverable write needs no yes, the style sheets to apply, a Piece's branch and landing, the pointer to the Agent draft doc, and the four done checks. |
+| `GLOSSARY.md` | The writing context's words: Piece, Deliverable, Section, Outline, Stage, Agent draft, Edit gate, Supporting Material and Reference. |
+| `grilling.md` | The questions a grill asks before a piece spec is filed, one per spec field it settles, each with an example from a past spec, its private details replaced by neutral stand-ins. `/grill-piece` asks them; `/to-writing-style` adds to them. |
+| `outlining.md` | How a spec's Outline is written: what each entry holds, a template's fixed Sections, and when Research revises it. |
+| `agent-draft.md` | An Agent draft's path, its shape and how a save replaces its blocks. |
+
+### Writing (`packages/personal/writing/`, in the `personal` repo)
+
+The `personal` repo is private and holds piece specs as issues, and each of their Agent drafts under `writing/snapshots/`, written by `/implement-piece` only. Its docs link only inside it (its own lint) and name a root doc in plain text; byro-repo's docs never link into it.
 
 ### Config (`config/`)
 
