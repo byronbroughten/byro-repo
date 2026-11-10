@@ -197,6 +197,55 @@ describe("Docs.writeSection", () => {
     expect(await documents.documentOf("doc-writable")).toEqual(edited);
   });
 
+  it("edits after a character Docs counts as two indices", async () => {
+    const { docs, documents } = await writableDocs();
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Boiling",
+      markdown:
+        "Kettles 🫖 boil water fast.\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n",
+    });
+    await docs.read("doc-writable");
+
+    const markdown =
+      "Kettles 🫖 boil **water** quickly.\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n";
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Boiling",
+      markdown,
+    });
+
+    expect((await docs.read("doc-writable")).sections.get("Boiling")).toBe(
+      markdown,
+    );
+    const elements = (await documents.documentOf("doc-writable")).body
+      ?.content[3]?.paragraph?.elements;
+    expect(elements?.[0]?.textRun).toEqual({
+      content: "Kettles",
+      textStyle: { underline: true },
+    });
+  });
+
+  it("writes new paragraphs with no style beyond the Markdown's", async () => {
+    const { docs, documents } = await writableDocs();
+
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Boiling",
+      markdown:
+        "Fill the kettle.\n\nKettles boil water fast.\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n",
+    });
+
+    const content = (await documents.documentOf("doc-writable")).body?.content;
+    expect(
+      content?.[3]?.paragraph?.elements.map(({ textRun }) => textRun),
+    ).toEqual([{ content: "Fill the kettle.\n" }]);
+    expect(content?.[4]?.paragraph?.elements[0]?.textRun).toEqual({
+      content: "Kettles",
+      textStyle: { underline: true },
+    });
+  });
+
   it("refuses a write before any read", async () => {
     const docs = docsOf("writable");
 
@@ -240,6 +289,7 @@ describe("the Docs module's imports", () => {
 
   it("keeps the Google Docs layer and the Markdown dialect apart", () => {
     expect(importsOf("Docs/googleDocs.ts")).toEqual([]);
-    expect(importsOf("Docs/markdownDialect.ts")).toEqual([]);
+    expect(importsOf("Docs/markdownDialect.ts")).toEqual(["./InlineParser.ts"]);
+    expect(importsOf("Docs/InlineParser.ts")).toEqual([]);
   });
 });

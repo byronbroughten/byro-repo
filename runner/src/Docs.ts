@@ -48,10 +48,7 @@ export class Docs {
     };
   }
 
-  /**
-   * Rewrites one Section of the Doc as last read, touching only what changed,
-   * and refuses with `StaleRevision` when the Doc changed since that read.
-   */
+  /** Rewrites one Section of the Doc as last read, refusing with `StaleRevision` if it changed since. */
   async writeSection({
     documentId,
     heading,

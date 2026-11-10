@@ -1,5 +1,5 @@
-// The body FakeDocuments edits for a `documents.batchUpdate`: one character per
-// index, each with its text style, a paragraph's style held on the newline that
+// The body FakeDocuments edits for a `documents.batchUpdate`: one UTF-16 code
+// unit per index, as Docs counts them, each with its text style, a paragraph's style held on the newline that
 // ends it, as Docs does. A newline inserted is a new paragraph: it copies the
 // style of the paragraph it lands in but not its headingId, and a heading with
 // no headingId gets a fresh one. It holds paragraphs of plain text runs only.
@@ -78,7 +78,7 @@ export class FakeBody {
         : before.textStyle;
     const { headingId: _, ...paragraphStyle } =
       this._newlineFrom(position).paragraphStyle ?? {};
-    const inserted = [...text].map((char) => ({
+    const inserted = text.split("").map((char) => ({
       char,
       textStyle: { ...textStyle },
       paragraphStyle: char === "\n" ? { ...paragraphStyle } : undefined,
@@ -204,7 +204,7 @@ function charsOf(element: StructuralElement, position: number): BodyChar[] {
     ) {
       throw new Error("The fake body holds only plain text runs.");
     }
-    return [...textRun.content].map((char) => ({
+    return textRun.content.split("").map((char) => ({
       char,
       textStyle: { ...textRun.textStyle },
       paragraphStyle:

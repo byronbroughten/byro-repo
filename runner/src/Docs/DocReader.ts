@@ -25,15 +25,24 @@ import {
   markdownDialect,
 } from "./markdownDialect.ts";
 
-export const headingLevels: Partial<Record<NamedStyleType, number>> = {
-  TITLE: 1,
-  HEADING_1: 1,
-  HEADING_2: 2,
-  HEADING_3: 3,
-  HEADING_4: 4,
-  HEADING_5: 5,
-  HEADING_6: 6,
-};
+/** Each heading level's style, level 1 first. */
+export const headingStyleTypes = [
+  "HEADING_1",
+  "HEADING_2",
+  "HEADING_3",
+  "HEADING_4",
+  "HEADING_5",
+  "HEADING_6",
+] as const satisfies NamedStyleType[];
+
+export const headingLevels: Partial<Record<NamedStyleType, number>> =
+  headingStyleTypes.reduce<Partial<Record<NamedStyleType, number>>>(
+    (levels, styleType, position) => {
+      levels[styleType] = position + 1;
+      return levels;
+    },
+    { TITLE: 1 },
+  );
 
 const unorderedGlyphTypes = new Set([
   undefined,

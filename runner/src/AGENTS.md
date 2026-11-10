@@ -34,6 +34,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Docs/FakeBody.ts` | | The character-per-index body `FakeDocuments` applies `batchUpdate` requests to. |
 | `Docs/FakeDocuments.ts` | | The in-memory Docs API Docs tests use: `documents.get` and `batchUpdate` under a revision guard. |
 | `Docs/googleDocs.ts` | | The Google Docs layer: the `documents.get` body types, the `batchUpdate` requests and its port. |
+| `Docs/InlineParser.ts` | | Parses the dialect's inline Markdown back into styled text spans. |
 | `Docs/markdownDialect.ts` | | The Markdown dialect's forms, its split into Sections and its parse of a Section's body. |
 | `Docs/SectionWriter.ts` | | Turns a Section's new Markdown into the `batchUpdate` requests that change only what differs. |
 | `Docs/StaleRevision.ts` | | The error for a write refused because the Doc changed after the revision read. |
