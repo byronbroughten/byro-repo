@@ -325,6 +325,18 @@ export class SpecRunBase {
     return this.config.github.comment(run.spec.issue, `${runnerMark}\n${body}`);
   }
 
+  // Posts a step's handoff comment on its ticket and counts it toward the handoff cap.
+  protected async _postHandoff(
+    { run, ticket, state }: TicketRun,
+    comment: string,
+  ): Promise<void> {
+    const count = (state.handoffCount ?? 0) + 1;
+    await this.config.github.comment(ticket.issue, `${runnerMark}\n${comment}`);
+    state.handoffCount = count;
+    this._saveState(run);
+    this._log(run, `${issueRef.labelOf(ticket.issue)}: handoff ${count}.`);
+  }
+
   protected _withRerunLine(run: Run, message: string, waits: Wait[]): string {
     if (!waits.some(({ reason }) => reason === "developer")) return message;
     const command = runText.rerunCommandOf(

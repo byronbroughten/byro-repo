@@ -2,6 +2,8 @@
 
 import { Ajv } from "ajv";
 
+import { blockerKinds } from "./stepRecords.ts";
+
 export const stringSchema = { type: "string" };
 
 export function objectSchema(
@@ -24,6 +26,12 @@ interface ArrayBounds {
 export function arraySchema(items: object, bounds: ArrayBounds = {}): object {
   return { type: "array", items, ...bounds };
 }
+
+export const blockerSchema = objectSchema({
+  kind: { enum: blockerKinds },
+  detail: stringSchema,
+  recommendation: stringSchema,
+});
 
 // Each way `value` breaks `schema`, as its JSON path and Ajv's message; empty when it passes.
 export function schemaProblemsOf(schema: object, value: unknown): string[] {

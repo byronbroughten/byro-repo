@@ -7,16 +7,18 @@
 import {
   blockerHaltOf,
   failureHaltOf,
+  failureOptions,
   haltCommentOf,
   haltNoticeOf,
   type HaltPost,
+  handoffCapDetailOf,
   sessionHaltCommentOf,
   shortRefOf,
   type StepFailure,
 } from "../halts.ts";
 import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
 import { RunStop } from "../RunStop.ts";
-import type { Blocker } from "../stepRecords.ts";
+import type { Blocker, ProposedSlice } from "../stepRecords.ts";
 import { TicketHalted } from "../TicketHalted.ts";
 import {
   type Crash,
@@ -74,6 +76,27 @@ export class HaltRaiser extends SpecRunBase {
     throw new RunStop(
       `Stopped as stuck: ${run.failureStreak.join(", ")} each ended on a Failure Halt in a row; answer them, then rerun.`,
     );
+  }
+
+  // Checked at each fresh step's launch after a handoff, so a crash or an answer other than `continue +1 handoff` never skips it.
+  async _haltPastHandoffCap(
+    ticketRun: TicketRun,
+    slices: ProposedSlice[],
+  ): Promise<void> {
+    const { run, ticket, state } = ticketRun;
+    const { knobs } = this.config;
+    if (!ticketSteps.isPastHandoffCap(state, knobs)) return;
+    await this._failureHalt(ticketRun, {
+      step: state.step,
+      detail: handoffCapDetailOf({
+        ticket: ticket.issue,
+        count: state.handoffCount ?? 0,
+        cap: ticketSteps.handoffCapOf(state, knobs),
+        slices,
+      }),
+      logPath: this._progressPathOf(run),
+      options: [failureOptions.moreHandoffs],
+    });
   }
 
   async _raiseBlockerHalts(

@@ -25,7 +25,7 @@ import { type MemberList, SpecRun, type SpecRunConfig } from "./SpecRun.ts";
 import { stepResults } from "./specRunHarness/stepResults.ts";
 import { timing } from "./specRunHarness/timing.ts";
 import { trackedIssues } from "./specRunHarness/trackedIssues.ts";
-import type { ResolveRecord } from "./stepRecords.ts";
+import type { ResearchRecord, ResolveRecord } from "./stepRecords.ts";
 import type { StepSession } from "./transcriptFacts.ts";
 import type { Workflows } from "./Workflow.ts";
 import { codeWorkflowOf } from "./Workflow/code/codeWorkflow.ts";
@@ -187,7 +187,7 @@ export function workflowsWith(checks: Command[]): Workflows {
     piece: pieceWorkflowOf({
       overlapCommand: ["true"],
       verifyQuotesCommand: ["true"],
-      // Never read: the piece Workflow refuses its tickets at preflight.
+      // Never read: the research step's checks and Drive reads come with #659.
       docsCredentialPath: "docs-credential.json",
     }),
   };
@@ -302,6 +302,7 @@ export function timingLines(): string[] {
 interface SavedTicket {
   step: string;
   resolveRecords?: ResolveRecord[];
+  researchRecord?: ResearchRecord;
   sessions: StepSession[];
 }
 

@@ -9,17 +9,18 @@ import {
   sectionOf,
   stepWriteLine,
 } from "../../promptText.ts";
-import { arraySchema, objectSchema, stringSchema } from "../../recordSchema.ts";
+import {
+  arraySchema,
+  blockerSchema,
+  objectSchema,
+  stringSchema,
+} from "../../recordSchema.ts";
 import {
   implementBody,
   proposedSplitText,
   ticketBindsSection,
 } from "../../stepPrompts.ts";
-import {
-  blockerKinds,
-  type Handoff,
-  type ImplementRecord,
-} from "../../stepRecords.ts";
+import type { Handoff, ImplementRecord } from "../../stepRecords.ts";
 import type { ImplementPromptInput } from "../../Workflow.ts";
 
 export function implementPrompt(input: ImplementPromptInput): string {
@@ -154,12 +155,6 @@ const branchSchema = objectSchema({
   repo: stringSchema,
   branch: stringSchema,
   sha: stringSchema,
-});
-
-const blockerSchema = objectSchema({
-  kind: { enum: blockerKinds },
-  detail: stringSchema,
-  recommendation: stringSchema,
 });
 
 const gitHubWriteSchema = objectSchema({

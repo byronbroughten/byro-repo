@@ -2,7 +2,8 @@
 // spec's Workflow. SpecRun/TicketSequencer.ts reaches a Workflow's Step sequence only through this module, SpecRun/ReviewListPoster.ts
 // its spec-end Steps, and every
 // collaborator that launches an agent step takes its prompt, record schema and record checks, through agentStepOf, from the Workflow
-// SpecRunBase._workflowOf picks; SpecRun/PreflightChecker.ts takes its ticket refusal. Each Workflow's own code is in Workflow/<name>/.
+// SpecRunBase._workflowOf picks; SpecRun/PreflightChecker.ts takes its ticket refusal, and SpecRun/TicketSequencer.ts its landing stop.
+// Each Workflow's own code is in Workflow/<name>/.
 // A ticket follows its spec's Workflow. Labels are Trusted, since only collaborators can add one.
 
 import type { IssueRef } from "./IssueWorkspaces.ts";
@@ -18,6 +19,8 @@ import type {
   GapCheckRecord,
   Handoff,
   ImplementRecord,
+  ResearchHandoff,
+  ResearchRecord,
   ResolveRecord,
 } from "./stepRecords.ts";
 
@@ -34,6 +37,8 @@ export interface Workflow {
   stepsOf(ticket: TrackedIssue): WorkflowStep[];
   // The preflight's refusal of the spec's launchable tickets, a Standalone run's own ticket among them; undefined when none refused.
   ticketRefusalOf(launchable: TrackedIssue[]): string | undefined;
+  // The message a ticket stops on in place of its landing, for a Workflow that can't land it yet; undefined when it lands.
+  landingStopOf(state: TicketState): string | undefined;
   // Reached through agentStepOf, which throws for a step the Workflow leaves out.
   agentSteps: Partial<AgentSteps>;
   // Run from a workspace or primary root: after review in each ticket, and in a master set when they go red in a ticket.
@@ -57,6 +62,24 @@ export interface AgentSteps {
   redChecks: RedChecksRules;
   mergeMaster: MergeMasterRules;
   gapCheck: GapCheckRules;
+  research: ResearchRules;
+}
+
+export interface ResearchPromptInput {
+  issue: IssueRef;
+  title: string;
+  body: string;
+  // Set for a fresh step after a handoff; a handoff is cumulative, so only the latest is passed.
+  latestHandoff?: ResearchHandoff;
+}
+
+export interface ResearchRules {
+  promptOf(input: ResearchPromptInput): string;
+  outputSchema: object;
+  recordOf(output: unknown): ResearchRecord;
+  // Checks the output against outputSchema too, since only the real adapter does; `cwd` resolves a relative path.
+  recordProblems(output: unknown, cwd: string): string[];
+  handoffCommentOf(handoff: ResearchHandoff, sessionId: string): string;
 }
 
 export interface ImplementPromptInput {
