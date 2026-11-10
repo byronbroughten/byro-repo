@@ -90,9 +90,6 @@ export function pieceWorkflowOf({
     stepsOf(ticket) {
       return isResearch(ticket) ? researchSteps : draftingSteps;
     },
-    ticketRefusalOf() {
-      return undefined;
-    },
     sourceTargetsOf,
     agentSteps: {
       research: {
@@ -114,6 +111,7 @@ export function pieceWorkflowOf({
         closingCommentOf: researchClosingCommentOf,
       },
     },
+    // A drafting ticket lands its branch, the Agent draft's commits on it, as a code ticket does.
     landingOf(ticket) {
       return isResearch(ticket) ? "research" : "code";
     },
@@ -125,16 +123,19 @@ export function pieceWorkflowOf({
 
 // Each ID once, in the order the spec lists them; a spec with no Supporting Material lists none.
 function sourceTargetsOf({ body }: TrackedIssue): Target[] {
-  const section = ticketSectionOf(body, specHeadings.sources) ?? "";
-  const ids = [...new Set(section.match(driveIdPattern) ?? [])];
+  const ids = [...new Set(driveIdsOf(body, specHeadings.sources))];
   return ids.map((id) => ({ kind: "source", id }));
+}
+
+function driveIdsOf(body: string, heading: string): string[] {
+  const section = ticketSectionOf(body, heading) ?? "";
+  return section.match(driveIdPattern) ?? [];
 }
 
 function pullRulesOf(documents: DocumentsPort): PullRules {
   return {
     deliverableOf({ body }) {
-      const section = ticketSectionOf(body, specHeadings.deliverable) ?? "";
-      return section.match(driveIdPattern)?.[0];
+      return driveIdsOf(body, specHeadings.deliverable)[0];
     },
     draftPathOf({ number }: IssueRef) {
       return `writing/agent-drafts/${number}.md`;

@@ -204,12 +204,7 @@ export function workflowsWith(checks: Command[]): Workflows {
     piece: pieceWorkflowOf({
       overlapCommand: ["true"],
       verifyQuotesCommand: redOnMisquote,
-      // Read at each call, so a test's holdDocs reaches a run already built.
-      documents: {
-        documentOf: (documentId) => documents.documentOf(documentId),
-        batchUpdate: (documentId, update) =>
-          documents.batchUpdate(documentId, update),
-      },
+      documents,
     }),
   };
 }

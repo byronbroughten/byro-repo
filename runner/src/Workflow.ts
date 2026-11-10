@@ -2,7 +2,7 @@
 // spec's Workflow. SpecRun/TicketSequencer.ts reaches a Workflow's Step sequence only through this module, SpecRun/ReviewListPoster.ts
 // its spec-end Steps, and every
 // collaborator that launches an agent step takes its prompt, record schema and record checks, through agentStepOf, from the Workflow
-// SpecRunBase._workflowOf picks; SpecRun/PreflightChecker.ts takes its ticket refusal, SpecRun/TicketSequencer.ts its source targets,
+// SpecRunBase._workflowOf picks; SpecRun/TicketSequencer.ts takes its source targets,
 // and SpecRun/DraftPuller.ts its pull rules, through pullOf.
 // Each Workflow's own code is in Workflow/<name>/.
 // A ticket follows its spec's Workflow. Labels are Trusted, since only collaborators can add one.
@@ -41,8 +41,6 @@ export interface WorkflowStep {
 export interface Workflow {
   name: WorkflowName;
   stepsOf(ticket: TrackedIssue): WorkflowStep[];
-  // The preflight's refusal of the spec's launchable tickets, a Standalone run's own ticket among them; undefined when none refused.
-  ticketRefusalOf(launchable: TrackedIssue[]): string | undefined;
   // The files outside the repo every step of the spec's tickets may read, on top of each ticket's own targets.
   sourceTargetsOf(spec: TrackedIssue): Target[];
   // Reached through agentStepOf, which throws for a step the Workflow leaves out.
