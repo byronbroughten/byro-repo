@@ -24,6 +24,7 @@ import { type Command, runKnobsOf } from "./runKnobs.ts";
 import { type MemberList, SpecRun, type SpecRunConfig } from "./SpecRun.ts";
 import { stepResults } from "./specRunHarness/stepResults.ts";
 import { timing } from "./specRunHarness/timing.ts";
+import { trackedIssues } from "./specRunHarness/trackedIssues.ts";
 import type { ResolveRecord } from "./stepRecords.ts";
 import type { StepSession } from "./transcriptFacts.ts";
 import { gapCheckOutputSchema } from "./Workflow/code/gapCheck.ts";
@@ -158,16 +159,7 @@ export function addIssue(
     body = bodyWith(),
   }: { labels?: string[]; body?: string } = {},
 ): void {
-  github.issues.set(number, {
-    issue: refOf(number),
-    title: `Ticket ${number}`,
-    body,
-    isOpen: true,
-    labels,
-    url: `https://github.com/byronbroughten/byro-repo/issues/${number}`,
-    author: "byronbroughten",
-    bodyEditors: [],
-  });
+  github.issues.set(number, trackedIssues.issueOf(number, { labels, body }));
 }
 
 export function addSpec(tickets: number[]): void {
