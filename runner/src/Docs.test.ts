@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { Docs } from "./Docs.ts";
 import { fixtureDocument } from "./Docs/docFixtures.ts";
 import { FakeDocuments } from "./Docs/FakeDocuments.ts";
+import { PendingSuggestions } from "./Docs/PendingSuggestions.ts";
 import { StaleRevision } from "./Docs/StaleRevision.ts";
 
 function docsOf(...fixtures: string[]): Docs {
@@ -461,6 +462,22 @@ describe("Docs.writeSection", () => {
         markdown,
       }),
     ).rejects.toThrow();
+  });
+
+  it("reports a Doc with pending suggestions it can't index safely, writing nothing", async () => {
+    const documents = new FakeDocuments([fixtureDocument("suggestions")]);
+    const docs = Docs.init(documents);
+    await docs.read("doc-suggestions");
+    const before = await documents.documentOf("doc-suggestions");
+
+    await expect(
+      docs.writeSection({
+        documentId: "doc-suggestions",
+        heading: "Storage",
+        markdown: "Keep it dry.\n",
+      }),
+    ).rejects.toThrow(new PendingSuggestions("doc-suggestions"));
+    expect(await documents.documentOf("doc-suggestions")).toEqual(before);
   });
 
   it("refuses a write before any read", async () => {

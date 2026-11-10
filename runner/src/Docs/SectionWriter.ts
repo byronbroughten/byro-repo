@@ -30,6 +30,7 @@ import {
   type ParsedBlock,
   type SpanStyle,
 } from "./markdownDialect.ts";
+import { PendingSuggestions } from "./PendingSuggestions.ts";
 import {
   type HeldBlock,
   type HeldParagraph,
@@ -231,8 +232,8 @@ export class SectionWriter {
 
   /** Each cell's text, its paragraphs joined by line breaks as the reader joins them. */
   private _rowsOf(table: Table): StyledChar[][][] {
-    if ((table.suggestedInsertionIds?.length ?? 0) > 0) {
-      throw new Error("The writer takes no table with a pending suggestion.");
+    if (hasPendingSuggestion(table)) {
+      throw new PendingSuggestions(this.document.documentId);
     }
     return table.tableRows.map((row) =>
       row.tableCells.map((cell) =>
@@ -254,14 +255,13 @@ export class SectionWriter {
 
   private _charsOf(paragraph: Paragraph): StyledChar[] {
     return paragraph.elements.flatMap(({ textRun }) => {
-      if (
-        textRun === undefined ||
-        (textRun.suggestedInsertionIds?.length ?? 0) > 0 ||
-        (textRun.suggestedDeletionIds?.length ?? 0) > 0
-      ) {
+      if (textRun === undefined) {
         throw new Error(
-          "The writer takes only plain text runs, with no footnote or pending suggestion.",
+          "The writer takes only plain text runs, with no footnote.",
         );
+      }
+      if (hasPendingSuggestion(textRun)) {
+        throw new PendingSuggestions(this.document.documentId);
       }
       const style = {
         isBold: textRun.textStyle?.bold === true,
@@ -631,6 +631,16 @@ function indicesOf(element: StructuralElement): Range {
     throw new Error("The writer needs a Doc read with its indices.");
   }
   return { startIndex, endIndex };
+}
+
+function hasPendingSuggestion(item: {
+  suggestedInsertionIds?: string[];
+  suggestedDeletionIds?: string[];
+}): boolean {
+  return (
+    (item.suggestedInsertionIds?.length ?? 0) > 0 ||
+    (item.suggestedDeletionIds?.length ?? 0) > 0
+  );
 }
 
 /** A paragraph's inline Markdown, as the reader words it. */

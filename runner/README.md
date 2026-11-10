@@ -6,6 +6,16 @@ Runs a spec's tickets through implement, review, resolve (which commits the fixe
 
 Each file under `src/`, with its job and any export, is listed in [`src/AGENTS.md`](./src/AGENTS.md#files). byro-repo's config for all of them is `scripts/runner/runnerConfig.ts`, its knob overrides `scripts/runner/runner.config.json`. What a step may write is the repo's too: `ClaudeAgentStep` adds the PermissionRequest hook the config injects to each step's settings, and byro-repo's is [`stepPermission.ts`](../docs/claude-code-guardrails.md#the-hooks-and-the-project-agent).
 
+## Setup
+
+The Docs module, and `npm run doc:print` over it, reach Google Docs as the developer through a clasp login in its own credential file, `~/.clasprc-docs.json`, never either Sheets credential. Log in once, from `packages/framework` (the framework dev project's folder, whose `appsscript.json` stays unedited), as the account that owns the Docs:
+
+```sh
+clasp_config_auth="$HOME/.clasprc-docs.json" npx clasp login --use-project-scopes --extra-scopes https://www.googleapis.com/auth/documents,https://www.googleapis.com/auth/drive.readonly
+```
+
+Why these scopes: [`google-docs-behaviour.md`](../docs/google-docs-behaviour.md#auth). Writes then appear in a Doc's history as the developer's edits.
+
 ## Context nudge
 
 Once a ticket session's context reaches its budget, it is reminded to write a handoff: `contextNudge` words the reminder, and a Claude Code hook each repo registers delivers it. `src/contextNudge.ts`'s header says how a repo registers one.

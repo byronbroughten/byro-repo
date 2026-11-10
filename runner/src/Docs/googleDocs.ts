@@ -1,5 +1,6 @@
-// The Google Docs layer: the `documents.get` body types the reader reads and the
-// port that fetches one. Property names mirror the Docs REST API's wire shape.
+// The Google Docs layer's types: the `documents.get` body types the reader reads
+// and the port that fetches one, which `RestDocuments.ts` implements over the
+// REST API. Property names mirror the Docs REST API's wire shape.
 // Nothing here knows Markdown; the dialect is `markdownDialect.ts`, and the
 // reader joining the two is `DocReader.ts`.
 
@@ -126,6 +127,7 @@ export interface Table {
   columns: number;
   tableRows: TableRow[];
   suggestedInsertionIds?: string[];
+  suggestedDeletionIds?: string[];
 }
 
 export interface TableRow {

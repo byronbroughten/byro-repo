@@ -32,6 +32,7 @@
     "dev:configs:diff": "npm run configs:diff -w @byronbroughten/sheets-framework --",
     "dev:push": "npm run push -w @byronbroughten/sheets-framework --",
     "dev:run": "npm run run -w @byronbroughten/sheets-framework --",
+    "doc:print": "node --use-env-proxy --disable-warning=UNDICI-EHPA scripts/runner/docPrint.ts",
     "google:script": "node scripts/googleScript/googleScript.ts",
     "issue:list": "node scripts/runner/issue.ts list",
     "issue:start": "node scripts/runner/issue.ts start",
