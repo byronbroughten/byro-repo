@@ -59,9 +59,9 @@ describe("run", () => {
       },
     }).run(ticket);
 
-    expect(git(movedPrimary, "log", "-2", "--format=%s", "master")).toBe(
-      "Merge issue-218-wrap-up-script into master (#218)\nAdd core.ts",
-    );
+    expect(
+      git(movedPrimary, "log", "--topo-order", "-2", "--format=%s", "master"),
+    ).toBe("Merge issue-218-wrap-up-script into master (#218)\nAdd core.ts");
     expect(existsSync(join(movedPrimary, "core.ts"))).toBe(true);
     expect(existsSync(workspace.path)).toBe(false);
   });
