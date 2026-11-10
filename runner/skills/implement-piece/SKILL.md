@@ -10,7 +10,7 @@ Fetch it with `npm run issue:read -- personal <n> --body --comments` and state i
 
 **Work in the Piece's issue workspace.** If this session did not start at its root, run `npm run issue:start -- personal <n>` from the primary root and tell the developer to start `/implement-piece <n>` at the path it prints; stop there.
 
-Draft by the rules under "Implementing a piece spec" in [`packages/personal/writing/AGENTS.md`](../../../packages/personal/writing/AGENTS.md): its text, its supporting material, when it may write without asking, its style and the Outline. On a sub-issue, write only the Sections it names.
+Draft by the rules under "Implementing a piece spec" in [`docs/pieces/rules.md`](../../../docs/pieces/rules.md): its text, its supporting material, when it may write without asking, its style and the Outline. On a sub-issue, write only the Sections it names.
 
 Once drafted, read [`.claude/skills/review-piece/SKILL.md`](../../../.claude/skills/review-piece/SKILL.md) and follow it on the same issue. It is user-invoked, so the Skill tool can't reach it.
 
@@ -21,7 +21,7 @@ Then:
 
 Done when no hard finding is left, or each one left is reported with why.
 
-**Last, save the Snapshot, every time, without offering.** Its path, its shape and how a save replaces its blocks are in [`packages/personal/writing/docs/snapshots.md`](../../../packages/personal/writing/docs/snapshots.md).
+**Last, save the Snapshot, every time, without offering.** Its path, its shape and how a save replaces its blocks are in [`docs/pieces/agent-draft.md`](../../../docs/pieces/agent-draft.md), which calls it the Agent draft.
 
 1. `get_doc_as_markdown` the Deliverable as it is now, after the fixes.
 2. Save the Sections this issue drafted into the Snapshot. A later revision round saves the Sections it changed the same way.

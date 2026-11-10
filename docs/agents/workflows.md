@@ -10,7 +10,7 @@ A skill is in scope when a Workflow stage of either Workflow calls it or names i
 
 ## The Workflow stages and their skills
 
-The words Piece, Deliverable, Section, Stage and Snapshot are [the writing glossary](../../packages/personal/writing/GLOSSARY.md)'s.
+The words Piece, Deliverable, Section, Stage and Agent draft are [the writing glossary](../pieces/GLOSSARY.md)'s.
 
 1. **Planning**
    - Code: [`/wayfinder`](../../.claude/skills/wayfinder/SKILL.md), [`/grill-with-docs`](../../.claude/skills/grill-with-docs/SKILL.md), [`/grill-me`](../../.claude/skills/grill-me/SKILL.md), [`domain-modeling`](../../.claude/skills/domain-modeling/SKILL.md), [`/prototype`](../../.claude/skills/prototype/SKILL.md), [`/research`](../../.claude/skills/research/SKILL.md).
@@ -74,12 +74,12 @@ The words Piece, Deliverable, Section, Stage and Snapshot are [the writing gloss
 | Implementation | Piece | `/implement-piece` | wrap-up (`npm run wrap-up -- personal <n>`), once the developer has finished editing | named |
 | Implementation | Piece | `/research-piece` | `/implement-piece`, when the issue is a Piece | named |
 | Implementation | Piece | `/research-piece` | `/review-research` on the draft comment, before posting, read as a file since it is user-invoked | named |
-| Implementation | Piece | `/research-piece` | the Research wrap-up prompt in [the writing `wrap-up.md`](../../packages/personal/writing/docs/wrap-up.md) | named |
+| Implementation | Piece | `/research-piece` | the Research wrap-up prompt, in the `personal` repo's writing `wrap-up.md` | named |
 | Implementation | Piece | any | `/review-research`, on a posted Research issue's findings | you invoke it |
 | Implementation | Piece | the Research wrap-up | `/implement-piece` on the next ticket | you invoke it |
 | Judgement | Code | `/judge-findings` | `/to-code-style` and `/mine-outcomes` when it closes a spec; tickets filed by `/code-tickets`' conventions | named |
 | Judgement | Piece | the developer's edit | wrap-up | you invoke it |
-| Judgement | Piece | the developer's edit | `/to-writing-style`, on the Piece's Snapshot | you invoke it |
+| Judgement | Piece | the developer's edit | `/to-writing-style`, on the Piece's Agent draft | you invoke it |
 | Process revision | Code | `/mine-outcomes` | `/retro`, on outlier tickets | named |
 | Process revision | Code | `/retro`, `/to-code-style` | `writing-for-agents` | named |
 | Process revision | Piece | `/to-writing-style` | `writing-for-agents`, for a change to `/grill-piece`'s calibration step | named |
@@ -100,21 +100,19 @@ A doc is listed when two or more skills or Steps of either Workflow reach it by 
 | [`prose-style.md`](../prose-style.md) | `/code-review`, `/retro`, `/to-code-style` | via always-on hook: every prose edit |
 | [`prose-files.md`](./prose-files.md) | `/to-code-style`, `/to-writing-style` | via always-on hook: every prose edit, through `prose-style.md` |
 | [The issue tracker doc](./issue-tracker.md) and [triage labels](./triage-labels.md) | `/wayfinder`, `domain-modeling`, `/code-spec`, `/code-tickets`, `/review-code-tickets`, `/code-review`, `/judge-findings`, `/mine-outcomes` | |
-| [The git workflow doc](./git-workflow.md) | `/implement-code`, `/judge-findings`, `/mine-outcomes`, `/implement-piece` | via runner prompt: the implement Step; via the writing `AGENTS.md`: `/grill-piece`, `/piece-spec`, `/piece-tickets`, `/review-piece` |
+| [The git workflow doc](./git-workflow.md) | `/implement-code`, `/judge-findings`, `/mine-outcomes`, `/implement-piece` | via runner prompt: the implement Step; via `rules.md`: `/grill-piece`, `/piece-spec`, `/piece-tickets`, `/review-piece` |
 | [The runner glossary](../../runner/GLOSSARY.md) | `/runner`, `/review-code-tickets`, `/judge-findings`, `/mine-outcomes` | |
 | [The guardrails doc](../claude-code-guardrails.md) | `/code-tickets`, `/review-code-tickets`' reviewer, `/retro` | |
 | Design docs, ADRs and glossaries | `/code-spec`, `/code-tickets`, `domain-modeling`, `tdd`, `/to-code-style` | |
 | Skills read as docs | `/code-tickets`' conventions by `/judge-findings`; `/retro`'s categories by `/mine-outcomes`; `grilling`'s format by `/judge-findings`, `/mine-outcomes` and `/retro` | |
-| The Voice and Craft sheets: [`writing-voice.md`](../writing-voice.md) and [`writing-craft.md`](../writing-craft.md) | `/grill-piece`, `/review-piece`, `/to-writing-style` | via the writing `AGENTS.md`: `/implement-piece`, `/piece-spec`, `/piece-tickets` |
-| [The academic style sheet](../academic-writing-style.md) | `/grill-piece`, `/review-piece`, `/to-writing-style` | via the writing `AGENTS.md`: `/implement-piece`, `/piece-spec`, `/piece-tickets` |
-| [The writing `AGENTS.md`](../../packages/personal/writing/AGENTS.md) | `/grill-piece`, `/piece-spec`, `/piece-tickets`, `/implement-piece`, `/review-piece` | |
-| [The writing glossary](../../packages/personal/writing/GLOSSARY.md) | `/grill-piece`, `/piece-spec`, `/piece-tickets`, `/review-piece`, `/to-writing-style` (its pair mode) | via the writing `AGENTS.md`: `/implement-piece` |
-| [`grilling.md`](../../packages/personal/writing/docs/grilling.md) | `/grill-piece`, `/piece-spec`, `/to-writing-style` | via the writing `AGENTS.md`: `/piece-tickets`, `/implement-piece`, `/review-piece` |
-| [`outlining.md`](../../packages/personal/writing/docs/outlining.md) | `/grill-piece`, `/piece-spec`, `/piece-tickets` | via the writing `AGENTS.md`: `/implement-piece`, `/review-piece` |
-| [`pdf-pages.md`](../pdf-pages.md) | `/grill-piece`, `/piece-tickets` (its ticket template), `/review-piece`, `/research-piece`, `/review-research` | via the writing `AGENTS.md`: `/implement-piece`, `/piece-spec` |
-| [`snapshots.md`](../../packages/personal/writing/docs/snapshots.md) | `/implement-piece`, `/to-writing-style` (its pair mode) | via the writing `AGENTS.md`: `/piece-spec`, `/piece-tickets`, `/review-piece` |
-| [The writing `wrap-up.md`](../../packages/personal/writing/docs/wrap-up.md) | `/research-piece` | via the writing `AGENTS.md`: `/grill-piece`, `/piece-spec`, `/piece-tickets`, `/implement-piece`, `/review-piece` |
-| The writing outcome log, [`model-fit.md`](../../packages/personal/writing/docs/model-fit.md) | `/piece-spec`, `/piece-tickets` | via the writing `wrap-up.md`: `/research-piece`, which has the developer add its row |
+| The Voice and Craft sheets: [`writing-voice.md`](../writing-voice.md) and [`writing-craft.md`](../writing-craft.md) | `/grill-piece`, `/review-piece`, `/to-writing-style` | via `rules.md`: `/implement-piece`, `/piece-spec`, `/piece-tickets` |
+| [The academic style sheet](../academic-writing-style.md) | `/grill-piece`, `/review-piece`, `/to-writing-style` | via `rules.md`: `/implement-piece`, `/piece-spec`, `/piece-tickets` |
+| [`rules.md`](../pieces/rules.md), the rules for writing any Piece | `/grill-piece`, `/piece-spec`, `/piece-tickets`, `/implement-piece`, `/review-piece` | |
+| [The writing glossary](../pieces/GLOSSARY.md) | `/grill-piece`, `/piece-spec`, `/piece-tickets`, `/review-piece`, `/to-writing-style` (its pair mode) | via `rules.md`: `/implement-piece` |
+| [`grilling.md`](../pieces/grilling.md) | `/grill-piece`, `/piece-spec`, `/to-writing-style` | via `rules.md`: `/piece-tickets`, `/implement-piece`, `/review-piece` |
+| [`outlining.md`](../pieces/outlining.md) | `/grill-piece`, `/piece-spec`, `/piece-tickets` | via `rules.md`: `/implement-piece`, `/review-piece` |
+| [`pdf-pages.md`](../pdf-pages.md) | `/grill-piece`, `/piece-tickets` (its ticket template), `/review-piece`, `/research-piece`, `/review-research` | via `rules.md`: `/implement-piece`, `/piece-spec` |
+| [`agent-draft.md`](../pieces/agent-draft.md) | `/implement-piece`, `/to-writing-style` (its pair mode) | via `rules.md`: `/piece-spec`, `/piece-tickets`, `/review-piece` |
 
 Routes that depend on which files a ticket touches (the read-first gate's tier, framework-style and writing rows, nested `AGENTS.md` files, the AGENTS.md cost nudge and the sandbox-failure context) live in [the guardrails doc's hooks section](../claude-code-guardrails.md#the-hooks-and-the-project-agent).
 
@@ -132,7 +130,7 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | The four review axes, Spec, Voice, Craft and Reader, with hard findings and judgement calls | `/review-piece` reports them; `/implement-piece` fixes the hard Spec findings and reports the rest |
 | The Research fact list comment: numbered facts, each ending with a locator naming its saved text and page range or heading, quotes optional and verbatim, and a `## Unverified` section outside the fact list | `/research-piece` posts it; `/review-research` checks its draft first; `/review-piece`'s fact list takes its facts outside `## Unverified` when the spec links it, and its Read passages take each fact's cited range; `/implement-piece` drafts from its facts, never its quotes or `## Unverified` |
 | The model-fit chat line: `/implement-piece #n: <Model> <effort> (reason)` from `/piece-spec`, `#n Title: <Model> <effort> (reason)` from `/piece-tickets` | `/piece-spec`, `/piece-tickets` |
-| The Snapshot's path and shape | `/implement-piece` saves it; `/to-writing-style`'s pair mode diffs it |
+| The Agent draft's path and shape | `/implement-piece` saves it; `/to-writing-style`'s pair mode diffs it |
 
 ## The shared machinery
 

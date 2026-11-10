@@ -41,7 +41,7 @@ Open only the section or disclosed doc the task needs.
 | Branches, landing a spec, closing an issue, `backup/*` or `research/*` branches | [`docs/agents/git-workflow.md`](./docs/agents/git-workflow.md) |
 | Design, grilling, specs, tickets, a long session's handoff | [`docs/agents/planning.md`](./docs/agents/planning.md) |
 | Changing a coding- or piece-workflow skill, or a doc several of them share | [`docs/agents/workflows.md`](./docs/agents/workflows.md) |
-| Writing reader-facing prose: a shared Google Doc, a blog post, in-app text, a piece spec | [`docs/writing-voice.md`](./docs/writing-voice.md) and [`docs/writing-craft.md`](./docs/writing-craft.md); academic work adds [`academic-writing-style.md`](./docs/academic-writing-style.md); a piece spec adds [`packages/personal/writing/AGENTS.md`](./packages/personal/writing/AGENTS.md) |
+| Writing reader-facing prose: a shared Google Doc, a blog post, in-app text, a piece spec | [`docs/writing-voice.md`](./docs/writing-voice.md) and [`docs/writing-craft.md`](./docs/writing-craft.md); academic work adds [`academic-writing-style.md`](./docs/academic-writing-style.md); a piece spec adds [`docs/pieces/rules.md`](./docs/pieces/rules.md) |
 | Editing a prose doc or AGENTS.md: which file a fact belongs in | [`docs/prose-style.md`](./docs/prose-style.md), then the map in [`prose-files.md`](./docs/agents/prose-files.md) |
 | Issues and labels | [`docs/agents/issue-tracker.md`](./docs/agents/issue-tracker.md), [`docs/agents/triage-labels.md`](./docs/agents/triage-labels.md) |
 | A yes/no, pick-one or scale judgement an agent could hand off | [`docs/agents/jev.md`](./docs/agents/jev.md) |

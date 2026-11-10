@@ -30,7 +30,7 @@ Primary checkouts and workspaces, branches and commits, landing a spec or a sess
 - **The runner's wrap-up script lands a spec: `npm run wrap-up -- <repo> <n>`**, an interactive agent adding only the closing facts. Its facts file, branch order, flags, new-dependency name check, dependency installs and close: [`git-workflow/wrap-up.md`](./git-workflow/wrap-up.md).
 - **A ticket that changes wrap-up or the facts file's format lands through its workspace's own script**: `node <workspace>/scripts/runner/wrapUp.ts <repo> <n> --closing "…"`, run from the primary root. `npm run wrap-up` runs master's code, which can't read what the branch's code wrote (#367).
 - **Wrap-up runs `npm run prepare` at the primary root once the primaries fast-forward**, since a workspace copies `node_modules` and never runs it; a failure only warns (#407).
-- **A writing Research spec wraps up per `packages/personal/writing/docs/wrap-up.md`** instead of the script. A Piece lands by the script, its branch holding the Snapshot.
+- **A writing Research spec wraps up with `npm run wrap-up -- <repo> <n> --no-code`**, since it has no branch. A Piece lands by the script, its branch holding the [Agent draft](../pieces/agent-draft.md).
 
 ## Landing a session
 
