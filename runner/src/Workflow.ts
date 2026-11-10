@@ -1,8 +1,8 @@
 // The one seam between the run core and its Workflows: the Workflow type, the agent steps' rules and the pick of a
 // spec's Workflow. SpecRun/TicketSequencer.ts reaches a Workflow's Step sequence only through this module, SpecRun/ReviewListPoster.ts
 // its spec-end Steps, and every
-// collaborator that launches an agent step takes its prompt, record schema and record checks from the Workflow SpecRunBase._workflowOf picks.
-// Each Workflow's own code is in Workflow/<name>/.
+// collaborator that launches an agent step takes its prompt, record schema and record checks, through agentStepOf, from the Workflow
+// SpecRunBase._workflowOf picks; SpecRun/PreflightChecker.ts takes its ticket refusal. Each Workflow's own code is in Workflow/<name>/.
 // A ticket follows its spec's Workflow. Labels are Trusted, since only collaborators can add one.
 
 import type { IssueRef } from "./IssueWorkspaces.ts";
@@ -32,11 +32,12 @@ export interface WorkflowStep {
 export interface Workflow {
   name: WorkflowName;
   stepsOf(ticket: TrackedIssue): WorkflowStep[];
-  agentSteps: AgentSteps;
+  // The preflight's refusal of the spec's launchable tickets, a Standalone run's own ticket among them; undefined when none refused.
+  ticketRefusalOf(launchable: TrackedIssue[]): string | undefined;
+  // Reached through agentStepOf, which throws for a step the Workflow leaves out.
+  agentSteps: Partial<AgentSteps>;
   // Run from a workspace or primary root: after review in each ticket, and in a master set when they go red in a ticket.
   checks: Command[];
-  // Called through the Skill tool by the review step.
-  reviewSkillName: string;
   specEnd: SpecEnd;
 }
 
@@ -90,6 +91,8 @@ export interface ReviewPromptInput {
 export interface ReviewRules {
   promptOf(input: ReviewPromptInput): string;
   outputSchema: object;
+  // Called through the Skill tool by the review step.
+  skillName: string;
 }
 
 export interface ResolvePromptInput {
@@ -182,19 +185,23 @@ export interface GapCheckRules {
 const pieceLabel = "piece";
 
 // The Workflows a repo's runner config builds; the core picks among them.
-export interface Workflows {
-  code: Workflow;
-}
+export type Workflows = Record<WorkflowName, Workflow>;
 
 export function workflowNameOf(spec: TrackedIssue): WorkflowName {
   return spec.labels.includes(pieceLabel) ? "piece" : "code";
 }
 
 export function workflowOf(spec: TrackedIssue, workflows: Workflows): Workflow {
-  const registered: Record<WorkflowName, Workflow> = {
-    code: workflows.code,
-    // The piece Workflow isn't registered yet, so a piece spec runs as code until it is.
-    piece: workflows.code,
-  };
-  return registered[workflowNameOf(spec)];
+  return workflows[workflowNameOf(spec)];
+}
+
+export function agentStepOf<SN extends keyof AgentSteps>(
+  workflow: Workflow,
+  name: SN,
+): AgentSteps[SN] {
+  const rules = workflow.agentSteps[name];
+  if (rules === undefined) {
+    throw new Error(`The ${workflow.name} Workflow has no ${name} step.`);
+  }
+  return rules;
 }

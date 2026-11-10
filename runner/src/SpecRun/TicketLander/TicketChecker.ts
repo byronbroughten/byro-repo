@@ -8,6 +8,7 @@ import { commandLabelOf, messageOf } from "../../failureText.ts";
 import { issueRef } from "../../IssueWorkspaces.ts";
 import { runCommand } from "../../runCommand.ts";
 import { RunStop } from "../../RunStop.ts";
+import { agentStepOf } from "../../Workflow.ts";
 import { HaltRaiser } from "../HaltRaiser.ts";
 import { ReviewStepper } from "../ReviewStepper.ts";
 import { type Resolver, type TicketRun } from "../runState.ts";
@@ -98,7 +99,7 @@ export class TicketChecker extends SpecRunBase {
       `${issueRef.labelOf(ticket.issue)}: checks red; resuming the ${resolverLabels[resolver]} with the failure.`,
     );
     this._markStepStarted(ticketRun);
-    const rules = this._workflowOf(run.spec).agentSteps.redChecks;
+    const rules = agentStepOf(this._workflowOf(run.spec), "redChecks");
     const { result, logPath } = await this.reviewStepper._runResolverStep(
       ticketRun,
       {

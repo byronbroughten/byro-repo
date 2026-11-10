@@ -34,7 +34,11 @@ import { SchemaFailure } from "../SchemaFailure.ts";
 import type { GapCheckRecord, ResolveRecord } from "../stepRecords.ts";
 import { TicketHalted } from "../TicketHalted.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
-import { type GapCheckTicket, type SpecEndStep } from "../Workflow.ts";
+import {
+  agentStepOf,
+  type GapCheckTicket,
+  type SpecEndStep,
+} from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import {
   gapCheckLabel,
@@ -227,7 +231,7 @@ export class ReviewListPoster extends SpecRunBase {
     const tickets: GapCheckTicket[] = await Promise.all(
       run.tickets.map((ticket) => this.config.github.issueOf(ticket)),
     );
-    const rules = this._workflowOf(run.spec).agentSteps.gapCheck;
+    const rules = agentStepOf(this._workflowOf(run.spec), "gapCheck");
     let prompt = rules.promptOf({
       spec: run.spec.issue,
       title: run.spec.title,

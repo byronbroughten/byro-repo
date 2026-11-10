@@ -23,7 +23,7 @@ import {
   recordOnlyPrompt,
 } from "../stepPrompts.ts";
 import { type Handoff, type ImplementRecord } from "../stepRecords.ts";
-import { type ImplementRules } from "../Workflow.ts";
+import { agentStepOf, type ImplementRules } from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import {
   type Continuation,
@@ -314,7 +314,7 @@ export class ImplementStepper extends SpecRunBase {
   }
 
   private _implementRulesOf({ run }: TicketRun): ImplementRules {
-    return this._workflowOf(run.spec).agentSteps.implement;
+    return agentStepOf(this._workflowOf(run.spec), "implement");
   }
 }
 

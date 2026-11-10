@@ -1,6 +1,6 @@
 // byro-repo's values for the spec runner's injected config. Every root script that drives the runner reads them here.
-// The knobs come from runner.config.json; the code Workflow's checks and review skill and wrap-up's merge check are set
-// here; the repo map comes from the primary root's clones.
+// The knobs come from runner.config.json; the code Workflow's checks and review skill, the piece Workflow's commands and
+// token path, and wrap-up's merge check are set here; the repo map comes from the primary root's clones.
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -23,6 +23,7 @@ import type {
   IssueWorkspacesConfig,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
 import type { WrittenOutcomeRow } from "@byronbroughten/spec-runner/outcomeRowWriter";
+import { pieceWorkflowOf } from "@byronbroughten/spec-runner/pieceWorkflow";
 import { loadRunKnobs } from "@byronbroughten/spec-runner/runKnobs";
 import type { SpecRunConfig } from "@byronbroughten/spec-runner/SpecRun";
 import { configFolderOf } from "@byronbroughten/spec-runner/transcriptFacts";
@@ -43,6 +44,12 @@ export const implementCodeCommands: ImplementCodeSkillInput = {
 const codeWorkflow = codeWorkflowOf({
   checks: [["npm", "run", "check"]],
   reviewSkillName: "code-review",
+});
+// The piece checks and the Docs token file, the same one doc:print reads.
+const pieceWorkflow = pieceWorkflowOf({
+  overlapCommand: ["npm", "run", "overlap"],
+  verifyQuotesCommand: ["npm", "run", "verify:quotes"],
+  docsCredentialPath: join(homedir(), ".clasprc-docs.json"),
 });
 const scriptFolder = fileURLToPath(new URL(".", import.meta.url));
 
@@ -144,7 +151,7 @@ export function specRunConfigOf(owner: string): SpecRunConfig {
   } = issueWorkspacesConfig;
   return {
     knobs: runKnobs,
-    workflows: { code: codeWorkflow },
+    workflows: { code: codeWorkflow, piece: pieceWorkflow },
     agentStep: ClaudeAgentStep.init({
       gworkspaceServer: gworkspaceServer(),
       permissionHook: stepPermissionHook,

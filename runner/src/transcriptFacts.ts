@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { ContextMeter } from "./contextMeter.ts";
 import type { OutcomeFacts } from "./outcomeLog.ts";
 
-export type StepAgent = "implement" | "review" | "resolve";
+export type StepAgent = "implement" | "research" | "review" | "resolve";
 
 export interface StepSession {
   agent: StepAgent;
