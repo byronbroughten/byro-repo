@@ -1,4 +1,4 @@
-// A spec run's Halts: raising a ticket's blocker and Failure Halts, posting them to the spec once its other work is committed,
+// A spec run's Halts: raising a ticket's blocker, Failure and Research Halts, posting them to the spec once its other work is committed,
 // and halting the ticket; a crash past its retries is a Failure Halt, and a streak of them Stops the run as stuck.
 // It also works out a ticket's downstream, the run's tickets it blocks, which a Halt's scope names.
 // The lowest collaborator: it calls only the Base, and every collaborator that halts a ticket builds one.
@@ -137,6 +137,43 @@ export class HaltRaiser extends SpecRunBase {
     });
   }
 
+  // Saved before the wrap-up closes the ticket, since a rerun never lands a closed ticket and would never raise it; the next pick posts it.
+  async _raiseResearchHalt(landingTicket: LandingTicket): Promise<void> {
+    const { run, ticket } = landingTicket;
+    const isRaised = runHalts
+      .ofTicket(run, ticket.issue)
+      .some(({ kind }) => kind === "research");
+    if (isRaised) return;
+    const record = ticketSteps.readyResearchRecordOf(landingTicket);
+    const question = this._agentStepOf(run.spec, "research").haltOf(record);
+    if (question === undefined) return;
+    runHalts.raise(run, {
+      ticket: ticket.issue,
+      drafts: [
+        {
+          kind: "research",
+          ...question,
+          scope: await this._draftingTicketsOf(run),
+          outlineEdits: record.outlineEdits,
+        },
+      ],
+    });
+    this._saveState(run);
+  }
+
+  // The run's tickets that aren't research, each `<repo>#<n>`.
+  private async _draftingTicketsOf(run: Run): Promise<string[]> {
+    const workflow = this._workflowOf(run.spec);
+    const drafting: string[] = [];
+    for (const ticket of run.tickets) {
+      const tracked = await this.config.github.issueOf(ticket);
+      if (workflow.landingOf(tracked) !== "research") {
+        drafting.push(shortRefOf(ticket));
+      }
+    }
+    return drafting;
+  }
+
   // Posts the ticket's new Halts and halts it; with none, the ticket goes on.
   async _haltOnUnpostedHalts(ticketRun: TicketRun): Promise<void> {
     const { run, ticket } = ticketRun;
@@ -159,13 +196,14 @@ export class HaltRaiser extends SpecRunBase {
 
   // Also picks up the Halts of a ticket that halted in a run killed before they were all posted.
   async _postUnpostedHalts(run: Run): Promise<void> {
-    // The gap check's is checked first, so it never creates a ticket state for the spec.
+    // The gap check's is checked first, so it never creates a ticket state for the spec; a Research Halt's ticket lands rather than halts.
     const unposted = runHalts
       .of(run)
       .filter(
         (halt) =>
           !halt.isPosted &&
           (runHalts.isGapCheck(halt) ||
+            halt.kind === "research" ||
             runTickets.stateOf(run, halt.ticket).step === "halted"),
       );
     for (const halt of unposted) {

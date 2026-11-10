@@ -1,11 +1,12 @@
 // The research step: the prompt the runner sends a piece spec's research ticket, which follows /research-piece up to
 // its post, and the research record it returns, with the checks the runner makes on it before ../../SpecRun/ResearchStepper.ts keeps it,
-// the section a step sent back on red quotes gets, and the closing comment the ticket lands with.
+// the section a step sent back on red quotes gets, the closing comment the ticket lands with, and the words of its Research Halt.
 // pieceWorkflow.ts registers these as the piece Workflow's research rules.
 
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
+import type { HaltQuestion } from "../../halts.ts";
 import { stepReadLine } from "../../IssueReader.ts";
 import {
   arraySchema,
@@ -15,9 +16,11 @@ import {
   stringSchema,
 } from "../../recordSchema.ts";
 import type {
+  OutlineEdit,
   ReadyResearchRecord,
   ResearchHandoff,
   ResearchRecord,
+  UnverifiedItem,
 } from "../../stepRecords.ts";
 import type { RedQuotes, ResearchPromptInput } from "../../Workflow.ts";
 
@@ -56,7 +59,7 @@ Return the research record as \`record\`:
 - \`status\`: \`ready\` once step 7's quote check exits 0; \`blocked\` when a blocker stopped you first.
 - \`commentPath\` and \`textsFolder\`: the absolute paths of \`comment.md\` and the texts folder in your scratch folder.
 - \`counts\`: the facts the review left \`supported\`, the ones you \`rewritten\`, and the ones moved to \`## Unverified\` as \`unverified\`.
-- \`outlineEdits\`: each Outline edit you propose, with its \`section\`, the \`edit\` and its \`reason\`.
+- \`outlineEdits\`: each Outline edit you propose, with its \`section\`, the \`oldText\` it replaces, quoted exactly from the spec's \`## Outline\`, its \`newText\` and its \`reason\`. An approved edit replaces that text word for word.
 - \`unverified\`: each \`## Unverified\` item, its \`fact\`, its \`reason\` and \`isWanted\`.
 - \`blockers\`: each blocker, as above.`,
 
@@ -94,12 +97,67 @@ export function researchClosingCommentOf({
   outlineEdits,
   unverified,
 }: ReadyResearchRecord): string {
-  const wanted = unverified.filter(({ isWanted }) => isWanted);
   return [
     `Posted the research comment: ${counts.supported} fact(s) supported, ${counts.rewritten} rewritten and ${counts.unverified} unverified.`,
-    `Proposed Outline edits:${bulletsOf(outlineEdits.map(({ section, edit, reason }) => `${section}: ${edit} (${reason})`))}`,
-    `Unverified facts the Facts field names:${bulletsOf(wanted.map(({ fact, reason }) => `${fact} (${reason})`))}`,
+    `Proposed Outline edits:${bulletsOf(outlineEdits.map(outlineEditTextOf))}`,
+    `Unverified facts the Facts field names:${bulletsOf(wantedOf(unverified).map(unverifiedTextOf))}`,
   ].join("\n\n");
+}
+
+// Raised on the landed ticket, before any drafting starts.
+export function researchHaltOf({
+  outlineEdits,
+  unverified,
+}: ReadyResearchRecord): HaltQuestion | undefined {
+  const wanted = wantedOf(unverified);
+  if (wanted.length === 0 && outlineEdits.length === 0) return undefined;
+  const factLines = wanted.map(
+    (item, index) => `**F${index + 1}** ${unverifiedTextOf(item)}`,
+  );
+  const editLines = outlineEdits.map(
+    (edit, index) => `**E${index + 1}** ${outlineEditTextOf(edit)}`,
+  );
+  return {
+    question: [
+      "The research left these to settle before any drafting starts.",
+      ...(wanted.length > 0
+        ? [`Wanted facts it couldn't verify:${bulletsOf(factLines)}`]
+        : []),
+      ...(outlineEdits.length > 0
+        ? [`Proposed Outline edits:${bulletsOf(editLines)}`]
+        : []),
+    ].join("\n\n"),
+    options: [
+      ...(wanted.length > 0 ? factOptions : []),
+      ...(outlineEdits.length > 0 ? editOptions : []),
+    ],
+  };
+}
+
+const factOptions = [
+  "`drop F<n>`: clear the fact and go on without it.",
+  "`another source F<n>`, naming the source: the Supervisor settles one fact from one Drive file. For anything larger, file a Research ticket with `/piece-tickets`, blocking the drafting tickets, before answering.",
+];
+
+const editOptions = [
+  "`approve E<n>`: approve the edit. The runner doesn't apply it yet, so make the change in the spec's `## Outline` yourself.",
+];
+
+function wantedOf(unverified: UnverifiedItem[]): UnverifiedItem[] {
+  return unverified.filter(({ isWanted }) => isWanted);
+}
+
+function unverifiedTextOf({ fact, reason }: UnverifiedItem): string {
+  return `${fact} (${reason})`;
+}
+
+function outlineEditTextOf({
+  section,
+  oldText,
+  newText,
+  reason,
+}: OutlineEdit): string {
+  return `${section}: replace "${oldText}" with "${newText}" (${reason})`;
 }
 
 // The runner posts it on the ticket; the `session:` line ties it to the step's transcript.
@@ -149,7 +207,8 @@ const recordVariantsSchema = {
       outlineEdits: arraySchema(
         objectSchema({
           section: stringSchema,
-          edit: stringSchema,
+          oldText: stringSchema,
+          newText: stringSchema,
           reason: stringSchema,
         }),
       ),

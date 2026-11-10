@@ -6,6 +6,7 @@
 // Each Workflow's own code is in Workflow/<name>/.
 // A ticket follows its spec's Workflow. Labels are Trusted, since only collaborators can add one.
 
+import type { HaltQuestion } from "./halts.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { Command } from "./runKnobs.ts";
 import type {
@@ -100,6 +101,8 @@ export interface ResearchRules {
   sendBacks: number;
   // The ticket closes on it once its comment is posted.
   closingCommentOf(record: ReadyResearchRecord): string;
+  // What the developer settles before drafting starts; undefined when the record leaves nothing to settle.
+  haltOf(record: ReadyResearchRecord): HaltQuestion | undefined;
 }
 
 export interface ImplementPromptInput {

@@ -1,5 +1,6 @@
 // The piece Workflow: a spec labelled piece runs under it. A research ticket runs its research step, from researchStep.ts,
 // then its quote check, and lands with no code: its comment posted, its outcome row written and the ticket closed.
+// What it couldn't verify and the Outline edits it proposes then go to the developer in one Research Halt, which holds the drafting tickets.
 // Every step reads the Drive files the spec's Supporting Material lists, as source targets, and no others.
 // The drafting sequence (#639) isn't built, so the preflight refuses every launchable ticket that isn't research.
 // A repo's runner config builds it with its commands and token path, and ../../Workflow.ts registers it.
@@ -13,6 +14,7 @@ import type { SpecEnd, Workflow, WorkflowStep } from "../../Workflow.ts";
 import {
   quoteSendBacks,
   researchClosingCommentOf,
+  researchHaltOf,
   researchHandoffCommentOf,
   researchOutputSchema,
   researchPrompt,
@@ -86,10 +88,12 @@ export function pieceWorkflowOf({
         },
         sendBacks: quoteSendBacks,
         closingCommentOf: researchClosingCommentOf,
+        haltOf: researchHaltOf,
       },
     },
-    landingOf() {
-      return "research";
+    // Only a research ticket reaches a landing, but a Research Halt reads this to find the drafting tickets it holds.
+    landingOf(ticket) {
+      return isResearch(ticket) ? "research" : "code";
     },
     checks: [],
     specEnd,

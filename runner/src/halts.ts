@@ -9,6 +9,7 @@ import {
   type Blocker,
   type HaltScope,
   haltScopeOf,
+  type OutlineEdit,
   type ProposedSlice,
   type ResolveRecord,
 } from "./stepRecords.ts";
@@ -28,6 +29,7 @@ const kindLabels = {
   "denied-tool": "denied-tool blocker",
   failure: "Failure Halt",
   split: "Split Halt",
+  research: "Research Halt",
 } as const;
 
 export type HaltKind = keyof typeof kindLabels;
@@ -48,6 +50,8 @@ export interface Halt {
   failedStep?: FailedStep;
   // The hash of the body a launch-time authorship check saw; `approve` approves that text alone.
   bodyHash?: string;
+  // A Research Halt's proposed edits, which its answer approves by `E<n>`.
+  outlineEdits?: OutlineEdit[];
   isPosted: boolean;
   answer?: HaltAnswer;
   // Set once the answer reached the resumed or fresh implementer.
@@ -79,7 +83,11 @@ export type HaltDraft = Pick<
   | "finding"
   | "failedStep"
   | "bodyHash"
+  | "outlineEdits"
 >;
+
+// What a Workflow words of a Halt it asks for; the core adds the rest.
+export type HaltQuestion = Pick<Halt, "question" | "options">;
 
 export function shortRefOf({ repo, number }: IssueRef): string {
   return `${repo}#${number}`;

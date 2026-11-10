@@ -87,6 +87,9 @@ _Avoid_: error, crash
 **Split Halt**:
 A Halt raised in place of a fresh implement step when a handoff proposes splitting the ticket, carrying the proposed slices. The developer splits the ticket, then answers `continue`. It is not a Failure Halt, so the stuck detector ignores it.
 
+**Research Halt**:
+A Halt raised once on a landed Research ticket that left wanted facts unverified or proposed Outline edits, scoped to the spec's drafting tickets. It carries the proposed edits. The developer drops a fact, names another source or approves an edit.
+
 **Halt risk**:
 A line in a ticket, or a gap in a spec's ticket order, that would make a run Halt, found by reading the tickets before the run.
 _Avoid_: blocker, finding

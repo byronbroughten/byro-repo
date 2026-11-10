@@ -1,9 +1,10 @@
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
 import { FakeAgentStep } from "./FakeAgentStep.ts";
+import type { Halt } from "./halts.ts";
 import { defaultRunKnobs } from "./runKnobs.ts";
 import type { RunResult } from "./SpecRun.ts";
 import {
@@ -16,6 +17,7 @@ import {
   refOf,
   resultOf,
   reviewed,
+  runStatePath,
   spec,
   specRun,
   type StepScript,
@@ -23,7 +25,7 @@ import {
   ticketState,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
-import type { ResearchRecord } from "./stepRecords.ts";
+import type { ReadyResearchRecord, ResearchRecord } from "./stepRecords.ts";
 import { toolsOf } from "./targetTools.ts";
 
 useSpecRunHarness();
@@ -83,7 +85,7 @@ describe("run on a piece spec", () => {
       expect.stringMatching(/^Record the #1 outcome/),
     );
     const closing = github.closed.find(({ issue }) => issue.number === 1);
-    expect(closing?.comment).toContain("Move the ferry before the storm.");
+    expect(closing?.comment).toContain(newOutline);
     expect(ticketState()["byro-repo #1"]?.step).toBe("landed");
   });
 
@@ -223,6 +225,102 @@ describe("run on a piece spec", () => {
   });
 });
 
+describe("the Research Halt", () => {
+  it("raises one Halt on a landed ticket's wanted facts and Outline edits, holding the drafting tickets", async () => {
+    addDraftingSpec();
+    const agentStep = FakeAgentStep.init(
+      researched(readyRecordOf(scratchFolder())),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.message).toContain("byro-repo #2 waits on Halt H1");
+    expect(haltComments()).toHaveLength(1);
+    const [halt] = haltComments();
+    expect(halt).toContain("Research Halt");
+    expect(halt).toContain("**F1** The ferry carried forty people.");
+    expect(halt).toContain(`**E1** The crossing: replace "${oldOutline}"`);
+    expect(halt).toContain("Blocks: byro-repo#2 and their downstream.");
+    expect(ticketState()["byro-repo #1"]?.step).toBe("landed");
+    const saved = JSON.parse(readFileSync(runStatePath(), "utf8")) as {
+      halts: Halt[];
+    };
+    expect(saved.halts.map(({ outlineEdits }) => outlineEdits)).toEqual([
+      [
+        {
+          section: "The crossing",
+          oldText: oldOutline,
+          newText: newOutline,
+          reason: "The logbook dates the ferry first.",
+        },
+      ],
+    ]);
+  });
+
+  it("clears a dropped fact and leaves an unapproved edit out of the spec", async () => {
+    addDraftingSpec();
+    await specRun(
+      FakeAgentStep.init(researched(readyRecordOf(scratchFolder()))),
+    ).run(spec);
+    github.reply(spec.number, "H1: drop F1");
+
+    const result = await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(github.issues.get(spec.number)?.body).toBe(outlinedSpecBody);
+    expect(result.message).toContain(draftingGoesOn);
+  });
+
+  it("raises no Halt on a record with only unwanted facts and no edits", async () => {
+    addDraftingSpec();
+    const record: ResearchRecord = {
+      ...readyRecordOf(scratchFolder()),
+      outlineEdits: [],
+      unverified: [
+        {
+          fact: "The ferry was painted blue.",
+          reason: "No source names its colour.",
+          isWanted: false,
+        },
+      ],
+    };
+
+    const result = await specRun(FakeAgentStep.init(researched(record))).run(
+      spec,
+    );
+
+    expect(haltComments()).toEqual([]);
+    expect(result.message).toContain(draftingGoesOn);
+  });
+
+  it("doesn't call a landed ticket unlanded on a `stop spec` answer", async () => {
+    addDraftingSpec();
+    await specRun(
+      FakeAgentStep.init(researched(readyRecordOf(scratchFolder()))),
+    ).run(spec);
+    github.reply(spec.number, "H1: stop spec");
+
+    const result = await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(result.kind).toBe("stopped");
+    expect(result.message).not.toContain("stays unlanded");
+  });
+});
+
+const oldOutline = "the storm came, then the ferry ran.";
+const newOutline = "the ferry ran before the storm came.";
+const outlinedSpecBody = `## Deliverable\n\nThe crossing.\n\n## Outline\n\n- **The crossing**: ${oldOutline}\n\n## Facts\n\n- The ferry carried forty people.\n`;
+
+// The drafting sequence (#639) isn't built, so the drafting ticket waits on the developer once no Halt holds it.
+const draftingGoesOn = "byro-repo #2 waits on you";
+
+// Research ticket #1 blocks drafting ticket #2, which isn't ready-for-agent, so the preflight refuses nothing.
+function addDraftingSpec(): void {
+  addPieceSpec([1, 2]);
+  github.edit(2, { labels: [] });
+  github.blockers.set(2, [1]);
+  github.edit(spec.number, { body: outlinedSpecBody });
+}
+
 const deliverableId = "1DeliverableCrossingDoc0000000000";
 const logbookId = "1LighthouseLogbook000000000000000";
 const timetableId = "1FerryTimetable_2-0000000000000000";
@@ -235,7 +333,7 @@ function scratchFolder(fact = "The ferry ran."): string {
   return folder;
 }
 
-function readyRecordOf(folder: string): ResearchRecord {
+function readyRecordOf(folder: string): ReadyResearchRecord {
   return {
     status: "ready",
     commentPath: join(folder, "comment.md"),
@@ -244,7 +342,8 @@ function readyRecordOf(folder: string): ResearchRecord {
     outlineEdits: [
       {
         section: "The crossing",
-        edit: "Move the ferry before the storm.",
+        oldText: oldOutline,
+        newText: newOutline,
         reason: "The logbook dates the ferry first.",
       },
     ],
