@@ -558,7 +558,7 @@ describe("checkDocs", () => {
     });
   });
 
-  describe("skill indexes", () => {
+  describe("skill index", () => {
     const index = "docs/agents/workflows.md";
     const skills = {
       ".claude/skills/grilling/SKILL.md": "# Grilling\n",
