@@ -81,6 +81,7 @@ export interface TextRun {
 export interface TextStyle {
   bold?: boolean;
   italic?: boolean;
+  underline?: boolean;
   link?: Link;
 }
 
@@ -126,7 +127,46 @@ export interface TableCell {
   content: StructuralElement[];
 }
 
-/** The port to the Docs REST API's `documents.get`, real or faked. */
+/** One `documents.batchUpdate` request; each carries exactly one kind. */
+export interface Request {
+  insertText?: InsertTextRequest;
+  deleteContentRange?: { range: Range };
+  updateTextStyle?: UpdateTextStyleRequest;
+  updateParagraphStyle?: UpdateParagraphStyleRequest;
+}
+
+export interface Range {
+  startIndex: number;
+  endIndex: number;
+}
+
+export interface InsertTextRequest {
+  text: string;
+  location: { index: number };
+}
+
+export interface UpdateTextStyleRequest {
+  range: Range;
+  textStyle: TextStyle;
+  fields: string;
+}
+
+export interface UpdateParagraphStyleRequest {
+  range: Range;
+  paragraphStyle: ParagraphStyle;
+  fields: string;
+}
+
+export interface BatchUpdateRequest {
+  requests: Request[];
+  writeControl: { requiredRevisionId: string };
+}
+
+/**
+ * The port to the Docs REST API's `documents.get` and `documents.batchUpdate`,
+ * real or faked. A refused request rejects with `DocsRequestRefused`.
+ */
 export interface DocumentsPort {
   documentOf(documentId: string): Promise<GoogleDocument>;
+  batchUpdate(documentId: string, update: BatchUpdateRequest): Promise<void>;
 }

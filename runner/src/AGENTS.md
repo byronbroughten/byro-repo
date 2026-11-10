@@ -27,12 +27,16 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `contextMeter.ts` | `contextMeter` | Measures a session's peak context from stream events or a transcript. |
 | `contextNudge.ts` | `contextNudge` | Words the handoff reminder once a transcript reaches the ticket budget, for the ticket's handoff, the supervision's or both. |
 | `CswapUsageReader.ts` | `CswapUsageReader` | Reads account usage and the Active account from `cswap list --json`. |
-| `Docs.ts` | | The Docs module's port: reads a Doc as its Markdown, its Sections by heading and the revision read; it may later move to `packages/` with a folder move. |
+| `Docs.ts` | | The Docs module's port: reads a Doc as its Markdown, its Sections by heading and the revision read, and writes a Section in place under that revision; it may later move to `packages/` with a folder move. |
 | `Docs/DocReader.ts` | | Reads a `documents.get` body into the Markdown dialect. |
 | `Docs/docFixtures.ts` | | Loads the `documents.get` JSON fixtures in `Docs/fixtures/` that Docs tests read. |
-| `Docs/FakeDocuments.ts` | | The scripted `documents.get` port Docs tests use. |
-| `Docs/googleDocs.ts` | | The Google Docs layer: the `documents.get` body types and its port. |
-| `Docs/markdownDialect.ts` | | The Markdown dialect's forms and its split into Sections. |
+| `Docs/DocsRequestRefused.ts` | | The error for a request the Docs API refused, with its status. |
+| `Docs/FakeBody.ts` | | The character-per-index body `FakeDocuments` applies `batchUpdate` requests to. |
+| `Docs/FakeDocuments.ts` | | The in-memory Docs API Docs tests use: `documents.get` and `batchUpdate` under a revision guard. |
+| `Docs/googleDocs.ts` | | The Google Docs layer: the `documents.get` body types, the `batchUpdate` requests and its port. |
+| `Docs/markdownDialect.ts` | | The Markdown dialect's forms, its split into Sections and its parse of a Section's body. |
+| `Docs/SectionWriter.ts` | | Turns a Section's new Markdown into the `batchUpdate` requests that change only what differs. |
+| `Docs/StaleRevision.ts` | | The error for a write refused because the Doc changed after the revision read. |
 | `EventFileNotices.ts` | `EventFileNotices` | The event-file notice adapter a Supervisor watches, and its readers. |
 | `FactsFile.ts` | `FactsFile` | Reads and writes a ticket's facts file. |
 | `failureText.ts` | `failureText` | Words a thrown error or failed command, once for every caller. |

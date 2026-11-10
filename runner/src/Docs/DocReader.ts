@@ -25,7 +25,7 @@ import {
   markdownDialect,
 } from "./markdownDialect.ts";
 
-const headingLevels: Partial<Record<NamedStyleType, number>> = {
+export const headingLevels: Partial<Record<NamedStyleType, number>> = {
   TITLE: 1,
   HEADING_1: 1,
   HEADING_2: 2,
@@ -222,7 +222,8 @@ export class DocReader {
   }
 }
 
-function headingTextsOf(body: Body): Map<string, string> {
+/** Each heading's plain text by its headingId, which a heading link targets. */
+export function headingTextsOf(body: Body): Map<string, string> {
   return body.content.reduce((texts, element) => {
     const headingId = element.paragraph?.paragraphStyle?.headingId;
     if (element.paragraph !== undefined && headingId !== undefined) {
