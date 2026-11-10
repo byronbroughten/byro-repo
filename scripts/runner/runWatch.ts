@@ -7,6 +7,7 @@ import {
   rawLinesAt,
 } from "@byronbroughten/spec-runner/EventFileNotices";
 import type { IssueRef } from "@byronbroughten/spec-runner/IssueWorkspaces";
+import type { ProcessIdentity } from "@byronbroughten/spec-runner/processIdentity";
 import { type MemberList, runText } from "@byronbroughten/spec-runner/SpecRun";
 import type { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
 
@@ -47,11 +48,17 @@ export interface WatchDeps extends StartWaitDeps {
   print: (line: string) => void;
 }
 
-interface OnceWatchDeps extends WatchDeps {
+export interface OnceWatchDeps extends WatchDeps {
   records: SupervisionRecords;
   // The watch's own process, which the spec's record names as its one watch.
   pid: number;
+  // Asked by identity, so a reused pid never passes for the claude process a parked watch waits on.
+  isProcessLive: (claudeProcess: ProcessIdentity) => Promise<boolean>;
 }
+
+type WatchEnd = "done" | "replaced";
+
+const parkPollMs = 30_000;
 
 interface WatchMode {
   // Prints what it takes of the lines new since the last check, and says whether the watch is done.
@@ -123,7 +130,7 @@ export async function watchOnce(
     );
   }
   const watched = { owner, members: start.members };
-  await watchFrom(start.offset, watched, deps, {
+  const end = await watchFrom(start.offset, watched, deps, {
     printNew([firstLine]) {
       if (firstLine === undefined) return false;
       deps.print(firstLine);
@@ -131,6 +138,15 @@ export async function watchOnce(
     },
     isReplaced: () => !records.isWatchedBy(spec, start.watchProcess),
   });
+  // Claude Code hands a background command's exit to the next conversation in its process, so an exit here would wake the one after a /clear.
+  if (end === "replaced") await parkUntilGone(start.supervisor, deps);
+}
+
+async function parkUntilGone(
+  claudeProcess: ProcessIdentity,
+  { isProcessLive, sleep }: OnceWatchDeps,
+): Promise<void> {
+  while (await isProcessLive(claudeProcess)) await sleep(parkPollMs);
 }
 
 async function watchFrom(
@@ -138,21 +154,21 @@ async function watchFrom(
   watched: WatchedRun,
   deps: WatchDeps,
   { printNew, isReplaced }: WatchMode,
-): Promise<void> {
+): Promise<WatchEnd> {
   const { stateFolder, pollMs, isRunLive, print, sleep } = deps;
   let printedCount = printedFrom;
   let isDeadOnLastCheck = false;
   for (;;) {
-    if (isReplaced()) return;
+    if (isReplaced()) return "replaced";
     const lines = linesOf(stateFolder, watched.members);
-    if (printNew(lines.slice(printedCount))) return;
+    if (printNew(lines.slice(printedCount))) return "done";
     printedCount = lines.length;
     const isDead = !isRunLive(watched.members);
     // An earlier run's end counts only once no process holds the lock, since a relaunch may not have started yet.
-    if (isDead && lastBoundaryOf(lines) === "run-ended") return;
+    if (isDead && lastBoundaryOf(lines) === "run-ended") return "done";
     if (isDead && isDeadOnLastCheck) {
       print(vanishedLineOf(watched, deps.now()));
-      return;
+      return "done";
     }
     isDeadOnLastCheck = isDead;
     await sleep(pollMs);

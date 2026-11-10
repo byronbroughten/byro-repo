@@ -44,6 +44,8 @@ export type SupervisionEnd = "clear" | "resume" | "processEnd";
 export interface WatchStart {
   // Named as the record names its Supervisor, so a reused pid never passes for the watch it replaced.
   watchProcess: ProcessIdentity;
+  // Read at the start, since a takeover removes the record before the watch notices.
+  supervisor: ProcessIdentity;
   offset: number;
   // The record's own, so the watch reads the file its offset counts in.
   members: MemberList;
@@ -51,7 +53,7 @@ export interface WatchStart {
 
 // The Supervisor's own identity, so a reused pid never inherits its record.
 export interface RecordFile extends SupervisionRecord, ProcessIdentity {
-  // The spec's one watch: a later one replaces it, and it exits once the record names another.
+  // The spec's one watch: a later one replaces it, and it parks once the record names another.
   watch?: ProcessIdentity;
 }
 
@@ -83,9 +85,12 @@ export class SupervisionRecords {
       (file) => this._eventFileOf(file.members) === eventFile,
     );
     const offset = Math.max(0, ...sameStream.map((file) => file.offset));
-    const watch = sameStream.find((file) => file.watch)?.watch;
     // Read before the removal, so a polling watch never finds the spec with no record and takes itself for replaced.
     const supervisor = await identityOf(pid);
+    // Only the same claude process keeps its watch; another session's takeover leaves the old one replaced.
+    const watch = sameStream.find((file) =>
+      isSameProcess(file, supervisor),
+    )?.watch;
     for (const file of overlapping) this._remove(file.pid);
     const record: SupervisionRecord = { pid, owner, members, offset };
     this._write({ ...record, ...supervisor, watch });
@@ -120,7 +125,13 @@ export class SupervisionRecords {
     const file = this._specFileOf(spec);
     if (file === undefined) return undefined;
     this._write({ ...file, watch: watchProcess });
-    return { watchProcess, offset: file.offset, members: file.members };
+    const supervisor = { pid: file.pid, startedAt: file.startedAt };
+    return {
+      watchProcess,
+      supervisor,
+      offset: file.offset,
+      members: file.members,
+    };
   }
 
   isWatchedBy(spec: IssueRef, watchProcess: ProcessIdentity): boolean {
@@ -162,7 +173,7 @@ export class SupervisionRecords {
     return { ...record, offset };
   }
 
-  // Keeps the record and its offset for the rejoin; dropping the watch makes a running one exit unprinted.
+  // Keeps the record and its offset for the rejoin; dropping the watch parks a running one unprinted.
   async end({ pid }: LeaseHolder, endedBy: SupervisionEnd): Promise<void> {
     const file = this._fileOf(pid);
     if (file === undefined) return;
