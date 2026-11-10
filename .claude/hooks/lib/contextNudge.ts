@@ -11,9 +11,11 @@ import {
   workspaceKey,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
 import { runKnobsOrDefaults } from "@byronbroughten/spec-runner/runKnobs";
-import type { SupervisionRecord } from "@byronbroughten/spec-runner/SupervisionRecords";
+import {
+  rejoinCommandOf,
+  type SupervisionRecord,
+} from "@byronbroughten/spec-runner/SupervisionRecords";
 
-import { rejoinCommandOf } from "./sessionRecord.ts";
 import type { SessionMode } from "./tiers/tiers.ts";
 
 const runnerConfigPath = join(

@@ -4,7 +4,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 import {
   contextNudgeOf,
-  isPastTicketBudget,
+  sizePastBudgetOf,
 } from "@byronbroughten/spec-runner/contextNudge";
 import { IssueWorkspaces } from "@byronbroughten/spec-runner/IssueWorkspaces";
 import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
@@ -14,7 +14,11 @@ import {
   issueWorkspacesConfig,
   stateFolder,
 } from "../../scripts/runner/runnerConfig.ts";
-import { contextNudgeKnobs, owedHandoffsOf } from "./lib/contextNudge.ts";
+import {
+  type BudgetedSession,
+  contextNudgeKnobs,
+  owedHandoffsOf,
+} from "./lib/contextNudge.ts";
 import {
   readHookInput,
   runFailOpen,
@@ -37,30 +41,23 @@ await runFailOpen(async () => {
   }
   const markerPath = sessionStatePath(input.session_id, "context-nudge");
   if (existsSync(markerPath)) return;
-  const transcript = readFileSync(input.transcript_path, "utf8");
   const knobs = contextNudgeKnobs();
+  const size = sizePastBudgetOf(
+    readFileSync(input.transcript_path, "utf8"),
+    knobs.ticketBudget,
+  );
   // Checked first, since reading the leases runs ps per workspace.
-  if (!isPastTicketBudget(transcript, knobs.ticketBudget)) return;
-  const holder = nearestClaudeAncestor();
+  if (size === undefined) return;
   const records = SupervisionRecords.init(stateFolder);
-  const session = {
-    mode: sessionModeOf(process.env),
-    held: holder
-      ? leasedWorkspacesOf(
-          await IssueWorkspaces.init(issueWorkspacesConfig).leases(),
-          holder,
-        )
-      : [],
-    record: holder ? await records.recordOf(holder) : undefined,
-  };
-  const owed = owedHandoffsOf(session, (lead) => records.handoffPathOf(lead));
+  const owed = owedHandoffsOf(await budgetedSessionOf(records), (lead) =>
+    records.handoffPathOf(lead),
+  );
   if (owed === undefined) return;
-  const nudge = contextNudgeOf(transcript, {
+  const nudge = contextNudgeOf(size, {
     sessionId: input.session_id,
     ...knobs,
     owed,
   });
-  if (!nudge) return;
   // "wx" throws if a parallel call already claimed the nudge, so it fires once.
   writeFileSync(markerPath, "", { flag: "wx" });
   writeHookOutput({
@@ -70,3 +67,17 @@ await runFailOpen(async () => {
     },
   });
 });
+
+async function budgetedSessionOf(
+  records: SupervisionRecords,
+): Promise<BudgetedSession> {
+  const mode = sessionModeOf(process.env);
+  const holder = nearestClaudeAncestor();
+  if (!holder) return { mode, held: [], record: undefined };
+  const leases = await IssueWorkspaces.init(issueWorkspacesConfig).leases();
+  return {
+    mode,
+    held: leasedWorkspacesOf(leases, holder),
+    record: await records.recordOf(holder),
+  };
+}

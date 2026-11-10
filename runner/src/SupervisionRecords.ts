@@ -292,3 +292,9 @@ export function isWatching(
 ): boolean {
   return issueRef.isAmong(issue, members);
 }
+
+// Names the lead member, which rejoins a Batch too.
+export function rejoinCommandOf({ owner, members }: SupervisionRecord): string {
+  const [lead] = members;
+  return `/runner ${owner}/${lead.repo} ${lead.number}`;
+}
