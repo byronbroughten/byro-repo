@@ -10,7 +10,7 @@ A skill is in scope when a Workflow stage of either Workflow calls it or names i
 
 ## The Workflow stages and their skills
 
-The words Piece, Deliverable, Section, Stage, Agent draft and Edit gate are [the writing glossary](../pieces/GLOSSARY.md)'s.
+The words Piece, Deliverable, Section, Stage and Agent draft are [the writing glossary](../pieces/GLOSSARY.md)'s.
 
 1. **Planning**
    - Code: [`/wayfinder`](../../.claude/skills/wayfinder/SKILL.md), [`/grill-with-docs`](../../.claude/skills/grill-with-docs/SKILL.md), [`/grill-me`](../../.claude/skills/grill-me/SKILL.md), [`domain-modeling`](../../.claude/skills/domain-modeling/SKILL.md), [`/prototype`](../../.claude/skills/prototype/SKILL.md), [`/research`](../../.claude/skills/research/SKILL.md).

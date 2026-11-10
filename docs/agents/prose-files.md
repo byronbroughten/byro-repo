@@ -110,7 +110,7 @@ The rules for writing any Piece, whichever repo files its spec. The Pieces' text
 
 ### Writing (`packages/personal/writing/`, in the `personal` repo)
 
-The `personal` repo is private and holds piece specs as issues, and each of their Agent drafts under `writing/snapshots/`, written by `/implement-piece` only. Its docs link only inside it (its own lint) and name a root doc in plain text; byro-repo's docs never link into it.
+The `personal` repo is private and holds piece specs as issues, and each of their Agent drafts under `writing/snapshots/`, written by `/implement-piece` only. Its docs link only inside it (its own lint) and name a root doc in plain text.
 
 ### Config (`config/`)
 

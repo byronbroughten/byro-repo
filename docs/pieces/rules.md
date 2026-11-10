@@ -1,6 +1,6 @@
 # Rules for writing Pieces
 
-The rules every piece spec follows, in whichever repo files it as a GitHub issue. The words Piece, Deliverable, Section, Outline, Stage, Agent draft and Reference are [GLOSSARY.md](./GLOSSARY.md)'s.
+The rules every piece spec follows, in whichever repo files it as a GitHub issue. The words Piece, Deliverable, Section, Outline, Agent draft, Supporting Material and Reference are [GLOSSARY.md](./GLOSSARY.md)'s.
 
 ## Grilling a piece spec
 
