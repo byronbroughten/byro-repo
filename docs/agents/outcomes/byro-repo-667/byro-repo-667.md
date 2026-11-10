@@ -1,0 +1,7 @@
+# byro-repo#667 outcome
+
+Spec: [byro-repo#667](https://github.com/byronbroughten/byro-repo/issues/667)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #667 | Opus medium | 3 | 9 | 120K | Fix (resumed implementer) | 3 | 1 | 0 | 19 min | $2.57 | $4.04 | Fixed: applied, greened and startTime are no-arg, side-effect-free bundle members left as methods. (runner/src/specRunHarness/stepResults.ts:134, :153; runner/src/specRunHarness/timing.ts:10); Each header comment is neither one line nor a 5-10 line navigation block. (runner/src/specRunHarness/stepResults.ts:1; runner/src/specRunHarness/timing.ts:1; runner/src/specRunHarness.ts:1). Proposed: The harness forwards its subfolder's values and a type, against 'imported directly by its path'. (runner/src/specRunHarness.ts:37-56); Three copies of the no-output result shape and repeated file, add and commit steps. (runner/src/specRunHarness/stepResults.ts:64-91, :107-110, :184-186; runner/src/specRunHarness.ts commitRed); recordOf and findingOf meet the destructure threshold but stay positional. (runner/src/specRunHarness/stepResults.ts:49-53, :166-170). | a8b9e418-08d8-4313-8fc0-0fca917bbea4, 5c0c9a6e-a00f-4a41-b273-4890ea4e4264 |
