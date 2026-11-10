@@ -10,6 +10,7 @@ import type {
   OutcomeRowRequest,
   WrittenOutcomeRow,
 } from "../outcomeRowWriter.ts";
+import type { Command } from "../runKnobs.ts";
 import type { IssueComment } from "../SpecRun.ts";
 
 export const labels = {
@@ -123,7 +124,7 @@ export interface WrapUpConfig {
   // The one login whose review lists the close step counts.
   developer: string;
   // Each a command and its args, run from the workspace's root after the merges.
-  checks: [string, ...string[]][];
+  mergeChecks: Command[];
   // Relative to the root repo.
   outcomeFolder: string;
   // Holds each ticket's facts and progress files; gitignored.

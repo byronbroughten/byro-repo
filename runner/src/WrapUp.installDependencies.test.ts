@@ -72,7 +72,7 @@ describe("installDependencies", () => {
     const roots: string[] = [];
 
     await wrapUp({
-      checks: [failsUntilInstalled()],
+      mergeChecks: [failsUntilInstalled()],
       async installDependencies(root) {
         roots.push(root);
         writeFileSync(installMarker(), "");

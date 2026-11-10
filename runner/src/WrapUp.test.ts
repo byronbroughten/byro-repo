@@ -274,7 +274,7 @@ describe("run", () => {
       primaryRoot,
     ];
 
-    await wrapUp({ checks: [moveMaster] }).run(ticket);
+    await wrapUp({ mergeChecks: [moveMaster] }).run(ticket);
 
     const firstParents = git(
       primaryRoot,
