@@ -2,7 +2,7 @@
 // spec's Workflow. SpecRun/TicketSequencer.ts reaches a Workflow's Step sequence only through this module, SpecRun/ReviewListPoster.ts
 // its spec-end Steps, and every
 // collaborator that launches an agent step takes its prompt, record schema and record checks, through agentStepOf, from the Workflow
-// SpecRunBase._workflowOf picks; SpecRun/PreflightChecker.ts takes its ticket refusal, and SpecRun/TicketSequencer.ts its landing stop.
+// SpecRunBase._workflowOf picks; SpecRun/PreflightChecker.ts takes its ticket refusal, and SpecRun/TicketSequencer.ts its source targets.
 // Each Workflow's own code is in Workflow/<name>/.
 // A ticket follows its spec's Workflow. Labels are Trusted, since only collaborators can add one.
 
@@ -19,10 +19,12 @@ import type {
   GapCheckRecord,
   Handoff,
   ImplementRecord,
+  ReadyResearchRecord,
   ResearchHandoff,
   ResearchRecord,
   ResolveRecord,
 } from "./stepRecords.ts";
+import type { Target } from "./ticketTargets.ts";
 
 export type WorkflowName = "code" | "piece";
 
@@ -37,8 +39,8 @@ export interface Workflow {
   stepsOf(ticket: TrackedIssue): WorkflowStep[];
   // The preflight's refusal of the spec's launchable tickets, a Standalone run's own ticket among them; undefined when none refused.
   ticketRefusalOf(launchable: TrackedIssue[]): string | undefined;
-  // The message a ticket stops on in place of its landing, for a Workflow that can't land it yet; undefined when it lands.
-  landingStopOf(state: TicketState): string | undefined;
+  // The files outside the repo every step of the spec's tickets may read, on top of each ticket's own targets.
+  sourceTargetsOf(spec: TrackedIssue): Target[];
   // Reached through agentStepOf, which throws for a step the Workflow leaves out.
   agentSteps: Partial<AgentSteps>;
   // Run from a workspace or primary root: after review in each ticket, and in a master set when they go red in a ticket.
@@ -71,6 +73,14 @@ export interface ResearchPromptInput {
   body: string;
   // Set for a fresh step after a handoff; a handoff is cumulative, so only the latest is passed.
   latestHandoff?: ResearchHandoff;
+  // Set for the step sent back on a red quote check.
+  redQuotes?: RedQuotes;
+}
+
+export interface RedQuotes {
+  record: ReadyResearchRecord;
+  // The quote check's command and the last lines of its output.
+  failure: string;
 }
 
 export interface ResearchRules {
@@ -80,6 +90,10 @@ export interface ResearchRules {
   // Checks the output against outputSchema too, since only the real adapter does; `cwd` resolves a relative path.
   recordProblems(output: unknown, cwd: string): string[];
   handoffCommentOf(handoff: ResearchHandoff, sessionId: string): string;
+  // The ticket's checks: `verify:quotes` on the record's comment and texts.
+  quoteCheckOf(record: ReadyResearchRecord): Command;
+  // The ticket closes on it once its comment is posted.
+  closingCommentOf(record: ReadyResearchRecord): string;
 }
 
 export interface ImplementPromptInput {

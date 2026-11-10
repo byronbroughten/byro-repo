@@ -1,5 +1,5 @@
 // One ticket's run: takes its workspace lease, walks the Step sequence its spec's Workflow supplies from the step it
-// reached, through ../Workflow.ts only, and lands it, or stops in its place where the Workflow can't land it yet,
+// reached, through ../Workflow.ts only, with its ticket's targets and its spec's sources, and lands it,
 // releasing the lease however it ends. A Halt or a lease taken
 // since the pick leaves the ticket waiting; an UnhandledStop leaves it unlanded and commented on, or Stops the run for a rerun to retry it.
 // Before launch it raises a Failure Halt on a body ../IssueReader.ts doesn't trust; `approve` posts the text's approval.
@@ -107,22 +107,14 @@ export class TicketSequencer extends SpecRunBase {
         const workspace = await this._timed({ run, ticket }, "workspace", () =>
           this.leaseKeeper._workspaceFor(run, ticket.issue),
         );
-        const targets = ticketLaunch.validTargetsOf(
-          ticket,
-          this._progressPathOf(run),
-        );
+        const targets = [
+          ...ticketLaunch.validTargetsOf(ticket, this._progressPathOf(run)),
+          ...workflow.sourceTargetsOf(run.spec),
+        ];
         await this._runSteps({ run, ticket, pair, workspace, state, targets });
       } else {
         const landing = this.workspaces.folderOf(ticket.issue);
         if (landing) await this.leaseKeeper._takeLease(run, landing);
-      }
-      const landingStop = workflow.landingStopOf(state);
-      if (landingStop !== undefined) {
-        throw new UnhandledStop(
-          "landing",
-          landingStop,
-          this._progressPathOf(run),
-        );
       }
       await this._timed({ run, ticket }, "wrap-up", () =>
         this.ticketLander._land({ run, ticket, pair, state }),
@@ -283,9 +275,13 @@ export class TicketSequencer extends SpecRunBase {
   ): Promise<void> {
     if (step === "checks") {
       await this.haltRaiser._haltOnUnpostedHalts(ticketRun);
-      await this._timed(ticketRun, "checks", () =>
-        this.ticketLander._check(ticketRun),
-      );
+      // A research ticket's checks are its quote check; it has no code to check.
+      await this._timed(ticketRun, "checks", () => {
+        if (ticketRun.state.researchRecord !== undefined) {
+          return this.researchStepper._checkQuotes(ticketRun);
+        }
+        return this.ticketLander._check(ticketRun);
+      });
       return;
     }
     if (!isAgentStep(step)) {

@@ -1,5 +1,6 @@
 // The research step: the prompt the runner sends a piece spec's research ticket, which follows /research-piece up to
-// its post, and the research record it returns, with the checks the runner makes on it before ../../SpecRun/ResearchStepper.ts keeps it.
+// its post, and the research record it returns, with the checks the runner makes on it before ../../SpecRun/ResearchStepper.ts keeps it,
+// the section a step sent back on red quotes gets, and the closing comment the ticket lands with.
 // pieceWorkflow.ts registers these as the piece Workflow's research rules.
 
 import { existsSync } from "node:fs";
@@ -13,20 +14,25 @@ import {
   schemaProblemsOf,
   stringSchema,
 } from "../../recordSchema.ts";
-import type { ResearchHandoff, ResearchRecord } from "../../stepRecords.ts";
-import type { ResearchPromptInput } from "../../Workflow.ts";
+import type {
+  ReadyResearchRecord,
+  ResearchHandoff,
+  ResearchRecord,
+} from "../../stepRecords.ts";
+import type { RedQuotes, ResearchPromptInput } from "../../Workflow.ts";
 
 const skillPath = ".claude/skills/research-piece/SKILL.md";
 
 export function researchPrompt(input: ResearchPromptInput): string {
-  const { issue, title, body, latestHandoff } = input;
+  const { issue, title, body, latestHandoff, redQuotes } = input;
   return [
     `You are the research step of an unattended run. Research ${issue.repo}#${issue.number}, "${title}". Nobody is watching this session: never ask a question or wait for an answer.`,
     promptSections.steps,
-    `## GitHub\n\n- Make no GitHub write: the runner posts nothing for you, and you post nothing.\n- ${stepReadLine}`,
+    `## GitHub\n\n- Make no GitHub write: the runner posts your comment once its quote check passes, and you post nothing.\n- ${stepReadLine}`,
     promptSections.record,
     promptSections.handoff,
     ...(latestHandoff ? [previousHandoffSection(latestHandoff)] : []),
+    ...(redQuotes ? [redQuotesSection(redQuotes)] : []),
     `## The ticket\n\n${body}`,
   ].join("\n\n");
 }
@@ -62,6 +68,35 @@ function previousHandoffSection(handoff: ResearchHandoff): string {
 The previous step's scratch folder holds its work; build on it.
 
 ${handoffText(handoff)}`;
+}
+
+function redQuotesSection({
+  record: { commentPath, textsFolder },
+  failure,
+}: RedQuotes): string {
+  return `## The quote check failed
+
+The runner reran step 7's quote check on the comment at \`${commentPath}\`, with the texts in \`${textsFolder}\`, and it failed:
+
+\`\`\`
+${failure}
+\`\`\`
+
+Build on that scratch folder rather than starting over: fix each failure by step 4's fixes, rerun the check until it exits 0, then return the record again. The runner sends the step back only once; a second red check halts the ticket.`;
+}
+
+// The ticket closes on it once the comment is posted.
+export function researchClosingCommentOf({
+  counts,
+  outlineEdits,
+  unverified,
+}: ReadyResearchRecord): string {
+  const wanted = unverified.filter(({ isWanted }) => isWanted);
+  return [
+    `Posted the research comment: ${counts.supported} fact(s) supported, ${counts.rewritten} rewritten and ${counts.unverified} unverified.`,
+    `Proposed Outline edits:${bulletsOf(outlineEdits.map(({ section, edit, reason }) => `${section}: ${edit} (${reason})`))}`,
+    `Unverified facts the Facts field names:${bulletsOf(wanted.map(({ fact, reason }) => `${fact} (${reason})`))}`,
+  ].join("\n\n");
 }
 
 // The runner posts it on the ticket; the `session:` line ties it to the step's transcript.

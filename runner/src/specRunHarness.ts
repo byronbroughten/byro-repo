@@ -66,6 +66,13 @@ export const session: LeaseHolder = { kind: "session", pid: process.ppid };
 // Small binaries, not node, since every run spawns them and a node process costs several times as much to start.
 export const passes: Command = ["true"];
 export const greenUnlessRed: Command = ["sh", "-c", "test ! -f RED"];
+// The quote check, called with `--comment <path> --texts <folder>`: red on a comment holding MISQUOTE.
+const redOnMisquote: Command = [
+  "sh",
+  "-c",
+  'if grep -q MISQUOTE "$2"; then echo "NOT FOUND: MISQUOTE"; exit 1; fi',
+  "verify-quotes",
+];
 
 export let temp: string;
 export let primaryRoot: string;
@@ -186,8 +193,8 @@ export function workflowsWith(checks: Command[]): Workflows {
     code: codeWorkflowOf({ checks, reviewSkillName: "code-review" }),
     piece: pieceWorkflowOf({
       overlapCommand: ["true"],
-      verifyQuotesCommand: ["true"],
-      // Never read: the research step's checks and Drive reads come with #659.
+      verifyQuotesCommand: redOnMisquote,
+      // Never read: the drafting sequence that reads it isn't built.
       docsCredentialPath: "docs-credential.json",
     }),
   };

@@ -221,6 +221,52 @@ describe("driveGateDecision", () => {
     });
   });
 
+  it("in a runner step, allows a Drive read of a source and denies one of any other file", async () => {
+    const runnerStep = {
+      mode: "runnerStep" as const,
+      targets: [{ label: "source", id: "logbook", isReadOnly: true }],
+    };
+    const source = await decisionOf(
+      "mcp__gworkspace__get_drive_file_content",
+      { file_id: "logbook" },
+      ownersFrom({}),
+      runnerStep,
+    );
+    const other = await decisionOf(
+      "mcp__gworkspace__get_drive_file_download_url",
+      { file_id: "diary" },
+      ownersFrom({}),
+      runnerStep,
+    );
+    expect(source?.permissionDecision).toBe("allow");
+    expect(other).toEqual({
+      permissionDecision: "deny",
+      reason:
+        "Tier gate: `get_drive_file_download_url` reads file `diary`, which isn't among this ticket's targets or its spec's sources (source `logbook`), so record a `denied-tool` blocker for the developer instead.",
+    });
+  });
+
+  it("has no opinion on a Drive read outside a runner step", async () => {
+    expect(
+      await decisionOf("mcp__gworkspace__get_drive_file_content", {
+        file_id: "diary",
+      }),
+    ).toBeUndefined();
+  });
+
+  it("in a runner step, denies a write to a source", async () => {
+    const decision = await decisionOf(
+      "mcp__gworkspace__modify_doc_text",
+      { document_id: "logbook" },
+      ownersFrom({ logbook: [mine] }),
+      {
+        mode: "runnerStep",
+        targets: [{ label: "source", id: "logbook", isReadOnly: true }],
+      },
+    );
+    expect(decision?.permissionDecision).toBe("deny");
+  });
+
   it("in a runner step, turns an ask into a deny", async () => {
     const decision = await decisionOf(
       "mcp__gworkspace__batch_update_doc",
@@ -253,11 +299,13 @@ describe("stepTargetsOf", () => {
       { kind: "spreadsheet", name: "app" },
       { kind: "spreadsheet", name: "dev" },
       { kind: "doc", id: "doc1" },
+      { kind: "source", id: "logbook" },
     ]);
     expect(stepTargetsOf(targets, configs)).toEqual([
       { label: "app spreadsheet", id: "appSheet" },
       { label: "dev spreadsheet", id: undefined },
       { label: "doc", id: "doc1" },
+      { label: "source", id: "logbook", isReadOnly: true },
     ]);
     expect(stepTargetsOf(undefined, configs)).toEqual([]);
     expect(stepTargetsOf("not json", configs)).toEqual([]);

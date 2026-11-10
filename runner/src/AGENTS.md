@@ -108,7 +108,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/LeaseKeeper.ts` | | Takes and releases a ticket's workspace lease and finds its workspace. |
 | `SpecRun/MemberSelections.ts` | | One pick's ticket selections across a run's members. |
 | `SpecRun/PreflightChecker.ts` | | The run's preflight over its member list: run locks, each member's refusals and the shared preflight Stop. |
-| `SpecRun/ResearchStepper.ts` | | Runs a piece spec's research ticket's research step and its handoffs, and keeps its record. |
+| `SpecRun/ResearchStepper.ts` | | Runs a piece spec's research ticket's research step and its handoffs, keeps its record, and runs its quote check, sending the step back on red. |
 | `SpecRun/ReviewItemDecider.ts` | | `runner decide`: records one item of the developer's own review list as decided or handled. |
 | `SpecRun/ReviewListPoster.ts` | | Posts review lists and covered-later notes, and ends the run with its Workflow's spec-end Steps, the gap check's review list included. |
 | `SpecRun/ReviewStepper.ts` | | Runs a ticket's review and resolve steps. |
@@ -119,7 +119,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/StatusReporter.ts` | | A run's or Batch's status, and its stop request. |
 | `SpecRun/StepLauncher.ts` | | Launches an agent step under the limit guard, retries a crash and resumes a step a limit cut off, delegating the limit waits to `StepLauncher/`. |
 | `SpecRun/StepLauncher/LimitWaiter.ts` | | Holds a launch until the Active account reads under its thresholds and waits out a limit hit. |
-| `SpecRun/TicketLander.ts` | | Lands a ticket: writes its facts file, runs the wrap-up and posts its review list, delegating its checks and wrap-up failures to `TicketLander/`. |
+| `SpecRun/TicketLander.ts` | | Lands a ticket: posts a research ticket's comment, writes its facts file, runs the wrap-up and posts its review list, delegating its checks and wrap-up failures to `TicketLander/`. |
 | `SpecRun/TicketLander/MasterMerger.ts` | | Takes a ticket's wrap-up failure, merging master into its branch on a conflict and resuming the implementer to resolve it. |
 | `SpecRun/TicketLander/TicketChecker.ts` | | Runs a ticket's checks until green, resuming on red and stopping on a red master. |
 | `SpecRun/TicketSelector.ts` | | Picks the run's next ticket and reads Halt answers. |
@@ -138,15 +138,15 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `stepPrompts.ts` | | The prompt text the implement and resolve steps share with the core and the `/implement-code` skill: the resumes' prompts, the implement body, the resolve rules and record fields, and the generated `/implement-*` skills' shared ending. |
 | `stepRecords.ts` | | The records the steps return, with the types, reasons and small readers the core shares. |
 | `SupervisionRecords.ts` | `SupervisionRecords` | A Supervisor's record of the run or Batch it watches and the lines explained, and its handoff file, read once on a rejoin. |
-| `targetTools.ts` | | The tools a step gets for each of its ticket's targets. |
+| `targetTools.ts` | | The tools a step gets for each of its ticket's targets and its spec's sources. |
 | `TicketHalted.ts` | | The error raised once a ticket's Halts are posted. |
 | `ticketNewDependencies.ts` | | Reads a ticket's `## New dependencies` section. |
 | `ticketSections.ts` | | Finds one `## ` section of a ticket's body. |
-| `ticketTargets.ts` | | Reads a ticket's `## Targets` section. |
+| `ticketTargets.ts` | | Reads a ticket's `## Targets` section, and holds the target kinds, a spec's source among them. |
 | `transcriptFacts.ts` | `transcriptFacts` | Outcome facts computed from transcripts: pair, peaks, duration and cost, and why one is unrecorded; where a session's transcript is. |
 | `UnhandledStop.ts` | `UnhandledStop` | The outcomes the run loop doesn't handle yet, and their error. |
 | `verdicts.ts` | | A finding's axes and verdicts. |
-| `Workflow.ts` | | The Workflow type, its spec-end Steps, ticket refusal and landing stop, each agent step's rules and prompt input and the accessor that throws for a step a Workflow leaves out, and the pick of a spec's Workflow from its labels: the core's one way to a Workflow. |
+| `Workflow.ts` | | The Workflow type, its spec-end Steps, ticket refusal and source targets, each agent step's rules and prompt input and the accessor that throws for a step a Workflow leaves out, and the pick of a spec's Workflow from its labels: the core's one way to a Workflow. |
 | `Workflow/code/codeWorkflow.ts` | `codeWorkflow` | Builds the code Workflow from a repo's checks and review skill: each ticket's Step sequence, the Step each one goes on to, its spec-end Steps and their trigger, and its agent steps' rules, resolve resuming implement. |
 | `Workflow/code/gapCheck.ts` | `gapCheck` | The gap check's prompt and output schema. |
 | `Workflow/code/implementCodeSkill.ts` | `implementCodeSkill` | Generates the `/implement-code` skill from the implement step's shared body. |
@@ -155,8 +155,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Workflow/code/redChecksStep.ts` | | The red-checks step's prompt and record. |
 | `Workflow/code/resolveStep.ts` | `resolveStep` | The resolve step's prompt, record schema and record and commit checks. |
 | `Workflow/code/reviewStep.ts` | `reviewStep` | The review step's prompt and record schema. |
-| `Workflow/piece/pieceWorkflow.ts` | `pieceWorkflow` | Builds the piece Workflow from a repo's overlap and quote commands and Docs token path: its Steps, agent steps, ticket refusal and the stop in place of a research ticket's landing. |
-| `Workflow/piece/researchStep.ts` | | The research step's prompt, handoff comment, record checks and output schema. |
+| `Workflow/piece/pieceWorkflow.ts` | `pieceWorkflow` | Builds the piece Workflow from a repo's overlap and quote commands and Docs token path: its Steps, agent steps, ticket refusal, quote check and the source targets read from the spec's Supporting Material. |
+| `Workflow/piece/researchStep.ts` | | The research step's prompt, its red-quotes section, handoff comment, record checks, output schema and closing comment. |
 | `WrapUp.ts` | `WrapUp` | `npm run wrap-up`: lands an issue or session workspace, delegating its landing steps and closing the issue to `WrapUp/`; and `npm run research:push`'s push. |
 | `WrapUp/BranchDeleter.ts` | | Deletes a landing's branches on each remote and locally, recording the ones that failed. |
 | `WrapUp/BranchLander.ts` | | Lands a landing's branches up to the fast-forward: restores, clean check, files changed, stale paths, unnamed new dependencies, build and rebuild. |
