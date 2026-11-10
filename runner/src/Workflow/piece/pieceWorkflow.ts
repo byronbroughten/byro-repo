@@ -1,5 +1,6 @@
 // The piece Workflow: a spec labelled piece runs under it. A research ticket runs its research step, from researchStep.ts,
 // then its quote check, and lands with no code: its comment posted, its outcome row written and the ticket closed.
+// What it couldn't verify and the Outline edits it proposes then go to the developer in one Research Halt, which holds the drafting tickets.
 // Every other ticket is a drafting ticket: its first Step pulls the Deliverable's Doc into the Agent draft, agentDraft.ts,
 // and its implement step, implementStep.ts, drafts the ticket's Sections there.
 // The drafting Steps after implement aren't built, so a drafting ticket stops after it, unlanded.
@@ -37,6 +38,7 @@ import {
 import {
   quoteSendBacks,
   researchClosingCommentOf,
+  researchHaltOf,
   researchHandoffCommentOf,
   researchOutputSchema,
   researchPrompt,
@@ -134,6 +136,10 @@ export function pieceWorkflowOf({
         },
         sendBacks: quoteSendBacks,
         closingCommentOf: researchClosingCommentOf,
+        haltOf: researchHaltOf,
+        isDrafting(ticket) {
+          return !isResearch(ticket);
+        },
       },
       implement: {
         promptOf: draftingPromptOf,

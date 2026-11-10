@@ -141,9 +141,12 @@ export interface ResearchCounts {
   unverified: number;
 }
 
+// Exact texts, so the runner can apply an approved one to the spec's Outline word for word.
 export interface OutlineEdit {
   section: string;
-  edit: string;
+  // The Outline's text the edit replaces, quoted exactly.
+  oldText: string;
+  newText: string;
   reason: string;
 }
 

@@ -1,9 +1,9 @@
 // A ticket's landing. It writes the facts file, runs the wrap-up until it lands and posts the ticket's review list.
-// A research ticket lands with no code: its comment is posted first, and its closing comment is its Workflow's.
+// A research ticket lands with no code: its comment is posted first, its closing comment is its Workflow's, and its Research Halt is posted last.
 // TicketSequencer.ts calls _check after the resolve step and _land at wrap-up.
 // _check only delegates: a ticket's checks are TicketLander/TicketChecker.ts.
 // A wrap-up failure, the merge of master on a conflict included, is TicketLander/MasterMerger.ts.
-// It builds its own TicketChecker, MasterMerger and ReviewListPoster.
+// It builds its own TicketChecker, MasterMerger, ReviewListPoster and HaltRaiser.
 
 import { readFileSync } from "node:fs";
 
@@ -12,6 +12,7 @@ import { haltKindLabelOf, runnerMark } from "../halts.ts";
 import { issueRef } from "../IssueWorkspaces.ts";
 import { pairLabelOf } from "../modelFit.ts";
 import { type RecordedSession, unrecordedFactsOf } from "../transcriptFacts.ts";
+import { HaltRaiser } from "./HaltRaiser.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
 import {
   type LandingTicket,
@@ -37,6 +38,10 @@ export class TicketLander extends SpecRunBase {
     return new ReviewListPoster(this.config);
   }
 
+  private get haltRaiser(): HaltRaiser {
+    return new HaltRaiser(this.config);
+  }
+
   async _check(ticketRun: TicketRun): Promise<void> {
     return this.ticketChecker._check(ticketRun);
   }
@@ -49,6 +54,7 @@ export class TicketLander extends SpecRunBase {
     if (hasNoCode) {
       await this._postResearch(landingTicket);
       this._writeResearchFacts(landingTicket, steps);
+      await this.haltRaiser._raiseResearchHalt(landingTicket);
     } else {
       this._writeFacts(landingTicket, steps);
     }
@@ -70,6 +76,7 @@ export class TicketLander extends SpecRunBase {
     this._advance(landingTicket, "landed");
     this._log(run, `${issueRef.labelOf(ticket.issue)}: landed.`);
     await this.reviewListPoster._postReviewList(run, ticket);
+    if (hasNoCode) await this.haltRaiser._postUnpostedHalts(run);
   }
 
   // Posted once, before the wrap-up closes the ticket, so a retried wrap-up never posts it again.

@@ -234,9 +234,13 @@ export class TicketSelector extends SpecRunBase {
 }
 
 // The halted ticket itself, every ticket for a `spec` scope, else the named tickets and their downstream.
+// A Research Halt's own ticket is landing, not halted, so a wrap-up retry never waits on it.
 function isHeldBy({ halt, ticket, downstreamOf }: HoldCheck): boolean {
   const { scope } = halt;
-  if (shortRefOf(halt.ticket) === ticket || scope === "spec") return true;
+  if (scope === "spec") return true;
+  if (shortRefOf(halt.ticket) === ticket && halt.kind !== "research") {
+    return true;
+  }
   return scope.some(
     (named) =>
       named === ticket || (downstreamOf.get(named) ?? []).includes(ticket),

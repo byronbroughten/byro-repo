@@ -31,6 +31,7 @@ import {
   type Restart,
   type Run,
   type RunResult,
+  runTickets,
   type TicketOutcome,
   type Wait,
 } from "./runState.ts";
@@ -631,8 +632,11 @@ function stopRequestMessageOf(run: Run, waits: Wait[]): string {
 }
 
 function stopSpecMessageOf(run: Run, halts: Halt[]): string {
-  const tickets = [
-    ...new Set(halts.map(({ ticket }) => issueRef.labelOf(ticket))),
-  ];
-  return `Stopped on \`stop spec\` for Halt ${runHalts.idListOf(halts)}: ${runText.landedOf(run.landed)}; ${tickets.join(", ")} stays unlanded.`;
+  // A Research Halt's ticket has already landed.
+  const unlanded = halts
+    .filter(({ ticket }) => !runTickets.isLanded(run, ticket))
+    .map(({ ticket }) => issueRef.labelOf(ticket));
+  const stopMessage = `Stopped on \`stop spec\` for Halt ${runHalts.idListOf(halts)}: ${runText.landedOf(run.landed)}`;
+  if (unlanded.length === 0) return `${stopMessage}.`;
+  return `${stopMessage}; ${[...new Set(unlanded)].join(", ")} stays unlanded.`;
 }
