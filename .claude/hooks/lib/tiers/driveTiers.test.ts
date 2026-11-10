@@ -246,6 +246,23 @@ describe("driveGateDecision", () => {
     });
   });
 
+  it("in a runner step, denies a Drive read that names no file", async () => {
+    const decision = await decisionOf(
+      "mcp__gworkspace__get_drive_file_content",
+      {},
+      ownersFrom({}),
+      {
+        mode: "runnerStep",
+        targets: [{ label: "source", id: "logbook", isReadOnly: true }],
+      },
+    );
+    expect(decision).toEqual({
+      permissionDecision: "deny",
+      reason:
+        "Tier gate: `get_drive_file_content` names no file, so record a `denied-tool` blocker for the developer instead.",
+    });
+  });
+
   it("has no opinion on a Drive read outside a runner step", async () => {
     expect(
       await decisionOf("mcp__gworkspace__get_drive_file_content", {

@@ -254,7 +254,7 @@ async function writeDecision({
     return gateOf("ask", `${tool} names no file to look its owner up by.`);
   }
   const writable = targets.filter(({ isReadOnly }) => !isReadOnly);
-  if (mode === "runnerStep" && !writable.some(({ id }) => id === fileId)) {
+  if (mode === "runnerStep" && !isStepFile(writable, fileId)) {
     return gateOf(
       "deny",
       `${tool} writes to file \`${fileId}\`, which isn't among this ticket's targets (${targetsShown(writable)}), so ${blockerInstead}.`,
@@ -286,13 +286,20 @@ function readDecision({
 }: FileCall): Decision | undefined {
   if (mode !== "runnerStep") return undefined;
   const tool = `\`${shortNameOf(toolName)}\``;
-  if (fileId !== undefined && targets.some(({ id }) => id === fileId)) {
+  if (fileId === undefined) {
+    return gateOf("deny", `${tool} names no file, so ${blockerInstead}.`);
+  }
+  if (isStepFile(targets, fileId)) {
     return gateOf("allow", `file \`${fileId}\` is this step's to read.`);
   }
   return gateOf(
     "deny",
-    `${tool} reads file \`${fileId ?? "with no ID"}\`, which isn't among this ticket's targets or its spec's sources (${targetsShown(targets)}), so ${blockerInstead}.`,
+    `${tool} reads file \`${fileId}\`, which isn't among this ticket's targets or its spec's sources (${targetsShown(targets)}), so ${blockerInstead}.`,
   );
+}
+
+function isStepFile(targets: StepTarget[], fileId: string): boolean {
+  return targets.some(({ id }) => id === fileId);
 }
 
 function targetsShown(targets: StepTarget[]): string {

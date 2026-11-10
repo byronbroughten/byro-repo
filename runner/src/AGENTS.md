@@ -21,7 +21,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `callOfItsOwn.ts` | `callOfItsOwn` | Words the advice to run a command in a call of its own, once for the hooks, the runner and the scripts lint. |
 | `Checks.ts` | `Checks` | Runs `npm run check`'s commands at once in the check slot, narrowed to the packages with no check stamp. |
 | `CheckSlot.ts` | | The per-primary check slot `npm run check` waits for. |
-| `ClaudeAgentStep.ts` | `ClaudeAgentStep` | The real agent-step adapter over `cswap run`, launching under the primary's gate root and settings plus an injected permission hook, with the targets' tools and environment. |
+| `ClaudeAgentStep.ts` | `ClaudeAgentStep` | The real agent-step adapter over `cswap run`, launching under the primary's gate root and settings plus an injected permission hook, with the targets' tools, no other gworkspace tool, and environment. |
 | `clonePaths.ts` | `clonePaths` | Builds the repo map, each clone in landing order, from a primary root. |
 | `CommittedFiles.ts` | | A set of committed files in one repo, read from HEAD for a check stamp's key, and whether any has a change. |
 | `contextMeter.ts` | `contextMeter` | Measures a session's peak context from stream events or a transcript. |
@@ -128,7 +128,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/runState/runHalts.ts` | | Raises, reads, delivers and orders a run's Halts, and finds a ticket's downstream. |
 | `SpecRun/runState/runText.ts` | | Words a run's end, waits and refusals, its rerun command and its review-list judge line. |
 | `SpecRun/runState/statePaths.ts` | | A spec's run state file and progress log paths in the state folder. |
-| `SpecRun/runState/ticketSteps.ts` | | A ticket's step sessions, heads, turn caps, live-ceiling phrase and snapshots, and reads a step's record and its review facts. |
+| `SpecRun/runState/ticketSteps.ts` | | A ticket's step sessions, heads, turn caps, live-ceiling phrase and snapshots, the red-checks loop, and reads a step's record, a kept research record and its review facts. |
 | `specRunHarness.ts` | | The fixture `SpecRun` tests share. |
 | `specRunHarness/stepResults.ts` | | The step results, records and scripted steps `SpecRun` tests give a fake agent step. |
 | `specRunHarness/timing.ts` | | The clock `SpecRun` tests start a run at and move through its fakes. |

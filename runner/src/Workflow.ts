@@ -28,6 +28,8 @@ import type { Target } from "./ticketTargets.ts";
 
 export type WorkflowName = "code" | "piece";
 
+export type Landing = "code" | "research";
+
 export interface WorkflowStep {
   step: TicketStep;
   // The step the ticket goes on to from the state this one left; the last step has none.
@@ -43,6 +45,8 @@ export interface Workflow {
   sourceTargetsOf(spec: TrackedIssue): Target[];
   // Reached through agentStepOf, which throws for a step the Workflow leaves out.
   agentSteps: Partial<AgentSteps>;
+  // What the ticket's checks and landing are: a code ticket's checks and branches, or a research ticket's quote check and comment.
+  landingOf(ticket: TrackedIssue): Landing;
   // Run from a workspace or primary root: after review in each ticket, and in a master set when they go red in a ticket.
   checks: Command[];
   specEnd: SpecEnd;
@@ -90,8 +94,10 @@ export interface ResearchRules {
   // Checks the output against outputSchema too, since only the real adapter does; `cwd` resolves a relative path.
   recordProblems(output: unknown, cwd: string): string[];
   handoffCommentOf(handoff: ResearchHandoff, sessionId: string): string;
-  // The ticket's checks: `verify:quotes` on the record's comment and texts.
+  // The ticket's checks: the Workflow's quote check on the record's comment and texts.
   quoteCheckOf(record: ReadyResearchRecord): Command;
+  // How many times a red quote check sends the step back before a Failure Halt; the prompt says the same count.
+  sendBacks: number;
   // The ticket closes on it once its comment is posted.
   closingCommentOf(record: ReadyResearchRecord): string;
 }

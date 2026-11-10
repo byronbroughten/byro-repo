@@ -148,6 +148,9 @@ export function codeWorkflowOf({
         skillName: reviewSkillName,
       },
     },
+    landingOf() {
+      return "code";
+    },
     checks,
     specEnd,
   };

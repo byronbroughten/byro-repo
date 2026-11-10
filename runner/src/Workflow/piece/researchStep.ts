@@ -23,6 +23,9 @@ import type { RedQuotes, ResearchPromptInput } from "../../Workflow.ts";
 
 const skillPath = ".claude/skills/research-piece/SKILL.md";
 
+// The spec's one send-back on red quotes before a Failure Halt; the prompt's count and the runner's limit both read it.
+export const quoteSendBacks = 1;
+
 export function researchPrompt(input: ResearchPromptInput): string {
   const { issue, title, body, latestHandoff, redQuotes } = input;
   return [
@@ -82,7 +85,7 @@ The runner reran step 7's quote check on the comment at \`${commentPath}\`, with
 ${failure}
 \`\`\`
 
-Build on that scratch folder rather than starting over: fix each failure by step 4's fixes, rerun the check until it exits 0, then return the record again. The runner sends the step back only once; a second red check halts the ticket.`;
+Build on that scratch folder rather than starting over: fix each failure by step 4's fixes, rerun the check until it exits 0, then return the record again. The runner sends the step back ${quoteSendBacks} time(s) at most; a red check after that halts the ticket.`;
 }
 
 // The ticket closes on it once the comment is posted.

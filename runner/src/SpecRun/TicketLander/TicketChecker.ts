@@ -29,11 +29,10 @@ export class TicketChecker extends SpecRunBase {
   }
 
   async _check(ticketRun: TicketRun): Promise<void> {
-    for (;;) {
-      const failure = await this._redChecksOf(ticketRun);
-      if (failure === undefined) return;
-      await this._resumeOnRedChecks(ticketRun, failure);
-    }
+    await ticketSteps.checkUntilGreen({
+      redOf: () => this._redChecksOf(ticketRun),
+      sendBack: (failure) => this._resumeOnRedChecks(ticketRun, failure),
+    });
   }
 
   // The first failing check's command and output tail; undefined when all pass. A red master Stops the run.
@@ -78,17 +77,14 @@ export class TicketChecker extends SpecRunBase {
     failure: string,
   ): Promise<void> {
     const { run, ticket, workspace, state } = ticketRun;
-    const { retriesPerFailure } = this.config.knobs;
-    const resumes = state.redCheckResumes ?? 0;
-    if (resumes >= retriesPerFailure) {
-      await this.haltRaiser._failureHalt(ticketRun, {
+    await this.haltRaiser._spendRedCheckResume(ticketRun, {
+      limit: this.config.knobs.retriesPerFailure,
+      failureOf: (resumes) => ({
         step: "checks",
         detail: `The checks are still red after ${resumes} resume(s): ${failure}`,
         logPath: state.redChecksLogPath ?? this._progressPathOf(run),
-      });
-    }
-    state.redCheckResumes = resumes + 1;
-    this._saveState(run);
+      }),
+    });
     let resolver: Resolver = state.resolver ?? "implementer";
     if (resolver === "implementer" && !this._isUnderBudget(state)) {
       resolver = "fresh";

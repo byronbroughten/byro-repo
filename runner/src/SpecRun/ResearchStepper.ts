@@ -2,21 +2,17 @@
 // keeps its record on the ticket's state once the record passes its checks; a failed check is a SchemaFailure, which
 // TicketSequencer.ts raises as a Failure Halt. Any record's blockers halt the ticket at once; a handoff posts
 // on the ticket and launches a fresh step, halting first past the handoff cap, as ImplementStepper.ts's does.
-// Its _checkQuotes is the ticket's checks step: the Workflow's quote check, red sending the step back once, then a Failure Halt.
+// Its _checkQuotes is the ticket's checks step: the Workflow's quote check, red sending the step back up to its rules' sendBacks, then a Failure Halt.
 // It builds its own HaltRaiser and StepLauncher; the step's prompt, schema and checks are its spec's Workflow's, through ../Workflow.ts.
 
 import { commandLabelOf } from "../failureText.ts";
 import { freshResumeSection } from "../halts.ts";
 import { issueRef } from "../IssueWorkspaces.ts";
 import { runCommand } from "../runCommand.ts";
-import type {
-  ReadyResearchRecord,
-  ResearchHandoff,
-  ResearchRecord,
-} from "../stepRecords.ts";
+import type { ResearchHandoff, ResearchRecord } from "../stepRecords.ts";
 import type { RedQuotes, ResearchRules } from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
-import type { LandingTicket, TicketRun } from "./runState.ts";
+import type { TicketRun } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
 import { ticketSteps } from "./runState/ticketSteps.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
@@ -40,22 +36,24 @@ export class ResearchStepper extends SpecRunBase {
     }
   }
 
-  // Red quotes send the research step back with the failure, up to the retriesPerFailure knob, then raise a Failure Halt.
+  // Red quotes send the research step back with the failure, up to its rules' sendBacks, then raise a Failure Halt.
   async _checkQuotes(ticketRun: TicketRun): Promise<void> {
-    for (;;) {
-      const record = readyRecordOf(ticketRun);
-      const failure = await this._redQuotesOf(ticketRun, record);
-      if (failure === undefined) return;
-      await this._sendBackOnRedQuotes(ticketRun, { record, failure });
-    }
+    await ticketSteps.checkUntilGreen({
+      redOf: () => this._redQuotesOf(ticketRun),
+      sendBack: (failure) =>
+        this._sendBackOnRedQuotes(ticketRun, {
+          record: ticketSteps.readyResearchRecordOf(ticketRun),
+          failure,
+        }),
+    });
   }
 
   private async _redQuotesOf(
-    { run, ticket, workspace }: TicketRun,
-    record: ReadyResearchRecord,
+    ticketRun: TicketRun,
   ): Promise<string | undefined> {
-    const command = this._agentStepOf(run.spec, "research").quoteCheckOf(
-      record,
+    const { run, ticket, workspace } = ticketRun;
+    const command = this._researchRulesOf(ticketRun).quoteCheckOf(
+      ticketSteps.readyResearchRecordOf(ticketRun),
     );
     this._log(
       run,
@@ -71,16 +69,14 @@ export class ResearchStepper extends SpecRunBase {
     redQuotes: RedQuotes,
   ): Promise<void> {
     const { run, ticket, state } = ticketRun;
-    const resumes = state.redCheckResumes ?? 0;
-    if (resumes >= this.config.knobs.retriesPerFailure) {
-      await this.haltRaiser._failureHalt(ticketRun, {
+    await this.haltRaiser._spendRedCheckResume(ticketRun, {
+      limit: this._researchRulesOf(ticketRun).sendBacks,
+      failureOf: (resumes) => ({
         step: "checks",
         detail: `The quote check is still red after ${resumes} research step(s) sent back: ${redQuotes.failure}`,
         logPath: this._progressPathOf(run),
-      });
-    }
-    state.redCheckResumes = resumes + 1;
-    this._saveState(run);
+      }),
+    });
     this._log(
       run,
       `${issueRef.labelOf(ticket.issue)}: quote check red; sending the research step back with the failure.`,
@@ -163,18 +159,4 @@ export class ResearchStepper extends SpecRunBase {
   private _researchRulesOf({ run }: TicketRun): ResearchRules {
     return this._agentStepOf(run.spec, "research");
   }
-}
-
-// The research step keeps only a ready record without halting the ticket, so the checks never meet another.
-export function readyRecordOf({
-  ticket,
-  state,
-}: LandingTicket): ReadyResearchRecord {
-  const record = state.researchRecord;
-  if (record?.status !== "ready") {
-    throw new Error(
-      `${issueRef.labelOf(ticket.issue)} reached its ${state.step} step with no ready research record`,
-    );
-  }
-  return record;
 }

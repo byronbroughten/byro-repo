@@ -29,7 +29,15 @@ const primaryPermissionHook = {
   command: `node "\${BYRO_GATE_ROOT:-$CLAUDE_PROJECT_DIR}/.claude/hooks/ask.ts"`,
 };
 const primarySettings = {
-  permissions: { deny: ["Edit(**/.env*)"] },
+  permissions: {
+    allow: [
+      "Bash(ls)",
+      "mcp__gworkspace__get_doc_content",
+      "mcp__gworkspace__search_drive_files",
+      "mcp__gworkspace__get_drive_file_content",
+    ],
+    deny: ["Edit(**/.env*)"],
+  },
   sandbox: {
     enabled: true,
     filesystem: {
@@ -249,10 +257,27 @@ describe("ClaudeAgentStep's command", () => {
     expect(argv).toContain("--mcp-config");
   });
 
+  it("gives a source target only the two Drive reads, withholding every other gworkspace tool the primary allows", async () => {
+    const { argv } = await replay("success.ndjson", {
+      targets: [{ kind: "source", id: "logbook" }],
+    });
+    const allowFlag = argv.indexOf("--allowedTools");
+    const disallowFlag = argv.indexOf("--disallowedTools");
+    expect(argv.slice(allowFlag + 1, disallowFlag)).toEqual([
+      "mcp__gworkspace__get_drive_file_content",
+      "mcp__gworkspace__get_drive_file_download_url",
+    ]);
+    expect(argv.slice(disallowFlag + 1, argv.indexOf("--mcp-config"))).toEqual([
+      "mcp__gworkspace__get_doc_content",
+      "mcp__gworkspace__search_drive_files",
+    ]);
+  });
+
   it("passes no gworkspace server, no targets and no --allowedTools when the ticket names none", async () => {
     const { argv, cwd } = await replay("success.ndjson");
     expect(argv).not.toContain("--mcp-config");
     expect(argv).not.toContain("--allowedTools");
+    expect(argv).not.toContain("--disallowedTools");
     expect(readFileSync(join(cwd, "targets"), "utf8")).toBe("");
   });
 });

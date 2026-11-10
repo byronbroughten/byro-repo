@@ -11,6 +11,7 @@ import { ticketSectionOf } from "../../ticketSections.ts";
 import type { Target } from "../../ticketTargets.ts";
 import type { SpecEnd, Workflow, WorkflowStep } from "../../Workflow.ts";
 import {
+  quoteSendBacks,
   researchClosingCommentOf,
   researchHandoffCommentOf,
   researchOutputSchema,
@@ -83,8 +84,12 @@ export function pieceWorkflowOf({
             textsFolder,
           ];
         },
+        sendBacks: quoteSendBacks,
         closingCommentOf: researchClosingCommentOf,
       },
+    },
+    landingOf() {
+      return "research";
     },
     checks: [],
     specEnd,

@@ -12,7 +12,6 @@ import { haltKindLabelOf, runnerMark } from "../halts.ts";
 import { issueRef } from "../IssueWorkspaces.ts";
 import { pairLabelOf } from "../modelFit.ts";
 import { type RecordedSession, unrecordedFactsOf } from "../transcriptFacts.ts";
-import { readyRecordOf } from "./ResearchStepper.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
 import {
   type LandingTicket,
@@ -46,7 +45,7 @@ export class TicketLander extends SpecRunBase {
   async _land(landingTicket: LandingTicket): Promise<void> {
     const { run, ticket, state } = landingTicket;
     const steps = ticketSteps.recordedSessionsOf(state);
-    const hasNoCode = state.researchRecord !== undefined;
+    const hasNoCode = this._landingOf(landingTicket) === "research";
     if (hasNoCode) {
       await this._postResearch(landingTicket);
       this._writeResearchFacts(landingTicket, steps);
@@ -77,7 +76,7 @@ export class TicketLander extends SpecRunBase {
   private async _postResearch(landingTicket: LandingTicket): Promise<void> {
     const { run, ticket, state } = landingTicket;
     if (state.isResearchPosted) return;
-    const { commentPath } = readyRecordOf(landingTicket);
+    const { commentPath } = ticketSteps.readyResearchRecordOf(landingTicket);
     await this.config.github.comment(
       ticket.issue,
       `${runnerMark}\n${readFileSync(commentPath, "utf8")}`,
@@ -124,7 +123,7 @@ export class TicketLander extends SpecRunBase {
     const closingComment = this._agentStepOf(
       run.spec,
       "research",
-    ).closingCommentOf(readyRecordOf(landingTicket));
+    ).closingCommentOf(ticketSteps.readyResearchRecordOf(landingTicket));
     const facts = factsOf(landingTicket, steps, {
       closingComment,
       boxesUndone: [],

@@ -277,7 +277,7 @@ export class TicketSequencer extends SpecRunBase {
       await this.haltRaiser._haltOnUnpostedHalts(ticketRun);
       // A research ticket's checks are its quote check; it has no code to check.
       await this._timed(ticketRun, "checks", () => {
-        if (ticketRun.state.researchRecord !== undefined) {
+        if (this._landingOf(ticketRun) === "research") {
           return this.researchStepper._checkQuotes(ticketRun);
         }
         return this.ticketLander._check(ticketRun);

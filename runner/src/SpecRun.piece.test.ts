@@ -24,6 +24,7 @@ import {
   useSpecRunHarness,
 } from "./specRunHarness.ts";
 import type { ResearchRecord } from "./stepRecords.ts";
+import { toolsOf } from "./targetTools.ts";
 
 useSpecRunHarness();
 
@@ -137,6 +138,10 @@ describe("run on a piece spec", () => {
     expect(agentStep.requests[0]?.targets).toEqual([
       { kind: "source", id: logbookId },
       { kind: "source", id: timetableId },
+    ]);
+    expect(toolsOf(agentStep.requests[0]?.targets ?? [])).toEqual([
+      "mcp__gworkspace__get_drive_file_content",
+      "mcp__gworkspace__get_drive_file_download_url",
     ]);
   });
 

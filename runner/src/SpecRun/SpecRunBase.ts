@@ -42,6 +42,7 @@ import { sleep } from "../sleep.ts";
 import {
   agentStepOf,
   type AgentSteps,
+  type Landing,
   type Workflow,
   workflowOf,
   type Workflows,
@@ -166,6 +167,10 @@ export class SpecRunBase {
     name: SN,
   ): AgentSteps[SN] {
     return agentStepOf(this._workflowOf(spec), name);
+  }
+
+  _landingOf({ run, ticket }: LandingTicket): Landing {
+    return this._workflowOf(run.spec).landingOf(ticket);
   }
 
   get wrapUp(): WrapUp {

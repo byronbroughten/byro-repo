@@ -146,7 +146,22 @@ function commandArgs(
   if (request.resumeSessionId) args.push("--resume", request.resumeSessionId);
   const targetTools = toolsOf(request.targets);
   if (targetTools.length > 0) args.push("--allowedTools", ...targetTools);
+  const withheld = withheldGworkspaceToolsOf(request, targetTools);
+  if (withheld.length > 0) args.push("--disallowedTools", ...withheld);
   return args;
+}
+
+// The primary allows gworkspace reads of any file, so a step with a server gets only those its targets give: a source, its two Drive reads.
+function withheldGworkspaceToolsOf(
+  { gateRoot, targets }: StepRequest,
+  targetTools: string[],
+): string[] {
+  if (targets.length === 0) return [];
+  const allowed = primarySettingsOf(gateRoot).permissions?.allow ?? [];
+  return allowed.filter(
+    (tool) =>
+      tool.startsWith("mcp__gworkspace__") && !targetTools.includes(tool),
+  );
 }
 
 export interface HookEntry {
@@ -155,6 +170,7 @@ export interface HookEntry {
 }
 
 export interface ProjectSettings {
+  permissions?: { allow?: string[] };
   hooks?: Record<string, HookEntry[]>;
   sandbox?: { filesystem?: { allowRead?: string[] } };
 }
