@@ -200,6 +200,7 @@ describe("implementPrompt", () => {
     branch: "issue-224-implement-step-prompt",
     branchedRepos: ["byro-repo", "sheets-framework"],
     promoteCommand: "npm run issue:promote -- byro-repo 224",
+    workspacePath: "/workspaces/byro-repo-issue-224",
   };
   const noReset = "Don't reset, stash, check out or clean it";
 

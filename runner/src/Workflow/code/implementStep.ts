@@ -1,8 +1,8 @@
 // The implement step: the prompt the runner sends, a non-interactive fork of upstream `implement`
 // recorded in byro-repo's .claude/skills/upstream.json, and the implement record it returns.
 // AgentStep.ts launches the step; StepStream.ts checks the output against implementOutputSchema.
-// Its record parts, handoff text and status check are every Workflow's, in ../../recordSchema.ts, ../../stepPrompts.ts
-// and ../../stepRecords.ts.
+// Its record parts, handoff text and status check are every Workflow's, in ../../recordSchema.ts,
+// ../../stepPrompts/handoffText.ts and ../../stepRecords.ts.
 
 import { gitHubWriteActions } from "../../FactsFile.ts";
 import { stepReadLine } from "../../IssueReader.ts";
@@ -22,10 +22,9 @@ import {
 import {
   implementBody,
   implementWorkspaceSection,
-  previousHandoffSection,
   ticketBindsSection,
 } from "../../stepPrompts.ts";
-import type { ImplementRecord } from "../../stepRecords.ts";
+import { handoffText } from "../../stepPrompts/handoffText.ts";
 import type { ImplementPromptInput } from "../../Workflow.ts";
 
 export function implementPrompt(input: ImplementPromptInput): string {
@@ -38,7 +37,7 @@ export function implementPrompt(input: ImplementPromptInput): string {
     ticketBindsSection(),
     promptSections.finishing,
     promptSections.handoff,
-    ...(latestHandoff ? [previousHandoffSection(latestHandoff)] : []),
+    ...(latestHandoff ? [handoffText.previousSectionOf(latestHandoff)] : []),
     `## The ticket\n\n${body}`,
   ].join("\n\n");
 }
@@ -76,9 +75,14 @@ const promptSections = {
   - \`boxesUndone\`: each acceptance box you left undone, with why.
   - \`blockers\`: each blocker, as above.`,
 
-  handoff: `## If a context nudge fires
-
-Finish the step in hand, then stop: commit nothing, post nothing, and return status \`handoff\` with no branches and every \`handoff\` field: \`conclusion\`, \`filesToOpen\` (path and line range), \`ruledOut\`, \`filesChanged\`, and \`stillFailing\` (empty when the code is green). A handoff is cumulative: carry over whatever still matters from any handoff you started from. When less than half the ticket is done, also fill \`proposedSplit\` with the remaining work as slices, each with what it \`delivers\` and the \`files\` it changes, so the developer can split the ticket before a fresh step goes on.`,
+  handoff: handoffText.nudgeSectionOf({
+    inHand: "step",
+    filesToOpen: "path and line range",
+    stillFailing: "empty when the code is green",
+    splitWhen: "the ticket is done",
+    slices:
+      "the remaining work as slices, each with what it `delivers` and the `files` it changes",
+  }),
 } as const;
 
 const gitHubWriteSchema = objectSchema({
@@ -107,7 +111,3 @@ const recordVariantsSchema = {
 export const implementOutputSchema = objectSchema({
   record: recordVariantsSchema,
 });
-
-export function implementRecordOf(output: unknown): ImplementRecord {
-  return (output as { record: ImplementRecord }).record;
-}

@@ -4,8 +4,11 @@
 
 import type { Command } from "../../runKnobs.ts";
 import type { TicketState, TicketStep } from "../../SpecRun/runState.ts";
-import { handoffCommentOf } from "../../stepPrompts.ts";
-import { implementRecordProblems } from "../../stepRecords.ts";
+import { handoffText } from "../../stepPrompts/handoffText.ts";
+import {
+  implementRecordOf,
+  implementRecordProblems,
+} from "../../stepRecords.ts";
 import type {
   AgentSteps,
   SpecEnd,
@@ -17,11 +20,7 @@ import {
   gapCheckPrompt,
   gapCheckRecordOf,
 } from "./gapCheck.ts";
-import {
-  implementOutputSchema,
-  implementPrompt,
-  implementRecordOf,
-} from "./implementStep.ts";
+import { implementOutputSchema, implementPrompt } from "./implementStep.ts";
 import {
   mergeMasterOutputSchema,
   mergeMasterPrompt,
@@ -77,8 +76,10 @@ const agentSteps: Omit<AgentSteps, "review" | "research"> = {
     promptOf: implementPrompt,
     outputSchema: implementOutputSchema,
     recordOf: implementRecordOf,
-    recordProblems: implementRecordProblems,
-    handoffCommentOf,
+    recordProblems(output, hasNewCommit) {
+      return implementRecordProblems(implementRecordOf(output), hasNewCommit);
+    },
+    handoffCommentOf: handoffText.commentOf,
   },
   resolve: {
     promptOf: resolvePrompt,

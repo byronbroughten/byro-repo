@@ -68,6 +68,12 @@ function newCommitProblem(rule: string): string {
   return `${rule}, but the step made a new commit`;
 }
 
+export function implementRecordOf<IR extends ImplementRecord>(
+  output: unknown,
+): IR {
+  return (output as { record: IR }).record;
+}
+
 export interface CommittedBranch {
   repo: string;
   branch: string;

@@ -93,6 +93,7 @@ export class ImplementStepper extends SpecRunBase {
     const { run, workspace, state } = ticketRun;
     const { continuation } = state;
     const { liveCeiling } = this.config.knobs;
+    createKeptFolder(ticketRun, this._implementRulesOf(ticketRun));
     let launch: StepLaunch;
     if (continuation === undefined || state.implementBase === undefined) {
       if (state.latestHandoff !== undefined) {
@@ -216,8 +217,7 @@ export class ImplementStepper extends SpecRunBase {
 
   private _implementPromptOf(ticketRun: TicketRun): string {
     const { run, ticket, workspace, state } = ticketRun;
-    const rules = this._implementRulesOf(ticketRun);
-    return rules.promptOf({
+    return this._implementRulesOf(ticketRun).promptOf({
       issue: ticket.issue,
       spec: run.spec.issue,
       title: ticket.title,
@@ -226,7 +226,7 @@ export class ImplementStepper extends SpecRunBase {
       branchedRepos: workspace.branchedRepos,
       promoteCommand: this.config.promoteCommandOf(ticket.issue),
       latestHandoff: state.latestHandoff,
-      keptFolder: keptFolderOf(ticketRun, rules),
+      workspacePath: workspace.path,
     });
   }
 
@@ -250,9 +250,8 @@ export class ImplementStepper extends SpecRunBase {
     const isRecommit =
       record.status === "committed" && state.record?.status === "committed";
     const problems = rules.recordProblems(
-      record,
-      hasNewCommit || isRecommit,
       launched.record,
+      hasNewCommit || isRecommit,
     );
     if (problems.length > 0) {
       throw ticketSteps.schemaFailureOf(logPath, {
@@ -317,14 +316,14 @@ export class ImplementStepper extends SpecRunBase {
 }
 
 // Created on every launch rather than once, so a ticket resumed in a recreated workspace still has it.
-function keptFolderOf(
+function createKeptFolder(
   { ticket, workspace }: TicketRun,
   rules: ImplementRules,
-): string | undefined {
-  if (rules.keptFolderOf === undefined) return undefined;
-  const folder = join(workspace.path, rules.keptFolderOf(ticket.issue));
-  mkdirSync(folder, { recursive: true });
-  return folder;
+): void {
+  if (rules.keptFolderOf === undefined) return;
+  mkdirSync(join(workspace.path, rules.keptFolderOf(ticket.issue)), {
+    recursive: true,
+  });
 }
 
 // A record-only retry follows commits, which a handoff record can't have, so it gets no live ceiling.

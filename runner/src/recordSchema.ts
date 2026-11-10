@@ -59,7 +59,6 @@ export const handoffSchema = objectSchema(
   { optional: ["proposedSplit"] },
 );
 
-// One status's variant of an implement record, every Workflow's implement step returning one per status.
 export function implementVariantSchema(
   status: ImplementRecord["status"],
   overrides: Record<string, object>,
@@ -76,7 +75,6 @@ export function implementVariantSchema(
   });
 }
 
-// The variants with no commit, the same in every Workflow's implement record.
 export const uncommittedVariantSchemas = {
   blocked: implementVariantSchema("blocked", {
     branches: arraySchema(branchSchema, { maxItems: 0 }),

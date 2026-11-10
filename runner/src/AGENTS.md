@@ -136,7 +136,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `specRunHarness/trackedIssues.ts` | | The tracked issues `SpecRun` tests give a fake GitHub and `Workflow` tests pick from. |
 | `stalePaths.ts` | | The stale-path check for `packages/<dir>` mentions with no clone. |
 | `StepStream.ts` | | Reads a step's stream-json into its `StepResult`. |
-| `stepPrompts.ts` | | The prompt text the implement and resolve steps share with the core and the `/implement-code` skill: the resumes' prompts, the implement body, its workspace and handoff sections and handoff comment, the resolve rules and record fields, and the generated `/implement-*` skills' shared ending. |
+| `stepPrompts.ts` | | The prompt text the implement and resolve steps share with the core and the `/implement-code` skill: the resumes' prompts, the implement body, its workspace section, the resolve rules and record fields, and the generated `/implement-*` skills' shared ending. |
+| `stepPrompts/handoffText.ts` | | The handoff wording every Workflow's implement step shares: the nudge section, a fresh step's section, the posted comment and a proposed split's text. |
 | `stepRecords.ts` | | The records the steps return, with the types, reasons, implement record check and small readers the core shares. |
 | `SupervisionRecords.ts` | `SupervisionRecords` | A Supervisor's record of the run or Batch it watches and the lines explained, and its handoff file, read once on a rejoin. |
 | `targetTools.ts` | | The tools a step gets for each of its ticket's targets and its spec's sources. |

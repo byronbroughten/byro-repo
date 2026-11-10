@@ -106,14 +106,14 @@ A doc is listed when two or more skills or Steps of either Workflow reach it by 
 | [The guardrails doc](../claude-code-guardrails.md) | `/code-tickets`, `/review-code-tickets`' reviewer, `/retro` | |
 | Design docs, ADRs and glossaries | `/code-spec`, `/code-tickets`, `domain-modeling`, `tdd`, `/to-code-style` | |
 | Skills read as docs | `/code-tickets`' conventions by `/judge-findings`; `/retro`'s categories by `/mine-outcomes`; `grilling`'s format by `/judge-findings`, `/mine-outcomes` and `/retro` | |
-| The Voice and Craft sheets: [`writing-voice.md`](../writing-voice.md) and [`writing-craft.md`](../writing-craft.md) | `/grill-piece`, `/review-piece`, `/to-writing-style` | via `rules.md`: `/implement-piece`, `/piece-spec`, `/piece-tickets` |
-| [The academic style sheet](../academic-writing-style.md) | `/grill-piece`, `/review-piece`, `/to-writing-style` | via `rules.md`: `/implement-piece`, `/piece-spec`, `/piece-tickets` |
-| [`rules.md`](../pieces/rules.md), the rules for writing any Piece | `/grill-piece`, `/piece-spec`, `/piece-tickets`, `/implement-piece`, `/review-piece` | |
-| [The writing glossary](../pieces/GLOSSARY.md) | `/grill-piece`, `/piece-spec`, `/piece-tickets`, `/review-piece`, `/to-writing-style` (its pair mode) | via `rules.md`: `/implement-piece` |
-| [`grilling.md`](../pieces/grilling.md) | `/grill-piece`, `/piece-spec`, `/to-writing-style` | via `rules.md`: `/piece-tickets`, `/implement-piece`, `/review-piece` |
-| [`outlining.md`](../pieces/outlining.md) | `/grill-piece`, `/piece-spec`, `/piece-tickets` | via `rules.md`: `/implement-piece`, `/review-piece` |
-| [`pdf-pages.md`](../pdf-pages.md) | `/grill-piece`, `/piece-tickets` (its ticket template), `/review-piece`, `/research-piece`, `/review-research` | via `rules.md`: `/implement-piece`, `/piece-spec` |
-| [`agent-draft.md`](../pieces/agent-draft.md) | `/implement-piece`, `/to-writing-style` (its pair mode) | via `rules.md`: `/piece-spec`, `/piece-tickets`, `/review-piece` |
+| The Voice and Craft sheets: [`writing-voice.md`](../writing-voice.md) and [`writing-craft.md`](../writing-craft.md) | `/grill-piece`, `/review-piece`, `/to-writing-style` | via `rules.md`: `/implement-piece`, `/piece-spec`, `/piece-tickets`; via runner prompt: the piece implement Step |
+| [The academic style sheet](../academic-writing-style.md) | `/grill-piece`, `/review-piece`, `/to-writing-style` | via `rules.md`: `/implement-piece`, the piece implement Step, `/piece-spec`, `/piece-tickets` |
+| [`rules.md`](../pieces/rules.md), the rules for writing any Piece | `/grill-piece`, `/piece-spec`, `/piece-tickets`, `/implement-piece`, `/review-piece` | via runner prompt: the piece implement Step |
+| [The writing glossary](../pieces/GLOSSARY.md) | `/grill-piece`, `/piece-spec`, `/piece-tickets`, `/review-piece`, `/to-writing-style` (its pair mode) | via `rules.md`: `/implement-piece`, the piece implement Step |
+| [`grilling.md`](../pieces/grilling.md) | `/grill-piece`, `/piece-spec`, `/to-writing-style` | via `rules.md`: `/piece-tickets`, `/implement-piece`, the piece implement Step, `/review-piece` |
+| [`outlining.md`](../pieces/outlining.md) | `/grill-piece`, `/piece-spec`, `/piece-tickets` | via `rules.md`: `/implement-piece`, the piece implement Step, `/review-piece` |
+| [`pdf-pages.md`](../pdf-pages.md) | `/grill-piece`, `/piece-tickets` (its ticket template), `/review-piece`, `/research-piece`, `/review-research` | via `rules.md`: `/implement-piece`, the piece implement Step, `/piece-spec` |
+| [`agent-draft.md`](../pieces/agent-draft.md) | `/implement-piece`, `/to-writing-style` (its pair mode) | via `rules.md`: `/piece-spec`, `/piece-tickets`, `/review-piece`; via runner prompt: the piece implement Step |
 
 Routes that depend on which files a ticket touches (the read-first gate's tier, framework-style and writing rows, nested `AGENTS.md` files, the AGENTS.md cost nudge and the sandbox-failure context) live in [the guardrails doc's hooks section](../claude-code-guardrails.md#the-hooks-and-the-project-agent).
 
@@ -131,7 +131,7 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | The four review axes, Spec, Voice, Craft and Reader, with hard findings and judgement calls | `/review-piece` reports them; `/implement-piece` fixes the hard Spec findings and reports the rest |
 | The Research fact list comment: numbered facts, each ending with a locator naming its saved text and page range or heading, quotes optional and verbatim, and a `## Unverified` section outside the fact list | `/research-piece` posts it; `/review-research` checks its draft first; `/review-piece`'s fact list takes its facts outside `## Unverified` when the spec links it, and its Read passages take each fact's cited range; `/implement-piece` drafts from its facts, never its quotes or `## Unverified` |
 | The model-fit chat line: `/implement-piece <repo> <n>: <Model> <effort> (reason)` from `/piece-spec`, `#n Title: <Model> <effort> (reason)` from `/piece-tickets` | `/piece-spec`, `/piece-tickets` |
-| The Agent draft's path and shape | `/implement-piece` saves it; `/to-writing-style`'s pair mode diffs it |
+| The Agent draft's path and shape | `/implement-piece`, the pull Step and the piece implement Step save it; `/to-writing-style`'s pair mode diffs it |
 
 ## The shared machinery
 

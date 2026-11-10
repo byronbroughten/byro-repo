@@ -1,14 +1,9 @@
 // The prompt text the implement and resolve steps share with the core and with the /implement-code skill: the resumes'
-// prompts, the shared body of the implement prompt, its workspace section and every Workflow's handoff text, the resolve
-// rules and record fields, and the generated /implement-* skills' shared ending. Each step's own prompt stays in its file.
+// prompts, the shared body of the implement prompt, its workspace section, the resolve rules and
+// record fields, and the generated /implement-* skills' shared ending. Each step's own prompt stays in its file.
 
 import { codeListOf, sectionOf } from "./promptText.ts";
-import {
-  dismissReasons,
-  type Handoff,
-  type ProposedSlice,
-  proposeReasons,
-} from "./stepRecords.ts";
+import { dismissReasons, proposeReasons } from "./stepRecords.ts";
 import type { ImplementPromptInput } from "./Workflow.ts";
 
 // Sent with --resume once a step crosses the live ceiling without handing off.
@@ -136,53 +131,4 @@ export function implementWorkspaceSection({
 
 - Your working directory is the ticket's issue workspace root. These repos are on the ticket's branch, \`${branch}\`: ${branchedRepos.join(", ")}. Every other repo is detached at master.
 - To change a detached repo, first put it onto \`${branch}\` with \`${promoteCommand} <repo>\`. Never switch, create or delete a branch yourself.`;
-}
-
-export function previousHandoffSection(handoff: Handoff): string {
-  return `## Handoff from the previous step
-
-The tree holds uncommitted work from the previous step. Don't reset, stash, check out or clean it; build on it.
-
-${handoffText(handoff)}`;
-}
-
-// The runner posts it on the ticket; the `session:` line ties it to the step's transcript.
-export function handoffCommentOf(handoff: Handoff, sessionId: string): string {
-  const { proposedSplit } = handoff;
-  return [
-    "## Handoff",
-    "The implement step handed this ticket to a fresh implement step.",
-    handoffText(handoff),
-    ...(proposedSplit === undefined
-      ? []
-      : [`Proposed split:\n${proposedSplitText(proposedSplit)}`]),
-    `session: ${sessionId}`,
-  ].join("\n\n");
-}
-
-function handoffText(handoff: Handoff): string {
-  const filesToOpen = handoff.filesToOpen.map(
-    ({ path, lines }) => `${path}:${lines}`,
-  );
-  return [
-    `Conclusion: ${handoff.conclusion}`,
-    `Files to open:${bulletsOf(filesToOpen)}`,
-    `Ruled out:${bulletsOf(handoff.ruledOut)}`,
-    `Files changed:${bulletsOf(handoff.filesChanged)}`,
-    `Still failing:${bulletsOf(handoff.stillFailing)}`,
-  ].join("\n");
-}
-
-function bulletsOf(items: string[]): string {
-  if (items.length === 0) return " none";
-  return items.map((item) => `\n- ${item}`).join("");
-}
-
-export function proposedSplitText(slices: ProposedSlice[]): string {
-  return slices
-    .map(
-      ({ delivers, files }, index) =>
-        `${index + 1}. ${delivers} (${files.join(", ")})`,
-    )
-    .join("\n");
 }

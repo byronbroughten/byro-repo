@@ -11,7 +11,11 @@ import type { DocumentsPort } from "../../Docs/googleDocs.ts";
 import type { IssueRef } from "../../IssueWorkspaces.ts";
 import type { Command } from "../../runKnobs.ts";
 import type { TrackedIssue } from "../../SpecRun/runState.ts";
-import { handoffCommentOf } from "../../stepPrompts.ts";
+import { handoffText } from "../../stepPrompts/handoffText.ts";
+import {
+  implementRecordOf,
+  type PieceImplementRecord,
+} from "../../stepRecords.ts";
 import { ticketSectionOf } from "../../ticketSections.ts";
 import type { Target } from "../../ticketTargets.ts";
 import type {
@@ -28,7 +32,6 @@ import {
   passagesFolderOf,
   pieceImplementOutputSchema,
   pieceImplementPrompt,
-  pieceImplementRecordOf,
   pieceImplementRecordProblems,
 } from "./implementStep.ts";
 import {
@@ -135,9 +138,9 @@ export function pieceWorkflowOf({
       implement: {
         promptOf: draftingPromptOf,
         outputSchema: pieceImplementOutputSchema,
-        recordOf: pieceImplementRecordOf,
+        recordOf: implementRecordOf<PieceImplementRecord>,
         recordProblems: pieceImplementRecordProblems,
-        handoffCommentOf,
+        handoffCommentOf: handoffText.commentOf,
         keptFolderOf: passagesFolderOf,
       },
     },
@@ -152,15 +155,8 @@ export function pieceWorkflowOf({
 }
 
 function draftingPromptOf(input: ImplementPromptInput): string {
-  const { keptFolder } = input;
-  if (keptFolder === undefined) {
-    throw new Error(
-      "A drafting ticket's implement step needs its passages folder",
-    );
-  }
   return pieceImplementPrompt({
     ...input,
-    keptFolder,
     draftPath: draftPathOf(input.spec),
   });
 }
