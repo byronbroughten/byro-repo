@@ -46,7 +46,7 @@ Mechanics of the Claude Code hooks, the Bash sandbox and the project agent. Why 
   - `npm run issue*` and `npm run wrap-up *`: their lease check runs `ps`, which the box blocks, and in the box it reads a live lease as abandoned ([observed](./claude-code-behaviour.md#the-bash-sandbox)).
   - `npm run research:push`: the box reaches GitHub and frees a call that names no `git push`, so boxed, the script's push would go out with no tier row deciding it, a runner step's included; outside the box the gate gives it [its row](./targets-and-gates.md#which-tier-an-action-is-in), the weakening named there.
   - `npm run google:script *`: the Google script route reads the gworkspace server's credentials, which the box denies, to mint the agent account's token, and its script reaches Google, which the box can't; boxed code never reads the credentials. Outside the box the gate gives it [its row](./targets-and-gates.md#which-tier-an-action-is-in), the weakening named there.
-  - `npm run doc:print *`: the Doc print command reaches Google, which the box can't. Outside the box the gate gives it [its row](./targets-and-gates.md#which-tier-an-action-is-in).
+  - `npm run doc:print *`: the Doc print command reads the Docs module's `clasp` credential, `~/.clasprc-docs.json`, which the box denies, and reaches Google, which the box can't. Outside the box the gate gives it [its row](./targets-and-gates.md#which-tier-an-action-is-in).
   - `npm run runner*`: it launches `claude` and runs `ps`.
   - `npm run session:probe *`: it launches `claude`.
   - `npm run check`, `npm run check *`, `npm test` and `npm test *`: for `ps`, which `runner/src/processIdentity.ts` runs and the runner's tests reach.

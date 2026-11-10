@@ -63,7 +63,7 @@ describe("an excluded command the call keeps in the box", () => {
     ],
     [
       "npm run doc:print -- 1AbCdEf | head",
-      "can't reach Google, which the Docs `clasp` login needs",
+      "can't read the Docs `clasp` credential or reach Google",
     ],
   ])("refuses `%s` because the sandbox %s", (command, reason) => {
     const decision = decisionOf(command);
