@@ -7,7 +7,12 @@
 // the state file and progress log paths are runState/statePaths.ts; the command runner is ../runCommand.ts;
 // the issue-set helpers sit beside issueRef.isSame in ../IssueWorkspaces/workspaceTypes.ts.
 
-import type { Pair, StepRequest, StepResult } from "../AgentStep.ts";
+import type {
+  Pair,
+  StepRequest,
+  StepResult,
+  UsageReading,
+} from "../AgentStep.ts";
 import { type Halt, type StepFailure } from "../halts.ts";
 import { type BodyAuthorship } from "../IssueReader.ts";
 import {
@@ -193,6 +198,8 @@ export interface Run {
   skipped: Set<string>;
   // The distinct tickets whose Failure Halts came in a row; a landing clears it.
   failureStreak: string[];
+  // By account, the last usage reading a step's own stream gave, which the limit guard weighs against cswap's; held in memory only.
+  streamUsage: Map<number, UsageReading>;
   // A member's end is then a member-ended line unless it finished, and only the Batch's end says what's left to judge.
   isBatchMember?: boolean;
   // One ticket's review outside a run; a flag, not a strategy, as it differs from a run at only a handful of checks.

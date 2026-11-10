@@ -3,12 +3,10 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import type { StepResult } from "./AgentStep.ts";
+import type { StepRequest, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
 import type { UsageReader } from "./limitGuard.ts";
-import type { RunResult } from "./SpecRun.ts";
 import {
-  addIssue,
   addSpec,
   after,
   crashed,
@@ -27,6 +25,7 @@ import {
   usageListOf,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
+import { limitResumePrompt } from "./stepPrompts.ts";
 
 useSpecRunHarness();
 
@@ -34,9 +33,9 @@ describe("run's limit guard", () => {
   it("re-reads the account every idlePollMs during a Limit wait, with one notice, then lands", async () => {
     addSpec([1]);
     scriptUsage(
-      usageListOf(0.92, 0.5),
-      usageListOf(0.92, 0.5),
-      usageListOf(0.92, 0.5),
+      usageListOf(0.95, 0.5),
+      usageListOf(0.95, 0.5),
+      usageListOf(0.95, 0.5),
       usageListOf(0.1, 0.5),
     );
     const sleeps: number[] = [];
@@ -51,8 +50,8 @@ describe("run's limit guard", () => {
     expect(result.landed).toEqual([refOf(1)]);
     expect(sleeps).toEqual([60_000, 60_000]);
     expect(noticeSummaries()).toEqual([
-      "Run started on 1 tickets as account 1: 5-hour 92%, weekly 50%. Launching byro-repo #1.",
-      "Limit wait: account 1 is at 92% of its 5-hour limit; continuing after 2026-10-12 06:05:00 CDT. Switching to an account with headroom with cswap continues the run now.",
+      "Run started on 1 tickets as account 1: 5-hour 95%, weekly 50%. Launching byro-repo #1.",
+      "Limit wait: account 1 is at 95% of its 5-hour limit; continuing after 2026-10-12 06:01:00 CDT. Switching to an account with headroom with cswap continues the run now.",
       result.message,
     ]);
   });
@@ -60,14 +59,14 @@ describe("run's limit guard", () => {
   it("shortens the last poll of a Limit wait to end at the reset plus the margin", async () => {
     addSpec([1]);
     scriptUsage(
-      usageListOf(0.92, 0.5),
-      usageListOf(0.92, 0.5),
+      usageListOf(0.95, 0.5),
+      usageListOf(0.95, 0.5),
       usageListOf(0.1, 0.5),
     );
     const sleeps: number[] = [];
 
     await specRun(FakeAgentStep.init(implemented("one.ts"), reviewed()), {
-      clock: { now: () => new Date("2026-10-12T11:04:30Z") },
+      clock: { now: () => new Date("2026-10-12T11:00:30Z") },
       async sleep(ms) {
         sleeps.push(ms);
       },
@@ -80,7 +79,7 @@ describe("run's limit guard", () => {
     addSpec([1]);
     let activeAccount = 1;
     const usageReader: UsageReader = {
-      read: async () => ({ ...usageListOf(0.92, 0.5), activeAccount }),
+      read: async () => ({ ...usageListOf(0.95, 0.5), activeAccount }),
     };
     const sleeps: number[] = [];
     const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
@@ -109,7 +108,7 @@ describe("run's limit guard", () => {
       }),
     };
     const crashPastThreshold: ScriptedStep = async () => {
-      account1FiveHour = 0.92;
+      account1FiveHour = 0.95;
       return crashed;
     };
     const sleeps: number[] = [];
@@ -140,42 +139,42 @@ describe("run's limit guard", () => {
       { account: 2, resumeSessionId: undefined },
     ]);
     expect(noticeSummaries()).toContain(
-      "Limit wait: account 1 is at 92% of its 5-hour limit; continuing after 2026-10-12 06:05:00 CDT. Switching to an account with headroom with cswap continues the run now.",
+      "Limit wait: account 1 is at 95% of its 5-hour limit; continuing after 2026-10-12 06:01:00 CDT. Switching to an account with headroom with cswap continues the run now.",
     );
   });
 
-  it("Stops before a step past the weekly reserve, with one notice, leaving the ticket for a rerun to resume", async () => {
+  it("waits before a step past the weekly line until a poll reads it under, then lands", async () => {
     addSpec([1]);
-    scriptUsage(usageListOf(0.3, 1));
-    const agentStep = FakeAgentStep.init();
+    scriptUsage(
+      usageListOf(0.3, 1),
+      usageListOf(0.3, 1),
+      usageListOf(0.3, 0.5),
+    );
+    const sleeps: number[] = [];
 
-    const result = await specRun(agentStep).run(spec);
-
-    expect(result).toEqual<RunResult>({
-      kind: "stopped",
-      landed: [],
-      message:
-        "Account 1 is at 100% of its weekly limit, past the reserve; switch with cswap and rerun, or rerun after it resets at 2026-10-14 19:00:00 CDT. Review lists: nothing needs judging.",
-    });
-    expect(agentStep.requests).toEqual([]);
-    expect(noticeSummaries()).toEqual([
-      "Run started on 1 tickets as account 1: 5-hour 30%, weekly 100%. Launching byro-repo #1.",
-      result.message,
-    ]);
-    scriptUsage(usageListOf(0.3, 0.5));
-
-    const rerun = await specRun(
+    const result = await specRun(
       FakeAgentStep.init(implemented("one.ts"), reviewed()),
+      {
+        async sleep(ms) {
+          sleeps.push(ms);
+        },
+      },
     ).run(spec);
 
-    expect(rerun.landed).toEqual([refOf(1)]);
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(sleeps).toEqual([60_000]);
+    expect(noticeSummaries()).toContain(
+      "Limit wait: account 1 is at 100% of its weekly limit; continuing after 2026-10-14 19:01:00 CDT. Switching to an account with headroom with cswap continues the run now.",
+    );
   });
 
   function limitHitStep(
     stream: string,
     limitHit: StepResult["limitHit"],
+    act: () => void = () => {},
   ): ScriptedStep {
     return async (request) => {
+      act();
       writeFileSync(request.logPath ?? "", stream);
       return {
         ...resultOf(undefined),
@@ -190,60 +189,249 @@ describe("run's limit guard", () => {
     return readFileSync(join(stateFolder(), "first-limit-hit.jsonl"), "utf8");
   }
 
-  it("Stops unhandled on a limit hit mid-step, naming the reset, and keeps the first limit-hit stream it sees", async () => {
-    addSpec([1]);
-    const hit = {
-      window: "five_hour",
-      resetsAt: new Date("2026-10-12T11:00:00Z"),
+  // Account 1's 5-hour reading, which a limit hit sends to 100% and every third poll of a wait back under.
+  interface CappedAccount {
+    usageReader: UsageReader;
+    hit(): void;
+    sleeps: number[];
+    sleep(ms: number): Promise<void>;
+  }
+
+  function cappedAccount(): CappedAccount {
+    let fiveHour = 0.5;
+    const sleeps: number[] = [];
+    return {
+      usageReader: { read: async () => usageListOf(fiveHour, 0.5) },
+      hit: () => {
+        fiveHour = 1;
+      },
+      sleeps,
+      async sleep(ms) {
+        sleeps.push(ms);
+        if (sleeps.length % 3 === 0) fiveHour = 0.1;
+      },
     };
+  }
 
-    const result = await specRun(
-      FakeAgentStep.init(limitHitStep("first stream\n", hit)),
-    ).run(spec);
+  const fiveHourHit = {
+    window: "five_hour",
+    resetsAt: new Date("2026-10-12T11:00:00Z"),
+  };
 
-    expect(result.message).toBe(
-      "Stopped on byro-repo #1: a limit hit; rerun to retry it. Review lists: nothing needs judging.",
-    );
-    expect(github.issues.get(1)?.isOpen).toBe(true);
-    expect(github.comments[0]?.body).toContain(
-      "The step hit the five_hour limit; it resets at 2026-10-12 06:00:00 CDT.",
-    );
-    expect(github.comments[0]?.body).toContain(
-      "The ticket is left at its implement step in its issue workspace; rerun to retry it: `npm run runner -- byronbroughten/byro-repo 213`.",
-    );
-    expect(savedLimitHit()).toBe("first stream\n");
-    addIssue(2);
-    github.subIssues.set(spec.number, [1, 2]);
-    github.edit(1, { isOpen: false });
+  function requestsOf(agentStep: FakeAgentStep): object[] {
+    return agentStep.requests.map(({ account, resumeSessionId, prompt }) => ({
+      account,
+      resumeSessionId,
+      prompt,
+    }));
+  }
 
-    await specRun(FakeAgentStep.init(limitHitStep("later stream\n", hit))).run(
-      spec,
+  it("waits out a 5-hour limit hit mid-step, resumes the same session told so, lands, and keeps the first limit-hit stream it sees", async () => {
+    addSpec([1]);
+    const account = cappedAccount();
+    const agentStep = FakeAgentStep.init(
+      limitHitStep("first stream\n", fiveHourHit, account.hit),
+      limitHitStep("later stream\n", fiveHourHit, account.hit),
+      implemented("one.ts"),
+      reviewed(),
     );
 
+    const result = await specRun(agentStep, account).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(account.sleeps).toHaveLength(6);
+    expect(requestsOf(agentStep).slice(1, 3)).toEqual([
+      {
+        account: 1,
+        resumeSessionId: "session",
+        prompt: limitResumePrompt,
+      },
+      {
+        account: 1,
+        resumeSessionId: "session",
+        prompt: limitResumePrompt,
+      },
+    ]);
+    expect(github.comments.map(({ body }) => body).join("\n")).not.toContain(
+      "limit hit",
+    );
+    expect(
+      noticeSummaries().filter((summary) => summary.startsWith("Limit wait")),
+    ).toEqual([
+      "Limit wait: account 1 hit its 5-hour limit; continuing after 2026-10-12 06:01:00 CDT. Switching to an account with headroom with cswap continues the run now.",
+      "Limit wait: account 1 hit its 5-hour limit; continuing after 2026-10-12 06:01:00 CDT. Switching to an account with headroom with cswap continues the run now.",
+    ]);
     expect(savedLimitHit()).toBe("first stream\n");
   });
 
-  it("warns once on a limit error with no reset and Stops unhandled", async () => {
+  it("waits out a weekly limit hit mid-step until its weekly reset and resumes the same session", async () => {
     addSpec([1]);
+    const account = cappedAccount();
+    const weeklyHit = {
+      window: "seven_day",
+      resetsAt: new Date("2026-10-15T00:00:00Z"),
+    };
+    const agentStep = FakeAgentStep.init(
+      limitHitStep("stream\n", weeklyHit, account.hit),
+      implemented("one.ts"),
+      reviewed(),
+    );
 
-    const result = await specRun(
-      FakeAgentStep.init(
-        limitHitStep("bare 429\n", { window: undefined, resetsAt: undefined }),
+    const result = await specRun(agentStep, account).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(agentStep.requests[1]?.resumeSessionId).toBe("session");
+    expect(noticeSummaries()).toContain(
+      "Limit wait: account 1 hit its weekly limit; continuing after 2026-10-14 19:01:00 CDT. Switching to an account with headroom with cswap continues the run now.",
+    );
+  });
+
+  it("warns once on a limit error with no reset, waits until the account reads under its thresholds and resumes", async () => {
+    addSpec([1]);
+    const account = cappedAccount();
+    const agentStep = FakeAgentStep.init(
+      limitHitStep(
+        "bare 429\n",
+        { window: undefined, resetsAt: undefined },
+        account.hit,
       ),
-    ).run(spec);
+      implemented("one.ts"),
+      reviewed(),
+    );
 
-    expect(result.message).toBe(
-      "Stopped on byro-repo #1: a limit hit; rerun to retry it. Review lists: nothing needs judging.",
-    );
-    expect(github.comments[0]?.body).toContain(
-      "The step hit an unrecognised limit error; its reset is unknown.",
-    );
-    expect(noticeSummaries()).toEqual([
-      "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%. Launching byro-repo #1.",
+    const result = await specRun(agentStep, account).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(account.sleeps).toEqual([60_000, 60_000, 60_000]);
+    expect(agentStep.requests[1]?.resumeSessionId).toBe("session");
+    expect(noticeSummaries().slice(0, 3)).toEqual([
+      "Run started on 1 tickets as account 1: 5-hour 50%, weekly 50%. Launching byro-repo #1.",
       "Unrecognised limit error on account 1; the saved stream can tighten detection.",
-      result.message,
+      "Limit wait: account 1 hit a limit error with no reset; continuing once the Active account reads under its thresholds. Switching to an account with headroom with cswap continues the run now.",
     ]);
     expect(savedLimitHit()).toBe("bare 429\n");
+  });
+
+  it("resumes a step a limit cut off on the account cswap switched to, at the next poll", async () => {
+    addSpec([1]);
+    let activeAccount = 1;
+    let account1FiveHour = 0.5;
+    const usageReader: UsageReader = {
+      read: async () => ({
+        ...usageListOf(account1FiveHour, 0.5),
+        activeAccount,
+      }),
+    };
+    const sleeps: number[] = [];
+    const agentStep = FakeAgentStep.init(
+      limitHitStep("stream\n", fiveHourHit, () => {
+        account1FiveHour = 1;
+      }),
+      implemented("one.ts"),
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep, {
+      usageReader,
+      async sleep(ms) {
+        sleeps.push(ms);
+        activeAccount = 2;
+      },
+    }).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(sleeps).toEqual([60_000]);
+    expect(
+      agentStep.requests.map(({ account, resumeSessionId }) => ({
+        account,
+        resumeSessionId,
+      })),
+    ).toEqual([
+      { account: 1, resumeSessionId: undefined },
+      { account: 2, resumeSessionId: "session" },
+      { account: 2, resumeSessionId: undefined },
+    ]);
+  });
+
+  it("gives a crash after a limit resume its own retry", async () => {
+    addSpec([1]);
+    const account = cappedAccount();
+    const agentStep = FakeAgentStep.init(
+      limitHitStep("stream\n", fiveHourHit, account.hit),
+      crashed,
+      implemented("one.ts"),
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep, account).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(agentStep.requests[2]?.resumeSessionId).toBe("crashed-session");
+  });
+
+  it("holds a step while the last step's stream reads past the 5-hour line in cswap's window, and launches once cswap's reset moves on", async () => {
+    addSpec([1]);
+    let fiveHourReset = new Date("2026-10-12T11:00:00Z");
+    const usageReader: UsageReader = {
+      read: async () => {
+        const list = usageListOf(0.9, 0.5);
+        const [account1] = list.readings;
+        if (account1?.usage !== undefined) {
+          account1.usage.fiveHour.resetsAt = fiveHourReset;
+        }
+        return list;
+      },
+    };
+    const sleeps: number[] = [];
+    const streamRead95 = async (request: StepRequest): Promise<StepResult> => ({
+      ...(await implemented("one.ts")(request)),
+      usage: {
+        fiveHour: {
+          utilization: 0.95,
+          resetsAt: new Date("2026-10-12T11:00:00Z"),
+        },
+        sevenDay: undefined,
+      },
+    });
+    const agentStep = FakeAgentStep.init(streamRead95, reviewed());
+
+    const result = await specRun(agentStep, {
+      usageReader,
+      async sleep(ms) {
+        sleeps.push(ms);
+        if (sleeps.length === 2) {
+          fiveHourReset = new Date("2026-10-12T16:00:00Z");
+        }
+      },
+    }).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(sleeps).toEqual([60_000, 60_000]);
+    expect(noticeSummaries()).toContain(
+      "Limit wait: account 1 is at 95% of its 5-hour limit; continuing after 2026-10-12 06:01:00 CDT. Switching to an account with headroom with cswap continues the run now.",
+    );
+  });
+
+  it("waits out a limit hit on the gap check and resumes its session", async () => {
+    addSpec([1]);
+    const account = cappedAccount();
+    const agentStep = FakeAgentStep.init(
+      implemented("one.ts"),
+      reviewed(),
+      limitHitStep("stream\n", fiveHourHit, account.hit),
+      resultOf({ gaps: [] }),
+    );
+
+    const result = await specRun(agentStep, { ...account, agentStep }).run(
+      spec,
+    );
+
+    expect(result.kind).toBe("finished");
+    expect(requestsOf(agentStep)[3]).toEqual({
+      account: 1,
+      resumeSessionId: "session",
+      prompt: limitResumePrompt,
+    });
   });
 
   it("warns once per run on a missing reading and launches each step unguarded", async () => {

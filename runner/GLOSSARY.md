@@ -104,11 +104,11 @@ The rules the developer approved for the Arbiter to rule by, beside the Standard
 _Avoid_: Propose Judgement Principles, judgement principles
 
 **Stop**:
-The run ends early: on a failure no answer can fix inside the run (GitHub or `claude` unreachable or logged out, a clone missing or dirty, a red master, the account a step would run on past its weekly reserve, or a runner exception), or after the current ticket on a stop request (`npm run runner -- stop`) or a `stop spec` answer, which leaves a halted ticket committed and unlanded with its other Halts open. Rerunning resumes it, taking a `stop spec` answer as `retry`.
+The run ends early: on a failure no answer can fix inside the run (GitHub or `claude` unreachable or logged out, a clone missing or dirty, a red master, or a runner exception), or after the current ticket on a stop request (`npm run runner -- stop`) or a `stop spec` answer, which leaves a halted ticket committed and unlanded with its other Halts open. Rerunning resumes it, taking a `stop spec` answer as `retry`.
 _Avoid_: abort, exit, kill
 
 **Limit wait**:
-The run pauses because the Active account is past its 5-hour threshold, and continues unaided once that window resets or the developer switches to an account under it. The runner never picks an account itself.
+The run pauses because the Active account is past its 5-hour threshold or a step hit a usage limit, and continues unaided once the limit resets or the Active account changes to one under it, resuming a step the limit cut off. A limit never Stops a run. The runner never picks an account itself.
 _Avoid_: cooldown, throttle
 
 **Restart**:

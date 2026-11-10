@@ -1,5 +1,6 @@
 // A spec run's agent step launches: waits out the limit guard before each, runs every step on the Active account, a resume
-// included, with its guidance and the run's knobs, logs its raw stream, and retries a crash, resuming its session when it has one; a hit limit is an UnhandledStop.
+// included, with its guidance and the run's knobs, logs its raw stream, and retries a crash, resuming its session when it has one.
+// A step a limit cuts off waits out the limit, then resumes its session on whatever account is Active; that resume is no crash retry.
 // A resolver's resume that finds no conversation goes back to its caller, which reruns it as a fresh session.
 // An implement step that hits its turn cap halts, offering more turns or a stronger pair; other crashes past their retries halt too.
 // It builds its own HaltRaiser, and every collaborator that launches a step builds a StepLauncher.
@@ -12,13 +13,21 @@ import type { StepRequest, StepResult } from "../AgentStep.ts";
 import { messageOf } from "../failureText.ts";
 import { guidanceSectionOf } from "../halts.ts";
 import { issueRef } from "../IssueWorkspaces.ts";
-import { decideStep } from "../limitGuard.ts";
+import {
+  type AccountReading,
+  decideStep,
+  freshestUsageOf,
+  windowNameOf,
+} from "../limitGuard.ts";
 import { localTimeOf } from "../localTime.ts";
 import { nextStrongerPairOf, pairLabelOf } from "../modelFit.ts";
 import { limitWaitLineOf, stepLaunchLineOf } from "../progressLines.ts";
 import type { RunKnobs } from "../runKnobs.ts";
-import { RunStop } from "../RunStop.ts";
-import { handoffOnlyPrompt, treeResetNote } from "../stepPrompts.ts";
+import {
+  handoffOnlyPrompt,
+  limitResumePrompt,
+  treeResetNote,
+} from "../stepPrompts.ts";
 import { minutesOf, percentOf, type StepAgent } from "../transcriptFacts.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
@@ -82,6 +91,11 @@ export class StepLauncher extends SpecRunBase {
         continue;
       }
       const { result } = ran;
+      if (isCutOffByLimit(result)) {
+        await this._waitOutLimitHit(ticketRun.run, result, logPath);
+        attempt = limitResumeOf(launch, result);
+        continue;
+      }
       // A resolver's caller reruns it as a fresh session; a crash retry's missing conversation stays a crash.
       const isCrashRetry = attempt !== launch;
       if (agent === "resolve" && !isCrashRetry && result.hasNoConversation) {
@@ -202,7 +216,7 @@ export class StepLauncher extends SpecRunBase {
       });
     }
     this._saveState(run);
-    await this._stopOnLimitHit(run, result, logPath);
+    keepStreamUsage(run, result);
     return { kind: "ran", result };
   }
 
@@ -216,22 +230,27 @@ export class StepLauncher extends SpecRunBase {
       this._stepsFolderOf(run),
       `${step.replaceAll(" ", "-")}.jsonl`,
     );
-    const account = await this._waitForLaunch(run);
-    this._log(
-      run,
-      stepLaunchLineOf({
-        subject: sentenceCaseOf(step),
+    let attempt = request;
+    for (;;) {
+      const account = await this._waitForLaunch(run);
+      this._log(
+        run,
+        stepLaunchLineOf({
+          subject: sentenceCaseOf(step),
+          account,
+          streamPath: logPath,
+        }),
+      );
+      const result = await this._agentResultOf(step, {
+        ...attempt,
         account,
-        streamPath: logPath,
-      }),
-    );
-    const result = await this._agentResultOf(step, {
-      ...request,
-      account,
-      logPath,
-    });
-    await this._stopOnLimitHit(run, result, logPath);
-    return { result, logPath };
+        logPath,
+      });
+      keepStreamUsage(run, result);
+      if (!isCutOffByLimit(result)) return { result, logPath };
+      await this._waitOutLimitHit(run, result, logPath);
+      attempt = limitResumeOf(request, result);
+    }
   }
 
   private async _agentResultOf(
@@ -254,7 +273,7 @@ export class StepLauncher extends SpecRunBase {
     const { knobs } = this.config;
     let hasAnnouncedWait = false;
     for (;;) {
-      const { account, usage } = await this._activeReadingOf(run);
+      const { account, usage } = await this._guardedReadingOf(run);
       if (usage === undefined) {
         await this._warnOnce(
           run,
@@ -265,22 +284,28 @@ export class StepLauncher extends SpecRunBase {
       }
       const decision = decideStep(usage, knobs);
       if (decision.kind === "launch") return account;
-      if (decision.kind === "stop") {
-        throw new RunStop(
-          `Account ${account} is at ${percentOf(usage.sevenDay.utilization)} of its weekly limit, past the reserve; switch with cswap and rerun, or rerun after it resets at ${localTimeOf(usage.sevenDay.resetsAt)}.`,
-        );
-      }
       if (!hasAnnouncedWait) {
         hasAnnouncedWait = true;
+        const { window, until } = decision;
         await this._announce(
           run,
           limitWaitLineOf(
-            `account ${account} is at ${percentOf(usage.fiveHour.utilization)} of its 5-hour limit; continuing after ${localTimeOf(decision.until)}. Switching to an account with headroom with cswap continues the run now.`,
+            `account ${account} is at ${percentOf(usage[window].utilization)} of its ${windowNameOf(window)} limit; continuing after ${localTimeOf(until)}. ${switchNote}`,
           ),
         );
       }
       await this._sleep(this._limitPollMsOf(decision.until));
     }
+  }
+
+  // The Active account's cswap reading, each window raised to the last one a step's stream gave for it.
+  private async _guardedReadingOf(run: Run): Promise<AccountReading> {
+    const { account, usage } = await this._activeReadingOf(run);
+    if (usage === undefined) return { account, usage };
+    return {
+      account,
+      usage: freshestUsageOf(usage, run.streamUsage.get(account)),
+    };
   }
 
   // Polls every idlePollMs, so a switch ends the wait within one poll.
@@ -302,36 +327,60 @@ export class StepLauncher extends SpecRunBase {
   }
 
   // The tree stays as is in the workspace; the first stream ever seen is kept for tightening limit detection.
-  private async _stopOnLimitHit(
+  private async _waitOutLimitHit(
     run: Run,
-    { limitHit, exitSubtype, output, account }: StepResult,
+    { limitHit, account }: StepResult,
     logPath: string,
   ): Promise<void> {
-    const hasSucceeded = exitSubtype === "success" && output.status === "valid";
-    // A step that met a limit and still succeeded, as after a retry, isn't stopped.
-    if (limitHit === undefined || hasSucceeded) return;
-    const { window, resetsAt } = limitHit;
     const savedPath = join(this.config.stateFolder, "first-limit-hit.jsonl");
     if (!existsSync(savedPath) && existsSync(logPath)) {
       copyFileSync(logPath, savedPath);
     }
+    const resetsAt = limitHit?.resetsAt;
     if (resetsAt === undefined) {
       await this._warnOnce(
         run,
         "unrecognised-limit-error",
         `Unrecognised limit error on account ${account}; the saved stream can tighten detection.`,
       );
-      throw new UnhandledStop(
-        "limit-hit",
-        "The step hit an unrecognised limit error; its reset is unknown.",
-        logPath,
+      await this._announce(
+        run,
+        limitWaitLineOf(
+          `account ${account} hit a limit error with no reset; continuing once the Active account reads under its thresholds. ${switchNote}`,
+        ),
       );
+      await this._pollUntilUnderThresholds(run, undefined);
+      return;
     }
-    throw new UnhandledStop(
-      "limit-hit",
-      `The step hit the ${window ?? "usage"} limit; it resets at ${localTimeOf(resetsAt)}.`,
-      logPath,
+    const until = new Date(
+      resetsAt.getTime() + this.config.knobs.limitWaitMarginMs,
     );
+    await this._announce(
+      run,
+      limitWaitLineOf(
+        `account ${account} hit its ${hitWindowNameOf(limitHit?.window)} limit; continuing after ${localTimeOf(until)}. ${switchNote}`,
+      ),
+    );
+    await this._pollUntilUnderThresholds(run, until);
+  }
+
+  // Sleeps before each read, so a limit hit waits at least one poll however the Active account reads; `until` undefined waits for no reset.
+  private async _pollUntilUnderThresholds(
+    run: Run,
+    until: Date | undefined,
+  ): Promise<void> {
+    const { clock, knobs } = this.config;
+    for (;;) {
+      if (until === undefined) {
+        await this._sleep(knobs.idlePollMs);
+      } else {
+        await this._sleep(this._limitPollMsOf(until));
+        if (clock.now().getTime() >= until.getTime()) return;
+      }
+      const { usage } = await this._guardedReadingOf(run);
+      if (usage === undefined) return;
+      if (decideStep(usage, knobs).kind === "launch") return;
+    }
   }
 
   private _stepsFolderOf(run: Run): string {
@@ -342,6 +391,39 @@ export class StepLauncher extends SpecRunBase {
     mkdirSync(folder, { recursive: true });
     return folder;
   }
+}
+
+const switchNote =
+  "Switching to an account with headroom with cswap continues the run now.";
+
+// A step that met a limit and still succeeded, as after a retry, lands as it is.
+function isCutOffByLimit({
+  limitHit,
+  exitSubtype,
+  output,
+}: StepResult): boolean {
+  if (limitHit === undefined) return false;
+  return !(exitSubtype === "success" && output.status === "valid");
+}
+
+function keepStreamUsage(run: Run, { usage, account }: StepResult): void {
+  if (usage !== undefined) run.streamUsage.set(account, usage);
+}
+
+// A step with no session id relaunches fresh, as a crash retry with none does; a backstop resume still owes only its handoff record.
+function limitResumeOf<
+  LR extends Pick<StepRequest, "prompt" | "resumeSessionId">,
+>(launch: LR, { sessionId }: StepResult): LR {
+  if (sessionId === undefined) return launch;
+  let prompt = limitResumePrompt;
+  if (launch.prompt === handoffOnlyPrompt) prompt = handoffOnlyPrompt;
+  return { ...launch, prompt, resumeSessionId: sessionId };
+}
+
+function hitWindowNameOf(window: string | undefined): string {
+  if (window === "five_hour") return windowNameOf("fiveHour");
+  if (window === "seven_day") return windowNameOf("sevenDay");
+  return window ?? "usage";
 }
 
 function guidedLaunchOf(

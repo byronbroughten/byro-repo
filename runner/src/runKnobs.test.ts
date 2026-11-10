@@ -70,7 +70,7 @@ describe("loadRunKnobs", () => {
 
     expect(knobs.fiveHourPauseAt).toBe(0.5);
     expect(knobs.weeklyReserveAt).toBe(1);
-    expect(knobs.limitWaitMarginMs).toBe(300_000);
+    expect(knobs.limitWaitMarginMs).toBe(60_000);
   });
 
   it("throws on an unreadable override file", () => {

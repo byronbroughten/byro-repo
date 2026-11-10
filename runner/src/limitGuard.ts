@@ -1,5 +1,6 @@
 // The limit guard: from the usage reading of the account a step will run on, decides whether it runs now.
-// readCswapList turns `cswap list --json` into readings and the active account; decideStep is the pure decision over one account's usage.
+// readCswapList turns `cswap list --json` into readings and the active account; decideStep is the pure decision over one account's usage,
+// and freshestUsageOf raises cswap's reading to a step stream's newer one.
 // AgentStep.ts owns UsageWindow, the same shape a step's own rate-limit events report.
 
 import type { UsageReading, UsageWindow } from "./AgentStep.ts";
@@ -32,9 +33,13 @@ export interface UsageReader {
   read(): Promise<UsageList>;
 }
 
-// For one account: launch, a Limit wait until its 5-hour reset plus the margin, or a Stop past its weekly reserve.
+// For one account: launch, or a Limit wait until the reset of the window past its line plus the margin.
 export type GuardDecision =
-  { kind: "launch" } | { kind: "limitWait"; until: Date } | { kind: "stop" };
+  | { kind: "launch" }
+  | { kind: "limitWait"; window: keyof AccountUsage; until: Date };
+
+// A stream gives resetsAt in whole seconds and cswap to the microsecond, so one window's two readings differ by under a second.
+const sameWindowToleranceMs = 60_000;
 
 interface RawList {
   activeAccountNumber?: unknown;
@@ -98,18 +103,54 @@ function windowOf(raw: RawWindow | undefined): UsageWindow | undefined {
   return { utilization: raw.pct / 100, resetsAt };
 }
 
+// The runner never ends a step at a usage line: a resumed step almost always starts without its prompt cache, so it interrupts a step only when a limit already has.
 export function decideStep(
   usage: AccountUsage,
   knobs: LimitGuardKnobs,
 ): GuardDecision {
   if (usage.sevenDay.utilization >= knobs.weeklyReserveAt) {
-    return { kind: "stop" };
+    return limitWaitOf(usage, "sevenDay", knobs);
   }
   if (usage.fiveHour.utilization >= knobs.fiveHourPauseAt) {
-    const until = usage.fiveHour.resetsAt.getTime() + knobs.limitWaitMarginMs;
-    return { kind: "limitWait", until: new Date(until) };
+    return limitWaitOf(usage, "fiveHour", knobs);
   }
   return { kind: "launch" };
+}
+
+function limitWaitOf(
+  usage: AccountUsage,
+  window: keyof AccountUsage,
+  knobs: LimitGuardKnobs,
+): GuardDecision {
+  const until = usage[window].resetsAt.getTime() + knobs.limitWaitMarginMs;
+  return { kind: "limitWait", window, until: new Date(until) };
+}
+
+// cswap's reading lags a step's own stream, so each window takes the higher, the stream's only while it is of the same window.
+export function freshestUsageOf(
+  cswap: AccountUsage,
+  stream: UsageReading | undefined,
+): AccountUsage {
+  return {
+    fiveHour: freshestWindowOf(cswap.fiveHour, stream?.fiveHour),
+    sevenDay: freshestWindowOf(cswap.sevenDay, stream?.sevenDay),
+  };
+}
+
+function freshestWindowOf(
+  cswap: UsageWindow,
+  stream: UsageWindow | undefined,
+): UsageWindow {
+  if (stream === undefined) return cswap;
+  const gapMs = Math.abs(stream.resetsAt.getTime() - cswap.resetsAt.getTime());
+  if (gapMs >= sameWindowToleranceMs) return cswap;
+  if (stream.utilization <= cswap.utilization) return cswap;
+  return { ...cswap, utilization: stream.utilization };
+}
+
+// Words a decision's window as the guard's notices name it.
+export function windowNameOf(window: keyof AccountUsage): string {
+  return window === "fiveHour" ? "5-hour" : "weekly";
 }
 
 // A step's own stream may lack a window that cswap always reports, so either may be unknown.

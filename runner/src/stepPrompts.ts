@@ -13,6 +13,10 @@ import {
 export const handoffOnlyPrompt =
   "Stop now; return a handoff record only, no file changes.";
 
+// Sent with --resume once a usage limit that cut a step off has reset or the Active account has changed.
+export const limitResumePrompt =
+  "A usage limit cut the previous run off; it has passed. Check the tree you left and carry on where you stopped. Nobody is watching this session: never ask a question or wait for an answer.";
+
 // Sent with --resume on a `retry record` answer, after a record failed its check once the step had committed.
 export const recordOnlyPrompt =
   "Your implement record failed the runner's check. Change no files: return the implement record again, matching the schema, with each branch's current sha. Nobody is watching this session: never ask a question or wait for an answer.";
