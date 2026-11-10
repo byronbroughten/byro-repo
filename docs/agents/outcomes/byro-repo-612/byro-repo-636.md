@@ -1,0 +1,7 @@
+# byro-repo#636 outcome
+
+Spec: [byro-repo#612](https://github.com/byronbroughten/byro-repo/issues/612)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #636 | Opus medium | 4, 2 | 14 | 140K | Fix (resumed implementer) | 2 | 1 | 0 | 0 | 11 min | $4.64 | $5.97 | Fixed: hasPendingSuggestion checks only insertions; deletions are checked inline, and a table with a pending deletion isn't refused. (runner/src/Docs/SectionWriter.ts:631); The helper sits before indicesOf, which is used first. (runner/src/Docs/SectionWriter.ts:631); documentsAt only forwards to RestDocuments.init (Middle Man). (runner/src/docPrint.ts:11-13); _login is a getter that reads a file. (runner/src/Docs/RestDocuments.ts:117); The scope sentence restates the Observed line in google-docs-behaviour.md#auth. (runner/README.md:17); The table check looks only at suggestedInsertionIds. (runner/src/Docs/SectionWriter.ts:235). Proposed: The new credential file holds a documents-scoped refresh token but isn't read-denied like ~/.clasprc.json. (~/.clasprc-docs.json (scripts/runner/docPrint.ts credentialPath)); That batchUpdate addresses the SUGGESTIONS_INLINE view isn't recorded in google-docs-behaviour.md. (runner/src/Docs/RestDocuments.ts:55). | cd5347c6-cc12-4350-8d33-9c14a662467a, 15d415d1-d87a-4e10-9cca-0665a937a293 |
