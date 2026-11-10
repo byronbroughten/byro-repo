@@ -6,6 +6,7 @@ export const stopOutcomes = {
   lease: "a workspace lease that couldn't be taken",
   "model-fit": "a missing or invalid Model fit",
   targets: "a malformed Targets section",
+  "unbuilt-step": "a Step its Workflow doesn't have yet",
 } as const;
 
 export type StopOutcome = keyof typeof stopOutcomes;

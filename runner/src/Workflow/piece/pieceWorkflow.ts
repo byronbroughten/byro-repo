@@ -1,16 +1,40 @@
 // The piece Workflow: a spec labelled piece runs under it. A research ticket runs its research step, from researchStep.ts,
 // then its quote check, and lands with no code: its comment posted, its outcome row written and the ticket closed.
 // What it couldn't verify and the Outline edits it proposes then go to the developer in one Research Halt, which holds the drafting tickets.
+// Every other ticket is a drafting ticket: its first Step pulls the Deliverable's Doc into the Agent draft, agentDraft.ts,
+// and its implement step, implementStep.ts, drafts the ticket's Sections there.
+// The drafting Steps after implement aren't built, so a drafting ticket stops after it, unlanded.
 // Every step reads the Drive files the spec's Supporting Material lists, as source targets, and no others.
-// The drafting sequence (#639) isn't built, so the preflight refuses every launchable ticket that isn't research.
-// A repo's runner config builds it with its commands and token path, and ../../Workflow.ts registers it.
+// A repo's runner config builds it with its commands and Docs port, and ../../Workflow.ts registers it.
 
-import { issueRef } from "../../IssueWorkspaces.ts";
+import { Docs } from "../../Docs.ts";
+import type { DocumentsPort } from "../../Docs/googleDocs.ts";
+import type { IssueRef } from "../../IssueWorkspaces.ts";
 import type { Command } from "../../runKnobs.ts";
 import type { TrackedIssue } from "../../SpecRun/runState.ts";
+import { handoffText } from "../../stepPrompts/handoffText.ts";
+import {
+  implementRecordOf,
+  type PieceImplementRecord,
+} from "../../stepRecords.ts";
 import { ticketSectionOf } from "../../ticketSections.ts";
 import type { Target } from "../../ticketTargets.ts";
-import type { SpecEnd, Workflow, WorkflowStep } from "../../Workflow.ts";
+import type {
+  ImplementPromptInput,
+  PulledDraft,
+  PullInput,
+  PullRules,
+  SpecEnd,
+  Workflow,
+  WorkflowStep,
+} from "../../Workflow.ts";
+import { agentDraft } from "./agentDraft.ts";
+import {
+  passagesFolderOf,
+  pieceImplementOutputSchema,
+  pieceImplementPrompt,
+  pieceImplementRecordProblems,
+} from "./implementStep.ts";
 import {
   quoteSendBacks,
   researchClosingCommentOf,
@@ -23,8 +47,11 @@ import {
 } from "./researchStep.ts";
 
 const researchLabel = "research";
-const sourcesHeading = "## Supporting Material";
-// A Drive file ID, bare or inside a Drive URL; the spec names each source by one.
+const specHeadings = {
+  sources: "## Supporting Material",
+  deliverable: "## Deliverable",
+} as const;
+// A Drive file ID, bare or inside a Drive URL; the spec names each source and its Deliverable by one.
 const driveIdPattern = /[A-Za-z0-9_-]{25,}/g;
 
 const researchSteps: WorkflowStep[] = [
@@ -43,6 +70,28 @@ const researchSteps: WorkflowStep[] = [
   { step: "wrap-up" },
 ];
 
+// Review is the drafting Step after implement, though no piece review step exists yet.
+const draftingSteps: WorkflowStep[] = [
+  {
+    step: "pull",
+    nextOf() {
+      return "implement";
+    },
+  },
+  {
+    step: "implement",
+    nextOf() {
+      return "review";
+    },
+  },
+  {
+    step: "resume",
+    nextOf() {
+      return "review";
+    },
+  },
+];
+
 const specEnd: SpecEnd = {
   steps: [],
   isDue() {
@@ -50,25 +99,24 @@ const specEnd: SpecEnd = {
   },
 };
 
-// A repo's own values: the overlap check, the quote check and the Docs token file.
+// A repo's own values: the overlap check, the quote check and the Docs port pull reads the Deliverable through.
 export interface PieceWorkflowInput {
   overlapCommand: Command;
   // Called with `--comment <path> --texts <folder>` appended.
   verifyQuotesCommand: Command;
-  docsCredentialPath: string;
+  documents: DocumentsPort;
 }
 
-// The overlap command and Docs token are taken now so the runner config is settled; the drafting sequence reads them.
+// The overlap command is taken now so the runner config is settled; a later drafting Step reads it.
 export function pieceWorkflowOf({
   verifyQuotesCommand,
+  documents,
 }: PieceWorkflowInput): Workflow {
   return {
     name: "piece",
-    // The preflight refuses every other ticket, so only a research ticket reaches its Steps.
-    stepsOf() {
-      return researchSteps;
+    stepsOf(ticket) {
+      return isResearch(ticket) ? researchSteps : draftingSteps;
     },
-    ticketRefusalOf,
     sourceTargetsOf,
     agentSteps: {
       research: {
@@ -93,32 +141,68 @@ export function pieceWorkflowOf({
           return !isResearch(ticket);
         },
       },
+      implement: {
+        promptOf: draftingPromptOf,
+        outputSchema: pieceImplementOutputSchema,
+        recordOf: implementRecordOf<PieceImplementRecord>,
+        recordProblems: pieceImplementRecordProblems,
+        handoffCommentOf: handoffText.commentOf,
+        keptFolderOf: passagesFolderOf,
+      },
     },
-    landingOf() {
-      return "research";
+    // A drafting ticket lands its branch, the Agent draft's commits on it, as a code ticket does.
+    landingOf(ticket) {
+      return isResearch(ticket) ? "research" : "code";
     },
     checks: [],
     specEnd,
+    pull: pullRulesOf(documents),
   };
 }
 
-function ticketRefusalOf(launchable: TrackedIssue[]): string | undefined {
-  const drafts = launchable.filter((ticket) => !isResearch(ticket));
-  if (drafts.length === 0) return undefined;
-  return `A piece spec's drafting sequence isn't built yet, so the runner runs only its research tickets; not research: ${labelsOf(drafts)}.`;
+function draftingPromptOf(input: ImplementPromptInput): string {
+  return pieceImplementPrompt({
+    ...input,
+    draftPath: draftPathOf(input.spec),
+  });
+}
+
+function draftPathOf({ number }: IssueRef): string {
+  return `writing/agent-drafts/${number}.md`;
 }
 
 // Each ID once, in the order the spec lists them; a spec with no Supporting Material lists none.
 function sourceTargetsOf({ body }: TrackedIssue): Target[] {
-  const section = ticketSectionOf(body, sourcesHeading) ?? "";
-  const ids = [...new Set(section.match(driveIdPattern) ?? [])];
+  const ids = [...new Set(driveIdsOf(body, specHeadings.sources))];
   return ids.map((id) => ({ kind: "source", id }));
+}
+
+function driveIdsOf(body: string, heading: string): string[] {
+  const section = ticketSectionOf(body, heading) ?? "";
+  return section.match(driveIdPattern) ?? [];
+}
+
+function pullRulesOf(documents: DocumentsPort): PullRules {
+  return {
+    deliverableOf({ body }) {
+      return driveIdsOf(body, specHeadings.deliverable)[0];
+    },
+    draftPathOf,
+    async pulledOf({ documentId, draft }: PullInput): Promise<PulledDraft> {
+      const read = await Docs.init(documents).read(documentId);
+      const held = draft === undefined ? [] : agentDraft.sectionsOf(draft);
+      return {
+        draft: agentDraft.draftOf(agentDraft.pulledOf(held, read.sections)),
+        baseline: {
+          documentId,
+          revisionId: read.revisionId,
+          sections: Object.fromEntries(read.sections),
+        },
+      };
+    },
+  };
 }
 
 function isResearch(ticket: TrackedIssue): boolean {
   return ticket.labels.includes(researchLabel);
-}
-
-function labelsOf(tickets: TrackedIssue[]): string {
-  return tickets.map(({ issue }) => issueRef.labelOf(issue)).join(", ");
 }

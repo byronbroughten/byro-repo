@@ -2,7 +2,8 @@
 // spec's Workflow. SpecRun/TicketSequencer.ts reaches a Workflow's Step sequence only through this module, SpecRun/ReviewListPoster.ts
 // its spec-end Steps, and every
 // collaborator that launches an agent step takes its prompt, record schema and record checks, through agentStepOf, from the Workflow
-// SpecRunBase._workflowOf picks; SpecRun/PreflightChecker.ts takes its ticket refusal, and SpecRun/TicketSequencer.ts its source targets.
+// SpecRunBase._workflowOf picks; SpecRun/TicketSequencer.ts takes its source targets,
+// and SpecRun/DraftPuller.ts its pull rules, through pullOf.
 // Each Workflow's own code is in Workflow/<name>/.
 // A ticket follows its spec's Workflow. Labels are Trusted, since only collaborators can add one.
 
@@ -10,6 +11,7 @@ import type { HaltQuestion } from "./halts.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { Command } from "./runKnobs.ts";
 import type {
+  PullBaseline,
   TicketState,
   TicketStep,
   TrackedIssue,
@@ -40,8 +42,6 @@ export interface WorkflowStep {
 export interface Workflow {
   name: WorkflowName;
   stepsOf(ticket: TrackedIssue): WorkflowStep[];
-  // The preflight's refusal of the spec's launchable tickets, a Standalone run's own ticket among them; undefined when none refused.
-  ticketRefusalOf(launchable: TrackedIssue[]): string | undefined;
   // The files outside the repo every step of the spec's tickets may read, on top of each ticket's own targets.
   sourceTargetsOf(spec: TrackedIssue): Target[];
   // Reached through agentStepOf, which throws for a step the Workflow leaves out.
@@ -51,6 +51,28 @@ export interface Workflow {
   // Run from a workspace or primary root: after review in each ticket, and in a master set when they go red in a ticket.
   checks: Command[];
   specEnd: SpecEnd;
+  // Reached through pullOf, which throws for a Workflow with no Agent draft.
+  pull?: PullRules;
+}
+
+// The pull Step: the Deliverable's Doc into the Piece's Agent draft, on the ticket's branch.
+export interface PullRules {
+  // The Deliverable's Doc ID the spec names; undefined when it names none.
+  deliverableOf(spec: TrackedIssue): string | undefined;
+  // From the root of the spec's repo.
+  draftPathOf(spec: IssueRef): string;
+  pulledOf(input: PullInput): Promise<PulledDraft>;
+}
+
+export interface PullInput {
+  documentId: string;
+  // The Agent draft as the branch holds it; undefined before the spec's first pull.
+  draft: string | undefined;
+}
+
+export interface PulledDraft {
+  draft: string;
+  baseline: PullBaseline;
 }
 
 // A Step that runs once at a spec's end, rather than in each ticket; the core runs each by its name.
@@ -109,6 +131,7 @@ export interface ResearchRules {
 
 export interface ImplementPromptInput {
   issue: IssueRef;
+  spec: IssueRef;
   title: string;
   body: string;
   branch: string;
@@ -118,14 +141,18 @@ export interface ImplementPromptInput {
   promoteCommand: string;
   // Set for a fresh step after a handoff; a handoff is cumulative, so only the latest is passed.
   latestHandoff?: Handoff;
+  workspacePath: string;
 }
 
 export interface ImplementRules {
   promptOf(input: ImplementPromptInput): string;
   outputSchema: object;
   recordOf(output: unknown): ImplementRecord;
-  recordProblems(record: ImplementRecord, hasNewCommit: boolean): string[];
+  // `output` is the step's whole output, for a Workflow that checks it against outputSchema, since only the real adapter does.
+  recordProblems(output: unknown, hasNewCommit: boolean): string[];
   handoffCommentOf(handoff: Handoff, sessionId: string): string;
+  // A gitignored folder from the workspace root, the runner's to create, so every step of the ticket reads the same files.
+  keptFolderOf?(ticket: IssueRef): string;
 }
 
 export interface ReviewPromptInput {
@@ -252,4 +279,11 @@ export function agentStepOf<SN extends keyof AgentSteps>(
     throw new Error(`The ${workflow.name} Workflow has no ${name} step.`);
   }
   return rules;
+}
+
+export function pullOf(workflow: Workflow): PullRules {
+  if (workflow.pull === undefined) {
+    throw new Error(`The ${workflow.name} Workflow has no pull step.`);
+  }
+  return workflow.pull;
 }

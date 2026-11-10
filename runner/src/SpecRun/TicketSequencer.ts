@@ -4,7 +4,8 @@
 // since the pick leaves the ticket waiting; an UnhandledStop leaves it unlanded and commented on, or Stops the run for a rerun to retry it.
 // Before launch it raises a Failure Halt on a body ../IssueReader.ts doesn't trust; `approve` posts the text's approval.
 // RunLoop.ts calls _runTicket and SessionReviewer.ts calls _runSteps.
-// It builds its own LeaseKeeper, ImplementStepper, ReviewStepper, ResearchStepper, TicketLander and HaltRaiser.
+// A sequence that ends short of wrap-up, as the piece drafting one does until its later Steps exist, Stops the ticket unlanded.
+// It builds its own LeaseKeeper, ImplementStepper, ReviewStepper, ResearchStepper, DraftPuller, TicketLander and HaltRaiser.
 
 import {
   failureOptions,
@@ -29,6 +30,7 @@ import {
   UnhandledStop,
 } from "../UnhandledStop.ts";
 import type { WorkflowStep } from "../Workflow.ts";
+import { DraftPuller } from "./DraftPuller.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import { ImplementStepper } from "./ImplementStepper.ts";
 import { LeaseKeeper } from "./LeaseKeeper.ts";
@@ -41,6 +43,7 @@ import {
   ticketLaunch,
   type TicketOutcome,
   type TicketRun,
+  type TicketState,
   type TicketStep,
   type TrackedIssue,
 } from "./runState.ts";
@@ -67,6 +70,10 @@ export class TicketSequencer extends SpecRunBase {
     return new ResearchStepper(this.config);
   }
 
+  private get draftPuller(): DraftPuller {
+    return new DraftPuller(this.config);
+  }
+
   private get ticketLander(): TicketLander {
     return new TicketLander(this.config);
   }
@@ -89,7 +96,7 @@ export class TicketSequencer extends SpecRunBase {
           }) ?? "resume";
       }
       const workflow = this._workflowOf(run.spec);
-      state.step = entryStepOf(state.step, workflow.stepsOf(ticket));
+      state.step = entryStepOf(state, workflow.stepsOf(ticket));
       const pair = state.pair ?? pairOf(ticket.body);
       if (pair === undefined) {
         throw new UnhandledStop(
@@ -112,6 +119,13 @@ export class TicketSequencer extends SpecRunBase {
           ...workflow.sourceTargetsOf(run.spec),
         ];
         await this._runSteps({ run, ticket, pair, workspace, state, targets });
+        if (isShortOfWrapUp(state)) {
+          throw new UnhandledStop(
+            "unbuilt-step",
+            `The ${workflow.name} Workflow has no ${state.step} step yet, so ${issueRef.labelOf(ticket.issue)} stops before it.`,
+            this._progressPathOf(run),
+          );
+        }
       } else {
         const landing = this.workspaces.folderOf(ticket.issue);
         if (landing) await this.leaseKeeper._takeLease(run, landing);
@@ -284,6 +298,12 @@ export class TicketSequencer extends SpecRunBase {
       });
       return;
     }
+    if (step === "pull") {
+      await this._timed(ticketRun, "pull", () =>
+        this.draftPuller._pull(ticketRun),
+      );
+      return;
+    }
     if (!isAgentStep(step)) {
       throw new Error(`The run core has no ${step} step to launch.`);
     }
@@ -316,13 +336,14 @@ const agentStepNames = [
 // The core's own steps: a fresh ticket's and a halted one's once answered.
 const coreEntrySteps: readonly TicketStep[] = ["implement", "resume"];
 
-// A Workflow whose sequence has neither entry step starts the ticket at its first step instead.
-function entryStepOf(step: TicketStep, sequence: WorkflowStep[]): TicketStep {
+// A Workflow whose sequence has neither entry step, or that pulls first and hasn't yet, starts the ticket at its first step.
+function entryStepOf(state: TicketState, sequence: WorkflowStep[]): TicketStep {
+  const { step } = state;
   const [first] = sequence;
+  if (first === undefined || !coreEntrySteps.includes(step)) return step;
   const isInSequence = sequence.some((each) => each.step === step);
-  if (first === undefined || isInSequence || !coreEntrySteps.includes(step)) {
-    return step;
-  }
+  const isPullDue = first.step === "pull" && state.pullBaseline === undefined;
+  if (isInSequence && !isPullDue) return step;
   return first.step;
 }
 
@@ -344,6 +365,11 @@ function approvingHaltOf(
   }
   const isApproved = haltReplies.failureAnswerOf(latest).kind === "approve";
   return isApproved ? latest : undefined;
+}
+
+// A function, since the check before the steps ran narrows state.step past the steps' own advances.
+function isShortOfWrapUp({ step }: TicketState): boolean {
+  return step !== "wrap-up";
 }
 
 function isRerunRetried({ outcome }: UnhandledStop): boolean {

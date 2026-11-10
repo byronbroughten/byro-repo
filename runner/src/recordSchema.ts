@@ -2,7 +2,7 @@
 
 import { Ajv } from "ajv";
 
-import { blockerKinds } from "./stepRecords.ts";
+import { blockerKinds, type ImplementRecord } from "./stepRecords.ts";
 
 export const stringSchema = { type: "string" };
 
@@ -32,6 +32,59 @@ export const blockerSchema = objectSchema({
   detail: stringSchema,
   recommendation: stringSchema,
 });
+
+export const branchSchema = objectSchema({
+  repo: stringSchema,
+  branch: stringSchema,
+  sha: stringSchema,
+});
+
+export const handoffSchema = objectSchema(
+  {
+    conclusion: stringSchema,
+    filesToOpen: arraySchema(
+      objectSchema({ path: stringSchema, lines: stringSchema }),
+    ),
+    ruledOut: arraySchema(stringSchema),
+    filesChanged: arraySchema(stringSchema),
+    stillFailing: arraySchema(stringSchema),
+    proposedSplit: arraySchema(
+      objectSchema({
+        delivers: stringSchema,
+        files: arraySchema(stringSchema),
+      }),
+      { minItems: 1 },
+    ),
+  },
+  { optional: ["proposedSplit"] },
+);
+
+export function implementVariantSchema(
+  status: ImplementRecord["status"],
+  overrides: Record<string, object>,
+): object {
+  return objectSchema({
+    status: { const: status },
+    branches: arraySchema(branchSchema),
+    closingComment: stringSchema,
+    boxesUndone: arraySchema(
+      objectSchema({ box: stringSchema, reason: stringSchema }),
+    ),
+    blockers: arraySchema(blockerSchema),
+    ...overrides,
+  });
+}
+
+export const uncommittedVariantSchemas = {
+  blocked: implementVariantSchema("blocked", {
+    branches: arraySchema(branchSchema, { maxItems: 0 }),
+    blockers: arraySchema(blockerSchema, { minItems: 1 }),
+  }),
+  handoff: implementVariantSchema("handoff", {
+    branches: arraySchema(branchSchema, { maxItems: 0 }),
+    handoff: handoffSchema,
+  }),
+} as const;
 
 // Each way `value` breaks `schema`, as its JSON path and Ajv's message; empty when it passes.
 export function schemaProblemsOf(schema: object, value: unknown): string[] {

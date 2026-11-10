@@ -99,6 +99,7 @@ export interface ReviewResult {
 export type TicketStep =
   | "implement"
   | "research"
+  | "pull"
   | "review"
   | "resolve"
   | "checks"
@@ -158,6 +159,8 @@ export interface TicketState {
   latestResearchHandoff?: ResearchHandoff;
   // Set once the research comment is posted, so a wrap-up retried after a failure never posts it twice.
   isResearchPosted?: boolean;
+  // A piece spec's drafting ticket's: the Doc as its pull saw it, which its push compares against.
+  pullBaseline?: PullBaseline;
   // Numbers each handoff's backup branch, and counts toward the handoff cap.
   handoffCount?: number;
   // Added by `continue +1 handoff` answers, on top of the handoffsPerTicket knob.
@@ -170,6 +173,13 @@ export interface TicketState {
   continuation?: Continuation;
   // Set once a landed ticket's review list and covered-later notes are posted, or found to need none.
   isReviewListPosted?: boolean;
+}
+
+export interface PullBaseline {
+  documentId: string;
+  revisionId: string;
+  // Each Section's text by its heading, every Section of the Doc, the agent ones included.
+  sections: Record<string, string>;
 }
 
 export type Continuation =

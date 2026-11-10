@@ -1,18 +1,30 @@
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import type {
+  GoogleDocument,
+  NamedStyleType,
+  StructuralElement,
+} from "./Docs/googleDocs.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
 import type { Halt } from "./halts.ts";
 import { defaultRunKnobs } from "./runKnobs.ts";
-import type { RunResult } from "./SpecRun.ts";
 import {
   addSpec,
   commentsOn,
   github,
   haltComments,
+  handoffResultOf,
+  holdDocs,
   implemented,
   masterSubjects,
   primaryOf,
@@ -27,7 +39,12 @@ import {
   ticketState,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
-import type { ReadyResearchRecord, ResearchRecord } from "./stepRecords.ts";
+import { stepResults } from "./specRunHarness/stepResults.ts";
+import type {
+  PieceImplementRecord,
+  ReadyResearchRecord,
+  ResearchRecord,
+} from "./stepRecords.ts";
 import { toolsOf } from "./targetTools.ts";
 
 useSpecRunHarness();
@@ -40,23 +57,299 @@ function addPieceSpec(tickets: number[]): void {
   });
 }
 
-describe("run on a piece spec", () => {
-  it("refuses a ticket that isn't research at preflight, naming the drafting sequence", async () => {
-    addPieceSpec([1, 2]);
-    github.edit(2, { labels: ["ready-for-agent"] });
-    const agentStep = FakeAgentStep.init();
+function addDraftingSpec(): void {
+  addSpec([1]);
+  github.edit(spec.number, {
+    labels: ["piece"],
+    body: `## Deliverable\n\nThe crossing, doc ${deliverableId}.\n`,
+  });
+  holdDocs(
+    docOf({
+      "The harbour": "Gulls circled the quay at dawn.",
+      "The crossing": "The ferry left late.",
+    }),
+  );
+}
+
+describe("pull on a piece spec's drafting ticket", () => {
+  it("pulls every Section of a first ticket's Doc into the Agent draft, marked as the developer's, and commits it", async () => {
+    addDraftingSpec();
+    const seen = { draft: "", subject: "", status: "" };
+    const agentStep = FakeAgentStep.init(async (request) => {
+      seen.draft = readFileSync(join(request.cwd, draftPath), "utf8");
+      seen.subject = git(request.cwd, "log", "-1", "--format=%s");
+      seen.status = git(request.cwd, "status", "--porcelain");
+      return drafted()(request);
+    });
+
+    await specRun(agentStep).run(spec);
+
+    expect(seen).toEqual({
+      draft:
+        "## The harbour\n<!-- developer -->\n\nGulls circled the quay at dawn.\n\n## The crossing\n<!-- developer -->\n\nThe ferry left late.\n",
+      subject:
+        "Pull the Deliverable into the Agent draft of byro-repo #213, for #1",
+      status: "",
+    });
+  });
+
+  it("leaves a later ticket's earlier agent Sections as the file has them", async () => {
+    addDraftingSpec();
+    stepResults.commitFile({
+      cwd: primaryOf("byro-repo"),
+      file: draftPath,
+      content:
+        "## The harbour\n<!-- developer -->\n\nAn older dawn.\n\n## The crossing\n<!-- agent -->\n\nThe ferry slipped its moorings at noon.\n",
+      message: "Land an earlier ticket's Agent draft",
+    });
+    let pulled = "";
+
+    await specRun(
+      FakeAgentStep.init(async (request) => {
+        pulled = readFileSync(join(request.cwd, draftPath), "utf8");
+        return drafted()(request);
+      }),
+    ).run(spec);
+
+    expect(pulled).toBe(
+      "## The harbour\n<!-- developer -->\n\nGulls circled the quay at dawn.\n\n## The crossing\n<!-- agent -->\n\nThe ferry slipped its moorings at noon.\n",
+    );
+  });
+
+  it("records each Section's Doc text as the push baseline", async () => {
+    addDraftingSpec();
+
+    await specRun(FakeAgentStep.init(drafted())).run(spec);
+
+    expect(ticketState()["byro-repo #1"]?.pullBaseline).toEqual({
+      documentId: deliverableId,
+      revisionId: "crossing-1",
+      sections: {
+        "The harbour": "Gulls circled the quay at dawn.\n",
+        "The crossing": "The ferry left late.\n",
+      },
+    });
+  });
+
+  it("stops a ticket whose spec names no Deliverable Doc, pulling nothing", async () => {
+    addDraftingSpec();
+    github.edit(spec.number, { body: "## Deliverable\n\nThe crossing.\n" });
+
+    await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(ticketState()["byro-repo #1"]?.step).toBe("stopped");
+    expect(commentsOn(spec.number, "names no Doc ID")).toHaveLength(1);
+    expect(existsSync(join(workspacePath(), draftPath))).toBe(false);
+  });
+});
+
+describe("implement on a piece spec's drafting ticket", () => {
+  it("drafts the ticket's Sections after pull, keeps the record and stops before the unbuilt review", async () => {
+    addDraftingSpec();
+    const agentStep = FakeAgentStep.init(drafted());
 
     const result = await specRun(agentStep).run(spec);
 
-    expect(result).toEqual<RunResult>({
-      kind: "refused",
-      landed: [],
-      message:
-        "A piece spec's drafting sequence isn't built yet, so the runner runs only its research tickets; not research: byro-repo #2.",
+    const [request] = agentStep.requests;
+    expect(agentStep.requests).toHaveLength(1);
+    expect(request?.prompt).toContain("docs/writing-voice.md");
+    expect(request?.prompt).toContain("docs/writing-craft.md");
+    expect(request?.prompt).toContain(draftPath);
+    expect(git(workspacePath(), "log", "-1", "--format=%s")).toBe(
+      "Draft The crossing in the Agent draft",
+    );
+    expect(ticketState()["byro-repo #1"]?.record).toMatchObject({
+      status: "committed",
+      sectionsDrafted: ["The crossing"],
     });
-    expect(agentStep.requests).toEqual([]);
+    expect(result.landed).toEqual([]);
+    expect(ticketState()["byro-repo #1"]?.step).toBe("stopped");
+    expect(commentsOn(spec.number, "no review step")).toHaveLength(1);
   });
 
+  it("names a passages folder in the workspace, outside the Agent draft and gitignored, and keeps it", async () => {
+    addDraftingSpec();
+    const agentStep = FakeAgentStep.init(async (request) => {
+      writeFileSync(join(passagesPath(), "logbook.txt"), "The storm came.\n");
+      return drafted()(request);
+    });
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests[0]?.prompt).toContain(passagesPath());
+    expect(readFileSync(join(passagesPath(), "logbook.txt"), "utf8")).toBe(
+      "The storm came.\n",
+    );
+    expect(git(workspacePath(), "status", "--porcelain")).toBe("");
+  });
+
+  it("halts on a committed record with no sectionsDrafted", async () => {
+    addDraftingSpec();
+
+    await specRun(
+      FakeAgentStep.init(drafted({ sectionsDrafted: undefined })),
+    ).run(spec);
+
+    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+    expect(haltComments()[0]).toContain("Failure Halt");
+    expect(haltComments()[0]).toContain("sectionsDrafted");
+  });
+
+  it("posts a handoff and gives the fresh step the same passages folder", async () => {
+    addDraftingSpec();
+    const passage = join(passagesPath(), "logbook.txt");
+    const agentStep = FakeAgentStep.init(async () => {
+      writeFileSync(passage, "The storm came.\n");
+      return handoffResultOf({
+        conclusion: "Drafted half of The crossing.",
+        filesToOpen: [
+          { path: draftPath, lines: "5-9" },
+          { path: passage, lines: "1" },
+        ],
+        ruledOut: [],
+        filesChanged: [draftPath],
+        stillFailing: [],
+      });
+    }, drafted());
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests).toHaveLength(2);
+    expect(agentStep.requests[1]?.prompt).toContain(
+      "Handoff from the previous step",
+    );
+    expect(agentStep.requests[1]?.prompt).toContain(`${passage}:1`);
+    expect(agentStep.requests[1]?.prompt).toContain(passagesPath());
+    expect(commentsOn(1, "## Handoff")[0]).toContain(`${draftPath}:5-9`);
+    expect(existsSync(passage)).toBe(true);
+    expect(ticketState()["byro-repo #1"]?.record?.status).toBe("committed");
+  });
+
+  it("launches with Drive reads of the spec's sources", async () => {
+    addDraftingSpec();
+    github.edit(spec.number, {
+      body: `## Deliverable\n\nThe crossing, doc ${deliverableId}.\n\n## Supporting Material\n\n- The lighthouse logbook, ${logbookId}: the storm.\n`,
+    });
+    const agentStep = FakeAgentStep.init(drafted());
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests[0]?.targets).toEqual([
+      { kind: "source", id: logbookId },
+    ]);
+  });
+
+  it("resumes a ticket halted in implement in its own session, without pulling again", async () => {
+    addDraftingSpec();
+    await specRun(FakeAgentStep.init(blockedDraft)).run(spec);
+    github.reply(spec.number, "H1: keep the earlier telling.");
+    holdDocs(
+      docOf({
+        "The harbour": "The Doc moved on.",
+        "The crossing": "The ferry left late.",
+      }),
+    );
+    const agentStep = FakeAgentStep.init(drafted());
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests[0]?.resumeSessionId).toBe("implement-session");
+    expect(agentStep.requests[0]?.prompt).toContain(
+      "H1: keep the earlier telling.",
+    );
+    expect(ticketState()["byro-repo #1"]?.pullBaseline?.sections).toMatchObject(
+      { "The harbour": "Gulls circled the quay at dawn.\n" },
+    );
+    expect(ticketState()["byro-repo #1"]?.record?.status).toBe("committed");
+  });
+});
+
+const draftPath = "writing/agent-drafts/213.md";
+
+function passagesPath(): string {
+  return join(workspacePath(), ".runner", "passages", "byro-repo-1");
+}
+
+// Rewrites The crossing as an agent Section and commits the draft, as a piece implement step would.
+function drafted(change: Partial<PieceImplementRecord> = {}): StepScript {
+  return async (request) => {
+    stepResults.commitFile({
+      cwd: request.cwd,
+      file: draftPath,
+      content:
+        "## The harbour\n<!-- developer -->\n\nGulls circled the quay at dawn.\n\n## The crossing\n<!-- agent -->\n\nThe ferry slipped out at noon.\n",
+      message: "Draft The crossing in the Agent draft",
+    });
+    return resultOf({
+      record: {
+        status: "committed",
+        branches: [
+          {
+            repo: "byro-repo",
+            branch: git(request.cwd, "branch", "--show-current"),
+            sha: git(request.cwd, "rev-parse", "HEAD"),
+          },
+        ],
+        closingComment: "Drafted The crossing.",
+        boxesUndone: [],
+        blockers: [],
+        sectionsDrafted: ["The crossing"],
+        ...change,
+      },
+    });
+  };
+}
+
+const blockedDraft: StepScript = async () => ({
+  ...resultOf({
+    record: {
+      status: "blocked",
+      branches: [],
+      closingComment: "",
+      boxesUndone: [],
+      blockers: [
+        {
+          kind: "spec-ambiguity",
+          detail: "The logbook gives two tellings of the crossing.",
+          recommendation: "Keep the earlier telling.",
+        },
+      ],
+    },
+  }),
+  sessionId: "implement-session",
+  peakContext: 90_000,
+});
+
+function workspacePath(): string {
+  return join(temp, "workspaces", "byro-repo-issue-1-ticket-1");
+}
+
+// A Doc of one level-2 heading and one paragraph per Section.
+function docOf(sections: Record<string, string>): GoogleDocument {
+  const content = Object.entries(sections).flatMap(([heading, text]) => [
+    paragraphOf(heading, "HEADING_2"),
+    paragraphOf(text, "NORMAL_TEXT"),
+  ]);
+  return {
+    documentId: deliverableId,
+    revisionId: "crossing-1",
+    body: { content },
+  };
+}
+
+function paragraphOf(
+  text: string,
+  namedStyleType: NamedStyleType,
+): StructuralElement {
+  return {
+    paragraph: {
+      elements: [{ textRun: { content: `${text}\n` } }],
+      paragraphStyle: { namedStyleType },
+    },
+  };
+}
+
+describe("run on a piece spec", () => {
   it("runs a research ticket's research step under its own knobs and keeps its record", async () => {
     addPieceSpec([1]);
     const record = readyRecordOf(scratchFolder());
@@ -229,7 +522,7 @@ describe("run on a piece spec", () => {
 
 describe("the Research Halt", () => {
   it("raises one Halt on a landed ticket's wanted facts and Outline edits, holding the drafting tickets", async () => {
-    addDraftingSpec();
+    addResearchedSpec();
     const agentStep = FakeAgentStep.init(
       researched(readyRecordOf(scratchFolder())),
     );
@@ -262,7 +555,7 @@ describe("the Research Halt", () => {
   });
 
   it("clears a dropped fact and leaves an unapproved edit out of the spec", async () => {
-    addDraftingSpec();
+    addResearchedSpec();
     await specRun(
       FakeAgentStep.init(researched(readyRecordOf(scratchFolder()))),
     ).run(spec);
@@ -275,7 +568,7 @@ describe("the Research Halt", () => {
   });
 
   it("raises no Halt on a record with only unwanted facts and no edits", async () => {
-    addDraftingSpec();
+    addResearchedSpec();
     const record: ResearchRecord = {
       ...readyRecordOf(scratchFolder()),
       outlineEdits: [],
@@ -297,7 +590,7 @@ describe("the Research Halt", () => {
   });
 
   it("doesn't call a landed ticket unlanded on a `stop spec` answer", async () => {
-    addDraftingSpec();
+    addResearchedSpec();
     await specRun(
       FakeAgentStep.init(researched(readyRecordOf(scratchFolder()))),
     ).run(spec);
@@ -310,7 +603,7 @@ describe("the Research Halt", () => {
   });
 
   it("posts nothing until a wrap-up that stopped lands, then the Halt", async () => {
-    addDraftingSpec();
+    addResearchedSpec();
     const primary = primaryOf("byro-repo");
     const origin = git(primary, "remote", "get-url", "origin");
     const record = readyRecordOf(scratchFolder());
@@ -339,11 +632,11 @@ const outlineTexts = {
 } as const;
 const outlinedSpecBody = `## Deliverable\n\nThe crossing.\n\n## Outline\n\n- **The crossing**: ${outlineTexts.old}\n\n## Facts\n\n- The ferry carried forty people.\n`;
 
-// The drafting sequence (#639) isn't built, so the drafting ticket waits on the developer once no Halt holds it.
+// The drafting ticket isn't ready-for-agent, so it waits on the developer once no Halt holds it.
 const draftingGoesOn = "byro-repo #2 waits on you";
 
-// Research ticket #1 blocks drafting ticket #2, which isn't ready-for-agent, so the preflight refuses nothing.
-function addDraftingSpec(): void {
+// Research ticket #1 blocks drafting ticket #2, which isn't ready-for-agent, so the run launches only the research.
+function addResearchedSpec(): void {
   addPieceSpec([1, 2]);
   github.edit(2, { labels: [] });
   github.blockers.set(2, [1]);

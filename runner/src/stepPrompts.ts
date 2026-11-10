@@ -1,13 +1,10 @@
 // The prompt text the implement and resolve steps share with the core and with the /implement-code skill: the resumes'
-// prompts, the shared body of the implement prompt, the resolve rules and record fields, and the generated
-// /implement-* skills' shared ending. Each step's own prompt stays in its file.
+// prompts, the shared body of the implement prompt, its workspace section, the resolve rules and
+// record fields, and the generated /implement-* skills' shared ending. Each step's own prompt stays in its file.
 
 import { codeListOf, sectionOf } from "./promptText.ts";
-import {
-  dismissReasons,
-  type ProposedSlice,
-  proposeReasons,
-} from "./stepRecords.ts";
+import { dismissReasons, proposeReasons } from "./stepRecords.ts";
+import type { ImplementPromptInput } from "./Workflow.ts";
 
 // Sent with --resume once a step crosses the live ceiling without handing off.
 export const handoffOnlyPrompt =
@@ -125,11 +122,13 @@ function indentedOf(text: string): string {
   return text.replaceAll(/\n(?=.)/g, "\n     ");
 }
 
-export function proposedSplitText(slices: ProposedSlice[]): string {
-  return slices
-    .map(
-      ({ delivers, files }, index) =>
-        `${index + 1}. ${delivers} (${files.join(", ")})`,
-    )
-    .join("\n");
+export function implementWorkspaceSection({
+  branch,
+  branchedRepos,
+  promoteCommand,
+}: ImplementPromptInput): string {
+  return `## Where you work
+
+- Your working directory is the ticket's issue workspace root. These repos are on the ticket's branch, \`${branch}\`: ${branchedRepos.join(", ")}. Every other repo is detached at master.
+- To change a detached repo, first put it onto \`${branch}\` with \`${promoteCommand} <repo>\`. Never switch, create or delete a branch yourself.`;
 }
