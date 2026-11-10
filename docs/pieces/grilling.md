@@ -6,7 +6,7 @@ A spec that holds only facts yields a draft that is accurate but flat, and the d
 
 The voice questions are the verdict, the stakes, a before and after, Temperature and Reach. Research, Final pass and Split wait on the approved Outline. Each example is from Piece A, a letter of support, unless it names another Piece by its letter.
 
-- **The reader.** Who reads the Piece, what they already know, and which of the Piece's terms they use daily; a term not on that list gets glossed. It fills the spec's Reader field, which `/review-piece`'s Reader axis stands in for. (B: the professor, grading against the rubric, who has read the first draft.)
+- **The reader.** Who reads the Piece, what they already know, and which of the Piece's terms they use daily; a term not on that list gets glossed. It fills the spec's Reader field, which `/review-piece`'s `reader` axis stands in for. (B: the professor, grading against the rubric, who has read the first draft.)
 - **The verdict.** The strongest thing the developer would say, word for word, at full strength. It opens the Piece's main section. (A: "I can say without a doubt that Sam has more creativity and ingenuity than I have encountered in any other contractor.")
 - **The stakes.** What the developer relies on the subject for, and what they would lose without it. (A: "His reliable quotes are the basis on which I decide whether or not to invest in properties.")
 - **A before and after.** One change the developer saw, with each side described concretely. (A: "the dingy, rundown space … into the warm, welcoming home")

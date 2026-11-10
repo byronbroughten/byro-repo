@@ -44,7 +44,7 @@ The words Piece, Deliverable, Section, Stage and Agent draft are [the writing gl
 [The runner glossary](../../runner/GLOSSARY.md#language) defines each Step.
 
 - **Code**: the runner's [`Workflow`](../../runner/src/Workflow.ts) module picks the code Workflow, whose code is in [`runner/src/Workflow/code/`](../../runner/src/Workflow/code/); its [`codeWorkflow.ts`](../../runner/src/Workflow/code/codeWorkflow.ts) defines the Steps each ticket goes through, and the runner's `TicketSequencer` runs them. `/code-review` is the review Step's skill, named, with each ticket's checks, where `scripts/runner/runnerConfig.ts` builds the code Workflow, and `/implement-code` is generated from the implement Step's shared body (`runner/src/Workflow/code/implementCodeSkill.ts`), so a change to either reaches both an interactive session and a run.
-- **Piece**: the runner's [`pieceWorkflow.ts`](../../runner/src/Workflow/piece/pieceWorkflow.ts) runs a Research ticket's research Step, which follows `/research-piece`'s steps 1–7, the ones it names as shared by both modes, then its quote check, and lands it with no code. Every other piece ticket is a drafting ticket: it runs pull and implement, then stops unlanded because its later Steps aren't built, so it is finished by hand through the Implementation stage's interactive skills above.
+- **Piece**: the runner's [`pieceWorkflow.ts`](../../runner/src/Workflow/piece/pieceWorkflow.ts) runs a Research ticket's research Step, which follows `/research-piece`'s steps 1–7, the ones it names as shared by both modes, then its quote check, and lands it with no code. Every other piece ticket is a drafting ticket: it runs pull, implement and review, whose prompt reads `/review-piece` by its path, then stops unlanded because its later Steps aren't built, so it is finished by hand through the Implementation stage's interactive skills above.
 
 ## The hand-off table
 
@@ -112,8 +112,8 @@ A doc is listed when two or more skills or Steps of either Workflow reach it by 
 | [The writing glossary](../pieces/GLOSSARY.md) | `/grill-piece`, `/piece-spec`, `/piece-tickets`, `/review-piece`, `/to-writing-style` (its pair mode) | via `rules.md`: `/implement-piece`, the piece implement Step |
 | [`grilling.md`](../pieces/grilling.md) | `/grill-piece`, `/piece-spec`, `/to-writing-style` | via `rules.md`: `/piece-tickets`, `/implement-piece`, the piece implement Step, `/review-piece` |
 | [`outlining.md`](../pieces/outlining.md) | `/grill-piece`, `/piece-spec`, `/piece-tickets` | via `rules.md`: `/implement-piece`, the piece implement Step, `/review-piece` |
-| [`pdf-pages.md`](../pdf-pages.md) | `/grill-piece`, `/piece-tickets` (its ticket template), `/review-piece`, `/research-piece`, `/review-research` | via `rules.md`: `/implement-piece`, the piece implement Step, `/piece-spec` |
-| [`agent-draft.md`](../pieces/agent-draft.md) | `/implement-piece`, `/to-writing-style` (its pair mode) | via `rules.md`: `/piece-spec`, `/piece-tickets`, `/review-piece`; via runner prompt: the piece implement Step |
+| [`pdf-pages.md`](../pdf-pages.md) | `/grill-piece`, `/piece-tickets` (its ticket template), `/research-piece`, `/review-research` | via `rules.md`: `/implement-piece`, the piece implement Step, `/piece-spec`, `/review-piece` |
+| [`agent-draft.md`](../pieces/agent-draft.md) | `/implement-piece`, `/review-piece`, `/to-writing-style` (its pair mode) | via `rules.md`: `/piece-spec`, `/piece-tickets`; via runner prompt: the piece implement Step |
 
 Routes that depend on which files a ticket touches (the read-first gate's tier, framework-style and writing rows, nested `AGENTS.md` files, the AGENTS.md cost nudge and the sandbox-failure context) live in [the guardrails doc's hooks section](../claude-code-guardrails.md#the-hooks-and-the-project-agent).
 
@@ -128,8 +128,9 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | The numbered 🪤/📝 items | `/to-code-style`, `/to-writing-style` |
 | The ten spec fields and the piece-spec template | `/grill-piece` settles them, `/piece-spec` writes them, `/piece-tickets` reads Research, Final pass, Split, Form and Outline, `/review-piece` reads Reader, Outline, Form and Style |
 | The piece-ticket template, its Sections named by exact heading text | `/piece-tickets` writes it; `/implement-piece` drafts only the Sections it names; `/review-piece` scopes to them |
-| The four review axes, Spec, Voice, Craft and Reader, with hard findings and judgement calls | `/review-piece` reports them; `/implement-piece` fixes the hard Spec findings and reports the rest |
-| The Research fact list comment: numbered facts, each ending with a locator naming its saved text and page range or heading, quotes optional and verbatim, and a `## Unverified` section outside the fact list | `/research-piece` posts it; `/review-research` checks its draft first; `/review-piece`'s fact list takes its facts outside `## Unverified` when the spec links it, and its Read passages take each fact's cited range; `/implement-piece` drafts from its facts, never its quotes or `## Unverified` |
+| The piece review axes, `spec`, `standards` and `reader`, each finding with a suggested verdict, and `## Dismissed overlaps` | `/review-piece` reports them, and the piece review Step returns them as its record; `/implement-piece` fixes the findings suggested as Fix and reports the rest |
+| The Research fact list comment: numbered facts, each ending with a locator naming its saved text and page range or heading, quotes optional and verbatim, and a `## Unverified` section outside the fact list | `/research-piece` posts it; `/review-research` checks its draft first; `/review-piece`'s fact list takes its facts outside `## Unverified` when the spec links it; `/implement-piece` drafts from its facts, never its quotes or `## Unverified` |
+| The passages folder, `.runner/passages/<repo>-<n>` | `/implement-piece` and the piece implement Step save each passage read; `/review-piece` and the piece review Step read it |
 | The model-fit chat line: `/implement-piece <repo> <n>: <Model> <effort> (reason)` from `/piece-spec`, `#n Title: <Model> <effort> (reason)` from `/piece-tickets` | `/piece-spec`, `/piece-tickets` |
 | The Agent draft's path and shape | `/implement-piece`, the pull Step and the piece implement Step save it; `/to-writing-style`'s pair mode diffs it |
 
@@ -142,9 +143,9 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | Wrap-up (`npm run wrap-up`) | `/implement-code`, `/judge-findings`, `/mine-outcomes`, the wrap-up Step, `/implement-piece`, `/research-piece` |
 | `runner -- decide` | `/runner`, `/implement-code`, `/judge-findings` |
 | `npm run overlap` | `/review-piece` runs it; `/implement-piece` reruns it after a fix |
-| `npm run pdf:text` and the page-range command in [`pdf-pages.md`](../pdf-pages.md) | `/research-piece` dumps text; `/review-piece` writes ranges; `/grill-piece` and `/review-research` count and print pages |
+| `npm run pdf:text` and the page-range command in [`pdf-pages.md`](../pdf-pages.md) | `/research-piece` dumps text; `/grill-piece` and `/review-research` count and print pages |
 | Sub-issues and native blocking edges | `/piece-tickets` sets them; `/review-piece` reads the parent through `gh api` |
-| The gworkspace tools (Drive and Docs) | `/grill-piece`, `/implement-piece`, `/review-piece`, `/research-piece` |
+| The gworkspace tools (Drive and Docs) | `/grill-piece`, `/implement-piece`, `/research-piece` |
 
 ## Out of scope
 

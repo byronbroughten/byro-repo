@@ -7,10 +7,12 @@ describe("reviewPrompt", () => {
   it("names the issue reader for the spec read", () => {
     const prompt = reviewPrompt({
       issue: { repo: "byro-repo", number: 269 },
+      spec: { repo: "byro-repo", number: 268 },
       title: "Runner steps read issues only through the reader",
       skillName: "code-review",
       branch: "issue-269-reader-only-issues",
       branchedRepos: ["byro-repo"],
+      workspacePath: "/workspaces/byro-repo-issue-269",
     });
     expect(prompt).toContain(
       "Read issues only through the issue reader, `npm run issue:read -- <repo> <n> --hide-others`",
@@ -39,5 +41,9 @@ describe("reviewRecordSchema", () => {
       isValid({ findings: ["SpecRun.ts:88 skips the resolve step."] }),
     ).toBe(false);
     expect(isValid({ findings: [noAxis] })).toBe(false);
+  });
+
+  it("refuses a reader finding, which only a piece review makes", () => {
+    expect(isValid({ findings: [{ ...finding, axis: "reader" }] })).toBe(false);
   });
 });

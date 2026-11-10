@@ -157,16 +157,19 @@ export interface ImplementRules {
 
 export interface ReviewPromptInput {
   issue: IssueRef;
+  spec: IssueRef;
   title: string;
   skillName: string;
   branch: string;
   branchedRepos: string[];
+  workspacePath: string;
 }
 
 export interface ReviewRules {
   promptOf(input: ReviewPromptInput): string;
+  // The core checks the step's record against it too, since only the real adapter does.
   outputSchema: object;
-  // Called through the Skill tool by the review step.
+  // The skill the review step follows, through the Skill tool or, for a user-invoked skill, read by its path.
   skillName: string;
 }
 

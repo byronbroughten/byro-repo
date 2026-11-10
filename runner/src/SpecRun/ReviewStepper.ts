@@ -12,6 +12,7 @@ import { git } from "../git.ts";
 import { verdictHaltOf } from "../halts.ts";
 import { issueRef, type Workspace } from "../IssueWorkspaces.ts";
 import { strongerPairOf } from "../modelFit.ts";
+import { schemaProblemsOf } from "../recordSchema.ts";
 import {
   type Finding,
   type ResolveRecord,
@@ -83,16 +84,22 @@ export class ReviewStepper extends SpecRunBase {
   async _review(ticketRun: TicketRun): Promise<void> {
     const { run, ticket, workspace, state } = ticketRun;
     const rules = this._agentStepOf(run.spec, "review");
-    const { record } = await this._launch(ticketRun, "review", {
+    const { record, logPath } = await this._launch(ticketRun, "review", {
       prompt: rules.promptOf({
         issue: ticket.issue,
+        spec: run.spec.issue,
         title: ticket.title,
         skillName: rules.skillName,
         branch: workspace.branch,
         branchedRepos: ticketSteps.branchedReposOf(ticketRun),
+        workspacePath: workspace.path,
       }),
       jsonSchema: rules.outputSchema,
     });
+    const problems = schemaProblemsOf(rules.outputSchema, record);
+    if (problems.length > 0) {
+      throw ticketSteps.schemaFailureOf(logPath, { problems, output: record });
+    }
     state.findings = (record as ReviewRecord).findings;
   }
 

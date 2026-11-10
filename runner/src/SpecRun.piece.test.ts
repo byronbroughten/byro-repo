@@ -44,6 +44,7 @@ import type {
   PieceImplementRecord,
   ReadyResearchRecord,
   ResearchRecord,
+  ReviewFinding,
 } from "./stepRecords.ts";
 import { toolsOf } from "./targetTools.ts";
 
@@ -144,14 +145,14 @@ describe("pull on a piece spec's drafting ticket", () => {
 });
 
 describe("implement on a piece spec's drafting ticket", () => {
-  it("drafts the ticket's Sections after pull, keeps the record and stops before the unbuilt review", async () => {
+  it("drafts the ticket's Sections after pull, keeps the record and stops after review, before the unbuilt resolve", async () => {
     addDraftingSpec();
-    const agentStep = FakeAgentStep.init(drafted());
+    const agentStep = FakeAgentStep.init(drafted(), pieceReviewed());
 
     const result = await specRun(agentStep).run(spec);
 
     const [request] = agentStep.requests;
-    expect(agentStep.requests).toHaveLength(1);
+    expect(agentStep.requests).toHaveLength(2);
     expect(request?.prompt).toContain("docs/writing-voice.md");
     expect(request?.prompt).toContain("docs/writing-craft.md");
     expect(request?.prompt).toContain(draftPath);
@@ -164,7 +165,7 @@ describe("implement on a piece spec's drafting ticket", () => {
     });
     expect(result.landed).toEqual([]);
     expect(ticketState()["byro-repo #1"]?.step).toBe("stopped");
-    expect(commentsOn(spec.number, "no review step")).toHaveLength(1);
+    expect(commentsOn(spec.number, "no resolve step")).toHaveLength(1);
   });
 
   it("names a passages folder in the workspace, outside the Agent draft and gitignored, and keeps it", async () => {
@@ -198,23 +199,27 @@ describe("implement on a piece spec's drafting ticket", () => {
   it("posts a handoff and gives the fresh step the same passages folder", async () => {
     addDraftingSpec();
     const passage = join(passagesPath(), "logbook.txt");
-    const agentStep = FakeAgentStep.init(async () => {
-      writeFileSync(passage, "The storm came.\n");
-      return handoffResultOf({
-        conclusion: "Drafted half of The crossing.",
-        filesToOpen: [
-          { path: draftPath, lines: "5-9" },
-          { path: passage, lines: "1" },
-        ],
-        ruledOut: [],
-        filesChanged: [draftPath],
-        stillFailing: [],
-      });
-    }, drafted());
+    const agentStep = FakeAgentStep.init(
+      async () => {
+        writeFileSync(passage, "The storm came.\n");
+        return handoffResultOf({
+          conclusion: "Drafted half of The crossing.",
+          filesToOpen: [
+            { path: draftPath, lines: "5-9" },
+            { path: passage, lines: "1" },
+          ],
+          ruledOut: [],
+          filesChanged: [draftPath],
+          stillFailing: [],
+        });
+      },
+      drafted(),
+      pieceReviewed(),
+    );
 
     await specRun(agentStep).run(spec);
 
-    expect(agentStep.requests).toHaveLength(2);
+    expect(agentStep.requests).toHaveLength(3);
     expect(agentStep.requests[1]?.prompt).toContain(
       "Handoff from the previous step",
     );
@@ -264,7 +269,61 @@ describe("implement on a piece spec's drafting ticket", () => {
   });
 });
 
+describe("review on a piece spec's drafting ticket", () => {
+  it("reviews the drafted ticket in a fresh session that reads /review-piece by its path, over the Agent draft and passages folder", async () => {
+    addDraftingSpec();
+    const agentStep = FakeAgentStep.init(drafted(), pieceReviewed());
+
+    await specRun(agentStep).run(spec);
+
+    const review = agentStep.requests[1];
+    expect(review?.resumeSessionId).toBeUndefined();
+    expect(review?.logPath).toMatch(/byro-repo-1-\d+-review\.jsonl$/);
+    expect(review?.prompt).toContain(".claude/skills/review-piece/SKILL.md");
+    expect(review?.prompt).toContain(draftPath);
+    expect(review?.prompt).toContain(passagesPath());
+  });
+
+  it("keeps a record's reader finding", async () => {
+    addDraftingSpec();
+
+    await specRun(FakeAgentStep.init(drafted(), pieceReviewed())).run(spec);
+
+    expect(ticketState()["byro-repo #1"]?.findings).toEqual([readerFinding]);
+  });
+
+  it("halts on a review record with no dismissedOverlaps", async () => {
+    addDraftingSpec();
+    const noOverlaps = async () => resultOf({ findings: [readerFinding] });
+
+    await specRun(FakeAgentStep.init(drafted(), noOverlaps)).run(spec);
+
+    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+    expect(haltComments()[0]).toContain("Failure Halt");
+    expect(haltComments()[0]).toContain("dismissedOverlaps");
+  });
+});
+
 const draftPath = "writing/agent-drafts/213.md";
+
+const readerFinding: ReviewFinding = {
+  axis: "reader",
+  where: `${draftPath}:7`,
+  claim:
+    'The crossing reads as a delay, not the Outline\'s escape: "The ferry slipped out at noon."',
+  suggestedVerdict: "fix",
+  reason: "The Outline line says the crossing is the escape.",
+};
+
+function pieceReviewed(): StepScript {
+  return async () =>
+    resultOf({
+      findings: [readerFinding],
+      dismissedOverlaps: [
+        { hit: "the ferry left", reason: "A fixed phrase for the event." },
+      ],
+    });
+}
 
 function passagesPath(): string {
   return join(workspacePath(), ".runner", "passages", "byro-repo-1");

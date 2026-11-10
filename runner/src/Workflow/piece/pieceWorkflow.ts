@@ -2,8 +2,8 @@
 // then its quote check, and lands with no code: its comment posted, its outcome row written and the ticket closed.
 // What it couldn't verify and the Outline edits it proposes then go to the developer in one Research Halt, which holds the drafting tickets.
 // Every other ticket is a drafting ticket: its first Step pulls the Deliverable's Doc into the Agent draft, agentDraft.ts,
-// and its implement step, implementStep.ts, drafts the ticket's Sections there.
-// The drafting Steps after implement aren't built, so a drafting ticket stops after it, unlanded.
+// its implement step, implementStep.ts, drafts the ticket's Sections there, and its review step, reviewStep.ts, reviews them.
+// The drafting Steps after review aren't built, so a drafting ticket stops after it, unlanded.
 // Every step reads the Drive files the spec's Supporting Material lists, as source targets, and no others.
 // A repo's runner config builds it with its commands and Docs port, and ../../Workflow.ts registers it.
 
@@ -24,6 +24,7 @@ import type {
   PulledDraft,
   PullInput,
   PullRules,
+  ReviewPromptInput,
   SpecEnd,
   Workflow,
   WorkflowStep,
@@ -45,6 +46,7 @@ import {
   researchRecordOf,
   researchRecordProblems,
 } from "./researchStep.ts";
+import { pieceReviewPrompt, pieceReviewRecordSchema } from "./reviewStep.ts";
 
 const researchLabel = "research";
 const specHeadings = {
@@ -70,7 +72,7 @@ const researchSteps: WorkflowStep[] = [
   { step: "wrap-up" },
 ];
 
-// Review is the drafting Step after implement, though no piece review step exists yet.
+// Resolve is the drafting Step after review, though no piece resolve step exists yet.
 const draftingSteps: WorkflowStep[] = [
   {
     step: "pull",
@@ -88,6 +90,12 @@ const draftingSteps: WorkflowStep[] = [
     step: "resume",
     nextOf() {
       return "review";
+    },
+  },
+  {
+    step: "review",
+    nextOf() {
+      return "resolve";
     },
   },
 ];
@@ -149,6 +157,11 @@ export function pieceWorkflowOf({
         handoffCommentOf: handoffText.commentOf,
         keptFolderOf: passagesFolderOf,
       },
+      review: {
+        promptOf: reviewPromptOf,
+        outputSchema: pieceReviewRecordSchema,
+        skillName: "review-piece",
+      },
     },
     // A drafting ticket lands its branch, the Agent draft's commits on it, as a code ticket does.
     landingOf(ticket) {
@@ -165,6 +178,10 @@ function draftingPromptOf(input: ImplementPromptInput): string {
     ...input,
     draftPath: draftPathOf(input.spec),
   });
+}
+
+function reviewPromptOf(input: ReviewPromptInput): string {
+  return pieceReviewPrompt({ ...input, draftPath: draftPathOf(input.spec) });
 }
 
 function draftPathOf({ number }: IssueRef): string {
