@@ -2,21 +2,25 @@
 // recorded in byro-repo's .claude/skills/upstream.json, and the implement record it returns.
 // AgentStep.ts launches the step; StepStream.ts checks the output against implementOutputSchema.
 
-import { gitHubWriteActions } from "./FactsFile.ts";
-import { stepReadLine } from "./IssueReader.ts";
-import type { IssueRef } from "./IssueWorkspaces.ts";
-import { commitMessageLine, sectionOf, stepWriteLine } from "./promptText.ts";
-import { arraySchema, objectSchema, stringSchema } from "./recordSchema.ts";
+import { gitHubWriteActions } from "../../FactsFile.ts";
+import { stepReadLine } from "../../IssueReader.ts";
+import type { IssueRef } from "../../IssueWorkspaces.ts";
+import {
+  commitMessageLine,
+  sectionOf,
+  stepWriteLine,
+} from "../../promptText.ts";
+import { arraySchema, objectSchema, stringSchema } from "../../recordSchema.ts";
 import {
   implementBody,
   proposedSplitText,
   ticketBindsSection,
-} from "./stepPrompts.ts";
+} from "../../stepPrompts.ts";
 import {
   blockerKinds,
   type Handoff,
   type ImplementRecord,
-} from "./stepRecords.ts";
+} from "../../stepRecords.ts";
 
 export interface ImplementPromptInput {
   issue: IssueRef;
