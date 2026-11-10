@@ -636,7 +636,7 @@ function stopSpecMessageOf(run: Run, halts: Halt[]): string {
   const unlanded = halts
     .filter(({ ticket }) => !runTickets.isLanded(run, ticket))
     .map(({ ticket }) => issueRef.labelOf(ticket));
-  const stopped = `Stopped on \`stop spec\` for Halt ${runHalts.idListOf(halts)}: ${runText.landedOf(run.landed)}`;
-  if (unlanded.length === 0) return `${stopped}.`;
-  return `${stopped}; ${[...new Set(unlanded)].join(", ")} stays unlanded.`;
+  const stopMessage = `Stopped on \`stop spec\` for Halt ${runHalts.idListOf(halts)}: ${runText.landedOf(run.landed)}`;
+  if (unlanded.length === 0) return `${stopMessage}.`;
+  return `${stopMessage}; ${[...new Set(unlanded)].join(", ")} stays unlanded.`;
 }

@@ -8,6 +8,7 @@ import {
   blockerHaltOf,
   failureHaltOf,
   failureOptions,
+  type Halt,
   haltCommentOf,
   haltNoticeOf,
   type HaltPost,
@@ -153,7 +154,7 @@ export class HaltRaiser extends SpecRunBase {
         {
           kind: "research",
           ...question,
-          scope: await this._draftingTicketsOf(run),
+          scope: await this._draftingShortRefsOf(run),
           outlineEdits: record.outlineEdits,
         },
       ],
@@ -161,13 +162,11 @@ export class HaltRaiser extends SpecRunBase {
     this._saveState(run);
   }
 
-  // The run's tickets that aren't research, each `<repo>#<n>`.
-  private async _draftingTicketsOf(run: Run): Promise<string[]> {
-    const workflow = this._workflowOf(run.spec);
+  private async _draftingShortRefsOf(run: Run): Promise<string[]> {
+    const rules = this._agentStepOf(run.spec, "research");
     const drafting: string[] = [];
     for (const ticket of run.tickets) {
-      const tracked = await this.config.github.issueOf(ticket);
-      if (workflow.landingOf(tracked) !== "research") {
+      if (rules.isDrafting(await this.config.github.issueOf(ticket))) {
         drafting.push(shortRefOf(ticket));
       }
     }
@@ -196,16 +195,12 @@ export class HaltRaiser extends SpecRunBase {
 
   // Also picks up the Halts of a ticket that halted in a run killed before they were all posted.
   async _postUnpostedHalts(run: Run): Promise<void> {
-    // The gap check's is checked first, so it never creates a ticket state for the spec; a Research Halt's ticket lands rather than halts.
-    const unposted = runHalts
-      .of(run)
-      .filter(
-        (halt) =>
-          !halt.isPosted &&
-          (runHalts.isGapCheck(halt) ||
-            halt.kind === "research" ||
-            runTickets.stateOf(run, halt.ticket).step === "halted"),
-      );
+    const unposted: Halt[] = [];
+    for (const halt of runHalts.of(run)) {
+      if (!halt.isPosted && (await this._isPostable(run, halt))) {
+        unposted.push(halt);
+      }
+    }
     for (const halt of unposted) {
       const batch = unposted.filter(({ ticket }) =>
         issueRef.isSame(ticket, halt.ticket),
@@ -231,6 +226,17 @@ export class HaltRaiser extends SpecRunBase {
         commentUrl,
       });
     }
+  }
+
+  // The gap check's is checked first, so it never creates a ticket state for the spec.
+  // A Research Halt is raised before the wrap-up, but waits for its ticket to land, or close in a run killed before it recorded the landing.
+  private async _isPostable(run: Run, halt: Halt): Promise<boolean> {
+    if (runHalts.isGapCheck(halt)) return true;
+    if (halt.kind === "research") {
+      if (runTickets.isLanded(run, halt.ticket)) return true;
+      return !(await this.config.github.issueOf(halt.ticket)).isOpen;
+    }
+    return runTickets.stateOf(run, halt.ticket).step === "halted";
   }
 
   // The run's tickets this one blocks, directly or through another, each `<repo>#<n>`.

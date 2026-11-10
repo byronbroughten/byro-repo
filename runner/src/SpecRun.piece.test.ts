@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { FakeAgentStep } from "./FakeAgentStep.ts";
+import { git } from "./GitFixture.ts";
 import type { Halt } from "./halts.ts";
 import { defaultRunKnobs } from "./runKnobs.ts";
 import type { RunResult } from "./SpecRun.ts";
@@ -14,6 +15,7 @@ import {
   haltComments,
   implemented,
   masterSubjects,
+  primaryOf,
   refOf,
   resultOf,
   reviewed,
@@ -85,7 +87,7 @@ describe("run on a piece spec", () => {
       expect.stringMatching(/^Record the #1 outcome/),
     );
     const closing = github.closed.find(({ issue }) => issue.number === 1);
-    expect(closing?.comment).toContain(newOutline);
+    expect(closing?.comment).toContain(outlineTexts.proposed);
     expect(ticketState()["byro-repo #1"]?.step).toBe("landed");
   });
 
@@ -239,7 +241,9 @@ describe("the Research Halt", () => {
     const [halt] = haltComments();
     expect(halt).toContain("Research Halt");
     expect(halt).toContain("**F1** The ferry carried forty people.");
-    expect(halt).toContain(`**E1** The crossing: replace "${oldOutline}"`);
+    expect(halt).toContain(
+      `**E1** The crossing: replace "${outlineTexts.old}"`,
+    );
     expect(halt).toContain("Blocks: byro-repo#2 and their downstream.");
     expect(ticketState()["byro-repo #1"]?.step).toBe("landed");
     const saved = JSON.parse(readFileSync(runStatePath(), "utf8")) as {
@@ -249,8 +253,8 @@ describe("the Research Halt", () => {
       [
         {
           section: "The crossing",
-          oldText: oldOutline,
-          newText: newOutline,
+          oldText: outlineTexts.old,
+          newText: outlineTexts.proposed,
           reason: "The logbook dates the ferry first.",
         },
       ],
@@ -304,11 +308,36 @@ describe("the Research Halt", () => {
     expect(result.kind).toBe("stopped");
     expect(result.message).not.toContain("stays unlanded");
   });
+
+  it("posts nothing until a wrap-up that stopped lands, then the Halt", async () => {
+    addDraftingSpec();
+    const primary = primaryOf("byro-repo");
+    const origin = git(primary, "remote", "get-url", "origin");
+    const record = readyRecordOf(scratchFolder());
+    const agentStep = FakeAgentStep.init(async () => {
+      git(primary, "remote", "set-url", "origin", "/gone");
+      return resultOf({ record });
+    });
+
+    const stopped = await specRun(agentStep).run(spec);
+
+    expect(stopped.kind).toBe("stopped");
+    expect(haltComments()).toEqual([]);
+    git(primary, "remote", "set-url", "origin", origin);
+
+    const result = await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(haltComments()).toHaveLength(1);
+    expect(result.message).toContain("byro-repo #2 waits on Halt H1");
+  });
 });
 
-const oldOutline = "the storm came, then the ferry ran.";
-const newOutline = "the ferry ran before the storm came.";
-const outlinedSpecBody = `## Deliverable\n\nThe crossing.\n\n## Outline\n\n- **The crossing**: ${oldOutline}\n\n## Facts\n\n- The ferry carried forty people.\n`;
+const outlineTexts = {
+  old: "the storm came, then the ferry ran.",
+  proposed: "the ferry ran before the storm came.",
+} as const;
+const outlinedSpecBody = `## Deliverable\n\nThe crossing.\n\n## Outline\n\n- **The crossing**: ${outlineTexts.old}\n\n## Facts\n\n- The ferry carried forty people.\n`;
 
 // The drafting sequence (#639) isn't built, so the drafting ticket waits on the developer once no Halt holds it.
 const draftingGoesOn = "byro-repo #2 waits on you";
@@ -342,8 +371,8 @@ function readyRecordOf(folder: string): ReadyResearchRecord {
     outlineEdits: [
       {
         section: "The crossing",
-        oldText: oldOutline,
-        newText: newOutline,
+        oldText: outlineTexts.old,
+        newText: outlineTexts.proposed,
         reason: "The logbook dates the ferry first.",
       },
     ],

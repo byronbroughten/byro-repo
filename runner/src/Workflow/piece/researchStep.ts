@@ -104,44 +104,45 @@ export function researchClosingCommentOf({
   ].join("\n\n");
 }
 
-// Raised on the landed ticket, before any drafting starts.
 export function researchHaltOf({
   outlineEdits,
   unverified,
 }: ReadyResearchRecord): HaltQuestion | undefined {
-  const wanted = wantedOf(unverified);
-  if (wanted.length === 0 && outlineEdits.length === 0) return undefined;
-  const factLines = wanted.map(
-    (item, index) => `**F${index + 1}** ${unverifiedTextOf(item)}`,
-  );
-  const editLines = outlineEdits.map(
-    (edit, index) => `**E${index + 1}** ${outlineEditTextOf(edit)}`,
-  );
+  const groups = [
+    {
+      heading: "Wanted facts it couldn't verify",
+      lines: wantedOf(unverified).map(
+        (item, index) => `**F${index + 1}** ${unverifiedTextOf(item)}`,
+      ),
+      options: researchHaltOptions.facts,
+    },
+    {
+      heading: "Proposed Outline edits",
+      lines: outlineEdits.map(
+        (edit, index) => `**E${index + 1}** ${outlineEditTextOf(edit)}`,
+      ),
+      options: researchHaltOptions.edits,
+    },
+  ].filter(({ lines }) => lines.length > 0);
+  if (groups.length === 0) return undefined;
   return {
     question: [
-      "The research left these to settle before any drafting starts.",
-      ...(wanted.length > 0
-        ? [`Wanted facts it couldn't verify:${bulletsOf(factLines)}`]
-        : []),
-      ...(outlineEdits.length > 0
-        ? [`Proposed Outline edits:${bulletsOf(editLines)}`]
-        : []),
+      "The research left these to settle before any drafting starts. Settle every item in one reply: the first reply answers the whole Halt.",
+      ...groups.map(({ heading, lines }) => `${heading}:${bulletsOf(lines)}`),
     ].join("\n\n"),
-    options: [
-      ...(wanted.length > 0 ? factOptions : []),
-      ...(outlineEdits.length > 0 ? editOptions : []),
-    ],
+    options: groups.flatMap(({ options }) => options),
   };
 }
 
-const factOptions = [
-  "`drop F<n>`: clear the fact and go on without it.",
-  "`another source F<n>`, naming the source: the Supervisor settles one fact from one Drive file. For anything larger, file a Research ticket with `/piece-tickets`, blocking the drafting tickets, before answering.",
-];
-
-const editOptions = [
-  "`approve E<n>`: approve the edit. The runner doesn't apply it yet, so make the change in the spec's `## Outline` yourself.",
-];
+const researchHaltOptions = {
+  facts: [
+    "`drop F<n>`: clear the fact and go on without it.",
+    "`another source F<n>`, naming the source: the Supervisor settles one fact from one Drive file. For anything larger, file a Research ticket with `/piece-tickets`, blocking the drafting tickets, before answering.",
+  ],
+  edits: [
+    "`approve E<n>`: approve the edit. The runner doesn't apply it yet, so make the change in the spec's `## Outline` yourself.",
+  ],
+} as const;
 
 function wantedOf(unverified: UnverifiedItem[]): UnverifiedItem[] {
   return unverified.filter(({ isWanted }) => isWanted);

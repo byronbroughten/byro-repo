@@ -103,6 +103,8 @@ export interface ResearchRules {
   closingCommentOf(record: ReadyResearchRecord): string;
   // What the developer settles before drafting starts; undefined when the record leaves nothing to settle.
   haltOf(record: ReadyResearchRecord): HaltQuestion | undefined;
+  // The tickets that Halt holds.
+  isDrafting(ticket: TrackedIssue): boolean;
 }
 
 export interface ImplementPromptInput {

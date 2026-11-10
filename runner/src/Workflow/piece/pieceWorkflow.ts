@@ -89,11 +89,13 @@ export function pieceWorkflowOf({
         sendBacks: quoteSendBacks,
         closingCommentOf: researchClosingCommentOf,
         haltOf: researchHaltOf,
+        isDrafting(ticket) {
+          return !isResearch(ticket);
+        },
       },
     },
-    // Only a research ticket reaches a landing, but a Research Halt reads this to find the drafting tickets it holds.
-    landingOf(ticket) {
-      return isResearch(ticket) ? "research" : "code";
+    landingOf() {
+      return "research";
     },
     checks: [],
     specEnd,
