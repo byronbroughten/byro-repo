@@ -7,7 +7,6 @@ import type { StepResult } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
 import type { Lease } from "./IssueWorkspaces.ts";
-import { reviewRecordSchema } from "./reviewStep.ts";
 import type { RunResult } from "./SpecRun.ts";
 import {
   addSpec,
@@ -30,6 +29,7 @@ import {
   ticketState,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
+import { reviewRecordSchema } from "./Workflow/code/reviewStep.ts";
 
 useSpecRunHarness();
 

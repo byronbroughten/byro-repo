@@ -73,9 +73,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `promptText.ts` | | Wording helpers the step prompts share. |
 | `recordSchema.ts` | | Schema parts the step records share, and their validator. |
 | `redChecksStep.ts` | | The red-checks step's prompt and record. |
-| `resolveStep.ts` | `resolveStep` | The resolve step's prompt, record schema and record and commit checks. |
 | `reviewList.ts` | `reviewList` | The review list's comment formats and undecided count, `runner decide`'s edit marking one item decided or handled, and a session re-review's merge into the posted list. |
-| `reviewStep.ts` | `reviewStep` | The review step's prompt and record schema. |
 | `runBoard.ts` | `runBoard` | The Run board behind `runner status` and `runner watch` with no spec. |
 | `runCollecting.ts` | `runCollecting` | Runs one process with its output collected. |
 | `runCommand.ts` | | Runs a knob's command, returning its output tail when it fails, for the preflight and a ticket's checks. |
@@ -133,6 +131,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `verdicts.ts` | | A finding's axes and verdicts. |
 | `Workflow/code/implementCodeSkill.ts` | `implementCodeSkill` | Generates the `/implement-code` skill from the implement step's shared body. |
 | `Workflow/code/implementStep.ts` | `implementStep` | The implement step's prompt, handoff comment, record checks and output schema. |
+| `Workflow/code/resolveStep.ts` | `resolveStep` | The resolve step's prompt, record schema and record and commit checks. |
+| `Workflow/code/reviewStep.ts` | `reviewStep` | The review step's prompt and record schema. |
 | `WrapUp.ts` | `WrapUp` | `npm run wrap-up`: lands an issue or session workspace, delegating its landing steps and closing the issue to `WrapUp/`; and `npm run research:push`'s push. |
 | `WrapUp/BranchDeleter.ts` | | Deletes a landing's branches on each remote and locally, recording the ones that failed. |
 | `WrapUp/BranchLander.ts` | | Lands a landing's branches up to the fast-forward: restores, clean check, files changed, stale paths, unnamed new dependencies, build and rebuild. |
