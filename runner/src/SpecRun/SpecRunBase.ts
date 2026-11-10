@@ -39,7 +39,7 @@ import { developersReviewListsOf, undecidedCountOf } from "../reviewList.ts";
 import type { Command, RunKnobs } from "../runKnobs.ts";
 import { runStateAt } from "../savedFormats.ts";
 import { sleep } from "../sleep.ts";
-import type { Workflows } from "../Workflow.ts";
+import { type Workflow, workflowOf, type Workflows } from "../Workflow.ts";
 import { WrapUp, type WrapUpGitHub, type WrapUpKnobs } from "../WrapUp.ts";
 import {
   type Heads,
@@ -149,6 +149,10 @@ export class SpecRunBase {
 
   get factsFile(): FactsFile {
     return FactsFile.init(this.config.stateFolder);
+  }
+
+  _workflowOf(spec: TrackedIssue): Workflow {
+    return workflowOf(spec, this.config.workflows);
   }
 
   get wrapUp(): WrapUp {

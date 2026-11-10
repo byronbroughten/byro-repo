@@ -8,7 +8,6 @@ import { commandLabelOf, messageOf } from "../../failureText.ts";
 import { issueRef } from "../../IssueWorkspaces.ts";
 import { runCommand } from "../../runCommand.ts";
 import { RunStop } from "../../RunStop.ts";
-import { agentStepsOf, workflowOf } from "../../Workflow.ts";
 import { HaltRaiser } from "../HaltRaiser.ts";
 import { ReviewStepper } from "../ReviewStepper.ts";
 import { type Resolver, type TicketRun } from "../runState.ts";
@@ -41,8 +40,7 @@ export class TicketChecker extends SpecRunBase {
   private async _redChecksOf(
     ticketRun: TicketRun,
   ): Promise<string | undefined> {
-    for (const command of workflowOf(ticketRun.run.spec, this.config.workflows)
-      .checks) {
+    for (const command of this._workflowOf(ticketRun.run.spec).checks) {
       this._log(
         ticketRun.run,
         `${issueRef.labelOf(ticketRun.ticket.issue)}: checking ${commandLabelOf(command)}.`,
@@ -67,7 +65,7 @@ export class TicketChecker extends SpecRunBase {
         `${prefix}: the master set failed to build: ${messageOf(error)}`,
       );
     }
-    for (const command of workflowOf(run.spec, this.config.workflows).checks) {
+    for (const command of this._workflowOf(run.spec).checks) {
       if ((await runCommand(command, masterSet)) !== undefined) {
         throw new RunStop(`${prefix}: master red: ${commandLabelOf(command)}`);
       }
@@ -100,7 +98,7 @@ export class TicketChecker extends SpecRunBase {
       `${issueRef.labelOf(ticket.issue)}: checks red; resuming the ${resolverLabels[resolver]} with the failure.`,
     );
     this._markStepStarted(ticketRun);
-    const rules = agentStepsOf(run.spec, this.config.workflows).redChecks;
+    const rules = this._workflowOf(run.spec).agentSteps.redChecks;
     const { result, logPath } = await this.reviewStepper._runResolverStep(
       ticketRun,
       {

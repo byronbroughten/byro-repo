@@ -1,6 +1,6 @@
 // The one seam between the run core and its Workflows: the Workflow type, the agent steps' rules and the pick of a
 // spec's Workflow. SpecRun/TicketSequencer.ts reaches a Workflow's Step sequence only through this module, and every
-// collaborator that launches an agent step takes its prompt, record schema and record checks from agentStepsOf.
+// collaborator that launches an agent step takes its prompt, record schema and record checks from the Workflow SpecRunBase._workflowOf picks.
 // Each Workflow's own code is in Workflow/<name>/.
 // A ticket follows its spec's Workflow. Labels are Trusted, since only collaborators can add one.
 
@@ -185,11 +185,4 @@ export function workflowOf(spec: TrackedIssue, workflows: Workflows): Workflow {
     piece: workflows.code,
   };
   return registered[workflowNameOf(spec)];
-}
-
-export function agentStepsOf(
-  spec: TrackedIssue,
-  workflows: Workflows,
-): AgentSteps {
-  return workflowOf(spec, workflows).agentSteps;
 }

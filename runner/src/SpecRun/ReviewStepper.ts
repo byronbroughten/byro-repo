@@ -19,12 +19,7 @@ import {
 } from "../stepRecords.ts";
 import type { StepAgent } from "../transcriptFacts.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
-import {
-  agentStepsOf,
-  type ResolvePromptInput,
-  type ResolveRules,
-  workflowOf,
-} from "../Workflow.ts";
+import { type ResolvePromptInput, type ResolveRules } from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import {
   type Heads,
@@ -87,12 +82,12 @@ export class ReviewStepper extends SpecRunBase {
 
   async _review(ticketRun: TicketRun): Promise<void> {
     const { run, ticket, workspace, state } = ticketRun;
-    const rules = agentStepsOf(run.spec, this.config.workflows).review;
+    const rules = this._workflowOf(run.spec).agentSteps.review;
     const { record } = await this._launch(ticketRun, "review", {
       prompt: rules.promptOf({
         issue: ticket.issue,
         title: ticket.title,
-        skillName: workflowOf(run.spec, this.config.workflows).reviewSkillName,
+        skillName: this._workflowOf(run.spec).reviewSkillName,
         branch: workspace.branch,
         branchedRepos: ticketSteps.branchedReposOf(ticketRun),
       }),
@@ -325,7 +320,7 @@ export class ReviewStepper extends SpecRunBase {
   }
 
   private _resolveRulesOf({ run }: TicketRun): ResolveRules {
-    return agentStepsOf(run.spec, this.config.workflows).resolve;
+    return this._workflowOf(run.spec).agentSteps.resolve;
   }
 }
 
