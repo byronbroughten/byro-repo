@@ -1,7 +1,10 @@
 // The repo's Markdown dialect for a Doc: `## <heading>` per Section, no comment
-// markers. The reader (`DocReader.ts`) builds and splits Markdown only through
-// this bundle, so every Markdown form has one home.
+// markers. The reader (`DocReader.ts`) builds and splits Markdown, and the
+// writer (`SectionWriter.ts`) parses it, only through this bundle, so every
+// Markdown form has one home.
 // Nothing here knows the Docs API; that layer is `googleDocs.ts`.
+
+import { InlineParser, type TextSpan } from "./InlineParser.ts";
 
 /** One run of inline Markdown, its text already escaped. */
 export interface InlineRun {
@@ -9,6 +12,14 @@ export interface InlineRun {
   isBold: boolean;
   isItalic: boolean;
   target: string | undefined;
+}
+
+export type SpanStyle = Omit<TextSpan, "text">;
+
+/** A heading or paragraph parsed back from the dialect; a paragraph has no level. */
+export interface ParsedBlock {
+  level: number | undefined;
+  spans: TextSpan[];
 }
 
 /** A top-level piece of the Markdown: a list item joins the item before it with no blank line. */
@@ -25,6 +36,14 @@ const syntax = {
 
 export const markdownDialect = {
   syntax,
+
+  isSameStyle(left: SpanStyle, right: SpanStyle): boolean {
+    return (
+      left.isBold === right.isBold &&
+      left.isItalic === right.isItalic &&
+      left.target === right.target
+    );
+  },
 
   escaped(text: string): string {
     return text.replace(/[\\*_[\]]/g, "\\$&");
@@ -131,7 +150,31 @@ export const markdownDialect = {
     keep();
     return sections;
   },
+
+  /** A Section body's headings and paragraphs; lists, tables and footnotes are refused. */
+  blocksOf(sectionMarkdown: string): ParsedBlock[] {
+    return sectionMarkdown
+      .trim()
+      .split(/\n{2,}/)
+      .filter((block) => block !== "")
+      .map(parsedBlock);
+  },
 };
+
+function parsedBlock(block: string): ParsedBlock {
+  if (/\n|^(\s*[-+] |\s*\d+\. |\||\[\^)/.test(block)) {
+    throw new Error(
+      `The writer takes only headings and paragraphs, not "${block.split("\n")[0]}".`,
+    );
+  }
+  const level = headingLevelOf(block);
+  if (level !== undefined && level <= syntax.sectionLevel) {
+    throw new Error(`A Section's body holds no heading "${block}".`);
+  }
+  const inline = level === undefined ? block : block.slice(level + 1);
+  const spans = InlineParser.init(inline, syntax.lineBreak).spans();
+  return { level, spans };
+}
 
 interface ListItem {
   depth: number;
@@ -142,21 +185,13 @@ interface ListItem {
 function mergedRuns(runs: InlineRun[]): InlineRun[] {
   return runs.reduce<InlineRun[]>((merged, run) => {
     const last = merged.at(-1);
-    if (last !== undefined && isSameStyle(last, run)) {
+    if (last !== undefined && markdownDialect.isSameStyle(last, run)) {
       last.markdown += run.markdown;
       return merged;
     }
     merged.push({ ...run });
     return merged;
   }, []);
-}
-
-function isSameStyle(left: InlineRun, right: InlineRun): boolean {
-  return (
-    left.isBold === right.isBold &&
-    left.isItalic === right.isItalic &&
-    left.target === right.target
-  );
 }
 
 function linkGroupsOf(runs: InlineRun[]): InlineRun[][] {

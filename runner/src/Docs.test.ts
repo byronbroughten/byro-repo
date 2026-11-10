@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { Docs } from "./Docs.ts";
 import { fixtureDocument } from "./Docs/docFixtures.ts";
 import { FakeDocuments } from "./Docs/FakeDocuments.ts";
+import { StaleRevision } from "./Docs/StaleRevision.ts";
 
 function docsOf(...fixtures: string[]): Docs {
   return Docs.init(new FakeDocuments(fixtures.map(fixtureDocument)));
@@ -53,6 +54,211 @@ describe("Docs.read", () => {
   });
 });
 
+describe("Docs.writeSection", () => {
+  async function writableDocs(): Promise<{
+    docs: Docs;
+    documents: FakeDocuments;
+  }> {
+    const documents = new FakeDocuments([fixtureDocument("writable")]);
+    const docs = Docs.init(documents);
+    await docs.read("doc-writable");
+    return { docs, documents };
+  }
+
+  it("writes a Section that reads back as the Markdown pushed", async () => {
+    const { docs } = await writableDocs();
+    const markdown =
+      "Kettles **boil** *water* ***fast***, as [the guide](https://example.com/kettles) says.\n\n" +
+      "### Lids\n\n" +
+      "A lid keeps the heat in.\n\n" +
+      "### Spouts\n\n" +
+      "Spouts face away from the handle.\n";
+
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Boiling",
+      markdown,
+    });
+
+    const read = await docs.read("doc-writable");
+    expect(read.sections.get("Boiling")).toBe(markdown);
+    expect(read.sections.get("Pouring")).toBe("Pour slowly.\n");
+    expect(read.markdown.startsWith("# Kettle Notes\n\n## Boiling\n")).toBe(
+      true,
+    );
+  });
+
+  it("leaves unchanged paragraphs, and unchanged text in a changed one, untouched", async () => {
+    const { docs, documents } = await writableDocs();
+    const before = (await documents.documentOf("doc-writable")).body?.content;
+
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Boiling",
+      markdown:
+        "Kettles heat water fast.\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n",
+    });
+
+    const after = (await documents.documentOf("doc-writable")).body?.content;
+    expect(after?.slice(0, 3)).toEqual(before?.slice(0, 3));
+    expect(after?.[3]?.paragraph?.elements).toMatchObject([
+      { textRun: { content: "Kettles", textStyle: { underline: true } } },
+      { textRun: { content: " heat " } },
+      { textRun: { content: "water", textStyle: { underline: true } } },
+      { textRun: { content: " fast.\n" } },
+    ]);
+    expect(after?.slice(4)).toEqual(before?.slice(4));
+  });
+
+  it("keeps every unchanged heading's headingId", async () => {
+    const { docs, documents } = await writableDocs();
+
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Boiling",
+      markdown:
+        "Steam rises from the spout.\n\n### Spouts\n\nSpouts face away.\n\nA second paragraph.\n\n### Handles\n\nHold the handle.\n",
+    });
+
+    const read = await docs.read("doc-writable");
+    expect(read.sections.get("Boiling")).toBe(
+      "Steam rises from the spout.\n\n### Spouts\n\nSpouts face away.\n\nA second paragraph.\n\n### Handles\n\nHold the handle.\n",
+    );
+    const headingIds = (
+      await documents.documentOf("doc-writable")
+    ).body?.content.flatMap(
+      (element) => element.paragraph?.paragraphStyle?.headingId ?? [],
+    );
+    expect(headingIds).toEqual(
+      expect.arrayContaining(["h.boiling", "h.spouts", "h.pouring"]),
+    );
+  });
+
+  it("appends to and empties the Doc's last Section", async () => {
+    const { docs } = await writableDocs();
+
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Pouring",
+      markdown: "Pour slowly.\n\nThen wait.\n\n### Spills\n\nWipe them.\n",
+    });
+    expect((await docs.read("doc-writable")).sections.get("Pouring")).toBe(
+      "Pour slowly.\n\nThen wait.\n\n### Spills\n\nWipe them.\n",
+    );
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Pouring",
+      markdown: "Pour slowly.\n",
+    });
+
+    const read = await docs.read("doc-writable");
+    expect(read.sections.get("Pouring")).toBe("Pour slowly.\n");
+    expect(read.sections.get("Boiling")).toBe(
+      "Kettles boil water fast.\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n",
+    );
+  });
+
+  it("links to a heading in the same Doc", async () => {
+    const { docs, documents } = await writableDocs();
+
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Pouring",
+      markdown: "Pour once it [boils](#boiling).\n",
+    });
+
+    const read = await docs.read("doc-writable");
+    expect(read.sections.get("Pouring")).toBe(
+      "Pour once it [boils](#boiling).\n",
+    );
+    const link = (await documents.documentOf("doc-writable")).body?.content
+      .at(-1)
+      ?.paragraph?.elements.find((element) => element.textRun?.textStyle?.link)
+      ?.textRun?.textStyle?.link;
+    expect(link).toEqual({ heading: { id: "h.boiling" } });
+  });
+
+  it("refuses a write on a revision the developer has since edited, leaving their edit", async () => {
+    const { docs, documents } = await writableDocs();
+    const { revisionId } = await documents.documentOf("doc-writable");
+    await documents.batchUpdate("doc-writable", {
+      requests: [{ insertText: { text: "Hot. ", location: { index: 39 } } }],
+      writeControl: { requiredRevisionId: revisionId },
+    });
+    const edited = await documents.documentOf("doc-writable");
+
+    await expect(
+      docs.writeSection({
+        documentId: "doc-writable",
+        heading: "Boiling",
+        markdown: "Kettles whistle.\n",
+      }),
+    ).rejects.toThrow(new StaleRevision("doc-writable", revisionId));
+    expect(await documents.documentOf("doc-writable")).toEqual(edited);
+  });
+
+  it("edits after a character Docs counts as two indices", async () => {
+    const { docs, documents } = await writableDocs();
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Boiling",
+      markdown:
+        "Kettles 🫖 boil water fast.\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n",
+    });
+    await docs.read("doc-writable");
+
+    const markdown =
+      "Kettles 🫖 boil **water** quickly.\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n";
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Boiling",
+      markdown,
+    });
+
+    expect((await docs.read("doc-writable")).sections.get("Boiling")).toBe(
+      markdown,
+    );
+    const elements = (await documents.documentOf("doc-writable")).body
+      ?.content[3]?.paragraph?.elements;
+    expect(elements?.[0]?.textRun).toEqual({
+      content: "Kettles",
+      textStyle: { underline: true },
+    });
+  });
+
+  it("writes new paragraphs with no style beyond the Markdown's", async () => {
+    const { docs, documents } = await writableDocs();
+
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Boiling",
+      markdown:
+        "Fill the kettle.\n\nKettles boil water fast.\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n",
+    });
+
+    const content = (await documents.documentOf("doc-writable")).body?.content;
+    expect(
+      content?.[3]?.paragraph?.elements.map(({ textRun }) => textRun),
+    ).toEqual([{ content: "Fill the kettle.\n" }]);
+    expect(content?.[4]?.paragraph?.elements[0]?.textRun).toEqual({
+      content: "Kettles",
+      textStyle: { underline: true },
+    });
+  });
+
+  it("refuses a write before any read", async () => {
+    const docs = docsOf("writable");
+
+    await expect(
+      docs.writeSection({
+        documentId: "doc-writable",
+        heading: "Boiling",
+        markdown: "Kettles whistle.\n",
+      }),
+    ).rejects.toThrow("Read Doc doc-writable before writing to it.");
+  });
+});
+
 describe("the Docs module's imports", () => {
   const sourceFolder = new URL("./", import.meta.url);
 
@@ -83,6 +289,7 @@ describe("the Docs module's imports", () => {
 
   it("keeps the Google Docs layer and the Markdown dialect apart", () => {
     expect(importsOf("Docs/googleDocs.ts")).toEqual([]);
-    expect(importsOf("Docs/markdownDialect.ts")).toEqual([]);
+    expect(importsOf("Docs/markdownDialect.ts")).toEqual(["./InlineParser.ts"]);
+    expect(importsOf("Docs/InlineParser.ts")).toEqual([]);
   });
 });

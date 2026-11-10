@@ -1,0 +1,84 @@
+{
+  "documentId": "doc-writable",
+  "title": "Writable",
+  "revisionId": "rev-writable-1",
+  "body": {
+    "content": [
+      { "endIndex": 1, "sectionBreak": {} },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Kettle Notes\n" } }],
+          "paragraphStyle": { "namedStyleType": "TITLE" }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Boiling\n" } }],
+          "paragraphStyle": {
+            "namedStyleType": "HEADING_2",
+            "headingId": "h.boiling"
+          }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [
+            {
+              "textRun": {
+                "content": "Kettles",
+                "textStyle": { "underline": true }
+              }
+            },
+            { "textRun": { "content": " boil " } },
+            {
+              "textRun": {
+                "content": "water",
+                "textStyle": { "underline": true }
+              }
+            },
+            { "textRun": { "content": " fast.\n" } }
+          ],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Steam rises.\n" } }],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Spouts\n" } }],
+          "paragraphStyle": {
+            "namedStyleType": "HEADING_3",
+            "headingId": "h.spouts"
+          }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [
+            { "textRun": { "content": "Most spouts face away.\n" } }
+          ],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Pouring\n" } }],
+          "paragraphStyle": {
+            "namedStyleType": "HEADING_2",
+            "headingId": "h.pouring"
+          }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Pour slowly.\n" } }],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+        }
+      }
+    ]
+  }
+}
