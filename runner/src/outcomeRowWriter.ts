@@ -13,7 +13,10 @@ import {
   outcomeFileOf,
   outcomePathOf,
 } from "./outcomeLog.ts";
-import { transcriptFactsOf } from "./transcriptFacts.ts";
+import {
+  transcriptFactsOf,
+  type TranscriptFactsRequest,
+} from "./transcriptFacts.ts";
 
 export interface OutcomeRowRequest {
   issue: IssueRef;
@@ -21,6 +24,7 @@ export interface OutcomeRowRequest {
   githubOwner: string;
   filesChanged: number;
   handoffSessionIds: string[];
+  silenceTimeoutMs: number;
   stateFolder: string;
   // Relative to the checkout's root.
   outcomeFolder: string;
@@ -38,11 +42,15 @@ export function writeOutcomeRow(
     stateFolder,
     outcomeFolder,
     handoffSessionIds,
+    silenceTimeoutMs,
     ...request
   }: OutcomeRowRequest,
 ): WrittenOutcomeRow {
   const facts = FactsFile.init(stateFolder).read(request.issue);
-  const row = { ...request, facts: outcomeFactsOf(facts, handoffSessionIds) };
+  const row = {
+    ...request,
+    facts: outcomeFactsOf(facts, { handoffSessionIds, silenceTimeoutMs }),
+  };
   const path = outcomePathOf(outcomeFolder, row);
   mkdirSync(dirname(join(root, path)), { recursive: true });
   writeFileSync(join(root, path), outcomeFileOf(row));
@@ -51,13 +59,13 @@ export function writeOutcomeRow(
 
 function outcomeFactsOf(
   facts: WrapUpFacts,
-  handoffSessionIds: string[],
+  request: TranscriptFactsRequest,
 ): OutcomeFacts {
   const { sessions } = facts;
   if (sessions === undefined) return facts;
   return {
     ...facts,
-    ...definedFactsOf(transcriptFactsOf(sessions, handoffSessionIds)),
+    ...definedFactsOf(transcriptFactsOf(sessions, request)),
   };
 }
 

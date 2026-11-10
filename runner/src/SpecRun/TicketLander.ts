@@ -110,9 +110,11 @@ export class TicketLander extends SpecRunBase {
       );
     }
     if (steps.length === 0) return;
-    unrecordedFactsOf({ steps }).forEach(({ label, reason }) => {
-      this._log(run, `${prefix} ${label} written unrecorded: ${reason}.`);
-    });
+    unrecordedFactsOf({ steps }, this.config.knobs.silenceTimeoutMs).forEach(
+      ({ label, reason }) => {
+        this._log(run, `${prefix} ${label} written unrecorded: ${reason}.`);
+      },
+    );
   }
 }
 

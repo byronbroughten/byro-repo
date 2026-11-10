@@ -28,6 +28,12 @@ export interface TicketSessions {
   steps: RecordedSession[];
 }
 
+export interface TranscriptFactsRequest {
+  handoffSessionIds: string[];
+  // The run's silence timeout: a longer gap between entries falls between two runs of a session, as a Halt or Limit wait.
+  silenceTimeoutMs: number;
+}
+
 // A transcript fact written `unrecorded`, by the name a progress-log warning gives it.
 export interface UnrecordedFact {
   label: string;
@@ -137,7 +143,7 @@ export function hasTranscript(
 
 export function transcriptFactsOf(
   sessions: TicketSessions,
-  handoffSessionIds: string[],
+  { handoffSessionIds, silenceTimeoutMs }: TranscriptFactsRequest,
 ): OutcomeFacts {
   const projectDirs = projectDirsBySessionOf(sessions, handoffSessionIds);
   const ids = factIdsOf(sessions, handoffSessionIds);
@@ -150,7 +156,7 @@ export function transcriptFactsOf(
     peakContext: factOf(implementers, peaksOf),
     durationMinutes: factOf(
       transcriptsOf(projectDirs, ids.durationMinutes),
-      durationMinutesOf,
+      (transcripts) => durationMinutesOf(transcripts, silenceTimeoutMs),
     ),
     costUsd: factOf(implementers, costUsdOf),
     reviewCostUsd: factOf(
@@ -161,8 +167,14 @@ export function transcriptFactsOf(
 }
 
 // Each transcript fact transcriptFactsOf leaves unrecorded although a step it reads ran, and why.
-export function unrecordedFactsOf(sessions: TicketSessions): UnrecordedFact[] {
-  const facts = transcriptFactsOf(sessions, []);
+export function unrecordedFactsOf(
+  sessions: TicketSessions,
+  silenceTimeoutMs: number,
+): UnrecordedFact[] {
+  const facts = transcriptFactsOf(sessions, {
+    handoffSessionIds: [],
+    silenceTimeoutMs,
+  });
   const ids = factIdsOf(sessions, []);
   const steps = [
     ...new Map(sessions.steps.map((step) => [step.sessionId, step])).values(),
@@ -379,14 +391,20 @@ function peaksOf(implementers: Transcript[]): number[] | undefined {
   return peaks.length === 0 ? undefined : peaks;
 }
 
-function durationMinutesOf(transcripts: Transcript[]): number {
+// Sums the gaps between consecutive entries, leaving out each over the cap, so a Halt or Limit wait is no working time.
+function durationMinutesOf(transcripts: Transcript[], capMs: number): number {
   const ms = transcripts.reduce((sum, { entries }) => {
-    const times = entries.flatMap(({ timestamp }) => {
-      const time = typeof timestamp === "string" ? Date.parse(timestamp) : NaN;
-      return Number.isNaN(time) ? [] : [time];
-    });
-    if (times.length === 0) return sum;
-    return sum + Math.max(...times) - Math.min(...times);
+    const times = entries
+      .flatMap(({ timestamp }) => {
+        const time =
+          typeof timestamp === "string" ? Date.parse(timestamp) : NaN;
+        return Number.isNaN(time) ? [] : [time];
+      })
+      .sort((a, b) => a - b);
+    return times.reduce((total, time, index) => {
+      const gap = time - (times[index - 1] ?? time);
+      return gap > capMs ? total : total + gap;
+    }, sum);
   }, 0);
   return minutesOf(ms);
 }
