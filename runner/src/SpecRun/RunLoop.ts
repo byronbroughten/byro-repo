@@ -270,7 +270,11 @@ export class RunLoop extends SpecRunBase {
   private async _startRunClearingStop(specIssue: IssueRef): Promise<Run> {
     // A request left by a stop command with no run going would end this run at its first pick.
     rmSync(this._stopRequestPathOf(specIssue), { force: true });
-    return this._startRun(specIssue);
+    const run = await this._startRun(specIssue);
+    // Written here, not in _startRun, which status and preflight call too and which must write nothing.
+    run.state.ticketLabels = run.tickets.map(issueRef.labelOf);
+    this._saveState(run);
+    return run;
   }
 
   // Each unfinished member's blockers among the members that haven't landed; a landed one counts as cleared though GitHub may show it open.

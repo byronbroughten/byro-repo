@@ -3,7 +3,8 @@
 // a fresh resolver was `triage`, and its records, session and base were `triage`, `triageSession` and `fixBase`;
 // before #367 a facts file's sessions shared one ticket-level account and config folder, and a run state's had neither;
 // before #473 a run state kept the latest step's config folder on the ticket, which a session with none takes;
-// before #513 a supervision record kept its `spec` and, for a Batch, `members` too, the spec repeating the first.
+// before #513 a supervision record kept its `spec` and, for a Batch, `members` too, the spec repeating the first;
+// before #673 a run state had no `ticketLabels`, which reads as no ticket list.
 // SpecRun/SpecRunBase.ts reads run state through runStateOf(), FactsFile.ts reads facts through factsOf(),
 // and SupervisionRecords.ts reads its files through supervisionFileOf(), the one reader of that file the session hooks go through.
 

@@ -75,6 +75,34 @@ describe("run's Restart", () => {
     );
   });
 
+  it("writes the run's ticket list into the run state at its start, and rewrites it on relaunch from the spec's tickets as they are", async () => {
+    addSpec([1, 2]);
+    const ticketLabelsSaved = (): unknown =>
+      JSON.parse(readFileSync(runStatePath(), "utf8")).ticketLabels;
+
+    await specRun(
+      FakeAgentStep.init(implemented("runner/one.ts"), reviewed()),
+    ).run(spec);
+    expect(ticketLabelsSaved()).toEqual(["byro-repo #1", "byro-repo #2"]);
+
+    addIssue(3);
+    github.subIssues.set(spec.number, [1, 2, 3]);
+    await specRun(
+      FakeAgentStep.init(
+        implemented("two.ts"),
+        reviewed(),
+        implemented("three.ts"),
+        reviewed(),
+      ),
+    ).run(spec);
+
+    expect(ticketLabelsSaved()).toEqual([
+      "byro-repo #1",
+      "byro-repo #2",
+      "byro-repo #3",
+    ]);
+  });
+
   it("carries every landing across two Restarts, and none into a later run", async () => {
     addSpec([1, 2, 3]);
 

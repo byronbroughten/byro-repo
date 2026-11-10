@@ -1,13 +1,17 @@
-// The Run board: one block per run lock in the state folder, or per Batch for its members' locks, read from that spec's run state and progress log.
+// The Run board: one block per run lock in the state folder, or per Batch for its members' locks, read from that spec's run state and progress log,
+// its tickets left from each member's run state.
 // It writes nothing, so it's safe beside any run; a lock whose pid is dead is marked rather than skipped.
 // byro-repo's `npm run runner -- status` prints it once and `-- watch` redraws it, both with no spec.
 // RunLock.ts lists the lock files, BatchRecords.ts finds a member's Batch and SpecRun/runState/statePaths.ts names the run state and progress log paths.
 // SpecRun/SpecRunBase.ts writes both; ProgressLog.ts reads the progress lines, worded where the run writes them.
 
+import { existsSync, readFileSync } from "node:fs";
+
 import { BatchRecords } from "./BatchRecords.ts";
 import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import { ProgressLog } from "./ProgressLog.ts";
 import { RunLock } from "./RunLock.ts";
+import { runStateOf } from "./savedFormats.ts";
 import { type MemberList } from "./SpecRun/runState.ts";
 import { statePaths } from "./SpecRun/runState/statePaths.ts";
 
@@ -38,6 +42,11 @@ export async function watchBoard({
     draw(render());
     await sleep(pollMs);
   }
+}
+
+interface TicketCount {
+  left: number;
+  total: number;
 }
 
 interface MemberProgress {
@@ -82,13 +91,30 @@ class RunBoard {
     const isLive = RunLock.isAnyHeld(this.stateFolder, members);
     const label = runLabelOf(members);
     const statePath = statePaths.runStateOf(this.stateFolder, spec);
+    const ticketsLeft = this._ticketsLeftOf(members);
     return [
       isLive ? label : `${label}: ${boardTexts.gone}`,
       ...(members.length > 1 ? [`  Member: ${issueRef.labelOf(spec)}`] : []),
+      ...(ticketsLeft === undefined ? [] : [`  Tickets left: ${ticketsLeft}`]),
       `  Ticket: ${log.ticketText(statePath, now)}`,
       `  Account: ${log.accountText()}`,
       `  ${log.latestText(now)}`,
     ].join("\n");
+  }
+
+  // Summed across a Batch's members; none while any member's run state has no ticket list, so an older runner's state shows no wrong count.
+  private _ticketsLeftOf(members: MemberList): string | undefined {
+    let left = 0;
+    let total = 0;
+    for (const member of members) {
+      const count = ticketCountOf(
+        statePaths.runStateOf(this.stateFolder, member),
+      );
+      if (count === undefined) return undefined;
+      left += count.left;
+      total += count.total;
+    }
+    return `${left} of ${total}`;
   }
 
   private _progressOf(spec: IssueRef): MemberProgress {
@@ -97,6 +123,19 @@ class RunBoard {
       log: ProgressLog.at(statePaths.progressLogOf(this.stateFolder, spec)),
     };
   }
+}
+
+// A ticket closed by hand still counts as left, since the board reads no GitHub.
+function ticketCountOf(statePath: string): TicketCount | undefined {
+  if (!existsSync(statePath)) return undefined;
+  const { tickets, ticketLabels } = runStateOf(
+    JSON.parse(readFileSync(statePath, "utf8")),
+  );
+  if (ticketLabels === undefined) return undefined;
+  const left = ticketLabels.filter(
+    (label) => tickets[label]?.step !== "landed",
+  ).length;
+  return { left, total: ticketLabels.length };
 }
 
 // The member whose ticket or launch line is latest, or the first while none has one; a Batch is never empty.
