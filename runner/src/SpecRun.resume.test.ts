@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import type { StepResult } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
-import type { Lease, LeaseHolder } from "./IssueWorkspaces.ts";
+import type { Lease } from "./IssueWorkspaces.ts";
 import { reviewRecordSchema } from "./reviewStep.ts";
 import type { RunResult } from "./SpecRun.ts";
 import {
@@ -23,6 +23,7 @@ import {
   resultOf,
   reviewed,
   runStatePath,
+  session,
   spec,
   specRun,
   ticketFacts,
@@ -249,9 +250,6 @@ describe("run's resume", () => {
 });
 
 describe("run's leases", () => {
-  // The test runner's parent outlives every test, so it stands in for an interactive session's claude.
-  const session: LeaseHolder = { kind: "session", pid: process.ppid };
-
   it("skips a ticket another holder has leased while the others run, naming the holder, and runs it once the lease is gone", async () => {
     addSpec([1, 2]);
     const { workspaces } = specRun(FakeAgentStep.init());

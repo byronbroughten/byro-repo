@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import { type EventLine, eventLinesOf } from "./EventFileNotices.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import type { Blocker } from "./implementStep.ts";
-import type { LeaseHolder } from "./IssueWorkspaces.ts";
 import type { RunResult } from "./SpecRun.ts";
 import {
   addSpec,
@@ -15,6 +14,7 @@ import {
   progressLines,
   refOf,
   reviewed,
+  session,
   spec,
   specRun,
   stateFolder,
@@ -24,9 +24,6 @@ import {
 } from "./specRunHarness.ts";
 
 useSpecRunHarness();
-
-// The test runner's parent outlives every test, so it stands in for an interactive session's claude.
-const session: LeaseHolder = { kind: "session", pid: process.ppid };
 
 function eventKinds(): EventLine["kind"][] {
   return eventLinesOf(stateFolder(), spec).map(({ kind }) => kind);

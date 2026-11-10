@@ -17,7 +17,7 @@ import { FakeNotices } from "./FakeNotices.ts";
 import { FakeUsageReader } from "./FakeUsageReader.ts";
 import { gapCheckOutputSchema } from "./gapCheck.ts";
 import { clonePathIn, git, GitFixture, rootCloneOnly } from "./GitFixture.ts";
-import type { IssueRef } from "./IssueWorkspaces.ts";
+import type { IssueRef, LeaseHolder } from "./IssueWorkspaces.ts";
 import type { UsageList, UsageReader } from "./limitGuard.ts";
 import type { NoticeKind, Notices } from "./Notices.ts";
 import { stampedLineOf } from "./progressLines.ts";
@@ -57,6 +57,8 @@ export { rootCloneOnly };
 export let clonePaths: ClonePaths;
 
 export const spec: IssueRef = { repo: "byro-repo", number: 213 };
+// The test runner's parent outlives every test, so it stands in for an interactive session's claude.
+export const session: LeaseHolder = { kind: "session", pid: process.ppid };
 // Small binaries, not node, since every run spawns them and a node process costs several times as much to start.
 export const passes: Command = ["true"];
 export const greenUnlessRed: Command = ["sh", "-c", "test ! -f RED"];

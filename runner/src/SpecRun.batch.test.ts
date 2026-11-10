@@ -10,7 +10,7 @@ import { eventFilePathOf, eventLinesOf } from "./EventFileNotices.ts";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
 import { gapCheckOutputSchema } from "./gapCheck.ts";
 import type { Blocker } from "./implementStep.ts";
-import type { IssueRef, LeaseHolder } from "./IssueWorkspaces.ts";
+import type { IssueRef } from "./IssueWorkspaces.ts";
 import { seedHolder } from "./lockFixture.ts";
 import type { ResolveRecord } from "./resolveStep.ts";
 import { runKnobsOf } from "./runKnobs.ts";
@@ -34,6 +34,7 @@ import {
   resultOf,
   reviewed,
   rootCloneOnly,
+  session,
   spec,
   specRun,
   stateFolder,
@@ -59,9 +60,6 @@ const ambiguous: Blocker = {
   detail: "The spec reads both ways.",
   recommendation: "Read it the first way.",
 };
-
-// The test runner's parent outlives every test, so it stands in for an interactive session's claude.
-const session: LeaseHolder = { kind: "session", pid: process.ppid };
 
 const propose: ResolveRecord = {
   finding: 1,
