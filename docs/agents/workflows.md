@@ -113,7 +113,7 @@ A doc is listed when two or more skills or Steps of either Workflow reach it by 
 | [`grilling.md`](../pieces/grilling.md) | `/grill-piece`, `/piece-spec`, `/to-writing-style` | via `rules.md`: `/piece-tickets`, `/implement-piece`, the piece implement Step, `/review-piece` |
 | [`outlining.md`](../pieces/outlining.md) | `/grill-piece`, `/piece-spec`, `/piece-tickets` | via `rules.md`: `/implement-piece`, the piece implement Step, `/review-piece` |
 | [`pdf-pages.md`](../pdf-pages.md) | `/grill-piece`, `/piece-tickets` (its ticket template), `/research-piece`, `/review-research` | via `rules.md`: `/implement-piece`, the piece implement Step, `/piece-spec`, `/review-piece` |
-| [`agent-draft.md`](../pieces/agent-draft.md) | `/implement-piece`, `/to-writing-style` (its pair mode) | via `rules.md`: `/piece-spec`, `/piece-tickets`, `/review-piece`; via runner prompt: the piece implement Step |
+| [`agent-draft.md`](../pieces/agent-draft.md) | `/implement-piece`, `/review-piece`, `/to-writing-style` (its pair mode) | via `rules.md`: `/piece-spec`, `/piece-tickets`; via runner prompt: the piece implement Step |
 
 Routes that depend on which files a ticket touches (the read-first gate's tier, framework-style and writing rows, nested `AGENTS.md` files, the AGENTS.md cost nudge and the sandbox-failure context) live in [the guardrails doc's hooks section](../claude-code-guardrails.md#the-hooks-and-the-project-agent).
 

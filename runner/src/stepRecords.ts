@@ -175,7 +175,7 @@ export interface ReviewFinding {
 export type Finding = ReviewFinding | string;
 
 export interface ReviewRecord {
-  // Each reviewer's findings in its own order, standards then spec, then reader for a piece; empty when it found nothing.
+  // Each reviewer's findings in its own order, in its Workflow's axis order; empty when it found nothing.
   findings: ReviewFinding[];
 }
 
