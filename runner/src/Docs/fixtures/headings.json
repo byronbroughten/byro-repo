@@ -1,0 +1,79 @@
+{
+  "documentId": "doc-headings",
+  "title": "Headings",
+  "revisionId": "rev-headings-1",
+  "body": {
+    "content": [
+      { "endIndex": 1, "sectionBreak": {} },
+      {
+        "paragraph": {
+          "elements": [
+            { "textRun": { "content": "A Field Guide to Kettles\n" } }
+          ],
+          "paragraphStyle": { "namedStyleType": "TITLE" }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Why kettles\n" } }],
+          "paragraphStyle": {
+            "namedStyleType": "HEADING_2",
+            "headingId": "h.why"
+          }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [
+            {
+              "textRun": {
+                "content": "A kettle boils water faster than a pan.\n"
+              }
+            }
+          ],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "\n" } }],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Spouts\n" } }],
+          "paragraphStyle": {
+            "namedStyleType": "HEADING_3",
+            "headingId": "h.spouts"
+          }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [
+            { "textRun": { "content": "Most spouts face away.\n" } }
+          ],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Which kettle\n" } }],
+          "paragraphStyle": {
+            "namedStyleType": "HEADING_2",
+            "headingId": "h.which"
+          }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [
+            { "textRun": { "content": "Buy the one with a whistle.\n" } }
+          ],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+        }
+      }
+    ]
+  }
+}

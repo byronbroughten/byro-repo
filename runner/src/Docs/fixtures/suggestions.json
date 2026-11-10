@@ -1,0 +1,108 @@
+{
+  "documentId": "doc-suggestions",
+  "revisionId": "rev-suggestions-1",
+  "body": {
+    "content": [
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Storage\n" } }],
+          "paragraphStyle": {
+            "namedStyleType": "HEADING_2",
+            "headingId": "h.storage"
+          }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [
+            { "textRun": { "content": "Empty the kettle " } },
+            {
+              "textRun": {
+                "content": "every night ",
+                "suggestedInsertionIds": ["suggest.a1"]
+              }
+            },
+            {
+              "textRun": {
+                "content": "after use",
+                "suggestedDeletionIds": ["suggest.a2"]
+              }
+            },
+            { "textRun": { "content": ".\n" } }
+          ],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [
+            {
+              "textRun": {
+                "content": "A whole suggested paragraph.\n",
+                "suggestedInsertionIds": ["suggest.b1"]
+              }
+            }
+          ],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+        }
+      },
+      {
+        "table": {
+          "rows": 1,
+          "columns": 1,
+          "suggestedInsertionIds": ["suggest.c1"],
+          "tableRows": [
+            {
+              "tableCells": [
+                {
+                  "content": [
+                    {
+                      "paragraph": {
+                        "elements": [
+                          {
+                            "textRun": {
+                              "content": "Suggested cell\n",
+                              "suggestedInsertionIds": ["suggest.c1"]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [
+            { "textRun": { "content": "Store it dry" } },
+            {
+              "footnoteReference": {
+                "footnoteId": "kix.fnS",
+                "footnoteNumber": "1",
+                "suggestedInsertionIds": ["suggest.d1"]
+              }
+            },
+            { "textRun": { "content": ".\n" } }
+          ],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+        }
+      }
+    ]
+  },
+  "footnotes": {
+    "kix.fnS": {
+      "footnoteId": "kix.fnS",
+      "content": [
+        {
+          "paragraph": {
+            "elements": [{ "textRun": { "content": " A suggested note.\n" } }]
+          }
+        }
+      ]
+    }
+  }
+}

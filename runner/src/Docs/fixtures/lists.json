@@ -1,0 +1,138 @@
+{
+  "documentId": "doc-lists",
+  "revisionId": "rev-lists-1",
+  "body": {
+    "content": [
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Steps\n" } }],
+          "paragraphStyle": {
+            "namedStyleType": "HEADING_2",
+            "headingId": "h.steps"
+          }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Fill the kettle.\n" } }],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" },
+          "bullet": { "listId": "kix.numbered" }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Switch it on.\n" } }],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" },
+          "bullet": { "listId": "kix.numbered" }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Wait for the click.\n" } }],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Pour.\n" } }],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" },
+          "bullet": { "listId": "kix.numbered" }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "\n" } }],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Kinds\n" } }],
+          "paragraphStyle": {
+            "namedStyleType": "HEADING_2",
+            "headingId": "h.kinds"
+          }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Stovetop\n" } }],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" },
+          "bullet": { "listId": "kix.nested" }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Whistling\n" } }],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" },
+          "bullet": { "listId": "kix.nested", "nestingLevel": 1 }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Plain\n" } }],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" },
+          "bullet": { "listId": "kix.nested", "nestingLevel": 1 }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Electric\n" } }],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" },
+          "bullet": { "listId": "kix.nested" }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Cordless\n" } }],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" },
+          "bullet": { "listId": "kix.nested", "nestingLevel": 1 }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Base only\n" } }],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" },
+          "bullet": { "listId": "kix.nested", "nestingLevel": 2 }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Tea leaves\n" } }],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" },
+          "bullet": { "listId": "kix.flat" }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Tea bags\n" } }],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" },
+          "bullet": { "listId": "kix.flat" }
+        }
+      }
+    ]
+  },
+  "lists": {
+    "kix.numbered": {
+      "listProperties": {
+        "nestingLevels": [{ "glyphType": "DECIMAL" }, { "glyphType": "ALPHA" }]
+      }
+    },
+    "kix.nested": {
+      "listProperties": {
+        "nestingLevels": [
+          { "glyphSymbol": "●" },
+          { "glyphType": "DECIMAL" },
+          { "glyphType": "GLYPH_TYPE_UNSPECIFIED", "glyphSymbol": "■" }
+        ]
+      }
+    },
+    "kix.flat": {
+      "listProperties": {
+        "nestingLevels": [
+          { "glyphType": "GLYPH_TYPE_UNSPECIFIED", "glyphSymbol": "●" }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "documentId": "doc-table",
+  "revisionId": "rev-table-1",
+  "body": {
+    "content": [
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Costs\n" } }],
+          "paragraphStyle": {
+            "namedStyleType": "HEADING_2",
+            "headingId": "h.costs"
+          }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [
+            { "textRun": { "content": "Three kettles compared.\n" } }
+          ],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "\n" } }],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+        }
+      },
+      {
+        "table": {
+          "rows": 3,
+          "columns": 2,
+          "tableRows": [
+            {
+              "tableCells": [
+                {
+                  "content": [
+                    {
+                      "paragraph": {
+                        "elements": [
+                          {
+                            "textRun": {
+                              "content": "Kettle",
+                              "textStyle": { "bold": true }
+                            }
+                          },
+                          { "textRun": { "content": "\n" } }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "content": [
+                    {
+                      "paragraph": {
+                        "elements": [{ "textRun": { "content": "Price\n" } }]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "tableCells": [
+                {
+                  "content": [
+                    {
+                      "paragraph": {
+                        "elements": [{ "textRun": { "content": "Copper\n" } }]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "content": [
+                    {
+                      "paragraph": {
+                        "elements": [{ "textRun": { "content": "High\n" } }]
+                      }
+                    },
+                    {
+                      "paragraph": {
+                        "elements": [
+                          { "textRun": { "content": "Worth it | mostly\n" } }
+                        ]
+                      }
+                    },
+                    {
+                      "paragraph": {
+                        "elements": [{ "textRun": { "content": "\n" } }]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "tableCells": [
+                {
+                  "content": [
+                    {
+                      "paragraph": {
+                        "elements": [{ "textRun": { "content": "Steel\n" } }]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "content": [
+                    {
+                      "paragraph": {
+                        "elements": [{ "textRun": { "content": "\n" } }]
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "\n" } }],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Steel wins on price.\n" } }],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+        }
+      }
+    ]
+  }
+}

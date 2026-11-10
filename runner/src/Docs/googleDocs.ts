@@ -1,0 +1,132 @@
+// The Google Docs layer: the `documents.get` body types the reader reads and the
+// port that fetches one. Property names mirror the Docs REST API's wire shape.
+// Nothing here knows Markdown; the dialect is `markdownDialect.ts`, and the
+// reader joining the two is `DocReader.ts`.
+
+export interface GoogleDocument {
+  documentId: string;
+  title?: string;
+  revisionId: string;
+  body?: Body;
+  lists?: Record<string, List>;
+  footnotes?: Record<string, Footnote>;
+  tabs?: Tab[];
+}
+
+export interface Tab {
+  tabProperties?: { tabId: string; title?: string };
+  documentTab?: DocumentTab;
+}
+
+export interface DocumentTab {
+  body: Body;
+  lists?: Record<string, List>;
+  footnotes?: Record<string, Footnote>;
+}
+
+export interface Body {
+  content: StructuralElement[];
+}
+
+export interface StructuralElement {
+  startIndex?: number;
+  endIndex?: number;
+  paragraph?: Paragraph;
+  table?: Table;
+  sectionBreak?: object;
+  tableOfContents?: object;
+}
+
+export interface Paragraph {
+  elements: ParagraphElement[];
+  paragraphStyle?: ParagraphStyle;
+  bullet?: Bullet;
+}
+
+export type NamedStyleType =
+  | "NORMAL_TEXT"
+  | "TITLE"
+  | "SUBTITLE"
+  | "HEADING_1"
+  | "HEADING_2"
+  | "HEADING_3"
+  | "HEADING_4"
+  | "HEADING_5"
+  | "HEADING_6";
+
+export interface ParagraphStyle {
+  namedStyleType?: NamedStyleType;
+  headingId?: string;
+}
+
+export interface Bullet {
+  listId: string;
+  nestingLevel?: number;
+}
+
+export interface ParagraphElement {
+  startIndex?: number;
+  endIndex?: number;
+  textRun?: TextRun;
+  footnoteReference?: FootnoteReference;
+}
+
+export interface TextRun {
+  content: string;
+  textStyle?: TextStyle;
+  suggestedInsertionIds?: string[];
+  suggestedDeletionIds?: string[];
+}
+
+export interface TextStyle {
+  bold?: boolean;
+  italic?: boolean;
+  link?: Link;
+}
+
+export interface Link {
+  url?: string;
+  heading?: { id: string; tabId?: string };
+  headingId?: string;
+  bookmark?: { id: string; tabId?: string };
+}
+
+export interface FootnoteReference {
+  footnoteId: string;
+  footnoteNumber: string;
+  suggestedInsertionIds?: string[];
+}
+
+export interface Footnote {
+  footnoteId: string;
+  content: StructuralElement[];
+}
+
+export interface List {
+  listProperties: { nestingLevels: NestingLevel[] };
+}
+
+export interface NestingLevel {
+  glyphType?: string;
+  glyphSymbol?: string;
+}
+
+export interface Table {
+  rows: number;
+  columns: number;
+  tableRows: TableRow[];
+  suggestedInsertionIds?: string[];
+}
+
+export interface TableRow {
+  tableCells: TableCell[];
+}
+
+export interface TableCell {
+  content: StructuralElement[];
+}
+
+/** The port to the Docs REST API's `documents.get`, real or faked. */
+export interface DocumentsPort {
+  documentOf(documentId: string): Promise<GoogleDocument>;
+}
