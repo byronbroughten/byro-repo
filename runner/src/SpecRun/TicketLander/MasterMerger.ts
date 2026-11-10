@@ -1,7 +1,7 @@
 // A wrap-up failure's handling: on a conflict it starts a merge of master and resumes the implementer once to resolve it,
 // saving that merge's resolution for the review list as a Propose `decision`; any other failure Halts or Stops.
 // ../TicketLander.ts hands it each wrap-up failure from its _land.
-// It builds its own ReviewStepper and HaltRaiser; the prompt is ../../Workflow/code/mergeMasterStep.ts.
+// It builds its own ReviewStepper and HaltRaiser; the prompt is its spec's Workflow's, through ../../Workflow.ts.
 
 import { messageOf } from "../../failureText.ts";
 import { git, isMerging } from "../../git.ts";
@@ -9,10 +9,7 @@ import { issueRef } from "../../IssueWorkspaces.ts";
 import { SchemaFailure } from "../../SchemaFailure.ts";
 import type { MergeMasterRecord } from "../../stepRecords.ts";
 import { UnhandledStop } from "../../UnhandledStop.ts";
-import {
-  mergeMasterOutputSchema,
-  mergeMasterPrompt,
-} from "../../Workflow/code/mergeMasterStep.ts";
+import { agentStepsOf } from "../../Workflow.ts";
 import { WrapUpFailure } from "../../WrapUpFailure.ts";
 import { HaltRaiser } from "../HaltRaiser.ts";
 import { ReviewStepper } from "../ReviewStepper.ts";
@@ -101,11 +98,12 @@ export class MasterMerger extends SpecRunBase {
         return;
       }
       this._log(run, `${conflicted}; resuming the implementer to merge it.`);
+      const rules = agentStepsOf(run.spec).mergeMaster;
       ran = await this.reviewStepper._runResolverStep(ticketRun, {
         step: "merge-master",
         resolver: "implementer",
         launch: {
-          prompt: mergeMasterPrompt({
+          prompt: rules.promptOf({
             issue: ticket.issue,
             title: ticket.title,
             branch: workspace.branch,
@@ -113,7 +111,7 @@ export class MasterMerger extends SpecRunBase {
             mergingRepos,
             conflict,
           }),
-          jsonSchema: mergeMasterOutputSchema,
+          jsonSchema: rules.outputSchema,
           // A crash's snapshot resets the tree, which ends the merge the retry is told is in progress.
           beforeCrashRetry: async () => {
             await this._startMerges(ticketRun, worktrees);

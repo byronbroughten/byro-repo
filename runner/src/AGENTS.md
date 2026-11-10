@@ -128,8 +128,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `transcriptFacts.ts` | `transcriptFacts` | Outcome facts computed from transcripts: pair, peaks, duration and cost, and why one is unrecorded; where a session's transcript is. |
 | `UnhandledStop.ts` | `UnhandledStop` | The outcomes the run loop doesn't handle yet, and their error. |
 | `verdicts.ts` | | A finding's axes and verdicts. |
-| `Workflow.ts` | | The Workflow type and the pick of a spec's Workflow from its labels: the core's one way to a Workflow. |
-| `Workflow/code/codeWorkflow.ts` | | The code Workflow: each ticket's Step sequence and the Step each one goes on to. |
+| `Workflow.ts` | | The Workflow type, each agent step's rules and prompt input, and the pick of a spec's Workflow from its labels: the core's one way to a Workflow. |
+| `Workflow/code/codeWorkflow.ts` | | The code Workflow: each ticket's Step sequence, the Step each one goes on to, and its agent steps' rules, resolve resuming implement. |
 | `Workflow/code/gapCheck.ts` | `gapCheck` | The gap check's prompt and output schema. |
 | `Workflow/code/implementCodeSkill.ts` | `implementCodeSkill` | Generates the `/implement-code` skill from the implement step's shared body. |
 | `Workflow/code/implementStep.ts` | `implementStep` | The implement step's prompt, handoff comment, record checks and output schema. |

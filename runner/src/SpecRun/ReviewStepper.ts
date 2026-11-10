@@ -2,7 +2,8 @@
 // session, the resumed implementer under the ticket budget, else a fresh resolver, resetting one that crosses the live
 // ceiling or whose resume finds no conversation; a refused record gets one resumed retry and a Halt verdict raises a Halt.
 // Checks and landing call _runResolverStep to resume a resolver on red checks or a master merge.
-// It builds its own HaltRaiser and StepLauncher; prompts are ../reviewStep.ts and ../resolveStep.ts.
+// It builds its own HaltRaiser and StepLauncher; each step's prompt, schema and checks are its spec's Workflow's, through
+// ../Workflow.ts, as is whether resolve resumes the implementer and the prompt a fresh fallback gets.
 
 import { join } from "node:path";
 
@@ -19,18 +20,10 @@ import {
 import type { StepAgent } from "../transcriptFacts.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
 import {
-  resolveCommitProblems,
-  resolveOutputSchema,
-  resolvePrompt,
-  resolveRecordProblems,
-  resolveRecordsOf,
-  resolveRetryPrompt,
-  withReviewerFields,
-} from "../Workflow/code/resolveStep.ts";
-import {
-  reviewPrompt,
-  reviewRecordSchema,
-} from "../Workflow/code/reviewStep.ts";
+  agentStepsOf,
+  type ResolvePromptInput,
+  type ResolveRules,
+} from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import {
   type Heads,
@@ -69,6 +62,12 @@ type ResolveOutcome =
 // Names the resolver that ran, a fresh one when the resume found no conversation.
 type ResolveAttempt = ResolveOutcome & { resolver: Resolver };
 
+interface ResolveRun {
+  ranStep: RanStep;
+  findings: Finding[];
+  rules: ResolveRules;
+}
+
 interface KeptRecords {
   resolver: Resolver;
   // The heads the resolve started on.
@@ -86,16 +85,17 @@ export class ReviewStepper extends SpecRunBase {
   }
 
   async _review(ticketRun: TicketRun): Promise<void> {
-    const { ticket, workspace, state } = ticketRun;
+    const { run, ticket, workspace, state } = ticketRun;
+    const rules = agentStepsOf(run.spec).review;
     const { record } = await this._launch(ticketRun, "review", {
-      prompt: reviewPrompt({
+      prompt: rules.promptOf({
         issue: ticket.issue,
         title: ticket.title,
         skillName: this.config.knobs.skillNames.review,
         branch: workspace.branch,
         branchedRepos: ticketSteps.branchedReposOf(ticketRun),
       }),
-      jsonSchema: reviewRecordSchema,
+      jsonSchema: rules.outputSchema,
     });
     state.findings = (record as ReviewRecord).findings;
   }
@@ -111,9 +111,7 @@ export class ReviewStepper extends SpecRunBase {
       await resetTo(workspace, state.resolveBase);
     }
     const base = state.resolveBase;
-    let resolver: Resolver = this._isUnderBudget(state)
-      ? "implementer"
-      : "fresh";
+    let resolver = this._firstResolverOf(ticketRun);
     let attempt = await this._runResolver(ticketRun, resolver);
     let isRetry = false;
     for (;;) {
@@ -139,7 +137,7 @@ export class ReviewStepper extends SpecRunBase {
           logPath: attempt.logPath,
         });
         await resetTo(workspace, base);
-        resolver = this._isUnderBudget(state) ? "implementer" : "fresh";
+        resolver = this._firstResolverOf(ticketRun);
       } else {
         const { records, logPath } = attempt;
         const problems = await this._resolveProblemsOf(
@@ -166,6 +164,15 @@ export class ReviewStepper extends SpecRunBase {
     }
   }
 
+  // Resolve resumes the Step its Workflow names only under the ticket budget.
+  private _firstResolverOf(ticketRun: TicketRun): Resolver {
+    const { resumes } = resolveRulesOf(ticketRun);
+    if (resumes !== undefined && this._isUnderBudget(ticketRun.state)) {
+      return "implementer";
+    }
+    return "fresh";
+  }
+
   async _keepRecords(
     ticketRun: TicketRun,
     { resolver, base, records }: KeptRecords,
@@ -182,16 +189,18 @@ export class ReviewStepper extends SpecRunBase {
   }
 
   async _resolveProblemsOf(
-    { workspace, state }: TicketRun,
+    ticketRun: TicketRun,
     base: Heads,
     records: ResolveRecord[],
   ): Promise<string[]> {
+    const { workspace, state } = ticketRun;
+    const rules = resolveRulesOf(ticketRun);
     const findingCount = (state.findings ?? []).length;
     const { dirtyRepos } = await this._headsAndDirtyReposOf(workspace);
     const hasChangedTree = await hasChangedTreeSince(workspace, base);
     return [
-      ...resolveRecordProblems(findingCount, records),
-      ...resolveCommitProblems({ records, hasChangedTree, dirtyRepos }),
+      ...rules.recordProblems(findingCount, records),
+      ...rules.commitProblems({ records, hasChangedTree, dirtyRepos }),
     ];
   }
 
@@ -200,7 +209,9 @@ export class ReviewStepper extends SpecRunBase {
     ticketRun: TicketRun,
     resolver: Resolver,
   ): Promise<ResolveAttempt> {
-    const prompt = resolvePromptOf(ticketRun);
+    const prompt = resolveRulesOf(ticketRun).promptOf(
+      resolvePromptInputOf(ticketRun),
+    );
     if (resolver === "fresh") {
       return this._launchResolver(ticketRun, resolver, {
         prompt,
@@ -210,18 +221,18 @@ export class ReviewStepper extends SpecRunBase {
     return this._launchResolver(ticketRun, resolver, { prompt });
   }
 
-  // Resumes the session that returned the refused record; a fresh fallback gets the findings with the refusal.
+  // Resumes the session that returned the refused record; a fresh fallback gets the prompt the Workflow's resumption gives it.
   private async _retryResolver(
     ticketRun: TicketRun,
     resolver: Resolver,
     problems: string[],
   ): Promise<ResolveAttempt> {
-    const prompt = resolveRetryPrompt(problems);
+    const { retryPromptOf } = resolveRulesOf(ticketRun);
     return this._launchResolver(
       ticketRun,
       resolver,
-      { prompt },
-      `${resolvePromptOf(ticketRun)}\n\n${prompt}`,
+      { prompt: retryPromptOf(problems) },
+      freshRetryPromptOf(ticketRun, problems),
     );
   }
 
@@ -231,18 +242,22 @@ export class ReviewStepper extends SpecRunBase {
     launch: Pick<StepLaunch, "prompt" | "resumeSessionId">,
     freshPrompt?: string,
   ): Promise<ResolveAttempt> {
+    const rules = resolveRulesOf(ticketRun);
     const ran = await this._runResolverStep(ticketRun, {
       step: "resolve",
       resolver,
       launch: {
         liveCeiling: this.config.knobs.liveCeiling,
-        jsonSchema: resolveOutputSchema,
+        jsonSchema: rules.outputSchema,
         ...launch,
       },
       freshPrompt,
     });
     const findings = ticketRun.state.findings ?? [];
-    return { ...resolveOutcomeOf(ran, findings), resolver: ran.resolver };
+    return {
+      ...resolveOutcomeOf({ ranStep: ran, findings, rules }),
+      resolver: ran.resolver,
+    };
   }
 
   // A resume that finds no conversation reruns once as a fresh resolver, which is the resolver it returns.
@@ -309,25 +324,38 @@ export class ReviewStepper extends SpecRunBase {
   }
 }
 
-function resolvePromptOf(ticketRun: TicketRun): string {
+function resolveRulesOf({ run }: TicketRun): ResolveRules {
+  return agentStepsOf(run.spec).resolve;
+}
+
+function resolvePromptInputOf(ticketRun: TicketRun): ResolvePromptInput {
   const { ticket, workspace, state } = ticketRun;
-  return resolvePrompt({
+  return {
     issue: ticket.issue,
     title: ticket.title,
     branch: workspace.branch,
     branchedRepos: ticketSteps.branchedReposOf(ticketRun),
     findings: state.findings ?? [],
-  });
+  };
 }
 
-function resolveOutcomeOf(
-  { result, logPath }: RanStep,
-  findings: Finding[],
-): ResolveOutcome {
+// With no resumption every resolver starts fresh, so its fallback still needs the step's prompt beside the refusal.
+function freshRetryPromptOf(ticketRun: TicketRun, problems: string[]): string {
+  const { promptOf, retryPromptOf, resumes } = resolveRulesOf(ticketRun);
+  const input = resolvePromptInputOf(ticketRun);
+  if (resumes !== undefined) return resumes.freshRetryPromptOf(input, problems);
+  return `${promptOf(input)}\n\n${retryPromptOf(problems)}`;
+}
+
+function resolveOutcomeOf({
+  ranStep: { result, logPath },
+  findings,
+  rules,
+}: ResolveRun): ResolveOutcome {
   if (result.hasCrossedCeiling) return { kind: "crossed", logPath };
   if (ticketSteps.isTurnCapped(result)) return { kind: "capped", logPath };
   const record = ticketSteps.recordOf("resolve", result, logPath);
-  const records = withReviewerFields(resolveRecordsOf(record), findings);
+  const records = rules.withReviewerFields(rules.recordsOf(record), findings);
   return { kind: "done", records, logPath };
 }
 

@@ -1,20 +1,9 @@
-// The merge-master step's prompt and record; SpecRun.ts runs it once on a wrap-up conflict.
+// The merge-master step's prompt and record; codeWorkflow.ts supplies it, and SpecRun/TicketLander/MasterMerger.ts runs it once on a wrap-up conflict.
 
 import { stepReadLine } from "../../IssueReader.ts";
-import type { IssueRef } from "../../IssueWorkspaces.ts";
 import { commitMessageLine } from "../../promptText.ts";
 import { arraySchema, objectSchema, stringSchema } from "../../recordSchema.ts";
-
-export interface MergeMasterPromptInput {
-  issue: IssueRef;
-  title: string;
-  branch: string;
-  branchedRepos: string[];
-  // The repos the runner left mid-merge.
-  mergingRepos: string[];
-  // The wrap-up's conflict message.
-  conflict: string;
-}
+import type { MergeMasterPromptInput } from "../../Workflow.ts";
 
 export function mergeMasterPrompt({
   issue,

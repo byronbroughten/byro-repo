@@ -4,7 +4,6 @@
 
 import { gitHubWriteActions } from "../../FactsFile.ts";
 import { stepReadLine } from "../../IssueReader.ts";
-import type { IssueRef } from "../../IssueWorkspaces.ts";
 import {
   commitMessageLine,
   sectionOf,
@@ -21,19 +20,7 @@ import {
   type Handoff,
   type ImplementRecord,
 } from "../../stepRecords.ts";
-
-export interface ImplementPromptInput {
-  issue: IssueRef;
-  title: string;
-  body: string;
-  branch: string;
-  // The workspace's repos on the issue branch: the issue's own plus any extras it was created with.
-  branchedRepos: string[];
-  // Takes the repo to promote as its last argument.
-  promoteCommand: string;
-  // Set for a fresh step after a handoff; a handoff is cumulative, so only the latest is passed.
-  latestHandoff?: Handoff;
-}
+import type { ImplementPromptInput } from "../../Workflow.ts";
 
 export function implementPrompt(input: ImplementPromptInput): string {
   const { issue, title, body, latestHandoff } = input;

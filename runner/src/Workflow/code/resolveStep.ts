@@ -3,7 +3,6 @@
 // reviewStep.ts supplies the findings, stepRecords.ts holds the record types; StepStream.ts checks the output against resolveOutputSchema first.
 
 import { stepReadLine } from "../../IssueReader.ts";
-import type { IssueRef } from "../../IssueWorkspaces.ts";
 import {
   codeListOf,
   commitMessageLine,
@@ -19,15 +18,7 @@ import {
   type ResolveRecord,
 } from "../../stepRecords.ts";
 import { axes, type Verdict, verdicts } from "../../verdicts.ts";
-
-export interface ResolvePromptInput {
-  issue: IssueRef;
-  title: string;
-  branch: string;
-  branchedRepos: string[];
-  // As the review record lists them; the prompt numbers them from 1.
-  findings: Finding[];
-}
+import type { ResolveCommits, ResolvePromptInput } from "../../Workflow.ts";
 
 export function resolvePrompt({
   issue,
@@ -149,14 +140,6 @@ export function resolveRecordProblems(
       ].map((rule) => findingProblem(record.finding, rule)),
     ),
   ];
-}
-
-export interface ResolveCommits {
-  records: ResolveRecord[];
-  // Whether the committed tree differs from the one the resolve started on; a reverted fix leaves it unchanged.
-  hasChangedTree: boolean;
-  // The repos the resolver left uncommitted changes in.
-  dirtyRepos: string[];
 }
 
 // What the records can't show alone: whether what git shows matches the Fix verdicts.

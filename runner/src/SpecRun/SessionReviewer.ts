@@ -26,12 +26,7 @@ import { RunStop } from "../RunStop.ts";
 import { TicketHalted } from "../TicketHalted.ts";
 import { latestImplementPeakOf } from "../transcriptFacts.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
-import {
-  numberedFindingsOf,
-  resolveOutputProblems,
-  resolveRecordsOf,
-  withReviewerFields,
-} from "../Workflow/code/resolveStep.ts";
+import { agentStepsOf } from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import { LeaseKeeper } from "./LeaseKeeper.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
@@ -43,6 +38,7 @@ import {
   ticketLaunch,
   type TicketRun,
   type TicketState,
+  type TrackedIssue,
 } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
 import { runText } from "./runState/runText.ts";
@@ -111,7 +107,9 @@ export class SessionReviewer extends SpecRunBase {
         kind: "findings",
         message: `Reviewed ${issueRef.labelOf(issue)}, findings: ${findings.length}. Resolve them in this session by \`docs/agents/verdicts.md\`, then hand your records to resolve.`,
         halts: [],
-        findings: numberedFindingsOf(findings),
+        findings: agentStepsOf(ticketRun.run.spec).resolve.numberedFindingsOf(
+          findings,
+        ),
       };
     });
     this._record(ticketRun.run, result.message);
@@ -129,7 +127,8 @@ export class SessionReviewer extends SpecRunBase {
         `${issueRef.labelOf(issue)} has no findings waiting on this session; run review first.`,
       );
     }
-    const outputProblems = resolveOutputProblems(output);
+    const rules = agentStepsOf(await this._specOf(issue)).resolve;
+    const outputProblems = rules.outputProblems(output);
     if (outputProblems.length > 0) return brokenRulesOf(outputProblems);
     const { findings, base } = pending;
     const ticketRun = await this._sessionTicketRunOf({
@@ -141,7 +140,10 @@ export class SessionReviewer extends SpecRunBase {
     });
     if (typeof ticketRun === "string") return refusedReviewOf(ticketRun);
     const result = await this._leased(ticketRun, async () => {
-      const records = withReviewerFields(resolveRecordsOf(output), findings);
+      const records = rules.withReviewerFields(
+        rules.recordsOf(output),
+        findings,
+      );
       const problems = await this.reviewStepper._resolveProblemsOf(
         ticketRun,
         base,
@@ -158,6 +160,15 @@ export class SessionReviewer extends SpecRunBase {
     });
     this._record(ticketRun.run, result.message);
     return result;
+  }
+
+  private async _specOf(issue: IssueRef): Promise<TrackedIssue> {
+    return this.config.github.issueOf(await this._specIssueOf(issue));
+  }
+
+  // A ticket with no parent is its own spec, as a Standalone ticket is.
+  private async _specIssueOf(issue: IssueRef): Promise<IssueRef> {
+    return (await this.config.github.parentOf(issue))?.issue ?? issue;
   }
 
   // Unknown when no implement session is recorded or its transcript is missing, which counts as past budget.
@@ -177,8 +188,9 @@ export class SessionReviewer extends SpecRunBase {
   }: SessionTicket): Promise<SessionTicketRun | string> {
     const { github } = this.config;
     const ticket = await github.issueOf(issue);
-    const specIssue = (await github.parentOf(issue))?.issue ?? issue;
-    const run = await this._runOf(specIssue, { tickets: {} });
+    const run = await this._runOf(await this._specIssueOf(issue), {
+      tickets: {},
+    });
     run.sessionReview = {
       earlierHalts: sessionHaltCountOf(
         issue,

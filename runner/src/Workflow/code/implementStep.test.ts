@@ -7,10 +7,10 @@ import {
   type Handoff,
   type HandoffRecord,
 } from "../../stepRecords.ts";
+import type { ImplementPromptInput } from "../../Workflow.ts";
 import {
   implementOutputSchema,
   implementPrompt,
-  type ImplementPromptInput,
   implementRecordProblems,
 } from "./implementStep.ts";
 
