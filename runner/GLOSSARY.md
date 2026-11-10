@@ -164,7 +164,7 @@ An interactive session that launches or rejoins one run, explains each of its ev
 _Avoid_: monitor, watcher, babysitter
 
 **Run board**:
-A read-only, live view of every running run's ticket, step and time on step, a Batch's as one entry naming its current member. It is never streamed to the Supervisor, which looks at it only to diagnose.
+A read-only, live view of every running run's tickets left, ticket, step and time on step, a Batch's as one entry naming its current member and totalling its tickets left. It is never streamed to the Supervisor, which looks at it only to diagnose.
 _Avoid_: dashboard
 
 **Lease**:

@@ -24,9 +24,11 @@ interface FixtureRun {
   pid: number;
   steps: Record<string, string>;
   log: string[];
+  // Absent as an older runner wrote it.
+  ticketLabels?: string[];
 }
 
-function seedRun({ stem, pid, steps, log }: FixtureRun): void {
+function seedRun({ stem, pid, steps, log, ticketLabels }: FixtureRun): void {
   seedHolder(join(stateFolder, `${stem}.run.lock`), {
     pid,
     host: hostname(),
@@ -40,7 +42,7 @@ function seedRun({ stem, pid, steps, log }: FixtureRun): void {
   );
   writeFileSync(
     join(stateFolder, `${stem}.run.json`),
-    JSON.stringify({ tickets }),
+    JSON.stringify({ tickets, ticketLabels }),
   );
   writeFileSync(join(stateFolder, `${stem}.log`), `${log.join("\n")}\n`);
 }
@@ -213,6 +215,97 @@ describe("runBoardOf", () => {
         "  Ticket: byro-repo #520, implement, 30m 0s on this step",
         "  Account: account 1: no usage reading",
         "  Latest (29m 59s ago): byro-repo #520: implement step on account 1, raw stream in /s/2.jsonl.",
+      ].join("\n"),
+    );
+  });
+
+  it("shows a lone run's tickets left, counting the current, halted and unstarted tickets and not an earlier run's landings", () => {
+    seedRun({
+      stem: "byro-repo-424",
+      pid: process.pid,
+      steps: {
+        "byro-repo #430": "landed",
+        "byro-repo #431": "review",
+        "byro-repo #432": "halted",
+      },
+      ticketLabels: [
+        "byro-repo #430",
+        "byro-repo #431",
+        "byro-repo #432",
+        "byro-repo #433",
+      ],
+      log: [
+        "2026-10-25T11:00:06.000Z byro-repo #431: launching on Opus medium from implement.",
+      ],
+    });
+    expect(runBoardOf(stateFolder, now).split("\n").slice(0, 3)).toEqual([
+      "byro-repo #424",
+      "  Tickets left: 3 of 4",
+      "  Ticket: byro-repo #431, review, 59m 54s on this step",
+    ]);
+  });
+
+  it("shows a Batch's tickets left as one total across its members", async () => {
+    seedRun({
+      stem: "byro-repo-498",
+      pid: process.pid,
+      steps: { "byro-repo #510": "landed", "byro-repo #511": "landed" },
+      ticketLabels: ["byro-repo #510", "byro-repo #511"],
+      log: [],
+    });
+    seedRun({
+      stem: "byro-repo-499",
+      pid: process.pid,
+      steps: { "byro-repo #520": "implement" },
+      ticketLabels: ["byro-repo #520", "byro-repo #521"],
+      log: [],
+    });
+    await BatchRecords.init(stateFolder).open(
+      [
+        { repo: "byro-repo", number: 498 },
+        { repo: "byro-repo", number: 499 },
+      ],
+      process.pid,
+    );
+    expect(runBoardOf(stateFolder, now).split("\n").slice(0, 3)).toEqual([
+      "Batch byro-repo #498, #499",
+      "  Member: byro-repo #498",
+      "  Tickets left: 2 of 4",
+    ]);
+  });
+
+  it("shows no tickets left for a Batch with a member whose run state has no ticket list", async () => {
+    seedRun({
+      stem: "byro-repo-498",
+      pid: process.pid,
+      steps: {},
+      ticketLabels: ["byro-repo #510"],
+      log: [],
+    });
+    seedRun({ stem: "byro-repo-499", pid: process.pid, steps: {}, log: [] });
+    await BatchRecords.init(stateFolder).open(
+      [
+        { repo: "byro-repo", number: 498 },
+        { repo: "byro-repo", number: 499 },
+      ],
+      process.pid,
+    );
+    expect(runBoardOf(stateFolder, now)).not.toContain("Tickets left");
+  });
+
+  it("shows no tickets left, and still renders, for a run state an older runner wrote with no ticket list", () => {
+    seedRun({
+      stem: "byro-repo-424",
+      pid: process.pid,
+      steps: { "byro-repo #431": "implement" },
+      log: [],
+    });
+    expect(runBoardOf(stateFolder, now)).toBe(
+      [
+        "byro-repo #424",
+        "  Ticket: none yet",
+        "  Account: none launched yet",
+        "  Latest: none",
       ].join("\n"),
     );
   });

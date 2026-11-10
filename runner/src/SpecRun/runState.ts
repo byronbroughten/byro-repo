@@ -159,6 +159,8 @@ export type Continuation =
 
 export interface RunState {
   tickets: Record<string, TicketState>;
+  // Rewritten at each run start, a relaunch's included, for the Run board's tickets left; absent from a state file written before #673.
+  ticketLabels?: string[];
   // Every ticket's, answered ones included, in the order raised; absent from a state file written before Halts.
   halts?: Halt[];
   // Set by a Restart and taken by its relaunch, which carries on its landings.
