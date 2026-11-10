@@ -1,19 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import type { TrackedIssue } from "./SpecRun/runState.ts";
+import { trackedIssues } from "./specRunHarness/trackedIssues.ts";
 import { workflowNameOf, workflowOf } from "./Workflow.ts";
 
 function specLabelled(labels: string[]): TrackedIssue {
-  return {
-    issue: { repo: "byro-repo", number: 7 },
-    title: "A spec",
-    body: "",
-    isOpen: true,
-    labels,
-    url: "https://github.com/owner/byro-repo/issues/7",
-    author: "developer",
-    bodyEditors: [],
-  };
+  return trackedIssues.issueOf(7, { labels, body: "" });
 }
 
 describe("workflowNameOf", () => {

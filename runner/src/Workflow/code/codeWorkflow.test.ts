@@ -1,23 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import type {
-  TicketState,
-  TicketStep,
-  TrackedIssue,
-} from "../../SpecRun/runState.ts";
+import type { TicketState, TicketStep } from "../../SpecRun/runState.ts";
+import { trackedIssues } from "../../specRunHarness/trackedIssues.ts";
 import type { ImplementRecord } from "../../stepRecords.ts";
 import { codeWorkflow } from "./codeWorkflow.ts";
 
-const ticket: TrackedIssue = {
-  issue: { repo: "byro-repo", number: 7 },
-  title: "A ticket",
-  body: "",
-  isOpen: true,
+const ticket = trackedIssues.issueOf(7, {
   labels: ["ready-for-agent"],
-  url: "https://github.com/owner/byro-repo/issues/7",
-  author: "developer",
-  bodyEditors: [],
-};
+  body: "",
+});
 
 const committed: ImplementRecord = {
   status: "committed",

@@ -1,5 +1,6 @@
 // The one seam between the run core and its Workflows: the Workflow type and the pick of a spec's Workflow.
-// The core imports a Workflow only through this module; each Workflow's own code is in Workflow/<name>/.
+// SpecRun/TicketSequencer.ts reaches a Workflow's Step sequence only through this module; each Workflow's own code
+// is in Workflow/<name>/.
 // A ticket follows its spec's Workflow. Labels are Trusted, since only collaborators can add one.
 
 import type {
@@ -24,9 +25,10 @@ export interface Workflow {
 
 const pieceLabel = "piece";
 
-// The piece Workflow isn't registered yet, so a piece spec runs as code until it is.
-const registered: Partial<Record<WorkflowName, Workflow>> = {
+const registered: Record<WorkflowName, Workflow> = {
   code: codeWorkflow,
+  // The piece Workflow isn't registered yet, so a piece spec runs as code until it is.
+  piece: codeWorkflow,
 };
 
 export function workflowNameOf(spec: TrackedIssue): WorkflowName {
@@ -34,5 +36,5 @@ export function workflowNameOf(spec: TrackedIssue): WorkflowName {
 }
 
 export function workflowOf(spec: TrackedIssue): Workflow {
-  return registered[workflowNameOf(spec)] ?? codeWorkflow;
+  return registered[workflowNameOf(spec)];
 }
