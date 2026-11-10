@@ -126,11 +126,11 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `transcriptFacts.ts` | `transcriptFacts` | Outcome facts computed from transcripts: pair, peaks, duration and cost, and why one is unrecorded; where a session's transcript is. |
 | `UnhandledStop.ts` | `UnhandledStop` | The outcomes the run loop doesn't handle yet, and their error. |
 | `verdicts.ts` | | A finding's axes and verdicts. |
-| `Workflow/code/implementCodeSkill.ts` | `implementCodeSkill` | Generates the `/implement-code` skill from the implement step's shared body. |
 | `Workflow/code/gapCheck.ts` | `gapCheck` | The gap check's prompt and output schema. |
+| `Workflow/code/implementCodeSkill.ts` | `implementCodeSkill` | Generates the `/implement-code` skill from the implement step's shared body. |
+| `Workflow/code/implementStep.ts` | `implementStep` | The implement step's prompt, handoff comment, record checks and output schema. |
 | `Workflow/code/mergeMasterStep.ts` | | The merge-master step's prompt and output schema. |
 | `Workflow/code/redChecksStep.ts` | | The red-checks step's prompt and record. |
-| `Workflow/code/implementStep.ts` | `implementStep` | The implement step's prompt, handoff comment, record checks and output schema. |
 | `Workflow/code/resolveStep.ts` | `resolveStep` | The resolve step's prompt, record schema and record and commit checks. |
 | `Workflow/code/reviewStep.ts` | `reviewStep` | The review step's prompt and record schema. |
 | `WrapUp.ts` | `WrapUp` | `npm run wrap-up`: lands an issue or session workspace, delegating its landing steps and closing the issue to `WrapUp/`; and `npm run research:push`'s push. |
