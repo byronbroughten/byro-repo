@@ -68,6 +68,59 @@ export interface ProposedSlice {
   files: string[];
 }
 
+// A piece spec's research ticket: ready once its comment is written, unposted, in the step's scratch folder.
+export type ResearchRecord =
+  ReadyResearchRecord | BlockedResearchRecord | HandoffResearchRecord;
+
+export interface ReadyResearchRecord {
+  status: "ready";
+  commentPath: string;
+  // The source texts `verify:quotes` reads.
+  textsFolder: string;
+  counts: ResearchCounts;
+  // Proposed only; the step applies none.
+  outlineEdits: OutlineEdit[];
+  unverified: UnverifiedItem[];
+  blockers: Blocker[];
+}
+
+export interface BlockedResearchRecord {
+  status: "blocked";
+  blockers: Blocker[];
+}
+
+export interface HandoffResearchRecord {
+  status: "handoff";
+  blockers: Blocker[];
+  handoff: ResearchHandoff;
+}
+
+// The claims the research pass supported, rewrote and moved to Unverified.
+export interface ResearchCounts {
+  supported: number;
+  rewritten: number;
+  unverified: number;
+}
+
+export interface OutlineEdit {
+  section: string;
+  edit: string;
+  reason: string;
+}
+
+export interface UnverifiedItem {
+  fact: string;
+  reason: string;
+  // Set when the spec's Facts field names the fact.
+  isWanted: boolean;
+}
+
+export interface ResearchHandoff {
+  conclusion: string;
+  sourcesDone: string[];
+  sourcesLeft: string[];
+}
+
 export interface ReviewFinding {
   axis: Axis;
   where: string;

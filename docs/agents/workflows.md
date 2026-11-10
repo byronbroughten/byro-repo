@@ -44,7 +44,7 @@ The words Piece, Deliverable, Section, Stage and Agent draft are [the writing gl
 [The runner glossary](../../runner/GLOSSARY.md#language) defines each Step.
 
 - **Code**: the runner's [`Workflow`](../../runner/src/Workflow.ts) module picks the code Workflow, whose code is in [`runner/src/Workflow/code/`](../../runner/src/Workflow/code/); its [`codeWorkflow.ts`](../../runner/src/Workflow/code/codeWorkflow.ts) defines the Steps each ticket goes through, and the runner's `TicketSequencer` runs them. `/code-review` is the review Step's skill, named, with each ticket's checks, where `scripts/runner/runnerConfig.ts` builds the code Workflow, and `/implement-code` is generated from the implement Step's shared body (`runner/src/Workflow/code/implementCodeSkill.ts`), so a change to either reaches both an interactive session and a run.
-- **Piece**: the runner has no Steps for it yet; its Steps are the Implementation stage's interactive skills above, worked by hand.
+- **Piece**: the runner's [`pieceWorkflow.ts`](../../runner/src/Workflow/piece/pieceWorkflow.ts) runs a Research ticket's research Step, which follows `/research-piece` up to its post and stops the run with the comment unposted, since its checks and landing aren't built yet; every other piece ticket is refused, and worked by hand through the Implementation stage's interactive skills above.
 
 ## The hand-off table
 
@@ -75,6 +75,7 @@ The words Piece, Deliverable, Section, Stage and Agent draft are [the writing gl
 | Implementation | Piece | `/research-piece` | `/implement-piece`, when the issue is a Piece | named |
 | Implementation | Piece | `/research-piece` | `/review-research` on the draft comment, before posting, read as a file since it is user-invoked | named |
 | Implementation | Piece | `/research-piece` | the Research wrap-up (`npm run wrap-up -- <repo> <n> --no-code`) | named |
+| Implementation | Piece | the research Step | `/research-piece`'s first seven steps, its `/review-research` pass included, read as a file | named, read by path |
 | Implementation | Piece | any | `/review-research`, on a posted Research issue's findings | you invoke it |
 | Implementation | Piece | the Research wrap-up | `/implement-piece` on the next ticket | you invoke it |
 | Judgement | Code | `/judge-findings` | `/to-code-style` and `/mine-outcomes` when it closes a spec; tickets filed by `/code-tickets`' conventions | named |

@@ -1,9 +1,10 @@
 // One ticket's run: takes its workspace lease, walks the Step sequence its spec's Workflow supplies from the step it
-// reached, through ../Workflow.ts only, and lands it, releasing the lease however it ends. A Halt or a lease taken
+// reached, through ../Workflow.ts only, and lands it, or stops in its place where the Workflow can't land it yet,
+// releasing the lease however it ends. A Halt or a lease taken
 // since the pick leaves the ticket waiting; an UnhandledStop leaves it unlanded and commented on, or Stops the run for a rerun to retry it.
 // Before launch it raises a Failure Halt on a body ../IssueReader.ts doesn't trust; `approve` posts the text's approval.
 // RunLoop.ts calls _runTicket and SessionReviewer.ts calls _runSteps.
-// It builds its own LeaseKeeper, ImplementStepper, ReviewStepper, TicketLander and HaltRaiser.
+// It builds its own LeaseKeeper, ImplementStepper, ReviewStepper, ResearchStepper, TicketLander and HaltRaiser.
 
 import {
   failureOptions,
@@ -27,9 +28,11 @@ import {
   stopOutcomes,
   UnhandledStop,
 } from "../UnhandledStop.ts";
+import type { WorkflowStep } from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import { ImplementStepper } from "./ImplementStepper.ts";
 import { LeaseKeeper } from "./LeaseKeeper.ts";
+import { ResearchStepper } from "./ResearchStepper.ts";
 import { ReviewStepper } from "./ReviewStepper.ts";
 import {
   type LandingTicket,
@@ -60,6 +63,10 @@ export class TicketSequencer extends SpecRunBase {
     return new ReviewStepper(this.config);
   }
 
+  private get researchStepper(): ResearchStepper {
+    return new ResearchStepper(this.config);
+  }
+
   private get ticketLander(): TicketLander {
     return new TicketLander(this.config);
   }
@@ -81,6 +88,8 @@ export class TicketSequencer extends SpecRunBase {
             extraTurns,
           }) ?? "resume";
       }
+      const workflow = this._workflowOf(run.spec);
+      state.step = entryStepOf(state.step, workflow.stepsOf(ticket));
       const pair = state.pair ?? pairOf(ticket.body);
       if (pair === undefined) {
         throw new UnhandledStop(
@@ -106,6 +115,14 @@ export class TicketSequencer extends SpecRunBase {
       } else {
         const landing = this.workspaces.folderOf(ticket.issue);
         if (landing) await this.leaseKeeper._takeLease(run, landing);
+      }
+      const landingStop = workflow.landingStopOf(state);
+      if (landingStop !== undefined) {
+        throw new UnhandledStop(
+          "landing",
+          landingStop,
+          this._progressPathOf(run),
+        );
       }
       await this._timed({ run, ticket }, "wrap-up", () =>
         this.ticketLander._land({ run, ticket, pair, state }),
@@ -287,11 +304,31 @@ export class TicketSequencer extends SpecRunBase {
       resume: () => this.implementStepper._resume(ticketRun),
       review: () => this.reviewStepper._review(ticketRun),
       resolve: () => this.reviewStepper._resolve(ticketRun),
+      research: () => this.researchStepper._research(ticketRun),
     };
   }
 }
 
-const agentStepNames = ["implement", "resume", "review", "resolve"] as const;
+const agentStepNames = [
+  "implement",
+  "resume",
+  "review",
+  "resolve",
+  "research",
+] as const;
+
+// The core's own steps: a fresh ticket's and a halted one's once answered.
+const coreEntrySteps: readonly TicketStep[] = ["implement", "resume"];
+
+// A Workflow whose sequence has neither entry step starts the ticket at its first step instead.
+function entryStepOf(step: TicketStep, sequence: WorkflowStep[]): TicketStep {
+  const [first] = sequence;
+  const isInSequence = sequence.some((each) => each.step === step);
+  if (first === undefined || isInSequence || !coreEntrySteps.includes(step)) {
+    return step;
+  }
+  return first.step;
+}
 
 type AgentStepName = (typeof agentStepNames)[number];
 

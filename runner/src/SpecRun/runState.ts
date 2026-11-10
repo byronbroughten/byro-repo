@@ -27,6 +27,8 @@ import {
   type Handoff,
   type ImplementRecord,
   type MergeMasterRecord,
+  type ResearchHandoff,
+  type ResearchRecord,
   type ResolveRecord,
 } from "../stepRecords.ts";
 import { type Target, targetLineShapes, targetsOf } from "../ticketTargets.ts";
@@ -151,6 +153,9 @@ export interface TicketState {
   implementBase?: Heads;
   // Kept across a rerun, so the step after a handoff starts from it; cleared by any other implement record.
   latestHandoff?: Handoff;
+  // A piece spec's research ticket's: its latest research record, and its latest handoff until a fresh step returns another record.
+  researchRecord?: ResearchRecord;
+  latestResearchHandoff?: ResearchHandoff;
   // Numbers each handoff's backup branch, and counts toward the handoff cap.
   handoffCount?: number;
   // Added by `continue +1 handoff` answers, on top of the handoffsPerTicket knob.
