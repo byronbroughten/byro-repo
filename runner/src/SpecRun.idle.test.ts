@@ -1,22 +1,33 @@
 import { describe, expect, it } from "vitest";
 
+import { type EventLine, eventLinesOf } from "./EventFileNotices.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import type { Blocker } from "./implementStep.ts";
 import type { RunResult } from "./SpecRun.ts";
 import {
   addSpec,
   blocked,
+  eventOf,
   github,
   implemented,
   noticeSummaries,
+  progressLines,
+  refOf,
   reviewed,
+  session,
   spec,
   specRun,
+  stateFolder,
   ticketState,
   useSpecRunHarness,
+  withEventFile,
 } from "./specRunHarness.ts";
 
 useSpecRunHarness();
+
+function eventKinds(): EventLine["kind"][] {
+  return eventLinesOf(stateFolder(), spec).map(({ kind }) => kind);
+}
 
 describe("run's idle and stops", () => {
   const gated: Blocker = {
@@ -85,6 +96,66 @@ describe("run's idle and stops", () => {
     expect(
       noticeSummaries().filter((line) => line.startsWith("Idle:")),
     ).toEqual(["Idle: nothing runnable. byro-repo #1 waits on Halt H1."]);
+  });
+
+  it("logs a wait on Halts alone to the progress log but writes no idle line", async () => {
+    addSpec([1]);
+
+    await specRun(
+      FakeAgentStep.init(blocked([gated]), implemented("one.ts"), reviewed()),
+      {
+        ...withEventFile(),
+        async sleep() {
+          github.reply(213, "H1: I ran it.");
+        },
+      },
+    ).run(spec);
+
+    expect(progressLines().map(eventOf)).toContain(
+      "Idle: nothing runnable. byro-repo #1 waits on Halt H1.",
+    );
+    expect(eventKinds()).toEqual(["run-started", "halt", "run-ended"]);
+  });
+
+  it("writes an idle line for a wait that includes an Interactive ticket's", async () => {
+    addSpec([1, 2]);
+    github.edit(2, { labels: ["ready-for-interactive"] });
+    const agentStep = FakeAgentStep.init(
+      blocked([gated]),
+      implemented("one.ts"),
+      reviewed(),
+      implemented("two.ts"),
+      reviewed(),
+    );
+
+    await specRun(agentStep, {
+      ...withEventFile(),
+      async sleep() {
+        github.reply(213, "H1: I ran it.");
+        github.edit(2, { isOpen: false });
+      },
+    }).run(spec);
+
+    expect(eventKinds()).toEqual(["run-started", "halt", "idle", "run-ended"]);
+  });
+
+  it("writes an idle line for a wait on a lease", async () => {
+    addSpec([1, 2]);
+    const { workspaces } = specRun(FakeAgentStep.init());
+    const leased = await workspaces.create(refOf(1));
+    await workspaces.takeLease(leased, session);
+
+    await specRun(
+      FakeAgentStep.init(
+        implemented("two.ts"),
+        reviewed(),
+        implemented("one.ts"),
+        reviewed(),
+      ),
+      { ...withEventFile(), sleep: () => workspaces.releaseLease(leased) },
+    ).run(spec);
+
+    expect(eventKinds()).toEqual(["run-started", "idle", "run-ended"]);
   });
 
   it("ends on a `stop spec` answer, the halted ticket unlanded and its other Halt open", async () => {

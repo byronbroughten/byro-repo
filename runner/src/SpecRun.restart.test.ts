@@ -162,7 +162,7 @@ describe("a Batch's Restart", () => {
     ]);
   });
 
-  it("writes no run-started on relaunch, logging its start on the member it launches, and no second member-ended for a member that ended before the Restart", async () => {
+  it("writes no run-started on relaunch, logging its start on the member it launches, and no member-ended for its finished members", async () => {
     const before = await restartBatch();
     const logged = progressLines(third.number).length;
 
@@ -176,8 +176,6 @@ describe("a Batch's Restart", () => {
       expect.stringMatching(/^Run started on 1 tickets as /),
     );
     expect(lines.map(({ spec, kind }) => [spec, kind])).toEqual([
-      ["byro-repo#302", "member-ended"],
-      ["byro-repo#303", "member-ended"],
       ["byro-repo#301", "run-ended"],
     ]);
     expect(lines.at(-1)?.summary).toBe(
@@ -204,7 +202,8 @@ describe("a Batch's Restart", () => {
   });
 
   it("relaunches from a restart saved before it kept each member's end, ending that member again", async () => {
-    const before = await restartBatch();
+    await restartBatch();
+    const logged = progressLines(first.number).length;
     const path = runStatePath(first.number);
     const state = JSON.parse(readFileSync(path, "utf8")) as {
       restart: { landed: IssueRef[] };
@@ -220,13 +219,8 @@ describe("a Batch's Restart", () => {
 
     expect(relaunch.kind).toBe("finished");
     expect(relaunch.landed).toEqual(members);
-    const ended = batchEventLines(members)
-      .slice(before)
-      .filter(({ kind }) => kind === "member-ended");
-    expect(ended.map(({ spec }) => spec)).toEqual([
-      "byro-repo#301",
-      "byro-repo#302",
-      "byro-repo#303",
-    ]);
+    expect(progressEventsAfter(logged, first.number)).toContainEqual(
+      expect.stringMatching(/^Run ended: landed byro-repo #301\./),
+    );
   });
 });

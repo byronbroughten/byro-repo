@@ -383,11 +383,14 @@ export class RunLoop extends SpecRunBase {
     return { kind: "finishing" };
   }
 
+  // A wait on Halts alone writes no idle line, as the Supervisor was woken for each Halt already; the call is the whole wait's, so a Batch's members write all or none.
   private async _announceIdle(
     waiting: MemberSelection<"none">[],
   ): Promise<void> {
+    const isHaltsOnly = waiting.every(({ waits }) => waits.every(isHaltWait));
+    const event: RunEvent = isHaltsOnly ? {} : { kind: "idle" };
     for (const { member, waits } of waiting) {
-      await this._announce(member.run, idleMessageOf(waits), { kind: "idle" });
+      await this._announce(member.run, idleMessageOf(waits), event);
     }
   }
 
@@ -598,6 +601,10 @@ function isIdleWait({ reason }: Wait): boolean {
   return (
     reason === "halted" || reason === "leased" || reason === "member-blocked"
   );
+}
+
+function isHaltWait({ reason }: Wait): boolean {
+  return reason === "halted";
 }
 
 function idleMessageOf(waits: Wait[]): string {

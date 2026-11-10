@@ -49,7 +49,7 @@ function haltCommentUrl(): string {
 }
 
 describe("run's event file", () => {
-  it("writes a line per start, Halt, idle, Stop and end, with every notice carrying the spec's link", async () => {
+  it("writes a line per start, Halt, Stop and end but none for a wait on the Halt alone, with every notice carrying the spec's link", async () => {
     addSpec([1]);
     const specUrl = "https://github.com/byronbroughten/byro-repo/issues/213";
 
@@ -81,12 +81,6 @@ describe("run's event file", () => {
         kind: "halt",
         ending: undefined,
         commentUrl: haltCommentUrl(),
-      },
-      {
-        ticket: undefined,
-        kind: "idle",
-        ending: undefined,
-        commentUrl: specUrl,
       },
       {
         ticket: undefined,

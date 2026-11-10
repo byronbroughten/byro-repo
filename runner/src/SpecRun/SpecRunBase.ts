@@ -363,7 +363,13 @@ export class SpecRunBase {
   ): Promise<RunResult> {
     let ended = message;
     if (!run.isBatchMember) ended = await this._withJudgeLine(message, [run]);
-    await this._announce(run, ended, { ...event, kind });
+    // A finished member writes no member-ended line, as the Batch's run-ended carries its review-list counts once, at the end.
+    const isFinishedMember = run.isBatchMember === true && kind === "finished";
+    await this._announce(
+      run,
+      ended,
+      isFinishedMember ? event : { ...event, kind },
+    );
     return { kind, landed: run.landed, message: ended };
   }
 
