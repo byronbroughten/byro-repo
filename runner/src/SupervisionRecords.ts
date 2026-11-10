@@ -104,7 +104,10 @@ export class SupervisionRecords {
     const record: SupervisionRecord = { pid, owner, members, offset };
     this._write({ ...record, ...supervisor, watch });
     if (!isTakeover) return undefined;
-    return this._takeHandoff(members);
+    return this._takeHandoff([
+      ...overlapping.map((file) => file.members),
+      members,
+    ]);
   }
 
   // An ended Batch's record is gone, so a record already on that Batch keeps its members, and the file its watch read, until the spec runs alone after it.
@@ -130,12 +133,16 @@ export class SupervisionRecords {
   }
 
   // Read once: deleted as it's read, so a later rejoin never finds a stale one.
-  private _takeHandoff(members: MemberList): string | undefined {
-    const path = this._handoffPathOf(members);
-    if (!existsSync(path)) return undefined;
-    const handoff = readFileSync(path, "utf8");
-    rmSync(path, { force: true });
-    return handoff;
+  // A taken-over record's own members come first: its Supervisor wrote there, even if the spec has since moved between a lone run and a Batch.
+  private _takeHandoff(memberLists: MemberList[]): string | undefined {
+    const paths = [
+      ...new Set(memberLists.map((members) => this._handoffPathOf(members))),
+    ];
+    const handoffs = paths.flatMap((path) =>
+      existsSync(path) ? [readFileSync(path, "utf8")] : [],
+    );
+    paths.forEach((path) => rmSync(path, { force: true }));
+    return handoffs[0];
   }
 
   // One per spec or Batch, named like its event file so any member finds it; never `<pid>.json`, so it never reads as a record.

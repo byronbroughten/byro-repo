@@ -579,6 +579,32 @@ describe("a supervision handoff", () => {
     expect(records().handoffPathOf(spec)).not.toBe(alone);
   });
 
+  it("written alone is printed once the spec has joined a Batch", async () => {
+    await records().supervise(otherLive, owner, spec);
+    const path = writeHandoff(spec, "written alone");
+    await BatchRecords.init(stateFolder).open([spec, otherSpec], process.pid);
+
+    expect(await records().supervise(me, owner, spec)).toBe("written alone");
+    expect(existsSync(path)).toBe(false);
+  });
+
+  it("written on a Batch is printed once the spec runs alone after it", async () => {
+    const batch: MemberList = [spec, otherSpec];
+    await BatchRecords.init(stateFolder).open(batch, process.pid);
+    appendFileSync(batchEventFilePathOf(stateFolder, batch), "started\n");
+    await records().supervise(otherLive, owner, spec);
+    const path = writeHandoff(spec, "written on the Batch");
+    BatchRecords.init(stateFolder).close(batch);
+    const later = new Date(Date.now() + 60_000);
+    appendEvents(spec, "alone");
+    utimesSync(eventFilePathOf(stateFolder, spec), later, later);
+
+    expect(await records().supervise(me, owner, spec)).toBe(
+      "written on the Batch",
+    );
+    expect(existsSync(path)).toBe(false);
+  });
+
   it("never reads as a supervision record", async () => {
     await records().supervise(otherLive, owner, spec);
     writeHandoff(spec, "123");
