@@ -457,7 +457,6 @@ describe("watchOnce", () => {
       const claudeProcess = await identityOf(process.pid);
       let liveProcess: ProcessIdentity = claudeProcess;
       return {
-        claudeProcess,
         isProcessLive: async (asked: ProcessIdentity) =>
           isSameProcess(asked, liveProcess),
         goneAt: {
@@ -506,22 +505,35 @@ describe("watchOnce", () => {
       expect(clock.now()).toEqual(at(33_000));
     });
 
-    it("asks after the Supervisor's claude process, start time included, so a reused pid can't keep it parked", async () => {
+    it("prints nothing until its Supervisor's claude process is gone, once a later watch replaces it", async () => {
       write(lineOf("run-started", at(-5_000)));
       const records = await supervised(1);
-      const { claudeProcess, goneAt } = await claudeProcessEndingAt(0);
-      const asked: ProcessIdentity[] = [];
+      const { isProcessLive, goneAt } = await claudeProcessEndingAt(10_000);
       const clock = fakeClock([
+        {
+          atMs: 3_000,
+          run: async () => {
+            await records.watch(spec, process.ppid);
+          },
+        },
+        { atMs: 6_000, run: () => write(halt) },
+        goneAt,
+      ]);
+
+      expect(await printedBy(records, true, clock, isProcessLive)).toEqual([]);
+      expect(clock.now()).toEqual(at(33_000));
+    });
+
+    it("isn't kept parked by a later process reusing its Supervisor's pid", async () => {
+      write(lineOf("run-started", at(-5_000)));
+      const records = await supervised(1);
+      const { isProcessLive, goneAt } = await claudeProcessEndingAt(0);
+      const clock = fakeClock([
+        goneAt,
         { atMs: 3_000, run: () => records.end(supervisor, "clear") },
       ]);
-      goneAt.run();
 
-      await printedBy(records, true, clock, async (identity) => {
-        asked.push(identity);
-        return false;
-      });
-
-      expect(asked).toEqual([claudeProcess]);
+      expect(await printedBy(records, true, clock, isProcessLive)).toEqual([]);
       expect(clock.now()).toEqual(at(3_000));
     });
 

@@ -118,7 +118,6 @@ export async function watchRun(
 }
 
 // Returns after one line; starting at the record's offset, a line written while the Supervisor explained the last still wakes it.
-// A replaced watch parks, printing nothing, until its Supervisor's claude process ends.
 export async function watchOnce(
   { owner, spec }: WatchedMember,
   deps: OnceWatchDeps,
