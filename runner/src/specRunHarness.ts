@@ -263,8 +263,9 @@ export function masterSubjects(): string[] {
   );
 }
 
-export function progressLines(): string[] {
-  return readFileSync(join(stateFolder(), "byro-repo-213.log"), "utf8")
+// The spec's progress log unless another member is named, such as a Batch member's.
+export function progressLines(number = spec.number): string[] {
+  return readFileSync(join(stateFolder(), `byro-repo-${number}.log`), "utf8")
     .trimEnd()
     .split("\n");
 }

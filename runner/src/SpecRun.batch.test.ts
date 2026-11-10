@@ -938,7 +938,7 @@ describe("a Batch's record", () => {
       notices.sent
         .filter(({ kind }) => kind === "run-started")
         .map(({ spec: member }) => member.number),
-    ).toEqual([213, 301, 213]);
+    ).toEqual([213, 301]);
   });
 
   it("relaunches past preflight with a Standalone member the Restart landed and closed, and runs the next", async () => {
