@@ -21,6 +21,7 @@
     "./FakeAgentStep": "./src/FakeAgentStep.ts",
     "./FakeNotices": "./src/FakeNotices.ts",
     "./failureText": "./src/failureText.ts",
+    "./RestDocuments": "./src/Docs/RestDocuments.ts",
     "./resolveStep": "./src/Workflow/code/resolveStep.ts",
     "./gapCheck": "./src/Workflow/code/gapCheck.ts",
     "./GhCli": "./src/GhCli.ts",

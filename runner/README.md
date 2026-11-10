@@ -14,7 +14,7 @@ The Docs module, and `npm run doc:print` over it, reach Google Docs as the devel
 clasp_config_auth="$HOME/.clasprc-docs.json" npx clasp login --use-project-scopes --extra-scopes https://www.googleapis.com/auth/documents,https://www.googleapis.com/auth/drive.readonly
 ```
 
-The token carries the manifest's scopes plus `documents` and `drive.readonly`, the pair [`google-docs-behaviour.md`](../docs/google-docs-behaviour.md#auth) records as working. Writes then appear in a Doc's history as the developer's edits.
+Why these scopes: [`google-docs-behaviour.md`](../docs/google-docs-behaviour.md#auth). Writes then appear in a Doc's history as the developer's edits.
 
 ## Context nudge
 

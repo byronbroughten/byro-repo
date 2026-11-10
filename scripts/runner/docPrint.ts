@@ -5,6 +5,7 @@ import { join } from "node:path";
 
 import { docPrint } from "@byronbroughten/spec-runner/docPrint";
 import { messageOf } from "@byronbroughten/spec-runner/failureText";
+import { RestDocuments } from "@byronbroughten/spec-runner/RestDocuments";
 
 const usage = "Usage: npm run doc:print -- <Doc ID or URL>";
 const credentialPath = join(homedir(), ".clasprc-docs.json");
@@ -16,7 +17,7 @@ if (doc === undefined || rest.length > 0) {
 } else {
   try {
     process.stdout.write(
-      await docPrint.markdownOf(docPrint.documentsAt(credentialPath), doc),
+      await docPrint.markdownOf(RestDocuments.init({ credentialPath }), doc),
     );
   } catch (error) {
     console.error(messageOf(error));

@@ -91,7 +91,7 @@ export class RestDocuments implements DocumentsPort {
   }
 
   private async _minted(): Promise<string> {
-    const login = this._login;
+    const login = this._login();
     const response = await this.sources.fetch(googleUrls.token, {
       method: "POST",
       body: new URLSearchParams({
@@ -114,7 +114,7 @@ export class RestDocuments implements DocumentsPort {
     return accessToken;
   }
 
-  private get _login(): ClaspLogin {
+  private _login(): ClaspLogin {
     const { credentialPath } = this.sources;
     const login: Partial<ClaspLogin> | undefined = JSON.parse(
       readFileSync(credentialPath, "utf8"),
