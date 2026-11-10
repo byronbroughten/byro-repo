@@ -311,10 +311,10 @@ describe("run's Halts", () => {
     github.reply(213, "H1: no change needed.");
     const agentStep = FakeAgentStep.init(async (request) =>
       implementResultOf(
-        recordOf(
-          git(request.cwd, "branch", "--show-current"),
-          git(request.cwd, "rev-parse", "HEAD"),
-        ),
+        recordOf({
+          branch: git(request.cwd, "branch", "--show-current"),
+          sha: git(request.cwd, "rev-parse", "HEAD"),
+        }),
       ),
     );
 

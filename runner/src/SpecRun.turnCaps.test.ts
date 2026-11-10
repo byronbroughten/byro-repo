@@ -157,7 +157,7 @@ describe("run's implement turn cap", () => {
 });
 
 describe("run's resolve and red-checks turn caps", () => {
-  const findings = [findingOf(1), findingOf(2)];
+  const findings = [findingOf({ line: 1 }), findingOf({ line: 2 })];
 
   function fixRecordOf(finding: number): ResolveRecord {
     return {

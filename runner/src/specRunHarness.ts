@@ -1,12 +1,6 @@
 // The fixture and helpers SpecRun's test files share; each file calls useSpecRunHarness() once at its top.
 
-import {
-  mkdtempSync,
-  readFileSync,
-  realpathSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -139,9 +133,12 @@ export function primaryOf(repo: keyof typeof everyClone): string {
 }
 
 export function commitRed(clone: string): void {
-  writeFileSync(join(clone, "RED"), "");
-  git(clone, "add", "RED");
-  git(clone, "commit", "-m", "Turn master red");
+  stepResults.commitFile({
+    cwd: clone,
+    file: "RED",
+    content: "",
+    message: "Turn master red",
+  });
 }
 
 export function bodyWith(pairLine = "Opus high"): string {

@@ -82,7 +82,7 @@ describe("run's resume", () => {
     void specRun(
       FakeAgentStep.init(
         implemented("one.ts"),
-        reviewed([findingOf(1)]),
+        reviewed([findingOf({ line: 1 })]),
         async () => {
           reachResolve();
           return new Promise<StepResult>(() => {});
@@ -368,7 +368,7 @@ describe("run's leases", () => {
           heldDuringStep = workspace?.lease;
           return implemented("one.ts")(request);
         },
-        reviewed([findingOf(1)]),
+        reviewed([findingOf({ line: 1 })]),
       ),
     );
 
@@ -397,7 +397,7 @@ async function killAtResolveSavedAs(
   void specRun(
     FakeAgentStep.init(
       implemented("one.ts"),
-      reviewed([findingOf(1)]),
+      reviewed([findingOf({ line: 1 })]),
       async () => {
         reachResolve();
         return new Promise<StepResult>(() => {});

@@ -65,9 +65,9 @@ describe("a session resolving its own review", () => {
   }
 
   const findings = [
-    findingOf(1),
-    findingOf(2, "spec", "halt"),
-    findingOf(3, "spec", "dismiss"),
+    findingOf({ line: 1 }),
+    findingOf({ line: 2, axis: "spec", suggestedVerdict: "halt" }),
+    findingOf({ line: 3, axis: "spec", suggestedVerdict: "dismiss" }),
   ];
 
   function base(finding: number): Omit<ResolveRecord, "verdict" | "axis"> {

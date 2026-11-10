@@ -68,7 +68,9 @@ describe("run's schema failures", () => {
 
   it("links a record that fails the runner's own check as JSON", async () => {
     addSpec([1]);
-    const uncommitted = implementResultOf(recordOf("issue-1", "abc123"));
+    const uncommitted = implementResultOf(
+      recordOf({ branch: "issue-1", sha: "abc123" }),
+    );
 
     await specRun(FakeAgentStep.init(uncommitted)).run(spec);
 
@@ -128,7 +130,7 @@ describe("run's schema failures", () => {
       subjectAtRecord = git(request.cwd, "log", "-1", "--format=%s");
       const branch = git(request.cwd, "branch", "--show-current");
       const head = git(request.cwd, "rev-parse", "HEAD");
-      return implementResultOf(recordOf(branch, head));
+      return implementResultOf(recordOf({ branch, sha: head }));
     }, reviewed());
 
     const result = await specRun(rerunStep).run(spec);

@@ -32,7 +32,11 @@ useSpecRunHarness(rootCloneOnly);
 
 describe("run's review list", () => {
   const opusMedium: Pair = { model: "opus", effort: "medium" };
-  const findings = [findingOf(1), findingOf(2), findingOf(3)];
+  const findings = [
+    findingOf({ line: 1 }),
+    findingOf({ line: 2 }),
+    findingOf({ line: 3 }),
+  ];
 
   function base(finding: number): Omit<ResolveRecord, "verdict"> {
     return {
@@ -105,9 +109,9 @@ describe("run's review list", () => {
     const agentStep = FakeAgentStep.init(
       implemented("one.ts"),
       reviewed([
-        findingOf(1, "spec"),
-        findingOf(2, "standards", "dismiss"),
-        findingOf(3),
+        findingOf({ line: 1, axis: "spec" }),
+        findingOf({ line: 2, axis: "standards", suggestedVerdict: "dismiss" }),
+        findingOf({ line: 3 }),
       ]),
       resolvedAs({ ...propose, axis: "spec" }, kept, coveredLater),
       implemented("two.ts"),
@@ -136,7 +140,9 @@ describe("run's review list", () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(
       implemented("one.ts"),
-      reviewed([findingOf(2, "standards", "dismiss")]),
+      reviewed([
+        findingOf({ line: 2, axis: "standards", suggestedVerdict: "dismiss" }),
+      ]),
       resolvedAs({ ...kept, finding: 1 }),
     );
 
@@ -299,7 +305,9 @@ describe("run's review list", () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(
       implemented("one.ts"),
-      reviewed([findingOf(2, "standards", "dismiss")]),
+      reviewed([
+        findingOf({ line: 2, axis: "standards", suggestedVerdict: "dismiss" }),
+      ]),
       resolvedAs({ ...kept, finding: 1 }),
     );
 
