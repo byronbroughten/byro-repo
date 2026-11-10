@@ -207,11 +207,15 @@ _Avoid_: stage, milestone, step
 The developer's ticket that closes a Phase. It tests what the Phase built and decides whether the next Phase goes ahead, changes or is dropped.
 _Avoid_: checkpoint, gate (bare), kill point
 
+**Workflow**:
+The coding or the piece workflow as a run sees it: the Steps each of a spec's tickets goes through, how each Step's work is checked, and the Steps that run once at the spec's end. A spec's label picks it.
+_Avoid_: mode, pipeline, flavour
+
 **Workflow stage**:
-One part of the coding or the piece workflow, from planning to process revision, worked by its own skills. Every Step of a run falls in one Workflow stage, implementation.
+One part of a Workflow, from planning to process revision, worked by its own skills. Every Step of a run falls in one Workflow stage, implementation. [The workflow map](../docs/agents/workflows.md) lists each stage's skills.
 _Avoid_: phase, step, stage (bare)
 
 ## Same word, two meanings
 
 - **Runner**: here, the program that runs a spec. In the framework's glossary, an endpoint whose checkbox is a run button.
-- **Stage**: here, only inside Workflow stage, one part of the coding or the piece workflow. In the writing glossary, Stage alone is one kind of sub-issue a split Piece is worked in; a piece-workflow Workflow stage holds those Stages.
+- **Stage**: here, only inside Workflow stage, one part of a Workflow ([the workflow map](../docs/agents/workflows.md)). In the writing glossary, Stage alone is one kind of sub-issue a split Piece is worked in; a piece-workflow Workflow stage holds those Stages.

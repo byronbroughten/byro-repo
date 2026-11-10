@@ -41,8 +41,7 @@ The words for the repo's prose, which file holds which fact, what the root AGENT
 | `docs/academic-writing-style.md` | Academic conventions layered on `docs/writing-voice.md` and `docs/writing-craft.md`, one line per rule, rule only, with APA 7 as the citation standard. |
 | `docs/academic-writing-style/*.md` | Each rule's quoted instances and sources, indexed by `docs/academic-writing-style.md`'s "When \| File" table. |
 | `docs/agents/*.md` | Agent workflow: git, planning, model fit, delegation, issues and triage labels, domain docs, vendored upstream skills, which prose file a fact belongs in, handing judgements to Jev and its trial log. |
-| `docs/agents/coding-workflow.md` | The coding workflow by Workflow stage, its hand-offs, and the docs, formats and machinery its skills and Steps share, with each route. **An edit that adds or removes a link to a doc in its shared tables, from a skill, a hook's message or a runner prompt, updates it.** |
-| `docs/agents/piece-workflow.md` | The piece workflow by Workflow stage, its hand-offs, and the docs, formats and machinery its skills share, with each route. **An edit that adds or removes a link to a doc in its shared tables, from a skill or a hook's message, updates it.** |
+| `docs/agents/workflows.md` | The coding and the piece Workflows by Workflow stage, their hand-offs, and the docs, formats and machinery two or more of their skills and Steps share, with each route. **An edit that adds or removes a link to a doc in its shared tables, from a skill, a hook's message or a runner prompt, updates it.** |
 | `docs/agents/verdicts.md` | How any review finding is judged, one line per rule, rule only: the four verdicts and their reasons, the Standards and Spec rules, Halt, overruling a suggested verdict, and the approved exceptions. |
 | `docs/agents/codebase-priorities.md` | What every Recommendation about the codebase or agent tooling is weighed against, one line per rule, rule only: scope, the Tier 1 gate, the floor, Tier 2's ranked priorities with their definitions, and explaining a tradeoff. |
 | `docs/agents/codebase-priorities/*.md` | Each priority's pointers to the rules that express it, why fewer concepts help and the floor's reason, and the Estimates, the observation index of measured costs, indexed by `docs/agents/codebase-priorities.md`'s "When \| File" table. |
@@ -126,7 +125,7 @@ The `personal` repo is private and holds piece specs as issues; the Pieces' text
 | --- | --- |
 | `README.md` | What the runner is, where its file table and config live, where the context nudge's registration is, running a spec under tmux, its skills and how to run its tests. Derived prose. |
 | `src/AGENTS.md` | The rules for working in `src/`, and its file table: one row per file under `src/`, tests aside, each one line naming the file's job and any `package.json` export. |
-| `skills/<name>/SKILL.md` | An interactive skill for the runner's records, such as `/judge-findings` for the review list, loaded through `.claude/skills/` ([layout](./upstream-skills.md#layout)). |
+| `skills/<name>/SKILL.md` | A skill the runner generates, such as `/implement-code`, or an interactive skill for the runner's records, such as `/judge-findings` for the review list; every other skill sits in `.claude/skills/`. Each is loaded through a link from `.claude/skills/` ([layout](./upstream-skills.md#layout)). |
 | `GLOSSARY.md` | The spec runner's words, as [`GLOSSARY-MAP.md`](../../GLOSSARY-MAP.md) describes them. |
 
 ## What an addition to AGENTS.md costs
