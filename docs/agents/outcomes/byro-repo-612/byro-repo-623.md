@@ -1,0 +1,7 @@
+# byro-repo#623 outcome
+
+Spec: [byro-repo#612](https://github.com/byronbroughten/byro-repo/issues/612)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #623 | Opus medium | 3 | 13 | 103K | Fix (resumed implementer) | 2 | 1 | 0 | 11 min | $2.58 | $4.02 | Fixed: 'byro-repo's docs never link into it' is untrue while seven skills still link into packages/personal/writing/. (docs/agents/prose-files.md:113); The glossary-word list names Stage, which rules.md never uses, and leaves out Supporting Material, which it does use. (docs/pieces/rules.md:3); Edit gate is listed among the glossary words but used nowhere else in the file. (docs/agents/workflows.md:13). Proposed: The verbatim Agent draft entry describes pull/push behaviour that agent-draft.md and rules.md don't, and it runs past the glossary's sentence limit. (docs/pieces/GLOSSARY.md:27 vs docs/pieces/agent-draft.md:6, docs/pieces/rules.md:11); Reasoning-file instances cite 'personal#16 Snapshot' and 'from a Snapshot': the term plus a private spec number in a public repo. (docs/writing-voice/structure.md, candor.md, register.md, docs/writing-craft/words.md, signposts.md, docs/academic-writing-style/citations.md). | fcadfc2d-2434-442a-b751-7157e587bed1, e6d6a812-2935-4067-b275-d912b13b4ac7 |
