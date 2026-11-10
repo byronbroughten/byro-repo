@@ -522,9 +522,9 @@ describe("a supervision handoff", () => {
     const rejoin = await records().supervise(me, owner, spec);
     const again = await records().supervise(me, owner, spec);
 
-    expect(rejoin.handoff).toBe("/runner byronbroughten/byro-repo 331");
+    expect(rejoin).toBe("/runner byronbroughten/byro-repo 331");
     expect(existsSync(path)).toBe(false);
-    expect(again.handoff).toBeUndefined();
+    expect(again).toBeUndefined();
   });
 
   it("stays in place for a catch-up by the process holding the live, unended record", async () => {
@@ -533,7 +533,7 @@ describe("a supervision handoff", () => {
 
     const catchUp = await records().supervise(me, owner, spec);
 
-    expect(catchUp.handoff).toBeUndefined();
+    expect(catchUp).toBeUndefined();
     expect(existsSync(path)).toBe(true);
   });
 
@@ -543,7 +543,7 @@ describe("a supervision handoff", () => {
 
     const takeover = await records().supervise(me, owner, spec);
 
-    expect(takeover.handoff).toBe("from the other session");
+    expect(takeover).toBe("from the other session");
     expect(existsSync(path)).toBe(false);
   });
 
@@ -551,17 +551,13 @@ describe("a supervision handoff", () => {
     await records().supervise(deadHolder(), owner, spec);
     writeHandoff(spec, "left by a crash");
 
-    expect((await records().supervise(me, owner, spec)).handoff).toBe(
-      "left by a crash",
-    );
+    expect(await records().supervise(me, owner, spec)).toBe("left by a crash");
   });
 
   it("is none with no file written", async () => {
     await records().supervise(otherLive, owner, spec);
 
-    expect(
-      (await records().supervise(me, owner, spec)).handoff,
-    ).toBeUndefined();
+    expect(await records().supervise(me, owner, spec)).toBeUndefined();
   });
 
   it("of a Batch is found through any member", async () => {
@@ -573,9 +569,7 @@ describe("a supervision handoff", () => {
     expect(records().handoffPathOf(otherSpec)).toBe(
       records().handoffPathOf(spec),
     );
-    expect((await records().supervise(me, owner, otherSpec)).handoff).toBe(
-      "the Batch's",
-    );
+    expect(await records().supervise(me, owner, otherSpec)).toBe("the Batch's");
   });
 
   it("of a Batch is apart from its lead's own", async () => {

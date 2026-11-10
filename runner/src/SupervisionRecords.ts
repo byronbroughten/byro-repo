@@ -52,15 +52,6 @@ export interface WatchStart {
   members: MemberList;
 }
 
-export interface Supervision {
-  record: SupervisionRecord;
-  // The last Supervisor's handoff, taken only by a session rejoining an ended record or another process's.
-  handoff?: string;
-}
-
-// The heading `supervise` prints a handoff under, before the unexplained lines.
-export const handoffHeading = "## Handoff from the last Supervisor";
-
 // Only `<pid>.json` names a record; the handoff files beside them never parse as one.
 const recordPidPattern = /^(\d+)\.json$/;
 
@@ -84,11 +75,12 @@ export class SupervisionRecords {
   }
 
   // Takes over any record sharing a member, its offset only from one reading the same event file, since an offset counts lines in one file.
+  // Returns the last Supervisor's handoff, taken only by a session rejoining an ended record or another process's.
   async supervise(
     { pid }: LeaseHolder,
     owner: string,
     named: IssueRef,
-  ): Promise<Supervision> {
+  ): Promise<string | undefined> {
     const members = this._membersOf(named);
     const overlapping = this._files().filter((file) =>
       file.members.some((member) => issueRef.isAmong(member, members)),
@@ -111,28 +103,8 @@ export class SupervisionRecords {
     for (const file of overlapping) this._remove(file.pid);
     const record: SupervisionRecord = { pid, owner, members, offset };
     this._write({ ...record, ...supervisor, watch });
-    if (!isTakeover) return { record };
-    return { record, handoff: this._takenHandoffOf(members) };
-  }
-
-  // One per spec or Batch, named like its event file so any member finds it; never `<pid>.json`, so it never reads as a record.
-  handoffPathOf(named: IssueRef): string {
-    return this._handoffPathOf(this._membersOf(named));
-  }
-
-  // Read once: deleted as it's read, so a later rejoin never finds a stale one.
-  private _takenHandoffOf(members: MemberList): string | undefined {
-    const path = this._handoffPathOf(members);
-    if (!existsSync(path)) return undefined;
-    const handoff = readFileSync(path, "utf8");
-    rmSync(path, { force: true });
-    return handoff;
-  }
-
-  private _handoffPathOf(members: MemberList): string {
-    const [lead] = members;
-    const kind = isBatch(members) ? ".batch" : "";
-    return join(this.folder, `${issueRef.fileStemOf(lead)}${kind}.handoff.md`);
+    if (!isTakeover) return undefined;
+    return this._takeHandoff(members);
   }
 
   // An ended Batch's record is gone, so a record already on that Batch keeps its members, and the file its watch read, until the spec runs alone after it.
@@ -155,6 +127,26 @@ export class SupervisionRecords {
     return [ownFile, lockFile].some(
       (path) => path !== undefined && isWrittenAfter(path, batchFile),
     );
+  }
+
+  // Read once: deleted as it's read, so a later rejoin never finds a stale one.
+  private _takeHandoff(members: MemberList): string | undefined {
+    const path = this._handoffPathOf(members);
+    if (!existsSync(path)) return undefined;
+    const handoff = readFileSync(path, "utf8");
+    rmSync(path, { force: true });
+    return handoff;
+  }
+
+  // One per spec or Batch, named like its event file so any member finds it; never `<pid>.json`, so it never reads as a record.
+  handoffPathOf(named: IssueRef): string {
+    return this._handoffPathOf(this._membersOf(named));
+  }
+
+  private _handoffPathOf(members: MemberList): string {
+    const [lead] = members;
+    const kind = isBatch(members) ? ".batch" : "";
+    return join(this.folder, `${issueRef.fileStemOf(lead)}${kind}.handoff.md`);
   }
 
   // Joins the record holding the spec, a Batch's included when the spec is one of its members.

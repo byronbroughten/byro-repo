@@ -20,7 +20,6 @@ import { runBoardOf, watchBoard } from "@byronbroughten/spec-runner/runBoard";
 import { RunLock } from "@byronbroughten/spec-runner/RunLock";
 import { reviewPrintoutOf, SpecRun } from "@byronbroughten/spec-runner/SpecRun";
 import {
-  handoffHeading,
   isWatching,
   SupervisionRecords,
 } from "@byronbroughten/spec-runner/SupervisionRecords";
@@ -53,6 +52,7 @@ const verbs = [
   "decide",
   ...repoVerbs,
 ];
+const handoffHeading = "## Handoff from the last Supervisor";
 const usage = `Usage: npm run runner -- <owner/repo> <n> [<n>…] to run one spec or a Batch, ${plainVerbs.join("|")} <owner/repo> <n>, watch <owner/repo> <n> [--once], resolve <owner/repo> <n> <records.json>, supervise <owner/repo> <n> [--advance], decide <owner/repo> <spec> R<n>.<k> [--handled] "<text>", ${repoVerbs.join("|")} <owner/repo>, or [${boardVerbs.join("|")}] alone for the Run board`;
 
 try {
@@ -267,7 +267,7 @@ async function supervise(
     await records.advance(holder);
     return;
   }
-  const { handoff } = await records.supervise(holder, owner, spec);
+  const handoff = await records.supervise(holder, owner, spec);
   if (handoff !== undefined) console.log(`${handoffHeading}\n\n${handoff}\n`);
   for (const line of await records.unexplainedLinesOf(holder)) {
     console.log(line);
