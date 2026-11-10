@@ -96,6 +96,7 @@ export interface ReviewResult {
 
 export type TicketStep =
   | "implement"
+  | "research"
   | "review"
   | "resolve"
   | "checks"

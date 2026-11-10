@@ -39,7 +39,13 @@ import { developersReviewListsOf, undecidedCountOf } from "../reviewList.ts";
 import type { Command, RunKnobs } from "../runKnobs.ts";
 import { runStateAt } from "../savedFormats.ts";
 import { sleep } from "../sleep.ts";
-import { type Workflow, workflowOf, type Workflows } from "../Workflow.ts";
+import {
+  agentStepOf,
+  type AgentSteps,
+  type Workflow,
+  workflowOf,
+  type Workflows,
+} from "../Workflow.ts";
 import { WrapUp, type WrapUpGitHub, type WrapUpKnobs } from "../WrapUp.ts";
 import {
   type Heads,
@@ -153,6 +159,13 @@ export class SpecRunBase {
 
   _workflowOf(spec: TrackedIssue): Workflow {
     return workflowOf(spec, this.config.workflows);
+  }
+
+  _agentStepOf<SN extends keyof AgentSteps>(
+    spec: TrackedIssue,
+    name: SN,
+  ): AgentSteps[SN] {
+    return agentStepOf(this._workflowOf(spec), name);
   }
 
   get wrapUp(): WrapUp {

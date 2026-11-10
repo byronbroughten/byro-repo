@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { TrackedIssue } from "./SpecRun/runState.ts";
 import { workflowsWith } from "./specRunHarness.ts";
 import { trackedIssues } from "./specRunHarness/trackedIssues.ts";
-import { workflowNameOf, workflowOf } from "./Workflow.ts";
+import { agentStepOf, workflowNameOf, workflowOf } from "./Workflow.ts";
 
 function specLabelled(labels: string[]): TrackedIssue {
   return trackedIssues.issueOf(7, { labels, body: "" });
@@ -30,9 +30,19 @@ describe("workflowOf", () => {
     expect(workflowOf(specLabelled([]), workflowsWith([])).name).toBe("code");
   });
 
-  it("picks code for a piece spec until the piece Workflow is registered", () => {
+  it("picks piece for a piece spec", () => {
     expect(workflowOf(specLabelled(["piece"]), workflowsWith([])).name).toBe(
-      "code",
+      "piece",
+    );
+  });
+});
+
+describe("agentStepOf", () => {
+  it("throws for a step the Workflow leaves out", () => {
+    const piece = workflowOf(specLabelled(["piece"]), workflowsWith([]));
+
+    expect(() => agentStepOf(piece, "implement")).toThrow(
+      "The piece Workflow has no implement step.",
     );
   });
 });

@@ -314,7 +314,7 @@ export class ImplementStepper extends SpecRunBase {
   }
 
   private _implementRulesOf({ run }: TicketRun): ImplementRules {
-    return this._workflowOf(run.spec).agentSteps.implement;
+    return this._agentStepOf(run.spec, "implement");
   }
 }
 

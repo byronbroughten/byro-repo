@@ -10,6 +10,7 @@ export type Command = [string, ...string[]];
 
 export interface StepKnobs<VL extends number> {
   implement: VL;
+  research: VL;
   review: VL;
   resolve: VL;
   gapCheck: VL;
@@ -68,10 +69,17 @@ export const defaultRunKnobs: RunKnobs = {
     ["gh", "auth", "status"],
     ["claude", "auth", "status"],
   ],
-  maxTurns: { implement: 200, review: 80, resolve: 120, gapCheck: 80 },
+  maxTurns: {
+    implement: 200,
+    research: 200,
+    review: 80,
+    resolve: 120,
+    gapCheck: 80,
+  },
   silenceTimeoutMs: 10 * minuteMs,
   wallClockMs: {
     implement: 60 * minuteMs,
+    research: 60 * minuteMs,
     review: 20 * minuteMs,
     resolve: 20 * minuteMs,
     gapCheck: 20 * minuteMs,

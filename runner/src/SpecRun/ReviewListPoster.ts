@@ -227,7 +227,7 @@ export class ReviewListPoster extends SpecRunBase {
     const tickets: GapCheckTicket[] = await Promise.all(
       run.tickets.map((ticket) => this.config.github.issueOf(ticket)),
     );
-    const rules = this._workflowOf(run.spec).agentSteps.gapCheck;
+    const rules = this._agentStepOf(run.spec, "gapCheck");
     let prompt = rules.promptOf({
       spec: run.spec.issue,
       title: run.spec.title,

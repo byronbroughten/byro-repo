@@ -72,7 +72,7 @@ const steps: WorkflowStep[] = [
   { step: "wrap-up" },
 ];
 
-const agentSteps: AgentSteps = {
+const agentSteps: Omit<AgentSteps, "review"> = {
   implement: {
     promptOf: implementPrompt,
     outputSchema: implementOutputSchema,
@@ -80,7 +80,6 @@ const agentSteps: AgentSteps = {
     recordProblems: implementRecordProblems,
     handoffCommentOf,
   },
-  review: { promptOf: reviewPrompt, outputSchema: reviewRecordSchema },
   resolve: {
     promptOf: resolvePrompt,
     retryPromptOf: resolveRetryPrompt,
@@ -134,9 +133,18 @@ export function codeWorkflowOf({
     stepsOf() {
       return steps;
     },
-    agentSteps,
+    ticketRefusalOf() {
+      return undefined;
+    },
+    agentSteps: {
+      ...agentSteps,
+      review: {
+        promptOf: reviewPrompt,
+        outputSchema: reviewRecordSchema,
+        skillName: reviewSkillName,
+      },
+    },
     checks,
-    reviewSkillName,
     specEnd,
   };
 }

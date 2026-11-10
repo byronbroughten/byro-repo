@@ -30,6 +30,7 @@ import type { StepSession } from "./transcriptFacts.ts";
 import type { Workflows } from "./Workflow.ts";
 import { codeWorkflowOf } from "./Workflow/code/codeWorkflow.ts";
 import { gapCheckOutputSchema } from "./Workflow/code/gapCheck.ts";
+import { pieceWorkflowOf } from "./Workflow/piece/pieceWorkflow.ts";
 
 export type { StepScript } from "./specRunHarness/stepResults.ts";
 
@@ -179,9 +180,17 @@ export function stateFolder(): string {
   return join(temp, "state");
 }
 
-// The code Workflow with a test's own checks.
+// The code Workflow with a test's own checks, beside the piece Workflow.
 export function workflowsWith(checks: Command[]): Workflows {
-  return { code: codeWorkflowOf({ checks, reviewSkillName: "code-review" }) };
+  return {
+    code: codeWorkflowOf({ checks, reviewSkillName: "code-review" }),
+    piece: pieceWorkflowOf({
+      overlapCommand: ["true"],
+      verifyQuotesCommand: ["true"],
+      // Never read: the piece Workflow refuses its tickets at preflight.
+      docsCredentialPath: "docs-credential.json",
+    }),
+  };
 }
 
 // A config override, plus the members an idle run's first poll requests a stop on.

@@ -106,9 +106,10 @@ export class SessionReviewer extends SpecRunBase {
         kind: "findings",
         message: `Reviewed ${issueRef.labelOf(issue)}, findings: ${findings.length}. Resolve them in this session by \`docs/agents/verdicts.md\`, then hand your records to resolve.`,
         halts: [],
-        findings: this._workflowOf(
+        findings: this._agentStepOf(
           ticketRun.run.spec,
-        ).agentSteps.resolve.numberedFindingsOf(findings),
+          "resolve",
+        ).numberedFindingsOf(findings),
       };
     });
     this._record(ticketRun.run, result.message);
@@ -126,8 +127,7 @@ export class SessionReviewer extends SpecRunBase {
         `${issueRef.labelOf(issue)} has no findings waiting on this session; run review first.`,
       );
     }
-    const rules = this._workflowOf(await this._specOf(issue)).agentSteps
-      .resolve;
+    const rules = this._agentStepOf(await this._specOf(issue), "resolve");
     const outputProblems = rules.outputProblems(output);
     if (outputProblems.length > 0) return brokenRulesOf(outputProblems);
     const { findings, base } = pending;

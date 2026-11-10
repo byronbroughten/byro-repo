@@ -98,7 +98,7 @@ export class TicketChecker extends SpecRunBase {
       `${issueRef.labelOf(ticket.issue)}: checks red; resuming the ${resolverLabels[resolver]} with the failure.`,
     );
     this._markStepStarted(ticketRun);
-    const rules = this._workflowOf(run.spec).agentSteps.redChecks;
+    const rules = this._agentStepOf(run.spec, "redChecks");
     const { result, logPath } = await this.reviewStepper._runResolverStep(
       ticketRun,
       {

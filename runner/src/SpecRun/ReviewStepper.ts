@@ -82,12 +82,12 @@ export class ReviewStepper extends SpecRunBase {
 
   async _review(ticketRun: TicketRun): Promise<void> {
     const { run, ticket, workspace, state } = ticketRun;
-    const rules = this._workflowOf(run.spec).agentSteps.review;
+    const rules = this._agentStepOf(run.spec, "review");
     const { record } = await this._launch(ticketRun, "review", {
       prompt: rules.promptOf({
         issue: ticket.issue,
         title: ticket.title,
-        skillName: this._workflowOf(run.spec).reviewSkillName,
+        skillName: rules.skillName,
         branch: workspace.branch,
         branchedRepos: ticketSteps.branchedReposOf(ticketRun),
       }),
@@ -320,7 +320,7 @@ export class ReviewStepper extends SpecRunBase {
   }
 
   private _resolveRulesOf({ run }: TicketRun): ResolveRules {
-    return this._workflowOf(run.spec).agentSteps.resolve;
+    return this._agentStepOf(run.spec, "resolve");
   }
 }
 
