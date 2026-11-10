@@ -112,7 +112,7 @@ const agentSteps: AgentSteps = {
 
 const specEnd: SpecEnd = {
   steps: ["gap-check"],
-  // An open ticket may still land what the gap check would report.
+  // The gap check waits for every ticket to close, since an open one may still land what it would report.
   isDue(waits) {
     return waits.length === 0;
   },

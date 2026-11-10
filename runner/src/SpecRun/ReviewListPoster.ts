@@ -153,22 +153,24 @@ export class ReviewListPoster extends SpecRunBase {
     }
   }
 
-  // The spec's Workflow says when its spec-end Steps are due; undefined once one halts.
+  // Undefined once a spec-end Step halts.
   // A Standalone ticket gets none: it has no User Stories or Implementation Decisions to check, and its review checked its acceptance criteria.
   // A RunStop is thrown on to the run loop, which ends every unfinished member on it.
   async _finish(run: Run, waits: Wait[]): Promise<RunResult | undefined> {
     await this._postLandedReviewLists(run);
     const { specEnd } = this._workflowOf(run.spec);
-    if (specEnd.isDue(waits) && !run.isStandalone) {
+    const steps =
+      specEnd.isDue(waits) && !run.isStandalone ? specEnd.steps : [];
+    for (const step of steps) {
       try {
-        await this._runSpecEnd(run, specEnd.steps);
+        await this._runSpecEndStep(run, step);
       } catch (error) {
         if (error instanceof TicketHalted) return undefined;
         if (!(error instanceof UnhandledStop)) throw error;
         return this._end(
           run,
           "stopped",
-          `The gap check ${runText.stoppedOn(error)}. Rerun to retry it.`,
+          `${specEndStepNames[step]} ${runText.stoppedOn(error)}. Rerun to retry it.`,
         );
       }
     }
@@ -186,13 +188,11 @@ export class ReviewListPoster extends SpecRunBase {
     );
   }
 
-  private async _runSpecEnd(run: Run, steps: SpecEndStep[]): Promise<void> {
+  private async _runSpecEndStep(run: Run, step: SpecEndStep): Promise<void> {
     const runners: Record<SpecEndStep, () => Promise<void>> = {
       "gap-check": () => this._gapCheck(run),
     };
-    for (const step of steps) {
-      await runners[step]();
-    }
+    await runners[step]();
   }
 
   // Catches a ticket that landed in a run killed before its review list was posted.
@@ -318,6 +318,11 @@ export class ReviewListPoster extends SpecRunBase {
     return `${message} ${undecidedLineOf(count)}.`;
   }
 }
+
+// Each spec-end Step's name as a run's end message opens with it.
+const specEndStepNames: Record<SpecEndStep, string> = {
+  "gap-check": "The gap check",
+};
 
 // The latest answer the gap check hasn't acted on; a `stop spec` read on a later run is a skip.
 function gapCheckAnswerOf(run: Run): FailureAnswer | undefined {
