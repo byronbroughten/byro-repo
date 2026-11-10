@@ -13,6 +13,7 @@ import {
   github,
   implemented,
   noticeKinds,
+  progressEventsAfter,
   progressLines,
   refOf,
   reviewed,
@@ -67,7 +68,7 @@ describe("run's Restart", () => {
     expect(noticeKinds().filter((kind) => kind === "run-started")).toEqual([
       "run-started",
     ]);
-    expect(progressLines().slice(before).map(eventOf)).toContainEqual(
+    expect(progressEventsAfter(before)).toContainEqual(
       expect.stringMatching(
         /^Run started on 2 tickets as .+ Launching byro-repo #2\.$/,
       ),
@@ -171,9 +172,9 @@ describe("a Batch's Restart", () => {
 
     expect(relaunch.kind).toBe("finished");
     const lines = batchEventLines(members).slice(before);
-    expect(
-      progressLines(third.number).slice(logged).map(eventOf),
-    ).toContainEqual(expect.stringMatching(/^Run started on 1 tickets as /));
+    expect(progressEventsAfter(logged, third.number)).toContainEqual(
+      expect.stringMatching(/^Run started on 1 tickets as /),
+    );
     expect(lines.map(({ spec, kind }) => [spec, kind])).toEqual([
       ["byro-repo#302", "member-ended"],
       ["byro-repo#303", "member-ended"],
@@ -197,9 +198,9 @@ describe("a Batch's Restart", () => {
       .slice(before)
       .filter(({ kind }) => kind === "run-started");
     expect(started).toEqual([]);
-    expect(
-      progressLines(second.number).slice(logged).map(eventOf),
-    ).toContainEqual(expect.stringMatching(/^Run started on /));
+    expect(progressEventsAfter(logged, second.number)).toContainEqual(
+      expect.stringMatching(/^Run started on /),
+    );
   });
 
   it("relaunches from a restart saved before it kept each member's end, ending that member again", async () => {
