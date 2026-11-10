@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { implementBody } from "../../stepPrompts.ts";
 import { implementCodeSkillOf } from "./implementCodeSkill.ts";
-import { implementBody } from "./stepPrompts.ts";
 
 const skill = implementCodeSkillOf({
   promoteCommand: "npm run issue:promote -- <repo> <n>",

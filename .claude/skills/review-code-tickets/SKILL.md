@@ -37,7 +37,7 @@ You are reviewing a code spec's tickets before the runner runs them. A **Halt ri
 
 - `docs/claude-code-guardrails.md`, sections "The hooks and the project agent" and "The Bash sandbox": the step write rule, what the tier gate does in a step, and what the box denies. An Edit or Write inside the workspace passes, protected paths included; a Bash write under the workspace's `.claude/hooks` or `.claude/skills` (a `git rm`, `mv`, `chmod`, `sed -i`) fails in the box.
 - `docs/targets-and-gates.md`, "Which tier an action is in": a tier-3 action is refused in a step.
-- `runner/src/implementStep.ts` and `runner/src/stepPrompts.ts`, the implement step's prompt lines: what a step may not do with branches, issues and blockers.
+- `runner/src/Workflow/code/implementStep.ts` and `runner/src/stepPrompts.ts`, the implement step's prompt lines: what a step may not do with branches, issues and blockers.
 - `docs/agents/planning.md`, "Ticket size".
 
 Resolve every path a ticket names, or implies by naming a skill, doc or symbol, to the file it lands on, symlinks followed: the rule applies to where the write lands, not to the name. Grep the names each ticket changes to count its files.

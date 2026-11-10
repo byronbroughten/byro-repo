@@ -5,7 +5,6 @@ import { describe, expect, it } from "vitest";
 
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { FakeIssueSource } from "./FakeIssueSource.ts";
-import { implementOutputSchema } from "./implementStep.ts";
 import { IssueReader } from "./IssueReader.ts";
 import type { RunResult } from "./SpecRun.ts";
 import {
@@ -29,6 +28,7 @@ import {
   ticketState,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
+import { implementOutputSchema } from "./Workflow/code/implementStep.ts";
 
 useSpecRunHarness(rootCloneOnly);
 
