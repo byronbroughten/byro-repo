@@ -126,6 +126,7 @@ export interface ResearchRules {
 
 export interface ImplementPromptInput {
   issue: IssueRef;
+  spec: IssueRef;
   title: string;
   body: string;
   branch: string;
@@ -135,14 +136,24 @@ export interface ImplementPromptInput {
   promoteCommand: string;
   // Set for a fresh step after a handoff; a handoff is cumulative, so only the latest is passed.
   latestHandoff?: Handoff;
+  // The absolute path of the ticket's kept folder, set when the Workflow names one.
+  keptFolder?: string;
 }
 
 export interface ImplementRules {
   promptOf(input: ImplementPromptInput): string;
   outputSchema: object;
   recordOf(output: unknown): ImplementRecord;
-  recordProblems(record: ImplementRecord, hasNewCommit: boolean): string[];
+  // `output` is the step's whole output, for a Workflow that checks it against outputSchema, since only the real adapter does.
+  recordProblems(
+    record: ImplementRecord,
+    hasNewCommit: boolean,
+    output: unknown,
+  ): string[];
   handoffCommentOf(handoff: Handoff, sessionId: string): string;
+  // A folder from the workspace root, gitignored, that the runner creates and keeps for the ticket's life, so every
+  // step of the ticket and a handoff's fresh step read the same files; absent, the ticket gets none.
+  keptFolderOf?(ticket: IssueRef): string;
 }
 
 export interface ReviewPromptInput {

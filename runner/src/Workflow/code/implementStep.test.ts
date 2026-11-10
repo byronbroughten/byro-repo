@@ -6,13 +6,10 @@ import {
   type CommittedRecord,
   type Handoff,
   type HandoffRecord,
+  implementRecordProblems,
 } from "../../stepRecords.ts";
 import type { ImplementPromptInput } from "../../Workflow.ts";
-import {
-  implementOutputSchema,
-  implementPrompt,
-  implementRecordProblems,
-} from "./implementStep.ts";
+import { implementOutputSchema, implementPrompt } from "./implementStep.ts";
 
 // The same Ajv setup StepStream validates a step's structured output with.
 const validateOutput = new Ajv({ allErrors: true, strict: false }).compile(
@@ -197,6 +194,7 @@ describe("implementRecordProblems", () => {
 describe("implementPrompt", () => {
   const input: ImplementPromptInput = {
     issue: { repo: "byro-repo", number: 224 },
+    spec: { repo: "byro-repo", number: 220 },
     title: "Implement-step prompt",
     body: "## What to build\n\nThe prompt.",
     branch: "issue-224-implement-step-prompt",

@@ -1,7 +1,8 @@
 // The piece Workflow: a spec labelled piece runs under it. A research ticket runs its research step, from researchStep.ts,
 // then its quote check, and lands with no code: its comment posted, its outcome row written and the ticket closed.
-// Every other ticket is a drafting ticket, whose first Step pulls the Deliverable's Doc into the Agent draft, agentDraft.ts.
-// The drafting Steps after pull aren't built, so a drafting ticket stops after it, unlanded.
+// Every other ticket is a drafting ticket: its first Step pulls the Deliverable's Doc into the Agent draft, agentDraft.ts,
+// and its implement step, implementStep.ts, drafts the ticket's Sections there.
+// The drafting Steps after implement aren't built, so a drafting ticket stops after it, unlanded.
 // Every step reads the Drive files the spec's Supporting Material lists, as source targets, and no others.
 // A repo's runner config builds it with its commands and Docs port, and ../../Workflow.ts registers it.
 
@@ -10,9 +11,11 @@ import type { DocumentsPort } from "../../Docs/googleDocs.ts";
 import type { IssueRef } from "../../IssueWorkspaces.ts";
 import type { Command } from "../../runKnobs.ts";
 import type { TrackedIssue } from "../../SpecRun/runState.ts";
+import { handoffCommentOf } from "../../stepPrompts.ts";
 import { ticketSectionOf } from "../../ticketSections.ts";
 import type { Target } from "../../ticketTargets.ts";
 import type {
+  ImplementPromptInput,
   PulledDraft,
   PullInput,
   PullRules,
@@ -21,6 +24,13 @@ import type {
   WorkflowStep,
 } from "../../Workflow.ts";
 import { agentDraft } from "./agentDraft.ts";
+import {
+  passagesFolderOf,
+  pieceImplementOutputSchema,
+  pieceImplementPrompt,
+  pieceImplementRecordOf,
+  pieceImplementRecordProblems,
+} from "./implementStep.ts";
 import {
   quoteSendBacks,
   researchClosingCommentOf,
@@ -55,12 +65,24 @@ const researchSteps: WorkflowStep[] = [
   { step: "wrap-up" },
 ];
 
-// Implement is the drafting Step after pull, though no piece implement step exists yet.
+// Review is the drafting Step after implement, though no piece review step exists yet.
 const draftingSteps: WorkflowStep[] = [
   {
     step: "pull",
     nextOf() {
       return "implement";
+    },
+  },
+  {
+    step: "implement",
+    nextOf() {
+      return "review";
+    },
+  },
+  {
+    step: "resume",
+    nextOf() {
+      return "review";
     },
   },
 ];
@@ -110,6 +132,14 @@ export function pieceWorkflowOf({
         sendBacks: quoteSendBacks,
         closingCommentOf: researchClosingCommentOf,
       },
+      implement: {
+        promptOf: draftingPromptOf,
+        outputSchema: pieceImplementOutputSchema,
+        recordOf: pieceImplementRecordOf,
+        recordProblems: pieceImplementRecordProblems,
+        handoffCommentOf,
+        keptFolderOf: passagesFolderOf,
+      },
     },
     // A drafting ticket lands its branch, the Agent draft's commits on it, as a code ticket does.
     landingOf(ticket) {
@@ -119,6 +149,24 @@ export function pieceWorkflowOf({
     specEnd,
     pull: pullRulesOf(documents),
   };
+}
+
+function draftingPromptOf(input: ImplementPromptInput): string {
+  const { keptFolder } = input;
+  if (keptFolder === undefined) {
+    throw new Error(
+      "A drafting ticket's implement step needs its passages folder",
+    );
+  }
+  return pieceImplementPrompt({
+    ...input,
+    keptFolder,
+    draftPath: draftPathOf(input.spec),
+  });
+}
+
+function draftPathOf({ number }: IssueRef): string {
+  return `writing/agent-drafts/${number}.md`;
 }
 
 // Each ID once, in the order the spec lists them; a spec with no Supporting Material lists none.
@@ -137,9 +185,7 @@ function pullRulesOf(documents: DocumentsPort): PullRules {
     deliverableOf({ body }) {
       return driveIdsOf(body, specHeadings.deliverable)[0];
     },
-    draftPathOf({ number }: IssueRef) {
-      return `writing/agent-drafts/${number}.md`;
-    },
+    draftPathOf,
     async pulledOf({ documentId, draft }: PullInput): Promise<PulledDraft> {
       const read = await Docs.init(documents).read(documentId);
       const held = draft === undefined ? [] : agentDraft.sectionsOf(draft);

@@ -9,7 +9,7 @@ The rules every piece spec follows, in whichever repo files it as a GitHub issue
 
 ## Implementing a piece spec
 
-- **Write the Piece's text in its Deliverable**, the Google Doc the spec names. Its only copy in a repo is its Agent draft, saved by `/implement-piece` per [agent-draft.md](./agent-draft.md).
+- **Write the Piece's text in its Deliverable**, the Google Doc the spec names. Its only copy in a repo is its Agent draft, saved by `/implement-piece` per [agent-draft.md](./agent-draft.md); a run's implement step writes to the Agent draft instead.
 - **Read Supporting Material from Drive by the file IDs the spec lists.** Reach for those IDs only; ask the developer if one is missing. A long PDF's listed passages are read from a download by [`pdf-pages.md`](../pdf-pages.md), never through the Drive content tool.
 - **Write to the Deliverable without asking when one of the developer's accounts owns it, and create files freely.** Sharing any file still needs the developer's yes, as do the other gates in [`targets-and-gates.md`](../targets-and-gates.md).
 - **Before drafting, read [`writing-voice.md`](../writing-voice.md) and [`writing-craft.md`](../writing-craft.md) with a Read that has no offset or limit, or a whole-file `cat`.**

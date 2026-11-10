@@ -1,9 +1,12 @@
 // A ticket's implement step: launches it fresh, or continued with more turns or for its record only, and takes its record,
-// raising its blockers as Halts. A handoff backs up the tree, posts on the ticket and launches a fresh step; one past the
+// raising its blockers as Halts. A Workflow that names a kept folder gets it created in the workspace before each launch. A handoff backs up the tree, posts on the ticket and launches a fresh step; one past the
 // live ceiling is resumed for a handoff record only. A fresh step past the handoff cap, or after a proposed split, halts first.
 // A resume hands the ticket's answered Halts to the resumed implementer, or to a fresh one past the ticket budget.
 // It builds its own HaltRaiser and StepLauncher; the step's prompt, schema and checks are its spec's Workflow's, through
 // ../Workflow.ts, and the resumes' prompts ../stepPrompts.ts; the coordinator callers build is ../SpecRun.ts.
+
+import { mkdirSync } from "node:fs";
+import { join } from "node:path";
 
 import { saveUncommitted } from "../git.ts";
 import {
@@ -212,15 +215,18 @@ export class ImplementStepper extends SpecRunBase {
   }
 
   private _implementPromptOf(ticketRun: TicketRun): string {
-    const { ticket, workspace, state } = ticketRun;
-    return this._implementRulesOf(ticketRun).promptOf({
+    const { run, ticket, workspace, state } = ticketRun;
+    const rules = this._implementRulesOf(ticketRun);
+    return rules.promptOf({
       issue: ticket.issue,
+      spec: run.spec.issue,
       title: ticket.title,
       body: ticket.body,
       branch: workspace.branch,
       branchedRepos: workspace.branchedRepos,
       promoteCommand: this.config.promoteCommandOf(ticket.issue),
       latestHandoff: state.latestHandoff,
+      keptFolder: keptFolderOf(ticketRun, rules),
     });
   }
 
@@ -243,7 +249,11 @@ export class ImplementStepper extends SpecRunBase {
     // A resumed ticket whose answers needed no change returns its earlier commits again.
     const isRecommit =
       record.status === "committed" && state.record?.status === "committed";
-    const problems = rules.recordProblems(record, hasNewCommit || isRecommit);
+    const problems = rules.recordProblems(
+      record,
+      hasNewCommit || isRecommit,
+      launched.record,
+    );
     if (problems.length > 0) {
       throw ticketSteps.schemaFailureOf(logPath, {
         problems,
@@ -304,6 +314,17 @@ export class ImplementStepper extends SpecRunBase {
   private _implementRulesOf({ run }: TicketRun): ImplementRules {
     return this._agentStepOf(run.spec, "implement");
   }
+}
+
+// Created on every launch rather than once, so a ticket resumed in a recreated workspace still has it.
+function keptFolderOf(
+  { ticket, workspace }: TicketRun,
+  rules: ImplementRules,
+): string | undefined {
+  if (rules.keptFolderOf === undefined) return undefined;
+  const folder = join(workspace.path, rules.keptFolderOf(ticket.issue));
+  mkdirSync(folder, { recursive: true });
+  return folder;
 }
 
 // A record-only retry follows commits, which a handoff record can't have, so it gets no live ceiling.

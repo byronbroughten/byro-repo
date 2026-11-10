@@ -96,7 +96,7 @@ export class TicketSequencer extends SpecRunBase {
           }) ?? "resume";
       }
       const workflow = this._workflowOf(run.spec);
-      state.step = entryStepOf(state.step, workflow.stepsOf(ticket));
+      state.step = entryStepOf(state, workflow.stepsOf(ticket));
       const pair = state.pair ?? pairOf(ticket.body);
       if (pair === undefined) {
         throw new UnhandledStop(
@@ -336,13 +336,14 @@ const agentStepNames = [
 // The core's own steps: a fresh ticket's and a halted one's once answered.
 const coreEntrySteps: readonly TicketStep[] = ["implement", "resume"];
 
-// A Workflow whose sequence has neither entry step starts the ticket at its first step instead.
-function entryStepOf(step: TicketStep, sequence: WorkflowStep[]): TicketStep {
+// A Workflow whose sequence has neither entry step, or that pulls first and hasn't yet, starts the ticket at its first step.
+function entryStepOf(state: TicketState, sequence: WorkflowStep[]): TicketStep {
+  const { step } = state;
   const [first] = sequence;
+  if (first === undefined || !coreEntrySteps.includes(step)) return step;
   const isInSequence = sequence.some((each) => each.step === step);
-  if (first === undefined || isInSequence || !coreEntrySteps.includes(step)) {
-    return step;
-  }
+  const isPullDue = first.step === "pull" && state.pullBaseline === undefined;
+  if (isInSequence && !isPullDue) return step;
   return first.step;
 }
 

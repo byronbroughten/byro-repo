@@ -4,6 +4,8 @@
 
 import type { Command } from "../../runKnobs.ts";
 import type { TicketState, TicketStep } from "../../SpecRun/runState.ts";
+import { handoffCommentOf } from "../../stepPrompts.ts";
+import { implementRecordProblems } from "../../stepRecords.ts";
 import type {
   AgentSteps,
   SpecEnd,
@@ -16,11 +18,9 @@ import {
   gapCheckRecordOf,
 } from "./gapCheck.ts";
 import {
-  handoffCommentOf,
   implementOutputSchema,
   implementPrompt,
   implementRecordOf,
-  implementRecordProblems,
 } from "./implementStep.ts";
 import {
   mergeMasterOutputSchema,

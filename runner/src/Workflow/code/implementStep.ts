@@ -1,6 +1,8 @@
 // The implement step: the prompt the runner sends, a non-interactive fork of upstream `implement`
 // recorded in byro-repo's .claude/skills/upstream.json, and the implement record it returns.
 // AgentStep.ts launches the step; StepStream.ts checks the output against implementOutputSchema.
+// Its record parts, handoff text and status check are every Workflow's, in ../../recordSchema.ts, ../../stepPrompts.ts
+// and ../../stepRecords.ts.
 
 import { gitHubWriteActions } from "../../FactsFile.ts";
 import { stepReadLine } from "../../IssueReader.ts";
@@ -11,23 +13,26 @@ import {
 } from "../../promptText.ts";
 import {
   arraySchema,
-  blockerSchema,
+  branchSchema,
+  implementVariantSchema,
   objectSchema,
   stringSchema,
+  uncommittedVariantSchemas,
 } from "../../recordSchema.ts";
 import {
   implementBody,
-  proposedSplitText,
+  implementWorkspaceSection,
+  previousHandoffSection,
   ticketBindsSection,
 } from "../../stepPrompts.ts";
-import type { Handoff, ImplementRecord } from "../../stepRecords.ts";
+import type { ImplementRecord } from "../../stepRecords.ts";
 import type { ImplementPromptInput } from "../../Workflow.ts";
 
 export function implementPrompt(input: ImplementPromptInput): string {
   const { issue, title, body, latestHandoff } = input;
   return [
     `You are the implement step of an unattended run. Implement ${issue.repo}#${issue.number}, "${title}". Nobody is watching this session: never ask a question or wait for an answer.`,
-    workspaceSection(input),
+    implementWorkspaceSection(input),
     gitHubSection(),
     workingSection(),
     ticketBindsSection(),
@@ -36,17 +41,6 @@ export function implementPrompt(input: ImplementPromptInput): string {
     ...(latestHandoff ? [previousHandoffSection(latestHandoff)] : []),
     `## The ticket\n\n${body}`,
   ].join("\n\n");
-}
-
-function workspaceSection({
-  branch,
-  branchedRepos,
-  promoteCommand,
-}: ImplementPromptInput): string {
-  return `## Where you work
-
-- Your working directory is the ticket's issue workspace root. These repos are on the ticket's branch, \`${branch}\`: ${branchedRepos.join(", ")}. Every other repo is detached at master.
-- To change a detached repo, first put it onto \`${branch}\` with \`${promoteCommand} <repo>\`. Never switch, create or delete a branch yourself.`;
 }
 
 function gitHubSection(): string {
@@ -87,76 +81,6 @@ const promptSections = {
 Finish the step in hand, then stop: commit nothing, post nothing, and return status \`handoff\` with no branches and every \`handoff\` field: \`conclusion\`, \`filesToOpen\` (path and line range), \`ruledOut\`, \`filesChanged\`, and \`stillFailing\` (empty when the code is green). A handoff is cumulative: carry over whatever still matters from any handoff you started from. When less than half the ticket is done, also fill \`proposedSplit\` with the remaining work as slices, each with what it \`delivers\` and the \`files\` it changes, so the developer can split the ticket before a fresh step goes on.`,
 } as const;
 
-function previousHandoffSection(handoff: Handoff): string {
-  return `## Handoff from the previous step
-
-The tree holds uncommitted work from the previous step. Don't reset, stash, check out or clean it; build on it.
-
-${handoffText(handoff)}`;
-}
-
-// The runner posts it on the ticket; the `session:` line ties it to the step's transcript.
-export function handoffCommentOf(handoff: Handoff, sessionId: string): string {
-  const { proposedSplit } = handoff;
-  return [
-    "## Handoff",
-    "The implement step handed this ticket to a fresh implement step.",
-    handoffText(handoff),
-    ...(proposedSplit === undefined
-      ? []
-      : [`Proposed split:\n${proposedSplitText(proposedSplit)}`]),
-    `session: ${sessionId}`,
-  ].join("\n\n");
-}
-
-function handoffText(handoff: Handoff): string {
-  const filesToOpen = handoff.filesToOpen.map(
-    ({ path, lines }) => `${path}:${lines}`,
-  );
-  return [
-    `Conclusion: ${handoff.conclusion}`,
-    `Files to open:${bulletsOf(filesToOpen)}`,
-    `Ruled out:${bulletsOf(handoff.ruledOut)}`,
-    `Files changed:${bulletsOf(handoff.filesChanged)}`,
-    `Still failing:${bulletsOf(handoff.stillFailing)}`,
-  ].join("\n");
-}
-
-function bulletsOf(items: string[]): string {
-  if (items.length === 0) return " none";
-  return items.map((item) => `\n- ${item}`).join("");
-}
-
-// What the schema can't see: whether the step's status matches the commits git shows it made.
-export function implementRecordProblems(
-  record: ImplementRecord,
-  hasNewCommit: boolean,
-): string[] {
-  if (record.status === "committed" && !hasNewCommit) {
-    return ["the record says committed, but the step made no new commit"];
-  }
-  if (record.status === "handoff" && hasNewCommit) {
-    return [newCommitProblem("a handoff must leave its work uncommitted")];
-  }
-  if (record.status === "applied" && hasNewCommit) {
-    return [newCommitProblem("an applied record must commit nothing")];
-  }
-  if (record.status === "blocked" && hasNewCommit) {
-    return [newCommitProblem("a blocked record must commit nothing")];
-  }
-  return [];
-}
-
-function newCommitProblem(rule: string): string {
-  return `${rule}, but the step made a new commit`;
-}
-
-const branchSchema = objectSchema({
-  repo: stringSchema,
-  branch: stringSchema,
-  sha: stringSchema,
-});
-
 const gitHubWriteSchema = objectSchema({
   issue: stringSchema,
   action: { enum: gitHubWriteActions },
@@ -164,44 +88,18 @@ const gitHubWriteSchema = objectSchema({
   summary: stringSchema,
 });
 
-const handoffSchema = objectSchema(
-  {
-    conclusion: stringSchema,
-    filesToOpen: arraySchema(
-      objectSchema({ path: stringSchema, lines: stringSchema }),
-    ),
-    ruledOut: arraySchema(stringSchema),
-    filesChanged: arraySchema(stringSchema),
-    stillFailing: arraySchema(stringSchema),
-    proposedSplit: arraySchema(
-      objectSchema({
-        delivers: stringSchema,
-        files: arraySchema(stringSchema),
-      }),
-      { minItems: 1 },
-    ),
-  },
-  { optional: ["proposedSplit"] },
-);
-
 // One variant per status, so only the status that needs a field carries it.
 const recordVariantsSchema = {
   oneOf: [
-    recordSchema("committed", {
+    implementVariantSchema("committed", {
       branches: arraySchema(branchSchema, { minItems: 1 }),
     }),
-    recordSchema("applied", {
+    implementVariantSchema("applied", {
       branches: arraySchema(branchSchema, { maxItems: 0 }),
       githubWrites: arraySchema(gitHubWriteSchema, { minItems: 1 }),
     }),
-    recordSchema("blocked", {
-      branches: arraySchema(branchSchema, { maxItems: 0 }),
-      blockers: arraySchema(blockerSchema, { minItems: 1 }),
-    }),
-    recordSchema("handoff", {
-      branches: arraySchema(branchSchema, { maxItems: 0 }),
-      handoff: handoffSchema,
-    }),
+    uncommittedVariantSchemas.blocked,
+    uncommittedVariantSchemas.handoff,
   ],
 };
 
@@ -212,20 +110,4 @@ export const implementOutputSchema = objectSchema({
 
 export function implementRecordOf(output: unknown): ImplementRecord {
   return (output as { record: ImplementRecord }).record;
-}
-
-function recordSchema(
-  status: ImplementRecord["status"],
-  overrides: Record<string, object>,
-): object {
-  return objectSchema({
-    status: { const: status },
-    branches: arraySchema(branchSchema),
-    closingComment: stringSchema,
-    boxesUndone: arraySchema(
-      objectSchema({ box: stringSchema, reason: stringSchema }),
-    ),
-    blockers: arraySchema(blockerSchema),
-    ...overrides,
-  });
 }
