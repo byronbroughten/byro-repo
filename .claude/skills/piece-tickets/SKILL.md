@@ -62,4 +62,4 @@ Leave the parent spec's body unchanged.
 
 ## 4. Read back the tickets
 
-Print the filed tickets as one flat list in completion order, `#n Title: <Model> <effort> (reason)`, each pair chosen by [model fit](../../../docs/agents/planning.md#model-fit) and the Piece rows of the outcome logs in `docs/agents/outcomes/`. **`/piece-tickets` and `/piece-spec` stay chat only.** Done when every filed ticket appears; end by recommending `/implement-piece` on the first.
+Print the filed tickets as one flat list in completion order, `#n Title: <Model> <effort> (reason)`, each pair chosen by [model fit](../../../docs/agents/planning.md#model-fit) and the Piece rows of the [outcome log](../../../docs/agents/model-fit.md#outcome-log). **`/piece-tickets` and `/piece-spec` stay chat only.** Done when every filed ticket appears; end by recommending `/implement-piece <repo> <n>` on the first.

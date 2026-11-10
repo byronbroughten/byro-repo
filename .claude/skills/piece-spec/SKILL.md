@@ -68,4 +68,4 @@ The Piece is done by the done checks in the root's `docs/pieces/rules.md`.
 
 </piece-spec-template>
 
-End by recommending `/piece-tickets` when Research is needed or Split names Sections, and `/implement-piece` otherwise, with its pair as one chat line, `/implement-piece #n: <Model> <effort> (reason)`, chosen by [model fit](../../../docs/agents/planning.md#model-fit) and the Piece rows of the outcome logs in `docs/agents/outcomes/`. **`/piece-tickets` and `/piece-spec` stay chat only.**
+End by recommending `/piece-tickets` when Research is needed or Split names Sections, and `/implement-piece` otherwise, with its pair as one chat line, `/implement-piece <repo> <n>: <Model> <effort> (reason)`, chosen by [model fit](../../../docs/agents/planning.md#model-fit) and the Piece rows of the [outcome log](../../../docs/agents/model-fit.md#outcome-log). **`/piece-tickets` and `/piece-spec` stay chat only.**
