@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { TicketState, TicketStep } from "../../SpecRun/runState.ts";
+import type { TicketState, TicketStep, Wait } from "../../SpecRun/runState.ts";
 import { trackedIssues } from "../../specRunHarness/trackedIssues.ts";
 import type { ImplementRecord } from "../../stepRecords.ts";
 import { codeWorkflowOf } from "./codeWorkflow.ts";
@@ -111,5 +111,19 @@ describe("codeWorkflow", () => {
 
   it("ends at wrap-up", () => {
     expect(nextAfter(stateAt("wrap-up"))).toBeUndefined();
+  });
+
+  it("ends a spec with the gap check", () => {
+    expect(codeWorkflow.specEnd.steps).toEqual(["gap-check"]);
+  });
+
+  it("runs its spec end once every wait has cleared", () => {
+    const wait: Wait = {
+      ticket: ticket.issue,
+      reason: "halted",
+      text: "Waits on Halt 1.",
+    };
+    expect(codeWorkflow.specEnd.isDue([])).toBe(true);
+    expect(codeWorkflow.specEnd.isDue([wait])).toBe(false);
   });
 });

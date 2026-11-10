@@ -1,6 +1,6 @@
 // The review lists and the gap check. At landing a ticket with resolve records or a merge-master record gets one review-list comment on the spec and each
 // covered-later Dismiss a note on its later ticket, each checked for its marker first; once every ticket is closed, _finish
-// posts any review list a killed run missed and runs the gap check, whose gaps become the last review list.
+// posts any review list a killed run missed and runs the spec-end Steps its Workflow supplies when they're due: the gap check, whose gaps become the last review list.
 // RunLoop.ts calls _finish; SessionReviewer.ts calls _runnersSpecCommentsOf, _postCoveredLaterNotes and _postSessionReviewList,
 // which edits a posted list in place where a re-review's differs, the Base skipping a session's push; TicketLander.ts calls _postReviewList at landing;
 // StatusReporter.ts calls _isGapChecked.
@@ -34,7 +34,7 @@ import { SchemaFailure } from "../SchemaFailure.ts";
 import type { GapCheckRecord, ResolveRecord } from "../stepRecords.ts";
 import { TicketHalted } from "../TicketHalted.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
-import { type GapCheckTicket } from "../Workflow.ts";
+import { type GapCheckTicket, type SpecEndStep } from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import {
   gapCheckLabel,
@@ -153,14 +153,15 @@ export class ReviewListPoster extends SpecRunBase {
     }
   }
 
-  // The gap check waits for every ticket to close, since an open one may still land what it would report; undefined once it halts.
+  // The spec's Workflow says when its spec-end Steps are due; undefined once one halts.
   // A Standalone ticket gets none: it has no User Stories or Implementation Decisions to check, and its review checked its acceptance criteria.
   // A RunStop is thrown on to the run loop, which ends every unfinished member on it.
   async _finish(run: Run, waits: Wait[]): Promise<RunResult | undefined> {
     await this._postLandedReviewLists(run);
-    if (waits.length === 0 && !run.isStandalone) {
+    const { specEnd } = this._workflowOf(run.spec);
+    if (specEnd.isDue(waits) && !run.isStandalone) {
       try {
-        await this._gapCheck(run);
+        await this._runSpecEnd(run, specEnd.steps);
       } catch (error) {
         if (error instanceof TicketHalted) return undefined;
         if (!(error instanceof UnhandledStop)) throw error;
@@ -183,6 +184,15 @@ export class ReviewListPoster extends SpecRunBase {
       "finished",
       this._withUndecidedLine(run, message, count),
     );
+  }
+
+  private async _runSpecEnd(run: Run, steps: SpecEndStep[]): Promise<void> {
+    const runners: Record<SpecEndStep, () => Promise<void>> = {
+      "gap-check": () => this._gapCheck(run),
+    };
+    for (const step of steps) {
+      await runners[step]();
+    }
   }
 
   // Catches a ticket that landed in a run killed before its review list was posted.
