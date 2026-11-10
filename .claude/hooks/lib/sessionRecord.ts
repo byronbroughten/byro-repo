@@ -8,7 +8,10 @@ import {
   type LeaseHolder,
   workspaceKey,
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
-import type { SupervisionRecord } from "@byronbroughten/spec-runner/SupervisionRecords";
+import {
+  rejoinCommandOf,
+  type SupervisionRecord,
+} from "@byronbroughten/spec-runner/SupervisionRecords";
 import type { StepSession } from "@byronbroughten/spec-runner/transcriptFacts";
 
 import type { HookInput } from "./hookIo.ts";
@@ -69,9 +72,9 @@ export function supervisingLineOf({
   record,
 }: SupervisingSession): string | undefined {
   if (!isSameProcessStart(source) || record === undefined) return undefined;
-  const { owner, members, endedBy } = record;
+  const { members, endedBy } = record;
   const [spec] = members;
-  const command = `/runner ${owner}/${spec.repo} ${spec.number}`;
+  const command = rejoinCommandOf(record);
   // A process end leaves no session of that process to start.
   if (endedBy === "processEnd") return undefined;
   if (endedBy !== undefined) {
