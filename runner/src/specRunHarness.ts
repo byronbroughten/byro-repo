@@ -9,6 +9,8 @@ import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
 import type { AgentStep } from "./AgentStep.ts";
 import { batchEventFilePathOf } from "./BatchRecords.ts";
 import type { ClonePaths } from "./clonePaths.ts";
+import { FakeDocuments } from "./Docs/FakeDocuments.ts";
+import type { GoogleDocument } from "./Docs/googleDocs.ts";
 import { EventFileNotices, type EventLine } from "./EventFileNotices.ts";
 import type { WrapUpFacts } from "./FactsFile.ts";
 import type { FakeAgentStep } from "./FakeAgentStep.ts";
@@ -22,6 +24,7 @@ import type { NoticeKind, Notices } from "./Notices.ts";
 import { stampedLineOf } from "./progressLines.ts";
 import { type Command, runKnobsOf } from "./runKnobs.ts";
 import { type MemberList, SpecRun, type SpecRunConfig } from "./SpecRun.ts";
+import type { PullBaseline } from "./SpecRun/runState.ts";
 import { stepResults } from "./specRunHarness/stepResults.ts";
 import { timing } from "./specRunHarness/timing.ts";
 import { trackedIssues } from "./specRunHarness/trackedIssues.ts";
@@ -79,6 +82,7 @@ export let primaryRoot: string;
 export let github: FakeGitHub;
 export let notices: FakeNotices;
 export let usageReader: UsageReader;
+let documents: FakeDocuments;
 
 // The git fixture is built once per file and copied per test, since building it cost about 0.3s of each test.
 export function useSpecRunHarness(clones: ClonePaths = everyClone): void {
@@ -103,12 +107,18 @@ export function useSpecRunHarness(clones: ClonePaths = everyClone): void {
     github = FakeGitHub.init();
     notices = FakeNotices.init();
     usageReader = FakeUsageReader.init(usageListOf(0.1, 0.2));
+    documents = new FakeDocuments([]);
     fixture.copyTo(temp);
   });
 
   afterEach(() => {
     rmSync(temp, { recursive: true, force: true });
   });
+}
+
+// The Docs the piece Workflow's pull reads, in place of any held before.
+export function holdDocs(...held: GoogleDocument[]): void {
+  documents = new FakeDocuments(held);
 }
 
 export function scriptUsage(...lists: (UsageList | Error)[]): void {
@@ -194,8 +204,12 @@ export function workflowsWith(checks: Command[]): Workflows {
     piece: pieceWorkflowOf({
       overlapCommand: ["true"],
       verifyQuotesCommand: redOnMisquote,
-      // Never read: the drafting sequence that reads it isn't built.
-      docsCredentialPath: "docs-credential.json",
+      // Read at each call, so a test's holdDocs reaches a run already built.
+      documents: {
+        documentOf: (documentId) => documents.documentOf(documentId),
+        batchUpdate: (documentId, update) =>
+          documents.batchUpdate(documentId, update),
+      },
     }),
   };
 }
@@ -310,6 +324,7 @@ interface SavedTicket {
   step: string;
   resolveRecords?: ResolveRecord[];
   researchRecord?: ResearchRecord;
+  pullBaseline?: PullBaseline;
   sessions: StepSession[];
 }
 

@@ -24,6 +24,7 @@ import type {
 } from "@byronbroughten/spec-runner/IssueWorkspaces";
 import type { WrittenOutcomeRow } from "@byronbroughten/spec-runner/outcomeRowWriter";
 import { pieceWorkflowOf } from "@byronbroughten/spec-runner/pieceWorkflow";
+import { RestDocuments } from "@byronbroughten/spec-runner/RestDocuments";
 import { loadRunKnobs } from "@byronbroughten/spec-runner/runKnobs";
 import type { SpecRunConfig } from "@byronbroughten/spec-runner/SpecRun";
 import { configFolderOf } from "@byronbroughten/spec-runner/transcriptFacts";
@@ -45,11 +46,13 @@ const codeWorkflow = codeWorkflowOf({
   checks: [["npm", "run", "check"]],
   reviewSkillName: "code-review",
 });
-// The piece checks and the Docs token file, the same one doc:print reads.
+// The piece checks and the Docs port over the token file doc:print reads, read only once a pull calls it.
 const pieceWorkflow = pieceWorkflowOf({
   overlapCommand: ["npm", "run", "overlap"],
   verifyQuotesCommand: ["npm", "run", "verify:quotes", "--"],
-  docsCredentialPath: join(homedir(), ".clasprc-docs.json"),
+  documents: RestDocuments.init({
+    credentialPath: join(homedir(), ".clasprc-docs.json"),
+  }),
 });
 const scriptFolder = fileURLToPath(new URL(".", import.meta.url));
 

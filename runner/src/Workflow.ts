@@ -2,13 +2,15 @@
 // spec's Workflow. SpecRun/TicketSequencer.ts reaches a Workflow's Step sequence only through this module, SpecRun/ReviewListPoster.ts
 // its spec-end Steps, and every
 // collaborator that launches an agent step takes its prompt, record schema and record checks, through agentStepOf, from the Workflow
-// SpecRunBase._workflowOf picks; SpecRun/PreflightChecker.ts takes its ticket refusal, and SpecRun/TicketSequencer.ts its source targets.
+// SpecRunBase._workflowOf picks; SpecRun/PreflightChecker.ts takes its ticket refusal, SpecRun/TicketSequencer.ts its source targets,
+// and SpecRun/DraftPuller.ts its pull rules, through pullOf.
 // Each Workflow's own code is in Workflow/<name>/.
 // A ticket follows its spec's Workflow. Labels are Trusted, since only collaborators can add one.
 
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { Command } from "./runKnobs.ts";
 import type {
+  PullBaseline,
   TicketState,
   TicketStep,
   TrackedIssue,
@@ -50,6 +52,28 @@ export interface Workflow {
   // Run from a workspace or primary root: after review in each ticket, and in a master set when they go red in a ticket.
   checks: Command[];
   specEnd: SpecEnd;
+  // Reached through pullOf, which throws for a Workflow with no Agent draft.
+  pull?: PullRules;
+}
+
+// The pull Step: the Deliverable's Doc into the Piece's Agent draft, on the ticket's branch.
+export interface PullRules {
+  // The Deliverable's Doc ID the spec names; undefined when it names none.
+  deliverableOf(spec: TrackedIssue): string | undefined;
+  // From the root of the spec's repo.
+  draftPathOf(spec: IssueRef): string;
+  pulledOf(input: PullInput): Promise<PulledDraft>;
+}
+
+export interface PullInput {
+  documentId: string;
+  // The Agent draft as the branch holds it; undefined before the spec's first pull.
+  draft: string | undefined;
+}
+
+export interface PulledDraft {
+  draft: string;
+  baseline: PullBaseline;
 }
 
 // A Step that runs once at a spec's end, rather than in each ticket; the core runs each by its name.
@@ -247,4 +271,11 @@ export function agentStepOf<SN extends keyof AgentSteps>(
     throw new Error(`The ${workflow.name} Workflow has no ${name} step.`);
   }
   return rules;
+}
+
+export function pullOf(workflow: Workflow): PullRules {
+  if (workflow.pull === undefined) {
+    throw new Error(`The ${workflow.name} Workflow has no pull step.`);
+  }
+  return workflow.pull;
 }

@@ -15,7 +15,7 @@ With two Docs instead of an issue, skip this step; every Section the two share i
 ## 2. Make the pair
 
 - `get_doc_as_markdown` the Deliverable to `deliverable.md`, with each Section heading rewritten as `## <heading text>`, the Agent draft's shape.
-- In `<clone>`, `<repo>`'s clone: `git -C <clone> fetch origin master`, then `git -C <clone> show origin/master:writing/snapshots/<spec n>.md > agent-draft.md`. A sub-issue's Agent draft blocks are in its parent's file.
+- In `<clone>`, `<repo>`'s clone: `git -C <clone> fetch origin master`, then `git -C <clone> show origin/master:writing/agent-drafts/<spec n>.md > agent-draft.md`. A sub-issue's Agent draft blocks are in its parent's file.
 - Keep only the Sections in scope, in both files.
 - With two Docs, convert each the same way, the agent's Doc as `agent-draft.md`.
 
