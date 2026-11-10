@@ -9,7 +9,7 @@ import { percentOf } from "./transcriptFacts.ts";
 
 export type LimitGuardKnobs = Pick<
   RunKnobs,
-  "fiveHourPauseAt" | "weeklyReserveAt" | "limitWaitMarginMs"
+  "fiveHourPauseAt" | "weeklyPauseAt" | "limitWaitMarginMs"
 >;
 
 export interface AccountUsage {
@@ -36,7 +36,12 @@ export interface UsageReader {
 // For one account: launch, or a Limit wait until the reset of the window past its line plus the margin.
 export type GuardDecision =
   | { kind: "launch" }
-  | { kind: "limitWait"; window: keyof AccountUsage; until: Date };
+  | {
+      kind: "limitWait";
+      window: keyof AccountUsage;
+      utilization: number;
+      until: Date;
+    };
 
 // A stream gives resetsAt in whole seconds and cswap to the microsecond, so one window's two readings differ by under a second.
 const sameWindowToleranceMs = 60_000;
@@ -108,7 +113,7 @@ export function decideStep(
   usage: AccountUsage,
   knobs: LimitGuardKnobs,
 ): GuardDecision {
-  if (usage.sevenDay.utilization >= knobs.weeklyReserveAt) {
+  if (usage.sevenDay.utilization >= knobs.weeklyPauseAt) {
     return limitWaitOf(usage, "sevenDay", knobs);
   }
   if (usage.fiveHour.utilization >= knobs.fiveHourPauseAt) {
@@ -122,8 +127,9 @@ function limitWaitOf(
   window: keyof AccountUsage,
   knobs: LimitGuardKnobs,
 ): GuardDecision {
-  const until = usage[window].resetsAt.getTime() + knobs.limitWaitMarginMs;
-  return { kind: "limitWait", window, until: new Date(until) };
+  const { utilization, resetsAt } = usage[window];
+  const until = new Date(resetsAt.getTime() + knobs.limitWaitMarginMs);
+  return { kind: "limitWait", window, utilization, until };
 }
 
 // cswap's reading lags a step's own stream, so each window takes the higher, the stream's only while it is of the same window.

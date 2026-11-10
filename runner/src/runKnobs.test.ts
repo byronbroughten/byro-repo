@@ -69,7 +69,7 @@ describe("loadRunKnobs", () => {
     const knobs = loadRunKnobs(overrideFile('{ "fiveHourPauseAt": 0.5 }'), {});
 
     expect(knobs.fiveHourPauseAt).toBe(0.5);
-    expect(knobs.weeklyReserveAt).toBe(1);
+    expect(knobs.weeklyPauseAt).toBe(1);
     expect(knobs.limitWaitMarginMs).toBe(60_000);
   });
 

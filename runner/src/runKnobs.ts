@@ -53,7 +53,7 @@ export interface RunKnobs {
   // The limit guard holds a step while the Active account's five-hour window is at or past this fraction of its limit.
   fiveHourPauseAt: number;
   // The limit guard holds a step while the Active account's weekly window is at or past this fraction of its limit.
-  weeklyReserveAt: number;
+  weeklyPauseAt: number;
   // How long past a window's reset a Limit wait lasts.
   limitWaitMarginMs: number;
   // Named in the context nudge's message; unset, the message says to write a handoff with no link.
@@ -88,7 +88,7 @@ export const defaultRunKnobs: RunKnobs = {
   idlePollMs: 60_000,
   runnerPaths: [],
   fiveHourPauseAt: 0.94,
-  weeklyReserveAt: 1,
+  weeklyPauseAt: 1,
   limitWaitMarginMs: minuteMs,
 };
 

@@ -143,6 +143,7 @@ describe("decideStep", () => {
     expect(decideStep(usageOf(0.95, 0.5), knobs)).toEqual({
       kind: "limitWait",
       window: "fiveHour",
+      utilization: 0.95,
       until: new Date("2026-10-12T05:01:00Z"),
     });
   });
@@ -151,6 +152,7 @@ describe("decideStep", () => {
     const weeklyWait = {
       kind: "limitWait",
       window: "sevenDay",
+      utilization: 1,
       until: new Date("2026-10-14T00:01:00Z"),
     };
     expect(decideStep(usageOf(0.1, 1), defaultRunKnobs)).toEqual(weeklyWait);

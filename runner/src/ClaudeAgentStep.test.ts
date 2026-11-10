@@ -330,7 +330,7 @@ describe("ClaudeAgentStep on failed runs", () => {
   it("returns a limit hit with its window and reset time", async () => {
     const { result } = await replay("rateLimited.ndjson");
     expect(result.limitHit).toEqual({
-      window: "five_hour",
+      window: "fiveHour",
       resetsAt: new Date(1791781200_000),
     });
     expect(result.usage?.fiveHour?.utilization).toBe(1);

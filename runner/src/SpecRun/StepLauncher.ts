@@ -14,9 +14,10 @@ import { messageOf } from "../failureText.ts";
 import { guidanceSectionOf } from "../halts.ts";
 import { issueRef } from "../IssueWorkspaces.ts";
 import {
-  type AccountReading,
+  type AccountUsage,
   decideStep,
   freshestUsageOf,
+  type GuardDecision,
   windowNameOf,
 } from "../limitGuard.ts";
 import { localTimeOf } from "../localTime.ts";
@@ -45,6 +46,11 @@ import { ticketSteps } from "./runState/ticketSteps.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 
 type LoggedStepRequest = StepRequest & { logPath: string };
+
+interface GuardedDecision {
+  account: number;
+  decision: GuardDecision;
+}
 
 // An adapter that throws leaves the step unrun, which is retried as a crash.
 type StepAttempt =
@@ -78,6 +84,7 @@ export class StepLauncher extends SpecRunBase {
     launch: StepLaunch,
   ): Promise<RanStep> {
     let attempt = launch;
+    let isCrashResume = false;
     for (;;) {
       const logPath = this._stepLogPathOf(ticketRun, agent);
       const ran = await this._attemptStep(ticketRun, agent, attempt, logPath);
@@ -88,17 +95,18 @@ export class StepLauncher extends SpecRunBase {
           launch,
         );
         attempt = launch;
+        isCrashResume = false;
         continue;
       }
       const { result } = ran;
       if (isCutOffByLimit(result)) {
         await this._waitOutLimitHit(ticketRun.run, result, logPath);
         attempt = limitResumeOf(launch, result);
+        isCrashResume = false;
         continue;
       }
-      // A resolver's caller reruns it as a fresh session; a crash retry's missing conversation stays a crash.
-      const isCrashRetry = attempt !== launch;
-      if (agent === "resolve" && !isCrashRetry && result.hasNoConversation) {
+      // A resolver's caller reruns it as a fresh session; a crash resume's missing conversation stays a crash.
+      if (agent === "resolve" && !isCrashResume && result.hasNoConversation) {
         return { result, logPath };
       }
       if (ticketSteps.isTurnCapped(result)) {
@@ -114,11 +122,13 @@ export class StepLauncher extends SpecRunBase {
         }
         await this._takeCrashBeforeRetry(ticketRun, cap, launch);
         attempt = launch;
+        isCrashResume = false;
         continue;
       }
       const detail = crashDetailOf(agent, result, this.config.knobs);
       if (detail === undefined) return { result, logPath };
       await this._takeCrashBeforeRetry(ticketRun, { detail, logPath }, launch);
+      isCrashResume = result.sessionId !== undefined;
       if (result.sessionId === undefined) {
         attempt = launch;
       } else {
@@ -270,42 +280,39 @@ export class StepLauncher extends SpecRunBase {
 
   // Asks the limit guard about the Active account until it says launch, and returns that account.
   private async _waitForLaunch(run: Run): Promise<number> {
-    const { knobs } = this.config;
     let hasAnnouncedWait = false;
     for (;;) {
-      const { account, usage } = await this._guardedReadingOf(run);
-      if (usage === undefined) {
-        await this._warnOnce(
-          run,
-          "missing-reading",
-          `No usage reading for account ${account}; steps launch unguarded.`,
-        );
-        return account;
-      }
-      const decision = decideStep(usage, knobs);
+      const { account, decision } = await this._guardDecisionOf(run);
       if (decision.kind === "launch") return account;
+      const { window, utilization, until } = decision;
       if (!hasAnnouncedWait) {
         hasAnnouncedWait = true;
-        const { window, until } = decision;
         await this._announce(
           run,
-          limitWaitLineOf(
-            `account ${account} is at ${percentOf(usage[window].utilization)} of its ${windowNameOf(window)} limit; continuing after ${localTimeOf(until)}. ${switchNote}`,
-          ),
+          limitWaitNoticeOf({
+            account,
+            reason: `is at ${percentOf(utilization)} of its ${windowNameOf(window)} limit`,
+            until,
+          }),
         );
       }
-      await this._sleep(this._limitPollMsOf(decision.until));
+      await this._sleep(this._limitPollMsOf(until));
     }
   }
 
-  // The Active account's cswap reading, each window raised to the last one a step's stream gave for it.
-  private async _guardedReadingOf(run: Run): Promise<AccountReading> {
+  // Judges the Active account's cswap reading, each window raised to the last one a step's stream gave for it; with no reading, a step launches unguarded.
+  private async _guardDecisionOf(run: Run): Promise<GuardedDecision> {
     const { account, usage } = await this._activeReadingOf(run);
-    if (usage === undefined) return { account, usage };
-    return {
-      account,
-      usage: freshestUsageOf(usage, run.streamUsage.get(account)),
-    };
+    if (usage === undefined) {
+      await this._warnOnce(
+        run,
+        "missing-reading",
+        `No usage reading for account ${account}; steps launch unguarded.`,
+      );
+      return { account, decision: { kind: "launch" } };
+    }
+    const freshest = freshestUsageOf(usage, run.streamUsage.get(account));
+    return { account, decision: decideStep(freshest, this.config.knobs) };
   }
 
   // Polls every idlePollMs, so a switch ends the wait within one poll.
@@ -345,9 +352,11 @@ export class StepLauncher extends SpecRunBase {
       );
       await this._announce(
         run,
-        limitWaitLineOf(
-          `account ${account} hit a limit error with no reset; continuing once the Active account reads under its thresholds. ${switchNote}`,
-        ),
+        limitWaitNoticeOf({
+          account,
+          reason: "hit a limit error with no reset",
+          until: undefined,
+        }),
       );
       await this._pollUntilUnderThresholds(run, undefined);
       return;
@@ -357,9 +366,11 @@ export class StepLauncher extends SpecRunBase {
     );
     await this._announce(
       run,
-      limitWaitLineOf(
-        `account ${account} hit its ${hitWindowNameOf(limitHit?.window)} limit; continuing after ${localTimeOf(until)}. ${switchNote}`,
-      ),
+      limitWaitNoticeOf({
+        account,
+        reason: `hit its ${hitWindowNameOf(limitHit?.window)} limit`,
+        until,
+      }),
     );
     await this._pollUntilUnderThresholds(run, until);
   }
@@ -377,9 +388,8 @@ export class StepLauncher extends SpecRunBase {
         await this._sleep(this._limitPollMsOf(until));
         if (clock.now().getTime() >= until.getTime()) return;
       }
-      const { usage } = await this._guardedReadingOf(run);
-      if (usage === undefined) return;
-      if (decideStep(usage, knobs).kind === "launch") return;
+      const { decision } = await this._guardDecisionOf(run);
+      if (decision.kind === "launch") return;
     }
   }
 
@@ -393,8 +403,24 @@ export class StepLauncher extends SpecRunBase {
   }
 }
 
-const switchNote =
-  "Switching to an account with headroom with cswap continues the run now.";
+// `until` undefined waits for no reset.
+interface LimitWaitNotice {
+  account: number;
+  reason: string;
+  until: Date | undefined;
+}
+
+function limitWaitNoticeOf({
+  account,
+  reason,
+  until,
+}: LimitWaitNotice): string {
+  let continuing = "once the Active account reads under its thresholds";
+  if (until !== undefined) continuing = `after ${localTimeOf(until)}`;
+  return limitWaitLineOf(
+    `account ${account} ${reason}; continuing ${continuing}. Switching to an account with headroom with cswap continues the run now.`,
+  );
+}
 
 // A step that met a limit and still succeeded, as after a retry, lands as it is.
 function isCutOffByLimit({
@@ -420,10 +446,9 @@ function limitResumeOf<
   return { ...launch, prompt, resumeSessionId: sessionId };
 }
 
-function hitWindowNameOf(window: string | undefined): string {
-  if (window === "five_hour") return windowNameOf("fiveHour");
-  if (window === "seven_day") return windowNameOf("sevenDay");
-  return window ?? "usage";
+function hitWindowNameOf(window: keyof AccountUsage | undefined): string {
+  if (window === undefined) return "usage";
+  return windowNameOf(window);
 }
 
 function guidedLaunchOf(

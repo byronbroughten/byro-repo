@@ -329,6 +329,31 @@ describe("run's resolve", () => {
     );
   });
 
+  it("resolves in a fresh session when a limit resume of the implementer's session finds no conversation, and lands", async () => {
+    addSpec([1]);
+    const limitHit: StepResult = {
+      ...resultOf(undefined),
+      sessionId: "implement-session",
+      output: { status: "none" },
+      exitSubtype: "error_during_execution",
+      limitHit: { window: "fiveHour", resetsAt: new Date(0) },
+    };
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      reviewed(findings),
+      limitHit,
+      noConversation,
+      freshResolved([recordOf(1, "fix"), recordOf(2, "fix")], "fix.ts"),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(agentStep.requests[3]?.resumeSessionId).toBe("implement-session");
+    expect(agentStep.requests[4]?.resumeSessionId).toBeUndefined();
+    expect(ticketFacts().retries).toBe(0);
+  });
+
   it.each([
     {
       resolver: "implementer",

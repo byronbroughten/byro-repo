@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import type { StepRequest, StepResult } from "./AgentStep.ts";
+import type { LimitHit, StepRequest, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
 import type { UsageReader } from "./limitGuard.ts";
 import {
@@ -213,8 +213,8 @@ describe("run's limit guard", () => {
     };
   }
 
-  const fiveHourHit = {
-    window: "five_hour",
+  const fiveHourHit: LimitHit = {
+    window: "fiveHour",
     resetsAt: new Date("2026-10-12T11:00:00Z"),
   };
 
@@ -267,8 +267,8 @@ describe("run's limit guard", () => {
   it("waits out a weekly limit hit mid-step until its weekly reset and resumes the same session", async () => {
     addSpec([1]);
     const account = cappedAccount();
-    const weeklyHit = {
-      window: "seven_day",
+    const weeklyHit: LimitHit = {
+      window: "sevenDay",
       resetsAt: new Date("2026-10-15T00:00:00Z"),
     };
     const agentStep = FakeAgentStep.init(
@@ -459,7 +459,7 @@ describe("run's limit guard", () => {
 
   it("lands a step that met a limit but still succeeded", async () => {
     addSpec([1]);
-    const hit = { window: "five_hour", resetsAt: undefined };
+    const hit: LimitHit = { window: "fiveHour", resetsAt: undefined };
 
     const result = await specRun(
       FakeAgentStep.init(implemented("one.ts"), {
