@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: accepted, amended by ADR-0027
 ---
 
 # Keep Untrusted text out of agents' instructions with mechanical checks, and leave containment for later
@@ -11,7 +11,7 @@ Source: byronbroughten/byro-repo#268, byronbroughten/byro-repo#269
 ## Consequences
 
 - Containment is built, and this ADR is superseded by the one recording it, when any one of these happens:
-  1. The runner starts working tickets the developer didn't write.
+  1. The runner starts working tickets the developer didn't write. [ADR 0027](./0027-text-a-run-step-writes-from-trusted-text-alone-is-trusted.md) narrows this to tickets whose text came from someone other than the developer, so an Arbiter ticket filed from Trusted text alone doesn't trip it.
   2. A runner step gains web access, or access to content someone else can edit or comment on.
   3. Untrusted text is caught trying to instruct an agent.
 - No Drive-permission check is added, because sharing a Doc or Sheet already needs its own yes ([the tier list](../targets-and-gates.md#which-tier-an-action-is-in)).
