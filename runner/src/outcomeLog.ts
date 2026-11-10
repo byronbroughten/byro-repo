@@ -17,6 +17,7 @@ const columns = [
   "Proposals",
   "Review rounds",
   "Retries",
+  "Limit resumes",
   "Duration",
   "Cost (API-equivalent)",
   "Review cost",
@@ -43,6 +44,8 @@ export interface OutcomeFacts {
   halt?: string;
   reviewRounds?: number;
   retries?: number;
+  // Relaunches of a step a usage limit cut off; each usually starts on a cold prompt cache.
+  limitResumes?: number;
   pair?: string;
   account?: string;
   // Each implementer session's peak, in order; resolver sessions are left out.
@@ -129,10 +132,12 @@ export function withUnrecordedTranscriptCells(
 ): string {
   const fresh = transcriptCellsOf(facts);
   const lines = file.split("\n");
+  const headerIndex = lines.findIndex((line) => line.startsWith("| "));
+  const header = cellsOfLine(lines[headerIndex] ?? "").map(writtenColumnOf);
   const rowIndex = lines.findLastIndex((line) => line.startsWith("| "));
   const cells = cellsOfLine(lines[rowIndex] ?? "").map((cell, index) => {
     if (cell !== unrecorded) return cell;
-    const column = columns[index];
+    const column = header[index];
     const value = column === undefined ? undefined : fresh[column];
     return value ?? cell;
   });
@@ -142,8 +147,8 @@ export function withUnrecordedTranscriptCells(
 
 function transcriptCellsOf(
   facts: OutcomeFacts,
-): Partial<Record<Column, string>> {
-  const cells: Partial<Record<Column, string>> = {};
+): Partial<Record<WrittenColumn, string>> {
+  const cells: Partial<Record<WrittenColumn, string>> = {};
   if (facts.pair !== undefined) cells.Pair = facts.pair;
   if (facts.account !== undefined) cells.Account = facts.account;
   if (facts.peakContext !== undefined) {
@@ -175,6 +180,7 @@ function cellsOf({ issue, filesChanged, facts }: OutcomeRow): string[] {
     String(facts.proposals ?? 0),
     String(facts.reviewRounds ?? 1),
     String(facts.retries ?? 0),
+    String(facts.limitResumes ?? 0),
     facts.durationMinutes === undefined
       ? unrecorded
       : `${facts.durationMinutes} min`,

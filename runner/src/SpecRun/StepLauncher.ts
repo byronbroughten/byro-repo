@@ -101,6 +101,8 @@ export class StepLauncher extends SpecRunBase {
       const { result } = ran;
       if (isCutOffByLimit(result)) {
         await this._waitOutLimitHit(ticketRun.run, result, logPath);
+        ticketRun.state.limitResumes = (ticketRun.state.limitResumes ?? 0) + 1;
+        this._saveState(ticketRun.run);
         attempt = limitResumeOf(launch, result);
         isCrashResume = false;
         continue;

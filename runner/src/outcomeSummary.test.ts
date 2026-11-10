@@ -16,6 +16,7 @@ const currentHeader = [
   "Proposals",
   "Review rounds",
   "Retries",
+  "Limit resumes",
   "Duration",
   "Cost (API-equivalent)",
   "Review cost",
@@ -29,6 +30,7 @@ interface RowCells {
   peak?: string;
   result?: string;
   retries?: string;
+  limitResumes?: string;
   duration?: string;
   cost?: string;
   reviewCost?: string;
@@ -46,6 +48,7 @@ function currentCellsOf(row: RowCells): string[] {
     "0",
     "1",
     row.retries ?? "0",
+    row.limitResumes ?? "0",
     row.duration ?? "20 min",
     row.cost ?? "$4.00",
     row.reviewCost ?? "$1.00",
@@ -221,13 +224,25 @@ describe("older row formats", () => {
     );
 
     expect(summary).toContain(
-      "| byro-repo#2 | Opus medium | 16 | 162K → 131K | 293K | Fix (resumed implementer) | 0 | 31 min | $5.17 | Triage cost column |",
+      "| byro-repo#2 | Opus medium | 16 | 162K → 131K | 293K | Fix (resumed implementer) | 0 | 31 min | $5.17 | unrecorded | Triage cost column |",
     );
     expect(lineOf(summary, "- byro-repo#3:")).toMatch(
       /^- byro-repo#3: Result Fix \(fresh resolver\);/,
     );
     expect(lineOf(summary, "- byro-repo#4:")).toMatch(
       /^- byro-repo#4: Result Fix \(fresh resolver\);/,
+    );
+  });
+});
+
+describe("limit resumes", () => {
+  it("shows a row's limit resumes beside its cost", async () => {
+    const summary = await summaryOf([
+      rowFileOf("byro-repo-1", "byro-repo", { issue: 2, limitResumes: "1" }),
+    ]);
+
+    expect(summary).toContain(
+      "| byro-repo#2 | Opus medium | 4 | 100K | 100K | Pass | 0 | 20 min | $4.00 | 1 | $1.00 |",
     );
   });
 });

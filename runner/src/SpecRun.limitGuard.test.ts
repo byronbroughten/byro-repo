@@ -10,16 +10,19 @@ import {
   addSpec,
   after,
   crashed,
+  findingOf,
   github,
   implemented,
   noticeSummaries,
   refOf,
+  resolved,
   resultOf,
   reviewed,
   scriptUsage,
   spec,
   specRun,
   stateFolder,
+  ticketFacts,
   timed,
   timingLines,
   usageListOf,
@@ -262,6 +265,47 @@ describe("run's limit guard", () => {
       "Limit wait: account 1 hit its 5-hour limit; continuing after 2026-10-12 06:01:00 CDT. Switching to an account with headroom with cswap continues the run now.",
     ]);
     expect(savedLimitHit()).toBe("first stream\n");
+  });
+
+  it("counts a resolve step's limit resume in its ticket's facts file", async () => {
+    addSpec([1]);
+    const account = cappedAccount();
+    const agentStep = FakeAgentStep.init(
+      implemented("one.ts"),
+      reviewed([findingOf({ line: 1 })]),
+      limitHitStep("stream\n", fiveHourHit, account.hit),
+      resolved(
+        [
+          {
+            finding: 1,
+            axis: "standards",
+            where: "one.ts:1",
+            claim: "Line 1 is wrong.",
+            evidence: "Checked it.",
+            verdict: "fix",
+            quote: "one.ts:1 `export {};`",
+            rule: "config/docs/code-style.md: a rule.",
+          },
+        ],
+        "fix.ts",
+      ),
+    );
+
+    const result = await specRun(agentStep, account).run(spec);
+
+    expect(result.kind).toBe("finished");
+    expect(agentStep.requests).toHaveLength(4);
+    expect(ticketFacts(1).limitResumes).toBe(1);
+  });
+
+  it("writes no limit resume for a ticket that met no limit", async () => {
+    addSpec([1]);
+
+    await specRun(FakeAgentStep.init(implemented("one.ts"), reviewed())).run(
+      spec,
+    );
+
+    expect(ticketFacts(1).limitResumes).toBe(0);
   });
 
   it("waits out a weekly limit hit mid-step until its weekly reset and resumes the same session", async () => {

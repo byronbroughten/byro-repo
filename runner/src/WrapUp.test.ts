@@ -59,9 +59,9 @@ describe("run", () => {
         "",
         "Spec: [byro-repo#213](https://github.com/byronbroughten/byro-repo/issues/213)",
         "",
-        "| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
-        "| #218 | Opus medium | unrecorded | 1 | 150K → 90K | Fix (fresh resolver) | 0 | 1 | 0 | unrecorded | unrecorded | unrecorded | A stale doc link | unrecorded |",
+        "| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+        "| #218 | Opus medium | unrecorded | 1 | 150K → 90K | Fix (fresh resolver) | 0 | 1 | 0 | 0 | unrecorded | unrecorded | unrecorded | A stale doc link | unrecorded |",
         "",
       ].join("\n"),
     );
@@ -130,7 +130,7 @@ describe("run", () => {
     expect(
       readFileSync(join(primaryRoot, outcomePath), "utf8").split("\n")[6],
     ).toBe(
-      "| #218 | Opus medium | 2 | 1 | 150K → 90K | Pass | 0 | 1 | 0 | 27 min | $1.45 | $0.11 | — | session-implement-1, session-implement-2, session-review, session-triage, session-fix |",
+      "| #218 | Opus medium | 2 | 1 | 150K → 90K | Pass | 0 | 1 | 0 | 0 | 27 min | $1.45 | $0.11 | — | session-implement-1, session-implement-2, session-review, session-triage, session-fix |",
     );
   });
 
@@ -193,7 +193,7 @@ describe("run", () => {
     expect(
       readFileSync(join(primaryRoot, outcomePath), "utf8").split("\n")[6],
     ).toBe(
-      "| #218 | Opus medium | 2 | 1 | 150K → 90K | Pass | 0 | 1 | 0 | 15 min | $1.45 | unrecorded | — | session-implement-1, session-implement-2 |",
+      "| #218 | Opus medium | 2 | 1 | 150K → 90K | Pass | 0 | 1 | 0 | 0 | 15 min | $1.45 | unrecorded | — | session-implement-1, session-implement-2 |",
     );
   });
 

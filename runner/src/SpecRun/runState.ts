@@ -137,6 +137,8 @@ export interface TicketState {
   crashes?: Partial<Record<TicketStep, number>>;
   // Kept apart from crashes.checks, so a crash in the red-checks resume doesn't spend the red-checks retry.
   redCheckResumes?: number;
+  // Relaunches of a step a usage limit cut off; never cleared, so the outcome row counts every one.
+  limitResumes?: number;
   redChecksLogPath?: string;
   // Counts the wrap-up conflict's merge-master resumes; cleared when a Failure Halt is answered.
   conflictResumes?: number;

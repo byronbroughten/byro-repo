@@ -32,6 +32,7 @@ describe("outcomeFileOf", () => {
       "0",
       "1",
       "0",
+      "0",
       "unrecorded",
       "unrecorded",
       "unrecorded",
@@ -52,6 +53,7 @@ describe("outcomeFileOf", () => {
           proposals: 2,
           reviewRounds: 1,
           retries: 1,
+          limitResumes: 2,
           durationMinutes: 42,
           costUsd: 3.5,
           reviewCostUsd: 0.4,
@@ -70,6 +72,7 @@ describe("outcomeFileOf", () => {
       "2",
       "1",
       "1",
+      "2",
       "42 min",
       "$3.50",
       "$0.40",
@@ -82,7 +85,7 @@ describe("outcomeFileOf", () => {
     const cells = cellsOf(
       outcomeFileOf({ ...row, facts: { reviewFixes: "implementer" } }),
     );
-    expect([cells[5], cells[12]]).toEqual([
+    expect([cells[5], cells[13]]).toEqual([
       "Fix (resumed implementer)",
       "unrecorded",
     ]);
@@ -92,7 +95,7 @@ describe("outcomeFileOf", () => {
     const cells = cellsOf(
       outcomeFileOf({ ...row, facts: { reviewFixes: "skipped" } }),
     );
-    expect([cells[5], cells[12]]).toEqual(["skipped (no code)", "—"]);
+    expect([cells[5], cells[13]]).toEqual(["skipped (no code)", "—"]);
   });
 });
 
