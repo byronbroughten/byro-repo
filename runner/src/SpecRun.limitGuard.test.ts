@@ -267,6 +267,39 @@ describe("run's limit guard", () => {
     expect(savedLimitHit()).toBe("first stream\n");
   });
 
+  it("keeps a limit hit's wait going past its reset while cswap's reading is stale, announcing it once", async () => {
+    addSpec([1]);
+    let fiveHour = 0.5;
+    let now = new Date("2026-10-12T10:00:00Z");
+    const sleeps: number[] = [];
+    const agentStep = FakeAgentStep.init(
+      limitHitStep("stream\n", fiveHourHit, () => {
+        fiveHour = 1;
+      }),
+      implemented("one.ts"),
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep, {
+      usageReader: { read: async () => usageListOf(fiveHour, 0.5) },
+      clock: { now: () => now },
+      async sleep(ms) {
+        sleeps.push(ms);
+        now = new Date("2026-10-12T11:01:00Z");
+        if (sleeps.length === 2) fiveHour = 0.1;
+      },
+    }).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(sleeps).toEqual([60_000, 60_000]);
+    expect(agentStep.requests[1]?.resumeSessionId).toBe("session");
+    expect(
+      noticeSummaries().filter((summary) => summary.startsWith("Limit wait")),
+    ).toEqual([
+      "Limit wait: account 1 hit its 5-hour limit; continuing after 2026-10-12 06:01:00 CDT. Switching to an account with headroom with cswap continues the run now.",
+    ]);
+  });
+
   it("counts a resolve step's limit resume in its ticket's facts file", async () => {
     addSpec([1]);
     const account = cappedAccount();

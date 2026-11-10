@@ -377,18 +377,16 @@ export class StepLauncher extends SpecRunBase {
     await this._pollUntilUnderThresholds(run, until);
   }
 
-  // Sleeps before each read, so a limit hit waits at least one poll however the Active account reads; `until` undefined waits for no reset.
+  // Sleeps before each read, so a limit hit waits at least one poll; past `until` a stale reading keeps this wait going rather than announcing a second one.
   private async _pollUntilUnderThresholds(
     run: Run,
     until: Date | undefined,
   ): Promise<void> {
-    const { clock, knobs } = this.config;
     for (;;) {
       if (until === undefined) {
-        await this._sleep(knobs.idlePollMs);
+        await this._sleep(this.config.knobs.idlePollMs);
       } else {
         await this._sleep(this._limitPollMsOf(until));
-        if (clock.now().getTime() >= until.getTime()) return;
       }
       const { decision } = await this._guardDecisionOf(run);
       if (decision.kind === "launch") return;
