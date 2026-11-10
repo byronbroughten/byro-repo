@@ -17,6 +17,7 @@ import {
   haltComments,
   implemented,
   masterSubjects,
+  noticeSummaries,
   primaryOf,
   progressLines,
   refOf,
@@ -273,24 +274,26 @@ describe("run's retries across a rerun", () => {
     );
   });
 
-  it("keeps the retry for a rerun after a weekly-reserve Stop at a launch", async () => {
+  it("keeps the retry for a crash after a Limit wait at the weekly line", async () => {
     addSpec([1]);
     scriptUsage(
       usageListOf(0.1, 0.2),
       usageListOf(0.1, 0.2),
       usageListOf(0.3, 1),
+      usageListOf(0.3, 0.5),
     );
-    const first = await specRun(FakeAgentStep.init(implemented("one.ts"))).run(
-      spec,
-    );
-    expect(first.kind).toBe("stopped");
-    scriptUsage(usageListOf(0.1, 0.2));
 
-    const result = await specRun(FakeAgentStep.init(crashed, reviewed())).run(
-      spec,
-    );
+    const result = await specRun(
+      FakeAgentStep.init(implemented("one.ts"), crashed, reviewed()),
+    ).run(spec);
 
     expect(result.landed).toEqual([refOf(1)]);
+    expect(noticeSummaries()).toContain(
+      "Limit wait: account 1 is at 100% of its weekly limit; continuing after 2026-10-14 19:01:00 CDT. Switching to an account with headroom with cswap continues the run now.",
+    );
+    expect(progressLines().map(eventOf)).toContain(
+      "byro-repo #1: The review step ended error_during_execution. Retrying, 1 of 1.",
+    );
   });
 });
 
