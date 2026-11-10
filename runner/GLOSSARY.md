@@ -91,6 +91,18 @@ A Halt raised in place of a fresh implement step when a handoff proposes splitti
 A line in a ticket, or a gap in a spec's ticket order, that would make a run Halt, found by reading the tickets before the run.
 _Avoid_: blocker, finding
 
+**Arbiter**:
+The agent step that takes the first pass at a run's Halts and its review-list items, ruling on one only where a rule the developer approved decides it, and leaving the rest for the developer with a Recommendation. The runner acts on its rulings.
+_Avoid_: judge, Run Judge, triage agent
+
+**Ruling log**:
+One run's record of every Halt and review-list item that came before the Arbiter, with each one's answer or ruling, the rule it cited and who gave it: the developer or the Arbiter.
+_Avoid_: docket, judge record, Arbiter record
+
+**Arbiter Principles**:
+The rules the developer approved for the Arbiter to rule by, beside the Standards and the spec. A rule gets in only with the developer's yes.
+_Avoid_: Propose Judgement Principles, judgement principles
+
 **Stop**:
 The run ends early: on a failure no answer can fix inside the run (GitHub or `claude` unreachable or logged out, a clone missing or dirty, a red master, the account a step would run on past its weekly reserve, or a runner exception), or after the current ticket on a stop request (`npm run runner -- stop`) or a `stop spec` answer, which leaves a halted ticket committed and unlanded with its other Halts open. Rerunning resumes it, taking a `stop spec` answer as `retry`.
 _Avoid_: abort, exit, kill
