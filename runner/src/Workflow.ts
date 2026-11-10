@@ -1,10 +1,11 @@
 // The one seam between the run core and its Workflows: the Workflow type, the agent steps' rules and the pick of a
 // spec's Workflow. SpecRun/TicketSequencer.ts reaches a Workflow's Step sequence only through this module, and every
-// collaborator that launches an agent step takes its prompt, record schema and record checks from agentStepsOf.
+// collaborator that launches an agent step takes its prompt, record schema and record checks from the Workflow SpecRunBase._workflowOf picks.
 // Each Workflow's own code is in Workflow/<name>/.
 // A ticket follows its spec's Workflow. Labels are Trusted, since only collaborators can add one.
 
 import type { IssueRef } from "./IssueWorkspaces.ts";
+import type { Command } from "./runKnobs.ts";
 import type {
   TicketState,
   TicketStep,
@@ -17,7 +18,6 @@ import type {
   ImplementRecord,
   ResolveRecord,
 } from "./stepRecords.ts";
-import { codeWorkflow } from "./Workflow/code/codeWorkflow.ts";
 
 export type WorkflowName = "code" | "piece";
 
@@ -31,6 +31,10 @@ export interface Workflow {
   name: WorkflowName;
   stepsOf(ticket: TrackedIssue): WorkflowStep[];
   agentSteps: AgentSteps;
+  // Run from a workspace or primary root: after review in each ticket, and in a master set when they go red in a ticket.
+  checks: Command[];
+  // Called through the Skill tool by the review step.
+  reviewSkillName: string;
 }
 
 export interface AgentSteps {
@@ -165,20 +169,20 @@ export interface GapCheckRules {
 
 const pieceLabel = "piece";
 
-const registered: Record<WorkflowName, Workflow> = {
-  code: codeWorkflow,
-  // The piece Workflow isn't registered yet, so a piece spec runs as code until it is.
-  piece: codeWorkflow,
-};
+// The Workflows a repo's runner config builds; the core picks among them.
+export interface Workflows {
+  code: Workflow;
+}
 
 export function workflowNameOf(spec: TrackedIssue): WorkflowName {
   return spec.labels.includes(pieceLabel) ? "piece" : "code";
 }
 
-export function workflowOf(spec: TrackedIssue): Workflow {
+export function workflowOf(spec: TrackedIssue, workflows: Workflows): Workflow {
+  const registered: Record<WorkflowName, Workflow> = {
+    code: workflows.code,
+    // The piece Workflow isn't registered yet, so a piece spec runs as code until it is.
+    piece: workflows.code,
+  };
   return registered[workflowNameOf(spec)];
-}
-
-export function agentStepsOf(spec: TrackedIssue): AgentSteps {
-  return workflowOf(spec).agentSteps;
 }

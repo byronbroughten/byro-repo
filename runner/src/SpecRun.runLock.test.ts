@@ -14,7 +14,6 @@ import {
   bodyWith,
   clonePaths,
   github,
-  greenUnlessRed,
   implemented,
   refOf,
   reviewed,
@@ -128,7 +127,6 @@ describe("run's run lock", () => {
     const result = await specRun(FakeAgentStep.init(), {
       knobs: runKnobsOf({
         clonePaths,
-        checks: [greenUnlessRed],
         authChecks: [["false"]],
       }),
     }).run(spec);

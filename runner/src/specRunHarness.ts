@@ -27,6 +27,8 @@ import { timing } from "./specRunHarness/timing.ts";
 import { trackedIssues } from "./specRunHarness/trackedIssues.ts";
 import type { ResolveRecord } from "./stepRecords.ts";
 import type { StepSession } from "./transcriptFacts.ts";
+import type { Workflows } from "./Workflow.ts";
+import { codeWorkflowOf } from "./Workflow/code/codeWorkflow.ts";
 import { gapCheckOutputSchema } from "./Workflow/code/gapCheck.ts";
 
 export type { StepScript } from "./specRunHarness/stepResults.ts";
@@ -177,6 +179,11 @@ export function stateFolder(): string {
   return join(temp, "state");
 }
 
+// The code Workflow with a test's own checks.
+export function workflowsWith(checks: Command[]): Workflows {
+  return { code: codeWorkflowOf({ checks, reviewSkillName: "code-review" }) };
+}
+
 // A config override, plus the members an idle run's first poll requests a stop on.
 export type SpecRunOverrides = Partial<SpecRunConfig> & {
   members?: IssueRef[];
@@ -196,12 +203,12 @@ export function specRun(
   };
   const knobs = runKnobsOf({
     clonePaths,
-    checks: [greenUnlessRed],
     authChecks: [passes],
     runnerPaths: ["runner/", "scripts/runner/"],
   });
   const run = SpecRun.init({
     knobs,
+    workflows: workflowsWith([greenUnlessRed]),
     agentStep: withGapCheck,
     github,
     notices,

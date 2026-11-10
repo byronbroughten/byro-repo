@@ -1,6 +1,4 @@
 {
-  "skillNames": { "review": "code-review" },
-  "checks": [["npm", "run", "check"]],
   "handoffDocPath": "docs/agents/planning.md#handoffs",
   "runnerPaths": ["runner/", "scripts/runner/"]
 }

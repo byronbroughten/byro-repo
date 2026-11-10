@@ -18,7 +18,6 @@ import {
   crashed,
   findingOf,
   github,
-  greenUnlessRed,
   haltComments,
   implemented,
   notices,
@@ -347,7 +346,6 @@ describe("review of one ticket outside a run", () => {
   it("pushes nothing for its review list under the per-ticket cadence", async () => {
     const knobs = runKnobsOf({
       clonePaths,
-      checks: [greenUnlessRed],
       authChecks: [passes],
       reviewListCadence: "per-ticket",
     });

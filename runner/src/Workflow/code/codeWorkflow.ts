@@ -1,7 +1,8 @@
 // The code Workflow's Step sequence: implement or resume, review, resolve, checks, then wrap-up; and each agent step's
 // rules from its own module, resolve resuming implement.
-// ../../Workflow.ts registers it; ../../SpecRun/TicketSequencer.ts walks it and runs each Step.
+// A repo's runner config builds it with its checks and review skill, and ../../Workflow.ts registers it; ../../SpecRun/TicketSequencer.ts walks it and runs each Step.
 
+import type { Command } from "../../runKnobs.ts";
 import type { TicketState, TicketStep } from "../../SpecRun/runState.ts";
 import type { AgentSteps, Workflow, WorkflowStep } from "../../Workflow.ts";
 import {
@@ -104,14 +105,27 @@ const agentSteps: AgentSteps = {
   },
 };
 
-export const codeWorkflow: Workflow = {
-  name: "code",
-  // Every code ticket runs the same Steps, whatever its labels.
-  stepsOf() {
-    return steps;
-  },
-  agentSteps,
-};
+// A repo's own values: the checks each ticket runs after review, and the skill its review step calls.
+export interface CodeWorkflowInput {
+  checks: Command[];
+  reviewSkillName: string;
+}
+
+export function codeWorkflowOf({
+  checks,
+  reviewSkillName,
+}: CodeWorkflowInput): Workflow {
+  return {
+    name: "code",
+    // Every code ticket runs the same Steps, whatever its labels.
+    stepsOf() {
+      return steps;
+    },
+    agentSteps,
+    checks,
+    reviewSkillName,
+  };
+}
 
 // A ticket halted before review has nothing reviewed yet; one with no code has nothing to review.
 function stepAfterResumeOf(state: TicketState): TicketStep {

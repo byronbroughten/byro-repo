@@ -23,7 +23,7 @@ import {
   recordOnlyPrompt,
 } from "../stepPrompts.ts";
 import { type Handoff, type ImplementRecord } from "../stepRecords.ts";
-import { agentStepsOf, type ImplementRules } from "../Workflow.ts";
+import { type ImplementRules } from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import {
   type Continuation,
@@ -80,7 +80,7 @@ export class ImplementStepper extends SpecRunBase {
   private _freshLaunchOf(ticketRun: TicketRun): StepLaunch {
     return {
       prompt: this._implementPromptOf(ticketRun),
-      jsonSchema: implementRulesOf(ticketRun).outputSchema,
+      jsonSchema: this._implementRulesOf(ticketRun).outputSchema,
     };
   }
 
@@ -102,7 +102,12 @@ export class ImplementStepper extends SpecRunBase {
       this._saveState(run);
       launch = { ...launchOf(), liveCeiling };
     } else {
-      launch = continuationLaunchOf(ticketRun, continuation, liveCeiling);
+      launch = continuationLaunchOf(
+        ticketRun,
+        continuation,
+        liveCeiling,
+        this._implementRulesOf(ticketRun).outputSchema,
+      );
     }
     const headsBefore = state.implementBase;
     const ran = await this.stepLauncher._runStep(
@@ -124,7 +129,7 @@ export class ImplementStepper extends SpecRunBase {
     { ranStep, headsBefore }: CeilingCrossing,
   ): Promise<ImplementRecord> {
     const { ticket, state } = ticketRun;
-    const rules = implementRulesOf(ticketRun);
+    const rules = this._implementRulesOf(ticketRun);
     const ran = await this.stepLauncher._runStep(ticketRun, "implement", {
       prompt: handoffOnlyPrompt,
       jsonSchema: rules.outputSchema,
@@ -172,7 +177,7 @@ export class ImplementStepper extends SpecRunBase {
     );
     const count = (state.handoffCount ?? 0) + 1;
     await this._backUp(ticketRun, `handoff-${count}`, saveUncommitted);
-    const comment = implementRulesOf(ticketRun).handoffCommentOf(
+    const comment = this._implementRulesOf(ticketRun).handoffCommentOf(
       handoff,
       sessionId,
     );
@@ -220,7 +225,7 @@ export class ImplementStepper extends SpecRunBase {
 
   private _implementPromptOf(ticketRun: TicketRun): string {
     const { ticket, workspace, state } = ticketRun;
-    return implementRulesOf(ticketRun).promptOf({
+    return this._implementRulesOf(ticketRun).promptOf({
       issue: ticket.issue,
       title: ticket.title,
       body: ticket.body,
@@ -238,7 +243,7 @@ export class ImplementStepper extends SpecRunBase {
     headsBefore,
   }: ImplementTake): Promise<ImplementRecord> {
     const { workspace, state } = ticketRun;
-    const rules = implementRulesOf(ticketRun);
+    const rules = this._implementRulesOf(ticketRun);
     const record = rules.recordOf(launched.record);
     const { logPath } = launched;
     state.implementPeak = launched.peakContext;
@@ -288,7 +293,7 @@ export class ImplementStepper extends SpecRunBase {
 
   private _resumeLaunchOf(ticketRun: TicketRun, halts: Halt[]): StepLaunch {
     const { state } = ticketRun;
-    const { outputSchema } = implementRulesOf(ticketRun);
+    const { outputSchema } = this._implementRulesOf(ticketRun);
     const sessionId = ticketSteps.implementerSessionOf(state);
     const isUnderBudget = this._isUnderBudget(state);
     const isHandedOff = state.latestHandoff !== undefined;
@@ -307,6 +312,10 @@ export class ImplementStepper extends SpecRunBase {
       jsonSchema: outputSchema,
     };
   }
+
+  private _implementRulesOf({ run }: TicketRun): ImplementRules {
+    return this._workflowOf(run.spec).agentSteps.implement;
+  }
 }
 
 // A record-only retry follows commits, which a handoff record can't have, so it gets no live ceiling.
@@ -314,11 +323,12 @@ function continuationLaunchOf(
   ticketRun: TicketRun,
   continuation: Continuation,
   liveCeiling: number,
+  jsonSchema: object,
 ): StepLaunch {
   const { state } = ticketRun;
   const launch = {
     resumeSessionId: ticketSteps.lastSessionOf(state, "implement"),
-    jsonSchema: implementRulesOf(ticketRun).outputSchema,
+    jsonSchema,
   };
   if (continuation.kind === "record") {
     return { ...launch, prompt: recordOnlyPrompt };
@@ -326,10 +336,6 @@ function continuationLaunchOf(
   const { turns } = continuation;
   const prompt = moreTurnsPrompt(turns, !ticketSteps.isTreeKept(state));
   return { ...launch, prompt, maxTurns: turns, liveCeiling };
-}
-
-function implementRulesOf({ run }: TicketRun): ImplementRules {
-  return agentStepsOf(run.spec).implement;
 }
 
 function sessionIdOf(

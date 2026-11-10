@@ -74,7 +74,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `reviewList.ts` | `reviewList` | The review list's comment formats and undecided count, `runner decide`'s edit marking one item decided or handled, and a session re-review's merge into the posted list. |
 | `runBoard.ts` | `runBoard` | The Run board behind `runner status` and `runner watch` with no spec. |
 | `runCollecting.ts` | `runCollecting` | Runs one process with its output collected. |
-| `runCommand.ts` | | Runs a knob's command, returning its output tail when it fails, for the preflight and a ticket's checks. |
+| `runCommand.ts` | | Runs a configured command, returning its output tail when it fails, for the preflight and a ticket's checks. |
 | `runKnobs.ts` | `runKnobs` | Every knob a run reads, its defaults and the override-file loader. |
 | `RunLock.ts` | `RunLock` | The per-spec run lock. |
 | `RunStop.ts` | | The error that ends a run with a Stop. |
@@ -129,7 +129,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `UnhandledStop.ts` | `UnhandledStop` | The outcomes the run loop doesn't handle yet, and their error. |
 | `verdicts.ts` | | A finding's axes and verdicts. |
 | `Workflow.ts` | | The Workflow type, each agent step's rules and prompt input, and the pick of a spec's Workflow from its labels: the core's one way to a Workflow. |
-| `Workflow/code/codeWorkflow.ts` | | The code Workflow: each ticket's Step sequence, the Step each one goes on to, and its agent steps' rules, resolve resuming implement. |
+| `Workflow/code/codeWorkflow.ts` | `codeWorkflow` | Builds the code Workflow from a repo's checks and review skill: each ticket's Step sequence, the Step each one goes on to, and its agent steps' rules, resolve resuming implement. |
 | `Workflow/code/gapCheck.ts` | `gapCheck` | The gap check's prompt and output schema. |
 | `Workflow/code/implementCodeSkill.ts` | `implementCodeSkill` | Generates the `/implement-code` skill from the implement step's shared body. |
 | `Workflow/code/implementStep.ts` | `implementStep` | The implement step's prompt, handoff comment, record checks and output schema. |

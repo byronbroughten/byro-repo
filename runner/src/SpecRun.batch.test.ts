@@ -22,7 +22,6 @@ import {
   eventOf,
   findingOf,
   github,
-  greenUnlessRed,
   implemented,
   masterSubjects,
   notices,
@@ -602,7 +601,6 @@ describe("a Batch's refusal", () => {
       members: [first, second],
       knobs: runKnobsOf({
         clonePaths,
-        checks: [greenUnlessRed],
         authChecks: [["false"]],
       }),
     });

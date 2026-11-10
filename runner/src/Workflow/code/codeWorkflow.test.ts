@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { TicketState, TicketStep } from "../../SpecRun/runState.ts";
 import { trackedIssues } from "../../specRunHarness/trackedIssues.ts";
 import type { ImplementRecord } from "../../stepRecords.ts";
-import { codeWorkflow } from "./codeWorkflow.ts";
+import { codeWorkflowOf } from "./codeWorkflow.ts";
 
 const ticket = trackedIssues.issueOf(7, {
   labels: ["ready-for-agent"],
@@ -45,6 +45,11 @@ function nextAfter(state: TicketState): TicketStep | undefined {
   const sequence = codeWorkflow.stepsOf(ticket);
   return sequence.find(({ step }) => step === state.step)?.nextOf?.(state);
 }
+
+const codeWorkflow = codeWorkflowOf({
+  checks: [],
+  reviewSkillName: "code-review",
+});
 
 describe("codeWorkflow", () => {
   it("is named code", () => {

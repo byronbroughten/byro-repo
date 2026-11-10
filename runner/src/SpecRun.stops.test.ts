@@ -27,6 +27,7 @@ import {
   stateFolder,
   ticketState,
   useSpecRunHarness,
+  workflowsWith,
 } from "./specRunHarness.ts";
 
 useSpecRunHarness();
@@ -51,7 +52,6 @@ describe("run's preflight", () => {
     const result = await preflightOf({
       knobs: runKnobsOf({
         clonePaths,
-        checks: [],
         authChecks: [passes, fails],
       }),
     });
@@ -68,7 +68,6 @@ describe("run's preflight", () => {
     const result = await preflightOf({
       knobs: runKnobsOf({
         clonePaths,
-        checks: [],
         authChecks: [passes],
         ticketBudget: 180_000,
       }),
@@ -181,7 +180,8 @@ describe("run's master check", () => {
     const result = await specRun(
       FakeAgentStep.init(implemented("one.ts"), reviewed()),
       {
-        knobs: runKnobsOf({ clonePaths, checks: [redClone], authChecks: [] }),
+        knobs: runKnobsOf({ clonePaths, authChecks: [] }),
+        workflows: workflowsWith([redClone]),
       },
     ).run(spec);
 

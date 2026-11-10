@@ -27,7 +27,6 @@ import {
   stopOutcomes,
   UnhandledStop,
 } from "../UnhandledStop.ts";
-import { workflowOf } from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import { ImplementStepper } from "./ImplementStepper.ts";
 import { LeaseKeeper } from "./LeaseKeeper.ts";
@@ -248,7 +247,7 @@ export class TicketSequencer extends SpecRunBase {
       });
     }
     // In the sequence's order, so a step only ever advances the ticket to a later one.
-    const sequence = workflowOf(run.spec).stepsOf(ticketRun.ticket);
+    const sequence = this._workflowOf(run.spec).stepsOf(ticketRun.ticket);
     for (const { step, nextOf } of sequence) {
       // The last step, wrap-up, is the landing _runTicket runs.
       if (state.step !== step || nextOf === undefined) continue;

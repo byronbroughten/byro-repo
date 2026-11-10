@@ -150,7 +150,6 @@ describe("run's event file", () => {
     addSpec([1]);
     const knobs = runKnobsOf({
       clonePaths,
-      checks: [],
       authChecks: [passes],
       ticketBudget: 180_000,
     });

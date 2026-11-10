@@ -53,7 +53,6 @@ describe("loadRunKnobs", () => {
     expect(knobs.wallClockMs.implement).toBe(3_600_000);
     expect(knobs.silenceTimeoutMs).toBe(600_000);
     expect(knobs.retriesPerFailure).toBe(1);
-    expect(knobs.skillNames.review).toBe("code-review");
   });
 
   it("checks GitHub auth and the default claude login unless the auth checks are overridden", () => {

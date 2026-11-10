@@ -43,7 +43,7 @@ The words Piece, Deliverable, Section, Stage and Agent draft are [the writing gl
 
 [The runner glossary](../../runner/GLOSSARY.md#language) defines each Step.
 
-- **Code**: the runner's [`Workflow`](../../runner/src/Workflow.ts) module picks the code Workflow, whose code is in [`runner/src/Workflow/code/`](../../runner/src/Workflow/code/); its [`codeWorkflow.ts`](../../runner/src/Workflow/code/codeWorkflow.ts) defines the Steps each ticket goes through, and the runner's `TicketSequencer` runs them. `/code-review` is the review Step's skill, set by the runner's `skillNames.review` knob (`runner/src/runKnobs.ts`), and `/implement-code` is generated from the implement Step's shared body (`runner/src/Workflow/code/implementCodeSkill.ts`), so a change to either reaches both an interactive session and a run.
+- **Code**: the runner's [`Workflow`](../../runner/src/Workflow.ts) module picks the code Workflow, whose code is in [`runner/src/Workflow/code/`](../../runner/src/Workflow/code/); its [`codeWorkflow.ts`](../../runner/src/Workflow/code/codeWorkflow.ts) defines the Steps each ticket goes through, and the runner's `TicketSequencer` runs them. `/code-review` is the review Step's skill, named, with each ticket's checks, where `scripts/runner/runnerConfig.ts` builds the code Workflow, and `/implement-code` is generated from the implement Step's shared body (`runner/src/Workflow/code/implementCodeSkill.ts`), so a change to either reaches both an interactive session and a run.
 - **Piece**: the runner has no Steps for it yet; its Steps are the Implementation stage's interactive skills above, worked by hand.
 
 ## The hand-off table
