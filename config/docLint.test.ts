@@ -558,9 +558,8 @@ describe("checkDocs", () => {
     });
   });
 
-  describe("skill indexes", () => {
-    const index = "docs/agents/coding-workflow.md";
-    const pieceIndex = "docs/agents/piece-workflow.md";
+  describe("skill index", () => {
+    const index = "docs/agents/workflows.md";
     const skills = {
       ".claude/skills/grilling/SKILL.md": "# Grilling\n",
       "runner/skills/runner/SKILL.md": "# Runner\n",
@@ -571,7 +570,7 @@ describe("checkDocs", () => {
       "# Index\n\n[grilling](../../.claude/skills/grilling/SKILL.md)\n";
     const linksRunner =
       "# Index\n\n[runner](../../runner/skills/runner/SKILL.md)\n";
-    const placeIn = `a Workflow stage or the out-of-scope list of ${index} or ${pieceIndex}`;
+    const placeIn = "a Workflow stage or the out-of-scope list";
 
     it("passes an index that links every skill under both skill roots", () => {
       expect(check({ ...skills, [index]: linksBoth })).toEqual([]);
@@ -593,34 +592,8 @@ describe("checkDocs", () => {
       ]);
     });
 
-    it("passes a skill linked only from the piece map", () => {
-      expect(
-        check({ ...skills, [index]: linksRunner, [pieceIndex]: linksGrilling }),
-      ).toEqual([]);
-    });
-
-    it("passes a skill linked only from the coding map", () => {
-      expect(
-        check({ ...skills, [index]: linksBoth, [pieceIndex]: linksGrilling }),
-      ).toEqual([]);
-    });
-
-    it("fails a skill linked from neither map once, naming both maps", () => {
-      expect(
-        messages({
-          ...skills,
-          [index]: linksRunner,
-          [pieceIndex]: linksRunner,
-        }),
-      ).toEqual([
-        `${index}: skill grilling is not linked; place .claude/skills/grilling/SKILL.md in ${placeIn}`,
-      ]);
-    });
-
-    it("checks the piece map alone when the coding map is absent", () => {
-      expect(messages({ ...skills, [pieceIndex]: linksGrilling })).toEqual([
-        `${pieceIndex}: skill runner is not linked; place runner/skills/runner/SKILL.md in ${placeIn}`,
-      ]);
+    it("leaves skills unchecked when the map is absent", () => {
+      expect(check(skills)).toEqual([]);
     });
 
     it("leaves a doc not listed as a skill index unchecked for skill links", () => {

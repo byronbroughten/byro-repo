@@ -1,5 +1,5 @@
 // @ts-check
-// Checks a repo's agent-facing docs' links, size limits, observation lines and skill indexes; a doc map in, violations out. lintDocs.js runs it on the repo it is invoked in.
+// Checks a repo's agent-facing docs' links, size limits, observation lines and skill index; a doc map in, violations out. lintDocs.js runs it on the repo it is invoked in.
 import { posix } from "node:path";
 
 const limits = {
@@ -27,8 +27,8 @@ const observationIndexes = new Set([
   "docs/sheets-behaviour.md",
 ]);
 const skillIndex = {
-  // Docs that between them must link every skill's SKILL.md, relative to their repo root; violations go on the first one present.
-  docs: ["docs/agents/coding-workflow.md", "docs/agents/piece-workflow.md"],
+  // The doc that must link every skill's SKILL.md, relative to its repo root.
+  doc: "docs/agents/workflows.md",
   // A skill is a folder holding a SKILL.md under one of these roots; a symlinked skill is tracked only at its target.
   skillPattern: /^(?:\.claude|runner)\/skills\/([^/]+)\/SKILL\.md$/,
 };
@@ -397,31 +397,26 @@ function checkObservations(text, report) {
   }
 }
 
-// The skill indexes present read as one: a skill passes when any of them links it.
 /**
  * @param {Docs} docs
  * @returns {Violation[]}
  */
 function skillIndexViolations(docs) {
-  const present = skillIndex.docs.filter((path) => docs[path] !== undefined);
-  const [reportedOn] = present;
-  if (reportedOn === undefined) return [];
+  const index = docs[skillIndex.doc];
+  if (index === undefined) return [];
   const linked = new Set(
-    present.flatMap((path) =>
-      linksIn(docs[path] ?? "").map(({ target }) =>
-        resolveLink(path, fileOf(target)),
-      ),
+    linksIn(index).map(({ target }) =>
+      resolveLink(skillIndex.doc, fileOf(target)),
     ),
   );
-  const placeIn = `a Workflow stage or the out-of-scope list of ${skillIndex.docs.join(" or ")}`;
   return Object.keys(docs).flatMap((doc) => {
     const skill = skillIndex.skillPattern.exec(doc)?.[1];
     if (skill === undefined || linked.has(doc)) return [];
     return [
       {
-        path: reportedOn,
+        path: skillIndex.doc,
         line: 1,
-        message: `skill ${skill} is not linked; place ${doc} in ${placeIn}`,
+        message: `skill ${skill} is not linked; place ${doc} in a Workflow stage or the out-of-scope list`,
       },
     ];
   });
