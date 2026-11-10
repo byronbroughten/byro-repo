@@ -172,7 +172,10 @@ export class SpecRunBase {
       mergeChecks,
       outcomeFolder,
       stateFolder,
-      knobs: this.config.wrapUpKnobs,
+      knobs: {
+        silenceTimeoutMs: this.config.knobs.silenceTimeoutMs,
+        ...this.config.wrapUpKnobs,
+      },
       sleep: this.config.sleep,
       log: (line) => this.config.log?.(line),
     });

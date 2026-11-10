@@ -13,6 +13,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import type { OutcomeFacts } from "./outcomeLog.ts";
 import {
   handoffSessionIdOf,
   latestPairOf,
@@ -75,54 +76,102 @@ function reviewedOnAccountOne(): TicketSessions {
 }
 
 const handoffs = ["session-implement-1"];
+const silenceTimeoutMs = 10 * 60_000;
+// Over every gap in the fixtures, so their Duration is each transcript's whole span.
+const fixtureCapMs = 60 * 60_000;
+
+function factsOf(
+  ticketSessions: TicketSessions,
+  handoffSessionIds: string[],
+  capMs = fixtureCapMs,
+): OutcomeFacts {
+  return transcriptFactsOf(ticketSessions, {
+    handoffSessionIds,
+    silenceTimeoutMs: capMs,
+  });
+}
+
+function entriesAt(minutes: number[]): string {
+  return minutes
+    .map((minute) =>
+      JSON.stringify({
+        type: "user",
+        timestamp: new Date(Date.UTC(2026, 9, 6, 10, minute)).toISOString(),
+      }),
+    )
+    .join("\n");
+}
+
+function writeTranscript(sessionId: string, text: string): void {
+  writeFileSync(
+    join(
+      configFolder,
+      "projects",
+      "-workspace-byro-repo",
+      `${sessionId}.jsonl`,
+    ),
+    `${text}\n`,
+  );
+}
 
 describe("transcriptFactsOf", () => {
   it("reads the pair from the implementer's transcripts", () => {
-    expect(transcriptFactsOf(sessions(), handoffs).pair).toBe("Opus medium");
+    expect(factsOf(sessions(), handoffs).pair).toBe("Opus medium");
   });
 
   it("lists each implementer session's peak in order, leaving out the resolver", () => {
-    expect(transcriptFactsOf(sessions(), handoffs).peakContext).toEqual([
+    expect(factsOf(sessions(), handoffs).peakContext).toEqual([
       150_000, 90_000,
     ]);
   });
 
   it("prices the implementers and their subagents alone, counting a repeated reply once", () => {
-    expect(transcriptFactsOf(sessions(), handoffs).costUsd).toBeCloseTo(
-      1.454,
-      6,
-    );
+    expect(factsOf(sessions(), handoffs).costUsd).toBeCloseTo(1.454, 6);
   });
 
   it("prices the review and resolve sessions together as review cost", () => {
-    expect(transcriptFactsOf(sessions(), handoffs).reviewCostUsd).toBeCloseTo(
-      0.114,
-      6,
-    );
+    expect(factsOf(sessions(), handoffs).reviewCostUsd).toBeCloseTo(0.114, 6);
   });
 
   it("prices a review that started no further step as the review session alone", () => {
     const steps = sessions().steps.filter(
       ({ agent }) => agent === "implement" || agent === "review",
     );
-    expect(
-      transcriptFactsOf(sessions({ steps }), handoffs).reviewCostUsd,
-    ).toBeCloseTo(0.024, 6);
+    expect(factsOf(sessions({ steps }), handoffs).reviewCostUsd).toBeCloseTo(
+      0.024,
+      6,
+    );
   });
 
   it("leaves review cost unrecorded when no review session was recorded", () => {
     const steps = sessions().steps.filter(({ agent }) => agent === "implement");
     expect(
-      transcriptFactsOf(sessions({ steps }), handoffs).reviewCostUsd,
+      factsOf(sessions({ steps }), handoffs).reviewCostUsd,
     ).toBeUndefined();
   });
 
   it("sums every step session's span, review and handoffs included", () => {
-    expect(transcriptFactsOf(sessions(), handoffs).durationMinutes).toBe(42);
+    expect(factsOf(sessions(), handoffs).durationMinutes).toBe(42);
+  });
+
+  it("leaves a gap over the silence timeout, as a Halt wait, out of the duration", () => {
+    writeTranscript("session-halted", entriesAt([0, 5, 9, 50, 53]));
+    const steps = [step("review", "session-halted")];
+    expect(
+      factsOf(sessions({ steps }), [], silenceTimeoutMs).durationMinutes,
+    ).toBe(12);
+  });
+
+  it("gives the whole span when no gap is over the silence timeout", () => {
+    writeTranscript("session-steady", entriesAt([0, 10, 12]));
+    const steps = [step("review", "session-steady")];
+    expect(
+      factsOf(sessions({ steps }), [], silenceTimeoutMs).durationMinutes,
+    ).toBe(12);
   });
 
   it("writes the account and every session id, handoffs first", () => {
-    const facts = transcriptFactsOf(sessions(), handoffs);
+    const facts = factsOf(sessions(), handoffs);
     expect([facts.account, facts.sessionIds]).toEqual([
       "2",
       [
@@ -136,7 +185,7 @@ describe("transcriptFactsOf", () => {
   });
 
   it("finds each step session's transcript in its own config folder", () => {
-    const facts = transcriptFactsOf(reviewedOnAccountOne(), handoffs);
+    const facts = factsOf(reviewedOnAccountOne(), handoffs);
     expect([facts.account, facts.durationMinutes]).toEqual(["2, 1", 42]);
     expect(facts.costUsd).toBeCloseTo(1.454, 6);
     expect(facts.reviewCostUsd).toBeCloseTo(0.114, 6);
@@ -151,13 +200,11 @@ describe("transcriptFactsOf", () => {
         "session-review.jsonl",
       ),
     );
-    expect(
-      transcriptFactsOf(sessions(), handoffs).durationMinutes,
-    ).toBeUndefined();
+    expect(factsOf(sessions(), handoffs).durationMinutes).toBeUndefined();
   });
 
   it("leaves every implementer fact unrecorded when a handoff transcript is missing", () => {
-    const facts = transcriptFactsOf(sessions(), ["session-gone"]);
+    const facts = factsOf(sessions(), ["session-gone"]);
     expect([
       facts.pair,
       facts.peakContext,
@@ -180,7 +227,7 @@ describe("transcriptFactsOf", () => {
     );
     const steps = [...sessions().steps, step("implement", "session-clear")];
 
-    const facts = transcriptFactsOf(sessions({ steps }), []);
+    const facts = factsOf(sessions({ steps }), []);
 
     expect([facts.pair, facts.peakContext]).toEqual(["Opus medium", [90_000]]);
   });
@@ -196,9 +243,7 @@ describe("transcriptFactsOf", () => {
       fix,
       readFileSync(fix, "utf8").replace("claude-opus-5-5", "claude-mystery-9"),
     );
-    expect(
-      transcriptFactsOf(sessions(), handoffs).reviewCostUsd,
-    ).toBeUndefined();
+    expect(factsOf(sessions(), handoffs).reviewCostUsd).toBeUndefined();
   });
 
   it("prices a Haiku transcript", () => {
@@ -212,10 +257,7 @@ describe("transcriptFactsOf", () => {
       fix,
       readFileSync(fix, "utf8").replace("claude-opus-5-5", "claude-haiku-5-5"),
     );
-    expect(transcriptFactsOf(sessions(), handoffs).reviewCostUsd).toBeCloseTo(
-      0.085,
-      6,
-    );
+    expect(factsOf(sessions(), handoffs).reviewCostUsd).toBeCloseTo(0.085, 6);
   });
 
   it("leaves cost unrecorded when an implementer's model has no price", () => {
@@ -232,12 +274,12 @@ describe("transcriptFactsOf", () => {
         "claude-mystery-9",
       ),
     );
-    expect(transcriptFactsOf(sessions(), handoffs).costUsd).toBeUndefined();
+    expect(factsOf(sessions(), handoffs).costUsd).toBeUndefined();
   });
 
   it("leaves the implementer's facts unrecorded when no implementer session was recorded", () => {
     const steps = sessions().steps.filter(({ agent }) => agent !== "implement");
-    const facts = transcriptFactsOf(sessions({ steps }), []);
+    const facts = factsOf(sessions({ steps }), []);
     expect([
       facts.pair,
       facts.peakContext,
@@ -249,7 +291,7 @@ describe("transcriptFactsOf", () => {
 
 describe("unrecordedFactsOf", () => {
   it("names nothing when every fact is recorded", () => {
-    expect(unrecordedFactsOf(sessions())).toEqual([]);
+    expect(unrecordedFactsOf(sessions(), silenceTimeoutMs)).toEqual([]);
   });
 
   it("names a fact left unrecorded with every transcript found, and why", () => {
@@ -263,7 +305,7 @@ describe("unrecordedFactsOf", () => {
       fix,
       readFileSync(fix, "utf8").replace("claude-opus-5-5", "claude-mystery-9"),
     );
-    expect(unrecordedFactsOf(sessions())).toEqual([
+    expect(unrecordedFactsOf(sessions(), silenceTimeoutMs)).toEqual([
       {
         label: "review cost",
         reason: "a model it used is missing from the price table",
@@ -273,7 +315,9 @@ describe("unrecordedFactsOf", () => {
 
   it("names nothing for a step that never ran", () => {
     const steps = sessions().steps.filter(({ agent }) => agent === "implement");
-    expect(unrecordedFactsOf(sessions({ steps }))).toEqual([]);
+    expect(unrecordedFactsOf(sessions({ steps }), silenceTimeoutMs)).toEqual(
+      [],
+    );
   });
 });
 

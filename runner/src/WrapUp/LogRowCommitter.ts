@@ -57,6 +57,7 @@ export class LogRowCommitter extends WrapUpBase {
       githubOwner: this.config.githubOwner,
       filesChanged: landing.progress.filesChanged ?? 0,
       handoffSessionIds,
+      silenceTimeoutMs: this.knobs.silenceTimeoutMs,
       stateFolder: this.config.stateFolder,
       outcomeFolder: this.config.outcomeFolder,
     });

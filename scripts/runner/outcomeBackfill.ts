@@ -2,6 +2,8 @@
 // Usage: node scripts/runner/outcomeBackfill.ts <run state file> <spec's outcome folder> <config folder>...
 import { backfillOutcomeRows } from "@byronbroughten/spec-runner/outcomeBackfill";
 
+import { runKnobs } from "./runnerConfig.ts";
+
 const [runStatePath, specFolder, ...configFolders] = process.argv.slice(2);
 if (runStatePath === undefined || specFolder === undefined) {
   console.error(
@@ -9,7 +11,10 @@ if (runStatePath === undefined || specFolder === undefined) {
   );
   process.exitCode = 1;
 } else {
-  backfillOutcomeRows({ runStatePath, specFolder, configFolders }).forEach(
-    (path) => console.log(path),
-  );
+  backfillOutcomeRows({
+    runStatePath,
+    specFolder,
+    configFolders,
+    silenceTimeoutMs: runKnobs.silenceTimeoutMs,
+  }).forEach((path) => console.log(path));
 }

@@ -10,7 +10,7 @@ import type {
   OutcomeRowRequest,
   WrittenOutcomeRow,
 } from "../outcomeRowWriter.ts";
-import type { Command } from "../runKnobs.ts";
+import { type Command, defaultRunKnobs } from "../runKnobs.ts";
 import type { IssueComment } from "../SpecRun.ts";
 
 export const labels = {
@@ -109,12 +109,15 @@ export interface WrapUpKnobs {
   // The wait after the first failed try, doubled after each later one.
   backoffMs: number;
   lockPollMs: number;
+  // The run's silence timeout, the outcome row's cap on a gap that counts toward Duration.
+  silenceTimeoutMs: number;
 }
 
 export const defaultWrapUpKnobs: WrapUpKnobs = {
   networkTries: 3,
   backoffMs: 2000,
   lockPollMs: 5000,
+  silenceTimeoutMs: defaultRunKnobs.silenceTimeoutMs,
 };
 
 export interface WrapUpConfig {

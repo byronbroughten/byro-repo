@@ -11,7 +11,10 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { backfilledOutcomeFile } from "./outcomeBackfill.ts";
+import {
+  backfilledOutcomeFile,
+  type BackfillSessions,
+} from "./outcomeBackfill.ts";
 
 const fixtures = join(import.meta.dirname, "..", "fixtures", "transcripts");
 
@@ -46,6 +49,11 @@ function rowOf(file: string): string {
   return file.split("\n")[4] ?? "";
 }
 
+// An hour, over every gap in the fixtures.
+function backfillOf(configFolders: string[]): BackfillSessions {
+  return { sessions, configFolders, silenceTimeoutMs: 60 * 60_000 };
+}
+
 describe("backfilledOutcomeFile", () => {
   it("fills every transcript fact from sessions found under any config folder", () => {
     const accountTwo = join(home, "account-2");
@@ -60,10 +68,10 @@ describe("backfilledOutcomeFile", () => {
       ),
       join(accountTwo, "projects", "p", "session-review.jsonl"),
     );
-    const file = backfilledOutcomeFile(blankRow, sessions, [
-      join(home, "shared"),
-      accountTwo,
-    ]);
+    const file = backfilledOutcomeFile(
+      blankRow,
+      backfillOf([join(home, "shared"), accountTwo]),
+    );
     expect(rowOf(file)).toBe(
       "| #9 | Opus medium | 1, 2 | 3 | 90K | Pass | 0 | 1 | 0 | 24 min | $0.17 | $0.02 | a \\| b | session-implement-2, session-review |",
     );
@@ -79,9 +87,10 @@ describe("backfilledOutcomeFile", () => {
         "session-review.jsonl",
       ),
     );
-    const missing = backfilledOutcomeFile(blankRow, sessions, [
-      join(home, "shared"),
-    ]);
+    const missing = backfilledOutcomeFile(
+      blankRow,
+      backfillOf([join(home, "shared")]),
+    );
     expect(rowOf(missing)).toBe(
       "| #9 | Opus medium | 1, 2 | 3 | 90K | Pass | 0 | 1 | 0 | unrecorded | $0.17 | unrecorded | a \\| b | session-implement-2, session-review |",
     );
@@ -92,9 +101,10 @@ describe("backfilledOutcomeFile", () => {
       "| #9 | unrecorded | unrecorded | 3 | unrecorded |",
       "| #9 | Sonnet low | 7 | 3 | 12K |",
     );
-    const file = backfilledOutcomeFile(recorded, sessions, [
-      join(home, "shared"),
-    ]);
+    const file = backfilledOutcomeFile(
+      recorded,
+      backfillOf([join(home, "shared")]),
+    );
     expect(rowOf(file)).toBe(
       "| #9 | Sonnet low | 7 | 3 | 12K | Pass | 0 | 1 | 0 | 24 min | $0.17 | $0.02 | a \\| b | session-implement-2, session-review |",
     );

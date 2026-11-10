@@ -24,6 +24,13 @@ export interface BackfillRequest {
   // The spec's folder of row files, one per landed ticket.
   specFolder: string;
   configFolders: string[];
+  silenceTimeoutMs: number;
+}
+
+export interface BackfillSessions {
+  sessions: AccountSession[];
+  configFolders: string[];
+  silenceTimeoutMs: number;
 }
 
 // Rewrites each ticket's row file the run state has sessions for, returning the paths rewritten.
@@ -31,6 +38,7 @@ export function backfillOutcomeRows({
   runStatePath,
   specFolder,
   configFolders,
+  silenceTimeoutMs,
 }: BackfillRequest): string[] {
   const { tickets } = runStateOf(
     JSON.parse(readFileSync(runStatePath, "utf8")),
@@ -46,7 +54,11 @@ export function backfillOutcomeRows({
     const file = readFileSync(path, "utf8");
     writeFileSync(
       path,
-      backfilledOutcomeFile(file, withAccounts, configFolders),
+      backfilledOutcomeFile(file, {
+        sessions: withAccounts,
+        configFolders,
+        silenceTimeoutMs,
+      }),
     );
     return [path];
   });
@@ -54,11 +66,13 @@ export function backfillOutcomeRows({
 
 export function backfilledOutcomeFile(
   file: string,
-  sessions: AccountSession[],
-  configFolders: string[],
+  { sessions, configFolders, silenceTimeoutMs }: BackfillSessions,
 ): string {
   const steps = sessions.map((session) => recordedOf(session, configFolders));
-  return withUnrecordedTranscriptCells(file, transcriptFactsOf({ steps }, []));
+  return withUnrecordedTranscriptCells(
+    file,
+    transcriptFactsOf({ steps }, { handoffSessionIds: [], silenceTimeoutMs }),
+  );
 }
 
 function recordedOf(

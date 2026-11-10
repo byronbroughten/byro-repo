@@ -130,7 +130,7 @@ describe("run", () => {
     expect(
       readFileSync(join(primaryRoot, outcomePath), "utf8").split("\n")[6],
     ).toBe(
-      "| #218 | Opus medium | 2 | 1 | 150K → 90K | Pass | 0 | 1 | 0 | 42 min | $1.45 | $0.11 | — | session-implement-1, session-implement-2, session-review, session-triage, session-fix |",
+      "| #218 | Opus medium | 2 | 1 | 150K → 90K | Pass | 0 | 1 | 0 | 27 min | $1.45 | $0.11 | — | session-implement-1, session-implement-2, session-review, session-triage, session-fix |",
     );
   });
 
@@ -193,7 +193,7 @@ describe("run", () => {
     expect(
       readFileSync(join(primaryRoot, outcomePath), "utf8").split("\n")[6],
     ).toBe(
-      "| #218 | Opus medium | 2 | 1 | 150K → 90K | Pass | 0 | 1 | 0 | 30 min | $1.45 | unrecorded | — | session-implement-1, session-implement-2 |",
+      "| #218 | Opus medium | 2 | 1 | 150K → 90K | Pass | 0 | 1 | 0 | 15 min | $1.45 | unrecorded | — | session-implement-1, session-implement-2 |",
     );
   });
 

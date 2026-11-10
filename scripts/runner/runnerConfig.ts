@@ -113,6 +113,7 @@ export const wrapUpConfig: WrapUpConfig = {
   mergeChecks,
   outcomeFolder,
   stateFolder,
+  knobs: { silenceTimeoutMs: runKnobs.silenceTimeoutMs },
   writeOutcomeRow: async (root, request) =>
     JSON.parse(
       execFileSync(

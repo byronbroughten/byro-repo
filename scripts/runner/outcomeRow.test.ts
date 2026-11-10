@@ -27,6 +27,7 @@ describe("wrap-up's outcome row writer", () => {
       githubOwner: "byronbroughten",
       filesChanged: 3,
       handoffSessionIds: [],
+      silenceTimeoutMs: 600_000,
       stateFolder,
       outcomeFolder: relative(root, outcomes),
     });
