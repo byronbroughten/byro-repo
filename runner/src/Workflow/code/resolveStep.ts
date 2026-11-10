@@ -2,19 +2,23 @@
 // and the checkers that refuse a record, or commits that disagree with it, naming the rule broken.
 // reviewStep.ts supplies the findings, stepRecords.ts holds the record types; StepStream.ts checks the output against resolveOutputSchema first.
 
-import { stepReadLine } from "./IssueReader.ts";
-import type { IssueRef } from "./IssueWorkspaces.ts";
-import { codeListOf, commitMessageLine, stepWriteLine } from "./promptText.ts";
-import { schemaProblemsOf, stringSchema } from "./recordSchema.ts";
-import { resolveRecordFields, resolveRules } from "./stepPrompts.ts";
+import { stepReadLine } from "../../IssueReader.ts";
+import type { IssueRef } from "../../IssueWorkspaces.ts";
+import {
+  codeListOf,
+  commitMessageLine,
+  stepWriteLine,
+} from "../../promptText.ts";
+import { schemaProblemsOf, stringSchema } from "../../recordSchema.ts";
+import { resolveRecordFields, resolveRules } from "../../stepPrompts.ts";
 import {
   dismissReasons,
   type Finding,
   issueRefOf,
   proposeReasons,
   type ResolveRecord,
-} from "./stepRecords.ts";
-import { axes, type Verdict, verdicts } from "./verdicts.ts";
+} from "../../stepRecords.ts";
+import { axes, type Verdict, verdicts } from "../../verdicts.ts";
 
 export interface ResolvePromptInput {
   issue: IssueRef;

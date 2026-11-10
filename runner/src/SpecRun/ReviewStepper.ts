@@ -12,6 +12,13 @@ import { verdictHaltOf } from "../halts.ts";
 import { issueRef, type Workspace } from "../IssueWorkspaces.ts";
 import { strongerPairOf } from "../modelFit.ts";
 import {
+  type Finding,
+  type ResolveRecord,
+  type ReviewRecord,
+} from "../stepRecords.ts";
+import type { StepAgent } from "../transcriptFacts.ts";
+import { UnhandledStop } from "../UnhandledStop.ts";
+import {
   resolveCommitProblems,
   resolveOutputSchema,
   resolvePrompt,
@@ -19,15 +26,11 @@ import {
   resolveRecordsOf,
   resolveRetryPrompt,
   withReviewerFields,
-} from "../resolveStep.ts";
-import { reviewPrompt, reviewRecordSchema } from "../reviewStep.ts";
+} from "../Workflow/code/resolveStep.ts";
 import {
-  type Finding,
-  type ResolveRecord,
-  type ReviewRecord,
-} from "../stepRecords.ts";
-import type { StepAgent } from "../transcriptFacts.ts";
-import { UnhandledStop } from "../UnhandledStop.ts";
+  reviewPrompt,
+  reviewRecordSchema,
+} from "../Workflow/code/reviewStep.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import {
   type Heads,

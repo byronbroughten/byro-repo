@@ -21,17 +21,17 @@ import {
 } from "../IssueWorkspaces.ts";
 import { LeaseHeld } from "../LeaseHeld.ts";
 import { pairOf } from "../modelFit.ts";
-import {
-  numberedFindingsOf,
-  resolveOutputProblems,
-  resolveRecordsOf,
-  withReviewerFields,
-} from "../resolveStep.ts";
 import { ticketReviewListOf } from "../reviewList.ts";
 import { RunStop } from "../RunStop.ts";
 import { TicketHalted } from "../TicketHalted.ts";
 import { latestImplementPeakOf } from "../transcriptFacts.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
+import {
+  numberedFindingsOf,
+  resolveOutputProblems,
+  resolveRecordsOf,
+  withReviewerFields,
+} from "../Workflow/code/resolveStep.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import { LeaseKeeper } from "./LeaseKeeper.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
