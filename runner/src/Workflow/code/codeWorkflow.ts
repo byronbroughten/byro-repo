@@ -136,8 +136,9 @@ export function codeWorkflowOf({
     ticketRefusalOf() {
       return undefined;
     },
-    landingStopOf() {
-      return undefined;
+    // A code ticket reads outside the repo only the targets its own body names.
+    sourceTargetsOf() {
+      return [];
     },
     agentSteps: {
       ...agentSteps,
@@ -146,6 +147,9 @@ export function codeWorkflowOf({
         outputSchema: reviewRecordSchema,
         skillName: reviewSkillName,
       },
+    },
+    landingOf() {
+      return "code";
     },
     checks,
     specEnd,

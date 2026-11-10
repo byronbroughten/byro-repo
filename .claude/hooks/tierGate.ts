@@ -1,4 +1,4 @@
-// PreToolUse on Bash, WebFetch, WebSearch and the gworkspace write and create tools applies the tier gate; PostToolUse on Bash records each app chore dry run that ran, for a later --send.
+// PreToolUse on Bash, WebFetch, WebSearch, the gworkspace write and create tools and its two Drive file reads applies the tier gate; PostToolUse on Bash records each app chore dry run that ran, for a later --send.
 // The hook reads the session's dry runs, targets and sandbox state, so the decision stays pure.
 import { writeFileSync } from "node:fs";
 

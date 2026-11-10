@@ -12,6 +12,7 @@ import {
   github,
   haltComments,
   implemented,
+  masterSubjects,
   refOf,
   resultOf,
   reviewed,
@@ -23,6 +24,7 @@ import {
   useSpecRunHarness,
 } from "./specRunHarness.ts";
 import type { ResearchRecord } from "./stepRecords.ts";
+import { toolsOf } from "./targetTools.ts";
 
 useSpecRunHarness();
 
@@ -67,7 +69,7 @@ describe("run on a piece spec", () => {
     expect(ticketState()["byro-repo #1"]?.researchRecord).toEqual(record);
   });
 
-  it("stops after the research step, naming its comment", async () => {
+  it("checks the quotes, posts the comment, writes the outcome row and closes the ticket", async () => {
     addPieceSpec([1]);
     const record = readyRecordOf(scratchFolder());
 
@@ -75,11 +77,72 @@ describe("run on a piece spec", () => {
       spec,
     );
 
-    expect(result.kind).toBe("stopped");
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(commentsOn(1, "The ferry ran.")).toHaveLength(1);
+    expect(masterSubjects()).toContainEqual(
+      expect.stringMatching(/^Record the #1 outcome/),
+    );
+    const closing = github.closed.find(({ issue }) => issue.number === 1);
+    expect(closing?.comment).toContain("Move the ferry before the storm.");
+    expect(ticketState()["byro-repo #1"]?.step).toBe("landed");
+  });
+
+  it("sends red quotes back to the research step once, with the failure", async () => {
+    addPieceSpec([1]);
+    const folder = scratchFolder("The ferry ran. MISQUOTE");
+    const agentStep = FakeAgentStep.init(
+      researched(readyRecordOf(folder)),
+      async () => {
+        writeFileSync(join(folder, "comment.md"), "The ferry ran.\n");
+        return resultOf({ record: readyRecordOf(folder) });
+      },
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests).toHaveLength(2);
+    expect(agentStep.requests[1]?.prompt).toContain("NOT FOUND: MISQUOTE");
+    expect(agentStep.requests[1]?.prompt).toContain(join(folder, "comment.md"));
+    expect(result.landed).toEqual([refOf(1)]);
+  });
+
+  it("raises a Failure Halt on quotes still red after one send-back", async () => {
+    addPieceSpec([1]);
+    const record = readyRecordOf(scratchFolder("The ferry ran. MISQUOTE"));
+    const agentStep = FakeAgentStep.init(
+      researched(record),
+      researched(record),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests).toHaveLength(2);
     expect(result.landed).toEqual([]);
-    const stop = github.comments.at(-1)?.body ?? "";
-    expect(stop).toContain("research-scratch/comment.md");
-    expect(ticketState()["byro-repo #1"]?.step).toBe("stopped");
+    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+    expect(haltComments()[0]).toContain("Failure Halt");
+    expect(haltComments()[0]).toContain("NOT FOUND: MISQUOTE");
+    expect(commentsOn(1, "The ferry ran.")).toEqual([]);
+  });
+
+  it("launches the research step with Drive reads of the spec's sources only", async () => {
+    addPieceSpec([1]);
+    github.edit(spec.number, {
+      body: `## Deliverable\n\nThe crossing, doc ${deliverableId}.\n\n## Supporting Material\n\n- The lighthouse logbook, ${logbookId}: the storm.\n- The ferry timetable, https://drive.google.com/file/d/${timetableId}/view: the crossings.\n\n## Reader\n\nA ferry clerk.\n`,
+    });
+    const agentStep = FakeAgentStep.init(
+      researched(readyRecordOf(scratchFolder())),
+    );
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests[0]?.targets).toEqual([
+      { kind: "source", id: logbookId },
+      { kind: "source", id: timetableId },
+    ]);
+    expect(toolsOf(agentStep.requests[0]?.targets ?? [])).toEqual([
+      "mcp__gworkspace__get_drive_file_content",
+      "mcp__gworkspace__get_drive_file_download_url",
+    ]);
   });
 
   it("halts on a research record that breaks its schema", async () => {
@@ -160,10 +223,15 @@ describe("run on a piece spec", () => {
   });
 });
 
-function scratchFolder(): string {
+const deliverableId = "1DeliverableCrossingDoc0000000000";
+const logbookId = "1LighthouseLogbook000000000000000";
+const timetableId = "1FerryTimetable_2-0000000000000000";
+
+// The harness's quote check is red on a comment holding MISQUOTE.
+function scratchFolder(fact = "The ferry ran."): string {
   const folder = join(temp, "research-scratch");
   mkdirSync(join(folder, "texts"), { recursive: true });
-  writeFileSync(join(folder, "comment.md"), "## Research\n\nThe ferry ran.\n");
+  writeFileSync(join(folder, "comment.md"), `## Research\n\n${fact}\n`);
   return folder;
 }
 

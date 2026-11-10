@@ -1,26 +1,37 @@
 // A ticket's steps: its sessions and heads, its turn cap, the live-ceiling phrase and snapshots, and reading a step's record,
-// its schema failure and the review facts its records give.
+// its schema failure, its kept research record and the review facts its records give.
 // The TicketState these read is ../runState.ts; the Halt helpers are runHalts.ts.
 
 import { writeFileSync } from "node:fs";
 
 import type { StepResult } from "../../AgentStep.ts";
 import { type ReviewFacts } from "../../FactsFile.ts";
+import { issueRef } from "../../IssueWorkspaces.ts";
 import { hasUndecidedItems } from "../../reviewList.ts";
 import type { RunKnobs } from "../../runKnobs.ts";
 import { SchemaFailure } from "../../SchemaFailure.ts";
-import { whatReviewCaughtOf } from "../../stepRecords.ts";
+import {
+  type ReadyResearchRecord,
+  whatReviewCaughtOf,
+} from "../../stepRecords.ts";
 import { type RecordedSession, type StepAgent } from "../../transcriptFacts.ts";
 import { UnhandledStop } from "../../UnhandledStop.ts";
 import {
   type gapCheckLabel,
   type Heads,
+  type LandingTicket,
   type LaunchedStep,
   type RanStep,
   type TicketRun,
   type TicketState,
   type TicketStep,
 } from "../runState.ts";
+
+interface RedChecksLoop {
+  // The failing check's command and output tail; undefined when green.
+  redOf(): Promise<string | undefined>;
+  sendBack(failure: string): Promise<void>;
+}
 
 export const ticketSteps = {
   isSameHeads(first: Heads, second: Heads): boolean {
@@ -139,6 +150,26 @@ export const ticketSteps = {
       );
     }
     return output.record;
+  },
+
+  // A ticket's checks: each red failure goes to sendBack, until the checks come back green.
+  async checkUntilGreen({ redOf, sendBack }: RedChecksLoop): Promise<void> {
+    for (;;) {
+      const failure = await redOf();
+      if (failure === undefined) return;
+      await sendBack(failure);
+    }
+  },
+
+  // The research step keeps only a ready record without halting the ticket, so the checks never meet another.
+  readyResearchRecordOf({ ticket, state }: LandingTicket): ReadyResearchRecord {
+    const record = state.researchRecord;
+    if (record?.status !== "ready") {
+      throw new Error(
+        `${issueRef.labelOf(ticket.issue)} reached its ${state.step} step with no ready research record`,
+      );
+    }
+    return record;
   },
 
   reviewFactsOf({

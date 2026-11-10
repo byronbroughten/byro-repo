@@ -78,6 +78,8 @@ Reads need no yes in any tier. A Bash read is free as a sandboxed call and asks 
 - **A spreadsheet target gives the step that target's live `npm run` aliases and the gworkspace Sheets tools; a Doc target gives the Docs tools.** A ticket naming no targets launches with no tools beyond what the primary's gate allows, and no Google access at all.
 - **A step's live alias for a spreadsheet its ticket doesn't target is refused**, as is one the target doesn't give (`liveAliases` in `.claude/hooks/lib/tiers/tiers/runnerStep.ts`).
 - **A step's gworkspace write to a file its ticket doesn't name is refused, listing the ticket's targets.** The `app` and `dev` spreadsheet IDs come from each package's `sheets.config.json`.
+- **A piece spec's steps also get the Drive reads `get_drive_file_content` and `get_drive_file_download_url` for each Drive file ID its `## Supporting Material` section lists, as read-only sources**; a step's Drive read of any other file is refused (`driveReads` in `.claude/hooks/lib/tiers/driveTiers.ts`).
+- **A step whose ticket names a target gets only the gworkspace tools its targets give**: the runner withholds every other one the primary's settings allow, so a source-only step reads Drive through those two reads alone (`withheldGworkspaceToolsOf` in `runner/src/ClaudeAgentStep.ts`).
 - **The runner reads the section with the Model fit pair just before each launch**, so a target added mid-run takes effect, and its preflight refuses a run with a malformed line.
 
 ## Targets: dev and app

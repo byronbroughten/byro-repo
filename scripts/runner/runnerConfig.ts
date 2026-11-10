@@ -48,7 +48,7 @@ const codeWorkflow = codeWorkflowOf({
 // The piece checks and the Docs token file, the same one doc:print reads.
 const pieceWorkflow = pieceWorkflowOf({
   overlapCommand: ["npm", "run", "overlap"],
-  verifyQuotesCommand: ["npm", "run", "verify:quotes"],
+  verifyQuotesCommand: ["npm", "run", "verify:quotes", "--"],
   docsCredentialPath: join(homedir(), ".clasprc-docs.json"),
 });
 const scriptFolder = fileURLToPath(new URL(".", import.meta.url));

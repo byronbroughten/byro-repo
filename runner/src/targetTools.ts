@@ -1,5 +1,5 @@
-// The tools ClaudeAgentStep.ts adds to a step for each of its ticket's targets, on top of the primary's settings.
-// The write lists mirror .claude/hooks/lib/tiers/driveTiers.ts and the live aliases tiers/runnerStep.ts, which decides them; neither can be imported across the hooks boundary.
+// The tools ClaudeAgentStep.ts adds to a step for each of its ticket's targets and its spec's sources, on top of the primary's settings.
+// The write lists and the Drive reads mirror .claude/hooks/lib/tiers/driveTiers.ts and the live aliases tiers/runnerStep.ts, which decides them; neither can be imported across the hooks boundary.
 import type { SpreadsheetName, Target } from "./ticketTargets.ts";
 
 const appAliases = [
@@ -64,6 +64,9 @@ const gworkspaceTools: Record<"sheets" | "docs", GworkspaceKindTools> = {
   },
 };
 
+// The two reads /research-piece's step 1 makes of a source: a short text's content, and a PDF's download.
+const driveReads = ["get_drive_file_content", "get_drive_file_download_url"];
+
 const gworkspaceWrites = new Set(
   gworkspaceToolsOf([
     ...gworkspaceTools.sheets.writes,
@@ -75,6 +78,7 @@ const gworkspaceWrites = new Set(
 export function toolsOf(targets: Target[]): string[] {
   const tools = targets.flatMap((target) => {
     if (target.kind === "doc") return kindToolsOf(gworkspaceTools.docs);
+    if (target.kind === "source") return gworkspaceToolsOf(driveReads);
     return [
       ...liveAliases[target.name].map(
         (alias) => `Bash(npm run ${target.name}:${alias}*)`,

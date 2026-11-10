@@ -31,6 +31,12 @@ import { runHalts } from "./runState/runHalts.ts";
 import { ticketSteps } from "./runState/ticketSteps.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 
+export interface RedCheckBudget {
+  limit: number;
+  // Takes the resumes already spent.
+  failureOf(resumes: number): StepFailure;
+}
+
 export class HaltRaiser extends SpecRunBase {
   // Snapshots a step that edits; a crash past the retries is a Failure Halt.
   async _takeCrash(ticketRun: TicketRun, crash: Crash): Promise<void> {
@@ -50,6 +56,20 @@ export class HaltRaiser extends SpecRunBase {
       run,
       `${issueRef.labelOf(ticket.issue)}: ${detail} Retrying, ${taken + 1} of ${retriesPerFailure}.`,
     );
+  }
+
+  // A red check sends its step back up to the limit, counted across the ticket's checks, then raises the Failure Halt.
+  async _spendRedCheckResume(
+    ticketRun: TicketRun,
+    { limit, failureOf }: RedCheckBudget,
+  ): Promise<void> {
+    const { run, state } = ticketRun;
+    const resumes = state.redCheckResumes ?? 0;
+    if (resumes >= limit) {
+      await this._failureHalt(ticketRun, failureOf(resumes));
+    }
+    state.redCheckResumes = resumes + 1;
+    this._saveState(run);
   }
 
   async _failureHalt(

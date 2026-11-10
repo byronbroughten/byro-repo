@@ -1,4 +1,4 @@
-// Decides the gate for a gworkspace call by tier: a write is free on a file the developer owns, and asks on anyone else's; a runner step may write only its ticket's targets. Pure; tierGate.ts does the I/O, driveOwners.ts the real lookup.
+// Decides the gate for a gworkspace call by tier: a write is free on a file the developer owns, and asks on anyone else's; a runner step may write only its ticket's targets, and Drive-read only those and its spec's sources. Pure; tierGate.ts does the I/O, driveOwners.ts the real lookup.
 import type { SheetsConfigEntry } from "../sheetsConfigs.ts";
 import {
   blockerInstead,
@@ -19,10 +19,12 @@ export interface OwnerCache {
   write(fileId: string, owners: string[]): void;
 }
 
-// A file a runner step's ticket names; id is undefined when its sheets config has none.
+// A file a runner step's ticket names, or a source its spec lists; id is undefined when its sheets config has none.
 export interface StepTarget {
   label: string;
   id: string | undefined;
+  // A source is read, never written.
+  isReadOnly?: boolean;
 }
 
 export interface DriveCall {
@@ -34,7 +36,7 @@ export interface DriveCall {
   targets: StepTarget[];
 }
 
-type FileWrite = Omit<DriveCall, "input"> & { fileId: string | undefined };
+type FileCall = Omit<DriveCall, "input"> & { fileId: string | undefined };
 
 const developerAccounts = [
   "byronbroughten@gmail.com",
@@ -78,6 +80,11 @@ const fileCreations = new Set([
   "mcp__gworkspace__import_to_google_slides",
   "mcp__gworkspace__export_doc_to_pdf",
 ]);
+// The Drive reads a runner step gets for its spec's sources; only a runner step's are checked.
+const driveReads = new Set([
+  "mcp__gworkspace__get_drive_file_content",
+  "mcp__gworkspace__get_drive_file_download_url",
+]);
 // The tools that can change who reaches a file, and update_drive_file's arguments that do.
 const sharing = {
   manageDriveAccess: "mcp__gworkspace__manage_drive_access",
@@ -98,6 +105,9 @@ async function baseDecision({
   ...call
 }: DriveCall): Promise<Decision | undefined> {
   const { toolName } = call;
+  if (driveReads.has(toolName)) {
+    return readDecision({ ...call, fileId: stringOf(input.file_id) });
+  }
   if (fileCreations.has(toolName)) {
     return gateOf(
       "allow",
@@ -128,6 +138,9 @@ export function stepTargetsOf(
   return stepTargetEntriesOf(json).flatMap((target) => {
     if (target?.kind === "doc" && typeof target.id === "string") {
       return [{ label: "doc", id: target.id }];
+    }
+    if (target?.kind === "source" && typeof target.id === "string") {
+      return [{ label: "source", id: target.id, isReadOnly: true }];
     }
     const config = sheetsConfigs.find(
       ({ scriptPrefix }) => scriptPrefix === target?.name,
@@ -235,15 +248,16 @@ async function writeDecision({
   ownersOf,
   mode,
   targets,
-}: FileWrite): Promise<Decision> {
+}: FileCall): Promise<Decision> {
   const tool = `\`${shortNameOf(toolName)}\``;
   if (fileId === undefined) {
     return gateOf("ask", `${tool} names no file to look its owner up by.`);
   }
-  if (mode === "runnerStep" && !targets.some(({ id }) => id === fileId)) {
+  const writable = targets.filter(({ isReadOnly }) => !isReadOnly);
+  if (mode === "runnerStep" && !isStepFile(writable, fileId)) {
     return gateOf(
       "deny",
-      `${tool} writes to file \`${fileId}\`, which isn't among this ticket's targets (${targetsShown(targets)}), so ${blockerInstead}.`,
+      `${tool} writes to file \`${fileId}\`, which isn't among this ticket's targets (${targetsShown(writable)}), so ${blockerInstead}.`,
     );
   }
   const owners = await ownersOf(fileId);
@@ -261,6 +275,31 @@ async function writeDecision({
   return needsYes(
     `${tool} writes to file \`${fileId}\`, owned by ${ownersShown(owners)}, which neither of the developer's accounts owns`,
   );
+}
+
+// An Interactive session's reads need no yes; a runner step reads only its targets and its spec's sources.
+function readDecision({
+  toolName,
+  fileId,
+  mode,
+  targets,
+}: FileCall): Decision | undefined {
+  if (mode !== "runnerStep") return undefined;
+  const tool = `\`${shortNameOf(toolName)}\``;
+  if (fileId === undefined) {
+    return gateOf("deny", `${tool} names no file, so ${blockerInstead}.`);
+  }
+  if (isStepFile(targets, fileId)) {
+    return gateOf("allow", `file \`${fileId}\` is this step's to read.`);
+  }
+  return gateOf(
+    "deny",
+    `${tool} reads file \`${fileId}\`, which isn't among this ticket's targets or its spec's sources (${targetsShown(targets)}), so ${blockerInstead}.`,
+  );
+}
+
+function isStepFile(targets: StepTarget[], fileId: string): boolean {
+  return targets.some(({ id }) => id === fileId);
 }
 
 function targetsShown(targets: StepTarget[]): string {
