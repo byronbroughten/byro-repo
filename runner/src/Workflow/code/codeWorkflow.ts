@@ -4,7 +4,12 @@
 
 import type { Command } from "../../runKnobs.ts";
 import type { TicketState, TicketStep } from "../../SpecRun/runState.ts";
-import type { AgentSteps, Workflow, WorkflowStep } from "../../Workflow.ts";
+import type {
+  AgentSteps,
+  SpecEnd,
+  Workflow,
+  WorkflowStep,
+} from "../../Workflow.ts";
 import {
   gapCheckOutputSchema,
   gapCheckPrompt,
@@ -105,6 +110,14 @@ const agentSteps: AgentSteps = {
   },
 };
 
+const specEnd: SpecEnd = {
+  steps: ["gap-check"],
+  // The gap check waits for every ticket to close, since an open one may still land what it would report.
+  isDue(waits) {
+    return waits.length === 0;
+  },
+};
+
 // A repo's own values: the checks each ticket runs after review, and the skill its review step calls.
 export interface CodeWorkflowInput {
   checks: Command[];
@@ -124,6 +137,7 @@ export function codeWorkflowOf({
     agentSteps,
     checks,
     reviewSkillName,
+    specEnd,
   };
 }
 

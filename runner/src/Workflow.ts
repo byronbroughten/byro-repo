@@ -1,5 +1,6 @@
 // The one seam between the run core and its Workflows: the Workflow type, the agent steps' rules and the pick of a
-// spec's Workflow. SpecRun/TicketSequencer.ts reaches a Workflow's Step sequence only through this module, and every
+// spec's Workflow. SpecRun/TicketSequencer.ts reaches a Workflow's Step sequence only through this module, SpecRun/ReviewListPoster.ts
+// its spec-end Steps, and every
 // collaborator that launches an agent step takes its prompt, record schema and record checks from the Workflow SpecRunBase._workflowOf picks.
 // Each Workflow's own code is in Workflow/<name>/.
 // A ticket follows its spec's Workflow. Labels are Trusted, since only collaborators can add one.
@@ -10,6 +11,7 @@ import type {
   TicketState,
   TicketStep,
   TrackedIssue,
+  Wait,
 } from "./SpecRun/runState.ts";
 import type {
   Finding,
@@ -35,6 +37,16 @@ export interface Workflow {
   checks: Command[];
   // Called through the Skill tool by the review step.
   reviewSkillName: string;
+  specEnd: SpecEnd;
+}
+
+// A Step that runs once at a spec's end, rather than in each ticket; the core runs each by its name.
+export type SpecEndStep = "gap-check";
+
+export interface SpecEnd {
+  // Run in order, each when a member's end finds the steps due.
+  steps: SpecEndStep[];
+  isDue(waits: Wait[]): boolean;
 }
 
 export interface AgentSteps {
