@@ -1,5 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -19,6 +18,7 @@ import {
   spec,
   specRun,
   type StepScript,
+  temp,
   ticketState,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
@@ -161,10 +161,7 @@ describe("run on a piece spec", () => {
 });
 
 function scratchFolder(): string {
-  const folder = join(
-    mkdtempSync(join(tmpdir(), "piece-")),
-    "research-scratch",
-  );
+  const folder = join(temp, "research-scratch");
   mkdirSync(join(folder, "texts"), { recursive: true });
   writeFileSync(join(folder, "comment.md"), "## Research\n\nThe ferry ran.\n");
   return folder;

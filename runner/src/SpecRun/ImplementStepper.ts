@@ -7,12 +7,9 @@
 
 import { saveUncommitted } from "../git.ts";
 import {
-  failureOptions,
   freshResumeSection,
   type Halt,
-  handoffCapDetailOf,
   resumePrompt,
-  runnerMark,
   splitHaltOf,
 } from "../halts.ts";
 import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
@@ -169,7 +166,7 @@ export class ImplementStepper extends SpecRunBase {
     ticketRun: TicketRun,
     handoff: Handoff,
   ): Promise<void> {
-    const { run, ticket, state } = ticketRun;
+    const { ticket, state } = ticketRun;
     const sessionId = sessionIdOf(
       ticket.issue,
       "handoff",
@@ -181,38 +178,29 @@ export class ImplementStepper extends SpecRunBase {
       handoff,
       sessionId,
     );
-    await this.config.github.comment(ticket.issue, `${runnerMark}\n${comment}`);
-    state.handoffCount = count;
     state.latestHandoff = handoff;
-    this._saveState(run);
-    this._log(run, `${issueRef.labelOf(ticket.issue)}: handoff ${count}.`);
+    await this._postHandoff(ticketRun, comment);
   }
 
-  // Checked at each fresh step's launch, so a crash or an answer other than `continue +1 handoff` never skips it.
+  // The split Halt is checked with the cap, so a split past the cap rides on the cap's Failure Halt.
   private async _haltBeforeFreshStep(
     ticketRun: TicketRun,
     { proposedSplit }: Handoff,
   ): Promise<void> {
     const { run, ticket, state } = ticketRun;
     const count = state.handoffCount ?? 0;
-    const cap =
-      this.config.knobs.handoffsPerTicket + (state.extraHandoffs ?? 0);
     const isSplitUnhalted =
       proposedSplit !== undefined && state.splitHaltedHandoff !== count;
-    if (count > cap) {
-      if (isSplitUnhalted) state.splitHaltedHandoff = count;
-      await this.haltRaiser._failureHalt(ticketRun, {
-        step: state.step,
-        detail: handoffCapDetailOf({
-          ticket: ticket.issue,
-          count,
-          cap,
-          slices: isSplitUnhalted ? proposedSplit : [],
-        }),
-        logPath: this._progressPathOf(run),
-        options: [failureOptions.moreHandoffs],
-      });
+    if (
+      isSplitUnhalted &&
+      ticketSteps.isPastHandoffCap(state, this.config.knobs)
+    ) {
+      state.splitHaltedHandoff = count;
     }
+    await this.haltRaiser._haltPastHandoffCap(
+      ticketRun,
+      isSplitUnhalted ? proposedSplit : [],
+    );
     if (!isSplitUnhalted) return;
     const downstream = await this.haltRaiser._downstreamOf(run, ticket.issue);
     runHalts.raise(run, {

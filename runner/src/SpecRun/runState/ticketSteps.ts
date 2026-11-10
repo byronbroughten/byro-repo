@@ -97,6 +97,15 @@ export const ticketSteps = {
     );
   },
 
+  // The handoffsPerTicket knob plus the ticket's `continue +1 handoff` answers.
+  isPastHandoffCap(state: TicketState, knobs: RunKnobs): boolean {
+    return (state.handoffCount ?? 0) > ticketSteps.handoffCapOf(state, knobs);
+  },
+
+  handoffCapOf(state: TicketState, { handoffsPerTicket }: RunKnobs): number {
+    return handoffsPerTicket + (state.extraHandoffs ?? 0);
+  },
+
   liveCeilingPhraseOf({ liveCeiling }: RunKnobs): string {
     return `the live ceiling of ${liveCeiling}`;
   },

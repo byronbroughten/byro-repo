@@ -8,15 +8,12 @@ import { resolve } from "node:path";
 import { stepReadLine } from "../../IssueReader.ts";
 import {
   arraySchema,
+  blockerSchema,
   objectSchema,
   schemaProblemsOf,
   stringSchema,
 } from "../../recordSchema.ts";
-import {
-  blockerKinds,
-  type ResearchHandoff,
-  type ResearchRecord,
-} from "../../stepRecords.ts";
+import type { ResearchHandoff, ResearchRecord } from "../../stepRecords.ts";
 import type { ResearchPromptInput } from "../../Workflow.ts";
 
 const skillPath = ".claude/skills/research-piece/SKILL.md";
@@ -96,12 +93,6 @@ function bulletsOf(items: string[]): string {
   if (items.length === 0) return " none";
   return items.map((item) => `\n- ${item}`).join("");
 }
-
-const blockerSchema = objectSchema({
-  kind: { enum: blockerKinds },
-  detail: stringSchema,
-  recommendation: stringSchema,
-});
 
 const countSchema = { type: "integer", minimum: 0 };
 

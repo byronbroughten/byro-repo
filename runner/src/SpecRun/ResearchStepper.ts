@@ -1,15 +1,10 @@
 // A piece spec's research ticket's research step: launches it fresh, the developer's answers to its Halts included, and
 // keeps its record on the ticket's state once the record passes its checks; a failed check is a SchemaFailure, which
-// TicketSequencer.ts raises as a Failure Halt. A blocked record's blockers halt the ticket at once; a handoff posts
+// TicketSequencer.ts raises as a Failure Halt. Any record's blockers halt the ticket at once; a handoff posts
 // on the ticket and launches a fresh step, halting first past the handoff cap, as ImplementStepper.ts's does.
 // It builds its own HaltRaiser and StepLauncher; the step's prompt, schema and checks are its spec's Workflow's, through ../Workflow.ts.
 
-import {
-  failureOptions,
-  freshResumeSection,
-  handoffCapDetailOf,
-  runnerMark,
-} from "../halts.ts";
+import { freshResumeSection } from "../halts.ts";
 import { issueRef } from "../IssueWorkspaces.ts";
 import type { ResearchHandoff, ResearchRecord } from "../stepRecords.ts";
 import type { ResearchRules } from "../Workflow.ts";
@@ -43,7 +38,7 @@ export class ResearchStepper extends SpecRunBase {
   ): Promise<ResearchRecord> {
     const { run, ticket, workspace, state } = ticketRun;
     if (state.latestResearchHandoff !== undefined) {
-      await this._haltPastHandoffCap(ticketRun);
+      await this.haltRaiser._haltPastHandoffCap(ticketRun, []);
     }
     const rules = this._researchRulesOf(ticketRun);
     const halts = runHalts.undeliveredOf(run, ticket.issue);
@@ -78,12 +73,11 @@ export class ResearchStepper extends SpecRunBase {
       launched.deniedTools,
     );
     if (record.status === "handoff") return record;
-    if (record.status === "blocked") {
-      await this.haltRaiser._haltOnUnpostedHalts(ticketRun);
-    }
+    // Kept before its blockers halt the ticket, a blocked record's and a ready one's alike, since no later step posts them.
     state.researchRecord = record;
     state.latestResearchHandoff = undefined;
     this._saveState(run);
+    await this.haltRaiser._haltOnUnpostedHalts(ticketRun);
     return record;
   }
 
@@ -91,43 +85,19 @@ export class ResearchStepper extends SpecRunBase {
     ticketRun: TicketRun,
     handoff: ResearchHandoff,
   ): Promise<void> {
-    const { run, ticket, state } = ticketRun;
+    const { ticket, state } = ticketRun;
     const sessionId = ticketSteps.lastSessionOf(state, "research");
     if (sessionId === undefined) {
       throw new Error(
         `${issueRef.labelOf(ticket.issue)}'s research handoff has no session id.`,
       );
     }
-    const count = (state.handoffCount ?? 0) + 1;
     const comment = this._researchRulesOf(ticketRun).handoffCommentOf(
       handoff,
       sessionId,
     );
-    await this.config.github.comment(ticket.issue, `${runnerMark}\n${comment}`);
-    state.handoffCount = count;
     state.latestResearchHandoff = handoff;
-    this._saveState(run);
-    this._log(run, `${issueRef.labelOf(ticket.issue)}: handoff ${count}.`);
-  }
-
-  // Checked at each fresh step's launch, so a crash or an answer other than `continue +1 handoff` never skips it.
-  private async _haltPastHandoffCap(ticketRun: TicketRun): Promise<void> {
-    const { run, ticket, state } = ticketRun;
-    const count = state.handoffCount ?? 0;
-    const cap =
-      this.config.knobs.handoffsPerTicket + (state.extraHandoffs ?? 0);
-    if (count <= cap) return;
-    await this.haltRaiser._failureHalt(ticketRun, {
-      step: state.step,
-      detail: handoffCapDetailOf({
-        ticket: ticket.issue,
-        count,
-        cap,
-        slices: [],
-      }),
-      logPath: this._progressPathOf(run),
-      options: [failureOptions.moreHandoffs],
-    });
+    await this._postHandoff(ticketRun, comment);
   }
 
   private _researchRulesOf({ run }: TicketRun): ResearchRules {
