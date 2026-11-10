@@ -113,7 +113,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/SpecRunBase.ts` | | The Base every collaborator shares: config, run state, progress log, notices, snapshots, a run's end and an issue's review-list judgement. |
 | `SpecRun/StandaloneTicketLister.ts` | | `runner standalone`: lists a repo's launchable Standalone tickets, leaving out each the Batch preflight would refuse, with its reason. |
 | `SpecRun/StatusReporter.ts` | | A run's or Batch's status, and its stop request. |
-| `SpecRun/StepLauncher.ts` | | Launches an agent step under the limit guard, retries a crash and waits out a limit that cuts a step off. |
+| `SpecRun/StepLauncher.ts` | | Launches an agent step under the limit guard, retries a crash and resumes a step a limit cut off, delegating the limit waits to `StepLauncher/`. |
+| `SpecRun/StepLauncher/LimitWaiter.ts` | | Holds a launch until the Active account reads under its thresholds and waits out a limit hit. |
 | `SpecRun/TicketLander.ts` | | Lands a ticket: writes its facts file, runs the wrap-up and posts its review list, delegating its checks and wrap-up failures to `TicketLander/`. |
 | `SpecRun/TicketLander/MasterMerger.ts` | | Takes a ticket's wrap-up failure, merging master into its branch on a conflict and resuming the implementer to resolve it. |
 | `SpecRun/TicketLander/TicketChecker.ts` | | Runs a ticket's checks until green, resuming on red and stopping on a red master. |
