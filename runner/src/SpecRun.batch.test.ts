@@ -10,7 +10,7 @@ import { eventFilePathOf, eventLinesOf } from "./EventFileNotices.ts";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
 import { gapCheckOutputSchema } from "./gapCheck.ts";
 import type { Blocker } from "./implementStep.ts";
-import type { IssueRef } from "./IssueWorkspaces.ts";
+import type { IssueRef, LeaseHolder } from "./IssueWorkspaces.ts";
 import { seedHolder } from "./lockFixture.ts";
 import type { ResolveRecord } from "./resolveStep.ts";
 import { runKnobsOf } from "./runKnobs.ts";
@@ -22,12 +22,14 @@ import {
   batchEventLines,
   blocked,
   clonePaths,
+  eventOf,
   findingOf,
   github,
   greenUnlessRed,
   implemented,
   masterSubjects,
   notices,
+  progressLines,
   refOf,
   resultOf,
   reviewed,
@@ -57,6 +59,9 @@ const ambiguous: Blocker = {
   detail: "The spec reads both ways.",
   recommendation: "Read it the first way.",
 };
+
+// The test runner's parent outlives every test, so it stands in for an interactive session's claude.
+const session: LeaseHolder = { kind: "session", pid: process.ppid };
 
 const propose: ResolveRecord = {
   finding: 1,
@@ -675,15 +680,13 @@ describe("a Batch's record", () => {
     expect(lines.map(({ spec, kind }) => ({ spec, kind }))).toEqual([
       { spec: "byro-repo#301", kind: "run-started" },
       { spec: "byro-repo#302", kind: "run-started" },
-      { spec: "byro-repo#301", kind: "member-ended" },
-      { spec: "byro-repo#302", kind: "member-ended" },
       { spec: "byro-repo#301", kind: "run-ended" },
     ]);
     expect(existsSync(eventFilePathOf(stateFolder(), first))).toBe(false);
     expect(existsSync(eventFilePathOf(stateFolder(), second))).toBe(false);
   });
 
-  it("ends each member with a member-ended line saying how, and the whole Batch with one run-ended line carrying its result", async () => {
+  it("writes no member-ended line for a finished member, logging its end alone, and one run-ended line carrying the Batch's result", async () => {
     addIssue(blocker.number);
     addIssue(dependent.number);
     github.blockers.set(dependent.number, [blocker.number]);
@@ -704,14 +707,79 @@ describe("a Batch's record", () => {
       [
         ["byro-repo#498", "run-started", undefined],
         ["byro-repo#499", "run-started", undefined],
-        ["byro-repo#498", "member-ended", "finished"],
-        ["byro-repo#499", "member-ended", "finished"],
         ["byro-repo#498", "run-ended", "finished"],
       ],
     );
     expect(lines.at(-1)?.summary).toBe(
       "Batch ended: byro-repo #498, byro-repo #499 landed. Review lists: nothing needs judging.",
     );
+    expect(progressLines(dependent.number).map(eventOf)).toContainEqual(
+      expect.stringMatching(/^Run ended: landed byro-repo #499\./),
+    );
+  });
+
+  it("writes a member-ended line for a stopped member, and a run-ended line naming each member's review-list count and its /judge-findings command", async () => {
+    [first, second, third].forEach(({ number }) => {
+      addIssue(number);
+    });
+    const agentStep = FakeAgentStep.init(
+      blocked([gated]),
+      ...proposed("second.ts"),
+      implemented("third.ts", {
+        act: () => github.reply(first.number, "H1: stop spec"),
+      }),
+      reviewed(),
+    );
+
+    await runBatch(agentStep, {
+      members: [first, second, third],
+      ...withEventFile(),
+    });
+
+    const lines = batchEventLines([first, second, third]);
+    expect(
+      lines
+        .filter(({ kind }) => kind === "member-ended" || kind === "run-ended")
+        .map(({ spec, kind, ending }) => [spec, kind, ending]),
+    ).toEqual([
+      ["byro-repo#301", "member-ended", "stopped"],
+      ["byro-repo#301", "run-ended", "stopped"],
+    ]);
+    expect(lines.at(-1)?.summary).toContain(
+      "Review lists: #301 none, #302 1 undecided, #303 none. Judge them: `/judge-findings byro-repo 302`.",
+    );
+  });
+
+  it("writes every member's idle line when one waits on a lease and another only on Halts", async () => {
+    addIssue(first.number);
+    addIssue(second.number);
+    const { workspaces } = specRun(FakeAgentStep.init());
+    const leased = await workspaces.create(second);
+    await workspaces.takeLease(leased, session);
+    const agentStep = FakeAgentStep.init(
+      blocked([gated]),
+      implemented("first.ts"),
+      reviewed(),
+      implemented("second.ts"),
+      reviewed(),
+    );
+
+    await runBatch(agentStep, {
+      members: [first, second],
+      ...withEventFile(),
+      async sleep() {
+        github.reply(first.number, "H1: I ran it.");
+        await workspaces.releaseLease(leased);
+      },
+    });
+
+    const idle = batchEventLines([first, second]).filter(
+      ({ kind }) => kind === "idle",
+    );
+    expect(idle.map(({ spec }) => spec)).toEqual([
+      "byro-repo#301",
+      "byro-repo#302",
+    ]);
   });
 
   it("isn't written for a member run alone, whose events go to its own file even after a crashed Batch left one", async () => {

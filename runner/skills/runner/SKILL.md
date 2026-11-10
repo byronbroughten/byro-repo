@@ -55,14 +55,14 @@ For every event, tell the developer:
 
 A Halt on a `denied-tool` blocker whose edit the ticket already specifies is yours to clear: say so, then clear it as step 6 says. Every other Halt stays the developer's: a verdict Halt, a `spec-ambiguity` or `gated-action` blocker, a Split Halt or a Failure Halt gets its suggested reply, posted only once settled (step 5).
 
-A `run-started` line: say the run is working, and on which ticket. List its `warnings`, each a stale clone path; they never stop the run, but wrap-up refuses a ticket that touches one of their files. An `idle` line says what holds the run, such as an open Halt or another holder's lease. Say what clears it. A `vanished` line: as for `crashed` below, point the developer to the tmux pane. A `run-ended` line carries its `ending`:
+A `run-started` line: say the run is working, and on which ticket. List its `warnings`, each a stale clone path; they never stop the run, but wrap-up refuses a ticket that touches one of their files. An `idle` line says what holds the run, such as another holder's lease or an Interactive ticket, beside any open Halt. Say what clears it. A wait on Halts alone writes no `idle` line, since each Halt's own line already woke you. A `vanished` line: as for `crashed` below, point the developer to the tmux pane. A `run-ended` line carries its `ending`:
 
 - `finished`: relay the summary's review-list counts and its `/judge-findings` command, or that nothing needs judging.
 - `stopped`: say what stopped it, then relay its review-list counts and command as for `finished`.
 - `crashed`: point the developer to the tmux pane, through the `tmux attach` command the line's summary names.
 - `refused`: say what the run refused.
 
-A `member-ended` line is one Batch member's end: say which member its `spec` names and how it ended, by its `ending` and summary, and that the Batch goes on with the rest. The Batch's one `run-ended` line, its summary naming which members landed, comes once every member has ended.
+A `member-ended` line is one Batch member's end other than `finished`: say which member its `spec` names and how it ended, by its `ending` and summary, and that the Batch goes on with the rest. A member that finishes writes no line. The Batch's one `run-ended` line comes once every member has ended, its summary rolling up the whole Batch: which members landed, and every member's review-list count with one `/judge-findings` command, or that nothing needs judging.
 
 A Restart writes no event line: a run that lands a change to the runner itself ends and relaunches at once in the same tmux session, a Batch with the same list, resuming where it ended, and the relaunch writes no `run-started` line. The run's end message counts the landings from before the Restart too.
 
