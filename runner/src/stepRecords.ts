@@ -35,6 +35,45 @@ interface RecordBody {
   blockers: Blocker[];
 }
 
+// A piece spec's drafting ticket's implement record: code's without `applied`, since a drafting ticket always drafts.
+export type PieceImplementRecord =
+  DraftedRecord | BlockedRecord | HandoffRecord;
+
+export interface DraftedRecord extends CommittedRecord {
+  // Each heading's exact text, as the Agent draft holds it.
+  sectionsDrafted: string[];
+}
+
+// What an implement record's schema can't see: whether the step's status matches the commits git shows it made.
+export function implementRecordProblems(
+  record: ImplementRecord,
+  hasNewCommit: boolean,
+): string[] {
+  if (record.status === "committed" && !hasNewCommit) {
+    return ["the record says committed, but the step made no new commit"];
+  }
+  if (record.status === "handoff" && hasNewCommit) {
+    return [newCommitProblem("a handoff must leave its work uncommitted")];
+  }
+  if (record.status === "applied" && hasNewCommit) {
+    return [newCommitProblem("an applied record must commit nothing")];
+  }
+  if (record.status === "blocked" && hasNewCommit) {
+    return [newCommitProblem("a blocked record must commit nothing")];
+  }
+  return [];
+}
+
+function newCommitProblem(rule: string): string {
+  return `${rule}, but the step made a new commit`;
+}
+
+export function implementRecordOf<IR extends ImplementRecord>(
+  output: unknown,
+): IR {
+  return (output as { record: IR }).record;
+}
+
 export interface CommittedBranch {
   repo: string;
   branch: string;

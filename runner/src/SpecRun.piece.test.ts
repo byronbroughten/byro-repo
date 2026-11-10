@@ -22,6 +22,7 @@ import {
   commentsOn,
   github,
   haltComments,
+  handoffResultOf,
   holdDocs,
   implemented,
   masterSubjects,
@@ -37,7 +38,7 @@ import {
   useSpecRunHarness,
 } from "./specRunHarness.ts";
 import { stepResults } from "./specRunHarness/stepResults.ts";
-import type { ResearchRecord } from "./stepRecords.ts";
+import type { PieceImplementRecord, ResearchRecord } from "./stepRecords.ts";
 import { toolsOf } from "./targetTools.ts";
 
 useSpecRunHarness();
@@ -50,37 +51,40 @@ function addPieceSpec(tickets: number[]): void {
   });
 }
 
-describe("pull on a piece spec's drafting ticket", () => {
-  function addDraftingSpec(): void {
-    addSpec([1]);
-    github.edit(spec.number, {
-      labels: ["piece"],
-      body: `## Deliverable\n\nThe crossing, doc ${deliverableId}.\n`,
-    });
-    holdDocs(
-      docOf({
-        "The harbour": "Gulls circled the quay at dawn.",
-        "The crossing": "The ferry left late.",
-      }),
-    );
-  }
+function addDraftingSpec(): void {
+  addSpec([1]);
+  github.edit(spec.number, {
+    labels: ["piece"],
+    body: `## Deliverable\n\nThe crossing, doc ${deliverableId}.\n`,
+  });
+  holdDocs(
+    docOf({
+      "The harbour": "Gulls circled the quay at dawn.",
+      "The crossing": "The ferry left late.",
+    }),
+  );
+}
 
+describe("pull on a piece spec's drafting ticket", () => {
   it("pulls every Section of a first ticket's Doc into the Agent draft, marked as the developer's, and commits it", async () => {
     addDraftingSpec();
-    const agentStep = FakeAgentStep.init();
+    const seen = { draft: "", subject: "", status: "" };
+    const agentStep = FakeAgentStep.init(async (request) => {
+      seen.draft = readFileSync(join(request.cwd, draftPath), "utf8");
+      seen.subject = git(request.cwd, "log", "-1", "--format=%s");
+      seen.status = git(request.cwd, "status", "--porcelain");
+      return drafted()(request);
+    });
 
-    const result = await specRun(agentStep).run(spec);
+    await specRun(agentStep).run(spec);
 
-    expect(agentStep.requests).toEqual([]);
-    expect(readFileSync(join(workspacePath(), draftPath), "utf8")).toBe(
-      "## The harbour\n<!-- developer -->\n\nGulls circled the quay at dawn.\n\n## The crossing\n<!-- developer -->\n\nThe ferry left late.\n",
-    );
-    expect(git(workspacePath(), "log", "-1", "--format=%s")).toBe(
-      "Pull the Deliverable into the Agent draft of byro-repo #213, for #1",
-    );
-    expect(git(workspacePath(), "status", "--porcelain")).toBe("");
-    expect(result.landed).toEqual([]);
-    expect(ticketState()["byro-repo #1"]?.step).toBe("stopped");
+    expect(seen).toEqual({
+      draft:
+        "## The harbour\n<!-- developer -->\n\nGulls circled the quay at dawn.\n\n## The crossing\n<!-- developer -->\n\nThe ferry left late.\n",
+      subject:
+        "Pull the Deliverable into the Agent draft of byro-repo #213, for #1",
+      status: "",
+    });
   });
 
   it("leaves a later ticket's earlier agent Sections as the file has them", async () => {
@@ -92,10 +96,16 @@ describe("pull on a piece spec's drafting ticket", () => {
         "## The harbour\n<!-- developer -->\n\nAn older dawn.\n\n## The crossing\n<!-- agent -->\n\nThe ferry slipped its moorings at noon.\n",
       message: "Land an earlier ticket's Agent draft",
     });
+    let pulled = "";
 
-    await specRun(FakeAgentStep.init()).run(spec);
+    await specRun(
+      FakeAgentStep.init(async (request) => {
+        pulled = readFileSync(join(request.cwd, draftPath), "utf8");
+        return drafted()(request);
+      }),
+    ).run(spec);
 
-    expect(readFileSync(join(workspacePath(), draftPath), "utf8")).toBe(
+    expect(pulled).toBe(
       "## The harbour\n<!-- developer -->\n\nGulls circled the quay at dawn.\n\n## The crossing\n<!-- agent -->\n\nThe ferry slipped its moorings at noon.\n",
     );
   });
@@ -103,7 +113,7 @@ describe("pull on a piece spec's drafting ticket", () => {
   it("records each Section's Doc text as the push baseline", async () => {
     addDraftingSpec();
 
-    await specRun(FakeAgentStep.init()).run(spec);
+    await specRun(FakeAgentStep.init(drafted())).run(spec);
 
     expect(ticketState()["byro-repo #1"]?.pullBaseline).toEqual({
       documentId: deliverableId,
@@ -127,7 +137,182 @@ describe("pull on a piece spec's drafting ticket", () => {
   });
 });
 
+describe("implement on a piece spec's drafting ticket", () => {
+  it("drafts the ticket's Sections after pull, keeps the record and stops before the unbuilt review", async () => {
+    addDraftingSpec();
+    const agentStep = FakeAgentStep.init(drafted());
+
+    const result = await specRun(agentStep).run(spec);
+
+    const [request] = agentStep.requests;
+    expect(agentStep.requests).toHaveLength(1);
+    expect(request?.prompt).toContain("docs/writing-voice.md");
+    expect(request?.prompt).toContain("docs/writing-craft.md");
+    expect(request?.prompt).toContain(draftPath);
+    expect(git(workspacePath(), "log", "-1", "--format=%s")).toBe(
+      "Draft The crossing in the Agent draft",
+    );
+    expect(ticketState()["byro-repo #1"]?.record).toMatchObject({
+      status: "committed",
+      sectionsDrafted: ["The crossing"],
+    });
+    expect(result.landed).toEqual([]);
+    expect(ticketState()["byro-repo #1"]?.step).toBe("stopped");
+    expect(commentsOn(spec.number, "no review step")).toHaveLength(1);
+  });
+
+  it("names a passages folder in the workspace, outside the Agent draft and gitignored, and keeps it", async () => {
+    addDraftingSpec();
+    const agentStep = FakeAgentStep.init(async (request) => {
+      writeFileSync(join(passagesPath(), "logbook.txt"), "The storm came.\n");
+      return drafted()(request);
+    });
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests[0]?.prompt).toContain(passagesPath());
+    expect(readFileSync(join(passagesPath(), "logbook.txt"), "utf8")).toBe(
+      "The storm came.\n",
+    );
+    expect(git(workspacePath(), "status", "--porcelain")).toBe("");
+  });
+
+  it("halts on a committed record with no sectionsDrafted", async () => {
+    addDraftingSpec();
+
+    await specRun(
+      FakeAgentStep.init(drafted({ sectionsDrafted: undefined })),
+    ).run(spec);
+
+    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+    expect(haltComments()[0]).toContain("Failure Halt");
+    expect(haltComments()[0]).toContain("sectionsDrafted");
+  });
+
+  it("posts a handoff and gives the fresh step the same passages folder", async () => {
+    addDraftingSpec();
+    const passage = join(passagesPath(), "logbook.txt");
+    const agentStep = FakeAgentStep.init(async () => {
+      writeFileSync(passage, "The storm came.\n");
+      return handoffResultOf({
+        conclusion: "Drafted half of The crossing.",
+        filesToOpen: [
+          { path: draftPath, lines: "5-9" },
+          { path: passage, lines: "1" },
+        ],
+        ruledOut: [],
+        filesChanged: [draftPath],
+        stillFailing: [],
+      });
+    }, drafted());
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests).toHaveLength(2);
+    expect(agentStep.requests[1]?.prompt).toContain(
+      "Handoff from the previous step",
+    );
+    expect(agentStep.requests[1]?.prompt).toContain(`${passage}:1`);
+    expect(agentStep.requests[1]?.prompt).toContain(passagesPath());
+    expect(commentsOn(1, "## Handoff")[0]).toContain(`${draftPath}:5-9`);
+    expect(existsSync(passage)).toBe(true);
+    expect(ticketState()["byro-repo #1"]?.record?.status).toBe("committed");
+  });
+
+  it("launches with Drive reads of the spec's sources", async () => {
+    addDraftingSpec();
+    github.edit(spec.number, {
+      body: `## Deliverable\n\nThe crossing, doc ${deliverableId}.\n\n## Supporting Material\n\n- The lighthouse logbook, ${logbookId}: the storm.\n`,
+    });
+    const agentStep = FakeAgentStep.init(drafted());
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests[0]?.targets).toEqual([
+      { kind: "source", id: logbookId },
+    ]);
+  });
+
+  it("resumes a ticket halted in implement in its own session, without pulling again", async () => {
+    addDraftingSpec();
+    await specRun(FakeAgentStep.init(blockedDraft)).run(spec);
+    github.reply(spec.number, "H1: keep the earlier telling.");
+    holdDocs(
+      docOf({
+        "The harbour": "The Doc moved on.",
+        "The crossing": "The ferry left late.",
+      }),
+    );
+    const agentStep = FakeAgentStep.init(drafted());
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests[0]?.resumeSessionId).toBe("implement-session");
+    expect(agentStep.requests[0]?.prompt).toContain(
+      "H1: keep the earlier telling.",
+    );
+    expect(ticketState()["byro-repo #1"]?.pullBaseline?.sections).toMatchObject(
+      { "The harbour": "Gulls circled the quay at dawn.\n" },
+    );
+    expect(ticketState()["byro-repo #1"]?.record?.status).toBe("committed");
+  });
+});
+
 const draftPath = "writing/agent-drafts/213.md";
+
+function passagesPath(): string {
+  return join(workspacePath(), ".runner", "passages", "byro-repo-1");
+}
+
+// Rewrites The crossing as an agent Section and commits the draft, as a piece implement step would.
+function drafted(change: Partial<PieceImplementRecord> = {}): StepScript {
+  return async (request) => {
+    stepResults.commitFile({
+      cwd: request.cwd,
+      file: draftPath,
+      content:
+        "## The harbour\n<!-- developer -->\n\nGulls circled the quay at dawn.\n\n## The crossing\n<!-- agent -->\n\nThe ferry slipped out at noon.\n",
+      message: "Draft The crossing in the Agent draft",
+    });
+    return resultOf({
+      record: {
+        status: "committed",
+        branches: [
+          {
+            repo: "byro-repo",
+            branch: git(request.cwd, "branch", "--show-current"),
+            sha: git(request.cwd, "rev-parse", "HEAD"),
+          },
+        ],
+        closingComment: "Drafted The crossing.",
+        boxesUndone: [],
+        blockers: [],
+        sectionsDrafted: ["The crossing"],
+        ...change,
+      },
+    });
+  };
+}
+
+const blockedDraft: StepScript = async () => ({
+  ...resultOf({
+    record: {
+      status: "blocked",
+      branches: [],
+      closingComment: "",
+      boxesUndone: [],
+      blockers: [
+        {
+          kind: "spec-ambiguity",
+          detail: "The logbook gives two tellings of the crossing.",
+          recommendation: "Keep the earlier telling.",
+        },
+      ],
+    },
+  }),
+  sessionId: "implement-session",
+  peakContext: 90_000,
+});
 
 function workspacePath(): string {
   return join(temp, "workspaces", "byro-repo-issue-1-ticket-1");

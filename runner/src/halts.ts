@@ -4,7 +4,7 @@
 
 import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import type { IssueComment, TicketStep } from "./SpecRun.ts";
-import { proposedSplitText } from "./stepPrompts.ts";
+import { handoffText } from "./stepPrompts/handoffText.ts";
 import {
   type Blocker,
   type HaltScope,
@@ -113,7 +113,7 @@ export function splitHaltOf(
 ): HaltDraft {
   return {
     kind: "split",
-    question: `The implement step handed off with less than half the ticket done, and proposed splitting the rest into:\n\n${proposedSplitText(slices)}\n\n${splitTheTicketPhraseOf("`continue`")}: a fresh implement step picks up from the handoff on the ticket's body as it then reads.`,
+    question: `The implement step handed off with less than half the ticket done, and proposed splitting the rest into:\n\n${handoffText.proposedSplitOf(slices)}\n\n${splitTheTicketPhraseOf("`continue`")}: a fresh implement step picks up from the handoff on the ticket's body as it then reads.`,
     options: ["`continue`"],
     scope: downstream,
   };
@@ -135,7 +135,7 @@ export function handoffCapDetailOf({
 }: HandoffCap): string {
   const split =
     slices.length > 0
-      ? ` The last handoff proposed splitting the rest into:\n\n${proposedSplitText(slices)}\n\n`
+      ? ` The last handoff proposed splitting the rest into:\n\n${handoffText.proposedSplitOf(slices)}\n\n`
       : " ";
   return `${issueRef.labelOf(ticket)} handed off ${count} times, past its cap of ${cap}.${split}${splitTheTicketPhraseOf(failureOptions.moreHandoffs)}.`;
 }

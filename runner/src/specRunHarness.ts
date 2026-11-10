@@ -28,7 +28,12 @@ import type { PullBaseline } from "./SpecRun/runState.ts";
 import { stepResults } from "./specRunHarness/stepResults.ts";
 import { timing } from "./specRunHarness/timing.ts";
 import { trackedIssues } from "./specRunHarness/trackedIssues.ts";
-import type { ResearchRecord, ResolveRecord } from "./stepRecords.ts";
+import type {
+  ImplementRecord,
+  PieceImplementRecord,
+  ResearchRecord,
+  ResolveRecord,
+} from "./stepRecords.ts";
 import type { StepSession } from "./transcriptFacts.ts";
 import type { Workflows } from "./Workflow.ts";
 import { codeWorkflowOf } from "./Workflow/code/codeWorkflow.ts";
@@ -93,7 +98,8 @@ export function useSpecRunHarness(clones: ClonePaths = everyClone): void {
 
   beforeAll(() => {
     fixture = GitFixture.init(clonePaths, {
-      gitignoreOf: (repo) => (repo === "byro-repo" ? "packages/*\n" : ""),
+      gitignoreOf: (repo) =>
+        repo === "byro-repo" ? "packages/*\n.runner/\n" : "",
     });
   });
 
@@ -317,6 +323,7 @@ export function timingLines(): string[] {
 
 interface SavedTicket {
   step: string;
+  record?: ImplementRecord | PieceImplementRecord;
   resolveRecords?: ResolveRecord[];
   researchRecord?: ResearchRecord;
   pullBaseline?: PullBaseline;

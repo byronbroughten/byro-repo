@@ -1,6 +1,6 @@
 # Agent drafts
 
-An Agent draft ([GLOSSARY.md](./GLOSSARY.md#language)) is the agents' last version of a Piece's Sections, beside the developer's as the Deliverable last showed them. A drafting ticket's runner pull writes it, `/implement-piece` saves it and `/to-writing-style` diffs it against the edited Deliverable.
+An Agent draft ([GLOSSARY.md](./GLOSSARY.md#language)) is the agents' last version of a Piece's Sections, beside the developer's as the Deliverable last showed them. A drafting ticket's runner pull writes it, its implement step drafts in it, `/implement-piece` saves it and `/to-writing-style` diffs it against the edited Deliverable.
 
 ## File format
 
@@ -8,7 +8,7 @@ An Agent draft ([GLOSSARY.md](./GLOSSARY.md#language)) is the agents' last versi
 - **It holds one block per Section of the Deliverable, in the Deliverable's order**: `## <Section heading>`, then its author mark on the next line, then the Section's body in the Docs module's Markdown dialect.
 - **The author mark is `<!-- developer -->` or `<!-- agent -->`.** A Section an agent drafted is the agent's; every other Section is the developer's.
 - **A save replaces only the blocks of the Sections it covers, adding any that are new, and leaves the rest alone.** Git keeps each earlier version.
-- **The file changes only by a pull or a save.** Its edits are never made by hand.
+- **The file changes only by a pull, a save or a run's implement step.** Its edits are never made by hand.
 
 ## Pull
 
