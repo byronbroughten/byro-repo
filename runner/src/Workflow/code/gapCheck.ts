@@ -2,11 +2,11 @@
 // landed ticket covered, and the gap-check record it returns. It belongs to the spec, so it launches with no targets.
 // reviewList.ts turns its record into the final review-list comment; SpecRun.ts launches it and posts that comment.
 
-import { stepReadLine } from "./IssueReader.ts";
-import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
-import { arraySchema, objectSchema, stringSchema } from "./recordSchema.ts";
-import type { TrackedIssue } from "./SpecRun.ts";
-import type { GapCheckRecord } from "./stepRecords.ts";
+import { stepReadLine } from "../../IssueReader.ts";
+import { type IssueRef, issueRef } from "../../IssueWorkspaces.ts";
+import { arraySchema, objectSchema, stringSchema } from "../../recordSchema.ts";
+import type { TrackedIssue } from "../../SpecRun.ts";
+import type { GapCheckRecord } from "../../stepRecords.ts";
 
 export type GapCheckTicket = Pick<TrackedIssue, "issue" | "title">;
 

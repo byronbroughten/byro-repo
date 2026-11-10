@@ -1,9 +1,9 @@
 // The merge-master step's prompt and record; SpecRun.ts runs it once on a wrap-up conflict.
 
-import { stepReadLine } from "./IssueReader.ts";
-import type { IssueRef } from "./IssueWorkspaces.ts";
-import { commitMessageLine } from "./promptText.ts";
-import { arraySchema, objectSchema, stringSchema } from "./recordSchema.ts";
+import { stepReadLine } from "../../IssueReader.ts";
+import type { IssueRef } from "../../IssueWorkspaces.ts";
+import { commitMessageLine } from "../../promptText.ts";
+import { arraySchema, objectSchema, stringSchema } from "../../recordSchema.ts";
 
 export interface MergeMasterPromptInput {
   issue: IssueRef;

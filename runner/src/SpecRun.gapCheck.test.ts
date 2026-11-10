@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import type { Pair, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
-import { gapCheckOutputSchema } from "./gapCheck.ts";
 import { guidanceSectionOf } from "./halts.ts";
 import { runKnobsOf } from "./runKnobs.ts";
 import type { RunResult, SpecRunConfig } from "./SpecRun.ts";
@@ -24,6 +23,7 @@ import {
   specRun,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
+import { gapCheckOutputSchema } from "./Workflow/code/gapCheck.ts";
 
 useSpecRunHarness();
 

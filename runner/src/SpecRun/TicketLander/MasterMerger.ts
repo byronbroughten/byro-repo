@@ -1,18 +1,18 @@
 // A wrap-up failure's handling: on a conflict it starts a merge of master and resumes the implementer once to resolve it,
 // saving that merge's resolution for the review list as a Propose `decision`; any other failure Halts or Stops.
 // ../TicketLander.ts hands it each wrap-up failure from its _land.
-// It builds its own ReviewStepper and HaltRaiser; the prompt is ../../mergeMasterStep.ts.
+// It builds its own ReviewStepper and HaltRaiser; the prompt is ../../Workflow/code/mergeMasterStep.ts.
 
 import { messageOf } from "../../failureText.ts";
 import { git, isMerging } from "../../git.ts";
 import { issueRef } from "../../IssueWorkspaces.ts";
-import {
-  mergeMasterOutputSchema,
-  mergeMasterPrompt,
-} from "../../mergeMasterStep.ts";
 import { SchemaFailure } from "../../SchemaFailure.ts";
 import type { MergeMasterRecord } from "../../stepRecords.ts";
 import { UnhandledStop } from "../../UnhandledStop.ts";
+import {
+  mergeMasterOutputSchema,
+  mergeMasterPrompt,
+} from "../../Workflow/code/mergeMasterStep.ts";
 import { WrapUpFailure } from "../../WrapUpFailure.ts";
 import { HaltRaiser } from "../HaltRaiser.ts";
 import { ReviewStepper } from "../ReviewStepper.ts";

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
+import { schemaProblemsOf } from "../../recordSchema.ts";
 import {
   mergeMasterOutputSchema,
   mergeMasterPrompt,
 } from "./mergeMasterStep.ts";
-import { schemaProblemsOf } from "./recordSchema.ts";
 
 describe("mergeMasterPrompt", () => {
   const prompt = mergeMasterPrompt({

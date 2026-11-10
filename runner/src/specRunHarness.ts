@@ -15,7 +15,6 @@ import type { FakeAgentStep } from "./FakeAgentStep.ts";
 import { FakeGitHub } from "./FakeGitHub.ts";
 import { FakeNotices } from "./FakeNotices.ts";
 import { FakeUsageReader } from "./FakeUsageReader.ts";
-import { gapCheckOutputSchema } from "./gapCheck.ts";
 import { clonePathIn, git, GitFixture, rootCloneOnly } from "./GitFixture.ts";
 import type { IssueRef, LeaseHolder } from "./IssueWorkspaces.ts";
 import type { UsageList, UsageReader } from "./limitGuard.ts";
@@ -27,6 +26,7 @@ import { stepResults } from "./specRunHarness/stepResults.ts";
 import { timing } from "./specRunHarness/timing.ts";
 import type { ResolveRecord } from "./stepRecords.ts";
 import type { StepSession } from "./transcriptFacts.ts";
+import { gapCheckOutputSchema } from "./Workflow/code/gapCheck.ts";
 
 export type { StepScript } from "./specRunHarness/stepResults.ts";
 
