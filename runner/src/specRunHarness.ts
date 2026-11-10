@@ -29,6 +29,7 @@ import { stepResults } from "./specRunHarness/stepResults.ts";
 import { timing } from "./specRunHarness/timing.ts";
 import { trackedIssues } from "./specRunHarness/trackedIssues.ts";
 import type {
+  Finding,
   ImplementRecord,
   PieceImplementRecord,
   ResearchRecord,
@@ -324,6 +325,7 @@ export function timingLines(): string[] {
 interface SavedTicket {
   step: string;
   record?: ImplementRecord | PieceImplementRecord;
+  findings?: Finding[];
   resolveRecords?: ResolveRecord[];
   researchRecord?: ResearchRecord;
   pullBaseline?: PullBaseline;

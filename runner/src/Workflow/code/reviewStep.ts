@@ -2,9 +2,11 @@
 // codeWorkflow.ts supplies it, and SpecRun/ReviewStepper.ts launches it after the implement step; resolve reads its findings.
 
 import { stepReadLine } from "../../IssueReader.ts";
-import { stringSchema } from "../../recordSchema.ts";
-import { axes, verdicts } from "../../verdicts.ts";
+import { reviewRecordSchemaOf } from "../../recordSchema.ts";
+import type { Axis } from "../../verdicts.ts";
 import type { ReviewPromptInput } from "../../Workflow.ts";
+
+const codeAxes: Axis[] = ["standards", "spec"];
 
 export function reviewPrompt({
   issue,
@@ -20,22 +22,4 @@ Call the Skill tool with "${skillName}" to review ${issue.repo}#${issue.number},
 Change nothing: no edits, commits, comments or fixes. Return the review record: \`findings\`, an empty list when the review finds nothing. List the standards reviewer's findings, then the spec reviewer's, each in its reviewer's order, never merged or reranked. Each finding has \`axis\` (\`standards\` or \`spec\`, its reviewer's), \`where\` (its file:line or area), \`claim\` (what it says, in a line), \`suggestedVerdict\` (\`dismiss\`, \`fix\`, \`propose\` or \`halt\`, as its reviewer suggested) and \`reason\` (the reviewer's reason for that verdict).`;
 }
 
-export const reviewFindingSchema = {
-  type: "object",
-  properties: {
-    axis: { enum: axes },
-    where: stringSchema,
-    claim: stringSchema,
-    suggestedVerdict: { enum: verdicts },
-    reason: stringSchema,
-  },
-  required: ["axis", "where", "claim", "suggestedVerdict", "reason"],
-  additionalProperties: false,
-};
-
-export const reviewRecordSchema = {
-  type: "object",
-  properties: { findings: { type: "array", items: reviewFindingSchema } },
-  required: ["findings"],
-  additionalProperties: false,
-};
+export const reviewRecordSchema = reviewRecordSchemaOf(codeAxes);

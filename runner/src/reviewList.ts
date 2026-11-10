@@ -109,6 +109,7 @@ const reviewGroups = {
   axes: {
     standards: "### Standards",
     spec: "### Spec",
+    reader: "### Reader",
   },
   mergeMaster: "### Merge with master",
   // A re-reviewed list's items, old and new, after every other section.
@@ -320,6 +321,7 @@ function groupsOf(records: ResolveRecord[]): RecordGroups {
   const groups: RecordGroups = {
     standards: emptyVerdictGroupsOf(),
     spec: emptyVerdictGroupsOf(),
+    reader: emptyVerdictGroupsOf(),
   };
   records.forEach((record) => {
     groups[record.axis][record.verdict].push(record);

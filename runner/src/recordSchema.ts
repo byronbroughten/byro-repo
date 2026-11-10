@@ -3,6 +3,7 @@
 import { Ajv } from "ajv";
 
 import { blockerKinds, type ImplementRecord } from "./stepRecords.ts";
+import { type Axis, verdicts } from "./verdicts.ts";
 
 export const stringSchema = { type: "string" };
 
@@ -85,6 +86,21 @@ export const uncommittedVariantSchemas = {
     handoff: handoffSchema,
   }),
 } as const;
+
+// The review record every Workflow's review step returns, on that Workflow's axes, plus any fields of its own.
+export function reviewRecordSchemaOf(
+  reviewAxes: readonly Axis[],
+  properties: Record<string, object> = {},
+): object {
+  const finding = objectSchema({
+    axis: { enum: reviewAxes },
+    where: stringSchema,
+    claim: stringSchema,
+    suggestedVerdict: { enum: verdicts },
+    reason: stringSchema,
+  });
+  return objectSchema({ findings: arraySchema(finding), ...properties });
+}
 
 // Each way `value` breaks `schema`, as its JSON path and Ajv's message; empty when it passes.
 export function schemaProblemsOf(schema: object, value: unknown): string[] {
