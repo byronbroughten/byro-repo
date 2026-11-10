@@ -15,18 +15,17 @@ import {
   resolveCommitProblems,
   resolveOutputSchema,
   resolvePrompt,
-  type ResolveRecord,
   resolveRecordProblems,
   resolveRecordsOf,
   resolveRetryPrompt,
   withReviewerFields,
 } from "../resolveStep.ts";
+import { reviewPrompt, reviewRecordSchema } from "../reviewStep.ts";
 import {
   type Finding,
-  reviewPrompt,
+  type ResolveRecord,
   type ReviewRecord,
-  reviewRecordSchema,
-} from "../reviewStep.ts";
+} from "../stepRecords.ts";
 import type { StepAgent } from "../transcriptFacts.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";

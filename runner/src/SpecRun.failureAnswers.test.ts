@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import type { Pair } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { guidanceSectionOf } from "./halts.ts";
-import type { Blocker } from "./implementStep.ts";
 import type { RunResult } from "./SpecRun.ts";
 import {
   addSpec,
@@ -23,6 +22,7 @@ import {
   ticketState,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
+import type { Blocker } from "./stepRecords.ts";
 
 useSpecRunHarness();
 

@@ -21,11 +21,11 @@ import type { IssueRef, LeaseHolder } from "./IssueWorkspaces.ts";
 import type { UsageList, UsageReader } from "./limitGuard.ts";
 import type { NoticeKind, Notices } from "./Notices.ts";
 import { stampedLineOf } from "./progressLines.ts";
-import type { ResolveRecord } from "./resolveStep.ts";
 import { type Command, runKnobsOf } from "./runKnobs.ts";
 import { type MemberList, SpecRun, type SpecRunConfig } from "./SpecRun.ts";
 import { stepResults } from "./specRunHarness/stepResults.ts";
 import { timing } from "./specRunHarness/timing.ts";
+import type { ResolveRecord } from "./stepRecords.ts";
 import type { StepSession } from "./transcriptFacts.ts";
 
 export type { StepScript } from "./specRunHarness/stepResults.ts";

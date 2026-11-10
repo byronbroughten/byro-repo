@@ -2,75 +2,21 @@
 // recorded in byro-repo's .claude/skills/upstream.json, and the implement record it returns.
 // AgentStep.ts launches the step; StepStream.ts checks the output against implementOutputSchema.
 
-import {
-  type GitHubWrite,
-  gitHubWriteActions,
-  type UndoneBox,
-} from "./FactsFile.ts";
+import { gitHubWriteActions } from "./FactsFile.ts";
 import { stepReadLine } from "./IssueReader.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import { commitMessageLine, sectionOf, stepWriteLine } from "./promptText.ts";
 import { arraySchema, objectSchema, stringSchema } from "./recordSchema.ts";
-import { resolveRules } from "./resolveStep.ts";
-
-export type ImplementRecord =
-  CommittedRecord | AppliedRecord | BlockedRecord | HandoffRecord;
-
-export interface CommittedRecord extends RecordBody {
-  status: "committed";
-}
-
-// A ticket that needed only GitHub writes and no code.
-export interface AppliedRecord extends RecordBody {
-  status: "applied";
-  githubWrites: GitHubWrite[];
-}
-
-export interface BlockedRecord extends RecordBody {
-  status: "blocked";
-}
-
-export interface HandoffRecord extends RecordBody {
-  status: "handoff";
-  handoff: Handoff;
-}
-
-interface RecordBody {
-  // In landing order: a repo lands before any repo that depends on it.
-  branches: CommittedBranch[];
-  closingComment: string;
-  boxesUndone: UndoneBox[];
-  blockers: Blocker[];
-}
-
-export interface CommittedBranch {
-  repo: string;
-  branch: string;
-  sha: string;
-}
-
-const blockerKinds = ["gated-action", "spec-ambiguity", "denied-tool"] as const;
-
-export interface Blocker {
-  kind: (typeof blockerKinds)[number];
-  detail: string;
-  recommendation: string;
-}
-
-export interface Handoff {
-  conclusion: string;
-  filesToOpen: { path: string; lines: string }[];
-  ruledOut: string[];
-  filesChanged: string[];
-  stillFailing: string[];
-  // Set when less than half the ticket is done: the remaining work, which the developer splits the ticket into.
-  proposedSplit?: ProposedSlice[];
-}
-
-export interface ProposedSlice {
-  delivers: string;
-  files: string[];
-}
+import {
+  implementBody,
+  proposedSplitText,
+  ticketBindsSection,
+} from "./stepPrompts.ts";
+import {
+  blockerKinds,
+  type Handoff,
+  type ImplementRecord,
+} from "./stepRecords.ts";
 
 export interface ImplementPromptInput {
   issue: IssueRef;
@@ -83,23 +29,6 @@ export interface ImplementPromptInput {
   promoteCommand: string;
   // Set for a fresh step after a handoff; a handoff is cumulative, so only the latest is passed.
   latestHandoff?: Handoff;
-}
-
-// Sent with --resume once a step crosses the live ceiling without handing off.
-export const handoffOnlyPrompt =
-  "Stop now; return a handoff record only, no file changes.";
-
-// Sent with --resume on a `retry record` answer, after a record failed its check once the step had committed.
-export const recordOnlyPrompt =
-  "Your implement record failed the runner's check. Change no files: return the implement record again, matching the schema, with each branch's current sha. Nobody is watching this session: never ask a question or wait for an answer.";
-
-export const treeResetNote =
-  "Any uncommitted work was set aside on a backup branch and the tree reset to its last commit, so check what is committed first.";
-
-// Sent with --resume on a `resume +N turns` answer, after the step hit its turn cap.
-export function moreTurnsPrompt(turns: number, isTreeReset: boolean): string {
-  const resetNote = isTreeReset ? ` ${treeResetNote}` : "";
-  return `You hit your turn cap; the developer gave you ${turns} more turns.${resetNote} Finish the ticket as before and return the implement record. Nobody is watching this session: never ask a question or wait for an answer.`;
 }
 
 export function implementPrompt(input: ImplementPromptInput): string {
@@ -146,41 +75,6 @@ function workingSection(): string {
   ]);
 }
 
-// The bullets the implement step's prompt and the /implement-code skill share; only their endings differ.
-export const implementBody = {
-  gitHubWrites:
-    "Some tickets need only GitHub writes and no code. Run `gh issue edit` and `gh issue comment` only as the ticket describes them, writing each body to a file under `/tmp` and passing it with `--body-file`. Never close an issue, never change a triage label (such as `ready-for-agent`) on this ticket or another ticket of its spec, and make no other GitHub write.",
-  testFirst:
-    "Work test-first: if a `tdd` skill is available, call it, at the seams the ticket names or, with none named, seams you pick yourself; never stop to confirm them.",
-  checking: "Run typechecking and single test files regularly.",
-  oneCommand:
-    "Read and search with the Read and Grep tools. Give Bash one command per call, run from the workspace root: no `cd`, no `;` or `&&` chains, no variables.",
-  drift:
-    "Before review, grep the docs for every name, command or behavior the change renamed, removed or altered, and fix or delete each statement it made untrue.",
-  committing:
-    "Commit in each repo you changed, on the ticket's branch, then run `npm run check`. When it fails on your change, fix it in a further commit and run it again; never amend.",
-  onlyWrites:
-    "Those commits and the GitHub writes the ticket describes are your only writes outside the workspace's files: never push, merge, rebase or reset, never close an issue",
-  resolving: resolveRules,
-  ticketCode:
-    "A ticket's code binds its decision. It's your job to fit it to code-style and existing structures, folding it into an existing structure or renaming it where that fits, and to report in the closing comment any departure or any shape that couldn't fit.",
-  ticketProse:
-    "Ticket prose follows prose-style unless the ticket marks it verbatim.",
-  operatorText:
-    "Text an operator sees (CLI flags, script names, sheet text) stays as the ticket has it.",
-  newDependencies:
-    "Add a package only when the ticket's `## New dependencies` section names it. For any other package, record a `spec-ambiguity` blocker naming the package and why it's needed, rather than adding it.",
-} as const;
-
-export function ticketBindsSection(): string {
-  return sectionOf("What the ticket binds", [
-    implementBody.ticketCode,
-    implementBody.ticketProse,
-    implementBody.operatorText,
-    implementBody.newDependencies,
-  ]);
-}
-
 const promptSections = {
   finishing: `## When you're done
 
@@ -221,15 +115,6 @@ export function handoffCommentOf(handoff: Handoff, sessionId: string): string {
       : [`Proposed split:\n${proposedSplitText(proposedSplit)}`]),
     `session: ${sessionId}`,
   ].join("\n\n");
-}
-
-export function proposedSplitText(slices: ProposedSlice[]): string {
-  return slices
-    .map(
-      ({ delivers, files }, index) =>
-        `${index + 1}. ${delivers} (${files.join(", ")})`,
-    )
-    .join("\n");
 }
 
 function handoffText(handoff: Handoff): string {

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import type { ResolveRecord } from "./resolveStep.ts";
 import {
   coveredLaterNotesOf,
   decidedListOf,
@@ -10,6 +9,7 @@ import {
   undecidedCountOf,
   undecidedLineOf,
 } from "./reviewList.ts";
+import type { ResolveRecord } from "./stepRecords.ts";
 
 const ticket = { repo: "byro-repo", number: 7 };
 

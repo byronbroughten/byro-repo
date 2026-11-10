@@ -8,7 +8,6 @@ import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
 import type { LeaseHolder } from "./IssueWorkspaces.ts";
 import type { UsageReader } from "./limitGuard.ts";
-import type { ResolveRecord } from "./resolveStep.ts";
 import type { ItemDecision } from "./reviewList.ts";
 import { runKnobsOf } from "./runKnobs.ts";
 import { reviewPrintoutOf } from "./SpecRun.ts";
@@ -37,6 +36,7 @@ import {
   usageListOf,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
+import type { ResolveRecord } from "./stepRecords.ts";
 
 useSpecRunHarness();
 

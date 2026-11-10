@@ -9,7 +9,6 @@
 
 import type { Pair, StepRequest, StepResult } from "../AgentStep.ts";
 import { type Halt, type StepFailure } from "../halts.ts";
-import { type Handoff, type ImplementRecord } from "../implementStep.ts";
 import { type BodyAuthorship } from "../IssueReader.ts";
 import {
   type IssueRef,
@@ -17,10 +16,14 @@ import {
   type LeaseHolder,
   type Workspace,
 } from "../IssueWorkspaces.ts";
-import { type MergeMasterRecord } from "../mergeMasterStep.ts";
-import { type ResolveRecord } from "../resolveStep.ts";
 import type { UndecidedCount } from "../reviewList.ts";
-import type { Finding } from "../reviewStep.ts";
+import {
+  type Finding,
+  type Handoff,
+  type ImplementRecord,
+  type MergeMasterRecord,
+  type ResolveRecord,
+} from "../stepRecords.ts";
 import { type Target, targetLineShapes, targetsOf } from "../ticketTargets.ts";
 import { type RecordedSession, type StepSession } from "../transcriptFacts.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";

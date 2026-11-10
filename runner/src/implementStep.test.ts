@@ -2,15 +2,17 @@ import { Ajv } from "ajv";
 import { describe, expect, it } from "vitest";
 
 import {
-  type AppliedRecord,
-  type CommittedRecord,
-  type Handoff,
-  type HandoffRecord,
   implementOutputSchema,
   implementPrompt,
   type ImplementPromptInput,
   implementRecordProblems,
 } from "./implementStep.ts";
+import {
+  type AppliedRecord,
+  type CommittedRecord,
+  type Handoff,
+  type HandoffRecord,
+} from "./stepRecords.ts";
 
 // The same Ajv setup StepStream validates a step's structured output with.
 const validateOutput = new Ajv({ allErrors: true, strict: false }).compile(

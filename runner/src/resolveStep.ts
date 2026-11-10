@@ -1,62 +1,20 @@
 // Resolve: the prompt that gives each review finding one verdict and fixes the Fix ones, the resolve record it returns,
 // and the checkers that refuse a record, or commits that disagree with it, naming the rule broken.
-// reviewStep.ts supplies the findings; StepStream.ts checks the output against resolveOutputSchema first.
+// reviewStep.ts supplies the findings, stepRecords.ts holds the record types; StepStream.ts checks the output against resolveOutputSchema first.
 
 import { stepReadLine } from "./IssueReader.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import { codeListOf, commitMessageLine, stepWriteLine } from "./promptText.ts";
 import { schemaProblemsOf, stringSchema } from "./recordSchema.ts";
-import type { Finding } from "./reviewStep.ts";
-import { axes, type Axis, type Verdict, verdicts } from "./verdicts.ts";
-
-// docs/agents/verdicts.md defines each reason.
-const dismissReasons = [
-  "false-positive",
-  "covered-later",
-  "kept",
-  "tooling-enforced",
-  "serves-spec",
-] as const;
-const proposeReasons = ["decision", "ticket"] as const;
-
-export type DismissReason = (typeof dismissReasons)[number];
-export type ProposeReason = (typeof proposeReasons)[number];
-
-// Named later tickets, each `<repo>#<n>`, plus their downstream; or the whole spec.
-export type HaltScope = "spec" | string[];
-
-// What the schema guarantees; resolveRecordProblems() checks which fields each verdict needs.
-export interface ResolveRecord {
-  // The finding's number in the review's list, from 1.
-  finding: number;
-  axis: Axis;
-  // The reviewer's, set by the runner; absent for a finding saved before #362.
-  suggestedVerdict?: Verdict;
-  where: string;
-  claim: string;
-  quote?: string;
-  rule?: string;
-  verdict: Verdict;
-  reason?: string;
-  evidence: string;
-  coveredBy?: string;
-  haltScope?: HaltScope;
-  recommendation?: string;
-  draftIssueTitle?: string;
-  draftKeepReason?: string;
-}
-
-// How any resolver judges, shared with the implementer through implementBody.resolving.
-export const resolveRules =
-  "Give each finding exactly one verdict, Dismiss, Fix, Propose or Halt, by the rules in `docs/agents/verdicts.md`; read it before you judge. Fix by default, and Dismiss, Propose or Halt only where that doc says, with evidence. You may overrule a reviewer's suggested verdict, saying why in `evidence`, except that a suggested Halt resolves only as a Halt or a Propose `decision`. The Fixes land together in one commit, its message naming each finding by number.";
-
-// The resolve prompt's and the /implement-code skill's one description of a record, after "Return `records`, ".
-export const resolveRecordFields = `exactly one record per finding: \`finding\` (its number in the list), \`axis\` (the finding's own, or for a finding without one, \`standards\` or \`spec\`), \`where\` (its file:line or area), \`claim\` (what the finding says, in a line), \`verdict\` (\`dismiss\`, \`fix\`, \`propose\` or \`halt\`), \`evidence\` (what you checked and found, and why, when you overruled the suggested verdict), and the fields its verdict needs:
-
-- **Dismiss**: \`reason\`, one of ${codeListOf(dismissReasons)}; for \`covered-later\`, \`coveredBy\`, the later ticket as \`<repo>#<n>\`; for \`kept\`, \`quote\`, the site's reason with its file:line.
-- **Fix**: \`quote\`, the quoted code or text, with its file:line, and \`rule\`, the documented rule or spec line it breaks.
-- **Propose**: \`reason\`, ${codeListOf(proposeReasons)}, and \`recommendation\`; for \`ticket\`, \`draftIssueTitle\`; for a \`decision\` asking the developer's yes to a new keep, \`draftKeepReason\`, the drafted one-line reason.
-- **Halt**: \`recommendation\`, and \`haltScope\`, the later tickets it blocks as \`<repo>#<n>\`, or \`spec\`; omit it to block the whole spec.`;
+import { resolveRecordFields, resolveRules } from "./stepPrompts.ts";
+import {
+  dismissReasons,
+  type Finding,
+  issueRefOf,
+  proposeReasons,
+  type ResolveRecord,
+} from "./stepRecords.ts";
+import { axes, type Verdict, verdicts } from "./verdicts.ts";
 
 export interface ResolvePromptInput {
   issue: IssueRef;
@@ -352,38 +310,6 @@ function reasonRule(
 
 function recommendationRule(verdict: "Propose" | "Halt"): string {
   return `a ${verdict} needs \`recommendation\``;
-}
-
-// A Halt with no scope blocks the whole spec: the safe default when the resolver is unsure.
-export function haltScopeOf(record: ResolveRecord): HaltScope {
-  return record.haltScope ?? "spec";
-}
-
-const caughtLabels = {
-  fix: "Fixed",
-  propose: "Proposed",
-  halt: "Halted",
-} as const satisfies Partial<Record<Verdict, string>>;
-
-// The outcome row's text; undefined when the review kept nothing.
-export function whatReviewCaughtOf(
-  records: ResolveRecord[],
-): string | undefined {
-  const groups = Object.entries(caughtLabels).flatMap(([verdict, label]) => {
-    const caught = records
-      .filter((record) => record.verdict === verdict)
-      .map(({ claim, where }) => `${claim} (${where})`);
-    return caught.length === 0 ? [] : [`${label}: ${caught.join("; ")}.`];
-  });
-  return groups.length === 0 ? undefined : groups.join(" ");
-}
-
-// A `<repo>#<n>` reference, as `coveredBy` names its ticket.
-export function issueRefOf(text: string | undefined): IssueRef | undefined {
-  const match = /^([\w.-]+)#(\d+)$/.exec(text?.trim() ?? "");
-  if (match === null) return undefined;
-  const [, repo = "", number = ""] = match;
-  return { repo, number: Number(number) };
 }
 
 // A token with a `/` or a `.`, then a line: `runner/src/SpecRun.ts:88`, `.gitignore:23`. A bare `foo:3` fails.

@@ -6,7 +6,6 @@ import { describe, expect, it } from "vitest";
 import type { Pair } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { gapCheckOutputSchema } from "./gapCheck.ts";
-import type { ResolveRecord } from "./resolveStep.ts";
 import { runKnobsOf } from "./runKnobs.ts";
 import {
   addIssue,
@@ -27,6 +26,7 @@ import {
   stateFolder,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
+import type { ResolveRecord } from "./stepRecords.ts";
 
 useSpecRunHarness(rootCloneOnly);
 

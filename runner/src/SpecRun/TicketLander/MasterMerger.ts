@@ -9,9 +9,9 @@ import { issueRef } from "../../IssueWorkspaces.ts";
 import {
   mergeMasterOutputSchema,
   mergeMasterPrompt,
-  type MergeMasterRecord,
 } from "../../mergeMasterStep.ts";
 import { SchemaFailure } from "../../SchemaFailure.ts";
+import type { MergeMasterRecord } from "../../stepRecords.ts";
 import { UnhandledStop } from "../../UnhandledStop.ts";
 import { WrapUpFailure } from "../../WrapUpFailure.ts";
 import { HaltRaiser } from "../HaltRaiser.ts";

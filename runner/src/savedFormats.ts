@@ -14,7 +14,6 @@ import type { WrapUpFacts } from "./FactsFile.ts";
 import type { Halt } from "./halts.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { ReviewFixes } from "./outcomeLog.ts";
-import type { ResolveRecord } from "./resolveStep.ts";
 import type {
   Heads,
   MemberList,
@@ -24,6 +23,7 @@ import type {
   TicketState,
   TicketStep,
 } from "./SpecRun/runState.ts";
+import type { ResolveRecord } from "./stepRecords.ts";
 import type { RecordFile } from "./SupervisionRecords.ts";
 import type {
   RecordedSession,

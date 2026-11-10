@@ -6,7 +6,6 @@ import { describe, expect, it } from "vitest";
 import type { StepRequest, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
-import { recordOnlyPrompt } from "./implementStep.ts";
 import {
   addSpec,
   github,
@@ -23,6 +22,7 @@ import {
   ticketState,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
+import { recordOnlyPrompt } from "./stepPrompts.ts";
 
 useSpecRunHarness();
 

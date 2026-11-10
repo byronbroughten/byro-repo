@@ -6,10 +6,10 @@ import { writeFileSync } from "node:fs";
 
 import type { StepResult } from "../../AgentStep.ts";
 import { type ReviewFacts } from "../../FactsFile.ts";
-import { whatReviewCaughtOf } from "../../resolveStep.ts";
 import { hasUndecidedItems } from "../../reviewList.ts";
 import type { RunKnobs } from "../../runKnobs.ts";
 import { SchemaFailure } from "../../SchemaFailure.ts";
+import { whatReviewCaughtOf } from "../../stepRecords.ts";
 import { type RecordedSession, type StepAgent } from "../../transcriptFacts.ts";
 import { UnhandledStop } from "../../UnhandledStop.ts";
 import {

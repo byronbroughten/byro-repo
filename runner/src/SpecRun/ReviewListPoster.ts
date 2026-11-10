@@ -9,7 +9,6 @@
 import {
   gapCheckOutputSchema,
   gapCheckPrompt,
-  type GapCheckRecord,
   gapCheckRecordOf,
   type GapCheckTicket,
 } from "../gapCheck.ts";
@@ -23,7 +22,6 @@ import {
 } from "../halts.ts";
 import { type FailureAnswer, haltReplies } from "../halts/haltReplies.ts";
 import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
-import { type ResolveRecord } from "../resolveStep.ts";
 import {
   coveredLaterNotesOf,
   gapCheckListOf,
@@ -39,6 +37,7 @@ import {
   undecidedLineOf,
 } from "../reviewList.ts";
 import { SchemaFailure } from "../SchemaFailure.ts";
+import type { GapCheckRecord, ResolveRecord } from "../stepRecords.ts";
 import { TicketHalted } from "../TicketHalted.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";

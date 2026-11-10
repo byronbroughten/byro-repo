@@ -34,7 +34,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `FakeIssueSource.ts` | | The scripted issue source issue-reader tests use. |
 | `FakeNotices.ts` | `FakeNotices` | The notice port run-loop tests read back. |
 | `FakeUsageReader.ts` | | The scripted usage reader run-loop tests use. |
-| `gapCheck.ts` | `gapCheck` | The gap check's prompt and record. |
+| `gapCheck.ts` | `gapCheck` | The gap check's prompt and output schema. |
 | `GhCli.ts` | `GhCli` | The real `gh` port. |
 | `git.ts` | | Git helpers the workspaces, run loop and wrap-up share, the worktree add, remove, list and switch helpers and the branch lookup included. |
 | `GitFixture.ts` | | A test primary root of clones with bare remotes. |
@@ -42,7 +42,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `halts/haltReplies.ts` | | Reads a developer's replies to a Halt: which answer it, `stop spec` and a Failure Halt's answer. |
 | `headlessProbe.ts` | | Launches the one-turn headless session both probes run. |
 | `implementCodeSkill.ts` | `implementCodeSkill` | Generates the `/implement-code` skill from the implement step's shared body. |
-| `implementStep.ts` | `implementStep` | The implement step's prompt, record, handoff comment and record checks. |
+| `implementStep.ts` | `implementStep` | The implement step's prompt, handoff comment, record checks and output schema. |
 | `IssueReader.ts` | `IssueReader` | `npm run issue:read`: prints an issue as Trusted and Untrusted text, and reads a Trusted body's Model fit line for `npm run outcome:summary`. |
 | `IssueWorkspaces.ts` | `IssueWorkspaces` | Creates, promotes, resumes, leases, lists and removes issue and session workspaces, delegating to `IssueWorkspaces/`. |
 | `IssueWorkspaces/BranchNamer.ts` | | Names a workspace's branch, reusing an issue's existing branch in any repo. |
@@ -59,7 +59,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `limitGuard.ts` | `limitGuard` | The limit guard: reads usage and picks launch, Limit wait or Stop. |
 | `localTime.ts` | | Words and reads a human-facing time: local, with its zone. |
 | `lockFixture.ts` | | Pid-lock fixtures the lock tests share. |
-| `mergeMasterStep.ts` | | The merge-master step's prompt and record. |
+| `mergeMasterStep.ts` | | The merge-master step's prompt and output schema. |
 | `modelFit.ts` | `modelFit` | Reads a ticket's Model fit pair and compares pairs. |
 | `Notices.ts` | `Notices` | The notice port, its notice kinds and the run endings among them. |
 | `outcomeBackfill.ts` | `outcomeBackfill` | A one-off chore's core: fills written outcome rows' `unrecorded` transcript cells from a run state's sessions. |
@@ -75,9 +75,9 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `promptText.ts` | | Wording helpers the step prompts share. |
 | `recordSchema.ts` | | Schema parts the step records share, and their validator. |
 | `redChecksStep.ts` | | The red-checks step's prompt and record. |
-| `resolveStep.ts` | `resolveStep` | The resolve step's prompt, record and record and commit checks. |
+| `resolveStep.ts` | `resolveStep` | The resolve step's prompt, record schema and record and commit checks. |
 | `reviewList.ts` | `reviewList` | The review list's comment formats and undecided count, `runner decide`'s edit marking one item decided or handled, and a session re-review's merge into the posted list. |
-| `reviewStep.ts` | `reviewStep` | The review step's prompt, record and finding types. |
+| `reviewStep.ts` | `reviewStep` | The review step's prompt and record schema. |
 | `runBoard.ts` | `runBoard` | The Run board behind `runner status` and `runner watch` with no spec. |
 | `runCollecting.ts` | `runCollecting` | Runs one process with its output collected. |
 | `runCommand.ts` | | Runs a knob's command, returning its output tail when it fails, for the preflight and a ticket's checks. |
@@ -122,6 +122,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `specRunHarness/timing.ts` | | The clock `SpecRun` tests start a run at and move through its fakes. |
 | `stalePaths.ts` | | The stale-path check for `packages/<dir>` mentions with no clone. |
 | `StepStream.ts` | | Reads a step's stream-json into its `StepResult`. |
+| `stepPrompts.ts` | | The prompt text the implement and resolve steps share with the core and the `/implement-code` skill: the resumes' prompts, the implement body, the resolve rules and record fields. |
+| `stepRecords.ts` | | The records the steps return, with the types, reasons and small readers the core shares. |
 | `SupervisionRecords.ts` | `SupervisionRecords` | A Supervisor's record of the run or Batch it watches and the lines explained, and its handoff file, read once on a rejoin. |
 | `targetTools.ts` | | The tools a step gets for each of its ticket's targets. |
 | `TicketHalted.ts` | | The error raised once a ticket's Halts are posted. |

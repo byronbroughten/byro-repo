@@ -5,9 +5,13 @@ import { dirname, join } from "node:path";
 
 import type { StepRequest, StepResult } from "../AgentStep.ts";
 import { git } from "../GitFixture.ts";
-import type { Blocker, Handoff, ImplementRecord } from "../implementStep.ts";
-import type { ResolveRecord } from "../resolveStep.ts";
-import type { ReviewFinding } from "../reviewStep.ts";
+import type {
+  Blocker,
+  Handoff,
+  ImplementRecord,
+  ResolveRecord,
+  ReviewFinding,
+} from "../stepRecords.ts";
 
 export type StepScript = (request: StepRequest) => Promise<StepResult>;
 
