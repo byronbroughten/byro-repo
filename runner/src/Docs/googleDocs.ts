@@ -57,6 +57,13 @@ export type NamedStyleType =
 export interface ParagraphStyle {
   namedStyleType?: NamedStyleType;
   headingId?: string;
+  indentStart?: Dimension;
+  indentFirstLine?: Dimension;
+}
+
+export interface Dimension {
+  magnitude?: number;
+  unit?: "PT";
 }
 
 export interface Bullet {
@@ -110,6 +117,8 @@ export interface List {
 export interface NestingLevel {
   glyphType?: string;
   glyphSymbol?: string;
+  indentStart?: Dimension;
+  indentFirstLine?: Dimension;
 }
 
 export interface Table {
@@ -133,6 +142,25 @@ export interface Request {
   deleteContentRange?: { range: Range };
   updateTextStyle?: UpdateTextStyleRequest;
   updateParagraphStyle?: UpdateParagraphStyleRequest;
+  createParagraphBullets?: CreateParagraphBulletsRequest;
+  deleteParagraphBullets?: { range: Range };
+  insertTable?: InsertTableRequest;
+}
+
+/** The presets the writer uses: one bulleted, one numbered. */
+export type BulletPreset =
+  "BULLET_DISC_CIRCLE_SQUARE" | "NUMBERED_DECIMAL_ALPHA_ROMAN";
+
+export interface CreateParagraphBulletsRequest {
+  range: Range;
+  bulletPreset: BulletPreset;
+}
+
+/** Inserts a newline at the index, then an empty table after it. */
+export interface InsertTableRequest {
+  rows: number;
+  columns: number;
+  location: { index: number };
 }
 
 export interface Range {
