@@ -736,12 +736,15 @@ describe("the end of a piece spec", () => {
     // Both Sections the agents', so the push writes each.
     const agentOnlyDraft = drafted(
       {},
-      "## The harbour\n<!-- agent -->\n\nThe gulls lifted off the quay.\n\n## The crossing\n<!-- agent -->\n\nThe ferry carried them away at noon.\n",
+      Object.entries(pushedSections)
+        .map(([heading, text]) => `## ${heading}\n<!-- agent -->\n\n${text}`)
+        .join("\n"),
     );
-    const pulledDoc = docOf({
+    const pulledSections = {
       "The harbour": "Gulls circled the quay at dawn.",
       "The crossing": "The ferry left late.",
-    });
+    };
+    const pulledDoc = docOf(pulledSections);
 
     async function deliverableOf(): Promise<DocRead> {
       return Docs.init(heldDocs()).read(deliverableId);
@@ -752,7 +755,7 @@ describe("the end of a piece spec", () => {
       return async (request) => {
         heldDocs().edit(deliverableId, () => ({
           ...docOf({
-            "The harbour": "Gulls circled the quay at dawn.",
+            ...pulledSections,
             "The crossing": "The ferry never came.",
           }),
           revisionId: "crossing-2",

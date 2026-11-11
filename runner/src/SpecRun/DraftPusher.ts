@@ -4,8 +4,6 @@
 // DraftPuller.ts kept, or is missing, and it stops on a stale revision or pending suggestions; a rerun retries.
 // The push rules are the Workflow's, through ../Workflow.ts; ReviewListPoster.ts runs it after the judge Step.
 
-import { join } from "node:path";
-
 import type { DocRead, Docs } from "../Docs.ts";
 import { PendingSuggestions } from "../Docs/PendingSuggestions.ts";
 import { StaleRevision } from "../Docs/StaleRevision.ts";
@@ -15,11 +13,18 @@ import { pullOf, pushOf } from "../Workflow.ts";
 import type { PullBaseline, Run } from "./runState.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 
-// What one push writes: the Doc, its Sections as the pull saw them, and the agent Sections by heading.
+// An agent Section as the push writes it, beside its Doc text at the last pull.
+interface PushedSection {
+  heading: string;
+  markdown: string;
+  pulled: string;
+}
+
+// What one push writes: the Doc and its agent Sections.
 interface Push {
   docs: Docs;
-  baseline: PullBaseline;
-  agentSections: Map<string, string>;
+  documentId: string;
+  sections: PushedSection[];
 }
 
 // A Section the pull never saw counts as empty, so adding its heading to the Doc lets the push write it.
@@ -37,23 +42,23 @@ export class DraftPusher extends SpecRunBase {
     const workflow = this._workflowOf(run.spec);
     const rules = pushOf(workflow);
     const draft = await git(
-      this._primaryCloneOf(run.spec.issue.repo),
+      this._cloneUnder(this.config.primaryRoot, run.spec.issue.repo),
       "show",
       `master:${pullOf(workflow).draftPathOf(run.spec.issue)}`,
     );
     const push: Push = {
-      docs: rules.docsOf(),
-      baseline,
-      agentSections: rules.agentSectionsOf(draft),
+      docs: rules.docs,
+      documentId: baseline.documentId,
+      sections: pushedSectionsOf(rules.agentSectionsOf(draft), baseline),
     };
     let written: number;
     try {
       const edited = editedSectionsOf(
-        await push.docs.read(baseline.documentId),
+        await push.docs.read(push.documentId),
         push,
       );
       if (edited.length > 0) return this._editedStopOf(run, edited);
-      written = await writtenCountOf(push);
+      written = await writeSections(push);
     } catch (error) {
       if (!(
         error instanceof StaleRevision || error instanceof PendingSuggestions
@@ -66,17 +71,9 @@ export class DraftPusher extends SpecRunBase {
     this._saveState(run);
     this._log(
       run,
-      `The push wrote ${written} of ${push.agentSections.size} agent Sections into the Deliverable.`,
+      `The push wrote ${written} of ${push.sections.length} agent Sections into the Deliverable.`,
     );
     return undefined;
-  }
-
-  private _primaryCloneOf(repo: string): string {
-    const clonePath = this.config.knobs.clonePaths[repo];
-    if (clonePath === undefined) {
-      throw new Error(`The repo map has no clone of ${repo}.`);
-    }
-    return join(this.config.primaryRoot, clonePath);
   }
 
   private _editedStopOf(run: Run, edited: string[]): string {
@@ -93,36 +90,47 @@ function pushBaselineOf(run: Run): PullBaseline | undefined {
     .at(-1);
 }
 
+function pushedSectionsOf(
+  agentSections: Map<string, string>,
+  baseline: PullBaseline,
+): PushedSection[] {
+  return [...agentSections].map(([heading, markdown]) => ({
+    heading,
+    markdown,
+    pulled: baseline.sections[heading] ?? emptySection,
+  }));
+}
+
 function editedSectionsOf(read: DocRead, push: Push): string[] {
-  return [...push.agentSections].flatMap(([heading, markdown]) =>
-    isEdited(read, push, heading, markdown) ? [heading] : [],
+  return push.sections.flatMap((section) =>
+    isEdited(read, section) ? [section.heading] : [],
   );
 }
 
 // Holding the agent text already is no edit: a rerun after a stale revision finds the Sections it wrote that way.
 function isEdited(
   read: DocRead,
-  { baseline }: Push,
-  heading: string,
-  markdown: string,
+  { heading, markdown, pulled }: PushedSection,
 ): boolean {
   const current = read.sections.get(heading);
   if (current === markdown) return false;
-  return current !== (baseline.sections[heading] ?? emptySection);
+  return current !== pulled;
 }
 
-// Docs.writeSection forgets its read once it writes, so each Section is read again, and checked again, before its write;
-// an edit since the first read is a Doc changed under the push, which the rerun's first read then names.
-async function writtenCountOf(push: Push): Promise<number> {
-  const { docs, baseline, agentSections } = push;
-  const { documentId } = baseline;
+// Docs.writeSection forgets its read once it writes, so each write reads, and checks, the Doc again first.
+async function writeSections({
+  docs,
+  documentId,
+  sections,
+}: Push): Promise<number> {
   let written = 0;
-  for (const [heading, markdown] of agentSections) {
+  for (const section of sections) {
     const read = await docs.read(documentId);
-    if (read.sections.get(heading) === markdown) continue;
-    if (isEdited(read, push, heading, markdown)) {
+    if (read.sections.get(section.heading) === section.markdown) continue;
+    if (isEdited(read, section)) {
       throw new StaleRevision(documentId, read.revisionId);
     }
+    const { heading, markdown } = section;
     await docs.writeSection({ documentId, heading, markdown });
     written += 1;
   }

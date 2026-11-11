@@ -37,7 +37,7 @@ export class FakeDocuments implements DocumentsPort {
   }
 
   /** Edits a Doc just before a later `batchUpdate`, after `skipped` others, as an edit landing between a read and a write would. */
-  editBeforeUpdate(change: DocumentChange, skipped = 0): this {
+  editBeforeUpdate(change: DocumentChange, skipped: number): this {
     this.pendingChange = { change, skipped };
     return this;
   }

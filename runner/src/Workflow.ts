@@ -65,7 +65,7 @@ export interface PushRules {
   // Each agent Section's Markdown by its heading, keyed and trimmed as DocRead.sections is.
   agentSectionsOf(draft: string): Map<string, string>;
   // A fresh Docs module over the Workflow's Docs port.
-  docsOf(): Docs;
+  readonly docs: Docs;
 }
 
 // The pull Step: the Deliverable's Doc into the Piece's Agent draft, on the ticket's branch.

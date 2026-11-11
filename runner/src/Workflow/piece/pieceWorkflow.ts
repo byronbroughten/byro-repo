@@ -243,7 +243,7 @@ export function pieceWorkflowOf({
     pull: pullRulesOf(documents),
     push: {
       agentSectionsOf: agentDraft.agentSectionsOf,
-      docsOf() {
+      get docs() {
         return Docs.init(documents);
       },
     },
