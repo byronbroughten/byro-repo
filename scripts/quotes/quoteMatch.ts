@@ -1,7 +1,7 @@
 // Checks a Research comment against its sources: every numbered fact ends with a locator, and every double-quoted span in it is found within the cited source's cited pages, across page breaks.
 // Whitespace, line-end hyphens, ligatures, curly quotes and letter case are ignored; punctuation must match exactly. Any span in double quotes counts, whatever its length.
 // It does not judge whether a fact is right (that is /review-research), and it is not the plagiarism check (that is overlap in /review-piece).
-// Also marks each page of pdftotext's output. The command: verifyQuotes.ts.
+// Also marks each page of pdftotext's output and reads pdfinfo's page count. The command: verifyQuotes.ts.
 
 export interface Page {
   number: number | undefined;
@@ -78,6 +78,12 @@ export function markedPages(pdftotextOutput: string): string {
   return pages
     .map((page, index) => `--- PDF page ${index + 1} ---\n${page.trimEnd()}\n`)
     .join("");
+}
+
+export function pageCountOf(pdfinfoOutput: string): number {
+  const match = /^Pages:\s+(\d+)$/m.exec(pdfinfoOutput);
+  if (!match?.[1]) throw new Error("pdfinfo printed no Pages: line");
+  return Number(match[1]);
 }
 
 export function pagesOf(text: string): Page[] {

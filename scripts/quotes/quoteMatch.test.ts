@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { markedPages, pagesOf, verifyComment } from "./quoteMatch.ts";
+import {
+  markedPages,
+  pageCountOf,
+  pagesOf,
+  verifyComment,
+} from "./quoteMatch.ts";
 
 const pmbok = {
   file: "pmbok.txt",
@@ -29,6 +34,22 @@ describe("markedPages", () => {
 
     expect(pages.map((page) => page.number)).toEqual([1, 2, 3, 4]);
     expect(pages[3]?.text).toBe("\nChapter 1\n");
+  });
+});
+
+describe("pageCountOf", () => {
+  it("reads the Pages line of pdfinfo's output", () => {
+    expect(
+      pageCountOf(
+        "Title:           PMBOK\nPages:           329\nEncrypted:       no\n",
+      ),
+    ).toBe(329);
+  });
+
+  it("throws when pdfinfo printed no Pages line", () => {
+    expect(() => pageCountOf("Syntax Error: Couldn't open file\n")).toThrow(
+      "pdfinfo printed no Pages: line",
+    );
   });
 });
 
