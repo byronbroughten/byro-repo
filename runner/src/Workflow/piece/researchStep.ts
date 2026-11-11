@@ -130,7 +130,7 @@ export function researchHaltOf({
   if (groups.length === 0) return undefined;
   return {
     question: [
-      "The research left these to settle before any drafting starts. Settle every item in one reply: the first reply answers the whole Halt.",
+      "The research left these to settle before any drafting starts. Settle every item you answer here in one reply: the first reply answers the whole Halt.",
       ...groups.map(({ heading, lines }) => `${heading}:${bulletsOf(lines)}`),
     ].join("\n\n"),
     options: groups.flatMap(({ options }) => options),
@@ -140,7 +140,7 @@ export function researchHaltOf({
 const researchHaltOptions = {
   facts: [
     "`drop F<n>`: clear the fact and go on without it.",
-    "`another source F<n>`, naming the source: the Supervisor settles one fact from one Drive file. For anything larger, file a Research ticket with `/piece-tickets`, blocking the drafting tickets, before answering.",
+    "`another source F<n>`, naming the source: tell the Supervisor in its session, not in a reply here. With one fact from one Drive file, the Supervisor settles your other answers with you, reads the fact, posts it as an addendum on the Research ticket, then answers this Halt. For anything larger, file a Research ticket with `/piece-tickets`, blocking the drafting tickets, before answering.",
   ],
   edits: [
     "`approve E<n>`: the runner replaces the edit's old text in the spec's `## Outline` with its new text, word for word, as it reads the answer. An edit it can't apply raises a fresh Halt asking you to make the change by hand.",
