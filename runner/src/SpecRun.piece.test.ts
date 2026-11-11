@@ -847,6 +847,43 @@ describe("the Research Halt", () => {
     expect(result.message).toContain(draftingGoesOn);
   });
 
+  it("lists an unwanted fact in the research ticket's review list as a collapsed audit with no undecided item, and the run goes on", async () => {
+    addResearchedSpec();
+    const record: ResearchRecord = {
+      ...readyRecordOf(scratchFolder()),
+      outlineEdits: [],
+      unverified: [
+        {
+          fact: "The ferry was painted blue.",
+          reason: "No source names its colour.",
+          isWanted: false,
+        },
+      ],
+    };
+
+    const result = await specRun(FakeAgentStep.init(researched(record))).run(
+      spec,
+    );
+
+    const [list, ...others] = commentsOn(spec.number, researchListMark);
+    expect(others).toEqual([]);
+    expect(list).toContain(
+      "<details>\n<summary>Unverified facts the Facts field didn't name: 1</summary>\n\n- The ferry was painted blue. (No source names its colour.)\n\n</details>",
+    );
+    expect(list).not.toContain("- [ ]");
+    expect(result.message).toContain(draftingGoesOn);
+  });
+
+  it("leaves a wanted fact out of the research ticket's review list, posting none when it holds no unwanted fact", async () => {
+    addResearchedSpec();
+
+    await specRun(
+      FakeAgentStep.init(researched(readyRecordOf(scratchFolder()))),
+    ).run(spec);
+
+    expect(commentsOn(spec.number, researchListMark)).toEqual([]);
+  });
+
   it("doesn't call a landed ticket unlanded on a `stop spec` answer", async () => {
     addResearchedSpec();
     await specRun(
@@ -899,6 +936,8 @@ async function answerResearchHalt(answer: string): Promise<void> {
   ).run(spec);
   github.reply(spec.number, answer);
 }
+
+const researchListMark = "<!-- review-list ticket=#1 -->";
 
 // The drafting ticket isn't ready-for-agent, so it waits on the developer once no Halt holds it.
 const draftingGoesOn = "byro-repo #2 waits on you";

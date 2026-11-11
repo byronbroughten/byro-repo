@@ -73,6 +73,7 @@ export class ReviewListPoster extends SpecRunBase {
       records,
       mergeMasterRecord: state.mergeMasterRecord,
       unrecordedMerge: state.unrecordedMerge,
+      unverified: ticketSteps.keptUnverifiedOf(state),
     });
     if (body !== undefined && !(await this._hasReviewList(run, ticket.issue))) {
       await this._postReviewListComment(run, ticket.issue, body);

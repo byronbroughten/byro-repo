@@ -127,7 +127,7 @@ The run's process is gone and nothing recorded how it ended, so only the Supervi
 _Avoid_: died, lost
 
 **Review list**:
-The comment the runner posts on the spec issue for each landed ticket with a Propose, one checkbox per Propose and the Dismisses in a collapsed audit. The gap check posts the last one.
+The comment the runner posts on the spec issue for each landed ticket with a Propose, one checkbox per Propose and the Dismisses in a collapsed audit. A research ticket with Unverified facts the spec's Facts field didn't name gets one too, those facts in a collapsed audit with no checkbox. The gap check posts the last one.
 _Avoid_: todo list, report
 
 **Gap check**:

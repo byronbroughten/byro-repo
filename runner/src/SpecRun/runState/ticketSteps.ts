@@ -1,5 +1,5 @@
 // A ticket's steps: its sessions and heads, its turn cap, the live-ceiling phrase and snapshots, and reading a step's record,
-// its schema failure, its kept research record and the review facts its records give.
+// its schema failure, its kept research record and its Unverified items, and the review facts its records give.
 // The TicketState these read is ../runState.ts; the Halt helpers are runHalts.ts.
 
 import { writeFileSync } from "node:fs";
@@ -12,6 +12,7 @@ import type { RunKnobs } from "../../runKnobs.ts";
 import { SchemaFailure } from "../../SchemaFailure.ts";
 import {
   type ReadyResearchRecord,
+  type UnverifiedItem,
   whatReviewCaughtOf,
 } from "../../stepRecords.ts";
 import { type RecordedSession, type StepAgent } from "../../transcriptFacts.ts";
@@ -170,6 +171,14 @@ export const ticketSteps = {
       );
     }
     return record;
+  },
+
+  // Undefined for a code ticket, which keeps no research record.
+  keptUnverifiedOf({
+    researchRecord,
+  }: TicketState): UnverifiedItem[] | undefined {
+    if (researchRecord?.status !== "ready") return undefined;
+    return researchRecord.unverified;
   },
 
   reviewFactsOf({
