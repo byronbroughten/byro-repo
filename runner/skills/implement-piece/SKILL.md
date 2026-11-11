@@ -21,6 +21,7 @@ disable-model-invocation: true
 
 - Read the Doc the spec's `## Deliverable` section names with `npm run doc:print -- <the Deliverable's ID>`, and bring it into the Agent draft by `docs/pieces/agent-draft.md`'s Pull rules, skipping its run-state baseline.
 - Commit the Agent draft on the ticket's branch before drafting, as its own commit, and commit nothing when the file already matched: `git -C <clone> add writing/agent-drafts/<spec n>.md`, then `git -C <clone> commit`.
+- What you draft reaches the Doc only through the run's push at the end of the spec, never from this session; push checks it against the Doc as the run's last pull saw it.
 
 ## What you draft
 

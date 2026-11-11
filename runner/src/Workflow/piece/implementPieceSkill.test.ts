@@ -71,6 +71,12 @@ describe("implementPieceSkillOf", () => {
     expect(skill).not.toContain("The runner's pull already brought");
   });
 
+  it("says the draft reaches the Doc only through the run's push", () => {
+    expect(skill).toContain(
+      "reaches the Doc only through the run's push at the end of the spec",
+    );
+  });
+
   it("commits only the Agent draft, as the implement step does", () => {
     const commit =
       "`git -C <clone> add writing/agent-drafts/<spec n>.md`, then `git -C <clone> commit`. Never amend.";
