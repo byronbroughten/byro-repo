@@ -1,6 +1,7 @@
 // The review lists and the gap check. At landing a ticket with resolve records or a merge-master record gets one review-list comment on the spec and each
-// covered-later Dismiss a note on its later ticket, each checked for its marker first; once every ticket is closed, _finish
-// posts any review list a killed run missed and runs the spec-end Steps its Workflow supplies when they're due: the gap check, whose gaps become the last review list.
+// covered-later Dismiss a note on its later ticket, each checked for its marker first; once the run has no ticket left to work, _finish
+// posts any review list a killed run missed and runs the spec-end Steps its Workflow supplies when the Workflow's trigger finds them due: the gap check, whose gaps become the last review list,
+// and the judge Step, which ends a run holding undecided items with "judge, then rerun".
 // RunLoop.ts calls _finish; SessionReviewer.ts calls _runnersSpecCommentsOf, _postCoveredLaterNotes and _postSessionReviewList,
 // which edits a posted list in place where a re-review's differs, the Base skipping a session's push; TicketLander.ts calls _postReviewList at landing;
 // StatusReporter.ts calls _isGapChecked.
@@ -162,9 +163,11 @@ export class ReviewListPoster extends SpecRunBase {
     const { specEnd } = this._workflowOf(run.spec);
     const steps =
       specEnd.isDue(waits) && !run.isStandalone ? specEnd.steps : [];
+    let count: UndecidedCount | undefined;
     for (const step of steps) {
+      let ended: SpecEndOutcome;
       try {
-        await this._runSpecEndStep(run, step);
+        ended = await this._runSpecEndStep(run, step);
       } catch (error) {
         if (error instanceof TicketHalted) return undefined;
         if (!(error instanceof UnhandledStop)) throw error;
@@ -174,8 +177,12 @@ export class ReviewListPoster extends SpecRunBase {
           `${specEndStepNames[step]} ${runText.stoppedOn(error)}. Rerun to retry it.`,
         );
       }
+      if (ended.stop !== undefined) {
+        return this._end(run, "stopped", ended.stop);
+      }
+      if (ended.count !== undefined) count = ended.count;
     }
-    const count = undecidedCountOf(await this._runnersSpecCommentsOf(run));
+    if (count === undefined) count = await this._undecidedCountOf(run);
     const isLeftOpen = run.isStandalone && count.items > 0;
     const message = this._withRerunLine(
       run,
@@ -189,11 +196,30 @@ export class ReviewListPoster extends SpecRunBase {
     );
   }
 
-  private async _runSpecEndStep(run: Run, step: SpecEndStep): Promise<void> {
-    const runners: Record<SpecEndStep, () => Promise<void>> = {
-      "gap-check": () => this._gapCheck(run),
+  private async _runSpecEndStep(
+    run: Run,
+    step: SpecEndStep,
+  ): Promise<SpecEndOutcome> {
+    const runners: Record<SpecEndStep, () => Promise<SpecEndOutcome>> = {
+      "gap-check": async () => {
+        await this._gapCheck(run);
+        return {};
+      },
+      judge: () => this._judge(run),
     };
-    await runners[step]();
+    return runners[step]();
+  }
+
+  // Counts every runner's review list, as the end message's count does, so the stop and the count agree.
+  private async _judge(run: Run): Promise<SpecEndOutcome> {
+    const count = await this._undecidedCountOf(run);
+    if (count.items === 0) return { count };
+    const judgeThenRerun = runText.judgeThenRerunOf(this._rerunCommandOf(run));
+    return { stop: runText.runEndedOf(run.landed, judgeThenRerun) };
+  }
+
+  private async _undecidedCountOf(run: Run): Promise<UndecidedCount> {
+    return undecidedCountOf(await this._runnersSpecCommentsOf(run));
   }
 
   // Catches a ticket that landed in a run killed before its review list was posted.
@@ -320,9 +346,16 @@ export class ReviewListPoster extends SpecRunBase {
   }
 }
 
+// What a spec-end Step hands back: the message the run stops on, and the undecided count a judge Step read, so the end needn't read it again.
+interface SpecEndOutcome {
+  stop?: string;
+  count?: UndecidedCount;
+}
+
 // Each spec-end Step's name as a run's end message opens with it.
 const specEndStepNames: Record<SpecEndStep, string> = {
   "gap-check": "The gap check",
+  judge: "The judge Step",
 };
 
 // The latest answer the gap check hasn't acted on; a `stop spec` read on a later run is a skip.
@@ -356,5 +389,5 @@ function endMessageOf(
       ? "The ticket is left open until /judge-findings decides its review list."
       : "Every ticket is closed.";
   }
-  return `Run ended: ${runText.landedOf(landed)}. ${waitingPart}`;
+  return runText.runEndedOf(landed, waitingPart);
 }

@@ -57,12 +57,22 @@ export const runText = {
     return undecidedTextOf(judgement);
   },
 
+  // A spec-end `judge` Step's stop: the developer judges the review lists before the Steps after it run.
+  judgeThenRerunOf(rerunCommand: string): string {
+    return `The review lists hold undecided items: judge, then rerun: \`${rerunCommand}\`.`;
+  },
+
   waitsOf(waits: Wait[]): string {
     return waits.map(({ text }) => text).join("; ");
   },
 
   joinedOrNone(items: string[]): string {
     return items.length === 0 ? "none" : items.join(", ");
+  },
+
+  // A run's end and the judge Step's stop both open alike.
+  runEndedOf(landed: IssueRef[], rest: string): string {
+    return `Run ended: ${runText.landedOf(landed)}. ${rest}`;
   },
 
   landedOf(landed: IssueRef[]): string {

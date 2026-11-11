@@ -12,10 +12,11 @@ import type {
 } from "../outcomeRowWriter.ts";
 import { type Command, defaultRunKnobs } from "../runKnobs.ts";
 import type { IssueComment } from "../SpecRun.ts";
+import { humanLabel } from "../SpecRun/runState.ts";
 
 export const labels = {
   map: "wayfinder:map",
-  human: "ready-for-human",
+  human: humanLabel,
 } as const;
 
 export const installCommandLabel = "npm install --ignore-scripts";

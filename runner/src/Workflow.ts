@@ -88,7 +88,8 @@ export interface TicketChecksInput {
 }
 
 // A Step that runs once at a spec's end, rather than in each ticket; the core runs each by its name.
-export type SpecEndStep = "gap-check";
+// `judge` ends the run with "judge, then rerun" while any review-list item is undecided, so the Steps after it wait on the developer's judgement.
+export type SpecEndStep = "gap-check" | "judge";
 
 export interface SpecEnd {
   // Run in order, each when a member's end finds the steps due.
@@ -267,12 +268,12 @@ export interface MergeMasterRules {
   outputSchema: object;
 }
 
-export type GapCheckTicket = Pick<TrackedIssue, "issue" | "title">;
+export type GapCheckTicket = Pick<TrackedIssue, "issue" | "title" | "isOpen">;
 
 export interface GapCheckPromptInput {
   spec: IssueRef;
   title: string;
-  // Every ticket of the spec, each closed, whether landed or closed as not planned.
+  // Every ticket of the spec, landed or closed as not planned, but for any its Workflow's trigger lets stay open.
   tickets: GapCheckTicket[];
 }
 

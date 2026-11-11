@@ -131,8 +131,12 @@ The comment the runner posts on the spec issue for each landed ticket with a Pro
 _Avoid_: todo list, report
 
 **Gap check**:
-The step at the end of a spec that lists what the spec asked for that no landed ticket covered, with drafted follow-ups. Its output is the final review-list comment.
+The step at the end of a spec that lists what the spec asked for that no landed ticket covered, with drafted follow-ups. Its output is the final review-list comment. A piece spec's gap check runs while its Edit gate ([`docs/pieces/GLOSSARY.md`](../docs/pieces/GLOSSARY.md)) is still open, and checks only what no review checks.
 _Avoid_: audit, retro
+
+**Judge Step**:
+The spec-end Step after a piece spec's gap check: while any review list on the spec holds an undecided item, it stops the run with "judge, then rerun".
+_Avoid_: judge, Arbiter
 
 **Land**:
 A ticket lands when its work is merged into master and pushed, which is not closing its issue: that happens at landing or, while its review list has undecided items, at `/judge-findings`. A Batch member lands once each of its tickets has landed or closed, no Halt is open and, unless it is a Standalone ticket, its gap check is done, and only then stops blocking the members after it.

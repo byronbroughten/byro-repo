@@ -17,8 +17,11 @@ import type {
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
 import type { Halt } from "./halts.ts";
+import { gapCheckOutputSchema } from "./recordSchema.ts";
 import { defaultRunKnobs } from "./runKnobs.ts";
+import type { RunResult } from "./SpecRun.ts";
 import {
+  addIssue,
   addSpec,
   commentsOn,
   github,
@@ -628,6 +631,98 @@ describe("checks and wrap-up on a piece spec's drafting ticket", () => {
     expect(halt).toContain(
       "The wrap-up conflicts with master, and the piece Workflow has no merge-master step",
     );
+  });
+});
+
+describe("the end of a piece spec", () => {
+  const gapCheckMark = "<!-- review-list ticket=gap-check -->";
+  const judgeThenRerun = "judge, then rerun";
+  const gap = {
+    ask: "Story 3: the harbour at dusk",
+    evidence: "No Section of the Agent draft sets the harbour at dusk.",
+    recommendation: "Draft it in a further ticket.",
+    draftIssueTitle: "Draft the harbour at dusk",
+  };
+
+  // One drafting ticket and the Edit gate, a ready-for-human ticket the developer takes.
+  function addGatedSpec(gateLabels = ["ready-for-human"]): void {
+    addDraftingSpec();
+    github.subIssues.set(spec.number, [1, 2]);
+    addIssue(2, { labels: gateLabels });
+  }
+
+  async function landsThenGapChecks(
+    gaps: object[],
+  ): Promise<{ result: RunResult; agentStep: FakeAgentStep }> {
+    const agentStep = FakeAgentStep.init(
+      drafted({}, lateDraft),
+      pieceReviewed([], []),
+      async () => resultOf({ gaps }),
+    );
+    const result = await specRun(agentStep, { agentStep }).run(spec);
+    return { result, agentStep };
+  }
+
+  it("runs the piece gap check, writing nothing, once every ticket but the Edit gate has landed, and posts its gaps as the last review list", async () => {
+    addGatedSpec();
+
+    const { agentStep } = await landsThenGapChecks([gap]);
+
+    const gapCheck = agentStep.requests.at(-1);
+    expect(gapCheck?.jsonSchema).toBe(gapCheckOutputSchema);
+    expect(gapCheck?.targets).toEqual([]);
+    expect(gapCheck?.prompt).toContain("only what no review checks");
+    expect(gapCheck?.prompt).toContain("Change nothing");
+    const [list] = commentsOn(spec.number, gapCheckMark);
+    expect(list).toContain(gap.ask);
+  });
+
+  it("holds the gap check while a drafting ticket still waits on the developer", async () => {
+    addGatedSpec([]);
+
+    const { agentStep } = await landsThenGapChecks([]);
+
+    expect(agentStep.requests).toHaveLength(2);
+    expect(commentsOn(spec.number, gapCheckMark)).toEqual([]);
+  });
+
+  it(`ends with "${judgeThenRerun}" while a review-list item is undecided`, async () => {
+    addGatedSpec();
+
+    const { result } = await landsThenGapChecks([gap]);
+
+    expect(result.kind).toBe("stopped");
+    expect(result.message).toContain(
+      "The review lists hold undecided items: judge, then rerun: `npm run runner -- byronbroughten/byro-repo 213`.",
+    );
+  });
+
+  it("goes on to the Edit gate once every item is decided", async () => {
+    addGatedSpec();
+
+    const { result } = await landsThenGapChecks([]);
+
+    expect(result.kind).toBe("finished");
+    expect(result.message).toContain("byro-repo #2 waits on you");
+    expect(result.message).not.toContain(judgeThenRerun);
+  });
+
+  it("goes on to the Edit gate on the rerun once the developer decides the undecided item", async () => {
+    addGatedSpec();
+    await landsThenGapChecks([gap]);
+    const list = github.comments.find(({ body }) =>
+      body.includes(gapCheckMark),
+    );
+    if (list === undefined) throw new Error("No gap-check review list.");
+    list.body = list.body.replace("- [ ] **R", "- [x] **R");
+
+    const agentStep = FakeAgentStep.init();
+    const result = await specRun(agentStep, { agentStep }).run(spec);
+
+    expect(agentStep.requests).toEqual([]);
+    expect(result.kind).toBe("finished");
+    expect(result.message).toContain("byro-repo #2 waits on you");
+    expect(result.message).not.toContain(judgeThenRerun);
   });
 });
 

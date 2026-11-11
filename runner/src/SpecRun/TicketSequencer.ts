@@ -185,10 +185,7 @@ export class TicketSequencer extends SpecRunBase {
   ): Promise<never> {
     const outcome = stopOutcomes[stop.outcome];
     const label = issueRef.labelOf(ticket.issue);
-    const command = runText.rerunCommandOf(
-      this.config.githubOwner,
-      run.spec.issue,
-    );
+    const command = this._rerunCommandOf(run);
     const commentUrl = await this._comment(
       run,
       [

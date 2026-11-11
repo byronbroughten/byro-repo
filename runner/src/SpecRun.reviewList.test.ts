@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Pair } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
+import { gapCheckOutputSchema } from "./recordSchema.ts";
 import { runKnobsOf } from "./runKnobs.ts";
 import {
   addIssue,
@@ -25,7 +26,6 @@ import {
   useSpecRunHarness,
 } from "./specRunHarness.ts";
 import type { ResolveRecord } from "./stepRecords.ts";
-import { gapCheckOutputSchema } from "./Workflow/code/gapCheck.ts";
 
 useSpecRunHarness(rootCloneOnly);
 

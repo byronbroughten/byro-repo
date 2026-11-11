@@ -142,7 +142,12 @@ export class TicketSelector extends SpecRunBase {
           tracked.labels,
           await this._downstreamLabelsOf(run, ticket),
         );
-        waits.push({ ticket, reason: "developer", text });
+        waits.push({
+          ticket,
+          reason: "developer",
+          text,
+          labels: tracked.labels,
+        });
         continue;
       }
       const blockers = issueRef.outside({

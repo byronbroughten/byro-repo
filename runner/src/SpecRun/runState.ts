@@ -39,6 +39,7 @@ import { runText } from "./runState/runText.ts";
 
 export const readyLabel = "ready-for-agent";
 export const interactiveLabel = "ready-for-interactive";
+export const humanLabel = "ready-for-human";
 
 export const gapCheckLabel = "gap check";
 
@@ -258,6 +259,8 @@ export interface Wait {
   reason: WaitReason;
   text: string;
   holder?: LeaseHolder;
+  // A `developer` wait's ticket labels, so a Workflow's spec-end trigger can tell its own gate from a ticket left unready.
+  labels?: string[];
 }
 
 // `member-blocked` is a Batch member waiting on another member to land.
