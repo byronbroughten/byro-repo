@@ -100,7 +100,9 @@ export class ReviewStepper extends SpecRunBase {
     if (problems.length > 0) {
       throw ticketSteps.schemaFailureOf(logPath, { problems, output: record });
     }
-    state.findings = (record as ReviewRecord).findings;
+    const { findings, dismissedOverlaps } = record as ReviewRecord;
+    state.findings = findings;
+    state.dismissedOverlaps = dismissedOverlaps;
   }
 
   // The resumed implementer resolves under the ticket budget; otherwise, or once killed, a fresh resolver does.

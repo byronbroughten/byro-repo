@@ -41,6 +41,7 @@ import {
 } from "./specRunHarness.ts";
 import { stepResults } from "./specRunHarness/stepResults.ts";
 import type {
+  DismissedOverlap,
   PieceImplementRecord,
   ReadyResearchRecord,
   ResearchRecord,
@@ -146,7 +147,7 @@ describe("pull on a piece spec's drafting ticket", () => {
 });
 
 describe("implement on a piece spec's drafting ticket", () => {
-  it("drafts the ticket's Sections after pull, keeps the record and stops after resolve, before the unbuilt checks", async () => {
+  it("drafts the ticket's Sections after pull, keeps the record, and reviews, resolves, checks and lands it", async () => {
     addDraftingSpec();
     const agentStep = FakeAgentStep.init(
       drafted(),
@@ -161,16 +162,16 @@ describe("implement on a piece spec's drafting ticket", () => {
     expect(request?.prompt).toContain("docs/writing-voice.md");
     expect(request?.prompt).toContain("docs/writing-craft.md");
     expect(request?.prompt).toContain(draftPath);
-    expect(git(workspacePath(), "log", "-1", "--format=%s", "HEAD~1")).toBe(
-      "Draft The crossing in the Agent draft",
-    );
+    expect(masterSubjects()).toContain("Draft The crossing in the Agent draft");
     expect(ticketState()["byro-repo #1"]?.record).toMatchObject({
       status: "committed",
       sectionsDrafted: ["The crossing"],
     });
-    expect(result.landed).toEqual([]);
-    expect(ticketState()["byro-repo #1"]?.step).toBe("stopped");
-    expect(commentsOn(spec.number, "no checks step")).toHaveLength(1);
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(ticketState()["byro-repo #1"]?.step).toBe("landed");
+    expect(
+      git(primaryOf("byro-repo"), "show", `master:${draftPath}`),
+    ).toContain("The ferry carried them away at noon.");
   });
 
   it("names a passages folder in the workspace, outside the Agent draft and gitignored, and keeps it", async () => {
@@ -218,10 +219,14 @@ describe("implement on a piece spec's drafting ticket", () => {
           stillFailing: [],
         });
       },
-      drafted(),
+      async (request) => {
+        isPassageKept = existsSync(passage);
+        return drafted()(request);
+      },
       pieceReviewed(),
       pieceResolved([readerFix]),
     );
+    let isPassageKept = false;
 
     await specRun(agentStep).run(spec);
 
@@ -232,7 +237,7 @@ describe("implement on a piece spec's drafting ticket", () => {
     expect(agentStep.requests[1]?.prompt).toContain(`${passage}:1`);
     expect(agentStep.requests[1]?.prompt).toContain(passagesPath());
     expect(commentsOn(1, "## Handoff")[0]).toContain(`${draftPath}:5-9`);
-    expect(existsSync(passage)).toBe(true);
+    expect(isPassageKept).toBe(true);
     expect(ticketState()["byro-repo #1"]?.record?.status).toBe("committed");
   });
 
@@ -330,12 +335,11 @@ describe("resolve on a piece spec's drafting ticket", () => {
     expect(resolver?.prompt).toContain("`## Piece findings`");
     expect(resolver?.prompt).toContain(draftPath);
     expect(resolver?.prompt).toContain(passagesPath());
-    expect(
-      git(workspacePath(), "log", "-2", "--format=%s").split("\n"),
-    ).toEqual([
+    const subjects = masterSubjects();
+    const drafting = subjects.indexOf("Draft The crossing in the Agent draft");
+    expect(subjects[drafting - 1]).toBe(
       "Reword The crossing as the escape, review of #1",
-      "Draft The crossing in the Agent draft",
-    ]);
+    );
     expect(ticketState()["byro-repo #1"]?.resolveRecords).toEqual([
       { ...readerFix, suggestedVerdict: "fix" },
     ]);
@@ -378,6 +382,141 @@ describe("resolve on a piece spec's drafting ticket", () => {
   );
 });
 
+describe("checks and wrap-up on a piece spec's drafting ticket", () => {
+  const slippedOut = '1. "the ferry slipped out" (4 words), logbook.txt';
+
+  it("raises a Failure Halt at once on an overlap hit review didn't dismiss, leaving it unlanded", async () => {
+    addDraftingSpec();
+    const agentStep = FakeAgentStep.init(drafted(), pieceReviewed([], []));
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests).toHaveLength(2);
+    expect(result.landed).toEqual([]);
+    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+    const [halt] = haltComments();
+    expect(halt).toContain("Failure Halt");
+    expect(halt).toContain("the piece Workflow has no red-checks step");
+    expect(halt).toContain(slippedOut);
+  });
+
+  it.each([
+    ["its whole line", slippedOut],
+    ["its quoted run", '"the ferry slipped out"'],
+    ["its bare run", "The ferry slipped out"],
+  ])("passes a hit review dismissed by %s, and lands", async (_named, hit) => {
+    addDraftingSpec();
+
+    const result = await specRun(
+      FakeAgentStep.init(
+        drafted(),
+        pieceReviewed([], [{ hit, reason: "A fixed phrase for the event." }]),
+      ),
+    ).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+  });
+
+  it("ignores a hit in a developer's Section", async () => {
+    addDraftingSpec();
+    const draft =
+      "## The harbour\n<!-- developer -->\n\nThe gulls slipped out at dawn.\n\n## The crossing\n<!-- agent -->\n\nThe ferry left late.\n";
+
+    const result = await specRun(
+      FakeAgentStep.init(drafted({}, draft), pieceReviewed([], [])),
+    ).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+  });
+
+  it.each([
+    ["checks", ["final-pass"], false],
+    ["leaves out", [], true],
+  ] as const)(
+    "%s an earlier agent Section on a ticket labelled %j",
+    async (_named, labels, isLanded) => {
+      addDraftingSpec();
+      github.edit(1, { labels: ["ready-for-agent", ...labels] });
+
+      const result = await specRun(
+        FakeAgentStep.init(
+          drafted({}, earlierAgentDraft),
+          pieceReviewed([], []),
+        ),
+      ).run(spec);
+
+      expect(result.landed).toEqual(isLanded ? [refOf(1)] : []);
+      expect(haltComments().join("\n")).toContain(isLanded ? "" : slippedOut);
+    },
+  );
+
+  it.each([
+    ["a final-pass ticket with a `Length:` line", ["final-pass"], true, true],
+    [
+      "a final-pass ticket with no `Length:` line",
+      ["final-pass"],
+      false,
+      false,
+    ],
+    ["a ticket short of the whole draft", [], true, false],
+  ] as const)(
+    "checks the length only on %s",
+    async (_named, labels, hasLengthLine, isChecked) => {
+      addDraftingSpec();
+      const form = hasLengthLine
+        ? "\n## Form\n\nAn essay.\nLength: 5 words\n"
+        : "";
+      github.edit(spec.number, {
+        body: `## Deliverable\n\nThe crossing, doc ${deliverableId}.\n${form}`,
+      });
+      github.edit(1, { labels: ["ready-for-agent", ...labels] });
+
+      const result = await specRun(
+        FakeAgentStep.init(drafted({}, lateDraft), pieceReviewed([], [])),
+      ).run(spec);
+
+      const halts = haltComments().filter((halt) =>
+        halt.includes("over the 5 words"),
+      );
+      expect(halts).toHaveLength(isChecked ? 1 : 0);
+      expect(result.landed).toEqual(isChecked ? [] : [refOf(1)]);
+    },
+  );
+
+  it("raises a Failure Halt on a wrap-up conflict, with no merge-master step", async () => {
+    addDraftingSpec();
+    const conflicting: StepScript = async (request) => {
+      stepResults.commitFile({
+        cwd: primaryOf("byro-repo"),
+        file: draftPath,
+        content: "## The crossing\n<!-- developer -->\n\nThe ferry sank.\n",
+        message: "Edit the Agent draft on master",
+      });
+      return drafted({}, lateDraft)(request);
+    };
+
+    const result = await specRun(
+      FakeAgentStep.init(conflicting, pieceReviewed([], [])),
+    ).run(spec);
+
+    expect(result.landed).toEqual([]);
+    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+    const [halt] = haltComments();
+    expect(halt).toContain("Failure Halt");
+    expect(halt).toContain(
+      "The wrap-up conflicts with master, and the piece Workflow has no merge-master step",
+    );
+  });
+});
+
+// An earlier ticket's agent Section holds the hit; this ticket drafts The crossing.
+const earlierAgentDraft =
+  "## The harbour\n<!-- agent -->\n\nThe gulls slipped out at dawn.\n\n## The crossing\n<!-- agent -->\n\nThe ferry left late.\n";
+
+// Eight words over two Sections, with no overlap hit.
+const lateDraft =
+  "## The harbour\n<!-- developer -->\n\nGulls circled the quay.\n\n## The crossing\n<!-- agent -->\n\nThe ferry left late.\n";
+
 const draftPath = "writing/agent-drafts/213.md";
 
 const readerFix: ResolveRecord = {
@@ -419,28 +558,33 @@ const readerFinding: ReviewFinding = {
   reason: "The Outline line says the crossing is the escape.",
 };
 
-function pieceReviewed(): StepScript {
-  return async () =>
-    resultOf({
-      findings: [readerFinding],
-      dismissedOverlaps: [
-        { hit: "the ferry left", reason: "A fixed phrase for the event." },
-      ],
-    });
+function pieceReviewed(
+  findings: ReviewFinding[] = [readerFinding],
+  dismissedOverlaps: DismissedOverlap[] = [
+    { hit: "the ferry left", reason: "A fixed phrase for the event." },
+  ],
+): StepScript {
+  return async () => resultOf({ findings, dismissedOverlaps });
 }
 
 function passagesPath(): string {
   return join(workspacePath(), ".runner", "passages", "byro-repo-1");
 }
 
+// The harness's overlap command reports one hit on "slipped out".
+const overlappingDraft =
+  "## The harbour\n<!-- developer -->\n\nGulls circled the quay at dawn.\n\n## The crossing\n<!-- agent -->\n\nThe ferry slipped out at noon.\n";
+
 // Rewrites The crossing as an agent Section and commits the draft, as a piece implement step would.
-function drafted(change: Partial<PieceImplementRecord> = {}): StepScript {
+function drafted(
+  change: Partial<PieceImplementRecord> = {},
+  content = overlappingDraft,
+): StepScript {
   return async (request) => {
     stepResults.commitFile({
       cwd: request.cwd,
       file: draftPath,
-      content:
-        "## The harbour\n<!-- developer -->\n\nGulls circled the quay at dawn.\n\n## The crossing\n<!-- agent -->\n\nThe ferry slipped out at noon.\n",
+      content,
       message: "Draft The crossing in the Agent draft",
     });
     return resultOf({

@@ -50,6 +50,8 @@ export interface Workflow {
   landingOf(ticket: TrackedIssue): Landing;
   // Run from a workspace or primary root: after review in each ticket, and in a master set when they go red in a ticket.
   checks: Command[];
+  // A Workflow's own checks on a ticket's work, run after `checks`; a red one goes to the red-checks step as a red command does.
+  ticketChecksOf?(input: TicketChecksInput): Promise<string | undefined>;
   specEnd: SpecEnd;
   // Reached through pullOf, which throws for a Workflow with no Agent draft.
   pull?: PullRules;
@@ -73,6 +75,15 @@ export interface PullInput {
 export interface PulledDraft {
   draft: string;
   baseline: PullBaseline;
+}
+
+export interface TicketChecksInput {
+  spec: TrackedIssue;
+  ticket: TrackedIssue;
+  state: TicketState;
+  workspacePath: string;
+  // The spec's repo's clone in the workspace.
+  specClone: string;
 }
 
 // A Step that runs once at a spec's end, rather than in each ticket; the core runs each by its name.
@@ -281,14 +292,26 @@ export function agentStepOf<SN extends keyof AgentSteps>(
 ): AgentSteps[SN] {
   const rules = workflow.agentSteps[name];
   if (rules === undefined) {
-    throw new Error(`The ${workflow.name} Workflow has no ${name} step.`);
+    throw new Error(`The ${missingStepOf(workflow, name)}.`);
   }
   return rules;
 }
 
+export function hasAgentStep(
+  workflow: Workflow,
+  name: keyof AgentSteps,
+): boolean {
+  return workflow.agentSteps[name] !== undefined;
+}
+
+// "<name> Workflow has no <step> step", for every message that names a step a Workflow leaves out.
+export function missingStepOf(workflow: Workflow, step: string): string {
+  return `${workflow.name} Workflow has no ${step} step`;
+}
+
 export function pullOf(workflow: Workflow): PullRules {
   if (workflow.pull === undefined) {
-    throw new Error(`The ${workflow.name} Workflow has no pull step.`);
+    throw new Error(`The ${missingStepOf(workflow, "pull")}.`);
   }
   return workflow.pull;
 }

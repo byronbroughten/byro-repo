@@ -23,6 +23,7 @@ import {
 } from "../IssueWorkspaces.ts";
 import type { UndecidedCount } from "../reviewList.ts";
 import {
+  type DismissedOverlap,
   type Finding,
   type Handoff,
   type ImplementRecord,
@@ -126,6 +127,8 @@ export interface TicketState {
   // The implementer's latest session, a resolve it ran included.
   implementerSession?: string;
   findings?: Finding[];
+  // A piece review's, which the piece checks leave standing.
+  dismissedOverlaps?: DismissedOverlap[];
   resolveRecords?: ResolveRecord[];
   // Set once a resolver fixed a finding.
   resolver?: Resolver;

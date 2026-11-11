@@ -48,17 +48,14 @@ export class DraftPuller extends SpecRunBase {
   // The spec's repo is the ticket's own unless the ticket was filed elsewhere, so it may still sit detached at master.
   private async _specCloneOf(ticketRun: TicketRun): Promise<string> {
     const { repo } = ticketRun.run.spec.issue;
-    const clonePath = this.config.knobs.clonePaths[repo];
-    if (clonePath === undefined) {
-      throw new Error(`The repo map has no clone of ${repo}.`);
-    }
+    const clone = this._cloneIn(ticketRun.workspace, repo);
     if (!ticketRun.workspace.branchedRepos.includes(repo)) {
       ticketRun.workspace = await this.workspaces.promote(
         ticketRun.workspace,
         repo,
       );
     }
-    return join(ticketRun.workspace.path, clonePath);
+    return clone;
   }
 
   // A pull that changed nothing commits nothing.
