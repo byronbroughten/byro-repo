@@ -14,12 +14,13 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 | A shared message phrase, a skip-and-log | [`docs/code-style/error-handling.md`](./code-style/error-handling.md) |
 | Writing or changing a test | [`docs/code-style/tests.md`](./code-style/tests.md) |
 | A comment, or a file-level navigation block | [`docs/code-style/comments.md`](./code-style/comments.md) |
-| `reduce`, a chaining mutator, a combined option, a ternary, a named state flag | [`docs/code-style/idioms.md`](./code-style/idioms.md) |
+| A loop, `reduce`, a chaining mutator, a combined option, a ternary, a named state flag | [`docs/code-style/idioms.md`](./code-style/idioms.md) |
 | Imports, barrels, file names | [`docs/code-style/file-organization.md`](./code-style/file-organization.md) |
 
 ## Class shape
 
-- **Extract the shared piece when you can name the second caller**, not when it arrives.
+- **Extract the shared piece once its second caller is in the code or an open ticket**, without waiting for it to arrive.
+- **A class extends a Base for its identity and shared state, and gets its behaviour from collaborators it builds**; a split class's shared helpers are the one exception ([why](./code-style/class-shape.md#inherit-identity-and-state-compose-behaviour)).
 - **Member order:** `static init()`, then collaborator getters, then public behavior methods, then `_`-prefixed private helpers — a single-caller helper sits right after its caller.
   - **A private helper that never reads `this` is an unexported module function below the class, not a `_` method**, ordered by first use. A helper that reads `this` only to reach a collaborator stays a method. Lint backs it for `private` and `#` methods.
   - **A helper whose arguments are one collaborator and its state belongs on that collaborator.** A public method that doesn't read `this` stays put; a helper that only renames a function in scope is deleted.
@@ -52,7 +53,7 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 ## Comments
 
 - **Default to no comments.** When a block would need a comment saying _what_ it does, pull it into a small private method whose name says it.
-- **A comment is one line explaining a "why not the obvious thing"**; a longer why goes in the commit message or PR description.
+- **A comment is one line explaining a "why not the obvious thing"**; a longer why goes in the doc that line links to, or isn't written.
 - **The one multi-line exception is a file-level navigation block**, 5–10 lines above the exported class stating the file's job and where neighbouring work lives.
 
 ## Error handling & validation
@@ -74,8 +75,8 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 
 ## Functional vs. imperative idioms
 
-- **`forEach` only for side effects, `map` only for pure transforms — never mixed.**
-- **`forEach` by default; `for…of` only when the body exits early (`break`, `continue`, `return`) or destructures `Map` entries; `for…in` only in a project's structural utilities.**
+- **`map` only for pure transforms; a loop for side effects is `for…of`, never `forEach`** ([why](./code-style/idioms.md#forof-over-foreach)).
+- **`for…in` only in a project's structural utilities.**
 - **`reduce` is fully accepted** for building a new object/record, rather than a manual loop with a declared accumulator: seed a fresh `{}`, `new Map()` or `[]`, mutate it and return it.
 - **`flatMap` returning `[]` or `[x]` filters and maps in one pass** when the map needs the narrowed value.
 - **Mutator methods return `this` for chaining.**
@@ -105,9 +106,10 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 
 ## Imports & file organization
 
-- **No barrel/index files** apart from a package's declared public entries.
+- **No barrel/index files: no file exists only to re-export others**, apart from a package's declared public entries.
+- **A file may re-assemble the pieces in its own same-named subfolder, taking each piece's export whole**, never a hand-picked subset of its members ([why](./code-style/file-organization.md#re-assembling-a-subfolder-isnt-a-barrel)).
 - **File naming:**
   - PascalCase mirroring the exported class name.
-  - A short PascalCase abbreviation for a file exporting one static-bundle object of related functions. A fat bundle's pieces split into a same-named subfolder and are re-assembled in the parent file.
+  - A short PascalCase abbreviation for a file exporting one static-bundle object of related functions. A fat bundle's pieces split into a same-named subfolder.
   - camelCase for plain data/config or entry-point files.
-  - A module whose helpers fall into groups that share nothing splits by subject into a same-named subfolder of camelCase files, each exporting camelCase bundles written with method shorthand. A test harness may re-assemble its pieces, so its tests keep one import.
+  - A module whose helpers fall into groups that share nothing splits by subject into a same-named subfolder of camelCase files, each exporting camelCase bundles written with method shorthand.

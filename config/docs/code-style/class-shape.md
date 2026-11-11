@@ -4,9 +4,13 @@ Style fragment. The one-line rules live in [`docs/code-style.md`](../code-style.
 
 One heading per class-shape rule, most of them with the refactor that produced it; a sub-rule either has a heading of its own or shares the heading before it, and the collaborator-naming rule's reasoning is in [`naming.md`](./naming.md#a-collaborator-is-subjectrole). Grep `^## ` for the rule you're applying and read that section.
 
-## Extract the shared piece when the second caller is foreseen, not when it arrives
+## Extract the shared piece once its second caller is in the code or an open ticket
 
-Keeping a helper private until a second call site actually exists is the wrong default here. When the sibling caller is already visible — another table of the same shape, another handler of the same family — build the shared class now and put it beside its siblings. A name-to-ID resolver that two handlers obviously want is written as a general class for its first caller. The same judgment governs behaviour a caller asks for: build the general form rather than the one fitted to the caller that asked, so per-row reporting serves any handler instead of only the batch one that motivated it. This is not licence to build for imagined callers; a feature nobody has asked for still waits. The test is whether you can name the second caller.
+Keeping a helper private until a second call site actually exists is the wrong default here. When the sibling caller is already visible — another table of the same shape, another handler of the same family — build the shared class now and put it beside its siblings. A name-to-ID resolver that two handlers obviously want is written as a general class for its first caller. The same judgment governs behaviour a caller asks for: build the general form rather than the one fitted to the caller that asked, so per-row reporting serves any handler instead of only the batch one that motivated it. This is not licence to build for imagined callers; a feature nobody has asked for still waits. The test is a fact to check, not a judgement: the second caller is in the code or in an open ticket. A caller someone could only argue for doesn't count, since an agent can always name one.
+
+## Inherit identity and state, compose behaviour
+
+A class extends a Base for where it is (its address and the handle to shared state) and gets what it does from collaborators it builds or reaches through a getter. In the framework, every Table, row, column and cell class extends its level's Base for its `tableId`, `rowIndex` or `columnName`, while a coordinator builds its collaborators in lazy getters, a column reaches its Table through `table`, and an Operator reaches its subject through a getter rather than extending the concrete class. This is the usual "inherit for is-a, compose for has-a" split. A split class's Base also holds the helpers several of its collaborators call; that is a convenience on top, and its rule is [below](#a-split-class-shares-a-base-and-layers-its-collaborators).
 
 ## Class member order
 
