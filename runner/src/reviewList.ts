@@ -1,5 +1,6 @@
 // The review list: a ticket's resolve records by axis then verdict, its Proposals as R items, its agreed Dismisses in a
-// collapsed audit, each departure from a suggested verdict with its why; a run posts it on the spec, a session posts and prints it.
+// collapsed audit, each departure from a suggested verdict with its why, and a research ticket's unwanted Unverified facts in a
+// collapsed audit of their own; a run posts it on the spec, a session posts and prints it.
 // Also the gap check's comment in the same format, the note a `covered-later` Dismiss leaves on its later ticket,
 // the count of undecided items the end-of-run push gives, the edit `runner decide` makes to one item, and a session re-review's merge into the posted list.
 // SpecRun/ReviewListPoster.ts posts them, TicketLander.ts calling it at landing and SpecRun/SessionReviewer.ts after a
@@ -14,6 +15,7 @@ import {
   issueRefOf,
   type MergeMasterRecord,
   type ResolveRecord,
+  type UnverifiedItem,
 } from "./stepRecords.ts";
 import { type Axis, type Verdict, verdictWords } from "./verdicts.ts";
 
@@ -102,6 +104,8 @@ export interface TicketReviewList {
   mergeMasterRecord?: MergeMasterRecord;
   // Set when a merge-master step ran but kept no record, so its merge still gets a Propose.
   unrecordedMerge?: string;
+  // A research ticket's `## Unverified` items; the Research Halt asks about the wanted ones, so only the rest are listed.
+  unverified?: UnverifiedItem[];
 }
 
 // A ticket's groups, each key order the order shown; the merge with master comes after the axes.
@@ -112,6 +116,7 @@ const reviewGroups = {
     reader: "### Reader",
   },
   mergeMaster: "### Merge with master",
+  unverified: "### Unverified",
   // A re-reviewed list's items, old and new, after every other section.
   proposals: "### Proposed",
   verdicts: {
@@ -123,6 +128,7 @@ const reviewGroups = {
 } as const satisfies {
   axes: Record<Axis, string>;
   mergeMaster: string;
+  unverified: string;
   proposals: string;
   verdicts: Record<Verdict, string>;
 };
@@ -130,16 +136,24 @@ const reviewGroups = {
 const shownAxes = Object.keys(reviewGroups.axes) as Axis[];
 const shownVerdicts = Object.keys(reviewGroups.verdicts) as Verdict[];
 
-// The run's comment and the interactive printout alike; undefined for a review that kept no records and no merge.
+// The run's comment and the interactive printout alike; undefined for a review that kept no records, no merge and no unwanted fact.
 export function ticketReviewListOf({
   ticket,
   title,
   records,
   mergeMasterRecord,
   unrecordedMerge,
+  unverified = [],
 }: TicketReviewList): string | undefined {
   const mergeItem = mergeItemOf(mergeMasterRecord, unrecordedMerge);
-  if (records.length === 0 && mergeItem === undefined) return undefined;
+  const unwanted = unverified.filter(({ isWanted }) => !isWanted);
+  if (
+    records.length === 0 &&
+    mergeItem === undefined &&
+    unwanted.length === 0
+  ) {
+    return undefined;
+  }
   const groups = groupsOf(records);
   // Numbered in the order shown, so R<ticket>.1 is the first Proposal read.
   const proposals = shownAxes.flatMap((axis) => groups[axis].propose);
@@ -150,7 +164,14 @@ export function ticketReviewListOf({
     const id = itemIdOf(ticket, proposals.length);
     sections.push(mergeMasterSectionOf(id, mergeItem));
   }
+  if (unwanted.length > 0) sections.push(unwantedAuditOf(unwanted));
   return listOf(ticket, title, sections);
+}
+
+// The spec's Facts field didn't ask for these, so they collapse with no checkboxes and none counts as undecided.
+function unwantedAuditOf(unwanted: UnverifiedItem[]): string {
+  const lines = unwanted.map(({ fact, reason }) => `- ${fact} (${reason})`);
+  return `${reviewGroups.unverified}\n\n<details>\n<summary>Unverified facts the Facts field didn't name: ${unwanted.length}</summary>\n\n${lines.join("\n")}\n\n</details>`;
 }
 
 function axisSectionsOf(
