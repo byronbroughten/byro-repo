@@ -8,6 +8,7 @@ import { dirname, join } from "node:path";
 import { FactsFile, type WrapUpFacts } from "./FactsFile.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import {
+  olderRowWorkflow,
   outcomeCommitMessage,
   type OutcomeFacts,
   outcomeFileOf,
@@ -17,11 +18,14 @@ import {
   transcriptFactsOf,
   type TranscriptFactsRequest,
 } from "./transcriptFacts.ts";
+import type { WorkflowName } from "./Workflow.ts";
 
 export interface OutcomeRowRequest {
   issue: IssueRef;
   spec: IssueRef;
   githubOwner: string;
+  // Absent from a wrap-up older than the Workflow column, as this writer runs from the ticket's merged code.
+  workflow?: WorkflowName;
   filesChanged: number;
   handoffSessionIds: string[];
   silenceTimeoutMs: number;
@@ -43,12 +47,14 @@ export function writeOutcomeRow(
     outcomeFolder,
     handoffSessionIds,
     silenceTimeoutMs,
+    workflow = olderRowWorkflow,
     ...request
   }: OutcomeRowRequest,
 ): WrittenOutcomeRow {
   const facts = FactsFile.init(stateFolder).read(request.issue);
   const row = {
     ...request,
+    workflow,
     facts: outcomeFactsOf(facts, { handoffSessionIds, silenceTimeoutMs }),
   };
   const path = outcomePathOf(outcomeFolder, row);

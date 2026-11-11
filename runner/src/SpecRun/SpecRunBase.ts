@@ -534,11 +534,16 @@ export class SpecRunBase {
 
   // The repo's clone in the workspace, whether or not it is there.
   protected _cloneIn(workspace: Workspace, repo: string): string {
+    return this._cloneUnder(workspace.path, repo);
+  }
+
+  // The repo's clone under a root, a workspace's or the primary's.
+  protected _cloneUnder(root: string, repo: string): string {
     const clonePath = this.config.knobs.clonePaths[repo];
     if (clonePath === undefined) {
       throw new Error(`The repo map has no clone of ${repo}.`);
     }
-    return join(workspace.path, clonePath);
+    return join(root, clonePath);
   }
 
   protected _worktreesOf(workspace: Workspace): CloneWorktree[] {

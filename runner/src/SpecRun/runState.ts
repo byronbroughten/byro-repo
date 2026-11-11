@@ -197,6 +197,8 @@ export interface RunState {
   halts?: Halt[];
   // Set by a Restart and taken by its relaunch, which carries on its landings.
   restart?: Restart;
+  // A piece spec's: set once the push has written every agent Section into the Deliverable, so a rerun never pushes again.
+  isPushed?: boolean;
 }
 
 export interface Restart {

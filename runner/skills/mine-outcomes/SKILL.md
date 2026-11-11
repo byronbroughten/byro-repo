@@ -21,8 +21,8 @@ The batch is the spec sections the invocation names; a section is the folder `do
 When it names no section, say so and stop. The summary is what you read in place of the row files and each ticket's `issue:read`. It already reads older rows under today's names, leaves `unrecorded` out of every sum and median with the rows each figure rests on, and sums each row's peaks (`150K → 90K` is a handoff, its peak sum 240K). It gives:
 
 - review's share of cost for the batch, each repo and each spec: the sum of Review cost over the sum of Cost and Review cost, on rows recording both, rows with an older Triage cost column left out;
-- each repo's medians per file changed, pooled over the batch;
-- per spec, each row's figures, its outliers with the rules they trip and their session ids, and each ticket's Model fit pair line and reason;
+- the medians per file changed of each repo and Workflow, pooled over the batch;
+- per spec, each row's figures with its `Workflow` (`code` or `piece`, an older row reading as `code`), its outliers with the rules they trip and their session ids, and each ticket's Model fit pair line and reason;
 - the expired, partly expired and never-recorded transcripts.
 
 Read the knobs the proposals will name: `defaultRunKnobs` in [`runner/src/runKnobs.ts`](../../../runner/src/runKnobs.ts), laid over by `scripts/runner/runner.config.json`, and the pair criteria in [`docs/agents/model-fit.md#criteria-for-each-pair`](../../../docs/agents/model-fit.md#criteria-for-each-pair).
@@ -34,15 +34,15 @@ The summary flags a row an outlier on each of these rules, naming every one it t
 - Result is `Fix (resumed implementer)`, `Fix (fresh resolver)` or `Halted then passed (<kind>)`.
 - Retries is above 0.
 - **Over budget**: its peak sum is above `ticketBudget`. A ticket with a handoff counts, since its peaks are summed.
-- **Long or costly for its size**: Duration or Cost per file changed is more than twice the median of that figure over the batch's rows in the same repo, with at least three rows recording it.
+- **Long or costly for its size**: Duration or Cost per file changed is more than twice the median of that figure over the batch's rows in the same repo and Workflow, with at least three rows recording it.
 
 A row is **expired** when none of its Session ids has a transcript under `~/.claude/projects/*/` or `~/.claude-swap-backup/sessions/*/projects/*/`, and **partly expired** when some are missing; one whose Session ids is `unrecorded` never had any. They still count in every figure; only `/retro` needs a transcript.
 
-For each outlier, and each row a pattern below rests on, read its What review caught from its row file, `docs/agents/outcomes/<spec repo>-<spec n>/<repo>-<n>.md`.
+For each outlier, and each row a pattern below rests on, read its What review caught from its row file, `docs/agents/outcomes/<spec repo>-<spec n>/<repo>-<n>.md`. A `piece` row's cell holds only each finding's axis and rule, with no prose, since the log is public.
 
 ## 3. Proposals
 
-Make two kinds. Each names the knob, criterion or file it would change, the change, and the rows behind it by issue number; the rows may come from any spec in the batch:
+**Compare like with like: weigh a row only against rows of its own repo and `Workflow`.** Make two kinds. Each names the knob, criterion or file it would change, the change, and the rows behind it by issue number; the rows may come from any spec in the batch:
 
 - **Model-fit boundary**: move a ticket shape from one pair to another in a criterion of `model-fit.md`, or change `resolverPair`, `gapCheckPair`, `ticketBudget` or `liveCeiling`. Compare each ticket's pair and its Model fit reason with its Result, peak sum and cost. A pair that passed first try on a shape its criterion puts higher is evidence for moving the boundary down. A cheaper pair that needed a Fix is evidence against.
 - **Process**: one in one of the categories in `/retro` ([`.claude/skills/retro/SKILL.md`](../../../.claude/skills/retro/SKILL.md)), drawn mainly from What review caught. The same kind of catch on two or more tickets is a proposal. Name the knob when one fits, such as `maxTurns.<step>`, `wallClockMs.<step>`, `ticketBudget` or `reviewListCadence`. Otherwise name the doc or check to change.

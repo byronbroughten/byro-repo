@@ -101,7 +101,7 @@ describe("a landed ticket's session facts", () => {
       ],
     });
     const row = outcomeRow();
-    expect(row).toContain("| #1 | Opus medium | 1 |");
+    expect(row).toContain("| #1 | code | Opus medium | 1 |");
     expect(row).toContain("| 15 min |");
     expect(row).toContain("| implement-session, review-session |");
     expect(row).not.toContain("unrecorded");
@@ -113,7 +113,7 @@ describe("a landed ticket's session facts", () => {
 
     await specRun(runSteps(), { configFolder }).run(spec);
 
-    expect(outcomeRow()).toContain("| #1 | Opus medium | 1 |");
+    expect(outcomeRow()).toContain("| #1 | code | Opus medium | 1 |");
     const missing = `no transcript for session review-session under ${configFolder}`;
     expect(warnings()).toEqual([
       `byro-repo #1: warning: duration written unrecorded: ${missing}.`,

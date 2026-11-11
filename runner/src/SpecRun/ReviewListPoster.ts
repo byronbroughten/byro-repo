@@ -1,11 +1,11 @@
 // The review lists and the gap check. At landing a ticket with resolve records or a merge-master record gets one review-list comment on the spec and each
 // covered-later Dismiss a note on its later ticket, each checked for its marker first; once the run has no ticket left to work, _finish
 // posts any review list a killed run missed and runs the spec-end Steps its Workflow supplies when the Workflow's trigger finds them due: the gap check, whose gaps become the last review list,
-// and the judge Step, which ends a run holding undecided items with "judge, then rerun".
+// the judge Step, which ends a run holding undecided items with "judge, then rerun", and the push, DraftPusher.ts's.
 // RunLoop.ts calls _finish; SessionReviewer.ts calls _runnersSpecCommentsOf, _postCoveredLaterNotes and _postSessionReviewList,
 // which edits a posted list in place where a re-review's differs, the Base skipping a session's push; TicketLander.ts calls _postReviewList at landing;
 // StatusReporter.ts calls _isGapChecked.
-// It builds its own StepLauncher and HaltRaiser; formats are ../reviewList.ts, the gap check's prompt the spec's Workflow's, through ../Workflow.ts.
+// It builds its own StepLauncher, HaltRaiser and DraftPusher; formats are ../reviewList.ts, the gap check's prompt the spec's Workflow's, through ../Workflow.ts.
 
 import {
   failureHaltOf,
@@ -36,6 +36,7 @@ import type { GapCheckRecord, ResolveRecord } from "../stepRecords.ts";
 import { TicketHalted } from "../TicketHalted.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
 import { type GapCheckTicket, type SpecEndStep } from "../Workflow.ts";
+import { DraftPusher } from "./DraftPusher.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import {
   gapCheckLabel,
@@ -60,6 +61,10 @@ export class ReviewListPoster extends SpecRunBase {
 
   private get stepLauncher(): StepLauncher {
     return new StepLauncher(this.config);
+  }
+
+  private get draftPusher(): DraftPusher {
+    return new DraftPusher(this.config);
   }
 
   // Posts the notes before the comment, so a ticket marked posted has posted both.
@@ -206,6 +211,7 @@ export class ReviewListPoster extends SpecRunBase {
         return {};
       },
       judge: () => this._judge(run),
+      push: async () => ({ stop: await this.draftPusher._push(run) }),
     };
     return runners[step]();
   }
@@ -356,6 +362,7 @@ interface SpecEndOutcome {
 const specEndStepNames: Record<SpecEndStep, string> = {
   "gap-check": "The gap check",
   judge: "The judge Step",
+  push: "The push",
 };
 
 // The latest answer the gap check hasn't acted on; a `stop spec` read on a later run is a skip.

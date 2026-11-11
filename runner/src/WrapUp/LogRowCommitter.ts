@@ -4,6 +4,7 @@ import { type WrapUpFacts } from "../FactsFile.ts";
 import { git, revOf } from "../git.ts";
 import { type IssueRef, issueRef, type Workspace } from "../IssueWorkspaces.ts";
 import { writeOutcomeRow } from "../outcomeRowWriter.ts";
+import { type WorkflowName, workflowNameOf } from "../Workflow.ts";
 import { IssueCloser } from "./IssueCloser.ts";
 import { WrapUpBase } from "./WrapUpBase.ts";
 import { labels, type Landing } from "./wrapUpTypes.ts";
@@ -29,11 +30,20 @@ export class LogRowCommitter extends WrapUpBase {
   }
 
   private async _isHumanTicket(issue: IssueRef): Promise<boolean> {
-    const issueLabels = await this._withRetries(
+    const issueLabels = await this._labelsOf(issue);
+    return issueLabels.includes(labels.human);
+  }
+
+  // From the spec's labels, so a ticket landed outside a run, which has no run to record it, gets its row's Workflow.
+  private async _workflowOf(spec: IssueRef): Promise<WorkflowName> {
+    return workflowNameOf({ labels: await this._labelsOf(spec) });
+  }
+
+  private async _labelsOf(issue: IssueRef): Promise<string[]> {
+    return this._withRetries(
       `Reading ${issueRef.labelOf(issue)}'s labels`,
       () => this.config.github.labelsOf(issue),
     );
-    return issueLabels.includes(labels.human);
   }
 
   private async _commitLogRow({
@@ -50,10 +60,12 @@ export class LogRowCommitter extends WrapUpBase {
     if (facts.sessions !== undefined) {
       handoffSessionIds = await this.closer._handoffSessionIdsOf(issue);
     }
+    const spec = await this.closer._specOf(issue);
     const writeRow = this.config.writeOutcomeRow ?? writeOutcomeRow;
     const { path, commitMessage } = await writeRow(worktree, {
       issue,
-      spec: await this.closer._specOf(issue),
+      spec,
+      workflow: await this._workflowOf(spec),
       githubOwner: this.config.githubOwner,
       filesChanged: landing.progress.filesChanged ?? 0,
       handoffSessionIds,

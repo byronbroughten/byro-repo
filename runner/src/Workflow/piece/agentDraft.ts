@@ -1,6 +1,6 @@
 // A Piece's Agent draft file, as ../../../../docs/pieces/agent-draft.md describes it: one `## <heading>` block per
 // Section, each marked as the developer's or an agent's on the line under its heading. Pull, from pieceWorkflow.ts,
-// merges a Doc read into it; the Doc's Markdown dialect and its split into Sections are ../../Docs/markdownDialect.ts's.
+// merges a Doc read into it, and the push reads its agent Sections back out; the Doc's Markdown dialect and its split into Sections are ../../Docs/markdownDialect.ts's.
 
 import { markdownDialect } from "../../Docs/markdownDialect.ts";
 import type { NumberOrPlaceholder } from "../../promptText.ts";
@@ -42,6 +42,15 @@ export const agentDraft = {
       return body === "" ? head : `${head}\n\n${body}`;
     });
     return `${blocks.join("\n\n")}\n`;
+  },
+
+  agentSectionsOf(draft: string): Map<string, string> {
+    return new Map(
+      agentDraft
+        .sectionsOf(draft)
+        .filter(({ author }) => author === "agent")
+        .map(({ heading, markdown }) => [heading, markdown]),
+    );
   },
 
   // The Doc's Sections in its order, each agent Section kept as the draft has it; an agent Section the Doc no longer has stays, after them.

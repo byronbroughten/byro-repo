@@ -8,11 +8,8 @@ import {
   resolveRecordProblems,
   resolveRecordsOf,
 } from "./resolveRecords.ts";
-import {
-  haltScopeOf,
-  type ResolveRecord,
-  whatReviewCaughtOf,
-} from "./stepRecords.ts";
+import { haltScopeOf, type ResolveRecord } from "./stepRecords.ts";
+import { codeReviewCaughtOf } from "./Workflow/code/codeWorkflow.ts";
 
 // The same Ajv setup StepStream validates a step's structured output with.
 const validateOutput = new Ajv({ allErrors: true, strict: false }).compile(
@@ -310,7 +307,7 @@ describe("haltScopeOf", () => {
   });
 });
 
-describe("whatReviewCaughtOf", () => {
+describe("codeReviewCaughtOf", () => {
   it("names the kept findings by verdict, leaving out Dismisses", () => {
     const second = {
       ...fix,
@@ -320,14 +317,14 @@ describe("whatReviewCaughtOf", () => {
     };
 
     expect(
-      whatReviewCaughtOf([dismiss, fix, halt, second, propose, kept]),
+      codeReviewCaughtOf([dismiss, fix, halt, second, propose, kept]),
     ).toBe(
       "Fixed: A multi-line why comment above the retry loop. (runner/src/SpecRun.ts:88); A stale doc link. (README.md:4). Proposed: The lock file name is built in two places. (runner/src/LandingLock.ts:40). Halted: The ticket asks for a retry the spec forbids. (runner/src/SpecRun.ts:120).",
     );
   });
 
   it("is undefined when every finding was dismissed", () => {
-    expect(whatReviewCaughtOf([dismiss, kept])).toBeUndefined();
+    expect(codeReviewCaughtOf([dismiss, kept])).toBeUndefined();
   });
 });
 
