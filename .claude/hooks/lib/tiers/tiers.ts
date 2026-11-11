@@ -4,6 +4,7 @@ import { type SandboxOff, sandboxOffWords } from "../sandboxState.ts";
 import { ShellParser, type SimpleCommand } from "./ShellParser.ts";
 import { excludedCommands } from "./tiers/excludedCommands.ts";
 import { gitWrites } from "./tiers/gitWrites.ts";
+import { interactiveScripts } from "./tiers/interactiveScripts.ts";
 import { interactiveSession } from "./tiers/interactiveSession.ts";
 import { npmCommands } from "./tiers/npmCommands.ts";
 import { npmVerdicts } from "./tiers/npmVerdicts.ts";
@@ -331,7 +332,7 @@ const classifiers: Classifier[] = [
   runnerStep.liveAliasVerdictOf,
   interactiveSession.ghVerdictOf,
   interactiveSession.decideVerdictOf,
-  interactiveSession.scriptVerdictOf,
+  interactiveScripts.scriptVerdictOf,
   npmVerdicts.choreSendVerdictOf,
   readCommands.labelListVerdictOf,
   readCommands.processListVerdictOf,
