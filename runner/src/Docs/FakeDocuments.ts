@@ -36,9 +36,12 @@ export class FakeDocuments implements DocumentsPort {
     return this;
   }
 
-  /** Edits a Doc just before a later `batchUpdate`, after `skipped` others, as an edit landing between a read and a write would. */
-  editBeforeUpdate(change: DocumentChange, skipped: number): this {
-    this.pendingChange = { change, skipped };
+  /** Edits a Doc just before each of `times` later `batchUpdate`s, after `skipped` others, as an edit landing between a read and a write would. */
+  editBeforeUpdate(
+    change: DocumentChange,
+    { skipped = 0, times = 1 }: UpdateEdits = {},
+  ): this {
+    this.pendingChange = { change, skipped, times };
     return this;
   }
 
@@ -78,7 +81,8 @@ export class FakeDocuments implements DocumentsPort {
       pending.skipped -= 1;
       return;
     }
-    this.pendingChange = undefined;
+    pending.times -= 1;
+    if (pending.times === 0) this.pendingChange = undefined;
     this.edit(documentId, pending.change);
   }
 
@@ -95,9 +99,16 @@ export class FakeDocuments implements DocumentsPort {
 
 export type DocumentChange = (document: GoogleDocument) => GoogleDocument;
 
+// Which later `batchUpdate`s an edit lands before: each of `times` after the first `skipped`.
+export interface UpdateEdits {
+  skipped?: number;
+  times?: number;
+}
+
 interface PendingChange {
   change: DocumentChange;
   skipped: number;
+  times: number;
 }
 
 function indexed(document: GoogleDocument): GoogleDocument {

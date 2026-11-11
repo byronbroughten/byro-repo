@@ -28,4 +28,5 @@ Push is the runner's last spec-end Step on a piece spec, after the gap check and
 - **The baseline is the newest one any of the spec's tickets recorded**, which holds every Section of the Doc. A spec with none, every drafting ticket worked in a session, treats every agent Section as changed since the pull.
 - **`overwrite` writes the agent text over the Doc's; `keep mine` leaves the Doc alone and marks the Section as the developer's in the Agent draft**, in a runner commit landed as a session landing that closes no issue.
 - **An open push Halt holds the spec-end Steps, as a gap-check Halt does**; the answers are delivered once the push completes.
-- **A stale revision or pending suggestions stop the run; a rerun retries.**
+- **On a stale revision the push reads the Doc and compares it against the pull baseline again, up to a bound, then stops the run.**
+- **Pending suggestions the writer can't index around raise a push Halt naming the Doc**, answered `continue` once the developer has accepted or rejected them; suggestions still pending on the rerun raise it again.

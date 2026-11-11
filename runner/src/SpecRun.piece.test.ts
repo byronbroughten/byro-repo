@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { type DocRead, Docs } from "./Docs.ts";
+import type { DocumentChange } from "./Docs/FakeDocuments.ts";
 import type {
   GoogleDocument,
   NamedStyleType,
@@ -961,25 +962,120 @@ describe("the end of a piece spec", () => {
       });
     });
 
-    it("stops on a stale revision, and the rerun writes only the Sections still to write", async () => {
-      addGatedSpec();
-      heldDocs().editBeforeUpdate(
-        (document) => ({ ...document, revisionId: "commented" }),
-        1,
-      );
+    describe("an edit between its read and its write", () => {
+      // A comment changes the revision but no Section.
+      const comments: DocumentChange = (document) => ({
+        ...document,
+        revisionId: `${document.revisionId}-commented`,
+      });
+      const pushStopped = `The push stopped on Doc ${deliverableId}, which changed between its read and its write 4 times running; rerun to retry it: \`npm run runner -- byronbroughten/byro-repo 213\`.`;
 
-      const { result } = await landsThenGapChecks([], agentOnlyDraft);
-      const rerun = await specRun(FakeAgentStep.init()).run(spec);
+      it("reads and compares the Doc again on a stale revision, then writes the Sections still to write", async () => {
+        addGatedSpec();
+        heldDocs().editBeforeUpdate(comments, { skipped: 1 });
 
-      expect(result.kind).toBe("stopped");
-      expect(result.message).toContain(
-        `The push stopped: Doc ${deliverableId} changed after revision`,
-      );
-      expect(result.message).toContain("Rerun to retry it");
-      const pushed = await deliverableOf();
-      expect(Object.fromEntries(pushed.sections)).toEqual(pushedSections);
-      expect(pushed.revisionId).toBe(`${deliverableId}-written-2`);
-      expect(rerun.kind).toBe("finished");
+        const { result } = await landsThenGapChecks([], agentOnlyDraft);
+
+        const pushed = await deliverableOf();
+        expect(Object.fromEntries(pushed.sections)).toEqual(pushedSections);
+        expect(pushed.revisionId).toBe(`${deliverableId}-written-2`);
+        expect(result.message).toContain("byro-repo #2 waits on you");
+      });
+
+      it("raises the push Halt on a Section the edit changed, never writing over it blind", async () => {
+        addGatedSpec();
+        heldDocs().editBeforeUpdate(() => ({
+          ...docOf({
+            ...pulledSections,
+            "The crossing": "The ferry never came.",
+          }),
+          revisionId: "crossing-mid-push",
+        }));
+
+        await landsThenGapChecks([], agentOnlyDraft);
+
+        const pushed = await deliverableOf();
+        expect(pushed.revisionId).toBe("crossing-mid-push");
+        expect(pushed.sections.get("The crossing")).toBe(
+          "The ferry never came.\n",
+        );
+        const [halt] = haltComments();
+        expect(halt).toContain('"The crossing" changed in the Doc since');
+      });
+
+      it("stops the run past the retry bound, and a rerun retries", async () => {
+        addGatedSpec();
+        heldDocs().editBeforeUpdate(comments, { times: 4 });
+
+        const { result } = await landsThenGapChecks([], agentOnlyDraft);
+        const rerun = await specRun(FakeAgentStep.init()).run(spec);
+
+        expect(result.kind).toBe("stopped");
+        expect(result.message).toContain(pushStopped);
+        expect(Object.fromEntries((await deliverableOf()).sections)).toEqual(
+          pushedSections,
+        );
+        expect(rerun.kind).toBe("finished");
+      });
+    });
+
+    describe("its Halt on pending suggestions", () => {
+      const suggestionsHalt = `Doc ${deliverableId} holds pending suggestions`;
+
+      // Suggests a word in The harbour, as a reader of the Doc would.
+      function suggestsInTheHarbour(script: StepScript): StepScript {
+        return async (request) => {
+          heldDocs().edit(deliverableId, () => {
+            const suggested = docOf(pulledSections);
+            suggested.body?.content.splice(2, 1, {
+              paragraph: {
+                elements: [
+                  { textRun: { content: "Gulls circled" } },
+                  {
+                    textRun: {
+                      content: " slowly",
+                      suggestedInsertionIds: ["suggest.1"],
+                    },
+                  },
+                  { textRun: { content: " the quay at dawn.\n" } },
+                ],
+                paragraphStyle: { namedStyleType: "NORMAL_TEXT" },
+              },
+            });
+            return { ...suggested, revisionId: "suggested" };
+          });
+          return script(request);
+        };
+      }
+
+      it("raises a push Halt naming the Doc, answered `continue`, writing nothing", async () => {
+        addGatedSpec();
+
+        await landsThenGapChecks([], suggestsInTheHarbour(agentOnlyDraft));
+
+        expect((await deliverableOf()).revisionId).toBe("suggested");
+        const [halt] = haltComments();
+        expect(halt).toContain("Push Halt");
+        expect(halt).toContain(suggestionsHalt);
+        expect(halt).toContain("1. `continue`");
+      });
+
+      it("writes every agent Section on `continue` once the suggestions are settled", async () => {
+        addGatedSpec();
+        await landsThenGapChecks([], suggestsInTheHarbour(agentOnlyDraft));
+        heldDocs().edit(deliverableId, () => ({
+          ...pulledDoc,
+          revisionId: "settled",
+        }));
+        github.reply(spec.number, "H1: continue");
+
+        const result = await specRun(FakeAgentStep.init()).run(spec);
+
+        expect(Object.fromEntries((await deliverableOf()).sections)).toEqual(
+          pushedSections,
+        );
+        expect(result.message).toContain("byro-repo #2 waits on you");
+      });
     });
   });
 });

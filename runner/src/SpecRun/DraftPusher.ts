@@ -3,14 +3,20 @@
 // holds, so a rerun writes nothing twice. A Section that differs from the push baseline DraftPuller.ts kept, or is
 // missing, raises a push Halt on the spec issue first, and the push writes nothing until every one is answered:
 // `overwrite` writes the agent text, `keep mine` marks the Section as the developer's, through DraftPusher/DraftKeeper.ts.
-// It stops on a stale revision or pending suggestions; a rerun retries. The push rules are the Workflow's, through
-// ../Workflow.ts; ReviewListPoster.ts runs it after the judge Step.
+// A stale revision makes it read and compare again, up to a bound; pending suggestions raise a push Halt naming the Doc.
+// The push rules are the Workflow's, through ../Workflow.ts; ReviewListPoster.ts runs it after the judge Step.
 
 import type { DocRead, Docs } from "../Docs.ts";
 import { PendingSuggestions } from "../Docs/PendingSuggestions.ts";
 import { StaleRevision } from "../Docs/StaleRevision.ts";
 import { git } from "../git.ts";
-import { type Halt, type HaltDraft, isAnswered, pushHaltOf } from "../halts.ts";
+import {
+  type Halt,
+  type HaltDraft,
+  isAnswered,
+  pushHaltOf,
+  suggestionsHaltOf,
+} from "../halts.ts";
 import { haltReplies, type PushAnswer } from "../halts/haltReplies.ts";
 import { issueRef } from "../IssueWorkspaces.ts";
 import { TicketHalted } from "../TicketHalted.ts";
@@ -43,6 +49,15 @@ interface PushPlan {
   drafts: HaltDraft[];
   isHeld: boolean;
 }
+
+// The Sections one pass of writes wrote, and whether an edit that arrived between a read and a write cut it short.
+interface WriteOutcome {
+  count: number;
+  isStale: boolean;
+}
+
+// How many times the push reads the Doc again after a stale revision before it stops the run.
+const staleRetryLimit = 3;
 
 // A Section's latest push Halt: open, answered with an option, or answered with neither, which asks again.
 type HaltState = PushAnswer | "open" | "unrecognised";
@@ -90,32 +105,29 @@ export class DraftPusher extends SpecRunBase {
     }
     const draft = await git(clone, "show", `master:${draftPath}`);
     const sections = pushedSectionsOf(rules.agentSectionsOf(draft), baseline);
-    let written: number;
-    try {
-      const plan = planOf(
-        await rules.docs.read(documentId),
-        sections,
-        pushAnswersOf(run),
-      );
+    const answers = pushAnswersOf(run);
+    let written = 0;
+    for (let reads = 1; ; reads += 1) {
+      const plan = planOf(await rules.docs.read(documentId), sections, answers);
       await this._halt(run, plan);
-      written = await writeSections({
+      const outcome = await this._write(run, {
         docs: rules.docs,
         documentId,
         sections: plan.written,
       });
-      await this.draftKeeper._keep(run, {
-        draft,
-        draftPath,
-        kept: plan.kept,
-        rules,
-      });
-    } catch (error) {
-      if (!(
-        error instanceof StaleRevision || error instanceof PendingSuggestions
-      )) {
-        throw error;
+      written += outcome.count;
+      if (!outcome.isStale) {
+        await this.draftKeeper._keep(run, {
+          draft,
+          draftPath,
+          kept: plan.kept,
+          rules,
+        });
+        break;
       }
-      return `The push stopped: ${error.message} Rerun to retry it: \`${this._rerunCommandOf(run)}\`.`;
+      if (reads > staleRetryLimit) {
+        return `The push stopped on Doc ${documentId}, which changed between its read and its write ${reads} times running; rerun to retry it: \`${this._rerunCommandOf(run)}\`.`;
+      }
     }
     for (const halt of pushHaltsOf(run)) halt.isDelivered = true;
     run.state.isPushed = true;
@@ -127,15 +139,29 @@ export class DraftPusher extends SpecRunBase {
     return undefined;
   }
 
-  // Raised on the spec issue, since the push belongs to no ticket; an open one holds the push without raising it again.
   private async _halt(run: Run, { drafts, isHeld }: PushPlan): Promise<void> {
     if (drafts.length === 0 && !isHeld) return;
+    await this._raise(run, drafts);
+  }
+
+  // Raised on the spec issue, since the push belongs to no ticket; with no drafts, an open one holds the push without raising it again.
+  private async _raise(run: Run, drafts: HaltDraft[]): Promise<never> {
     if (drafts.length > 0) {
       runHalts.raise(run, { ticket: run.spec.issue, drafts });
       this._saveState(run);
       await this.haltRaiser._postUnpostedHalts(run);
     }
     throw new TicketHalted(issueRef.labelOf(run.spec.issue));
+  }
+
+  // Pending suggestions hold every write into the Doc, so they raise one push Halt naming it, on no Section.
+  private async _write(run: Run, push: Push): Promise<WriteOutcome> {
+    try {
+      return await writeSections(push);
+    } catch (error) {
+      if (!(error instanceof PendingSuggestions)) throw error;
+      return this._raise(run, [suggestionsHaltOf(push.documentId)]);
+    }
   }
 }
 
@@ -227,22 +253,25 @@ async function writeSections({
   docs,
   documentId,
   sections,
-}: Push): Promise<number> {
-  let written = 0;
+}: Push): Promise<WriteOutcome> {
+  let count = 0;
   for (const section of sections) {
     const read = await docs.read(documentId);
     if (read.sections.get(section.heading) === section.markdown) continue;
-    if (isEdited(read, section)) {
-      throw new StaleRevision(documentId, read.revisionId);
-    }
+    if (isEdited(read, section)) return { count, isStale: true };
     const { heading, markdown } = section;
-    await docs.writeSection({ documentId, heading, markdown });
-    written += 1;
+    try {
+      await docs.writeSection({ documentId, heading, markdown });
+    } catch (error) {
+      if (!(error instanceof StaleRevision)) throw error;
+      return { count, isStale: true };
+    }
+    count += 1;
   }
-  return written;
+  return { count, isStale: false };
 }
 
-// Holding the agent text already is no edit: a rerun after a stale revision finds the Sections it wrote that way.
+// Holding the agent text already is no edit: a read after a stale revision, or a rerun, finds the Sections it wrote that way.
 function isEdited(
   read: DocRead,
   { heading, markdown, pulled }: PushedSection,

@@ -20,7 +20,10 @@ import { isTargetWrite } from "./targetTools.ts";
 // Marks every comment the runner posts, which carries the developer's login too, so none is read as an answer.
 export const runnerMark = "<!-- spec-runner -->";
 
-const stopSpecOption = "`stop spec`";
+const haltOptions = {
+  stopSpec: "`stop spec`",
+  continue: "`continue`",
+} as const;
 
 const kindLabels = {
   verdict: "verdict Halt",
@@ -127,8 +130,8 @@ export function splitHaltOf(
 ): HaltDraft {
   return {
     kind: "split",
-    question: `The implement step handed off with less than half the ticket done, and proposed splitting the rest into:\n\n${handoffText.proposedSplitOf(slices)}\n\n${splitTheTicketPhraseOf("`continue`")}: a fresh implement step picks up from the handoff on the ticket's body as it then reads.`,
-    options: ["`continue`"],
+    question: `The implement step handed off with less than half the ticket done, and proposed splitting the rest into:\n\n${handoffText.proposedSplitOf(slices)}\n\n${splitTheTicketPhraseOf(haltOptions.continue)}: a fresh implement step picks up from the handoff on the ticket's body as it then reads.`,
+    options: [haltOptions.continue],
     scope: downstream,
   };
 }
@@ -144,8 +147,8 @@ export function unappliedEditsHaltOf(
   );
   return {
     kind: "research",
-    question: `${haltNameOf(halt)}'s answer approved these Outline edits, but the runner couldn't apply them: each one's ${outlineEdits.unappliedReason}.${bulletsOf(lines)}\n\nMake each change in the spec's \`## Outline\` by hand, then answer \`continue\`.`,
-    options: ["`continue`"],
+    question: `${haltNameOf(halt)}'s answer approved these Outline edits, but the runner couldn't apply them: each one's ${outlineEdits.unappliedReason}.${bulletsOf(lines)}\n\nMake each change in the spec's \`## Outline\` by hand, then answer ${haltOptions.continue}.`,
+    options: [haltOptions.continue],
     scope: halt.scope,
   };
 }
@@ -172,6 +175,16 @@ export function pushHaltOf(heading: string, conflict: PushConflict): HaltDraft {
     options: [overwrite, keepMine],
     scope: [],
     pushSection: heading,
+  };
+}
+
+// On no Section, since the suggestions hold every write into the Doc; any answer but `stop spec` pushes again.
+export function suggestionsHaltOf(documentId: string): HaltDraft {
+  return {
+    kind: "push",
+    question: `Doc ${documentId} holds pending suggestions, so the push can't place its writes in it safely. Accept or reject each suggestion in the Doc, then answer ${haltOptions.continue}.`,
+    options: [haltOptions.continue],
+    scope: [],
   };
 }
 
@@ -283,7 +296,7 @@ export function haltHeadingOf(halt: Halt): string {
 export function haltCommentOf(post: HaltPost): string {
   const { halt } = post;
   return haltCommentWith(post, {
-    options: [...halt.options, stopSpecOption],
+    options: [...halt.options, haltOptions.stopSpec],
     answerLine: `Answer with a reply that opens with \`${halt.id}:\`, then an option or your own words.`,
   });
 }
