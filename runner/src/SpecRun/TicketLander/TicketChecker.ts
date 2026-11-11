@@ -124,9 +124,11 @@ export class TicketChecker extends SpecRunBase {
         launch: {
           prompt: rules.promptOf({
             issue: ticket.issue,
+            spec: run.spec.issue,
             title: ticket.title,
             branch: workspace.branch,
             branchedRepos: ticketSteps.branchedReposOf(ticketRun),
+            workspacePath: workspace.path,
             failures: failure,
           }),
           jsonSchema: rules.outputSchema,

@@ -44,7 +44,7 @@ The words Piece, Deliverable, Section, Stage and Agent draft are [the writing gl
 [The runner glossary](../../runner/GLOSSARY.md#language) defines each Step.
 
 - **Code**: the runner's [`Workflow`](../../runner/src/Workflow.ts) module picks the code Workflow, whose code is in [`runner/src/Workflow/code/`](../../runner/src/Workflow/code/); its [`codeWorkflow.ts`](../../runner/src/Workflow/code/codeWorkflow.ts) defines the Steps each ticket goes through, and the runner's `TicketSequencer` runs them. `/code-review` is the review Step's skill, named, with each ticket's checks, where `scripts/runner/runnerConfig.ts` builds the code Workflow, and `/implement-code` is generated from the implement Step's shared body (`runner/src/Workflow/code/implementCodeSkill.ts`), so a change to either reaches both an interactive session and a run.
-- **Piece**: the runner's [`pieceWorkflow.ts`](../../runner/src/Workflow/piece/pieceWorkflow.ts) runs a Research ticket's research Step, which follows `/research-piece`'s steps 1–7, the ones it names as shared by both modes, then its quote check, and lands it with no code. Every other piece ticket is a drafting ticket: it runs pull, implement, review (whose prompt reads `/review-piece` by its path), resolve, checks and wrap-up, landing by wrap-up.
+- **Piece**: the runner's [`pieceWorkflow.ts`](../../runner/src/Workflow/piece/pieceWorkflow.ts) runs a Research ticket's research Step, which follows `/research-piece`'s steps 1–7, the ones it names as shared by both modes, then its quote check, and lands it with no code. Every other piece ticket is a drafting ticket: it runs pull, implement, review (whose prompt reads `/review-piece` by its path), resolve, checks and wrap-up, landing by wrap-up; red checks go to the red-checks Step up to the `retriesPerFailure` run knob's times, then raise a Failure Halt.
 
 ## The hand-off table
 
@@ -144,7 +144,7 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | Issue and session workspaces (`npm run issue:start`, [`git-workflow.md`](./git-workflow.md#a-skills-session-workspace)) | `/start-issue`, `/judge-findings`, `/mine-outcomes`, `/implement-piece`'s issue workspace, `/research-piece`'s session workspace |
 | Wrap-up (`npm run wrap-up`) | `/implement-code`, `/judge-findings`, `/mine-outcomes`, the wrap-up Step, `/implement-piece`, `/research-piece` |
 | `runner -- decide` | `/runner`, `/implement-code`, `/judge-findings` |
-| `npm run overlap` | `/review-piece` runs it; `/implement-piece` reruns it after a fix |
+| `npm run overlap` | `/review-piece` runs it; `/implement-piece` reruns it after a fix; the piece resolve Step reruns it after its Fixes |
 | `npm run pdf:text` and the page-range command in [`pdf-pages.md`](../pdf-pages.md) | `/research-piece` dumps text; `/grill-piece` and `/review-research` count and print pages |
 | Sub-issues and native blocking edges | `/piece-tickets` sets them; `/review-piece` reads the parent through `gh api` |
 | The gworkspace tools (Drive and Docs) | `/grill-piece`, `/implement-piece`, `/research-piece`, `/runner` on an `another source` answer |

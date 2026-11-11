@@ -4,7 +4,8 @@
 // Every other ticket is a drafting ticket: its first Step pulls the Deliverable's Doc into the Agent draft, agentDraft.ts,
 // its implement step, implementStep.ts, drafts the ticket's Sections there, its review step, reviewStep.ts, reviews them,
 // its resolve step, resolveStep.ts, resumes implement to settle the findings, its checks, pieceChecks.ts, run the overlap
-// command and the length limit, and wrap-up lands its branch, so the next ticket's pull starts from its Agent draft.
+// command and the length limit, sending red ones to its red-checks step, redChecksStep.ts, and wrap-up lands its
+// branch, so the next ticket's pull starts from its Agent draft.
 // Every step reads the Drive files the spec's Supporting Material lists, as source targets, and no others.
 // A repo's runner config builds it with its commands and Docs port, and ../../Workflow.ts registers it.
 
@@ -29,7 +30,7 @@ import type {
   PulledDraft,
   PullInput,
   PullRules,
-  ResolvePromptInput,
+  RedChecksPromptInput,
   ReviewPromptInput,
   SpecEnd,
   Workflow,
@@ -43,6 +44,10 @@ import {
   pieceImplementRecordProblems,
 } from "./implementStep.ts";
 import { pieceChecks } from "./pieceChecks.ts";
+import {
+  pieceRedChecksOutputSchema,
+  pieceRedChecksPrompt,
+} from "./redChecksStep.ts";
 import {
   quoteSendBacks,
   researchClosingCommentOf,
@@ -187,9 +192,19 @@ export function pieceWorkflowOf({
         skillName: "review-piece",
       },
       resolve: resolveRulesOf({
-        promptOf: resolvePromptOf,
+        promptOf(input) {
+          return pieceResolvePrompt({
+            ...input,
+            draftPath: draftPathOf(input.spec),
+            overlapCommand,
+          });
+        },
         recordProblems: pieceResolveRecordProblems,
       }),
+      redChecks: {
+        promptOf: redChecksPromptOf,
+        outputSchema: pieceRedChecksOutputSchema,
+      },
     },
     // A drafting ticket lands its branch, the Agent draft's commits on it, as a code ticket does.
     landingOf(ticket) {
@@ -220,8 +235,8 @@ function reviewPromptOf(input: ReviewPromptInput): string {
   return pieceReviewPrompt({ ...input, draftPath: draftPathOf(input.spec) });
 }
 
-function resolvePromptOf(input: ResolvePromptInput): string {
-  return pieceResolvePrompt({ ...input, draftPath: draftPathOf(input.spec) });
+function redChecksPromptOf(input: RedChecksPromptInput): string {
+  return pieceRedChecksPrompt({ ...input, draftPath: draftPathOf(input.spec) });
 }
 
 function draftPathOf({ number }: IssueRef): string {

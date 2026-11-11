@@ -18,6 +18,7 @@ import type {
   Wait,
 } from "./SpecRun/runState.ts";
 import type {
+  DismissedOverlap,
   Finding,
   GapCheckRecord,
   Handoff,
@@ -145,6 +146,8 @@ export interface ImplementPromptInput {
   spec: IssueRef;
   title: string;
   body: string;
+  // The ticket's, Trusted since only collaborators can add one.
+  labels: string[];
   branch: string;
   // The workspace's repos on the issue branch: the issue's own plus any extras it was created with.
   branchedRepos: string[];
@@ -170,6 +173,7 @@ export interface ReviewPromptInput {
   issue: IssueRef;
   spec: IssueRef;
   title: string;
+  labels: string[];
   skillName: string;
   branch: string;
   branchedRepos: string[];
@@ -188,11 +192,14 @@ export interface ResolvePromptInput {
   issue: IssueRef;
   spec: IssueRef;
   title: string;
+  labels: string[];
   branch: string;
   branchedRepos: string[];
   workspacePath: string;
   // As the review record lists them; the prompt numbers them from 1.
   findings: Finding[];
+  // The overlap hits the piece review judged no copy; empty for a review that returns none.
+  dismissedOverlaps: DismissedOverlap[];
 }
 
 export interface ResolveCommits {
@@ -230,9 +237,11 @@ export interface StepResumption {
 
 export interface RedChecksPromptInput {
   issue: IssueRef;
+  spec: IssueRef;
   title: string;
   branch: string;
   branchedRepos: string[];
+  workspacePath: string;
   // Each failing check's command and the last lines of its output.
   failures: string;
 }
