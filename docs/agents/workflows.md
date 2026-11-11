@@ -22,7 +22,7 @@ The words Piece, Deliverable, Section, Stage and Agent draft are [the writing gl
    - Both: none.
 3. **Tickets**
    - Code: [`/code-tickets`](../../.claude/skills/code-tickets/SKILL.md), [`/review-code-tickets`](../../.claude/skills/review-code-tickets/SKILL.md).
-   - Piece: [`/piece-tickets`](../../.claude/skills/piece-tickets/SKILL.md), skipped when the spec needs no Research and its Split is one session.
+   - Piece: [`/piece-tickets`](../../.claude/skills/piece-tickets/SKILL.md), for every piece spec.
    - Both: none.
 4. **Implementation**
    - Code: [`/runner`](../../runner/skills/runner/SKILL.md), the Supervisor; [`/start-issue`](../../.claude/skills/start-issue/SKILL.md); [`/implement-code`](../../runner/skills/implement-code/SKILL.md); [`tdd`](../../.claude/skills/tdd/SKILL.md) and the [`codebase-design`](../../.claude/skills/codebase-design/SKILL.md) it links; and [`/code-review`](../../.claude/skills/code-review/SKILL.md), the review Step's skill.
@@ -59,12 +59,13 @@ The words Piece, Deliverable, Section, Stage and Agent draft are [the writing gl
 | Planning | Piece | `/grill-piece` | `/piece-spec` | named |
 | Planning | Piece | `/grill-piece` | `/to-writing-style`, with the calibration differences that hold for every Piece, listed unwritten | named |
 | Spec | Code | `/code-spec` | `/code-tickets`, when the spec won't fit one session | named, in its chat line |
-| Spec | Piece | `/piece-spec` | `/piece-tickets` when Research is needed or Split names Sections; `/implement-piece` otherwise | named, in its chat line |
+| Spec | Piece | `/piece-spec` | `/piece-tickets`, always | named |
 | Tickets | Code | `/code-tickets` | `/review-code-tickets`, at 6 or more tickets, before the breakdown reaches the developer | named, read by path |
 | Tickets | Code | `/code-tickets`, `/review-code-tickets` | `grilling`, for the spec gaps a review finds | named |
 | Tickets | Code | `/code-tickets`, `/review-code-tickets` | `/runner` | you invoke it |
 | Tickets | Code | a Phase gate | `/code-tickets` | named, in the gate's body |
-| Tickets | Piece | `/piece-tickets` | `/implement-piece` on the first ticket | named |
+| Tickets | Piece | `/piece-tickets` | `/runner` on the spec, or `/implement-piece` on the first ticket | named |
+| Tickets | Piece | the Edit gate | `/start-issue`, then wrap-up | named, in the gate's body |
 | Implementation | Code | `/runner` | `/judge-findings` when a run finishes; an Interactive ticket through `/start-issue`'s steps and `/implement-code` | named |
 | Implementation | Code | `/start-issue` | `/implement-code` | named |
 | Implementation | Code | `/implement-code` | `tdd`, the review Step (`runner -- review`), then wrap-up | named |
@@ -96,8 +97,8 @@ A doc is listed when two or more skills or Steps of either Workflow reach it by 
 | --- | --- | --- |
 | [Codebase Priorities](./codebase-priorities.md) | `grilling` (and so `/grill-with-docs`, `/grill-me` and `/wayfinder`'s grilling tickets), `/judge-findings`, `/mine-outcomes`, `/retro`, `/to-code-style` | via `verdicts.md`: `/code-review`, `/implement-code`, the review and resolve Steps |
 | [`verdicts.md`](./verdicts.md) | `/code-review`, `/implement-code`, `/implement-piece`, `/judge-findings`, `/review-piece` | via runner prompt: the resolve Step; via `/code-review` and `/review-piece`: the review Step |
-| [`planning.md`](./planning.md) | `/code-spec`, `/code-tickets`, `/review-code-tickets`, `/start-issue`, `/to-code-style`, `/piece-spec` (model fit), `/piece-tickets` (ticket size and model fit) | via always-on hook: the context nudge, for any session |
-| [`model-fit.md`](./model-fit.md) | `/mine-outcomes` | via `planning.md`: `/code-spec`, `/code-tickets` |
+| [`planning.md`](./planning.md) | `/code-spec`, `/code-tickets`, `/review-code-tickets`, `/start-issue`, `/to-code-style`, `/piece-tickets` (ticket size and model fit) | via always-on hook: the context nudge, for any session |
+| [`model-fit.md`](./model-fit.md) | `/mine-outcomes`, `/piece-spec`, `/piece-tickets` | via `planning.md`: `/code-spec`, `/code-tickets` |
 | The code-style rules: [config's](../../config/docs/code-style.md) and [the framework's](../../packages/framework/docs/code-style.md) | `/retro`, `/to-code-style` | via always-on hook: every code edit, by `/implement-code`, the implement and resolve Steps, and `/judge-findings`' "now" fixes |
 | [`prose-style.md`](../prose-style.md) | `/code-review`, `/retro`, `/to-code-style` | via always-on hook: every prose edit |
 | [`prose-files.md`](./prose-files.md) | `/to-code-style`, `/to-writing-style` | via always-on hook: every prose edit, through `prose-style.md` |
@@ -123,7 +124,7 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | Format | Skills and Steps |
 | --- | --- |
 | `grilling`'s round format | `grilling`, `/code-tickets`, `/review-code-tickets`, `/judge-findings`, `/mine-outcomes`, `/retro`, `/grill-piece` |
-| The `## Model fit` section and its read-back ([`planning.md`](./planning.md#model-fit)) | `/code-spec`, `/code-tickets`, the tickets `/judge-findings` and `/mine-outcomes` file, `/start-issue`'s check |
+| The `## Model fit` section and its read-back ([`planning.md`](./planning.md#model-fit)) | `/code-spec`, `/code-tickets`, `/piece-tickets`, the tickets `/judge-findings` and `/mine-outcomes` file, `/start-issue`'s check |
 | A ticket's `## New dependencies` section | `/code-tickets` writes it; `/implement-code` and the implement Step add only what it names; the wrap-up Step refuses any other new package |
 | The review list's `R<n>.<k>` items | the runner posts them; `/judge-findings` and the Supervisor decide them through `runner -- decide` |
 | The numbered 🪤/📝 items | `/to-code-style`, `/to-writing-style` |
@@ -132,7 +133,6 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | The piece review axes, `spec`, `standards` and `reader`, each finding with a suggested verdict, and `## Dismissed overlaps` | `/review-piece` reports them, and the piece review Step returns them as its record; `/implement-piece` resolves the ones `runner -- review` prints, as the piece resolve Step does |
 | The Research fact list comment: numbered facts, each ending with a locator naming its saved text and page range or heading, quotes optional and verbatim, and a `## Unverified` section outside the fact list | `/research-piece` posts it; `/review-research` checks its draft first; `/review-piece`'s fact list takes its facts outside `## Unverified` when the spec links it; `/implement-piece` drafts from its facts, never its quotes or `## Unverified` |
 | The passages folder, `.runner/passages/<repo>-<n>` | `/implement-piece` and the piece implement Step save each passage read; `/review-piece` and the piece review Step read it |
-| The model-fit chat line: `/implement-piece <repo> <n>: <Model> <effort> (reason)` from `/piece-spec`, `#n Title: <Model> <effort> (reason)` from `/piece-tickets` | `/piece-spec`, `/piece-tickets` |
 | The Agent draft's path and shape | `/implement-piece`, the pull Step and the piece implement Step write it; `/to-writing-style`'s pair mode diffs it |
 
 ## The shared machinery

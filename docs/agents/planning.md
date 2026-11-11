@@ -7,6 +7,7 @@
 
 - **A piece spec is grilled with `/grill-piece`**, which runs [`docs/pieces/grilling.md`](../pieces/grilling.md).
 - **A piece spec is filed with `/piece-spec` and split with `/piece-tickets`**, never `/code-spec` or `/code-tickets`.
+- **Every piece spec gets tickets: at least one drafting ticket, and its Edit gate last**, a `ready-for-human` ticket blocked by every drafting ticket ([`/piece-tickets`](../../.claude/skills/piece-tickets/SKILL.md)).
 
 ## Code in specs
 
@@ -47,8 +48,8 @@
 ## Model fit
 
 - **The pair lives in the ticket: a `## Model fit` section, last in the body, holding a pair line, then a one-line reason**, with `~NK` in the reason only for a ticket near its budget.
-- **`/code-tickets` and `/code-spec` write the section**, each by its own rule: [which tickets, and the read-back](../../.claude/skills/code-tickets/SKILL.md#7-read-back-the-model-fit), and [which specs](../../.claude/skills/code-spec/SKILL.md), in the paragraph after its spec template.
-- **`/piece-tickets` and `/piece-spec` stay chat only**: a read-back list like `/code-tickets`' or one chat line, never in a ticket, comment or parent issue, with `/piece-tickets` as the recommendation for a spec too big for one session.
+- **`/code-tickets`, `/code-spec` and `/piece-tickets` write the section**, each by its own rule: [which tickets, and the read-back](../../.claude/skills/code-tickets/SKILL.md#7-read-back-the-model-fit), [which specs](../../.claude/skills/code-spec/SKILL.md), in the paragraph after its spec template, and [every `ready-for-agent` piece ticket](../../.claude/skills/piece-tickets/SKILL.md#3-file-the-tickets).
+- **`/piece-spec` writes none**: a piece spec's pairs are its tickets'.
 - **The developer switches with `/model` and `/effort`**; never dispatch an implementer.
 - **A Model fit check compares the model only**: the agent can't see `/effort`, so it names an effort only when the developer has said what it is.
 - **Pick from six pairs only:** Haiku medium, Sonnet medium, Sonnet high, Opus low, Opus medium, Opus high. Criteria for each and their evidence: [`model-fit.md`](./model-fit.md).

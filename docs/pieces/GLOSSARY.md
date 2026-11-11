@@ -21,7 +21,7 @@ The spec's list of a Piece's Sections in order, each with its claim in one line 
 _Avoid_: plan, structure, skeleton
 
 **Stage**:
-One kind of sub-issue a split Piece is worked in: Research, Sections or the Final pass.
+One kind of sub-issue a Piece is worked in: Research, Sections, the Final pass, a Whole draft or the Edit gate.
 _Avoid_: phase, step
 
 **Agent draft**:
