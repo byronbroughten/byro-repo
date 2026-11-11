@@ -9,8 +9,8 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Confidence and c
 - Typical hedges: "may", "could", "likely".
 - Seen in 6 of 6. The report samples stack hedges ("could possibly", "at least in part"); the deck never does, and the deck wins.
 - Counter-instance: "That's probably at least part of why 72% of renters would prefer to own a home." — blog: Rent vs Buy (one of the posts' few stacked hedges)
-- Agent: "the vacancies, damage, and missed rent that follow reduce the monthly cash flow" Developer: "the vacancies, damage, and missed rent that may follow reduce monthly cash flow" — personal#16 Snapshot, 2026-10-26
-- Agent: "since a WBS lists the work without sequencing it" Developer: "since a WBS lists the work without necessarily sequencing it" — personal#16 Snapshot, 2026-10-26
+- Agent: "the vacancies, damage, and missed rent that follow reduce the monthly cash flow" Developer: "the vacancies, damage, and missed rent that may follow reduce monthly cash flow" — Assessment 2 Agent draft, 2026-10-26
+- Agent: "since a WBS lists the work without sequencing it" Developer: "since a WBS lists the work without necessarily sequencing it" — Assessment 2 Agent draft, 2026-10-26
 
 ## A weakness in one flat clause
 
@@ -53,8 +53,8 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Confidence and c
 ## Empty qualifiers
 
 - From Strunk and White V.8, which calls "rather, very, little, pretty" "the leeches that infest the pond of prose".
-- Agent: "its outcomes and budget can be estimated up front within a predictable, relatively small margin of error" — Assessment 1 Next Draft (personal#4)
-- Agent: "Whatever the life cycle, project phases generally run in sequence" — Assessment 1 Next Draft (personal#4)
+- Agent: "its outcomes and budget can be estimated up front within a predictable, relatively small margin of error" — Assessment 1 Next Draft
+- Agent: "Whatever the life cycle, project phases generally run in sequence" — Assessment 1 Next Draft
 - An "about" before an estimated figure states a real limit, and stays.
 - Pinker, Ch. 2, PDF pp. 51–53: a qualifier is a reflex hedge; an intensifier ("very honest") turns a yes-or-no quality into a scale and so weakens it.
 - The developer endorsed the rule — session 2ebcdf61, 2026-10-18

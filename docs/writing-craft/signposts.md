@@ -9,12 +9,12 @@ Disclosed from [`docs/writing-craft.md`](../writing-craft.md), "Signposts". The 
 
 ## A reference ahead says so
 
-- Agent: "in a fixed order, which the WBS does not show" Developer: "in a fixed order, which the upcoming WBS only incidentally shows" — personal#16 Snapshot, 2026-10-26
+- Agent: "in a fixed order, which the WBS does not show" Developer: "in a fixed order, which the upcoming WBS only incidentally shows" — Assessment 2 Agent draft, 2026-10-26
 - The developer: a reader assumes by default that a named section is one already read, so a forward reference has to say it points ahead.
-- No count was recorded; from a Snapshot.
+- No count was recorded; from an Agent draft.
 
 ## A same-named section
 
-- Agent: "The charter's performance, cost, and time constraints, set out under Constraints, bound the scope" Developer: "set out under the Constraints earlier, are what binds the project's scope" — personal#16 Snapshot, 2026-10-26
+- Agent: "The charter's performance, cost, and time constraints, set out under Constraints, bound the scope" Developer: "set out under the Constraints earlier, are what binds the project's scope" — Assessment 2 Agent draft, 2026-10-26
 - The developer: the sentence sat in a section titled "Constraint(s):", so a bare "Constraints" could read as the section the reader was in.
-- No count was recorded; from a Snapshot.
+- No count was recorded; from an Agent draft.
