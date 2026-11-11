@@ -37,11 +37,21 @@ Write-ups sourced from Google's docs live on `research/*` branches; the Doc and 
 ## Style of inserted paragraphs
 
 - Observed: An `insertText` of `\n<text>` at the end of a `HEADING_2` made the new paragraph a `HEADING_2`; with an `updateParagraphStyle` setting `namedStyleType: NORMAL_TEXT` in the same batch, it was `NORMAL_TEXT` and the heading stayed `HEADING_2`; scratch Doc; 2026-11-08; [resolution on #584](https://github.com/byronbroughten/byro-repo/issues/584#issuecomment-6727999386).
+- Observed: An `insertText` of `"\nX"` at `endOfSegmentLocation` with a `HEADING_2` last in the body left the heading's `headingId` on the heading's text and gave the new `HEADING_2` paragraph a new `headingId`; so did an `insertText` of `"\n<text>"` just before a heading's newline and of `"<text>\n"` at a heading's start, each new paragraph taking the new ID; byronbroughtenai@gmail.com; 2026-11-11; [handoff on #717](https://github.com/byronbroughten/byro-repo/issues/717#issuecomment-6799331474).
 - Observed: An `insertText` of `\n<text>` at the end of a bulleted item made the new paragraph a bulleted item at the same level; with `deleteParagraphBullets` and an `updateParagraphStyle` of `NORMAL_TEXT` and zero indent in the same batch, it was a plain paragraph and the next item kept its bullet; scratch Doc; 2026-11-08; [resolution on #584](https://github.com/byronbroughten/byro-repo/issues/584#issuecomment-6727999386).
 
 ## Document structure
 
 - Observed: `documents.get` returned a table cell's two paragraphs as two `paragraph` elements in the cell's `content`, a footnote as a `footnoteReference` with its text under the tab's `footnotes`, an internal heading link as a `link.heading` with the heading's `id` and `tabId`, and indices that count an emoji as two UTF-16 code units; scratch Doc; 2026-11-08; [resolution on #584](https://github.com/byronbroughten/byro-repo/issues/584#issuecomment-6727999386).
+
+## Pending suggestions in a read
+
+- Observed: With `suggestionsViewMode=SUGGESTIONS_INLINE`, `documents.get` returned suggested text as text runs with `suggestedInsertionIds`, text suggested for deletion as runs with `suggestedDeletionIds`, a suggested paragraph split as a `\n` run with `suggestedInsertionIds` ending the first paragraph, and a suggested footnote with `suggestedInsertionIds` on its `footnoteReference` and on its entry's text run under `footnotes`; byronbroughtenai@gmail.com reading byronbroughten@gmail.com's suggestions; 2026-11-11; [probe results on #717](https://github.com/byronbroughten/byro-repo/issues/717#issuecomment-6800689141).
+- Observed: A paragraph and a table suggested by typing at a paragraph's end came back as that paragraph ending in a `\n` run with `suggestedInsertionIds`, the new paragraphs' runs wholly suggested, `suggestedInsertionIds` on the table, its row, its cell and its text run, and a `\n` paragraph with none after the table; byronbroughtenai@gmail.com reading byronbroughten@gmail.com's suggestions; 2026-11-11; [probe results on #717](https://github.com/byronbroughten/byro-repo/issues/717#issuecomment-6800689141).
+
+## Indices under pending suggestions
+
+- Observed: One `batchUpdate` of `insertText` requests at indices from a `SUGGESTIONS_INLINE` read, each after a suggested insertion, deletion, paragraph split or footnote, put each text right before the text it was aimed at in the next such read, with no `suggestedInsertionIds`; a `deleteContentRange` of each brought the read back to its indices and text before; byronbroughtenai@gmail.com; 2026-11-11; [probe results on #717](https://github.com/byronbroughten/byro-repo/issues/717#issuecomment-6800689141).
 
 ## Revision guard
 
