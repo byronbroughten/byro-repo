@@ -1,0 +1,7 @@
+# byro-repo#652 outcome
+
+Spec: [byro-repo#612](https://github.com/byronbroughten/byro-repo/issues/612)
+
+| Issue | Workflow | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #652 | code | Opus medium | 1 | 19 | 180K | Fix (fresh resolver) | 1 | 1 | 0 | 0 | 28 min | $5.23 | $8.80 | Fixed: sessionSkillOf puts the piece Workflow's label routing in the core seam, duplicating pieceWorkflow.ts's ticketLabels/isResearch. (runner/src/Workflow.ts:327-331, :308-309); The four skill names are a plain string. (runner/src/Workflow.ts:327, scripts/runner/startReport.ts:14); Implementation lists /start-issue as Code only, with Both: none, though it now hands off to piece skills. (docs/agents/workflows.md:28-30); skillOf's base fixture rebuilds readerOf's issue shape field by field. (runner/src/IssueReader.test.ts:337-366); Session resolve has no piece-label test, unlike review. (runner/src/SpecRun.sessionResolve.test.ts). Proposed: Named piece skills carry their own workspace entry, which conflicts with /start-issue entering an issue workspace first. (.claude/skills/start-issue/SKILL.md steps 4, 6 vs .claude/skills/close-piece/SKILL.md:17-18 and .claude/skills/research-piece/SKILL.md:12). | 92e2d1f0-038c-4d31-b83a-8ce5fb15c162, 68fde5a4-38d9-47a9-9e12-1b7dbe703b8e, b6b4f118-8044-4099-ae88-9555c603e219 |
