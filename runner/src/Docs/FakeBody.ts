@@ -144,17 +144,8 @@ export class FakeBody {
         : plainChar(char, place)),
       textStyle: { ...textStyle },
     }));
-    const { headingId, ...landedStyle } = landed.paragraphStyle ?? {};
-    const textEnd = inserted.find((bodyChar) => bodyChar.char === "\n");
-    // Docs keeps a heading's ID on its text: a split at its end hands it to the first new newline.
-    if (
-      after === landed &&
-      !startsParagraph &&
-      headingId !== undefined &&
-      textEnd !== undefined
-    ) {
-      textEnd.paragraphStyle = { ...textEnd.paragraphStyle, headingId };
-      landed.paragraphStyle = landedStyle;
+    if (after === landed && !startsParagraph) {
+      keepHeadingIdOnText(landed, inserted);
     }
     this.chars.splice(position, 0, ...inserted);
   }
@@ -506,6 +497,17 @@ function newlineCopying(landed: BodyChar, place: CharPlace): BodyChar {
     paragraphStyle,
     bullet: landed.bullet === undefined ? undefined : { ...landed.bullet },
   };
+}
+
+/** Moves a heading's headingId from the newline it was split at to the first inserted newline. */
+function keepHeadingIdOnText(landed: BodyChar, inserted: BodyChar[]): void {
+  const { headingId, ...landedStyle } = landed.paragraphStyle ?? {};
+  const textEnd = inserted.find((bodyChar) => bodyChar.char === "\n");
+  if (headingId === undefined || textEnd === undefined) {
+    return;
+  }
+  textEnd.paragraphStyle = { ...textEnd.paragraphStyle, headingId };
+  landed.paragraphStyle = landedStyle;
 }
 
 function elementsOf(chars: BodyChar[], startIndex: number): ParagraphElement[] {

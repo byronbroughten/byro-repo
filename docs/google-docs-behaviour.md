@@ -43,6 +43,7 @@ Write-ups sourced from Google's docs live on `research/*` branches; the Doc and 
 ## Document structure
 
 - Observed: `documents.get` returned a table cell's two paragraphs as two `paragraph` elements in the cell's `content`, a footnote as a `footnoteReference` with its text under the tab's `footnotes`, an internal heading link as a `link.heading` with the heading's `id` and `tabId`, and indices that count an emoji as two UTF-16 code units; scratch Doc; 2026-11-08; [resolution on #584](https://github.com/byronbroughten/byro-repo/issues/584#issuecomment-6727999386).
+- Observed: After `createParagraphBullets` with `NUMBERED_DECIMAL_ALPHA_ROMAN` and with `BULLET_DISC_CIRCLE_SQUARE` over tab-indented paragraphs, `documents.get` returned each item's `bullet` with its `listId`, no `nestingLevel` on first-level items and `nestingLevel` 1 and 2 below them; the numbered list's levels had `glyphType` `DECIMAL`, `ALPHA` and `ROMAN`, and the bulleted list's had `glyphSymbol` `●`, `○` and `■` with no `glyphType`; byronbroughtenai@gmail.com; 2026-11-11; [probe results on #717](https://github.com/byronbroughten/byro-repo/issues/717#issuecomment-6800689141).
 
 ## Pending suggestions in a read
 
