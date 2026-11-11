@@ -53,6 +53,11 @@ export class FakeGitHub implements RunGitHub {
     return commentUrlOf(issue, this.comments.length);
   }
 
+  async editBody({ number }: IssueRef, body: string): Promise<void> {
+    this._failIfScripted();
+    this.edit(number, { body });
+  }
+
   // A comment someone other than the runner posts, such as the developer's answer to a Halt.
   reply(number: number, body: string, author = developer): void {
     this.comments.push({ issue: { repo: "byro-repo", number }, body, author });

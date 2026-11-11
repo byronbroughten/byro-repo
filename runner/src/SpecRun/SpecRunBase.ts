@@ -105,6 +105,7 @@ export interface RunGitHub extends WrapUpGitHub {
   openBlockersOf(issue: IssueRef): Promise<IssueRef[]>;
   // Resolves to the comment's URL.
   comment(issue: IssueRef, body: string): Promise<string>;
+  editBody(issue: IssueRef, body: string): Promise<void>;
   // Oldest first.
   authoredCommentsOf(issue: IssueRef): Promise<IssueComment[]>;
   // Takes an id authoredCommentsOf gave.

@@ -1,8 +1,8 @@
-// The run's pick: posts unposted Halts, reads the developer's answers to posted ones, then surveys every open ticket
+// The run's pick: posts unposted Halts, reads the developer's answers to posted ones, applies the Outline edits a Research Halt's answer approves, then surveys every open ticket
 // for what holds it (a lease, a Stop, a skip, an open Halt in scope, the developer, a blocker) and picks the next one.
 // A ticket with every Halt answered goes first, oldest answered set first, then the blocking graph's frontier.
 // RunLoop.ts calls _select each pick, and StatusReporter.ts _survey for status().
-// It builds its own LeaseKeeper and HaltRaiser; Halt formats are ../halts.ts and reply matching ../halts/haltReplies.ts.
+// It builds its own LeaseKeeper, HaltRaiser and OutlineEditApplier; Halt formats are ../halts.ts and reply matching ../halts/haltReplies.ts.
 
 import {
   answeredNoteOf,
@@ -16,6 +16,7 @@ import { haltReplies } from "../halts/haltReplies.ts";
 import { type IssueRef, issueRef, leaseHolder } from "../IssueWorkspaces.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import { LeaseKeeper } from "./LeaseKeeper.ts";
+import { OutlineEditApplier } from "./OutlineEditApplier.ts";
 import {
   interactiveLabel,
   type Run,
@@ -63,12 +64,17 @@ export class TicketSelector extends SpecRunBase {
     return new LeaseKeeper(this.config);
   }
 
+  private get outlineEditApplier(): OutlineEditApplier {
+    return new OutlineEditApplier(this.config);
+  }
+
   // Read afresh each pick; a ticket with every Halt answered goes first, oldest answered set first, then the frontier.
   // A Batch's landed members no longer block, though GitHub may still show them open.
   async _select(run: Run, landedMembers: IssueRef[]): Promise<Selection> {
     await this.haltRaiser._postUnpostedHalts(run);
     const stopSpecs = await this._readAnswers(run);
     if (stopSpecs.length > 0) return { kind: "stop-spec", halts: stopSpecs };
+    await this.outlineEditApplier._applyAnswered(run);
     const survey = await this._survey(run, {
       openHalts: runHalts.openOf(run),
       landedMembers,
