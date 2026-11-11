@@ -1,11 +1,11 @@
 ---
 name: research-piece
-description: "Research a writing Piece's Supporting Material: download its PDFs, have one sub-agent per source read its listed passages, verify every quote against the text, check every fact with /review-research, and post the fact list as a comment on the Research issue. Writes nothing to the Deliverable. Invoked as /research-piece <repo> <n>."
+description: "Research a writing Piece's Supporting Material: download its PDFs, have one sub-agent per source read its listed passages, verify every quote against the text, check every fact with /review-research, post the fact list as a comment on the Research issue, then settle its wanted facts and Outline edits with the developer. Writes nothing to the Deliverable. Invoked as /research-piece <repo> <n>."
 argument-hint: "<repo> <n>"
 disable-model-invocation: true
 ---
 
-`/research-piece <repo> <n>` researches the Research issue `<repo>#<n>`. Its output is a verified fact list posted as a comment on the issue; it writes nothing to the Deliverable and has no branch.
+`/research-piece <repo> <n>` researches the Research issue `<repo>#<n>`. Its output is a verified fact list posted as a comment on the issue; it writes nothing to the Deliverable and has no branch. The spec's body changes only through `npm run outline:apply`, by an edit the developer approves.
 
 Fetch the issue with `npm run issue:read -- <repo> <n> --body` and state its title before starting. If the reference is ambiguous, ask. If the issue is a Piece rather than Research, stop and point the developer to `/implement-piece`.
 
@@ -23,15 +23,18 @@ An interactive session and the runner's research step both follow steps 1–7, `
 6. **Act on its verdicts once.** Leave each supported fact as it is. Rewrite each partly supported fact from the reviewer's quote and location, in your own words. Move each unsupported or unverified fact to a `## Unverified` section at the end of `comment.md`, with what was looked for and the reviewer's reason. `## Unverified` is outside the fact list: nothing is drafted from it.
 7. **Verify the quotes again**, by step 4's command and fixes, until it exits 0. A runner's research step stops here.
 
-## Steps 8–9: an interactive session only
+## Steps 8–12: an interactive session only
 
 8. **Post the comment** with `gh issue comment -R <owner>/<repo> <n> --body-file "<scratchpad>/comment.md"`, resolving `<repo>` to `<owner>/<repo>`.
-9. **Delete the downloads**: `rm` each path that `get_drive_file_download_url` returned, once the comment is posted.
+9. **Put what's left to the developer, in one message**, as a run's Research Halt would: each wanted fact, an `## Unverified` item whose fact the issue's `## Facts` field names, numbered `F1` on; and each Outline edit the research calls for, numbered `E1` on, as its section, the old text quoted exactly from the spec's `## Outline`, the new text and the reason. The spec is the issue's parent. The answers are `drop F<n>`, `another source F<n>` naming the source, and `approve E<n>`. With nothing to put, go to step 12.
+10. **Settle an `another source` answer** by [`/runner`'s step 6](../../../runner/skills/runner/SKILL.md#6-work-the-steps-cant), with no Halt to answer: one fact from one Drive file gets an addendum comment; anything larger is the developer's Research ticket.
+11. **Apply each approved Outline edit through the runner's code**, never by editing the spec body yourself. Write every proposed edit, in `E<n>` order, to `<scratchpad>/edits.json` as a JSON list of `{ "section", "oldText", "newText", "reason" }`, then run `npm run outline:apply -- <repo> <spec n> --edits "<scratchpad>/edits.json" --answer "<the developer's reply, word for word>"`. It applies only the edits the reply approves, word for word. When it names an edit it couldn't apply, tell the developer to make that change by hand.
+12. **Delete the downloads**: `rm` each path that `get_drive_file_download_url` returned.
 
 ## Done when
 
-An interactive session is done when every fact in the posted comment's fact list has a source and a page range, or a heading for a source with no pages, and `/review-research` found it supported or it was rewritten from the reviewer's quote; every other fact is under `## Unverified`; `verify:quotes` exits 0 on the posted file; and the downloads are deleted.
+An interactive session is done when every fact in the posted comment's fact list has a source and a page range, or a heading for a source with no pages, and `/review-research` found it supported or it was rewritten from the reviewer's quote; every other fact is under `## Unverified`; `verify:quotes` exits 0 on the posted file; the developer has answered each wanted fact and proposed edit; and the downloads are deleted.
 
 ## Wrap-up
 
-An interactive session's research wraps up with `npm run wrap-up -- <repo> <n> --no-code`; nothing is committed, pushed or closed before it.
+Then run `npm run wrap-up -- <repo> <n> --no-code`; nothing is committed, pushed or closed before it.

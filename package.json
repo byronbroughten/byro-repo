@@ -43,6 +43,7 @@
     "issue:release": "node scripts/runner/issue.ts release",
     "outcome:backfill": "node scripts/runner/outcomeBackfill.ts",
     "outcome:summary": "node scripts/runner/outcomeSummary.ts",
+    "outline:apply": "node scripts/runner/outlineApply.ts",
     "prompt:scan": "node scripts/promptScan/promptScan.ts",
     "research:push": "node scripts/runner/researchPush.ts",
     "runner": "node scripts/runner/run.ts",

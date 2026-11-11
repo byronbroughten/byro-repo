@@ -46,7 +46,7 @@
     "./contextMeter": "./src/contextMeter.ts",
     "./contextNudge": "./src/contextNudge.ts",
     "./limitGuard": "./src/limitGuard.ts",
-    "./outlineEdits": "./src/outlineEdits.ts",
+    "./outlineApply": "./src/outlineApply.ts",
     "./outcomeBackfill": "./src/outcomeBackfill.ts",
     "./outcomeLog": "./src/outcomeLog.ts",
     "./outcomeRowWriter": "./src/outcomeRowWriter.ts",

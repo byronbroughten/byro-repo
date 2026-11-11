@@ -1,11 +1,20 @@
 // Outline edits a Research Halt proposes: their `E<n>` ids and words, which an answer approves, and their
 // word-for-word application to a spec body's `## Outline`, which never throws and applies nothing twice.
-// The run applies them in ./SpecRun/OutlineEditApplier.ts; a repo command imports this module as `@byronbroughten/spec-runner/outlineEdits`.
+// The run applies them in ./SpecRun/OutlineEditApplier.ts; an interactive session through `npm run outline:apply`, whose core is ./outlineApply.ts.
 
+import { objectSchema, stringSchema } from "./recordSchema.ts";
 import type { OutlineEdit } from "./stepRecords.ts";
 import { ticketSectionOf } from "./ticketSections.ts";
 
 const outlineHeading = "## Outline";
+
+// The research record's edits and the edits file `npm run outline:apply` reads.
+export const outlineEditSchema = objectSchema({
+  section: stringSchema,
+  oldText: stringSchema,
+  newText: stringSchema,
+  reason: stringSchema,
+});
 
 export interface AppliedEdits {
   body: string;

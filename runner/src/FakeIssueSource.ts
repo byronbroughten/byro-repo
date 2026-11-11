@@ -1,7 +1,7 @@
 import type { IssueSource, ReadableIssue } from "./IssueReader.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 
-// The issue source reader tests script; issues are keyed by number, so one fake serves one repo.
+// The issue source reader and Outline-edit tests script; issues are keyed by number, so one fake serves one repo.
 export class FakeIssueSource implements IssueSource {
   readonly issues = new Map<number, ReadableIssue>();
 
@@ -13,5 +13,10 @@ export class FakeIssueSource implements IssueSource {
     const issue = this.issues.get(number);
     if (!issue) throw new Error(`No issue #${number}`);
     return issue;
+  }
+
+  async editBody(ref: IssueRef, body: string): Promise<void> {
+    const issue = await this.readableIssueOf(ref);
+    this.issues.set(ref.number, { ...issue, body });
   }
 }

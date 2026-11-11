@@ -9,7 +9,10 @@ import { resolve } from "node:path";
 import type { HaltQuestion } from "../../halts.ts";
 import { stepReadLine } from "../../IssueReader.ts";
 // Renamed, since a ready record's own field is `outlineEdits`.
-import { outlineEdits as outlineEditWords } from "../../outlineEdits.ts";
+import {
+  outlineEdits as outlineEditWords,
+  outlineEditSchema,
+} from "../../outlineEdits.ts";
 import { bulletsOf } from "../../promptText.ts";
 import {
   arraySchema,
@@ -191,14 +194,7 @@ const recordVariantsSchema = {
         rewritten: countSchema,
         unverified: countSchema,
       }),
-      outlineEdits: arraySchema(
-        objectSchema({
-          section: stringSchema,
-          oldText: stringSchema,
-          newText: stringSchema,
-          reason: stringSchema,
-        }),
-      ),
+      outlineEdits: arraySchema(outlineEditSchema),
       unverified: arraySchema(
         objectSchema({
           fact: stringSchema,
