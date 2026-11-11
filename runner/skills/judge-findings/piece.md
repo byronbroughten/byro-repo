@@ -21,5 +21,5 @@ Read this when the spec's `Labels:` line in `issue:read`'s output holds `piece`.
 
 ## The ending
 
-- **Never close a piece spec, and give no `/to-code-style` reminder**: the Edit gate's wrap-up ends it.
+- **Never close a piece spec, and give no `/to-code-style` reminder**: [`/close-piece`](../../../.claude/skills/close-piece/SKILL.md) on the Edit gate ends it.
 - **End by naming the runner's rerun command, the `npm run runner -- <owner>/<repo> <spec>` its "judge, then rerun" message printed**, launched detached as `npm run runner:tmux -- <owner>/<repo> <spec>` or supervised with `/runner <owner>/<repo> <spec>`, whose push writes the decided fixes into the Deliverable once no item is undecided. Before it, say what is left: undecided items, and open sub-issues by number.
