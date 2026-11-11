@@ -110,7 +110,7 @@ A doc is listed when two or more skills or Steps of either Workflow reach it by 
 | [The runner glossary](../../runner/GLOSSARY.md) | `/runner`, `/review-code-tickets`, `/judge-findings`, `/mine-outcomes` | |
 | [The guardrails doc](../claude-code-guardrails.md) | `/code-tickets`, `/review-code-tickets`' reviewer, `/retro` | |
 | Design docs, ADRs and glossaries | `/code-spec`, `/code-tickets`, `domain-modeling`, `tdd`, `/to-code-style` | |
-| Skills read as docs | `/code-tickets`' conventions and `/piece-tickets`' template by `/judge-findings`; `/retro`'s categories by `/mine-outcomes`; `grilling`'s format by `/judge-findings`, `/mine-outcomes` and `/retro`; `/judge-findings`' step 1 and `/to-writing-style` by `/close-piece` | |
+| Skills read as docs | `/code-tickets`' conventions and `/piece-tickets`' template by `/judge-findings`; `/retro`'s categories by `/mine-outcomes`; `grilling`'s format by `/judge-findings`, `/mine-outcomes` and `/retro`; `/judge-findings`' step 1 and `/to-writing-style` by `/close-piece`; `/judge-findings`' step 1 by `/to-writing-style`'s pair mode | |
 | The Voice and Craft sheets: [`writing-voice.md`](../writing-voice.md) and [`writing-craft.md`](../writing-craft.md) | `/grill-piece`, `/implement-piece`, `/review-piece`, `/to-writing-style` | via `rules.md`: `/piece-spec`, `/piece-tickets`, `/judge-findings` (its `piece.md`); via runner prompt: the piece implement Step |
 | [The academic style sheet](../academic-writing-style.md) | `/grill-piece`, `/review-piece`, `/to-writing-style` | via `rules.md`: `/implement-piece`, the piece implement Step, `/piece-spec`, `/piece-tickets`, `/judge-findings` (its `piece.md`) |
 | [`rules.md`](../pieces/rules.md), the rules for writing any Piece | `/grill-piece`, `/piece-spec`, `/piece-tickets`, `/implement-piece`, `/review-piece`, `/judge-findings` (its `piece.md`) | via runner prompt: the piece implement Step |
@@ -129,7 +129,7 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | `grilling`'s round format | `grilling`, `/code-tickets`, `/review-code-tickets`, `/judge-findings`, `/mine-outcomes`, `/retro`, `/grill-piece` |
 | The `## Model fit` section and its read-back ([`planning.md`](./planning.md#model-fit)) | `/code-spec`, `/code-tickets`, `/piece-tickets`, the tickets `/judge-findings` and `/mine-outcomes` file, `/start-issue`'s check |
 | A ticket's `## New dependencies` section | `/code-tickets` writes it; `/implement-code` and the implement Step add only what it names; the wrap-up Step refuses any other new package |
-| The review list's `R<n>.<k>` items | the runner posts them; `/judge-findings` and the Supervisor decide them through `runner -- decide` |
+| The review list's `R<n>.<k>` items | the runner posts them; `/judge-findings` and the Supervisor decide them through `runner -- decide`; `/to-writing-style`'s pair mode mines the decided Proposals |
 | The numbered 🪤/📝 items | `/to-code-style`, `/to-writing-style` |
 | The ten spec fields and the piece-spec template | `/grill-piece` settles them, `/piece-spec` writes them, `/piece-tickets` reads Research, Final pass, Split, Form and Outline, `/review-piece` reads Reader, Outline, Form and Style |
 | The piece-ticket template, its Sections named by exact heading text | `/piece-tickets` writes it, and `/judge-findings` for a larger piece fix; `/implement-piece` drafts only the Sections it names; `/review-piece` scopes to them |
@@ -145,7 +145,7 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | The issue reader (`npm run issue:read`) with Trusted and Untrusted text | `/runner`, `/review-code-tickets`, `/start-issue` (via `issue:start`), `/implement-code`, `/judge-findings`, `/mine-outcomes`, every agent Step, `/piece-tickets`, `/implement-piece`, `/review-piece`, `/research-piece`, `/review-research`, `/close-piece` |
 | Issue and session workspaces (`npm run issue:start`, [`git-workflow.md`](./git-workflow.md#a-skills-session-workspace)) | `/start-issue`, `/judge-findings`, `/mine-outcomes`, `/implement-piece`'s issue workspace, `/research-piece`'s session workspace, `/close-piece`'s issue workspace |
 | Wrap-up (`npm run wrap-up`) | `/implement-code`, `/judge-findings`, `/mine-outcomes`, the wrap-up Step, `/implement-piece`, `/research-piece`, `/close-piece` |
-| `npm run doc:print` | `/implement-piece` reads the Deliverable for its pull; `/close-piece` reads it for the changed Sections |
+| `npm run doc:print` | `/implement-piece` reads the Deliverable for its pull; `/close-piece` reads it for the changed Sections; `/to-writing-style`'s pair mode reads it for its diff |
 | `runner -- decide` | `/runner`, `/implement-code`, `/implement-piece`, `/judge-findings` |
 | `npm run overlap` | `/review-piece` runs it; `/implement-piece` reruns it after a fix; the piece resolve Step reruns it after its Fixes; `/judge-findings` reruns it after a piece "now" fix |
 | `npm run pdf:text` and the page-range command in [`pdf-pages.md`](../pdf-pages.md) | `/research-piece` dumps text; `/grill-piece` and `/review-research` count and print pages |

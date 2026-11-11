@@ -26,7 +26,7 @@ Do steps 0-3 silently. The developer sees only step 4.
 
 Say in one line which mode and which inputs you chose.
 
-**Pair mode**: run the setup in [`pair-mode.md`](./pair-mode.md) before step 1. The diff is the evidence; transcripts only attribute its changes.
+**Pair mode**: run the setup in [`pair-mode.md`](./pair-mode.md) before step 1. The diff and the decided Proposals on the spec's review lists are the evidence; transcripts only attribute the diff's changes.
 
 **Transcript mode: the transcript is the only input.** Do not read Doc comments or suggestions, and do not diff a Doc's current text against the agent's draft. The agent's drafts are in the transcript already, in its replies and in the `text` of its gworkspace tool calls.
 
@@ -55,7 +55,7 @@ In your own session you saw the developer's edits. In another's you infer them, 
 
 Tag each item `observed` or `inferred`, and rank `inferred` lower. If a ruling sounds situational ("for this Doc", "here"), quote the developer's words and do not generalize it; you cannot tell whether it was meant as a rule.
 
-**In pair mode**, hunt the paired list from setup. Each changed paragraph is a Rewrite, a struck one a Rejection, an added one an Addition, and a fix of a line the style sheets hold a Broken rule; a Stated rule counts only where an attributing transcript holds one. Tag each item `diffed`, upgraded to `observed` where a transcript states the developer's reason. The same fix made in several places in one Piece is a repeated correction. Drop an edit the diff can't tell apart as voice or fact as `ambiguous`; a fact correction never becomes a style rule.
+**In pair mode**, hunt the paired list from setup. Each changed paragraph is a Rewrite, a struck one a Rejection, an added one an Addition, and a fix of a line the style sheets hold a Broken rule; a Stated rule counts only where an attributing transcript holds one. Tag each item `diffed`, upgraded to `observed` where a transcript states the developer's reason. The same fix made in several places in one Piece is a repeated correction. Drop an edit the diff can't tell apart as voice or fact as `ambiguous`; a fact correction never becomes a style rule. Hunt setup's decided Proposals too, as setup sorts them: a ruling between two rules as a Stated rule, a fact the developer supplied as an Addition.
 
 **Code-style rulings are not yours.** A ruling on code, comments, commits, PRs, agent docs or READMEs goes to `/to-code-style`; drop it here with that reason. A ruling on a chat reply or a Doc meant only for the developer goes to neither; drop it as out of scope.
 
@@ -103,9 +103,9 @@ Number grilling-doc items `G1`, `G2`, … in the same shape, after the `W` items
 - The 🪤 half quotes what the agent wrote and what the developer did, with no fix in it. The 📝 half says what to write, with no story in it. Either half should read alone.
 - Give the wording, not a description of it. The developer is approving the edit, not the idea.
 - The `(session ab12, 22:53)` pointer is for another agent's session: the short session ID and the timestamp of the turn, so the developer can check it. A pair-mode item cites `(<Piece>, <Section>, ¶<n>)` instead.
-- A `diffed` item's 🪤 half gives your reading of the developer's reason as "likely because…", and says when the change was a reviewer fix the developer approved.
+- A `diffed` item's 🪤 half gives your reading of the developer's reason as "likely because…", and names the `R<n>.<k>` it answers when it sits at a Proposal's site. An item from a decided Proposal cites `(<repo>#<spec>, R<n>.<k>)`.
 - End with one line for what you dropped: `Dropped: <item> (situational), <item> (code style: /to-code-style), <item> (already in writing-voice.md)`.
-- In pair mode, close with an `Upstream:` line naming each skill or step that added text the developer struck, and what it added, or `Upstream: none found.` File and edit nothing for it; the developer decides whether to follow up.
+- In pair mode, close with an `Upstream:` line naming each skill or step that added text the developer struck, and what it added, and each reverted fix, as `reverted fix <where>: <the rule it cited>`, or `Upstream: none found.` File and edit nothing for it; the developer decides whether to follow up.
 
 Then stop. Do not edit until the developer approves; an agent running this skill does not approve for itself.
 
