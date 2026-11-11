@@ -86,7 +86,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `processIdentity.ts` | `processIdentity` | A process named by its pid and start time, for leases, supervision records and a parked watch. |
 | `progressLines.ts` | | The progress-log lines, written and parsed in pairs. |
 | `ProgressLog.ts` | | A progress log's lines and what the Run board reads from them: the current ticket, the account and the latest line. |
-| `promptText.ts` | | Wording helpers the step prompts share. |
+| `promptText.ts` | | Wording helpers the step prompts and the runner's comments share. |
 | `recordSchema.ts` | | Schema parts the step records share, the implement record's variants and the review record built from a Workflow's axes among them, and their validator. |
 | `reviewList.ts` | `reviewList` | The review list's comment formats and undecided count, `runner decide`'s edit marking one item decided or handled, and a session re-review's merge into the posted list. |
 | `runBoard.ts` | `runBoard` | The Run board behind `runner status` and `runner watch` with no spec. |
