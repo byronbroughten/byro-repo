@@ -1444,6 +1444,12 @@ describe("the Research Halt", () => {
       `**E1** The crossing: replace "${outlineTexts.old}"`,
     );
     expect(halt).toContain("Blocks: byro-repo#2 and their downstream.");
+    expect(halt).toContain(
+      "2. `another source F<n>`, naming the source: tell the Supervisor in its session, not in a reply here.",
+    );
+    expect(halt).toContain(
+      "posts it as an addendum on the Research ticket, then answers this Halt",
+    );
     expect(ticketState()["byro-repo #1"]?.step).toBe("landed");
     const saved = JSON.parse(readFileSync(runStatePath(), "utf8")) as {
       halts: Halt[];

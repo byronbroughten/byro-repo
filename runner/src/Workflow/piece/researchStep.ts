@@ -140,7 +140,7 @@ export function researchHaltOf({
 const researchHaltOptions = {
   facts: [
     "`drop F<n>`: clear the fact and go on without it.",
-    "`another source F<n>`, naming the source: the Supervisor settles one fact from one Drive file. For anything larger, file a Research ticket with `/piece-tickets`, blocking the drafting tickets, before answering.",
+    "`another source F<n>`, naming the source: tell the Supervisor in its session, not in a reply here. With one fact from one Drive file, the Supervisor settles your other answers with you, reads the fact, posts it as an addendum on the Research ticket, then answers this Halt. For anything larger, file a Research ticket with `/piece-tickets`, blocking the drafting tickets, before answering.",
   ],
   edits: [
     "`approve E<n>`: the runner replaces the edit's old text in the spec's `## Outline` with its new text, word for word, as it reads the answer. An edit it can't apply raises a fresh Halt asking you to make the change by hand.",
