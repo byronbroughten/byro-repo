@@ -12,13 +12,12 @@ import type { Docs } from "./Docs.ts";
 import type { HaltQuestion } from "./halts.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { Command } from "./runKnobs.ts";
-import {
-  humanLabel,
-  type PullBaseline,
-  type TicketState,
-  type TicketStep,
-  type TrackedIssue,
-  type Wait,
+import type {
+  PullBaseline,
+  TicketState,
+  TicketStep,
+  TrackedIssue,
+  Wait,
 } from "./SpecRun/runState.ts";
 import type {
   DismissedOverlap,
@@ -39,6 +38,10 @@ export type WorkflowName = (typeof workflowNames)[number];
 
 export type Landing = "code" | "research";
 
+// A skill's folder name under `.claude/skills/`, which /start-issue reads.
+export type SessionSkill =
+  "implement-code" | "research-piece" | "close-piece" | "implement-piece";
+
 export interface WorkflowStep {
   step: TicketStep;
   // The step the ticket goes on to from the state this one left; the last step has none.
@@ -48,6 +51,8 @@ export interface WorkflowStep {
 export interface Workflow {
   name: WorkflowName;
   stepsOf(ticket: TrackedIssue): WorkflowStep[];
+  // The skill an interactive session follows on one of the Workflow's tickets.
+  sessionSkillOf(ticket: Pick<TrackedIssue, "labels">): SessionSkill;
   // The files outside the repo every step of the spec's tickets may read, on top of each ticket's own targets.
   sourceTargetsOf(spec: TrackedIssue): Target[];
   // Reached through agentStepOf, which throws for a step the Workflow leaves out.
@@ -305,8 +310,6 @@ export interface GapCheckRules {
 }
 
 const pieceLabel = "piece";
-// A piece spec's Research ticket's label; its Edit gate's is humanLabel.
-export const researchLabel = "research";
 
 // The Workflows a repo's runner config builds; the core picks among them.
 export type Workflows = Record<WorkflowName, Workflow>;
@@ -323,19 +326,22 @@ export function workflowNameOf({
   return labels.includes(pieceLabel) ? "piece" : "code";
 }
 
-// The skill an interactive session follows on a ticket, by the label rule a run picks the ticket's Workflow by.
-export function sessionSkillOf({ ticket, spec }: SessionSkillInput): string {
-  if (workflowNameOf(spec) === "code") return "implement-code";
-  if (ticket.labels.includes(researchLabel)) return "research-piece";
-  if (ticket.labels.includes(humanLabel)) return "close-piece";
-  return "implement-piece";
+// The skill an interactive session follows on a ticket, from the Workflow a run picks for it.
+export function sessionSkillOf(
+  { ticket, spec }: SessionSkillInput,
+  workflows: Workflows,
+): SessionSkill {
+  return workflowOf(spec, workflows).sessionSkillOf(ticket);
 }
 
 export function isWorkflowName(name: string | undefined): name is WorkflowName {
   return workflowNames.some((workflowName) => workflowName === name);
 }
 
-export function workflowOf(spec: TrackedIssue, workflows: Workflows): Workflow {
+export function workflowOf(
+  spec: Pick<TrackedIssue, "labels">,
+  workflows: Workflows,
+): Workflow {
   return workflows[workflowNameOf(spec)];
 }
 

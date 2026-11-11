@@ -13,9 +13,11 @@ import {
   addSpec,
   commentsOn,
   findingOf,
+  github,
   refOf,
   resolved,
   reviewed,
+  spec,
   specRun,
   stateFolder,
   ticketFacts,
@@ -233,6 +235,29 @@ describe("a session resolving its own review", () => {
     expect(result.kind).toBe("halted");
     expect(result.message).toContain("halted on Halt S1.1");
     expect(result.halts[0]).toContain("**Halt S1.1**");
+  });
+
+  it("checks the records by the piece Workflow once the spec carries the piece label, as a run picks it", async () => {
+    await reviewUnderBudget();
+    commit("fix.ts");
+    const ticket: ResolveRecord = {
+      ...base(3),
+      axis: "spec",
+      verdict: "propose",
+      reason: "ticket",
+      recommendation: "File it.",
+      draftIssueTitle: "Fix line 3",
+    };
+    const records = [fix, decision, ticket];
+    github.edit(spec.number, { labels: ["piece"] });
+
+    const result = await specRun(FakeAgentStep.init()).resolve(refOf(1), {
+      holder,
+      output: { records },
+    });
+
+    expect(result.kind).toBe("refused");
+    expect(result.message).toContain("a piece finding never takes a");
   });
 
   it("refuses a resolve with no review waiting on it", async () => {

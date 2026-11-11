@@ -1,19 +1,33 @@
 import { describe, expect, it } from "vitest";
 
+import { FakeDocuments } from "./Docs/FakeDocuments.ts";
 import { FakeIssueSource } from "./FakeIssueSource.ts";
 import {
   IssueReader,
   type ReadableComment,
   type ReadableIssue,
 } from "./IssueReader.ts";
+import type { SessionSkill, Workflows } from "./Workflow.ts";
+import { codeWorkflowOf } from "./Workflow/code/codeWorkflow.ts";
+import { pieceWorkflowOf } from "./Workflow/piece/pieceWorkflow.ts";
 
 const developer = "developer";
 const approvalOfBuildTheReader =
   "Looks right.\nApproved body: sha256:7f7b5d92207bef8bc9ade35f59b7ce4bee0d983dc1d2a933c104e33c14cd52f3";
+// Only their session skills are read here, so their commands never run.
+const workflows: Workflows = {
+  code: codeWorkflowOf({ checks: [], reviewSkillName: "code-review" }),
+  piece: pieceWorkflowOf({
+    overlapCommand: ["true"],
+    verifyQuotesCommand: ["true"],
+    documents: new FakeDocuments([]),
+    rulesRoot: ".",
+  }),
+};
 
-function readerOf(issue: Partial<ReadableIssue> = {}): IssueReader {
-  const source = FakeIssueSource.init();
-  source.issues.set(7, {
+// Issue #7 under #3, by the developer.
+function issueOf(issue: Partial<ReadableIssue> = {}): ReadableIssue {
+  return {
     issue: { repo: "byro-repo", number: 7 },
     title: "Read issues",
     isOpen: true,
@@ -26,13 +40,23 @@ function readerOf(issue: Partial<ReadableIssue> = {}): IssueReader {
     titleRenamer: undefined,
     comments: [],
     ...issue,
-  });
+  };
+}
+
+function readerWith(source: FakeIssueSource): IssueReader {
   return IssueReader.init({
     source,
     developer,
     githubOwner: developer,
     allowedRepos: ["byro-repo", "sheets-framework"],
+    workflows,
   });
+}
+
+function readerOf(issue: Partial<ReadableIssue> = {}): IssueReader {
+  const source = FakeIssueSource.init();
+  source.issues.set(7, issueOf(issue));
+  return readerWith(source);
 }
 
 describe("IssueReader.read", () => {
@@ -336,34 +360,22 @@ describe("IssueReader.sessionSkillOf", () => {
   function skillOf(
     ticketLabels: string[],
     specLabels: string[] | undefined,
-  ): Promise<string> {
+  ): Promise<SessionSkill> {
     const source = FakeIssueSource.init();
-    const base = {
-      title: "A ticket",
-      isOpen: true,
-      subIssues: [],
-      body: "A body.",
-      author: developer,
-      bodyEditors: [],
-      titleRenamer: undefined,
-      comments: [],
-    };
-    const parent = specLabels && { repo: "byro-repo", number: 3 };
-    source.issues.set(7, { ...base, issue, labels: ticketLabels, parent });
-    if (parent !== undefined) {
-      source.issues.set(3, {
-        ...base,
-        issue: parent,
-        labels: specLabels ?? [],
-        parent: undefined,
-      });
+    const spec = { repo: "byro-repo", number: 3 };
+    if (specLabels === undefined) {
+      source.issues.set(
+        7,
+        issueOf({ labels: ticketLabels, parent: undefined }),
+      );
+    } else {
+      source.issues.set(7, issueOf({ labels: ticketLabels, parent: spec }));
+      source.issues.set(
+        3,
+        issueOf({ issue: spec, labels: specLabels, parent: undefined }),
+      );
     }
-    return IssueReader.init({
-      source,
-      developer,
-      githubOwner: developer,
-      allowedRepos: ["byro-repo"],
-    }).sessionSkillOf(issue);
+    return readerWith(source).sessionSkillOf(issue);
   }
 
   it("names /research-piece for a research ticket under a piece spec", async () => {

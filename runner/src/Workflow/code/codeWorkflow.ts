@@ -114,6 +114,9 @@ export function codeWorkflowOf({
     stepsOf() {
       return steps;
     },
+    sessionSkillOf() {
+      return "implement-code";
+    },
     // A code ticket reads outside the repo only the targets its own body names.
     sourceTargetsOf() {
       return [];

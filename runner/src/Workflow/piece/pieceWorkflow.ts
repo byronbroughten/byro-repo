@@ -40,7 +40,6 @@ import {
   type PullInput,
   type PullRules,
   type RedChecksPromptInput,
-  researchLabel,
   type ReviewPromptInput,
   type SpecEnd,
   type Workflow,
@@ -82,7 +81,7 @@ import { pieceReviewPrompt, pieceReviewRecordSchema } from "./reviewStep.ts";
 
 // The labels the Workflow reads on a ticket: a Research ticket's, and the Edit gate's.
 const ticketLabels = {
-  research: researchLabel,
+  research: "research",
   editGate: humanLabel,
 } as const;
 const specHeadings = {
@@ -191,6 +190,11 @@ export function pieceWorkflowOf({
     name: "piece",
     stepsOf(ticket) {
       return isResearch(ticket) ? researchSteps : draftingSteps;
+    },
+    sessionSkillOf(ticket) {
+      if (isResearch(ticket)) return "research-piece";
+      if (ticket.labels.includes(ticketLabels.editGate)) return "close-piece";
+      return "implement-piece";
     },
     sourceTargetsOf,
     agentSteps: {
@@ -350,7 +354,7 @@ function pullRulesOf(documents: DocumentsPort): PullRules {
   };
 }
 
-function isResearch(ticket: TrackedIssue): boolean {
+function isResearch(ticket: Pick<TrackedIssue, "labels">): boolean {
   return ticket.labels.includes(ticketLabels.research);
 }
 

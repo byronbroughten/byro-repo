@@ -27,6 +27,7 @@ import {
   stateFolder,
   ticketState,
   useSpecRunHarness,
+  workflowsWith,
 } from "./specRunHarness.ts";
 import { implementOutputSchema } from "./Workflow/code/implementStep.ts";
 
@@ -446,6 +447,7 @@ async function ticketTwoAsAStepReadsIt(): Promise<string> {
     developer: "byronbroughten",
     githubOwner: "byronbroughten",
     allowedRepos: ["byro-repo"],
+    workflows: workflowsWith([]),
   });
   return reader.read(["byro-repo", "2", "--body"]);
 }

@@ -1,6 +1,8 @@
 // What `issue:start` prints: whether the session is already in the workspace, its path, the skill to follow and the ticket's text.
 import { isAbsolute, relative } from "node:path";
 
+import type { SessionSkill } from "@byronbroughten/spec-runner/IssueReader";
+
 interface StartReport {
   path: string;
   hasLease: boolean;
@@ -10,8 +12,7 @@ interface StartReport {
 }
 
 export interface StartedTicket {
-  // A skill's folder name under `.claude/skills/`, which /start-issue reads.
-  skill: string;
+  skill: SessionSkill;
   text: string;
 }
 
