@@ -1,0 +1,7 @@
+# byro-repo#651 outcome
+
+Spec: [byro-repo#612](https://github.com/byronbroughten/byro-repo/issues/612)
+
+| Issue | Workflow | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #651 | code | Opus medium | 1 | 3 | 94K | Fix (resumed implementer) | 0 | 1 | 0 | 0 | 9 min | $1.98 | $3.10 | Fixed: The paragraph limits a Stated rule to a transcript, then lets a decided Proposal make one. (.claude/skills/to-writing-style/SKILL.md:58); The Hunt sentence repeats pair-mode.md step 4's sort. (.claude/skills/to-writing-style/SKILL.md:58); The verdicts.md row doesn't list pair mode, which now links verdicts.md directly. (docs/agents/workflows.md:102); Hand-ticked Propose items are dropped without saying so. (.claude/skills/to-writing-style/pair-mode.md step 4); The developer-Section drop doesn't say which file it applies to, so those Sections could show as added. (.claude/skills/to-writing-style/pair-mode.md:19); /close-piece inherits the developer-Section drop through its reuse of pair-mode step 2. (.claude/skills/close-piece/SKILL.md:23 via pair-mode.md:19); The two files tag decided Proposals inconsistently, and the Addition gets no tag. (.claude/skills/to-writing-style/SKILL.md:58; pair-mode.md:31-32). | 20df6ed7-0bf8-4583-9632-5265c6848cc3, cc300139-4aeb-4a5b-a05a-2748497efd39 |
