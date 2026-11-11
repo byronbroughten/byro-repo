@@ -2,14 +2,16 @@
 // then its quote check, and lands with no code: its comment posted, its outcome row written and the ticket closed.
 // What it couldn't verify and the Outline edits it proposes then go to the developer in one Research Halt, which holds the drafting tickets.
 // Every other ticket is a drafting ticket: its first Step pulls the Deliverable's Doc into the Agent draft, agentDraft.ts,
-// its implement step, implementStep.ts, drafts the ticket's Sections there, and its review step, reviewStep.ts, reviews them.
-// The drafting Steps after review aren't built, so a drafting ticket stops after it, unlanded.
+// its implement step, implementStep.ts, drafts the ticket's Sections there, its review step, reviewStep.ts, reviews them,
+// and its resolve step, resolveStep.ts, resumes implement to settle the findings.
+// The drafting Steps after resolve aren't built, so a drafting ticket stops after it, unlanded.
 // Every step reads the Drive files the spec's Supporting Material lists, as source targets, and no others.
 // A repo's runner config builds it with its commands and Docs port, and ../../Workflow.ts registers it.
 
 import { Docs } from "../../Docs.ts";
 import type { DocumentsPort } from "../../Docs/googleDocs.ts";
 import type { IssueRef } from "../../IssueWorkspaces.ts";
+import { resolveRulesOf } from "../../resolveRecords.ts";
 import type { Command } from "../../runKnobs.ts";
 import type { TrackedIssue } from "../../SpecRun/runState.ts";
 import { handoffText } from "../../stepPrompts/handoffText.ts";
@@ -24,6 +26,7 @@ import type {
   PulledDraft,
   PullInput,
   PullRules,
+  ResolvePromptInput,
   ReviewPromptInput,
   SpecEnd,
   Workflow,
@@ -46,6 +49,10 @@ import {
   researchRecordOf,
   researchRecordProblems,
 } from "./researchStep.ts";
+import {
+  pieceResolvePrompt,
+  pieceResolveRecordProblems,
+} from "./resolveStep.ts";
 import { pieceReviewPrompt, pieceReviewRecordSchema } from "./reviewStep.ts";
 
 const researchLabel = "research";
@@ -72,7 +79,7 @@ const researchSteps: WorkflowStep[] = [
   { step: "wrap-up" },
 ];
 
-// Resolve is the drafting Step after review, though no piece resolve step exists yet.
+// Checks are the drafting Step after resolve, though the piece Workflow has no checks Step yet.
 const draftingSteps: WorkflowStep[] = [
   {
     step: "pull",
@@ -88,14 +95,21 @@ const draftingSteps: WorkflowStep[] = [
   },
   {
     step: "resume",
-    nextOf() {
-      return "review";
+    nextOf(state) {
+      return state.findings === undefined ? "review" : "checks";
     },
   },
   {
     step: "review",
+    nextOf(state) {
+      const hasFindings = (state.findings ?? []).length > 0;
+      return hasFindings ? "resolve" : "checks";
+    },
+  },
+  {
+    step: "resolve",
     nextOf() {
-      return "resolve";
+      return "checks";
     },
   },
 ];
@@ -162,6 +176,10 @@ export function pieceWorkflowOf({
         outputSchema: pieceReviewRecordSchema,
         skillName: "review-piece",
       },
+      resolve: resolveRulesOf({
+        promptOf: resolvePromptOf,
+        recordProblems: pieceResolveRecordProblems,
+      }),
     },
     // A drafting ticket lands its branch, the Agent draft's commits on it, as a code ticket does.
     landingOf(ticket) {
@@ -182,6 +200,10 @@ function draftingPromptOf(input: ImplementPromptInput): string {
 
 function reviewPromptOf(input: ReviewPromptInput): string {
   return pieceReviewPrompt({ ...input, draftPath: draftPathOf(input.spec) });
+}
+
+function resolvePromptOf(input: ResolvePromptInput): string {
+  return pieceResolvePrompt({ ...input, draftPath: draftPathOf(input.spec) });
 }
 
 function draftPathOf({ number }: IssueRef): string {

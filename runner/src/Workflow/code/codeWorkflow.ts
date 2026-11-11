@@ -2,6 +2,7 @@
 // rules from its own module, resolve resuming implement.
 // A repo's runner config builds it with its checks and review skill, and ../../Workflow.ts registers it; ../../SpecRun/TicketSequencer.ts walks it and runs each Step.
 
+import { resolveRecordProblems, resolveRulesOf } from "../../resolveRecords.ts";
 import type { Command } from "../../runKnobs.ts";
 import type { TicketState, TicketStep } from "../../SpecRun/runState.ts";
 import { handoffText } from "../../stepPrompts/handoffText.ts";
@@ -26,17 +27,7 @@ import {
   mergeMasterPrompt,
 } from "./mergeMasterStep.ts";
 import { redChecksOutputSchema, redChecksPrompt } from "./redChecksStep.ts";
-import {
-  numberedFindingsOf,
-  resolveCommitProblems,
-  resolveOutputProblems,
-  resolveOutputSchema,
-  resolvePrompt,
-  resolveRecordProblems,
-  resolveRecordsOf,
-  resolveRetryPrompt,
-  withReviewerFields,
-} from "./resolveStep.ts";
+import { resolvePrompt } from "./resolveStep.ts";
 import { reviewPrompt, reviewRecordSchema } from "./reviewStep.ts";
 
 const steps: WorkflowStep[] = [
@@ -81,23 +72,10 @@ const agentSteps: Omit<AgentSteps, "review" | "research"> = {
     },
     handoffCommentOf: handoffText.commentOf,
   },
-  resolve: {
+  resolve: resolveRulesOf({
     promptOf: resolvePrompt,
-    retryPromptOf: resolveRetryPrompt,
-    outputSchema: resolveOutputSchema,
-    outputProblems: resolveOutputProblems,
-    recordsOf: resolveRecordsOf,
-    withReviewerFields,
     recordProblems: resolveRecordProblems,
-    commitProblems: resolveCommitProblems,
-    numberedFindingsOf,
-    resumes: {
-      step: "implement",
-      freshRetryPromptOf(input, problems) {
-        return `${resolvePrompt(input)}\n\n${resolveRetryPrompt(problems)}`;
-      },
-    },
-  },
+  }),
   redChecks: { promptOf: redChecksPrompt, outputSchema: redChecksOutputSchema },
   mergeMaster: {
     promptOf: mergeMasterPrompt,

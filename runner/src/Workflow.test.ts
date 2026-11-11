@@ -41,8 +41,8 @@ describe("agentStepOf", () => {
   it("throws for a step the Workflow leaves out", () => {
     const piece = workflowOf(specLabelled(["piece"]), workflowsWith([]));
 
-    expect(() => agentStepOf(piece, "resolve")).toThrow(
-      "The piece Workflow has no resolve step.",
+    expect(() => agentStepOf(piece, "redChecks")).toThrow(
+      "The piece Workflow has no redChecks step.",
     );
   });
 });

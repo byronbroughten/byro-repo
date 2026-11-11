@@ -44,6 +44,7 @@ import type {
   PieceImplementRecord,
   ReadyResearchRecord,
   ResearchRecord,
+  ResolveRecord,
   ReviewFinding,
 } from "./stepRecords.ts";
 import { toolsOf } from "./targetTools.ts";
@@ -145,18 +146,22 @@ describe("pull on a piece spec's drafting ticket", () => {
 });
 
 describe("implement on a piece spec's drafting ticket", () => {
-  it("drafts the ticket's Sections after pull, keeps the record and stops after review, before the unbuilt resolve", async () => {
+  it("drafts the ticket's Sections after pull, keeps the record and stops after resolve, before the unbuilt checks", async () => {
     addDraftingSpec();
-    const agentStep = FakeAgentStep.init(drafted(), pieceReviewed());
+    const agentStep = FakeAgentStep.init(
+      drafted(),
+      pieceReviewed(),
+      pieceResolved([readerFix]),
+    );
 
     const result = await specRun(agentStep).run(spec);
 
     const [request] = agentStep.requests;
-    expect(agentStep.requests).toHaveLength(2);
+    expect(agentStep.requests).toHaveLength(3);
     expect(request?.prompt).toContain("docs/writing-voice.md");
     expect(request?.prompt).toContain("docs/writing-craft.md");
     expect(request?.prompt).toContain(draftPath);
-    expect(git(workspacePath(), "log", "-1", "--format=%s")).toBe(
+    expect(git(workspacePath(), "log", "-1", "--format=%s", "HEAD~1")).toBe(
       "Draft The crossing in the Agent draft",
     );
     expect(ticketState()["byro-repo #1"]?.record).toMatchObject({
@@ -165,7 +170,7 @@ describe("implement on a piece spec's drafting ticket", () => {
     });
     expect(result.landed).toEqual([]);
     expect(ticketState()["byro-repo #1"]?.step).toBe("stopped");
-    expect(commentsOn(spec.number, "no resolve step")).toHaveLength(1);
+    expect(commentsOn(spec.number, "no checks step")).toHaveLength(1);
   });
 
   it("names a passages folder in the workspace, outside the Agent draft and gitignored, and keeps it", async () => {
@@ -215,11 +220,12 @@ describe("implement on a piece spec's drafting ticket", () => {
       },
       drafted(),
       pieceReviewed(),
+      pieceResolved([readerFix]),
     );
 
     await specRun(agentStep).run(spec);
 
-    expect(agentStep.requests).toHaveLength(3);
+    expect(agentStep.requests).toHaveLength(4);
     expect(agentStep.requests[1]?.prompt).toContain(
       "Handoff from the previous step",
     );
@@ -304,7 +310,105 @@ describe("review on a piece spec's drafting ticket", () => {
   });
 });
 
+describe("resolve on a piece spec's drafting ticket", () => {
+  it("resumes the implementer to settle the findings under the piece rules, landing its Fixes in one commit and keeping the records", async () => {
+    addDraftingSpec();
+    const agentStep = FakeAgentStep.init(
+      async (request) => ({
+        ...(await drafted()(request)),
+        sessionId: "implement-session",
+        peakContext: 90_000,
+      }),
+      pieceReviewed(),
+      pieceResolved([readerFix]),
+    );
+
+    await specRun(agentStep).run(spec);
+
+    const resolver = agentStep.requests[2];
+    expect(resolver?.resumeSessionId).toBe("implement-session");
+    expect(resolver?.prompt).toContain("`## Piece findings`");
+    expect(resolver?.prompt).toContain(draftPath);
+    expect(resolver?.prompt).toContain(passagesPath());
+    expect(
+      git(workspacePath(), "log", "-2", "--format=%s").split("\n"),
+    ).toEqual([
+      "Reword The crossing as the escape, review of #1",
+      "Draft The crossing in the Agent draft",
+    ]);
+    expect(ticketState()["byro-repo #1"]?.resolveRecords).toEqual([
+      { ...readerFix, suggestedVerdict: "fix" },
+    ]);
+  });
+
+  it.each([
+    ["a Propose `ticket`", { verdict: "propose", reason: "ticket" }],
+    ["a Dismiss `kept`", { verdict: "dismiss", reason: "kept" }],
+    [
+      "a Dismiss `tooling-enforced`",
+      { verdict: "dismiss", reason: "tooling-enforced" },
+    ],
+  ] as const)(
+    "refuses %s on a piece finding, through a retry to a Failure Halt",
+    async (named, change) => {
+      addDraftingSpec();
+      const unused: ResolveRecord = {
+        ...readerFix,
+        ...change,
+        quote: `${draftPath}:7 "The ferry slipped out at noon."`,
+        recommendation: "Leave it.",
+        draftIssueTitle: "Reword the crossing",
+      };
+
+      await specRun(
+        FakeAgentStep.init(
+          drafted(),
+          pieceReviewed(),
+          pieceResolved([unused], { isFixed: false }),
+          pieceResolved([unused], { isFixed: false }),
+        ),
+      ).run(spec);
+
+      expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+      expect(haltComments()[0]).toContain("Failure Halt");
+      expect(haltComments()[0]).toContain(
+        `finding 1: a piece finding never takes ${named}`,
+      );
+    },
+  );
+});
+
 const draftPath = "writing/agent-drafts/213.md";
+
+const readerFix: ResolveRecord = {
+  finding: 1,
+  axis: "reader",
+  where: `${draftPath}:7`,
+  claim: "The crossing reads as a delay, not the Outline's escape.",
+  quote: `${draftPath}:7 "The ferry slipped out at noon."`,
+  rule: "The spec's Outline: the crossing is the escape.",
+  verdict: "fix",
+  evidence: "Rewording the line answers it with no new fact.",
+};
+
+// Rewords The crossing and commits it, as a resolver landing its Fix verdicts would, unless told the records hold none.
+function pieceResolved(
+  records: ResolveRecord[],
+  { isFixed = true }: { isFixed?: boolean } = {},
+): StepScript {
+  return async (request) => {
+    if (isFixed) {
+      stepResults.commitFile({
+        cwd: request.cwd,
+        file: draftPath,
+        content:
+          "## The harbour\n<!-- developer -->\n\nGulls circled the quay at dawn.\n\n## The crossing\n<!-- agent -->\n\nThe ferry carried them away at noon.\n",
+        message: "Reword The crossing as the escape, review of #1",
+      });
+    }
+    return resultOf({ records });
+  };
+}
 
 const readerFinding: ReviewFinding = {
   axis: "reader",

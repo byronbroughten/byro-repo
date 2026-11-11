@@ -1,6 +1,6 @@
 # Verdicts
 
-How any review finding is judged: one verdict each, Dismiss, Fix, Propose or Halt. The code-review skill's reviewers suggest one per finding and the resolve step settles it.
+How any review finding is judged: one verdict each, Dismiss, Fix, Propose or Halt. The code-review and review-piece skills' reviewers suggest one per finding and the resolve step settles it.
 
 One line per rule. The reasoning and worked examples are one file away. Open a reasoning file only when you're changing the rule, or the rule's line doesn't decide your case.
 
@@ -37,6 +37,21 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 - **Scope creep is Dismiss `serves-spec`** when the addition serves a user story the spec has, and the evidence names it. It is a Propose `decision` when it adds public surface or observable behaviour no story asks for. Otherwise it is a Fix that deletes it.
   - **Public surface**: a package's declared public entries, a CLI command or flag, a run knob or config key, a sheet, column or endpoint, or text the runner posts. An exported member used only inside its own package is not.
   - **Observable behaviour**: what the developer or an operator sees without reading code: terminal output, files written outside gitignored state, GitHub writes, what the sheet shows.
+
+## Piece findings
+
+A piece spec's drafting ticket's findings take the four verdicts above under these rules.
+
+- **A finding is a Fix when it quotes agent-written text in the ticket's scope and cites a Voice, Craft or academic sheet rule, a spec override or a spec line.**
+- **A Fix changes a claim only to bring it back to the fact list**: reword it, delete an unsupported claim, correct it to a listed fact, or add a fact the Outline gives that Section; never an unlisted fact.
+- **A finding about how a source is described is a Fix when a saved passage settles it**, its evidence quoting that passage, and a Propose `decision` otherwise.
+- **A Reader finding is a Fix when rewording agent text answers it with no new fact**, citing the Craft rule or quoting the spec's Reader line.
+- **A Propose `decision` is for a finding in the developer's text, an inference the drafter made, a fact the list lacks or two rules in conflict**; a missing fact names its Unverified one.
+- **Propose `ticket`, Dismiss `kept` and Dismiss `tooling-enforced` never apply**; the record checks refuse them.
+- **An older problem in an earlier Section is Dismiss `covered-later` when a final pass is coming**, and a Propose `decision` when none is.
+- **A duplicate across axes takes its twin's verdict**, its evidence naming the twin; a duplicate of a Fix shows as fixed on the review list.
+- **The Halt rules are unchanged; a piece spec's binding parts are its User Stories and its Reader, Style, Form, Outline and Facts fields.**
+- **A fix touches only the Agent draft and only the ticket's Sections**, every agent Section on a final pass: never a Section marked as the developer's, the spec, the fact list or a Research comment.
 
 ## Halt
 

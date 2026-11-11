@@ -87,6 +87,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `ProgressLog.ts` | | A progress log's lines and what the Run board reads from them: the current ticket, the account and the latest line. |
 | `promptText.ts` | | Wording helpers the step prompts share. |
 | `recordSchema.ts` | | Schema parts the step records share, the implement record's variants and the review record built from a Workflow's axes among them, and their validator. |
+| `resolveRecords.ts` | | The resolve record every Workflow's resolve step returns: its schema, numbered findings, retry prompt, record and commit checks, and the builder of a Workflow's resolve rules, resolve resuming implement. |
 | `reviewList.ts` | `reviewList` | The review list's comment formats and undecided count, `runner decide`'s edit marking one item decided or handled, and a session re-review's merge into the posted list. |
 | `runBoard.ts` | `runBoard` | The Run board behind `runner status` and `runner watch` with no spec. |
 | `runCollecting.ts` | `runCollecting` | Runs one process with its output collected. |
@@ -155,12 +156,13 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Workflow/code/implementStep.ts` | `implementStep` | The code implement step's prompt and output schema. |
 | `Workflow/code/mergeMasterStep.ts` | | The merge-master step's prompt and output schema. |
 | `Workflow/code/redChecksStep.ts` | | The red-checks step's prompt and record. |
-| `Workflow/code/resolveStep.ts` | `resolveStep` | The resolve step's prompt, record schema and record and commit checks. |
+| `Workflow/code/resolveStep.ts` | `resolveStep` | The code resolve step's prompt. |
 | `Workflow/code/reviewStep.ts` | `reviewStep` | The review step's prompt and record schema. |
 | `Workflow/piece/agentDraft.ts` | | The Agent draft file's Sections and author marks, and pull's merge of a Doc's Sections into them. |
 | `Workflow/piece/implementStep.ts` | | The piece implement step's prompt, passages folder, output schema, record and record checks. |
-| `Workflow/piece/pieceWorkflow.ts` | `pieceWorkflow` | Builds the piece Workflow from a repo's overlap and quote commands and Docs port: its research and drafting Steps, research, implement and review agent steps, pull rules, quote check and the source targets read from the spec's Supporting Material. |
+| `Workflow/piece/pieceWorkflow.ts` | `pieceWorkflow` | Builds the piece Workflow from a repo's overlap and quote commands and Docs port: its research and drafting Steps, research, implement, review and resolve agent steps, pull rules, quote check and the source targets read from the spec's Supporting Material. |
 | `Workflow/piece/researchStep.ts` | | The research step's prompt, its red-quotes section, handoff comment, record checks, output schema, closing comment and Research Halt words. |
+| `Workflow/piece/resolveStep.ts` | | The piece resolve step's prompt, pointing at the verdict rules' `## Piece findings`, and its record checks, which refuse the verdict reasons a piece finding never takes. |
 | `Workflow/piece/reviewStep.ts` | | The piece review step's prompt, reading `/review-piece` by its path over the Agent draft and passages folder, and its record schema. |
 | `WrapUp.ts` | `WrapUp` | `npm run wrap-up`: lands an issue or session workspace, delegating its landing steps and closing the issue to `WrapUp/`; and `npm run research:push`'s push. |
 | `WrapUp/BranchDeleter.ts` | | Deletes a landing's branches on each remote and locally, recording the ones that failed. |
