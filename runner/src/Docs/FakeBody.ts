@@ -3,7 +3,8 @@
 // style and bullet held on the newline that ends it, as Docs does. A newline
 // inserted is a new paragraph: it copies the style and bullet of the paragraph
 // it lands in but not its headingId, and a heading with no headingId gets a
-// fresh one; a paragraph taken out of a list keeps the list's indent. A table
+// fresh one; a heading split at its end keeps its headingId on its text, as
+// Docs does. A paragraph taken out of a list keeps the list's indent. A table
 // is a marker index, then a marker per row and per cell before the cell's
 // paragraphs; its cells copy the paragraph it was inserted into, the worst Docs
 // could do. It holds plain text runs only.
@@ -127,12 +128,12 @@ export class FakeBody {
     if (after?.marker !== undefined) {
       throw refused(`The index ${index} is not inside a paragraph.`);
     }
-    let textStyle = before?.textStyle ?? {};
-    if (
+    const startsParagraph =
       before === undefined ||
       before.char === "\n" ||
-      before.marker !== undefined
-    ) {
+      before.marker !== undefined;
+    let textStyle = before?.textStyle ?? {};
+    if (startsParagraph) {
       textStyle = after?.textStyle ?? {};
     }
     const landed = this._newlineFrom(position);
@@ -143,6 +144,18 @@ export class FakeBody {
         : plainChar(char, place)),
       textStyle: { ...textStyle },
     }));
+    const { headingId, ...landedStyle } = landed.paragraphStyle ?? {};
+    const textEnd = inserted.find((bodyChar) => bodyChar.char === "\n");
+    // Docs keeps a heading's ID on its text: a split at its end hands it to the first new newline.
+    if (
+      after === landed &&
+      !startsParagraph &&
+      headingId !== undefined &&
+      textEnd !== undefined
+    ) {
+      textEnd.paragraphStyle = { ...textEnd.paragraphStyle, headingId };
+      landed.paragraphStyle = landedStyle;
+    }
     this.chars.splice(position, 0, ...inserted);
   }
 
