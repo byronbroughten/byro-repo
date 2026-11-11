@@ -222,6 +222,7 @@ export class ImplementStepper extends SpecRunBase {
       spec: run.spec.issue,
       title: ticket.title,
       body: ticket.body,
+      labels: ticket.labels,
       branch: workspace.branch,
       branchedRepos: workspace.branchedRepos,
       promoteCommand: this.config.promoteCommandOf(ticket.issue),

@@ -2,7 +2,7 @@
 // any hit its review didn't dismiss, then the spec's length limit on a whole-scope ticket. Facts and style stay with review.
 // The scope is the agent Sections the implement record drafted, or every agent Section on a final pass; the developer's
 // Sections are never checked for overlap. pieceWorkflow.ts registers it as its ticket checks, and
-// ../../SpecRun/TicketLander/TicketChecker.ts runs it, raising a Failure Halt on a red one, since the piece Workflow has no red-checks step.
+// ../../SpecRun/TicketLander/TicketChecker.ts runs it, sending a red one to redChecksStep.ts once before a Failure Halt.
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -16,9 +16,8 @@ import type { DismissedOverlap, DraftedRecord } from "../../stepRecords.ts";
 import { ticketSectionOf } from "../../ticketSections.ts";
 import type { TicketChecksInput } from "../../Workflow.ts";
 import { agentDraft, type DraftSection } from "./agentDraft.ts";
+import { draftingScope } from "./draftingScope.ts";
 import { passagesFolderOf } from "./implementStep.ts";
-
-export const finalPassLabel = "final-pass";
 
 const patterns = {
   // The Form field's fixed line, as the spec's Trusted text holds it.
@@ -67,7 +66,7 @@ export const pieceChecks = {
     { ticket, state }: Pick<TicketChecksInput, "ticket" | "state">,
   ): DraftScope {
     const agentSections = sections.filter(({ author }) => author === "agent");
-    if (ticket.labels.includes(finalPassLabel)) {
+    if (draftingScope.isFinalPass(ticket.labels)) {
       return { sections: agentSections, isWhole: true };
     }
     const drafted = sectionsDraftedOf(state);

@@ -380,24 +380,141 @@ describe("resolve on a piece spec's drafting ticket", () => {
       );
     },
   );
+
+  it("has the resolver rerun the overlap command after its Fixes, listing review's dismissed hits", async () => {
+    addDraftingSpec();
+    const agentStep = FakeAgentStep.init(
+      drafted(),
+      pieceReviewed(),
+      pieceResolved([readerFix]),
+    );
+
+    await specRun(agentStep).run(spec);
+
+    const resolver = agentStep.requests[2]?.prompt;
+    expect(resolver).toContain(`--deliverable`);
+    expect(resolver).toContain(`--passages ${passagesPath()}`);
+    expect(resolver).toContain(
+      "- the ferry left: A fixed phrase for the event.",
+    );
+    expect(resolver).toContain("Propose `decision`");
+    expect(resolver).toContain("never leave the checks red");
+  });
+
+  it("says review dismissed no hit when it dismissed none", async () => {
+    addDraftingSpec();
+    const agentStep = FakeAgentStep.init(
+      drafted({}, lateDraft),
+      pieceReviewed([readerFinding], []),
+      pieceResolved([readerFix]),
+    );
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests[2]?.prompt).toContain(
+      "Review dismissed no overlap hit.",
+    );
+  });
 });
+
+describe("a final-pass ticket on a piece spec", () => {
+  it.each([
+    ["implement", 0],
+    ["review", 1],
+    ["resolve", 2],
+  ])("scopes the %s prompt to every agent Section", async (_step, index) => {
+    addDraftingSpec();
+    github.edit(1, { labels: ["ready-for-agent", "final-pass"] });
+    const agentStep = FakeAgentStep.init(
+      drafted({}, lateDraft),
+      pieceReviewed(),
+      pieceResolved([readerFix]),
+    );
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests[index]?.prompt).toContain(finalPassScope);
+  });
+
+  it.each([
+    ["implement", 0],
+    ["review", 1],
+    ["resolve", 2],
+  ])(
+    "leaves the %s prompt to the ticket's Sections on any other ticket",
+    async (_step, index) => {
+      addDraftingSpec();
+      const agentStep = FakeAgentStep.init(
+        drafted({}, lateDraft),
+        pieceReviewed(),
+        pieceResolved([readerFix]),
+      );
+
+      await specRun(agentStep).run(spec);
+
+      expect(agentStep.requests[index]?.prompt).not.toContain(finalPassScope);
+    },
+  );
+});
+
+const finalPassScope = "every Section marked `<!-- agent -->`";
 
 describe("checks and wrap-up on a piece spec's drafting ticket", () => {
   const slippedOut = '1. "the ferry slipped out" (4 words), logbook.txt';
 
-  it("raises a Failure Halt at once on an overlap hit review didn't dismiss, leaving it unlanded", async () => {
+  it("sends an overlap hit review didn't dismiss to the red-checks step once, over the Agent draft and passages folder", async () => {
     addDraftingSpec();
-    const agentStep = FakeAgentStep.init(drafted(), pieceReviewed([], []));
+    const agentStep = FakeAgentStep.init(
+      drafted(),
+      pieceReviewed([], []),
+      stillRed,
+    );
 
-    const result = await specRun(agentStep).run(spec);
+    await specRun(agentStep).run(spec);
 
-    expect(agentStep.requests).toHaveLength(2);
+    expect(agentStep.requests).toHaveLength(3);
+    const redChecks = agentStep.requests[2]?.prompt;
+    expect(redChecks).toContain("red-checks step");
+    expect(redChecks).toContain(draftPath);
+    expect(redChecks).toContain(passagesPath());
+    expect(redChecks).toContain(slippedOut);
+  });
+
+  it("raises a Failure Halt on an overlap hit still red after the red-checks step, leaving it unlanded", async () => {
+    addDraftingSpec();
+
+    const result = await specRun(
+      FakeAgentStep.init(drafted(), pieceReviewed([], []), stillRed),
+    ).run(spec);
+
     expect(result.landed).toEqual([]);
     expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
     const [halt] = haltComments();
     expect(halt).toContain("Failure Halt");
-    expect(halt).toContain("the piece Workflow has no red-checks step");
+    expect(halt).toContain("still red after 1 resume(s)");
     expect(halt).toContain(slippedOut);
+  });
+
+  it("lands a red-checks fix that clears the hit", async () => {
+    addDraftingSpec();
+    const rewords: StepScript = async (request) => {
+      stepResults.commitFile({
+        cwd: request.cwd,
+        file: draftPath,
+        content: lateDraft,
+        message: "Reword the copied run in The crossing, for #1",
+      });
+      return resultOf({ summary: "Reworded the copied run." });
+    };
+
+    const result = await specRun(
+      FakeAgentStep.init(drafted(), pieceReviewed([], []), rewords),
+    ).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(
+      git(primaryOf("byro-repo"), "show", `master:${draftPath}`),
+    ).toContain("The ferry left late.");
   });
 
   it.each([
@@ -442,6 +559,7 @@ describe("checks and wrap-up on a piece spec's drafting ticket", () => {
         FakeAgentStep.init(
           drafted({}, earlierAgentDraft),
           pieceReviewed([], []),
+          stillRed,
         ),
       ).run(spec);
 
@@ -472,7 +590,11 @@ describe("checks and wrap-up on a piece spec's drafting ticket", () => {
       github.edit(1, { labels: ["ready-for-agent", ...labels] });
 
       const result = await specRun(
-        FakeAgentStep.init(drafted({}, lateDraft), pieceReviewed([], [])),
+        FakeAgentStep.init(
+          drafted({}, lateDraft),
+          pieceReviewed([], []),
+          stillRed,
+        ),
       ).run(spec);
 
       const halts = haltComments().filter((halt) =>
@@ -518,6 +640,10 @@ const lateDraft =
   "## The harbour\n<!-- developer -->\n\nGulls circled the quay.\n\n## The crossing\n<!-- agent -->\n\nThe ferry left late.\n";
 
 const draftPath = "writing/agent-drafts/213.md";
+
+// A red-checks step that commits nothing, so the checks stay red.
+const stillRed: StepScript = async () =>
+  resultOf({ summary: "Found no rewording that keeps the fact." });
 
 const readerFix: ResolveRecord = {
   finding: 1,

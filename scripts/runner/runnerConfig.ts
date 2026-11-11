@@ -48,7 +48,7 @@ const codeWorkflow = codeWorkflowOf({
 });
 // The piece checks and the Docs port over the token file doc:print reads, read only once a pull calls it.
 const pieceWorkflow = pieceWorkflowOf({
-  overlapCommand: ["npm", "run", "overlap"],
+  overlapCommand: ["npm", "run", "overlap", "--"],
   verifyQuotesCommand: ["npm", "run", "verify:quotes", "--"],
   documents: RestDocuments.init({
     credentialPath: join(homedir(), ".clasprc-docs.json"),

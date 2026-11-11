@@ -7,6 +7,7 @@ describe("resolvePrompt", () => {
     issue: { repo: "byro-repo", number: 220 },
     spec: { repo: "byro-repo", number: 213 },
     title: "Finding-triage record, checker and prompt",
+    labels: ["ready-for-agent"],
     branch: "issue-220-finding-triage-record-checker-and-prompt",
     branchedRepos: ["byro-repo"],
     workspacePath: "/workspaces/byro-repo-issue-220",
@@ -20,6 +21,7 @@ describe("resolvePrompt", () => {
       },
       "Wrap-up isn't wired in.",
     ],
+    dismissedOverlaps: [],
   });
 
   it("numbers each finding for its record, a structured one with its axis and suggested verdict, a saved prose one as it was", () => {

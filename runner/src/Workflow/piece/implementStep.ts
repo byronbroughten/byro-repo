@@ -28,6 +28,7 @@ import {
   implementRecordProblems,
 } from "../../stepRecords.ts";
 import type { ImplementPromptInput } from "../../Workflow.ts";
+import { draftingScope } from "./draftingScope.ts";
 
 const paths = {
   voice: "docs/writing-voice.md",
@@ -63,6 +64,7 @@ export function pieceImplementPrompt(input: PieceImplementPromptInput): string {
 function draftingSection({
   issue,
   spec,
+  labels,
   draftPath,
   workspacePath,
 }: PieceImplementPromptInput): string {
@@ -71,7 +73,7 @@ function draftingSection({
     `The Agent draft is \`${draftPath}\` in the \`${spec.repo}\` clone. The runner's pull already brought the Deliverable's Doc into it and committed it on the ticket's branch. Its file format is in \`${paths.agentDraft}\`.`,
     `The ticket's spec is ${spec.repo}#${spec.number}; read its body for the Deliverable, the Reader, the Outline and the Supporting Material.`,
     `Draft by the rules under "Implementing a piece spec" in \`${paths.pieceRules}\`, writing to the Agent draft and never the Deliverable's Doc.`,
-    `Draft only the Sections this ticket names, each under its heading as the draft holds it, with \`<!-- agent -->\` on the line under the heading. Change no other Section and no other file.`,
+    `Draft only ${draftingScope.sectionsOf(labels)}, each under its heading as the draft holds it, with \`<!-- agent -->\` on the line under the heading. Change no other Section, never one marked \`<!-- developer -->\`, and no other file.`,
     `Read \`${paths.voice}\` and \`${paths.craft}\` in full before your first prose edit.`,
     "Read the spec's Supporting Material only through the Drive read tools you were given, by the file IDs the spec lists.",
     `Save each passage you read once, as a text file in the passages folder, \`${passagesFolder}\`, named for its source and range. Review, resolve and any fresh step after a handoff read the same files, so read a source again only for a passage the folder lacks. The folder is gitignored; never copy a passage into the repo.`,
