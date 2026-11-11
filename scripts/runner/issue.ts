@@ -59,13 +59,14 @@ async function start(args: string[]): Promise<void> {
     return;
   }
   const holder = nearestClaudeAncestor();
-  const { path } = await workspaces.start(key, holder);
+  const { path, otherIssueBranches } = await workspaces.start(key, holder);
   console.log(
     startReportOf({
       path,
       hasLease: holder !== undefined,
       cwd: process.cwd(),
       ticket: await startedTicketOf(key),
+      otherIssueBranches,
     }),
   );
   if (!holder) return;

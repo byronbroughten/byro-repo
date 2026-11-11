@@ -31,6 +31,7 @@ import { WorkspaceLeaser } from "./WorkspaceLeaser.ts";
 import { type LeaseHolder } from "./workspaceLeases.ts";
 import { WorkspaceSeeder } from "./WorkspaceSeeder.ts";
 import {
+  type CreatedWorkspace,
   type CreateOptions,
   type IssueRef,
   issueRef,
@@ -58,7 +59,7 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
   async create(
     key: WorkspaceKey,
     options: CreateOptions = {},
-  ): Promise<Workspace> {
+  ): Promise<CreatedWorkspace> {
     if (workspaceKey.isSession(key)) assertSessionCreate(key, options);
     const branchedRepos = this._branchedReposOf(key, options);
     const existing = await this.find(key);
@@ -68,25 +69,34 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
         key,
         branch: existing.branch,
         branchedRepos: existing.branchedRepos,
+        otherIssueBranches: [],
       };
     }
-    const branch = await this.namer.branchName(key, options.slug);
+    const { branch, otherIssueBranches } = await this.namer.branchOf(
+      key,
+      options.slug,
+    );
     const path = join(
       this.config.workspaceFolder,
       `${workspaceKey.folderPrefixOf(key)}${branch}`,
     );
     await this._buildOrTearDown({ path, branch, branchedRepos });
-    return { path, key, branch, branchedRepos };
+    return { path, key, branch, branchedRepos, otherIssueBranches };
   }
 
   // The lease is checked before resume, which would move another holder's detached repos.
-  async start(key: WorkspaceKey, holder?: LeaseHolder): Promise<Workspace> {
+  async start(
+    key: WorkspaceKey,
+    holder?: LeaseHolder,
+  ): Promise<CreatedWorkspace> {
     const existing = await this.find(key);
     if (existing) {
       assertLeaseFree({ path: existing.path, lease: existing.lease, holder });
       await this.resume(existing);
     }
-    const workspace = existing ?? (await this.create(key));
+    const workspace = existing
+      ? { ...existing, otherIssueBranches: [] }
+      : await this.create(key);
     if (holder) await this.leaser.takeLease(workspace, holder);
     return workspace;
   }

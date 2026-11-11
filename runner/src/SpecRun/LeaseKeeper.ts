@@ -10,6 +10,7 @@ import {
   issueRef,
   type LeaseHolder,
   leaseHolder,
+  otherIssueBranch,
   type Workspace,
   type WorkspaceStatus,
 } from "../IssueWorkspaces.ts";
@@ -60,6 +61,12 @@ export class LeaseKeeper extends SpecRunBase {
     const existing = await this.workspaces.find(issue);
     if (!existing) {
       const created = await this.workspaces.create(issue);
+      for (const other of created.otherIssueBranches) {
+        this._log(
+          run,
+          `${issueRef.labelOf(issue)}: ${otherIssueBranch.noticeOf(other)}`,
+        );
+      }
       await this._takeLease(run, created);
       return created;
     }

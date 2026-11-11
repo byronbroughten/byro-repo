@@ -6,7 +6,13 @@ const path = "/repo/.claude/worktrees/byro-repo-issue-357-slug";
 const ticketText = "## Model fit (Trusted text)\n\nSonnet medium";
 const ticket: StartedTicket = { skill: "implement-code", text: ticketText };
 const skillLine = "Skill: /implement-code";
-const started = { path, hasLease: true, cwd: "/repo", ticket };
+const started = {
+  path,
+  hasLease: true,
+  cwd: "/repo",
+  ticket,
+  otherIssueBranches: [],
+};
 
 describe("startReportOf", () => {
   it("prints the path first, then the skill and the ticket text, for a fresh start", () => {
@@ -35,6 +41,22 @@ describe("startReportOf", () => {
   it("says no lease was taken, and is never already there, without a claude process", () => {
     expect(startReportOf({ ...started, hasLease: false, cwd: path })).toBe(
       `${path}\nNo claude process ran this, so no lease was taken.\n${skillLine}\n${ticketText}`,
+    );
+  });
+
+  it("prints a line under the path for each other repo's same-numbered branch", () => {
+    const otherIssueBranches = [
+      { repo: "sheets-framework", branch: "issue-357-prototype" },
+      { repo: "utils", branch: "issue-357-research" },
+    ];
+    expect(startReportOf({ ...started, otherIssueBranches })).toBe(
+      [
+        path,
+        "sheets-framework has issue-357-prototype, another issue's branch with this number; not reused.",
+        "utils has issue-357-research, another issue's branch with this number; not reused.",
+        skillLine,
+        ticketText,
+      ].join("\n"),
     );
   });
 

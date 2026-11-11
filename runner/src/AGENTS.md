@@ -62,7 +62,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `headlessProbe.ts` | | Launches the one-turn headless session both probes run. |
 | `IssueReader.ts` | `IssueReader` | `npm run issue:read`: prints an issue as Trusted and Untrusted text, reads a Trusted body's Model fit line for `npm run outcome:summary`, and names a ticket's skill for `npm run issue:start`. |
 | `IssueWorkspaces.ts` | `IssueWorkspaces` | Creates, promotes, resumes, leases, lists and removes issue and session workspaces, delegating to `IssueWorkspaces/`. |
-| `IssueWorkspaces/BranchNamer.ts` | | Names a workspace's branch, reusing an issue's existing branch in any repo. |
+| `IssueWorkspaces/BranchNamer.ts` | | Names a workspace's branch, reusing an issue's existing branch in its own repo only, and finds other repos' same-numbered branches. |
 | `IssueWorkspaces/claudeEntries.ts` | `claudeEntries` | The `.claude/` entries the sandbox write-protects in a worktree, and the check that a removal can delete them. |
 | `IssueWorkspaces/IssueWorkspacesBase.ts` | | The Base `IssueWorkspaces` and its collaborators share: the config, a repo's clone path and its primary clone, finding a workspace's folder by key and the free-lease check. |
 | `IssueWorkspaces/WorkspaceKeeper.ts` | | The workspace lifecycle: creates, finds, lists, promotes, resumes and removes workspaces. |

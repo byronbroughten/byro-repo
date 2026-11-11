@@ -85,6 +85,18 @@ describe("start", () => {
     );
   });
 
+  it("returns another repo's same-numbered branch only from the start that creates the workspace", async () => {
+    git(join(primaryRoot, "packages/utils"), "branch", "issue-7-other-issue");
+
+    const created = await workspaces().start({ repo: "byro-repo", number: 7 });
+    const resumed = await workspaces().start({ repo: "byro-repo", number: 7 });
+
+    expect(created.otherIssueBranches).toEqual([
+      { repo: "utils", branch: "issue-7-other-issue" },
+    ]);
+    expect(resumed.otherIssueBranches).toEqual([]);
+  });
+
   it("resumes an existing session workspace, keeping its work", async () => {
     const created = await workspaces().create({ session: "glossary-fix" });
     writeFileSync(join(created.path, "work.txt"), "in progress");
@@ -99,9 +111,9 @@ describe("start", () => {
 });
 
 describe("the branch name", () => {
-  it("reuses an existing issue branch in any repo, without asking for the title", async () => {
+  it("reuses the issue's own repo's existing branch, without asking for the title", async () => {
     git(
-      join(primaryRoot, "packages/utils"),
+      join(primaryRoot, "packages/framework"),
       "branch",
       "issue-48-earlier-start",
     );
@@ -115,6 +127,48 @@ describe("the branch name", () => {
       "issue-48-earlier-start",
     );
     expect(titleLookups).toBe(0);
+  });
+
+  it("never reuses another repo's same-numbered branch, local or remote, and returns it", async () => {
+    const utils = join(primaryRoot, "packages/utils");
+    git(utils, "branch", "issue-48-other-issue");
+    git(primaryRoot, "branch", "issue-48-pushed-elsewhere");
+    git(primaryRoot, "push", "origin", "issue-48-pushed-elsewhere");
+    git(primaryRoot, "branch", "-D", "issue-48-pushed-elsewhere");
+
+    const workspace = await workspaces().create(
+      { repo: "sheets-framework", number: 48 },
+      { extraRepos: ["utils"] },
+    );
+
+    expect(workspace.branch).toBe(
+      "issue-48-workspace-module-create-list-and-remove",
+    );
+    expect(branchOf(join(workspace.path, "packages/framework"))).toBe(
+      workspace.branch,
+    );
+    expect(branchOf(join(workspace.path, "packages/utils"))).toBe(
+      workspace.branch,
+    );
+    expect(workspace.otherIssueBranches).toEqual([
+      { repo: "byro-repo", branch: "issue-48-pushed-elsewhere" },
+      { repo: "utils", branch: "issue-48-other-issue" },
+    ]);
+  });
+
+  it("leaves out another repo's branch that has the chosen name", async () => {
+    git(
+      join(primaryRoot, "packages/utils"),
+      "branch",
+      "issue-48-workspace-module-create-list-and-remove",
+    );
+
+    const workspace = await workspaces().create({
+      repo: "sheets-framework",
+      number: 48,
+    });
+
+    expect(workspace.otherIssueBranches).toEqual([]);
   });
 
   it("reuses an issue branch that only exists on the remote", async () => {
