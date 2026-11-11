@@ -171,7 +171,12 @@ export function ticketReviewListOf({
 // The spec's Facts field didn't ask for these, so they collapse with no checkboxes and none counts as undecided.
 function unwantedAuditOf(unwanted: UnverifiedItem[]): string {
   const lines = unwanted.map(({ fact, reason }) => `- ${fact} (${reason})`);
-  return `${reviewGroups.unverified}\n\n<details>\n<summary>Unverified facts the Facts field didn't name: ${unwanted.length}</summary>\n\n${lines.join("\n")}\n\n</details>`;
+  const summary = `Unverified facts the Facts field didn't name: ${unwanted.length}`;
+  return `${reviewGroups.unverified}\n\n${collapsedAuditOf(summary, lines)}`;
+}
+
+function collapsedAuditOf(summary: string, lines: string[]): string {
+  return `<details>\n<summary>${summary}</summary>\n\n${lines.join("\n")}\n\n</details>`;
 }
 
 function axisSectionsOf(
@@ -454,7 +459,7 @@ function dismissAuditOf(dismisses: ResolveRecord[]): string {
     const sentences = [`${dismissHeadOf(record)}.`, record.evidence];
     return `- ${[...sentences, ...dismissDetailsOf(record)].join(" ")}`;
   });
-  return `<details>\n<summary>Dismissed: ${dismisses.length}</summary>\n\n${lines.join("\n")}\n\n</details>`;
+  return collapsedAuditOf(`Dismissed: ${dismisses.length}`, lines);
 }
 
 function dismissHeadOf(record: ResolveRecord): string {
