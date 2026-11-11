@@ -32,6 +32,16 @@ export const outlineEdits = {
     return `${section}: replace "${oldText}" with "${newText}" (${reason})`;
   },
 
+  // The ids of `edits`, each found by `indexOf` in its Halt's `proposed` list.
+  idsOf(proposed: OutlineEdit[], edits: OutlineEdit[]): string {
+    return edits
+      .map((edit) => outlineEdits.idOf(proposed.indexOf(edit)))
+      .join(", ");
+  },
+
+  // Why an approved edit wasn't applied, after "each one's" or "whose".
+  unappliedReason: "old text isn't in the spec's `## Outline` exactly once",
+
   // An edit as a Halt lists it, under its id.
   lineOf(edit: OutlineEdit, index: number): string {
     return `**${outlineEdits.idOf(index)}** ${outlineEdits.textOf(edit)}`;

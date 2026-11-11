@@ -140,7 +140,7 @@ export function unappliedEditsHaltOf(
   );
   return {
     kind: "research",
-    question: `${haltNameOf(halt)}'s answer approved these Outline edits, but the runner couldn't apply them: each one's old text isn't in the spec's \`## Outline\` exactly once.${bulletsOf(lines)}\n\nMake each change in the spec's \`## Outline\` by hand, then answer \`continue\`.`,
+    question: `${haltNameOf(halt)}'s answer approved these Outline edits, but the runner couldn't apply them: each one's ${outlineEdits.unappliedReason}.${bulletsOf(lines)}\n\nMake each change in the spec's \`## Outline\` by hand, then answer \`continue\`.`,
     options: ["`continue`"],
     scope: halt.scope,
   };

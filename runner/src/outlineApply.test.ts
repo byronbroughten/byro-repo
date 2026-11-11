@@ -108,7 +108,7 @@ describe("outlineApply.apply", () => {
         { spec, edits: [rentEdit, stale], answer: "approve E1 approve E2" },
       ),
     ).rejects.toThrow(
-      'Applied E1 to personal #40\'s ## Outline. Couldn\'t apply E2, whose old text isn\'t in the Outline exactly once; make it by hand: 2: replace "Vacancy rose." with "Vacancy fell by a third." (the source gives the size)',
+      "Applied E1 to personal #40's ## Outline. Couldn't apply E2, whose old text isn't in the spec's `## Outline` exactly once; make it by hand: 2: replace \"Vacancy rose.\" with \"Vacancy fell by a third.\" (the source gives the size)",
     );
     expect(await bodyOf(source)).toBe(
       specBody.replace("Rent rose $5", "Rent rose $7"),

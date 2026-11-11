@@ -47,9 +47,18 @@ export const outlineApply = {
     }
     const { body, unapplied } = outlineEdits.applyTo(issue.body, approved);
     if (body !== issue.body) await issues.editBody(spec, body);
-    const lines = appliedLineOf(spec, proposed, approved, unapplied);
+    const applied = approved.filter((edit) => !unapplied.includes(edit));
+    const lines: string[] = [];
+    if (applied.length > 0) {
+      lines.push(
+        `Applied ${outlineEdits.idsOf(proposed, applied)} to ${issueRef.labelOf(spec)}'s ## Outline.`,
+      );
+    }
     if (unapplied.length === 0) return lines.join(" ");
-    throw new Error([...lines, unappliedLineOf(proposed, unapplied)].join(" "));
+    lines.push(
+      `Couldn't apply ${outlineEdits.idsOf(proposed, unapplied)}, whose ${outlineEdits.unappliedReason}; make it by hand: ${unapplied.map(outlineEdits.textOf).join("; ")}`,
+    );
+    throw new Error(lines.join(" "));
   },
 };
 
@@ -61,31 +70,4 @@ function checkedEditsOf(edits: unknown): OutlineEdit[] {
     );
   }
   return edits as OutlineEdit[];
-}
-
-function appliedLineOf(
-  spec: IssueRef,
-  proposed: OutlineEdit[],
-  approved: OutlineEdit[],
-  unapplied: OutlineEdit[],
-): string[] {
-  const applied = approved.filter((edit) => !unapplied.includes(edit));
-  if (applied.length === 0) return [];
-  return [
-    `Applied ${idsOf(proposed, applied)} to ${issueRef.labelOf(spec)}'s ## Outline.`,
-  ];
-}
-
-function unappliedLineOf(
-  proposed: OutlineEdit[],
-  unapplied: OutlineEdit[],
-): string {
-  const edits = unapplied.map(outlineEdits.textOf).join("; ");
-  return `Couldn't apply ${idsOf(proposed, unapplied)}, whose old text isn't in the Outline exactly once; make it by hand: ${edits}`;
-}
-
-function idsOf(proposed: OutlineEdit[], edits: OutlineEdit[]): string {
-  return edits
-    .map((edit) => outlineEdits.idOf(proposed.indexOf(edit)))
-    .join(", ");
 }
