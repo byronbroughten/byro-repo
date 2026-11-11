@@ -20,7 +20,11 @@ import type { IssueRef } from "../../IssueWorkspaces.ts";
 import { gapCheckOutputSchema, gapCheckRecordOf } from "../../recordSchema.ts";
 import { resolveRulesOf } from "../../resolveRecords.ts";
 import type { Command } from "../../runKnobs.ts";
-import type { TrackedIssue, Wait } from "../../SpecRun/runState.ts";
+import {
+  humanLabel,
+  type TrackedIssue,
+  type Wait,
+} from "../../SpecRun/runState.ts";
 import { handoffText } from "../../stepPrompts/handoffText.ts";
 import {
   implementRecordOf,
@@ -72,7 +76,7 @@ import { pieceReviewPrompt, pieceReviewRecordSchema } from "./reviewStep.ts";
 // The labels the Workflow reads on a ticket: a Research ticket's, and the Edit gate's.
 const ticketLabels = {
   research: "research",
-  editGate: "ready-for-human",
+  editGate: humanLabel,
 } as const;
 const specHeadings = {
   sources: "## Supporting Material",

@@ -345,11 +345,11 @@ export class SpecRunBase {
 
   protected _withRerunLine(run: Run, message: string, waits: Wait[]): string {
     if (!waits.some(({ reason }) => reason === "developer")) return message;
-    const command = runText.rerunCommandOf(
-      this.config.githubOwner,
-      run.spec.issue,
-    );
-    return `${message} Rerun once your tickets close: \`${command}\`.`;
+    return `${message} Rerun once your tickets close: \`${this._rerunCommandOf(run)}\`.`;
+  }
+
+  protected _rerunCommandOf(run: Run): string {
+    return runText.rerunCommandOf(this.config.githubOwner, run.spec.issue);
   }
 
   // Printed to the terminal only: a developer-login comment quoting the approval line would itself approve the body.

@@ -70,6 +70,11 @@ export const runText = {
     return items.length === 0 ? "none" : items.join(", ");
   },
 
+  // A run's end and the judge Step's stop both open alike.
+  runEndedOf(landed: IssueRef[], rest: string): string {
+    return `Run ended: ${runText.landedOf(landed)}. ${rest}`;
+  },
+
   landedOf(landed: IssueRef[]): string {
     if (landed.length === 0) return "landed nothing";
     return `landed ${landed.map(issueRef.labelOf).join(", ")}`;

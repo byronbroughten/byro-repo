@@ -634,7 +634,6 @@ describe("checks and wrap-up on a piece spec's drafting ticket", () => {
   });
 });
 
-// An earlier ticket's agent Section holds the hit; this ticket drafts The crossing.
 describe("the end of a piece spec", () => {
   const gapCheckMark = "<!-- review-list ticket=gap-check -->";
   const judgeThenRerun = "judge, then rerun";
@@ -707,8 +706,27 @@ describe("the end of a piece spec", () => {
     expect(result.message).toContain("byro-repo #2 waits on you");
     expect(result.message).not.toContain(judgeThenRerun);
   });
+
+  it("goes on to the Edit gate on the rerun once the developer decides the undecided item", async () => {
+    addGatedSpec();
+    await landsThenGapChecks([gap]);
+    const list = github.comments.find(({ body }) =>
+      body.includes(gapCheckMark),
+    );
+    if (list === undefined) throw new Error("No gap-check review list.");
+    list.body = list.body.replace("- [ ] **R", "- [x] **R");
+
+    const agentStep = FakeAgentStep.init();
+    const result = await specRun(agentStep, { agentStep }).run(spec);
+
+    expect(agentStep.requests).toEqual([]);
+    expect(result.kind).toBe("finished");
+    expect(result.message).toContain("byro-repo #2 waits on you");
+    expect(result.message).not.toContain(judgeThenRerun);
+  });
 });
 
+// An earlier ticket's agent Section holds the hit; this ticket drafts The crossing.
 const earlierAgentDraft =
   "## The harbour\n<!-- agent -->\n\nThe gulls slipped out at dawn.\n\n## The crossing\n<!-- agent -->\n\nThe ferry left late.\n";
 

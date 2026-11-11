@@ -39,6 +39,7 @@ import { runText } from "./runState/runText.ts";
 
 export const readyLabel = "ready-for-agent";
 export const interactiveLabel = "ready-for-interactive";
+export const humanLabel = "ready-for-human";
 
 export const gapCheckLabel = "gap check";
 
