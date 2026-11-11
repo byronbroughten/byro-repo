@@ -5,18 +5,20 @@
 // SpecRunBase._workflowOf picks; SpecRun/TicketSequencer.ts takes its source targets,
 // SpecRun/DraftPuller.ts its pull rules, through pullOf, and SpecRun/DraftPusher.ts its push rules, through pushOf.
 // Each Workflow's own code is in Workflow/<name>/.
-// A ticket follows its spec's Workflow. Labels are Trusted, since only collaborators can add one.
+// A ticket follows its spec's Workflow, and a Standalone ticket, its own spec, its own label; a run, a session's review
+// and resolve, and issue:start's skill all pick by it. Labels are Trusted, since only collaborators can add one.
 
 import type { Docs } from "./Docs.ts";
 import type { HaltQuestion } from "./halts.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { Command } from "./runKnobs.ts";
-import type {
-  PullBaseline,
-  TicketState,
-  TicketStep,
-  TrackedIssue,
-  Wait,
+import {
+  humanLabel,
+  type PullBaseline,
+  type TicketState,
+  type TicketStep,
+  type TrackedIssue,
+  type Wait,
 } from "./SpecRun/runState.ts";
 import type {
   DismissedOverlap,
@@ -303,14 +305,30 @@ export interface GapCheckRules {
 }
 
 const pieceLabel = "piece";
+// A piece spec's Research ticket's label; its Edit gate's is humanLabel.
+export const researchLabel = "research";
 
 // The Workflows a repo's runner config builds; the core picks among them.
 export type Workflows = Record<WorkflowName, Workflow>;
+
+// A Standalone ticket is its own spec.
+export interface SessionSkillInput {
+  ticket: Pick<TrackedIssue, "labels">;
+  spec: Pick<TrackedIssue, "labels">;
+}
 
 export function workflowNameOf({
   labels,
 }: Pick<TrackedIssue, "labels">): WorkflowName {
   return labels.includes(pieceLabel) ? "piece" : "code";
+}
+
+// The skill an interactive session follows on a ticket, by the label rule a run picks the ticket's Workflow by.
+export function sessionSkillOf({ ticket, spec }: SessionSkillInput): string {
+  if (workflowNameOf(spec) === "code") return "implement-code";
+  if (ticket.labels.includes(researchLabel)) return "research-piece";
+  if (ticket.labels.includes(humanLabel)) return "close-piece";
+  return "implement-piece";
 }
 
 export function isWorkflowName(name: string | undefined): name is WorkflowName {

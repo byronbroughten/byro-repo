@@ -329,6 +329,75 @@ describe("IssueReader.modelFitOf", () => {
   });
 });
 
+describe("IssueReader.sessionSkillOf", () => {
+  const issue = { repo: "byro-repo", number: 7 };
+
+  // Ticket #7 under spec #3, or Standalone when `specLabels` is undefined.
+  function skillOf(
+    ticketLabels: string[],
+    specLabels: string[] | undefined,
+  ): Promise<string> {
+    const source = FakeIssueSource.init();
+    const base = {
+      title: "A ticket",
+      isOpen: true,
+      subIssues: [],
+      body: "A body.",
+      author: developer,
+      bodyEditors: [],
+      titleRenamer: undefined,
+      comments: [],
+    };
+    const parent = specLabels && { repo: "byro-repo", number: 3 };
+    source.issues.set(7, { ...base, issue, labels: ticketLabels, parent });
+    if (parent !== undefined) {
+      source.issues.set(3, {
+        ...base,
+        issue: parent,
+        labels: specLabels ?? [],
+        parent: undefined,
+      });
+    }
+    return IssueReader.init({
+      source,
+      developer,
+      githubOwner: developer,
+      allowedRepos: ["byro-repo"],
+    }).sessionSkillOf(issue);
+  }
+
+  it("names /research-piece for a research ticket under a piece spec", async () => {
+    expect(await skillOf(["research"], ["piece"])).toBe("research-piece");
+  });
+
+  it("names /close-piece for the ready-for-human ticket under a piece spec", async () => {
+    expect(await skillOf(["ready-for-human"], ["piece"])).toBe("close-piece");
+  });
+
+  it("names /implement-piece for any other ticket under a piece spec", async () => {
+    expect(await skillOf(["ready-for-agent"], ["piece"])).toBe(
+      "implement-piece",
+    );
+  });
+
+  it("names /implement-code for a ticket under a spec with no piece label, whatever its own labels", async () => {
+    expect(await skillOf(["research", "piece"], [])).toBe("implement-code");
+  });
+
+  it("reads a Standalone ticket by its own label", async () => {
+    expect(await skillOf(["piece", "research"], undefined)).toBe(
+      "research-piece",
+    );
+    expect(await skillOf(["research"], undefined)).toBe("implement-code");
+  });
+
+  it("refuses a repo outside the allowed ones", async () => {
+    await expect(
+      readerOf().sessionSkillOf({ repo: "elsewhere", number: 7 }),
+    ).rejects.toThrow('Repo "elsewhere" is not one of');
+  });
+});
+
 function commentAt(
   number: number,
   author: string,

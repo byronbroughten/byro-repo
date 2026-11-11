@@ -66,8 +66,9 @@ The words Piece, Deliverable, Section, Stage and Agent draft are [the writing gl
 | Tickets | Code | a Phase gate | `/code-tickets` | named, in the gate's body |
 | Tickets | Piece | `/piece-tickets` | `/runner` on the spec, or `/implement-piece` on the first ticket | named |
 | Tickets | Piece | the Edit gate | `/close-piece` | named, in the gate's body and the run's end message |
-| Implementation | Code | `/runner` | `/judge-findings` when a run finishes; an Interactive ticket through `/start-issue`'s steps and `/implement-code` | named |
-| Implementation | Code | `/start-issue` | `/implement-code` | named |
+| Implementation | Code | `/runner` | `/judge-findings` when a run finishes; an Interactive ticket through `/start-issue`'s steps and the skill `issue:start` names | named |
+| Implementation | Code | `/start-issue` | `/implement-code`, when `issue:start` names it | named by `issue:start`, read by path |
+| Implementation | Piece | `/start-issue` | `/research-piece`, `/close-piece` or `/implement-piece`, whichever `issue:start` names | named by `issue:start`, read by path |
 | Implementation | Code | `/implement-code` | `tdd`, the review Step (`runner -- review`), then wrap-up | named |
 | Implementation | Code | `tdd` | `codebase-design` | named |
 | Implementation | Piece | `/runner` | `/judge-findings` when a run stops at the judge Step | named |

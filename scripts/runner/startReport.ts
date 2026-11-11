@@ -1,18 +1,25 @@
-// What `issue:start` prints: whether the session is already in the workspace, its path, and the ticket's text.
+// What `issue:start` prints: whether the session is already in the workspace, its path, the skill to follow and the ticket's text.
 import { isAbsolute, relative } from "node:path";
 
 interface StartReport {
   path: string;
   hasLease: boolean;
   cwd: string;
-  ticketText: string | undefined;
+  // Undefined for a session workspace, which has no ticket.
+  ticket: StartedTicket | undefined;
+}
+
+export interface StartedTicket {
+  // A skill's folder name under `.claude/skills/`, which /start-issue reads.
+  skill: string;
+  text: string;
 }
 
 export function startReportOf({
   path,
   hasLease,
   cwd,
-  ticketText,
+  ticket,
 }: StartReport): string {
   const lines = [path];
   if (!hasLease) {
@@ -20,7 +27,7 @@ export function startReportOf({
   } else if (isInside(cwd, path)) {
     lines.unshift("This session is already in the workspace.");
   }
-  if (ticketText !== undefined) lines.push(ticketText);
+  if (ticket !== undefined) lines.push(`Skill: /${ticket.skill}`, ticket.text);
   return lines.join("\n");
 }
 

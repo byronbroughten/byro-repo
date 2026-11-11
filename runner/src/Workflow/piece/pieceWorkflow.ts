@@ -33,17 +33,18 @@ import {
 } from "../../stepRecords.ts";
 import { ticketSectionOf } from "../../ticketSections.ts";
 import type { Target } from "../../ticketTargets.ts";
-import type {
-  GapCheckPromptInput,
-  ImplementPromptInput,
-  PulledDraft,
-  PullInput,
-  PullRules,
-  RedChecksPromptInput,
-  ReviewPromptInput,
-  SpecEnd,
-  Workflow,
-  WorkflowStep,
+import {
+  type GapCheckPromptInput,
+  type ImplementPromptInput,
+  type PulledDraft,
+  type PullInput,
+  type PullRules,
+  type RedChecksPromptInput,
+  researchLabel,
+  type ReviewPromptInput,
+  type SpecEnd,
+  type Workflow,
+  type WorkflowStep,
 } from "../../Workflow.ts";
 import { agentDraft } from "./agentDraft.ts";
 import { pieceGapCheckPrompt } from "./gapCheck.ts";
@@ -81,7 +82,7 @@ import { pieceReviewPrompt, pieceReviewRecordSchema } from "./reviewStep.ts";
 
 // The labels the Workflow reads on a ticket: a Research ticket's, and the Edit gate's.
 const ticketLabels = {
-  research: "research",
+  research: researchLabel,
   editGate: humanLabel,
 } as const;
 const specHeadings = {

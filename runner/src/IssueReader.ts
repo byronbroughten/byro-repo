@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import { modelFitTextOf } from "./modelFit.ts";
+import { sessionSkillOf } from "./Workflow.ts";
 
 const usage =
   "Usage: npm run issue:read -- <repo> <n> [--body] [--comments] [--hide-others]";
@@ -118,6 +119,18 @@ export class IssueReader {
       return `not read: the body is Untrusted text, ${reason}`;
     }
     return modelFitTextOf(readable.body) ?? "no Model fit section";
+  }
+
+  // `npm run issue:start`'s skill, read from the labels alone, which are Trusted; a ticket with no parent is its own spec.
+  async sessionSkillOf(issue: IssueRef): Promise<string> {
+    this._assertAllowed(issue.repo);
+    const { source } = this.config;
+    const ticket = await source.readableIssueOf(issue);
+    const spec =
+      ticket.parent === undefined
+        ? ticket
+        : await source.readableIssueOf(ticket.parent);
+    return sessionSkillOf({ ticket, spec });
   }
 
   private _assertAllowed(repo: string): void {

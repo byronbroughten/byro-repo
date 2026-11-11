@@ -21,7 +21,7 @@ import { issueReader } from "./issueReader.ts";
 import { keyArgsOf } from "./keyArgs.ts";
 import { issueWorkspacesConfig, stateFolder } from "./runnerConfig.ts";
 import { recordStartedSession } from "./startedSession.ts";
-import { startReportOf } from "./startReport.ts";
+import { type StartedTicket, startReportOf } from "./startReport.ts";
 import { workspaceLineOf } from "./workspaceLine.ts";
 
 const workspaces = IssueWorkspaces.init(issueWorkspacesConfig);
@@ -65,7 +65,7 @@ async function start(args: string[]): Promise<void> {
       path,
       hasLease: holder !== undefined,
       cwd: process.cwd(),
-      ticketText: await ticketTextOf(key),
+      ticket: await startedTicketOf(key),
     }),
   );
   if (!holder) return;
@@ -79,16 +79,22 @@ async function start(args: string[]): Promise<void> {
   });
 }
 
-// The Model fit section and the comments a session reads on entering; a session workspace has no ticket.
-async function ticketTextOf(key: WorkspaceKey): Promise<string | undefined> {
+// The skill, Model fit section and comments a session reads on entering; a session workspace has no ticket.
+async function startedTicketOf(
+  key: WorkspaceKey,
+): Promise<StartedTicket | undefined> {
   if ("session" in key) return undefined;
-  return issueReader.read([
-    key.repo,
-    String(key.number),
-    "--body",
-    "--comments",
-    "--hide-others",
+  const [skill, text] = await Promise.all([
+    issueReader.sessionSkillOf(key),
+    issueReader.read([
+      key.repo,
+      String(key.number),
+      "--body",
+      "--comments",
+      "--hide-others",
+    ]),
   ]);
+  return { skill, text };
 }
 
 // Opens at the primary root, not the workspace, so hooks never point into a folder wrap-up removes.
