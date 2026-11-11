@@ -24,7 +24,7 @@ Done when every field holds an answer or the developer's waiver. Ask for any fie
 
 ## 2. Write and file
 
-Write the spec with the template below, resolving `<repo>` to `<owner>/<repo>`. Run `gh label create piece -R <owner>/<repo> --force`, then file it with `gh issue create -R <owner>/<repo> --label ready-for-agent --label piece`: the run picks the piece Workflow by the `piece` label. Drive and Doc IDs belong in it: the implementer reads by them. The spec has no `## Model fit`; its tickets carry the pairs.
+Write the spec with the template below, resolving `<repo>` to `<owner>/<repo>`. Run `gh label create piece -R <owner>/<repo> --force`, then file it with `gh issue create -R <owner>/<repo> --label ready-for-agent --label piece`: the run picks the piece Workflow by the `piece` label. Drive and Doc IDs belong in it: the implementer reads by them. The spec has no `## Model fit`; its tickets carry the pairs, picked by [`model-fit.md`](../../../docs/agents/model-fit.md).
 
 <piece-spec-template>
 
@@ -68,4 +68,4 @@ The Piece is done by the done checks in the root's `docs/pieces/rules.md`.
 
 </piece-spec-template>
 
-End by recommending `/piece-tickets <repo> <n>`: every piece spec gets tickets, its drafting tickets and Edit gate included, which pick their pairs by [`model-fit.md`](../../../docs/agents/model-fit.md).
+End by recommending `/piece-tickets <repo> <n>`.
