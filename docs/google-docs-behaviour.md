@@ -54,6 +54,10 @@ Write-ups sourced from Google's docs live on `research/*` branches; the Doc and 
 
 - Observed: One `batchUpdate` of `insertText` requests at indices from a `SUGGESTIONS_INLINE` read, each after a suggested insertion, deletion, paragraph split or footnote, put each text right before the text it was aimed at in the next such read, with no `suggestedInsertionIds`; a `deleteContentRange` of each brought the read back to its indices and text before; byronbroughtenai@gmail.com; 2026-11-11; [probe results on #717](https://github.com/byronbroughten/byro-repo/issues/717#issuecomment-6800689141).
 
+## Deleting over another account's pending suggestions
+
+- Observed: A `deleteContentRange` of the whole body, from 1 to the last newline, on a Doc holding another account's pending suggested insertions, deletion, paragraph split, footnote, paragraph and table returned 200; after a refill with plain text, lists, a footnote and a table, a `SUGGESTIONS_INLINE` read showed no `suggestedInsertionIds` or `suggestedDeletionIds` and only the refill's footnote; byronbroughtenai@gmail.com deleting byronbroughten@gmail.com's suggestions; 2026-11-11; [probe results on #717](https://github.com/byronbroughten/byro-repo/issues/717#issuecomment-6805255836).
+
 ## Revision guard
 
 - Observed: A `batchUpdate` whose `writeControl.requiredRevisionId` was read before another client's write returned 400 `INVALID_ARGUMENT` `The required revision ID '…' does not match the latest revision.`, and the same request with the fresh `revisionId` returned 200; scratch Doc; 2026-11-08; [resolution on #584](https://github.com/byronbroughten/byro-repo/issues/584#issuecomment-6727999386).
