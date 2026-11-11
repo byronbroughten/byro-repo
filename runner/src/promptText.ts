@@ -4,6 +4,9 @@ import { issueRef } from "./IssueWorkspaces.ts";
 import { type Axis, verdicts } from "./verdicts.ts";
 import type { GapCheckTicket } from "./Workflow.ts";
 
+// A string for the placeholder a generated skill names a number by, such as `<n>`.
+export type NumberOrPlaceholder = number | string;
+
 // The implement and resolve steps' write scope; the why is in byro-repo's docs/claude-code-guardrails.md.
 export const stepWriteLine =
   "You may do what the tier list allows in your workspace. Use `git -C <dir>` rather than `cd <dir> && git`. When a write is denied, record one `denied-tool` blocker instead of trying a workaround. A refused read whose answer you got another way, or didn't need, is not a blocker: name it in your closing comment instead.";

@@ -300,7 +300,7 @@ function gapCheckPromptOf(input: GapCheckPromptInput): string {
 }
 
 function draftPathOf({ number }: IssueRef): string {
-  return `writing/agent-drafts/${number}.md`;
+  return agentDraft.pathOf(number);
 }
 
 // Each ID once, in the order the spec lists them; a spec with no Supporting Material lists none.

@@ -102,11 +102,11 @@ The rules for writing any Piece, whichever repo files its spec. The Pieces' text
 
 | File | Holds |
 | --- | --- |
-| `rules.md` | The pointers to `/grill-piece` and the outlining guide, and how to implement a piece spec: the Deliverable as the text's working home, Drive IDs and long PDFs, when a Deliverable write needs no yes, the style sheets to apply, a Piece's branch and landing, the pointer to the Agent draft doc, and the four done checks. |
+| `rules.md` | The pointers to `/grill-piece` and the outlining guide, and how to implement a piece spec: the Agent draft as the text's working home, Drive IDs and long PDFs, creating files, the style sheets to apply, a Piece's branch and landing, the pointer to the Agent draft doc, and the four done checks. |
 | `GLOSSARY.md` | The writing context's words: Piece, Deliverable, Section, Outline, Stage, Agent draft, Edit gate, Supporting Material and Reference. |
 | `grilling.md` | The questions a grill asks before a piece spec is filed, one per spec field it settles, each with an example from a past spec, its private details replaced by neutral stand-ins. `/grill-piece` asks them; `/to-writing-style` adds to them. |
 | `outlining.md` | How a spec's Outline is written: what each entry holds, a template's fixed Sections, and when Research revises it. |
-| `agent-draft.md` | An Agent draft's path, its shape and how a save replaces its blocks. |
+| `agent-draft.md` | An Agent draft's path, its shape, what may change it, and the pull rules. |
 
 ### Writing (`packages/personal/writing/`, in the `personal` repo)
 
@@ -126,7 +126,7 @@ The `personal` repo is private and holds piece specs as issues, and each of thei
 | --- | --- |
 | `README.md` | What the runner is, where its file table and config live, where the context nudge's registration is, running a spec under tmux, its skills and how to run its tests. Derived prose. |
 | `src/AGENTS.md` | The rules for working in `src/`, and its file table: one row per file under `src/`, tests aside, each one line naming the file's job and any `package.json` export. |
-| `skills/<name>/SKILL.md` | A runner skill, such as `/implement-code` or `/judge-findings`, loaded through `.claude/skills/`; which skills go here: [layout](./upstream-skills.md#layout). |
+| `skills/<name>/SKILL.md` | A runner skill, such as `/judge-findings` or the generated `/implement-code` and `/implement-piece`, loaded through `.claude/skills/`; which skills go here: [layout](./upstream-skills.md#layout). |
 | `GLOSSARY.md` | The spec runner's words, as [`GLOSSARY-MAP.md`](../../GLOSSARY-MAP.md) describes them. |
 
 ## What an addition to AGENTS.md costs

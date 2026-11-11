@@ -42,6 +42,12 @@ export interface DraftScope {
   isWhole: boolean;
 }
 
+interface OverlapRun {
+  overlapCommand: Command;
+  specRepo: string;
+  passagesFolder: string;
+}
+
 interface OverlapHit {
   // The text the Deliverable shares with a passage.
   sharedText: string;
@@ -90,6 +96,19 @@ export const pieceChecks = {
         count + (markdown.match(patterns.word)?.length ?? 0),
       0,
     );
+  },
+
+  overlapRunOf({
+    overlapCommand,
+    specRepo,
+    passagesFolder,
+  }: OverlapRun): string {
+    return `${commandLabelOf(overlapCommand)} --deliverable <the Agent draft's path in the ${specRepo} clone> --passages ${passagesFolder}`;
+  },
+
+  // Fits after "Fix every hit", as the prompts word which hits are the ticket's.
+  overlapFixLineOf(hits: string): string {
+    return `Fix every hit ${hits}, then rerun it; a hit in any other Section isn't this ticket's.`;
   },
 };
 

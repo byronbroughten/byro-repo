@@ -26,7 +26,7 @@ The words Piece, Deliverable, Section, Stage and Agent draft are [the writing gl
    - Both: none.
 4. **Implementation**
    - Code: [`/runner`](../../runner/skills/runner/SKILL.md), the Supervisor; [`/start-issue`](../../.claude/skills/start-issue/SKILL.md); [`/implement-code`](../../runner/skills/implement-code/SKILL.md); [`tdd`](../../.claude/skills/tdd/SKILL.md) and the [`codebase-design`](../../.claude/skills/codebase-design/SKILL.md) it links; and [`/code-review`](../../.claude/skills/code-review/SKILL.md), the review Step's skill.
-   - Piece: [`/implement-piece`](../../runner/skills/implement-piece/SKILL.md) and the [`/review-piece`](../../.claude/skills/review-piece/SKILL.md) it follows; for the Research Stage, [`/research-piece`](../../.claude/skills/research-piece/SKILL.md), [`/review-research`](../../.claude/skills/review-research/SKILL.md) and `/runner`, whose Supervisor settles a one-source Research Halt answer.
+   - Piece: [`/implement-piece`](../../runner/skills/implement-piece/SKILL.md) and [`/review-piece`](../../.claude/skills/review-piece/SKILL.md), the review Step's skill; for the Research Stage, [`/research-piece`](../../.claude/skills/research-piece/SKILL.md), [`/review-research`](../../.claude/skills/review-research/SKILL.md) and `/runner`, whose Supervisor settles a one-source Research Halt answer.
    - Both: none.
 5. **Judgement**
    - Code: [`/judge-findings`](../../runner/skills/judge-findings/SKILL.md).
@@ -44,7 +44,7 @@ The words Piece, Deliverable, Section, Stage and Agent draft are [the writing gl
 [The runner glossary](../../runner/GLOSSARY.md#language) defines each Step.
 
 - **Code**: the runner's [`Workflow`](../../runner/src/Workflow.ts) module picks the code Workflow, whose code is in [`runner/src/Workflow/code/`](../../runner/src/Workflow/code/); its [`codeWorkflow.ts`](../../runner/src/Workflow/code/codeWorkflow.ts) defines the Steps each ticket goes through, and the runner's `TicketSequencer` runs them. `/code-review` is the review Step's skill, named, with each ticket's checks, where `scripts/runner/runnerConfig.ts` builds the code Workflow, and `/implement-code` is generated from the implement Step's shared body (`runner/src/Workflow/code/implementCodeSkill.ts`), so a change to either reaches both an interactive session and a run.
-- **Piece**: the runner's [`pieceWorkflow.ts`](../../runner/src/Workflow/piece/pieceWorkflow.ts) runs a Research ticket's research Step, which follows `/research-piece`'s steps 1–7, the ones it names as shared by both modes, then its quote check, and lands it with no code. Every other piece ticket is a drafting ticket: it runs pull, implement, review (whose prompt reads `/review-piece` by its path), resolve, checks and wrap-up, landing by wrap-up; red checks go to the red-checks Step up to the `retriesPerFailure` run knob's times, then raise a Failure Halt.
+- **Piece**: the runner's [`pieceWorkflow.ts`](../../runner/src/Workflow/piece/pieceWorkflow.ts) runs a Research ticket's research Step, which follows `/research-piece`'s steps 1–7, the ones it names as shared by both modes, then its quote check, and lands it with no code. Every other piece ticket is a drafting ticket: it runs pull, implement, review (whose prompt reads `/review-piece` by its path), resolve, checks and wrap-up, landing by wrap-up; red checks go to the red-checks Step up to the `retriesPerFailure` run knob's times, then raise a Failure Halt. `/implement-piece` is generated from the implement Step's drafting lines (`runner/src/Workflow/piece/implementPieceSkill.ts`), so a change to either reaches both an interactive session and a run.
 
 ## The hand-off table
 
@@ -70,8 +70,7 @@ The words Piece, Deliverable, Section, Stage and Agent draft are [the writing gl
 | Implementation | Code | `/implement-code` | `tdd`, the review Step (`runner -- review`), then wrap-up | named |
 | Implementation | Code | `tdd` | `codebase-design` | named |
 | Implementation | Piece | `/implement-piece` | `/research-piece` on a Research issue, read as a file since it is user-invoked | named |
-| Implementation | Piece | `/implement-piece` | `/review-piece` once drafted, read as a file since it is user-invoked | named |
-| Implementation | Piece | `/implement-piece` | wrap-up (`npm run wrap-up -- <repo> <n>`), once the developer has finished editing | named |
+| Implementation | Piece | `/implement-piece` | the review Step (`runner -- review`), then wrap-up | named |
 | Implementation | Piece | `/research-piece` | `/implement-piece`, when the issue is a Piece | named |
 | Implementation | Piece | `/research-piece` | `/review-research` on the draft comment, before posting, read as a file since it is user-invoked | named |
 | Implementation | Piece | `/research-piece` | `/runner`'s step 6, on an `another source` answer, read as a file since it is user-invoked | named |
@@ -96,7 +95,7 @@ A doc is listed when two or more skills or Steps of either Workflow reach it by 
 | Doc | Directly | Indirectly |
 | --- | --- | --- |
 | [Codebase Priorities](./codebase-priorities.md) | `grilling` (and so `/grill-with-docs`, `/grill-me` and `/wayfinder`'s grilling tickets), `/judge-findings`, `/mine-outcomes`, `/retro`, `/to-code-style` | via `verdicts.md`: `/code-review`, `/implement-code`, the review and resolve Steps |
-| [`verdicts.md`](./verdicts.md) | `/code-review`, `/implement-code`, `/judge-findings`, `/review-piece` | via runner prompt: the resolve Step; via `/code-review` and `/review-piece`: the review Step |
+| [`verdicts.md`](./verdicts.md) | `/code-review`, `/implement-code`, `/implement-piece`, `/judge-findings`, `/review-piece` | via runner prompt: the resolve Step; via `/code-review` and `/review-piece`: the review Step |
 | [`planning.md`](./planning.md) | `/code-spec`, `/code-tickets`, `/review-code-tickets`, `/start-issue`, `/to-code-style`, `/piece-spec` (model fit), `/piece-tickets` (ticket size and model fit) | via always-on hook: the context nudge, for any session |
 | [`model-fit.md`](./model-fit.md) | `/mine-outcomes` | via `planning.md`: `/code-spec`, `/code-tickets` |
 | The code-style rules: [config's](../../config/docs/code-style.md) and [the framework's](../../packages/framework/docs/code-style.md) | `/retro`, `/to-code-style` | via always-on hook: every code edit, by `/implement-code`, the implement and resolve Steps, and `/judge-findings`' "now" fixes |
@@ -108,7 +107,7 @@ A doc is listed when two or more skills or Steps of either Workflow reach it by 
 | [The guardrails doc](../claude-code-guardrails.md) | `/code-tickets`, `/review-code-tickets`' reviewer, `/retro` | |
 | Design docs, ADRs and glossaries | `/code-spec`, `/code-tickets`, `domain-modeling`, `tdd`, `/to-code-style` | |
 | Skills read as docs | `/code-tickets`' conventions by `/judge-findings`; `/retro`'s categories by `/mine-outcomes`; `grilling`'s format by `/judge-findings`, `/mine-outcomes` and `/retro` | |
-| The Voice and Craft sheets: [`writing-voice.md`](../writing-voice.md) and [`writing-craft.md`](../writing-craft.md) | `/grill-piece`, `/review-piece`, `/to-writing-style` | via `rules.md`: `/implement-piece`, `/piece-spec`, `/piece-tickets`; via runner prompt: the piece implement Step |
+| The Voice and Craft sheets: [`writing-voice.md`](../writing-voice.md) and [`writing-craft.md`](../writing-craft.md) | `/grill-piece`, `/implement-piece`, `/review-piece`, `/to-writing-style` | via `rules.md`: `/piece-spec`, `/piece-tickets`; via runner prompt: the piece implement Step |
 | [The academic style sheet](../academic-writing-style.md) | `/grill-piece`, `/review-piece`, `/to-writing-style` | via `rules.md`: `/implement-piece`, the piece implement Step, `/piece-spec`, `/piece-tickets` |
 | [`rules.md`](../pieces/rules.md), the rules for writing any Piece | `/grill-piece`, `/piece-spec`, `/piece-tickets`, `/implement-piece`, `/review-piece` | via runner prompt: the piece implement Step |
 | [The writing glossary](../pieces/GLOSSARY.md) | `/grill-piece`, `/piece-spec`, `/piece-tickets`, `/review-piece`, `/to-writing-style` (its pair mode) | via `rules.md`: `/implement-piece`, the piece implement Step |
@@ -130,11 +129,11 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | The numbered 🪤/📝 items | `/to-code-style`, `/to-writing-style` |
 | The ten spec fields and the piece-spec template | `/grill-piece` settles them, `/piece-spec` writes them, `/piece-tickets` reads Research, Final pass, Split, Form and Outline, `/review-piece` reads Reader, Outline, Form and Style |
 | The piece-ticket template, its Sections named by exact heading text | `/piece-tickets` writes it; `/implement-piece` drafts only the Sections it names; `/review-piece` scopes to them |
-| The piece review axes, `spec`, `standards` and `reader`, each finding with a suggested verdict, and `## Dismissed overlaps` | `/review-piece` reports them, and the piece review Step returns them as its record; `/implement-piece` fixes the findings suggested as Fix and reports the rest |
+| The piece review axes, `spec`, `standards` and `reader`, each finding with a suggested verdict, and `## Dismissed overlaps` | `/review-piece` reports them, and the piece review Step returns them as its record; `/implement-piece` resolves the ones `runner -- review` prints, as the piece resolve Step does |
 | The Research fact list comment: numbered facts, each ending with a locator naming its saved text and page range or heading, quotes optional and verbatim, and a `## Unverified` section outside the fact list | `/research-piece` posts it; `/review-research` checks its draft first; `/review-piece`'s fact list takes its facts outside `## Unverified` when the spec links it; `/implement-piece` drafts from its facts, never its quotes or `## Unverified` |
 | The passages folder, `.runner/passages/<repo>-<n>` | `/implement-piece` and the piece implement Step save each passage read; `/review-piece` and the piece review Step read it |
 | The model-fit chat line: `/implement-piece <repo> <n>: <Model> <effort> (reason)` from `/piece-spec`, `#n Title: <Model> <effort> (reason)` from `/piece-tickets` | `/piece-spec`, `/piece-tickets` |
-| The Agent draft's path and shape | `/implement-piece`, the pull Step and the piece implement Step save it; `/to-writing-style`'s pair mode diffs it |
+| The Agent draft's path and shape | `/implement-piece`, the pull Step and the piece implement Step write it; `/to-writing-style`'s pair mode diffs it |
 
 ## The shared machinery
 
@@ -143,7 +142,7 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | The issue reader (`npm run issue:read`) with Trusted and Untrusted text | `/runner`, `/review-code-tickets`, `/start-issue` (via `issue:start`), `/implement-code`, `/judge-findings`, `/mine-outcomes`, every agent Step, `/piece-tickets`, `/implement-piece`, `/review-piece`, `/research-piece`, `/review-research` |
 | Issue and session workspaces (`npm run issue:start`, [`git-workflow.md`](./git-workflow.md#a-skills-session-workspace)) | `/start-issue`, `/judge-findings`, `/mine-outcomes`, `/implement-piece`'s issue workspace, `/research-piece`'s session workspace |
 | Wrap-up (`npm run wrap-up`) | `/implement-code`, `/judge-findings`, `/mine-outcomes`, the wrap-up Step, `/implement-piece`, `/research-piece` |
-| `runner -- decide` | `/runner`, `/implement-code`, `/judge-findings` |
+| `runner -- decide` | `/runner`, `/implement-code`, `/implement-piece`, `/judge-findings` |
 | `npm run overlap` | `/review-piece` runs it; `/implement-piece` reruns it after a fix; the piece resolve Step reruns it after its Fixes |
 | `npm run pdf:text` and the page-range command in [`pdf-pages.md`](../pdf-pages.md) | `/research-piece` dumps text; `/grill-piece` and `/review-research` count and print pages |
 | Sub-issues and native blocking edges | `/piece-tickets` sets them; `/review-piece` reads the parent through `gh api` |
