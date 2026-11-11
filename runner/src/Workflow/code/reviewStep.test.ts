@@ -9,6 +9,7 @@ describe("reviewPrompt", () => {
       issue: { repo: "byro-repo", number: 269 },
       spec: { repo: "byro-repo", number: 268 },
       title: "Runner steps read issues only through the reader",
+      labels: [],
       skillName: "code-review",
       branch: "issue-269-reader-only-issues",
       branchedRepos: ["byro-repo"],

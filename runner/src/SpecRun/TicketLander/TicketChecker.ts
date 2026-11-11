@@ -35,22 +35,37 @@ export class TicketChecker extends SpecRunBase {
     });
   }
 
-  // The first failing check's command and output tail; undefined when all pass. A red master Stops the run.
+  // The first failing check's command and output tail, or the Workflow's ticket checks' failure; undefined when all pass.
+  // A red master Stops the run.
   private async _redChecksOf(
     ticketRun: TicketRun,
   ): Promise<string | undefined> {
-    for (const command of this._workflowOf(ticketRun.run.spec).checks) {
+    const { run, ticket, workspace, state } = ticketRun;
+    const workflow = this._workflowOf(run.spec);
+    for (const command of workflow.checks) {
       this._log(
-        ticketRun.run,
-        `${issueRef.labelOf(ticketRun.ticket.issue)}: checking ${commandLabelOf(command)}.`,
+        run,
+        `${issueRef.labelOf(ticket.issue)}: checking ${commandLabelOf(command)}.`,
       );
-      const failure = await runCommand(command, ticketRun.workspace.path);
+      const failure = await runCommand(command, workspace.path);
       if (failure !== undefined) {
         await this._stopOnRedMaster(ticketRun);
         return `${commandLabelOf(command)} failed:\n${failure}`;
       }
     }
-    return undefined;
+    if (workflow.ticketChecksOf === undefined) return undefined;
+    this._log(
+      run,
+      `${issueRef.labelOf(ticket.issue)}: running the ${workflow.name} checks.`,
+    );
+    // Master holds no ticket's work, so there is no master set to check.
+    return workflow.ticketChecksOf({
+      spec: run.spec,
+      ticket,
+      state,
+      workspacePath: workspace.path,
+      specClone: this._cloneIn(workspace, run.spec.issue.repo),
+    });
   }
 
   // Checks run in a master set, so neither another session's uncommitted edit nor a local fix hides master's own state.
@@ -77,11 +92,16 @@ export class TicketChecker extends SpecRunBase {
     failure: string,
   ): Promise<void> {
     const { run, ticket, workspace, state } = ticketRun;
+    const workflow = this._workflowOf(run.spec);
+    // With no red-checks step to send it back to, a red check is a Failure Halt at once.
+    const hasRedChecks = workflow.agentSteps.redChecks !== undefined;
     await this.haltRaiser._spendRedCheckResume(ticketRun, {
-      limit: this.config.knobs.retriesPerFailure,
+      limit: hasRedChecks ? this.config.knobs.retriesPerFailure : 0,
       failureOf: (resumes) => ({
         step: "checks",
-        detail: `The checks are still red after ${resumes} resume(s): ${failure}`,
+        detail: hasRedChecks
+          ? `The checks are still red after ${resumes} resume(s): ${failure}`
+          : `The checks are red, and the ${workflow.name} Workflow has no red-checks step: ${failure}`,
         logPath: state.redChecksLogPath ?? this._progressPathOf(run),
       }),
     });
@@ -103,7 +123,9 @@ export class TicketChecker extends SpecRunBase {
         launch: {
           prompt: rules.promptOf({
             issue: ticket.issue,
+            spec: run.spec.issue,
             title: ticket.title,
+            workspacePath: workspace.path,
             branch: workspace.branch,
             branchedRepos: ticketSteps.branchedReposOf(ticketRun),
             failures: failure,

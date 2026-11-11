@@ -197,6 +197,7 @@ describe("implementPrompt", () => {
     spec: { repo: "byro-repo", number: 220 },
     title: "Implement-step prompt",
     body: "## What to build\n\nThe prompt.",
+    labels: [],
     branch: "issue-224-implement-step-prompt",
     branchedRepos: ["byro-repo", "sheets-framework"],
     promoteCommand: "npm run issue:promote -- byro-repo 224",

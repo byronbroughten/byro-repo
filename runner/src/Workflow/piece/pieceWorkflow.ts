@@ -3,10 +3,13 @@
 // What it couldn't verify and the Outline edits it proposes then go to the developer in one Research Halt, which holds the drafting tickets.
 // Every other ticket is a drafting ticket: its first Step pulls the Deliverable's Doc into the Agent draft, agentDraft.ts,
 // its implement step, implementStep.ts, drafts the ticket's Sections there, its review step, reviewStep.ts, reviews them,
-// and its resolve step, resolveStep.ts, resumes implement to settle the findings.
-// The drafting Steps after resolve aren't built, so a drafting ticket stops after it, unlanded.
+// its resolve step, resolveStep.ts, resumes implement to settle the findings, its checks, pieceChecks.ts, run the overlap
+// command and the length limit, and wrap-up lands its branch, so the next ticket's pull starts from its Agent draft.
 // Every step reads the Drive files the spec's Supporting Material lists, as source targets, and no others.
 // A repo's runner config builds it with its commands and Docs port, and ../../Workflow.ts registers it.
+
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { Docs } from "../../Docs.ts";
 import type { DocumentsPort } from "../../Docs/googleDocs.ts";
@@ -39,6 +42,7 @@ import {
   pieceImplementPrompt,
   pieceImplementRecordProblems,
 } from "./implementStep.ts";
+import { pieceChecks } from "./pieceChecks.ts";
 import {
   quoteSendBacks,
   researchClosingCommentOf,
@@ -79,7 +83,6 @@ const researchSteps: WorkflowStep[] = [
   { step: "wrap-up" },
 ];
 
-// Checks are the drafting Step after resolve, though the piece Workflow has no checks Step yet.
 const draftingSteps: WorkflowStep[] = [
   {
     step: "pull",
@@ -112,6 +115,13 @@ const draftingSteps: WorkflowStep[] = [
       return "checks";
     },
   },
+  {
+    step: "checks",
+    nextOf() {
+      return "wrap-up";
+    },
+  },
+  { step: "wrap-up" },
 ];
 
 const specEnd: SpecEnd = {
@@ -129,8 +139,8 @@ export interface PieceWorkflowInput {
   documents: DocumentsPort;
 }
 
-// The overlap command is taken now so the runner config is settled; a later drafting Step reads it.
 export function pieceWorkflowOf({
+  overlapCommand,
   verifyQuotesCommand,
   documents,
 }: PieceWorkflowInput): Workflow {
@@ -186,6 +196,14 @@ export function pieceWorkflowOf({
       return isResearch(ticket) ? "research" : "code";
     },
     checks: [],
+    async ticketChecksOf(input) {
+      const draftPath = join(input.specClone, draftPathOf(input.spec.issue));
+      return pieceChecks.failureOf({
+        ...input,
+        overlapCommand,
+        draft: readFileSync(draftPath, "utf8"),
+      });
+    },
     specEnd,
     pull: pullRulesOf(documents),
   };

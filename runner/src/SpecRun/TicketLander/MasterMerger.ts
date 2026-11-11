@@ -1,5 +1,6 @@
 // A wrap-up failure's handling: on a conflict it starts a merge of master and resumes the implementer once to resolve it,
-// saving that merge's resolution for the review list as a Propose `decision`; any other failure Halts or Stops.
+// saving that merge's resolution for the review list as a Propose `decision`; any other failure Halts or Stops,
+// as a conflict does in a Workflow with no merge-master step.
 // ../TicketLander.ts hands it each wrap-up failure from its _land.
 // It builds its own ReviewStepper and HaltRaiser; the prompt is its spec's Workflow's, through ../../Workflow.ts.
 
@@ -40,15 +41,19 @@ export class MasterMerger extends SpecRunBase {
     if (!(error instanceof WrapUpFailure) || error.kind === "network") {
       throw new UnhandledStop("wrap-up-failure", messageOf(error), logPath);
     }
+    const workflow = this._workflowOf(run.spec);
+    const hasMergeMaster = workflow.agentSteps.mergeMaster !== undefined;
     const resumes = state.conflictResumes ?? 0;
-    if (error.kind === "conflict" && resumes === 0) {
+    if (error.kind === "conflict" && hasMergeMaster && resumes === 0) {
       state.conflictResumes = resumes + 1;
       this._saveState(run);
       await this._mergeMaster(landingTicket, error.message);
       return;
     }
     let detail = error.message;
-    if (error.kind === "conflict") {
+    if (error.kind === "conflict" && !hasMergeMaster) {
+      detail = `The wrap-up conflicts with master, and the ${workflow.name} Workflow has no merge-master step: ${detail}`;
+    } else if (error.kind === "conflict") {
       // Its resolution never landed, so a ticket landed some other way after the Halt doesn't show it.
       this._saveMergeRecord(landingTicket, undefined);
       detail = `The wrap-up still conflicts after the merge-master resume: ${detail}`;

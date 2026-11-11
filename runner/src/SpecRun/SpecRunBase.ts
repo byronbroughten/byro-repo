@@ -532,6 +532,15 @@ export class SpecRunBase {
     return Object.fromEntries(entries);
   }
 
+  // The repo's clone in the workspace, whether or not it is there.
+  protected _cloneIn(workspace: Workspace, repo: string): string {
+    const clonePath = this.config.knobs.clonePaths[repo];
+    if (clonePath === undefined) {
+      throw new Error(`The repo map has no clone of ${repo}.`);
+    }
+    return join(workspace.path, clonePath);
+  }
+
   protected _worktreesOf(workspace: Workspace): CloneWorktree[] {
     return Object.entries(this.config.knobs.clonePaths).flatMap(
       ([repo, clonePath]) => {

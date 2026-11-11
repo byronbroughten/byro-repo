@@ -18,6 +18,7 @@ import type {
   Wait,
 } from "./SpecRun/runState.ts";
 import type {
+  DismissedOverlap,
   Finding,
   GapCheckRecord,
   Handoff,
@@ -50,6 +51,8 @@ export interface Workflow {
   landingOf(ticket: TrackedIssue): Landing;
   // Run from a workspace or primary root: after review in each ticket, and in a master set when they go red in a ticket.
   checks: Command[];
+  // A Workflow's own checks on a ticket's work, run after `checks`; a red one goes to the red-checks step as a red command does.
+  ticketChecksOf?(input: TicketChecksInput): Promise<string | undefined>;
   specEnd: SpecEnd;
   // Reached through pullOf, which throws for a Workflow with no Agent draft.
   pull?: PullRules;
@@ -73,6 +76,15 @@ export interface PullInput {
 export interface PulledDraft {
   draft: string;
   baseline: PullBaseline;
+}
+
+export interface TicketChecksInput {
+  spec: TrackedIssue;
+  ticket: TrackedIssue;
+  state: TicketState;
+  workspacePath: string;
+  // The spec's repo's clone in the workspace.
+  specClone: string;
 }
 
 // A Step that runs once at a spec's end, rather than in each ticket; the core runs each by its name.
@@ -134,6 +146,7 @@ export interface ImplementPromptInput {
   spec: IssueRef;
   title: string;
   body: string;
+  labels: string[];
   branch: string;
   // The workspace's repos on the issue branch: the issue's own plus any extras it was created with.
   branchedRepos: string[];
@@ -159,6 +172,7 @@ export interface ReviewPromptInput {
   issue: IssueRef;
   spec: IssueRef;
   title: string;
+  labels: string[];
   skillName: string;
   branch: string;
   branchedRepos: string[];
@@ -177,11 +191,14 @@ export interface ResolvePromptInput {
   issue: IssueRef;
   spec: IssueRef;
   title: string;
+  labels: string[];
   branch: string;
   branchedRepos: string[];
   workspacePath: string;
   // As the review record lists them; the prompt numbers them from 1.
   findings: Finding[];
+  // As the review record lists them; a code review's lists none.
+  dismissedOverlaps: DismissedOverlap[];
 }
 
 export interface ResolveCommits {
@@ -219,7 +236,9 @@ export interface StepResumption {
 
 export interface RedChecksPromptInput {
   issue: IssueRef;
+  spec: IssueRef;
   title: string;
+  workspacePath: string;
   branch: string;
   branchedRepos: string[];
   // Each failing check's command and the last lines of its output.

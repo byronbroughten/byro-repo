@@ -177,6 +177,14 @@ export type Finding = ReviewFinding | string;
 export interface ReviewRecord {
   // Each reviewer's findings in its own order, in its Workflow's axis order; empty when it found nothing.
   findings: ReviewFinding[];
+  // A piece review's only.
+  dismissedOverlaps?: DismissedOverlap[];
+}
+
+// An overlap hit a piece review judged no copy: `hit` as the overlap command printed it.
+export interface DismissedOverlap {
+  hit: string;
+  reason: string;
 }
 
 // docs/agents/verdicts.md defines each reason.

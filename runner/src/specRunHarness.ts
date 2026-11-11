@@ -82,6 +82,13 @@ const redOnMisquote: Command = [
   'if grep -q MISQUOTE "$2"; then echo "NOT FOUND: MISQUOTE"; exit 1; fi',
   "verify-quotes",
 ];
+// The overlap command, called with `--deliverable <path> --passages <folder>`: one hit on a Deliverable holding "slipped out".
+const reportsSlippedOut: Command = [
+  "sh",
+  "-c",
+  `if grep -q "slipped out" "$2"; then printf '%s\\n' '1. "the ferry slipped out" (4 words), logbook.txt' '   - Deliverable: The ferry slipped out at noon.' '   - Passage: Then the ferry slipped out.'; fi`,
+  "overlap",
+];
 
 export let temp: string;
 export let primaryRoot: string;
@@ -209,7 +216,7 @@ export function workflowsWith(checks: Command[]): Workflows {
   return {
     code: codeWorkflowOf({ checks, reviewSkillName: "code-review" }),
     piece: pieceWorkflowOf({
-      overlapCommand: ["true"],
+      overlapCommand: reportsSlippedOut,
       verifyQuotesCommand: redOnMisquote,
       documents,
     }),

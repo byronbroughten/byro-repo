@@ -4,7 +4,7 @@
 // since the pick leaves the ticket waiting; an UnhandledStop leaves it unlanded and commented on, or Stops the run for a rerun to retry it.
 // Before launch it raises a Failure Halt on a body ../IssueReader.ts doesn't trust; `approve` posts the text's approval.
 // RunLoop.ts calls _runTicket and SessionReviewer.ts calls _runSteps.
-// A sequence that ends short of wrap-up, as the piece drafting one does until its later Steps exist, Stops the ticket unlanded.
+// A sequence that ends short of wrap-up, as a Workflow's may while its later Steps are unbuilt, Stops the ticket unlanded.
 // It builds its own LeaseKeeper, ImplementStepper, ReviewStepper, ResearchStepper, DraftPuller, TicketLander and HaltRaiser.
 
 import {
