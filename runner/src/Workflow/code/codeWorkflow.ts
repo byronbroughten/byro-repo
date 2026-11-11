@@ -93,6 +93,9 @@ const specEnd: SpecEnd = {
   isDue(waits) {
     return waits.length === 0;
   },
+  nextLineOf() {
+    return undefined;
+  },
 };
 
 // A repo's own values: the checks each ticket runs after review, and the skill its review step calls.

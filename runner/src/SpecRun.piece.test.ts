@@ -778,6 +778,16 @@ describe("the end of a piece spec", () => {
       expect(result.message).toContain("byro-repo #2 waits on you");
     });
 
+    it("ends naming the Deliverable's Doc and the command that starts the Edit gate, in its message and notice", async () => {
+      addGatedSpec();
+
+      const { result } = await landsThenGapChecks([], agentOnlyDraft);
+
+      const gateLine = `Edit the Deliverable in its Doc, https://docs.google.com/document/d/${deliverableId}/edit, then start the Edit gate: \`/start-issue byro-repo 2\`.`;
+      expect(result.message).toContain(gateLine);
+      expect(noticeSummaries().at(-1)).toContain(gateLine);
+    });
+
     it("writes nothing while a review-list item is undecided", async () => {
       addGatedSpec();
 
