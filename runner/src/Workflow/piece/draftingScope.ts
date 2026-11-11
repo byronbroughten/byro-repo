@@ -3,6 +3,12 @@
 
 const finalPassLabel = "final-pass";
 
+const sectionWords = {
+  named: "the Sections this ticket names",
+  finalPass:
+    "every Section marked `<!-- agent -->`, whichever ticket drafted it",
+} as const;
+
 export const draftingScope = {
   isFinalPass(labels: string[]): boolean {
     return labels.includes(finalPassLabel);
@@ -11,10 +17,17 @@ export const draftingScope = {
   // Fits after "only" or "Draft", as the prompts word a Section rule.
   sectionsOf(labels: string[]): string {
     if (draftingScope.isFinalPass(labels)) {
-      return "every Section marked `<!-- agent -->`, whichever ticket drafted it, since this is a final-pass ticket";
+      return `${sectionWords.finalPass}, since this is a final-pass ticket`;
     }
-    return "the Sections this ticket names";
+    return sectionWords.named;
   },
+
+  // For text written before a ticket's labels are known, as a generated skill is.
+  sectionsOfAnyTicket: `${sectionWords.named} (on a \`final-pass\` ticket, ${sectionWords.finalPass})`,
+
+  // Fits after a length rule's opening, from lengthRuleOf or a generated skill's own.
+  lengthLimit:
+    "keep the agent Sections' words, headings and author marks left out, within the spec's Form `Length:` line.",
 
   // Fits before "keep", as a prompt words the length rule of a whole-scope ticket.
   lengthRuleOf(labels: string[]): string {

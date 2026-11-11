@@ -18,6 +18,7 @@ import { CswapUsageReader } from "@byronbroughten/spec-runner/CswapUsageReader";
 import { EventFileNotices } from "@byronbroughten/spec-runner/EventFileNotices";
 import { GhCli } from "@byronbroughten/spec-runner/GhCli";
 import type { ImplementCodeSkillInput } from "@byronbroughten/spec-runner/implementCodeSkill";
+import type { ImplementPieceSkillInput } from "@byronbroughten/spec-runner/implementPieceSkill";
 import type {
   IssueRef,
   IssueWorkspacesConfig,
@@ -25,7 +26,10 @@ import type {
 import type { WrittenOutcomeRow } from "@byronbroughten/spec-runner/outcomeRowWriter";
 import { pieceWorkflowOf } from "@byronbroughten/spec-runner/pieceWorkflow";
 import { RestDocuments } from "@byronbroughten/spec-runner/RestDocuments";
-import { loadRunKnobs } from "@byronbroughten/spec-runner/runKnobs";
+import {
+  type Command,
+  loadRunKnobs,
+} from "@byronbroughten/spec-runner/runKnobs";
 import type { SpecRunConfig } from "@byronbroughten/spec-runner/SpecRun";
 import { configFolderOf } from "@byronbroughten/spec-runner/transcriptFacts";
 import type { WrapUpConfig } from "@byronbroughten/spec-runner/WrapUp";
@@ -41,6 +45,13 @@ export const implementCodeCommands: ImplementCodeSkillInput = {
   decideCommand: "npm run runner -- decide <owner>/<repo> <spec> R<n>.<k>",
   wrapUpCommand: "npm run wrap-up -- <repo> <n>",
 };
+const overlapCommand: Command = ["npm", "run", "overlap", "--"];
+// The commands /implement-piece names; implementPieceSkill.test.ts keeps the committed skill generated from them.
+export const implementPieceCommands: ImplementPieceSkillInput = {
+  ...implementCodeCommands,
+  overlapCommand,
+  docPrintCommand: "npm run doc:print --",
+};
 // Each ticket's checks after review, and the skill its review step calls.
 const codeWorkflow = codeWorkflowOf({
   checks: [["npm", "run", "check"]],
@@ -48,7 +59,7 @@ const codeWorkflow = codeWorkflowOf({
 });
 // The piece checks and the Docs port over the token file doc:print reads, read only once a pull calls it.
 const pieceWorkflow = pieceWorkflowOf({
-  overlapCommand: ["npm", "run", "overlap", "--"],
+  overlapCommand,
   verifyQuotesCommand: ["npm", "run", "verify:quotes", "--"],
   documents: RestDocuments.init({
     credentialPath: join(homedir(), ".clasprc-docs.json"),

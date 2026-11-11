@@ -126,7 +126,7 @@ The `personal` repo is private and holds piece specs as issues, and each of thei
 | --- | --- |
 | `README.md` | What the runner is, where its file table and config live, where the context nudge's registration is, running a spec under tmux, its skills and how to run its tests. Derived prose. |
 | `src/AGENTS.md` | The rules for working in `src/`, and its file table: one row per file under `src/`, tests aside, each one line naming the file's job and any `package.json` export. |
-| `skills/<name>/SKILL.md` | A runner skill, such as `/implement-code` or `/judge-findings`, loaded through `.claude/skills/`; which skills go here: [layout](./upstream-skills.md#layout). |
+| `skills/<name>/SKILL.md` | A runner skill, such as `/judge-findings` or the generated `/implement-code` and `/implement-piece`, loaded through `.claude/skills/`; which skills go here: [layout](./upstream-skills.md#layout). |
 | `GLOSSARY.md` | The spec runner's words, as [`GLOSSARY-MAP.md`](../../GLOSSARY-MAP.md) describes them. |
 
 ## What an addition to AGENTS.md costs

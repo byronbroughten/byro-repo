@@ -1,10 +1,11 @@
 // The piece implement step: the prompt the runner sends a drafting ticket once pull has committed the Agent draft, and
 // the record it returns, code's implement record plus the Sections drafted. Its handoff is code's, through
 // ../../stepPrompts/handoffText.ts, and so is the core's handling of it in ../../SpecRun/ImplementStepper.ts.
-// Its strings live here so `/implement-piece` can later be generated from them; pieceWorkflow.ts registers them.
+// `/implement-piece` is generated from its drafting lines, by implementPieceSkill.ts; pieceWorkflow.ts registers the step.
 
 import { join } from "node:path";
 
+import { commandLabelOf } from "../../failureText.ts";
 import { stepReadLine } from "../../IssueReader.ts";
 import type { IssueRef } from "../../IssueWorkspaces.ts";
 import {
@@ -21,6 +22,7 @@ import {
   stringSchema,
   uncommittedVariantSchemas,
 } from "../../recordSchema.ts";
+import type { Command } from "../../runKnobs.ts";
 import { implementBody, implementWorkspaceSection } from "../../stepPrompts.ts";
 import { handoffText } from "../../stepPrompts/handoffText.ts";
 import {
@@ -37,8 +39,14 @@ const paths = {
   agentDraft: "docs/pieces/agent-draft.md",
 } as const;
 
+interface PassagesTicket {
+  repo: string;
+  // A string for the `<n>` placeholder a generated skill names it by.
+  number: number | string;
+}
+
 // Under the workspace root's `.runner/`, which byro-repo gitignores, so no passage reaches a commit.
-export function passagesFolderOf({ repo, number }: IssueRef): string {
+export function passagesFolderOf({ repo, number }: PassagesTicket): string {
   return `.runner/passages/${repo}-${number}`;
 }
 
@@ -66,6 +74,62 @@ export function draftMaterialsLineOf({
   return `The Agent draft is \`${draftPath}\` in the \`${spec.repo}\` clone, the passages folder is \`${passagesFolderIn(workspacePath, issue)}\`, and the ticket's spec is ${spec.repo}#${spec.number}.`;
 }
 
+interface OverlapRun {
+  overlapCommand: Command;
+  specRepo: string;
+  passagesFolder: string;
+}
+
+export function overlapRunOf({
+  overlapCommand,
+  specRepo,
+  passagesFolder,
+}: OverlapRun): string {
+  return `${commandLabelOf(overlapCommand)} --deliverable <the Agent draft's path in the ${specRepo} clone> --passages ${passagesFolder}`;
+}
+
+// The words a ticket's values take: a run's are real, a generated skill's are placeholders.
+export interface DraftingWords {
+  draftPath: string;
+  specRepo: string;
+  // Fits after "The ticket's spec is".
+  specRef: string;
+  // Fits after "Draft only".
+  sections: string;
+  passagesFolder: string;
+  // Fits after the sentence naming the Agent draft: how it came to hold the Doc.
+  pulled: string;
+}
+
+// The drafting rules the step's prompt and the /implement-piece skill share.
+export function draftingLinesOf({
+  draftPath,
+  specRepo,
+  specRef,
+  sections,
+  passagesFolder,
+  pulled,
+}: DraftingWords): string[] {
+  return [
+    `The Agent draft is \`${draftPath}\` in the \`${specRepo}\` clone. ${pulled} Its file format is in \`${paths.agentDraft}\`.`,
+    `The ticket's spec is ${specRef}; read its body for the Deliverable, the Reader, the Outline and the Supporting Material.`,
+    `Draft by the rules under "Implementing a piece spec" in \`${paths.pieceRules}\`, writing to the Agent draft and never the Deliverable's Doc.`,
+    `Draft only ${sections}, each under its heading as the draft holds it, with \`<!-- agent -->\` on the line under the heading. Change no other Section, never one marked \`<!-- developer -->\`, and no other file.`,
+    `Read \`${paths.voice}\` and \`${paths.craft}\` in full before your first prose edit.`,
+    "Read the spec's Supporting Material only through the Drive read tools you were given, by the file IDs the spec lists.",
+    `Save each passage you read once, as a text file in the passages folder, \`${passagesFolder}\`, named for its source and range. Review, resolve and any fresh step after a handoff read the same files, so read a source again only for a passage the folder lacks. The folder is gitignored; never copy a passage into the repo.`,
+  ];
+}
+
+export function commitDraftLineOf({
+  draftPath,
+  specRepo,
+}: Pick<DraftingWords, "draftPath" | "specRepo">): string {
+  return `Commit only the Agent draft, in the \`${specRepo}\` clone on the ticket's branch: \`git -C <clone> add ${draftPath}\`, then \`git -C <clone> commit\`. Never amend.`;
+}
+
+export const noGitHubWriteLine = "Make no GitHub write.";
+
 export interface PieceImplementPromptInput extends ImplementPromptInput {
   draftPath: string;
 }
@@ -76,7 +140,7 @@ export function pieceImplementPrompt(input: PieceImplementPromptInput): string {
     `You are the implement step of an unattended run on a piece spec's drafting ticket. Draft ${issue.repo}#${issue.number}, "${title}". Nobody is watching this session: never ask a question or wait for an answer.`,
     implementWorkspaceSection(input),
     draftingSection(input),
-    `## GitHub\n\n- Make no GitHub write.\n- ${stepReadLine}`,
+    `## GitHub\n\n- ${noGitHubWriteLine}\n- ${stepReadLine}`,
     workingSection(),
     finishingSection(input),
     handoffSection(input),
@@ -92,16 +156,18 @@ function draftingSection({
   draftPath,
   workspacePath,
 }: PieceImplementPromptInput): string {
-  const passagesFolder = passagesFolderIn(workspacePath, issue);
-  return sectionOf("What you draft", [
-    `The Agent draft is \`${draftPath}\` in the \`${spec.repo}\` clone. The runner's pull already brought the Deliverable's Doc into it and committed it on the ticket's branch. Its file format is in \`${paths.agentDraft}\`.`,
-    `The ticket's spec is ${spec.repo}#${spec.number}; read its body for the Deliverable, the Reader, the Outline and the Supporting Material.`,
-    `Draft by the rules under "Implementing a piece spec" in \`${paths.pieceRules}\`, writing to the Agent draft and never the Deliverable's Doc.`,
-    `Draft only ${draftingScope.sectionsOf(labels)}, each under its heading as the draft holds it, with \`<!-- agent -->\` on the line under the heading. Change no other Section, never one marked \`<!-- developer -->\`, and no other file.`,
-    `Read \`${paths.voice}\` and \`${paths.craft}\` in full before your first prose edit.`,
-    "Read the spec's Supporting Material only through the Drive read tools you were given, by the file IDs the spec lists.",
-    `Save each passage you read once, as a text file in the passages folder, \`${passagesFolder}\`, named for its source and range. Review, resolve and any fresh step after a handoff read the same files, so read a source again only for a passage the folder lacks. The folder is gitignored; never copy a passage into the repo.`,
-  ]);
+  return sectionOf(
+    "What you draft",
+    draftingLinesOf({
+      draftPath,
+      specRepo: spec.repo,
+      specRef: `${spec.repo}#${spec.number}`,
+      sections: draftingScope.sectionsOf(labels),
+      passagesFolder: passagesFolderIn(workspacePath, issue),
+      pulled:
+        "The runner's pull already brought the Deliverable's Doc into it and committed it on the ticket's branch.",
+    }),
+  );
 }
 
 function workingSection(): string {
@@ -119,7 +185,7 @@ function finishingSection({
 }: PieceImplementPromptInput): string {
   return `## When you're done
 
-- Commit only the Agent draft, in the \`${spec.repo}\` clone on the ticket's branch: \`git -C <clone> add ${draftPath}\`, then \`git -C <clone> commit\`. Never amend.
+- ${commitDraftLineOf({ draftPath, specRepo: spec.repo })}
 - That commit is your only write outside the workspace's files: never push, merge, rebase or reset, never close an issue, and never run the wrap-up. Don't call a review; the runner reviews after you.
 - Then stop and return the implement record as \`record\`:
   - \`status\`: \`committed\`; or \`blocked\` when a blocker stopped you before any commit.

@@ -1,6 +1,6 @@
-// The prompt text the implement and resolve steps share with the core and with the /implement-code skill: the resumes'
+// The prompt text the implement and resolve steps share with the core and with the generated /implement-* skills: the resumes'
 // prompts, the shared body of the implement prompt, its workspace section, the resolve rules,
-// record fields and shared prompt text, and the generated /implement-* skills' shared ending. Each step's own prompt stays in its file.
+// record fields and shared prompt text, and the skills' shared opening and ending. Each step's own prompt stays in its file.
 
 import { codeListOf, sectionOf } from "./promptText.ts";
 import { numberedFindingsOf } from "./resolveRecords.ts";
@@ -55,6 +55,10 @@ export const resolveBody = {
   },
 } as const;
 
+function committingOf(checkCommand: string): string {
+  return `Commit in each repo you changed, on the ticket's branch, then run \`${checkCommand}\`. When it fails on your change, fix it in a further commit and run it again; never amend.`;
+}
+
 // The bullets the implement step's prompt and the /implement-code skill share; only their endings differ.
 export const implementBody = {
   gitHubWrites:
@@ -66,8 +70,7 @@ export const implementBody = {
     "Read and search with the Read and Grep tools. Give Bash one command per call, run from the workspace root: no `cd`, no `;` or `&&` chains, no variables.",
   drift:
     "Before review, grep the docs for every name, command or behavior the change renamed, removed or altered, and fix or delete each statement it made untrue.",
-  committing:
-    "Commit in each repo you changed, on the ticket's branch, then run `npm run check`. When it fails on your change, fix it in a further commit and run it again; never amend.",
+  committing: committingOf("npm run check"),
   onlyWrites:
     "Those commits and the GitHub writes the ticket describes are your only writes outside the workspace's files: never push, merge, rebase or reset, never close an issue",
   resolving: resolveRules,
@@ -87,6 +90,27 @@ export function ticketBindsSection(): string {
     implementBody.ticketProse,
     implementBody.operatorText,
     implementBody.newDependencies,
+  ]);
+}
+
+interface InteractiveOpening {
+  // Written with `<repo>` and `<n>` placeholders; takes the repo to promote last.
+  promoteCommand: string;
+  // What this skill does with the kind of ticket only its Workflow has.
+  ticketKindLine: string;
+}
+
+// The opening every generated /implement-* skill shares.
+export function interactiveOpeningOf({
+  promoteCommand,
+  ticketKindLine,
+}: InteractiveOpening): string {
+  return sectionOf("Before you start", [
+    "Read the ticket and state its title before starting. If the reference is ambiguous, ask.",
+    "A `ready-for-human` ticket: state its title, name the skill or steps its body says to run, and stop.",
+    ticketKindLine,
+    "Work only in the ticket's issue workspace. When your working directory is a primary checkout, stop and tell the developer to move this session into the workspace first.",
+    `The repos the workspace put on the ticket's \`issue-<n>-*\` branch take edits; every other repo is detached at master. To change one, first run \`${promoteCommand} <repo-to-promote>\`. Never switch, create or delete a branch yourself.`,
   ]);
 }
 
@@ -117,7 +141,7 @@ export function interactiveSkillOf({
 ## When you're done
 
 - ${implementBody.drift}
-- ${implementBody.committing} When it fails only on something your change didn't cause, carry on and name the failure in your report.
+- ${committingOf(checkCommand)} When it fails only on something your change didn't cause, carry on and name the failure in your report.
 - ${implementBody.onlyWrites}. The review and wrap-up commands in the ending make every other write.
 - Run git commands one at a time: inside an entered worktree, Claude Code refuses a compound git command.
 - Then, in order:

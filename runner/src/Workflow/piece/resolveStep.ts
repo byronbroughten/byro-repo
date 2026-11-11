@@ -2,7 +2,6 @@
 // verdict rules, fixing only the ticket's Sections of the Agent draft and rerunning the piece checks, from pieceChecks.ts,
 // after its Fixes, and the record checks that add the piece rules to code's. Its record and the rest of its checks are the core's, from ../../resolveRecords.ts; pieceWorkflow.ts registers it.
 
-import { commandLabelOf } from "../../failureText.ts";
 import { stepReadLine } from "../../IssueReader.ts";
 import {
   commitMessageLine,
@@ -20,7 +19,11 @@ import type {
 import { type Verdict, verdictWords } from "../../verdicts.ts";
 import type { ResolvePromptInput } from "../../Workflow.ts";
 import { draftingScope } from "./draftingScope.ts";
-import { draftMaterialsLineOf, passagesFolderIn } from "./implementStep.ts";
+import {
+  draftMaterialsLineOf,
+  overlapRunOf,
+  passagesFolderIn,
+} from "./implementStep.ts";
 
 const pieceFindingsHeading = "## Piece findings";
 
@@ -73,9 +76,9 @@ function checksSection({
 }: PieceResolvePromptInput): string {
   const passagesFolder = passagesFolderIn(workspacePath, issue);
   return sectionOf("The piece checks after your Fixes", [
-    `Once your Fixes are committed, rerun the overlap check from the workspace root: \`${commandLabelOf(overlapCommand)} --deliverable <the Agent draft's path in the ${spec.repo} clone> --passages ${passagesFolder}\`.`,
+    `Once your Fixes are committed, rerun the overlap check from the workspace root: \`${overlapRunOf({ overlapCommand, specRepo: spec.repo, passagesFolder })}\`.`,
     `Fix every hit it prints in ${draftingScope.sectionsOf(labels)} that the dismissed hits below don't hold, then rerun it; a hit in any other Section isn't this ticket's.`,
-    `${draftingScope.lengthRuleOf(labels)} keep the agent Sections' words, headings and author marks left out, within the spec's Form \`Length:\` line.`,
+    `${draftingScope.lengthRuleOf(labels)} ${draftingScope.lengthLimit}`,
     `A Fix you can't make pass the checks is reverted in a further commit and resolved, saying why, as a Propose \`decision\`, or for a \`spec\`-axis finding as a Halt, so you never leave the checks red.`,
   ]);
 }

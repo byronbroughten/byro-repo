@@ -19,6 +19,11 @@ const authorMarks: Record<SectionAuthor, string> = {
 };
 
 export const agentDraft = {
+  // A string for the `<spec n>` placeholder a generated skill names it by.
+  pathOf(specNumber: number | string): string {
+    return `writing/agent-drafts/${specNumber}.md`;
+  },
+
   sectionsOf(draft: string): DraftSection[] {
     return [...markdownDialect.sectionsOf(draft)].map(([heading, body]) => {
       const [markLine = "", ...lines] = body.split("\n");

@@ -27,6 +27,7 @@
     "./gapCheck": "./src/Workflow/code/gapCheck.ts",
     "./GhCli": "./src/GhCli.ts",
     "./implementCodeSkill": "./src/Workflow/code/implementCodeSkill.ts",
+    "./implementPieceSkill": "./src/Workflow/piece/implementPieceSkill.ts",
     "./implementStep": "./src/Workflow/code/implementStep.ts",
     "./IssueReader": "./src/IssueReader.ts",
     "./IssueWorkspaces": "./src/IssueWorkspaces.ts",
