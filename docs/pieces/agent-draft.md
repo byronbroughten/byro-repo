@@ -1,6 +1,6 @@
 # Agent drafts
 
-An Agent draft ([GLOSSARY.md](./GLOSSARY.md#language)) is the agents' last version of a Piece's Sections, beside the developer's as the Deliverable last showed them. A drafting ticket's runner pull writes it, its implement step drafts in it, an `/implement-piece` session does both, `/judge-findings` makes its "now" fixes in it, the spec's push writes its agent Sections into the Deliverable, and `/to-writing-style` diffs it against the edited Deliverable.
+An Agent draft ([GLOSSARY.md](./GLOSSARY.md#language)) is the agents' last version of a Piece's Sections, beside the developer's as the Deliverable last showed them. A drafting ticket's runner pull writes it, its implement step drafts in it, an `/implement-piece` session does both, `/judge-findings` makes its "now" fixes in it, the spec's push writes its agent Sections into the Deliverable, `/close-piece` lists the Sections the developer changed against it, and `/to-writing-style` diffs it against the edited Deliverable.
 
 ## File format
 

@@ -159,7 +159,7 @@ const specEnd: SpecEnd = {
     const documentId = deliverableIdOf(spec);
     if (gate === undefined || documentId === undefined) return undefined;
     const { repo, number } = gate.ticket;
-    return `Edit the Deliverable in its Doc, ${docLinkOf(documentId)}, then start the Edit gate: \`/start-issue ${repo} ${number}\`.`;
+    return `Edit the Deliverable in its Doc, ${docLinkOf(documentId)}, then close out the Edit gate: \`/close-piece ${repo} ${number}\`.`;
   },
 };
 

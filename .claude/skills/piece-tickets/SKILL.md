@@ -77,7 +77,7 @@ The spec's issue reference.
 
 ## What to do
 
-This is the developer's ticket; the runner never launches it. Once the run ends and has pushed the Agent draft into the Deliverable, edit the Deliverable in its Doc, then run `/start-issue <repo> <n>` on this issue and close it out with wrap-up.
+This is the developer's ticket; the runner never launches it. Once the run ends and has pushed the Agent draft into the Deliverable, edit the Deliverable in its Doc, then close this issue out with `/close-piece <repo> <n>`.
 
 </edit-gate-template>
 

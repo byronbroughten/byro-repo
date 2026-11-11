@@ -29,7 +29,7 @@ The Markdown file of a Piece's Sections as agents draft them, kept in the repo t
 _Avoid_: Snapshot, AI copy, draft (alone)
 
 **Edit gate**:
-The developer's ticket to edit the Deliverable, which an Interactive session closes out.
+The developer's ticket to edit the Deliverable, which an Interactive session closes out with `/close-piece`.
 _Avoid_: review ticket, judgement ticket, human gate
 
 **Reference**:
