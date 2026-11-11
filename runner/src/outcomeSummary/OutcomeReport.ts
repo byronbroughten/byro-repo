@@ -3,7 +3,7 @@ import { dollarsOf, kiloOf, labelOf, unrecorded } from "../outcomeLog.ts";
 import type { OutcomeSummaryInput } from "../outcomeSummary.ts";
 import type { Section, SummaryRow } from "./summarySections.ts";
 
-interface RepoMedians {
+interface PoolMedians {
   minutesPerFile: number[];
   costPerFile: number[];
 }
@@ -15,7 +15,7 @@ interface SizeRule {
   format: (value: number) => string;
 }
 
-// The long-or-costly rule needs this many rows recording a figure in the row's repo.
+// The long-or-costly rule needs this many rows recording a figure in the row's repo and Workflow.
 const minimumMedianRows = 3;
 
 const outlierResults = [
@@ -29,13 +29,13 @@ export class OutcomeReport {
   private readonly input: OutcomeSummaryInput;
   private readonly sections: Section[];
   private readonly rows: SummaryRow[];
-  private readonly medians: Map<string, RepoMedians>;
+  private readonly medians: Map<string, PoolMedians>;
 
   constructor(input: OutcomeSummaryInput, sections: Section[]) {
     this.input = input;
     this.sections = sections;
     this.rows = sections.flatMap((section) => section.rows);
-    this.medians = repoMediansOf(this.rows);
+    this.medians = poolMediansOf(this.rows);
   }
 
   static init(input: OutcomeSummaryInput, sections: Section[]): OutcomeReport {
@@ -83,13 +83,13 @@ export class OutcomeReport {
 
   private _medianLines(): string[] {
     return [
-      "## Medians per repo",
+      "## Medians per repo and Workflow",
       "",
-      `Per file changed, pooled over the batch's rows in each repo; the long-or-costly rule needs ${minimumMedianRows} rows recording a figure.`,
+      `Per file changed, pooled over the batch's rows of each repo and Workflow; the long-or-costly rule needs ${minimumMedianRows} rows recording a figure.`,
       "",
       ...[...this.medians].map(
-        ([repo, { minutesPerFile, costPerFile }]) =>
-          `- Repo ${repo}: Duration ${medianTextOf(minutesPerFile, minutesOf)}; Cost ${medianTextOf(costPerFile, dollarsOf)}`,
+        ([pool, { minutesPerFile, costPerFile }]) =>
+          `- ${pool}: Duration ${medianTextOf(minutesPerFile, minutesOf)}; Cost ${medianTextOf(costPerFile, dollarsOf)}`,
       ),
     ];
   }
@@ -110,8 +110,8 @@ export class OutcomeReport {
       "",
       `Rows: \`${this.input.outcomeFolder}/${section.folder}/\`.`,
       "",
-      "| Issue | Pair | Files changed | Peak context | Peak sum | Result | Retries | Duration | Cost | Limit resumes | Review cost |",
-      "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+      "| Issue | Workflow | Pair | Files changed | Peak context | Peak sum | Result | Retries | Duration | Cost | Limit resumes | Review cost |",
+      "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
       ...section.rows.map(tableLineOf),
       "",
       "Outliers:",
@@ -141,17 +141,17 @@ export class OutcomeReport {
         `over budget (peak sum ${kiloOf(peakSum)} > ${kiloOf(ticketBudget)})`,
       );
     }
-    const repo = this.medians.get(row.issue.repo);
+    const poolMedians = this.medians.get(poolOf(row));
     const long = sizeRuleOf({
       rule: "long",
       perFile: perFileOf(row.durationMinutes, row),
-      values: repo?.minutesPerFile ?? [],
+      values: poolMedians?.minutesPerFile ?? [],
       format: minutesOf,
     });
     const costly = sizeRuleOf({
       rule: "costly",
       perFile: perFileOf(row.costUsd, row),
-      values: repo?.costPerFile ?? [],
+      values: poolMedians?.costPerFile ?? [],
       format: dollarsOf,
     });
     return [...rules, ...long, ...costly];
@@ -193,19 +193,24 @@ export class OutcomeReport {
   }
 }
 
-function repoMediansOf(rows: SummaryRow[]): Map<string, RepoMedians> {
+function poolMediansOf(rows: SummaryRow[]): Map<string, PoolMedians> {
   return rows.reduce((medians, row) => {
-    const repo = medians.get(row.issue.repo) ?? {
+    const pool = poolOf(row);
+    const poolMedians = medians.get(pool) ?? {
       minutesPerFile: [],
       costPerFile: [],
     };
     const minutes = perFileOf(row.durationMinutes, row);
     const cost = perFileOf(row.costUsd, row);
-    if (minutes !== undefined) repo.minutesPerFile.push(minutes);
-    if (cost !== undefined) repo.costPerFile.push(cost);
-    medians.set(row.issue.repo, repo);
+    if (minutes !== undefined) poolMedians.minutesPerFile.push(minutes);
+    if (cost !== undefined) poolMedians.costPerFile.push(cost);
+    medians.set(pool, poolMedians);
     return medians;
-  }, new Map<string, RepoMedians>());
+  }, new Map<string, PoolMedians>());
+}
+
+function poolOf({ issue, workflow }: SummaryRow): string {
+  return `Repo ${issue.repo}, Workflow ${workflow}`;
 }
 
 // Undefined on a row with no files changed, which has no size to weigh by.
@@ -267,6 +272,7 @@ function tableLineOf(row: SummaryRow): string {
   const peakSum = peakSumOf(row);
   const cells = [
     issueLabelOf(row.issue),
+    row.workflow,
     row.pair ?? unrecorded,
     textOf(row.filesChanged),
     row.peakContext ?? unrecorded,
@@ -296,7 +302,7 @@ function sizeRuleOf({ rule, perFile, values, format }: SizeRule): string[] {
   if (perFile === undefined || median === undefined) return [];
   if (values.length < minimumMedianRows || perFile <= 2 * median) return [];
   return [
-    `${rule} for its size (${format(perFile)} per file, over twice the repo median ${format(median)})`,
+    `${rule} for its size (${format(perFile)} per file, over twice the repo and Workflow median ${format(median)})`,
   ];
 }
 

@@ -3,6 +3,7 @@
 import { mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
 
@@ -216,6 +217,9 @@ export function stateFolder(): string {
   return join(temp, "state");
 }
 
+// The repo's own sheets, which the piece review cell reads rule names from.
+const rulesRoot = fileURLToPath(new URL("../../", import.meta.url));
+
 // The code Workflow with a test's own checks, beside the piece Workflow.
 export function workflowsWith(checks: Command[]): Workflows {
   return {
@@ -224,6 +228,7 @@ export function workflowsWith(checks: Command[]): Workflows {
       overlapCommand: reportsSlippedOut,
       verifyQuotesCommand: redOnMisquote,
       documents,
+      rulesRoot,
     }),
   };
 }

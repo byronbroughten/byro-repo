@@ -2,6 +2,13 @@
 
 Disclosed from [`docs/code-style.md`](../code-style.md), "Functional vs. imperative idioms". The rules are there, one line each; this file holds the examples and the why.
 
+## `for…of` over `forEach`
+
+`forEach` was the default once, for its look. `for…of` replaced it for three reasons:
+- **It waits.** `forEach(async …)` starts every callback and returns before any finishes, without an error. `for…of` with `await` runs them in order.
+- **It keeps narrowing.** TypeScript keeps a narrowed variable narrowed in a loop body, but can lose the narrowing inside a callback.
+- **One form covers every loop.** An early exit (`break`, `continue`, `return`) and destructured `Map` entries no longer need their own exceptions.
+
 ## `reduce` builds a new object
 
 `reduce` builds a new object or record in place of a manual loop with a declared accumulator. The seed is a fresh `{}`, `new Map()` or `[]`, and each step mutates it and returns it: `(acc, item) => { acc[key] = ...; return acc; }`. Spreading it, `({ ...acc, ... })`, copies the whole accumulator on every item, which makes the build O(n²).

@@ -69,7 +69,7 @@ export class TicketLander extends SpecRunBase {
         // A merge-master resume adds an item to the review list, which the rerun's close step reads.
         this.factsFile.setReviewFacts(
           ticket.issue,
-          ticketSteps.reviewFactsOf(state),
+          ticketSteps.reviewFactsOf(state, this._workflowOf(run.spec)),
         );
       }
     }
@@ -100,7 +100,7 @@ export class TicketLander extends SpecRunBase {
     landingTicket: LandingTicket,
     steps: RecordedSession[],
   ): void {
-    const { ticket, state } = landingTicket;
+    const { run, ticket, state } = landingTicket;
     const { record } = state;
     if (record === undefined) {
       throw new Error(
@@ -110,7 +110,7 @@ export class TicketLander extends SpecRunBase {
     const facts = factsOf(landingTicket, steps, {
       closingComment: record.closingComment,
       boxesUndone: record.boxesUndone,
-      ...ticketSteps.reviewFactsOf(state),
+      ...ticketSteps.reviewFactsOf(state, this._workflowOf(run.spec)),
       reviewRounds: 1,
     });
     if (record.status === "applied") {
