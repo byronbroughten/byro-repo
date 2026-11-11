@@ -1,6 +1,6 @@
 # Agent drafts
 
-An Agent draft ([GLOSSARY.md](./GLOSSARY.md#language)) is the agents' last version of a Piece's Sections, beside the developer's as the Deliverable last showed them. A drafting ticket's runner pull writes it, its implement step drafts in it, `/implement-piece` saves it and `/to-writing-style` diffs it against the edited Deliverable.
+An Agent draft ([GLOSSARY.md](./GLOSSARY.md#language)) is the agents' last version of a Piece's Sections, beside the developer's as the Deliverable last showed them. A drafting ticket's runner pull writes it, its implement step drafts in it, the spec's push writes its agent Sections into the Deliverable, `/implement-piece` saves it and `/to-writing-style` diffs it against the edited Deliverable.
 
 ## File format
 
@@ -18,3 +18,12 @@ Pull is the runner Step a piece spec's drafting ticket starts with, so a develop
 - **Each developer Section, and each Section the file doesn't hold yet, comes from the Doc, marked `<!-- developer -->`; each agent Section stays as the file has it.** An agent Section the Doc no longer holds stays too, after the Doc's.
 - **It records every Section's text as the Doc showed it, agent Sections included, with the revision read, on the ticket's run state**: the baseline a later push compares the Doc against.
 - **It commits the file on the ticket's branch in the spec's repo**, and commits nothing when the file already matched.
+
+## Push
+
+Push is the runner's last spec-end Step on a piece spec, after the gap check and the judge Step, so it runs only once no review-list item is undecided. The run then ends at the Edit gate, and no agent writes the Piece after it: a later agent round is a new piece spec with the developer's text as Given.
+
+- **It writes each agent Section of the Agent draft on master into the Deliverable through the Docs module, under its revision guard, reading the Doc again before each write.**
+- **A Section whose Doc text already matches the agent's is skipped**, so a rerun writes nothing twice; once every agent Section is written, the run state marks the push done and a rerun pushes nothing.
+- **It never writes over the developer's edits: a Section whose Doc text differs from the last pull's baseline, or that has no heading in the Doc, stops the run naming it, before anything is written.** An agent Section the pull never saw counts as empty, so adding its heading to the Doc lets the push write it.
+- **A stale revision or pending suggestions stop the run too; a rerun retries.**

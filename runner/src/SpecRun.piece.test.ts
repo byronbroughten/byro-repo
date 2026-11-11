@@ -9,6 +9,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { type DocRead, Docs } from "./Docs.ts";
 import type {
   GoogleDocument,
   NamedStyleType,
@@ -27,6 +28,7 @@ import {
   github,
   haltComments,
   handoffResultOf,
+  heldDocs,
   holdDocs,
   implemented,
   masterSubjects,
@@ -653,9 +655,10 @@ describe("the end of a piece spec", () => {
 
   async function landsThenGapChecks(
     gaps: object[],
+    draft: StepScript = drafted({}, lateDraft),
   ): Promise<{ result: RunResult; agentStep: FakeAgentStep }> {
     const agentStep = FakeAgentStep.init(
-      drafted({}, lateDraft),
+      draft,
       pieceReviewed([], []),
       async () => resultOf({ gaps }),
     );
@@ -723,6 +726,125 @@ describe("the end of a piece spec", () => {
     expect(result.kind).toBe("finished");
     expect(result.message).toContain("byro-repo #2 waits on you");
     expect(result.message).not.toContain(judgeThenRerun);
+  });
+
+  describe("the push", () => {
+    const pushedSections = {
+      "The harbour": "The gulls lifted off the quay.\n",
+      "The crossing": "The ferry carried them away at noon.\n",
+    };
+    // Both Sections the agents', so the push writes each.
+    const agentOnlyDraft = drafted(
+      {},
+      "## The harbour\n<!-- agent -->\n\nThe gulls lifted off the quay.\n\n## The crossing\n<!-- agent -->\n\nThe ferry carried them away at noon.\n",
+    );
+    const pulledDoc = docOf({
+      "The harbour": "Gulls circled the quay at dawn.",
+      "The crossing": "The ferry left late.",
+    });
+
+    async function deliverableOf(): Promise<DocRead> {
+      return Docs.init(heldDocs()).read(deliverableId);
+    }
+
+    // Edits The crossing in the Doc, as the developer would between the pull and the push.
+    function editsTheCrossing(script: StepScript): StepScript {
+      return async (request) => {
+        heldDocs().edit(deliverableId, () => ({
+          ...docOf({
+            "The harbour": "Gulls circled the quay at dawn.",
+            "The crossing": "The ferry never came.",
+          }),
+          revisionId: "crossing-2",
+        }));
+        return script(request);
+      };
+    }
+
+    it("writes every agent Section into the Deliverable and ends at the Edit gate", async () => {
+      addGatedSpec();
+
+      const { result } = await landsThenGapChecks([], agentOnlyDraft);
+
+      expect(Object.fromEntries((await deliverableOf()).sections)).toEqual(
+        pushedSections,
+      );
+      expect(result.kind).toBe("finished");
+      expect(result.message).toContain("byro-repo #2 waits on you");
+    });
+
+    it("writes nothing while a review-list item is undecided", async () => {
+      addGatedSpec();
+
+      await landsThenGapChecks([gap], agentOnlyDraft);
+
+      expect((await deliverableOf()).revisionId).toBe("crossing-1");
+    });
+
+    it("pushes once, so a developer's edit after the push stays on a rerun", async () => {
+      addGatedSpec();
+      await landsThenGapChecks([], agentOnlyDraft);
+      heldDocs().edit(deliverableId, () => ({
+        ...pulledDoc,
+        revisionId: "edited",
+      }));
+
+      const result = await specRun(FakeAgentStep.init()).run(spec);
+
+      expect((await deliverableOf()).revisionId).toBe("edited");
+      expect(result.message).toContain("byro-repo #2 waits on you");
+    });
+
+    it("stops before writing anything on a Section changed since the pull, naming it", async () => {
+      addGatedSpec();
+
+      const { result } = await landsThenGapChecks(
+        [],
+        editsTheCrossing(agentOnlyDraft),
+      );
+
+      expect((await deliverableOf()).revisionId).toBe("crossing-2");
+      expect(result.kind).toBe("stopped");
+      expect(result.message).toContain(
+        'The push wrote nothing to the Deliverable of byro-repo #213, since it never writes over your edits: "The crossing" changed since the pull',
+      );
+    });
+
+    it("stops on an agent Section with no heading in the Doc, writing nothing", async () => {
+      addGatedSpec();
+
+      const { result } = await landsThenGapChecks(
+        [],
+        drafted(
+          {},
+          `${lateDraft}\n## The return\n<!-- agent -->\n\nThey came home by train.\n`,
+        ),
+      );
+
+      expect((await deliverableOf()).revisionId).toBe("crossing-1");
+      expect(result.message).toContain('"The return" changed since the pull');
+    });
+
+    it("stops on a stale revision, and the rerun writes only the Sections still to write", async () => {
+      addGatedSpec();
+      heldDocs().editBeforeUpdate(
+        (document) => ({ ...document, revisionId: "commented" }),
+        1,
+      );
+
+      const { result } = await landsThenGapChecks([], agentOnlyDraft);
+      const rerun = await specRun(FakeAgentStep.init()).run(spec);
+
+      expect(result.kind).toBe("stopped");
+      expect(result.message).toContain(
+        `The push stopped: Doc ${deliverableId} changed after revision`,
+      );
+      expect(result.message).toContain("Rerun to retry it");
+      const pushed = await deliverableOf();
+      expect(Object.fromEntries(pushed.sections)).toEqual(pushedSections);
+      expect(pushed.revisionId).toBe(`${deliverableId}-written-2`);
+      expect(rerun.kind).toBe("finished");
+    });
   });
 });
 
@@ -852,12 +974,13 @@ function workspacePath(): string {
   return join(temp, "workspaces", "byro-repo-issue-1-ticket-1");
 }
 
-// A Doc of one level-2 heading and one paragraph per Section.
+// A Doc of one level-2 heading and one paragraph per Section, after the section break every Doc opens with.
 function docOf(sections: Record<string, string>): GoogleDocument {
   const content = Object.entries(sections).flatMap(([heading, text]) => [
     paragraphOf(heading, "HEADING_2"),
     paragraphOf(text, "NORMAL_TEXT"),
   ]);
+  content.unshift({ sectionBreak: {} });
   return {
     documentId: deliverableId,
     revisionId: "crossing-1",

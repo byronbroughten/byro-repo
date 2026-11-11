@@ -135,6 +135,11 @@ export function holdDocs(...held: GoogleDocument[]): void {
   documents = new FakeDocuments(held);
 }
 
+// The held Docs, for a test that edits one as the developer would or reads one back.
+export function heldDocs(): FakeDocuments {
+  return documents;
+}
+
 export function scriptUsage(...lists: (UsageList | Error)[]): void {
   usageReader = FakeUsageReader.init(...lists);
 }
