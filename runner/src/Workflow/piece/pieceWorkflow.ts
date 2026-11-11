@@ -46,6 +46,7 @@ import {
   type WorkflowStep,
 } from "../../Workflow.ts";
 import { agentDraft } from "./agentDraft.ts";
+import { draftingScope } from "./draftingScope.ts";
 import { pieceGapCheckPrompt } from "./gapCheck.ts";
 import {
   passagesFolderOf,
@@ -224,7 +225,17 @@ export function pieceWorkflowOf({
         promptOf: draftingPromptOf,
         outputSchema: pieceImplementOutputSchema,
         recordOf: implementRecordOf<PieceImplementRecord>,
-        recordProblems: pieceImplementRecordProblems,
+        recordProblems(output, hasNewCommit, { spec, ticket, specClone }) {
+          return pieceImplementRecordProblems(output, hasNewCommit, {
+            isFinalPass: draftingScope.isFinalPass(ticket.labels),
+            draftOf() {
+              return readFileSync(
+                join(specClone, draftPathOf(spec.issue)),
+                "utf8",
+              );
+            },
+          });
+        },
         handoffCommentOf: handoffText.commentOf,
         keptFolderOf: passagesFolderOf,
       },

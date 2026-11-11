@@ -189,12 +189,23 @@ export interface ImplementPromptInput extends TicketPromptFields {
   latestHandoff?: Handoff;
 }
 
+// What a record check may read besides the record: the ticket and where its spec's repo is cloned in the workspace.
+export interface ImplementRecordContext {
+  spec: TrackedIssue;
+  ticket: TrackedIssue;
+  specClone: string;
+}
+
 export interface ImplementRules {
   promptOf(input: ImplementPromptInput): string;
   outputSchema: object;
   recordOf(output: unknown): ImplementRecord;
   // `output` is the step's whole output, for a Workflow that checks it against outputSchema, since only the real adapter does.
-  recordProblems(output: unknown, hasNewCommit: boolean): string[];
+  recordProblems(
+    output: unknown,
+    hasNewCommit: boolean,
+    context: ImplementRecordContext,
+  ): string[];
   handoffCommentOf(handoff: Handoff, sessionId: string): string;
   // A gitignored folder from the workspace root, the runner's to create, so every step of the ticket reads the same files.
   keptFolderOf?(ticket: IssueRef): string;

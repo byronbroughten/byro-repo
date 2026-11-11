@@ -233,7 +233,7 @@ export class ImplementStepper extends SpecRunBase {
     launched,
     headsBefore,
   }: ImplementTake): Promise<ImplementRecord> {
-    const { workspace, state } = ticketRun;
+    const { run, ticket, workspace, state } = ticketRun;
     const rules = this._implementRulesOf(ticketRun);
     const record = rules.recordOf(launched.record);
     const { logPath } = launched;
@@ -249,6 +249,11 @@ export class ImplementStepper extends SpecRunBase {
     const problems = rules.recordProblems(
       launched.record,
       hasNewCommit || isRecommit,
+      {
+        spec: run.spec,
+        ticket,
+        specClone: this._cloneIn(workspace, run.spec.issue.repo),
+      },
     );
     if (problems.length > 0) {
       throw ticketSteps.schemaFailureOf(logPath, {
