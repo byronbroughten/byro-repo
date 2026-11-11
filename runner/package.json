@@ -17,6 +17,8 @@
     "./pieceWorkflow": "./src/Workflow/piece/pieceWorkflow.ts",
     "./CswapUsageReader": "./src/CswapUsageReader.ts",
     "./docPrint": "./src/docPrint.ts",
+    "./Docs": "./src/Docs.ts",
+    "./googleDocs": "./src/Docs/googleDocs.ts",
     "./EventFileNotices": "./src/EventFileNotices.ts",
     "./FactsFile": "./src/FactsFile.ts",
     "./FakeAgentStep": "./src/FakeAgentStep.ts",

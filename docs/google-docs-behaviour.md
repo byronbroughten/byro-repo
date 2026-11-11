@@ -2,7 +2,7 @@
 
 An [observation index](./agents/prose-files.md#terms) of how Google Docs behaves (the Docs REST API, Drive's comments on a Doc, the auth that reaches them, and the gworkspace MCP's Docs tools), never the runner's or the gates' own behaviour. It is grouped by subject and follows the [observation-index rules](./prose-style.md#observation-indexes). Sheets and Apps Script observations are in [`sheets-behaviour.md`](../packages/framework/docs/sheets-behaviour.md).
 
-Whoever settles or overturns an observation adds or updates its line in the same change as the finding.
+Whoever settles or overturns an observation adds or updates its line in the same change as the finding. A new one is probed with `scripts/runner/docsProbe.ts` on the Docs module scratch Doc.
 
 Write-ups sourced from Google's docs live on `research/*` branches; the Doc and Markdown routes are on `research/doc-markdown-routes`.
 
