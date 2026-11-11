@@ -192,13 +192,16 @@ export class TicketSequencer extends SpecRunBase {
         stopHeadingOf(ticket, outcome),
         stop.message,
         `Log: \`${stop.logPath}\``,
-        `The ticket is left at its ${runTickets.stateOf(run, ticket.issue).step} step in its issue workspace; rerun to retry it: \`${command}\`.`,
+        `The ticket is left at its ${runTickets.stateOf(run, ticket.issue).step} step in its issue workspace. ${runText.rerunToRetryOf(command)}`,
       ].join("\n\n"),
     );
-    throw new RunStop(`Stopped on ${label}: ${outcome}; rerun to retry it.`, {
-      ticket: ticket.issue,
-      commentUrl,
-    });
+    throw new RunStop(
+      `Stopped on ${label}: ${outcome}. ${runText.rerunToRetryOf(command)}`,
+      {
+        ticket: ticket.issue,
+        commentUrl,
+      },
+    );
   }
 
   private async _stopTicket(

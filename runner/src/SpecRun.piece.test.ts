@@ -979,7 +979,7 @@ describe("the end of a piece spec", () => {
         ...document,
         revisionId: `${document.revisionId}-commented`,
       });
-      const pushStopped = `The push stopped on Doc ${deliverableId}, which changed between its read and its write 4 times running; rerun to retry it: \`npm run runner -- byronbroughten/byro-repo 213\`.`;
+      const pushStopped = `The push stopped on Doc ${deliverableId}, which changed between its read and its write 4 times running. Rerun to retry it: \`npm run runner -- byronbroughten/byro-repo 213\`.`;
 
       it("reads and compares the Doc again on a stale revision, then writes the Sections still to write", async () => {
         addGatedSpec();

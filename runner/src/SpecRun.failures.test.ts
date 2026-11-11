@@ -314,6 +314,6 @@ describe("run's Stop wording", () => {
     expect(github.comments[0]?.body).toContain(
       "a rerun won't retry it. Finish and land it by hand",
     );
-    expect(github.comments[0]?.body).not.toContain("rerun to retry");
+    expect(github.comments[0]?.body).not.toContain("Rerun to retry");
   });
 });

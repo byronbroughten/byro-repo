@@ -8,6 +8,7 @@ import {
   addendumLine,
   gapCheckTicketLineOf,
   gapRecordSectionOf,
+  unattendedRunLine,
 } from "../../promptText.ts";
 import type { GapCheckPromptInput } from "../../Workflow.ts";
 
@@ -20,7 +21,7 @@ export function gapCheckPrompt({
     ask: "its story number or section",
     followUp: "a follow-up issue",
   });
-  return `You are the gap check of an unattended run. Nobody is watching this session: never ask a question or wait for an answer.
+  return `You are the gap check of an unattended run. ${unattendedRunLine()}
 
 Every ticket of the spec ${spec.repo}#${spec.number}, "${title}", is closed. List what the spec asked for that no landed ticket covered. Your working directory is the primary root, on master, where every landed ticket's work is. ${stepReadLine}
 

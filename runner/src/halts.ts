@@ -4,7 +4,7 @@
 
 import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import { outlineEdits } from "./outlineEdits.ts";
-import { bulletsOf } from "./promptText.ts";
+import { bulletsOf, unattendedRunLine } from "./promptText.ts";
 import type { IssueComment, TicketStep } from "./SpecRun.ts";
 import { handoffText } from "./stepPrompts/handoffText.ts";
 import {
@@ -379,7 +379,7 @@ export function ignoredNoteOf(halt: Halt, reply: IssueComment): string {
 
 // Sent with --resume to the implementer whose ticket halted.
 export function resumePrompt(halts: Halt[]): string {
-  return `The developer answered the Halts this ticket raised. Act on every answer below, then finish the ticket as before: commit on the ticket's branch, run \`npm run check\`, and return the implement record. Nobody is watching this session: never ask a question or wait for an answer.
+  return `The developer answered the Halts this ticket raised. Act on every answer below, then finish the ticket as before: commit on the ticket's branch, run \`npm run check\`, and return the implement record. ${unattendedRunLine()}
 
 ${answersSection(halts)}`;
 }

@@ -7,6 +7,7 @@ import {
   commitMessageLine,
   sectionOf,
   stepWriteLine,
+  unattendedRunLine,
 } from "../../promptText.ts";
 import { findingProblem, resolveRecordProblems } from "../../resolveRecords.ts";
 import type { Command } from "../../runKnobs.ts";
@@ -45,7 +46,7 @@ export interface PieceResolvePromptInput extends ResolvePromptInput {
 export function pieceResolvePrompt(input: PieceResolvePromptInput): string {
   const { branch, findings } = input;
   return [
-    `You are the resolve step of an unattended run on a piece spec's drafting ticket. Nobody is watching this session: never ask a question or wait for an answer.
+    `You are the resolve step of an unattended run on a piece spec's drafting ticket. ${unattendedRunLine()}
 
 ${resolveBody.findingsOf(input)} A piece finding's verdict follows the \`${pieceFindingsHeading}\` section of that doc. Your working directory is the ticket's issue workspace root, on the ticket's branch, \`${branch}\`. ${stepReadLine}`,
     fixingSection(input),
