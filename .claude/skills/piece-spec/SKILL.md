@@ -15,7 +15,7 @@ Draw each field from the conversation, in the developer's words where they gave 
 - **Supporting Material**: each by title and Drive ID, with what it is for. For one too long to read whole, such as a book, list the passages that count by page range, given as PDF pages with the printed pages beside them when they differ, such as `PDF pp. 45–60 (printed 31–46)`.
 - **Reader**: who reads the Piece, and what they already know.
 - **Style**: the Axes line grilling.md's Formality question gives, then the style overrides, to any sheet: Voice, Craft or academic.
-- **Form**: the length limit and its cut order, and the template if there is one.
+- **Form**: the length limit and its cut order, and the template if there is one. With a limit, the field holds a line of its own, `Length: <n> words`, counted over the body text of every Section with headings left out; a run checks the draft against it.
 - **Outline**: the glossary's Outline as the developer approved it at the grill's end. [`docs/pieces/outlining.md`](../../../docs/pieces/outlining.md) says how it is written and how a template in Form fixes its Sections.
 - **Facts**: the closed list the Piece may use, with each answer to grilling.md's Your own text question named as given, quoted or with where it lives.
 - **Research**, **Final pass** and **Split**: grilling.md's answers to the questions of those names.
@@ -24,7 +24,7 @@ Done when every field holds an answer or the developer's waiver. Ask for any fie
 
 ## 2. Write and file
 
-Write the spec with the template below, then file it with `gh issue create -R <owner>/<repo> --label ready-for-agent`, resolving `<repo>` to `<owner>/<repo>`. Drive and Doc IDs belong in it: the implementer reads by them.
+Write the spec with the template below, resolving `<repo>` to `<owner>/<repo>`. Run `gh label create piece -R <owner>/<repo> --force`, then file it with `gh issue create -R <owner>/<repo> --label ready-for-agent --label piece`: the run picks the piece Workflow by the `piece` label. Drive and Doc IDs belong in it: the implementer reads by them. The spec has no `## Model fit`; its tickets carry the pairs.
 
 <piece-spec-template>
 
@@ -68,4 +68,4 @@ The Piece is done by the done checks in the root's `docs/pieces/rules.md`.
 
 </piece-spec-template>
 
-End by recommending `/piece-tickets` when Research is needed or Split names Sections, and `/implement-piece` otherwise, with its pair as one chat line, `/implement-piece <repo> <n>: <Model> <effort> (reason)`, chosen by [model fit](../../../docs/agents/planning.md#model-fit) and the Piece rows of the [outcome log](../../../docs/agents/model-fit.md#outcome-log). **`/piece-tickets` and `/piece-spec` stay chat only.**
+End by recommending `/piece-tickets <repo> <n>`: every piece spec gets tickets, its drafting tickets and Edit gate included, which pick their pairs by [`model-fit.md`](../../../docs/agents/model-fit.md).
