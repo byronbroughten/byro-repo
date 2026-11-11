@@ -101,6 +101,22 @@ describe("run", () => {
     });
   });
 
+  it("logs another repo's same-numbered branch, which the ticket's workspace doesn't reuse", async () => {
+    addSpec([1]);
+    git(primaryOf("sheets-framework"), "branch", "issue-1-prototype");
+
+    await specRun(FakeAgentStep.init(implemented("one.ts"), reviewed())).run(
+      spec,
+    );
+
+    expect(progressLines().map(eventOf)).toContain(
+      "byro-repo #1: sheets-framework has issue-1-prototype, another issue's branch with this number; not reused.",
+    );
+    expect(masterSubjects()).toContain(
+      "Merge issue-1-ticket-1 into master (#1)",
+    );
+  });
+
   it("writes one timestamped progress line per event", async () => {
     addSpec([1]);
 

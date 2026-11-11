@@ -1,7 +1,11 @@
-// What `issue:start` prints: whether the session is already in the workspace, its path, the skill to follow and the ticket's text.
+// What `issue:start` prints: whether the session is already in the workspace, its path, other repos' same-numbered branches, the skill to follow and the ticket's text.
 import { isAbsolute, relative } from "node:path";
 
 import type { SessionSkill } from "@byronbroughten/spec-runner/IssueReader";
+import {
+  otherIssueBranch,
+  type RepoBranch,
+} from "@byronbroughten/spec-runner/IssueWorkspaces";
 
 interface StartReport {
   path: string;
@@ -9,6 +13,7 @@ interface StartReport {
   cwd: string;
   // Undefined for a session workspace, which has no ticket.
   ticket: StartedTicket | undefined;
+  otherIssueBranches: RepoBranch[];
 }
 
 export interface StartedTicket {
@@ -21,6 +26,7 @@ export function startReportOf({
   hasLease,
   cwd,
   ticket,
+  otherIssueBranches,
 }: StartReport): string {
   const lines = [path];
   if (!hasLease) {
@@ -28,6 +34,7 @@ export function startReportOf({
   } else if (isInside(cwd, path)) {
     lines.unshift("This session is already in the workspace.");
   }
+  lines.push(...otherIssueBranches.map(otherIssueBranch.noticeOf));
   if (ticket !== undefined) lines.push(`Skill: /${ticket.skill}`, ticket.text);
   return lines.join("\n");
 }

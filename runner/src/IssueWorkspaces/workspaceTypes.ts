@@ -45,6 +45,17 @@ export interface Workspace {
   branchedRepos: string[];
 }
 
+export interface RepoBranch {
+  repo: string;
+  branch: string;
+}
+
+// Kept off Workspace, which every status, promote and fake builds, though only a creating caller reads it.
+export interface CreatedWorkspace extends Workspace {
+  // Other repos' branches with the issue's number but not its branch's name, which belong to other issues and aren't reused.
+  otherIssueBranches: RepoBranch[];
+}
+
 export interface KeyedFolder {
   path: string;
   key: WorkspaceKey;
@@ -100,6 +111,12 @@ export const issueRef = {
   ofFileStem(stem: string): IssueRef {
     const dash = stem.lastIndexOf("-");
     return { repo: stem.slice(0, dash), number: Number(stem.slice(dash + 1)) };
+  },
+};
+
+export const otherIssueBranch = {
+  noticeOf({ repo, branch }: RepoBranch): string {
+    return `${repo} has ${branch}, another issue's branch with this number; not reused.`;
   },
 };
 

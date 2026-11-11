@@ -13,6 +13,7 @@ import {
   type LeaseHolder,
 } from "./IssueWorkspaces/workspaceLeases.ts";
 import {
+  type CreatedWorkspace,
   type CreateOptions,
   type IssueRef,
   type IssueWorkspacesConfig,
@@ -30,12 +31,15 @@ export {
   leaseHolder,
 } from "./IssueWorkspaces/workspaceLeases.ts";
 export {
+  type CreatedWorkspace,
   type CreateOptions,
   type IssueRef,
   issueRef,
   type IssueWorkspacesConfig,
   type LeasedWorkspace,
+  otherIssueBranch,
   type RemoveOptions,
+  type RepoBranch,
   type SessionKey,
   type Workspace,
   type WorkspaceKey,
@@ -56,11 +60,14 @@ export class IssueWorkspaces extends IssueWorkspacesBase {
     return new WorkspaceLeaser(this.config);
   }
 
-  create(key: WorkspaceKey, options?: CreateOptions): Promise<Workspace> {
+  create(
+    key: WorkspaceKey,
+    options?: CreateOptions,
+  ): Promise<CreatedWorkspace> {
     return this.keeper.create(key, options);
   }
 
-  start(key: WorkspaceKey, holder?: LeaseHolder): Promise<Workspace> {
+  start(key: WorkspaceKey, holder?: LeaseHolder): Promise<CreatedWorkspace> {
     return this.keeper.start(key, holder);
   }
 
