@@ -141,17 +141,17 @@ export class OutcomeReport {
         `over budget (peak sum ${kiloOf(peakSum)} > ${kiloOf(ticketBudget)})`,
       );
     }
-    const pool = this.medians.get(poolOf(row));
+    const poolMedians = this.medians.get(poolOf(row));
     const long = sizeRuleOf({
       rule: "long",
       perFile: perFileOf(row.durationMinutes, row),
-      values: pool?.minutesPerFile ?? [],
+      values: poolMedians?.minutesPerFile ?? [],
       format: minutesOf,
     });
     const costly = sizeRuleOf({
       rule: "costly",
       perFile: perFileOf(row.costUsd, row),
-      values: pool?.costPerFile ?? [],
+      values: poolMedians?.costPerFile ?? [],
       format: dollarsOf,
     });
     return [...rules, ...long, ...costly];
@@ -195,16 +195,16 @@ export class OutcomeReport {
 
 function poolMediansOf(rows: SummaryRow[]): Map<string, PoolMedians> {
   return rows.reduce((medians, row) => {
-    const name = poolOf(row);
-    const pool = medians.get(name) ?? {
+    const pool = poolOf(row);
+    const poolMedians = medians.get(pool) ?? {
       minutesPerFile: [],
       costPerFile: [],
     };
     const minutes = perFileOf(row.durationMinutes, row);
     const cost = perFileOf(row.costUsd, row);
-    if (minutes !== undefined) pool.minutesPerFile.push(minutes);
-    if (cost !== undefined) pool.costPerFile.push(cost);
-    medians.set(name, pool);
+    if (minutes !== undefined) poolMedians.minutesPerFile.push(minutes);
+    if (cost !== undefined) poolMedians.costPerFile.push(cost);
+    medians.set(pool, poolMedians);
     return medians;
   }, new Map<string, PoolMedians>());
 }

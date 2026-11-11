@@ -1,10 +1,11 @@
 import type { IssueRef } from "../IssueWorkspaces.ts";
-import { unrecorded, writtenCellsOf } from "../outcomeLog.ts";
+import { labelOf, unrecorded, writtenCellsOf } from "../outcomeLog.ts";
 import type { OutcomeRowFile, SectionSelection } from "../outcomeSummary.ts";
+import { isWorkflowName, type WorkflowName } from "../Workflow.ts";
 
 export interface SummaryRow {
   issue: IssueRef;
-  workflow: string;
+  workflow: WorkflowName;
   pair: string | undefined;
   filesChanged: number | undefined;
   peakContext: string | undefined;
@@ -92,9 +93,13 @@ function rowOf(text: string, issue: IssueRef): SummaryRow {
   );
   const peakContext = recorded.get("Peak context");
   const result = recorded.get("Result");
+  const workflow = cells.get("Workflow");
+  if (!isWorkflowName(workflow)) {
+    throw new Error(`${labelOf(issue, "#")}'s Workflow cell is not a Workflow`);
+  }
   return {
     issue,
-    workflow: cells.get("Workflow") ?? unrecorded,
+    workflow,
     pair: recorded.get("Pair"),
     filesChanged: numberOf(recorded.get("Files changed")),
     peakContext,

@@ -250,23 +250,24 @@ export function haltScopeOf(record: ResolveRecord): HaltScope {
 }
 
 // How the outcome row's "What review caught" cell labels each kept verdict, in every Workflow.
-export const caughtLabels = {
+const caughtLabels = {
   fix: "Fixed",
   propose: "Proposed",
   halt: "Halted",
 } as const satisfies Partial<Record<Verdict, string>>;
 
-// The outcome row's text; undefined when the review kept nothing.
-export function whatReviewCaughtOf(
+// Each kept verdict's group in its Workflow's own entries; undefined when the review kept nothing.
+export function caughtCellOf(
   records: ResolveRecord[],
+  entriesOf: (kept: ResolveRecord[]) => string[],
 ): string | undefined {
   const groups = Object.entries(caughtLabels).flatMap(([verdict, label]) => {
-    const caught = records
-      .filter((record) => record.verdict === verdict)
-      .map(({ claim, where }) => `${claim} (${where})`);
-    return caught.length === 0 ? [] : [`${label}: ${caught.join("; ")}.`];
+    const entries = entriesOf(
+      records.filter((record) => record.verdict === verdict),
+    );
+    return entries.length === 0 ? [] : [`${label}: ${entries.join("; ")}`];
   });
-  return groups.length === 0 ? undefined : groups.join(" ");
+  return groups.length === 0 ? undefined : groups.join(". ");
 }
 
 // A `<repo>#<n>` reference, as `coveredBy` names its ticket.

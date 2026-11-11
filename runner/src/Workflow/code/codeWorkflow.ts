@@ -8,9 +8,10 @@ import type { Command } from "../../runKnobs.ts";
 import type { TicketState, TicketStep } from "../../SpecRun/runState.ts";
 import { handoffText } from "../../stepPrompts/handoffText.ts";
 import {
+  caughtCellOf,
   implementRecordOf,
   implementRecordProblems,
-  whatReviewCaughtOf,
+  type ResolveRecord,
 } from "../../stepRecords.ts";
 import type {
   AgentSteps,
@@ -127,8 +128,18 @@ export function codeWorkflowOf({
     },
     checks,
     specEnd,
-    whatReviewCaughtOf,
+    whatReviewCaughtOf: codeReviewCaughtOf,
   };
+}
+
+// The outcome row's text: each kept finding's claim and where.
+export function codeReviewCaughtOf(
+  records: ResolveRecord[],
+): string | undefined {
+  const caught = caughtCellOf(records, (kept) =>
+    kept.map(({ claim, where }) => `${claim} (${where})`),
+  );
+  return caught === undefined ? undefined : `${caught}.`;
 }
 
 // A ticket halted before review has nothing reviewed yet; one with no code has nothing to review.

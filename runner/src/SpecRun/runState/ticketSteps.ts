@@ -192,7 +192,6 @@ export const ticketSteps = {
     workflow: Workflow,
   ): ReviewFacts {
     const facts: ReviewFacts = {
-      workflow: workflow.name,
       reviewFixes: resolver ?? "none",
       whatReviewCaught: workflow.whatReviewCaughtOf(resolveRecords),
       proposals: resolveRecords.filter(({ verdict }) => verdict === "propose")

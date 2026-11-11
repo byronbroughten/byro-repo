@@ -132,7 +132,6 @@ export class TicketLander extends SpecRunBase {
       "research",
     ).closingCommentOf(ticketSteps.readyResearchRecordOf(landingTicket));
     const facts = factsOf(landingTicket, steps, {
-      workflow: this._workflowOf(run.spec).name,
       closingComment,
       boxesUndone: [],
       reviewFixes: "skipped",

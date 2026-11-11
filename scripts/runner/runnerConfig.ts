@@ -47,20 +47,14 @@ const codeWorkflow = codeWorkflowOf({
   reviewSkillName: "code-review",
 });
 const scriptFolder = fileURLToPath(new URL(".", import.meta.url));
-const docsFolder = join(scriptFolder, "..", "..", "docs");
-// The piece checks, the Docs port over the token file doc:print reads, read only once a pull calls it, and the rule
-// sheets a piece row's review cell names rules from.
+// The piece checks, the Docs port over doc:print's token file, read only once a pull calls it, and this repo as the rules' root.
 const pieceWorkflow = pieceWorkflowOf({
   overlapCommand: ["npm", "run", "overlap", "--"],
   verifyQuotesCommand: ["npm", "run", "verify:quotes", "--"],
   documents: RestDocuments.init({
     credentialPath: join(homedir(), ".clasprc-docs.json"),
   }),
-  ruleSheetPaths: {
-    Voice: join(docsFolder, "writing-voice.md"),
-    Craft: join(docsFolder, "writing-craft.md"),
-    academic: join(docsFolder, "academic-writing-style.md"),
-  },
+  rulesRoot: join(scriptFolder, "..", ".."),
 });
 
 // The git common dir, not this file's folder, so a script run inside an issue workspace still finds the primary root.

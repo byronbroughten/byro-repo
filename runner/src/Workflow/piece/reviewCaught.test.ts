@@ -4,7 +4,8 @@ import type { ResolveRecord } from "../../stepRecords.ts";
 import { pieceReviewCaughtOf, type RuleSheets } from "./reviewCaught.ts";
 
 const sheets: RuleSheets = {
-  Voice: "## Numbers\n\n- **Open a section on its claim.** Then support it.\n",
+  Voice:
+    "## Axes\n\n- **Evidence**: a setting.\n- **Academic**: a setting.\n\n## Numbers\n\n- **Open a section on its claim.** Then support it.\n- `formal` **Write no contractions.**\n",
   Craft:
     "## Terms\n\n- **One idea per sentence.** Split a sentence that carries two.\n- **Given before new**: the order.\n",
   academic: "- **Quote nothing; paraphrase every borrowed fact.**\n",
@@ -44,6 +45,27 @@ describe("pieceReviewCaughtOf", () => {
       [
         recordOf({ axis: "spec", rule: "The draft says my landlord lied." }),
         recordOf({ axis: "spec" }),
+      ],
+      sheets,
+    );
+
+    expect(caught).toBe("Fixed: spec, spec ×2");
+  });
+
+  it("names a rule the sheet tags with an axis value", () => {
+    const caught = pieceReviewCaughtOf(
+      [recordOf({ rule: "Voice: write no contractions." })],
+      sheets,
+    );
+
+    expect(caught).toBe('Fixed: standards, Voice "Write no contractions" ×1');
+  });
+
+  it("names no Axes bullet as a rule, and holds a field label only as a field reference", () => {
+    const caught = pieceReviewCaughtOf(
+      [
+        recordOf({ axis: "spec", rule: "Evidence of the lease breach" }),
+        recordOf({ axis: "spec", rule: "My landlord's form was forged" }),
       ],
       sheets,
     );

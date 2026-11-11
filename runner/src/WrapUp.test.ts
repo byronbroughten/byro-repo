@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import { FactsFile } from "./FactsFile.ts";
 import { git } from "./GitFixture.ts";
 import { writeOutcomeRow } from "./outcomeRowWriter.ts";
+import { trackedIssues } from "./specRunHarness/trackedIssues.ts";
 import type { RecordedSession, StepAgent } from "./transcriptFacts.ts";
 import {
   commitIn,
@@ -15,6 +16,7 @@ import {
   primaryRoot,
   remoteOf,
   rootCloneOnly,
+  spec,
   subjectsOf,
   temp,
   ticket,
@@ -64,6 +66,22 @@ describe("run", () => {
         "| #218 | code | Opus medium | unrecorded | 1 | 150K → 90K | Fix (fresh resolver) | 0 | 1 | 0 | 0 | unrecorded | unrecorded | unrecorded | A stale doc link | unrecorded |",
         "",
       ].join("\n"),
+    );
+  });
+
+  it("marks a ticket of a piece spec piece from the spec's labels, with no Workflow in its facts", async () => {
+    const workspace = await workspaceWith();
+    commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
+    writeFacts();
+    github.issues.set(
+      spec.number,
+      trackedIssues.issueOf(spec.number, { labels: ["piece"], body: "" }),
+    );
+
+    await wrapUp().run(ticket);
+
+    expect(readFileSync(join(primaryRoot, outcomePath), "utf8")).toContain(
+      "| #218 | piece | Opus medium |",
     );
   });
 

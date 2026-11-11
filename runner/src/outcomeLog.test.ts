@@ -12,6 +12,7 @@ const row: OutcomeRow = {
   issue: { repo: "byro-repo", number: 218 },
   spec: { repo: "byro-repo", number: 213 },
   githubOwner: "byronbroughten",
+  workflow: "code",
   filesChanged: 7,
   facts: {},
 };
@@ -47,8 +48,8 @@ describe("outcomeFileOf", () => {
     const cells = cellsOf(
       outcomeFileOf({
         ...row,
+        workflow: "piece",
         facts: {
-          workflow: "piece",
           pair: "Sonnet high",
           account: "2",
           peakContext: [121_400],
@@ -105,7 +106,7 @@ describe("outcomeFileOf", () => {
 
 describe("writtenCellsOf", () => {
   it("reads a row's Workflow", () => {
-    const file = outcomeFileOf({ ...row, facts: { workflow: "piece" } });
+    const file = outcomeFileOf({ ...row, workflow: "piece" });
     expect(writtenCellsOf(file).get("Workflow")).toBe("piece");
   });
 

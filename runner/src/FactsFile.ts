@@ -53,11 +53,7 @@ export interface PendingResolve {
 
 export type ReviewFacts = Pick<
   WrapUpFacts,
-  | "workflow"
-  | "reviewFixes"
-  | "whatReviewCaught"
-  | "proposals"
-  | "hasUndecidedReviewItems"
+  "reviewFixes" | "whatReviewCaught" | "proposals" | "hasUndecidedReviewItems"
 >;
 
 export type ClosingFacts = Pick<WrapUpFacts, "closingComment" | "boxesUndone">;
@@ -108,7 +104,6 @@ export class FactsFile {
   setReviewFacts(
     issue: IssueRef,
     {
-      workflow,
       reviewFixes,
       whatReviewCaught,
       proposals,
@@ -117,7 +112,6 @@ export class FactsFile {
   ): FactsFile {
     return this._store(issue, {
       ...this._storedOf(issue),
-      workflow,
       reviewFixes,
       whatReviewCaught,
       proposals,

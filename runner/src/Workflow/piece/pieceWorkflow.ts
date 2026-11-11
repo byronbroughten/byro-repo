@@ -155,22 +155,28 @@ const specEnd: SpecEnd = {
   },
 };
 
-// A repo's own values: the overlap check, the quote check, the Docs port pull reads the Deliverable through and
-// the rule sheets a review cites.
+// From the root of the repo a review's rules live in.
+const ruleSheetPaths: Record<RuleSheetName, string> = {
+  Voice: "docs/writing-voice.md",
+  Craft: "docs/writing-craft.md",
+  academic: "docs/academic-writing-style.md",
+};
+
+// A repo's own values: its overlap and quote checks, the Docs port pull reads the Deliverable through and the rules' root.
 export interface PieceWorkflowInput {
   overlapCommand: Command;
   // Called with `--comment <path> --texts <folder>` appended.
   verifyQuotesCommand: Command;
   documents: DocumentsPort;
-  // Each rule sheet's path, read once a ticket's review facts are written.
-  ruleSheetPaths: Record<RuleSheetName, string>;
+  // The rule sheets are read under it once a ticket's review facts are written.
+  rulesRoot: string;
 }
 
 export function pieceWorkflowOf({
   overlapCommand,
   verifyQuotesCommand,
   documents,
-  ruleSheetPaths,
+  rulesRoot,
 }: PieceWorkflowInput): Workflow {
   return {
     name: "piece",
@@ -249,18 +255,22 @@ export function pieceWorkflowOf({
     },
     specEnd,
     whatReviewCaughtOf(records) {
-      return pieceReviewCaughtOf(records, ruleSheetsOf(ruleSheetPaths));
+      return pieceReviewCaughtOf(records, ruleSheetsOf(rulesRoot));
     },
     pull: pullRulesOf(documents),
   };
 }
 
-function ruleSheetsOf(paths: Record<RuleSheetName, string>): RuleSheets {
+function ruleSheetsOf(rulesRoot: string): RuleSheets {
   return {
-    Voice: readFileSync(paths.Voice, "utf8"),
-    Craft: readFileSync(paths.Craft, "utf8"),
-    academic: readFileSync(paths.academic, "utf8"),
+    Voice: ruleSheetOf(rulesRoot, "Voice"),
+    Craft: ruleSheetOf(rulesRoot, "Craft"),
+    academic: ruleSheetOf(rulesRoot, "academic"),
   };
+}
+
+function ruleSheetOf(rulesRoot: string, name: RuleSheetName): string {
+  return readFileSync(join(rulesRoot, ruleSheetPaths[name]), "utf8");
 }
 
 function draftingPromptOf(input: ImplementPromptInput): string {

@@ -30,7 +30,9 @@ import type {
 } from "./stepRecords.ts";
 import type { Target } from "./ticketTargets.ts";
 
-export type WorkflowName = "code" | "piece";
+const workflowNames = ["code", "piece"] as const;
+
+export type WorkflowName = (typeof workflowNames)[number];
 
 export type Landing = "code" | "research";
 
@@ -290,8 +292,14 @@ const pieceLabel = "piece";
 // The Workflows a repo's runner config builds; the core picks among them.
 export type Workflows = Record<WorkflowName, Workflow>;
 
-export function workflowNameOf(spec: TrackedIssue): WorkflowName {
-  return spec.labels.includes(pieceLabel) ? "piece" : "code";
+export function workflowNameOf({
+  labels,
+}: Pick<TrackedIssue, "labels">): WorkflowName {
+  return labels.includes(pieceLabel) ? "piece" : "code";
+}
+
+export function isWorkflowName(name: string | undefined): name is WorkflowName {
+  return workflowNames.some((workflowName) => workflowName === name);
 }
 
 export function workflowOf(spec: TrackedIssue, workflows: Workflows): Workflow {
