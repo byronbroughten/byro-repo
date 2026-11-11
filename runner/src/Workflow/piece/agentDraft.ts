@@ -3,6 +3,7 @@
 // merges a Doc read into it, and the push reads its agent Sections back out; the Doc's Markdown dialect and its split into Sections are ../../Docs/markdownDialect.ts's.
 
 import { markdownDialect } from "../../Docs/markdownDialect.ts";
+import type { NumberOrPlaceholder } from "../../promptText.ts";
 
 export type SectionAuthor = "developer" | "agent";
 
@@ -19,6 +20,10 @@ const authorMarks: Record<SectionAuthor, string> = {
 };
 
 export const agentDraft = {
+  pathOf(specNumber: NumberOrPlaceholder): string {
+    return `writing/agent-drafts/${specNumber}.md`;
+  },
+
   sectionsOf(draft: string): DraftSection[] {
     return [...markdownDialect.sectionsOf(draft)].map(([heading, body]) => {
       const [markLine = "", ...lines] = body.split("\n");
