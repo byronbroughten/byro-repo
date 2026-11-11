@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Fetch the issue with `npm run issue:read -- <repo> <n> --body` and state its title before starting. If the reference is ambiguous, ask. If the issue is a Piece rather than Research, stop and point the developer to `/implement-piece`.
 
-**Work at the primary root or in a session workspace.** Research edits no files in a repo, so no issue workspace is needed. Scratch files go in the scratchpad.
+**Work at the primary root, in a session workspace, or in the issue workspace `/start-issue` entered.** Research edits no files in a repo, so it needs no issue workspace of its own. Scratch files go in the scratchpad.
 
 ## Steps 1–7: both modes
 
