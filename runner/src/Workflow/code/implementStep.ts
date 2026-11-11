@@ -19,12 +19,12 @@ import {
   stringSchema,
   uncommittedVariantSchemas,
 } from "../../recordSchema.ts";
+import { handoffText } from "../../stepPrompts/handoffText.ts";
 import {
   implementBody,
   implementWorkspaceSection,
   ticketBindsSection,
-} from "../../stepPrompts.ts";
-import { handoffText } from "../../stepPrompts/handoffText.ts";
+} from "../../stepPrompts/implementText.ts";
 import type { ImplementPromptInput } from "../../Workflow.ts";
 
 export function implementPrompt(input: ImplementPromptInput): string {

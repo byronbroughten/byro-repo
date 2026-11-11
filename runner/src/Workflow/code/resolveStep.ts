@@ -3,7 +3,8 @@
 
 import { stepReadLine } from "../../IssueReader.ts";
 import { commitMessageLine, stepWriteLine } from "../../promptText.ts";
-import { implementBody, resolveBody } from "../../stepPrompts.ts";
+import { implementBody } from "../../stepPrompts/implementText.ts";
+import { resolveBody } from "../../stepPrompts/resolveText.ts";
 import type { ResolvePromptInput } from "../../Workflow.ts";
 
 export function resolvePrompt(input: ResolvePromptInput): string {

@@ -28,7 +28,7 @@ import {
   usageListOf,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
-import { limitResumePrompt } from "./stepPrompts.ts";
+import { limitResumePrompt } from "./stepPrompts/resumePrompts.ts";
 
 useSpecRunHarness();
 

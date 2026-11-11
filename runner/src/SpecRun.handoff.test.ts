@@ -28,7 +28,7 @@ import {
   ticketState,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
-import { handoffOnlyPrompt } from "./stepPrompts.ts";
+import { handoffOnlyPrompt } from "./stepPrompts/resumePrompts.ts";
 import { type Handoff, type ImplementRecord } from "./stepRecords.ts";
 
 useSpecRunHarness();

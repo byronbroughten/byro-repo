@@ -22,7 +22,7 @@ import {
   ticketState,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
-import { recordOnlyPrompt } from "./stepPrompts.ts";
+import { recordOnlyPrompt } from "./stepPrompts/resumePrompts.ts";
 
 useSpecRunHarness();
 

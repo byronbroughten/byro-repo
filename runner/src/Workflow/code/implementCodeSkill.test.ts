@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { implementBody } from "../../stepPrompts.ts";
+import { implementBody } from "../../stepPrompts/implementText.ts";
 import { implementCodeSkillOf } from "./implementCodeSkill.ts";
 
 const skill = implementCodeSkillOf({

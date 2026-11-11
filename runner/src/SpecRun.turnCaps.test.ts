@@ -26,7 +26,7 @@ import {
   ticketState,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
-import { moreTurnsPrompt } from "./stepPrompts.ts";
+import { moreTurnsPrompt } from "./stepPrompts/resumePrompts.ts";
 import type { ResolveRecord } from "./stepRecords.ts";
 
 useSpecRunHarness();

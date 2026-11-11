@@ -55,6 +55,17 @@ describe("implementPieceSkillOf", () => {
     });
   });
 
+  it("ends with its own drift and only-writes lines, not the code skill's", () => {
+    expect(skill).toContain(
+      "- Before review, grep the docs for every name, command or behavior your draft makes untrue, and name each in your report; never edit one.",
+    );
+    expect(skill).toContain(
+      "- Those commits are your only writes outside the workspace's files, and you make no GitHub write: never push, merge, rebase or reset. The review and wrap-up commands in the ending make every other write.",
+    );
+    expect(skill).not.toContain("the GitHub writes the ticket describes");
+    expect(skill).not.toContain("fix or delete each statement");
+  });
+
   it("names the draft and passages by placeholders a session fills in", () => {
     expect(skill).toContain("`writing/agent-drafts/<spec n>.md`");
     expect(skill).toContain("`.runner/passages/<repo>-<n>`");

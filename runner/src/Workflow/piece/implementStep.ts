@@ -22,8 +22,11 @@ import {
   stringSchema,
   uncommittedVariantSchemas,
 } from "../../recordSchema.ts";
-import { implementBody, implementWorkspaceSection } from "../../stepPrompts.ts";
 import { handoffText } from "../../stepPrompts/handoffText.ts";
+import {
+  implementBody,
+  implementWorkspaceSection,
+} from "../../stepPrompts/implementText.ts";
 import {
   implementRecordOf,
   implementRecordProblems,
