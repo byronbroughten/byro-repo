@@ -2,12 +2,9 @@
 // Deliverable's Doc through the Docs module, reading the Doc again before each write, and skips one the Doc already
 // holds, so a rerun writes nothing twice. A Section that differs from the push baseline DraftPuller.ts kept, or is
 // missing, raises a push Halt on the spec issue first, and the push writes nothing until every one is answered:
-// `overwrite` writes the agent text, `keep mine` marks the Section as the developer's in a session landing.
+// `overwrite` writes the agent text, `keep mine` marks the Section as the developer's, through DraftPusher/DraftKeeper.ts.
 // It stops on a stale revision or pending suggestions; a rerun retries. The push rules are the Workflow's, through
 // ../Workflow.ts; ReviewListPoster.ts runs it after the judge Step.
-
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
 
 import type { DocRead, Docs } from "../Docs.ts";
 import { PendingSuggestions } from "../Docs/PendingSuggestions.ts";
@@ -17,7 +14,8 @@ import { type Halt, type HaltDraft, isAnswered, pushHaltOf } from "../halts.ts";
 import { haltReplies, type PushAnswer } from "../halts/haltReplies.ts";
 import { issueRef } from "../IssueWorkspaces.ts";
 import { TicketHalted } from "../TicketHalted.ts";
-import { pullOf, pushOf, type PushRules } from "../Workflow.ts";
+import { pullOf, pushOf } from "../Workflow.ts";
+import { DraftKeeper } from "./DraftPusher/DraftKeeper.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import type { PullBaseline, Run } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
@@ -46,15 +44,8 @@ interface PushPlan {
   isHeld: boolean;
 }
 
-// The Agent draft on master, and the rules that mark its kept Sections.
-interface KeptDraft {
-  draft: string;
-  kept: Map<string, string>;
-  rules: PushRules;
-}
-
 // A Section's latest push Halt: open, answered with an option, or answered with neither, which asks again.
-type HaltState = PushAnswer | "open" | "unread";
+type HaltState = PushAnswer | "open" | "unrecognised";
 
 // A Section the pull never saw counts as empty, so adding its heading to the Doc lets the push write it.
 const emptySection = "\n";
@@ -62,6 +53,10 @@ const emptySection = "\n";
 export class DraftPusher extends SpecRunBase {
   private get haltRaiser(): HaltRaiser {
     return new HaltRaiser(this.config);
+  }
+
+  private get draftKeeper(): DraftKeeper {
+    return new DraftKeeper(this.config);
   }
 
   // The message the run stops on; undefined once the Doc holds every agent Section. Throws TicketHalted on a push Halt.
@@ -108,7 +103,12 @@ export class DraftPusher extends SpecRunBase {
         documentId,
         sections: plan.written,
       });
-      await this._keep(run, { draft, kept: plan.kept, rules });
+      await this.draftKeeper._keep(run, {
+        draft,
+        draftPath,
+        kept: plan.kept,
+        rules,
+      });
     } catch (error) {
       if (!(
         error instanceof StaleRevision || error instanceof PendingSuggestions
@@ -136,40 +136,6 @@ export class DraftPusher extends SpecRunBase {
       await this.haltRaiser._postUnpostedHalts(run);
     }
     throw new TicketHalted(issueRef.labelOf(run.spec.issue));
-  }
-
-  // Lands in a session of its own, closing no issue, since every drafting ticket has landed by the push.
-  private async _keep(
-    run: Run,
-    { draft, kept, rules }: KeptDraft,
-  ): Promise<void> {
-    if (kept.size === 0) return;
-    const { repo, number } = run.spec.issue;
-    const session = `push-${repo}-${number}`;
-    const workspace = await this.workspaces.create({ session });
-    const clone = this._cloneIn(workspace, repo);
-    const draftPath = pullOf(this._workflowOf(run.spec)).draftPathOf(
-      run.spec.issue,
-    );
-    writeFileSync(join(clone, draftPath), rules.keptOf(draft, kept));
-    await git(clone, "add", "--", draftPath);
-    const staged = await git(clone, "diff", "--cached", "--name-only");
-    if (staged.trim() !== "") {
-      const named = [...kept.keys()]
-        .map((heading) => `"${heading}"`)
-        .join(", ");
-      await git(
-        clone,
-        "commit",
-        "-m",
-        `Mark ${named} as the developer's in the Agent draft of ${issueRef.labelOf(run.spec.issue)}, for #${number}`,
-      );
-    }
-    await this.wrapUp.runSession(session);
-    this._log(
-      run,
-      `The push kept ${kept.size} Sections as the developer's in the Agent draft.`,
-    );
   }
 }
 
@@ -206,7 +172,9 @@ function pushAnswersOf(run: Run): Map<string, HaltState> {
     .reduce((answers, halt) => {
       if (halt.pushSection === undefined) return answers;
       let answer: HaltState = "open";
-      if (isAnswered(halt)) answer = haltReplies.pushAnswerOf(halt) ?? "unread";
+      if (isAnswered(halt)) {
+        answer = haltReplies.pushAnswerOf(halt) ?? "unrecognised";
+      }
       answers.set(halt.pushSection, answer);
       return answers;
     }, new Map<string, HaltState>());
@@ -225,7 +193,7 @@ function planOf(
     isHeld: false,
   };
   for (const section of sections) {
-    const { heading, markdown, pulled } = section;
+    const { heading, markdown } = section;
     const current = read.sections.get(heading);
     const answer = answers.get(heading);
     if (current === markdown) continue;
@@ -245,7 +213,7 @@ function planOf(
       plan.written.push({ ...section, pulled: current });
       continue;
     }
-    if (current !== pulled) {
+    if (isEdited(read, section)) {
       plan.drafts.push(pushHaltOf(heading, "changed"));
       continue;
     }
