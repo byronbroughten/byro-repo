@@ -5,6 +5,7 @@ import {
   outcomeFileOf,
   type OutcomeRow,
   peakContextOf,
+  writtenCellsOf,
 } from "./outcomeLog.ts";
 
 const row: OutcomeRow = {
@@ -24,6 +25,7 @@ describe("outcomeFileOf", () => {
   it("writes every fact nobody passed as unrecorded, and the runner's facts as their standalone defaults", () => {
     expect(cellsOf(outcomeFileOf(row))).toEqual([
       "#218",
+      "code",
       "unrecorded",
       "unrecorded",
       "7",
@@ -46,6 +48,7 @@ describe("outcomeFileOf", () => {
       outcomeFileOf({
         ...row,
         facts: {
+          workflow: "piece",
           pair: "Sonnet high",
           account: "2",
           peakContext: [121_400],
@@ -64,6 +67,7 @@ describe("outcomeFileOf", () => {
     );
     expect(cells).toEqual([
       "#218",
+      "piece",
       "Sonnet high",
       "2",
       "7",
@@ -85,7 +89,7 @@ describe("outcomeFileOf", () => {
     const cells = cellsOf(
       outcomeFileOf({ ...row, facts: { reviewFixes: "implementer" } }),
     );
-    expect([cells[5], cells[13]]).toEqual([
+    expect([cells[6], cells[14]]).toEqual([
       "Fix (resumed implementer)",
       "unrecorded",
     ]);
@@ -95,7 +99,23 @@ describe("outcomeFileOf", () => {
     const cells = cellsOf(
       outcomeFileOf({ ...row, facts: { reviewFixes: "skipped" } }),
     );
-    expect([cells[5], cells[13]]).toEqual(["skipped (no code)", "—"]);
+    expect([cells[6], cells[14]]).toEqual(["skipped (no code)", "—"]);
+  });
+});
+
+describe("writtenCellsOf", () => {
+  it("reads a row's Workflow", () => {
+    const file = outcomeFileOf({ ...row, facts: { workflow: "piece" } });
+    expect(writtenCellsOf(file).get("Workflow")).toBe("piece");
+  });
+
+  it("reads a row written before the Workflow column as code", () => {
+    const file = [
+      "| Issue | Pair | Files changed |",
+      "| --- | --- | --- |",
+      "| #218 | Opus medium | 7 |",
+    ].join("\n");
+    expect(writtenCellsOf(file).get("Workflow")).toBe("code");
   });
 });
 

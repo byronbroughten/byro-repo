@@ -8,6 +8,7 @@ import {
 
 const currentHeader = [
   "Issue",
+  "Workflow",
   "Pair",
   "Account",
   "Files changed",
@@ -26,6 +27,7 @@ const currentHeader = [
 
 interface RowCells {
   issue: number;
+  workflow?: string;
   files?: string;
   peak?: string;
   result?: string;
@@ -40,6 +42,7 @@ interface RowCells {
 function currentCellsOf(row: RowCells): string[] {
   return [
     `#${row.issue}`,
+    row.workflow ?? "code",
     "Opus medium",
     "1",
     row.files ?? "4",
@@ -224,7 +227,7 @@ describe("older row formats", () => {
     );
 
     expect(summary).toContain(
-      "| byro-repo#2 | Opus medium | 16 | 162K → 131K | 293K | Fix (resumed implementer) | 0 | 31 min | $5.17 | unrecorded | Triage cost column |",
+      "| byro-repo#2 | code | Opus medium | 16 | 162K → 131K | 293K | Fix (resumed implementer) | 0 | 31 min | $5.17 | unrecorded | Triage cost column |",
     );
     expect(lineOf(summary, "- byro-repo#3:")).toMatch(
       /^- byro-repo#3: Result Fix \(fresh resolver\);/,
@@ -242,7 +245,7 @@ describe("limit resumes", () => {
     ]);
 
     expect(summary).toContain(
-      "| byro-repo#2 | Opus medium | 4 | 100K | 100K | Pass | 0 | 20 min | $4.00 | 1 | $1.00 |",
+      "| byro-repo#2 | code | Opus medium | 4 | 100K | 100K | Pass | 0 | 20 min | $4.00 | 1 | $1.00 |",
     );
   });
 });
@@ -276,12 +279,36 @@ describe("medians", () => {
       }),
     ]);
 
-    expect(lineOf(summary, "- Repo byro-repo: Duration")).toBe(
-      "- Repo byro-repo: Duration 7.5 min per file (2 rows); Cost $1.00 per file (1 row)",
+    expect(lineOf(summary, "- Repo byro-repo, Workflow code:")).toBe(
+      "- Repo byro-repo, Workflow code: Duration 7.5 min per file (2 rows); Cost $1.00 per file (1 row)",
     );
-    expect(lineOf(summary, "- Repo personal: Duration")).toBe(
-      "- Repo personal: Duration no row records it; Cost $3.00 per file (1 row)",
+    expect(lineOf(summary, "- Repo personal, Workflow code:")).toBe(
+      "- Repo personal, Workflow code: Duration no row records it; Cost $3.00 per file (1 row)",
     );
+  });
+
+  it("pools piece rows apart from code rows in the same repo, reading an older row as code", async () => {
+    const summary = await summaryOf([
+      rowFileOf("byro-repo-1", "byro-repo", { issue: 2, duration: "8 min" }),
+      rowFileOf("byro-repo-3", "byro-repo", {
+        issue: 4,
+        workflow: "piece",
+        duration: "40 min",
+      }),
+      tableFileOf({
+        path: "byro-repo-1/byro-repo-5.md",
+        header: olderHeader,
+        cells: olderCellsOf(5, "Pass"),
+      }),
+    ]);
+
+    expect(lineOf(summary, "- Repo byro-repo, Workflow code:")).toBe(
+      "- Repo byro-repo, Workflow code: Duration 2 min per file (2 rows); Cost $0.66 per file (2 rows)",
+    );
+    expect(lineOf(summary, "- Repo byro-repo, Workflow piece:")).toBe(
+      "- Repo byro-repo, Workflow piece: Duration 10 min per file (1 row); Cost $1.00 per file (1 row)",
+    );
+    expect(summary).toContain("| byro-repo#4 | piece | Opus medium |");
   });
 });
 
@@ -338,7 +365,7 @@ describe("outliers", () => {
     ]);
 
     expect(outliersOf(summary, "byro-repo#5")).toEqual([
-      "- byro-repo#6: long for its size (25 min per file, over twice the repo median 5 min); costly for its size ($10.00 per file, over twice the repo median $1.00). Sessions: s6.",
+      "- byro-repo#6: long for its size (25 min per file, over twice the repo and Workflow median 5 min); costly for its size ($10.00 per file, over twice the repo and Workflow median $1.00). Sessions: s6.",
     ]);
   });
 

@@ -139,6 +139,7 @@ describe("review of one ticket outside a run", () => {
     );
     expect(commentsOn(2, "byro-repo#1's review left this")).toHaveLength(1);
     expect(ticketFacts()).toMatchObject({
+      workflow: "code",
       reviewFixes: "fresh",
       whatReviewCaught:
         "Fixed: Line 2 is wrong. (one.ts:2). Proposed: Line 1 is wrong. (one.ts:1).",

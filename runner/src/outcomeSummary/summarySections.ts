@@ -4,6 +4,7 @@ import type { OutcomeRowFile, SectionSelection } from "../outcomeSummary.ts";
 
 export interface SummaryRow {
   issue: IssueRef;
+  workflow: string;
   pair: string | undefined;
   filesChanged: number | undefined;
   peakContext: string | undefined;
@@ -93,6 +94,7 @@ function rowOf(text: string, issue: IssueRef): SummaryRow {
   const result = recorded.get("Result");
   return {
     issue,
+    workflow: cells.get("Workflow") ?? unrecorded,
     pair: recorded.get("Pair"),
     filesChanged: numberOf(recorded.get("Files changed")),
     peakContext,

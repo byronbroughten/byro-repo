@@ -10,6 +10,7 @@ import { handoffText } from "../../stepPrompts/handoffText.ts";
 import {
   implementRecordOf,
   implementRecordProblems,
+  whatReviewCaughtOf,
 } from "../../stepRecords.ts";
 import type {
   AgentSteps,
@@ -126,6 +127,7 @@ export function codeWorkflowOf({
     },
     checks,
     specEnd,
+    whatReviewCaughtOf,
   };
 }
 

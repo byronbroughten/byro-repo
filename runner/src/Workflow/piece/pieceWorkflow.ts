@@ -71,6 +71,11 @@ import {
   pieceResolvePrompt,
   pieceResolveRecordProblems,
 } from "./resolveStep.ts";
+import {
+  pieceReviewCaughtOf,
+  type RuleSheetName,
+  type RuleSheets,
+} from "./reviewCaught.ts";
 import { pieceReviewPrompt, pieceReviewRecordSchema } from "./reviewStep.ts";
 
 // The labels the Workflow reads on a ticket: a Research ticket's, and the Edit gate's.
@@ -150,18 +155,22 @@ const specEnd: SpecEnd = {
   },
 };
 
-// A repo's own values: the overlap check, the quote check and the Docs port pull reads the Deliverable through.
+// A repo's own values: the overlap check, the quote check, the Docs port pull reads the Deliverable through and
+// the rule sheets a review cites.
 export interface PieceWorkflowInput {
   overlapCommand: Command;
   // Called with `--comment <path> --texts <folder>` appended.
   verifyQuotesCommand: Command;
   documents: DocumentsPort;
+  // Each rule sheet's path, read once a ticket's review facts are written.
+  ruleSheetPaths: Record<RuleSheetName, string>;
 }
 
 export function pieceWorkflowOf({
   overlapCommand,
   verifyQuotesCommand,
   documents,
+  ruleSheetPaths,
 }: PieceWorkflowInput): Workflow {
   return {
     name: "piece",
@@ -239,7 +248,18 @@ export function pieceWorkflowOf({
       });
     },
     specEnd,
+    whatReviewCaughtOf(records) {
+      return pieceReviewCaughtOf(records, ruleSheetsOf(ruleSheetPaths));
+    },
     pull: pullRulesOf(documents),
+  };
+}
+
+function ruleSheetsOf(paths: Record<RuleSheetName, string>): RuleSheets {
+  return {
+    Voice: readFileSync(paths.Voice, "utf8"),
+    Craft: readFileSync(paths.Craft, "utf8"),
+    academic: readFileSync(paths.academic, "utf8"),
   };
 }
 

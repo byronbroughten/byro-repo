@@ -4,11 +4,13 @@
 import { join } from "node:path";
 
 import type { IssueRef } from "./IssueWorkspaces.ts";
+import type { WorkflowName } from "./Workflow.ts";
 
 export const unrecorded = "unrecorded";
 
 const columns = [
   "Issue",
+  "Workflow",
   "Pair",
   "Account",
   "Files changed",
@@ -36,7 +38,11 @@ export type WrittenColumn = Column | (typeof olderColumns)[number];
 // Who resolve's Fixes were made by; `skipped` is a ticket that needed only GitHub writes, so review had no diff to read.
 export type ReviewFixes = "none" | "implementer" | "fresh" | "skipped";
 
+// A row written before the Workflow column was a code ticket's.
+const olderRowWorkflow: WorkflowName = "code";
+
 export interface OutcomeFacts {
+  workflow?: WorkflowName;
   reviewFixes?: ReviewFixes;
   whatReviewCaught?: string;
   proposals?: number;
@@ -102,16 +108,20 @@ export function kiloOf(tokens: number): string {
   return `${Math.round(tokens / 1000)}K`;
 }
 
-// A written row file's cells by column, an older row's read under today's column names; a column no row format has is left out.
+// A written row file's cells by column, an older row's read under today's column names and as a code row; a column no
+// row format has is left out.
 export function writtenCellsOf(file: string): Map<WrittenColumn, string> {
   const lines = file.split("\n").filter((line) => line.startsWith("| "));
   const [header = "", , row = ""] = lines;
   const cells = cellsOfLine(row);
-  return cellsOfLine(header).reduce((byColumn, written, index) => {
-    const column = writtenColumnOf(written);
-    if (column !== undefined) byColumn.set(column, cells[index] ?? "");
-    return byColumn;
-  }, new Map<WrittenColumn, string>());
+  return cellsOfLine(header).reduce(
+    (byColumn, written, index) => {
+      const column = writtenColumnOf(written);
+      if (column !== undefined) byColumn.set(column, cells[index] ?? "");
+      return byColumn;
+    },
+    new Map<WrittenColumn, string>([["Workflow", olderRowWorkflow]]),
+  );
 }
 
 function writtenColumnOf(written: string): WrittenColumn | undefined {
@@ -172,6 +182,7 @@ function transcriptCellsOf(
 function cellsOf({ issue, filesChanged, facts }: OutcomeRow): string[] {
   return [
     `#${issue.number}`,
+    facts.workflow ?? olderRowWorkflow,
     facts.pair ?? unrecorded,
     facts.account ?? unrecorded,
     String(filesChanged),

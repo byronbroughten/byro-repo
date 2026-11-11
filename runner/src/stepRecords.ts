@@ -249,7 +249,8 @@ export function haltScopeOf(record: ResolveRecord): HaltScope {
   return record.haltScope ?? "spec";
 }
 
-const caughtLabels = {
+// How the outcome row's "What review caught" cell labels each kept verdict, in every Workflow.
+export const caughtLabels = {
   fix: "Fixed",
   propose: "Proposed",
   halt: "Halted",

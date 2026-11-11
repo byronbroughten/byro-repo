@@ -3,6 +3,7 @@
 import { mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
 
@@ -212,6 +213,17 @@ export function stateFolder(): string {
 }
 
 // The code Workflow with a test's own checks, beside the piece Workflow.
+// The repo's own sheets, which the piece review cell reads rule names from.
+const ruleSheetPaths = {
+  Voice: docPathOf("writing-voice.md"),
+  Craft: docPathOf("writing-craft.md"),
+  academic: docPathOf("academic-writing-style.md"),
+};
+
+function docPathOf(name: string): string {
+  return fileURLToPath(new URL(`../../docs/${name}`, import.meta.url));
+}
+
 export function workflowsWith(checks: Command[]): Workflows {
   return {
     code: codeWorkflowOf({ checks, reviewSkillName: "code-review" }),
@@ -219,6 +231,7 @@ export function workflowsWith(checks: Command[]): Workflows {
       overlapCommand: reportsSlippedOut,
       verifyQuotesCommand: redOnMisquote,
       documents,
+      ruleSheetPaths,
     }),
   };
 }

@@ -54,6 +54,8 @@ export interface Workflow {
   // A Workflow's own checks on a ticket's work, run after `checks`; a red one goes to the red-checks step as a red command does.
   ticketChecksOf?(input: TicketChecksInput): Promise<string | undefined>;
   specEnd: SpecEnd;
+  // The outcome row's "What review caught" cell; undefined when the review kept nothing.
+  whatReviewCaughtOf(records: ResolveRecord[]): string | undefined;
   // Reached through pullOf, which throws for a Workflow with no Agent draft.
   pull?: PullRules;
 }
