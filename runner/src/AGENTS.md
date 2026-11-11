@@ -33,7 +33,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Docs/docFixtures.ts` | | Loads the `documents.get` JSON fixtures in `Docs/fixtures/` that Docs tests read. |
 | `Docs/DocsRequestRefused.ts` | | The error for a request the Docs API refused, with its status. |
 | `Docs/FakeBody.ts` | | The character-per-index body, its lists and tables included, that `FakeDocuments` applies `batchUpdate` requests to. |
-| `Docs/FakeDocuments.ts` | | The in-memory Docs API Docs tests use: `documents.get` and `batchUpdate` under a revision guard. |
+| `Docs/FakeDocuments.ts` | | The in-memory Docs API Docs tests use: `documents.get` and `batchUpdate` under a revision guard, and a Doc edited as in the editor, now or just before a later write. |
 | `Docs/googleDocs.ts` | | The Google Docs layer's types: the `documents.get` body types, the `batchUpdate` requests and its port. |
 | `Docs/InlineParser.ts` | | Parses the dialect's inline Markdown back into styled text spans. |
 | `Docs/markdownDialect.ts` | | The Markdown dialect's forms, its split into Sections and its parse of a Section's body into paragraphs, flat lists and tables. |
@@ -106,6 +106,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `sleep.ts` | | A promised delay. |
 | `SpecRun.ts` | `SpecRun` | The run loop's entry: `run` over its members, `status`, `requestStop`, `review`, `resolve`, `decide`, `judgeable` and `standalone`, delegating to `SpecRun/`. |
 | `SpecRun/DraftPuller.ts` | | Runs a piece spec's drafting ticket's pull: writes and commits the Agent draft its Workflow pulls from the Doc, and keeps the push baseline. |
+| `SpecRun/DraftPusher.ts` | | Runs a piece spec's push: writes the Agent draft's agent Sections into the Doc once, stopping before any write on a Section the developer changed since the pull. |
 | `SpecRun/HaltRaiser.ts` | | Raises and posts a ticket's Halts and finds its downstream. |
 | `SpecRun/ImplementStepper.ts` | | Runs a ticket's implement step and its handoffs, and creates the kept folder a Workflow names. |
 | `SpecRun/JudgeableIssueLister.ts` | | `runner judgeable`: lists a repo's open issues by the Base's judgement, undecided review-list items or ready to close. |
@@ -115,7 +116,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/PreflightChecker.ts` | | The run's preflight over its member list: run locks, each member's refusals and the shared preflight Stop. |
 | `SpecRun/ResearchStepper.ts` | | Runs a piece spec's research ticket's research step and its handoffs, keeps its record, and runs its quote check, sending the step back on red. |
 | `SpecRun/ReviewItemDecider.ts` | | `runner decide`: records one item of the developer's own review list as decided or handled. |
-| `SpecRun/ReviewListPoster.ts` | | Posts review lists and covered-later notes, and ends the run with its Workflow's spec-end Steps, the gap check's review list and the judge Step's stop included. |
+| `SpecRun/ReviewListPoster.ts` | | Posts review lists and covered-later notes, and ends the run with its Workflow's spec-end Steps, the gap check's review list, the judge Step's stop and the push included. |
 | `SpecRun/ReviewStepper.ts` | | Runs a ticket's review and resolve steps. |
 | `SpecRun/RunLoop.ts` | | The run's ticket loop across its members, idling and end. |
 | `SpecRun/SessionReviewer.ts` | | Runs `review` and `resolve` for an interactive session. |
@@ -152,7 +153,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `transcriptFacts.ts` | `transcriptFacts` | Outcome facts computed from transcripts: pair, peaks, duration and cost, and why one is unrecorded; where a session's transcript is. |
 | `UnhandledStop.ts` | `UnhandledStop` | The outcomes the run loop doesn't handle yet, and their error. |
 | `verdicts.ts` | | A finding's axes, `spec`, `standards` and `reader`, and its verdicts. |
-| `Workflow.ts` | | The Workflow type, its spec-end Steps, source targets and pull rules, each agent step's rules and prompt input, its outcome row's review cell and the accessors that throw for a step a Workflow leaves out, and the pick of a spec's Workflow from its labels: the core's one way to a Workflow. |
+| `Workflow.ts` | | The Workflow type, its spec-end Steps, source targets, pull and push rules, each agent step's rules and prompt input, its outcome row's review cell and the accessors that throw for a step a Workflow leaves out, and the pick of a spec's Workflow from its labels: the core's one way to a Workflow. |
 | `Workflow/code/codeWorkflow.ts` | `codeWorkflow` | Builds the code Workflow from a repo's checks and review skill: each ticket's Step sequence, the Step each one goes on to, its spec-end Steps and their trigger, its agent steps' rules, resolve resuming implement, and its outcome row's review cell. |
 | `Workflow/code/gapCheck.ts` | `gapCheck` | The code gap check's prompt. |
 | `Workflow/code/implementCodeSkill.ts` | `implementCodeSkill` | Generates the `/implement-code` skill from the implement step's shared body. |
@@ -161,12 +162,12 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Workflow/code/redChecksStep.ts` | | The red-checks step's prompt and record. |
 | `Workflow/code/resolveStep.ts` | `resolveStep` | The code resolve step's prompt. |
 | `Workflow/code/reviewStep.ts` | `reviewStep` | The review step's prompt and record schema. |
-| `Workflow/piece/agentDraft.ts` | | The Agent draft file's Sections and author marks, and pull's merge of a Doc's Sections into them. |
+| `Workflow/piece/agentDraft.ts` | | The Agent draft file's Sections and author marks, pull's merge of a Doc's Sections into them, and the agent Sections the push writes. |
 | `Workflow/piece/draftingScope.ts` | `draftingScope` | A drafting ticket's scope, its named Sections or every agent Section on a `final-pass` ticket, read from its labels and worded for the prompts. |
 | `Workflow/piece/gapCheck.ts` | | The piece gap check's prompt. |
 | `Workflow/piece/implementStep.ts` | | The piece implement step's prompt, passages folder, output schema, record and record checks. |
 | `Workflow/piece/pieceChecks.ts` | | A drafting ticket's checks: overlap and the spec's length limit. |
-| `Workflow/piece/pieceWorkflow.ts` | `pieceWorkflow` | Builds the piece Workflow from a repo's overlap and quote commands and Docs port: its research and drafting Steps, research, implement, review, resolve and red-checks agent steps, its spec-end Steps and their trigger, pull rules, quote check, drafting checks, outcome row review cell and the source targets read from the spec's Supporting Material. |
+| `Workflow/piece/pieceWorkflow.ts` | `pieceWorkflow` | Builds the piece Workflow from a repo's overlap and quote commands and Docs port: its research and drafting Steps, research, implement, review, resolve and red-checks agent steps, its spec-end Steps and their trigger, pull and push rules, quote check, drafting checks, outcome row review cell and the source targets read from the spec's Supporting Material. |
 | `Workflow/piece/redChecksStep.ts` | | The piece red-checks step's prompt, fixing red piece checks in the Agent draft, and its output schema. |
 | `Workflow/piece/researchStep.ts` | | The research step's prompt, its red-quotes section, handoff comment, record checks, output schema, closing comment and Research Halt words. |
 | `Workflow/piece/resolveStep.ts` | | The piece resolve step's prompt, pointing at the verdict rules' `## Piece findings` and rerunning the piece checks after its Fixes, and its record checks, which refuse the verdict reasons a piece finding never takes. |

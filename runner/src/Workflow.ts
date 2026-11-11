@@ -3,10 +3,11 @@
 // its spec-end Steps, and every
 // collaborator that launches an agent step takes its prompt, record schema and record checks, through agentStepOf, from the Workflow
 // SpecRunBase._workflowOf picks; SpecRun/TicketSequencer.ts takes its source targets,
-// and SpecRun/DraftPuller.ts its pull rules, through pullOf.
+// SpecRun/DraftPuller.ts its pull rules, through pullOf, and SpecRun/DraftPusher.ts its push rules, through pushOf.
 // Each Workflow's own code is in Workflow/<name>/.
 // A ticket follows its spec's Workflow. Labels are Trusted, since only collaborators can add one.
 
+import type { Docs } from "./Docs.ts";
 import type { HaltQuestion } from "./halts.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { Command } from "./runKnobs.ts";
@@ -58,8 +59,17 @@ export interface Workflow {
   specEnd: SpecEnd;
   // The outcome row's "What review caught" cell; undefined when the review kept nothing.
   whatReviewCaughtOf(records: ResolveRecord[]): string | undefined;
-  // Reached through pullOf, which throws for a Workflow with no Agent draft.
+  // Reached through pullOf and pushOf, which throw for a Workflow with no Agent draft.
   pull?: PullRules;
+  push?: PushRules;
+}
+
+// The push Step: the Agent draft's agent Sections into the Deliverable's Doc, once at the spec's end.
+export interface PushRules {
+  // Each agent Section's Markdown by its heading, keyed and trimmed as DocRead.sections is.
+  agentSectionsOf(draft: string): Map<string, string>;
+  // A fresh Docs module over the Workflow's Docs port.
+  readonly docs: Docs;
 }
 
 // The pull Step: the Deliverable's Doc into the Piece's Agent draft, on the ticket's branch.
@@ -93,7 +103,8 @@ export interface TicketChecksInput {
 
 // A Step that runs once at a spec's end, rather than in each ticket; the core runs each by its name.
 // `judge` ends the run with "judge, then rerun" while any review-list item is undecided, so the Steps after it wait on the developer's judgement.
-export type SpecEndStep = "gap-check" | "judge";
+// `push` writes the Agent draft into the Deliverable once, never over a Section the developer changed since the pull.
+export type SpecEndStep = "gap-check" | "judge" | "push";
 
 export interface SpecEnd {
   // Run in order, each when a member's end finds the steps due.
@@ -334,4 +345,11 @@ export function pullOf(workflow: Workflow): PullRules {
     throw new Error(`The ${missingStepOf(workflow, "pull")}.`);
   }
   return workflow.pull;
+}
+
+export function pushOf(workflow: Workflow): PushRules {
+  if (workflow.push === undefined) {
+    throw new Error(`The ${missingStepOf(workflow, "push")}.`);
+  }
+  return workflow.push;
 }

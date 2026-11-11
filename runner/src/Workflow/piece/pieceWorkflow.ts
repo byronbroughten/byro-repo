@@ -7,7 +7,8 @@
 // command and the length limit, sending red ones to its red-checks step, redChecksStep.ts, and wrap-up lands its
 // branch, so the next ticket's pull starts from its Agent draft.
 // Once every ticket but the Edit gate has landed or closed, the spec-end Steps run: the gap check, gapCheck.ts, then the judge Step,
-// which ends a run holding an undecided review-list item with "judge, then rerun".
+// which ends a run holding an undecided review-list item with "judge, then rerun", then the push, which writes the Agent draft's
+// agent Sections into the Deliverable once; the run then ends at the Edit gate, and no agent writes the Piece after it.
 // Every step reads the Drive files the spec's Supporting Material lists, as source targets, and no others.
 // A repo's runner config builds it with its commands and Docs port, and ../../Workflow.ts registers it.
 
@@ -148,8 +149,8 @@ const draftingSteps: WorkflowStep[] = [
 ];
 
 const specEnd: SpecEnd = {
-  steps: ["gap-check", "judge"],
-  // The Edit gate stays open until the developer's edit, after the push these Steps come before, so it alone doesn't hold them.
+  steps: ["gap-check", "judge", "push"],
+  // The Edit gate stays open until the developer's edit, after the push, so it alone doesn't hold these Steps.
   isDue(waits) {
     return waits.every(isEditGateWait);
   },
@@ -162,7 +163,7 @@ const ruleSheetPaths: Record<RuleSheetName, string> = {
   academic: "docs/academic-writing-style.md",
 };
 
-// A repo's own values: its overlap and quote checks, the Docs port pull reads the Deliverable through and the rules' root.
+// A repo's own values: its overlap and quote checks, the Docs port pull and push reach the Deliverable through and the rules' root.
 export interface PieceWorkflowInput {
   overlapCommand: Command;
   // Called with `--comment <path> --texts <folder>` appended.
@@ -258,6 +259,12 @@ export function pieceWorkflowOf({
       return pieceReviewCaughtOf(records, ruleSheetsOf(rulesRoot));
     },
     pull: pullRulesOf(documents),
+    push: {
+      agentSectionsOf: agentDraft.agentSectionsOf,
+      get docs() {
+        return Docs.init(documents);
+      },
+    },
   };
 }
 

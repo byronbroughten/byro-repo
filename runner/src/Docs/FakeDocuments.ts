@@ -15,6 +15,7 @@ import type {
 export class FakeDocuments implements DocumentsPort {
   private readonly documents: GoogleDocument[];
   private revisionCount = 0;
+  private pendingChange: PendingChange | undefined;
 
   constructor(documents: GoogleDocument[]) {
     this.documents = documents.map((document) => structuredClone(document));
@@ -24,12 +25,30 @@ export class FakeDocuments implements DocumentsPort {
     return Promise.resolve().then(() => indexed(this._held(documentId)));
   }
 
+  /** Changes a held Doc as someone in the editor would; the change sets its revision. */
+  edit(documentId: string, change: DocumentChange): this {
+    const document = this._held(documentId);
+    this.documents.splice(
+      this.documents.indexOf(document),
+      1,
+      change(document),
+    );
+    return this;
+  }
+
+  /** Edits a Doc just before a later `batchUpdate`, after `skipped` others, as an edit landing between a read and a write would. */
+  editBeforeUpdate(change: DocumentChange, skipped: number): this {
+    this.pendingChange = { change, skipped };
+    return this;
+  }
+
   /** Applies every request or, on the first refused, none, as the API does. */
   batchUpdate(
     documentId: string,
     { requests, writeControl }: BatchUpdateRequest,
   ): Promise<void> {
     return Promise.resolve().then(() => {
+      this._applyPendingChange(documentId);
       const document = this._held(documentId);
       if (writeControl.requiredRevisionId !== document.revisionId) {
         throw new DocsRequestRefused(
@@ -52,6 +71,17 @@ export class FakeDocuments implements DocumentsPort {
     });
   }
 
+  private _applyPendingChange(documentId: string): void {
+    const pending = this.pendingChange;
+    if (pending === undefined) return;
+    if (pending.skipped > 0) {
+      pending.skipped -= 1;
+      return;
+    }
+    this.pendingChange = undefined;
+    this.edit(documentId, pending.change);
+  }
+
   private _held(documentId: string): GoogleDocument {
     const document = this.documents.find(
       (held) => held.documentId === documentId,
@@ -61,6 +91,13 @@ export class FakeDocuments implements DocumentsPort {
     }
     return document;
   }
+}
+
+export type DocumentChange = (document: GoogleDocument) => GoogleDocument;
+
+interface PendingChange {
+  change: DocumentChange;
+  skipped: number;
 }
 
 function indexed(document: GoogleDocument): GoogleDocument {
