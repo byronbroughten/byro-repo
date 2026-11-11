@@ -1,0 +1,7 @@
+# byro-repo#706 outcome
+
+Spec: [byro-repo#612](https://github.com/byronbroughten/byro-repo/issues/612)
+
+| Issue | Workflow | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #706 | code | Opus medium | 2 | 18 | 152K → 148K | Halted then passed (Split Halt) | 1 | 1 | 0 | 0 | 20 min | $7.38 | $6.20 | Fixed: The commit-if-staged sequence is written twice, and _keep starts a helper group that shares nothing with the Doc-writing helpers. (runner/src/SpecRun/DraftPusher.ts:142-169, runner/src/SpecRun/DraftPuller.ts:62-80); _keep looks up draftPathOf a second time and doesn't reuse the existing DraftFile type. (runner/src/SpecRun/DraftPusher.ts:83, :151-153); planOf repeats isEdited's comparisons instead of calling it. (runner/src/SpecRun/DraftPusher.ts planOf); "unread" reads as a reply never read, not one that matched neither option. (runner/src/SpecRun/DraftPusher.ts:57). Proposed: `keep mine` on a missing Section marks it as the developer's with empty text, which wipes the agent text from the Agent draft. (runner/src/SpecRun/DraftPusher.ts planOf, keep-mine branch). | 14c0c604-1dfb-4beb-b9b4-79afd54c1a5b, 7873f129-a192-4707-9d3f-da868659605a, f0f2f5ad-25ea-4175-99ee-78ba490a778b |
