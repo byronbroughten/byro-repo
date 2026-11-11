@@ -18,7 +18,6 @@ import type {
   Wait,
 } from "./SpecRun/runState.ts";
 import type {
-  DismissedOverlap,
   Finding,
   GapCheckRecord,
   Handoff,
@@ -146,7 +145,6 @@ export interface ImplementPromptInput {
   spec: IssueRef;
   title: string;
   body: string;
-  labels: string[];
   branch: string;
   // The workspace's repos on the issue branch: the issue's own plus any extras it was created with.
   branchedRepos: string[];
@@ -172,7 +170,6 @@ export interface ReviewPromptInput {
   issue: IssueRef;
   spec: IssueRef;
   title: string;
-  labels: string[];
   skillName: string;
   branch: string;
   branchedRepos: string[];
@@ -191,14 +188,11 @@ export interface ResolvePromptInput {
   issue: IssueRef;
   spec: IssueRef;
   title: string;
-  labels: string[];
   branch: string;
   branchedRepos: string[];
   workspacePath: string;
   // As the review record lists them; the prompt numbers them from 1.
   findings: Finding[];
-  // As the review record lists them; a code review's lists none.
-  dismissedOverlaps: DismissedOverlap[];
 }
 
 export interface ResolveCommits {
@@ -236,9 +230,7 @@ export interface StepResumption {
 
 export interface RedChecksPromptInput {
   issue: IssueRef;
-  spec: IssueRef;
   title: string;
-  workspacePath: string;
   branch: string;
   branchedRepos: string[];
   // Each failing check's command and the last lines of its output.
@@ -300,14 +292,26 @@ export function agentStepOf<SN extends keyof AgentSteps>(
 ): AgentSteps[SN] {
   const rules = workflow.agentSteps[name];
   if (rules === undefined) {
-    throw new Error(`The ${workflow.name} Workflow has no ${name} step.`);
+    throw new Error(`The ${missingStepOf(workflow, name)}.`);
   }
   return rules;
 }
 
+export function hasAgentStep(
+  workflow: Workflow,
+  name: keyof AgentSteps,
+): boolean {
+  return workflow.agentSteps[name] !== undefined;
+}
+
+// "<name> Workflow has no <step> step", for every message that names a step a Workflow leaves out.
+export function missingStepOf(workflow: Workflow, step: string): string {
+  return `${workflow.name} Workflow has no ${step} step`;
+}
+
 export function pullOf(workflow: Workflow): PullRules {
   if (workflow.pull === undefined) {
-    throw new Error(`The ${workflow.name} Workflow has no pull step.`);
+    throw new Error(`The ${missingStepOf(workflow, "pull")}.`);
   }
   return workflow.pull;
 }

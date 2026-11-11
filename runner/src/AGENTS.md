@@ -125,8 +125,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/StepLauncher.ts` | | Launches an agent step under the limit guard, retries a crash and resumes a step a limit cut off, delegating the limit waits to `StepLauncher/`. |
 | `SpecRun/StepLauncher/LimitWaiter.ts` | | Holds a launch until the Active account reads under its thresholds and waits out a limit hit. |
 | `SpecRun/TicketLander.ts` | | Lands a ticket: posts a research ticket's comment and raises its Research Halt, writes its facts file, runs the wrap-up and posts its review list, delegating its checks and wrap-up failures to `TicketLander/`. |
-| `SpecRun/TicketLander/MasterMerger.ts` | | Takes a ticket's wrap-up failure, merging master into its branch on a conflict and resuming the implementer to resolve it, or halting on a conflict in a Workflow with no merge-master step. |
-| `SpecRun/TicketLander/TicketChecker.ts` | | Runs a ticket's checks, its Workflow's ticket checks included, until green, resuming on red, halting at once in a Workflow with no red-checks step, and stopping on a red master. |
+| `SpecRun/TicketLander/MasterMerger.ts` | | Takes a ticket's wrap-up failure, merging master into its branch on a conflict and resuming the implementer to resolve it. |
+| `SpecRun/TicketLander/TicketChecker.ts` | | Runs a ticket's checks, its Workflow's own included, until green, resuming on red and stopping on a red master. |
 | `SpecRun/TicketSelector.ts` | | Picks the run's next ticket, reads Halt answers and has a Research Halt's approved edits applied. |
 | `SpecRun/TicketSequencer.ts` | | Runs one ticket's steps from the one it reached, walking the Step sequence its Workflow supplies, and stops one whose sequence ends short of wrap-up. |
 | `SpecRun/runState.ts` | | The run-state types and the ticket-state, targets, launch and member-blocking helper bundles several collaborators share. |
@@ -163,7 +163,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Workflow/code/reviewStep.ts` | `reviewStep` | The review step's prompt and record schema. |
 | `Workflow/piece/agentDraft.ts` | | The Agent draft file's Sections and author marks, and pull's merge of a Doc's Sections into them. |
 | `Workflow/piece/implementStep.ts` | | The piece implement step's prompt, passages folder, output schema, record and record checks. |
-| `Workflow/piece/pieceChecks.ts` | | A drafting ticket's checks: the overlap command over the ticket's scope of the Agent draft, less the hits its review dismissed, and the spec's length limit on a whole-scope ticket. |
+| `Workflow/piece/pieceChecks.ts` | | A drafting ticket's checks: overlap and the spec's length limit. |
 | `Workflow/piece/pieceWorkflow.ts` | `pieceWorkflow` | Builds the piece Workflow from a repo's overlap and quote commands and Docs port: its research and drafting Steps, research, implement, review and resolve agent steps, pull rules, quote check, drafting checks and the source targets read from the spec's Supporting Material. |
 | `Workflow/piece/researchStep.ts` | | The research step's prompt, its red-quotes section, handoff comment, record checks, output schema, closing comment and Research Halt words. |
 | `Workflow/piece/resolveStep.ts` | | The piece resolve step's prompt, pointing at the verdict rules' `## Piece findings`, and its record checks, which refuse the verdict reasons a piece finding never takes. |

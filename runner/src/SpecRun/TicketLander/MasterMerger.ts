@@ -10,6 +10,7 @@ import { issueRef } from "../../IssueWorkspaces.ts";
 import { SchemaFailure } from "../../SchemaFailure.ts";
 import type { MergeMasterRecord } from "../../stepRecords.ts";
 import { UnhandledStop } from "../../UnhandledStop.ts";
+import { hasAgentStep, missingStepOf } from "../../Workflow.ts";
 import { WrapUpFailure } from "../../WrapUpFailure.ts";
 import { HaltRaiser } from "../HaltRaiser.ts";
 import { ReviewStepper } from "../ReviewStepper.ts";
@@ -42,7 +43,7 @@ export class MasterMerger extends SpecRunBase {
       throw new UnhandledStop("wrap-up-failure", messageOf(error), logPath);
     }
     const workflow = this._workflowOf(run.spec);
-    const hasMergeMaster = workflow.agentSteps.mergeMaster !== undefined;
+    const hasMergeMaster = hasAgentStep(workflow, "mergeMaster");
     const resumes = state.conflictResumes ?? 0;
     if (error.kind === "conflict" && hasMergeMaster && resumes === 0) {
       state.conflictResumes = resumes + 1;
@@ -52,7 +53,7 @@ export class MasterMerger extends SpecRunBase {
     }
     let detail = error.message;
     if (error.kind === "conflict" && !hasMergeMaster) {
-      detail = `The wrap-up conflicts with master, and the ${workflow.name} Workflow has no merge-master step: ${detail}`;
+      detail = `The wrap-up conflicts with master, and the ${missingStepOf(workflow, "merge-master")}: ${detail}`;
     } else if (error.kind === "conflict") {
       // Its resolution never landed, so a ticket landed some other way after the Halt doesn't show it.
       this._saveMergeRecord(landingTicket, undefined);

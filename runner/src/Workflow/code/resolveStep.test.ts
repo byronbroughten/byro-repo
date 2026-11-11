@@ -7,8 +7,6 @@ describe("resolvePrompt", () => {
     issue: { repo: "byro-repo", number: 220 },
     spec: { repo: "byro-repo", number: 213 },
     title: "Finding-triage record, checker and prompt",
-    labels: [],
-    dismissedOverlaps: [],
     branch: "issue-220-finding-triage-record-checker-and-prompt",
     branchedRepos: ["byro-repo"],
     workspacePath: "/workspaces/byro-repo-issue-220",

@@ -8,6 +8,7 @@ import { commandLabelOf, messageOf } from "../../failureText.ts";
 import { issueRef } from "../../IssueWorkspaces.ts";
 import { runCommand } from "../../runCommand.ts";
 import { RunStop } from "../../RunStop.ts";
+import { hasAgentStep, missingStepOf } from "../../Workflow.ts";
 import { HaltRaiser } from "../HaltRaiser.ts";
 import { ReviewStepper } from "../ReviewStepper.ts";
 import { type Resolver, type TicketRun } from "../runState.ts";
@@ -94,14 +95,14 @@ export class TicketChecker extends SpecRunBase {
     const { run, ticket, workspace, state } = ticketRun;
     const workflow = this._workflowOf(run.spec);
     // With no red-checks step to send it back to, a red check is a Failure Halt at once.
-    const hasRedChecks = workflow.agentSteps.redChecks !== undefined;
+    const hasRedChecks = hasAgentStep(workflow, "redChecks");
     await this.haltRaiser._spendRedCheckResume(ticketRun, {
       limit: hasRedChecks ? this.config.knobs.retriesPerFailure : 0,
       failureOf: (resumes) => ({
         step: "checks",
         detail: hasRedChecks
           ? `The checks are still red after ${resumes} resume(s): ${failure}`
-          : `The checks are red, and the ${workflow.name} Workflow has no red-checks step: ${failure}`,
+          : `The checks are red, and the ${missingStepOf(workflow, "red-checks")}: ${failure}`,
         logPath: state.redChecksLogPath ?? this._progressPathOf(run),
       }),
     });
@@ -123,9 +124,7 @@ export class TicketChecker extends SpecRunBase {
         launch: {
           prompt: rules.promptOf({
             issue: ticket.issue,
-            spec: run.spec.issue,
             title: ticket.title,
-            workspacePath: workspace.path,
             branch: workspace.branch,
             branchedRepos: ticketSteps.branchedReposOf(ticketRun),
             failures: failure,

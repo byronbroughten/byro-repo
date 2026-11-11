@@ -23,9 +23,9 @@ export const finalPassLabel = "final-pass";
 const patterns = {
   // The Form field's fixed line, as the spec's Trusted text holds it.
   lengthLine: /^Length: (\d+) words$/m,
-  // A hit's first line in the overlap command's report: its number, then the shared run in quotes.
+  // A hit's first line in the overlap command's report: its number, then the shared text in quotes.
   hitLine: /^\d+\. "(.+)" \(/,
-  quotedRun: /"(.+)"/,
+  quotedText: /"(.+)"/,
   word: /[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu,
 } as const;
 
@@ -44,7 +44,8 @@ export interface DraftScope {
 }
 
 interface OverlapHit {
-  run: string;
+  // The text the Deliverable shares with a passage.
+  sharedText: string;
   // The hit as the report printed it, its Deliverable and passage lines included.
   lines: string[];
 }
@@ -122,9 +123,9 @@ async function overlapFailureOf(
       { cwd: workspacePath },
     );
     if (!isOk) return `${label} failed:\n${output}`;
-    const dismissed = (state.dismissedOverlaps ?? []).map(dismissedRunOf);
+    const dismissed = (state.dismissedOverlaps ?? []).map(dismissedTextOf);
     const unjudged = hitsOf(output).filter(
-      ({ run }) => !dismissed.includes(run.toLowerCase()),
+      ({ sharedText }) => !dismissed.includes(sharedText.toLowerCase()),
     );
     if (unjudged.length === 0) return undefined;
     return [
@@ -137,24 +138,23 @@ async function overlapFailureOf(
 }
 
 function hitsOf(report: string): OverlapHit[] {
-  const hits: OverlapHit[] = [];
-  report.split("\n").forEach((line) => {
-    const run = patterns.hitLine.exec(line)?.[1];
-    if (run !== undefined) {
-      hits.push({ run, lines: [line] });
+  return report.split("\n").reduce<OverlapHit[]>((hits, line) => {
+    const sharedText = patterns.hitLine.exec(line)?.[1];
+    if (sharedText !== undefined) {
+      hits.push({ sharedText, lines: [line] });
     } else if (line.startsWith("   ")) {
       hits.at(-1)?.lines.push(line);
     }
-  });
-  return hits;
+    return hits;
+  }, []);
 }
 
-// A review may give the hit's whole line, its quoted run or the bare run.
-function dismissedRunOf({ hit }: DismissedOverlap): string {
+// A review may give the hit's whole line, its quoted text or the bare text.
+function dismissedTextOf({ hit }: DismissedOverlap): string {
   const text = hit.trim();
-  const run =
-    patterns.hitLine.exec(text)?.[1] ?? patterns.quotedRun.exec(text)?.[1];
-  return (run ?? text).toLowerCase();
+  const sharedText =
+    patterns.hitLine.exec(text)?.[1] ?? patterns.quotedText.exec(text)?.[1];
+  return (sharedText ?? text).toLowerCase();
 }
 
 function lengthFailureOf(

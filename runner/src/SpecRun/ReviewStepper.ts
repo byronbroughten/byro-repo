@@ -89,7 +89,6 @@ export class ReviewStepper extends SpecRunBase {
         issue: ticket.issue,
         spec: run.spec.issue,
         title: ticket.title,
-        labels: ticket.labels,
         skillName: rules.skillName,
         branch: workspace.branch,
         branchedRepos: ticketSteps.branchedReposOf(ticketRun),
@@ -340,12 +339,10 @@ function resolvePromptInputOf(ticketRun: TicketRun): ResolvePromptInput {
     issue: ticket.issue,
     spec: run.spec.issue,
     title: ticket.title,
-    labels: ticket.labels,
     branch: workspace.branch,
     branchedRepos: ticketSteps.branchedReposOf(ticketRun),
     workspacePath: workspace.path,
     findings: state.findings ?? [],
-    dismissedOverlaps: state.dismissedOverlaps ?? [],
   };
 }
 
