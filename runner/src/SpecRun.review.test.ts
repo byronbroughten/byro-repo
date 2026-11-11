@@ -105,6 +105,37 @@ describe("review of one ticket outside a run", () => {
     );
   }
 
+  it("reviews a code spec's ticket by the code Workflow", async () => {
+    const agentStep = FakeAgentStep.init(reviewed());
+
+    await specRun(agentStep).review(refOf(1), { holder });
+
+    expect(agentStep.requests[0]?.prompt).not.toContain("review-piece");
+  });
+
+  it("reviews a piece spec's ticket by the piece Workflow, as a run picks it", async () => {
+    github.edit(spec.number, { labels: ["piece"] });
+    const agentStep = FakeAgentStep.init(reviewed());
+
+    await specRun(agentStep).review(refOf(1), { holder });
+
+    expect(agentStep.requests[0]?.prompt).toContain(
+      ".claude/skills/review-piece/SKILL.md",
+    );
+  });
+
+  it("reviews a Standalone piece ticket by its own label", async () => {
+    github.subIssues.set(spec.number, []);
+    github.edit(1, { labels: ["ready-for-agent", "piece"] });
+    const agentStep = FakeAgentStep.init(reviewed());
+
+    await specRun(agentStep).review(refOf(1), { holder });
+
+    expect(agentStep.requests[0]?.prompt).toContain(
+      ".claude/skills/review-piece/SKILL.md",
+    );
+  });
+
   it("writes reviewFixes none and posts nothing when the review finds nothing", async () => {
     const result = await specRun(FakeAgentStep.init(reviewed())).review(
       refOf(1),

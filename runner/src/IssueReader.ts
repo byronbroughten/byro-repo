@@ -2,6 +2,14 @@ import { createHash } from "node:crypto";
 
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import { modelFitTextOf } from "./modelFit.ts";
+import {
+  type SessionSkill,
+  sessionSkillOf,
+  type Workflows,
+} from "./Workflow.ts";
+
+// Workflow.ts is no package entry, so the scripts that print the skill take its type from here.
+export type { SessionSkill };
 
 const usage =
   "Usage: npm run issue:read -- <repo> <n> [--body] [--comments] [--hide-others]";
@@ -63,6 +71,8 @@ export interface IssueReaderConfig {
   // Prefixes a ref in another repo.
   githubOwner: string;
   allowedRepos: string[];
+  // The Workflows a run picks among, so a session's skill comes from the one a run would pick.
+  workflows: Workflows;
 }
 
 // The issue reader behind `npm run issue:read`: prints an issue with each part labelled Trusted text or Untrusted text.
@@ -118,6 +128,18 @@ export class IssueReader {
       return `not read: the body is Untrusted text, ${reason}`;
     }
     return modelFitTextOf(readable.body) ?? "no Model fit section";
+  }
+
+  // `npm run issue:start`'s skill, read from the labels alone, which are Trusted; a ticket with no parent is its own spec.
+  async sessionSkillOf(issue: IssueRef): Promise<SessionSkill> {
+    this._assertAllowed(issue.repo);
+    const { source, workflows } = this.config;
+    const ticket = await source.readableIssueOf(issue);
+    const spec =
+      ticket.parent === undefined
+        ? ticket
+        : await source.readableIssueOf(ticket.parent);
+    return sessionSkillOf({ ticket, spec }, workflows);
   }
 
   private _assertAllowed(repo: string): void {

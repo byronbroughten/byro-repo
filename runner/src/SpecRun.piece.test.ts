@@ -1733,3 +1733,51 @@ describe("run on a spec with no label", () => {
     expect(result.landed).toEqual([refOf(1)]);
   });
 });
+
+const pieceResearch = refOf(301);
+const codeTicket = refOf(302);
+
+function addPieceResearchTicket(): void {
+  addIssue(pieceResearch.number, {
+    labels: ["ready-for-agent", "piece", "research"],
+  });
+}
+
+describe("run on a Standalone ticket", () => {
+  it("runs a piece-labelled research ticket's research step, by its own label", async () => {
+    addPieceResearchTicket();
+    const agentStep = FakeAgentStep.init(
+      researched(readyRecordOf(scratchFolder())),
+    );
+
+    await specRun(agentStep, { members: [pieceResearch] }).run(pieceResearch);
+
+    expect(agentStep.requests).toHaveLength(1);
+    expect(agentStep.requests[0]?.prompt).toContain(
+      ".claude/skills/research-piece/SKILL.md",
+    );
+  });
+
+  it("runs each member of a Batch by its own label, a piece ticket and a code ticket alike", async () => {
+    addPieceResearchTicket();
+    addIssue(codeTicket.number, { labels: ["ready-for-agent", "research"] });
+    const members = [pieceResearch, codeTicket];
+    const agentStep = FakeAgentStep.init(
+      researched(readyRecordOf(scratchFolder())),
+      implemented("code.ts"),
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep, { members }).run(
+      pieceResearch,
+      codeTicket,
+    );
+
+    const [research, implement] = agentStep.requests;
+    expect(research?.prompt).toContain(
+      ".claude/skills/research-piece/SKILL.md",
+    );
+    expect(implement?.prompt).not.toContain("research-piece");
+    expect(result.landed).toContainEqual(codeTicket);
+  });
+});

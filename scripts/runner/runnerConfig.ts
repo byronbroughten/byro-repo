@@ -67,6 +67,11 @@ const pieceWorkflow = pieceWorkflowOf({
   }),
   rulesRoot: join(scriptFolder, "..", ".."),
 });
+// A run picks among them, and issue:start names a session's skill from the same pick.
+export const workflows: SpecRunConfig["workflows"] = {
+  code: codeWorkflow,
+  piece: pieceWorkflow,
+};
 
 // The git common dir, not this file's folder, so a script run inside an issue workspace still finds the primary root.
 const primaryRoot = dirname(
@@ -166,7 +171,7 @@ export function specRunConfigOf(owner: string): SpecRunConfig {
   } = issueWorkspacesConfig;
   return {
     knobs: runKnobs,
-    workflows: { code: codeWorkflow, piece: pieceWorkflow },
+    workflows,
     agentStep: ClaudeAgentStep.init({
       gworkspaceServer: gworkspaceServer(),
       permissionHook: stepPermissionHook,

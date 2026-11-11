@@ -57,7 +57,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `halts.ts` | | Halts: their comments, notices, the resume prompt and the words of the fresh Halt on an Outline edit the runner can't apply and of the push Halts, on a Section and on a Doc's pending suggestions. |
 | `halts/haltReplies.ts` | | Reads a developer's replies to a Halt: which answer it, `stop spec` and a Failure or push Halt's answer. |
 | `headlessProbe.ts` | | Launches the one-turn headless session both probes run. |
-| `IssueReader.ts` | `IssueReader` | `npm run issue:read`: prints an issue as Trusted and Untrusted text, and reads a Trusted body's Model fit line for `npm run outcome:summary`. |
+| `IssueReader.ts` | `IssueReader` | `npm run issue:read`: prints an issue as Trusted and Untrusted text, reads a Trusted body's Model fit line for `npm run outcome:summary`, and names a ticket's skill for `npm run issue:start`. |
 | `IssueWorkspaces.ts` | `IssueWorkspaces` | Creates, promotes, resumes, leases, lists and removes issue and session workspaces, delegating to `IssueWorkspaces/`. |
 | `IssueWorkspaces/BranchNamer.ts` | | Names a workspace's branch, reusing an issue's existing branch in any repo. |
 | `IssueWorkspaces/claudeEntries.ts` | `claudeEntries` | The `.claude/` entries the sandbox write-protects in a worktree, and the check that a removal can delete them. |
@@ -155,7 +155,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `transcriptFacts.ts` | `transcriptFacts` | Outcome facts computed from transcripts: pair, peaks, duration and cost, and why one is unrecorded; where a session's transcript is. |
 | `UnhandledStop.ts` | `UnhandledStop` | The outcomes the run loop doesn't handle yet, and their error. |
 | `verdicts.ts` | | A finding's axes, `spec`, `standards` and `reader`, and its verdicts. |
-| `Workflow.ts` | | The Workflow type, its spec-end Steps, source targets, pull and push rules, each agent step's rules and prompt input, its outcome row's review cell and the accessors that throw for a step a Workflow leaves out, and the pick of a spec's Workflow from its labels: the core's one way to a Workflow. |
+| `Workflow.ts` | | The Workflow type, its spec-end Steps, source targets, pull and push rules, each agent step's rules and prompt input, its outcome row's review cell and the accessors that throw for a step a Workflow leaves out, and the pick of a spec's Workflow, and an interactive session's skill, from the labels: the core's one way to a Workflow. |
 | `Workflow/code/codeWorkflow.ts` | `codeWorkflow` | Builds the code Workflow from a repo's checks and review skill: each ticket's Step sequence, the Step each one goes on to, its spec-end Steps and their trigger, its agent steps' rules, resolve resuming implement, and its outcome row's review cell. |
 | `Workflow/code/gapCheck.ts` | `gapCheck` | The code gap check's prompt. |
 | `Workflow/code/implementCodeSkill.ts` | `implementCodeSkill` | Generates the `/implement-code` skill from the implement step's shared body. |

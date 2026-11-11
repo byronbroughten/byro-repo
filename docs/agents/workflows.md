@@ -25,9 +25,9 @@ The words Piece, Deliverable, Section, Stage and Agent draft are [the writing gl
    - Piece: [`/piece-tickets`](../../.claude/skills/piece-tickets/SKILL.md), for every piece spec.
    - Both: none.
 4. **Implementation**
-   - Code: [`/runner`](../../runner/skills/runner/SKILL.md), the Supervisor; [`/start-issue`](../../.claude/skills/start-issue/SKILL.md); [`/implement-code`](../../runner/skills/implement-code/SKILL.md); [`tdd`](../../.claude/skills/tdd/SKILL.md) and the [`codebase-design`](../../.claude/skills/codebase-design/SKILL.md) it links; and [`/code-review`](../../.claude/skills/code-review/SKILL.md), the review Step's skill.
+   - Code: [`/runner`](../../runner/skills/runner/SKILL.md), the Supervisor; [`/implement-code`](../../runner/skills/implement-code/SKILL.md); [`tdd`](../../.claude/skills/tdd/SKILL.md) and the [`codebase-design`](../../.claude/skills/codebase-design/SKILL.md) it links; and [`/code-review`](../../.claude/skills/code-review/SKILL.md), the review Step's skill.
    - Piece: [`/implement-piece`](../../runner/skills/implement-piece/SKILL.md) and [`/review-piece`](../../.claude/skills/review-piece/SKILL.md), the review Step's skill; for the Research Stage, [`/research-piece`](../../.claude/skills/research-piece/SKILL.md), [`/review-research`](../../.claude/skills/review-research/SKILL.md) and `/runner`, whose Supervisor settles a one-source Research Halt answer.
-   - Both: none.
+   - Both: [`/start-issue`](../../.claude/skills/start-issue/SKILL.md), which follows the skill `issue:start` names.
 5. **Judgement**
    - Code: none.
    - Piece: [`piece.md`](../../runner/skills/judge-findings/piece.md), which `/judge-findings` reads for a piece spec; the developer's edit of the Deliverable follows the rerun's push, and [`/close-piece`](../../.claude/skills/close-piece/SKILL.md) closes out the Edit gate after it.
@@ -66,8 +66,9 @@ The words Piece, Deliverable, Section, Stage and Agent draft are [the writing gl
 | Tickets | Code | a Phase gate | `/code-tickets` | named, in the gate's body |
 | Tickets | Piece | `/piece-tickets` | `/runner` on the spec, or `/implement-piece` on the first ticket | named |
 | Tickets | Piece | the Edit gate | `/close-piece` | named, in the gate's body and the run's end message |
-| Implementation | Code | `/runner` | `/judge-findings` when a run finishes; an Interactive ticket through `/start-issue`'s steps and `/implement-code` | named |
-| Implementation | Code | `/start-issue` | `/implement-code` | named |
+| Implementation | Code | `/runner` | `/judge-findings` when a run finishes; an Interactive ticket through `/start-issue`'s steps and the skill `issue:start` names | named |
+| Implementation | Code | `/start-issue` | `/implement-code`, when `issue:start` names it | named by `issue:start`, read by path |
+| Implementation | Piece | `/start-issue` | `/research-piece`, `/close-piece` or `/implement-piece`, whichever `issue:start` names | named by `issue:start`, read by path |
 | Implementation | Code | `/implement-code` | `tdd`, the review Step (`runner -- review`), then wrap-up | named |
 | Implementation | Code | `tdd` | `codebase-design` | named |
 | Implementation | Piece | `/runner` | `/judge-findings` when a run stops at the judge Step | named |

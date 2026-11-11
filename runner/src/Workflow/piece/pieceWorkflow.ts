@@ -33,17 +33,17 @@ import {
 } from "../../stepRecords.ts";
 import { ticketSectionOf } from "../../ticketSections.ts";
 import type { Target } from "../../ticketTargets.ts";
-import type {
-  GapCheckPromptInput,
-  ImplementPromptInput,
-  PulledDraft,
-  PullInput,
-  PullRules,
-  RedChecksPromptInput,
-  ReviewPromptInput,
-  SpecEnd,
-  Workflow,
-  WorkflowStep,
+import {
+  type GapCheckPromptInput,
+  type ImplementPromptInput,
+  type PulledDraft,
+  type PullInput,
+  type PullRules,
+  type RedChecksPromptInput,
+  type ReviewPromptInput,
+  type SpecEnd,
+  type Workflow,
+  type WorkflowStep,
 } from "../../Workflow.ts";
 import { agentDraft } from "./agentDraft.ts";
 import { pieceGapCheckPrompt } from "./gapCheck.ts";
@@ -190,6 +190,11 @@ export function pieceWorkflowOf({
     name: "piece",
     stepsOf(ticket) {
       return isResearch(ticket) ? researchSteps : draftingSteps;
+    },
+    sessionSkillOf(ticket) {
+      if (isResearch(ticket)) return "research-piece";
+      if (ticket.labels.includes(ticketLabels.editGate)) return "close-piece";
+      return "implement-piece";
     },
     sourceTargetsOf,
     agentSteps: {
@@ -349,7 +354,7 @@ function pullRulesOf(documents: DocumentsPort): PullRules {
   };
 }
 
-function isResearch(ticket: TrackedIssue): boolean {
+function isResearch(ticket: Pick<TrackedIssue, "labels">): boolean {
   return ticket.labels.includes(ticketLabels.research);
 }
 
