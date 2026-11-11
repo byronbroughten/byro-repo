@@ -130,7 +130,7 @@ export function researchHaltOf({
   if (groups.length === 0) return undefined;
   return {
     question: [
-      "The research left these to settle before any drafting starts. Settle every item in one reply: the first reply answers the whole Halt.",
+      "The research left these to settle before any drafting starts. Settle every item you answer here in one reply: the first reply answers the whole Halt.",
       ...groups.map(({ heading, lines }) => `${heading}:${bulletsOf(lines)}`),
     ].join("\n\n"),
     options: groups.flatMap(({ options }) => options),
