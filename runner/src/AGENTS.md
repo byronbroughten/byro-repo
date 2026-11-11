@@ -48,7 +48,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `failureText.ts` | `failureText` | Words a thrown error or failed command, once for every caller. |
 | `FakeAgentStep.ts` | `FakeAgentStep` | The scripted agent step run-loop tests use. |
 | `FakeGitHub.ts` | | The scripted GitHub port run-loop and wrap-up tests use. |
-| `FakeIssueSource.ts` | | The scripted issue source issue-reader tests use. |
+| `FakeIssueSource.ts` | | The scripted issue source issue-reader and Outline-edit tests use. |
 | `FakeNotices.ts` | `FakeNotices` | The notice port run-loop tests read back. |
 | `FakeUsageReader.ts` | | The scripted usage reader run-loop tests use. |
 | `GhCli.ts` | `GhCli` | The real `gh` port. |
@@ -75,7 +75,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `lockFixture.ts` | | Pid-lock fixtures the lock tests share. |
 | `modelFit.ts` | `modelFit` | Reads a ticket's Model fit pair and compares pairs. |
 | `Notices.ts` | `Notices` | The notice port, its notice kinds and the run endings among them. |
-| `outlineEdits.ts` | `outlineEdits` | A Research Halt's Outline edits: their ids and words, the ones an answer approves, and their word-for-word application to a spec body's `## Outline`. |
+| `outlineApply.ts` | `outlineApply` | `npm run outline:apply`'s core: applies the Outline edits a developer's answer approves to a Trusted spec body, for an interactive `/research-piece` session. |
+| `outlineEdits.ts` | | A Research Halt's Outline edits: their schema, ids and words, the ones an answer approves, and their word-for-word application to a spec body's `## Outline`. |
 | `outcomeBackfill.ts` | `outcomeBackfill` | A one-off chore's core: fills written outcome rows' `unrecorded` transcript cells from a run state's sessions. |
 | `outcomeLog.ts` | `outcomeLog` | The outcome row file's path, table and commit message, and a written row's cells by column and its transcript cells. |
 | `outcomeRowWriter.ts` | `outcomeRowWriter` | Writes a ticket's outcome row from its facts file. |

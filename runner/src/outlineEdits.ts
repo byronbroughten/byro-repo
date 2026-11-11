@@ -1,11 +1,20 @@
 // Outline edits a Research Halt proposes: their `E<n>` ids and words, which an answer approves, and their
 // word-for-word application to a spec body's `## Outline`, which never throws and applies nothing twice.
-// The run applies them in ./SpecRun/OutlineEditApplier.ts; a repo command imports this module as `@byronbroughten/spec-runner/outlineEdits`.
+// The run applies them in ./SpecRun/OutlineEditApplier.ts; an interactive session through `npm run outline:apply`, whose core is ./outlineApply.ts.
 
+import { objectSchema, stringSchema } from "./recordSchema.ts";
 import type { OutlineEdit } from "./stepRecords.ts";
 import { ticketSectionOf } from "./ticketSections.ts";
 
 const outlineHeading = "## Outline";
+
+// The research record's edits and the edits file `npm run outline:apply` reads.
+export const outlineEditSchema = objectSchema({
+  section: stringSchema,
+  oldText: stringSchema,
+  newText: stringSchema,
+  reason: stringSchema,
+});
 
 export interface AppliedEdits {
   body: string;
@@ -22,6 +31,16 @@ export const outlineEdits = {
   textOf({ section, oldText, newText, reason }: OutlineEdit): string {
     return `${section}: replace "${oldText}" with "${newText}" (${reason})`;
   },
+
+  // The ids of `edits`, each found by `indexOf` in its Halt's `proposed` list.
+  idsOf(proposed: OutlineEdit[], edits: OutlineEdit[]): string {
+    return edits
+      .map((edit) => outlineEdits.idOf(proposed.indexOf(edit)))
+      .join(", ");
+  },
+
+  // Why an approved edit wasn't applied, after "each one's" or "whose".
+  unappliedReason: "old text isn't in the spec's `## Outline` exactly once",
 
   // An edit as a Halt lists it, under its id.
   lineOf(edit: OutlineEdit, index: number): string {

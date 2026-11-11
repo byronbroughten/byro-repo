@@ -26,7 +26,7 @@ The words Piece, Deliverable, Section, Stage and Agent draft are [the writing gl
    - Both: none.
 4. **Implementation**
    - Code: [`/runner`](../../runner/skills/runner/SKILL.md), the Supervisor; [`/start-issue`](../../.claude/skills/start-issue/SKILL.md); [`/implement-code`](../../runner/skills/implement-code/SKILL.md); [`tdd`](../../.claude/skills/tdd/SKILL.md) and the [`codebase-design`](../../.claude/skills/codebase-design/SKILL.md) it links; and [`/code-review`](../../.claude/skills/code-review/SKILL.md), the review Step's skill.
-   - Piece: [`/implement-piece`](../../runner/skills/implement-piece/SKILL.md) and the [`/review-piece`](../../.claude/skills/review-piece/SKILL.md) it follows; for the Research Stage, [`/research-piece`](../../.claude/skills/research-piece/SKILL.md) and [`/review-research`](../../.claude/skills/review-research/SKILL.md).
+   - Piece: [`/implement-piece`](../../runner/skills/implement-piece/SKILL.md) and the [`/review-piece`](../../.claude/skills/review-piece/SKILL.md) it follows; for the Research Stage, [`/research-piece`](../../.claude/skills/research-piece/SKILL.md), [`/review-research`](../../.claude/skills/review-research/SKILL.md) and `/runner`, whose Supervisor settles a one-source Research Halt answer.
    - Both: none.
 5. **Judgement**
    - Code: [`/judge-findings`](../../runner/skills/judge-findings/SKILL.md).
@@ -74,10 +74,12 @@ The words Piece, Deliverable, Section, Stage and Agent draft are [the writing gl
 | Implementation | Piece | `/implement-piece` | wrap-up (`npm run wrap-up -- <repo> <n>`), once the developer has finished editing | named |
 | Implementation | Piece | `/research-piece` | `/implement-piece`, when the issue is a Piece | named |
 | Implementation | Piece | `/research-piece` | `/review-research` on the draft comment, before posting, read as a file since it is user-invoked | named |
-| Implementation | Piece | `/research-piece` | the Research wrap-up (`npm run wrap-up -- <repo> <n> --no-code`) | named |
+| Implementation | Piece | `/research-piece` | `/runner`'s step 6, on an `another source` answer, read as a file since it is user-invoked | named |
+| Implementation | Piece | `/research-piece` | wrap-up (`npm run wrap-up -- <repo> <n> --no-code`), once the developer has answered its wanted facts and proposed Outline edits | named |
+| Implementation | Piece | `/runner`, the Supervisor | `/piece-tickets`, through the developer, on an `another source` answer larger than one fact from one Drive file | named |
 | Implementation | Piece | the research Step | `/research-piece`'s first seven steps, its `/review-research` pass included, read as a file | named, read by path |
 | Implementation | Piece | any | `/review-research`, on a posted Research issue's findings | you invoke it |
-| Implementation | Piece | the Research wrap-up | `/implement-piece` on the next ticket | you invoke it |
+| Implementation | Piece | a Research issue's wrap-up | `/implement-piece` on the next ticket | you invoke it |
 | Judgement | Code | `/judge-findings` | `/to-code-style` and `/mine-outcomes` when it closes a spec; tickets filed by `/code-tickets`' conventions | named |
 | Judgement | Piece | the developer's edit | wrap-up | you invoke it |
 | Judgement | Piece | the developer's edit | `/to-writing-style`, on the Piece's Agent draft | you invoke it |
@@ -145,7 +147,9 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | `npm run overlap` | `/review-piece` runs it; `/implement-piece` reruns it after a fix |
 | `npm run pdf:text` and the page-range command in [`pdf-pages.md`](../pdf-pages.md) | `/research-piece` dumps text; `/grill-piece` and `/review-research` count and print pages |
 | Sub-issues and native blocking edges | `/piece-tickets` sets them; `/review-piece` reads the parent through `gh api` |
-| The gworkspace tools (Drive and Docs) | `/grill-piece`, `/implement-piece`, `/research-piece` |
+| The gworkspace tools (Drive and Docs) | `/grill-piece`, `/implement-piece`, `/research-piece`, `/runner` on an `another source` answer |
+| `npm run verify:quotes` | `/research-piece` and the research Step check the fact list; `/runner` checks an addendum |
+| The Outline edits' code (`runner/src/outlineEdits.ts`) | a run applies an answered Research Halt's; `/research-piece` applies the developer's through `npm run outline:apply` |
 
 ## Out of scope
 
