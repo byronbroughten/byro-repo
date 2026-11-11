@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { startReportOf } from "./startReport.ts";
+import { type StartedTicket, startReportOf } from "./startReport.ts";
 
 const path = "/repo/.claude/worktrees/byro-repo-issue-357-slug";
 const ticketText = "## Model fit (Trusted text)\n\nSonnet medium";
-const ticket = { skill: "implement-code", text: ticketText };
+const ticket: StartedTicket = { skill: "implement-code", text: ticketText };
 const skillLine = "Skill: /implement-code";
 const started = { path, hasLease: true, cwd: "/repo", ticket };
 
@@ -14,7 +14,7 @@ describe("startReportOf", () => {
   });
 
   it("names the skill it is given", () => {
-    const piece = { ...ticket, skill: "research-piece" };
+    const piece: StartedTicket = { ...ticket, skill: "research-piece" };
     expect(startReportOf({ ...started, ticket: piece })).toBe(
       `${path}\nSkill: /research-piece\n${ticketText}`,
     );
