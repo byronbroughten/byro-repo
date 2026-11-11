@@ -12,7 +12,7 @@ import {
   proposeReasons,
   type ResolveRecord,
 } from "./stepRecords.ts";
-import { axes, type Verdict, verdicts } from "./verdicts.ts";
+import { axes, type Verdict, verdicts, verdictWords } from "./verdicts.ts";
 import type {
   ResolveCommits,
   ResolvePromptInput,
@@ -209,7 +209,7 @@ const verdictRules: Record<Verdict, (record: ResolveRecord) => string[]> = {
     brokenRules([
       [
         !isOneOf(dismissReasons, reason),
-        reasonRule("Dismiss", dismissReasons, reason),
+        reasonRule("dismiss", dismissReasons, reason),
       ],
       [
         reason === "covered-later" && issueRefOf(coveredBy) === undefined,
@@ -235,16 +235,16 @@ const verdictRules: Record<Verdict, (record: ResolveRecord) => string[]> = {
     brokenRules([
       [
         !isOneOf(proposeReasons, reason),
-        reasonRule("Propose", proposeReasons, reason),
+        reasonRule("propose", proposeReasons, reason),
       ],
-      [isBlank(recommendation), recommendationRule("Propose")],
+      [isBlank(recommendation), recommendationRule("propose")],
       [
         reason === "ticket" && isBlank(draftIssueTitle),
         "a Propose `ticket` needs `draftIssueTitle`",
       ],
     ]),
   halt: ({ recommendation }) =>
-    brokenRules([[isBlank(recommendation), recommendationRule("Halt")]]),
+    brokenRules([[isBlank(recommendation), recommendationRule("halt")]]),
 };
 
 function keepReasonRules({
@@ -284,16 +284,16 @@ function brokenRules(rules: [isBroken: boolean, rule: string][]): string[] {
 }
 
 function reasonRule(
-  verdict: "Dismiss" | "Propose",
+  verdict: "dismiss" | "propose",
   reasons: readonly string[],
   reason: string | undefined,
 ): string {
   const given = reason === undefined ? "none" : `\`${reason}\``;
-  return `a ${verdict} needs reason ${codeListOf(reasons)}, but has ${given}`;
+  return `a ${verdictWords[verdict]} needs reason ${codeListOf(reasons)}, but has ${given}`;
 }
 
-function recommendationRule(verdict: "Propose" | "Halt"): string {
-  return `a ${verdict} needs \`recommendation\``;
+function recommendationRule(verdict: "propose" | "halt"): string {
+  return `a ${verdictWords[verdict]} needs \`recommendation\``;
 }
 
 // A token with a `/` or a `.`, then a line: `runner/src/SpecRun.ts:88`, `.gitignore:23`. A bare `foo:3` fails.

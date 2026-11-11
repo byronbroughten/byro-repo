@@ -6,3 +6,11 @@ export const axes = ["standards", "spec", "reader"] as const;
 
 export type Verdict = (typeof verdicts)[number];
 export type Axis = (typeof axes)[number];
+
+// The word a review list, a record check or a prompt shows for each verdict.
+export const verdictWords = {
+  dismiss: "Dismiss",
+  fix: "Fix",
+  propose: "Propose",
+  halt: "Halt",
+} as const satisfies Record<Verdict, string>;

@@ -10,22 +10,14 @@ import {
   sectionOf,
   stepWriteLine,
 } from "../../promptText.ts";
-import {
-  findingProblem,
-  numberedFindingsOf,
-  resolveRecordProblems,
-} from "../../resolveRecords.ts";
-import {
-  implementBody,
-  resolveRecordFields,
-  resolveRules,
-} from "../../stepPrompts.ts";
+import { findingProblem, resolveRecordProblems } from "../../resolveRecords.ts";
+import { implementBody, resolveBody } from "../../stepPrompts.ts";
 import type {
   DismissReason,
   ProposeReason,
   ResolveRecord,
 } from "../../stepRecords.ts";
-import type { Verdict } from "../../verdicts.ts";
+import { type Verdict, verdictWords } from "../../verdicts.ts";
 import type { ResolvePromptInput } from "../../Workflow.ts";
 import { passagesFolderOf } from "./implementStep.ts";
 
@@ -33,15 +25,14 @@ const pieceFindingsHeading = "## Piece findings";
 
 interface UnusedReason {
   verdict: Verdict;
-  verdictName: string;
   reason: DismissReason | ProposeReason;
 }
 
 // The verdict reasons a piece finding never takes, as the verdict rules' piece section lists them.
 const unusedReasons: UnusedReason[] = [
-  { verdict: "propose", verdictName: "Propose", reason: "ticket" },
-  { verdict: "dismiss", verdictName: "Dismiss", reason: "kept" },
-  { verdict: "dismiss", verdictName: "Dismiss", reason: "tooling-enforced" },
+  { verdict: "propose", reason: "ticket" },
+  { verdict: "dismiss", reason: "kept" },
+  { verdict: "dismiss", reason: "tooling-enforced" },
 ];
 
 export interface PieceResolvePromptInput extends ResolvePromptInput {
@@ -49,15 +40,14 @@ export interface PieceResolvePromptInput extends ResolvePromptInput {
 }
 
 export function pieceResolvePrompt(input: PieceResolvePromptInput): string {
-  const { issue, title, branch, findings } = input;
+  const { branch, findings } = input;
   return [
     `You are the resolve step of an unattended run on a piece spec's drafting ticket. Nobody is watching this session: never ask a question or wait for an answer.
 
-The review of ${issue.repo}#${issue.number}, "${title}", reported the findings below, each with its axis and its reviewer's suggested verdict. ${resolveRules} A piece finding's verdict follows the \`${pieceFindingsHeading}\` section of that doc. Your working directory is the ticket's issue workspace root, on the ticket's branch, \`${branch}\`. ${stepReadLine}`,
+${resolveBody.findingsOf(input)} A piece finding's verdict follows the \`${pieceFindingsHeading}\` section of that doc. Your working directory is the ticket's issue workspace root, on the ticket's branch, \`${branch}\`. ${stepReadLine}`,
     fixingSection(input),
     workingSection(input),
-    `## The record\n\nReturn \`records\`, ${resolveRecordFields}`,
-    `## Findings\n\n${numberedFindingsOf(findings)}`,
+    resolveBody.recordAndFindingsOf(findings),
   ].join("\n\n");
 }
 
@@ -79,9 +69,9 @@ function workingSection({ spec, draftPath }: PieceResolvePromptInput): string {
     implementBody.oneCommand,
     stepWriteLine,
     commitMessageLine,
-    `Commit the Fixes on the ticket's branch, separate from the implement commit: \`git -C <clone> add ${draftPath}\` in the \`${spec.repo}\` clone, then \`git -C <clone> commit\`. Commit nothing when no finding is a Fix.`,
-    "A fix that would reverse a spec decision is reverted in a further commit and resolved, saying why, as a Propose `decision`, or for a `spec`-axis finding as a Halt scoped to the downstream tickets.",
-    "Never amend, push, merge, rebase or reset, never comment on, file or close an issue, and never run the wrap-up. The runner acts on your Propose and Halt verdicts.",
+    `Commit the Fixes on the ticket's branch, separate from the implement commit: \`git -C <clone> add ${draftPath}\` in the \`${spec.repo}\` clone, then \`git -C <clone> commit\`. ${resolveBody.commitNothing}`,
+    `A fix that would reverse a spec decision ${resolveBody.revertedAs}`,
+    resolveBody.onlyWrites,
   ]);
 }
 
@@ -108,7 +98,7 @@ function unusedReasonProblems({
   return [
     findingProblem(
       finding,
-      `a piece finding never takes a ${unused.verdictName} \`${unused.reason}\``,
+      `a piece finding never takes a ${verdictWords[unused.verdict]} \`${unused.reason}\``,
     ),
   ];
 }
