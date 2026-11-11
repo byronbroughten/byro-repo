@@ -1,0 +1,7 @@
+# byro-repo#643 outcome
+
+Spec: [byro-repo#612](https://github.com/byronbroughten/byro-repo/issues/612)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #643 | Opus medium | 4 | 16 | 155K → 178K | Halted then passed (Split Halt) | 1 | 1 | 0 | 0 | 22 min | $7.49 | $6.11 | Fixed: labels, resolve's dismissedOverlaps and red-checks spec/workspacePath are added to the prompt inputs, but no prompt reads them (runner/src/Workflow.ts prompt inputs); The 'Workflow has no <x> step' phrase and the has-step test are duplicated (TicketChecker.ts:104, MasterMerger.ts:55); hitsOf builds an array with forEach and push (runner/src/Workflow/piece/pieceChecks.ts:139-150); 'run' collides with the runner's spec-run term (runner/src/Workflow/piece/pieceChecks.ts:47,153); The new Files rows describe behaviour (runner/src/AGENTS.md:128,129,166); The red-checks Failure Halt fact is duplicated, and the list's commas are ambiguous (docs/agents/workflows.md:47). Proposed: issue/spec/title/branch/branchedRepos/workspacePath form a data clump (runner/src/Workflow.ts prompt-input interfaces). | 036d777d-a5e2-4754-88dd-e50e9701c67b, 4add229e-9d5f-488f-882b-7fa9123a8095, 69fdc760-1494-41d1-83cc-9a4c9417b07c |
