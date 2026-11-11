@@ -189,9 +189,12 @@ export class ReviewListPoster extends SpecRunBase {
     }
     if (count === undefined) count = await this._undecidedCountOf(run);
     const isLeftOpen = run.isStandalone && count.items > 0;
+    const ended = endMessageOf(run.landed, waits, isLeftOpen);
+    const nextLine =
+      steps.length > 0 ? specEnd.nextLineOf(run.spec, waits) : undefined;
     const message = this._withRerunLine(
       run,
-      endMessageOf(run.landed, waits, isLeftOpen),
+      nextLine === undefined ? ended : `${ended} ${nextLine}`,
       waits,
     );
     return this._end(

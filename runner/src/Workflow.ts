@@ -112,6 +112,8 @@ export interface SpecEnd {
   // Run in order, each when a member's end finds the steps due.
   steps: SpecEndStep[];
   isDue(waits: Wait[]): boolean;
+  // The line a run's end adds once its steps have run: where the developer goes next; undefined for none.
+  nextLineOf(spec: TrackedIssue, waits: Wait[]): string | undefined;
 }
 
 export interface AgentSteps {

@@ -154,6 +154,13 @@ const specEnd: SpecEnd = {
   isDue(waits) {
     return waits.every(isEditGateWait);
   },
+  nextLineOf(spec, waits) {
+    const gate = waits.find(isEditGateWait);
+    const documentId = deliverableIdOf(spec);
+    if (gate === undefined || documentId === undefined) return undefined;
+    const { repo, number } = gate.ticket;
+    return `Edit the Deliverable in its Doc, ${docLinkOf(documentId)}, then start the Edit gate: \`/start-issue ${repo} ${number}\`.`;
+  },
 };
 
 // From the root of the repo a review's rules live in.
@@ -315,11 +322,17 @@ function driveIdsOf(body: string, heading: string): string[] {
   return section.match(driveIdPattern) ?? [];
 }
 
+function deliverableIdOf({ body }: TrackedIssue): string | undefined {
+  return driveIdsOf(body, specHeadings.deliverable)[0];
+}
+
+function docLinkOf(documentId: string): string {
+  return `https://docs.google.com/document/d/${documentId}/edit`;
+}
+
 function pullRulesOf(documents: DocumentsPort): PullRules {
   return {
-    deliverableOf({ body }) {
-      return driveIdsOf(body, specHeadings.deliverable)[0];
-    },
+    deliverableOf: deliverableIdOf,
     draftPathOf,
     async pulledOf({ documentId, draft }: PullInput): Promise<PulledDraft> {
       const read = await Docs.init(documents).read(documentId);
