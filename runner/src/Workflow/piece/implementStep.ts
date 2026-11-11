@@ -12,6 +12,7 @@ import {
   type NumberOrPlaceholder,
   sectionOf,
   stepWriteLine,
+  unattendedRunLine,
 } from "../../promptText.ts";
 import {
   arraySchema,
@@ -122,7 +123,7 @@ export interface PieceImplementPromptInput extends ImplementPromptInput {
 export function pieceImplementPrompt(input: PieceImplementPromptInput): string {
   const { issue, title, body, latestHandoff } = input;
   return [
-    `You are the implement step of an unattended run on a piece spec's drafting ticket. Draft ${issue.repo}#${issue.number}, "${title}". Nobody is watching this session: never ask a question or wait for an answer.`,
+    `You are the implement step of an unattended run on a piece spec's drafting ticket. Draft ${issue.repo}#${issue.number}, "${title}". ${unattendedRunLine()}`,
     implementWorkspaceSection(input),
     draftingSection(input),
     `## GitHub\n\n- ${noGitHubWriteLine}\n- ${stepReadLine}`,

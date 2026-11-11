@@ -2,7 +2,7 @@
 // prompts, the shared body of the implement prompt, its workspace section, the resolve rules,
 // record fields and shared prompt text, and the skills' shared opening and ending. Each step's own prompt stays in its file.
 
-import { codeListOf, sectionOf } from "./promptText.ts";
+import { codeListOf, sectionOf, unattendedRunLine } from "./promptText.ts";
 import { numberedFindingsOf } from "./resolveRecords.ts";
 import { dismissReasons, type Finding, proposeReasons } from "./stepRecords.ts";
 import type { ImplementPromptInput, ResolvePromptInput } from "./Workflow.ts";
@@ -12,12 +12,10 @@ export const handoffOnlyPrompt =
   "Stop now; return a handoff record only, no file changes.";
 
 // Sent with --resume once a usage limit that cut a step off has reset or the Active account has changed.
-export const limitResumePrompt =
-  "A usage limit cut the previous run off; it has passed. Check the tree you left and carry on where you stopped. Nobody is watching this session: never ask a question or wait for an answer.";
+export const limitResumePrompt = `A usage limit cut the previous run off; it has passed. Check the tree you left and carry on where you stopped. ${unattendedRunLine()}`;
 
 // Sent with --resume on a `retry record` answer, after a record failed its check once the step had committed.
-export const recordOnlyPrompt =
-  "Your implement record failed the runner's check. Change no files: return the implement record again, matching the schema, with each branch's current sha. Nobody is watching this session: never ask a question or wait for an answer.";
+export const recordOnlyPrompt = `Your implement record failed the runner's check. Change no files: return the implement record again, matching the schema, with each branch's current sha. ${unattendedRunLine()}`;
 
 export const treeResetNote =
   "Any uncommitted work was set aside on a backup branch and the tree reset to its last commit, so check what is committed first.";
@@ -25,7 +23,7 @@ export const treeResetNote =
 // Sent with --resume on a `resume +N turns` answer, after the step hit its turn cap.
 export function moreTurnsPrompt(turns: number, isTreeReset: boolean): string {
   const resetNote = isTreeReset ? ` ${treeResetNote}` : "";
-  return `You hit your turn cap; the developer gave you ${turns} more turns.${resetNote} Finish the ticket as before and return the implement record. Nobody is watching this session: never ask a question or wait for an answer.`;
+  return `You hit your turn cap; the developer gave you ${turns} more turns.${resetNote} Finish the ticket as before and return the implement record. ${unattendedRunLine()}`;
 }
 
 // How any resolver judges, shared with the implementer through implementBody.resolving.

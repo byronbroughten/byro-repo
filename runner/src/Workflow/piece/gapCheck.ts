@@ -9,6 +9,7 @@ import {
   gapCheckTicketLineOf,
   gapRecordSectionOf,
   sectionOf,
+  unattendedRunLine,
 } from "../../promptText.ts";
 import type { GapCheckPromptInput, GapCheckTicket } from "../../Workflow.ts";
 
@@ -23,7 +24,7 @@ export function pieceGapCheckPrompt({
   draftPath,
 }: PieceGapCheckPromptInput): string {
   return [
-    `You are the gap check of an unattended run on a piece spec. Nobody is watching this session: never ask a question or wait for an answer.
+    `You are the gap check of an unattended run on a piece spec. ${unattendedRunLine()}
 
 Every ticket of the piece spec ${spec.repo}#${spec.number}, "${title}", has landed or closed, but the Edit gate, the developer's \`ready-for-human\` ticket to edit the Deliverable. List what the spec asks for that the Agent draft doesn't give. Your working directory is the primary root, on master, where the Agent draft every landed ticket drafted is: \`${draftPath}\`. ${stepReadLine}`,
     sectionOf("What you check", [

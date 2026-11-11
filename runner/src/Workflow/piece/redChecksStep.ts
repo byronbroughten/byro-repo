@@ -3,7 +3,11 @@
 // ../../SpecRun/TicketLander/TicketChecker.ts runs it up to the `retriesPerFailure` knob's times; still red is a Failure Halt.
 
 import { stepReadLine } from "../../IssueReader.ts";
-import { commitMessageLine, sectionOf } from "../../promptText.ts";
+import {
+  commitMessageLine,
+  sectionOf,
+  unattendedRunLine,
+} from "../../promptText.ts";
 import { objectSchema, stringSchema } from "../../recordSchema.ts";
 import { implementBody } from "../../stepPrompts.ts";
 import type { RedChecksPromptInput } from "../../Workflow.ts";
@@ -16,7 +20,7 @@ export interface PieceRedChecksPromptInput extends RedChecksPromptInput {
 export function pieceRedChecksPrompt(input: PieceRedChecksPromptInput): string {
   const { issue, title, branch, failures } = input;
   return [
-    `You are the red-checks step of an unattended run on a piece spec's drafting ticket. Nobody is watching this session: never ask a question or wait for an answer.
+    `You are the red-checks step of an unattended run on a piece spec's drafting ticket. ${unattendedRunLine()}
 
 The runner's piece checks failed on ${issue.repo}#${issue.number}, "${title}", after its last commit. Turn them green. Your working directory is the ticket's issue workspace root, on the ticket's branch, \`${branch}\`. ${stepReadLine}`,
     fixingSection(input),

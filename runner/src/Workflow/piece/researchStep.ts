@@ -13,7 +13,7 @@ import {
   outlineEdits as outlineEditWords,
   outlineEditSchema,
 } from "../../outlineEdits.ts";
-import { bulletsOf } from "../../promptText.ts";
+import { bulletsOf, unattendedRunLine } from "../../promptText.ts";
 import {
   arraySchema,
   blockerSchema,
@@ -37,7 +37,7 @@ export const quoteSendBacks = 1;
 export function researchPrompt(input: ResearchPromptInput): string {
   const { issue, title, body, latestHandoff, redQuotes } = input;
   return [
-    `You are the research step of an unattended run. Research ${issue.repo}#${issue.number}, "${title}". Nobody is watching this session: never ask a question or wait for an answer.`,
+    `You are the research step of an unattended run. Research ${issue.repo}#${issue.number}, "${title}". ${unattendedRunLine()}`,
     promptSections.steps,
     `## GitHub\n\n- Make no GitHub write: the runner posts your comment once its quote check passes, and you post nothing.\n- ${stepReadLine}`,
     promptSections.record,

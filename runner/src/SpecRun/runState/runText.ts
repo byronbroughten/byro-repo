@@ -35,6 +35,11 @@ export const runText = {
     return `npm run runner -- ${owner}/${repo} ${numbers}`;
   },
 
+  // A push's, a ticket's and a spec-end Step's stop all tell the operator to retry alike.
+  rerunToRetryOf(rerunCommand: string): string {
+    return `Rerun to retry it: \`${rerunCommand}\`.`;
+  },
+
   // A ticket's blocked wait and a Batch member's end both say it alike.
   blockedBy(label: string, blockers: string[]): string {
     return `${label} is blocked by ${blockers.join(", ")}`;

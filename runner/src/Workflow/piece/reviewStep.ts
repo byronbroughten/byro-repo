@@ -3,7 +3,11 @@
 // plus the overlap hits it judged no copy. pieceWorkflow.ts registers it; ../../SpecRun/ReviewStepper.ts launches it.
 
 import { stepReadLine } from "../../IssueReader.ts";
-import { codeListOf, reviewFindingsText } from "../../promptText.ts";
+import {
+  codeListOf,
+  reviewFindingsText,
+  unattendedRunLine,
+} from "../../promptText.ts";
 import {
   arraySchema,
   objectSchema,
@@ -33,7 +37,7 @@ export function pieceReviewPrompt({
 }: PieceReviewPromptInput): string {
   const passagesFolder = passagesFolderIn(workspacePath, issue);
   const scope = draftingScope.sectionsOf(labels);
-  return `You are the review step of an unattended run on a piece spec's drafting ticket. Nobody is watching this session: never ask a question or wait for an answer.
+  return `You are the review step of an unattended run on a piece spec's drafting ticket. ${unattendedRunLine()}
 
 Read \`.claude/skills/${skillName}/SKILL.md\` and follow it to review ${issue.repo}#${issue.number}, "${title}", on the ${codeListOf(pieceAxes, "and")} axes. It is user-invoked, so read it by that path rather than calling the Skill tool. Your working directory is the ticket's issue workspace root, on the ticket's branch, \`${branch}\`. The draft input is the Agent draft, \`${draftPath}\` in the \`${spec.repo}\` clone, and the passages folder, \`${passagesFolder}\`; the ticket's spec is ${spec.repo}#${spec.number}. The in-scope text is ${scope}. ${stepReadLine}
 

@@ -15,6 +15,11 @@ export const stepWriteLine =
 export const commitMessageLine =
   "In a commit message, never put a closing keyword (`close`, `fix`, `resolve` or one of their forms) before an issue reference: GitHub would close the issue once the commit reaches master. Write `review of #512` or `for #512` instead.";
 
+// Every step prompt tells its session no one will answer.
+export function unattendedRunLine(): string {
+  return "Nobody is watching this session: never ask a question or wait for an answer.";
+}
+
 export function codeListOf(
   words: readonly string[],
   conjunction: "or" | "and" = "or",
