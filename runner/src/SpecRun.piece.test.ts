@@ -210,6 +210,18 @@ describe("implement on a piece spec's drafting ticket", () => {
     expect(haltComments()[0]).toContain("sectionsDrafted");
   });
 
+  it("halts on a committed record naming a Section the Agent draft lacks", async () => {
+    addDraftingSpec();
+
+    await specRun(
+      FakeAgentStep.init(drafted({ sectionsDrafted: ["The crosing"] })),
+    ).run(spec);
+
+    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+    expect(haltComments()[0]).toContain("Failure Halt");
+    expect(haltComments()[0]).toContain("The crosing");
+  });
+
   it("posts a handoff and gives the fresh step the same passages folder", async () => {
     addDraftingSpec();
     const passage = join(passagesPath(), "logbook.txt");
