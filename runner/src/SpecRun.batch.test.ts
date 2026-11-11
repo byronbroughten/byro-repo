@@ -10,6 +10,7 @@ import { eventFilePathOf, eventLinesOf } from "./EventFileNotices.ts";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import { seedHolder } from "./lockFixture.ts";
+import { gapCheckOutputSchema } from "./recordSchema.ts";
 import { runKnobsOf } from "./runKnobs.ts";
 import { RunLock } from "./RunLock.ts";
 import type { Clock, MemberList, RunResult, SpecRunConfig } from "./SpecRun.ts";
@@ -38,7 +39,6 @@ import {
   withEventFile,
 } from "./specRunHarness.ts";
 import type { Blocker, ResolveRecord } from "./stepRecords.ts";
-import { gapCheckOutputSchema } from "./Workflow/code/gapCheck.ts";
 
 useSpecRunHarness(rootCloneOnly);
 

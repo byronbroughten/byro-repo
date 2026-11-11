@@ -131,7 +131,7 @@ The comment the runner posts on the spec issue for each landed ticket with a Pro
 _Avoid_: todo list, report
 
 **Gap check**:
-The step at the end of a spec that lists what the spec asked for that no landed ticket covered, with drafted follow-ups. Its output is the final review-list comment.
+The step at the end of a spec that lists what the spec asked for that no landed ticket covered, with drafted follow-ups. Its output is the final review-list comment. A piece spec's runs with its Edit gate still open and checks only what no review checks.
 _Avoid_: audit, retro
 
 **Land**:

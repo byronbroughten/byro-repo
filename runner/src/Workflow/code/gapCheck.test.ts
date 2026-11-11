@@ -7,7 +7,11 @@ describe("gapCheckPrompt", () => {
     spec: { repo: "byro-repo", number: 213 },
     title: "The spec",
     tickets: [
-      { issue: { repo: "byro-repo", number: 229 }, title: "Review list" },
+      {
+        issue: { repo: "byro-repo", number: 229 },
+        title: "Review list",
+        isOpen: false,
+      },
     ],
   });
 

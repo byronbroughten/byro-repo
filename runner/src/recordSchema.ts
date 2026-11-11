@@ -1,8 +1,12 @@
-// JSON-schema parts shared by the agent steps' record schemas, and the one validator over them.
+// JSON-schema parts shared by the agent steps' record schemas, the gap-check record both Workflows' gap checks return, and the one validator over them.
 
 import { Ajv } from "ajv";
 
-import { blockerKinds, type ImplementRecord } from "./stepRecords.ts";
+import {
+  blockerKinds,
+  type GapCheckRecord,
+  type ImplementRecord,
+} from "./stepRecords.ts";
 import { type Axis, verdicts } from "./verdicts.ts";
 
 export const stringSchema = { type: "string" };
@@ -100,6 +104,22 @@ export function reviewRecordSchemaOf(
     reason: stringSchema,
   });
   return objectSchema({ findings: arraySchema(finding), ...properties });
+}
+
+// The gap-check record every Workflow's gap check returns; reviewList.ts turns it into the last review list.
+export const gapCheckOutputSchema = objectSchema({
+  gaps: arraySchema(
+    objectSchema({
+      ask: stringSchema,
+      evidence: stringSchema,
+      recommendation: stringSchema,
+      draftIssueTitle: stringSchema,
+    }),
+  ),
+});
+
+export function gapCheckRecordOf(output: unknown): GapCheckRecord {
+  return output as GapCheckRecord;
 }
 
 // Each way `value` breaks `schema`, as its JSON path and Ajv's message; empty when it passes.

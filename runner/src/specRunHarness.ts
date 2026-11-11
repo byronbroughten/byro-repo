@@ -22,6 +22,7 @@ import type { IssueRef, LeaseHolder } from "./IssueWorkspaces.ts";
 import type { UsageList, UsageReader } from "./limitGuard.ts";
 import type { NoticeKind, Notices } from "./Notices.ts";
 import { stampedLineOf } from "./progressLines.ts";
+import { gapCheckOutputSchema } from "./recordSchema.ts";
 import { type Command, runKnobsOf } from "./runKnobs.ts";
 import { type MemberList, SpecRun, type SpecRunConfig } from "./SpecRun.ts";
 import type { PullBaseline } from "./SpecRun/runState.ts";
@@ -38,7 +39,6 @@ import type {
 import type { StepSession } from "./transcriptFacts.ts";
 import type { Workflows } from "./Workflow.ts";
 import { codeWorkflowOf } from "./Workflow/code/codeWorkflow.ts";
-import { gapCheckOutputSchema } from "./Workflow/code/gapCheck.ts";
 import { pieceWorkflowOf } from "./Workflow/piece/pieceWorkflow.ts";
 
 export type { StepScript } from "./specRunHarness/stepResults.ts";

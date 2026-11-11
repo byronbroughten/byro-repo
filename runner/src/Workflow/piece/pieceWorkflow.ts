@@ -6,6 +6,8 @@
 // its resolve step, resolveStep.ts, resumes implement to settle the findings, its checks, pieceChecks.ts, run the overlap
 // command and the length limit, sending red ones to its red-checks step, redChecksStep.ts, and wrap-up lands its
 // branch, so the next ticket's pull starts from its Agent draft.
+// Once every ticket but the Edit gate has landed or closed, the spec-end Steps run: the gap check, gapCheck.ts, then the judge Step,
+// which ends a run holding an undecided review-list item with "judge, then rerun".
 // Every step reads the Drive files the spec's Supporting Material lists, as source targets, and no others.
 // A repo's runner config builds it with its commands and Docs port, and ../../Workflow.ts registers it.
 
@@ -15,9 +17,10 @@ import { join } from "node:path";
 import { Docs } from "../../Docs.ts";
 import type { DocumentsPort } from "../../Docs/googleDocs.ts";
 import type { IssueRef } from "../../IssueWorkspaces.ts";
+import { gapCheckOutputSchema, gapCheckRecordOf } from "../../recordSchema.ts";
 import { resolveRulesOf } from "../../resolveRecords.ts";
 import type { Command } from "../../runKnobs.ts";
-import type { TrackedIssue } from "../../SpecRun/runState.ts";
+import type { TrackedIssue, Wait } from "../../SpecRun/runState.ts";
 import { handoffText } from "../../stepPrompts/handoffText.ts";
 import {
   implementRecordOf,
@@ -26,6 +29,7 @@ import {
 import { ticketSectionOf } from "../../ticketSections.ts";
 import type { Target } from "../../ticketTargets.ts";
 import type {
+  GapCheckPromptInput,
   ImplementPromptInput,
   PulledDraft,
   PullInput,
@@ -37,6 +41,7 @@ import type {
   WorkflowStep,
 } from "../../Workflow.ts";
 import { agentDraft } from "./agentDraft.ts";
+import { pieceGapCheckPrompt } from "./gapCheck.ts";
 import {
   passagesFolderOf,
   pieceImplementOutputSchema,
@@ -64,7 +69,11 @@ import {
 } from "./resolveStep.ts";
 import { pieceReviewPrompt, pieceReviewRecordSchema } from "./reviewStep.ts";
 
-const researchLabel = "research";
+// The labels the Workflow reads on a ticket: a Research ticket's, and the Edit gate's.
+const ticketLabels = {
+  research: "research",
+  editGate: "ready-for-human",
+} as const;
 const specHeadings = {
   sources: "## Supporting Material",
   deliverable: "## Deliverable",
@@ -130,9 +139,10 @@ const draftingSteps: WorkflowStep[] = [
 ];
 
 const specEnd: SpecEnd = {
-  steps: [],
-  isDue() {
-    return false;
+  steps: ["gap-check", "judge"],
+  // The Edit gate stays open until the developer's edit, after the push these Steps come before, so it alone doesn't hold them.
+  isDue(waits) {
+    return waits.every(isEditGateWait);
   },
 };
 
@@ -205,6 +215,11 @@ export function pieceWorkflowOf({
         promptOf: redChecksPromptOf,
         outputSchema: pieceRedChecksOutputSchema,
       },
+      gapCheck: {
+        promptOf: gapCheckPromptOf,
+        outputSchema: gapCheckOutputSchema,
+        recordOf: gapCheckRecordOf,
+      },
     },
     // A drafting ticket lands its branch, the Agent draft's commits on it, as a code ticket does.
     landingOf(ticket) {
@@ -237,6 +252,10 @@ function reviewPromptOf(input: ReviewPromptInput): string {
 
 function redChecksPromptOf(input: RedChecksPromptInput): string {
   return pieceRedChecksPrompt({ ...input, draftPath: draftPathOf(input.spec) });
+}
+
+function gapCheckPromptOf(input: GapCheckPromptInput): string {
+  return pieceGapCheckPrompt({ ...input, draftPath: draftPathOf(input.spec) });
 }
 
 function draftPathOf({ number }: IssueRef): string {
@@ -276,5 +295,9 @@ function pullRulesOf(documents: DocumentsPort): PullRules {
 }
 
 function isResearch(ticket: TrackedIssue): boolean {
-  return ticket.labels.includes(researchLabel);
+  return ticket.labels.includes(ticketLabels.research);
+}
+
+function isEditGateWait({ reason, labels = [] }: Wait): boolean {
+  return reason === "developer" && labels.includes(ticketLabels.editGate);
 }

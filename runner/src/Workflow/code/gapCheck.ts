@@ -1,11 +1,10 @@
-// The gap check: the prompt that runs once a spec's every ticket is closed, listing what the spec asked for that no
-// landed ticket covered, and the gap-check record it returns. It belongs to the spec, so it launches with no targets.
-// reviewList.ts turns its record into the final review-list comment; codeWorkflow.ts supplies it, and SpecRun/ReviewListPoster.ts launches it and posts that comment.
+// The code gap check's prompt: it runs once a spec's every ticket is closed, listing what the spec asked for that no
+// landed ticket covered. It belongs to the spec, so it launches with no targets.
+// Its record's schema is ../../recordSchema.ts's, and ../../reviewList.ts turns it into the final review-list comment;
+// codeWorkflow.ts supplies it, and SpecRun/ReviewListPoster.ts launches it and posts that comment.
 
 import { stepReadLine } from "../../IssueReader.ts";
 import { issueRef } from "../../IssueWorkspaces.ts";
-import { arraySchema, objectSchema, stringSchema } from "../../recordSchema.ts";
-import type { GapCheckRecord } from "../../stepRecords.ts";
 import type { GapCheckPromptInput } from "../../Workflow.ts";
 
 export function gapCheckPrompt({
@@ -37,19 +36,4 @@ Return \`gaps\`, one per gap, or an empty list when you find none: \`ask\` (what
 ## The spec's tickets
 
 ${ticketLines.join("\n")}`;
-}
-
-export const gapCheckOutputSchema = objectSchema({
-  gaps: arraySchema(
-    objectSchema({
-      ask: stringSchema,
-      evidence: stringSchema,
-      recommendation: stringSchema,
-      draftIssueTitle: stringSchema,
-    }),
-  ),
-});
-
-export function gapCheckRecordOf(output: unknown): GapCheckRecord {
-  return output as GapCheckRecord;
 }
