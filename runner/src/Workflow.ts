@@ -175,9 +175,11 @@ export interface ReviewRules {
 
 export interface ResolvePromptInput {
   issue: IssueRef;
+  spec: IssueRef;
   title: string;
   branch: string;
   branchedRepos: string[];
+  workspacePath: string;
   // As the review record lists them; the prompt numbers them from 1.
   findings: Finding[];
 }

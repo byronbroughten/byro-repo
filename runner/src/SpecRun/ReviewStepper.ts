@@ -332,12 +332,14 @@ export class ReviewStepper extends SpecRunBase {
 }
 
 function resolvePromptInputOf(ticketRun: TicketRun): ResolvePromptInput {
-  const { ticket, workspace, state } = ticketRun;
+  const { run, ticket, workspace, state } = ticketRun;
   return {
     issue: ticket.issue,
+    spec: run.spec.issue,
     title: ticket.title,
     branch: workspace.branch,
     branchedRepos: ticketSteps.branchedReposOf(ticketRun),
+    workspacePath: workspace.path,
     findings: state.findings ?? [],
   };
 }

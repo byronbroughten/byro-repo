@@ -1,10 +1,11 @@
 // The prompt text the implement and resolve steps share with the core and with the /implement-code skill: the resumes'
-// prompts, the shared body of the implement prompt, its workspace section, the resolve rules and
-// record fields, and the generated /implement-* skills' shared ending. Each step's own prompt stays in its file.
+// prompts, the shared body of the implement prompt, its workspace section, the resolve rules,
+// record fields and shared prompt text, and the generated /implement-* skills' shared ending. Each step's own prompt stays in its file.
 
 import { codeListOf, sectionOf } from "./promptText.ts";
-import { dismissReasons, proposeReasons } from "./stepRecords.ts";
-import type { ImplementPromptInput } from "./Workflow.ts";
+import { numberedFindingsOf } from "./resolveRecords.ts";
+import { dismissReasons, type Finding, proposeReasons } from "./stepRecords.ts";
+import type { ImplementPromptInput, ResolvePromptInput } from "./Workflow.ts";
 
 // Sent with --resume once a step crosses the live ceiling without handing off.
 export const handoffOnlyPrompt =
@@ -38,6 +39,21 @@ export const resolveRecordFields = `exactly one record per finding: \`finding\` 
 - **Fix**: \`quote\`, the quoted code or text, with its file:line, and \`rule\`, the documented rule or spec line it breaks.
 - **Propose**: \`reason\`, ${codeListOf(proposeReasons)}, and \`recommendation\`; for \`ticket\`, \`draftIssueTitle\`; for a \`decision\` asking the developer's yes to a new keep, \`draftKeepReason\`, the drafted one-line reason.
 - **Halt**: \`recommendation\`, and \`haltScope\`, the later tickets it blocks as \`<repo>#<n>\`, or \`spec\`; omit it to block the whole spec.`;
+
+// The text every Workflow's resolve prompt shares; each Workflow's prompt adds its own opening and how it fixes.
+export const resolveBody = {
+  findingsOf({ issue, title }: Pick<ResolvePromptInput, "issue" | "title">) {
+    return `The review of ${issue.repo}#${issue.number}, "${title}", reported the findings below, each with its axis and its reviewer's suggested verdict. ${resolveRules}`;
+  },
+  commitNothing: "Commit nothing when no finding is a Fix.",
+  revertedAs:
+    "is reverted in a further commit and resolved, saying why, as a Propose `decision`, or for a `spec`-axis finding as a Halt scoped to the downstream tickets.",
+  onlyWrites:
+    "Never amend, push, merge, rebase or reset, never comment on, file or close an issue, and never run the wrap-up. The runner acts on your Propose and Halt verdicts.",
+  recordAndFindingsOf(findings: Finding[]) {
+    return `## The record\n\nReturn \`records\`, ${resolveRecordFields}\n\n## Findings\n\n${numberedFindingsOf(findings)}`;
+  },
+} as const;
 
 // The bullets the implement step's prompt and the /implement-code skill share; only their endings differ.
 export const implementBody = {

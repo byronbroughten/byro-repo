@@ -15,7 +15,7 @@ import {
   type MergeMasterRecord,
   type ResolveRecord,
 } from "./stepRecords.ts";
-import type { Axis, Verdict } from "./verdicts.ts";
+import { type Axis, type Verdict, verdictWords } from "./verdicts.ts";
 
 const markPrefix = "<!-- review-list ";
 const listMarkPrefix = `${markPrefix}ticket=`;
@@ -115,16 +115,16 @@ const reviewGroups = {
   // A re-reviewed list's items, old and new, after every other section.
   proposals: "### Proposed",
   verdicts: {
-    fix: { heading: "Fixed", word: "Fix" },
-    propose: { heading: "Proposed", word: "Propose" },
-    dismiss: { heading: "Dismissed", word: "Dismiss" },
-    halt: { heading: "Halted", word: "Halt" },
+    fix: "Fixed",
+    propose: "Proposed",
+    dismiss: "Dismissed",
+    halt: "Halted",
   },
 } as const satisfies {
   axes: Record<Axis, string>;
   mergeMaster: string;
   proposals: string;
-  verdicts: Record<Verdict, { heading: string; word: string }>;
+  verdicts: Record<Verdict, string>;
 };
 
 const shownAxes = Object.keys(reviewGroups.axes) as Axis[];
@@ -312,7 +312,7 @@ function mergeMasterSectionOf(id: string, mergeItem: ReviewItem): string {
 }
 
 function proposeHeadingOf(reason: string, subject: string): string {
-  return `${reviewGroups.verdicts.propose.word} \`${reason}\` · ${subject}`;
+  return `${verdictWords.propose} \`${reason}\` · ${subject}`;
 }
 
 type RecordGroups = Record<Axis, Record<Verdict, ResolveRecord[]>>;
@@ -351,7 +351,7 @@ function verdictGroupOf(
 }
 
 function groupBlockOf(verdict: Verdict, rows: string[]): string {
-  return `**${reviewGroups.verdicts[verdict].heading}**\n\n${rows.join("\n")}`;
+  return `**${reviewGroups.verdicts[verdict]}**\n\n${rows.join("\n")}`;
 }
 
 // Undefined where the resolver kept the reviewer's verdict, or the record predates suggested verdicts.
@@ -363,8 +363,8 @@ function departureOf({
   if (suggestedVerdict === undefined || suggestedVerdict === verdict) {
     return undefined;
   }
-  const from = reviewGroups.verdicts[suggestedVerdict].word;
-  return `suggested ${from} → ${reviewGroups.verdicts[verdict].word}: ${evidence}`;
+  const from = verdictWords[suggestedVerdict];
+  return `suggested ${from} → ${verdictWords[verdict]}: ${evidence}`;
 }
 
 function departureLinesOf(record: ResolveRecord): string[] {
@@ -599,7 +599,7 @@ const itemLinePatterns = {
   decided: /^ {2}Decided:/,
   // What proposeHeadingOf puts before an item's subject.
   proposeLead: new RegExp(
-    String.raw`^ · ${reviewGroups.verdicts.propose.word} \x60[^\x60]*\x60 · `,
+    String.raw`^ · ${verdictWords.propose} \x60[^\x60]*\x60 · `,
   ),
 } as const;
 
