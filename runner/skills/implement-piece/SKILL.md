@@ -51,9 +51,9 @@ disable-model-invocation: true
 
 ## When you're done
 
-- Before review, grep the docs for every name, command or behavior the change renamed, removed or altered, and fix or delete each statement it made untrue.
+- Before review, grep the docs for every name, command or behavior your draft makes untrue, and name each in your report; never edit one.
 - Commit in each repo you changed, on the ticket's branch, then run `npm run overlap -- --deliverable <the Agent draft's path in the <spec repo> clone> --passages .runner/passages/<repo>-<n>`. When it fails on your change, fix it in a further commit and run it again; never amend. When it fails only on something your change didn't cause, carry on and name the failure in your report.
-- Those commits and the GitHub writes the ticket describes are your only writes outside the workspace's files: never push, merge, rebase or reset, never close an issue. The review and wrap-up commands in the ending make every other write.
+- Those commits are your only writes outside the workspace's files, and you make no GitHub write: never push, merge, rebase or reset. The review and wrap-up commands in the ending make every other write.
 - Run git commands one at a time: inside an entered worktree, Claude Code refuses a compound git command.
 - Then, in order:
   1. **Review**: run `npm run runner -- review <owner>/<repo> <n>`, resolving `<repo>` to `<owner>/<repo>` here and in resolve. It runs the runner's review session on this ticket and records it. While this session's context is under the ticket budget, it prints the findings, numbered, each with its axis and suggested verdict, for you to resolve; past it, a fresh resolver resolves them instead and it goes straight to the review list.

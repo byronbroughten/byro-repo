@@ -3,7 +3,7 @@
 // live ceiling is resumed for a handoff record only. A fresh step past the handoff cap, or after a proposed split, halts first.
 // A resume hands the ticket's answered Halts to the resumed implementer, or to a fresh one past the ticket budget.
 // It builds its own HaltRaiser and StepLauncher; the step's prompt, schema and checks are its spec's Workflow's, through
-// ../Workflow.ts, and the resumes' prompts ../stepPrompts.ts; the coordinator callers build is ../SpecRun.ts.
+// ../Workflow.ts, and the resumes' prompts ../stepPrompts/resumePrompts.ts; the coordinator callers build is ../SpecRun.ts.
 
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -21,7 +21,7 @@ import {
   handoffOnlyPrompt,
   moreTurnsPrompt,
   recordOnlyPrompt,
-} from "../stepPrompts.ts";
+} from "../stepPrompts/resumePrompts.ts";
 import { type Handoff, type ImplementRecord } from "../stepRecords.ts";
 import { type ImplementRules } from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";

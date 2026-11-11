@@ -21,7 +21,7 @@ import {
   handoffOnlyPrompt,
   limitResumePrompt,
   treeResetNote,
-} from "../stepPrompts.ts";
+} from "../stepPrompts/resumePrompts.ts";
 import { minutesOf, type StepAgent } from "../transcriptFacts.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";

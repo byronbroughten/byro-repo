@@ -5,13 +5,13 @@
 import { stepReadLine } from "../../IssueReader.ts";
 import { commitMessageLine, sectionOf } from "../../promptText.ts";
 import type { Command } from "../../runKnobs.ts";
+import { implementBody } from "../../stepPrompts/implementText.ts";
 import {
   generatedNoteOf,
-  implementBody,
   interactiveOpeningOf,
   type InteractiveSkillCommands,
   interactiveSkillOf,
-} from "../../stepPrompts.ts";
+} from "../../stepPrompts/interactiveSkill.ts";
 import { agentDraft } from "./agentDraft.ts";
 import { draftingScope } from "./draftingScope.ts";
 import {
@@ -28,6 +28,12 @@ export interface ImplementPieceSkillInput extends InteractiveSkillCommands {
   // Takes the Doc's ID last.
   docPrintCommand: string;
 }
+
+// The ending's lines in place of the code skill's, which allow editing docs and the ticket's GitHub writes.
+const driftLine =
+  "Before review, grep the docs for every name, command or behavior your draft makes untrue, and name each in your report; never edit one.";
+const onlyWritesLine =
+  "Those commits are your only writes outside the workspace's files, and you make no GitHub write: never push, merge, rebase or reset.";
 
 const placeholders = {
   draftPath: agentDraft.pathOf("<spec n>"),
@@ -49,6 +55,8 @@ export function implementPieceSkillOf({
   });
   return interactiveSkillOf({
     ...ending,
+    driftLine,
+    onlyWritesLine,
     body: [
       frontmatter,
       "`/implement-piece <repo> <n>` drafts one piece ticket in an interactive session, from the same lines as the spec runner's implement step; only the pull and the ending differ. `<spec repo>` and `<spec n>` are the ticket's parent, or the ticket itself when it has none.",

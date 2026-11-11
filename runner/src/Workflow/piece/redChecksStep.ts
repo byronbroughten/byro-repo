@@ -9,7 +9,7 @@ import {
   unattendedRunLine,
 } from "../../promptText.ts";
 import { objectSchema, stringSchema } from "../../recordSchema.ts";
-import { implementBody } from "../../stepPrompts.ts";
+import { implementBody } from "../../stepPrompts/implementText.ts";
 import type { RedChecksPromptInput } from "../../Workflow.ts";
 import { draftMaterialsLineOf } from "./implementStep.ts";
 

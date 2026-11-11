@@ -1,17 +1,19 @@
-// The /implement-code skill's text: the implement step's shared body (stepPrompts.ts) with an interactive opening and
+// The /implement-code skill's text: the implement step's shared body (stepPrompts/implementText.ts) with an interactive opening and
 // the generated skills' shared ending in place of the step's record-returning one. The committed skill is
 // runner/skills/implement-code/SKILL.md; byro-repo's drift test regenerates it from byro-repo's commands.
 
 import { stepReadLine } from "../../IssueReader.ts";
 import { sectionOf } from "../../promptText.ts";
 import {
-  generatedNoteOf,
   implementBody,
+  ticketBindsSection,
+} from "../../stepPrompts/implementText.ts";
+import {
+  generatedNoteOf,
   interactiveOpeningOf,
   type InteractiveSkillCommands,
   interactiveSkillOf,
-  ticketBindsSection,
-} from "../../stepPrompts.ts";
+} from "../../stepPrompts/interactiveSkill.ts";
 
 export type ImplementCodeSkillInput = InteractiveSkillCommands;
 
@@ -21,6 +23,8 @@ export function implementCodeSkillOf({
 }: ImplementCodeSkillInput): string {
   return interactiveSkillOf({
     ...ending,
+    driftLine: implementBody.drift,
+    onlyWritesLine: `${implementBody.onlyWrites}.`,
     body: [
       frontmatter,
       "`/implement-code <repo> <n>` implements one ticket in an interactive session, from the same body as the spec runner's implement step; only the ending differs.",

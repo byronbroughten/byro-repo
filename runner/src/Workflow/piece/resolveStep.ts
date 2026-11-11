@@ -11,7 +11,8 @@ import {
 } from "../../promptText.ts";
 import { findingProblem, resolveRecordProblems } from "../../resolveRecords.ts";
 import type { Command } from "../../runKnobs.ts";
-import { implementBody, resolveBody } from "../../stepPrompts.ts";
+import { implementBody } from "../../stepPrompts/implementText.ts";
+import { resolveBody } from "../../stepPrompts/resolveText.ts";
 import type {
   DismissReason,
   ProposeReason,
