@@ -82,18 +82,12 @@ export class ReviewStepper extends SpecRunBase {
   }
 
   async _review(ticketRun: TicketRun): Promise<void> {
-    const { run, ticket, workspace, state } = ticketRun;
+    const { run, state } = ticketRun;
     const rules = this._agentStepOf(run.spec, "review");
     const { record, logPath } = await this._launch(ticketRun, "review", {
       prompt: rules.promptOf({
-        issue: ticket.issue,
-        spec: run.spec.issue,
-        title: ticket.title,
-        labels: ticket.labels,
+        ...ticketSteps.promptFieldsOf(ticketRun),
         skillName: rules.skillName,
-        branch: workspace.branch,
-        branchedRepos: ticketSteps.branchedReposOf(ticketRun),
-        workspacePath: workspace.path,
       }),
       jsonSchema: rules.outputSchema,
     });
@@ -335,15 +329,9 @@ export class ReviewStepper extends SpecRunBase {
 }
 
 function resolvePromptInputOf(ticketRun: TicketRun): ResolvePromptInput {
-  const { run, ticket, workspace, state } = ticketRun;
+  const { state } = ticketRun;
   return {
-    issue: ticket.issue,
-    spec: run.spec.issue,
-    title: ticket.title,
-    labels: ticket.labels,
-    branch: workspace.branch,
-    branchedRepos: ticketSteps.branchedReposOf(ticketRun),
-    workspacePath: workspace.path,
+    ...ticketSteps.promptFieldsOf(ticketRun),
     findings: state.findings ?? [],
     dismissedOverlaps: state.dismissedOverlaps ?? [],
   };
