@@ -139,13 +139,12 @@ export class DraftPusher extends SpecRunBase {
     return undefined;
   }
 
-  // Raised on the spec issue, since the push belongs to no ticket; an open one holds the push without raising it again.
   private async _halt(run: Run, { drafts, isHeld }: PushPlan): Promise<void> {
     if (drafts.length === 0 && !isHeld) return;
     await this._raise(run, drafts);
   }
 
-  // With no drafts, the push waits on the open Halts it already raised.
+  // Raised on the spec issue, since the push belongs to no ticket; with no drafts, an open one holds the push without raising it again.
   private async _raise(run: Run, drafts: HaltDraft[]): Promise<never> {
     if (drafts.length > 0) {
       runHalts.raise(run, { ticket: run.spec.issue, drafts });
@@ -272,7 +271,7 @@ async function writeSections({
   return { count, isStale: false };
 }
 
-// Holding the agent text already is no edit: a rerun after a stale revision finds the Sections it wrote that way.
+// Holding the agent text already is no edit: a read after a stale revision, or a rerun, finds the Sections it wrote that way.
 function isEdited(
   read: DocRead,
   { heading, markdown, pulled }: PushedSection,

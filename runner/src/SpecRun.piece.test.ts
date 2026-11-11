@@ -26,7 +26,6 @@ import {
   addIssue,
   addSpec,
   commentsOn,
-  editDocBeforeWrite,
   github,
   haltComments,
   handoffResultOf,
@@ -973,7 +972,7 @@ describe("the end of a piece spec", () => {
 
       it("reads and compares the Doc again on a stale revision, then writes the Sections still to write", async () => {
         addGatedSpec();
-        editDocBeforeWrite(comments, { skipped: 1 });
+        heldDocs().editBeforeUpdate(comments, { skipped: 1 });
 
         const { result } = await landsThenGapChecks([], agentOnlyDraft);
 
@@ -985,7 +984,7 @@ describe("the end of a piece spec", () => {
 
       it("raises the push Halt on a Section the edit changed, never writing over it blind", async () => {
         addGatedSpec();
-        editDocBeforeWrite(() => ({
+        heldDocs().editBeforeUpdate(() => ({
           ...docOf({
             ...pulledSections,
             "The crossing": "The ferry never came.",
@@ -1006,7 +1005,7 @@ describe("the end of a piece spec", () => {
 
       it("stops the run past the retry bound, and a rerun retries", async () => {
         addGatedSpec();
-        editDocBeforeWrite(comments, { times: 4 });
+        heldDocs().editBeforeUpdate(comments, { times: 4 });
 
         const { result } = await landsThenGapChecks([], agentOnlyDraft);
         const rerun = await specRun(FakeAgentStep.init()).run(spec);

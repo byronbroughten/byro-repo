@@ -10,11 +10,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
 import type { AgentStep } from "./AgentStep.ts";
 import { batchEventFilePathOf } from "./BatchRecords.ts";
 import type { ClonePaths } from "./clonePaths.ts";
-import {
-  type DocumentChange,
-  FakeDocuments,
-  type UpdateEdits,
-} from "./Docs/FakeDocuments.ts";
+import { FakeDocuments } from "./Docs/FakeDocuments.ts";
 import type { GoogleDocument } from "./Docs/googleDocs.ts";
 import { EventFileNotices, type EventLine } from "./EventFileNotices.ts";
 import type { WrapUpFacts } from "./FactsFile.ts";
@@ -143,14 +139,6 @@ export function holdDocs(...held: GoogleDocument[]): void {
 // The held Docs, for a test that edits one as the developer would or reads one back.
 export function heldDocs(): FakeDocuments {
   return documents;
-}
-
-// Edits the held Doc between the push's read and its write, as an edit arriving mid-push would.
-export function editDocBeforeWrite(
-  change: DocumentChange,
-  edits: UpdateEdits = {},
-): void {
-  documents.editBeforeUpdate(change, edits);
 }
 
 export function scriptUsage(...lists: (UsageList | Error)[]): void {
