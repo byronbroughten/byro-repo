@@ -46,3 +46,31 @@ describe("agentStepOf", () => {
     );
   });
 });
+
+describe("whatReviewCaughtOf", () => {
+  const fix = {
+    finding: 1,
+    axis: "standards",
+    where: "## A private heading",
+    claim: "A private claim.",
+    rule: "Craft sheet's Garden path",
+    verdict: "fix",
+    evidence: "Reworded it.",
+  } as const;
+
+  it("names a piece Fix by axis and the rule sheet's own rule name only", () => {
+    const piece = workflowOf(specLabelled(["piece"]), workflowsWith([]));
+
+    expect(piece.whatReviewCaughtOf([fix])).toBe(
+      'Fixed: standards, Craft "Garden path" ×1',
+    );
+  });
+
+  it("names a code Fix by its claim and where", () => {
+    const code = workflowOf(specLabelled([]), workflowsWith([]));
+
+    expect(code.whatReviewCaughtOf([fix])).toBe(
+      "Fixed: A private claim. (## A private heading).",
+    );
+  });
+});

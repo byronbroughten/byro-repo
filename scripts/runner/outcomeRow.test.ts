@@ -35,6 +35,6 @@ describe("wrap-up's outcome row writer", () => {
     expect(written?.commitMessage).toMatch(/^Record the #2 outcome: /);
     const row = readFileSync(join(root, written?.path ?? ""), "utf8");
     expect(row).toContain("| Review cost |");
-    expect(row).toContain("| #2 | Opus medium |");
+    expect(row).toContain("| #2 | code | Opus medium |");
   });
 });

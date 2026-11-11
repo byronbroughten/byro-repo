@@ -152,8 +152,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `transcriptFacts.ts` | `transcriptFacts` | Outcome facts computed from transcripts: pair, peaks, duration and cost, and why one is unrecorded; where a session's transcript is. |
 | `UnhandledStop.ts` | `UnhandledStop` | The outcomes the run loop doesn't handle yet, and their error. |
 | `verdicts.ts` | | A finding's axes, `spec`, `standards` and `reader`, and its verdicts. |
-| `Workflow.ts` | | The Workflow type, its spec-end Steps, source targets and pull rules, each agent step's rules and prompt input and the accessors that throw for a step a Workflow leaves out, and the pick of a spec's Workflow from its labels: the core's one way to a Workflow. |
-| `Workflow/code/codeWorkflow.ts` | `codeWorkflow` | Builds the code Workflow from a repo's checks and review skill: each ticket's Step sequence, the Step each one goes on to, its spec-end Steps and their trigger, and its agent steps' rules, resolve resuming implement. |
+| `Workflow.ts` | | The Workflow type, its spec-end Steps, source targets and pull rules, each agent step's rules and prompt input, its outcome row's review cell and the accessors that throw for a step a Workflow leaves out, and the pick of a spec's Workflow from its labels: the core's one way to a Workflow. |
+| `Workflow/code/codeWorkflow.ts` | `codeWorkflow` | Builds the code Workflow from a repo's checks and review skill: each ticket's Step sequence, the Step each one goes on to, its spec-end Steps and their trigger, its agent steps' rules, resolve resuming implement, and its outcome row's review cell. |
 | `Workflow/code/gapCheck.ts` | `gapCheck` | The code gap check's prompt. |
 | `Workflow/code/implementCodeSkill.ts` | `implementCodeSkill` | Generates the `/implement-code` skill from the implement step's shared body. |
 | `Workflow/code/implementStep.ts` | `implementStep` | The code implement step's prompt and output schema. |
@@ -166,10 +166,11 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Workflow/piece/gapCheck.ts` | | The piece gap check's prompt. |
 | `Workflow/piece/implementStep.ts` | | The piece implement step's prompt, passages folder, output schema, record and record checks. |
 | `Workflow/piece/pieceChecks.ts` | | A drafting ticket's checks: overlap and the spec's length limit. |
-| `Workflow/piece/pieceWorkflow.ts` | `pieceWorkflow` | Builds the piece Workflow from a repo's overlap and quote commands and Docs port: its research and drafting Steps, research, implement, review, resolve and red-checks agent steps, its spec-end Steps and their trigger, pull rules, quote check, drafting checks and the source targets read from the spec's Supporting Material. |
+| `Workflow/piece/pieceWorkflow.ts` | `pieceWorkflow` | Builds the piece Workflow from a repo's overlap and quote commands and Docs port: its research and drafting Steps, research, implement, review, resolve and red-checks agent steps, its spec-end Steps and their trigger, pull rules, quote check, drafting checks, outcome row review cell and the source targets read from the spec's Supporting Material. |
 | `Workflow/piece/redChecksStep.ts` | | The piece red-checks step's prompt, fixing red piece checks in the Agent draft, and its output schema. |
 | `Workflow/piece/researchStep.ts` | | The research step's prompt, its red-quotes section, handoff comment, record checks, output schema, closing comment and Research Halt words. |
 | `Workflow/piece/resolveStep.ts` | | The piece resolve step's prompt, pointing at the verdict rules' `## Piece findings` and rerunning the piece checks after its Fixes, and its record checks, which refuse the verdict reasons a piece finding never takes. |
+| `Workflow/piece/reviewCaught.ts` | | A piece outcome row's "What review caught" cell: each kept finding by its axis and public rule name only. |
 | `Workflow/piece/reviewStep.ts` | | The piece review step's prompt, reading `/review-piece` by its path over the Agent draft and passages folder, and its record schema. |
 | `WrapUp.ts` | `WrapUp` | `npm run wrap-up`: lands an issue or session workspace, delegating its landing steps and closing the issue to `WrapUp/`; and `npm run research:push`'s push. |
 | `WrapUp/BranchDeleter.ts` | | Deletes a landing's branches on each remote and locally, recording the ones that failed. |

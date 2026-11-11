@@ -30,7 +30,9 @@ import type {
 } from "./stepRecords.ts";
 import type { Target } from "./ticketTargets.ts";
 
-export type WorkflowName = "code" | "piece";
+const workflowNames = ["code", "piece"] as const;
+
+export type WorkflowName = (typeof workflowNames)[number];
 
 export type Landing = "code" | "research";
 
@@ -54,6 +56,8 @@ export interface Workflow {
   // A Workflow's own checks on a ticket's work, run after `checks`; a red one goes to the red-checks step as a red command does.
   ticketChecksOf?(input: TicketChecksInput): Promise<string | undefined>;
   specEnd: SpecEnd;
+  // The outcome row's "What review caught" cell; undefined when the review kept nothing.
+  whatReviewCaughtOf(records: ResolveRecord[]): string | undefined;
   // Reached through pullOf, which throws for a Workflow with no Agent draft.
   pull?: PullRules;
 }
@@ -288,8 +292,14 @@ const pieceLabel = "piece";
 // The Workflows a repo's runner config builds; the core picks among them.
 export type Workflows = Record<WorkflowName, Workflow>;
 
-export function workflowNameOf(spec: TrackedIssue): WorkflowName {
-  return spec.labels.includes(pieceLabel) ? "piece" : "code";
+export function workflowNameOf({
+  labels,
+}: Pick<TrackedIssue, "labels">): WorkflowName {
+  return labels.includes(pieceLabel) ? "piece" : "code";
+}
+
+export function isWorkflowName(name: string | undefined): name is WorkflowName {
+  return workflowNames.some((workflowName) => workflowName === name);
 }
 
 export function workflowOf(spec: TrackedIssue, workflows: Workflows): Workflow {

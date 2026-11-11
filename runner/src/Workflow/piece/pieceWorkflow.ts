@@ -71,6 +71,11 @@ import {
   pieceResolvePrompt,
   pieceResolveRecordProblems,
 } from "./resolveStep.ts";
+import {
+  pieceReviewCaughtOf,
+  type RuleSheetName,
+  type RuleSheets,
+} from "./reviewCaught.ts";
 import { pieceReviewPrompt, pieceReviewRecordSchema } from "./reviewStep.ts";
 
 // The labels the Workflow reads on a ticket: a Research ticket's, and the Edit gate's.
@@ -150,18 +155,28 @@ const specEnd: SpecEnd = {
   },
 };
 
-// A repo's own values: the overlap check, the quote check and the Docs port pull reads the Deliverable through.
+// From the root of the repo a review's rules live in.
+const ruleSheetPaths: Record<RuleSheetName, string> = {
+  Voice: "docs/writing-voice.md",
+  Craft: "docs/writing-craft.md",
+  academic: "docs/academic-writing-style.md",
+};
+
+// A repo's own values: its overlap and quote checks, the Docs port pull reads the Deliverable through and the rules' root.
 export interface PieceWorkflowInput {
   overlapCommand: Command;
   // Called with `--comment <path> --texts <folder>` appended.
   verifyQuotesCommand: Command;
   documents: DocumentsPort;
+  // The rule sheets are read under it once a ticket's review facts are written.
+  rulesRoot: string;
 }
 
 export function pieceWorkflowOf({
   overlapCommand,
   verifyQuotesCommand,
   documents,
+  rulesRoot,
 }: PieceWorkflowInput): Workflow {
   return {
     name: "piece",
@@ -239,8 +254,23 @@ export function pieceWorkflowOf({
       });
     },
     specEnd,
+    whatReviewCaughtOf(records) {
+      return pieceReviewCaughtOf(records, ruleSheetsOf(rulesRoot));
+    },
     pull: pullRulesOf(documents),
   };
+}
+
+function ruleSheetsOf(rulesRoot: string): RuleSheets {
+  return {
+    Voice: ruleSheetOf(rulesRoot, "Voice"),
+    Craft: ruleSheetOf(rulesRoot, "Craft"),
+    academic: ruleSheetOf(rulesRoot, "academic"),
+  };
+}
+
+function ruleSheetOf(rulesRoot: string, name: RuleSheetName): string {
+  return readFileSync(join(rulesRoot, ruleSheetPaths[name]), "utf8");
 }
 
 function draftingPromptOf(input: ImplementPromptInput): string {

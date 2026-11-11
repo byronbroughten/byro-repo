@@ -9,6 +9,7 @@
 // It builds its own TicketSequencer, ReviewStepper, LeaseKeeper, ReviewListPoster and HaltRaiser.
 
 import { ActiveAccountUnknown } from "../ActiveAccountUnknown.ts";
+import type { ReviewFacts } from "../FactsFile.ts";
 import { messageOf } from "../failureText.ts";
 import { sessionHaltCountOf } from "../halts.ts";
 import {
@@ -247,11 +248,12 @@ export class SessionReviewer extends SpecRunBase {
   }
 
   private async _finishReview(ticketRun: TicketRun): Promise<ReviewResult> {
-    const { ticket, state } = ticketRun;
-    this.factsFile.setReviewFacts(
-      ticket.issue,
-      ticketSteps.reviewFactsOf(state),
+    const { run, ticket, state } = ticketRun;
+    const reviewFacts = ticketSteps.reviewFactsOf(
+      state,
+      this._workflowOf(run.spec),
     );
+    this.factsFile.setReviewFacts(ticket.issue, reviewFacts);
     await this.reviewListPoster._postCoveredLaterNotes(
       ticket.issue,
       state.resolveRecords ?? [],
@@ -261,7 +263,7 @@ export class SessionReviewer extends SpecRunBase {
     await this.reviewListPoster._postSessionReviewList(ticketRun.run, ticket);
     return {
       kind: "reviewed",
-      message: reviewedMessageOf(ticketRun),
+      message: reviewedMessageOf(ticketRun, reviewFacts),
       halts: [],
       reviewList: reviewListOf(ticketRun),
     };
@@ -323,8 +325,10 @@ function brokenRulesOf(problems: string[]): ReviewResult {
   );
 }
 
-function reviewedMessageOf({ ticket, state }: TicketRun): string {
-  const { whatReviewCaught } = ticketSteps.reviewFactsOf(state);
+function reviewedMessageOf(
+  { ticket, state }: TicketRun,
+  { whatReviewCaught }: ReviewFacts,
+): string {
   const findings = state.findings?.length ?? 0;
   return `Reviewed ${issueRef.labelOf(ticket.issue)}, findings: ${findings}. ${whatReviewCaught ?? "Nothing to fix or decide."}`;
 }
