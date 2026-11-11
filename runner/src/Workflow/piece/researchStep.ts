@@ -8,6 +8,9 @@ import { resolve } from "node:path";
 
 import type { HaltQuestion } from "../../halts.ts";
 import { stepReadLine } from "../../IssueReader.ts";
+// Renamed, since a ready record's own field is `outlineEdits`.
+import { outlineEdits as outlineEditWords } from "../../outlineEdits.ts";
+import { bulletsOf } from "../../promptText.ts";
 import {
   arraySchema,
   blockerSchema,
@@ -16,7 +19,6 @@ import {
   stringSchema,
 } from "../../recordSchema.ts";
 import type {
-  OutlineEdit,
   ReadyResearchRecord,
   ResearchHandoff,
   ResearchRecord,
@@ -99,7 +101,7 @@ export function researchClosingCommentOf({
 }: ReadyResearchRecord): string {
   return [
     `Posted the research comment: ${counts.supported} fact(s) supported, ${counts.rewritten} rewritten and ${counts.unverified} unverified.`,
-    `Proposed Outline edits:${bulletsOf(outlineEdits.map(outlineEditTextOf))}`,
+    `Proposed Outline edits:${bulletsOf(outlineEdits.map(outlineEditWords.textOf))}`,
     `Unverified facts the Facts field names:${bulletsOf(wantedOf(unverified).map(unverifiedTextOf))}`,
   ].join("\n\n");
 }
@@ -118,9 +120,7 @@ export function researchHaltOf({
     },
     {
       heading: "Proposed Outline edits",
-      lines: outlineEdits.map(
-        (edit, index) => `**E${index + 1}** ${outlineEditTextOf(edit)}`,
-      ),
+      lines: outlineEdits.map(outlineEditWords.lineOf),
       options: researchHaltOptions.edits,
     },
   ].filter(({ lines }) => lines.length > 0);
@@ -140,7 +140,7 @@ const researchHaltOptions = {
     "`another source F<n>`, naming the source: the Supervisor settles one fact from one Drive file. For anything larger, file a Research ticket with `/piece-tickets`, blocking the drafting tickets, before answering.",
   ],
   edits: [
-    "`approve E<n>`: approve the edit. The runner doesn't apply it yet, so make the change in the spec's `## Outline` yourself.",
+    "`approve E<n>`: the runner replaces the edit's old text in the spec's `## Outline` with its new text, word for word, as it reads the answer. An edit it can't apply raises a fresh Halt asking you to make the change by hand.",
   ],
 } as const;
 
@@ -150,15 +150,6 @@ function wantedOf(unverified: UnverifiedItem[]): UnverifiedItem[] {
 
 function unverifiedTextOf({ fact, reason }: UnverifiedItem): string {
   return `${fact} (${reason})`;
-}
-
-function outlineEditTextOf({
-  section,
-  oldText,
-  newText,
-  reason,
-}: OutlineEdit): string {
-  return `${section}: replace "${oldText}" with "${newText}" (${reason})`;
 }
 
 // The runner posts it on the ticket; the `session:` line ties it to the step's transcript.
@@ -184,11 +175,6 @@ function handoffText({
     `Sources done:${bulletsOf(sourcesDone)}`,
     `Sources left:${bulletsOf(sourcesLeft)}`,
   ].join("\n");
-}
-
-function bulletsOf(items: string[]): string {
-  if (items.length === 0) return " none";
-  return items.map((item) => `\n- ${item}`).join("");
 }
 
 const countSchema = { type: "integer", minimum: 0 };

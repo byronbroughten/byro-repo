@@ -3,6 +3,8 @@
 // SpecRun.ts keeps them in run state, blocks the tickets in their scope and resumes the halted ticket once all are answered.
 
 import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
+import { outlineEdits } from "./outlineEdits.ts";
+import { bulletsOf } from "./promptText.ts";
 import type { IssueComment, TicketStep } from "./SpecRun.ts";
 import { handoffText } from "./stepPrompts/handoffText.ts";
 import {
@@ -54,7 +56,7 @@ export interface Halt {
   outlineEdits?: OutlineEdit[];
   isPosted: boolean;
   answer?: HaltAnswer;
-  // Set once the answer reached the resumed or fresh implementer.
+  // Set once the answer reached the resumed or fresh implementer; on a Research Halt, once the edits it approves are applied.
   isDelivered: boolean;
   // Replies already noted on the spec issue as ignored.
   ignoredReplies: string[];
@@ -124,6 +126,23 @@ export function splitHaltOf(
     question: `The implement step handed off with less than half the ticket done, and proposed splitting the rest into:\n\n${handoffText.proposedSplitOf(slices)}\n\n${splitTheTicketPhraseOf("`continue`")}: a fresh implement step picks up from the handoff on the ticket's body as it then reads.`,
     options: ["`continue`"],
     scope: downstream,
+  };
+}
+
+// Raised on the Research Halt's ticket and scope, so drafting never starts on an Outline the developer didn't settle; any answer but `stop spec` goes on.
+export function unappliedEditsHaltOf(
+  halt: Halt,
+  unapplied: OutlineEdit[],
+): HaltDraft {
+  const edits = halt.outlineEdits ?? [];
+  const lines = unapplied.map((edit) =>
+    outlineEdits.lineOf(edit, edits.indexOf(edit)),
+  );
+  return {
+    kind: "research",
+    question: `${haltNameOf(halt)}'s answer approved these Outline edits, but the runner couldn't apply them: each one's old text isn't in the spec's \`## Outline\` exactly once.${bulletsOf(lines)}\n\nMake each change in the spec's \`## Outline\` by hand, then answer \`continue\`.`,
+    options: ["`continue`"],
+    scope: halt.scope,
   };
 }
 

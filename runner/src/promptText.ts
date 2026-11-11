@@ -1,4 +1,4 @@
-// Wording shared by the agent-step prompts.
+// Wording shared by the agent-step prompts and the comments the runner posts.
 
 import { type Axis, verdicts } from "./verdicts.ts";
 
@@ -35,6 +35,12 @@ export function reviewFindingsText({
   const [first, ...rest] = axes.map((axis) => `the ${axis} reviewer's`);
   const order = [`${first} findings`, ...rest].join(", then ");
   return `\`findings\`, an empty list when the review finds nothing. List ${order}, each in its reviewer's order, never merged or reranked. Each finding has \`axis\` (${codeListOf(axes)}, its reviewer's), \`where\` (${where}), \`claim\` (${claim}), \`suggestedVerdict\` (${codeListOf(verdicts)}, as its reviewer suggested) and \`reason\` (the reviewer's reason for that verdict).`;
+}
+
+// A list that follows a label's colon on the label's line, or ` none`.
+export function bulletsOf(items: string[]): string {
+  if (items.length === 0) return " none";
+  return items.map((item) => `\n- ${item}`).join("");
 }
 
 export function sectionOf(heading: string, bullets: string[]): string {

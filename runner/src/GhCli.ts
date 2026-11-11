@@ -138,6 +138,18 @@ export class GhCli implements RunGitHub, IssueSource {
     return stdout.trim();
   }
 
+  async editBody({ repo, number }: IssueRef, body: string): Promise<void> {
+    await this.gh(
+      "issue",
+      "edit",
+      String(number),
+      "-R",
+      `${this.owner}/${repo}`,
+      "--body",
+      body,
+    );
+  }
+
   async closeIssue({ repo, number }: IssueRef, comment: string): Promise<void> {
     await this.gh(
       "issue",

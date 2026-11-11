@@ -54,7 +54,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `GhCli.ts` | `GhCli` | The real `gh` port. |
 | `git.ts` | | Git helpers the workspaces, run loop and wrap-up share, the worktree add, remove, list and switch helpers and the branch lookup included. |
 | `GitFixture.ts` | | A test primary root of clones with bare remotes. |
-| `halts.ts` | | Halts: their comments, notices and the resume prompt. |
+| `halts.ts` | | Halts: their comments, notices, the resume prompt and the words of the fresh Halt on an Outline edit the runner can't apply. |
 | `halts/haltReplies.ts` | | Reads a developer's replies to a Halt: which answer it, `stop spec` and a Failure Halt's answer. |
 | `headlessProbe.ts` | | Launches the one-turn headless session both probes run. |
 | `IssueReader.ts` | `IssueReader` | `npm run issue:read`: prints an issue as Trusted and Untrusted text, and reads a Trusted body's Model fit line for `npm run outcome:summary`. |
@@ -75,6 +75,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `lockFixture.ts` | | Pid-lock fixtures the lock tests share. |
 | `modelFit.ts` | `modelFit` | Reads a ticket's Model fit pair and compares pairs. |
 | `Notices.ts` | `Notices` | The notice port, its notice kinds and the run endings among them. |
+| `outlineEdits.ts` | `outlineEdits` | A Research Halt's Outline edits: their ids and words, the ones an answer approves, and their word-for-word application to a spec body's `## Outline`. |
 | `outcomeBackfill.ts` | `outcomeBackfill` | A one-off chore's core: fills written outcome rows' `unrecorded` transcript cells from a run state's sessions. |
 | `outcomeLog.ts` | `outcomeLog` | The outcome row file's path, table and commit message, and a written row's cells by column and its transcript cells. |
 | `outcomeRowWriter.ts` | `outcomeRowWriter` | Writes a ticket's outcome row from its facts file. |
@@ -85,7 +86,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `processIdentity.ts` | `processIdentity` | A process named by its pid and start time, for leases, supervision records and a parked watch. |
 | `progressLines.ts` | | The progress-log lines, written and parsed in pairs. |
 | `ProgressLog.ts` | | A progress log's lines and what the Run board reads from them: the current ticket, the account and the latest line. |
-| `promptText.ts` | | Wording helpers the step prompts share. |
+| `promptText.ts` | | Wording helpers the step prompts and the runner's comments share. |
 | `recordSchema.ts` | | Schema parts the step records share, the implement record's variants and the review record built from a Workflow's axes among them, and their validator. |
 | `reviewList.ts` | `reviewList` | The review list's comment formats and undecided count, `runner decide`'s edit marking one item decided or handled, and a session re-review's merge into the posted list. |
 | `runBoard.ts` | `runBoard` | The Run board behind `runner status` and `runner watch` with no spec. |
@@ -108,6 +109,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/JudgeableIssueLister.ts` | | `runner judgeable`: lists a repo's open issues by the Base's judgement, undecided review-list items or ready to close. |
 | `SpecRun/LeaseKeeper.ts` | | Takes and releases a ticket's workspace lease and finds its workspace. |
 | `SpecRun/MemberSelections.ts` | | One pick's ticket selections across a run's members. |
+| `SpecRun/OutlineEditApplier.ts` | | Applies the Outline edits an answered Research Halt approves to the spec body, raising a fresh Research Halt on an edit it can't apply. |
 | `SpecRun/PreflightChecker.ts` | | The run's preflight over its member list: run locks, each member's refusals and the shared preflight Stop. |
 | `SpecRun/ResearchStepper.ts` | | Runs a piece spec's research ticket's research step and its handoffs, keeps its record, and runs its quote check, sending the step back on red. |
 | `SpecRun/ReviewItemDecider.ts` | | `runner decide`: records one item of the developer's own review list as decided or handled. |
@@ -123,7 +125,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/TicketLander.ts` | | Lands a ticket: posts a research ticket's comment and raises its Research Halt, writes its facts file, runs the wrap-up and posts its review list, delegating its checks and wrap-up failures to `TicketLander/`. |
 | `SpecRun/TicketLander/MasterMerger.ts` | | Takes a ticket's wrap-up failure, merging master into its branch on a conflict and resuming the implementer to resolve it. |
 | `SpecRun/TicketLander/TicketChecker.ts` | | Runs a ticket's checks until green, resuming on red and stopping on a red master. |
-| `SpecRun/TicketSelector.ts` | | Picks the run's next ticket and reads Halt answers. |
+| `SpecRun/TicketSelector.ts` | | Picks the run's next ticket, reads Halt answers and has a Research Halt's approved edits applied. |
 | `SpecRun/TicketSequencer.ts` | | Runs one ticket's steps from the one it reached, walking the Step sequence its Workflow supplies, and stops one whose sequence ends short of wrap-up. |
 | `SpecRun/runState.ts` | | The run-state types and the ticket-state, targets, launch and member-blocking helper bundles several collaborators share. |
 | `SpecRun/runState/runHalts.ts` | | Raises, reads, delivers and orders a run's Halts, and finds a ticket's downstream. |

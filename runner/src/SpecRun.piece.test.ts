@@ -626,6 +626,101 @@ describe("the Research Halt", () => {
     expect(result.message).toContain(draftingGoesOn);
   });
 
+  it("applies an approved Outline edit to the spec body word for word, then drafting goes on", async () => {
+    await answerResearchHalt("H1: drop F1, approve E1");
+
+    const result = await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(github.issues.get(spec.number)?.body).toBe(editedSpecBody);
+    expect(result.message).toContain(draftingGoesOn);
+  });
+
+  it("applies only the edit an answer approves, leaving the other's text as it was", async () => {
+    addResearchedSpec();
+    const twoLines = outlinedSpecBody.replace(
+      "\n\n## Facts",
+      "\n- **The harbour**: the gulls rose at dawn.\n\n## Facts",
+    );
+    github.edit(spec.number, { body: twoLines });
+    const ready = readyRecordOf(scratchFolder());
+    const record: ReadyResearchRecord = {
+      ...ready,
+      outlineEdits: [
+        ...ready.outlineEdits,
+        {
+          section: "The harbour",
+          oldText: "the gulls rose at dawn.",
+          newText: "the gulls slept through the dawn.",
+          reason: "The logbook calls the dawn still.",
+        },
+      ],
+    };
+    await specRun(FakeAgentStep.init(researched(record))).run(spec);
+    github.reply(spec.number, "H1: approve E2");
+
+    await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(github.issues.get(spec.number)?.body).toBe(
+      twoLines.replace(
+        "the gulls rose at dawn.",
+        "the gulls slept through the dawn.",
+      ),
+    );
+  });
+
+  it("leaves the spec body alone on a `stop spec` answer that names an edit", async () => {
+    await answerResearchHalt("H1: stop spec, approve E1");
+
+    await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(github.issues.get(spec.number)?.body).toBe(outlinedSpecBody);
+  });
+
+  it("applies nothing twice when a killed run reads the answer again", async () => {
+    await answerResearchHalt("H1: approve E1");
+    await specRun(FakeAgentStep.init()).run(spec);
+    const saved = JSON.parse(readFileSync(runStatePath(), "utf8")) as {
+      halts: Halt[];
+    };
+    saved.halts.forEach((halt) => {
+      halt.isDelivered = false;
+    });
+    writeFileSync(runStatePath(), JSON.stringify(saved));
+
+    const result = await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(github.issues.get(spec.number)?.body).toBe(editedSpecBody);
+    expect(haltComments()).toHaveLength(1);
+    expect(result.message).toContain(draftingGoesOn);
+  });
+
+  it("raises a fresh Halt on an approved edit it can't apply, holding drafting until `continue`", async () => {
+    await answerResearchHalt("H1: approve E1");
+    const handEdited = outlinedSpecBody.replace(
+      outlineTexts.old,
+      "the ferry waited out the storm.",
+    );
+    github.edit(spec.number, { body: handEdited });
+
+    const halted = await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(github.issues.get(spec.number)?.body).toBe(handEdited);
+    expect(haltComments()).toHaveLength(2);
+    const fresh = haltComments()[1];
+    expect(fresh).toContain("**Halt H2**");
+    expect(fresh).toContain(
+      `**E1** The crossing: replace "${outlineTexts.old}"`,
+    );
+    expect(fresh).toContain("`continue`");
+    expect(fresh).toContain("Blocks: byro-repo#2 and their downstream.");
+    expect(halted.message).toContain("byro-repo #2 waits on Halt H2");
+    github.reply(spec.number, "H2: continue");
+
+    const result = await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(result.message).toContain(draftingGoesOn);
+  });
+
   it("raises no Halt on a record with only unwanted facts and no edits", async () => {
     addResearchedSpec();
     const record: ResearchRecord = {
@@ -690,6 +785,16 @@ const outlineTexts = {
   proposed: "the ferry ran before the storm came.",
 } as const;
 const outlinedSpecBody = `## Deliverable\n\nThe crossing.\n\n## Outline\n\n- **The crossing**: ${outlineTexts.old}\n\n## Facts\n\n- The ferry carried forty people.\n`;
+const editedSpecBody = `## Deliverable\n\nThe crossing.\n\n## Outline\n\n- **The crossing**: ${outlineTexts.proposed}\n\n## Facts\n\n- The ferry carried forty people.\n`;
+
+// Lands the research ticket, raising H1, then answers it.
+async function answerResearchHalt(answer: string): Promise<void> {
+  addResearchedSpec();
+  await specRun(
+    FakeAgentStep.init(researched(readyRecordOf(scratchFolder()))),
+  ).run(spec);
+  github.reply(spec.number, answer);
+}
 
 // The drafting ticket isn't ready-for-agent, so it waits on the developer once no Halt holds it.
 const draftingGoesOn = "byro-repo #2 waits on you";
