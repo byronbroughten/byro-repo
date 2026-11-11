@@ -176,9 +176,11 @@ function factsOf(
     limitResumes: state.limitResumes,
     pair: pairLabelOf(pair),
   };
+  // A Research Halt adds nothing to its ticket's cost, and a re-landing would otherwise count the one its first landing raised.
   const haltKinds = new Set(
     runHalts
       .ofTicket(run, ticket.issue)
+      .filter(({ kind }) => kind !== "research")
       .map(({ kind }) => haltKindLabelOf(kind)),
   );
   if (haltKinds.size > 0) facts.halt = [...haltKinds].join(", ");

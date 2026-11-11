@@ -43,6 +43,7 @@ import {
   specRun,
   type StepScript,
   temp,
+  ticketFacts,
   ticketState,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
@@ -1648,6 +1649,7 @@ describe("the Research Halt", () => {
     expect(result.landed).toEqual([refOf(1)]);
     expect(haltComments()).toHaveLength(1);
     expect(result.message).toContain("byro-repo #2 waits on Halt H1");
+    expect(ticketFacts().halt).toBeUndefined();
   });
 });
 
