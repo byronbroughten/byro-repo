@@ -26,7 +26,7 @@ export const draftingScope = {
   sectionsOfAnyTicket: `${sectionWords.named} (on a \`final-pass\` ticket, ${sectionWords.finalPass})`,
 
   // Fits after a length rule's opening, from lengthRuleOf or a generated skill's own.
-  lengthLimit:
+  lengthRuleClause:
     "keep the agent Sections' words, headings and author marks left out, within the spec's Form `Length:` line.",
 
   // Fits before "keep", as a prompt words the length rule of a whole-scope ticket.

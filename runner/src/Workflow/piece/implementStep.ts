@@ -5,11 +5,11 @@
 
 import { join } from "node:path";
 
-import { commandLabelOf } from "../../failureText.ts";
 import { stepReadLine } from "../../IssueReader.ts";
 import type { IssueRef } from "../../IssueWorkspaces.ts";
 import {
   commitMessageLine,
+  type NumberOrPlaceholder,
   sectionOf,
   stepWriteLine,
 } from "../../promptText.ts";
@@ -22,7 +22,6 @@ import {
   stringSchema,
   uncommittedVariantSchemas,
 } from "../../recordSchema.ts";
-import type { Command } from "../../runKnobs.ts";
 import { implementBody, implementWorkspaceSection } from "../../stepPrompts.ts";
 import { handoffText } from "../../stepPrompts/handoffText.ts";
 import {
@@ -39,10 +38,8 @@ const paths = {
   agentDraft: "docs/pieces/agent-draft.md",
 } as const;
 
-interface PassagesTicket {
-  repo: string;
-  // A string for the `<n>` placeholder a generated skill names it by.
-  number: number | string;
+interface PassagesTicket extends Omit<IssueRef, "number"> {
+  number: NumberOrPlaceholder;
 }
 
 // Under the workspace root's `.runner/`, which byro-repo gitignores, so no passage reaches a commit.
@@ -74,21 +71,6 @@ export function draftMaterialsLineOf({
   return `The Agent draft is \`${draftPath}\` in the \`${spec.repo}\` clone, the passages folder is \`${passagesFolderIn(workspacePath, issue)}\`, and the ticket's spec is ${spec.repo}#${spec.number}.`;
 }
 
-interface OverlapRun {
-  overlapCommand: Command;
-  specRepo: string;
-  passagesFolder: string;
-}
-
-export function overlapRunOf({
-  overlapCommand,
-  specRepo,
-  passagesFolder,
-}: OverlapRun): string {
-  return `${commandLabelOf(overlapCommand)} --deliverable <the Agent draft's path in the ${specRepo} clone> --passages ${passagesFolder}`;
-}
-
-// The words a ticket's values take: a run's are real, a generated skill's are placeholders.
 export interface DraftingWords {
   draftPath: string;
   specRepo: string;
@@ -101,7 +83,6 @@ export interface DraftingWords {
   pulled: string;
 }
 
-// The drafting rules the step's prompt and the /implement-piece skill share.
 export function draftingLinesOf({
   draftPath,
   specRepo,
@@ -125,7 +106,11 @@ export function commitDraftLineOf({
   draftPath,
   specRepo,
 }: Pick<DraftingWords, "draftPath" | "specRepo">): string {
-  return `Commit only the Agent draft, in the \`${specRepo}\` clone on the ticket's branch: \`git -C <clone> add ${draftPath}\`, then \`git -C <clone> commit\`. Never amend.`;
+  return `Commit only the Agent draft, in the \`${specRepo}\` clone on the ticket's branch: ${draftCommitCommandsOf(draftPath)}. Never amend.`;
+}
+
+export function draftCommitCommandsOf(draftPath: string): string {
+  return `\`git -C <clone> add ${draftPath}\`, then \`git -C <clone> commit\``;
 }
 
 export const noGitHubWriteLine = "Make no GitHub write.";

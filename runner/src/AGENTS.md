@@ -140,7 +140,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `specRunHarness/trackedIssues.ts` | | The tracked issues `SpecRun` tests give a fake GitHub and `Workflow` tests pick from. |
 | `stalePaths.ts` | | The stale-path check for `packages/<dir>` mentions with no clone. |
 | `StepStream.ts` | | Reads a step's stream-json into its `StepResult`. |
-| `stepPrompts.ts` | | The prompt text the implement and resolve steps share with the core and the generated `/implement-*` skills: the resumes' prompts, the implement body, its workspace section, the resolve rules and record fields, and the skills' shared opening and ending. |
+| `stepPrompts.ts` | | The prompt text the implement and resolve steps share with the core and the generated `/implement-*` skills: the resumes' prompts, the implement body, its workspace section, the resolve rules and record fields, and the skills' shared commands, opening, generated note and ending. |
 | `stepPrompts/handoffText.ts` | | The handoff wording every Workflow's implement step shares: the nudge section, a fresh step's section, the posted comment and a proposed split's text. |
 | `stepRecords.ts` | | The records the steps return, with the types, reasons, implement record check and small readers the core shares. |
 | `SupervisionRecords.ts` | `SupervisionRecords` | A Supervisor's record of the run or Batch it watches and the lines explained, and its handoff file, read once on a rejoin. |
@@ -166,7 +166,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Workflow/piece/gapCheck.ts` | | The piece gap check's prompt. |
 | `Workflow/piece/implementPieceSkill.ts` | `implementPieceSkill` | Generates the `/implement-piece` skill from the piece implement step's drafting lines. |
 | `Workflow/piece/implementStep.ts` | | The piece implement step's prompt, the drafting lines `/implement-piece` shares, passages folder, output schema, record and record checks. |
-| `Workflow/piece/pieceChecks.ts` | | A drafting ticket's checks: overlap and the spec's length limit. |
+| `Workflow/piece/pieceChecks.ts` | | A drafting ticket's checks: overlap and the spec's length limit, and the prompts' wording of an overlap run and its fixes. |
 | `Workflow/piece/pieceWorkflow.ts` | `pieceWorkflow` | Builds the piece Workflow from a repo's overlap and quote commands and Docs port: its research and drafting Steps, research, implement, review, resolve and red-checks agent steps, its spec-end Steps and their trigger, pull rules, quote check, drafting checks and the source targets read from the spec's Supporting Material. |
 | `Workflow/piece/redChecksStep.ts` | | The piece red-checks step's prompt, fixing red piece checks in the Agent draft, and its output schema. |
 | `Workflow/piece/researchStep.ts` | | The research step's prompt, its red-quotes section, handoff comment, record checks, output schema, closing comment and Research Halt words. |

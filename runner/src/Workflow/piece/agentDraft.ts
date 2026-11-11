@@ -3,6 +3,7 @@
 // merges a Doc read into it; the Doc's Markdown dialect and its split into Sections are ../../Docs/markdownDialect.ts's.
 
 import { markdownDialect } from "../../Docs/markdownDialect.ts";
+import type { NumberOrPlaceholder } from "../../promptText.ts";
 
 export type SectionAuthor = "developer" | "agent";
 
@@ -19,8 +20,7 @@ const authorMarks: Record<SectionAuthor, string> = {
 };
 
 export const agentDraft = {
-  // A string for the `<spec n>` placeholder a generated skill names it by.
-  pathOf(specNumber: number | string): string {
+  pathOf(specNumber: NumberOrPlaceholder): string {
     return `writing/agent-drafts/${specNumber}.md`;
   },
 

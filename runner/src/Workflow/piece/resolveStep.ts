@@ -19,11 +19,8 @@ import type {
 import { type Verdict, verdictWords } from "../../verdicts.ts";
 import type { ResolvePromptInput } from "../../Workflow.ts";
 import { draftingScope } from "./draftingScope.ts";
-import {
-  draftMaterialsLineOf,
-  overlapRunOf,
-  passagesFolderIn,
-} from "./implementStep.ts";
+import { draftMaterialsLineOf, passagesFolderIn } from "./implementStep.ts";
+import { pieceChecks } from "./pieceChecks.ts";
 
 const pieceFindingsHeading = "## Piece findings";
 
@@ -76,9 +73,11 @@ function checksSection({
 }: PieceResolvePromptInput): string {
   const passagesFolder = passagesFolderIn(workspacePath, issue);
   return sectionOf("The piece checks after your Fixes", [
-    `Once your Fixes are committed, rerun the overlap check from the workspace root: \`${overlapRunOf({ overlapCommand, specRepo: spec.repo, passagesFolder })}\`.`,
-    `Fix every hit it prints in ${draftingScope.sectionsOf(labels)} that the dismissed hits below don't hold, then rerun it; a hit in any other Section isn't this ticket's.`,
-    `${draftingScope.lengthRuleOf(labels)} ${draftingScope.lengthLimit}`,
+    `Once your Fixes are committed, rerun the overlap check from the workspace root: \`${pieceChecks.overlapRunOf({ overlapCommand, specRepo: spec.repo, passagesFolder })}\`.`,
+    pieceChecks.overlapFixLineOf(
+      `it prints in ${draftingScope.sectionsOf(labels)} that the dismissed hits below don't hold`,
+    ),
+    `${draftingScope.lengthRuleOf(labels)} ${draftingScope.lengthRuleClause}`,
     `A Fix you can't make pass the checks is reverted in a further commit and resolved, saying why, as a Propose \`decision\`, or for a \`spec\`-axis finding as a Halt, so you never leave the checks red.`,
   ]);
 }
