@@ -1768,7 +1768,10 @@ describe("run on a Standalone ticket", () => {
       reviewed(),
     );
 
-    const result = await specRun(agentStep, { members }).run(...members);
+    const result = await specRun(agentStep, { members }).run(
+      pieceResearch,
+      codeTicket,
+    );
 
     const [research, implement] = agentStep.requests;
     expect(research?.prompt).toContain(
