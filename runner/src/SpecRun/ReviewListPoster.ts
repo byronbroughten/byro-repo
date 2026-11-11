@@ -23,18 +23,6 @@ import { ticketSteps } from "./runState/ticketSteps.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 
 export class ReviewListPoster extends SpecRunBase {
-  private get haltRaiser(): HaltRaiser {
-    return new HaltRaiser(this.config);
-  }
-
-  private get stepLauncher(): StepLauncher {
-    return new StepLauncher(this.config);
-  }
-
-  private get draftPusher(): DraftPusher {
-    return new DraftPusher(this.config);
-  }
-
   // Posts the notes before the comment, so a ticket marked posted has posted both.
   async _postReviewList(run: Run, ticket: TrackedIssue): Promise<void> {
     const state = runTickets.stateOf(run, ticket.issue);
