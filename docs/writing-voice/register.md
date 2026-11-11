@@ -37,10 +37,10 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Person and regis
 
 ## A literal verb in formal prose
 
-- Agent: "each turns on how the sponsor or the project manager leads" Developer: "each informs how the sponsor and project manager leads" — personal#16 Snapshot, 2026-10-26
-- Agent: "rough figures made on incomplete information tend to harden into targets" Developer: "tend to become targets" — personal#16 Snapshot, 2026-10-26
-- Agent: "PMI (2021) draws a similar line: it measures a deliverable's quality by" Developer: "PMI (2021) backs up this approach, stating that a deliverable's quality is measured by" — personal#16 Snapshot, 2026-10-26
-- No count was recorded; from a Snapshot.
+- Agent: "each turns on how the sponsor or the project manager leads" Developer: "each informs how the sponsor and project manager leads" — Assessment 2 Agent draft, 2026-10-26
+- Agent: "rough figures made on incomplete information tend to harden into targets" Developer: "tend to become targets" — Assessment 2 Agent draft, 2026-10-26
+- Agent: "PMI (2021) draws a similar line: it measures a deliverable's quality by" Developer: "PMI (2021) backs up this approach, stating that a deliverable's quality is measured by" — Assessment 2 Agent draft, 2026-10-26
+- No count was recorded; from an Agent draft.
 
 ## The wry aside
 
@@ -58,8 +58,8 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Person and regis
 
 ## A phase gets its noun
 
-- Agent: "the $9,000 repairs line in Table 1 rests on what Planning can see" Developer: "depends on what can be seen during the planning phase" — Assessment 1 Next Draft (personal#4), Drive edit after session 66510c6, by 2026-10-18
-- Agent: "Build and Test assume that Jesus Fernandez…" Developer: "The Build and Test phases assume Jesus Fernandez…" — same
+- Agent: "the $9,000 repairs line in Table 1 rests on what Planning can see" Developer: "depends on what can be seen during the planning phase" — Assessment 1 Next Draft, Drive edit after session 66510c6, by 2026-10-18
+- Agent: "Build and Test assume that Sam…" Developer: "The Build and Test phases assume Sam…" — same
 - Agent: "the sponsor delays the start of Build" Developer: "the start of the Build phase"; likewise "gate into Build", "in Test" — same
 - Agent: "or move the finish past May 31, 2027" Developer: "or move the project's finish date past May 31, 2027" — same
 - No count was recorded; from a session.
