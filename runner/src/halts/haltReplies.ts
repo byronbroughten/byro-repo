@@ -1,4 +1,4 @@
-// Halt replies: which of the developer's spec-issue replies answer a Halt, `stop spec`, and what a Failure Halt's answer asks for.
+// Halt replies: which of the developer's spec-issue replies answer a Halt, `stop spec`, and what a Failure or push Halt's answer asks for.
 // The Halt itself, its comment and the resume prompt are ../halts.ts; ../SpecRun/TicketSelector.ts reads the replies each pick.
 
 import type { Pair } from "../AgentStep.ts";
@@ -20,6 +20,8 @@ export type FailureAnswer =
   | { kind: "approve" }
   | { kind: "skip" }
   | { kind: "guidance"; text: string };
+
+export type PushAnswer = "overwrite" | "keep-mine";
 
 export interface ReplySearch {
   halt: Halt;
@@ -50,6 +52,14 @@ export const haltReplies = {
     const pair = pairNamed(/^rerun on (.+)$/.exec(answerWords)?.[1] ?? "");
     if (pair !== undefined) return { kind: "rerun", pair };
     return { kind: "guidance", text };
+  },
+
+  // Undefined for any other answer, `stop spec` included, so the push asks again rather than guess.
+  pushAnswerOf(halt: AnsweredHalt): PushAnswer | undefined {
+    const answerWords = wordsOf(answerTextOf(halt));
+    if (answerWords === "overwrite") return "overwrite";
+    if (answerWords === "keep mine") return "keep-mine";
+    return undefined;
   },
 
   // The developer's replies opening with the Halt's id since it was last posted, oldest first; never the runner's own comments.

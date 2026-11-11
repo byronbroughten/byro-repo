@@ -54,8 +54,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `GhCli.ts` | `GhCli` | The real `gh` port. |
 | `git.ts` | | Git helpers the workspaces, run loop and wrap-up share, the worktree add, remove, list and switch helpers and the branch lookup included. |
 | `GitFixture.ts` | | A test primary root of clones with bare remotes. |
-| `halts.ts` | | Halts: their comments, notices, the resume prompt and the words of the fresh Halt on an Outline edit the runner can't apply. |
-| `halts/haltReplies.ts` | | Reads a developer's replies to a Halt: which answer it, `stop spec` and a Failure Halt's answer. |
+| `halts.ts` | | Halts: their comments, notices, the resume prompt and the words of the fresh Halt on an Outline edit the runner can't apply and of the push Halt. |
+| `halts/haltReplies.ts` | | Reads a developer's replies to a Halt: which answer it, `stop spec` and a Failure or push Halt's answer. |
 | `headlessProbe.ts` | | Launches the one-turn headless session both probes run. |
 | `IssueReader.ts` | `IssueReader` | `npm run issue:read`: prints an issue as Trusted and Untrusted text, and reads a Trusted body's Model fit line for `npm run outcome:summary`. |
 | `IssueWorkspaces.ts` | `IssueWorkspaces` | Creates, promotes, resumes, leases, lists and removes issue and session workspaces, delegating to `IssueWorkspaces/`. |
@@ -106,7 +106,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `sleep.ts` | | A promised delay. |
 | `SpecRun.ts` | `SpecRun` | The run loop's entry: `run` over its members, `status`, `requestStop`, `review`, `resolve`, `decide`, `judgeable` and `standalone`, delegating to `SpecRun/`. |
 | `SpecRun/DraftPuller.ts` | | Runs a piece spec's drafting ticket's pull: writes and commits the Agent draft its Workflow pulls from the Doc, and keeps the push baseline. |
-| `SpecRun/DraftPusher.ts` | | Runs a piece spec's push: writes the Agent draft's agent Sections into the Doc once, stopping before any write on a Section the developer changed since the pull. |
+| `SpecRun/DraftPusher.ts` | | Runs a piece spec's push: writes the Agent draft's agent Sections into the Doc once, raising a push Halt before any write on a Section the developer changed since the pull, and lands a `keep mine` answer's Agent draft as a session. |
 | `SpecRun/HaltRaiser.ts` | | Raises and posts a ticket's Halts and finds its downstream. |
 | `SpecRun/ImplementStepper.ts` | | Runs a ticket's implement step and its handoffs, and creates the kept folder a Workflow names. |
 | `SpecRun/JudgeableIssueLister.ts` | | `runner judgeable`: lists a repo's open issues by the Base's judgement, undecided review-list items or ready to close. |
@@ -131,8 +131,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/TicketSelector.ts` | | Picks the run's next ticket, reads Halt answers and has a Research Halt's approved edits applied. |
 | `SpecRun/TicketSequencer.ts` | | Runs one ticket's steps from the one it reached, walking the Step sequence its Workflow supplies, and stops one whose sequence ends short of wrap-up. |
 | `SpecRun/runState.ts` | | The run-state types and the ticket-state, targets, launch and member-blocking helper bundles several collaborators share. |
-| `SpecRun/runState/runHalts.ts` | | Raises, reads, delivers and orders a run's Halts, and finds a ticket's downstream. |
-| `SpecRun/runState/runText.ts` | | Words a run's end, waits and refusals, its rerun command and its review-list judge line. |
+| `SpecRun/runState/runHalts.ts` | | Raises, reads, delivers and orders a run's Halts, finds a ticket's downstream and the spec-end Step a spec issue's Halt holds. |
+| `SpecRun/runState/runText.ts` | | Words a run's end, waits and refusals, its rerun command, its review-list judge line and each spec-end Step's name. |
 | `SpecRun/runState/statePaths.ts` | | A spec's run state file and progress log paths in the state folder. |
 | `SpecRun/runState/ticketSteps.ts` | | A ticket's step sessions, heads, turn caps, live-ceiling phrase and snapshots, the red-checks loop, and reads a step's record, a kept research record and its review facts. |
 | `specRunHarness.ts` | | The fixture `SpecRun` tests share. |
@@ -162,7 +162,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Workflow/code/redChecksStep.ts` | | The red-checks step's prompt and record. |
 | `Workflow/code/resolveStep.ts` | `resolveStep` | The code resolve step's prompt. |
 | `Workflow/code/reviewStep.ts` | `reviewStep` | The review step's prompt and record schema. |
-| `Workflow/piece/agentDraft.ts` | | The Agent draft file's Sections and author marks, pull's merge of a Doc's Sections into them, and the agent Sections the push writes. |
+| `Workflow/piece/agentDraft.ts` | | The Agent draft file's Sections and author marks, pull's merge of a Doc's Sections into them, the agent Sections the push writes and the ones its `keep mine` answers mark as the developer's. |
 | `Workflow/piece/draftingScope.ts` | `draftingScope` | A drafting ticket's scope, its named Sections or every agent Section on a `final-pass` ticket, read from its labels and worded for the prompts. |
 | `Workflow/piece/gapCheck.ts` | | The piece gap check's prompt. |
 | `Workflow/piece/implementStep.ts` | | The piece implement step's prompt, passages folder, output schema, record and record checks. |

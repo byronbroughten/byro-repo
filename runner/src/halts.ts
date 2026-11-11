@@ -32,6 +32,7 @@ const kindLabels = {
   failure: "Failure Halt",
   split: "Split Halt",
   research: "Research Halt",
+  push: "Push Halt",
 } as const;
 
 export type HaltKind = keyof typeof kindLabels;
@@ -54,6 +55,8 @@ export interface Halt {
   bodyHash?: string;
   // A Research Halt's proposed edits, which its answer approves by `E<n>`.
   outlineEdits?: OutlineEdit[];
+  // A push Halt's Section, by its heading; the latest push Halt on it holds the answer the push acts on.
+  pushSection?: string;
   isPosted: boolean;
   answer?: HaltAnswer;
   // Set once the answer reached the resumed or fresh implementer; on a Research Halt, once the edits it approves are applied.
@@ -86,6 +89,7 @@ export type HaltDraft = Pick<
   | "failedStep"
   | "bodyHash"
   | "outlineEdits"
+  | "pushSection"
 >;
 
 // What a Workflow words of a Halt it asks for; the core adds the rest.
@@ -143,6 +147,31 @@ export function unappliedEditsHaltOf(
     question: `${haltNameOf(halt)}'s answer approved these Outline edits, but the runner couldn't apply them: each one's ${outlineEdits.unappliedReason}.${bulletsOf(lines)}\n\nMake each change in the spec's \`## Outline\` by hand, then answer \`continue\`.`,
     options: ["`continue`"],
     scope: halt.scope,
+  };
+}
+
+export const pushOptions = {
+  overwrite: "`overwrite`",
+  keepMine: "`keep mine`",
+} as const;
+
+// How an agent Section the push would write differs from the pull baseline in the Doc.
+export type PushConflict = "changed" | "missing";
+
+// Raised on the spec issue, since the push belongs to no ticket; it writes nothing until every one is answered.
+export function pushHaltOf(heading: string, conflict: PushConflict): HaltDraft {
+  const { overwrite, keepMine } = pushOptions;
+  const keepMineText = `answer ${keepMine} to leave the Doc as it is and mark the Section as yours in the Agent draft`;
+  const questions: Record<PushConflict, string> = {
+    changed: `"${heading}" changed in the Doc since the pull, and the push never writes over your edits unasked. Answer ${overwrite} to write the agent text over yours, or ${keepMineText}.`,
+    missing: `The Doc has no "${heading}" heading, so the push has nowhere to write the agent text. Add it, then answer ${overwrite} to write the agent text under it; or ${keepMineText}.`,
+  };
+  return {
+    kind: "push",
+    question: questions[conflict],
+    options: [overwrite, keepMine],
+    scope: [],
+    pushSection: heading,
   };
 }
 

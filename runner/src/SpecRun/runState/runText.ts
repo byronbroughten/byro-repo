@@ -5,7 +5,14 @@
 import { type IssueRef, issueRef } from "../../IssueWorkspaces.ts";
 import { undecidedTextOf } from "../../reviewList.ts";
 import { stopOutcomes, type UnhandledStop } from "../../UnhandledStop.ts";
+import type { SpecEndStep } from "../../Workflow.ts";
 import { type Judgement, type MemberList, type Wait } from "../runState.ts";
+
+const specEndStepNames: Record<SpecEndStep, string> = {
+  "gap-check": "The gap check",
+  judge: "The judge Step",
+  push: "The push",
+};
 
 export interface JudgedMember {
   issue: IssueRef;
@@ -60,6 +67,11 @@ export const runText = {
   // A spec-end `judge` Step's stop: the developer judges the review lists before the Steps after it run.
   judgeThenRerunOf(rerunCommand: string): string {
     return `The review lists hold undecided items: judge, then rerun: \`${rerunCommand}\`.`;
+  },
+
+  // Each spec-end Step's name as a run's end message and its wait open with it.
+  stepNameOf(step: SpecEndStep): string {
+    return specEndStepNames[step];
   },
 
   waitsOf(waits: Wait[]): string {

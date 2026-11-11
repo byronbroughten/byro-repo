@@ -68,6 +68,8 @@ export interface Workflow {
 export interface PushRules {
   // Each agent Section's Markdown by its heading, keyed and trimmed as DocRead.sections is.
   agentSectionsOf(draft: string): Map<string, string>;
+  // The draft with each kept Section, by its heading, marked as the developer's and holding the Doc's text.
+  keptOf(draft: string, kept: Map<string, string>): string;
   // A fresh Docs module over the Workflow's Docs port.
   readonly docs: Docs;
 }
@@ -103,7 +105,7 @@ export interface TicketChecksInput {
 
 // A Step that runs once at a spec's end, rather than in each ticket; the core runs each by its name.
 // `judge` ends the run with "judge, then rerun" while any review-list item is undecided, so the Steps after it wait on the developer's judgement.
-// `push` writes the Agent draft into the Deliverable once, never over a Section the developer changed since the pull.
+// `push` writes the Agent draft into the Deliverable once, asking on a push Halt before it writes over a Section the developer changed since the pull.
 export type SpecEndStep = "gap-check" | "judge" | "push";
 
 export interface SpecEnd {

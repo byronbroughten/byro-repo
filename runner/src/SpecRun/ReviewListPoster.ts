@@ -1,7 +1,7 @@
 // The review lists and the gap check. At landing a ticket with resolve records or a merge-master record gets one review-list comment on the spec and each
 // covered-later Dismiss a note on its later ticket, each checked for its marker first; once the run has no ticket left to work, _finish
 // posts any review list a killed run missed and runs the spec-end Steps its Workflow supplies when the Workflow's trigger finds them due: the gap check, whose gaps become the last review list,
-// the judge Step, which ends a run holding undecided items with "judge, then rerun", and the push, DraftPusher.ts's.
+// the judge Step, which ends a run holding undecided items with "judge, then rerun", and the push, DraftPusher.ts's, which may halt on a push Halt.
 // RunLoop.ts calls _finish; SessionReviewer.ts calls _runnersSpecCommentsOf, _postCoveredLaterNotes and _postSessionReviewList,
 // which edits a posted list in place where a re-review's differs, the Base skipping a session's push; TicketLander.ts calls _postReviewList at landing;
 // StatusReporter.ts calls _isGapChecked.
@@ -179,7 +179,7 @@ export class ReviewListPoster extends SpecRunBase {
         return this._end(
           run,
           "stopped",
-          `${specEndStepNames[step]} ${runText.stoppedOn(error)}. Rerun to retry it.`,
+          `${runText.stepNameOf(step)} ${runText.stoppedOn(error)}. Rerun to retry it.`,
         );
       }
       if (ended.stop !== undefined) {
@@ -357,13 +357,6 @@ interface SpecEndOutcome {
   stop?: string;
   count?: UndecidedCount;
 }
-
-// Each spec-end Step's name as a run's end message opens with it.
-const specEndStepNames: Record<SpecEndStep, string> = {
-  "gap-check": "The gap check",
-  judge: "The judge Step",
-  push: "The push",
-};
 
 // The latest answer the gap check hasn't acted on; a `stop spec` read on a later run is a skip.
 function gapCheckAnswerOf(run: Run): FailureAnswer | undefined {

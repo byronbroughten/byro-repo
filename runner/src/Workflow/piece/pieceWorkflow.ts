@@ -261,6 +261,7 @@ export function pieceWorkflowOf({
     pull: pullRulesOf(documents),
     push: {
       agentSectionsOf: agentDraft.agentSectionsOf,
+      keptOf: agentDraft.keptOf,
       get docs() {
         return Docs.init(documents);
       },

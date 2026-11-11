@@ -228,10 +228,10 @@ export class HaltRaiser extends SpecRunBase {
     }
   }
 
-  // The gap check's is checked first, so it never creates a ticket state for the spec.
+  // A spec-end Step's is checked first, so it never creates a ticket state for the spec.
   // A Research Halt is raised before the wrap-up, but waits for its ticket to land, or close in a run killed before it recorded the landing.
   private async _isPostable(run: Run, halt: Halt): Promise<boolean> {
-    if (runHalts.isGapCheck(halt)) return true;
+    if (runHalts.specEndStepOf(halt) !== undefined) return true;
     if (halt.kind === "research") {
       if (runTickets.isLanded(run, halt.ticket)) return true;
       return !(await this.config.github.issueOf(halt.ticket)).isOpen;

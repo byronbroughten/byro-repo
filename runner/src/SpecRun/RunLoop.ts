@@ -364,7 +364,7 @@ export class RunLoop extends SpecRunBase {
     return stopSpecs.length > 0;
   }
 
-  // A member with no Halt or lease to wait out is done for this run; finishing when one was finished or its gap check halted.
+  // A member with no Halt or lease to wait out is done for this run; finishing when one was finished or a spec-end Step halted.
   private async _finishUnheld(
     waiting: MemberSelection<"none">[],
   ): Promise<Finishing> {
