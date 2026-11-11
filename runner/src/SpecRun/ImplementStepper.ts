@@ -216,18 +216,14 @@ export class ImplementStepper extends SpecRunBase {
   }
 
   private _implementPromptOf(ticketRun: TicketRun): string {
-    const { run, ticket, workspace, state } = ticketRun;
+    const { ticket, workspace, state } = ticketRun;
     return this._implementRulesOf(ticketRun).promptOf({
-      issue: ticket.issue,
-      spec: run.spec.issue,
-      title: ticket.title,
-      body: ticket.body,
-      labels: ticket.labels,
-      branch: workspace.branch,
+      ...ticketSteps.promptFieldsOf(ticketRun),
+      // The implement step starts from the workspace's own repos, not a record's.
       branchedRepos: workspace.branchedRepos,
+      body: ticket.body,
       promoteCommand: this.config.promoteCommandOf(ticket.issue),
       latestHandoff: state.latestHandoff,
-      workspacePath: workspace.path,
     });
   }
 

@@ -16,7 +16,7 @@ import {
 } from "../../stepRecords.ts";
 import { type RecordedSession, type StepAgent } from "../../transcriptFacts.ts";
 import { UnhandledStop } from "../../UnhandledStop.ts";
-import type { Workflow } from "../../Workflow.ts";
+import type { TicketPromptFields, Workflow } from "../../Workflow.ts";
 import {
   type gapCheckLabel,
   type Heads,
@@ -44,6 +44,20 @@ export const ticketSteps = {
     return (
       state.record?.branches.map(({ repo }) => repo) ?? workspace.branchedRepos
     );
+  },
+
+  // The ticket fields every agent-step prompt input shares.
+  promptFieldsOf(ticketRun: TicketRun): TicketPromptFields {
+    const { run, ticket, workspace } = ticketRun;
+    return {
+      issue: ticket.issue,
+      spec: run.spec.issue,
+      title: ticket.title,
+      labels: ticket.labels,
+      branch: workspace.branch,
+      branchedRepos: ticketSteps.branchedReposOf(ticketRun),
+      workspacePath: workspace.path,
+    };
   },
 
   // Absent from a state file written before Halts, where the last implement session is the implementer's.
