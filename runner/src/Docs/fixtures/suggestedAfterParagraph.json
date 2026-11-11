@@ -1,0 +1,109 @@
+{
+  "documentId": "doc-suggested-after-paragraph",
+  "revisionId": "rev-suggested-after-paragraph-1",
+  "body": {
+    "content": [
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Target\n" } }],
+          "paragraphStyle": {
+            "namedStyleType": "HEADING_2",
+            "headingId": "h.target"
+          }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [
+            { "textRun": { "content": "Old target text." } },
+            {
+              "textRun": {
+                "content": "\n",
+                "suggestedInsertionIds": ["suggest.f1"]
+              }
+            }
+          ],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [
+            {
+              "textRun": {
+                "content": "A suggested aside.\n",
+                "suggestedInsertionIds": ["suggest.f1"]
+              }
+            }
+          ],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [
+            {
+              "textRun": {
+                "content": "\n",
+                "suggestedInsertionIds": ["suggest.f1"]
+              }
+            }
+          ],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+        }
+      },
+      {
+        "table": {
+          "rows": 1,
+          "columns": 1,
+          "suggestedInsertionIds": ["suggest.f1"],
+          "tableRows": [
+            {
+              "tableCells": [
+                {
+                  "content": [
+                    {
+                      "paragraph": {
+                        "elements": [
+                          {
+                            "textRun": {
+                              "content": "Suggested cell\n",
+                              "suggestedInsertionIds": ["suggest.f1"]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "suggestedInsertionIds": ["suggest.f1"]
+                }
+              ],
+              "suggestedInsertionIds": ["suggest.f1"]
+            }
+          ]
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "\n" } }],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Next\n" } }],
+          "paragraphStyle": {
+            "namedStyleType": "HEADING_2",
+            "headingId": "h.next"
+          }
+        }
+      },
+      {
+        "paragraph": {
+          "elements": [{ "textRun": { "content": "Next text.\n" } }],
+          "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
+        }
+      }
+    ]
+  }
+}

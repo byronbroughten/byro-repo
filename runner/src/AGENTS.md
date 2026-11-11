@@ -6,6 +6,7 @@
 - **Test `SpecRun` through `specRunHarness.ts`**; each `SpecRun.<subject>.test.ts` covers one group, so the nearest one is the model for a new test.
 - **Runner tests get real git only through the shared git fixture, `GitFixture.ts`**, except in a fake command or git hook, a shell the code under test starts.
 - **A check command run through a harness is a shell builtin or small binary, never `node -e`.**
+- **A Docs API behaviour the Docs module relies on but nothing has recorded is probed with `scripts/runner/docsProbe.ts` on the Docs module scratch Doc**, never a fresh one-off script; its header has the commands, and the result goes in [`google-docs-behaviour.md`](../../docs/google-docs-behaviour.md).
 
 ## Files
 
@@ -28,13 +29,13 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `contextNudge.ts` | `contextNudge` | Words the handoff reminder once a transcript reaches the ticket budget, for the ticket's handoff, the supervision's or both. |
 | `CswapUsageReader.ts` | `CswapUsageReader` | Reads account usage and the Active account from `cswap list --json`. |
 | `docPrint.ts` | `docPrint` | `npm run doc:print`'s core: prints a Doc, named by its ID or URL, as the Markdown dialect, through the Docs port its entry passes. |
-| `Docs.ts` | | The Docs module's port: reads a Doc as its Markdown, its Sections by heading and the revision read, and writes a Section in place under that revision; it may later move to `packages/` with a folder move. |
+| `Docs.ts` | `Docs` | The Docs module's port: reads a Doc as its Markdown, its Sections by heading and the revision read, and writes a Section in place under that revision; it may later move to `packages/` with a folder move. |
 | `Docs/DocReader.ts` | | Reads a `documents.get` body into the Markdown dialect. |
 | `Docs/docFixtures.ts` | | Loads the `documents.get` JSON fixtures in `Docs/fixtures/` that Docs tests read. |
 | `Docs/DocsRequestRefused.ts` | | The error for a request the Docs API refused, with its status. |
 | `Docs/FakeBody.ts` | | The character-per-index body, its lists and tables included, that `FakeDocuments` applies `batchUpdate` requests to. |
 | `Docs/FakeDocuments.ts` | | The in-memory Docs API Docs tests use: `documents.get` and `batchUpdate` under a revision guard, and a Doc edited as in the editor, now or just before later writes. |
-| `Docs/googleDocs.ts` | | The Google Docs layer's types: the `documents.get` body types, the `batchUpdate` requests and its port. |
+| `Docs/googleDocs.ts` | `googleDocs` | The Google Docs layer's types: the `documents.get` body types, the `batchUpdate` requests and its port. |
 | `Docs/InlineParser.ts` | | Parses the dialect's inline Markdown back into styled text spans. |
 | `Docs/markdownDialect.ts` | | The Markdown dialect's forms and its split into Sections. |
 | `Docs/markdownDialect/blockParse.ts` | | The dialect's parse of a Section's body into paragraphs, flat lists and tables. |

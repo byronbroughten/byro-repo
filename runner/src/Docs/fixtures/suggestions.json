@@ -68,9 +68,11 @@
                         ]
                       }
                     }
-                  ]
+                  ],
+                  "suggestedInsertionIds": ["suggest.c1"]
                 }
-              ]
+              ],
+              "suggestedInsertionIds": ["suggest.c1"]
             }
           ]
         }
@@ -99,7 +101,14 @@
       "content": [
         {
           "paragraph": {
-            "elements": [{ "textRun": { "content": " A suggested note.\n" } }]
+            "elements": [
+              {
+                "textRun": {
+                  "content": " A suggested note.\n",
+                  "suggestedInsertionIds": ["suggest.d1"]
+                }
+              }
+            ]
           }
         }
       ]

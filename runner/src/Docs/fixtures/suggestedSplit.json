@@ -15,7 +15,7 @@
       {
         "paragraph": {
           "elements": [
-            { "textRun": { "content": "A handle stays cool." } },
+            { "textRun": { "content": "A handle stays cool. " } },
             {
               "textRun": {
                 "content": "\n",
@@ -28,7 +28,7 @@
       },
       {
         "paragraph": {
-          "elements": [{ "textRun": { "content": " Most of the time.\n" } }],
+          "elements": [{ "textRun": { "content": "Most of the time.\n" } }],
           "paragraphStyle": { "namedStyleType": "NORMAL_TEXT" }
         }
       },

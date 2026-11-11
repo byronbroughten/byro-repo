@@ -140,4 +140,19 @@ describe("DocReader", () => {
       ].join("\n"),
     );
   });
+
+  it("reads paragraphs and a table suggested after a paragraph's end as that paragraph alone", () => {
+    expect(markdownOf("suggestedAfterParagraph")).toBe(
+      [
+        "## Target",
+        "",
+        "Old target text.",
+        "",
+        "## Next",
+        "",
+        "Next text.",
+        "",
+      ].join("\n"),
+    );
+  });
 });
