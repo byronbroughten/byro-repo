@@ -13,7 +13,7 @@ import {
   outlineEdits as outlineEditWords,
   outlineEditSchema,
 } from "../../outlineEdits.ts";
-import { bulletsOf } from "../../promptText.ts";
+import { bulletsOf, unattendedRunLine } from "../../promptText.ts";
 import {
   arraySchema,
   blockerSchema,
@@ -37,7 +37,7 @@ export const quoteSendBacks = 1;
 export function researchPrompt(input: ResearchPromptInput): string {
   const { issue, title, body, latestHandoff, redQuotes } = input;
   return [
-    `You are the research step of an unattended run. Research ${issue.repo}#${issue.number}, "${title}". Nobody is watching this session: never ask a question or wait for an answer.`,
+    `You are the research step of an unattended run. Research ${issue.repo}#${issue.number}, "${title}". ${unattendedRunLine()}`,
     promptSections.steps,
     `## GitHub\n\n- Make no GitHub write: the runner posts your comment once its quote check passes, and you post nothing.\n- ${stepReadLine}`,
     promptSections.record,
@@ -130,7 +130,7 @@ export function researchHaltOf({
   if (groups.length === 0) return undefined;
   return {
     question: [
-      "The research left these to settle before any drafting starts. Settle every item in one reply: the first reply answers the whole Halt.",
+      "The research left these to settle before any drafting starts. Settle every item you answer here in one reply: the first reply answers the whole Halt.",
       ...groups.map(({ heading, lines }) => `${heading}:${bulletsOf(lines)}`),
     ].join("\n\n"),
     options: groups.flatMap(({ options }) => options),
@@ -140,7 +140,7 @@ export function researchHaltOf({
 const researchHaltOptions = {
   facts: [
     "`drop F<n>`: clear the fact and go on without it.",
-    "`another source F<n>`, naming the source: the Supervisor settles one fact from one Drive file. For anything larger, file a Research ticket with `/piece-tickets`, blocking the drafting tickets, before answering.",
+    "`another source F<n>`, naming the source: tell the Supervisor in its session, not in a reply here. With one fact from one Drive file, the Supervisor settles your other answers with you, reads the fact, posts it as an addendum on the Research ticket, then answers this Halt. For anything larger, file a Research ticket with `/piece-tickets`, blocking the drafting tickets, before answering.",
   ],
   edits: [
     "`approve E<n>`: the runner replaces the edit's old text in the spec's `## Outline` with its new text, word for word, as it reads the answer. An edit it can't apply raises a fresh Halt asking you to make the change by hand.",

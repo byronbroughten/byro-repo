@@ -168,21 +168,32 @@ export interface ResearchRules {
   isDrafting(ticket: TrackedIssue): boolean;
 }
 
-export interface ImplementPromptInput {
+// The ticket fields every agent-step prompt input shares; `ticketSteps.promptFieldsOf` builds them.
+export interface TicketPromptFields {
   issue: IssueRef;
   spec: IssueRef;
   title: string;
-  body: string;
   // The ticket's, Trusted since only collaborators can add one.
   labels: string[];
   branch: string;
   // The workspace's repos on the issue branch: the issue's own plus any extras it was created with.
   branchedRepos: string[];
+  workspacePath: string;
+}
+
+export interface ImplementPromptInput extends TicketPromptFields {
+  body: string;
   // Takes the repo to promote as its last argument.
   promoteCommand: string;
   // Set for a fresh step after a handoff; a handoff is cumulative, so only the latest is passed.
   latestHandoff?: Handoff;
-  workspacePath: string;
+}
+
+// What a record check may read besides the record: the ticket and where its spec's repo is cloned in the workspace.
+export interface ImplementRecordContext {
+  spec: TrackedIssue;
+  ticket: TrackedIssue;
+  specClone: string;
 }
 
 export interface ImplementRules {
@@ -190,21 +201,18 @@ export interface ImplementRules {
   outputSchema: object;
   recordOf(output: unknown): ImplementRecord;
   // `output` is the step's whole output, for a Workflow that checks it against outputSchema, since only the real adapter does.
-  recordProblems(output: unknown, hasNewCommit: boolean): string[];
+  recordProblems(
+    output: unknown,
+    hasNewCommit: boolean,
+    context: ImplementRecordContext,
+  ): string[];
   handoffCommentOf(handoff: Handoff, sessionId: string): string;
   // A gitignored folder from the workspace root, the runner's to create, so every step of the ticket reads the same files.
   keptFolderOf?(ticket: IssueRef): string;
 }
 
-export interface ReviewPromptInput {
-  issue: IssueRef;
-  spec: IssueRef;
-  title: string;
-  labels: string[];
+export interface ReviewPromptInput extends TicketPromptFields {
   skillName: string;
-  branch: string;
-  branchedRepos: string[];
-  workspacePath: string;
 }
 
 export interface ReviewRules {
@@ -215,14 +223,7 @@ export interface ReviewRules {
   skillName: string;
 }
 
-export interface ResolvePromptInput {
-  issue: IssueRef;
-  spec: IssueRef;
-  title: string;
-  labels: string[];
-  branch: string;
-  branchedRepos: string[];
-  workspacePath: string;
+export interface ResolvePromptInput extends TicketPromptFields {
   // As the review record lists them; the prompt numbers them from 1.
   findings: Finding[];
   // The overlap hits the piece review judged no copy; empty for a review that returns none.
@@ -262,13 +263,7 @@ export interface StepResumption {
   freshRetryPromptOf(input: ResolvePromptInput, problems: string[]): string;
 }
 
-export interface RedChecksPromptInput {
-  issue: IssueRef;
-  spec: IssueRef;
-  title: string;
-  branch: string;
-  branchedRepos: string[];
-  workspacePath: string;
+export interface RedChecksPromptInput extends TicketPromptFields {
   // Each failing check's command and the last lines of its output.
   failures: string;
 }

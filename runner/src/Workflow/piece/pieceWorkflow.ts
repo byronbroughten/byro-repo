@@ -46,6 +46,7 @@ import {
   type WorkflowStep,
 } from "../../Workflow.ts";
 import { agentDraft } from "./agentDraft.ts";
+import { draftingScope } from "./draftingScope.ts";
 import { pieceGapCheckPrompt } from "./gapCheck.ts";
 import {
   passagesFolderOf,
@@ -224,7 +225,14 @@ export function pieceWorkflowOf({
         promptOf: draftingPromptOf,
         outputSchema: pieceImplementOutputSchema,
         recordOf: implementRecordOf<PieceImplementRecord>,
-        recordProblems: pieceImplementRecordProblems,
+        recordProblems(output, hasNewCommit, { spec, ticket, specClone }) {
+          return pieceImplementRecordProblems(output, hasNewCommit, {
+            isFinalPass: draftingScope.isFinalPass(ticket.labels),
+            draftOf() {
+              return draftIn(specClone, spec);
+            },
+          });
+        },
         handoffCommentOf: handoffText.commentOf,
         keptFolderOf: passagesFolderOf,
       },
@@ -259,11 +267,10 @@ export function pieceWorkflowOf({
     },
     checks: [],
     async ticketChecksOf(input) {
-      const draftPath = join(input.specClone, draftPathOf(input.spec.issue));
       return pieceChecks.failureOf({
         ...input,
         overlapCommand,
-        draft: readFileSync(draftPath, "utf8"),
+        draft: draftIn(input.specClone, input.spec),
       });
     },
     specEnd,
@@ -314,6 +321,11 @@ function gapCheckPromptOf(input: GapCheckPromptInput): string {
 
 function draftPathOf({ number }: IssueRef): string {
   return agentDraft.pathOf(number);
+}
+
+// The Agent draft as the spec's clone in the workspace holds it.
+function draftIn(specClone: string, spec: TrackedIssue): string {
+  return readFileSync(join(specClone, draftPathOf(spec.issue)), "utf8");
 }
 
 // Each ID once, in the order the spec lists them; a spec with no Supporting Material lists none.

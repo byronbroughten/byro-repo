@@ -25,6 +25,7 @@ import { DraftKeeper } from "./DraftPusher/DraftKeeper.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import type { PullBaseline, Run } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
+import { runText } from "./runState/runText.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 
 // An agent Section as the push writes it, beside its Doc text at the last pull; undefined with no pull recorded.
@@ -126,7 +127,7 @@ export class DraftPusher extends SpecRunBase {
         break;
       }
       if (reads > staleRetryLimit) {
-        return `The push stopped on Doc ${documentId}, which changed between its read and its write ${reads} times running; rerun to retry it: \`${this._rerunCommandOf(run)}\`.`;
+        return `The push stopped on Doc ${documentId}, which changed between its read and its write ${reads} times running. ${runText.rerunToRetryOf(this._rerunCommandOf(run))}`;
       }
     }
     for (const halt of pushHaltsOf(run)) halt.isDelivered = true;

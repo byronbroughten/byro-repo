@@ -12,6 +12,7 @@ import {
   type NumberOrPlaceholder,
   sectionOf,
   stepWriteLine,
+  unattendedRunLine,
 } from "../../promptText.ts";
 import {
   arraySchema,
@@ -30,8 +31,10 @@ import {
 import {
   implementRecordOf,
   implementRecordProblems,
+  type PieceImplementRecord,
 } from "../../stepRecords.ts";
 import type { ImplementPromptInput } from "../../Workflow.ts";
+import { agentDraft } from "./agentDraft.ts";
 import { draftingScope } from "./draftingScope.ts";
 
 const paths = {
@@ -125,7 +128,7 @@ export interface PieceImplementPromptInput extends ImplementPromptInput {
 export function pieceImplementPrompt(input: PieceImplementPromptInput): string {
   const { issue, title, body, latestHandoff } = input;
   return [
-    `You are the implement step of an unattended run on a piece spec's drafting ticket. Draft ${issue.repo}#${issue.number}, "${title}". Nobody is watching this session: never ask a question or wait for an answer.`,
+    `You are the implement step of an unattended run on a piece spec's drafting ticket. Draft ${issue.repo}#${issue.number}, "${title}". ${unattendedRunLine()}`,
     implementWorkspaceSection(input),
     draftingSection(input),
     `## GitHub\n\n- ${noGitHubWriteLine}\n- ${stepReadLine}`,
@@ -211,12 +214,33 @@ export const pieceImplementOutputSchema = objectSchema({
   record: recordVariantsSchema,
 });
 
-// Checks the output against its schema too, since only the real adapter does, then code's commit check.
+export interface DraftedScope {
+  // A final-pass ticket scopes every agent Section, so its record's names don't.
+  isFinalPass: boolean;
+  // The Agent draft as the ticket's branch holds it; called only for a committed record.
+  draftOf(): string;
+}
+
+// Checks the output against its schema too, since only the real adapter does, then code's commit check, then that each
+// Section the record names is in the committed Agent draft, since the piece checks scope by those names.
 export function pieceImplementRecordProblems(
   output: unknown,
   hasNewCommit: boolean,
+  { isFinalPass, draftOf }: DraftedScope,
 ): string[] {
   const problems = schemaProblemsOf(pieceImplementOutputSchema, output);
   if (problems.length > 0) return problems;
-  return implementRecordProblems(implementRecordOf(output), hasNewCommit);
+  const record = implementRecordOf<PieceImplementRecord>(output);
+  const commitProblems = implementRecordProblems(record, hasNewCommit);
+  if (commitProblems.length > 0 || record.status !== "committed") {
+    return commitProblems;
+  }
+  if (isFinalPass) return [];
+  const held = agentDraft.sectionsOf(draftOf()).map(({ heading }) => heading);
+  return record.sectionsDrafted
+    .filter((name) => !held.includes(name))
+    .map(
+      (name) =>
+        `sectionsDrafted names "${name}", which the committed Agent draft has no Section of; use a heading as the draft holds it, without the \`## \``,
+    );
 }

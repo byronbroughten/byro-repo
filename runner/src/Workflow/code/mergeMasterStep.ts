@@ -1,7 +1,7 @@
 // The merge-master step's prompt and record; codeWorkflow.ts supplies it, and SpecRun/TicketLander/MasterMerger.ts runs it once on a wrap-up conflict.
 
 import { stepReadLine } from "../../IssueReader.ts";
-import { commitMessageLine } from "../../promptText.ts";
+import { commitMessageLine, unattendedRunLine } from "../../promptText.ts";
 import { arraySchema, objectSchema, stringSchema } from "../../recordSchema.ts";
 import type { MergeMasterPromptInput } from "../../Workflow.ts";
 
@@ -13,7 +13,7 @@ export function mergeMasterPrompt({
   mergingRepos,
   conflict,
 }: MergeMasterPromptInput): string {
-  return `You are the merge-master step of an unattended run. Nobody is watching this session: never ask a question or wait for an answer.
+  return `You are the merge-master step of an unattended run. ${unattendedRunLine()}
 
 Landing ${issue.repo}#${issue.number}, "${title}", conflicted with master, which moved since the ticket branched. Your working directory is the ticket's issue workspace root; these repos are on the ticket's branch, \`${branch}\`: ${branchedRepos.join(", ")}. Change only those repos. ${stepReadLine}
 

@@ -15,6 +15,7 @@ import { guidanceSectionOf } from "../halts.ts";
 import { issueRef } from "../IssueWorkspaces.ts";
 import { nextStrongerPairOf, pairLabelOf } from "../modelFit.ts";
 import { stepLaunchLineOf } from "../progressLines.ts";
+import { unattendedRunLine } from "../promptText.ts";
 import type { RunKnobs } from "../runKnobs.ts";
 import {
   handoffOnlyPrompt,
@@ -354,7 +355,7 @@ function interruptedPromptOf(state: TicketState): string {
   if (ticketSteps.isSnapshotted(state.step) && !ticketSteps.isTreeKept(state)) {
     setAside = ` ${treeResetNote}`;
   }
-  return `The previous run was interrupted; continue.${setAside} Nobody is watching this session: never ask a question or wait for an answer.`;
+  return `The previous run was interrupted; continue.${setAside} ${unattendedRunLine()}`;
 }
 
 function unrunDetailOf(step: string, error: unknown): string {

@@ -327,10 +327,10 @@ describe("run's leases", () => {
     }
 
     expect(result.message).toBe(
-      "Stopped on byro-repo #1: a workspace lease that couldn't be taken; rerun to retry it. Review lists: nothing needs judging.",
+      "Stopped on byro-repo #1: a workspace lease that couldn't be taken. Rerun to retry it: `npm run runner -- byronbroughten/byro-repo 213`. Review lists: nothing needs judging.",
     );
     expect(github.comments[0]?.body).toContain(
-      "The ticket is left at its implement step in its issue workspace; rerun to retry it: `npm run runner -- byronbroughten/byro-repo 213`.",
+      "The ticket is left at its implement step in its issue workspace. Rerun to retry it: `npm run runner -- byronbroughten/byro-repo 213`.",
     );
     expect(ticketState()["byro-repo #1"]?.step).toBe("implement");
 

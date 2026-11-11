@@ -5,32 +5,21 @@
 // anchors and unchanged headings their headingIds; a hunk holding a table is
 // rewritten whole. Text requests run from the end of the body back, so each
 // one's indices are the read document's; `SectionWriter/BulletPlacer.ts` adds
-// the bullets last. Every paragraph inserted gets its style and bullets set, so
+// the bullets last and `SectionWriter/HeldSectionReader.ts` reads the held
+// Section. Every paragraph inserted gets its style and bullets set, so
 // it takes none from a neighbour. The Markdown is parsed by `markdownDialect.ts`,
 // and `Docs.ts` sends the requests under the revision guard.
 
-import {
-  headingLevels,
-  headingStyleTypes,
-  headingTextsOf,
-  listKindOf,
-} from "./DocReader.ts";
+import { headingStyleTypes, headingTextsOf } from "./DocReader.ts";
 import type {
   GoogleDocument,
   Link,
   List,
-  Paragraph,
-  Range,
   Request,
   StructuralElement,
-  Table,
 } from "./googleDocs.ts";
-import {
-  markdownDialect,
-  type ParsedBlock,
-  type SpanStyle,
-} from "./markdownDialect.ts";
-import { PendingSuggestions } from "./PendingSuggestions.ts";
+import { markdownDialect, type SpanStyle } from "./markdownDialect.ts";
+import { blockParse, type ParsedBlock } from "./markdownDialect/blockParse.ts";
 import {
   type HeldBlock,
   type HeldParagraph,
@@ -48,6 +37,7 @@ import {
   paragraphRangeOf,
   type PlacedParagraph,
 } from "./SectionWriter/BulletPlacer.ts";
+import { HeldSectionReader } from "./SectionWriter/HeldSectionReader.ts";
 
 /** What a character of the written text needs: nothing, a new style, or every style, since it is new text. */
 type CharChange = "unchanged" | "restyled" | "inserted";
@@ -124,14 +114,18 @@ export class SectionWriter {
     return new SectionWriter(document);
   }
 
+  private get heldSectionReader(): HeldSectionReader {
+    return HeldSectionReader.init(this.document);
+  }
+
   private get bulletPlacer(): BulletPlacer {
     return BulletPlacer.init(this.document);
   }
 
   /** The requests that make the Section under `heading` read as `markdown`: text last index first, then bullets. */
   requestsFor(heading: string, markdown: string): Request[] {
-    const { sectionHeading, held } = this._sectionOf(heading);
-    const wanted = markdownDialect.blocksOf(markdown).flatMap(writtenOf);
+    const { sectionHeading, held } = this.heldSectionReader.sectionOf(heading);
+    const wanted = blockParse.blocksOf(markdown).flatMap(writtenOf);
     const section = sectionDiff
       .hunksOf(sectionHeading, held, wanted)
       .reduce<BodyChange>(
@@ -165,126 +159,6 @@ export class SectionWriter {
       ...section.requests,
       ...this.bulletPlacer.requestsFor(section.placed),
     ];
-  }
-
-  private _sectionOf(heading: string): {
-    sectionHeading: HeldParagraph;
-    held: HeldBlock[];
-  } {
-    const written = this.content
-      .flatMap((element) => this._heldBlocksOf(element))
-      .filter((block) => block.kind === "table" || block.chars.length > 0);
-    const start = written.findIndex(
-      (block) =>
-        block.kind === "paragraph" &&
-        block.level === markdownDialect.syntax.sectionLevel &&
-        inlineOf(block) === heading,
-    );
-    const sectionHeading = written[start];
-    if (sectionHeading?.kind !== "paragraph") {
-      throw new Error(`No Section "${heading}".`);
-    }
-    const after = written.slice(start + 1);
-    const end = after.findIndex(
-      (block) =>
-        block.kind === "paragraph" &&
-        block.level !== undefined &&
-        block.level <= markdownDialect.syntax.sectionLevel,
-    );
-    const held = end === -1 ? after : after.slice(0, end);
-    if (
-      held.some(
-        (block) =>
-          block.kind === "paragraph" && (block.bullet?.nestingLevel ?? 0) > 0,
-      )
-    ) {
-      throw new Error("The writer takes only flat lists, not a nested one.");
-    }
-    return { sectionHeading, held };
-  }
-
-  private _heldBlocksOf(element: StructuralElement): HeldBlock[] {
-    const { paragraph, table } = element;
-    if (table !== undefined) {
-      return [
-        { kind: "table", rows: this._rowsOf(table), ...indicesOf(element) },
-      ];
-    }
-    if (paragraph === undefined) {
-      return [];
-    }
-    const { bullet } = paragraph;
-    const styleType = paragraph.paragraphStyle?.namedStyleType;
-    return [
-      {
-        kind: "paragraph",
-        level: styleType === undefined ? undefined : headingLevels[styleType],
-        list:
-          bullet === undefined
-            ? undefined
-            : { listKind: listKindOf(this.lists, bullet) },
-        chars: this._charsOf(paragraph),
-        bullet,
-        ...indicesOf(element),
-      },
-    ];
-  }
-
-  /** Each cell's text, its paragraphs joined by line breaks as the reader joins them. */
-  private _rowsOf(table: Table): StyledChar[][][] {
-    if (hasPendingSuggestion(table)) {
-      throw new PendingSuggestions(this.document.documentId);
-    }
-    return table.tableRows.map((row) =>
-      row.tableCells.map((cell) =>
-        cell.content
-          .flatMap(({ paragraph }) =>
-            paragraph === undefined ? [] : [this._charsOf(paragraph)],
-          )
-          .filter((chars) => chars.length > 0)
-          .reduce<StyledChar[]>((joined, chars) => {
-            if (joined.length > 0) {
-              joined.push({ char: "\v", style: plainNewline.style });
-            }
-            joined.push(...chars);
-            return joined;
-          }, []),
-      ),
-    );
-  }
-
-  private _charsOf(paragraph: Paragraph): StyledChar[] {
-    return paragraph.elements.flatMap(({ textRun }) => {
-      if (textRun === undefined) {
-        throw new Error(
-          "The writer takes only plain text runs, with no footnote.",
-        );
-      }
-      if (hasPendingSuggestion(textRun)) {
-        throw new PendingSuggestions(this.document.documentId);
-      }
-      const style = {
-        isBold: textRun.textStyle?.bold === true,
-        isItalic: textRun.textStyle?.italic === true,
-        target: this._targetOf(textRun.textStyle?.link),
-      };
-      return [...textRun.content.replace(/\n$/, "")].map((char) => ({
-        char,
-        style,
-      }));
-    });
-  }
-
-  private _targetOf(link: Link | undefined): string | undefined {
-    if (link?.url !== undefined) {
-      return link.url;
-    }
-    const headingId = link?.heading?.id ?? link?.headingId;
-    const headingText =
-      headingId === undefined ? undefined : this.headingTexts.get(headingId);
-    return headingText === undefined
-      ? undefined
-      : markdownDialect.headingTarget(headingText);
   }
 
   /** Inserts at the hunk's end, then deletes and edits back to front; a hunk with a table pairs nothing, so it is rewritten whole. */
@@ -623,38 +497,6 @@ function charsOf(spans: (SpanStyle & { text: string })[]): StyledChar[] {
   return spans.flatMap(({ text, ...style }) =>
     [...text].map((char) => ({ char, style })),
   );
-}
-
-function indicesOf(element: StructuralElement): Range {
-  const { startIndex, endIndex } = element;
-  if (startIndex === undefined || endIndex === undefined) {
-    throw new Error("The writer needs a Doc read with its indices.");
-  }
-  return { startIndex, endIndex };
-}
-
-function hasPendingSuggestion(item: {
-  suggestedInsertionIds?: string[];
-  suggestedDeletionIds?: string[];
-}): boolean {
-  return (
-    (item.suggestedInsertionIds?.length ?? 0) > 0 ||
-    (item.suggestedDeletionIds?.length ?? 0) > 0
-  );
-}
-
-/** A paragraph's inline Markdown, as the reader words it. */
-function inlineOf(paragraph: WrittenParagraph): string {
-  return markdownDialect
-    .inline(
-      paragraph.chars.map(({ char, style }) => ({
-        ...style,
-        markdown: markdownDialect
-          .escaped(char)
-          .replace(/\v/g, markdownDialect.syntax.lineBreak),
-      })),
-    )
-    .trim();
 }
 
 /** The hunk's held and written paragraphs paired by position, as far as both run. */

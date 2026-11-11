@@ -92,7 +92,7 @@ export class TicketChecker extends SpecRunBase {
     ticketRun: TicketRun,
     failure: string,
   ): Promise<void> {
-    const { run, ticket, workspace, state } = ticketRun;
+    const { run, ticket, state } = ticketRun;
     const workflow = this._workflowOf(run.spec);
     // With no red-checks step to send it back to, a red check is a Failure Halt at once.
     const hasRedChecks = hasAgentStep(workflow, "redChecks");
@@ -123,12 +123,7 @@ export class TicketChecker extends SpecRunBase {
         resolver,
         launch: {
           prompt: rules.promptOf({
-            issue: ticket.issue,
-            spec: run.spec.issue,
-            title: ticket.title,
-            branch: workspace.branch,
-            branchedRepos: ticketSteps.branchedReposOf(ticketRun),
-            workspacePath: workspace.path,
+            ...ticketSteps.promptFieldsOf(ticketRun),
             failures: failure,
           }),
           jsonSchema: rules.outputSchema,

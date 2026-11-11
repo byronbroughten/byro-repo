@@ -216,18 +216,14 @@ export class ImplementStepper extends SpecRunBase {
   }
 
   private _implementPromptOf(ticketRun: TicketRun): string {
-    const { run, ticket, workspace, state } = ticketRun;
+    const { ticket, workspace, state } = ticketRun;
     return this._implementRulesOf(ticketRun).promptOf({
-      issue: ticket.issue,
-      spec: run.spec.issue,
-      title: ticket.title,
-      body: ticket.body,
-      labels: ticket.labels,
-      branch: workspace.branch,
+      ...ticketSteps.promptFieldsOf(ticketRun),
+      // The implement step starts from the workspace's own repos, not a record's.
       branchedRepos: workspace.branchedRepos,
+      body: ticket.body,
       promoteCommand: this.config.promoteCommandOf(ticket.issue),
       latestHandoff: state.latestHandoff,
-      workspacePath: workspace.path,
     });
   }
 
@@ -237,7 +233,7 @@ export class ImplementStepper extends SpecRunBase {
     launched,
     headsBefore,
   }: ImplementTake): Promise<ImplementRecord> {
-    const { workspace, state } = ticketRun;
+    const { run, ticket, workspace, state } = ticketRun;
     const rules = this._implementRulesOf(ticketRun);
     const record = rules.recordOf(launched.record);
     const { logPath } = launched;
@@ -253,6 +249,11 @@ export class ImplementStepper extends SpecRunBase {
     const problems = rules.recordProblems(
       launched.record,
       hasNewCommit || isRecommit,
+      {
+        spec: run.spec,
+        ticket,
+        specClone: this._cloneIn(workspace, run.spec.issue.repo),
+      },
     );
     if (problems.length > 0) {
       throw ticketSteps.schemaFailureOf(logPath, {

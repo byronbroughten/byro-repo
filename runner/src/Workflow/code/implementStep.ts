@@ -10,6 +10,7 @@ import {
   commitMessageLine,
   sectionOf,
   stepWriteLine,
+  unattendedRunLine,
 } from "../../promptText.ts";
 import {
   arraySchema,
@@ -30,7 +31,7 @@ import type { ImplementPromptInput } from "../../Workflow.ts";
 export function implementPrompt(input: ImplementPromptInput): string {
   const { issue, title, body, latestHandoff } = input;
   return [
-    `You are the implement step of an unattended run. Implement ${issue.repo}#${issue.number}, "${title}". Nobody is watching this session: never ask a question or wait for an answer.`,
+    `You are the implement step of an unattended run. Implement ${issue.repo}#${issue.number}, "${title}". ${unattendedRunLine()}`,
     implementWorkspaceSection(input),
     gitHubSection(),
     workingSection(),

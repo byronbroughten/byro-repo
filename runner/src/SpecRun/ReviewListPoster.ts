@@ -179,7 +179,7 @@ export class ReviewListPoster extends SpecRunBase {
         return this._end(
           run,
           "stopped",
-          `${runText.stepNameOf(step)} ${runText.stoppedOn(error)}. Rerun to retry it.`,
+          `${runText.stepNameOf(step)} ${runText.stoppedOn(error)}. ${runText.rerunToRetryOf(this._rerunCommandOf(run))}`,
         );
       }
       if (ended.stop !== undefined) {

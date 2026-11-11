@@ -210,6 +210,18 @@ describe("implement on a piece spec's drafting ticket", () => {
     expect(haltComments()[0]).toContain("sectionsDrafted");
   });
 
+  it("halts on a committed record naming a Section the Agent draft lacks", async () => {
+    addDraftingSpec();
+
+    await specRun(
+      FakeAgentStep.init(drafted({ sectionsDrafted: ["The crosing"] })),
+    ).run(spec);
+
+    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+    expect(haltComments()[0]).toContain("Failure Halt");
+    expect(haltComments()[0]).toContain("The crosing");
+  });
+
   it("posts a handoff and gives the fresh step the same passages folder", async () => {
     addDraftingSpec();
     const passage = join(passagesPath(), "logbook.txt");
@@ -979,7 +991,7 @@ describe("the end of a piece spec", () => {
         ...document,
         revisionId: `${document.revisionId}-commented`,
       });
-      const pushStopped = `The push stopped on Doc ${deliverableId}, which changed between its read and its write 4 times running; rerun to retry it: \`npm run runner -- byronbroughten/byro-repo 213\`.`;
+      const pushStopped = `The push stopped on Doc ${deliverableId}, which changed between its read and its write 4 times running. Rerun to retry it: \`npm run runner -- byronbroughten/byro-repo 213\`.`;
 
       it("reads and compares the Doc again on a stale revision, then writes the Sections still to write", async () => {
         addGatedSpec();
@@ -1432,6 +1444,12 @@ describe("the Research Halt", () => {
       `**E1** The crossing: replace "${outlineTexts.old}"`,
     );
     expect(halt).toContain("Blocks: byro-repo#2 and their downstream.");
+    expect(halt).toContain(
+      "2. `another source F<n>`, naming the source: tell the Supervisor in its session, not in a reply here.",
+    );
+    expect(halt).toContain(
+      "posts it as an addendum on the Research ticket, then answers this Halt",
+    );
     expect(ticketState()["byro-repo #1"]?.step).toBe("landed");
     const saved = JSON.parse(readFileSync(runStatePath(), "utf8")) as {
       halts: Halt[];
