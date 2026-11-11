@@ -10,6 +10,7 @@ import type { HaltQuestion } from "../../halts.ts";
 import { stepReadLine } from "../../IssueReader.ts";
 // Renamed, since a ready record's own field is `outlineEdits`.
 import { outlineEdits as outlineEditWords } from "../../outlineEdits.ts";
+import { bulletsOf } from "../../promptText.ts";
 import {
   arraySchema,
   blockerSchema,
@@ -119,10 +120,7 @@ export function researchHaltOf({
     },
     {
       heading: "Proposed Outline edits",
-      lines: outlineEdits.map(
-        (edit, index) =>
-          `**${outlineEditWords.idOf(index)}** ${outlineEditWords.textOf(edit)}`,
-      ),
+      lines: outlineEdits.map(outlineEditWords.lineOf),
       options: researchHaltOptions.edits,
     },
   ].filter(({ lines }) => lines.length > 0);
@@ -177,11 +175,6 @@ function handoffText({
     `Sources done:${bulletsOf(sourcesDone)}`,
     `Sources left:${bulletsOf(sourcesLeft)}`,
   ].join("\n");
-}
-
-function bulletsOf(items: string[]): string {
-  if (items.length === 0) return " none";
-  return items.map((item) => `\n- ${item}`).join("");
 }
 
 const countSchema = { type: "integer", minimum: 0 };

@@ -9,7 +9,7 @@ const outlineHeading = "## Outline";
 
 export interface AppliedEdits {
   body: string;
-  // In the order given.
+  // The edit objects given, never copies, in their order, so a caller finds each one's id by `indexOf` in its Halt's list.
   unapplied: OutlineEdit[];
 }
 
@@ -21,6 +21,11 @@ export const outlineEdits = {
 
   textOf({ section, oldText, newText, reason }: OutlineEdit): string {
     return `${section}: replace "${oldText}" with "${newText}" (${reason})`;
+  },
+
+  // An edit as a Halt lists it, under its id.
+  lineOf(edit: OutlineEdit, index: number): string {
+    return `**${outlineEdits.idOf(index)}** ${outlineEdits.textOf(edit)}`;
   },
 
   // Each edit an `approve E<n>` in the answer names.
@@ -38,14 +43,14 @@ export const outlineEdits = {
     const section = ticketSectionOf(body, outlineHeading);
     if (section === undefined) return { body, unapplied: [...edits] };
     const applied = edits.reduce<AppliedEdits>(
-      (outline, edit) => {
-        if (isApplied(outline.body, edit)) return outline;
-        if (countOf(outline.body, edit.oldText) !== 1) {
-          outline.unapplied.push(edit);
-          return outline;
+      (appliedEdits, edit) => {
+        if (isApplied(appliedEdits.body, edit)) return appliedEdits;
+        if (countOf(appliedEdits.body, edit.oldText) !== 1) {
+          appliedEdits.unapplied.push(edit);
+          return appliedEdits;
         }
-        outline.body = splicedOf(outline.body, edit);
-        return outline;
+        appliedEdits.body = splicedOf(appliedEdits.body, edit);
+        return appliedEdits;
       },
       { body: section, unapplied: [] },
     );

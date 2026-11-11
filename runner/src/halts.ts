@@ -4,6 +4,7 @@
 
 import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import { outlineEdits } from "./outlineEdits.ts";
+import { bulletsOf } from "./promptText.ts";
 import type { IssueComment, TicketStep } from "./SpecRun.ts";
 import { handoffText } from "./stepPrompts/handoffText.ts";
 import {
@@ -134,13 +135,12 @@ export function unappliedEditsHaltOf(
   unapplied: OutlineEdit[],
 ): HaltDraft {
   const edits = halt.outlineEdits ?? [];
-  const lines = unapplied.map(
-    (edit) =>
-      `\n- **${outlineEdits.idOf(edits.indexOf(edit))}** ${outlineEdits.textOf(edit)}`,
+  const lines = unapplied.map((edit) =>
+    outlineEdits.lineOf(edit, edits.indexOf(edit)),
   );
   return {
     kind: "research",
-    question: `${haltNameOf(halt)}'s answer approved these Outline edits, but the runner couldn't apply them: each one's old text isn't in the spec's \`## Outline\` exactly once.${lines.join("")}\n\nMake each change in the spec's \`## Outline\` by hand, then answer \`continue\`.`,
+    question: `${haltNameOf(halt)}'s answer approved these Outline edits, but the runner couldn't apply them: each one's old text isn't in the spec's \`## Outline\` exactly once.${bulletsOf(lines)}\n\nMake each change in the spec's \`## Outline\` by hand, then answer \`continue\`.`,
     options: ["`continue`"],
     scope: halt.scope,
   };

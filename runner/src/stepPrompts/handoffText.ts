@@ -1,6 +1,7 @@
 // The handoff wording every Workflow's implement step shares: the prompt's nudge section, a fresh step's section, the
 // comment the runner posts and a proposed split's text. Each step's own prompt stays in its file.
 
+import { bulletsOf } from "../promptText.ts";
 import type { Handoff, ProposedSlice } from "../stepRecords.ts";
 
 export interface HandoffNudge {
@@ -68,9 +69,4 @@ function factsOf(handoff: Handoff): string {
     `Files changed:${bulletsOf(handoff.filesChanged)}`,
     `Still failing:${bulletsOf(handoff.stillFailing)}`,
   ].join("\n");
-}
-
-function bulletsOf(items: string[]): string {
-  if (items.length === 0) return " none";
-  return items.map((item) => `\n- ${item}`).join("");
 }

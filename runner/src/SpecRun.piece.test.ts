@@ -635,6 +635,39 @@ describe("the Research Halt", () => {
     expect(result.message).toContain(draftingGoesOn);
   });
 
+  it("applies only the edit an answer approves, leaving the other's text as it was", async () => {
+    addResearchedSpec();
+    const twoLines = outlinedSpecBody.replace(
+      "\n\n## Facts",
+      "\n- **The harbour**: the gulls rose at dawn.\n\n## Facts",
+    );
+    github.edit(spec.number, { body: twoLines });
+    const ready = readyRecordOf(scratchFolder());
+    const record: ReadyResearchRecord = {
+      ...ready,
+      outlineEdits: [
+        ...ready.outlineEdits,
+        {
+          section: "The harbour",
+          oldText: "the gulls rose at dawn.",
+          newText: "the gulls slept through the dawn.",
+          reason: "The logbook calls the dawn still.",
+        },
+      ],
+    };
+    await specRun(FakeAgentStep.init(researched(record))).run(spec);
+    github.reply(spec.number, "H1: approve E2");
+
+    await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(github.issues.get(spec.number)?.body).toBe(
+      twoLines.replace(
+        "the gulls rose at dawn.",
+        "the gulls slept through the dawn.",
+      ),
+    );
+  });
+
   it("leaves the spec body alone on a `stop spec` answer that names an edit", async () => {
     await answerResearchHalt("H1: stop spec, approve E1");
 
