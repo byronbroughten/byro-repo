@@ -4,7 +4,7 @@
 // missing, raises a push Halt on the spec issue first, and the push writes nothing until every one is answered:
 // `overwrite` writes the agent text, `keep mine` marks the Section as the developer's, through DraftPusher/DraftKeeper.ts.
 // A stale revision makes it read and compare again, up to a bound; pending suggestions raise a push Halt naming the Doc.
-// The push rules are the Workflow's, through ../Workflow.ts; ReviewListPoster.ts runs it after the judge Step.
+// The push rules are the Workflow's, through ../Workflow.ts; SpecEndRunner.ts runs it after the judge Step.
 
 import type { DocRead, Docs } from "../Docs.ts";
 import { PendingSuggestions } from "../Docs/PendingSuggestions.ts";

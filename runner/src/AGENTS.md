@@ -117,16 +117,18 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/PreflightChecker.ts` | | The run's preflight over its member list: run locks, each member's refusals and the shared preflight Stop. |
 | `SpecRun/ResearchStepper.ts` | | Runs a piece spec's research ticket's research step and its handoffs, keeps its record, and runs its quote check, sending the step back on red. |
 | `SpecRun/ReviewItemDecider.ts` | | `runner decide`: records one item of the developer's own review list as decided or handled. |
-| `SpecRun/ReviewListPoster.ts` | | Posts review lists and covered-later notes, and ends the run with its Workflow's spec-end Steps, the gap check's review list, the judge Step's stop and the push included. |
+| `SpecRun/ReviewListPoster.ts` | | Posts review lists and covered-later notes. |
 | `SpecRun/ReviewStepper.ts` | | Runs a ticket's review and resolve steps. |
 | `SpecRun/RunLoop.ts` | | The run's ticket loop across its members, idling and end. |
 | `SpecRun/SessionReviewer.ts` | | Runs `review` and `resolve` for an interactive session. |
 | `SpecRun/SpecRunBase.ts` | | The Base every collaborator shares: config, run state, progress log, notices, snapshots, a run's end and an issue's review-list judgement. |
 | `SpecRun/StandaloneTicketLister.ts` | | `runner standalone`: lists a repo's launchable Standalone tickets, leaving out each the Batch preflight would refuse, with its reason. |
+| `SpecRun/SpecEndRunner.ts` | | Ends the run with its Workflow's spec-end Steps, the gap check's review list, the judge Step's stop and the push included. |
 | `SpecRun/StatusReporter.ts` | | A run's or Batch's status, and its stop request. |
 | `SpecRun/StepLauncher.ts` | | Launches an agent step under the limit guard, retries a crash and resumes a step a limit cut off, delegating the limit waits to `StepLauncher/`. |
 | `SpecRun/StepLauncher/LimitWaiter.ts` | | Holds a launch until the Active account reads under its thresholds and waits out a limit hit. |
-| `SpecRun/TicketLander.ts` | | Lands a ticket: posts a research ticket's comment and raises its Research Halt, writes its facts file, runs the wrap-up and posts its review list, delegating its checks and wrap-up failures to `TicketLander/`. |
+| `SpecRun/TicketLander.ts` | | Lands a ticket: posts a research ticket's comment and raises its Research Halt, writes its facts file, runs the wrap-up and posts its review list, delegating its facts file, checks and wrap-up failures to `TicketLander/`. |
+| `SpecRun/TicketLander/FactsWriter.ts` | | Writes a ticket's facts file, a code ticket's or a research ticket's, and warns of session facts left unrecorded. |
 | `SpecRun/TicketLander/MasterMerger.ts` | | Takes a ticket's wrap-up failure, merging master into its branch on a conflict and resuming the implementer to resolve it. |
 | `SpecRun/TicketLander/TicketChecker.ts` | | Runs a ticket's checks, its Workflow's own included, until green, resuming on red and stopping on a red master. |
 | `SpecRun/TicketSelector.ts` | | Picks the run's next ticket, reads Halt answers and has a Research Halt's approved edits applied. |
@@ -172,7 +174,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Workflow/piece/pieceChecks.ts` | | A drafting ticket's checks: overlap and the spec's length limit, and the prompts' wording of an overlap run and its fixes. |
 | `Workflow/piece/pieceWorkflow.ts` | `pieceWorkflow` | Builds the piece Workflow from a repo's overlap and quote commands and Docs port: its research and drafting Steps, research, implement, review, resolve and red-checks agent steps, its spec-end Steps and their trigger, pull and push rules, quote check, drafting checks, outcome row review cell and the source targets read from the spec's Supporting Material. |
 | `Workflow/piece/redChecksStep.ts` | | The piece red-checks step's prompt, fixing red piece checks in the Agent draft, and its output schema. |
-| `Workflow/piece/researchStep.ts` | | The research step's prompt, its red-quotes section, handoff comment, record checks, output schema, closing comment and Research Halt words. |
+| `Workflow/piece/researchStep/researchRecord.ts` | | The research step's output schema, its record reader and the record checks. |
+| `Workflow/piece/researchStep/researchWords.ts` | | The research step's prompt, its red-quotes section, handoff comment, closing comment and Research Halt words. |
 | `Workflow/piece/resolveStep.ts` | | The piece resolve step's prompt, pointing at the verdict rules' `## Piece findings` and rerunning the piece checks after its Fixes, and its record checks, which refuse the verdict reasons a piece finding never takes. |
 | `Workflow/piece/reviewCaught.ts` | | A piece outcome row's "What review caught" cell: each kept finding by its axis and public rule name only. |
 | `Workflow/piece/reviewStep.ts` | | The piece review step's prompt, reading `/review-piece` by its path over the Agent draft and passages folder, and its record schema. |

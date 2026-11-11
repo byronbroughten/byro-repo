@@ -6,7 +6,7 @@
 // A stop request (StatusReporter.ts) ends the run between tickets, and a `stop spec` answer its own member.
 // A landing that changes the runner's own source ends it restarting, for tmux.sh to relaunch.
 // ../SpecRun.ts builds one per run, with its member list, and delegates run to it.
-// It builds its own PreflightChecker, TicketSelector, TicketSequencer and ReviewListPoster.
+// It builds its own PreflightChecker, TicketSelector, TicketSequencer and SpecEndRunner.
 
 import { existsSync, rmSync } from "node:fs";
 
@@ -23,7 +23,6 @@ import {
   MemberSelections,
 } from "./MemberSelections.ts";
 import { PreflightChecker } from "./PreflightChecker.ts";
-import { ReviewListPoster } from "./ReviewListPoster.ts";
 import {
   type BatchView,
   memberBlocking,
@@ -37,6 +36,7 @@ import {
 } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
 import { runText } from "./runState/runText.ts";
+import { SpecEndRunner } from "./SpecEndRunner.ts";
 import {
   type RunEvent,
   SpecRunBase,
@@ -102,8 +102,8 @@ export class RunLoop extends SpecRunBase {
     return new TicketSequencer(this.config);
   }
 
-  private get reviewListPoster(): ReviewListPoster {
-    return new ReviewListPoster(this.config);
+  private get specEndRunner(): SpecEndRunner {
+    return new SpecEndRunner(this.config);
   }
 
   async run(): Promise<RunResult> {
@@ -372,7 +372,7 @@ export class RunLoop extends SpecRunBase {
     for (const { member, waits } of unheld) {
       let result: RunResult | undefined;
       try {
-        result = await this.reviewListPoster._finish(member.run, waits);
+        result = await this.specEndRunner._finish(member.run, waits);
       } catch (error) {
         if (!(error instanceof RunStop)) throw error;
         const { message, event } = error;
