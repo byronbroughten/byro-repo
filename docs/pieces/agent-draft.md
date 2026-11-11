@@ -1,13 +1,13 @@
 # Agent drafts
 
-An Agent draft ([GLOSSARY.md](./GLOSSARY.md#language)) is the agents' last version of a Piece's Sections, beside the developer's as the Deliverable last showed them. A drafting ticket's runner pull writes it, its implement step drafts in it, an `/implement-piece` session does both, the spec's push writes its agent Sections into the Deliverable, and `/to-writing-style` diffs it against the edited Deliverable.
+An Agent draft ([GLOSSARY.md](./GLOSSARY.md#language)) is the agents' last version of a Piece's Sections, beside the developer's as the Deliverable last showed them. A drafting ticket's runner pull writes it, its implement step drafts in it, an `/implement-piece` session does both, `/judge-findings` makes its "now" fixes in it, the spec's push writes its agent Sections into the Deliverable, and `/to-writing-style` diffs it against the edited Deliverable.
 
 ## File format
 
 - **A Piece's Agent draft is `writing/agent-drafts/<n>.md` at the root of the repo that files its spec, `<n>` being the Piece's spec number**: the parent's, for a split Piece.
 - **It holds one block per Section of the Deliverable, in the Deliverable's order**: `## <Section heading>`, then its author mark on the next line, then the Section's body in the Docs module's Markdown dialect.
 - **The author mark is `<!-- developer -->` or `<!-- agent -->`.** A Section an agent drafted is the agent's; every other Section is the developer's.
-- **The file changes only by a pull or an implement step, a run's or an `/implement-piece` session's.** Its edits are never made by hand.
+- **The file changes only by a pull, an implement step (a run's or an `/implement-piece` session's), or a `/judge-findings` "now" fix.** Its edits are never made by hand.
 
 ## Pull
 
