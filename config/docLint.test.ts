@@ -372,7 +372,7 @@ describe("checkDocs", () => {
       expect(
         check({
           "docs/agents/outcomes/r-1/r-2.md": cited,
-          "packages/personal/writing/snapshots/s.md": cited,
+          "packages/personal/writing/agent-drafts/s.md": cited,
           "packages/personal/inbox/changes.md": cited,
           "inbox/proposals.md": cited,
         }),
