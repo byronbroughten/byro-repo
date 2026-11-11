@@ -1,0 +1,7 @@
+# byro-repo#699 outcome
+
+Spec: [byro-repo#612](https://github.com/byronbroughten/byro-repo/issues/612)
+
+| Issue | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #699 | Opus medium | 2 | 15 | 144K | Fix (resumed implementer) | 2 | 1 | 0 | 0 | 16 min | $3.68 | $4.90 | Fixed: Two sites build the same `**E<n>** text` edit line. (runner/src/halts.ts:137-140, runner/src/Workflow/piece/researchStep.ts:123-124); The fresh Halt hand-builds a bullet list, repeating the bulletsOf shape. (runner/src/halts.ts:137-139); edits.indexOf(edit) relies on applyTo returning the edit objects it was given. (runner/src/halts.ts:134-135); The reduce accumulator is named `outline` but holds an AppliedEdits. (runner/src/outlineEdits.ts:41-50); No run-level test covers a drop-only answer or two edits with one approved. (runner/src/SpecRun.piece.test.ts:616). Proposed: A missing oldText plus a newText present anywhere counts as applied, so a stale edit may pass with no Halt. (runner/src/outlineEdits.ts:61-64 (isApplied)); Reading then writing the body could overwrite a developer edit made in between. (runner/src/SpecRun/OutlineEditApplier.ts:41-44). | d5025a61-4406-407f-a07a-ff14513a3cc5, 2da0681f-5cd3-4047-8a51-539914f754ba |
