@@ -42,6 +42,30 @@ export function passagesFolderOf({ repo, number }: IssueRef): string {
   return `.runner/passages/${repo}-${number}`;
 }
 
+export function passagesFolderIn(
+  workspacePath: string,
+  issue: IssueRef,
+): string {
+  return join(workspacePath, passagesFolderOf(issue));
+}
+
+interface DraftMaterials {
+  issue: IssueRef;
+  spec: IssueRef;
+  workspacePath: string;
+  draftPath: string;
+}
+
+// The resolve and red-checks prompts' line naming what a fix reads and writes.
+export function draftMaterialsLineOf({
+  issue,
+  spec,
+  workspacePath,
+  draftPath,
+}: DraftMaterials): string {
+  return `The Agent draft is \`${draftPath}\` in the \`${spec.repo}\` clone, the passages folder is \`${passagesFolderIn(workspacePath, issue)}\`, and the ticket's spec is ${spec.repo}#${spec.number}.`;
+}
+
 export interface PieceImplementPromptInput extends ImplementPromptInput {
   draftPath: string;
 }
@@ -68,7 +92,7 @@ function draftingSection({
   draftPath,
   workspacePath,
 }: PieceImplementPromptInput): string {
-  const passagesFolder = join(workspacePath, passagesFolderOf(issue));
+  const passagesFolder = passagesFolderIn(workspacePath, issue);
   return sectionOf("What you draft", [
     `The Agent draft is \`${draftPath}\` in the \`${spec.repo}\` clone. The runner's pull already brought the Deliverable's Doc into it and committed it on the ticket's branch. Its file format is in \`${paths.agentDraft}\`.`,
     `The ticket's spec is ${spec.repo}#${spec.number}; read its body for the Deliverable, the Reader, the Outline and the Supporting Material.`,

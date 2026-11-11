@@ -2,7 +2,7 @@
 // any hit its review didn't dismiss, then the spec's length limit on a whole-scope ticket. Facts and style stay with review.
 // The scope is the agent Sections the implement record drafted, or every agent Section on a final pass; the developer's
 // Sections are never checked for overlap. pieceWorkflow.ts registers it as its ticket checks, and
-// ../../SpecRun/TicketLander/TicketChecker.ts runs it, sending a red one to redChecksStep.ts once before a Failure Halt.
+// ../../SpecRun/TicketLander/TicketChecker.ts runs it, sending a red one to redChecksStep.ts before a Failure Halt.
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -17,7 +17,7 @@ import { ticketSectionOf } from "../../ticketSections.ts";
 import type { TicketChecksInput } from "../../Workflow.ts";
 import { agentDraft, type DraftSection } from "./agentDraft.ts";
 import { draftingScope } from "./draftingScope.ts";
-import { passagesFolderOf } from "./implementStep.ts";
+import { passagesFolderIn } from "./implementStep.ts";
 
 const patterns = {
   // The Form field's fixed line, as the spec's Trusted text holds it.
@@ -106,7 +106,7 @@ async function overlapFailureOf(
   scope: DraftScope,
 ): Promise<string | undefined> {
   const label = commandLabelOf(overlapCommand);
-  const passagesFolder = join(workspacePath, passagesFolderOf(ticket.issue));
+  const passagesFolder = passagesFolderIn(workspacePath, ticket.issue);
   mkdirSync(passagesFolder, { recursive: true });
   const folder = mkdtempSync(join(tmpdir(), "piece-checks-"));
   try {

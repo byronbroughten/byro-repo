@@ -2,8 +2,6 @@
 // and reader axes, following `/review-piece` read by its path, and the review record it returns: code's, on these axes,
 // plus the overlap hits it judged no copy. pieceWorkflow.ts registers it; ../../SpecRun/ReviewStepper.ts launches it.
 
-import { join } from "node:path";
-
 import { stepReadLine } from "../../IssueReader.ts";
 import { codeListOf, reviewFindingsText } from "../../promptText.ts";
 import {
@@ -15,7 +13,7 @@ import {
 import type { Axis } from "../../verdicts.ts";
 import type { ReviewPromptInput } from "../../Workflow.ts";
 import { draftingScope } from "./draftingScope.ts";
-import { passagesFolderOf } from "./implementStep.ts";
+import { passagesFolderIn } from "./implementStep.ts";
 
 const pieceAxes: Axis[] = ["spec", "standards", "reader"];
 
@@ -33,7 +31,7 @@ export function pieceReviewPrompt({
   workspacePath,
   draftPath,
 }: PieceReviewPromptInput): string {
-  const passagesFolder = join(workspacePath, passagesFolderOf(issue));
+  const passagesFolder = passagesFolderIn(workspacePath, issue);
   const scope = draftingScope.sectionsOf(labels);
   return `You are the review step of an unattended run on a piece spec's drafting ticket. Nobody is watching this session: never ask a question or wait for an answer.
 

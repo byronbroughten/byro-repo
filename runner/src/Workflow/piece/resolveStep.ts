@@ -2,11 +2,8 @@
 // verdict rules, fixing only the ticket's Sections of the Agent draft and rerunning the piece checks, from pieceChecks.ts,
 // after its Fixes, and the record checks that add the piece rules to code's. Its record and the rest of its checks are the core's, from ../../resolveRecords.ts; pieceWorkflow.ts registers it.
 
-import { join } from "node:path";
-
 import { commandLabelOf } from "../../failureText.ts";
 import { stepReadLine } from "../../IssueReader.ts";
-import type { IssueRef } from "../../IssueWorkspaces.ts";
 import {
   commitMessageLine,
   sectionOf,
@@ -23,7 +20,7 @@ import type {
 import { type Verdict, verdictWords } from "../../verdicts.ts";
 import type { ResolvePromptInput } from "../../Workflow.ts";
 import { draftingScope } from "./draftingScope.ts";
-import { passagesFolderOf } from "./implementStep.ts";
+import { draftMaterialsLineOf, passagesFolderIn } from "./implementStep.ts";
 
 const pieceFindingsHeading = "## Piece findings";
 
@@ -59,16 +56,10 @@ ${resolveBody.findingsOf(input)} A piece finding's verdict follows the \`${piece
   ].join("\n\n");
 }
 
-function fixingSection({
-  issue,
-  spec,
-  labels,
-  draftPath,
-  workspacePath,
-}: PieceResolvePromptInput): string {
+function fixingSection(input: PieceResolvePromptInput): string {
   return sectionOf("What you fix", [
-    `The Agent draft is \`${draftPath}\` in the \`${spec.repo}\` clone, the passages folder is \`${passagesFolderIn(workspacePath, issue)}\`, and the ticket's spec is ${spec.repo}#${spec.number}. Verify each finding against the Agent draft, the saved passages, the ticket and its spec before you judge it.`,
-    `A fix touches only the Agent draft and only ${draftingScope.sectionsOf(labels)}: never a Section marked \`<!-- developer -->\`, the spec, the fact list or a Research comment.`,
+    `${draftMaterialsLineOf(input)} Verify each finding against the Agent draft, the saved passages, the ticket and its spec before you judge it.`,
+    `A fix touches only the Agent draft and only ${draftingScope.sectionsOf(input.labels)}: never a Section marked \`<!-- developer -->\`, the spec, the fact list or a Research comment.`,
   ]);
 }
 
@@ -84,7 +75,7 @@ function checksSection({
   return sectionOf("The piece checks after your Fixes", [
     `Once your Fixes are committed, rerun the overlap check from the workspace root: \`${commandLabelOf(overlapCommand)} --deliverable <the Agent draft's path in the ${spec.repo} clone> --passages ${passagesFolder}\`.`,
     `Fix every hit it prints in ${draftingScope.sectionsOf(labels)} that the dismissed hits below don't hold, then rerun it; a hit in any other Section isn't this ticket's.`,
-    "On a final-pass ticket, or one whose Sections are every Section of the Agent draft, also keep the agent Sections' words, headings and author marks left out, within the spec's Form `Length:` line.",
+    `${draftingScope.lengthRuleOf(labels)} keep the agent Sections' words, headings and author marks left out, within the spec's Form \`Length:\` line.`,
     `A Fix you can't make pass the checks is reverted in a further commit and resolved, saying why, as a Propose \`decision\`, or for a \`spec\`-axis finding as a Halt, so you never leave the checks red.`,
   ]);
 }
@@ -99,10 +90,6 @@ function dismissedOverlapsSection({
     ({ hit, reason }) => `- ${hit}: ${reason}`,
   );
   return `## Dismissed overlap hits\n\n${lines.join("\n")}`;
-}
-
-function passagesFolderIn(workspacePath: string, issue: IssueRef): string {
-  return join(workspacePath, passagesFolderOf(issue));
 }
 
 function workingSection({ spec, draftPath }: PieceResolvePromptInput): string {

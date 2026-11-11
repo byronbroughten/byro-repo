@@ -1,15 +1,13 @@
 // The piece red-checks step: the prompt that hands a drafting ticket's red piece checks, from pieceChecks.ts, back to
 // whoever made its last commit, and the summary it returns. pieceWorkflow.ts registers it, and
-// ../../SpecRun/TicketLander/TicketChecker.ts runs it once after red checks; still red is a Failure Halt.
-
-import { join } from "node:path";
+// ../../SpecRun/TicketLander/TicketChecker.ts runs it up to the `retriesPerFailure` knob's times; still red is a Failure Halt.
 
 import { stepReadLine } from "../../IssueReader.ts";
 import { commitMessageLine, sectionOf } from "../../promptText.ts";
 import { objectSchema, stringSchema } from "../../recordSchema.ts";
 import { implementBody } from "../../stepPrompts.ts";
 import type { RedChecksPromptInput } from "../../Workflow.ts";
-import { passagesFolderOf } from "./implementStep.ts";
+import { draftMaterialsLineOf } from "./implementStep.ts";
 
 export interface PieceRedChecksPromptInput extends RedChecksPromptInput {
   draftPath: string;
@@ -28,18 +26,12 @@ The runner's piece checks failed on ${issue.repo}#${issue.number}, "${title}", a
   ].join("\n\n");
 }
 
-function fixingSection({
-  issue,
-  spec,
-  workspacePath,
-  draftPath,
-}: PieceRedChecksPromptInput): string {
-  const passagesFolder = join(workspacePath, passagesFolderOf(issue));
+function fixingSection(input: PieceRedChecksPromptInput): string {
   return sectionOf("What you fix", [
-    `The Agent draft is \`${draftPath}\` in the \`${spec.repo}\` clone, the passages folder is \`${passagesFolder}\`, and the ticket's spec is ${spec.repo}#${spec.number}.`,
+    draftMaterialsLineOf(input),
     "An overlap hit is wording an agent Section shares with a saved passage: reword it in the draft's own words, keeping its fact.",
     "A length failure is the agent Sections running over the spec's Form `Length:` line: cut them until they fit, keeping every fact the Outline assigns them.",
-    "Change only the Sections the failures name: never a Section marked `<!-- developer -->`, the spec or any other file.",
+    "Change only the agent Sections an overlap hit names, or any agent Section for a length failure: never a Section marked `<!-- developer -->`, the spec or any other file.",
   ]);
 }
 

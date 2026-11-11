@@ -4,7 +4,7 @@
 // Every other ticket is a drafting ticket: its first Step pulls the Deliverable's Doc into the Agent draft, agentDraft.ts,
 // its implement step, implementStep.ts, drafts the ticket's Sections there, its review step, reviewStep.ts, reviews them,
 // its resolve step, resolveStep.ts, resumes implement to settle the findings, its checks, pieceChecks.ts, run the overlap
-// command and the length limit, sending red ones once to its red-checks step, redChecksStep.ts, and wrap-up lands its
+// command and the length limit, sending red ones to its red-checks step, redChecksStep.ts, and wrap-up lands its
 // branch, so the next ticket's pull starts from its Agent draft.
 // Every step reads the Drive files the spec's Supporting Material lists, as source targets, and no others.
 // A repo's runner config builds it with its commands and Docs port, and ../../Workflow.ts registers it.
