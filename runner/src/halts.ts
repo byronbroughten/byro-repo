@@ -175,6 +175,16 @@ export function pushHaltOf(heading: string, conflict: PushConflict): HaltDraft {
   };
 }
 
+// On no Section, since the suggestions hold every write into the Doc; any answer but `stop spec` pushes again.
+export function suggestionsHaltOf(documentId: string): HaltDraft {
+  return {
+    kind: "push",
+    question: `Doc ${documentId} holds pending suggestions, so the push can't place its writes in it safely. Accept or reject each suggestion in the Doc, then answer \`continue\`.`,
+    options: ["`continue`"],
+    scope: [],
+  };
+}
+
 export interface HandoffCap {
   ticket: IssueRef;
   count: number;
