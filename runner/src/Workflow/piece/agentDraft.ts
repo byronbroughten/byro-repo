@@ -53,6 +53,17 @@ export const agentDraft = {
     );
   },
 
+  // A push Halt's `keep mine` answers: the Doc's text stays the developer's, so no later push writes over it.
+  keptOf(draft: string, kept: Map<string, string>): string {
+    return agentDraft.draftOf(
+      agentDraft.sectionsOf(draft).map((section): DraftSection => {
+        const markdown = kept.get(section.heading);
+        if (markdown === undefined) return section;
+        return { ...section, author: "developer", markdown };
+      }),
+    );
+  },
+
   // The Doc's Sections in its order, each agent Section kept as the draft has it; an agent Section the Doc no longer has stays, after them.
   pulledOf(
     draft: DraftSection[],

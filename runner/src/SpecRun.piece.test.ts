@@ -32,6 +32,7 @@ import {
   holdDocs,
   implemented,
   masterSubjects,
+  noticeSummaries,
   primaryOf,
   refOf,
   resultOf,
@@ -798,34 +799,166 @@ describe("the end of a piece spec", () => {
       expect(result.message).toContain("byro-repo #2 waits on you");
     });
 
-    it("stops before writing anything on a Section changed since the pull, naming it", async () => {
-      addGatedSpec();
+    describe("its Halt on a Section the developer changed", () => {
+      const pushHaltHead =
+        '**Halt H1** · Halt 1 of 1 · byro-repo #213, "The spec" · Push Halt';
+      const keptMark =
+        'Mark "The crossing" as the developer\'s in the Agent draft of byro-repo #213, for #213';
 
-      const { result } = await landsThenGapChecks(
-        [],
-        editsTheCrossing(agentOnlyDraft),
-      );
+      // Lands the drafting ticket with The crossing changed in the Doc, so the push raises H1 on it.
+      async function haltsOnTheCrossing(): Promise<void> {
+        addGatedSpec();
+        await landsThenGapChecks([], editsTheCrossing(agentOnlyDraft));
+      }
 
-      expect((await deliverableOf()).revisionId).toBe("crossing-2");
-      expect(result.kind).toBe("stopped");
-      expect(result.message).toContain(
-        'The push wrote nothing to the Deliverable of byro-repo #213, since it never writes over your edits: "The crossing" changed since the pull',
-      );
-    });
+      // Edits both Sections in the Doc, so the push raises H1 on The harbour and H2 on The crossing.
+      function editsBoth(script: StepScript): StepScript {
+        return async (request) => {
+          heldDocs().edit(deliverableId, () => ({
+            ...docOf({
+              "The harbour": "The gulls were gone.",
+              "The crossing": "The ferry never came.",
+            }),
+            revisionId: "both-2",
+          }));
+          return script(request);
+        };
+      }
 
-    it("stops on an agent Section with no heading in the Doc, writing nothing", async () => {
-      addGatedSpec();
+      async function answersThenReruns(answer: string): Promise<RunResult> {
+        await haltsOnTheCrossing();
+        github.reply(spec.number, `H1: ${answer}`);
+        return specRun(FakeAgentStep.init()).run(spec);
+      }
 
-      const { result } = await landsThenGapChecks(
-        [],
-        drafted(
-          {},
-          `${lateDraft}\n## The return\n<!-- agent -->\n\nThey came home by train.\n`,
-        ),
-      );
+      // Without its last newline, which the git fixture trims.
+      function masterDraft(): string {
+        return git(primaryOf("byro-repo"), "show", `master:${draftPath}`);
+      }
 
-      expect((await deliverableOf()).revisionId).toBe("crossing-1");
-      expect(result.message).toContain('"The return" changed since the pull');
+      it("raises a push Halt on the spec issue naming the Section, answered `overwrite` or `keep mine`, writing nothing", async () => {
+        await haltsOnTheCrossing();
+
+        expect((await deliverableOf()).revisionId).toBe("crossing-2");
+        const [halt] = haltComments();
+        expect(halt).toContain(pushHaltHead);
+        expect(halt).toContain('"The crossing" changed in the Doc since');
+        expect(halt).toContain("1. `overwrite`\n2. `keep mine`");
+        expect(noticeSummaries()).toContainEqual(
+          expect.stringContaining(
+            "Idle: nothing runnable. The push waits on Halt H1;",
+          ),
+        );
+      });
+
+      it("holds the spec-end Steps while the Halt is open, raising it once", async () => {
+        await haltsOnTheCrossing();
+
+        const result = await specRun(FakeAgentStep.init()).run(spec);
+
+        expect(haltComments()).toHaveLength(1);
+        expect((await deliverableOf()).revisionId).toBe("crossing-2");
+        expect(result.message).toContain("The push waits on Halt H1");
+      });
+
+      it("writes the agent text over the Doc's on `overwrite`", async () => {
+        const result = await answersThenReruns("overwrite");
+
+        expect(Object.fromEntries((await deliverableOf()).sections)).toEqual(
+          pushedSections,
+        );
+        expect(result.kind).toBe("finished");
+        expect(result.message).toContain("byro-repo #2 waits on you");
+      });
+
+      it("leaves the Doc's text on `keep mine` and marks the Section as the developer's, landed on master", async () => {
+        const result = await answersThenReruns("keep mine");
+
+        expect(Object.fromEntries((await deliverableOf()).sections)).toEqual({
+          "The harbour": pushedSections["The harbour"],
+          "The crossing": "The ferry never came.\n",
+        });
+        expect(masterDraft()).toBe(
+          "## The harbour\n<!-- agent -->\n\nThe gulls lifted off the quay.\n\n## The crossing\n<!-- developer -->\n\nThe ferry never came.",
+        );
+        expect(masterSubjects()).toContain(keptMark);
+        expect(github.issues.get(spec.number)?.isOpen).toBe(true);
+        expect(result.message).toContain("byro-repo #2 waits on you");
+      });
+
+      it("writes nothing twice on a rerun after both answers", async () => {
+        addGatedSpec();
+        const bothEdited = editsBoth(agentOnlyDraft);
+        await landsThenGapChecks([], bothEdited);
+        github.reply(spec.number, "H1: overwrite");
+        github.reply(spec.number, "H2: keep mine");
+        await specRun(FakeAgentStep.init()).run(spec);
+        const pushed = await deliverableOf();
+
+        const rerun = await specRun(FakeAgentStep.init()).run(spec);
+
+        expect((await deliverableOf()).revisionId).toBe(pushed.revisionId);
+        expect(Object.fromEntries(pushed.sections)).toEqual({
+          "The harbour": pushedSections["The harbour"],
+          "The crossing": "The ferry never came.\n",
+        });
+        expect(
+          masterSubjects().filter((subject) => subject === keptMark),
+        ).toHaveLength(1);
+        expect(haltComments()).toHaveLength(2);
+        expect(rerun.message).toContain("byro-repo #2 waits on you");
+      });
+
+      it("raises the Halt on every agent Section of a spec with no recorded baseline, writing nothing", async () => {
+        addGatedSpec();
+        await landsThenGapChecks([gap], agentOnlyDraft);
+        const saved = JSON.parse(readFileSync(runStatePath(), "utf8")) as {
+          tickets: Record<string, { pullBaseline?: unknown }>;
+        };
+        for (const state of Object.values(saved.tickets)) {
+          delete state.pullBaseline;
+        }
+        writeFileSync(runStatePath(), JSON.stringify(saved));
+        const list = github.comments.find(({ body }) =>
+          body.includes(gapCheckMark),
+        );
+        if (list === undefined) throw new Error("No gap-check review list.");
+        list.body = list.body.replace("- [ ] **R", "- [x] **R");
+
+        await specRun(FakeAgentStep.init()).run(spec);
+
+        expect((await deliverableOf()).revisionId).toBe("crossing-1");
+        const halts = haltComments();
+        expect(halts).toHaveLength(2);
+        expect(halts[0]).toContain('"The harbour" changed in the Doc since');
+        expect(halts[1]).toContain('"The crossing" changed in the Doc since');
+      });
+
+      it("asks to add a missing Section's heading, then answer `overwrite`, which writes it", async () => {
+        addGatedSpec();
+        await landsThenGapChecks(
+          [],
+          drafted(
+            {},
+            `${lateDraft}\n## The return\n<!-- agent -->\n\nThey came home by train.\n`,
+          ),
+        );
+        const [halt] = haltComments();
+        heldDocs().edit(deliverableId, () => ({
+          ...docOf({ ...pulledSections, "The return": "" }),
+          revisionId: "return-added",
+        }));
+        github.reply(spec.number, "H1: overwrite");
+
+        const result = await specRun(FakeAgentStep.init()).run(spec);
+
+        expect(halt).toContain('The Doc has no "The return" heading');
+        expect(halt).toContain("Add it, then answer `overwrite`");
+        expect((await deliverableOf()).sections.get("The return")).toBe(
+          "They came home by train.\n",
+        );
+        expect(result.message).toContain("byro-repo #2 waits on you");
+      });
     });
 
     it("stops on a stale revision, and the rerun writes only the Sections still to write", async () => {

@@ -12,6 +12,7 @@ import {
 } from "../../halts.ts";
 import { haltReplies } from "../../halts/haltReplies.ts";
 import { type IssueRef, issueRef } from "../../IssueWorkspaces.ts";
+import type { SpecEndStep } from "../../Workflow.ts";
 import { type Run, runTickets, type TicketStep } from "../runState.ts";
 
 interface DownstreamSearch {
@@ -117,6 +118,13 @@ export const runHalts = {
 
   isGapCheck({ failedStep }: Halt): boolean {
     return failedStep === "gap-check";
+  },
+
+  // The spec-end Step a Halt on the spec issue belongs to; undefined for a ticket's.
+  specEndStepOf(halt: Halt): SpecEndStep | undefined {
+    if (runHalts.isGapCheck(halt)) return "gap-check";
+    if (halt.kind === "push") return "push";
+    return undefined;
   },
 
   // The tickets downstream of one, each `<repo>#<n>`, through the blocking graph.

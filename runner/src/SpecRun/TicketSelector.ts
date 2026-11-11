@@ -14,6 +14,7 @@ import {
 } from "../halts.ts";
 import { haltReplies } from "../halts/haltReplies.ts";
 import { type IssueRef, issueRef, leaseHolder } from "../IssueWorkspaces.ts";
+import type { SpecEndStep } from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import { LeaseKeeper } from "./LeaseKeeper.ts";
 import { OutlineEditApplier } from "./OutlineEditApplier.ts";
@@ -99,9 +100,8 @@ export class TicketSelector extends SpecRunBase {
     const downstreamOf = await this._scopeDownstreamOf(run, openHalts);
     const survey: Survey = { waits: [], answered: [], launchable: [] };
     const { waits } = survey;
-    const gapCheckHalts = openHalts.filter(runHalts.isGapCheck);
-    if (gapCheckHalts.length > 0) {
-      const text = `The gap check waits on Halt ${runHalts.idListOf(gapCheckHalts)}`;
+    for (const [step, holding] of specEndHaltsOf(openHalts)) {
+      const text = `${runText.stepNameOf(step)} waits on Halt ${runHalts.idListOf(holding)}`;
       waits.push({ ticket: run.spec.issue, reason: "halted", text });
     }
     for (const ticket of run.tickets) {
@@ -242,6 +242,17 @@ export class TicketSelector extends SpecRunBase {
     });
     return downstreamOf;
   }
+}
+
+// The open Halts on the spec issue, by the spec-end Step each holds.
+function specEndHaltsOf(openHalts: Halt[]): Map<SpecEndStep, Halt[]> {
+  return openHalts.reduce((byStep, halt) => {
+    const step = runHalts.specEndStepOf(halt);
+    if (step !== undefined) {
+      byStep.set(step, [...(byStep.get(step) ?? []), halt]);
+    }
+    return byStep;
+  }, new Map<SpecEndStep, Halt[]>());
 }
 
 // The halted ticket itself, every ticket for a `spec` scope, else the named tickets and their downstream.

@@ -6,18 +6,12 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import { git } from "../git.ts";
 import { issueRef } from "../IssueWorkspaces.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
 import { pullOf } from "../Workflow.ts";
 import type { TicketRun } from "./runState.ts";
+import { draftCommits, type DraftFile } from "./runState/draftCommits.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
-
-// The spec's clone in the workspace, and the Agent draft's path from its root.
-interface DraftFile {
-  clone: string;
-  draftPath: string;
-}
 
 export class DraftPuller extends SpecRunBase {
   async _pull(ticketRun: TicketRun): Promise<void> {
@@ -61,21 +55,17 @@ export class DraftPuller extends SpecRunBase {
   // A pull that changed nothing commits nothing.
   private async _commitDraft(
     { run, ticket }: TicketRun,
-    { clone, draftPath }: DraftFile,
+    file: DraftFile,
   ): Promise<void> {
     const label = issueRef.labelOf(ticket.issue);
-    await git(clone, "add", "--", draftPath);
-    const staged = await git(clone, "diff", "--cached", "--name-only");
-    if (staged.trim() === "") {
+    const isCommitted = await draftCommits.commit(
+      file,
+      `Pull the Deliverable into the Agent draft of ${issueRef.labelOf(run.spec.issue)}, for #${ticket.issue.number}`,
+    );
+    if (!isCommitted) {
       this._log(run, `${label}: the Agent draft already matches the Doc.`);
       return;
     }
-    await git(
-      clone,
-      "commit",
-      "-m",
-      `Pull the Deliverable into the Agent draft of ${issueRef.labelOf(run.spec.issue)}, for #${ticket.issue.number}`,
-    );
     this._log(run, `${label}: pulled the Deliverable into the Agent draft.`);
   }
 }

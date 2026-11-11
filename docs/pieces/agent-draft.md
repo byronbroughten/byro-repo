@@ -24,5 +24,8 @@ Push is the runner's last spec-end Step on a piece spec, after the gap check and
 
 - **It writes each agent Section of the Agent draft on master into the Deliverable through the Docs module, under its revision guard, reading the Doc again before each write.**
 - **A Section whose Doc text already matches the agent's is skipped**, so a rerun writes nothing twice; once every agent Section is written, the run state marks the push done and a rerun pushes nothing.
-- **It never writes over the developer's edits: a Section whose Doc text differs from the last pull's baseline, or that has no heading in the Doc, stops the run naming it, before anything is written.** An agent Section the pull never saw counts as empty, so adding its heading to the Doc lets the push write it.
-- **A stale revision or pending suggestions stop the run too; a rerun retries.**
+- **It never writes over the developer's edits unasked: a Section whose Doc text differs from the pull baseline, or that has no heading in the Doc, raises a push Halt on the spec issue naming it, answered `overwrite` or `keep mine`.** The push gathers every Halt before it writes anything, so it writes the Doc as one act. A missing Section's question says to add its heading, then answer `overwrite`; an agent Section the pull never saw counts as empty, so adding its heading lets the push write it.
+- **The baseline is the newest one any of the spec's tickets recorded**, which holds every Section of the Doc. A spec with none, every drafting ticket worked in a session, treats every agent Section as changed since the pull.
+- **`overwrite` writes the agent text over the Doc's; `keep mine` leaves the Doc alone and marks the Section as the developer's in the Agent draft**, in a runner commit landed as a session landing that closes no issue.
+- **An open push Halt holds the spec-end Steps, as a gap-check Halt does**; the answers are delivered once the push completes.
+- **A stale revision or pending suggestions stop the run; a rerun retries.**
