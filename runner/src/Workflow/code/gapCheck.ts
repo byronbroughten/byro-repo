@@ -1,7 +1,7 @@
 // The code gap check's prompt: it runs once a spec's every ticket is closed, listing what the spec asked for that no
 // landed ticket covered. It belongs to the spec, so it launches with no targets.
 // Its record's schema is ../../recordSchema.ts's, and ../../reviewList.ts turns it into the final review-list comment;
-// codeWorkflow.ts supplies it, and SpecRun/ReviewListPoster.ts launches it and posts that comment.
+// codeWorkflow.ts supplies it, and SpecRun/SpecEndRunner.ts launches it and posts that comment.
 
 import { stepReadLine } from "../../IssueReader.ts";
 import {

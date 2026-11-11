@@ -2,7 +2,7 @@
 // and `requestStop`, which leaves the stop request RunLoop.ts takes between tickets; the request's path is the Base's.
 // A Batch's record (../BatchRecords.ts) lets either take any member's number for the whole Batch.
 // ../SpecRun.ts delegates status and requestStop to it; it builds its own TicketSelector for each member's waits,
-// and its own ReviewListPoster to read whether a member's gap check is done.
+// and its own SpecEndRunner to read whether a member's gap check is done.
 
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 
@@ -13,7 +13,6 @@ import {
 import { type Halt } from "../halts.ts";
 import { type IssueRef, issueRef, leaseHolder } from "../IssueWorkspaces.ts";
 import { readingLabelOf } from "../limitGuard.ts";
-import { ReviewListPoster } from "./ReviewListPoster.ts";
 import {
   type BatchView,
   memberBlocking,
@@ -23,6 +22,7 @@ import {
 } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
 import { runText } from "./runState/runText.ts";
+import { SpecEndRunner } from "./SpecEndRunner.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 import { TicketSelector } from "./TicketSelector.ts";
 
@@ -31,8 +31,8 @@ interface Waiting extends BatchView {
 }
 
 export class StatusReporter extends SpecRunBase {
-  private get reviewListPoster(): ReviewListPoster {
-    return new ReviewListPoster(this.config);
+  private get specEndRunner(): SpecEndRunner {
+    return new SpecEndRunner(this.config);
   }
 
   private get ticketSelector(): TicketSelector {
@@ -99,7 +99,7 @@ export class StatusReporter extends SpecRunBase {
       if (runTickets.isLanded(run, ticket)) continue;
       if ((await this.config.github.issueOf(ticket)).isOpen) return false;
     }
-    return this.reviewListPoster._isGapChecked(run);
+    return this.specEndRunner._isGapChecked(run);
   }
 
   private async _statusBlockOf(run: Run, batch: BatchView): Promise<string> {

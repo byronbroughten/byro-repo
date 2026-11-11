@@ -470,6 +470,36 @@ describe("an Interactive session's gh calls", () => {
     ).toBeUndefined();
   });
 
+  it("leaves any other gh api write to Claude Code", () => {
+    [
+      "gh api -X DELETE repos/x/y/issues/comments/987",
+      "gh api repos/x/y/issues/comments/987 -f body=Fixed",
+      "gh api -X PATCH repos/x/y/pulls/comments/987 -f body=Fixed",
+      // A field with no method named makes gh send a POST.
+      "gh api repos/x/y/issues -f title=T",
+      "gh api graphql --input /tmp/query.json",
+      "gh api -X PATCH repos/x/y/issues/476 -f state=closed",
+      "gh api -X DELETE repos/x/y/git/refs/heads/main",
+      "gh api --method POST repos/x/y/issues/476/comments -f body=hi",
+      // The issue-link path sits in a flag's value; the endpoint is the ref.
+      "gh api -X DELETE -q repos/x/y/issues/1/sub_issue repos/x/y/git/refs/heads/main",
+      "gh api -X DELETE repos/x/y/issues/1/sub_issue repos/x/y/git/refs/heads/main",
+      "gh api --unknown-flag repos/x/y/issues/1",
+      "gh api -iX DELETE repos/x/y/issues/1/sub_issue",
+      "gh api -X",
+    ].forEach((command) => expect(decisionOf(command)).toBeUndefined());
+  });
+
+  it("leaves a create or api call hiding a command to Claude Code", () => {
+    [
+      'gh issue create --title T --body "$(make notes)"',
+      "gh issue create --title T --body-file - <<EOF\nok\nEOF",
+      "gh api repos/x/y/issues/`id`",
+    ].forEach((command) => expect(decisionOf(command)).toBeUndefined());
+  });
+});
+
+describe("an Interactive session's scripts", () => {
   it("allows the research push, and refuses it in a runner step", () => {
     expect(decisionOf("npm run research:push")).toBe("allow");
     const stepDecision = modeDecisionOf("npm run research:push", "runnerStep");
@@ -508,34 +538,6 @@ describe("an Interactive session's gh calls", () => {
     expect(
       decisionOf("npm --prefix x run doc:print -- 1AbCdEf"),
     ).toBeUndefined();
-  });
-
-  it("leaves any other gh api write to Claude Code", () => {
-    [
-      "gh api -X DELETE repos/x/y/issues/comments/987",
-      "gh api repos/x/y/issues/comments/987 -f body=Fixed",
-      "gh api -X PATCH repos/x/y/pulls/comments/987 -f body=Fixed",
-      // A field with no method named makes gh send a POST.
-      "gh api repos/x/y/issues -f title=T",
-      "gh api graphql --input /tmp/query.json",
-      "gh api -X PATCH repos/x/y/issues/476 -f state=closed",
-      "gh api -X DELETE repos/x/y/git/refs/heads/main",
-      "gh api --method POST repos/x/y/issues/476/comments -f body=hi",
-      // The issue-link path sits in a flag's value; the endpoint is the ref.
-      "gh api -X DELETE -q repos/x/y/issues/1/sub_issue repos/x/y/git/refs/heads/main",
-      "gh api -X DELETE repos/x/y/issues/1/sub_issue repos/x/y/git/refs/heads/main",
-      "gh api --unknown-flag repos/x/y/issues/1",
-      "gh api -iX DELETE repos/x/y/issues/1/sub_issue",
-      "gh api -X",
-    ].forEach((command) => expect(decisionOf(command)).toBeUndefined());
-  });
-
-  it("leaves a create or api call hiding a command to Claude Code", () => {
-    [
-      'gh issue create --title T --body "$(make notes)"',
-      "gh issue create --title T --body-file - <<EOF\nok\nEOF",
-      "gh api repos/x/y/issues/`id`",
-    ].forEach((command) => expect(decisionOf(command)).toBeUndefined());
   });
 });
 

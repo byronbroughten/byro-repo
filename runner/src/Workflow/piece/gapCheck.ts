@@ -1,7 +1,7 @@
 // The piece gap check's prompt: it runs once every ticket of a piece spec but the Edit gate has landed or closed, and
 // checks only what no review checks, since each drafting ticket's review already checked its Sections against the Outline.
 // Its record's schema is ../../recordSchema.ts's, and ../../reviewList.ts turns it into the last review-list comment;
-// pieceWorkflow.ts supplies it, and ../../SpecRun/ReviewListPoster.ts launches it with no targets and posts that comment.
+// pieceWorkflow.ts supplies it, and ../../SpecRun/SpecEndRunner.ts launches it with no targets and posts that comment.
 
 import { stepReadLine } from "../../IssueReader.ts";
 import {

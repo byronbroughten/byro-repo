@@ -1,4 +1,4 @@
-// The piece Workflow: a spec labelled piece runs under it. A research ticket runs its research step, from researchStep.ts,
+// The piece Workflow: a spec labelled piece runs under it. A research ticket runs its research step, from researchStep/,
 // then its quote check, and lands with no code: its comment posted, its outcome row written and the ticket closed.
 // What it couldn't verify and the Outline edits it proposes then go to the developer in one Research Halt, which holds the drafting tickets.
 // Every other ticket is a drafting ticket: its first Step pulls the Deliverable's Doc into the Agent draft, agentDraft.ts,
@@ -60,15 +60,17 @@ import {
   pieceRedChecksPrompt,
 } from "./redChecksStep.ts";
 import {
+  researchOutputSchema,
+  researchRecordOf,
+  researchRecordProblems,
+} from "./researchStep/researchRecord.ts";
+import {
   quoteSendBacks,
   researchClosingCommentOf,
   researchHaltOf,
   researchHandoffCommentOf,
-  researchOutputSchema,
   researchPrompt,
-  researchRecordOf,
-  researchRecordProblems,
-} from "./researchStep.ts";
+} from "./researchStep/researchWords.ts";
 import {
   pieceResolvePrompt,
   pieceResolveRecordProblems,

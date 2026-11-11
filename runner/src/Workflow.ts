@@ -1,5 +1,5 @@
 // The one seam between the run core and its Workflows: the Workflow type, the agent steps' rules and the pick of a
-// spec's Workflow. SpecRun/TicketSequencer.ts reaches a Workflow's Step sequence only through this module, SpecRun/ReviewListPoster.ts
+// spec's Workflow. SpecRun/TicketSequencer.ts reaches a Workflow's Step sequence only through this module, SpecRun/SpecEndRunner.ts
 // its spec-end Steps, and every
 // collaborator that launches an agent step takes its prompt, record schema and record checks, through agentStepOf, from the Workflow
 // SpecRunBase._workflowOf picks; SpecRun/TicketSequencer.ts takes its source targets,
