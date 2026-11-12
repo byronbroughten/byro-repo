@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { IssueRef } from "./IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import { modelFitTextOf } from "./modelFit.ts";
 import {
   type SessionSkill,
@@ -42,6 +42,8 @@ export interface ReadableComment extends IssueComment {
 
 export interface ReadableIssue extends ApprovableBody {
   comments: ReadableComment[];
+  // A body, title or label read past it, since an unread approval can only leave a body Untrusted.
+  hasUnreadComments: boolean;
   issue: IssueRef;
   title: string;
   // Undefined when the title was never renamed.
@@ -113,6 +115,11 @@ export class IssueReader {
       printed.push("", ...this._bodyOf(issue));
     }
     if (printsComments || !printsBody) {
+      if (issue.hasUnreadComments) {
+        throw new Error(
+          `${overflowMessageOf(issue.issue, "comments")}; --body alone still reads`,
+        );
+      }
       const hidesOthers = flags.includes("--hide-others");
       printed.push("", ...this._commentsOf(issue, hidesOthers));
     }
@@ -221,6 +228,10 @@ export class IssueReader {
     if (ref.repo === issue.repo) return `#${ref.number}`;
     return `${this.config.githubOwner}/${ref.repo}#${ref.number}`;
   }
+}
+
+export function overflowMessageOf(issue: IssueRef, part: string): string {
+  return `${issueRef.labelOf(issue)} has over 100 ${part}, more than the reader reads`;
 }
 
 // SpecRun.ts refuses a run and halts a launch on this same rule.

@@ -4,10 +4,11 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 import { lines } from "./git.ts";
-import type {
-  BodyAuthorship,
-  IssueSource,
-  ReadableIssue,
+import {
+  type BodyAuthorship,
+  type IssueSource,
+  overflowMessageOf,
+  type ReadableIssue,
 } from "./IssueReader.ts";
 import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import { sleep } from "./sleep.ts";
@@ -389,15 +390,8 @@ function authorshipOfRaw(
   };
 }
 
-function overflowMessageOf(issue: IssueRef, part: string): string {
-  return `${issueRef.labelOf(issue)} has over 100 ${part}, more than the reader reads`;
-}
-
 function readableOfRaw(issue: IssueRef, raw: RawIssue): ReadableIssue {
   const { comments } = raw;
-  if (comments?.pageInfo?.hasNextPage) {
-    throw new Error(overflowMessageOf(issue, "comments"));
-  }
   const [lastRename] = raw.timelineItems?.nodes ?? [];
   return {
     issue,
@@ -414,6 +408,7 @@ function readableOfRaw(issue: IssueRef, raw: RawIssue): ReadableIssue {
       body: String(comment.body),
       url: String(comment.url),
     })),
+    hasUnreadComments: comments?.pageInfo?.hasNextPage === true,
   };
 }
 
