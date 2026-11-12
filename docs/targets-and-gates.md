@@ -100,8 +100,8 @@ The threat model is accidents, with tampering made visible. Both clasp credentia
 `npm run app:gen:configs` **writes** to the live spreadsheet ([what it writes](../packages/framework/docs/how-it-runs/gen-configs.md#what-gen-configs-writes)). It has **standing permission** under four conditions, all of which must hold. `dev:gen:configs` needs only the last two, since the dev spreadsheet holds no business data:
 
 - no uncommitted changes in the framework's `src/01_SpreadsheetSchema/` or the app's `src/generated/`;
-- no uncommitted changes in the framework's `src/05_Operators/`, because the command now executes local, possibly unreviewed operator code against the live config sheets;
-- the agent reports what changed, the floor report, the declared-cell report, and the untyped-column count it returned;
+- no uncommitted changes in the framework's `src/05_Operators/`, because the command now executes local, possibly unreviewed operator code against the live spreadsheet;
+- the agent reports what changed and the untyped-column count it returned;
 - it is never a blind fix for a type error whose cause has not been identified. An identified identity or incidental retarget goes through [retarget-after-gen-configs](../.claude/skills/retarget-after-gen-configs/SKILL.md); an unidentified one still means no patch.
 
 **A guard ships in the same commit as the write it guards, or earlier** ([`packages/framework/src/AGENTS.md`](../packages/framework/src/AGENTS.md)). A standing-permission `gen:configs` run can land between any two commits, so a write merged ahead of its refusal or fail-closed check writes unguarded.
