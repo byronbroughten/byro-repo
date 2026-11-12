@@ -49,6 +49,7 @@ function sourceOf(issue: Partial<ReadableIssue> = {}): FakeIssueSource {
     author: developer,
     bodyEditors: [],
     titleRenamer: undefined,
+    hasUnreadComments: false,
     comments: [],
     ...issue,
   });

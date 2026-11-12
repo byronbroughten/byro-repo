@@ -38,6 +38,7 @@ function issueOf(issue: Partial<ReadableIssue> = {}): ReadableIssue {
     author: developer,
     bodyEditors: [],
     titleRenamer: undefined,
+    hasUnreadComments: false,
     comments: [],
     ...issue,
   };
@@ -114,6 +115,22 @@ describe("IssueReader.read", () => {
     const printed = await reader.read(["byro-repo", "7", "--body"]);
 
     expect(printed.split("\n")[0]).toBe("#7 Read issues");
+  });
+
+  it("prints a body past comments it left unread", async () => {
+    const reader = readerOf({ hasUnreadComments: true });
+
+    const printed = await reader.read(["byro-repo", "7", "--body"]);
+
+    expect(printed).toContain("## Body (Trusted text)");
+  });
+
+  it("refuses to print comments it left unread, naming --body alone", async () => {
+    const reader = readerOf({ hasUnreadComments: true });
+
+    await expect(reader.read(["byro-repo", "7", "--comments"])).rejects.toThrow(
+      "byro-repo #7 has over 100 comments, more than the reader reads; --body alone still reads",
+    );
   });
 
   it("labels a stranger's body Untrusted, naming the author, and quotes it", async () => {

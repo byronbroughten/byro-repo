@@ -428,6 +428,7 @@ async function ticketTwoAsAStepReadsIt(): Promise<string> {
     issue: refOf(2),
     title,
     titleRenamer: undefined,
+    hasUnreadComments: false,
     isOpen,
     labels,
     parent: spec,
