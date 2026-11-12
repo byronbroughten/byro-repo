@@ -1,0 +1,7 @@
+# sheets-framework#265 outcome
+
+Spec: [sheets-framework#219](https://github.com/byronbroughten/sheets-framework/issues/219)
+
+| Issue | Workflow | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #265 | code | Opus high | 1 | 5 | 154K → 90K | Fix (resumed implementer) | 0 | 1 | 0 | 0 | 17 min | $4.68 | $4.08 | Fixed: seedValueSources only forwards to seedFixture({ extraSheets }), a Middle Man. (packages/framework/src/05_Operators/ConfigCoordinator.test.ts:878-882); `name?: string` restates FakeTable['name'] inline beside the FakeTablePassThrough Pick. (packages/framework/src/testSupport/fakeSheetsService/fakeTableSheet.ts:18-31); Top-level generateItemColumns and tableConfigKeys each have one caller describe. (packages/framework/src/05_Operators/ConfigCoordinator.test.ts:100-113); Item column IDs are written as literals although itemColumns holds them. (packages/framework/src/05_Operators/ConfigCoordinator.test.ts:151, 191-194); The API-access test is named 'in their order', but the sheet order and the configs order give the same result. (packages/framework/src/05_Operators/ConfigCoordinator.test.ts:251-257). | 731bbf02-a837-4ed4-86b7-d69395dbe693, 2c836b1d-76d2-4b60-86ed-be0b5c0369d1, d1d96d91-a33b-4a01-8d9b-0352866d60d8 |
