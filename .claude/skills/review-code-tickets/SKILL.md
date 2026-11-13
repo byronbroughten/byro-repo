@@ -44,7 +44,7 @@ Resolve every path a ticket names, or implies by naming a skill, doc or symbol, 
 
 **The causes**, each with a Halt it once raised:
 
-1. **Size**: over ~10 files changed, or over the ticket budget by `planning.md`'s estimate. (#597 split twice.)
+1. **Size**: over the ticket budget by `planning.md`'s estimate. (#597 split twice.)
 2. **A live run a step can't make**: a criterion needs a command against a live target the ticket doesn't name, or one the gate refuses. (#221–#228 required a `dev:gen:configs` run.)
 3. **A contradiction**: the ticket against itself, the spec, the existing tests or the implement step's rules. (#481 asked for 3 tries with 3 waits; #541 asked for `git branch -d`, which the step's rules forbid.)
 4. **A gate change not yet on master**: the ticket runs a script, or uses a tier row, that a ticket of this spec adds; the gate loads from master, so a step sees it only once that ticket lands and the run relaunches. (#492 needed its own new `freeScripts` entry.)

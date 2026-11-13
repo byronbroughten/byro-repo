@@ -39,7 +39,7 @@ Break the work into **tracer bullet** tickets.
 
 - Each slice cuts a narrow but COMPLETE path through every layer (schema, API, UI, tests): vertical, NOT a horizontal slice of one layer
 - A completed slice is demoable or verifiable on its own
-- Each slice changes at most ~10 files, counted by grepping the names it changes ([ticket size](../../../docs/agents/planning.md#ticket-size))
+- Each slice fits the ticket budget by its estimate, its files counted by grepping the names it changes ([ticket size](../../../docs/agents/planning.md#ticket-size))
 - Any prefactoring should be done first
 
 </vertical-slice-rules>
@@ -82,7 +82,8 @@ Present the proposed breakdown as a numbered list. For each ticket, show:
 - **Blocked by**: which other tickets (if any) must complete first
 - **Kind**: agent, interactive or human; for an agent or interactive ticket, its model fit
 - **What it delivers**: the end-to-end behaviour this ticket makes work
-- **Files**: the count from the slice rules' grep, with the names; split a ticket over ~10 before showing it
+- **Files**: the count from the slice rules' grep, with the names
+- **Estimate**: its `~NK` by [ticket size](../../../docs/agents/planning.md#ticket-size); split a ticket over the budget before showing it
 
 When proposing Phases, add a **Phases** line before the list: each Phase's user story numbers, Phase 1's stand-ins, and which tickets are its gate's blockers.
 
