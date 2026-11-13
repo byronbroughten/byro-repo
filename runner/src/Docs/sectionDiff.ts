@@ -140,7 +140,7 @@ function indicesFromEnd(keys: string[]): number[] {
   return [...keys.keys()].reverse();
 }
 
-function keyOf(block: WrittenBlock): string {
+function keyOf(block: WrittenBlock | HeldBlock): string {
   if (block.kind === "table") {
     return JSON.stringify([
       "table",
@@ -150,8 +150,19 @@ function keyOf(block: WrittenBlock): string {
   return JSON.stringify([
     block.level,
     block.list?.listKind,
+    nestingLevelOf(block),
     charKeysOf(block.chars),
   ]);
+}
+
+// The dialect writes flat lists only, so a held nested item matches no written block and is replaced.
+export function nestingLevelOf(
+  paragraph: WrittenParagraph | HeldParagraph,
+): number {
+  if (!("bullet" in paragraph)) {
+    return 0;
+  }
+  return paragraph.bullet?.nestingLevel ?? 0;
 }
 
 function charKeysOf(chars: StyledChar[]): unknown[] {

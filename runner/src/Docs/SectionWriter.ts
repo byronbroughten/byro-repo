@@ -24,6 +24,7 @@ import {
   type HeldBlock,
   type HeldParagraph,
   type Hunk,
+  nestingLevelOf,
   sectionDiff,
   type StyledChar,
   unitLengthOf,
@@ -499,12 +500,16 @@ function charsOf(spans: (SpanStyle & { text: string })[]): StyledChar[] {
   );
 }
 
-/** The hunk's held and written paragraphs paired by position, as far as both run. */
+/** The hunk's held and written paragraphs paired by position, as far as both run and up to a nested item, which an edit in place would leave nested. */
 function pairsOf(
   held: HeldBlock[],
   wanted: WrittenBlock[],
 ): { heldParagraph: HeldParagraph; wantedParagraph: WrittenParagraph }[] {
-  return held.slice(0, wanted.length).flatMap((heldParagraph, position) => {
+  const firstNested = held.findIndex(
+    (block) => block.kind === "paragraph" && nestingLevelOf(block) > 0,
+  );
+  const pairable = firstNested === -1 ? held : held.slice(0, firstNested);
+  return pairable.slice(0, wanted.length).flatMap((heldParagraph, position) => {
     const wantedParagraph = wanted[position];
     if (
       heldParagraph.kind !== "paragraph" ||

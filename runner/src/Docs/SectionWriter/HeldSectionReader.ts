@@ -1,10 +1,11 @@
 // Reads the Section `SectionWriter.ts` rewrites out of the document as held
 // blocks: each paragraph's styled characters and each table's cells, with their
 // indices. It refuses what the writer can't index around: a pending suggestion
-// anywhere in the Doc, and in the Section a nested list or an element other
-// than text, such as a footnote, image or page break. Outside the Section, or
-// alone after its last text, such an element is left where it is, since the
-// writer uses only the indices Docs gives.
+// anywhere in the Doc, and in the Section an element other than text, such as a
+// footnote, image or page break. Outside the Section, or alone after its last
+// text, such an element is left where it is, since the writer uses only the
+// indices Docs gives. A nested list item is held like any other, and
+// `sectionDiff.ts` never keeps one, so the writer replaces it.
 
 import { headingLevels, headingTextsOf, listKindOf } from "../DocReader.ts";
 import type {
@@ -84,14 +85,6 @@ export class HeldSectionReader {
     const held = withoutTrailingNonText(
       end === -1 ? after : after.slice(0, end),
     );
-    if (
-      held.some(
-        (block) =>
-          block.kind === "paragraph" && (block.bullet?.nestingLevel ?? 0) > 0,
-      )
-    ) {
-      throw new Error("The writer takes only flat lists, not a nested one.");
-    }
     if (
       [sectionHeading, ...held].some((block) =>
         this.nonTextStarts.has(block.startIndex),

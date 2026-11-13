@@ -13,6 +13,16 @@ function docsOf(...fixtures: string[]): Docs {
   return Docs.init(new FakeDocuments(fixtures.map(fixtureDocument)));
 }
 
+function listItemOf(content: string, nestingLevel: number): StructuralElement {
+  return {
+    paragraph: {
+      elements: [{ textRun: { content } }],
+      paragraphStyle: { namedStyleType: "NORMAL_TEXT" },
+      bullet: { listId: "kix.numbered", nestingLevel },
+    },
+  };
+}
+
 describe("Docs.read", () => {
   it("reads a Doc as its Markdown, its Sections by heading and the revision it read", async () => {
     const read = await docsOf("lists", "headings").read("doc-headings");
@@ -479,6 +489,45 @@ describe("Docs.writeSection", () => {
       }),
     ).rejects.toThrow(new PendingSuggestions("doc-suggestions"));
     expect(await documents.documentOf("doc-suggestions")).toEqual(before);
+  });
+
+  it("replaces a nested list item with a flat one, even one of the same text", async () => {
+    const document = fixtureDocument("writable");
+    document.lists = {
+      "kix.numbered": {
+        listProperties: {
+          nestingLevels: [{ glyphType: "DECIMAL" }, { glyphType: "ALPHA" }],
+        },
+      },
+    };
+    document.body?.content.splice(
+      4,
+      0,
+      listItemOf("Descale it.\n", 0),
+      listItemOf("Use vinegar.\n", 1),
+    );
+    const documents = new FakeDocuments([document]);
+    const docs = Docs.init(documents);
+    await docs.read("doc-writable");
+    const markdown =
+      "Kettles boil water fast.\n\n1. Descale it.\n2. Use vinegar.\n";
+
+    await docs.writeSection({
+      documentId: "doc-writable",
+      heading: "Boiling",
+      markdown,
+    });
+
+    const read = await docs.read("doc-writable");
+    expect(read.sections.get("Boiling")).toBe(markdown);
+    expect(read.sections.get("Pouring")).toBe("Pour slowly.\n");
+    const content =
+      (await documents.documentOf("doc-writable")).body?.content ?? [];
+    expect(
+      content.filter(
+        ({ paragraph }) => (paragraph?.bullet?.nestingLevel ?? 0) > 0,
+      ),
+    ).toEqual([]);
   });
 
   describe("with a page break", () => {
