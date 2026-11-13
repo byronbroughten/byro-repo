@@ -1,0 +1,7 @@
+# sheets-framework#236 outcome
+
+Spec: [sheets-framework#219](https://github.com/byronbroughten/sheets-framework/issues/219)
+
+| Issue | Workflow | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #236 | code | Opus high | 5, 3, 2 | 8 | 155K → 142K | Halted then passed (Split Halt) | 0 | 1 | 0 | 0 | 21 min | $6.05 | $5.78 | Fixed: recordRead, passFlush and _assertCovered use verbs that aren't on the controlled verb list. (packages/framework/src/nodeHost/EnteredDataGate.ts:55,59,78); sendFlushes takes 3 positional params, though GatedHostCase already bundles confirm and target. (packages/framework/src/nodeHost/NodeHost.test.ts:279); The confirm field is named after the CLI flag, not the HeldList it holds. (packages/framework/src/nodeHost/EnteredDataGate.ts:20); The host and the gate both check isDryRun, and the gate takes isDryRun only to repeat the check. (packages/framework/src/nodeHost/NodeHost.ts:79-83, EnteredDataGate.ts:72); HeldFlushRefusal has no optional flushCount, which handoff point 2 calls for. (packages/framework/src/00_Source/RawSource/HeldFlushRefusal.ts:5-13); NodeHost exposes the whole gate, not just the dry run's held list. (packages/framework/src/nodeHost/NodeHost.ts:38). | 5d251529-9c35-47bf-82e1-03c0eedec304, e8707aea-7ab1-4f34-98b8-f93496859396, 543d4691-b7c7-4759-9cb4-c50e633a8a31 |
