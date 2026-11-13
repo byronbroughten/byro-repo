@@ -77,6 +77,12 @@ export interface ParagraphElement {
   endIndex?: number;
   textRun?: TextRun;
   footnoteReference?: FootnoteReference;
+  pageBreak?: PageBreak;
+}
+
+export interface PageBreak {
+  suggestedInsertionIds?: string[];
+  suggestedDeletionIds?: string[];
 }
 
 export interface TextRun {

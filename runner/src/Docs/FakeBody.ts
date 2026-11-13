@@ -7,7 +7,8 @@
 // Docs does. A paragraph taken out of a list keeps the list's indent. A table
 // is a marker index, then a marker per row and per cell before the cell's
 // paragraphs; its cells copy the paragraph it was inserted into, the worst Docs
-// could do. It holds plain text runs only.
+// could do. It holds plain text runs, and any other paragraph element whole at
+// its one index, as Docs counts a page break or image.
 
 import { DocsRequestRefused } from "./DocsRequestRefused.ts";
 import type {
@@ -40,6 +41,8 @@ interface BodyChar {
   table: BodyChar | undefined;
   /** The marker of the cell whose text this is. */
   cell: BodyChar | undefined;
+  /** An element other than a text run, held whole at this index. */
+  nonText: ParagraphElement | undefined;
 }
 
 /** Where a character sits: inside a table's cell, or outside every table. */
@@ -451,12 +454,14 @@ function tableCharsOf(
 }
 
 function paragraphChars(paragraph: Paragraph, place: CharPlace): BodyChar[] {
-  return paragraph.elements.flatMap(({ textRun }) => {
-    if (
-      textRun === undefined ||
-      (textRun.suggestedInsertionIds?.length ?? 0) > 0
-    ) {
-      throw new Error("The fake body holds only plain text runs.");
+  return paragraph.elements.flatMap((element) => {
+    const { textRun } = element;
+    if (textRun === undefined) {
+      const { startIndex: _start, endIndex: _end, ...nonText } = element;
+      return [{ ...plainChar("", place), nonText: structuredClone(nonText) }];
+    }
+    if ((textRun.suggestedInsertionIds?.length ?? 0) > 0) {
+      throw new Error("The fake body holds no suggested text.");
     }
     return textRun.content.split("").map((char) => {
       const bodyChar = {
@@ -482,6 +487,7 @@ function plainChar(char: string, { table, cell }: CharPlace): BodyChar {
     marker: undefined,
     table,
     cell,
+    nonText: undefined,
   };
 }
 
@@ -513,7 +519,15 @@ function keepHeadingIdOnText(landed: BodyChar, inserted: BodyChar[]): void {
 function elementsOf(chars: BodyChar[], startIndex: number): ParagraphElement[] {
   return chars.reduce<ParagraphElement[]>((elements, bodyChar, offset) => {
     const last = elements.at(-1);
-    const textStyle = bodyChar.textStyle;
+    const { textStyle, nonText } = bodyChar;
+    if (nonText !== undefined) {
+      elements.push({
+        ...structuredClone(nonText),
+        startIndex: startIndex + offset,
+        endIndex: startIndex + offset + 1,
+      });
+      return elements;
+    }
     if (
       last?.textRun !== undefined &&
       styleKeyOf(last.textRun.textStyle) === styleKeyOf(textStyle)

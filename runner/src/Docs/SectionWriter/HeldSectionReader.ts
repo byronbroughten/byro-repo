@@ -1,7 +1,10 @@
 // Reads the Section `SectionWriter.ts` rewrites out of the document as held
 // blocks: each paragraph's styled characters and each table's cells, with their
-// indices. It refuses what the writer can't index around, a pending suggestion,
-// a footnote or a nested list.
+// indices. It refuses what the writer can't index around: a pending suggestion
+// anywhere in the Doc, and in the Section a nested list or an element other
+// than text, such as a footnote, image or page break. Outside the Section, or
+// alone after its last text, such an element is left where it is, since the
+// writer uses only the indices Docs gives.
 
 import { headingLevels, headingTextsOf, listKindOf } from "../DocReader.ts";
 import type {
@@ -9,6 +12,7 @@ import type {
   Link,
   List,
   Paragraph,
+  ParagraphElement,
   Range,
   StructuralElement,
   Table,
@@ -27,6 +31,8 @@ export class HeldSectionReader {
   private readonly content: StructuralElement[];
   private readonly lists: Record<string, List>;
   private readonly headingTexts: Map<string, string>;
+  /** Where each block holding an element other than text starts. */
+  private readonly nonTextStarts: Set<number>;
 
   constructor(document: GoogleDocument) {
     const body = document.body ?? { content: [] };
@@ -34,6 +40,11 @@ export class HeldSectionReader {
     this.content = body.content;
     this.lists = document.lists ?? {};
     this.headingTexts = headingTextsOf(body);
+    this.nonTextStarts = new Set(
+      this.content.flatMap((element) =>
+        holdsNonText(element) ? [indicesOf(element).startIndex] : [],
+      ),
+    );
   }
 
   static init(document: GoogleDocument): HeldSectionReader {
@@ -47,7 +58,12 @@ export class HeldSectionReader {
   } {
     const written = this.content
       .flatMap((element) => this._heldBlocksOf(element))
-      .filter((block) => block.kind === "table" || block.chars.length > 0);
+      .filter(
+        (block) =>
+          block.kind === "table" ||
+          block.chars.length > 0 ||
+          this.nonTextStarts.has(block.startIndex),
+      );
     const start = written.findIndex(
       (block) =>
         block.kind === "paragraph" &&
@@ -65,7 +81,9 @@ export class HeldSectionReader {
         block.level !== undefined &&
         block.level <= markdownDialect.syntax.sectionLevel,
     );
-    const held = end === -1 ? after : after.slice(0, end);
+    const held = withoutTrailingNonText(
+      end === -1 ? after : after.slice(0, end),
+    );
     if (
       held.some(
         (block) =>
@@ -73,6 +91,15 @@ export class HeldSectionReader {
       )
     ) {
       throw new Error("The writer takes only flat lists, not a nested one.");
+    }
+    if (
+      [sectionHeading, ...held].some((block) =>
+        this.nonTextStarts.has(block.startIndex),
+      )
+    ) {
+      throw new Error(
+        `The writer takes only text in the Section "${heading}", not a footnote, image or page break.`,
+      );
     }
     return { sectionHeading, held };
   }
@@ -131,14 +158,13 @@ export class HeldSectionReader {
   }
 
   private _charsOf(paragraph: Paragraph): StyledChar[] {
-    return paragraph.elements.flatMap(({ textRun }) => {
-      if (textRun === undefined) {
-        throw new Error(
-          "The writer takes only plain text runs, with no footnote.",
-        );
-      }
-      if (hasPendingSuggestion(textRun)) {
+    return paragraph.elements.flatMap((element) => {
+      if (hasPendingSuggestion(kindOf(element))) {
         throw new PendingSuggestions(this.document.documentId);
+      }
+      const { textRun } = element;
+      if (textRun === undefined) {
+        return [];
       }
       const style = {
         isBold: textRun.textStyle?.bold === true,
@@ -165,6 +191,44 @@ export class HeldSectionReader {
   }
 }
 
+// A page break or image alone after a Section's last text, as before the next part's title, stays put; the writer writes before it.
+function withoutTrailingNonText(held: HeldBlock[]): HeldBlock[] {
+  const lastWithText = held.findLastIndex(
+    (block) => block.kind === "table" || block.chars.length > 0,
+  );
+  return held.slice(0, lastWithText + 1);
+}
+
+function holdsNonText({ paragraph, table }: StructuralElement): boolean {
+  const paragraphs =
+    table === undefined
+      ? [paragraph]
+      : table.tableRows.flatMap((row) =>
+          row.tableCells.flatMap((cell) =>
+            cell.content.map((cellElement) => cellElement.paragraph),
+          ),
+        );
+  return paragraphs.some(
+    (held) =>
+      held?.elements.some((element) => element.textRun === undefined) === true,
+  );
+}
+
+// Every kind's field, typed here or not, such as an image's, since a suggested one shifts the indices after it.
+function kindOf(element: ParagraphElement): SuggestionMarks {
+  const { startIndex: _start, endIndex: _end, ...kinds } = element;
+  return Object.values(kinds).find(isSuggestionMarks) ?? {};
+}
+
+function isSuggestionMarks(value: unknown): value is SuggestionMarks {
+  return typeof value === "object" && value !== null;
+}
+
+interface SuggestionMarks {
+  suggestedInsertionIds?: string[];
+  suggestedDeletionIds?: string[];
+}
+
 function indicesOf(element: StructuralElement): Range {
   const { startIndex, endIndex } = element;
   if (startIndex === undefined || endIndex === undefined) {
@@ -173,10 +237,7 @@ function indicesOf(element: StructuralElement): Range {
   return { startIndex, endIndex };
 }
 
-function hasPendingSuggestion(item: {
-  suggestedInsertionIds?: string[];
-  suggestedDeletionIds?: string[];
-}): boolean {
+function hasPendingSuggestion(item: SuggestionMarks): boolean {
   return (
     (item.suggestedInsertionIds?.length ?? 0) > 0 ||
     (item.suggestedDeletionIds?.length ?? 0) > 0

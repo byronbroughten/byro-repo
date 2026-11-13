@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { Docs } from "./Docs.ts";
 import { fixtureDocument } from "./Docs/docFixtures.ts";
 import { FakeDocuments } from "./Docs/FakeDocuments.ts";
+import type { StructuralElement } from "./Docs/googleDocs.ts";
 import { PendingSuggestions } from "./Docs/PendingSuggestions.ts";
 import { StaleRevision } from "./Docs/StaleRevision.ts";
 
@@ -478,6 +479,89 @@ describe("Docs.writeSection", () => {
       }),
     ).rejects.toThrow(new PendingSuggestions("doc-suggestions"));
     expect(await documents.documentOf("doc-suggestions")).toEqual(before);
+  });
+
+  describe("with a page break", () => {
+    const pageBreakParagraph: StructuralElement = {
+      paragraph: {
+        elements: [{ pageBreak: {} }, { textRun: { content: "\n" } }],
+        paragraphStyle: { namedStyleType: "NORMAL_TEXT" },
+      },
+    };
+
+    async function docsWithPageBreakAt(position: number): Promise<{
+      docs: Docs;
+      documents: FakeDocuments;
+    }> {
+      const document = fixtureDocument("writable");
+      document.body?.content.splice(position, 0, pageBreakParagraph);
+      const documents = new FakeDocuments([document]);
+      const docs = Docs.init(documents);
+      await docs.read("doc-writable");
+      return { docs, documents };
+    }
+
+    it("writes a Section past a page break outside it, keeping the break", async () => {
+      const { docs, documents } = await docsWithPageBreakAt(2);
+      const markdown = "Kettles whistle.\n";
+
+      await docs.writeSection({
+        documentId: "doc-writable",
+        heading: "Boiling",
+        markdown,
+      });
+
+      const read = await docs.read("doc-writable");
+      expect(read.sections.get("Boiling")).toBe(markdown);
+      expect(read.sections.get("Pouring")).toBe("Pour slowly.\n");
+      const written = await documents.documentOf("doc-writable");
+      expect(written.body?.content[2]?.paragraph?.elements[0]).toMatchObject({
+        pageBreak: {},
+      });
+    });
+
+    it("writes a Section ending in a page break before it, keeping the break before the next heading", async () => {
+      const { docs, documents } = await docsWithPageBreakAt(7);
+      const markdown = "Kettles whistle.\n\nSteam rises.\n\nLids rattle.\n";
+
+      await docs.writeSection({
+        documentId: "doc-writable",
+        heading: "Boiling",
+        markdown,
+      });
+
+      const read = await docs.read("doc-writable");
+      expect(read.sections.get("Boiling")).toBe(markdown);
+      expect(read.sections.get("Pouring")).toBe("Pour slowly.\n");
+      const content =
+        (await documents.documentOf("doc-writable")).body?.content ?? [];
+      const pouring = content.findIndex(
+        ({ paragraph }) =>
+          paragraph?.elements[0]?.textRun?.content === "Pouring\n",
+      );
+      expect(content[pouring - 1]?.paragraph?.elements[0]).toMatchObject({
+        pageBreak: {},
+      });
+      expect(
+        content[pouring - 2]?.paragraph?.elements[0]?.textRun?.content,
+      ).toBe("Lids rattle.\n");
+    });
+
+    it("refuses a Section holding a page break, writing nothing", async () => {
+      const { docs, documents } = await docsWithPageBreakAt(4);
+      const before = await documents.documentOf("doc-writable");
+
+      await expect(
+        docs.writeSection({
+          documentId: "doc-writable",
+          heading: "Boiling",
+          markdown: "Kettles whistle.\n",
+        }),
+      ).rejects.toThrow(
+        'The writer takes only text in the Section "Boiling", not a footnote, image or page break.',
+      );
+      expect(await documents.documentOf("doc-writable")).toEqual(before);
+    });
   });
 
   it("refuses a write before any read", async () => {
