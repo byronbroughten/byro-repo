@@ -31,6 +31,10 @@ An [observation index](./agents/prose-files.md#terms) of what Claude Code itself
 
 - Observed: In a `claude -p` session, `.claude/skills/flat-probe/SKILL.md` was listed and ran, while `.claude/skills/grp/nested-probe/SKILL.md` was not listed and neither `/nested-probe` nor `/grp:nested-probe` was found; 2.1.319, 2026-11-06; [the probe on `research/skill-organization`](https://github.com/byronbroughten/byro-repo/blob/research/skill-organization/docs/research/skill-organization.md#2-claude-codes-discovery-rules-official-docs).
 
+## A resumed session's prompt cache
+
+- Observed: A runner step resuming a `claude -p` session read ~10.5K of its first request from the prompt cache and wrote the rest, a resolve a median ~79K, when the step before it in the session was a different step kind: implement → resolve resumes read most of their context from the cache 0 of 251 times, with or without commits between the steps, and resolve → implement 4 of 30, while resolve → resolve did 47 of 65, after commits too; the implement and resolve steps' init configs listed the same tools and model, and each step kind passed its own `--json-schema`; 2.1.309–2.1.323, step logs from 2026-10-23 to 2026-11-12, each resumed step's first assistant message's `cache_read_input_tokens` against its `cache_creation_input_tokens`; [baseline on #722](https://github.com/byronbroughten/byro-repo/issues/722).
+
 ## The Bash sandbox
 
 - Observed: In a `--sandbox-check --keep-excluded` run under this repo's sandbox block, with `ps` an `excludedCommands` entry and `allowUnsandboxedCommands` off, `ps -p 1 -o …` failed with "operation not permitted: ps" when the call held `"comm=\$(cd x)"`, `'comm=$(cd x)'`, `"comm=$(echo x)"` or a backtick, double-quoted and escaped or single-quoted, and ran when it held `"comm=<<x"`, `'comm=<<x'`, `comm=\$\(x` or nothing beside `comm=`; 2.1.319, 2026-11-07; [probe on #588](https://github.com/byronbroughten/byro-repo/issues/588#issuecomment-6711953159).
