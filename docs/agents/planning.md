@@ -35,6 +35,8 @@
 ## Ticket size
 
 - **Size each ticket so one session finishes it without `/context` going much over the ticket budget (default ~150K); prefer 110–125K when a green seam makes that easy.** About 25K is fixed overhead before the first prompt.
+- **Merge tickets so fewer are estimated under 90K, and never make one estimated over 150K**; a target `/code-tickets` can override with a stated reason. Each ticket pays a cold start of ~95K of context across implement, the review orchestrator and two reviewers, so a small ticket costs more per file, and cost per file flattens from ~110K ([estimates](./codebase-priorities/estimates.md#cost-per-ticket), [the review step's split](./codebase-priorities/estimates.md#steps)).
+- **Merge only tickets with the same Model fit pair, in the same Phase, neither blocking the other**: a merged ticket never needs a stronger pair, so a Sonnet 60K ticket and an Opus 60K one stay two tickets.
 - **Estimate a ticket as fixed overhead + reads + a work allowance of ~55K for a runner step or ~85K for an interactive session**, covering thinking, Edit and Write bodies, check loops and other tool output ([`estimates.md`](./codebase-priorities/estimates.md#work)).
 - **Reads are the files it changes, counted by grepping the names each draft ticket renames or retypes, plus the files it reads beside them, the docs the read-by-task table requires, the issues it links and ~5K of re-reads of the files it edits.**
 - **A file the ticket edits counts at its full size when it is under ~300 lines or the change adds code that depends on the rest of it**, in every ticket that edits it.
