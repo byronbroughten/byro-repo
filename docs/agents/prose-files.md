@@ -68,7 +68,7 @@ Its `docs/`, `GLOSSARY.md`, `README.md`, `AGENTS.md` and `CLAUDE.md` files all s
 | `docs/adr/*.md` | One codebase decision per file, cited by `docs/design.md`'s principles. |
 | `docs/architecture/*.md` | Mechanics, one file per heading, indexed by `docs/architecture.md`. |
 | `docs/how-it-runs.md` | The two hosts in one lead, then an index of `docs/how-it-runs/`. |
-| `docs/how-it-runs/*.md` | One subject per file: the Apps Script host with the rollup and ESLint presets, the Node host and its transport, the `sheets-framework` bin, the dev project, `gen-configs` and `configs-diff`, the chore dry run, auth failure, the probe, what the gworkspace MCP can see. |
+| `docs/how-it-runs/*.md` | One subject per file: the Apps Script host with the rollup and ESLint presets, the Node host and its transport, the `sheets-framework` bin, the dev project, `sync` and `configs-diff`, the chore dry run, auth failure, the probe, what the gworkspace MCP can see. |
 | `docs/generated-data.md`, `docs/generated-data/*.md` | The generated configs: the index and regen path, then one file per constant, the config sync and the floor. |
 | `docs/testing.md` | The fakes, the seams and the exemplar columns. |
 | `docs/sheets-behaviour.md` | An observation index of how Google's platforms behave (the Sheets UI, the Sheets REST API, Apps Script and its triggers, their shared auth), measured costs included, grouped by subject, each line tagged, dated and linked to its evidence; never the framework's own behaviour. |

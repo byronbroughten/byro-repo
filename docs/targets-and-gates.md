@@ -97,7 +97,7 @@ The threat model is accidents, with tampering made visible. Both clasp credentia
 
 ## gen-configs' standing permission
 
-`npm run app:gen:configs` **writes** to the live spreadsheet ([what it writes](../packages/framework/docs/how-it-runs/gen-configs.md#what-gen-configs-writes)). It has **standing permission** under four conditions, all of which must hold. `dev:gen:configs` needs only the last two, since the dev spreadsheet holds no business data:
+`npm run app:gen:configs` **writes** to the live spreadsheet ([what it writes](../packages/framework/docs/how-it-runs/sync.md#what-sync-writes)). It has **standing permission** under four conditions, all of which must hold. `dev:gen:configs` needs only the last two, since the dev spreadsheet holds no business data:
 
 - no uncommitted changes in the framework's `src/01_SpreadsheetSchema/` or the app's `src/generated/`;
 - no uncommitted changes in the framework's `src/05_Operators/`, because the command now executes local, possibly unreviewed operator code against the live spreadsheet;
