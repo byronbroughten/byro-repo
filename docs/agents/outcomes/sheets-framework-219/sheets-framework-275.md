@@ -1,0 +1,7 @@
+# sheets-framework#275 outcome
+
+Spec: [sheets-framework#219](https://github.com/byronbroughten/sheets-framework/issues/219)
+
+| Issue | Workflow | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #275 | code | Opus medium | 4, 5, 1 | 6 | 155K → 139K | Halted then passed (Split Halt, gated-action blocker) | 0 | 1 | 0 | 0 | 16 min | $6.79 | $5.34 | Fixed: Constructor takes three positional params; initHttp skips init. (packages/framework/src/00_Source/GoogleSheets/GoogleSheetsAPI.ts:193); gridWithoutProgrammaticFacts no longer tells it apart from gridWithFormulas. (packages/framework/src/00_Source/GoogleSheets/GoogleSheetsAPI.ts:105); Test names say 'all three standing field masks', and the new mask test sits under the time-zone describe. (packages/framework/src/00_Source/GoogleSheets/GoogleSheetsAPI.test.ts:1110, :1124, :1143); writeAmount only delegates to writeAmounts. (packages/framework/src/nodeHost/NodeHost.test.ts:262); The fixture-to-payload helpers pass isFormulaOnlyMask between them and form a group unrelated to the replay half. (packages/framework/src/testSupport/fakeSheetsService.ts:218, :272). | a970bfba-29b9-486f-9a21-0e4d5f633118, 8a3c727c-7067-4791-a13c-acdea6388cb3, d0b684cf-c9e0-4af0-bd81-5f442eeafa30 |
