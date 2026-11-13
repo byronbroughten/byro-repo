@@ -1,0 +1,7 @@
+# sheets-framework#290 outcome
+
+Spec: [sheets-framework#219](https://github.com/byronbroughten/sheets-framework/issues/219)
+
+| Issue | Workflow | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #290 | code | Opus medium | 4, 2 | 8 | 158K → 39K | Halted then passed (spec-ambiguity blocker) | 1 | 1 | 0 | 0 | 12 min | $5.13 | $5.79 | Fixed: enteredDataReads.ts builds the tableIdsByName map the same way apiAccessChanges.ts:34 does. (packages/framework/src/01_SpreadsheetSchema/configReaders/enteredDataReads.ts:30); EnteredDataColumn {tableId; columnId} repeats ColumnReference in TableConfigsOperator.ts:33. (packages/framework/src/01_SpreadsheetSchema/configReaders/enteredDataReads.ts:5); Both flush paths repeat the pair `_readEnteredData(reads)` and `_applyPlan(...)`. (packages/framework/src/05_Operators/SyncCoordinator.ts:213 and :250); Two stacked comment lines explain one helper. (packages/framework/src/05_Operators/SyncCoordinator.test.ts:553-554). Proposed: The prototype spy on SyncEntryRefuser's refusals getter, a first in the framework's tests, ties the test to an internal collaborator. (packages/framework/src/05_Operators/SyncCoordinator.test.ts:528). | fef892a4-c318-4eb0-a12b-10e566550688, d68c108d-d27a-4376-bcab-f2ad96e0bfa8, a8aedcd6-a4fc-4a00-9172-15e45aa335d7 |
