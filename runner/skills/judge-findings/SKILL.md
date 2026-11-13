@@ -8,11 +8,16 @@ disable-model-invocation: true
 
 ## A list or `all`
 
-**A list does what one `/judge-findings` per spec would, one spec at a time in the order given**: each spec runs steps 1 to 5 on its own, with its own rounds, its own `judge-<spec>` session workspace for its "now" fixes, and its own ending. Finish a spec, its close, rerun command or what's-left included, before reading the next.
+**A list is one sitting, in the order given**:
+
+- **Read**: run step 1 for every spec first.
+- **Rounds**: put every spec's undecided items in one round, grouped under a heading per spec, each spec's items in step 2's order, Halt-adjacent first. Later rounds group the same way.
+- **Now fixes**: make every code spec's in one session workspace for the sitting, `judge-<repo>`, one commit per item naming its `R<n>.<k>`, and land it once the last round is answered and filing is done. A piece spec keeps its own `judge-<spec>` workspace ([`piece.md`](./piece.md)).
+- **Endings**: then record each decision and run step 5 spec by spec, giving each its close, rerun command or what's left.
 
 **`/judge-findings <repo> all` takes its list from the runner, never from a `gh` call per issue:** run `npm run runner -- judgeable <owner>/<repo>` and work the issues it prints as a list, in its order. One it prints as ready to close still runs step 1, since the verb counts only unticked boxes and a hand-ticked item still gets its round.
 
-**"Stop" ends the whole sitting**, not just the spec in hand: write and make what that spec has settled, as step 2 says, and leave every later spec untouched. Then report what is left across every spec not finished: each one's undecided items and open sub-issues.
+**"Stop" ends the whole sitting**: write and make what every spec has settled so far, as step 2 says, then report what is left across every spec not finished: each one's undecided items and open sub-issues.
 
 **The runner creates review-list comments; this skill only edits them, through `npm run runner -- decide`.** Never post a new review-list comment, never delete one, never remove an item.
 
@@ -61,7 +66,7 @@ Each answer is one of four; a piece spec offers only the first three ([`piece.md
 
 After the last round (a piece spec makes and files by [`piece.md`](./piece.md#making-a-now-fix) instead):
 
-- **Now**: make every such fix in one session workspace ([`docs/agents/git-workflow.md#a-skills-session-workspace`](../../../docs/agents/git-workflow.md#a-skills-session-workspace)) named `judge-<spec>`, one commit per item naming its `R<n>.<k>`, and land it.
+- **Now**: make every such fix in one session workspace ([`docs/agents/git-workflow.md#a-skills-session-workspace`](../../../docs/agents/git-workflow.md#a-skills-session-workspace)) named `judge-<spec>`, or over a list the sitting's `judge-<repo>` ([A list or `all`](#a-list-or-all)), one commit per item naming its `R<n>.<k>`, and land it.
 - **File**: by `/code-tickets`' conventions ([`.claude/skills/code-tickets/SKILL.md`](../../../.claude/skills/code-tickets/SKILL.md)), its ticket templates, `## Model fit` section and read-back included. Group a repo's filed fixes into one ticket unless one is big enough to stand alone; each decision is its own ticket. Use an item's drafted issue title when its ticket holds only that item.
 
 **Every filed ticket asks "blocks this spec?"**, all in one message before filing, each pre-filled with your answer: yes when the spec's stories or decisions aren't met until it lands, no otherwise. A keep's fix and a Propose `ticket` default to no; a gap defaults to yes.
