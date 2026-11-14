@@ -24,6 +24,7 @@ import {
 } from "../stepPrompts/resumePrompts.ts";
 import { minutesOf, type StepAgent } from "../transcriptFacts.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
+import { sessionSchemaOf } from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import {
   type Crash,
@@ -205,6 +206,7 @@ export class StepLauncher extends SpecRunBase {
         wallClockMs: knobs.wallClockMs[agent],
         targets,
         jsonSchema,
+        sessionSchema: this._sessionSchemaOf(run, agent),
         logPath,
         ...overrides,
       });
@@ -222,6 +224,12 @@ export class StepLauncher extends SpecRunBase {
     this._saveState(run);
     keepStreamUsage(run, result);
     return { kind: "ran", result };
+  }
+
+  // Red-checks and merge-master resume the implementer under these two names; review and research run in sessions of their own.
+  private _sessionSchemaOf(run: Run, agent: StepAgent): object | undefined {
+    if (agent !== "implement" && agent !== "resolve") return undefined;
+    return sessionSchemaOf(this._workflowOf(run.spec));
   }
 
   // Unretried: a step that belongs to the spec rather than a ticket, as the gap check does, handles its own turn cap.

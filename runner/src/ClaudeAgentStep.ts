@@ -139,7 +139,7 @@ function commandArgs(
     "--max-turns",
     String(request.maxTurns),
     "--json-schema",
-    JSON.stringify(request.jsonSchema),
+    JSON.stringify(request.sessionSchema ?? request.jsonSchema),
     "--settings",
     JSON.stringify(settingsOf(request, permissionHook)),
   ];

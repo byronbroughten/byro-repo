@@ -358,6 +358,45 @@ export function hasAgentStep(
   return workflow.agentSteps[name] !== undefined;
 }
 
+// The steps that resume the implementer's session; review, research and the gap check each run in their own.
+const sessionStepNames = [
+  "implement",
+  "resolve",
+  "redChecks",
+  "mergeMaster",
+] as const;
+
+interface PropertiesSchema {
+  properties?: Record<string, object>;
+}
+
+// Every session step launches with it, since a resume under another schema starts without its prompt cache (#722); none is required, so each step's own schema still checks its record.
+export function sessionSchemaOf(workflow: Workflow): object {
+  const properties = sessionStepNames.reduce<Record<string, object>>(
+    (merged, name) => {
+      const schema = workflow.agentSteps[name]?.outputSchema as
+        PropertiesSchema | undefined;
+      for (const [field, fieldSchema] of Object.entries(
+        schema?.properties ?? {},
+      )) {
+        const held = merged[field];
+        if (
+          held !== undefined &&
+          JSON.stringify(held) !== JSON.stringify(fieldSchema)
+        ) {
+          throw new Error(
+            `The ${workflow.name} Workflow's session steps define \`${field}\` differently.`,
+          );
+        }
+        merged[field] = fieldSchema;
+      }
+      return merged;
+    },
+    {},
+  );
+  return { type: "object", properties, additionalProperties: false };
+}
+
 // "<name> Workflow has no <step> step", for every message that names a step a Workflow leaves out.
 export function missingStepOf(workflow: Workflow, step: string): string {
   return `${workflow.name} Workflow has no ${step} step`;

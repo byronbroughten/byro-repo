@@ -24,7 +24,10 @@ export interface StepRequest {
   maxTurns: number;
   // The ticket's targets outside the repo; the adapter allows their tools.
   targets: Target[];
+  // The schema the step's record is checked against.
   jsonSchema: object;
+  // Launched with in jsonSchema's place: one schema for every step of a session, since a changed schema loses the resume its prompt cache (#722).
+  sessionSchema?: object;
   resumeSessionId?: string;
   // The peak context past which the adapter kills the session.
   liveCeiling?: number;

@@ -311,6 +311,29 @@ describe("ClaudeAgentStep's schema failures", () => {
       problems: ["/ must have required property 'count'"],
     });
   });
+
+  it("launches with the session's schema but checks the record against the step's own", async () => {
+    const sessionSchema = {
+      type: "object",
+      properties: { answer: { type: "string" }, count: { type: "integer" } },
+    };
+    const countSchema = {
+      type: "object",
+      properties: { count: { type: "integer" } },
+      required: ["count"],
+    };
+    const { argv, result } = await replay("success.ndjson", {
+      jsonSchema: countSchema,
+      sessionSchema,
+    });
+    expect(JSON.parse(argv[argv.indexOf("--json-schema") + 1] ?? "")).toEqual(
+      sessionSchema,
+    );
+    expect(result.output).toMatchObject({
+      status: "schemaFailure",
+      problems: ["/ must have required property 'count'"],
+    });
+  });
 });
 
 describe("ClaudeAgentStep on failed runs", () => {
