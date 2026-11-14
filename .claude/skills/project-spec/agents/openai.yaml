@@ -1,0 +1,5 @@
+interface:
+  display_name: "Project Spec"
+  short_description: "Turn a conversation into a Project of specs"
+policy:
+  allow_implicit_invocation: false

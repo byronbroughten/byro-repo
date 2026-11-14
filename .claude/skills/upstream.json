@@ -87,8 +87,8 @@
         "skills/engineering/to-spec": {
           "status": "reference-only",
           "syncedSha": "49dd158d1076134a641b33efb035946536778336",
-          "notes": "Upstream source of this repo's code-spec and piece-spec forks. code-spec's consumer line reads \"respect ADRs in the area you're touching, and the design.md principles that apply.\"",
-          "derivedInto": ["code-spec", "piece-spec"]
+          "notes": "Upstream source of this repo's project-spec fork, which merged the earlier code-spec and piece-spec forks: it files a Project of code and piece specs, each a Phase, and runs each held spec's Phase gate. Its consumer line reads \"respect ADRs in the area you're touching, and the design.md principles that apply.\"",
+          "derivedInto": ["project-spec"]
         },
         "skills/engineering/to-tickets": {
           "status": "reference-only",
