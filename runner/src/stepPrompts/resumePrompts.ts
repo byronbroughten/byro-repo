@@ -11,6 +11,12 @@ export const limitResumePrompt = `A usage limit cut the previous run off; it has
 // Sent with --resume on a `retry record` answer, after a record failed its check once the step had committed.
 export const recordOnlyPrompt = `Your implement record failed the runner's check. Change no files. ${sessionReturnOf(["record"])}, the implement record again, matching the schema, with each branch's current sha. ${unattendedRunLine()}`;
 
+// Sent with --resume once, when the record a step returned fails the runner's schema check.
+export function schemaResumePromptOf(problems: string[]): string {
+  const listed = problems.map((problem) => `- ${problem}`).join("\n");
+  return `Your record failed the runner's schema check:\n\n${listed}\n\nChange no files. Return the record again, corrected to match this step's schema. ${unattendedRunLine()}`;
+}
+
 export const treeResetNote =
   "Any uncommitted work was set aside on a backup branch and the tree reset to its last commit, so check what is committed first.";
 

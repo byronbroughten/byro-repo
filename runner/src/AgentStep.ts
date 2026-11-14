@@ -63,8 +63,16 @@ export type Hang = "silence" | "wall-clock";
 
 export type StepOutput =
   | { status: "valid"; record: unknown }
-  | { status: "schemaFailure"; rawOutput: string; problems: string[] }
+  | SchemaFailureOutput
   | { status: "none" };
+
+export interface SchemaFailureOutput {
+  status: "schemaFailure";
+  rawOutput: string;
+  problems: string[];
+  // Set when the runner's own check rejected the record, which a resume can correct; Claude Code's own failures would only repeat.
+  isFixable?: boolean;
+}
 
 export interface UsageReading {
   fiveHour: UsageWindow | undefined;

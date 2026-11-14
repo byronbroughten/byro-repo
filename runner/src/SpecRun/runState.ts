@@ -279,6 +279,8 @@ type WaitReason =
 export interface RanStep {
   result: StepResult;
   logPath: string;
+  // Set when the launcher resumed the step once to correct a record that failed its schema check.
+  isSchemaResumed?: boolean;
 }
 
 export interface LaunchedStep {
@@ -294,7 +296,11 @@ export type StepLaunch = Pick<StepRequest, "prompt" | "jsonSchema"> &
       StepRequest,
       "pair" | "targets" | "resumeSessionId" | "liveCeiling" | "maxTurns"
     >
-  > & { beforeCrashRetry?(): Promise<void> };
+  > & {
+    beforeCrashRetry?(): Promise<void>;
+    // For a launch whose attempt already spent its one schema resume, as resolve's rule resume can.
+    skipSchemaResume?: boolean;
+  };
 
 // A spec-level step's request before the launcher picks its account.
 export type SpecStepRequest = Omit<StepRequest, "account">;

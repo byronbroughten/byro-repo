@@ -27,6 +27,7 @@ import {
   resultOf,
   reviewed,
   rootCloneOnly,
+  schemaFailedOf,
   spec,
   specRun,
   stateFolder,
@@ -37,6 +38,7 @@ import {
   timingLines,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
+import { schemaResumePromptOf } from "./stepPrompts/resumePrompts.ts";
 import type { Handoff, ResolveRecord } from "./stepRecords.ts";
 
 useSpecRunHarness(rootCloneOnly);
@@ -622,26 +624,120 @@ describe("run's resolve", () => {
     expect(halt).toContain("Raw output: `");
   });
 
-  it("posts a Failure Halt at once when the resolve output fails its schema", async () => {
-    addSpec([1]);
-    const unmatched: StepResult = {
-      ...resultOf(undefined),
-      output: {
-        status: "schemaFailure",
-        rawOutput: "{}",
-        problems: ["records is required"],
-      },
-    };
+  describe("schema resume", () => {
+    const unmatched = schemaFailedOf(["records is required"]);
+    const stillUnmatched = schemaFailedOf(["records must be array"]);
+    const brokenRule = resolved([recordOf(1, "dismiss")]);
+    const kept = resolved([recordOf(1, "dismiss"), recordOf(2, "dismiss")]);
 
-    await specRun(
-      FakeAgentStep.init(implementedAt(90_000), reviewed(findings), unmatched),
-    ).run(spec);
+    it("resumes a resolve whose record fails its schema once, naming the problems, and keeps the corrected records", async () => {
+      addSpec([1]);
+      const agentStep = FakeAgentStep.init(
+        implementedAt(90_000),
+        reviewed(findings),
+        unmatched,
+        kept,
+      );
 
-    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
-    const halt = github.comments.at(-1)?.body;
-    expect(halt).toContain("Failure Halt");
-    expect(halt).toContain("records is required");
-    expect(halt).toContain("-resolve.output.txt`");
+      await specRun(agentStep).run(spec);
+
+      expect(agentStep.requests[3]?.prompt).toBe(
+        schemaResumePromptOf(["records is required"]),
+      );
+      expect(ticketRunState().resolveRecords).toHaveLength(2);
+    });
+
+    it("posts a Failure Halt on a second schema failure, with the second record's problems", async () => {
+      addSpec([1]);
+
+      await specRun(
+        FakeAgentStep.init(
+          implementedAt(90_000),
+          reviewed(findings),
+          unmatched,
+          stillUnmatched,
+        ),
+      ).run(spec);
+
+      expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+      const halt = github.comments.at(-1)?.body;
+      expect(halt).toContain("Failure Halt");
+      expect(halt).toContain("records must be array");
+      expect(halt).not.toContain("records is required");
+      expect(halt).toContain("-resolve.output.txt`");
+    });
+
+    it("gives a record that fails its schema, then breaks a rule, both resumes", async () => {
+      addSpec([1]);
+      const agentStep = FakeAgentStep.init(
+        implementedAt(90_000),
+        reviewed(findings),
+        unmatched,
+        brokenRule,
+        kept,
+      );
+
+      await specRun(agentStep).run(spec);
+
+      expect(agentStep.requests).toHaveLength(5);
+      expect(agentStep.requests[4]?.prompt).toContain(
+        "Your records broke these rules",
+      );
+      expect(ticketRunState().resolveRecords).toHaveLength(2);
+    });
+
+    it("halts when the rule resume fails its schema after the attempt spent its schema resume", async () => {
+      addSpec([1]);
+      const agentStep = FakeAgentStep.init(
+        implementedAt(90_000),
+        reviewed(findings),
+        unmatched,
+        brokenRule,
+        stillUnmatched,
+      );
+
+      await specRun(agentStep).run(spec);
+
+      expect(agentStep.requests).toHaveLength(5);
+      expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+      expect(github.comments.at(-1)?.body).toContain("records must be array");
+    });
+
+    it("gives a rule resume whose record fails its schema its schema resume, when the attempt hasn't spent it", async () => {
+      addSpec([1]);
+      const agentStep = FakeAgentStep.init(
+        implementedAt(90_000),
+        reviewed(findings),
+        brokenRule,
+        unmatched,
+        kept,
+      );
+
+      await specRun(agentStep).run(spec);
+
+      expect(agentStep.requests[4]?.prompt).toBe(
+        schemaResumePromptOf(["records is required"]),
+      );
+      expect(ticketRunState().resolveRecords).toHaveLength(2);
+    });
+
+    it("halts when a schema-resumed record breaks a rule twice", async () => {
+      addSpec([1]);
+      const agentStep = FakeAgentStep.init(
+        implementedAt(90_000),
+        reviewed(findings),
+        unmatched,
+        brokenRule,
+        brokenRule,
+      );
+
+      await specRun(agentStep).run(spec);
+
+      expect(agentStep.requests).toHaveLength(5);
+      expect(github.comments.at(-1)?.body).toContain(
+        "finding 2: each finding gets exactly one verdict, but it got 0",
+      );
+    });
   });
 
   it("runs the checks after the resolve, resuming the resolver on red", async () => {

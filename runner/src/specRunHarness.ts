@@ -59,6 +59,7 @@ export const {
   resolved,
   resultOf,
   reviewed,
+  schemaFailedOf,
   throws,
 } = stepResults;
 export const { after, timed } = timing;

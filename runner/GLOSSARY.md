@@ -37,7 +37,7 @@ The one turn the machine gives to a set of checks at a time; checks that start w
 _Avoid_: check lock, check queue
 
 **Record**:
-The structured output an agent step returns, validated against the runner's schema: the implement record from the implement step and one resolve record per finding from resolve. A record failing the schema gets one retry.
+The structured output an agent step returns, validated against the runner's schema: the implement record from the implement step and one resolve record per finding from resolve. A record failing the runner's schema check gets one resume naming its problems.
 _Avoid_: report, result, output
 
 **Handoff**:
@@ -81,7 +81,7 @@ The verdict that blocks the tickets in its scope until it is answered: named lat
 _Avoid_: pause, block, question
 
 **Failure Halt**:
-A Halt raised because a step failed, not by a verdict: a second crash, a schema failure, red checks on a green master, an implement step's turn cap. It offers `retry` and `stop spec`, and free text such as `rerun on <pair>` or `skip`; a ticket past its handoff cap gets one offering `continue +1 handoff` in place of `retry`.
+A Halt raised because a step failed, not by a verdict: a second crash, a second schema failure or a missing structured output, red checks on a green master, an implement step's turn cap. It offers `retry` and `stop spec`, and free text such as `rerun on <pair>` or `skip`; a ticket past its handoff cap gets one offering `continue +1 handoff` in place of `retry`.
 _Avoid_: error, crash
 
 **Split Halt**:

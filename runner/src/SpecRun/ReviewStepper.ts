@@ -1,6 +1,7 @@
 // A ticket's review and resolve steps. Review records findings; resolve gives each a verdict and fixes the Fix ones in one
 // session, the resumed implementer under the ticket budget, else a fresh resolver, resetting one that crosses the live
-// ceiling or whose resume finds no conversation; a refused record gets one resumed retry and a Halt verdict raises a Halt.
+// ceiling or whose resume finds no conversation; a record that breaks the rules gets one resumed retry, apart from the
+// launcher's one schema resume, and a Halt verdict raises a Halt.
 // Checks and landing call _runResolverStep to resume a resolver on red checks or a master merge.
 // It builds its own HaltRaiser and StepLauncher; each step's prompt, schema and checks are its spec's Workflow's, through
 // ../Workflow.ts, as is whether resolve resumes the implementer and the prompt a fresh fallback gets.
@@ -57,7 +58,15 @@ type ResolveOutcome =
   | { kind: "capped"; logPath: string };
 
 // Names the resolver that ran, a fresh one when the resume found no conversation.
-type ResolveAttempt = ResolveOutcome & { resolver: Resolver };
+type ResolveAttempt = ResolveOutcome &
+  Pick<ResolverRan, "resolver" | "isSchemaResumed">;
+
+// The rule resume skips the schema resume its attempt's first launch already spent.
+interface RuleResume {
+  resolver: Resolver;
+  problems: string[];
+  skipSchemaResume: boolean;
+}
 
 interface ResolveRun {
   ranStep: RanStep;
@@ -156,7 +165,11 @@ export class ReviewStepper extends SpecRunBase {
           });
         }
         isRetry = true;
-        attempt = await this._retryResolver(ticketRun, resolver, problems);
+        attempt = await this._retryResolver(ticketRun, {
+          resolver,
+          problems,
+          skipSchemaResume: attempt.isSchemaResumed === true,
+        });
         continue;
       }
       isRetry = false;
@@ -224,14 +237,13 @@ export class ReviewStepper extends SpecRunBase {
   // Resumes the session that returned the refused record; a fresh fallback gets the prompt the Workflow's resumption gives it.
   private async _retryResolver(
     ticketRun: TicketRun,
-    resolver: Resolver,
-    problems: string[],
+    { resolver, problems, skipSchemaResume }: RuleResume,
   ): Promise<ResolveAttempt> {
     const { retryPromptOf } = this._resolveRulesOf(ticketRun);
     return this._launchResolver(
       ticketRun,
       resolver,
-      { prompt: retryPromptOf(problems) },
+      { prompt: retryPromptOf(problems), skipSchemaResume },
       freshRetryPromptOf(ticketRun, problems, this._resolveRulesOf(ticketRun)),
     );
   }
@@ -239,7 +251,7 @@ export class ReviewStepper extends SpecRunBase {
   private async _launchResolver(
     ticketRun: TicketRun,
     resolver: Resolver,
-    launch: Pick<StepLaunch, "prompt" | "resumeSessionId">,
+    launch: Pick<StepLaunch, "prompt" | "resumeSessionId" | "skipSchemaResume">,
     freshPrompt?: string,
   ): Promise<ResolveAttempt> {
     const rules = this._resolveRulesOf(ticketRun);
@@ -257,6 +269,7 @@ export class ReviewStepper extends SpecRunBase {
     return {
       ...resolveOutcomeOf({ ranStep: ran, findings, rules }),
       resolver: ran.resolver,
+      isSchemaResumed: ran.isSchemaResumed,
     };
   }
 
