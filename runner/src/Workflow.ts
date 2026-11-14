@@ -11,7 +11,7 @@
 import type { Docs } from "./Docs.ts";
 import type { HaltQuestion } from "./halts.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
-import { sessionSchemaOver } from "./recordSchema.ts";
+import { sessionOutputSchemaOf } from "./recordSchema.ts";
 import type { Command } from "./runKnobs.ts";
 import type {
   PullBaseline,
@@ -375,7 +375,7 @@ export function sharesImplementerSession(agent: StepAgent): boolean {
 
 // Every session step launches with it, since a resume under another schema starts without its prompt cache (#722); offering each step's exact schema keeps a step from returning another's fields (#741).
 export function sessionSchemaOf(workflow: Workflow): object {
-  return sessionSchemaOver(
+  return sessionOutputSchemaOf(
     sessionStepNames.flatMap((name) => {
       const outputSchema = workflow.agentSteps[name]?.outputSchema;
       return outputSchema === undefined ? [] : [outputSchema];

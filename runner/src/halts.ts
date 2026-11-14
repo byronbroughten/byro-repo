@@ -4,7 +4,7 @@
 
 import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import { outlineEdits } from "./outlineEdits.ts";
-import { bulletsOf, unattendedRunLine } from "./promptText.ts";
+import { bulletsOf, sessionReturnOf, unattendedRunLine } from "./promptText.ts";
 import type { IssueComment, TicketStep } from "./SpecRun.ts";
 import { handoffText } from "./stepPrompts/handoffText.ts";
 import {
@@ -379,7 +379,7 @@ export function ignoredNoteOf(halt: Halt, reply: IssueComment): string {
 
 // Sent with --resume to the implementer whose ticket halted.
 export function resumePrompt(halts: Halt[]): string {
-  return `The developer answered the Halts this ticket raised. Act on every answer below, then finish the ticket as before: commit on the ticket's branch, run \`npm run check\`, and return the implement record. ${unattendedRunLine()}
+  return `The developer answered the Halts this ticket raised. Act on every answer below, then finish the ticket as before: commit on the ticket's branch, and run \`npm run check\`. ${sessionReturnOf(["record"])}, the implement record. ${unattendedRunLine()}
 
 ${answersSection(halts)}`;
 }
@@ -398,7 +398,7 @@ function answersSection(halts: Halt[]): string {
     ({ id, kind, question, answer }) =>
       `### ${id}, a ${haltKindLabelOf(kind)}\n\nQuestion: ${question}\n\nAnswer, verbatim:\n\n${answer?.text ?? ""}`,
   );
-  return `When an answer needs no change to the committed work, return the committed record again with each branch's current sha. A question an answer leaves open is a new blocker.
+  return `When an answer needs no change to the committed work, change nothing more. ${sessionReturnOf(["record"])}, the committed record again, with each branch's current sha. A question an answer leaves open is a new blocker.
 
 ${answers.join("\n\n")}`;
 }

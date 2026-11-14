@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 
 import type { StepRequest, StepResult } from "./AgentStep.ts";
 import { ClaudeAgentStep, type ProjectSettings } from "./ClaudeAgentStep.ts";
+import { sessionOutputSchemaOf } from "./recordSchema.ts";
 
 const fixturesFolder = fileURLToPath(
   new URL("../fixtures/stream/", import.meta.url),
@@ -324,10 +325,7 @@ describe("ClaudeAgentStep's schema failures", () => {
   });
 
   it("launches with the session's schema and refuses a session record with no `output`", async () => {
-    const sessionSchema = {
-      type: "object",
-      properties: { output: { anyOf: [{ type: "object" }] } },
-    };
+    const sessionSchema = sessionOutputSchemaOf([{ type: "object" }]);
     const { argv, result } = await replay("success.ndjson", {
       sessionSchema,
     });
@@ -351,7 +349,7 @@ describe("ClaudeAgentStep's schema failures", () => {
     };
     const { result } = await replay("sessionSuccess.ndjson", {
       jsonSchema: answerSchema,
-      sessionSchema: { type: "object" },
+      sessionSchema: sessionOutputSchemaOf([answerSchema]),
     });
     expect(result.output).toEqual({
       status: "valid",

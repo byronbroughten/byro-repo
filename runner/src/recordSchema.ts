@@ -123,7 +123,7 @@ export function gapCheckRecordOf(output: unknown): GapCheckRecord {
 }
 
 // The API refuses a top-level anyOf in a tool's input schema, so a session step's record sits under `output`.
-export function sessionSchemaOver(stepSchemas: object[]): object {
+export function sessionOutputSchemaOf(stepSchemas: object[]): object {
   return objectSchema({ output: { anyOf: stepSchemas } });
 }
 
