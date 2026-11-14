@@ -23,6 +23,7 @@ import {
   stringSchema,
   uncommittedVariantSchemas,
 } from "../../recordSchema.ts";
+import { doneLines } from "../../stepPrompts/doneLines.ts";
 import { handoffText } from "../../stepPrompts/handoffText.ts";
 import {
   implementBody,
@@ -178,7 +179,7 @@ function finishingSection({
 
 - ${commitDraftLineOf({ draftPath, specRepo: spec.repo })}
 - That commit is your only write outside the workspace's files: never push, merge, rebase or reset, never close an issue, and never run the wrap-up. Don't call a review; the runner reviews after you.
-- Then stop and return the implement record as \`record\`:
+- ${doneLines.implement}
   - \`status\`: \`committed\`; or \`blocked\` when a blocker stopped you before any commit.
   - \`branches\`: the \`${spec.repo}\` clone's branch and its last commit's sha. Empty unless committed.
   - \`sectionsDrafted\`: the exact heading text of every Section your commit holds, those a handoff left you included, as the Agent draft holds it, without the \`## \`.

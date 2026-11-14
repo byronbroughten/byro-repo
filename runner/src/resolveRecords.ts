@@ -3,7 +3,7 @@
 // Workflow's resolve rules from them and its own prompt and record checks, resolve resuming implement.
 // stepRecords.ts holds the record types; StepStream.ts checks the output against resolveOutputSchema first.
 
-import { codeListOf } from "./promptText.ts";
+import { codeListOf, sessionReturnOf } from "./promptText.ts";
 import { schemaProblemsOf, stringSchema } from "./recordSchema.ts";
 import {
   dismissReasons,
@@ -63,7 +63,7 @@ function findingLineOf(finding: Finding): string {
 // Sent with --resume to a resolver whose records or commits broke a rule; its one retry.
 export function resolveRetryPrompt(problems: string[]): string {
   const rules = problems.map((problem) => `- ${problem}`).join("\n");
-  return `Your records broke these rules:\n\n${rules}\n\nCorrect them, committing any fix they need, and return \`records\` again, every finding's.`;
+  return `Your records broke these rules:\n\n${rules}\n\nCorrect them, committing any fix they need. ${sessionReturnOf(["records"])} again, every finding's.`;
 }
 
 export const resolveRecordSchema = {

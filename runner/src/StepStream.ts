@@ -7,7 +7,7 @@ import type {
   UsageWindow,
 } from "./AgentStep.ts";
 import { ContextMeter } from "./contextMeter.ts";
-import { schemaProblemsOf } from "./recordSchema.ts";
+import { schemaProblemsOf, sessionOutputOf } from "./recordSchema.ts";
 
 // Only the fields the stream reader uses, each from an observed `claude -p` stream.
 interface InitEvent {
@@ -100,9 +100,9 @@ export class StepStream {
     return this;
   }
 
-  toResult({ account, jsonSchema }: StepRequest): StepResult {
+  toResult({ account, jsonSchema, sessionSchema }: StepRequest): StepResult {
     return {
-      output: outputOf(this.result, jsonSchema),
+      output: outputOf(this.result, { jsonSchema, sessionSchema }),
       sessionId: this._sessionId,
       account,
       peakContext: this.meter.peak,
@@ -201,7 +201,10 @@ function deniedToolsOf(denials: unknown): string[] {
 
 function outputOf(
   result: ResultEvent | undefined,
-  jsonSchema: object,
+  {
+    jsonSchema,
+    sessionSchema,
+  }: Pick<StepRequest, "jsonSchema" | "sessionSchema">,
 ): StepOutput {
   if (!result) return { status: "none" };
   const resultText = stringOrUndefined(result.result) ?? "";
@@ -212,10 +215,21 @@ function outputOf(
   if (result.subtype !== "success" || result.is_error === true) {
     return { status: "none" };
   }
-  const record = result.structured_output;
-  if (record === undefined || record === null) {
+  const structured = result.structured_output;
+  if (structured === undefined || structured === null) {
     const problems = ["no structured output"];
     return { status: "schemaFailure", rawOutput: resultText, problems };
+  }
+  let record: unknown = structured;
+  // Unwrapped here only, so the step's own schema and every reader get the bare step record.
+  if (sessionSchema !== undefined) record = sessionOutputOf(structured);
+  if (record === undefined) {
+    const problems = ["no `output` in the session's record"];
+    return {
+      status: "schemaFailure",
+      rawOutput: JSON.stringify(structured),
+      problems,
+    };
   }
   const problems = schemaProblemsOf(jsonSchema, record);
   if (problems.length === 0) return { status: "valid", record };

@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 
 import type { StepRequest, StepResult } from "./AgentStep.ts";
 import { ClaudeAgentStep, type ProjectSettings } from "./ClaudeAgentStep.ts";
+import { sessionOutputSchemaOf } from "./recordSchema.ts";
 
 const fixturesFolder = fileURLToPath(
   new URL("../fixtures/stream/", import.meta.url),
@@ -323,26 +324,36 @@ describe("ClaudeAgentStep's schema failures", () => {
     });
   });
 
-  it("launches with the session's schema but checks the record against the step's own", async () => {
-    const sessionSchema = {
-      type: "object",
-      properties: { answer: { type: "string" }, count: { type: "integer" } },
-    };
-    const countSchema = {
-      type: "object",
-      properties: { count: { type: "integer" } },
-      required: ["count"],
-    };
+  it("launches with the session's schema and refuses a session record with no `output`", async () => {
+    const sessionSchema = sessionOutputSchemaOf([{ type: "object" }]);
     const { argv, result } = await replay("success.ndjson", {
-      jsonSchema: countSchema,
       sessionSchema,
     });
     expect(JSON.parse(argv[argv.indexOf("--json-schema") + 1] ?? "")).toEqual(
       sessionSchema,
     );
-    expect(result.output).toMatchObject({
+    expect(result.output).toEqual({
       status: "schemaFailure",
-      problems: ["/ must have required property 'count'"],
+      rawOutput: '{"answer":"ok"}',
+      problems: ["no `output` in the session's record"],
+    });
+  });
+
+  // Derived from the success recording with its structured output under `output`, as a session step returns it.
+  it("unwraps a session record's `output` and checks it against the step's own schema", async () => {
+    const answerSchema = {
+      type: "object",
+      properties: { answer: { type: "string" } },
+      required: ["answer"],
+      additionalProperties: false,
+    };
+    const { result } = await replay("sessionSuccess.ndjson", {
+      jsonSchema: answerSchema,
+      sessionSchema: sessionOutputSchemaOf([answerSchema]),
+    });
+    expect(result.output).toEqual({
+      status: "valid",
+      record: { answer: "ok" },
     });
   });
 });

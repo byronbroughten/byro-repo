@@ -4,6 +4,7 @@
 import { stepReadLine } from "../../IssueReader.ts";
 import { commitMessageLine, unattendedRunLine } from "../../promptText.ts";
 import { objectSchema, stringSchema } from "../../recordSchema.ts";
+import { doneLines } from "../../stepPrompts/doneLines.ts";
 import type { RedChecksPromptInput } from "../../Workflow.ts";
 
 export function redChecksPrompt({
@@ -26,7 +27,7 @@ The runner's checks failed on ${issue.repo}#${issue.number}, "${title}", after i
 
 ## When you're done
 
-Return \`summary\`: one or two sentences on what was red and what you changed.
+${doneLines.redChecks}
 
 ## The failing checks
 

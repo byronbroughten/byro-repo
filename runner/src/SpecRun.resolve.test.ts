@@ -659,6 +659,9 @@ describe("run's resolve", () => {
     const resumed = agentStep.requests[3];
     expect(resumed?.resumeSessionId).toBe("fresh-session");
     expect(resumed?.prompt).toContain("You are the red-checks step");
+    expect(resumed?.sessionSchema).toEqual(
+      agentStep.requests[0]?.sessionSchema,
+    );
   });
 
   it("saves a crashed resolve's uncommitted work to a backup branch and resumes it", async () => {

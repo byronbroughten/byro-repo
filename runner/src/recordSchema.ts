@@ -122,6 +122,17 @@ export function gapCheckRecordOf(output: unknown): GapCheckRecord {
   return output as GapCheckRecord;
 }
 
+// The API refuses a top-level anyOf in a tool's input schema, so a session step's record sits under `output`.
+export function sessionOutputSchemaOf(stepSchemas: object[]): object {
+  return objectSchema({ output: { anyOf: stepSchemas } });
+}
+
+// Undefined when the session's record holds no `output`.
+export function sessionOutputOf(record: unknown): unknown {
+  if (typeof record !== "object" || record === null) return undefined;
+  return (record as { output?: unknown }).output;
+}
+
 // Each way `value` breaks `schema`, as its JSON path and Ajv's message; empty when it passes.
 export function schemaProblemsOf(schema: object, value: unknown): string[] {
   const validate = new Ajv({ allErrors: true, strict: false }).compile(schema);

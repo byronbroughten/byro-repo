@@ -11,7 +11,7 @@
 import type { Docs } from "./Docs.ts";
 import type { HaltQuestion } from "./halts.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
-import { objectSchema } from "./recordSchema.ts";
+import { sessionOutputSchemaOf } from "./recordSchema.ts";
 import type { Command } from "./runKnobs.ts";
 import type {
   PullBaseline,
@@ -373,46 +373,14 @@ export function sharesImplementerSession(agent: StepAgent): boolean {
   return agent === "implement" || agent === "resolve";
 }
 
-interface PropertiesSchema {
-  properties?: Record<string, object>;
-}
-
-// Every session step launches with it, since a resume under another schema starts without its prompt cache (#722); none is required, so each step's own schema still checks its record.
+// Every session step launches with it, since a resume under another schema starts without its prompt cache (#722); offering each step's exact schema keeps a step from returning another's fields (#741).
 export function sessionSchemaOf(workflow: Workflow): object {
-  const properties = sessionStepNames.reduce<Record<string, object>>(
-    (merged, name) => {
-      for (const [field, fieldSchema] of Object.entries(
-        propertiesOf(workflow, name),
-      )) {
-        if (isDefinedDifferently(merged[field], fieldSchema)) {
-          throw new Error(
-            `The ${workflow.name} Workflow's session steps define \`${field}\` differently.`,
-          );
-        }
-        merged[field] = fieldSchema;
-      }
-      return merged;
-    },
-    {},
+  return sessionOutputSchemaOf(
+    sessionStepNames.flatMap((name) => {
+      const outputSchema = workflow.agentSteps[name]?.outputSchema;
+      return outputSchema === undefined ? [] : [outputSchema];
+    }),
   );
-  return objectSchema(properties, { optional: Object.keys(properties) });
-}
-
-function propertiesOf(
-  workflow: Workflow,
-  name: keyof AgentSteps,
-): Record<string, object> {
-  const schema = workflow.agentSteps[name]?.outputSchema as
-    PropertiesSchema | undefined;
-  return schema?.properties ?? {};
-}
-
-function isDefinedDifferently(
-  held: object | undefined,
-  fieldSchema: object,
-): boolean {
-  if (held === undefined) return false;
-  return JSON.stringify(held) !== JSON.stringify(fieldSchema);
 }
 
 // "<name> Workflow has no <step> step", for every message that names a step a Workflow leaves out.

@@ -39,8 +39,10 @@ describe("a landed ticket's session facts", () => {
   ): StepScript {
     return async (request: StepRequest) => {
       const ran = typeof step === "function" ? await step(request) : step;
-      const record =
+      let record =
         ran.output.status === "valid" ? ran.output.record : undefined;
+      // Claude Code returns a session step's record under `output`, as its session schema has it.
+      if (request.sessionSchema !== undefined) record = { output: record };
       const init = { type: "system", subtype: "init", session_id: sessionId };
       const result = {
         type: "result",
