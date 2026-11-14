@@ -49,7 +49,7 @@ export interface OutcomeFacts {
   halt?: string;
   reviewRounds?: number;
   retries?: number;
-  // Relaunches of a step a usage limit cut off; each usually starts on a cold prompt cache.
+  // Relaunches of a step a usage limit cut off; each starts on a cold prompt cache when its limit wait outlasts the cache.
   limitResumes?: number;
   pair?: string;
   account?: string;

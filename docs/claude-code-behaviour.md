@@ -33,6 +33,7 @@ An [observation index](./agents/prose-files.md#terms) of what Claude Code itself
 
 ## A resumed session's prompt cache
 
+- Observed: Two `claude -p --resume <id> --fork-session` runs of one Haiku session, with the same prompt and flags but for `--json-schema`, read their first request from the prompt cache as 43,816 cached and 4,768 written under the schema the session started with, and 0 cached and 46,486 written under another; 2.1.325, 2026-11-13, each run's first assistant message's `cache_read_input_tokens` against its `cache_creation_input_tokens` in `stream-json` output; [diagnosis on #722](https://github.com/byronbroughten/byro-repo/issues/722#issuecomment-6871466981).
 - Observed: A runner step resuming a `claude -p` session read ~10.5K of its first request from the prompt cache and wrote the rest, a resolve a median ~79K, when the step before it in the session was a different step kind: implement → resolve resumes read most of their context from the cache 0 of 251 times, with or without commits between the steps, and resolve → implement 4 of 30, while resolve → resolve did 47 of 65, after commits too; the implement and resolve steps' init configs listed the same tools and model, and each step kind passed its own `--json-schema`; 2.1.309–2.1.323, step logs from 2026-10-23 to 2026-11-12, each resumed step's first assistant message's `cache_read_input_tokens` against its `cache_creation_input_tokens`; [baseline on #722](https://github.com/byronbroughten/byro-repo/issues/722).
 
 ## The Bash sandbox

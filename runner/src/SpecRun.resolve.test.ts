@@ -206,6 +206,23 @@ describe("run's resolve", () => {
     });
   });
 
+  it("launches the resolver under the implementer's schema, so its resume keeps the prompt cache, and the reviewer under its own", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      reviewed(findings),
+      resolved([recordOf(1, "fix"), recordOf(2, "propose")], "fix.ts"),
+    );
+
+    await specRun(agentStep).run(spec);
+
+    const [implementer, reviewer, resolver] = agentStep.requests;
+    expect(implementer?.sessionSchema).toBeDefined();
+    expect(resolver?.sessionSchema).toEqual(implementer?.sessionSchema);
+    expect(resolver?.jsonSchema).not.toEqual(implementer?.jsonSchema);
+    expect(reviewer?.sessionSchema).toBeUndefined();
+  });
+
   it("records a Propose as an undecided review item before the wrap-up, so a Standalone ticket lands and stays open", async () => {
     addIssue(spec.number);
     const agentStep = FakeAgentStep.init(
