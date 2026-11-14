@@ -181,7 +181,7 @@ Resolve each `<repo>` to `<owner>/<repo>`. In each repo filed to, run `gh label 
 File the specs in order, each body from a scratchpad file with `gh issue create -R <owner>/<repo> --body-file <path>`, labelled with its kind and:
 
 - **The first spec**: `ready-for-agent`.
-- **Every later spec**: `needs-triage`, so no run picks it up before its Phase gate, then a blocked-by edge to the spec before it, by [the issue tracker doc's Blocking command](../../../docs/agents/issue-tracker.md).
+- **Every later spec**: `needs-triage`, so no run picks it up before its Phase gate, then a blocked-by edge to the spec before it, by [the issue tracker doc's Blocking command](../../../docs/agents/issue-tracker.md#wayfinding-operations).
 
 ## 7. Close the chat
 

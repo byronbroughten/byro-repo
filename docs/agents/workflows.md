@@ -144,14 +144,14 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 
 | Machinery | Skills and Steps |
 | --- | --- |
-| The issue reader (`npm run issue:read`) with Trusted and Untrusted text | `/runner`, `/review-code-tickets`, `/start-issue` (via `issue:start`), `/implement-code`, `/judge-findings`, `/mine-outcomes`, every agent Step, `/piece-tickets`, `/implement-piece`, `/review-piece`, `/research-piece`, `/review-research`, `/close-piece` |
+| The issue reader (`npm run issue:read`) with Trusted and Untrusted text | `/runner`, `/review-code-tickets`, `/start-issue` (via `issue:start`), `/implement-code`, `/judge-findings`, `/mine-outcomes`, every agent Step, `/piece-tickets`, `/implement-piece`, `/review-piece`, `/research-piece`, `/review-research`, `/close-piece`, `/project-spec`'s Phase gate |
 | Issue and session workspaces (`npm run issue:start`, [`git-workflow.md`](./git-workflow.md#a-skills-session-workspace)) | `/start-issue`, `/judge-findings`, `/mine-outcomes`, `/implement-piece`'s issue workspace, `/research-piece`'s session workspace, `/close-piece`'s issue workspace |
 | Wrap-up (`npm run wrap-up`) | `/implement-code`, `/judge-findings`, `/mine-outcomes`, the wrap-up Step, `/implement-piece`, `/research-piece`, `/close-piece` |
 | `npm run doc:print` | `/implement-piece` reads the Deliverable for its pull; `/close-piece` reads it for the changed Sections; `/to-writing-style`'s pair mode reads it for its diff |
 | `runner -- decide` | `/runner`, `/implement-code`, `/implement-piece`, `/judge-findings` |
 | `npm run overlap` | `/review-piece` runs it; `/implement-piece` reruns it after a fix; the piece resolve Step reruns it after its Fixes; `/judge-findings` reruns it after a piece "now" fix |
 | `npm run pdf:text` and the page-range command in [`pdf-pages.md`](../pdf-pages.md) | `/research-piece` dumps text; `/grill-piece` and `/review-research` count and print pages |
-| Sub-issues and native blocking edges | `/piece-tickets` sets them; `/review-piece` reads the parent through `gh api` |
+| Sub-issues and native blocking edges | `/piece-tickets` sets them; `/review-piece` reads the parent through `gh api`; `/project-spec` sets a held spec's blocked-by edge and its Phase gate walks the chain |
 | The gworkspace tools (Drive and Docs) | `/grill-piece`, `/implement-piece`, `/research-piece`, `/runner` on an `another source` answer |
 | `npm run verify:quotes` | `/research-piece` and the research Step check the fact list; `/runner` checks an addendum |
 | The Outline edits' code (`runner/src/outlineEdits.ts`) | a run applies an answered Research Halt's; `/research-piece` applies the developer's through `npm run outline:apply` |
