@@ -667,6 +667,24 @@ describe("run's resolve", () => {
       expect(halt).toContain("-resolve.output.txt`");
     });
 
+    it.each([["no structured output"], ["structured output retries ran out"]])(
+      "posts a Failure Halt at once, without a resume, on %s",
+      async (problem) => {
+        addSpec([1]);
+        const agentStep = FakeAgentStep.init(
+          implementedAt(90_000),
+          reviewed(findings),
+          schemaFailedOf([problem], { isFixable: false }),
+        );
+
+        await specRun(agentStep).run(spec);
+
+        expect(agentStep.requests).toHaveLength(3);
+        expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+        expect(github.comments.at(-1)?.body).toContain(problem);
+      },
+    );
+
     it("gives a record that fails its schema, then breaks a rule, both resumes", async () => {
       addSpec([1]);
       const agentStep = FakeAgentStep.init(

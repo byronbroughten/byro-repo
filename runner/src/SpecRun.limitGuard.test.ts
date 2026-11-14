@@ -18,6 +18,7 @@ import {
   resolved,
   resultOf,
   reviewed,
+  schemaFailedOf,
   scriptUsage,
   spec,
   specRun,
@@ -28,7 +29,10 @@ import {
   usageListOf,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
-import { limitResumePrompt } from "./stepPrompts/resumePrompts.ts";
+import {
+  limitResumePrompt,
+  schemaResumePromptOf,
+} from "./stepPrompts/resumePrompts.ts";
 
 useSpecRunHarness();
 
@@ -228,6 +232,26 @@ describe("run's limit guard", () => {
       prompt,
     }));
   }
+
+  it("keeps asking for the corrected record when a limit cuts off a schema resume", async () => {
+    addSpec([1]);
+    const account = cappedAccount();
+    const agentStep = FakeAgentStep.init(
+      schemaFailedOf(["record is required"]),
+      limitHitStep("stream\n", fiveHourHit, account.hit),
+      implemented("one.ts"),
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep, account).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(requestsOf(agentStep)[2]).toEqual({
+      account: 1,
+      resumeSessionId: "session",
+      prompt: schemaResumePromptOf(["record is required"]),
+    });
+  });
 
   it("waits out a 5-hour limit hit mid-step, resumes the same session told so, lands, and keeps the first limit-hit stream it sees", async () => {
     addSpec([1]);

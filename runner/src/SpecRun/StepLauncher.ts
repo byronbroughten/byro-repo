@@ -19,7 +19,7 @@ import { stepLaunchLineOf } from "../progressLines.ts";
 import { unattendedRunLine } from "../promptText.ts";
 import type { RunKnobs } from "../runKnobs.ts";
 import {
-  handoffOnlyPrompt,
+  isRecordOnlyResumePrompt,
   limitResumePrompt,
   schemaResumePromptOf,
   treeResetNote,
@@ -345,13 +345,13 @@ function keepStreamUsage(run: Run, { usage, account }: StepResult): void {
   if (usage !== undefined) run.streamUsage.set(account, usage);
 }
 
-// A step with no session id relaunches fresh, as a crash retry with none does; a backstop resume still owes only its handoff record.
+// A step with no session id relaunches fresh, as a crash retry with none does; a backstop or schema resume still owes only its record.
 function limitResumeOf<
   LR extends Pick<StepRequest, "prompt" | "resumeSessionId">,
 >(launch: LR, { sessionId }: StepResult): LR {
   if (sessionId === undefined) return launch;
   let prompt = limitResumePrompt;
-  if (launch.prompt === handoffOnlyPrompt) prompt = handoffOnlyPrompt;
+  if (isRecordOnlyResumePrompt(launch.prompt)) prompt = launch.prompt;
   return { ...launch, prompt, resumeSessionId: sessionId };
 }
 
@@ -393,9 +393,9 @@ function crashDetailOf(
   return undefined;
 }
 
-// A crashed backstop resume still owes only its handoff record.
+// A crashed backstop or schema resume still owes only its record.
 function retryPromptOf(launch: StepLaunch, state: TicketState): string {
-  if (launch.prompt === handoffOnlyPrompt) return handoffOnlyPrompt;
+  if (isRecordOnlyResumePrompt(launch.prompt)) return launch.prompt;
   return interruptedPromptOf(state);
 }
 

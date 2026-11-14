@@ -57,7 +57,7 @@ type ResolveOutcome =
   | { kind: "crossed"; logPath: string }
   | { kind: "capped"; logPath: string };
 
-// Names the resolver that ran, a fresh one when the resume found no conversation.
+// Names the resolver that ran, a fresh one when the resume found no conversation, and whether its schema resume was spent.
 type ResolveAttempt = ResolveOutcome &
   Pick<ResolverRan, "resolver" | "isSchemaResumed">;
 
@@ -65,7 +65,7 @@ type ResolveAttempt = ResolveOutcome &
 interface RuleResume {
   resolver: Resolver;
   problems: string[];
-  skipSchemaResume: boolean;
+  isSchemaResumed: boolean;
 }
 
 interface ResolveRun {
@@ -168,7 +168,7 @@ export class ReviewStepper extends SpecRunBase {
         attempt = await this._retryResolver(ticketRun, {
           resolver,
           problems,
-          skipSchemaResume: attempt.isSchemaResumed === true,
+          isSchemaResumed: attempt.isSchemaResumed === true,
         });
         continue;
       }
@@ -237,13 +237,13 @@ export class ReviewStepper extends SpecRunBase {
   // Resumes the session that returned the refused record; a fresh fallback gets the prompt the Workflow's resumption gives it.
   private async _retryResolver(
     ticketRun: TicketRun,
-    { resolver, problems, skipSchemaResume }: RuleResume,
+    { resolver, problems, isSchemaResumed }: RuleResume,
   ): Promise<ResolveAttempt> {
     const { retryPromptOf } = this._resolveRulesOf(ticketRun);
     return this._launchResolver(
       ticketRun,
       resolver,
-      { prompt: retryPromptOf(problems), skipSchemaResume },
+      { prompt: retryPromptOf(problems), skipSchemaResume: isSchemaResumed },
       freshRetryPromptOf(ticketRun, problems, this._resolveRulesOf(ticketRun)),
     );
   }

@@ -8,6 +8,7 @@ import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
 import {
   addSpec,
+  crashed,
   github,
   haltComments,
   implemented,
@@ -109,6 +110,23 @@ describe("run's schema failures", () => {
     },
   );
 
+  it("keeps asking for the corrected record when a schema resume crashes", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      unmatched,
+      crashed,
+      implemented("one.ts"),
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    const retry = agentStep.requests[2];
+    expect(retry?.resumeSessionId).toBe("crashed-session");
+    expect(retry?.prompt).toBe(schemaResumePromptOf([statusProblem]));
+  });
+
   it("links a record that fails the runner's own check as JSON", async () => {
     addSpec([1]);
     const uncommitted = implementResultOf(
@@ -170,6 +188,24 @@ describe("run's schema failures", () => {
       `Log: \`${stepsPathOf("byro-repo-1-3-review.jsonl")}\``,
     );
   });
+
+  it.each([["no structured output"], ["structured output retries ran out"]])(
+    "posts a Failure Halt for a review at once, without a resume, on %s",
+    async (problem) => {
+      addSpec([1]);
+      const agentStep = FakeAgentStep.init(
+        implemented("one.ts"),
+        schemaFailedOf([problem], { isFixable: false }),
+      );
+
+      await specRun(agentStep).run(spec);
+
+      expect(agentStep.requests).toHaveLength(2);
+      const [halt] = haltComments();
+      expect(halt).toContain("Failure Halt");
+      expect(halt).toContain(problem);
+    },
+  );
 
   it("offers `retry record` once the implementer has committed", async () => {
     addSpec([1]);
