@@ -2,6 +2,7 @@
 // included, with its guidance and the run's knobs, logs its raw stream, and retries a crash, resuming its session when it has one.
 // A step a limit cuts off waits out the limit, then resumes its session on whatever account is Active; that resume is no crash retry.
 // A resolver's resume that finds no conversation goes back to its caller, which reruns it as a fresh session.
+// A record the runner's own schema check rejects is resumed once with its problems; Claude Code's own output failures aren't.
 // An implement step that hits its turn cap halts, offering more turns or a stronger pair; other crashes past their retries halt too.
 // It builds its own HaltRaiser, and every collaborator that launches a step builds a StepLauncher.
 // Steps run through ../AgentStep.ts; limit decisions are ../limitGuard.ts; the coordinator callers build is ../SpecRun.ts.
@@ -18,8 +19,9 @@ import { stepLaunchLineOf } from "../progressLines.ts";
 import { unattendedRunLine } from "../promptText.ts";
 import type { RunKnobs } from "../runKnobs.ts";
 import {
-  handoffOnlyPrompt,
+  isRecordOnlyResumePrompt,
   limitResumePrompt,
+  schemaResumePromptOf,
   treeResetNote,
 } from "../stepPrompts/resumePrompts.ts";
 import { minutesOf, type StepAgent } from "../transcriptFacts.ts";
@@ -40,6 +42,12 @@ import { SpecRunBase } from "./SpecRunBase.ts";
 import { LimitWaiter } from "./StepLauncher/LimitWaiter.ts";
 
 type LoggedStepRequest = StepRequest & { logPath: string };
+
+// A launch and what it ran, crash retries and limit resumes included.
+interface LaunchRan {
+  ran: RanStep;
+  launch: StepLaunch;
+}
 
 // An adapter that throws leaves the step unrun, which is retried as a crash.
 type StepAttempt =
@@ -67,7 +75,35 @@ export class StepLauncher extends SpecRunBase {
       guidedLaunchOf(launch, state.guidance),
     );
     state.guidance = undefined;
-    return ran;
+    if (launch.skipSchemaResume === true) return ran;
+    return this._resumeOnFixableSchemaFailure(ticketRun, agent, {
+      ran,
+      launch,
+    });
+  }
+
+  // Once only: a second failure goes to the caller's record read, which raises the Failure Halt with its problems.
+  private async _resumeOnFixableSchemaFailure(
+    ticketRun: TicketRun,
+    agent: StepAgent,
+    { ran, launch }: LaunchRan,
+  ): Promise<RanStep> {
+    const { output, sessionId } = ran.result;
+    if (output.status !== "schemaFailure" || output.isFixable !== true) {
+      return ran;
+    }
+    if (sessionId === undefined) return ran;
+    const { run, ticket } = ticketRun;
+    this._log(
+      run,
+      `${issueRef.labelOf(ticket.issue)}: the ${agent} step's record failed its schema check; resuming it once to correct it.`,
+    );
+    const resumed = await this._retryStep(ticketRun, agent, {
+      ...launch,
+      prompt: schemaResumePromptOf(output.problems),
+      resumeSessionId: sessionId,
+    });
+    return { ...resumed, isSchemaResumed: true };
   }
 
   // Retries a crash, resuming its session when it has one; leaves the result unread, so a resolver can check for a live-ceiling kill before recordOf().
@@ -179,7 +215,13 @@ export class StepLauncher extends SpecRunBase {
   private async _attemptStep(
     ticketRun: TicketRun,
     agent: StepAgent,
-    { prompt, jsonSchema, beforeCrashRetry: _, ...overrides }: StepLaunch,
+    {
+      prompt,
+      jsonSchema,
+      beforeCrashRetry: _,
+      skipSchemaResume: __,
+      ...overrides
+    }: StepLaunch,
     logPath: string,
   ): Promise<StepAttempt> {
     const { run, ticket, pair, workspace, state, targets } = ticketRun;
@@ -303,13 +345,13 @@ function keepStreamUsage(run: Run, { usage, account }: StepResult): void {
   if (usage !== undefined) run.streamUsage.set(account, usage);
 }
 
-// A step with no session id relaunches fresh, as a crash retry with none does; a backstop resume still owes only its handoff record.
+// A step with no session id relaunches fresh, as a crash retry with none does; a backstop or schema resume still owes only its record.
 function limitResumeOf<
   LR extends Pick<StepRequest, "prompt" | "resumeSessionId">,
 >(launch: LR, { sessionId }: StepResult): LR {
   if (sessionId === undefined) return launch;
   let prompt = limitResumePrompt;
-  if (launch.prompt === handoffOnlyPrompt) prompt = handoffOnlyPrompt;
+  if (isRecordOnlyResumePrompt(launch.prompt)) prompt = launch.prompt;
   return { ...launch, prompt, resumeSessionId: sessionId };
 }
 
@@ -351,9 +393,9 @@ function crashDetailOf(
   return undefined;
 }
 
-// A crashed backstop resume still owes only its handoff record.
+// A crashed backstop or schema resume still owes only its record.
 function retryPromptOf(launch: StepLaunch, state: TicketState): string {
-  if (launch.prompt === handoffOnlyPrompt) return handoffOnlyPrompt;
+  if (isRecordOnlyResumePrompt(launch.prompt)) return launch.prompt;
   return interruptedPromptOf(state);
 }
 

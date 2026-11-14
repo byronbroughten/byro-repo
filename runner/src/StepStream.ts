@@ -229,6 +229,7 @@ function outputOf(
       status: "schemaFailure",
       rawOutput: JSON.stringify(structured),
       problems,
+      isFixable: true,
     };
   }
   const problems = schemaProblemsOf(jsonSchema, record);
@@ -237,5 +238,6 @@ function outputOf(
     status: "schemaFailure",
     rawOutput: JSON.stringify(record),
     problems,
+    isFixable: true,
   };
 }

@@ -22,6 +22,7 @@ import {
 } from "../IssueWorkspaces.ts";
 import { LeaseHeld } from "../LeaseHeld.ts";
 import { pairOf } from "../modelFit.ts";
+import { bulletListOf } from "../promptText.ts";
 import { ticketReviewListOf } from "../reviewList.ts";
 import { RunStop } from "../RunStop.ts";
 import { TicketHalted } from "../TicketHalted.ts";
@@ -319,7 +320,7 @@ function refusedReviewOf(message: string): ReviewResult {
 }
 
 function brokenRulesOf(problems: string[]): ReviewResult {
-  const rules = problems.map((problem) => `- ${problem}`).join("\n");
+  const rules = bulletListOf(problems);
   return refusedReviewOf(
     `Your records broke these rules; correct them, committing any fix they need, and resolve again with every finding's record:\n\n${rules}`,
   );

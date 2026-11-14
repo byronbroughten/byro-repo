@@ -69,6 +69,17 @@ export const stepResults = {
     } as ImplementRecord;
   },
 
+  // A record the runner's own schema check rejected; isFixable false makes it one of Claude Code's own failures.
+  schemaFailedOf(
+    problems: string[],
+    { rawOutput = "{}", isFixable = true } = {},
+  ): StepResult {
+    return {
+      ...stepResults.resultOf(undefined),
+      output: { status: "schemaFailure", rawOutput, problems, isFixable },
+    };
+  },
+
   // The base of the results of a step that produced no output.
   noOutputOf(facts: Partial<StepResult>): StepResult {
     return {

@@ -321,6 +321,7 @@ describe("ClaudeAgentStep's schema failures", () => {
       status: "schemaFailure",
       rawOutput: '{"answer":"ok"}',
       problems: ["/ must have required property 'count'"],
+      isFixable: true,
     });
   });
 
@@ -336,6 +337,7 @@ describe("ClaudeAgentStep's schema failures", () => {
       status: "schemaFailure",
       rawOutput: '{"answer":"ok"}',
       problems: ["no `output` in the session's record"],
+      isFixable: true,
     });
   });
 

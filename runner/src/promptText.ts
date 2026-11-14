@@ -82,5 +82,9 @@ export function bulletsOf(items: string[]): string {
 }
 
 export function sectionOf(heading: string, bullets: string[]): string {
-  return `## ${heading}\n\n${bullets.map((bullet) => `- ${bullet}`).join("\n")}`;
+  return `## ${heading}\n\n${bulletListOf(bullets)}`;
+}
+
+export function bulletListOf(bullets: readonly string[]): string {
+  return bullets.map((bullet) => `- ${bullet}`).join("\n");
 }
