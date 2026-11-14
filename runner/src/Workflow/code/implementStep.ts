@@ -9,7 +9,6 @@ import { stepReadLine } from "../../IssueReader.ts";
 import {
   commitMessageLine,
   sectionOf,
-  sessionReturnOf,
   stepWriteLine,
   unattendedRunLine,
 } from "../../promptText.ts";
@@ -21,6 +20,7 @@ import {
   stringSchema,
   uncommittedVariantSchemas,
 } from "../../recordSchema.ts";
+import { doneLines } from "../../stepPrompts/doneLines.ts";
 import { handoffText } from "../../stepPrompts/handoffText.ts";
 import {
   implementBody,
@@ -69,7 +69,7 @@ const promptSections = {
 - ${implementBody.committing} When it fails only on something your change didn't cause, return your record anyway and name the failure in \`boxesUndone\`; the runner's checks step stops on it.
 - ${implementBody.onlyWrites}, and never run the wrap-up. Don't call code review; the runner reviews after you.
 - When review findings come back to you: ${implementBody.resolving}
-- Then stop. ${sessionReturnOf(["record"])}, the implement record:
+- ${doneLines.implement}
   - \`status\`: \`committed\`; \`applied\` when the ticket needed only GitHub writes and you committed nothing; or \`blocked\` when a blocker stopped you before any commit.
   - \`branches\`: each repo you committed in, its branch and its last commit's sha, in landing order (a repo lands before any repo that depends on it; a package clone before the root). Empty unless committed.
   - \`githubWrites\`: only when applied, each GitHub write you made: its issue as \`owner/repo#n\`, its action (\`edit\` or \`comment\`), its URL and a one-line summary.

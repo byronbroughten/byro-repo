@@ -6,10 +6,10 @@ import { stepReadLine } from "../../IssueReader.ts";
 import {
   commitMessageLine,
   sectionOf,
-  sessionReturnOf,
   unattendedRunLine,
 } from "../../promptText.ts";
 import { objectSchema, stringSchema } from "../../recordSchema.ts";
+import { doneLines } from "../../stepPrompts/doneLines.ts";
 import { implementBody } from "../../stepPrompts/implementText.ts";
 import type { RedChecksPromptInput } from "../../Workflow.ts";
 import { draftMaterialsLineOf } from "./implementStep.ts";
@@ -26,7 +26,7 @@ export function pieceRedChecksPrompt(input: PieceRedChecksPromptInput): string {
 The runner's piece checks failed on ${issue.repo}#${issue.number}, "${title}", after its last commit. Turn them green. Your working directory is the ticket's issue workspace root, on the ticket's branch, \`${branch}\`. ${stepReadLine}`,
     fixingSection(input),
     workingSection(input),
-    `## When you're done\n\n${sessionReturnOf(["summary"])}: one or two sentences on what was red and what you changed.`,
+    `## When you're done\n\n${doneLines.redChecks}`,
     `## The failing checks\n\n${failures}`,
   ].join("\n\n");
 }
