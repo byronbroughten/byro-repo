@@ -9,7 +9,7 @@ Checked against Opus 5.5 and Sonnet 5.5. Reviewed 2026-09-30; Haiku 5.5 joined t
 ## Criteria for each pair
 
 - **Haiku medium:** smaller than the Sonnet medium shape: code only, one or two files, with the names and changes the ticket states word for word.
-- **Sonnet medium:** code only, and `tsc`, tests or lint check the whole diff: a pattern followed across several files, or names the ticket states word for word.
+- **Sonnet medium:** a mechanical code change the ticket lists in full: a move, rename or removal naming every symbol and site, with `tsc`, tests or lint checking the whole diff.
 - **Sonnet high:** the Opus low shape (fully specified, an existing pattern, one package) when the ticket writes no prose or comment and chooses no names.
 - **Opus low:** fully specified, an existing pattern, one package. Examples: a chore, an endpoint on existing machinery, a migrate batch needing some judgment, a retarget needing new names.
 - **Opus medium:** any prose (a doc, an AGENTS.md edit, a comment), test restructuring, or choosing names or shapes inside a design the spec settles. Also the step up when an Opus low ticket has one soft spot.
@@ -21,7 +21,7 @@ A bigger pair never fixes a ticket that won't fit one session: #8 and #17 were O
 
 ## Sonnet
 
-Sonnet 5.5 is back in the pairs (checked 2026-09-30), on probation for code-only tickets until the outcome log shows first-try passes. Sonnet 5.5 medium and high cost less per task than Opus 5.5 medium, and high scores above Opus low. It improves on Sonnet 5's constraint-following but still trails Opus 5.5 on circumventing constraints and on out-of-scope-graded FrontierCode, so prose, naming and design stay with Opus.
+Sonnet 5.5 is back in the pairs (checked 2026-09-30), on probation for code-only tickets until the outcome log shows first-try passes; #723's replay narrowed medium to mechanical tickets. Sonnet 5.5 medium and high cost less per task than Opus 5.5 medium, and high scores above Opus low. It improves on Sonnet 5's constraint-following but still trails Opus 5.5 on circumventing constraints and on out-of-scope-graded FrontierCode, so prose, naming and design stay with Opus.
 
 ## Evidence
 
@@ -32,6 +32,10 @@ Sonnet 5.5 is back in the pairs (checked 2026-09-30), on probation for code-only
 - **Higher Claude effort writes more comprehensive comments**, against this repo's short-comment rule. Opus 5.5 medium matches the previous Opus at high on coding; low comes close for much less ([effort](https://platform.claude.com/docs/en/build-with-claude/effort), [prompting Opus 5.5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5), [model config](https://code.claude.com/docs/en/model-config)). Sonnet 5.5 tends to produce longer outputs than Opus 5.5 ([system card §6.1.2](https://www.anthropic.com/claude-sonnet-5-5-system-card)).
 - **FrontierCode**, the closest benchmark to style-guide adherence, grades against a repo's guidelines and penalizes out-of-scope changes. Opus 5.5 leads it and scores best at medium ([Opus 5.5 system card §8.4](https://www.anthropic.com/claude-opus-5-5-system-card)). Sonnet 5.5 scores 52.1% at xhigh and 46.2% at max, against Opus 5.5's 54.4% ([Sonnet 5.5 system card §8.4](https://www.anthropic.com/claude-sonnet-5-5-system-card)).
 - **Sonnet 5.5's constraint behavior** improves on Sonnet 5 on nearly every misalignment metric, but Opus 5.5 is strictly better on approval-gate bypass and circumventing constraints ([system card §6.2.5](https://www.anthropic.com/claude-sonnet-5-5-system-card)). Sonnet 5 listed scope creep and rationalizing around an explicit constraint ([system card](https://www.anthropic.com/claude-sonnet-5-system-card)).
+- **#723's replay** (2026-11): 7 valid tickets re-implemented on Sonnet medium from their bases. Its implementer sessions cost 65% less than Opus medium's, $4.95 against $13.95. Two blind Opus judges preferred Opus on 6 tickets and Sonnet on 1; neither found a blocking defect, and every check was green.
+  - Sonnet fell short on following knock-on effects into doc maps and cross-references, naming by house conventions, tests that prove an invariant (a deletion, a reused pid, an "unchanged" criterion) and shaping an API for its next caller.
+  - It matched Opus on mechanical moves and removals with explicit lists, and on #665 beat it by not rewriting the code it moved.
+  - Its reviews never spawned the reviewer subagents, so Sonnet reviews aren't evidence here.
 - **Sonnet 5.5** was released 2026-09-28 at $2/$10 per million input/output tokens and a 1M-token max context window, with low, medium, high, xhigh and max effort ([announcement](https://www.anthropic.com/claude-sonnet-5-5)).
 
 ## What no benchmark covers
