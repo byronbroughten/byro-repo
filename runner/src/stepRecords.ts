@@ -10,7 +10,6 @@ export type ImplementRecord =
 
 export interface CommittedRecord extends RecordBody {
   status: "committed";
-  // A code implementer's own: where it suspects its work is weak, each a line naming its file or area, for the review's briefs.
   pointsWorthChecking?: string[];
 }
 

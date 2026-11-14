@@ -11,9 +11,13 @@ import { type Axis, verdicts } from "./verdicts.ts";
 
 export const stringSchema = { type: "string" };
 
+interface ObjectSchemaOptions {
+  optional?: string[];
+}
+
 export function objectSchema(
   properties: Record<string, object>,
-  { optional = [] }: { optional?: string[] } = {},
+  { optional = [] }: ObjectSchemaOptions = {},
 ): object {
   return {
     type: "object",
@@ -67,7 +71,7 @@ export const handoffSchema = objectSchema(
 export function implementVariantSchema(
   status: ImplementRecord["status"],
   overrides: Record<string, object>,
-  { optional = [] }: { optional?: string[] } = {},
+  options: ObjectSchemaOptions = {},
 ): object {
   return objectSchema(
     {
@@ -80,7 +84,7 @@ export function implementVariantSchema(
       blockers: arraySchema(blockerSchema),
       ...overrides,
     },
-    { optional },
+    options,
   );
 }
 
