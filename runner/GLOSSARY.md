@@ -207,7 +207,7 @@ A disposable set of checkouts, one per repo, each detached at its master, rebuil
 _Avoid_: clean checkout, master workspace
 
 **Project**:
-The specs one `/project-spec` run files from one planning conversation, in blocked-by order.
+The specs filed together from one planning conversation, plus any a Phase gate adds, in blocked-by order.
 _Avoid_: epic, initiative, programme
 
 **Phase**:
