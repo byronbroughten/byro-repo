@@ -149,6 +149,17 @@ describe("ClaudeAgentStep on a recorded success", () => {
       "mcp__gworkspace__modify_sheet_values",
     ]);
   });
+
+  // Derived from the success recording with the allowed_warning event a live step's stream gave past 75% of its weekly window.
+  it("counts a warning past a usage threshold as no limit hit", async () => {
+    const { result } = await replay("allowedWarning.ndjson");
+    expect(result.limitHit).toBeUndefined();
+    expect(result.output).toEqual({
+      status: "valid",
+      record: { answer: "ok" },
+    });
+    expect(result.usage?.sevenDay?.utilization).toBe(0.77);
+  });
 });
 
 describe("ClaudeAgentStep's command", () => {

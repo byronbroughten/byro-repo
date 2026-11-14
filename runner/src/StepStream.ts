@@ -140,8 +140,9 @@ export class StepStream {
   }
 
   private get _limitHit(): LimitHit | undefined {
+    // Past a usage threshold the status is allowed_warning, which still serves the request.
     const rejection =
-      this.rateLimit?.status === "allowed" ? undefined : this.rateLimit;
+      this.rateLimit?.status === "rejected" ? this.rateLimit : undefined;
     const isLimitError =
       this.result?.is_error === true &&
       this.result.api_error_status === tooManyRequests;
