@@ -14,6 +14,7 @@ import { pairOf } from "../modelFit.ts";
 import { runCommand } from "../runCommand.ts";
 import { type HeldRunLock, RunLock } from "../RunLock.ts";
 import {
+  heldLabel,
   interactiveLabel,
   type MemberList,
   readyLabel,
@@ -141,6 +142,7 @@ export class PreflightChecker extends SpecRunBase {
     const launchable = await this._launchableTicketsOf(run);
     // A ticket's body is left to the launch-time check, whose Halt can approve it.
     return (
+      heldRefusalOf(run.spec) ??
       (await this._authorshipRefusal("the spec", [run.spec])) ??
       modelFitRefusalOf(run, launchable) ??
       ticketLaunch.targetsRefusalOf(run, launchable)
@@ -232,6 +234,13 @@ function modelFitRefusalOf(
   );
   if (offenders.length === 0) return undefined;
   return `Each open ${readyLabel} ticket needs a ## Model fit section naming one of the six pairs; missing or invalid in ${offenders.join(", ")}.`;
+}
+
+// A later spec of a Project is held until its Phase gate releases it.
+function heldRefusalOf(spec: TrackedIssue): string | undefined {
+  if (!spec.labels.includes(heldLabel)) return undefined;
+  const label = issueRef.labelOf(spec.issue);
+  return `${label} is held (${heldLabel}); run /project-spec ${spec.issue.repo} ${spec.issue.number} to release it.`;
 }
 
 // A Standalone refusal's way out, said alike by each.

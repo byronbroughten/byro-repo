@@ -202,6 +202,55 @@ describe("run's Model fit refusal", () => {
   });
 });
 
+describe("run's held-spec refusal", () => {
+  const held =
+    "byro-repo #213 is held (needs-triage); run /project-spec byro-repo 213 to release it.";
+
+  it("refuses a held ticketed spec, and a held Standalone ticket, naming the spec and /project-spec", async () => {
+    addSpec([1]);
+    github.edit(spec.number, { labels: ["needs-triage"] });
+    const agentStep = FakeAgentStep.init();
+
+    const ticketed = await specRun(agentStep).run(spec);
+
+    expect(ticketed).toEqual<RunResult>({
+      kind: "refused",
+      landed: [],
+      message: held,
+    });
+    addIssue(spec.number, { labels: ["needs-triage"] });
+    github.subIssues.delete(spec.number);
+
+    const standalone = await specRun(agentStep).run(spec);
+
+    expect(standalone).toEqual<RunResult>({
+      kind: "refused",
+      landed: [],
+      message: held,
+    });
+    expect(agentStep.requests).toEqual([]);
+  });
+
+  it("still launches a ready-for-agent spec", async () => {
+    addIssue(spec.number);
+    const agentStep = FakeAgentStep.init(implemented("spec.ts"), reviewed());
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([spec]);
+  });
+
+  it("still launches a ticketed spec that carries ready-for-agent", async () => {
+    addSpec([1]);
+    github.edit(spec.number, { labels: ["ready-for-agent"] });
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+  });
+});
+
 describe("run's authorship refusal", () => {
   it("refuses a spec a stranger wrote, naming it and the login, and prints the line that approves it", async () => {
     addSpec([1]);

@@ -15,10 +15,9 @@ describe("gapCheckPrompt", () => {
     ],
   });
 
-  it("skips dropped Phases and the stories an addendum drops", () => {
-    expect(prompt).toContain(
-      "the stories of every Phase its `## Phases` section, in the body or an addendum, marks `dropped`, and every story or section an addendum drops",
-    );
+  it("skips every story or section an addendum drops, and names no Phases", () => {
+    expect(prompt).toContain("every story or section an addendum drops");
+    expect(prompt).not.toContain("Phase");
   });
 
   it("lists the spec's tickets and changes nothing", () => {

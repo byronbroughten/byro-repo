@@ -29,7 +29,7 @@ Every ticket of the spec ${spec.repo}#${spec.number}, "${title}", is closed. Lis
 
 - ${addendumLine}
 - Each User Story and each Implementation Decision is something the spec asked for. Check each one against master and the tickets below; a ticket closed as not planned landed nothing.
-- Skip what the spec no longer asks for: the stories of every Phase its \`## Phases\` section, in the body or an addendum, marks \`dropped\`, and every story or section an addendum drops.
+- Skip what the spec no longer asks for: every story or section an addendum drops.
 - A gap is something the spec still asks for that master doesn't do. A ticket that covers it differently from how the spec words it is no gap.
 
 Change nothing: no edits, commits, comments or issues. The runner posts your gaps; it never files the drafted follow-ups.
