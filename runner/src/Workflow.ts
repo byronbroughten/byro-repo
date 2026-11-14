@@ -215,6 +215,8 @@ export interface ImplementRules {
 
 export interface ReviewPromptInput extends TicketPromptFields {
   skillName: string;
+  // The committed implement record's, absent for a session review, which has none.
+  pointsWorthChecking?: string[];
 }
 
 export interface ReviewRules {
