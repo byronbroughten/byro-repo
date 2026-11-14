@@ -1,0 +1,7 @@
+# byro-repo#722 outcome
+
+Spec: [byro-repo#722](https://github.com/byronbroughten/byro-repo/issues/722)
+
+| Issue | Workflow | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #722 | code | Opus high | 5 | 11 | 156K → 128K | Fix (resumed implementer) | 2 | 1 | 0 | 0 | 28 min | $5.91 | $1.91 | Fixed: Which steps share the implementer's session is decided in two places that can drift. (runner/src/SpecRun/StepLauncher.ts:229-232, runner/src/Workflow.ts:362-367); The session schema rebuilds what recordSchema.ts's objectSchema already builds. (runner/src/Workflow.ts:397); The same-definition check is an unnamed nested block inside the reduce callback. (runner/src/Workflow.ts:376-394); The sessionSchema comment does not parse. (runner/src/AgentStep.ts:29). Proposed: A local PropertiesSchema interface and an as cast read step schemas typed only as object. (runner/src/Workflow.ts:369-371); The model no longer sees each step's required fields, so a step could return another step's fields and fail its own check. (runner/src/Workflow.ts:373-398, runner/src/ClaudeAgentStep.ts:142). | 2adc20ed-af36-4fac-bcb7-50b75d9ec34d, b4ec6b4b-8b7d-4b75-bdad-8bd73399b5bd, 1cc813ba-da61-4f5c-917f-06333681b3bc |
