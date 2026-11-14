@@ -542,6 +542,24 @@ describe("a Batch's refusal", () => {
     );
   });
 
+  it("refuses a held member, ticketed or Standalone, naming it and /project-spec", async () => {
+    addSpec([1]);
+    github.edit(spec.number, { labels: ["needs-triage"] });
+    addIssue(first.number, { labels: ["needs-triage"] });
+    addIssue(second.number);
+
+    const result = await runBatch(FakeAgentStep.init(), {
+      members: [spec, first, second],
+    });
+
+    expect(result.message).toBe(
+      [
+        "byro-repo #213: byro-repo #213 is held (needs-triage); run /project-spec byro-repo 213 to release it.",
+        "byro-repo #301: byro-repo #301 is held (needs-triage); run /project-spec byro-repo 301 to release it.",
+      ].join("\n\n"),
+    );
+  });
+
   it("accepts a member blocked by a member, and still refuses one blocked by an open issue outside the Batch", async () => {
     addIssue(first.number);
     addIssue(second.number);
