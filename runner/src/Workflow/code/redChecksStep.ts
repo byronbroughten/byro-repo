@@ -2,7 +2,11 @@
 // summary it returns. codeWorkflow.ts supplies it, and SpecRun/TicketLander/TicketChecker.ts runs it once after red checks, resuming the implementer or the fresh resolver; still red is a Failure Halt.
 
 import { stepReadLine } from "../../IssueReader.ts";
-import { commitMessageLine, unattendedRunLine } from "../../promptText.ts";
+import {
+  commitMessageLine,
+  sessionReturnOf,
+  unattendedRunLine,
+} from "../../promptText.ts";
 import { objectSchema, stringSchema } from "../../recordSchema.ts";
 import type { RedChecksPromptInput } from "../../Workflow.ts";
 
@@ -26,7 +30,7 @@ The runner's checks failed on ${issue.repo}#${issue.number}, "${title}", after i
 
 ## When you're done
 
-Return \`summary\`: one or two sentences on what was red and what you changed.
+${sessionReturnOf(["summary"])}: one or two sentences on what was red and what you changed.
 
 ## The failing checks
 

@@ -111,6 +111,7 @@ describe("run's wrap-up failures", () => {
     expect(merge?.resumeSessionId).toBe("session");
     expect(merge?.prompt).toMatch(/^You are the merge-master step/);
     expect(merge?.prompt).toContain("Merging issue-1-");
+    expect(merge?.sessionSchema).toEqual(agentStep.requests[0]?.sessionSchema);
     expect(progressLines().map(eventOf)).toContain(
       "byro-repo #1: the wrap-up conflicted with master; resuming the implementer to merge it.",
     );

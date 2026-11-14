@@ -29,6 +29,11 @@ export function codeListOf(
   return `${quoted.slice(0, -1).join(", ")} ${conjunction} ${quoted.at(-1)}`;
 }
 
+// A step of the implementer's session launches with every session step's schema under `output`, so it names its own fields (#741).
+export function sessionReturnOf(fields: readonly string[]): string {
+  return `Return \`output\` holding only ${codeListOf(fields, "and")}`;
+}
+
 export interface ReviewFindingsWording {
   // The reviewers' order, which the findings keep.
   axes: readonly Axis[];

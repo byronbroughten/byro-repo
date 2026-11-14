@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { schemaProblemsOf } from "./recordSchema.ts";
+import { schemaProblemsOf, sessionOutputOf } from "./recordSchema.ts";
 import type { TrackedIssue } from "./SpecRun/runState.ts";
 import { workflowsWith } from "./specRunHarness.ts";
 import { trackedIssues } from "./specRunHarness/trackedIssues.ts";
@@ -72,55 +72,69 @@ describe("sessionSchemaOf", () => {
     },
   };
 
-  it("names the fields of every step that shares the implementer's session, and no other's", () => {
+  // #737's resolve record from #723's run, byro-repo-737-32-resolve.output.txt, trimmed to one record.
+  const resolveWithSummary = {
+    records: [
+      {
+        finding: 3,
+        axis: "standards",
+        where: "runner/src/specRunHarness/stepResults.ts:132-140",
+        claim:
+          "implemented() gains an inline `change` bag that recordOf also declares.",
+        verdict: "dismiss",
+        reason: "false-positive",
+        evidence:
+          "They share only the one field `change?: Partial<ImplementRecord>`, which is already a named type.",
+      },
+    ],
+    summary:
+      "I fixed findings 1 and 2 in commit 60fde8af and dismissed 3–9 with evidence.",
+  };
+
+  it("refuses a record holding a field of another session step's, as #737's resolver returned", () => {
     expect(
-      Object.keys(
-        (sessionSchemaOf(code) as { properties: object }).properties,
-      ).sort(),
-    ).toEqual(["files", "record", "records", "summary", "unsure"]);
-    expect(
-      Object.keys(
-        (sessionSchemaOf(piece) as { properties: object }).properties,
-      ).sort(),
-    ).toEqual(["record", "records", "summary"]);
+      schemaProblemsOf(sessionSchemaOf(code), { output: resolveWithSummary }),
+    ).not.toEqual([]);
   });
 
-  it("passes each session step's record, and refuses a field none of them has", () => {
-    const schema = sessionSchemaOf(code);
-
-    expect(schemaProblemsOf(schema, blocked)).toEqual([]);
-    expect(schemaProblemsOf(schema, { records: [] })).toEqual([]);
-    expect(schemaProblemsOf(schema, { summary: "Fixed the lint." })).toEqual(
-      [],
-    );
-    expect(
-      schemaProblemsOf(schema, {
+  it.each([
+    { workflow: code, step: "implement", record: blocked },
+    { workflow: code, step: "resolve", record: { records: [] } },
+    { workflow: code, step: "redChecks", record: { summary: "Fixed lint." } },
+    {
+      workflow: code,
+      step: "mergeMaster",
+      record: {
         summary: "Both sides renamed it.",
         files: ["byro-repo runner/src/Workflow.ts"],
-      }),
-    ).toEqual([]);
-    expect(schemaProblemsOf(schema, { findings: [] })).toEqual([
-      "/ must NOT have additional properties",
-    ]);
-  });
-
-  it("throws when two session steps define one field differently", () => {
-    const clashing = {
-      ...code,
-      agentSteps: {
-        ...code.agentSteps,
-        mergeMaster: {
-          promptOf: () => "",
-          outputSchema: {
-            type: "object",
-            properties: { summary: { type: "integer" } },
-          },
-        },
       },
-    };
+    },
+    { workflow: piece, step: "implement", record: blocked },
+    { workflow: piece, step: "resolve", record: { records: [] } },
+    { workflow: piece, step: "redChecks", record: { summary: "Cut a line." } },
+  ] as const)(
+    "passes the $workflow.name $step record under `output`, then unwrapped through the step's own schema",
+    ({ workflow, step, record }) => {
+      const sessionRecord = { output: record };
 
-    expect(() => sessionSchemaOf(clashing)).toThrow(
-      "The code Workflow's session steps define `summary` differently.",
+      expect(
+        schemaProblemsOf(sessionSchemaOf(workflow), sessionRecord),
+      ).toEqual([]);
+      expect(
+        schemaProblemsOf(
+          agentStepOf(workflow, step).outputSchema,
+          sessionOutputOf(sessionRecord),
+        ),
+      ).toEqual([]);
+    },
+  );
+
+  it("refuses a record outside `output`, or a field no session step has", () => {
+    const schema = sessionSchemaOf(code);
+
+    expect(schemaProblemsOf(schema, { records: [] })).not.toEqual([]);
+    expect(schemaProblemsOf(schema, { output: { findings: [] } })).not.toEqual(
+      [],
     );
   });
 });

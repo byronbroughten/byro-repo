@@ -91,7 +91,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `progressLines.ts` | | The progress-log lines, written and parsed in pairs. |
 | `ProgressLog.ts` | | A progress log's lines and what the Run board reads from them: the current ticket, the account and the latest line. |
 | `promptText.ts` | | Wording helpers the step prompts and the runner's comments share. |
-| `recordSchema.ts` | | Schema parts the step records share, the implement record's variants, the review record built from a Workflow's axes and the gap-check record among them, and their validator. |
+| `recordSchema.ts` | | Schema parts the step records share, the implement record's variants, the review record built from a Workflow's axes and the gap-check record among them, the `output` wrapper a session step's record sits under and its unwrap, and their validator. |
 | `resolveRecords.ts` | | The resolve record every Workflow's resolve step returns: its schema, numbered findings, retry prompt, record and commit checks, and the builder of a Workflow's resolve rules, resolve resuming implement. |
 | `reviewList.ts` | `reviewList` | The review list's comment formats, a research ticket's unwanted Unverified facts' audit among them, and undecided count, `runner decide`'s edit marking one item decided or handled, and a session re-review's merge into the posted list. |
 | `runBoard.ts` | `runBoard` | The Run board behind `runner status` and `runner watch` with no spec. |

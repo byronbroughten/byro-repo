@@ -1,7 +1,11 @@
 // The merge-master step's prompt and record; codeWorkflow.ts supplies it, and SpecRun/TicketLander/MasterMerger.ts runs it once on a wrap-up conflict.
 
 import { stepReadLine } from "../../IssueReader.ts";
-import { commitMessageLine, unattendedRunLine } from "../../promptText.ts";
+import {
+  commitMessageLine,
+  sessionReturnOf,
+  unattendedRunLine,
+} from "../../promptText.ts";
 import { arraySchema, objectSchema, stringSchema } from "../../recordSchema.ts";
 import type { MergeMasterPromptInput } from "../../Workflow.ts";
 
@@ -30,7 +34,7 @@ Landing ${issue.repo}#${issue.number}, "${title}", conflicted with master, which
 
 ## When you're done
 
-Return \`summary\`, one or two sentences on what conflicted and how you resolved it, and \`files\`, each file that conflicted as \`<repo> <path>\`, adding \`unsure\` only when you couldn't tell.
+${sessionReturnOf(["summary", "files", "unsure"])}: \`summary\`, one or two sentences on what conflicted and how you resolved it, \`files\`, each file that conflicted as \`<repo> <path>\`, and \`unsure\` only when you couldn't tell.
 
 ## The conflict
 
