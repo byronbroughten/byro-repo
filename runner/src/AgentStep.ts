@@ -26,7 +26,7 @@ export interface StepRequest {
   targets: Target[];
   // The schema the step's record is checked against.
   jsonSchema: object;
-  // Launched with in jsonSchema's place: one schema for every step of a session, since a changed schema loses the resume its prompt cache (#722).
+  // Launched with in jsonSchema's place: one schema for every step of a session, since a resume under a changed schema loses its prompt cache (#722).
   sessionSchema?: object;
   resumeSessionId?: string;
   // The peak context past which the adapter kills the session.

@@ -11,6 +11,7 @@
 import type { Docs } from "./Docs.ts";
 import type { HaltQuestion } from "./halts.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
+import { objectSchema } from "./recordSchema.ts";
 import type { Command } from "./runKnobs.ts";
 import type {
   PullBaseline,
@@ -31,6 +32,7 @@ import type {
   ResolveRecord,
 } from "./stepRecords.ts";
 import type { Target } from "./ticketTargets.ts";
+import type { StepAgent } from "./transcriptFacts.ts";
 
 const workflowNames = ["code", "piece"] as const;
 
@@ -366,6 +368,11 @@ const sessionStepNames = [
   "mergeMaster",
 ] as const;
 
+// Red-checks and merge-master launch as resolve, so these two step agents cover every session step.
+export function sharesImplementerSession(agent: StepAgent): boolean {
+  return agent === "implement" || agent === "resolve";
+}
+
 interface PropertiesSchema {
   properties?: Record<string, object>;
 }
@@ -374,16 +381,10 @@ interface PropertiesSchema {
 export function sessionSchemaOf(workflow: Workflow): object {
   const properties = sessionStepNames.reduce<Record<string, object>>(
     (merged, name) => {
-      const schema = workflow.agentSteps[name]?.outputSchema as
-        PropertiesSchema | undefined;
       for (const [field, fieldSchema] of Object.entries(
-        schema?.properties ?? {},
+        propertiesOf(workflow, name),
       )) {
-        const held = merged[field];
-        if (
-          held !== undefined &&
-          JSON.stringify(held) !== JSON.stringify(fieldSchema)
-        ) {
+        if (isDefinedDifferently(merged[field], fieldSchema)) {
           throw new Error(
             `The ${workflow.name} Workflow's session steps define \`${field}\` differently.`,
           );
@@ -394,7 +395,24 @@ export function sessionSchemaOf(workflow: Workflow): object {
     },
     {},
   );
-  return { type: "object", properties, additionalProperties: false };
+  return objectSchema(properties, { optional: Object.keys(properties) });
+}
+
+function propertiesOf(
+  workflow: Workflow,
+  name: keyof AgentSteps,
+): Record<string, object> {
+  const schema = workflow.agentSteps[name]?.outputSchema as
+    PropertiesSchema | undefined;
+  return schema?.properties ?? {};
+}
+
+function isDefinedDifferently(
+  held: object | undefined,
+  fieldSchema: object,
+): boolean {
+  if (held === undefined) return false;
+  return JSON.stringify(held) !== JSON.stringify(fieldSchema);
 }
 
 // "<name> Workflow has no <step> step", for every message that names a step a Workflow leaves out.
