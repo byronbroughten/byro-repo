@@ -215,7 +215,7 @@ The work one spec in a Project defines. A Project of one spec has one Phase and 
 _Avoid_: stage, milestone, step
 
 **Phase gate**:
-The developer's go, reshape or drop review, run with `/project-spec <repo> <n>`, between one Phase landing and the next being ticketed. It is not a ticket.
+The developer's go, reshape or drop review, run with `/project-spec`, between one Phase landing and the next being ticketed. It is not a ticket.
 _Avoid_: checkpoint, gate (bare), kill point
 
 **Workflow**:

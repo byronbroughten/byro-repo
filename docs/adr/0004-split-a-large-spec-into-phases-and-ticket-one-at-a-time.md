@@ -4,4 +4,4 @@
 
 Source: byronbroughten/byro-repo#251
 
-Phases inside a spec were removed by #729: a Project's Phases are separate specs now. Its argument for ticketing one batch at a time still holds.
+Phases inside a spec were removed by #729: a Project's Phases are separate specs now. Its argument for ticketing one Phase at a time still holds.
