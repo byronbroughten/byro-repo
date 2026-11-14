@@ -1,0 +1,7 @@
+# byro-repo#741 outcome
+
+Spec: [byro-repo#741](https://github.com/byronbroughten/byro-repo/issues/741)
+
+| Issue | Workflow | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #741 | code | Opus medium | 4 | 22 | 157K → 77K | Fix (resumed implementer) | 1 | 1 | 0 | 0 | 23 min | $4.52 | $1.30 | Fixed: The unwrap comment's "as before" leans on history. (runner/src/StepStream.ts:224); The rewritten resolveRecordFields comment is wrong for the /implement-code skill, which places it after `{ "records": [...] }`. (runner/src/stepPrompts/resolveText.ts:16); sessionSchemaOver is a made-up name one preposition from sessionSchemaOf. (runner/src/recordSchema.ts:126); The unwrap keys on any sessionSchema, with nothing tying it to the `output` wrapper. (runner/src/StepStream.ts:223-225); The implement step's resume prompts still return the record without naming `output`. (runner/src/stepPrompts/resumePrompts.ts:6,13,21; runner/src/halts.ts:382,401). Proposed: The red-checks and implement 'when you're done' lines are duplicated across the code and piece Workflows. (runner/src/Workflow/code/redChecksStep.ts:33, runner/src/Workflow/piece/redChecksStep.ts:29, both implementStep.ts files). | c8a0b76a-7dc6-4414-a83f-cf8db276ffd6, 9cb280ee-b340-4f75-8016-db098cad46dc, aa0e4ce4-76dd-494a-adb2-192ddee9b569 |
