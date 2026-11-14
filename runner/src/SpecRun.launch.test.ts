@@ -239,6 +239,16 @@ describe("run's held-spec refusal", () => {
 
     expect(result.landed).toEqual([spec]);
   });
+
+  it("still launches a ticketed spec that carries ready-for-agent", async () => {
+    addSpec([1]);
+    github.edit(spec.number, { labels: ["ready-for-agent"] });
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+  });
 });
 
 describe("run's authorship refusal", () => {

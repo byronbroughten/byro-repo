@@ -542,6 +542,24 @@ describe("a Batch's refusal", () => {
     );
   });
 
+  it("still launches a ready-for-agent Standalone member beside a ready-for-agent spec", async () => {
+    addSpec([1]);
+    github.edit(spec.number, { labels: ["ready-for-agent"] });
+    addIssue(first.number);
+
+    const result = await runBatch(
+      FakeAgentStep.init(
+        implemented("one.ts"),
+        reviewed(),
+        implemented("first.ts"),
+        reviewed(),
+      ),
+      { members: [spec, first] },
+    );
+
+    expect(result.landed).toEqual([refOf(1), first]);
+  });
+
   it("refuses a held member, ticketed or Standalone, naming it and /project-spec", async () => {
     addSpec([1]);
     github.edit(spec.number, { labels: ["needs-triage"] });
