@@ -91,5 +91,6 @@ A piece spec never closes here; end it as [`piece.md`](./piece.md#the-ending) sa
 1. Close the spec: `gh issue close -R <owner>/<repo> <spec> --comment "Every review-list item is decided and every sub-issue is closed."`
 2. Remind the developer to run `/to-code-style`. Name each keep reason approved more than once (the `Drafted keep:` line of each item decided `keep approved`, or for a list posted before #298 its `keep approved:` reason, across the spec's review lists, same reason in different words included) as a candidate approved exception for `docs/agents/verdicts.md`.
 3. Prompt the developer to run `/mine-outcomes <repo> <spec>` on the spec's outcome rows.
+4. List the open issues the spec blocks by [the issue tracker doc's Blocking command](../../../docs/agents/issue-tracker.md#wayfinding-operations). Name each one labelled `needs-triage`, a held spec now due its Phase gate, and recommend `/project-spec <repo> <n>` for it, `<repo>` and `<n>` read from its URL.
 
 Otherwise, end by saying what is left: undecided items, and open sub-issues by number.
