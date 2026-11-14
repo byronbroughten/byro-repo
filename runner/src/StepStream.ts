@@ -220,7 +220,7 @@ function outputOf(
     const problems = ["no structured output"];
     return { status: "schemaFailure", rawOutput: resultText, problems };
   }
-  let record = structured;
+  let record: unknown = structured;
   // A session step's record is unwrapped here only, so its own schema and every reader see it as before.
   if (sessionSchema !== undefined) record = sessionOutputOf(structured);
   if (record === undefined) {
