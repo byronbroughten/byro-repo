@@ -15,12 +15,23 @@ export function reviewPrompt({
   skillName,
   branch,
   branchedRepos,
+  pointsWorthChecking = [],
 }: ReviewPromptInput): string {
-  return `You are the review step of an unattended run. ${unattendedRunLine()}
+  return [
+    `You are the review step of an unattended run. ${unattendedRunLine()}`,
+    `Call the Skill tool with "${skillName}" to review ${issue.repo}#${issue.number}, "${title}", on both axes, with \`master\` as the fixed point. Your working directory is the ticket's issue workspace root; these repos are on the ticket's branch, \`${branch}\`: ${branchedRepos.join(", ")}. Review each one's changes. ${stepReadLine}`,
+    ...pointsSectionsOf(pointsWorthChecking),
+    `Change nothing: no edits, commits, comments or fixes. Return the review record: ${reviewFindingsText({ axes: codeAxes, where: "its file:line or area", claim: "what it says, in a line" })}`,
+  ].join("\n\n");
+}
 
-Call the Skill tool with "${skillName}" to review ${issue.repo}#${issue.number}, "${title}", on both axes, with \`master\` as the fixed point. Your working directory is the ticket's issue workspace root; these repos are on the ticket's branch, \`${branch}\`: ${branchedRepos.join(", ")}. Review each one's changes. ${stepReadLine}
-
-Change nothing: no edits, commits, comments or fixes. Return the review record: ${reviewFindingsText({ axes: codeAxes, where: "its file:line or area", claim: "what it says, in a line" })}`;
+// Empty when the implementer named none, so the prompt is the one a session review gets.
+function pointsSectionsOf(points: string[]): string[] {
+  if (points.length === 0) return [];
+  return [
+    `## The implementer's points worth checking\n\n${points.map((point) => `- ${point}`).join("\n")}`,
+    "These are where the implementer suspects its work is weak, unfinished or easy to get wrong. When you brief the reviewers, paste it into both reviewers' briefs, Standards and Spec alike, as things to check, not as findings: each reviewer reports only what it confirms.",
+  ];
 }
 
 export const reviewRecordSchema = reviewRecordSchemaOf(codeAxes);

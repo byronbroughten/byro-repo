@@ -10,6 +10,8 @@ export type ImplementRecord =
 
 export interface CommittedRecord extends RecordBody {
   status: "committed";
+  // A code implementer's own: where it suspects its work is weak, each a line naming its file or area, for the review's briefs.
+  pointsWorthChecking?: string[];
 }
 
 // A ticket that needed only GitHub writes and no code.
@@ -66,6 +68,14 @@ export function implementRecordProblems(
 
 function newCommitProblem(rule: string): string {
   return `${rule}, but the step made a new commit`;
+}
+
+// Undefined for a session review, which has no implement record, and for a record that named none.
+export function pointsWorthCheckingOf(
+  record: ImplementRecord | undefined,
+): string[] | undefined {
+  if (record?.status !== "committed") return undefined;
+  return record.pointsWorthChecking;
 }
 
 export function implementRecordOf<IR extends ImplementRecord>(

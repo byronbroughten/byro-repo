@@ -74,7 +74,8 @@ const promptSections = {
   - \`githubWrites\`: only when applied, each GitHub write you made: its issue as \`owner/repo#n\`, its action (\`edit\` or \`comment\`), its URL and a one-line summary.
   - \`closingComment\`: what landed, for the ticket's closing comment.
   - \`boxesUndone\`: each acceptance box you left undone, with why.
-  - \`blockers\`: each blocker, as above.`,
+  - \`blockers\`: each blocker, as above.
+  - \`pointsWorthChecking\`: optional, only when committed: each place you suspect is weak, unfinished or easy to get wrong, a line naming its file or area. The review hands them to its reviewers as things to check.`,
 
   handoff: handoffText.nudgeSectionOf({
     inHand: "step",
@@ -96,9 +97,14 @@ const gitHubWriteSchema = objectSchema({
 // One variant per status, so only the status that needs a field carries it.
 const recordVariantsSchema = {
   oneOf: [
-    implementVariantSchema("committed", {
-      branches: arraySchema(branchSchema, { minItems: 1 }),
-    }),
+    implementVariantSchema(
+      "committed",
+      {
+        branches: arraySchema(branchSchema, { minItems: 1 }),
+        pointsWorthChecking: arraySchema(stringSchema),
+      },
+      { optional: ["pointsWorthChecking"] },
+    ),
     implementVariantSchema("applied", {
       branches: arraySchema(branchSchema, { maxItems: 0 }),
       githubWrites: arraySchema(gitHubWriteSchema, { minItems: 1 }),

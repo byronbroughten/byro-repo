@@ -67,17 +67,21 @@ export const handoffSchema = objectSchema(
 export function implementVariantSchema(
   status: ImplementRecord["status"],
   overrides: Record<string, object>,
+  { optional = [] }: { optional?: string[] } = {},
 ): object {
-  return objectSchema({
-    status: { const: status },
-    branches: arraySchema(branchSchema),
-    closingComment: stringSchema,
-    boxesUndone: arraySchema(
-      objectSchema({ box: stringSchema, reason: stringSchema }),
-    ),
-    blockers: arraySchema(blockerSchema),
-    ...overrides,
-  });
+  return objectSchema(
+    {
+      status: { const: status },
+      branches: arraySchema(branchSchema),
+      closingComment: stringSchema,
+      boxesUndone: arraySchema(
+        objectSchema({ box: stringSchema, reason: stringSchema }),
+      ),
+      blockers: arraySchema(blockerSchema),
+      ...overrides,
+    },
+    { optional },
+  );
 }
 
 export const uncommittedVariantSchemas = {

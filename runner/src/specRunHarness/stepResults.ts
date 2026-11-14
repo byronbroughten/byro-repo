@@ -129,7 +129,15 @@ export const stepResults = {
   // Commits `file` on the ticket's branch in the workspace, as a real implement step would.
   implemented(
     file: string,
-    { content = "export {};\n", act = () => {} } = {},
+    {
+      content = "export {};\n",
+      act = () => {},
+      change = {},
+    }: {
+      content?: string;
+      act?: () => void;
+      change?: Partial<ImplementRecord>;
+    } = {},
   ): StepScript {
     return async (request: StepRequest) => {
       act();
@@ -143,6 +151,7 @@ export const stepResults = {
         stepResults.recordOf({
           branch: git(request.cwd, "branch", "--show-current"),
           sha: git(request.cwd, "rev-parse", "HEAD"),
+          change,
         }),
       );
     };

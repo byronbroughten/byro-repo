@@ -40,6 +40,10 @@ _Avoid_: check lock, check queue
 The structured output an agent step returns, validated against the runner's schema: the implement record from the implement step and one resolve record per finding from resolve. A record failing the schema gets one retry.
 _Avoid_: report, result, output
 
+**Points worth checking**:
+An optional list in a code ticket's committed implement record: each place the implementer suspects is weak, unfinished or easy to get wrong, a line naming its file or area. The review step's prompt hands it to the review, which pastes it into both reviewers' briefs as things to check, not findings; with no list, or in an interactive session's review, the prompt says nothing of it. After a handoff, the list is the one in the record that ends the implement step.
+_Avoid_: hints, known issues, self-review
+
 **Handoff**:
 An implement step's ending that passes unfinished work, with a written account of it, to a fresh implement step on the same ticket. A ticket past its handoff cap gets a Failure Halt saying to split it.
 _Avoid_: retry, restart
