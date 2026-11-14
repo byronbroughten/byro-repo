@@ -163,7 +163,7 @@ A Claude session the developer drives, as opposed to a run's agent steps.
 _Avoid_: hand session, manual session
 
 **Interactive ticket**:
-A ticket an agent can do only in an Interactive session, because its work needs the developer's yes; during a run the Supervisor takes it. A ticket only the developer can do, such as a Phase gate or a step in the real world, is a human ticket instead.
+A ticket an agent can do only in an Interactive session, because its work needs the developer's yes; during a run the Supervisor takes it. A ticket only the developer can do, such as a step in the real world, is a human ticket instead.
 _Avoid_: supervisor ticket, permission ticket, escalation ticket
 
 **Supervisor**:
@@ -206,12 +206,16 @@ _Avoid_: external input, user content
 A disposable set of checkouts, one per repo, each detached at its master, rebuilt when a ticket's checks go red, so checking master there sees master's commits and nothing uncommitted.
 _Avoid_: clean checkout, master workspace
 
+**Project**:
+The specs one `/project-spec` run files from one planning conversation, in blocked-by order.
+_Avoid_: epic, initiative, programme
+
 **Phase**:
-A batch of a spec's tickets that can be used in real work, ending where that use could change or cancel what follows. Not a tracer bullet: a Phase is usually several.
+The work one spec in a Project defines. A Project of one spec has one Phase and no Phase gate.
 _Avoid_: stage, milestone, step
 
 **Phase gate**:
-The developer's ticket that closes a Phase. It tests what the Phase built and decides whether the next Phase goes ahead, changes or is dropped.
+The developer's go, reshape or drop review, run with `/project-spec <repo> <n>`, between one Phase landing and the next being ticketed. It is not a ticket.
 _Avoid_: checkpoint, gate (bare), kill point
 
 **Workflow**:
