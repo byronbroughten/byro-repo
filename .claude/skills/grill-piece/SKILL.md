@@ -1,6 +1,6 @@
 ---
 name: grill-piece
-description: "Grill the developer on a writing Piece: read its Supporting Material first, ask grilling.md's questions in rounds with drafted answers, then end with the calibration paragraph and an Outline for approval. /piece-spec files the result."
+description: "Grill the developer on a writing Piece: read its Supporting Material first, ask grilling.md's questions in rounds with drafted answers, then end with the calibration paragraph and an Outline for approval. /project-spec files the result."
 disable-model-invocation: true
 ---
 
@@ -50,15 +50,15 @@ Every question carries a recommendation:
 - **A factual question's** is drafted from the files and cites the file it came from.
 - **A voice question's**, one grilling.md names, quotes the developer's own text from Drive when one exists, cited. Otherwise it is a first draft labelled _draft, reword it_, given with the question, never on request. The developer rewords it or keeps it as drafted; either makes it their answer.
 
-**Write a term settled in the grill into the writing glossary, `docs/pieces/GLOSSARY.md`, at once**, in its existing entry shape; that is the only file written before `/piece-spec`.
+**Write a term settled in the grill into the writing glossary, `docs/pieces/GLOSSARY.md`, at once**, in its existing entry shape; that is the only file written before `/project-spec`.
 
 ## 4. End
 
 1. **The calibration paragraph.** Once the questions before it are answered, draft one paragraph in chat and have the developer rewrite it. Name each difference, then ask whether it holds for this Piece alone, which makes it a style override for the Style field, or for every Piece, which makes it a `/to-writing-style` candidate. In #1, one rewrite would have surfaced the name-not-pronoun, verdict-first and serial-comma habits before the full draft.
 2. **The Outline.** Read [`docs/pieces/outlining.md`](../../../docs/pieces/outlining.md), then draft it from the settled facts for the developer's approval.
-3. **Research, Final pass and Split**: ask grilling.md's three questions that wait on the Outline in one round once it is approved, so all ten [`/piece-spec`](../piece-spec/SKILL.md#1-fill-the-ten-fields) fields are settled.
+3. **Research, Final pass and Split**: ask grilling.md's three questions that wait on the Outline in one round once it is approved, so all ten [`/project-spec`](../project-spec/SKILL.md#3-fill-a-piece-specs-ten-fields) fields are settled.
 4. **The `/to-writing-style` candidates**: list each difference that holds for every Piece in chat, unwritten, for that skill's approval.
 
 5. **Delete the PDFs step 2 downloaded**, by the paths it got back; each later stage downloads the ranges it reads.
 
-Done when every grilling.md question has an answer (the developer's words, or a draft they kept) or the developer's waiver, the calibration paragraph is rewritten, the Outline is approved, the candidates are listed and the downloads are gone. End by recommending `/piece-spec <repo>`, `<repo>` being the one that files the spec.
+Done when every grilling.md question has an answer (the developer's words, or a draft they kept) or the developer's waiver, the calibration paragraph is rewritten, the Outline is approved, the candidates are listed and the downloads are gone. End by recommending `/project-spec`, naming the repo that files the spec.

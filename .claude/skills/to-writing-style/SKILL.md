@@ -1,6 +1,6 @@
 ---
 name: to-writing-style
-description: "Turn the developer's rewrites and rejections of reader-facing prose an agent wrote (Google Docs, blog posts, in-app text, academic writing) into proposed updates to the writing style sheets (docs/writing-voice.md, docs/writing-craft.md, docs/academic-writing-style.md) and to the piece-spec grilling doc (docs/pieces/grilling.md). Mines a session transcript (this session or another agent's), or a Piece's Agent draft against its edited Deliverable. Not for code, comments, commits or agent docs; those go to /to-code-style."
+description: "Turn the developer's rewrites and rejections of reader-facing prose an agent wrote (Google Docs, blog posts, in-app text, academic writing) into proposed updates to the writing style sheets (docs/writing-voice.md, docs/writing-craft.md, docs/academic-writing-style.md) and to the piece grilling doc (docs/pieces/grilling.md). Mines a session transcript (this session or another agent's), or a Piece's Agent draft against its edited Deliverable. Not for code, comments, commits or agent docs; those go to /to-code-style."
 disable-model-invocation: true
 ---
 

@@ -6,7 +6,7 @@
 ## Piece specs
 
 - **A piece spec is grilled with `/grill-piece`**, which runs [`docs/pieces/grilling.md`](../pieces/grilling.md).
-- **A piece spec is filed with `/piece-spec` and split with `/piece-tickets`**, never `/code-spec` or `/code-tickets`.
+- **A piece spec is filed with `/project-spec` and split with `/piece-tickets`**, never `/code-tickets`.
 - **Every piece spec gets tickets: at least one drafting ticket, and its Edit gate last**, a `ready-for-human` ticket blocked by every drafting ticket ([`/piece-tickets`](../../.claude/skills/piece-tickets/SKILL.md)).
 
 ## Code in specs
@@ -26,17 +26,19 @@
 
 ## Phases
 
-- **Split a spec into Phases only at a boundary where real use could change or cancel what follows.** Ticket count is never the reason, a feature whose value is already certain gets tickets rather than a gate, and a spec with no such boundary stays unphased.
-- **A Phase is not a tracer bullet**: a tracer bullet is one verifiable slice, and a Phase is usually several that together can be used in real work.
-- **Phase 1 is the smallest usable Phase**, and the spec names the stand-ins it runs on until a later Phase replaces them.
-- **A phased spec has a `## Phases` section**: one line per Phase with its user story numbers and a status, `planned`, `ticketed`, `done` or `dropped`, a dropped one linking the gate that dropped it. Every Phase after the next is an outline marked provisional.
-- **Only the next Phase is ticketed, by `/code-tickets`, which also writes and closes each Phase gate**, the developer's `ready-for-human` go, reshape or drop ticket ending every Phase but the last: its [publish step](../../.claude/skills/code-tickets/SKILL.md#6-publish-the-tickets-to-the-configured-tracker), the gate template after that step's list, and [From a Phase gate](../../.claude/skills/code-tickets/SKILL.md#from-a-phase-gate).
+Each Phase is a spec of its own, filed with the rest of its Project by [`/project-spec`](../../.claude/skills/project-spec/SKILL.md), which also runs each Phase gate.
+
+- **Split work into several specs for a gate (real use could change or cancel what follows) or for size (a spec headed past about 55 user stories or about 25K characters of body).** The size line is fuzzy, weighed with the other considerations, and `/mine-outcomes` may retune it.
+- **Each spec stands on its own: it lands green and leaves master consistent, with nothing half-migrated.** Operator-visible value is preferred; an enabling spec is allowed when no such slice fits, and its Problem Statement says so.
+- **A spec that replaces something also removes the old version, docs included.** That removal and any docs sweep are tickets in that spec, never specs of their own.
+- **A Phase is not a tracer bullet**: a tracer bullet is one verifiable slice, and a Phase is a spec, usually several slices that together can be used in real work.
+- **The first Phase is the smallest usable spec**, and it names the stand-ins it runs on until a later Phase replaces them.
 
 ## Ticket size
 
 - **Size each ticket so one session finishes it without `/context` going much over the ticket budget (default ~150K); prefer 110–125K when a green seam makes that easy.** About 25K is fixed overhead before the first prompt.
 - **Merge tickets so fewer are estimated under 90K, and never make one estimated over 150K**; a target `/code-tickets` can override with a stated reason. Each ticket pays a cold start of ~95K of context across implement, the review orchestrator and two reviewers, so a small ticket costs more per file, and cost per file flattens from ~110K ([estimates](./codebase-priorities/estimates.md#cost-per-ticket), [the review step's split](./codebase-priorities/estimates.md#steps)).
-- **Merge only tickets with the same Model fit pair, in the same Phase, neither blocking the other**: a merged ticket never needs a stronger pair, so a Sonnet 60K ticket and an Opus 60K one stay two tickets.
+- **Merge only tickets with the same Model fit pair, neither blocking the other**: a merged ticket never needs a stronger pair, so a Sonnet 60K ticket and an Opus 60K one stay two tickets.
 - **Estimate a ticket as fixed overhead + reads + a work allowance of ~55K for a runner step or ~85K for an interactive session**, covering thinking, Edit and Write bodies, check loops and other tool output ([`estimates.md`](./codebase-priorities/estimates.md#work)).
 - **Reads are the files it changes, counted by grepping the names each draft ticket renames or retypes, plus the files it reads beside them, the docs the read-by-task table requires, the issues it links and ~5K of re-reads of the files it edits.**
 - **A file the ticket edits counts at its full size when it is under ~300 lines or the change adds code that depends on the rest of it**, in every ticket that edits it.
@@ -50,8 +52,8 @@
 ## Model fit
 
 - **The pair lives in the ticket: a `## Model fit` section, last in the body, holding a pair line, then a one-line reason**, with `~NK` in the reason only for a ticket near its budget.
-- **`/code-tickets`, `/code-spec` and `/piece-tickets` write the section**, each by its own rule: [which tickets, and the read-back](../../.claude/skills/code-tickets/SKILL.md#7-read-back-the-model-fit), [which specs](../../.claude/skills/code-spec/SKILL.md), in the paragraph after its spec template, and [every `ready-for-agent` piece ticket](../../.claude/skills/piece-tickets/SKILL.md#3-file-the-tickets).
-- **`/piece-spec` writes none**: a piece spec's pairs are its tickets'.
+- **`/code-tickets`, `/project-spec` and `/piece-tickets` write the section**, each by its own rule: [which tickets, and the read-back](../../.claude/skills/code-tickets/SKILL.md#7-read-back-the-model-fit), [which code specs](../../.claude/skills/project-spec/SKILL.md#5-write-each-spec), in the paragraph after its code template, and [every `ready-for-agent` piece ticket](../../.claude/skills/piece-tickets/SKILL.md#3-file-the-tickets).
+- **`/project-spec` writes none in a piece spec**: a piece spec's pairs are its tickets'.
 - **The developer switches with `/model` and `/effort`**; never dispatch an implementer.
 - **A Model fit check compares the model only**: the agent can't see `/effort`, so it names an effort only when the developer has said what it is.
 - **Pick from six pairs only:** Haiku medium, Sonnet medium, Sonnet high, Opus low, Opus medium, Opus high. Criteria for each and their evidence: [`model-fit.md`](./model-fit.md).
