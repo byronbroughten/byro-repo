@@ -79,11 +79,7 @@ export const npmCommands = {
     if (!npmVerbs.run.has(rest[0] ?? "") || !rest[1]) return undefined;
     return { name: rest[1], args: rest.slice(2) };
   },
-  // The program a command runs, through npx or npm exec, without its path or version.
-  programOf(words: string[]): string | undefined {
-    return npmCommands.programRunOf(words)?.program;
-  },
-  // The program a command runs, as `programOf` names it, and the words after it.
+  // The program a command runs, through npx or npm exec, without its path or version, and the words after it.
   programRunOf(words: string[]): ProgramRun | undefined {
     let rest = words;
     if (basenameOf(words[0] ?? "") === "npx") rest = words.slice(1);
