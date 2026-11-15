@@ -233,7 +233,7 @@ export class ReviewStepper extends SpecRunBase {
     const { run, ticket, workspace, state } = ticketRun;
     state.resolveRecords = records;
     if (!ticketSteps.isSameHeads(base, await this._headsOf(workspace))) {
-      state.resolver = "implementer";
+      state.hasFixes = true;
     }
     runHalts.raise(run, {
       ticket: ticket.issue,

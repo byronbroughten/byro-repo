@@ -140,22 +140,29 @@ describe("run's resume", () => {
       expect.objectContaining({ agent: "resolve" }),
     ]);
     expect(state).toMatchObject({
-      resolver: "fresh",
+      hasFixes: true,
       resolveRecords: [{ finding: 1, verdict: "dismiss" }],
     });
     ["fixer", "triageSession", "triage", "fixBase"].forEach((oldName) => {
       expect(state).not.toHaveProperty(oldName);
     });
-    expect(ticketFacts().reviewFixes).toBe("fresh");
+    expect(ticketFacts().reviewFixes).toBe("implementer");
   });
 
-  it("resumes a run state that names a fresh resolver's session, dropping it", async () => {
-    await killAtResolveSavedAs({ resolverSession: "resolver-session" });
+  it("resumes a run state that names a fresh resolver and its session, reading the resolver as fixes and dropping the session", async () => {
+    await killAtResolveSavedAs({
+      resolver: "fresh",
+      resolverSession: "resolver-session",
+    });
 
     const result = await specRun(dismissingResolver()).run(spec);
 
     expect(result.landed).toEqual([refOf(1)]);
-    expect(ticketState()["byro-repo #1"]).not.toHaveProperty("resolverSession");
+    const state = ticketState()["byro-repo #1"];
+    expect(state).toMatchObject({ hasFixes: true });
+    for (const oldName of ["resolver", "resolverSession"]) {
+      expect(state).not.toHaveProperty(oldName);
+    }
   });
 
   it("records a resumed state's sessions each under its own saved account and folder, leaving out an older one with no account", async () => {

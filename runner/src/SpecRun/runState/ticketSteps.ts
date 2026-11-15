@@ -224,7 +224,7 @@ export const ticketSteps = {
   // The spec's Workflow words what review caught, so a piece row names no private prose.
   reviewFactsOf(
     {
-      resolver,
+      hasFixes,
       resolveRecords = [],
       mergeMasterRecord,
       unrecordedMerge,
@@ -232,7 +232,7 @@ export const ticketSteps = {
     workflow: Workflow,
   ): ReviewFacts {
     const facts: ReviewFacts = {
-      reviewFixes: resolver ?? "none",
+      reviewFixes: hasFixes ? "implementer" : "none",
       whatReviewCaught: workflow.whatReviewCaughtOf(resolveRecords),
       proposals: resolveRecords.filter(({ verdict }) => verdict === "propose")
         .length,

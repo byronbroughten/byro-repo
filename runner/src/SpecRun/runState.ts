@@ -112,9 +112,6 @@ export type TicketStep =
   | "landed"
   | "stopped";
 
-// "fresh" is found only in states and facts an older runner saved, when a fresh resolver could resolve.
-export type Resolver = "implementer" | "fresh";
-
 // Each worktree's clone path to its HEAD.
 export type Heads = Record<string, string>;
 
@@ -133,8 +130,8 @@ export interface TicketState {
   // A piece review's, which the piece checks leave standing.
   dismissedOverlaps?: DismissedOverlap[];
   resolveRecords?: ResolveRecord[];
-  // Set once a resolver fixed a finding.
-  resolver?: Resolver;
+  // Set once the resolve step fixed a finding.
+  hasFixes?: boolean;
   // The heads before the resolve step, which a turn-capped resolve or a rerun with no handoff pending resets to.
   resolveBase?: Heads;
   sessions: TicketSession[];

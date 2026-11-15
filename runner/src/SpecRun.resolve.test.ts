@@ -118,7 +118,7 @@ describe("run's resolve", () => {
   function ticketRunState(): {
     step: string;
     resolveRecords?: ResolveRecord[];
-    resolver?: string;
+    hasFixes?: boolean;
   } {
     const path = join(stateFolder(), "byro-repo-213.run.json");
     const state = JSON.parse(readFileSync(path, "utf8")) as {
@@ -257,7 +257,7 @@ describe("run's resolve", () => {
       step: "halted",
       resolveRecords: records,
     });
-    expect(ticketRunState().resolver).toBeUndefined();
+    expect(ticketRunState().hasFixes).toBeUndefined();
     expect(result.message).toContain("byro-repo #1 waits on Halt H1");
     expect(github.comments[0]?.body).toContain(
       '**Halt H1** · Halt 1 of 1 · byro-repo #1, "Ticket 1" · verdict Halt',
