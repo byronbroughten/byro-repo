@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { sandboxOffWords } from "../../sandboxState.ts";
 import { gateDecision } from "../tiers.ts";
 
 const entries = [
@@ -49,10 +50,8 @@ describe("an excluded command the call keeps in the box", () => {
     ["npm run app:probe -- x | head -50", "can't reach Google"],
     ["npm --prefix packages/framework run dev:probe", "can't reach Google"],
     ["cd . && npm run runner -- status", "can't launch `claude`"],
-    ["env X=1 npm test", "can't run `ps`"],
-    ["npm run check > out.txt", "can't run `ps`"],
-    ["npm test <<'EOF'\nx\nEOF", "can't run `ps`"],
-    ["npm t", "can't run `ps`"],
+    ["cd . && npm run issue:list", "can't run `ps`"],
+    ["cd . && npm run wrap-up -- byro-repo 5", "can't run `ps`"],
     [
       "cd . && npm run ws:rm -- .claude/hooks/old.ts",
       "can't delete a worktree's protected `.claude` files",
@@ -70,6 +69,23 @@ describe("an excluded command the call keeps in the box", () => {
     expect(decision?.permissionDecision).toBe("deny");
     expect(decision?.reason).toContain(`the sandbox ${reason}`);
   });
+
+  it.each([
+    "env X=1 npm test",
+    "npm run check > out.txt",
+    "npm test <<'EOF'\nx\nEOF",
+    "npm t",
+    "npx vitest run runner/src/Checks.test.ts",
+  ])(
+    "refuses `%s` because `ps` can't see the test's own process",
+    (command) => {
+      const decision = decisionOf(command);
+      expect(decision?.permissionDecision).toBe("deny");
+      expect(decision?.reason).toContain(
+        "`ps` can't see the test's own process, so lease and process-liveness tests fail",
+      );
+    },
+  );
 
   it("refuses a boxed research push because the box would free its push", () => {
     const decision = decisionOf("cd . && npm run research:push");
@@ -104,12 +120,70 @@ describe("an excluded command the call keeps in the box", () => {
   });
 });
 
+describe("a vitest test run, read as `npm test`", () => {
+  const file = "runner/src/Checks.test.ts";
+
+  it.each([
+    `npx vitest run ${file}`,
+    `npx vitest ${file}`,
+    `npm exec vitest run ${file}`,
+    `npx --yes vitest run ${file}`,
+    `node_modules/.bin/vitest run ${file}`,
+    `vitest run ${file}`,
+    `timeout 60 npx vitest run ${file}`,
+    `cd . && npx vitest run ${file}`,
+  ])("refuses `%s`, naming `npm test -- <file>`", (command) => {
+    const decision = decisionOf(command);
+    expect(decision?.permissionDecision).toBe("deny");
+    expect(decision?.reason).toContain(
+      `Run \`npm test -- ${file}\` in a call of its own`,
+    );
+  });
+
+  it.each([
+    [`npx vitest run -u ${file}`, `npm test -- -u ${file}`],
+    [`npx vitest run --project runner -u`, `npm test -- --project runner -u`],
+    ["npx vitest run", "npm test"],
+    ["npx vitest", "npm test"],
+  ])("refuses `%s`, naming `%s`", (command, form) => {
+    expect(decisionOf(command)?.reason).toContain(
+      `Run \`${form}\` in a call of its own`,
+    );
+  });
+
+  it.each(["npx vitest bench", "npx vitest list", "npx vitest related x.ts"])(
+    "keeps today's verdict on `%s`",
+    (command) => {
+      expect(decisionOf(command)).toEqual(
+        gateDecision({ command, mode: "interactive", dryRuns: [] }),
+      );
+    },
+  );
+
+  // The off ask's reading of a call made only of entries keeps vitest unread, so it asks as any other call does.
+  it("asks for a vitest call with the sandbox off, refusing nothing", () => {
+    const command = `npx vitest run ${file}`;
+    const off = { cause: "x", fix: "y", excludedCommands: entries };
+    const decision = gateDecision({
+      command,
+      mode: "interactive",
+      dryRuns: [],
+      sandbox: { isOn: false, excludedCommands: [], off },
+    });
+    expect(decision?.permissionDecision).toBe("ask");
+    expect(decision?.reason).toContain(
+      `\`${command}\` isn't ${sandboxOffWords.madeOfEntries}`,
+    );
+  });
+});
+
 describe("a call the box lets out, or holding no excluded command", () => {
   it.each([
     "npm run app:probe -- x",
     "npm test && npm run check",
     "npm run tsc | head",
     "npm test -- runner/src/Checks.test.ts 2>&1",
+    "npm test -- runner/src/Checks.test.ts",
     "npm run issue:read -- byro-repo 535 --body --hide-others",
     "npm run lint",
   ])("keeps today's verdict on `%s`", (command) => {

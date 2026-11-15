@@ -6,6 +6,11 @@ export interface NpmScript {
   args: string[];
 }
 
+export interface ProgramRun {
+  program: string;
+  args: string[];
+}
+
 interface AppChore {
   name: string;
   isSend: boolean;
@@ -76,6 +81,10 @@ export const npmCommands = {
   },
   // The program a command runs, through npx or npm exec, without its path or version.
   programOf(words: string[]): string | undefined {
+    return npmCommands.programRunOf(words)?.program;
+  },
+  // The program a command runs, as `programOf` names it, and the words after it.
+  programRunOf(words: string[]): ProgramRun | undefined {
     let rest = words;
     if (basenameOf(words[0] ?? "") === "npx") rest = words.slice(1);
     else if (
@@ -86,7 +95,10 @@ export const npmCommands = {
     }
     const program = nonFlagsOf(rest)[0];
     if (program === undefined) return undefined;
-    return basenameOf(program.replace(/(.)@[^/]*$/, "$1"));
+    return {
+      program: basenameOf(program.replace(/(.)@[^/]*$/, "$1")),
+      args: rest.slice(rest.indexOf(program) + 1),
+    };
   },
   // A --prefix runs another folder's scripts under the same name.
   isPrefixed(words: string[]): boolean {

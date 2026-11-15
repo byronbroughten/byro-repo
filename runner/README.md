@@ -30,4 +30,4 @@ The runner's interactive skills live in `skills/<name>/`: `/implement-code <repo
 
 ## Tests
 
-Vitest, in the root config's `runner` project: `npm test` from the repo root, or `npx vitest run --project runner` for just these. `npm run tsc` and `npm run lint` from the root reach it too.
+Vitest, in the root config's `runner` project: `npm test` from the repo root, or `npm test -- --project runner` for just these. `npm run tsc` and `npm run lint` from the root reach it too.
