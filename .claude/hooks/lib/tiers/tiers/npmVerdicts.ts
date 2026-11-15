@@ -31,7 +31,9 @@ export const npmVerdicts = {
     return npmCommands.choreSendVerdictOf(words, dryRuns);
   },
   untargetedVerdictOf({ words }: SimpleCommand): Verdict | undefined {
-    if (!untargetedPrograms.has(npmCommands.programOf(words) ?? "")) {
+    if (
+      !untargetedPrograms.has(npmCommands.programRunOf(words)?.program ?? "")
+    ) {
       return undefined;
     }
     return {

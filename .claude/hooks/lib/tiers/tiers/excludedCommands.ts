@@ -21,14 +21,29 @@ const boxReasons = {
     claudeFiles: "can't delete a worktree's protected `.claude` files",
     other: "can't run it",
   },
+  hiddenProcess:
+    "there `ps` can't see the test's own process, so lease and process-liveness tests fail",
   // The box reaches GitHub and frees a call holding no `git push`, so a script's push would go out with no tier row deciding it.
   hiddenPush:
     "where the tier gate can't see its push: the box frees a call that names no `git push`, a runner step's included",
 } as const;
 // Each is matched against an entry with any `npm run ` dropped, so a bare program's entry is matched whole.
-const researchPushScript = /^research:push\b/;
-const wrapUpScript = /^wrap-up\b/;
+const entryScripts = {
+  researchPush: /^research:push\b/,
+  wrapUp: /^wrap-up\b/,
+  test: /^(test|check)\b/,
+} as const;
 const substitutionText = /\$\(|`/;
+// vitest's subcommands other than `run`: a call naming one first isn't a test run.
+const otherVitestSubcommands = new Set([
+  "bench",
+  "dev",
+  "init",
+  "list",
+  "related",
+  "typecheck",
+  "watch",
+]);
 const cantsByScript: [RegExp, string][] = [
   [/^ps\b/, boxReasons.cant.ps],
   [/^pgrep\b/, boxReasons.cant.pgrep],
@@ -37,7 +52,7 @@ const cantsByScript: [RegExp, string][] = [
   [/^google:script\b/, boxReasons.cant.agentToken],
   [/^doc:print\b/, boxReasons.cant.docsLogin],
   [/^(runner|session:probe)\b/, boxReasons.cant.claude],
-  [/^(test|check|issue|wrap-up)\b/, boxReasons.cant.ps],
+  [/^(issue|wrap-up)\b/, boxReasons.cant.ps],
   [/^jev\b/, boxReasons.cant.jev],
   [/^ws:rm\b/, boxReasons.cant.claudeFiles],
 ];
@@ -52,7 +67,7 @@ export const excludedCommands = {
     const commands = parser.parsedCommands;
     if (!commands) return undefined;
     const held = commands.flatMap(({ words }) => {
-      const form = boxFormOf(words);
+      const form = vitestFormOf(words) ?? boxFormOf(words);
       const entry = entryOf(form, entries);
       return entry ? [{ form, entry }] : [];
     });
@@ -62,7 +77,7 @@ export const excludedCommands = {
     }
     const refusal = `\`${command}\` keeps \`${first.form}\` in the sandbox, ${reasonOf(first.entry)}. ${callOfItsOwn(`Run \`${first.form}\``)}`;
     if (
-      !wrapUpScript.test(scriptOf(first.entry)) ||
+      !entryScripts.wrapUp.test(scriptOf(first.entry)) ||
       !substitutionText.test(command)
     ) {
       return refusal;
@@ -70,7 +85,7 @@ export const excludedCommands = {
     return `${refusal}. A \`$(\` or backtick keeps it in the sandbox even quoted or escaped, so pass the closing note with \`--closing-file <path>\``;
   },
 
-  // Every command in the call matches an entry, read as the refusal reads it; a heredoc the scan can't confirm as plain text, or `$'…'`, could hide one that doesn't.
+  // Every command in the call matches an entry, read as the refusal reads it but for a vitest run, which the off ask leaves as it was; a heredoc the scan can't confirm as plain text, or `$'…'`, could hide one that doesn't.
   isMadeOf(command: string, entries: string[]): boolean {
     const parser = excludedCommands.boxParserOf(command);
     const commands = parser.parsedCommands;
@@ -108,9 +123,24 @@ export const excludedCommands = {
   },
 };
 
-// A timed command keeps the box as its wrapped command does.
 function boxFormOf(words: string[]): string {
-  return npmCommands.unflaggedFormOf(timeoutWrappedOf(words) ?? words);
+  return npmCommands.unflaggedFormOf(unwrappedOf(words));
+}
+
+// A vitest test run fails in the box as `npm test` does, so it's read as `npm test -- <args>`; undefined for any other command.
+function vitestFormOf(words: string[]): string | undefined {
+  const run = npmCommands.programRunOf(unwrappedOf(words));
+  if (run?.program !== "vitest") return undefined;
+  const [first, ...rest] = run.args;
+  if (otherVitestSubcommands.has(first ?? "")) return undefined;
+  const args = first === "run" ? rest : run.args;
+  if (args.length === 0) return "npm test";
+  return ["npm", "test", "--", ...args].join(" ");
+}
+
+// A timed command keeps the box as its wrapped command does.
+function unwrappedOf(words: string[]): string[] {
+  return timeoutWrappedOf(words) ?? words;
 }
 
 function entryOf(command: string, entries: string[]): string | undefined {
@@ -132,11 +162,18 @@ function matchesEntry(command: string, entry: string): boolean {
 
 function reasonOf(entry: string): string {
   const script = scriptOf(entry);
-  if (researchPushScript.test(script)) return boxReasons.hiddenPush;
+  if (entryScripts.researchPush.test(script)) return boxReasons.hiddenPush;
+  if (entryScripts.test.test(script)) {
+    return failsUnnamedOf(boxReasons.hiddenProcess);
+  }
   const cant =
     cantsByScript.find(([pattern]) => pattern.test(script))?.[1] ??
     boxReasons.cant.other;
-  return `where it fails without naming the box: the sandbox ${cant}`;
+  return failsUnnamedOf(`the sandbox ${cant}`);
+}
+
+function failsUnnamedOf(why: string): string {
+  return `where it fails without naming the box: ${why}`;
 }
 
 function scriptOf(entry: string): string {
