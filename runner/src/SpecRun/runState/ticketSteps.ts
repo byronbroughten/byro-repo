@@ -6,7 +6,7 @@ import { writeFileSync } from "node:fs";
 
 import type { StepResult } from "../../AgentStep.ts";
 import { type ReviewFacts } from "../../FactsFile.ts";
-import { issueRef } from "../../IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "../../IssueWorkspaces.ts";
 import { hasUndecidedItems } from "../../reviewList.ts";
 import type { RunKnobs } from "../../runKnobs.ts";
 import { SchemaFailure } from "../../SchemaFailure.ts";
@@ -67,6 +67,20 @@ export const ticketSteps = {
     );
   },
 
+  // `owner` names whose session it is, for the error when it has none.
+  sessionIdOf(
+    issue: IssueRef,
+    owner: string,
+    sessionId: string | undefined,
+  ): string {
+    if (sessionId === undefined) {
+      throw new Error(
+        `${issueRef.labelOf(issue)}'s ${owner} has no session id.`,
+      );
+    }
+    return sessionId;
+  },
+
   lastSessionOf(state: TicketState, agent: StepAgent): string | undefined {
     return state.sessions.findLast((session) => session.agent === agent)
       ?.sessionId;
@@ -100,10 +114,9 @@ export const ticketSteps = {
     return step !== "review";
   },
 
-  // After a handoff the implement step builds on the uncommitted work, so a snapshot saves it without a reset.
-  isTreeKept({ step, latestHandoff }: TicketState): boolean {
-    const isImplement = step === "implement" || step === "resume";
-    return isImplement && latestHandoff !== undefined;
+  // After a handoff the implementer's next step builds on the uncommitted work, so a snapshot saves it without a reset.
+  isTreeKept({ latestHandoff }: TicketState): boolean {
+    return latestHandoff !== undefined;
   },
 
   // Writes the raw output beside the step's log, so the Failure Halt can link it.
@@ -121,6 +134,14 @@ export const ticketSteps = {
       `${problems.join("; ")}\n\nRaw output: \`${outputPath}\``,
       logPath,
     );
+  },
+
+  // An unknown peak asks for no handoff: the live ceiling still kills a session that turns out too big.
+  isPastBudget(
+    { implementPeak }: TicketState,
+    { ticketBudget }: RunKnobs,
+  ): boolean {
+    return implementPeak !== undefined && implementPeak >= ticketBudget;
   },
 
   // The handoffsPerTicket knob plus the ticket's `continue +1 handoff` answers.

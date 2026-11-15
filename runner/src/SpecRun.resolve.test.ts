@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -10,7 +10,6 @@ import {
   addIssue,
   addSpec,
   after,
-  bodyWith,
   bodyWithTargets,
   capped,
   eventOf,
@@ -45,7 +44,6 @@ import type { Handoff, ResolveRecord } from "./stepRecords.ts";
 useSpecRunHarness(rootCloneOnly);
 
 describe("run's resolve", () => {
-  const opusMedium: Pair = { model: "opus", effort: "medium" };
   const opusHigh: Pair = { model: "opus", effort: "high" };
   const findings = [findingOf({ line: 1 }), findingOf({ line: 2 })];
 
@@ -110,25 +108,11 @@ describe("run's resolve", () => {
     });
   }
 
-  function freshResolved(
+  function resolvedInItsOwnSession(
     records: ResolveRecord[],
     fixFile?: string,
   ): StepScript {
-    return stepOf(resolved(records, fixFile), { sessionId: "fresh-session" });
-  }
-
-  // Leaves an uncommitted edit, then is killed at the live ceiling.
-  function killed(file: string): StepScript {
-    return async (request) => {
-      writeFileSync(join(request.cwd, file), "half a fix\n");
-      return {
-        ...resultOf(undefined),
-        output: { status: "none" },
-        exitSubtype: undefined,
-        peakContext: 181_000,
-        hasCrossedCeiling: true,
-      };
-    };
+    return stepOf(resolved(records, fixFile), { sessionId: "resolve-session" });
   }
 
   function ticketRunState(): {
@@ -300,33 +284,16 @@ describe("run's resolve", () => {
     ]);
   });
 
-  it("resolves in a fresh session on the stronger pair once the implementer's peak reaches the ticket budget", async () => {
-    addSpec([1]);
-    github.edit(1, { body: bodyWith("Sonnet high") });
-    const agentStep = FakeAgentStep.init(
-      implementedAt(150_000),
-      reviewed(findings),
-      freshResolved([recordOf(1, "fix"), recordOf(2, "fix")], "fix.ts"),
-    );
-
-    const result = await specRun(agentStep).run(spec);
-
-    expect(result.kind).toBe("finished");
-    const resolver = agentStep.requests[2];
-    expect(resolver?.resumeSessionId).toBeUndefined();
-    expect(resolver?.pair).toEqual(opusMedium);
-    expect(resolver?.prompt).toContain("You are the resolve step");
-    expect(landedSubjects(2)).toEqual(["Fix fix.ts", "Add one.ts"]);
-    expect(ticketFacts().reviewFixes).toBe("fresh");
-  });
-
   it("resolves in a fresh session when the implementer's session has no conversation, and lands", async () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(
       implementedAt(90_000),
       reviewed(findings),
       noConversation,
-      freshResolved([recordOf(1, "fix"), recordOf(2, "fix")], "fix.ts"),
+      resolvedInItsOwnSession(
+        [recordOf(1, "fix"), recordOf(2, "fix")],
+        "fix.ts",
+      ),
     );
 
     const result = await specRun(agentStep).run(spec);
@@ -337,7 +304,7 @@ describe("run's resolve", () => {
     expect(resolver?.resumeSessionId).toBeUndefined();
     expect(resolver?.prompt).toContain("You are the resolve step");
     expect(landedSubjects(2)).toEqual(["Fix fix.ts", "Add one.ts"]);
-    expect(ticketFacts().reviewFixes).toBe("fresh");
+    expect(ticketFacts().reviewFixes).toBe("implementer");
     expect(progressLines().map(eventOf)).toContain(
       "byro-repo #1: the resolve step's session implement-session has no conversation; running it as a fresh session.",
     );
@@ -357,7 +324,10 @@ describe("run's resolve", () => {
       reviewed(findings),
       limitHit,
       noConversation,
-      freshResolved([recordOf(1, "fix"), recordOf(2, "fix")], "fix.ts"),
+      resolvedInItsOwnSession(
+        [recordOf(1, "fix"), recordOf(2, "fix")],
+        "fix.ts",
+      ),
     );
 
     const result = await specRun(agentStep).run(spec);
@@ -368,84 +338,20 @@ describe("run's resolve", () => {
     expect(ticketFacts().retries).toBe(0);
   });
 
-  it.each([
-    {
-      resolver: "implementer",
-      handoffPeak: 150_000,
-      freshPeak: 90_000,
-      resumeSessionId: "implement-session",
-    },
-    {
-      resolver: "fresh",
-      handoffPeak: 90_000,
-      freshPeak: 150_000,
-      resumeSessionId: undefined,
-    },
-  ])(
-    "resolves after a handoff as the $resolver resolver when the last implement step peaked at $freshPeak",
-    async ({ resolver, handoffPeak, freshPeak, resumeSessionId }) => {
-      addSpec([1]);
-      const agentStep = FakeAgentStep.init(
-        handedOffAt(handoffPeak),
-        implementedAt(freshPeak),
-        reviewed(findings),
-        resolved([recordOf(1, "fix"), recordOf(2, "dismiss")], "fix.ts"),
-      );
-
-      const result = await specRun(agentStep).run(spec);
-
-      expect(result.kind).toBe("finished");
-      expect(agentStep.requests[3]?.resumeSessionId).toBe(resumeSessionId);
-      expect(ticketFacts().reviewFixes).toBe(resolver);
-    },
-  );
-
-  it("kills an implementer that crosses the live ceiling, discards its work and resolves in a fresh session", async () => {
+  it("resolves in the implement step's latest session after an implement handoff", async () => {
     addSpec([1]);
-    let leftover = false;
     const agentStep = FakeAgentStep.init(
+      handedOffAt(150_000),
       implementedAt(90_000),
       reviewed(findings),
-      killed("half.ts"),
-      async (request) => {
-        leftover = existsSync(join(request.cwd, "half.ts"));
-        return resolved(
-          [recordOf(1, "fix"), recordOf(2, "fix")],
-          "fix.ts",
-        )(request);
-      },
+      resolved([recordOf(1, "fix"), recordOf(2, "dismiss")], "fix.ts"),
     );
 
     const result = await specRun(agentStep).run(spec);
 
     expect(result.kind).toBe("finished");
-    expect(leftover).toBe(false);
-    const resolver = agentStep.requests[3];
-    expect(resolver?.resumeSessionId).toBeUndefined();
-    expect(resolver?.pair).toEqual(opusHigh);
-    expect(landedSubjects(2)).toEqual(["Fix fix.ts", "Add one.ts"]);
-    expect(ticketFacts().reviewFixes).toBe("fresh");
-  });
-
-  it("Stops on a step error, its work discarded, when the fresh resolver crosses the live ceiling", async () => {
-    addSpec([1]);
-    const agentStep = FakeAgentStep.init(
-      implementedAt(150_000),
-      reviewed(findings),
-      killed("half.ts"),
-    );
-    const run = specRun(agentStep);
-
-    const result = await run.run(spec);
-
-    expect(result.message).toBe(
-      "Stopped on byro-repo #1: a step error. Review lists: nothing needs judging.",
-    );
-    const workspace = await run.workspaces.find(refOf(1));
-    expect(existsSync(join(workspace?.path ?? "", "half.ts"))).toBe(false);
-    expect(github.comments[0]?.body).toContain(
-      "The fresh resolver crossed the live ceiling of 180000",
-    );
+    expect(agentStep.requests[3]?.resumeSessionId).toBe("implement-session");
+    expect(ticketFacts().reviewFixes).toBe("implementer");
   });
 
   it("gives a refused record one retry in the same session, then lands", async () => {
@@ -471,7 +377,7 @@ describe("run's resolve", () => {
     expect(landedSubjects(2)).toEqual(["Fix fix.ts", "Add one.ts"]);
   });
 
-  it("gives a fresh resolver the findings and the refusal when the retry's session has no conversation", async () => {
+  it("gives a fresh session the findings and the refusal when the retry's session has no conversation", async () => {
     addSpec([1]);
     const noQuote = { ...recordOf(1, "fix"), quote: undefined };
     const agentStep = FakeAgentStep.init(
@@ -479,7 +385,7 @@ describe("run's resolve", () => {
       reviewed(findings),
       resolved([noQuote, recordOf(2, "dismiss")], "fix.ts"),
       noConversation,
-      freshResolved([recordOf(1, "fix"), recordOf(2, "dismiss")]),
+      resolvedInItsOwnSession([recordOf(1, "fix"), recordOf(2, "dismiss")]),
     );
 
     const result = await specRun(agentStep).run(spec);
@@ -491,27 +397,6 @@ describe("run's resolve", () => {
     expect(resolver?.prompt).toContain(
       "finding 1: a Fix needs `quote`, the quoted code or text, with its file:line",
     );
-  });
-
-  it("hands the findings to a fresh resolver, its work discarded, when the implementer's retry crosses the live ceiling", async () => {
-    addSpec([1]);
-    const noQuote = { ...recordOf(1, "fix"), quote: undefined };
-    const agentStep = FakeAgentStep.init(
-      implementedAt(90_000),
-      reviewed(findings),
-      resolved([noQuote, recordOf(2, "dismiss")], "fix.ts"),
-      killed("half.ts"),
-      freshResolved([recordOf(1, "fix"), recordOf(2, "dismiss")], "fix.ts"),
-    );
-
-    const result = await specRun(agentStep).run(spec);
-
-    expect(result.kind).toBe("finished");
-    const resolver = agentStep.requests[4];
-    expect(resolver?.resumeSessionId).toBeUndefined();
-    expect(resolver?.pair).toEqual(opusHigh);
-    expect(landedSubjects(2)).toEqual(["Fix fix.ts", "Add one.ts"]);
-    expect(ticketFacts().reviewFixes).toBe("fresh");
   });
 
   it("reruns the resolve, its work reset away, when the retry hits its turn cap", async () => {
@@ -753,12 +638,15 @@ describe("run's resolve", () => {
     });
   });
 
-  it("runs the checks after the resolve, resuming the resolver on red", async () => {
+  it("runs the checks after the resolve, resuming the resolve's session on red", async () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(
-      implementedAt(150_000),
+      implementedAt(90_000),
       reviewed(findings),
-      freshResolved([recordOf(1, "fix"), recordOf(2, "dismiss")], "RED"),
+      resolvedInItsOwnSession(
+        [recordOf(1, "fix"), recordOf(2, "dismiss")],
+        "RED",
+      ),
       greened,
     );
 
@@ -766,7 +654,7 @@ describe("run's resolve", () => {
 
     expect(result.kind).toBe("finished");
     const resumed = agentStep.requests[3];
-    expect(resumed?.resumeSessionId).toBe("fresh-session");
+    expect(resumed?.resumeSessionId).toBe("resolve-session");
     expect(resumed?.prompt).toContain("You are the red-checks step");
     expect(resumed?.sessionSchema).toEqual(
       agentStep.requests[0]?.sessionSchema,

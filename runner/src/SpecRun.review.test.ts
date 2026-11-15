@@ -6,11 +6,12 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { FactsFile } from "./FactsFile.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
-import type { LeaseHolder } from "./IssueWorkspaces.ts";
+import type { LeaseHolder, Workspace } from "./IssueWorkspaces.ts";
 import type { UsageReader } from "./limitGuard.ts";
 import type { ItemDecision } from "./reviewList.ts";
 import { runKnobsOf } from "./runKnobs.ts";
 import { reviewPrintoutOf } from "./SpecRun.ts";
+import type { ReviewResult } from "./SpecRun/runState.ts";
 import {
   addSpec,
   clonePaths,
@@ -29,6 +30,7 @@ import {
   runStatePath,
   spec,
   specRun,
+  type SpecRunOverrides,
   stateFolder,
   type StepScript,
   ticketFacts,
@@ -41,17 +43,26 @@ useSpecRunHarness();
 
 describe("review of one ticket outside a run", () => {
   const holder: LeaseHolder = { kind: "session", pid: process.ppid };
+  let workspace: Workspace;
 
   // An interactive session's workspace, with its work committed and its lease held.
   beforeEach(async () => {
     addSpec([1, 2]);
     const { workspaces } = specRun(FakeAgentStep.init());
-    const workspace = await workspaces.create(refOf(1));
-    writeFileSync(join(workspace.path, "one.ts"), "export {};\n");
-    git(workspace.path, "add", "one.ts");
-    git(workspace.path, "commit", "-m", "Add one.ts");
+    workspace = await workspaces.create(refOf(1));
+    commit("one.ts");
     await workspaces.takeLease(workspace, holder);
   });
+
+  function commit(file: string): void {
+    writeFileSync(join(workspace.path, file), "export {};\n");
+    git(workspace.path, "add", file);
+    git(workspace.path, "commit", "-m", `Add ${file}`);
+  }
+
+  async function releaseLease(): Promise<void> {
+    await specRun(FakeAgentStep.init()).workspaces.releaseLease(workspace);
+  }
 
   const findings = [
     findingOf({ line: 1 }),
@@ -98,12 +109,32 @@ describe("review of one ticket outside a run", () => {
     return resolved(records);
   }
 
-  function reviewsWithFix(file = "fix.ts"): FakeAgentStep {
-    return FakeAgentStep.init(
-      reviewed(findings),
-      resolved([propose, fix, coveredLater], file),
-    );
+  interface SessionReview {
+    review?: FakeAgentStep;
+    fixFile?: string;
+    overrides?: SpecRunOverrides;
   }
+
+  // The session's review, by default one finding per record, then its own resolve of `records`, committing `fixFile` first when a record is a Fix.
+  async function resolvedReview(
+    records: ResolveRecord[],
+    {
+      review = FakeAgentStep.init(
+        reviewed(records.map(({ finding }) => findingOf({ line: finding }))),
+      ),
+      fixFile = "fix.ts",
+      overrides,
+    }: SessionReview = {},
+  ): Promise<ReviewResult> {
+    await specRun(review, overrides).review(refOf(1), { holder });
+    if (records.some(({ verdict }) => verdict === "fix")) commit(fixFile);
+    return specRun(FakeAgentStep.init(), overrides).resolve(refOf(1), {
+      holder,
+      output: { records },
+    });
+  }
+
+  const fixedReview = [propose, fix, coveredLater];
 
   it("reviews a code spec's ticket by the code Workflow", async () => {
     const agentStep = FakeAgentStep.init(reviewed());
@@ -148,10 +179,8 @@ describe("review of one ticket outside a run", () => {
     expect(github.comments).toEqual([]);
   });
 
-  it("prints the run's review list and posts it on the spec, posts the covered-later note, and writes the same review facts, a fresh resolver fixing", async () => {
-    const result = await specRun(reviewsWithFix()).review(refOf(1), {
-      holder,
-    });
+  it("prints the run's review list and posts it on the spec, posts the covered-later note, and writes the same review facts", async () => {
+    const result = await resolvedReview(fixedReview);
 
     expect(result).toMatchObject({ kind: "reviewed", halts: [] });
     expect(commentsOn(213, "<!-- review-list ")).toEqual([
@@ -170,7 +199,7 @@ describe("review of one ticket outside a run", () => {
     );
     expect(commentsOn(2, "byro-repo#1's review left this")).toHaveLength(1);
     expect(ticketFacts()).toMatchObject({
-      reviewFixes: "fresh",
+      reviewFixes: "implementer",
       whatReviewCaught:
         "Fixed: Line 2 is wrong. (one.ts:2). Proposed: Line 1 is wrong. (one.ts:1).",
       proposals: 1,
@@ -178,7 +207,7 @@ describe("review of one ticket outside a run", () => {
     });
   });
 
-  it("records the review and resolve sessions beside the implement session, each under the account and config folder it ran as", async () => {
+  it("records the review session beside the implement session, under the account and config folder it ran as, and no session for the resolve", async () => {
     const implement = {
       agent: "implement",
       sessionId: "implement-session",
@@ -186,36 +215,34 @@ describe("review of one ticket outside a run", () => {
       configFolder: "/config/account-2",
     } as const;
     FactsFile.init(stateFolder()).addSession(refOf(1), implement);
-    const agentStep = FakeAgentStep.init(
-      { ...reviewed(findings), sessionId: "review-session" },
-      async (request) => ({
-        ...(await resolved([propose, fix, coveredLater], "fix.ts")(request)),
-        sessionId: "resolve-session",
-      }),
-    );
+    const review = FakeAgentStep.init({
+      ...reviewed(findings),
+      sessionId: "review-session",
+    });
 
-    await specRun(agentStep).review(refOf(1), { holder });
+    await resolvedReview(fixedReview, { review });
 
-    const accountOne = { account: 1, configFolder: "/config/account-1" };
     expect(ticketFacts().sessions).toEqual({
       steps: [
         implement,
-        { agent: "review", sessionId: "review-session", ...accountOne },
-        { agent: "resolve", sessionId: "resolve-session", ...accountOne },
+        {
+          agent: "review",
+          sessionId: "review-session",
+          account: 1,
+          configFolder: "/config/account-1",
+        },
       ],
     });
   });
 
-  it("records each step session under the account its own step ran as, in the runner's own config folder", async () => {
-    const agentStep = FakeAgentStep.init(
-      { ...reviewed(findings), sessionId: "review-session", account: 2 },
-      async (request) => ({
-        ...(await resolved([propose, fix, coveredLater], "fix.ts")(request)),
-        sessionId: "resolve-session",
-      }),
-    );
+  it("records the review session under the account it ran as, in the runner's own config folder", async () => {
+    const review = FakeAgentStep.init({
+      ...reviewed(findings),
+      sessionId: "review-session",
+      account: 2,
+    });
 
-    await specRun(agentStep).review(refOf(1), { holder });
+    await resolvedReview(fixedReview, { review });
 
     expect(ticketFacts().sessions).toEqual({
       steps: [
@@ -225,9 +252,24 @@ describe("review of one ticket outside a run", () => {
           account: 2,
           configFolder: "/config/account-1",
         },
+      ],
+    });
+  });
+
+  it("records a halted review's session under the runner's config folder when no implement session was recorded", async () => {
+    const review = FakeAgentStep.init({
+      ...reviewed(findings.slice(0, 1)),
+      sessionId: "review-session",
+    });
+
+    const result = await resolvedReview([halt], { review });
+
+    expect(result.kind).toBe("halted");
+    expect(ticketFacts().sessions).toEqual({
+      steps: [
         {
-          agent: "resolve",
-          sessionId: "resolve-session",
+          agent: "review",
+          sessionId: "review-session",
           account: 1,
           configFolder: "/config/account-1",
         },
@@ -235,33 +277,12 @@ describe("review of one ticket outside a run", () => {
     });
   });
 
-  it("records a halted review's sessions under the runner's config folder when no implement session was recorded", async () => {
-    const agentStep = FakeAgentStep.init(
-      { ...reviewed(findings.slice(0, 1)), sessionId: "review-session" },
-      async (request) => ({
-        ...(await resolvedAs(halt)(request)),
-        sessionId: "resolve-session",
-      }),
-    );
-
-    const result = await specRun(agentStep).review(refOf(1), { holder });
-
-    expect(result.kind).toBe("halted");
-    const accountOne = { account: 1, configFolder: "/config/account-1" };
-    expect(ticketFacts().sessions).toEqual({
-      steps: [
-        { agent: "review", sessionId: "review-session", ...accountOne },
-        { agent: "resolve", sessionId: "resolve-session", ...accountOne },
-      ],
-    });
-  });
-
   it("prints its message once, at the head of its printout, and records it in the progress log", async () => {
     const logged: string[] = [];
 
-    const result = await specRun(reviewsWithFix(), {
-      log: (line) => logged.push(line),
-    }).review(refOf(1), { holder });
+    const result = await resolvedReview(fixedReview, {
+      overrides: { log: (line) => logged.push(line) },
+    });
 
     expect(logged).not.toContain(result.message);
     expect(reviewPrintoutOf(result).startsWith(result.message)).toBe(true);
@@ -269,12 +290,11 @@ describe("review of one ticket outside a run", () => {
   });
 
   it("finds its markers on a second review and posts no note or review list twice", async () => {
-    await specRun(reviewsWithFix()).review(refOf(1), { holder });
+    await resolvedReview(fixedReview);
 
-    const result = await specRun(reviewsWithFix("fix-again.ts")).review(
-      refOf(1),
-      { holder },
-    );
+    const result = await resolvedReview(fixedReview, {
+      fixFile: "fix-again.ts",
+    });
 
     expect(result.kind).toBe("reviewed");
     expect(commentsOn(2, "byro-repo#1's review left this")).toHaveLength(1);
@@ -282,10 +302,10 @@ describe("review of one ticket outside a run", () => {
   });
 
   it("edits nothing on a second review whose list is the posted one", async () => {
-    await specRun(reviewsWithFix()).review(refOf(1), { holder });
+    await resolvedReview(fixedReview);
     const [posted] = commentsOn(213, "<!-- review-list ticket=#1 -->");
 
-    await specRun(reviewsWithFix("fix-again.ts")).review(refOf(1), { holder });
+    await resolvedReview(fixedReview, { fixFile: "fix-again.ts" });
 
     expect(commentsOn(213, "<!-- review-list ticket=#1 -->")).toEqual([posted]);
   });
@@ -302,18 +322,12 @@ describe("review of one ticket outside a run", () => {
       decision: Omit<ItemDecision, "itemId">,
       ...records: ResolveRecord[]
     ): Promise<string> {
-      await specRun(reviewsWithFix()).review(refOf(1), { holder });
+      await resolvedReview(fixedReview);
       await specRun(FakeAgentStep.init()).decide(spec, {
         itemId: "R1.1",
         ...decision,
       });
-      const hasFix = records.some(({ verdict }) => verdict === "fix");
-      await specRun(
-        FakeAgentStep.init(
-          reviewed(records.map(({ finding }) => findingOf({ line: finding }))),
-          resolved(records, hasFix ? "fix-again.ts" : undefined),
-        ),
-      ).review(refOf(1), { holder });
+      await resolvedReview(records, { fixFile: "fix-again.ts" });
       const lists = commentsOn(213, "<!-- review-list ticket=#1 -->");
       expect(lists).toHaveLength(1);
       return lists[0] ?? "";
@@ -369,7 +383,7 @@ describe("review of one ticket outside a run", () => {
     const theirs = `<!-- spec-runner -->\n<!-- review-list ticket=#1 -->\n\n**Review list** · byro-repo #1, "Ticket 1"`;
     github.reply(213, theirs, "someone-else");
 
-    await specRun(reviewsWithFix()).review(refOf(1), { holder });
+    await resolvedReview(fixedReview);
 
     expect(commentsOn(213, "<!-- review-list ticket=#1 -->")).toEqual([theirs]);
   });
@@ -381,17 +395,15 @@ describe("review of one ticket outside a run", () => {
       reviewListCadence: "per-ticket",
     });
 
-    await specRun(reviewsWithFix(), { knobs }).review(refOf(1), { holder });
+    await resolvedReview(fixedReview, { overrides: { knobs } });
 
     expect(commentsOn(213, "<!-- review-list ticket=#1 -->")).toHaveLength(1);
     expect(notices.sent).toEqual([]);
   });
 
   it("leaves a later run that lands the ticket to find its review list and post none twice, editing none though its own list differs", async () => {
-    const reviewing = specRun(reviewsWithFix());
-    await reviewing.review(refOf(1), { holder });
-    const workspace = await reviewing.workspaces.find(refOf(1));
-    if (workspace) await reviewing.workspaces.releaseLease(workspace);
+    await resolvedReview(fixedReview);
+    await releaseLease();
     const posted = commentsOn(213, "<!-- review-list ticket=#1 -->");
     const reworded = { ...propose, recommendation: "Pick the second." };
 
@@ -411,12 +423,7 @@ describe("review of one ticket outside a run", () => {
   });
 
   it("posts a Halt verdict on the spec as a session Halt, returns it to print and pushes nothing", async () => {
-    const agentStep = FakeAgentStep.init(
-      reviewed(findings.slice(0, 1)),
-      resolvedAs(halt),
-    );
-
-    const result = await specRun(agentStep).review(refOf(1), { holder });
+    const result = await resolvedReview([halt]);
 
     expect(result.kind).toBe("halted");
     expect(result.message).toContain("halted on Halt S1.1");
@@ -438,12 +445,7 @@ describe("review of one ticket outside a run", () => {
   });
 
   it("prints a halted review's list before its Halt, posting the list nowhere", async () => {
-    const agentStep = FakeAgentStep.init(
-      reviewed(findings.slice(0, 1)),
-      resolvedAs(halt),
-    );
-
-    const result = await specRun(agentStep).review(refOf(1), { holder });
+    const result = await resolvedReview([halt]);
 
     expect(result.kind).toBe("halted");
     expect(commentsOn(213, "<!-- review-list ")).toEqual([]);
@@ -473,13 +475,9 @@ describe("review of one ticket outside a run", () => {
   });
 
   it("leaves a later run on the spec unaffected: it saves no run state, and a reply to its Halt answers none of the run's", async () => {
-    const reviewing = specRun(
-      FakeAgentStep.init(reviewed(findings.slice(0, 1)), resolvedAs(halt)),
-    );
-    await reviewing.review(refOf(1), { holder });
+    await resolvedReview([halt]);
     expect(existsSync(runStatePath())).toBe(false);
-    const workspace = await reviewing.workspaces.find(refOf(1));
-    if (workspace) await reviewing.workspaces.releaseLease(workspace);
+    await releaseLease();
     await specRun(
       FakeAgentStep.init(
         implemented("two.ts"),
@@ -530,27 +528,6 @@ describe("review of one ticket outside a run", () => {
     expect(agentStep.requests).toHaveLength(0);
   });
 
-  it("launches the review and a fresh resolver each on the account active just before it", async () => {
-    let activeAccount = 1;
-    const usageReader: UsageReader = {
-      read: async () => usageListOf(0.1, 0.2, activeAccount),
-    };
-    const agentStep = FakeAgentStep.init(
-      async () => {
-        activeAccount = 2;
-        return reviewed(findings);
-      },
-      resolved([propose, fix, coveredLater], "fix.ts"),
-    );
-
-    const result = await specRun(agentStep, { usageReader }).review(refOf(1), {
-      holder,
-    });
-
-    expect(result.kind).toBe("reviewed");
-    expect(agentStep.requests.map(({ account }) => account)).toEqual([1, 2]);
-  });
-
   it("refuses with a message naming cswap when cswap reports no active account, launching nothing", async () => {
     const usageReader: UsageReader = {
       read: async () => ({
@@ -570,15 +547,9 @@ describe("review of one ticket outside a run", () => {
   });
 
   it("numbers a later review's Halts on from the ticket's earlier ones, so no two share an id", async () => {
-    function halting(): FakeAgentStep {
-      return FakeAgentStep.init(
-        reviewed(findings.slice(0, 1)),
-        resolvedAs(halt),
-      );
-    }
-    await specRun(halting()).review(refOf(1), { holder });
+    await resolvedReview([halt]);
 
-    const result = await specRun(halting()).review(refOf(1), { holder });
+    const result = await resolvedReview([halt]);
 
     expect(result.message).toContain("halted on Halt S1.2");
     expect(commentsOn(213, "**Halt S1.")).toEqual([

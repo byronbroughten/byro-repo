@@ -274,8 +274,8 @@ export class TicketSequencer extends SpecRunBase {
     for (const { step, nextOf } of sequence) {
       // The last step, wrap-up, is the landing _runTicket runs.
       if (state.step !== step || nextOf === undefined) continue;
-      // A session under the ticket budget resolves its own review.
-      if (step === "resolve" && run.sessionReview?.resolvesItself) return;
+      // A session resolves its own review.
+      if (step === "resolve" && run.sessionReview !== undefined) return;
       // A session's review leaves the checks and wrap-up to the session.
       if (step === "checks" && run.sessionReview !== undefined) return;
       await this._runStep(ticketRun, step);

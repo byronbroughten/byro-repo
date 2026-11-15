@@ -39,12 +39,10 @@ export interface RunKnobs {
   handoffsPerTicket: number;
   // How many tickets in a row may end on a Failure Halt before the run Stops as stuck.
   stuckFailureHalts: number;
-  // The resumed implementer resolves the findings only while its peak context is under this.
+  // An implementer whose peak context passes this hands off at the next step boundary.
   ticketBudget: number;
-  // A step crossing this is killed: an implementer is resumed for a handoff, or its resolve goes to a fresh resolver.
+  // A step crossing this is killed, and its implementer is resumed for a handoff.
   liveCeiling: number;
-  // The fresh resolver runs on the stronger of this and the ticket's pair, since it starts cold on the diff.
-  resolverPair: Pair;
   gapCheckPair: Pair;
   // A review whose diff from master touches at most this many files, across the branched repos, may review inline; a larger one that skips its reviewer subagents is sent back once.
   inlineReviewMaxFiles: number;
@@ -92,7 +90,6 @@ export const defaultRunKnobs: RunKnobs = {
   stuckFailureHalts: 2,
   ticketBudget: 150_000,
   liveCeiling: 180_000,
-  resolverPair: { model: "opus", effort: "medium" },
   gapCheckPair: { model: "opus", effort: "medium" },
   inlineReviewMaxFiles: 1,
   reviewListCadence: "end-of-run",

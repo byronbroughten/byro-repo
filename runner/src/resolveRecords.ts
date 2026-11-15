@@ -1,6 +1,6 @@
 // The resolve record every Workflow's resolve step returns, its schema, its numbered findings and retry prompt, and the
 // checkers that refuse a record, or commits that disagree with it, naming the rule broken; resolveRulesOf builds a
-// Workflow's resolve rules from them and its own prompt and record checks, resolve resuming implement.
+// Workflow's resolve rules from them and its own prompt and record checks.
 // stepRecords.ts holds the record types; StepStream.ts checks the output against resolveOutputSchema first.
 
 import { bulletListOf, codeListOf, sessionReturnOf } from "./promptText.ts";
@@ -38,12 +38,6 @@ export function resolveRulesOf({
     recordProblems,
     commitProblems: resolveCommitProblems,
     numberedFindingsOf,
-    resumes: {
-      step: "implement",
-      freshRetryPromptOf(input, problems) {
-        return `${promptOf(input)}\n\n${resolveRetryPrompt(problems)}`;
-      },
-    },
   };
 }
 

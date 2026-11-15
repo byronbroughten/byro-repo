@@ -15,6 +15,7 @@ import {
   github,
   greened,
   haltComments,
+  handoffResultOf,
   implemented,
   masterSubjects,
   noticeSummaries,
@@ -191,13 +192,20 @@ describe("run's red-check resume", () => {
     expect(resumed?.prompt).toContain("sh -c test ! -f RED failed");
   });
 
-  it("hands red checks to a fresh resolver on the stronger pair once the implementer is past the ticket budget", async () => {
+  it("hands red checks to a fresh session on the ticket's pair once the implementer past the ticket budget has handed off", async () => {
     addSpec([1]);
     github.edit(1, { body: bodyWith("Sonnet medium") });
     const agentStep = FakeAgentStep.init(
       async (request) => ({
         ...(await implemented("RED")(request)),
         peakContext: 160_000,
+      }),
+      handoffResultOf({
+        conclusion: "RED is committed.",
+        filesToOpen: [],
+        ruledOut: [],
+        filesChanged: [],
+        stillFailing: [],
       }),
       reviewed(),
       greened,
@@ -206,9 +214,11 @@ describe("run's red-check resume", () => {
     const result = await specRun(agentStep).run(spec);
 
     expect(result.landed).toEqual([refOf(1)]);
-    const resumed = agentStep.requests[2];
-    expect(resumed?.pair).toEqual({ model: "opus", effort: "medium" });
-    expect(resumed?.resumeSessionId).toBeUndefined();
+    const [implementer, , , fresh] = agentStep.requests;
+    expect(fresh?.pair).toEqual(implementer?.pair);
+    expect(fresh?.resumeSessionId).toBeUndefined();
+    expect(fresh?.prompt).toContain("You are the red-checks step");
+    expect(fresh?.prompt).toContain("Conclusion: RED is committed.");
   });
 
   it("posts a Failure Halt linking the resume's log when the checks stay red, leaving the branch unlanded", async () => {

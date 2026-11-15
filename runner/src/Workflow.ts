@@ -198,6 +198,13 @@ export interface ImplementRecordContext {
   specClone: string;
 }
 
+export interface HandoffComment {
+  handoff: Handoff;
+  sessionId: string;
+  // Where the implementer handed off, as "in the implement step" or "before the review step".
+  point: string;
+}
+
 export interface ImplementRules {
   promptOf(input: ImplementPromptInput): string;
   outputSchema: object;
@@ -208,7 +215,7 @@ export interface ImplementRules {
     hasNewCommit: boolean,
     context: ImplementRecordContext,
   ): string[];
-  handoffCommentOf(handoff: Handoff, sessionId: string): string;
+  handoffCommentOf(comment: HandoffComment): string;
   // A gitignored folder from the workspace root, the runner's to create, so every step of the ticket reads the same files.
   keptFolderOf?(ticket: IssueRef): string;
 }
@@ -266,15 +273,6 @@ export interface ResolveRules {
   recordProblems(findingCount: number, records: ResolveRecord[]): string[];
   commitProblems(commits: ResolveCommits): string[];
   numberedFindingsOf(findings: Finding[]): string;
-  // Absent, every resolve runs as a fresh session.
-  resumes?: StepResumption;
-}
-
-// A step that resumes an earlier Step's session under the ticket budget, and what a fresh session gets in its place.
-export interface StepResumption {
-  step: "implement";
-  // A refused record's retry prompt leans on the resumed conversation, so a fresh session gets the step's prompt too.
-  freshRetryPromptOf(input: ResolvePromptInput, problems: string[]): string;
 }
 
 export interface RedChecksPromptInput extends TicketPromptFields {

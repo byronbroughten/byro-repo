@@ -1,30 +1,24 @@
 // A ticket's implement step: launches it fresh, or continued with more turns or for its record only, and takes its record,
-// raising its blockers as Halts. A Workflow that names a kept folder gets it created in the workspace before each launch. A handoff backs up the tree, posts on the ticket and launches a fresh step; one past the
-// live ceiling is resumed for a handoff record only. A fresh step past the handoff cap, or after a proposed split, halts first.
-// A resume hands the ticket's answered Halts to the resumed implementer, or to a fresh one past the ticket budget.
-// It builds its own HaltRaiser and StepLauncher; the step's prompt, schema and checks are its spec's Workflow's, through
+// raising its blockers as Halts. A Workflow that names a kept folder gets it created in the workspace before each launch.
+// A handoff launches a fresh step, and one past the live ceiling is resumed for a handoff record only; HandoffTaker.ts
+// posts each and halts a fresh step past the handoff cap. A resume hands the ticket's answered Halts to the resumed
+// implementer, or to a fresh one past the ticket budget.
+// It builds its own HaltRaiser, HandoffTaker and StepLauncher; the step's prompt, schema and checks are its spec's Workflow's, through
 // ../Workflow.ts, and the resumes' prompts ../stepPrompts/resumePrompts.ts; the coordinator callers build is ../SpecRun.ts.
 
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { saveUncommitted } from "../git.ts";
-import {
-  freshResumeSection,
-  type Halt,
-  resumePrompt,
-  splitHaltOf,
-} from "../halts.ts";
-import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
-import { SchemaFailure } from "../SchemaFailure.ts";
+import { freshResumeSection, type Halt, resumePrompt } from "../halts.ts";
 import {
   handoffOnlyPrompt,
   moreTurnsPrompt,
   recordOnlyPrompt,
 } from "../stepPrompts/resumePrompts.ts";
-import { type Handoff, type ImplementRecord } from "../stepRecords.ts";
+import { type ImplementRecord } from "../stepRecords.ts";
 import { type ImplementRules } from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
+import { HandoffTaker } from "./HandoffTaker.ts";
 import {
   type Continuation,
   type Heads,
@@ -58,6 +52,10 @@ export class ImplementStepper extends SpecRunBase {
     return new StepLauncher(this.config);
   }
 
+  private get handoffTaker(): HandoffTaker {
+    return new HandoffTaker(this.config);
+  }
+
   async _implement(ticketRun: TicketRun): Promise<void> {
     await this._runImplement(ticketRun, () => this._freshLaunchOf(ticketRun));
   }
@@ -70,7 +68,10 @@ export class ImplementStepper extends SpecRunBase {
   ): Promise<void> {
     let record = await this._runImplementStep(ticketRun, launchOf, onLaunched);
     while (record.status === "handoff") {
-      await this._handOff(ticketRun, record.handoff);
+      await this.handoffTaker._handOff(ticketRun, {
+        handoff: record.handoff,
+        point: "in the implement step",
+      });
       record = await this._runImplementStep(ticketRun, () =>
         this._freshLaunchOf(ticketRun),
       );
@@ -97,7 +98,10 @@ export class ImplementStepper extends SpecRunBase {
     let launch: StepLaunch;
     if (continuation === undefined || state.implementBase === undefined) {
       if (state.latestHandoff !== undefined) {
-        await this._haltBeforeFreshStep(ticketRun, state.latestHandoff);
+        await this.handoffTaker._haltBeforeFreshStep(
+          ticketRun,
+          state.latestHandoff,
+        );
       }
       state.implementBase = await this._headsOf(workspace);
       this._saveState(run);
@@ -129,90 +133,29 @@ export class ImplementStepper extends SpecRunBase {
     ticketRun: TicketRun,
     { ranStep, headsBefore }: CeilingCrossing,
   ): Promise<ImplementRecord> {
-    const { ticket, state } = ticketRun;
-    const rules = this._implementRulesOf(ticketRun);
-    const ran = await this.stepLauncher._runStep(ticketRun, "implement", {
-      prompt: handoffOnlyPrompt,
-      jsonSchema: rules.outputSchema,
-      resumeSessionId: sessionIdOf(
-        ticket.issue,
-        "implement step past the live ceiling",
-        ranStep.result.sessionId,
-      ),
-    });
+    const { ticket } = ticketRun;
+    const sessionId = ticketSteps.sessionIdOf(
+      ticket.issue,
+      "implement step past the live ceiling",
+      ranStep.result.sessionId,
+    );
     try {
-      const launched = ticketSteps.launchedOf("implement", ran);
-      const { status } = rules.recordOf(launched.record);
-      if (status !== "handoff") {
-        throw ticketSteps.schemaFailureOf(ran.logPath, {
-          problems: [`the record is ${status}, not a handoff`],
-          output: launched.record,
-        });
-      }
+      const { launched } = await this.handoffTaker._resumedHandoffLaunchOf(
+        ticketRun,
+        { agent: "implement", prompt: handoffOnlyPrompt, sessionId },
+      );
       return await this._takeImplementRecord({
         ticketRun,
         launched,
         headsBefore,
       });
     } catch (error) {
-      if (!(error instanceof SchemaFailure)) throw error;
-      await this._snapshot(ticketRun, state.step);
-      // Rethrown so the Failure Halt offers `retry record` when the step had committed.
-      throw new SchemaFailure(
-        `The implement step crossed ${ticketSteps.liveCeilingPhraseOf(this.config.knobs)}, and its handoff record failed: ${error.message}`,
-        error.logPath,
+      throw await this.handoffTaker._handoffFailureOf(
+        ticketRun,
+        error,
+        `The implement step crossed ${ticketSteps.liveCeilingPhraseOf(this.config.knobs)}`,
       );
     }
-  }
-
-  // The work stays in the tree for the fresh step; the backup branch is in case that step loses it.
-  private async _handOff(
-    ticketRun: TicketRun,
-    handoff: Handoff,
-  ): Promise<void> {
-    const { ticket, state } = ticketRun;
-    const sessionId = sessionIdOf(
-      ticket.issue,
-      "handoff",
-      state.implementerSession,
-    );
-    const count = (state.handoffCount ?? 0) + 1;
-    await this._backUp(ticketRun, `handoff-${count}`, saveUncommitted);
-    const comment = this._implementRulesOf(ticketRun).handoffCommentOf(
-      handoff,
-      sessionId,
-    );
-    state.latestHandoff = handoff;
-    await this._postHandoff(ticketRun, comment);
-  }
-
-  // The split Halt is checked with the cap, so a split past the cap rides on the cap's Failure Halt.
-  private async _haltBeforeFreshStep(
-    ticketRun: TicketRun,
-    { proposedSplit }: Handoff,
-  ): Promise<void> {
-    const { run, ticket, state } = ticketRun;
-    const count = state.handoffCount ?? 0;
-    const isSplitUnhalted =
-      proposedSplit !== undefined && state.splitHaltedHandoff !== count;
-    if (
-      isSplitUnhalted &&
-      ticketSteps.isPastHandoffCap(state, this.config.knobs)
-    ) {
-      state.splitHaltedHandoff = count;
-    }
-    await this.haltRaiser._haltPastHandoffCap(
-      ticketRun,
-      isSplitUnhalted ? proposedSplit : [],
-    );
-    if (!isSplitUnhalted) return;
-    const downstream = await this.haltRaiser._downstreamOf(run, ticket.issue);
-    runHalts.raise(run, {
-      ticket: ticket.issue,
-      drafts: [splitHaltOf(proposedSplit, downstream)],
-    });
-    state.splitHaltedHandoff = count;
-    await this.haltRaiser._haltOnUnpostedHalts(ticketRun);
   }
 
   private _implementPromptOf(ticketRun: TicketRun): string {
@@ -346,15 +289,4 @@ function continuationLaunchOf(
   const { turns } = continuation;
   const prompt = moreTurnsPrompt(turns, !ticketSteps.isTreeKept(state));
   return { ...launch, prompt, maxTurns: turns, liveCeiling };
-}
-
-function sessionIdOf(
-  issue: IssueRef,
-  owner: string,
-  sessionId: string | undefined,
-): string {
-  if (sessionId === undefined) {
-    throw new Error(`${issueRef.labelOf(issue)}'s ${owner} has no session id.`);
-  }
-  return sessionId;
 }

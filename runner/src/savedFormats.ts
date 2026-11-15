@@ -68,7 +68,9 @@ interface SavedTicketState extends Omit<
   sessions: (SavedStepSession & Omit<TicketSession, keyof StepSession>)[];
   triage?: SavedResolveRecord[];
   fixer?: "implementer" | "triage";
+  // The fresh resolver's session, under its older and newer names; no step resumes it now.
   triageSession?: string;
+  resolverSession?: string;
   fixBase?: Heads;
   configFolder?: string;
 }
@@ -151,7 +153,8 @@ function ticketStateOf({
   sessions,
   triage,
   fixer,
-  triageSession,
+  triageSession: _triageSession,
+  resolverSession: _resolverSession,
   fixBase,
   configFolder,
   limitResumes = 0,
@@ -171,11 +174,6 @@ function ticketStateOf({
   if (records !== undefined) state.resolveRecords = records.map(recordOf);
   const savedResolver = resolver ?? fixer;
   if (savedResolver !== undefined) state.resolver = resolverOf(savedResolver);
-  // A state saved before the fresh resolver's session was kept names it only in its sessions.
-  const freshSession =
-    triageSession ??
-    sessions.findLast(({ agent }) => agent === "triage")?.sessionId;
-  if (freshSession !== undefined) state.resolverSession ??= freshSession;
   if (fixBase !== undefined) state.resolveBase ??= fixBase;
   if (crashes !== undefined) state.crashes = crashCountsOf(crashes);
   return state;
