@@ -46,6 +46,8 @@ export interface RunKnobs {
   // The fresh resolver runs on the stronger of this and the ticket's pair, since it starts cold on the diff.
   resolverPair: Pair;
   gapCheckPair: Pair;
+  // A review whose diff from master touches at most this many files, across the branched repos, may review inline; a larger one that skips its reviewer subagents is sent back once.
+  inlineReviewMaxFiles: number;
   reviewListCadence: ReviewListCadence;
   // How often an idle run reads the spec issue for answers and its tickets for released leases.
   idlePollMs: number;
@@ -92,6 +94,7 @@ export const defaultRunKnobs: RunKnobs = {
   liveCeiling: 180_000,
   resolverPair: { model: "opus", effort: "medium" },
   gapCheckPair: { model: "opus", effort: "medium" },
+  inlineReviewMaxFiles: 1,
   reviewListCadence: "end-of-run",
   idlePollMs: 60_000,
   runnerPaths: [],

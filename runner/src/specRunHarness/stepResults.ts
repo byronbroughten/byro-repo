@@ -30,6 +30,7 @@ export const stepResults = {
       usage: undefined,
       limitHit: undefined,
       deniedTools: [],
+      spawnedSubagents: 0,
     };
   },
 
@@ -203,7 +204,13 @@ export const stepResults = {
     };
   },
 
+  // A review that spawned its Standards and Spec reviewers, as the code review skill says.
   reviewed(findings: ReviewFinding[] = []): StepResult {
+    return { ...stepResults.reviewedInline(findings), spawnedSubagents: 2 };
+  },
+
+  // A review that spawned no reviewer, reviewing in its own session.
+  reviewedInline(findings: ReviewFinding[] = []): StepResult {
     return stepResults.resultOf({ findings });
   },
 

@@ -4,19 +4,28 @@ import { describe, expect, it } from "vitest";
 import { reviewPrompt, reviewRecordSchema } from "./reviewStep.ts";
 
 describe("reviewPrompt", () => {
+  const input = {
+    issue: { repo: "byro-repo", number: 269 },
+    spec: { repo: "byro-repo", number: 268 },
+    title: "Runner steps read issues only through the reader",
+    labels: ["ready-for-agent"],
+    skillName: "code-review",
+    branch: "issue-269-reader-only-issues",
+    branchedRepos: ["byro-repo"],
+    workspacePath: "/workspaces/byro-repo-issue-269",
+    isInlineAllowed: false,
+  };
+
   it("names the issue reader for the spec read", () => {
-    const prompt = reviewPrompt({
-      issue: { repo: "byro-repo", number: 269 },
-      spec: { repo: "byro-repo", number: 268 },
-      title: "Runner steps read issues only through the reader",
-      labels: ["ready-for-agent"],
-      skillName: "code-review",
-      branch: "issue-269-reader-only-issues",
-      branchedRepos: ["byro-repo"],
-      workspacePath: "/workspaces/byro-repo-issue-269",
-    });
-    expect(prompt).toContain(
+    expect(reviewPrompt(input)).toContain(
       "Read issues only through the issue reader, `npm run issue:read -- <repo> <n> --hide-others`",
+    );
+  });
+
+  it("allows an inline review only for a diff within the inline size", () => {
+    expect(reviewPrompt(input)).not.toContain("may review it inline");
+    expect(reviewPrompt({ ...input, isInlineAllowed: true })).toContain(
+      "may review it inline",
     );
   });
 });

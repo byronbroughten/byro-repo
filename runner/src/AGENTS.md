@@ -93,7 +93,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `promptText.ts` | | Wording helpers the step prompts and the runner's comments share. |
 | `recordSchema.ts` | | Schema parts the step records share, the implement record's variants, the review record built from a Workflow's axes and the gap-check record among them, the `output` wrapper a session step's record sits under and its unwrap, and their validator. |
 | `resolveRecords.ts` | | The resolve record every Workflow's resolve step returns: its schema, numbered findings, retry prompt, record and commit checks, and the builder of a Workflow's resolve rules, resolve resuming implement. |
-| `reviewList.ts` | `reviewList` | The review list's comment formats, a research ticket's unwanted Unverified facts' audit among them, and undecided count, `runner decide`'s edit marking one item decided or handled, and a session re-review's merge into the posted list. |
+| `reviewList.ts` | `reviewList` | The review list's comment formats, a research ticket's unwanted Unverified facts' audit and the note on a review that skipped its reviewers among them, and undecided count, `runner decide`'s edit marking one item decided or handled, and a session re-review's merge into the posted list. |
 | `runBoard.ts` | `runBoard` | The Run board behind `runner status` and `runner watch` with no spec. |
 | `runCollecting.ts` | `runCollecting` | Runs one process with its output collected. |
 | `runCommand.ts` | | Runs a configured command, returning its output tail when it fails, for the preflight and a ticket's checks. |
@@ -121,7 +121,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/ResearchStepper.ts` | | Runs a piece spec's research ticket's research step and its handoffs, keeps its record, and runs its quote check, sending the step back on red. |
 | `SpecRun/ReviewItemDecider.ts` | | `runner decide`: records one item of the developer's own review list as decided or handled. |
 | `SpecRun/ReviewListPoster.ts` | | Posts review lists and covered-later notes. |
-| `SpecRun/ReviewStepper.ts` | | Runs a ticket's review and resolve steps. |
+| `SpecRun/ReviewStepper.ts` | | Runs a ticket's review and resolve steps, sending back once a review over the inline size that skipped its reviewer subagents. |
 | `SpecRun/RunLoop.ts` | | The run's ticket loop across its members, idling and end. |
 | `SpecRun/SessionReviewer.ts` | | Runs `review` and `resolve` for an interactive session. |
 | `SpecRun/SpecRunBase.ts` | | The Base every collaborator shares: config, run state, progress log, notices, snapshots, a run's end and an issue's review-list judgement. |
@@ -147,7 +147,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `specRunHarness/timing.ts` | | The clock `SpecRun` tests start a run at and move through its fakes. |
 | `specRunHarness/trackedIssues.ts` | | The tracked issues `SpecRun` tests give a fake GitHub and `Workflow` tests pick from. |
 | `stalePaths.ts` | | The stale-path check for `packages/<dir>` mentions with no clone. |
-| `StepStream.ts` | | Reads a step's stream-json into its `StepResult`. |
+| `StepStream.ts` | | Reads a step's stream-json into its `StepResult`, the subagents its main loop spawned included. |
 | `stepPrompts/doneLines.ts` | | The "when you're done" lines the code and piece Workflows' implement and red-checks prompts share. |
 | `stepPrompts/handoffText.ts` | | The handoff wording every Workflow's implement step shares: the nudge section, a fresh step's section, the posted comment and a proposed split's text. |
 | `stepPrompts/implementText.ts` | | The bullets the implement step's prompt and the generated `/implement-code` skill share, the ticket-binds section and the implement prompt's workspace section. |
@@ -172,7 +172,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Workflow/code/mergeMasterStep.ts` | | The merge-master step's prompt and output schema. |
 | `Workflow/code/redChecksStep.ts` | | The red-checks step's prompt and record. |
 | `Workflow/code/resolveStep.ts` | `resolveStep` | The code resolve step's prompt. |
-| `Workflow/code/reviewStep.ts` | `reviewStep` | The review step's prompt and record schema. |
+| `Workflow/code/reviewStep.ts` | `reviewStep` | The review step's prompt, record schema and reviewer check. |
 | `Workflow/piece/agentDraft.ts` | | The Agent draft file's path, Sections and author marks, pull's merge of a Doc's Sections into them, the agent Sections the push writes and the ones its `keep mine` answers mark as the developer's. |
 | `Workflow/piece/draftingScope.ts` | `draftingScope` | A drafting ticket's scope, its named Sections or every agent Section on a `final-pass` ticket, read from its labels and worded for the prompts. |
 | `Workflow/piece/gapCheck.ts` | | The piece gap check's prompt. |

@@ -340,6 +340,7 @@ function reviewListOf({ ticket, state }: TicketRun): string | undefined {
     ticket: ticket.issue,
     title: ticket.title,
     records: state.resolveRecords ?? [],
+    hasSkippedReviewers: state.hasSkippedReviewers,
   });
 }
 

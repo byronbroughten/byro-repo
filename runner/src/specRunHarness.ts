@@ -48,6 +48,7 @@ export const {
   applied,
   blocked,
   capped,
+  commitFile,
   crashed,
   findingOf,
   greened,
@@ -59,6 +60,7 @@ export const {
   resolved,
   resultOf,
   reviewed,
+  reviewedInline,
   schemaFailedOf,
   throws,
 } = stepResults;

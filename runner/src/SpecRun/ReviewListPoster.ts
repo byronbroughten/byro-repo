@@ -36,6 +36,7 @@ export class ReviewListPoster extends SpecRunBase {
       mergeMasterRecord: state.mergeMasterRecord,
       unrecordedMerge: state.unrecordedMerge,
       unverified: ticketSteps.keptUnverifiedOf(state),
+      hasSkippedReviewers: state.hasSkippedReviewers,
     });
     if (body !== undefined && !(await this._hasReviewList(run, ticket.issue))) {
       await this._postReviewListComment(run, ticket.issue, body);
@@ -46,10 +47,12 @@ export class ReviewListPoster extends SpecRunBase {
 
   // A run's landing never edits a posted list, but a session's re-review does, so a Propose it adds reaches the spec.
   async _postSessionReviewList(run: Run, ticket: TrackedIssue): Promise<void> {
+    const state = runTickets.stateOf(run, ticket.issue);
     const list = {
       ticket: ticket.issue,
       title: ticket.title,
-      records: runTickets.stateOf(run, ticket.issue).resolveRecords ?? [],
+      records: state.resolveRecords ?? [],
+      hasSkippedReviewers: state.hasSkippedReviewers,
     };
     const mark = reviewListMarkOf(ticket.issue);
     const listed = (

@@ -28,6 +28,7 @@ function result(sessionId: string): StepResult {
     usage: undefined,
     limitHit: undefined,
     deniedTools: [],
+    spawnedSubagents: 0,
   };
 }
 
