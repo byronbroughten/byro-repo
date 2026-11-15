@@ -14,7 +14,8 @@ export const implementBody = {
     "Some tickets need only GitHub writes and no code. Run `gh issue edit` and `gh issue comment` only as the ticket describes them, writing each body to a file under `/tmp` and passing it with `--body-file`. Never close an issue, never change a triage label (such as `ready-for-agent`) on this ticket or another ticket of its spec, and make no other GitHub write.",
   testFirst:
     "Work test-first: if a `tdd` skill is available, call it, at the seams the ticket names or, with none named, seams you pick yourself; never stop to confirm them.",
-  checking: "Run typechecking and single test files regularly.",
+  checking:
+    "Run typechecking and single test files regularly, each test file with `npm test -- <path>`.",
   oneCommand:
     "Read and search with the Read and Grep tools. Give Bash one command per call, run from the workspace root: no `cd`, no `;` or `&&` chains, no variables.",
   drift:
