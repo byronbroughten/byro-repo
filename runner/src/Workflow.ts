@@ -217,6 +217,8 @@ export interface ReviewPromptInput extends TicketPromptFields {
   skillName: string;
   // Set when the diff is within the inlineReviewMaxFiles knob, so the review may skip its reviewer subagents.
   isInlineAllowed: boolean;
+  // The committed implement record's, absent for a session review, which has none.
+  pointsWorthChecking?: string[];
 }
 
 export interface ReviewRules {

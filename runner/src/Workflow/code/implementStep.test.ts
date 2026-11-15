@@ -157,6 +157,17 @@ describe("implementOutputSchema", () => {
     );
   });
 
+  it("accepts a committed record naming its points worth checking", () => {
+    const pointsWorthChecking = ["runner/src/SpecRun.ts: the relaunch branch"];
+    expect(validate({ ...committed, pointsWorthChecking })).toBe(true);
+  });
+
+  it("refuses points worth checking on a record no review reads", () => {
+    const pointsWorthChecking = ["runner/src/SpecRun.ts: the relaunch branch"];
+    expect(validate({ ...applied, pointsWorthChecking })).toBe(false);
+    expect(validate({ ...handoff, pointsWorthChecking })).toBe(false);
+  });
+
   it("refuses a blocker of an unknown kind", () => {
     const blocker = { kind: "flaky-test", detail: "x", recommendation: "y" };
     expect(validate({ ...committed, blockers: [blocker] })).toBe(false);
@@ -280,6 +291,12 @@ describe("implementPrompt", () => {
   it("returns applied for a ticket that needed only GitHub writes", () => {
     expect(implementPrompt(input)).toContain(
       "`applied` when the ticket needed only GitHub writes and you committed nothing",
+    );
+  });
+
+  it("asks a committed record for its points worth checking, for the review", () => {
+    expect(implementPrompt(input)).toContain(
+      "`pointsWorthChecking`: optional, only when committed: each place you suspect is weak, unfinished or easy to get wrong",
     );
   });
 

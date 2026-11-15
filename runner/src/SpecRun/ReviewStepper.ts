@@ -17,6 +17,7 @@ import { strongerPairOf } from "../modelFit.ts";
 import { schemaProblemsOf } from "../recordSchema.ts";
 import {
   type Finding,
+  pointsWorthCheckingOf,
   type ResolveRecord,
   type ReviewRecord,
 } from "../stepRecords.ts";
@@ -110,6 +111,7 @@ export class ReviewStepper extends SpecRunBase {
         ...ticketSteps.promptFieldsOf(ticketRun),
         skillName: rules.skillName,
         isInlineAllowed,
+        pointsWorthChecking: pointsWorthCheckingOf(state.record),
       }),
       jsonSchema,
     });

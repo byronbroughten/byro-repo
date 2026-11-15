@@ -1,10 +1,11 @@
 import { Ajv } from "ajv";
 import { describe, expect, it } from "vitest";
 
+import type { ReviewPromptInput } from "../../Workflow.ts";
 import { reviewPrompt, reviewRecordSchema } from "./reviewStep.ts";
 
 describe("reviewPrompt", () => {
-  const input = {
+  const input: ReviewPromptInput = {
     issue: { repo: "byro-repo", number: 269 },
     spec: { repo: "byro-repo", number: 268 },
     title: "Runner steps read issues only through the reader",
@@ -15,10 +16,34 @@ describe("reviewPrompt", () => {
     workspacePath: "/workspaces/byro-repo-issue-269",
     isInlineAllowed: false,
   };
+  const briefLine = "paste it into both reviewers' briefs";
 
   it("names the issue reader for the spec read", () => {
     expect(reviewPrompt(input)).toContain(
       "Read issues only through the issue reader, `npm run issue:read -- <repo> <n> --hide-others`",
+    );
+  });
+
+  it("hands the implementer's points worth checking to both reviewers' briefs, as things to check", () => {
+    const prompt = reviewPrompt({
+      ...input,
+      pointsWorthChecking: [
+        "runner/src/SpecRun.ts: the relaunch branch still computes warnings",
+        "the reader's --hide-others flag",
+      ],
+    });
+    expect(prompt).toContain(
+      "## The implementer's points worth checking\n\n- runner/src/SpecRun.ts: the relaunch branch still computes warnings\n- the reader's --hide-others flag",
+    );
+    expect(prompt).toContain(
+      `${briefLine}, Standards and Spec alike, as things to check, not as findings`,
+    );
+  });
+
+  it("says nothing of points worth checking when the implementer named none", () => {
+    expect(reviewPrompt(input)).not.toContain(briefLine);
+    expect(reviewPrompt({ ...input, pointsWorthChecking: [] })).toBe(
+      reviewPrompt(input),
     );
   });
 
