@@ -143,6 +143,14 @@ describe("gateDecision", () => {
     ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
   });
 
+  it("asks for a clasp or sheets-framework installed by npx's --package, whatever program it runs", () => {
+    [
+      "npx -p @google/clasp clasp deploy",
+      "npx --package=@google/clasp sh -c 'clasp deploy'",
+      "npm exec --package sheets-framework -- sh -c 'sheets-framework probe'",
+    ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
+  });
+
   it("allows nothing whose words hide a command substitution", () => {
     expect(
       decisionOf(

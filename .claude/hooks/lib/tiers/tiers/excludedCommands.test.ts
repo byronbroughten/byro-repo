@@ -128,6 +128,8 @@ describe("a vitest test run, read as `npm test`", () => {
     `npx vitest ${file}`,
     `npm exec vitest run ${file}`,
     `npx --yes vitest run ${file}`,
+    `npx --package vitest vitest run ${file}`,
+    `npx -p vitest@3 vitest run ${file}`,
     `node_modules/.bin/vitest run ${file}`,
     `vitest run ${file}`,
     `timeout 60 npx vitest run ${file}`,

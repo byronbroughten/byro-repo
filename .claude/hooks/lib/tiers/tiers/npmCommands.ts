@@ -8,6 +8,8 @@ export interface NpmScript {
 
 export interface ProgramRun {
   program: string;
+  // What npx's `-p`/`--package` installs for the program to run from.
+  packages: string[];
   args: string[];
 }
 
@@ -68,6 +70,8 @@ const npmValueFlags = new Set([
   "--registry",
   "--script-shell",
 ]);
+// npx and npm exec options that take the next word as a package, not the program.
+const packageFlags = new Set(["-p", "--package"]);
 
 export const npmCommands = {
   // An `npm run` script and its args; flags drop out except `--` and `--send`.
@@ -89,11 +93,13 @@ export const npmCommands = {
     ) {
       rest = words.slice(words.indexOf(nonFlagsOf(words)[1] ?? "") + 1);
     }
-    const program = nonFlagsOf(rest)[0];
+    const programAt = programAtOf(rest);
+    const program = rest[programAt];
     if (program === undefined) return undefined;
     return {
-      program: basenameOf(program.replace(/(.)@[^/]*$/, "$1")),
-      args: rest.slice(rest.indexOf(program) + 1),
+      program: programNameOf(program),
+      packages: packagesOf(rest.slice(0, programAt)).map(programNameOf),
+      args: rest.slice(programAt + 1),
     };
   },
   // A --prefix runs another folder's scripts under the same name.
@@ -169,6 +175,28 @@ function sendVerdictOf(name: string, dryRuns: string[]): Verdict {
 
 function nonFlagsOf(words: string[]): string[] {
   return words.filter((word) => !word.startsWith("-"));
+}
+
+function programAtOf(words: string[]): number {
+  let index = 0;
+  while ((words[index] ?? "").startsWith("-")) {
+    index += packageFlags.has(words[index] ?? "") ? 2 : 1;
+  }
+  return index;
+}
+
+function packagesOf(flagWords: string[]): string[] {
+  return flagWords.flatMap((word, at) => {
+    if (packageFlags.has(word)) return [flagWords[at + 1] ?? ""];
+    if (word.startsWith("--package=")) {
+      return [word.slice("--package=".length)];
+    }
+    return [];
+  });
+}
+
+function programNameOf(program: string): string {
+  return basenameOf(program.replace(/(.)@[^/]*$/, "$1"));
 }
 
 // A scoped package keeps its scope; a path keeps only its last part.
