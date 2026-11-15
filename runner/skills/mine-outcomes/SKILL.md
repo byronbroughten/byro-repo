@@ -44,7 +44,7 @@ For each outlier, and each row a pattern below rests on, read its What review ca
 
 **Compare like with like: weigh a row only against rows of its own repo and `Workflow`.** Make two kinds. Each names the knob, criterion or file it would change, the change, and the rows behind it by issue number; the rows may come from any spec in the batch:
 
-- **Model-fit boundary**: move a ticket shape from one pair to another in a criterion of `model-fit.md`, or change `resolverPair`, `gapCheckPair`, `ticketBudget` or `liveCeiling`. Compare each ticket's pair and its Model fit reason with its Result, peak sum and cost. A pair that passed first try on a shape its criterion puts higher is evidence for moving the boundary down. A cheaper pair that needed a Fix is evidence against.
+- **Model-fit boundary**: move a ticket shape from one pair to another in a criterion of `model-fit.md`, or change `gapCheckPair`, `ticketBudget` or `liveCeiling`. Compare each ticket's pair and its Model fit reason with its Result, peak sum and cost. A pair that passed first try on a shape its criterion puts higher is evidence for moving the boundary down. A cheaper pair that needed a Fix is evidence against.
 - **Process**: one in one of the categories in `/retro` ([`.claude/skills/retro/SKILL.md`](../../../.claude/skills/retro/SKILL.md)), drawn mainly from What review caught. The same kind of catch on two or more tickets is a proposal. Name the knob when one fits, such as `maxTurns.<step>`, `wallClockMs.<step>`, `ticketBudget` or `reviewListCadence`. Otherwise name the doc or check to change.
 
 A pattern on one row is not a proposal; leave it to `/retro`.

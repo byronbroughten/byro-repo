@@ -1,5 +1,5 @@
 // The code Workflow's Step sequence: implement or resume, review, resolve, checks, then wrap-up; and each agent step's
-// rules from its own module, resolve resuming implement.
+// rules from its own module.
 // A repo's runner config builds it with its checks and review skill, and ../../Workflow.ts registers it; ../../SpecRun/TicketSequencer.ts walks it and runs each Step.
 
 import { gapCheckOutputSchema, gapCheckRecordOf } from "../../recordSchema.ts";
