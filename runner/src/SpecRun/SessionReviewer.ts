@@ -194,6 +194,10 @@ export class SessionReviewer extends SpecRunBase {
     if (workspace === undefined) {
       return `${issueRef.labelOf(issue)} has no issue workspace; open it with \`npm run issue:start\` first.`;
     }
+    const pair = pairOf(ticket.body);
+    if (pair === undefined) {
+      return `${issueRef.labelOf(issue)} has no valid ## Model fit section, so its review has no pair to run on: add one naming one of the six pairs.`;
+    }
     const checked = issueRef.isSame(run.spec.issue, issue) ? [] : [ticket];
     const refusal =
       (await this._authorshipRefusal("the spec and the reviewed ticket", [
@@ -208,8 +212,7 @@ export class SessionReviewer extends SpecRunBase {
     return {
       run,
       ticket,
-      // Interactive tickets may carry no Model fit.
-      pair: pairOf(ticket.body) ?? this.config.knobs.gapCheckPair,
+      pair,
       workspace,
       state,
       targets: ticketLaunch.validTargetsOf(ticket, this._progressPathOf(run)),

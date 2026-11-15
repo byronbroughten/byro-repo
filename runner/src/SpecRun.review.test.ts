@@ -13,6 +13,7 @@ import { runKnobsOf } from "./runKnobs.ts";
 import { reviewPrintoutOf } from "./SpecRun.ts";
 import type { ReviewResult } from "./SpecRun/runState.ts";
 import {
+  addIssue,
   addSpec,
   clonePaths,
   commentsOn,
@@ -524,6 +525,22 @@ describe("review of one ticket outside a run", () => {
     expect(result.kind).toBe("refused");
     expect(result.message).toBe(
       "byro-repo #1's workspace has uncommitted changes in byro-repo; commit them first.",
+    );
+    expect(agentStep.requests).toHaveLength(0);
+  });
+
+  it("refuses an interactive ticket with no Model fit, as a run's preflight does, launching nothing", async () => {
+    addIssue(1, {
+      labels: ["ready-for-interactive"],
+      body: "## What to build\n\nA thing.\n",
+    });
+    const agentStep = FakeAgentStep.init(reviewed());
+
+    const result = await specRun(agentStep).review(refOf(1), { holder });
+
+    expect(result.kind).toBe("refused");
+    expect(result.message).toBe(
+      "byro-repo #1 has no valid ## Model fit section, so its review has no pair to run on: add one naming one of the six pairs.",
     );
     expect(agentStep.requests).toHaveLength(0);
   });
