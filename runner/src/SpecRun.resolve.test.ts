@@ -26,6 +26,7 @@ import {
   resolved,
   resultOf,
   reviewed,
+  reviewListOf,
   rootCloneOnly,
   schemaFailedOf,
   spec,
@@ -156,12 +157,6 @@ describe("run's resolve", () => {
     return git(primary, "log", "--format=%s", `-${count}`, `${merge}^2`).split(
       "\n",
     );
-  }
-
-  function reviewListOf(ticket: number): string | undefined {
-    return github.comments
-      .map(({ body }) => body)
-      .find((body) => body.includes(`<!-- review-list ticket=#${ticket} -->`));
   }
 
   it("skips resolve when review finds nothing", async () => {

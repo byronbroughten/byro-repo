@@ -176,6 +176,8 @@ export interface TicketState {
   pair?: Pair;
   guidance?: string;
   continuation?: Continuation;
+  // Set when the review over the inline size spawned too few reviewer subagents even once resumed, so its review list says so.
+  hasSkippedReviewers?: boolean;
   // Set once a landed ticket's review list and covered-later notes are posted, or found to need none.
   isReviewListPosted?: boolean;
 }

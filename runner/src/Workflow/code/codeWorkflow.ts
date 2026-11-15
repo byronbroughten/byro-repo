@@ -27,7 +27,11 @@ import {
 } from "./mergeMasterStep.ts";
 import { redChecksOutputSchema, redChecksPrompt } from "./redChecksStep.ts";
 import { resolvePrompt } from "./resolveStep.ts";
-import { reviewPrompt, reviewRecordSchema } from "./reviewStep.ts";
+import {
+  reviewerCheckOf,
+  reviewPrompt,
+  reviewRecordSchema,
+} from "./reviewStep.ts";
 
 const steps: WorkflowStep[] = [
   {
@@ -127,6 +131,7 @@ export function codeWorkflowOf({
         promptOf: reviewPrompt,
         outputSchema: reviewRecordSchema,
         skillName: reviewSkillName,
+        reviewerCheck: reviewerCheckOf(reviewSkillName),
       },
     },
     landingOf() {

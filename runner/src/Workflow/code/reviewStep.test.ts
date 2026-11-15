@@ -14,6 +14,7 @@ describe("reviewPrompt", () => {
     branch: "issue-269-reader-only-issues",
     branchedRepos: ["byro-repo"],
     workspacePath: "/workspaces/byro-repo-issue-269",
+    isInlineAllowed: false,
   };
   const briefLine = "paste it into both reviewers' briefs";
 
@@ -43,6 +44,13 @@ describe("reviewPrompt", () => {
     expect(reviewPrompt(input)).not.toContain(briefLine);
     expect(reviewPrompt({ ...input, pointsWorthChecking: [] })).toBe(
       reviewPrompt(input),
+    );
+  });
+
+  it("allows an inline review only for a diff within the inline size", () => {
+    expect(reviewPrompt(input)).not.toContain("may review it inline");
+    expect(reviewPrompt({ ...input, isInlineAllowed: true })).toContain(
+      "may review it inline",
     );
   });
 });

@@ -103,7 +103,11 @@ export class StepLauncher extends SpecRunBase {
       prompt: schemaResumePromptOf(output.problems),
       resumeSessionId: sessionId,
     });
-    return { ...resumed, isSchemaResumed: true };
+    const result = withSpawnedBefore(
+      resumed.result,
+      ran.result.spawnedSubagentCount,
+    );
+    return { ...resumed, result, isSchemaResumed: true };
   }
 
   // Retries a crash, resuming its session when it has one; leaves the result unread, so a resolver can check for a live-ceiling kill before recordOf().
@@ -114,7 +118,10 @@ export class StepLauncher extends SpecRunBase {
   ): Promise<RanStep> {
     let attempt = launch;
     let isCrashResume = false;
+    let spawnedBefore = 0;
     for (;;) {
+      // A fresh launch starts a new session, which has spawned nothing yet.
+      if (attempt.resumeSessionId === undefined) spawnedBefore = 0;
       const logPath = this._stepLogPathOf(ticketRun, agent);
       const ran = await this._attemptStep(ticketRun, agent, attempt, logPath);
       if (ran.kind === "unrun") {
@@ -127,7 +134,8 @@ export class StepLauncher extends SpecRunBase {
         isCrashResume = false;
         continue;
       }
-      const { result } = ran;
+      const result = withSpawnedBefore(ran.result, spawnedBefore);
+      spawnedBefore = result.spawnedSubagentCount;
       if (isCutOffByLimit(result)) {
         await this.limitWaiter._waitOutLimitHit(ticketRun.run, result, logPath);
         ticketRun.state.limitResumes += 1;
@@ -363,6 +371,14 @@ function guidedLaunchOf(
   return {
     ...launch,
     prompt: `${launch.prompt}\n\n${guidanceSectionOf(guidance)}`,
+  };
+}
+
+// A resume continues the session, so the subagents its earlier attempts spawned still count.
+function withSpawnedBefore(result: StepResult, before: number): StepResult {
+  return {
+    ...result,
+    spawnedSubagentCount: before + result.spawnedSubagentCount,
   };
 }
 

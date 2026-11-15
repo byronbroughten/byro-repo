@@ -38,6 +38,12 @@ interface RawWindow {
   resetsAt?: unknown;
 }
 
+interface AssistantEvent {
+  type: "assistant";
+  parent_tool_use_id?: unknown;
+  message?: { content?: unknown };
+}
+
 interface ResultEvent {
   type: "result";
   subtype?: unknown;
@@ -56,6 +62,9 @@ const usageKeyOfWindow: Record<keyof RawWindows, keyof UsageReading> = {
   seven_day: "sevenDay",
 };
 
+// Claude Code's subagent tool; older releases named it Task.
+const subagentToolNames = new Set(["Agent", "Task"]);
+
 const tooManyRequests = 429;
 const noConversationPrefix = "No conversation found";
 
@@ -65,6 +74,8 @@ export class StepStream {
   private init: InitEvent | undefined;
   private rateLimit: RateLimitInfo | undefined;
   private result: ResultEvent | undefined;
+  // By tool-use id, so a message whose blocks repeat across events counts each call once.
+  private readonly subagentCalls = new Set<string>();
 
   constructor(liveCeiling: number | undefined) {
     this.liveCeiling = liveCeiling;
@@ -96,6 +107,10 @@ export class StepStream {
       this.rateLimit = (event as RateLimitEvent).rate_limit_info;
     } else if (typed.type === "result") {
       this.result = event as ResultEvent;
+    } else if (typed.type === "assistant") {
+      for (const id of subagentCallsOf(event as AssistantEvent)) {
+        this.subagentCalls.add(id);
+      }
     }
     return this;
   }
@@ -114,6 +129,7 @@ export class StepStream {
       usage: this.usage,
       limitHit: this._limitHit,
       deniedTools: deniedToolsOf(this.result?.permission_denials),
+      spawnedSubagentCount: this.subagentCalls.size,
     };
   }
 
@@ -196,6 +212,25 @@ function deniedToolsOf(denials: unknown): string[] {
   return denials.flatMap((denial) => {
     const toolName = stringOrUndefined(denial?.tool_name);
     return toolName === undefined ? [] : [toolName];
+  });
+}
+
+// A subagent's own events carry the parent_tool_use_id of the call that spawned it.
+function subagentCallsOf({
+  parent_tool_use_id,
+  message,
+}: AssistantEvent): string[] {
+  if (parent_tool_use_id !== undefined && parent_tool_use_id !== null) {
+    return [];
+  }
+  const content = message?.content;
+  if (!Array.isArray(content)) return [];
+  return content.flatMap((block) => {
+    if (block?.type !== "tool_use" || !subagentToolNames.has(block.name)) {
+      return [];
+    }
+    const id = stringOrUndefined(block.id);
+    return id === undefined ? [] : [id];
   });
 }
 

@@ -4,7 +4,9 @@ import {
   coveredLaterNotesOf,
   decidedListOf,
   gapCheckListOf,
+  reReviewedCommentOf,
   reviewListHoldingOf,
+  skippedReviewersNote,
   ticketReviewListOf,
   undecidedCountOf,
   undecidedLineOf,
@@ -148,6 +150,59 @@ describe("ticketReviewListOf", () => {
     expect(
       ticketReviewListOf({ ticket, title: "Ticket 7", records: [] }),
     ).toBeUndefined();
+  });
+
+  it("notes a review that skipped its reviewers under the heading, with no records and nothing undecided", () => {
+    const body = ticketReviewListOf({
+      ticket,
+      title: "Ticket 7",
+      records: [],
+      hasSkippedReviewers: true,
+    });
+
+    expect(body).toBe(
+      [
+        "<!-- review-list ticket=#7 -->",
+        '**Review list** · byro-repo #7, "Ticket 7"',
+        "_Reviewed without its reviewers: the review skipped its reviewer subagents even once sent back to spawn them._",
+      ].join("\n\n"),
+    );
+    expect(undecidedCountOf([body ?? ""]).items).toBe(0);
+  });
+});
+
+describe("reReviewedCommentOf", () => {
+  it("keeps a posted list's skipped-reviewers note through a re-review that spawned them, and adds one a re-review earns", () => {
+    const skipped = ticketReviewListOf({
+      ticket,
+      title: "Ticket 7",
+      records: [ticketPropose],
+      hasSkippedReviewers: true,
+    });
+    const plain = ticketReviewListOf({
+      ticket,
+      title: "Ticket 7",
+      records: [ticketPropose],
+    });
+    const second = { ...ticketPropose, finding: 2, claim: "Story 4 is unmet." };
+
+    const kept = reReviewedCommentOf({
+      ticket,
+      title: "Ticket 7",
+      posted: skipped ?? "",
+      records: [second],
+    });
+    const added = reReviewedCommentOf({
+      ticket,
+      title: "Ticket 7",
+      posted: plain ?? "",
+      records: [second],
+      hasSkippedReviewers: true,
+    });
+
+    expect(kept).toContain(skippedReviewersNote);
+    expect(kept).toContain("**R7.2**");
+    expect(added).toContain(skippedReviewersNote);
   });
 });
 

@@ -215,6 +215,8 @@ export interface ImplementRules {
 
 export interface ReviewPromptInput extends TicketPromptFields {
   skillName: string;
+  // Set when the diff is within the inlineReviewMaxFiles knob, so the review may skip its reviewer subagents.
+  isInlineAllowed: boolean;
   // The committed implement record's, absent for a session review, which has none.
   pointsWorthChecking?: string[];
 }
@@ -225,6 +227,14 @@ export interface ReviewRules {
   outputSchema: object;
   // The skill the review step follows, through the Skill tool or, for a user-invoked skill, read by its path.
   skillName: string;
+  // Set for a skill that spawns reviewer subagents; unset, the review is never checked for them.
+  reviewerCheck?: ReviewerCheck;
+}
+
+// A review over the inline size that spawns fewer than `count` subagents is resumed once with `resumePrompt`.
+export interface ReviewerCheck {
+  count: number;
+  resumePrompt: string;
 }
 
 export interface ResolvePromptInput extends TicketPromptFields {
