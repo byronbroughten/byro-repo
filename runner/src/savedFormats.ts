@@ -4,7 +4,8 @@
 // before #367 a facts file's sessions shared one ticket-level account and config folder, and a run state's had neither;
 // before #473 a run state kept the latest step's config folder on the ticket, which a session with none takes;
 // before #513 a supervision record kept its `spec` and, for a Batch, `members` too, the spec repeating the first;
-// before #673 a run state had no `ticketLabels`, which reads as no ticket list.
+// before #673 a run state had no `ticketLabels`, which reads as no ticket list;
+// before #743 a run state named who fixed a finding as its `resolver`, which reads as `hasFixes`.
 // SpecRun/SpecRunBase.ts and the Run board read run state through runStateAt(), FactsFile.ts reads facts through factsOf(),
 // and SupervisionRecords.ts reads its files through supervisionFileOf(), the one reader of that file the session hooks go through.
 
@@ -17,7 +18,6 @@ import type { ReviewFixes } from "./outcomeLog.ts";
 import type {
   Heads,
   MemberList,
-  Resolver,
   RunState,
   TicketSession,
   TicketState,
@@ -53,22 +53,19 @@ type SavedTicketStep = TicketStep | SavedStepAgent;
 
 interface SavedTicketState extends Omit<
   TicketState,
-  | "step"
-  | "resolveRecords"
-  | "resolver"
-  | "crashes"
-  | "sessions"
-  | "limitResumes"
+  "step" | "resolveRecords" | "crashes" | "sessions" | "limitResumes"
 > {
   step: SavedTicketStep;
   limitResumes?: number;
   resolveRecords?: SavedResolveRecord[];
-  resolver?: Resolver;
+  resolver?: "implementer" | "fresh";
   crashes?: Partial<Record<SavedTicketStep, number>>;
   sessions: (SavedStepSession & Omit<TicketSession, keyof StepSession>)[];
   triage?: SavedResolveRecord[];
   fixer?: "implementer" | "triage";
+  // The fresh resolver's session, under its older and newer names; no step resumes it now.
   triageSession?: string;
+  resolverSession?: string;
   fixBase?: Heads;
   configFolder?: string;
 }
@@ -151,7 +148,8 @@ function ticketStateOf({
   sessions,
   triage,
   fixer,
-  triageSession,
+  triageSession: _triageSession,
+  resolverSession: _resolverSession,
   fixBase,
   configFolder,
   limitResumes = 0,
@@ -169,13 +167,7 @@ function ticketStateOf({
   };
   const records = resolveRecords ?? triage;
   if (records !== undefined) state.resolveRecords = records.map(recordOf);
-  const savedResolver = resolver ?? fixer;
-  if (savedResolver !== undefined) state.resolver = resolverOf(savedResolver);
-  // A state saved before the fresh resolver's session was kept names it only in its sessions.
-  const freshSession =
-    triageSession ??
-    sessions.findLast(({ agent }) => agent === "triage")?.sessionId;
-  if (freshSession !== undefined) state.resolverSession ??= freshSession;
+  if (resolver !== undefined || fixer !== undefined) state.hasFixes = true;
   if (fixBase !== undefined) state.resolveBase ??= fixBase;
   if (crashes !== undefined) state.crashes = crashCountsOf(crashes);
   return state;

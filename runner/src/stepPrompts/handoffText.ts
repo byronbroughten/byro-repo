@@ -1,8 +1,10 @@
-// The handoff wording every Workflow's implement step shares: the prompt's nudge section, a fresh step's section, the
-// comment the runner posts and a proposed split's text. Each step's own prompt stays in its file.
+// The handoff wording every Workflow's implementer shares: the prompt's nudge section, a fresh step's section, the
+// comment the runner posts, where in the steps it was handed off and a proposed split's text. Each step's own prompt
+// stays in its file.
 
 import { bulletsOf } from "../promptText.ts";
 import type { Handoff, ProposedSlice } from "../stepRecords.ts";
+import type { HandoffComment, HandoffPoint } from "../Workflow.ts";
 
 export interface HandoffNudge {
   inHand: string;
@@ -35,17 +37,22 @@ ${factsOf(handoff)}`;
   },
 
   // The runner posts it on the ticket; the `session:` line ties it to the step's transcript.
-  commentOf(handoff: Handoff, sessionId: string): string {
+  commentOf({ handoff, sessionId, point }: HandoffComment): string {
     const { proposedSplit } = handoff;
     return [
       "## Handoff",
-      "The implement step handed this ticket to a fresh implement step.",
+      `The implementer handed this ticket to a fresh session ${handoffText.pointOf(point)}.`,
       factsOf(handoff),
       ...(proposedSplit === undefined
         ? []
         : [`Proposed split:\n${handoffText.proposedSplitOf(proposedSplit)}`]),
       `session: ${sessionId}`,
     ].join("\n\n");
+  },
+
+  // As "in the implement step" or "before the review step", for the posted comment and the runner's own lines.
+  pointOf({ relation, step }: HandoffPoint): string {
+    return `${relation} the ${step} step`;
   },
 
   proposedSplitOf(slices: ProposedSlice[]): string {

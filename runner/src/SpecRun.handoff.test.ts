@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -11,6 +11,7 @@ import {
   bodyWith,
   capped,
   crashed,
+  findingOf,
   github,
   haltComments,
   handoffResultOf,
@@ -18,6 +19,7 @@ import {
   implementResultOf,
   primaryOf,
   refOf,
+  resolved,
   resultOf,
   reviewed,
   runStatePath,
@@ -25,11 +27,19 @@ import {
   specRun,
   stateFolder,
   type StepScript,
+  ticketFacts,
   ticketState,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
-import { handoffOnlyPrompt } from "./stepPrompts/resumePrompts.ts";
-import { type Handoff, type ImplementRecord } from "./stepRecords.ts";
+import {
+  budgetHandoffPrompt,
+  handoffOnlyPrompt,
+} from "./stepPrompts/resumePrompts.ts";
+import {
+  type Handoff,
+  type ImplementRecord,
+  type ResolveRecord,
+} from "./stepRecords.ts";
 
 useSpecRunHarness();
 
@@ -328,6 +338,156 @@ describe("run's live-ceiling backstop", () => {
   });
 });
 
+const findings = [findingOf({ line: 1 })];
+
+const fixRecords: ResolveRecord[] = [
+  {
+    finding: 1,
+    axis: "standards",
+    where: "one.ts:1",
+    claim: "Line 1 is wrong.",
+    verdict: "fix",
+    evidence: "Checked it.",
+    quote: "one.ts:1 `export {};`",
+    rule: "config/docs/code-style.md: a rule.",
+  },
+];
+
+describe("run's handoffs after implement", () => {
+  it("hands off before the review once the implementer's peak reaches the ticket budget, and a fresh session on the ticket's pair resolves", async () => {
+    addSpec([1]);
+    github.edit(1, { body: bodyWith("Sonnet high") });
+    let isWorkKept = false;
+    const agentStep = FakeAgentStep.init(
+      implementedAt(160_000),
+      handedOff,
+      reviewed(findings),
+      resolvingWithWork((isKept) => {
+        isWorkKept = isKept;
+      }),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(isWorkKept).toBe(true);
+    const [implementer, budgetResume, , fresh] = agentStep.requests;
+    expect(budgetResume?.resumeSessionId).toBe("implement-session");
+    expect(budgetResume?.prompt).toBe(budgetHandoffPrompt);
+    expect(fresh?.resumeSessionId).toBeUndefined();
+    expect(fresh?.pair).toEqual(implementer?.pair);
+    expect(fresh?.prompt).toContain("You are the resolve step");
+    expect(fresh?.prompt).toContain("Conclusion: The parser is half done.");
+    expect(handoffComments()[0]).toContain(
+      "The implementer handed this ticket to a fresh session before the review step.",
+    );
+    expect(ticketFacts().reviewFixes).toBe("implementer");
+  });
+
+  it("hands off before the resolve when a rerun finds the implementer past the ticket budget", async () => {
+    addSpec([1]);
+    const saved = join(stateFolder(), "saved.run.json");
+    await specRun(
+      FakeAgentStep.init(
+        implementedAt(90_000),
+        reviewed(findings),
+        async () => {
+          copyFileSync(runStatePath(), saved);
+          throw new Error("killed");
+        },
+      ),
+    ).run(spec);
+    writeSavedPeak(saved, 160_000);
+    const rerunStep = FakeAgentStep.init(
+      handedOff,
+      resolvingWithWork(() => {}),
+    );
+
+    const result = await specRun(rerunStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    const [budgetResume, fresh] = rerunStep.requests;
+    expect(budgetResume?.resumeSessionId).toBe("implement-session");
+    expect(budgetResume?.prompt).toBe(budgetHandoffPrompt);
+    expect(fresh?.resumeSessionId).toBeUndefined();
+    expect(fresh?.prompt).toContain("Conclusion: The parser is half done.");
+    expect(handoffComments()[0]).toContain(
+      "a fresh session before the resolve step.",
+    );
+  });
+
+  it("resumes an implementer killed at the live ceiling during the resolve for a handoff, and a fresh session carries the resolve on with its work", async () => {
+    addSpec([1]);
+    let isWorkKept = false;
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      reviewed(findings),
+      crossed,
+      handedOff,
+      resolvingWithWork((isKept) => {
+        isWorkKept = isKept;
+      }),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(isWorkKept).toBe(true);
+    const [implementer, , resolver, backstop, fresh] = agentStep.requests;
+    expect(resolver?.liveCeiling).toBe(180_000);
+    expect(backstop?.resumeSessionId).toBe("crossed-session");
+    expect(backstop?.prompt).toBe(handoffOnlyPrompt);
+    expect(backstop?.liveCeiling).toBeUndefined();
+    expect(fresh?.resumeSessionId).toBeUndefined();
+    expect(fresh?.pair).toEqual(implementer?.pair);
+    expect(fresh?.prompt).toContain("You are the resolve step");
+    expect(fresh?.prompt).toContain("Conclusion: The parser is half done.");
+    expect(handoffComments()[0]).toContain(
+      "a fresh session in the resolve step.",
+    );
+    expect(ticketFacts().reviewFixes).toBe("implementer");
+  });
+
+  it("hands off when the implementer's resolve retry crosses the live ceiling, and a fresh session resolves from the step's prompt", async () => {
+    addSpec([1]);
+    const noQuote = { ...fixRecords[0], quote: undefined } as ResolveRecord;
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      reviewed(findings),
+      resolved([noQuote], "fix.ts"),
+      crossed,
+      handedOff,
+      resolvingWithWork(() => {}),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    const [, , , retry, backstop, fresh] = agentStep.requests;
+    expect(retry?.resumeSessionId).toBe("session");
+    expect(backstop?.resumeSessionId).toBe("crossed-session");
+    expect(fresh?.resumeSessionId).toBeUndefined();
+    expect(fresh?.prompt).toContain("You are the resolve step");
+  });
+
+  it("posts a Failure Halt with the work snapshotted when the resolve's backstop record isn't a handoff", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      reviewed(findings),
+      crossed,
+      async () => implementResultOf(blockedRecord),
+    );
+
+    await specRun(agentStep).run(spec);
+
+    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+    expect(haltComments()[0]).toContain(
+      "The resolve step crossed the live ceiling of 180000, and its handoff record failed: the record is blocked, not a handoff",
+    );
+  });
+});
+
 describe("run's split Halt", () => {
   it("halts a handoff that proposes a split on a Halt carrying the slices, launching no fresh step", async () => {
     addSpec([1]);
@@ -447,6 +607,29 @@ describe("run's handoff cap", () => {
     expect(haltComments()[0]).toContain("`continue +1 handoff`");
   });
 
+  it("counts handoffs across the implement, review and resolve steps", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      handedOff,
+      async (request) => {
+        git(request.cwd, "add", "half.ts");
+        return implementedAt(160_000)(request);
+      },
+      handedOff,
+      reviewed(findings),
+      crossed,
+      handedOff,
+    );
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests).toHaveLength(6);
+    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+    const [halt] = haltComments();
+    expect(halt).toContain("Failure Halt");
+    expect(halt).toContain("Split the ticket");
+  });
+
   it("allows exactly one more handoff on `continue +1 handoff`", async () => {
     addSpec([1]);
     await specRun(FakeAgentStep.init(handedOff, handedOff, handedOff)).run(
@@ -466,13 +649,53 @@ describe("run's handoff cap", () => {
   });
 });
 
-// Reports whether the handed-off work is still in the tree, then commits it with the rest of the ticket.
+// Commits the handed-off work with the rest of the ticket.
 function keepingWork(report: (isKept: boolean) => void): StepScript {
   return async (request) => {
-    report(existsSync(join(request.cwd, "half.ts")));
-    if (existsSync(join(request.cwd, "half.ts"))) {
-      git(request.cwd, "add", "half.ts");
-    }
+    stageKeptWork(request.cwd, report);
     return implemented("one.ts")(request);
   };
+}
+
+// Reports whether the handed-off work is still in the tree, and stages it to commit with the step's own work.
+function stageKeptWork(cwd: string, report: (isKept: boolean) => void): void {
+  const isKept = existsSync(join(cwd, "half.ts"));
+  report(isKept);
+  if (isKept) git(cwd, "add", "half.ts");
+}
+
+function implementedAt(peakContext: number): StepScript {
+  return async (request) => ({
+    ...(await implemented("one.ts")(request)),
+    sessionId: "implement-session",
+    peakContext,
+  });
+}
+
+// Commits the handed-off work with the fix, as a fresh resolve would.
+function resolvingWithWork(report: (isKept: boolean) => void): StepScript {
+  return async (request) => {
+    stageKeptWork(request.cwd, report);
+    return {
+      ...(await resolved(fixRecords, "fix.ts")(request)),
+      sessionId: "fresh-session",
+    };
+  };
+}
+
+function handoffComments(): string[] {
+  return github.comments
+    .filter(({ body }) => body.includes("\n## Handoff\n"))
+    .map(({ body }) => body);
+}
+
+function writeSavedPeak(saved: string, implementPeak: number): void {
+  const state = JSON.parse(readFileSync(saved, "utf8")) as {
+    tickets: Record<string, Record<string, unknown>>;
+  };
+  state.tickets["byro-repo #1"] = {
+    ...state.tickets["byro-repo #1"],
+    implementPeak,
+  };
+  writeFileSync(runStatePath(), JSON.stringify(state));
 }

@@ -1,4 +1,5 @@
-// The prompts sent with --resume once a step is cut off, capped or sent back, and the note a tree reset adds to them.
+// The prompts sent with --resume once a step is cut off, capped or sent back, or to the implementer for a handoff at a
+// step boundary, and the note a tree reset adds to them.
 
 import {
   bulletListOf,
@@ -8,6 +9,9 @@ import {
 
 // Sent with --resume once a step crosses the live ceiling without handing off.
 export const handoffOnlyPrompt = `Stop now. ${sessionReturnOf(["record"])}, a handoff record; change no files.`;
+
+// Sent with --resume at a step boundary once the implementer is past the ticket budget, while its cache is still warm.
+export const budgetHandoffPrompt = `You are past the ticket budget, so a fresh session takes this ticket's next step. Change no files. ${sessionReturnOf(["record"])}, a handoff record whose conclusion says what is done and what that step should do.`;
 
 // Sent with --resume once a usage limit that cut a step off has reset or the Active account has changed.
 export const limitResumePrompt = `A usage limit cut the previous run off; it has passed. Check the tree you left and carry on where you stopped. ${unattendedRunLine()}`;
@@ -25,7 +29,11 @@ export function schemaResumePromptOf(problems: string[]): string {
 
 // A crash retry or limit resume of a resume that owes only a record sends the same prompt again.
 export function isRecordOnlyResumePrompt(prompt: string): boolean {
-  return prompt === handoffOnlyPrompt || prompt.startsWith(schemaResumeOpening);
+  return (
+    prompt === handoffOnlyPrompt ||
+    prompt === budgetHandoffPrompt ||
+    prompt.startsWith(schemaResumeOpening)
+  );
 }
 
 export const treeResetNote =

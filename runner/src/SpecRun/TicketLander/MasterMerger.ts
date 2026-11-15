@@ -1,8 +1,9 @@
-// A wrap-up failure's handling: on a conflict it starts a merge of master and resumes the implementer once to resolve it,
+// A wrap-up failure's handling: on a conflict it starts a merge of master and runs the implementer once to resolve it,
+// after a handoff past the ticket budget,
 // saving that merge's resolution for the review list as a Propose `decision`; any other failure Halts or Stops,
 // as a conflict does in a Workflow with no merge-master step.
 // ../TicketLander.ts hands it each wrap-up failure from its _land.
-// It builds its own ReviewStepper and HaltRaiser; the prompt is its spec's Workflow's, through ../../Workflow.ts.
+// It builds its own ReviewStepper, HandoffTaker and HaltRaiser; the prompt is its spec's Workflow's, through ../../Workflow.ts.
 
 import { messageOf } from "../../failureText.ts";
 import { git, isMerging } from "../../git.ts";
@@ -13,6 +14,7 @@ import { UnhandledStop } from "../../UnhandledStop.ts";
 import { hasAgentStep, missingStepOf } from "../../Workflow.ts";
 import { WrapUpFailure } from "../../WrapUpFailure.ts";
 import { HaltRaiser } from "../HaltRaiser.ts";
+import { HandoffTaker } from "../HandoffTaker.ts";
 import { ReviewStepper } from "../ReviewStepper.ts";
 import {
   type LandingTicket,
@@ -30,6 +32,10 @@ export class MasterMerger extends SpecRunBase {
 
   private get reviewStepper(): ReviewStepper {
     return new ReviewStepper(this.config);
+  }
+
+  private get handoffTaker(): HandoffTaker {
+    return new HandoffTaker(this.config);
   }
 
   // Returns only after the merge-master resume, so the wrap-up runs again; a network failure was already retried with backoff.
@@ -91,6 +97,8 @@ export class MasterMerger extends SpecRunBase {
       branchedRepos.includes(repo),
     );
     const conflicted = `${issueRef.labelOf(ticket.issue)}: the wrap-up conflicted with master`;
+    // Before the merges start, since the handoff's backup commits the uncommitted work.
+    await this.handoffTaker._handOffPastBudget(ticketRun, "merge-master");
     let ran: RanStep;
     try {
       // From the runner's own process, since the step's sandbox blocks a git write to `.claude/` files.
@@ -102,11 +110,10 @@ export class MasterMerger extends SpecRunBase {
         );
         return;
       }
-      this._log(run, `${conflicted}; resuming the implementer to merge it.`);
+      this._log(run, `${conflicted}; running the implementer to merge it.`);
       const rules = this._agentStepOf(run.spec, "mergeMaster");
-      ran = await this.reviewStepper._runResolverStep(ticketRun, {
+      ran = await this.reviewStepper._runImplementerStep(ticketRun, {
         step: "merge-master",
-        resolver: "implementer",
         launch: {
           prompt: rules.promptOf({
             issue: ticket.issue,

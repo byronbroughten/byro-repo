@@ -1,7 +1,7 @@
-// A ticket's checks, run in the workspace until green, resuming whoever made the last commit on red;
-// a red master Stops the run, after the same checks run in a master set.
+// A ticket's checks, run in the workspace until green, running the implementer on red, after a handoff past the ticket
+// budget; a red master Stops the run, after the same checks run in a master set.
 // ../TicketLander.ts delegates its _check here, which TicketSequencer.ts calls after the resolve step.
-// It builds its own ReviewStepper and HaltRaiser.
+// It builds its own ReviewStepper, HandoffTaker and HaltRaiser.
 // The red-checks prompt is its spec's Workflow's, through ../../Workflow.ts, and each check runs through ../../runCommand.ts.
 
 import { commandLabelOf, messageOf } from "../../failureText.ts";
@@ -10,15 +10,11 @@ import { runCommand } from "../../runCommand.ts";
 import { RunStop } from "../../RunStop.ts";
 import { hasAgentStep, missingStepOf } from "../../Workflow.ts";
 import { HaltRaiser } from "../HaltRaiser.ts";
+import { HandoffTaker } from "../HandoffTaker.ts";
 import { ReviewStepper } from "../ReviewStepper.ts";
-import { type Resolver, type TicketRun } from "../runState.ts";
+import { type TicketRun } from "../runState.ts";
 import { ticketSteps } from "../runState/ticketSteps.ts";
 import { SpecRunBase } from "../SpecRunBase.ts";
-
-const resolverLabels: Record<Resolver, string> = {
-  implementer: "implementer",
-  fresh: "fresh resolver",
-};
 
 export class TicketChecker extends SpecRunBase {
   private get haltRaiser(): HaltRaiser {
@@ -27,6 +23,10 @@ export class TicketChecker extends SpecRunBase {
 
   private get reviewStepper(): ReviewStepper {
     return new ReviewStepper(this.config);
+  }
+
+  private get handoffTaker(): HandoffTaker {
+    return new HandoffTaker(this.config);
   }
 
   async _check(ticketRun: TicketRun): Promise<void> {
@@ -87,7 +87,7 @@ export class TicketChecker extends SpecRunBase {
     }
   }
 
-  // Whoever made the last commit gets the failure, the fresh resolver in place of an implementer past the ticket budget.
+  // The implementer gets the failure, a fresh session after a handoff.
   private async _resumeOnRedChecks(
     ticketRun: TicketRun,
     failure: string,
@@ -106,21 +106,17 @@ export class TicketChecker extends SpecRunBase {
         logPath: state.redChecksLogPath ?? this._progressPathOf(run),
       }),
     });
-    let resolver: Resolver = state.resolver ?? "implementer";
-    if (resolver === "implementer" && !this._isUnderBudget(state)) {
-      resolver = "fresh";
-    }
+    await this.handoffTaker._handOffPastBudget(ticketRun, "red-checks");
     this._log(
       run,
-      `${issueRef.labelOf(ticket.issue)}: checks red; resuming the ${resolverLabels[resolver]} with the failure.`,
+      `${issueRef.labelOf(ticket.issue)}: checks red; running the implementer with the failure.`,
     );
     this._markStepStarted(ticketRun);
     const rules = this._agentStepOf(run.spec, "redChecks");
-    const { result, logPath } = await this.reviewStepper._runResolverStep(
+    const { result, logPath } = await this.reviewStepper._runImplementerStep(
       ticketRun,
       {
         step: "red-checks",
-        resolver,
         launch: {
           prompt: rules.promptOf({
             ...ticketSteps.promptFieldsOf(ticketRun),
@@ -133,7 +129,7 @@ export class TicketChecker extends SpecRunBase {
     state.redChecksLogPath = logPath;
     state.isStepStarted = undefined;
     this._saveState(run);
-    // The checks loop judges what a capped resolver committed.
+    // The checks loop judges what a capped implementer committed.
     if (ticketSteps.isTurnCapped(result)) {
       await this._snapshot(ticketRun, "checks");
       return;

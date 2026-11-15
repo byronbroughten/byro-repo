@@ -1,5 +1,5 @@
 // The red-checks step: the prompt that hands a ticket's failing checks back to whoever made its last commit, and the
-// summary it returns. codeWorkflow.ts supplies it, and SpecRun/TicketLander/TicketChecker.ts runs it once after red checks, resuming the implementer or the fresh resolver; still red is a Failure Halt.
+// summary it returns. codeWorkflow.ts supplies it, and SpecRun/TicketLander/TicketChecker.ts runs it once after red checks, resuming the implementer or starting its successor after a handoff; still red is a Failure Halt.
 
 import { stepReadLine } from "../../IssueReader.ts";
 import { commitMessageLine, unattendedRunLine } from "../../promptText.ts";

@@ -112,8 +112,6 @@ export type TicketStep =
   | "landed"
   | "stopped";
 
-export type Resolver = "implementer" | "fresh";
-
 // Each worktree's clone path to its HEAD.
 export type Heads = Record<string, string>;
 
@@ -124,19 +122,17 @@ export type TicketSession = StepSession &
 export interface TicketState {
   step: TicketStep;
   record?: ImplementRecord;
-  // The last implement step's own peak, never a sum across handoffs; picks the resolver and whether a resume continues its session.
+  // The implementer's latest session's own peak, never a sum across handoffs; past the ticket budget it hands off at the next step boundary.
   implementPeak?: number;
-  // The implementer's latest session, a resolve it ran included.
+  // The implementer's latest session, a step after implement it ran included.
   implementerSession?: string;
   findings?: Finding[];
   // A piece review's, which the piece checks leave standing.
   dismissedOverlaps?: DismissedOverlap[];
   resolveRecords?: ResolveRecord[];
-  // Set once a resolver fixed a finding.
-  resolver?: Resolver;
-  // The fresh resolver's latest session, which a red-checks resume continues.
-  resolverSession?: string;
-  // The heads before the resolve step, which a killed resolver or a rerun resets to.
+  // Set once the resolve step fixed a finding.
+  hasFixes?: boolean;
+  // The heads before the resolve step, which a turn-capped resolve or a rerun with no handoff pending resets to.
   resolveBase?: Heads;
   sessions: TicketSession[];
   stop?: string;
@@ -157,7 +153,7 @@ export interface TicketState {
   unrecordedMerge?: string;
   // The heads before the latest implement step, which a continued session's record is checked against.
   implementBase?: Heads;
-  // Kept across a rerun, so the step after a handoff starts from it; cleared by any other implement record.
+  // Kept across a rerun, so the step after a handoff starts from it; cleared by any other implement record or once a fresh session takes it up.
   latestHandoff?: Handoff;
   // A piece spec's research ticket's: its latest research record, and its latest handoff until a fresh step returns another record.
   researchRecord?: ResearchRecord;
@@ -239,7 +235,6 @@ interface SessionReview {
   // The ticket's session Halts already on the spec, which this review numbers on from.
   earlierHalts: number;
   postedHalts: string[];
-  resolvesItself: boolean;
 }
 
 // Each pushed at most once per run.

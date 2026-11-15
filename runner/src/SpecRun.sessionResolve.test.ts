@@ -15,7 +15,6 @@ import {
   findingOf,
   github,
   refOf,
-  resolved,
   reviewed,
   spec,
   specRun,
@@ -274,27 +273,13 @@ describe("a session resolving its own review", () => {
     });
   });
 
-  it("starts a fresh resolver past the ticket budget and records it", async () => {
+  it("prints the findings for the session to resolve itself past the ticket budget, starting no resolver", async () => {
     implementedAt(160_000);
-    const agentStep = FakeAgentStep.init(
-      {
-        ...reviewed(findings),
-        sessionId: "review-session",
-      },
-      async (request) => ({
-        ...(await resolved([fix, decision, coveredLater], "fix.ts")(request)),
-        sessionId: "resolve-session",
-      }),
-    );
+    const agentStep = FakeAgentStep.init(reviewed(findings));
 
     const result = await specRun(agentStep).review(refOf(1), { holder });
 
-    expect(result.kind).toBe("reviewed");
-    expect(ticketFacts().reviewFixes).toBe("fresh");
-    expect(ticketFacts().sessions?.steps).toMatchObject([
-      { agent: "implement", sessionId: "implement-session" },
-      { agent: "review", sessionId: "review-session" },
-      { agent: "resolve", sessionId: "resolve-session" },
-    ]);
+    expect(result.kind).toBe("findings");
+    expect(agentStep.requests).toHaveLength(1);
   });
 });

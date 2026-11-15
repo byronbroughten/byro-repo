@@ -1,8 +1,8 @@
 // A session's review: runs review on one ticket's issue workspace outside any run, refusing a workspace another holder
-// leases or one with uncommitted changes. Under the ticket budget it saves the findings to the facts file and returns them,
-// for the session to resolve itself and hand its records to resolve, which checks them as a run's resolve records are;
-// past it, a fresh resolver resolves them. Either way it returns the run's review list to print and posts Halts as a run
-// would; unhalted, it posts the list on the spec too, with no push, or edits the one an earlier review posted, keeping its decided items.
+// leases or one with uncommitted changes. It saves the findings to the facts file and returns them, for the session to
+// resolve itself and hand its records to resolve, which checks them as a run's resolve records are. Resolve returns the
+// run's review list to print and posts Halts as a run would; unhalted, it posts the list on the spec too, with no push,
+// or edits the one an earlier review posted, keeping its decided items.
 // Its Halts are numbered S<n>.<k> and returned to print, to be answered in the session rather than on the spec.
 // Each step session it starts goes into the ticket's facts file, halted or not.
 // ../SpecRun.ts delegates review and resolve to it; its authorship refusal is the Base's, shared with PreflightChecker.ts.
@@ -26,7 +26,6 @@ import { bulletListOf } from "../promptText.ts";
 import { ticketReviewListOf } from "../reviewList.ts";
 import { RunStop } from "../RunStop.ts";
 import { TicketHalted } from "../TicketHalted.ts";
-import { latestImplementPeakOf } from "../transcriptFacts.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import { LeaseKeeper } from "./LeaseKeeper.ts";
@@ -50,7 +49,6 @@ import { TicketSequencer } from "./TicketSequencer.ts";
 interface SessionTicket extends ReviewOptions {
   issue: IssueRef;
   state: TicketState;
-  resolvesItself: boolean;
   // Resolve checks uncommitted changes as a broken rule instead.
   isDirtyRefused: boolean;
 }
@@ -89,9 +87,8 @@ export class SessionReviewer extends SpecRunBase {
     const ticketRun = await this._sessionTicketRunOf({
       issue,
       holder,
-      // With no implementPeak, a fresh resolver resolves: the implementer is the live interactive session.
+      // With no implementer session, the review hands nothing off: the implementer is the live interactive session.
       state: { step: "review", sessions: [], limitResumes: 0 },
-      resolvesItself: this._isSessionUnderBudget(issue),
       isDirtyRefused: true,
     });
     if (typeof ticketRun === "string") return refusedReviewOf(ticketRun);
@@ -143,7 +140,6 @@ export class SessionReviewer extends SpecRunBase {
         findings,
         resolveBase: base,
       },
-      resolvesItself: true,
       isDirtyRefused: false,
     });
     if (typeof ticketRun === "string") return refusedReviewOf(ticketRun);
@@ -158,11 +154,7 @@ export class SessionReviewer extends SpecRunBase {
         records,
       );
       if (problems.length > 0) return brokenRulesOf(problems);
-      await this.reviewStepper._keepRecords(ticketRun, {
-        resolver: "implementer",
-        base,
-        records,
-      });
+      await this.reviewStepper._keepRecords(ticketRun, { base, records });
       this.factsFile.setPendingResolve(issue, undefined);
       return this._finishReview(ticketRun);
     });
@@ -179,19 +171,11 @@ export class SessionReviewer extends SpecRunBase {
     return (await this.config.github.parentOf(issue))?.issue ?? issue;
   }
 
-  // Unknown when no implement session is recorded or its transcript is missing, which counts as past budget.
-  private _isSessionUnderBudget(issue: IssueRef): boolean {
-    const sessions = this.factsFile.sessionsOf(issue);
-    const peak = sessions && latestImplementPeakOf(sessions);
-    return peak !== undefined && peak < this.config.knobs.ticketBudget;
-  }
-
   // A string is the refusal.
   private async _sessionTicketRunOf({
     issue,
     holder,
     state,
-    resolvesItself,
     isDirtyRefused,
   }: SessionTicket): Promise<SessionTicketRun | string> {
     const { github } = this.config;
@@ -205,11 +189,14 @@ export class SessionReviewer extends SpecRunBase {
         await this.reviewListPoster._runnersSpecCommentsOf(run),
       ),
       postedHalts: [],
-      resolvesItself,
     };
     const workspace = await this.workspaces.find(issue);
     if (workspace === undefined) {
       return `${issueRef.labelOf(issue)} has no issue workspace; open it with \`npm run issue:start\` first.`;
+    }
+    const pair = pairOf(ticket.body);
+    if (pair === undefined) {
+      return `${issueRef.labelOf(issue)} has no valid ## Model fit section, so its review has no pair to run on: add one naming one of the six pairs.`;
     }
     const checked = issueRef.isSame(run.spec.issue, issue) ? [] : [ticket];
     const refusal =
@@ -225,8 +212,7 @@ export class SessionReviewer extends SpecRunBase {
     return {
       run,
       ticket,
-      // Interactive tickets may carry no Model fit.
-      pair: pairOf(ticket.body) ?? this.config.knobs.resolverPair,
+      pair,
       workspace,
       state,
       targets: ticketLaunch.validTargetsOf(ticket, this._progressPathOf(run)),

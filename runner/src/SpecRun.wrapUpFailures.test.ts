@@ -113,7 +113,7 @@ describe("run's wrap-up failures", () => {
     expect(merge?.prompt).toContain("Merging issue-1-");
     expect(merge?.sessionSchema).toEqual(agentStep.requests[0]?.sessionSchema);
     expect(progressLines().map(eventOf)).toContain(
-      "byro-repo #1: the wrap-up conflicted with master; resuming the implementer to merge it.",
+      "byro-repo #1: the wrap-up conflicted with master; running the implementer to merge it.",
     );
   });
 

@@ -6,7 +6,7 @@ import { writeFileSync } from "node:fs";
 
 import type { StepResult } from "../../AgentStep.ts";
 import { type ReviewFacts } from "../../FactsFile.ts";
-import { issueRef } from "../../IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "../../IssueWorkspaces.ts";
 import { hasUndecidedItems } from "../../reviewList.ts";
 import type { RunKnobs } from "../../runKnobs.ts";
 import { SchemaFailure } from "../../SchemaFailure.ts";
@@ -27,6 +27,16 @@ import {
   type TicketState,
   type TicketStep,
 } from "../runState.ts";
+
+// How far a ticket's implementer has come against the ticket budget; unmeasured when no peak is recorded.
+export type BudgetStanding = "under" | "past" | "unmeasured";
+
+interface OwnedSession {
+  issue: IssueRef;
+  // Whose session it is, for the error when it has none.
+  owner: string;
+  sessionId: string | undefined;
+}
 
 interface RedChecksLoop {
   // The failing check's command and output tail; undefined when green.
@@ -67,6 +77,15 @@ export const ticketSteps = {
     );
   },
 
+  sessionIdOf({ issue, owner, sessionId }: OwnedSession): string {
+    if (sessionId === undefined) {
+      throw new Error(
+        `${issueRef.labelOf(issue)}'s ${owner} has no session id.`,
+      );
+    }
+    return sessionId;
+  },
+
   lastSessionOf(state: TicketState, agent: StepAgent): string | undefined {
     return state.sessions.findLast((session) => session.agent === agent)
       ?.sessionId;
@@ -100,10 +119,9 @@ export const ticketSteps = {
     return step !== "review";
   },
 
-  // After a handoff the implement step builds on the uncommitted work, so a snapshot saves it without a reset.
-  isTreeKept({ step, latestHandoff }: TicketState): boolean {
-    const isImplement = step === "implement" || step === "resume";
-    return isImplement && latestHandoff !== undefined;
+  // After a handoff the implementer's next step builds on the uncommitted work, so a snapshot saves it without a reset.
+  isTreeKept({ latestHandoff }: TicketState): boolean {
+    return latestHandoff !== undefined;
   },
 
   // Writes the raw output beside the step's log, so the Failure Halt can link it.
@@ -121,6 +139,14 @@ export const ticketSteps = {
       `${problems.join("; ")}\n\nRaw output: \`${outputPath}\``,
       logPath,
     );
+  },
+
+  budgetOf(
+    { implementPeak }: TicketState,
+    { ticketBudget }: RunKnobs,
+  ): BudgetStanding {
+    if (implementPeak === undefined) return "unmeasured";
+    return implementPeak < ticketBudget ? "under" : "past";
   },
 
   // The handoffsPerTicket knob plus the ticket's `continue +1 handoff` answers.
@@ -198,7 +224,7 @@ export const ticketSteps = {
   // The spec's Workflow words what review caught, so a piece row names no private prose.
   reviewFactsOf(
     {
-      resolver,
+      hasFixes,
       resolveRecords = [],
       mergeMasterRecord,
       unrecordedMerge,
@@ -206,7 +232,7 @@ export const ticketSteps = {
     workflow: Workflow,
   ): ReviewFacts {
     const facts: ReviewFacts = {
-      reviewFixes: resolver ?? "none",
+      reviewFixes: hasFixes ? "implementer" : "none",
       whatReviewCaught: workflow.whatReviewCaughtOf(resolveRecords),
       proposals: resolveRecords.filter(({ verdict }) => verdict === "propose")
         .length,
