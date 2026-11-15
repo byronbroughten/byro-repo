@@ -19,7 +19,7 @@ disable-model-invocation: true
 ## How you work
 
 - Work test-first: if a `tdd` skill is available, call it, at the seams the ticket names or, with none named, seams you pick yourself; never stop to confirm them.
-- Run typechecking and single test files regularly.
+- Run typechecking and single test files regularly, each test file with `npm test -- <path>`.
 - Read and search with the Read and Grep tools. Give Bash one command per call, run from the workspace root: no `cd`, no `;` or `&&` chains, no variables.
 
 ## What the ticket binds

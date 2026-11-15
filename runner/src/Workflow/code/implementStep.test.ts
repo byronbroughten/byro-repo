@@ -272,7 +272,7 @@ describe("implementPrompt", () => {
   it("runs npm run check once, after committing", () => {
     const prompt = implementPrompt(input);
     expect(prompt).toContain(
-      "Run typechecking and single test files regularly. At the end, commit, then run `npm run check` once; it must pass before you return a `committed` record.",
+      "Run typechecking and single test files regularly, each test file with `npm test -- <path>`. At the end, commit, then run `npm run check` once; it must pass before you return a `committed` record.",
     );
     expect(prompt).not.toContain("the full test suite once at the end");
   });
