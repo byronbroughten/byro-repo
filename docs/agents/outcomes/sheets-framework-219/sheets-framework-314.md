@@ -1,0 +1,7 @@
+# sheets-framework#314 outcome
+
+Spec: [sheets-framework#219](https://github.com/byronbroughten/sheets-framework/issues/219)
+
+| Issue | Workflow | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #314 | code | Opus high | 4, 2 | 5 | 134K | Fix (resumed implementer) | 1 | 1 | 0 | 0 | 13 min | $3.05 | $4.75 | Fixed: delete() still uses forEach for a side effect on a line the diff touched. (packages/framework/src/nodeHost/FlushClassifier/RequestJudge.ts:80); The Held entry says every non-blank cell outside a deleted tab's Tables is held, but the code skips their head rows. (packages/framework/docs/vocabulary/config.md:33); The comment above headRowsRange only restates what the function returns. (packages/framework/src/nodeHost/FlushClassifier/RunReads.ts:192); The head-row skip ran before the body check, so a Table body cell inside another Table's head rows went unheld. (packages/framework/src/nodeHost/FlushClassifier/RequestJudge.ts:154 (with RunReads.isInHeadRows)). Proposed: deleteSheet walks every cell of the tab's tracked grid, so its cost grows with rowCount x columnCount. (packages/framework/src/nodeHost/FlushClassifier/RequestJudge.ts:90). | 2167e525-605f-4dfd-b1dd-89fb993e785a, b6002375-2d1f-4c49-803c-49af92f52c3a |
