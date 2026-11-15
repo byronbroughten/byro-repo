@@ -150,11 +150,11 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `stalePaths.ts` | | The stale-path check for `packages/<dir>` mentions with no clone. |
 | `StepStream.ts` | | Reads a step's stream-json into its `StepResult`. |
 | `stepPrompts/doneLines.ts` | | The "when you're done" lines the code and piece Workflows' implement and red-checks prompts share. |
-| `stepPrompts/handoffText.ts` | | The handoff wording every Workflow's implementer shares: the nudge section, a fresh step's section, the posted comment and a proposed split's text. |
+| `stepPrompts/handoffText.ts` | | The handoff wording every Workflow's implementer shares: the nudge section, a fresh step's section, the posted comment, where in the steps it was handed off and a proposed split's text. |
 | `stepPrompts/implementText.ts` | | The bullets the implement step's prompt and the generated `/implement-code` skill share, the ticket-binds section and the implement prompt's workspace section. |
 | `stepPrompts/interactiveSkill.ts` | | The generated `/implement-*` skills' shared commands, opening, generated note and ending, which takes its drift and only-writes lines from each skill. |
 | `stepPrompts/resolveText.ts` | | The resolve rules, record fields and shared prompt text every Workflow's resolve step uses. |
-| `stepPrompts/resumePrompts.ts` | | The prompts sent with `--resume` after a step is cut off, capped or sent back, and the tree-reset note. |
+| `stepPrompts/resumePrompts.ts` | | The prompts sent with `--resume` after a step is cut off, capped or sent back, or to the implementer for a handoff at a step boundary, and the tree-reset note. |
 | `stepRecords.ts` | | The records the steps return, with the types, reasons, implement record check and small readers the core shares. |
 | `SupervisionRecords.ts` | `SupervisionRecords` | A Supervisor's record of the run or Batch it watches and the lines explained, and its handoff file, read once on a rejoin. |
 | `targetTools.ts` | | The tools a step gets for each of its ticket's targets and its spec's sources. |

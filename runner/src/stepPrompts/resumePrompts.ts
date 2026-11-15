@@ -1,4 +1,5 @@
-// The prompts sent with --resume once a step is cut off, capped or sent back, and the note a tree reset adds to them.
+// The prompts sent with --resume once a step is cut off, capped or sent back, or to the implementer for a handoff at a
+// step boundary, and the note a tree reset adds to them.
 
 import {
   bulletListOf,

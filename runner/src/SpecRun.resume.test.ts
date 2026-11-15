@@ -149,6 +149,15 @@ describe("run's resume", () => {
     expect(ticketFacts().reviewFixes).toBe("fresh");
   });
 
+  it("resumes a run state that names a fresh resolver's session, dropping it", async () => {
+    await killAtResolveSavedAs({ resolverSession: "resolver-session" });
+
+    const result = await specRun(dismissingResolver()).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(ticketState()["byro-repo #1"]).not.toHaveProperty("resolverSession");
+  });
+
   it("records a resumed state's sessions each under its own saved account and folder, leaving out an older one with no account", async () => {
     await killAtResolveSavedAs({
       configFolder: "/config/account-1",

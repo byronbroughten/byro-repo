@@ -57,7 +57,6 @@ import {
   type RunResult,
   type RunState,
   type TicketRun,
-  type TicketState,
   type TicketStep,
   type TrackedIssue,
   type Wait,
@@ -278,12 +277,6 @@ export class SpecRunBase {
   protected _markStepStarted({ run, state }: TicketRun): void {
     state.isStepStarted = true;
     this._saveState(run);
-  }
-
-  // A ticket whose implementer has no recorded peak counts as over budget.
-  protected _isUnderBudget(state: TicketState): boolean {
-    const peak = state.implementPeak ?? Infinity;
-    return peak < this.config.knobs.ticketBudget;
   }
 
   // Usage is undefined when the read gives none for the Active account.

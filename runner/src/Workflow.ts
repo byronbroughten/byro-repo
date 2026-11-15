@@ -198,11 +198,20 @@ export interface ImplementRecordContext {
   specClone: string;
 }
 
+// The implementer's steps a handoff can come in or before; red checks and merge-master each name their own.
+export type HandoffStep =
+  "implement" | "review" | "resolve" | "red-checks" | "merge-master";
+
+// Where the implementer handed off: during a step it was running, or at the boundary before the next.
+export interface HandoffPoint {
+  relation: "in" | "before";
+  step: HandoffStep;
+}
+
 export interface HandoffComment {
   handoff: Handoff;
   sessionId: string;
-  // Where the implementer handed off, as "in the implement step" or "before the review step".
-  point: string;
+  point: HandoffPoint;
 }
 
 export interface ImplementRules {

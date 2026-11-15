@@ -28,6 +28,16 @@ import {
   type TicketStep,
 } from "../runState.ts";
 
+// How far a ticket's implementer has come against the ticket budget; unmeasured when no peak is recorded.
+export type BudgetStanding = "under" | "past" | "unmeasured";
+
+interface OwnedSession {
+  issue: IssueRef;
+  // Whose session it is, for the error when it has none.
+  owner: string;
+  sessionId: string | undefined;
+}
+
 interface RedChecksLoop {
   // The failing check's command and output tail; undefined when green.
   redOf(): Promise<string | undefined>;
@@ -67,12 +77,7 @@ export const ticketSteps = {
     );
   },
 
-  // `owner` names whose session it is, for the error when it has none.
-  sessionIdOf(
-    issue: IssueRef,
-    owner: string,
-    sessionId: string | undefined,
-  ): string {
+  sessionIdOf({ issue, owner, sessionId }: OwnedSession): string {
     if (sessionId === undefined) {
       throw new Error(
         `${issueRef.labelOf(issue)}'s ${owner} has no session id.`,
@@ -136,12 +141,12 @@ export const ticketSteps = {
     );
   },
 
-  // An unknown peak asks for no handoff: the live ceiling still kills a session that turns out too big.
-  isPastBudget(
+  budgetOf(
     { implementPeak }: TicketState,
     { ticketBudget }: RunKnobs,
-  ): boolean {
-    return implementPeak !== undefined && implementPeak >= ticketBudget;
+  ): BudgetStanding {
+    if (implementPeak === undefined) return "unmeasured";
+    return implementPeak < ticketBudget ? "under" : "past";
   },
 
   // The handoffsPerTicket knob plus the ticket's `continue +1 handoff` answers.

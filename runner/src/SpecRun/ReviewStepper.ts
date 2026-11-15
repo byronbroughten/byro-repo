@@ -26,7 +26,7 @@ import {
   type ReviewerCheck,
 } from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
-import { HandoffTaker } from "./HandoffTaker.ts";
+import { type BoundaryStep, HandoffTaker } from "./HandoffTaker.ts";
 import {
   type Heads,
   type RanStep,
@@ -40,7 +40,7 @@ import { SpecRunBase } from "./SpecRunBase.ts";
 import { StepLauncher } from "./StepLauncher.ts";
 
 // Names the launch in the progress log; red checks and merge-master run as the resolve agent too.
-type ImplementerStep = "resolve" | "red-checks" | "merge-master";
+type ImplementerStep = Exclude<BoundaryStep, "review">;
 
 // A fresh session gets freshPrompt when the resume's own prompt leans on the lost conversation.
 interface ImplementerLaunch {
@@ -170,9 +170,7 @@ export class ReviewStepper extends SpecRunBase {
     return count <= this.config.knobs.inlineReviewMaxFiles;
   }
 
-  // The implementer resolves; past the ticket budget it hands off first, and killed at the live ceiling it hands off and a
-  // fresh session carries the resolve on. A turn cap is a crash: the work is reset away and the resolve runs again.
-  // A retry ends as a first attempt would.
+  // A turn cap is a crash, its work reset away; a crossed live ceiling hands off, its work kept for the fresh session.
   async _resolve(ticketRun: TicketRun): Promise<void> {
     const { run, ticket, workspace, state } = ticketRun;
     if (state.resolveBase === undefined) {
@@ -301,8 +299,7 @@ export class ReviewStepper extends SpecRunBase {
     };
   }
 
-  // Resumes the implementer, or with a handoff pending or a resume that finds no conversation, launches a fresh session on
-  // the ticket's pair, which becomes the implementer.
+  // A resume that finds no conversation runs fresh on the ticket's pair, as a pending handoff does.
   async _runImplementerStep(
     ticketRun: TicketRun,
     { step, launch, freshPrompt }: ImplementerLaunch,
@@ -320,14 +317,13 @@ export class ReviewStepper extends SpecRunBase {
         `${issueRef.labelOf(ticket.issue)}: the ${step} step's session ${sessionId} has no conversation; running it as a fresh session.`,
       );
     }
-    return this._runFreshImplementer(ticketRun, launch, freshPrompt);
+    return this._runFreshImplementer(ticketRun, { launch, freshPrompt });
   }
 
   // A pending handoff's section rides on the prompt, after the handoff cap's and a proposed split's Halts.
   private async _runFreshImplementer(
     ticketRun: TicketRun,
-    launch: StepLaunch,
-    freshPrompt: string | undefined,
+    { launch, freshPrompt }: Omit<ImplementerLaunch, "step">,
   ): Promise<RanStep> {
     const { state } = ticketRun;
     const handoff = state.latestHandoff;

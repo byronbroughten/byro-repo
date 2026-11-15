@@ -649,15 +649,19 @@ describe("run's handoff cap", () => {
   });
 });
 
-// Reports whether the handed-off work is still in the tree, then commits it with the rest of the ticket.
+// Commits the handed-off work with the rest of the ticket.
 function keepingWork(report: (isKept: boolean) => void): StepScript {
   return async (request) => {
-    report(existsSync(join(request.cwd, "half.ts")));
-    if (existsSync(join(request.cwd, "half.ts"))) {
-      git(request.cwd, "add", "half.ts");
-    }
+    stageKeptWork(request.cwd, report);
     return implemented("one.ts")(request);
   };
+}
+
+// Reports whether the handed-off work is still in the tree, and stages it to commit with the step's own work.
+function stageKeptWork(cwd: string, report: (isKept: boolean) => void): void {
+  const isKept = existsSync(join(cwd, "half.ts"));
+  report(isKept);
+  if (isKept) git(cwd, "add", "half.ts");
 }
 
 function implementedAt(peakContext: number): StepScript {
@@ -668,12 +672,10 @@ function implementedAt(peakContext: number): StepScript {
   });
 }
 
-// Reports whether the handed-off work is still in the tree, then commits it with the fix, as a fresh resolve would.
+// Commits the handed-off work with the fix, as a fresh resolve would.
 function resolvingWithWork(report: (isKept: boolean) => void): StepScript {
   return async (request) => {
-    const isKept = existsSync(join(request.cwd, "half.ts"));
-    report(isKept);
-    if (isKept) git(request.cwd, "add", "half.ts");
+    stageKeptWork(request.cwd, report);
     return {
       ...(await resolved(fixRecords, "fix.ts")(request)),
       sessionId: "fresh-session",

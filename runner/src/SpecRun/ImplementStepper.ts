@@ -11,7 +11,6 @@ import { join } from "node:path";
 
 import { freshResumeSection, type Halt, resumePrompt } from "../halts.ts";
 import {
-  handoffOnlyPrompt,
   moreTurnsPrompt,
   recordOnlyPrompt,
 } from "../stepPrompts/resumePrompts.ts";
@@ -70,7 +69,7 @@ export class ImplementStepper extends SpecRunBase {
     while (record.status === "handoff") {
       await this.handoffTaker._handOff(ticketRun, {
         handoff: record.handoff,
-        point: "in the implement step",
+        point: { relation: "in", step: "implement" },
       });
       record = await this._runImplementStep(ticketRun, () =>
         this._freshLaunchOf(ticketRun),
@@ -133,29 +132,12 @@ export class ImplementStepper extends SpecRunBase {
     ticketRun: TicketRun,
     { ranStep, headsBefore }: CeilingCrossing,
   ): Promise<ImplementRecord> {
-    const { ticket } = ticketRun;
-    const sessionId = ticketSteps.sessionIdOf(
-      ticket.issue,
-      "implement step past the live ceiling",
-      ranStep.result.sessionId,
-    );
-    try {
-      const { launched } = await this.handoffTaker._resumedHandoffLaunchOf(
-        ticketRun,
-        { agent: "implement", prompt: handoffOnlyPrompt, sessionId },
-      );
-      return await this._takeImplementRecord({
-        ticketRun,
-        launched,
-        headsBefore,
-      });
-    } catch (error) {
-      throw await this.handoffTaker._handoffFailureOf(
-        ticketRun,
-        error,
-        `The implement step crossed ${ticketSteps.liveCeilingPhraseOf(this.config.knobs)}`,
-      );
-    }
+    return this.handoffTaker._resumedAtCeiling(ticketRun, {
+      agent: "implement",
+      crossedSession: ranStep.result.sessionId,
+      take: ({ launched }) =>
+        this._takeImplementRecord({ ticketRun, launched, headsBefore }),
+    });
   }
 
   private _implementPromptOf(ticketRun: TicketRun): string {
@@ -237,7 +219,9 @@ export class ImplementStepper extends SpecRunBase {
     const { state } = ticketRun;
     const { outputSchema } = this._implementRulesOf(ticketRun);
     const sessionId = ticketSteps.implementerSessionOf(state);
-    const isUnderBudget = this._isUnderBudget(state);
+    // An unmeasured peak counts as past the budget, so the answers go to a fresh agent.
+    const isUnderBudget =
+      ticketSteps.budgetOf(state, this.config.knobs) === "under";
     const isHandedOff = state.latestHandoff !== undefined;
     if (sessionId !== undefined && isUnderBudget && !isHandedOff) {
       return {
