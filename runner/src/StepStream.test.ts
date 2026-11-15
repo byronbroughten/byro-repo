@@ -36,7 +36,7 @@ describe("StepStream's subagent count", () => {
       .observeLine(toolCallOf("Task"))
       .toResult(request);
 
-    expect(result.spawnedSubagents).toBe(2);
+    expect(result.spawnedSubagentCount).toBe(2);
   });
 
   it("leaves out other tools and the calls a subagent's own loop made", () => {
@@ -45,6 +45,6 @@ describe("StepStream's subagent count", () => {
       .observeLine(toolCallOf("Agent", "tool-parent"))
       .toResult(request);
 
-    expect(result.spawnedSubagents).toBe(0);
+    expect(result.spawnedSubagentCount).toBe(0);
   });
 });

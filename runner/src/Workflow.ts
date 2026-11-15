@@ -226,7 +226,7 @@ export interface ReviewRules {
   // The skill the review step follows, through the Skill tool or, for a user-invoked skill, read by its path.
   skillName: string;
   // Set for a skill that spawns reviewer subagents; unset, the review is never checked for them.
-  reviewers?: ReviewerCheck;
+  reviewerCheck?: ReviewerCheck;
 }
 
 // A review over the inline size that spawns fewer than `count` subagents is resumed once with `resumePrompt`.

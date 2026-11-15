@@ -57,7 +57,7 @@ export interface StepResult {
   // The tool name of each permission denial the result recorded, in its order.
   deniedTools: string[];
   // The subagents the session's main loop spawned, one per Agent call.
-  spawnedSubagents: number;
+  spawnedSubagentCount: number;
 }
 
 // Which limit a hung session ran past: its stream's silence timeout or its wall clock.

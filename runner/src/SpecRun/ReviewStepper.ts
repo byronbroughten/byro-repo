@@ -20,13 +20,15 @@ import {
   type ResolveRecord,
   type ReviewRecord,
 } from "../stepRecords.ts";
-import type { StepAgent } from "../transcriptFacts.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
-import { type ResolvePromptInput, type ResolveRules } from "../Workflow.ts";
+import {
+  type ResolvePromptInput,
+  type ResolveRules,
+  type ReviewerCheck,
+} from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import {
   type Heads,
-  type LaunchedStep,
   type RanStep,
   type Resolver,
   type StepLaunch,
@@ -52,6 +54,12 @@ interface ResolverLaunch {
 }
 
 type ResolverRan = RanStep & { resolver: Resolver };
+
+interface ReviewerResume {
+  ran: RanStep;
+  reviewerCheck: ReviewerCheck;
+  jsonSchema: object;
+}
 
 type ResolveOutcome =
   | { kind: "done"; records: ResolveRecord[]; logPath: string }
@@ -91,14 +99,12 @@ export class ReviewStepper extends SpecRunBase {
     return new StepLauncher(this.config);
   }
 
-  // Over the inline size, a review that spawned fewer reviewers than its Workflow names is resumed once; a second skip is recorded.
   async _review(ticketRun: TicketRun): Promise<void> {
-    const { run, ticket, state } = ticketRun;
+    const { run, state } = ticketRun;
     const rules = this._agentStepOf(run.spec, "review");
-    const { reviewers } = rules;
+    const { reviewerCheck, outputSchema: jsonSchema } = rules;
     const isInlineAllowed =
-      reviewers !== undefined && (await this._isInlineSize(ticketRun));
-    const jsonSchema = rules.outputSchema;
+      reviewerCheck !== undefined && (await this._isInlineSize(ticketRun));
     let ran = await this.stepLauncher._runStep(ticketRun, "review", {
       prompt: rules.promptOf({
         ...ticketSteps.promptFieldsOf(ticketRun),
@@ -108,28 +114,12 @@ export class ReviewStepper extends SpecRunBase {
       jsonSchema,
     });
     state.hasSkippedReviewers = undefined;
-    if (reviewers !== undefined && !isInlineAllowed) {
-      const label = issueRef.labelOf(ticket.issue);
-      let spawned = ran.result.spawnedSubagents;
-      if (spawned < reviewers.count) {
-        this._log(
-          run,
-          `${label}: the review spawned ${spawned} of its ${reviewers.count} reviewer subagents; resuming it to spawn them.`,
-        );
-        ran = await this.stepLauncher._runStep(ticketRun, "review", {
-          prompt: reviewers.resumePrompt,
-          jsonSchema,
-          resumeSessionId: ran.result.sessionId,
-        });
-        spawned += ran.result.spawnedSubagents;
-      }
-      if (spawned < reviewers.count) {
-        state.hasSkippedReviewers = true;
-        this._log(
-          run,
-          `${label}: the review ran without its reviewer subagents again, spawning ${spawned} of ${reviewers.count}; its review list says so.`,
-        );
-      }
+    if (reviewerCheck !== undefined && !isInlineAllowed) {
+      ran = await this._sentBackForReviewers(ticketRun, {
+        ran,
+        reviewerCheck,
+        jsonSchema,
+      });
     }
     const { record, logPath } = ticketSteps.launchedOf("review", ran);
     const problems = schemaProblemsOf(rules.outputSchema, record);
@@ -139,6 +129,36 @@ export class ReviewStepper extends SpecRunBase {
     const { findings, dismissedOverlaps } = record as ReviewRecord;
     state.findings = findings;
     state.dismissedOverlaps = dismissedOverlaps;
+  }
+
+  // A review that spawned fewer reviewers than its Workflow names is resumed once; a second skip is recorded for its review list.
+  private async _sentBackForReviewers(
+    ticketRun: TicketRun,
+    { ran, reviewerCheck, jsonSchema }: ReviewerResume,
+  ): Promise<RanStep> {
+    const { run, ticket, state } = ticketRun;
+    const label = issueRef.labelOf(ticket.issue);
+    const { count, resumePrompt } = reviewerCheck;
+    const spawned = ran.result.spawnedSubagentCount;
+    if (spawned >= count) return ran;
+    this._log(
+      run,
+      `${label}: the review ${spawnedPhraseOf(spawned, count)}; resuming it to spawn them.`,
+    );
+    const resumed = await this.stepLauncher._runStep(ticketRun, "review", {
+      prompt: resumePrompt,
+      jsonSchema,
+      resumeSessionId: ran.result.sessionId,
+    });
+    const total = spawned + resumed.result.spawnedSubagentCount;
+    if (total < count) {
+      state.hasSkippedReviewers = true;
+      this._log(
+        run,
+        `${label}: the review, once resumed, ${spawnedPhraseOf(total, count)}; its review list says it ran without its reviewers.`,
+      );
+    }
+    return resumed;
   }
 
   // Counted from master, the review's own fixed point, so a session review with no implement base counts the same files.
@@ -368,20 +388,13 @@ export class ReviewStepper extends SpecRunBase {
     };
   }
 
-  private async _launch(
-    ticketRun: TicketRun,
-    agent: StepAgent,
-    launch: StepLaunch,
-  ): Promise<LaunchedStep> {
-    return ticketSteps.launchedOf(
-      agent,
-      await this.stepLauncher._runStep(ticketRun, agent, launch),
-    );
-  }
-
   private _resolveRulesOf({ run }: TicketRun): ResolveRules {
     return this._agentStepOf(run.spec, "resolve");
   }
+}
+
+function spawnedPhraseOf(spawned: number, count: number): string {
+  return `spawned ${spawned} of its ${count} reviewer subagents`;
 }
 
 function resolvePromptInputOf(ticketRun: TicketRun): ResolvePromptInput {

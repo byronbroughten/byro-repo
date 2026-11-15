@@ -129,7 +129,7 @@ export class StepStream {
       usage: this.usage,
       limitHit: this._limitHit,
       deniedTools: deniedToolsOf(this.result?.permission_denials),
-      spawnedSubagents: this.subagentCalls.size,
+      spawnedSubagentCount: this.subagentCalls.size,
     };
   }
 

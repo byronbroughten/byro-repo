@@ -131,7 +131,7 @@ export function codeWorkflowOf({
         promptOf: reviewPrompt,
         outputSchema: reviewRecordSchema,
         skillName: reviewSkillName,
-        reviewers: reviewerCheckOf(reviewSkillName),
+        reviewerCheck: reviewerCheckOf(reviewSkillName),
       },
     },
     landingOf() {

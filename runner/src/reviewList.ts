@@ -111,7 +111,7 @@ export interface TicketReviewList {
 }
 
 // No checkbox, so it never counts as undecided.
-const skippedReviewersNote =
+export const skippedReviewersNote =
   "_Reviewed without its reviewers: the review skipped its reviewer subagents even once sent back to spawn them._";
 
 // A ticket's groups, each key order the order shown; the merge with master comes after the axes.
@@ -142,8 +142,7 @@ const reviewGroups = {
 const shownAxes = Object.keys(reviewGroups.axes) as Axis[];
 const shownVerdicts = Object.keys(reviewGroups.verdicts) as Verdict[];
 
-// The run's comment and the interactive printout alike; undefined for a review that kept no records, no merge and no unwanted fact,
-// and didn't skip its reviewers.
+// The run's comment and the interactive printout alike; undefined when the list would hold nothing.
 export function ticketReviewListOf({
   ticket,
   title,

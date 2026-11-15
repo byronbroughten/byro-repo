@@ -139,7 +139,7 @@ describe("ClaudeAgentStep on a recorded success", () => {
       },
       limitHit: undefined,
       deniedTools: [],
-      spawnedSubagents: 0,
+      spawnedSubagentCount: 0,
     });
   });
 

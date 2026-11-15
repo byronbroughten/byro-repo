@@ -6,6 +6,7 @@ import {
   gapCheckListOf,
   reReviewedCommentOf,
   reviewListHoldingOf,
+  skippedReviewersNote,
   ticketReviewListOf,
   undecidedCountOf,
   undecidedLineOf,
@@ -171,8 +172,6 @@ describe("ticketReviewListOf", () => {
 });
 
 describe("reReviewedCommentOf", () => {
-  const reviewerNote = "Reviewed without its reviewers";
-
   it("keeps a posted list's skipped-reviewers note through a re-review that spawned them, and adds one a re-review earns", () => {
     const skipped = ticketReviewListOf({
       ticket,
@@ -201,9 +200,9 @@ describe("reReviewedCommentOf", () => {
       hasSkippedReviewers: true,
     });
 
-    expect(kept).toContain(reviewerNote);
+    expect(kept).toContain(skippedReviewersNote);
     expect(kept).toContain("**R7.2**");
-    expect(added).toContain(reviewerNote);
+    expect(added).toContain(skippedReviewersNote);
   });
 });
 

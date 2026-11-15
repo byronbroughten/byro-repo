@@ -2,18 +2,21 @@ import { describe, expect, it } from "vitest";
 
 import type { StepResult } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
+import { skippedReviewersNote } from "./reviewList.ts";
 import { runKnobsOf } from "./runKnobs.ts";
 import {
   addSpec,
   clonePaths,
   commitFile,
+  crashed,
   findingOf,
-  github,
   implemented,
   passes,
   progressLines,
   reviewed,
   reviewedInline,
+  reviewListOf,
+  schemaFailedOf,
   spec,
   specRun,
   type StepScript,
@@ -23,8 +26,6 @@ import {
 useSpecRunHarness();
 
 describe("a run's review that skips its reviewers", () => {
-  const reviewerNote = "Reviewed without its reviewers";
-
   // Commits two.ts beside one.ts, a diff past the default inline size of one file.
   const implementedTwoFiles: StepScript = async (request) => {
     commitFile({
@@ -38,12 +39,6 @@ describe("a run's review that skips its reviewers", () => {
 
   function inReviewSession(result: StepResult): StepResult {
     return { ...result, sessionId: "review-session" };
-  }
-
-  function reviewListOf(ticket: number): string | undefined {
-    return github.comments
-      .map(({ body }) => body)
-      .find((body) => body.includes(`<!-- review-list ticket=#${ticket} -->`));
   }
 
   it("resumes a review over the inline size that spawned no reviewers once, telling it to spawn both", async () => {
@@ -84,17 +79,51 @@ describe("a run's review that skips its reviewers", () => {
     const agentStep = FakeAgentStep.init(
       implementedTwoFiles,
       inReviewSession(reviewedInline()),
-      { ...reviewedInline(), spawnedSubagents: 1 },
+      { ...reviewedInline(), spawnedSubagentCount: 1 },
     );
 
     const result = await specRun(agentStep).run(spec);
 
     expect(result.kind).toBe("finished");
     expect(agentStep.requests).toHaveLength(3);
-    expect(reviewListOf(1)).toContain(reviewerNote);
+    expect(reviewListOf(1)).toContain(skippedReviewersNote);
     expect(progressLines().join("\n")).toContain(
-      "ran without its reviewer subagents",
+      "once resumed, spawned 1 of its 2 reviewer subagents",
     );
+  });
+
+  it("counts the reviewers a crash-resumed review spawned before its crash, never sending it back", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      implementedTwoFiles,
+      { ...crashed, spawnedSubagentCount: 2 },
+      reviewedInline(),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.kind).toBe("finished");
+    expect(agentStep.requests).toHaveLength(3);
+    expect(agentStep.requests[2]?.resumeSessionId).toBe("crashed-session");
+    expect(reviewListOf(1)).toBeUndefined();
+  });
+
+  it("counts the reviewers a schema-resumed review spawned before its failed record, never sending it back", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      implementedTwoFiles,
+      inReviewSession({
+        ...schemaFailedOf(["findings is required"]),
+        spawnedSubagentCount: 2,
+      }),
+      reviewedInline(),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.kind).toBe("finished");
+    expect(agentStep.requests).toHaveLength(3);
+    expect(agentStep.requests[2]?.prompt).not.toContain("Standards and Spec");
   });
 
   it("lets a one-file diff review inline, saying so in the prompt, and never sends it back", async () => {

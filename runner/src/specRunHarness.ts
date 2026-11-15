@@ -24,6 +24,7 @@ import type { UsageList, UsageReader } from "./limitGuard.ts";
 import type { NoticeKind, Notices } from "./Notices.ts";
 import { stampedLineOf } from "./progressLines.ts";
 import { gapCheckOutputSchema } from "./recordSchema.ts";
+import { reviewListMarkOf } from "./reviewList.ts";
 import { type Command, runKnobsOf } from "./runKnobs.ts";
 import { type MemberList, SpecRun, type SpecRunConfig } from "./SpecRun.ts";
 import type { PullBaseline } from "./SpecRun/runState.ts";
@@ -294,6 +295,13 @@ export function haltComments(): string[] {
   return github.comments
     .map(({ body }) => body)
     .filter((body) => body.includes("**Halt H"));
+}
+
+export function reviewListOf(ticket: number): string | undefined {
+  const mark = reviewListMarkOf(refOf(ticket));
+  return github.comments
+    .map(({ body }) => body)
+    .find((body) => body.includes(mark));
 }
 
 export function commentsOn(number: number, mark: string): string[] {
