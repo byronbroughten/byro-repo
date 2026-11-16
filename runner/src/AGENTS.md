@@ -15,7 +15,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 
 | File | Export | Job |
 | --- | --- | --- |
-| `AccountLease.ts` | `AccountLease` | The per-account lease a run holds on a cswap account, never waited on, and the leased accounts with their holders. |
+| `AccountLease.ts` | `AccountLease` | The per-account lease a run, a Batch or a session's review or resolve holds on a cswap account, naming its spec, never waited on, and the leased accounts with their holders. |
 | `accountLine.ts` | | The account line the Accounts section and `npm run account:switch` print for each account. |
 | `AccountsSection.ts` | | The Accounts section the Run board will show. |
 | `accountSwitch.ts` | `accountSwitch` | `npm run account:switch`'s core: switches the Active account to the top of the account ranking through the cswap switch port its entry passes, printing the account lines before and after. |
@@ -95,7 +95,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `PidLock.ts` | | The pid lock file `LandingLock`, `RunLock`, `AccountLease` and `CheckSlot` extend, and the wait `LandingLock` and `CheckSlot` poll through. |
 | `processIdentity.ts` | `processIdentity` | A process named by its pid and start time, for leases, supervision records and a parked watch. |
 | `progressLines.ts` | | The progress-log lines, written and parsed in pairs. |
-| `ProgressLog.ts` | | A progress log's lines and what the Run board reads from them: the current ticket, the account and the latest line. |
+| `ProgressLog.ts` | | A progress log's lines and what the Run board reads from them: the current ticket, the account, or none while Idle, and the latest line. |
 | `promptText.ts` | | Wording helpers the step prompts and the runner's comments share. |
 | `recordSchema.ts` | | Schema parts the step records share, the implement record's variants, the review record built from a Workflow's axes and the gap-check record among them, the `output` wrapper a session step's record sits under and its unwrap, and their validator. |
 | `RepoVisibility.ts` | `RepoVisibility` | `npm run repos`'s core: each repo in the repo map with its path and visibility. |
@@ -115,7 +115,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SessionProbe.ts` | `SessionProbe` | `npm run session:probe`: what a SessionStart hook sees in a folder. |
 | `sleep.ts` | | A promised delay. |
 | `SpecRun.ts` | `SpecRun` | The run loop's entry: `run` over its members, `status`, `requestStop`, `briefReview`, `submitReview`, `resolve`, `decide`, `judgeable` and `standalone`, delegating to `SpecRun/`. |
-| `SpecRun/AccountHold.ts` | | A run's or Batch's hold on a cswap account: the account it last launched on and its account lease, moved by taking the new lease before releasing the old. |
+| `SpecRun/AccountHold.ts` | | A run's, Batch's or session review's or resolve's hold on a cswap account: the account it last launched on and its account lease, moved by taking the new lease before releasing the old. |
 | `SpecRun/DraftPuller.ts` | | Runs a piece spec's drafting ticket's pull: writes and commits the Agent draft its Workflow pulls from the Doc, and keeps the push baseline. |
 | `SpecRun/DraftPusher.ts` | | Runs a piece spec's push: writes the Agent draft's agent Sections into the Doc once, raising a push Halt before any write on a Section the developer changed since the pull, reading and comparing again on a stale revision up to a bound, and raising a push Halt naming a Doc with pending suggestions, delegating its `keep mine` answers to `DraftPusher/`. |
 | `SpecRun/DraftPusher/DraftKeeper.ts` | | Marks the push's `keep mine` Sections as the developer's in the Agent draft and lands it as a session. |
@@ -132,7 +132,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/ReviewListPoster.ts` | | Posts review lists and covered-later notes. |
 | `SpecRun/ReviewStepper.ts` | | Runs a ticket's review, with its reviewer check, and resolve steps. |
 | `SpecRun/RunLoop.ts` | | The run's ticket loop across its members, idling and end, and its account hold's release. |
-| `SpecRun/SessionReviewer.ts` | | Prints an interactive session's review brief, checks the review it submits, its reviewers included, and runs its `resolve`. |
+| `SpecRun/SessionReviewer.ts` | | Prints an interactive session's review brief, checks the review it submits, its reviewers included, and runs its `resolve`, the submit and resolve each under a workspace and an account lease. |
 | `SpecRun/SpecRunBase.ts` | | The Base every collaborator shares: config, run state, progress log, notices, snapshots, a run's end and an issue's review-list judgement. |
 | `SpecRun/StandaloneTicketLister.ts` | | `runner standalone`: lists a repo's launchable Standalone tickets, leaving out each the Batch preflight would refuse, with its reason. |
 | `SpecRun/SpecEndRunner.ts` | | Ends the run with its Workflow's spec-end Steps, the gap check's review list, the judge Step's stop and the push included. |

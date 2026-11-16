@@ -12,6 +12,13 @@ export interface LockHolder {
   host: string;
   startedAt: string;
   token: string; // Tells apart two holders sharing a pid.
+  spec?: string; // The spec an account lease's holder works on, as issueRef.labelOf words it; other locks and older leases have none.
+}
+
+interface TakeOptions {
+  spec?: string;
+  // Lets a test run a second taker between finding a stale lock and taking it over.
+  beforeTakeover?: () => void;
 }
 
 export interface HeldLock {
@@ -42,14 +49,17 @@ export class PidLock {
     this.holder = holder;
   }
 
-  // beforeTakeover lets a test run a second taker between finding a stale lock and taking it over.
-  static tryTake(path: string, beforeTakeover?: () => void): LockAttempt {
+  static tryTake(
+    path: string,
+    { spec, beforeTakeover }: TakeOptions = {},
+  ): LockAttempt {
     const holder: LockHolder = {
       pid: process.pid,
       host: hostname(),
       startedAt: new Date().toISOString(),
       token: randomUUID(),
     };
+    if (spec !== undefined) holder.spec = spec;
     for (;;) {
       if (tryCreate(path, holder)) return { kind: "taken", holder };
       const current = readHolder(path);

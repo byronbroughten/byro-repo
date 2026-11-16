@@ -116,6 +116,34 @@ describe("runBoardOf", () => {
     );
   });
 
+  it("shows an Idle run holding no account lease until its next launch", () => {
+    const launch =
+      "byro-repo #432: implement step on account 1, raw stream in /s/2.jsonl.";
+    const log = [
+      "2026-10-25T11:00:07.000Z byro-repo #431: implement step on account 2, raw stream in /s/1.jsonl.",
+      "2026-10-25T11:30:00.000Z Idle: nothing runnable. byro-repo #431 waits on Halt H1.",
+    ];
+    seedRun({
+      stem: "byro-repo-424",
+      pid: process.pid,
+      steps: { "byro-repo #431": "halted" },
+      log,
+    });
+    expect(runBoardOf(stateFolder, now).split("\n")[2]).toBe(
+      "  Account: none; Idle, holding no account lease",
+    );
+
+    seedRun({
+      stem: "byro-repo-424",
+      pid: process.pid,
+      steps: { "byro-repo #431": "halted", "byro-repo #432": "implement" },
+      log: [...log, `2026-10-25T11:40:00.000Z ${launch}`],
+    });
+    expect(runBoardOf(stateFolder, now).split("\n")[2]).toBe(
+      "  Account: account 1: no usage reading",
+    );
+  });
+
   it("shows a spec-level step, such as the gap check, in place of a ticket", () => {
     seedRun({
       stem: "byro-repo-424",

@@ -7,6 +7,7 @@ import type { UsageReading } from "./AgentStep.ts";
 import { readingLabelOf } from "./limitGuard.ts";
 import type { StampedLine } from "./localTime.ts";
 import {
+  isIdleLine,
   isLimitWaitLine,
   isStepBoundaryLine,
   stampedLineOf,
@@ -55,12 +56,14 @@ export class ProgressLog {
     return `${ticket}, ${step}, ${durationOf(stepStart.time, now)} on this step`;
   }
 
-  // A Limit wait newer than the last launch is the account's state until the next launch.
+  // A Limit wait or Idle line newer than the last launch is the account's state until the next launch.
   accountText(): string {
     const latest = this.lines.findLast(
-      ({ text }) => isLimitWaitLine(text) || stepLaunchOfLine(text),
+      ({ text }) =>
+        isLimitWaitLine(text) || isIdleLine(text) || stepLaunchOfLine(text),
     );
     if (latest === undefined) return "none launched yet";
+    if (isIdleLine(latest.text)) return "none; Idle, holding no account lease";
     const launch = stepLaunchOfLine(latest.text);
     if (launch === undefined) return latest.text;
     return readingLabelOf(launch.account, streamUsageOf(launch.streamPath));

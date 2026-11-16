@@ -48,6 +48,8 @@ export const accountLine = {
     if (lease === undefined) return undefined;
     const { holder } = lease;
     if (holder === undefined) return "held by an unreadable lease";
+    // A lease taken before holders recorded their spec names its process instead.
+    if (holder.spec !== undefined) return `held by ${holder.spec}`;
     return `held by pid ${holder.pid} since ${localTimeOf(new Date(holder.startedAt))}`;
   },
 };

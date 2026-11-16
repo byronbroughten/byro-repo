@@ -56,6 +56,7 @@ const threeAccounts: UsageList = {
   activeAccount: 1,
 };
 
+// Taken before holders recorded their spec, so it names its process.
 const heldThree: LeasedAccount[] = [
   {
     account: 3,
@@ -86,17 +87,29 @@ function later(ms: number): Date {
 }
 
 describe("AccountsSection.textAt", () => {
-  it("lists each account's line by account number, marking the Active account and a leased account's holder", async () => {
+  it("lists each account's line by account number, marking the Active account and a leased account's holder by its spec", async () => {
     const { section } = sectionWith({
       lists: [threeAccounts],
-      leased: heldThree,
+      leased: [
+        {
+          account: 2,
+          holder: {
+            pid: 42,
+            host: "here",
+            startedAt: holderStart,
+            token: "u",
+            spec: "byro-repo #763",
+          },
+        },
+        ...heldThree,
+      ],
     });
 
     expect(await section.textAt(now)).toBe(
       [
         "Accounts",
         "  1. (active) 5h: 100% (3h 19m), 7d: 10% (5d 4h)",
-        "  2. 5h: 0%, 7d: 10% (1d 5h)",
+        "  2. 5h: 0%, 7d: 10% (1d 5h), held by byro-repo #763",
         `  3. 5h: 70% (2h 1m), 7d: 22% (6d 1h), ${heldThreeLabel}`,
       ].join("\n"),
     );
