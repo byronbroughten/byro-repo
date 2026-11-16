@@ -80,7 +80,7 @@ The words Piece, Deliverable, Section, Stage and Agent draft are [the writing gl
 | Implementation | Piece | `/research-piece` | `/review-research` on the draft comment, before posting, read as a file since it is user-invoked | named |
 | Implementation | Piece | `/research-piece` | `/runner`'s step 6, on an `another source` answer, read as a file since it is user-invoked | named |
 | Implementation | Piece | `/research-piece` | wrap-up (`npm run wrap-up -- <repo> <n> --no-code`), once the developer has answered its wanted facts and proposed Outline edits | named |
-| Implementation | Piece | `/runner`, the Supervisor | `/project-tickets`, on an `another source` answer larger than one fact from one Drive file, read as a file when the developer asks the Supervisor to file it | named |
+| Implementation | Piece | `/runner`, the Supervisor | `/project-tickets`, on an `another source` answer larger than one fact from one Drive file, filed by the developer or, when they ask, by the Supervisor | named; read by path when the Supervisor files it |
 | Implementation | Both | `/runner`, the Supervisor | `/project-tickets`, on any ticket or split the developer asks for, its Re-ticket entry for one ticket, read as a file since it is user-invoked | named, read by path |
 | Implementation | Piece | the research Step | `/research-piece`'s first seven steps, its `/review-research` pass included, read as a file | named, read by path |
 | Implementation | Piece | any | `/review-research`, on a posted Research issue's findings | you invoke it |
