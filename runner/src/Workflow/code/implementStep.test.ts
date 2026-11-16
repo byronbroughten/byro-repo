@@ -269,6 +269,12 @@ describe("implementPrompt", () => {
     );
   });
 
+  it("sends the calls it has already decided on together", () => {
+    expect(implementPrompt(input)).toContain(
+      "- Send the reads and greps you've already decided on together in one turn, and don't add a call to fill a batch.",
+    );
+  });
+
   it("runs npm run check once, after committing", () => {
     const prompt = implementPrompt(input);
     expect(prompt).toContain(

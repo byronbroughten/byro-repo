@@ -57,6 +57,7 @@ function workingSection(): string {
     implementBody.testFirst,
     implementBody.checking,
     implementBody.oneCommand,
+    implementBody.batching,
   ]);
 }
 

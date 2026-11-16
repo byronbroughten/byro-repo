@@ -99,6 +99,7 @@ function dismissedOverlapsSection({
 function workingSection({ spec, draftPath }: PieceResolvePromptInput): string {
   return sectionOf("How you work", [
     implementBody.oneCommand,
+    resolveBody.batching,
     stepWriteLine,
     commitMessageLine,
     `Commit the Fixes on the ticket's branch, separate from the implement commit: \`git -C <clone> add ${draftPath}\` in the \`${spec.repo}\` clone, then \`git -C <clone> commit\`. ${resolveBody.commitNothing}`,

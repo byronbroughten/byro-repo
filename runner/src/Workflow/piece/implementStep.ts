@@ -106,6 +106,7 @@ export function draftingLinesOf({
     `Read \`${paths.voice}\` and \`${paths.craft}\` in full before your first prose edit.`,
     "Read the spec's Supporting Material only through the Drive read tools you were given, by the file IDs the spec lists.",
     `Save each passage you read once, as a text file in the passages folder, \`${passagesFolder}\`, named for its source and range. Review, resolve and any fresh step after a handoff read the same files, so read a source again only for a passage the folder lacks. The folder is gitignored; never copy a passage into the repo.`,
+    implementBody.batching,
   ];
 }
 

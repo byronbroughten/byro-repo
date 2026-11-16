@@ -1,6 +1,30 @@
 import { describe, expect, it } from "vitest";
 
-import { pieceImplementRecordProblems } from "./implementStep.ts";
+import {
+  pieceImplementPrompt,
+  pieceImplementRecordProblems,
+} from "./implementStep.ts";
+
+describe("pieceImplementPrompt", () => {
+  it("sends the calls it has already decided on together", () => {
+    const prompt = pieceImplementPrompt({
+      issue: { repo: "personal", number: 12 },
+      spec: { repo: "personal", number: 10 },
+      title: "Draft the opening",
+      body: "ticket body",
+      labels: [],
+      branch: "issue-12-draft",
+      branchedRepos: ["personal"],
+      workspacePath: "/workspace",
+      promoteCommand: "npm run issue:promote -- personal 12",
+      draftPath: "writing/agent-drafts/10.md",
+    });
+
+    expect(prompt).toContain(
+      "- Send the reads and greps you've already decided on together in one turn, and don't add a call to fill a batch.",
+    );
+  });
+});
 
 const draft =
   "## The harbour\n<!-- developer -->\n\nGulls circled the quay at dawn.\n\n## The crossing\n<!-- agent -->\n\nThe ferry slipped out at noon.\n";

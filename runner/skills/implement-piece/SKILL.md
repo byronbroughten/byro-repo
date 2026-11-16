@@ -32,6 +32,7 @@ disable-model-invocation: true
 - Read `docs/writing-voice.md` and `docs/writing-craft.md` in full before your first prose edit.
 - Read the spec's Supporting Material only through the Drive read tools you were given, by the file IDs the spec lists.
 - Save each passage you read once, as a text file in the passages folder, `.runner/passages/<repo>-<n>`, named for its source and range. Review, resolve and any fresh step after a handoff read the same files, so read a source again only for a passage the folder lacks. The folder is gitignored; never copy a passage into the repo.
+- Send the reads and greps you've already decided on together in one turn, and don't add a call to fill a batch.
 - Commit only the Agent draft, in the `<spec repo>` clone on the ticket's branch: `git -C <clone> add writing/agent-drafts/<spec n>.md`, then `git -C <clone> commit`. Never amend.
 
 ## How you work

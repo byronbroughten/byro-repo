@@ -45,6 +45,12 @@ describe("implementCodeSkillOf", () => {
     );
   });
 
+  it("sends the calls it has already decided on together", () => {
+    expect(skill).toContain(
+      "- Send the reads and greps you've already decided on together in one turn, and don't add a call to fill a batch.",
+    );
+  });
+
   it("says a ticket's code binds only its decision", () => {
     expect(skill).toContain("## What the ticket binds");
     expect(skill).toContain("A ticket's code binds its decision.");
