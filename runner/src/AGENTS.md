@@ -163,6 +163,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `ticketSections.ts` | | Finds one `## ` section of a ticket's body. |
 | `ticketTargets.ts` | | Reads a ticket's `## Targets` section, and holds the target kinds, a spec's source among them. |
 | `transcriptFacts.ts` | `transcriptFacts` | Outcome facts computed from transcripts: pair, peaks, duration and cost, and why one is unrecorded; where a session's transcript is, and the subagents it started since a time. |
+| `transcriptFacts/ReviewResumes.ts` | | The implementer sessions a review or resolve step resumed, split by a recorded review start or the resumed launch's prompt, and each side's cost. |
 | `UnhandledStop.ts` | `UnhandledStop` | The outcomes the run loop doesn't handle yet, and their error. |
 | `verdicts.ts` | | A finding's axes, `spec`, `standards` and `reader`, and its verdicts. |
 | `Workflow.ts` | | The Workflow type, its spec-end Steps, source targets, pull and push rules, each agent step's rules and prompt input, the one schema every step of the implementer's session launches with, its outcome row's review cell and the accessors that throw for a step a Workflow leaves out, and the pick of a spec's Workflow, and an interactive session's skill, from the labels: the core's one way to a Workflow. |

@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { ContextMeter } from "./contextMeter.ts";
 import type { OutcomeFacts } from "./outcomeLog.ts";
 import { subagentToolNames } from "./StepStream.ts";
+import { ReviewResumes } from "./transcriptFacts/ReviewResumes.ts";
 
 export type StepAgent = "implement" | "research" | "review" | "resolve";
 
@@ -93,7 +94,7 @@ export const modelPrices: Record<string, ModelPrice> = {
   "haiku-4-5": { input: 1, output: 5, cacheRead: 0.1 },
 };
 
-interface TranscriptEntry {
+export interface TranscriptEntry {
   type?: unknown;
   isSidechain?: unknown;
   isMeta?: unknown;
@@ -125,37 +126,17 @@ interface CacheWrites {
   oneHour: number;
 }
 
-interface Transcript extends SessionEntries {
+export interface Transcript extends SessionEntries {
   sessionId: string;
   text: string;
 }
 
-interface SessionEntries {
+export interface SessionEntries {
   entries: TranscriptEntry[];
   subagents: TranscriptEntry[][];
 }
 
-type CostSide = "implementer" | "review";
-
-interface StartResume {
-  startedAt: number;
-}
-
-interface PromptResume {
-  promptIndex: number;
-}
-
-type ReviewResume = StartResume | PromptResume;
-
-type ReviewResumes = Map<string, ReviewResume>;
-
-interface ReviewCut {
-  index: number;
-  time: number;
-}
-
 const syntheticModel = "<synthetic>";
-const taskNotificationKind = "task-notification";
 const handoffSessionLine = /^session: (\S+)$/;
 
 // The config folder a claude process started from `env` writes its transcripts under.
@@ -183,7 +164,7 @@ export function transcriptFactsOf(
 ): OutcomeFacts {
   const projectDirs = projectDirsBySessionOf(sessions, handoffSessionIds);
   const ids = factIdsOf(sessions, handoffSessionIds);
-  const resumes = reviewResumesOf(sessions);
+  const resumes = ReviewResumes.init(sessions);
   const implementers = transcriptsOf(projectDirs, ids.pair);
   const accounts = unique(sessions.steps.map(({ account }) => String(account)));
   return {
@@ -196,11 +177,11 @@ export function transcriptFactsOf(
       (transcripts) => durationMinutesOf(transcripts, silenceTimeoutMs),
     ),
     costUsd: factOf(implementers, (found) =>
-      sideCostUsdOf(found, { side: "implementer", resumes }),
+      resumes.costUsdOf(found, "implementer"),
     ),
     reviewCostUsd: factOf(
       transcriptsOf(projectDirs, ids.reviewCostUsd),
-      (found) => sideCostUsdOf(found, { side: "review", resumes }),
+      (found) => resumes.costUsdOf(found, "review"),
     ),
   };
 }
@@ -259,34 +240,6 @@ function factIdsOf(
         ? []
         : unique([...reviewIds, ...stepIdsOf(sessions, "resolve")]),
   };
-}
-
-// With no recorded start, a post-review `implement` resume before resolve is a budget handoff, so it stays in cost.
-function reviewResumesOf(sessions: TicketSessions): ReviewResumes {
-  const implementerIds = new Set(stepIdsOf(sessions, "implement"));
-  const firstReview = sessions.steps.find(({ agent }) => agent === "review");
-  const launchCounts = new Map<string, number>();
-  const resumes: ReviewResumes = new Map();
-  let hasReviewRun = false;
-  for (const { agent, sessionId } of sessions.steps) {
-    const promptIndex = launchCounts.get(sessionId) ?? 0;
-    launchCounts.set(sessionId, promptIndex + 1);
-    if (agent === "review") hasReviewRun = true;
-    if (
-      (agent === "review" || agent === "resolve") &&
-      hasReviewRun &&
-      implementerIds.has(sessionId) &&
-      !resumes.has(sessionId)
-    ) {
-      resumes.set(
-        sessionId,
-        firstReview?.startedAt === undefined
-          ? { promptIndex }
-          : { startedAt: Date.parse(firstReview.startedAt) },
-      );
-    }
-  }
-  return resumes;
 }
 
 function missingReasonOf(missing: RecordedSession[]): string {
@@ -440,7 +393,10 @@ function factOf<RV>(
   return compute(transcripts);
 }
 
-function stepIdsOf(sessions: TicketSessions, agent: StepAgent): string[] {
+export function stepIdsOf(
+  sessions: TicketSessions,
+  agent: StepAgent,
+): string[] {
   return sessions.steps
     .filter((step) => step.agent === agent)
     .map(({ sessionId }) => sessionId);
@@ -504,7 +460,7 @@ function durationMinutesOf(transcripts: Transcript[], capMs: number): number {
   return minutesOf(ms);
 }
 
-function timeOf({ timestamp }: TranscriptEntry): number | undefined {
+export function timeOf({ timestamp }: TranscriptEntry): number | undefined {
   const time = typeof timestamp === "string" ? Date.parse(timestamp) : NaN;
   return Number.isNaN(time) ? undefined : time;
 }
@@ -513,99 +469,8 @@ export function minutesOf(ms: number): number {
   return Math.round(ms / 60_000);
 }
 
-function sideCostUsdOf(
-  transcripts: Transcript[],
-  { side, resumes }: { side: CostSide; resumes: ReviewResumes },
-): number | undefined {
-  return costUsdOf(
-    transcripts.map((transcript) => {
-      const resume = resumes.get(transcript.sessionId);
-      return resume === undefined
-        ? transcript
-        : resumeSplitOf(transcript, resume)[side];
-    }),
-  );
-}
-
-// A subagent goes to the side its first timed entry falls on.
-function resumeSplitOf(
-  { entries, subagents }: Transcript,
-  resume: ReviewResume,
-): Record<CostSide, SessionEntries> {
-  const cut =
-    "startedAt" in resume
-      ? startCutOf(entries, resume)
-      : promptCutOf(entries, resume);
-  if (cut === undefined) {
-    return {
-      implementer: { entries, subagents },
-      review: { entries: [], subagents: [] },
-    };
-  }
-  const split: Record<CostSide, SessionEntries> = {
-    implementer: { entries: entries.slice(0, cut.index), subagents: [] },
-    review: { entries: entries.slice(cut.index), subagents: [] },
-  };
-  for (const subagent of subagents) {
-    const side = startOf(subagent) < cut.time ? "implementer" : "review";
-    split[side].subagents.push(subagent);
-  }
-  return split;
-}
-
-function startCutOf(
-  entries: TranscriptEntry[],
-  { startedAt }: StartResume,
-): ReviewCut {
-  const index = entries.findIndex(
-    (entry) => (timeOf(entry) ?? -Infinity) >= startedAt,
-  );
-  return { index: index === -1 ? entries.length : index, time: startedAt };
-}
-
-// Undefined when the transcript lacks the resumed launch's prompt.
-function promptCutOf(
-  entries: TranscriptEntry[],
-  { promptIndex }: PromptResume,
-): ReviewCut | undefined {
-  const prompt = entries.filter(isPrompt)[promptIndex];
-  if (prompt === undefined) return undefined;
-  return { index: entries.indexOf(prompt), time: timeOf(prompt) ?? Infinity };
-}
-
-// A subagent with no timed entry starts before any resume.
-function startOf(entries: TranscriptEntry[]): number {
-  return entries.map(timeOf).find((time) => time !== undefined) ?? -Infinity;
-}
-
-// Each launch writes one: a main-loop user entry that is neither a tool's result nor one Claude Code adds itself.
-function isPrompt({
-  type,
-  isSidechain,
-  isMeta,
-  isCompactSummary,
-  origin,
-  message,
-}: TranscriptEntry): boolean {
-  if (type !== "user" || isSidechain === true) return false;
-  if (isMeta === true || isCompactSummary === true) return false;
-  if (origin?.kind === taskNotificationKind) return false;
-  const content = message?.content;
-  if (typeof content === "string") return true;
-  return Array.isArray(content) && !content.some(isToolResult);
-}
-
-function isToolResult(block: unknown): boolean {
-  return (
-    typeof block === "object" &&
-    block !== null &&
-    "type" in block &&
-    block.type === "tool_result"
-  );
-}
-
 // Undefined when a model missing from the price table used any tokens.
-function costUsdOf(transcripts: SessionEntries[]): number | undefined {
+export function costUsdOf(transcripts: SessionEntries[]): number | undefined {
   const costs = transcripts
     .flatMap(({ entries, subagents }) => [entries, ...subagents])
     .flatMap((entries) => [...repliesOf(entries).values()])
