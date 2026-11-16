@@ -1,12 +1,11 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { AccountLease } from "./AccountLease.ts";
-import { deadHolder, liveHolder, seedHolder } from "./lockFixture.ts";
-import type { LockHolder } from "./PidLock.ts";
+import { deadHolder, holderAt, liveHolder, seedHolder } from "./lockFixture.ts";
 
 let stateFolder: string;
 
@@ -20,10 +19,6 @@ afterEach(() => {
 
 function leasePath(account: number): string {
   return join(stateFolder, `account-${account}.lease`);
-}
-
-function holderAt(path: string): LockHolder {
-  return JSON.parse(readFileSync(path, "utf8")) as LockHolder;
 }
 
 const account2 = { account: 2, spec: "byro-repo #763" };

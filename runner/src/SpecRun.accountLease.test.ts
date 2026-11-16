@@ -1,10 +1,4 @@
-import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it, vi } from "vitest";
@@ -13,7 +7,7 @@ import { AccountLease } from "./AccountLease.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { issueRef } from "./IssueWorkspaces.ts";
 import type { UsageReader } from "./limitGuard.ts";
-import { deadHolder, liveHolder, seedHolder } from "./lockFixture.ts";
+import { deadHolder, holderAt, liveHolder, seedHolder } from "./lockFixture.ts";
 import type { LockHolder } from "./PidLock.ts";
 import {
   accountsListOf,
@@ -49,10 +43,6 @@ function leaseFiles(): string[] {
 function seedLease(account: number, isLive: boolean): void {
   mkdirSync(stateFolder(), { recursive: true });
   seedHolder(leasePathOf(account), isLive ? liveHolder() : deadHolder());
-}
-
-function holderAt(path: string): LockHolder {
-  return JSON.parse(readFileSync(path, "utf8")) as LockHolder;
 }
 
 function accountsOf(agentStep: FakeAgentStep): (number | undefined)[] {

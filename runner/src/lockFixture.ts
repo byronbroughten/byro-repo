@@ -2,7 +2,7 @@
 
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { hostname } from "node:os";
 
 import type { LockHolder } from "./PidLock.ts";
@@ -12,6 +12,10 @@ export function seedHolder(
   holder: Omit<LockHolder, "token">,
 ): void {
   writeFileSync(path, JSON.stringify({ ...holder, token: randomUUID() }));
+}
+
+export function holderAt(path: string): LockHolder {
+  return JSON.parse(readFileSync(path, "utf8")) as LockHolder;
 }
 
 // A holder this test process is, so it counts as live.
