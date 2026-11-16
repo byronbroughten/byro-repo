@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import type { StepRequest, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
+import { heldTicketLinesOf } from "./promptText.ts";
 import {
   addSpec,
   bodyWith,
@@ -16,6 +17,7 @@ import {
   github,
   haltComments,
   handoffResultOf,
+  heldTicketLine,
   implemented,
   implementResultOf,
   primaryOf,
@@ -397,6 +399,7 @@ describe("run's handoffs after implement", () => {
     expect(review?.resumeSessionId).toBeUndefined();
     expect(review?.pair).toEqual(implementer?.pair);
     expect(review?.prompt).toContain("your own work");
+    expect(review?.prompt).not.toContain(heldTicketLine);
     expect(review?.prompt).toContain("Conclusion: The parser is half done.");
     expect(resolver?.resumeSessionId).toBe("fresh-review-session");
     expect(resolver?.prompt).toContain("You are the resolve step");
@@ -494,7 +497,12 @@ describe("run's handoffs after implement", () => {
     expect(fresh?.resumeSessionId).toBeUndefined();
     expect(fresh?.pair).toEqual(implementer?.pair);
     expect(fresh?.liveCeiling).toBe(180_000);
-    expect(fresh?.prompt).toContain(review?.prompt);
+    const [heldParagraph] = heldTicketLinesOf(true);
+    expect(review?.prompt).toContain(heldParagraph);
+    expect(fresh?.prompt).toContain(
+      review?.prompt.replace(`\n\n${heldParagraph}`, ""),
+    );
+    expect(fresh?.prompt).not.toContain(heldTicketLine);
     expect(fresh?.prompt).toContain("Conclusion: The parser is half done.");
     expect(handoffComments()[0]).toContain(
       "a fresh session in the review step.",

@@ -61,6 +61,15 @@ describe("pieceReviewPrompt", () => {
     );
   });
 
+  it("tells only a session that holds the ticket not to re-read it, before the skill", () => {
+    const heldTicketLine = "This session already holds the ticket";
+    const held = pieceReviewPrompt({ ...input, isTicketHeld: true });
+
+    expect(held).toContain(heldTicketLine);
+    expect(held.indexOf(heldTicketLine)).toBeLessThan(held.indexOf("<skill"));
+    expect(pieceReviewPrompt(input)).not.toContain(heldTicketLine);
+  });
+
   it("has no commit list, since the review has no diff and no fixed point", () => {
     expect(pieceReviewPrompt(input)).not.toContain("commits since");
   });

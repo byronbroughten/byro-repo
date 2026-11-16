@@ -8,6 +8,7 @@
 import { stepReadLine } from "../../IssueReader.ts";
 import {
   codeListOf,
+  heldTicketLinesOf,
   reviewerResumePromptOf,
   reviewFindingsText,
   reviewFramingOf,
@@ -43,6 +44,7 @@ export function pieceReviewPrompt({
   workspacePath,
   draftPath,
   sessionSubmit,
+  isTicketHeld,
 }: PieceReviewPromptInput): string {
   const passagesFolder = passagesFolderIn(workspacePath, issue);
   const scope = draftingScope.sectionsOf(labels);
@@ -50,11 +52,14 @@ export function pieceReviewPrompt({
     sessionSubmit,
     " on a piece spec's drafting ticket",
   );
+  const heldTicket = heldTicketLinesOf(isTicketHeld).map(
+    (line) => `${line}\n\n`,
+  );
   return `${framing.opening}
 
 Review ${issue.repo}#${issue.number}, "${title}", on the ${codeListOf(pieceAxes, "and")} axes, by the \`${skillName}\` skill below. Your working directory is the ticket's issue workspace root, on the ticket's branch, \`${branch}\`. The draft input is the Agent draft, \`${draftPath}\` in the \`${spec.repo}\` clone, and the passages folder, \`${passagesFolder}\`; the ticket's spec is ${spec.repo}#${spec.number}. The in-scope text is ${scope}. ${stepReadLine}
 
-${inlinedSkill.sectionOf(skillText, skillName)}
+${heldTicket.join("")}${inlinedSkill.sectionOf(skillText, skillName)}
 
 ${framing.returnLineOf(["findings", "dismissedOverlaps"])}
 - ${reviewFindingsText({ axes: pieceAxes, where: "its file:line in the Agent draft, or the spec's Outline line for a reader finding", claim: "what it says, in a line, quoting the sentence" })}

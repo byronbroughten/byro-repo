@@ -86,6 +86,8 @@ export const spec: IssueRef = { repo: "byro-repo", number: 213 };
 export const session: LeaseHolder = { kind: "session", pid: process.ppid };
 // Small binaries, not node, since every run spawns them and a node process costs several times as much to start.
 export const passes: Command = ["true"];
+// The review prompt's line for a session that already holds the ticket.
+export const heldTicketLine = "This session already holds the ticket";
 export const greenUnlessRed: Command = ["sh", "-c", "test ! -f RED"];
 // The quote check, called with `--comment <path> --texts <folder>`: red on a comment holding MISQUOTE.
 const redOnMisquote: Command = [

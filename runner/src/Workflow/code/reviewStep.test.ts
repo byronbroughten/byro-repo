@@ -33,6 +33,7 @@ describe("reviewPrompt", () => {
     isInlineAllowed: false,
   };
   const briefLine = "paste it into both reviewers' briefs";
+  const heldTicketLine = "This session already holds the ticket";
   const fixedPointLine =
     "The fixed point is `master`: it resolves and the diff is non-empty, so the skill's step 1 is done.";
 
@@ -76,6 +77,14 @@ describe("reviewPrompt", () => {
     expect(reviewPrompt(input)).toContain(
       "Read issues only through the issue reader, `npm run issue:read -- <repo> <n> --hide-others`",
     );
+  });
+
+  it("tells only a session that holds the ticket not to re-read it, leaving the spec reviewer's own read", () => {
+    const held = reviewPrompt({ ...input, isTicketHeld: true });
+
+    expect(held).toContain(heldTicketLine);
+    expect(held).toContain("The spec reviewer still reads it itself");
+    expect(reviewPrompt(input)).not.toContain(heldTicketLine);
   });
 
   it("hands the implementer's points worth checking to both reviewers' briefs, as things to check", () => {

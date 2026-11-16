@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { StepResult } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
+import { heldTicketLinesOf } from "./promptText.ts";
 import { skippedReviewersNote } from "./reviewList.ts";
 import { runKnobsOf } from "./runKnobs.ts";
 import {
@@ -10,6 +11,7 @@ import {
   commitFile,
   crashed,
   findingOf,
+  heldTicketLine,
   implemented,
   noConversation,
   passes,
@@ -79,7 +81,12 @@ describe("a run's review that skips its reviewers", () => {
     const [, review, lost, fresh] = agentStep.requests;
     expect(lost?.resumeSessionId).toBe("review-session");
     expect(fresh?.resumeSessionId).toBeUndefined();
-    expect(fresh?.prompt).toBe(review?.prompt);
+    const [heldParagraph] = heldTicketLinesOf(true);
+    expect(review?.prompt).toContain(heldParagraph);
+    expect(fresh?.prompt).toBe(
+      review?.prompt.replace(`\n\n${heldParagraph}`, ""),
+    );
+    expect(fresh?.prompt).not.toContain(heldTicketLine);
     expect(reviewListOf(1)).toBeUndefined();
   });
 

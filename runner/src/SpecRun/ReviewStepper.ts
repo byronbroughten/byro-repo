@@ -54,12 +54,14 @@ interface ImplementerLaunch {
 }
 
 // Unset reviewerCheck never sends the review back: a Workflow with none, or a diff within the inline size.
+// The launch's prompt says the resumed implementer holds the ticket; freshPrompt, for a fresh session, doesn't.
 interface ReviewAttempt {
   launch: StepLaunch;
+  freshPrompt: string;
   reviewerCheck?: ReviewerCheck;
 }
 
-// Its launch is the review's own, whose prompt a fresh rerun of the resume takes.
+// Its freshPrompt is the review's own, which a fresh rerun of the resume takes.
 interface ReviewerResume extends Required<ReviewAttempt> {
   ran: RanStep;
 }
@@ -121,19 +123,19 @@ export class ReviewStepper extends SpecRunBase {
     const { run, state } = ticketRun;
     const rules = this._agentStepOf(run.spec, "review");
     const { reviewerCheck, outputSchema: jsonSchema } = rules;
-    const input = await this._reviewPromptInputOf(ticketRun);
-    const { isInlineAllowed } = input;
+    const input: ReviewPromptInput = {
+      ...(await this._reviewPromptInputOf(ticketRun)),
+      pointsWorthChecking: pointsWorthCheckingOf(state.record),
+    };
     const launch: StepLaunch = {
-      prompt: rules.promptOf({
-        ...input,
-        pointsWorthChecking: pointsWorthCheckingOf(state.record),
-      }),
+      prompt: rules.promptOf({ ...input, isTicketHeld: true }),
       jsonSchema,
       liveCeiling: this.config.knobs.liveCeiling,
     };
     const attempt: ReviewAttempt = {
       launch,
-      reviewerCheck: isInlineAllowed ? undefined : reviewerCheck,
+      freshPrompt: rules.promptOf(input),
+      reviewerCheck: input.isInlineAllowed ? undefined : reviewerCheck,
     };
     let ran = await this._reviewOnce(ticketRun, attempt);
     // The review changes nothing, so the fresh session after the handoff reviews again from the start.
@@ -159,10 +161,11 @@ export class ReviewStepper extends SpecRunBase {
     ticketRun: TicketRun,
     attempt: ReviewAttempt,
   ): Promise<RanStep> {
-    const { launch, reviewerCheck } = attempt;
+    const { launch, freshPrompt, reviewerCheck } = attempt;
     const ran = await this._runImplementerStep(ticketRun, {
       step: "review",
       launch,
+      freshPrompt,
     });
     ticketRun.state.hasSkippedReviewers = undefined;
     if (reviewerCheck === undefined || ran.result.hasCrossedCeiling) return ran;
@@ -176,7 +179,7 @@ export class ReviewStepper extends SpecRunBase {
   // A review that spawned fewer reviewers than its Workflow names is resumed once; a second skip is recorded for its review list.
   private async _sentBackForReviewers(
     ticketRun: TicketRun,
-    { ran, reviewerCheck, launch }: ReviewerResume,
+    { ran, reviewerCheck, launch, freshPrompt }: ReviewerResume,
   ): Promise<RanStep> {
     const { run, ticket } = ticketRun;
     const label = issueRef.labelOf(ticket.issue);
@@ -194,7 +197,7 @@ export class ReviewStepper extends SpecRunBase {
         jsonSchema: launch.jsonSchema,
         liveCeiling: launch.liveCeiling,
       },
-      freshPrompt: launch.prompt,
+      freshPrompt,
     });
     if (resumed.result.hasCrossedCeiling) return resumed;
     const total = spawned + resumed.result.spawnedSubagentCount;

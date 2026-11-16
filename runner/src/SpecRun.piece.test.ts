@@ -32,6 +32,7 @@ import {
   haltComments,
   handoffResultOf,
   heldDocs,
+  heldTicketLine,
   holdDocs,
   implemented,
   masterSubjects,
@@ -316,6 +317,7 @@ describe("review on a piece spec's drafting ticket", () => {
     expect(review?.sessionSchema).toEqual(implementer?.sessionSchema);
     expect(review?.prompt).toContain("your own work");
     expect(review?.prompt).toContain("as its reviewer worded it");
+    expect(review?.prompt).toContain(heldTicketLine);
     expect(review?.logPath).toMatch(/byro-repo-1-\d+-review\.jsonl$/);
     expect(review?.prompt).toContain(
       '<skill name="review-piece">\nThree-axis review of a Piece\'s Agent draft. Read [the rules](docs/pieces/rules.md).\n</skill>',
