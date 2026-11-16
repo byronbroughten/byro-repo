@@ -556,15 +556,13 @@ describe("an Interactive session's scripts", () => {
     ).toBeUndefined();
   });
 
-  it("asks for the Doc print command in a session, naming the clasp credential, and refuses it in a runner step", () => {
+  it("allows the Doc print command in a session with no ask, and refuses it in a runner step", () => {
     const command = "npm run doc:print -- 1AbCdEf";
-    const sessionDecision = modeDecisionOf(command);
-    expect(sessionDecision?.permissionDecision).toBe("ask");
-    expect(sessionDecision?.reason).toContain("`clasp` credential");
-    expect(sessionDecision?.reason).toContain("outside the box");
+    expect(modeDecisionOf(command)?.permissionDecision).toBe("allow");
     const stepDecision = modeDecisionOf(command, "runnerStep");
     expect(stepDecision?.permissionDecision).toBe("deny");
     expect(stepDecision?.reason).toContain("only an Interactive session");
+    expect(stepDecision?.reason).toContain("agent account's access token");
     expect(stepDecision?.reason).toContain(blockerInstead);
     expect(
       decisionOf("npm --prefix x run doc:print -- 1AbCdEf"),

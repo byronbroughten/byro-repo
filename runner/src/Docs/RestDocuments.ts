@@ -1,9 +1,10 @@
 // The real `DocumentsPort`: the Docs REST API's `documents.get` and
-// `documents.batchUpdate`, as the developer. It refreshes an access token from
-// the clasp login in the credential file its caller names, the Docs module's
-// own file, never a Sheets credential; the one-time login is the runner
-// README's Setup section. A Doc is read with its suggestions inline, the view
-// `batchUpdate` indices address.
+// `documents.batchUpdate`. Its caller names either the clasp login's credential
+// file, the Docs module's own file, never a Sheets credential, whose one-time
+// login is the runner README's Setup section and from which the port refreshes
+// an access token, or a ready access token, so the port never sees a refresh
+// token. A Doc is read with its suggestions inline, the view `batchUpdate`
+// indices address.
 
 import { readFileSync } from "node:fs";
 
@@ -22,11 +23,11 @@ const googleUrls = {
 // clasp's own name for the one login in a file `clasp_config_auth` names.
 const claspUser = "default";
 
-/** Where the port reads its clasp login from and how it reaches Google. */
-interface RestSources {
-  credentialPath: string;
-  fetch: typeof fetch;
-}
+/** Where the port gets its access token: a clasp login's file it refreshes from, or a token already minted. */
+type RestAccess = { credentialPath: string } | { accessToken: string };
+
+/** How the port gets its access token and reaches Google. */
+type RestSources = RestAccess & { fetch: typeof fetch };
 
 interface ClaspLogin {
   client_id: string;
@@ -36,15 +37,13 @@ interface ClaspLogin {
 
 export class RestDocuments implements DocumentsPort {
   private readonly sources: RestSources;
-  private accessToken: Promise<string> | undefined;
+  private mintedToken: Promise<string> | undefined;
 
   constructor(sources: RestSources) {
     this.sources = sources;
   }
 
-  static init(
-    sources: Pick<RestSources, "credentialPath"> & Partial<RestSources>,
-  ): RestDocuments {
+  static init(sources: RestAccess & { fetch?: typeof fetch }): RestDocuments {
     return new RestDocuments({ fetch, ...sources });
   }
 
@@ -72,11 +71,11 @@ export class RestDocuments implements DocumentsPort {
     url: string,
     body?: string,
   ): Promise<Response> {
-    this.accessToken ??= this._minted();
+    const accessToken = await this._accessToken();
     const response = await this.sources.fetch(url, {
       method,
       headers: {
-        Authorization: `Bearer ${await this.accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
       body,
@@ -90,8 +89,15 @@ export class RestDocuments implements DocumentsPort {
     return response;
   }
 
-  private async _minted(): Promise<string> {
-    const login = this._login();
+  private async _accessToken(): Promise<string> {
+    const { sources } = this;
+    if ("accessToken" in sources) return sources.accessToken;
+    this.mintedToken ??= this._minted(sources.credentialPath);
+    return this.mintedToken;
+  }
+
+  private async _minted(credentialPath: string): Promise<string> {
+    const login = loginIn(credentialPath);
     const response = await this.sources.fetch(googleUrls.token, {
       method: "POST",
       body: new URLSearchParams({
@@ -108,30 +114,29 @@ export class RestDocuments implements DocumentsPort {
         : undefined;
     if (!response.ok || typeof accessToken !== "string") {
       throw new Error(
-        `Google's token endpoint refused the clasp login in ${this.sources.credentialPath} (${response.status}); ${loginStep}.`,
+        `Google's token endpoint refused the clasp login in ${credentialPath} (${response.status}); ${loginStep}.`,
       );
     }
     return accessToken;
   }
+}
 
-  private _login(): ClaspLogin {
-    const { credentialPath } = this.sources;
-    const login: Partial<ClaspLogin> | undefined = JSON.parse(
-      readFileSync(credentialPath, "utf8"),
-    ).tokens?.[claspUser];
-    if (
-      login?.client_id === undefined ||
-      login.client_secret === undefined ||
-      login.refresh_token === undefined
-    ) {
-      throw new Error(`No clasp login in ${credentialPath}; ${loginStep}.`);
-    }
-    return {
-      client_id: login.client_id,
-      client_secret: login.client_secret,
-      refresh_token: login.refresh_token,
-    };
+function loginIn(credentialPath: string): ClaspLogin {
+  const login: Partial<ClaspLogin> | undefined = JSON.parse(
+    readFileSync(credentialPath, "utf8"),
+  ).tokens?.[claspUser];
+  if (
+    login?.client_id === undefined ||
+    login.client_secret === undefined ||
+    login.refresh_token === undefined
+  ) {
+    throw new Error(`No clasp login in ${credentialPath}; ${loginStep}.`);
   }
+  return {
+    client_id: login.client_id,
+    client_secret: login.client_secret,
+    refresh_token: login.refresh_token,
+  };
 }
 
 const loginStep =

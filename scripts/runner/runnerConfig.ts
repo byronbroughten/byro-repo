@@ -58,7 +58,7 @@ const codeWorkflow = codeWorkflowOf({
   reviewSkillName: "code-review",
 });
 const scriptFolder = fileURLToPath(new URL(".", import.meta.url));
-// The piece checks, the Docs port over doc:print's token file, read only once a pull calls it, and this repo as the rules' root.
+// The piece checks, the Docs port over the Docs clasp credential file, read only once a pull calls it, and this repo as the rules' root.
 const pieceWorkflow = pieceWorkflowOf({
   overlapCommand,
   verifyQuotesCommand: ["npm", "run", "verify:quotes", "--"],
