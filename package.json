@@ -45,6 +45,7 @@
     "outcome:summary": "node scripts/runner/outcomeSummary.ts",
     "outline:apply": "node scripts/runner/outlineApply.ts",
     "prompt:scan": "node scripts/promptScan/promptScan.ts",
+    "repos": "node scripts/runner/repos.ts",
     "research:push": "node scripts/runner/researchPush.ts",
     "runner": "node scripts/runner/run.ts",
     "runner:tmux": "bash scripts/runner/tmux.sh",
