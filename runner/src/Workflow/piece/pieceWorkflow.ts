@@ -27,11 +27,7 @@ import {
   type Wait,
 } from "../../SpecRun/runState.ts";
 import { handoffText } from "../../stepPrompts/handoffText.ts";
-import {
-  inlinedSkill,
-  type ReadText,
-  readUtf8,
-} from "../../stepPrompts/inlinedSkill.ts";
+import { inlinedSkill, type ReadText } from "../../stepPrompts/inlinedSkill.ts";
 import {
   implementRecordOf,
   type PieceImplementRecord,
@@ -198,7 +194,7 @@ export function pieceWorkflowOf({
   verifyQuotesCommand,
   documents,
   rulesRoot,
-  readText = readUtf8,
+  readText,
 }: PieceWorkflowInput): Workflow {
   function reviewPromptOf(input: ReviewPromptInput): string {
     return pieceReviewPrompt({

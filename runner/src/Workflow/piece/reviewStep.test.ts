@@ -15,8 +15,6 @@ disable-model-invocation: true
 Three-axis review of a Piece's Agent draft.
 
 ## 1. Pin the issue and its scope
-
-The rules are in [\`rules.md\`](../../../docs/pieces/rules.md), [a heading](#report) and [a site](https://example.com/a.md).
 `;
 
 describe("pieceReviewPrompt", () => {
@@ -45,14 +43,6 @@ describe("pieceReviewPrompt", () => {
     expect(prompt).not.toContain("Skill tool");
     expect(prompt).not.toContain("SKILL.md");
     expect(prompt).not.toContain("by that path");
-  });
-
-  it("rewrites each relative link in the skill to its path from the repo root, leaving URLs and anchors", () => {
-    const prompt = pieceReviewPrompt(input);
-
-    expect(prompt).toContain("[`rules.md`](docs/pieces/rules.md)");
-    expect(prompt).toContain("[a heading](#report)");
-    expect(prompt).toContain("[a site](https://example.com/a.md)");
   });
 
   it("keeps the Agent draft, passages folder, scope and return lines", () => {

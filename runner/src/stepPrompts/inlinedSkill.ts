@@ -11,12 +11,16 @@ export type ReadText = (path: string) => string;
 export interface SkillReadInput {
   workspacePath: string;
   skillName: string;
-  readText: ReadText;
+  readText?: ReadText;
 }
 
 export const inlinedSkill = {
-  // The ticket's issue workspace's copy, the one the step would otherwise load itself.
-  textIn({ workspacePath, skillName, readText }: SkillReadInput): string {
+  // The ticket's issue workspace's copy, the one the review would otherwise load itself.
+  textIn({
+    workspacePath,
+    skillName,
+    readText = readUtf8,
+  }: SkillReadInput): string {
     return readText(join(workspacePath, skillFolderOf(skillName), "SKILL.md"));
   },
   sectionOf(skillText: string, skillName: string): string {
@@ -24,7 +28,7 @@ export const inlinedSkill = {
   },
 };
 
-export function readUtf8(path: string): string {
+function readUtf8(path: string): string {
   return readFileSync(path, "utf8");
 }
 

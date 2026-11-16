@@ -7,11 +7,7 @@ import { resolveRecordProblems, resolveRulesOf } from "../../resolveRecords.ts";
 import type { Command } from "../../runKnobs.ts";
 import type { TicketState, TicketStep } from "../../SpecRun/runState.ts";
 import { handoffText } from "../../stepPrompts/handoffText.ts";
-import {
-  inlinedSkill,
-  type ReadText,
-  readUtf8,
-} from "../../stepPrompts/inlinedSkill.ts";
+import { inlinedSkill, type ReadText } from "../../stepPrompts/inlinedSkill.ts";
 import {
   caughtCellOf,
   implementRecordOf,
@@ -118,7 +114,7 @@ export interface CodeWorkflowInput {
 export function codeWorkflowOf({
   checks,
   reviewSkillName,
-  readText = readUtf8,
+  readText,
 }: CodeWorkflowInput): Workflow {
   function reviewPromptOf(input: ReviewPromptInput): string {
     const skillText = inlinedSkill.textIn({ ...input, readText });

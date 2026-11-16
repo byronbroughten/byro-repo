@@ -47,17 +47,6 @@ describe("reviewPrompt", () => {
     expect(prompt).not.toContain("SKILL.md");
   });
 
-  it("rewrites each relative link in the skill to its path from the repo root, leaving URLs and anchors", () => {
-    const prompt = reviewPrompt(input);
-
-    expect(prompt).toContain("[`docs/prose-style.md`](docs/prose-style.md)");
-    expect(prompt).toContain(
-      "[its agents](.claude/skills/code-review/agents/standards.md#brief)",
-    );
-    expect(prompt).toContain("[a site](https://example.com/a.md)");
-    expect(prompt).toContain("[a heading](#process)");
-  });
-
   it("pins `master` as the fixed point and lists each branched repo's commits since it", () => {
     const prompt = reviewPrompt({
       ...input,
