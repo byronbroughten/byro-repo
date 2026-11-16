@@ -152,6 +152,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `specRunHarness/stepResults.ts` | | The step results, records and scripted steps `SpecRun` tests give a fake agent step. |
 | `specRunHarness/timing.ts` | | The clock `SpecRun` tests start a run at and move through its fakes. |
 | `specRunHarness/trackedIssues.ts` | | The tracked issues `SpecRun` tests give a fake GitHub and `Workflow` tests pick from. |
+| `specRunHarness/usageLists.ts` | | The usage lists `SpecRun` tests script for the launch check, each account on a reading the test sets. |
 | `stalePaths.ts` | | The stale-path check for `packages/<dir>` mentions with no clone. |
 | `StepStream.ts` | | Reads a step's stream-json into its `StepResult`. |
 | `stepPrompts/doneLines.ts` | | The "when you're done" lines the code and piece Workflows' implement and red-checks prompts share. |

@@ -42,7 +42,7 @@ describe("run's limit guard", () => {
   // Account 1 at a 5-hour reading a step moves; the Active account 2 idle and account 3 at 20%, so account 3 ranks first off account 1.
   function movingAccount1(): {
     usageReader: UsageReader;
-    thenAt(fiveHour: number, step: ScriptedStep): ScriptedStep;
+    to(fiveHour: number): () => void;
   } {
     let account1FiveHour = 0.1;
     return {
@@ -57,12 +57,9 @@ describe("run's limit guard", () => {
             2,
           ),
       },
-      thenAt(fiveHour, step) {
-        return async (request) => {
-          const result: StepResult =
-            typeof step === "function" ? await step(request) : step;
+      to(fiveHour) {
+        return () => {
           account1FiveHour = fiveHour;
-          return result;
         };
       },
     };
@@ -150,7 +147,7 @@ describe("run's limit guard", () => {
     addSpec([1]);
     const account1 = movingAccount1();
     const agentStep = FakeAgentStep.init(
-      account1.thenAt(0.5, implemented("one.ts")),
+      implemented("one.ts", { act: account1.to(0.5) }),
       reviewed(),
     );
 
@@ -165,7 +162,7 @@ describe("run's limit guard", () => {
     const account1 = movingAccount1();
     const sleeps: number[] = [];
     const agentStep = FakeAgentStep.init(
-      account1.thenAt(0.95, implemented("one.ts")),
+      implemented("one.ts", { act: account1.to(0.95) }),
       reviewed(),
     );
 
@@ -201,6 +198,27 @@ describe("run's limit guard", () => {
       "Run started on 1 tickets as account 2: 5-hour 0%, weekly 0%. Launching byro-repo #1.",
       result.message,
     ]);
+  });
+
+  it("waits while cswap lists no account, saying so, and launches once one reads under its thresholds", async () => {
+    addSpec([1]);
+    let usageList = accountsListOf([], 2);
+    const sleeps: number[] = [];
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    const result = await specRun(agentStep, {
+      usageReader: { read: async () => usageList },
+      async sleep(ms) {
+        sleeps.push(ms);
+        usageList = usageListOf(0.1, 0.5);
+      },
+    }).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(sleeps).toEqual([60_000]);
+    expect(noticeSummaries()).toContain(
+      "Limit wait: no account is enabled in cswap; continuing once an account reads under its thresholds. An account another run releases continues the run too.",
+    );
   });
 
   it("shortens the last poll of a Limit wait to end at the reset plus the margin", async () => {

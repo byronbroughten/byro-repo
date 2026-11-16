@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { StepResult } from "./AgentStep.ts";
-import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
+import { FakeAgentStep } from "./FakeAgentStep.ts";
 import type { UsageReader } from "./limitGuard.ts";
 import {
   accountsListOf,
@@ -29,14 +28,9 @@ const switchableReader: UsageReader = {
   read: async () => ({ ...usageListOf(account1FiveHour, 0.2), activeAccount }),
 };
 
-// Runs the step, then puts account 1 past its 5-hour threshold, as the step's own use would.
-function thenPastThreshold(step: ScriptedStep): ScriptedStep {
-  return async (request) => {
-    const result: StepResult =
-      typeof step === "function" ? await step(request) : step;
-    account1FiveHour = 0.95;
-    return result;
-  };
+// Puts account 1 past its 5-hour threshold, as a step's own use would.
+function pastThreshold(): void {
+  account1FiveHour = 0.95;
 }
 
 describe("run's active account", () => {
@@ -45,7 +39,7 @@ describe("run's active account", () => {
     activeAccount = 2;
     account1FiveHour = 0.1;
     const agentStep = FakeAgentStep.init(
-      thenPastThreshold(implemented("one.ts")),
+      implemented("one.ts", { act: pastThreshold }),
       reviewed(),
     );
 
@@ -62,7 +56,7 @@ describe("run's active account", () => {
     activeAccount = 2;
     account1FiveHour = 0.1;
     const agentStep = FakeAgentStep.init(
-      thenPastThreshold(implemented("one.ts")),
+      implemented("one.ts", { act: pastThreshold }),
       reviewed(),
     );
 
@@ -83,7 +77,10 @@ describe("run's active account", () => {
     activeAccount = 2;
     account1FiveHour = 0.1;
     const agentStep = FakeAgentStep.init(
-      thenPastThreshold(crashed),
+      async () => {
+        pastThreshold();
+        return crashed;
+      },
       implemented("one.ts"),
       reviewed(),
     );

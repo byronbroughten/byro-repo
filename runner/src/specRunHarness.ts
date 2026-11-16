@@ -39,6 +39,7 @@ import type { PullBaseline, SubmittedSession } from "./SpecRun/runState.ts";
 import { stepResults } from "./specRunHarness/stepResults.ts";
 import { timing } from "./specRunHarness/timing.ts";
 import { trackedIssues } from "./specRunHarness/trackedIssues.ts";
+import { usageLists } from "./specRunHarness/usageLists.ts";
 import type {
   Finding,
   ImplementRecord,
@@ -74,6 +75,7 @@ export const {
   throws,
 } = stepResults;
 export const { after, timed, startTime } = timing;
+export const { usageListOf, everyAccountListOf, accountsListOf } = usageLists;
 
 const everyClone = {
   "byro-repo": ".",
@@ -162,64 +164,6 @@ export function heldDocs(): FakeDocuments {
 
 export function scriptUsage(...lists: (UsageList | Error)[]): void {
   usageReader = FakeUsageReader.init(...lists);
-}
-
-// Account 1, which runs launch on while it reads under its thresholds, carries the usage; account 2, idle, is the Active account by default, so the ranking takes it last.
-export function usageListOf(
-  fiveHour: number,
-  sevenDay: number,
-  activeAccount: number | undefined = 2,
-): UsageList {
-  return accountsListOf(
-    [
-      { account: 1, fiveHour, sevenDay },
-      { account: 2, fiveHour: 0, sevenDay: 0 },
-    ],
-    activeAccount,
-  );
-}
-
-// Both accounts on one reading, so a threshold holds the run whichever it is on; account 2 is the Active one.
-export function everyAccountListOf(
-  fiveHour: number,
-  sevenDay: number,
-): UsageList {
-  return accountsListOf(
-    [
-      { account: 1, fiveHour, sevenDay },
-      { account: 2, fiveHour, sevenDay },
-    ],
-    2,
-  );
-}
-
-// One account's chosen reading; its resets default to the harness's own.
-export interface ChosenReading {
-  account: number;
-  fiveHour: number;
-  sevenDay: number;
-  fiveHourResetsAt?: Date;
-  weeklyResetsAt?: Date;
-}
-
-export function accountsListOf(
-  chosen: ChosenReading[],
-  activeAccount: number | undefined,
-): UsageList {
-  const readings = chosen.map((reading) => ({
-    account: reading.account,
-    usage: {
-      fiveHour: {
-        utilization: reading.fiveHour,
-        resetsAt: reading.fiveHourResetsAt ?? new Date("2026-10-12T11:00:00Z"),
-      },
-      sevenDay: {
-        utilization: reading.sevenDay,
-        resetsAt: reading.weeklyResetsAt ?? new Date("2026-10-15T00:00:00Z"),
-      },
-    },
-  }));
-  return { readings, activeAccount };
 }
 
 export function refOf(number: number): IssueRef {

@@ -40,7 +40,7 @@ export class LimitWaiter extends SpecRunBase {
   async _waitForLaunch(run: Run): Promise<number> {
     let hasAnnouncedWait = false;
     for (;;) {
-      const check = await this._launchCheckOf(run);
+      const check = await this._runLaunchCheck(run);
       if (check.kind === "launch") return check.account;
       if (!hasAnnouncedWait) {
         hasAnnouncedWait = true;
@@ -93,7 +93,7 @@ export class LimitWaiter extends SpecRunBase {
   }
 
   // The run's own account while it reads under both thresholds, else the top-ranked one, which the run then keeps.
-  private async _launchCheckOf(run: Run): Promise<LaunchCheck> {
+  private async _runLaunchCheck(run: Run): Promise<LaunchCheck> {
     const usageList = await this._knownActiveUsageListOf(run);
     const { ranked, leftOut } = rankAccounts({
       usageList,
@@ -145,7 +145,7 @@ export class LimitWaiter extends SpecRunBase {
   ): Promise<void> {
     for (;;) {
       await this._sleep(this._limitPollMsOf(until));
-      const check = await this._launchCheckOf(run);
+      const check = await this._runLaunchCheck(run);
       if (check.kind === "launch") return;
     }
   }
