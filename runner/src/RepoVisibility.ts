@@ -7,7 +7,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import type { ClonePaths } from "./clonePaths.ts";
-import type { Clock } from "./SpecRun/SpecRunBase.ts";
+import type { Clock } from "./SpecRun.ts";
 
 export type Visibility = "private" | "public";
 
