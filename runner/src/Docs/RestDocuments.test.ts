@@ -92,6 +92,21 @@ describe("RestDocuments", () => {
     });
   });
 
+  it("reads a Doc as a ready access token, minting nothing", async () => {
+    const google = fakeGoogle(Response.json(document));
+    const documents = RestDocuments.init({
+      accessToken: "ya29.ready",
+      fetch: google.fetch,
+    });
+
+    expect(await documents.documentOf("doc-1")).toEqual(document);
+    expect(google.sent).toHaveLength(1);
+    expect(google.sent[0]).toMatchObject({
+      url: "https://docs.googleapis.com/v1/documents/doc-1?suggestionsViewMode=SUGGESTIONS_INLINE",
+      authorization: "Bearer ya29.ready",
+    });
+  });
+
   it("sends a batchUpdate under its required revision, minting the token once", async () => {
     const google = fakeGoogle(
       Response.json(document),

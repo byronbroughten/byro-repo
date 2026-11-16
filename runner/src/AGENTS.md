@@ -41,7 +41,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Docs/markdownDialect.ts` | | The Markdown dialect's forms, a Section's heading path, its split into H1 and H2, and the split into Sections by path, with or without their headings. |
 | `Docs/markdownDialect/blockParse.ts` | | The dialect's parse of a Section's body into paragraphs, flat lists and tables. |
 | `Docs/PendingSuggestions.ts` | | The error for a write refused because the Doc holds pending suggestions the writer can't index around safely. |
-| `Docs/RestDocuments.ts` | `RestDocuments` | The real Docs port over the Docs REST API, as the developer's clasp login in an injected credential file, reading a Doc with its suggestions inline. |
+| `Docs/RestDocuments.ts` | `RestDocuments` | The real Docs port over the Docs REST API, as the developer's clasp login in an injected credential file or as an injected access token, reading a Doc with its suggestions inline. |
 | `Docs/sectionDiff.ts` | | Diffs a Section's blocks as held in the Doc against the ones written, into hunks. |
 | `Docs/SectionWriter.ts` | | Turns a Section's new Markdown, its lists and tables included, into the `batchUpdate` requests that change only what differs. |
 | `Docs/SectionWriter/BulletPlacer.ts` | | Puts the lists the Section writer writes into bullets, once its text requests have run. |
