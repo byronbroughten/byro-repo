@@ -152,6 +152,7 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | Wrap-up (`npm run wrap-up`) | `/implement-code`, `/judge-findings`, `/mine-outcomes`, the wrap-up Step, `/implement-piece`, `/research-piece`, `/close-piece` |
 | `npm run doc:print` | `/implement-piece` reads the Deliverable for its pull; `/close-piece` reads it for the changed Sections; `/to-writing-style`'s pair mode reads it for its diff |
 | `runner -- decide` | `/runner`, `/implement-code`, `/implement-piece`, `/judge-findings` |
+| `runner -- status` | `/runner` reads a run and, to diagnose, the Run board; `/review-code-tickets` and `/project-tickets`' Re-ticket read what has landed or started |
 | `npm run overlap` | `/review-piece` runs it; `/implement-piece` reruns it after a fix; the piece resolve Step reruns it after its Fixes; `/judge-findings` reruns it after a piece "now" fix |
 | `npm run pdf:text` and the page-range command in [`pdf-pages.md`](../pdf-pages.md) | `/research-piece` dumps text; `/grill-piece` and `/review-research` count and print pages |
 | Sub-issues and native blocking edges | `/project-tickets`, `/judge-findings` and `/runner` set them through `npm run issue:file`; `/review-piece` reads the parent through `gh api`; `/project-spec` sets a held spec's blocked-by edge and its Phase gate walks the chain; `/judge-findings` and `/close-piece` list what a closed spec blocks |
