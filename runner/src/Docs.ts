@@ -19,10 +19,10 @@ export interface DocRead {
   revisionId: string;
 }
 
-/** A Section's new body for a Doc, the Section named by its heading path as `DocRead.sections` keys it. */
+/** A Section's new body for a Doc, the Section named as `DocRead.sections` keys it. */
 export interface SectionWrite {
   documentId: string;
-  heading: string;
+  headingPath: string;
   markdown: string;
 }
 
@@ -52,7 +52,7 @@ export class Docs {
   /** Rewrites one Section of the Doc as last read, refusing with `PendingSuggestions` before writing, or `StaleRevision` if it changed since. */
   async writeSection({
     documentId,
-    heading,
+    headingPath,
     markdown,
   }: SectionWrite): Promise<void> {
     const document = this.lastReads.get(documentId);
@@ -60,7 +60,7 @@ export class Docs {
       throw new Error(`Read Doc ${documentId} before writing to it.`);
     }
     const requests = SectionWriter.init(document).requestsFor(
-      heading,
+      headingPath,
       markdown,
     );
     if (requests.length === 0) {

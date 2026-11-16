@@ -117,14 +117,13 @@ class DocsProbe implements DocumentsPort {
     return document;
   }
 
-  /** Writes the Section named by `heading`, its heading path as `DocRead.sections` keys it. */
-  async write(heading: string, markdownFile: string): Promise<void> {
+  async write(headingPath: string, markdownFile: string): Promise<void> {
     await this.read("before-write");
     const docs = Docs.init(this);
     await docs.read(this.documentId);
     await docs.writeSection({
       documentId: this.documentId,
-      heading,
+      headingPath,
       markdown: readFileSync(markdownFile, "utf8"),
     });
     await this.read("after-write");

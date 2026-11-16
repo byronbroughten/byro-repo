@@ -31,6 +31,9 @@ export interface SectionHeading {
   text: string;
 }
 
+/** A Section heading with its heading path. */
+export type WithPath<SH extends SectionHeading> = SH & { path: string };
+
 const syntax = {
   sectionLevel: 2,
   pathSeparator: " › ",
@@ -126,11 +129,9 @@ export const markdownDialect = {
   },
 
   /** Each H1 and H2 with its Section's heading path: an H1's text, an H2's under the H1 before it, or an H2's alone before any H1. */
-  withPathsOf<SH extends SectionHeading>(
-    headings: SH[],
-  ): (SH & { path: string })[] {
+  withPathsOf<SH extends SectionHeading>(headings: SH[]): WithPath<SH>[] {
     let h1: string | undefined;
-    const pathed: (SH & { path: string })[] = [];
+    const pathed: WithPath<SH>[] = [];
     for (const heading of headings) {
       if (heading.level < syntax.sectionLevel) {
         h1 = heading.text;

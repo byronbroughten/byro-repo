@@ -154,7 +154,7 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Kettle Notes › Boiling",
+      headingPath: "Kettle Notes › Boiling",
       markdown,
     });
 
@@ -172,7 +172,7 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Kettle Notes › Boiling",
+      headingPath: "Kettle Notes › Boiling",
       markdown:
         "Kettles heat water fast.\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n",
     });
@@ -193,7 +193,7 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Kettle Notes › Boiling",
+      headingPath: "Kettle Notes › Boiling",
       markdown:
         "Steam rises from the spout.\n\n### Spouts\n\nSpouts face away.\n\nA second paragraph.\n\n### Handles\n\nHold the handle.\n",
     });
@@ -217,7 +217,7 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Kettle Notes › Pouring",
+      headingPath: "Kettle Notes › Pouring",
       markdown: "Pour slowly.\n\nThen wait.\n\n### Spills\n\nWipe them.\n",
     });
     expect(
@@ -225,7 +225,7 @@ describe("Docs.writeSection", () => {
     ).toBe("Pour slowly.\n\nThen wait.\n\n### Spills\n\nWipe them.\n");
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Kettle Notes › Pouring",
+      headingPath: "Kettle Notes › Pouring",
       markdown: "Pour slowly.\n",
     });
 
@@ -241,7 +241,7 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Kettle Notes › Pouring",
+      headingPath: "Kettle Notes › Pouring",
       markdown: "Pour once it [boils](#boiling).\n",
     });
 
@@ -268,7 +268,7 @@ describe("Docs.writeSection", () => {
     await expect(
       docs.writeSection({
         documentId: "doc-writable",
-        heading: "Kettle Notes › Boiling",
+        headingPath: "Kettle Notes › Boiling",
         markdown: "Kettles whistle.\n",
       }),
     ).rejects.toThrow(new StaleRevision("doc-writable", revisionId));
@@ -279,7 +279,7 @@ describe("Docs.writeSection", () => {
     const { docs, documents } = await writableDocs();
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Kettle Notes › Boiling",
+      headingPath: "Kettle Notes › Boiling",
       markdown:
         "Kettles 🫖 boil water fast.\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n",
     });
@@ -289,7 +289,7 @@ describe("Docs.writeSection", () => {
       "Kettles 🫖 boil **water** quickly.\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n";
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Kettle Notes › Boiling",
+      headingPath: "Kettle Notes › Boiling",
       markdown,
     });
 
@@ -309,7 +309,7 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Kettle Notes › Boiling",
+      headingPath: "Kettle Notes › Boiling",
       markdown:
         "Fill the kettle.\n\nKettles boil water fast.\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n",
     });
@@ -336,7 +336,7 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Kettle Notes › Boiling",
+      headingPath: "Kettle Notes › Boiling",
       markdown,
     });
 
@@ -364,13 +364,13 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Kettle Notes › Boiling",
+      headingPath: "Kettle Notes › Boiling",
       markdown: boiling,
     });
     await docs.read("doc-writable");
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Kettle Notes › Pouring",
+      headingPath: "Kettle Notes › Pouring",
       markdown: pouring,
     });
 
@@ -397,7 +397,7 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Kettle Notes › Boiling",
+      headingPath: "Kettle Notes › Boiling",
       markdown,
     });
 
@@ -423,7 +423,7 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Kettle Notes › Boiling",
+      headingPath: "Kettle Notes › Boiling",
       markdown,
     });
 
@@ -447,7 +447,7 @@ describe("Docs.writeSection", () => {
       "Kettles boil water fast.\n\n1. Fill it\n2. Boil it\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n";
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Kettle Notes › Boiling",
+      headingPath: "Kettle Notes › Boiling",
       markdown: listed,
     });
     await docs.read("doc-writable");
@@ -456,7 +456,7 @@ describe("Docs.writeSection", () => {
       "Kettles boil water fast.\n\n1. Fill it\n\nWait.\n\n1. Boil it\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n";
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Kettle Notes › Boiling",
+      headingPath: "Kettle Notes › Boiling",
       markdown: split,
     });
 
@@ -480,7 +480,7 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Kettle Notes › Pouring",
+      headingPath: "Kettle Notes › Pouring",
       markdown,
     });
 
@@ -499,7 +499,7 @@ describe("Docs.writeSection", () => {
       "Kettles boil water fast.\n\n1. Fill it\n2. Boil it\n\nSteam rises.\n\n| Kettle | Litres |\n| --- | --- |\n| Steel | 1.7 |\n\n### Spouts\n\nMost spouts face away.\n";
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Kettle Notes › Boiling",
+      headingPath: "Kettle Notes › Boiling",
       markdown: first,
     });
     await docs.read("doc-writable");
@@ -508,7 +508,7 @@ describe("Docs.writeSection", () => {
       "Kettles boil water fast.\n\n1. Fill it\n2. Boil it\n3. Pour it\n- Steam rises.\n\n| Kettle | Litres |\n| --- | --- |\n| Glass | 1.5 |\n\n### Spouts\n\nMost spouts face away.\n";
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Kettle Notes › Boiling",
+      headingPath: "Kettle Notes › Boiling",
       markdown: second,
     });
     expect(
@@ -517,7 +517,7 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Kettle Notes › Boiling",
+      headingPath: "Kettle Notes › Boiling",
       markdown: first,
     });
     expect(
@@ -535,7 +535,7 @@ describe("Docs.writeSection", () => {
     await expect(
       docs.writeSection({
         documentId: "doc-writable",
-        heading: "Kettle Notes › Boiling",
+        headingPath: "Kettle Notes › Boiling",
         markdown,
       }),
     ).rejects.toThrow();
@@ -550,7 +550,7 @@ describe("Docs.writeSection", () => {
     await expect(
       docs.writeSection({
         documentId: "doc-suggestions",
-        heading: "Storage",
+        headingPath: "Storage",
         markdown: "Keep it dry.\n",
       }),
     ).rejects.toThrow(new PendingSuggestions("doc-suggestions"));
@@ -580,7 +580,7 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Kettle Notes › Boiling",
+      headingPath: "Kettle Notes › Boiling",
       markdown,
     });
 
@@ -622,7 +622,7 @@ describe("Docs.writeSection", () => {
 
       await docs.writeSection({
         documentId: "doc-writable",
-        heading: "Kettle Notes › Boiling",
+        headingPath: "Kettle Notes › Boiling",
         markdown,
       });
 
@@ -643,7 +643,7 @@ describe("Docs.writeSection", () => {
 
       await docs.writeSection({
         documentId: "doc-writable",
-        heading: "Kettle Notes › Boiling",
+        headingPath: "Kettle Notes › Boiling",
         markdown,
       });
 
@@ -673,7 +673,7 @@ describe("Docs.writeSection", () => {
       await expect(
         docs.writeSection({
           documentId: "doc-writable",
-          heading: "Kettle Notes › Boiling",
+          headingPath: "Kettle Notes › Boiling",
           markdown: "Kettles whistle.\n",
         }),
       ).rejects.toThrow(
@@ -696,7 +696,7 @@ describe("Docs.writeSection", () => {
 
       await docs.writeSection({
         documentId: "doc-template",
-        heading: path,
+        headingPath: path,
         markdown,
       });
 
@@ -711,7 +711,7 @@ describe("Docs.writeSection", () => {
       await expect(
         docs.writeSection({
           documentId: "doc-template",
-          heading: "Introduction (Intent)",
+          headingPath: "Introduction (Intent)",
           markdown: "Rewritten.\n",
         }),
       ).rejects.toThrow('No Section "Introduction (Intent)".');
@@ -724,7 +724,7 @@ describe("Docs.writeSection", () => {
     await expect(
       docs.writeSection({
         documentId: "doc-writable",
-        heading: "Kettle Notes › Boiling",
+        headingPath: "Kettle Notes › Boiling",
         markdown: "Kettles whistle.\n",
       }),
     ).rejects.toThrow("Read Doc doc-writable before writing to it.");

@@ -53,7 +53,7 @@ export class HeldSectionReader {
   }
 
   /** The Section's heading and the blocks held under it, the Section named by its heading path. */
-  sectionOf(heading: string): {
+  sectionOf(headingPath: string): {
     sectionHeading: HeldParagraph;
     held: HeldBlock[];
   } {
@@ -67,25 +67,19 @@ export class HeldSectionReader {
       );
     const sectionHeading = markdownDialect
       .withPathsOf(
-        written.flatMap((block) =>
-          block.kind === "paragraph" &&
-          block.level !== undefined &&
-          block.level <= markdownDialect.syntax.sectionLevel
-            ? [{ level: block.level, text: inlineOf(block), block }]
-            : [],
-        ),
+        written.flatMap((block) => {
+          const level = sectionLevelOf(block);
+          return block.kind === "paragraph" && level !== undefined
+            ? [{ level, text: inlineOf(block), block }]
+            : [];
+        }),
       )
-      .find(({ path }) => path === heading)?.block;
+      .find(({ path }) => path === headingPath)?.block;
     if (sectionHeading === undefined) {
-      throw new Error(`No Section "${heading}".`);
+      throw new Error(`No Section "${headingPath}".`);
     }
     const after = written.slice(written.indexOf(sectionHeading) + 1);
-    const end = after.findIndex(
-      (block) =>
-        block.kind === "paragraph" &&
-        block.level !== undefined &&
-        block.level <= markdownDialect.syntax.sectionLevel,
-    );
+    const end = after.findIndex((block) => sectionLevelOf(block) !== undefined);
     const held = withoutTrailingNonText(
       end === -1 ? after : after.slice(0, end),
     );
@@ -95,7 +89,7 @@ export class HeldSectionReader {
       )
     ) {
       throw new Error(
-        `The writer takes only text in the Section "${heading}", not a footnote, image or page break.`,
+        `The writer takes only text in the Section "${headingPath}", not a footnote, image or page break.`,
       );
     }
     return { sectionHeading, held };
@@ -186,6 +180,18 @@ export class HeldSectionReader {
       ? undefined
       : markdownDialect.headingTarget(headingText);
   }
+}
+
+/** The level of a block that starts a Section, an H1 or H2, or `undefined` for any other block. */
+function sectionLevelOf(block: HeldBlock): number | undefined {
+  if (
+    block.kind !== "paragraph" ||
+    block.level === undefined ||
+    block.level > markdownDialect.syntax.sectionLevel
+  ) {
+    return undefined;
+  }
+  return block.level;
 }
 
 // A page break or image alone after a Section's last text, as before the next part's title, stays put; the writer writes before it.
