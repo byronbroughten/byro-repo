@@ -232,7 +232,7 @@ export function stateFolder(): string {
 const rulesRoot = fileURLToPath(new URL("../../", import.meta.url));
 
 // What the code Workflow's review reads as the workspace's `code-review` SKILL.md, which no fixture workspace holds.
-export const reviewSkillText =
+const reviewSkillText =
   "---\nname: code-review\n---\n\nTwo-axis review. Read [the verdicts](../../../docs/agents/verdicts.md).\n";
 
 // The code Workflow with a test's own checks, beside the piece Workflow.

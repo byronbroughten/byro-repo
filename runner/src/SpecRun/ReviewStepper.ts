@@ -91,9 +91,9 @@ interface SkippedReviewers {
   count: number;
 }
 
-// One branched repo's change from master, the review's fixed point.
-interface BranchDiff extends RepoCommits {
-  files: string[];
+// The branched repos' change from master, the review's fixed point.
+interface BranchDiff extends Pick<ReviewPromptInput, "commitsSinceMaster"> {
+  fileCount: number;
 }
 
 interface KeptRecords {
@@ -223,38 +223,48 @@ export class ReviewStepper extends SpecRunBase {
   // The prompt input a run's review and an interactive session's brief alike add to the ticket's fields.
   async _reviewPromptInputOf(ticketRun: TicketRun): Promise<ReviewPromptInput> {
     const rules = this._agentStepOf(ticketRun.run.spec, "review");
-    const diffs = await this._branchDiffsOf(ticketRun);
+    const { fileCount, commitsSinceMaster } =
+      await this._branchDiffOf(ticketRun);
     return {
       ...ticketSteps.promptFieldsOf(ticketRun),
       skillName: rules.skillName,
-      isInlineAllowed: this._isInlineFor(ticketRun, diffs),
-      commitsSinceMaster: commitsSinceMasterOf(diffs),
+      isInlineAllowed:
+        this._isInlineOffered(ticketRun) && this._isInlineSize(fileCount),
+      commitsSinceMaster,
     };
   }
 
   // Whether the review may skip its reviewer subagents, for a run's review and an interactive session's alike.
   async _isInlineAllowed(ticketRun: TicketRun): Promise<boolean> {
-    return this._isInlineFor(ticketRun, await this._branchDiffsOf(ticketRun));
+    if (!this._isInlineOffered(ticketRun)) return false;
+    const { fileCount } = await this._branchDiffOf(ticketRun);
+    return this._isInlineSize(fileCount);
+  }
+
+  private _isInlineOffered({ run }: TicketRun): boolean {
+    const { reviewerCheck } = this._agentStepOf(run.spec, "review");
+    return reviewerCheck?.offerInline === true;
+  }
+
+  private _isInlineSize(fileCount: number): boolean {
+    return fileCount <= this.config.knobs.inlineReviewMaxFiles;
   }
 
   // Counted from master, the review's own fixed point, so a session with no implement base counts the same files.
-  private _isInlineFor(ticketRun: TicketRun, diffs: BranchDiff[]): boolean {
-    const { reviewerCheck } = this._agentStepOf(ticketRun.run.spec, "review");
-    if (reviewerCheck?.offerInline !== true) return false;
-    const count = diffs.reduce((sum, { files }) => sum + files.length, 0);
-    return count <= this.config.knobs.inlineReviewMaxFiles;
-  }
-
   // A master that doesn't resolve fails the diff here, before the review launches.
-  private async _branchDiffsOf(ticketRun: TicketRun): Promise<BranchDiff[]> {
-    const diffs: BranchDiff[] = [];
+  private async _branchDiffOf(ticketRun: TicketRun): Promise<BranchDiff> {
+    let fileCount = 0;
+    const repoCommits: RepoCommits[] = [];
     for (const repo of ticketSteps.branchedReposOf(ticketRun)) {
       const worktree = this._cloneIn(ticketRun.workspace, repo);
       const files = await git(worktree, "diff", "--name-only", "master...HEAD");
       const commits = await git(worktree, "log", "--oneline", "master..HEAD");
-      diffs.push({ repo, files: lines(files), commits: lines(commits) });
+      fileCount += lines(files).length;
+      repoCommits.push({ repo, commits: lines(commits) });
     }
-    return diffs;
+    // Unset when no branched repo has a diff, so the review skill's own fixed-point step reports the empty diff.
+    const commitsSinceMaster = fileCount === 0 ? undefined : repoCommits;
+    return { fileCount, commitsSinceMaster };
   }
 
   // A turn cap is a crash, its work reset away; a crossed live ceiling hands off, its work kept for the fresh session.
@@ -442,12 +452,6 @@ export class ReviewStepper extends SpecRunBase {
   private _resolveRulesOf({ run }: TicketRun): ResolveRules {
     return this._agentStepOf(run.spec, "resolve");
   }
-}
-
-// Unset when no branched repo has a diff, so the review skill's own fixed-point step reports the empty diff.
-function commitsSinceMasterOf(diffs: BranchDiff[]): RepoCommits[] | undefined {
-  if (diffs.every(({ files }) => files.length === 0)) return undefined;
-  return diffs.map(({ repo, commits }) => ({ repo, commits }));
 }
 
 function spawnedPhraseOf(spawned: number, count: number): string {
