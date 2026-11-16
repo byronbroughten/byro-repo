@@ -524,6 +524,22 @@ describe("an Interactive session's scripts", () => {
     expect(decisionOf("git push -u origin research/x")).toBe("ask");
   });
 
+  it("allows the ticket filing, as gh issue create, and refuses it in a runner step", () => {
+    const command =
+      "npm run issue:file -- byro-repo 747 /tmp/claude-501/drafts";
+    expect(decisionOf(command)).toBe("allow");
+    expect(
+      decisionOf("gh issue create -R o/r --title T --body-file b.md"),
+    ).toBe("allow");
+    const stepDecision = modeDecisionOf(command, "runnerStep");
+    expect(stepDecision?.permissionDecision).toBe("deny");
+    expect(stepDecision?.reason).toContain("only an Interactive session");
+    expect(stepDecision?.reason).toContain(blockerInstead);
+    expect(
+      decisionOf("npm --prefix x run issue:file -- byro-repo drafts"),
+    ).toBeUndefined();
+  });
+
   it("asks for the Google script route in a session, naming the box gap, and refuses it in a runner step", () => {
     const command = "npm run google:script -- /tmp/claude-501/probe.ts";
     const sessionDecision = modeDecisionOf(command);
@@ -868,6 +884,16 @@ describe("a sandboxed call", () => {
   function sandboxedDecisionOf(command: string, mode: SessionMode) {
     return decisionUnder(command, mode, true);
   }
+
+  it("still refuses a runner step's ticket filing, as its gh issue create", () => {
+    const command = "npm run issue:file -- byro-repo 747 drafts";
+    expect(
+      sandboxedDecisionOf(command, "interactive")?.permissionDecision,
+    ).toBe("allow");
+    expect(sandboxedDecisionOf(command, "runnerStep")?.permissionDecision).toBe(
+      "deny",
+    );
+  });
 
   it("is allowed, naming the box, in both modes", () => {
     [

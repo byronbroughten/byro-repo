@@ -159,6 +159,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `stepRecords.ts` | | The records the steps return, with the types, reasons, implement record check and small readers the core shares. |
 | `SupervisionRecords.ts` | `SupervisionRecords` | A Supervisor's record of the run or Batch it watches and the lines explained, and its handoff file, read once on a rejoin. |
 | `targetTools.ts` | | The tools a step gets for each of its ticket's targets and its spec's sources. |
+| `TicketFiler.ts` | `TicketFiler` | `npm run issue:file`'s core: files a folder of ticket drafts in dependency order under a parent, links their sub-issues and blocked-by edges, and reads each back; and its GitHub port. |
+| `ticketDrafts.ts` | | A ticket draft's front matter, the drafts' filing order and the refusals made before anything is filed. |
 | `TicketHalted.ts` | | The error raised once a ticket's Halts are posted. |
 | `ticketNewDependencies.ts` | | Reads a ticket's `## New dependencies` section. |
 | `ticketSections.ts` | | Finds one `## ` section of a ticket's body. |

@@ -39,6 +39,7 @@
     "issue:promote": "node scripts/runner/issue.ts promote",
     "issue:read": "node scripts/runner/issueRead.ts",
     "issue:backlink": "node scripts/runner/issueBacklink.ts",
+    "issue:file": "node scripts/runner/issueFile.ts",
     "issue:remove": "node scripts/runner/issue.ts remove",
     "issue:release": "node scripts/runner/issue.ts release",
     "outcome:backfill": "node scripts/runner/outcomeBackfill.ts",

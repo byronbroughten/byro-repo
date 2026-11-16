@@ -1,10 +1,10 @@
-// The verdicts for the scripts only an Interactive session runs: its research push and its asks for the Google script route and the Doc print command. Its gh calls and review-list decisions are interactiveSession.ts's.
+// The verdicts for the scripts only an Interactive session runs: its research push, its ticket filing and its asks for the Google script route and the Doc print command. Its gh calls and review-list decisions are interactiveSession.ts's.
 import type { SimpleCommand } from "../ShellParser.ts";
 import type { CallContext, Verdict } from "../tiers.ts";
 import { npmCommands } from "./npmCommands.ts";
 
 export const interactiveScripts = {
-  // The research push, the Google script route and the Doc print command: a runner step's is refused, an Interactive session's gets its script's verdict.
+  // The research push, the ticket filing, the Google script route and the Doc print command: a runner step's is refused, an Interactive session's gets its script's verdict.
   scriptVerdictOf(
     { words }: SimpleCommand,
     { mode }: CallContext,
@@ -38,6 +38,15 @@ const scripts = {
     sessionVerdict: {
       permissionDecision: "allow",
       why: "`npm run research:push` is the standing yes to push a `research/*` branch, behind wrap-up's secret scan",
+    },
+  },
+  // Free as the `gh issue create` and `gh api` sub-issue and dependency calls it wraps are; a runner step's is refused, as theirs are.
+  issueFile: {
+    name: "issue:file",
+    stepWhy: "files issues, which only an Interactive session does",
+    sessionVerdict: {
+      permissionDecision: "allow",
+      why: "`gh issue close` undoes each issue `npm run issue:file` creates, and the opposite call each sub-issue and blocked-by link",
     },
   },
   // Asks in an Interactive session, as the script runs outside the box; a runner step's is refused, as runner steps haven't needed one.

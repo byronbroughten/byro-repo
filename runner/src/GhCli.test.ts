@@ -170,6 +170,59 @@ describe("GhCli writes", () => {
     expect(calls).toHaveLength(1);
   });
 
+  it("creates an issue with each label and reads its number off the printed URL", async () => {
+    const { cli, calls } = scriptedGh([
+      "https://github.com/o/sheets-framework/issues/812\n",
+    ]);
+    expect(
+      await cli.createIssue("sheets-framework", {
+        title: "File tickets",
+        body: "Body",
+        labels: ["ready-for-agent", "runner"],
+      }),
+    ).toEqual({ repo: "sheets-framework", number: 812 });
+    expect(calls[0]).toEqual([
+      "issue",
+      "create",
+      "-R",
+      "o/sheets-framework",
+      "--title",
+      "File tickets",
+      "--body",
+      "Body",
+      "--label",
+      "ready-for-agent",
+      "--label",
+      "runner",
+    ]);
+  });
+
+  it("links a sub-issue and a blocker by the database id it reads first", async () => {
+    const { cli, calls } = scriptedGh(["9001\n", "{}", "9002\n", "{}"]);
+    await cli.addSubIssue(issue, { repo: "sheets-framework", number: 166 });
+    await cli.addBlocker(issue, { repo: "sheets-framework", number: 167 });
+    expect(calls).toEqual([
+      ["api", "repos/o/sheets-framework/issues/166", "--jq", ".id"],
+      [
+        "api",
+        "--method",
+        "POST",
+        "repos/o/sheets-framework/issues/165/sub_issues",
+        "-F",
+        "sub_issue_id=9001",
+      ],
+      ["api", "repos/o/sheets-framework/issues/167", "--jq", ".id"],
+      [
+        "api",
+        "--method",
+        "POST",
+        "repos/o/sheets-framework/issues/165/dependencies/blocked_by",
+        "-F",
+        "issue_id=9002",
+      ],
+    ]);
+  });
+
   it("edits a comment by the node id its comments read gives, once", async () => {
     const { cli, calls } = scriptedGh([ghError("HTTP 504")]);
     await expect(cli.editComment("IC_kw1", "- [x] done")).rejects.toThrow();

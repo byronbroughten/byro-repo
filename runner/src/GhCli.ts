@@ -14,6 +14,7 @@ import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import type { Visibility, VisibilitySource } from "./RepoVisibility.ts";
 import { sleep } from "./sleep.ts";
 import type { IssueComment, RunGitHub, TrackedIssue } from "./SpecRun.ts";
+import type { FilingGitHub, NewIssue } from "./TicketFiler.ts";
 import type { ParentIssue } from "./WrapUp.ts";
 
 const execFileAsync = promisify(execFile);
@@ -88,7 +89,9 @@ type GhProcess = (...args: string[]) => Promise<string>;
 // A read's waits before each retry: four tries in all.
 const readRetryWaitsMs = [2000, 8000, 30000];
 
-export class GhCli implements RunGitHub, IssueSource, VisibilitySource {
+export class GhCli
+  implements RunGitHub, FilingGitHub, IssueSource, VisibilitySource
+{
   private readonly owner: string;
   private readonly gh: GhProcess;
   private readonly wait: (ms: number) => Promise<void>;
@@ -161,6 +164,53 @@ export class GhCli implements RunGitHub, IssueSource, VisibilitySource {
       `${this.owner}/${repo}`,
       "--comment",
       comment,
+    );
+  }
+
+  // gh prints the new issue's URL, which ends with its number.
+  async createIssue(
+    repo: string,
+    { title, body, labels }: NewIssue,
+  ): Promise<IssueRef> {
+    const stdout = await this.gh(
+      "issue",
+      "create",
+      "-R",
+      `${this.owner}/${repo}`,
+      "--title",
+      title,
+      "--body",
+      body,
+      ...labels.flatMap((label) => ["--label", label]),
+    );
+    const number = /\/issues\/(\d+)\s*$/.exec(stdout)?.[1];
+    if (number === undefined) {
+      throw new Error(`gh issue create printed no issue URL: ${stdout.trim()}`);
+    }
+    return { repo, number: Number(number) };
+  }
+
+  async addSubIssue(parent: IssueRef, child: IssueRef): Promise<void> {
+    const childId = await this._databaseIdOf(child);
+    await this.gh(
+      "api",
+      "--method",
+      "POST",
+      `repos/${this.owner}/${parent.repo}/issues/${parent.number}/sub_issues`,
+      "-F",
+      `sub_issue_id=${childId}`,
+    );
+  }
+
+  async addBlocker(issue: IssueRef, blocker: IssueRef): Promise<void> {
+    const blockerId = await this._databaseIdOf(blocker);
+    await this.gh(
+      "api",
+      "--method",
+      "POST",
+      `repos/${this.owner}/${issue.repo}/issues/${issue.number}/dependencies/blocked_by`,
+      "-F",
+      `issue_id=${blockerId}`,
     );
   }
 
@@ -321,6 +371,17 @@ export class GhCli implements RunGitHub, IssueSource, VisibilitySource {
     const raw = data?.repository?.issue;
     if (!raw) throw new Error(`No issue ${issueRef.labelOf(issue)}`);
     return raw;
+  }
+
+  // The sub-issue and dependency endpoints take an issue's database id, not its number or node id.
+  private async _databaseIdOf({ repo, number }: IssueRef): Promise<string> {
+    const output = await this._read(
+      "api",
+      `repos/${this.owner}/${repo}/issues/${number}`,
+      "--jq",
+      ".id",
+    );
+    return output.trim();
   }
 
   // One JSON object per line, so every page of a paginated list parses.
