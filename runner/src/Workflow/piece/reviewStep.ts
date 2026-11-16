@@ -68,7 +68,7 @@ Review ${issue.repo}#${issue.number}, "${title}", on the ${codeListOf(pieceAxes,
 ${heldTicket.join("")}${suppliedInputsLinesOf(suppliedInputs, skillName)}${inlinedSkill.sectionOf(skillText, skillName)}
 
 ${framing.returnLineOf(["findings", "dismissedOverlaps"])}
-- ${reviewFindingsText({ axes: pieceAxes, where: "its file:line in the Agent draft, or the spec's Outline line for a reader finding", claim: "what it says, in a line, quoting the sentence" })}
+- ${reviewFindingsText({ axes: pieceAxes, where: "its file:line in the Agent draft with its Section's full heading path (`<H1> › <H2>`), or the spec's Outline line for a reader finding", claim: "what it says, in a line, quoting the sentence" })}
 - \`dismissedOverlaps\`: each overlap hit the spec reviewer judged no copy, its \`hit\` as the overlap command printed it and its one-line \`reason\`; empty when it dismissed none.`;
 }
 

@@ -79,7 +79,9 @@ export const pieceChecks = {
     const scope = pieceChecks.scopeOf(sections, input);
     const failures = [
       await overlapFailureOf(input, scope),
-      scope.isWhole ? lengthFailureOf(input.spec.body, sections) : undefined,
+      scope.isWhole
+        ? pieceChecks.lengthFailureOf(input.spec.body, sections)
+        : undefined,
     ].filter((failure) => failure !== undefined);
     return failures.length === 0 ? undefined : failures.join("\n\n");
   },
@@ -118,6 +120,35 @@ export const pieceChecks = {
         count + (markdown.match(patterns.word)?.length ?? 0),
       0,
     );
+  },
+
+  // The overlap failure's first line, naming each Section in the scope by its full heading path.
+  overlapHeadlineOf(
+    commandLabel: string,
+    hitCount: number,
+    scope: DraftSection[],
+  ): string {
+    return `${commandLabel} found ${hitCount} overlap hit(s) in the ticket's Sections (${pathsTextOf(scope)}) that review didn't dismiss:`;
+  },
+
+  // Undefined when the draft is within the spec's limit or the spec sets none; else each Section's words by full heading path.
+  lengthFailureOf(
+    specBody: string,
+    sections: DraftSection[],
+  ): string | undefined {
+    const limit = pieceChecks.lengthLimitOf(specBody);
+    if (limit === undefined) return undefined;
+    const count = pieceChecks.wordCountOf(sections);
+    if (count <= limit) return undefined;
+    const perSection = sections
+      .map((section) => ({
+        path: section.path,
+        words: pieceChecks.wordCountOf([section]),
+      }))
+      .filter(({ words }) => words > 0)
+      .map(({ path, words }) => `"${path}": ${words}`)
+      .join(", ");
+    return `The Agent draft's Sections are ${count} words (${perSection}), over the ${limit} words the spec's \`Length:\` line allows.`;
   },
 
   // The overlap command's report on a Deliverable file over the ticket's passages folder, run from the workspace root.
@@ -206,7 +237,11 @@ async function overlapFailureOf(
     );
     if (unjudged.length === 0) return undefined;
     return [
-      `${commandLabelOf(overlapCommand)} found ${unjudged.length} overlap hit(s) in the ticket's Sections that review didn't dismiss:`,
+      pieceChecks.overlapHeadlineOf(
+        commandLabelOf(overlapCommand),
+        unjudged.length,
+        scope.sections,
+      ),
       ...unjudged.flatMap(({ lines }) => lines),
     ].join("\n");
   } finally {
@@ -234,13 +269,6 @@ function dismissedTextOf({ hit }: DismissedOverlap): string {
   return (sharedText ?? text).toLowerCase();
 }
 
-function lengthFailureOf(
-  specBody: string,
-  sections: DraftSection[],
-): string | undefined {
-  const limit = pieceChecks.lengthLimitOf(specBody);
-  if (limit === undefined) return undefined;
-  const count = pieceChecks.wordCountOf(sections);
-  if (count <= limit) return undefined;
-  return `The Agent draft's Sections are ${count} words, over the ${limit} words the spec's \`Length:\` line allows.`;
+function pathsTextOf(sections: DraftSection[]): string {
+  return sections.map(({ path }) => `"${path}"`).join(", ");
 }

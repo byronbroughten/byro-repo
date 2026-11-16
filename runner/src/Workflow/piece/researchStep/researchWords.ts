@@ -49,7 +49,7 @@ Return the research record as \`record\`:
 - \`status\`: \`ready\` once step 7's quote check exits 0; \`blocked\` when a blocker stopped you first.
 - \`commentPath\` and \`textsFolder\`: the absolute paths of \`comment.md\` and the texts folder in your scratch folder.
 - \`counts\`: the facts the review left \`supported\`, the ones you \`rewritten\`, and the ones moved to \`## Unverified\` as \`unverified\`.
-- \`outlineEdits\`: each Outline edit you propose, with its \`section\`, the \`oldText\` it replaces, quoted exactly from the spec's \`## Outline\`, its \`newText\` and its \`reason\`. An approved edit replaces that text word for word.
+- \`outlineEdits\`: each Outline edit you propose, with its \`section\` (the Section's full heading path), the \`oldText\` it replaces, quoted exactly from the spec's \`## Outline\`, its \`newText\` and its \`reason\`. An approved edit replaces that text word for word.
 - \`unverified\`: each \`## Unverified\` item, its \`fact\`, its \`reason\` and \`isWanted\`.
 - \`blockers\`: each blocker, as above.`,
 

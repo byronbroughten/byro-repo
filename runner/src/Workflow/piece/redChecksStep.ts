@@ -36,7 +36,7 @@ function fixingSection(input: PieceRedChecksPromptInput): string {
     draftMaterialsLineOf(input),
     "An overlap hit is wording an agent Section shares with a saved passage: reword it in the draft's own words, keeping its fact.",
     "A length failure is the agent Sections running over the spec's Form `Length:` line: cut them until they fit, keeping every fact the Outline assigns them.",
-    "Change only the agent Sections an overlap hit names, or any agent Section for a length failure: never a Section marked `<!-- developer -->`, the spec or any other file.",
+    "Change only the agent Sections the overlap failure lists by heading path, or any agent Section for a length failure: never a Section marked `<!-- developer -->`, the spec or any other file.",
   ]);
 }
 

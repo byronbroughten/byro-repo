@@ -62,6 +62,12 @@ describe("pieceReviewPrompt", () => {
     );
   });
 
+  it("asks a finding to name its Section by its full heading path", () => {
+    expect(pieceReviewPrompt(input)).toContain(
+      "its Section's full heading path (`<H1> › <H2>`)",
+    );
+  });
+
   it("tells only a session that holds the ticket not to re-read it, before the skill", () => {
     const heldTicketLine = heldTicketLinesOf(true).join("");
     const held = pieceReviewPrompt({ ...input, isTicketHeld: true });

@@ -62,6 +62,7 @@ function fixingSection(input: PieceResolvePromptInput): string {
   return sectionOf("What you fix", [
     `${draftMaterialsLineOf(input)} Verify each finding against the Agent draft, the saved passages, the ticket and its spec before you judge it.`,
     `A fix touches only the Agent draft and only ${draftingScope.sectionsOf(input.labels)}: never a Section marked \`<!-- developer -->\`, the spec, the fact list or a Research comment.`,
+    "Name a Section in a verdict's `evidence` or a Propose `decision` by its full heading path, `<H1> › <H2>`.",
   ]);
 }
 

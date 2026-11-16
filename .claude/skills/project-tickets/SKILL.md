@@ -84,7 +84,7 @@ Present the breakdown as a numbered list. For each ticket:
 - **Blocked by**: the other tickets that must finish first, if any
 - **Kind**: agent, interactive or human; for an agent or interactive ticket, its pair
 - **What it delivers**: the end-to-end behaviour it makes work
-- **Packages**: the work packages it groups, with the files they change by count; for a piece ticket, its stage and the Sections it names
+- **Packages**: the work packages it groups, with the files they change by count; for a piece ticket, its stage and the Sections it names by full heading path
 - **Estimate**: its `~NK`, and the reason for any under 90K kept apart
 
 Ask whether the granularity is right, whether each edge genuinely gates its ticket, and whether any tickets should merge or split. Put step 5's spec gaps after the list as one round in the [`grilling`](../grilling/SKILL.md) format, then apply the answers; when an answer settles what the spec should have said, add a line saying so to the spec's body.
@@ -156,7 +156,7 @@ Read the spec's Research, Final pass, Split, Form and Outline fields. Done when 
 Each stage is a work package; choose those the fields call for, always with at least one drafting ticket and the Edit gate:
 
 - **Research**, when the Research field says needed: verifies the sources and facts it names and posts its list as a comment. It writes nothing to the Deliverable, and revises the spec's Outline only as [`docs/pieces/outlining.md`](../../../docs/pieces/outlining.md#when-research-revises-it) allows.
-- **Sections**, when Split names Sections: each ticket names its Sections by their exact heading text in the Deliverable. A Piece with no headings, such as a letter, gets no Section tickets; flag a Split that names Sections for one.
+- **Sections**, when Split names Sections: each ticket names its Sections by their full heading paths in the Deliverable, even when an H2 is unique today. A Piece with no headings, such as a letter, gets no Section tickets; flag a Split that names Sections for one.
 - **Final pass**, when the Final pass field says needed and there are Section tickets: covers the whole Deliverable, as that field describes, and checks that each short name coined in one Section is used the same way throughout.
 - **Whole draft**, when Split is one session or the Piece has no headings: one drafting ticket for the whole Deliverable, final pass included, labelled like a final pass so it drafts every Section.
 - **Edit gate**, always: the developer's ticket to edit the Deliverable once the run has pushed the draft, as the [writing glossary](../../../docs/pieces/GLOSSARY.md) defines it.
@@ -181,7 +181,7 @@ The spec's issue reference.
 
 ## What to write
 
-The stage, and for a Section ticket its Sections by exact heading text.
+The stage, and for a Section ticket its Sections by full heading path.
 
 ## Shared rules
 
@@ -198,7 +198,7 @@ The facts this ticket uses, including any of the developer's own text named as g
 
 ## Where
 
-The Sections it drafts and the earlier Sections it opens, by exact heading text, and any drafted Section to copy as a pattern.
+The Sections it drafts and the earlier Sections it opens, by full heading path, and any drafted Section to copy as a pattern.
 
 ## Model fit
 
