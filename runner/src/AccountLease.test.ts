@@ -1,11 +1,11 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { hostname, tmpdir } from "node:os";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { AccountLease } from "./AccountLease.ts";
-import { liveHolder, notRunningPid, seedHolder } from "./lockFixture.ts";
+import { deadHolder, liveHolder, seedHolder } from "./lockFixture.ts";
 import type { LockHolder } from "./PidLock.ts";
 
 let stateFolder: string;
@@ -41,11 +41,7 @@ describe("AccountLease.take", () => {
   });
 
   it("takes over a lease its dead holder abandoned", () => {
-    seedHolder(leasePath(2), {
-      pid: notRunningPid,
-      host: hostname(),
-      startedAt: "2026-01-01",
-    });
+    seedHolder(leasePath(2), deadHolder());
     expect(AccountLease.take(stateFolder, 2).kind).toBe("taken");
     expect(holderAt(leasePath(2)).pid).toBe(process.pid);
   });
@@ -69,11 +65,7 @@ describe("AccountLease.leasedIn", () => {
   it("lists each account a live holder has leased with its holder, by account", () => {
     seedHolder(leasePath(3), liveHolder());
     seedHolder(leasePath(1), liveHolder());
-    seedHolder(leasePath(2), {
-      pid: notRunningPid,
-      host: hostname(),
-      startedAt: "2026-01-01",
-    });
+    seedHolder(leasePath(2), deadHolder());
     const leased = AccountLease.leasedIn(stateFolder);
     expect(leased.map(({ account }) => account)).toEqual([1, 3]);
     expect(leased[0]?.holder?.pid).toBe(process.pid);

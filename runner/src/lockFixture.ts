@@ -26,6 +26,11 @@ export function liveHolder(): Omit<LockHolder, "token"> {
 // Above any pid the OS hands out, so it reads as dead without starting a process.
 export const notRunningPid = 2 ** 30;
 
+// A holder on this host whose pid isn't running, so its lock reads as abandoned.
+export function deadHolder(): Omit<LockHolder, "token"> {
+  return { pid: notRunningPid, host: hostname(), startedAt: "2026-01-01" };
+}
+
 export function deadPid(): number {
   return Number(execFileSync("node", ["-e", "console.log(process.pid)"]));
 }

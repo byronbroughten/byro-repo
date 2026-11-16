@@ -7,7 +7,7 @@ import type { AccountLeaseReader, LeasedAccount } from "./AccountLease.ts";
 import {
   type AccountReading,
   isUnstartedWindow,
-  type LeftOutReason,
+  type LeftOutAccount,
   type LimitGuardKnobs,
   rankAccounts,
   readingLabelOf,
@@ -51,10 +51,8 @@ export const accountSwitch = {
       print(
         "No account is free; switching nothing. Choose one with `cswap switch <n>`:",
       );
-      for (const { account, reason } of leftOut) {
-        print(
-          `  account ${account}: ${leftOutLabelOf(reason, account, leased)}`,
-        );
+      for (const each of leftOut) {
+        print(`  account ${each.account}: ${leftOutLabelOf(each, leased)}`);
       }
       return undefined;
     }
@@ -124,8 +122,7 @@ function heldByLabelOf(holder: LockHolder | undefined): string {
 }
 
 function leftOutLabelOf(
-  reason: LeftOutReason,
-  account: number,
+  { account, reason }: LeftOutAccount,
   leased: LeasedAccount[],
 ): string {
   if (reason.kind === "limitWait") {
@@ -133,5 +130,6 @@ function leftOutLabelOf(
   }
   if (reason.kind === "leased") return holderLabelOf(account, leased);
   if (reason.kind === "disabled") return "disabled in cswap";
-  return "unavailable to this run";
+  if (reason.kind === "unavailable") return "unavailable to this run";
+  throw new Error(`Unknown left-out reason for account ${account}.`);
 }
