@@ -1,4 +1,4 @@
-// The pid-lock fixtures LandingLock's, RunLock's, Checks', SupervisionRecords' and SpecRun's run-lock tests share.
+// The pid-lock fixtures LandingLock's, RunLock's, AccountLease's, Checks', SupervisionRecords' and SpecRun's run-lock tests share.
 
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -22,6 +22,9 @@ export function liveHolder(): Omit<LockHolder, "token"> {
     startedAt: new Date().toISOString(),
   };
 }
+
+// Above any pid the OS hands out, so it reads as dead without starting a process.
+export const notRunningPid = 2 ** 30;
 
 export function deadPid(): number {
   return Number(execFileSync("node", ["-e", "console.log(process.pid)"]));

@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import type { UsageReading } from "./AgentStep.ts";
+import type { UsageReading, UsageWindow } from "./AgentStep.ts";
 import {
+  type AccountRanking,
+  type AccountRankRequest,
+  type AccountReading,
   type AccountUsage,
   decideStep,
   freshestUsageOf,
+  rankAccounts,
   readCswapList,
 } from "./limitGuard.ts";
 import { defaultRunKnobs } from "./runKnobs.ts";
@@ -96,6 +100,16 @@ describe("readCswapList", () => {
     ]);
   });
 
+  it("reads an account cswap marks disabled as disabled", () => {
+    const json = JSON.stringify({
+      accounts: [{ number: 2, disabled: true }, { number: 3 }],
+    });
+    expect(readCswapList(json).readings).toEqual([
+      { account: 2, usage: undefined, isDisabled: true },
+      { account: 3, usage: undefined },
+    ]);
+  });
+
   it("reads a missing active account as unknown, keeping the readings", () => {
     const json = JSON.stringify({ accounts: [{ number: 2 }] });
     expect(readCswapList(json)).toEqual({
@@ -157,6 +171,147 @@ describe("decideStep", () => {
     };
     expect(decideStep(usageOf(0.1, 1), defaultRunKnobs)).toEqual(weeklyWait);
     expect(decideStep(usageOf(0.99, 1), defaultRunKnobs)).toEqual(weeklyWait);
+  });
+});
+
+describe("rankAccounts", () => {
+  function readingOf(
+    account: number,
+    fiveHour: number,
+    weeklyReset: string | undefined,
+  ): AccountReading {
+    const sevenDay: UsageWindow =
+      weeklyReset === undefined
+        ? { utilization: 0, resetsAt: new Date(0) }
+        : { utilization: 0.5, resetsAt: new Date(weeklyReset) };
+    return {
+      account,
+      usage: {
+        fiveHour: { utilization: fiveHour, resetsAt: fiveHourReset },
+        sevenDay,
+      },
+    };
+  }
+
+  function rankOf(
+    readings: AccountReading[],
+    request: Partial<AccountRankRequest> = {},
+  ): AccountRanking {
+    return rankAccounts({
+      usageList: { readings, activeAccount: undefined },
+      leasedAccounts: new Set(),
+      unavailableAccounts: new Set(),
+      knobs: defaultRunKnobs,
+      putActiveLast: false,
+      ...request,
+    });
+  }
+
+  function accountsOf({ ranked }: AccountRanking): number[] {
+    return ranked.map(({ account }) => account);
+  }
+
+  it("leaves out leased, unavailable and disabled accounts, naming why", () => {
+    const ranking = rankOf(
+      [
+        readingOf(1, 0.1, "2026-10-14T00:00:00Z"),
+        readingOf(2, 0.1, "2026-10-14T00:00:00Z"),
+        { ...readingOf(3, 0.1, "2026-10-14T00:00:00Z"), isDisabled: true },
+        readingOf(4, 0.1, "2026-10-14T00:00:00Z"),
+      ],
+      { leasedAccounts: new Set([1]), unavailableAccounts: new Set([2]) },
+    );
+    expect(accountsOf(ranking)).toEqual([4]);
+    expect(ranking.leftOut).toEqual([
+      { account: 1, reason: { kind: "leased" } },
+      { account: 2, reason: { kind: "unavailable" } },
+      { account: 3, reason: { kind: "disabled" } },
+    ]);
+  });
+
+  it("leaves out an account past either threshold, naming the window", () => {
+    const pastFiveHour = readingOf(1, 0.95, "2026-10-14T00:00:00Z");
+    const pastWeekly: AccountReading = {
+      account: 2,
+      usage: usageOf(0.1, 1),
+    };
+    const ranking = rankOf([
+      pastFiveHour,
+      pastWeekly,
+      readingOf(3, 0.1, "2026-10-14T00:00:00Z"),
+    ]);
+    expect(accountsOf(ranking)).toEqual([3]);
+    expect(
+      ranking.leftOut.map(({ account, reason }) => [
+        account,
+        reason.kind === "limitWait" ? reason.window : reason.kind,
+      ]),
+    ).toEqual([
+      [1, "fiveHour"],
+      [2, "sevenDay"],
+    ]);
+  });
+
+  it("judges the thresholds on a step stream's fresher reading", () => {
+    const stream: UsageReading = {
+      fiveHour: { utilization: 0.97, resetsAt: fiveHourReset },
+      sevenDay: undefined,
+    };
+    const ranking = rankOf([readingOf(1, 0.1, "2026-10-14T00:00:00Z")], {
+      streamUsage: new Map([[1, stream]]),
+    });
+    expect(accountsOf(ranking)).toEqual([]);
+  });
+
+  it("ranks an account with no usable reading last, leaving the warning to the caller", () => {
+    const ranking = rankOf([
+      { account: 1, usage: undefined },
+      readingOf(2, 0.5, undefined),
+    ]);
+    expect(ranking.ranked).toEqual([
+      readingOf(2, 0.5, undefined),
+      { account: 1, usage: undefined },
+    ]);
+  });
+
+  it("ranks the Active account last when asked, and on its merits otherwise", () => {
+    const readings = [
+      readingOf(1, 0.1, "2026-10-13T00:00:00Z"),
+      readingOf(2, 0.1, "2026-10-14T00:00:00Z"),
+    ];
+    const usageList = { readings, activeAccount: 1 };
+    expect(accountsOf(rankOf([], { usageList, putActiveLast: true }))).toEqual([
+      2, 1,
+    ]);
+    expect(accountsOf(rankOf([], { usageList }))).toEqual([1, 2]);
+  });
+
+  it("ranks the soonest weekly reset first", () => {
+    const ranking = rankOf([
+      readingOf(1, 0.1, "2026-10-15T00:00:00Z"),
+      readingOf(2, 0.1, "2026-10-13T00:00:00Z"),
+      readingOf(3, 0.1, "2026-10-14T00:00:00Z"),
+    ]);
+    expect(accountsOf(ranking)).toEqual([2, 3, 1]);
+  });
+
+  it("ranks an unstarted weekly window after the started ones", () => {
+    const ranking = rankOf([
+      readingOf(1, 0.1, undefined),
+      readingOf(2, 0.1, "2026-10-15T00:00:00Z"),
+    ]);
+    expect(accountsOf(ranking)).toEqual([2, 1]);
+  });
+
+  it("breaks a tie on the lowest 5-hour utilization, then the lowest account number", () => {
+    const ranking = rankOf([
+      readingOf(3, 0.2, "2026-10-14T00:00:00Z"),
+      readingOf(2, 0.4, "2026-10-14T00:00:00Z"),
+      readingOf(1, 0.2, "2026-10-14T00:00:00Z"),
+      readingOf(5, 0.1, undefined),
+      readingOf(4, 0.1, undefined),
+    ]);
+    expect(accountsOf(ranking)).toEqual([1, 3, 2, 4, 5]);
   });
 });
 
