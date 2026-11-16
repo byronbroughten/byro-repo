@@ -8,6 +8,7 @@ import { stepReadLine } from "../../IssueReader.ts";
 import {
   codeListOf,
   implementerReviewLineOf,
+  reviewerResumePromptOf,
   reviewFindingsText,
   sessionReturnOf,
   sessionReviewLineOf,
@@ -60,8 +61,10 @@ Change nothing: no edits, commits, comments or fixes. ${sessionReturnOf(["findin
 export function pieceReviewerCheckOf(skillName: string): ReviewerCheck {
   return {
     count: pieceAxes.length,
-    resumePrompt: `Your review ran without its reviewer subagents. Spawn all three, the spec, standards and reader reviewers, as \`.claude/skills/${skillName}/SKILL.md\` says: three Agent calls in one message. Then return the review record from their reports, replacing the one you returned.`,
-    offersInline: false,
+    resumePrompt: reviewerResumePromptOf(
+      `all three, the spec, standards and reader reviewers, as \`.claude/skills/${skillName}/SKILL.md\` says: three Agent calls in one message`,
+    ),
+    offerInline: false,
   };
 }
 

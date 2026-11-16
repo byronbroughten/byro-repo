@@ -38,17 +38,17 @@ export interface HandoffLaunch {
 }
 
 // A step after implement that the live ceiling can kill, its handoff posted here.
-interface StepCrossing {
+interface LaterStepCrossing {
   agent: "review" | "resolve";
   crossedSession: string | undefined;
 }
 
 // The implement step takes its own record from the launch; a later step posts the handoff.
 interface CeilingCrossing<CR extends ImplementRecord | void> extends Omit<
-  StepCrossing,
+  LaterStepCrossing,
   "agent"
 > {
-  agent: "implement" | StepCrossing["agent"];
+  agent: "implement" | LaterStepCrossing["agent"];
   take(launch: HandoffLaunch): Promise<CR>;
 }
 
@@ -104,10 +104,10 @@ export class HandoffTaker extends SpecRunBase {
     });
   }
 
-  // The resolve's own work stays in the tree for the fresh session that carries the resolve on; the review changes nothing, so its successor reviews again.
+  // The resolve's own work stays in the tree for the fresh session that carries the resolve on.
   async _handOffAtCeiling(
     ticketRun: TicketRun,
-    { agent, crossedSession }: StepCrossing,
+    { agent, crossedSession }: LaterStepCrossing,
   ): Promise<void> {
     const { run, ticket } = ticketRun;
     const point: HandoffPoint = { relation: "in", step: agent };

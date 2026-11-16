@@ -60,12 +60,9 @@ interface ReviewAttempt extends Omit<ReviewLaunch, "freshPrompt"> {
   reviewerCheck?: ReviewerCheck;
 }
 
-interface ReviewerResume {
+// Its launch is the review's own, whose prompt a fresh rerun of the resume takes.
+interface ReviewerResume extends Required<ReviewAttempt> {
   ran: RanStep;
-  reviewerCheck: ReviewerCheck;
-  // The review's own launch, whose prompt a fresh rerun of the resume takes.
-  launch: StepLaunch;
-  isSessionReview: boolean;
 }
 
 type ResolveOutcome =
@@ -114,7 +111,7 @@ export class ReviewStepper extends SpecRunBase {
     const rules = this._agentStepOf(run.spec, "review");
     const { reviewerCheck, outputSchema: jsonSchema } = rules;
     const isInlineAllowed =
-      reviewerCheck?.offersInline === true &&
+      reviewerCheck?.offerInline === true &&
       (await this._isInlineSize(ticketRun));
     const isSessionReview = run.sessionReview !== undefined;
     const launch: StepLaunch = {
@@ -156,8 +153,9 @@ export class ReviewStepper extends SpecRunBase {
   // A review the live ceiling killed isn't sent back for its reviewers: its handoff comes first.
   private async _reviewOnce(
     ticketRun: TicketRun,
-    { launch, isSessionReview, reviewerCheck }: ReviewAttempt,
+    attempt: ReviewAttempt,
   ): Promise<RanStep> {
+    const { launch, isSessionReview, reviewerCheck } = attempt;
     const ran = await this._runReviewSession(ticketRun, {
       launch,
       isSessionReview,
@@ -165,10 +163,9 @@ export class ReviewStepper extends SpecRunBase {
     ticketRun.state.hasSkippedReviewers = undefined;
     if (reviewerCheck === undefined || ran.result.hasCrossedCeiling) return ran;
     return this._sentBackForReviewers(ticketRun, {
+      ...attempt,
       ran,
       reviewerCheck,
-      launch,
-      isSessionReview,
     });
   }
 

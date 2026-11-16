@@ -254,7 +254,7 @@ export interface ReviewerCheck {
   count: number;
   resumePrompt: string;
   // False where the diff's file count says nothing of the review's size, so every review is checked.
-  offersInline: boolean;
+  offerInline: boolean;
 }
 
 export interface ResolvePromptInput extends TicketPromptFields {
