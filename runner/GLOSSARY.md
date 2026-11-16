@@ -219,7 +219,7 @@ The work one spec in a Project defines. A Project of one spec has one Phase and 
 _Avoid_: stage, milestone, step
 
 **Work package**:
-The smallest change in a spec that leaves the checks green, named by what changes, the symbols it touches and the files it reads, never how. Two packages that always land together, with no green state between them worth having, are one. Read sets are counted with grep and line counts, not close reading. Packages are never published: a ticketing skill groups them into tickets.
+The smallest change in a spec that leaves the checks green, named by what changes, the symbols it touches and the files it reads, never how. Two packages that always land together, with no green state between them worth having, are one.
 _Avoid_: slice, task, chunk
 
 **Phase gate**:

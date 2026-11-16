@@ -23,7 +23,7 @@ The one home for ticketing judgments: the ticket split test, work packages, sizi
 ## Ticket size
 
 - **Size each ticket so one session finishes it: never estimate one over the cap, the ticket budget minus the margin knob (`budgetMargin`, ~135K by default)**, with the ticket budget (~150K) kept as the preferred ceiling for a session's peak. About 25K is fixed overhead before the first prompt.
-- **Prefer 110–125K when a green seam makes that easy**; this target stands unchanged pending a separate replay.
+- **Prefer 110–125K when a green seam makes that easy.**
 - **Merge tickets so fewer are estimated under 90K**; a target `/code-tickets` can override with a stated reason. Each ticket pays a cold start of context across implement and two reviewers, ~95K as measured while the review orchestrator still started cold, so a small ticket costs more per file, and cost per file flattens from ~110K ([estimates](./codebase-priorities/estimates.md#cost-per-ticket), [the review step's split](./codebase-priorities/estimates.md#steps)).
 - **Merge only packages with the same Model fit pair**: a merged ticket never needs a stronger pair, so a Sonnet 60K package and an Opus 60K one stay two tickets.
 - **A package may merge with one it blocks when no package outside the group sits between them.**
