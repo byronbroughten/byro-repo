@@ -58,8 +58,7 @@ export interface OutcomeFacts {
   durationMinutes?: number;
   // The implementer sessions, handoffs included, up to the review's cut in one the review or its resolve resumed.
   costUsd?: number;
-  // The review and resolve sessions; of an implementer session the review or its resolve resumed, the turns and
-  // subagents from the first review step's recorded start on, or without one from the resume's prompt on.
+  // The review and resolve sessions, and of an implementer session the review resumed, what follows that cut.
   reviewCostUsd?: number;
   sessionIds?: string[];
 }
