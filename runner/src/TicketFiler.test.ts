@@ -181,6 +181,39 @@ describe("TicketFiler", () => {
     expect(report.text).toContain("2-second.md (#749): blocked by");
   });
 
+  describe("on a gh failure partway, names the draft and lists the tickets already filed", () => {
+    const files = [draftOf("1-first.md"), draftOf("2-second.md")];
+
+    it("while creating a ticket", async () => {
+      const github = githubWithParent();
+      github.afterCreates.push(() => {
+        github.failuresLeft = 1;
+      });
+
+      await expect(
+        TicketFiler.init(github).file({ repo, parent, files }),
+      ).rejects.toThrow(
+        "2-second.md: filing stopped creating its ticket: gh: connection reset Filed so far, to fix by hand: 1-first.md: #748.",
+      );
+    });
+
+    it("while linking a ticket", async () => {
+      const github = githubWithParent();
+      github.afterCreates.push(
+        () => {},
+        () => {
+          github.failuresLeft = 1;
+        },
+      );
+
+      await expect(
+        TicketFiler.init(github).file({ repo, parent, files }),
+      ).rejects.toThrow(
+        "1-first.md: filing stopped linking its ticket: gh: connection reset Filed so far, to fix by hand: 1-first.md: #748, 2-second.md: #749.",
+      );
+    });
+  });
+
   describe("refuses before anything is filed", () => {
     async function refusalOf(files: DraftFile[]): Promise<string> {
       const github = githubWithParent();
