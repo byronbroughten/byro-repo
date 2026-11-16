@@ -196,7 +196,7 @@ export interface TicketState {
 export interface PullBaseline {
   documentId: string;
   revisionId: string;
-  // Each Section's text by its heading, every Section of the Doc, the agent ones included.
+  // Each Section's text by its heading path, every Section of the Doc, the agent ones included.
   sections: Record<string, string>;
 }
 

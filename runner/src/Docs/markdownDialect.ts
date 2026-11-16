@@ -35,6 +35,7 @@ export interface SectionHeading {
 export type WithPath<SH extends SectionHeading> = SH & { path: string };
 
 const syntax = {
+  h1Level: 1,
   sectionLevel: 2,
   pathSeparator: " › ",
   listIndent: "    ",
@@ -149,6 +150,15 @@ export const markdownDialect = {
 
   /** Each Section's body by its heading path, the Markdown before the first H1 or H2 left out. */
   sectionsOf(markdown: string): Map<string, string> {
+    return new Map(
+      markdownDialect
+        .headedSectionsOf(markdown)
+        .map(({ path, markdown: body }) => [path, body]),
+    );
+  },
+
+  /** Each Section in the Doc's order with its heading and body, the Markdown before the first H1 or H2 left out. */
+  headedSectionsOf(markdown: string): HeadedSection[] {
     const chunks = markdown
       .split("\n")
       .reduce<(SectionHeading & { lines: string[] })[]>((split, line) => {
@@ -160,16 +170,41 @@ export const markdownDialect = {
         split.push({ level, text: line.slice(level + 1), lines: [] });
         return split;
       }, []);
-    return markdownDialect
-      .withPathsOf(chunks)
-      .reduce((sections, { path, lines }) => {
-        if (sections.has(path)) {
-          throw new Error(`Two Sections share the heading path "${path}".`);
-        }
-        return sections.set(path, `${lines.join("\n").trim()}\n`);
-      }, new Map<string, string>());
+    const sections: HeadedSection[] = [];
+    for (const { level, text, path, lines } of markdownDialect.withPathsOf(
+      chunks,
+    )) {
+      if (sections.some((section) => section.path === path)) {
+        throw new Error(`Two Sections share the heading path "${path}".`);
+      }
+      sections.push({
+        level,
+        text,
+        path,
+        markdown: `${lines.join("\n").trim()}\n`,
+      });
+    }
+    return sections;
+  },
+
+  /** A heading path split into its H1, undefined for a path with none, and its last heading's text. */
+  pathPartsOf(path: string): PathParts {
+    const at = path.indexOf(syntax.pathSeparator);
+    if (at === -1) return { h1: undefined, text: path };
+    return {
+      h1: path.slice(0, at),
+      text: path.slice(at + syntax.pathSeparator.length),
+    };
   },
 };
+
+/** A Section with its heading and its body, trimmed and ending in one newline. */
+export type HeadedSection = WithPath<SectionHeading> & { markdown: string };
+
+export interface PathParts {
+  h1: string | undefined;
+  text: string;
+}
 
 export interface ListItem {
   depth: number;

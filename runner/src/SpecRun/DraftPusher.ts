@@ -30,7 +30,7 @@ import { SpecRunBase } from "./SpecRunBase.ts";
 
 // An agent Section as the push writes it, beside its Doc text at the last pull; undefined with no pull recorded.
 interface PushedSection {
-  heading: string;
+  path: string;
   markdown: string;
   pulled: string | undefined;
 }
@@ -45,7 +45,7 @@ interface Push {
 // Where each agent Section stands on a push: written, kept as the Doc has it, or held on a push Halt.
 interface PushPlan {
   written: PushedSection[];
-  // The Doc's text by heading, for each Section answered `keep mine`.
+  // The Doc's text by heading path, for each Section answered `keep mine`.
   kept: Map<string, string>;
   drafts: HaltDraft[];
   isHeld: boolean;
@@ -178,13 +178,13 @@ function pushedSectionsOf(
   agentSections: Map<string, string>,
   baseline: PullBaseline | undefined,
 ): PushedSection[] {
-  return [...agentSections].map(([heading, markdown]) => ({
-    heading,
+  return [...agentSections].map(([path, markdown]) => ({
+    path,
     markdown,
     pulled:
       baseline === undefined
         ? undefined
-        : (baseline.sections[heading] ?? emptySection),
+        : (baseline.sections[path] ?? emptySection),
   }));
 }
 
@@ -220,12 +220,12 @@ function planOf(
     isHeld: false,
   };
   for (const section of sections) {
-    const { heading, markdown } = section;
-    const current = read.sections.get(heading);
-    const answer = answers.get(heading);
+    const { path, markdown } = section;
+    const current = read.sections.get(path);
+    const answer = answers.get(path);
     if (current === markdown) continue;
     if (answer === "keep-mine") {
-      plan.kept.set(heading, current ?? "");
+      plan.kept.set(path, current ?? "");
       continue;
     }
     if (answer === "open") {
@@ -233,7 +233,7 @@ function planOf(
       continue;
     }
     if (current === undefined) {
-      plan.drafts.push(pushHaltOf(heading, "missing"));
+      plan.drafts.push(pushHaltOf(path, "missing"));
       continue;
     }
     if (answer === "overwrite") {
@@ -241,7 +241,7 @@ function planOf(
       continue;
     }
     if (isEdited(read, section)) {
-      plan.drafts.push(pushHaltOf(heading, "changed"));
+      plan.drafts.push(pushHaltOf(path, "changed"));
       continue;
     }
     plan.written.push(section);
@@ -258,11 +258,11 @@ async function writeSections({
   let count = 0;
   for (const section of sections) {
     const read = await docs.read(documentId);
-    if (read.sections.get(section.heading) === section.markdown) continue;
+    if (read.sections.get(section.path) === section.markdown) continue;
     if (isEdited(read, section)) return { count, isStale: true };
-    const { heading, markdown } = section;
+    const { path, markdown } = section;
     try {
-      await docs.writeSection({ documentId, headingPath: heading, markdown });
+      await docs.writeSection({ documentId, headingPath: path, markdown });
     } catch (error) {
       if (!(error instanceof StaleRevision)) throw error;
       return { count, isStale: true };
@@ -275,9 +275,9 @@ async function writeSections({
 // Holding the agent text already is no edit: a read after a stale revision, or a rerun, finds the Sections it wrote that way.
 function isEdited(
   read: DocRead,
-  { heading, markdown, pulled }: PushedSection,
+  { path, markdown, pulled }: PushedSection,
 ): boolean {
-  const current = read.sections.get(heading);
+  const current = read.sections.get(path);
   if (current === markdown) return false;
   return current !== pulled;
 }
