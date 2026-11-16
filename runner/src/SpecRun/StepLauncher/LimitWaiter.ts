@@ -1,7 +1,8 @@
 // A spec run's limit waits: the launch check before each step, which picks the account it runs on, and the wait out of a limit hit.
-// The check keeps the run's account while it reads under both thresholds, else takes the top of the account ranking with the
-// Active account last, each window raised to the last one a step's stream gave for it; with no account under, it is a Limit wait.
-// StepLauncher builds it in a lazy getter; the ranking and decisions are ../../limitGuard.ts.
+// The check keeps the run's account while it reads under both thresholds, else takes the lease of the top of the account ranking with the
+// Active account last, each window raised to the last one a step's stream gave for it, leaving out accounts another holder has leased;
+// with no account under and free, it is a Limit wait, which keeps the lease the run holds and re-ranks every poll.
+// StepLauncher builds it in a lazy getter; the ranking and decisions are ../../limitGuard.ts; the lease the run holds is ../AccountHold.ts.
 
 import { copyFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
@@ -92,22 +93,34 @@ export class LimitWaiter extends SpecRunBase {
     await this._pollUntilLaunchable(run, until);
   }
 
-  // The run's own account while it reads under both thresholds, else the top-ranked one, which the run then keeps.
+  // The run's own account while it reads under both thresholds, else the top-ranked one whose lease it can take, which the run then keeps.
   private async _runLaunchCheck(run: Run): Promise<LaunchCheck> {
+    const hold = run.accountHold;
     const usageList = await this._knownActiveUsageListOf(run);
     const { ranked, leftOut } = rankAccounts({
       usageList,
-      leasedAccounts: new Set(),
+      leasedAccounts: hold.otherHoldersAccounts(),
       unavailableAccounts: new Set(),
       streamUsage: run.streamUsage,
       knobs: this.config.knobs,
       putActiveLast: true,
     });
     const held = ranked.find(
-      ({ account, usage }) => account === run.account && usage !== undefined,
+      ({ account, usage }) => account === hold.account && usage !== undefined,
     );
-    const picked = held ?? ranked[0];
-    if (picked === undefined) return launchWaitOf(run.account, leftOut);
+    let candidates = ranked;
+    if (held !== undefined) {
+      candidates = [held, ...ranked.filter((each) => each !== held)];
+    }
+    const leasedAccount = hold.leaseFirstOf(
+      candidates.map(({ account }) => account),
+    );
+    const picked = ranked.find(({ account }) => account === leasedAccount);
+    if (picked === undefined) {
+      // Another holder took each ranked account between the read and the take.
+      const takenFirst = ranked.map(({ account }) => leasedOf(account));
+      return launchWaitOf(hold.account, [...leftOut, ...takenFirst]);
+    }
     if (picked.usage === undefined) {
       await this._warnOnce(
         run,
@@ -115,7 +128,6 @@ export class LimitWaiter extends SpecRunBase {
         `No usage reading for account ${picked.account}; steps launch unguarded.`,
       );
     }
-    run.account = picked.account;
     return { kind: "launch", account: picked.account };
   }
 
@@ -151,7 +163,11 @@ export class LimitWaiter extends SpecRunBase {
   }
 }
 
-// Names the run's own account when a threshold holds it, else the one that resets first.
+function leasedOf(account: number): LeftOutAccount {
+  return { account, reason: { kind: "leased" } };
+}
+
+// Names the run's own account when a threshold holds it, else the one that resets first; with none past a threshold, why none is free.
 function launchWaitOf(
   heldAccount: number | undefined,
   leftOut: LeftOutAccount[],
@@ -166,7 +182,7 @@ function launchWaitOf(
     return {
       kind: "limitWait",
       account: undefined,
-      reason: "no account is enabled in cswap",
+      reason: unthresholdedWaitOf(leftOut),
       until: undefined,
     };
   }
@@ -177,6 +193,12 @@ function launchWaitOf(
     reason: `is at ${percentOf(utilization)} of its ${windowNameOf(window)} limit`,
     until: earliest?.reason.until,
   };
+}
+
+function unthresholdedWaitOf(leftOut: LeftOutAccount[]): string {
+  const isAnyLeased = leftOut.some(({ reason }) => reason.kind === "leased");
+  if (isAnyLeased) return "every account is leased by another run";
+  return "no account is enabled in cswap";
 }
 
 function earliestOf(
