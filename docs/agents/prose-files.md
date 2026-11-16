@@ -42,6 +42,10 @@ The words for the repo's prose, which file holds which fact, what the root AGENT
 | `docs/academic-writing-style/*.md` | Each rule's quoted instances and sources, indexed by `docs/academic-writing-style.md`'s "When \| File" table. |
 | `docs/agents/*.md` | Agent workflow: git, planning, model fit, delegation, issues and triage labels, domain docs, vendored upstream skills, which prose file a fact belongs in, handing judgements to Jev and its trial log. |
 | `docs/agents/workflows.md` | The coding and the piece Workflows by Workflow stage, their hand-offs, and the docs, formats and machinery two or more of their skills and Steps share, with each route. **An edit that adds or removes a link to a doc in its shared tables, from a skill, a hook's message or a runner prompt, updates it.** |
+| `docs/agents/planning.md` | The rules for a design or grilling session: what it may write before the skill that files it is invoked. |
+| `docs/agents/specs.md` | The rules for planning and writing a spec, code or piece. |
+| `docs/agents/tickets.md` | Every ticketing judgment: the ticket split test, work packages, sizing and grouping, repos, `## Where` and Model fit. |
+| `docs/agents/handoffs.md` | When a session writes a handoff, what it holds, and when it proposes a split. |
 | `docs/agents/verdicts.md` | How any review finding is judged, one line per rule, rule only: the four verdicts and their reasons, the Standards and Spec rules, Halt, overruling a suggested verdict, and the approved exceptions. |
 | `docs/agents/codebase-priorities.md` | What every Recommendation about the codebase or agent tooling is weighed against, one line per rule, rule only: scope, the Tier 1 gate, the floor, Tier 2's ranked priorities with their definitions, and explaining a tradeoff. |
 | `docs/agents/codebase-priorities/*.md` | Each priority's pointers to the rules that express it, why fewer concepts help and the floor's reason, and the Estimates, the observation index of measured costs, indexed by `docs/agents/codebase-priorities.md`'s "When \| File" table. |
