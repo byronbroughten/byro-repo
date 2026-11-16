@@ -1,5 +1,5 @@
 // Every knob a run reads, typed and defaulted here; a repo overrides them in one JSON file that loadRunKnobs() lays over these.
-// SpecRun.ts reads them for a run; byro-repo's context-nudge hook reads the ticket budget and handoff doc through runKnobsOrDefaults().
+// SpecRun.ts reads them for a run; byro-repo's context-nudge hook reads the ticket budget, its margin and the handoff doc through runKnobsOrDefaults().
 
 import { readFileSync } from "node:fs";
 
@@ -41,6 +41,8 @@ export interface RunKnobs {
   stuckFailureHalts: number;
   // An implementer whose peak context passes this hands off at the next step boundary.
   ticketBudget: number;
+  // How far under the ticket budget the context nudge fires, so a session finishes its step and hands off before the budget.
+  budgetMargin: number;
   // A step crossing this is killed, and its implementer is resumed for a handoff.
   liveCeiling: number;
   gapCheckPair: Pair;
@@ -89,6 +91,7 @@ export const defaultRunKnobs: RunKnobs = {
   handoffsPerTicket: 2,
   stuckFailureHalts: 2,
   ticketBudget: 150_000,
+  budgetMargin: 15_000,
   liveCeiling: 180_000,
   gapCheckPair: { model: "opus", effort: "medium" },
   inlineReviewMaxFiles: 1,

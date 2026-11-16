@@ -67,6 +67,7 @@ function supervisedOf({
 }
 
 export function contextNudgeKnobs(): ContextNudgeKnobs {
-  const { ticketBudget, handoffDocPath } = runKnobsOrDefaults(runnerConfigPath);
-  return { ticketBudget, handoffDocPath };
+  const { ticketBudget, budgetMargin, handoffDocPath } =
+    runKnobsOrDefaults(runnerConfigPath);
+  return { ticketBudget, budgetMargin, handoffDocPath };
 }

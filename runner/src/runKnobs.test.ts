@@ -41,6 +41,7 @@ describe("loadRunKnobs", () => {
     expect(knobs.clonePaths).toEqual({ "byro-repo": "." });
     expect(knobs.handoffDocPath).toBe("docs/handoffs.md");
     expect(knobs.ticketBudget).toBe(150_000);
+    expect(knobs.budgetMargin).toBe(15_000);
     expect(knobs.liveCeiling).toBe(180_000);
     expect(knobs.gapCheckPair).toEqual({ model: "opus", effort: "medium" });
     expect(knobs.reviewListCadence).toBe("end-of-run");
@@ -70,6 +71,13 @@ describe("loadRunKnobs", () => {
     expect(knobs.fiveHourPauseAt).toBe(0.5);
     expect(knobs.weeklyPauseAt).toBe(1);
     expect(knobs.limitWaitMarginMs).toBe(60_000);
+  });
+
+  it("replaces an overridden budget margin and leaves the ticket budget at its default", () => {
+    const knobs = loadRunKnobs(overrideFile('{ "budgetMargin": 10000 }'), {});
+
+    expect(knobs.budgetMargin).toBe(10_000);
+    expect(knobs.ticketBudget).toBe(150_000);
   });
 
   it("throws on an unreadable override file", () => {

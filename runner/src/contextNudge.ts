@@ -1,7 +1,7 @@
-// The context nudge: once a session's peak context reaches the ticket budget, the handoff reminder it gets, worded for the handoffs it owes; a repo's hook does the I/O.
+// The context nudge: once a session's peak context reaches the `budgetMargin` knob under the ticket budget, the handoff reminder it gets, worded for the handoffs it owes; a repo's hook does the I/O.
 // Claude Code loads hooks only from a root's settings, so each repo registers its own PostToolUse shim on every tool.
 // The shim reads the hook input, skips subagents, reads the transcript at `transcript_path`,
-// measures it with `sizePastBudgetOf()` against the `ticketBudget` knob, and past it passes `contextNudgeOf()` the size, the session's id,
+// measures it with `sizeAtNudgeOf()` against the `ticketBudget` and `budgetMargin` knobs, and from there passes `contextNudgeOf()` the size, the session's id,
 // the handoffs it owes and the knobs (through `runKnobsOrDefaults()` from the repo's override file), writing the reminder as `additionalContext`.
 // Firing once per session, deciding which handoffs a session owes and failing open are the shim's.
 // byro-repo's shim is `.claude/hooks/contextNudge.ts`, registered in `.claude/settings.json`.
@@ -10,8 +10,10 @@ import type { RunKnobs } from "./runKnobs.ts";
 
 export type ContextNudgeKnobs = Pick<
   RunKnobs,
-  "ticketBudget" | "handoffDocPath"
+  "ticketBudget" | "budgetMargin" | "handoffDocPath"
 >;
+
+type NudgePointKnobs = Pick<ContextNudgeKnobs, "ticketBudget" | "budgetMargin">;
 
 // A Supervisor's handoff, from SupervisionRecords.ts.
 export interface SupervisionHandoff {
@@ -32,13 +34,15 @@ export interface ContextNudgeOptions extends ContextNudgeKnobs {
   owed: OwedHandoffs;
 }
 
-// The peak context once it reaches the budget, so a shim reads what a session owes only past it.
-export function sizePastBudgetOf(
+// The peak context once it reaches the margin under the budget, so a shim reads what a session owes only from there.
+export function sizeAtNudgeOf(
   transcript: string,
-  ticketBudget: number,
+  { ticketBudget, budgetMargin }: NudgePointKnobs,
 ): number | undefined {
   const size = ContextMeter.ofTranscript(transcript);
-  if (size === undefined || size < ticketBudget) return undefined;
+  if (size === undefined || size < ticketBudget - budgetMargin) {
+    return undefined;
+  }
   return size;
 }
 
@@ -50,7 +54,7 @@ export function contextNudgeOf(
   const budgetKind = owed.supervision === undefined ? "ticket" : "context";
   return (
     `Context nudge: this session's context is ${Math.round(size / 1000)}K tokens, ` +
-    `past the ${ticketBudget / 1000}K ${budgetKind} budget. Finish the step you are on; ${handoffStepsOf(options)}`
+    `approaching the ${ticketBudget / 1000}K ${budgetKind} budget: finish the step you are on, then hand off; ${handoffStepsOf(options)}`
   );
 }
 
