@@ -2,7 +2,7 @@
 
 import { sectionOf } from "../promptText.ts";
 import type { ImplementPromptInput } from "../Workflow.ts";
-import { batchingLine, resolveRules } from "./resolveText.ts";
+import { resolveBody, resolveRules } from "./resolveText.ts";
 
 export function committingOf(checkCommand: string): string {
   return `Commit in each repo you changed, on the ticket's branch, then run \`${checkCommand}\`. When it fails on your change, fix it in a further commit and run it again; never amend.`;
@@ -18,7 +18,7 @@ export const implementBody = {
     "Run typechecking and single test files regularly, each test file with `npm test -- <path>`.",
   oneCommand:
     "Read and search with the Read and Grep tools. Give Bash one command per call, run from the workspace root: no `cd`, no `;` or `&&` chains, no variables.",
-  batching: batchingLine,
+  batching: resolveBody.batching,
   drift:
     "Before review, grep the docs for every name, command or behavior the change renamed, removed or altered, and fix or delete each statement it made untrue.",
   committing: committingOf("npm run check"),

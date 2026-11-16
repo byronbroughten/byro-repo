@@ -1,4 +1,4 @@
-// The resolve text every Workflow's resolve prompt shares, and the implement body and /implement-code skill reuse (resolveRules, batchingLine, resolveRecordFields).
+// The resolve text every Workflow's resolve prompt shares, and the implement body and /implement-code skill reuse (resolveRules, resolveBody.batching, resolveRecordFields).
 
 import { codeListOf, sessionReturnOf } from "../promptText.ts";
 import { numberedFindingsOf } from "../resolveRecords.ts";
@@ -13,10 +13,6 @@ import type { ResolvePromptInput } from "../Workflow.ts";
 export const resolveRules =
   "Give each finding exactly one verdict, Dismiss, Fix, Propose or Halt, by the rules in `docs/agents/verdicts.md`; read it before you judge. Fix by default, and Dismiss, Propose or Halt only where that doc says, with evidence. You may overrule a reviewer's suggested verdict, saying why in `evidence`, except that a suggested Halt resolves only as a Halt or a Propose `decision`. The Fixes land together in one commit, its message naming each finding by number.";
 
-// How any implementer or resolver batches its calls, shared with the implementer through implementBody.batching.
-export const batchingLine =
-  "Send the reads and greps you've already decided on together in one turn, and don't add a call to fill a batch.";
-
 // The resolve prompt's and the /implement-code skill's one description of a record, after each one names the `records` field.
 export const resolveRecordFields = `exactly one record per finding: \`finding\` (its number in the list), \`axis\` (the finding's own, or for a finding without one, \`standards\` or \`spec\`), \`where\` (its file:line or area), \`claim\` (what the finding says, in a line), \`verdict\` (\`dismiss\`, \`fix\`, \`propose\` or \`halt\`), \`evidence\` (what you checked and found, and why, when you overruled the suggested verdict), and the fields its verdict needs:
 
@@ -30,7 +26,8 @@ export const resolveBody = {
   findingsOf({ issue, title }: Pick<ResolvePromptInput, "issue" | "title">) {
     return `The review of ${issue.repo}#${issue.number}, "${title}", reported the findings below, each with its axis and its reviewer's suggested verdict. ${resolveRules}`;
   },
-  batching: batchingLine,
+  batching:
+    "Send the reads and greps you've already decided on together in one turn, and don't add a call to fill a batch.",
   commitNothing: "Commit nothing when no finding is a Fix.",
   revertedAs:
     "is reverted in a further commit and resolved, saying why, as a Propose `decision`, or for a `spec`-axis finding as a Halt scoped to the downstream tickets.",
