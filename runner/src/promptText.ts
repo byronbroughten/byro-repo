@@ -62,6 +62,11 @@ export function sessionReviewLineOf(ticketKind = ""): string {
   return `You are the review step of an unattended run${ticketKind}. ${unattendedRunLine()}`;
 }
 
+// The resume a review that skipped its reviewer subagents is sent back with; `spawn` names them, how and how many.
+export function reviewerResumePromptOf(spawn: string): string {
+  return `Your review ran without its reviewer subagents. Spawn ${spawn}. Then return the review record from their reports, replacing the one you returned.`;
+}
+
 // Every Workflow's gap check reads it first.
 export const addendumLine =
   "Read the spec's body and its comments: an addendum the developer posted as a comment changes the spec.";

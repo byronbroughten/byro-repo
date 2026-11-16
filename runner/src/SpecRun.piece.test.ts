@@ -9,6 +9,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import type { StepResult } from "./AgentStep.ts";
 import { type DocRead, Docs } from "./Docs.ts";
 import type { DocumentChange } from "./Docs/FakeDocuments.ts";
 import type {
@@ -20,6 +21,7 @@ import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
 import type { Halt } from "./halts.ts";
 import { gapCheckOutputSchema } from "./recordSchema.ts";
+import { skippedReviewersNote } from "./reviewList.ts";
 import { defaultRunKnobs } from "./runKnobs.ts";
 import type { RunResult } from "./SpecRun.ts";
 import {
@@ -35,9 +37,11 @@ import {
   masterSubjects,
   noticeSummaries,
   primaryOf,
+  progressLines,
   refOf,
   resultOf,
   reviewed,
+  reviewListOf,
   runStatePath,
   spec,
   specRun,
@@ -328,13 +332,54 @@ describe("review on a piece spec's drafting ticket", () => {
 
   it("halts on a review record with no dismissedOverlaps", async () => {
     addDraftingSpec();
-    const noOverlaps = async () => resultOf({ findings: [readerFinding] });
+    const noOverlaps = async () => ({
+      ...resultOf({ findings: [readerFinding] }),
+      spawnedSubagentCount: 3,
+    });
 
     await specRun(FakeAgentStep.init(drafted(), noOverlaps)).run(spec);
 
     expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
     expect(haltComments()[0]).toContain("Failure Halt");
     expect(haltComments()[0]).toContain("dismissedOverlaps");
+  });
+
+  it("never offers inline review, resuming a one-file review that spawned no reviewers once, telling it to spawn all three", async () => {
+    addDraftingSpec();
+    const agentStep = FakeAgentStep.init(
+      drafted(),
+      pieceReviewedInline(),
+      pieceReviewed([], [slippedOutDismissed]),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    const [implementer, review, resumed] = agentStep.requests;
+    expect(review?.prompt).not.toContain("may review it inline");
+    expect(resumed?.resumeSessionId).toBe("review-session");
+    expect(resumed?.sessionSchema).toEqual(implementer?.sessionSchema);
+    expect(resumed?.prompt).toContain(
+      "spec, standards and reader reviewers, as `.claude/skills/review-piece/SKILL.md` says",
+    );
+    expect(reviewListOf(1)).toBeUndefined();
+  });
+
+  it("records a second skip, showing on the review list that the review ran without its reviewers", async () => {
+    addDraftingSpec();
+    const agentStep = FakeAgentStep.init(drafted(), pieceReviewedInline(), {
+      ...pieceReviewedInline(),
+      spawnedSubagentCount: 2,
+    });
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(agentStep.requests).toHaveLength(3);
+    expect(reviewListOf(1)).toContain(skippedReviewersNote);
+    expect(progressLines().join("\n")).toContain(
+      "once resumed, spawned 2 of its 3 reviewer subagents",
+    );
   });
 });
 
@@ -1160,13 +1205,31 @@ const readerFinding: ReviewFinding = {
   reason: "The Outline line says the crossing is the escape.",
 };
 
+// A piece review that spawned its spec, standards and reader reviewers, as `/review-piece` says.
 function pieceReviewed(
   findings: ReviewFinding[] = [readerFinding],
   dismissedOverlaps: DismissedOverlap[] = [
     { hit: "the ferry left", reason: "A fixed phrase for the event." },
   ],
 ): StepScript {
-  return async () => resultOf({ findings, dismissedOverlaps });
+  return async () => ({
+    ...resultOf({ findings, dismissedOverlaps }),
+    spawnedSubagentCount: 3,
+  });
+}
+
+// The harness's one overlap hit, dismissed, so a review with no findings goes straight on to land.
+const slippedOutDismissed: DismissedOverlap = {
+  hit: '"the ferry slipped out"',
+  reason: "A fixed phrase for the event.",
+};
+
+// A piece review with no findings that spawned no reviewer, reviewing in the drafter's own session.
+function pieceReviewedInline(): StepResult {
+  return {
+    ...resultOf({ findings: [], dismissedOverlaps: [slippedOutDismissed] }),
+    sessionId: "review-session",
+  };
 }
 
 function passagesPath(): string {

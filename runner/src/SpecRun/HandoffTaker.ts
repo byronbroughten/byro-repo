@@ -1,7 +1,7 @@
 // A ticket's handoffs, one implementer's from implement through resolve: each backs up the tree, posts on the ticket and
 // leaves the handoff pending for the fresh session that takes the implementer's next step. Past the ticket budget the
-// implementer is resumed for one at the next step boundary; killed at the live ceiling during implement or resolve, for one
-// at once. A fresh step past the handoff cap, or after a proposed split, halts first; the cap counts every step's handoffs.
+// implementer is resumed for one at the next step boundary; killed at the live ceiling during implement, review or resolve,
+// for one at once. A fresh step past the handoff cap, or after a proposed split, halts first; the cap counts every step's handoffs.
 // ImplementStepper.ts hands it the implement step's own handoff records; ReviewStepper.ts, TicketLander/TicketChecker.ts
 // and TicketLander/MasterMerger.ts call it at their step boundaries. It builds its own HaltRaiser and StepLauncher.
 
@@ -37,10 +37,18 @@ export interface HandoffLaunch {
   handoff: Handoff;
 }
 
-// The implement step takes its own record from the launch; the resolve step posts the handoff.
-interface CeilingCrossing<CR extends ImplementRecord | void> {
-  agent: "implement" | "resolve";
+// A step after implement that the live ceiling can kill, its handoff posted here.
+interface LaterStepCrossing {
+  agent: "review" | "resolve";
   crossedSession: string | undefined;
+}
+
+// The implement step takes its own record from the launch; a later step posts the handoff.
+interface CeilingCrossing<CR extends ImplementRecord | void> extends Omit<
+  LaterStepCrossing,
+  "agent"
+> {
+  agent: "implement" | LaterStepCrossing["agent"];
   take(launch: HandoffLaunch): Promise<CR>;
 }
 
@@ -99,16 +107,19 @@ export class HandoffTaker extends SpecRunBase {
   // The resolve's own work stays in the tree for the fresh session that carries the resolve on.
   async _handOffAtCeiling(
     ticketRun: TicketRun,
-    crossedSession: string | undefined,
+    { agent, crossedSession }: LaterStepCrossing,
   ): Promise<void> {
+    const { run, ticket } = ticketRun;
+    const point: HandoffPoint = { relation: "in", step: agent };
+    const pointText = handoffText.pointOf(point);
+    this._log(
+      run,
+      `${issueRef.labelOf(ticket.issue)}: the implementer crossed the live ceiling ${pointText}; resuming it for a handoff.`,
+    );
     await this._resumedAtCeiling(ticketRun, {
-      agent: "resolve",
+      agent,
       crossedSession,
-      take: ({ handoff }) =>
-        this._handOff(ticketRun, {
-          handoff,
-          point: { relation: "in", step: "resolve" },
-        }),
+      take: ({ handoff }) => this._handOff(ticketRun, { handoff, point }),
     });
   }
 
