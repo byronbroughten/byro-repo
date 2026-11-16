@@ -76,12 +76,18 @@ export interface Workflow {
 
 // The push Step: the Agent draft's agent Sections into the Deliverable's Doc, once at the spec's end.
 export interface PushRules {
-  // Each agent Section's Markdown by its heading path, keyed and trimmed as DocRead.sections is.
-  agentSectionsOf(draft: string): Map<string, string>;
+  agentSectionsOf(draft: string): AgentSection[];
   // The draft with each kept Section, by its heading path, marked as the developer's and holding the Doc's text.
   keptOf(draft: string, kept: Map<string, string>): string;
   // A fresh Docs module over the Workflow's Docs port.
   readonly docs: Docs;
+}
+
+// An agent Section of the draft: its heading path and Markdown, keyed and trimmed as DocRead.sections is, and its heading's headingId.
+export interface AgentSection {
+  path: string;
+  headingId: string | undefined;
+  markdown: string;
 }
 
 // The pull Step: the Deliverable's Doc into the Piece's Agent draft, on the ticket's branch.

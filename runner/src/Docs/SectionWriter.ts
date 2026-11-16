@@ -38,7 +38,10 @@ import {
   paragraphRangeOf,
   type PlacedParagraph,
 } from "./SectionWriter/BulletPlacer.ts";
-import { HeldSectionReader } from "./SectionWriter/HeldSectionReader.ts";
+import {
+  HeldSectionReader,
+  type SectionKey,
+} from "./SectionWriter/HeldSectionReader.ts";
 
 /** What a character of the written text needs: nothing, a new style, or every style, since it is new text. */
 type CharChange = "unchanged" | "restyled" | "inserted";
@@ -123,10 +126,9 @@ export class SectionWriter {
     return BulletPlacer.init(this.document);
   }
 
-  /** The requests that make the Section at `headingPath` read as `markdown`: text last index first, then bullets. */
-  requestsFor(headingPath: string, markdown: string): Request[] {
-    const { sectionHeading, held } =
-      this.heldSectionReader.sectionOf(headingPath);
+  /** The requests that make the Section read as `markdown`: text last index first, then bullets. */
+  requestsFor(key: SectionKey, markdown: string): Request[] {
+    const { sectionHeading, held } = this.heldSectionReader.sectionOf(key);
     const wanted = blockParse.blocksOf(markdown).flatMap(writtenOf);
     const section = sectionDiff
       .hunksOf(sectionHeading, held, wanted)

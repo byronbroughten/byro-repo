@@ -8,6 +8,7 @@ import {
   markdownDialect,
 } from "../../Docs/markdownDialect.ts";
 import type { NumberOrPlaceholder } from "../../promptText.ts";
+import type { AgentSection } from "../../Workflow.ts";
 
 export type SectionAuthor = "developer" | "agent";
 
@@ -56,13 +57,11 @@ export const agentDraft = {
     return `${blocks.join("\n\n")}\n`;
   },
 
-  agentSectionsOf(draft: string): Map<string, string> {
-    return new Map(
-      agentDraft
-        .sectionsOf(draft)
-        .filter(({ author }) => author === "agent")
-        .map(({ path, markdown }) => [path, markdown]),
-    );
+  agentSectionsOf(draft: string): AgentSection[] {
+    return agentDraft
+      .sectionsOf(draft)
+      .filter(({ author }) => author === "agent")
+      .map(({ path, headingId, markdown }) => ({ path, headingId, markdown }));
   },
 
   // A push Halt's `keep mine` answers, by heading path: the Doc's text stays the developer's, so no later push writes over it.

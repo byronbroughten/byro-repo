@@ -84,9 +84,17 @@ describe("agentDraft", () => {
     expect(agentDraft.draftOf(agentDraft.sectionsOf(legacy))).toBe(legacy);
   });
 
-  it("reads the agent Sections by heading path for the push", () => {
-    expect([...agentDraft.agentSectionsOf(headedDraft)]).toEqual([
-      ["Part one › Intro", "Agent intro one.\n"],
+  it("reads the agent Sections with their heading paths and headingIds for the push", () => {
+    expect(
+      agentDraft.agentSectionsOf(
+        headedDraft.replace("<!-- agent -->", "<!-- agent h.intro -->"),
+      ),
+    ).toEqual([
+      {
+        path: "Part one › Intro",
+        headingId: "h.intro",
+        markdown: "Agent intro one.\n",
+      },
     ]);
   });
 

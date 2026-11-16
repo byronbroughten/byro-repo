@@ -10,6 +10,7 @@ import { DocsRequestRefused } from "./Docs/DocsRequestRefused.ts";
 import type { DocumentsPort, GoogleDocument } from "./Docs/googleDocs.ts";
 import { markdownDialect } from "./Docs/markdownDialect.ts";
 import { SectionWriter } from "./Docs/SectionWriter.ts";
+import type { SectionKey } from "./Docs/SectionWriter/HeldSectionReader.ts";
 import { StaleRevision } from "./Docs/StaleRevision.ts";
 
 /** One read of a Doc: its Markdown, its Sections' bodies and their headings' headingIds by heading path, and the revision read. */
@@ -20,10 +21,9 @@ export interface DocRead {
   revisionId: string;
 }
 
-/** A Section's new body for a Doc, the Section named as `DocRead.sections` keys it. */
-export interface SectionWrite {
+/** A Section's new body for a Doc, the Section found by its heading's headingId, then by its path as `DocRead.sections` keys it. */
+export interface SectionWrite extends SectionKey {
   documentId: string;
-  headingPath: string;
   markdown: string;
 }
 
@@ -56,6 +56,7 @@ export class Docs {
   async writeSection({
     documentId,
     headingPath,
+    headingId,
     markdown,
   }: SectionWrite): Promise<void> {
     const document = this.lastReads.get(documentId);
@@ -63,7 +64,7 @@ export class Docs {
       throw new Error(`Read Doc ${documentId} before writing to it.`);
     }
     const requests = SectionWriter.init(document).requestsFor(
-      headingPath,
+      { headingPath, headingId },
       markdown,
     );
     if (requests.length === 0) {

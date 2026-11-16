@@ -4,6 +4,7 @@ import type {
   BatchUpdateRequest,
   DocumentsPort,
   GoogleDocument,
+  NamedStyleType,
   StructuralElement,
 } from "./googleDocs.ts";
 
@@ -34,6 +35,33 @@ export class FakeDocuments implements DocumentsPort {
       change(document),
     );
     return this;
+  }
+
+  /** Retypes a heading or changes its level as in the editor, which keeps its headingId, as `docs/google-docs-behaviour.md` records. */
+  editHeading(
+    documentId: string,
+    headingId: string,
+    { text, namedStyleType }: HeadingEdit,
+  ): this {
+    this.revisionCount += 1;
+    const revisionId = `${documentId}-edited-${this.revisionCount}`;
+    return this.edit(documentId, (document) => {
+      const edited = structuredClone(document);
+      const paragraph = edited.body?.content.find(
+        (element) => element.paragraph?.paragraphStyle?.headingId === headingId,
+      )?.paragraph;
+      if (paragraph?.paragraphStyle === undefined) {
+        throw new Error(`No heading ${headingId} in Doc ${documentId}.`);
+      }
+      if (text !== undefined) {
+        const textStyle = paragraph.elements[0]?.textRun?.textStyle;
+        paragraph.elements = [{ textRun: { content: `${text}\n`, textStyle } }];
+      }
+      if (namedStyleType !== undefined) {
+        paragraph.paragraphStyle.namedStyleType = namedStyleType;
+      }
+      return { ...edited, revisionId };
+    });
   }
 
   /** Edits a Doc just before each of `times` later `batchUpdate`s, after `skipped` others, as an edit landing between a read and a write would. */
@@ -98,6 +126,12 @@ export class FakeDocuments implements DocumentsPort {
 }
 
 export type DocumentChange = (document: GoogleDocument) => GoogleDocument;
+
+// A heading's new text, its new level, or both.
+export interface HeadingEdit {
+  text?: string;
+  namedStyleType?: NamedStyleType;
+}
 
 // Which later `batchUpdate`s an edit lands before: each of `times` after the first `skipped`.
 export interface UpdateEdits {
