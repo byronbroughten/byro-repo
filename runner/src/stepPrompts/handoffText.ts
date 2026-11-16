@@ -25,7 +25,7 @@ export const handoffText = {
   }: HandoffNudge): string {
     return `## If a context nudge fires
 
-Finish the ${inHand} in hand, then stop: commit nothing, post nothing, and return status \`handoff\` with no branches and every \`handoff\` field: \`conclusion\`, \`filesToOpen\` (${filesToOpen}), \`ruledOut\`, \`filesChanged\`, and \`stillFailing\` (${stillFailing}). A handoff is cumulative: carry over whatever still matters from any handoff you started from. When less than half ${splitWhen}, also fill \`proposedSplit\` with ${slices}, so the developer can split the ticket before a fresh step goes on.`;
+Finish the ${inHand} in hand, then stop: commit nothing, post nothing, and return status \`handoff\` with no branches and every \`handoff\` field: \`conclusion\`, \`filesToOpen\` (${filesToOpen}), \`ruledOut\`, \`filesChanged\`, and \`stillFailing\` (${stillFailing}). A handoff is cumulative: carry over whatever still matters from any handoff you started from. When less than half ${splitWhen} and the ticket split test (\`docs/agents/tickets.md#the-ticket-split-test\`) says the rest is more than one ticket, also fill \`proposedSplit\` with ${slices}, so the developer can split the ticket before a fresh step goes on.`;
   },
 
   previousSectionOf(handoff: Handoff): string {
