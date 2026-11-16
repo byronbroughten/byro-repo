@@ -180,7 +180,7 @@ describe("a session resolving its own review", () => {
 
   it("holds an account lease naming the spec while its review and resolve run, and none after either", async () => {
     // Each command sets or clears the pending resolve inside its body, so the leases held there are the command's own.
-    const heldInBody: string[][] = [];
+    const heldInBody: (string | undefined)[][] = [];
     const setPendingResolve = FactsFile.prototype.setPendingResolve;
     vi.spyOn(FactsFile.prototype, "setPendingResolve").mockImplementation(
       function (this: FactsFile, ...args) {
@@ -189,7 +189,7 @@ describe("a session resolving its own review", () => {
       },
     );
 
-    let afterReview: string[];
+    let afterReview: (string | undefined)[];
     try {
       await reviewUnderBudget();
       afterReview = leaseSpecs();
