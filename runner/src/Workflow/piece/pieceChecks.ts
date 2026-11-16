@@ -3,12 +3,14 @@
 // The scope is the agent Sections the implement record drafted, or every agent Section on a final pass; the developer's
 // Sections are never checked for overlap. pieceWorkflow.ts registers it as its ticket checks, and
 // ../../SpecRun/TicketLander/TicketChecker.ts runs it, sending a red one to redChecksStep.ts before a Failure Halt.
+// reviewInputs.ts reuses its overlap report and `Length:` line for the review's supplied inputs.
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { commandLabelOf } from "../../failureText.ts";
+import type { IssueRef } from "../../IssueWorkspaces.ts";
 import { runCollecting } from "../../runCollecting.ts";
 import type { Command } from "../../runKnobs.ts";
 import type { TicketState } from "../../SpecRun/runState.ts";
@@ -28,7 +30,7 @@ const patterns = {
   word: /[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu,
 } as const;
 
-const formHeading = "## Form";
+export const formHeading = "## Form";
 
 export interface PieceChecksInput extends TicketChecksInput {
   overlapCommand: Command;
@@ -46,6 +48,21 @@ interface OverlapRun {
   overlapCommand: Command;
   specRepo: string;
   passagesFolder: string;
+}
+
+export interface OverlapReportRun {
+  overlapCommand: Command;
+  workspacePath: string;
+  ticket: IssueRef;
+  deliverable: string;
+  // One proper name or fixed term per line; none passed when unset.
+  allowFile?: string;
+}
+
+export interface OverlapReport {
+  isOk: boolean;
+  // The command's report, or on a failed run its failure as the checks word it.
+  text: string;
 }
 
 interface OverlapHit {
@@ -84,9 +101,13 @@ export const pieceChecks = {
 
   // The spec's word limit, undefined when its Form field has no `Length:` line.
   lengthLimitOf(specBody: string): number | undefined {
-    const form = ticketSectionOf(specBody, formHeading) ?? "";
-    const limit = patterns.lengthLine.exec(form)?.[1];
+    const limit = lengthMatchOf(specBody)?.[1];
     return limit === undefined ? undefined : Number(limit);
+  },
+
+  // The Form field's `Length:` line as the spec has it, undefined when it has none.
+  lengthLineOf(specBody: string): string | undefined {
+    return lengthMatchOf(specBody)?.[0];
   },
 
   // Over every Section's body, headings and author marks left out.
@@ -96,6 +117,37 @@ export const pieceChecks = {
         count + (markdown.match(patterns.word)?.length ?? 0),
       0,
     );
+  },
+
+  // The overlap command's report on a Deliverable file over the ticket's passages folder, run from the workspace root.
+  async overlapReportOf({
+    overlapCommand,
+    workspacePath,
+    ticket,
+    deliverable,
+    allowFile,
+  }: OverlapReportRun): Promise<OverlapReport> {
+    const passagesFolder = passagesFolderIn(workspacePath, ticket);
+    mkdirSync(passagesFolder, { recursive: true });
+    const [file, ...args] = overlapCommand;
+    const allow = allowFile === undefined ? [] : ["--allow", allowFile];
+    const { isOk, output } = await runCollecting(
+      file,
+      [
+        ...args,
+        "--deliverable",
+        deliverable,
+        "--passages",
+        passagesFolder,
+        ...allow,
+      ],
+      { cwd: workspacePath },
+    );
+    if (isOk) return { isOk, text: output };
+    return {
+      isOk,
+      text: `${commandLabelOf(overlapCommand)} failed:\n${output}`,
+    };
   },
 
   overlapRunOf({
@@ -112,6 +164,10 @@ export const pieceChecks = {
   },
 };
 
+function lengthMatchOf(specBody: string): RegExpExecArray | null {
+  return patterns.lengthLine.exec(ticketSectionOf(specBody, formHeading) ?? "");
+}
+
 function sectionsDraftedOf({ record }: TicketState): string[] {
   if (record?.status !== "committed" || !("sectionsDrafted" in record)) {
     return [];
@@ -124,9 +180,6 @@ async function overlapFailureOf(
   { overlapCommand, workspacePath, ticket, state }: PieceChecksInput,
   scope: DraftScope,
 ): Promise<string | undefined> {
-  const label = commandLabelOf(overlapCommand);
-  const passagesFolder = passagesFolderIn(workspacePath, ticket.issue);
-  mkdirSync(passagesFolder, { recursive: true });
   const folder = mkdtempSync(join(tmpdir(), "piece-checks-"));
   try {
     const deliverable = join(folder, "scope.md");
@@ -134,20 +187,20 @@ async function overlapFailureOf(
       deliverable,
       scope.sections.map(({ markdown }) => markdown).join("\n"),
     );
-    const [file, ...args] = overlapCommand;
-    const { isOk, output } = await runCollecting(
-      file,
-      [...args, "--deliverable", deliverable, "--passages", passagesFolder],
-      { cwd: workspacePath },
-    );
-    if (!isOk) return `${label} failed:\n${output}`;
+    const report = await pieceChecks.overlapReportOf({
+      overlapCommand,
+      workspacePath,
+      ticket: ticket.issue,
+      deliverable,
+    });
+    if (!report.isOk) return report.text;
     const dismissed = (state.dismissedOverlaps ?? []).map(dismissedTextOf);
-    const unjudged = hitsOf(output).filter(
+    const unjudged = hitsOf(report.text).filter(
       ({ sharedText }) => !dismissed.includes(sharedText.toLowerCase()),
     );
     if (unjudged.length === 0) return undefined;
     return [
-      `${label} found ${unjudged.length} overlap hit(s) in the ticket's Sections that review didn't dismiss:`,
+      `${commandLabelOf(overlapCommand)} found ${unjudged.length} overlap hit(s) in the ticket's Sections that review didn't dismiss:`,
       ...unjudged.flatMap(({ lines }) => lines),
     ].join("\n");
   } finally {

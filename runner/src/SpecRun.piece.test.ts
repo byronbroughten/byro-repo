@@ -328,6 +328,112 @@ describe("review on a piece spec's drafting ticket", () => {
     expect(review?.prompt).toContain(passagesPath());
   });
 
+  describe("the inputs /review-piece copies word for word", () => {
+    const inputsFolder = (): string =>
+      join(workspacePath(), ".runner", "review-inputs", "byro-repo-1");
+    const fieldedBody = `## Deliverable\n\nThe crossing, doc ${deliverableId}.\n\n## Reader\n\nA ferry passenger who missed the boat.\n\n## Style\n\nEvidence: firsthand · Formality: general\n\n- Keep the gulls.\n\n## Form\n\nLength: 300 words\nCut the harbour first.\n\n## Outline\n\n- The harbour: dawn.\n- The crossing: the escape.\n`;
+
+    function addFieldedSpec(body = fieldedBody): void {
+      addDraftingSpec();
+      github.subIssues.set(spec.number, [1, 2]);
+      addIssue(2, { labels: ["research"] });
+      github.edit(2, { isOpen: false });
+      github.edit(spec.number, { body });
+    }
+
+    // Reads each supplied file as the review step finds it at launch.
+    function reviewReading(seen: Record<string, string>): StepScript {
+      return async (request) => {
+        for (const file of [
+          "reader.md",
+          "outline.md",
+          "length-limit.md",
+          "style.md",
+          "unverified.md",
+          "overlap.txt",
+        ]) {
+          const path = join(inputsFolder(), file);
+          if (existsSync(path)) seen[file] = readFileSync(path, "utf8");
+        }
+        seen.prompt = request.prompt ?? "";
+        return pieceReviewed()(request);
+      };
+    }
+
+    it("writes each before launch, names it in the prompt, and leaves it uncommitted", async () => {
+      addFieldedSpec();
+      await github.comment(
+        refOf(2),
+        "## Facts\n\n- The ferry left at noon.\n\n## Unverified\n\n- The gulls were herring gulls: no source.\n",
+      );
+      const seen: Record<string, string> = {};
+
+      await specRun(FakeAgentStep.init(drafted(), reviewReading(seen))).run(
+        spec,
+      );
+
+      expect(seen["reader.md"]).toBe(
+        "A ferry passenger who missed the boat.\n",
+      );
+      expect(seen["outline.md"]).toBe(
+        "- The harbour: dawn.\n- The crossing: the escape.\n",
+      );
+      expect(seen["length-limit.md"]).toBe("Length: 300 words\n");
+      expect(seen["style.md"]).toBe(
+        "Evidence: firsthand\nFormality: general\nAcademic: no\n\n## Overrides\n\n- Keep the gulls.\n\n### Form\n\nLength: 300 words\nCut the harbour first.\n",
+      );
+      expect(seen["unverified.md"]).toBe(
+        "- The gulls were herring gulls: no source.\n",
+      );
+      expect(seen["overlap.txt"]).toContain(
+        '1. "the ferry slipped out" (4 words), logbook.txt',
+      );
+      for (const file of ["reader.md", "outline.md", "overlap.txt"]) {
+        expect(seen.prompt).toContain(join(inputsFolder(), file));
+      }
+      expect(seen.prompt).toContain(join(inputsFolder(), "overlap-allow.txt"));
+      expect(seen.prompt).toContain(
+        "The Overlap allow file lists no terms, so the spec reviewer judges overlap hits on proper names and fixed terms as Dismissed overlaps.",
+      );
+      expect(git(workspacePath(), "status", "--porcelain")).toBe("");
+    });
+
+    it("says which the spec lacks rather than naming an empty file", async () => {
+      addFieldedSpec(
+        `## Deliverable\n\nThe crossing, doc ${deliverableId}.\n\n## Outline\n\n- The crossing: the escape.\n`,
+      );
+      const seen: Record<string, string> = {};
+
+      await specRun(FakeAgentStep.init(drafted(), reviewReading(seen))).run(
+        spec,
+      );
+
+      expect(seen["outline.md"]).toBe("- The crossing: the escape.\n");
+      expect(seen["reader.md"]).toBeUndefined();
+      expect(seen["unverified.md"]).toBeUndefined();
+      expect(seen.prompt).toContain(
+        "No Reader file: the spec has no `## Reader` field.",
+      );
+      expect(seen.prompt).toContain("No Length limit file:");
+      expect(seen.prompt).toContain("No Style file:");
+      expect(seen.prompt).toContain("No Unverified file:");
+    });
+
+    it("leaves a Style field it can't read to the review, rather than calling it absent", async () => {
+      addFieldedSpec(
+        `## Deliverable\n\nThe crossing, doc ${deliverableId}.\n\n## Style\n\nPlain and firsthand.\n\n- Keep the gulls.\n`,
+      );
+      const seen: Record<string, string> = {};
+
+      await specRun(FakeAgentStep.init(drafted(), reviewReading(seen))).run(
+        spec,
+      );
+
+      expect(seen["style.md"]).toBeUndefined();
+      expect(seen.prompt).not.toContain("Style file");
+    });
+  });
+
   it("keeps a record's reader finding", async () => {
     addDraftingSpec();
 

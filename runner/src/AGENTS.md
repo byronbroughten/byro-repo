@@ -185,14 +185,15 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Workflow/piece/gapCheck.ts` | | The piece gap check's prompt. |
 | `Workflow/piece/implementPieceSkill.ts` | `implementPieceSkill` | Generates the `/implement-piece` skill from the piece implement step's drafting lines. |
 | `Workflow/piece/implementStep.ts` | | The piece implement step's prompt, the drafting lines `/implement-piece` shares, passages folder, output schema, record and record checks. |
-| `Workflow/piece/pieceChecks.ts` | | A drafting ticket's checks: overlap and the spec's length limit, and the prompts' wording of an overlap run and its fixes. |
-| `Workflow/piece/pieceWorkflow.ts` | `pieceWorkflow` | Builds the piece Workflow from a repo's overlap and quote commands and Docs port: its research and drafting Steps, research, implement, review, resolve and red-checks agent steps, its spec-end Steps and their trigger, pull and push rules, quote check, drafting checks, outcome row review cell and the source targets read from the spec's Supporting Material. |
+| `Workflow/piece/pieceChecks.ts` | | A drafting ticket's checks: overlap and the spec's length limit, the overlap command's report and the `Length:` line the review inputs reuse, and the prompts' wording of an overlap run and its fixes. |
+| `Workflow/piece/pieceWorkflow.ts` | `pieceWorkflow` | Builds the piece Workflow from a repo's overlap and quote commands and Docs port: its research and drafting Steps, research, implement, review, with its supplied inputs, resolve and red-checks agent steps, its spec-end Steps and their trigger, pull and push rules, quote check, drafting checks, outcome row review cell and the source targets read from the spec's Supporting Material. |
 | `Workflow/piece/redChecksStep.ts` | | The piece red-checks step's prompt, fixing red piece checks in the Agent draft, and its output schema. |
 | `Workflow/piece/researchStep/researchRecord.ts` | | The research step's output schema, its record reader and the record checks. |
 | `Workflow/piece/researchStep/researchWords.ts` | | The research step's prompt, its red-quotes section, handoff comment, closing comment and Research Halt words. |
 | `Workflow/piece/resolveStep.ts` | | The piece resolve step's prompt, pointing at the verdict rules' `## Piece findings` and rerunning the piece checks after its Fixes, and its record checks, which refuse the verdict reasons a piece finding never takes. |
 | `Workflow/piece/reviewCaught.ts` | | A piece outcome row's "What review caught" cell: each kept finding by its axis and public rule name only. |
-| `Workflow/piece/reviewStep.ts` | | The piece review step's prompt, carrying `/review-piece`'s SKILL.md body over the Agent draft and passages folder, its record schema and its reviewer check. |
+| `Workflow/piece/reviewInputs.ts` | | Writes the inputs `/review-piece` copies word for word to the review-inputs folder before a piece review, naming each the spec lacks. |
+| `Workflow/piece/reviewStep.ts` | | The piece review step's prompt, carrying `/review-piece`'s SKILL.md body over the Agent draft, passages folder and supplied inputs, its record schema and its reviewer check. |
 | `WrapUp.ts` | `WrapUp` | `npm run wrap-up`: lands an issue or session workspace, delegating its landing steps and closing the issue to `WrapUp/`; and `npm run research:push`'s push. |
 | `WrapUp/BranchDeleter.ts` | | Deletes a landing's branches on each remote and locally, recording the ones that failed. |
 | `WrapUp/BranchLander.ts` | | Lands a landing's branches up to the fast-forward: restores, clean check, files changed, stale paths, unnamed new dependencies, build and rebuild. |
