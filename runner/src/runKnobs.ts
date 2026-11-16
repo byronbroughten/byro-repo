@@ -41,7 +41,7 @@ export interface RunKnobs {
   stuckFailureHalts: number;
   // An implementer whose peak context passes this hands off at the next step boundary.
   ticketBudget: number;
-  // How far under the ticket budget the context nudge fires, so a session finishes its step and hands off before the budget; also the ticket estimate's cap.
+  // How far under the ticket budget the context nudge fires, so a session finishes its step and hands off before the budget.
   budgetMargin: number;
   // A step crossing this is killed, and its implementer is resumed for a handoff.
   liveCeiling: number;
