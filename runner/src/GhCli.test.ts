@@ -47,6 +47,13 @@ describe("GhCli reads", () => {
     expect(await cli.subIssuesOf(issue)).toHaveLength(1);
   });
 
+  it("reads a repo's visibility from its private flag", async () => {
+    const { cli, calls } = scriptedGh(["true\n", "false\n"]);
+    expect(await cli.visibilityOf("personal")).toBe("private");
+    expect(await cli.visibilityOf("sheets-framework")).toBe("public");
+    expect(calls[0]).toEqual(["api", "repos/o/personal", "--jq", ".private"]);
+  });
+
   it("searches open issues' comments for the quoted phrase", async () => {
     const { cli, calls } = scriptedGh([
       ghError("HTTP 502"),

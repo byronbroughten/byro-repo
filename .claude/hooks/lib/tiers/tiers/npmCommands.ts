@@ -41,6 +41,10 @@ const freeScripts = new Map<string, string>([
   ["outcome:summary", "it only reads the outcome log and issues"],
   ["prompt:scan", "it only reads transcripts"],
   [
+    "repos",
+    "it reads the repo map and GitHub, and writes only its cache under `.runner/`",
+  ],
+  [
     "ws:rm",
     "it deletes only files git tracks in a Workspace, which git restores",
   ],

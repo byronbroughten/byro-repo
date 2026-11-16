@@ -57,6 +57,13 @@ describe("gateDecision", () => {
     expect(runnerStepDecisionOf(command)).toBe("allow");
   });
 
+  it("allows listing the repos and their visibility, refreshed or not, in a session and a runner step", () => {
+    ["npm run repos", "npm run repos -- --refresh"].forEach((command) => {
+      expect(decisionOf(command)).toBe("allow");
+      expect(runnerStepDecisionOf(command)).toBe("allow");
+    });
+  });
+
   it("asks for a forced workspace remove, which discards work git can't bring back", () => {
     [
       "npm run issue:remove -- byro-repo 261 --force",

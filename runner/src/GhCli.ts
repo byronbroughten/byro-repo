@@ -11,6 +11,7 @@ import {
   type ReadableIssue,
 } from "./IssueReader.ts";
 import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
+import type { Visibility, VisibilitySource } from "./RepoVisibility.ts";
 import { sleep } from "./sleep.ts";
 import type { IssueComment, RunGitHub, TrackedIssue } from "./SpecRun.ts";
 import type { ParentIssue } from "./WrapUp.ts";
@@ -87,7 +88,7 @@ type GhProcess = (...args: string[]) => Promise<string>;
 // A read's waits before each retry: four tries in all.
 const readRetryWaitsMs = [2000, 8000, 30000];
 
-export class GhCli implements RunGitHub, IssueSource {
+export class GhCli implements RunGitHub, IssueSource, VisibilitySource {
   private readonly owner: string;
   private readonly gh: GhProcess;
   private readonly wait: (ms: number) => Promise<void>;
@@ -282,6 +283,17 @@ export class GhCli implements RunGitHub, IssueSource {
         completed: subIssues.filter(({ isOpen }) => !isOpen).length,
       },
     };
+  }
+
+  // An internal repo, which only an organization can hold, reads as public here, as its `private` flag is false.
+  async visibilityOf(repo: string): Promise<Visibility> {
+    const output = await this._read(
+      "api",
+      `repos/${this.owner}/${repo}`,
+      "--jq",
+      ".private",
+    );
+    return output.trim() === "true" ? "private" : "public";
   }
 
   async readableIssueOf(issue: IssueRef): Promise<ReadableIssue> {
