@@ -35,7 +35,7 @@ export function fakeGoogle(...docsAnswers: Response[]): {
 } {
   const sent: SentRequest[] = [];
   async function fakeFetch(
-    input: RequestInfo | URL,
+    input: string | URL | Request,
     init?: RequestInit,
   ): Promise<Response> {
     const url = String(input);
