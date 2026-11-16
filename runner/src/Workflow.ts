@@ -268,9 +268,9 @@ export interface ReviewInputsContext {
   workspacePath: string;
   // The spec's repo's clone in the workspace.
   specClone: string;
-  // The bodies of the comments on each of the spec's other tickets that `isRead` keeps, in ticket order.
+  // The bodies of the comments on each of the spec's other tickets that `isIncluded` keeps, in ticket order.
   commentsOnTicketsOf(
-    isRead: (ticket: TrackedIssue) => boolean,
+    isIncluded: (ticket: TrackedIssue) => boolean,
   ): Promise<string[]>;
 }
 

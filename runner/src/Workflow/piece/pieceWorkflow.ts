@@ -260,7 +260,7 @@ export function pieceWorkflowOf({
         skillName: "review-piece",
         reviewerCheck: pieceReviewerCheckOf("review-piece"),
         suppliedInputsOf(context) {
-          return reviewInputs.writtenOf({
+          return reviewInputs.write({
             ...context,
             overlapCommand,
             draftPath: draftPathOf(context.spec.issue),

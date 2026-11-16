@@ -1,7 +1,8 @@
 // The piece review step: the prompt that runs a review of a drafting ticket's Agent draft on the spec, standards and
 // reader axes, by the implementer in a run or an interactive session from its brief, with `/review-piece`'s SKILL.md
-// body inlined and the files reviewInputs.ts wrote named before it, the review record it returns: code's, on these axes, plus the overlap hits it judged no copy, and the
-// check that it spawned its three reviewer subagents, with the resume that sends back one that didn't.
+// body inlined and the files reviewInputs.ts wrote named before it, the review record it returns: code's, on these
+// axes, plus the overlap hits it judged no copy, and the check that it spawned its three reviewer subagents, with the
+// resume that sends back one that didn't.
 // pieceWorkflow.ts registers it, reading the skill from the workspace through ../../stepPrompts/inlinedSkill.ts;
 // ../../SpecRun/ReviewStepper.ts launches it and ../../SpecRun/SessionReviewer.ts prints it.
 
@@ -85,9 +86,18 @@ function suppliedInputsLinesOf(
   );
   const lines = [
     `The runner has written the inputs \`${skillName}\` skill copies word for word; use each as given and gather only the rest, the fact list included: ${written.join("; ")}.`,
+    ...allowLinesOf(suppliedInputs),
     ...absent,
   ];
   return `${lines.join(" ")}\n\n`;
+}
+
+// The runner can't judge which names the Piece can't reword, so filling the allow file stays the review's.
+function allowLinesOf(suppliedInputs: SuppliedInput[]): string[] {
+  if (!suppliedInputs.some(({ name }) => name === "Overlap allow")) return [];
+  return [
+    "The Overlap allow file lists no name: add the proper names and fixed terms the Piece can't reword, if any, and rerun the overlap command with it into the Overlap file.",
+  ];
 }
 
 // The spec, standards and reader reviewers `/review-piece` spawns. Its diff is the Agent draft alone, so the file count

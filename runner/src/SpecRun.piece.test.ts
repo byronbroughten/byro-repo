@@ -415,6 +415,20 @@ describe("review on a piece spec's drafting ticket", () => {
       expect(seen.prompt).toContain("No Style file:");
       expect(seen.prompt).toContain("No Unverified file:");
     });
+
+    it("leaves a Style field it can't read to the review, rather than calling it absent", async () => {
+      addFieldedSpec(
+        `## Deliverable\n\nThe crossing, doc ${deliverableId}.\n\n## Style\n\nPlain and firsthand.\n\n- Keep the gulls.\n`,
+      );
+      const seen: Record<string, string> = {};
+
+      await specRun(FakeAgentStep.init(drafted(), reviewReading(seen))).run(
+        spec,
+      );
+
+      expect(seen["style.md"]).toBeUndefined();
+      expect(seen.prompt).not.toContain("Style file");
+    });
   });
 
   it("keeps a record's reader finding", async () => {

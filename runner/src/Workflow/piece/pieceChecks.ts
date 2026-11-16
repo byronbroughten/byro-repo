@@ -10,7 +10,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { commandLabelOf } from "../../failureText.ts";
-import { type CollectedRun, runCollecting } from "../../runCollecting.ts";
+import type { IssueRef } from "../../IssueWorkspaces.ts";
+import { runCollecting } from "../../runCollecting.ts";
 import type { Command } from "../../runKnobs.ts";
 import type { TicketState } from "../../SpecRun/runState.ts";
 import type { DismissedOverlap, DraftedRecord } from "../../stepRecords.ts";
@@ -29,7 +30,7 @@ const patterns = {
   word: /[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu,
 } as const;
 
-const formHeading = "## Form";
+export const formHeading = "## Form";
 
 export interface PieceChecksInput extends TicketChecksInput {
   overlapCommand: Command;
@@ -52,10 +53,16 @@ interface OverlapRun {
 export interface OverlapReportRun {
   overlapCommand: Command;
   workspacePath: string;
+  ticket: IssueRef;
   deliverable: string;
-  passagesFolder: string;
   // One proper name or fixed term per line; none passed when unset.
   allowFile?: string;
+}
+
+export interface OverlapReport {
+  isOk: boolean;
+  // The command's report, or on a failed run its failure as the checks word it.
+  text: string;
 }
 
 interface OverlapHit {
@@ -112,17 +119,19 @@ export const pieceChecks = {
     );
   },
 
-  // The overlap command's report on a Deliverable file, run from the workspace root.
+  // The overlap command's report on a Deliverable file over the ticket's passages folder, run from the workspace root.
   async overlapReportOf({
     overlapCommand,
     workspacePath,
+    ticket,
     deliverable,
-    passagesFolder,
     allowFile,
-  }: OverlapReportRun): Promise<CollectedRun> {
+  }: OverlapReportRun): Promise<OverlapReport> {
+    const passagesFolder = passagesFolderIn(workspacePath, ticket);
+    mkdirSync(passagesFolder, { recursive: true });
     const [file, ...args] = overlapCommand;
     const allow = allowFile === undefined ? [] : ["--allow", allowFile];
-    return runCollecting(
+    const { isOk, output } = await runCollecting(
       file,
       [
         ...args,
@@ -134,6 +143,11 @@ export const pieceChecks = {
       ],
       { cwd: workspacePath },
     );
+    if (isOk) return { isOk, text: output };
+    return {
+      isOk,
+      text: `${commandLabelOf(overlapCommand)} failed:\n${output}`,
+    };
   },
 
   overlapRunOf({
@@ -166,9 +180,6 @@ async function overlapFailureOf(
   { overlapCommand, workspacePath, ticket, state }: PieceChecksInput,
   scope: DraftScope,
 ): Promise<string | undefined> {
-  const label = commandLabelOf(overlapCommand);
-  const passagesFolder = passagesFolderIn(workspacePath, ticket.issue);
-  mkdirSync(passagesFolder, { recursive: true });
   const folder = mkdtempSync(join(tmpdir(), "piece-checks-"));
   try {
     const deliverable = join(folder, "scope.md");
@@ -176,20 +187,20 @@ async function overlapFailureOf(
       deliverable,
       scope.sections.map(({ markdown }) => markdown).join("\n"),
     );
-    const { isOk, output } = await pieceChecks.overlapReportOf({
+    const report = await pieceChecks.overlapReportOf({
       overlapCommand,
       workspacePath,
+      ticket: ticket.issue,
       deliverable,
-      passagesFolder,
     });
-    if (!isOk) return `${label} failed:\n${output}`;
+    if (!report.isOk) return report.text;
     const dismissed = (state.dismissedOverlaps ?? []).map(dismissedTextOf);
-    const unjudged = hitsOf(output).filter(
+    const unjudged = hitsOf(report.text).filter(
       ({ sharedText }) => !dismissed.includes(sharedText.toLowerCase()),
     );
     if (unjudged.length === 0) return undefined;
     return [
-      `${label} found ${unjudged.length} overlap hit(s) in the ticket's Sections that review didn't dismiss:`,
+      `${commandLabelOf(overlapCommand)} found ${unjudged.length} overlap hit(s) in the ticket's Sections that review didn't dismiss:`,
       ...unjudged.flatMap(({ lines }) => lines),
     ].join("\n");
   } finally {

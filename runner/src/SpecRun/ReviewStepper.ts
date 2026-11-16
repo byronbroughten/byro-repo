@@ -255,10 +255,10 @@ export class ReviewStepper extends SpecRunBase {
       ticket: ticket.issue,
       workspacePath: workspace.path,
       specClone: this._cloneIn(workspace, run.spec.issue.repo),
-      async commentsOnTicketsOf(isRead) {
+      async commentsOnTicketsOf(isIncluded) {
         const bodies: string[] = [];
         for (const other of others) {
-          if (!isRead(await github.issueOf(other))) continue;
+          if (!isIncluded(await github.issueOf(other))) continue;
           const comments = await github.authoredCommentsOf(other);
           bodies.push(...comments.map(({ body }) => body));
         }

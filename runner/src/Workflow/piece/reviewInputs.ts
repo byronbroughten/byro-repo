@@ -7,7 +7,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { commandLabelOf } from "../../failureText.ts";
 import type { IssueRef } from "../../IssueWorkspaces.ts";
 import type { Command } from "../../runKnobs.ts";
 import type { TrackedIssue } from "../../SpecRun/runState.ts";
@@ -17,14 +16,12 @@ import type {
   SuppliedInput,
   WrittenInput,
 } from "../../Workflow.ts";
-import { passagesFolderIn } from "./implementStep.ts";
-import { pieceChecks } from "./pieceChecks.ts";
+import { formHeading, pieceChecks } from "./pieceChecks.ts";
 
 const headings = {
   reader: "## Reader",
   outline: "## Outline",
   style: "## Style",
-  form: "## Form",
   order: "## Order",
   unverified: "## Unverified",
 } as const;
@@ -35,7 +32,7 @@ const patterns = {
   academicLine: /^Academic$/,
 } as const;
 
-// Empty but for this note: which names the Piece can't reword is the review's judgment, so it adds them and reruns.
+// Empty but for this note: which names the Piece can't reword is the review's judgment, so the prompt has it add them and rerun.
 const allowNote =
   "# One proper name or fixed term per line, which the Piece can't reword; the runner lists none.\n";
 
@@ -54,7 +51,7 @@ interface StyleAxes {
 
 export const reviewInputs = {
   // In `/review-piece`'s order: Reader, Unverified, Outline, Length limit, Overlap and its allow file, Style.
-  async writtenOf(run: ReviewInputsRun): Promise<SuppliedInput[]> {
+  async write(run: ReviewInputsRun): Promise<SuppliedInput[]> {
     const folder = reviewInputsFolderIn(run.workspacePath, run.ticket);
     mkdirSync(folder, { recursive: true });
     const { body } = run.spec;
@@ -99,7 +96,7 @@ export const reviewInputs = {
       }),
       overlap,
       allow,
-      styleInputOf(folder, body),
+      ...styleInputsOf(folder, body),
     ];
   },
 };
@@ -172,36 +169,28 @@ async function overlapReportOf(
   }: ReviewInputsRun,
   allowFile: string,
 ): Promise<string> {
-  const passagesFolder = passagesFolderIn(workspacePath, ticket);
-  mkdirSync(passagesFolder, { recursive: true });
-  const { isOk, output } = await pieceChecks.overlapReportOf({
+  const report = await pieceChecks.overlapReportOf({
     overlapCommand,
     workspacePath,
+    ticket,
     deliverable: join(specClone, draftPath),
-    passagesFolder,
     allowFile,
   });
-  if (isOk) return output;
-  return `${commandLabelOf(overlapCommand)} failed:\n${output}`;
+  return report.text;
 }
 
 // The Style file shape the Jev agent doc's style check names: the Axes lines, then the overrides, Form and Order verbatim.
-function styleInputOf(folder: string, body: string): SuppliedInput {
+// Unsupplied when the Axes line won't parse, so the review gathers the Style file itself rather than losing the field.
+function styleInputsOf(folder: string, body: string): SuppliedInput[] {
   const style = fieldOf(body, headings.style);
   if (style === undefined) {
-    return { name: "Style", absence: absentFieldOf(headings.style) };
+    return [{ name: "Style", absence: absentFieldOf(headings.style) }];
   }
   const [axesLine = "", ...overrides] = style.split("\n");
   const axes = axesOf(axesLine);
-  if (axes === undefined) {
-    return {
-      name: "Style",
-      absence:
-        "the spec's Style field doesn't open with its `Evidence: <value> · Formality: <value>` or `Academic` line",
-    };
-  }
+  if (axes === undefined) return [];
   const subsections = [
-    { heading: "### Form", text: fieldOf(body, headings.form) },
+    { heading: "### Form", text: fieldOf(body, formHeading) },
     { heading: "### Order", text: fieldOf(body, headings.order) },
   ].flatMap(({ heading, text }) =>
     text === undefined ? [] : [`${heading}\n\n${text}`],
@@ -211,7 +200,7 @@ function styleInputOf(folder: string, body: string): SuppliedInput {
     overridesOf(overrides.join("\n").trim()),
     ...subsections,
   ].join("\n");
-  return writtenInputOf(folder, { name: "Style", file: "style.md", text });
+  return [writtenInputOf(folder, { name: "Style", file: "style.md", text })];
 }
 
 function axesLinesOf({ evidence, formality, isAcademic }: StyleAxes): string {
