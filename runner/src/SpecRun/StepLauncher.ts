@@ -1,7 +1,7 @@
 // A spec run's agent step launches: waits out the limit guard before each, runs every step on the Active account, a resume
 // included, with its guidance and the run's knobs, logs its raw stream, and retries a crash, resuming its session when it has one.
 // A step a limit cuts off waits out the limit, then resumes its session on whatever account is Active; that resume is no crash retry.
-// A resolver's resume that finds no conversation goes back to its caller, which reruns it as a fresh session.
+// A resolver's or reviewer's resume that finds no conversation goes back to its caller, which reruns it as a fresh session.
 // A record the runner's own schema check rejects is resumed once with its problems; Claude Code's own output failures aren't.
 // An implement step that hits its turn cap halts, offering more turns or a stronger pair; other crashes past their retries halt too.
 // It builds its own HaltRaiser, and every collaborator that launches a step builds a StepLauncher.
@@ -144,8 +144,12 @@ export class StepLauncher extends SpecRunBase {
         isCrashResume = false;
         continue;
       }
-      // A resolver's caller reruns it as a fresh session; a crash resume's missing conversation stays a crash.
-      if (agent === "resolve" && !isCrashResume && result.hasNoConversation) {
+      // A resolver's or reviewer's caller reruns it as a fresh session; a crash resume's missing conversation stays a crash.
+      if (
+        isRerunFreshOnLostConversation(agent) &&
+        !isCrashResume &&
+        result.hasNoConversation
+      ) {
         return { result, logPath };
       }
       if (ticketSteps.isTurnCapped(result)) {
@@ -351,6 +355,11 @@ function isCutOffByLimit({
 
 function keepStreamUsage(run: Run, { usage, account }: StepResult): void {
   if (usage !== undefined) run.streamUsage.set(account, usage);
+}
+
+// The implement step resumes only its own session, so a lost conversation there stays a crash.
+function isRerunFreshOnLostConversation(agent: StepAgent): boolean {
+  return sharesImplementerSession(agent) && agent !== "implement";
 }
 
 // A step with no session id relaunches fresh, as a crash retry with none does; a backstop or schema resume still owes only its record.

@@ -145,6 +145,24 @@ describe("review of one ticket outside a run", () => {
     expect(agentStep.requests[0]?.prompt).not.toContain("review-piece");
   });
 
+  it("reviews in a fresh review session of its own, since the session has no implementer session to resume", async () => {
+    FactsFile.init(stateFolder()).addSession(refOf(1), {
+      agent: "implement",
+      sessionId: "implement-session",
+      account: 1,
+      configFolder: "/config/account-1",
+    });
+    const agentStep = FakeAgentStep.init(reviewed());
+
+    await specRun(agentStep).review(refOf(1), { holder });
+
+    const [review] = agentStep.requests;
+    expect(review?.resumeSessionId).toBeUndefined();
+    expect(review?.prompt).toContain("You are the review step");
+    expect(review?.prompt).not.toContain("your own work");
+    expect(review?.logPath).toMatch(/-review\.jsonl$/);
+  });
+
   it("reviews a piece spec's ticket by the piece Workflow, as a run picks it", async () => {
     github.edit(spec.number, { labels: ["piece"] });
     const agentStep = FakeAgentStep.init(reviewed());

@@ -192,7 +192,7 @@ describe("run's red-check resume", () => {
     expect(resumed?.prompt).toContain("sh -c test ! -f RED failed");
   });
 
-  it("hands red checks to a fresh session on the ticket's pair once the implementer past the ticket budget has handed off", async () => {
+  it("hands the review to a fresh session on the ticket's pair once the implementer past the ticket budget has handed off, and red checks resume that session", async () => {
     addSpec([1]);
     github.edit(1, { body: bodyWith("Sonnet medium") });
     const agentStep = FakeAgentStep.init(
@@ -214,11 +214,14 @@ describe("run's red-check resume", () => {
     const result = await specRun(agentStep).run(spec);
 
     expect(result.landed).toEqual([refOf(1)]);
-    const [implementer, , , fresh] = agentStep.requests;
+    const [implementer, , fresh, redChecks] = agentStep.requests;
     expect(fresh?.pair).toEqual(implementer?.pair);
     expect(fresh?.resumeSessionId).toBeUndefined();
-    expect(fresh?.prompt).toContain("You are the red-checks step");
+    expect(fresh?.prompt).toContain("your own work");
     expect(fresh?.prompt).toContain("Conclusion: RED is committed.");
+    expect(redChecks?.resumeSessionId).toBe("session");
+    expect(redChecks?.prompt).toContain("You are the red-checks step");
+    expect(redChecks?.prompt).not.toContain("Conclusion: RED is committed.");
   });
 
   it("posts a Failure Halt linking the resume's log when the checks stay red, leaving the branch unlanded", async () => {

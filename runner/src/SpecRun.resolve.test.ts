@@ -167,8 +167,10 @@ describe("run's resolve", () => {
 
     expect(result.kind).toBe("finished");
     expect(agentStep.requests).toHaveLength(3);
-    const resolver = agentStep.requests[2];
-    expect(resolver?.resumeSessionId).toBe("implement-session");
+    const [, reviewer, resolver] = agentStep.requests;
+    expect(reviewer?.resumeSessionId).toBe("implement-session");
+    // The review resumed the implementer, so its session is the one resolve resumes.
+    expect(resolver?.resumeSessionId).toBe("session");
     expect(resolver?.pair).toEqual(opusHigh);
     expect(resolver?.targets).toEqual([{ kind: "spreadsheet", name: "app" }]);
     expect(resolver?.liveCeiling).toBe(180_000);
@@ -187,7 +189,7 @@ describe("run's resolve", () => {
     });
   });
 
-  it("launches the resolver under the implementer's schema, so its resume keeps the prompt cache, and the reviewer under its own", async () => {
+  it("launches the reviewer and the resolver under the implementer's schema, so each resume keeps the prompt cache", async () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(
       implementedAt(90_000),
@@ -199,9 +201,57 @@ describe("run's resolve", () => {
 
     const [implementer, reviewer, resolver] = agentStep.requests;
     expect(implementer?.sessionSchema).toBeDefined();
+    expect(reviewer?.sessionSchema).toEqual(implementer?.sessionSchema);
     expect(resolver?.sessionSchema).toEqual(implementer?.sessionSchema);
+    expect(reviewer?.jsonSchema).not.toEqual(implementer?.jsonSchema);
     expect(resolver?.jsonSchema).not.toEqual(implementer?.jsonSchema);
-    expect(reviewer?.sessionSchema).toBeUndefined();
+  });
+
+  it("reviews in the implementer's resumed session, recorded under the review agent, asking for every reviewer finding as worded, and resolves in the session the review left", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      stepOf(reviewed(findings), { sessionId: "reviewed-session" }),
+      resolved([recordOf(1, "fix"), recordOf(2, "propose")], "fix.ts"),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.kind).toBe("finished");
+    const [implementer, reviewer, resolver] = agentStep.requests;
+    expect(reviewer?.resumeSessionId).toBe("implement-session");
+    expect(reviewer?.pair).toEqual(implementer?.pair);
+    expect(reviewer?.logPath).toMatch(/byro-repo-1-\d+-review\.jsonl$/);
+    expect(reviewer?.prompt).toContain("your own work");
+    expect(reviewer?.prompt).toContain("as its reviewer worded it");
+    expect(reviewer?.prompt).toContain("Change nothing");
+    expect(resolver?.resumeSessionId).toBe("reviewed-session");
+    expect(ticketState()["byro-repo #1"]?.sessions).toEqual([
+      expect.objectContaining({ agent: "implement" }),
+      expect.objectContaining({
+        agent: "review",
+        sessionId: "reviewed-session",
+      }),
+      expect.objectContaining({ agent: "resolve" }),
+    ]);
+  });
+
+  it("reviews in a fresh session on the ticket's pair when the implementer's session has no conversation", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      noConversation,
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.kind).toBe("finished");
+    const [implementer, lost, fresh] = agentStep.requests;
+    expect(lost?.resumeSessionId).toBe("implement-session");
+    expect(fresh?.resumeSessionId).toBeUndefined();
+    expect(fresh?.pair).toEqual(implementer?.pair);
+    expect(fresh?.prompt).toContain("your own work");
   });
 
   it("records a Propose as an undecided review item before the wrap-up, so a Standalone ticket lands and stays open", async () => {
@@ -288,7 +338,7 @@ describe("run's resolve", () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(
       implementedAt(90_000),
-      reviewed(findings),
+      stepOf(reviewed(findings), { sessionId: "implement-session" }),
       noConversation,
       resolvedInItsOwnSession(
         [recordOf(1, "fix"), recordOf(2, "fix")],
@@ -338,7 +388,7 @@ describe("run's resolve", () => {
     expect(ticketFacts().retries).toBe(0);
   });
 
-  it("resolves in the implement step's latest session after an implement handoff", async () => {
+  it("reviews in the implement step's latest session after an implement handoff, and resolves in the session the review left", async () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(
       handedOffAt(150_000),
@@ -350,7 +400,8 @@ describe("run's resolve", () => {
     const result = await specRun(agentStep).run(spec);
 
     expect(result.kind).toBe("finished");
-    expect(agentStep.requests[3]?.resumeSessionId).toBe("implement-session");
+    expect(agentStep.requests[2]?.resumeSessionId).toBe("implement-session");
+    expect(agentStep.requests[3]?.resumeSessionId).toBe("session");
     expect(ticketFacts().reviewFixes).toBe("implementer");
   });
 

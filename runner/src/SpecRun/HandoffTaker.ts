@@ -29,7 +29,7 @@ import { ticketSteps } from "./runState/ticketSteps.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 import { StepLauncher } from "./StepLauncher.ts";
 
-// The steps after implement that a handoff can come before; review runs in its own session but is the warmest boundary.
+// The steps after implement that a handoff can come before, each resuming the implementer's session.
 export type BoundaryStep = Exclude<HandoffStep, "implement">;
 
 export interface HandoffLaunch {

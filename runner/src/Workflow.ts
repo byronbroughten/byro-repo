@@ -233,6 +233,8 @@ export interface ReviewPromptInput extends TicketPromptFields {
   skillName: string;
   // Set when the diff is within the inlineReviewMaxFiles knob, so the review may skip its reviewer subagents.
   isInlineAllowed: boolean;
+  // Set when the implementer reviews its own work, in its session or a fresh one after a handoff; unset for a session review's fresh review session.
+  isByImplementer: boolean;
   // The committed implement record's, absent for a session review, which has none.
   pointsWorthChecking?: string[];
 }
@@ -379,17 +381,18 @@ export function hasAgentStep(
   return workflow.agentSteps[name] !== undefined;
 }
 
-// The steps that resume the implementer's session; review, research and the gap check each run in their own.
+// The steps that resume the implementer's session; research and the gap check each run in their own.
 const sessionStepNames = [
   "implement",
+  "review",
   "resolve",
   "redChecks",
   "mergeMaster",
 ] as const;
 
-// Red-checks and merge-master launch as resolve, so these two step agents cover every session step.
+// Red-checks and merge-master launch as resolve, so these three step agents cover every session step.
 export function sharesImplementerSession(agent: StepAgent): boolean {
-  return agent === "implement" || agent === "resolve";
+  return agent === "implement" || agent === "review" || agent === "resolve";
 }
 
 // Every session step launches with it, since a resume under another schema starts without its prompt cache (#722); offering each step's exact schema keeps a step from returning another's fields (#741).

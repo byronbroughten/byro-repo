@@ -41,7 +41,7 @@ describe("a run's review that skips its reviewers", () => {
     return { ...result, sessionId: "review-session" };
   }
 
-  it("resumes a review over the inline size that spawned no reviewers once, telling it to spawn both", async () => {
+  it("resumes a review over the inline size that spawned no reviewers once, in the implementer's session, telling it to spawn both", async () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(
       implementedTwoFiles,
@@ -53,9 +53,12 @@ describe("a run's review that skips its reviewers", () => {
 
     expect(result.kind).toBe("finished");
     expect(agentStep.requests).toHaveLength(3);
-    const [, review, resumed] = agentStep.requests;
+    const [implementer, review, resumed] = agentStep.requests;
     expect(review?.prompt).not.toContain("may review it inline");
+    expect(review?.resumeSessionId).toBe("session");
     expect(resumed?.resumeSessionId).toBe("review-session");
+    expect(resumed?.sessionSchema).toEqual(implementer?.sessionSchema);
+    expect(resumed?.logPath).toMatch(/-review\.jsonl$/);
     expect(resumed?.prompt).toContain("Standards and Spec");
     expect(reviewListOf(1)).toBeUndefined();
   });
