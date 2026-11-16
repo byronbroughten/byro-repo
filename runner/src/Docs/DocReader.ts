@@ -88,7 +88,7 @@ export class DocReader {
         if (
           paragraph === undefined ||
           level === undefined ||
-          level > markdownDialect.syntax.sectionLevel
+          !markdownDialect.startsSection(level)
         ) {
           return [];
         }
@@ -99,7 +99,6 @@ export class DocReader {
         ];
       },
     );
-    this.pendingFootnotes = [];
     return new Map(
       markdownDialect.withPathsOf(headings).flatMap(({ path, headingId }) => {
         return headingId === undefined ? [] : [[path, headingId]];
@@ -124,10 +123,9 @@ export class DocReader {
     }
     const level = levelOf(paragraph);
     if (level !== undefined) {
-      const footnotes =
-        level <= markdownDialect.syntax.sectionLevel
-          ? this._footnoteBlocks()
-          : [];
+      const footnotes = markdownDialect.startsSection(level)
+        ? this._footnoteBlocks()
+        : [];
       const heading = markdownDialect.heading(level, inline);
       return [...footnotes, { markdown: heading, isListItem: false }];
     }

@@ -129,6 +129,11 @@ export const markdownDialect = {
     return joined === "" ? "" : `${joined}\n`;
   },
 
+  /** Whether a heading level starts a Section: an H1 or H2. */
+  startsSection(level: number): boolean {
+    return level <= syntax.sectionLevel;
+  },
+
   /** Each H1 and H2 with its Section's heading path: an H1's text, an H2's under the H1 before it, or an H2's alone before any H1. */
   withPathsOf<SH extends SectionHeading>(headings: SH[]): WithPath<SH>[] {
     let h1: string | undefined;
@@ -153,7 +158,9 @@ export const markdownDialect = {
     const lines = markdown.split("\n");
     const headings = lines.flatMap((line, index) => {
       const level = headingLevelOf(line);
-      if (level === undefined || level > syntax.sectionLevel) return [];
+      if (level === undefined || !markdownDialect.startsSection(level)) {
+        return [];
+      }
       return [{ level, text: line.slice(level + 1), index }];
     });
     const marked = markdownDialect
@@ -183,7 +190,7 @@ export const markdownDialect = {
       .split("\n")
       .reduce<(SectionHeading & { lines: string[] })[]>((split, line) => {
         const level = headingLevelOf(line);
-        if (level === undefined || level > syntax.sectionLevel) {
+        if (level === undefined || !markdownDialect.startsSection(level)) {
           split.at(-1)?.lines.push(line);
           return split;
         }

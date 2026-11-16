@@ -1,7 +1,7 @@
 // A Piece's Agent draft file, as ../../../../docs/pieces/agent-draft.md describes it: the Doc's `# <H1>` and `## <H2>`
-// lines, each Section marked as the developer's or an agent's, with its heading's headingId, on the line under its heading
-// and named by its heading path. Pull, from pieceWorkflow.ts, merges a Doc read into it, and the push reads its agent Sections back out; the Doc's
-// Markdown dialect and its split into Sections are ../../Docs/markdownDialect.ts's.
+// lines, each Section marked as the developer's or an agent's, with its heading's headingId, on the line under its
+// heading and named by its heading path. Pull, from pieceWorkflow.ts, merges a Doc read into it, and the push reads its
+// agent Sections back out; the Doc's Markdown dialect and its split into Sections are ../../Docs/markdownDialect.ts's.
 
 import {
   type HeadedSection,
@@ -11,16 +11,22 @@ import type { NumberOrPlaceholder } from "../../promptText.ts";
 
 export type SectionAuthor = "developer" | "agent";
 
-// The body is as markdownDialect.sectionsOf keys it: trimmed, ending in one newline. The headingId is the Doc heading's,
-// undefined for a heading the draft holds with a bare mark.
+// The body is as markdownDialect.sectionsOf keys it: trimmed, ending in one newline.
 export type DraftSection = HeadedSection & {
   author: SectionAuthor;
   headingId: string | undefined;
 };
 
-// `<!-- developer -->` or `<!-- agent -->`, then the heading's headingId when it has one.
-const authorMarkPattern = /^<!-- (developer|agent)(?: (\S+))? -->$/;
-const exampleMark = "<!-- developer -->";
+// A mark is `<!-- developer -->` or `<!-- agent -->`, then the heading's headingId when it has one.
+const authorMark = {
+  pattern: /^<!-- (developer|agent)(?: (\S+))? -->$/,
+  example: "<!-- developer -->",
+
+  lineOf(author: SectionAuthor, headingId: string | undefined): string {
+    const parts = [author, headingId].filter((part) => part !== undefined);
+    return `<!-- ${parts.join(" ")} -->`;
+  },
+};
 
 export const agentDraft = {
   pathOf(specNumber: NumberOrPlaceholder): string {
@@ -41,8 +47,8 @@ export const agentDraft = {
   draftOf(sections: DraftSection[]): string {
     const blocks = sections.map(
       ({ level, text, author, headingId, markdown }) => {
-        const mark = [author, headingId].filter((part) => part !== undefined);
-        const head = `${markdownDialect.heading(level, text)}\n<!-- ${mark.join(" ")} -->`;
+        const mark = authorMark.lineOf(author, headingId);
+        const head = `${markdownDialect.heading(level, text)}\n${mark}`;
         const body = markdown.trim();
         return body === "" ? head : `${head}\n\n${body}`;
       },
@@ -70,9 +76,7 @@ export const agentDraft = {
     );
   },
 
-  // The Doc's Sections in its order, each agent Section kept as the draft has it but for its heading's current headingId; an
-  // agent Section the Doc no longer has stays as it was, after the last Section under its H1, so the draft still names it
-  // by the same heading path.
+  // The Doc's Sections in its order, an agent Section kept but for its current headingId; one the Doc lost stays after its H1's last Section.
   pulledOf(
     draft: DraftSection[],
     docMarkdown: string,
@@ -103,13 +107,17 @@ function markOf(
   path: string,
   markLine: string,
 ): Pick<DraftSection, "author" | "headingId"> {
-  const [, author, headingId] = authorMarkPattern.exec(markLine.trim()) ?? [];
-  if (author === undefined) {
+  const [, author, headingId] = authorMark.pattern.exec(markLine.trim()) ?? [];
+  if (!isSectionAuthor(author)) {
     throw new Error(
-      `The Agent draft's Section "${path}" has no author mark under its heading, such as "${exampleMark}".`,
+      `The Agent draft's Section "${path}" has no author mark under its heading, such as "${authorMark.example}".`,
     );
   }
-  return { author: author as SectionAuthor, headingId };
+  return { author, headingId };
+}
+
+function isSectionAuthor(value: string | undefined): value is SectionAuthor {
+  return value === "developer" || value === "agent";
 }
 
 // After the last Section under its H1; one from before any H1 goes first, and one whose H1 is gone gets an empty
