@@ -1,10 +1,10 @@
 // PostToolUse on every tool: a shim over the runner's context nudge, fired once per session doing ticket work or supervision; never blocks.
-// The budget and handoff doc come from the runner's override file, or the runner's defaults if it can't load.
+// The budget, its margin and the handoff doc come from the runner's override file, or the runner's defaults if it can't load.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 import {
   contextNudgeOf,
-  sizePastBudgetOf,
+  sizeAtNudgeOf,
 } from "@byronbroughten/spec-runner/contextNudge";
 import { IssueWorkspaces } from "@byronbroughten/spec-runner/IssueWorkspaces";
 import { SupervisionRecords } from "@byronbroughten/spec-runner/SupervisionRecords";
@@ -42,9 +42,9 @@ await runFailOpen(async () => {
   const markerPath = sessionStatePath(input.session_id, "context-nudge");
   if (existsSync(markerPath)) return;
   const knobs = contextNudgeKnobs();
-  const size = sizePastBudgetOf(
+  const size = sizeAtNudgeOf(
     readFileSync(input.transcript_path, "utf8"),
-    knobs.ticketBudget,
+    knobs,
   );
   // Checked first, since reading the leases runs ps per workspace.
   if (size === undefined) return;

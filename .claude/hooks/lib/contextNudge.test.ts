@@ -13,8 +13,11 @@ import {
 } from "./contextNudge.ts";
 
 describe("contextNudgeKnobs", () => {
-  it("keeps the shim's threshold at the runner's ticket-budget default", () => {
-    expect(contextNudgeKnobs().ticketBudget).toBe(defaultRunKnobs.ticketBudget);
+  it("keeps the shim's threshold at the runner's ticket-budget and margin defaults", () => {
+    const { ticketBudget, budgetMargin } = contextNudgeKnobs();
+
+    expect(ticketBudget).toBe(defaultRunKnobs.ticketBudget);
+    expect(budgetMargin).toBe(defaultRunKnobs.budgetMargin);
   });
 
   it("names this repo's handoff doc", () => {

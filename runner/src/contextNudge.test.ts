@@ -3,13 +3,14 @@ import { describe, expect, it } from "vitest";
 import {
   contextNudgeOf,
   type ContextNudgeOptions,
-  sizePastBudgetOf,
+  sizeAtNudgeOf,
   type SupervisionHandoff,
 } from "./contextNudge.ts";
 
 const options: ContextNudgeOptions = {
   sessionId: "abc-123",
   ticketBudget: 150_000,
+  budgetMargin: 15_000,
   handoffDocPath: "docs/agents/handoffs.md#handoffs",
   owed: { isTicketOwed: true },
 };
@@ -30,34 +31,50 @@ function sized(tokens: number): string {
   return `${line}\n`;
 }
 
-describe("sizePastBudgetOf", () => {
-  it("stays quiet under the budget", () => {
-    expect(sizePastBudgetOf(sized(149_999), 150_000)).toBeUndefined();
-    expect(sizePastBudgetOf("", 150_000)).toBeUndefined();
+describe("sizeAtNudgeOf", () => {
+  const knobs = { ticketBudget: 150_000, budgetMargin: 15_000 };
+
+  it("stays quiet under the margin below the budget", () => {
+    expect(sizeAtNudgeOf(sized(134_999), knobs)).toBeUndefined();
+    expect(sizeAtNudgeOf("", knobs)).toBeUndefined();
   });
 
-  it("gives the peak context at and over the budget", () => {
-    expect(sizePastBudgetOf(sized(150_000), 150_000)).toBe(150_000);
-    expect(sizePastBudgetOf(sized(297_700), 150_000)).toBe(297_700);
+  it("gives the peak context from the margin below the budget up", () => {
+    expect(sizeAtNudgeOf(sized(135_000), knobs)).toBe(135_000);
+    expect(sizeAtNudgeOf(sized(297_700), knobs)).toBe(297_700);
+  });
+
+  it("reads the margin from its knobs", () => {
+    const narrow = { ...knobs, budgetMargin: 5_000 };
+
+    expect(sizeAtNudgeOf(sized(144_999), narrow)).toBeUndefined();
+    expect(sizeAtNudgeOf(sized(145_000), narrow)).toBe(145_000);
   });
 });
 
 describe("contextNudgeOf", () => {
   it("names the size, rounded to thousands", () => {
-    expect(contextNudgeOf(150_000, options)).toMatch(/150K tokens/);
+    expect(contextNudgeOf(135_000, options)).toMatch(/135K tokens/);
     expect(contextNudgeOf(297_700, options)).toMatch(/298K tokens/);
+  });
+
+  it("quotes the budget itself, not the nudge point", () => {
+    expect(contextNudgeOf(135_000, options)).toMatch(
+      /approaching the 150K ticket budget: finish the step you are on, then hand off; /,
+    );
   });
 
   it("reads the budget from its options", () => {
     const budget = { ...options, ticketBudget: 100_000 };
 
-    expect(contextNudgeOf(100_000, budget)).toMatch(/past the 100K/);
+    expect(contextNudgeOf(90_000, budget)).toMatch(/approaching the 100K/);
   });
 
   it("asks for a handoff with no link when no handoff doc is set", () => {
     const nudge = contextNudgeOf(160_000, {
       sessionId: "abc-123",
       ticketBudget: 150_000,
+      budgetMargin: 15_000,
       owed: { isTicketOwed: true },
     });
 
@@ -86,10 +103,10 @@ describe("contextNudgeOf", () => {
       owed: { isTicketOwed: false, supervision },
     };
 
-    it("says it is past the context budget, not the ticket budget", () => {
-      const nudge = contextNudgeOf(160_000, supervising);
+    it("says it is approaching the context budget, not the ticket budget", () => {
+      const nudge = contextNudgeOf(140_000, supervising);
 
-      expect(nudge).toMatch(/past the 150K context budget/);
+      expect(nudge).toMatch(/approaching the 150K context budget/);
       expect(nudge).not.toMatch(/ticket budget/);
     });
 

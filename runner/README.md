@@ -18,7 +18,7 @@ Why `--creds` and these scopes: [`google-docs-behaviour.md`](../docs/google-docs
 
 ## Context nudge
 
-Once a ticket session's context reaches its budget, it is reminded to write a handoff: `contextNudge` words the reminder, and a Claude Code hook each repo registers delivers it. `src/contextNudge.ts`'s header says how a repo registers one.
+Once a ticket session's context reaches the `budgetMargin` knob under its budget, it is reminded to write a handoff: `contextNudge` words the reminder, and a Claude Code hook each repo registers delivers it. `src/contextNudge.ts`'s header says how a repo registers one.
 
 ## Running under tmux
 
