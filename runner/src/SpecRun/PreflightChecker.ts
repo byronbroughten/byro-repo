@@ -227,7 +227,7 @@ function modelFitRefusalOf(
 ): string | undefined {
   if (run.isStandalone) {
     if (pairOf(run.spec.body) !== undefined) return undefined;
-    return `${issueRef.labelOf(run.spec.issue)} has no sub-issues and no valid ## Model fit section: split it with /code-tickets, or add the section.`;
+    return `${issueRef.labelOf(run.spec.issue)} has no sub-issues and no valid ## Model fit section: split it with /project-tickets, or add the section.`;
   }
   const offenders = launchable.flatMap(({ issue, body }) =>
     pairOf(body) === undefined ? [issueRef.labelOf(issue)] : [],

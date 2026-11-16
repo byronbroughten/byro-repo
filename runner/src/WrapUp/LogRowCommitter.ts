@@ -3,6 +3,7 @@
 import { type WrapUpFacts } from "../FactsFile.ts";
 import { git, revOf } from "../git.ts";
 import { type IssueRef, issueRef, type Workspace } from "../IssueWorkspaces.ts";
+import { estimateOf } from "../modelFit.ts";
 import { writeOutcomeRow } from "../outcomeRowWriter.ts";
 import { type WorkflowName, workflowNameOf } from "../Workflow.ts";
 import { IssueCloser } from "./IssueCloser.ts";
@@ -68,6 +69,7 @@ export class LogRowCommitter extends WrapUpBase {
       workflow: await this._workflowOf(spec),
       githubOwner: this.config.githubOwner,
       filesChanged: landing.progress.filesChanged ?? 0,
+      estimate: estimateOf(await this._bodyOf(issue)),
       handoffSessionIds,
       silenceTimeoutMs: this.knobs.silenceTimeoutMs,
       stateFolder: this.config.stateFolder,

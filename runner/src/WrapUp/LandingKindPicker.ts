@@ -2,7 +2,7 @@
 // must be clean, which branches it deletes and how it merges. It builds BranchMerger, LogRowCommitter and LandingBranchFinder.
 
 import { type WrapUpFacts } from "../FactsFile.ts";
-import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
+import { type IssueRef } from "../IssueWorkspaces.ts";
 import { newDependenciesOf } from "../ticketNewDependencies.ts";
 import { BranchMerger } from "./BranchMerger.ts";
 import { LandingBranchFinder } from "./LandingBranchFinder.ts";
@@ -51,11 +51,7 @@ export class LandingKindPicker extends WrapUpBase {
     const hasCode = branches.length > 0;
     return {
       allowedNewDependencies: async () =>
-        newDependenciesOf(
-          await this._withRetries(`Reading ${issueRef.labelOf(issue)}`, () =>
-            this.config.github.bodyOf(issue),
-          ),
-        ),
+        newDependenciesOf(await this._bodyOf(issue)),
       newDependencyAdvice:
         "Add each to the ticket's `## New dependencies` section as a `- <name>` line and rerun, or drop it from the change.",
       build: async (landing, workspace) => {

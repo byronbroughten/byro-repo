@@ -27,6 +27,8 @@ export interface OutcomeRowRequest {
   // Absent from a wrap-up older than the Workflow column, as this writer runs from the ticket's merged code.
   workflow?: WorkflowName;
   filesChanged: number;
+  // The ticket's Model fit estimate; absent from a ticket without one, and from a wrap-up older than the Estimate column.
+  estimate?: string;
   handoffSessionIds: string[];
   silenceTimeoutMs: number;
   stateFolder: string;
@@ -48,6 +50,7 @@ export function writeOutcomeRow(
     handoffSessionIds,
     silenceTimeoutMs,
     workflow = olderRowWorkflow,
+    estimate,
     ...request
   }: OutcomeRowRequest,
 ): WrittenOutcomeRow {
@@ -55,7 +58,10 @@ export function writeOutcomeRow(
   const row = {
     ...request,
     workflow,
-    facts: outcomeFactsOf(facts, { handoffSessionIds, silenceTimeoutMs }),
+    facts: {
+      ...outcomeFactsOf(facts, { handoffSessionIds, silenceTimeoutMs }),
+      estimate,
+    },
   };
   const path = outcomePathOf(outcomeFolder, row);
   mkdirSync(dirname(join(root, path)), { recursive: true });

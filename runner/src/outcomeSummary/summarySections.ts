@@ -8,6 +8,8 @@ export interface SummaryRow {
   workflow: WorkflowName;
   pair: string | undefined;
   filesChanged: number | undefined;
+  // A blank cell, or a row older than the Estimate column, is a ticket never estimated.
+  estimate: string | undefined;
   peakContext: string | undefined;
   peaks: number[] | undefined;
   result: string | undefined;
@@ -102,6 +104,7 @@ function rowOf(text: string, issue: IssueRef): SummaryRow {
     workflow,
     pair: recorded.get("Pair"),
     filesChanged: numberOf(recorded.get("Files changed")),
+    estimate: recorded.get("Estimate") || undefined,
     peakContext,
     peaks: peakContext?.split("→").map((peak) => parseFloat(peak) * 1000),
     result: result === undefined ? undefined : currentResultOf(result),

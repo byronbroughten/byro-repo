@@ -14,6 +14,7 @@ const columns = [
   "Pair",
   "Account",
   "Files changed",
+  "Estimate",
   "Peak context",
   "Result",
   "Proposals",
@@ -53,6 +54,8 @@ export interface OutcomeFacts {
   limitResumes?: number;
   pair?: string;
   account?: string;
+  // The `~NK` ending the ticket's Model fit reason; a ticket without one gets a blank cell, as it was never estimated.
+  estimate?: string;
   // Each implementer session's peak, in order; resolver sessions are left out.
   peakContext?: number[];
   durationMinutes?: number;
@@ -190,6 +193,7 @@ function cellsOf({
     facts.pair ?? unrecorded,
     facts.account ?? unrecorded,
     String(filesChanged),
+    facts.estimate ?? "",
     peakContextOf(facts),
     resultOf(facts),
     String(facts.proposals ?? 0),

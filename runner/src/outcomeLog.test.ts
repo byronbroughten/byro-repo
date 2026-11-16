@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { estimateOf } from "./modelFit.ts";
 import {
   outcomeCommitMessage,
   outcomeFileOf,
@@ -30,6 +31,7 @@ describe("outcomeFileOf", () => {
       "unrecorded",
       "unrecorded",
       "7",
+      "",
       "unrecorded",
       "unrecorded",
       "0",
@@ -52,6 +54,9 @@ describe("outcomeFileOf", () => {
         facts: {
           pair: "Sonnet high",
           account: "2",
+          estimate: estimateOf(
+            "## Model fit\n\nSonnet high\nA new column; ~120K\n",
+          ),
           peakContext: [121_400],
           halt: "red checks",
           proposals: 2,
@@ -72,6 +77,7 @@ describe("outcomeFileOf", () => {
       "Sonnet high",
       "2",
       "7",
+      "~120K",
       "121K",
       "Halted then passed (red checks)",
       "2",
@@ -90,7 +96,7 @@ describe("outcomeFileOf", () => {
     const cells = cellsOf(
       outcomeFileOf({ ...row, facts: { reviewFixes: "implementer" } }),
     );
-    expect([cells[6], cells[14]]).toEqual([
+    expect([cells[7], cells[15]]).toEqual([
       "Fix (resumed implementer)",
       "unrecorded",
     ]);
@@ -100,11 +106,29 @@ describe("outcomeFileOf", () => {
     const cells = cellsOf(
       outcomeFileOf({ ...row, facts: { reviewFixes: "skipped" } }),
     );
-    expect([cells[6], cells[14]]).toEqual(["skipped (no code)", "—"]);
+    expect([cells[7], cells[15]]).toEqual(["skipped (no code)", "—"]);
   });
 });
 
 describe("writtenCellsOf", () => {
+  it("reads a row's Estimate, blank for a ticket without one", () => {
+    const file = outcomeFileOf({
+      ...row,
+      facts: { estimate: estimateOf("## Model fit\n\nOpus medium\nSmall.") },
+    });
+    expect(writtenCellsOf(file).get("Estimate")).toBe("");
+  });
+
+  it("reads a row written before the Estimate column without one", () => {
+    const file = [
+      "| Issue | Pair | Peak context |",
+      "| --- | --- | --- |",
+      "| #218 | Opus medium | 90K |",
+    ].join("\n");
+    expect(writtenCellsOf(file).get("Peak context")).toBe("90K");
+    expect(writtenCellsOf(file).has("Estimate")).toBe(false);
+  });
+
   it("reads a row's Workflow", () => {
     const file = outcomeFileOf({ ...row, workflow: "piece" });
     expect(writtenCellsOf(file).get("Workflow")).toBe("piece");

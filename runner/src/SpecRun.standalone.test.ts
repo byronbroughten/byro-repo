@@ -72,7 +72,7 @@ describe("standalone", () => {
         'byro-repo #11 · "Ticket 11"',
         "",
         "Left out:",
-        "byro-repo #10 · byro-repo #10 has no sub-issues and no valid ## Model fit section: split it with /code-tickets, or add the section.",
+        "byro-repo #10 · byro-repo #10 has no sub-issues and no valid ## Model fit section: split it with /project-tickets, or add the section.",
         "",
         "/runner byronbroughten/byro-repo 11",
       ].join("\n"),

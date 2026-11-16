@@ -76,7 +76,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `limitGuard.ts` | `limitGuard` | The limit guard: reads usage and picks launch or Limit wait. |
 | `localTime.ts` | | Words and reads a human-facing time: local, with its zone. |
 | `lockFixture.ts` | | Pid-lock fixtures the lock tests share. |
-| `modelFit.ts` | `modelFit` | Reads a ticket's Model fit pair and compares pairs. |
+| `modelFit.ts` | `modelFit` | Reads a ticket's Model fit pair and estimate, and compares pairs. |
 | `Notices.ts` | `Notices` | The notice port, its notice kinds and the run endings among them. |
 | `outlineApply.ts` | `outlineApply` | `npm run outline:apply`'s core: applies the Outline edits a developer's answer approves to a Trusted spec body, for an interactive `/research-piece` session. |
 | `outlineEdits.ts` | | A Research Halt's Outline edits: their schema, ids and words, the ones an answer approves, and their word-for-word application to a spec body's `## Outline`. |
