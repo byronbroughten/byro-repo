@@ -45,6 +45,7 @@ describe("implementPieceSkillOf", () => {
       "Its file format is in `docs/pieces/agent-draft.md`.",
       'Draft by the rules under "Implementing a piece spec" in `docs/pieces/rules.md`, writing to the Agent draft and never the Deliverable\'s Doc.',
       "with `<!-- agent -->` on the line under the heading. Change no other Section, never one marked `<!-- developer -->`, and no other file.",
+      "A Section never needs a renamed or invented heading",
       "Read `docs/writing-voice.md` and `docs/writing-craft.md` in full before your first prose edit.",
       "Read the spec's Supporting Material only through the Drive read tools you were given, by the file IDs the spec lists.",
       "Review, resolve and any fresh step after a handoff read the same files",
@@ -73,7 +74,9 @@ describe("implementPieceSkillOf", () => {
   });
 
   it("covers either scope a ticket can have", () => {
-    expect(skill).toContain("the Sections this ticket names");
+    expect(skill).toContain(
+      "the Sections this ticket names, by their full heading paths",
+    );
     expect(skill).toContain("on a `final-pass` ticket");
   });
 

@@ -21,10 +21,10 @@ The input is `/review-piece <repo> <n>`, an issue in `<repo>`. Fetch it, even wh
 
 When your caller names the issue's spec, that is its parent; otherwise run `gh api repos/<owner>/<repo>/issues/<n>/parent`, resolving `<repo>` to `<owner>/<repo>`; a 404 means no parent. Fetch a parent the same way as the issue when there is one: it is the spec, and its facts join the fact list. With no parent, the issue is its own spec. Then set the **scope**:
 
-- **Sections**: the issue has a parent and is not the final pass. The scope is the Sections it names, matched by their exact heading text in the Agent draft.
+- **Sections**: the issue has a parent and is not the final pass. The scope is the Sections it names, each named by its full heading path and matched against the Agent draft's `#` and `##` lines.
 - **Whole**: the issue has no parent, or it carries the `final-pass` label. The scope is the whole Agent draft.
 
-Done when the title is stated, the scope is one of the two, and for Sections every named heading is found in the Agent draft. A heading that isn't found fails here, before any sub-agent runs.
+Done when the title is stated, the scope is one of the two, and for Sections every named heading path is found in the Agent draft. A path that isn't found fails here, before any sub-agent runs.
 
 ## 2. Gather the inputs
 
@@ -46,7 +46,7 @@ Done when every file exists, or the spec has no such field and you say so. Note 
 
 ## 3. Spawn the three sub-agents in parallel
 
-Issue all three Agent calls together, in the foreground. Each brief tells its reviewer to send its opening reads together, in its first turn, and to add no call just to fill a batch. Each prompt names the scope, the Section headings or "the whole Agent draft", and asks for each finding as `where` (its `file:line` in the Agent draft), `claim` (one line, quoting the sentence), a suggested verdict and its reason. Each brief ends with the same verdict line: "Give each finding a suggested verdict and its reason under `docs/agents/verdicts.md`'s `## Piece findings`: Fix, Dismiss with its reason, Propose `decision`, or Halt."
+Issue all three Agent calls together, in the foreground. Each brief tells its reviewer to send its opening reads together, in its first turn, and to add no call just to fill a batch. Each prompt names the scope, the Sections' full heading paths or "the whole Agent draft", and asks for each finding as `where` (its `file:line` in the Agent draft, with the Section's full heading path), `claim` (one line, quoting the sentence), a suggested verdict and its reason. Each brief ends with the same verdict line: "Give each finding a suggested verdict and its reason under `docs/agents/verdicts.md`'s `## Piece findings`: Fix, Dismiss with its reason, Propose `decision`, or Halt."
 
 **spec** sub-agent, the session's model. Its prompt gives the Agent draft, the fact list, Unverified, Outline, length limit and Overlap files and the passages folder, points at done checks 1, 2 and 4 in `docs/pieces/rules.md`, and the brief: "For the in-scope text only, report every factual claim that doesn't trace to the fact list, or that is drafted from the Unverified file, which is outside it, or that contradicts a fact or another part of the draft. Report how the text describes a source where it overstates, narrows or misattributes it. Judge each in-scope Overlap hit: report it as copied wording, or list it under Dismissed overlaps with a one-line reason. Add any sentence structure copied from the passages folder, which the Overlap list can't see. Report each in-scope Section that doesn't make its Outline claim or set out the facts the Outline assigns it. Report whether the whole draft meets the length limit. Quote the spec line or the copied passage for each finding. Under 400 words."
 

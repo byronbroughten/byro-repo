@@ -19,9 +19,9 @@ Give Bash one command per call, run from the current directory: no `cd`, no `;` 
 
 ## 2. List the changed Sections
 
-- Run `npm run doc:print -- <Doc ID>` bare, in a call of its own, and Write its output to a scratchpad file, `deliverable.md`; its Section headings are already `## <heading text>`.
+- Run `npm run doc:print -- <Doc ID>` bare, in a call of its own, and Write its output to a scratchpad file, `deliverable.md`; it prints each H1 as a `# <H1>` line and each H2 as a `## <H2>` line, each with a `headingId` comment line after it.
 - Write `agent-draft.md` beside it as [`to-writing-style`'s pair-mode step 2](../to-writing-style/pair-mode.md#2-make-the-pair) makes it, `<clone>` being this workspace's checkout of `<repo>`, deleting each author-mark line.
-- Compare them Section by Section, by heading. List each Section whose text differs as changed, each heading only the Doc holds as added and each only the Agent draft holds as struck.
+- Compare them Section by Section, by full heading path. List each Section whose text differs as changed, each heading path only the Doc holds as added and each only the Agent draft holds as struck, naming each Section by its path.
 
 Done when every Section of both files is in the list or matched. With nothing changed, added or struck, ask whether the edit is done, saying the Doc still matches the Agent draft. A no stops here, leaving the gate open.
 

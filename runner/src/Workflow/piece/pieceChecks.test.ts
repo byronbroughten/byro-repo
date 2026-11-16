@@ -118,3 +118,41 @@ describe("pieceChecks.wordCountOf", () => {
     expect(pieceChecks.wordCountOf(sections)).toBe(15);
   });
 });
+
+describe("pieceChecks messages", () => {
+  const twoIntros = agentDraft.sectionsOf(
+    "# Cost\n<!-- developer -->\n\n## Introduction (Intent)\n<!-- agent -->\n\nThe cost plan.\n\n# Schedule\n<!-- developer -->\n\n## Introduction (Intent)\n<!-- agent -->\n\nThe schedule plan.\n",
+  );
+  const agentOnly = twoIntros.filter(({ author }) => author === "agent");
+
+  it("names each Section an overlap failure covers by its full path, where two H1s hold the same H2", () => {
+    const headline = pieceChecks.overlapHeadlineOf(
+      "npm run overlap",
+      2,
+      agentOnly,
+    );
+
+    expect(headline).toContain(
+      '"Cost › Introduction (Intent)", "Schedule › Introduction (Intent)"',
+    );
+  });
+
+  it("gives a length failure each Section's words by its full path, leaving out an empty H1's Section", () => {
+    const failure = pieceChecks.lengthFailureOf(
+      "## Form\n\nLength: 3 words\n",
+      twoIntros,
+    );
+
+    expect(failure).toContain(
+      '"Cost › Introduction (Intent)": 3, "Schedule › Introduction (Intent)": 3',
+    );
+    expect(failure).not.toContain('"Cost":');
+    expect(failure).toContain("6 words");
+  });
+
+  it("has no length failure within the limit", () => {
+    expect(
+      pieceChecks.lengthFailureOf("## Form\n\nLength: 6 words\n", twoIntros),
+    ).toBeUndefined();
+  });
+});

@@ -24,6 +24,29 @@ describe("pieceImplementPrompt", () => {
       "- Send the reads and greps you've already decided on together in one turn, and don't add a call to fill a batch.",
     );
   });
+
+  it("names the Sections by full heading path and says a Section never needs a renamed or invented heading", () => {
+    const prompt = pieceImplementPrompt({
+      issue: { repo: "personal", number: 12 },
+      spec: { repo: "personal", number: 10 },
+      title: "Draft the opening",
+      body: "ticket body",
+      labels: [],
+      branch: "issue-12-draft",
+      branchedRepos: ["personal"],
+      workspacePath: "/workspace",
+      promoteCommand: "npm run issue:promote -- personal 12",
+      draftPath: "writing/agent-drafts/10.md",
+    });
+
+    expect(prompt).toContain(
+      "the Sections this ticket names, by their full heading paths",
+    );
+    expect(prompt).toContain(
+      "A Section never needs a renamed or invented heading",
+    );
+    expect(prompt).toContain("each named by its heading path");
+  });
 });
 
 const draft =
@@ -55,6 +78,27 @@ describe("pieceImplementRecordProblems", () => {
         contextOf(false),
       ),
     ).toEqual([]);
+  });
+
+  it("tells two Sections with the same H2 apart by their H1s", () => {
+    const twoIntros =
+      "# Cost\n<!-- developer -->\n\n## Introduction (Intent)\n<!-- agent -->\n\nThe cost plan.\n\n# Schedule\n<!-- developer -->\n\n## Introduction (Intent)\n<!-- agent -->\n\nThe schedule plan.\n";
+    const context = { isFinalPass: false, draftOf: () => twoIntros };
+
+    expect(
+      pieceImplementRecordProblems(
+        outputOf(["Cost › Introduction (Intent)"]),
+        true,
+        context,
+      ),
+    ).toEqual([]);
+    const problems = pieceImplementRecordProblems(
+      outputOf(["Introduction (Intent)"]),
+      true,
+      context,
+    );
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("`<H1> › <H2>`");
   });
 
   it("returns a heading the draft lacks as a record problem naming it", () => {

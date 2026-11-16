@@ -28,7 +28,7 @@ disable-model-invocation: true
 - The Agent draft is `writing/agent-drafts/<spec n>.md` in the `<spec repo>` clone. Your pull brought the Deliverable's Doc into it. Its file format is in `docs/pieces/agent-draft.md`.
 - The ticket's spec is <spec repo>#<spec n>; read its body for the Deliverable, the Reader, the Outline and the Supporting Material.
 - Draft by the rules under "Implementing a piece spec" in `docs/pieces/rules.md`, writing to the Agent draft and never the Deliverable's Doc.
-- Draft only the Sections this ticket names (on a `final-pass` ticket, every Section marked `<!-- agent -->`, whichever ticket drafted it), each under its heading as the draft holds it, with `<!-- agent -->` on the line under the heading. Change no other Section, never one marked `<!-- developer -->`, and no other file.
+- Draft only the Sections this ticket names, by their full heading paths (on a `final-pass` ticket, every Section marked `<!-- agent -->`, whichever ticket drafted it), each under its heading as the draft holds it, with `<!-- agent -->` on the line under the heading. Change no other Section, never one marked `<!-- developer -->`, and no other file. A Section never needs a renamed or invented heading: keep every heading as the draft holds it, and a heading repeated under another H1 is told apart by its path.
 - Read `docs/writing-voice.md` and `docs/writing-craft.md` in full before your first prose edit.
 - Read the spec's Supporting Material only through the Drive read tools you were given, by the file IDs the spec lists.
 - Save each passage you read once, as a text file in the passages folder, `.runner/passages/<repo>-<n>`, named for its source and range. Review, resolve and any fresh step after a handoff read the same files, so read a source again only for a passage the folder lacks. The folder is gitignored; never copy a passage into the repo.
@@ -42,7 +42,7 @@ disable-model-invocation: true
 
 ## The piece checks
 
-- Fix every hit the overlap check prints in the Sections this ticket names (on a `final-pass` ticket, every Section marked `<!-- agent -->`, whichever ticket drafted it), unless review dismissed it, then rerun it; a hit in any other Section isn't this ticket's.
+- Fix every hit the overlap check prints in the Sections this ticket names, by their full heading paths (on a `final-pass` ticket, every Section marked `<!-- agent -->`, whichever ticket drafted it), unless review dismissed it, then rerun it; a hit in any other Section isn't this ticket's.
 - On a `final-pass` ticket, or when this ticket's Sections are every Section of the Agent draft, also keep the agent Sections' words, headings and author marks left out, within the spec's Form `Length:` line.
 
 ## GitHub

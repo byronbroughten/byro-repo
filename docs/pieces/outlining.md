@@ -6,7 +6,7 @@ How to write a spec's Outline.
 
 One entry per Section, in reading order:
 
-- **The heading**, as it will read in the Deliverable.
+- **The heading path**, as it will read in the Deliverable: `<H1> › <H2>`, the H1 alone for an H1's own Section, or the H2 alone in a Deliverable with no H1.
 - **The claim**: what the Section says, in one line.
 - **The facts it sets out**, in full, drawn from the spec's Facts field. A fact a later Section relies on is set out once, in the first Section that needs it, and that Section coins any short name for it.
 
@@ -18,7 +18,7 @@ Order the Sections so each next one is the turn the reader expects: general to s
 
 ## When a template fixes the Sections
 
-An assignment's template, named in the Form field, fixes the headings and their order. The Outline keeps them as given and fills each with its claim and facts; it adds, drops or reorders a Section only with the developer's yes.
+An assignment's template, named in the Form field, fixes the headings, and so the heading paths, and their order. The Outline keeps them as given and fills each with its claim and facts; it adds, drops or reorders a Section only with the developer's yes.
 
 ## When Research revises it
 
