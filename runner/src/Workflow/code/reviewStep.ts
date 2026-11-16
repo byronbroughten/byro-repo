@@ -53,6 +53,7 @@ export function reviewerCheckOf(skillName: string): ReviewerCheck {
   return {
     count: codeAxes.length,
     resumePrompt: `Your review ran without its reviewer subagents. Spawn both, the Standards and Spec reviewers, as the "${skillName}" skill says: two Agent calls in one message. Then return the review record from their reports, replacing the one you returned.`,
+    offersInline: true,
   };
 }
 

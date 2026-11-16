@@ -10,6 +10,7 @@ import {
   addSpec,
   bodyWith,
   capped,
+  commitFile,
   crashed,
   findingOf,
   github,
@@ -18,10 +19,13 @@ import {
   implemented,
   implementResultOf,
   primaryOf,
+  progressLines,
   refOf,
   resolved,
   resultOf,
   reviewed,
+  reviewedInline,
+  reviewListOf,
   runStatePath,
   spec,
   specRun,
@@ -73,6 +77,15 @@ function handingOff(given: Handoff): StepScript {
 }
 
 const handedOff = handingOff(handoff);
+
+// Hands off with nothing left in the tree, as a review, which changes nothing, does.
+async function handedOffInReview(): Promise<StepResult> {
+  return {
+    ...handoffResultOf(handoff),
+    sessionId: "handoff-session",
+    peakContext: 150_000,
+  };
+}
 
 describe("run's implement handoff", () => {
   it("passes the ticket to a fresh implement step on the same pair, keeping the work", async () => {
@@ -217,6 +230,11 @@ describe("run's implement handoff", () => {
 // Leaves an uncommitted edit, then is killed at the live ceiling without handing off.
 async function crossed(request: StepRequest): Promise<StepResult> {
   writeFileSync(join(request.cwd, "half.ts"), "half a ticket\n");
+  return crossedInReview();
+}
+
+// Killed at the live ceiling without handing off, having changed nothing, as a review is.
+async function crossedInReview(): Promise<StepResult> {
   return {
     ...implementResultOf(blockedRecord),
     output: { status: "none" },
@@ -456,6 +474,64 @@ describe("run's handoffs after implement", () => {
     expect(ticketFacts().reviewFixes).toBe("implementer");
   });
 
+  it("resumes an implementer killed at the live ceiling during the review for a handoff in review, and a fresh session reviews again from the start", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      implementedAt(90_000),
+      crossedInReview,
+      handedOffInReview,
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    const [implementer, review, backstop, fresh] = agentStep.requests;
+    expect(review?.liveCeiling).toBe(180_000);
+    expect(backstop?.resumeSessionId).toBe("crossed-session");
+    expect(backstop?.prompt).toBe(handoffOnlyPrompt);
+    expect(backstop?.logPath).toMatch(/-review\.jsonl$/);
+    expect(fresh?.resumeSessionId).toBeUndefined();
+    expect(fresh?.pair).toEqual(implementer?.pair);
+    expect(fresh?.liveCeiling).toBe(180_000);
+    expect(fresh?.prompt).toContain(review?.prompt);
+    expect(fresh?.prompt).toContain("Conclusion: The parser is half done.");
+    expect(handoffComments()[0]).toContain(
+      "a fresh session in the review step.",
+    );
+    expect(progressLines().join("\n")).toContain(
+      "crossed the live ceiling in the review step; resuming it for a handoff",
+    );
+  });
+
+  it("hands off when the review sent back for its reviewers crosses the live ceiling, and a fresh session reviews again", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      async (request) => {
+        commitFile({
+          cwd: request.cwd,
+          file: "two.ts",
+          content: "export {};\n",
+          message: "Add two.ts",
+        });
+        return implementedAt(90_000)(request);
+      },
+      reviewedInline(),
+      crossedInReview,
+      handedOffInReview,
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    const [, , resumed, backstop, fresh] = agentStep.requests;
+    expect(resumed?.liveCeiling).toBe(180_000);
+    expect(backstop?.prompt).toBe(handoffOnlyPrompt);
+    expect(fresh?.resumeSessionId).toBeUndefined();
+    expect(reviewListOf(1)).toBeUndefined();
+  });
+
   it("hands off when the implementer's resolve retry crosses the live ceiling, and a fresh session resolves from the step's prompt", async () => {
     addSpec([1]);
     const noQuote = { ...fixRecords[0], quote: undefined } as ResolveRecord;
@@ -612,6 +688,23 @@ describe("run's handoff cap", () => {
     await specRun(agentStep).run(spec);
 
     expect(agentStep.requests).toHaveLength(4);
+    expect(haltComments()[0]).toContain("`continue +1 handoff`");
+  });
+
+  it("counts a handoff in review", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      handedOff,
+      handedOff,
+      implementedAt(90_000),
+      crossed,
+      handedOff,
+    );
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests).toHaveLength(5);
+    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
     expect(haltComments()[0]).toContain("`continue +1 handoff`");
   });
 

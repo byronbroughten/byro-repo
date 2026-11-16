@@ -2,7 +2,8 @@
 // for a session review, a fresh review session, resumed once when over the inline size it skipped its reviewer subagents;
 // the implementer resolves them, giving each a verdict and fixing the Fix ones. A fresh session after a handoff carries
 // either step on; a resolve record that breaks the rules gets one resumed retry, apart from the launcher's one schema
-// resume, and a Halt verdict raises a Halt. Before review and resolve, an implementer past the ticket budget hands off.
+// resume, and a Halt verdict raises a Halt. Before review and resolve, an implementer past the ticket budget hands off;
+// killed at the live ceiling during either, it hands off at once.
 // Checks and landing call _runImplementerStep to run the implementer on red checks or a master merge.
 // It builds its own HaltRaiser, HandoffTaker and StepLauncher; each step's prompt, schema and checks are its spec's
 // Workflow's, through ../Workflow.ts.
@@ -52,6 +53,11 @@ interface ImplementerLaunch {
 
 interface ReviewLaunch extends Omit<ImplementerLaunch, "step"> {
   isSessionReview: boolean;
+}
+
+// Unset reviewerCheck never sends the review back: a Workflow with none, or a diff within the inline size.
+interface ReviewAttempt extends Omit<ReviewLaunch, "freshPrompt"> {
+  reviewerCheck?: ReviewerCheck;
 }
 
 interface ReviewerResume {
@@ -108,7 +114,8 @@ export class ReviewStepper extends SpecRunBase {
     const rules = this._agentStepOf(run.spec, "review");
     const { reviewerCheck, outputSchema: jsonSchema } = rules;
     const isInlineAllowed =
-      reviewerCheck !== undefined && (await this._isInlineSize(ticketRun));
+      reviewerCheck?.offersInline === true &&
+      (await this._isInlineSize(ticketRun));
     const isSessionReview = run.sessionReview !== undefined;
     const launch: StepLaunch = {
       prompt: rules.promptOf({
@@ -119,19 +126,22 @@ export class ReviewStepper extends SpecRunBase {
         pointsWorthChecking: pointsWorthCheckingOf(state.record),
       }),
       jsonSchema,
+      // A session review's fresh review session has no implementer to hand off.
+      liveCeiling: isSessionReview ? undefined : this.config.knobs.liveCeiling,
     };
-    let ran = await this._runReviewSession(ticketRun, {
+    const attempt: ReviewAttempt = {
       launch,
       isSessionReview,
-    });
-    state.hasSkippedReviewers = undefined;
-    if (reviewerCheck !== undefined && !isInlineAllowed) {
-      ran = await this._sentBackForReviewers(ticketRun, {
-        ran,
-        reviewerCheck,
-        launch,
-        isSessionReview,
+      reviewerCheck: isInlineAllowed ? undefined : reviewerCheck,
+    };
+    let ran = await this._reviewOnce(ticketRun, attempt);
+    // The review changes nothing, so the fresh session after the handoff reviews again from the start.
+    while (ran.result.hasCrossedCeiling) {
+      await this.handoffTaker._handOffAtCeiling(ticketRun, {
+        agent: "review",
+        crossedSession: ran.result.sessionId,
       });
+      ran = await this._reviewOnce(ticketRun, attempt);
     }
     const { record, logPath } = ticketSteps.launchedOf("review", ran);
     const problems = schemaProblemsOf(rules.outputSchema, record);
@@ -141,6 +151,25 @@ export class ReviewStepper extends SpecRunBase {
     const { findings, dismissedOverlaps } = record as ReviewRecord;
     state.findings = findings;
     state.dismissedOverlaps = dismissedOverlaps;
+  }
+
+  // A review the live ceiling killed isn't sent back for its reviewers: its handoff comes first.
+  private async _reviewOnce(
+    ticketRun: TicketRun,
+    { launch, isSessionReview, reviewerCheck }: ReviewAttempt,
+  ): Promise<RanStep> {
+    const ran = await this._runReviewSession(ticketRun, {
+      launch,
+      isSessionReview,
+    });
+    ticketRun.state.hasSkippedReviewers = undefined;
+    if (reviewerCheck === undefined || ran.result.hasCrossedCeiling) return ran;
+    return this._sentBackForReviewers(ticketRun, {
+      ran,
+      reviewerCheck,
+      launch,
+      isSessionReview,
+    });
   }
 
   // A resume that finds no conversation runs fresh, a session review's as the implementer's does.
@@ -187,11 +216,13 @@ export class ReviewStepper extends SpecRunBase {
       launch: {
         prompt: resumePrompt,
         jsonSchema: launch.jsonSchema,
+        liveCeiling: launch.liveCeiling,
         resumeSessionId: ran.result.sessionId,
       },
       isSessionReview,
       freshPrompt: launch.prompt,
     });
+    if (resumed.result.hasCrossedCeiling) return resumed;
     const total = spawned + resumed.result.spawnedSubagentCount;
     if (total < count) {
       state.hasSkippedReviewers = true;
@@ -216,7 +247,7 @@ export class ReviewStepper extends SpecRunBase {
 
   // A turn cap is a crash, its work reset away; a crossed live ceiling hands off, its work kept for the fresh session.
   async _resolve(ticketRun: TicketRun): Promise<void> {
-    const { run, ticket, workspace, state } = ticketRun;
+    const { run, workspace, state } = ticketRun;
     if (state.resolveBase === undefined) {
       state.resolveBase = await this._headsOf(workspace);
       this._saveState(run);
@@ -229,11 +260,10 @@ export class ReviewStepper extends SpecRunBase {
     let isRetry = false;
     for (;;) {
       if (attempt.kind === "crossed") {
-        this._log(
-          run,
-          `${issueRef.labelOf(ticket.issue)}: the implementer's resolve crossed the live ceiling; resuming it for a handoff.`,
-        );
-        await this.handoffTaker._handOffAtCeiling(ticketRun, attempt.sessionId);
+        await this.handoffTaker._handOffAtCeiling(ticketRun, {
+          agent: "resolve",
+          crossedSession: attempt.sessionId,
+        });
       } else if (attempt.kind === "capped") {
         const turns = this.config.knobs.maxTurns.resolve;
         await this.haltRaiser._takeCrash(ticketRun, {

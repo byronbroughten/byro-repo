@@ -249,10 +249,12 @@ export interface ReviewRules {
   reviewerCheck?: ReviewerCheck;
 }
 
-// A review over the inline size that spawns fewer than `count` subagents is resumed once with `resumePrompt`.
+// A review that spawns fewer than `count` subagents is resumed once with `resumePrompt`, unless it was offered inline review.
 export interface ReviewerCheck {
   count: number;
   resumePrompt: string;
+  // False where the diff's file count says nothing of the review's size, so every review is checked.
+  offersInline: boolean;
 }
 
 export interface ResolvePromptInput extends TicketPromptFields {

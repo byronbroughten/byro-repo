@@ -80,7 +80,11 @@ import {
   type RuleSheetName,
   type RuleSheets,
 } from "./reviewCaught.ts";
-import { pieceReviewPrompt, pieceReviewRecordSchema } from "./reviewStep.ts";
+import {
+  pieceReviewerCheckOf,
+  pieceReviewPrompt,
+  pieceReviewRecordSchema,
+} from "./reviewStep.ts";
 
 // The labels the Workflow reads on a ticket: a Research ticket's, and the Edit gate's.
 const ticketLabels = {
@@ -242,6 +246,7 @@ export function pieceWorkflowOf({
         promptOf: reviewPromptOf,
         outputSchema: pieceReviewRecordSchema,
         skillName: "review-piece",
+        reviewerCheck: pieceReviewerCheckOf("review-piece"),
       },
       resolve: resolveRulesOf({
         promptOf(input) {

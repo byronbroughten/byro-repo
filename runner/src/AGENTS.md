@@ -112,7 +112,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/DraftPusher.ts` | | Runs a piece spec's push: writes the Agent draft's agent Sections into the Doc once, raising a push Halt before any write on a Section the developer changed since the pull, reading and comparing again on a stale revision up to a bound, and raising a push Halt naming a Doc with pending suggestions, delegating its `keep mine` answers to `DraftPusher/`. |
 | `SpecRun/DraftPusher/DraftKeeper.ts` | | Marks the push's `keep mine` Sections as the developer's in the Agent draft and lands it as a session. |
 | `SpecRun/HaltRaiser.ts` | | Raises and posts a ticket's Halts and finds its downstream. |
-| `SpecRun/HandoffTaker.ts` | | Takes the implementer's handoffs from implement through resolve: past the ticket budget at a step boundary, at the live ceiling during resolve, and the cap check before a fresh step. |
+| `SpecRun/HandoffTaker.ts` | | Takes the implementer's handoffs from implement through resolve: past the ticket budget at a step boundary, at the live ceiling during review or resolve, and the cap check before a fresh step. |
 | `SpecRun/ImplementStepper.ts` | | Runs a ticket's implement step and its handoff loop, and creates the kept folder a Workflow names. |
 | `SpecRun/JudgeableIssueLister.ts` | | `runner judgeable`: lists a repo's open issues by the Base's judgement, undecided review-list items or ready to close. |
 | `SpecRun/LeaseKeeper.ts` | | Takes and releases a ticket's workspace lease and finds its workspace. |
@@ -186,7 +186,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Workflow/piece/researchStep/researchWords.ts` | | The research step's prompt, its red-quotes section, handoff comment, closing comment and Research Halt words. |
 | `Workflow/piece/resolveStep.ts` | | The piece resolve step's prompt, pointing at the verdict rules' `## Piece findings` and rerunning the piece checks after its Fixes, and its record checks, which refuse the verdict reasons a piece finding never takes. |
 | `Workflow/piece/reviewCaught.ts` | | A piece outcome row's "What review caught" cell: each kept finding by its axis and public rule name only. |
-| `Workflow/piece/reviewStep.ts` | | The piece review step's prompt, reading `/review-piece` by its path over the Agent draft and passages folder, and its record schema. |
+| `Workflow/piece/reviewStep.ts` | | The piece review step's prompt, reading `/review-piece` by its path over the Agent draft and passages folder, its record schema and its reviewer check. |
 | `WrapUp.ts` | `WrapUp` | `npm run wrap-up`: lands an issue or session workspace, delegating its landing steps and closing the issue to `WrapUp/`; and `npm run research:push`'s push. |
 | `WrapUp/BranchDeleter.ts` | | Deletes a landing's branches on each remote and locally, recording the ones that failed. |
 | `WrapUp/BranchLander.ts` | | Lands a landing's branches up to the fast-forward: restores, clean check, files changed, stale paths, unnamed new dependencies, build and rebuild. |
