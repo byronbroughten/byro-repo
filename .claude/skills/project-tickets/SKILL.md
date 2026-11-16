@@ -84,7 +84,7 @@ Present the breakdown as a numbered list. For each ticket:
 - **Blocked by**: the other tickets that must finish first, if any
 - **Kind**: agent, interactive or human; for an agent or interactive ticket, its pair
 - **What it delivers**: the end-to-end behaviour it makes work
-- **Packages**: the work packages it groups, with the files they change by count
+- **Packages**: the work packages it groups, with the files they change by count; for a piece ticket, its stage and the Sections it names
 - **Estimate**: its `~NK`, and the reason for any under 90K kept apart
 
 Ask whether the granularity is right, whether each edge genuinely gates its ticket, and whether any tickets should merge or split. Put step 5's spec gaps after the list as one round in the [`grilling`](../grilling/SKILL.md) format, then apply the answers; when an answer settles what the spec should have said, add a line saying so to the spec's body.
@@ -93,7 +93,7 @@ Iterate until the developer approves. The review in step 5 runs once: carry the 
 
 ## 7. File
 
-File the drafts with `npm run issue:file -- <repo> <n> <scratchpad>/tickets`, `<n>` the spec, or with no `<n>` for a standalone run with no issue. It sets each kind's triage label, each sub-issue link and each blocked-by edge, then reads them back. A draft it refuses files nothing: fix the draft it names and run it again. A read-back mismatch comes after filing: fix the issue it names by the issue tracker doc's operations, never by filing again. Set any edge to an issue filed earlier by [the Blocking operation](../../../docs/agents/issue-tracker.md#wayfinding-operations).
+File the drafts with `npm run issue:file -- <repo> <n> <scratchpad>/tickets`, `<n>` the spec, or with no `<n>` for a standalone run with no issue. It sets each kind's triage label, each sub-issue link and each blocked-by edge, then reads them back. A draft it refuses files nothing: fix the draft it names and run it again. A read-back mismatch comes after filing: fix the issue it names, never by filing again: a title or label by [the issue tracker doc's commands](../../../docs/agents/issue-tracker.md#commands-for-each-operation), a parent or edge by [its Child ticket and Blocking operations](../../../docs/agents/issue-tracker.md#wayfinding-operations). Set any edge to an issue filed earlier by [the Blocking operation](../../../docs/agents/issue-tracker.md#wayfinding-operations).
 
 Then relabel an accepted `needs-triage` spec with `gh issue edit -R <owner>/<repo> <n> --remove-label needs-triage --add-label ready-for-agent`. Change the spec's body only by step 6's added lines; never close it.
 
@@ -227,7 +227,7 @@ The Edit gate has no `## Where` and no `## Model fit`.
 
 ## Re-ticket
 
-`/project-tickets re-ticket <repo> <n>` splits the existing ticket `<repo>#<n>`; the Supervisor reads this section and follows it when the developer asks for a split. Read the ticket, its parent spec and any handoff comment on it with `npm run issue:read`, and what has landed or started from `npm run runner -- status <owner/repo> <spec>`.
+`/project-tickets re-ticket <repo> <n>` splits the existing ticket `<repo>#<n>`. Read the ticket, its parent spec and any handoff comment on it with `npm run issue:read`, and what has landed or started from `npm run runner -- status <owner/repo> <spec>`.
 
 1. **The done part stays on the ticket**: what has landed, or its workspace holds green, by its acceptance criteria. Edit its body to that part with `gh issue edit -R <owner>/<repo> <n> --body-file <path>`, its `## Model fit` estimate re-made for it.
 2. **The rest is drafted as work packages**, by step 3, and grouped by step 4's rules, kind, pair, cap and merges included.
