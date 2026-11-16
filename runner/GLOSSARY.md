@@ -20,6 +20,10 @@ _Avoid_: orphan, loose ticket, ticketless spec
 One part of a ticket's run, in order: implement, review, resolve, checks and wrap-up, with the gap check once at the end of the spec. An agent step is one `claude -p` session; checks and wrap-up the runner does itself.
 _Avoid_: phase, stage, job
 
+**Setup turn**:
+One model request of an agent step or interactive session whose tool calls the runner or a script could have made before the session began, such as loading a skill, re-reading a ticket the session already holds, or a fixed `git` query.
+_Avoid_: overhead turn, wasted turn, opening turn
+
 **Active account**:
 The Claude account the developer is logged in with right now, as cswap reports it. Every agent step runs on it, a resumed session included.
 _Avoid_: configured account, current account, runner account
