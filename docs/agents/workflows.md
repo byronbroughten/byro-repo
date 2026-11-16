@@ -1,6 +1,6 @@
 # The workflows by Workflow stage
 
-The coding and the piece [Workflows](../../runner/GLOSSARY.md#language), stage by stage: the skills that work each [Workflow stage](../../runner/GLOSSARY.md#language), how each hands off to the next, and the rules docs, formats and machinery that two or more skills or [Steps](../../runner/GLOSSARY.md#language) share, each with its route. The core both Workflows run on is the runner glossary's and [the runner's `src/AGENTS.md`](../../runner/src/AGENTS.md)'s. This doc records what is, not what should be: a gap it shows is a ticket. Each skill keeps its own rules; follow its link for them.
+The coding and the piece [Workflows](../../runner/GLOSSARY.md#language), stage by stage: the skills that work each [Workflow stage](../../runner/GLOSSARY.md#language), how each hands off to the next, and the rules docs, formats and machinery that two or more skills or [Steps](../../runner/GLOSSARY.md#language) share, each with its route. The core both Workflows run on is the runner glossary's and [the runner's `src/AGENTS.md`](../../runner/src/AGENTS.md)'s. Beside [the turn-cost rules](#turn-cost-a-workflows-setup-turns), it records what is: a gap it shows is a ticket. Each skill keeps its own rules.
 
 ## Which skills are in scope
 
@@ -45,6 +45,24 @@ The words Piece, Deliverable, Section, Stage and Agent draft are [the writing gl
 
 - **Code**: the runner's [`Workflow`](../../runner/src/Workflow.ts) module picks the code Workflow, whose code is in [`runner/src/Workflow/code/`](../../runner/src/Workflow/code/); its [`codeWorkflow.ts`](../../runner/src/Workflow/code/codeWorkflow.ts) defines the Steps each ticket goes through, and the runner's `TicketSequencer` runs them. `/code-review` is the review Step's skill, named, with each ticket's checks, where `scripts/runner/runnerConfig.ts` builds the code Workflow, and `/implement-code` is generated from the implement Step's shared body (`runner/src/Workflow/code/implementCodeSkill.ts`), so a change to either reaches both an interactive session and a run.
 - **Piece**: the runner's [`pieceWorkflow.ts`](../../runner/src/Workflow/piece/pieceWorkflow.ts) runs a Research ticket's research Step, which follows `/research-piece`'s steps 1–7, the ones it names as shared by both modes, then its quote check, and lands it with no code. Every other piece ticket is a drafting ticket: it runs pull, implement, review (whose prompt carries `/review-piece`'s SKILL.md body), resolve, checks and wrap-up, landing by wrap-up; red checks go to the red-checks Step up to the `retriesPerFailure` run knob's times, then raise a Failure Halt. `/implement-piece` is generated from the implement Step's drafting lines (`runner/src/Workflow/piece/implementPieceSkill.ts`), so a change to either reaches both an interactive session and a run.
+
+## Turn cost: a Workflow's Setup turns
+
+A new Workflow, a new or edited step prompt, and a new or edited Workflow skill check their opening against these rules, so they spend no [Setup turns](../../runner/GLOSSARY.md#language).
+
+- **Cost is summed context, not turn count**: every model request re-reads the session's whole context, so a session costs the sum over its requests of cache reads, cache writes and input.
+- **What the runner or a script can know before a session starts goes into its prompt or a script's output, never into a Setup turn.**
+- **A step that follows a skill gets the skill's body inlined, never a Skill call or a read by its path**: `runner/src/stepPrompts/inlinedSkill.ts` reads it from the issue workspace's SKILL.md at launch, so the skill stays the one home of its instructions.
+- **A resumed session is told what it already holds; a fresh one isn't told it holds what it never saw.**
+- **Calls already decided on go out together, and none is added to fill a batch.**
+- **A change that cuts turns is measured before and after, and reverted when it costs more than it saves**: summed context and read tokens per step, by step kind, from the step logs before it lands against the first run after; a batching line is reverted when read tokens rise by more than the summed context it saves; either result goes into [the estimates](./codebase-priorities/estimates.md) as an `Observed:` line.
+
+The worked examples:
+
+- **byro-repo#357, `/start-issue`'s opening**: `npm run issue:start` prints whether the session is already in the workspace, its path, and the ticket's Model fit and comments, cutting the opening from six turns to two, or one when already entered.
+- **byro-repo#773, the review step's opening**: the code and piece review prompts inline their review skill's body; the code review prompt pins `master` as the fixed point and lists each repo's commits since it (`runner/src/Workflow/code/reviewStep.ts`); a review that resumes the implementer is told it holds the ticket (`heldTicketLinesOf` in `runner/src/promptText.ts`); `runner -- review`'s brief prints the same prompt.
+- **byro-repo#773, the piece review's inputs**: the runner writes what `/review-piece` copies word for word, the spec's fields, the Unverified sections, the overlap report and the Style file, before the review launches (`runner/src/Workflow/piece/reviewInputs.ts`), leaving the fact list to the review.
+- **byro-repo#773, the batching lines**: the implement body, the piece drafting lines and the resolve text both Workflows share carry "send the reads and greps you've already decided on together in one turn, and don't add a call to fill a batch" (`runner/src/stepPrompts/resolveText.ts`), and `/code-review` and `/review-piece` tell each reviewer to send its opening calls together.
 
 ## The hand-off table
 

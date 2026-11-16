@@ -41,7 +41,7 @@ The words for the repo's prose, which file holds which fact, what the root AGENT
 | `docs/academic-writing-style.md` | Academic conventions layered on `docs/writing-voice.md` and `docs/writing-craft.md`, one line per rule, rule only, with APA 7 as the citation standard. |
 | `docs/academic-writing-style/*.md` | Each rule's quoted instances and sources, indexed by `docs/academic-writing-style.md`'s "When \| File" table. |
 | `docs/agents/*.md` | Agent workflow: git, planning, model fit, delegation, issues and triage labels, domain docs, vendored upstream skills, which prose file a fact belongs in, handing judgements to Jev and its trial log. |
-| `docs/agents/workflows.md` | The coding and the piece Workflows by Workflow stage, their hand-offs, and the docs, formats and machinery two or more of their skills and Steps share, with each route. **An edit that adds or removes a link to a doc in its shared tables, from a skill, a hook's message or a runner prompt, updates it.** |
+| `docs/agents/workflows.md` | The coding and the piece Workflows by Workflow stage, their hand-offs, the turn-cost rules a new or edited Workflow, step prompt or skill follows, and the docs, formats and machinery two or more of their skills and Steps share, with each route. **An edit that adds or removes a link to a doc in its shared tables, from a skill, a hook's message or a runner prompt, updates it.** |
 | `docs/agents/planning.md` | The rules for a design or grilling session: what it may write before the skill that files it is invoked. |
 | `docs/agents/specs.md` | The rules for planning and writing a spec, code or piece. |
 | `docs/agents/tickets.md` | Every ticketing judgment: the ticket split test, work packages, sizing and grouping, repos, `## Where` and Model fit. |
