@@ -114,7 +114,7 @@ function withGoneSection(
   }
   if (gone.level === markdownDialect.syntax.sectionLevel) {
     sections.push({
-      level: 1,
+      level: markdownDialect.syntax.h1Level,
       text: h1,
       path: h1,
       author: "developer",

@@ -35,6 +35,7 @@ export interface SectionHeading {
 export type WithPath<SH extends SectionHeading> = SH & { path: string };
 
 const syntax = {
+  h1Level: 1,
   sectionLevel: 2,
   pathSeparator: " › ",
   listIndent: "    ",
@@ -169,16 +170,21 @@ export const markdownDialect = {
         split.push({ level, text: line.slice(level + 1), lines: [] });
         return split;
       }, []);
-    const paths = new Set<string>();
-    return markdownDialect
-      .withPathsOf(chunks)
-      .map(({ level, text, path, lines }) => {
-        if (paths.has(path)) {
-          throw new Error(`Two Sections share the heading path "${path}".`);
-        }
-        paths.add(path);
-        return { level, text, path, markdown: `${lines.join("\n").trim()}\n` };
+    const sections: HeadedSection[] = [];
+    for (const { level, text, path, lines } of markdownDialect.withPathsOf(
+      chunks,
+    )) {
+      if (sections.some((section) => section.path === path)) {
+        throw new Error(`Two Sections share the heading path "${path}".`);
+      }
+      sections.push({
+        level,
+        text,
+        path,
+        markdown: `${lines.join("\n").trim()}\n`,
       });
+    }
+    return sections;
   },
 
   /** A heading path split into its H1, undefined for a path with none, and its last heading's text. */

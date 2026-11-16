@@ -1061,7 +1061,7 @@ describe("the end of a piece spec", () => {
         const [halt] = haltComments();
         expect(halt).toContain('The Doc has no "Part two › Intro" Section');
         expect(halt).toContain(
-          'Add an H2 "Intro" under the H1 "Part two", then answer `overwrite`',
+          'Add an H2 "Intro" under the H1 "Part two", adding that H1 first if the Doc has none, then answer `overwrite`',
         );
       });
     });

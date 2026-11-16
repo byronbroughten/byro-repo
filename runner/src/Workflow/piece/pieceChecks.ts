@@ -96,7 +96,7 @@ export const pieceChecks = {
     const inScope = agentSections.filter(({ path }) => drafted.includes(path));
     return {
       sections: inScope,
-      isWhole: inScope.length === sections.filter(isWritten).length,
+      isWhole: inScope.length === sections.filter(isScopeable).length,
     };
   },
 
@@ -176,8 +176,8 @@ function sectionsDraftedOf({ record }: TicketState): string[] {
   return (record as DraftedRecord).sectionsDrafted;
 }
 
-// An H1 with no text of its own is an empty developer Section only to mark its line, so it never makes a scope partial.
-function isWritten({ author, markdown }: DraftSection): boolean {
+// An empty developer Section, as every H1 with no text of its own holds, adds no words, so leaving it out never makes a scope partial.
+function isScopeable({ author, markdown }: DraftSection): boolean {
   return author === "agent" || markdown.trim() !== "";
 }
 

@@ -59,7 +59,7 @@ export interface Halt {
   bodyHash?: string;
   // A Research Halt's proposed edits, which its answer approves by `E<n>`.
   outlineEdits?: OutlineEdit[];
-  // A push Halt's Section, by its heading path;the latest push Halt on it holds the answer the push acts on.
+  // A push Halt's Section, by its heading path; the latest push Halt on it holds the answer the push acts on.
   pushSection?: string;
   isPosted: boolean;
   answer?: HaltAnswer;
@@ -182,7 +182,7 @@ export function pushHaltOf(path: string, conflict: PushConflict): HaltDraft {
 function missingHeadingStepOf(path: string): string {
   const { h1, text } = markdownDialect.pathPartsOf(path);
   if (h1 === undefined) return `Add its "${text}" heading`;
-  return `Add an H2 "${text}" under the H1 "${h1}"`;
+  return `Add an H2 "${text}" under the H1 "${h1}", adding that H1 first if the Doc has none`;
 }
 
 // On no Section, since the suggestions hold every write into the Doc; any answer but `stop spec` pushes again.
