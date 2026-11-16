@@ -114,6 +114,63 @@ function writeTranscript(sessionId: string, text: string): void {
   );
 }
 
+function at(minute: number): string {
+  return new Date(Date.UTC(2026, 9, 6, 10, minute)).toISOString();
+}
+
+// An Opus 5.5 reply costing `dollars` in output tokens alone.
+function pricedReply(id: string, minute: number, dollars: number): object {
+  return {
+    type: "assistant",
+    timestamp: at(minute),
+    message: {
+      id,
+      model: "claude-opus-5-5",
+      usage: { output_tokens: Math.round(dollars * 50_000) },
+    },
+  };
+}
+
+// One session's launches, ten minutes apart: each a prompt, then its replies' dollars, each followed by a tool result.
+function launchesOf(launchDollars: number[][]): string {
+  return launchDollars
+    .flatMap((replies, launch) => [
+      {
+        type: "user",
+        timestamp: at(launch * 10),
+        message: { content: `launch ${launch}` },
+      },
+      ...replies.flatMap((dollars, reply) => [
+        pricedReply(`msg-${launch}-${reply}`, launch * 10 + reply + 1, dollars),
+        {
+          type: "user",
+          timestamp: at(launch * 10 + reply + 1),
+          message: { content: [{ type: "tool_result", content: "ok" }] },
+        },
+      ]),
+    ])
+    .map((entry) => JSON.stringify(entry))
+    .join("\n");
+}
+
+function writeSubagent(
+  sessionId: string,
+  { minute, dollars }: { minute: number; dollars: number },
+): void {
+  const folder = join(
+    configFolder,
+    "projects",
+    "-workspace-byro-repo",
+    sessionId,
+    "subagents",
+  );
+  mkdirSync(folder, { recursive: true });
+  writeFileSync(
+    join(folder, `agent-${minute}.jsonl`),
+    `${JSON.stringify(pricedReply(`sub-${minute}`, minute, dollars))}\n`,
+  );
+}
+
 describe("transcriptFactsOf", () => {
   it("reads the pair from the implementer's transcripts", () => {
     expect(factsOf(sessions(), handoffs).pair).toBe("Opus medium");
@@ -286,6 +343,103 @@ describe("transcriptFactsOf", () => {
       facts.costUsd,
       facts.durationMinutes,
     ]).toEqual([undefined, undefined, undefined, 12]);
+  });
+
+  describe("a resolve step that resumes the implementer", () => {
+    it("prices the implementer's turns before the resume as cost, and the resumed turns and their subagents as review cost", () => {
+      writeTranscript(
+        "session-warm",
+        launchesOf([[1, 0.5], [0.25], [0.2, 0.1]]),
+      );
+      writeSubagent("session-warm", { minute: 1, dollars: 0.04 });
+      writeSubagent("session-warm", { minute: 21, dollars: 0.05 });
+      const steps = [
+        step("implement", "session-warm"),
+        step("implement", "session-warm"),
+        step("review", "session-review"),
+        step("resolve", "session-warm"),
+      ];
+
+      const facts = factsOf(sessions({ steps }), []);
+
+      expect(facts.costUsd).toBeCloseTo(1.79, 6);
+      expect(facts.reviewCostUsd).toBeCloseTo(0.374, 6);
+    });
+
+    it("prices a Halt's answer, which resumes the implementer after its resolve, as review cost", () => {
+      writeTranscript("session-warm", launchesOf([[1], [0.2], [0.1]]));
+      const steps = [
+        step("implement", "session-warm"),
+        step("review", "session-review"),
+        step("resolve", "session-warm"),
+        step("implement", "session-warm"),
+      ];
+
+      const facts = factsOf(sessions({ steps }), []);
+
+      expect(facts.costUsd).toBeCloseTo(1, 6);
+      expect(facts.reviewCostUsd).toBeCloseTo(0.324, 6);
+    });
+
+    it("prices a budget handoff resuming the implementer between review and resolve as cost", () => {
+      writeTranscript("session-warm", launchesOf([[1], [0.5]]));
+      writeTranscript("session-fresh", launchesOf([[0.3]]));
+      const steps = [
+        step("implement", "session-warm"),
+        step("review", "session-review"),
+        step("implement", "session-warm"),
+        step("resolve", "session-fresh"),
+      ];
+
+      const facts = factsOf(sessions({ steps }), []);
+
+      expect(facts.costUsd).toBeCloseTo(1.5, 6);
+      expect(facts.reviewCostUsd).toBeCloseTo(0.324, 6);
+    });
+
+    it("cuts at the resume prompt past a task notification before it", () => {
+      const lines = launchesOf([[1], [0.2]]).split("\n");
+      const notified = [
+        {
+          type: "user",
+          timestamp: at(5),
+          origin: { kind: "task-notification" },
+          message: { content: "<task-notification>done</task-notification>" },
+        },
+        pricedReply("msg-notified", 6, 0.5),
+      ].map((entry) => JSON.stringify(entry));
+      writeTranscript(
+        "session-warm",
+        [...lines.slice(0, 3), ...notified, ...lines.slice(3)].join("\n"),
+      );
+      const steps = [
+        step("implement", "session-warm"),
+        step("review", "session-review"),
+        step("resolve", "session-warm"),
+      ];
+
+      const facts = factsOf(sessions({ steps }), []);
+
+      expect(facts.costUsd).toBeCloseTo(1.5, 6);
+      expect(facts.reviewCostUsd).toBeCloseTo(0.224, 6);
+    });
+
+    it("keeps the whole implementer session as cost beside a fresh resolver", () => {
+      writeTranscript("session-warm", launchesOf([[1], [0.5]]));
+      writeTranscript("session-fresh", launchesOf([[0.3], [0.1]]));
+      const steps = [
+        step("implement", "session-warm"),
+        step("implement", "session-warm"),
+        step("review", "session-review"),
+        step("resolve", "session-fresh"),
+        step("resolve", "session-fresh"),
+      ];
+
+      const facts = factsOf(sessions({ steps }), []);
+
+      expect(facts.costUsd).toBeCloseTo(1.5, 6);
+      expect(facts.reviewCostUsd).toBeCloseTo(0.424, 6);
+    });
   });
 });
 

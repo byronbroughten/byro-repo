@@ -56,9 +56,9 @@ export interface OutcomeFacts {
   // Each implementer session's peak, in order; resolver sessions are left out.
   peakContext?: number[];
   durationMinutes?: number;
-  // The implementer sessions, handoffs included.
+  // The implementer sessions, handoffs included, up to where a resolve step after review resumed one.
   costUsd?: number;
-  // The review and resolve sessions.
+  // The review and resolve sessions; of an implementer session a resolve step resumed, the turns from the resume on.
   reviewCostUsd?: number;
   sessionIds?: string[];
 }
