@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { messageOf } from "../failureText.ts";
 import { currentBranchOf, git } from "../git.ts";
 import {
+  type IssueRef,
   issueRef,
   IssueWorkspaces,
   type Workspace,
@@ -130,6 +131,12 @@ export class WrapUpBase {
         await this._sleep(this.knobs.backoffMs * 2 ** (attempt - 1));
       }
     }
+  }
+
+  protected async _bodyOf(issue: IssueRef): Promise<string> {
+    return this._withRetries(`Reading ${issueRef.labelOf(issue)}`, () =>
+      this.config.github.bodyOf(issue),
+    );
   }
 
   // Never with force: a rejected push fails after its retries rather than overwriting the remote.

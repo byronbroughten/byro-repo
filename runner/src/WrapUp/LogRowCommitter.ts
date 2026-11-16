@@ -47,12 +47,6 @@ export class LogRowCommitter extends WrapUpBase {
     );
   }
 
-  private async _bodyOf(issue: IssueRef): Promise<string> {
-    return this._withRetries(`Reading ${issueRef.labelOf(issue)}'s body`, () =>
-      this.config.github.bodyOf(issue),
-    );
-  }
-
   private async _commitLogRow({
     issue,
     facts,

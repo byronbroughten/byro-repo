@@ -38,6 +38,12 @@ describe("pairOf", () => {
     );
   });
 
+  it("reads the pair of a reason ending in an estimate", () => {
+    const body = bodyWith("## Model fit\n\nOpus medium\nA new column; ~120K");
+
+    expect(pairOf(body)).toEqual({ model: "opus", effort: "medium" });
+  });
+
   it("refuses a body with no Model fit section", () => {
     expect(pairOf("## What to build\n\nOpus high")).toBe(undefined);
   });
@@ -80,12 +86,6 @@ describe("estimateOf", () => {
     );
 
     expect(estimateOf(body)).toBe("~120K");
-  });
-
-  it("leaves the pair as it reads without the estimate", () => {
-    const body = bodyWith("## Model fit\n\nOpus medium\nA new column; ~120K");
-
-    expect(pairOf(body)).toEqual({ model: "opus", effort: "medium" });
   });
 
   it("is undefined when the reason doesn't end in one", () => {
