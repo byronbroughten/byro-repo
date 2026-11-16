@@ -221,6 +221,61 @@ describe("Docs.writeSection", () => {
     );
   });
 
+  it("finds a Section by its headingId once the developer renames its heading in the editor", async () => {
+    const documents = new FakeDocuments([fixtureDocument("writable")]);
+    documents.editHeading("doc-writable", "h.boiling", { text: "Simmering" });
+    const docs = Docs.init(documents);
+    await docs.read("doc-writable");
+
+    await docs.writeSection({
+      documentId: "doc-writable",
+      headingPath: "Kettle Notes › Boiling",
+      headingId: "h.boiling",
+      markdown: "Kettles simmer.\n",
+    });
+
+    const read = await docs.read("doc-writable");
+    expect(read.sections.get("Kettle Notes › Simmering")).toBe(
+      "Kettles simmer.\n",
+    );
+    expect(read.sections.get("Kettle Notes › Pouring")).toBe("Pour slowly.\n");
+  });
+
+  it("finds a Section by its headingId once the developer changes its heading's level in the editor", async () => {
+    const documents = new FakeDocuments([fixtureDocument("writable")]);
+    documents.editHeading("doc-writable", "h.pouring", {
+      namedStyleType: "HEADING_1",
+    });
+    const docs = Docs.init(documents);
+    await docs.read("doc-writable");
+
+    await docs.writeSection({
+      documentId: "doc-writable",
+      headingPath: "Kettle Notes › Pouring",
+      headingId: "h.pouring",
+      markdown: "Pour once it boils.\n",
+    });
+
+    const read = await docs.read("doc-writable");
+    expect(read.sections.get("Pouring")).toBe("Pour once it boils.\n");
+  });
+
+  it("finds a Section by its heading path when the Doc holds no heading with its headingId", async () => {
+    const { docs } = await writableDocs();
+
+    await docs.writeSection({
+      documentId: "doc-writable",
+      headingPath: "Kettle Notes › Pouring",
+      headingId: "h.gone",
+      markdown: "Pour once it boils.\n",
+    });
+
+    const read = await docs.read("doc-writable");
+    expect(read.sections.get("Kettle Notes › Pouring")).toBe(
+      "Pour once it boils.\n",
+    );
+  });
+
   it("appends to and empties the Doc's last Section", async () => {
     const { docs } = await writableDocs();
 

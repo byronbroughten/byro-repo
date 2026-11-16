@@ -18,7 +18,11 @@ import type {
   Request,
   StructuralElement,
 } from "./googleDocs.ts";
-import { markdownDialect, type SpanStyle } from "./markdownDialect.ts";
+import {
+  markdownDialect,
+  type SectionKey,
+  type SpanStyle,
+} from "./markdownDialect.ts";
 import { blockParse, type ParsedBlock } from "./markdownDialect/blockParse.ts";
 import {
   type HeldBlock,
@@ -123,10 +127,9 @@ export class SectionWriter {
     return BulletPlacer.init(this.document);
   }
 
-  /** The requests that make the Section at `headingPath` read as `markdown`: text last index first, then bullets. */
-  requestsFor(headingPath: string, markdown: string): Request[] {
-    const { sectionHeading, held } =
-      this.heldSectionReader.sectionOf(headingPath);
+  /** The requests that make the Section read as `markdown`: text last index first, then bullets. */
+  requestsFor(key: SectionKey, markdown: string): Request[] {
+    const { sectionHeading, held } = this.heldSectionReader.sectionOf(key);
     const wanted = blockParse.blocksOf(markdown).flatMap(writtenOf);
     const section = sectionDiff
       .hunksOf(sectionHeading, held, wanted)

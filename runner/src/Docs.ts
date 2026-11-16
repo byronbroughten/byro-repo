@@ -8,7 +8,7 @@
 import { DocReader } from "./Docs/DocReader.ts";
 import { DocsRequestRefused } from "./Docs/DocsRequestRefused.ts";
 import type { DocumentsPort, GoogleDocument } from "./Docs/googleDocs.ts";
-import { markdownDialect } from "./Docs/markdownDialect.ts";
+import { markdownDialect, type SectionKey } from "./Docs/markdownDialect.ts";
 import { SectionWriter } from "./Docs/SectionWriter.ts";
 import { StaleRevision } from "./Docs/StaleRevision.ts";
 
@@ -20,10 +20,9 @@ export interface DocRead {
   revisionId: string;
 }
 
-/** A Section's new body for a Doc, the Section named as `DocRead.sections` keys it. */
-export interface SectionWrite {
+/** A Section's new body for a Doc, the Section found by its heading's headingId, then by its path as `DocRead.sections` keys it. */
+export interface SectionWrite extends SectionKey {
   documentId: string;
-  headingPath: string;
   markdown: string;
 }
 
@@ -56,6 +55,7 @@ export class Docs {
   async writeSection({
     documentId,
     headingPath,
+    headingId,
     markdown,
   }: SectionWrite): Promise<void> {
     const document = this.lastReads.get(documentId);
@@ -63,7 +63,7 @@ export class Docs {
       throw new Error(`Read Doc ${documentId} before writing to it.`);
     }
     const requests = SectionWriter.init(document).requestsFor(
-      headingPath,
+      { headingPath, headingId },
       markdown,
     );
     if (requests.length === 0) {
@@ -95,4 +95,13 @@ export class Docs {
     const latest = await this.documents.documentOf(document.documentId);
     return latest.revisionId !== document.revisionId;
   }
+}
+
+/** A Section's text in a read, found as `Docs.writeSection` finds it: by its headingId, then by its heading path. */
+export function sectionTextOf(
+  read: DocRead,
+  { headingPath, headingId }: SectionKey,
+): string | undefined {
+  const idPath = [...read.headingIds].find(([, id]) => id === headingId)?.[0];
+  return read.sections.get(idPath ?? headingPath);
 }

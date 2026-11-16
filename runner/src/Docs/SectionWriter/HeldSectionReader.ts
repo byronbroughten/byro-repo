@@ -18,7 +18,7 @@ import type {
   StructuralElement,
   Table,
 } from "../googleDocs.ts";
-import { markdownDialect } from "../markdownDialect.ts";
+import { markdownDialect, type SectionKey } from "../markdownDialect.ts";
 import { PendingSuggestions } from "../PendingSuggestions.ts";
 import type {
   HeldBlock,
@@ -34,6 +34,8 @@ export class HeldSectionReader {
   private readonly headingTexts: Map<string, string>;
   /** Where each block holding an element other than text starts. */
   private readonly nonTextStarts: Set<number>;
+  /** Where each heading with a headingId starts, by that ID. */
+  private readonly headingStarts: Map<string, number>;
 
   constructor(document: GoogleDocument) {
     const body = document.body ?? { content: [] };
@@ -41,6 +43,14 @@ export class HeldSectionReader {
     this.content = body.content;
     this.lists = document.lists ?? {};
     this.headingTexts = headingTextsOf(body);
+    this.headingStarts = new Map(
+      this.content.flatMap(({ paragraph, startIndex }) => {
+        const headingId = paragraph?.paragraphStyle?.headingId;
+        return headingId === undefined || startIndex === undefined
+          ? []
+          : [[headingId, startIndex]];
+      }),
+    );
     this.nonTextStarts = new Set(
       this.content.flatMap((element) =>
         holdsNonText(element) ? [indicesOf(element).startIndex] : [],
@@ -52,8 +62,8 @@ export class HeldSectionReader {
     return new HeldSectionReader(document);
   }
 
-  /** The Section's heading and the blocks held under it, the Section named by its heading path. */
-  sectionOf(headingPath: string): {
+  /** The Section's heading and the blocks held under it, the Section found by its heading's headingId, then by its heading path. */
+  sectionOf({ headingPath, headingId }: SectionKey): {
     sectionHeading: HeldParagraph;
     held: HeldBlock[];
   } {
@@ -65,16 +75,20 @@ export class HeldSectionReader {
           block.chars.length > 0 ||
           this.nonTextStarts.has(block.startIndex),
       );
-    const sectionHeading = markdownDialect
-      .withPathsOf(
-        written.flatMap((block) => {
-          const level = sectionLevelOf(block);
-          return block.kind === "paragraph" && level !== undefined
-            ? [{ level, text: inlineOf(block), block }]
-            : [];
-        }),
-      )
-      .find(({ path }) => path === headingPath)?.block;
+    const headings = markdownDialect.withPathsOf(
+      written.flatMap((block) => {
+        const level = sectionLevelOf(block);
+        return block.kind === "paragraph" && level !== undefined
+          ? [{ level, text: inlineOf(block), block }]
+          : [];
+      }),
+    );
+    const idStart =
+      headingId === undefined ? undefined : this.headingStarts.get(headingId);
+    const sectionHeading = (
+      headings.find(({ block }) => block.startIndex === idStart) ??
+      headings.find(({ path }) => path === headingPath)
+    )?.block;
     if (sectionHeading === undefined) {
       throw new Error(`No Section "${headingPath}".`);
     }

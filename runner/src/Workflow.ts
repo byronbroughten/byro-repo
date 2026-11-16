@@ -9,6 +9,7 @@
 // and resolve, and issue:start's skill all pick by it. Labels are Trusted, since only collaborators can add one.
 
 import type { Docs } from "./Docs.ts";
+import type { SectionKey } from "./Docs/markdownDialect.ts";
 import type { HaltQuestion } from "./halts.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { SessionSubmit } from "./promptText.ts";
@@ -76,12 +77,16 @@ export interface Workflow {
 
 // The push Step: the Agent draft's agent Sections into the Deliverable's Doc, once at the spec's end.
 export interface PushRules {
-  // Each agent Section's Markdown by its heading path, keyed and trimmed as DocRead.sections is.
-  agentSectionsOf(draft: string): Map<string, string>;
+  agentSectionsOf(draft: string): AgentSection[];
   // The draft with each kept Section, by its heading path, marked as the developer's and holding the Doc's text.
   keptOf(draft: string, kept: Map<string, string>): string;
   // A fresh Docs module over the Workflow's Docs port.
   readonly docs: Docs;
+}
+
+// An agent Section of the draft: its Markdown, keyed and trimmed as DocRead.sections is, by its heading's headingId and path.
+export interface AgentSection extends SectionKey {
+  markdown: string;
 }
 
 // The pull Step: the Deliverable's Doc into the Piece's Agent draft, on the ticket's branch.

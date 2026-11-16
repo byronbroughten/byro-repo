@@ -228,6 +228,12 @@ export const markdownDialect = {
 /** A Section with its heading and its body, trimmed and ending in one newline. */
 export type HeadedSection = WithPath<SectionHeading> & { markdown: string };
 
+/** Names a Section: by its heading's headingId first, which survives a rename or a level change in the editor, then by its heading path. */
+export interface SectionKey {
+  headingPath: string;
+  headingId?: string;
+}
+
 export interface PathParts {
   h1: string | undefined;
   text: string;

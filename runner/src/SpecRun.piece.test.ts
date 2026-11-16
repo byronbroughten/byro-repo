@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 
 import type { StepResult } from "./AgentStep.ts";
 import { type DocRead, Docs } from "./Docs.ts";
-import type { DocumentChange } from "./Docs/FakeDocuments.ts";
+import type { DocumentChange, FakeDocuments } from "./Docs/FakeDocuments.ts";
 import type {
   GoogleDocument,
   NamedStyleType,
@@ -175,7 +175,7 @@ describe("pull on a piece spec's drafting ticket", () => {
     ).run(spec);
 
     expect(pulled).toBe(
-      "# Part one\n<!-- developer h.Part one -->\n\n## Intro\n<!-- agent h.Intro -->\n\nThe quay lay quiet.\n\n# Part two\n<!-- developer h.Part two -->\n\n## Intro\n<!-- developer h.Intro -->\n\nThe ferry was late.\n",
+      "# Part one\n<!-- developer h.Part-one -->\n\n## Intro\n<!-- agent h.Intro -->\n\nThe quay lay quiet.\n\n# Part two\n<!-- developer h.Part-two -->\n\n## Intro\n<!-- developer h.Intro -->\n\nThe ferry was late.\n",
     );
   });
 
@@ -1031,6 +1031,79 @@ describe("the end of a piece spec", () => {
       expect(result.message).toContain("byro-repo #2 waits on you");
     });
 
+    describe("a Section whose heading the developer renamed or moved after the pull", () => {
+      const idDraft = drafted(
+        {},
+        Object.entries(pushedSections)
+          .map(
+            ([heading, text]) =>
+              `## ${heading}\n<!-- agent ${headingIdOf(heading)} -->\n\n${text}`,
+          )
+          .join("\n"),
+      );
+
+      // Lands the drafting ticket, the Doc changed by `edit` while its step runs.
+      async function landsAfter(
+        edit: (documents: FakeDocuments) => void,
+      ): Promise<void> {
+        addGatedSpec();
+        holdDocs(withHeadingIds(docOf(pulledSections)));
+        await landsThenGapChecks([], async (request) => {
+          edit(heldDocs());
+          return idDraft(request);
+        });
+      }
+
+      it("writes a renamed Section in place, found by its headingId", async () => {
+        await landsAfter((documents) =>
+          documents.editHeading(deliverableId, "h.The-crossing", {
+            text: "The voyage",
+          }),
+        );
+
+        expect(Object.fromEntries((await deliverableOf()).sections)).toEqual({
+          "The harbour": pushedSections["The harbour"],
+          "The voyage": pushedSections["The crossing"],
+        });
+      });
+
+      it("writes each Section in place after a heading moves to another level", async () => {
+        await landsAfter((documents) =>
+          documents.editHeading(deliverableId, "h.The-harbour", {
+            namedStyleType: "HEADING_1",
+          }),
+        );
+
+        expect(Object.fromEntries((await deliverableOf()).sections)).toEqual({
+          "The harbour": pushedSections["The harbour"],
+          "The harbour › The crossing": pushedSections["The crossing"],
+        });
+      });
+
+      it("raises the push Halt on a renamed Section whose text changed since the pull", async () => {
+        await landsAfter((documents) =>
+          documents
+            .edit(deliverableId, () =>
+              withHeadingIds(
+                docOf({
+                  ...pulledSections,
+                  "The crossing": "The ferry never came.",
+                }),
+              ),
+            )
+            .editHeading(deliverableId, "h.The-crossing", {
+              text: "The voyage",
+            }),
+        );
+
+        const [halt] = haltComments();
+        expect(halt).toContain('"The crossing" changed in the Doc since');
+        expect((await deliverableOf()).sections.get("The voyage")).toBe(
+          "The ferry never came.\n",
+        );
+      });
+    });
+
     describe("a Deliverable whose H2s repeat under different H1s", () => {
       const twoPartDraft =
         "# Part one\n<!-- developer -->\n\n## Intro\n<!-- developer -->\n\nThe quay was quiet.\n\n# Part two\n<!-- developer -->\n\n## Intro\n<!-- agent -->\n\nThe ferry came at noon.\n";
@@ -1533,16 +1606,22 @@ function headedDocOf(
   );
 }
 
-// The Doc with a headingId, `h.` and the heading's text, on each heading, as Docs gives one to every heading it holds.
+// The headingId the fake Doc gives a heading: `h.` and its text hyphenated, as an author mark's ID holds no space.
+function headingIdOf(text: string): string {
+  return `h.${text.replaceAll(" ", "-")}`;
+}
+
+// The Doc with a headingId on each heading, as Docs gives one to every heading it holds.
 function withHeadingIds(document: GoogleDocument): GoogleDocument {
   for (const { paragraph } of document.body?.content ?? []) {
     const style = paragraph?.paragraphStyle;
+    const text = paragraph?.elements[0]?.textRun?.content.trim();
     if (
-      paragraph !== undefined &&
+      text !== undefined &&
       style !== undefined &&
       style.namedStyleType !== "NORMAL_TEXT"
     ) {
-      style.headingId = `h.${paragraph.elements[0]?.textRun?.content.trim()}`;
+      style.headingId = headingIdOf(text);
     }
   }
   return document;

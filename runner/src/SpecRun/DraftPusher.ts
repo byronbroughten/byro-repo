@@ -6,7 +6,7 @@
 // A stale revision makes it read and compare again, up to a bound; pending suggestions raise a push Halt naming the Doc.
 // The push rules are the Workflow's, through ../Workflow.ts; SpecEndRunner.ts runs it after the judge Step.
 
-import type { DocRead, Docs } from "../Docs.ts";
+import { type DocRead, type Docs, sectionTextOf } from "../Docs.ts";
 import { PendingSuggestions } from "../Docs/PendingSuggestions.ts";
 import { StaleRevision } from "../Docs/StaleRevision.ts";
 import { git } from "../git.ts";
@@ -20,7 +20,7 @@ import {
 import { haltReplies, type PushAnswer } from "../halts/haltReplies.ts";
 import { issueRef } from "../IssueWorkspaces.ts";
 import { TicketHalted } from "../TicketHalted.ts";
-import { pullOf, pushOf } from "../Workflow.ts";
+import { type AgentSection, pullOf, pushOf } from "../Workflow.ts";
 import { DraftKeeper } from "./DraftPusher/DraftKeeper.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import type { PullBaseline, Run } from "./runState.ts";
@@ -29,9 +29,7 @@ import { runText } from "./runState/runText.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 
 // An agent Section as the push writes it, beside its Doc text at the last pull; undefined with no pull recorded.
-interface PushedSection {
-  path: string;
-  markdown: string;
+interface PushedSection extends AgentSection {
   pulled: string | undefined;
 }
 
@@ -175,16 +173,15 @@ function pushBaselineOf(run: Run): PullBaseline | undefined {
 }
 
 function pushedSectionsOf(
-  agentSections: Map<string, string>,
+  agentSections: AgentSection[],
   baseline: PullBaseline | undefined,
 ): PushedSection[] {
-  return [...agentSections].map(([path, markdown]) => ({
-    path,
-    markdown,
+  return agentSections.map((section) => ({
+    ...section,
     pulled:
       baseline === undefined
         ? undefined
-        : (baseline.sections[path] ?? emptySection),
+        : (baseline.sections[section.headingPath] ?? emptySection),
   }));
 }
 
@@ -220,8 +217,8 @@ function planOf(
     isHeld: false,
   };
   for (const section of sections) {
-    const { path, markdown } = section;
-    const current = read.sections.get(path);
+    const { headingPath: path, markdown } = section;
+    const current = sectionTextOf(read, section);
     const answer = answers.get(path);
     if (current === markdown) continue;
     if (answer === "keep-mine") {
@@ -258,11 +255,16 @@ async function writeSections({
   let count = 0;
   for (const section of sections) {
     const read = await docs.read(documentId);
-    if (read.sections.get(section.path) === section.markdown) continue;
+    if (sectionTextOf(read, section) === section.markdown) continue;
     if (isEdited(read, section)) return { count, isStale: true };
-    const { path, markdown } = section;
+    const { headingPath, headingId, markdown } = section;
     try {
-      await docs.writeSection({ documentId, headingPath: path, markdown });
+      await docs.writeSection({
+        documentId,
+        headingPath,
+        headingId,
+        markdown,
+      });
     } catch (error) {
       if (!(error instanceof StaleRevision)) throw error;
       return { count, isStale: true };
@@ -273,11 +275,8 @@ async function writeSections({
 }
 
 // Holding the agent text already is no edit: a read after a stale revision, or a rerun, finds the Sections it wrote that way.
-function isEdited(
-  read: DocRead,
-  { path, markdown, pulled }: PushedSection,
-): boolean {
-  const current = read.sections.get(path);
-  if (current === markdown) return false;
-  return current !== pulled;
+function isEdited(read: DocRead, section: PushedSection): boolean {
+  const current = sectionTextOf(read, section);
+  if (current === section.markdown) return false;
+  return current !== section.pulled;
 }
