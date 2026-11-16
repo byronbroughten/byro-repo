@@ -84,6 +84,13 @@ interface RawListedIssue {
   state?: unknown;
 }
 
+interface IssueLink {
+  issue: IssueRef;
+  endpoint: string;
+  field: string;
+  linked: IssueRef;
+}
+
 type GhProcess = (...args: string[]) => Promise<string>;
 
 // A read's waits before each retry: four tries in all.
@@ -191,27 +198,21 @@ export class GhCli
   }
 
   async addSubIssue(parent: IssueRef, child: IssueRef): Promise<void> {
-    const childId = await this._databaseIdOf(child);
-    await this.gh(
-      "api",
-      "--method",
-      "POST",
-      `repos/${this.owner}/${parent.repo}/issues/${parent.number}/sub_issues`,
-      "-F",
-      `sub_issue_id=${childId}`,
-    );
+    await this._postLink({
+      issue: parent,
+      endpoint: "sub_issues",
+      field: "sub_issue_id",
+      linked: child,
+    });
   }
 
   async addBlocker(issue: IssueRef, blocker: IssueRef): Promise<void> {
-    const blockerId = await this._databaseIdOf(blocker);
-    await this.gh(
-      "api",
-      "--method",
-      "POST",
-      `repos/${this.owner}/${issue.repo}/issues/${issue.number}/dependencies/blocked_by`,
-      "-F",
-      `issue_id=${blockerId}`,
-    );
+    await this._postLink({
+      issue,
+      endpoint: "dependencies/blocked_by",
+      field: "issue_id",
+      linked: blocker,
+    });
   }
 
   async bodyOf(issue: IssueRef): Promise<string> {
@@ -371,6 +372,23 @@ export class GhCli
     const raw = data?.repository?.issue;
     if (!raw) throw new Error(`No issue ${issueRef.labelOf(issue)}`);
     return raw;
+  }
+
+  private async _postLink({
+    issue,
+    endpoint,
+    field,
+    linked,
+  }: IssueLink): Promise<void> {
+    const linkedId = await this._databaseIdOf(linked);
+    await this.gh(
+      "api",
+      "--method",
+      "POST",
+      `repos/${this.owner}/${issue.repo}/issues/${issue.number}/${endpoint}`,
+      "-F",
+      `${field}=${linkedId}`,
+    );
   }
 
   // The sub-issue and dependency endpoints take an issue's database id, not its number or node id.

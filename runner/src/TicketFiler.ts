@@ -41,6 +41,7 @@ export interface FilingReport {
 interface FiledTicket {
   draft: TicketDraft;
   issue: IssueRef;
+  blockers: IssueRef[];
 }
 
 export class TicketFiler {
@@ -69,6 +70,9 @@ export class TicketFiler {
     const filed = drafts.map((draft) => ({
       draft,
       issue: issueRefOf(issueOfDraft, draft.number),
+      blockers: draft.blockers.map((blocker) =>
+        issueRefOf(issueOfDraft, blocker),
+      ),
     }));
     await this._link(filed, parent);
     const mismatches = await this._mismatchesOf(filed, parent);
@@ -83,16 +87,15 @@ export class TicketFiler {
 
   // Sub-issues in draft order, as GitHub lists a parent's in the order they were added.
   private async _link(filed: FiledTicket[], parent?: number): Promise<void> {
-    const issueOf = issueOfDraftIn(filed);
-    for (const { draft, issue } of filed) {
+    for (const { issue, blockers } of filed) {
       if (parent !== undefined) {
         await this.github.addSubIssue(
           { repo: issue.repo, number: parent },
           issue,
         );
       }
-      for (const blocker of draft.blockers) {
-        await this.github.addBlocker(issue, issueOf(blocker));
+      for (const blocker of blockers) {
+        await this.github.addBlocker(issue, blocker);
       }
     }
   }
@@ -101,12 +104,9 @@ export class TicketFiler {
     filed: FiledTicket[],
     parent?: number,
   ): Promise<string[]> {
-    const issueOf = issueOfDraftIn(filed);
     const mismatches: string[] = [];
-    for (const { draft, issue } of filed) {
-      const expectedBlockers = draft.blockers.map(
-        (blocker) => issueOf(blocker).number,
-      );
+    for (const { draft, issue, blockers } of filed) {
+      const expectedBlockers = blockers.map(({ number }) => number);
       const found = await this._readBack(issue);
       const name = `${draft.fileName} (#${issue.number})`;
       if (found.title !== draft.title) {
@@ -183,13 +183,6 @@ function issueRefOf(
   return issue;
 }
 
-function issueOfDraftIn(filed: FiledTicket[]): (draft: number) => IssueRef {
-  const issueOfDraft = new Map(
-    filed.map(({ draft, issue }) => [draft.number, issue]),
-  );
-  return (draft) => issueRefOf(issueOfDraft, draft);
-}
-
 function isSameSet(
   found: (string | number)[],
   expected: (string | number)[],
@@ -201,8 +194,8 @@ function isSameSet(
   );
 }
 
-function listText(labels: string[]): string {
-  return labels.length === 0 ? "none" : labels.join(", ");
+function listText(items: string[]): string {
+  return items.length === 0 ? "none" : items.join(", ");
 }
 
 function issueText(number?: number): string {
@@ -210,5 +203,5 @@ function issueText(number?: number): string {
 }
 
 function issuesText(numbers: number[]): string {
-  return numbers.length === 0 ? "none" : numbers.map((n) => `#${n}`).join(", ");
+  return listText(numbers.map((number) => `#${number}`));
 }
