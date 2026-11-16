@@ -16,8 +16,8 @@ Read this when the spec's `Labels:` line in `issue:read`'s output holds `piece`.
 
 ## Filing a larger fix
 
-- **File it with `/piece-tickets`' piece-ticket template ([`SKILL.md`](../../../.claude/skills/piece-tickets/SKILL.md#3-file-the-tickets)) as a drafting ticket**: `ready-for-agent`, its `## Model fit` included, its Sections named by exact heading text.
-- **It always blocks the spec**: make it a sub-issue of the spec, and add it to the Edit gate's blockers by [`issue-tracker.md`'s blocking operation](../../../docs/agents/issue-tracker.md#wayfinding-operations), so the rerun drafts it before the push.
+- **File it by `/project-tickets`' procedure as a drafting ticket**, reading [its `SKILL.md`](../../../.claude/skills/project-tickets/SKILL.md#the-piece-branch) by path and taking only its piece-ticket template and drafting rules, never its stage choice or a new Edit gate: `kind: agent` for `ready-for-agent`, its `## Model fit` included, its Sections named by exact heading text, filed through `npm run issue:file`. Each acceptance criterion states the whole requirement itself, its `R<n>.<k>` tag kept only as provenance.
+- **It always blocks the spec**: file it under the spec, which makes it a sub-issue, and add it to the Edit gate's blockers by [`issue-tracker.md`'s blocking operation](../../../docs/agents/issue-tracker.md#wayfinding-operations), so the rerun drafts it before the push.
 
 ## The ending
 

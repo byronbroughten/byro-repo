@@ -56,7 +56,7 @@ Each answer is one of four; a piece spec offers only the first three ([`piece.md
 - **Accept** the recommendation. A recommendation that is only a judgement needs nothing more. One that says to file or fix something is a fix (below).
 - **Dismiss** with a reason: ask for the reason when the developer gives none.
 - **Fix**: change what the evidence names (`file:line`), for the reason the finding gives.
-- **Decision**: a grilling ticket with the question, the options and your recommendation, labelled `wayfinder:grilling` where the repo has that label.
+- **Decision**: a grilling ticket with the question, the options and your recommendation, drafted `kind: human` and labelled `wayfinder:grilling` where the repo has that label.
 
 **A keep is a fix.** An item with a `Drafted keep: "<reason>"` line asks for the developer's yes to keeping a smell for that reason (`docs/agents/verdicts.md`). A list posted before #298 has no such line: there, a keep is a Propose `decision` whose finding names a smell and whose recommendation is a drafted one-line reason for keeping it, not a smell whose fix would reverse a spec decision. Accepting it writes that reason as a comment at the smell's site; never just mark it decided. Its `Decided:` line names the reason, so step 5 can find it.
 
@@ -67,12 +67,14 @@ Each answer is one of four; a piece spec offers only the first three ([`piece.md
 After the last round (a piece spec makes and files by [`piece.md`](./piece.md#making-a-now-fix) instead):
 
 - **Now**: make every such fix in one session workspace ([`docs/agents/git-workflow.md#a-skills-session-workspace`](../../../docs/agents/git-workflow.md#a-skills-session-workspace)) named `judge-<spec>`, over a list the first code spec's ([A list or `all`](#a-list-or-all)), one commit per item naming its `R<n>.<k>`, and land it.
-- **File**: by `/code-tickets`' conventions ([`.claude/skills/code-tickets/SKILL.md`](../../../.claude/skills/code-tickets/SKILL.md)), its ticket templates, `## Model fit` section and read-back included. Group a repo's filed fixes into one ticket unless one is big enough to stand alone; each decision is its own ticket. Use an item's drafted issue title when its ticket holds only that item.
+- **File**: read [`.claude/skills/project-tickets/SKILL.md`](../../../.claude/skills/project-tickets/SKILL.md) by path, since it is user-invoked and the Skill tool can't reach it, and follow only these of its steps: 3's work packages, 4's estimate, cap and merge rules, 5's drafts in its code-ticket template with its review at 6 or more, 7's `npm run issue:file` and read-back fixes, and 8's read-back of the pairs. The rounds above replace its step 6; the "blocks this spec?" filing below replaces step 7's single filing and relabel; this skill's step 5 replaces step 8's `/runner` recommendation. Group a repo's filed fixes into one ticket unless one is big enough to stand alone; each decision is its own ticket. Use an item's drafted issue title when its ticket holds only that item.
+- **Each acceptance criterion a filed ticket holds states the whole requirement itself**, so the implementer needs no review list; its `R<n>.<k>` tag stays only as provenance.
 
 **Every filed ticket asks "blocks this spec?"**, all in one message before filing, each pre-filled with your answer: yes when the spec's stories or decisions aren't met until it lands, no otherwise. A keep's fix and a Propose `ticket` default to no; a gap defaults to yes.
 
-- Yes: `gh issue create -R <owner>/<repo>`, then make it a sub-issue of the spec: `gh api --method POST repos/<owner>/<repo>/issues/<spec>/sub_issues -F sub_issue_id=<db id>`, where the db id is `gh api repos/<owner>/<repo>/issues/<new> --jq .id`.
-- No: a standalone issue whose body links the spec as `<owner>/<repo>#<spec>`.
+- Yes: file its draft under the spec, `npm run issue:file -- <repo> <spec> <folder>`, which makes it a sub-issue of the spec.
+- No: file its draft standalone, `npm run issue:file -- <repo> <folder>`, its body linking the spec as `<owner>/<repo>#<spec>`.
+- An edge between drafts in different folders goes in neither draft; set it after filing by [the Blocking operation](../../../docs/agents/issue-tracker.md#wayfinding-operations).
 
 ## Writing a decision
 
