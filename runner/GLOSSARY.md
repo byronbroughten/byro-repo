@@ -119,7 +119,7 @@ The run ends early: on a failure no answer can fix inside the run (GitHub or `cl
 _Avoid_: abort, exit, kill
 
 **Limit wait**:
-The run pauses because no account is under its thresholds or a step hit a usage limit, and continues unaided once one reads under them, resuming a step the limit cut off. A limit never Stops a run. The runner never switches the Active account.
+The run pauses because no account is free and under its thresholds, and continues unaided once one is, resuming a step a limit cut off. A step a limit cuts off resumes at once on another free account, so it waits only when none is; the run keeps off the hit account until its reset. A limit never Stops a run. The runner never switches the Active account.
 _Avoid_: cooldown, throttle
 
 **Restart**:

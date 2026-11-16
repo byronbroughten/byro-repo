@@ -143,7 +143,7 @@ function windowOf(raw: RawWindow | undefined): UsageWindow | undefined {
   return { utilization: raw.pct / 100, resetsAt };
 }
 
-// The runner never ends a step at a usage line: a step it cut off would resume only after its limit wait, which can outlast the prompt cache, so it interrupts a step only when a limit already has.
+// The runner never ends a step at a usage line: a step it cut off would cost a resume, and with no other account free a limit wait that can outlast the prompt cache, so it interrupts a step only when a limit already has.
 export function decideStep(
   usage: AccountUsage,
   knobs: LimitGuardKnobs,
