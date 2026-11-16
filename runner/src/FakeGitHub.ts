@@ -1,12 +1,13 @@
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { IssueComment, RunGitHub, TrackedIssue } from "./SpecRun.ts";
+import type { FilingGitHub, NewIssue } from "./TicketFiler.ts";
 import type { ParentIssue } from "./WrapUp.ts";
 
 // The runner posts as the developer's login, as GhCli does.
 const developer = "byronbroughten";
 
-// The GitHub port run-loop and wrap-up tests script and read back; issues are keyed by number, so one fake serves one repo.
-export class FakeGitHub implements RunGitHub {
+// The GitHub port run-loop, wrap-up and filing tests script and read back; issues are keyed by number, so one fake serves one repo.
+export class FakeGitHub implements RunGitHub, FilingGitHub {
   readonly issues = new Map<number, TrackedIssue>();
   readonly subIssues = new Map<number, number[]>();
   readonly blockers = new Map<number, number[]>();
@@ -18,6 +19,8 @@ export class FakeGitHub implements RunGitHub {
   readonly closed: { issue: IssueRef; comment: string }[] = [];
   // Each runs before one comment read, in order, as a hand edit made meanwhile.
   readonly beforeCommentReads: (() => void)[] = [];
+  // Each runs after one issue create, in order, given its number, as an edit made meanwhile.
+  readonly afterCreates: ((number: number) => void)[] = [];
   // How many calls throw a network error before one succeeds.
   failuresLeft = 0;
 
@@ -146,6 +149,40 @@ export class FakeGitHub implements RunGitHub {
     return [...this.issues.values()].flatMap(({ issue, isOpen, labels }) =>
       isOpen && labels.includes(label) ? [{ repo, number: issue.number }] : [],
     );
+  }
+
+  // Numbered after the highest issue the fake holds.
+  async createIssue(
+    repo: string,
+    { title, body, labels }: NewIssue,
+  ): Promise<IssueRef> {
+    this._failIfScripted();
+    const number = Math.max(0, ...this.issues.keys()) + 1;
+    const issue = { repo, number };
+    this.issues.set(number, {
+      issue,
+      title,
+      body,
+      isOpen: true,
+      labels: [...labels],
+      url: `https://github.com/o/${repo}/issues/${number}`,
+      author: developer,
+      bodyEditors: [],
+    });
+    this.afterCreates.shift()?.(number);
+    return issue;
+  }
+
+  async addSubIssue(parent: IssueRef, child: IssueRef): Promise<void> {
+    this._failIfScripted();
+    const listed = this.subIssues.get(parent.number) ?? [];
+    this.subIssues.set(parent.number, [...listed, child.number]);
+  }
+
+  async addBlocker(issue: IssueRef, blocker: IssueRef): Promise<void> {
+    this._failIfScripted();
+    const listed = this.blockers.get(issue.number) ?? [];
+    this.blockers.set(issue.number, [...listed, blocker.number]);
   }
 
   edit(number: number, change: Partial<TrackedIssue>): void {

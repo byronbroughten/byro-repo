@@ -3,6 +3,10 @@
 import type { SimpleCommand } from "../ShellParser.ts";
 import { excludedCommands } from "./excludedCommands.ts";
 import { gitWrites } from "./gitWrites.ts";
+import { npmCommands } from "./npmCommands.ts";
+
+// The npm scripts running `gh` writes a runner step is refused, inside the box, where the words hold no `gh` for the scan to find.
+const githubWriteScripts = new Set(["issue:file"]);
 
 // Shell punctuation a quoted word may hold, and the brace expansion bash would run as `gh`, as in `{gh,x}`.
 const tokenBreaks = /[\s;&|()`{},]+/;
@@ -33,6 +37,8 @@ export const sandboxedCalls = {
         .filter((token) => token !== "")
         .map((token) => token.replace(/^.*\/(?=(gh|git)$)/, "")),
     );
+    const script = npmCommands.scriptOf(words)?.name;
+    if (script !== undefined && githubWriteScripts.has(script)) return true;
     return tokens.some(
       (token, at) =>
         token === "gh" ||
