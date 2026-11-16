@@ -92,9 +92,7 @@ export class SessionReviewer extends SpecRunBase {
     if (typeof ticketRun === "string") return refusedReviewOf(ticketRun);
     const rules = this._agentStepOf(ticketRun.run.spec, "review");
     const prompt = rules.promptOf({
-      ...ticketSteps.promptFieldsOf(ticketRun),
-      skillName: rules.skillName,
-      isInlineAllowed: await this.reviewStepper._isInlineAllowed(ticketRun),
+      ...(await this.reviewStepper._reviewPromptInputOf(ticketRun)),
       sessionSubmit: this._sessionSubmitOf(issue),
     });
     this.factsFile.setReviewBrief(issue, {

@@ -23,9 +23,11 @@ import {
   type ReviewRecord,
 } from "../stepRecords.ts";
 import {
+  type RepoCommits,
   type ResolvePromptInput,
   type ResolveRules,
   type ReviewerCheck,
+  type ReviewPromptInput,
 } from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import { type BoundaryStep, HandoffTaker } from "./HandoffTaker.ts";
@@ -89,6 +91,11 @@ interface SkippedReviewers {
   count: number;
 }
 
+// One branched repo's change from master, the review's fixed point.
+interface BranchDiff extends RepoCommits {
+  files: string[];
+}
+
 interface KeptRecords {
   // The heads the resolve started on.
   base: Heads;
@@ -114,12 +121,11 @@ export class ReviewStepper extends SpecRunBase {
     const { run, state } = ticketRun;
     const rules = this._agentStepOf(run.spec, "review");
     const { reviewerCheck, outputSchema: jsonSchema } = rules;
-    const isInlineAllowed = await this._isInlineAllowed(ticketRun);
+    const input = await this._reviewPromptInputOf(ticketRun);
+    const { isInlineAllowed } = input;
     const launch: StepLaunch = {
       prompt: rules.promptOf({
-        ...ticketSteps.promptFieldsOf(ticketRun),
-        skillName: rules.skillName,
-        isInlineAllowed,
+        ...input,
         pointsWorthChecking: pointsWorthCheckingOf(state.record),
       }),
       jsonSchema,
@@ -214,22 +220,41 @@ export class ReviewStepper extends SpecRunBase {
     );
   }
 
+  // The prompt input a run's review and an interactive session's brief alike add to the ticket's fields.
+  async _reviewPromptInputOf(ticketRun: TicketRun): Promise<ReviewPromptInput> {
+    const rules = this._agentStepOf(ticketRun.run.spec, "review");
+    const diffs = await this._branchDiffsOf(ticketRun);
+    return {
+      ...ticketSteps.promptFieldsOf(ticketRun),
+      skillName: rules.skillName,
+      isInlineAllowed: this._isInlineFor(ticketRun, diffs),
+      commitsSinceMaster: commitsSinceMasterOf(diffs),
+    };
+  }
+
   // Whether the review may skip its reviewer subagents, for a run's review and an interactive session's alike.
   async _isInlineAllowed(ticketRun: TicketRun): Promise<boolean> {
-    const { reviewerCheck } = this._agentStepOf(ticketRun.run.spec, "review");
-    if (reviewerCheck?.offerInline !== true) return false;
-    return this._isInlineSize(ticketRun);
+    return this._isInlineFor(ticketRun, await this._branchDiffsOf(ticketRun));
   }
 
   // Counted from master, the review's own fixed point, so a session with no implement base counts the same files.
-  private async _isInlineSize(ticketRun: TicketRun): Promise<boolean> {
-    let count = 0;
+  private _isInlineFor(ticketRun: TicketRun, diffs: BranchDiff[]): boolean {
+    const { reviewerCheck } = this._agentStepOf(ticketRun.run.spec, "review");
+    if (reviewerCheck?.offerInline !== true) return false;
+    const count = diffs.reduce((sum, { files }) => sum + files.length, 0);
+    return count <= this.config.knobs.inlineReviewMaxFiles;
+  }
+
+  // A master that doesn't resolve fails the diff here, before the review launches.
+  private async _branchDiffsOf(ticketRun: TicketRun): Promise<BranchDiff[]> {
+    const diffs: BranchDiff[] = [];
     for (const repo of ticketSteps.branchedReposOf(ticketRun)) {
       const worktree = this._cloneIn(ticketRun.workspace, repo);
       const files = await git(worktree, "diff", "--name-only", "master...HEAD");
-      count += lines(files).length;
+      const commits = await git(worktree, "log", "--oneline", "master..HEAD");
+      diffs.push({ repo, files: lines(files), commits: lines(commits) });
     }
-    return count <= this.config.knobs.inlineReviewMaxFiles;
+    return diffs;
   }
 
   // A turn cap is a crash, its work reset away; a crossed live ceiling hands off, its work kept for the fresh session.
@@ -417,6 +442,12 @@ export class ReviewStepper extends SpecRunBase {
   private _resolveRulesOf({ run }: TicketRun): ResolveRules {
     return this._agentStepOf(run.spec, "resolve");
   }
+}
+
+// Unset when no branched repo has a diff, so the review skill's own fixed-point step reports the empty diff.
+function commitsSinceMasterOf(diffs: BranchDiff[]): RepoCommits[] | undefined {
+  if (diffs.every(({ files }) => files.length === 0)) return undefined;
+  return diffs.map(({ repo, commits }) => ({ repo, commits }));
 }
 
 function spawnedPhraseOf(spawned: number, count: number): string {

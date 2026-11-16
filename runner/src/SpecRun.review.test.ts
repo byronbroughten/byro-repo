@@ -189,8 +189,16 @@ describe("review of one ticket outside a run", () => {
 
       expect(result.kind).toBe("brief");
       expect(result.message).toContain(
-        'Call the Skill tool with "code-review" to review byro-repo#1, "Ticket 1", on both axes, with `master` as the fixed point.',
+        'Review byro-repo#1, "Ticket 1", on both axes, with `master` as the fixed point, by the `code-review` skill below.',
       );
+      expect(result.message).toContain(
+        '<skill name="code-review">\nTwo-axis review. Read [the verdicts](docs/agents/verdicts.md).\n</skill>',
+      );
+      expect(result.message).toContain(
+        "its commits since `master`:\n\n- `byro-repo`:\n  - ",
+      );
+      expect(result.message).toContain(" Add one.ts");
+      expect(result.message).not.toContain("Skill tool");
       expect(result.message).toContain("you may review it inline");
       expect(result.message).toContain(
         "paste them into every reviewer's brief",
@@ -201,6 +209,19 @@ describe("review of one ticket outside a run", () => {
       expect(result.message).not.toContain("review-piece");
       expect(reviewPrintoutOf(result)).toBe(result.message);
       expect(agentStep.requests).toHaveLength(0);
+    });
+
+    it("leaves the fixed point to the inlined skill when the branch's commits leave no diff", async () => {
+      git(workspace.path, "rm", "one.ts");
+      git(workspace.path, "commit", "-m", "Remove one.ts");
+
+      const result = await brief();
+
+      expect(result.message).toContain('<skill name="code-review">');
+      expect(result.message).not.toContain(
+        "it resolves and the diff is non-empty",
+      );
+      expect(result.message).not.toContain("commits since `master`");
     });
 
     it("leaves out the inline allowance over the inline size", async () => {

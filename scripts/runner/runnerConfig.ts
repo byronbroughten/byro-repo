@@ -52,7 +52,7 @@ export const implementPieceCommands: ImplementPieceSkillInput = {
   overlapCommand,
   docPrintCommand: "npm run doc:print --",
 };
-// Each ticket's checks after review, and the skill its review step calls.
+// Each ticket's checks after review, and the skill whose SKILL.md its review prompt carries.
 const codeWorkflow = codeWorkflowOf({
   checks: [["npm", "run", "check"]],
   reviewSkillName: "code-review",

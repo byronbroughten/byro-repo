@@ -35,6 +35,23 @@ describe("run's review brief from the implement record", () => {
     expect(agentStep.requests[1]?.prompt).toContain(`${heading}\n\n- ${point}`);
   });
 
+  it("launches the warm review in the implementer's session with the skill inlined and the fixed point pinned", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    await specRun(agentStep).run(spec);
+
+    const review = agentStep.requests[1];
+    expect(review?.resumeSessionId).toBeDefined();
+    expect(review?.prompt).toContain(
+      '<skill name="code-review">\nTwo-axis review. Read [the verdicts](docs/agents/verdicts.md).\n</skill>',
+    );
+    expect(review?.prompt).toMatch(
+      /it resolves and the diff is non-empty, so the skill's step 1 is done\. .*commits since `master`:\n\n- `byro-repo`:\n {2}- [0-9a-f]+ Add one\.ts$/m,
+    );
+    expect(review?.prompt).not.toContain("Skill tool");
+  });
+
   it("leaves the review step's prompt as it was when the record names none", async () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
