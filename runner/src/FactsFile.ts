@@ -39,16 +39,27 @@ export interface WrapUpFacts extends OutcomeFacts {
   githubWrites?: GitHubWrite[];
   // What the runner recorded; facts computed from them win over passed ones.
   sessions?: TicketSessions;
+  // The latest `runner review` brief an interactive session hasn't yet submitted a review for.
+  reviewBrief?: ReviewBrief;
   // A session's review whose findings the session is resolving itself.
   pendingResolve?: PendingResolve;
   // Recorded here because a run posts the review list after wrap-up, which leaves a Standalone ticket open on it until the list is posted.
   hasUndecidedReviewItems?: boolean;
 }
 
+export interface ReviewBrief {
+  // The ISO time the brief printed; the session's reviewers are counted from it.
+  startedAt: string;
+  // Set once a submit short of its reviewers was sent back, so the next short one is recorded instead.
+  isSentBack?: boolean;
+}
+
 export interface PendingResolve {
   findings: Finding[];
   // Each branched clone's head when the review ended, which the session's Fix commits are checked against.
   base: Record<string, string>;
+  // Set when the review ran short of its reviewer subagents even once sent back, so its review list says so.
+  hasSkippedReviewers?: boolean;
 }
 
 export type ReviewFacts = Pick<
@@ -117,6 +128,18 @@ export class FactsFile {
       proposals,
       hasUndecidedReviewItems,
     });
+  }
+
+  reviewBriefOf(issue: IssueRef): ReviewBrief | undefined {
+    return this._storedOf(issue).reviewBrief;
+  }
+
+  // Undefined clears it, once the session's review is accepted.
+  setReviewBrief(
+    issue: IssueRef,
+    reviewBrief: ReviewBrief | undefined,
+  ): FactsFile {
+    return this._store(issue, { ...this._storedOf(issue), reviewBrief });
   }
 
   pendingResolveOf(issue: IssueRef): PendingResolve | undefined {

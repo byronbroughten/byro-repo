@@ -107,7 +107,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `secretShapes.ts` | | The token shapes wrap-up's secret scan looks for. |
 | `SessionProbe.ts` | `SessionProbe` | `npm run session:probe`: what a SessionStart hook sees in a folder. |
 | `sleep.ts` | | A promised delay. |
-| `SpecRun.ts` | `SpecRun` | The run loop's entry: `run` over its members, `status`, `requestStop`, `review`, `resolve`, `decide`, `judgeable` and `standalone`, delegating to `SpecRun/`. |
+| `SpecRun.ts` | `SpecRun` | The run loop's entry: `run` over its members, `status`, `requestStop`, `briefReview`, `submitReview`, `resolve`, `decide`, `judgeable` and `standalone`, delegating to `SpecRun/`. |
 | `SpecRun/DraftPuller.ts` | | Runs a piece spec's drafting ticket's pull: writes and commits the Agent draft its Workflow pulls from the Doc, and keeps the push baseline. |
 | `SpecRun/DraftPusher.ts` | | Runs a piece spec's push: writes the Agent draft's agent Sections into the Doc once, raising a push Halt before any write on a Section the developer changed since the pull, reading and comparing again on a stale revision up to a bound, and raising a push Halt naming a Doc with pending suggestions, delegating its `keep mine` answers to `DraftPusher/`. |
 | `SpecRun/DraftPusher/DraftKeeper.ts` | | Marks the push's `keep mine` Sections as the developer's in the Agent draft and lands it as a session. |
@@ -124,7 +124,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/ReviewListPoster.ts` | | Posts review lists and covered-later notes. |
 | `SpecRun/ReviewStepper.ts` | | Runs a ticket's review, with its reviewer check, and resolve steps. |
 | `SpecRun/RunLoop.ts` | | The run's ticket loop across its members, idling and end. |
-| `SpecRun/SessionReviewer.ts` | | Runs `review` and `resolve` for an interactive session. |
+| `SpecRun/SessionReviewer.ts` | | Prints an interactive session's review brief, checks the review it submits, its reviewers included, and runs its `resolve`. |
 | `SpecRun/SpecRunBase.ts` | | The Base every collaborator shares: config, run state, progress log, notices, snapshots, a run's end and an issue's review-list judgement. |
 | `SpecRun/StandaloneTicketLister.ts` | | `runner standalone`: lists a repo's launchable Standalone tickets, leaving out each the Batch preflight would refuse, with its reason. |
 | `SpecRun/SpecEndRunner.ts` | | Ends the run with its Workflow's spec-end Steps, the gap check's review list, the judge Step's stop and the push included. |
@@ -162,7 +162,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `ticketNewDependencies.ts` | | Reads a ticket's `## New dependencies` section. |
 | `ticketSections.ts` | | Finds one `## ` section of a ticket's body. |
 | `ticketTargets.ts` | | Reads a ticket's `## Targets` section, and holds the target kinds, a spec's source among them. |
-| `transcriptFacts.ts` | `transcriptFacts` | Outcome facts computed from transcripts: pair, peaks, duration and cost, and why one is unrecorded; where a session's transcript is. |
+| `transcriptFacts.ts` | `transcriptFacts` | Outcome facts computed from transcripts: pair, peaks, duration and cost, and why one is unrecorded; where a session's transcript is, and the subagents it started since a time. |
 | `UnhandledStop.ts` | `UnhandledStop` | The outcomes the run loop doesn't handle yet, and their error. |
 | `verdicts.ts` | | A finding's axes, `spec`, `standards` and `reader`, and its verdicts. |
 | `Workflow.ts` | | The Workflow type, its spec-end Steps, source targets, pull and push rules, each agent step's rules and prompt input, the one schema every step of the implementer's session launches with, its outcome row's review cell and the accessors that throw for a step a Workflow leaves out, and the pick of a spec's Workflow, and an interactive session's skill, from the labels: the core's one way to a Workflow. |

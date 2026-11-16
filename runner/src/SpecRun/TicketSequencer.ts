@@ -3,7 +3,7 @@
 // releasing the lease however it ends. A Halt or a lease taken
 // since the pick leaves the ticket waiting; an UnhandledStop leaves it unlanded and commented on, or Stops the run for a rerun to retry it.
 // Before launch it raises a Failure Halt on a body ../IssueReader.ts doesn't trust; `approve` posts the text's approval.
-// RunLoop.ts calls _runTicket and SessionReviewer.ts calls _runSteps.
+// RunLoop.ts calls _runTicket.
 // A sequence that ends short of wrap-up, as a Workflow's may while its later Steps are unbuilt, Stops the ticket unlanded.
 // It builds its own LeaseKeeper, ImplementStepper, ReviewStepper, ResearchStepper, DraftPuller, TicketLander and HaltRaiser.
 
@@ -274,10 +274,6 @@ export class TicketSequencer extends SpecRunBase {
     for (const { step, nextOf } of sequence) {
       // The last step, wrap-up, is the landing _runTicket runs.
       if (state.step !== step || nextOf === undefined) continue;
-      // A session resolves its own review.
-      if (step === "resolve" && run.sessionReview !== undefined) return;
-      // A session's review leaves the checks and wrap-up to the session.
-      if (step === "checks" && run.sessionReview !== undefined) return;
       await this._runStep(ticketRun, step);
       this._advance(ticketRun, nextOf(state));
     }

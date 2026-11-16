@@ -1,17 +1,15 @@
 // The piece review step: the prompt that runs a review of a drafting ticket's Agent draft on the spec, standards and
-// reader axes, by the implementer in a run or a fresh review session for a session review, following `/review-piece` read
+// reader axes, by the implementer in a run or an interactive session from its brief, following `/review-piece` read
 // by its path, the review record it returns: code's, on these axes, plus the overlap hits it judged no copy, and the
 // check that it spawned its three reviewer subagents, with the resume that sends back one that didn't.
-// pieceWorkflow.ts registers it; ../../SpecRun/ReviewStepper.ts launches it.
+// pieceWorkflow.ts registers it; ../../SpecRun/ReviewStepper.ts launches it and ../../SpecRun/SessionReviewer.ts prints it.
 
 import { stepReadLine } from "../../IssueReader.ts";
 import {
   codeListOf,
-  implementerReviewLineOf,
   reviewerResumePromptOf,
   reviewFindingsText,
-  sessionReturnOf,
-  sessionReviewLineOf,
+  reviewFramingOf,
 } from "../../promptText.ts";
 import {
   arraySchema,
@@ -39,19 +37,19 @@ export function pieceReviewPrompt({
   branch,
   workspacePath,
   draftPath,
-  isSessionReview = false,
+  sessionSubmit,
 }: PieceReviewPromptInput): string {
   const passagesFolder = passagesFolderIn(workspacePath, issue);
   const scope = draftingScope.sectionsOf(labels);
-  const ticketKind = " on a piece spec's drafting ticket";
-  const opening = isSessionReview
-    ? sessionReviewLineOf(ticketKind)
-    : implementerReviewLineOf(ticketKind);
-  return `${opening}
+  const framing = reviewFramingOf(
+    sessionSubmit,
+    " on a piece spec's drafting ticket",
+  );
+  return `${framing.opening}
 
 Read \`.claude/skills/${skillName}/SKILL.md\` and follow it to review ${issue.repo}#${issue.number}, "${title}", on the ${codeListOf(pieceAxes, "and")} axes. It is user-invoked, so read it by that path rather than calling the Skill tool. Your working directory is the ticket's issue workspace root, on the ticket's branch, \`${branch}\`. The draft input is the Agent draft, \`${draftPath}\` in the \`${spec.repo}\` clone, and the passages folder, \`${passagesFolder}\`; the ticket's spec is ${spec.repo}#${spec.number}. The in-scope text is ${scope}. ${stepReadLine}
 
-Change nothing: no edits, commits, comments or fixes. ${sessionReturnOf(["findings", "dismissedOverlaps"])}, the review record:
+${framing.returnLineOf(["findings", "dismissedOverlaps"])}
 - ${reviewFindingsText({ axes: pieceAxes, where: "its file:line in the Agent draft, or the spec's Outline line for a reader finding", claim: "what it says, in a line, quoting the sentence" })}
 - \`dismissedOverlaps\`: each overlap hit the spec reviewer judged no copy, its \`hit\` as the overlap command printed it and its one-line \`reason\`; empty when it dismissed none.`;
 }

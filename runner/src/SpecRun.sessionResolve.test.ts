@@ -15,7 +15,7 @@ import {
   findingOf,
   github,
   refOf,
-  reviewed,
+  sessionStarting,
   spec,
   specRun,
   stateFolder,
@@ -102,24 +102,27 @@ describe("a session resolving its own review", () => {
     coveredBy: "byro-repo#2",
   };
 
+  // The session's brief and its submitted review of `findings`, launching nothing.
   async function reviewUnderBudget(): Promise<{
     agentStep: FakeAgentStep;
     result: ReviewResult;
   }> {
     implementedAt(100_000);
-    const agentStep = FakeAgentStep.init({
-      ...reviewed(findings),
-      sessionId: "review-session",
+    const agentStep = FakeAgentStep.init();
+    await specRun(agentStep).briefReview(refOf(1), { holder });
+    const result = await specRun(agentStep).submitReview(refOf(1), {
+      holder,
+      output: { findings },
+      session: sessionStarting(0, { sessionId: "review-session" }),
     });
-    const result = await specRun(agentStep).review(refOf(1), { holder });
     return { agentStep, result };
   }
 
-  it("starts only the review session under the ticket budget, records it, and returns the findings with their axes and suggested verdicts", async () => {
+  it("launches no review session, records the session's review, and returns the findings with their axes and suggested verdicts", async () => {
     const { agentStep, result } = await reviewUnderBudget();
 
     expect(result.kind).toBe("findings");
-    expect(agentStep.requests).toHaveLength(1);
+    expect(agentStep.requests).toHaveLength(0);
     expect(reviewPrintoutOf(result)).toBe(
       [
         "Reviewed byro-repo #1, findings: 3. Resolve them in this session by `docs/agents/verdicts.md`, then hand your records to resolve.",
@@ -275,11 +278,16 @@ describe("a session resolving its own review", () => {
 
   it("prints the findings for the session to resolve itself past the ticket budget, starting no resolver", async () => {
     implementedAt(160_000);
-    const agentStep = FakeAgentStep.init(reviewed(findings));
+    const agentStep = FakeAgentStep.init();
+    await specRun(agentStep).briefReview(refOf(1), { holder });
 
-    const result = await specRun(agentStep).review(refOf(1), { holder });
+    const result = await specRun(agentStep).submitReview(refOf(1), {
+      holder,
+      output: { findings },
+      session: sessionStarting(0),
+    });
 
     expect(result.kind).toBe("findings");
-    expect(agentStep.requests).toHaveLength(1);
+    expect(agentStep.requests).toHaveLength(0);
   });
 });

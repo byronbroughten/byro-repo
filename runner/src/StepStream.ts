@@ -63,7 +63,7 @@ const usageKeyOfWindow: Record<keyof RawWindows, keyof UsageReading> = {
 };
 
 // Claude Code's subagent tool; older releases named it Task.
-const subagentToolNames = new Set(["Agent", "Task"]);
+export const subagentToolNames = new Set(["Agent", "Task"]);
 
 const tooManyRequests = 429;
 const noConversationPrefix = "No conversation found";

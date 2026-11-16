@@ -7,17 +7,15 @@ import { FactsFile } from "./FactsFile.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
 import type { LeaseHolder, Workspace } from "./IssueWorkspaces.ts";
-import type { UsageReader } from "./limitGuard.ts";
-import type { ItemDecision } from "./reviewList.ts";
+import { type ItemDecision, skippedReviewersNote } from "./reviewList.ts";
 import { runKnobsOf } from "./runKnobs.ts";
 import { reviewPrintoutOf } from "./SpecRun.ts";
-import type { ReviewResult } from "./SpecRun/runState.ts";
+import type { ReviewResult, SubmittedSession } from "./SpecRun/runState.ts";
 import {
   addIssue,
   addSpec,
   clonePaths,
   commentsOn,
-  crashed,
   findingOf,
   github,
   haltComments,
@@ -29,6 +27,7 @@ import {
   resolved,
   reviewed,
   runStatePath,
+  sessionStarting,
   spec,
   specRun,
   type SpecRunOverrides,
@@ -36,10 +35,9 @@ import {
   stateFolder,
   type StepScript,
   ticketFacts,
-  usageListOf,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
-import type { ResolveRecord } from "./stepRecords.ts";
+import type { Finding, ResolveRecord } from "./stepRecords.ts";
 
 useSpecRunHarness();
 
@@ -111,24 +109,67 @@ describe("review of one ticket outside a run", () => {
     return resolved(records);
   }
 
-  interface SessionReview {
-    review?: FakeAgentStep;
-    fixFile?: string;
+  const submitCommand =
+    "npm run runner -- review byronbroughten/byro-repo 1 .runner/review-1.json --session <id>";
+  const briefCommand = "npm run runner -- review byronbroughten/byro-repo 1";
+  // Over the inline size, so the reviewer check counts the session's reviewers.
+  const overInlineSize: SpecRunOverrides = {
+    knobs: runKnobsOf({
+      clonePaths,
+      authChecks: [passes],
+      inlineReviewMaxFiles: 0,
+    }),
+  };
+  const later = new Date(startTime.getTime() + 60_000);
+
+  function brief(overrides?: SpecRunOverrides): Promise<ReviewResult> {
+    return specRun(FakeAgentStep.init(), overrides).briefReview(refOf(1), {
+      holder,
+    });
+  }
+
+  interface Submit {
+    findings?: Finding[];
+    output?: unknown;
+    session?: SubmittedSession;
     overrides?: SpecRunOverrides;
   }
 
-  // The session's review, by default one finding per record, then its own resolve of `records`, committing `fixFile` first when a record is a Fix.
+  function submit({
+    findings: submitted = [],
+    output = { findings: submitted },
+    session = sessionStarting(0),
+    overrides,
+  }: Submit = {}): Promise<ReviewResult> {
+    return specRun(FakeAgentStep.init(), overrides).submitReview(refOf(1), {
+      holder,
+      output,
+      session,
+    });
+  }
+
+  interface SessionReview {
+    fixFile?: string;
+    session?: SubmittedSession;
+    overrides?: SpecRunOverrides;
+  }
+
+  // The session's brief and its submitted review, one finding per record, then its own resolve of `records`, committing `fixFile` first when a record is a Fix.
+  // Its session starts the code Workflow's reviewers, since a second review's diff is over the inline size.
   async function resolvedReview(
     records: ResolveRecord[],
     {
-      review = FakeAgentStep.init(
-        reviewed(records.map(({ finding }) => findingOf({ line: finding }))),
-      ),
       fixFile = "fix.ts",
+      session = sessionStarting(2),
       overrides,
     }: SessionReview = {},
   ): Promise<ReviewResult> {
-    await specRun(review, overrides).review(refOf(1), { holder });
+    await brief(overrides);
+    await submit({
+      findings: records.map(({ finding }) => findingOf({ line: finding })),
+      session,
+      overrides,
+    });
     if (records.some(({ verdict }) => verdict === "fix")) commit(fixFile);
     return specRun(FakeAgentStep.init(), overrides).resolve(refOf(1), {
       holder,
@@ -138,60 +179,213 @@ describe("review of one ticket outside a run", () => {
 
   const fixedReview = [propose, fix, coveredLater];
 
-  it("reviews a code spec's ticket by the code Workflow", async () => {
-    const agentStep = FakeAgentStep.init(reviewed());
+  describe("the brief", () => {
+    it("prints the run's review prompt for the ticket by the code Workflow, for the session to run and submit, launching nothing", async () => {
+      const agentStep = FakeAgentStep.init();
 
-    await specRun(agentStep).review(refOf(1), { holder });
+      const result = await specRun(agentStep).briefReview(refOf(1), {
+        holder,
+      });
 
-    expect(agentStep.requests[0]?.prompt).not.toContain("review-piece");
-  });
-
-  it("reviews in a fresh review session of its own, since the session has no implementer session to resume", async () => {
-    FactsFile.init(stateFolder()).addSession(refOf(1), {
-      agent: "implement",
-      sessionId: "implement-session",
-      account: 1,
-      configFolder: "/config/account-1",
+      expect(result.kind).toBe("brief");
+      expect(result.message).toContain(
+        'Call the Skill tool with "code-review" to review byro-repo#1, "Ticket 1", on both axes, with `master` as the fixed point.',
+      );
+      expect(result.message).toContain("you may review it inline");
+      expect(result.message).toContain(
+        "paste them into every reviewer's brief",
+      );
+      expect(result.message).toContain(
+        `Write the review record to \`.runner/review-1.json\`, a JSON object holding only \`findings\`, then submit it with \`${submitCommand}\``,
+      );
+      expect(result.message).not.toContain("review-piece");
+      expect(reviewPrintoutOf(result)).toBe(result.message);
+      expect(agentStep.requests).toHaveLength(0);
     });
-    const agentStep = FakeAgentStep.init(reviewed());
 
-    await specRun(agentStep).review(refOf(1), { holder });
+    it("leaves out the inline allowance over the inline size", async () => {
+      const result = await brief(overInlineSize);
 
-    const [review] = agentStep.requests;
-    expect(review?.resumeSessionId).toBeUndefined();
-    expect(review?.prompt).toContain("You are the review step");
-    expect(review?.prompt).not.toContain("your own work");
-    expect(review?.logPath).toMatch(/-review\.jsonl$/);
+      expect(result.message).not.toContain("you may review it inline");
+    });
+
+    it("records its start, and a second brief records a new one", async () => {
+      await brief();
+      expect(ticketFacts().reviewBrief).toEqual({
+        startedAt: startTime.toISOString(),
+      });
+
+      await brief({ clock: { now: () => later } });
+
+      expect(ticketFacts().reviewBrief).toEqual({
+        startedAt: later.toISOString(),
+      });
+    });
+
+    it("prints a piece spec's ticket's review by the piece Workflow, as a run picks it", async () => {
+      github.edit(spec.number, { labels: ["piece"] });
+
+      const result = await brief();
+
+      expect(result.message).toContain(".claude/skills/review-piece/SKILL.md");
+      expect(result.message).toContain(
+        "a JSON object holding only `findings` and `dismissedOverlaps`",
+      );
+    });
+
+    it("prints a Standalone piece ticket's review by its own label", async () => {
+      github.subIssues.set(spec.number, []);
+      github.edit(1, { labels: ["ready-for-agent", "piece"] });
+
+      const result = await brief();
+
+      expect(result.message).toContain(".claude/skills/review-piece/SKILL.md");
+    });
   });
 
-  it("reviews a piece spec's ticket by the piece Workflow, as a run picks it", async () => {
-    github.edit(spec.number, { labels: ["piece"] });
-    const agentStep = FakeAgentStep.init(reviewed());
+  describe("the submit", () => {
+    it("refuses a submit with no brief recorded, naming the brief command", async () => {
+      const result = await submit({ findings });
 
-    await specRun(agentStep).review(refOf(1), { holder });
+      expect(result).toEqual({
+        kind: "refused",
+        message: `byro-repo #1 has no review brief to submit against; print it with \`${briefCommand}\` and review from it first.`,
+        halts: [],
+      });
+      expect(existsSync(join(stateFolder(), "byro-repo-1.facts.json"))).toBe(
+        false,
+      );
+    });
 
-    expect(agentStep.requests[0]?.prompt).toContain(
-      ".claude/skills/review-piece/SKILL.md",
-    );
-  });
+    it("refuses a second submit of the same brief, which an accepted submit clears", async () => {
+      await brief();
+      await submit({ findings });
 
-  it("reviews a Standalone piece ticket by its own label", async () => {
-    github.subIssues.set(spec.number, []);
-    github.edit(1, { labels: ["ready-for-agent", "piece"] });
-    const agentStep = FakeAgentStep.init(reviewed());
+      const result = await submit({ findings });
 
-    await specRun(agentStep).review(refOf(1), { holder });
+      expect(result.kind).toBe("refused");
+      expect(result.message).toContain(briefCommand);
+    });
 
-    expect(agentStep.requests[0]?.prompt).toContain(
-      ".claude/skills/review-piece/SKILL.md",
-    );
+    it("refuses a record that fails the review schema, naming what to correct, and keeps the brief", async () => {
+      await brief();
+
+      const result = await submit({ output: { findings: [{ where: "a" }] } });
+
+      expect(result.kind).toBe("refused");
+      expect(result.message).toContain(
+        "Your review record broke its schema; correct it in `.runner/review-1.json` and submit again:",
+      );
+      expect(result.message).toContain(
+        "/findings/0 must have required property",
+      );
+      expect(ticketFacts().reviewBrief).toBeDefined();
+    });
+
+    it("returns the findings for the session to resolve, with the fixed point resolve checks its commits against", async () => {
+      await brief();
+
+      const result = await submit({ findings });
+
+      expect(result.kind).toBe("findings");
+      expect(result.findings).toContain("1. [standards] one.ts:1");
+      expect(ticketFacts().pendingResolve?.findings).toEqual(findings);
+      expect(ticketFacts().reviewBrief).toBeUndefined();
+    });
+
+    it("accepts a review over the inline size that started its reviewers since the brief", async () => {
+      await brief(overInlineSize);
+
+      const result = await submit({
+        findings,
+        session: sessionStarting(2),
+        overrides: overInlineSize,
+      });
+
+      expect(result.kind).toBe("findings");
+      expect(ticketFacts().pendingResolve?.hasSkippedReviewers).toBeUndefined();
+    });
+
+    it("sends a review over the inline size short of its reviewers back once, with the reviewer resume and the submit command", async () => {
+      await brief(overInlineSize);
+
+      const result = await submit({
+        findings,
+        session: sessionStarting(1),
+        overrides: overInlineSize,
+      });
+
+      expect(result.kind).toBe("refused");
+      expect(result.message).toContain(
+        "Your review ran without its reviewer subagents. Spawn",
+      );
+      expect(result.message).toContain(
+        `Write it to \`.runner/review-1.json\`, replacing the one there, and submit again with \`${submitCommand}\`.`,
+      );
+      expect(ticketFacts().pendingResolve).toBeUndefined();
+      expect(ticketFacts().reviewBrief?.isSentBack).toBe(true);
+    });
+
+    it("counts only the reviewers the session started since the latest brief", async () => {
+      sessionStarting(2, { at: new Date(startTime.getTime() - 60_000) });
+      await brief(overInlineSize);
+
+      const result = await submit({
+        findings,
+        session: sessionStarting(0),
+        overrides: overInlineSize,
+      });
+
+      expect(result.kind).toBe("refused");
+      expect(result.message).toContain("Your review ran without its reviewer");
+    });
+
+    it("records a second short submit on the review list, once sent back", async () => {
+      await brief(overInlineSize);
+      await submit({
+        findings: [findingOf({ line: 1 })],
+        session: sessionStarting(0),
+        overrides: overInlineSize,
+      });
+
+      const submitted = await submit({
+        findings: [findingOf({ line: 1 })],
+        session: sessionStarting(0),
+        overrides: overInlineSize,
+      });
+      const result = await specRun(
+        FakeAgentStep.init(),
+        overInlineSize,
+      ).resolve(refOf(1), { holder, output: { records: [propose] } });
+
+      expect(submitted.kind).toBe("findings");
+      expect(result.reviewList).toContain(skippedReviewersNote);
+    });
+
+    it("refuses a review over the inline size whose session has no transcript, naming the session and config folder", async () => {
+      await brief(overInlineSize);
+
+      const result = await submit({
+        findings,
+        session: {
+          sessionId: "lost",
+          configFolder: "/config/none",
+          account: 1,
+        },
+        overrides: overInlineSize,
+      });
+
+      expect(result.kind).toBe("refused");
+      expect(result.message).toContain(
+        "No transcript for session lost under /config/none",
+      );
+    });
   });
 
   it("writes reviewFixes none and posts nothing when the review finds nothing", async () => {
-    const result = await specRun(FakeAgentStep.init(reviewed())).review(
-      refOf(1),
-      { holder },
-    );
+    await brief();
+
+    const result = await submit();
 
     expect(result).toMatchObject({ kind: "reviewed", halts: [] });
     expect(ticketFacts()).toMatchObject({ reviewFixes: "none", proposals: 0 });
@@ -227,77 +421,59 @@ describe("review of one ticket outside a run", () => {
     });
   });
 
-  it("records the review session beside the implement session, under the account and config folder it ran as, and no session for the resolve", async () => {
+  it("records the session's review under the brief's start, beside its implement session, so Review cost splits there, and no session for the resolve", async () => {
+    const session = sessionStarting(0);
     const implement = {
       agent: "implement",
-      sessionId: "implement-session",
-      account: 2,
-      configFolder: "/config/account-2",
+      sessionId: session.sessionId,
+      account: 1,
+      configFolder: session.configFolder,
     } as const;
     FactsFile.init(stateFolder()).addSession(refOf(1), implement);
-    const review = FakeAgentStep.init({
-      ...reviewed(findings),
-      sessionId: "review-session",
-    });
 
-    await resolvedReview(fixedReview, { review });
+    await resolvedReview(fixedReview, { session });
 
     expect(ticketFacts().sessions).toEqual({
       steps: [
         implement,
-        {
-          agent: "review",
-          sessionId: "review-session",
-          startedAt: startTime.toISOString(),
-          account: 1,
-          configFolder: "/config/account-1",
-        },
+        { ...implement, agent: "review", startedAt: startTime.toISOString() },
       ],
     });
   });
 
-  it("records the review session under the account it ran as, in the runner's own config folder", async () => {
-    const review = FakeAgentStep.init({
-      ...reviewed(findings),
-      sessionId: "review-session",
-      account: 2,
+  it("keeps the first review's start on a second review of the same session", async () => {
+    const session = sessionStarting(0);
+    await resolvedReview(fixedReview, { session });
+
+    await resolvedReview(fixedReview, {
+      session,
+      fixFile: "fix-again.ts",
+      overrides: { clock: { now: () => later } },
     });
 
-    await resolvedReview(fixedReview, { review });
-
-    expect(ticketFacts().sessions).toEqual({
-      steps: [
-        {
-          agent: "review",
-          sessionId: "review-session",
-          startedAt: startTime.toISOString(),
-          account: 2,
-          configFolder: "/config/account-1",
-        },
-      ],
-    });
+    expect(ticketFacts().sessions?.steps).toEqual([
+      expect.objectContaining({
+        agent: "review",
+        startedAt: startTime.toISOString(),
+      }),
+    ]);
   });
 
-  it("records a halted review's session under the runner's config folder when no implement session was recorded", async () => {
-    const review = FakeAgentStep.init({
-      ...reviewed(findings.slice(0, 1)),
-      sessionId: "review-session",
+  it("leaves the review session unrecorded, saying so, when no Active account could be read", async () => {
+    const logged: string[] = [];
+    await brief();
+
+    const result = await submit({
+      findings,
+      session: { ...sessionStarting(0), account: undefined },
+      overrides: { log: (line) => logged.push(line) },
     });
 
-    const result = await resolvedReview([halt], { review });
-
-    expect(result.kind).toBe("halted");
-    expect(ticketFacts().sessions).toEqual({
-      steps: [
-        {
-          agent: "review",
-          sessionId: "review-session",
-          startedAt: startTime.toISOString(),
-          account: 1,
-          configFolder: "/config/account-1",
-        },
-      ],
-    });
+    expect(result.kind).toBe("findings");
+    expect(ticketFacts().sessions).toBeUndefined();
+    expect(logged).toEqual([
+      "byro-repo #1: no Active account could be read, so the review's session interactive-session is unrecorded and Review cost won't split at it.",
+    ]);
   });
 
   it("prints its message once, at the head of its printout, and records it in the progress log", async () => {
@@ -484,19 +660,6 @@ describe("review of one ticket outside a run", () => {
     );
   });
 
-  it("offers a failed step's session Halt only a fresh review, since no run reads `retry`", async () => {
-    const agentStep = FakeAgentStep.init(crashed, crashed);
-
-    const result = await specRun(agentStep).review(refOf(1), { holder });
-
-    expect(result.kind).toBe("halted");
-    expect(result.halts[0]).toContain("Failure Halt");
-    expect(result.halts[0]).toContain(
-      "Options:\n1. Review the ticket again once the failure's cause is fixed.\n\n",
-    );
-    expect(result.halts[0]).not.toContain("`retry`");
-  });
-
   it("leaves a later run on the spec unaffected: it saves no run state, and a reply to its Halt answers none of the run's", async () => {
     await resolvedReview([halt]);
     expect(existsSync(runStatePath())).toBe(false);
@@ -521,9 +684,9 @@ describe("review of one ticket outside a run", () => {
   });
 
   it("refuses while another session holds the workspace's lease, launching nothing", async () => {
-    const agentStep = FakeAgentStep.init(reviewed());
+    const agentStep = FakeAgentStep.init();
 
-    const result = await specRun(agentStep).review(refOf(1), {
+    const result = await specRun(agentStep).briefReview(refOf(1), {
       holder: { kind: "session", pid: process.pid },
     });
 
@@ -540,9 +703,9 @@ describe("review of one ticket outside a run", () => {
       refOf(1),
     );
     writeFileSync(join(workspace?.path ?? "", "one.ts"), "unsaved\n");
-    const agentStep = FakeAgentStep.init(reviewed());
+    const agentStep = FakeAgentStep.init();
 
-    const result = await specRun(agentStep).review(refOf(1), { holder });
+    const result = await specRun(agentStep).briefReview(refOf(1), { holder });
 
     expect(result.kind).toBe("refused");
     expect(result.message).toBe(
@@ -556,32 +719,14 @@ describe("review of one ticket outside a run", () => {
       labels: ["ready-for-interactive"],
       body: "## What to build\n\nA thing.\n",
     });
-    const agentStep = FakeAgentStep.init(reviewed());
+    const agentStep = FakeAgentStep.init();
 
-    const result = await specRun(agentStep).review(refOf(1), { holder });
+    const result = await specRun(agentStep).briefReview(refOf(1), { holder });
 
     expect(result.kind).toBe("refused");
     expect(result.message).toBe(
       "byro-repo #1 has no valid ## Model fit section, so its review has no pair to run on: add one naming one of the six pairs.",
     );
-    expect(agentStep.requests).toHaveLength(0);
-  });
-
-  it("refuses with a message naming cswap when cswap reports no active account, launching nothing", async () => {
-    const usageReader: UsageReader = {
-      read: async () => ({
-        ...usageListOf(0.1, 0.2),
-        activeAccount: undefined,
-      }),
-    };
-    const agentStep = FakeAgentStep.init(reviewed());
-
-    const result = await specRun(agentStep, { usageReader }).review(refOf(1), {
-      holder,
-    });
-
-    expect(result.kind).toBe("refused");
-    expect(result.message).toContain("cswap");
     expect(agentStep.requests).toHaveLength(0);
   });
 

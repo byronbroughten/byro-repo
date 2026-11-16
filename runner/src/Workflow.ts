@@ -11,6 +11,7 @@
 import type { Docs } from "./Docs.ts";
 import type { HaltQuestion } from "./halts.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
+import type { SessionSubmit } from "./promptText.ts";
 import { sessionOutputSchemaOf } from "./recordSchema.ts";
 import type { Command } from "./runKnobs.ts";
 import type {
@@ -233,9 +234,9 @@ export interface ReviewPromptInput extends TicketPromptFields {
   skillName: string;
   // Set when the diff is within the inlineReviewMaxFiles knob, so the review may skip its reviewer subagents.
   isInlineAllowed: boolean;
-  // Set for a session review's fresh review session; otherwise the implementer reviews its own work, in its session or a fresh one after a handoff.
-  isSessionReview?: boolean;
-  // The committed implement record's, absent for a session review, which has none.
+  // Set for an interactive session's brief; otherwise a run's implementer reviews its own work, in its session or a fresh one after a handoff.
+  sessionSubmit?: SessionSubmit;
+  // The committed implement record's, absent for an interactive session, which has none.
   pointsWorthChecking?: string[];
 }
 
@@ -384,7 +385,6 @@ export function hasAgentStep(
 }
 
 // The steps that resume the implementer's session in a run; research and the gap check each run in their own.
-// A session review runs fresh but launches under the same schema, which costs it nothing.
 const sessionStepNames = [
   "implement",
   "review",
