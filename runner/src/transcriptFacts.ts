@@ -393,7 +393,10 @@ function factOf<RV>(
   return compute(transcripts);
 }
 
-function stepIdsOf(sessions: TicketSessions, agent: StepAgent): string[] {
+export function stepIdsOf(
+  sessions: TicketSessions,
+  agent: StepAgent,
+): string[] {
   return sessions.steps
     .filter((step) => step.agent === agent)
     .map(({ sessionId }) => sessionId);

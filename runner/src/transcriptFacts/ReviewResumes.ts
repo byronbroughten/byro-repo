@@ -4,6 +4,7 @@
 import {
   costUsdOf,
   type SessionEntries,
+  stepIdsOf,
   type TicketSessions,
   timeOf,
   type Transcript,
@@ -54,11 +55,7 @@ export class ReviewResumes {
 
 // With no recorded start, a post-review `implement` resume before resolve is a budget handoff, so it stays in cost.
 function resumesOf(sessions: TicketSessions): Map<string, ReviewResume> {
-  const implementerIds = new Set(
-    sessions.steps
-      .filter(({ agent }) => agent === "implement")
-      .map(({ sessionId }) => sessionId),
-  );
+  const implementerIds = new Set(stepIdsOf(sessions, "implement"));
   const firstReview = sessions.steps.find(({ agent }) => agent === "review");
   const launchCounts = new Map<string, number>();
   const resumes = new Map<string, ReviewResume>();
