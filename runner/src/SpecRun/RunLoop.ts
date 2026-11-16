@@ -1,4 +1,5 @@
 // The run loop works a list of members, one Run each, and holds each one's RunLock while it runs; several are a Batch.
+// The members share one AccountHold, whose lease it releases at Idle and with the RunLocks.
 // Its PreflightChecker refuses or Stops the run first. Then it picks tickets one at a time across members and runs each, a member held by a Halt stepping aside,
 // as does one blocked by a member not yet landed, which ends once that member ends unlanded;
 // idling while open Halts and other holders' leases are all that's in the way, until every member is done or something Stops it.
@@ -16,6 +17,7 @@ import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
 import { type AccountReading, readingLabelOf } from "../limitGuard.ts";
 import { RunStop } from "../RunStop.ts";
 import { stalePathLabelOf, stalePathsOf } from "../stalePaths.ts";
+import { type AccountHold } from "./AccountHold.ts";
 import {
   type Member,
   memberIssueOf,
@@ -84,6 +86,8 @@ type Finishing =
 
 export class RunLoop extends SpecRunBase {
   private readonly memberIssues: MemberList;
+  // The first member's, shared by every member so a Batch holds one account lease; undefined until the runs start.
+  private accountHold: AccountHold | undefined;
 
   constructor(config: SpecRunConfig, memberIssues: MemberList) {
     super(config);
@@ -126,6 +130,7 @@ export class RunLoop extends SpecRunBase {
     } finally {
       // Closed on a throw too, so status and supervise never find a dead Batch.
       if (!isRestarting) this.batchRecords.close(memberIssues);
+      this.accountHold?.release();
       locks.forEach((lock) => lock.release());
     }
   }
@@ -211,6 +216,8 @@ export class RunLoop extends SpecRunBase {
         continue;
       }
       if (launch === undefined) {
+        // A Limit wait holds its lease, as it waits inside a launch; an Idle run frees its account for other runs.
+        this.accountHold?.release();
         if (!isIdle) await this._announceIdle(waiting);
         isIdle = true;
         await this._sleep(this.config.knobs.idlePollMs);
@@ -260,6 +267,9 @@ export class RunLoop extends SpecRunBase {
       this._startRunClearingStop(first),
       ...rest.map((specIssue) => this._startRunClearingStop(specIssue)),
     ]);
+    const [{ accountHold }] = runs;
+    this.accountHold = accountHold;
+    for (const run of runs) run.accountHold = accountHold;
     if (isBatch(runs)) {
       runs.forEach((run) => {
         run.isBatchMember = true;

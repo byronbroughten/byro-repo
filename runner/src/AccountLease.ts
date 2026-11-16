@@ -1,6 +1,7 @@
 // The account lease: one file per cswap account in the primary's state folder, next to the check slot, held while a run uses that account.
 // It is a PidLock, as RunLock.ts is, and a live holder is never waited on: the taker moves on to another account.
-// limitGuard.ts's rankAccounts leaves out the accounts leasedIn lists; accountSwitch.ts reads them and never takes one.
+// limitGuard.ts's rankAccounts leaves out the accounts leasedIn lists; SpecRun/AccountHold.ts takes, moves and releases a run's lease,
+// and accountSwitch.ts reads them and never takes one.
 
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";

@@ -39,6 +39,7 @@ import {
   type TranscriptSession,
 } from "../transcriptFacts.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
+import type { AccountHold } from "./AccountHold.ts";
 import { runText } from "./runState/runText.ts";
 
 export const readyLabel = "ready-for-agent";
@@ -240,8 +241,8 @@ export interface Run {
   failureStreak: string[];
   // By account, the last usage reading a step's own stream gave, which the limit guard weighs against cswap's; held in memory only.
   streamUsage: Map<number, UsageReading>;
-  // The account the launch check last picked, which the run keeps while it reads under both thresholds; held in memory only.
-  account?: number;
+  // One object across a Batch's members, so the Batch holds one account lease; held in memory only.
+  accountHold: AccountHold;
   // A member's end is then a member-ended line unless it finished, and only the Batch's end says what's left to judge.
   isBatchMember?: boolean;
   // One ticket's review outside a run; a flag, not a strategy, as it differs from a run at only a handful of checks.

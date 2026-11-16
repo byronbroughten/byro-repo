@@ -49,6 +49,7 @@ import {
   type Workflows,
 } from "../Workflow.ts";
 import { WrapUp, type WrapUpGitHub, type WrapUpKnobs } from "../WrapUp.ts";
+import { AccountHold } from "./AccountHold.ts";
 import {
   type Heads,
   type IssueComment,
@@ -243,6 +244,7 @@ export class SpecRunBase {
       skipped: new Set(),
       failureStreak: [],
       streamUsage: new Map(),
+      accountHold: new AccountHold(this.config.stateFolder),
     };
   }
 
