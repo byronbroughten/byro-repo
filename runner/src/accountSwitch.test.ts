@@ -11,6 +11,7 @@ const soonReset = new Date("2026-10-13T00:00:00Z");
 const lateReset = new Date("2026-10-15T00:00:00Z");
 const fiveHourReset = new Date("2026-10-12T05:00:00Z");
 const holderStart = "2026-10-12T01:00:00Z";
+const now = new Date("2026-10-12T00:00:00Z");
 
 function readingOf(
   account: number,
@@ -47,6 +48,7 @@ async function switchWith({ lists, leased = [] }: SwitchScript) {
     leaseReader: { read: () => leased },
     switchPort,
     knobs: defaultRunKnobs,
+    now: () => now,
     print: (line) => lines.push(line),
   });
   return { lines, switched: switchPort.switched, switchedTo };
@@ -69,12 +71,12 @@ describe("accountSwitch.run", () => {
     expect(switchedTo).toBe(2);
     expect(lines).toEqual([
       "Before:",
-      `  account 1: 5-hour 20%, weekly 50%, weekly reset ${localTimeOf(lateReset)}, free, Active`,
-      `  account 2: 5-hour 30%, weekly 50%, weekly reset ${localTimeOf(soonReset)}, free`,
+      "  1. (active) 5h: 20% (5h 0m), 7d: 50% (3d 0h)",
+      "  2. 5h: 30% (5h 0m), 7d: 50% (1d 0h)",
       "Switching to account 2, the best free account.",
       "After:",
-      `  account 1: 5-hour 20%, weekly 50%, weekly reset ${localTimeOf(lateReset)}, free`,
-      `  account 2: 5-hour 30%, weekly 50%, weekly reset ${localTimeOf(soonReset)}, free, Active`,
+      "  1. 5h: 20% (5h 0m), 7d: 50% (3d 0h)",
+      "  2. (active) 5h: 30% (5h 0m), 7d: 50% (1d 0h)",
     ]);
   });
 
@@ -96,7 +98,7 @@ describe("accountSwitch.run", () => {
 
     expect(switched).toEqual([1]);
     expect(lines[2]).toBe(
-      `  account 2: 5-hour 30%, weekly 50%, weekly reset ${localTimeOf(soonReset)}, held by pid 41 since ${localTimeOf(new Date(holderStart))}`,
+      `  2. 5h: 30% (5h 0m), 7d: 50% (1d 0h), held by pid 41 since ${localTimeOf(new Date(holderStart))}`,
     );
   });
 
