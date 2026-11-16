@@ -19,6 +19,7 @@ import {
   findingOf,
   github,
   haltComments,
+  heldTicketLine,
   implemented,
   notices,
   passes,
@@ -200,6 +201,7 @@ describe("review of one ticket outside a run", () => {
       expect(result.message).toContain(" Add one.ts");
       expect(result.message).not.toContain("Skill tool");
       expect(result.message).toContain("you may review it inline");
+      expect(result.message).toContain(heldTicketLine);
       expect(result.message).toContain(
         "paste them into every reviewer's brief",
       );
@@ -249,6 +251,7 @@ describe("review of one ticket outside a run", () => {
       const result = await brief();
 
       expect(result.message).toContain('<skill name="review-piece">');
+      expect(result.message).toContain(heldTicketLine);
       expect(result.message).not.toContain("SKILL.md");
       expect(result.message).toContain(
         "a JSON object holding only `findings` and `dismissedOverlaps`",
@@ -262,6 +265,7 @@ describe("review of one ticket outside a run", () => {
       const result = await brief();
 
       expect(result.message).toContain('<skill name="review-piece">');
+      expect(result.message).toContain(heldTicketLine);
     });
   });
 

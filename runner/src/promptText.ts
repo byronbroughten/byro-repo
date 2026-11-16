@@ -52,6 +52,14 @@ export function reviewFindingsText({
   return `\`findings\`, an empty list when the review finds nothing. List ${order}, each in its reviewer's order, never merged or reranked. Carry every finding a reviewer reports, each as its reviewer worded it, even one you would dismiss: judging a finding is the resolve step's job, through its Dismiss. Each finding has \`axis\` (${codeListOf(axes)}, its reviewer's), \`where\` (${where}), \`claim\` (${claim}), \`suggestedVerdict\` (${codeListOf(verdicts)}, as its reviewer suggested) and \`reason\` (the reviewer's reason for that verdict).`;
 }
 
+// Only in the session that implemented the ticket; a fresh session never saw the ticket, so it isn't told it holds it.
+export function heldTicketLinesOf(isTicketHeld: boolean | undefined): string[] {
+  if (isTicketHeld !== true) return [];
+  return [
+    "This session already holds the ticket from your implement work, so don't re-read it with `issue:read`. The spec reviewer still reads it itself: paste no ticket text into its brief.",
+  ];
+}
+
 // Where an interactive session writes its review record, and the `runner review` call that submits it.
 export interface SessionSubmit {
   recordPath: string;

@@ -236,6 +236,8 @@ export interface ReviewPromptInput extends TicketPromptFields {
   isInlineAllowed: boolean;
   // Set for an interactive session's brief; otherwise a run's implementer reviews its own work, in its session or a fresh one after a handoff.
   sessionSubmit?: SessionSubmit;
+  // Set when the review runs in the session that implemented the ticket, so it needn't read the ticket again.
+  isTicketHeld?: boolean;
   // The committed implement record's, absent for an interactive session, which has none.
   pointsWorthChecking?: string[];
   // Each branched repo's, in order; unset when none has a diff from master, so the review skill's own first step finds it empty.

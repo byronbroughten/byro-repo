@@ -30,6 +30,7 @@ import type { IssueRef, LeaseHolder } from "./IssueWorkspaces.ts";
 import type { UsageList, UsageReader } from "./limitGuard.ts";
 import type { NoticeKind, Notices } from "./Notices.ts";
 import { stampedLineOf } from "./progressLines.ts";
+import { heldTicketLinesOf } from "./promptText.ts";
 import { gapCheckOutputSchema } from "./recordSchema.ts";
 import { reviewListMarkOf } from "./reviewList.ts";
 import { type Command, runKnobsOf } from "./runKnobs.ts";
@@ -86,6 +87,13 @@ export const spec: IssueRef = { repo: "byro-repo", number: 213 };
 export const session: LeaseHolder = { kind: "session", pid: process.ppid };
 // Small binaries, not node, since every run spawns them and a node process costs several times as much to start.
 export const passes: Command = ["true"];
+// The review prompt's line for a session that already holds the ticket.
+export const heldTicketLine = heldTicketLinesOf(true).join("");
+
+// The review prompt a fresh session gets, from one that resumed the implementer; the code Workflow joins paragraphs with a blank line.
+export function withoutHeldTicket(prompt: string | undefined): string {
+  return (prompt ?? "").replace(`\n\n${heldTicketLine}`, "");
+}
 export const greenUnlessRed: Command = ["sh", "-c", "test ! -f RED"];
 // The quote check, called with `--comment <path> --texts <folder>`: red on a comment holding MISQUOTE.
 const redOnMisquote: Command = [

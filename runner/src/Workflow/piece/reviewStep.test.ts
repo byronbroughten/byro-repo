@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { heldTicketLinesOf } from "../../promptText.ts";
 import {
   pieceReviewerCheckOf,
   pieceReviewPrompt,
@@ -59,6 +60,15 @@ describe("pieceReviewPrompt", () => {
     expect(prompt.indexOf("</skill>")).toBeLessThan(
       prompt.indexOf("`dismissedOverlaps`: each overlap hit"),
     );
+  });
+
+  it("tells only a session that holds the ticket not to re-read it, before the skill", () => {
+    const heldTicketLine = heldTicketLinesOf(true).join("");
+    const held = pieceReviewPrompt({ ...input, isTicketHeld: true });
+
+    expect(held).toContain(heldTicketLine);
+    expect(held.indexOf(heldTicketLine)).toBeLessThan(held.indexOf("<skill"));
+    expect(pieceReviewPrompt(input)).not.toContain(heldTicketLine);
   });
 
   it("has no commit list, since the review has no diff and no fixed point", () => {

@@ -16,6 +16,7 @@ import {
   github,
   haltComments,
   handoffResultOf,
+  heldTicketLine,
   implemented,
   implementResultOf,
   primaryOf,
@@ -35,6 +36,7 @@ import {
   ticketFacts,
   ticketState,
   useSpecRunHarness,
+  withoutHeldTicket,
 } from "./specRunHarness.ts";
 import {
   budgetHandoffPrompt,
@@ -397,6 +399,7 @@ describe("run's handoffs after implement", () => {
     expect(review?.resumeSessionId).toBeUndefined();
     expect(review?.pair).toEqual(implementer?.pair);
     expect(review?.prompt).toContain("your own work");
+    expect(review?.prompt).not.toContain(heldTicketLine);
     expect(review?.prompt).toContain("Conclusion: The parser is half done.");
     expect(resolver?.resumeSessionId).toBe("fresh-review-session");
     expect(resolver?.prompt).toContain("You are the resolve step");
@@ -494,7 +497,9 @@ describe("run's handoffs after implement", () => {
     expect(fresh?.resumeSessionId).toBeUndefined();
     expect(fresh?.pair).toEqual(implementer?.pair);
     expect(fresh?.liveCeiling).toBe(180_000);
-    expect(fresh?.prompt).toContain(review?.prompt);
+    expect(review?.prompt).toContain(heldTicketLine);
+    expect(fresh?.prompt).toContain(withoutHeldTicket(review?.prompt));
+    expect(fresh?.prompt).not.toContain(heldTicketLine);
     expect(fresh?.prompt).toContain("Conclusion: The parser is half done.");
     expect(handoffComments()[0]).toContain(
       "a fresh session in the review step.",

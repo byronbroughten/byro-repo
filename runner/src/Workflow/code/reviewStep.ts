@@ -7,6 +7,7 @@
 
 import { stepReadLine } from "../../IssueReader.ts";
 import {
+  heldTicketLinesOf,
   reviewerResumePromptOf,
   reviewFindingsText,
   reviewFramingOf,
@@ -36,6 +37,7 @@ export function reviewPrompt({
   branchedRepos,
   isInlineAllowed,
   sessionSubmit,
+  isTicketHeld,
   pointsWorthChecking = [],
   commitsSinceMaster,
 }: CodeReviewPromptInput): string {
@@ -43,6 +45,7 @@ export function reviewPrompt({
   return [
     framing.opening,
     `Review ${issue.repo}#${issue.number}, "${title}", on both axes, with \`master\` as the fixed point, by the \`${skillName}\` skill below. Your working directory is the ticket's issue workspace root; these repos are on the ticket's branch, \`${branch}\`: ${branchedRepos.join(", ")}. Review each one's changes. ${stepReadLine}`,
+    ...heldTicketLinesOf(isTicketHeld),
     ...(commitsSinceMaster === undefined
       ? []
       : [fixedPointSectionOf(commitsSinceMaster)]),

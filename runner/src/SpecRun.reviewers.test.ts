@@ -10,6 +10,7 @@ import {
   commitFile,
   crashed,
   findingOf,
+  heldTicketLine,
   implemented,
   noConversation,
   passes,
@@ -22,6 +23,7 @@ import {
   specRun,
   type StepScript,
   useSpecRunHarness,
+  withoutHeldTicket,
 } from "./specRunHarness.ts";
 
 useSpecRunHarness();
@@ -79,8 +81,28 @@ describe("a run's review that skips its reviewers", () => {
     const [, review, lost, fresh] = agentStep.requests;
     expect(lost?.resumeSessionId).toBe("review-session");
     expect(fresh?.resumeSessionId).toBeUndefined();
-    expect(fresh?.prompt).toBe(review?.prompt);
+    expect(review?.prompt).toContain(heldTicketLine);
+    expect(fresh?.prompt).toBe(withoutHeldTicket(review?.prompt));
+    expect(fresh?.prompt).not.toContain(heldTicketLine);
     expect(reviewListOf(1)).toBeUndefined();
+  });
+
+  it("runs the review fresh, never saying it holds the ticket, when its resume of the implementer finds no conversation", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      implemented("one.ts"),
+      noConversation,
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.kind).toBe("finished");
+    const [, lost, fresh] = agentStep.requests;
+    expect(lost?.resumeSessionId).toBe("session");
+    expect(lost?.prompt).toContain(heldTicketLine);
+    expect(fresh?.resumeSessionId).toBeUndefined();
+    expect(fresh?.prompt).toBe(withoutHeldTicket(lost?.prompt));
   });
 
   it("keeps the resumed review's findings and sends them to resolve", async () => {

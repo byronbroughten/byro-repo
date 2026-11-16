@@ -94,6 +94,8 @@ export class SessionReviewer extends SpecRunBase {
     const prompt = rules.promptOf({
       ...(await this.reviewStepper._reviewPromptInputOf(ticketRun)),
       sessionSubmit: this._sessionSubmitOf(issue),
+      // The interactive session reviews in the session that implemented the ticket (#761).
+      isTicketHeld: true,
     });
     this.factsFile.setReviewBrief(issue, {
       startedAt: this.config.clock.now().toISOString(),

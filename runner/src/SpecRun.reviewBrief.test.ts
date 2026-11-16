@@ -8,6 +8,7 @@ import { git } from "./GitFixture.ts";
 import {
   addSpec,
   handoffResultOf,
+  heldTicketLine,
   implemented,
   refOf,
   reviewed,
@@ -43,6 +44,7 @@ describe("run's review brief from the implement record", () => {
 
     const review = agentStep.requests[1];
     expect(review?.resumeSessionId).toBeDefined();
+    expect(review?.prompt).toContain(heldTicketLine);
     expect(review?.prompt).toContain(
       '<skill name="code-review">\nTwo-axis review. Read [the verdicts](docs/agents/verdicts.md).\n</skill>',
     );
