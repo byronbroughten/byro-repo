@@ -132,6 +132,29 @@ describe("pull on a piece spec's drafting ticket", () => {
     );
   });
 
+  it("mirrors the Doc's H1 lines in the Agent draft, with a mark under each", async () => {
+    addDraftingSpec();
+    holdDocs(headedDocOf(twoPartSections));
+    let pulled = "";
+
+    await specRun(
+      FakeAgentStep.init(async (request) => {
+        pulled = readFileSync(join(request.cwd, draftPath), "utf8");
+        return drafted()(request);
+      }),
+    ).run(spec);
+
+    expect(pulled).toBe(
+      "# Part one\n<!-- developer -->\n\n## Intro\n<!-- developer -->\n\nThe quay was quiet.\n\n# Part two\n<!-- developer -->\n\n## Intro\n<!-- developer -->\n\nThe ferry was late.\n",
+    );
+    expect(ticketState()["byro-repo #1"]?.pullBaseline?.sections).toEqual({
+      "Part one": "\n",
+      "Part one › Intro": "The quay was quiet.\n",
+      "Part two": "\n",
+      "Part two › Intro": "The ferry was late.\n",
+    });
+  });
+
   it("records each Section's Doc text as the push baseline", async () => {
     addDraftingSpec();
 
@@ -984,6 +1007,65 @@ describe("the end of a piece spec", () => {
       expect(result.message).toContain("byro-repo #2 waits on you");
     });
 
+    describe("a Deliverable whose H2s repeat under different H1s", () => {
+      const twoPartDraft =
+        "# Part one\n<!-- developer -->\n\n## Intro\n<!-- developer -->\n\nThe quay was quiet.\n\n# Part two\n<!-- developer -->\n\n## Intro\n<!-- agent -->\n\nThe ferry came at noon.\n";
+      const twoPartDrafted = drafted(
+        { sectionsDrafted: ["Part two › Intro"] },
+        twoPartDraft,
+      );
+
+      function addTwoPartSpec(
+        parts: Record<string, Record<string, string>> = twoPartSections,
+      ): void {
+        addGatedSpec();
+        holdDocs(headedDocOf(parts));
+      }
+
+      it("writes each agent Section under its own H1", async () => {
+        addTwoPartSpec();
+
+        await landsThenGapChecks([], twoPartDrafted);
+
+        expect(Object.fromEntries((await deliverableOf()).sections)).toEqual({
+          "Part one": "\n",
+          "Part one › Intro": "The quay was quiet.\n",
+          "Part two": "\n",
+          "Part two › Intro": "The ferry came at noon.\n",
+        });
+      });
+
+      it("names a changed Section by its full heading path in its push Halt", async () => {
+        addTwoPartSpec();
+
+        await landsThenGapChecks([], async (request) => {
+          heldDocs().edit(deliverableId, () => ({
+            ...headedDocOf({
+              ...twoPartSections,
+              "Part two": { Intro: "The ferry never came." },
+            }),
+            revisionId: "intro-2",
+          }));
+          return twoPartDrafted(request);
+        });
+
+        const [halt] = haltComments();
+        expect(halt).toContain('"Part two › Intro" changed in the Doc since');
+      });
+
+      it("names the H1 to add a missing H2 under in its push Halt", async () => {
+        addTwoPartSpec({ ...twoPartSections, "Part two": {} });
+
+        await landsThenGapChecks([], twoPartDrafted);
+
+        const [halt] = haltComments();
+        expect(halt).toContain('The Doc has no "Part two › Intro" Section');
+        expect(halt).toContain(
+          'Add an H2 "Intro" under the H1 "Part two", then answer `overwrite`',
+        );
+      });
+    });
+
     describe("its Halt on a Section the developer changed", () => {
       const pushHaltHead =
         '**Halt H1** · Halt 1 of 1 · byro-repo #213, "The spec" · Push Halt';
@@ -1137,8 +1219,10 @@ describe("the end of a piece spec", () => {
 
         const result = await specRun(FakeAgentStep.init()).run(spec);
 
-        expect(halt).toContain('The Doc has no "The return" heading');
-        expect(halt).toContain("Add it, then answer `overwrite`");
+        expect(halt).toContain('The Doc has no "The return" Section');
+        expect(halt).toContain(
+          'Add its "The return" heading, then answer `overwrite`',
+        );
         expect((await deliverableOf()).sections.get("The return")).toBe(
           "They came home by train.\n",
         );
@@ -1421,6 +1505,24 @@ function docOf(sections: Record<string, string>): GoogleDocument {
     body: { content },
   };
 }
+
+// A Doc of level-1 headings with no text of their own, each over its level-2 Sections of one paragraph.
+function headedDocOf(
+  parts: Record<string, Record<string, string>>,
+): GoogleDocument {
+  const content = Object.entries(parts).flatMap(([h1, sections]) => [
+    paragraphOf(h1, "HEADING_1"),
+    ...docOf(sections).body.content.slice(1),
+  ]);
+  content.unshift({ sectionBreak: {} });
+  return { ...docOf({}), body: { content } };
+}
+
+// Two Parts, each with an Intro, so an H2's text alone names no one Section.
+const twoPartSections = {
+  "Part one": { Intro: "The quay was quiet." },
+  "Part two": { Intro: "The ferry was late." },
+};
 
 function paragraphOf(
   text: string,

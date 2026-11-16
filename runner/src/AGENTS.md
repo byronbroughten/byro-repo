@@ -38,7 +38,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Docs/FakeDocuments.ts` | | The in-memory Docs API Docs tests use: `documents.get` and `batchUpdate` under a revision guard, and a Doc edited as in the editor, now or just before later writes. |
 | `Docs/googleDocs.ts` | `googleDocs` | The Google Docs layer's types: the `documents.get` body types, the `batchUpdate` requests and its port. |
 | `Docs/InlineParser.ts` | | Parses the dialect's inline Markdown back into styled text spans. |
-| `Docs/markdownDialect.ts` | | The Markdown dialect's forms, a Section's heading path and its split into Sections by path. |
+| `Docs/markdownDialect.ts` | | The Markdown dialect's forms, a Section's heading path, its split into H1 and H2, and the split into Sections by path, with or without their headings. |
 | `Docs/markdownDialect/blockParse.ts` | | The dialect's parse of a Section's body into paragraphs, flat lists and tables. |
 | `Docs/PendingSuggestions.ts` | | The error for a write refused because the Doc holds pending suggestions the writer can't index around safely. |
 | `Docs/RestDocuments.ts` | `RestDocuments` | The real Docs port over the Docs REST API, as the developer's clasp login in an injected credential file, reading a Doc with its suggestions inline. |
@@ -58,7 +58,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `GhCli.ts` | `GhCli` | The real `gh` port. |
 | `git.ts` | | Git helpers the workspaces, run loop and wrap-up share, the worktree add, remove, list and switch helpers and the branch lookup included. |
 | `GitFixture.ts` | | A test primary root of clones with bare remotes. |
-| `halts.ts` | | Halts: their comments, notices, the resume prompt and the words of the fresh Halt on an Outline edit the runner can't apply and of the push Halts, on a Section and on a Doc's pending suggestions. |
+| `halts.ts` | | Halts: their comments, notices, the resume prompt and the words of the fresh Halt on an Outline edit the runner can't apply and of the push Halts, on a Section by its heading path and on a Doc's pending suggestions. |
 | `halts/haltReplies.ts` | | Reads a developer's replies to a Halt: which answer it, `stop spec` and a Failure or push Halt's answer. |
 | `headlessProbe.ts` | | Launches the one-turn headless session both probes run. |
 | `IssueReader.ts` | `IssueReader` | `npm run issue:read`: prints an issue as Trusted and Untrusted text, reads a Trusted body's Model fit line for `npm run outcome:summary`, and names a ticket's skill for `npm run issue:start`. |
@@ -181,7 +181,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Workflow/code/redChecksStep.ts` | | The red-checks step's prompt and record. |
 | `Workflow/code/resolveStep.ts` | `resolveStep` | The code resolve step's prompt. |
 | `Workflow/code/reviewStep.ts` | `reviewStep` | The review step's prompt, record schema and reviewer check. |
-| `Workflow/piece/agentDraft.ts` | | The Agent draft file's path, Sections and author marks, pull's merge of a Doc's Sections into them, the agent Sections the push writes and the ones its `keep mine` answers mark as the developer's. |
+| `Workflow/piece/agentDraft.ts` | | The Agent draft file's path, its H1 and H2 lines, Sections by heading path and author marks, pull's merge of a Doc's Sections into them, the agent Sections the push writes and the ones its `keep mine` answers mark as the developer's. |
 | `Workflow/piece/draftingScope.ts` | `draftingScope` | A drafting ticket's scope, its named Sections or every agent Section on a `final-pass` ticket, read from its labels and worded for the prompts. |
 | `Workflow/piece/gapCheck.ts` | | The piece gap check's prompt. |
 | `Workflow/piece/implementPieceSkill.ts` | `implementPieceSkill` | Generates the `/implement-piece` skill from the piece implement step's drafting lines. |

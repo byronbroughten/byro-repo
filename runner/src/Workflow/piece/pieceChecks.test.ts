@@ -29,8 +29,8 @@ function scopeInputOf(labels: string[], record?: DraftedRecord) {
   return { ticket: trackedIssues.issueOf(1, { labels, body: "" }), state };
 }
 
-function headingsOf(scope: { sections: { heading: string }[] }): string[] {
-  return scope.sections.map(({ heading }) => heading);
+function pathsOf(scope: { sections: { path: string }[] }): string[] {
+  return scope.sections.map(({ path }) => path);
 }
 
 describe("pieceChecks.scopeOf", () => {
@@ -40,7 +40,7 @@ describe("pieceChecks.scopeOf", () => {
       scopeInputOf([], draftedRecord),
     );
 
-    expect(headingsOf(scope)).toEqual(["The landing"]);
+    expect(pathsOf(scope)).toEqual(["The landing"]);
     expect(scope.isWhole).toBe(false);
   });
 
@@ -50,7 +50,7 @@ describe("pieceChecks.scopeOf", () => {
       scopeInputOf(["final-pass"], draftedRecord),
     );
 
-    expect(headingsOf(scope)).toEqual(["The crossing", "The landing"]);
+    expect(pathsOf(scope)).toEqual(["The crossing", "The landing"]);
     expect(scope.isWhole).toBe(true);
   });
 
@@ -68,13 +68,29 @@ describe("pieceChecks.scopeOf", () => {
     expect(scope.isWhole).toBe(true);
   });
 
+  it("is the whole draft when only H1s with no text of their own are left out", () => {
+    const headed = agentDraft.sectionsOf(
+      "# Part one\n<!-- developer -->\n\n## The crossing\n<!-- agent -->\n\nThe ferry slipped out at noon.\n",
+    );
+
+    const scope = pieceChecks.scopeOf(
+      headed,
+      scopeInputOf([], {
+        ...draftedRecord,
+        sectionsDrafted: ["Part one › The crossing"],
+      }),
+    );
+
+    expect(scope.isWhole).toBe(true);
+  });
+
   it("never holds a developer's Section, even one the record names", () => {
     const scope = pieceChecks.scopeOf(
       sections,
       scopeInputOf([], { ...draftedRecord, sectionsDrafted: ["The harbour"] }),
     );
 
-    expect(headingsOf(scope)).toEqual([]);
+    expect(pathsOf(scope)).toEqual([]);
   });
 });
 

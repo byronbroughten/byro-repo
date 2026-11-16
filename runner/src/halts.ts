@@ -2,6 +2,7 @@
 // that hands every answer back to the ticket's resumed or fresh implementer; which replies answer one is ./halts/haltReplies.ts.
 // SpecRun.ts keeps them in run state, blocks the tickets in their scope and resumes the halted ticket once all are answered.
 
+import { markdownDialect } from "./Docs/markdownDialect.ts";
 import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import { outlineEdits } from "./outlineEdits.ts";
 import { bulletsOf, sessionReturnOf, unattendedRunLine } from "./promptText.ts";
@@ -58,7 +59,7 @@ export interface Halt {
   bodyHash?: string;
   // A Research Halt's proposed edits, which its answer approves by `E<n>`.
   outlineEdits?: OutlineEdit[];
-  // A push Halt's Section, by its heading; the latest push Halt on it holds the answer the push acts on.
+  // A push Halt's Section, by its heading path;the latest push Halt on it holds the answer the push acts on.
   pushSection?: string;
   isPosted: boolean;
   answer?: HaltAnswer;
@@ -162,20 +163,26 @@ export const pushOptions = {
 export type PushConflict = "changed" | "missing";
 
 // Raised on the spec issue, since the push belongs to no ticket; it writes nothing until every one is answered.
-export function pushHaltOf(heading: string, conflict: PushConflict): HaltDraft {
+export function pushHaltOf(path: string, conflict: PushConflict): HaltDraft {
   const { overwrite, keepMine } = pushOptions;
   const keepMineText = `answer ${keepMine} to leave the Doc as it is and mark the Section as yours in the Agent draft`;
   const questions: Record<PushConflict, string> = {
-    changed: `"${heading}" changed in the Doc since the pull, and the push never writes over your edits unasked. Answer ${overwrite} to write the agent text over yours, or ${keepMineText}.`,
-    missing: `The Doc has no "${heading}" heading, so the push has nowhere to write the agent text. Add it, then answer ${overwrite} to write the agent text under it; or ${keepMineText}.`,
+    changed: `"${path}" changed in the Doc since the pull, and the push never writes over your edits unasked. Answer ${overwrite} to write the agent text over yours, or ${keepMineText}.`,
+    missing: `The Doc has no "${path}" Section, so the push has nowhere to write the agent text. ${missingHeadingStepOf(path)}, then answer ${overwrite} to write the agent text under it; or ${keepMineText}.`,
   };
   return {
     kind: "push",
     question: questions[conflict],
     options: [overwrite, keepMine],
     scope: [],
-    pushSection: heading,
+    pushSection: path,
   };
+}
+
+function missingHeadingStepOf(path: string): string {
+  const { h1, text } = markdownDialect.pathPartsOf(path);
+  if (h1 === undefined) return `Add its "${text}" heading`;
+  return `Add an H2 "${text}" under the H1 "${h1}"`;
 }
 
 // On no Section, since the suggestions hold every write into the Doc; any answer but `stop spec` pushes again.

@@ -93,10 +93,11 @@ export const pieceChecks = {
       return { sections: agentSections, isWhole: true };
     }
     const drafted = sectionsDraftedOf(state);
-    const inScope = agentSections.filter(({ heading }) =>
-      drafted.includes(heading),
-    );
-    return { sections: inScope, isWhole: inScope.length === sections.length };
+    const inScope = agentSections.filter(({ path }) => drafted.includes(path));
+    return {
+      sections: inScope,
+      isWhole: inScope.length === sections.filter(isWritten).length,
+    };
   },
 
   // The spec's word limit, undefined when its Form field has no `Length:` line.
@@ -173,6 +174,11 @@ function sectionsDraftedOf({ record }: TicketState): string[] {
     return [];
   }
   return (record as DraftedRecord).sectionsDrafted;
+}
+
+// An H1 with no text of its own is an empty developer Section only to mark its line, so it never makes a scope partial.
+function isWritten({ author, markdown }: DraftSection): boolean {
+  return author === "agent" || markdown.trim() !== "";
 }
 
 // The scope's bodies go to the command as its Deliverable, so a hit in any other Section never shows.

@@ -45,6 +45,10 @@ const paths = {
   agentDraft: "docs/pieces/agent-draft.md",
 } as const;
 
+// How the record and its check name a Section, once for both.
+const sectionNameText =
+  "its heading path as the Agent draft holds it: `<H1> › <H2>` for an H2 under an H1, the H1's text alone for an H1's own Section, and the H2's text alone before any H1";
+
 interface PassagesTicket extends Omit<IssueRef, "number"> {
   number: NumberOrPlaceholder;
 }
@@ -183,7 +187,7 @@ function finishingSection({
 - ${doneLines.implement}
   - \`status\`: \`committed\`; or \`blocked\` when a blocker stopped you before any commit.
   - \`branches\`: the \`${spec.repo}\` clone's branch and its last commit's sha. Empty unless committed.
-  - \`sectionsDrafted\`: the exact heading text of every Section your commit holds, those a handoff left you included, as the Agent draft holds it, without the \`## \`.
+  - \`sectionsDrafted\`: every Section your commit holds, those a handoff left you included, each named by ${sectionNameText}.
   - \`closingComment\`: what you drafted, for the ticket's closing comment.
   - \`boxesUndone\`: each acceptance box you left undone, with why.
   - \`blockers\`: each blocker, as above.`;
@@ -238,11 +242,11 @@ export function pieceImplementRecordProblems(
     return commitProblems;
   }
   if (isFinalPass) return [];
-  const held = agentDraft.sectionsOf(draftOf()).map(({ heading }) => heading);
+  const held = agentDraft.sectionsOf(draftOf()).map(({ path }) => path);
   return record.sectionsDrafted
     .filter((name) => !held.includes(name))
     .map(
       (name) =>
-        `sectionsDrafted names "${name}", which the committed Agent draft has no Section of; use a heading as the draft holds it, without the \`## \``,
+        `sectionsDrafted names "${name}", which the committed Agent draft has no Section of; use ${sectionNameText}`,
     );
 }

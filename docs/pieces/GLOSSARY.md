@@ -13,7 +13,7 @@ The Google Doc a Piece is delivered in, and where the developer edits it.
 _Avoid_: output, final copy
 
 **Section**:
-The part of a Piece under one heading in its Deliverable. A split Piece gives each sub-issue one or more Sections, named by their heading text.
+The part of a Piece under one H2 in its Deliverable, or under an H1 before that H1's first H2. A Section is named by its **heading path**: its H1's text, then its H2's, written `<H1> › <H2>`. A Section under an H1 alone is named by the H1, and one in a Deliverable with no H1 by its H2. A split Piece gives each sub-issue one or more Sections.
 _Avoid_: chunk, part
 
 **Outline**:
