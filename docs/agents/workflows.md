@@ -92,7 +92,7 @@ The words Piece, Deliverable, Section, Stage and Agent draft are [the writing gl
 | Process revision | Code | `/retro`, `/to-code-style` | `writing-for-agents` | named |
 | Process revision | Piece | `/to-writing-style` | `writing-for-agents`, for a change to `/grill-piece`'s calibration step | named |
 | Process revision | Both | `/to-code-style` | `/to-writing-style`, with its prose rulings | named |
-| any | Both | the context nudge | a handoff by [`planning.md`'s Handoffs](./planning.md#handoffs) | named, by the hook |
+| any | Both | the context nudge | a handoff by [`handoffs.md`](./handoffs.md#handoffs) | named, by the hook |
 
 ## The shared rules docs
 
@@ -102,8 +102,10 @@ A doc is listed when two or more skills or Steps of either Workflow reach it by 
 | --- | --- | --- |
 | [Codebase Priorities](./codebase-priorities.md) | `grilling` (and so `/grill-with-docs`, `/grill-me` and `/wayfinder`'s grilling tickets), `/judge-findings`, `/mine-outcomes`, `/retro`, `/to-code-style` | via `verdicts.md`: `/code-review`, `/implement-code`, the review and resolve Steps |
 | [`verdicts.md`](./verdicts.md) | `/code-review`, `/implement-code`, `/implement-piece`, `/judge-findings`, `/review-piece`, `/to-writing-style` (its pair mode) | via runner prompt: the resolve Step; via `/code-review` and `/review-piece`: the review Step |
-| [`planning.md`](./planning.md) | `/project-spec`, `/code-tickets`, `/review-code-tickets`, `/start-issue`, `/to-code-style`, `/piece-tickets` (ticket size and model fit) | via always-on hook: the context nudge, for any session |
-| [`model-fit.md`](./model-fit.md) | `/mine-outcomes`, `/project-spec`, `/piece-tickets` | via `planning.md`: `/code-tickets` |
+| [`specs.md`](./specs.md) | `/project-spec` | via `tickets.md`: `/code-tickets`, `/review-code-tickets`, `/piece-tickets` |
+| [`tickets.md`](./tickets.md) | `/project-spec`, `/code-tickets`, `/review-code-tickets`, `/piece-tickets` | via `model-fit.md`: `/mine-outcomes` |
+| [`handoffs.md`](./handoffs.md) | `/start-issue`, `/to-code-style` | via always-on hook: the context nudge, for any session |
+| [`model-fit.md`](./model-fit.md) | `/mine-outcomes`, `/project-spec`, `/piece-tickets` | via `tickets.md`: `/code-tickets` |
 | The code-style rules: [config's](../../config/docs/code-style.md) and [the framework's](../../packages/framework/docs/code-style.md) | `/retro`, `/to-code-style` | via always-on hook: every code edit, by `/implement-code`, the implement and resolve Steps, and `/judge-findings`' "now" fixes |
 | [`prose-style.md`](../prose-style.md) | `/code-review`, `/retro`, `/to-code-style` | via always-on hook: every prose edit |
 | [`prose-files.md`](./prose-files.md) | `/to-code-style`, `/to-writing-style` | via always-on hook: every prose edit, through `prose-style.md` |
@@ -129,7 +131,7 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | Format | Skills and Steps |
 | --- | --- |
 | `grilling`'s round format | `grilling`, `/code-tickets`, `/review-code-tickets`, `/judge-findings`, `/mine-outcomes`, `/retro`, `/grill-piece` |
-| The `## Model fit` section and its read-back ([`planning.md`](./planning.md#model-fit)) | `/project-spec`, `/code-tickets`, `/piece-tickets`, the tickets `/judge-findings` and `/mine-outcomes` file, `/start-issue`'s check |
+| The `## Model fit` section and its read-back ([`tickets.md`](./tickets.md#model-fit)) | `/project-spec`, `/code-tickets`, `/piece-tickets`, the tickets `/judge-findings` and `/mine-outcomes` file, `/start-issue`'s check |
 | A ticket's `## New dependencies` section | `/code-tickets` writes it; `/implement-code` and the implement Step add only what it names; the wrap-up Step refuses any other new package |
 | The review list's `R<n>.<k>` items | the runner posts them; `/judge-findings` and the Supervisor decide them through `runner -- decide`; `/to-writing-style`'s pair mode mines the decided Proposals |
 | The numbered 🪤/📝 items | `/to-code-style`, `/to-writing-style` |

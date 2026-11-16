@@ -1,4 +1,4 @@
 {
-  "handoffDocPath": "docs/agents/planning.md#handoffs",
+  "handoffDocPath": "docs/agents/handoffs.md#handoffs",
   "runnerPaths": ["runner/", "scripts/runner/"]
 }

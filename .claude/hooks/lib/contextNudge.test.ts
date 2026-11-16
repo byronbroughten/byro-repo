@@ -19,7 +19,7 @@ describe("contextNudgeKnobs", () => {
 
   it("names this repo's handoff doc", () => {
     expect(contextNudgeKnobs().handoffDocPath).toBe(
-      "docs/agents/planning.md#handoffs",
+      "docs/agents/handoffs.md#handoffs",
     );
   });
 });

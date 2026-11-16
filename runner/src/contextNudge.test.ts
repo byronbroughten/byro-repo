@@ -10,7 +10,7 @@ import {
 const options: ContextNudgeOptions = {
   sessionId: "abc-123",
   ticketBudget: 150_000,
-  handoffDocPath: "docs/agents/planning.md#handoffs",
+  handoffDocPath: "docs/agents/handoffs.md#handoffs",
   owed: { isTicketOwed: true },
 };
 
@@ -68,7 +68,7 @@ describe("contextNudgeOf", () => {
   it("points to a set handoff doc and asks for a fresh session", () => {
     const nudge = contextNudgeOf(160_000, options);
 
-    expect(nudge).toMatch(/per docs\/agents\/planning\.md#handoffs/);
+    expect(nudge).toMatch(/per docs\/agents\/handoffs\.md#handoffs/);
     expect(nudge).toMatch(/fresh session/);
     expect(nudge).toMatch(/uncommitted/);
     expect(nudge).toMatch(/ticket budget/);
@@ -127,7 +127,7 @@ describe("contextNudgeOf", () => {
       const supervisionAt = nudge.indexOf(supervision.path);
       expect(ticketAt).toBeGreaterThan(-1);
       expect(supervisionAt).toBeGreaterThan(ticketAt);
-      expect(nudge).toMatch(/per docs\/agents\/planning\.md#handoffs/);
+      expect(nudge).toMatch(/per docs\/agents\/handoffs\.md#handoffs/);
     });
 
     it("ends with the /clear then /runner line, not a fresh session", () => {

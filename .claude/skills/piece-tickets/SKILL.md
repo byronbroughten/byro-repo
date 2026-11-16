@@ -23,7 +23,7 @@ Choose the stages the fields call for, always with at least one drafting ticket 
 
 Every ticket but Research and the Edit gate is a drafting ticket.
 
-Size each ticket to fit one session under the ticket budget (default ~150K) in [`docs/agents/planning.md`](../../../docs/agents/planning.md#ticket-size), estimated at its read rates from the Supporting Material and Reference passages it reads, the Outline, and the length it drafts. Count only the earlier Sections `rules.md` has its drafter open, not every one.
+Size each ticket to fit one session under the ticket budget (default ~150K) in [`docs/agents/tickets.md`](../../../docs/agents/tickets.md#ticket-size), estimated at its read rates from the Supporting Material and Reference passages it reads, the Outline, and the length it drafts. Count only the earlier Sections `rules.md` has its drafter open, not every one.
 
 Order them Research first, drafting tickets in reading order with the final pass after them, each blocked by the one before, and the Edit gate last, blocked by every drafting ticket. Present a numbered list: title, stage, the Sections it names, blocked by, its rough size, and for each ticket but the Edit gate its model fit, one of the pairs in [`model-fit.md`](../../../docs/agents/model-fit.md) chosen with the Piece rows of its [outcome log](../../../docs/agents/model-fit.md#outcome-log). Ask whether the granularity, the order and the edges are right.
 
@@ -65,7 +65,7 @@ The facts this ticket uses, including any of the developer's own text named as g
 
 </piece-ticket-template>
 
-`## Model fit` is the last section of every `ready-for-agent` piece ticket, by [`planning.md`'s Model fit rules](../../../docs/agents/planning.md#model-fit): the pair confirmed in step 2, then a one-line reason.
+`## Model fit` is the last section of every `ready-for-agent` piece ticket, by [`tickets.md`'s Model fit rules](../../../docs/agents/tickets.md#model-fit): the pair confirmed in step 2, then a one-line reason.
 
 <edit-gate-template>
 
