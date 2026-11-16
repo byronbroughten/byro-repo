@@ -9,9 +9,11 @@ import { localTimeOf } from "./localTime.ts";
 
 const now = new Date("2026-10-12T00:00:00.000Z");
 const holderStart = "2026-10-11T22:00:00.000Z";
-const minuteMs = 60_000;
-const hourMs = 60 * minuteMs;
-const dayMs = 24 * hourMs;
+const durationMs = {
+  minute: 60_000,
+  hour: 3_600_000,
+  day: 86_400_000,
+} as const;
 
 function windowOf(percent: number, resetInMs: number): UsageWindow {
   return {
@@ -34,14 +36,21 @@ const threeAccounts: UsageList = {
   readings: [
     readingOf(
       1,
-      windowOf(100, 3 * hourMs + 19 * minuteMs),
-      windowOf(10, 5 * dayMs + 4 * hourMs),
+      windowOf(100, 3 * durationMs.hour + 19 * durationMs.minute),
+      windowOf(10, 5 * durationMs.day + 4 * durationMs.hour),
     ),
-    readingOf(2, unstarted, windowOf(10, dayMs + 5 * hourMs + 30 * minuteMs)),
+    readingOf(
+      2,
+      unstarted,
+      windowOf(
+        10,
+        durationMs.day + 5 * durationMs.hour + 30 * durationMs.minute,
+      ),
+    ),
     readingOf(
       3,
-      windowOf(70, 2 * hourMs + minuteMs),
-      windowOf(22, 6 * dayMs + hourMs),
+      windowOf(70, 2 * durationMs.hour + durationMs.minute),
+      windowOf(22, 6 * durationMs.day + durationMs.hour),
     ),
   ],
   activeAccount: 1,
@@ -63,27 +72,13 @@ interface SectionScript {
 }
 
 function sectionWith({ lists, leased = [], refreshMs }: SectionScript) {
-  const usageReader = CountingUsageReader.of(lists);
+  const usageReader = FakeUsageReader.init(...lists);
   const section = AccountsSection.init({
     usageReader,
     leaseReader: { read: () => leased },
     refreshMs,
   });
   return { section, usageReader };
-}
-
-// Counts reads, since one read per interval is the contract under test.
-class CountingUsageReader extends FakeUsageReader {
-  readCount = 0;
-
-  static of(lists: (UsageList | Error)[]): CountingUsageReader {
-    return new CountingUsageReader(lists);
-  }
-
-  override async read(): Promise<UsageList> {
-    this.readCount += 1;
-    return super.read();
-  }
 }
 
 function later(ms: number): Date {
@@ -115,7 +110,7 @@ describe("AccountsSection.textAt", () => {
             { account: 1, usage: undefined },
             { account: 3, usage: undefined },
             {
-              ...readingOf(4, unstarted, windowOf(10, dayMs)),
+              ...readingOf(4, unstarted, windowOf(10, durationMs.day)),
               isDisabled: true,
             },
           ],
@@ -141,14 +136,14 @@ describe("AccountsSection.textAt", () => {
       [
         1,
         {
-          fiveHour: windowOf(40, 3 * hourMs + 19 * minuteMs),
-          sevenDay: windowOf(15, 5 * dayMs + 4 * hourMs),
+          fiveHour: windowOf(40, 3 * durationMs.hour + 19 * durationMs.minute),
+          sevenDay: windowOf(15, 5 * durationMs.day + 4 * durationMs.hour),
         },
       ],
       [
         3,
         {
-          fiveHour: windowOf(90, 7 * hourMs),
+          fiveHour: windowOf(90, 7 * durationMs.hour),
           sevenDay: undefined,
         },
       ],
@@ -195,7 +190,7 @@ describe("AccountsSection.textAt", () => {
     const { section, usageReader } = sectionWith({ lists: [threeAccounts] });
 
     await section.textAt(now);
-    const reread = await section.textAt(later(5 * minuteMs));
+    const reread = await section.textAt(later(5 * durationMs.minute));
 
     expect(usageReader.readCount).toBe(1);
     expect(reread.split("\n")[0]).toBe("Accounts");
@@ -223,7 +218,9 @@ describe("AccountsSection.textAt", () => {
     const { section } = sectionWith({
       lists: [
         {
-          readings: [readingOf(1, windowOf(50, 30_000), windowOf(10, -hourMs))],
+          readings: [
+            readingOf(1, windowOf(50, 30_000), windowOf(10, -durationMs.hour)),
+          ],
           activeAccount: 2,
         },
       ],

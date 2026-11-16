@@ -1,20 +1,12 @@
-// The Accounts section the Run board shows, and the account line it and accountSwitch.ts print for each account.
+// The Accounts section the Run board shows: a heading and accountLine.ts's line for each account.
 // It reads usage through limitGuard.ts's usage reader, at most once per refresh interval, and the holders through AccountLease.ts on each render.
-// Each window takes a live step's stream reading when it is higher, by limitGuard.ts's freshestUsageOf; the caller finds the streams.
+// The caller passes the live steps' stream readings, which accountLine.ts applies.
 
-import type { AccountLeaseReader, LeasedAccount } from "./AccountLease.ts";
-import type { UsageReading, UsageWindow } from "./AgentStep.ts";
+import type { AccountLeaseReader } from "./AccountLease.ts";
+import { accountLine } from "./accountLine.ts";
+import type { UsageReading } from "./AgentStep.ts";
 import { messageOf } from "./failureText.ts";
-import {
-  type AccountReading,
-  freshestUsageOf,
-  isUnstartedWindow,
-  type UsageList,
-  type UsageReader,
-} from "./limitGuard.ts";
-import { localTimeOf } from "./localTime.ts";
-import type { LockHolder } from "./PidLock.ts";
-import { percentOf } from "./transcriptFacts.ts";
+import type { UsageList, UsageReader } from "./limitGuard.ts";
 
 export interface AccountsSectionPorts {
   usageReader: UsageReader;
@@ -23,18 +15,9 @@ export interface AccountsSectionPorts {
   refreshMs: number | undefined;
 }
 
-export interface AccountLinesRequest {
-  usageList: UsageList;
-  leased: LeasedAccount[];
-  now: Date;
-  streamUsage?: ReadonlyMap<number, UsageReading>;
-}
-
 type SectionRead = { readAt: Date } & (
   { kind: "read"; usageList: UsageList } | { kind: "failed"; reason: string }
 );
-
-const minuteMs = 60_000;
 
 export class AccountsSection {
   private readonly ports: AccountsSectionPorts;
@@ -56,16 +39,13 @@ export class AccountsSection {
     if (read.kind === "failed") {
       return `Accounts: cswap unreadable (${read.reason})`;
     }
-    const lines = accountLinesOf({
+    const lines = accountLine.linesOf({
       usageList: read.usageList,
       leased: this.ports.leaseReader.read(),
       now,
       streamUsage,
     });
-    return [
-      this._headingAt(now, read),
-      ...lines.map((line) => `  ${line}`),
-    ].join("\n");
+    return [this._headingAt(now, read), ...lines].join("\n");
   }
 
   private async _readAt(now: Date): Promise<SectionRead> {
@@ -99,58 +79,4 @@ export class AccountsSection {
     }
     return `Accounts (read ${ageSeconds}s ago)`;
   }
-}
-
-// One line per account, by account number, as the Run board and `npm run account:switch` both print them.
-export function accountLinesOf({
-  usageList,
-  leased,
-  now,
-  streamUsage,
-}: AccountLinesRequest): string[] {
-  return [...usageList.readings]
-    .sort((a, b) => a.account - b.account)
-    .map((reading) => {
-      const isActive = reading.account === usageList.activeAccount;
-      const parts = [
-        `${reading.account}.${isActive ? " (active)" : ""} ${usageLabelOf(reading, now, streamUsage)}`,
-      ];
-      const lease = leased.find(({ account }) => account === reading.account);
-      if (lease !== undefined) parts.push(heldByLabelOf(lease.holder));
-      return parts.join(", ");
-    });
-}
-
-function usageLabelOf(
-  { account, usage, isDisabled }: AccountReading,
-  now: Date,
-  streamUsage: ReadonlyMap<number, UsageReading> | undefined,
-): string {
-  if (isDisabled === true) return "disabled";
-  if (usage === undefined) return "no reading";
-  const fresh = freshestUsageOf(usage, streamUsage?.get(account));
-  return `5h: ${windowLabelOf(fresh.fiveHour, now)}, 7d: ${windowLabelOf(fresh.sevenDay, now)}`;
-}
-
-function windowLabelOf(window: UsageWindow, now: Date): string {
-  const percent = percentOf(window.utilization);
-  if (isUnstartedWindow(window)) return percent;
-  return `${percent} (${untilResetOf(window.resetsAt, now)})`;
-}
-
-// Days and hours past a day, hours and minutes below it; a reset already past reads as 0h 0m.
-function untilResetOf(resetsAt: Date, now: Date): string {
-  const minutes = Math.max(
-    0,
-    Math.floor((resetsAt.getTime() - now.getTime()) / minuteMs),
-  );
-  const hours = Math.floor(minutes / 60);
-  if (hours >= 24) return `${Math.floor(hours / 24)}d ${hours % 24}h`;
-  return `${hours}h ${minutes % 60}m`;
-}
-
-// Names a leased account's holder as AccountLease.ts lists it.
-export function heldByLabelOf(holder: LockHolder | undefined): string {
-  if (holder === undefined) return "held by an unreadable lease";
-  return `held by pid ${holder.pid} since ${localTimeOf(new Date(holder.startedAt))}`;
 }

@@ -1,10 +1,10 @@
 // `npm run account:switch`'s core: ranks every account with limitGuard.ts's rankAccounts, passing over leased ones,
-// and switches the Active account to the top one through the switch port, printing AccountsSection.ts's account lines before and after.
+// and switches the Active account to the top one through the switch port, printing accountLine.ts's account lines before and after.
 // It reads the account leases (AccountLease.ts) and never takes one. The entry, which passes the real cswap ports,
 // is `scripts/runner/accountSwitch.ts`.
 
 import type { AccountLeaseReader, LeasedAccount } from "./AccountLease.ts";
-import { accountLinesOf, heldByLabelOf } from "./AccountsSection.ts";
+import { accountLine } from "./accountLine.ts";
 import {
   type LeftOutAccount,
   type LimitGuardKnobs,
@@ -93,8 +93,8 @@ function printReadings({
   print,
 }: ReadingsPrint): void {
   print(title);
-  for (const line of accountLinesOf({ usageList, leased, now })) {
-    print(`  ${line}`);
+  for (const line of accountLine.linesOf({ usageList, leased, now })) {
+    print(line);
   }
 }
 
@@ -106,8 +106,13 @@ function leftOutLabelOf(
     return `past its ${windowNameOf(reason.window)} threshold at ${percentOf(reason.utilization)}`;
   }
   if (reason.kind === "leased") {
-    const lease = leased.find((each) => each.account === account);
-    return heldByLabelOf(lease?.holder);
+    const holder = accountLine.holderLabelOf(account, leased);
+    if (holder === undefined) {
+      throw new Error(
+        `Account ${account} is left out as leased with no lease.`,
+      );
+    }
+    return holder;
   }
   if (reason.kind === "disabled") return "disabled in cswap";
   if (reason.kind === "unavailable") return "unavailable to this run";

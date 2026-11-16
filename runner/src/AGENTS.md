@@ -16,7 +16,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | File | Export | Job |
 | --- | --- | --- |
 | `AccountLease.ts` | `AccountLease` | The per-account lease a run holds on a cswap account, never waited on, and the leased accounts with their holders. |
-| `AccountsSection.ts` | | The Accounts section the Run board will show, read from cswap at most once per refresh interval, and the account line it and `npm run account:switch` print for each account. |
+| `accountLine.ts` | | The account line the Accounts section and `npm run account:switch` print for each account. |
+| `AccountsSection.ts` | | The Accounts section the Run board will show. |
 | `accountSwitch.ts` | `accountSwitch` | `npm run account:switch`'s core: switches the Active account to the top of the account ranking through the cswap switch port its entry passes, printing the account lines before and after. |
 | `AGENTS.md` | | The rules for working in `src/`; `CLAUDE.md` loads it. |
 | `CLAUDE.md` | | Loads `AGENTS.md` for Claude Code. |

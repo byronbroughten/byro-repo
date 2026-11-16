@@ -3,7 +3,7 @@ import type { UsageList, UsageReader } from "./limitGuard.ts";
 // The usage reader run-loop tests script: each read returns the next scripted list, then repeats the last; an Error is thrown.
 export class FakeUsageReader implements UsageReader {
   private readonly lists: (UsageList | Error)[];
-  private reads = 0;
+  readCount = 0;
 
   constructor(lists: (UsageList | Error)[]) {
     this.lists = lists;
@@ -14,8 +14,8 @@ export class FakeUsageReader implements UsageReader {
   }
 
   async read(): Promise<UsageList> {
-    const list = this.lists[Math.min(this.reads, this.lists.length - 1)];
-    this.reads += 1;
+    const list = this.lists[Math.min(this.readCount, this.lists.length - 1)];
+    this.readCount += 1;
     if (list === undefined) throw new Error("No scripted usage list");
     if (list instanceof Error) throw list;
     return list;
