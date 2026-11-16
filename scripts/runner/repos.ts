@@ -3,6 +3,7 @@
 // Usage: npm run repos [-- --refresh]
 import { GhCli } from "@byronbroughten/spec-runner/GhCli";
 import {
+  type RepoRow,
   repoRowsText,
   RepoVisibility,
 } from "@byronbroughten/spec-runner/RepoVisibility";
@@ -19,10 +20,12 @@ try {
     source: new GhCli(githubOwner),
     clock: { now: () => new Date() },
   });
-  const rows =
-    args[0] === "--refresh"
-      ? await visibility.refreshedRowsOf(runKnobs.clonePaths)
-      : await visibility.rowsOf(runKnobs.clonePaths);
+  let rows: RepoRow[];
+  if (args[0] === "--refresh") {
+    rows = await visibility.refreshedRowsOf(runKnobs.clonePaths);
+  } else {
+    rows = await visibility.rowsOf(runKnobs.clonePaths);
+  }
   console.log(repoRowsText(rows));
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);

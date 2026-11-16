@@ -27,10 +27,11 @@ interface RepoVisibilityProps {
   clock: Clock;
 }
 
+type VisibilityByRepo = Record<string, Visibility>;
+
 interface VisibilityCache {
-  // The ISO time GitHub was read.
   readAt: string;
-  visibilities: Record<string, Visibility>;
+  visibilities: VisibilityByRepo;
 }
 
 const cacheLifeMs = 24 * 60 * 60 * 1000;
@@ -39,11 +40,13 @@ export class RepoVisibility {
   readonly stateFolder: string;
   readonly source: VisibilitySource;
   readonly clock: Clock;
+  private readonly _cachePath: string;
 
   constructor({ stateFolder, source, clock }: RepoVisibilityProps) {
     this.stateFolder = stateFolder;
     this.source = source;
     this.clock = clock;
+    this._cachePath = join(stateFolder, "repo-visibility.json");
   }
 
   static init(props: RepoVisibilityProps): RepoVisibility {
@@ -63,19 +66,12 @@ export class RepoVisibility {
     const read = await Promise.all(
       repos.map((repo) => this.source.visibilityOf(repo)),
     );
-    const visibilities = repos.reduce<Record<string, Visibility>>(
-      (byRepo, repo, at) => {
-        byRepo[repo] = read[at] as Visibility;
-        return byRepo;
-      },
-      {},
-    );
+    const visibilities = repos.reduce<VisibilityByRepo>((byRepo, repo, at) => {
+      byRepo[repo] = read[at] as Visibility;
+      return byRepo;
+    }, {});
     this._store({ readAt: this.clock.now().toISOString(), visibilities });
     return rowsFrom(clonePaths, visibilities);
-  }
-
-  private get _cachePath(): string {
-    return join(this.stateFolder, "repo-visibility.json");
   }
 
   private get _cache(): VisibilityCache | undefined {
@@ -100,7 +96,6 @@ export class RepoVisibility {
   }
 }
 
-// One line per repo, its name, path and visibility in aligned columns.
 export function repoRowsText(rows: RepoRow[]): string {
   const repoWidth = Math.max(...rows.map(({ repo }) => repo.length));
   const pathWidth = Math.max(...rows.map(({ clonePath }) => clonePath.length));
@@ -114,7 +109,7 @@ export function repoRowsText(rows: RepoRow[]): string {
 
 function rowsFrom(
   clonePaths: ClonePaths,
-  visibilities: Record<string, Visibility>,
+  visibilities: VisibilityByRepo,
 ): RepoRow[] {
   return Object.entries(clonePaths).map(([repo, clonePath]) => ({
     repo,
