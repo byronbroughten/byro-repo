@@ -24,7 +24,7 @@ Do steps 0-3 silently. The developer sees only step 4.
 - **A session ID or path**: transcript mode on that transcript.
 - **"The last session"**: transcript mode on the newest transcript that is not your own, found by [`docs/session-transcripts.md`](../../../docs/session-transcripts.md).
 
-Say in one line which mode and which inputs you chose. In pair mode, say it once setup has paired the Sections, with the pairings made without an ID match in it.
+Say in one line which mode and which inputs you chose. In pair mode, [`pair-mode.md`'s step 2](./pair-mode.md#2-make-the-pair) says when and what the line lists.
 
 **Pair mode**: run the setup in [`pair-mode.md`](./pair-mode.md) before step 1. The diff and the decided Proposals on the spec's review lists are the evidence; transcripts only give the developer's stated reasons and the `Upstream:` line's sources.
 

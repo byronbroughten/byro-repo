@@ -27,7 +27,7 @@ Done when every Section of both files is in the list or matched. With nothing ch
 
 ## 3. Offer the style mining
 
-Ask whether to run `/to-writing-style <repo> <spec>` in pair mode on the changed Sections. On a yes, Read [`.claude/skills/to-writing-style/SKILL.md`](../to-writing-style/SKILL.md) in full by its path and follow it, since it is user-invoked; for its pair, use step 2's two files in place of its own Doc read, keeping only the Sections in its scope.
+Ask whether to run `/to-writing-style <repo> <spec>` in pair mode on the changed Sections. On a yes, Read [`.claude/skills/to-writing-style/SKILL.md`](../to-writing-style/SKILL.md) in full by its path and follow it, since it is user-invoked; for its pair, run [pair-mode step 2](../to-writing-style/pair-mode.md#2-make-the-pair) afresh, since step 2's two files have lost the IDs it pairs by, keeping only the Sections in its scope.
 
 Its approved edits are in the root repo, so unless `<repo>` is the root, put it on the gate's branch first with `npm run issue:promote -- <repo> <n> byro-repo`; then make them in this workspace and commit them on the gate's branch.
 
