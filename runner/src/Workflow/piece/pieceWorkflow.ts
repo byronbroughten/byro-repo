@@ -81,6 +81,7 @@ import {
   type RuleSheetName,
   type RuleSheets,
 } from "./reviewCaught.ts";
+import { reviewInputs } from "./reviewInputs.ts";
 import {
   pieceReviewerCheckOf,
   pieceReviewPrompt,
@@ -258,6 +259,14 @@ export function pieceWorkflowOf({
         outputSchema: pieceReviewRecordSchema,
         skillName: "review-piece",
         reviewerCheck: pieceReviewerCheckOf("review-piece"),
+        suppliedInputsOf(context) {
+          return reviewInputs.writtenOf({
+            ...context,
+            overlapCommand,
+            draftPath: draftPathOf(context.spec.issue),
+            isResearch,
+          });
+        },
       },
       resolve: resolveRulesOf({
         promptOf(input) {

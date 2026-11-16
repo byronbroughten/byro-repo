@@ -74,6 +74,36 @@ describe("pieceReviewPrompt", () => {
   it("has no commit list, since the review has no diff and no fixed point", () => {
     expect(pieceReviewPrompt(input)).not.toContain("commits since");
   });
+
+  it("names each supplied input's file before the skill, saying which the spec lacks", () => {
+    const folder =
+      "/workspaces/byro-repo-issue-12/.runner/review-inputs/byro-repo-12";
+    const prompt = pieceReviewPrompt({
+      ...input,
+      suppliedInputs: [
+        { name: "Reader", path: `${folder}/reader.md` },
+        { name: "Outline", path: `${folder}/outline.md` },
+        {
+          name: "Length limit",
+          absence: "the spec's Form field has no `Length:` line",
+        },
+        { name: "Overlap", path: `${folder}/overlap.txt` },
+      ],
+    });
+
+    const supplied = `the Reader file, \`${folder}/reader.md\`; the Outline file, \`${folder}/outline.md\`; the Overlap file, \`${folder}/overlap.txt\`.`;
+    expect(prompt).toContain(supplied);
+    expect(prompt).toContain(
+      "No Length limit file: the spec's Form field has no `Length:` line.",
+    );
+    expect(prompt).toContain("use each as given");
+    expect(prompt.indexOf(supplied)).toBeLessThan(prompt.indexOf("<skill"));
+    expect(prompt).not.toContain("length-limit");
+  });
+
+  it("supplies no input when its caller names none", () => {
+    expect(pieceReviewPrompt(input)).not.toContain("use each as given");
+  });
 });
 
 describe("pieceReviewerCheckOf", () => {

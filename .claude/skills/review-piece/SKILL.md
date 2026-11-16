@@ -17,7 +17,7 @@ An interactive session and the runner's review step read this file alike, so its
 
 ## 1. Pin the issue and its scope
 
-The input is `/review-piece <repo> <n>`, an issue in `<repo>`. Fetch it with `npm run issue:read -- <repo> <n> --body --comments`, adding `--hide-others` when your caller says to, and state its title. If the reference is ambiguous, or the issue is Research rather than a Piece, stop and say so.
+The input is `/review-piece <repo> <n>`, an issue in `<repo>`. Fetch it, even when your caller supplies inputs, with `npm run issue:read -- <repo> <n> --body --comments`, adding `--hide-others` when your caller says to, and state its title. If the reference is ambiguous, or the issue is Research rather than a Piece, stop and say so.
 
 When your caller names the issue's spec, that is its parent; otherwise run `gh api repos/<owner>/<repo>/issues/<n>/parent`, resolving `<repo>` to `<owner>/<repo>`; a 404 means no parent. Fetch a parent the same way as the issue when there is one: it is the spec, and its facts join the fact list. With no parent, the issue is its own spec. Then set the **scope**:
 
@@ -27,6 +27,8 @@ When your caller names the issue's spec, that is its parent; otherwise run `gh a
 Done when the title is stated, the scope is one of the two, and for Sections every named heading is found in the Agent draft. A heading that isn't found fails here, before any sub-agent runs.
 
 ## 2. Gather the inputs
+
+**An input your caller supplies as a file is used as given; gather only the rest.** The fact list is always yours to build. A caller that says the spec lacks a field has answered "no such field" for it.
 
 **The draft input is two paths in the issue workspace**: the Agent draft at the path [`agent-draft.md`](../../../docs/pieces/agent-draft.md) gives, in `<repo>`'s clone, and the passages folder, `.runner/passages/<repo>-<n>` under the workspace root, which holds each passage the drafter read, one file per source and range. Read the spec, the Research comment it links and the sheets as below; read no Drive file and no web page.
 

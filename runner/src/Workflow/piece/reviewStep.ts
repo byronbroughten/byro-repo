@@ -1,6 +1,6 @@
 // The piece review step: the prompt that runs a review of a drafting ticket's Agent draft on the spec, standards and
 // reader axes, by the implementer in a run or an interactive session from its brief, with `/review-piece`'s SKILL.md
-// body inlined, the review record it returns: code's, on these axes, plus the overlap hits it judged no copy, and the
+// body inlined and the files reviewInputs.ts wrote named before it, the review record it returns: code's, on these axes, plus the overlap hits it judged no copy, and the
 // check that it spawned its three reviewer subagents, with the resume that sends back one that didn't.
 // pieceWorkflow.ts registers it, reading the skill from the workspace through ../../stepPrompts/inlinedSkill.ts;
 // ../../SpecRun/ReviewStepper.ts launches it and ../../SpecRun/SessionReviewer.ts prints it.
@@ -21,7 +21,11 @@ import {
 } from "../../recordSchema.ts";
 import { inlinedSkill } from "../../stepPrompts/inlinedSkill.ts";
 import type { Axis } from "../../verdicts.ts";
-import type { ReviewerCheck, ReviewPromptInput } from "../../Workflow.ts";
+import type {
+  ReviewerCheck,
+  ReviewPromptInput,
+  SuppliedInput,
+} from "../../Workflow.ts";
 import { draftingScope } from "./draftingScope.ts";
 import { passagesFolderIn } from "./implementStep.ts";
 
@@ -45,6 +49,7 @@ export function pieceReviewPrompt({
   draftPath,
   sessionSubmit,
   isTicketHeld,
+  suppliedInputs = [],
 }: PieceReviewPromptInput): string {
   const passagesFolder = passagesFolderIn(workspacePath, issue);
   const scope = draftingScope.sectionsOf(labels);
@@ -59,11 +64,30 @@ export function pieceReviewPrompt({
 
 Review ${issue.repo}#${issue.number}, "${title}", on the ${codeListOf(pieceAxes, "and")} axes, by the \`${skillName}\` skill below. Your working directory is the ticket's issue workspace root, on the ticket's branch, \`${branch}\`. The draft input is the Agent draft, \`${draftPath}\` in the \`${spec.repo}\` clone, and the passages folder, \`${passagesFolder}\`; the ticket's spec is ${spec.repo}#${spec.number}. The in-scope text is ${scope}. ${stepReadLine}
 
-${heldTicket.join("")}${inlinedSkill.sectionOf(skillText, skillName)}
+${heldTicket.join("")}${suppliedInputsLinesOf(suppliedInputs, skillName)}${inlinedSkill.sectionOf(skillText, skillName)}
 
 ${framing.returnLineOf(["findings", "dismissedOverlaps"])}
 - ${reviewFindingsText({ axes: pieceAxes, where: "its file:line in the Agent draft, or the spec's Outline line for a reader finding", claim: "what it says, in a line, quoting the sentence" })}
 - \`dismissedOverlaps\`: each overlap hit the spec reviewer judged no copy, its \`hit\` as the overlap command printed it and its one-line \`reason\`; empty when it dismissed none.`;
+}
+
+// A paragraph before the skill, empty when its caller supplies nothing, so an unsupplied input is gathered as the skill says.
+function suppliedInputsLinesOf(
+  suppliedInputs: SuppliedInput[],
+  skillName: string,
+): string {
+  if (suppliedInputs.length === 0) return "";
+  const written = suppliedInputs.flatMap((input) =>
+    "path" in input ? [`the ${input.name} file, \`${input.path}\``] : [],
+  );
+  const absent = suppliedInputs.flatMap((input) =>
+    "absence" in input ? [`No ${input.name} file: ${input.absence}.`] : [],
+  );
+  const lines = [
+    `The runner has written the inputs \`${skillName}\` skill copies word for word; use each as given and gather only the rest, the fact list included: ${written.join("; ")}.`,
+    ...absent,
+  ];
+  return `${lines.join(" ")}\n\n`;
 }
 
 // The spec, standards and reader reviewers `/review-piece` spawns. Its diff is the Agent draft alone, so the file count

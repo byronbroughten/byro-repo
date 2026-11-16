@@ -242,6 +242,36 @@ export interface ReviewPromptInput extends TicketPromptFields {
   pointsWorthChecking?: string[];
   // Each branched repo's, in order; unset when none has a diff from master, so the review skill's own first step finds it empty.
   commitsSinceMaster?: RepoCommits[];
+  // Set for a Workflow whose review rules write them; the review skill gathers only what isn't here.
+  suppliedInputs?: SuppliedInput[];
+}
+
+// An input the review skill copies word for word, written to its file before launch, or why there is none.
+export type SuppliedInput = WrittenInput | AbsentInput;
+
+export interface WrittenInput {
+  // As the review skill names it.
+  name: string;
+  path: string;
+}
+
+export interface AbsentInput {
+  name: string;
+  // A lowercase clause, with no closing period, on what the spec lacks.
+  absence: string;
+}
+
+// What a review's supplied inputs are written from.
+export interface ReviewInputsContext {
+  spec: TrackedIssue;
+  ticket: IssueRef;
+  workspacePath: string;
+  // The spec's repo's clone in the workspace.
+  specClone: string;
+  // The bodies of the comments on each of the spec's other tickets that `isRead` keeps, in ticket order.
+  commentsOnTicketsOf(
+    isRead: (ticket: TrackedIssue) => boolean,
+  ): Promise<string[]>;
 }
 
 // One branched repo's `git log master..HEAD --oneline` lines.
@@ -258,6 +288,8 @@ export interface ReviewRules {
   skillName: string;
   // Set for a skill that spawns reviewer subagents; unset, the review is never checked for them.
   reviewerCheck?: ReviewerCheck;
+  // Writes the inputs the skill would copy word for word, before a run's review or a session's brief.
+  suppliedInputsOf?(context: ReviewInputsContext): Promise<SuppliedInput[]>;
 }
 
 // A review that spawns fewer than `count` subagents is resumed once with `resumePrompt`, unless it was offered inline review.

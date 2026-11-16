@@ -27,6 +27,7 @@ import {
   type ResolvePromptInput,
   type ResolveRules,
   type ReviewerCheck,
+  type ReviewInputsContext,
   type ReviewPromptInput,
 } from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
@@ -234,6 +235,35 @@ export class ReviewStepper extends SpecRunBase {
       isInlineAllowed:
         this._isInlineOffered(ticketRun) && this._isInlineSize(fileCount),
       commitsSinceMaster,
+      suppliedInputs: await rules.suppliedInputsOf?.(
+        this._reviewInputsContextOf(ticketRun),
+      ),
+    };
+  }
+
+  private _reviewInputsContextOf({
+    run,
+    ticket,
+    workspace,
+  }: TicketRun): ReviewInputsContext {
+    const { github } = this.config;
+    const others = run.tickets.filter(
+      (other) => !issueRef.isSame(other, ticket.issue),
+    );
+    return {
+      spec: run.spec,
+      ticket: ticket.issue,
+      workspacePath: workspace.path,
+      specClone: this._cloneIn(workspace, run.spec.issue.repo),
+      async commentsOnTicketsOf(isRead) {
+        const bodies: string[] = [];
+        for (const other of others) {
+          if (!isRead(await github.issueOf(other))) continue;
+          const comments = await github.authoredCommentsOf(other);
+          bodies.push(...comments.map(({ body }) => body));
+        }
+        return bodies;
+      },
     };
   }
 
