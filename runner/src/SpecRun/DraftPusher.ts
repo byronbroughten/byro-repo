@@ -262,7 +262,7 @@ async function writeSections({
     if (isEdited(read, section)) return { count, isStale: true };
     const { heading, markdown } = section;
     try {
-      await docs.writeSection({ documentId, heading, markdown });
+      await docs.writeSection({ documentId, headingPath: heading, markdown });
     } catch (error) {
       if (!(error instanceof StaleRevision)) throw error;
       return { count, isStale: true };

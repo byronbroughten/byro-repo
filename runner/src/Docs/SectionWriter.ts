@@ -123,9 +123,10 @@ export class SectionWriter {
     return BulletPlacer.init(this.document);
   }
 
-  /** The requests that make the Section under `heading` read as `markdown`: text last index first, then bullets. */
-  requestsFor(heading: string, markdown: string): Request[] {
-    const { sectionHeading, held } = this.heldSectionReader.sectionOf(heading);
+  /** The requests that make the Section at `headingPath` read as `markdown`: text last index first, then bullets. */
+  requestsFor(headingPath: string, markdown: string): Request[] {
+    const { sectionHeading, held } =
+      this.heldSectionReader.sectionOf(headingPath);
     const wanted = blockParse.blocksOf(markdown).flatMap(writtenOf);
     const section = sectionDiff
       .hunksOf(sectionHeading, held, wanted)

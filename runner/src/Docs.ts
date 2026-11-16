@@ -12,17 +12,17 @@ import { markdownDialect } from "./Docs/markdownDialect.ts";
 import { SectionWriter } from "./Docs/SectionWriter.ts";
 import { StaleRevision } from "./Docs/StaleRevision.ts";
 
-/** One read of a Doc: its Markdown, its Sections' bodies by heading, and the revision read. */
+/** One read of a Doc: its Markdown, its Sections' bodies by heading path, and the revision read. */
 export interface DocRead {
   markdown: string;
   sections: Map<string, string>;
   revisionId: string;
 }
 
-/** A Section's new body for a Doc, the Section named by its heading as `DocRead.sections` keys it. */
+/** A Section's new body for a Doc, the Section named as `DocRead.sections` keys it. */
 export interface SectionWrite {
   documentId: string;
-  heading: string;
+  headingPath: string;
   markdown: string;
 }
 
@@ -52,7 +52,7 @@ export class Docs {
   /** Rewrites one Section of the Doc as last read, refusing with `PendingSuggestions` before writing, or `StaleRevision` if it changed since. */
   async writeSection({
     documentId,
-    heading,
+    headingPath,
     markdown,
   }: SectionWrite): Promise<void> {
     const document = this.lastReads.get(documentId);
@@ -60,7 +60,7 @@ export class Docs {
       throw new Error(`Read Doc ${documentId} before writing to it.`);
     }
     const requests = SectionWriter.init(document).requestsFor(
-      heading,
+      headingPath,
       markdown,
     );
     if (requests.length === 0) {
