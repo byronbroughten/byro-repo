@@ -8,7 +8,7 @@ import { credentialFile, fakeGoogle, loggedIn } from "./Docs/restFixtures.ts";
 
 const documents = new FakeDocuments([fixtureDocument("headings")]);
 const headingsMarkdown =
-  "# A Field Guide to Kettles\n\n## Why kettles\n\nA kettle boils water faster than a pan.\n\n### Spouts\n\nMost spouts face away.\n\n## Which kettle\n\nBuy the one with a whistle.\n";
+  "# A Field Guide to Kettles\n\n## Why kettles\n<!-- headingId h.why -->\n\nA kettle boils water faster than a pan.\n\n### Spouts\n\nMost spouts face away.\n\n## Which kettle\n<!-- headingId h.which -->\n\nBuy the one with a whistle.\n";
 const account = "agent@example.com";
 
 describe("docPrint.markdownOf", () => {
@@ -16,6 +16,17 @@ describe("docPrint.markdownOf", () => {
     expect(
       await docPrint.markdownOf(documents, { doc: "doc-headings", account }),
     ).toBe(headingsMarkdown);
+  });
+
+  it("prints each H1 and H2's headingId on the line under it, an H3's left out and a heading with no ID given none", async () => {
+    const printed = await docPrint.markdownOf(documents, {
+      doc: "doc-headings",
+      account,
+    });
+
+    expect(printed).toContain("## Why kettles\n<!-- headingId h.why -->\n");
+    expect(printed).toContain("# A Field Guide to Kettles\n\n## Why");
+    expect(printed).not.toContain("h.spouts");
   });
 
   it("prints a Doc named by its URL", async () => {

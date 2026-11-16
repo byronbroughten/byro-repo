@@ -129,6 +129,11 @@ export const markdownDialect = {
     return joined === "" ? "" : `${joined}\n`;
   },
 
+  /** Whether a heading level starts a Section: an H1 or H2. */
+  startsSection(level: number): boolean {
+    return level <= syntax.sectionLevel;
+  },
+
   /** Each H1 and H2 with its Section's heading path: an H1's text, an H2's under the H1 before it, or an H2's alone before any H1. */
   withPathsOf<SH extends SectionHeading>(headings: SH[]): WithPath<SH>[] {
     let h1: string | undefined;
@@ -148,6 +153,28 @@ export const markdownDialect = {
     return pathed;
   },
 
+  /** The Markdown with each H1 and H2's headingId, found by its heading path, as a comment line under it; a heading with no ID gets none. */
+  withHeadingIds(markdown: string, headingIds: Map<string, string>): string {
+    const lines = markdown.split("\n");
+    const headings = lines.flatMap((line, index) => {
+      const level = headingLevelOf(line);
+      if (level === undefined || !markdownDialect.startsSection(level)) {
+        return [];
+      }
+      return [{ level, text: line.slice(level + 1), index }];
+    });
+    const marked = markdownDialect
+      .withPathsOf(headings)
+      .flatMap(({ path, index }) => {
+        const headingId = headingIds.get(path);
+        return headingId === undefined ? [] : [{ index, headingId }];
+      });
+    for (const { index, headingId } of marked.reverse()) {
+      lines.splice(index + 1, 0, `<!-- headingId ${headingId} -->`);
+    }
+    return lines.join("\n");
+  },
+
   /** Each Section's body by its heading path, the Markdown before the first H1 or H2 left out. */
   sectionsOf(markdown: string): Map<string, string> {
     return new Map(
@@ -163,7 +190,7 @@ export const markdownDialect = {
       .split("\n")
       .reduce<(SectionHeading & { lines: string[] })[]>((split, line) => {
         const level = headingLevelOf(line);
-        if (level === undefined || level > syntax.sectionLevel) {
+        if (level === undefined || !markdownDialect.startsSection(level)) {
           split.at(-1)?.lines.push(line);
           return split;
         }

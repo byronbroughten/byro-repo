@@ -6,7 +6,7 @@ const finalPassLabel = "final-pass";
 const sectionWords = {
   named: "the Sections this ticket names, by their full heading paths",
   finalPass:
-    "every Section marked `<!-- agent -->`, whichever ticket drafted it",
+    "every Section marked `<!-- agent -->` or `<!-- agent <headingId> -->`, whichever ticket drafted it",
 } as const;
 
 export const draftingScope = {

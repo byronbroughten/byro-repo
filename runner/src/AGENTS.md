@@ -29,16 +29,16 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `contextMeter.ts` | `contextMeter` | Measures a session's peak context from stream events or a transcript. |
 | `contextNudge.ts` | `contextNudge` | Words the handoff reminder near the ticket budget, for the ticket's handoff, the supervision's or both. |
 | `CswapUsageReader.ts` | `CswapUsageReader` | Reads account usage and the Active account from `cswap list --json`. |
-| `docPrint.ts` | `docPrint` | `npm run doc:print`'s core: prints a Doc, named by its ID or URL, as the Markdown dialect, through the Docs port its entry passes. |
-| `Docs.ts` | `Docs` | The Docs module's port: reads a Doc as its Markdown, its Sections by heading path and the revision read, and writes a Section, named by its path, in place under that revision; it may later move to `packages/` with a folder move. |
-| `Docs/DocReader.ts` | | Reads a `documents.get` body into the Markdown dialect. |
+| `docPrint.ts` | `docPrint` | `npm run doc:print`'s core: prints a Doc, named by its ID or URL, as the Markdown dialect with each H1 and H2's headingId in a comment line under it, through the Docs port its entry passes. |
+| `Docs.ts` | `Docs` | The Docs module's port: reads a Doc as its Markdown, its Sections and their headings' headingIds by heading path and the revision read, and writes a Section, named by its path, in place under that revision; it may later move to `packages/` with a folder move. |
+| `Docs/DocReader.ts` | | Reads a `documents.get` body into the Markdown dialect, and each H1 and H2's headingId by heading path. |
 | `Docs/docFixtures.ts` | | Loads the `documents.get` JSON fixtures in `Docs/fixtures/` that Docs tests read. |
 | `Docs/DocsRequestRefused.ts` | | The error for a request the Docs API refused, with its status. |
 | `Docs/FakeBody.ts` | | The character-per-index body, its lists and tables included, that `FakeDocuments` applies `batchUpdate` requests to. |
 | `Docs/FakeDocuments.ts` | | The in-memory Docs API Docs tests use: `documents.get` and `batchUpdate` under a revision guard, and a Doc edited as in the editor, now or just before later writes. |
 | `Docs/googleDocs.ts` | `googleDocs` | The Google Docs layer's types: the `documents.get` body types, the `batchUpdate` requests and its port. |
 | `Docs/InlineParser.ts` | | Parses the dialect's inline Markdown back into styled text spans. |
-| `Docs/markdownDialect.ts` | | The Markdown dialect's forms, a Section's heading path, its split into H1 and H2, and the split into Sections by path, with or without their headings. |
+| `Docs/markdownDialect.ts` | | The Markdown dialect's forms, a Section's heading path, its split into H1 and H2, the split into Sections by path, with or without their headings, and the headingId comment line under each H1 and H2. |
 | `Docs/markdownDialect/blockParse.ts` | | The dialect's parse of a Section's body into paragraphs, flat lists and tables. |
 | `Docs/PendingSuggestions.ts` | | The error for a write refused because the Doc holds pending suggestions the writer can't index around safely. |
 | `Docs/RestDocuments.ts` | `RestDocuments` | The real Docs port over the Docs REST API, as the developer's clasp login in an injected credential file or as an injected access token, reading a Doc with its suggestions inline. |

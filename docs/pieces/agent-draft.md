@@ -6,7 +6,7 @@ An Agent draft ([GLOSSARY.md](./GLOSSARY.md#language)) is the agents' last versi
 
 - **A Piece's Agent draft is `writing/agent-drafts/<n>.md` at the root of the repo that files its spec, `<n>` being the Piece's spec number**: the parent's, for a split Piece.
 - **It mirrors the Deliverable's headings, one block per Section in the Deliverable's order**: the Doc's `# <H1>` or `## <H2>` line, then its author mark on the next line, then the Section's body in the Docs module's Markdown dialect. Each block's Section is named by its heading path ([GLOSSARY.md](./GLOSSARY.md#language)).
-- **The author mark is `<!-- developer -->` or `<!-- agent -->`.** A Section an agent drafted is the agent's; every other Section is the developer's.
+- **The author mark is `<!-- developer <headingId> -->` or `<!-- agent <headingId> -->`, carrying its heading's Google Docs `headingId`.** A Section an agent drafted is the agent's; every other Section is the developer's. A mark with no ID, `<!-- developer -->` or `<!-- agent -->`, still parses, as an older file's or a heading with no ID has it. A drafting agent copies a mark unchanged, its ID included.
 - **Every H1 carries a mark**: an H1 with no text of its own holds an empty Section marked `<!-- developer -->`. A file with no `#` lines names each Section by its H2 alone.
 - **The file changes only by a pull, an implement step (a run's or an `/implement-piece` session's), or a `/judge-findings` "now" fix.** Its edits are never made by hand.
 
@@ -15,7 +15,7 @@ An Agent draft ([GLOSSARY.md](./GLOSSARY.md#language)) is the agents' last versi
 Pull is the runner Step a piece spec's drafting ticket starts with, so a developer edit made in the Doc once the run is under way never enters the draft. An `/implement-piece` session pulls by these rules itself, recording no baseline.
 
 - **It reads the Doc the spec's `## Deliverable` section names by its ID, through the Docs module.**
-- **Each developer Section, and each Section the file doesn't hold yet, comes from the Doc, marked `<!-- developer -->`; each agent Section stays as the file has it.** An agent Section the Doc no longer holds stays too, after the last Section under its H1, so its heading path is unchanged; one whose H1 is gone gets that H1 back as an empty developer Section.
+- **Each developer Section, and each Section the file doesn't hold yet, comes from the Doc, marked `developer`; each agent Section stays as the file has it.** Every mark takes its heading's current `headingId` from the Doc at each pull, an agent Section's included. An agent Section the Doc no longer holds stays too, with the ID it had, after the last Section under its H1, so its heading path is unchanged; one whose H1 is gone gets that H1 back as an empty developer Section.
 - **It records every Section's text as the Doc showed it by heading path, agent Sections included, with the revision read, on the ticket's run state**: the baseline a later push compares the Doc against.
 - **It commits the file on the ticket's branch in the spec's repo**, and commits nothing when the file already matched.
 

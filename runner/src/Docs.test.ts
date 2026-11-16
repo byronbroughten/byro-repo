@@ -93,6 +93,15 @@ describe("Docs.read", () => {
     ]);
   });
 
+  it("reads each H1's and H2's headingId by heading path, leaving out an H3 and a heading with no ID", async () => {
+    const read = await docsOf("headings").read("doc-headings");
+
+    expect([...read.headingIds]).toEqual([
+      ["A Field Guide to Kettles › Why kettles", "h.why"],
+      ["A Field Guide to Kettles › Which kettle", "h.which"],
+    ]);
+  });
+
   it("keys a Doc's Sections by H2 alone when it has no H1", async () => {
     const document = fixtureDocument("headings");
     document.body?.content.splice(1, 1);

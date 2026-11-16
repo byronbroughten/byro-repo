@@ -12,10 +12,11 @@ import { markdownDialect } from "./Docs/markdownDialect.ts";
 import { SectionWriter } from "./Docs/SectionWriter.ts";
 import { StaleRevision } from "./Docs/StaleRevision.ts";
 
-/** One read of a Doc: its Markdown, its Sections' bodies by heading path, and the revision read. */
+/** One read of a Doc: its Markdown, its Sections' bodies and their headings' headingIds by heading path, and the revision read. */
 export interface DocRead {
   markdown: string;
   sections: Map<string, string>;
+  headingIds: Map<string, string>;
   revisionId: string;
 }
 
@@ -41,10 +42,12 @@ export class Docs {
   async read(documentId: string): Promise<DocRead> {
     const document = await this.documents.documentOf(documentId);
     this.lastReads.set(documentId, document);
-    const markdown = DocReader.init(document).markdown();
+    const reader = DocReader.init(document);
+    const markdown = reader.markdown();
     return {
       markdown,
       sections: markdownDialect.sectionsOf(markdown),
+      headingIds: reader.headingIds(),
       revisionId: document.revisionId,
     };
   }

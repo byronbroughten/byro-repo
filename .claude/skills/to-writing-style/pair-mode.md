@@ -7,16 +7,16 @@ Run these before step 1 of [`SKILL.md`](./SKILL.md), keeping every file in the s
 `gh issue view -R <owner>/<repo> <n> --json title,body,comments`, resolving `<repo>` to `<owner>/<repo>`, and the parent's too when `<n>` is a sub-issue. Note:
 
 - the Deliverable's Doc ID;
-- the Sections in scope: a sub-issue's named Sections, or every Section the Agent draft marks `<!-- agent -->` for the parent, never one it marks `<!-- developer -->`, so the diff holds only the developer's edits of agent text;
+- the Sections in scope: a sub-issue's named Sections, or every Section the Agent draft marks `<!-- agent -->` (or with an ID, `<!-- agent <headingId> -->`) for the parent, never one it marks `<!-- developer -->`, so the diff holds only the developer's edits of agent text;
 - every passage the developer supplied in their own words, as text to use or as their voice.
 
 With two Docs instead of an issue, skip this step; every Section the two share is in scope, and ask the developer which Doc is the agent's if their names don't say.
 
 ## 2. Make the pair
 
-- **Read the Doc only with `npm run doc:print -- <Doc ID>`, never a gworkspace tool.** Run it bare, in a call of its own, and Write its output to `deliverable.md`; its Section headings are already `## <heading text>`, the Agent draft's shape.
+- **Read the Doc only with `npm run doc:print -- <Doc ID>`, never a gworkspace tool.** Run it bare, in a call of its own, and Write its output to `deliverable.md`; its Section headings are already `## <heading text>`, the Agent draft's shape, each followed by a `<!-- headingId <id> -->` line.
 - In `<clone>`, `<repo>`'s clone: `git -C <clone> fetch origin master`, then `git -C <clone> show origin/master:writing/agent-drafts/<spec n>.md > agent-draft.md`. A sub-issue's Agent draft blocks are in its parent's file.
-- Keep only the Sections in scope, in both files, matched by heading, and delete each author-mark line from `agent-draft.md`.
+- Keep only the Sections in scope, in both files, matched by heading, and delete each author-mark line from `agent-draft.md` and each `headingId` line from the Doc's file.
 - With two Docs, print each the same way, the agent's Doc as `agent-draft.md`.
 
 ## 3. Diff and pair the paragraphs
