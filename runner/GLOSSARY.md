@@ -99,7 +99,7 @@ A line in a ticket, or a gap in a spec's ticket order, that would make a run Hal
 _Avoid_: blocker, finding
 
 **Arbiter**:
-The agent step that takes the first pass at a run's Halts and its review-list items, ruling on one only where a rule the developer approved decides it, and leaving the rest for the developer with a Recommendation. The runner acts on its rulings.
+The agent step that takes the first pass at a run's Halts and its review-list items, ruling on one only where a rule the developer approved decides it, and leaving the rest for the developer with a Recommendation. The runner acts on its rulings. Before proposing exact tickets, it follows `/project-tickets`.
 _Avoid_: judge, Run Judge, triage agent
 
 **Ruling log**:

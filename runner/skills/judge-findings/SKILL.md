@@ -67,12 +67,13 @@ Each answer is one of four; a piece spec offers only the first three ([`piece.md
 After the last round (a piece spec makes and files by [`piece.md`](./piece.md#making-a-now-fix) instead):
 
 - **Now**: make every such fix in one session workspace ([`docs/agents/git-workflow.md#a-skills-session-workspace`](../../../docs/agents/git-workflow.md#a-skills-session-workspace)) named `judge-<spec>`, over a list the first code spec's ([A list or `all`](#a-list-or-all)), one commit per item naming its `R<n>.<k>`, and land it.
-- **File**: by `/code-tickets`' conventions ([`.claude/skills/code-tickets/SKILL.md`](../../../.claude/skills/code-tickets/SKILL.md)), its ticket templates, `## Model fit` section and read-back included. Group a repo's filed fixes into one ticket unless one is big enough to stand alone; each decision is its own ticket. Use an item's drafted issue title when its ticket holds only that item.
+- **File**: read [`.claude/skills/project-tickets/SKILL.md`](../../../.claude/skills/project-tickets/SKILL.md) by path and follow its procedure from step 3, the rounds above standing in for its step 6 quiz, its code-ticket template, `## Model fit` section and read-back included, filing through `npm run issue:file`; it is user-invoked, so the Skill tool can't reach it. Group a repo's filed fixes into one ticket unless one is big enough to stand alone; each decision is its own ticket. Use an item's drafted issue title when its ticket holds only that item.
+- **Each acceptance criterion a filed ticket holds states the whole requirement itself**, so the implementer needs no review list; its `R<n>.<k>` tag stays only as provenance.
 
 **Every filed ticket asks "blocks this spec?"**, all in one message before filing, each pre-filled with your answer: yes when the spec's stories or decisions aren't met until it lands, no otherwise. A keep's fix and a Propose `ticket` default to no; a gap defaults to yes.
 
-- Yes: `gh issue create -R <owner>/<repo>`, then make it a sub-issue of the spec: `gh api --method POST repos/<owner>/<repo>/issues/<spec>/sub_issues -F sub_issue_id=<db id>`, where the db id is `gh api repos/<owner>/<repo>/issues/<new> --jq .id`.
-- No: a standalone issue whose body links the spec as `<owner>/<repo>#<spec>`.
+- Yes: file its draft under the spec, `npm run issue:file -- <repo> <spec> <folder>`, which makes it a sub-issue of the spec.
+- No: file its draft standalone, `npm run issue:file -- <repo> <folder>`, its body linking the spec as `<owner>/<repo>#<spec>`.
 
 ## Writing a decision
 
