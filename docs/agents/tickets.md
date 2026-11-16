@@ -1,6 +1,6 @@
 # Tickets
 
-The rules for sizing a ticket and picking its Model fit pair, which `/code-tickets`, `/review-code-tickets`, `/piece-tickets` and `/project-spec` share. What a spec holds is [`specs.md`](./specs.md)'s.
+The rules for sizing a ticket and picking its Model fit pair. What a spec holds is [`specs.md`](./specs.md)'s.
 
 ## Ticket size
 

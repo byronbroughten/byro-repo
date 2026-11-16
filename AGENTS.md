@@ -39,10 +39,7 @@ Open only the section or disclosed doc the task needs.
 | Tests and fakes | [testing](./packages/framework/docs/testing.md) |
 | Regen `tsc` fails, or hand-written sheet/column keys disagree with generated configs | [retarget-after-gen-configs](./.claude/skills/retarget-after-gen-configs/SKILL.md) |
 | Branches, landing a spec, closing an issue, `backup/*` or `research/*` branches | [`docs/agents/git-workflow.md`](./docs/agents/git-workflow.md) |
-| Design or grilling | [`docs/agents/planning.md`](./docs/agents/planning.md) |
-| Specs | [`docs/agents/specs.md`](./docs/agents/specs.md) |
-| Tickets: size, Model fit | [`docs/agents/tickets.md`](./docs/agents/tickets.md) |
-| A long session's handoff | [`docs/agents/handoffs.md`](./docs/agents/handoffs.md) |
+| Design or grilling; a spec; tickets; a long session's handoff | [`planning.md`](./docs/agents/planning.md); [`specs.md`](./docs/agents/specs.md); [`tickets.md`](./docs/agents/tickets.md); [`handoffs.md`](./docs/agents/handoffs.md) |
 | Changing a coding- or piece-workflow skill, or a doc several of them share | [`docs/agents/workflows.md`](./docs/agents/workflows.md) |
 | Writing reader-facing prose: a shared Google Doc, a blog post, in-app text, a piece spec | [`docs/writing-voice.md`](./docs/writing-voice.md) and [`docs/writing-craft.md`](./docs/writing-craft.md); academic work adds [`academic-writing-style.md`](./docs/academic-writing-style.md); a piece spec adds [`docs/pieces/rules.md`](./docs/pieces/rules.md) |
 | Editing a prose doc or AGENTS.md: which file a fact belongs in | [`docs/prose-style.md`](./docs/prose-style.md), then the map in [`prose-files.md`](./docs/agents/prose-files.md) |

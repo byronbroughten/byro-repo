@@ -102,7 +102,8 @@ A doc is listed when two or more skills or Steps of either Workflow reach it by 
 | --- | --- | --- |
 | [Codebase Priorities](./codebase-priorities.md) | `grilling` (and so `/grill-with-docs`, `/grill-me` and `/wayfinder`'s grilling tickets), `/judge-findings`, `/mine-outcomes`, `/retro`, `/to-code-style` | via `verdicts.md`: `/code-review`, `/implement-code`, the review and resolve Steps |
 | [`verdicts.md`](./verdicts.md) | `/code-review`, `/implement-code`, `/implement-piece`, `/judge-findings`, `/review-piece`, `/to-writing-style` (its pair mode) | via runner prompt: the resolve Step; via `/code-review` and `/review-piece`: the review Step |
-| [`tickets.md`](./tickets.md) | `/project-spec`, `/code-tickets`, `/review-code-tickets`, `/piece-tickets` | |
+| [`specs.md`](./specs.md) | `/project-spec` | via `tickets.md`: `/code-tickets`, `/review-code-tickets`, `/piece-tickets` |
+| [`tickets.md`](./tickets.md) | `/project-spec`, `/code-tickets`, `/review-code-tickets`, `/piece-tickets` | via `model-fit.md`: `/mine-outcomes` |
 | [`handoffs.md`](./handoffs.md) | `/start-issue`, `/to-code-style` | via always-on hook: the context nudge, for any session |
 | [`model-fit.md`](./model-fit.md) | `/mine-outcomes`, `/project-spec`, `/piece-tickets` | via `tickets.md`: `/code-tickets` |
 | The code-style rules: [config's](../../config/docs/code-style.md) and [the framework's](../../packages/framework/docs/code-style.md) | `/retro`, `/to-code-style` | via always-on hook: every code edit, by `/implement-code`, the implement and resolve Steps, and `/judge-findings`' "now" fixes |

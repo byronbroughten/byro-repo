@@ -1,10 +1,14 @@
 # Specs
 
-The rules for planning and writing a spec, code or piece, that `/project-spec` and the skills that split specs into tickets share. Sizing and splitting tickets is [`tickets.md`](./tickets.md)'s.
+The rules for planning and writing a spec, code or piece. Sizing and splitting tickets is [`tickets.md`](./tickets.md)'s.
+
+- **A plan or spec includes the matching prose-file edit** in its own scope ([`prose-files.md`](./prose-files.md)).
 
 ## Exploring
 
-- **Explore the repo to understand the current state of the codebase before writing a spec.** Use the project's domain glossary vocabulary throughout each spec, and respect ADRs in the area you're touching, and the [design](../../packages/framework/docs/design.md) principles that apply.
+- **Explore the repo to understand the current state of the codebase.**
+- **Use the project's domain glossary vocabulary throughout each spec.**
+- **Respect ADRs in the area you're touching, and the [design](../../packages/framework/docs/design.md) principles that apply.**
 
 ## Piece specs
 
@@ -31,9 +35,14 @@ Each Phase is a spec of its own, filed with the rest of its Project by [`/projec
 
 ## Test seams
 
-- **For each code spec, sketch the seams at which you're going to test it.** Existing seams should be preferred to new ones. Use the highest seam possible. If new seams are needed, propose them at the highest point you can. The fewer seams across the codebase, the better - the ideal number is one.
+- **For each code spec, sketch the seams at which you're going to test it.**
+- **Existing seams should be preferred to new ones.**
+- **Use the highest seam possible.**
+- **If new seams are needed, propose them at the highest point you can.** The fewer seams across the codebase, the better: the ideal number is one.
 - **A spec's test seams name the outcome each test asserts**: for a Sheets write, the grid it leaves, not the requests it sends ([framework style](../../packages/framework/docs/code-style.md#tests)).
-- **Name any planned test that would break a [test speed rule](../../config/docs/code-style/tests.md#test-speed) and warn about it clearly, saying which rule it breaks.** The spec's Testing Decisions repeat the warning, so it reaches the ticket implemented from it. The warning needs no approval of its own.
+- **Name any planned test that would break a [test speed rule](../../config/docs/code-style/tests.md#test-speed) and warn about it clearly, saying which rule it breaks.**
+- **The spec's Testing Decisions repeat the warning**, so it reaches the ticket implemented from it.
+- **The warning needs no approval of its own.**
 
 ## Settings changes
 

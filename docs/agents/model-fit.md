@@ -1,6 +1,6 @@
 # Model fit
 
-The criteria behind the model and effort pair in a ticket's `## Model fit` section. The rule lines live in [`planning.md`](./tickets.md#model-fit); open this guide when they don't decide a ticket, or when a new model version ships.
+The criteria behind the model and effort pair in a ticket's `## Model fit` section. The rule lines live in [`tickets.md`](./tickets.md#model-fit); open this guide when they don't decide a ticket, or when a new model version ships.
 
 ## Model versions and review date
 
