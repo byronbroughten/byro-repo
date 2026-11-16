@@ -17,7 +17,7 @@ import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
 import { type AccountReading, readingLabelOf } from "../limitGuard.ts";
 import { RunStop } from "../RunStop.ts";
 import { stalePathLabelOf, stalePathsOf } from "../stalePaths.ts";
-import { AccountHold } from "./AccountHold.ts";
+import { type AccountHold } from "./AccountHold.ts";
 import {
   type Member,
   memberIssueOf,
@@ -86,13 +86,12 @@ type Finishing =
 
 export class RunLoop extends SpecRunBase {
   private readonly memberIssues: MemberList;
-  // Every member's, so a Batch holds one account lease; released here wherever the run ends, beside the run locks.
-  private readonly accountHold: AccountHold;
+  // The first member's, shared by every member so a Batch holds one account lease; undefined until the runs start.
+  private accountHold: AccountHold | undefined;
 
   constructor(config: SpecRunConfig, memberIssues: MemberList) {
     super(config);
     this.memberIssues = memberIssues;
-    this.accountHold = new AccountHold(config.stateFolder);
   }
 
   private get preflightChecker(): PreflightChecker {
@@ -131,7 +130,7 @@ export class RunLoop extends SpecRunBase {
     } finally {
       // Closed on a throw too, so status and supervise never find a dead Batch.
       if (!isRestarting) this.batchRecords.close(memberIssues);
-      this.accountHold.release();
+      this.accountHold?.release();
       locks.forEach((lock) => lock.release());
     }
   }
@@ -218,7 +217,7 @@ export class RunLoop extends SpecRunBase {
       }
       if (launch === undefined) {
         // A Limit wait holds its lease, as it waits inside a launch; an Idle run frees its account for other runs.
-        this.accountHold.release();
+        this.accountHold?.release();
         if (!isIdle) await this._announceIdle(waiting);
         isIdle = true;
         await this._sleep(this.config.knobs.idlePollMs);
@@ -268,7 +267,9 @@ export class RunLoop extends SpecRunBase {
       this._startRunClearingStop(first),
       ...rest.map((specIssue) => this._startRunClearingStop(specIssue)),
     ]);
-    for (const run of runs) run.accountHold = this.accountHold;
+    const [{ accountHold }] = runs;
+    this.accountHold = accountHold;
+    for (const run of runs) run.accountHold = accountHold;
     if (isBatch(runs)) {
       runs.forEach((run) => {
         run.isBatchMember = true;

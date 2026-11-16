@@ -120,7 +120,7 @@ describe("run's account lease", () => {
     );
 
     try {
-      await specRun(agentStep, account1).run(spec);
+      await specRun(agentStep, { usageReader: account1.usageReader }).run(spec);
     } finally {
       vi.restoreAllMocks();
     }
@@ -256,7 +256,7 @@ describe("run's account lease", () => {
     );
 
     const result = await specRun(agentStep, {
-      ...account1,
+      usageReader: account1.usageReader,
       async sleep() {
         heldWhileIdle.push(leaseFiles());
         github.reply(213, "H1: I ran it.");

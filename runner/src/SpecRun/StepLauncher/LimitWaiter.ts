@@ -117,7 +117,7 @@ export class LimitWaiter extends SpecRunBase {
     );
     const picked = ranked.find(({ account }) => account === leasedAccount);
     if (picked === undefined) {
-      // Another holder took each ranked account between the read and the take.
+      // Any ranked account left here was taken by another holder between the read and the take.
       const takenFirst = ranked.map(({ account }) => leasedOf(account));
       return launchWaitOf(hold.account, [...leftOut, ...takenFirst]);
     }
