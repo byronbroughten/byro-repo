@@ -25,6 +25,7 @@ import {
   runStatePath,
   spec,
   specRun,
+  startTime,
   stateFolder,
   type StepScript,
   ticketFacts,
@@ -206,6 +207,7 @@ describe("run's implement handoff", () => {
     expect(ticketState()["byro-repo #1"]?.sessions).toContainEqual({
       agent: "implement",
       sessionId: "handoff-session",
+      startedAt: startTime.toISOString(),
       account: 1,
       configFolder: "/config/account-1",
     });

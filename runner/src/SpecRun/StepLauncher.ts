@@ -243,6 +243,7 @@ export class StepLauncher extends SpecRunBase {
         streamPath: logPath,
       }),
     );
+    const startedAt = this.config.clock.now().toISOString();
     let result: StepResult;
     try {
       result = await this.config.agentStep.run({
@@ -267,6 +268,7 @@ export class StepLauncher extends SpecRunBase {
       state.sessions.push({
         agent,
         sessionId: result.sessionId,
+        startedAt,
         account: result.account,
         configFolder: this.config.configFolder,
       });

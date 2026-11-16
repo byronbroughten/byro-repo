@@ -32,6 +32,7 @@ import {
   spec,
   specRun,
   type SpecRunOverrides,
+  startTime,
   stateFolder,
   type StepScript,
   ticketFacts,
@@ -229,6 +230,7 @@ describe("review of one ticket outside a run", () => {
         {
           agent: "review",
           sessionId: "review-session",
+          startedAt: startTime.toISOString(),
           account: 1,
           configFolder: "/config/account-1",
         },
@@ -250,6 +252,7 @@ describe("review of one ticket outside a run", () => {
         {
           agent: "review",
           sessionId: "review-session",
+          startedAt: startTime.toISOString(),
           account: 2,
           configFolder: "/config/account-1",
         },
@@ -271,6 +274,7 @@ describe("review of one ticket outside a run", () => {
         {
           agent: "review",
           sessionId: "review-session",
+          startedAt: startTime.toISOString(),
           account: 1,
           configFolder: "/config/account-1",
         },

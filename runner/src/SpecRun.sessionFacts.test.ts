@@ -15,6 +15,7 @@ import {
   reviewed,
   spec,
   specRun,
+  startTime,
   type StepScript,
   temp,
   ticketFacts,
@@ -95,7 +96,11 @@ describe("a landed ticket's session facts", () => {
     const result = await specRun(runSteps(), { configFolder }).run(spec);
 
     expect(result.kind).toBe("finished");
-    const recorded = { account: 1, configFolder };
+    const recorded = {
+      startedAt: startTime.toISOString(),
+      account: 1,
+      configFolder,
+    };
     expect(ticketFacts().sessions).toEqual({
       steps: [
         { agent: "implement", sessionId: "implement-session", ...recorded },

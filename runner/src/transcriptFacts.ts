@@ -16,6 +16,8 @@ export type StepAgent = "implement" | "research" | "review" | "resolve";
 export interface StepSession {
   agent: StepAgent;
   sessionId: string;
+  // The ISO time its step launched; none on a session recorded before #759.
+  startedAt?: string;
 }
 
 // With the account it ran as and the config folder its transcript is under.
@@ -129,7 +131,19 @@ interface SessionEntries {
 
 type CostSide = "implementer" | "review";
 
-type ResumePromptIndexes = Map<string, number>;
+// Where a session the review resumed splits: at the first review step's recorded start, or without one at the
+// prompt of its first review-side launch.
+interface ReviewResume {
+  promptIndex: number;
+  reviewStartedAt: number | undefined;
+}
+
+type ReviewResumes = Map<string, ReviewResume>;
+
+interface ReviewCut {
+  index: number;
+  time: number;
+}
 
 const syntheticModel = "<synthetic>";
 const taskNotificationKind = "task-notification";
@@ -160,7 +174,7 @@ export function transcriptFactsOf(
 ): OutcomeFacts {
   const projectDirs = projectDirsBySessionOf(sessions, handoffSessionIds);
   const ids = factIdsOf(sessions, handoffSessionIds);
-  const resumes = resumePromptIndexesOf(sessions);
+  const resumes = reviewResumesOf(sessions);
   const implementers = transcriptsOf(projectDirs, ids.pair);
   const accounts = unique(sessions.steps.map(({ account }) => String(account)));
   return {
@@ -239,22 +253,27 @@ function factIdsOf(
 }
 
 // A post-review `implement` resume that comes before resolve is a budget handoff, implementation work, so it stays in cost.
-function resumePromptIndexesOf(sessions: TicketSessions): ResumePromptIndexes {
+function reviewResumesOf(sessions: TicketSessions): ReviewResumes {
   const implementerIds = new Set(stepIdsOf(sessions, "implement"));
+  const firstReview = sessions.steps.find(({ agent }) => agent === "review");
+  const reviewStartedAt =
+    firstReview?.startedAt === undefined
+      ? undefined
+      : Date.parse(firstReview.startedAt);
   const launchCounts = new Map<string, number>();
-  const resumes: ResumePromptIndexes = new Map();
+  const resumes: ReviewResumes = new Map();
   let hasReviewRun = false;
   for (const { agent, sessionId } of sessions.steps) {
     const promptIndex = launchCounts.get(sessionId) ?? 0;
     launchCounts.set(sessionId, promptIndex + 1);
     if (agent === "review") hasReviewRun = true;
     if (
-      agent === "resolve" &&
+      (agent === "review" || agent === "resolve") &&
       hasReviewRun &&
       implementerIds.has(sessionId) &&
       !resumes.has(sessionId)
     ) {
-      resumes.set(sessionId, promptIndex);
+      resumes.set(sessionId, { promptIndex, reviewStartedAt });
     }
   }
   return resumes;
@@ -456,17 +475,18 @@ export function minutesOf(ms: number): number {
   return Math.round(ms / 60_000);
 }
 
-// A session a review's resolve step resumed splits at the resume; any other counts whole toward the side that reads it.
+// An implementer session the review or its resolve resumed splits at the review's cut; any other counts whole toward
+// the side that reads it.
 function sideCostUsdOf(
   transcripts: Transcript[],
-  { side, resumes }: { side: CostSide; resumes: ResumePromptIndexes },
+  { side, resumes }: { side: CostSide; resumes: ReviewResumes },
 ): number | undefined {
   return costUsdOf(
     transcripts.map((transcript) => {
-      const promptIndex = resumes.get(transcript.sessionId);
-      return promptIndex === undefined
+      const resume = resumes.get(transcript.sessionId);
+      return resume === undefined
         ? transcript
-        : resumeSplitOf(transcript, promptIndex)[side];
+        : resumeSplitOf(transcript, resume)[side];
     }),
   );
 }
@@ -474,26 +494,43 @@ function sideCostUsdOf(
 // A subagent goes to the side its first timed entry falls on.
 function resumeSplitOf(
   { entries, subagents }: Transcript,
-  promptIndex: number,
+  resume: ReviewResume,
 ): Record<CostSide, SessionEntries> {
-  const prompt = entries.filter(isPrompt)[promptIndex];
-  if (prompt === undefined) {
+  const cut = reviewCutOf(entries, resume);
+  if (cut === undefined) {
     return {
       implementer: { entries, subagents },
       review: { entries: [], subagents: [] },
     };
   }
-  const cut = entries.indexOf(prompt);
-  const resumedAt = timeOf(prompt) ?? Infinity;
   const split: Record<CostSide, SessionEntries> = {
-    implementer: { entries: entries.slice(0, cut), subagents: [] },
-    review: { entries: entries.slice(cut), subagents: [] },
+    implementer: { entries: entries.slice(0, cut.index), subagents: [] },
+    review: { entries: entries.slice(cut.index), subagents: [] },
   };
   for (const subagent of subagents) {
-    const side = startOf(subagent) < resumedAt ? "implementer" : "review";
+    const side = startOf(subagent) < cut.time ? "implementer" : "review";
     split[side].subagents.push(subagent);
   }
   return split;
+}
+
+// Undefined for a session recorded with no start whose transcript lacks the resumed launch's prompt.
+function reviewCutOf(
+  entries: TranscriptEntry[],
+  { promptIndex, reviewStartedAt }: ReviewResume,
+): ReviewCut | undefined {
+  if (reviewStartedAt !== undefined) {
+    const index = entries.findIndex(
+      (entry) => (timeOf(entry) ?? -Infinity) >= reviewStartedAt,
+    );
+    return {
+      index: index === -1 ? entries.length : index,
+      time: reviewStartedAt,
+    };
+  }
+  const prompt = entries.filter(isPrompt)[promptIndex];
+  if (prompt === undefined) return undefined;
+  return { index: entries.indexOf(prompt), time: timeOf(prompt) ?? Infinity };
 }
 
 // A subagent with no timed entry starts before any resume.
