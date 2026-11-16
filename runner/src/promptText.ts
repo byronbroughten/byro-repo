@@ -49,7 +49,17 @@ export function reviewFindingsText({
 }: ReviewFindingsWording): string {
   const [first, ...rest] = axes.map((axis) => `the ${axis} reviewer's`);
   const order = [`${first} findings`, ...rest].join(", then ");
-  return `\`findings\`, an empty list when the review finds nothing. List ${order}, each in its reviewer's order, never merged or reranked. Each finding has \`axis\` (${codeListOf(axes)}, its reviewer's), \`where\` (${where}), \`claim\` (${claim}), \`suggestedVerdict\` (${codeListOf(verdicts)}, as its reviewer suggested) and \`reason\` (the reviewer's reason for that verdict).`;
+  return `\`findings\`, an empty list when the review finds nothing. List ${order}, each in its reviewer's order, never merged or reranked. Carry every finding a reviewer reports, each as its reviewer worded it, even one you would dismiss: judging a finding is the resolve step's job, through its Dismiss. Each finding has \`axis\` (${codeListOf(axes)}, its reviewer's), \`where\` (${where}), \`claim\` (${claim}), \`suggestedVerdict\` (${codeListOf(verdicts)}, as its reviewer suggested) and \`reason\` (the reviewer's reason for that verdict).`;
+}
+
+// A run's review resumes the implementer, so it reviews its own work.
+export function implementerReviewLineOf(ticketKind = ""): string {
+  return `You implemented this ticket, and you now run its review step in an unattended run${ticketKind}: you orchestrate the review of your own work, briefing the reviewer subagents, who start fresh, and returning their findings. ${unattendedRunLine()}`;
+}
+
+// A session review is a fresh review session, the implementer being the live interactive session.
+export function sessionReviewLineOf(ticketKind = ""): string {
+  return `You are the review step of an unattended run${ticketKind}. ${unattendedRunLine()}`;
 }
 
 // Every Workflow's gap check reads it first.

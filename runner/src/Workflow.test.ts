@@ -99,6 +99,7 @@ describe("sessionSchemaOf", () => {
 
   it.each([
     { workflow: code, step: "implement", record: blocked },
+    { workflow: code, step: "review", record: { findings: [] } },
     { workflow: code, step: "resolve", record: { records: [] } },
     { workflow: code, step: "redChecks", record: { summary: "Fixed lint." } },
     {
@@ -110,6 +111,11 @@ describe("sessionSchemaOf", () => {
       },
     },
     { workflow: piece, step: "implement", record: blocked },
+    {
+      workflow: piece,
+      step: "review",
+      record: { findings: [], dismissedOverlaps: [] },
+    },
     { workflow: piece, step: "resolve", record: { records: [] } },
     { workflow: piece, step: "redChecks", record: { summary: "Cut a line." } },
   ] as const)(
@@ -133,7 +139,7 @@ describe("sessionSchemaOf", () => {
     const schema = sessionSchemaOf(code);
 
     expect(schemaProblemsOf(schema, { records: [] })).not.toEqual([]);
-    expect(schemaProblemsOf(schema, { output: { findings: [] } })).not.toEqual(
+    expect(schemaProblemsOf(schema, { output: { verdicts: [] } })).not.toEqual(
       [],
     );
   });

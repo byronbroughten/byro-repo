@@ -1,0 +1,5 @@
+# The review step resumes the implementer
+
+A run's review step resumes the implementer's session, in the code and piece Workflows alike: the implementer calls the review skill, writes the reviewers' briefs and returns their findings, each as its reviewer worded it, leaving judging to resolve. The review's independence lives in its reviewers, which stay fresh subagents; the cold review session between them and the implementer was a middle-person, and the implementer is best placed to frame its own work for them. In #723's arm C, the warm review session cost $1.62 a ticket against the cold one's $1.87, and its finding lists were judged no worse. So don't bring back a cold review session to keep the review independent. After a handoff, a fresh session on the ticket's pair runs the review, as ADR 0028's successor carries on any step. An interactive session's review keeps its fresh review session, having no implementer session to resume.
+
+Source: byronbroughten/byro-repo#740, byronbroughten/byro-repo#723, byronbroughten/byro-repo#758

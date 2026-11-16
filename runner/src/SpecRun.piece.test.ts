@@ -301,14 +301,17 @@ describe("implement on a piece spec's drafting ticket", () => {
 });
 
 describe("review on a piece spec's drafting ticket", () => {
-  it("reviews the drafted ticket in a fresh session that reads /review-piece by its path, over the Agent draft and passages folder", async () => {
+  it("reviews the drafted ticket in the implementer's resumed session, under its schema, reading /review-piece by its path over the Agent draft and passages folder", async () => {
     addDraftingSpec();
     const agentStep = FakeAgentStep.init(drafted(), pieceReviewed());
 
     await specRun(agentStep).run(spec);
 
-    const review = agentStep.requests[1];
-    expect(review?.resumeSessionId).toBeUndefined();
+    const [implementer, review] = agentStep.requests;
+    expect(review?.resumeSessionId).toBe("session");
+    expect(review?.sessionSchema).toEqual(implementer?.sessionSchema);
+    expect(review?.prompt).toContain("your own work");
+    expect(review?.prompt).toContain("as its reviewer worded it");
     expect(review?.logPath).toMatch(/byro-repo-1-\d+-review\.jsonl$/);
     expect(review?.prompt).toContain(".claude/skills/review-piece/SKILL.md");
     expect(review?.prompt).toContain(draftPath);
@@ -350,8 +353,9 @@ describe("resolve on a piece spec's drafting ticket", () => {
 
     await specRun(agentStep).run(spec);
 
-    const resolver = agentStep.requests[2];
-    expect(resolver?.resumeSessionId).toBe("implement-session");
+    const [, review, resolver] = agentStep.requests;
+    expect(review?.resumeSessionId).toBe("implement-session");
+    expect(resolver?.resumeSessionId).toBe("session");
     expect(resolver?.prompt).toContain("`## Piece findings`");
     expect(resolver?.prompt).toContain(draftPath);
     expect(resolver?.prompt).toContain(passagesPath());

@@ -96,7 +96,7 @@ describe("run's active account", () => {
     ).toEqual([
       { account: 2, resumeSessionId: undefined },
       { account: 1, resumeSessionId: "crashed-session" },
-      { account: 1, resumeSessionId: undefined },
+      { account: 1, resumeSessionId: "session" },
     ]);
   });
 

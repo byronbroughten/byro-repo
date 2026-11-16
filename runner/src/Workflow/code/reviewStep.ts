@@ -1,9 +1,15 @@
-// The review step: the prompt that runs a fresh code review of a ticket's branch on both axes, the review record it returns,
-// and the check that it spawned its two reviewer subagents, with the resume that sends back one that didn't.
+// The review step: the prompt that runs a code review of a ticket's branch on both axes, by the implementer in a run or a
+// fresh review session for a session review, the review record it returns, and the check that it spawned its two reviewer
+// subagents, with the resume that sends back one that didn't.
 // codeWorkflow.ts supplies it, and SpecRun/ReviewStepper.ts launches it after the implement step; resolve reads its findings.
 
 import { stepReadLine } from "../../IssueReader.ts";
-import { reviewFindingsText, unattendedRunLine } from "../../promptText.ts";
+import {
+  implementerReviewLineOf,
+  reviewFindingsText,
+  sessionReturnOf,
+  sessionReviewLineOf,
+} from "../../promptText.ts";
 import { reviewRecordSchemaOf } from "../../recordSchema.ts";
 import type { Axis } from "../../verdicts.ts";
 import type { ReviewerCheck, ReviewPromptInput } from "../../Workflow.ts";
@@ -17,14 +23,15 @@ export function reviewPrompt({
   branch,
   branchedRepos,
   isInlineAllowed,
+  isSessionReview = false,
   pointsWorthChecking = [],
 }: ReviewPromptInput): string {
   return [
-    `You are the review step of an unattended run. ${unattendedRunLine()}`,
+    isSessionReview ? sessionReviewLineOf() : implementerReviewLineOf(),
     `Call the Skill tool with "${skillName}" to review ${issue.repo}#${issue.number}, "${title}", on both axes, with \`master\` as the fixed point. Your working directory is the ticket's issue workspace root; these repos are on the ticket's branch, \`${branch}\`: ${branchedRepos.join(", ")}. Review each one's changes. ${stepReadLine}`,
     ...(isInlineAllowed ? [inlineLine] : []),
     ...pointsSectionsOf(pointsWorthChecking),
-    `Change nothing: no edits, commits, comments or fixes. Return the review record: ${reviewFindingsText({ axes: codeAxes, where: "its file:line or area", claim: "what it says, in a line" })}`,
+    `Change nothing: no edits, commits, comments or fixes. ${sessionReturnOf(["findings"])}, the review record: ${reviewFindingsText({ axes: codeAxes, where: "its file:line or area", claim: "what it says, in a line" })}`,
   ].join("\n\n");
 }
 

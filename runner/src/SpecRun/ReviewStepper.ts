@@ -1,6 +1,7 @@
-// A ticket's review and resolve steps. Review records findings, resumed once when over the inline size it skipped its
-// reviewer subagents; the implementer resolves them, giving each a verdict and fixing the Fix ones, carried on by a fresh
-// session after a handoff; a record that breaks the rules gets one resumed retry, apart from the launcher's one schema
+// A ticket's review and resolve steps, both the implementer's. Review records findings, in the implementer's session or,
+// for a session review, a fresh review session, resumed once when over the inline size it skipped its reviewer subagents;
+// the implementer resolves them, giving each a verdict and fixing the Fix ones. A fresh session after a handoff carries
+// either step on; a resolve record that breaks the rules gets one resumed retry, apart from the launcher's one schema
 // resume, and a Halt verdict raises a Halt. Before review and resolve, an implementer past the ticket budget hands off.
 // Checks and landing call _runImplementerStep to run the implementer on red checks or a master merge.
 // It builds its own HaltRaiser, HandoffTaker and StepLauncher; each step's prompt, schema and checks are its spec's
@@ -40,7 +41,7 @@ import { SpecRunBase } from "./SpecRunBase.ts";
 import { StepLauncher } from "./StepLauncher.ts";
 
 // Names the launch in the progress log; red checks and merge-master run as the resolve agent too.
-type ImplementerStep = Exclude<BoundaryStep, "review">;
+type ImplementerStep = BoundaryStep;
 
 // A fresh session gets freshPrompt when the resume's own prompt leans on the lost conversation.
 interface ImplementerLaunch {
@@ -49,10 +50,16 @@ interface ImplementerLaunch {
   freshPrompt?: string;
 }
 
+interface ReviewLaunch extends Omit<ImplementerLaunch, "step"> {
+  isSessionReview: boolean;
+}
+
 interface ReviewerResume {
   ran: RanStep;
   reviewerCheck: ReviewerCheck;
-  jsonSchema: object;
+  // The review's own launch, whose prompt a fresh rerun of the resume takes.
+  launch: StepLaunch;
+  isSessionReview: boolean;
 }
 
 type ResolveOutcome =
@@ -102,21 +109,28 @@ export class ReviewStepper extends SpecRunBase {
     const { reviewerCheck, outputSchema: jsonSchema } = rules;
     const isInlineAllowed =
       reviewerCheck !== undefined && (await this._isInlineSize(ticketRun));
-    let ran = await this.stepLauncher._runStep(ticketRun, "review", {
+    const isSessionReview = run.sessionReview !== undefined;
+    const launch: StepLaunch = {
       prompt: rules.promptOf({
         ...ticketSteps.promptFieldsOf(ticketRun),
         skillName: rules.skillName,
         isInlineAllowed,
+        isSessionReview,
         pointsWorthChecking: pointsWorthCheckingOf(state.record),
       }),
       jsonSchema,
+    };
+    let ran = await this._runReviewSession(ticketRun, {
+      launch,
+      isSessionReview,
     });
     state.hasSkippedReviewers = undefined;
     if (reviewerCheck !== undefined && !isInlineAllowed) {
       ran = await this._sentBackForReviewers(ticketRun, {
         ran,
         reviewerCheck,
-        jsonSchema,
+        launch,
+        isSessionReview,
       });
     }
     const { record, logPath } = ticketSteps.launchedOf("review", ran);
@@ -129,10 +143,36 @@ export class ReviewStepper extends SpecRunBase {
     state.dismissedOverlaps = dismissedOverlaps;
   }
 
+  // A resume that finds no conversation runs fresh, a session review's as the implementer's does.
+  private async _runReviewSession(
+    ticketRun: TicketRun,
+    { launch, isSessionReview, freshPrompt }: ReviewLaunch,
+  ): Promise<RanStep> {
+    if (!isSessionReview) {
+      return this._runImplementerStep(ticketRun, {
+        step: "review",
+        launch,
+        freshPrompt,
+      });
+    }
+    // A session review has no implementer session to resume, so it runs in a fresh review session of its own.
+    const ran = await this.stepLauncher._runStep(ticketRun, "review", launch);
+    if (!ran.result.hasNoConversation) return ran;
+    this._log(
+      ticketRun.run,
+      `${issueRef.labelOf(ticketRun.ticket.issue)}: the review step's session ${launch.resumeSessionId} has no conversation; running it as a fresh session.`,
+    );
+    return this.stepLauncher._runStep(ticketRun, "review", {
+      ...launch,
+      prompt: freshPrompt ?? launch.prompt,
+      resumeSessionId: undefined,
+    });
+  }
+
   // A review that spawned fewer reviewers than its Workflow names is resumed once; a second skip is recorded for its review list.
   private async _sentBackForReviewers(
     ticketRun: TicketRun,
-    { ran, reviewerCheck, jsonSchema }: ReviewerResume,
+    { ran, reviewerCheck, launch, isSessionReview }: ReviewerResume,
   ): Promise<RanStep> {
     const { run, ticket, state } = ticketRun;
     const label = issueRef.labelOf(ticket.issue);
@@ -143,10 +183,14 @@ export class ReviewStepper extends SpecRunBase {
       run,
       `${label}: the review ${spawnedPhraseOf(spawned, count)}; resuming it to spawn them.`,
     );
-    const resumed = await this.stepLauncher._runStep(ticketRun, "review", {
-      prompt: resumePrompt,
-      jsonSchema,
-      resumeSessionId: ran.result.sessionId,
+    const resumed = await this._runReviewSession(ticketRun, {
+      launch: {
+        prompt: resumePrompt,
+        jsonSchema: launch.jsonSchema,
+        resumeSessionId: ran.result.sessionId,
+      },
+      isSessionReview,
+      freshPrompt: launch.prompt,
     });
     const total = spawned + resumed.result.spawnedSubagentCount;
     if (total < count) {
@@ -307,23 +351,24 @@ export class ReviewStepper extends SpecRunBase {
     const { run, ticket, state } = ticketRun;
     const sessionId = ticketSteps.implementerSessionOf(state);
     if (state.latestHandoff === undefined && sessionId !== undefined) {
-      const ran = await this._runImplementerSession(ticketRun, {
-        ...launch,
-        resumeSessionId: sessionId,
-      });
+      const ran = await this._runImplementerSession(
+        ticketRun,
+        { ...launch, resumeSessionId: sessionId },
+        step,
+      );
       if (!ran.result.hasNoConversation) return ran;
       this._log(
         run,
         `${issueRef.labelOf(ticket.issue)}: the ${step} step's session ${sessionId} has no conversation; running it as a fresh session.`,
       );
     }
-    return this._runFreshImplementer(ticketRun, { launch, freshPrompt });
+    return this._runFreshImplementer(ticketRun, { step, launch, freshPrompt });
   }
 
   // A pending handoff's section rides on the prompt, after the handoff cap's and a proposed split's Halts.
   private async _runFreshImplementer(
     ticketRun: TicketRun,
-    { launch, freshPrompt }: Omit<ImplementerLaunch, "step">,
+    { step, launch, freshPrompt }: ImplementerLaunch,
   ): Promise<RanStep> {
     const { state } = ticketRun;
     const handoff = state.latestHandoff;
@@ -334,18 +379,20 @@ export class ReviewStepper extends SpecRunBase {
     }
     // The session it replaces measured its own context, not this one's.
     state.implementPeak = undefined;
-    return this._runImplementerSession(ticketRun, {
-      ...launch,
-      prompt,
-      resumeSessionId: undefined,
-    });
+    return this._runImplementerSession(
+      ticketRun,
+      { ...launch, prompt, resumeSessionId: undefined },
+      step,
+    );
   }
 
   private async _runImplementerSession(
     ticketRun: TicketRun,
     launch: StepLaunch,
+    step: ImplementerStep,
   ): Promise<RanStep> {
-    const ran = await this.stepLauncher._runStep(ticketRun, "resolve", launch);
+    const agent = step === "review" ? "review" : "resolve";
+    const ran = await this.stepLauncher._runStep(ticketRun, agent, launch);
     noteImplementerResult(ticketRun.state, ran.result);
     return ran;
   }

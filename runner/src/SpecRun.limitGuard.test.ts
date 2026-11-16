@@ -143,7 +143,7 @@ describe("run's limit guard", () => {
     ).toEqual([
       { account: 1, resumeSessionId: undefined },
       { account: 2, resumeSessionId: "crashed-session" },
-      { account: 2, resumeSessionId: undefined },
+      { account: 2, resumeSessionId: "session" },
     ]);
     expect(noticeSummaries()).toContain(
       "Limit wait: account 1 is at 95% of its 5-hour limit; continuing after 2026-10-12 06:01:00 CDT. Switching to an account with headroom with cswap continues the run now.",
@@ -450,7 +450,7 @@ describe("run's limit guard", () => {
     ).toEqual([
       { account: 1, resumeSessionId: undefined },
       { account: 2, resumeSessionId: "session" },
-      { account: 2, resumeSessionId: undefined },
+      { account: 2, resumeSessionId: "session" },
     ]);
   });
 

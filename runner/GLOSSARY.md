@@ -41,7 +41,7 @@ The structured output an agent step returns, validated against the runner's sche
 _Avoid_: report, result, output
 
 **Points worth checking**:
-An optional list in a code ticket's committed implement record: each place the implementer suspects is weak, unfinished or easy to get wrong, a line naming its file or area. The review step's prompt hands it to the review, which pastes it into both reviewers' briefs as things to check, not findings; with no list, or in an interactive session's review, the prompt says nothing of it. After a handoff, the list is the one in the record that ends the implement step.
+An optional list in a code ticket's committed implement record: each place the implementer suspects is weak, unfinished or easy to get wrong, a line naming its file or area. The review step's prompt hands it back to the implementer, resumed to orchestrate its own review, which pastes it into both reviewers' briefs as things to check, not findings; with no list, or in an interactive session's review, the prompt says nothing of it. After a handoff, the list is the one in the record that ends the implement step.
 _Avoid_: hints, known issues, self-review
 
 **Handoff**:

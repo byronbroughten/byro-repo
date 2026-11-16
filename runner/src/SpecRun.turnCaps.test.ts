@@ -32,7 +32,7 @@ import type { ResolveRecord } from "./stepRecords.ts";
 useSpecRunHarness();
 
 describe("run's review and resolve turn caps", () => {
-  it("retries a review that hit its turn cap once, fresh", async () => {
+  it("retries a review that hit its turn cap once, by the same launch from the implementer's session", async () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(
       implemented("one.ts"),
@@ -45,7 +45,8 @@ describe("run's review and resolve turn caps", () => {
     expect(result.landed).toEqual([refOf(1)]);
     const [, first, retry] = agentStep.requests;
     expect(retry?.prompt).toBe(first?.prompt);
-    expect(retry?.resumeSessionId).toBeUndefined();
+    expect(retry?.resumeSessionId).toBe(first?.resumeSessionId);
+    expect(retry?.resumeSessionId).toBe("session");
     expect(progressLines().map(eventOf)).toContain(
       "byro-repo #1: The review step hit its 80-turn cap. Retrying, 1 of 1.",
     );

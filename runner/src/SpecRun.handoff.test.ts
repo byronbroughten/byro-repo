@@ -356,14 +356,14 @@ const fixRecords: ResolveRecord[] = [
 ];
 
 describe("run's handoffs after implement", () => {
-  it("hands off before the review once the implementer's peak reaches the ticket budget, and a fresh session on the ticket's pair resolves", async () => {
+  it("hands off before the review once the implementer's peak reaches the ticket budget, and a fresh session on the ticket's pair reviews with the handoff, then resolves in its own session", async () => {
     addSpec([1]);
     github.edit(1, { body: bodyWith("Sonnet high") });
     let isWorkKept = false;
     const agentStep = FakeAgentStep.init(
       implementedAt(160_000),
       handedOff,
-      reviewed(findings),
+      { ...reviewed(findings), sessionId: "fresh-review-session" },
       resolvingWithWork((isKept) => {
         isWorkKept = isKept;
       }),
@@ -373,13 +373,18 @@ describe("run's handoffs after implement", () => {
 
     expect(result.landed).toEqual([refOf(1)]);
     expect(isWorkKept).toBe(true);
-    const [implementer, budgetResume, , fresh] = agentStep.requests;
+    const [implementer, budgetResume, review, resolver] = agentStep.requests;
     expect(budgetResume?.resumeSessionId).toBe("implement-session");
     expect(budgetResume?.prompt).toBe(budgetHandoffPrompt);
-    expect(fresh?.resumeSessionId).toBeUndefined();
-    expect(fresh?.pair).toEqual(implementer?.pair);
-    expect(fresh?.prompt).toContain("You are the resolve step");
-    expect(fresh?.prompt).toContain("Conclusion: The parser is half done.");
+    expect(review?.resumeSessionId).toBeUndefined();
+    expect(review?.pair).toEqual(implementer?.pair);
+    expect(review?.prompt).toContain("your own work");
+    expect(review?.prompt).toContain("Conclusion: The parser is half done.");
+    expect(resolver?.resumeSessionId).toBe("fresh-review-session");
+    expect(resolver?.prompt).toContain("You are the resolve step");
+    expect(resolver?.prompt).not.toContain(
+      "Conclusion: The parser is half done.",
+    );
     expect(handoffComments()[0]).toContain(
       "The implementer handed this ticket to a fresh session before the review step.",
     );
@@ -409,7 +414,8 @@ describe("run's handoffs after implement", () => {
 
     expect(result.landed).toEqual([refOf(1)]);
     const [budgetResume, fresh] = rerunStep.requests;
-    expect(budgetResume?.resumeSessionId).toBe("implement-session");
+    // The review resumed the implementer, so the handoff resumes the session the review left.
+    expect(budgetResume?.resumeSessionId).toBe("session");
     expect(budgetResume?.prompt).toBe(budgetHandoffPrompt);
     expect(fresh?.resumeSessionId).toBeUndefined();
     expect(fresh?.prompt).toContain("Conclusion: The parser is half done.");
