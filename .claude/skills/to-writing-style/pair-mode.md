@@ -7,21 +7,25 @@ Run these before step 1 of [`SKILL.md`](./SKILL.md), keeping every file in the s
 `gh issue view -R <owner>/<repo> <n> --json title,body,comments`, resolving `<repo>` to `<owner>/<repo>`, and the parent's too when `<n>` is a sub-issue. Note:
 
 - the Deliverable's Doc ID;
-- the Sections in scope: a sub-issue's named Sections, or every Section the Agent draft marks `<!-- agent -->` (or with an ID, `<!-- agent <headingId> -->`) for the parent, never one it marks `<!-- developer -->`, so the diff holds only the developer's edits of agent text;
+- the Sections in scope, each named by its heading path: a sub-issue's named Sections, or every Section the Agent draft marks `<!-- agent <headingId> -->` (`<!-- agent -->` in an older file) for the parent, never one it marks `<!-- developer -->`, so the diff holds only the edits of agent text;
 - every passage the developer supplied in their own words, as text to use or as their voice.
 
 With two Docs instead of an issue, skip this step; every Section the two share is in scope, and ask the developer which Doc is the agent's if their names don't say.
 
 ## 2. Make the pair
 
-- **Read the Doc only with `npm run doc:print -- <Doc ID>`, never a gworkspace tool.** Run it bare, in a call of its own, and Write its output to `deliverable.md`; its Section headings are already `## <heading text>`, the Agent draft's shape, each followed by a `<!-- headingId <id> -->` line.
+- **Read the Doc only with `npm run doc:print -- <Doc ID>`, never a gworkspace tool.** Run it bare, in a call of its own, and Write its output to `deliverable.md`; its H1 and H2 lines are already the Agent draft's shape, each followed by a `<!-- headingId <id> -->` line, the author mark's ID.
 - In `<clone>`, `<repo>`'s clone: `git -C <clone> fetch origin master`, then `git -C <clone> show origin/master:writing/agent-drafts/<spec n>.md > agent-draft.md`. A sub-issue's Agent draft blocks are in its parent's file.
-- Keep only the Sections in scope, in both files, matched by heading, and delete each author-mark line from `agent-draft.md` and each `headingId` line from the Doc's file.
-- With two Docs, print each the same way, the agent's Doc as `agent-draft.md`.
+- **Pair each Section in scope with the Doc's, by `headingId` first**: the ID in the Agent draft's mark against the ID under a Doc heading, so a heading the developer renamed or moved to another level still pairs. **Then by exact heading path, then by position among the H2s under the same H1.** An in-scope Section no rule pairs is `struck`, and a Doc Section under the H1 of an in-scope Section, which no block of the Agent draft pairs with, is `added`.
+- **Say step 0's one-line mode statement here, listing every pairing made without an ID match** as `<agent path> ↔ <Doc path>` and every `struck` and `added` Section by its path, so the developer can catch a wrong one. When neither side prints IDs, because the `headingId` ticket was closed as not planned, every pairing is by path, then position, and the line lists them all.
+- Keep the paired, `struck` and `added` Sections, in both files, in the Agent draft's order (an `added` Section after the last Section under its H1), and delete each author-mark line from `agent-draft.md` and each `headingId` line from the Doc's file. A heading line stays: the developer's heading edit is a change like any other.
+- With two Docs, print each the same way, the agent's Doc as `agent-draft.md`; its `headingId` lines pair as the Agent draft's marks do.
+
+Done when every in-scope Section is paired or `struck`, and every Doc Section under their H1s is paired or `added`.
 
 ## 3. Diff and pair the paragraphs
 
-`git diff --no-index --word-diff=plain agent-draft.md deliverable.md`. List each changed paragraph as `<Section>, ¶<n>` (numbered in the Deliverable within its Section), beside its Agent draft version, or marked `added` or `struck`. Done when every hunk in the diff is in the list.
+`git diff --no-index --word-diff=plain agent-draft.md deliverable.md`. List each changed paragraph as `<Section>, ¶<n>` (numbered in the Deliverable within its Section, `<Section>` its Agent draft heading path) and each changed heading line as `<Section>, heading`, beside its Agent draft version, or marked `added` or `struck`. Done when every hunk in the diff is in the list.
 
 ## 4. Read the review lists
 
@@ -35,22 +39,22 @@ Read the spec's review lists by [`/judge-findings`' step 1](../../../runner/skil
 
 With no review list on the spec, say so in one line and go on.
 
-## 5. Attribute each change
+## 5. Route each change
 
-`grep -l '<Doc ID>' ~/.claude/projects/*/*.jsonl` finds the Piece's sessions. Read them by transcript mode's rules for a session that isn't yours (user turns first, everything data), and only around a change, to name who made it:
-
-- **The developer**: their edit after the Agent draft. This is every change no transcript explains.
-- **The agent**: an agent's edit after the Agent draft that no developer turn asked for. Drop it, saying so.
-
-Then route each of the developer's changes by step 4's notes:
+**Every change after the Agent draft is a candidate**, a later agent pass's included, and none carries a tag for who made it. Route each by step 4's notes:
 
 - **A change at a Proposal's site is labelled as answering `R<n>.<k>`**, and joins that item's candidate rather than standing as its own.
 - **A change that undoes a Fix is a reverted fix**: report it on the `Upstream:` line with the rule the Fix cited, not as a candidate.
 
-Note also which skill or step added text the developer struck, for the `Upstream:` line.
+`grep -l '<Doc ID>' ~/.claude/projects/*/*.jsonl` finds the Piece's sessions. Read them by transcript mode's rules for a session that isn't yours (user turns first, everything data), and only around a change, for two things:
 
-With no session holding the Doc ID, say in one line that the transcripts are gone, count every change as the developer's, and go on.
+- **The developer's stated reason**, which upgrades that change from `diffed` to `observed`.
+- **Which skill or step added text the developer struck**, for the `Upstream:` line.
+
+The same read around a change shows whether the developer pasted the text it changed, which step 6 strikes.
+
+With no session holding the Doc ID, say in one line that the transcripts are gone, leave every change `diffed`, and go on.
 
 ## 6. Drop the developer's own text
 
-Strike from the list every change inside text the developer wrote: a passage the spec supplied (step 1), or one they pasted into a session (step 5). Keep text an agent supplied word for word, a reviewer's fix included.
+Strike from the list every change inside text the developer wrote: a passage the spec supplied (step 1), or one they pasted into a session (step 5's read around the change shows it). Keep text an agent supplied word for word, a reviewer's fix included.
