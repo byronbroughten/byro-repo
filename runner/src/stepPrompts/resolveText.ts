@@ -1,4 +1,4 @@
-// The resolve text every Workflow's resolve prompt shares, and the implement body and /implement-code skill reuse (resolveRules, resolveRecordFields).
+// The resolve text every Workflow's resolve prompt shares, and the implement body and /implement-code skill reuse (resolveRules, resolveBody.batching, resolveRecordFields).
 
 import { codeListOf, sessionReturnOf } from "../promptText.ts";
 import { numberedFindingsOf } from "../resolveRecords.ts";
@@ -26,6 +26,8 @@ export const resolveBody = {
   findingsOf({ issue, title }: Pick<ResolvePromptInput, "issue" | "title">) {
     return `The review of ${issue.repo}#${issue.number}, "${title}", reported the findings below, each with its axis and its reviewer's suggested verdict. ${resolveRules}`;
   },
+  batching:
+    "Send the reads and greps you've already decided on together in one turn, and don't add a call to fill a batch.",
   commitNothing: "Commit nothing when no finding is a Fix.",
   revertedAs:
     "is reverted in a further commit and resolved, saying why, as a Propose `decision`, or for a `spec`-axis finding as a Halt scoped to the downstream tickets.",

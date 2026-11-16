@@ -56,6 +56,7 @@ function workingSection(): string {
     implementBody.testFirst,
     `${implementBody.checking} At the end, commit, then run \`npm run check\` once; it must pass before you return a \`committed\` record.`,
     implementBody.oneCommand,
+    implementBody.batching,
     stepWriteLine,
     commitMessageLine,
     "Never ask. When the ticket is ambiguous, a command needs a yes nobody gave, or a tool is denied, don't stall: record it as a blocker (`spec-ambiguity`, `gated-action` or `denied-tool`) with what happened and what you recommend the developer do. Carry on with the reading the ticket best supports when the work can go on without it; otherwise stop with status `blocked`.",

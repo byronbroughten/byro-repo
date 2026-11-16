@@ -20,6 +20,7 @@ ${resolveBody.findingsOf(input)} Your working directory is the ticket's issue wo
 ## How you work
 
 - ${implementBody.oneCommand}
+- ${resolveBody.batching}
 - ${stepWriteLine}
 - ${commitMessageLine}
 - Fixes go on the ticket's branch, separate from the implement commit. ${resolveBody.commitNothing}

@@ -71,6 +71,12 @@ describe("resolvePrompt", () => {
     );
   });
 
+  it("sends the calls it has already decided on together", () => {
+    expect(prompt).toContain(
+      "- Send the reads and greps you've already decided on together in one turn, and don't add a call to fill a batch.",
+    );
+  });
+
   it("keeps a closing keyword away from an issue reference in a commit message", () => {
     expect(prompt).toContain(
       "- In a commit message, never put a closing keyword (`close`, `fix`, `resolve` or one of their forms) before an issue reference: GitHub would close the issue once the commit reaches master. Write `review of #512` or `for #512` instead.",

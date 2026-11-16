@@ -60,6 +60,8 @@ Each smell reads *what it is* → *how to fix*; match it against the diff:
 
 Call the Agent tool twice in one message, each with `subagent_type: "general-purpose"`, one per axis, in the foreground, and aggregate the reports they return.
 
+Each brief tells its reviewer to send its opening calls together, in its first turn, and to add no call just to fill a batch: the Spec reviewer's `issue:read` beside `git diff --stat`, and the Standards reviewer's diff calls together.
+
 Both briefs end with the same verdict line: "Give each finding a suggested verdict and its reason under `docs/agents/verdicts.md`: Fix, Dismiss with its reason, Propose `decision` or `ticket`, or Halt."
 
 **Standards sub-agent prompt** should include:

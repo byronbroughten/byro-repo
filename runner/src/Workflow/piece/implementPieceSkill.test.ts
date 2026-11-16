@@ -48,6 +48,7 @@ describe("implementPieceSkillOf", () => {
       "Read `docs/writing-voice.md` and `docs/writing-craft.md` in full before your first prose edit.",
       "Read the spec's Supporting Material only through the Drive read tools you were given, by the file IDs the spec lists.",
       "Review, resolve and any fresh step after a handoff read the same files",
+      "- Send the reads and greps you've already decided on together in one turn, and don't add a call to fill a batch.",
     ];
     shared.forEach((line) => {
       expect(skill).toContain(line);
