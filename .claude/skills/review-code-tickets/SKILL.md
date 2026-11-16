@@ -1,18 +1,18 @@
 ---
 name: review-code-tickets
-description: "Find a code spec's Halt risks before a run: a reader that never wrote the tickets checks every one against the spec, the step permissions and the order, and reports each risk with quoted evidence and a fix or a spec-gap question. Takes /project-tickets' or /code-tickets' drafts or a spec's published sub-issues, as /review-code-tickets <repo> <n>."
+description: "Find a code spec's Halt risks before a run: a reader that never wrote the tickets checks every one against the spec, the step permissions and the order, and reports each risk with quoted evidence and a fix or a spec-gap question. Takes /project-tickets' drafts or a spec's published sub-issues, as /review-code-tickets <repo> <n>."
 disable-model-invocation: true
 ---
 
 Finds the **Halt risks** ([`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md)) in a code spec's tickets before the runner meets them. The reviewer never wrote the tickets, so a ticket its writer reads as clear still gets read **cold**, the way an implement step reads it: this session when it wrote none of them, else a fresh sub-agent on the session's model.
 
-The review reports and never edits. Inside [`/project-tickets`](../project-tickets/SKILL.md), the source of its drafts, or `/code-tickets` until #757 removes it, the writer acts on the report by its own step; run standalone, this skill acts on it by step 4.
+The review reports and never edits. Inside [`/project-tickets`](../project-tickets/SKILL.md), the source of its drafts, the writer acts on the report by its own step; run standalone, this skill acts on it by step 4.
 
 ## 1. Pin the input
 
 The input is one of:
 
-- **Drafts**: the scratchpad folder of ticket files `/project-tickets` hands over, one per ticket in [`issue:file`'s draft format](../../../docs/agents/issue-tracker.md#file-tickets-from-drafts), its `blockers` the edges, with the spec's repo and number and each draft's estimate breakdown; or `/code-tickets`' folder, one per ticket in its local-ticket template.
+- **Drafts**: the scratchpad folder of ticket files `/project-tickets` hands over, one per ticket in [`issue:file`'s draft format](../../../docs/agents/issue-tracker.md#file-tickets-from-drafts), its `blockers` the edges, with the spec's repo and number and each draft's estimate breakdown.
 - **A published spec**: `/review-code-tickets <repo> <n>`. Read the spec with `npm run issue:read -- <repo> <n> --body --comments`, which also lists its sub-issues; read each sub-issue with `npm run issue:read -- <its repo> <m> --body --comments`. Read the edges, and what has landed or started, from `npm run runner -- status <owner/repo> <n>`: its `Landed`, `Current` and `Waiting` lines.
 
 A ticket that has landed or is current is **report-only**: its risks are reported, and no fix is offered for it.
@@ -24,7 +24,7 @@ Done when the spec body, every ticket body and every blocking edge are in hand, 
 One reviewer takes up to 10 tickets. Past 10, split them into parts of up to 10, in ticket order, one reviewer per part.
 
 - **This session reviews** when it wrote none of the tickets and there are 10 or fewer. Follow the brief below as your own, from what step 1 gathered.
-- **Fresh sub-agents review** otherwise, one per part, and when this session wrote the tickets, as it always has inside `/project-tickets` and `/code-tickets`. Each runs on the session's model with no `model` override, in the foreground. Each prompt gives the spec body, the ticket bodies, the edges, any estimate breakdowns and the brief below, and nothing of how the tickets were written.
+- **Fresh sub-agents review** otherwise, one per part, and when this session wrote the tickets, as it always has inside `/project-tickets`. Each runs on the session's model with no `model` override, in the foreground. Each prompt gives the spec body, the ticket bodies, the edges, any estimate breakdowns and the brief below, and nothing of how the tickets were written.
 - **The order pass runs past 10 tickets**, when no reviewer saw them all. Each part also returns, for each ticket, the files it changes and any gate or tier row it adds; then the order causes (4 and 9) are checked alone, from those lists, every title and every edge, by this session when it wrote none of the tickets, else by one more fresh sub-agent.
 
 Before step 3, check each finding against the evidence it quotes, and correct or drop, saying so, any that doesn't hold.
