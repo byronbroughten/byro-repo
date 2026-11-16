@@ -23,9 +23,11 @@ import {
   type ReviewRecord,
 } from "../stepRecords.ts";
 import {
+  type RepoCommits,
   type ResolvePromptInput,
   type ResolveRules,
   type ReviewerCheck,
+  type ReviewPromptInput,
 } from "../Workflow.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import { type BoundaryStep, HandoffTaker } from "./HandoffTaker.ts";
@@ -89,6 +91,11 @@ interface SkippedReviewers {
   count: number;
 }
 
+// The branched repos' change from master, the review's fixed point.
+interface BranchDiff extends Pick<ReviewPromptInput, "commitsSinceMaster"> {
+  fileCount: number;
+}
+
 interface KeptRecords {
   // The heads the resolve started on.
   base: Heads;
@@ -114,12 +121,11 @@ export class ReviewStepper extends SpecRunBase {
     const { run, state } = ticketRun;
     const rules = this._agentStepOf(run.spec, "review");
     const { reviewerCheck, outputSchema: jsonSchema } = rules;
-    const isInlineAllowed = await this._isInlineAllowed(ticketRun);
+    const input = await this._reviewPromptInputOf(ticketRun);
+    const { isInlineAllowed } = input;
     const launch: StepLaunch = {
       prompt: rules.promptOf({
-        ...ticketSteps.promptFieldsOf(ticketRun),
-        skillName: rules.skillName,
-        isInlineAllowed,
+        ...input,
         pointsWorthChecking: pointsWorthCheckingOf(state.record),
       }),
       jsonSchema,
@@ -214,22 +220,51 @@ export class ReviewStepper extends SpecRunBase {
     );
   }
 
+  // The prompt input a run's review and an interactive session's brief alike add to the ticket's fields.
+  async _reviewPromptInputOf(ticketRun: TicketRun): Promise<ReviewPromptInput> {
+    const rules = this._agentStepOf(ticketRun.run.spec, "review");
+    const { fileCount, commitsSinceMaster } =
+      await this._branchDiffOf(ticketRun);
+    return {
+      ...ticketSteps.promptFieldsOf(ticketRun),
+      skillName: rules.skillName,
+      isInlineAllowed:
+        this._isInlineOffered(ticketRun) && this._isInlineSize(fileCount),
+      commitsSinceMaster,
+    };
+  }
+
   // Whether the review may skip its reviewer subagents, for a run's review and an interactive session's alike.
   async _isInlineAllowed(ticketRun: TicketRun): Promise<boolean> {
-    const { reviewerCheck } = this._agentStepOf(ticketRun.run.spec, "review");
-    if (reviewerCheck?.offerInline !== true) return false;
-    return this._isInlineSize(ticketRun);
+    if (!this._isInlineOffered(ticketRun)) return false;
+    const { fileCount } = await this._branchDiffOf(ticketRun);
+    return this._isInlineSize(fileCount);
+  }
+
+  private _isInlineOffered({ run }: TicketRun): boolean {
+    const { reviewerCheck } = this._agentStepOf(run.spec, "review");
+    return reviewerCheck?.offerInline === true;
+  }
+
+  private _isInlineSize(fileCount: number): boolean {
+    return fileCount <= this.config.knobs.inlineReviewMaxFiles;
   }
 
   // Counted from master, the review's own fixed point, so a session with no implement base counts the same files.
-  private async _isInlineSize(ticketRun: TicketRun): Promise<boolean> {
-    let count = 0;
+  // A master that doesn't resolve fails the diff here, before the review launches.
+  private async _branchDiffOf(ticketRun: TicketRun): Promise<BranchDiff> {
+    let fileCount = 0;
+    const repoCommits: RepoCommits[] = [];
     for (const repo of ticketSteps.branchedReposOf(ticketRun)) {
       const worktree = this._cloneIn(ticketRun.workspace, repo);
       const files = await git(worktree, "diff", "--name-only", "master...HEAD");
-      count += lines(files).length;
+      const commits = await git(worktree, "log", "--oneline", "master..HEAD");
+      fileCount += lines(files).length;
+      repoCommits.push({ repo, commits: lines(commits) });
     }
-    return count <= this.config.knobs.inlineReviewMaxFiles;
+    // Unset when no branched repo has a diff, so the review skill's own fixed-point step reports the empty diff.
+    const commitsSinceMaster = fileCount === 0 ? undefined : repoCommits;
+    return { fileCount, commitsSinceMaster };
   }
 
   // A turn cap is a crash, its work reset away; a crossed live ceiling hands off, its work kept for the fresh session.

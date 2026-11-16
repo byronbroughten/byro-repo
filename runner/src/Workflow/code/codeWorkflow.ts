@@ -2,6 +2,9 @@
 // rules from its own module.
 // A repo's runner config builds it with its checks and review skill, and ../../Workflow.ts registers it; ../../SpecRun/TicketSequencer.ts walks it and runs each Step.
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { gapCheckOutputSchema, gapCheckRecordOf } from "../../recordSchema.ts";
 import { resolveRecordProblems, resolveRulesOf } from "../../resolveRecords.ts";
 import type { Command } from "../../runKnobs.ts";
@@ -15,6 +18,7 @@ import {
 } from "../../stepRecords.ts";
 import type {
   AgentSteps,
+  ReviewPromptInput,
   SpecEnd,
   Workflow,
   WorkflowStep,
@@ -102,16 +106,30 @@ const specEnd: SpecEnd = {
   },
 };
 
-// A repo's own values: the checks each ticket runs after review, and the skill its review step calls.
+// A repo's own values: the checks each ticket runs after review, and the skill whose SKILL.md its review prompt carries.
 export interface CodeWorkflowInput {
   checks: Command[];
   reviewSkillName: string;
+  // Reads a file by its absolute path; tests pass a fake, so no SKILL.md need be in a fixture's workspace.
+  readText?: (path: string) => string;
 }
 
 export function codeWorkflowOf({
   checks,
   reviewSkillName,
+  readText = readUtf8,
 }: CodeWorkflowInput): Workflow {
+  // The ticket's issue workspace's copy, the one the review would otherwise load itself.
+  function reviewPromptOf(input: ReviewPromptInput): string {
+    const skillPath = join(
+      input.workspacePath,
+      ".claude/skills",
+      reviewSkillName,
+      "SKILL.md",
+    );
+    return reviewPrompt({ ...input, skillText: readText(skillPath) });
+  }
+
   return {
     name: "code",
     // Every code ticket runs the same Steps, whatever its labels.
@@ -128,7 +146,7 @@ export function codeWorkflowOf({
     agentSteps: {
       ...agentSteps,
       review: {
-        promptOf: reviewPrompt,
+        promptOf: reviewPromptOf,
         outputSchema: reviewRecordSchema,
         skillName: reviewSkillName,
         reviewerCheck: reviewerCheckOf(reviewSkillName),
@@ -151,6 +169,10 @@ export function codeReviewCaughtOf(
     kept.map(({ claim, where }) => `${claim} (${where})`),
   );
   return caught === undefined ? undefined : `${caught}.`;
+}
+
+function readUtf8(path: string): string {
+  return readFileSync(path, "utf8");
 }
 
 // A ticket halted before review has nothing reviewed yet; one with no code has nothing to review.

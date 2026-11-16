@@ -238,13 +238,21 @@ export interface ReviewPromptInput extends TicketPromptFields {
   sessionSubmit?: SessionSubmit;
   // The committed implement record's, absent for an interactive session, which has none.
   pointsWorthChecking?: string[];
+  // Each branched repo's, in order; unset when none has a diff from master, so the review skill's own first step finds it empty.
+  commitsSinceMaster?: RepoCommits[];
+}
+
+// One branched repo's `git log master..HEAD --oneline` lines.
+export interface RepoCommits {
+  repo: string;
+  commits: string[];
 }
 
 export interface ReviewRules {
   promptOf(input: ReviewPromptInput): string;
   // The core checks the step's record against it too, since only the real adapter does.
   outputSchema: object;
-  // The skill the review step follows, through the Skill tool or, for a user-invoked skill, read by its path.
+  // The skill the review step follows: its SKILL.md body inlined in the prompt or, for a user-invoked skill, read by its path.
   skillName: string;
   // Set for a skill that spawns reviewer subagents; unset, the review is never checked for them.
   reviewerCheck?: ReviewerCheck;

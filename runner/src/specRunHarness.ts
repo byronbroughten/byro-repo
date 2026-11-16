@@ -231,10 +231,18 @@ export function stateFolder(): string {
 // The repo's own sheets, which the piece review cell reads rule names from.
 const rulesRoot = fileURLToPath(new URL("../../", import.meta.url));
 
+// What the code Workflow's review reads as the workspace's `code-review` SKILL.md, which no fixture workspace holds.
+const reviewSkillText =
+  "---\nname: code-review\n---\n\nTwo-axis review. Read [the verdicts](../../../docs/agents/verdicts.md).\n";
+
 // The code Workflow with a test's own checks, beside the piece Workflow.
 export function workflowsWith(checks: Command[]): Workflows {
   return {
-    code: codeWorkflowOf({ checks, reviewSkillName: "code-review" }),
+    code: codeWorkflowOf({
+      checks,
+      reviewSkillName: "code-review",
+      readText: readSkillFixture,
+    }),
     piece: pieceWorkflowOf({
       overlapCommand: reportsSlippedOut,
       verifyQuotesCommand: redOnMisquote,
@@ -242,6 +250,13 @@ export function workflowsWith(checks: Command[]): Workflows {
       rulesRoot,
     }),
   };
+}
+
+function readSkillFixture(path: string): string {
+  if (!path.endsWith("/.claude/skills/code-review/SKILL.md")) {
+    throw new Error(`No fixture for ${path}`);
+  }
+  return reviewSkillText;
 }
 
 // A config override, plus the members an idle run's first poll requests a stop on.

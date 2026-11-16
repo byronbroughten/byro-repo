@@ -1,22 +1,87 @@
 import { Ajv } from "ajv";
 import { describe, expect, it } from "vitest";
 
-import type { ReviewPromptInput } from "../../Workflow.ts";
-import { reviewPrompt, reviewRecordSchema } from "./reviewStep.ts";
+import {
+  type CodeReviewPromptInput,
+  reviewPrompt,
+  reviewRecordSchema,
+} from "./reviewStep.ts";
+
+const skillText = `---
+name: code-review
+description: "Review the changes since a fixed point."
+---
+
+Two-axis review of the diff.
+
+### 1. Pin the fixed point
+
+The prose rules file, [\`docs/prose-style.md\`](../../../docs/prose-style.md), and [its agents](./agents/standards.md#brief), [a site](https://example.com/a.md) and [a heading](#process) stay.
+`;
 
 describe("reviewPrompt", () => {
-  const input: ReviewPromptInput = {
+  const input: CodeReviewPromptInput = {
     issue: { repo: "byro-repo", number: 269 },
     spec: { repo: "byro-repo", number: 268 },
     title: "Runner steps read issues only through the reader",
     labels: ["ready-for-agent"],
     skillName: "code-review",
+    skillText,
     branch: "issue-269-reader-only-issues",
-    branchedRepos: ["byro-repo"],
+    branchedRepos: ["byro-repo", "framework"],
     workspacePath: "/workspaces/byro-repo-issue-269",
     isInlineAllowed: false,
   };
   const briefLine = "paste it into both reviewers' briefs";
+  const fixedPointLine =
+    "The fixed point is `master`: it resolves and the diff is non-empty, so the skill's step 1 is done.";
+
+  it("carries the skill's body without its frontmatter, never sending the agent to the Skill tool or the skill's path", () => {
+    const prompt = reviewPrompt(input);
+
+    expect(prompt).toContain(
+      '<skill name="code-review">\nTwo-axis review of the diff.\n\n### 1. Pin the fixed point',
+    );
+    expect(prompt).not.toContain("description:");
+    expect(prompt).not.toContain("Skill tool");
+    expect(prompt).not.toContain("SKILL.md");
+  });
+
+  it("rewrites each relative link in the skill to its path from the repo root, leaving URLs and anchors", () => {
+    const prompt = reviewPrompt(input);
+
+    expect(prompt).toContain("[`docs/prose-style.md`](docs/prose-style.md)");
+    expect(prompt).toContain(
+      "[its agents](.claude/skills/code-review/agents/standards.md#brief)",
+    );
+    expect(prompt).toContain("[a site](https://example.com/a.md)");
+    expect(prompt).toContain("[a heading](#process)");
+  });
+
+  it("pins `master` as the fixed point and lists each branched repo's commits since it", () => {
+    const prompt = reviewPrompt({
+      ...input,
+      commitsSinceMaster: [
+        {
+          repo: "byro-repo",
+          commits: ["abc1234 Add one.ts", "def5678 Fix it"],
+        },
+        { repo: "framework", commits: [] },
+      ],
+    });
+
+    expect(prompt).toContain(
+      `${fixedPointLine} Each repo's diff is \`git diff master...HEAD\` in its clone; its commits since \`master\`:\n\n- \`byro-repo\`:\n  - abc1234 Add one.ts\n  - def5678 Fix it\n- \`framework\`: none`,
+    );
+  });
+
+  it("leaves the fixed point to the skill's step 1 when no branched repo has a diff", () => {
+    const prompt = reviewPrompt(input);
+
+    expect(prompt).not.toContain("it resolves and the diff is non-empty");
+    expect(prompt).not.toContain("commits since `master`");
+    expect(prompt).toContain("with `master` as the fixed point");
+  });
 
   it("names the issue reader for the spec read", () => {
     expect(reviewPrompt(input)).toContain(
