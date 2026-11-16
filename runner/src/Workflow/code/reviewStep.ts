@@ -6,12 +6,9 @@
 
 import { stepReadLine } from "../../IssueReader.ts";
 import {
-  implementerReviewLineOf,
   reviewerResumePromptOf,
   reviewFindingsText,
-  reviewReturnOf,
-  sessionPointsLine,
-  sessionReviewLineOf,
+  reviewFramingOf,
 } from "../../promptText.ts";
 import { reviewRecordSchemaOf } from "../../recordSchema.ts";
 import type { Axis } from "../../verdicts.ts";
@@ -29,20 +26,17 @@ export function reviewPrompt({
   sessionSubmit,
   pointsWorthChecking = [],
 }: ReviewPromptInput): string {
+  const framing = reviewFramingOf(sessionSubmit);
   return [
-    sessionSubmit === undefined
-      ? implementerReviewLineOf()
-      : sessionReviewLineOf(),
+    framing.opening,
     `Call the Skill tool with "${skillName}" to review ${issue.repo}#${issue.number}, "${title}", on both axes, with \`master\` as the fixed point. Your working directory is the ticket's issue workspace root; these repos are on the ticket's branch, \`${branch}\`: ${branchedRepos.join(", ")}. Review each one's changes. ${stepReadLine}`,
     ...(isInlineAllowed ? [inlineLine] : []),
-    ...(sessionSubmit === undefined
-      ? pointsSectionsOf(pointsWorthChecking)
-      : [sessionPointsLine]),
-    `${reviewReturnOf(["findings"], sessionSubmit)} ${reviewFindingsText({ axes: codeAxes, where: "its file:line or area", claim: "what it says, in a line" })}`,
+    ...pointsSectionsOf(pointsWorthChecking),
+    `${framing.returnLineOf(["findings"])} ${reviewFindingsText({ axes: codeAxes, where: "its file:line or area", claim: "what it says, in a line" })}`,
   ].join("\n\n");
 }
 
-// Empty when the implementer named none.
+// Empty when the implementer named none, as for a session's brief, which has no implement record.
 function pointsSectionsOf(points: string[]): string[] {
   if (points.length === 0) return [];
   return [

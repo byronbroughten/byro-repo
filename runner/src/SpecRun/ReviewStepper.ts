@@ -82,6 +82,13 @@ interface ResolveRun {
   rules: ResolveRules;
 }
 
+interface SkippedReviewers {
+  // How the review was sent back, as the log line words it.
+  sentBack: string;
+  spawned: number;
+  count: number;
+}
+
 interface KeptRecords {
   // The heads the resolve started on.
   base: Heads;
@@ -165,7 +172,7 @@ export class ReviewStepper extends SpecRunBase {
     ticketRun: TicketRun,
     { ran, reviewerCheck, launch }: ReviewerResume,
   ): Promise<RanStep> {
-    const { run, ticket, state } = ticketRun;
+    const { run, ticket } = ticketRun;
     const label = issueRef.labelOf(ticket.issue);
     const { count, resumePrompt } = reviewerCheck;
     const spawned = ran.result.spawnedSubagentCount;
@@ -186,13 +193,25 @@ export class ReviewStepper extends SpecRunBase {
     if (resumed.result.hasCrossedCeiling) return resumed;
     const total = spawned + resumed.result.spawnedSubagentCount;
     if (total < count) {
-      state.hasSkippedReviewers = true;
-      this._log(
-        run,
-        `${label}: the review, once resumed, ${spawnedPhraseOf(total, count)}; its review list says it ran without its reviewers.`,
-      );
+      this._markSkippedReviewers(ticketRun, {
+        sentBack: "once resumed",
+        spawned: total,
+        count,
+      });
     }
     return resumed;
+  }
+
+  // A run's review and an interactive session's alike, once sent back and still short.
+  _markSkippedReviewers(
+    { run, ticket, state }: TicketRun,
+    { sentBack, spawned, count }: SkippedReviewers,
+  ): void {
+    state.hasSkippedReviewers = true;
+    this._log(
+      run,
+      `${issueRef.labelOf(ticket.issue)}: the review, ${sentBack}, ${spawnedPhraseOf(spawned, count)}; its review list says it ran without its reviewers.`,
+    );
   }
 
   // Whether the review may skip its reviewer subagents, for a run's review and an interactive session's alike.

@@ -385,7 +385,6 @@ export function hasAgentStep(
 }
 
 // The steps that resume the implementer's session in a run; research and the gap check each run in their own.
-// A session review runs fresh but launches under the same schema, which costs it nothing.
 const sessionStepNames = [
   "implement",
   "review",

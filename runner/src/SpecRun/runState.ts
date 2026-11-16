@@ -96,7 +96,9 @@ export interface SubmittedSession extends TranscriptSession {
   account?: number;
 }
 
-export interface SubmitOptions extends ResolveOptions {
+export interface SubmitOptions extends ReviewOptions {
+  // The review record the session wrote, checked against its Workflow's review schema.
+  output: unknown;
   session: SubmittedSession;
 }
 

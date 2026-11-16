@@ -61,7 +61,7 @@ interface SessionTicketRun extends TicketRun {
   workspace: WorkspaceStatus;
 }
 
-interface ReviewerCount {
+interface SubmittedReview {
   brief: ReviewBrief;
   session: SubmittedSession;
 }
@@ -128,7 +128,7 @@ export class SessionReviewer extends SpecRunBase {
       );
     }
     const result = await this._leased(ticketRun, async () => {
-      const refusal = await this._reviewerRefusalOf(ticketRun, {
+      const refusal = await this._sendBackShortReviewOnce(ticketRun, {
         brief,
         session,
       });
@@ -232,11 +232,10 @@ export class SessionReviewer extends SpecRunBase {
     };
   }
 
-  // Over the inline size, a session that started fewer reviewers since its brief than the Workflow names is sent back once;
-  // a second short submit is accepted, marked for its review list.
-  private async _reviewerRefusalOf(
+  // Over the inline size, a review short of its reviewers since the brief is refused once, then accepted and marked.
+  private async _sendBackShortReviewOnce(
     ticketRun: SessionTicketRun,
-    { brief, session }: ReviewerCount,
+    { brief, session }: SubmittedReview,
   ): Promise<string | undefined> {
     const { reviewerCheck } = this._agentStepOf(ticketRun.run.spec, "review");
     if (reviewerCheck === undefined) return undefined;
@@ -250,13 +249,12 @@ export class SessionReviewer extends SpecRunBase {
     }
     if (spawned >= reviewerCheck.count) return undefined;
     const { issue } = ticketRun.ticket;
-    const label = issueRef.labelOf(issue);
     if (brief.isSentBack === true) {
-      ticketRun.state.hasSkippedReviewers = true;
-      this._record(
-        ticketRun.run,
-        `${label}: the session's review, once sent back, started ${spawned} of its ${reviewerCheck.count} reviewer subagents; its review list says it ran without its reviewers.`,
-      );
+      this.reviewStepper._markSkippedReviewers(ticketRun, {
+        sentBack: "once sent back",
+        spawned,
+        count: reviewerCheck.count,
+      });
       return undefined;
     }
     this.factsFile.setReviewBrief(issue, { ...brief, isSentBack: true });
@@ -267,7 +265,7 @@ export class SessionReviewer extends SpecRunBase {
   // Under the brief's start, so Review cost splits the interactive session there; addSession keeps the first review's start.
   private _recordReviewSession(
     { run, ticket }: TicketRun,
-    { brief, session }: ReviewerCount,
+    { brief, session }: SubmittedReview,
   ): void {
     const { sessionId, configFolder, account } = session;
     const label = issueRef.labelOf(ticket.issue);

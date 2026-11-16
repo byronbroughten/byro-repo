@@ -7,12 +7,9 @@
 import { stepReadLine } from "../../IssueReader.ts";
 import {
   codeListOf,
-  implementerReviewLineOf,
   reviewerResumePromptOf,
   reviewFindingsText,
-  reviewReturnOf,
-  sessionPointsLine,
-  sessionReviewLineOf,
+  reviewFramingOf,
 } from "../../promptText.ts";
 import {
   arraySchema,
@@ -44,16 +41,15 @@ export function pieceReviewPrompt({
 }: PieceReviewPromptInput): string {
   const passagesFolder = passagesFolderIn(workspacePath, issue);
   const scope = draftingScope.sectionsOf(labels);
-  const ticketKind = " on a piece spec's drafting ticket";
-  const opening =
-    sessionSubmit === undefined
-      ? implementerReviewLineOf(ticketKind)
-      : `${sessionReviewLineOf(ticketKind)}\n\n${sessionPointsLine}`;
-  return `${opening}
+  const framing = reviewFramingOf(
+    sessionSubmit,
+    " on a piece spec's drafting ticket",
+  );
+  return `${framing.opening}
 
 Read \`.claude/skills/${skillName}/SKILL.md\` and follow it to review ${issue.repo}#${issue.number}, "${title}", on the ${codeListOf(pieceAxes, "and")} axes. It is user-invoked, so read it by that path rather than calling the Skill tool. Your working directory is the ticket's issue workspace root, on the ticket's branch, \`${branch}\`. The draft input is the Agent draft, \`${draftPath}\` in the \`${spec.repo}\` clone, and the passages folder, \`${passagesFolder}\`; the ticket's spec is ${spec.repo}#${spec.number}. The in-scope text is ${scope}. ${stepReadLine}
 
-${reviewReturnOf(["findings", "dismissedOverlaps"], sessionSubmit)}
+${framing.returnLineOf(["findings", "dismissedOverlaps"])}
 - ${reviewFindingsText({ axes: pieceAxes, where: "its file:line in the Agent draft, or the spec's Outline line for a reader finding", claim: "what it says, in a line, quoting the sentence" })}
 - \`dismissedOverlaps\`: each overlap hit the spec reviewer judged no copy, its \`hit\` as the overlap command printed it and its one-line \`reason\`; empty when it dismissed none.`;
 }
