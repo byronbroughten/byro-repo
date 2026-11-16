@@ -135,7 +135,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/SpecEndRunner.ts` | | Ends the run with its Workflow's spec-end Steps, the gap check's review list, the judge Step's stop and the push included. |
 | `SpecRun/StatusReporter.ts` | | A run's or Batch's status, and its stop request. |
 | `SpecRun/StepLauncher.ts` | | Launches an agent step under the limit guard, retries a crash, resumes a step a limit cut off and resumes once a record failing its schema check, delegating the limit waits to `StepLauncher/`. |
-| `SpecRun/StepLauncher/LimitWaiter.ts` | | Holds a launch until the Active account reads under its thresholds and waits out a limit hit. |
+| `SpecRun/StepLauncher/LimitWaiter.ts` | | Runs the launch check that picks each step's account, holding a launch until an account reads under its thresholds, and waits out a limit hit. |
 | `SpecRun/TicketLander.ts` | | Lands a ticket: posts a research ticket's comment and raises its Research Halt, writes its facts file, runs the wrap-up and posts its review list, delegating its facts file, checks and wrap-up failures to `TicketLander/`. |
 | `SpecRun/TicketLander/FactsWriter.ts` | | Writes a ticket's facts file, a code ticket's or a research ticket's, and warns of session facts left unrecorded. |
 | `SpecRun/TicketLander/MasterMerger.ts` | | Takes a ticket's wrap-up failure, merging master into its branch on a conflict and resuming the implementer to resolve it. |
@@ -152,6 +152,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `specRunHarness/stepResults.ts` | | The step results, records and scripted steps `SpecRun` tests give a fake agent step. |
 | `specRunHarness/timing.ts` | | The clock `SpecRun` tests start a run at and move through its fakes. |
 | `specRunHarness/trackedIssues.ts` | | The tracked issues `SpecRun` tests give a fake GitHub and `Workflow` tests pick from. |
+| `specRunHarness/usageLists.ts` | | The usage lists `SpecRun` tests script for the launch check, each account on a reading the test sets. |
 | `stalePaths.ts` | | The stale-path check for `packages/<dir>` mentions with no clone. |
 | `StepStream.ts` | | Reads a step's stream-json into its `StepResult`. |
 | `stepPrompts/doneLines.ts` | | The "when you're done" lines the code and piece Workflows' implement and red-checks prompts share. |

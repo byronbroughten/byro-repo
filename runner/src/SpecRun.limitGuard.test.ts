@@ -7,9 +7,11 @@ import type { LimitHit, StepRequest, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
 import type { UsageReader } from "./limitGuard.ts";
 import {
+  accountsListOf,
   addSpec,
   after,
   crashed,
+  everyAccountListOf,
   findingOf,
   github,
   implemented,
@@ -37,12 +39,52 @@ import {
 useSpecRunHarness();
 
 describe("run's limit guard", () => {
-  it("re-reads the account every idlePollMs during a Limit wait, with one notice, then lands", async () => {
+  // Account 1 at a 5-hour reading a step moves; the Active account 2 idle and account 3 at 20%, so account 3 ranks first off account 1.
+  function movingAccount1(): {
+    usageReader: UsageReader;
+    to(fiveHour: number): () => void;
+  } {
+    let account1FiveHour = 0.1;
+    return {
+      usageReader: {
+        read: async () =>
+          accountsListOf(
+            [
+              { account: 1, fiveHour: account1FiveHour, sevenDay: 0.5 },
+              { account: 2, fiveHour: 0, sevenDay: 0.5 },
+              { account: 3, fiveHour: 0.2, sevenDay: 0.5 },
+            ],
+            2,
+          ),
+      },
+      to(fiveHour) {
+        return () => {
+          account1FiveHour = fiveHour;
+        };
+      },
+    };
+  }
+
+  it("waits only when every account is past a threshold, re-checking every idlePollMs with one notice naming its account and the earliest reset, then lands", async () => {
     addSpec([1]);
+    const pastBoth = accountsListOf(
+      [
+        { account: 1, fiveHour: 0.95, sevenDay: 0.5 },
+        {
+          account: 2,
+          fiveHour: 0.97,
+          sevenDay: 0.5,
+          fiveHourResetsAt: new Date("2026-10-12T10:00:00Z"),
+        },
+      ],
+      2,
+    );
     scriptUsage(
-      usageListOf(0.95, 0.5),
-      usageListOf(0.95, 0.5),
-      usageListOf(0.95, 0.5),
+      usageListOf(0.1, 0.5),
+      usageListOf(0.1, 0.5),
+      pastBoth,
+      pastBoth,
+      pastBoth,
       usageListOf(0.1, 0.5),
     );
     const sleeps: number[] = [];
@@ -55,19 +97,135 @@ describe("run's limit guard", () => {
     }).run(spec);
 
     expect(result.landed).toEqual([refOf(1)]);
-    expect(sleeps).toEqual([60_000, 60_000]);
+    expect(sleeps).toEqual([60_000, 60_000, 60_000]);
+    expect(agentStep.requests.map(({ account }) => account)).toEqual([1, 1]);
     expect(noticeSummaries()).toEqual([
-      "Run started on 1 tickets as account 1: 5-hour 95%, weekly 50%. Launching byro-repo #1.",
-      "Limit wait: account 1 is at 95% of its 5-hour limit; continuing after 2026-10-12 06:01:00 CDT. Switching to an account with headroom with cswap continues the run now.",
+      "Run started on 1 tickets as account 2: 5-hour 0%, weekly 0%. Launching byro-repo #1.",
+      "Limit wait: account 1 is at 95% of its 5-hour limit; continuing after 2026-10-12 05:01:00 CDT. An account another run releases continues the run too.",
       result.message,
     ]);
+  });
+
+  it("picks a non-Active account under its thresholds before the Active one, though the Active one reads lower", async () => {
+    addSpec([1]);
+    scriptUsage(
+      accountsListOf(
+        [
+          { account: 1, fiveHour: 0.3, sevenDay: 0.5 },
+          { account: 2, fiveHour: 0.1, sevenDay: 0.5 },
+          { account: 3, fiveHour: 0, sevenDay: 0.5 },
+        ],
+        3,
+      ),
+    );
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(agentStep.requests.map(({ account }) => account)).toEqual([2, 2]);
+  });
+
+  it("launches on the Active account when it is the only one under its thresholds, with no Limit wait", async () => {
+    addSpec([1]);
+    scriptUsage(usageListOf(0.95, 0.5));
+    const sleeps: number[] = [];
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    const result = await specRun(agentStep, {
+      async sleep(ms) {
+        sleeps.push(ms);
+      },
+    }).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(sleeps).toEqual([]);
+    expect(agentStep.requests.map(({ account }) => account)).toEqual([2, 2]);
+  });
+
+  it("keeps the run on its account from step to step while it reads under both thresholds, though another now ranks higher", async () => {
+    addSpec([1]);
+    const account1 = movingAccount1();
+    const agentStep = FakeAgentStep.init(
+      implemented("one.ts", { act: account1.to(0.5) }),
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep, account1).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(agentStep.requests.map(({ account }) => account)).toEqual([1, 1]);
+  });
+
+  it("moves the run at a step boundary once its account is past a threshold, to the top-ranked account", async () => {
+    addSpec([1]);
+    const account1 = movingAccount1();
+    const sleeps: number[] = [];
+    const agentStep = FakeAgentStep.init(
+      implemented("one.ts", { act: account1.to(0.95) }),
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep, {
+      ...account1,
+      async sleep(ms) {
+        sleeps.push(ms);
+      },
+    }).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(sleeps).toEqual([]);
+    expect(agentStep.requests.map(({ account }) => account)).toEqual([1, 3]);
+  });
+
+  it("launches on an account with a usable reading before one with none, with no missing-reading warning", async () => {
+    addSpec([1]);
+    scriptUsage({
+      readings: [
+        { account: 1, usage: undefined },
+        ...usageListOf(0.1, 0.5).readings.filter(
+          ({ account }) => account === 2,
+        ),
+      ],
+      activeAccount: 2,
+    });
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests.map(({ account }) => account)).toEqual([2, 2]);
+    expect(noticeSummaries()).toEqual([
+      "Run started on 1 tickets as account 2: 5-hour 0%, weekly 0%. Launching byro-repo #1.",
+      result.message,
+    ]);
+  });
+
+  it("waits while cswap lists no account, saying so, and launches once one reads under its thresholds", async () => {
+    addSpec([1]);
+    let usageList = accountsListOf([], 2);
+    const sleeps: number[] = [];
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    const result = await specRun(agentStep, {
+      usageReader: { read: async () => usageList },
+      async sleep(ms) {
+        sleeps.push(ms);
+        usageList = usageListOf(0.1, 0.5);
+      },
+    }).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(sleeps).toEqual([60_000]);
+    expect(noticeSummaries()).toContain(
+      "Limit wait: no account is enabled in cswap; continuing once an account reads under its thresholds. An account another run releases continues the run too.",
+    );
   });
 
   it("shortens the last poll of a Limit wait to end at the reset plus the margin", async () => {
     addSpec([1]);
     scriptUsage(
-      usageListOf(0.95, 0.5),
-      usageListOf(0.95, 0.5),
+      everyAccountListOf(0.95, 0.5),
+      everyAccountListOf(0.95, 0.5),
       usageListOf(0.1, 0.5),
     );
     const sleeps: number[] = [];
@@ -82,37 +240,11 @@ describe("run's limit guard", () => {
     expect(sleeps).toEqual([30_000]);
   });
 
-  it("launches on the account switched to at the next poll of a Limit wait", async () => {
+  it("resumes a crashed step that pushed its account past a threshold on the account under its thresholds, with no Limit wait", async () => {
     addSpec([1]);
-    let activeAccount = 1;
-    const usageReader: UsageReader = {
-      read: async () => ({ ...usageListOf(0.95, 0.5), activeAccount }),
-    };
-    const sleeps: number[] = [];
-    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
-
-    const result = await specRun(agentStep, {
-      usageReader,
-      async sleep(ms) {
-        sleeps.push(ms);
-        activeAccount = 2;
-      },
-    }).run(spec);
-
-    expect(result.landed).toEqual([refOf(1)]);
-    expect(sleeps).toEqual([60_000]);
-    expect(agentStep.requests.map(({ account }) => account)).toEqual([2, 2]);
-  });
-
-  it("ends a resumed step's Limit wait on a switch to an account under its threshold", async () => {
-    addSpec([1]);
-    let activeAccount = 1;
     let account1FiveHour = 0.1;
     const usageReader: UsageReader = {
-      read: async () => ({
-        ...usageListOf(account1FiveHour, 0.5),
-        activeAccount,
-      }),
+      read: async () => usageListOf(account1FiveHour, 0.5),
     };
     const crashPastThreshold: ScriptedStep = async () => {
       account1FiveHour = 0.95;
@@ -129,12 +261,11 @@ describe("run's limit guard", () => {
       usageReader,
       async sleep(ms) {
         sleeps.push(ms);
-        activeAccount = 2;
       },
     }).run(spec);
 
     expect(result.landed).toEqual([refOf(1)]);
-    expect(sleeps).toEqual([60_000]);
+    expect(sleeps).toEqual([]);
     expect(
       agentStep.requests.map(({ account, resumeSessionId }) => ({
         account,
@@ -145,16 +276,13 @@ describe("run's limit guard", () => {
       { account: 2, resumeSessionId: "crashed-session" },
       { account: 2, resumeSessionId: "session" },
     ]);
-    expect(noticeSummaries()).toContain(
-      "Limit wait: account 1 is at 95% of its 5-hour limit; continuing after 2026-10-12 06:01:00 CDT. Switching to an account with headroom with cswap continues the run now.",
-    );
   });
 
   it("waits before a step past the weekly line until a poll reads it under, then lands", async () => {
     addSpec([1]);
     scriptUsage(
-      usageListOf(0.3, 1),
-      usageListOf(0.3, 1),
+      everyAccountListOf(0.3, 1),
+      everyAccountListOf(0.3, 1),
       usageListOf(0.3, 0.5),
     );
     const sleeps: number[] = [];
@@ -171,7 +299,7 @@ describe("run's limit guard", () => {
     expect(result.landed).toEqual([refOf(1)]);
     expect(sleeps).toEqual([60_000]);
     expect(noticeSummaries()).toContain(
-      "Limit wait: account 1 is at 100% of its weekly limit; continuing after 2026-10-14 19:01:00 CDT. Switching to an account with headroom with cswap continues the run now.",
+      "Limit wait: account 1 is at 100% of its weekly limit; continuing after 2026-10-14 19:01:00 CDT. An account another run releases continues the run too.",
     );
   });
 
@@ -208,7 +336,7 @@ describe("run's limit guard", () => {
     let fiveHour = 0.5;
     const sleeps: number[] = [];
     return {
-      usageReader: { read: async () => usageListOf(fiveHour, 0.5) },
+      usageReader: { read: async () => everyAccountListOf(fiveHour, 0.5) },
       hit: () => {
         fiveHour = 1;
       },
@@ -285,8 +413,8 @@ describe("run's limit guard", () => {
     expect(
       noticeSummaries().filter((summary) => summary.startsWith("Limit wait")),
     ).toEqual([
-      "Limit wait: account 1 hit its 5-hour limit; continuing after 2026-10-12 06:01:00 CDT. Switching to an account with headroom with cswap continues the run now.",
-      "Limit wait: account 1 hit its 5-hour limit; continuing after 2026-10-12 06:01:00 CDT. Switching to an account with headroom with cswap continues the run now.",
+      "Limit wait: account 1 hit its 5-hour limit; continuing after 2026-10-12 06:01:00 CDT. An account another run releases continues the run too.",
+      "Limit wait: account 1 hit its 5-hour limit; continuing after 2026-10-12 06:01:00 CDT. An account another run releases continues the run too.",
     ]);
     expect(savedLimitHit()).toBe("first stream\n");
   });
@@ -305,7 +433,7 @@ describe("run's limit guard", () => {
     );
 
     const result = await specRun(agentStep, {
-      usageReader: { read: async () => usageListOf(fiveHour, 0.5) },
+      usageReader: { read: async () => everyAccountListOf(fiveHour, 0.5) },
       clock: { now: () => now },
       async sleep(ms) {
         sleeps.push(ms);
@@ -320,7 +448,7 @@ describe("run's limit guard", () => {
     expect(
       noticeSummaries().filter((summary) => summary.startsWith("Limit wait")),
     ).toEqual([
-      "Limit wait: account 1 hit its 5-hour limit; continuing after 2026-10-12 06:01:00 CDT. Switching to an account with headroom with cswap continues the run now.",
+      "Limit wait: account 1 hit its 5-hour limit; continuing after 2026-10-12 06:01:00 CDT. An account another run releases continues the run too.",
     ]);
   });
 
@@ -383,11 +511,11 @@ describe("run's limit guard", () => {
     expect(result.landed).toEqual([refOf(1)]);
     expect(agentStep.requests[1]?.resumeSessionId).toBe("session");
     expect(noticeSummaries()).toContain(
-      "Limit wait: account 1 hit its weekly limit; continuing after 2026-10-14 19:01:00 CDT. Switching to an account with headroom with cswap continues the run now.",
+      "Limit wait: account 1 hit its weekly limit; continuing after 2026-10-14 19:01:00 CDT. An account another run releases continues the run too.",
     );
   });
 
-  it("warns once on a limit error with no reset, waits until the account reads under its thresholds and resumes", async () => {
+  it("warns once on a limit error with no reset, waits until an account reads under its thresholds and resumes", async () => {
     addSpec([1]);
     const account = cappedAccount();
     const agentStep = FakeAgentStep.init(
@@ -406,22 +534,18 @@ describe("run's limit guard", () => {
     expect(account.sleeps).toEqual([60_000, 60_000, 60_000]);
     expect(agentStep.requests[1]?.resumeSessionId).toBe("session");
     expect(noticeSummaries().slice(0, 3)).toEqual([
-      "Run started on 1 tickets as account 1: 5-hour 50%, weekly 50%. Launching byro-repo #1.",
+      "Run started on 1 tickets as account 2: 5-hour 50%, weekly 50%. Launching byro-repo #1.",
       "Unrecognised limit error on account 1; the saved stream can tighten detection.",
-      "Limit wait: account 1 hit a limit error with no reset; continuing once the Active account reads under its thresholds. Switching to an account with headroom with cswap continues the run now.",
+      "Limit wait: account 1 hit a limit error with no reset; continuing once an account reads under its thresholds. An account another run releases continues the run too.",
     ]);
     expect(savedLimitHit()).toBe("bare 429\n");
   });
 
-  it("resumes a step a limit cut off on the account cswap switched to, at the next poll", async () => {
+  it("resumes a step a limit cut off on the account the launch check gives, at the next poll", async () => {
     addSpec([1]);
-    let activeAccount = 1;
     let account1FiveHour = 0.5;
     const usageReader: UsageReader = {
-      read: async () => ({
-        ...usageListOf(account1FiveHour, 0.5),
-        activeAccount,
-      }),
+      read: async () => usageListOf(account1FiveHour, 0.5),
     };
     const sleeps: number[] = [];
     const agentStep = FakeAgentStep.init(
@@ -436,7 +560,6 @@ describe("run's limit guard", () => {
       usageReader,
       async sleep(ms) {
         sleeps.push(ms);
-        activeAccount = 2;
       },
     }).run(spec);
 
@@ -474,14 +597,19 @@ describe("run's limit guard", () => {
     addSpec([1]);
     let fiveHourReset = new Date("2026-10-12T11:00:00Z");
     const usageReader: UsageReader = {
-      read: async () => {
-        const list = usageListOf(0.9, 0.5);
-        const [account1] = list.readings;
-        if (account1?.usage !== undefined) {
-          account1.usage.fiveHour.resetsAt = fiveHourReset;
-        }
-        return list;
-      },
+      read: async () =>
+        accountsListOf(
+          [
+            {
+              account: 1,
+              fiveHour: 0.9,
+              sevenDay: 0.5,
+              fiveHourResetsAt: fiveHourReset,
+            },
+            { account: 2, fiveHour: 0.95, sevenDay: 0.5 },
+          ],
+          2,
+        ),
     };
     const sleeps: number[] = [];
     const streamRead95 = async (request: StepRequest): Promise<StepResult> => ({
@@ -509,7 +637,7 @@ describe("run's limit guard", () => {
     expect(result.landed).toEqual([refOf(1)]);
     expect(sleeps).toEqual([60_000, 60_000]);
     expect(noticeSummaries()).toContain(
-      "Limit wait: account 1 is at 95% of its 5-hour limit; continuing after 2026-10-12 06:01:00 CDT. Switching to an account with headroom with cswap continues the run now.",
+      "Limit wait: account 1 is at 95% of its 5-hour limit; continuing after 2026-10-12 06:01:00 CDT. An account another run releases continues the run too.",
     );
   });
 
@@ -588,7 +716,7 @@ describe("run's timings", () => {
 
     expect(timingLines()).toEqual([
       "Preflight passed in 0s.",
-      "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%. Launching byro-repo #1.",
+      "Run started on 1 tickets as account 2: 5-hour 0%, weekly 0%. Launching byro-repo #1.",
       "byro-repo #1: workspace took 4s.",
       "byro-repo #1: implement took 90s.",
       "byro-repo #1: review took 30s.",
@@ -615,7 +743,7 @@ describe("run's timings", () => {
 
     expect(timingLines()).toEqual([
       "Preflight passed in 0s.",
-      "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%. Launching byro-repo #1.",
+      "Run started on 1 tickets as account 2: 5-hour 0%, weekly 0%. Launching byro-repo #1.",
       "byro-repo #1: workspace took 4s.",
       "byro-repo #1: implement took 60s.",
       "byro-repo #1: review took 20s.",

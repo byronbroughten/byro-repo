@@ -25,7 +25,7 @@ One model request of an agent step or interactive session whose tool calls the r
 _Avoid_: overhead turn, wasted turn, opening turn
 
 **Active account**:
-The Claude account the developer is logged in with right now, as cswap reports it. Every agent step runs on it, a resumed session included.
+The Claude account the developer is logged in with right now, as cswap reports it. A run takes it last.
 _Avoid_: configured account, current account, runner account
 
 **Checks**:
@@ -119,7 +119,7 @@ The run ends early: on a failure no answer can fix inside the run (GitHub or `cl
 _Avoid_: abort, exit, kill
 
 **Limit wait**:
-The run pauses because the Active account is past its 5-hour threshold or a step hit a usage limit, and continues unaided once the limit resets or the Active account changes to one under it, resuming a step the limit cut off. A limit never Stops a run. The runner never picks an account itself.
+The run pauses because no account is under its thresholds or a step hit a usage limit, and continues unaided once one reads under them, resuming a step the limit cut off. A limit never Stops a run. The runner never switches the Active account.
 _Avoid_: cooldown, throttle
 
 **Restart**:

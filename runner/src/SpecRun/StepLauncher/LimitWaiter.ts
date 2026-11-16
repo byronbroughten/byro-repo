@@ -1,6 +1,7 @@
-// A spec run's limit waits: holds a step's launch until the Active account reads under its thresholds, and waits out a limit hit.
-// The Active account's reading is judged with each window raised to the last one a step's stream gave for it.
-// StepLauncher builds it in a lazy getter; the decisions are ../../limitGuard.ts.
+// A spec run's limit waits: the launch check before each step, which picks the account it runs on, and the wait out of a limit hit.
+// The check keeps the run's account while it reads under both thresholds, else takes the top of the account ranking with the
+// Active account last, each window raised to the last one a step's stream gave for it; with no account under, it is a Limit wait.
+// StepLauncher builds it in a lazy getter; the ranking and decisions are ../../limitGuard.ts.
 
 import { copyFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
@@ -8,9 +9,9 @@ import { join } from "node:path";
 import type { StepResult } from "../../AgentStep.ts";
 import {
   type AccountUsage,
-  decideStep,
-  freshestUsageOf,
-  type GuardDecision,
+  type LeftOutAccount,
+  type LimitWait,
+  rankAccounts,
   windowNameOf,
 } from "../../limitGuard.ts";
 import { localTimeOf } from "../../localTime.ts";
@@ -19,31 +20,33 @@ import { percentOf } from "../../transcriptFacts.ts";
 import type { Run, RunWarning } from "../runState.ts";
 import { SpecRunBase } from "../SpecRunBase.ts";
 
-interface GuardedDecision {
+// A wait names one account; `until` is the earliest reset among the accounts that would continue the run, undefined with none.
+interface LaunchWait {
+  kind: "limitWait";
+  account: number | undefined;
+  reason: string;
+  until: Date | undefined;
+}
+
+type LaunchCheck = { kind: "launch"; account: number } | LaunchWait;
+
+interface LimitWaitingAccount {
   account: number;
-  decision: GuardDecision;
+  reason: LimitWait;
 }
 
 export class LimitWaiter extends SpecRunBase {
-  // Asks the limit guard about the Active account until it says launch, and returns that account.
+  // Runs the launch check until it gives an account, and returns that account.
   async _waitForLaunch(run: Run): Promise<number> {
     let hasAnnouncedWait = false;
     for (;;) {
-      const { account, decision } = await this._guardDecisionOf(run);
-      if (decision.kind === "launch") return account;
-      const { window, utilization, until } = decision;
+      const check = await this._runLaunchCheck(run);
+      if (check.kind === "launch") return check.account;
       if (!hasAnnouncedWait) {
         hasAnnouncedWait = true;
-        await this._announce(
-          run,
-          limitWaitNoticeOf({
-            account,
-            reason: `is at ${percentOf(utilization)} of its ${windowNameOf(window)} limit`,
-            until,
-          }),
-        );
+        await this._announce(run, limitWaitNoticeOf(check));
       }
-      await this._sleep(this._limitPollMsOf(until));
+      await this._sleep(this._limitPollMsOf(check.until));
     }
   }
 
@@ -72,7 +75,7 @@ export class LimitWaiter extends SpecRunBase {
           until: undefined,
         }),
       );
-      await this._pollUntilUnderThresholds(run, undefined);
+      await this._pollUntilLaunchable(run, undefined);
       return;
     }
     const until = new Date(
@@ -86,27 +89,40 @@ export class LimitWaiter extends SpecRunBase {
         until,
       }),
     );
-    await this._pollUntilUnderThresholds(run, until);
+    await this._pollUntilLaunchable(run, until);
   }
 
-  // Judges the Active account's cswap reading, each window raised to the last one a step's stream gave for it; with no reading, a step launches unguarded.
-  private async _guardDecisionOf(run: Run): Promise<GuardedDecision> {
-    const { account, usage } = await this._activeReadingOf(run);
-    if (usage === undefined) {
+  // The run's own account while it reads under both thresholds, else the top-ranked one, which the run then keeps.
+  private async _runLaunchCheck(run: Run): Promise<LaunchCheck> {
+    const usageList = await this._knownActiveUsageListOf(run);
+    const { ranked, leftOut } = rankAccounts({
+      usageList,
+      leasedAccounts: new Set(),
+      unavailableAccounts: new Set(),
+      streamUsage: run.streamUsage,
+      knobs: this.config.knobs,
+      putActiveLast: true,
+    });
+    const held = ranked.find(
+      ({ account, usage }) => account === run.account && usage !== undefined,
+    );
+    const picked = held ?? ranked[0];
+    if (picked === undefined) return launchWaitOf(run.account, leftOut);
+    if (picked.usage === undefined) {
       await this._warnOnce(
         run,
         "missing-reading",
-        `No usage reading for account ${account}; steps launch unguarded.`,
+        `No usage reading for account ${picked.account}; steps launch unguarded.`,
       );
-      return { account, decision: { kind: "launch" } };
     }
-    const freshest = freshestUsageOf(usage, run.streamUsage.get(account));
-    return { account, decision: decideStep(freshest, this.config.knobs) };
+    run.account = picked.account;
+    return { kind: "launch", account: picked.account };
   }
 
-  // Polls every idlePollMs, so a switch ends the wait within one poll.
-  private _limitPollMsOf(until: Date): number {
+  // Polls every idlePollMs, so an account coming under its thresholds ends the wait within one poll.
+  private _limitPollMsOf(until: Date | undefined): number {
     const { idlePollMs } = this.config.knobs;
+    if (until === undefined) return idlePollMs;
     const remainingMs = until.getTime() - this.config.clock.now().getTime();
     if (remainingMs <= 0) return idlePollMs;
     return Math.min(idlePollMs, remainingMs);
@@ -122,39 +138,73 @@ export class LimitWaiter extends SpecRunBase {
     await this._announce(run, summary);
   }
 
-  // Sleeps before each read, so a limit hit waits at least one poll; past `until` a stale reading keeps this wait going rather than announcing a second one.
-  private async _pollUntilUnderThresholds(
+  // Sleeps before each check, so a limit hit waits at least one poll; past `until` a stale reading keeps this wait going rather than announcing a second one.
+  private async _pollUntilLaunchable(
     run: Run,
     until: Date | undefined,
   ): Promise<void> {
     for (;;) {
-      if (until === undefined) {
-        await this._sleep(this.config.knobs.idlePollMs);
-      } else {
-        await this._sleep(this._limitPollMsOf(until));
-      }
-      const { decision } = await this._guardDecisionOf(run);
-      if (decision.kind === "launch") return;
+      await this._sleep(this._limitPollMsOf(until));
+      const check = await this._runLaunchCheck(run);
+      if (check.kind === "launch") return;
     }
   }
 }
 
-// `until` undefined waits for no reset.
-interface LimitWaitNotice {
-  account: number;
-  reason: string;
-  until: Date | undefined;
+// Names the run's own account when a threshold holds it, else the one that resets first.
+function launchWaitOf(
+  heldAccount: number | undefined,
+  leftOut: LeftOutAccount[],
+): LaunchWait {
+  const waiting = leftOut.flatMap(({ account, reason }) =>
+    reason.kind === "limitWait" ? [{ account, reason }] : [],
+  );
+  const earliest = earliestOf(waiting);
+  const named =
+    waiting.find(({ account }) => account === heldAccount) ?? earliest;
+  if (named === undefined) {
+    return {
+      kind: "limitWait",
+      account: undefined,
+      reason: "no account is enabled in cswap",
+      until: undefined,
+    };
+  }
+  const { window, utilization } = named.reason;
+  return {
+    kind: "limitWait",
+    account: named.account,
+    reason: `is at ${percentOf(utilization)} of its ${windowNameOf(window)} limit`,
+    until: earliest?.reason.until,
+  };
+}
+
+function earliestOf(
+  waiting: LimitWaitingAccount[],
+): LimitWaitingAccount | undefined {
+  let earliest: LimitWaitingAccount | undefined;
+  for (const each of waiting) {
+    if (
+      earliest === undefined ||
+      each.reason.until.getTime() < earliest.reason.until.getTime()
+    ) {
+      earliest = each;
+    }
+  }
+  return earliest;
 }
 
 function limitWaitNoticeOf({
   account,
   reason,
   until,
-}: LimitWaitNotice): string {
-  let continuing = "once the Active account reads under its thresholds";
+}: Omit<LaunchWait, "kind">): string {
+  let continuing = "once an account reads under its thresholds";
   if (until !== undefined) continuing = `after ${localTimeOf(until)}`;
+  let subject = reason;
+  if (account !== undefined) subject = `account ${account} ${reason}`;
   return limitWaitLineOf(
-    `account ${account} ${reason}; continuing ${continuing}. Switching to an account with headroom with cswap continues the run now.`,
+    `${subject}; continuing ${continuing}. An account another run releases continues the run too.`,
   );
 }
 
