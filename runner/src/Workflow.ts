@@ -252,7 +252,7 @@ export interface ReviewRules {
   promptOf(input: ReviewPromptInput): string;
   // The core checks the step's record against it too, since only the real adapter does.
   outputSchema: object;
-  // The skill the review step follows: its SKILL.md body inlined in the prompt or, for a user-invoked skill, read by its path.
+  // The skill the review step follows, its SKILL.md body inlined in the prompt.
   skillName: string;
   // Set for a skill that spawns reviewer subagents; unset, the review is never checked for them.
   reviewerCheck?: ReviewerCheck;
