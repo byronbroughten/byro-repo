@@ -34,7 +34,7 @@ describe("reviewPrompt", () => {
     isInlineAllowed: false,
   };
   const briefLine = "paste it into both reviewers' briefs";
-  const [heldTicketLine] = heldTicketLinesOf(true);
+  const heldTicketLine = heldTicketLinesOf(true).join("");
   const fixedPointLine =
     "The fixed point is `master`: it resolves and the diff is non-empty, so the skill's step 1 is done.";
 

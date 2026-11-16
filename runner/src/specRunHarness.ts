@@ -88,7 +88,7 @@ export const session: LeaseHolder = { kind: "session", pid: process.ppid };
 // Small binaries, not node, since every run spawns them and a node process costs several times as much to start.
 export const passes: Command = ["true"];
 // The review prompt's line for a session that already holds the ticket.
-export const [heldTicketLine] = heldTicketLinesOf(true);
+export const heldTicketLine = heldTicketLinesOf(true).join("");
 
 // The review prompt a fresh session gets, from one that resumed the implementer; the code Workflow joins paragraphs with a blank line.
 export function withoutHeldTicket(prompt: string | undefined): string {

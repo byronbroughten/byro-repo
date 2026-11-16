@@ -63,7 +63,7 @@ describe("pieceReviewPrompt", () => {
   });
 
   it("tells only a session that holds the ticket not to re-read it, before the skill", () => {
-    const [heldTicketLine] = heldTicketLinesOf(true);
+    const heldTicketLine = heldTicketLinesOf(true).join("");
     const held = pieceReviewPrompt({ ...input, isTicketHeld: true });
 
     expect(held).toContain(heldTicketLine);
