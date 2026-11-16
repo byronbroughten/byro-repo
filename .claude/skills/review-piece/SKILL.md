@@ -28,7 +28,7 @@ Done when the title is stated, the scope is one of the two, and for Sections eve
 
 ## 2. Gather the inputs
 
-**An input your caller supplies as a file is used as given; gather only the rest.** The fact list is always yours to build, and so is a supplied Overlap allow file's list of names: add any, then rerun the overlap command into the Overlap file. A caller that says the spec lacks a field has answered "no such field" for it.
+**An input your caller supplies as a file is used as given; gather only the rest.** The fact list is always yours to build. A caller that says the spec lacks a field has answered "no such field" for it.
 
 **The draft input is two paths in the issue workspace**: the Agent draft at the path [`agent-draft.md`](../../../docs/pieces/agent-draft.md) gives, in `<repo>`'s clone, and the passages folder, `.runner/passages/<repo>-<n>` under the workspace root, which holds each passage the drafter read, one file per source and range. Read the spec, the Research comment it links and the sheets as below; read no Drive file and no web page.
 

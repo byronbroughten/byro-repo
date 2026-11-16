@@ -392,6 +392,9 @@ describe("review on a piece spec's drafting ticket", () => {
         expect(seen.prompt).toContain(join(inputsFolder(), file));
       }
       expect(seen.prompt).toContain(join(inputsFolder(), "overlap-allow.txt"));
+      expect(seen.prompt).toContain(
+        "The Overlap allow file lists no terms, so the spec reviewer judges overlap hits on proper names and fixed terms as Dismissed overlaps.",
+      );
       expect(git(workspacePath(), "status", "--porcelain")).toBe("");
     });
 

@@ -32,7 +32,7 @@ const patterns = {
   academicLine: /^Academic$/,
 } as const;
 
-// Empty but for this note: which names the Piece can't reword is the review's judgment, so the prompt has it add them and rerun.
+// Empty but for this note: which names the Piece can't reword is judgment, so the spec reviewer dismisses their hits instead.
 const allowNote =
   "# One proper name or fixed term per line, which the Piece can't reword; the runner lists none.\n";
 

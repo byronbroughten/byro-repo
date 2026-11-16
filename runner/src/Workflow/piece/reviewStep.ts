@@ -92,11 +92,11 @@ function suppliedInputsLinesOf(
   return `${lines.join(" ")}\n\n`;
 }
 
-// The runner can't judge which names the Piece can't reword, so filling the allow file stays the review's.
+// The runner can't judge which names the Piece can't reword, so its allow file lists none, as pieceChecks' overlap run.
 function allowLinesOf(suppliedInputs: SuppliedInput[]): string[] {
   if (!suppliedInputs.some(({ name }) => name === "Overlap allow")) return [];
   return [
-    "The Overlap allow file lists no name: add the proper names and fixed terms the Piece can't reword, if any, and rerun the overlap command with it into the Overlap file.",
+    "The Overlap allow file lists no terms, so the spec reviewer judges overlap hits on proper names and fixed terms as Dismissed overlaps.",
   ];
 }
 
