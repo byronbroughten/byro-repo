@@ -6,9 +6,10 @@
 import { stepReadLine } from "../../IssueReader.ts";
 import {
   codeListOf,
+  implementerReviewLineOf,
   reviewFindingsText,
-  reviewStepLineOf,
   sessionReturnOf,
+  sessionReviewLineOf,
 } from "../../promptText.ts";
 import {
   arraySchema,
@@ -36,11 +37,15 @@ export function pieceReviewPrompt({
   branch,
   workspacePath,
   draftPath,
-  isByImplementer,
+  isSessionReview = false,
 }: PieceReviewPromptInput): string {
   const passagesFolder = passagesFolderIn(workspacePath, issue);
   const scope = draftingScope.sectionsOf(labels);
-  return `${reviewStepLineOf(isByImplementer, " on a piece spec's drafting ticket")}
+  const ticketKind = " on a piece spec's drafting ticket";
+  const opening = isSessionReview
+    ? sessionReviewLineOf(ticketKind)
+    : implementerReviewLineOf(ticketKind);
+  return `${opening}
 
 Read \`.claude/skills/${skillName}/SKILL.md\` and follow it to review ${issue.repo}#${issue.number}, "${title}", on the ${codeListOf(pieceAxes, "and")} axes. It is user-invoked, so read it by that path rather than calling the Skill tool. Your working directory is the ticket's issue workspace root, on the ticket's branch, \`${branch}\`. The draft input is the Agent draft, \`${draftPath}\` in the \`${spec.repo}\` clone, and the passages folder, \`${passagesFolder}\`; the ticket's spec is ${spec.repo}#${spec.number}. The in-scope text is ${scope}. ${stepReadLine}
 

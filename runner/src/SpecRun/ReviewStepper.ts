@@ -50,10 +50,16 @@ interface ImplementerLaunch {
   freshPrompt?: string;
 }
 
+interface ReviewLaunch extends Omit<ImplementerLaunch, "step"> {
+  isSessionReview: boolean;
+}
+
 interface ReviewerResume {
   ran: RanStep;
   reviewerCheck: ReviewerCheck;
-  jsonSchema: object;
+  // The review's own launch, whose prompt a fresh rerun of the resume takes.
+  launch: StepLaunch;
+  isSessionReview: boolean;
 }
 
 type ResolveOutcome =
@@ -103,27 +109,28 @@ export class ReviewStepper extends SpecRunBase {
     const { reviewerCheck, outputSchema: jsonSchema } = rules;
     const isInlineAllowed =
       reviewerCheck !== undefined && (await this._isInlineSize(ticketRun));
-    const isByImplementer = run.sessionReview === undefined;
+    const isSessionReview = run.sessionReview !== undefined;
     const launch: StepLaunch = {
       prompt: rules.promptOf({
         ...ticketSteps.promptFieldsOf(ticketRun),
         skillName: rules.skillName,
         isInlineAllowed,
-        isByImplementer,
+        isSessionReview,
         pointsWorthChecking: pointsWorthCheckingOf(state.record),
       }),
       jsonSchema,
     };
-    // A session review has no implementer session to resume, so it runs in a fresh review session of its own.
-    let ran = isByImplementer
-      ? await this._runImplementerStep(ticketRun, { step: "review", launch })
-      : await this.stepLauncher._runStep(ticketRun, "review", launch);
+    let ran = await this._runReviewSession(ticketRun, {
+      launch,
+      isSessionReview,
+    });
     state.hasSkippedReviewers = undefined;
     if (reviewerCheck !== undefined && !isInlineAllowed) {
       ran = await this._sentBackForReviewers(ticketRun, {
         ran,
         reviewerCheck,
-        jsonSchema,
+        launch,
+        isSessionReview,
       });
     }
     const { record, logPath } = ticketSteps.launchedOf("review", ran);
@@ -136,10 +143,36 @@ export class ReviewStepper extends SpecRunBase {
     state.dismissedOverlaps = dismissedOverlaps;
   }
 
+  // A resume that finds no conversation runs fresh, a session review's as the implementer's does.
+  private async _runReviewSession(
+    ticketRun: TicketRun,
+    { launch, isSessionReview, freshPrompt }: ReviewLaunch,
+  ): Promise<RanStep> {
+    if (!isSessionReview) {
+      return this._runImplementerStep(ticketRun, {
+        step: "review",
+        launch,
+        freshPrompt,
+      });
+    }
+    // A session review has no implementer session to resume, so it runs in a fresh review session of its own.
+    const ran = await this.stepLauncher._runStep(ticketRun, "review", launch);
+    if (!ran.result.hasNoConversation) return ran;
+    this._log(
+      ticketRun.run,
+      `${issueRef.labelOf(ticketRun.ticket.issue)}: the review step's session ${launch.resumeSessionId} has no conversation; running it as a fresh session.`,
+    );
+    return this.stepLauncher._runStep(ticketRun, "review", {
+      ...launch,
+      prompt: freshPrompt ?? launch.prompt,
+      resumeSessionId: undefined,
+    });
+  }
+
   // A review that spawned fewer reviewers than its Workflow names is resumed once; a second skip is recorded for its review list.
   private async _sentBackForReviewers(
     ticketRun: TicketRun,
-    { ran, reviewerCheck, jsonSchema }: ReviewerResume,
+    { ran, reviewerCheck, launch, isSessionReview }: ReviewerResume,
   ): Promise<RanStep> {
     const { run, ticket, state } = ticketRun;
     const label = issueRef.labelOf(ticket.issue);
@@ -150,14 +183,15 @@ export class ReviewStepper extends SpecRunBase {
       run,
       `${label}: the review ${spawnedPhraseOf(spawned, count)}; resuming it to spawn them.`,
     );
-    const resumed = await this.stepLauncher._runStep(ticketRun, "review", {
-      prompt: resumePrompt,
-      jsonSchema,
-      resumeSessionId: ran.result.sessionId,
+    const resumed = await this._runReviewSession(ticketRun, {
+      launch: {
+        prompt: resumePrompt,
+        jsonSchema: launch.jsonSchema,
+        resumeSessionId: ran.result.sessionId,
+      },
+      isSessionReview,
+      freshPrompt: launch.prompt,
     });
-    if (run.sessionReview === undefined) {
-      noteImplementerResult(state, resumed.result);
-    }
     const total = spawned + resumed.result.spawnedSubagentCount;
     if (total < count) {
       state.hasSkippedReviewers = true;

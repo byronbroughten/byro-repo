@@ -233,8 +233,8 @@ export interface ReviewPromptInput extends TicketPromptFields {
   skillName: string;
   // Set when the diff is within the inlineReviewMaxFiles knob, so the review may skip its reviewer subagents.
   isInlineAllowed: boolean;
-  // Set when the implementer reviews its own work, in its session or a fresh one after a handoff; unset for a session review's fresh review session.
-  isByImplementer: boolean;
+  // Set for a session review's fresh review session; otherwise the implementer reviews its own work, in its session or a fresh one after a handoff.
+  isSessionReview?: boolean;
   // The committed implement record's, absent for a session review, which has none.
   pointsWorthChecking?: string[];
 }
@@ -381,7 +381,8 @@ export function hasAgentStep(
   return workflow.agentSteps[name] !== undefined;
 }
 
-// The steps that resume the implementer's session; research and the gap check each run in their own.
+// The steps that resume the implementer's session in a run; research and the gap check each run in their own.
+// A session review runs fresh but launches under the same schema, which costs it nothing.
 const sessionStepNames = [
   "implement",
   "review",

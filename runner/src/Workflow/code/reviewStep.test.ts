@@ -15,7 +15,6 @@ describe("reviewPrompt", () => {
     branchedRepos: ["byro-repo"],
     workspacePath: "/workspaces/byro-repo-issue-269",
     isInlineAllowed: false,
-    isByImplementer: true,
   };
   const briefLine = "paste it into both reviewers' briefs";
 
@@ -63,7 +62,7 @@ describe("reviewPrompt", () => {
   });
 
   it("words a session review as the review step", () => {
-    const prompt = reviewPrompt({ ...input, isByImplementer: false });
+    const prompt = reviewPrompt({ ...input, isSessionReview: true });
     expect(prompt).toContain("You are the review step");
     expect(prompt).not.toContain("your own work");
   });

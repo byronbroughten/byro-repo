@@ -5,9 +5,10 @@
 
 import { stepReadLine } from "../../IssueReader.ts";
 import {
+  implementerReviewLineOf,
   reviewFindingsText,
-  reviewStepLineOf,
   sessionReturnOf,
+  sessionReviewLineOf,
 } from "../../promptText.ts";
 import { reviewRecordSchemaOf } from "../../recordSchema.ts";
 import type { Axis } from "../../verdicts.ts";
@@ -22,11 +23,11 @@ export function reviewPrompt({
   branch,
   branchedRepos,
   isInlineAllowed,
-  isByImplementer,
+  isSessionReview = false,
   pointsWorthChecking = [],
 }: ReviewPromptInput): string {
   return [
-    reviewStepLineOf(isByImplementer),
+    isSessionReview ? sessionReviewLineOf() : implementerReviewLineOf(),
     `Call the Skill tool with "${skillName}" to review ${issue.repo}#${issue.number}, "${title}", on both axes, with \`master\` as the fixed point. Your working directory is the ticket's issue workspace root; these repos are on the ticket's branch, \`${branch}\`: ${branchedRepos.join(", ")}. Review each one's changes. ${stepReadLine}`,
     ...(isInlineAllowed ? [inlineLine] : []),
     ...pointsSectionsOf(pointsWorthChecking),

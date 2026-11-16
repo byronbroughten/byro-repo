@@ -11,6 +11,7 @@ import {
   crashed,
   findingOf,
   implemented,
+  noConversation,
   passes,
   progressLines,
   reviewed,
@@ -60,6 +61,25 @@ describe("a run's review that skips its reviewers", () => {
     expect(resumed?.sessionSchema).toEqual(implementer?.sessionSchema);
     expect(resumed?.logPath).toMatch(/-review\.jsonl$/);
     expect(resumed?.prompt).toContain("Standards and Spec");
+    expect(reviewListOf(1)).toBeUndefined();
+  });
+
+  it("reruns the review fresh, by its own prompt, when the resume sending it back finds no conversation", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      implementedTwoFiles,
+      inReviewSession(reviewedInline()),
+      noConversation,
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.kind).toBe("finished");
+    const [, review, lost, fresh] = agentStep.requests;
+    expect(lost?.resumeSessionId).toBe("review-session");
+    expect(fresh?.resumeSessionId).toBeUndefined();
+    expect(fresh?.prompt).toBe(review?.prompt);
     expect(reviewListOf(1)).toBeUndefined();
   });
 
