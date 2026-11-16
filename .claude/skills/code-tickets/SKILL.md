@@ -32,7 +32,7 @@ Break the work into **tracer bullet** tickets, drafting every ticket the spec ne
 
 - Each slice cuts a narrow but COMPLETE path through every layer (schema, API, UI, tests): vertical, NOT a horizontal slice of one layer
 - A completed slice is demoable or verifiable on its own
-- Each slice fits the ticket budget by its estimate, its files counted by grepping the names it changes ([ticket size](../../../docs/agents/planning.md#ticket-size))
+- Each slice fits the ticket budget by its estimate, its files counted by grepping the names it changes ([ticket size](../../../docs/agents/tickets.md#ticket-size))
 - Any prefactoring should be done first
 
 </vertical-slice-rules>
@@ -45,11 +45,11 @@ Give each ticket one **kind**:
 
 Split a slice that needs two kinds into one ticket per kind; when one part needs another's output, that part's ticket blocks the other.
 
-Give each `ready-for-agent` and `ready-for-interactive` ticket its **model fit**: one of the pairs in [`planning.md`](../../../docs/agents/planning.md#model-fit) and a one-line reason.
+Give each `ready-for-agent` and `ready-for-interactive` ticket its **model fit**: one of the pairs in [`tickets.md`](../../../docs/agents/tickets.md#model-fit) and a one-line reason.
 
 Give each ticket its **blocking edges**: the other tickets that must complete before it can start. A ticket with no blockers can start immediately.
 
-Then **merge** tickets so fewer are estimated under 90K ([ticket size](../../../docs/agents/planning.md#ticket-size)), aiming for 110–125K:
+Then **merge** tickets so fewer are estimated under 90K ([ticket size](../../../docs/agents/tickets.md#ticket-size)), aiming for 110–125K:
 
 - Merge only tickets with the same model fit pair, neither blocking the other; the merged ticket keeps that pair.
 - Never make a ticket estimated over 150K.
@@ -76,7 +76,7 @@ Present the proposed breakdown as a numbered list. For each ticket, show:
 - **Kind**: agent, interactive or human; for an agent or interactive ticket, its model fit
 - **What it delivers**: the end-to-end behaviour this ticket makes work
 - **Files**: the count from the slice rules' grep, with the names
-- **Estimate**: its `~NK` by [ticket size](../../../docs/agents/planning.md#ticket-size); split a ticket over the budget before showing it
+- **Estimate**: its `~NK` by [ticket size](../../../docs/agents/tickets.md#ticket-size); split a ticket over the budget before showing it
 
 Ask the user:
 

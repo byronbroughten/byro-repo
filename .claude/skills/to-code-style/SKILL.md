@@ -24,7 +24,7 @@ Do steps 0-3 silently. The user sees only step 4.
 
 Say which file you chose in one line. When the session is not yours, also:
 
-- **Read its handoff first**, if it left one ([`docs/agents/planning.md`](../../../docs/agents/planning.md#handoffs)). It says what the session was trying to do.
+- **Read its handoff first**, if it left one ([`docs/agents/handoffs.md`](../../../docs/agents/handoffs.md#handoffs)). It says what the session was trying to do.
 - **Read the user's turns before anything else**, with the command in [`docs/session-transcripts.md`](../../../docs/session-transcripts.md), which also says which `type:"user"` entries are the user's.
 - **Bound the session's changes by its first and last timestamps**, and take them from `git log` and `git diff` over that window. The branch may hold other work.
 - **Check every candidate against the docs as they are now.** A later session may have added it already. `git log -- docs AGENTS.md` shows what the reviewed session itself changed.

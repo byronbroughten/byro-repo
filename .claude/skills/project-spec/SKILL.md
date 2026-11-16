@@ -13,17 +13,15 @@ The issue tracker and triage label vocabulary should have been provided to you. 
 
 ## 1. Explore
 
-Explore the repo to understand the current state of the codebase, if you haven't already. Use the project's domain glossary vocabulary throughout each spec, and respect ADRs in the area you're touching, and the design.md principles that apply.
+Explore the repo, if you haven't already, by [`specs.md`'s Exploring](../../../docs/agents/specs.md#exploring).
 
 ## 2. Split the work into specs
 
-**Split work into several specs for a gate (real use could change or cancel what follows) or for size (a spec headed past about 55 user stories or about 25K characters of body)**; the rest of the rule is [`planning.md`'s Phases](../../../docs/agents/planning.md#phases). With neither reason, the Project is one spec.
+**Split work into several specs for a gate (real use could change or cancel what follows) or for size (a spec headed past about 55 user stories or about 25K characters of body)**; the rest of the rule is [`specs.md`'s Phases](../../../docs/agents/specs.md#phases). With neither reason, the Project is one spec.
 
 Each spec has one kind, `code` or `piece`. Never plan a spec of both kinds: mixed work becomes one code spec and one piece spec in the same Project.
 
-For each code spec, sketch the seams at which you're going to test it. Existing seams should be preferred to new ones. Use the highest seam possible. If new seams are needed, propose them at the highest point you can. The fewer seams across the codebase, the better - the ideal number is one.
-
-Name any planned test that would break a [test speed rule](../../../config/docs/code-style/tests.md#test-speed) and warn about it clearly, saying which rule it breaks. The spec's Testing Decisions repeat the warning, so it reaches the ticket implemented from it. The warning needs no approval of its own.
+For each code spec, sketch its test seams and warn of any planned test that would break a test speed rule, by [`specs.md`'s Test seams](../../../docs/agents/specs.md#test-seams).
 
 ## 3. Fill a piece spec's ten fields
 
@@ -128,7 +126,7 @@ Any further notes about the feature.
 
 </code-template>
 
-`## Model fit` is the last section of a code spec meant for one session: a pair line naming one of the pairs in [`planning.md`](../../../docs/agents/planning.md#model-fit), then a one-line reason. A code spec that won't fit one session is still filed, without the section.
+`## Model fit` is the last section of a code spec meant for one session: a pair line naming one of the pairs in [`tickets.md`](../../../docs/agents/tickets.md#model-fit), then a one-line reason. A code spec that won't fit one session is still filed, without the section.
 
 A piece spec has no `## Model fit`; its tickets carry the pairs, picked by [`model-fit.md`](../../../docs/agents/model-fit.md). Drive and Doc IDs belong in it: the implementer reads by them.
 
