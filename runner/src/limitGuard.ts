@@ -185,7 +185,7 @@ export function rankAccounts(request: AccountRankRequest): AccountRanking {
   return ranking;
 }
 
-function freshReadingOf(
+export function freshReadingOf(
   reading: AccountReading,
   streamUsage: ReadonlyMap<number, UsageReading> | undefined,
 ): AccountReading {
@@ -195,15 +195,24 @@ function freshReadingOf(
 }
 
 function leftOutReasonOf(
-  { account, usage, isDisabled }: AccountReading,
+  reading: AccountReading,
   { leasedAccounts, unavailableAccounts, knobs }: AccountRankRequest,
 ): LeftOutReason | undefined {
+  const { account, isDisabled } = reading;
   if (isDisabled === true) return { kind: "disabled" };
   if (unavailableAccounts.has(account)) return { kind: "unavailable" };
   if (leasedAccounts.has(account)) return { kind: "leased" };
+  const decision = decideReading(reading, knobs);
+  return decision?.kind === "limitWait" ? decision : undefined;
+}
+
+// Undefined for an account with no usable reading, which no threshold holds.
+export function decideReading(
+  { usage }: AccountReading,
+  knobs: LimitGuardKnobs,
+): GuardDecision | undefined {
   if (usage === undefined) return undefined;
-  const decision = decideStep(usage, knobs);
-  return decision.kind === "limitWait" ? decision : undefined;
+  return decideStep(usage, knobs);
 }
 
 // Each comparison's 0 is a tie that falls through to the next.

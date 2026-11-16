@@ -522,6 +522,47 @@ describe("run's limit guard", () => {
     ]);
   });
 
+  it("waits saying why no account is free while the rest are a hit account and a disabled one, and resumes on the hit account after its reset plus the margin", async () => {
+    addSpec([1]);
+    let isAccount2Disabled = false;
+    let now = new Date("2026-10-12T10:00:00Z");
+    const sleeps: number[] = [];
+    const agentStep = FakeAgentStep.init(
+      limitHitStep("stream\n", fiveHourHit),
+      implemented("one.ts", {
+        act: () => {
+          isAccount2Disabled = true;
+        },
+      }),
+      reviewed(),
+    );
+
+    const result = await specRun(agentStep, {
+      usageReader: {
+        async read() {
+          const list = usageListOf(0.1, 0.5);
+          const readings = list.readings.map((reading) => ({
+            ...reading,
+            isDisabled: reading.account === 2 && isAccount2Disabled,
+          }));
+          return { ...list, readings };
+        },
+      },
+      clock: { now: () => now },
+      async sleep(ms) {
+        sleeps.push(ms);
+        now = new Date("2026-10-12T11:01:00Z");
+      },
+    }).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(sleeps).toEqual([60_000]);
+    expect(agentStep.requests.map(({ account }) => account)).toEqual([1, 2, 1]);
+    expect(limitWaitNotices()).toEqual([
+      "Limit wait: each account hit a limit in this run, is leased by another run or is disabled in cswap; continuing after 2026-10-12 06:01:00 CDT. An account another run releases continues the run too.",
+    ]);
+  });
+
   it("counts a resolve step's limit resume in its ticket's facts file", async () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(

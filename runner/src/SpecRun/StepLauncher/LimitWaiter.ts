@@ -10,13 +10,10 @@ import { join } from "node:path";
 
 import type { StepResult } from "../../AgentStep.ts";
 import {
-  type AccountReading,
   type AccountUsage,
-  decideStep,
-  freshestUsageOf,
+  decideReading,
+  freshReadingOf,
   type LeftOutAccount,
-  type LimitGuardKnobs,
-  type LimitWait,
   rankAccounts,
   type UsageList,
   windowNameOf,
@@ -37,13 +34,9 @@ interface LaunchWait {
 
 type LaunchCheck = { kind: "launch"; account: number } | LaunchWait;
 
-interface LimitWaitingAccount {
-  account: number;
-  reason: LimitWait;
-}
-
-// `unavailableUntils` are the known ends of the run's unavailable accounts, which may continue the run before any threshold lifts.
-interface HeldRun {
+// A launch no account could take. `unavailableUntils` are the known ends of the run's unavailable accounts no other run leases,
+// which may continue the run before any threshold lifts.
+interface BlockedLaunch {
   heldAccount: number | undefined;
   leftOut: LeftOutAccount[];
   unavailableUntils: Date[];
@@ -109,9 +102,10 @@ export class LimitWaiter extends SpecRunBase {
     const hold = run.accountHold;
     const usageList = await this._knownActiveUsageListOf(run);
     this._clearLapsedUnavailable(run, usageList);
+    const leasedAccounts = hold.otherHoldersAccounts();
     const { ranked, leftOut } = rankAccounts({
       usageList,
-      leasedAccounts: hold.otherHoldersAccounts(),
+      leasedAccounts,
       unavailableAccounts: new Set(run.unavailableAccounts.keys()),
       streamUsage: run.streamUsage,
       knobs: this.config.knobs,
@@ -134,8 +128,11 @@ export class LimitWaiter extends SpecRunBase {
       return launchWaitOf({
         heldAccount: hold.account,
         leftOut: [...leftOut, ...takenFirst],
-        unavailableUntils: [...run.unavailableAccounts.values()].filter(
-          (until) => until !== undefined,
+        unavailableUntils: [...run.unavailableAccounts].flatMap(
+          ([account, until]) => {
+            if (until === undefined || leasedAccounts.has(account)) return [];
+            return [until];
+          },
         ),
       });
     }
@@ -150,13 +147,17 @@ export class LimitWaiter extends SpecRunBase {
   }
 
   // A hit with a reset lapses at its time, even while cswap's stale reading reads under; one with none, once the account reads under its thresholds.
+  // Without a usable reading an account can't be shown under, so it stays unavailable.
   private _clearLapsedUnavailable(run: Run, { readings }: UsageList): void {
     const now = this.config.clock.now().getTime();
     for (const [account, until] of run.unavailableAccounts) {
-      let isLapsed: boolean;
+      let isLapsed = false;
       if (until === undefined) {
         const reading = readings.find((each) => each.account === account);
-        isLapsed = isUnderThresholds(reading, run, this.config.knobs);
+        if (reading !== undefined) {
+          const fresh = freshReadingOf(reading, run.streamUsage);
+          isLapsed = decideReading(fresh, this.config.knobs)?.kind === "launch";
+        }
       } else {
         isLapsed = until.getTime() <= now;
       }
@@ -184,20 +185,6 @@ export class LimitWaiter extends SpecRunBase {
   }
 }
 
-// Without a usable reading an account can't be shown under, so it stays unavailable.
-function isUnderThresholds(
-  reading: AccountReading | undefined,
-  { streamUsage }: Run,
-  knobs: LimitGuardKnobs,
-): boolean {
-  if (reading?.usage === undefined) return false;
-  const usage = freshestUsageOf(
-    reading.usage,
-    streamUsage.get(reading.account),
-  );
-  return decideStep(usage, knobs).kind === "launch";
-}
-
 function leasedOf(account: number): LeftOutAccount {
   return { account, reason: { kind: "leased" } };
 }
@@ -207,17 +194,17 @@ function launchWaitOf({
   heldAccount,
   leftOut,
   unavailableUntils,
-}: HeldRun): LaunchWait {
+}: BlockedLaunch): LaunchWait {
   const waiting = leftOut.flatMap(({ account, reason }) =>
     reason.kind === "limitWait" ? [{ account, reason }] : [],
   );
-  const until = earliestDateOf([
-    ...waiting.map(({ reason }) => reason.until),
-    ...unavailableUntils,
-  ]);
+  const until = earliestOf(
+    [...waiting.map(({ reason }) => reason.until), ...unavailableUntils],
+    (date) => date,
+  );
   const named =
     waiting.find(({ account }) => account === heldAccount) ??
-    earliestOf(waiting);
+    earliestOf(waiting, ({ reason }) => reason.until);
   if (named === undefined) {
     return {
       kind: "limitWait",
@@ -238,30 +225,21 @@ function launchWaitOf({
 function unthresholdedWaitOf(leftOut: LeftOutAccount[]): string {
   const kinds = new Set(leftOut.map(({ reason }) => reason.kind));
   if (kinds.has("unavailable")) {
-    return "every account not leased by another run hit a limit in this run";
+    return "each account hit a limit in this run, is leased by another run or is disabled in cswap";
   }
   if (kinds.has("leased")) return "every account is leased by another run";
   return "no account is enabled in cswap";
 }
 
-function earliestDateOf(dates: Date[]): Date | undefined {
-  let earliest: Date | undefined;
-  for (const each of dates) {
-    if (earliest === undefined || each.getTime() < earliest.getTime()) {
-      earliest = each;
-    }
-  }
-  return earliest;
-}
-
-function earliestOf(
-  waiting: LimitWaitingAccount[],
-): LimitWaitingAccount | undefined {
-  let earliest: LimitWaitingAccount | undefined;
-  for (const each of waiting) {
+function earliestOf<IT>(
+  items: IT[],
+  dateOf: (item: IT) => Date,
+): IT | undefined {
+  let earliest: IT | undefined;
+  for (const each of items) {
     if (
       earliest === undefined ||
-      each.reason.until.getTime() < earliest.reason.until.getTime()
+      dateOf(each).getTime() < dateOf(earliest).getTime()
     ) {
       earliest = each;
     }
