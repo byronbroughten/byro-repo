@@ -30,6 +30,7 @@ import {
 } from "../IssueWorkspaces.ts";
 import {
   type AccountReading,
+  type KnownActiveUsageList,
   type UsageList,
   type UsageReader,
 } from "../limitGuard.ts";
@@ -279,13 +280,21 @@ export class SpecRunBase {
     this._saveState(run);
   }
 
-  // Usage is undefined when the read gives none for the Active account.
+  // Usage is undefined when the read gives none for the Active account; the run-start notice and status name it.
   protected async _activeReadingOf(run: Run): Promise<AccountReading> {
+    const { readings, activeAccount } = await this._knownActiveUsageListOf(run);
+    const usage = readings.find((r) => r.account === activeAccount)?.usage;
+    return { account: activeAccount, usage };
+  }
+
+  // Every account's reading, read only once cswap names the Active account.
+  protected async _knownActiveUsageListOf(
+    run: Run,
+  ): Promise<KnownActiveUsageList> {
     const list = await this._usageListOf(run);
-    const account = list?.activeAccount;
-    if (account === undefined) throw new ActiveAccountUnknown();
-    const usage = list?.readings.find((r) => r.account === account)?.usage;
-    return { account, usage };
+    const activeAccount = list?.activeAccount;
+    if (activeAccount === undefined) throw new ActiveAccountUnknown();
+    return { readings: list?.readings ?? [], activeAccount };
   }
 
   private async _usageListOf(run: Run): Promise<UsageList | undefined> {

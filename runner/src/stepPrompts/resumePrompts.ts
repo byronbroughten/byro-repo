@@ -13,7 +13,7 @@ export const handoffOnlyPrompt = `Stop now. ${sessionReturnOf(["record"])}, a ha
 // Sent with --resume at a step boundary once the implementer is past the ticket budget, while its cache is still warm.
 export const budgetHandoffPrompt = `You are past the ticket budget, so a fresh session takes this ticket's next step. Change no files. ${sessionReturnOf(["record"])}, a handoff record whose conclusion says what is done and what that step should do.`;
 
-// Sent with --resume once a usage limit that cut a step off has reset or the Active account has changed.
+// Sent with --resume once the launch check gives an account under its thresholds after a usage limit cut a step off.
 export const limitResumePrompt = `A usage limit cut the previous run off; it has passed. Check the tree you left and carry on where you stopped. ${unattendedRunLine()}`;
 
 // Sent with --resume on a `retry record` answer, after a record failed its check once the step had committed.

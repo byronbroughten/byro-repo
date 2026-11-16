@@ -4,6 +4,7 @@ import type { StepResult } from "./AgentStep.ts";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
 import type { UsageReader } from "./limitGuard.ts";
 import {
+  accountsListOf,
   addSpec,
   crashed,
   eventOf,
@@ -21,28 +22,30 @@ import {
 
 useSpecRunHarness();
 
-// Both accounts read the same usage; only which one cswap reports active changes.
+// Account 1 carries the usage a step moves; only which account cswap reports active changes otherwise.
 let activeAccount: number | undefined;
+let account1FiveHour = 0.1;
 const switchableReader: UsageReader = {
-  read: async () => ({ ...usageListOf(0.1, 0.2), activeAccount }),
+  read: async () => ({ ...usageListOf(account1FiveHour, 0.2), activeAccount }),
 };
 
-// Runs the step, then switches the active account, as `cswap switch` mid-run would.
-function thenSwitchTo(account: number, step: ScriptedStep): ScriptedStep {
+// Runs the step, then puts account 1 past its 5-hour threshold, as the step's own use would.
+function thenPastThreshold(step: ScriptedStep): ScriptedStep {
   return async (request) => {
     const result: StepResult =
       typeof step === "function" ? await step(request) : step;
-    activeAccount = account;
+    account1FiveHour = 0.95;
     return result;
   };
 }
 
 describe("run's active account", () => {
-  it("launches each fresh step on the account active just before it, so a switch between steps moves the next", async () => {
+  it("launches a step on the run's account until it is past a threshold, then on the Active account as the only one under", async () => {
     addSpec([1]);
-    activeAccount = 1;
+    activeAccount = 2;
+    account1FiveHour = 0.1;
     const agentStep = FakeAgentStep.init(
-      thenSwitchTo(2, implemented("one.ts")),
+      thenPastThreshold(implemented("one.ts")),
       reviewed(),
     );
 
@@ -56,9 +59,10 @@ describe("run's active account", () => {
 
   it("names the account each step launched on in the progress log", async () => {
     addSpec([1]);
-    activeAccount = 1;
+    activeAccount = 2;
+    account1FiveHour = 0.1;
     const agentStep = FakeAgentStep.init(
-      thenSwitchTo(2, implemented("one.ts")),
+      thenPastThreshold(implemented("one.ts")),
       reviewed(),
     );
 
@@ -74,11 +78,12 @@ describe("run's active account", () => {
     ]);
   });
 
-  it("resumes a crashed session that ran on account 2 on the Active account 1", async () => {
+  it("resumes a crashed session that ran on account 1 on the account the launch check gives", async () => {
     addSpec([1]);
     activeAccount = 2;
+    account1FiveHour = 0.1;
     const agentStep = FakeAgentStep.init(
-      thenSwitchTo(1, { ...crashed, account: 2 }),
+      thenPastThreshold(crashed),
       implemented("one.ts"),
       reviewed(),
     );
@@ -94,15 +99,16 @@ describe("run's active account", () => {
         resumeSessionId,
       })),
     ).toEqual([
-      { account: 2, resumeSessionId: undefined },
-      { account: 1, resumeSessionId: "crashed-session" },
-      { account: 1, resumeSessionId: "session" },
+      { account: 1, resumeSessionId: undefined },
+      { account: 2, resumeSessionId: "crashed-session" },
+      { account: 2, resumeSessionId: "session" },
     ]);
   });
 
   it("Stops before any step, naming cswap, when cswap reports no active account", async () => {
     addSpec([1]);
     activeAccount = undefined;
+    account1FiveHour = 0.1;
     const agentStep = FakeAgentStep.init();
 
     const result = await specRun(agentStep, {
@@ -129,6 +135,7 @@ describe("run's active account", () => {
   it("Stops before the next fresh step, naming cswap, when the active account becomes unreadable mid-run", async () => {
     addSpec([1]);
     activeAccount = 1;
+    account1FiveHour = 0.1;
     const agentStep = FakeAgentStep.init(async (request) => {
       const result = await implemented("one.ts")(request);
       activeAccount = undefined;
@@ -144,39 +151,25 @@ describe("run's active account", () => {
     expect(agentStep.requests).toHaveLength(1);
   });
 
-  it("guards the account the step will run on, naming it in the Limit wait", async () => {
+  it("launches on account 1 with no Limit wait while the Active account is past its threshold", async () => {
     addSpec([1]);
-    activeAccount = 2;
-    let read = 0;
-    const reader: UsageReader = {
-      read: async () =>
-        read++ === 1
-          ? { readings: overAccount2(), activeAccount: 2 }
-          : usageListOf(0.1, 0.2, 2),
-    };
+    scriptUsage(
+      accountsListOf(
+        [
+          { account: 1, fiveHour: 0.1, sevenDay: 0.2 },
+          { account: 2, fiveHour: 0.95, sevenDay: 0.2 },
+        ],
+        2,
+      ),
+    );
     const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
 
-    const result = await specRun(agentStep, { usageReader: reader }).run(spec);
+    const result = await specRun(agentStep).run(spec);
 
     expect(result.landed).toEqual([refOf(1)]);
-    expect(noticeSummaries()[1]).toMatch(
-      /^Limit wait: account 2 is at 95% of its 5-hour limit/,
-    );
-    expect(agentStep.requests.map(({ account }) => account)).toEqual([2, 2]);
+    expect(
+      noticeSummaries().filter((summary) => summary.startsWith("Limit wait")),
+    ).toEqual([]);
+    expect(agentStep.requests.map(({ account }) => account)).toEqual([1, 1]);
   });
 });
-
-// Account 2 past its 5-hour pause; account 1 idle, so a guard reading the wrong account would launch.
-function overAccount2() {
-  return usageListOf(0.1, 0.2, 2).readings.map((reading) =>
-    reading.account === 2 && reading.usage !== undefined
-      ? {
-          ...reading,
-          usage: {
-            ...reading.usage,
-            fiveHour: { ...reading.usage.fiveHour, utilization: 0.95 },
-          },
-        }
-      : reading,
-  );
-}

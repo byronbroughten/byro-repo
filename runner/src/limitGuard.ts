@@ -30,6 +30,9 @@ export interface UsageList {
   activeAccount: number | undefined;
 }
 
+// A run reads its usage list as this, since it Stops on a list with no Active account.
+export type KnownActiveUsageList = UsageList & { activeAccount: number };
+
 export interface UsageReader {
   read(): Promise<UsageList>;
 }

@@ -53,9 +53,9 @@ export interface RunKnobs {
   idlePollMs: number;
   // The root repo's folders holding the runner's own source; a landing that changes one ends the run in a Restart.
   runnerPaths: string[];
-  // The limit guard holds a step while the Active account's five-hour window is at or past this fraction of its limit.
+  // The launch check passes over an account while its five-hour window is at or past this fraction of its limit.
   fiveHourPauseAt: number;
-  // The limit guard holds a step while the Active account's weekly window is at or past this fraction of its limit.
+  // The launch check passes over an account while its weekly window is at or past this fraction of its limit.
   weeklyPauseAt: number;
   // How long past a window's reset a Limit wait lasts.
   limitWaitMarginMs: number;
