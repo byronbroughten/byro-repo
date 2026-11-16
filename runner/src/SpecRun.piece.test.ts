@@ -305,7 +305,7 @@ describe("implement on a piece spec's drafting ticket", () => {
 });
 
 describe("review on a piece spec's drafting ticket", () => {
-  it("reviews the drafted ticket in the implementer's resumed session, under its schema, reading /review-piece by its path over the Agent draft and passages folder", async () => {
+  it("reviews the drafted ticket in the implementer's resumed session, under its schema, with /review-piece's body inlined over the Agent draft and passages folder", async () => {
     addDraftingSpec();
     const agentStep = FakeAgentStep.init(drafted(), pieceReviewed());
 
@@ -317,7 +317,11 @@ describe("review on a piece spec's drafting ticket", () => {
     expect(review?.prompt).toContain("your own work");
     expect(review?.prompt).toContain("as its reviewer worded it");
     expect(review?.logPath).toMatch(/byro-repo-1-\d+-review\.jsonl$/);
-    expect(review?.prompt).toContain(".claude/skills/review-piece/SKILL.md");
+    expect(review?.prompt).toContain(
+      '<skill name="review-piece">\nThree-axis review of a Piece\'s Agent draft. Read [the rules](docs/pieces/rules.md).\n</skill>',
+    );
+    expect(review?.prompt).not.toContain("SKILL.md");
+    expect(review?.prompt).not.toContain("Skill tool");
     expect(review?.prompt).toContain(draftPath);
     expect(review?.prompt).toContain(passagesPath());
   });
@@ -360,7 +364,7 @@ describe("review on a piece spec's drafting ticket", () => {
     expect(resumed?.resumeSessionId).toBe("review-session");
     expect(resumed?.sessionSchema).toEqual(implementer?.sessionSchema);
     expect(resumed?.prompt).toContain(
-      "spec, standards and reader reviewers, as `.claude/skills/review-piece/SKILL.md` says",
+      'spec, standards and reader reviewers, as the "review-piece" skill says',
     );
     expect(reviewListOf(1)).toBeUndefined();
   });

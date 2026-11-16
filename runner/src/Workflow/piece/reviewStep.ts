@@ -1,8 +1,9 @@
 // The piece review step: the prompt that runs a review of a drafting ticket's Agent draft on the spec, standards and
-// reader axes, by the implementer in a run or an interactive session from its brief, following `/review-piece` read
-// by its path, the review record it returns: code's, on these axes, plus the overlap hits it judged no copy, and the
+// reader axes, by the implementer in a run or an interactive session from its brief, with `/review-piece`'s SKILL.md
+// body inlined, the review record it returns: code's, on these axes, plus the overlap hits it judged no copy, and the
 // check that it spawned its three reviewer subagents, with the resume that sends back one that didn't.
-// pieceWorkflow.ts registers it; ../../SpecRun/ReviewStepper.ts launches it and ../../SpecRun/SessionReviewer.ts prints it.
+// pieceWorkflow.ts registers it, reading the skill from the workspace through ../../stepPrompts/inlinedSkill.ts;
+// ../../SpecRun/ReviewStepper.ts launches it and ../../SpecRun/SessionReviewer.ts prints it.
 
 import { stepReadLine } from "../../IssueReader.ts";
 import {
@@ -17,6 +18,7 @@ import {
   reviewRecordSchemaOf,
   stringSchema,
 } from "../../recordSchema.ts";
+import { inlinedSkill } from "../../stepPrompts/inlinedSkill.ts";
 import type { Axis } from "../../verdicts.ts";
 import type { ReviewerCheck, ReviewPromptInput } from "../../Workflow.ts";
 import { draftingScope } from "./draftingScope.ts";
@@ -26,6 +28,8 @@ const pieceAxes: Axis[] = ["spec", "standards", "reader"];
 
 export interface PieceReviewPromptInput extends ReviewPromptInput {
   draftPath: string;
+  // `/review-piece`'s SKILL.md as the ticket's issue workspace holds it, frontmatter and all.
+  skillText: string;
 }
 
 export function pieceReviewPrompt({
@@ -34,6 +38,7 @@ export function pieceReviewPrompt({
   title,
   labels,
   skillName,
+  skillText,
   branch,
   workspacePath,
   draftPath,
@@ -47,7 +52,9 @@ export function pieceReviewPrompt({
   );
   return `${framing.opening}
 
-Read \`.claude/skills/${skillName}/SKILL.md\` and follow it to review ${issue.repo}#${issue.number}, "${title}", on the ${codeListOf(pieceAxes, "and")} axes. It is user-invoked, so read it by that path rather than calling the Skill tool. Your working directory is the ticket's issue workspace root, on the ticket's branch, \`${branch}\`. The draft input is the Agent draft, \`${draftPath}\` in the \`${spec.repo}\` clone, and the passages folder, \`${passagesFolder}\`; the ticket's spec is ${spec.repo}#${spec.number}. The in-scope text is ${scope}. ${stepReadLine}
+Review ${issue.repo}#${issue.number}, "${title}", on the ${codeListOf(pieceAxes, "and")} axes, by the \`${skillName}\` skill below. Your working directory is the ticket's issue workspace root, on the ticket's branch, \`${branch}\`. The draft input is the Agent draft, \`${draftPath}\` in the \`${spec.repo}\` clone, and the passages folder, \`${passagesFolder}\`; the ticket's spec is ${spec.repo}#${spec.number}. The in-scope text is ${scope}. ${stepReadLine}
+
+${inlinedSkill.sectionOf(skillText, skillName)}
 
 ${framing.returnLineOf(["findings", "dismissedOverlaps"])}
 - ${reviewFindingsText({ axes: pieceAxes, where: "its file:line in the Agent draft, or the spec's Outline line for a reader finding", claim: "what it says, in a line, quoting the sentence" })}
@@ -60,7 +67,7 @@ export function pieceReviewerCheckOf(skillName: string): ReviewerCheck {
   return {
     count: pieceAxes.length,
     resumePrompt: reviewerResumePromptOf(
-      `all three, the spec, standards and reader reviewers, as \`.claude/skills/${skillName}/SKILL.md\` says: three Agent calls in one message`,
+      `all three, the spec, standards and reader reviewers, as the "${skillName}" skill says: three Agent calls in one message`,
     ),
     offerInline: false,
   };

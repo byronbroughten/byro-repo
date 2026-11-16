@@ -248,7 +248,8 @@ describe("review of one ticket outside a run", () => {
 
       const result = await brief();
 
-      expect(result.message).toContain(".claude/skills/review-piece/SKILL.md");
+      expect(result.message).toContain('<skill name="review-piece">');
+      expect(result.message).not.toContain("SKILL.md");
       expect(result.message).toContain(
         "a JSON object holding only `findings` and `dismissedOverlaps`",
       );
@@ -260,7 +261,7 @@ describe("review of one ticket outside a run", () => {
 
       const result = await brief();
 
-      expect(result.message).toContain(".claude/skills/review-piece/SKILL.md");
+      expect(result.message).toContain('<skill name="review-piece">');
     });
   });
 

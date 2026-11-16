@@ -2,10 +2,8 @@
 // an interactive session from its brief, with the review skill's SKILL.md body inlined and its fixed point pinned; the
 // review record it returns, and the check that it spawned its two reviewer subagents, with the resume that sends back
 // one that didn't.
-// codeWorkflow.ts supplies it, reading the skill from the workspace; SpecRun/ReviewStepper.ts launches it after the
+// codeWorkflow.ts supplies it, reading the skill from the workspace through ../../stepPrompts/inlinedSkill.ts; SpecRun/ReviewStepper.ts launches it after the
 // implement step, and SpecRun/SessionReviewer.ts prints it as a session's brief; resolve reads its findings.
-
-import { posix } from "node:path";
 
 import { stepReadLine } from "../../IssueReader.ts";
 import {
@@ -14,6 +12,7 @@ import {
   reviewFramingOf,
 } from "../../promptText.ts";
 import { reviewRecordSchemaOf } from "../../recordSchema.ts";
+import { inlinedSkill } from "../../stepPrompts/inlinedSkill.ts";
 import type { Axis } from "../../verdicts.ts";
 import type {
   RepoCommits,
@@ -49,7 +48,7 @@ export function reviewPrompt({
       : [fixedPointSectionOf(commitsSinceMaster)]),
     ...(isInlineAllowed ? [inlineLine] : []),
     ...pointsSectionsOf(pointsWorthChecking),
-    `<skill name="${skillName}">\n${inlinedSkillOf(skillText, skillName)}\n</skill>`,
+    inlinedSkill.sectionOf(skillText, skillName),
     `${framing.returnLineOf(["findings"])} ${reviewFindingsText({ axes: codeAxes, where: "its file:line or area", claim: "what it says, in a line" })}`,
   ].join("\n\n");
 }
@@ -61,25 +60,6 @@ function fixedPointSectionOf(commitsSinceMaster: RepoCommits[]): string {
     return `- \`${repo}\`:\n${commits.map((commit) => `  - ${commit}`).join("\n")}`;
   });
   return `The fixed point is \`master\`: it resolves and the diff is non-empty, so the skill's step 1 is done. Each repo's diff is \`git diff master...HEAD\` in its clone; its commits since \`master\`:\n\n${repoLines.join("\n")}`;
-}
-
-// The session works from the workspace root, not the skill's folder, so each relative link is made the root's.
-function inlinedSkillOf(skillText: string, skillName: string): string {
-  const skillFolder = `.claude/skills/${skillName}`;
-  return bodyOf(skillText).replace(
-    /\]\(([^)\s]+)\)/g,
-    (link, target: string) => {
-      if (/^([a-z][a-z0-9+.-]*:|#|\/)/i.test(target)) return link;
-      return `](${posix.normalize(posix.join(skillFolder, target))})`;
-    },
-  );
-}
-
-function bodyOf(skillText: string): string {
-  const frontmatter = /^---\n[\s\S]*?\n---\n/.exec(skillText);
-  const body =
-    frontmatter === null ? skillText : skillText.slice(frontmatter[0].length);
-  return body.trim();
 }
 
 // Empty when the implementer named none, as for a session's brief, which has no implement record.

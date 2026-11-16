@@ -153,6 +153,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `stepPrompts/doneLines.ts` | | The "when you're done" lines the code and piece Workflows' implement and red-checks prompts share. |
 | `stepPrompts/handoffText.ts` | | The handoff wording every Workflow's implementer shares: the nudge section, a fresh step's section, the posted comment, where in the steps it was handed off and a proposed split's text. |
 | `stepPrompts/implementText.ts` | | The bullets the implement step's prompt and the generated `/implement-code` skill share, the ticket-binds section and the implement prompt's workspace section. |
+| `stepPrompts/inlinedSkill.ts` | | Reads a skill's SKILL.md from the issue workspace and words its body for a step's prompt, frontmatter dropped and links made the root's, for both Workflows' review steps. |
 | `stepPrompts/interactiveSkill.ts` | | The generated `/implement-*` skills' shared commands, opening, generated note and ending, which takes its drift and only-writes lines from each skill. |
 | `stepPrompts/resolveText.ts` | | The resolve rules, record fields and shared prompt text every Workflow's resolve step uses. |
 | `stepPrompts/resumePrompts.ts` | | The prompts sent with `--resume` after a step is cut off, capped or sent back, or to the implementer for a handoff at a step boundary, and the tree-reset note. |
@@ -191,7 +192,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Workflow/piece/researchStep/researchWords.ts` | | The research step's prompt, its red-quotes section, handoff comment, closing comment and Research Halt words. |
 | `Workflow/piece/resolveStep.ts` | | The piece resolve step's prompt, pointing at the verdict rules' `## Piece findings` and rerunning the piece checks after its Fixes, and its record checks, which refuse the verdict reasons a piece finding never takes. |
 | `Workflow/piece/reviewCaught.ts` | | A piece outcome row's "What review caught" cell: each kept finding by its axis and public rule name only. |
-| `Workflow/piece/reviewStep.ts` | | The piece review step's prompt, reading `/review-piece` by its path over the Agent draft and passages folder, its record schema and its reviewer check. |
+| `Workflow/piece/reviewStep.ts` | | The piece review step's prompt, carrying `/review-piece`'s SKILL.md body over the Agent draft and passages folder, its record schema and its reviewer check. |
 | `WrapUp.ts` | `WrapUp` | `npm run wrap-up`: lands an issue or session workspace, delegating its landing steps and closing the issue to `WrapUp/`; and `npm run research:push`'s push. |
 | `WrapUp/BranchDeleter.ts` | | Deletes a landing's branches on each remote and locally, recording the ones that failed. |
 | `WrapUp/BranchLander.ts` | | Lands a landing's branches up to the fast-forward: restores, clean check, files changed, stale paths, unnamed new dependencies, build and rebuild. |

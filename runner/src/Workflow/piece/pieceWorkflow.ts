@@ -28,6 +28,11 @@ import {
 } from "../../SpecRun/runState.ts";
 import { handoffText } from "../../stepPrompts/handoffText.ts";
 import {
+  inlinedSkill,
+  type ReadText,
+  readUtf8,
+} from "../../stepPrompts/inlinedSkill.ts";
+import {
   implementRecordOf,
   type PieceImplementRecord,
 } from "../../stepRecords.ts";
@@ -185,6 +190,7 @@ export interface PieceWorkflowInput {
   documents: DocumentsPort;
   // The rule sheets are read under it once a ticket's review facts are written.
   rulesRoot: string;
+  readText?: ReadText;
 }
 
 export function pieceWorkflowOf({
@@ -192,7 +198,16 @@ export function pieceWorkflowOf({
   verifyQuotesCommand,
   documents,
   rulesRoot,
+  readText = readUtf8,
 }: PieceWorkflowInput): Workflow {
+  function reviewPromptOf(input: ReviewPromptInput): string {
+    return pieceReviewPrompt({
+      ...input,
+      draftPath: draftPathOf(input.spec),
+      skillText: inlinedSkill.textIn({ ...input, readText }),
+    });
+  }
+
   return {
     name: "piece",
     stepsOf(ticket) {
@@ -312,10 +327,6 @@ function draftingPromptOf(input: ImplementPromptInput): string {
     ...input,
     draftPath: draftPathOf(input.spec),
   });
-}
-
-function reviewPromptOf(input: ReviewPromptInput): string {
-  return pieceReviewPrompt({ ...input, draftPath: draftPathOf(input.spec) });
 }
 
 function redChecksPromptOf(input: RedChecksPromptInput): string {
