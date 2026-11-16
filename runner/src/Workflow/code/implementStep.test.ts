@@ -313,6 +313,12 @@ describe("implementPrompt", () => {
     );
   });
 
+  it("tells the step to follow its own handoff steps over the nudge's", () => {
+    expect(implementPrompt(input)).toContain(
+      "The nudge's own handoff steps are for an interactive session; follow these instead.",
+    );
+  });
+
   it("tells a fresh step to keep the previous step's uncommitted work", () => {
     const prompt = implementPrompt({ ...input, latestHandoff: handoffFields });
     expect(prompt).toContain(noReset);
