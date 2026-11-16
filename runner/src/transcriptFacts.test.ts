@@ -441,6 +441,70 @@ describe("transcriptFactsOf", () => {
       expect(facts.reviewCostUsd).toBeCloseTo(0.424, 6);
     });
   });
+
+  describe("a review step that resumes the implementer", () => {
+    function startedAt(minute: number): Pick<RecordedSession, "startedAt"> {
+      return { startedAt: at(minute) };
+    }
+
+    it("prices the turns and subagents from the review's recorded start as review cost, and those before it as cost", () => {
+      writeTranscript("session-warm", launchesOf([[1], [0.2], [0.1]]));
+      writeSubagent("session-warm", { minute: 1, dollars: 0.04 });
+      writeSubagent("session-warm", { minute: 11, dollars: 0.05 });
+      const steps = [
+        { ...step("implement", "session-warm"), ...startedAt(0) },
+        { ...step("review", "session-warm"), ...startedAt(10) },
+        { ...step("resolve", "session-warm"), ...startedAt(20) },
+      ];
+
+      const facts = factsOf(sessions({ steps }), []);
+
+      expect(facts.costUsd).toBeCloseTo(1.04, 6);
+      expect(facts.reviewCostUsd).toBeCloseTo(0.35, 6);
+    });
+
+    it("cuts at the recorded start, not a prompt, so a task notification after it is review cost", () => {
+      const lines = launchesOf([[1], [0.2]]).split("\n");
+      const notified = [
+        {
+          type: "user",
+          timestamp: at(9),
+          origin: { kind: "task-notification" },
+          message: { content: "<task-notification>done</task-notification>" },
+        },
+        pricedReply("msg-notified", 9, 0.5),
+      ].map((entry) => JSON.stringify(entry));
+      writeTranscript(
+        "session-warm",
+        [...lines.slice(0, 3), ...notified, ...lines.slice(3)].join("\n"),
+      );
+      const steps = [
+        { ...step("implement", "session-warm"), ...startedAt(0) },
+        { ...step("review", "session-review"), ...startedAt(8) },
+        { ...step("resolve", "session-warm"), ...startedAt(10) },
+      ];
+
+      const facts = factsOf(sessions({ steps }), []);
+
+      expect(facts.costUsd).toBeCloseTo(1, 6);
+      expect(facts.reviewCostUsd).toBeCloseTo(0.724, 6);
+    });
+
+    it("splits at the review's own launch when the session was recorded without a start", () => {
+      writeTranscript("session-warm", launchesOf([[1], [0.2], [0.1]]));
+      writeSubagent("session-warm", { minute: 11, dollars: 0.05 });
+      const steps = [
+        step("implement", "session-warm"),
+        step("review", "session-warm"),
+        step("resolve", "session-warm"),
+      ];
+
+      const facts = factsOf(sessions({ steps }), []);
+
+      expect(facts.costUsd).toBeCloseTo(1, 6);
+      expect(facts.reviewCostUsd).toBeCloseTo(0.35, 6);
+    });
+  });
 });
 
 describe("unrecordedFactsOf", () => {

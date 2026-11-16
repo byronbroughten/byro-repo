@@ -65,7 +65,7 @@ export const {
   schemaFailedOf,
   throws,
 } = stepResults;
-export const { after, timed } = timing;
+export const { after, timed, startTime } = timing;
 
 const everyClone = {
   "byro-repo": ".",
