@@ -1,18 +1,18 @@
 ---
 name: review-code-tickets
-description: "Find a code spec's Halt risks before a run: a reader that never wrote the tickets checks every one against the spec, the step permissions and the order, and reports each risk with quoted evidence and a fix or a spec-gap question. Takes /code-tickets' drafts or a spec's published sub-issues, as /review-code-tickets <repo> <n>."
+description: "Find a code spec's Halt risks before a run: a reader that never wrote the tickets checks every one against the spec, the step permissions and the order, and reports each risk with quoted evidence and a fix or a spec-gap question. Takes /project-tickets' or /code-tickets' drafts or a spec's published sub-issues, as /review-code-tickets <repo> <n>."
 disable-model-invocation: true
 ---
 
 Finds the **Halt risks** ([`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md)) in a code spec's tickets before the runner meets them. The reviewer never wrote the tickets, so a ticket its writer reads as clear still gets read **cold**, the way an implement step reads it: this session when it wrote none of them, else a fresh sub-agent on the session's model.
 
-The review reports and never edits. Inside `/code-tickets` the writer acts on the report by its own step; run standalone, this skill acts on it by step 4.
+The review reports and never edits. Inside [`/project-tickets`](../project-tickets/SKILL.md), the source of its drafts, or `/code-tickets` until #757 removes it, the writer acts on the report by its own step; run standalone, this skill acts on it by step 4.
 
 ## 1. Pin the input
 
 The input is one of:
 
-- **Drafts**: the scratchpad folder of ticket files `/code-tickets` hands over, one per ticket in the local-ticket template, with the spec's repo and number.
+- **Drafts**: the scratchpad folder of ticket files `/project-tickets` hands over, one per ticket in [`issue:file`'s draft format](../../../docs/agents/issue-tracker.md#file-tickets-from-drafts), its `blockers` the edges, with the spec's repo and number and each draft's estimate breakdown; or `/code-tickets`' folder, one per ticket in its local-ticket template.
 - **A published spec**: `/review-code-tickets <repo> <n>`. Read the spec with `npm run issue:read -- <repo> <n> --body --comments`, which also lists its sub-issues; read each sub-issue with `npm run issue:read -- <its repo> <m> --body --comments`. Read the edges, and what has landed or started, from `npm run runner -- status <owner/repo> <n>`: its `Landed`, `Current` and `Waiting` lines.
 
 A ticket that has landed or is current is **report-only**: its risks are reported, and no fix is offered for it.
@@ -24,7 +24,7 @@ Done when the spec body, every ticket body and every blocking edge are in hand, 
 One reviewer takes up to 10 tickets. Past 10, split them into parts of up to 10, in ticket order, one reviewer per part.
 
 - **This session reviews** when it wrote none of the tickets and there are 10 or fewer. Follow the brief below as your own, from what step 1 gathered.
-- **Fresh sub-agents review** otherwise, one per part, and when this session wrote the tickets, as it always has inside `/code-tickets`. Each runs on the session's model with no `model` override, in the foreground. Each prompt gives the spec body, the ticket bodies, the edges and the brief below, and nothing of how the tickets were written.
+- **Fresh sub-agents review** otherwise, one per part, and when this session wrote the tickets, as it always has inside `/project-tickets` and `/code-tickets`. Each runs on the session's model with no `model` override, in the foreground. Each prompt gives the spec body, the ticket bodies, the edges, any estimate breakdowns and the brief below, and nothing of how the tickets were written.
 - **The order pass runs past 10 tickets**, when no reviewer saw them all. Each part also returns, for each ticket, the files it changes and any gate or tier row it adds; then the order causes (4 and 9) are checked alone, from those lists, every title and every edge, by this session when it wrote none of the tickets, else by one more fresh sub-agent.
 
 Before step 3, check each finding against the evidence it quotes, and correct or drop, saying so, any that doesn't hold.
@@ -44,7 +44,7 @@ Resolve every path a ticket names, or implies by naming a skill, doc or symbol, 
 
 **The causes**, each with a Halt it once raised:
 
-1. **Size**: over the ticket budget by `tickets.md`'s estimate. (#597 split twice.)
+1. **Size**: the estimate's arithmetic doesn't hold by `tickets.md`'s "Ticket size": its `~NK` isn't fixed overhead + the union of its read sets, each file counted once, + the work allowance, a read set leaves out a file the ticket changes or reads, or the sum is over the cap. Re-check the arithmetic, against the breakdown handed over with drafts, or against the files a published ticket's names grep to; never re-estimate from scratch. (#597 split twice.)
 2. **A live run a step can't make**: a criterion needs a command against a live target the ticket doesn't name, or one the gate refuses. (#221–#228 required a `dev:gen:configs` run.)
 3. **A contradiction**: the ticket against itself, the spec, the existing tests or the implement step's rules. (#481 asked for 3 tries with 3 waits; #541 asked for `git branch -d`, which the step's rules forbid.)
 4. **A gate change not yet on master**: the ticket runs a script, or uses a tier row, that a ticket of this spec adds; the gate loads from master, so a step sees it only once that ticket lands and the run relaunches. (#492 needed its own new `freeScripts` entry.)
@@ -54,7 +54,7 @@ Resolve every path a ticket names, or implies by naming a skill, doc or symbol, 
 8. **A hand check the gate refuses**: "check by hand once" or "first confirm" through a command a step can't run. (#470's `claude -p --model haiku` check.)
 9. **An order gap**: two tickets editing the same files with no edge between them, or a ticket that needs another's output without being blocked by it. (#596 failed checks after #597 changed a message it asserted.)
 
-**The specificity bar.** A ticket leaves the implementer every choice the code, the design docs and the code style settle, as `docs/agents/tickets.md`'s "Ticket size" rule says, because the implement step "carr[ies] on with the reading the ticket best supports when the work can go on without it". Under cause 3 or 7, report only a contradiction, an undefined term, or a case the ticket's rule leaves open. A ticket with no file paths, names or shapes, or no "how", is as `/code-tickets` means it to be.
+**The specificity bar.** A ticket leaves the implementer every choice the code, the design docs and the code style settle, as `docs/agents/tickets.md`'s "Ticket size" rule says, because the implement step "carr[ies] on with the reading the ticket best supports when the work can go on without it". Under cause 3 or 7, report only a contradiction, an undefined term, or a case the ticket's rule leaves open. A ticket with no file paths, names or shapes, or no "how", is as `/project-tickets` means it to be.
 
 **Return**, for each Halt risk:
 
@@ -74,7 +74,7 @@ Done when the review, or every part and the order pass, has reported, and every 
 
 Present the Halt risks in three lists: fixes, spec gaps and interactive splits. Each list is ordered by ticket, and report-only tickets are marked. Then name the tickets with no risk, and give a count for each list.
 
-For drafts, stop here and hand the report back to `/code-tickets`.
+For drafts, stop here and hand the report back to the skill that wrote them.
 
 ## 4. Act on it, standalone
 
