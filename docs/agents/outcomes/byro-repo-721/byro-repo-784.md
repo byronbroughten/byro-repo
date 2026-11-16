@@ -1,0 +1,7 @@
+# byro-repo#784 outcome
+
+Spec: [byro-repo#721](https://github.com/byronbroughten/byro-repo/issues/721)
+
+| Issue | Workflow | Pair | Account | Files changed | Estimate | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #784 | code | Opus medium | 3 | 8 | ~120K | 144K | Halted then passed (spec-ambiguity blocker) | 1 | 1 | 0 | 0 | 9 min | $1.66 | $1.63 | Fixed: The lease lookup plus holder wording is written twice. (runner/src/AccountsSection.ts:118-119 and runner/src/accountSwitch.ts:108-110); The account-line helpers share nothing with the section class, and the file exports more than its class. (runner/src/AccountsSection.ts:104-156); CountingUsageReader duplicates FakeUsageReader's own read count and uses `static of`. (runner/src/AccountsSection.test.ts:75-87); Three duration constants serving one purpose. (runner/src/AccountsSection.test.ts:12-14); Three comments say what the code does, not why. (runner/src/AccountsSection.ts:104, 141, 152); The new Files-table row describes behaviour. (runner/src/AGENTS.md:19); Both callers add the same two-space indent to each account line. (runner/src/AccountsSection.ts:67 and runner/src/accountSwitch.ts:97). Proposed: `ReadonlyMap<number, UsageReading>` is spelled out again; no named type exists. (runner/src/AccountsSection.ts:30, 53, 127). | 663cd1a8-b79f-4845-816e-3f5085ffa3d3 |
