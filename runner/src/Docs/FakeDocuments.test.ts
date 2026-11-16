@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { FakeDocuments } from "./FakeDocuments.ts";
-import type { GoogleDocument } from "./googleDocs.ts";
+import type { GoogleDocument, ParagraphStyle } from "./googleDocs.ts";
 
 function documentWithHeading(): GoogleDocument {
   return {
@@ -24,9 +24,11 @@ function documentWithHeading(): GoogleDocument {
   };
 }
 
-async function headingOf(
-  documents: FakeDocuments,
-): Promise<{ text: string; style: object | undefined; revisionId: string }> {
+async function headingOf(documents: FakeDocuments): Promise<{
+  text: string;
+  style: ParagraphStyle | undefined;
+  revisionId: string;
+}> {
   const document = await documents.documentOf("doc-heading");
   const paragraph = document.body?.content[1]?.paragraph;
   return {

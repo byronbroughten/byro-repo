@@ -18,7 +18,11 @@ import type {
   Request,
   StructuralElement,
 } from "./googleDocs.ts";
-import { markdownDialect, type SpanStyle } from "./markdownDialect.ts";
+import {
+  markdownDialect,
+  type SectionKey,
+  type SpanStyle,
+} from "./markdownDialect.ts";
 import { blockParse, type ParsedBlock } from "./markdownDialect/blockParse.ts";
 import {
   type HeldBlock,
@@ -38,10 +42,7 @@ import {
   paragraphRangeOf,
   type PlacedParagraph,
 } from "./SectionWriter/BulletPlacer.ts";
-import {
-  HeldSectionReader,
-  type SectionKey,
-} from "./SectionWriter/HeldSectionReader.ts";
+import { HeldSectionReader } from "./SectionWriter/HeldSectionReader.ts";
 
 /** What a character of the written text needs: nothing, a new style, or every style, since it is new text. */
 type CharChange = "unchanged" | "restyled" | "inserted";

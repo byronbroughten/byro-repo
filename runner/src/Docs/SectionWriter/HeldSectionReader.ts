@@ -18,7 +18,7 @@ import type {
   StructuralElement,
   Table,
 } from "../googleDocs.ts";
-import { markdownDialect } from "../markdownDialect.ts";
+import { markdownDialect, type SectionKey } from "../markdownDialect.ts";
 import { PendingSuggestions } from "../PendingSuggestions.ts";
 import type {
   HeldBlock,
@@ -26,12 +26,6 @@ import type {
   StyledChar,
   WrittenParagraph,
 } from "../sectionDiff.ts";
-
-/** Names a Section: by its heading's headingId first, which survives a rename or a level change in the editor, then by its heading path. */
-export interface SectionKey {
-  headingPath: string;
-  headingId?: string;
-}
 
 export class HeldSectionReader {
   private readonly document: GoogleDocument;

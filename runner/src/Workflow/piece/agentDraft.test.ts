@@ -91,7 +91,7 @@ describe("agentDraft", () => {
       ),
     ).toEqual([
       {
-        path: "Part one › Intro",
+        headingPath: "Part one › Intro",
         headingId: "h.intro",
         markdown: "Agent intro one.\n",
       },

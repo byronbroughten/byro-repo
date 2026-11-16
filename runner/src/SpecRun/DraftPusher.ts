@@ -6,7 +6,7 @@
 // A stale revision makes it read and compare again, up to a bound; pending suggestions raise a push Halt naming the Doc.
 // The push rules are the Workflow's, through ../Workflow.ts; SpecEndRunner.ts runs it after the judge Step.
 
-import type { DocRead, Docs } from "../Docs.ts";
+import { type DocRead, type Docs, sectionTextOf } from "../Docs.ts";
 import { PendingSuggestions } from "../Docs/PendingSuggestions.ts";
 import { StaleRevision } from "../Docs/StaleRevision.ts";
 import { git } from "../git.ts";
@@ -181,7 +181,7 @@ function pushedSectionsOf(
     pulled:
       baseline === undefined
         ? undefined
-        : (baseline.sections[section.path] ?? emptySection),
+        : (baseline.sections[section.headingPath] ?? emptySection),
   }));
 }
 
@@ -217,8 +217,8 @@ function planOf(
     isHeld: false,
   };
   for (const section of sections) {
-    const { path, markdown } = section;
-    const current = docTextOf(read, section);
+    const { headingPath: path, markdown } = section;
+    const current = sectionTextOf(read, section);
     const answer = answers.get(path);
     if (current === markdown) continue;
     if (answer === "keep-mine") {
@@ -255,13 +255,13 @@ async function writeSections({
   let count = 0;
   for (const section of sections) {
     const read = await docs.read(documentId);
-    if (docTextOf(read, section) === section.markdown) continue;
+    if (sectionTextOf(read, section) === section.markdown) continue;
     if (isEdited(read, section)) return { count, isStale: true };
-    const { path, headingId, markdown } = section;
+    const { headingPath, headingId, markdown } = section;
     try {
       await docs.writeSection({
         documentId,
-        headingPath: path,
+        headingPath,
         headingId,
         markdown,
       });
@@ -276,16 +276,7 @@ async function writeSections({
 
 // Holding the agent text already is no edit: a read after a stale revision, or a rerun, finds the Sections it wrote that way.
 function isEdited(read: DocRead, section: PushedSection): boolean {
-  const current = docTextOf(read, section);
+  const current = sectionTextOf(read, section);
   if (current === section.markdown) return false;
   return current !== section.pulled;
-}
-
-// By its headingId first, as Docs.writeSection finds it, so a heading renamed or moved to another level in the editor still names its Section.
-function docTextOf(
-  read: DocRead,
-  { path, headingId }: AgentSection,
-): string | undefined {
-  const idPath = [...read.headingIds].find(([, id]) => id === headingId)?.[0];
-  return read.sections.get(idPath ?? path);
 }

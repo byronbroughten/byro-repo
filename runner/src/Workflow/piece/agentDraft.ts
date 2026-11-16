@@ -61,7 +61,11 @@ export const agentDraft = {
     return agentDraft
       .sectionsOf(draft)
       .filter(({ author }) => author === "agent")
-      .map(({ path, headingId, markdown }) => ({ path, headingId, markdown }));
+      .map(({ path, headingId, markdown }) => ({
+        headingPath: path,
+        headingId,
+        markdown,
+      }));
   },
 
   // A push Halt's `keep mine` answers, by heading path: the Doc's text stays the developer's, so no later push writes over it.

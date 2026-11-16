@@ -1037,7 +1037,7 @@ describe("the end of a piece spec", () => {
         Object.entries(pushedSections)
           .map(
             ([heading, text]) =>
-              `## ${heading}\n<!-- agent h.${heading.replaceAll(" ", "-")} -->\n\n${text}`,
+              `## ${heading}\n<!-- agent ${headingIdOf(heading)} -->\n\n${text}`,
           )
           .join("\n"),
       );
@@ -1606,7 +1606,12 @@ function headedDocOf(
   );
 }
 
-// The Doc with a headingId, `h.` and the heading's text hyphenated, on each heading, as Docs gives one to every heading it holds.
+// The headingId the fake Doc gives a heading: `h.` and its text hyphenated, as an author mark's ID holds no space.
+function headingIdOf(text: string): string {
+  return `h.${text.replaceAll(" ", "-")}`;
+}
+
+// The Doc with a headingId on each heading, as Docs gives one to every heading it holds.
 function withHeadingIds(document: GoogleDocument): GoogleDocument {
   for (const { paragraph } of document.body?.content ?? []) {
     const style = paragraph?.paragraphStyle;
@@ -1616,7 +1621,7 @@ function withHeadingIds(document: GoogleDocument): GoogleDocument {
       style !== undefined &&
       style.namedStyleType !== "NORMAL_TEXT"
     ) {
-      style.headingId = `h.${text.replaceAll(" ", "-")}`;
+      style.headingId = headingIdOf(text);
     }
   }
   return document;

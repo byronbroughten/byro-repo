@@ -8,9 +8,8 @@
 import { DocReader } from "./Docs/DocReader.ts";
 import { DocsRequestRefused } from "./Docs/DocsRequestRefused.ts";
 import type { DocumentsPort, GoogleDocument } from "./Docs/googleDocs.ts";
-import { markdownDialect } from "./Docs/markdownDialect.ts";
+import { markdownDialect, type SectionKey } from "./Docs/markdownDialect.ts";
 import { SectionWriter } from "./Docs/SectionWriter.ts";
-import type { SectionKey } from "./Docs/SectionWriter/HeldSectionReader.ts";
 import { StaleRevision } from "./Docs/StaleRevision.ts";
 
 /** One read of a Doc: its Markdown, its Sections' bodies and their headings' headingIds by heading path, and the revision read. */
@@ -96,4 +95,13 @@ export class Docs {
     const latest = await this.documents.documentOf(document.documentId);
     return latest.revisionId !== document.revisionId;
   }
+}
+
+/** A Section's text in a read, found as `Docs.writeSection` finds it: by its headingId, then by its heading path. */
+export function sectionTextOf(
+  read: DocRead,
+  { headingPath, headingId }: SectionKey,
+): string | undefined {
+  const idPath = [...read.headingIds].find(([, id]) => id === headingId)?.[0];
+  return read.sections.get(idPath ?? headingPath);
 }

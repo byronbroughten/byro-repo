@@ -9,6 +9,7 @@
 // and resolve, and issue:start's skill all pick by it. Labels are Trusted, since only collaborators can add one.
 
 import type { Docs } from "./Docs.ts";
+import type { SectionKey } from "./Docs/markdownDialect.ts";
 import type { HaltQuestion } from "./halts.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { SessionSubmit } from "./promptText.ts";
@@ -83,10 +84,8 @@ export interface PushRules {
   readonly docs: Docs;
 }
 
-// An agent Section of the draft: its heading path and Markdown, keyed and trimmed as DocRead.sections is, and its heading's headingId.
-export interface AgentSection {
-  path: string;
-  headingId: string | undefined;
+// An agent Section of the draft: its Markdown, keyed and trimmed as DocRead.sections is, by its heading's headingId and path.
+export interface AgentSection extends SectionKey {
   markdown: string;
 }
 
