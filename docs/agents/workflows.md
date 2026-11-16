@@ -50,12 +50,14 @@ The words Piece, Deliverable, Section, Stage and Agent draft are [the writing gl
 
 A new Workflow, a new or edited step prompt, and a new or edited Workflow skill check their opening against these rules, so they spend no [Setup turns](../../runner/GLOSSARY.md#language).
 
-- **Cost is summed context, not turn count**: every model request re-reads the session's whole context, so a session costs the sum over its requests of cache reads, cache writes and input.
+- **Cost is summed context, not turn count**, since every model request re-reads the session's context.
 - **What the runner or a script can know before a session starts goes into its prompt or a script's output, never into a Setup turn.**
 - **A step that follows a skill gets the skill's body inlined, never a Skill call or a read by its path**: `runner/src/stepPrompts/inlinedSkill.ts` reads it from the issue workspace's SKILL.md at launch, so the skill stays the one home of its instructions.
 - **A resumed session is told what it already holds; a fresh one isn't told it holds what it never saw.**
 - **Calls already decided on go out together, and none is added to fill a batch.**
-- **A change that cuts turns is measured before and after, and reverted when it costs more than it saves**: summed context and read tokens per step, by step kind, from the step logs before it lands against the first run after; a batching line is reverted when read tokens rise by more than the summed context it saves; either result goes into [the estimates](./codebase-priorities/estimates.md) as an `Observed:` line.
+- **A change that cuts turns is measured before and after**: summed context and read tokens per step, by step kind, from the step logs before it lands against the first run after.
+- **A change is reverted when it costs more than it saves**: a batching line, when read tokens rise by more than the summed context it saves.
+- **Either result goes into [the estimates](./codebase-priorities/estimates.md) as an `Observed:` line.**
 
 The worked examples:
 
