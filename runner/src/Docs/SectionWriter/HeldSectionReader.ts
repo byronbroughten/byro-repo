@@ -52,7 +52,7 @@ export class HeldSectionReader {
     return new HeldSectionReader(document);
   }
 
-  /** The Section's heading and the blocks held under it. */
+  /** The Section's heading and the blocks held under it, the Section named by its heading path. */
   sectionOf(heading: string): {
     sectionHeading: HeldParagraph;
     held: HeldBlock[];
@@ -65,17 +65,21 @@ export class HeldSectionReader {
           block.chars.length > 0 ||
           this.nonTextStarts.has(block.startIndex),
       );
-    const start = written.findIndex(
-      (block) =>
-        block.kind === "paragraph" &&
-        block.level === markdownDialect.syntax.sectionLevel &&
-        inlineOf(block) === heading,
-    );
-    const sectionHeading = written[start];
-    if (sectionHeading?.kind !== "paragraph") {
+    const sectionHeading = markdownDialect
+      .withPathsOf(
+        written.flatMap((block) =>
+          block.kind === "paragraph" &&
+          block.level !== undefined &&
+          block.level <= markdownDialect.syntax.sectionLevel
+            ? [{ level: block.level, text: inlineOf(block), block }]
+            : [],
+        ),
+      )
+      .find(({ path }) => path === heading)?.block;
+    if (sectionHeading === undefined) {
       throw new Error(`No Section "${heading}".`);
     }
-    const after = written.slice(start + 1);
+    const after = written.slice(written.indexOf(sectionHeading) + 1);
     const end = after.findIndex(
       (block) =>
         block.kind === "paragraph" &&

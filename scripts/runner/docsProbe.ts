@@ -3,7 +3,7 @@
 // numbered JSON in <outDir>, and prints each as one line per paragraph and as the reader's Markdown.
 //   reset                     clears the body and refills it with the fixture below: headings, nested numbered and bulleted lists, a footnote, a 2x2 table.
 //   read                      reads it, such as after the developer leaves suggestions on it.
-//   write <heading> <md file> writes that Section through the Docs module.
+//   write <heading path> <md file> writes the Section of that heading path, such as `Cost › Intent`, through the Docs module.
 //   batch <requests file>     sends a JSON array of raw `batchUpdate` requests under the read's revision, printing the replies.
 // The Docs module scratch Doc's ID is in packages/personal/private/google.md; what a probe sees goes in docs/google-docs-behaviour.md.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -20,7 +20,7 @@ import type {
 } from "@byronbroughten/spec-runner/googleDocs";
 
 const usage =
-  "Usage: npm run google:script -- scripts/runner/docsProbe.ts <reset|read|write|batch> <outDir> <docId> [<heading> <markdown file> | <requests file>]";
+  "Usage: npm run google:script -- scripts/runner/docsProbe.ts <reset|read|write|batch> <outDir> <docId> [<heading path> <markdown file> | <requests file>]";
 const documentsUrl = "https://docs.googleapis.com/v1/documents";
 
 /** A raw `batchUpdate` request, any kind the API takes, not only the ones the Docs module sends. */
@@ -117,6 +117,7 @@ class DocsProbe implements DocumentsPort {
     return document;
   }
 
+  /** Writes the Section named by `heading`, its heading path as `DocRead.sections` keys it. */
   async write(heading: string, markdownFile: string): Promise<void> {
     await this.read("before-write");
     const docs = Docs.init(this);

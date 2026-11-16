@@ -5,12 +5,49 @@ import { describe, expect, it } from "vitest";
 import { Docs } from "./Docs.ts";
 import { fixtureDocument } from "./Docs/docFixtures.ts";
 import { FakeDocuments } from "./Docs/FakeDocuments.ts";
-import type { StructuralElement } from "./Docs/googleDocs.ts";
+import type { NamedStyleType, StructuralElement } from "./Docs/googleDocs.ts";
 import { PendingSuggestions } from "./Docs/PendingSuggestions.ts";
 import { StaleRevision } from "./Docs/StaleRevision.ts";
 
 function docsOf(...fixtures: string[]): Docs {
   return Docs.init(new FakeDocuments(fixtures.map(fixtureDocument)));
+}
+
+function paragraphOf(
+  namedStyleType: NamedStyleType,
+  text: string,
+): StructuralElement {
+  return {
+    paragraph: {
+      elements: [{ textRun: { content: `${text}\n` } }],
+      paragraphStyle: { namedStyleType },
+    },
+  };
+}
+
+// The course template's shape: the same H2 under two H1s, and text under an H1 before its first H2.
+function templateDocs(): { docs: Docs; documents: FakeDocuments } {
+  const documents = new FakeDocuments([
+    {
+      documentId: "doc-template",
+      revisionId: "rev-template-1",
+      body: {
+        content: [
+          { sectionBreak: {} },
+          paragraphOf("HEADING_1", "Cost"),
+          paragraphOf("NORMAL_TEXT", "Costs are tracked weekly."),
+          paragraphOf("HEADING_2", "Introduction (Intent)"),
+          paragraphOf("NORMAL_TEXT", "Cost intent."),
+          paragraphOf("HEADING_1", "Schedule"),
+          paragraphOf("HEADING_2", "Introduction (Intent)"),
+          paragraphOf("NORMAL_TEXT", "Schedule intent."),
+          paragraphOf("HEADING_3", "Milestones"),
+          paragraphOf("NORMAL_TEXT", "Three milestones."),
+        ],
+      },
+    },
+  ]);
+  return { docs: Docs.init(documents), documents };
 }
 
 function listItemOf(content: string, nestingLevel: number): StructuralElement {
@@ -24,18 +61,47 @@ function listItemOf(content: string, nestingLevel: number): StructuralElement {
 }
 
 describe("Docs.read", () => {
-  it("reads a Doc as its Markdown, its Sections by heading and the revision it read", async () => {
+  it("reads a Doc as its Markdown, its Sections by heading path and the revision it read", async () => {
     const read = await docsOf("lists", "headings").read("doc-headings");
 
     expect(read.revisionId).toBe("rev-headings-1");
     expect(read.markdown.startsWith("# A Field Guide to Kettles\n")).toBe(true);
     expect([...read.sections]).toEqual([
+      ["A Field Guide to Kettles", "\n"],
       [
-        "Why kettles",
+        "A Field Guide to Kettles › Why kettles",
         "A kettle boils water faster than a pan.\n\n### Spouts\n\nMost spouts face away.\n",
       ],
-      ["Which kettle", "Buy the one with a whistle.\n"],
+      [
+        "A Field Guide to Kettles › Which kettle",
+        "Buy the one with a whistle.\n",
+      ],
     ]);
+  });
+
+  it("reads the same H2 under two H1s as two Sections, and an H1's own text as the H1's Section", async () => {
+    const read = await templateDocs().docs.read("doc-template");
+
+    expect([...read.sections]).toEqual([
+      ["Cost", "Costs are tracked weekly.\n"],
+      ["Cost › Introduction (Intent)", "Cost intent.\n"],
+      ["Schedule", "\n"],
+      [
+        "Schedule › Introduction (Intent)",
+        "Schedule intent.\n\n### Milestones\n\nThree milestones.\n",
+      ],
+    ]);
+  });
+
+  it("keys a Doc's Sections by H2 alone when it has no H1", async () => {
+    const document = fixtureDocument("headings");
+    document.body?.content.splice(1, 1);
+
+    const read = await Docs.init(new FakeDocuments([document])).read(
+      "doc-headings",
+    );
+
+    expect([...read.sections.keys()]).toEqual(["Why kettles", "Which kettle"]);
   });
 
   it("keeps a Section's footnote definitions in that Section", async () => {
@@ -46,7 +112,7 @@ describe("Docs.read", () => {
     );
   });
 
-  it("refuses a Doc whose Sections share a heading", async () => {
+  it("refuses a Doc whose Sections share a heading path", async () => {
     const document = fixtureDocument("headings");
     const twin = document.body?.content[2];
     if (twin !== undefined) {
@@ -55,7 +121,7 @@ describe("Docs.read", () => {
     const docs = Docs.init(new FakeDocuments([document]));
 
     await expect(docs.read("doc-headings")).rejects.toThrow(
-      'Two Sections share the heading "Why kettles".',
+      'Two Sections share the heading path "A Field Guide to Kettles › Why kettles".',
     );
   });
 
@@ -88,13 +154,13 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Boiling",
+      heading: "Kettle Notes › Boiling",
       markdown,
     });
 
     const read = await docs.read("doc-writable");
-    expect(read.sections.get("Boiling")).toBe(markdown);
-    expect(read.sections.get("Pouring")).toBe("Pour slowly.\n");
+    expect(read.sections.get("Kettle Notes › Boiling")).toBe(markdown);
+    expect(read.sections.get("Kettle Notes › Pouring")).toBe("Pour slowly.\n");
     expect(read.markdown.startsWith("# Kettle Notes\n\n## Boiling\n")).toBe(
       true,
     );
@@ -106,7 +172,7 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Boiling",
+      heading: "Kettle Notes › Boiling",
       markdown:
         "Kettles heat water fast.\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n",
     });
@@ -127,13 +193,13 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Boiling",
+      heading: "Kettle Notes › Boiling",
       markdown:
         "Steam rises from the spout.\n\n### Spouts\n\nSpouts face away.\n\nA second paragraph.\n\n### Handles\n\nHold the handle.\n",
     });
 
     const read = await docs.read("doc-writable");
-    expect(read.sections.get("Boiling")).toBe(
+    expect(read.sections.get("Kettle Notes › Boiling")).toBe(
       "Steam rises from the spout.\n\n### Spouts\n\nSpouts face away.\n\nA second paragraph.\n\n### Handles\n\nHold the handle.\n",
     );
     const headingIds = (
@@ -151,21 +217,21 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Pouring",
+      heading: "Kettle Notes › Pouring",
       markdown: "Pour slowly.\n\nThen wait.\n\n### Spills\n\nWipe them.\n",
     });
-    expect((await docs.read("doc-writable")).sections.get("Pouring")).toBe(
-      "Pour slowly.\n\nThen wait.\n\n### Spills\n\nWipe them.\n",
-    );
+    expect(
+      (await docs.read("doc-writable")).sections.get("Kettle Notes › Pouring"),
+    ).toBe("Pour slowly.\n\nThen wait.\n\n### Spills\n\nWipe them.\n");
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Pouring",
+      heading: "Kettle Notes › Pouring",
       markdown: "Pour slowly.\n",
     });
 
     const read = await docs.read("doc-writable");
-    expect(read.sections.get("Pouring")).toBe("Pour slowly.\n");
-    expect(read.sections.get("Boiling")).toBe(
+    expect(read.sections.get("Kettle Notes › Pouring")).toBe("Pour slowly.\n");
+    expect(read.sections.get("Kettle Notes › Boiling")).toBe(
       "Kettles boil water fast.\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n",
     );
   });
@@ -175,12 +241,12 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Pouring",
+      heading: "Kettle Notes › Pouring",
       markdown: "Pour once it [boils](#boiling).\n",
     });
 
     const read = await docs.read("doc-writable");
-    expect(read.sections.get("Pouring")).toBe(
+    expect(read.sections.get("Kettle Notes › Pouring")).toBe(
       "Pour once it [boils](#boiling).\n",
     );
     const link = (await documents.documentOf("doc-writable")).body?.content
@@ -202,7 +268,7 @@ describe("Docs.writeSection", () => {
     await expect(
       docs.writeSection({
         documentId: "doc-writable",
-        heading: "Boiling",
+        heading: "Kettle Notes › Boiling",
         markdown: "Kettles whistle.\n",
       }),
     ).rejects.toThrow(new StaleRevision("doc-writable", revisionId));
@@ -213,7 +279,7 @@ describe("Docs.writeSection", () => {
     const { docs, documents } = await writableDocs();
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Boiling",
+      heading: "Kettle Notes › Boiling",
       markdown:
         "Kettles 🫖 boil water fast.\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n",
     });
@@ -223,13 +289,13 @@ describe("Docs.writeSection", () => {
       "Kettles 🫖 boil **water** quickly.\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n";
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Boiling",
+      heading: "Kettle Notes › Boiling",
       markdown,
     });
 
-    expect((await docs.read("doc-writable")).sections.get("Boiling")).toBe(
-      markdown,
-    );
+    expect(
+      (await docs.read("doc-writable")).sections.get("Kettle Notes › Boiling"),
+    ).toBe(markdown);
     const elements = (await documents.documentOf("doc-writable")).body
       ?.content[3]?.paragraph?.elements;
     expect(elements?.[0]?.textRun).toEqual({
@@ -243,7 +309,7 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Boiling",
+      heading: "Kettle Notes › Boiling",
       markdown:
         "Fill the kettle.\n\nKettles boil water fast.\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n",
     });
@@ -270,13 +336,13 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Boiling",
+      heading: "Kettle Notes › Boiling",
       markdown,
     });
 
-    expect((await docs.read("doc-writable")).sections.get("Boiling")).toBe(
-      markdown,
-    );
+    expect(
+      (await docs.read("doc-writable")).sections.get("Kettle Notes › Boiling"),
+    ).toBe(markdown);
     const texts = (
       await documents.documentOf("doc-writable")
     ).body?.content.flatMap(({ paragraph }) =>
@@ -298,19 +364,19 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Boiling",
+      heading: "Kettle Notes › Boiling",
       markdown: boiling,
     });
     await docs.read("doc-writable");
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Pouring",
+      heading: "Kettle Notes › Pouring",
       markdown: pouring,
     });
 
     const read = await docs.read("doc-writable");
-    expect(read.sections.get("Boiling")).toBe(boiling);
-    expect(read.sections.get("Pouring")).toBe(pouring);
+    expect(read.sections.get("Kettle Notes › Boiling")).toBe(boiling);
+    expect(read.sections.get("Kettle Notes › Pouring")).toBe(pouring);
     const cells = (await documents.documentOf("doc-writable")).body?.content
       .flatMap(({ table: written }) => written?.tableRows ?? [])
       .flatMap(({ tableCells }) => tableCells);
@@ -331,13 +397,13 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Boiling",
+      heading: "Kettle Notes › Boiling",
       markdown,
     });
 
-    expect((await docs.read("doc-writable")).sections.get("Boiling")).toBe(
-      markdown,
-    );
+    expect(
+      (await docs.read("doc-writable")).sections.get("Kettle Notes › Boiling"),
+    ).toBe(markdown);
     const paragraphs = (
       await documents.documentOf("doc-writable")
     ).body?.content.flatMap(({ table }) =>
@@ -357,13 +423,13 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Boiling",
+      heading: "Kettle Notes › Boiling",
       markdown,
     });
 
-    expect((await docs.read("doc-writable")).sections.get("Boiling")).toBe(
-      markdown,
-    );
+    expect(
+      (await docs.read("doc-writable")).sections.get("Kettle Notes › Boiling"),
+    ).toBe(markdown);
     const inserted = (
       await documents.documentOf("doc-writable")
     ).body?.content.find(
@@ -381,7 +447,7 @@ describe("Docs.writeSection", () => {
       "Kettles boil water fast.\n\n1. Fill it\n2. Boil it\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n";
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Boiling",
+      heading: "Kettle Notes › Boiling",
       markdown: listed,
     });
     await docs.read("doc-writable");
@@ -390,13 +456,13 @@ describe("Docs.writeSection", () => {
       "Kettles boil water fast.\n\n1. Fill it\n\nWait.\n\n1. Boil it\n\nSteam rises.\n\n### Spouts\n\nMost spouts face away.\n";
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Boiling",
+      heading: "Kettle Notes › Boiling",
       markdown: split,
     });
 
-    expect((await docs.read("doc-writable")).sections.get("Boiling")).toBe(
-      split,
-    );
+    expect(
+      (await docs.read("doc-writable")).sections.get("Kettle Notes › Boiling"),
+    ).toBe(split);
     const wait = (
       await documents.documentOf("doc-writable")
     ).body?.content.find(
@@ -414,13 +480,13 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Pouring",
+      heading: "Kettle Notes › Pouring",
       markdown,
     });
 
-    expect((await docs.read("doc-writable")).sections.get("Pouring")).toBe(
-      markdown,
-    );
+    expect(
+      (await docs.read("doc-writable")).sections.get("Kettle Notes › Pouring"),
+    ).toBe(markdown);
     const last = (await documents.documentOf("doc-writable")).body?.content.at(
       -1,
     );
@@ -433,7 +499,7 @@ describe("Docs.writeSection", () => {
       "Kettles boil water fast.\n\n1. Fill it\n2. Boil it\n\nSteam rises.\n\n| Kettle | Litres |\n| --- | --- |\n| Steel | 1.7 |\n\n### Spouts\n\nMost spouts face away.\n";
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Boiling",
+      heading: "Kettle Notes › Boiling",
       markdown: first,
     });
     await docs.read("doc-writable");
@@ -442,21 +508,21 @@ describe("Docs.writeSection", () => {
       "Kettles boil water fast.\n\n1. Fill it\n2. Boil it\n3. Pour it\n- Steam rises.\n\n| Kettle | Litres |\n| --- | --- |\n| Glass | 1.5 |\n\n### Spouts\n\nMost spouts face away.\n";
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Boiling",
+      heading: "Kettle Notes › Boiling",
       markdown: second,
     });
-    expect((await docs.read("doc-writable")).sections.get("Boiling")).toBe(
-      second,
-    );
+    expect(
+      (await docs.read("doc-writable")).sections.get("Kettle Notes › Boiling"),
+    ).toBe(second);
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Boiling",
+      heading: "Kettle Notes › Boiling",
       markdown: first,
     });
-    expect((await docs.read("doc-writable")).sections.get("Boiling")).toBe(
-      first,
-    );
+    expect(
+      (await docs.read("doc-writable")).sections.get("Kettle Notes › Boiling"),
+    ).toBe(first);
   });
 
   it.each([
@@ -469,7 +535,7 @@ describe("Docs.writeSection", () => {
     await expect(
       docs.writeSection({
         documentId: "doc-writable",
-        heading: "Boiling",
+        heading: "Kettle Notes › Boiling",
         markdown,
       }),
     ).rejects.toThrow();
@@ -514,13 +580,13 @@ describe("Docs.writeSection", () => {
 
     await docs.writeSection({
       documentId: "doc-writable",
-      heading: "Boiling",
+      heading: "Kettle Notes › Boiling",
       markdown,
     });
 
     const read = await docs.read("doc-writable");
-    expect(read.sections.get("Boiling")).toBe(markdown);
-    expect(read.sections.get("Pouring")).toBe("Pour slowly.\n");
+    expect(read.sections.get("Kettle Notes › Boiling")).toBe(markdown);
+    expect(read.sections.get("Kettle Notes › Pouring")).toBe("Pour slowly.\n");
     const content =
       (await documents.documentOf("doc-writable")).body?.content ?? [];
     expect(
@@ -556,13 +622,15 @@ describe("Docs.writeSection", () => {
 
       await docs.writeSection({
         documentId: "doc-writable",
-        heading: "Boiling",
+        heading: "Kettle Notes › Boiling",
         markdown,
       });
 
       const read = await docs.read("doc-writable");
-      expect(read.sections.get("Boiling")).toBe(markdown);
-      expect(read.sections.get("Pouring")).toBe("Pour slowly.\n");
+      expect(read.sections.get("Kettle Notes › Boiling")).toBe(markdown);
+      expect(read.sections.get("Kettle Notes › Pouring")).toBe(
+        "Pour slowly.\n",
+      );
       const written = await documents.documentOf("doc-writable");
       expect(written.body?.content[2]?.paragraph?.elements[0]).toMatchObject({
         pageBreak: {},
@@ -575,13 +643,15 @@ describe("Docs.writeSection", () => {
 
       await docs.writeSection({
         documentId: "doc-writable",
-        heading: "Boiling",
+        heading: "Kettle Notes › Boiling",
         markdown,
       });
 
       const read = await docs.read("doc-writable");
-      expect(read.sections.get("Boiling")).toBe(markdown);
-      expect(read.sections.get("Pouring")).toBe("Pour slowly.\n");
+      expect(read.sections.get("Kettle Notes › Boiling")).toBe(markdown);
+      expect(read.sections.get("Kettle Notes › Pouring")).toBe(
+        "Pour slowly.\n",
+      );
       const content =
         (await documents.documentOf("doc-writable")).body?.content ?? [];
       const pouring = content.findIndex(
@@ -603,13 +673,48 @@ describe("Docs.writeSection", () => {
       await expect(
         docs.writeSection({
           documentId: "doc-writable",
-          heading: "Boiling",
+          heading: "Kettle Notes › Boiling",
           markdown: "Kettles whistle.\n",
         }),
       ).rejects.toThrow(
-        'The writer takes only text in the Section "Boiling", not a footnote, image or page break.',
+        'The writer takes only text in the Section "Kettle Notes › Boiling", not a footnote, image or page break.',
       );
       expect(await documents.documentOf("doc-writable")).toEqual(before);
+    });
+  });
+
+  describe("by heading path", () => {
+    it.each([
+      ["an H2 another H1 also holds", "Schedule › Introduction (Intent)"],
+      ["the first of two same H2s", "Cost › Introduction (Intent)"],
+      ["an H1's own text", "Cost"],
+      ["an H1 with no text of its own", "Schedule"],
+    ])("writes %s, changing no other Section", async (_, path) => {
+      const { docs } = templateDocs();
+      const before = (await docs.read("doc-template")).sections;
+      const markdown = "Rewritten.\n\n### Notes\n\nOne note.\n";
+
+      await docs.writeSection({
+        documentId: "doc-template",
+        heading: path,
+        markdown,
+      });
+
+      const after = (await docs.read("doc-template")).sections;
+      expect(after).toEqual(new Map(before).set(path, markdown));
+    });
+
+    it("refuses a path the Doc doesn't hold", async () => {
+      const { docs } = templateDocs();
+      await docs.read("doc-template");
+
+      await expect(
+        docs.writeSection({
+          documentId: "doc-template",
+          heading: "Introduction (Intent)",
+          markdown: "Rewritten.\n",
+        }),
+      ).rejects.toThrow('No Section "Introduction (Intent)".');
     });
   });
 
@@ -619,7 +724,7 @@ describe("Docs.writeSection", () => {
     await expect(
       docs.writeSection({
         documentId: "doc-writable",
-        heading: "Boiling",
+        heading: "Kettle Notes › Boiling",
         markdown: "Kettles whistle.\n",
       }),
     ).rejects.toThrow("Read Doc doc-writable before writing to it.");

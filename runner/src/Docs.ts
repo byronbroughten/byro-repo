@@ -12,14 +12,14 @@ import { markdownDialect } from "./Docs/markdownDialect.ts";
 import { SectionWriter } from "./Docs/SectionWriter.ts";
 import { StaleRevision } from "./Docs/StaleRevision.ts";
 
-/** One read of a Doc: its Markdown, its Sections' bodies by heading, and the revision read. */
+/** One read of a Doc: its Markdown, its Sections' bodies by heading path, and the revision read. */
 export interface DocRead {
   markdown: string;
   sections: Map<string, string>;
   revisionId: string;
 }
 
-/** A Section's new body for a Doc, the Section named by its heading as `DocRead.sections` keys it. */
+/** A Section's new body for a Doc, the Section named by its heading path as `DocRead.sections` keys it. */
 export interface SectionWrite {
   documentId: string;
   heading: string;
