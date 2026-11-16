@@ -1,0 +1,7 @@
+# byro-repo#769 outcome
+
+Spec: [byro-repo#763](https://github.com/byronbroughten/byro-repo/issues/763)
+
+| Issue | Workflow | Pair | Account | Files changed | Estimate | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #769 | code | Sonnet high | 5 | 18 |  | 138K → 120K | Fix (resumed implementer) | 0 | 1 | 0 | 0 | 11 min | $2.06 | $1.24 | Fixed: The Files rows for Docs.ts, DocReader.ts and markdownDialect.ts were left stale by the diff. (runner/src/AGENTS.md:33-34 and :41); Duplicated Code: the H1/H2 level check recurs across headingIds, withHeadingIds, headedSectionsOf and _paragraphBlocks. (runner/src/Docs/DocReader.ts:84-108, runner/src/Docs/markdownDialect.ts:152-168); headingIds() resets pendingFootnotes, a side effect of _inlineOf it never wanted. (runner/src/Docs/DocReader.ts:102); Two constants serve one purpose, the author mark, and its format is split between the regex and draftOf's template. (runner/src/Workflow/piece/agentDraft.ts:19-23, draftOf ~46); Comments grew past one line. (runner/src/Workflow/piece/agentDraft.ts:14-15, :73-75, header lines 2-3); `author as SectionAuthor` casts a regex capture. (runner/src/Workflow/piece/agentDraft.ts:~112). | 2f9a6a3c-09d2-4575-8a5c-a26ea53e8566, e4943247-23f2-4702-8596-4623aad066e5 |
