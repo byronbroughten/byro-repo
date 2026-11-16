@@ -29,7 +29,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `contextMeter.ts` | `contextMeter` | Measures a session's peak context from stream events or a transcript. |
 | `contextNudge.ts` | `contextNudge` | Words the handoff reminder near the ticket budget, for the ticket's handoff, the supervision's or both. |
 | `CswapUsageReader.ts` | `CswapUsageReader` | Reads account usage and the Active account from `cswap list --json`. |
-| `docPrint.ts` | `docPrint` | `npm run doc:print`'s core: prints a Doc, named by its ID or URL, as the Markdown dialect, through the Docs port its entry passes. |
+| `docPrint.ts` | `docPrint` | `npm run doc:print`'s core: prints a Doc, named by its ID or URL, as the Markdown dialect with each H1 and H2's headingId in a comment line under it, through the Docs port its entry passes. |
 | `Docs.ts` | `Docs` | The Docs module's port: reads a Doc as its Markdown, its Sections by heading path and the revision read, and writes a Section, named by its path, in place under that revision; it may later move to `packages/` with a folder move. |
 | `Docs/DocReader.ts` | | Reads a `documents.get` body into the Markdown dialect. |
 | `Docs/docFixtures.ts` | | Loads the `documents.get` JSON fixtures in `Docs/fixtures/` that Docs tests read. |

@@ -44,7 +44,7 @@ describe("implementPieceSkillOf", () => {
     const shared = [
       "Its file format is in `docs/pieces/agent-draft.md`.",
       'Draft by the rules under "Implementing a piece spec" in `docs/pieces/rules.md`, writing to the Agent draft and never the Deliverable\'s Doc.',
-      "with `<!-- agent -->` on the line under the heading. Change no other Section, never one marked `<!-- developer -->`, and no other file.",
+      "with its mark on the line under the heading: `<!-- agent -->`, or `<!-- agent <headingId> -->` where the draft's mark holds an ID. Copy a mark unchanged, its ID included. Change no other Section, never one marked `<!-- developer -->`, and no other file.",
       "A Section never needs a renamed or invented heading",
       "Read `docs/writing-voice.md` and `docs/writing-craft.md` in full before your first prose edit.",
       "Read the spec's Supporting Material only through the Drive read tools you were given, by the file IDs the spec lists.",

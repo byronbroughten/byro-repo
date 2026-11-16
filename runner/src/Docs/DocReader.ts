@@ -80,6 +80,33 @@ export class DocReader {
     return markdownDialect.document([...blocks, ...this._footnoteBlocks()]);
   }
 
+  /** Each H1's and H2's headingId by its heading path, as the Markdown names the Section; a heading with no ID is left out. */
+  headingIds(): Map<string, string> {
+    const headings = withSuggestedSplitsJoined(this.body.content).flatMap(
+      ({ paragraph }) => {
+        const level = levelOf(paragraph);
+        if (
+          paragraph === undefined ||
+          level === undefined ||
+          level > markdownDialect.syntax.sectionLevel
+        ) {
+          return [];
+        }
+        const text = this._inlineOf(paragraph).trim();
+        if (text === "") return [];
+        return [
+          { level, text, headingId: paragraph.paragraphStyle?.headingId },
+        ];
+      },
+    );
+    this.pendingFootnotes = [];
+    return new Map(
+      markdownDialect.withPathsOf(headings).flatMap(({ path, headingId }) => {
+        return headingId === undefined ? [] : [[path, headingId]];
+      }),
+    );
+  }
+
   private _blocksOf(element: StructuralElement): MarkdownBlock[] {
     if (element.paragraph !== undefined) {
       return this._paragraphBlocks(element.paragraph);
@@ -95,9 +122,7 @@ export class DocReader {
     if (inline === "") {
       return [];
     }
-    const styleType = paragraph.paragraphStyle?.namedStyleType;
-    const level =
-      styleType === undefined ? undefined : headingLevels[styleType];
+    const level = levelOf(paragraph);
     if (level !== undefined) {
       const footnotes =
         level <= markdownDialect.syntax.sectionLevel
@@ -229,6 +254,12 @@ export class DocReader {
     this.pendingFootnotes = [];
     return [{ markdown, isListItem: false }];
   }
+}
+
+/** A paragraph's heading level, undefined for one that isn't a heading. */
+function levelOf(paragraph: Paragraph | undefined): number | undefined {
+  const styleType = paragraph?.paragraphStyle?.namedStyleType;
+  return styleType === undefined ? undefined : headingLevels[styleType];
 }
 
 /** Whether a bullet's list is bulleted or numbered, by the glyph of its nesting level. */

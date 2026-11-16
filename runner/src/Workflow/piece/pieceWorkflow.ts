@@ -378,7 +378,9 @@ function pullRulesOf(documents: DocumentsPort): PullRules {
       const read = await Docs.init(documents).read(documentId);
       const held = draft === undefined ? [] : agentDraft.sectionsOf(draft);
       return {
-        draft: agentDraft.draftOf(agentDraft.pulledOf(held, read.markdown)),
+        draft: agentDraft.draftOf(
+          agentDraft.pulledOf(held, read.markdown, read.headingIds),
+        ),
         baseline: {
           documentId,
           revisionId: read.revisionId,

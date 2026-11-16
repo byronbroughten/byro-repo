@@ -1,6 +1,6 @@
 // A Piece's Agent draft file, as ../../../../docs/pieces/agent-draft.md describes it: the Doc's `# <H1>` and `## <H2>`
-// lines, each Section marked as the developer's or an agent's on the line under its heading and named by its heading
-// path. Pull, from pieceWorkflow.ts, merges a Doc read into it, and the push reads its agent Sections back out; the Doc's
+// lines, each Section marked as the developer's or an agent's, with its heading's headingId, on the line under its heading
+// and named by its heading path. Pull, from pieceWorkflow.ts, merges a Doc read into it, and the push reads its agent Sections back out; the Doc's
 // Markdown dialect and its split into Sections are ../../Docs/markdownDialect.ts's.
 
 import {
@@ -11,13 +11,16 @@ import type { NumberOrPlaceholder } from "../../promptText.ts";
 
 export type SectionAuthor = "developer" | "agent";
 
-// The body is as markdownDialect.sectionsOf keys it: trimmed, ending in one newline.
-export type DraftSection = HeadedSection & { author: SectionAuthor };
-
-const authorMarks: Record<SectionAuthor, string> = {
-  developer: "<!-- developer -->",
-  agent: "<!-- agent -->",
+// The body is as markdownDialect.sectionsOf keys it: trimmed, ending in one newline. The headingId is the Doc heading's,
+// undefined for a heading the draft holds with a bare mark.
+export type DraftSection = HeadedSection & {
+  author: SectionAuthor;
+  headingId: string | undefined;
 };
+
+// `<!-- developer -->` or `<!-- agent -->`, then the heading's headingId when it has one.
+const authorMarkPattern = /^<!-- (developer|agent)(?: (\S+))? -->$/;
+const exampleMark = "<!-- developer -->";
 
 export const agentDraft = {
   pathOf(specNumber: NumberOrPlaceholder): string {
@@ -29,18 +32,21 @@ export const agentDraft = {
       const [markLine = "", ...lines] = section.markdown.split("\n");
       return {
         ...section,
-        author: authorOf(section.path, markLine),
+        ...markOf(section.path, markLine),
         markdown: `${lines.join("\n").trim()}\n`,
       };
     });
   },
 
   draftOf(sections: DraftSection[]): string {
-    const blocks = sections.map(({ level, text, author, markdown }) => {
-      const head = `${markdownDialect.heading(level, text)}\n${authorMarks[author]}`;
-      const body = markdown.trim();
-      return body === "" ? head : `${head}\n\n${body}`;
-    });
+    const blocks = sections.map(
+      ({ level, text, author, headingId, markdown }) => {
+        const mark = [author, headingId].filter((part) => part !== undefined);
+        const head = `${markdownDialect.heading(level, text)}\n<!-- ${mark.join(" ")} -->`;
+        const body = markdown.trim();
+        return body === "" ? head : `${head}\n\n${body}`;
+      },
+    );
     return `${blocks.join("\n\n")}\n`;
   },
 
@@ -64,19 +70,28 @@ export const agentDraft = {
     );
   },
 
-  // The Doc's Sections in its order, each agent Section kept as the draft has it; an agent Section the Doc no longer has
-  // stays, after the last Section under its H1, so the draft still names it by the same heading path.
-  pulledOf(draft: DraftSection[], docMarkdown: string): DraftSection[] {
+  // The Doc's Sections in its order, each agent Section kept as the draft has it but for its heading's current headingId; an
+  // agent Section the Doc no longer has stays as it was, after the last Section under its H1, so the draft still names it
+  // by the same heading path.
+  pulledOf(
+    draft: DraftSection[],
+    docMarkdown: string,
+    headingIds: Map<string, string>,
+  ): DraftSection[] {
     const agentSections = new Map(
       draft
         .filter(({ author }) => author === "agent")
         .map((section) => [section.path, section]),
     );
     const docSections = markdownDialect.headedSectionsOf(docMarkdown);
-    const pulled = docSections.map(
-      (section): DraftSection =>
-        agentSections.get(section.path) ?? { ...section, author: "developer" },
-    );
+    const pulled = docSections.map((section): DraftSection => {
+      const headingId = headingIds.get(section.path);
+      const agentSection = agentSections.get(section.path);
+      if (agentSection === undefined) {
+        return { ...section, author: "developer", headingId };
+      }
+      return { ...agentSection, headingId };
+    });
     const docPaths = new Set(docSections.map(({ path }) => path));
     return [...agentSections.values()]
       .filter(({ path }) => !docPaths.has(path))
@@ -84,16 +99,17 @@ export const agentDraft = {
   },
 };
 
-function authorOf(path: string, markLine: string): SectionAuthor {
-  const author = (Object.keys(authorMarks) as SectionAuthor[]).find(
-    (each) => authorMarks[each] === markLine.trim(),
-  );
+function markOf(
+  path: string,
+  markLine: string,
+): Pick<DraftSection, "author" | "headingId"> {
+  const [, author, headingId] = authorMarkPattern.exec(markLine.trim()) ?? [];
   if (author === undefined) {
     throw new Error(
-      `The Agent draft's Section "${path}" has no author mark under its heading, such as "${authorMarks.developer}".`,
+      `The Agent draft's Section "${path}" has no author mark under its heading, such as "${exampleMark}".`,
     );
   }
-  return author;
+  return { author: author as SectionAuthor, headingId };
 }
 
 // After the last Section under its H1; one from before any H1 goes first, and one whose H1 is gone gets an empty
@@ -118,6 +134,7 @@ function withGoneSection(
       text: h1,
       path: h1,
       author: "developer",
+      headingId: undefined,
       markdown: "\n",
     });
   }

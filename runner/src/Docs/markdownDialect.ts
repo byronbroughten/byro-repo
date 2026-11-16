@@ -148,6 +148,26 @@ export const markdownDialect = {
     return pathed;
   },
 
+  /** The Markdown with each H1 and H2's headingId, found by its heading path, as a comment line under it; a heading with no ID gets none. */
+  withHeadingIds(markdown: string, headingIds: Map<string, string>): string {
+    const lines = markdown.split("\n");
+    const headings = lines.flatMap((line, index) => {
+      const level = headingLevelOf(line);
+      if (level === undefined || level > syntax.sectionLevel) return [];
+      return [{ level, text: line.slice(level + 1), index }];
+    });
+    const marked = markdownDialect
+      .withPathsOf(headings)
+      .flatMap(({ path, index }) => {
+        const headingId = headingIds.get(path);
+        return headingId === undefined ? [] : [{ index, headingId }];
+      });
+    for (const { index, headingId } of marked.reverse()) {
+      lines.splice(index + 1, 0, `<!-- headingId ${headingId} -->`);
+    }
+    return lines.join("\n");
+  },
+
   /** Each Section's body by its heading path, the Markdown before the first H1 or H2 left out. */
   sectionsOf(markdown: string): Map<string, string> {
     return new Map(

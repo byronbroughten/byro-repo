@@ -155,6 +155,30 @@ describe("pull on a piece spec's drafting ticket", () => {
     });
   });
 
+  it("writes each heading's headingId into its mark, an agent Section's included, at every pull", async () => {
+    addDraftingSpec();
+    holdDocs(withHeadingIds(headedDocOf(twoPartSections)));
+    stepResults.commitFile({
+      cwd: primaryOf("byro-repo"),
+      file: draftPath,
+      content:
+        "# Part one\n<!-- developer -->\n\n## Intro\n<!-- agent h.stale -->\n\nThe quay lay quiet.\n\n# Part two\n<!-- developer -->\n\n## Intro\n<!-- developer -->\n\nOlder.\n",
+      message: "Land an earlier ticket's Agent draft",
+    });
+    let pulled = "";
+
+    await specRun(
+      FakeAgentStep.init(async (request) => {
+        pulled = readFileSync(join(request.cwd, draftPath), "utf8");
+        return drafted()(request);
+      }),
+    ).run(spec);
+
+    expect(pulled).toBe(
+      "# Part one\n<!-- developer h.Part one -->\n\n## Intro\n<!-- agent h.Intro -->\n\nThe quay lay quiet.\n\n# Part two\n<!-- developer h.Part two -->\n\n## Intro\n<!-- developer h.Intro -->\n\nThe ferry was late.\n",
+    );
+  });
+
   it("records each Section's Doc text as the push baseline", async () => {
     addDraftingSpec();
 
@@ -1507,6 +1531,21 @@ function headedDocOf(
       ...h2ContentOf(sections),
     ]),
   );
+}
+
+// The Doc with a headingId, `h.` and the heading's text, on each heading, as Docs gives one to every heading it holds.
+function withHeadingIds(document: GoogleDocument): GoogleDocument {
+  for (const { paragraph } of document.body?.content ?? []) {
+    const style = paragraph?.paragraphStyle;
+    if (
+      paragraph !== undefined &&
+      style !== undefined &&
+      style.namedStyleType !== "NORMAL_TEXT"
+    ) {
+      style.headingId = `h.${paragraph.elements[0]?.textRun?.content.trim()}`;
+    }
+  }
+  return document;
 }
 
 function documentOf(content: StructuralElement[]): GoogleDocument {
