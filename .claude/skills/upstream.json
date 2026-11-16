@@ -93,8 +93,8 @@
         "skills/engineering/to-tickets": {
           "status": "reference-only",
           "syncedSha": "49dd158d1076134a641b33efb035946536778336",
-          "notes": "Upstream source of this repo's code-tickets and piece-tickets forks. code-tickets' consumer line reads \"respect ADRs in the area you're touching, and the design.md principles that apply.\" code-tickets adds a third ticket kind, Interactive (ready-for-interactive), for agent work a runner step can't do by the tier list, grouped where the chain needs it and blocking its downstream tickets, with a ## Model fit like an agent ticket.",
-          "derivedInto": ["code-tickets", "piece-tickets"]
+          "notes": "Upstream source of this repo's project-tickets fork, which merged the earlier code-tickets and piece-tickets forks: it splits a code or piece spec into work packages grouped into tickets by the ticket split test. Its explore step reads the ADRs in the area and the design principles that apply. It adds a third ticket kind, Interactive (ready-for-interactive), for agent work a runner step can't do by the tier list, grouped where the chain needs it and blocking its downstream tickets, with a ## Model fit like an agent ticket.",
+          "derivedInto": ["project-tickets"]
         },
         "skills/engineering/wayfinder": {
           "status": "vendored",

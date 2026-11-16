@@ -126,7 +126,7 @@ Any further notes about the feature.
 
 </code-template>
 
-`## Model fit` is the last section of a code spec meant for one session: a pair line naming one of the pairs in [`tickets.md`](../../../docs/agents/tickets.md#model-fit), then a one-line reason. A code spec that won't fit one session is still filed, without the section.
+`## Model fit` is the last section of a code spec that passes [the ticket split test](../../../docs/agents/tickets.md#the-ticket-split-test): a pair line naming one of the pairs in [`tickets.md`](../../../docs/agents/tickets.md#model-fit), then a one-line reason. A code spec that fails it is still filed, without the section.
 
 A piece spec has no `## Model fit`; its tickets carry the pairs, picked by [`model-fit.md`](../../../docs/agents/model-fit.md). Drive and Doc IDs belong in it: the implementer reads by them.
 
@@ -186,8 +186,7 @@ File the specs in order, each body from a scratchpad file with `gh issue create 
 End with one line per spec:
 
 - **A held spec**: its Phase gate, `/project-spec <repo> <n>`, run once the spec before it closes.
-- **A code spec without `## Model fit`**: recommend `/code-tickets <repo> <n>` for sub-issues; say nothing if the developer has explicitly agreed in the conversation that it becomes tickets.
-- **A piece spec**: recommend `/piece-tickets <repo> <n>`.
+- **A spec without `## Model fit`**, a code spec that failed the split test or any piece spec: recommend `/project-tickets <repo> <n>` for sub-issues; say nothing if the developer has explicitly agreed in the conversation that it becomes tickets.
 
 ## The Phase gate
 
@@ -196,8 +195,8 @@ End with one line per spec:
 1. **Read** the held spec with `npm run issue:read -- <repo> <n> --body`, its `## Phase gate` section included. Find the spec it is blocked by with `gh api repos/<owner>/<repo>/issues/<n>/dependencies/blocked_by`, and read that spec's body and its closing review-list comments, found as [`/judge-findings`' step 1](../../../runner/skills/judge-findings/SKILL.md#1-read-the-list) finds them. Take the developer's notes from the conversation.
 2. **Check the held spec's Implementation Decisions against master**: for each, read the code it names and list every decision the landed code contradicts, already fulfils, or names something that no longer exists.
 3. **Print the remaining specs**: from the held spec, follow `gh api repos/<owner>/<repo>/issues/<n>/dependencies/blocking` to each spec it blocks, and on down the chain, printing each spec's number, title and kind.
-4. **Put Go, Reshape or Drop to the developer** with your recommendation, weighing the Phase gate section's split reason, what to try first, the review lists, the notes and the drift step 2 found.
+4. **Put Go, Reshape or Drop to the developer** with your recommendation, weighing the Phase gate section's split reason, what to try first, the review lists, the notes and the drift step 2 found. When recommending Go, say whether the spec passes [the ticket split test](../../../docs/agents/tickets.md#the-ticket-split-test), so the developer knows whether it becomes tickets.
 
-- **Go**: relabel it with `gh issue edit -R <owner>/<repo> <n> --remove-label needs-triage --add-label ready-for-agent`, then recommend `/code-tickets <repo> <n>` for a code spec without `## Model fit`, or `/piece-tickets <repo> <n>` for a piece spec.
+- **Go**: relabel it with `gh issue edit -R <owner>/<repo> <n> --remove-label needs-triage --add-label ready-for-agent`, then recommend `/project-tickets <repo> <n>` when the spec fails the split test.
 - **Reshape**: edit the body as agreed with `gh issue edit -R <owner>/<repo> <n> --body-file <path>`. When a spec is added or dropped, fix the blocked-by edges so the chain stays one line, filing an added spec the held way of step 6. Then do as for Go.
 - **Drop**: close it with `gh issue close -R <owner>/<repo> <n> --reason "not planned" --comment "<why>"` and label it `wontfix`, then offer to drop each later spec in the chain the same way.
