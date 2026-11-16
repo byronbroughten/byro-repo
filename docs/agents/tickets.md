@@ -11,7 +11,7 @@ The one home for ticketing judgments: the ticket split test, work packages, sizi
   - it is a wide refactor with no green state short of expand–migrate–contract;
   - it is a piece spec, which always gets tickets.
 - **Work that passes is one ticket**: a spec with a `## Model fit` section, or a single filed ticket.
-- **Every agent but a ticketing one only answers whether work passes, never how to split it**: reviewers, resolvers, an implementer writing a handoff, `/project-spec` and the Phase gate cite this test, and `/code-tickets` and `/piece-tickets` do the splitting.
+- **Every agent but a ticketing one only answers whether work passes, never how to split it**: reviewers, resolvers, an implementer writing a handoff, `/project-spec` and the Phase gate cite this test, and [`/project-tickets`](../../.claude/skills/project-tickets/SKILL.md), `/code-tickets` and `/piece-tickets` do the splitting.
 
 ## Work packages
 
@@ -24,7 +24,7 @@ The one home for ticketing judgments: the ticket split test, work packages, sizi
 
 - **Size each ticket so one session finishes it: never estimate one over the cap, the ticket budget minus the margin knob (`budgetMargin`, ~135K by default)**, with the ticket budget (~150K) kept as the preferred ceiling for a session's peak. About 25K is fixed overhead before the first prompt.
 - **Prefer 110–125K when a green seam makes that easy.**
-- **Merge tickets so fewer are estimated under 90K**; a target `/code-tickets` can override with a stated reason. Each ticket pays a cold start of context across implement and two reviewers, ~95K as measured while the review orchestrator still started cold, so a small ticket costs more per file, and cost per file flattens from ~110K ([estimates](./codebase-priorities/estimates.md#cost-per-ticket), [the review step's split](./codebase-priorities/estimates.md#steps)).
+- **Merge tickets so fewer are estimated under 90K**; a target a ticketing skill can override with a stated reason. Each ticket pays a cold start of context across implement and two reviewers, ~95K as measured while the review orchestrator still started cold, so a small ticket costs more per file, and cost per file flattens from ~110K ([estimates](./codebase-priorities/estimates.md#cost-per-ticket), [the review step's split](./codebase-priorities/estimates.md#steps)).
 - **Merge only packages with the same Model fit pair**: a merged ticket never needs a stronger pair, so a Sonnet 60K package and an Opus 60K one stay two tickets.
 - **A package may merge with one it blocks when no package outside the group sits between them.**
 - **Estimate a grouped ticket as fixed overhead + the union of its packages' read sets + one flat work allowance of ~55K for a runner step or ~85K for an interactive session**, covering thinking, Edit and Write bodies, check loops and other tool output; the allowance rests on byro-repo#498's estimates ([`estimates.md`](./codebase-priorities/estimates.md#work)).
@@ -34,7 +34,7 @@ The one home for ticketing judgments: the ticket split test, work packages, sizi
 - **A ticket that reads a body of text in full is sized by that text, not its file count**: an audit reads all the code it judges, a piece ticket its Supporting Material and Reference passages plus the spec's Outline and only the earlier Sections it opens for a fact or term. Reading costs about 1K tokens per 2K characters of code (about 16 a line) and per 2.5K of Docs prose. Past ~60K of reading, name a subagent per part that returns only findings, or split the ticket; a drafter needs those passages in its own context, so a piece ticket splits.
 - **Split an over-cap ticket by its estimate, never by its file count alone**, at a seam where each piece leaves `tsc` and tests green; each split pays the fixed overhead again. A bigger pair never fixes size ([`model-fit.md`](./model-fit.md#ticket-size)).
 - **Vertical slices stay the default, with any prefactoring first; a cut at a named seam is allowed where each side lands green with its own tests.**
-- **A rename or retype across more than ~10 files is a wide refactor**: sequence it expand–migrate–contract as `/code-tickets` describes, with a pure rename as its own mechanical ticket.
+- **A rename or retype across more than ~10 files is a wide refactor**: sequence it expand–migrate–contract as [`/project-tickets`](../../.claude/skills/project-tickets/SKILL.md#wide-refactors) describes, with a pure rename as its own mechanical ticket.
 - **A spec drafted into more than about 20 tickets stops filing and proposes a Phase split**; the line is fuzzy, and `/mine-outcomes` may retune it.
 - **Make each ticket self-contained**: quote the spec rules it depends on, name the symbols it touches in its `## Where`, and tell the implementer to open the parent spec only when a criterion is ambiguous. No file paths, per the skill; a naming pattern such as `<Subject>.<aspect>.test.ts` is allowed.
 - **Leave the implementer every choice the code, the design docs and the code style settle; a ticket must settle only what would otherwise be a contradiction, an undefined term or a case its own rule leaves open**, since the implement step carries on with the reading the ticket best supports and halts only on those.
@@ -55,7 +55,7 @@ The one home for ticketing judgments: the ticket split test, work packages, sizi
 ## Model fit
 
 - **The pair lives in the ticket: a `## Model fit` section, last in the body, holding a pair line, then a one-line reason ending with the ticket's estimate as `~NK`.**
-- **`/code-tickets`, `/project-spec` and `/piece-tickets` write the section**, each by its own rule: [which tickets, and the read-back](../../.claude/skills/code-tickets/SKILL.md#7-read-back-the-model-fit), [which code specs](../../.claude/skills/project-spec/SKILL.md#5-write-each-spec), in the paragraph after its code template, and [every `ready-for-agent` piece ticket](../../.claude/skills/piece-tickets/SKILL.md#3-file-the-tickets).
+- **`/project-tickets`, `/code-tickets`, `/project-spec` and `/piece-tickets` write the section**, each by its own rule: [every agent and interactive ticket, and the read-back](../../.claude/skills/project-tickets/SKILL.md#8-read-back-the-pairs), [which tickets, and the read-back](../../.claude/skills/code-tickets/SKILL.md#7-read-back-the-model-fit), [which code specs](../../.claude/skills/project-spec/SKILL.md#5-write-each-spec), in the paragraph after its code template, and [every `ready-for-agent` piece ticket](../../.claude/skills/piece-tickets/SKILL.md#3-file-the-tickets).
 - **`/project-spec` writes none in a piece spec**: a piece spec's pairs are its tickets'.
 - **The developer switches with `/model` and `/effort`**; never dispatch an implementer.
 - **A Model fit check compares the model only**: the agent can't see `/effort`, so it names an effort only when the developer has said what it is.

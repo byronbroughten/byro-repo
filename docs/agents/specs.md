@@ -13,8 +13,8 @@ The rules for planning and writing a spec, code or piece. Sizing and splitting t
 ## Piece specs
 
 - **A piece spec is grilled with `/grill-piece`**, which runs [`docs/pieces/grilling.md`](../pieces/grilling.md).
-- **A piece spec is filed with `/project-spec` and split with `/piece-tickets`**, never `/code-tickets`.
-- **Every piece spec gets tickets: at least one drafting ticket, and its Edit gate last**, a `ready-for-human` ticket blocked by every drafting ticket ([`/piece-tickets`](../../.claude/skills/piece-tickets/SKILL.md)).
+- **A piece spec is filed with `/project-spec` and split with `/project-tickets` or `/piece-tickets`**, never `/code-tickets`.
+- **Every piece spec gets tickets: at least one drafting ticket, and its Edit gate last**, a `ready-for-human` ticket blocked by every drafting ticket ([`/project-tickets`' piece branch](../../.claude/skills/project-tickets/SKILL.md#the-piece-branch)).
 
 ## Phases
 
