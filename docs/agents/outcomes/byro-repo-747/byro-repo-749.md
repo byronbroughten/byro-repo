@@ -1,0 +1,7 @@
+# byro-repo#749 outcome
+
+Spec: [byro-repo#747](https://github.com/byronbroughten/byro-repo/issues/747)
+
+| Issue | Workflow | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #749 | code | Opus medium | 5, 3 | 18 | 149K | Fix (resumed implementer) | 0 | 1 | 0 | 1 | 10 min | $2.35 | $1.84 | Fixed: Link text says planning.md but targets tickets.md#model-fit. (docs/agents/model-fit.md:3); specs.md lacks a row though skills reach it via tickets.md, and tickets.md's Indirectly cell misses /mine-outcomes via model-fit.md. (docs/agents/workflows.md:101-110); The plan-or-spec prose-file rule stayed in planning.md, out of spec writers' reach. (docs/agents/planning.md:6); Lines carry one bold sentence followed by several unbolded rule sentences. (docs/agents/specs.md:7, 34, 36); Four router rows replaced one, about +190 bytes, with nothing dropped. (AGENTS.md:42-45); The leads list the sharing skills, repeating workflows.md's table. (docs/agents/tickets.md:3, docs/agents/specs.md:3); The link text names planning.md for a tickets.md target. (docs/agents/model-fit.md:3); "if you haven't already" became "before writing a spec". (docs/agents/specs.md:7). | 0d0a7ed5-8990-4d15-acaa-f15647292c35 |
