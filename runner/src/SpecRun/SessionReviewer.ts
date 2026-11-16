@@ -1,15 +1,14 @@
-// A session's review: runs review on one ticket's issue workspace outside any run, refusing a workspace another holder
-// leases or one with uncommitted changes. It saves the findings to the facts file and returns them, for the session to
-// resolve itself and hand its records to resolve, which checks them as a run's resolve records are. Resolve returns the
-// run's review list to print and posts Halts as a run would; unhalted, it posts the list on the spec too, with no push,
-// or edits the one an earlier review posted, keeping its decided items.
-// Its Halts are numbered S<n>.<k> and returned to print, to be answered in the session rather than on the spec.
-// Each step session it starts goes into the ticket's facts file, halted or not.
-// ../SpecRun.ts delegates review and resolve to it; its authorship refusal is the Base's, shared with PreflightChecker.ts.
-// It builds its own TicketSequencer, ReviewStepper, LeaseKeeper, ReviewListPoster and HaltRaiser.
+// A session's review of one ticket's issue workspace outside any run, which the session runs itself, refusing a workspace
+// another holder leases or one with uncommitted changes. The brief returns the run's review prompt and records its start;
+// the submit checks the session's review record and its reviewer subagents since the brief, from its transcript, sending
+// a short one back once, then saves the findings to the facts file and returns them, for the session to resolve itself
+// and hand its records to resolve, which checks them as a run's resolve records are. Resolve returns the run's review
+// list to print and posts Halts as a run would; unhalted, it posts the list on the spec too, with no push, or edits the
+// one an earlier review posted, keeping its decided items. Its Halts are numbered S<n>.<k> and returned to print.
+// ../SpecRun.ts delegates to it; its authorship refusal is the Base's, shared with PreflightChecker.ts.
+// It builds its own ReviewStepper, LeaseKeeper, ReviewListPoster and HaltRaiser.
 
-import { ActiveAccountUnknown } from "../ActiveAccountUnknown.ts";
-import type { ReviewFacts } from "../FactsFile.ts";
+import type { ReviewBrief, ReviewFacts } from "../FactsFile.ts";
 import { messageOf } from "../failureText.ts";
 import { sessionHaltCountOf } from "../halts.ts";
 import {
@@ -22,10 +21,13 @@ import {
 } from "../IssueWorkspaces.ts";
 import { LeaseHeld } from "../LeaseHeld.ts";
 import { pairOf } from "../modelFit.ts";
-import { bulletListOf } from "../promptText.ts";
+import { bulletListOf, type SessionSubmit } from "../promptText.ts";
+import { schemaProblemsOf } from "../recordSchema.ts";
 import { ticketReviewListOf } from "../reviewList.ts";
 import { RunStop } from "../RunStop.ts";
+import type { ReviewRecord } from "../stepRecords.ts";
 import { TicketHalted } from "../TicketHalted.ts";
+import { spawnedSubagentCountOf } from "../transcriptFacts.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import { LeaseKeeper } from "./LeaseKeeper.ts";
@@ -35,6 +37,8 @@ import {
   type ResolveOptions,
   type ReviewOptions,
   type ReviewResult,
+  type SubmitOptions,
+  type SubmittedSession,
   ticketLaunch,
   type TicketRun,
   type TicketState,
@@ -44,7 +48,6 @@ import { runHalts } from "./runState/runHalts.ts";
 import { runText } from "./runState/runText.ts";
 import { ticketSteps } from "./runState/ticketSteps.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
-import { TicketSequencer } from "./TicketSequencer.ts";
 
 interface SessionTicket extends ReviewOptions {
   issue: IssueRef;
@@ -58,11 +61,12 @@ interface SessionTicketRun extends TicketRun {
   workspace: WorkspaceStatus;
 }
 
-export class SessionReviewer extends SpecRunBase {
-  private get ticketSequencer(): TicketSequencer {
-    return new TicketSequencer(this.config);
-  }
+interface ReviewerCount {
+  brief: ReviewBrief;
+  session: SubmittedSession;
+}
 
+export class SessionReviewer extends SpecRunBase {
   private get reviewStepper(): ReviewStepper {
     return new ReviewStepper(this.config);
   }
@@ -79,27 +83,67 @@ export class SessionReviewer extends SpecRunBase {
     return new HaltRaiser(this.config);
   }
 
-  // Saves no run state and resumes no session, so a later run of the spec is unaffected; runs no checks and no wrap-up.
-  async review(
+  // A rerun, for a second review after fixes, overwrites the earlier brief's start.
+  async brief(
     issue: IssueRef,
     { holder }: ReviewOptions,
   ): Promise<ReviewResult> {
-    const ticketRun = await this._sessionTicketRunOf({
-      issue,
-      holder,
-      // With no implementer session, the review hands nothing off: the implementer is the live interactive session.
-      state: { step: "review", sessions: [], limitResumes: 0 },
-      isDirtyRefused: true,
-    });
+    const ticketRun = await this._reviewTicketRunOf(issue, holder);
     if (typeof ticketRun === "string") return refusedReviewOf(ticketRun);
+    const rules = this._agentStepOf(ticketRun.run.spec, "review");
+    const prompt = rules.promptOf({
+      ...ticketSteps.promptFieldsOf(ticketRun),
+      skillName: rules.skillName,
+      isInlineAllowed: await this.reviewStepper._isInlineAllowed(ticketRun),
+      sessionSubmit: this._sessionSubmitOf(issue),
+    });
+    this.factsFile.setReviewBrief(issue, {
+      startedAt: this.config.clock.now().toISOString(),
+    });
+    this._record(
+      ticketRun.run,
+      `Printed ${issueRef.labelOf(issue)}'s review brief.`,
+    );
+    return { kind: "brief", message: prompt, halts: [] };
+  }
+
+  // Saves no run state and launches no session, so a later run of the spec is unaffected; runs no checks and no wrap-up.
+  async submit(
+    issue: IssueRef,
+    { holder, output, session }: SubmitOptions,
+  ): Promise<ReviewResult> {
+    const brief = this.factsFile.reviewBriefOf(issue);
+    if (brief === undefined) {
+      return refusedReviewOf(
+        `${issueRef.labelOf(issue)} has no review brief to submit against; print it with \`${this._briefCommandOf(issue)}\` and review from it first.`,
+      );
+    }
+    const ticketRun = await this._reviewTicketRunOf(issue, holder);
+    if (typeof ticketRun === "string") return refusedReviewOf(ticketRun);
+    const rules = this._agentStepOf(ticketRun.run.spec, "review");
+    const problems = schemaProblemsOf(rules.outputSchema, output);
+    if (problems.length > 0) {
+      return refusedReviewOf(
+        `Your review record broke its schema; correct it in \`${this._sessionSubmitOf(issue).recordPath}\` and submit again:\n\n${bulletListOf(problems)}`,
+      );
+    }
     const result = await this._leased(ticketRun, async () => {
-      await this.ticketSequencer._runSteps(ticketRun);
+      const refusal = await this._reviewerRefusalOf(ticketRun, {
+        brief,
+        session,
+      });
+      if (refusal !== undefined) return refusedReviewOf(refusal);
+      this.factsFile.setReviewBrief(issue, undefined);
+      this._recordReviewSession(ticketRun, { brief, session });
       const { state, workspace } = ticketRun;
-      if (state.step !== "resolve") return this._finishReview(ticketRun);
-      const findings = state.findings ?? [];
+      const { findings, dismissedOverlaps } = output as ReviewRecord;
+      state.findings = findings;
+      state.dismissedOverlaps = dismissedOverlaps;
+      if (findings.length === 0) return this._finishReview(ticketRun);
       this.factsFile.setPendingResolve(issue, {
         findings,
         base: await this._headsOf(workspace),
+        hasSkippedReviewers: state.hasSkippedReviewers,
       });
       return {
         kind: "findings",
@@ -129,7 +173,7 @@ export class SessionReviewer extends SpecRunBase {
     const rules = this._agentStepOf(await this._specOf(issue), "resolve");
     const outputProblems = rules.outputProblems(output);
     if (outputProblems.length > 0) return brokenRulesOf(outputProblems);
-    const { findings, base } = pending;
+    const { findings, base, hasSkippedReviewers } = pending;
     const ticketRun = await this._sessionTicketRunOf({
       issue,
       holder,
@@ -139,6 +183,7 @@ export class SessionReviewer extends SpecRunBase {
         limitResumes: 0,
         findings,
         resolveBase: base,
+        hasSkippedReviewers,
       },
       isDirtyRefused: false,
     });
@@ -160,6 +205,86 @@ export class SessionReviewer extends SpecRunBase {
     });
     this._record(ticketRun.run, result.message);
     return result;
+  }
+
+  private _reviewTicketRunOf(
+    issue: IssueRef,
+    holder: LeaseHolder | undefined,
+  ): Promise<SessionTicketRun | string> {
+    return this._sessionTicketRunOf({
+      issue,
+      holder,
+      // With no implementer session, the review hands nothing off: the implementer is the live interactive session.
+      state: { step: "review", sessions: [], limitResumes: 0 },
+      isDirtyRefused: true,
+    });
+  }
+
+  private _briefCommandOf({ repo, number }: IssueRef): string {
+    return `npm run runner -- review ${this.config.githubOwner}/${repo} ${number}`;
+  }
+
+  private _sessionSubmitOf(issue: IssueRef): SessionSubmit {
+    const recordPath = `.runner/review-${issue.number}.json`;
+    return {
+      recordPath,
+      command: `${this._briefCommandOf(issue)} ${recordPath} --session <id>`,
+    };
+  }
+
+  // Over the inline size, a session that started fewer reviewers since its brief than the Workflow names is sent back once;
+  // a second short submit is accepted, marked for its review list.
+  private async _reviewerRefusalOf(
+    ticketRun: SessionTicketRun,
+    { brief, session }: ReviewerCount,
+  ): Promise<string | undefined> {
+    const { reviewerCheck } = this._agentStepOf(ticketRun.run.spec, "review");
+    if (reviewerCheck === undefined) return undefined;
+    if (await this.reviewStepper._isInlineAllowed(ticketRun)) return undefined;
+    const spawned = spawnedSubagentCountOf(
+      session,
+      Date.parse(brief.startedAt),
+    );
+    if (spawned === undefined) {
+      return `No transcript for session ${session.sessionId} under ${session.configFolder}; submit with the id on the \`session: <id>\` line in your context, from the session that ran the review.`;
+    }
+    if (spawned >= reviewerCheck.count) return undefined;
+    const { issue } = ticketRun.ticket;
+    const label = issueRef.labelOf(issue);
+    if (brief.isSentBack === true) {
+      ticketRun.state.hasSkippedReviewers = true;
+      this._record(
+        ticketRun.run,
+        `${label}: the session's review, once sent back, started ${spawned} of its ${reviewerCheck.count} reviewer subagents; its review list says it ran without its reviewers.`,
+      );
+      return undefined;
+    }
+    this.factsFile.setReviewBrief(issue, { ...brief, isSentBack: true });
+    const { recordPath, command } = this._sessionSubmitOf(issue);
+    return `${reviewerCheck.resumePrompt} Write it to \`${recordPath}\`, replacing the one there, and submit again with \`${command}\`.`;
+  }
+
+  // Under the brief's start, so Review cost splits the interactive session there; addSession keeps the first review's start.
+  private _recordReviewSession(
+    { run, ticket }: TicketRun,
+    { brief, session }: ReviewerCount,
+  ): void {
+    const { sessionId, configFolder, account } = session;
+    const label = issueRef.labelOf(ticket.issue);
+    if (account === undefined) {
+      this._log(
+        run,
+        `${label}: no Active account could be read, so the review's session ${sessionId} is unrecorded and Review cost won't split at it.`,
+      );
+      return;
+    }
+    this.factsFile.addSession(ticket.issue, {
+      agent: "review",
+      sessionId,
+      startedAt: brief.startedAt,
+      account,
+      configFolder,
+    });
   }
 
   private async _specOf(issue: IssueRef): Promise<TrackedIssue> {
@@ -343,7 +468,7 @@ function reviewEndOf(ticketRun: TicketRun, error: unknown): ReviewResult {
       reviewList: reviewListOf(ticketRun),
     };
   }
-  if (error instanceof LeaseHeld || error instanceof ActiveAccountUnknown) {
+  if (error instanceof LeaseHeld) {
     return refusedReviewOf(error.message);
   }
   if (error instanceof UnhandledStop) {

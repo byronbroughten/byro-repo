@@ -17,6 +17,7 @@ import {
   type ReviewOptions,
   type ReviewResult,
   type RunResult,
+  type SubmitOptions,
 } from "./SpecRun/runState.ts";
 import { SessionReviewer } from "./SpecRun/SessionReviewer.ts";
 import { SpecRunBase, type SpecRunConfig } from "./SpecRun/SpecRunBase.ts";
@@ -31,6 +32,8 @@ export {
   type ReviewOptions,
   type ReviewResult,
   type RunResult,
+  type SubmitOptions,
+  type SubmittedSession,
   type TicketStep,
   type TrackedIssue,
 } from "./SpecRun/runState.ts";
@@ -77,8 +80,12 @@ export class SpecRun extends SpecRunBase {
     return this.statusReporter.status(specIssue);
   }
 
-  review(issue: IssueRef, options: ReviewOptions): Promise<ReviewResult> {
-    return this.sessionReviewer.review(issue, options);
+  briefReview(issue: IssueRef, options: ReviewOptions): Promise<ReviewResult> {
+    return this.sessionReviewer.brief(issue, options);
+  }
+
+  submitReview(issue: IssueRef, options: SubmitOptions): Promise<ReviewResult> {
+    return this.sessionReviewer.submit(issue, options);
   }
 
   resolve(issue: IssueRef, options: ResolveOptions): Promise<ReviewResult> {

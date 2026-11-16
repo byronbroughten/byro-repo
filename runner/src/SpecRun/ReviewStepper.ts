@@ -1,5 +1,5 @@
-// A ticket's review and resolve steps, both the implementer's. Review records findings, in the implementer's session or,
-// for a session review, a fresh review session, resumed once when over the inline size it skipped its reviewer subagents;
+// A ticket's review and resolve steps, both the implementer's. Review records findings in the implementer's session,
+// resumed once when over the inline size it skipped its reviewer subagents;
 // the implementer resolves them, giving each a verdict and fixing the Fix ones. A fresh session after a handoff carries
 // either step on; a resolve record that breaks the rules gets one resumed retry, apart from the launcher's one schema
 // resume, and a Halt verdict raises a Halt. Before review and resolve, an implementer past the ticket budget hands off;
@@ -51,12 +51,9 @@ interface ImplementerLaunch {
   freshPrompt?: string;
 }
 
-interface ReviewLaunch extends Omit<ImplementerLaunch, "step"> {
-  isSessionReview: boolean;
-}
-
 // Unset reviewerCheck never sends the review back: a Workflow with none, or a diff within the inline size.
-interface ReviewAttempt extends Omit<ReviewLaunch, "freshPrompt"> {
+interface ReviewAttempt {
+  launch: StepLaunch;
   reviewerCheck?: ReviewerCheck;
 }
 
@@ -110,25 +107,19 @@ export class ReviewStepper extends SpecRunBase {
     const { run, state } = ticketRun;
     const rules = this._agentStepOf(run.spec, "review");
     const { reviewerCheck, outputSchema: jsonSchema } = rules;
-    const isInlineAllowed =
-      reviewerCheck?.offerInline === true &&
-      (await this._isInlineSize(ticketRun));
-    const isSessionReview = run.sessionReview !== undefined;
+    const isInlineAllowed = await this._isInlineAllowed(ticketRun);
     const launch: StepLaunch = {
       prompt: rules.promptOf({
         ...ticketSteps.promptFieldsOf(ticketRun),
         skillName: rules.skillName,
         isInlineAllowed,
-        isSessionReview,
         pointsWorthChecking: pointsWorthCheckingOf(state.record),
       }),
       jsonSchema,
-      // A session review's fresh review session has no implementer to hand off.
-      liveCeiling: isSessionReview ? undefined : this.config.knobs.liveCeiling,
+      liveCeiling: this.config.knobs.liveCeiling,
     };
     const attempt: ReviewAttempt = {
       launch,
-      isSessionReview,
       reviewerCheck: isInlineAllowed ? undefined : reviewerCheck,
     };
     let ran = await this._reviewOnce(ticketRun, attempt);
@@ -155,10 +146,10 @@ export class ReviewStepper extends SpecRunBase {
     ticketRun: TicketRun,
     attempt: ReviewAttempt,
   ): Promise<RanStep> {
-    const { launch, isSessionReview, reviewerCheck } = attempt;
-    const ran = await this._runReviewSession(ticketRun, {
+    const { launch, reviewerCheck } = attempt;
+    const ran = await this._runImplementerStep(ticketRun, {
+      step: "review",
       launch,
-      isSessionReview,
     });
     ticketRun.state.hasSkippedReviewers = undefined;
     if (reviewerCheck === undefined || ran.result.hasCrossedCeiling) return ran;
@@ -169,36 +160,10 @@ export class ReviewStepper extends SpecRunBase {
     });
   }
 
-  // A resume that finds no conversation runs fresh, a session review's as the implementer's does.
-  private async _runReviewSession(
-    ticketRun: TicketRun,
-    { launch, isSessionReview, freshPrompt }: ReviewLaunch,
-  ): Promise<RanStep> {
-    if (!isSessionReview) {
-      return this._runImplementerStep(ticketRun, {
-        step: "review",
-        launch,
-        freshPrompt,
-      });
-    }
-    // A session review has no implementer session to resume, so it runs in a fresh review session of its own.
-    const ran = await this.stepLauncher._runStep(ticketRun, "review", launch);
-    if (!ran.result.hasNoConversation) return ran;
-    this._log(
-      ticketRun.run,
-      `${issueRef.labelOf(ticketRun.ticket.issue)}: the review step's session ${launch.resumeSessionId} has no conversation; running it as a fresh session.`,
-    );
-    return this.stepLauncher._runStep(ticketRun, "review", {
-      ...launch,
-      prompt: freshPrompt ?? launch.prompt,
-      resumeSessionId: undefined,
-    });
-  }
-
   // A review that spawned fewer reviewers than its Workflow names is resumed once; a second skip is recorded for its review list.
   private async _sentBackForReviewers(
     ticketRun: TicketRun,
-    { ran, reviewerCheck, launch, isSessionReview }: ReviewerResume,
+    { ran, reviewerCheck, launch }: ReviewerResume,
   ): Promise<RanStep> {
     const { run, ticket, state } = ticketRun;
     const label = issueRef.labelOf(ticket.issue);
@@ -209,14 +174,13 @@ export class ReviewStepper extends SpecRunBase {
       run,
       `${label}: the review ${spawnedPhraseOf(spawned, count)}; resuming it to spawn them.`,
     );
-    const resumed = await this._runReviewSession(ticketRun, {
+    const resumed = await this._runImplementerStep(ticketRun, {
+      step: "review",
       launch: {
         prompt: resumePrompt,
         jsonSchema: launch.jsonSchema,
         liveCeiling: launch.liveCeiling,
-        resumeSessionId: ran.result.sessionId,
       },
-      isSessionReview,
       freshPrompt: launch.prompt,
     });
     if (resumed.result.hasCrossedCeiling) return resumed;
@@ -231,7 +195,14 @@ export class ReviewStepper extends SpecRunBase {
     return resumed;
   }
 
-  // Counted from master, the review's own fixed point, so a session review with no implement base counts the same files.
+  // Whether the review may skip its reviewer subagents, for a run's review and an interactive session's alike.
+  async _isInlineAllowed(ticketRun: TicketRun): Promise<boolean> {
+    const { reviewerCheck } = this._agentStepOf(ticketRun.run.spec, "review");
+    if (reviewerCheck?.offerInline !== true) return false;
+    return this._isInlineSize(ticketRun);
+  }
+
+  // Counted from master, the review's own fixed point, so a session with no implement base counts the same files.
   private async _isInlineSize(ticketRun: TicketRun): Promise<boolean> {
     let count = 0;
     for (const repo of ticketSteps.branchedReposOf(ticketRun)) {

@@ -10,6 +10,7 @@ import { join } from "node:path";
 
 import { ContextMeter } from "./contextMeter.ts";
 import type { OutcomeFacts } from "./outcomeLog.ts";
+import { subagentToolNames } from "./StepStream.ts";
 
 export type StepAgent = "implement" | "research" | "review" | "resolve";
 
@@ -20,10 +21,15 @@ export interface StepSession {
   startedAt?: string;
 }
 
-// With the account it ran as and the config folder its transcript is under.
-export interface RecordedSession extends StepSession {
-  account: number;
+// A session's id and the config folder its transcript is under.
+export interface TranscriptSession {
+  sessionId: string;
   configFolder: string;
+}
+
+// With the account it ran as and the config folder its transcript is under.
+export interface RecordedSession extends StepSession, TranscriptSession {
+  account: number;
 }
 
 export interface TicketSessions {
@@ -290,6 +296,34 @@ function missingReasonOf(missing: RecordedSession[]): string {
         `no transcript for session ${sessionId} under ${configFolder}`,
     )
     .join("; ");
+}
+
+// The subagents a session's main loop started from `since` on, each call once; undefined when its transcript isn't found.
+export function spawnedSubagentCountOf(
+  { sessionId, configFolder }: TranscriptSession,
+  since: number,
+): number | undefined {
+  const transcript = transcriptOf(projectDirsOf(configFolder), sessionId);
+  if (transcript === undefined) return undefined;
+  const calls = new Set(
+    transcript.entries.flatMap((entry) => {
+      if (entry.type !== "assistant" || entry.isSidechain === true) return [];
+      if ((timeOf(entry) ?? -Infinity) < since) return [];
+      return subagentCallIdsOf(entry.message?.content);
+    }),
+  );
+  return calls.size;
+}
+
+function subagentCallIdsOf(content: unknown): string[] {
+  if (!Array.isArray(content)) return [];
+  return content.flatMap((block) => {
+    const isCall =
+      block?.type === "tool_use" &&
+      subagentToolNames.has(block.name) &&
+      typeof block.id === "string";
+    return isCall ? [block.id as string] : [];
+  });
 }
 
 // The latest recorded implementer's peak, as an interactive session is when its review runs; undefined when unreadable.

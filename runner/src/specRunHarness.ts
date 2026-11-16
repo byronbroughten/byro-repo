@@ -1,6 +1,13 @@
 // The fixture and helpers SpecRun's test files share; each file calls useSpecRunHarness() once at its top.
 
-import { mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
+import {
+  appendFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,7 +34,7 @@ import { gapCheckOutputSchema } from "./recordSchema.ts";
 import { reviewListMarkOf } from "./reviewList.ts";
 import { type Command, runKnobsOf } from "./runKnobs.ts";
 import { type MemberList, SpecRun, type SpecRunConfig } from "./SpecRun.ts";
-import type { PullBaseline } from "./SpecRun/runState.ts";
+import type { PullBaseline, SubmittedSession } from "./SpecRun/runState.ts";
 import { stepResults } from "./specRunHarness/stepResults.ts";
 import { timing } from "./specRunHarness/timing.ts";
 import { trackedIssues } from "./specRunHarness/trackedIssues.ts";
@@ -289,6 +296,31 @@ export function specRun(
     ...overrides,
   });
   return run;
+}
+
+// An interactive session's transcript under the state folder, its main loop starting `reviewers` reviewer subagents at `at`.
+export function sessionStarting(
+  reviewers: number,
+  { sessionId = "interactive-session", at = startTime } = {},
+): SubmittedSession {
+  const configFolder = join(stateFolder(), "config");
+  const projectDir = join(configFolder, "projects", "-workspace");
+  mkdirSync(projectDir, { recursive: true });
+  const calls = Array.from({ length: reviewers }, (_, index) => ({
+    type: "tool_use",
+    name: "Agent",
+    id: `${sessionId}-${at.toISOString()}-${index}`,
+  }));
+  const entry = {
+    type: "assistant",
+    timestamp: at.toISOString(),
+    message: { id: `m-${at.toISOString()}`, content: calls },
+  };
+  appendFileSync(
+    join(projectDir, `${sessionId}.jsonl`),
+    `${JSON.stringify(entry)}\n`,
+  );
+  return { sessionId, configFolder, account: 1 };
 }
 
 export function haltComments(): string[] {

@@ -61,10 +61,34 @@ describe("reviewPrompt", () => {
     expect(prompt).toContain("Change nothing");
   });
 
-  it("words a session review as the review step", () => {
-    const prompt = reviewPrompt({ ...input, isSessionReview: true });
-    expect(prompt).toContain("You are the review step");
-    expect(prompt).not.toContain("your own work");
+  describe("an interactive session's brief", () => {
+    const sessionSubmit = {
+      recordPath: ".runner/review-269.json",
+      command:
+        "npm run runner -- review byro-repo-owner/byro-repo 269 .runner/review-269.json --session <id>",
+    };
+    const prompt = reviewPrompt({ ...input, sessionSubmit });
+
+    it("words the session's review of its own work, never saying nobody is watching", () => {
+      expect(prompt).toContain("in this interactive session");
+      expect(prompt).toContain("your own work");
+      expect(prompt).not.toContain("Nobody is watching");
+    });
+
+    it("has the session paste its own points worth checking into every reviewer's brief", () => {
+      expect(prompt).toContain(
+        "You have no committed implement record, so the points worth checking are yours to name",
+      );
+      expect(prompt).toContain("paste them into every reviewer's brief");
+    });
+
+    it("has it write the record to its file and submit it, naming where its session id is", () => {
+      expect(prompt).toContain(
+        "Write the review record to `.runner/review-269.json`, a JSON object holding only `findings`, then submit it with `npm run runner -- review byro-repo-owner/byro-repo 269 .runner/review-269.json --session <id>`, taking the id from the `session: <id>` line in your context.",
+      );
+      expect(prompt).not.toContain("Return `output`");
+      expect(prompt).toContain("each as its reviewer worded it");
+    });
   });
 });
 

@@ -33,7 +33,11 @@ import {
   type ResolveRecord,
 } from "../stepRecords.ts";
 import { type Target, targetLineShapes, targetsOf } from "../ticketTargets.ts";
-import { type RecordedSession, type StepSession } from "../transcriptFacts.ts";
+import {
+  type RecordedSession,
+  type StepSession,
+  type TranscriptSession,
+} from "../transcriptFacts.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
 import { runText } from "./runState/runText.ts";
 
@@ -87,9 +91,18 @@ export interface ResolveOptions extends ReviewOptions {
   output: unknown;
 }
 
+// The interactive session that ran its review, with the Active account it ran as when one could be read.
+export interface SubmittedSession extends TranscriptSession {
+  account?: number;
+}
+
+export interface SubmitOptions extends ResolveOptions {
+  session: SubmittedSession;
+}
+
 export interface ReviewResult {
-  // `findings`: the session resolves them itself and hands its records to `resolve`.
-  kind: "reviewed" | "findings" | "halted" | "stopped" | "refused";
+  // `brief`: the review prompt, in `message`, for the session to run itself; `findings`: the session resolves them itself and hands its records to `resolve`.
+  kind: "brief" | "reviewed" | "findings" | "halted" | "stopped" | "refused";
   message: string;
   // Each Halt comment the review posted on the spec, for the session to print.
   halts: string[];
