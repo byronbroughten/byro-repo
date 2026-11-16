@@ -1494,28 +1494,34 @@ function workspacePath(): string {
 
 // A Doc of one level-2 heading and one paragraph per Section, after the section break every Doc opens with.
 function docOf(sections: Record<string, string>): GoogleDocument {
-  const content = Object.entries(sections).flatMap(([heading, text]) => [
-    paragraphOf(heading, "HEADING_2"),
-    paragraphOf(text, "NORMAL_TEXT"),
-  ]);
-  content.unshift({ sectionBreak: {} });
-  return {
-    documentId: deliverableId,
-    revisionId: "crossing-1",
-    body: { content },
-  };
+  return documentOf(h2ContentOf(sections));
 }
 
 // A Doc of level-1 headings with no text of their own, each over its level-2 Sections of one paragraph.
 function headedDocOf(
   parts: Record<string, Record<string, string>>,
 ): GoogleDocument {
-  const content = Object.entries(parts).flatMap(([h1, sections]) => [
-    paragraphOf(h1, "HEADING_1"),
-    ...docOf(sections).body.content.slice(1),
+  return documentOf(
+    Object.entries(parts).flatMap(([h1, sections]) => [
+      paragraphOf(h1, "HEADING_1"),
+      ...h2ContentOf(sections),
+    ]),
+  );
+}
+
+function documentOf(content: StructuralElement[]): GoogleDocument {
+  return {
+    documentId: deliverableId,
+    revisionId: "crossing-1",
+    body: { content: [{ sectionBreak: {} }, ...content] },
+  };
+}
+
+function h2ContentOf(sections: Record<string, string>): StructuralElement[] {
+  return Object.entries(sections).flatMap(([heading, text]) => [
+    paragraphOf(heading, "HEADING_2"),
+    paragraphOf(text, "NORMAL_TEXT"),
   ]);
-  content.unshift({ sectionBreak: {} });
-  return { ...docOf({}), body: { content } };
 }
 
 // Two Parts, each with an Intro, so an H2's text alone names no one Section.
