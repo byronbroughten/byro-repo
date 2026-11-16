@@ -1,5 +1,5 @@
 // `npm run doc:print -- <Doc ID or URL>`: prints a Google Doc as the Docs module's Markdown, read as the agent account.
-// The core is runner/src/docPrint.ts; the access token is minted in .claude/hooks/lib/AgentTokenMinter.ts, so this entry never sees the refresh token or a credential file path.
+// The core is runner/src/docPrint.ts; the access token comes from .claude/hooks/lib/AgentTokenMinter.ts, so the port this entry builds never sees the refresh token or a credential file path, though the minter reads them in this process; the tier row, docs/targets-and-gates.md, names that weakening.
 import { docPrint } from "@byronbroughten/spec-runner/docPrint";
 import { messageOf } from "@byronbroughten/spec-runner/failureText";
 import { RestDocuments } from "@byronbroughten/spec-runner/RestDocuments";

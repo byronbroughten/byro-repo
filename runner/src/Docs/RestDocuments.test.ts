@@ -1,71 +1,15 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-
 import { describe, expect, it } from "vitest";
 
 import { DocsRequestRefused } from "./DocsRequestRefused.ts";
 import type { GoogleDocument } from "./googleDocs.ts";
 import { RestDocuments } from "./RestDocuments.ts";
-
-interface SentRequest {
-  url: string;
-  method: string;
-  authorization: string | undefined;
-  body: string;
-}
+import { credentialFile, fakeGoogle, loggedIn } from "./restFixtures.ts";
 
 const document: GoogleDocument = {
   documentId: "doc-1",
   revisionId: "rev-1",
   body: { content: [] },
 };
-
-function credentialFile(contents: object): string {
-  const path = join(
-    mkdtempSync(join(tmpdir(), "rest-documents-")),
-    "docs.json",
-  );
-  writeFileSync(path, JSON.stringify(contents));
-  return path;
-}
-
-const loggedIn = {
-  tokens: {
-    default: {
-      client_id: "client-1",
-      client_secret: "secret-1",
-      refresh_token: "refresh-1",
-    },
-  },
-};
-
-/** A fetch answering Google's token endpoint and then each Docs call with the next scripted answer. */
-function fakeGoogle(...docsAnswers: Response[]): {
-  fetch: typeof fetch;
-  sent: SentRequest[];
-} {
-  const sent: SentRequest[] = [];
-  const fakeFetch: typeof fetch = async (input, init) => {
-    const url = String(input);
-    const headers = new Headers(init?.headers);
-    sent.push({
-      url,
-      method: init?.method ?? "GET",
-      authorization: headers.get("Authorization") ?? undefined,
-      body: String(init?.body ?? ""),
-    });
-    if (url === "https://oauth2.googleapis.com/token") {
-      return Response.json({ access_token: "ya29.access" });
-    }
-    const answer = docsAnswers.shift();
-    if (answer === undefined) {
-      throw new Error(`No answer scripted for ${url}.`);
-    }
-    return answer;
-  };
-  return { fetch: fakeFetch, sent };
-}
 
 describe("RestDocuments", () => {
   it("reads a Doc with its suggestions inline, as the developer's clasp login", async () => {
