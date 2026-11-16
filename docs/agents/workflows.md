@@ -106,7 +106,7 @@ A doc is listed when two or more skills or Steps of either Workflow reach it by 
 | [`specs.md`](./specs.md) | `/project-spec`, `/project-tickets` | via `tickets.md`: `/review-code-tickets` |
 | [`tickets.md`](./tickets.md) | `/project-spec`, `/project-tickets`, `/review-code-tickets` | via `model-fit.md`: `/mine-outcomes` |
 | [`handoffs.md`](./handoffs.md) | `/start-issue`, `/to-code-style` | via always-on hook: the context nudge, for any session |
-| [`model-fit.md`](./model-fit.md) | `/mine-outcomes`, `/project-spec`, `/project-tickets` | |
+| [`model-fit.md`](./model-fit.md) | `/mine-outcomes`, `/project-spec`, `/project-tickets` | via `tickets.md`: `/review-code-tickets` |
 | The code-style rules: [config's](../../config/docs/code-style.md) and [the framework's](../../packages/framework/docs/code-style.md) | `/retro`, `/to-code-style` | via always-on hook: every code edit, by `/implement-code`, the implement and resolve Steps, and `/judge-findings`' "now" fixes |
 | [`prose-style.md`](../prose-style.md) | `/code-review`, `/retro`, `/to-code-style` | via always-on hook: every prose edit |
 | [`prose-files.md`](./prose-files.md) | `/to-code-style`, `/to-writing-style` | via always-on hook: every prose edit, through `prose-style.md` |
