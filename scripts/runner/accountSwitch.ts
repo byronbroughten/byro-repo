@@ -22,6 +22,7 @@ try {
       },
     },
     knobs: runKnobs,
+    now: () => new Date(),
     print: (line) => console.log(line),
   });
 } catch (error) {

@@ -16,7 +16,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | File | Export | Job |
 | --- | --- | --- |
 | `AccountLease.ts` | `AccountLease` | The per-account lease a run holds on a cswap account, never waited on, and the leased accounts with their holders. |
-| `accountSwitch.ts` | `accountSwitch` | `npm run account:switch`'s core: switches the Active account to the top of the account ranking through the cswap switch port its entry passes, printing the readings before and after. |
+| `AccountsSection.ts` | | The Accounts section the Run board will show, read from cswap at most once per refresh interval, and the account line it and `npm run account:switch` print for each account. |
+| `accountSwitch.ts` | `accountSwitch` | `npm run account:switch`'s core: switches the Active account to the top of the account ranking through the cswap switch port its entry passes, printing the account lines before and after. |
 | `AGENTS.md` | | The rules for working in `src/`; `CLAUDE.md` loads it. |
 | `CLAUDE.md` | | Loads `AGENTS.md` for Claude Code. |
 | `ActiveAccountUnknown.ts` | | The Stop raised when no Active account can be read for a step. |
@@ -57,7 +58,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `FakeGitHub.ts` | | The scripted GitHub port run-loop, wrap-up and filing tests use. |
 | `FakeIssueSource.ts` | | The scripted issue source issue-reader and Outline-edit tests use. |
 | `FakeNotices.ts` | `FakeNotices` | The notice port run-loop tests read back. |
-| `FakeUsageReader.ts` | | The scripted usage reader run-loop and account-switch tests use. |
+| `FakeUsageReader.ts` | | The scripted usage reader run-loop, account-switch and Accounts section tests use. |
 | `GhCli.ts` | `GhCli` | The real `gh` port. |
 | `git.ts` | | Git helpers the workspaces, run loop and wrap-up share, the worktree add, remove, list and switch helpers and the branch lookup included. |
 | `GitFixture.ts` | | A test primary root of clones with bare remotes. |
