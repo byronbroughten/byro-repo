@@ -29,6 +29,12 @@ export function modelFitTextOf(body: string): string | undefined {
   return `${pairLine}: ${reason.join(" ")}`;
 }
 
+// The `~NK` that ends the reason, as written, for the outcome row's Estimate; undefined when the reason ends in none.
+export function estimateOf(body: string): string | undefined {
+  const [, ...reason] = modelFitLinesOf(body) ?? [];
+  return /~\d+K$/.exec(reason.join(" "))?.[0];
+}
+
 function modelFitLinesOf(body: string): string[] | undefined {
   const sections = body.split(/^(?=## )/m);
   const last = sections.at(-1) ?? "";

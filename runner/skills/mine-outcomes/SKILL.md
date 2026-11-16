@@ -22,7 +22,7 @@ When it names no section, say so and stop. The summary is what you read in place
 
 - review's share of cost for the batch, each repo and each spec: the sum of Review cost over the sum of Cost and Review cost, on rows recording both, rows with an older Triage cost column left out;
 - the medians per file changed of each repo and Workflow, pooled over the batch;
-- per spec, each row's figures with its `Workflow` (`code` or `piece`, an older row reading as `code`), its outliers with the rules they trip and their session ids, and each ticket's Model fit pair line and reason;
+- per spec, each row's figures with its `Workflow` (`code` or `piece`, an older row reading as `code`) and its Estimate (the `~NK` ending its ticket's Model fit reason, blank when it had none), its outliers with the rules they trip and their session ids, and each ticket's Model fit pair line and reason;
 - the expired, partly expired and never-recorded transcripts.
 
 Read the knobs the proposals will name: `defaultRunKnobs` in [`runner/src/runKnobs.ts`](../../../runner/src/runKnobs.ts), laid over by `scripts/runner/runner.config.json`, and the pair criteria in [`docs/agents/model-fit.md#criteria-for-each-pair`](../../../docs/agents/model-fit.md#criteria-for-each-pair).
@@ -42,9 +42,10 @@ For each outlier, and each row a pattern below rests on, read its What review ca
 
 ## 3. Proposals
 
-**Compare like with like: weigh a row only against rows of its own repo and `Workflow`.** Make two kinds. Each names the knob, criterion or file it would change, the change, and the rows behind it by issue number; the rows may come from any spec in the batch:
+**Compare like with like: weigh a row only against rows of its own repo and `Workflow`.** Make three kinds. Each names the knob, criterion or file it would change, the change, and the rows behind it by issue number; the rows may come from any spec in the batch:
 
 - **Model-fit boundary**: move a ticket shape from one pair to another in a criterion of `model-fit.md`, or change `gapCheckPair`, `ticketBudget` or `liveCeiling`. Compare each ticket's pair and its Model fit reason with its Result, peak sum and cost. A pair that passed first try on a shape its criterion puts higher is evidence for moving the boundary down. A cheaper pair that needed a Fix is evidence against.
+- **Estimating**: change a line of [`docs/agents/tickets.md`](../../../docs/agents/tickets.md) on sizing tickets. Compare each row's Estimate with its peak sum; estimates missing the same way on two or more rows of one repo or ticket shape are a proposal. Once the batch holds 30 rows with an Estimate, revisit the flat work allowance, as `tickets.md` says: propose a per-package allowance or confirm the flat one. You may also retune the line of about 20 tickets past which a spec proposes a Phase split.
 - **Process**: one in one of the categories in `/retro` ([`.claude/skills/retro/SKILL.md`](../../../.claude/skills/retro/SKILL.md)), drawn mainly from What review caught. The same kind of catch on two or more tickets is a proposal. Name the knob when one fits, such as `maxTurns.<step>`, `wallClockMs.<step>`, `ticketBudget` or `reviewListCadence`. Otherwise name the doc or check to change.
 
 A pattern on one row is not a proposal; leave it to `/retro`.
@@ -54,7 +55,7 @@ A pattern on one row is not a proposal; leave it to `/retro`.
 In one message, give:
 
 1. Review's share of cost, for the batch, then each repo and spec, each with its row count.
-2. The proposals, model fit first, each with its knob, change and rows.
+2. The proposals, model fit first, then estimating, each with its knob, change and rows.
 3. The outliers by spec, each with the rules it trips, its session ids and any that are missing.
 4. The expired and partly expired rows, and the rows that never had transcripts.
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { modelFitTextOf, pairOf } from "./modelFit.ts";
+import { estimateOf, modelFitTextOf, pairOf } from "./modelFit.ts";
 
 function bodyWith(section: string): string {
   return `## What to build\n\nA thing.\n\n${section}`;
@@ -70,5 +70,31 @@ describe("modelFitTextOf", () => {
     expect(modelFitTextOf("## Model fit\n\nOpus low\n\n## Notes")).toBe(
       undefined,
     );
+  });
+});
+
+describe("estimateOf", () => {
+  it("reads the ~NK that ends the reason, as written", () => {
+    const body = bodyWith(
+      "## Model fit\n\nOpus medium\nA new column through wrap-up; ~120K\n",
+    );
+
+    expect(estimateOf(body)).toBe("~120K");
+  });
+
+  it("leaves the pair as it reads without the estimate", () => {
+    const body = bodyWith("## Model fit\n\nOpus medium\nA new column; ~120K");
+
+    expect(pairOf(body)).toEqual({ model: "opus", effort: "medium" });
+  });
+
+  it("is undefined when the reason doesn't end in one", () => {
+    expect(
+      estimateOf(bodyWith("## Model fit\n\nOpus medium\n~90K, then more.")),
+    ).toBe(undefined);
+  });
+
+  it("is undefined with no Model fit section", () => {
+    expect(estimateOf("## What to build\n\nA thing; ~120K")).toBe(undefined);
   });
 });

@@ -512,7 +512,7 @@ describe("a Batch's refusal", () => {
       kind: "refused",
       landed: [],
       message:
-        "byro-repo #301: byro-repo #301 has no sub-issues and no valid ## Model fit section: split it with /code-tickets, or add the section.\n\nbyro-repo #303: it's closed; drop it from the list.",
+        "byro-repo #301: byro-repo #301 has no sub-issues and no valid ## Model fit section: split it with /project-tickets, or add the section.\n\nbyro-repo #303: it's closed; drop it from the list.",
     });
     expect(agentStep.requests).toEqual([]);
     expect(github.comments).toEqual([]);
@@ -653,7 +653,7 @@ describe("a Batch's refusal", () => {
     const result = await runBatch(FakeAgentStep.init(), { members: [first] });
 
     expect(result.message).toBe(
-      "byro-repo #301 has no sub-issues and no valid ## Model fit section: split it with /code-tickets, or add the section.",
+      "byro-repo #301 has no sub-issues and no valid ## Model fit section: split it with /project-tickets, or add the section.",
     );
   });
 

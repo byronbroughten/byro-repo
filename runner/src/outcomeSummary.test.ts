@@ -12,6 +12,7 @@ const currentHeader = [
   "Pair",
   "Account",
   "Files changed",
+  "Estimate",
   "Peak context",
   "Result",
   "Proposals",
@@ -29,6 +30,7 @@ interface RowCells {
   issue: number;
   workflow?: string;
   files?: string;
+  estimate?: string;
   peak?: string;
   result?: string;
   retries?: string;
@@ -46,6 +48,7 @@ function currentCellsOf(row: RowCells): string[] {
     "Opus medium",
     "1",
     row.files ?? "4",
+    row.estimate ?? "",
     row.peak ?? "100K",
     row.result ?? "Pass",
     "0",
@@ -227,13 +230,25 @@ describe("older row formats", () => {
     );
 
     expect(summary).toContain(
-      "| byro-repo#2 | code | Opus medium | 16 | 162K → 131K | 293K | Fix (resumed implementer) | 0 | 31 min | $5.17 | unrecorded | Triage cost column |",
+      "| byro-repo#2 | code | Opus medium | 16 |  | 162K → 131K | 293K | Fix (resumed implementer) | 0 | 31 min | $5.17 | unrecorded | Triage cost column |",
     );
     expect(lineOf(summary, "- byro-repo#3:")).toMatch(
       /^- byro-repo#3: Result Fix \(fresh resolver\);/,
     );
     expect(lineOf(summary, "- byro-repo#4:")).toMatch(
       /^- byro-repo#4: Result Fix \(fresh resolver\);/,
+    );
+  });
+});
+
+describe("estimate", () => {
+  it("shows a row's Estimate beside its peak context", async () => {
+    const summary = await summaryOf([
+      rowFileOf("byro-repo-1", "byro-repo", { issue: 2, estimate: "~120K" }),
+    ]);
+
+    expect(summary).toContain(
+      "| byro-repo#2 | code | Opus medium | 4 | ~120K | 100K | 100K |",
     );
   });
 });
@@ -245,7 +260,7 @@ describe("limit resumes", () => {
     ]);
 
     expect(summary).toContain(
-      "| byro-repo#2 | code | Opus medium | 4 | 100K | 100K | Pass | 0 | 20 min | $4.00 | 1 | $1.00 |",
+      "| byro-repo#2 | code | Opus medium | 4 |  | 100K | 100K | Pass | 0 | 20 min | $4.00 | 1 | $1.00 |",
     );
   });
 });
