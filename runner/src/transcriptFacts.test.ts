@@ -366,13 +366,13 @@ describe("transcriptFactsOf", () => {
       expect(facts.reviewCostUsd).toBeCloseTo(0.374, 6);
     });
 
-    it("prices a Halt's answer resuming the implementer after review as review cost", () => {
+    it("prices a Halt's answer, which resumes the implementer after its resolve, as review cost", () => {
       writeTranscript("session-warm", launchesOf([[1], [0.2], [0.1]]));
       const steps = [
         step("implement", "session-warm"),
         step("review", "session-review"),
         step("resolve", "session-warm"),
-        step("resolve", "session-warm"),
+        step("implement", "session-warm"),
       ];
 
       const facts = factsOf(sessions({ steps }), []);
@@ -381,11 +381,39 @@ describe("transcriptFactsOf", () => {
       expect(facts.reviewCostUsd).toBeCloseTo(0.324, 6);
     });
 
-    it("prices a Halt's answer resuming the implementer before review as cost", () => {
-      writeTranscript("session-warm", launchesOf([[1], [0.5], [0.2]]));
+    it("prices a budget handoff resuming the implementer between review and resolve as cost", () => {
+      writeTranscript("session-warm", launchesOf([[1], [0.5]]));
+      writeTranscript("session-fresh", launchesOf([[0.3]]));
       const steps = [
         step("implement", "session-warm"),
-        step("resolve", "session-warm"),
+        step("review", "session-review"),
+        step("implement", "session-warm"),
+        step("resolve", "session-fresh"),
+      ];
+
+      const facts = factsOf(sessions({ steps }), []);
+
+      expect(facts.costUsd).toBeCloseTo(1.5, 6);
+      expect(facts.reviewCostUsd).toBeCloseTo(0.324, 6);
+    });
+
+    it("cuts at the resume prompt past a task notification before it", () => {
+      const lines = launchesOf([[1], [0.2]]).split("\n");
+      const notified = [
+        {
+          type: "user",
+          timestamp: at(5),
+          origin: { kind: "task-notification" },
+          message: { content: "<task-notification>done</task-notification>" },
+        },
+        pricedReply("msg-notified", 6, 0.5),
+      ].map((entry) => JSON.stringify(entry));
+      writeTranscript(
+        "session-warm",
+        [...lines.slice(0, 3), ...notified, ...lines.slice(3)].join("\n"),
+      );
+      const steps = [
+        step("implement", "session-warm"),
         step("review", "session-review"),
         step("resolve", "session-warm"),
       ];

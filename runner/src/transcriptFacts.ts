@@ -92,6 +92,7 @@ interface TranscriptEntry {
   isCompactSummary?: unknown;
   timestamp?: unknown;
   effort?: unknown;
+  origin?: { kind?: unknown };
   message?: {
     id?: unknown;
     model?: unknown;
@@ -116,23 +117,22 @@ interface CacheWrites {
   oneHour: number;
 }
 
-interface Transcript extends Turns {
+interface Transcript extends SessionEntries {
   sessionId: string;
   text: string;
 }
 
-// What a cost is priced from: a main loop's entries and each subagent's.
-interface Turns {
+interface SessionEntries {
   entries: TranscriptEntry[];
   subagents: TranscriptEntry[][];
 }
 
 type CostSide = "implementer" | "review";
 
-// Each implementer session a resolve step resumed once a review ran, by the launch, counted among its session's own, that resumed it.
-type ReviewResumes = Map<string, number>;
+type ResumePromptIndexes = Map<string, number>;
 
 const syntheticModel = "<synthetic>";
+const taskNotificationKind = "task-notification";
 const handoffSessionLine = /^session: (\S+)$/;
 
 // The config folder a claude process started from `env` writes its transcripts under.
@@ -160,7 +160,7 @@ export function transcriptFactsOf(
 ): OutcomeFacts {
   const projectDirs = projectDirsBySessionOf(sessions, handoffSessionIds);
   const ids = factIdsOf(sessions, handoffSessionIds);
-  const resumes = reviewResumesOf(sessions);
+  const resumes = resumePromptIndexesOf(sessions);
   const implementers = transcriptsOf(projectDirs, ids.pair);
   const accounts = unique(sessions.steps.map(({ account }) => String(account)));
   return {
@@ -238,15 +238,15 @@ function factIdsOf(
   };
 }
 
-// A resume before any review, as a Halt's answer during implement, is implementation, so it stays in cost.
-function reviewResumesOf(sessions: TicketSessions): ReviewResumes {
+// A post-review `implement` resume that comes before resolve is a budget handoff, implementation work, so it stays in cost.
+function resumePromptIndexesOf(sessions: TicketSessions): ResumePromptIndexes {
   const implementerIds = new Set(stepIdsOf(sessions, "implement"));
   const launchCounts = new Map<string, number>();
-  const resumes: ReviewResumes = new Map();
+  const resumes: ResumePromptIndexes = new Map();
   let hasReviewRun = false;
   for (const { agent, sessionId } of sessions.steps) {
-    const launch = launchCounts.get(sessionId) ?? 0;
-    launchCounts.set(sessionId, launch + 1);
+    const promptIndex = launchCounts.get(sessionId) ?? 0;
+    launchCounts.set(sessionId, promptIndex + 1);
     if (agent === "review") hasReviewRun = true;
     if (
       agent === "resolve" &&
@@ -254,7 +254,7 @@ function reviewResumesOf(sessions: TicketSessions): ReviewResumes {
       implementerIds.has(sessionId) &&
       !resumes.has(sessionId)
     ) {
-      resumes.set(sessionId, launch);
+      resumes.set(sessionId, promptIndex);
     }
   }
   return resumes;
@@ -459,24 +459,24 @@ export function minutesOf(ms: number): number {
 // A session a review's resolve step resumed splits at the resume; any other counts whole toward the side that reads it.
 function sideCostUsdOf(
   transcripts: Transcript[],
-  { side, resumes }: { side: CostSide; resumes: ReviewResumes },
+  { side, resumes }: { side: CostSide; resumes: ResumePromptIndexes },
 ): number | undefined {
   return costUsdOf(
     transcripts.map((transcript) => {
-      const launch = resumes.get(transcript.sessionId);
-      return launch === undefined
+      const promptIndex = resumes.get(transcript.sessionId);
+      return promptIndex === undefined
         ? transcript
-        : resumeSplitOf(transcript, launch)[side];
+        : resumeSplitOf(transcript, promptIndex)[side];
     }),
   );
 }
 
-// Cut at the resuming launch's prompt; a subagent goes to the side its first timed entry falls on.
+// A subagent goes to the side its first timed entry falls on.
 function resumeSplitOf(
   { entries, subagents }: Transcript,
-  launch: number,
-): Record<CostSide, Turns> {
-  const prompt = entries.filter(isPrompt)[launch];
+  promptIndex: number,
+): Record<CostSide, SessionEntries> {
+  const prompt = entries.filter(isPrompt)[promptIndex];
   if (prompt === undefined) {
     return {
       implementer: { entries, subagents },
@@ -485,16 +485,15 @@ function resumeSplitOf(
   }
   const cut = entries.indexOf(prompt);
   const resumedAt = timeOf(prompt) ?? Infinity;
-  return {
-    implementer: {
-      entries: entries.slice(0, cut),
-      subagents: subagents.filter((subagent) => startOf(subagent) < resumedAt),
-    },
-    review: {
-      entries: entries.slice(cut),
-      subagents: subagents.filter((subagent) => startOf(subagent) >= resumedAt),
-    },
+  const split: Record<CostSide, SessionEntries> = {
+    implementer: { entries: entries.slice(0, cut), subagents: [] },
+    review: { entries: entries.slice(cut), subagents: [] },
   };
+  for (const subagent of subagents) {
+    const side = startOf(subagent) < resumedAt ? "implementer" : "review";
+    split[side].subagents.push(subagent);
+  }
+  return split;
 }
 
 // A subagent with no timed entry starts before any resume.
@@ -508,10 +507,12 @@ function isPrompt({
   isSidechain,
   isMeta,
   isCompactSummary,
+  origin,
   message,
 }: TranscriptEntry): boolean {
   if (type !== "user" || isSidechain === true) return false;
   if (isMeta === true || isCompactSummary === true) return false;
+  if (origin?.kind === taskNotificationKind) return false;
   const content = message?.content;
   if (typeof content === "string") return true;
   return Array.isArray(content) && !content.some(isToolResult);
@@ -527,7 +528,7 @@ function isToolResult(block: unknown): boolean {
 }
 
 // Undefined when a model missing from the price table used any tokens.
-function costUsdOf(transcripts: Turns[]): number | undefined {
+function costUsdOf(transcripts: SessionEntries[]): number | undefined {
   const costs = transcripts
     .flatMap(({ entries, subagents }) => [entries, ...subagents])
     .flatMap((entries) => [...repliesOf(entries).values()])
