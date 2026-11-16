@@ -1,6 +1,6 @@
-// The pid lock LandingLock.ts, RunLock.ts and CheckSlot.ts share: a file holding its holder's pid, host, start time and
+// The pid lock LandingLock.ts, RunLock.ts, AccountLease.ts and CheckSlot.ts share: a file holding its holder's pid, host, start time and
 // token. It is stale only when that pid is no longer running on this host; there is no time-based expiry.
-// tryTake() never waits: LandingLock and CheckSlot poll a live holder and RunLock refuses on one.
+// tryTake() never waits: LandingLock and CheckSlot poll a live holder and RunLock and AccountLease refuse on one.
 // A stale lock is taken over only while holding a `<path>.takeover` guard, so two takers can't both win.
 
 import { randomUUID } from "node:crypto";
@@ -82,9 +82,15 @@ export class PidLock {
   }
 
   static isHeldAt(path: string): boolean {
-    if (!existsSync(path)) return false;
+    return PidLock.heldAt(path) !== undefined;
+  }
+
+  // The lock as a live holder holds it, or undefined when it is free or its holder is dead.
+  static heldAt(path: string): HeldLock | undefined {
+    if (!existsSync(path)) return undefined;
     const holder = readHolder(path);
-    return holder === undefined || !isStale(holder);
+    if (holder !== undefined && isStale(holder)) return undefined;
+    return { kind: "held", holder };
   }
 
   release(): void {

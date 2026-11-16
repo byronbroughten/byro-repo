@@ -1,4 +1,4 @@
-// The pid-lock fixtures LandingLock's, RunLock's, Checks', SupervisionRecords' and SpecRun's run-lock tests share.
+// The pid-lock fixtures LandingLock's, RunLock's, AccountLease's, Checks', SupervisionRecords' and SpecRun's run-lock tests share.
 
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -21,6 +21,14 @@ export function liveHolder(): Omit<LockHolder, "token"> {
     host: hostname(),
     startedAt: new Date().toISOString(),
   };
+}
+
+// Above any pid the OS hands out, so it reads as dead without starting a process.
+export const notRunningPid = 2 ** 30;
+
+// A holder on this host whose pid isn't running, so its lock reads as abandoned.
+export function deadHolder(): Omit<LockHolder, "token"> {
+  return { pid: notRunningPid, host: hostname(), startedAt: "2026-01-01" };
 }
 
 export function deadPid(): number {

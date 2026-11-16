@@ -15,6 +15,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 
 | File | Export | Job |
 | --- | --- | --- |
+| `AccountLease.ts` | `AccountLease` | The per-account lease a run holds on a cswap account, never waited on, and the leased accounts with their holders. |
+| `accountSwitch.ts` | `accountSwitch` | `npm run account:switch`'s core: switches the Active account to the top of the account ranking through the cswap switch port its entry passes, printing the readings before and after. |
 | `AGENTS.md` | | The rules for working in `src/`; `CLAUDE.md` loads it. |
 | `CLAUDE.md` | | Loads `AGENTS.md` for Claude Code. |
 | `ActiveAccountUnknown.ts` | | The Stop raised when no Active account can be read for a step. |
@@ -55,7 +57,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `FakeGitHub.ts` | | The scripted GitHub port run-loop, wrap-up and filing tests use. |
 | `FakeIssueSource.ts` | | The scripted issue source issue-reader and Outline-edit tests use. |
 | `FakeNotices.ts` | `FakeNotices` | The notice port run-loop tests read back. |
-| `FakeUsageReader.ts` | | The scripted usage reader run-loop tests use. |
+| `FakeUsageReader.ts` | | The scripted usage reader run-loop and account-switch tests use. |
 | `GhCli.ts` | `GhCli` | The real `gh` port. |
 | `git.ts` | | Git helpers the workspaces, run loop and wrap-up share, the worktree add, remove, list and switch helpers and the branch lookup included. |
 | `GitFixture.ts` | | A test primary root of clones with bare remotes. |
@@ -75,7 +77,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `issueWorkspacesHarness.ts` | | The fixture `IssueWorkspaces` tests share. |
 | `LandingLock.ts` | `LandingLock` | The per-primary lock wrap-up lands under. |
 | `LeaseHeld.ts` | | The error for another holder's live workspace lease. |
-| `limitGuard.ts` | `limitGuard` | The limit guard: reads usage and picks launch or Limit wait. |
+| `limitGuard.ts` | `limitGuard` | The limit guard: reads usage, picks launch or Limit wait and ranks the accounts. |
 | `localTime.ts` | | Words and reads a human-facing time: local, with its zone. |
 | `lockFixture.ts` | | Pid-lock fixtures the lock tests share. |
 | `modelFit.ts` | `modelFit` | Reads a ticket's Model fit pair and estimate, and compares pairs. |
@@ -88,7 +90,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `outcomeSummary.ts` | `outcomeSummary` | `npm run outcome:summary`'s core: picks spec sections of the outcome log and reports their costs, outliers, transcripts and Model fit for `/mine-outcomes`. |
 | `outcomeSummary/OutcomeReport.ts` | | Words the outcome summary for a batch of sections. |
 | `outcomeSummary/summarySections.ts` | | Reads the outcome log's spec sections from row files and picks the batch. |
-| `PidLock.ts` | | The pid lock file `LandingLock`, `RunLock` and `CheckSlot` extend, and the wait `LandingLock` and `CheckSlot` poll through. |
+| `PidLock.ts` | | The pid lock file `LandingLock`, `RunLock`, `AccountLease` and `CheckSlot` extend, and the wait `LandingLock` and `CheckSlot` poll through. |
 | `processIdentity.ts` | `processIdentity` | A process named by its pid and start time, for leases, supervision records and a parked watch. |
 | `progressLines.ts` | | The progress-log lines, written and parsed in pairs. |
 | `ProgressLog.ts` | | A progress log's lines and what the Run board reads from them: the current ticket, the account and the latest line. |

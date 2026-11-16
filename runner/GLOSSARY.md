@@ -183,7 +183,7 @@ A read-only, live view of every running run's tickets left, ticket, step and tim
 _Avoid_: dashboard
 
 **Lease**:
-A run's or interactive session's hold on one workspace, which keeps every other run and session out of it until the holder moves on, releases it, ends or closes out. A lease whose holder has died is abandoned, and the next taker takes it over.
+A run's or interactive session's hold on one workspace, which keeps every other run and session out of it until the holder moves on, releases it, ends or closes out; or a run's hold on one cswap account, which the account ranking and `npm run account:switch` pass over. A lease whose holder has died is abandoned, and the next taker takes it over.
 _Avoid_: lock, claim
 
 **Developer**:
