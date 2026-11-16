@@ -88,11 +88,14 @@ export const modelPrices: Record<string, ModelPrice> = {
 interface TranscriptEntry {
   type?: unknown;
   isSidechain?: unknown;
+  isMeta?: unknown;
+  isCompactSummary?: unknown;
   timestamp?: unknown;
   effort?: unknown;
   message?: {
     id?: unknown;
     model?: unknown;
+    content?: unknown;
     usage?: Usage;
   };
 }
@@ -113,11 +116,21 @@ interface CacheWrites {
   oneHour: number;
 }
 
-interface Transcript {
+interface Transcript extends Turns {
+  sessionId: string;
   text: string;
+}
+
+// What a cost is priced from: a main loop's entries and each subagent's.
+interface Turns {
   entries: TranscriptEntry[];
   subagents: TranscriptEntry[][];
 }
+
+type CostSide = "implementer" | "review";
+
+// Each implementer session a resolve step resumed once a review ran, by the launch, counted among its session's own, that resumed it.
+type ReviewResumes = Map<string, number>;
 
 const syntheticModel = "<synthetic>";
 const handoffSessionLine = /^session: (\S+)$/;
@@ -147,6 +160,7 @@ export function transcriptFactsOf(
 ): OutcomeFacts {
   const projectDirs = projectDirsBySessionOf(sessions, handoffSessionIds);
   const ids = factIdsOf(sessions, handoffSessionIds);
+  const resumes = reviewResumesOf(sessions);
   const implementers = transcriptsOf(projectDirs, ids.pair);
   const accounts = unique(sessions.steps.map(({ account }) => String(account)));
   return {
@@ -158,10 +172,12 @@ export function transcriptFactsOf(
       transcriptsOf(projectDirs, ids.durationMinutes),
       (transcripts) => durationMinutesOf(transcripts, silenceTimeoutMs),
     ),
-    costUsd: factOf(implementers, costUsdOf),
+    costUsd: factOf(implementers, (found) =>
+      sideCostUsdOf(found, { side: "implementer", resumes }),
+    ),
     reviewCostUsd: factOf(
       transcriptsOf(projectDirs, ids.reviewCostUsd),
-      costUsdOf,
+      (found) => sideCostUsdOf(found, { side: "review", resumes }),
     ),
   };
 }
@@ -220,6 +236,28 @@ function factIdsOf(
         ? []
         : unique([...reviewIds, ...stepIdsOf(sessions, "resolve")]),
   };
+}
+
+// A resume before any review, as a Halt's answer during implement, is implementation, so it stays in cost.
+function reviewResumesOf(sessions: TicketSessions): ReviewResumes {
+  const implementerIds = new Set(stepIdsOf(sessions, "implement"));
+  const launchCounts = new Map<string, number>();
+  const resumes: ReviewResumes = new Map();
+  let hasReviewRun = false;
+  for (const { agent, sessionId } of sessions.steps) {
+    const launch = launchCounts.get(sessionId) ?? 0;
+    launchCounts.set(sessionId, launch + 1);
+    if (agent === "review") hasReviewRun = true;
+    if (
+      agent === "resolve" &&
+      hasReviewRun &&
+      implementerIds.has(sessionId) &&
+      !resumes.has(sessionId)
+    ) {
+      resumes.set(sessionId, launch);
+    }
+  }
+  return resumes;
 }
 
 function missingReasonOf(missing: RecordedSession[]): string {
@@ -308,6 +346,7 @@ function transcriptOf(
   if (dir === undefined) return undefined;
   const text = readFileSync(join(dir, `${sessionId}.jsonl`), "utf8");
   return {
+    sessionId,
     text,
     entries: entriesOf(text),
     subagents: subagentPathsOf(join(dir, sessionId, "subagents")).map((path) =>
@@ -395,10 +434,9 @@ function peaksOf(implementers: Transcript[]): number[] | undefined {
 function durationMinutesOf(transcripts: Transcript[], capMs: number): number {
   const ms = transcripts.reduce((sum, { entries }) => {
     const times = entries
-      .flatMap(({ timestamp }) => {
-        const time =
-          typeof timestamp === "string" ? Date.parse(timestamp) : NaN;
-        return Number.isNaN(time) ? [] : [time];
+      .flatMap((entry) => {
+        const time = timeOf(entry);
+        return time === undefined ? [] : [time];
       })
       .sort((a, b) => a - b);
     return times.reduce((total, time, index) => {
@@ -409,12 +447,87 @@ function durationMinutesOf(transcripts: Transcript[], capMs: number): number {
   return minutesOf(ms);
 }
 
+function timeOf({ timestamp }: TranscriptEntry): number | undefined {
+  const time = typeof timestamp === "string" ? Date.parse(timestamp) : NaN;
+  return Number.isNaN(time) ? undefined : time;
+}
+
 export function minutesOf(ms: number): number {
   return Math.round(ms / 60_000);
 }
 
+// A session a review's resolve step resumed splits at the resume; any other counts whole toward the side that reads it.
+function sideCostUsdOf(
+  transcripts: Transcript[],
+  { side, resumes }: { side: CostSide; resumes: ReviewResumes },
+): number | undefined {
+  return costUsdOf(
+    transcripts.map((transcript) => {
+      const launch = resumes.get(transcript.sessionId);
+      return launch === undefined
+        ? transcript
+        : resumeSplitOf(transcript, launch)[side];
+    }),
+  );
+}
+
+// Cut at the resuming launch's prompt; a subagent goes to the side its first timed entry falls on.
+function resumeSplitOf(
+  { entries, subagents }: Transcript,
+  launch: number,
+): Record<CostSide, Turns> {
+  const prompt = entries.filter(isPrompt)[launch];
+  if (prompt === undefined) {
+    return {
+      implementer: { entries, subagents },
+      review: { entries: [], subagents: [] },
+    };
+  }
+  const cut = entries.indexOf(prompt);
+  const resumedAt = timeOf(prompt) ?? Infinity;
+  return {
+    implementer: {
+      entries: entries.slice(0, cut),
+      subagents: subagents.filter((subagent) => startOf(subagent) < resumedAt),
+    },
+    review: {
+      entries: entries.slice(cut),
+      subagents: subagents.filter((subagent) => startOf(subagent) >= resumedAt),
+    },
+  };
+}
+
+// A subagent with no timed entry starts before any resume.
+function startOf(entries: TranscriptEntry[]): number {
+  return entries.map(timeOf).find((time) => time !== undefined) ?? -Infinity;
+}
+
+// Each launch writes one: a main-loop user entry that is neither a tool's result nor one Claude Code adds itself.
+function isPrompt({
+  type,
+  isSidechain,
+  isMeta,
+  isCompactSummary,
+  message,
+}: TranscriptEntry): boolean {
+  if (type !== "user" || isSidechain === true) return false;
+  if (isMeta === true || isCompactSummary === true) return false;
+  const content = message?.content;
+  if (typeof content === "string") return true;
+  return Array.isArray(content) && !content.some(isToolResult);
+}
+
+function isToolResult(block: unknown): boolean {
+  return (
+    typeof block === "object" &&
+    block !== null &&
+    "type" in block &&
+    block.type === "tool_result"
+  );
+}
+
 // Undefined when a model missing from the price table used any tokens.
-function costUsdOf(transcripts: Transcript[]): number | undefined {
+function costUsdOf(transcripts: Turns[]): number | undefined {
   const costs = transcripts
     .flatMap(({ entries, subagents }) => [entries, ...subagents])
     .flatMap((entries) => [...repliesOf(entries).values()])
