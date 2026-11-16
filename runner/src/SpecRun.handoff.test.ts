@@ -6,7 +6,6 @@ import { describe, expect, it } from "vitest";
 import type { StepRequest, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
-import { heldTicketLinesOf } from "./promptText.ts";
 import {
   addSpec,
   bodyWith,
@@ -37,6 +36,7 @@ import {
   ticketFacts,
   ticketState,
   useSpecRunHarness,
+  withoutHeldTicket,
 } from "./specRunHarness.ts";
 import {
   budgetHandoffPrompt,
@@ -497,11 +497,8 @@ describe("run's handoffs after implement", () => {
     expect(fresh?.resumeSessionId).toBeUndefined();
     expect(fresh?.pair).toEqual(implementer?.pair);
     expect(fresh?.liveCeiling).toBe(180_000);
-    const [heldParagraph] = heldTicketLinesOf(true);
-    expect(review?.prompt).toContain(heldParagraph);
-    expect(fresh?.prompt).toContain(
-      review?.prompt.replace(`\n\n${heldParagraph}`, ""),
-    );
+    expect(review?.prompt).toContain(heldTicketLine);
+    expect(fresh?.prompt).toContain(withoutHeldTicket(review?.prompt));
     expect(fresh?.prompt).not.toContain(heldTicketLine);
     expect(fresh?.prompt).toContain("Conclusion: The parser is half done.");
     expect(handoffComments()[0]).toContain(

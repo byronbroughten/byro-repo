@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { heldTicketLinesOf } from "../../promptText.ts";
 import {
   pieceReviewerCheckOf,
   pieceReviewPrompt,
@@ -62,7 +63,7 @@ describe("pieceReviewPrompt", () => {
   });
 
   it("tells only a session that holds the ticket not to re-read it, before the skill", () => {
-    const heldTicketLine = "This session already holds the ticket";
+    const [heldTicketLine] = heldTicketLinesOf(true);
     const held = pieceReviewPrompt({ ...input, isTicketHeld: true });
 
     expect(held).toContain(heldTicketLine);

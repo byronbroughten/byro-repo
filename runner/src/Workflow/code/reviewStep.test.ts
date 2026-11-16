@@ -1,6 +1,7 @@
 import { Ajv } from "ajv";
 import { describe, expect, it } from "vitest";
 
+import { heldTicketLinesOf } from "../../promptText.ts";
 import {
   type CodeReviewPromptInput,
   reviewPrompt,
@@ -33,7 +34,7 @@ describe("reviewPrompt", () => {
     isInlineAllowed: false,
   };
   const briefLine = "paste it into both reviewers' briefs";
-  const heldTicketLine = "This session already holds the ticket";
+  const [heldTicketLine] = heldTicketLinesOf(true);
   const fixedPointLine =
     "The fixed point is `master`: it resolves and the diff is non-empty, so the skill's step 1 is done.";
 
