@@ -17,7 +17,7 @@ Read a spec or issue with `npm run issue:read -- <repo> <n> --body --comments`; 
 - **`needs-triage` with no `## Phase gate` section: accept**, and relabel it `ready-for-agent` once its tickets are filed (step 7).
 - **A spec `/project-spec` just gated is not re-checked against landed code**: the gate did that.
 - **The branch is the spec's `code` or `piece` label.** A piece spec takes [the piece branch](#the-piece-branch) from here; everything else with one label or none is the code branch.
-- **A spec labelled both is mixed: each ticket takes the branch of its own kind**, its Piece's stages the piece branch and its code work the code branch, as [the piece branch's mixed-spec line](#the-piece-branch) runs them, and every draft's `labels` hold `code` or `piece`.
+- **A spec labelled both is mixed: each ticket takes the branch of its own kind**, its Piece's stages the piece branch and its code work the code branch, as [the piece branch's mixed-spec line](#the-piece-branch) runs and labels them.
 - **A standalone run, a conversation or a hand-written issue with neither label, applies [`specs.md`](../../../docs/agents/specs.md)'s rules that bind tickets**: [Exploring](../../../docs/agents/specs.md#exploring), [Test seams](../../../docs/agents/specs.md#test-seams) with their test-speed warnings, and [Phases](../../../docs/agents/specs.md#phases)' "each spec lands green with nothing half-migrated" and "replacing something removes the old version". **Stop and recommend `/project-spec` when the source crosses the spec size line or has a gate**, by Phases' first rule.
 
 Done when the source is in hand, its branch is known, and it was refused or accepted.
@@ -172,7 +172,7 @@ Order them Research first, drafting tickets in reading order with the final pass
 
 Draft each as in step 5, in the [piece-ticket template](#piece-ticket-template), `kind: agent`; a Research ticket's `labels` hold `research`, and the final-pass or whole-draft ticket's `final-pass`: the run picks each ticket's Steps and scope by them. Draft the Edit gate last with `kind: human`, never `interactive`, which a run's Supervisor would take, in the [Edit gate template](#edit-gate-template). Copy each ticket's facts and the parent's shared rules in verbatim, so the implementer works from the ticket alone. Before step 7, run `gh label create <label> -R <owner>/<repo> --force` for `research` and `final-pass`. Leave the spec's body unchanged.
 
-Step 8's read-back lists the Edit gate last, and ends by recommending `/runner` on the spec, or `/implement-piece <repo> <n>` on the first ticket for an interactive session.
+Step 8's read-back lists the Edit gate last, and ends by recommending `/runner` on the spec, or for an interactive session `/implement-piece <repo> <n>` on the first ticket, or `/start-issue <repo> <n>` when a mixed spec's first ticket is code.
 
 ### Piece ticket template
 

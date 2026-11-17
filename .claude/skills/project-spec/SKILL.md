@@ -23,9 +23,9 @@ Explore the repo, if you haven't already, by [`specs.md`'s Exploring](../../../d
 
 For each spec with code work, sketch its test seams and warn of any planned test that would break a test speed rule, by [`specs.md`'s Test seams](../../../docs/agents/specs.md#test-seams).
 
-## 3. Fill a piece spec's ten fields
+## 3. Fill the Piece's ten fields
 
-A mixed spec fills them for its Piece. A piece spec follows the Piece rules in the root's `docs/pieces/`: [`rules.md`](../../../docs/pieces/rules.md), [`GLOSSARY.md`](../../../docs/pieces/GLOSSARY.md) and [`grilling.md`](../../../docs/pieces/grilling.md). Use their words (Piece, Deliverable, Section, Supporting Material, Reference) and cite them; never restate them here. Draw each field from the conversation `/grill-piece` ran, in the developer's words where they gave them:
+A piece or mixed spec fills ten fields for its Piece. Its Piece follows the Piece rules in the root's `docs/pieces/`: [`rules.md`](../../../docs/pieces/rules.md), [`GLOSSARY.md`](../../../docs/pieces/GLOSSARY.md) and [`grilling.md`](../../../docs/pieces/grilling.md). Use their words (Piece, Deliverable, Section, Supporting Material, Reference) and cite them; never restate them here. Draw each field from the conversation `/grill-piece` ran, in the developer's words where they gave them:
 
 - **Deliverable**: the Google Doc's title and Doc ID.
 - **Supporting Material**: each by title and Drive ID, with what it is for. For one too long to read whole, such as a book, list the passages that count by page range, given as PDF pages with the printed pages beside them when they differ, such as `PDF pp. 45–60 (printed 31–46)`.
@@ -52,7 +52,7 @@ File nothing until the developer says yes to the proposal. A change they ask for
 
 ## 5. Write each spec
 
-A code spec uses the code template, a piece spec the piece template. **A mixed spec uses the code template with no `## Model fit`, and carries its Piece's ten fields as the piece template's sections, `## Deliverable` to `## Split`, after `## Testing Decisions`.** Every spec after the first ends with a `## Phase gate` section, before `## Model fit` when it has one:
+A code spec uses the code template, a piece spec the piece template. **A mixed spec uses the code template, and carries its Piece's ten fields as the piece template's sections, `## Deliverable` to `## Split`, after `## Testing Decisions`.** Every spec after the first ends with a `## Phase gate` section, before `## Model fit` when it has one:
 
 <phase-gate-template>
 
