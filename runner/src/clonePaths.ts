@@ -34,6 +34,17 @@ export function clonePathsOf(primaryRoot: string): ClonePaths {
   );
 }
 
+// The repo whose clone holds a folder, by the origin of the git checkout around it; undefined outside one.
+export function cloneRepoOf(folder: string): string | undefined {
+  let checkout: string;
+  try {
+    checkout = gitIn(folder, "rev-parse", "--show-toplevel");
+  } catch {
+    return undefined;
+  }
+  return originRepoOf(checkout, ".");
+}
+
 // A checkout of the root repo alone, such as CI's, has no packages folder.
 function packageFoldersOf(primaryRoot: string): Dirent[] {
   const folder = join(primaryRoot, "packages");

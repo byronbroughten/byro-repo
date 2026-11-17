@@ -43,6 +43,7 @@
     "issue:file": "node scripts/runner/issueFile.ts",
     "issue:remove": "node scripts/runner/issue.ts remove",
     "issue:release": "node scripts/runner/issue.ts release",
+    "map:next": "node scripts/runner/mapNext.ts",
     "outcome:backfill": "node scripts/runner/outcomeBackfill.ts",
     "outcome:summary": "node scripts/runner/outcomeSummary.ts",
     "outline:apply": "node scripts/runner/outlineApply.ts",
