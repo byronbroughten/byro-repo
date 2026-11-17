@@ -1,0 +1,77 @@
+<!-- spec-runner -->
+<!-- review-list ticket=#797 -->
+
+**Review list** · byro-repo #797, "A ticket's own label picks its Workflow, and a mixed spec halts on an unlabelled ticket"
+
+### Spec
+
+**Proposed**
+
+- [ ] **R797.1** · Propose `decision` · Finding 11: A ticket labelled both code and piece picks piece. (runner/src/Workflow.ts:410-416 (labelledNameOf))
+  Evidence: Neither the ticket nor #796's quoted lines settle a ticket with both labels; "never a silent default" is said only of a spec with both labels and a ticket with neither.
+  Recommendation: Keep piece-wins for a ticket with both labels. It is the rule a spec with both labels already follows, and the site's comment states it. If such a ticket should instead be refused, raise the same Halt as for a ticket with neither label; that is a one-line change in labelledNameOf.
+=====
+<!-- spec-runner -->
+<!-- review-list ticket=#798 -->
+
+**Review list** · byro-repo #798, "Ticket Steps pick their Workflow by the ticket"
+
+### Standards
+
+**Proposed**
+
+- [ ] **R798.1** · Propose `decision` · Finding 1: `{ ticket, spec: run.spec }` is rebuilt at 14 call sites; a TicketRun-taking form would collapse them (ReviewStepper.ts, SessionReviewer.ts, HandoffTaker.ts, ImplementStepper.ts, ResearchStepper.ts, DraftPuller.ts, StepLauncher.ts, TicketSequencer.ts (14 sites))
+  suggested Fix → Propose: Confirmed: the pair is built from a TicketRun's fields at each site. The ticket binds "add no new form: if a site doesn't fit the forms #797 added, stop and say so", and both fixes the reviewer names (a new `_ticketRun…Of` form, or changing #797's forms to take a TicketRun) are exactly that, so a Fix would reverse a spec decision. SessionReviewer.resolve has no TicketRun, so it would still need the pair form.
+  Recommendation: Accept the repetition for this migrate ticket. If the developer wants it gone, add TicketRun-taking ticket-scoped forms to SpecRunBase in a follow-up that migrates all 14 sites at once.
+=====
+<!-- spec-runner -->
+<!-- review-list ticket=#799 -->
+
+**Review list** · byro-repo #799, "Landing, checks and outcome rows pick their Workflow by the ticket"
+
+### Standards
+
+**Proposed**
+
+- [ ] **R799.1** · Propose `decision` · Finding 1: The fallback's comment says the ticket Halted its run, but a ticket landed outside a run has no Halt, so a neither-label ticket in a both-labelled spec silently gets `piece`. (runner/src/WrapUp/LogRowCommitter.ts:52-53)
+  Evidence: Confirmed in `LogRowCommitter.ts:42-53`: `_workflowOf` serves tickets landed outside a run, and `ticketWorkflowNameOf` returns undefined for a ticket with neither label in a spec with both. Falling back, throwing or leaving the cell unrecorded changes what the outcome log says, and the ticket doesn't choose between them. That is a judgement only the developer can make.
+  Recommendation: Keep the fallback to the spec's Workflow, which is what a spec with both labels already recorded, and reword the comment to say it covers a ticket landed outside a run. Throw with `unpickedWorkflowOf(issue)` only if a wrong `piece` row is worse than a failed wrap-up.
+- [ ] **R799.2** · Propose `ticket` · Finding 4: `{ ticket, spec: run.spec }` is rebuilt at about 10 sites, a Data Clump and Duplicated Code that recurs across the runner. (HaltRaiser, SpecRunBase, TicketLander, FactsWriter, MasterMerger, TicketChecker call sites)
+  Evidence: The shape is the one #797 added, `SpecTicket`, and the ticket says "add no new form". The same wrapping is already in ResearchStepper, ReviewStepper and ImplementStepper, so the pattern predates this branch. A sweep over about 30 sites, such as an overload taking a `LandingTicket` or `TicketRun`, is its own ticket and not a fix inside a mechanical migrate.
+  Recommendation: File one ticket to give SpecRunBase a form that takes the `LandingTicket` or `TicketRun` and builds the `SpecTicket` itself, then move every caller onto it.
+  Drafted issue: "SpecRunBase builds the SpecTicket from a LandingTicket or TicketRun, so callers stop rebuilding { ticket, spec: run.spec }"
+=====
+<!-- spec-runner -->
+<!-- review-list ticket=#801 -->
+
+**Review list** · byro-repo #801, "One gap check built from each Workflow's section"
+
+### Standards
+
+**Proposed**
+
+- [ ] **R801.1** · Propose `ticket` · Finding 5: The './gapCheck' export now exports only codeGapCheckSection, and nothing imports it. (runner/package.json:33)
+  Evidence: Confirmed: runner/package.json:33 maps './gapCheck' to src/Workflow/code/gapCheck.ts. This diff doesn't touch package.json, and nothing in the repo imports the export.
+  Recommendation: Drop the './gapCheck' entry from runner/package.json's exports, or point it at promptText/GapCheckPrompt.ts if a consumer should build the prompt. A grep found no importer of '@byronbroughten/spec-runner/gapCheck'. The entry predates this branch and is declared public surface, so removing it is the developer's call.
+  Drafted issue: "Drop the runner's unused ./gapCheck package export"
+=====
+<!-- spec-runner -->
+<!-- review-list ticket=#803 -->
+
+**Review list** · byro-repo #803, "The runner's docs say a ticket's label picks its Workflow"
+
+### Standards
+
+**Proposed**
+
+- [ ] **R803.1** · Propose `ticket` · Finding 4: tickets.md says only piece specs always get tickets, but /project-spec says mixed specs do too. (docs/agents/tickets.md:12)
+  Evidence: Confirmed: docs/agents/tickets.md:12 reads "it is a piece spec, which always gets tickets", while .claude/skills/project-spec/SKILL.md:132 and :190 say piece and mixed specs always get tickets. The line predates this branch, and the ticket's criteria name only the runner docs and specs.md.
+  Recommendation: Change tickets.md:12 to "it is a piece or mixed spec, which always gets tickets". Line 59 says piece-only too; check it in the same edit.
+  Drafted issue: "tickets.md's split test says only piece specs always get tickets; mixed specs do too"
+=====
+<!-- spec-runner -->
+<!-- review-list ticket=gap-check -->
+
+**Review list** · gap check, "Per-ticket Workflow: one spec holds code and piece tickets"
+
+The gap check found no gaps.

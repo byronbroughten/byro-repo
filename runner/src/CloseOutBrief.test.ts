@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { CloseOutBrief } from "./CloseOutBrief.ts";
 import { FakeGitHub } from "./FakeGitHub.ts";
+import { spec796 } from "./fixtures/spec796.ts";
 import { runnerMark } from "./halts.ts";
 import { gapCheckListOf, ticketReviewListOf } from "./reviewList.ts";
 
@@ -202,6 +203,32 @@ describe("the Close-out brief", () => {
 
   it("says the parent has no parent when none is above it", async () => {
     expect(await briefOf()).toContain("- #804 has no parent.");
+  });
+
+  it("stays small on a real closed spec, holding its body and every closing comment", async () => {
+    const { number, title, labels, body, subIssueTitles, closingCommentOf } =
+      spec796;
+    track(number, { title, body, labels });
+    const subs = Object.keys(subIssueTitles).map(Number);
+    github.subIssues.set(number, subs);
+    for (const sub of subs) {
+      track(sub, { title: subIssueTitles[sub] ?? "", isOpen: false });
+      github.reply(sub, closingCommentOf(sub));
+    }
+    github.reply(
+      number,
+      `${runnerMark}\n${gapCheckListOf(title, { gaps: [] })}`,
+    );
+
+    const brief = await closeOut().brief([repo, String(number)]);
+
+    expect(brief).not.toContain("refused");
+    expect(brief).toContain(body.trim());
+    for (const sub of subs) {
+      expect(brief).toContain(closingCommentOf(sub).trim());
+    }
+    // 21,034 characters, about 5.3K tokens, where each Setup turn it replaces re-read ~32–60K.
+    expect(brief.length).toBeLessThan(22_000);
   });
 });
 

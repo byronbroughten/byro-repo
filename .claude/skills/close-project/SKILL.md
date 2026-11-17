@@ -44,6 +44,6 @@ Report the close with the comment posted. Then read the parent check it prints:
 
 ## 5. Wrap up
 
-For each spec closed, follow [`/judge-findings`' step 5](../../../runner/skills/judge-findings/SKILL.md#5-closing-the-spec) items 2 and 4: on a code spec the `/to-code-style` reminder, reading the spec's review lists for its keep reasons by [`/judge-findings`' step 1](../../../runner/skills/judge-findings/SKILL.md#1-read-the-list), since the brief holds only their undecided count; and the open issues it blocks, with `/project-spec` for each labelled `needs-triage`.
+For each spec closed, follow [`/judge-findings`' step 5](../../../runner/skills/judge-findings/SKILL.md#5-closing-the-spec) items 1 and 2: on a code spec the `/to-code-style` reminder, reading the spec's review lists for its keep reasons through `npm run issue:read -- <repo> <n> --comments`, since the brief holds only their undecided count; and the open issues it blocks, with `/project-spec` for each labelled `needs-triage`.
 
 End with one line: run `/mine-outcomes <repo> <n>`.

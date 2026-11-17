@@ -1,6 +1,6 @@
 # A piece spec's judgement
 
-Read this when the spec's `Labels:` line in `issue:read`'s output holds `piece`. Its rules replace steps 3 to 5 of [`SKILL.md`](./SKILL.md) where they differ; the rounds, the order and writing a decision stay as that file has them. The words Piece, Deliverable, Section, Agent draft and Edit gate are [`docs/pieces/GLOSSARY.md`](../../../docs/pieces/GLOSSARY.md)'s.
+Read this when the spec's `Piece ticket:` line in the brief names a ticket. Its rules replace steps 3 to 5 of [`SKILL.md`](./SKILL.md) where they differ; the rounds, the order and writing a decision stay as that file has them. The words Piece, Deliverable, Section, Agent draft and Edit gate are [`docs/pieces/GLOSSARY.md`](../../../docs/pieces/GLOSSARY.md)'s.
 
 ## The answers
 
@@ -22,4 +22,4 @@ Read this when the spec's `Labels:` line in `issue:read`'s output holds `piece`.
 ## The ending
 
 - **Never close a piece spec, and give no `/to-code-style` reminder**: [`/close-project <repo> <spec>`](../../../.claude/skills/close-project/SKILL.md) ends it, closing out the Edit gate first.
-- **End by naming the runner's rerun command, the `npm run runner -- <owner>/<repo> <spec>` its "judge, then rerun" message printed**, launched detached as `npm run runner:tmux -- <owner>/<repo> <spec>` or supervised with `/runner <owner>/<repo> <spec>`, whose push writes the decided fixes into the Deliverable once no item is undecided. Before it, say what is left: undecided items, and open sub-issues by number.
+- **End by naming the runner's rerun command, the `npm run runner -- <repo> <spec>` its "judge, then rerun" message printed**, launched detached as `npm run runner:tmux -- <repo> <spec>` or supervised with `/runner <repo> <spec>`, whose push writes the decided fixes into the Deliverable once no item is undecided. Before it, say what is left: undecided items, and open sub-issues by number.

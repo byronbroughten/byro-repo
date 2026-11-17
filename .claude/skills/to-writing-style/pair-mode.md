@@ -29,7 +29,7 @@ Done when every in-scope Section is paired or `struck`, and every Doc Section un
 
 ## 4. Read the review lists
 
-Read the spec's review lists by [`/judge-findings`' step 1](../../../runner/skills/judge-findings/SKILL.md#1-read-the-list), the parent's for a sub-issue, and only for the Sections in scope. Note:
+Read the spec's review lists through `npm run issue:read -- <repo> <spec> --comments`, each found by its mark as [`/judge-findings`' step 1](../../../runner/skills/judge-findings/SKILL.md#1-read-the-brief) says, the parent's for a sub-issue, and only for the Sections in scope. Note:
 
 - **Each decided Propose `decision` item**, `R<n>.<k>`, with its finding, its site in the Agent draft and its `Decided:` line; a hand-ticked item counts as decided, its `Recommendation:` standing for the ruling, as that step reads it. Sort it by what its finding is, as [`verdicts.md`'s Piece findings](../../../docs/agents/verdicts.md#piece-findings) names them:
   - **two rules in conflict**: the developer's ruling between them is a `W` candidate, a Stated rule;

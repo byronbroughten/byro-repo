@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { commentUrlOf } from "./FakeGitHub.ts";
+import { spec796 } from "./fixtures/spec796.ts";
 import {
   addIssue,
   github,
@@ -222,6 +223,35 @@ describe("judgeBrief", () => {
       "# byro-repo #20 Ticket 20",
       "# byro-repo #30 Ticket 30",
     ]);
+  });
+
+  it("stays small on a real spec's review lists, holding every item to judge", async () => {
+    const { number, title, labels, body, subIssueTitles, listsAsJudged } =
+      spec796;
+    addIssue(number, { labels, body });
+    github.edit(number, { title });
+    github.subIssues.set(number, Object.keys(subIssueTitles).map(Number));
+    for (const [sub, subTitle] of Object.entries(subIssueTitles)) {
+      addIssue(Number(sub), { labels: ["ready-for-agent"] });
+      github.edit(Number(sub), { title: subTitle, isOpen: false });
+    }
+    for (const list of listsAsJudged) github.reply(number, list);
+
+    const brief = await judgeBrief(number);
+
+    const headings = brief
+      .split("\n")
+      .filter((line) => line.startsWith("### "));
+    expect(headings).toEqual([
+      "### R797.1 · undecided",
+      "### R798.1 · undecided",
+      "### R799.1 · undecided",
+      "### R799.2 · undecided",
+      "### R801.1 · undecided",
+      "### R803.1 · undecided",
+    ]);
+    // 6,723 characters, about 1.7K tokens, where each Setup turn it replaces re-read ~32–60K.
+    expect(brief.length).toBeLessThan(7_000);
   });
 
   it("says so when `all` finds nothing to judge", async () => {

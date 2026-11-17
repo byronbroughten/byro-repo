@@ -57,6 +57,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Docs/SectionWriter/HeldSectionReader.ts` | | Reads the Section the writer rewrites, found by its headingId, then by its heading path, out of the Doc as held blocks, refusing what it can't index around. |
 | `Docs/StaleRevision.ts` | | The error for a write refused because the Doc changed after the revision read. |
 | `EventFileNotices.ts` | `EventFileNotices` | The event-file notice adapter a Supervisor watches, and its readers. |
+| `fixtures/spec796.ts` | | Loads byro-repo #796, a real closed spec copied into `fixtures/byro-repo-796/`, that the `runner judge-brief` and `issue:close-parent` tests measure their briefs on. |
 | `FactsFile.ts` | `FactsFile` | Reads and writes a ticket's facts file. |
 | `failureText.ts` | `failureText` | Words a thrown error or failed command, once for every caller. |
 | `FakeAgentStep.ts` | `FakeAgentStep` | The scripted agent step run-loop tests use. |
