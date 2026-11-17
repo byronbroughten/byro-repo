@@ -30,7 +30,6 @@
     "./RepoVisibility": "./src/RepoVisibility.ts",
     "./RestDocuments": "./src/Docs/RestDocuments.ts",
     "./resolveStep": "./src/Workflow/code/resolveStep.ts",
-    "./gapCheck": "./src/Workflow/code/gapCheck.ts",
     "./GhCli": "./src/GhCli.ts",
     "./implementCodeSkill": "./src/Workflow/code/implementCodeSkill.ts",
     "./implementPieceSkill": "./src/Workflow/piece/implementPieceSkill.ts",
