@@ -41,29 +41,9 @@ Stdout is `{ answers, usage }` as JSON: a `noul` answer carries `noul`, the prob
 
 The key comes from `TYPESAFE_API_KEY` in the developer's shell profile, never the repo. When it is missing, the run stops and says so; tell the developer, and note that a session started before the key was added won't see it. The client lives in `scripts/jev/`, with `JevClient` as its one test seam.
 
-## The style check
+## The version pin
 
-**No skill runs it while the [trial](./jev-trial.md) is paused.** The Style file shape below is still the one `/review-piece` writes for its `standards` axis, and the one the runner writes for its piece review step, in `runner/src/Workflow/piece/reviewInputs.ts`.
-
-`npm run jev:style` checks a Deliverable against the Voice and Craft sheets, [`docs/writing-voice.md`](../writing-voice.md) and [`docs/writing-craft.md`](../writing-craft.md), and prints a ready-made `## Jev style` section: one line per flag (band, probability, rule, the paragraph's first words), then a count line. It asks one yes/no per (paragraph, rule) pair for both sheets, skipping the Craft sheet's Terms and Precedence; 0.7 or higher is `breaks`, 0.5 to under 0.7 is `unsure`, and lower answers are left out. The full answers go to `jev-style.json` beside the Deliverable.
-
-```sh
-npm run jev:style -- --deliverable <deliverable.md> --style <style.md> [--section "<heading>"]…
-```
-
-- **The Deliverable** is Markdown. Each list item is a paragraph and headings are skipped. With `--section`, only paragraphs under each heading, matched exactly, are judged; the whole Deliverable is still sent for context. A heading that isn't found stops the run.
-- **The Style file** holds `Evidence:`, `Formality:` and `Academic:` lines, an optional `Kind:` line on what the Piece is, then an `## Overrides` heading with the spec's overrides, Form and Order verbatim; without Form and Order, a letter's required closing ask reads as a late recommendation. The heading is required, empty when the spec has none, so a Style file that lost its overrides stops the run instead of over-flagging. `Academic: yes` adds [`docs/academic-writing-style.md`](../academic-writing-style.md)'s rules.
-- **Position rules**, the opening and closing rules listed in `scripts/jev/styleRules.ts`, are judged only at their place. A reworded rule that no entry matches stops the run; update the list.
-
-## The pin and upgrading it
-
-**Every request goes to the version in `jevPin`, in `scripts/jev/JevClient.ts`**, so results stay comparable across runs. Each run also asks which version `jev-latest` resolves to, and when it differs it prints one stderr line: `jev-X is out; pinned to <pin>, see the Jev agent doc`. Pass that line on to the developer; don't bump the pin yourself. A failed check prints its own stderr line and still prints the answers.
-
-To upgrade, with the developer's yes:
-
-1. Re-run the Pieces listed in the [Jev trial log](./jev-trial.md), this procedure's evidence, on the new version.
-2. Compare its flags with the logged ones and the developer's rulings.
-3. Bump `jevPin` only if the new version does at least as well. Otherwise leave the pin and record why.
+**Every request goes to the version in `jevPin`, in `scripts/jev/JevClient.ts`**, so results stay comparable across runs. Each run also asks which version `jev-latest` resolves to, and when it differs it prints one stderr line: `jev-X is out; pinned to <pin>, see the Jev agent doc`. Pass that line on to the developer, and bump the pin only with their yes. A failed check prints its own stderr line and still prints the answers.
 
 ## What may be sent
 

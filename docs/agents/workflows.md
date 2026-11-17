@@ -144,6 +144,7 @@ A doc is listed when two or more skills or Steps of either Workflow reach it by 
 | [`outlining.md`](../pieces/outlining.md) | `/grill-piece`, `/project-spec`, `/project-tickets` | via `rules.md`: `/implement-piece`, the piece implement Step, `/review-piece` |
 | [`pdf-pages.md`](../pdf-pages.md) | `/grill-piece`, `/project-tickets` (its piece-ticket template), `/research-piece`, `/review-research` | via `rules.md`: `/implement-piece`, the piece implement Step, `/project-spec`, `/review-piece` |
 | [`agent-draft.md`](../pieces/agent-draft.md) | `/implement-piece`, `/review-piece`, `/to-writing-style` (its pair mode), `/judge-findings` (its `piece.md`), `/close-piece` | via `rules.md`: `/project-spec`, `/project-tickets`; via runner prompt: the piece implement Step |
+| [`style-file.md`](../pieces/style-file.md) | `/review-piece` | via runner prompt: the piece review Step, which carries `/review-piece`'s body |
 
 Routes that depend on which files a ticket touches (the read-first gate's tier, framework-style and writing rows, nested `AGENTS.md` files, the AGENTS.md cost nudge and the sandbox-failure context) live in [the guardrails doc's hooks section](../claude-code-guardrails.md#the-hooks-and-the-project-agent).
 
