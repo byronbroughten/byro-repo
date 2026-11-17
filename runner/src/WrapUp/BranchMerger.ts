@@ -9,7 +9,7 @@ import { git, isAncestor, isMerging, revOf } from "../git.ts";
 import { type Workspace } from "../IssueWorkspaces.ts";
 import { WrapUpFailure } from "../WrapUpFailure.ts";
 import { WorktreeRestorer } from "./WorktreeRestorer.ts";
-import { WrapUpBase } from "./WrapUpBase.ts";
+import { listedReposOf, WrapUpBase } from "./WrapUpBase.ts";
 import {
   type BuiltRepo,
   type Landing,
@@ -65,6 +65,21 @@ export class BranchMerger extends WrapUpBase {
       built[repo] = { base, head: await revOf(worktree, "HEAD") };
       landing.progress.built = built;
     }
+    await this._switchUnbranchedRootToMaster(landing, workspace);
+  }
+
+  // The checks and the log row need the root's current master, not the old base its workspace branch sits on.
+  private async _switchUnbranchedRootToMaster(
+    landing: Landing,
+    workspace: Workspace,
+  ): Promise<void> {
+    if (listedReposOf(landing).includes(this._rootRepo)) return;
+    await git(
+      this._worktreeOf(workspace, this._rootRepo),
+      "switch",
+      "--detach",
+      "master",
+    );
   }
 
   private async _mergeBranch(

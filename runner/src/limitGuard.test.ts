@@ -134,14 +134,16 @@ describe("readCswapList", () => {
 });
 
 describe("decideStep", () => {
+  const defaultPause = defaultRunKnobs.fiveHourPauseAt;
+
   it("launches an account under both thresholds", () => {
-    expect(decideStep(usageOf(0.93, 0.99), defaultRunKnobs)).toEqual({
-      kind: "launch",
-    });
+    expect(
+      decideStep(usageOf(defaultPause - 0.01, 0.99), defaultRunKnobs),
+    ).toEqual({ kind: "launch" });
   });
 
-  it("holds a step at 94% of the 5-hour window by default", () => {
-    expect(decideStep(usageOf(0.94, 0.5), defaultRunKnobs).kind).toBe(
+  it("holds a step at the default 5-hour pause", () => {
+    expect(decideStep(usageOf(defaultPause, 0.5), defaultRunKnobs).kind).toBe(
       "limitWait",
     );
   });
@@ -154,10 +156,10 @@ describe("decideStep", () => {
 
   it("waits until the account's 5-hour reset plus the margin at the 5-hour pause", () => {
     const knobs = { ...defaultRunKnobs, limitWaitMarginMs: 60_000 };
-    expect(decideStep(usageOf(0.95, 0.5), knobs)).toEqual({
+    expect(decideStep(usageOf(defaultPause, 0.5), knobs)).toEqual({
       kind: "limitWait",
       window: "fiveHour",
-      utilization: 0.95,
+      utilization: defaultPause,
       until: new Date("2026-10-12T05:01:00Z"),
     });
   });
@@ -201,7 +203,8 @@ describe("rankAccounts", () => {
       usageList: { readings, activeAccount: undefined },
       leasedAccounts: new Set(),
       unavailableAccounts: new Set(),
-      knobs: defaultRunKnobs,
+      // Pinned, so tuning a default can't move a test's past-the-threshold reading under it.
+      knobs: { ...defaultRunKnobs, fiveHourPauseAt: 0.94, weeklyPauseAt: 1 },
       putActiveLast: false,
       ...request,
     });

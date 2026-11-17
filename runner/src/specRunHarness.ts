@@ -274,6 +274,9 @@ export function specRun(
     clonePaths,
     authChecks: [passes],
     runnerPaths: ["runner/", "scripts/runner/"],
+    // Pinned, so tuning a default can't move a test's past-the-threshold reading under it.
+    fiveHourPauseAt: 0.94,
+    weeklyPauseAt: 1,
   });
   const run = SpecRun.init({
     knobs,

@@ -96,6 +96,7 @@ One line per rule. The reasoning and worked examples are one file away. Open a r
 - **A test sits beside what it tests (`Foo.test.ts`).**
 - **A test file splits by subject when its top-level `describe` blocks share nothing but setup, and the shared setup moves to a sibling fixture module**, as a class splits ([why](./code-style/class-shape.md#split-a-class-when-its-helpers-fall-into-groups-that-share-nothing)).
 - **Assert the outcome a caller can observe, not the calls made to reach it.** A call count stands only where the count is itself the contract.
+- **A test needing a value on one side of a tunable default pins that setting in its fixture**; only a test of the default itself reads it ([why](./code-style/tests.md#a-test-pins-the-tunable-default-it-depends-on)).
 - **A test starts a process only when that process is what it tests.**
 - **A fixture costing more than a few milliseconds is built once per file and copied or reset for each test.**
 - **A test never really waits: time goes through an injected clock or fake timers.**

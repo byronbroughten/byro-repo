@@ -47,7 +47,8 @@ async function switchWith({ lists, leased = [] }: SwitchScript) {
     usageReader: FakeUsageReader.init(...lists),
     leaseReader: { read: () => leased },
     switchPort,
-    knobs: defaultRunKnobs,
+    // Pinned, so tuning a default can't move a test's past-the-threshold reading under it.
+    knobs: { ...defaultRunKnobs, fiveHourPauseAt: 0.94, weeklyPauseAt: 1 },
     now: () => now,
     print: (line) => lines.push(line),
   });

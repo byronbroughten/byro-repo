@@ -87,4 +87,25 @@ describe("run", () => {
       git(primaryOf("byro-repo"), "rev-parse", "master"),
     );
   });
+
+  it("commits the row on the root's current master when only a clone's branch lands after the root's master moved", async () => {
+    const workspace = await workspaceWith(["sheets-framework"]);
+    commitIn(workspace, "sheets-framework", "core.ts", "export {};\n");
+    writeFacts();
+    git(
+      primaryRoot,
+      "commit",
+      "-q",
+      "--allow-empty",
+      "-m",
+      "Meanwhile on master",
+    );
+
+    await wrapUp().run(ticket);
+
+    expect(subjectsOf("byro-repo").slice(0, 2)).toEqual([
+      "Record the #218 outcome: Opus medium, 1 files, 150K → 90K, first-try pass.",
+      "Meanwhile on master",
+    ]);
+  });
 });
