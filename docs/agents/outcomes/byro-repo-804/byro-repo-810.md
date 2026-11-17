@@ -1,0 +1,7 @@
+# byro-repo#810 outcome
+
+Spec: [byro-repo#804](https://github.com/byronbroughten/byro-repo/issues/804)
+
+| Issue | Workflow | Pair | Account | Files changed | Estimate | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #810 | code | Opus medium | 3, 6 | 15 | ~135K | 137K → 159K | Fix (resumed implementer) | 1 | 1 | 0 | 1 | 15 min | $4.42 | $2.46 | Fixed: promotedOf(workspaces, workspace, repo) is a 3-positional-param helper over one collaborator and its state (Feature Envy). (runner/src/SpecRun/runState/draftPull.ts:37-44); clonePathOf duplicates the existing repo-map clone lookup. (runner/src/PiecePull.ts:130-136); The Files-table row lists behaviour instead of the file's job. (runner/src/AGENTS.md:100 (PiecePull row)); The drafting check lets Edit gate tickets through and redefines drafting. (runner/src/PiecePull.ts:110-113); An Edit gate ticket passes the drafting check, so piece:pull would overwrite and commit the developer's Agent draft. (runner/src/PiecePull.ts _rulesOf). Proposed: The header's list of token consumers doesn't name piece:pull. (.claude/hooks/lib/AgentTokenMinter.ts:1). | 44d92951-9f47-4dca-aceb-6977ca361fca, aa93c38b-653e-4cd3-bd34-1e94ef4e962b |
