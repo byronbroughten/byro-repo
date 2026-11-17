@@ -4,7 +4,7 @@ description: "Start every planning session: pick the code or piece Workflow, or 
 disable-model-invocation: true
 ---
 
-Grill the developer on one Project before `/project-spec` files it. Each [Workflow](../../../runner/GLOSSARY.md#language) has a branch file: [`code.md`](./code.md) for code, [`piece.md`](./piece.md) for a Piece. **Read only the branch files of the Workflows you are grilling.** During the grill, write only what [`planning.md`](../../../docs/agents/planning.md) allows.
+Grill the developer on one Project before `/project-spec` files it. Each [Workflow](../../../runner/GLOSSARY.md#language) has a branch file: [`code.md`](./code.md) for code, [`piece.md`](./piece.md) for a Piece. **Read only the branch files of the Workflows you are grilling, together in one turn**, with [`docs/pieces/grilling.md`](../../../docs/pieces/grilling.md) for a piece grill. During the grill, write only what [`planning.md`](../../../docs/agents/planning.md) allows.
 
 ## 1. Pick the Workflow
 

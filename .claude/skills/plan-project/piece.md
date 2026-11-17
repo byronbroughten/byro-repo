@@ -1,6 +1,6 @@
 # The piece branch
 
-Grill the developer on one Piece by the questions in [`docs/pieces/grilling.md`](../../../docs/pieces/grilling.md); read it in full first. The Piece words (Piece, Deliverable, Section, Outline, Supporting Material, Reference) are the writing [`GLOSSARY.md`](../../../docs/pieces/GLOSSARY.md)'s. `SKILL.md`'s rules bind every step here, its read rules included.
+Grill the developer on one Piece by the questions in [`docs/pieces/grilling.md`](../../../docs/pieces/grilling.md), read in full in the same turn as this file. The Piece words (Piece, Deliverable, Section, Outline, Supporting Material, Reference) are the writing [`GLOSSARY.md`](../../../docs/pieces/GLOSSARY.md)'s. `SKILL.md`'s rules bind every step here, its read rules included.
 
 ## 1. Opening round
 
@@ -27,9 +27,9 @@ Name each file for the page's title, and put it in the Supporting Material folde
 
 ## 2. Read the files
 
-Sub-agents read every file: the Deliverable, the Supporting Material, the earlier graded work and, through `npm run issue:read`, the earlier specs. **Short** is under about 10 pages. A Google Doc is sized by its Drive metadata: under about 30 KB is short. A PDF is downloaded and its pages counted, by [`docs/pdf-pages.md`](../../../docs/pdf-pages.md); one that can't be counted is long.
+Sub-agents read every file by `SKILL.md`'s read rules, the earlier specs through `npm run issue:read`. **Short** is under about 10 pages. A Google Doc is sized by its Drive metadata: under about 30 KB is short. A PDF is downloaded and its pages counted, by [`docs/pdf-pages.md`](../../../docs/pdf-pages.md); one that can't be counted is long.
 
-- **The short files and the earlier specs go to one sub-agent together**, which reads each in full and returns, per file by title: what it is, then each fact bearing on grilling.md's questions on its own line with its locator, and verbatim only the developer's own text a voice question needs, with where it lives.
+- **The short files and the earlier specs go to one sub-agent together**, which reads each in full and returns, per file by title, what it is and a read report of the facts bearing on grilling.md's questions.
 - **Each long file gets its own sub-agent**, which reads only its table of contents and front matter and returns its chapters and sections with page ranges, one per line. A long PDF's sub-agent gets its local path and `docs/pdf-pages.md`, reads the first 20 PDF pages and more only while the contents run on, and gives each range as PDF pages with the printed pages beside them. One that finds the file short after all reads it whole and returns what a short-file sub-agent would.
 
 A web page's Doc also gets a line saying whether it holds the article or little real text, which sends it down the paste path.

@@ -1,6 +1,6 @@
 # The workflows by Workflow stage
 
-The coding and the piece [Workflows](../../runner/GLOSSARY.md#language), stage by stage: the skills that work each [Workflow stage](../../runner/GLOSSARY.md#language), how each hands off to the next, and the rules docs, formats and machinery that two or more skills or [Steps](../../runner/GLOSSARY.md#language) share, each with its route. The core both Workflows run on is the runner glossary's and [the runner's `src/AGENTS.md`](../../runner/src/AGENTS.md)'s. Beside [the turn-cost rules](#turn-cost-a-workflows-setup-turns), it records what is: a gap it shows is a ticket. Each skill keeps its own rules.
+The coding and the piece [Workflows](../../runner/GLOSSARY.md#language), stage by stage: the skills that work each [Workflow stage](../../runner/GLOSSARY.md#language), how each hands off to the next, and the rules docs, formats and machinery that two or more skills or [Steps](../../runner/GLOSSARY.md#language) share, each with its route. The core both Workflows run on is the runner glossary's and [the runner's `src/AGENTS.md`](../../runner/src/AGENTS.md)'s. Beside [the cross-Workflow rule](#a-change-to-one-workflow) and [the turn-cost rules](#turn-cost-a-workflows-setup-turns), it records what is: a gap it shows is a ticket. Each skill keeps its own rules.
 
 ## A change to one Workflow
 
