@@ -43,12 +43,12 @@ export class MasterMerger extends SpecRunBase {
     landingTicket: LandingTicket,
     error: unknown,
   ): Promise<void> {
-    const { run, state } = landingTicket;
+    const { run, ticket, state } = landingTicket;
     const logPath = this._progressPathOf(run);
     if (!(error instanceof WrapUpFailure) || error.kind === "network") {
       throw new UnhandledStop("wrap-up-failure", messageOf(error), logPath);
     }
-    const workflow = this._workflowOf(run.spec);
+    const workflow = this._ticketWorkflowOf({ ticket, spec: run.spec });
     const hasMergeMaster = hasAgentStep(workflow, "mergeMaster");
     const resumes = state.conflictResumes ?? 0;
     if (error.kind === "conflict" && hasMergeMaster && resumes === 0) {
@@ -111,7 +111,10 @@ export class MasterMerger extends SpecRunBase {
         return;
       }
       this._log(run, `${conflicted}; running the implementer to merge it.`);
-      const rules = this._agentStepOf(run.spec, "mergeMaster");
+      const rules = this._ticketAgentStepOf(
+        { ticket, spec: run.spec },
+        "mergeMaster",
+      );
       ran = await this.reviewStepper._runImplementerStep(ticketRun, {
         step: "merge-master",
         launch: {

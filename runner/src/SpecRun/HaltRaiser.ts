@@ -161,7 +161,10 @@ export class HaltRaiser extends SpecRunBase {
       .some(({ kind }) => kind === "research");
     if (isRaised) return;
     const record = ticketSteps.readyResearchRecordOf(landingTicket);
-    const question = this._agentStepOf(run.spec, "research").haltOf(record);
+    const question = this._ticketAgentStepOf(
+      { ticket, spec: run.spec },
+      "research",
+    ).haltOf(record);
     if (question === undefined) return;
     runHalts.raise(run, {
       ticket: ticket.issue,
@@ -169,7 +172,7 @@ export class HaltRaiser extends SpecRunBase {
         {
           kind: "research",
           ...question,
-          scope: await this._draftingShortRefsOf(run),
+          scope: await this._draftingShortRefsOf(landingTicket),
           outlineEdits: record.outlineEdits,
         },
       ],
@@ -177,8 +180,14 @@ export class HaltRaiser extends SpecRunBase {
     this._saveState(run);
   }
 
-  private async _draftingShortRefsOf(run: Run): Promise<string[]> {
-    const rules = this._agentStepOf(run.spec, "research");
+  private async _draftingShortRefsOf({
+    run,
+    ticket: landing,
+  }: LandingTicket): Promise<string[]> {
+    const rules = this._ticketAgentStepOf(
+      { ticket: landing, spec: run.spec },
+      "research",
+    );
     const drafting: string[] = [];
     for (const ticket of run.tickets) {
       if (rules.isDrafting(await this.config.github.issueOf(ticket))) {

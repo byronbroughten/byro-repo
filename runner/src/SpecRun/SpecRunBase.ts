@@ -204,7 +204,7 @@ export class SpecRunBase {
   }
 
   _landingOf({ run, ticket }: LandingTicket): Landing {
-    return this._workflowOf(run.spec).landingOf(ticket);
+    return this._ticketWorkflowOf({ ticket, spec: run.spec }).landingOf(ticket);
   }
 
   get wrapUp(): WrapUp {

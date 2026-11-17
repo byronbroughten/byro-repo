@@ -26,7 +26,10 @@ export class FactsWriter extends SpecRunBase {
     const facts = factsOf(landingTicket, steps, {
       closingComment: record.closingComment,
       boxesUndone: record.boxesUndone,
-      ...ticketSteps.reviewFactsOf(state, this._workflowOf(run.spec)),
+      ...ticketSteps.reviewFactsOf(
+        state,
+        this._ticketWorkflowOf({ ticket, spec: run.spec }),
+      ),
       reviewRounds: 1,
     });
     if (record.status === "applied") {
@@ -43,8 +46,8 @@ export class FactsWriter extends SpecRunBase {
     steps: RecordedSession[],
   ): void {
     const { run, ticket } = landingTicket;
-    const closingComment = this._agentStepOf(
-      run.spec,
+    const closingComment = this._ticketAgentStepOf(
+      { ticket, spec: run.spec },
       "research",
     ).closingCommentOf(ticketSteps.readyResearchRecordOf(landingTicket));
     const facts = factsOf(landingTicket, steps, {
