@@ -4,7 +4,11 @@ import { type StartedTicket, startReportOf } from "./startReport.ts";
 
 const path = "/repo/.claude/worktrees/byro-repo-issue-357-slug";
 const ticketText = "## Model fit (Trusted text)\n\nSonnet medium";
-const ticket: StartedTicket = { skill: "implement-code", text: ticketText };
+const ticket: StartedTicket = {
+  issue: { repo: "personal", number: 357 },
+  skill: "implement-code",
+  text: ticketText,
+};
 const skillLine = "Skill: /implement-code";
 const started = {
   path,
@@ -23,6 +27,28 @@ describe("startReportOf", () => {
     const piece: StartedTicket = { ...ticket, skill: "research-piece" };
     expect(startReportOf({ ...started, ticket: piece })).toBe(
       `${path}\nSkill: /research-piece\n${ticketText}`,
+    );
+  });
+
+  it("names the ticket's piece:pull command under the skill on a drafting ticket", () => {
+    const drafting: StartedTicket = { ...ticket, skill: "implement-piece" };
+    expect(startReportOf({ ...started, ticket: drafting })).toBe(
+      [
+        path,
+        "Skill: /implement-piece",
+        "Pull: npm run piece:pull -- personal 357",
+        ticketText,
+      ].join("\n"),
+    );
+  });
+
+  it.each([
+    ["a code ticket", "implement-code"],
+    ["a Research ticket", "research-piece"],
+    ["an Edit gate", "close-piece"],
+  ] as const)("names no pull command on %s", (_kind, skill) => {
+    expect(startReportOf({ ...started, ticket: { ...ticket, skill } })).toBe(
+      `${path}\nSkill: /${skill}\n${ticketText}`,
     );
   });
 

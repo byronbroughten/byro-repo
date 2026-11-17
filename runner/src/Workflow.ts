@@ -46,6 +46,11 @@ export type Landing = "code" | "research";
 export type SessionSkill =
   "implement-code" | "research-piece" | "close-piece" | "implement-piece";
 
+// An Edit gate ticket walks the drafting Steps too, but the Agent draft there is the developer's to edit.
+export function isDraftingSkill(skill: SessionSkill): boolean {
+  return skill === "implement-piece";
+}
+
 export interface WorkflowStep {
   step: TicketStep;
   // The step the ticket goes on to from the state this one left; the last step has none.

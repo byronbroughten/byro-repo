@@ -11,6 +11,7 @@ import {
 } from "./IssueWorkspaces.ts";
 import { draftPull, type WrittenPull } from "./SpecRun/runState/draftPull.ts";
 import {
+  isDraftingSkill,
   pickedWorkflowOf,
   pullOf,
   type PullRules,
@@ -100,8 +101,7 @@ export class PiecePull {
 
   private _rulesOf(read: ReadTicket): PullRules {
     const workflow = pickedWorkflowOf(read, this.config.workflows);
-    // An Edit gate ticket walks the drafting Steps too, but the Agent draft there is the developer's to edit.
-    if (workflow.sessionSkillOf(read.ticket) !== "implement-piece") {
+    if (!isDraftingSkill(workflow.sessionSkillOf(read.ticket))) {
       throw new Error(
         `${issueRef.labelOf(read.ticket.issue)} is not a drafting ticket: its Workflow has no pull Step, so piece:pull has nothing to pull.`,
       );

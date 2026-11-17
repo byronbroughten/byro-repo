@@ -3,13 +3,14 @@ import { createHash } from "node:crypto";
 import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import { modelFitTextOf } from "./modelFit.ts";
 import {
+  isDraftingSkill,
   type SessionSkill,
   sessionSkillOf,
   type Workflows,
 } from "./Workflow.ts";
 
-// Workflow.ts is no package entry, so the scripts that print the skill take its type from here.
-export type { SessionSkill };
+// Workflow.ts is no package entry, so the scripts that print the skill take its type and drafting test from here.
+export { isDraftingSkill, type SessionSkill };
 
 const usage =
   "Usage: npm run issue:read -- <repo> <n> [--body] [--comments] [--hide-others]";
