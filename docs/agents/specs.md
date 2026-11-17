@@ -1,6 +1,6 @@
 # Specs
 
-The rules for planning and writing a spec, code or piece. Sizing and splitting tickets is [`tickets.md`](./tickets.md)'s.
+The rules for planning and writing a spec, code, piece or mixed. Sizing and splitting tickets is [`tickets.md`](./tickets.md)'s.
 
 - **A plan or spec includes the matching prose-file edit** in its own scope ([`prose-files.md`](./prose-files.md)).
 
@@ -12,9 +12,10 @@ The rules for planning and writing a spec, code or piece. Sizing and splitting t
 
 ## Piece specs
 
-- **A piece spec is grilled with `/grill-piece`**, which runs [`docs/pieces/grilling.md`](../pieces/grilling.md).
-- **A piece spec is filed with `/project-spec` and split with `/project-tickets`.**
-- **Every piece spec gets tickets: at least one drafting ticket, and its Edit gate last**, a `ready-for-human` ticket blocked by every drafting ticket ([`/project-tickets`' piece branch](../../.claude/skills/project-tickets/SKILL.md#the-piece-branch)).
+- **A piece or mixed spec's Piece is grilled with `/grill-piece`**, which runs [`docs/pieces/grilling.md`](../pieces/grilling.md).
+- **A piece or mixed spec is filed with `/project-spec` and split with `/project-tickets`.**
+- **Every piece or mixed spec gets tickets: at least one drafting ticket, and its Edit gate last**, a `ready-for-human` ticket blocked by every drafting ticket ([`/project-tickets`' piece branch](../../.claude/skills/project-tickets/SKILL.md#the-piece-branch)).
+- **A mixed spec's tickets each carry their own label** ([the piece branch's mixed-spec line](../../.claude/skills/project-tickets/SKILL.md#the-piece-branch)); a ticket with neither raises a Halt naming it.
 
 ## Phases
 
