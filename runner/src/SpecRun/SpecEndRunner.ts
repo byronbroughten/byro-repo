@@ -25,10 +25,10 @@ import { TicketHalted } from "../TicketHalted.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
 import {
   agentStepOf,
-  type GapCheckTicket,
   gapCheckWorkflowOf,
   specEndOf,
   type SpecEndStep,
+  ticketWorkflowsOf,
   type Workflow,
 } from "../Workflow.ts";
 import { DraftPusher } from "./DraftPusher.ts";
@@ -40,6 +40,7 @@ import {
   type Run,
   type RunResult,
   type SpecStepRequest,
+  type TrackedIssue,
   type Wait,
 } from "./runState.ts";
 import { runHalts } from "./runState/runHalts.ts";
@@ -70,16 +71,18 @@ export class SpecEndRunner extends SpecRunBase {
   // A RunStop is thrown on to the run loop, which ends every unfinished member on it.
   async _finish(run: Run, waits: Wait[]): Promise<RunResult | undefined> {
     await this._postLandedReviewLists(run);
-    const workflows = run.isStandalone
-      ? []
-      : await this._ticketWorkflowsOf(run);
+    const tickets = run.isStandalone ? [] : await this._ticketIssuesOf(run);
+    const workflows = ticketWorkflowsOf(
+      { spec: run.spec, tickets },
+      this.config.workflows,
+    );
     const specEnd = specEndOf(workflows);
     const steps = specEnd.isDue(waits) ? specEnd.steps : [];
     let count: UndecidedCount | undefined;
     for (const step of steps) {
       let ended: SpecEndOutcome;
       try {
-        ended = await this._runSpecEndStep(run, step, workflows);
+        ended = await this._runSpecEndStep({ run, step, workflows, tickets });
       } catch (error) {
         if (error instanceof TicketHalted) return undefined;
         if (!(error instanceof UnhandledStop)) throw error;
@@ -111,14 +114,21 @@ export class SpecEndRunner extends SpecRunBase {
     );
   }
 
-  private async _runSpecEndStep(
-    run: Run,
-    step: SpecEndStep,
-    workflows: Workflow[],
-  ): Promise<SpecEndOutcome> {
+  private async _ticketIssuesOf(run: Run): Promise<TrackedIssue[]> {
+    return Promise.all(
+      run.tickets.map((ticket) => this.config.github.issueOf(ticket)),
+    );
+  }
+
+  private async _runSpecEndStep({
+    run,
+    step,
+    workflows,
+    tickets,
+  }: SpecEndRequest): Promise<SpecEndOutcome> {
     const runners: Record<SpecEndStep, () => Promise<SpecEndOutcome>> = {
       "gap-check": async () => {
-        await this._gapCheck(run, workflows);
+        await this._gapCheck({ run, workflows, tickets });
         return {};
       },
       judge: () => this._judge(run),
@@ -168,7 +178,11 @@ export class SpecEndRunner extends SpecRunBase {
   }
 
   // Runs in the primary root on master, where every landed ticket's work is; it reads and writes nothing else.
-  private async _gapCheck(run: Run, workflows: Workflow[]): Promise<void> {
+  private async _gapCheck({
+    run,
+    workflows,
+    tickets,
+  }: Omit<SpecEndRequest, "step">): Promise<void> {
     if (await this.reviewListPoster._hasReviewList(run, gapCheckSubject)) {
       return;
     }
@@ -180,9 +194,6 @@ export class SpecEndRunner extends SpecRunBase {
       return;
     }
     const { knobs } = this.config;
-    const tickets: GapCheckTicket[] = await Promise.all(
-      run.tickets.map((ticket) => this.config.github.issueOf(ticket)),
-    );
     const rules = agentStepOf(gapCheckWorkflowOf(workflows), "gapCheck");
     let prompt = rules.promptOf({
       spec: run.spec.issue,
@@ -273,6 +284,14 @@ export class SpecEndRunner extends SpecRunBase {
     if (count.items === 0) return message;
     return `${message} ${undecidedLineOf(count)}.`;
   }
+}
+
+// The run's tickets are read once, for both the Workflows they pick and the gap check's prompt.
+interface SpecEndRequest {
+  run: Run;
+  step: SpecEndStep;
+  workflows: Workflow[];
+  tickets: TrackedIssue[];
 }
 
 // What a spec-end Step hands back: the message the run stops on, and the undecided count a judge Step read, so the end needn't read it again.

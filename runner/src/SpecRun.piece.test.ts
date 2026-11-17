@@ -24,6 +24,7 @@ import {
   addIssue,
   addSpec,
   commentsOn,
+  gapCheckMark,
   github,
   haltComments,
   handoffResultOf,
@@ -868,7 +869,6 @@ describe("checks and wrap-up on a piece spec's drafting ticket", () => {
 });
 
 describe("the end of a piece spec", () => {
-  const gapCheckMark = "<!-- review-list ticket=gap-check -->";
   const judgeThenRerun = "judge, then rerun";
   const gap = {
     ask: "Story 3: the harbour at dusk",

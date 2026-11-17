@@ -2,11 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { Docs } from "./Docs.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
-import { gapCheckOutputSchema } from "./recordSchema.ts";
 import type { RunResult } from "./SpecRun.ts";
 import {
   addSpec,
   commentsOn,
+  gapCheckCount,
+  gapCheckMark,
   github,
   heldDocs,
   holdDocs,
@@ -26,7 +27,6 @@ useSpecRunHarness();
 
 const { deliverableId, docOf, drafted, pieceReviewed } = pieceDrafts;
 
-const gapCheckMark = "<!-- review-list ticket=gap-check -->";
 const gap = {
   ask: "Story 3: the harbour at dusk",
   evidence: "No Section of the Agent draft sets the harbour at dusk.",
@@ -42,12 +42,6 @@ const crossingDraft =
 
 function gapChecked(gaps: object[]): StepScript {
   return async () => resultOf({ gaps });
-}
-
-function gapCheckCount(agentStep: FakeAgentStep): number {
-  return agentStep.requests.filter(
-    ({ jsonSchema }) => jsonSchema === gapCheckOutputSchema,
-  ).length;
 }
 
 describe("a `code` spec with a `piece` ticket", () => {

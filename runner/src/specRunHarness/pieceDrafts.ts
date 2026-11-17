@@ -33,7 +33,6 @@ const readerFinding: ReviewFinding = {
 export const pieceDrafts = {
   deliverableId,
   draftPath,
-  overlappingDraft,
   // Eight words over two Sections, with no overlap hit.
   lateDraft:
     "## The harbour\n<!-- developer -->\n\nGulls circled the quay.\n\n## The crossing\n<!-- agent -->\n\nThe ferry left late.\n",

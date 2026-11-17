@@ -484,8 +484,7 @@ export function isWorkflowName(name: string | undefined): name is WorkflowName {
   return workflowNames.some((workflowName) => workflowName === name);
 }
 
-// The union of the set's spec-end Steps, each once in specEndSteps' order; due when any Workflow's trigger is, so one
-// Workflow's open wait, such as a piece ticket's Edit gate, holds no Step back. An empty set has no spec end.
+// Due when any Workflow's trigger is, so one Workflow's open wait, such as a piece ticket's Edit gate, holds no Step back.
 export function specEndOf(workflows: Workflow[]): SpecEnd {
   const ends = workflows.map(({ specEnd }) => specEnd);
   return {

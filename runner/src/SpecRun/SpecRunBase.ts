@@ -46,7 +46,6 @@ import {
   type Landing,
   pickedWorkflowOf,
   type SpecTicket,
-  ticketWorkflowsOf,
   type Workflow,
   type Workflows,
 } from "../Workflow.ts";
@@ -178,17 +177,6 @@ export class SpecRunBase {
     name: SN,
   ): AgentSteps[SN] {
     return agentStepOf(this._ticketWorkflowOf(specTicket), name);
-  }
-
-  // The Workflows whose spec-end Steps the run's tickets call for.
-  protected async _ticketWorkflowsOf(run: Run): Promise<Workflow[]> {
-    const tickets = await Promise.all(
-      run.tickets.map((ticket) => this.config.github.issueOf(ticket)),
-    );
-    return ticketWorkflowsOf(
-      { spec: run.spec, tickets },
-      this.config.workflows,
-    );
   }
 
   _landingOf({ run, ticket }: LandingTicket): Landing {

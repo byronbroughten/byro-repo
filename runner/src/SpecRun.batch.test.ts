@@ -10,7 +10,6 @@ import { eventFilePathOf, eventLinesOf } from "./EventFileNotices.ts";
 import { FakeAgentStep, type ScriptedStep } from "./FakeAgentStep.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import { seedHolder } from "./lockFixture.ts";
-import { gapCheckOutputSchema } from "./recordSchema.ts";
 import { runKnobsOf } from "./runKnobs.ts";
 import { RunLock } from "./RunLock.ts";
 import type { Clock, MemberList, RunResult, SpecRunConfig } from "./SpecRun.ts";
@@ -22,6 +21,8 @@ import {
   clonePaths,
   eventOf,
   findingOf,
+  gapCheckCount,
+  gapCheckMark,
   github,
   implemented,
   masterSubjects,
@@ -91,9 +92,7 @@ function reviewListsOn(number: number): string[] {
 }
 
 function gapCheckListsOn(number: number): string[] {
-  return commentsOn(number).filter((body) =>
-    body.includes("<!-- review-list ticket=gap-check -->"),
-  );
+  return commentsOn(number).filter((body) => body.includes(gapCheckMark));
 }
 
 function haltBodiesOn(number: number): string[] {
@@ -956,11 +955,7 @@ describe("a Batch's record", () => {
 
     expect(result.kind).toBe("finished");
     expect(landingOrder()).toEqual([498, 499]);
-    expect(
-      agentStep.requests.filter(
-        ({ jsonSchema }) => jsonSchema === gapCheckOutputSchema,
-      ),
-    ).toEqual([]);
+    expect(gapCheckCount(agentStep)).toBe(0);
     expect(gapCheckListsOn(blocker.number)).toEqual([]);
     const [whileDependentRuns] = statuses;
     expect(whileDependentRuns).toContain(
