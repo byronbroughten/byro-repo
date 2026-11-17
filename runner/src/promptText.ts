@@ -1,8 +1,6 @@
 // Wording shared by the agent-step prompts and the comments the runner posts.
 
-import { issueRef } from "./IssueWorkspaces.ts";
 import { type Axis, verdicts } from "./verdicts.ts";
-import type { GapCheckTicket } from "./Workflow.ts";
 
 // A string for the placeholder a generated skill names a number by, such as `<n>`.
 export type NumberOrPlaceholder = number | string;
@@ -107,29 +105,6 @@ function sessionReviewFramingOf(
 // The resume a review that skipped its reviewer subagents is sent back with; `spawn` names them, how and how many.
 export function reviewerResumePromptOf(spawn: string): string {
   return `Your review ran without its reviewer subagents. Spawn ${spawn}. Then return the review record from their reports, replacing the one you returned.`;
-}
-
-// Every Workflow's gap check reads it first.
-export const addendumLine =
-  "Read the spec's body and its comments: an addendum the developer posted as a comment changes the spec.";
-
-export interface GapRecordWording {
-  // How a gap names its ask, after "by".
-  ask: string;
-  // What the drafted title would be, after "the title of".
-  followUp: string;
-}
-
-// The gap-check record's section, as every Workflow's gap-check prompt words it.
-export function gapRecordSectionOf({
-  ask,
-  followUp,
-}: GapRecordWording): string {
-  return `## The record\n\nReturn \`gaps\`, one per gap, or an empty list when you find none: \`ask\` (what the spec asked for, by ${ask}), \`evidence\` (what you checked and found missing), \`recommendation\` (what you recommend the developer do) and \`draftIssueTitle\` (the title of ${followUp} that would close it).`;
-}
-
-export function gapCheckTicketLineOf({ issue, title }: GapCheckTicket): string {
-  return `- ${issueRef.labelOf(issue)}, "${title}"`;
 }
 
 // A list that follows a label's colon on the label's line, or ` none`.

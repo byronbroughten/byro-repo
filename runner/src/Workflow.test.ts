@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 
+import { GapCheckPrompt } from "./promptText/GapCheckPrompt.ts";
 import { schemaProblemsOf, sessionOutputOf } from "./recordSchema.ts";
 import type { TrackedIssue, Wait } from "./SpecRun/runState.ts";
 import { workflowsWith } from "./specRunHarness.ts";
 import { trackedIssues } from "./specRunHarness/trackedIssues.ts";
 import {
   agentStepOf,
-  gapCheckWorkflowOf,
+  gapCheckInputOf,
   pickedWorkflowOf,
   pushWorkflowOf,
   rowWorkflowNameOf,
@@ -180,13 +181,56 @@ describe("specEndOf", () => {
   });
 });
 
-describe("gapCheckWorkflowOf", () => {
-  it("takes the piece Workflow's rules when the set holds it", () => {
-    expect(gapCheckWorkflowOf([code, piece]).name).toBe("piece");
+describe("a mixed spec's gap-check prompt", () => {
+  const spec = trackedIssues.issueOf(7, { labels: ["code"], body: "" });
+  const tickets = [
+    {
+      ...trackedIssues.issueOf(1, { labels: ["piece"], body: "" }),
+      isOpen: false,
+    },
+    {
+      ...trackedIssues.issueOf(2, { labels: ["code"], body: "" }),
+      isOpen: false,
+    },
+    trackedIssues.issueOf(3, {
+      labels: ["ready-for-human", "piece"],
+      body: "",
+    }),
+  ];
+  const prompt = GapCheckPrompt.init(
+    gapCheckInputOf({ spec, tickets, workflows: [code, piece] }),
+  ).text;
+
+  it("holds both Workflows' sections", () => {
+    expect(prompt).toContain("## The code tickets' work: master");
+    expect(prompt).toContain("## The piece tickets' work: the Agent draft");
+    expect(prompt).toContain("`writing/agent-drafts/7.md`");
+    expect(prompt).toContain("Check only what no review checks");
   });
 
-  it("takes the only Workflow's rules otherwise", () => {
-    expect(gapCheckWorkflowOf([code]).name).toBe("code");
+  it("marks each ticket's Workflow, the Edit gate as open", () => {
+    expect(prompt).toContain('- byro-repo #1, "Ticket 1" (piece)');
+    expect(prompt).toContain('- byro-repo #2, "Ticket 2" (code)');
+    expect(prompt).toContain(
+      '- byro-repo #3, "Ticket 3" (piece; open: the Edit gate)',
+    );
+  });
+
+  it("checks a ticket's stories where its work is, and a story no ticket took against both", () => {
+    expect(prompt).toContain(
+      "Check a story a ticket took where that ticket's work is, by its Workflow below.",
+    );
+    expect(prompt).toContain(
+      "whether no ticket names it or the ticket that did was closed as not planned, against each of master and the Agent draft.",
+    );
+  });
+
+  it("drafts each follow-up by the kind its place takes", () => {
+    expect(prompt).toContain("A gap there drafts a follow-up issue.");
+    expect(prompt).toContain("A gap there drafts a drafting ticket.");
+    expect(prompt).toContain(
+      "a follow-up issue for a gap in master, or a drafting ticket for a gap in the Agent draft",
+    );
   });
 });
 

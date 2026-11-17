@@ -97,6 +97,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `progressLines.ts` | | The progress-log lines, written and parsed in pairs. |
 | `ProgressLog.ts` | | A progress log's lines and what the Run board reads from them: the current ticket, the account, its step stream reading and the latest line. |
 | `promptText.ts` | | Wording helpers the step prompts and the runner's comments share. |
+| `promptText/GapCheckPrompt.ts` | | The spec's gap-check prompt: the shared frame around each Workflow's section. |
 | `recordSchema.ts` | | Schema parts the step records share, the implement record's variants, the review record built from a Workflow's axes and the gap-check record among them, the `output` wrapper a session step's record sits under and its unwrap, and their validator. |
 | `RepoVisibility.ts` | `RepoVisibility` | `npm run repos`'s core: each repo in the repo map with its path and visibility. |
 | `resolveRecords.ts` | | The resolve record every Workflow's resolve step returns: its schema, numbered findings, retry prompt, record and commit checks, and the builder of a Workflow's resolve rules. |
@@ -180,9 +181,9 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `transcriptFacts/ReviewResumes.ts` | | The implementer sessions a review or resolve step resumed, split by a recorded review start or the resumed launch's prompt, and each side's cost. |
 | `UnhandledStop.ts` | `UnhandledStop` | The outcomes the run loop doesn't handle yet, and their error. |
 | `verdicts.ts` | | A finding's axes, `spec`, `standards` and `reader`, and its verdicts. |
-| `Workflow.ts` | | The Workflow type, its spec-end Steps, source targets, pull and push rules, each agent step's rules and prompt input, the one schema every step of the implementer's session launches with, its outcome row's review cell and the accessors that throw for a step a Workflow leaves out, the pick of a ticket's Workflow and the composed spec end, and an interactive session's skill, from the labels: the core's one way to a Workflow. |
+| `Workflow.ts` | | The Workflow type, its spec-end Steps, source targets, pull and push rules, each agent step's rules and prompt input, the one schema every step of the implementer's session launches with, its outcome row's review cell and the accessors that throw for a step a Workflow leaves out, the pick of a ticket's Workflow, the composed spec end and gap-check input, and an interactive session's skill, from the labels: the core's one way to a Workflow. |
 | `Workflow/code/codeWorkflow.ts` | `codeWorkflow` | Builds the code Workflow from a repo's checks and review skill: each ticket's Step sequence, the Step each one goes on to, its spec-end Steps and their trigger, its agent steps' rules and its outcome row's review cell. |
-| `Workflow/code/gapCheck.ts` | `gapCheck` | The code gap check's prompt. |
+| `Workflow/code/gapCheck.ts` | `gapCheck` | The code Workflow's section of the gap check. |
 | `Workflow/code/implementCodeSkill.ts` | `implementCodeSkill` | Generates the `/implement-code` skill from the implement step's shared body. |
 | `Workflow/code/implementStep.ts` | `implementStep` | The code implement step's prompt and output schema. |
 | `Workflow/code/mergeMasterStep.ts` | | The merge-master step's prompt and output schema. |
@@ -191,7 +192,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Workflow/code/reviewStep.ts` | `reviewStep` | The review step's prompt, record schema and reviewer check. |
 | `Workflow/piece/agentDraft.ts` | | The Agent draft file's path, its H1 and H2 lines, Sections by heading path and author marks, pull's merge of a Doc's Sections into them, the agent Sections the push writes and the ones its `keep mine` answers mark as the developer's. |
 | `Workflow/piece/draftingScope.ts` | `draftingScope` | A drafting ticket's scope, its named Sections or every agent Section on a `final-pass` ticket, read from its labels and worded for the prompts. |
-| `Workflow/piece/gapCheck.ts` | | The piece gap check's prompt. |
+| `Workflow/piece/gapCheck.ts` | | The piece Workflow's section of the gap check. |
 | `Workflow/piece/implementPieceSkill.ts` | `implementPieceSkill` | Generates the `/implement-piece` skill from the piece implement step's drafting lines. |
 | `Workflow/piece/implementStep.ts` | | The piece implement step's prompt, the drafting lines `/implement-piece` shares, passages folder, output schema, record and record checks. |
 | `Workflow/piece/pieceChecks.ts` | | A drafting ticket's checks: overlap and the spec's length limit, the overlap command's report and the `Length:` line the review inputs reuse, and the prompts' wording of an overlap run and its fixes. |
