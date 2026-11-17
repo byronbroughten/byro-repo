@@ -9,6 +9,7 @@
 import { copyFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
+import { accountLine } from "../../accountLine.ts";
 import type { StepResult } from "../../AgentStep.ts";
 import {
   type AccountUsage,
@@ -17,7 +18,6 @@ import {
   type LeftOutAccount,
   rankAccounts,
   type UsageList,
-  windowNameOf,
 } from "../../limitGuard.ts";
 import { localTimeOf } from "../../localTime.ts";
 import { limitWaitLineOf } from "../../progressLines.ts";
@@ -218,7 +218,7 @@ function launchWaitOf({
   return {
     kind: "limitWait",
     account: named.account,
-    reason: `is at ${percentOf(utilization)} of its ${windowNameOf(window)} limit`,
+    reason: `is at ${percentOf(utilization)} of its ${accountLine.windowNameOf(window)} limit`,
     until,
   };
 }
@@ -264,5 +264,5 @@ function limitWaitNoticeOf({
 
 function hitWindowNameOf(window: keyof AccountUsage | undefined): string {
   if (window === undefined) return "usage";
-  return windowNameOf(window);
+  return accountLine.windowNameOf(window);
 }

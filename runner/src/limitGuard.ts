@@ -5,7 +5,6 @@
 
 import type { UsageReading, UsageWindow } from "./AgentStep.ts";
 import type { RunKnobs } from "./runKnobs.ts";
-import { percentOf } from "./transcriptFacts.ts";
 
 export type LimitGuardKnobs = Pick<
   RunKnobs,
@@ -276,23 +275,4 @@ function freshestWindowOf(
   if (gapMs >= sameWindowToleranceMs) return cswap;
   if (stream.utilization <= cswap.utilization) return cswap;
   return { ...cswap, utilization: stream.utilization };
-}
-
-// Words a decision's window as the guard's notices name it.
-export function windowNameOf(window: keyof AccountUsage): string {
-  return window === "fiveHour" ? "5-hour" : "weekly";
-}
-
-// A step's own stream may lack a window that cswap always reports, so either may be unknown.
-export function readingLabelOf(
-  account: number,
-  usage: UsageReading | undefined,
-): string {
-  if (usage === undefined) return `account ${account}: no usage reading`;
-  return `account ${account}: 5-hour ${windowLabelOf(usage.fiveHour)}, weekly ${windowLabelOf(usage.sevenDay)}`;
-}
-
-function windowLabelOf(window: UsageWindow | undefined): string {
-  if (window === undefined) return "unknown";
-  return percentOf(window.utilization);
 }

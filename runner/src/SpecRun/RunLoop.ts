@@ -11,11 +11,12 @@
 
 import { existsSync, rmSync } from "node:fs";
 
+import { accountLine } from "../accountLine.ts";
 import { runLabelOf } from "../BatchRecords.ts";
 import { git, revOf } from "../git.ts";
 import { type Halt } from "../halts.ts";
 import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
-import { type AccountReading, readingLabelOf } from "../limitGuard.ts";
+import { type AccountReading } from "../limitGuard.ts";
 import { idleLineOf } from "../progressLines.ts";
 import { RunStop } from "../RunStop.ts";
 import { stalePathLabelOf, stalePathsOf } from "../stalePaths.ts";
@@ -502,7 +503,7 @@ export class RunLoop extends SpecRunBase {
       const { run } = member;
       const ticket =
         launch?.member === member ? launch.ticket.issue : undefined;
-      const started = `Run started on ${run.tickets.length} tickets as ${readingLabelOf(reading.account, reading.usage)}.`;
+      const started = `Run started on ${run.tickets.length} tickets as ${accountLine.readingLabelOf(reading.account, reading.usage)}.`;
       const summary =
         ticket === undefined
           ? started

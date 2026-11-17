@@ -6,13 +6,13 @@
 
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 
+import { accountLine } from "../accountLine.ts";
 import {
   ActiveAccountUnknown,
   noActiveAccountPhraseOf,
 } from "../ActiveAccountUnknown.ts";
 import { type Halt } from "../halts.ts";
 import { type IssueRef, issueRef, leaseHolder } from "../IssueWorkspaces.ts";
-import { readingLabelOf } from "../limitGuard.ts";
 import {
   type BatchView,
   memberBlocking,
@@ -146,7 +146,7 @@ export class StatusReporter extends SpecRunBase {
   private async _activeReadingLabelOf(run: Run): Promise<string> {
     try {
       const { account, usage } = await this._activeReadingOf(run);
-      return readingLabelOf(account, usage);
+      return accountLine.readingLabelOf(account, usage);
     } catch (error) {
       if (!(error instanceof ActiveAccountUnknown)) throw error;
       return `unknown; ${noActiveAccountPhraseOf()}`;
