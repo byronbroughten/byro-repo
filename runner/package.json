@@ -6,6 +6,9 @@
   "type": "module",
   "license": "ISC",
   "exports": {
+    "./AccountLease": "./src/AccountLease.ts",
+    "./AccountsSection": "./src/AccountsSection.ts",
+    "./accountSwitch": "./src/accountSwitch.ts",
     "./AgentStep": "./src/AgentStep.ts",
     "./BatchRecords": "./src/BatchRecords.ts",
     "./callOfItsOwn": "./src/callOfItsOwn.ts",

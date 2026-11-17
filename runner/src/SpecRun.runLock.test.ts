@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { FakeAgentStep } from "./FakeAgentStep.ts";
-import { deadPid, seedHolder } from "./lockFixture.ts";
+import { notRunningPid, seedHolder } from "./lockFixture.ts";
 import { runKnobsOf } from "./runKnobs.ts";
 import { RunLock } from "./RunLock.ts";
 import type { RunResult } from "./SpecRun.ts";
@@ -83,7 +83,7 @@ describe("run's run lock", () => {
   it("takes over a lock whose pid has died, and the run proceeds", async () => {
     addSpec([1]);
     seedHolder(runLockPath(), {
-      pid: deadPid(),
+      pid: notRunningPid,
       host: hostname(),
       startedAt: "2026-01-01",
     });

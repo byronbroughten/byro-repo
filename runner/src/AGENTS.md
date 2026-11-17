@@ -15,6 +15,10 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 
 | File | Export | Job |
 | --- | --- | --- |
+| `AccountLease.ts` | `AccountLease` | The per-account lease a run, a Batch or a session's review or resolve holds on a cswap account, never waited on, and the leased accounts with their holders. |
+| `accountLine.ts` | | The account line the Accounts section and `npm run account:switch` print for each account. |
+| `AccountsSection.ts` | `AccountsSection` | The Run board's Accounts section. |
+| `accountSwitch.ts` | `accountSwitch` | `npm run account:switch`'s core: switches the Active account to the top of the account ranking through the cswap switch port its entry passes, printing the account lines before and after. |
 | `AGENTS.md` | | The rules for working in `src/`; `CLAUDE.md` loads it. |
 | `CLAUDE.md` | | Loads `AGENTS.md` for Claude Code. |
 | `ActiveAccountUnknown.ts` | | The Stop raised when no Active account can be read for a step. |
@@ -55,7 +59,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `FakeGitHub.ts` | | The scripted GitHub port run-loop, wrap-up and filing tests use. |
 | `FakeIssueSource.ts` | | The scripted issue source issue-reader and Outline-edit tests use. |
 | `FakeNotices.ts` | `FakeNotices` | The notice port run-loop tests read back. |
-| `FakeUsageReader.ts` | | The scripted usage reader run-loop tests use. |
+| `FakeUsageReader.ts` | | The scripted usage reader run-loop, account-switch and Accounts section tests use. |
 | `GhCli.ts` | `GhCli` | The real `gh` port. |
 | `git.ts` | | Git helpers the workspaces, run loop and wrap-up share, the worktree add, remove, list and switch helpers and the branch lookup included. |
 | `GitFixture.ts` | | A test primary root of clones with bare remotes. |
@@ -75,7 +79,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `issueWorkspacesHarness.ts` | | The fixture `IssueWorkspaces` tests share. |
 | `LandingLock.ts` | `LandingLock` | The per-primary lock wrap-up lands under. |
 | `LeaseHeld.ts` | | The error for another holder's live workspace lease. |
-| `limitGuard.ts` | `limitGuard` | The limit guard: reads usage and picks launch or Limit wait. |
+| `limitGuard.ts` | `limitGuard` | The limit guard: reads usage, picks launch or Limit wait and ranks the accounts. |
 | `localTime.ts` | | Words and reads a human-facing time: local, with its zone. |
 | `lockFixture.ts` | | Pid-lock fixtures the lock tests share. |
 | `modelFit.ts` | `modelFit` | Reads a ticket's Model fit pair and estimate, and compares pairs. |
@@ -88,16 +92,16 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `outcomeSummary.ts` | `outcomeSummary` | `npm run outcome:summary`'s core: picks spec sections of the outcome log and reports their costs, outliers, transcripts and Model fit for `/mine-outcomes`. |
 | `outcomeSummary/OutcomeReport.ts` | | Words the outcome summary for a batch of sections. |
 | `outcomeSummary/summarySections.ts` | | Reads the outcome log's spec sections from row files and picks the batch. |
-| `PidLock.ts` | | The pid lock file `LandingLock`, `RunLock` and `CheckSlot` extend, and the wait `LandingLock` and `CheckSlot` poll through. |
+| `PidLock.ts` | | The pid lock file `LandingLock`, `RunLock`, `AccountLease` and `CheckSlot` extend, and the wait `LandingLock` and `CheckSlot` poll through. |
 | `processIdentity.ts` | `processIdentity` | A process named by its pid and start time, for leases, supervision records and a parked watch. |
 | `progressLines.ts` | | The progress-log lines, written and parsed in pairs. |
-| `ProgressLog.ts` | | A progress log's lines and what the Run board reads from them: the current ticket, the account and the latest line. |
+| `ProgressLog.ts` | | A progress log's lines and what the Run board reads from them: the current ticket, the account, its step stream reading and the latest line. |
 | `promptText.ts` | | Wording helpers the step prompts and the runner's comments share. |
 | `recordSchema.ts` | | Schema parts the step records share, the implement record's variants, the review record built from a Workflow's axes and the gap-check record among them, the `output` wrapper a session step's record sits under and its unwrap, and their validator. |
 | `RepoVisibility.ts` | `RepoVisibility` | `npm run repos`'s core: each repo in the repo map with its path and visibility. |
 | `resolveRecords.ts` | | The resolve record every Workflow's resolve step returns: its schema, numbered findings, retry prompt, record and commit checks, and the builder of a Workflow's resolve rules. |
 | `reviewList.ts` | `reviewList` | The review list's comment formats, a research ticket's unwanted Unverified facts' audit and the skipped-reviewers note among them, and undecided count, `runner decide`'s edit marking one item decided or handled, and a session re-review's merge into the posted list. |
-| `runBoard.ts` | `runBoard` | The Run board behind `runner status` and `runner watch` with no spec. |
+| `runBoard.ts` | `runBoard` | The Run board behind `runner status` and `runner watch` with no spec: its Runs section and the Accounts section after it. |
 | `runCollecting.ts` | `runCollecting` | Runs one process with its output collected. |
 | `runCommand.ts` | | Runs a configured command, returning its output tail when it fails, for the preflight and a ticket's checks. |
 | `runKnobs.ts` | `runKnobs` | Every knob a run reads, its defaults and the override-file loader. |
@@ -111,6 +115,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SessionProbe.ts` | `SessionProbe` | `npm run session:probe`: what a SessionStart hook sees in a folder. |
 | `sleep.ts` | | A promised delay. |
 | `SpecRun.ts` | `SpecRun` | The run loop's entry: `run` over its members, `status`, `requestStop`, `briefReview`, `submitReview`, `resolve`, `decide`, `judgeable` and `standalone`, delegating to `SpecRun/`. |
+| `SpecRun/AccountHold.ts` | | A run's, Batch's or session review's or resolve's hold on a cswap account: the account it last launched on and its account lease, moved by taking the new lease before releasing the old. |
 | `SpecRun/DraftPuller.ts` | | Runs a piece spec's drafting ticket's pull: writes and commits the Agent draft its Workflow pulls from the Doc, and keeps the push baseline. |
 | `SpecRun/DraftPusher.ts` | | Runs a piece spec's push: writes the Agent draft's agent Sections into the Doc once, raising a push Halt before any write on a Section the developer changed since the pull, reading and comparing again on a stale revision up to a bound, and raising a push Halt naming a Doc with pending suggestions, delegating its `keep mine` answers to `DraftPusher/`. |
 | `SpecRun/DraftPusher/DraftKeeper.ts` | | Marks the push's `keep mine` Sections as the developer's in the Agent draft and lands it as a session. |
@@ -126,14 +131,14 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/ReviewItemDecider.ts` | | `runner decide`: records one item of the developer's own review list as decided or handled. |
 | `SpecRun/ReviewListPoster.ts` | | Posts review lists and covered-later notes. |
 | `SpecRun/ReviewStepper.ts` | | Runs a ticket's review, with its reviewer check, and resolve steps. |
-| `SpecRun/RunLoop.ts` | | The run's ticket loop across its members, idling and end. |
+| `SpecRun/RunLoop.ts` | | The run's ticket loop across its members, idling and end, and its account hold's release. |
 | `SpecRun/SessionReviewer.ts` | | Prints an interactive session's review brief, checks the review it submits, its reviewers included, and runs its `resolve`. |
 | `SpecRun/SpecRunBase.ts` | | The Base every collaborator shares: config, run state, progress log, notices, snapshots, a run's end and an issue's review-list judgement. |
 | `SpecRun/StandaloneTicketLister.ts` | | `runner standalone`: lists a repo's launchable Standalone tickets, leaving out each the Batch preflight would refuse, with its reason. |
 | `SpecRun/SpecEndRunner.ts` | | Ends the run with its Workflow's spec-end Steps, the gap check's review list, the judge Step's stop and the push included. |
 | `SpecRun/StatusReporter.ts` | | A run's or Batch's status, and its stop request. |
 | `SpecRun/StepLauncher.ts` | | Launches an agent step under the limit guard, retries a crash, resumes a step a limit cut off and resumes once a record failing its schema check, delegating the limit waits to `StepLauncher/`. |
-| `SpecRun/StepLauncher/LimitWaiter.ts` | | Holds a launch until the Active account reads under its thresholds and waits out a limit hit. |
+| `SpecRun/StepLauncher/LimitWaiter.ts` | | Runs the launch check that picks and leases each step's account, holding a launch until an account is free and reads under its thresholds, and moves a step a limit cut off onto another free account, keeping the hit one unavailable to the run. |
 | `SpecRun/TicketLander.ts` | | Lands a ticket: posts a research ticket's comment and raises its Research Halt, writes its facts file, runs the wrap-up and posts its review list, delegating its facts file, checks and wrap-up failures to `TicketLander/`. |
 | `SpecRun/TicketLander/FactsWriter.ts` | | Writes a ticket's facts file, a code ticket's or a research ticket's, and warns of session facts left unrecorded. |
 | `SpecRun/TicketLander/MasterMerger.ts` | | Takes a ticket's wrap-up failure, merging master into its branch on a conflict and resuming the implementer to resolve it. |
@@ -150,6 +155,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `specRunHarness/stepResults.ts` | | The step results, records and scripted steps `SpecRun` tests give a fake agent step. |
 | `specRunHarness/timing.ts` | | The clock `SpecRun` tests start a run at and move through its fakes. |
 | `specRunHarness/trackedIssues.ts` | | The tracked issues `SpecRun` tests give a fake GitHub and `Workflow` tests pick from. |
+| `specRunHarness/usageLists.ts` | | The usage lists `SpecRun` tests script for the launch check, each account on a reading the test sets. |
 | `stalePaths.ts` | | The stale-path check for `packages/<dir>` mentions with no clone. |
 | `StepStream.ts` | | Reads a step's stream-json into its `StepResult`. |
 | `stepPrompts/doneLines.ts` | | The "when you're done" lines the code and piece Workflows' implement and red-checks prompts share. |

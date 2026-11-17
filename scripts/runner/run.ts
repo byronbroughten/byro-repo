@@ -6,7 +6,7 @@
 // `supervise` records the caller's claude as the spec's or Batch's Supervisor and prints its unexplained event lines, after the last Supervisor's handoff on a rejoin; `--advance` marks one more explained.
 // `watch` streams the spec's or Batch's new event lines and prints a `vanished` line if the run's process dies unreported (runWatch.ts);
 // `--once` prints the first unexplained line, or that `vanished` line, and exits, or exits silently once a newer watch replaces it.
-// `status` and `watch` with no spec print the Run board once or redraw it every 5s (runBoard.ts).
+// `status` and `watch` with no spec print the Run board once or redraw it every 5s, reading accounts every 60s (runBoard.ts).
 // `decide` ticks one review-list item and adds its `Decided:` line, or with `--handled` adds a `Handled:` line unticked (SpecRun/ReviewItemDecider.ts).
 // `judgeable` lists the repo's open issues with undecided review-list items or ready to close, for /judge-findings (SpecRun/JudgeableIssueLister.ts).
 // `standalone` lists the repo's launchable Standalone tickets, the left-out ones with their reasons, and the line that launches the list; nothing launches (SpecRun/StandaloneTicketLister.ts).
@@ -14,11 +14,18 @@ import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { setTimeout as sleep } from "node:timers/promises";
 
+import { AccountLease } from "@byronbroughten/spec-runner/AccountLease";
+import { AccountsSection } from "@byronbroughten/spec-runner/AccountsSection";
 import { BatchRecords } from "@byronbroughten/spec-runner/BatchRecords";
+import { CswapUsageReader } from "@byronbroughten/spec-runner/CswapUsageReader";
 import { type IssueRef } from "@byronbroughten/spec-runner/IssueWorkspaces";
 import { isStillRunning } from "@byronbroughten/spec-runner/processIdentity";
 import { isItemId } from "@byronbroughten/spec-runner/reviewList";
-import { runBoardOf, watchBoard } from "@byronbroughten/spec-runner/runBoard";
+import {
+  boardTimings,
+  runBoardOf,
+  watchBoard,
+} from "@byronbroughten/spec-runner/runBoard";
 import { RunLock } from "@byronbroughten/spec-runner/RunLock";
 import {
   reviewPrintoutOf,
@@ -91,22 +98,31 @@ try {
 
 async function showBoard(command: string): Promise<void> {
   if (command === "status") {
-    console.log(boardNow());
+    console.log(await boardNow(accountsSectionOf(undefined)));
     return;
   }
+  const accounts = accountsSectionOf(boardTimings.accountsRefreshMs);
   await watchBoard({
-    render: boardNow,
+    render: () => boardNow(accounts),
     draw: (board) => {
       console.clear();
       console.log(board);
     },
-    pollMs: 5_000,
+    pollMs: boardTimings.redrawMs,
     sleep,
   });
 }
 
-function boardNow(): string {
-  return runBoardOf(stateFolder, new Date());
+function accountsSectionOf(refreshMs: number | undefined): AccountsSection {
+  return AccountsSection.init({
+    usageReader: CswapUsageReader.init(),
+    leaseReader: AccountLease.readerOf(stateFolder),
+    refreshMs,
+  });
+}
+
+function boardNow(accounts: AccountsSection): Promise<string> {
+  return runBoardOf({ stateFolder, accounts, now: new Date() });
 }
 
 interface SpecArgs {

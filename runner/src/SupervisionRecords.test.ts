@@ -1,4 +1,3 @@
-import { spawnSync } from "node:child_process";
 import {
   appendFileSync,
   existsSync,
@@ -21,7 +20,7 @@ import {
   issueRef,
   type LeaseHolder,
 } from "./IssueWorkspaces.ts";
-import { deadPid, seedHolder } from "./lockFixture.ts";
+import { notRunningPid, seedHolder } from "./lockFixture.ts";
 import { identityOf } from "./processIdentity.ts";
 import type { MemberList } from "./SpecRun.ts";
 import { SupervisionRecords } from "./SupervisionRecords.ts";
@@ -64,9 +63,7 @@ function seedRunLock(of: IssueRef, pid: number): void {
 }
 
 function deadHolder(): LeaseHolder {
-  const { pid } = spawnSync("node", ["-e", ""]);
-  if (pid === undefined) throw new Error("The throwaway process didn't start");
-  return { kind: "session", pid };
+  return { kind: "session", pid: notRunningPid };
 }
 
 async function startedWatch(pid: number) {
@@ -250,7 +247,7 @@ describe("a running supervision record", () => {
 
   it("is none when the run lock's pid has died", async () => {
     await records().supervise(me, owner, spec);
-    seedRunLock(spec, deadPid());
+    seedRunLock(spec, notRunningPid);
 
     expect(await records().runningRecordOf(me)).toBeUndefined();
   });

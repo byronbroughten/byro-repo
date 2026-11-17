@@ -1,20 +1,28 @@
-// A progress log's lines and what the Run board reads from them: the current ticket, the account and the latest line.
+// A progress log's lines and what the Run board reads from them: the current ticket, the account, its step stream reading and the latest line.
 // runBoard.ts builds one per member; progressLines.ts words and parses each line, and SpecRun/SpecRunBase.ts appends them.
 
 import { existsSync, readFileSync } from "node:fs";
 
 import type { UsageReading } from "./AgentStep.ts";
-import { readingLabelOf } from "./limitGuard.ts";
+import { issueRef } from "./IssueWorkspaces.ts";
 import type { StampedLine } from "./localTime.ts";
 import {
-  isLimitWaitLine,
+  isIdleLine,
   isStepBoundaryLine,
   stampedLineOf,
+  type StepLaunch,
   stepLaunchOfLine,
   ticketOfLine,
 } from "./progressLines.ts";
 import type { RunState } from "./SpecRun/runState.ts";
 import { StepStream } from "./StepStream.ts";
+
+export interface StreamReading {
+  account: number;
+  usage: UsageReading;
+}
+
+type HeldAccount = { kind: "launched"; launch: StepLaunch } | { kind: "idle" };
 
 export class ProgressLog {
   private readonly lines: StampedLine[];
@@ -48,22 +56,30 @@ export class ProgressLog {
       return `none; ${subject}, ${durationOf(latest.time, now)} on this step`;
     }
     const step = state?.tickets[ticket]?.step ?? "step unknown";
+    // A spec's tickets are always filed in its repo, so the board drops the repo.
+    const number = issueRef.numberLabelOf(issueRef.ofLabel(ticket));
     const stepStart = this.lines.findLast(({ text }) =>
       isStepBoundaryLine(text, ticket),
     );
-    if (stepStart === undefined) return `${ticket}, ${step}`;
-    return `${ticket}, ${step}, ${durationOf(stepStart.time, now)} on this step`;
+    if (stepStart === undefined) return `${number}, ${step}`;
+    return `${number}, ${step}, ${durationOf(stepStart.time, now)} on this step`;
   }
 
-  // A Limit wait newer than the last launch is the account's state until the next launch.
+  // An Idle line newer than the last launch means the run holds no account until the next launch.
   accountText(): string {
-    const latest = this.lines.findLast(
-      ({ text }) => isLimitWaitLine(text) || stepLaunchOfLine(text),
-    );
-    if (latest === undefined) return "none launched yet";
-    const launch = stepLaunchOfLine(latest.text);
-    if (launch === undefined) return latest.text;
-    return readingLabelOf(launch.account, streamUsageOf(launch.streamPath));
+    const held = this._heldAccount();
+    if (held === undefined) return "none launched yet";
+    if (held.kind === "idle") return "none; Idle, holding no account lease";
+    return `${held.launch.account}`;
+  }
+
+  // The held account's reading from its latest step's own rate-limit events, so the board reads no account state the runs didn't write.
+  streamReading(): StreamReading | undefined {
+    const held = this._heldAccount();
+    if (held?.kind !== "launched") return undefined;
+    const usage = streamUsageOf(held.launch.streamPath);
+    if (usage === undefined) return undefined;
+    return { account: held.launch.account, usage };
   }
 
   latestText(now: Date): string {
@@ -77,9 +93,18 @@ export class ProgressLog {
       ({ text }) => ticketOfLine(text) !== undefined || stepLaunchOfLine(text),
     );
   }
+
+  // Undefined before the first launch.
+  private _heldAccount(): HeldAccount | undefined {
+    for (const { text } of this.lines.toReversed()) {
+      if (isIdleLine(text)) return { kind: "idle" };
+      const launch = stepLaunchOfLine(text);
+      if (launch !== undefined) return { kind: "launched", launch };
+    }
+    return undefined;
+  }
 }
 
-// The step's own rate-limit events, so the board reads no account state the runs didn't write.
 function streamUsageOf(streamPath: string): UsageReading | undefined {
   if (!existsSync(streamPath)) return undefined;
   const stream = StepStream.init();

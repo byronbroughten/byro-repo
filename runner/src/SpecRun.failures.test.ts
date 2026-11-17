@@ -12,6 +12,7 @@ import {
   bodyWith,
   crashed,
   eventOf,
+  everyAccountListOf,
   github,
   greened,
   haltComments,
@@ -292,7 +293,7 @@ describe("run's retries across a rerun", () => {
     scriptUsage(
       usageListOf(0.1, 0.2),
       usageListOf(0.1, 0.2),
-      usageListOf(0.3, 1),
+      everyAccountListOf(0.3, 1),
       usageListOf(0.3, 0.5),
     );
 
@@ -302,7 +303,7 @@ describe("run's retries across a rerun", () => {
 
     expect(result.landed).toEqual([refOf(1)]);
     expect(noticeSummaries()).toContain(
-      "Limit wait: account 1 is at 100% of its weekly limit; continuing after 2026-10-14 19:01:00 CDT. Switching to an account with headroom with cswap continues the run now.",
+      "Limit wait: account 1 is at 100% of its weekly limit; continuing after 2026-10-14 19:01:00 CDT. An account another run releases continues the run too.",
     );
     expect(progressLines().map(eventOf)).toContain(
       "byro-repo #1: The review step ended error_during_execution. Retrying, 1 of 1.",

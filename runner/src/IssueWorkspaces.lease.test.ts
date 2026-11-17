@@ -1,4 +1,3 @@
-import { spawnSync } from "node:child_process";
 import {
   chmodSync,
   existsSync,
@@ -23,6 +22,7 @@ import {
   useIssueWorkspacesHarness,
   workspaces,
 } from "./issueWorkspacesHarness.ts";
+import { notRunningPid } from "./lockFixture.ts";
 
 useIssueWorkspacesHarness();
 
@@ -31,12 +31,6 @@ const liveSession: LeaseHolder = { kind: "session", pid: process.ppid };
 
 function filesOf(path: string): string[] {
   return readdirSync(path, { recursive: true, encoding: "utf8" }).sort();
-}
-
-function deadPid(): number {
-  const { pid } = spawnSync("node", ["-e", ""]);
-  if (pid === undefined) throw new Error("The throwaway process didn't start");
-  return pid;
 }
 
 describe("a lease", () => {
@@ -67,7 +61,7 @@ describe("a lease", () => {
 
   it("is read as abandoned once its holder dies, and taken over", async () => {
     const workspace = await workspaces().create({ session: "glossary-fix" });
-    const dead: LeaseHolder = { kind: "session", pid: deadPid() };
+    const dead: LeaseHolder = { kind: "session", pid: notRunningPid };
     await workspaces().takeLease(workspace, dead);
 
     expect(await workspaces().leaseOf(workspace)).toEqual({
@@ -148,7 +142,7 @@ describe("a lease", () => {
 
   it("is released by any caller once its holder dies, read back as abandoned", async () => {
     const workspace = await workspaces().create({ session: "glossary-fix" });
-    const dead: LeaseHolder = { kind: "session", pid: deadPid() };
+    const dead: LeaseHolder = { kind: "session", pid: notRunningPid };
     await workspaces().takeLease(workspace, dead);
 
     expect(await workspaces().releaseOwnLease(workspace, liveSession)).toEqual({
@@ -302,7 +296,7 @@ describe("a lease", () => {
     const workspace = await workspaces().create({ session: "glossary-fix" });
     await workspaces().takeLease(workspace, {
       kind: "session",
-      pid: deadPid(),
+      pid: notRunningPid,
     });
 
     await workspaces().remove(workspace);
@@ -315,7 +309,7 @@ describe("a lease", () => {
     const workspace = await workspaces().create(key);
     await workspaces().takeLease(workspace, {
       kind: "session",
-      pid: deadPid(),
+      pid: notRunningPid,
     });
     await workspaces().remove(workspace);
 

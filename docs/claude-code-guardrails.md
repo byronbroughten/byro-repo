@@ -63,7 +63,7 @@ The exclusion inventories that settled the list are on #522 and #537; rerun them
 
 ## Switching Claude accounts
 
-**Never suggest `/logout`**, which can revoke the stored refresh token; switch Claude accounts with `/login` or `cswap`.
+**Never suggest `/logout`**, which can revoke the stored refresh token; switch Claude accounts with `/login`, `cswap switch <n>` or `npm run account:switch`, in place of `cswap auto`.
 
 ## Cutting permission prompts
 

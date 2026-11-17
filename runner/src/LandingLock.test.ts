@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { LandingLock } from "./LandingLock.ts";
-import { deadPid, seedHolder } from "./lockFixture.ts";
+import { notRunningPid, seedHolder } from "./lockFixture.ts";
 import type { LockHolder } from "./PidLock.ts";
 
 let gitDir: string;
@@ -32,7 +32,7 @@ describe("LandingLock.acquire", () => {
 
   it("takes over a lock whose pid is no longer running on this host", async () => {
     seedHolder(lockPath(), {
-      pid: deadPid(),
+      pid: notRunningPid,
       host: hostname(),
       startedAt: "2026-01-01",
     });
@@ -67,7 +67,7 @@ describe("LandingLock.acquire", () => {
 
   it("waits on another host's lock even when the pid is dead here", async () => {
     seedHolder(lockPath(), {
-      pid: deadPid(),
+      pid: notRunningPid,
       host: "elsewhere",
       startedAt: "2026-01-01",
     });

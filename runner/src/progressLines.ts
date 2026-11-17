@@ -21,7 +21,10 @@ const linePatterns = {
   stepTook: / took \d+s\.$/,
 } as const;
 
-const limitWaitPrefix = "Limit wait: ";
+const linePrefixes = {
+  limitWait: "Limit wait: ",
+  idle: "Idle: nothing runnable. ",
+} as const;
 
 export function progressLineOf(time: Date, text: string): string {
   return `${localTimeOf(time)} ${text}`;
@@ -59,7 +62,11 @@ export function stepLaunchLineOf({
 }
 
 export function limitWaitLineOf(detail: string): string {
-  return `${limitWaitPrefix}${detail}`;
+  return `${linePrefixes.limitWait}${detail}`;
+}
+
+export function idleLineOf(waits: string): string {
+  return `${linePrefixes.idle}${waits}.`;
 }
 
 export function ticketOfLine(line: string): string | undefined {
@@ -81,6 +88,6 @@ export function stepLaunchOfLine(line: string): StepLaunch | undefined {
   return { subject, account: Number(account), streamPath };
 }
 
-export function isLimitWaitLine(line: string): boolean {
-  return line.startsWith(limitWaitPrefix);
+export function isIdleLine(line: string): boolean {
+  return line.startsWith(linePrefixes.idle);
 }

@@ -1,14 +1,7 @@
-import { spawnSync } from "node:child_process";
-
 import { describe, expect, it } from "vitest";
 
+import { notRunningPid } from "./lockFixture.ts";
 import { identityOf, isStillRunning } from "./processIdentity.ts";
-
-function deadPid(): number {
-  const { pid } = spawnSync("node", ["-e", ""]);
-  if (pid === undefined) throw new Error("The throwaway process didn't start");
-  return pid;
-}
 
 describe("a process identity", () => {
   it("names a running process by its pid and start time", async () => {
@@ -26,7 +19,7 @@ describe("a process identity", () => {
   });
 
   it("is not running once its process has exited", async () => {
-    const identity = await identityOf(deadPid());
+    const identity = await identityOf(notRunningPid);
 
     expect(identity.startedAt).toBeUndefined();
     expect(await isStillRunning(identity)).toBe(false);

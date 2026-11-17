@@ -1,6 +1,6 @@
-// The pid lock LandingLock.ts, RunLock.ts and CheckSlot.ts share: a file holding its holder's pid, host, start time and
+// The pid lock LandingLock.ts, RunLock.ts, AccountLease.ts and CheckSlot.ts share: a file holding its holder's pid, host, start time and
 // token. It is stale only when that pid is no longer running on this host; there is no time-based expiry.
-// tryTake() never waits: LandingLock and CheckSlot poll a live holder and RunLock refuses on one.
+// tryTake() never waits: LandingLock and CheckSlot poll a live holder and RunLock and AccountLease refuse on one.
 // A stale lock is taken over only while holding a `<path>.takeover` guard, so two takers can't both win.
 
 import { randomUUID } from "node:crypto";
@@ -12,6 +12,13 @@ export interface LockHolder {
   host: string;
   startedAt: string;
   token: string; // Tells apart two holders sharing a pid.
+  spec?: string; // The spec an account lease's holder works on, as issueRef.labelOf words it; other locks and older leases have none.
+}
+
+interface TakeOptions {
+  spec?: string;
+  // Lets a test run a second taker between finding a stale lock and taking it over.
+  beforeTakeover?: () => void;
 }
 
 export interface HeldLock {
@@ -42,14 +49,17 @@ export class PidLock {
     this.holder = holder;
   }
 
-  // beforeTakeover lets a test run a second taker between finding a stale lock and taking it over.
-  static tryTake(path: string, beforeTakeover?: () => void): LockAttempt {
+  static tryTake(
+    path: string,
+    { spec, beforeTakeover }: TakeOptions = {},
+  ): LockAttempt {
     const holder: LockHolder = {
       pid: process.pid,
       host: hostname(),
       startedAt: new Date().toISOString(),
       token: randomUUID(),
     };
+    if (spec !== undefined) holder.spec = spec;
     for (;;) {
       if (tryCreate(path, holder)) return { kind: "taken", holder };
       const current = readHolder(path);
@@ -82,9 +92,15 @@ export class PidLock {
   }
 
   static isHeldAt(path: string): boolean {
-    if (!existsSync(path)) return false;
+    return PidLock.heldAt(path) !== undefined;
+  }
+
+  // The lock as a live holder holds it, or undefined when it is free or its holder is dead.
+  static heldAt(path: string): HeldLock | undefined {
+    if (!existsSync(path)) return undefined;
     const holder = readHolder(path);
-    return holder === undefined || !isStale(holder);
+    if (holder !== undefined && isStale(holder)) return undefined;
+    return { kind: "held", holder };
   }
 
   release(): void {

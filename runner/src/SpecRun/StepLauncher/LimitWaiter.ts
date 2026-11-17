@@ -1,6 +1,9 @@
-// A spec run's limit waits: holds a step's launch until the Active account reads under its thresholds, and waits out a limit hit.
-// The Active account's reading is judged with each window raised to the last one a step's stream gave for it.
-// StepLauncher builds it in a lazy getter; the decisions are ../../limitGuard.ts.
+// A spec run's limit waits: the launch check before each step, which picks the account it runs on, and the move off a limit hit.
+// The check keeps the run's account while it reads under both thresholds, else takes the lease of the top of the account ranking with the
+// Active account last, each window raised to the last one a step's stream gave for it, leaving out accounts another holder has leased
+// and those a limit hit made unavailable to the run; with no account under and free, it is a Limit wait, which keeps the lease the run holds
+// and re-ranks every poll. A limit hit marks its account unavailable and runs the check at once, so the step resumes on another free account.
+// StepLauncher builds it in a lazy getter; the ranking and decisions are ../../limitGuard.ts; the lease the run holds is ../AccountHold.ts.
 
 import { copyFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
@@ -8,9 +11,11 @@ import { join } from "node:path";
 import type { StepResult } from "../../AgentStep.ts";
 import {
   type AccountUsage,
-  decideStep,
-  freshestUsageOf,
-  type GuardDecision,
+  decideReading,
+  freshReadingOf,
+  type LeftOutAccount,
+  rankAccounts,
+  type UsageList,
   windowNameOf,
 } from "../../limitGuard.ts";
 import { localTimeOf } from "../../localTime.ts";
@@ -19,36 +24,33 @@ import { percentOf } from "../../transcriptFacts.ts";
 import type { Run, RunWarning } from "../runState.ts";
 import { SpecRunBase } from "../SpecRunBase.ts";
 
-interface GuardedDecision {
-  account: number;
-  decision: GuardDecision;
+// A wait names one account; `until` is the earliest reset among the accounts that would continue the run, undefined with none.
+interface LaunchWait {
+  kind: "limitWait";
+  account: number | undefined;
+  reason: string;
+  until: Date | undefined;
+}
+
+type LaunchCheck = { kind: "launch"; account: number } | LaunchWait;
+
+// A launch no account could take. `unavailableUntils` are the known ends of the run's unavailable accounts no other run leases,
+// which may continue the run before any threshold lifts.
+interface BlockedLaunch {
+  heldAccount: number | undefined;
+  leftOut: LeftOutAccount[];
+  unavailableUntils: Date[];
 }
 
 export class LimitWaiter extends SpecRunBase {
-  // Asks the limit guard about the Active account until it says launch, and returns that account.
+  // Runs the launch check until it gives an account, and returns that account.
   async _waitForLaunch(run: Run): Promise<number> {
-    let hasAnnouncedWait = false;
-    for (;;) {
-      const { account, decision } = await this._guardDecisionOf(run);
-      if (decision.kind === "launch") return account;
-      const { window, utilization, until } = decision;
-      if (!hasAnnouncedWait) {
-        hasAnnouncedWait = true;
-        await this._announce(
-          run,
-          limitWaitNoticeOf({
-            account,
-            reason: `is at ${percentOf(utilization)} of its ${windowNameOf(window)} limit`,
-            until,
-          }),
-        );
-      }
-      await this._sleep(this._limitPollMsOf(until));
-    }
+    return this._pollForLaunch(run, limitWaitNoticeOf);
   }
 
   // The tree stays as is in the workspace; the first stream ever seen is kept for tightening limit detection.
-  async _waitOutLimitHit(
+  // The launch check runs at once, so a free account resumes the step with no wait; the check takes its lease before releasing the hit one's.
+  async _moveOffLimitHit(
     run: Run,
     { limitHit, account }: StepResult,
     logPath: string,
@@ -58,55 +60,115 @@ export class LimitWaiter extends SpecRunBase {
       copyFileSync(logPath, savedPath);
     }
     const resetsAt = limitHit?.resetsAt;
+    let reason = `hit its ${hitWindowNameOf(limitHit?.window)} limit`;
+    let unavailableUntil: Date | undefined;
     if (resetsAt === undefined) {
+      reason = "hit a limit error with no reset";
       await this._warnOnce(
         run,
         "unrecognised-limit-error",
         `Unrecognised limit error on account ${account}; the saved stream can tighten detection.`,
       );
-      await this._announce(
-        run,
-        limitWaitNoticeOf({
-          account,
-          reason: "hit a limit error with no reset",
-          until: undefined,
-        }),
+    } else {
+      unavailableUntil = new Date(
+        resetsAt.getTime() + this.config.knobs.limitWaitMarginMs,
       );
-      await this._pollUntilUnderThresholds(run, undefined);
-      return;
     }
-    const until = new Date(
-      resetsAt.getTime() + this.config.knobs.limitWaitMarginMs,
+    run.unavailableAccounts.set(account, unavailableUntil);
+    await this._pollForLaunch(run, ({ until }) =>
+      limitWaitNoticeOf({ account, reason, until }),
     );
-    await this._announce(
-      run,
-      limitWaitNoticeOf({
-        account,
-        reason: `hit its ${hitWindowNameOf(limitHit?.window)} limit`,
-        until,
-      }),
-    );
-    await this._pollUntilUnderThresholds(run, until);
   }
 
-  // Judges the Active account's cswap reading, each window raised to the last one a step's stream gave for it; with no reading, a step launches unguarded.
-  private async _guardDecisionOf(run: Run): Promise<GuardedDecision> {
-    const { account, usage } = await this._activeReadingOf(run);
-    if (usage === undefined) {
+  // Announces the first wait only, in the words `noticeOf` gives it.
+  private async _pollForLaunch(
+    run: Run,
+    noticeOf: (wait: LaunchWait) => string,
+  ): Promise<number> {
+    let hasAnnouncedWait = false;
+    for (;;) {
+      const check = await this._runLaunchCheck(run);
+      if (check.kind === "launch") return check.account;
+      if (!hasAnnouncedWait) {
+        hasAnnouncedWait = true;
+        await this._announce(run, noticeOf(check));
+      }
+      await this._sleep(this._limitPollMsOf(check.until));
+    }
+  }
+
+  // The run's own account while it reads under both thresholds, else the top-ranked one whose lease it can take, which the run then keeps.
+  private async _runLaunchCheck(run: Run): Promise<LaunchCheck> {
+    const hold = run.accountHold;
+    const usageList = await this._knownActiveUsageListOf(run);
+    this._clearLapsedUnavailable(run, usageList);
+    const leasedAccounts = hold.otherHoldersAccounts();
+    const { ranked, leftOut } = rankAccounts({
+      usageList,
+      leasedAccounts,
+      unavailableAccounts: new Set(run.unavailableAccounts.keys()),
+      streamUsage: run.streamUsage,
+      knobs: this.config.knobs,
+      putActiveLast: true,
+    });
+    const held = ranked.find(
+      ({ account, usage }) => account === hold.account && usage !== undefined,
+    );
+    let candidates = ranked;
+    if (held !== undefined) {
+      candidates = [held, ...ranked.filter((each) => each !== held)];
+    }
+    const leasedAccount = hold.leaseFirstOf(
+      candidates.map(({ account }) => account),
+    );
+    const picked = ranked.find(({ account }) => account === leasedAccount);
+    if (picked === undefined) {
+      // Any ranked account left here was taken by another holder between the read and the take.
+      const takenFirst = ranked.map(({ account }) => leasedOf(account));
+      return launchWaitOf({
+        heldAccount: hold.account,
+        leftOut: [...leftOut, ...takenFirst],
+        unavailableUntils: [...run.unavailableAccounts].flatMap(
+          ([account, until]) => {
+            if (until === undefined || leasedAccounts.has(account)) return [];
+            return [until];
+          },
+        ),
+      });
+    }
+    if (picked.usage === undefined) {
       await this._warnOnce(
         run,
         "missing-reading",
-        `No usage reading for account ${account}; steps launch unguarded.`,
+        `No usage reading for account ${picked.account}; steps launch unguarded.`,
       );
-      return { account, decision: { kind: "launch" } };
     }
-    const freshest = freshestUsageOf(usage, run.streamUsage.get(account));
-    return { account, decision: decideStep(freshest, this.config.knobs) };
+    return { kind: "launch", account: picked.account };
   }
 
-  // Polls every idlePollMs, so a switch ends the wait within one poll.
-  private _limitPollMsOf(until: Date): number {
+  // A hit with a reset lapses at its time, even while cswap's stale reading reads under; one with none, once the account reads under its thresholds.
+  // Without a usable reading an account can't be shown under, so it stays unavailable.
+  private _clearLapsedUnavailable(run: Run, { readings }: UsageList): void {
+    const now = this.config.clock.now().getTime();
+    for (const [account, until] of run.unavailableAccounts) {
+      let isLapsed = false;
+      if (until === undefined) {
+        const reading = readings.find((each) => each.account === account);
+        if (reading !== undefined) {
+          const fresh = freshReadingOf(reading, run.streamUsage);
+          isLapsed = decideReading(fresh, this.config.knobs)?.kind === "launch";
+        }
+      } else {
+        isLapsed = until.getTime() <= now;
+      }
+      if (isLapsed) run.unavailableAccounts.delete(account);
+    }
+  }
+
+  // Polls every idlePollMs, so an account coming under its thresholds ends the wait within one poll.
+  private _limitPollMsOf(until: Date | undefined): number {
     const { idlePollMs } = this.config.knobs;
+    if (until === undefined) return idlePollMs;
     const remainingMs = until.getTime() - this.config.clock.now().getTime();
     if (remainingMs <= 0) return idlePollMs;
     return Math.min(idlePollMs, remainingMs);
@@ -121,40 +183,81 @@ export class LimitWaiter extends SpecRunBase {
     run.warnings.add(warning);
     await this._announce(run, summary);
   }
-
-  // Sleeps before each read, so a limit hit waits at least one poll; past `until` a stale reading keeps this wait going rather than announcing a second one.
-  private async _pollUntilUnderThresholds(
-    run: Run,
-    until: Date | undefined,
-  ): Promise<void> {
-    for (;;) {
-      if (until === undefined) {
-        await this._sleep(this.config.knobs.idlePollMs);
-      } else {
-        await this._sleep(this._limitPollMsOf(until));
-      }
-      const { decision } = await this._guardDecisionOf(run);
-      if (decision.kind === "launch") return;
-    }
-  }
 }
 
-// `until` undefined waits for no reset.
-interface LimitWaitNotice {
-  account: number;
-  reason: string;
-  until: Date | undefined;
+function leasedOf(account: number): LeftOutAccount {
+  return { account, reason: { kind: "leased" } };
+}
+
+// Names the run's own account when a threshold holds it, else the one that resets first; with none past a threshold, why none is free.
+function launchWaitOf({
+  heldAccount,
+  leftOut,
+  unavailableUntils,
+}: BlockedLaunch): LaunchWait {
+  const waiting = leftOut.flatMap(({ account, reason }) =>
+    reason.kind === "limitWait" ? [{ account, reason }] : [],
+  );
+  const until = earliestOf(
+    [...waiting.map(({ reason }) => reason.until), ...unavailableUntils],
+    (date) => date,
+  );
+  const named =
+    waiting.find(({ account }) => account === heldAccount) ??
+    earliestOf(waiting, ({ reason }) => reason.until);
+  if (named === undefined) {
+    return {
+      kind: "limitWait",
+      account: undefined,
+      reason: unthresholdedWaitOf(leftOut),
+      until,
+    };
+  }
+  const { window, utilization } = named.reason;
+  return {
+    kind: "limitWait",
+    account: named.account,
+    reason: `is at ${percentOf(utilization)} of its ${windowNameOf(window)} limit`,
+    until,
+  };
+}
+
+function unthresholdedWaitOf(leftOut: LeftOutAccount[]): string {
+  const kinds = new Set(leftOut.map(({ reason }) => reason.kind));
+  if (kinds.has("unavailable")) {
+    return "each account hit a limit in this run, is leased by another run or is disabled in cswap";
+  }
+  if (kinds.has("leased")) return "every account is leased by another run";
+  return "no account is enabled in cswap";
+}
+
+function earliestOf<IT>(
+  items: IT[],
+  dateOf: (item: IT) => Date,
+): IT | undefined {
+  let earliest: IT | undefined;
+  for (const each of items) {
+    if (
+      earliest === undefined ||
+      dateOf(each).getTime() < dateOf(earliest).getTime()
+    ) {
+      earliest = each;
+    }
+  }
+  return earliest;
 }
 
 function limitWaitNoticeOf({
   account,
   reason,
   until,
-}: LimitWaitNotice): string {
-  let continuing = "once the Active account reads under its thresholds";
+}: Omit<LaunchWait, "kind">): string {
+  let continuing = "once an account reads under its thresholds";
   if (until !== undefined) continuing = `after ${localTimeOf(until)}`;
+  let subject = reason;
+  if (account !== undefined) subject = `account ${account} ${reason}`;
   return limitWaitLineOf(
-    `account ${account} ${reason}; continuing ${continuing}. Switching to an account with headroom with cswap continues the run now.`,
+    `${subject}; continuing ${continuing}. An account another run releases continues the run too.`,
   );
 }
 
