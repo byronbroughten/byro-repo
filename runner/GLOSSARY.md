@@ -235,7 +235,7 @@ The developer's go, reshape or drop review, run with `/project-spec`, between on
 _Avoid_: checkpoint, gate (bare), kill point
 
 **Workflow**:
-The coding or the piece workflow as a run sees it: the Steps each of a spec's tickets goes through, how each Step's work is checked, and the Steps that run once at the spec's end. A ticket's label picks it, falling back to its spec's; a spec ends with the union of its tickets' Workflows' spec-end Steps.
+The coding or the piece workflow as a run sees it: the Steps each of a spec's tickets goes through, how each Step's work is checked, and the Steps that run once at the spec's end. A ticket's label picks it, falling back to its spec's; a ticket labelled both picks none; a spec ends with the union of its tickets' Workflows' spec-end Steps.
 _Avoid_: mode, pipeline, flavour
 
 **Workflow stage**:

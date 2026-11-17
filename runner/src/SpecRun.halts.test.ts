@@ -374,4 +374,37 @@ describe("run's Halt on a ticket that picks no Workflow", () => {
     expect(second).toContain("Failure Halt");
     expect(second).not.toContain("has neither");
   });
+
+  it("halts a ticket labelled both in a `code` spec, saying it must keep only one, launching no step", async () => {
+    addSpec([1]);
+    github.edit(1, { labels: ["ready-for-agent", "code", "piece"] });
+    const agentStep = FakeAgentStep.init();
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests).toHaveLength(0);
+    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+    const [halt] = haltComments();
+    expect(haltComments()).toHaveLength(1);
+    expect(halt).toContain("spec-ambiguity blocker");
+    expect(halt).toContain("byro-repo #1 has both");
+    expect(halt).toContain("keep only one");
+    expect(halt).not.toContain("has neither");
+  });
+
+  it("goes on past the Halt once the developer removes one label from a ticket labelled both and answers", async () => {
+    addSpec([1]);
+    github.edit(1, { labels: ["ready-for-agent", "code", "piece"] });
+    await specRun(FakeAgentStep.init()).run(spec);
+    github.edit(1, { labels: ["ready-for-agent", "code"] });
+    github.reply(213, "H1: continue");
+    const agentStep = FakeAgentStep.init();
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests.length).toBeGreaterThan(0);
+    const [, second] = haltComments();
+    expect(second).toContain("Failure Halt");
+    expect(second).not.toContain("has both");
+  });
 });

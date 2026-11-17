@@ -95,9 +95,7 @@ export class HaltRaiser extends SpecRunBase {
     const downstream = await this._downstreamOf(run, ticket.issue);
     runHalts.raise(run, {
       ticket: ticket.issue,
-      drafts: [
-        unpickedWorkflowHaltOf(unpickedWorkflowOf(ticket.issue), downstream),
-      ],
+      drafts: [unpickedWorkflowHaltOf(unpickedWorkflowOf(ticket), downstream)],
     });
     return this._halt(landingTicket);
   }

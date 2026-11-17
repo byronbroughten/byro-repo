@@ -6,7 +6,7 @@
 // SpecRun/DraftPuller.ts its pull rules, through pullOf, and SpecRun/DraftPusher.ts its push rules, through pushOf.
 // Each Workflow's own code is in Workflow/<name>/.
 // A ticket's own `code` or `piece` label picks its Workflow, falling back to its spec's, so a Standalone ticket, its own
-// spec, picks by its own; in a spec labelled both, a ticket with neither picks none, and a run halts on it. issue:start's
+// spec, picks by its own; a ticket labelled both, or with neither in a spec labelled both, picks none, and a run halts on it. issue:start's
 // skill picks by it. Labels are Trusted, since only collaborators can add one.
 
 import type { Docs } from "./Docs.ts";
@@ -450,23 +450,24 @@ export interface SpecTickets {
   spec: LabelledIssue;
 }
 
-// Undefined for a ticket with neither label in a spec labelled both, since the fallback to the spec's label can't choose.
+// Undefined for a ticket labelled both, which goes through one Step sequence only, and for one with neither in a spec labelled both, since the fallback to the spec's label can't choose.
 export function ticketWorkflowNameOf({
   ticket,
   spec,
 }: SpecTicket): WorkflowName | undefined {
+  if (isLabelledBoth(ticket)) return undefined;
   const own = labelledNameOf(ticket);
   if (own !== undefined) return own;
   if (isLabelledBoth(spec)) return undefined;
   return labelledNameOf(spec) ?? "code";
 }
 
-// A ticket that picks none Halted its run, so its outcome row names the piece Workflow its spec, labelled both, would.
+// A ticket that picks none ran no Workflow, so its row keeps the piece name every such row has had, not a guess from its spec's label.
 export function rowWorkflowNameOf(specTicket: SpecTicket): WorkflowName {
   return ticketWorkflowNameOf(specTicket) ?? "piece";
 }
 
-// An issue with both labels picks piece, as a spec with both always has.
+// Called only on an issue with at most one of the labels.
 function labelledNameOf({ labels }: LabelledIssue): WorkflowName | undefined {
   if (labels.includes(workflowLabels.piece)) return "piece";
   if (labels.includes(workflowLabels.code)) return "code";
@@ -492,14 +493,17 @@ export function pickedWorkflowOf(
 ): Workflow {
   const workflow = ticketWorkflowOf(specTicket, workflows);
   if (workflow === undefined) {
-    throw new Error(`${unpickedWorkflowOf(specTicket.ticket.issue)}.`);
+    throw new Error(`${unpickedWorkflowOf(specTicket.ticket)}.`);
   }
   return workflow;
 }
 
 // The session's throw and the run's Halt both word it.
-export function unpickedWorkflowOf(ticket: IssueRef): string {
-  const label = issueRef.labelOf(ticket);
+export function unpickedWorkflowOf(ticket: PickedTicket): string {
+  const label = issueRef.labelOf(ticket.issue);
+  if (isLabelledBoth(ticket)) {
+    return `${label} has both the \`code\` and the \`piece\` label, but a ticket goes through one Workflow only, so ${label} picks no Workflow and must keep only one of them`;
+  }
   return `${label} has neither the \`code\` nor the \`piece\` label, and its spec has both, so ${label} picks no Workflow until it gets its missing \`code\` or \`piece\` label`;
 }
 

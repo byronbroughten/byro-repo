@@ -442,6 +442,12 @@ describe("IssueReader.sessionSkillOf", () => {
     ).rejects.toThrow("`code` or `piece` label");
   });
 
+  it("refuses a ticket labelled both, saying it must keep only one", async () => {
+    await expect(
+      skillOf(["ready-for-agent", "code", "piece"], ["piece"]),
+    ).rejects.toThrow(/has both .*keep only one/);
+  });
+
   it("reads a Standalone ticket by its own label", async () => {
     expect(await skillOf(["piece", "research"], undefined)).toBe(
       "research-piece",
