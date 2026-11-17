@@ -6,7 +6,7 @@ import { pieceImplementPrompt } from "./implementStep.ts";
 const skill = implementPieceSkillOf({
   promoteCommand: "npm run issue:promote -- <repo> <n>",
   overlapCommand: ["npm", "run", "overlap", "--"],
-  docPrintCommand: "npm run doc:print --",
+  piecePullCommand: "npm run piece:pull -- <repo> <n>",
   reviewCommand: "npm run runner -- review <owner>/<repo> <n>",
   resolveCommand: "npm run runner -- resolve <owner>/<repo> <n>",
   decideCommand: "npm run runner -- decide <owner>/<repo> <spec> R<n>.<k>",
@@ -80,10 +80,29 @@ describe("implementPieceSkillOf", () => {
     expect(skill).toContain("on a `final-pass` ticket");
   });
 
-  it("pulls the Deliverable's Doc itself, before drafting, by the runner's pull rules", () => {
-    expect(skill).toContain("`npm run doc:print -- <the Deliverable's ID>`");
-    expect(skill).toContain("`docs/pieces/agent-draft.md`'s Pull rules");
-    expect(skill).not.toContain("The runner's pull already brought");
+  it("opens from piece:pull's committed draft and printed headings, with no pull of its own", () => {
+    expect(skill).toContain(
+      "`/start-issue` ran `npm run piece:pull -- <repo> <n>`, which committed the Agent draft on the ticket's branch and printed the Deliverable's ID and the draft's Sections by heading path.",
+    );
+    expect(skill).toContain(
+      "A session that reached this skill without `/start-issue`, or holds no such output, runs `npm run piece:pull -- <repo> <n>` first, in a call of its own.",
+    );
+    expect(skill).toContain(
+      "Read only the Sections you draft, and an earlier Section you open for what leads into them, each by its printed heading path; never read the whole Agent draft or the Deliverable's Doc.",
+    );
+    expect(skill).toContain(
+      "`piece:pull` brought the Deliverable's Doc into it and committed it on the ticket's branch.",
+    );
+    expect(skill).not.toContain("doc:print");
+    expect(skill).not.toContain("Pull rules");
+    expect(skill).not.toContain("Your pull brought");
+  });
+
+  it("leaves the run's implement step its own pull line", () => {
+    expect(stepPrompt).toContain(
+      "The runner's pull already brought the Deliverable's Doc into it and committed it on the ticket's branch.",
+    );
+    expect(stepPrompt).not.toContain("piece:pull");
   });
 
   it("says the draft reaches the Doc only through the run's push", () => {

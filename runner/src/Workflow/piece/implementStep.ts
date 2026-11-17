@@ -121,7 +121,7 @@ export function commitDraftLineOf({
   return `Commit only the Agent draft, in the \`${specRepo}\` clone on the ticket's branch: ${draftCommitCommandsOf(draftPath)}. Never amend.`;
 }
 
-export function draftCommitCommandsOf(draftPath: string): string {
+function draftCommitCommandsOf(draftPath: string): string {
   return `\`git -C <clone> add ${draftPath}\`, then \`git -C <clone> commit\``;
 }
 
