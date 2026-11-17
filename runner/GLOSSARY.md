@@ -143,7 +143,7 @@ The step at the end of a spec that lists what the spec asked for that no landed 
 _Avoid_: audit, retro
 
 **Judge Step**:
-The spec-end Step after a piece spec's gap check: while any review list on the spec holds an undecided item, it stops the run with "judge, then rerun".
+The spec-end Step after the gap check of a spec with a piece ticket: while any review list on the spec holds an undecided item, it stops the run with "judge, then rerun".
 _Avoid_: judge, Arbiter
 
 **Land**:
