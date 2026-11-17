@@ -49,7 +49,7 @@
         "skills/engineering/grill-with-docs": {
           "status": "reference-only",
           "syncedSha": "5beb35b040e3de97e54fa9e386d7e42d15c295c2",
-          "notes": "Replaced by /plan-project, whose code.md is what grill-with-docs was: it calls grilling and domain-modeling. /plan-project also holds the piece branch, the former /grill-piece, and the rules both share.",
+          "notes": "Replaced by /plan-project, whose code.md is what this upstream skill was: it calls grilling and domain-modeling. /plan-project also holds the piece branch, the former piece grill, and the rules both share.",
           "derivedInto": ["plan-project"]
         },
         "skills/engineering/implement": {

@@ -4,7 +4,7 @@ The rules every piece spec follows, in whichever repo files it as a GitHub issue
 
 ## Grilling a piece spec
 
-- **Grill the developer on a Piece with `/grill-piece`**, which asks [grilling.md](./grilling.md)'s questions, then ends with the calibration paragraph and the Outline.
+- **Grill the developer on a Piece with `/plan-project`**, whose piece branch asks [grilling.md](./grilling.md)'s questions, then ends with the calibration paragraph and the Outline.
 - **Before writing or revising a spec's Outline, read [outlining.md](./outlining.md).**
 
 ## Implementing a piece spec
