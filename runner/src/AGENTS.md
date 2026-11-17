@@ -16,14 +16,14 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | File | Export | Job |
 | --- | --- | --- |
 | `AccountLease.ts` | `AccountLease` | The per-account lease a run, a Batch or a session's review or resolve holds on a cswap account, never waited on, and the leased accounts with their holders. |
-| `accountLine.ts` | | The account line the Accounts section and `npm run account:switch` print for each account. |
+| `accountLine.ts` | | The account labels: the account line the Accounts section and `npm run account:switch` print for each account, an account's reading and a usage window's name. |
 | `AccountsSection.ts` | `AccountsSection` | The Run board's Accounts section. |
 | `accountSwitch.ts` | `accountSwitch` | `npm run account:switch`'s core: switches the Active account to the top of the account ranking through the cswap switch port its entry passes, printing the account lines before and after. |
 | `AGENTS.md` | | The rules for working in `src/`; `CLAUDE.md` loads it. |
 | `CLAUDE.md` | | Loads `AGENTS.md` for Claude Code. |
 | `ActiveAccountUnknown.ts` | | The Stop raised when no Active account can be read for a step. |
 | `AgentStep.ts` | `AgentStep` | The port that launches one headless `claude -p` step and its `StepResult`. |
-| `BatchRecords.ts` | `BatchRecords` | A Batch's record: its members, process and one event file, found by any member. |
+| `BatchRecords.ts` | `BatchRecords` | A Batch's record: its members, process and one event file, found by any member, and the run's label the Run board and account lease name it by. |
 | `callOfItsOwn.ts` | `callOfItsOwn` | Words the advice to run a command in a call of its own, once for the hooks, the runner and the scripts lint. |
 | `Checks.ts` | `Checks` | Runs `npm run check`'s commands at once in the check slot, narrowed to the packages with no check stamp. |
 | `CheckSlot.ts` | | The per-primary check slot `npm run check` waits for. |
@@ -115,7 +115,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SessionProbe.ts` | `SessionProbe` | `npm run session:probe`: what a SessionStart hook sees in a folder. |
 | `sleep.ts` | | A promised delay. |
 | `SpecRun.ts` | `SpecRun` | The run loop's entry: `run` over its members, `status`, `requestStop`, `briefReview`, `submitReview`, `resolve`, `decide`, `judgeable` and `standalone`, delegating to `SpecRun/`. |
-| `SpecRun/AccountHold.ts` | | A run's, Batch's or session review's or resolve's hold on a cswap account: the account it last launched on and its account lease, moved by taking the new lease before releasing the old. |
+| `SpecRun/AccountHold.ts` | | A run's, Batch's or session review's or resolve's hold on a cswap account: the account it last launched on, the accounts a limit hit keeps it off and its account lease, moved by taking the new lease before releasing the old. |
 | `SpecRun/DraftPuller.ts` | | Runs a piece spec's drafting ticket's pull: writes and commits the Agent draft its Workflow pulls from the Doc, and keeps the push baseline. |
 | `SpecRun/DraftPusher.ts` | | Runs a piece spec's push: writes the Agent draft's agent Sections into the Doc once, raising a push Halt before any write on a Section the developer changed since the pull, reading and comparing again on a stale revision up to a bound, and raising a push Halt naming a Doc with pending suggestions, delegating its `keep mine` answers to `DraftPusher/`. |
 | `SpecRun/DraftPusher/DraftKeeper.ts` | | Marks the push's `keep mine` Sections as the developer's in the Agent draft and lands it as a session. |
@@ -138,7 +138,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/SpecEndRunner.ts` | | Ends the run with its Workflow's spec-end Steps, the gap check's review list, the judge Step's stop and the push included. |
 | `SpecRun/StatusReporter.ts` | | A run's or Batch's status, and its stop request. |
 | `SpecRun/StepLauncher.ts` | | Launches an agent step under the limit guard, retries a crash, resumes a step a limit cut off and resumes once a record failing its schema check, delegating the limit waits to `StepLauncher/`. |
-| `SpecRun/StepLauncher/LimitWaiter.ts` | | Runs the launch check that picks and leases each step's account, holding a launch until an account is free and reads under its thresholds, and moves a step a limit cut off onto another free account, keeping the hit one unavailable to the run. |
+| `SpecRun/StepLauncher/LimitWaiter.ts` | | Runs the launch check that picks and leases each step's account, holding a launch until an account is free and reads under its thresholds, and moves a step a limit cut off onto another free account, keeping the hit one unavailable to the run, every member of a Batch. |
 | `SpecRun/TicketLander.ts` | | Lands a ticket: posts a research ticket's comment and raises its Research Halt, writes its facts file, runs the wrap-up and posts its review list, delegating its facts file, checks and wrap-up failures to `TicketLander/`. |
 | `SpecRun/TicketLander/FactsWriter.ts` | | Writes a ticket's facts file, a code ticket's or a research ticket's, and warns of session facts left unrecorded. |
 | `SpecRun/TicketLander/MasterMerger.ts` | | Takes a ticket's wrap-up failure, merging master into its branch on a conflict and resuming the implementer to resolve it. |
