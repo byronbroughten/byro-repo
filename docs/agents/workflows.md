@@ -56,7 +56,9 @@ A new Workflow, a new or edited step prompt, and a new or edited Workflow skill 
 - **A resumed session is told what it already holds; a fresh one isn't told it holds what it never saw.**
 - **Calls already decided on go out together, and none is added to fill a batch.**
 - **A change that replaces Setup turns shows its output's size on a real case against the turns it replaces.**
-- **A skill that gains a command loses the text that sent the agent the old way, gets the command by injection when it is a read, and the command's output says what it holds.**
+- **A skill that gains a command loses the text that sent the agent the old way.**
+- **A skill gets a command by injection when the command is a read.**
+- **A command's output says what it holds.**
 
 The worked examples:
 

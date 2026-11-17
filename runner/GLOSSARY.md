@@ -143,7 +143,7 @@ The check, at the end of a spec's run or in a Close-out, that lists what the iss
 _Avoid_: audit, retro, list the gaps
 
 **Close-out**:
-Closing a parent issue once every sub-issue is closed, every review-list item on it is decided and its gap check finds nothing, then checking whether its own parent is ready for one. It runs as `/close-project`, or, after an interactive session lands a parent's last open sub-issue, as that landing agent's close of the chain its report announced. A map is never closed out: the session that delivers its destination closes it on arrival.
+Closing a parent issue once every sub-issue is closed, every review-list item on it is decided and its gap check finds nothing, then checking whether its own parent is ready for one. It runs by `/close-project`'s steps, invoked or read by path; [the workflow map's hand-off table](../docs/agents/workflows.md#the-hand-off-table) names each skill that reaches them. A map is never closed out: the session that delivers its destination closes it on arrival.
 _Avoid_: wrap-up (which lands one ticket), closing the spec
 
 **Judge Step**:
