@@ -9,6 +9,7 @@ import type { AccountsSection } from "./AccountsSection.ts";
 import type { UsageReading } from "./AgentStep.ts";
 import { BatchRecords } from "./BatchRecords.ts";
 import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
+import type { StreamUsage } from "./limitGuard.ts";
 import { ProgressLog } from "./ProgressLog.ts";
 import { RunLock } from "./RunLock.ts";
 import { runStateAt } from "./savedFormats.ts";
@@ -104,7 +105,7 @@ class RunBoard {
   }
 
   // Each live run's current member's latest step stream reading, by its account; a gone run's step no longer reads its account.
-  streamUsage(): Map<number, UsageReading> {
+  streamUsage(): StreamUsage {
     const usage = new Map<number, UsageReading>();
     for (const { current, isLive } of this.runs) {
       if (!isLive) continue;

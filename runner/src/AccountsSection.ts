@@ -4,9 +4,8 @@
 
 import type { AccountLeaseReader } from "./AccountLease.ts";
 import { accountLine } from "./accountLine.ts";
-import type { UsageReading } from "./AgentStep.ts";
 import { messageOf } from "./failureText.ts";
-import type { UsageList, UsageReader } from "./limitGuard.ts";
+import type { StreamUsage, UsageList, UsageReader } from "./limitGuard.ts";
 
 export interface AccountsSectionPorts {
   usageReader: UsageReader;
@@ -31,10 +30,7 @@ export class AccountsSection {
     return new AccountsSection(ports);
   }
 
-  async textAt(
-    now: Date,
-    streamUsage?: ReadonlyMap<number, UsageReading>,
-  ): Promise<string> {
+  async textAt(now: Date, streamUsage?: StreamUsage): Promise<string> {
     const read = await this._readAt(now);
     if (read.kind === "failed") {
       return `Accounts: cswap unreadable (${read.reason})`;

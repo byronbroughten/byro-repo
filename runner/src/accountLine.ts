@@ -2,11 +2,12 @@
 // Each window takes a live step's stream reading when it is higher, by limitGuard.ts's freshestUsageOf; the caller finds the streams.
 
 import type { LeasedAccount } from "./AccountLease.ts";
-import type { UsageReading, UsageWindow } from "./AgentStep.ts";
+import type { UsageWindow } from "./AgentStep.ts";
 import {
   type AccountReading,
   freshestUsageOf,
   isUnstartedWindow,
+  type StreamUsage,
   type UsageList,
 } from "./limitGuard.ts";
 import { localTimeOf } from "./localTime.ts";
@@ -16,7 +17,7 @@ export interface AccountLinesRequest {
   usageList: UsageList;
   leased: LeasedAccount[];
   now: Date;
-  streamUsage?: ReadonlyMap<number, UsageReading>;
+  streamUsage?: StreamUsage;
 }
 
 const minuteMs = 60_000;
@@ -57,7 +58,7 @@ export const accountLine = {
 function usageLabelOf(
   { account, usage, isDisabled }: AccountReading,
   now: Date,
-  streamUsage: ReadonlyMap<number, UsageReading> | undefined,
+  streamUsage: StreamUsage | undefined,
 ): string {
   if (isDisabled === true) return "disabled";
   if (usage === undefined) return "no reading";

@@ -33,6 +33,9 @@ export interface UsageList {
 // A run reads its usage list as this, since it Stops on a list with no Active account.
 export type KnownActiveUsageList = UsageList & { activeAccount: number };
 
+// By account, the latest usage reading a step's own stream gave.
+export type StreamUsage = ReadonlyMap<number, UsageReading>;
+
 export interface UsageReader {
   read(): Promise<UsageList>;
 }
@@ -52,7 +55,7 @@ export interface AccountRankRequest {
   usageList: UsageList;
   leasedAccounts: ReadonlySet<number>;
   unavailableAccounts: ReadonlySet<number>;
-  streamUsage?: ReadonlyMap<number, UsageReading>;
+  streamUsage?: StreamUsage;
   knobs: LimitGuardKnobs;
   putActiveLast: boolean;
 }
@@ -187,7 +190,7 @@ export function rankAccounts(request: AccountRankRequest): AccountRanking {
 
 export function freshReadingOf(
   reading: AccountReading,
-  streamUsage: ReadonlyMap<number, UsageReading> | undefined,
+  streamUsage: StreamUsage | undefined,
 ): AccountReading {
   if (reading.usage === undefined) return reading;
   const stream = streamUsage?.get(reading.account);
