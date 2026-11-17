@@ -1,0 +1,8 @@
+The glossary's Workflow entry already said what this ticket asked for when I started: a ticket's label picks the Workflow, falling back to its spec's, and a spec ends with the union of its tickets' Workflows' spec-end Steps. The rows for `Workflow.ts`, `SpecEndRunner.ts`, `TicketSequencer.ts` and `halts.ts` were also already current. Both came from #797 to #801.
+
+This change fixes what was left:
+- In the runner's AGENTS.md, the rows for `DraftPuller.ts`, `ResearchStepper.ts` and `runState/draftCommits.ts` said "a piece spec's". They now name the drafting ticket, the research ticket, and "a spec with a piece ticket".
+- In the runner glossary, the Judge Step entry now says it runs "after the gap check of a spec with a piece ticket".
+- In `docs/agents/specs.md`, the lead now says "code, piece or mixed". The Piece specs section opens with a line saying a spec is labelled `code`, `piece` or both, and that each ticket's own label picks its Workflow. Its rules now say "piece or mixed spec", and a new rule says every ticket in a mixed spec carries its own label, and a ticket with neither raises a Halt naming it.
+
+`npm run check` passes.

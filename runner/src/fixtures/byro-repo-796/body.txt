@@ -1,0 +1,63 @@
+## Problem Statement
+
+The runner picks a spec's Workflow by the spec's label, so every ticket of a spec runs the code Steps or every one runs the piece Steps. Work that needs both code and a Piece has to become two specs, even when the two are one change. `/project-spec` forbids a spec of both kinds for that reason. The developer has hit mixed work in a piece spec and expects more.
+
+## Solution
+
+Each ticket's own `code` or `piece` label picks its Steps, falling back to the spec's label. `/project-spec` can file mixed work as one spec carrying both labels, and `/project-tickets` gives each of its tickets its own kind. A spec with one label runs exactly as today.
+
+## User Stories
+
+1. As the developer, I want one spec to hold both code tickets and piece tickets, so that mixed work stays one change.
+2. As the runner, I want a ticket's own `code` or `piece` label to pick its Steps, falling back to the spec's label, so that each ticket goes through the Workflow its work needs.
+3. As the runner, I want a ticket's landing, checks and source targets to come from that ticket's Workflow, so that a code ticket in a mixed spec lands on its branch and a piece ticket reads the spec's Supporting Material.
+4. As the developer, I want an interactive session on a ticket to follow the skill of that ticket's Workflow, so that `issue:start`, a session's review and its resolve match what a run would do.
+5. As the runner, I want a mixed spec to run one gap check at its end, so that the spec's coverage is judged once over all its tickets, in one review list.
+6. As the gap check, I want each story a ticket took checked where that ticket's work lives, master for a code ticket and the Agent draft for a piece ticket, so that neither kind's stories read as the other kind's gaps.
+7. As the gap check, I want a story no ticket took checked against every Workflow the spec uses, so that a missed story is found whichever kind it needed.
+8. As the gap check, I want each follow-up drafted as the kind of ticket its gap needs, a code ticket or a drafting ticket, so that the developer can file it as drafted.
+9. As the runner, I want a mixed spec with any piece ticket to run the piece spec-end Steps, the Judge Step and the push, with the Edit gate still last, so that its Piece ends as any piece spec's does.
+10. As the developer, I want a mixed spec with no piece ticket to end as a code spec does, so that spec-end Steps never run for work the spec doesn't hold.
+11. As `/project-spec`, I want to file mixed work as one spec labelled both `code` and `piece`, so that I stop splitting it into two specs.
+12. As `/project-tickets`, I want to label each ticket of a mixed spec with its own kind, so that the runner picks its Workflow.
+13. As `/project-tickets`, I want a mixed spec's piece tickets to follow the piece branch, Edit gate included, and its code tickets the code branch, so that each kind is drafted by its own rules.
+14. As the developer, I want each outcome row to name the Workflow its ticket ran, so that `/mine-outcomes` compares code tickets with code tickets.
+15. As the developer, I want a spec with one label to run exactly as before, so that nothing changes for specs that aren't mixed.
+16. As the developer, I want a Standalone ticket to keep picking its Workflow by its own label, so that nothing changes for it either.
+17. As the developer, I want a new Workflow to join mixed specs by adding its own label, gap-check section and spec-end Steps, so that no code handles a combination of Workflows.
+18. As the developer, I want a spec labelled both kinds with a ticket labelled neither to halt on that ticket, so that I label it rather than the run guessing.
+
+## Implementation Decisions
+
+- **Per-ticket Workflow**: the Workflow module's pick takes the ticket and its spec. A ticket's `code` or `piece` label picks its Workflow; with neither, the spec's label does, as today. Every caller that picks a Workflow for a ticket's Step, landing, checks, source targets, session skill or outcome row passes the ticket.
+- **A spec with both labels**: a ticket with neither label raises a Halt naming it, since the fallback can't choose. `/project-tickets` labels every ticket of a mixed spec, so this catches only hand-filed tickets.
+- **Workflows compose; no code names a combination.** A spec's Workflows are the set its tickets pick. Adding a Workflow adds its label, its gap-check section and its spec-end Steps, and nothing else.
+- **One composed gap check**: each Workflow supplies a gap-check section saying where its tickets' work lives (master for code, the Agent draft for a piece), how a story is checked there, and the kind of follow-up it drafts (a follow-up issue, or a drafting ticket). The spec end builds one prompt from a shared frame (the spec, its stories and Implementation Decisions, any addendum, the ticket list) plus the section of each Workflow the spec's tickets use. A story a ticket took is checked where that ticket's work lives; a story no ticket took is checked against every Workflow present. One review list.
+- **A one-Workflow spec's composed prompt says what today's prompt says**, code or piece, so a spec with one label checks as before. Wording may move between frame and section.
+- **Spec-end Steps of a spec**: the union of its Workflows' spec-end Steps in one fixed order, the gap check run once. A mixed spec with a piece ticket runs the gap check, the Judge Step and the push, with the Edit gate still last, and its spec end waits on the Edit gate as a piece spec's does.
+- **`/project-spec`** may file one spec labelled both `code` and `piece`; its "never plan a spec of both kinds" rule goes. A mixed spec fills the piece fields for its Piece, and gets no `## Model fit`, since a piece spec always gets tickets.
+- **`/project-tickets`** gives each ticket of a mixed spec its own kind, drafting piece tickets by its piece branch and code tickets by its code branch.
+
+## Testing Decisions
+
+- A good test asserts what a run does and leaves: the Steps each ticket went through, the comments and Halts posted, the tickets GitHub holds.
+- **The existing spec-run seam** (fake GitHub and fake agent steps), no new one:
+  - a `code`-labelled spec with a `piece`-labelled ticket runs the piece Steps for that ticket only;
+  - a spec with one label runs as before;
+  - a mixed spec's end runs one gap check, the Judge Step and the push, and posts one review list;
+  - a spec with both labels and an unlabelled ticket halts on that ticket.
+  Prior art: the spec run's piece tests.
+- **The gap-check prompt tests**, beside today's code and piece gap-check tests: a one-Workflow spec's composed prompt holds what today's prompt does; a mixed spec's prompt holds both sections, sends each ticket's stories to its own place and drafts each follow-up by its kind.
+- The interactive session's skill pick has its own test beside the existing one.
+- The skill changes are prose and get no tests.
+- No planned test breaks a test speed rule.
+
+## Out of Scope
+
+- A ticket of both kinds.
+- Cross-repo sub-issues.
+- The Supervisor drafting a Split Halt's split: byro-repo#748.
+
+## Further Notes
+
+- Split from byro-repo#748 at its Phase gate: the per-ticket Workflow half is a different seam from the Supervisor's Split Halt flow. It goes ahead of #748, which stays held: the developer has already hit mixed work in a piece spec and expects more.

@@ -64,6 +64,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `FakeIssueSource.ts` | | The scripted issue source issue-reader and Outline-edit tests use. |
 | `FakeNotices.ts` | `FakeNotices` | The notice port run-loop tests read back. |
 | `FakeUsageReader.ts` | | The scripted usage reader run-loop, account-switch and Accounts section tests use. |
+| `fixtures/spec796.ts` | | Loads byro-repo #796, a real closed spec copied into `fixtures/byro-repo-796/`, that the `runner judge-brief` and `issue:close-parent` tests measure their briefs on. |
 | `GhCli.ts` | `GhCli` | The real `gh` port. |
 | `git.ts` | | Git helpers the workspaces, run loop and wrap-up share, the worktree add, remove, list and switch helpers and the branch lookup included. |
 | `GitFixture.ts` | | A test primary root of clones with bare remotes. |

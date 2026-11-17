@@ -1,0 +1,12 @@
+A spec's end now runs the union of the spec-end Steps of the Workflows its tickets pick. Workflow.ts gains specEndOf(workflows): SpecEnd. It runs the set's spec-end Steps in specEndSteps order (gap check, judge, push), each once. It is due when any Workflow's isDue holds, and an empty set is never due. Its nextLineOf is the first defined line. So a mixed spec's open Edit gate no longer holds back the gap check, the Judge Step or the push.
+
+Until #801, the gap check uses gapCheckWorkflowOf: the piece Workflow when a ticket picks it, otherwise the first Workflow in the set. The push takes its rules from pushWorkflowOf, the Workflow in the set that has push. SpecEndRunner._finish reads the run's ticket Workflows (an empty set for a Standalone run) and passes them to _gapCheck and DraftPusher._push.
+
+These spec-scoped forms are deleted: SpecRunBase._workflowOf, SpecRunBase._agentStepOf, workflowNameOf and workflowOf. ticketWorkflowNameOf now falls back to labelledNameOf(spec) ?? 'code'. LogRowCommitter uses the new rowWorkflowNameOf, which falls back to 'piece' as before.
+
+The new SpecRun.mixed.test.ts covers three cases plus a hold case:
+- a code spec with a piece ticket runs the piece Steps for that ticket only;
+- its end runs the gap check once, the Judge Step and the push, posts one review list, and waits on the Edit gate;
+- a spec labelled both kinds with only code tickets ends as a code spec does.
+
+The piece test helpers moved to the new specRunHarness/pieceDrafts.ts. The runner/src/AGENTS.md Files table and the GLOSSARY Workflow entry are updated. npm run check passes.

@@ -1,0 +1,18 @@
+A spec's gap check is now one prompt built from the Workflows its tickets use.
+
+- `GapCheckRules` holds only `sectionOf(spec)`, which returns a `GapCheckSection`. A section has the Workflow's name, the place its tickets' work lives (`master` or `the Agent draft`), the checks it adds, its follow-up kind (`a follow-up issue` or `a drafting ticket`) and an optional `heldOpen` ticket (the piece Workflow's Edit gate).
+- Each Workflow supplies its section from its own folder: `codeGapCheckSection` in `Workflow/code/gapCheck.ts` and `pieceGapCheckSectionOf(draftPath)` in `Workflow/piece/gapCheck.ts`. These replace `gapCheckPrompt` and `pieceGapCheckPrompt`.
+- `promptText.ts`'s `gapCheckPromptOf` builds the shared frame once. The frame holds the opening, the addendum and story rules, and the routing line: a story a ticket took is checked where that ticket's work is, and a story no ticket took is checked against every place. After that come each section, the change-nothing line, `gapRecordSectionOf(sections)` and the ticket list.
+- With several sections, the record's `draftIssueTitle` names each follow-up kind by its place. `gapCheckTicketLineOf` marks each ticket's Workflow, for example `(code)` or `(piece; open: the Edit gate)`.
+- `Workflow.ts`'s `gapCheckInputOf({ spec, tickets, workflows })` replaces #800's `gapCheckWorkflowOf` stand-in. It builds each section and marks each ticket by `ticketWorkflowNameOf`.
+- `SpecEndRunner._gapCheck` builds the prompt from that input and uses `recordSchema.ts`'s `gapCheckOutputSchema` and `gapCheckRecordOf` directly. The record schema and the review list are unchanged.
+- Tests: the code-only prompt test is in `Workflow/code/gapCheck.test.ts`, the piece-only one in `Workflow/piece/gapCheck.test.ts`, and the mixed-spec one (both sections, each ticket's Workflow marked, routing, follow-up kinds) in `Workflow.test.ts`, in place of the `gapCheckWorkflowOf` tests. #800's mixed spec-run test still posts one gap-check review list, and now also asserts that the prompt holds the code section.
+- Docs: `runner/src/AGENTS.md`'s rows for `promptText.ts`, `Workflow.ts` and both `gapCheck.ts` files, and the Gap check entry in `runner/GLOSSARY.md`.
+
+`npm run check` passed.
+
+Departures:
+- The schema and record reader left `GapCheckRules`, because both Workflows shared the same ones and the record now belongs to the frame.
+- The record's `ask` wording is now the frame's ("by its story number, its section or the addendum's words") instead of differing per Workflow.
+- A one-Workflow prompt now opens "has landed or closed" for code too, where it used to say "is closed".
+- Every ticket line now carries a Workflow mark, single-Workflow specs included, so the piece test's ticket-line assertion changed to match.

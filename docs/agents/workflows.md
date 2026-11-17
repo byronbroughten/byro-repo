@@ -101,7 +101,7 @@ The worked examples:
 | Implementation | Piece | the research Step | `/research-piece`'s first seven steps, its `/review-research` pass included, both bodies carried in its prompt | inlined |
 | Implementation | Piece | any | `/review-research`, on a posted Research issue's findings | you invoke it |
 | Implementation | Piece | a Research issue's wrap-up | `/implement-piece` on the next ticket | you invoke it |
-| Judgement | Code | `/judge-findings` | `/to-code-style` and `/mine-outcomes` when it closes a spec; tickets filed by `/project-tickets`' procedure, read as a file | named |
+| Judgement | Code | `/judge-findings` | `/close-project`'s shared close when it closes a spec, read as a file since it is user-invoked; tickets filed by `/project-tickets`' procedure, read as a file | named, read by path |
 | Judgement | Code | `/judge-findings` | `/project-spec <repo> <n>`, on a held spec the closed spec blocks | named |
 | Judgement | Piece | `/judge-findings`, by its `piece.md` | the runner's rerun (`npm run runner`, or detached through `npm run runner:tmux`), which drafts its filed tickets and pushes; tickets filed by `/project-tickets`' piece branch, read as a file | named |
 | Judgement | Piece | the developer's edit | `/close-project` on the spec | you invoke it |
@@ -135,7 +135,7 @@ A doc is listed when two or more skills or Steps of either Workflow reach it by 
 | [The runner glossary](../../runner/GLOSSARY.md) | `/runner`, `/review-code-tickets`, `/judge-findings`, `/mine-outcomes` | |
 | [The guardrails doc](../claude-code-guardrails.md) | `/project-tickets`, `/review-code-tickets`' reviewer, `/retro` | |
 | Design docs, ADRs and glossaries | `/project-spec`, `/project-tickets`, `domain-modeling`, `tdd`, `/to-code-style` | |
-| Skills read as docs | `/project-tickets` by `/judge-findings` and `/runner`; `/retro`'s categories by `/mine-outcomes`; `grilling`'s format by `/judge-findings`, `/mine-outcomes` and `/retro`; `/judge-findings`' steps 1 and 5 by `/close-project`, and `/to-writing-style` by its `piece.md`; `/judge-findings`' step 1 by `/to-writing-style`'s pair mode; `/judge-findings`' step 1 by `/project-spec`'s Phase gate | |
+| Skills read as docs | `/project-tickets` by `/judge-findings` and `/runner`; `/retro`'s categories by `/mine-outcomes`; `grilling`'s format by `/judge-findings`, `/mine-outcomes` and `/retro`; `/judge-findings`' step 5 by `/close-project`, and `/to-writing-style` by its `piece.md`; `/close-project`'s steps 1 and 3 to 5 by `/judge-findings`; `/judge-findings`' step 1 by `/to-writing-style`'s pair mode; `/judge-findings`' step 1 by `/project-spec`'s Phase gate | |
 | The Voice and Craft sheets: [`writing-voice.md`](../writing-voice.md) and [`writing-craft.md`](../writing-craft.md) | `/grill-piece`, `/implement-piece`, `/review-piece`, `/to-writing-style` | via `rules.md`: `/project-spec`, `/project-tickets`, `/judge-findings` (its `piece.md`); via runner prompt: the piece implement Step |
 | [The academic style sheet](../academic-writing-style.md) | `/grill-piece`, `/review-piece`, `/to-writing-style` | via `rules.md`: `/implement-piece`, the piece implement Step, `/project-spec`, `/project-tickets`, `/judge-findings` (its `piece.md`) |
 | [`rules.md`](../pieces/rules.md), the rules for writing any Piece | `/grill-piece`, `/project-spec`, `/project-tickets`, `/implement-piece`, `/review-piece`, `/judge-findings` (its `piece.md`) | via runner prompt: the piece implement Step |

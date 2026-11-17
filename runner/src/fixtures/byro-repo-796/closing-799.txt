@@ -1,0 +1,5 @@
+Every listed site now picks its Workflow or agent-step rules by the ticket, through `_ticketWorkflowOf` and `_ticketAgentStepOf` from #797. That covers `SpecRunBase._landingOf`, `TicketLander._land`'s review facts, `FactsWriter._writeFacts` and `_writeResearchFacts`, and `TicketChecker`'s `_redChecksOf`, `_stopOnRedMaster` and `_resumeOnRedChecks`. It also covers `MasterMerger._takeWrapUpFailure` and its merge-master rules, and `HaltRaiser._raiseResearchHalt` and `_draftingShortRefsOf`. `_draftingShortRefsOf` now takes the `LandingTicket`.
+
+The outcome row's Workflow in `LogRowCommitter` is now read by the Workflow module's `ticketWorkflowNameOf`, from the ticket's labels with the spec's as fallback. A ticket that picks none, in a spec labelled both, falls back to `workflowNameOf(spec)`, which a run would already have Halted on.
+
+A new `WrapUp.test.ts` test shows a `piece`-labelled ticket of a `code` spec gets an outcome row with Workflow `piece`. Existing tests are unchanged, and `npm run check` passed. I also fixed the `TicketChecker.ts` header comment, which still said the red-checks prompt was its spec's Workflow's.
