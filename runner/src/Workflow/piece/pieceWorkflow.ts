@@ -18,7 +18,6 @@ import { join } from "node:path";
 import { Docs } from "../../Docs.ts";
 import type { DocumentsPort } from "../../Docs/googleDocs.ts";
 import type { IssueRef } from "../../IssueWorkspaces.ts";
-import { gapCheckOutputSchema, gapCheckRecordOf } from "../../recordSchema.ts";
 import { resolveRulesOf } from "../../resolveRecords.ts";
 import type { Command } from "../../runKnobs.ts";
 import {
@@ -35,7 +34,6 @@ import {
 import { ticketSectionOf } from "../../ticketSections.ts";
 import type { Target } from "../../ticketTargets.ts";
 import {
-  type GapCheckPromptInput,
   type ImplementPromptInput,
   type PulledDraft,
   type PullInput,
@@ -48,7 +46,7 @@ import {
 } from "../../Workflow.ts";
 import { agentDraft } from "./agentDraft.ts";
 import { draftingScope } from "./draftingScope.ts";
-import { pieceGapCheckPrompt } from "./gapCheck.ts";
+import { pieceGapCheckSectionOf } from "./gapCheck.ts";
 import {
   passagesFolderOf,
   pieceImplementOutputSchema,
@@ -283,9 +281,9 @@ export function pieceWorkflowOf({
         outputSchema: pieceRedChecksOutputSchema,
       },
       gapCheck: {
-        promptOf: gapCheckPromptOf,
-        outputSchema: gapCheckOutputSchema,
-        recordOf: gapCheckRecordOf,
+        sectionOf(spec) {
+          return pieceGapCheckSectionOf(draftPathOf(spec));
+        },
       },
     },
     // A drafting ticket lands its branch, the Agent draft's commits on it, as a code ticket does.
@@ -336,10 +334,6 @@ function draftingPromptOf(input: ImplementPromptInput): string {
 
 function redChecksPromptOf(input: RedChecksPromptInput): string {
   return pieceRedChecksPrompt({ ...input, draftPath: draftPathOf(input.spec) });
-}
-
-function gapCheckPromptOf(input: GapCheckPromptInput): string {
-  return pieceGapCheckPrompt({ ...input, draftPath: draftPathOf(input.spec) });
 }
 
 function draftPathOf({ number }: IssueRef): string {

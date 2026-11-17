@@ -1,50 +1,27 @@
 import { describe, expect, it } from "vitest";
 
+import { GapCheckPrompt } from "./promptText/GapCheckPrompt.ts";
 import { schemaProblemsOf, sessionOutputOf } from "./recordSchema.ts";
-import type { TrackedIssue } from "./SpecRun/runState.ts";
+import type { TrackedIssue, Wait } from "./SpecRun/runState.ts";
 import { workflowsWith } from "./specRunHarness.ts";
 import { trackedIssues } from "./specRunHarness/trackedIssues.ts";
 import {
   agentStepOf,
+  gapCheckInputOf,
   pickedWorkflowOf,
+  pushWorkflowOf,
+  rowWorkflowNameOf,
   sessionSchemaOf,
+  specEndOf,
   ticketWorkflowNameOf,
   ticketWorkflowsOf,
-  workflowNameOf,
-  workflowOf,
 } from "./Workflow.ts";
 
 function specLabelled(labels: string[]): TrackedIssue {
   return trackedIssues.issueOf(7, { labels, body: "" });
 }
 
-describe("workflowNameOf", () => {
-  it("reads a spec with no label as code", () => {
-    expect(workflowNameOf(specLabelled([]))).toBe("code");
-  });
-
-  it("reads a spec with other labels as code", () => {
-    expect(workflowNameOf(specLabelled(["ready-for-agent"]))).toBe("code");
-  });
-
-  it("reads a spec labelled `piece` as piece", () => {
-    expect(workflowNameOf(specLabelled(["ready-for-agent", "piece"]))).toBe(
-      "piece",
-    );
-  });
-});
-
-describe("workflowOf", () => {
-  it("picks code for a spec with no label", () => {
-    expect(workflowOf(specLabelled([]), workflowsWith([])).name).toBe("code");
-  });
-
-  it("picks piece for a piece spec", () => {
-    expect(workflowOf(specLabelled(["piece"]), workflowsWith([])).name).toBe(
-      "piece",
-    );
-  });
-});
+const { code, piece } = workflowsWith([]);
 
 function ticketLabelled(labels: string[]): TrackedIssue {
   return trackedIssues.issueOf(8, { labels, body: "" });
@@ -130,10 +107,145 @@ describe("ticketWorkflowsOf", () => {
   });
 });
 
+describe("rowWorkflowNameOf", () => {
+  it("names piece for a ticket that picks none in a spec labelled both", () => {
+    expect(
+      rowWorkflowNameOf({
+        ticket: ticketLabelled([]),
+        spec: specLabelled(["code", "piece"]),
+      }),
+    ).toBe("piece");
+  });
+
+  it("names the ticket's own Workflow otherwise", () => {
+    expect(
+      rowWorkflowNameOf({
+        ticket: ticketLabelled(["code"]),
+        spec: specLabelled(["code", "piece"]),
+      }),
+    ).toBe("code");
+  });
+});
+
+describe("specEndOf", () => {
+  const editGate: Wait = {
+    ticket: { repo: "byro-repo", number: 3 },
+    reason: "developer",
+    text: "",
+    labels: ["ready-for-human", "piece"],
+  };
+  const haltedTicket: Wait = {
+    ticket: { repo: "byro-repo", number: 2 },
+    reason: "halted",
+    text: "",
+  };
+
+  it("runs the union of the Workflows' spec-end Steps in one order, each once", () => {
+    expect(specEndOf([code, piece]).steps).toEqual([
+      "gap-check",
+      "judge",
+      "push",
+    ]);
+    expect(specEndOf([piece, code]).steps).toEqual([
+      "gap-check",
+      "judge",
+      "push",
+    ]);
+  });
+
+  it("is due when any Workflow's trigger is, so a piece ticket's Edit gate holds back no Step", () => {
+    expect(specEndOf([code, piece]).isDue([editGate])).toBe(true);
+    expect(specEndOf([code]).isDue([editGate])).toBe(false);
+  });
+
+  it("is not due while a ticket no Workflow lets stay open waits", () => {
+    expect(specEndOf([code, piece]).isDue([haltedTicket])).toBe(false);
+  });
+
+  it("has no Steps and is never due for an empty set", () => {
+    const specEnd = specEndOf([]);
+
+    expect(specEnd.steps).toEqual([]);
+    expect(specEnd.isDue([])).toBe(false);
+  });
+
+  it("adds the line of the first Workflow that has one", () => {
+    const spec = trackedIssues.issueOf(7, {
+      labels: ["code"],
+      body: "## Deliverable\n\nThe crossing, doc 1DeliverableCrossingDoc0000000000.\n",
+    });
+
+    expect(specEndOf([code, piece]).nextLineOf(spec, [editGate])).toContain(
+      "`/close-piece byro-repo 3`",
+    );
+  });
+});
+
+describe("a mixed spec's gap-check prompt", () => {
+  const spec = trackedIssues.issueOf(7, { labels: ["code"], body: "" });
+  const tickets = [
+    {
+      ...trackedIssues.issueOf(1, { labels: ["piece"], body: "" }),
+      isOpen: false,
+    },
+    {
+      ...trackedIssues.issueOf(2, { labels: ["code"], body: "" }),
+      isOpen: false,
+    },
+    trackedIssues.issueOf(3, {
+      labels: ["ready-for-human", "piece"],
+      body: "",
+    }),
+  ];
+  const prompt = GapCheckPrompt.init(
+    gapCheckInputOf({ spec, tickets, workflows: [code, piece] }),
+  ).text;
+
+  it("holds both Workflows' sections", () => {
+    expect(prompt).toContain("## The code tickets' work: master");
+    expect(prompt).toContain("## The piece tickets' work: the Agent draft");
+    expect(prompt).toContain("`writing/agent-drafts/7.md`");
+    expect(prompt).toContain("Check only what no review checks");
+  });
+
+  it("marks each ticket's Workflow, the Edit gate as open", () => {
+    expect(prompt).toContain('- byro-repo #1, "Ticket 1" (piece)');
+    expect(prompt).toContain('- byro-repo #2, "Ticket 2" (code)');
+    expect(prompt).toContain(
+      '- byro-repo #3, "Ticket 3" (piece; open: the Edit gate)',
+    );
+  });
+
+  it("checks a ticket's stories where its work is, and a story no ticket took against both", () => {
+    expect(prompt).toContain(
+      "Check a story a ticket took where that ticket's work is, by its Workflow below.",
+    );
+    expect(prompt).toContain(
+      "whether no ticket names it or the ticket that did was closed as not planned, against each of master and the Agent draft.",
+    );
+  });
+
+  it("drafts each follow-up by the kind its place takes", () => {
+    expect(prompt).toContain("A gap there drafts a follow-up issue.");
+    expect(prompt).toContain("A gap there drafts a drafting ticket.");
+    expect(prompt).toContain(
+      "a follow-up issue for a gap in master, or a drafting ticket for a gap in the Agent draft",
+    );
+  });
+});
+
+describe("pushWorkflowOf", () => {
+  it("takes the Workflow with push rules", () => {
+    expect(pushWorkflowOf([code, piece]).name).toBe("piece");
+  });
+
+  it("throws for a set with no push rules", () => {
+    expect(() => pushWorkflowOf([code])).toThrow(/push step/);
+  });
+});
+
 describe("agentStepOf", () => {
   it("throws for a step the Workflow leaves out", () => {
-    const piece = workflowOf(specLabelled(["piece"]), workflowsWith([]));
-
     expect(() => agentStepOf(piece, "mergeMaster")).toThrow(
       "The piece Workflow has no mergeMaster step.",
     );
@@ -141,8 +253,6 @@ describe("agentStepOf", () => {
 });
 
 describe("sessionSchemaOf", () => {
-  const code = workflowOf(specLabelled([]), workflowsWith([]));
-  const piece = workflowOf(specLabelled(["piece"]), workflowsWith([]));
   const blocked = {
     record: {
       status: "blocked",
@@ -244,16 +354,12 @@ describe("whatReviewCaughtOf", () => {
   } as const;
 
   it("names a piece Fix by axis and the rule sheet's own rule name only", () => {
-    const piece = workflowOf(specLabelled(["piece"]), workflowsWith([]));
-
     expect(piece.whatReviewCaughtOf([fix])).toBe(
       'Fixed: standards, Craft "Garden path" ×1',
     );
   });
 
   it("names a code Fix by its claim and where", () => {
-    const code = workflowOf(specLabelled([]), workflowsWith([]));
-
     expect(code.whatReviewCaughtOf([fix])).toBe(
       "Fixed: A private claim. (## A private heading).",
     );

@@ -2,7 +2,6 @@
 // rules from its own module.
 // A repo's runner config builds it with its checks and review skill, and ../../Workflow.ts registers it; ../../SpecRun/TicketSequencer.ts walks it and runs each Step.
 
-import { gapCheckOutputSchema, gapCheckRecordOf } from "../../recordSchema.ts";
 import { resolveRecordProblems, resolveRulesOf } from "../../resolveRecords.ts";
 import type { Command } from "../../runKnobs.ts";
 import type { TicketState, TicketStep } from "../../SpecRun/runState.ts";
@@ -21,7 +20,7 @@ import type {
   Workflow,
   WorkflowStep,
 } from "../../Workflow.ts";
-import { gapCheckPrompt } from "./gapCheck.ts";
+import { codeGapCheckSection } from "./gapCheck.ts";
 import { implementOutputSchema, implementPrompt } from "./implementStep.ts";
 import {
   mergeMasterOutputSchema,
@@ -87,9 +86,9 @@ const agentSteps: Omit<AgentSteps, "review" | "research"> = {
     outputSchema: mergeMasterOutputSchema,
   },
   gapCheck: {
-    promptOf: gapCheckPrompt,
-    outputSchema: gapCheckOutputSchema,
-    recordOf: gapCheckRecordOf,
+    sectionOf() {
+      return codeGapCheckSection;
+    },
   },
 };
 

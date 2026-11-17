@@ -12,11 +12,7 @@ import { describe, expect, it } from "vitest";
 import type { StepResult } from "./AgentStep.ts";
 import { type DocRead, Docs } from "./Docs.ts";
 import type { DocumentChange, FakeDocuments } from "./Docs/FakeDocuments.ts";
-import type {
-  GoogleDocument,
-  NamedStyleType,
-  StructuralElement,
-} from "./Docs/googleDocs.ts";
+import type { GoogleDocument } from "./Docs/googleDocs.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
 import type { Halt } from "./halts.ts";
@@ -28,6 +24,7 @@ import {
   addIssue,
   addSpec,
   commentsOn,
+  gapCheckMark,
   github,
   haltComments,
   handoffResultOf,
@@ -52,18 +49,30 @@ import {
   ticketState,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
+import { pieceDrafts } from "./specRunHarness/pieceDrafts.ts";
 import { stepResults } from "./specRunHarness/stepResults.ts";
 import type {
   DismissedOverlap,
-  PieceImplementRecord,
   ReadyResearchRecord,
   ResearchRecord,
   ResolveRecord,
-  ReviewFinding,
 } from "./stepRecords.ts";
 import { toolsOf } from "./targetTools.ts";
 
 useSpecRunHarness();
+
+const {
+  deliverableId,
+  docOf,
+  documentOf,
+  drafted,
+  draftPath,
+  h2ContentOf,
+  lateDraft,
+  paragraphOf,
+  pieceReviewed,
+  readerFinding,
+} = pieceDrafts;
 
 function addPieceSpec(tickets: number[]): void {
   addSpec(tickets);
@@ -860,7 +869,6 @@ describe("checks and wrap-up on a piece spec's drafting ticket", () => {
 });
 
 describe("the end of a piece spec", () => {
-  const gapCheckMark = "<!-- review-list ticket=gap-check -->";
   const judgeThenRerun = "judge, then rerun";
   const gap = {
     ask: "Story 3: the harbour at dusk",
@@ -1449,12 +1457,6 @@ describe("the end of a piece spec", () => {
 const earlierAgentDraft =
   "## The harbour\n<!-- agent -->\n\nThe gulls slipped out at dawn.\n\n## The crossing\n<!-- agent -->\n\nThe ferry left late.\n";
 
-// Eight words over two Sections, with no overlap hit.
-const lateDraft =
-  "## The harbour\n<!-- developer -->\n\nGulls circled the quay.\n\n## The crossing\n<!-- agent -->\n\nThe ferry left late.\n";
-
-const draftPath = "writing/agent-drafts/213.md";
-
 // A red-checks step that commits nothing, so the checks stay red.
 const stillRed: StepScript = async () =>
   resultOf({ summary: "Found no rewording that keeps the fact." });
@@ -1489,28 +1491,6 @@ function pieceResolved(
   };
 }
 
-const readerFinding: ReviewFinding = {
-  axis: "reader",
-  where: `${draftPath}:7`,
-  claim:
-    'The crossing reads as a delay, not the Outline\'s escape: "The ferry slipped out at noon."',
-  suggestedVerdict: "fix",
-  reason: "The Outline line says the crossing is the escape.",
-};
-
-// A piece review that spawned its spec, standards and reader reviewers, as `/review-piece` says.
-function pieceReviewed(
-  findings: ReviewFinding[] = [readerFinding],
-  dismissedOverlaps: DismissedOverlap[] = [
-    { hit: "the ferry left", reason: "A fixed phrase for the event." },
-  ],
-): StepScript {
-  return async () => ({
-    ...resultOf({ findings, dismissedOverlaps }),
-    spawnedSubagentCount: 3,
-  });
-}
-
 // The harness's one overlap hit, dismissed, so a review with no findings goes straight on to land.
 const slippedOutDismissed: DismissedOverlap = {
   hit: '"the ferry slipped out"',
@@ -1527,42 +1507,6 @@ function pieceReviewedInline(): StepResult {
 
 function passagesPath(): string {
   return join(workspacePath(), ".runner", "passages", "byro-repo-1");
-}
-
-// The harness's overlap command reports one hit on "slipped out".
-const overlappingDraft =
-  "## The harbour\n<!-- developer -->\n\nGulls circled the quay at dawn.\n\n## The crossing\n<!-- agent -->\n\nThe ferry slipped out at noon.\n";
-
-// Rewrites The crossing as an agent Section and commits the draft, as a piece implement step would.
-function drafted(
-  change: Partial<PieceImplementRecord> = {},
-  content = overlappingDraft,
-): StepScript {
-  return async (request) => {
-    stepResults.commitFile({
-      cwd: request.cwd,
-      file: draftPath,
-      content,
-      message: "Draft The crossing in the Agent draft",
-    });
-    return resultOf({
-      record: {
-        status: "committed",
-        branches: [
-          {
-            repo: "byro-repo",
-            branch: git(request.cwd, "branch", "--show-current"),
-            sha: git(request.cwd, "rev-parse", "HEAD"),
-          },
-        ],
-        closingComment: "Drafted The crossing.",
-        boxesUndone: [],
-        blockers: [],
-        sectionsDrafted: ["The crossing"],
-        ...change,
-      },
-    });
-  };
 }
 
 const blockedDraft: StepScript = async () => ({
@@ -1587,11 +1531,6 @@ const blockedDraft: StepScript = async () => ({
 
 function workspacePath(): string {
   return join(temp, "workspaces", "byro-repo-issue-1-ticket-1");
-}
-
-// A Doc of one level-2 heading and one paragraph per Section, after the section break every Doc opens with.
-function docOf(sections: Record<string, string>): GoogleDocument {
-  return documentOf(h2ContentOf(sections));
 }
 
 // A Doc of level-1 headings with no text of their own, each over its level-2 Sections of one paragraph.
@@ -1627,38 +1566,11 @@ function withHeadingIds(document: GoogleDocument): GoogleDocument {
   return document;
 }
 
-function documentOf(content: StructuralElement[]): GoogleDocument {
-  return {
-    documentId: deliverableId,
-    revisionId: "crossing-1",
-    body: { content: [{ sectionBreak: {} }, ...content] },
-  };
-}
-
-function h2ContentOf(sections: Record<string, string>): StructuralElement[] {
-  return Object.entries(sections).flatMap(([heading, text]) => [
-    paragraphOf(heading, "HEADING_2"),
-    paragraphOf(text, "NORMAL_TEXT"),
-  ]);
-}
-
 // Two Parts, each with an Intro, so an H2's text alone names no one Section.
 const twoPartSections = {
   "Part one": { Intro: "The quay was quiet." },
   "Part two": { Intro: "The ferry was late." },
 };
-
-function paragraphOf(
-  text: string,
-  namedStyleType: NamedStyleType,
-): StructuralElement {
-  return {
-    paragraph: {
-      elements: [{ textRun: { content: `${text}\n` } }],
-      paragraphStyle: { namedStyleType },
-    },
-  };
-}
 
 describe("run on a piece spec", () => {
   it("runs a research ticket's research step under its own knobs and keeps its record", async () => {
@@ -2105,7 +2017,6 @@ function addResearchedSpec(): void {
   github.edit(spec.number, { body: outlinedSpecBody });
 }
 
-const deliverableId = "1DeliverableCrossingDoc0000000000";
 const logbookId = "1LighthouseLogbook000000000000000";
 const timetableId = "1FerryTimetable_2-0000000000000000";
 

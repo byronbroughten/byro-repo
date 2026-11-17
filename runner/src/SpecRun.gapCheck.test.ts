@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import type { Pair, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { guidanceSectionOf } from "./halts.ts";
-import { gapCheckOutputSchema } from "./recordSchema.ts";
 import { runKnobsOf } from "./runKnobs.ts";
 import type { RunResult, SpecRunConfig } from "./SpecRun.ts";
 import {
@@ -12,6 +11,8 @@ import {
   capped,
   clonePaths,
   crashed,
+  gapCheckCount,
+  gapCheckMark,
   github,
   haltComments,
   implemented,
@@ -40,7 +41,7 @@ const unmatched: StepResult = {
 function gapCheckLists(): string[] {
   return github.comments
     .map(({ body }) => body)
-    .filter((body) => body.includes("<!-- review-list ticket=gap-check -->"));
+    .filter((body) => body.includes(gapCheckMark));
 }
 
 interface LandedRun {
@@ -245,11 +246,7 @@ describe("run's gap-check scope", () => {
     const result = await specRun(agentStep, { agentStep }).run(spec);
 
     expect(result.kind).toBe("finished");
-    expect(
-      agentStep.requests.filter(
-        ({ jsonSchema }) => jsonSchema === gapCheckOutputSchema,
-      ),
-    ).toEqual([]);
+    expect(gapCheckCount(agentStep)).toBe(0);
     expect(gapCheckLists()).toEqual([]);
   });
 });

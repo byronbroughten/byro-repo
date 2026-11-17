@@ -139,7 +139,7 @@ The comment the runner posts on the spec issue for each landed ticket with a Pro
 _Avoid_: todo list, report
 
 **Gap check**:
-The check, at the end of a spec's run or in a Close-out, that lists what the issue asked for that no landed ticket covered, with drafted follow-ups. A run's is posted as the final review-list comment; a Close-out's is reported to the developer, and runs only when no run's gap check is on the issue. A piece spec's gap check runs while its Edit gate ([`docs/pieces/GLOSSARY.md`](../docs/pieces/GLOSSARY.md)) is still open, and checks only what no review checks.
+The check, at the end of a spec's run or in a Close-out, that lists what the issue asked for that no landed ticket covered, with drafted follow-ups. A run's is one step however many Workflows the spec's tickets use, checking each story where its ticket's work is, and is posted as the final review-list comment; a Close-out's is reported to the developer, and runs only when no run's gap check is on the issue. When a spec has a piece ticket, its gap check runs while its Edit gate ([`docs/pieces/GLOSSARY.md`](../docs/pieces/GLOSSARY.md)) is still open, and checks the Agent draft only for what no review checks.
 _Avoid_: audit, retro, list the gaps
 
 **Close-out**:
@@ -235,7 +235,7 @@ The developer's go, reshape or drop review, run with `/project-spec`, between on
 _Avoid_: checkpoint, gate (bare), kill point
 
 **Workflow**:
-The coding or the piece workflow as a run sees it: the Steps each of a spec's tickets goes through, how each Step's work is checked, and the Steps that run once at the spec's end. A spec's label picks it.
+The coding or the piece workflow as a run sees it: the Steps each of a spec's tickets goes through, how each Step's work is checked, and the Steps that run once at the spec's end. A ticket's label picks it, falling back to its spec's; a spec ends with the union of its tickets' Workflows' spec-end Steps.
 _Avoid_: mode, pipeline, flavour
 
 **Workflow stage**:
