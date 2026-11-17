@@ -42,8 +42,10 @@ describe("PidLock.tryTake", () => {
   it("lets exactly one of two takers racing for a dead holder's lock win", () => {
     seedDeadHolder(lockPath());
     let second: LockHolder | undefined;
-    const first = PidLock.tryTake(lockPath(), () => {
-      second = expectTaken(PidLock.tryTake(lockPath()));
+    const first = PidLock.tryTake(lockPath(), {
+      beforeTakeover: () => {
+        second = expectTaken(PidLock.tryTake(lockPath()));
+      },
     });
     expect(first.kind).toBe("held");
     expect(readLock().token).toBe(second?.token);

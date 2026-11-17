@@ -15,6 +15,7 @@ import { git, revOf } from "../git.ts";
 import { type Halt } from "../halts.ts";
 import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
 import { type AccountReading, readingLabelOf } from "../limitGuard.ts";
+import { idleLineOf } from "../progressLines.ts";
 import { RunStop } from "../RunStop.ts";
 import { stalePathLabelOf, stalePathsOf } from "../stalePaths.ts";
 import { type AccountHold } from "./AccountHold.ts";
@@ -623,7 +624,7 @@ function isHaltWait({ reason }: Wait): boolean {
 }
 
 function idleMessageOf(waits: Wait[]): string {
-  return `Idle: nothing runnable. ${runText.waitsOf(waits)}.`;
+  return idleLineOf(runText.waitsOf(waits));
 }
 
 // A relaunch carries the run on, so one line marks it: on the member it launches, or the first unfinished one.

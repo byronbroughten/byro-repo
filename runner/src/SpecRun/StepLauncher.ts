@@ -4,7 +4,7 @@
 // A resolver's or reviewer's resume that finds no conversation goes back to its caller, which reruns it as a fresh session.
 // A record the runner's own schema check rejects is resumed once with its problems; Claude Code's own output failures aren't.
 // An implement step that hits its turn cap halts, offering more turns or a stronger pair; other crashes past their retries halt too.
-// It builds its own HaltRaiser, and every collaborator that launches a step builds a StepLauncher.
+// It builds its own HaltRaiser, and every collaborator that launches a step builds a StepLauncher, as SessionReviewer.ts does for the launch check alone.
 // Steps run through ../AgentStep.ts; limit decisions are ../limitGuard.ts; the coordinator callers build is ../SpecRun.ts.
 
 import { existsSync, mkdirSync } from "node:fs";
@@ -60,6 +60,11 @@ export class StepLauncher extends SpecRunBase {
 
   private get haltRaiser(): HaltRaiser {
     return new HaltRaiser(this.config);
+  }
+
+  // For a holder that launches no step itself, as a session's `runner review` and `resolve` do.
+  async _leaseAccount(run: Run): Promise<number> {
+    return this.limitWaiter._waitForLaunch(run);
   }
 
   // A guidance answer goes to the halted step's next launch only, its crash retries included.

@@ -245,7 +245,10 @@ export class SpecRunBase {
       failureStreak: [],
       streamUsage: new Map(),
       unavailableAccounts: new Map(),
-      accountHold: new AccountHold(this.config.stateFolder),
+      accountHold: new AccountHold(
+        this.config.stateFolder,
+        issueRef.labelOf(specIssue),
+      ),
     };
   }
 

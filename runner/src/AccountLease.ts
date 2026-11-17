@@ -1,6 +1,7 @@
-// The account lease: one file per cswap account in the primary's state folder, next to the check slot, held while a run uses that account.
+// The account lease: one file per cswap account in the primary's state folder, next to the check slot, held while a run, a Batch
+// or an interactive session's `runner review` or `resolve` uses that account, its holder naming that spec.
 // It is a PidLock, as RunLock.ts is, and a live holder is never waited on: the taker moves on to another account.
-// limitGuard.ts's rankAccounts leaves out the accounts leasedIn lists; SpecRun/AccountHold.ts takes, moves and releases a run's lease,
+// limitGuard.ts's rankAccounts leaves out the accounts leasedIn lists; SpecRun/AccountHold.ts takes, moves and releases a holder's lease,
 // and accountSwitch.ts reads them and never takes one.
 
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
@@ -21,11 +22,20 @@ export interface AccountLeaseReader {
   read(): LeasedAccount[];
 }
 
+// The spec is recorded in the holder, so the Accounts section names it.
+export interface AccountLeaseRequest {
+  account: number;
+  spec: string;
+}
+
 export class AccountLease extends PidLock {
-  static take(stateFolder: string, account: number): AccountLeaseTake {
+  static take(
+    stateFolder: string,
+    { account, spec }: AccountLeaseRequest,
+  ): AccountLeaseTake {
     mkdirSync(stateFolder, { recursive: true });
     const path = leasePathOf(stateFolder, account);
-    const attempt = PidLock.tryTake(path);
+    const attempt = PidLock.tryTake(path, { spec });
     if (attempt.kind === "taken") {
       return { kind: "taken", lease: new AccountLease(path, attempt.holder) };
     }

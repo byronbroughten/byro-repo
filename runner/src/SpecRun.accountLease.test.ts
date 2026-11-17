@@ -5,8 +5,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import { AccountLease } from "./AccountLease.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
+import { issueRef } from "./IssueWorkspaces.ts";
 import type { UsageReader } from "./limitGuard.ts";
-import { deadHolder, liveHolder, seedHolder } from "./lockFixture.ts";
+import { deadHolder, holderAt, liveHolder, seedHolder } from "./lockFixture.ts";
+import type { LockHolder } from "./PidLock.ts";
 import {
   accountsListOf,
   addIssue,
@@ -88,6 +90,25 @@ describe("run's account lease", () => {
     expect(result.landed).toEqual([refOf(1)]);
     expect(accountsOf(agentStep)).toEqual([2, 2]);
     expect(held).toEqual([["account-1.lease", "account-2.lease"]]);
+  });
+
+  it("records its spec in the lease", async () => {
+    addSpec([1]);
+    const holders: LockHolder[] = [];
+    const agentStep = FakeAgentStep.init(
+      implemented("one.ts", {
+        act: () => {
+          holders.push(holderAt(leasePathOf(1)));
+        },
+      }),
+      reviewed(),
+    );
+
+    await specRun(agentStep).run(spec);
+
+    expect(holders.map((holder) => holder.spec)).toEqual([
+      issueRef.labelOf(spec),
+    ]);
   });
 
   it("takes over a lease a dead holder abandoned", async () => {

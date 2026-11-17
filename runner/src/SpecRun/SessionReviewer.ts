@@ -5,8 +5,9 @@
 // and hand its records to resolve, which checks them as a run's resolve records are. Resolve returns the run's review
 // list to print and posts Halts as a run would; unhalted, it posts the list on the spec too, with no push, or edits the
 // one an earlier review posted, keeping its decided items. Its Halts are numbered S<n>.<k> and returned to print.
+// The submit and resolve each hold the workspace's lease and an account lease, taken through the launch check, until they end.
 // ../SpecRun.ts delegates to it; its authorship refusal is the Base's, shared with PreflightChecker.ts.
-// It builds its own ReviewStepper, LeaseKeeper, ReviewListPoster and HaltRaiser.
+// It builds its own ReviewStepper, LeaseKeeper, ReviewListPoster, HaltRaiser and StepLauncher.
 
 import type { ReviewBrief, ReviewFacts } from "../FactsFile.ts";
 import { messageOf } from "../failureText.ts";
@@ -48,6 +49,7 @@ import { runHalts } from "./runState/runHalts.ts";
 import { runText } from "./runState/runText.ts";
 import { ticketSteps } from "./runState/ticketSteps.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
+import { StepLauncher } from "./StepLauncher.ts";
 
 interface SessionTicket extends ReviewOptions {
   issue: IssueRef;
@@ -81,6 +83,10 @@ export class SessionReviewer extends SpecRunBase {
 
   private get haltRaiser(): HaltRaiser {
     return new HaltRaiser(this.config);
+  }
+
+  private get stepLauncher(): StepLauncher {
+    return new StepLauncher(this.config);
   }
 
   // A rerun, for a second review after fixes, overwrites the earlier brief's start.
@@ -348,10 +354,13 @@ export class SessionReviewer extends SpecRunBase {
   ): Promise<ReviewResult> {
     try {
       await this.leaseKeeper._takeSessionLease(ticketRun.workspace);
+      // Taken here, as nothing in the command launches a step to take it lazily.
+      await this.stepLauncher._leaseAccount(ticketRun.run);
       return await body();
     } catch (error) {
       return reviewEndOf(ticketRun, error);
     } finally {
+      ticketRun.run.accountHold.release();
       await this.leaseKeeper._releaseLeaseOf(ticketRun.ticket.issue);
       this._recordSessions(ticketRun);
     }

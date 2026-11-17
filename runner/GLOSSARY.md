@@ -25,7 +25,7 @@ One model request of an agent step or interactive session whose tool calls the r
 _Avoid_: overhead turn, wasted turn, opening turn
 
 **Active account**:
-The Claude account the developer is logged in with right now, as cswap reports it. A run takes it last.
+The Claude account the developer is logged in with right now, as cswap reports it. A run takes it last, and the runner never switches it.
 _Avoid_: configured account, current account, runner account
 
 **Checks**:
@@ -119,7 +119,7 @@ The run ends early: on a failure no answer can fix inside the run (GitHub or `cl
 _Avoid_: abort, exit, kill
 
 **Limit wait**:
-The run pauses because no account is free and under its thresholds, and continues unaided once one is, resuming a step a limit cut off. A step a limit cuts off resumes at once on another free account, so it waits only when none is; the run keeps off the hit account until its reset, or after a limit error with no reset until it reads under its thresholds. A limit never Stops a run. The runner never switches the Active account.
+The run, or a session's `runner review` or `resolve`, pauses because no account it could lease is under its thresholds, and continues unaided once one is, resuming a step a limit cut off. A step a limit cuts off resumes at once on another free account, so it waits only when none is; the run keeps off the hit account until its reset, or after a limit error with no reset until it reads under its thresholds. A limit never Stops a run.
 _Avoid_: cooldown, throttle
 
 **Restart**:
@@ -127,7 +127,7 @@ The run ends after landing a ticket that changed the runner itself, and relaunch
 _Avoid_: reload, reboot
 
 **Idle**:
-Nothing is runnable, but an open Halt or another holder's Lease may clear while the run waits, so it polls for answers rather than ending.
+Nothing is runnable, but an open Halt or another holder's Lease may clear while the run waits, so it polls for answers rather than ending. An Idle run holds no account lease.
 _Avoid_: sleep, paused
 
 **Vanished**:
@@ -183,7 +183,7 @@ A read-only, live view of every running run's tickets left, ticket, step and tim
 _Avoid_: dashboard
 
 **Lease**:
-A run's or interactive session's hold on one workspace, which keeps every other run and session out of it until the holder moves on, releases it, ends or closes out; or a run's hold on one cswap account, which the account ranking and `npm run account:switch` pass over. A lease whose holder has died is abandoned, and the next taker takes it over.
+A run's or interactive session's hold on one workspace, or a run's or interactive session's hold on one account, which keeps every other run and session out of it until the holder moves on, releases it, ends or closes out. A lease whose holder has died is abandoned, and the next taker takes it over.
 _Avoid_: lock, claim
 
 **Developer**:
