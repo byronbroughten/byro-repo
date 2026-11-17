@@ -96,7 +96,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `processIdentity.ts` | `processIdentity` | A process named by its pid and start time, for leases, supervision records and a parked watch. |
 | `progressLines.ts` | | The progress-log lines, written and parsed in pairs. |
 | `ProgressLog.ts` | | A progress log's lines and what the Run board reads from them: the current ticket, the account, its step stream reading and the latest line. |
-| `promptText.ts` | | Wording helpers the step prompts and the runner's comments share, and the gap check's frame around each Workflow's section. |
+| `promptText.ts` | | Wording helpers the step prompts and the runner's comments share. |
+| `promptText/GapCheckPrompt.ts` | | The spec's gap-check prompt: the shared frame around each Workflow's section. |
 | `recordSchema.ts` | | Schema parts the step records share, the implement record's variants, the review record built from a Workflow's axes and the gap-check record among them, the `output` wrapper a session step's record sits under and its unwrap, and their validator. |
 | `RepoVisibility.ts` | `RepoVisibility` | `npm run repos`'s core: each repo in the repo map with its path and visibility. |
 | `resolveRecords.ts` | | The resolve record every Workflow's resolve step returns: its schema, numbered findings, retry prompt, record and commit checks, and the builder of a Workflow's resolve rules. |

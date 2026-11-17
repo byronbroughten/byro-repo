@@ -2,7 +2,7 @@
 // of the Workflows the run's tickets pick, each once, when any of their triggers finds them due:
 // the gap check, whose gaps become the last review list, the judge Step, which ends a run holding undecided items with "judge, then rerun", and the push, DraftPusher.ts's, which may halt on a push Halt.
 // RunLoop.ts calls _finish; StatusReporter.ts calls _isGapChecked.
-// It builds its own ReviewListPoster, StepLauncher, HaltRaiser and DraftPusher; the gap check's prompt is ../promptText.ts's frame around each of those Workflows' sections, through ../Workflow.ts.
+// It builds its own ReviewListPoster, StepLauncher, HaltRaiser and DraftPusher; the gap check's prompt is ../promptText/GapCheckPrompt.ts's frame around each of those Workflows' sections, through ../Workflow.ts.
 
 import {
   failureHaltOf,
@@ -12,7 +12,7 @@ import {
 } from "../halts.ts";
 import { type FailureAnswer, haltReplies } from "../halts/haltReplies.ts";
 import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
-import { gapCheckPromptOf } from "../promptText.ts";
+import { GapCheckPrompt } from "../promptText/GapCheckPrompt.ts";
 import { gapCheckOutputSchema, gapCheckRecordOf } from "../recordSchema.ts";
 import {
   gapCheckListOf,
@@ -195,9 +195,9 @@ export class SpecEndRunner extends SpecRunBase {
       return;
     }
     const { knobs } = this.config;
-    let prompt = gapCheckPromptOf(
+    let prompt = GapCheckPrompt.init(
       gapCheckInputOf({ spec: run.spec, tickets, workflows }),
-    );
+    ).text;
     if (answer?.kind === "guidance") {
       prompt = `${prompt}\n\n${guidanceSectionOf(answer.text)}`;
     }

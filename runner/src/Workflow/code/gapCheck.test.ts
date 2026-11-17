@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { gapCheckPromptOf } from "../../promptText.ts";
+import { GapCheckPrompt } from "../../promptText/GapCheckPrompt.ts";
 import { codeGapCheckSection } from "./gapCheck.ts";
 
 describe("a code-only spec's gap-check prompt", () => {
-  const prompt = gapCheckPromptOf({
+  const prompt = GapCheckPrompt.init({
     spec: { repo: "byro-repo", number: 213 },
     title: "The spec",
     tickets: [
@@ -16,7 +16,7 @@ describe("a code-only spec's gap-check prompt", () => {
       },
     ],
     sections: [codeGapCheckSection],
-  });
+  }).text;
 
   it("checks each story and Implementation Decision against master, a ticket closed as not planned included", () => {
     expect(prompt).toContain(
@@ -24,7 +24,9 @@ describe("a code-only spec's gap-check prompt", () => {
     );
     expect(prompt).toContain("## The code tickets' work: master");
     expect(prompt).toContain("a ticket closed as not planned landed nothing");
-    expect(prompt).toContain("that master doesn't do");
+    expect(prompt).toContain(
+      "A gap is something the spec still asks for that the work doesn't give.",
+    );
     expect(prompt).toContain("against master.");
   });
 

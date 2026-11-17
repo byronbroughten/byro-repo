@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { gapCheckPromptOf } from "./promptText.ts";
+import { GapCheckPrompt } from "./promptText/GapCheckPrompt.ts";
 import { schemaProblemsOf, sessionOutputOf } from "./recordSchema.ts";
 import type { TrackedIssue, Wait } from "./SpecRun/runState.ts";
 import { workflowsWith } from "./specRunHarness.ts";
@@ -197,9 +197,9 @@ describe("a mixed spec's gap-check prompt", () => {
       body: "",
     }),
   ];
-  const prompt = gapCheckPromptOf(
+  const prompt = GapCheckPrompt.init(
     gapCheckInputOf({ spec, tickets, workflows: [code, piece] }),
-  );
+  ).text;
 
   it("holds both Workflows' sections", () => {
     expect(prompt).toContain("## The code tickets' work: master");

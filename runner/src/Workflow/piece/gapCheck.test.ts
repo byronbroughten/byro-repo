@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { gapCheckPromptOf } from "../../promptText.ts";
+import { GapCheckPrompt } from "../../promptText/GapCheckPrompt.ts";
 import { pieceGapCheckSectionOf } from "./gapCheck.ts";
 
 describe("a piece-only spec's gap-check prompt", () => {
-  const prompt = gapCheckPromptOf({
+  const prompt = GapCheckPrompt.init({
     spec: { repo: "personal", number: 58 },
     title: "The crossing",
     tickets: [
@@ -22,7 +22,7 @@ describe("a piece-only spec's gap-check prompt", () => {
       },
     ],
     sections: [pieceGapCheckSectionOf("writing/agent-drafts/58.md")],
-  });
+  }).text;
 
   it("checks the Agent draft for what no review checks, a ticket closed as not planned included", () => {
     expect(prompt).toContain("`writing/agent-drafts/58.md`");
