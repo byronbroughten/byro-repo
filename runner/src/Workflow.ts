@@ -26,7 +26,6 @@ import type {
 import type {
   DismissedOverlap,
   Finding,
-  GapCheckRecord,
   Handoff,
   ImplementRecord,
   ReadyResearchRecord,
@@ -365,19 +364,46 @@ export interface MergeMasterRules {
   outputSchema: object;
 }
 
-export type GapCheckTicket = Pick<TrackedIssue, "issue" | "title" | "isOpen">;
+export interface GapCheckTicket extends Pick<
+  TrackedIssue,
+  "issue" | "title" | "isOpen"
+> {
+  // Undefined for a ticket that picks none, which halted its run.
+  workflow: WorkflowName | undefined;
+}
 
 export interface GapCheckPromptInput {
   spec: IssueRef;
   title: string;
   // Every ticket of the spec, landed or closed as not planned, but for any its Workflow's trigger lets stay open.
   tickets: GapCheckTicket[];
+  // One per Workflow the spec's tickets use, in name order.
+  sections: GapCheckSection[];
 }
 
+// A Workflow's part of the spec's one gap check; promptText.ts's frame holds the rest.
+export interface GapCheckSection {
+  workflow: WorkflowName;
+  // Where the Workflow's tickets' work is, after "against".
+  place: string;
+  // How a story is checked there.
+  checks: string[];
+  // The follow-up a gap there drafts, after "the title of".
+  followUp: string;
+  // The ticket its trigger lets stay open through the gap check.
+  heldOpen?: HeldOpenTicket;
+}
+
+export interface HeldOpenTicket {
+  // As its ticket line marks it.
+  name: string;
+  // As the prompt's opening describes it, after its name.
+  description: string;
+}
+
+// The record and its schema are the frame's, every Workflow's alike.
 export interface GapCheckRules {
-  promptOf(input: GapCheckPromptInput): string;
-  outputSchema: object;
-  recordOf(output: unknown): GapCheckRecord;
+  sectionOf(spec: IssueRef): GapCheckSection;
 }
 
 // The label that picks each Workflow, on a ticket or its spec.
@@ -504,14 +530,35 @@ export function specEndOf(workflows: Workflow[]): SpecEnd {
   };
 }
 
-// One Workflow's gap-check rules until #801 composes them: the piece Workflow's when the set holds it, so a one-label spec is unchanged.
-export function gapCheckWorkflowOf(workflows: Workflow[]): Workflow {
-  const workflow =
-    workflows.find(({ name }) => name === "piece") ?? workflows.at(0);
-  if (workflow === undefined) {
-    throw new Error("The gap check has no Workflow to take its rules from.");
+export interface SpecGapCheck {
+  spec: TrackedIssue;
+  tickets: TrackedIssue[];
+  // The Workflows the spec's tickets use, as ticketWorkflowsOf names them.
+  workflows: Workflow[];
+}
+
+// The gap-check prompt's input: each Workflow's section and each ticket marked with the Workflow it picks.
+export function gapCheckInputOf({
+  spec,
+  tickets,
+  workflows,
+}: SpecGapCheck): GapCheckPromptInput {
+  if (workflows.length === 0) {
+    throw new Error("The gap check has no Workflow to take its sections from.");
   }
-  return workflow;
+  return {
+    spec: spec.issue,
+    title: spec.title,
+    tickets: tickets.map(({ issue, title, isOpen, labels }) => ({
+      issue,
+      title,
+      isOpen,
+      workflow: ticketWorkflowNameOf({ ticket: { issue, labels }, spec }),
+    })),
+    sections: workflows.map((workflow) =>
+      agentStepOf(workflow, "gapCheck").sectionOf(spec.issue),
+    ),
+  };
 }
 
 // The Workflow in the set with an Agent draft, whose pull and push rules the push takes.

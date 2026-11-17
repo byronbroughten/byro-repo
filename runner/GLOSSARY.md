@@ -139,7 +139,7 @@ The comment the runner posts on the spec issue for each landed ticket with a Pro
 _Avoid_: todo list, report
 
 **Gap check**:
-The step at the end of a spec that lists what the spec asked for that no landed ticket covered, with drafted follow-ups. Its output is the final review-list comment. A piece spec's gap check runs while its Edit gate ([`docs/pieces/GLOSSARY.md`](../docs/pieces/GLOSSARY.md)) is still open, and checks only what no review checks.
+The step at the end of a spec that lists what the spec asked for that no landed ticket covered, with drafted follow-ups. Its output is the final review-list comment. It is one step however many Workflows the spec's tickets use, checking each story where its ticket's work is. A spec with a piece ticket's gap check runs while its Edit gate ([`docs/pieces/GLOSSARY.md`](../docs/pieces/GLOSSARY.md)) is still open, and checks the Agent draft only for what no review checks.
 _Avoid_: audit, retro
 
 **Judge Step**:

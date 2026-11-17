@@ -33,8 +33,9 @@ const gap = {
   recommendation: "Draft it in a further ticket.",
   draftIssueTitle: "Draft the harbour at dusk",
 };
-// The piece gap check's prompt says it; the code one's doesn't.
+// The piece section of the gap check's prompt says it; the code one doesn't.
 const pieceGapCheckLine = "only what no review checks";
+const codeGapCheckHeading = "## The code tickets' work: master";
 
 // The crossing is the agents', and differs from the Doc, so the push writes it.
 const crossingDraft =
@@ -96,13 +97,15 @@ describe("a `code` spec with a `piece` ticket", () => {
     expect(ticketState()["byro-repo #2"]?.step).toBe("landed");
   });
 
-  it("runs the piece gap check once, past the open Edit gate, and posts one gap-check review list", async () => {
+  it("runs one gap check over both Workflows' sections, past the open Edit gate, and posts one gap-check review list", async () => {
     addMixedSpec();
 
     const { agentStep } = await runsToItsEnd([gap]);
 
     expect(gapCheckCount(agentStep)).toBe(1);
-    expect(agentStep.requests.at(-1)?.prompt).toContain(pieceGapCheckLine);
+    const prompt = agentStep.requests.at(-1)?.prompt;
+    expect(prompt).toContain(pieceGapCheckLine);
+    expect(prompt).toContain(codeGapCheckHeading);
     const lists = commentsOn(spec.number, gapCheckMark);
     expect(lists).toHaveLength(1);
     expect(lists[0]).toContain(gap.ask);
@@ -153,7 +156,9 @@ describe("a spec labelled both kinds whose tickets are all `code`", () => {
     const result = await specRun(agentStep, { agentStep }).run(spec);
 
     expect(gapCheckCount(agentStep)).toBe(1);
-    expect(agentStep.requests.at(-1)?.prompt).not.toContain(pieceGapCheckLine);
+    const prompt = agentStep.requests.at(-1)?.prompt;
+    expect(prompt).not.toContain(pieceGapCheckLine);
+    expect(prompt).toContain(codeGapCheckHeading);
     expect(commentsOn(spec.number, gapCheckMark)).toHaveLength(1);
     expect(progressLines().join("\n")).not.toContain("push");
     expect(result.kind).toBe("finished");

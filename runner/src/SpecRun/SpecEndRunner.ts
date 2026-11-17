@@ -2,7 +2,7 @@
 // of the Workflows the run's tickets pick, each once, when any of their triggers finds them due:
 // the gap check, whose gaps become the last review list, the judge Step, which ends a run holding undecided items with "judge, then rerun", and the push, DraftPusher.ts's, which may halt on a push Halt.
 // RunLoop.ts calls _finish; StatusReporter.ts calls _isGapChecked.
-// It builds its own ReviewListPoster, StepLauncher, HaltRaiser and DraftPusher; the gap check's prompt is one of those Workflows', through ../Workflow.ts.
+// It builds its own ReviewListPoster, StepLauncher, HaltRaiser and DraftPusher; the gap check's prompt is ../promptText.ts's frame around each of those Workflows' sections, through ../Workflow.ts.
 
 import {
   failureHaltOf,
@@ -12,6 +12,8 @@ import {
 } from "../halts.ts";
 import { type FailureAnswer, haltReplies } from "../halts/haltReplies.ts";
 import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
+import { gapCheckPromptOf } from "../promptText.ts";
+import { gapCheckOutputSchema, gapCheckRecordOf } from "../recordSchema.ts";
 import {
   gapCheckListOf,
   gapCheckSubject,
@@ -24,8 +26,7 @@ import type { GapCheckRecord } from "../stepRecords.ts";
 import { TicketHalted } from "../TicketHalted.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
 import {
-  agentStepOf,
-  gapCheckWorkflowOf,
+  gapCheckInputOf,
   specEndOf,
   type SpecEndStep,
   ticketWorkflowsOf,
@@ -194,12 +195,9 @@ export class SpecEndRunner extends SpecRunBase {
       return;
     }
     const { knobs } = this.config;
-    const rules = agentStepOf(gapCheckWorkflowOf(workflows), "gapCheck");
-    let prompt = rules.promptOf({
-      spec: run.spec.issue,
-      title: run.spec.title,
-      tickets,
-    });
+    let prompt = gapCheckPromptOf(
+      gapCheckInputOf({ spec: run.spec, tickets, workflows }),
+    );
     if (answer?.kind === "guidance") {
       prompt = `${prompt}\n\n${guidanceSectionOf(answer.text)}`;
     }
@@ -212,7 +210,7 @@ export class SpecEndRunner extends SpecRunBase {
       silenceTimeoutMs: knobs.silenceTimeoutMs,
       wallClockMs: knobs.wallClockMs.gapCheck,
       targets: [],
-      jsonSchema: rules.outputSchema,
+      jsonSchema: gapCheckOutputSchema,
     };
     let ran = await this._runGapCheck(run, request);
     for (
@@ -232,7 +230,7 @@ export class SpecEndRunner extends SpecRunBase {
     }
     let record: GapCheckRecord;
     try {
-      record = rules.recordOf(
+      record = gapCheckRecordOf(
         ticketSteps.recordOf(gapCheckLabel, result, logPath),
       );
     } catch (error) {

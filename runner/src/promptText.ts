@@ -1,8 +1,13 @@
 // Wording shared by the agent-step prompts and the comments the runner posts.
 
+import { stepReadLine } from "./IssueReader.ts";
 import { issueRef } from "./IssueWorkspaces.ts";
 import { type Axis, verdicts } from "./verdicts.ts";
-import type { GapCheckTicket } from "./Workflow.ts";
+import type {
+  GapCheckPromptInput,
+  GapCheckSection,
+  GapCheckTicket,
+} from "./Workflow.ts";
 
 // A string for the placeholder a generated skill names a number by, such as `<n>`.
 export type NumberOrPlaceholder = number | string;
@@ -109,27 +114,86 @@ export function reviewerResumePromptOf(spawn: string): string {
   return `Your review ran without its reviewer subagents. Spawn ${spawn}. Then return the review record from their reports, replacing the one you returned.`;
 }
 
-// Every Workflow's gap check reads it first.
-export const addendumLine =
-  "Read the spec's body and its comments: an addendum the developer posted as a comment changes the spec.";
+// The spec's gap check: the shared frame around the section of each Workflow its tickets use, so each story is checked where its work is.
+export function gapCheckPromptOf({
+  spec,
+  title,
+  tickets,
+  sections,
+}: GapCheckPromptInput): string {
+  return [
+    `You are the gap check of an unattended run. ${unattendedRunLine()}
 
-export interface GapRecordWording {
-  // How a gap names its ask, after "by".
-  ask: string;
-  // What the drafted title would be, after "the title of".
-  followUp: string;
+Every ticket of the spec ${spec.repo}#${spec.number}, "${title}", has landed or closed${heldOpenClauseOf(sections)}. List what the spec asks for that its tickets' work doesn't give. Your working directory is the primary root, on master. ${stepReadLine}`,
+    sectionOf("How you check", [
+      "Read the spec's body and its comments: an addendum the developer posted as a comment changes the spec.",
+      "Each User Story and each Implementation Decision is something the spec asks for, and so is each ask of an addendum. Skip what the spec no longer asks for: every story or section an addendum drops.",
+      `Check a story a ticket took where that ticket's work is, by its Workflow below. Check a story no ticket took, whether no ticket names it or the ticket that did was closed as not planned, ${placesClauseOf(sections)}.`,
+      "A gap is something the spec still asks for that the work doesn't give. Work that covers it differently from how the spec words it is no gap.",
+    ]),
+    ...sections.map(workflowSectionOf),
+    "Change nothing: no edits, commits, comments or issues. The runner posts your gaps as the spec's last review list; it never files the drafted follow-ups.",
+    gapRecordSectionOf(sections),
+    `## The spec's tickets\n\nEach ticket names its Workflow.\n\n${tickets.map((ticket) => gapCheckTicketLineOf(ticket, sections)).join("\n")}`,
+  ].join("\n\n");
 }
 
-// The gap-check record's section, as every Workflow's gap-check prompt words it.
-export function gapRecordSectionOf({
-  ask,
+function heldOpenClauseOf(sections: GapCheckSection[]): string {
+  const held = sections.flatMap(({ heldOpen }) =>
+    heldOpen === undefined ? [] : [`${heldOpen.name}, ${heldOpen.description}`],
+  );
+  if (held.length === 0) return "";
+  return `, but ${held.join(" and ")}`;
+}
+
+function placesClauseOf(sections: GapCheckSection[]): string {
+  const places = sections.map(({ place }) => place);
+  if (places.length === 1) return `against ${places.join("")}`;
+  return `against each of ${places.join(" and ")}`;
+}
+
+function workflowSectionOf({
+  workflow,
+  place,
+  checks,
   followUp,
-}: GapRecordWording): string {
-  return `## The record\n\nReturn \`gaps\`, one per gap, or an empty list when you find none: \`ask\` (what the spec asked for, by ${ask}), \`evidence\` (what you checked and found missing), \`recommendation\` (what you recommend the developer do) and \`draftIssueTitle\` (the title of ${followUp} that would close it).`;
+}: GapCheckSection): string {
+  return sectionOf(`The ${workflow} tickets' work: ${place}`, [
+    ...checks,
+    `A gap there drafts ${followUp}.`,
+  ]);
 }
 
-export function gapCheckTicketLineOf({ issue, title }: GapCheckTicket): string {
-  return `- ${issueRef.labelOf(issue)}, "${title}"`;
+// The gap-check record's section; a gap's follow-up is the kind its place drafts.
+export function gapRecordSectionOf(sections: GapCheckSection[]): string {
+  return `## The record\n\nReturn \`gaps\`, one per gap, or an empty list when you find none: \`ask\` (what the spec asked for, by its story number, its section or the addendum's words), \`evidence\` (what you checked and found missing), \`recommendation\` (what you recommend the developer do) and \`draftIssueTitle\` (${followUpTitleOf(sections)}).`;
+}
+
+function followUpTitleOf(sections: GapCheckSection[]): string {
+  const [only] = sections;
+  if (sections.length === 1 && only !== undefined) {
+    return `the title of ${only.followUp} that would close it`;
+  }
+  const kinds = sections.map(
+    ({ followUp, place }) => `${followUp} for a gap in ${place}`,
+  );
+  return `the title of the follow-up that would close it: ${kinds.join(", or ")}`;
+}
+
+// Marked with the ticket's Workflow, and an open ticket with the name its Workflow's section gives it.
+export function gapCheckTicketLineOf(
+  { issue, title, isOpen, workflow }: GapCheckTicket,
+  sections: GapCheckSection[],
+): string {
+  const marks: string[] = workflow === undefined ? [] : [workflow];
+  if (isOpen) {
+    const heldOpen = sections.find(
+      (section) => section.workflow === workflow,
+    )?.heldOpen;
+    marks.push(heldOpen === undefined ? "open" : `open: ${heldOpen.name}`);
+  }
+  const line = `- ${issueRef.labelOf(issue)}, "${title}"`;
+  return marks.length === 0 ? line : `${line} (${marks.join("; ")})`;
 }
 
 // A list that follows a label's colon on the label's line, or ` none`.
