@@ -462,7 +462,7 @@ export function ticketWorkflowNameOf({
   return labelledNameOf(spec) ?? "code";
 }
 
-// A ticket that picks none Halted its run before any step, so its outcome row names piece for want of a pick.
+// A ticket that picks none ran no Workflow, so its row keeps the piece name every such row has had, not a guess from its spec's label.
 export function rowWorkflowNameOf(specTicket: SpecTicket): WorkflowName {
   return ticketWorkflowNameOf(specTicket) ?? "piece";
 }
