@@ -96,8 +96,6 @@ export class TicketSequencer extends SpecRunBase {
             extraTurns,
           }) ?? "resume";
       }
-      const workflow = this._ticketWorkflowOf({ ticket, spec: run.spec });
-      state.step = entryStepOf(state, workflow.stepsOf(ticket));
       const pair = state.pair ?? pairOf(ticket.body);
       if (pair === undefined) {
         throw new UnhandledStop(
@@ -106,8 +104,7 @@ export class TicketSequencer extends SpecRunBase {
           this._progressPathOf(run),
         );
       }
-      await this._haltOnUntrustedBody({ run, ticket, pair, state });
-      // Read from the ticket as picked, so an answered Halt goes on once the developer labels it.
+      // Read from the ticket as picked, so an answered Halt goes on once the developer labels it, and before the pick, which throws on a ticket that picks none.
       if (ticketWorkflowNameOf({ ticket, spec: run.spec }) === undefined) {
         await this.haltRaiser._unpickedWorkflowHalt({
           run,
@@ -116,6 +113,9 @@ export class TicketSequencer extends SpecRunBase {
           state,
         });
       }
+      const workflow = this._ticketWorkflowOf({ ticket, spec: run.spec });
+      state.step = entryStepOf(state, workflow.stepsOf(ticket));
+      await this._haltOnUntrustedBody({ run, ticket, pair, state });
       this._log(
         run,
         ticketLaunchLineOf(ticket.issue, pairLabelOf(pair), state.step),
