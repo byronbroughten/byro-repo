@@ -48,7 +48,7 @@ const cantsByScript: [RegExp, string][] = [
   [/^pgrep\b/, boxReasons.cant.pgrep],
   [/^open\b/, boxReasons.cant.open],
   [/^(app|dev)\b/, boxReasons.cant.google],
-  [/^(google:script|doc:print)\b/, boxReasons.cant.agentToken],
+  [/^(google:script|doc:print|piece:pull)\b/, boxReasons.cant.agentToken],
   [/^(runner|session:probe)\b/, boxReasons.cant.claude],
   [/^(issue|wrap-up)\b/, boxReasons.cant.ps],
   [/^jev\b/, boxReasons.cant.jev],

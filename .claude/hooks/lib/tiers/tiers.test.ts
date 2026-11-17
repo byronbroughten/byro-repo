@@ -568,6 +568,35 @@ describe("an Interactive session's scripts", () => {
       decisionOf("npm --prefix x run doc:print -- 1AbCdEf"),
     ).toBeUndefined();
   });
+
+  it("allows the piece pull in a session with no ask, and refuses it in a runner step", () => {
+    const command = "npm run piece:pull -- personal 42";
+    const sessionDecision = modeDecisionOf(command);
+    expect(sessionDecision?.permissionDecision).toBe("allow");
+    expect(sessionDecision?.reason).toContain("standing yes");
+    const stepDecision = modeDecisionOf(command, "runnerStep");
+    expect(stepDecision?.permissionDecision).toBe("deny");
+    expect(stepDecision?.reason).toContain("only an Interactive session");
+    expect(stepDecision?.reason).toContain("agent account's access token");
+    expect(stepDecision?.reason).toContain(blockerInstead);
+    expect(
+      decisionOf("npm --prefix x run piece:pull -- personal 42"),
+    ).toBeUndefined();
+  });
+
+  it.each([
+    "npm run issue:close-parent -- byro-repo 804",
+    "npm run issue:close-parent -- byro-repo 804 --comment-file /tmp/claude-501/close.md",
+  ])(
+    "allows `%s` in a session, as gh issue close and comment, and refuses it in a runner step",
+    (command) => {
+      expect(decisionOf(command)).toBe("allow");
+      const stepDecision = modeDecisionOf(command, "runnerStep");
+      expect(stepDecision?.permissionDecision).toBe("deny");
+      expect(stepDecision?.reason).toContain("only an Interactive session");
+      expect(stepDecision?.reason).toContain(blockerInstead);
+    },
+  );
 });
 
 describe("loops, conditionals, groups and functions", () => {
@@ -734,6 +763,8 @@ describe("free reads and standing yeses in both modes", () => {
       "npm run session:probe -- --injection-check /tmp/folder",
       "npm run outline -- scripts/overlap/overlap.ts",
       "npm run ws:rm -- .claude/hooks/old.ts .claude/skills/old/SKILL.md",
+      "npm run map:next -- byro-repo 804",
+      "npm run -s map:next -- byro-repo 804 813",
     ].forEach((command) => {
       expect(decisionOf(command)).toBe("allow");
       expect(runnerStepDecisionOf(command)).toBe("allow");
@@ -890,6 +921,26 @@ describe("a sandboxed call", () => {
     ).toBe("allow");
     expect(sandboxedDecisionOf(command, "runnerStep")?.permissionDecision).toBe(
       "deny",
+    );
+  });
+
+  it("still refuses a runner step's parent close-out, as its gh issue close", () => {
+    const command =
+      "npm run issue:close-parent -- byro-repo 804 --comment-file c.md";
+    expect(
+      sandboxedDecisionOf(command, "interactive")?.permissionDecision,
+    ).toBe("allow");
+    expect(sandboxedDecisionOf(command, "runnerStep")?.permissionDecision).toBe(
+      "deny",
+    );
+  });
+
+  it("allows the map's next-ticket read in the box in both modes", () => {
+    modes.forEach((mode) =>
+      expect(
+        sandboxedDecisionOf("npm run map:next -- byro-repo 804", mode)
+          ?.permissionDecision,
+      ).toBe("allow"),
     );
   });
 
