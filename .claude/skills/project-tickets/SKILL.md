@@ -44,7 +44,7 @@ The packages stay in this session's scratchpad: **packages are never published**
 
 Group the packages into tickets by [Ticket size](../../../docs/agents/tickets.md#ticket-size):
 
-- **Estimate each ticket as fixed overhead + the union of its packages' read sets + the flat work allowance**; a file in two of its packages counts once.
+- **Estimate each ticket as fixed overhead + the union of its packages' read sets + the work allowance for a code, piece or Research ticket**; a file in two of its packages counts once.
 - **Never estimate one over the ~135K cap; prefer 110–125K; merge so fewer are under 90K**, keeping a small ticket apart only with a reason stated in step 6.
 - **Merge only packages with the same Model fit pair**, and a package with one it blocks only when no package outside the group sits between them.
 - **Split a slice that needs two kinds into one ticket per kind**; when one part needs another's output, that part's ticket blocks the other.
