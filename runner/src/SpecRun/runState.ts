@@ -175,6 +175,8 @@ export interface TicketState {
   // A piece spec's research ticket's: its latest research record, and its latest handoff until a fresh step returns another record.
   researchRecord?: ResearchRecord;
   latestResearchHandoff?: ResearchHandoff;
+  // Set by a Failure Halt's `retry` answer on the research step, so the retry's prompt names what the first try left; cleared once it launches.
+  isResearchRetried?: boolean;
   // Set once the research comment is posted, so a wrap-up retried after a failure never posts it twice.
   isResearchPosted?: boolean;
   // A piece spec's drafting ticket's: the Doc as its pull saw it, which its push compares against.

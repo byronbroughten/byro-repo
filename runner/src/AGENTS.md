@@ -138,7 +138,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/MemberSelections.ts` | | One pick's ticket selections across a run's members. |
 | `SpecRun/OutlineEditApplier.ts` | | Applies the Outline edits an answered Research Halt approves to the spec body, raising a fresh Research Halt on an edit it can't apply. |
 | `SpecRun/PreflightChecker.ts` | | The run's preflight over its member list: run locks, each member's refusals and the shared preflight Stop. |
-| `SpecRun/ResearchStepper.ts` | | Runs a research ticket's research step and its handoffs, keeps its record, and runs its quote check, sending the step back on red. |
+| `SpecRun/ResearchStepper.ts` | | Runs a research ticket's research step and its handoffs, creating its scratch folder, keeps its record, and runs its quote check, sending the step back on red. |
 | `SpecRun/ReviewItemDecider.ts` | | `runner decide`: records one item of the developer's own review list as decided or handled. |
 | `SpecRun/ReviewListPoster.ts` | | Posts review lists and covered-later notes. |
 | `SpecRun/ReviewStepper.ts` | | Runs a ticket's review, with its reviewer check, and resolve steps. |
@@ -211,7 +211,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Workflow/piece/pieceWorkflow.ts` | `pieceWorkflow` | Builds the piece Workflow from a repo's overlap and quote commands and Docs port: its research and drafting Steps, research, implement, review, with its supplied inputs, resolve and red-checks agent steps, its spec-end Steps and their trigger, pull and push rules, quote check, drafting checks, outcome row review cell and the source targets read from the spec's Supporting Material. |
 | `Workflow/piece/redChecksStep.ts` | | The piece red-checks step's prompt, fixing red piece checks in the Agent draft, and its output schema. |
 | `Workflow/piece/researchStep/researchRecord.ts` | | The research step's output schema, its record reader and the record checks. |
-| `Workflow/piece/researchStep/researchWords.ts` | | The research step's prompt, its red-quotes section, handoff comment, closing comment and Research Halt words. |
+| `Workflow/piece/researchStep/researchWords.ts` | | The research step's prompt, its scratch folder, its first-try and red-quotes sections, handoff comment, closing comment and Research Halt words. |
 | `Workflow/piece/resolveStep.ts` | | The piece resolve step's prompt, pointing at the verdict rules' `## Piece findings` and rerunning the piece checks after its Fixes, and its record checks, which refuse the verdict reasons a piece finding never takes. |
 | `Workflow/piece/reviewCaught.ts` | | A piece outcome row's "What review caught" cell: each kept finding by its axis and public rule name only. |
 | `Workflow/piece/reviewInputs.ts` | | Writes the inputs `/review-piece` copies word for word to the review-inputs folder before a piece review, naming each the spec lacks. |
