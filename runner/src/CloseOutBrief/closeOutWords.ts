@@ -16,8 +16,9 @@ export const closeOutWords = {
     return `${command} brief: none, ${reason}`;
   },
 
-  closePieceOf({ repo, number }: IssueRef): string {
-    return `\`/close-piece ${repo} ${number}\``;
+  // Always the parent's number, an Edit gate's spec included.
+  closeProjectOf({ repo, number }: IssueRef): string {
+    return `\`/close-project ${repo} ${number}\``;
   },
 
   closedOf(parent: IssueRef, path: string): string {

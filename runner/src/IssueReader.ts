@@ -4,13 +4,20 @@ import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import { modelFitTextOf } from "./modelFit.ts";
 import {
   isDraftingSkill,
+  isSpecSkill,
   type SessionSkill,
   sessionSkillOf,
   type Workflows,
 } from "./Workflow.ts";
 
-// Workflow.ts is no package entry, so the scripts that print the skill take its type and drafting test from here.
-export { isDraftingSkill, type SessionSkill };
+// Workflow.ts is no package entry, so the scripts that print the skill take its type and tests from here.
+export { isDraftingSkill, isSpecSkill, type SessionSkill };
+
+// The spec is the ticket's parent, or the ticket itself with none.
+export interface SessionSkillPick {
+  skill: SessionSkill;
+  spec: IssueRef;
+}
 
 const usage =
   "Usage: npm run issue:read -- <repo> <n> [--body] [--comments] [--hide-others]";
@@ -154,8 +161,8 @@ export class IssueReader {
     return modelFitTextOf(readable.body) ?? "no Model fit section";
   }
 
-  // `npm run issue:start`'s skill, read from the labels alone, which are Trusted; a ticket with no parent is its own spec, and one that picks no Workflow throws.
-  async sessionSkillOf(issue: IssueRef): Promise<SessionSkill> {
+  // `npm run issue:start`'s skill and the spec it may name, read from the labels alone, which are Trusted; a ticket with no parent is its own spec, and one that picks no Workflow throws.
+  async sessionSkillOf(issue: IssueRef): Promise<SessionSkillPick> {
     this._assertAllowed(issue.repo);
     const { source, workflows } = this.config;
     const ticket = await source.readableIssueOf(issue);
@@ -163,7 +170,10 @@ export class IssueReader {
       ticket.parent === undefined
         ? ticket
         : await source.readableIssueOf(ticket.parent);
-    return sessionSkillOf({ ticket, spec }, workflows);
+    return {
+      skill: sessionSkillOf({ ticket, spec }, workflows),
+      spec: spec.issue,
+    };
   }
 
   private _assertAllowed(repo: string): void {

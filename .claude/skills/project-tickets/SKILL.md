@@ -222,7 +222,7 @@ The spec's issue reference.
 
 ## What to do
 
-This is the developer's ticket; the runner never launches it. Once the run ends and has pushed the Agent draft into the Deliverable, edit the Deliverable in its Doc, then close this issue out with `/close-piece <repo> <n>`.
+This is the developer's ticket; the runner never launches it. Once the run ends and has pushed the Agent draft into the Deliverable, edit the Deliverable in its Doc, then close out this issue and its spec with `/close-project <repo> <spec>`.
 
 </edit-gate-template>
 

@@ -131,7 +131,9 @@ describe("a `code` spec with a `piece` ticket", () => {
     );
     expect(result.kind).toBe("finished");
     expect(result.message).toContain("byro-repo #3 waits on you");
-    expect(result.message).toContain("`/close-piece byro-repo 3`");
+    expect(result.message).toContain(
+      `\`/close-project byro-repo ${spec.number}\``,
+    );
   });
 });
 

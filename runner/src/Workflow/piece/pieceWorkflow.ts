@@ -168,8 +168,8 @@ const specEnd: SpecEnd = {
     const gate = waits.find(isEditGateWait);
     const documentId = deliverableIdOf(spec);
     if (gate === undefined || documentId === undefined) return undefined;
-    const { repo, number } = gate.ticket;
-    return `Edit the Deliverable in its Doc, ${docLinkOf(documentId)}, then close out the Edit gate: \`/close-piece ${repo} ${number}\`.`;
+    const { repo, number } = spec.issue;
+    return `Edit the Deliverable in its Doc, ${docLinkOf(documentId)}, then close out the Edit gate: \`/close-project ${repo} ${number}\`.`;
   },
 };
 
@@ -228,7 +228,7 @@ export function pieceWorkflowOf({
     },
     sessionSkillOf(ticket) {
       if (isResearch(ticket)) return "research-piece";
-      if (ticket.labels.includes(ticketLabels.editGate)) return "close-piece";
+      if (ticket.labels.includes(ticketLabels.editGate)) return "close-project";
       return "implement-piece";
     },
     sourceTargetsOf,

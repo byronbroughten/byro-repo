@@ -110,7 +110,8 @@ function parentLineOf(check: ParentCheck): string {
   if (check.kind === "none") return "No parent to close.";
   const parent = issueRef.labelOf(check.parent);
   if (check.kind === "ready-to-close") {
-    return `Parent ${parent} has every sub-issue closed: close it out with the prompt in docs/agents/git-workflow.md.`;
+    const { repo, number } = check.parent;
+    return `Parent ${parent} has every sub-issue closed: close it out with \`/close-project ${repo} ${number}\`.`;
   }
   if (check.kind === "map") {
     return `Parent ${parent} is a wayfinder map; it stays open.`;

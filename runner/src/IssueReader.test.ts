@@ -6,6 +6,7 @@ import {
   IssueReader,
   type ReadableComment,
   type ReadableIssue,
+  type SessionSkillPick,
 } from "./IssueReader.ts";
 import type { SessionSkill, Workflows } from "./Workflow.ts";
 import { codeWorkflowOf } from "./Workflow/code/codeWorkflow.ts";
@@ -375,11 +376,18 @@ describe("IssueReader.modelFitOf", () => {
 describe("IssueReader.sessionSkillOf", () => {
   const issue = { repo: "byro-repo", number: 7 };
 
-  // Ticket #7 under spec #3, or Standalone when `specLabels` is undefined.
-  function skillOf(
+  async function skillOf(
     ticketLabels: string[],
     specLabels: string[] | undefined,
   ): Promise<SessionSkill> {
+    return (await pickOf(ticketLabels, specLabels)).skill;
+  }
+
+  // Ticket #7 under spec #3, or Standalone when `specLabels` is undefined.
+  function pickOf(
+    ticketLabels: string[],
+    specLabels: string[] | undefined,
+  ): Promise<SessionSkillPick> {
     const source = FakeIssueSource.init();
     const spec = { repo: "byro-repo", number: 3 };
     if (specLabels === undefined) {
@@ -401,8 +409,15 @@ describe("IssueReader.sessionSkillOf", () => {
     expect(await skillOf(["research"], ["piece"])).toBe("research-piece");
   });
 
-  it("names /close-piece for the ready-for-human ticket under a piece spec", async () => {
-    expect(await skillOf(["ready-for-human"], ["piece"])).toBe("close-piece");
+  it("names /close-project and the spec for the ready-for-human ticket under a piece spec", async () => {
+    expect(await pickOf(["ready-for-human"], ["piece"])).toEqual({
+      skill: "close-project",
+      spec: { repo: "byro-repo", number: 3 },
+    });
+  });
+
+  it("names a Standalone ticket as its own spec", async () => {
+    expect((await pickOf(["research"], undefined)).spec).toEqual(issue);
   });
 
   it("names /implement-piece for any other ticket under a piece spec", async () => {

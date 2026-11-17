@@ -176,7 +176,7 @@ describe("specEndOf", () => {
     });
 
     expect(specEndOf([code, piece]).nextLineOf(spec, [editGate])).toContain(
-      "`/close-piece byro-repo 3`",
+      "`/close-project byro-repo 7`",
     );
   });
 });

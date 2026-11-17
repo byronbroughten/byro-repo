@@ -1,8 +1,9 @@
-// What `issue:start` prints: whether the session is already in the workspace, its path, other repos' same-numbered branches, the skill to follow, a drafting ticket's pull command and the ticket's text.
+// What `issue:start` prints: whether the session is already in the workspace, its path, other repos' same-numbered branches, the skill to follow, with the spec for one that takes it, a drafting ticket's pull command and the ticket's text.
 import { isAbsolute, relative } from "node:path";
 
 import {
   isDraftingSkill,
+  isSpecSkill,
   type SessionSkill,
 } from "@byronbroughten/spec-runner/IssueReader";
 import {
@@ -23,6 +24,8 @@ interface StartReport {
 export interface StartedTicket {
   issue: IssueRef;
   skill: SessionSkill;
+  // The ticket's parent, or the ticket itself with none.
+  spec: IssueRef;
   text: string;
 }
 
@@ -45,12 +48,17 @@ export function startReportOf({
 }
 
 // A drafting ticket's session pulls its Agent draft before drafting; `/start-issue` sends the pull with `EnterWorktree`.
-function ticketLinesOf({ issue, skill, text }: StartedTicket): string[] {
-  const lines = [`Skill: /${skill}`];
+function ticketLinesOf({ issue, skill, spec, text }: StartedTicket): string[] {
+  const lines = [skillLineOf(skill, spec)];
   if (isDraftingSkill(skill)) {
     lines.push(`Pull: npm run piece:pull -- ${issue.repo} ${issue.number}`);
   }
   return [...lines, text];
+}
+
+function skillLineOf(skill: SessionSkill, spec: IssueRef): string {
+  if (!isSpecSkill(skill)) return `Skill: /${skill}`;
+  return `Skill: /${skill} ${spec.repo} ${spec.number}`;
 }
 
 function isInside(folder: string, root: string): boolean {
