@@ -44,9 +44,6 @@ Report the close with the comment posted. Then read the parent check it prints:
 
 ## 5. Wrap up
 
-For each spec closed:
-
-- Remind the developer to run `/to-code-style` on a code spec. Name each keep reason approved more than once (the `Drafted keep:` line of each item decided `keep approved`, or for a list posted before #298 its `keep approved:` reason, across the spec's review lists, same reason in different words included) as a candidate approved exception for `docs/agents/verdicts.md`.
-- List the open issues it blocks by [the issue tracker doc's Blocking command](../../../docs/agents/issue-tracker.md#wayfinding-operations). Name each one labelled `needs-triage`, a held spec now due its Phase gate, and recommend `/project-spec <repo> <n>` for it, `<repo>` and `<n>` read from its URL.
+For each spec closed, follow [`/judge-findings`' step 5](../../../runner/skills/judge-findings/SKILL.md#5-closing-the-spec) items 2 and 4: on a code spec the `/to-code-style` reminder, reading the spec's review lists for its keep reasons by [`/judge-findings`' step 1](../../../runner/skills/judge-findings/SKILL.md#1-read-the-list), since the brief holds only their undecided count; and the open issues it blocks, with `/project-spec` for each labelled `needs-triage`.
 
 End with one line: run `/mine-outcomes <repo> <n>`.

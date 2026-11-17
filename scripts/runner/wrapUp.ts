@@ -3,6 +3,7 @@
 // as arguments, and --no-code lands a ticket with no branch. A rerun skips the steps already done.
 import { parseArgs } from "node:util";
 
+import { closeOutWords } from "@byronbroughten/spec-runner/closeOutWords";
 import {
   issueRef,
   workspaceKey,
@@ -110,8 +111,7 @@ function parentLineOf(check: ParentCheck): string {
   if (check.kind === "none") return "No parent to close.";
   const parent = issueRef.labelOf(check.parent);
   if (check.kind === "ready-to-close") {
-    const { repo, number } = check.parent;
-    return `Parent ${parent} has every sub-issue closed: close it out with \`/close-project ${repo} ${number}\`.`;
+    return `Parent ${parent} has every sub-issue closed: close it out with ${closeOutWords.closeProjectOf(check.parent)}.`;
   }
   if (check.kind === "map") {
     return `Parent ${parent} is a wayfinder map; it stays open.`;
