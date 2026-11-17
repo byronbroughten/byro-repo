@@ -1,7 +1,10 @@
 // What `issue:start` prints: whether the session is already in the workspace, its path, other repos' same-numbered branches, the skill to follow, a drafting ticket's pull command and the ticket's text.
 import { isAbsolute, relative } from "node:path";
 
-import type { SessionSkill } from "@byronbroughten/spec-runner/IssueReader";
+import {
+  isDraftingSkill,
+  type SessionSkill,
+} from "@byronbroughten/spec-runner/IssueReader";
 import {
   type IssueRef,
   otherIssueBranch,
@@ -44,7 +47,7 @@ export function startReportOf({
 // A drafting ticket's session pulls its Agent draft before drafting; `/start-issue` sends the pull with `EnterWorktree`.
 function ticketLinesOf({ issue, skill, text }: StartedTicket): string[] {
   const lines = [`Skill: /${skill}`];
-  if (skill === "implement-piece") {
+  if (isDraftingSkill(skill)) {
     lines.push(`Pull: npm run piece:pull -- ${issue.repo} ${issue.number}`);
   }
   return [...lines, text];
