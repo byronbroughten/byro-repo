@@ -156,7 +156,7 @@ export class ResearchStepper extends SpecRunBase {
     await this._postHandoff(ticketRun, comment);
   }
 
-  private _researchRulesOf({ run }: TicketRun): ResearchRules {
-    return this._agentStepOf(run.spec, "research");
+  private _researchRulesOf({ run, ticket }: TicketRun): ResearchRules {
+    return this._ticketAgentStepOf({ ticket, spec: run.spec }, "research");
   }
 }

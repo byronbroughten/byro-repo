@@ -96,7 +96,10 @@ export class SessionReviewer extends SpecRunBase {
   ): Promise<ReviewResult> {
     const ticketRun = await this._reviewTicketRunOf(issue, holder);
     if (typeof ticketRun === "string") return refusedReviewOf(ticketRun);
-    const rules = this._agentStepOf(ticketRun.run.spec, "review");
+    const rules = this._ticketAgentStepOf(
+      { ticket: ticketRun.ticket, spec: ticketRun.run.spec },
+      "review",
+    );
     const prompt = rules.promptOf({
       ...(await this.reviewStepper._reviewPromptInputOf(ticketRun)),
       sessionSubmit: this._sessionSubmitOf(issue),
@@ -126,7 +129,8 @@ export class SessionReviewer extends SpecRunBase {
     }
     const ticketRun = await this._reviewTicketRunOf(issue, holder);
     if (typeof ticketRun === "string") return refusedReviewOf(ticketRun);
-    const rules = this._agentStepOf(ticketRun.run.spec, "review");
+    const specTicket = { ticket: ticketRun.ticket, spec: ticketRun.run.spec };
+    const rules = this._ticketAgentStepOf(specTicket, "review");
     const problems = schemaProblemsOf(rules.outputSchema, output);
     if (problems.length > 0) {
       return refusedReviewOf(
@@ -155,8 +159,8 @@ export class SessionReviewer extends SpecRunBase {
         kind: "findings",
         message: `Reviewed ${issueRef.labelOf(issue)}, findings: ${findings.length}. Resolve them in this session by \`docs/agents/verdicts.md\`, then hand your records to resolve.`,
         halts: [],
-        findings: this._agentStepOf(
-          ticketRun.run.spec,
+        findings: this._ticketAgentStepOf(
+          specTicket,
           "resolve",
         ).numberedFindingsOf(findings),
       };
@@ -176,7 +180,13 @@ export class SessionReviewer extends SpecRunBase {
         `${issueRef.labelOf(issue)} has no findings waiting on this session; run review first.`,
       );
     }
-    const rules = this._agentStepOf(await this._specOf(issue), "resolve");
+    const rules = this._ticketAgentStepOf(
+      {
+        ticket: await this.config.github.issueOf(issue),
+        spec: await this._specOf(issue),
+      },
+      "resolve",
+    );
     const outputProblems = rules.outputProblems(output);
     if (outputProblems.length > 0) return brokenRulesOf(outputProblems);
     const { findings, base, hasSkippedReviewers } = pending;
@@ -243,7 +253,10 @@ export class SessionReviewer extends SpecRunBase {
     ticketRun: SessionTicketRun,
     { brief, session }: SubmittedReview,
   ): Promise<string | undefined> {
-    const { reviewerCheck } = this._agentStepOf(ticketRun.run.spec, "review");
+    const { reviewerCheck } = this._ticketAgentStepOf(
+      { ticket: ticketRun.ticket, spec: ticketRun.run.spec },
+      "review",
+    );
     if (reviewerCheck === undefined) return undefined;
     if (await this.reviewStepper._isInlineAllowed(ticketRun)) return undefined;
     const spawned = spawnedSubagentCountOf(
@@ -372,7 +385,7 @@ export class SessionReviewer extends SpecRunBase {
     const { run, ticket, state } = ticketRun;
     const reviewFacts = ticketSteps.reviewFactsOf(
       state,
-      this._workflowOf(run.spec),
+      this._ticketWorkflowOf({ ticket, spec: run.spec }),
     );
     this.factsFile.setReviewFacts(ticket.issue, reviewFacts);
     await this.reviewListPoster._postCoveredLaterNotes(

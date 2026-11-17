@@ -16,7 +16,7 @@ import { SpecRunBase } from "./SpecRunBase.ts";
 export class DraftPuller extends SpecRunBase {
   async _pull(ticketRun: TicketRun): Promise<void> {
     const { run, ticket, state } = ticketRun;
-    const rules = pullOf(this._workflowOf(run.spec));
+    const rules = pullOf(this._ticketWorkflowOf({ ticket, spec: run.spec }));
     const documentId = rules.deliverableOf(run.spec);
     if (documentId === undefined) {
       throw new UnhandledStop(

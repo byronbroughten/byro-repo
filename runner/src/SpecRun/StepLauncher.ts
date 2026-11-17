@@ -272,7 +272,7 @@ export class StepLauncher extends SpecRunBase {
         wallClockMs: knobs.wallClockMs[agent],
         targets,
         jsonSchema,
-        sessionSchema: this._sessionSchemaOf(run, agent),
+        sessionSchema: this._sessionSchemaOf(ticketRun, agent),
         logPath,
         ...overrides,
       });
@@ -293,9 +293,12 @@ export class StepLauncher extends SpecRunBase {
     return { kind: "ran", result };
   }
 
-  private _sessionSchemaOf(run: Run, agent: StepAgent): object | undefined {
+  private _sessionSchemaOf(
+    { run, ticket }: TicketRun,
+    agent: StepAgent,
+  ): object | undefined {
     if (!sharesImplementerSession(agent)) return undefined;
-    return sessionSchemaOf(this._workflowOf(run.spec));
+    return sessionSchemaOf(this._ticketWorkflowOf({ ticket, spec: run.spec }));
   }
 
   // Unretried: a step that belongs to the spec rather than a ticket, as the gap check does, handles its own turn cap.

@@ -96,7 +96,7 @@ export class TicketSequencer extends SpecRunBase {
             extraTurns,
           }) ?? "resume";
       }
-      const workflow = this._workflowOf(run.spec);
+      const workflow = this._ticketWorkflowOf({ ticket, spec: run.spec });
       state.step = entryStepOf(state, workflow.stepsOf(ticket));
       const pair = state.pair ?? pairOf(ticket.body);
       if (pair === undefined) {
@@ -280,7 +280,11 @@ export class TicketSequencer extends SpecRunBase {
       });
     }
     // In the sequence's order, so a step only ever advances the ticket to a later one.
-    const sequence = this._workflowOf(run.spec).stepsOf(ticketRun.ticket);
+    const { ticket } = ticketRun;
+    const sequence = this._ticketWorkflowOf({
+      ticket,
+      spec: run.spec,
+    }).stepsOf(ticket);
     for (const { step, nextOf } of sequence) {
       // The last step, wrap-up, is the landing _runTicket runs.
       if (state.step !== step || nextOf === undefined) continue;
