@@ -138,7 +138,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/SpecEndRunner.ts` | | Ends the run with its Workflow's spec-end Steps, the gap check's review list, the judge Step's stop and the push included. |
 | `SpecRun/StatusReporter.ts` | | A run's or Batch's status, and its stop request. |
 | `SpecRun/StepLauncher.ts` | | Launches an agent step under the limit guard, retries a crash, resumes a step a limit cut off and resumes once a record failing its schema check, delegating the limit waits to `StepLauncher/`. |
-| `SpecRun/StepLauncher/LimitWaiter.ts` | | Runs the launch check that picks and leases each step's account, holding a launch until an account is free and reads under its thresholds, and moves a step a limit cut off onto another free account, keeping the hit one unavailable to the run, every member of a Batch. |
+| `SpecRun/StepLauncher/LimitWaiter.ts` | | Runs the launch check that picks and leases each step's account, holding a launch until an account is free and reads under its thresholds, and moves a step a limit cut off onto another free account, keeping the hit one unavailable to the run. |
 | `SpecRun/TicketLander.ts` | | Lands a ticket: posts a research ticket's comment and raises its Research Halt, writes its facts file, runs the wrap-up and posts its review list, delegating its facts file, checks and wrap-up failures to `TicketLander/`. |
 | `SpecRun/TicketLander/FactsWriter.ts` | | Writes a ticket's facts file, a code ticket's or a research ticket's, and warns of session facts left unrecorded. |
 | `SpecRun/TicketLander/MasterMerger.ts` | | Takes a ticket's wrap-up failure, merging master into its branch on a conflict and resuming the implementer to resolve it. |

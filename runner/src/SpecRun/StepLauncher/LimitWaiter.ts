@@ -51,8 +51,7 @@ export class LimitWaiter extends SpecRunBase {
     return this._pollForLaunch(run, limitWaitNoticeOf);
   }
 
-  // One launch check with no wait, so the run-start notice can name the account the first launch takes; undefined when it would wait.
-  // The lease it takes is the one that launch keeps, as the check holds an account while it reads under.
+  // The lease it takes is the one the first launch keeps, as the check holds an account while it reads under.
   async _leaseIfFree(run: Run): Promise<AccountReading | undefined> {
     const check = await this._runLaunchCheck(run);
     if (check.kind === "launch") return check.reading;

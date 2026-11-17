@@ -153,6 +153,33 @@ describe("run's account lease", () => {
     ]);
   });
 
+  it("names the account a Batch holds in its status", async () => {
+    const first = refOf(301);
+    const second = refOf(302);
+    addIssue(first.number);
+    addIssue(second.number);
+    const statuses: string[] = [];
+    const members: [typeof first, typeof second] = [first, second];
+    const run = specRun(
+      FakeAgentStep.init(
+        async (request) => {
+          statuses.push(await run.status(first));
+          return implemented("first.ts")(request);
+        },
+        reviewed(),
+        implemented("second.ts"),
+        reviewed(),
+      ),
+      { members },
+    );
+
+    await run.run(...members);
+
+    expect(statuses.map((status) => status.split("\n").at(-1))).toEqual([
+      "Account: account 1: 5-hour 10%, weekly 20%.",
+    ]);
+  });
+
   it("takes over a lease a dead holder abandoned", async () => {
     addSpec([1]);
     seedLease(1, false);
@@ -207,6 +234,9 @@ describe("run's account lease", () => {
 
     expect(result.landed).toEqual([refOf(1)]);
     expect(accountsOf(agentStep)).toEqual([1, 1]);
+    expect(noticeSummaries()[0]).toBe(
+      "Run started on 1 tickets, waiting for a free account. Launching byro-repo #1.",
+    );
     expect(noticeSummaries()).toContain(
       "Limit wait: every account is leased by another run; continuing once an account reads under its thresholds. An account another run releases continues the run too.",
     );

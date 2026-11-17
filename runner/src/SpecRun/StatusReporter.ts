@@ -75,9 +75,8 @@ export class StatusReporter extends SpecRunBase {
       existsSync(this._stopRequestPathOf(memberIssue)),
     );
     if (isStopRequested) {
-      const subject = isBatch ? "Batch" : "run";
       lines.push(
-        `A stop is requested; the ${subject} ends after its current ticket.`,
+        `A stop is requested; the ${runSubjectOf(memberIssues)} ends after its current ticket.`,
       );
     }
     return lines.join("\n");
@@ -152,13 +151,17 @@ export class StatusReporter extends SpecRunBase {
       runLabelOf(memberIssues),
     );
     if (account === undefined) {
-      const subject = memberIssues.length > 1 ? "Batch" : "run";
-      return `none; the ${subject} holds no account lease`;
+      return `none; the ${runSubjectOf(memberIssues)} holds no account lease`;
     }
     const list = await this._usageListOf(lead);
     const usage = list?.readings.find((r) => r.account === account)?.usage;
     return accountLine.readingLabelOf(account, usage);
   }
+}
+
+function runSubjectOf(memberIssues: MemberList): string {
+  if (memberIssues.length > 1) return "Batch";
+  return "run";
 }
 
 function currentTextOf(run: Run, { ticket, holder }: Wait): string[] {

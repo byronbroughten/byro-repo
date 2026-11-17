@@ -119,7 +119,7 @@ The run ends early: on a failure no answer can fix inside the run (GitHub or `cl
 _Avoid_: abort, exit, kill
 
 **Limit wait**:
-The run, or a session's `runner review` or `resolve`, pauses because no account it could lease is under its thresholds, and continues unaided once one is, resuming a step a limit cut off. A step a limit cuts off resumes at once on another free account, so it waits only when none is; the run, every member of a Batch, keeps off the hit account until its reset, or after a limit error with no reset until it reads under its thresholds. A limit never Stops a run.
+The run, or a session's `runner review` or `resolve`, pauses because no account it could lease is under its thresholds, and continues unaided once one is, resuming a step a limit cut off. A step a limit cuts off resumes at once on another free account, so it waits only when none is; the run, and each member of a Batch, keeps off the hit account until its reset, or after a limit error with no reset until it reads under its thresholds. A limit never Stops a run.
 _Avoid_: cooldown, throttle
 
 **Restart**:
