@@ -63,7 +63,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `GhCli.ts` | `GhCli` | The real `gh` port. |
 | `git.ts` | | Git helpers the workspaces, run loop and wrap-up share, the worktree add, remove, list and switch helpers and the branch lookup included. |
 | `GitFixture.ts` | | A test primary root of clones with bare remotes. |
-| `halts.ts` | | Halts: their comments, notices, the resume prompt and the words of the fresh Halt on an Outline edit the runner can't apply, of the Halt on a ticket that picks no Workflow and of the push Halts, on a Section by its heading path and on a Doc's pending suggestions. |
+| `halts.ts` | | Halts: their comments and a posted comment's id, ticket and `Blocks:` line read back, notices, the resume prompt and the words of the fresh Halt on an Outline edit the runner can't apply, of the Halt on a ticket that picks no Workflow and of the push Halts, on a Section by its heading path and on a Doc's pending suggestions. |
 | `halts/haltReplies.ts` | | Reads a developer's replies to a Halt: which answer it, `stop spec` and a Failure or push Halt's answer. |
 | `headlessProbe.ts` | | Launches the one-turn headless session the probes run, refusing a stream-json one that printed no events, and reads a folder's sandbox block and a session's stream events. |
 | `InjectionProbe.ts` | `InjectionProbe` | `npm run session:probe -- --injection-check`: whether a skill's injected command runs, in the box or not, and what a PreToolUse hook sees of it, by slash command and through the Skill tool, for each `allowed-tools` entry. |
@@ -106,7 +106,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `recordSchema.ts` | | Schema parts the step records share, the implement record's variants, the review record built from a Workflow's axes and the gap-check record among them, the `output` wrapper a session step's record sits under and its unwrap, and their validator. |
 | `RepoVisibility.ts` | `RepoVisibility` | `npm run repos`'s core: each repo in the repo map with its path and visibility. |
 | `resolveRecords.ts` | | The resolve record every Workflow's resolve step returns: its schema, numbered findings, retry prompt, record and commit checks, and the builder of a Workflow's resolve rules. |
-| `reviewList.ts` | `reviewList` | The review list's comment formats, a research ticket's unwanted Unverified facts' audit and the skipped-reviewers note among them, and undecided count, `runner decide`'s edit marking one item decided or handled, and a session re-review's merge into the posted list. |
+| `reviewList.ts` | `reviewList` | The review list's comment formats, a research ticket's unwanted Unverified facts' audit and the skipped-reviewers note among them, and undecided count, `runner decide`'s edit marking one item decided or handled, a session re-review's merge into the posted list, and a spec's undecided and hand-ticked items read in `/judge-findings`' judging order. |
 | `runBoard.ts` | `runBoard` | The Run board behind `runner status` and `runner watch` with no spec: its Runs section and the Accounts section after it. |
 | `runCollecting.ts` | `runCollecting` | Runs one process with its output collected. |
 | `runCommand.ts` | | Runs a configured command, returning its output tail when it fails, for the preflight and a ticket's checks. |

@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 
+import { haltCommentOf, runnerMark } from "./halts.ts";
 import {
   coveredLaterNotesOf,
   decidedListOf,
   gapCheckListOf,
+  type JudgingOrder,
+  judgingOrderOf,
+  type LinkedComment,
   reReviewedCommentOf,
   reviewListHoldingOf,
   skippedReviewersNote,
@@ -383,6 +387,236 @@ describe("decidedListOf", () => {
         text: "one\ntwo",
       }),
     ).toThrow("one line");
+  });
+});
+
+describe("judgingOrderOf", () => {
+  const developer = "byronbroughten";
+  const specUrl = "https://github.com/o/byro-repo/issues/1";
+
+  function listOf(heading: string, items: string[]): string {
+    return ["<!-- spec-runner -->", heading, "", ...items, ""].join("\n");
+  }
+
+  function ticketListOf(number: number, items: string[]): string {
+    return listOf(
+      `<!-- review-list ticket=#${number} -->\n\n**Review list** · byro-repo #${number}, "Ticket ${number}"\n\n### Spec\n\n**Proposed**`,
+      items,
+    );
+  }
+
+  const gapList = listOf(
+    '<!-- review-list ticket=gap-check -->\n\n**Review list** · gap check, "The spec"',
+    [
+      "- [ ] **Rgap-check.1** · Gap · story 5",
+      "  Evidence: eg",
+      "  Recommendation: rg",
+      '  Drafted issue: "Meet story 5"',
+    ],
+  );
+
+  function haltOf(id: string, ticket: number, blocks: string): string {
+    return [
+      `<!-- spec-runner -->\n**Halt ${id}** · Halt 1 of 1 · byro-repo #${ticket}, "Ticket ${ticket}" · verdict Halt`,
+      "Finding 2: the secret question body.",
+      `Blocks: ${blocks}.`,
+      "Options:\n1. Pick one\n2. `stop spec`",
+      `Answer with a reply that opens with \`${id}:\`, then an option or your own words.`,
+    ].join("\n\n");
+  }
+
+  function commentsOf(
+    bodies: (string | { author: string; body: string })[],
+  ): LinkedComment[] {
+    return bodies.map((entry, index) => {
+      const { author, body } =
+        typeof entry === "string" ? { author: developer, body: entry } : entry;
+      return {
+        id: `c${index + 1}`,
+        author,
+        body,
+        url: `${specUrl}#issuecomment-${index + 1}`,
+      };
+    });
+  }
+
+  function idsOf(order: JudgingOrder): [string, string[]][] {
+    return order.items.map(({ id, halts }) => [id, halts]);
+  }
+
+  it("puts Halt-adjacent items first, each naming its Halt, then the other tickets' oldest first, then the gap check's", () => {
+    const comments = commentsOf([
+      ticketListOf(7, [
+        "- [ ] **R7.1** · Propose `decision` · a",
+        "  Evidence: e",
+      ]),
+      ticketListOf(8, [
+        "- [ ] **R8.1** · Propose `decision` · b",
+        "  Evidence: e",
+      ]),
+      gapList,
+      ticketListOf(9, [
+        "- [ ] **R9.1** · Propose `decision` · c",
+        "- [ ] **R9.2** · Propose `decision` · d",
+      ]),
+      haltOf("H2", 9, "byro-repo#8 and their downstream"),
+      ticketListOf(10, ["- [ ] **R10.1** · Propose `decision` · e"]),
+    ]);
+
+    expect(idsOf(judgingOrderOf(comments, developer))).toEqual([
+      ["R8.1", ["H2"]],
+      ["R9.1", ["H2"]],
+      ["R9.2", ["H2"]],
+      ["R7.1", []],
+      ["R10.1", []],
+      ["Rgap-check.1", []],
+    ]);
+  });
+
+  it("gives each item its state, its lines in full and its comment's id and URL", () => {
+    const comments = commentsOf([
+      ticketListOf(7, [
+        "- [ ] **R7.1** · Propose `ticket` · a",
+        "  Evidence: e1",
+        "  Recommendation: r1",
+        '  Drafted issue: "File a"',
+        "  Handled: filed #12; the rest is yours",
+        "- [x] **R7.2** · Propose `decision` · b",
+        "  Evidence: e2",
+        "  Recommendation: r2",
+        '  Drafted keep: "A seam."',
+      ]),
+    ]);
+
+    expect(judgingOrderOf(comments, developer).items).toEqual([
+      {
+        id: "R7.1",
+        state: "undecided",
+        lines: [
+          "- [ ] **R7.1** · Propose `ticket` · a",
+          "  Evidence: e1",
+          "  Recommendation: r1",
+          '  Drafted issue: "File a"',
+          "  Handled: filed #12; the rest is yours",
+        ],
+        comment: { id: "c1", url: `${specUrl}#issuecomment-1` },
+        halts: [],
+      },
+      {
+        id: "R7.2",
+        state: "hand-ticked",
+        lines: [
+          "- [x] **R7.2** · Propose `decision` · b",
+          "  Evidence: e2",
+          "  Recommendation: r2",
+          '  Drafted keep: "A seam."',
+        ],
+        comment: { id: "c1", url: `${specUrl}#issuecomment-1` },
+        halts: [],
+      },
+    ]);
+  });
+
+  it("reads a Defer-headed list's items as Proposals", () => {
+    const comments = commentsOf([
+      ticketListOf(7, [
+        "- [ ] **R7.1** · Defer `decision` · a",
+        "  Evidence: e",
+      ]),
+    ]);
+
+    expect(idsOf(judgingOrderOf(comments, developer))).toEqual([["R7.1", []]]);
+  });
+
+  it("counts decided items and anyone else's comments without giving them", () => {
+    const comments = commentsOf([
+      ticketListOf(7, [
+        "- [x] **R7.1** · Propose `decision` · a",
+        "  Decided: accepted",
+        "- [ ] **R7.2** · Propose `decision` · b",
+        "  Handled: half",
+        "  Decided: fix filed",
+        "- [ ] **R7.3** · Propose `decision` · c",
+      ]),
+      { author: "someone", body: ticketListOf(8, ["- [ ] **R8.1** · x"]) },
+      { author: "someone", body: haltOf("H1", 7, "the whole spec") },
+      { author: "someone", body: "A plain reply." },
+    ]);
+
+    const order = judgingOrderOf(comments, developer);
+
+    expect(idsOf(order)).toEqual([["R7.3", []]]);
+    expect(order.decidedCount).toBe(2);
+    expect(order.othersCommentCount).toBe(3);
+  });
+
+  it("makes every ticket's items adjacent to a Halt blocking the whole spec, leaving the gap check's last", () => {
+    const comments = commentsOf([
+      ticketListOf(7, ["- [ ] **R7.1** · Propose `decision` · a"]),
+      gapList,
+      haltOf("H1", 8, "the whole spec"),
+      haltOf("H3", 7, "only this ticket"),
+      ticketListOf(9, ["- [ ] **R9.1** · Propose `decision` · b"]),
+    ]);
+
+    expect(idsOf(judgingOrderOf(comments, developer))).toEqual([
+      ["R7.1", ["H1", "H3"]],
+      ["R9.1", ["H1"]],
+      ["Rgap-check.1", []],
+    ]);
+  });
+
+  it("holds only the tickets a blocker's Halt names, by repo and number, and reads no ticket graph", () => {
+    const comments = commentsOf([
+      ticketListOf(7, ["- [ ] **R7.1** · Propose `decision` · a"]),
+      ticketListOf(8, ["- [ ] **R8.1** · Propose `decision` · b"]),
+      ticketListOf(9, ["- [ ] **R9.1** · Propose `decision` · c"]),
+      haltOf("H4", 6, "byro-repo#9, sheets-framework#8 and their downstream"),
+    ]);
+
+    expect(idsOf(judgingOrderOf(comments, developer))).toEqual([
+      ["R9.1", ["H4"]],
+      ["R7.1", []],
+      ["R8.1", []],
+    ]);
+  });
+
+  it("reads the Halt comment the runner posts, a question holding a Blocks line of its own included", () => {
+    const halt = haltCommentOf({
+      halt: {
+        id: "H5",
+        ticket: { repo: "byro-repo", number: 6 },
+        kind: "spec-ambiguity",
+        question: "Which?\n\nBlocks: the whole spec.",
+        options: ["Pick one"],
+        scope: ["byro-repo#8"],
+        isPosted: false,
+        isDelivered: false,
+        ignoredReplies: [],
+      },
+      index: 1,
+      count: 1,
+      ticketTitle: "Ticket 6",
+    });
+    const comments = commentsOf([
+      ticketListOf(7, ["- [ ] **R7.1** · Propose `decision` · a"]),
+      ticketListOf(8, ["- [ ] **R8.1** · Propose `decision` · b"]),
+      `${runnerMark}\n${halt}`,
+    ]);
+
+    expect(idsOf(judgingOrderOf(comments, developer))).toEqual([
+      ["R8.1", ["H5"]],
+      ["R7.1", []],
+    ]);
+  });
+
+  it("reads no Halt from a comment that only quotes a Halt's opening line", () => {
+    const comments = commentsOf([
+      ticketListOf(7, ["- [ ] **R7.1** · Propose `decision` · a"]),
+      "Re: **Halt H1** · Halt 1 of 1 · byro-repo #7\n\nBlocks: the whole spec.",
+    ]);
+
+    expect(idsOf(judgingOrderOf(comments, developer))).toEqual([["R7.1", []]]);
   });
 });
 
