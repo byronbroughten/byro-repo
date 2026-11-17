@@ -93,6 +93,7 @@ export const runKnobs = loadRunKnobs(
   join(scriptFolder, "runner.config.json"),
   clonePathsOf(primaryRoot),
 );
+export const repoMap = { githubOwner, clonePaths: runKnobs.clonePaths };
 
 export const issueWorkspacesConfig: IssueWorkspacesConfig = {
   primaryRoot,

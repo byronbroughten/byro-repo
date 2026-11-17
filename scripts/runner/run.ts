@@ -1,5 +1,5 @@
 // Runs a spec's tickets to landed, one at a time, or a Batch's given several numbers; rerunning the same command resumes. Progress is in .runner/<repo>-<n>.log.
-// Usage below; every verb but the run itself takes one number, a Batch's any member's. `review` and `resolve` take a session's ticket, not a spec, and `resolve` the path of the session's records.
+// Usage below; each `<repo>` is a bare name the repo map holds, as issue:start takes, or `<owner>/<repo>`. Every verb but the run itself takes one number, a Batch's any member's. `review` and `resolve` take a session's ticket, not a spec, and `resolve` the path of the session's records.
 // `review` alone prints the review brief and records its start; with the session's review record and `--session <id>` it submits the review (SpecRun/SessionReviewer.ts).
 // Exit 1 is a run short of finished, a review short of its brief, reviewed or its findings, or refused records; 2 is a crash, which tmux.sh pushes;
 // 3 is a Restart, which tmux.sh relaunches.
@@ -40,15 +40,15 @@ import { configFolderOf } from "@byronbroughten/spec-runner/transcriptFacts";
 
 import { nearestClaudeAncestor } from "./claudeAncestor.ts";
 import { activeAccount } from "./cswapAccount.ts";
-import { launchArgsOf } from "./launchArgs.ts";
-import { specRunConfigOf, stateFolder } from "./runnerConfig.ts";
+import { launchArgsOf, type RepoArgs, repoArgsOf } from "./launchArgs.ts";
+import { repoMap, specRunConfigOf, stateFolder } from "./runnerConfig.ts";
 import { type WatchDeps, watchOnce, watchRun } from "./runWatch.ts";
 
 // tmux.sh writes a crash's run-ended line and relaunches only on a restart.
 const exitCodes = { short: 1, crash: 2, restart: 3 } as const;
 const plainVerbs = ["status", "stop"];
 const boardVerbs = ["status", "watch"];
-// Each verb that takes only `<owner/repo>` and prints what its SpecRun method resolves to.
+// Each verb that takes only `<repo>` and prints what its SpecRun method resolves to.
 const repoListers = {
   judgeable(specRun: SpecRun, repo: string): Promise<string> {
     return specRun.judgeable(repo);
@@ -69,7 +69,7 @@ const verbs = [
   ...repoVerbs,
 ];
 const handoffHeading = "## Handoff from the last Supervisor";
-const usage = `Usage: npm run runner -- <owner/repo> <n> [<n>…] to run one spec or a Batch, ${plainVerbs.join("|")} <owner/repo> <n>, watch <owner/repo> <n> [--once], review <owner/repo> <n> [<review.json> --session <id>], resolve <owner/repo> <n> <records.json>, supervise <owner/repo> <n> [--advance], decide <owner/repo> <spec> R<n>.<k> [--handled] "<text>", ${repoVerbs.join("|")} <owner/repo>, or [${boardVerbs.join("|")}] alone for the Run board`;
+const usage = `Usage: npm run runner -- <repo> <n> [<n>…] to run one spec or a Batch, ${plainVerbs.join("|")} <repo> <n>, watch <repo> <n> [--once], review <repo> <n> [<review.json> --session <id>], resolve <repo> <n> <records.json>, supervise <repo> <n> [--advance], decide <repo> <spec> R<n>.<k> [--handled] "<text>", ${repoVerbs.join("|")} <repo>, or [${boardVerbs.join("|")}] alone for the Run board; each <repo> also takes <owner>/<repo>`;
 
 try {
   const args = process.argv.slice(2);
@@ -130,21 +130,16 @@ interface SpecArgs {
   issue: IssueRef;
 }
 
-interface RepoArgs {
-  owner: string;
-  repo: string;
+// Throws the usage for anything but `<repo>` the repo map holds or `<owner>/<repo>`.
+function requiredRepoArgsOf(ownerRepo: string): RepoArgs {
+  const repoArgs = repoArgsOf(ownerRepo, repoMap);
+  if (repoArgs === undefined) throw new Error(usage);
+  return repoArgs;
 }
 
-// Throws the usage for anything but `<owner/repo>`.
-function repoArgsOf(ownerRepo: string): RepoArgs {
-  const [owner, repo] = ownerRepo.split("/");
-  if (!owner || !repo) throw new Error(usage);
-  return { owner, repo };
-}
-
-// Throws the usage for anything but `<owner/repo> <n>`.
+// Throws the usage for anything but `<repo> <n>` or `<owner>/<repo> <n>`.
 function specArgsOf(ownerRepo: string, number: string | undefined): SpecArgs {
-  const { owner, repo } = repoArgsOf(ownerRepo);
+  const { owner, repo } = requiredRepoArgsOf(ownerRepo);
   if (!Number.isInteger(Number(number))) throw new Error(usage);
   return { owner, issue: { repo, number: Number(number) } };
 }
@@ -195,7 +190,7 @@ function watchDepsOf(): WatchDeps {
 
 // Several numbers run one Batch; a Restart reruns the same list (tmux.sh).
 async function runBatch(args: string[]): Promise<void> {
-  const launch = launchArgsOf(args);
+  const launch = launchArgsOf(args, repoMap);
   if (launch === undefined) throw new Error(usage);
   const specRun = SpecRun.init(specRunConfigOf(launch.owner));
   const result = await specRun.run(...launch.members);
@@ -290,7 +285,7 @@ function isRepoVerb(command: string): command is RepoVerb {
 
 async function listForRepo(command: RepoVerb, args: string[]): Promise<void> {
   const [ownerRepo = "", ...rest] = args;
-  const { owner, repo } = repoArgsOf(ownerRepo);
+  const { owner, repo } = requiredRepoArgsOf(ownerRepo);
   if (rest.length > 0) throw new Error(usage);
   const specRun = SpecRun.init(specRunConfigOf(owner));
   console.log(await repoListers[command](specRun, repo));
