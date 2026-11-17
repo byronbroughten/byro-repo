@@ -4,7 +4,7 @@ description: "Supervise one spec run or one Batch from an interactive session: l
 disable-model-invocation: true
 ---
 
-`/runner <repo> <n>` makes this session the Supervisor of spec `<n>`'s run; `/runner <repo> <n> <n>…` does the same for the Batch of those specs, in one tmux session with one watch. `/runner <repo> standalone` names that list by the repo's launchable Standalone tickets: step 1 shows it and launches it after a yes. Its words (Supervisor, Batch, Halt, Failure Halt, Split Halt, Idle, Vanished, Stop, Restart, Interactive ticket) are in [`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md). Every `<repo>` below is the bare repo name, resolved through the repo map.
+`/runner <repo> <n>` makes this session the Supervisor of spec `<n>`'s run; `/runner <repo> <n> <n>…` does the same for the Batch of those specs, in one tmux session with one watch. `/runner <repo> standalone` names that list by the repo's launchable Standalone tickets: step 1 shows it and launches it after a yes. Its words (Supervisor, Batch, Halt, Failure Halt, Split Halt, Idle, Vanished, Stop, Restart, Interactive ticket) are in [`runner/GLOSSARY.md`](../../../runner/GLOSSARY.md). Every `<repo>` below is the bare repo name, resolved through the repo map; `<owner>/<repo>`, the form a handoff's or the context nudge's `/runner` line prints, works too.
 
 For a Batch, `<n>` in every command below except `open` is any one member's number: `status`, `watch`, `supervise` and `stop` each reach the whole Batch through it. `open` takes the whole list.
 
