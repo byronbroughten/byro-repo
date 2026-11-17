@@ -1,4 +1,9 @@
-import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -73,6 +78,15 @@ function seedLiveRunLock(member: IssueRef): void {
     join(stateFolder(), `${issueRef.fileStemOf(member)}.run.lock`),
     liveHolder(),
   );
+}
+
+async function seedHandoff(text: string): Promise<void> {
+  const records = SupervisionRecords.init(stateFolder());
+  await records.supervise(earlierSupervisor, "byronbroughten", spec);
+  await records.end(earlierSupervisor, "clear");
+  const handoffPath = records.handoffPathOf(spec);
+  mkdirSync(dirname(handoffPath), { recursive: true });
+  writeFileSync(handoffPath, text);
 }
 
 function appendEvents(...lines: string[]): void {
@@ -169,12 +183,7 @@ describe("open", () => {
   it("prints a waiting handoff once and deletes it", async () => {
     addSpec([1]);
     seedLiveRunLock(spec);
-    const records = SupervisionRecords.init(stateFolder());
-    await records.supervise(earlierSupervisor, "byronbroughten", spec);
-    await records.end(earlierSupervisor, "clear");
-    const handoffPath = records.handoffPathOf(spec);
-    mkdirSync(dirname(handoffPath), { recursive: true });
-    writeFileSync(handoffPath, "Ticket 1 waits on H1.");
+    await seedHandoff("Ticket 1 waits on H1.");
 
     const firstOpen = await open(new ScriptedLauncher(started), spec);
     const secondOpen = await open(new ScriptedLauncher(started), spec);
@@ -186,4 +195,27 @@ describe("open", () => {
       "## Handoff from the last Supervisor",
     );
   });
+
+  // 2.5 KB keeps the call a small fraction of one ~32K Setup turn it replaces, so /runner opens cheaper than it did.
+  it("rejoins a real run's records in one output of under 2.5 KB", async () => {
+    addSpec([1]);
+    seedLiveRunLock(spec);
+    const events = readFixture("byro-repo-729.events.jsonl");
+    const handoff = readFixture("byro-repo-729.handoff.md");
+    appendEvents(...events.trimEnd().split("\n"));
+    await seedHandoff(handoff);
+
+    const result = await open(new ScriptedLauncher(started), spec);
+
+    expect(result.text).toContain(handoff);
+    expect(result.text).toContain(events.trimEnd());
+    expect(Buffer.byteLength(result.text)).toBeLessThan(2500);
+  });
 });
+
+function readFixture(name: string): string {
+  return readFileSync(
+    join(import.meta.dirname, "SpecRun", "fixtures", name),
+    "utf8",
+  );
+}
