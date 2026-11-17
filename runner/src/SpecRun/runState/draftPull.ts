@@ -1,15 +1,10 @@
-// The pull the runner's pull Step (../DraftPuller.ts) and `npm run piece:pull` (../../PiecePull.ts) share: the spec's repo
-// promoted onto the ticket's branch, the Agent draft its Workflow pulls from the Deliverable's Doc written into it, and committed.
+// The pull the runner's pull Step (../DraftPuller.ts) and `npm run piece:pull` (../../PiecePull.ts) share, once each has
+// promoted the spec's repo onto the ticket's branch: the Agent draft its Workflow pulls from the Deliverable's Doc written, and committed.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-import {
-  type IssueRef,
-  issueRef,
-  type IssueWorkspaces,
-  type Workspace,
-} from "../../IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "../../IssueWorkspaces.ts";
 import type { PulledDraft, PullRules } from "../../Workflow.ts";
 import { draftCommits, type DraftFile } from "./draftCommits.ts";
 
@@ -32,16 +27,6 @@ export interface SpecTicketRefs {
 }
 
 export const draftPull = {
-  // The spec's repo is the ticket's own unless the ticket was filed elsewhere, so it may still sit detached at master.
-  async promotedOf(
-    workspaces: IssueWorkspaces,
-    workspace: Workspace,
-    repo: string,
-  ): Promise<Workspace> {
-    if (workspace.branchedRepos.includes(repo)) return workspace;
-    return workspaces.promote(workspace, repo);
-  },
-
   async written({
     rules,
     spec,

@@ -1,6 +1,3 @@
-import { join } from "node:path";
-
-import type { ClonePaths } from "./clonePaths.ts";
 import {
   type IssueSource,
   type ReadableIssue,
@@ -24,7 +21,6 @@ export interface PiecePullConfig {
   source: IssueSource;
   developer: string;
   workspaces: IssueWorkspaces;
-  clonePaths: ClonePaths;
   // The piece Workflow's Docs port here reads as the agent account, not the runner's clasp login.
   workflows: Workflows;
 }
@@ -58,13 +54,9 @@ export class PiecePull {
 
   async pull(ticket: IssueRef): Promise<string> {
     const { rules, spec, documentId, workspace } = await this._pullOf(ticket);
-    const { workspaces, clonePaths } = this.config;
-    const promoted = await draftPull.promotedOf(
-      workspaces,
-      workspace,
-      spec.repo,
-    );
-    const clone = join(promoted.path, clonePathOf(clonePaths, spec.repo));
+    const { workspaces } = this.config;
+    const promoted = await workspaces.promote(workspace, spec.repo);
+    const clone = workspaces.worktreeOf(promoted, spec.repo);
     const written = await draftPull.written({
       rules,
       spec,
@@ -108,10 +100,8 @@ export class PiecePull {
 
   private _rulesOf(read: ReadTicket): PullRules {
     const workflow = pickedWorkflowOf(read, this.config.workflows);
-    const isDrafting =
-      workflow.pull !== undefined &&
-      workflow.stepsOf(read.ticket).some(({ step }) => step === "pull");
-    if (!isDrafting) {
+    // An Edit gate ticket walks the drafting Steps too, but the Agent draft there is the developer's to edit.
+    if (workflow.sessionSkillOf(read.ticket) !== "implement-piece") {
       throw new Error(
         `${issueRef.labelOf(read.ticket.issue)} is not a drafting ticket: its Workflow has no pull Step, so piece:pull has nothing to pull.`,
       );
@@ -125,14 +115,6 @@ interface Printed {
   documentId: string;
   isCommitted: boolean;
   promoted: Workspace;
-}
-
-function clonePathOf(clonePaths: ClonePaths, repo: string): string {
-  const clonePath = clonePaths[repo];
-  if (clonePath === undefined) {
-    throw new Error(`${repo} is not in the repo map, so it has no clone.`);
-  }
-  return clonePath;
 }
 
 function printedOf({

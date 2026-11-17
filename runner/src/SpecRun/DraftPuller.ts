@@ -41,8 +41,8 @@ export class DraftPuller extends SpecRunBase {
   private async _specCloneOf(ticketRun: TicketRun): Promise<string> {
     const { repo } = ticketRun.run.spec.issue;
     const clone = this._cloneIn(ticketRun.workspace, repo);
-    ticketRun.workspace = await draftPull.promotedOf(
-      this.workspaces,
+    // The spec's repo is the ticket's own unless the ticket was filed elsewhere, so it may still sit detached at master.
+    ticketRun.workspace = await this.workspaces.promote(
       ticketRun.workspace,
       repo,
     );

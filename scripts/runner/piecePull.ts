@@ -20,7 +20,6 @@ import {
   githubOwner,
   issueWorkspacesConfig,
   pieceWorkflowOver,
-  runKnobs,
   workflows,
 } from "./runnerConfig.ts";
 
@@ -41,7 +40,6 @@ if (
       source: new GhCli(githubOwner),
       developer,
       workspaces: IssueWorkspaces.init(issueWorkspacesConfig),
-      clonePaths: runKnobs.clonePaths,
       workflows: {
         ...workflows,
         piece: pieceWorkflowOver(agentDocumentsOf()),

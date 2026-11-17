@@ -9,11 +9,11 @@ import { git } from "./GitFixture.ts";
 import type { ReadableIssue } from "./IssueReader.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import {
-  clonePaths,
   useIssueWorkspacesHarness,
   workspaces,
 } from "./issueWorkspacesHarness.ts";
 import { PiecePull } from "./PiecePull.ts";
+import { humanLabel } from "./SpecRun/runState.ts";
 import { pieceDrafts } from "./specRunHarness/pieceDrafts.ts";
 import { codeWorkflowOf } from "./Workflow/code/codeWorkflow.ts";
 import { pieceWorkflowOf } from "./Workflow/piece/pieceWorkflow.ts";
@@ -67,7 +67,6 @@ function piecePull(): PiecePull {
     source,
     developer,
     workspaces: workspaces(),
-    clonePaths,
     workflows: {
       code: codeWorkflowOf({ checks: [], reviewSkillName: "code-review" }),
       piece: pieceWorkflowOf({
@@ -143,6 +142,19 @@ describe("PiecePull", () => {
 
       await expect(piecePull().pull(ticket)).rejects.toThrow(
         "utils #7 is not a drafting ticket: its Workflow has no pull Step, so piece:pull has nothing to pull.",
+      );
+      expect(existsSync(join(path, pieceDrafts.draftPath))).toBe(false);
+    });
+
+    it("an Edit gate ticket", async () => {
+      source.issues.set(
+        ticket.number,
+        readableOf(ticket, { parent: spec, labels: [humanLabel] }),
+      );
+      const { path } = await workspaces().create(ticket);
+
+      await expect(piecePull().pull(ticket)).rejects.toThrow(
+        "utils #7 is not a drafting ticket",
       );
       expect(existsSync(join(path, pieceDrafts.draftPath))).toBe(false);
     });
