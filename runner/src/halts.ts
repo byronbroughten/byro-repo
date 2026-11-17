@@ -1,4 +1,4 @@
-// Halts: the Halts a ticket's steps raise, the spec-issue comment and notice line each is posted as, and the prompt
+// Halts: the Halts a ticket's steps raise, the spec-issue comment and notice line each is posted as, that comment's id, ticket and scope read back, and the prompt
 // that hands every answer back to the ticket's resumed or fresh implementer; which replies answer one is ./halts/haltReplies.ts.
 // SpecRun.ts keeps them in run state, blocks the tickets in their scope and resumes the halted ticket once all are answered.
 
@@ -379,10 +379,58 @@ export function haltNoticeOf(post: HaltPost): string {
   return `${haltLabelOf(post)}: a ${haltKindLabelOf(halt.kind)} needs an answer (${halt.id}).`;
 }
 
+const scopeTexts = {
+  spec: "the whole spec",
+  ticketOnly: "only this ticket",
+  downstreamTail: " and their downstream",
+  separator: ", ",
+} as const;
+
 function scopeTextOf(scope: HaltScope): string {
-  if (scope === "spec") return "the whole spec";
-  if (scope.length === 0) return "only this ticket";
-  return `${scope.join(", ")} and their downstream`;
+  if (scope === "spec") return scopeTexts.spec;
+  if (scope.length === 0) return scopeTexts.ticketOnly;
+  return `${scope.join(scopeTexts.separator)}${scopeTexts.downstreamTail}`;
+}
+
+// scopeTextOf's inverse; undefined where the text is none of its forms.
+function scopeOfText(text: string): HaltScope | undefined {
+  if (text === scopeTexts.spec) return "spec";
+  if (text === scopeTexts.ticketOnly) return [];
+  if (!text.endsWith(scopeTexts.downstreamTail)) return undefined;
+  const tickets = text.slice(0, -scopeTexts.downstreamTail.length);
+  return tickets.split(scopeTexts.separator);
+}
+
+// What a posted run Halt's comment says of itself outside its question and options.
+export interface PostedHalt {
+  // `H<n>`.
+  id: string;
+  // The halted ticket, as `<repo>#<n>`.
+  ticket: string;
+  scope: HaltScope;
+}
+
+// The opening line haltCommentWith writes, for a run's `H<n>` only.
+const postedHaltHead = /^\*\*Halt (H\d+)\*\* · Halt \d+ of \d+ · (.+?), "/;
+
+// Undefined where the body isn't a run Halt's comment; the question and options are never read.
+export function postedHaltOf(body: string): PostedHalt | undefined {
+  const paragraphs = body
+    .replace(runnerMark, "")
+    .replaceAll("\r\n", "\n")
+    .trim()
+    .split("\n\n");
+  const head = postedHaltHead.exec(paragraphs[0] ?? "");
+  if (head === null) return undefined;
+  const [, id = "", label = ""] = head;
+  // The Blocks line is the paragraph just before the options, as a question may hold one of its own.
+  const optionsAt = paragraphs.findLastIndex((paragraph) =>
+    paragraph.startsWith("Options:\n"),
+  );
+  const blocks = /^Blocks: (.+)\.$/.exec(paragraphs[optionsAt - 1] ?? "");
+  const scope = blocks === null ? undefined : scopeOfText(blocks[1] ?? "");
+  if (scope === undefined) return undefined;
+  return { id, ticket: shortRefOf(issueRef.ofLabel(label)), scope };
 }
 
 export function isRunnersComment({ body }: IssueComment): boolean {

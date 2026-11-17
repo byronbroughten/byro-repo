@@ -2,11 +2,17 @@
 // collapsed audit, each departure from a suggested verdict with its why, a research ticket's unwanted Unverified facts in a
 // collapsed audit of their own, and a note when the review skipped its reviewers; a run posts it on the spec, a session posts and prints it.
 // Also the gap check's comment in the same format, the note a `covered-later` Dismiss leaves on its later ticket,
-// the count of undecided items the end-of-run push gives, the edit `runner decide` makes to one item, and a session re-review's merge into the posted list.
+// the count of undecided items the end-of-run push gives, the edit `runner decide` makes to one item, a session re-review's merge into the posted list,
+// and a spec's undecided items in /judge-findings' judging order, for the judge brief.
 // SpecRun/ReviewListPoster.ts posts them, TicketLander.ts calling it at landing and SpecRun/SessionReviewer.ts after a
 // session's review, which also returns the ticket's to print; WrapUp.ts counts a Standalone ticket's; SpecRun/ReviewItemDecider.ts edits one; the gap check of the Workflows the spec's tickets pick supplies the gaps.
 
-import { isRunnersComment, shortRefOf } from "./halts.ts";
+import {
+  isRunnersComment,
+  type PostedHalt,
+  postedHaltOf,
+  shortRefOf,
+} from "./halts.ts";
 import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import type { IssueComment } from "./SpecRun.ts";
 import {
@@ -704,6 +710,119 @@ export function reviewListHoldingOf(
     );
   }
   throw new Error(`No review list of ${developer}'s holds ${itemId}.`);
+}
+
+// A spec comment with the link `gh issue view --json comments` gives it.
+export interface LinkedComment extends IssueComment {
+  url: string;
+}
+
+// An undecided item's box is unticked, a hand-ticked one's ticked; either has no `Decided:` line.
+export type JudgedState = "undecided" | "hand-ticked";
+
+export interface JudgingItem {
+  id: string;
+  state: JudgedState;
+  // The head line and each indented line under it, as posted.
+  lines: string[];
+  comment: { id: string; url: string };
+  // Each Halt making the item Halt-adjacent, as `H<k>`; empty when none does.
+  halts: string[];
+}
+
+// What the judge brief prints of a spec: the items /judge-findings asks, and counts of what it leaves out.
+export interface JudgingOrder {
+  items: JudgingItem[];
+  decidedCount: number;
+  othersCommentCount: number;
+}
+
+// /judge-findings' step 2 order: Halt-adjacent items first, then the other tickets', then the gap check's, each part oldest comment first.
+// The comments are the spec's, oldest first.
+export function judgingOrderOf(
+  comments: LinkedComment[],
+  developer: string,
+): JudgingOrder {
+  const developers = comments.filter(({ author }) => author === developer);
+  const halts = developers
+    .filter(isRunnersComment)
+    .flatMap(({ body }) => postedHaltOf(body) ?? []);
+  const read = developers
+    .filter((comment) => isDevelopersReviewList(comment, developer))
+    .map((comment) => readListOf(comment, halts));
+  const ticketItems = read
+    .filter(({ isGapCheck }) => !isGapCheck)
+    .flatMap(({ judged }) => judged);
+  return {
+    items: [
+      ...ticketItems.filter(({ halts: named }) => named.length > 0),
+      ...ticketItems.filter(({ halts: named }) => named.length === 0),
+      ...read
+        .filter(({ isGapCheck }) => isGapCheck)
+        .flatMap(({ judged }) => judged),
+    ],
+    decidedCount: read.reduce((count, { decided }) => count + decided, 0),
+    othersCommentCount: comments.length - developers.length,
+  };
+}
+
+interface ReadList {
+  isGapCheck: boolean;
+  judged: JudgingItem[];
+  decided: number;
+}
+
+function readListOf(comment: LinkedComment, halts: PostedHalt[]): ReadList {
+  const ticket = listTicketOf(comment.body);
+  // The gap check is no ticket, so no Halt holds its items.
+  const adjacent =
+    ticket === undefined
+      ? []
+      : halts
+          .filter((halt) => isHaltAdjacent(halt, ticket))
+          .map(({ id }) => id);
+  const listed = listedItemsOf(comment.body);
+  const judged = listed.flatMap(({ id, lines }): JudgingItem[] => {
+    const state = judgedStateOf(lines);
+    if (state === undefined) return [];
+    const { id: commentId, url } = comment;
+    return [
+      { id, state, lines, comment: { id: commentId, url }, halts: adjacent },
+    ];
+  });
+  return {
+    isGapCheck: ticket === undefined,
+    judged,
+    decided: listed.length - judged.length,
+  };
+}
+
+// Undefined for a decided item.
+function judgedStateOf(lines: string[]): JudgedState | undefined {
+  if (lines.some((line) => itemLinePatterns.decided.test(line))) {
+    return undefined;
+  }
+  return lines[0]?.startsWith("- [ ] ") ? "undecided" : "hand-ticked";
+}
+
+// The list's ticket as `<repo>#<n>`, read from the heading listOf writes; undefined for the gap check's.
+function listTicketOf(body: string): string | undefined {
+  const heading = new RegExp(
+    String.raw`^\*\*${reviewListHeading}\*\* · (.+?), "`,
+    "m",
+  ).exec(body);
+  const label = heading?.[1];
+  if (body.includes(reviewListMarkOf(gapCheckSubject))) return undefined;
+  if (label === undefined) {
+    throw new Error("A ticket's review list has no heading naming its ticket.");
+  }
+  return shortRefOf(issueRef.ofLabel(label));
+}
+
+// By the ticket list the Blocks line writes out, never the ticket graph.
+function isHaltAdjacent({ ticket, scope }: PostedHalt, item: string): boolean {
+  if (ticket === item || scope === "spec") return true;
+  return scope.includes(item);
 }
 
 export function ticketPushOf(
