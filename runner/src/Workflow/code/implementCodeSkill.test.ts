@@ -1,18 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import { implementBody } from "../../stepPrompts/implementText.ts";
+import {
+  endingCommands,
+  expectInOrder,
+  parentCloseOutSteps,
+} from "../../stepPrompts/interactiveSkillFixture.ts";
 import { implementCodeSkillOf } from "./implementCodeSkill.ts";
 import { implementPrompt } from "./implementStep.ts";
 
-const skill = implementCodeSkillOf({
-  promoteCommand: "npm run issue:promote -- <repo> <n>",
-  reviewCommand: "npm run runner -- review <owner>/<repo> <n>",
-  resolveCommand: "npm run runner -- resolve <owner>/<repo> <n>",
-  decideCommand: "npm run runner -- decide <owner>/<repo> <spec> R<n>.<k>",
-  wrapUpCommand: "npm run wrap-up -- <repo> <n>",
-  closeParentCommand: "npm run issue:close-parent -- <repo> <p>",
-  closeProjectPath: ".claude/skills/close-project/SKILL.md",
-});
+const skill = implementCodeSkillOf(endingCommands);
 
 const stepPrompt = implementPrompt({
   issue: { repo: "byro-repo", number: 12 },
@@ -80,25 +77,11 @@ describe("implementCodeSkillOf", () => {
       "`ExitWorktree` with `keep`",
       '`npm run wrap-up -- <repo> <n> --closing "<what landed>" [--undone "<box>: <reason>"]...`',
     ];
-    const positions = steps.map((step) => skill.indexOf(step));
-    expect(positions).not.toContain(-1);
-    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+    expectInOrder(skill, steps);
   });
 
   it("announces a parent's last open sub-issue before wrap-up and closes out the announced chain after it", () => {
-    const steps = [
-      "run `npm run issue:close-parent -- <repo> <p>` on it",
-      "this ticket is #<p>'s last open sub-issue and names each parent above it that the brief's `## Parent check` chain shows ready to close",
-      "The go-ahead to land covers closing out exactly the announced chain.",
-      '`npm run wrap-up -- <repo> <n> --closing "<what landed>"',
-      "read `.claude/skills/close-project/SKILL.md` by path",
-      "stopping at the first gap or refusal",
-      "report what it closed and the comment it posted",
-      "report naming `/close-project <repo> <p>`, and close nothing more",
-    ];
-    const positions = steps.map((step) => skill.indexOf(step));
-    expect(positions).not.toContain(-1);
-    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+    expectInOrder(skill, parentCloseOutSteps);
   });
 
   it("leaves the run's implement step without the parent's announcement or close-out", () => {
