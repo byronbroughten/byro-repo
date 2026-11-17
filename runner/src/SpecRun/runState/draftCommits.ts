@@ -1,4 +1,4 @@
-// Commits a piece spec's Agent draft in one clone, for the pull (../DraftPuller.ts) and the push's `keep mine` (../DraftPusher/DraftKeeper.ts).
+// Commits a piece spec's Agent draft in one clone, for the pull (./draftPull.ts) and the push's `keep mine` (../DraftPusher/DraftKeeper.ts).
 
 import { git } from "../../git.ts";
 

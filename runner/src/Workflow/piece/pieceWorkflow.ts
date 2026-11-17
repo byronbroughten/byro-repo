@@ -356,7 +356,9 @@ function driveIdsOf(body: string, heading: string): string[] {
   return section.match(driveIdPattern) ?? [];
 }
 
-function deliverableIdOf({ body }: TrackedIssue): string | undefined {
+function deliverableIdOf({
+  body,
+}: Pick<TrackedIssue, "body">): string | undefined {
   return driveIdsOf(body, specHeadings.deliverable)[0];
 }
 

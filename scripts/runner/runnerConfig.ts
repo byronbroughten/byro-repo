@@ -17,6 +17,7 @@ import { codeWorkflowOf } from "@byronbroughten/spec-runner/codeWorkflow";
 import { CswapUsageReader } from "@byronbroughten/spec-runner/CswapUsageReader";
 import { EventFileNotices } from "@byronbroughten/spec-runner/EventFileNotices";
 import { GhCli } from "@byronbroughten/spec-runner/GhCli";
+import type { DocumentsPort } from "@byronbroughten/spec-runner/googleDocs";
 import type { ImplementCodeSkillInput } from "@byronbroughten/spec-runner/implementCodeSkill";
 import type { ImplementPieceSkillInput } from "@byronbroughten/spec-runner/implementPieceSkill";
 import type {
@@ -58,19 +59,26 @@ const codeWorkflow = codeWorkflowOf({
   reviewSkillName: "code-review",
 });
 const scriptFolder = fileURLToPath(new URL(".", import.meta.url));
-// The piece checks, the Docs port over the Docs clasp credential file, read only once a pull calls it, and this repo as the rules' root.
-const pieceWorkflow = pieceWorkflowOf({
-  overlapCommand,
-  verifyQuotesCommand: ["npm", "run", "verify:quotes", "--"],
-  documents: RestDocuments.init({
-    credentialPath: join(homedir(), ".clasprc-docs.json"),
-  }),
-  rulesRoot: join(scriptFolder, "..", ".."),
-});
+// The piece checks and this repo as the rules' root, over a Docs port: the run's, or piece:pull's as the agent account.
+export function pieceWorkflowOver(
+  documents: DocumentsPort,
+): SpecRunConfig["workflows"]["piece"] {
+  return pieceWorkflowOf({
+    overlapCommand,
+    verifyQuotesCommand: ["npm", "run", "verify:quotes", "--"],
+    documents,
+    rulesRoot: join(scriptFolder, "..", ".."),
+  });
+}
 // A run picks among them, and issue:start names a session's skill from the same pick.
+// The piece Workflow's Docs port is over the Docs clasp credential file, read only once a pull calls it.
 export const workflows: SpecRunConfig["workflows"] = {
   code: codeWorkflow,
-  piece: pieceWorkflow,
+  piece: pieceWorkflowOver(
+    RestDocuments.init({
+      credentialPath: join(homedir(), ".clasprc-docs.json"),
+    }),
+  ),
 };
 
 // The git common dir, not this file's folder, so a script run inside an issue workspace still finds the primary root.
