@@ -1,14 +1,26 @@
 import { describe, expect, it } from "vitest";
 
 import { implementBody } from "../../stepPrompts/implementText.ts";
+import {
+  endingCommands,
+  expectInOrder,
+  parentCloseOutSteps,
+} from "../../stepPrompts/interactiveSkillFixture.ts";
 import { implementCodeSkillOf } from "./implementCodeSkill.ts";
+import { implementPrompt } from "./implementStep.ts";
 
-const skill = implementCodeSkillOf({
-  promoteCommand: "npm run issue:promote -- <repo> <n>",
-  reviewCommand: "npm run runner -- review <owner>/<repo> <n>",
-  resolveCommand: "npm run runner -- resolve <owner>/<repo> <n>",
-  decideCommand: "npm run runner -- decide <owner>/<repo> <spec> R<n>.<k>",
-  wrapUpCommand: "npm run wrap-up -- <repo> <n>",
+const skill = implementCodeSkillOf(endingCommands);
+
+const stepPrompt = implementPrompt({
+  issue: { repo: "byro-repo", number: 12 },
+  spec: { repo: "byro-repo", number: 10 },
+  title: "A ticket",
+  body: "ticket body",
+  labels: [],
+  branch: "issue-12-a-ticket",
+  branchedRepos: ["byro-repo"],
+  workspacePath: "/workspace",
+  promoteCommand: "npm run issue:promote -- byro-repo 12",
 });
 
 describe("implementCodeSkillOf", () => {
@@ -65,9 +77,16 @@ describe("implementCodeSkillOf", () => {
       "`ExitWorktree` with `keep`",
       '`npm run wrap-up -- <repo> <n> --closing "<what landed>" [--undone "<box>: <reason>"]...`',
     ];
-    const positions = steps.map((step) => skill.indexOf(step));
-    expect(positions).not.toContain(-1);
-    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+    expectInOrder(skill, steps);
+  });
+
+  it("announces a parent's last open sub-issue before wrap-up and closes out the announced chain after it", () => {
+    expectInOrder(skill, parentCloseOutSteps);
+  });
+
+  it("leaves the run's implement step without the parent's announcement or close-out", () => {
+    expect(stepPrompt).not.toContain("issue:close-parent");
+    expect(stepPrompt).not.toContain("close-project");
   });
 
   it("lands a ticket with no code through --no-code", () => {

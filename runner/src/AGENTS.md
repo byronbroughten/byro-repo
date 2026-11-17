@@ -178,6 +178,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `stepPrompts/implementText.ts` | | The bullets the implement step's prompt and the generated `/implement-code` skill share, the ticket-binds section and the implement prompt's workspace section. |
 | `stepPrompts/inlinedSkill.ts` | | Reads a skill's SKILL.md from the issue workspace and words its body for a step's prompt. |
 | `stepPrompts/interactiveSkill.ts` | | The generated `/implement-*` skills' shared commands, opening, generated note and ending, which takes its drift and only-writes lines from each skill. |
+| `stepPrompts/interactiveSkillFixture.ts` | | The ending's commands, its parent close-out steps and the in-order assertion the generated `/implement-*` skills' tests share. |
 | `stepPrompts/resolveText.ts` | | The resolve rules, record fields and shared prompt text every Workflow's resolve step uses. |
 | `stepPrompts/resumePrompts.ts` | | The prompts sent with `--resume` after a step is cut off, capped or sent back, or to the implementer for a handoff at a step boundary, and the tree-reset note. |
 | `stepRecords.ts` | | The records the steps return, with the types, reasons, implement record check and small readers the core shares. |

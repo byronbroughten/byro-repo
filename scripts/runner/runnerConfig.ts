@@ -45,6 +45,8 @@ export const implementCodeCommands: ImplementCodeSkillInput = {
   resolveCommand: "npm run runner -- resolve <owner>/<repo> <n>",
   decideCommand: "npm run runner -- decide <owner>/<repo> <spec> R<n>.<k>",
   wrapUpCommand: "npm run wrap-up -- <repo> <n>",
+  closeParentCommand: "npm run issue:close-parent -- <repo> <p>",
+  closeProjectPath: ".claude/skills/close-project/SKILL.md",
 };
 const overlapCommand: Command = ["npm", "run", "overlap", "--"];
 // The commands /implement-piece names; implementPieceSkill.test.ts keeps the committed skill generated from them.
