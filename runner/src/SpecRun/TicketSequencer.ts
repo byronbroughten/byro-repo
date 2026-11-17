@@ -104,7 +104,8 @@ export class TicketSequencer extends SpecRunBase {
           this._progressPathOf(run),
         );
       }
-      // Read from the ticket as picked, so an answered Halt goes on once the developer labels it, and before the pick, which throws on a ticket that picks none.
+      // Read from the ticket as picked, so an answered Halt goes on once the developer labels it.
+      // Before the pick below, which throws on a ticket that picks none.
       if (ticketWorkflowNameOf({ ticket, spec: run.spec }) === undefined) {
         await this.haltRaiser._unpickedWorkflowHalt({
           run,
