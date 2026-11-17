@@ -1,6 +1,6 @@
 ---
 name: project-tickets
-description: "Split a code, piece or mixed spec, a conversation or a hand-written issue into tickets: list its work packages, group them into ordered tickets estimated from the union of their reads, review the drafts, confirm with the developer, file them with npm run issue:file and read back each pair. Invoked as /project-tickets <repo> <n>, or /project-tickets re-ticket <repo> <n> to split one existing ticket."
+description: "Split a code, piece or mixed spec, a conversation or a hand-written issue into tickets: list its work packages, group them into ordered tickets estimated from the union of their reads, review the drafts (every piece set, a code set at 6 or more), confirm with the developer, file them with npm run issue:file and read back each pair. Invoked as /project-tickets <repo> <n>, or /project-tickets re-ticket <repo> <n> to split one existing ticket."
 argument-hint: "[<repo> <n>] | re-ticket <repo> <n>"
 disable-model-invocation: true
 ---
@@ -65,17 +65,17 @@ Done when every package is in exactly one ticket and every ticket has an estimat
 
 A **wide refactor** is one mechanical change (rename a column, retype a shared symbol) whose **blast radius** fans across the codebase, so no vertical slice lands green. Sequence it **expand–migrate–contract**: first add the new form beside the old; then migrate the call sites in batches sized by blast radius (per package, per directory), each batch its own ticket blocked by the expand; then delete the old form in a ticket blocked by every batch. When even the batches can't stay green alone, let them share an integration branch that all block a final integrate-and-verify ticket; green is promised only there.
 
-## 5. Draft, and review at 6 or more
+## 5. Draft, and review at 6 or more code drafts or any piece draft
 
 Draft every ticket as a file under `<scratchpad>/tickets/`, in [`issue:file`'s draft format](../../../docs/agents/issue-tracker.md#file-tickets-from-drafts): named `<n>-<slug>.md`, numbered from 1 in dependency order, its front matter's `title`, `kind`, `labels` and `blockers` (other drafts' numbers), then its body by the [code template](#code-ticket-template). An edge to an issue already filed goes in no draft; step 7 sets it.
 
-With 6 or more drafts, read [`.claude/skills/review-project-tickets/SKILL.md`](../review-project-tickets/SKILL.md) and follow it on that folder, handing over each draft's estimate breakdown (overhead, the union read set by file, the allowance) beside it; it is user-invoked, so the Skill tool can't reach it. Act on its report once, before the developer sees the breakdown:
+With 6 or more code drafts, or any piece draft whatever the count, read [`.claude/skills/review-project-tickets/SKILL.md`](../review-project-tickets/SKILL.md) and follow it on that folder, handing over each draft's estimate breakdown (overhead, the union read set by file or passage, the allowance) beside it; it is user-invoked, so the Skill tool can't reach it. Act on its report once, before the developer sees the breakdown:
 
 - **Fixes**: make each, as you judge best, true to the spec.
 - **Interactive splits**: split that part into a `ready-for-interactive` ticket, blocking the work that needs it.
 - **Spec gaps**: hold them for step 6's round.
 
-With fewer than 6, skip the review; the developer can run `/review-project-tickets <repo> <n>` once the tickets are filed.
+With fewer than 6 code drafts and no piece draft, skip the review; the developer can run `/review-project-tickets <repo> <n>` once the tickets are filed.
 
 ## 6. Quiz the developer
 
@@ -86,7 +86,9 @@ Present the breakdown as a numbered list. For each ticket:
 - **Kind**: agent, interactive or human; for an agent or interactive ticket, its pair
 - **What it delivers**: the end-to-end behaviour it makes work
 - **Packages**: the work packages it groups, with the files they change by count; for a piece ticket, its stage and the Sections it names by full heading path
-- **Estimate**: its `~NK`, and the reason for any under 90K kept apart
+- **Estimate**: its `~NK`, broken down as overhead, the union read set (by file, or for a piece ticket by passage, the Outline and each earlier Section it opens) and the allowance, and the reason for any under 90K kept apart
+
+For a piece spec, after the list name each Section flagged over ~60K of reading, and each place the grouping departs from the spec's `## Split`, with why.
 
 Ask whether the granularity is right, whether each edge genuinely gates its ticket, and whether any tickets should merge or split. Put step 5's spec gaps after the list as one round in the [`grilling`](../grilling/SKILL.md) format, then apply the answers; when an answer settles what the spec should have said, add a line saying so to the spec's body.
 
@@ -146,31 +148,46 @@ The end-to-end behaviour this ticket makes work, from the user's perspective, no
 
 ## The piece branch
 
-A piece spec follows the Piece rules in the root's `docs/pieces/`: [`rules.md`](../../../docs/pieces/rules.md) and [`GLOSSARY.md`](../../../docs/pieces/GLOSSARY.md). Use their words (Piece, Deliverable, Section, Supporting Material, Reference); never restate them here. **Every piece spec gets tickets: at least one drafting ticket, and its Edit gate last.** Steps 1, 2 and 6 to 8 run as above; the sections below replace steps 3 to 5, and a piece spec's drafts get no Halt-risk review.
+A piece spec follows the Piece rules in the root's `docs/pieces/`: [`rules.md`](../../../docs/pieces/rules.md) and [`GLOSSARY.md`](../../../docs/pieces/GLOSSARY.md). Use their words (Piece, Deliverable, Section, Supporting Material, Reference); never restate them here. **Every piece spec gets tickets: at least one drafting ticket, and its Edit gate last.** Steps 1, 2 and 6 to 8 run as above; the sections below replace steps 3 to 5, keeping step 4's estimate, merge rules and ~20-ticket stop and step 5's review.
 
-**A mixed spec runs both branches into one draft folder, numbered in dependency order with the Edit gate still last**: its code work through steps 3 to 5, each draft labelled `code`, and its Piece through the sections below, each draft labelled `piece`, the Edit gate included. Step 5's review counts and reads only the code drafts; a piece ticket that needs a code ticket's output is blocked by it.
+**A mixed spec runs both branches into one draft folder, numbered in dependency order with the Edit gate still last**: its code work through steps 3 to 5, each draft labelled `code`, and its Piece through the sections below, each draft labelled `piece`, the Edit gate included. Step 5's review reads every draft, code and piece, and runs since there is a piece draft; a piece ticket that needs a code ticket's output is blocked by it.
 
 ### Read the fields
 
-Read the spec's Research, Final pass, Split, Form and Outline fields. Done when all five are found; a missing one is asked for, never inferred.
+Read the spec's Research, Final pass, Form and Outline fields, and the steps its Solution says only the developer takes, with what each waits on. Done when the four fields are found; a missing one is asked for, never inferred.
 
-### Choose the stages
+**A `## Split` field, which a spec filed before the field was dropped may hold, is a suggestion**: weigh it against your own grouping below, and never refuse a spec without one or ask for it.
 
-Each stage is a work package; choose those the fields call for, always with at least one drafting ticket and the Edit gate:
+### List the stages as work packages
+
+Each stage is a work package, listed as step 3 lists one, its read set counted by [Ticket size](../../../docs/agents/tickets.md#ticket-size)'s piece rule: its Supporting Material and Reference passages, counted in characters at the Docs rate, plus the Outline and the earlier Sections it opens, only those [`rules.md`](../../../docs/pieces/rules.md) has its drafter open. List those the fields call for:
 
 - **Research**, when the Research field says needed: verifies the sources and facts it names and posts its list as a comment. It writes nothing to the Deliverable, and revises the spec's Outline only as [`docs/pieces/outlining.md`](../../../docs/pieces/outlining.md#when-research-revises-it) allows.
-- **Sections**, when Split names Sections: each ticket names its Sections by their full heading paths in the Deliverable, even when an H2 is unique today. A Piece with no headings, such as a letter, gets no Section tickets; flag a Split that names Sections for one.
-- **Final pass**, when the Final pass field says needed and there are Section tickets: covers the whole Deliverable, as that field describes, and checks that each short name coined in one Section is used the same way throughout.
-- **Whole draft**, when Split is one session or the Piece has no headings: one drafting ticket for the whole Deliverable, final pass included, labelled like a final pass so it drafts every Section.
+- **Each Section** the Outline names, by its full heading path in the Deliverable, even when an H2 is unique today. A Piece with no headings, such as a letter, is one package for the whole Deliverable.
+- **Final pass**, when the Final pass field says needed: covers the whole Deliverable, as that field describes, and checks that each short name coined in one Section is used the same way throughout.
+- **Each developer-only step** the Solution names: a `ready-for-human` package, blocked by what it waits on and blocking what waits on it.
 - **Edit gate**, always: the developer's ticket to edit the Deliverable once the run has pushed the draft, as the [writing glossary](../../../docs/pieces/GLOSSARY.md) defines it.
 
-Every ticket but Research and the Edit gate is a drafting ticket. Estimate each by [Ticket size](../../../docs/agents/tickets.md#ticket-size)'s rule for a ticket that reads a body of text in full: the Supporting Material and Reference passages it reads, the Outline, and only the earlier Sections `rules.md` has its drafter open, plus the length it drafts. Pick each pair but the Edit gate's from [`model-fit.md`](../../../docs/agents/model-fit.md) with the Piece rows of its [outcome log](../../../docs/agents/model-fit.md#outcome-log).
+Pick each agent package's pair from [`model-fit.md`](../../../docs/agents/model-fit.md) with the Piece rows of its [outcome log](../../../docs/agents/model-fit.md#outcome-log).
 
-Order them Research first, drafting tickets in reading order with the final pass after them, each blocked by the one before, and the Edit gate last, blocked by every drafting ticket.
+### Group them into piece tickets
+
+Group the packages by step 4's estimate, rules and stop: fixed overhead, plus the union of the group's read sets with a passage two packages share counted once, plus the work allowance, under the ~135K cap and with no more than ~60K of reading, preferring fewer, larger tickets. **Every piece spec gets at least one drafting ticket, and its Edit gate last.**
+
+- **Whole draft, when every Section and the final pass fit one ticket**, or the Piece has no headings: one drafting ticket for the whole Deliverable, final pass included, labelled like a final pass so it drafts every Section.
+- **Otherwise group the Sections in reading order**, each ticket naming its Sections by full heading path, with a final-pass ticket after them when the Final pass field says needed.
+- **A Section whose reading alone is over ~60K is its own ticket, flagged in step 6 for the developer to decide, never split mid-Section.**
+- **Research and each developer-only step stay their own tickets**: each runs a different Step or none.
+
+Every ticket but Research, the developer-only steps and the Edit gate is a drafting ticket.
+
+Order them Research first, drafting tickets in reading order with the final pass after them, each blocked by the one before, and the Edit gate last, blocked by every drafting ticket; a developer-only step sits between what it waits on and what waits on it. **Keep the drafting chain even where two tickets share no passage: every drafting ticket writes the spec's one Agent draft, so by [`/review-project-tickets`](../review-project-tickets/SKILL.md)' cause 9 two with no edge between them are an order gap.**
 
 ### Draft the piece tickets
 
-Draft each as in step 5, in the [piece-ticket template](#piece-ticket-template), `kind: agent`; a Research ticket's `labels` hold `research`, and the final-pass or whole-draft ticket's `final-pass`: the run picks each ticket's Steps and scope by them. Draft the Edit gate last with `kind: human`, never `interactive`, which a run's Supervisor would take, in the [Edit gate template](#edit-gate-template). Copy each ticket's facts and the parent's shared rules in verbatim, so the implementer works from the ticket alone. Before step 7, run `gh label create <label> -R <owner>/<repo> --force` for `research` and `final-pass`. Leave the spec's body unchanged.
+Draft each as in step 5, in the [piece-ticket template](#piece-ticket-template), `kind: agent`; a Research ticket's `labels` hold `research`, and the final-pass or whole-draft ticket's `final-pass`: the run picks each ticket's Steps and scope by them. Draft each developer-only step with `kind: human`, its body a `## Parent` and a `## What to do` naming the step, what it waits on, and what the developer runs. Draft the Edit gate last with `kind: human`, never `interactive`, which a run's Supervisor would take, in the [Edit gate template](#edit-gate-template). Copy each ticket's facts and the parent's shared rules in verbatim, so the implementer works from the ticket alone. Before step 7, run `gh label create <label> -R <owner>/<repo> --force` for `research` and `final-pass`. Leave the spec's body unchanged.
+
+Then run step 5's review on the draft set, whatever its count, and act on its report as step 5 says.
 
 Step 8's read-back lists the Edit gate last, and ends by recommending `/runner` on the spec, or for an interactive session `/implement-piece <repo> <n>` on the first ticket, or `/start-issue <repo> <n>` when a mixed spec's first ticket is code.
 
