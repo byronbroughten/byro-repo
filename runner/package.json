@@ -19,6 +19,7 @@
     "./codeWorkflow": "./src/Workflow/code/codeWorkflow.ts",
     "./pieceWorkflow": "./src/Workflow/piece/pieceWorkflow.ts",
     "./CloseOutBrief": "./src/CloseOutBrief.ts",
+    "./closeOutWords": "./src/CloseOutBrief/closeOutWords.ts",
     "./CswapUsageReader": "./src/CswapUsageReader.ts",
     "./docPrint": "./src/docPrint.ts",
     "./Docs": "./src/Docs.ts",

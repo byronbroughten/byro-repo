@@ -279,7 +279,7 @@ export function untrustedBodyReasonOf(
 }
 
 // A rename replaces the whole title, so whoever set it last wrote all of it.
-export function untrustedTitleReasonOf(
+function untrustedTitleReasonOf(
   developer: string,
   { author, titleRenamer }: ReadableIssue,
 ): string | undefined {
@@ -337,7 +337,7 @@ export function briefBodyOf(
   ];
 }
 
-export function trustedPart({ heading, text }: IssuePart): string[] {
+function trustedPart({ heading, text }: IssuePart): string[] {
   return [`${heading} (Trusted text)`, "", text];
 }
 
@@ -345,7 +345,7 @@ function untrustedPart({ heading, text }: IssuePart, whose: string): string[] {
   return [untrustedHeadingOf(heading, whose), ...quotedTextOf(text)];
 }
 
-export function untrustedHeadingOf(heading: string, whose: string): string {
+function untrustedHeadingOf(heading: string, whose: string): string {
   return `${heading} (Untrusted text: ${whose})`;
 }
 

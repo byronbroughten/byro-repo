@@ -11,11 +11,12 @@ import {
 import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
 import { type UndecidedCount, undecidedTextOf } from "../reviewList.ts";
 import { labels, type ParentCheck } from "../WrapUp/wrapUpTypes.ts";
+import { closeOutWords } from "./closeOutWords.ts";
 
 // `/close-project` and `judge-brief` find a piece ticket by this label, never by a missing `code` one, since a mixed spec has both.
 export const closeOutLabels = { ...labels, piece: "piece" } as const;
 
-const command = "issue:close-parent";
+const { command } = closeOutWords;
 
 // One step of the chain a close would make ready: a closing issue and its parent check once it closes.
 export interface ParentLink {
@@ -29,7 +30,7 @@ export interface ReadParent {
   children: ReadableIssue[];
   undecided: UndecidedCount;
   hasGapCheck: boolean;
-  // From the parent up, each taken as closed, ending at the first check that isn't ready to close.
+  // From the parent up, each open one taken as closed, ending at the first check that isn't ready to close.
   chain: ParentLink[];
 }
 
@@ -111,10 +112,15 @@ export class CloseOutWriter {
   closedOf(path: string, check: ParentCheck): string[] {
     const { parent } = this.config.read;
     return [
-      `${command} closed ${issueRef.labelOf(parent.issue)} with the comment in ${path}, then read its parent check.`,
+      `${closeOutWords.closedOf(parent.issue, path)}, then read its parent check.`,
       "",
       this._checkLineOf({ child: parent.issue, check }),
     ];
+  }
+
+  closedWithoutCheckOf(path: string, reason: string): string {
+    const { parent } = this.config.read;
+    return `${closeOutWords.closedOf(parent.issue, path)}, but reading its parent check failed: ${reason}`;
   }
 
   private _subIssuesOf(): string[] {
@@ -181,11 +187,10 @@ export class CloseOutWriter {
 
   private _editGateOf(editGate: ReadableIssue | undefined): string[] {
     if (editGate === undefined) return [];
-    const { repo, number } = editGate.issue;
     const parent = this._refOf(this.config.read.parent.issue);
     return [
       "",
-      `## Edit gate: ${this._refOf(editGate.issue)} is open, the Edit gate to close out first: \`/close-piece ${repo} ${number}\`, before ${parent} closes`,
+      `## Edit gate: ${this._refOf(editGate.issue)} is open, the Edit gate to close out first: ${closeOutWords.closePieceOf(editGate.issue)}, before ${parent} closes`,
     ];
   }
 

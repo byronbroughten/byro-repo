@@ -177,6 +177,29 @@ describe("the Close-out brief", () => {
     );
   });
 
+  it("counts an already-closed parent once, so its open sibling keeps the parent above open", async () => {
+    github.edit(parent, { isOpen: false });
+    track(800, { title: "The spec's parent" });
+    track(798, { title: "A sibling" });
+    github.subIssues.set(800, [parent, 798]);
+
+    expect(await briefOf()).toContain(
+      "- #804's parent #800 still has open sub-issues.",
+    );
+  });
+
+  it("counts an already-closed parent higher up once", async () => {
+    track(800, { title: "The spec's parent", isOpen: false });
+    track(799, { title: "The top" });
+    track(798, { title: "A sibling" });
+    github.subIssues.set(800, [parent]);
+    github.subIssues.set(799, [800, 798]);
+
+    expect(await briefOf()).toContain(
+      "- #800's parent #799 still has open sub-issues.",
+    );
+  });
+
   it("says the parent has no parent when none is above it", async () => {
     expect(await briefOf()).toContain("- #804 has no parent.");
   });

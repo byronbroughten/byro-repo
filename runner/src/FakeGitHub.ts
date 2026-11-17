@@ -7,7 +7,7 @@ import type { ParentIssue } from "./WrapUp.ts";
 // The runner posts as the developer's login, as GhCli does.
 const developer = "byronbroughten";
 
-// The GitHub port run-loop, wrap-up and filing tests script and read back; issues are keyed by number, so one fake serves one repo.
+// The GitHub port run-loop, wrap-up, filing and close-out tests script and read back, an issue source for close-out ones; issues are keyed by number, so one fake serves one repo.
 export class FakeGitHub implements RunGitHub, FilingGitHub, IssueSource {
   readonly issues = new Map<number, TrackedIssue>();
   readonly subIssues = new Map<number, number[]>();

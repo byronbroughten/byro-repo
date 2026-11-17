@@ -43,17 +43,18 @@ export class MapBriefWriter {
 
   // Undefined `named` lets the frontier pick the ticket.
   linesOf(named: IssueRef | undefined): string[] {
-    const { map, children } = this.config.read;
+    const { read, developer } = this.config;
+    const { map, children } = read;
     const frontier = children.filter(isOnFrontier);
     return [
       `map:next brief of map ${issueRef.labelOf(map.issue)}: the map's body, its sub-issues with state, assignee and blocked-by edges, the frontier, and the chosen ticket's body and type. It holds all of them; don't read them again.`,
       "",
-      `# Map ${this._headlineOf(map)}`,
+      `# Map ${briefHeadlineOf(developer, map)}`,
       `State: ${stateWordOf(map.isOpen)}`,
       `Labels: ${listOf(map.labels)}`,
       this._commentsLineOf(map),
       "",
-      ...this._bodyOf("## Map body", map),
+      ...briefBodyOf(developer, "## Map body", map),
       "",
       "## Sub-issues, in map order",
       "",
@@ -106,15 +107,16 @@ export class MapBriefWriter {
   private _chosenPartOf({ ticket, reason }: ChosenTicket): string[] {
     const heading = `## Chosen ticket: ${reason}`;
     if (ticket === undefined) return [heading];
+    const { developer } = this.config;
     return [
       heading,
       "",
-      this._headlineOf(ticket),
+      briefHeadlineOf(developer, ticket),
       `State: ${stateWordOf(ticket.isOpen)}`,
       `Type: ${typeOf(ticket)}`,
       this._commentsLineOf(ticket),
       "",
-      ...this._bodyOf("## Ticket body", ticket),
+      ...briefBodyOf(developer, "## Ticket body", ticket),
     ];
   }
 
@@ -129,15 +131,7 @@ export class MapBriefWriter {
     const blockers = child.blockedBy.map(
       ({ issue, isOpen }) => `${this._refOf(issue)} (${stateWordOf(isOpen)})`,
     );
-    return `- ${this._headlineOf(child)}: ${stateWordOf(child.isOpen)}; assignee: ${listOf(child.assignees)}; blocked by: ${listOf(blockers)}`;
-  }
-
-  private _headlineOf(issue: ReadableIssue): string {
-    return briefHeadlineOf(this.config.developer, issue);
-  }
-
-  private _bodyOf(heading: string, issue: ReadableIssue): string[] {
-    return briefBodyOf(this.config.developer, heading, issue);
+    return `- ${briefHeadlineOf(this.config.developer, child)}: ${stateWordOf(child.isOpen)}; assignee: ${listOf(child.assignees)}; blocked by: ${listOf(blockers)}`;
   }
 
   // Comments only count here, the developer's too, since the spec's brief holds bodies alone.
