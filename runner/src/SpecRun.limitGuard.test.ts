@@ -9,6 +9,7 @@ import type { UsageReader } from "./limitGuard.ts";
 import { liveHolder, seedHolder } from "./lockFixture.ts";
 import {
   accountsListOf,
+  addIssue,
   addSpec,
   after,
   crashed,
@@ -473,6 +474,46 @@ describe("run's limit guard", () => {
     expect(agentStep.requests.map(({ account }) => account)).toEqual([1, 2, 1]);
     expect(limitWaitNotices()).toEqual([
       "Limit wait: account 2 is at 95% of its 5-hour limit; continuing after 2026-10-12 06:01:00 CDT. An account another run releases continues the run too.",
+    ]);
+  });
+
+  it("keeps every Batch member off an account one member's limit hit made unavailable", async () => {
+    const first = refOf(301);
+    const second = refOf(302);
+    addIssue(first.number);
+    addIssue(second.number);
+    let account3FiveHour = 0.2;
+    const agentStep = FakeAgentStep.init(
+      limitHitStep("stream\n", fiveHourHit),
+      implemented("first.ts"),
+      async () => {
+        account3FiveHour = 0.95;
+        return reviewed();
+      },
+      implemented("second.ts"),
+      reviewed(),
+    );
+    const members: [typeof first, typeof second] = [first, second];
+
+    const result = await specRun(agentStep, {
+      members,
+      usageReader: {
+        read: async () =>
+          accountsListOf(
+            [
+              { account: 1, fiveHour: 0.1, sevenDay: 0.5 },
+              { account: 2, fiveHour: 0, sevenDay: 0.5 },
+              { account: 3, fiveHour: account3FiveHour, sevenDay: 0.5 },
+            ],
+            2,
+          ),
+      },
+      clock: { now: () => new Date("2026-10-12T10:00:00Z") },
+    }).run(...members);
+
+    expect(result.landed).toEqual([first, second]);
+    expect(agentStep.requests.map(({ account }) => account)).toEqual([
+      1, 3, 3, 2, 2,
     ]);
   });
 
