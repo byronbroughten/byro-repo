@@ -1,0 +1,7 @@
+# byro-repo#797 outcome
+
+Spec: [byro-repo#796](https://github.com/byronbroughten/byro-repo/issues/796)
+
+| Issue | Workflow | Pair | Account | Files changed | Estimate | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #797 | code | Opus medium | 5 | 10 | ~134K | 172K | Fix (resumed implementer) | 1 | 1 | 0 | 0 | 13 min | $2.26 | $1.98 | Fixed: The comment names callers that don't yet call the method. (runner/src/SpecRun/SpecRunBase.ts:182); (spec, ticket) travel as two params of one type, though SpecTicket exists. (runner/src/SpecRun/SpecRunBase.ts:183, 187); ticketWorkflowsOf takes three positional params and writes an inline ticket shape. (runner/src/Workflow.ts:449); labelledNameOf repeats workflowNameOf's piece check, and the bare "code" literal sits beside the pieceLabel constant. (runner/src/Workflow.ts:392-420); ticketWorkflowOf is exported, but its only caller is in the same file. (runner/src/Workflow.ts:422); The halts.ts row leaves out the new Halt, and the Workflow.ts row still says a spec's Workflow. (runner/src/AGENTS.md:66 and :182); Nothing tests an answered Halt going on once the ticket is labelled. (runner/src/SpecRun.halts.test.ts:352-361). Proposed: A ticket labelled both code and piece picks piece. (runner/src/Workflow.ts:410-416 (labelledNameOf)). | 0dace301-1ee8-45d0-bd9f-f546c3ffb9b4 |
