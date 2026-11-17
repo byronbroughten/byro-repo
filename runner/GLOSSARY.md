@@ -183,7 +183,7 @@ A read-only, live view of every running run's tickets left, ticket, step and tim
 _Avoid_: dashboard, project board
 
 **Lease**:
-A run's or interactive session's hold on one workspace, or a run's or interactive session's hold on one account, which keeps every other run and session out of it until the holder moves on, releases it, ends or closes out. A Batch's members share one account lease, which names the Batch as the Run board does. A lease whose holder has died is abandoned, and the next taker takes it over.
+A run's or interactive session's hold on one workspace, or a run's or interactive session's hold on one account, which keeps every other run and session out of it until the holder moves on, releases it, ends or closes out. A Batch's members share one account lease, which names the Batch as the Run board does. An account lease records whether its holder is a run or a session, so a run's status never names a session's account as its own. A lease whose holder has died is abandoned, and the next taker takes it over.
 _Avoid_: lock, claim
 
 **Developer**:

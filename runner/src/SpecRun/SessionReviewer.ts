@@ -309,8 +309,10 @@ export class SessionReviewer extends SpecRunBase {
   }: SessionTicket): Promise<SessionTicketRun | string> {
     const { github } = this.config;
     const ticket = await github.issueOf(issue);
-    const run = await this._runOf(await this._specIssueOf(issue), {
-      tickets: {},
+    const run = await this._runOf({
+      specIssue: await this._specIssueOf(issue),
+      state: { tickets: {} },
+      holderKind: "session",
     });
     run.sessionReview = {
       earlierHalts: sessionHaltCountOf(

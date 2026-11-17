@@ -12,6 +12,7 @@ import {
   type LeaseHolder,
   type Workspace,
 } from "./IssueWorkspaces.ts";
+import type { LockHolder } from "./PidLock.ts";
 import { reviewPrintoutOf } from "./SpecRun.ts";
 import type { ReviewResult } from "./SpecRun/runState.ts";
 import {
@@ -31,9 +32,12 @@ import type { ResolveRecord } from "./stepRecords.ts";
 
 useSpecRunHarness();
 
-// The spec each held account lease names.
-function leaseSpecs(): (string | undefined)[] {
-  return AccountLease.leasedIn(stateFolder()).map(({ holder }) => holder?.spec);
+// The spec and holder kind each held account lease records.
+function leaseHolders(): Pick<LockHolder, "spec" | "kind">[] {
+  return AccountLease.leasedIn(stateFolder()).map(({ holder }) => ({
+    spec: holder?.spec,
+    kind: holder?.kind,
+  }));
 }
 
 describe("a session resolving its own review", () => {
@@ -178,21 +182,21 @@ describe("a session resolving its own review", () => {
     expect(commentsOn(2, "byro-repo#1's review left this")).toHaveLength(1);
   });
 
-  it("holds an account lease naming the spec while its review and resolve run, and none after either", async () => {
+  it("holds an account lease naming the spec, as a session's, while its review and resolve run, and none after either", async () => {
     // Each command sets or clears the pending resolve inside its body, so the leases held there are the command's own.
-    const heldInBody: (string | undefined)[][] = [];
+    const heldInBody: Pick<LockHolder, "spec" | "kind">[][] = [];
     const setPendingResolve = FactsFile.prototype.setPendingResolve;
     vi.spyOn(FactsFile.prototype, "setPendingResolve").mockImplementation(
       function (this: FactsFile, ...args) {
-        heldInBody.push(leaseSpecs());
+        heldInBody.push(leaseHolders());
         return setPendingResolve.apply(this, args);
       },
     );
 
-    let afterReview: (string | undefined)[];
+    let afterReview: Pick<LockHolder, "spec" | "kind">[];
     try {
       await reviewUnderBudget();
-      afterReview = leaseSpecs();
+      afterReview = leaseHolders();
       commit("fix.ts");
       await specRun(FakeAgentStep.init()).resolve(refOf(1), {
         holder,
@@ -202,10 +206,10 @@ describe("a session resolving its own review", () => {
       vi.restoreAllMocks();
     }
 
-    const specLabel = issueRef.labelOf(spec);
-    expect(heldInBody).toEqual([[specLabel], [specLabel]]);
+    const sessionLease = { spec: issueRef.labelOf(spec), kind: "session" };
+    expect(heldInBody).toEqual([[sessionLease], [sessionLease]]);
     expect(afterReview).toEqual([]);
-    expect(leaseSpecs()).toEqual([]);
+    expect(leaseHolders()).toEqual([]);
   });
 
   it("refuses a suggested Halt resolved as a Fix, naming the rule, and keeps the findings for a corrected resolve", async () => {

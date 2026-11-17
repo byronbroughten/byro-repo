@@ -26,6 +26,7 @@ import {
   issueRef,
   IssueWorkspaces,
   type IssueWorkspacesConfig,
+  type LeaseHolder,
   type Workspace,
 } from "../IssueWorkspaces.ts";
 import {
@@ -132,6 +133,12 @@ export interface CloneWorktree {
   worktree: string;
 }
 
+interface RunBuild {
+  specIssue: IssueRef;
+  state: RunState;
+  holderKind: LeaseHolder["kind"];
+}
+
 interface HeadsAndDirtyRepos {
   heads: Heads;
   dirtyRepos: string[];
@@ -226,10 +233,18 @@ export class SpecRunBase {
   }
 
   protected async _startRun(specIssue: IssueRef): Promise<Run> {
-    return this._runOf(specIssue, this._readState(specIssue));
+    return this._runOf({
+      specIssue,
+      state: this._readState(specIssue),
+      holderKind: "run",
+    });
   }
 
-  protected async _runOf(specIssue: IssueRef, state: RunState): Promise<Run> {
+  protected async _runOf({
+    specIssue,
+    state,
+    holderKind,
+  }: RunBuild): Promise<Run> {
     const spec = await this.config.github.issueOf(specIssue);
     const subIssues = await this.config.github.subIssuesOf(specIssue);
     mkdirSync(this.config.stateFolder, { recursive: true });
@@ -243,10 +258,10 @@ export class SpecRunBase {
       skipped: new Set(),
       failureStreak: [],
       streamUsage: new Map(),
-      accountHold: new AccountHold(
-        this.config.stateFolder,
-        issueRef.labelOf(specIssue),
-      ),
+      accountHold: new AccountHold(this.config.stateFolder, {
+        spec: issueRef.labelOf(specIssue),
+        kind: holderKind,
+      }),
     };
   }
 

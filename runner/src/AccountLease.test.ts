@@ -21,15 +21,19 @@ function leasePath(account: number): string {
   return join(stateFolder, `account-${account}.lease`);
 }
 
-const account2 = { account: 2, spec: "byro-repo #763" };
+const account2 = {
+  account: 2,
+  holder: { spec: "byro-repo #763", kind: "run" },
+} as const;
 
 describe("AccountLease.take", () => {
-  it("takes a free account's lease as this process, recording its spec", () => {
+  it("takes a free account's lease as this process, recording its spec and kind", () => {
     const take = AccountLease.take(stateFolder, account2);
     expect(take.kind).toBe("taken");
     expect(holderAt(leasePath(2))).toMatchObject({
       pid: process.pid,
       spec: "byro-repo #763",
+      kind: "run",
     });
   });
 
@@ -73,5 +77,25 @@ describe("AccountLease.leasedIn", () => {
 
   it("lists none for a state folder not made yet", () => {
     expect(AccountLease.leasedIn(join(stateFolder, "missing"))).toEqual([]);
+  });
+});
+
+describe("AccountLease.accountHeldBy", () => {
+  const spec = "byro-repo #763";
+
+  it("names a run's account, passing over a session's lease on the same spec", () => {
+    seedHolder(leasePath(1), { ...liveHolder(), spec, kind: "session" });
+    seedHolder(leasePath(2), { ...liveHolder(), spec, kind: "run" });
+    expect(AccountLease.accountHeldBy(stateFolder, spec)).toBe(2);
+  });
+
+  it("names no account when only a session holds one on the spec", () => {
+    seedHolder(leasePath(1), { ...liveHolder(), spec, kind: "session" });
+    expect(AccountLease.accountHeldBy(stateFolder, spec)).toBeUndefined();
+  });
+
+  it("reads a lease with no kind as a run's", () => {
+    seedHolder(leasePath(3), { ...liveHolder(), spec });
+    expect(AccountLease.accountHeldBy(stateFolder, spec)).toBe(3);
   });
 });
