@@ -8,6 +8,7 @@ An Agent draft ([GLOSSARY.md](./GLOSSARY.md#language)) is the agents' last versi
 - **It mirrors the Deliverable's headings, one block per Section in the Deliverable's order**: the Doc's `# <H1>` or `## <H2>` line, then its author mark on the next line, then the Section's body in the Docs module's Markdown dialect. Each block's Section is named by its heading path ([GLOSSARY.md](./GLOSSARY.md#language)).
 - **The author mark is `<!-- developer <headingId> -->` or `<!-- agent <headingId> -->`, carrying its heading's Google Docs `headingId`.** A Section an agent drafted is the agent's; every other Section is the developer's. A mark with no ID, `<!-- developer -->` or `<!-- agent -->`, still parses, as an older file's or a heading with no ID has it. A drafting agent copies a mark unchanged, its ID included.
 - **Every H1 carries a mark**: an H1 with no text of its own holds an empty Section marked `<!-- developer -->`. A file with no `#` lines names each Section by its H2 alone.
+- **A Doc's Title paragraph counts as an H1**: the Docs module prints it as `#`, so it starts a heading path like any H1.
 - **The file changes only by a pull, an implement step (a run's or an `/implement-piece` session's), or a `/judge-findings` "now" fix.** Its edits are never made by hand.
 
 ## Pull
