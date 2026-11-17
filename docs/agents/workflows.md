@@ -170,7 +170,8 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | The issue reader (`npm run issue:read`) with Trusted and Untrusted text | `/runner`, `/review-code-tickets`, `/start-issue` (via `issue:start`), `/implement-code`, `/judge-findings`, `/mine-outcomes`, every agent Step, `/project-tickets`, `/implement-piece`, `/review-piece`, `/research-piece`, `/review-research`, `/close-piece`, `/project-spec`'s Phase gate |
 | Issue and session workspaces (`npm run issue:start`, [`git-workflow.md`](./git-workflow.md#a-skills-session-workspace)) | `/start-issue`, `/judge-findings`, `/mine-outcomes`, `/implement-piece`'s issue workspace, `/research-piece`'s session workspace, `/close-piece`'s issue workspace |
 | Wrap-up (`npm run wrap-up`) | `/implement-code`, `/judge-findings`, `/mine-outcomes`, the wrap-up Step, `/implement-piece`, `/research-piece`, `/close-piece` |
-| `npm run doc:print` | `/implement-piece` reads the Deliverable for its pull; `/close-piece` reads it for the changed Sections; `/to-writing-style`'s pair mode reads it for its diff |
+| `npm run doc:print` | `/close-piece` reads the Deliverable for the changed Sections; `/to-writing-style`'s pair mode reads it for its diff |
+| `npm run piece:pull` | `/start-issue` runs it on a piece drafting ticket; `/implement-piece` opens from its committed Agent draft and printed headings, and runs it itself when a session reached it without `/start-issue` |
 | `runner -- decide` | `/runner`, `/implement-code`, `/implement-piece`, `/judge-findings` |
 | `runner -- status` | `/runner` reads a run and, to diagnose, the Run board; `/review-code-tickets` and `/project-tickets`' Re-ticket read what has landed or started |
 | `npm run overlap` | `/review-piece` runs it; `/implement-piece` reruns it after a fix; the piece resolve Step reruns it after its Fixes; `/judge-findings` reruns it after a piece "now" fix |
