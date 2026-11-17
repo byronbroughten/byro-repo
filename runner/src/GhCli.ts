@@ -79,7 +79,12 @@ interface RawParent {
 }
 
 interface RawComments {
-  comments?: { id?: unknown; author?: RawLogin | null; body?: unknown }[];
+  comments?: {
+    id?: unknown;
+    author?: RawLogin | null;
+    body?: unknown;
+    url?: unknown;
+  }[];
 }
 
 interface RawListedIssue {
@@ -245,9 +250,10 @@ export class GhCli
       "comments",
     );
     const { comments } = JSON.parse(output) as RawComments;
-    return (comments ?? []).flatMap(({ id, author, body }) => {
+    return (comments ?? []).flatMap(({ id, author, body, url }) => {
       if (typeof body !== "string") return [];
-      return [{ id: String(id), author: String(author?.login ?? ""), body }];
+      const login = String(author?.login ?? "");
+      return [{ id: String(id), author: login, body, url: String(url) }];
     });
   }
 

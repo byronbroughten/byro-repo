@@ -20,7 +20,11 @@ import {
   worktreeStateOf,
 } from "../git.ts";
 import { runnerMark } from "../halts.ts";
-import { approvalLineOf, untrustedBodyReasonOf } from "../IssueReader.ts";
+import {
+  approvalLineOf,
+  type IssueSource,
+  untrustedBodyReasonOf,
+} from "../IssueReader.ts";
 import {
   type IssueRef,
   issueRef,
@@ -99,7 +103,8 @@ export interface SpecRunConfig {
   log?(line: string): void;
 }
 
-export interface RunGitHub extends WrapUpGitHub {
+// An IssueSource too, so `runner judge-brief` reads a title's renamer and prints only Trusted titles.
+export interface RunGitHub extends WrapUpGitHub, IssueSource {
   issueOf(issue: IssueRef): Promise<TrackedIssue>;
   // In sub-issue order.
   subIssuesOf(issue: IssueRef): Promise<IssueRef[]>;

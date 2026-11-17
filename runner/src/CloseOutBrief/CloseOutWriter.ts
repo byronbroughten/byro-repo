@@ -2,19 +2,16 @@ import {
   briefBodyOf,
   briefHeadlineOf,
   listOf,
+  othersCommentsLineOf,
   overflowMessageOf,
   type ReadableIssue,
-  readCommandOf,
   refLabelOf,
   stateWordOf,
 } from "../IssueReader.ts";
 import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
 import { type UndecidedCount, undecidedTextOf } from "../reviewList.ts";
-import { labels, type ParentCheck } from "../WrapUp/wrapUpTypes.ts";
-import { closeOutWords } from "./closeOutWords.ts";
-
-// `/close-project` and `judge-brief` find a piece ticket by this label, never by a missing `code` one, since a mixed spec has both.
-export const closeOutLabels = { ...labels, piece: "piece" } as const;
+import { type ParentCheck } from "../WrapUp/wrapUpTypes.ts";
+import { closeOutLabels, closeOutWords } from "./closeOutWords.ts";
 
 const { command } = closeOutWords;
 
@@ -145,10 +142,7 @@ export class CloseOutWriter {
     const othersLine =
       others.length === 0
         ? []
-        : [
-            "",
-            `Comments by others: ${others.length} (Untrusted text), not printed; ${readCommandOf(child.issue, "--comments")} reads them`,
-          ];
+        : ["", othersCommentsLineOf(child.issue, others.length)];
     return [heading, "", ...this._closingCommentOf(child), ...othersLine];
   }
 
@@ -178,11 +172,9 @@ export class CloseOutWriter {
     const pieces = this.config.read.children.filter(({ labels }) =>
       labels.includes(closeOutLabels.piece),
     );
-    if (pieces.length === 0) {
-      return `none, no sub-issue carries the \`${closeOutLabels.piece}\` label`;
-    }
-    const refs = pieces.map(({ issue }) => this._refOf(issue)).join(", ");
-    return `${refs} ${pieces.length === 1 ? "carries" : "carry"} the \`${closeOutLabels.piece}\` label`;
+    return closeOutWords.pieceTicketOf(
+      pieces.map(({ issue }) => this._refOf(issue)),
+    );
   }
 
   private _editGateOf(editGate: ReadableIssue | undefined): string[] {

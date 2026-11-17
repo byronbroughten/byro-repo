@@ -62,6 +62,7 @@ export interface IssueComment {
   id: string;
   author: string;
   body: string;
+  url: string;
 }
 
 export interface RunResult {

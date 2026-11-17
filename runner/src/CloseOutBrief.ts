@@ -2,9 +2,11 @@ import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 
 import { CloseOutChecker } from "./CloseOutBrief/CloseOutChecker.ts";
-import { closeOutWords } from "./CloseOutBrief/closeOutWords.ts";
 import {
   closeOutLabels,
+  closeOutWords,
+} from "./CloseOutBrief/closeOutWords.ts";
+import {
   CloseOutWriter,
   type ParentLink,
   type ReadParent,

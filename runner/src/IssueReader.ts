@@ -325,6 +325,11 @@ export function briefHeadlineOf(
   return `${number} (title not printed, Untrusted text: ${reason}; ${readCommandOf(issue.issue, "--body")} reads it)`;
 }
 
+// A brief's count of comments by anyone but the developer, never their text.
+export function othersCommentsLineOf(issue: IssueRef, count: number): string {
+  return `Comments by others: ${count} (Untrusted text), not printed; ${readCommandOf(issue, "--comments")} reads them`;
+}
+
 // A brief's body part, printed only when Trusted.
 export function briefBodyOf(
   developer: string,

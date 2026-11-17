@@ -16,6 +16,8 @@ export class FakeGitHub implements RunGitHub, FilingGitHub, IssueSource {
   readonly parents = new Map<number, ParentIssue>();
   // Set to give an untracked issue a body.
   readonly bodies = new Map<number, string>();
+  // Set to name who last renamed an issue's title.
+  readonly titleRenamers = new Map<number, string>();
   readonly comments: { issue: IssueRef; body: string; author: string }[] = [];
   readonly closed: { issue: IssueRef; comment: string }[] = [];
   // Each runs before one comment read, in order, as a hand edit made meanwhile.
@@ -75,7 +77,7 @@ export class FakeGitHub implements RunGitHub, FilingGitHub, IssueSource {
     }
   }
 
-  // Every comment is read and no title was renamed, so a tracked issue's own author decides its title's trust.
+  // Every comment is read, and a title's trust is its renamer's in `titleRenamers`, else its author's.
   async readableIssueOf(ref: IssueRef): Promise<ReadableIssue> {
     const { issue, title, body, isOpen, labels, author, bodyEditors } =
       await this.issueOf(ref);
@@ -94,7 +96,7 @@ export class FakeGitHub implements RunGitHub, FilingGitHub, IssueSource {
       bodyEditors,
       comments,
       hasUnreadComments: false,
-      titleRenamer: undefined,
+      titleRenamer: this.titleRenamers.get(ref.number),
       parent: this._parentWithoutFailure(ref)?.issue,
       subIssues: (this.subIssues.get(ref.number) ?? []).map((sub) => ({
         repo: ref.repo,
@@ -154,7 +156,8 @@ export class FakeGitHub implements RunGitHub, FilingGitHub, IssueSource {
     this.beforeCommentReads.shift()?.();
     return this.comments.flatMap(({ issue, body, author }, index) => {
       if (issue.number !== number) return [];
-      return [{ id: commentIdOf(index), author, body }];
+      const url = commentUrlOf(issue, index + 1);
+      return [{ id: commentIdOf(index), author, body, url }];
     });
   }
 

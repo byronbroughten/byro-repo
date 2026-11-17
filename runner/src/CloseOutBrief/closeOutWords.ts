@@ -1,8 +1,12 @@
 import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
+import { labels } from "../WrapUp/wrapUpTypes.ts";
 
 const command = "issue:close-parent";
 
-// The phrases `issue:close-parent`'s brief, its checker and its writer share.
+// `/close-project` and `judge-brief` find a piece ticket by this label, never by a missing `code` one, since a mixed spec has both.
+export const closeOutLabels = { ...labels, piece: "piece" } as const;
+
+// The phrases `issue:close-parent`'s brief, its checker and its writer share, and the piece-ticket line `runner judge-brief` shares.
 export const closeOutWords = {
   command,
   nothingWritten: "nothing was posted or closed",
@@ -18,5 +22,14 @@ export const closeOutWords = {
 
   closedOf(parent: IssueRef, path: string): string {
     return `${command} closed ${issueRef.labelOf(parent)} with the comment in ${path}`;
+  },
+
+  // Each of `pieceRefs` labels a sub-issue carrying the `piece` label.
+  pieceTicketOf(pieceRefs: string[]): string {
+    if (pieceRefs.length === 0) {
+      return `none, no sub-issue carries the \`${closeOutLabels.piece}\` label`;
+    }
+    const verb = pieceRefs.length === 1 ? "carries" : "carry";
+    return `${pieceRefs.join(", ")} ${verb} the \`${closeOutLabels.piece}\` label`;
   },
 };

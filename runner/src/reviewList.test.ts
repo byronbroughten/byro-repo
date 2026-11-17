@@ -7,7 +7,6 @@ import {
   gapCheckListOf,
   type JudgingOrder,
   judgingOrderOf,
-  type LinkedComment,
   reReviewedCommentOf,
   reviewListHoldingOf,
   skippedReviewersNote,
@@ -15,6 +14,7 @@ import {
   undecidedCountOf,
   undecidedLineOf,
 } from "./reviewList.ts";
+import type { IssueComment } from "./SpecRun.ts";
 import type { ResolveRecord } from "./stepRecords.ts";
 
 const ticket = { repo: "byro-repo", number: 7 };
@@ -427,7 +427,7 @@ describe("judgingOrderOf", () => {
 
   function commentsOf(
     bodies: (string | { author: string; body: string })[],
-  ): LinkedComment[] {
+  ): IssueComment[] {
     return bodies.map((entry, index) => {
       const { author, body } =
         typeof entry === "string" ? { author: developer, body: entry } : entry;
@@ -625,15 +625,22 @@ describe("reviewListHoldingOf", () => {
 
   it("finds the developer's review list holding the item", () => {
     const comments = [
-      { id: "c1", author: developer, body: "- [ ] **R7.1** · not a list" },
-      { id: "c2", author: developer, body: listBody },
+      {
+        id: "c1",
+        author: developer,
+        body: "- [ ] **R7.1** · not a list",
+        url: "u1",
+      },
+      { id: "c2", author: developer, body: listBody, url: "u2" },
     ];
 
     expect(reviewListHoldingOf(comments, developer, "R7.1")).toBe(comments[1]);
   });
 
   it("refuses an item only someone else's comment holds", () => {
-    const comments = [{ id: "c1", author: "someone", body: listBody }];
+    const comments = [
+      { id: "c1", author: "someone", body: listBody, url: "u1" },
+    ];
 
     expect(() => reviewListHoldingOf(comments, developer, "R7.1")).toThrow(
       "Only someone's comment holds R7.1",
