@@ -355,6 +355,14 @@ export function commentsOn(number: number, mark: string): string[] {
     .filter((body) => body.includes(mark));
 }
 
+export const gapCheckMark = "<!-- review-list ticket=gap-check -->";
+
+export function gapCheckCount(agentStep: FakeAgentStep): number {
+  return agentStep.requests.filter(
+    ({ jsonSchema }) => jsonSchema === gapCheckOutputSchema,
+  ).length;
+}
+
 export function noticeKinds(): (NoticeKind | undefined)[] {
   return notices.sent.map(({ kind }) => kind);
 }

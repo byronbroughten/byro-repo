@@ -117,7 +117,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun.ts` | `SpecRun` | The run loop's entry: `run` over its members, `status`, `requestStop`, `briefReview`, `submitReview`, `resolve`, `decide`, `judgeable` and `standalone`, delegating to `SpecRun/`. |
 | `SpecRun/AccountHold.ts` | | A run's, Batch's or session review's or resolve's hold on a cswap account: the account it last launched on, the accounts a limit hit keeps it off and its account lease, moved by taking the new lease before releasing the old. |
 | `SpecRun/DraftPuller.ts` | | Runs a piece spec's drafting ticket's pull: writes and commits the Agent draft its Workflow pulls from the Doc, and keeps the push baseline. |
-| `SpecRun/DraftPusher.ts` | | Runs a piece spec's push: writes the Agent draft's agent Sections into the Doc once, raising a push Halt before any write on a Section the developer changed since the pull, reading and comparing again on a stale revision up to a bound, and raising a push Halt naming a Doc with pending suggestions, delegating its `keep mine` answers to `DraftPusher/`. |
+| `SpecRun/DraftPusher.ts` | | Runs the push of a spec with a piece ticket: writes the Agent draft's agent Sections into the Doc once, raising a push Halt before any write on a Section the developer changed since the pull, reading and comparing again on a stale revision up to a bound, and raising a push Halt naming a Doc with pending suggestions, delegating its `keep mine` answers to `DraftPusher/`. |
 | `SpecRun/DraftPusher/DraftKeeper.ts` | | Marks the push's `keep mine` Sections as the developer's in the Agent draft and lands it as a session. |
 | `SpecRun/HaltRaiser.ts` | | Raises and posts a ticket's Halts and finds its downstream. |
 | `SpecRun/HandoffTaker.ts` | | Takes the implementer's handoffs from implement through resolve: past the ticket budget at a step boundary, at the live ceiling during review or resolve, and the cap check before a fresh step. |
@@ -135,7 +135,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/SessionReviewer.ts` | | Prints an interactive session's review brief, checks the review it submits, its reviewers included, and runs its `resolve`. |
 | `SpecRun/SpecRunBase.ts` | | The Base every collaborator shares: config, run state, progress log, notices, snapshots, a run's end and an issue's review-list judgement. |
 | `SpecRun/StandaloneTicketLister.ts` | | `runner standalone`: lists a repo's launchable Standalone tickets, leaving out each the Batch preflight would refuse, with its reason. |
-| `SpecRun/SpecEndRunner.ts` | | Ends the run with its Workflow's spec-end Steps, the gap check's review list, the judge Step's stop and the push included. |
+| `SpecRun/SpecEndRunner.ts` | | Ends the run with the union of its tickets' Workflows' spec-end Steps, the gap check's review list, the judge Step's stop and the push included. |
 | `SpecRun/StatusReporter.ts` | | A run's or Batch's status, and its stop request. |
 | `SpecRun/StepLauncher.ts` | | Launches an agent step under the limit guard, retries a crash, resumes a step a limit cut off and resumes once a record failing its schema check, delegating the limit waits to `StepLauncher/`. |
 | `SpecRun/StepLauncher/LimitWaiter.ts` | | Runs the launch check that picks and leases each step's account, holding a launch until an account is free and reads under its thresholds, and moves a step a limit cut off onto another free account, keeping the hit one unavailable to the run. |
@@ -152,6 +152,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/runState/statePaths.ts` | | A spec's run state file and progress log paths in the state folder. |
 | `SpecRun/runState/ticketSteps.ts` | | A ticket's step sessions, heads, turn caps, budget and live-ceiling checks and snapshots, the red-checks loop, and reads a step's record, a kept research record and its review facts. |
 | `specRunHarness.ts` | | The fixture `SpecRun` tests share. |
+| `specRunHarness/pieceDrafts.ts` | | The drafting steps, piece review and Deliverable Docs the piece and mixed-spec `SpecRun` tests share. |
 | `specRunHarness/stepResults.ts` | | The step results, records and scripted steps `SpecRun` tests give a fake agent step. |
 | `specRunHarness/timing.ts` | | The clock `SpecRun` tests start a run at and move through its fakes. |
 | `specRunHarness/trackedIssues.ts` | | The tracked issues `SpecRun` tests give a fake GitHub and `Workflow` tests pick from. |
@@ -179,7 +180,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `transcriptFacts/ReviewResumes.ts` | | The implementer sessions a review or resolve step resumed, split by a recorded review start or the resumed launch's prompt, and each side's cost. |
 | `UnhandledStop.ts` | `UnhandledStop` | The outcomes the run loop doesn't handle yet, and their error. |
 | `verdicts.ts` | | A finding's axes, `spec`, `standards` and `reader`, and its verdicts. |
-| `Workflow.ts` | | The Workflow type, its spec-end Steps, source targets, pull and push rules, each agent step's rules and prompt input, the one schema every step of the implementer's session launches with, its outcome row's review cell and the accessors that throw for a step a Workflow leaves out, and the pick of a spec's Workflow, and an interactive session's skill, from the labels: the core's one way to a Workflow. |
+| `Workflow.ts` | | The Workflow type, its spec-end Steps, source targets, pull and push rules, each agent step's rules and prompt input, the one schema every step of the implementer's session launches with, its outcome row's review cell and the accessors that throw for a step a Workflow leaves out, the pick of a ticket's Workflow and the composed spec end, and an interactive session's skill, from the labels: the core's one way to a Workflow. |
 | `Workflow/code/codeWorkflow.ts` | `codeWorkflow` | Builds the code Workflow from a repo's checks and review skill: each ticket's Step sequence, the Step each one goes on to, its spec-end Steps and their trigger, its agent steps' rules and its outcome row's review cell. |
 | `Workflow/code/gapCheck.ts` | `gapCheck` | The code gap check's prompt. |
 | `Workflow/code/implementCodeSkill.ts` | `implementCodeSkill` | Generates the `/implement-code` skill from the implement step's shared body. |

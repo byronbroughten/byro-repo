@@ -4,7 +4,7 @@
 // Also the gap check's comment in the same format, the note a `covered-later` Dismiss leaves on its later ticket,
 // the count of undecided items the end-of-run push gives, the edit `runner decide` makes to one item, and a session re-review's merge into the posted list.
 // SpecRun/ReviewListPoster.ts posts them, TicketLander.ts calling it at landing and SpecRun/SessionReviewer.ts after a
-// session's review, which also returns the ticket's to print; WrapUp.ts counts a Standalone ticket's; SpecRun/ReviewItemDecider.ts edits one; the spec's Workflow's gap check supplies the gaps.
+// session's review, which also returns the ticket's to print; WrapUp.ts counts a Standalone ticket's; SpecRun/ReviewItemDecider.ts edits one; the gap check of the Workflows the spec's tickets pick supplies the gaps.
 
 import { isRunnersComment, shortRefOf } from "./halts.ts";
 import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";

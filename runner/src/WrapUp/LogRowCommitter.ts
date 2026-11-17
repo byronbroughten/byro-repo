@@ -5,11 +5,7 @@ import { git, revOf } from "../git.ts";
 import { type IssueRef, issueRef, type Workspace } from "../IssueWorkspaces.ts";
 import { estimateOf } from "../modelFit.ts";
 import { writeOutcomeRow } from "../outcomeRowWriter.ts";
-import {
-  ticketWorkflowNameOf,
-  type WorkflowName,
-  workflowNameOf,
-} from "../Workflow.ts";
+import { rowWorkflowNameOf, type WorkflowName } from "../Workflow.ts";
 import { IssueCloser } from "./IssueCloser.ts";
 import { WrapUpBase } from "./WrapUpBase.ts";
 import { labels, type Landing } from "./wrapUpTypes.ts";
@@ -44,13 +40,10 @@ export class LogRowCommitter extends WrapUpBase {
     issue: IssueRef,
     spec: IssueRef,
   ): Promise<WorkflowName> {
-    const specIssue = { labels: await this._labelsOf(spec) };
-    const name = ticketWorkflowNameOf({
+    return rowWorkflowNameOf({
       ticket: { issue, labels: await this._labelsOf(issue) },
-      spec: specIssue,
+      spec: { labels: await this._labelsOf(spec) },
     });
-    // A ticket that picks none Halted its run, so its row names the spec's Workflow.
-    return name ?? workflowNameOf(specIssue);
   }
 
   private async _labelsOf(issue: IssueRef): Promise<string[]> {

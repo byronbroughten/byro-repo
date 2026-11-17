@@ -1,10 +1,10 @@
-// A piece spec's push, its last spec-end Step: writes each agent Section of the Agent draft on master into the
+// The push, the last spec-end Step of a spec with a piece ticket: writes each agent Section of the Agent draft on master into the
 // Deliverable's Doc through the Docs module, reading the Doc again before each write, and skips one the Doc already
 // holds, so a rerun writes nothing twice. A Section that differs from the push baseline DraftPuller.ts kept, or is
 // missing, raises a push Halt on the spec issue first, and the push writes nothing until every one is answered:
 // `overwrite` writes the agent text, `keep mine` marks the Section as the developer's, through DraftPusher/DraftKeeper.ts.
 // A stale revision makes it read and compare again, up to a bound; pending suggestions raise a push Halt naming the Doc.
-// The push rules are the Workflow's, through ../Workflow.ts; SpecEndRunner.ts runs it after the judge Step.
+// The push rules are those of the run's Workflow that has them, through ../Workflow.ts; SpecEndRunner.ts runs it after the judge Step.
 
 import { type DocRead, type Docs, sectionTextOf } from "../Docs.ts";
 import { PendingSuggestions } from "../Docs/PendingSuggestions.ts";
@@ -20,7 +20,13 @@ import {
 import { haltReplies, type PushAnswer } from "../halts/haltReplies.ts";
 import { issueRef } from "../IssueWorkspaces.ts";
 import { TicketHalted } from "../TicketHalted.ts";
-import { type AgentSection, pullOf, pushOf } from "../Workflow.ts";
+import {
+  type AgentSection,
+  pullOf,
+  pushOf,
+  pushWorkflowOf,
+  type Workflow,
+} from "../Workflow.ts";
 import { DraftKeeper } from "./DraftPusher/DraftKeeper.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import type { PullBaseline, Run } from "./runState.ts";
@@ -74,9 +80,9 @@ export class DraftPusher extends SpecRunBase {
   }
 
   // The message the run stops on; undefined once the Doc holds every agent Section. Throws TicketHalted on a push Halt.
-  async _push(run: Run): Promise<string | undefined> {
+  async _push(run: Run, workflows: Workflow[]): Promise<string | undefined> {
     if (run.state.isPushed === true) return undefined;
-    const workflow = this._workflowOf(run.spec);
+    const workflow = pushWorkflowOf(workflows);
     const baseline = pushBaselineOf(run);
     const documentId =
       baseline?.documentId ?? pullOf(workflow).deliverableOf(run.spec);
