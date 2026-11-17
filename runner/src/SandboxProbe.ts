@@ -1,7 +1,11 @@
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync } from "node:fs";
 
-import { type HeadlessRun, runHeadless } from "./headlessProbe.ts";
+import {
+  type HeadlessRun,
+  projectSandboxOf,
+  runStreaming,
+  streamJson,
+} from "./headlessProbe.ts";
 
 export type CommandOutcome =
   | { command: string; status: "ran" | "not run" }
@@ -28,16 +32,6 @@ interface BashCall {
 interface BashResult {
   isError: boolean;
   text: string;
-}
-
-interface ContentBlock {
-  type?: unknown;
-  id?: unknown;
-  name?: unknown;
-  input?: { command?: unknown };
-  tool_use_id?: unknown;
-  is_error?: unknown;
-  content?: unknown;
 }
 
 // Claude Code 2.1.316 has no command that runs its sandbox runtime alone, so each command goes through one headless session's Bash tool.
@@ -79,17 +73,12 @@ export class SandboxProbe {
     settings: SandboxSettings,
   ): Promise<SandboxReport> {
     const commands = commandList(readFileSync(commandsPath, "utf8"));
-    const { exitCode, stdout, stderr } = await runHeadless(
-      this.claudePath,
+    const { exitCode, stderr, events } = await runStreaming({
+      claudePath: this.claudePath,
       cwd,
-      sandboxLaunch(commands, settings),
-    );
-    const events = streamEvents(stdout);
-    if (events.length === 0) {
-      throw new Error(
-        `The sandbox probe session in ${cwd} exited with ${exitCode} and printed no events: ${stderr.trim()}`,
-      );
-    }
+      args: sandboxLaunch(commands, settings),
+      label: `The sandbox probe session in ${cwd}`,
+    });
     const outcomes = commandOutcomes(events, commands);
     return { settings, outcomes, exitCode, stderr, events };
   }
@@ -126,18 +115,6 @@ function sandboxSettings(project: Record<string, unknown>): SandboxSettings {
   };
 }
 
-function projectSandboxOf(cwd: string): Record<string, unknown> {
-  const path = join(cwd, ".claude", "settings.json");
-  if (!existsSync(path)) throw new Error(`${path} doesn't exist`);
-  const project = JSON.parse(
-    readFileSync(path, "utf8"),
-  ) as Partial<SandboxSettings>;
-  if (project.sandbox === undefined) {
-    throw new Error(`${path} has no sandbox block`);
-  }
-  return project.sandbox;
-}
-
 function sandboxLaunch(
   commands: string[],
   settings: SandboxSettings,
@@ -171,16 +148,6 @@ function sandboxPrompt(commands: string[]): string {
   ].join("\n");
 }
 
-function streamEvents(stdout: string): unknown[] {
-  return stdout.split("\n").flatMap((line) => {
-    try {
-      return [JSON.parse(line) as unknown];
-    } catch {
-      return [];
-    }
-  });
-}
-
 // A command listed twice matches the session's calls of it in order.
 function commandOutcomes(
   events: unknown[],
@@ -201,17 +168,9 @@ function commandOutcomes(
   });
 }
 
-function contentBlocks(event: unknown, type: string): ContentBlock[] {
-  const message = (event as { message?: { content?: unknown } }).message;
-  if (!Array.isArray(message?.content)) return [];
-  return (message.content as ContentBlock[]).filter(
-    (block) => block.type === type,
-  );
-}
-
 function bashCalls(events: unknown[]): BashCall[] {
   return events
-    .flatMap((event) => contentBlocks(event, "tool_use"))
+    .flatMap((event) => streamJson.contentBlocks(event, "tool_use"))
     .flatMap((block) => {
       if (block.name !== "Bash" || typeof block.input?.command !== "string") {
         return [];
@@ -222,7 +181,7 @@ function bashCalls(events: unknown[]): BashCall[] {
 
 function bashResults(events: unknown[]): Map<string, BashResult> {
   return events
-    .flatMap((event) => contentBlocks(event, "tool_result"))
+    .flatMap((event) => streamJson.contentBlocks(event, "tool_result"))
     .reduce((results, block) => {
       results.set(String(block.tool_use_id), {
         isError: block.is_error === true,

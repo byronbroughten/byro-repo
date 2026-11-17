@@ -49,7 +49,7 @@ const freeScripts = new Map<string, string>([
   ],
   [
     "session:probe",
-    "its one-turn session only reports what the folder's hooks see, or with --sandbox-check runs each listed command once inside the folder's sandbox",
+    "its one-turn session only reports what the folder's hooks see; with --sandbox-check it runs each listed command once inside the folder's sandbox, and with --injection-check it runs throwaway skills under temp whose injected command reads ps and writes what it saw into that temp folder, inside that sandbox",
   ],
   ["check", freeWhys.check],
   ["tsc", freeWhys.check],

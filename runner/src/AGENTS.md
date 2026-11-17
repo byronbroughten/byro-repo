@@ -65,7 +65,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `GitFixture.ts` | | A test primary root of clones with bare remotes. |
 | `halts.ts` | | Halts: their comments, notices, the resume prompt and the words of the fresh Halt on an Outline edit the runner can't apply, of the Halt on a ticket that picks no Workflow and of the push Halts, on a Section by its heading path and on a Doc's pending suggestions. |
 | `halts/haltReplies.ts` | | Reads a developer's replies to a Halt: which answer it, `stop spec` and a Failure or push Halt's answer. |
-| `headlessProbe.ts` | | Launches the one-turn headless session both probes run. |
+| `headlessProbe.ts` | | Launches the one-turn headless session the probes run, refusing a stream-json one that printed no events, and reads a folder's sandbox block and a session's stream events. |
+| `InjectionProbe.ts` | `InjectionProbe` | `npm run session:probe -- --injection-check`: whether a skill's injected command runs, in the box or not, and what a PreToolUse hook sees of it, by slash command and through the Skill tool, for each `allowed-tools` entry. |
 | `IssueReader.ts` | `IssueReader` | `npm run issue:read`: prints an issue as Trusted and Untrusted text, reads a Trusted body's Model fit line for `npm run outcome:summary`, and names a ticket's skill for `npm run issue:start`. |
 | `IssueWorkspaces.ts` | `IssueWorkspaces` | Creates, promotes, resumes, leases, lists and removes issue and session workspaces, delegating to `IssueWorkspaces/`. |
 | `IssueWorkspaces/BranchNamer.ts` | | Names a workspace's branch, reusing an issue's existing branch in its own repo only, and finds other repos' same-numbered branches. |
