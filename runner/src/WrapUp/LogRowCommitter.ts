@@ -5,7 +5,11 @@ import { git, revOf } from "../git.ts";
 import { type IssueRef, issueRef, type Workspace } from "../IssueWorkspaces.ts";
 import { estimateOf } from "../modelFit.ts";
 import { writeOutcomeRow } from "../outcomeRowWriter.ts";
-import { type WorkflowName, workflowNameOf } from "../Workflow.ts";
+import {
+  ticketWorkflowNameOf,
+  type WorkflowName,
+  workflowNameOf,
+} from "../Workflow.ts";
 import { IssueCloser } from "./IssueCloser.ts";
 import { WrapUpBase } from "./WrapUpBase.ts";
 import { labels, type Landing } from "./wrapUpTypes.ts";
@@ -35,9 +39,18 @@ export class LogRowCommitter extends WrapUpBase {
     return issueLabels.includes(labels.human);
   }
 
-  // From the spec's labels, so a ticket landed outside a run, which has no run to record it, gets its row's Workflow.
-  private async _workflowOf(spec: IssueRef): Promise<WorkflowName> {
-    return workflowNameOf({ labels: await this._labelsOf(spec) });
+  // From the labels, so a ticket landed outside a run, which has no run to record it, gets its row's Workflow.
+  private async _workflowOf(
+    issue: IssueRef,
+    spec: IssueRef,
+  ): Promise<WorkflowName> {
+    const specLabels = { labels: await this._labelsOf(spec) };
+    const name = ticketWorkflowNameOf({
+      ticket: { issue, labels: await this._labelsOf(issue) },
+      spec: specLabels,
+    });
+    // A ticket that picks none Halted its run, so its row names the spec's Workflow.
+    return name ?? workflowNameOf(specLabels);
   }
 
   private async _labelsOf(issue: IssueRef): Promise<string[]> {
@@ -66,7 +79,7 @@ export class LogRowCommitter extends WrapUpBase {
     const { path, commitMessage } = await writeRow(worktree, {
       issue,
       spec,
-      workflow: await this._workflowOf(spec),
+      workflow: await this._workflowOf(issue, spec),
       githubOwner: this.config.githubOwner,
       filesChanged: landing.progress.filesChanged ?? 0,
       estimate: estimateOf(await this._bodyOf(issue)),

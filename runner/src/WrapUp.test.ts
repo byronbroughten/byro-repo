@@ -101,6 +101,26 @@ describe("run", () => {
     );
   });
 
+  it("marks a piece-labelled ticket of a code spec piece", async () => {
+    const workspace = await workspaceWith();
+    commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
+    writeFacts();
+    github.issues.set(
+      spec.number,
+      trackedIssues.issueOf(spec.number, { labels: ["code"], body: "" }),
+    );
+    github.issues.set(
+      ticket.number,
+      trackedIssues.issueOf(ticket.number, { labels: ["piece"], body: "" }),
+    );
+
+    await wrapUp().run(ticket);
+
+    expect(readFileSync(join(primaryRoot, outcomePath), "utf8")).toContain(
+      "| #218 | piece | Opus medium |",
+    );
+  });
+
   it("writes the row through the configured writer in the merged root checkout, where the ticket's own code is", async () => {
     const workspace = await workspaceWith();
     commitIn(workspace, "byro-repo", "script.ts", "export {};\n");

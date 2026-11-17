@@ -2,7 +2,7 @@
 // budget; a red master Stops the run, after the same checks run in a master set.
 // ../TicketLander.ts delegates its _check here, which TicketSequencer.ts calls after the resolve step.
 // It builds its own ReviewStepper, HandoffTaker and HaltRaiser.
-// The red-checks prompt is its spec's Workflow's, through ../../Workflow.ts, and each check runs through ../../runCommand.ts.
+// The red-checks prompt is its ticket's Workflow's, through ../../Workflow.ts, and each check runs through ../../runCommand.ts.
 
 import { commandLabelOf, messageOf } from "../../failureText.ts";
 import { issueRef } from "../../IssueWorkspaces.ts";
@@ -42,7 +42,7 @@ export class TicketChecker extends SpecRunBase {
     ticketRun: TicketRun,
   ): Promise<string | undefined> {
     const { run, ticket, workspace, state } = ticketRun;
-    const workflow = this._workflowOf(run.spec);
+    const workflow = this._ticketWorkflowOf({ ticket, spec: run.spec });
     for (const command of workflow.checks) {
       this._log(
         run,
@@ -80,7 +80,8 @@ export class TicketChecker extends SpecRunBase {
         `${prefix}: the master set failed to build: ${messageOf(error)}`,
       );
     }
-    for (const command of this._workflowOf(run.spec).checks) {
+    const { checks } = this._ticketWorkflowOf({ ticket, spec: run.spec });
+    for (const command of checks) {
       if ((await runCommand(command, masterSet)) !== undefined) {
         throw new RunStop(`${prefix}: master red: ${commandLabelOf(command)}`);
       }
@@ -93,7 +94,7 @@ export class TicketChecker extends SpecRunBase {
     failure: string,
   ): Promise<void> {
     const { run, ticket, state } = ticketRun;
-    const workflow = this._workflowOf(run.spec);
+    const workflow = this._ticketWorkflowOf({ ticket, spec: run.spec });
     // With no red-checks step to send it back to, a red check is a Failure Halt at once.
     const hasRedChecks = hasAgentStep(workflow, "redChecks");
     await this.haltRaiser._spendRedCheckResume(ticketRun, {
@@ -112,7 +113,10 @@ export class TicketChecker extends SpecRunBase {
       `${issueRef.labelOf(ticket.issue)}: checks red; running the implementer with the failure.`,
     );
     this._markStepStarted(ticketRun);
-    const rules = this._agentStepOf(run.spec, "redChecks");
+    const rules = this._ticketAgentStepOf(
+      { ticket, spec: run.spec },
+      "redChecks",
+    );
     const { result, logPath } = await this.reviewStepper._runImplementerStep(
       ticketRun,
       {
