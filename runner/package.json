@@ -18,6 +18,7 @@
     "./clonePaths": "./src/clonePaths.ts",
     "./codeWorkflow": "./src/Workflow/code/codeWorkflow.ts",
     "./pieceWorkflow": "./src/Workflow/piece/pieceWorkflow.ts",
+    "./CloseOutBrief": "./src/CloseOutBrief.ts",
     "./CswapUsageReader": "./src/CswapUsageReader.ts",
     "./docPrint": "./src/docPrint.ts",
     "./Docs": "./src/Docs.ts",

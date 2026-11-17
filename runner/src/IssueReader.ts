@@ -313,6 +313,30 @@ function isApprovedBody(
   );
 }
 
+// A brief's issue number and title, the title only when Trusted, as `map:next` and `issue:close-parent` print them.
+export function briefHeadlineOf(
+  developer: string,
+  issue: ReadableIssue,
+): string {
+  const number = issueRef.numberLabelOf(issue.issue);
+  const reason = untrustedTitleReasonOf(developer, issue);
+  if (reason === undefined) return `${number} ${issue.title}`;
+  return `${number} (title not printed, Untrusted text: ${reason}; ${readCommandOf(issue.issue, "--body")} reads it)`;
+}
+
+// A brief's body part, printed only when Trusted.
+export function briefBodyOf(
+  developer: string,
+  heading: string,
+  issue: ReadableIssue,
+): string[] {
+  const reason = untrustedBodyReasonOf(developer, issue);
+  if (reason === undefined) return trustedPart({ heading, text: issue.body });
+  return [
+    `${untrustedHeadingOf(heading, reason)}: not printed; ${readCommandOf(issue.issue, "--body")} reads it`,
+  ];
+}
+
 export function trustedPart({ heading, text }: IssuePart): string[] {
   return [`${heading} (Trusted text)`, "", text];
 }

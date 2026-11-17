@@ -1,13 +1,11 @@
 import {
+  briefBodyOf,
+  briefHeadlineOf,
   listOf,
   type ReadableIssue,
   readCommandOf,
   refLabelOf,
   stateWordOf,
-  trustedPart,
-  untrustedBodyReasonOf,
-  untrustedHeadingOf,
-  untrustedTitleReasonOf,
 } from "../IssueReader.ts";
 import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
 
@@ -134,20 +132,12 @@ export class MapBriefWriter {
     return `- ${this._headlineOf(child)}: ${stateWordOf(child.isOpen)}; assignee: ${listOf(child.assignees)}; blocked by: ${listOf(blockers)}`;
   }
 
-  // The number and title, the title only when Trusted.
   private _headlineOf(issue: ReadableIssue): string {
-    const number = issueRef.numberLabelOf(issue.issue);
-    const reason = untrustedTitleReasonOf(this.config.developer, issue);
-    if (reason === undefined) return `${number} ${issue.title}`;
-    return `${number} (title not printed, Untrusted text: ${reason}; ${readCommandOf(issue.issue, "--body")} reads it)`;
+    return briefHeadlineOf(this.config.developer, issue);
   }
 
   private _bodyOf(heading: string, issue: ReadableIssue): string[] {
-    const reason = untrustedBodyReasonOf(this.config.developer, issue);
-    if (reason === undefined) return trustedPart({ heading, text: issue.body });
-    return [
-      `${untrustedHeadingOf(heading, reason)}: not printed; ${readCommandOf(issue.issue, "--body")} reads it`,
-    ];
+    return briefBodyOf(this.config.developer, heading, issue);
   }
 
   // Comments only count here, the developer's too, since the spec's brief holds bodies alone.

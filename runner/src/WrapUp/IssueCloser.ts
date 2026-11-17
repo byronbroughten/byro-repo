@@ -59,7 +59,7 @@ export class IssueCloser extends WrapUpBase {
   }
 
   async _checkParent(issue: IssueRef): Promise<ParentCheck> {
-    return parentCheckOf(await this._parentOf(issue));
+    return parentCheckOf(await this._parentOf(issue), 0);
   }
 
   async _handoffSessionIdsOf(issue: IssueRef): Promise<string[]> {
@@ -116,7 +116,11 @@ function gitHubWriteLineOf({
   return `- ${action} ${preposition} ${issue}: ${summary} ${url}`;
 }
 
-function parentCheckOf(parent: ParentIssue | undefined): ParentCheck {
+// `closing` counts the open sub-issues taken as closed, so a check made before a close reads as one made after it.
+export function parentCheckOf(
+  parent: ParentIssue | undefined,
+  closing: number,
+): ParentCheck {
   if (parent === undefined) return { kind: "none" };
   if (parent.labels.includes(labels.map)) {
     return { kind: "map", parent: parent.issue };
@@ -127,7 +131,7 @@ function parentCheckOf(parent: ParentIssue | undefined): ParentCheck {
       `${issueRef.labelOf(parent.issue)}'s sub-issue summary could not be read`,
     );
   }
-  if (parent.subIssues.completed < parent.subIssues.total) {
+  if (parent.subIssues.completed + closing < parent.subIssues.total) {
     return { kind: "open-sub-issues", parent: parent.issue };
   }
   return { kind: "ready-to-close", parent: parent.issue };
