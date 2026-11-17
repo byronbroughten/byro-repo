@@ -29,6 +29,10 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `CheckSlot.ts` | | The per-primary check slot `npm run check` waits for. |
 | `ClaudeAgentStep.ts` | `ClaudeAgentStep` | The real agent-step adapter over `cswap run`, launching under the primary's gate root and settings plus an injected permission hook, with the targets' tools, no other gworkspace tool, and environment. |
 | `clonePaths.ts` | `clonePaths` | Builds the repo map, each clone in landing order, from a primary root, and names the repo whose clone holds a folder. |
+| `CloseOutBrief.ts` | `CloseOutBrief` | `npm run issue:close-parent`'s core: a Close-out's brief of a parent, its refusals and, with `--comment-file`, the close and the parent check above it, printing only Trusted text. |
+| `CloseOutBrief/CloseOutChecker.ts` | | Judges what keeps a read parent from closing out: its open Edit gate, its refusals and what refuses the close itself. |
+| `CloseOutBrief/closeOutWords.ts` | `closeOutWords` | The phrases `issue:close-parent`'s brief, checker, writer and script share, its no-brief line among them. |
+| `CloseOutBrief/CloseOutWriter.ts` | | Words a read parent's Close-out brief, its refusals, the chain of parent checks above it and the close, counting Untrusted text with the command that reads it. |
 | `CommittedFiles.ts` | | A set of committed files in one repo, read from HEAD for a check stamp's key, and whether any has a change. |
 | `contextMeter.ts` | `contextMeter` | Measures a session's peak context from stream events or a transcript. |
 | `contextNudge.ts` | `contextNudge` | Words the handoff reminder near the ticket budget, for the ticket's handoff, the supervision's or both. |
@@ -56,7 +60,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `FactsFile.ts` | `FactsFile` | Reads and writes a ticket's facts file. |
 | `failureText.ts` | `failureText` | Words a thrown error or failed command, once for every caller. |
 | `FakeAgentStep.ts` | `FakeAgentStep` | The scripted agent step run-loop tests use. |
-| `FakeGitHub.ts` | | The scripted GitHub port run-loop, wrap-up and filing tests use. |
+| `FakeGitHub.ts` | | The scripted GitHub port run-loop, wrap-up, filing and close-out tests use, an issue source for close-out ones. |
 | `FakeIssueSource.ts` | | The scripted issue source issue-reader and Outline-edit tests use. |
 | `FakeNotices.ts` | `FakeNotices` | The notice port run-loop tests read back. |
 | `FakeUsageReader.ts` | | The scripted usage reader run-loop, account-switch and Accounts section tests use. |
@@ -67,7 +71,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `halts/haltReplies.ts` | | Reads a developer's replies to a Halt: which answer it, `stop spec` and a Failure or push Halt's answer. |
 | `headlessProbe.ts` | | Launches the one-turn headless session the probes run, refusing a stream-json one that printed no events, and reads a folder's sandbox block and a session's stream events. |
 | `InjectionProbe.ts` | `InjectionProbe` | `npm run session:probe -- --injection-check`: whether a skill's injected command runs, in the box or not, and what a PreToolUse hook sees of it, by slash command and through the Skill tool, for each `allowed-tools` entry. |
-| `IssueReader.ts` | `IssueReader` | `npm run issue:read`: prints an issue as Trusted and Untrusted text, reads a Trusted body's Model fit line for `npm run outcome:summary`, and names a ticket's skill for `npm run issue:start`. |
+| `IssueReader.ts` | `IssueReader` | `npm run issue:read`: prints an issue as Trusted and Untrusted text, reads a Trusted body's Model fit line for `npm run outcome:summary`, names a ticket's skill for `npm run issue:start`, and words the headline and body a brief prints for `map:next` and `issue:close-parent`. |
 | `IssueWorkspaces.ts` | `IssueWorkspaces` | Creates, promotes, resumes, leases, lists and removes issue and session workspaces, delegating to `IssueWorkspaces/`. |
 | `IssueWorkspaces/BranchNamer.ts` | | Names a workspace's branch, reusing an issue's existing branch in its own repo only, and finds other repos' same-numbered branches. |
 | `IssueWorkspaces/claudeEntries.ts` | `claudeEntries` | The `.claude/` entries the sandbox write-protects in a worktree, and the check that a removal can delete them. |
@@ -214,7 +218,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `WrapUp/BranchDeleter.ts` | | Deletes a landing's branches on each remote and locally, recording the ones that failed. |
 | `WrapUp/BranchLander.ts` | | Lands a landing's branches up to the fast-forward: restores, clean check, files changed, stale paths, unnamed new dependencies, build and rebuild. |
 | `WrapUp/BranchMerger.ts` | | Merges a landing's branches in the workspace, installs changed dependencies and runs the checks, or switches the workspace's repos to master. |
-| `WrapUp/IssueCloser.ts` | | Closes a landed ticket's issue or leaves a Standalone one open, and reads its parent, spec and handoff sessions. |
+| `WrapUp/IssueCloser.ts` | | Closes a landed ticket's issue or leaves a Standalone one open, and reads its parent, spec and handoff sessions; its parent check serves `npm run issue:close-parent` too. |
 | `WrapUp/LandingBranchFinder.ts` | | Finds the branches a landing merges, the repos whose workspace branch is ahead of master, and the branches its workspace made. |
 | `WrapUp/LandingKindPicker.ts` | | Picks what differs between a ticket that lands branches, one with no code and a session. |
 | `WrapUp/LandingPusher.ts` | | Scans a landing's added lines for token shapes, then pushes each master. |

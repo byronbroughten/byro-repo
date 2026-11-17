@@ -279,7 +279,7 @@ export function untrustedBodyReasonOf(
 }
 
 // A rename replaces the whole title, so whoever set it last wrote all of it.
-export function untrustedTitleReasonOf(
+function untrustedTitleReasonOf(
   developer: string,
   { author, titleRenamer }: ReadableIssue,
 ): string | undefined {
@@ -313,7 +313,31 @@ function isApprovedBody(
   );
 }
 
-export function trustedPart({ heading, text }: IssuePart): string[] {
+// A brief's issue number and title, the title only when Trusted, as `map:next` and `issue:close-parent` print them.
+export function briefHeadlineOf(
+  developer: string,
+  issue: ReadableIssue,
+): string {
+  const number = issueRef.numberLabelOf(issue.issue);
+  const reason = untrustedTitleReasonOf(developer, issue);
+  if (reason === undefined) return `${number} ${issue.title}`;
+  return `${number} (title not printed, Untrusted text: ${reason}; ${readCommandOf(issue.issue, "--body")} reads it)`;
+}
+
+// A brief's body part, printed only when Trusted.
+export function briefBodyOf(
+  developer: string,
+  heading: string,
+  issue: ReadableIssue,
+): string[] {
+  const reason = untrustedBodyReasonOf(developer, issue);
+  if (reason === undefined) return trustedPart({ heading, text: issue.body });
+  return [
+    `${untrustedHeadingOf(heading, reason)}: not printed; ${readCommandOf(issue.issue, "--body")} reads it`,
+  ];
+}
+
+function trustedPart({ heading, text }: IssuePart): string[] {
   return [`${heading} (Trusted text)`, "", text];
 }
 
@@ -321,7 +345,7 @@ function untrustedPart({ heading, text }: IssuePart, whose: string): string[] {
   return [untrustedHeadingOf(heading, whose), ...quotedTextOf(text)];
 }
 
-export function untrustedHeadingOf(heading: string, whose: string): string {
+function untrustedHeadingOf(heading: string, whose: string): string {
   return `${heading} (Untrusted text: ${whose})`;
 }
 

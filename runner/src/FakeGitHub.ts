@@ -1,3 +1,4 @@
+import type { IssueSource, ReadableIssue } from "./IssueReader.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { IssueComment, RunGitHub, TrackedIssue } from "./SpecRun.ts";
 import type { FilingGitHub, NewIssue } from "./TicketFiler.ts";
@@ -6,8 +7,8 @@ import type { ParentIssue } from "./WrapUp.ts";
 // The runner posts as the developer's login, as GhCli does.
 const developer = "byronbroughten";
 
-// The GitHub port run-loop, wrap-up and filing tests script and read back; issues are keyed by number, so one fake serves one repo.
-export class FakeGitHub implements RunGitHub, FilingGitHub {
+// The GitHub port run-loop, wrap-up, filing and close-out tests script and read back, an issue source for close-out ones; issues are keyed by number, so one fake serves one repo.
+export class FakeGitHub implements RunGitHub, FilingGitHub, IssueSource {
   readonly issues = new Map<number, TrackedIssue>();
   readonly subIssues = new Map<number, number[]>();
   readonly blockers = new Map<number, number[]>();
@@ -74,8 +75,45 @@ export class FakeGitHub implements RunGitHub, FilingGitHub {
     }
   }
 
-  async parentOf({ repo, number }: IssueRef): Promise<ParentIssue | undefined> {
+  // Every comment is read and no title was renamed, so a tracked issue's own author decides its title's trust.
+  async readableIssueOf(ref: IssueRef): Promise<ReadableIssue> {
+    const { issue, title, body, isOpen, labels, author, bodyEditors } =
+      await this.issueOf(ref);
+    const comments = this.comments.flatMap((comment, index) => {
+      if (comment.issue.number !== ref.number) return [];
+      const url = commentUrlOf(ref, index + 1);
+      return [{ author: comment.author, body: comment.body, url }];
+    });
+    return {
+      issue,
+      title,
+      body,
+      isOpen,
+      labels,
+      author,
+      bodyEditors,
+      comments,
+      hasUnreadComments: false,
+      titleRenamer: undefined,
+      parent: this._parentWithoutFailure(ref)?.issue,
+      subIssues: (this.subIssues.get(ref.number) ?? []).map((sub) => ({
+        repo: ref.repo,
+        number: sub,
+      })),
+      assignees: [],
+      blockedBy: [],
+    };
+  }
+
+  async parentOf(ref: IssueRef): Promise<ParentIssue | undefined> {
     this._failIfScripted();
+    return this._parentWithoutFailure(ref);
+  }
+
+  private _parentWithoutFailure({
+    repo,
+    number,
+  }: IssueRef): ParentIssue | undefined {
     const scripted = this.parents.get(number);
     if (scripted) return scripted;
     for (const [parent, tickets] of this.subIssues) {
