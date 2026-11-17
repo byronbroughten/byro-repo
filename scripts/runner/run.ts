@@ -351,9 +351,9 @@ async function supervise(
     return;
   }
   const specRun = SpecRun.init(specRunConfigOf(owner));
-  const { handoff, lines } = await specRun.catchUp(holder, spec);
+  const { handoff, unexplainedLines } = await specRun.catchUp(holder, spec);
   if (handoff !== undefined) console.log(`${handoffBlockOf(handoff)}\n`);
-  for (const line of lines) {
+  for (const line of unexplainedLines) {
     console.log(line);
   }
 }

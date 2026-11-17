@@ -3,11 +3,8 @@
 // The launch goes through the RunLauncher port its caller passes, tmux.sh's in scripts/runner/run.ts; the records are ../SupervisionRecords.ts.
 // ../SpecRun.ts delegates open and catchUp to it.
 
-import {
-  type IssueRef,
-  issueRef,
-  type LeaseHolder,
-} from "../IssueWorkspaces.ts";
+import { membersLabelOf } from "../BatchRecords.ts";
+import { type IssueRef, type LeaseHolder } from "../IssueWorkspaces.ts";
 import { RunLock } from "../RunLock.ts";
 import { SupervisionRecords } from "../SupervisionRecords.ts";
 import type { MemberList } from "./runState.ts";
@@ -28,7 +25,6 @@ export interface OpenOptions {
   launcher: RunLauncher;
 }
 
-// Neither a rejoin nor a launch whose wait saw run-started leaves the run not live.
 export interface OpenResult {
   text: string;
   isLive: boolean;
@@ -36,10 +32,10 @@ export interface OpenResult {
 
 export interface CatchUp {
   handoff: string | undefined;
-  lines: string[];
+  unexplainedLines: string[];
 }
 
-export const handoffHeading = "## Handoff from the last Supervisor";
+const handoffHeading = "## Handoff from the last Supervisor";
 
 export class RunOpener extends SpecRunBase {
   private get supervisionRecords(): SupervisionRecords {
@@ -65,10 +61,10 @@ export class RunOpener extends SpecRunBase {
       );
     }
     const [lead] = live ?? named;
-    const { handoff, lines } = await this.catchUp(holder, lead);
+    const { handoff, unexplainedLines } = await this.catchUp(holder, lead);
     if (handoff !== undefined) blocks.push(handoffBlockOf(handoff));
     blocks.push(
-      `## Unexplained event lines\n\n${lines.length === 0 ? "None." : lines.join("\n")}`,
+      `## Unexplained event lines\n\n${unexplainedLines.length === 0 ? "None." : unexplainedLines.join("\n")}`,
     );
     return { text: blocks.join("\n\n"), isLive };
   }
@@ -81,7 +77,10 @@ export class RunOpener extends SpecRunBase {
       this.config.githubOwner,
       member,
     );
-    return { handoff, lines: await records.unexplainedLinesOf(holder) };
+    return {
+      handoff,
+      unexplainedLines: await records.unexplainedLinesOf(holder),
+    };
   }
 
   // The first live run among the named numbers, a Batch's whole list when one holds it; undefined when none is live.
@@ -95,11 +94,6 @@ export class RunOpener extends SpecRunBase {
 
 export function handoffBlockOf(handoff: string): string {
   return `${handoffHeading}\n\n${handoff}`;
-}
-
-function membersLabelOf([lead, ...rest]: MemberList): string {
-  const numbers = rest.map((member) => issueRef.numberLabelOf(member));
-  return [issueRef.labelOf(lead), ...numbers].join(", ");
 }
 
 function subjectOf(members: MemberList): string {

@@ -23,7 +23,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `CLAUDE.md` | | Loads `AGENTS.md` for Claude Code. |
 | `ActiveAccountUnknown.ts` | | The Stop raised when no Active account can be read for a step. |
 | `AgentStep.ts` | `AgentStep` | The port that launches one headless `claude -p` step and its `StepResult`. |
-| `BatchRecords.ts` | `BatchRecords` | A Batch's record: its members, process and one event file, found by any member, and the run's label the Run board and account lease name it by. |
+| `BatchRecords.ts` | `BatchRecords` | A Batch's record: its members, process and one event file, found by any member, and the run's label the Run board and account lease name it by, and its members' label `runner open` names it by. |
 | `callOfItsOwn.ts` | `callOfItsOwn` | Words the advice to run a command in a call of its own, once for the hooks, the runner and the scripts lint. |
 | `Checks.ts` | `Checks` | Runs `npm run check`'s commands at once in the check slot, narrowed to the packages with no check stamp. |
 | `CheckSlot.ts` | | The per-primary check slot `npm run check` waits for. |

@@ -46,7 +46,6 @@ export {
 export {
   type CatchUp,
   handoffBlockOf,
-  handoffHeading,
   type LaunchReport,
   type OpenOptions,
   type OpenResult,
