@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { accountLine } from "../../accountLine.ts";
 import type { StepResult } from "../../AgentStep.ts";
 import {
+  type AccountReading,
   type AccountUsage,
   decideReading,
   freshReadingOf,
@@ -33,7 +34,8 @@ interface LaunchWait {
   until: Date | undefined;
 }
 
-type LaunchCheck = { kind: "launch"; account: number } | LaunchWait;
+// `reading` is the picked account's, each window raised to its step stream's.
+type LaunchCheck = { kind: "launch"; reading: AccountReading } | LaunchWait;
 
 // A launch no account could take. `unavailableUntils` are the known ends of the run's unavailable accounts no other run leases,
 // which may continue the run before any threshold lifts.
@@ -47,6 +49,14 @@ export class LimitWaiter extends SpecRunBase {
   // Runs the launch check until it gives an account, and returns that account.
   async _waitForLaunch(run: Run): Promise<number> {
     return this._pollForLaunch(run, limitWaitNoticeOf);
+  }
+
+  // One launch check with no wait, so the run-start notice can name the account the first launch takes; undefined when it would wait.
+  // The lease it takes is the one that launch keeps, as the check holds an account while it reads under.
+  async _leaseIfFree(run: Run): Promise<AccountReading | undefined> {
+    const check = await this._runLaunchCheck(run);
+    if (check.kind === "launch") return check.reading;
+    return undefined;
   }
 
   // The tree stays as is in the workspace; the first stream ever seen is kept for tightening limit detection.
@@ -89,7 +99,7 @@ export class LimitWaiter extends SpecRunBase {
     let hasAnnouncedWait = false;
     for (;;) {
       const check = await this._runLaunchCheck(run);
-      if (check.kind === "launch") return check.account;
+      if (check.kind === "launch") return check.reading.account;
       if (!hasAnnouncedWait) {
         hasAnnouncedWait = true;
         await this._announce(run, noticeOf(check));
@@ -144,7 +154,7 @@ export class LimitWaiter extends SpecRunBase {
         `No usage reading for account ${picked.account}; steps launch unguarded.`,
       );
     }
-    return { kind: "launch", account: picked.account };
+    return { kind: "launch", reading: picked };
   }
 
   // A hit with a reset lapses at its time, even while cswap's stale reading reads under; one with none, once the account reads under its thresholds.

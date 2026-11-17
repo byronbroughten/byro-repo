@@ -47,14 +47,21 @@ import {
   SpecRunBase,
   type SpecRunConfig,
 } from "./SpecRunBase.ts";
+import { StepLauncher } from "./StepLauncher.ts";
 import { TicketSelector } from "./TicketSelector.ts";
 import { TicketSequencer } from "./TicketSequencer.ts";
 
 // Non-empty, so the run always has a first Run to tell what concerns it as a whole.
 type RunList<RN> = [RN, ...RN[]];
 
+// The account the first pick's launch leased; waiting when none was free, and none when the pick makes no launch.
+type StartAccount =
+  | { kind: "leased"; reading: AccountReading }
+  | { kind: "waiting" }
+  | { kind: "none" };
+
 interface RunStart {
-  reading: AccountReading;
+  account: StartAccount;
   // The launch the first pick makes, if it makes one.
   launch: MemberSelection<"launch"> | undefined;
   isRelaunch: boolean;
@@ -111,6 +118,10 @@ export class RunLoop extends SpecRunBase {
 
   private get specEndRunner(): SpecEndRunner {
     return new SpecEndRunner(this.config);
+  }
+
+  private get stepLauncher(): StepLauncher {
+    return new StepLauncher(this.config);
   }
 
   async run(): Promise<RunResult> {
@@ -173,13 +184,6 @@ export class RunLoop extends SpecRunBase {
     runs.forEach((run) => {
       this._log(run, `Preflight passed in ${this._secondsSince(startedAt)}s.`);
     });
-    let reading: AccountReading;
-    try {
-      reading = await this._activeReadingOf(lead.run);
-    } catch (error) {
-      if (!(error instanceof RunStop)) throw error;
-      return this._stopAll(members, { member: lead, message: error.message });
-    }
     const startHead = await revOf(this.config.primaryRoot, "HEAD");
     let isStartAnnounced = false;
     let isIdle = false;
@@ -194,7 +198,15 @@ export class RunLoop extends SpecRunBase {
       });
       const launch = selections.nextLaunch;
       if (!isStartAnnounced) {
-        await this._announceStart(unfinished, { reading, launch, isRelaunch });
+        let account: StartAccount;
+        try {
+          account = await this._startAccountOf(launch);
+        } catch (error) {
+          if (!(error instanceof RunStop)) throw error;
+          const member = launch?.member ?? lead;
+          return this._stopAll(members, { member, message: error.message });
+        }
+        await this._announceStart(unfinished, { account, launch, isRelaunch });
         isStartAnnounced = true;
       }
       if (await this._endStopSpecs(selections.stopSpecs)) continue;
@@ -492,18 +504,28 @@ export class RunLoop extends SpecRunBase {
     return restart;
   }
 
+  // The launch's own check, with no wait, leases the account; it waits instead once the notice is sent, so the notice is never held behind a Limit wait.
+  private async _startAccountOf(
+    launch: MemberSelection<"launch"> | undefined,
+  ): Promise<StartAccount> {
+    if (launch === undefined) return { kind: "none" };
+    const reading = await this.stepLauncher._leaseIfFree(launch.member.run);
+    if (reading === undefined) return { kind: "waiting" };
+    return { kind: "leased", reading };
+  }
+
   // Sent at the first pick, so it can name the ticket about to launch, on its own member only; a first pick with no launch still shows startup passed.
   private async _announceStart(
     unfinished: Member[],
     start: RunStart,
   ): Promise<void> {
-    const { reading, launch, isRelaunch } = start;
+    const { account, launch, isRelaunch } = start;
     const warnings = isRelaunch ? [] : await this._stalePathWarnings();
     for (const member of startedMembersOf(unfinished, start)) {
       const { run } = member;
       const ticket =
         launch?.member === member ? launch.ticket.issue : undefined;
-      const started = `Run started on ${run.tickets.length} tickets as ${accountLine.readingLabelOf(reading.account, reading.usage)}.`;
+      const started = startedTextOf(run.tickets.length, account);
       const summary =
         ticket === undefined
           ? started
@@ -641,6 +663,16 @@ function startedMembersOf(
   if (!isRelaunch) return unfinished;
   const member = launch?.member ?? unfinished[0];
   return member === undefined ? [] : [member];
+}
+
+function startedTextOf(ticketCount: number, account: StartAccount): string {
+  const started = `Run started on ${ticketCount} tickets`;
+  if (account.kind === "none") return `${started}.`;
+  if (account.kind === "waiting") {
+    return `${started}, waiting for a free account.`;
+  }
+  const { reading } = account;
+  return `${started} as ${accountLine.readingLabelOf(reading.account, reading.usage)}.`;
 }
 
 function stopRequestMessageOf(run: Run, waits: Wait[]): string {
