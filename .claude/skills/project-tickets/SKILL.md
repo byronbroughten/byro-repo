@@ -160,7 +160,7 @@ Read the spec's Research, Final pass, Form and Outline fields, and the steps its
 
 ### List the stages as work packages
 
-Each stage is a work package, listed as step 3 lists one, its read set counted by [Ticket size](../../../docs/agents/tickets.md#ticket-size)'s piece rule: its Supporting Material and Reference passages, counted in characters at the Docs rate, plus the Outline and the earlier Sections it opens, only those [`rules.md`](../../../docs/pieces/rules.md) has its drafter open. List those the fields call for:
+Each stage is a work package, listed as step 3 lists one, its read set counted by [Ticket size](../../../docs/agents/tickets.md#ticket-size)'s piece rule, its earlier Sections only those [`rules.md`](../../../docs/pieces/rules.md) has its drafter open. List those the fields call for:
 
 - **Research**, when the Research field says needed: verifies the sources and facts it names and posts its list as a comment. It writes nothing to the Deliverable, and revises the spec's Outline only as [`docs/pieces/outlining.md`](../../../docs/pieces/outlining.md#when-research-revises-it) allows.
 - **Each Section** the Outline names, by its full heading path in the Deliverable, even when an H2 is unique today. A Piece with no headings, such as a letter, is one package for the whole Deliverable.
@@ -172,11 +172,11 @@ Pick each agent package's pair from [`model-fit.md`](../../../docs/agents/model-
 
 ### Group them into piece tickets
 
-Group the packages by step 4's estimate, rules and stop: fixed overhead, plus the union of the group's read sets with a passage two packages share counted once, plus the work allowance, under the ~135K cap and with no more than ~60K of reading, preferring fewer, larger tickets. **Every piece spec gets at least one drafting ticket, and its Edit gate last.**
+Group the packages by step 4's estimate, rules and stop, a passage two packages share counted once, with no more than ~60K of reading in a ticket.
 
 - **Whole draft, when every Section and the final pass fit one ticket**, or the Piece has no headings: one drafting ticket for the whole Deliverable, final pass included, labelled like a final pass so it drafts every Section.
 - **Otherwise group the Sections in reading order**, each ticket naming its Sections by full heading path, with a final-pass ticket after them when the Final pass field says needed.
-- **A Section whose reading alone is over ~60K is its own ticket, flagged in step 6 for the developer to decide, never split mid-Section.**
+- **A Section [Ticket size](../../../docs/agents/tickets.md#ticket-size) flags for its reading is its own ticket, flagged in step 6.**
 - **Research and each developer-only step stay their own tickets**: each runs a different Step or none.
 
 Every ticket but Research, the developer-only steps and the Edit gate is a drafting ticket.
@@ -186,8 +186,6 @@ Order them Research first, drafting tickets in reading order with the final pass
 ### Draft the piece tickets
 
 Draft each as in step 5, in the [piece-ticket template](#piece-ticket-template), `kind: agent`; a Research ticket's `labels` hold `research`, and the final-pass or whole-draft ticket's `final-pass`: the run picks each ticket's Steps and scope by them. Draft each developer-only step with `kind: human`, its body a `## Parent` and a `## What to do` naming the step, what it waits on, and what the developer runs. Draft the Edit gate last with `kind: human`, never `interactive`, which a run's Supervisor would take, in the [Edit gate template](#edit-gate-template). Copy each ticket's facts and the parent's shared rules in verbatim, so the implementer works from the ticket alone. Before step 7, run `gh label create <label> -R <owner>/<repo> --force` for `research` and `final-pass`. Leave the spec's body unchanged.
-
-Then run step 5's review on the draft set, whatever its count, and act on its report as step 5 says.
 
 Step 8's read-back lists the Edit gate last, and ends by recommending `/runner` on the spec, or for an interactive session `/implement-piece <repo> <n>` on the first ticket, or `/start-issue <repo> <n>` when a mixed spec's first ticket is code.
 
