@@ -69,13 +69,13 @@ A **wide refactor** is one mechanical change (rename a column, retype a shared s
 
 Draft every ticket as a file under `<scratchpad>/tickets/`, in [`issue:file`'s draft format](../../../docs/agents/issue-tracker.md#file-tickets-from-drafts): named `<n>-<slug>.md`, numbered from 1 in dependency order, its front matter's `title`, `kind`, `labels` and `blockers` (other drafts' numbers), then its body by the [code template](#code-ticket-template). An edge to an issue already filed goes in no draft; step 7 sets it.
 
-With 6 or more drafts, read [`.claude/skills/review-code-tickets/SKILL.md`](../review-code-tickets/SKILL.md) and follow it on that folder, handing over each draft's estimate breakdown (overhead, the union read set by file, the allowance) beside it; it is user-invoked, so the Skill tool can't reach it. Act on its report once, before the developer sees the breakdown:
+With 6 or more drafts, read [`.claude/skills/review-project-tickets/SKILL.md`](../review-project-tickets/SKILL.md) and follow it on that folder, handing over each draft's estimate breakdown (overhead, the union read set by file, the allowance) beside it; it is user-invoked, so the Skill tool can't reach it. Act on its report once, before the developer sees the breakdown:
 
 - **Fixes**: make each, as you judge best, true to the spec.
 - **Interactive splits**: split that part into a `ready-for-interactive` ticket, blocking the work that needs it.
 - **Spec gaps**: hold them for step 6's round.
 
-With fewer than 6, skip the review; the developer can run `/review-code-tickets <repo> <n>` once the tickets are filed.
+With fewer than 6, skip the review; the developer can run `/review-project-tickets <repo> <n>` once the tickets are filed.
 
 ## 6. Quiz the developer
 
