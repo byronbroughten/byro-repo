@@ -1,8 +1,9 @@
 // Runs a spec's tickets to landed, one at a time, or a Batch's given several numbers; rerunning the same command resumes. Progress is in .runner/<repo>-<n>.log.
-// Usage below; each `<repo>` is a bare name the repo map holds, as issue:start takes, or `<owner>/<repo>`. Every verb but the run itself takes one number, a Batch's any member's. `review` and `resolve` take a session's ticket, not a spec, and `resolve` the path of the session's records.
+// Usage below; each `<repo>` is a bare name the repo map holds, as issue:start takes, or `<owner>/<repo>`. Every verb but the run itself and `open` takes one number, a Batch's any member's. `review` and `resolve` take a session's ticket, not a spec, and `resolve` the path of the session's records.
 // `review` alone prints the review brief and records its start; with the session's review record and `--session <id>` it submits the review (SpecRun/SessionReviewer.ts).
 // Exit 1 is a run short of finished, a review short of its brief, reviewed or its findings, or refused records; 2 is a crash, which tmux.sh pushes;
 // 3 is a Restart, which tmux.sh relaunches.
+// `open` launches its numbers through tmux.sh when no run is live, or rejoins a live run or a live Batch holding one, then catches up as `supervise` does (SpecRun/RunOpener.ts); exit 1 is a launch whose run never started.
 // `supervise` records the caller's claude as the spec's or Batch's Supervisor and prints its unexplained event lines, after the last Supervisor's handoff on a rejoin; `--advance` marks one more explained.
 // `watch` streams the spec's or Batch's new event lines and prints a `vanished` line if the run's process dies unreported (runWatch.ts);
 // `--once` prints the first unexplained line, or that `vanished` line, and exits, or exits silently once a newer watch replaces it.
@@ -12,13 +13,18 @@
 // `standalone` lists the repo's launchable Standalone tickets, the left-out ones with their reasons, and the line that launches the list; nothing launches (SpecRun/StandaloneTicketLister.ts).
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
+import { dirname, join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
+import { fileURLToPath } from "node:url";
 
 import { AccountLease } from "@byronbroughten/spec-runner/AccountLease";
 import { AccountsSection } from "@byronbroughten/spec-runner/AccountsSection";
 import { BatchRecords } from "@byronbroughten/spec-runner/BatchRecords";
 import { CswapUsageReader } from "@byronbroughten/spec-runner/CswapUsageReader";
-import { type IssueRef } from "@byronbroughten/spec-runner/IssueWorkspaces";
+import {
+  type IssueRef,
+  type LeaseHolder,
+} from "@byronbroughten/spec-runner/IssueWorkspaces";
 import { isStillRunning } from "@byronbroughten/spec-runner/processIdentity";
 import { isItemId } from "@byronbroughten/spec-runner/reviewList";
 import {
@@ -26,10 +32,15 @@ import {
   runBoardOf,
   watchBoard,
 } from "@byronbroughten/spec-runner/runBoard";
+import { runCollecting } from "@byronbroughten/spec-runner/runCollecting";
 import { RunLock } from "@byronbroughten/spec-runner/RunLock";
 import {
+  handoffBlockOf,
+  type LaunchReport,
+  type MemberList,
   reviewPrintoutOf,
   type ReviewResult,
+  type RunLauncher,
   SpecRun,
 } from "@byronbroughten/spec-runner/SpecRun";
 import {
@@ -62,14 +73,14 @@ const repoVerbs = Object.keys(repoListers);
 const verbs = [
   ...plainVerbs,
   "watch",
+  "open",
   "review",
   "resolve",
   "supervise",
   "decide",
   ...repoVerbs,
 ];
-const handoffHeading = "## Handoff from the last Supervisor";
-const usage = `Usage: npm run runner -- <repo> <n> [<n>…] to run one spec or a Batch, ${plainVerbs.join("|")} <repo> <n>, watch <repo> <n> [--once], review <repo> <n> [<review.json> --session <id>], resolve <repo> <n> <records.json>, supervise <repo> <n> [--advance], decide <repo> <spec> R<n>.<k> [--handled] "<text>", ${repoVerbs.join("|")} <repo>, or [${boardVerbs.join("|")}] alone for the Run board; each <repo> also takes <owner>/<repo>`;
+const usage = `Usage: npm run runner -- <repo> <n> [<n>…] to run one spec or a Batch, ${plainVerbs.join("|")} <repo> <n>, watch <repo> <n> [--once], open <repo> <n> [<n>…], review <repo> <n> [<review.json> --session <id>], resolve <repo> <n> <records.json>, supervise <repo> <n> [--advance], decide <repo> <spec> R<n>.<k> [--handled] "<text>", ${repoVerbs.join("|")} <repo>, or [${boardVerbs.join("|")}] alone for the Run board; each <repo> also takes <owner>/<repo>`;
 
 try {
   const args = process.argv.slice(2);
@@ -88,6 +99,8 @@ try {
     await listForRepo(command, args);
   } else if (command === "run") {
     await runBatch(args);
+  } else if (command === "open") {
+    await open(args);
   } else {
     await runOnSpec(command, args);
   }
@@ -201,6 +214,35 @@ async function runBatch(args: string[]): Promise<void> {
   }
 }
 
+async function open(args: string[]): Promise<void> {
+  const launch = launchArgsOf(args, repoMap);
+  if (launch === undefined) throw new Error(usage);
+  const specRun = SpecRun.init(specRunConfigOf(launch.owner));
+  const result = await specRun.open(launch.members, {
+    holder: requiredClaudeAncestor("open"),
+    launcher: tmuxLauncherOf(launch.owner),
+  });
+  console.log(result.text);
+  if (!result.isLive) process.exitCode = exitCodes.short;
+}
+
+// tmux.sh itself launches, so its attach line, dead-session replacement and launchWait stay in one place.
+function tmuxLauncherOf(owner: string): RunLauncher {
+  const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
+  return {
+    async launch(members: MemberList): Promise<LaunchReport> {
+      const [{ repo }] = members;
+      const numbers = members.map(({ number }) => String(number));
+      const { isOk, output } = await runCollecting(
+        "bash",
+        [join(root, "scripts/runner/tmux.sh"), `${owner}/${repo}`, ...numbers],
+        { cwd: root },
+      );
+      return { text: output, isStarted: isOk };
+    },
+  };
+}
+
 async function runSpec(
   command: string,
   owner: string,
@@ -296,10 +338,9 @@ async function supervise(
   spec: IssueRef,
   isAdvance: boolean,
 ): Promise<void> {
-  const holder = nearestClaudeAncestor();
-  if (!holder) throw new Error("supervise runs only under a claude session.");
-  const records = SupervisionRecords.init(stateFolder);
+  const holder = requiredClaudeAncestor("supervise");
   if (isAdvance) {
+    const records = SupervisionRecords.init(stateFolder);
     const record = await records.recordOf(holder);
     if (record === undefined || !isWatching(record, spec)) {
       throw new Error(
@@ -309,11 +350,18 @@ async function supervise(
     await records.advance(holder);
     return;
   }
-  const handoff = await records.supervise(holder, owner, spec);
-  if (handoff !== undefined) console.log(`${handoffHeading}\n\n${handoff}\n`);
-  for (const line of await records.unexplainedLinesOf(holder)) {
+  const specRun = SpecRun.init(specRunConfigOf(owner));
+  const { handoff, unexplainedLines } = await specRun.catchUp(holder, spec);
+  if (handoff !== undefined) console.log(`${handoffBlockOf(handoff)}\n`);
+  for (const line of unexplainedLines) {
     console.log(line);
   }
+}
+
+function requiredClaudeAncestor(command: string): LeaseHolder {
+  const holder = nearestClaudeAncestor();
+  if (!holder) throw new Error(`${command} runs only under a claude session.`);
+  return holder;
 }
 
 function ownerRepoOf(owner: string, { repo, number }: IssueRef): string {

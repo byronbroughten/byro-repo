@@ -99,10 +99,15 @@ export class BatchRecords {
 }
 
 // As the Run board and a Batch's account lease name a run: a Batch's first member whole, then the rest by number.
-export function runLabelOf([lead, ...rest]: MemberList): string {
-  if (rest.length === 0) return issueRef.labelOf(lead);
+export function runLabelOf(members: MemberList): string {
+  if (members.length === 1) return membersLabelOf(members);
+  return `Batch ${membersLabelOf(members)}`;
+}
+
+// The first member whole, then the rest by number.
+export function membersLabelOf([lead, ...rest]: MemberList): string {
   const numbers = rest.map((member) => issueRef.numberLabelOf(member));
-  return `Batch ${[issueRef.labelOf(lead), ...numbers].join(", ")}`;
+  return [issueRef.labelOf(lead), ...numbers].join(", ");
 }
 
 // Named by its first member, apart from that member's own event file.

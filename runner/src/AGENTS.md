@@ -23,7 +23,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `CLAUDE.md` | | Loads `AGENTS.md` for Claude Code. |
 | `ActiveAccountUnknown.ts` | | The Stop raised when no Active account can be read for a step. |
 | `AgentStep.ts` | `AgentStep` | The port that launches one headless `claude -p` step and its `StepResult`. |
-| `BatchRecords.ts` | `BatchRecords` | A Batch's record: its members, process and one event file, found by any member, and the run's label the Run board and account lease name it by. |
+| `BatchRecords.ts` | `BatchRecords` | A Batch's record: its members, process and one event file, found by any member, and the run's label the Run board and account lease name it by, and its members' label `runner open` names it by. |
 | `callOfItsOwn.ts` | `callOfItsOwn` | Words the advice to run a command in a call of its own, once for the hooks, the runner and the scripts lint. |
 | `Checks.ts` | `Checks` | Runs `npm run check`'s commands at once in the check slot, narrowed to the packages with no check stamp. |
 | `CheckSlot.ts` | | The per-primary check slot `npm run check` waits for. |
@@ -124,7 +124,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `secretShapes.ts` | | The token shapes wrap-up's secret scan looks for. |
 | `SessionProbe.ts` | `SessionProbe` | `npm run session:probe`: what a SessionStart hook sees in a folder. |
 | `sleep.ts` | | A promised delay. |
-| `SpecRun.ts` | `SpecRun` | The run loop's entry: `run` over its members, `status`, `requestStop`, `briefReview`, `submitReview`, `resolve`, `decide`, `judgeable` and `standalone`, delegating to `SpecRun/`. |
+| `SpecRun.ts` | `SpecRun` | The run loop's entry: `run` over its members, `status`, `requestStop`, `open`, `catchUp`, `briefReview`, `submitReview`, `resolve`, `decide`, `judgeable` and `standalone`, delegating to `SpecRun/`. |
 | `SpecRun/AccountHold.ts` | | A run's, Batch's or session review's or resolve's hold on a cswap account: the account it last launched on, the accounts a limit hit keeps it off and its account lease, moved by taking the new lease before releasing the old. |
 | `SpecRun/DraftPuller.ts` | | Runs a drafting ticket's pull Step through `runState/draftPull.ts`, and keeps the push baseline. |
 | `SpecRun/DraftPusher.ts` | | Runs the push of a spec with a piece ticket: writes the Agent draft's agent Sections into the Doc once, raising a push Halt before any write on a Section the developer changed since the pull, reading and comparing again on a stale revision up to a bound, and raising a push Halt naming a Doc with pending suggestions, delegating its `keep mine` answers to `DraftPusher/`. |
@@ -142,6 +142,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/ReviewListPoster.ts` | | Posts review lists and covered-later notes. |
 | `SpecRun/ReviewStepper.ts` | | Runs a ticket's review, with its reviewer check, and resolve steps. |
 | `SpecRun/RunLoop.ts` | | The run's ticket loop across its members, idling and end, and its account hold's release. |
+| `SpecRun/RunOpener.ts` | | `runner open`: launches the named numbers through the launch port its entry passes when no run is live, or rejoins a live run or a live Batch holding one, then catches the Supervisor up as `runner supervise` does. |
 | `SpecRun/SessionReviewer.ts` | | Prints an interactive session's review brief, checks the review it submits, its reviewers included, and runs its `resolve`. |
 | `SpecRun/SpecRunBase.ts` | | The Base every collaborator shares: config, run state, progress log, notices, snapshots, a run's end and an issue's review-list judgement. |
 | `SpecRun/StandaloneTicketLister.ts` | | `runner standalone`: lists a repo's launchable Standalone tickets, leaving out each the Batch preflight would refuse, with its reason. |
