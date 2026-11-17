@@ -87,11 +87,11 @@ The worked examples:
 | Implementation | Code | `/runner` | `/judge-findings` when a run finishes; an Interactive ticket through `/start-issue`'s steps and the skill `issue:start` names | named |
 | Implementation | Code | `/start-issue` | `/implement-code`, when `issue:start` names it | named by `issue:start`, read by path |
 | Implementation | Piece | `/start-issue` | `/research-piece`, `/close-project` or `/implement-piece`, whichever `issue:start` names | named by `issue:start`, read by path |
-| Implementation | Code | `/implement-code` | `tdd`, the review Step (`runner -- review`), then wrap-up | named |
+| Implementation | Code | `/implement-code` | `tdd`, the review Step (`runner -- review`), then wrap-up; `/close-project`'s shared close on each parent its report announced, read as a file since it is user-invoked | named, read by path |
 | Implementation | Code | `tdd` | `codebase-design` | named |
 | Implementation | Piece | `/runner` | `/judge-findings` when a run stops at the judge Step | named |
 | Implementation | Piece | `/implement-piece` | `/research-piece` on a Research issue, read as a file since it is user-invoked | named |
-| Implementation | Piece | `/implement-piece` | the review Step (`runner -- review`), then wrap-up | named |
+| Implementation | Piece | `/implement-piece` | the review Step (`runner -- review`), then wrap-up; `/close-project`'s shared close on each parent its report announced, read as a file since it is user-invoked | named, read by path |
 | Implementation | Piece | `/research-piece` | `/implement-piece`, when the issue is a Piece | named |
 | Implementation | Piece | `/research-piece` | `/review-research` on the draft comment, before posting, read as a file since it is user-invoked | named |
 | Implementation | Piece | `/research-piece` | `/runner`'s step 6, on an `another source` answer, read as a file since it is user-invoked | named |
@@ -135,7 +135,7 @@ A doc is listed when two or more skills or Steps of either Workflow reach it by 
 | [The runner glossary](../../runner/GLOSSARY.md) | `/runner`, `/review-code-tickets`, `/judge-findings`, `/mine-outcomes` | |
 | [The guardrails doc](../claude-code-guardrails.md) | `/project-tickets`, `/review-code-tickets`' reviewer, `/retro` | |
 | Design docs, ADRs and glossaries | `/project-spec`, `/project-tickets`, `domain-modeling`, `tdd`, `/to-code-style` | |
-| Skills read as docs | `/project-tickets` by `/judge-findings` and `/runner`; `/retro`'s categories by `/mine-outcomes`; `grilling`'s format by `/judge-findings`, `/mine-outcomes` and `/retro`; `/judge-findings`' step 5 by `/close-project`, and `/to-writing-style` by its `piece.md`; `/close-project`'s steps 1 and 3 to 5 by `/judge-findings`; `/judge-findings`' step 1 by `/to-writing-style`'s pair mode; `/judge-findings`' step 1 by `/project-spec`'s Phase gate | |
+| Skills read as docs | `/project-tickets` by `/judge-findings` and `/runner`; `/retro`'s categories by `/mine-outcomes`; `grilling`'s format by `/judge-findings`, `/mine-outcomes` and `/retro`; `/judge-findings`' step 5 by `/close-project`, and `/to-writing-style` by its `piece.md`; `/close-project`'s steps 1 and 3 to 5 by `/judge-findings`, and its steps 1 to 5 by `/implement-code` and `/implement-piece`; `/judge-findings`' step 1 by `/to-writing-style`'s pair mode; `/judge-findings`' step 1 by `/project-spec`'s Phase gate | |
 | The Voice and Craft sheets: [`writing-voice.md`](../writing-voice.md) and [`writing-craft.md`](../writing-craft.md) | `/grill-piece`, `/implement-piece`, `/review-piece`, `/to-writing-style` | via `rules.md`: `/project-spec`, `/project-tickets`, `/judge-findings` (its `piece.md`); via runner prompt: the piece implement Step |
 | [The academic style sheet](../academic-writing-style.md) | `/grill-piece`, `/review-piece`, `/to-writing-style` | via `rules.md`: `/implement-piece`, the piece implement Step, `/project-spec`, `/project-tickets`, `/judge-findings` (its `piece.md`) |
 | [`rules.md`](../pieces/rules.md), the rules for writing any Piece | `/grill-piece`, `/project-spec`, `/project-tickets`, `/implement-piece`, `/review-piece`, `/judge-findings` (its `piece.md`) | via runner prompt: the piece implement Step |

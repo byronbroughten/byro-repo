@@ -61,9 +61,13 @@ export interface InteractiveSkillInput {
   // Written with `<spec>` and the item id in place of `<n>`; takes the decision's text last.
   decideCommand: string;
   wrapUpCommand: string;
+  // Written with `<repo>` and `<p>`, the parent's, in place of the ticket's.
+  closeParentCommand: string;
+  // `/close-project`'s SKILL.md, read by path for its shared close, since it is user-invoked.
+  closeProjectPath: string;
 }
 
-// The ending every generated /implement-* skill shares: review, resolve, report, wait and land.
+// The ending every generated /implement-* skill shares: review, resolve, report, wait, land and close out the announced parents.
 export function interactiveSkillOf({
   body,
   checkCommand,
@@ -73,6 +77,8 @@ export function interactiveSkillOf({
   resolveCommand,
   decideCommand,
   wrapUpCommand,
+  closeParentCommand,
+  closeProjectPath,
 }: InteractiveSkillInput): string {
   return `${body}
 
@@ -80,7 +86,7 @@ export function interactiveSkillOf({
 
 - ${driftLine}
 - ${committingOf(checkCommand)} When it fails only on something your change didn't cause, carry on and name the failure in your report.
-- ${onlyWritesLine} The review and wrap-up commands in the ending make every other write.
+- ${onlyWritesLine} The review, wrap-up and close-out commands in the ending make every other write.
 - Run git commands one at a time: inside an entered worktree, Claude Code refuses a compound git command.
 - Then, in order:
   1. **Review**, in two calls, resolving \`<repo>\` to \`<owner>/<repo>\` here and in resolve. First run \`${reviewCommand}\`: it prints the brief, the prompt the runner's review step gives its implementer, and records the review's start; a second review after fixes runs it again. Run the review it describes in this session, pasting your own points worth checking into every reviewer's brief, and write the review record to \`.runner/review-<n>.json\`, gitignored. Then submit it with \`${reviewCommand} .runner/review-<n>.json --session <id>\`, the id taken from the \`session: <id>\` line in your context. It checks the record and counts the reviewer subagents you started since the brief; when it refuses, correct what it names and submit again. Accepted, it records the review and prints the findings, numbered, each with its axis and suggested verdict, for you to resolve.
@@ -88,10 +94,11 @@ export function interactiveSkillOf({
 
      Then run \`${resolveCommand} .runner/resolve-<n>.json\`. It checks the records and your commits by the run's rules; when it refuses them, correct what it names and run it again.
   3. Either way, the submit or resolve prints the review list, by axis then verdict with each suggested verdict overruled, posts it on the spec or, on a second review, adds its new items to the list posted there, and writes the review facts. It prints each Halt as \`S<n>.<k>\`; answer it with the developer in the session. When it exits short of reviewed, report why and stop.
-  4. **Report**: post in the session what review caught and what was fixed, then each Propose on its own line, the item then \`→\` and its record's \`recommendation\`.
-  5. **Wait for the developer's go-ahead.** Land nothing before it. When the developer has this session implement a Propose before landing, commit it, then record the item with \`${decideCommand} 'fixed in session · <commit>'\`, never \`--handled\`: that leaves it undecided, and wrap-up then leaves a Standalone ticket open.
+  4. **Report**: post in the session what review caught and what was fixed, then each Propose on its own line, the item then \`→\` and its record's \`recommendation\`. Before it, when the issue reader's \`Parent:\` line names the ticket's parent, run \`${closeParentCommand}\` on it, \`<repo>\` and \`<p>\` being the parent's here and below. When that brief's only open sub-issue is this ticket, the report also says this ticket is #<p>'s last open sub-issue and names each parent above it that the brief's \`## Parent check\` chain shows ready to close: #<p> and those parents are the announced chain.
+  5. **Wait for the developer's go-ahead.** Land nothing before it. The go-ahead to land covers closing out exactly the announced chain. When the developer has this session implement a Propose before landing, commit it, then record the item with \`${decideCommand} 'fixed in session · <commit>'\`, never \`--handled\`: that leaves it undecided, and wrap-up then leaves a Standalone ticket open.
   6. Call \`ExitWorktree\` with \`keep\`, so wrap-up can remove the workspace.
   7. **Land**: \`${wrapUpCommand} --closing "<what landed>" [--undone "<box>: <reason>"]...\`, one \`--undone\` per acceptance box left undone. A note holding \`$(\` or a backtick goes in a file in temp, passed with \`--closing-file <path>\` in place of \`--closing\`, the path written out with no \`$\`. A ticket with no branch ahead of master, one that needed only GitHub or Doc writes, adds \`--no-code\`: \`${wrapUpCommand} --no-code --closing "<what landed>"\`. A ticket that changes wrap-up or the facts file's format lands through its workspace's own script instead, by \`docs/agents/git-workflow.md\`.
+  8. **Close out the announced chain**, only when the report announced one and wrap-up landed: read \`${closeProjectPath}\` by path, since it is user-invoked and the Skill tool can't reach it, and follow its steps 1 to 5 on #<p>, running \`${closeParentCommand}\` by Bash as its brief; its step 4 closes out in turn only the parents above #<p> the report named, stopping at the first gap or refusal. After each close, report what it closed and the comment it posted. A parent ready to close that the report didn't name gets a report naming \`/close-project <repo> <p>\`, and close nothing more.
 `;
 }
 

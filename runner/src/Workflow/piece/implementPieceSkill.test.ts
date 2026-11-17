@@ -11,6 +11,8 @@ const skill = implementPieceSkillOf({
   resolveCommand: "npm run runner -- resolve <owner>/<repo> <n>",
   decideCommand: "npm run runner -- decide <owner>/<repo> <spec> R<n>.<k>",
   wrapUpCommand: "npm run wrap-up -- <repo> <n>",
+  closeParentCommand: "npm run issue:close-parent -- <repo> <p>",
+  closeProjectPath: ".claude/skills/close-project/SKILL.md",
 });
 
 const stepPrompt = pieceImplementPrompt({
@@ -62,7 +64,7 @@ describe("implementPieceSkillOf", () => {
       "- Before review, grep the docs for every name, command or behavior your draft makes untrue, and name each in your report; never edit one.",
     );
     expect(skill).toContain(
-      "- Those commits are your only writes outside the workspace's files, and you make no GitHub write: never push, merge, rebase or reset. The review and wrap-up commands in the ending make every other write.",
+      "- Those commits are your only writes outside the workspace's files, and you make no GitHub write: never push, merge, rebase or reset. The review, wrap-up and close-out commands in the ending make every other write.",
     );
     expect(skill).not.toContain("the GitHub writes the ticket describes");
     expect(skill).not.toContain("fix or delete each statement");
@@ -142,6 +144,24 @@ describe("implementPieceSkillOf", () => {
     const positions = steps.map((step) => skill.indexOf(step));
     expect(positions).not.toContain(-1);
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
+  });
+
+  it("announces a parent's last open sub-issue before wrap-up and closes out the announced chain after it", () => {
+    const steps = [
+      "run `npm run issue:close-parent -- <repo> <p>` on it",
+      "this ticket is #<p>'s last open sub-issue and names each parent above it that the brief's `## Parent check` chain shows ready to close",
+      "The go-ahead to land covers closing out exactly the announced chain.",
+      '`npm run wrap-up -- <repo> <n> --closing "<what landed>"',
+      "read `.claude/skills/close-project/SKILL.md` by path",
+      "stopping at the first gap or refusal",
+      "report what it closed and the comment it posted",
+      "report naming `/close-project <repo> <p>`, and close nothing more",
+    ];
+    const positions = steps.map((step) => skill.indexOf(step));
+    expect(positions).not.toContain(-1);
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+    expect(stepPrompt).not.toContain("issue:close-parent");
+    expect(stepPrompt).not.toContain("close-project");
   });
 
   it("has no inline review and fix of its own", () => {
