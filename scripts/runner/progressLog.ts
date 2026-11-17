@@ -1,10 +1,14 @@
 // Prints a spec's progress-log path, or a Batch's first member's, so tmux.sh appends to the file the runner itself writes.
-// Usage: node scripts/runner/progressLog.ts <owner/repo> <n> [<n>…].
+// Usage: node scripts/runner/progressLog.ts (<repo> | <owner>/<repo>) <n> [<n>…].
 import { statePaths } from "@byronbroughten/spec-runner/SpecRun";
 
 import { requiredLaunchArgsOf } from "./launchArgs.ts";
-import { stateFolder } from "./runnerConfig.ts";
+import { repoMap, stateFolder } from "./runnerConfig.ts";
 
-const launch = requiredLaunchArgsOf(process.argv.slice(2), "progressLog.ts");
+const launch = requiredLaunchArgsOf(
+  process.argv.slice(2),
+  repoMap,
+  "progressLog.ts",
+);
 const [lead] = launch.members;
 console.log(statePaths.progressLogOf(stateFolder, lead));

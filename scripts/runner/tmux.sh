@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Starts the spec runner in a detached tmux session under caffeinate, so it outlives the terminal and the Mac stays awake.
-# Usage: npm run runner:tmux -- <owner/repo> <n> [<n>…]; several numbers start one Batch. It prints the session's attach line;
+# Usage: npm run runner:tmux -- (<repo> | <owner>/<repo>) <n> [<n>…]; several numbers start one Batch. It prints the session's attach line;
 # the name comes from tmuxSession.ts: `runner-<repo>-<n>` for one number, its numbers joined by `-` for a Batch.
 # It then waits for the run's run-started or run-ended line (launchWait.ts): exit 0 on run-started, 1 on run-ended or a state still unknown.
 # Exit 3 is a Restart, so the run relaunches in the same session, with the same list, on the code it just landed (run.ts).
@@ -10,7 +10,7 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # Mirrors exitCodes.restart in run.ts; bash can't import it.
 restart_code=3
-usage="Usage: npm run runner:tmux -- <owner/repo> <n> [<n>…]"
+usage="Usage: npm run runner:tmux -- (<repo> | <owner>/<repo>) <n> [<n>…]"
 
 if [[ "${1:-}" == "--inside" ]]; then
   shift
