@@ -359,4 +359,18 @@ describe("run's Halt on a ticket that picks no Workflow", () => {
     expect(agentStep.requests).toHaveLength(0);
     expect(result.message).toContain("byro-repo #1 waits on Halt H2");
   });
+
+  // The steps it goes on to are the spec's Workflow's until #798 moves the sequence onto the ticket's.
+  it("goes on past the Halt once the developer labels the ticket and answers", async () => {
+    addMixedSpec();
+    await specRun(FakeAgentStep.init()).run(spec);
+    github.edit(1, { labels: ["ready-for-agent", "code"] });
+    github.reply(213, "H1: continue");
+
+    const result = await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(haltComments()).toHaveLength(1);
+    expect(ticketState()["byro-repo #1"]?.step).not.toBe("halted");
+    expect(result.message).not.toContain("waits on Halt");
+  });
 });

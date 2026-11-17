@@ -378,21 +378,32 @@ export interface GapCheckRules {
   recordOf(output: unknown): GapCheckRecord;
 }
 
-const pieceLabel = "piece";
+// The label that picks each Workflow, on a ticket or its spec.
+const workflowLabels: Record<WorkflowName, string> = {
+  code: "code",
+  piece: "piece",
+};
 
 // The Workflows a repo's runner config builds; the core picks among them.
 export type Workflows = Record<WorkflowName, Workflow>;
 
+type LabelledIssue = Pick<TrackedIssue, "labels">;
+
+type PickedTicket = Pick<TrackedIssue, "issue" | "labels">;
+
 // A Standalone ticket is its own spec.
 export interface SpecTicket {
-  ticket: Pick<TrackedIssue, "issue" | "labels">;
-  spec: Pick<TrackedIssue, "labels">;
+  ticket: PickedTicket;
+  spec: LabelledIssue;
 }
 
-export function workflowNameOf({
-  labels,
-}: Pick<TrackedIssue, "labels">): WorkflowName {
-  return labels.includes(pieceLabel) ? "piece" : "code";
+export interface SpecTickets {
+  tickets: PickedTicket[];
+  spec: LabelledIssue;
+}
+
+export function workflowNameOf(spec: LabelledIssue): WorkflowName {
+  return labelledNameOf(spec) ?? "code";
 }
 
 // Undefined for a ticket with neither label in a spec labelled both, since the fallback to the spec's label can't choose.
@@ -406,20 +417,18 @@ export function ticketWorkflowNameOf({
   return workflowNameOf(spec);
 }
 
-// A ticket with both labels picks piece, as a spec with both does.
-function labelledNameOf({
-  labels,
-}: Pick<TrackedIssue, "labels">): WorkflowName | undefined {
-  if (labels.includes(pieceLabel)) return "piece";
-  if (labels.includes("code")) return "code";
+// An issue with both labels picks piece, as a spec with both always has.
+function labelledNameOf({ labels }: LabelledIssue): WorkflowName | undefined {
+  if (labels.includes(workflowLabels.piece)) return "piece";
+  if (labels.includes(workflowLabels.code)) return "code";
   return undefined;
 }
 
-function isLabelledBoth({ labels }: Pick<TrackedIssue, "labels">): boolean {
-  return workflowNames.every((name) => labels.includes(name));
+function isLabelledBoth({ labels }: LabelledIssue): boolean {
+  return workflowNames.every((name) => labels.includes(workflowLabels[name]));
 }
 
-export function ticketWorkflowOf(
+function ticketWorkflowOf(
   specTicket: SpecTicket,
   workflows: Workflows,
 ): Workflow | undefined {
@@ -447,8 +456,7 @@ export function unpickedWorkflowOf(ticket: IssueRef): string {
 
 // Each Workflow once, in name order; a ticket that picks none raises its own Halt when it starts.
 export function ticketWorkflowsOf(
-  spec: Pick<TrackedIssue, "labels">,
-  tickets: Pick<TrackedIssue, "issue" | "labels">[],
+  { spec, tickets }: SpecTickets,
   workflows: Workflows,
 ): Workflow[] {
   const picked = new Set(

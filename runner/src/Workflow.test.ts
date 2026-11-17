@@ -123,7 +123,7 @@ describe("ticketWorkflowsOf", () => {
     const tickets = [["piece"], ["code"], ["piece"], []].map(ticketLabelled);
 
     expect(
-      ticketWorkflowsOf(spec, tickets, workflowsWith([])).map(
+      ticketWorkflowsOf({ spec, tickets }, workflowsWith([])).map(
         ({ name }) => name,
       ),
     ).toEqual(["code", "piece"]);
