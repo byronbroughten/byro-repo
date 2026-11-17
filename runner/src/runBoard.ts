@@ -1,10 +1,12 @@
-// The Run board: one block per run lock in the state folder, or per Batch for its members' locks, read from that spec's run state and progress log,
-// its tickets left from each member's run state.
+// The Run board: a Runs section with one block per run lock in the state folder, or per Batch for its members' locks, read from that spec's run state and progress log,
+// its tickets left from each member's run state; then AccountsSection.ts's Accounts section, handed each live run's step stream reading.
 // It writes nothing, so it's safe beside any run; a lock whose pid is dead is marked rather than skipped.
 // byro-repo's `npm run runner -- status` prints it once and `-- watch` redraws it, both with no spec.
 // RunLock.ts lists the lock files, BatchRecords.ts finds a member's Batch and SpecRun/runState/statePaths.ts names the run state and progress log paths.
 // SpecRun/SpecRunBase.ts writes both; savedFormats.ts reads the run state and ProgressLog.ts the progress lines, worded where the run writes them.
 
+import type { AccountsSection } from "./AccountsSection.ts";
+import type { UsageReading } from "./AgentStep.ts";
 import { BatchRecords } from "./BatchRecords.ts";
 import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import { ProgressLog } from "./ProgressLog.ts";
@@ -14,19 +16,39 @@ import { type MemberList, type RunState } from "./SpecRun/runState.ts";
 import { statePaths } from "./SpecRun/runState/statePaths.ts";
 
 interface BoardWatch {
-  render: () => string;
+  render: () => Promise<string>;
   draw: (board: string) => void;
   pollMs: number;
   sleep: (ms: number) => Promise<void>;
 }
 
+export interface BoardRequest {
+  stateFolder: string;
+  // `watch` builds it with `boardTimings.accountsRefreshMs`, `status` with none.
+  accounts: AccountsSection;
+  now: Date;
+}
+
 const boardTexts = {
+  runsHeading: "Runs",
   noRuns: "No runs are running.",
   gone: "process gone; Vanished unless its event file ends in a run-ended line",
 } as const;
 
-export function runBoardOf(stateFolder: string, now: Date): string {
-  return new RunBoard(stateFolder).textAt(now);
+// The redraw counts the Accounts section's age up between its cswap reads.
+export const boardTimings = {
+  redrawMs: 5_000,
+  accountsRefreshMs: 60_000,
+} as const;
+
+export async function runBoardOf({
+  stateFolder,
+  accounts,
+  now,
+}: BoardRequest): Promise<string> {
+  const board = new RunBoard(stateFolder);
+  const accountsText = await accounts.textAt(now, board.streamUsage());
+  return [boardTexts.runsHeading, board.textAt(now), accountsText].join("\n\n");
 }
 
 // Returns only by throwing, which a Ctrl-C does by ending the process instead.
@@ -37,7 +59,7 @@ export async function watchBoard({
   sleep,
 }: BoardWatch): Promise<never> {
   for (;;) {
-    draw(render());
+    draw(await render());
     await sleep(pollMs);
   }
 }
@@ -66,6 +88,18 @@ class RunBoard {
     const blocks = this._runs().map((members) => this._blockOf(members, now));
     if (blocks.length === 0) return boardTexts.noRuns;
     return blocks.join("\n\n");
+  }
+
+  // Each live run's current member's latest step stream reading, by its account; a gone run's step no longer reads its account.
+  streamUsage(): Map<number, UsageReading> {
+    const usage = new Map<number, UsageReading>();
+    for (const members of this._runs()) {
+      if (!RunLock.isAnyHeld(this.stateFolder, members)) continue;
+      const progresses = members.map((member) => this._progressOf(member));
+      const reading = currentMemberOf(progresses).log.streamReading();
+      if (reading !== undefined) usage.set(reading.account, reading.usage);
+    }
+    return usage;
   }
 
   // A Batch's members' locks make one entry, at its first-listed lock's place.

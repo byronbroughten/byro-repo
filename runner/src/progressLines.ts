@@ -88,10 +88,6 @@ export function stepLaunchOfLine(line: string): StepLaunch | undefined {
   return { subject, account: Number(account), streamPath };
 }
 
-export function isLimitWaitLine(line: string): boolean {
-  return line.startsWith(linePrefixes.limitWait);
-}
-
 export function isIdleLine(line: string): boolean {
   return line.startsWith(linePrefixes.idle);
 }
