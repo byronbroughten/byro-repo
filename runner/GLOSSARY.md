@@ -139,8 +139,12 @@ The comment the runner posts on the spec issue for each landed ticket with a Pro
 _Avoid_: todo list, report
 
 **Gap check**:
-The step at the end of a spec that lists what the spec asked for that no landed ticket covered, with drafted follow-ups. Its output is the final review-list comment. It is one step however many Workflows the spec's tickets use, checking each story where its ticket's work is. When a spec has a piece ticket, its gap check runs while its Edit gate ([`docs/pieces/GLOSSARY.md`](../docs/pieces/GLOSSARY.md)) is still open, and checks the Agent draft only for what no review checks.
-_Avoid_: audit, retro
+The check, at the end of a spec's run or in a Close-out, that lists what the issue asked for that no landed ticket covered, with drafted follow-ups. A run's is one step however many Workflows the spec's tickets use, checking each story where its ticket's work is, and is posted as the final review-list comment; a Close-out's is reported to the developer, and runs only when no run's gap check is on the issue. When a spec has a piece ticket, its gap check runs while its Edit gate ([`docs/pieces/GLOSSARY.md`](../docs/pieces/GLOSSARY.md)) is still open, and checks the Agent draft only for what no review checks.
+_Avoid_: audit, retro, list the gaps
+
+**Close-out**:
+Closing a parent issue once every sub-issue is closed, every review-list item on it is decided and its gap check finds nothing, then checking whether its own parent is ready for one. A map is never closed out: the session that delivers its destination closes it on arrival.
+_Avoid_: wrap-up (which lands one ticket), closing the spec
 
 **Judge Step**:
 The spec-end Step after a piece spec's gap check: while any review list on the spec holds an undecided item, it stops the run with "judge, then rerun".
