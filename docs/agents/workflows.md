@@ -55,8 +55,8 @@ A new Workflow, a new or edited step prompt, and a new or edited Workflow skill 
 - **A step that follows a skill gets the skill's body inlined, never a Skill call or a read by its path**: `runner/src/stepPrompts/inlinedSkill.ts` reads it from the issue workspace's SKILL.md at launch, so the skill stays the one home of its instructions.
 - **A resumed session is told what it already holds; a fresh one isn't told it holds what it never saw.**
 - **Calls already decided on go out together, and none is added to fill a batch.**
-- **A change that cuts turns is measured before and after**: summed context and read tokens per step, by step kind, from the step logs before it lands against the first run after.
-- **Either result goes into [the estimates](./codebase-priorities/estimates.md) as an `Observed:` line.**
+- **A change that replaces Setup turns shows its output's size on a real case against the turns it replaces.**
+- **A skill that gains a command loses the text that sent the agent the old way, gets the command by injection when it is a read, and the command's output says what it holds.**
 
 The worked examples:
 
@@ -105,9 +105,11 @@ The worked examples:
 | Judgement | Code | `/judge-findings` | `/project-spec <repo> <n>`, on a held spec the closed spec blocks | named |
 | Judgement | Piece | `/judge-findings`, by its `piece.md` | the runner's rerun (`npm run runner`, or detached through `npm run runner:tmux`), which drafts its filed tickets and pushes; tickets filed by `/project-tickets`' piece branch, read as a file | named |
 | Judgement | Piece | the developer's edit | `/close-project` on the spec | you invoke it |
-| Judgement | Piece | `/close-project`, by its `piece.md` | `/to-writing-style` in pair mode, on the developer's yes, read as a file since it is user-invoked; then the gate's wrap-up | named |
+| Judgement | Piece | `/close-project` on a piece spec, by its `piece.md` | `/to-writing-style` in pair mode, on the developer's yes, read as a file since it is user-invoked; then the gate's wrap-up | named |
 | Judgement | Both | wrap-up, on a parent with every sub-issue closed | `/close-project <repo> <p>` | named, in wrap-up's parent line |
-| Judgement | Both | `/close-project` | `/judge-findings` on an undecided item; `/to-code-style` and `/mine-outcomes` when it closes a spec; `/close-project` on a ready parent its brief didn't announce | named |
+| Judgement | Both | the Close-out of `/implement-code` and `/implement-piece`, on a ready parent their report didn't announce | `/close-project <repo> <p>` | named |
+| Judgement | Both | `/close-project` | `/judge-findings` on an undecided item; `/to-code-style` when it closes a code spec; `/close-project` on a ready parent its brief didn't announce | named |
+| Judgement | Both | `/close-project` | `/mine-outcomes <repo> <n>`, its last line | named |
 | Judgement | Both | `/close-project` | `/project-spec <repo> <n>`, on a held spec the closed spec blocks | named |
 | Process revision | Code | `/mine-outcomes` | `/retro`, on outlier tickets | named |
 | Process revision | Code | `/retro`, `/to-code-style` | `writing-for-agents` | named |
@@ -184,4 +186,4 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 
 ## Out of scope
 
-[`/inbox`](../../.claude/skills/inbox/SKILL.md), [`/wizard`](../../.claude/skills/wizard/SKILL.md), [`/prompt-scan`](../../.claude/skills/prompt-scan/SKILL.md), [`/pr`](../../.claude/skills/pr/SKILL.md), [`/retarget-after-gen-configs`](../../.claude/skills/retarget-after-gen-configs/SKILL.md) and [`/check-upstream-skills`](../../.claude/skills/check-upstream-skills/SKILL.md). [`/close-piece`](../../.claude/skills/close-piece/SKILL.md) is retired in favour of `/close-project`.
+[`/inbox`](../../.claude/skills/inbox/SKILL.md), [`/wizard`](../../.claude/skills/wizard/SKILL.md), [`/prompt-scan`](../../.claude/skills/prompt-scan/SKILL.md), [`/pr`](../../.claude/skills/pr/SKILL.md), [`/retarget-after-gen-configs`](../../.claude/skills/retarget-after-gen-configs/SKILL.md) and [`/check-upstream-skills`](../../.claude/skills/check-upstream-skills/SKILL.md).
