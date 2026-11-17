@@ -98,7 +98,7 @@ export const defaultRunKnobs: RunKnobs = {
   reviewListCadence: "end-of-run",
   idlePollMs: 60_000,
   runnerPaths: [],
-  fiveHourPauseAt: 0.94,
+  fiveHourPauseAt: 0.95,
   weeklyPauseAt: 1,
   limitWaitMarginMs: minuteMs,
 };
