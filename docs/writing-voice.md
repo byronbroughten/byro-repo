@@ -86,12 +86,15 @@ Each Piece takes one value on each axis, and its spec names them. A rule tagged 
 - **Number parallel reasons in prose ("First, … Second, … And third, …") when each needs a sentence or more, with their count in the sentence that leads in ("in three ways"); across paragraphs, open the last with "Finally,".**
 - **Use bullets for short parallel items (costs with their figures, tips, one-sentence reasons after "Here's why:"); keep multi-sentence reasoning in prose.**
 - **Put a side point in its own "Note that…" sentence.**
-- **Make each point once, with the support it needs; cut whatever only repeats, reinforces or qualifies it.**
+- **Make only the points the Section's criterion needs; cut a true point it doesn't need.**
+- **Give each topic its own paragraph, and join a one-sentence paragraph to its neighbor.**
+- **Make each point once in the whole Piece, with the support it needs; cut whatever only repeats, reinforces or qualifies it, in this Section or another, unless a Section's own criterion asks for it.**
 - **Once a fact or mechanism is set out, refer back to it by a short name instead of explaining it again.**
-- **Refer back only when the reader needs it to follow the point, never to show that sections agree.**
+- **Refer back only when the reader needs it to follow the point, never to show that sections agree or to account for what a table leaves out.**
 - **If a paragraph would end on a pointer to another section, end it instead on what its point means for the section it sits in.**
 - **Don't preview the items that the next paragraphs take up one by one.**
 - **Add a table only when the developer or the assignment asks for one, and never one that restates the prose.**
+- **Introduce a table or figure by what it is for and the one or two values the reader should notice; leave its other lines to it.**
 - **State an assumption the rest of the piece shares once, where it first applies, and say there that it holds throughout.**
 - **End a section on its weightiest point, or on one short sentence that ties its points together when one can; never on one that retells them or echoes the opening.**
 - **Close by returning to the opening question or figure, answer it, and say what makes the answer vary for the reader.**

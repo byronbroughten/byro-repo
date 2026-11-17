@@ -73,6 +73,19 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Structure and re
 - "As with most important questions, the answer boils down to a highly unsatisfying: it depends." — blog: Rent vs Buy
 - In 4 of 5 posts.
 
+## Only the points the criterion needs
+
+- The developer: "I want the deliverable to meet the criteria it sets out to meet with as few points made as possible" — session c9a33797, 2026-11-17
+- The grilling doc's depth question sets each Section's criterion and its support; this rule is the drafter's half of it.
+- No count was recorded; from a session.
+
+## A paragraph per topic
+
+- Agent: one paragraph running "The plan counts the writing of the charter and the scope as project work … Opening the new HELOC … Once the seller accepts the offer … The window was set at 10 days … The two days after the window … Closing falls on March 1 …" Developer: split it into three, at "The inspection window was set" and "Closing falls on" — personal#45 Agent draft, 2026-11-12
+- The developer: "more paragraphs is good. If a paragraph only ends up being one sentence, it should probably be combined with other." — session c9a33797, 2026-11-17
+- Pinker's Ch. 5, "Arcs of Coherence", unmined as of this rule, may put the first half in Craft (#318).
+- No count was recorded; from an Agent draft.
+
 ## Make each point once
 
 - What gets cut: a second calculation, a source's side conclusion or a rule's fine print that only reinforces or qualifies the point, or a result the reader already draws from the sentence before. The instances below take each in turn.
@@ -83,6 +96,9 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Structure and re
 - Agent: "This project's largely fixed scope, cost, and sequence point to the predictive approach." Developer: struck; "A real estate acquisition fits that description." already drew the conclusion — Assessment 1 Next Draft, 2026-10-13
 - Agent: "the tenants selected from those larger pools keep their units in better condition, so the units need fewer repairs." Developer: struck "so the units need fewer repairs"; "To me that felt unnecessarily obvious to state" — Assessment 2 grill, session 27f9c715, 2026-10-22
 - "it often includes much unnecessary verbiage" — the developer on AI drafts, Assessment 1 graded draft, AI Usage
+- Agent: "Contingency ranks last, at $3,000, as the backstop for the four categories above. It goes first to the repair punch list (4.2)…" Developer: struck the paragraph; Project Budget's reserves paragraph already says it — personal#45 Agent draft, 2026-11-12
+- Agent: "No task falls in the 26 days of schedule reserve between the Closeout gate on May 5 and the charter's May 31 deadline. Heagney (2022, Chapter 9) advises holding such spare time back…" Developer: struck; the Schedule Introduction already sets out the 26 days — personal#45 Agent draft, 2026-11-12
+- The exception: the developer kept the management reserve's release in both Project Budget and the Cost Roles and Responsibilities, since each Section's depth row asks for it — personal#45, R55.2
 - No count was recorded; from a session.
 
 ## Refer back by name
@@ -100,6 +116,8 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Structure and re
 - Agent: "two of the five months between the January 1, 2027, budget date and the May 31, 2027, finish" Developer: "two of the project's five scheduled months" — same
 - Agent: "The down payment and closing costs alone come to $45,000, more than the $20,000 backup line can cover, so the purchase cannot go ahead without the new HELOC." Developer: struck — same
 - Agent: "Table 4 gives each stakeholder's criterion and the gate at which it is checked, and Table 3 gives each stakeholder's role, responsibilities, and contact information. Example Credit Union is left out of Table 4, because its criteria belong to the new HELOC" Developer: "Table 4 gives each stakeholder's criterion and the gate at which it is checked." — Assessment 2 Agent draft, 2026-10-26
+- Agent: "That ceiling is the cash invested in the charter's Constraints example, the case in which the project spends every dollar it can reach." Developer: struck — personal#45 Agent draft, 2026-11-12
+- Agent: "Three resources have tasks in the plan but no row in Table 3." Developer: struck — personal#45 Agent draft, 2026-11-12
 
 ## End on this section's point
 
@@ -117,6 +135,14 @@ Disclosed from [`docs/writing-voice.md`](../writing-voice.md), "Structure and re
 - Agent: "Table 3 brings the five risks together in a register." followed by a five-row register restating each risk's likelihood, impact and mitigation. Developer: struck the table and its lead-in — Assessment 1 Next Draft, Drive edit after session 66510c6, by 2026-10-18
 - The developer: "no tables unless specifically requested by me or the ruberic" — session 7bb81d3, 2026-10-18
 - No count was recorded; from a session.
+
+## Introduce a table, don't retell it
+
+- Agent: "A Notes column then says what each amount covers. For example, the repairs line covers what the tours show, what the inspection turns up, and what Cortez Remodeling quotes." Developer: "A Notes column elaborates what some amounts cover." — personal#45 Agent draft, 2026-11-12
+- Agent: "The repairs follow through March, the insurance and utilities run from closing on, and the leasing reserve is earmarked in April." Developer: "Following that are costs which are less steep: repairs, insurance, utilities, and the leasing reserve." — personal#45 Agent draft, 2026-11-12
+- Agent: "The inspection and the appraisal each take $500, and the holding and lease-up costs divide into…" Developer: struck "The inspection and the appraisal each take $500" — personal#45 Agent draft, 2026-11-12
+- The drafter saw only a one-line placeholder where each image would go, and the spec listed the table's lines and the figure's monthly totals as facts, so it stated them in prose.
+- No count was recorded; from an Agent draft.
 
 ## A shared assumption, once
 
