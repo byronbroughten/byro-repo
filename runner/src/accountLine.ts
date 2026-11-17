@@ -52,8 +52,13 @@ export const accountLine = {
     const { holder } = lease;
     if (holder === undefined) return "held by an unreadable lease";
     // A lease taken before holders recorded their spec names its process instead.
-    if (holder.spec !== undefined) return `held by ${holder.spec}`;
-    return `held by pid ${holder.pid} since ${localTimeOf(new Date(holder.startedAt))}`;
+    if (holder.spec === undefined) {
+      return `held by pid ${holder.pid} since ${localTimeOf(new Date(holder.startedAt))}`;
+    }
+    if (holder.kind === "session") {
+      return `held by a session review of ${holder.spec}`;
+    }
+    return `held by ${holder.spec}`;
   },
 
   // Words a decision's window as the guard's notices name it.

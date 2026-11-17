@@ -115,6 +115,29 @@ describe("AccountsSection.textAt", () => {
     );
   });
 
+  it("names a session's lease as a session review of its spec", async () => {
+    const { section } = sectionWith({
+      lists: [threeAccounts],
+      leased: [
+        {
+          account: 2,
+          holder: {
+            pid: 42,
+            host: "here",
+            startedAt: holderStart,
+            token: "u",
+            spec: "byro-repo #763",
+            kind: "session",
+          },
+        },
+      ],
+    });
+
+    expect(await section.textAt(now)).toContain(
+      "  2. 5h: 0%, 7d: 10% (1d 5h), held by a session review of byro-repo #763",
+    );
+  });
+
   it("reads an account with no usable reading as no reading, still with its holder, and a disabled one as disabled", async () => {
     const { section } = sectionWith({
       lists: [

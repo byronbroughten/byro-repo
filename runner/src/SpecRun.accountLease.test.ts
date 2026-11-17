@@ -92,7 +92,7 @@ describe("run's account lease", () => {
     expect(held).toEqual([["account-1.lease", "account-2.lease"]]);
   });
 
-  it("records its spec in the lease", async () => {
+  it("records its spec in the lease, as a run's", async () => {
     addSpec([1]);
     const holders: LockHolder[] = [];
     const agentStep = FakeAgentStep.init(
@@ -106,8 +106,8 @@ describe("run's account lease", () => {
 
     await specRun(agentStep).run(spec);
 
-    expect(holders.map((holder) => holder.spec)).toEqual([
-      issueRef.labelOf(spec),
+    expect(holders).toMatchObject([
+      { spec: issueRef.labelOf(spec), kind: "run" },
     ]);
   });
 

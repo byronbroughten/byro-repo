@@ -7,6 +7,7 @@
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
+import type { LeaseHolder } from "./IssueWorkspaces/workspaceLeases.ts";
 import { type HeldLock, type LockHolder, PidLock } from "./PidLock.ts";
 
 export type AccountLeaseTake =
@@ -22,20 +23,21 @@ export interface AccountLeaseReader {
   read(): LeasedAccount[];
 }
 
-// The run's label, as `spec`, is recorded in the holder, so the Accounts section names it.
+// The run's label, as `spec`, and the holder's kind are recorded in the holder, so the Accounts section names it.
 export interface AccountLeaseRequest {
   account: number;
   spec: string;
+  kind: LeaseHolder["kind"];
 }
 
 export class AccountLease extends PidLock {
   static take(
     stateFolder: string,
-    { account, spec }: AccountLeaseRequest,
+    { account, spec, kind }: AccountLeaseRequest,
   ): AccountLeaseTake {
     mkdirSync(stateFolder, { recursive: true });
     const path = leasePathOf(stateFolder, account);
-    const attempt = PidLock.tryTake(path, { spec });
+    const attempt = PidLock.tryTake(path, { spec, kind });
     if (attempt.kind === "taken") {
       return { kind: "taken", lease: new AccountLease(path, attempt.holder) };
     }
@@ -56,12 +58,13 @@ export class AccountLease extends PidLock {
       .sort((a, b) => a.account - b.account);
   }
 
+  // A session's review of the run's spec records the same label, so only a run's lease counts.
   static accountHeldBy(
     stateFolder: string,
     runLabel: string,
   ): number | undefined {
     return AccountLease.leasedIn(stateFolder).find(
-      ({ holder }) => holder?.spec === runLabel,
+      ({ holder }) => holder?.spec === runLabel && holder.kind !== "session",
     )?.account;
   }
 

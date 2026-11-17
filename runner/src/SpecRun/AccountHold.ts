@@ -1,5 +1,5 @@
 // A run's hold on a cswap account: the account the launch check last picked, the accounts a limit hit keeps the run off and, while the run
-// holds one, its account lease, naming its label.
+// holds one, its account lease, naming its label and whether it is a run's or a session's.
 // One hold is shared across a Batch's members, so a Batch holds one lease, naming the Batch, counts as one run against the number of accounts,
 // and keeps every member off an account one member's limit hit made unavailable.
 // StepLauncher/LimitWaiter.ts takes and moves the lease at each step launch; RunLoop.ts releases it at Idle and wherever the run ends.
@@ -7,19 +7,28 @@
 // The lease file itself is ../AccountLease.ts.
 
 import { AccountLease } from "../AccountLease.ts";
+import type { LeaseHolder } from "../IssueWorkspaces/workspaceLeases.ts";
+
+export interface AccountHoldConfig {
+  stateFolder: string;
+  runLabel: string;
+  kind: LeaseHolder["kind"];
+}
 
 export class AccountHold {
   private readonly stateFolder: string;
   private readonly runLabel: string;
+  private readonly kind: LeaseHolder["kind"];
   // By account, until when a limit hit keeps the run off it: its window's reset plus the margin, or undefined until it reads under its thresholds; held in memory only, on the hold, not each Run, so one Batch member's hit keeps every member off.
   readonly unavailableAccounts = new Map<number, Date | undefined>();
   // Kept once the lease is released, so an Idle run returns to it when it is free.
   account: number | undefined;
   private lease: AccountLease | undefined;
 
-  constructor(stateFolder: string, runLabel: string) {
+  constructor({ stateFolder, runLabel, kind }: AccountHoldConfig) {
     this.stateFolder = stateFolder;
     this.runLabel = runLabel;
+    this.kind = kind;
   }
 
   // This hold's own lease is left out by its token, as a test's other holders share this process's pid.
@@ -42,6 +51,7 @@ export class AccountHold {
       const take = AccountLease.take(this.stateFolder, {
         account,
         spec: this.runLabel,
+        kind: this.kind,
       });
       if (take.kind !== "taken") continue;
       this.lease?.release();

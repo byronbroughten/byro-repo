@@ -7,16 +7,20 @@ import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { hostname } from "node:os";
 
+import type { LeaseHolder } from "./IssueWorkspaces/workspaceLeases.ts";
+
 export interface LockHolder {
   pid: number;
   host: string;
   startedAt: string;
   token: string; // Tells apart two holders sharing a pid.
   spec?: string; // An account lease holder's run label, a single run's spec or a Batch's label; keyed spec as older leases are, and other locks have none.
+  kind?: LeaseHolder["kind"]; // An account lease holder's kind, since a session's review records the same label as its spec's run; a lease without one is a run's.
 }
 
 interface TakeOptions {
   spec?: string;
+  kind?: LeaseHolder["kind"];
   // Lets a test run a second taker between finding a stale lock and taking it over.
   beforeTakeover?: () => void;
 }
@@ -51,7 +55,7 @@ export class PidLock {
 
   static tryTake(
     path: string,
-    { spec, beforeTakeover }: TakeOptions = {},
+    { spec, kind, beforeTakeover }: TakeOptions = {},
   ): LockAttempt {
     const holder: LockHolder = {
       pid: process.pid,
@@ -60,6 +64,7 @@ export class PidLock {
       token: randomUUID(),
     };
     if (spec !== undefined) holder.spec = spec;
+    if (kind !== undefined) holder.kind = kind;
     for (;;) {
       if (tryCreate(path, holder)) return { kind: "taken", holder };
       const current = readHolder(path);
