@@ -409,8 +409,20 @@ describe("IssueReader.sessionSkillOf", () => {
     );
   });
 
-  it("names /implement-code for a ticket under a spec with no piece label, whatever its own labels", async () => {
-    expect(await skillOf(["research", "piece"], [])).toBe("implement-code");
+  it("names /implement-code for a ticket with neither label under a spec with no piece label", async () => {
+    expect(await skillOf(["research"], [])).toBe("implement-code");
+  });
+
+  it("names the piece skill for a `piece` ticket under a `code` spec", async () => {
+    expect(await skillOf(["ready-for-agent", "piece"], ["code"])).toBe(
+      "implement-piece",
+    );
+  });
+
+  it("refuses a ticket with neither label under a spec labelled both, naming the missing label", async () => {
+    await expect(
+      skillOf(["ready-for-agent"], ["code", "piece"]),
+    ).rejects.toThrow("`code` or `piece` label");
   });
 
   it("reads a Standalone ticket by its own label", async () => {
