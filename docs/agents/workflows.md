@@ -23,7 +23,7 @@ The words Piece, Deliverable, Section, Stage and Agent draft are [the writing gl
 3. **Tickets**
    - Code: [`/review-code-tickets`](../../.claude/skills/review-code-tickets/SKILL.md).
    - Piece: none.
-   - Both: [`/project-tickets`](../../.claude/skills/project-tickets/SKILL.md), which branches on the spec's `code` or `piece` label and files through `npm run issue:file`.
+   - Both: [`/project-tickets`](../../.claude/skills/project-tickets/SKILL.md), which branches on the spec's `code` or `piece` label, each ticket of a mixed spec, labelled both, taking its own kind's branch, and files through `npm run issue:file`.
 4. **Implementation**
    - Code: [`/runner`](../../runner/skills/runner/SKILL.md), the Supervisor; [`/implement-code`](../../runner/skills/implement-code/SKILL.md); [`tdd`](../../.claude/skills/tdd/SKILL.md) and the [`codebase-design`](../../.claude/skills/codebase-design/SKILL.md) it links; and [`/code-review`](../../.claude/skills/code-review/SKILL.md), the review Step's skill.
    - Piece: [`/implement-piece`](../../runner/skills/implement-piece/SKILL.md) and [`/review-piece`](../../.claude/skills/review-piece/SKILL.md), the review Step's skill; for the Research Stage, [`/research-piece`](../../.claude/skills/research-piece/SKILL.md), [`/review-research`](../../.claude/skills/review-research/SKILL.md) and `/runner`, whose Supervisor settles a one-source Research Halt answer.
@@ -77,7 +77,7 @@ The worked examples:
 | Planning | Piece | `/grill-piece` | `grilling`, for its round format | named |
 | Planning | Piece | `/grill-piece` | `/project-spec` | named |
 | Planning | Piece | `/grill-piece` | `/to-writing-style`, with the calibration differences that hold for every Piece, listed unwritten | named |
-| Spec | Both | `/project-spec` | `/project-tickets`, for a spec that fails the ticket split test, as every piece spec does; its Phase gate says which | named, in its chat line |
+| Spec | Both | `/project-spec` | `/project-tickets`, for a spec that fails the ticket split test, as every piece or mixed spec does; its Phase gate says which | named, in its chat line |
 | Tickets | Code | `/review-code-tickets` | `grilling`, for the spec gaps a review finds | named |
 | Tickets | Code | `/review-code-tickets` | `/runner` | you invoke it |
 | Tickets | Both | `/project-tickets` | `/project-spec <repo> <n>`, on a held spec with a `## Phase gate`, a source past the spec size line or with a gate, or a Phase split past about 20 tickets | named |

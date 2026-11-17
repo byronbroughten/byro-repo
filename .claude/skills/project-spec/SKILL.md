@@ -1,11 +1,11 @@
 ---
 name: project-spec
-description: "Turn the current conversation into a Project: one or more code or piece specs, each a Phase, proposed in one message and filed in blocked-by order on the developer's yes. Invoked as /project-spec <repo> <n> on a held spec, it runs that spec's Phase gate."
+description: "Turn the current conversation into a Project: one or more code, piece or mixed specs, each a Phase, proposed in one message and filed in blocked-by order on the developer's yes. Invoked as /project-spec <repo> <n> on a held spec, it runs that spec's Phase gate."
 argument-hint: "[<repo> <n>]"
 disable-model-invocation: true
 ---
 
-`/project-spec` synthesizes the conversation and your understanding of the codebase into a **Project**: one or more specs, each a **Phase**, filed in blocked-by order. Don't interview the developer: the proposal message (step 4) is the one confirmation, plus the piece fields' one message (step 3) when a piece spec has any left open.
+`/project-spec` synthesizes the conversation and your understanding of the codebase into a **Project**: one or more specs, each a **Phase**, filed in blocked-by order. Don't interview the developer: the proposal message (step 4) is the one confirmation, plus the piece fields' one message (step 3) when a piece or mixed spec has any left open.
 
 `/project-spec <repo> <n>` on a held spec runs its **Phase gate** instead: [The Phase gate](#the-phase-gate).
 
@@ -19,13 +19,13 @@ Explore the repo, if you haven't already, by [`specs.md`'s Exploring](../../../d
 
 **Split work into several specs for a gate (real use could change or cancel what follows) or for size (a spec headed past about 55 user stories or about 25K characters of body)**; the rest of the rule is [`specs.md`'s Phases](../../../docs/agents/specs.md#phases). With neither reason, the Project is one spec.
 
-Each spec has one kind, `code` or `piece`. Never plan a spec of both kinds: mixed work becomes one code spec and one piece spec in the same Project.
+**A spec's kind is `code`, `piece` or both: mixed work, a Piece and code in one change, is one mixed spec of both kinds**, split only for a gate or size like any other.
 
-For each code spec, sketch its test seams and warn of any planned test that would break a test speed rule, by [`specs.md`'s Test seams](../../../docs/agents/specs.md#test-seams).
+For each spec with code work, sketch its test seams and warn of any planned test that would break a test speed rule, by [`specs.md`'s Test seams](../../../docs/agents/specs.md#test-seams).
 
-## 3. Fill a piece spec's ten fields
+## 3. Fill the Piece's ten fields
 
-A piece spec follows the Piece rules in the root's `docs/pieces/`: [`rules.md`](../../../docs/pieces/rules.md), [`GLOSSARY.md`](../../../docs/pieces/GLOSSARY.md) and [`grilling.md`](../../../docs/pieces/grilling.md). Use their words (Piece, Deliverable, Section, Supporting Material, Reference) and cite them; never restate them here. Draw each field from the conversation `/grill-piece` ran, in the developer's words where they gave them:
+A piece or mixed spec fills ten fields for its Piece. Its Piece follows the Piece rules in the root's `docs/pieces/`: [`rules.md`](../../../docs/pieces/rules.md), [`GLOSSARY.md`](../../../docs/pieces/GLOSSARY.md) and [`grilling.md`](../../../docs/pieces/grilling.md). Use their words (Piece, Deliverable, Section, Supporting Material, Reference) and cite them; never restate them here. Draw each field from the conversation `/grill-piece` ran, in the developer's words where they gave them:
 
 - **Deliverable**: the Google Doc's title and Doc ID.
 - **Supporting Material**: each by title and Drive ID, with what it is for. For one too long to read whole, such as a book, list the passages that count by page range, given as PDF pages with the printed pages beside them when they differ, such as `PDF pp. 45–60 (printed 31–46)`.
@@ -43,15 +43,16 @@ Done when every field holds an answer or the developer's waiver. Ask for any fie
 Send one message holding:
 
 - the number of specs, in blocked-by order;
-- for each spec, its kind, repo, title, and the reason for the boundary before it (gate or size);
-- for each code spec, its test seams and any test speed warnings, so the developer can check they match their expectations;
+- for each spec, its kind (`code`, `piece` or mixed), repo, title, and the reason for the boundary before it (gate or size);
+- for a mixed spec, its Piece's Deliverable and which of its work is code and which the Piece;
+- for each spec with code work, its test seams and any test speed warnings, so the developer can check they match their expectations;
 - for each spec after the first, its `## Phase gate` content.
 
 File nothing until the developer says yes to the proposal. A change they ask for gets a revised proposal, and its yes.
 
 ## 5. Write each spec
 
-A code spec uses the code template, a piece spec the piece template. Every spec after the first ends with a `## Phase gate` section, before `## Model fit` when it has one:
+A code spec uses the code template, a piece spec the piece template. **A mixed spec uses the code template, and carries its Piece's ten fields as the piece template's sections, `## Deliverable` to `## Split`, after `## Testing Decisions`.** Every spec after the first ends with a `## Phase gate` section, before `## Model fit` when it has one:
 
 <phase-gate-template>
 
@@ -128,7 +129,7 @@ Any further notes about the feature.
 
 `## Model fit` is the last section of a code spec that passes [the ticket split test](../../../docs/agents/tickets.md#the-ticket-split-test): a pair line naming one of the pairs in [`tickets.md`](../../../docs/agents/tickets.md#model-fit), then a one-line reason. A code spec that fails it is still filed, without the section.
 
-A piece spec has no `## Model fit`; its tickets carry the pairs, picked by [`model-fit.md`](../../../docs/agents/model-fit.md). Drive and Doc IDs belong in it: the implementer reads by them.
+A piece or mixed spec has no `## Model fit`, since it always gets tickets; its tickets carry the pairs, a piece ticket's picked by [`model-fit.md`](../../../docs/agents/model-fit.md). Drive and Doc IDs belong in it: the implementer reads by them.
 
 <piece-template>
 
@@ -176,7 +177,7 @@ The Piece is done by the done checks in the root's `docs/pieces/rules.md`.
 
 Resolve each `<repo>` to `<owner>/<repo>`. In each repo filed to, run `gh label create code -R <owner>/<repo> --force` and `gh label create piece -R <owner>/<repo> --force`: the runner picks the piece Workflow by the `piece` label.
 
-File the specs in order, each body from a scratchpad file with `gh issue create -R <owner>/<repo> --body-file <path>`, labelled with its kind and:
+File the specs in order, each body from a scratchpad file with `gh issue create -R <owner>/<repo> --body-file <path>`, labelled with its kind, a mixed spec both `code` and `piece`, and:
 
 - **The first spec**: `ready-for-agent`.
 - **Every later spec**: `needs-triage`, so no run picks it up before its Phase gate, then a blocked-by edge to the spec before it, by [the issue tracker doc's Blocking command](../../../docs/agents/issue-tracker.md#wayfinding-operations).
@@ -186,7 +187,7 @@ File the specs in order, each body from a scratchpad file with `gh issue create 
 End with one line per spec:
 
 - **A held spec**: its Phase gate, `/project-spec <repo> <n>`, run once the spec before it closes.
-- **A spec without `## Model fit`**, a code spec that failed the split test or any piece spec: recommend `/project-tickets <repo> <n>` for sub-issues; say nothing if the developer has explicitly agreed in the conversation that it becomes tickets.
+- **A spec without `## Model fit`**, a code spec that failed the split test or any piece or mixed spec: recommend `/project-tickets <repo> <n>` for sub-issues; say nothing if the developer has explicitly agreed in the conversation that it becomes tickets.
 
 ## The Phase gate
 
