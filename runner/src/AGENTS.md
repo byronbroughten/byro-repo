@@ -17,7 +17,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | --- | --- | --- |
 | `AccountLease.ts` | `AccountLease` | The per-account lease a run, a Batch or a session's review or resolve holds on a cswap account, never waited on, and the leased accounts with their holders. |
 | `accountLine.ts` | | The account line the Accounts section and `npm run account:switch` print for each account. |
-| `AccountsSection.ts` | | The Accounts section the Run board will show. |
+| `AccountsSection.ts` | `AccountsSection` | The Run board's Accounts section. |
 | `accountSwitch.ts` | `accountSwitch` | `npm run account:switch`'s core: switches the Active account to the top of the account ranking through the cswap switch port its entry passes, printing the account lines before and after. |
 | `AGENTS.md` | | The rules for working in `src/`; `CLAUDE.md` loads it. |
 | `CLAUDE.md` | | Loads `AGENTS.md` for Claude Code. |
@@ -95,13 +95,13 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `PidLock.ts` | | The pid lock file `LandingLock`, `RunLock`, `AccountLease` and `CheckSlot` extend, and the wait `LandingLock` and `CheckSlot` poll through. |
 | `processIdentity.ts` | `processIdentity` | A process named by its pid and start time, for leases, supervision records and a parked watch. |
 | `progressLines.ts` | | The progress-log lines, written and parsed in pairs. |
-| `ProgressLog.ts` | | A progress log's lines and what the Run board reads from them: the current ticket, the account and the latest line. |
+| `ProgressLog.ts` | | A progress log's lines and what the Run board reads from them: the current ticket, the account, its step stream reading and the latest line. |
 | `promptText.ts` | | Wording helpers the step prompts and the runner's comments share. |
 | `recordSchema.ts` | | Schema parts the step records share, the implement record's variants, the review record built from a Workflow's axes and the gap-check record among them, the `output` wrapper a session step's record sits under and its unwrap, and their validator. |
 | `RepoVisibility.ts` | `RepoVisibility` | `npm run repos`'s core: each repo in the repo map with its path and visibility. |
 | `resolveRecords.ts` | | The resolve record every Workflow's resolve step returns: its schema, numbered findings, retry prompt, record and commit checks, and the builder of a Workflow's resolve rules. |
 | `reviewList.ts` | `reviewList` | The review list's comment formats, a research ticket's unwanted Unverified facts' audit and the skipped-reviewers note among them, and undecided count, `runner decide`'s edit marking one item decided or handled, and a session re-review's merge into the posted list. |
-| `runBoard.ts` | `runBoard` | The Run board behind `runner status` and `runner watch` with no spec. |
+| `runBoard.ts` | `runBoard` | The Run board behind `runner status` and `runner watch` with no spec: its Runs section and the Accounts section after it. |
 | `runCollecting.ts` | `runCollecting` | Runs one process with its output collected. |
 | `runCommand.ts` | | Runs a configured command, returning its output tail when it fails, for the preflight and a ticket's checks. |
 | `runKnobs.ts` | `runKnobs` | Every knob a run reads, its defaults and the override-file loader. |

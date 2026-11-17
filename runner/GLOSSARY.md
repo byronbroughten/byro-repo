@@ -179,8 +179,8 @@ An interactive session that launches or rejoins one run, explains each of its ev
 _Avoid_: monitor, watcher, babysitter
 
 **Run board**:
-A read-only, live view of every running run's tickets left, ticket, step and time on step, a Batch's as one entry naming its current member and totalling its tickets left. It is never streamed to the Supervisor, which looks at it only to diagnose.
-_Avoid_: dashboard
+A read-only, live view of every running run's tickets left, ticket, step and time on step, a Batch's as one entry naming its current member and totalling its tickets left, and of every account's 5-hour and weekly usage and its holder. It is never streamed to the Supervisor, which looks at it only to diagnose.
+_Avoid_: dashboard, project board
 
 **Lease**:
 A run's or interactive session's hold on one workspace, or a run's or interactive session's hold on one account, which keeps every other run and session out of it until the holder moves on, releases it, ends or closes out. A lease whose holder has died is abandoned, and the next taker takes it over.

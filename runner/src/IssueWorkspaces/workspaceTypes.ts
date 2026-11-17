@@ -98,8 +98,22 @@ export const issueRef = {
     return issues.filter((issue) => !issueRef.isAmong(issue, excluded));
   },
 
-  labelOf({ repo, number }: IssueRef): string {
-    return `${repo} #${number}`;
+  labelOf(issue: IssueRef): string {
+    return `${issue.repo} ${issueRef.numberLabelOf(issue)}`;
+  },
+
+  // labelOf's inverse: the number follows the last space and its `#`.
+  ofLabel(label: string): IssueRef {
+    const space = label.lastIndexOf(" ");
+    return {
+      repo: label.slice(0, space),
+      number: Number(label.slice(space + 2)),
+    };
+  },
+
+  // The label without its repo, where the repo goes without saying.
+  numberLabelOf({ number }: IssueRef): string {
+    return `#${number}`;
   },
 
   // The issue as a file name's stem, for the state files kept per issue.
