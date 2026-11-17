@@ -60,11 +60,10 @@ function boardAt(folder = stateFolder): Promise<string> {
   });
 }
 
-// The Runs section's body, between its heading and the Accounts section.
+// The Runs section, above the Accounts section.
 async function runsAt(folder = stateFolder): Promise<string> {
   const board = await boardAt(folder);
-  const [heading, ...rest] = board.split("\n\n");
-  expect(heading).toBe("Runs");
+  const rest = board.split("\n\n");
   expect(rest.pop()).toBe(accountsText);
   return rest.join("\n\n");
 }
@@ -134,8 +133,6 @@ describe("runBoardOf", () => {
     });
     expect(await boardAt()).toBe(
       [
-        "Runs",
-        "",
         "byro-repo #424",
         "  Ticket: #431, review, 11m 30s on this step",
         "  Account: 2",
@@ -277,7 +274,7 @@ describe("runBoardOf", () => {
 
   it("puts one block per run, blank-line separated, and says so with none above the Accounts section", async () => {
     expect(await boardAt()).toBe(
-      ["Runs", "", "No runs are running.", "", accountsText].join("\n"),
+      ["No runs are running.", "", accountsText].join("\n"),
     );
     seedRun({ stem: "byro-repo-424", pid: process.pid, steps: {}, log: [] });
     seedRun({ stem: "personal-21", pid: process.pid, steps: {}, log: [] });

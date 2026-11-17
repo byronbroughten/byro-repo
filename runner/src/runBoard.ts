@@ -29,7 +29,6 @@ export interface BoardRequest {
 }
 
 const boardTexts = {
-  runsHeading: "Runs",
   noRuns: "No runs are running.",
   gone: "process gone; Vanished unless its event file ends in a run-ended line",
 } as const;
@@ -47,7 +46,7 @@ export async function runBoardOf({
 }: BoardRequest): Promise<string> {
   const board = RunBoard.init(stateFolder);
   const accountsText = await accounts.textAt(now, board.streamUsage());
-  return [boardTexts.runsHeading, board.textAt(now), accountsText].join("\n\n");
+  return [board.textAt(now), accountsText].join("\n\n");
 }
 
 // Returns only by throwing, which a Ctrl-C does by ending the process instead.
