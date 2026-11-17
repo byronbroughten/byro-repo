@@ -234,7 +234,7 @@ describe("run's unhandled Stops", () => {
         `Log: \`${join(stateFolder(), logFile)}\``,
       );
       expect(notices.sent.map(({ summary }) => summary)).toEqual([
-        "Run started on 2 tickets as account 2: 5-hour 0%, weekly 0%. Launching byro-repo #1.",
+        "Run started on 2 tickets as account 1: 5-hour 10%, weekly 20%. Launching byro-repo #1.",
         result.message,
       ]);
     },

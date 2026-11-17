@@ -11,7 +11,6 @@ import {
   rankAccounts,
   type UsageList,
   type UsageReader,
-  windowNameOf,
 } from "./limitGuard.ts";
 import { percentOf } from "./transcriptFacts.ts";
 
@@ -103,7 +102,7 @@ function leftOutLabelOf(
   leased: LeasedAccount[],
 ): string {
   if (reason.kind === "limitWait") {
-    return `past its ${windowNameOf(reason.window)} threshold at ${percentOf(reason.utilization)}`;
+    return `past its ${accountLine.windowNameOf(reason.window)} threshold at ${percentOf(reason.utilization)}`;
   }
   if (reason.kind === "leased") {
     const holder = accountLine.holderLabelOf(account, leased);

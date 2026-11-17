@@ -29,7 +29,6 @@ import {
   type Workspace,
 } from "../IssueWorkspaces.ts";
 import {
-  type AccountReading,
   type KnownActiveUsageList,
   type UsageList,
   type UsageReader,
@@ -244,7 +243,6 @@ export class SpecRunBase {
       skipped: new Set(),
       failureStreak: [],
       streamUsage: new Map(),
-      unavailableAccounts: new Map(),
       accountHold: new AccountHold(
         this.config.stateFolder,
         issueRef.labelOf(specIssue),
@@ -286,13 +284,6 @@ export class SpecRunBase {
     this._saveState(run);
   }
 
-  // Usage is undefined when the read gives none for the Active account; the run-start notice and status name it.
-  protected async _activeReadingOf(run: Run): Promise<AccountReading> {
-    const { readings, activeAccount } = await this._knownActiveUsageListOf(run);
-    const usage = readings.find((r) => r.account === activeAccount)?.usage;
-    return { account: activeAccount, usage };
-  }
-
   // Every account's reading, read only once cswap names the Active account.
   protected async _knownActiveUsageListOf(
     run: Run,
@@ -303,7 +294,7 @@ export class SpecRunBase {
     return { readings: list?.readings ?? [], activeAccount };
   }
 
-  private async _usageListOf(run: Run): Promise<UsageList | undefined> {
+  protected async _usageListOf(run: Run): Promise<UsageList | undefined> {
     try {
       return await this.config.usageReader.read();
     } catch (error) {

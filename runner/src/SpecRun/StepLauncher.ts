@@ -14,6 +14,7 @@ import type { StepRequest, StepResult } from "../AgentStep.ts";
 import { messageOf } from "../failureText.ts";
 import { guidanceSectionOf } from "../halts.ts";
 import { issueRef } from "../IssueWorkspaces.ts";
+import type { AccountReading } from "../limitGuard.ts";
 import { nextStrongerPairOf, pairLabelOf } from "../modelFit.ts";
 import { stepLaunchLineOf } from "../progressLines.ts";
 import { unattendedRunLine } from "../promptText.ts";
@@ -65,6 +66,11 @@ export class StepLauncher extends SpecRunBase {
   // For a holder that launches no step itself, as a session's `runner review` and `resolve` do.
   async _leaseAccount(run: Run): Promise<number> {
     return this.limitWaiter._waitForLaunch(run);
+  }
+
+  // For the run-start notice, which names the account the first launch takes.
+  async _leaseIfFree(run: Run): Promise<AccountReading | undefined> {
+    return this.limitWaiter._leaseIfFree(run);
   }
 
   // A guidance answer goes to the halted step's next launch only, its crash retries included.

@@ -1,4 +1,4 @@
-// What a caller outside the run asks of it: `status`, each member's block and the account's reading,
+// What a caller outside the run asks of it: `status`, each member's block and the held account's reading,
 // and `requestStop`, which leaves the stop request RunLoop.ts takes between tickets; the request's path is the Base's.
 // A Batch's record (../BatchRecords.ts) lets either take any member's number for the whole Batch.
 // ../SpecRun.ts delegates status and requestStop to it; it builds its own TicketSelector for each member's waits,
@@ -6,16 +6,15 @@
 
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 
-import {
-  ActiveAccountUnknown,
-  noActiveAccountPhraseOf,
-} from "../ActiveAccountUnknown.ts";
+import { AccountLease } from "../AccountLease.ts";
+import { accountLine } from "../accountLine.ts";
+import { runLabelOf } from "../BatchRecords.ts";
 import { type Halt } from "../halts.ts";
 import { type IssueRef, issueRef, leaseHolder } from "../IssueWorkspaces.ts";
-import { readingLabelOf } from "../limitGuard.ts";
 import {
   type BatchView,
   memberBlocking,
+  type MemberList,
   type Run,
   runTickets,
   type Wait,
@@ -70,15 +69,14 @@ export class StatusReporter extends SpecRunBase {
     }
     lines.push(
       blocks.join("\n\n"),
-      `Account: ${await this._activeReadingLabelOf(lead)}.`,
+      `Account: ${await this._heldAccountLabelOf(lead, memberIssues)}.`,
     );
     const isStopRequested = memberIssues.some((memberIssue) =>
       existsSync(this._stopRequestPathOf(memberIssue)),
     );
     if (isStopRequested) {
-      const subject = isBatch ? "Batch" : "run";
       lines.push(
-        `A stop is requested; the ${subject} ends after its current ticket.`,
+        `A stop is requested; the ${runSubjectOf(memberIssues)} ends after its current ticket.`,
       );
     }
     return lines.join("\n");
@@ -143,15 +141,27 @@ export class StatusReporter extends SpecRunBase {
     return memberBlocking.unlandedOf(open, batch);
   }
 
-  private async _activeReadingLabelOf(run: Run): Promise<string> {
-    try {
-      const { account, usage } = await this._activeReadingOf(run);
-      return readingLabelOf(account, usage);
-    } catch (error) {
-      if (!(error instanceof ActiveAccountUnknown)) throw error;
-      return `unknown; ${noActiveAccountPhraseOf()}`;
+  // The lease records the run's label, so a Batch's is found whichever member names it.
+  private async _heldAccountLabelOf(
+    lead: Run,
+    memberIssues: MemberList,
+  ): Promise<string> {
+    const account = AccountLease.accountHeldBy(
+      this.config.stateFolder,
+      runLabelOf(memberIssues),
+    );
+    if (account === undefined) {
+      return `none; the ${runSubjectOf(memberIssues)} holds no account lease`;
     }
+    const list = await this._usageListOf(lead);
+    const usage = list?.readings.find((r) => r.account === account)?.usage;
+    return accountLine.readingLabelOf(account, usage);
   }
+}
+
+function runSubjectOf(memberIssues: MemberList): string {
+  if (memberIssues.length > 1) return "Batch";
+  return "run";
 }
 
 function currentTextOf(run: Run, { ticket, holder }: Wait): string[] {

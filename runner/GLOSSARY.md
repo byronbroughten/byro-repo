@@ -119,7 +119,7 @@ The run ends early: on a failure no answer can fix inside the run (GitHub or `cl
 _Avoid_: abort, exit, kill
 
 **Limit wait**:
-The run, or a session's `runner review` or `resolve`, pauses because no account it could lease is under its thresholds, and continues unaided once one is, resuming a step a limit cut off. A step a limit cuts off resumes at once on another free account, so it waits only when none is; the run keeps off the hit account until its reset, or after a limit error with no reset until it reads under its thresholds. A limit never Stops a run.
+The run, or a session's `runner review` or `resolve`, pauses because no account it could lease is under its thresholds, and continues unaided once one is, resuming a step a limit cut off. A step a limit cuts off resumes at once on another free account, so it waits only when none is; the run, and each member of a Batch, keeps off the hit account until its reset, or after a limit error with no reset until it reads under its thresholds. A limit never Stops a run.
 _Avoid_: cooldown, throttle
 
 **Restart**:
@@ -183,7 +183,7 @@ A read-only, live view of every running run's tickets left, ticket, step and tim
 _Avoid_: dashboard, project board
 
 **Lease**:
-A run's or interactive session's hold on one workspace, or a run's or interactive session's hold on one account, which keeps every other run and session out of it until the holder moves on, releases it, ends or closes out. A lease whose holder has died is abandoned, and the next taker takes it over.
+A run's or interactive session's hold on one workspace, or a run's or interactive session's hold on one account, which keeps every other run and session out of it until the holder moves on, releases it, ends or closes out. A Batch's members share one account lease, which names the Batch as the Run board does. A lease whose holder has died is abandoned, and the next taker takes it over.
 _Avoid_: lock, claim
 
 **Developer**:

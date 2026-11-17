@@ -12,7 +12,7 @@ export interface LockHolder {
   host: string;
   startedAt: string;
   token: string; // Tells apart two holders sharing a pid.
-  spec?: string; // The spec an account lease's holder works on, as issueRef.labelOf words it; other locks and older leases have none.
+  spec?: string; // An account lease holder's run label, a single run's spec or a Batch's label; keyed spec as older leases are, and other locks have none.
 }
 
 interface TakeOptions {

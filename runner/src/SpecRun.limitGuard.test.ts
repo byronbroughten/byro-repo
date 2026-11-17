@@ -9,6 +9,7 @@ import type { UsageReader } from "./limitGuard.ts";
 import { liveHolder, seedHolder } from "./lockFixture.ts";
 import {
   accountsListOf,
+  addIssue,
   addSpec,
   after,
   crashed,
@@ -101,7 +102,7 @@ describe("run's limit guard", () => {
     expect(sleeps).toEqual([60_000, 60_000, 60_000]);
     expect(agentStep.requests.map(({ account }) => account)).toEqual([1, 1]);
     expect(noticeSummaries()).toEqual([
-      "Run started on 1 tickets as account 2: 5-hour 0%, weekly 0%. Launching byro-repo #1.",
+      "Run started on 1 tickets as account 1: 5-hour 10%, weekly 50%. Launching byro-repo #1.",
       "Limit wait: account 1 is at 95% of its 5-hour limit; continuing after 2026-10-12 05:01:00 CDT. An account another run releases continues the run too.",
       result.message,
     ]);
@@ -476,6 +477,46 @@ describe("run's limit guard", () => {
     ]);
   });
 
+  it("keeps every Batch member off an account one member's limit hit made unavailable", async () => {
+    const first = refOf(301);
+    const second = refOf(302);
+    addIssue(first.number);
+    addIssue(second.number);
+    let account3FiveHour = 0.2;
+    const agentStep = FakeAgentStep.init(
+      limitHitStep("stream\n", fiveHourHit),
+      implemented("first.ts"),
+      async () => {
+        account3FiveHour = 0.95;
+        return reviewed();
+      },
+      implemented("second.ts"),
+      reviewed(),
+    );
+    const members: [typeof first, typeof second] = [first, second];
+
+    const result = await specRun(agentStep, {
+      members,
+      usageReader: {
+        read: async () =>
+          accountsListOf(
+            [
+              { account: 1, fiveHour: 0.1, sevenDay: 0.5 },
+              { account: 2, fiveHour: 0, sevenDay: 0.5 },
+              { account: 3, fiveHour: account3FiveHour, sevenDay: 0.5 },
+            ],
+            2,
+          ),
+      },
+      clock: { now: () => new Date("2026-10-12T10:00:00Z") },
+    }).run(...members);
+
+    expect(result.landed).toEqual([first, second]);
+    expect(agentStep.requests.map(({ account }) => account)).toEqual([
+      1, 3, 3, 2, 2,
+    ]);
+  });
+
   it("waits with a hit account's notice naming the earliest reset among the accounts that would continue the run, when every other one is leased or past a threshold", async () => {
     addSpec([1]);
     mkdirSync(stateFolder(), { recursive: true });
@@ -653,7 +694,7 @@ describe("run's limit guard", () => {
       prompt: limitResumePrompt,
     });
     expect(noticeSummaries().slice(0, 3)).toEqual([
-      "Run started on 1 tickets as account 2: 5-hour 50%, weekly 50%. Launching byro-repo #1.",
+      "Run started on 1 tickets as account 1: 5-hour 50%, weekly 50%. Launching byro-repo #1.",
       "Unrecognised limit error on account 1; the saved stream can tighten detection.",
       "Limit wait: account 1 hit a limit error with no reset; continuing after 2026-10-12 06:01:00 CDT. An account another run releases continues the run too.",
     ]);
@@ -760,8 +801,8 @@ describe("run's limit guard", () => {
 
     expect(result.landed).toEqual([refOf(1), refOf(2)]);
     expect(noticeSummaries()).toEqual([
-      "Run started on 2 tickets as account 1: no usage reading. Launching byro-repo #1.",
       "No usage reading for account 1; steps launch unguarded.",
+      "Run started on 2 tickets as account 1: no usage reading. Launching byro-repo #1.",
       result.message,
     ]);
   });
@@ -795,7 +836,7 @@ describe("run's timings", () => {
 
     expect(timingLines()).toEqual([
       "Preflight passed in 0s.",
-      "Run started on 1 tickets as account 2: 5-hour 0%, weekly 0%. Launching byro-repo #1.",
+      "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%. Launching byro-repo #1.",
       "byro-repo #1: workspace took 4s.",
       "byro-repo #1: implement took 90s.",
       "byro-repo #1: review took 30s.",
@@ -822,7 +863,7 @@ describe("run's timings", () => {
 
     expect(timingLines()).toEqual([
       "Preflight passed in 0s.",
-      "Run started on 1 tickets as account 2: 5-hour 0%, weekly 0%. Launching byro-repo #1.",
+      "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%. Launching byro-repo #1.",
       "byro-repo #1: workspace took 4s.",
       "byro-repo #1: implement took 60s.",
       "byro-repo #1: review took 20s.",

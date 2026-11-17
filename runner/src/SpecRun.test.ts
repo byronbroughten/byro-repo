@@ -67,7 +67,7 @@ describe("run", () => {
     expect(notices.sent).toEqual([
       expect.objectContaining({
         summary:
-          "Run started on 2 tickets as account 2: 5-hour 0%, weekly 0%. Launching byro-repo #1.",
+          "Run started on 2 tickets as account 1: 5-hour 10%, weekly 20%. Launching byro-repo #1.",
         link: "https://github.com/byronbroughten/byro-repo/issues/213",
       }),
       expect.objectContaining({
@@ -130,7 +130,7 @@ describe("run", () => {
     ).toBe(true);
     expect(lines.map(eventOf)).toEqual(
       expect.arrayContaining([
-        "Run started on 1 tickets as account 2: 5-hour 0%, weekly 0%. Launching byro-repo #1.",
+        "Run started on 1 tickets as account 1: 5-hour 10%, weekly 20%. Launching byro-repo #1.",
         "byro-repo #1: launching on Opus high from implement.",
         "byro-repo #1: checking sh -c test ! -f RED.",
         "byro-repo #1: wrapping up.",

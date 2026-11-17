@@ -255,7 +255,7 @@ describe("run's idle and stops", () => {
         "Current: none.",
         "Open Halts: H1 on byro-repo #1.",
         "Waiting: byro-repo #1 waits on Halt H1; byro-repo #3 waits on you (`/start-issue byro-repo 3`).",
-        "Account: account 2: 5-hour 0%, weekly 0%.",
+        "Account: none; the run holds no account lease.",
         "A stop is requested; the run ends after its current ticket.",
       ].join("\n"),
     );
