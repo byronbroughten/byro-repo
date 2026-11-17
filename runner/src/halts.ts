@@ -302,11 +302,26 @@ export interface HaltPost {
 }
 
 function haltLabelOf({ halt, index, count }: HaltPost): string {
-  return `Halt ${index} of ${count} · ${issueRef.labelOf(halt.ticket)}`;
+  return `${haltCountOf(String(index), String(count))}${issueRef.labelOf(halt.ticket)}`;
+}
+
+function haltCountOf(index: string, count: string): string {
+  return `Halt ${index} of ${count} · `;
 }
 
 export function haltNameOf({ id }: Halt): string {
+  return haltNameWith(id);
+}
+
+function haltNameWith(id: string): string {
   return `Halt ${id}`;
+}
+
+// The ticket a heading names as `<repo> #<n>, "<title>"`, as `<repo>#<n>`; the Halt and review-list headings share the form.
+export function headingTicketOf(text: string): string | undefined {
+  const label = /^(.+?), "/.exec(text)?.[1];
+  if (label === undefined) return undefined;
+  return shortRefOf(issueRef.ofLabel(label));
 }
 
 export function haltHeadingOf(halt: Halt): string {
@@ -411,7 +426,9 @@ export interface PostedHalt {
 }
 
 // The opening line haltCommentWith writes, for a run's `H<n>` only.
-const postedHaltHead = /^\*\*Halt (H\d+)\*\* · Halt \d+ of \d+ · (.+?), "/;
+const postedHaltHead = new RegExp(
+  String.raw`^\*\*${haltNameWith(String.raw`(H\d+)`)}\*\* · ${haltCountOf(String.raw`\d+`, String.raw`\d+`)}`,
+);
 
 // Undefined where the body isn't a run Halt's comment; the question and options are never read.
 export function postedHaltOf(body: string): PostedHalt | undefined {
@@ -420,9 +437,11 @@ export function postedHaltOf(body: string): PostedHalt | undefined {
     .replaceAll("\r\n", "\n")
     .trim()
     .split("\n\n");
-  const head = postedHaltHead.exec(paragraphs[0] ?? "");
-  if (head === null) return undefined;
-  const [, id = "", label = ""] = head;
+  const opening = paragraphs[0] ?? "";
+  const head = postedHaltHead.exec(opening);
+  const ticket = headingTicketOf(opening.slice(head?.[0].length ?? 0));
+  if (head === null || ticket === undefined) return undefined;
+  const [, id = ""] = head;
   // The Blocks line is the paragraph just before the options, as a question may hold one of its own.
   const optionsAt = paragraphs.findLastIndex((paragraph) =>
     paragraph.startsWith("Options:\n"),
@@ -430,7 +449,7 @@ export function postedHaltOf(body: string): PostedHalt | undefined {
   const blocks = /^Blocks: (.+)\.$/.exec(paragraphs[optionsAt - 1] ?? "");
   const scope = blocks === null ? undefined : scopeOfText(blocks[1] ?? "");
   if (scope === undefined) return undefined;
-  return { id, ticket: shortRefOf(issueRef.ofLabel(label)), scope };
+  return { id, ticket, scope };
 }
 
 export function isRunnersComment({ body }: IssueComment): boolean {

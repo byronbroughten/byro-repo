@@ -8,6 +8,7 @@
 // session's review, which also returns the ticket's to print; WrapUp.ts counts a Standalone ticket's; SpecRun/ReviewItemDecider.ts edits one; the gap check of the Workflows the spec's tickets pick supplies the gaps.
 
 import {
+  headingTicketOf,
   isRunnersComment,
   type PostedHalt,
   postedHaltOf,
@@ -737,42 +738,46 @@ export interface JudgingOrder {
   othersCommentCount: number;
 }
 
-// /judge-findings' step 2 order: Halt-adjacent items first, then the other tickets', then the gap check's, each part oldest comment first.
-// The comments are the spec's, oldest first.
+// The comments come oldest first, as GitHub gives them, which the order within each part keeps.
 export function judgingOrderOf(
   comments: LinkedComment[],
   developer: string,
 ): JudgingOrder {
-  const developers = comments.filter(({ author }) => author === developer);
-  const halts = developers
+  const developersComments = comments.filter(
+    ({ author }) => author === developer,
+  );
+  const halts = developersComments
     .filter(isRunnersComment)
     .flatMap(({ body }) => postedHaltOf(body) ?? []);
-  const read = developers
+  const lists = developersComments
     .filter((comment) => isDevelopersReviewList(comment, developer))
-    .map((comment) => readListOf(comment, halts));
-  const ticketItems = read
+    .map((comment) => parsedListOf(comment, halts));
+  const ticketItems = lists
     .filter(({ isGapCheck }) => !isGapCheck)
     .flatMap(({ judged }) => judged);
   return {
     items: [
       ...ticketItems.filter(({ halts: named }) => named.length > 0),
       ...ticketItems.filter(({ halts: named }) => named.length === 0),
-      ...read
+      ...lists
         .filter(({ isGapCheck }) => isGapCheck)
         .flatMap(({ judged }) => judged),
     ],
-    decidedCount: read.reduce((count, { decided }) => count + decided, 0),
-    othersCommentCount: comments.length - developers.length,
+    decidedCount: lists.reduce((count, { decided }) => count + decided, 0),
+    othersCommentCount: comments.length - developersComments.length,
   };
 }
 
-interface ReadList {
+interface ParsedReviewList {
   isGapCheck: boolean;
   judged: JudgingItem[];
   decided: number;
 }
 
-function readListOf(comment: LinkedComment, halts: PostedHalt[]): ReadList {
+function parsedListOf(
+  comment: LinkedComment,
+  halts: PostedHalt[],
+): ParsedReviewList {
   const ticket = listTicketOf(comment.body);
   // The gap check is no ticket, so no Halt holds its items.
   const adjacent =
@@ -808,21 +813,24 @@ function judgedStateOf(lines: string[]): JudgedState | undefined {
 // The list's ticket as `<repo>#<n>`, read from the heading listOf writes; undefined for the gap check's.
 function listTicketOf(body: string): string | undefined {
   const heading = new RegExp(
-    String.raw`^\*\*${reviewListHeading}\*\* · (.+?), "`,
+    String.raw`^\*\*${reviewListHeading}\*\* · (.+)$`,
     "m",
   ).exec(body);
-  const label = heading?.[1];
   if (body.includes(reviewListMarkOf(gapCheckSubject))) return undefined;
-  if (label === undefined) {
+  const ticket = headingTicketOf(heading?.[1] ?? "");
+  if (ticket === undefined) {
     throw new Error("A ticket's review list has no heading naming its ticket.");
   }
-  return shortRefOf(issueRef.ofLabel(label));
+  return ticket;
 }
 
 // By the ticket list the Blocks line writes out, never the ticket graph.
-function isHaltAdjacent({ ticket, scope }: PostedHalt, item: string): boolean {
-  if (ticket === item || scope === "spec") return true;
-  return scope.includes(item);
+function isHaltAdjacent(
+  { ticket, scope }: PostedHalt,
+  listTicket: string,
+): boolean {
+  if (ticket === listTicket || scope === "spec") return true;
+  return scope.includes(listTicket);
 }
 
 export function ticketPushOf(
