@@ -1,0 +1,7 @@
+# byro-repo#817 outcome
+
+Spec: [byro-repo#804](https://github.com/byronbroughten/byro-repo/issues/804)
+
+| Issue | Workflow | Pair | Account | Files changed | Estimate | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #817 | code | Opus medium | 2 | 8 | ~124K | 123K | Fix (resumed implementer) | 1 | 1 | 0 | 0 | 7 min | $1.34 | $1.73 | Fixed: The drafting-ticket test `skill === "implement-piece"` duplicates the one at runner/src/PiecePull.ts:104. (scripts/runner/startReport.ts:47); 'Report its message and carry on' after a piece:pull refusal leads to a second failure in the skill's own pull. (.claude/skills/start-issue/SKILL.md:17); The list of what issue:start prints doesn't mention the new Pull: line. (docs/agents/git-workflow.md:10); After any piece:pull refusal, step 4 carries on to the skill's own pull, which repeats the refusal and, on an Untrusted body, reads a Deliverable ID piece:pull refused to trust. (.claude/skills/start-issue/SKILL.md:17); The drafting test is written separately from PiecePull.ts:104 rather than as a shared predicate. (scripts/runner/startReport.ts ticketLinesOf). Proposed: The change cuts Setup turns without a before-and-after measurement or an `Observed:` line in the estimates. (docs/agents/workflows.md:58-59). | 1421f175-045a-4e45-bb33-ae555d2bdbcd |
