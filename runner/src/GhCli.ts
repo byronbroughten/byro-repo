@@ -27,6 +27,8 @@ const trackedIssueFields = `number title state body url
 const readableIssueFields = `${trackedIssueFields}
       parent { number repository { name } }
       subIssues(first: 100) { nodes { number repository { name } } }
+      assignees(first: 100) { nodes { login } }
+      blockedBy(first: 100) { nodes { number state repository { name } } }
       timelineItems(itemTypes: [RENAMED_TITLE_EVENT], last: 1) { nodes { ... on RenamedTitleEvent { actor { login } } } }
       comments(first: 100) { pageInfo { hasNextPage } nodes { author { login } body url } }`;
 
@@ -61,6 +63,8 @@ interface RawIssue {
   labels?: { nodes?: { name?: unknown }[] };
   parent?: RawRef | null;
   subIssues?: { nodes?: RawRef[] };
+  assignees?: { nodes?: RawLogin[] };
+  blockedBy?: { nodes?: (RawRef & { state?: unknown })[] };
   userContentEdits?: RawPage & { nodes?: { editor?: RawLogin | null }[] };
   timelineItems?: { nodes?: { actor?: RawLogin | null }[] };
   comments?: RawPage & {
@@ -492,6 +496,11 @@ function readableOfRaw(issue: IssueRef, raw: RawIssue): ReadableIssue {
     labels: labelsOfRaw(raw),
     parent: raw.parent ? refOfRaw(raw.parent) : undefined,
     subIssues: (raw.subIssues?.nodes ?? []).map(refOfRaw),
+    assignees: (raw.assignees?.nodes ?? []).map(loginOf),
+    blockedBy: (raw.blockedBy?.nodes ?? []).map((blocker) => ({
+      issue: refOfRaw(blocker),
+      isOpen: blocker.state === "OPEN",
+    })),
     body: String(raw.body),
     ...authorshipOfRaw(issue, raw),
     comments: (comments?.nodes ?? []).map((comment) => ({

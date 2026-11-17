@@ -482,6 +482,8 @@ async function ticketTwoAsAStepReadsIt(): Promise<string> {
     labels,
     parent: spec,
     subIssues: [],
+    assignees: [],
+    blockedBy: [],
     body,
     author,
     bodyEditors,

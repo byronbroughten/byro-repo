@@ -28,7 +28,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Checks.ts` | `Checks` | Runs `npm run check`'s commands at once in the check slot, narrowed to the packages with no check stamp. |
 | `CheckSlot.ts` | | The per-primary check slot `npm run check` waits for. |
 | `ClaudeAgentStep.ts` | `ClaudeAgentStep` | The real agent-step adapter over `cswap run`, launching under the primary's gate root and settings plus an injected permission hook, with the targets' tools, no other gworkspace tool, and environment. |
-| `clonePaths.ts` | `clonePaths` | Builds the repo map, each clone in landing order, from a primary root. |
+| `clonePaths.ts` | `clonePaths` | Builds the repo map, each clone in landing order, from a primary root, and names the repo whose clone holds a folder. |
 | `CommittedFiles.ts` | | A set of committed files in one repo, read from HEAD for a check stamp's key, and whether any has a change. |
 | `contextMeter.ts` | `contextMeter` | Measures a session's peak context from stream events or a transcript. |
 | `contextNudge.ts` | `contextNudge` | Words the handoff reminder near the ticket budget, for the ticket's handoff, the supervision's or both. |
@@ -67,8 +67,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `halts/haltReplies.ts` | | Reads a developer's replies to a Halt: which answer it, `stop spec` and a Failure or push Halt's answer. |
 | `headlessProbe.ts` | | Launches the one-turn headless session the probes run, refusing a stream-json one that printed no events, and reads a folder's sandbox block and a session's stream events. |
 | `InjectionProbe.ts` | `InjectionProbe` | `npm run session:probe -- --injection-check`: whether a skill's injected command runs, in the box or not, and what a PreToolUse hook sees of it, by slash command and through the Skill tool, for each `allowed-tools` entry. |
-| `IssueReader.ts` | `IssueReader` | `npm run issue:read`: prints an issue as Trusted and Untrusted text, reads a Trusted body's Model fit line for `npm run outcome:summary`, and names a ticket's skill for `npm run issue:start`. |
-| `IssueWorkspaces.ts` | `IssueWorkspaces` | Creates, promotes, resumes, leases, lists and removes issue and session workspaces, delegating to `IssueWorkspaces/`. |
+| `IssueReader.ts` | `IssueReader` | `npm run issue:read`: prints an issue as Trusted and Untrusted text, reads a Trusted body's Model fit line for `npm run outcome:summary`, and names a ticket's skill for `npm run issue:start`. || `IssueWorkspaces.ts` | `IssueWorkspaces` | Creates, promotes, resumes, leases, lists and removes issue and session workspaces, delegating to `IssueWorkspaces/`. |
 | `IssueWorkspaces/BranchNamer.ts` | | Names a workspace's branch, reusing an issue's existing branch in its own repo only, and finds other repos' same-numbered branches. |
 | `IssueWorkspaces/claudeEntries.ts` | `claudeEntries` | The `.claude/` entries the sandbox write-protects in a worktree, and the check that a removal can delete them. |
 | `IssueWorkspaces/IssueWorkspacesBase.ts` | | The Base `IssueWorkspaces` and its collaborators share: the config, a repo's clone path and its primary clone, finding a workspace's folder by key and the free-lease check. |
@@ -83,6 +82,9 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `limitGuard.ts` | `limitGuard` | The limit guard: reads usage, picks launch or Limit wait and ranks the accounts. |
 | `localTime.ts` | | Words and reads a human-facing time: local, with its zone. |
 | `lockFixture.ts` | | Pid-lock fixtures the lock tests share. |
+| `MapNext.ts` | `MapNext` | `npm run map:next`'s core: a `/wayfinder` session's read-only brief of a wayfinder map, its sub-issues, frontier and chosen ticket, printing only Trusted text, delegating to `MapNext/`. |
+| `MapNext/MapArgsParser.ts` | | Reads `npm run map:next`'s arguments into the map and named ticket, refusing what names neither. |
+| `MapNext/MapBriefWriter.ts` | | Words a read map's brief: its sub-issues, the frontier and the chosen ticket, counting Untrusted text with the command that reads it. |
 | `modelFit.ts` | `modelFit` | Reads a ticket's Model fit pair and estimate, and compares pairs. |
 | `Notices.ts` | `Notices` | The notice port, its notice kinds and the run endings among them. |
 | `outlineApply.ts` | `outlineApply` | `npm run outline:apply`'s core: applies the Outline edits a developer's answer approves to a Trusted spec body, for an interactive `/research-piece` session. |

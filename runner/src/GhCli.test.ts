@@ -161,6 +161,41 @@ describe("GhCli reads", () => {
       { author: "developer", body: "Done.", url: commentUrl },
     ]);
   });
+
+  it("reads a readable issue's assignees and blocked-by edges with each blocker's state", async () => {
+    const response = {
+      data: {
+        repository: {
+          issue: {
+            title: "Read issues",
+            body: "Build the reader.",
+            state: "OPEN",
+            author: { login: "developer" },
+            assignees: { nodes: [{ login: "developer" }] },
+            blockedBy: {
+              nodes: [
+                { number: 3, state: "OPEN", repository: { name: "byro-repo" } },
+                {
+                  number: 4,
+                  state: "CLOSED",
+                  repository: { name: "sheets-framework" },
+                },
+              ],
+            },
+          },
+        },
+      },
+    };
+    const { cli } = scriptedGh([JSON.stringify(response)]);
+
+    const { assignees, blockedBy } = await cli.readableIssueOf(issue);
+
+    expect(assignees).toEqual(["developer"]);
+    expect(blockedBy).toEqual([
+      { issue: { repo: "byro-repo", number: 3 }, isOpen: true },
+      { issue: { repo: "sheets-framework", number: 4 }, isOpen: false },
+    ]);
+  });
 });
 
 describe("GhCli writes", () => {

@@ -37,6 +37,7 @@
     "./IssueReader": "./src/IssueReader.ts",
     "./IssueWorkspaces": "./src/IssueWorkspaces.ts",
     "./LandingLock": "./src/LandingLock.ts",
+    "./MapNext": "./src/MapNext.ts",
     "./runBoard": "./src/runBoard.ts",
     "./RunLock": "./src/RunLock.ts",
     "./modelFit": "./src/modelFit.ts",

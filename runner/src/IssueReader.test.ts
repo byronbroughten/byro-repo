@@ -34,6 +34,8 @@ function issueOf(issue: Partial<ReadableIssue> = {}): ReadableIssue {
     labels: ["ready-for-agent"],
     parent: { repo: "byro-repo", number: 3 },
     subIssues: [],
+    assignees: [],
+    blockedBy: [],
     body: "Build the reader.",
     author: developer,
     bodyEditors: [],

@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { clonePathsOf } from "./clonePaths.ts";
+import { clonePathsOf, cloneRepoOf } from "./clonePaths.ts";
 import { git, GitFixture } from "./GitFixture.ts";
 
 let fixture: GitFixture;
@@ -91,6 +91,19 @@ describe("clonePathsOf", () => {
       "packages/utils has a .git but no origin remote",
     );
     rmSync(orphan, { recursive: true, force: true });
+  });
+});
+
+describe("cloneRepoOf", () => {
+  it("names the repo whose clone holds a folder, the innermost clone winning", () => {
+    expect(cloneRepoOf(join(primaryRoot, "packages/framework"))).toBe(
+      "sheets-framework",
+    );
+    expect(cloneRepoOf(join(primaryRoot, "packages/stray"))).toBe("byro-repo");
+  });
+
+  it("names none for a folder in no git checkout", () => {
+    expect(cloneRepoOf(folder)).toBeUndefined();
   });
 });
 

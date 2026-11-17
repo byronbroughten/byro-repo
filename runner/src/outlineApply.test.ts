@@ -45,6 +45,8 @@ function sourceOf(issue: Partial<ReadableIssue> = {}): FakeIssueSource {
     labels: [],
     parent: undefined,
     subIssues: [],
+    assignees: [],
+    blockedBy: [],
     body: specBody,
     author: developer,
     bodyEditors: [],
