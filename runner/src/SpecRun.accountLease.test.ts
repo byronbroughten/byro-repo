@@ -136,6 +136,23 @@ describe("run's account lease", () => {
     ]);
   });
 
+  it("names the account it holds in its status, not the Active account", async () => {
+    addSpec([1]);
+    const statuses: string[] = [];
+    const run = specRun(
+      FakeAgentStep.init(async (request) => {
+        statuses.push(await run.status(spec));
+        return implemented("one.ts")(request);
+      }, reviewed()),
+    );
+
+    await run.run(spec);
+
+    expect(statuses.map((status) => status.split("\n").at(-1))).toEqual([
+      "Account: account 1: 5-hour 10%, weekly 20%.",
+    ]);
+  });
+
   it("takes over a lease a dead holder abandoned", async () => {
     addSpec([1]);
     seedLease(1, false);

@@ -56,6 +56,13 @@ export class AccountLease extends PidLock {
       .sort((a, b) => a.account - b.account);
   }
 
+  // The account whose live lease records `spec`, a run's spec label or a Batch's label, for `runner status`.
+  static accountHeldBy(stateFolder: string, spec: string): number | undefined {
+    return AccountLease.leasedIn(stateFolder).find(
+      ({ holder }) => holder?.spec === spec,
+    )?.account;
+  }
+
   static readerOf(stateFolder: string): AccountLeaseReader {
     return { read: () => AccountLease.leasedIn(stateFolder) };
   }
