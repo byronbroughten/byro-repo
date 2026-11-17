@@ -2,6 +2,7 @@
 name: wayfinder
 description: Plan a huge chunk of work (more than one agent session can hold) as a shared map of decision tickets on your issue tracker, and resolve them one at a time until the way to the destination is clear.
 disable-model-invocation: true
+allowed-tools: Bash(npm run map:next *)
 ---
 
 A loose idea has arrived, too big for one agent session, and wrapped in fog: the way from here to the **destination** isn't visible yet. Wayfinding is about finding that way, not charging at the destination. This skill charts the way as a **shared map** on the repo's issue tracker, then works its **decision tickets** (questions whose resolution is a decision, not slices of a build to execute) one at a time until the route is clear.
@@ -22,7 +23,7 @@ The map is a single issue on this repo's issue tracker, labelled `wayfinder:map`
 
 The map is an **index**, not a store. It lists the decisions made and points at the tickets that hold their detail; a decision lives in exactly one place, its ticket, so the map never restates it, only gists it and links.
 
-**Where the map, its child tickets, blocking, and frontier queries physically live is tracker-specific.** The issue tracker should have been provided to you. If not, read `docs/agents/issue-tracker.md`. Consult the tracker doc's "Wayfinding operations" section for how _this_ repo expresses them. If no tracker has been provided, default to the local-markdown tracker.
+**Where the map, its child tickets, blocking, and frontier queries physically live is tracker-specific.** This repo's are in the [Wayfinding operations section of the issue tracker doc](../../../docs/agents/issue-tracker.md#wayfinding-operations).
 
 ### The map body
 
@@ -117,12 +118,13 @@ User invokes with a loose idea.
 
 ### Work through the map
 
-User invokes with a map (URL or number). A ticket is **optional**: without one, you pick the next decision, not the user.
+User invokes with a map (`<repo> <number>`, a URL, or a number in this folder's repo) and an optional ticket. The brief below, `npm run map:next` on the invocation's arguments, already holds the map, its frontier and the chosen ticket: the one the user named, else the first frontier ticket in map order. Don't read any of them again. A brief of one line, `map:next brief: none, <reason>`, means one of two things: arguments that are a loose idea, naming no map, are [Chart the map](#chart-the-map); otherwise your first call is `npm run map:next -- <repo> <map> [<ticket>]` on the map and ticket the arguments name, and its brief stands in for this one. A brief whose `## Chosen ticket` is none gives why: say so and stop.
 
-1. Load the **map**: the low-res view, not every ticket body.
-2. Choose the ticket. If the user named one, use it. Otherwise take the first frontier ticket in order. **Claim it**: assign it to yourself before any work.
-3. Resolve it as the type its `wayfinder:<type>` label names (see [Ticket Types](#ticket-types)). Read the label, not just the body: the body never states the type. **Zoom as needed**: fetch the full body of any related or closed ticket on demand; call the Skill tool for whichever skills the `## Notes` block names. If in doubt, call the Skill tool twice, for "grilling" and "domain-modeling".
-4. Record the resolution: post the answer as a **resolution comment**, **close** the issue, and **append a context pointer** to the map's Decisions-so-far.
-5. Add newly-surfaced tickets (create-then-wire); graduate any fog the answer has made specifiable, clearing each graduated patch from **Not yet specified** so it lives only as its new ticket. If the answer reveals that a ticket (this one or another) sits beyond the destination, **rule it out of scope** rather than resolving it on the route. If the decision invalidates other parts of the map, update or delete those tickets.
+!`npm run map:next -- $ARGUMENTS`
+
+1. **In your first turn, send these together**: the **claim**, assigning the chosen ticket to yourself before any work with `gh issue edit -R <owner>/<repo> <n> --add-assignee @me`; a read of the [Wayfinding operations section](../../../docs/agents/issue-tracker.md#wayfinding-operations); and the Skill calls for the brief's `Type:` (see [Ticket Types](#ticket-types)) and for each skill the map's `## Notes` names. With no type, call the Skill tool twice, for "grilling" and "domain-modeling".
+2. Resolve the ticket as its type says. **Zoom as needed**: fetch the full body of any related or closed ticket on demand, and the comments the brief counts but doesn't print.
+3. Record the resolution: post the answer as a **resolution comment**, **close** the issue, and **append a context pointer** to the map's Decisions-so-far.
+4. Add newly-surfaced tickets (create-then-wire); graduate any fog the answer has made specifiable, clearing each graduated patch from **Not yet specified** so it lives only as its new ticket. If the answer reveals that a ticket (this one or another) sits beyond the destination, **rule it out of scope** rather than resolving it on the route. If the decision invalidates other parts of the map, update or delete those tickets.
 
 The user may run unblocked tickets in parallel, so expect other sessions to be editing the tracker concurrently.

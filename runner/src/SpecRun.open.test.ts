@@ -1,4 +1,9 @@
-import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -186,4 +191,32 @@ describe("open", () => {
       "## Handoff from the last Supervisor",
     );
   });
+
+  // Measures the one call that replaces /runner's status read and first catch-up, on byro-repo #729's own event file and handoff.
+  it("rejoins a real run's records in one output of under 2.5 KB", async () => {
+    addSpec([1]);
+    seedLiveRunLock(spec);
+    const events = readFixture("byro-repo-729.events.jsonl");
+    const handoff = readFixture("byro-repo-729.handoff.md");
+    appendEvents(...events.trimEnd().split("\n"));
+    const records = SupervisionRecords.init(stateFolder());
+    await records.supervise(earlierSupervisor, "byronbroughten", spec);
+    await records.end(earlierSupervisor, "clear");
+    const handoffPath = records.handoffPathOf(spec);
+    mkdirSync(dirname(handoffPath), { recursive: true });
+    writeFileSync(handoffPath, handoff);
+
+    const result = await open(new ScriptedLauncher(started), spec);
+
+    expect(result.text).toContain(handoff);
+    expect(result.text).toContain(events.trimEnd());
+    expect(Buffer.byteLength(result.text)).toBeLessThan(2500);
+  });
 });
+
+function readFixture(name: string): string {
+  return readFileSync(
+    join(import.meta.dirname, "SpecRun", "fixtures", name),
+    "utf8",
+  );
+}
