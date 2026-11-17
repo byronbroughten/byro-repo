@@ -1,0 +1,7 @@
+# byro-repo#816 outcome
+
+Spec: [byro-repo#804](https://github.com/byronbroughten/byro-repo/issues/804)
+
+| Issue | Workflow | Pair | Account | Files changed | Estimate | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #816 | code | Opus medium | 2 | 7 | ~120K | 162K | Fix (resumed implementer) | 2 | 1 | 0 | 0 | 10 min | $2.41 | $1.88 | Fixed: The new test's handoff seeding duplicates the existing test's at :177-182. (runner/src/SpecRun.open.test.ts:192-197); The comment above the new test restates what the test does and leaves the 2.5 KB bound unexplained. (runner/src/SpecRun.open.test.ts:195); The skill says every <repo> is the bare name, but the handoff and context-nudge rejoin lines print `/runner <owner>/<repo> <n>`. (runner/skills/runner/SKILL.md:7). Proposed: The injected `npm run map:next -- $ARGUMENTS` passes the arguments to the shell as typed. No Observed: line records how $ARGUMENTS is substituted or quoted. (.claude/skills/wayfinder/SKILL.md:121-123); The injected `npm run map:next -- $ARGUMENTS` runs on every invocation with raw arguments, and no Observed: line records $ARGUMENTS substitution inside a ! block. (.claude/skills/wayfinder/SKILL.md:123). | 26695d18-62b8-451e-acb0-a87172831bbd |
