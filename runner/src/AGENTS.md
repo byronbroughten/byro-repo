@@ -31,8 +31,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `clonePaths.ts` | `clonePaths` | Builds the repo map, each clone in landing order, from a primary root, and names the repo whose clone holds a folder. |
 | `CloseOutBrief.ts` | `CloseOutBrief` | `npm run issue:close-parent`'s core: a Close-out's brief of a parent, its refusals and, with `--comment-file`, the close and the parent check above it, printing only Trusted text. |
 | `CloseOutBrief/CloseOutChecker.ts` | | Judges what keeps a read parent from closing out: its open Edit gate, its refusals and what refuses the close itself. |
-| `CloseOutBrief/closeOutWords.ts` | `closeOutWords` | The phrases `issue:close-parent`'s brief, checker, writer and script share, its no-brief line among them. |
-| `CloseOutBrief/CloseOutWriter.ts` | | Words a read parent's Close-out brief, its refusals, the chain of parent checks above it and the close, counting Untrusted text with the command that reads it, and the piece-ticket line `runner judge-brief` shares. |
+| `CloseOutBrief/closeOutWords.ts` | `closeOutWords` | The phrases and labels `issue:close-parent`'s brief, checker, writer and script share, its no-brief line among them, and the piece-ticket line `runner judge-brief` shares. |
+| `CloseOutBrief/CloseOutWriter.ts` | | Words a read parent's Close-out brief, its refusals, the chain of parent checks above it and the close, counting Untrusted text with the command that reads it. |
 | `CommittedFiles.ts` | | A set of committed files in one repo, read from HEAD for a check stamp's key, and whether any has a change. |
 | `contextMeter.ts` | `contextMeter` | Measures a session's peak context from stream events or a transcript. |
 | `contextNudge.ts` | `contextNudge` | Words the handoff reminder near the ticket budget, for the ticket's handoff, the supervision's or both. |

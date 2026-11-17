@@ -10,11 +10,8 @@ import {
 } from "../IssueReader.ts";
 import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
 import { type UndecidedCount, undecidedTextOf } from "../reviewList.ts";
-import { labels, type ParentCheck } from "../WrapUp/wrapUpTypes.ts";
-import { closeOutWords } from "./closeOutWords.ts";
-
-// `/close-project` and `judge-brief` find a piece ticket by this label, never by a missing `code` one, since a mixed spec has both.
-export const closeOutLabels = { ...labels, piece: "piece" } as const;
+import { type ParentCheck } from "../WrapUp/wrapUpTypes.ts";
+import { closeOutLabels, closeOutWords } from "./closeOutWords.ts";
 
 const { command } = closeOutWords;
 
@@ -175,7 +172,9 @@ export class CloseOutWriter {
     const pieces = this.config.read.children.filter(({ labels }) =>
       labels.includes(closeOutLabels.piece),
     );
-    return pieceTicketTextOf(pieces.map(({ issue }) => this._refOf(issue)));
+    return closeOutWords.pieceTicketOf(
+      pieces.map(({ issue }) => this._refOf(issue)),
+    );
   }
 
   private _editGateOf(editGate: ReadableIssue | undefined): string[] {
@@ -213,13 +212,4 @@ export class CloseOutWriter {
     const { read, githubOwner } = this.config;
     return refLabelOf({ ref, seenFrom: read.parent.issue, githubOwner });
   }
-}
-
-// Each of `pieceRefs` labels a sub-issue carrying the `piece` label.
-export function pieceTicketTextOf(pieceRefs: string[]): string {
-  if (pieceRefs.length === 0) {
-    return `none, no sub-issue carries the \`${closeOutLabels.piece}\` label`;
-  }
-  const verb = pieceRefs.length === 1 ? "carries" : "carry";
-  return `${pieceRefs.join(", ")} ${verb} the \`${closeOutLabels.piece}\` label`;
 }

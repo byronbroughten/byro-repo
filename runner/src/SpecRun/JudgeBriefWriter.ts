@@ -1,25 +1,31 @@
 // `runner judge-brief`: prints, for each spec named or every one `runner judgeable` lists, all /judge-findings' step 1
-// reads, so the skill gets it by injection in one call. The items and counts are reviewList.ts's judgingOrderOf; the
-// spec list for `all` is JudgeableIssueLister.ts's. It prints only Trusted text, never a Halt's or the spec's body, and
-// words every failure itself, so a brief never throws. SpecRun.ts delegates here.
+// reads, so the skill gets it by injection in one call.
+// The items and counts are reviewList.ts's judgingOrderOf; the spec list for `all` is JudgeableIssueLister.ts's.
+// Titles come through the readable issue, so a title someone else wrote or renamed is named, never printed.
+// It prints only Trusted text, never a Halt's or the spec's body, and words every failure itself, so a brief never
+// throws. SpecRun.ts delegates here.
 
 import {
   closeOutLabels,
-  pieceTicketTextOf,
-} from "../CloseOutBrief/CloseOutWriter.ts";
+  closeOutWords,
+} from "../CloseOutBrief/closeOutWords.ts";
 import { messageOf } from "../failureText.ts";
 import {
   briefHeadlineOf,
   listOf,
   othersCommentsLineOf,
+  type ReadableIssue,
   readCommandOf,
   refLabelOf,
   stateWordOf,
 } from "../IssueReader.ts";
 import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
-import { type JudgingItem, judgingOrderOf } from "../reviewList.ts";
+import {
+  type JudgingItem,
+  type JudgingOrder,
+  judgingOrderOf,
+} from "../reviewList.ts";
 import { JudgeableIssueLister } from "./JudgeableIssueLister.ts";
-import type { TrackedIssue } from "./runState.ts";
 import { SpecRunBase } from "./SpecRunBase.ts";
 
 // A spec named by its number, or every spec `runner judgeable` lists.
@@ -69,68 +75,68 @@ export class JudgeBriefWriter extends SpecRunBase {
 
   private async _linesOf(spec: IssueRef): Promise<string[]> {
     const { github, developer } = this.config;
-    const [tracked, subRefs, parent, comments] = await Promise.all([
-      github.issueOf(spec),
-      github.subIssuesOf(spec),
-      github.parentOf(spec),
+    const [read, comments] = await Promise.all([
+      github.readableIssueOf(spec),
       github.authoredCommentsOf(spec),
     ]);
     const subIssues = await Promise.all(
-      subRefs.map((sub) => github.issueOf(sub)),
+      read.subIssues.map((sub) => github.readableIssueOf(sub)),
     );
     const order = judgingOrderOf(comments, developer);
-    const pieces = subIssues.filter(({ labels }) =>
-      labels.includes(closeOutLabels.piece),
-    );
-    const readComments = readCommandOf(spec, "--comments");
-    const parentText =
-      parent === undefined ? "none" : this._refOf(spec, parent.issue);
-    const pieceRefs = pieces.map(({ issue }) => this._refOf(spec, issue));
     return [
-      `# ${spec.repo} ${this._headlineOf(tracked)}`,
-      `State: ${stateWordOf(tracked.isOpen)}`,
-      `Labels: ${listOf(tracked.labels)}`,
-      `Parent: ${parentText}`,
-      `Piece ticket: ${pieceTicketTextOf(pieceRefs)}`,
+      ...this._headerOf(read, subIssues),
       "",
-      "## Sub-issues",
+      ...sectionOf(
+        "## Sub-issues",
+        subIssues.map((sub) => this._subIssueLineOf(sub)),
+      ),
       "",
-      ...(subIssues.length === 0
-        ? ["None."]
-        : subIssues.map(
-            (sub) => `- ${this._headlineOf(sub)}: ${stateWordOf(sub.isOpen)}`,
-          )),
+      ...sectionOf("## Items to judge, in judging order", itemsOf(order)),
       "",
-      "## Items to judge, in judging order",
-      "",
-      ...(order.items.length === 0
-        ? ["None."]
-        : order.items.flatMap((item, index) => [
-            ...(index === 0 ? [] : [""]),
-            ...itemLinesOf(item),
-          ])),
-      "",
-      "## Left out",
-      "",
-      `Decided items: ${order.decidedCount}, not printed; ${readComments} reads them`,
-      othersCommentsLineOf(spec, order.othersCommentCount),
+      ...leftOutOf(spec, order),
       "",
       `It holds everything /judge-findings' step 1 needs for ${issueRef.labelOf(spec)}; don't read the spec, its sub-issues or its comments again.`,
     ];
+  }
+
+  private _headerOf(read: ReadableIssue, subIssues: ReadableIssue[]): string[] {
+    const spec = read.issue;
+    let parent = "none";
+    if (read.parent !== undefined) parent = this._refOf(spec, read.parent);
+    const pieceRefs = subIssues
+      .filter(({ labels }) => labels.includes(closeOutLabels.piece))
+      .map(({ issue }) => this._refOf(spec, issue));
+    return [
+      `# ${spec.repo} ${briefHeadlineOf(this.config.developer, read)}`,
+      `State: ${stateWordOf(read.isOpen)}`,
+      `Labels: ${listOf(read.labels)}`,
+      `Parent: ${parent}`,
+      `Piece ticket: ${closeOutWords.pieceTicketOf(pieceRefs)}`,
+    ];
+  }
+
+  private _subIssueLineOf(sub: ReadableIssue): string {
+    const headline = briefHeadlineOf(this.config.developer, sub);
+    return `- ${headline}: ${stateWordOf(sub.isOpen)}`;
   }
 
   private _refOf(spec: IssueRef, ref: IssueRef): string {
     const { githubOwner } = this.config;
     return refLabelOf({ ref, seenFrom: spec, githubOwner });
   }
+}
 
-  // TrackedIssue carries no title rename, so a title reads as its issue's author's.
-  private _headlineOf(issue: TrackedIssue): string {
-    return briefHeadlineOf(this.config.developer, {
-      ...issue,
-      titleRenamer: undefined,
-    });
-  }
+// An empty section says "None." under its heading.
+function sectionOf(heading: string, lines: string[]): string[] {
+  if (lines.length === 0) return [heading, "", "None."];
+  return [heading, "", ...lines];
+}
+
+function itemsOf({ items }: JudgingOrder): string[] {
+  return items.flatMap((item, index) => [
+    ...(index === 0 ? [] : [""]),
+    ...itemLinesOf(item),
+  ]);
 }
 
 function itemLinesOf({
@@ -147,5 +153,15 @@ function itemLinesOf({
     `Comment: ${comment.id} ${comment.url}`,
     "",
     ...lines,
+  ];
+}
+
+function leftOutOf(spec: IssueRef, order: JudgingOrder): string[] {
+  const readComments = readCommandOf(spec, "--comments");
+  return [
+    "## Left out",
+    "",
+    `Decided items: ${order.decidedCount}, not printed; ${readComments} reads them`,
+    othersCommentsLineOf(spec, order.othersCommentCount),
   ];
 }

@@ -1,11 +1,7 @@
 import type { ReadableIssue } from "../IssueReader.ts";
 import { issueRef } from "../IssueWorkspaces.ts";
-import { closeOutWords } from "./closeOutWords.ts";
-import {
-  closeOutLabels,
-  type ReadParent,
-  type Refusals,
-} from "./CloseOutWriter.ts";
+import { closeOutLabels, closeOutWords } from "./closeOutWords.ts";
+import { type ReadParent, type Refusals } from "./CloseOutWriter.ts";
 
 // Judges what keeps a read parent from closing out: its open Edit gate, its refusals and what refuses the close itself.
 export class CloseOutChecker {

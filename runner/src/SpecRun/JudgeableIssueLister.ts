@@ -13,7 +13,9 @@ export class JudgeableIssueLister extends SpecRunBase {
   async judgeable(repo: string): Promise<string> {
     const judged = await this._judgedIssuesOf(repo);
     if (judged.length === 0) return this.nothingLineOf(repo);
-    const lines = await Promise.all(judged.map((each) => this._lineOf(each)));
+    const lines = await Promise.all(
+      judged.map((judgedIssue) => this._lineOf(judgedIssue)),
+    );
     return lines.join("\n");
   }
 

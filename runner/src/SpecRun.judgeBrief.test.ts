@@ -48,10 +48,10 @@ function haltBodyOf(id: string, ticket: number, blocks: string): string {
 function addSpecOf(number: number, subIssues: Record<number, string[]>): void {
   addIssue(number, { labels: ["code"], body: "The secret spec body." });
   github.subIssues.set(number, Object.keys(subIssues).map(Number));
-  Object.entries(subIssues).forEach(([sub, labels], index) => {
+  for (const [index, [sub, labels]] of Object.entries(subIssues).entries()) {
     addIssue(Number(sub), { labels });
     if (index === 0) github.edit(Number(sub), { isOpen: false });
-  });
+  }
 }
 
 // The URL of the comment the fake holds at a 1-based place among every issue's comments.
@@ -181,6 +181,23 @@ describe("judgeBrief", () => {
 
     expect(brief).toContain(
       "# byro-repo #20 (title not printed, Untrusted text: written by someone; `npm run issue:read -- byro-repo 20 --body` reads it)",
+    );
+    expect(brief).not.toContain("secret");
+  });
+
+  it("names the reader of a title someone else renamed, on the spec and its sub-issues", async () => {
+    addSpecOf(20, { 21: [] });
+    github.edit(20, { title: "A secret title" });
+    github.titleRenamers.set(20, "someone");
+    github.titleRenamers.set(21, "someone");
+
+    const brief = await judgeBrief(20);
+
+    expect(brief).toContain(
+      "# byro-repo #20 (title not printed, Untrusted text: renamed by someone; `npm run issue:read -- byro-repo 20 --body` reads it)",
+    );
+    expect(brief).toContain(
+      "- #21 (title not printed, Untrusted text: renamed by someone; `npm run issue:read -- byro-repo 21 --body` reads it): closed",
     );
     expect(brief).not.toContain("secret");
   });
