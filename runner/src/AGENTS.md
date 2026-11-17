@@ -32,7 +32,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `CloseOutBrief.ts` | `CloseOutBrief` | `npm run issue:close-parent`'s core: a Close-out's brief of a parent, its refusals and, with `--comment-file`, the close and the parent check above it, printing only Trusted text. |
 | `CloseOutBrief/CloseOutChecker.ts` | | Judges what keeps a read parent from closing out: its open Edit gate, its refusals and what refuses the close itself. |
 | `CloseOutBrief/closeOutWords.ts` | `closeOutWords` | The phrases `issue:close-parent`'s brief, checker, writer and script share, its no-brief line among them. |
-| `CloseOutBrief/CloseOutWriter.ts` | | Words a read parent's Close-out brief, its refusals, the chain of parent checks above it and the close, counting Untrusted text with the command that reads it. |
+| `CloseOutBrief/CloseOutWriter.ts` | | Words a read parent's Close-out brief, its refusals, the chain of parent checks above it and the close, counting Untrusted text with the command that reads it, and the piece-ticket line `runner judge-brief` shares. |
 | `CommittedFiles.ts` | | A set of committed files in one repo, read from HEAD for a check stamp's key, and whether any has a change. |
 | `contextMeter.ts` | `contextMeter` | Measures a session's peak context from stream events or a transcript. |
 | `contextNudge.ts` | `contextNudge` | Words the handoff reminder near the ticket budget, for the ticket's handoff, the supervision's or both. |
@@ -71,7 +71,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `halts/haltReplies.ts` | | Reads a developer's replies to a Halt: which answer it, `stop spec` and a Failure or push Halt's answer. |
 | `headlessProbe.ts` | | Launches the one-turn headless session the probes run, refusing a stream-json one that printed no events, and reads a folder's sandbox block and a session's stream events. |
 | `InjectionProbe.ts` | `InjectionProbe` | `npm run session:probe -- --injection-check`: whether a skill's injected command runs, in the box or not, and what a PreToolUse hook sees of it, by slash command and through the Skill tool, for each `allowed-tools` entry. |
-| `IssueReader.ts` | `IssueReader` | `npm run issue:read`: prints an issue as Trusted and Untrusted text, reads a Trusted body's Model fit line for `npm run outcome:summary`, names a ticket's skill for `npm run issue:start`, and words the headline and body a brief prints for `map:next` and `issue:close-parent`. |
+| `IssueReader.ts` | `IssueReader` | `npm run issue:read`: prints an issue as Trusted and Untrusted text, reads a Trusted body's Model fit line for `npm run outcome:summary`, names a ticket's skill for `npm run issue:start`, and words the headline, body and others' comment count a brief prints for `map:next`, `issue:close-parent` and `runner judge-brief`. |
 | `IssueWorkspaces.ts` | `IssueWorkspaces` | Creates, promotes, resumes, leases, lists and removes issue and session workspaces, delegating to `IssueWorkspaces/`. |
 | `IssueWorkspaces/BranchNamer.ts` | | Names a workspace's branch, reusing an issue's existing branch in its own repo only, and finds other repos' same-numbered branches. |
 | `IssueWorkspaces/claudeEntries.ts` | `claudeEntries` | The `.claude/` entries the sandbox write-protects in a worktree, and the check that a removal can delete them. |
@@ -124,7 +124,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `secretShapes.ts` | | The token shapes wrap-up's secret scan looks for. |
 | `SessionProbe.ts` | `SessionProbe` | `npm run session:probe`: what a SessionStart hook sees in a folder. |
 | `sleep.ts` | | A promised delay. |
-| `SpecRun.ts` | `SpecRun` | The run loop's entry: `run` over its members, `status`, `requestStop`, `open`, `catchUp`, `briefReview`, `submitReview`, `resolve`, `decide`, `judgeable` and `standalone`, delegating to `SpecRun/`. |
+| `SpecRun.ts` | `SpecRun` | The run loop's entry: `run` over its members, `status`, `requestStop`, `open`, `catchUp`, `briefReview`, `submitReview`, `resolve`, `decide`, `judgeable`, `judgeBrief` and `standalone`, delegating to `SpecRun/`. |
 | `SpecRun/AccountHold.ts` | | A run's, Batch's or session review's or resolve's hold on a cswap account: the account it last launched on, the accounts a limit hit keeps it off and its account lease, moved by taking the new lease before releasing the old. |
 | `SpecRun/DraftPuller.ts` | | Runs a drafting ticket's pull Step through `runState/draftPull.ts`, and keeps the push baseline. |
 | `SpecRun/DraftPusher.ts` | | Runs the push of a spec with a piece ticket: writes the Agent draft's agent Sections into the Doc once, raising a push Halt before any write on a Section the developer changed since the pull, reading and comparing again on a stale revision up to a bound, and raising a push Halt naming a Doc with pending suggestions, delegating its `keep mine` answers to `DraftPusher/`. |
@@ -133,6 +133,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/HandoffTaker.ts` | | Takes the implementer's handoffs from implement through resolve: past the ticket budget at a step boundary, at the live ceiling during review or resolve, and the cap check before a fresh step. |
 | `SpecRun/ImplementStepper.ts` | | Runs a ticket's implement step and its handoff loop, and creates the kept folder a Workflow names. |
 | `SpecRun/JudgeableIssueLister.ts` | | `runner judgeable`: lists a repo's open issues by the Base's judgement, undecided review-list items or ready to close. |
+| `SpecRun/JudgeBriefWriter.ts` | | `runner judge-brief`: prints all `/judge-findings`' step 1 reads for each spec named, or each `runner judgeable` lists, printing only Trusted text. |
 | `SpecRun/LeaseKeeper.ts` | | Takes and releases a ticket's workspace lease and finds its workspace. |
 | `SpecRun/MemberSelections.ts` | | One pick's ticket selections across a run's members. |
 | `SpecRun/OutlineEditApplier.ts` | | Applies the Outline edits an answered Research Halt approves to the spec body, raising a fresh Research Halt on an edit it can't apply. |

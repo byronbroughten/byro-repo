@@ -65,6 +65,12 @@ export interface ReadableIssue extends ApprovableBody {
   blockedBy: Blocker[];
 }
 
+// What a brief's headline reads, so an issue read without its comments can be headed too.
+export type HeadlineIssue = Pick<
+  ReadableIssue,
+  "issue" | "title" | "author" | "titleRenamer"
+>;
+
 // A blocked-by edge with its blocker's state, since only an open blocker holds an issue back.
 export interface Blocker {
   issue: IssueRef;
@@ -282,7 +288,7 @@ export function untrustedBodyReasonOf(
 // A rename replaces the whole title, so whoever set it last wrote all of it.
 function untrustedTitleReasonOf(
   developer: string,
-  { author, titleRenamer }: ReadableIssue,
+  { author, titleRenamer }: HeadlineIssue,
 ): string | undefined {
   const setter = titleRenamer ?? author;
   if (setter === developer) return undefined;
@@ -317,12 +323,17 @@ function isApprovedBody(
 // A brief's issue number and title, the title only when Trusted, as `map:next` and `issue:close-parent` print them.
 export function briefHeadlineOf(
   developer: string,
-  issue: ReadableIssue,
+  issue: HeadlineIssue,
 ): string {
   const number = issueRef.numberLabelOf(issue.issue);
   const reason = untrustedTitleReasonOf(developer, issue);
   if (reason === undefined) return `${number} ${issue.title}`;
   return `${number} (title not printed, Untrusted text: ${reason}; ${readCommandOf(issue.issue, "--body")} reads it)`;
+}
+
+// A brief's count of comments by anyone but the developer, never their text.
+export function othersCommentsLineOf(issue: IssueRef, count: number): string {
+  return `Comments by others: ${count} (Untrusted text), not printed; ${readCommandOf(issue, "--comments")} reads them`;
 }
 
 // A brief's body part, printed only when Trusted.

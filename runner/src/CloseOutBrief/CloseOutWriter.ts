@@ -2,9 +2,9 @@ import {
   briefBodyOf,
   briefHeadlineOf,
   listOf,
+  othersCommentsLineOf,
   overflowMessageOf,
   type ReadableIssue,
-  readCommandOf,
   refLabelOf,
   stateWordOf,
 } from "../IssueReader.ts";
@@ -145,10 +145,7 @@ export class CloseOutWriter {
     const othersLine =
       others.length === 0
         ? []
-        : [
-            "",
-            `Comments by others: ${others.length} (Untrusted text), not printed; ${readCommandOf(child.issue, "--comments")} reads them`,
-          ];
+        : ["", othersCommentsLineOf(child.issue, others.length)];
     return [heading, "", ...this._closingCommentOf(child), ...othersLine];
   }
 
@@ -178,11 +175,7 @@ export class CloseOutWriter {
     const pieces = this.config.read.children.filter(({ labels }) =>
       labels.includes(closeOutLabels.piece),
     );
-    if (pieces.length === 0) {
-      return `none, no sub-issue carries the \`${closeOutLabels.piece}\` label`;
-    }
-    const refs = pieces.map(({ issue }) => this._refOf(issue)).join(", ");
-    return `${refs} ${pieces.length === 1 ? "carries" : "carry"} the \`${closeOutLabels.piece}\` label`;
+    return pieceTicketTextOf(pieces.map(({ issue }) => this._refOf(issue)));
   }
 
   private _editGateOf(editGate: ReadableIssue | undefined): string[] {
@@ -220,4 +213,13 @@ export class CloseOutWriter {
     const { read, githubOwner } = this.config;
     return refLabelOf({ ref, seenFrom: read.parent.issue, githubOwner });
   }
+}
+
+// Each of `pieceRefs` labels a sub-issue carrying the `piece` label.
+export function pieceTicketTextOf(pieceRefs: string[]): string {
+  if (pieceRefs.length === 0) {
+    return `none, no sub-issue carries the \`${closeOutLabels.piece}\` label`;
+  }
+  const verb = pieceRefs.length === 1 ? "carries" : "carry";
+  return `${pieceRefs.join(", ")} ${verb} the \`${closeOutLabels.piece}\` label`;
 }

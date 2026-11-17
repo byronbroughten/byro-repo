@@ -10,6 +10,7 @@
 // `status` and `watch` with no spec print the Run board once or redraw it every 5s, reading accounts every 60s (runBoard.ts).
 // `decide` ticks one review-list item and adds its `Decided:` line, or with `--handled` adds a `Handled:` line unticked (SpecRun/ReviewItemDecider.ts).
 // `judgeable` lists the repo's open issues with undecided review-list items or ready to close, for /judge-findings (SpecRun/JudgeableIssueLister.ts).
+// `judge-brief` prints all /judge-findings' step 1 reads for each spec named, `all` taking `judgeable`'s list in place; it exits 0 on every outcome, a refusal included, since the skill injects it (SpecRun/JudgeBriefWriter.ts).
 // `standalone` lists the repo's launchable Standalone tickets, the left-out ones with their reasons, and the line that launches the list; nothing launches (SpecRun/StandaloneTicketLister.ts).
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -36,6 +37,7 @@ import { runCollecting } from "@byronbroughten/spec-runner/runCollecting";
 import { RunLock } from "@byronbroughten/spec-runner/RunLock";
 import {
   handoffBlockOf,
+  type JudgedSpecs,
   type LaunchReport,
   type MemberList,
   reviewPrintoutOf,
@@ -78,9 +80,11 @@ const verbs = [
   "resolve",
   "supervise",
   "decide",
+  "judge-brief",
   ...repoVerbs,
 ];
-const usage = `Usage: npm run runner -- <repo> <n> [<n>…] to run one spec or a Batch, ${plainVerbs.join("|")} <repo> <n>, watch <repo> <n> [--once], open <repo> <n> [<n>…], review <repo> <n> [<review.json> --session <id>], resolve <repo> <n> <records.json>, supervise <repo> <n> [--advance], decide <repo> <spec> R<n>.<k> [--handled] "<text>", ${repoVerbs.join("|")} <repo>, or [${boardVerbs.join("|")}] alone for the Run board; each <repo> also takes <owner>/<repo>`;
+const judgeBriefUsage = "judge-brief <repo> <spec>…|all";
+const usage = `Usage: npm run runner -- <repo> <n> [<n>…] to run one spec or a Batch, ${plainVerbs.join("|")} <repo> <n>, watch <repo> <n> [--once], open <repo> <n> [<n>…], review <repo> <n> [<review.json> --session <id>], resolve <repo> <n> <records.json>, supervise <repo> <n> [--advance], decide <repo> <spec> R<n>.<k> [--handled] "<text>", ${judgeBriefUsage}, ${repoVerbs.join("|")} <repo>, or [${boardVerbs.join("|")}] alone for the Run board; each <repo> also takes <owner>/<repo>`;
 
 try {
   const args = process.argv.slice(2);
@@ -95,6 +99,8 @@ try {
     await decide(args);
   } else if (command === "review") {
     await review(args);
+  } else if (command === "judge-brief") {
+    await judgeBrief(args);
   } else if (isRepoVerb(command)) {
     await listForRepo(command, args);
   } else if (command === "run") {
@@ -319,6 +325,38 @@ async function decide(args: string[]): Promise<void> {
       text,
     }),
   );
+}
+
+// Injected into /judge-findings, so every refusal is its own line with exit 0, never the usage and a crash.
+async function judgeBrief(args: string[]): Promise<void> {
+  const [repoName = "", ...named] = args;
+  const repoArgs = repoArgsOf(repoName, repoMap);
+  if (repoArgs === undefined) {
+    console.log(
+      `No judge brief: "${repoName}" is neither a repo the repo map holds nor <owner>/<repo>. Run ${judgeBriefUsage}.`,
+    );
+    return;
+  }
+  const specs = judgedSpecsOf(named);
+  if (specs === undefined) {
+    console.log(
+      `No judge brief: name one or more spec numbers or \`all\`, not "${named.join(" ")}". Run ${judgeBriefUsage}.`,
+    );
+    return;
+  }
+  const specRun = SpecRun.init(specRunConfigOf(repoArgs.owner));
+  console.log(await specRun.judgeBrief(repoArgs.repo, specs));
+}
+
+// Undefined unless every argument is a positive whole number or `all`.
+function judgedSpecsOf(named: string[]): JudgedSpecs | undefined {
+  if (named.length === 0) return undefined;
+  const specs = named.flatMap((arg): JudgedSpecs => {
+    if (arg === "all") return ["all"];
+    const number = Number(arg);
+    return Number.isInteger(number) && number > 0 ? [number] : [];
+  });
+  return specs.length === named.length ? specs : undefined;
 }
 
 function isRepoVerb(command: string): command is RepoVerb {

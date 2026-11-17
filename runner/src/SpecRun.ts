@@ -3,12 +3,16 @@
 // A blocker or a Halt verdict is a Halt: posted once the ticket's other work is committed, it holds the
 // tickets in its scope, and the ticket resumes once every one of its Halts is answered (halts.ts).
 // GitHub and git hold what's durable; a per-spec state file holds the step each ticket reached, so a rerun resumes there.
-// This class only delegates: the run loop, its preflight, status and stop requests, `open`'s launch or rejoin and the Supervisor's catch-up, ticket selection, a session's review, a review-list decision, the list of issues to judge, the list of launchable Standalone tickets and every step they run are SpecRun/,
+// This class only delegates: the run loop, its preflight, status and stop requests, `open`'s launch or rejoin and the Supervisor's catch-up, ticket selection, a session's review, a review-list decision, the list of issues to judge, each spec's judging brief, the list of launchable Standalone tickets and every step they run are SpecRun/,
 // one collaborator per concern. Steps launch through AgentStep.ts; landing is WrapUp.ts; knobs are runKnobs.ts.
 
 import { type IssueRef, type LeaseHolder } from "./IssueWorkspaces.ts";
 import { type ItemDecision } from "./reviewList.ts";
 import { JudgeableIssueLister } from "./SpecRun/JudgeableIssueLister.ts";
+import {
+  JudgeBriefWriter,
+  type JudgedSpecs,
+} from "./SpecRun/JudgeBriefWriter.ts";
 import { ReviewItemDecider } from "./SpecRun/ReviewItemDecider.ts";
 import { RunLoop } from "./SpecRun/RunLoop.ts";
 import {
@@ -51,6 +55,7 @@ export {
   type OpenResult,
   type RunLauncher,
 } from "./SpecRun/RunOpener.ts";
+export { type JudgedSpecs } from "./SpecRun/JudgeBriefWriter.ts";
 export { runText } from "./SpecRun/runState/runText.ts";
 export { statePaths } from "./SpecRun/runState/statePaths.ts";
 export { reviewPrintoutOf } from "./SpecRun/SessionReviewer.ts";
@@ -78,6 +83,10 @@ export class SpecRun extends SpecRunBase {
 
   private get judgeableIssueLister(): JudgeableIssueLister {
     return new JudgeableIssueLister(this.config);
+  }
+
+  private get judgeBriefWriter(): JudgeBriefWriter {
+    return new JudgeBriefWriter(this.config);
   }
 
   private get standaloneTicketLister(): StandaloneTicketLister {
@@ -124,6 +133,10 @@ export class SpecRun extends SpecRunBase {
 
   judgeable(repo: string): Promise<string> {
     return this.judgeableIssueLister.judgeable(repo);
+  }
+
+  judgeBrief(repo: string, specs: JudgedSpecs): Promise<string> {
+    return this.judgeBriefWriter.judgeBrief(repo, specs);
   }
 
   standalone(repo: string): Promise<string> {

@@ -713,11 +713,6 @@ export function reviewListHoldingOf(
   throw new Error(`No review list of ${developer}'s holds ${itemId}.`);
 }
 
-// A spec comment with the link `gh issue view --json comments` gives it.
-export interface LinkedComment extends IssueComment {
-  url: string;
-}
-
 // An undecided item's box is unticked, a hand-ticked one's ticked; either has no `Decided:` line.
 export type JudgedState = "undecided" | "hand-ticked";
 
@@ -740,7 +735,7 @@ export interface JudgingOrder {
 
 // The comments come oldest first, as GitHub gives them, which the order within each part keeps.
 export function judgingOrderOf(
-  comments: LinkedComment[],
+  comments: IssueComment[],
   developer: string,
 ): JudgingOrder {
   const developersComments = comments.filter(
@@ -775,7 +770,7 @@ interface ParsedReviewList {
 }
 
 function parsedListOf(
-  comment: LinkedComment,
+  comment: IssueComment,
   halts: PostedHalt[],
 ): ParsedReviewList {
   const ticket = listTicketOf(comment.body);

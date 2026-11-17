@@ -154,7 +154,8 @@ export class FakeGitHub implements RunGitHub, FilingGitHub, IssueSource {
     this.beforeCommentReads.shift()?.();
     return this.comments.flatMap(({ issue, body, author }, index) => {
       if (issue.number !== number) return [];
-      return [{ id: commentIdOf(index), author, body }];
+      const url = commentUrlOf(issue, index + 1);
+      return [{ id: commentIdOf(index), author, body, url }];
     });
   }
 
