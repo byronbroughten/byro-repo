@@ -117,6 +117,11 @@ export class IssueWorkspaces extends IssueWorkspacesBase {
     return this.keeper.promote(workspace, repo);
   }
 
+  // The repo's clone in the workspace; throws when the workspace has none.
+  worktreeOf(workspace: Workspace, repo: string): string {
+    return this.keeper.worktreeOf(workspace, repo);
+  }
+
   resume(workspace: Workspace): Promise<void> {
     return this.keeper.resume(workspace);
   }

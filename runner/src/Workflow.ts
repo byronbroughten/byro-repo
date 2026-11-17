@@ -54,7 +54,7 @@ export interface WorkflowStep {
 
 export interface Workflow {
   name: WorkflowName;
-  stepsOf(ticket: TrackedIssue): WorkflowStep[];
+  stepsOf(ticket: Pick<TrackedIssue, "labels">): WorkflowStep[];
   // The skill an interactive session follows on one of the Workflow's tickets.
   sessionSkillOf(ticket: Pick<TrackedIssue, "labels">): SessionSkill;
   // The files outside the repo every step of the spec's tickets may read, on top of each ticket's own targets.
@@ -92,7 +92,7 @@ export interface AgentSection extends SectionKey {
 // The pull Step: the Deliverable's Doc into the Piece's Agent draft, on the ticket's branch.
 export interface PullRules {
   // The Deliverable's Doc ID the spec names; undefined when it names none.
-  deliverableOf(spec: TrackedIssue): string | undefined;
+  deliverableOf(spec: Pick<TrackedIssue, "body">): string | undefined;
   // From the root of the spec's repo.
   draftPathOf(spec: IssueRef): string;
   pulledOf(input: PullInput): Promise<PulledDraft>;

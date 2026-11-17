@@ -38,6 +38,7 @@
     "./IssueWorkspaces": "./src/IssueWorkspaces.ts",
     "./LandingLock": "./src/LandingLock.ts",
     "./MapNext": "./src/MapNext.ts",
+    "./PiecePull": "./src/PiecePull.ts",
     "./runBoard": "./src/runBoard.ts",
     "./RunLock": "./src/RunLock.ts",
     "./modelFit": "./src/modelFit.ts",

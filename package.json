@@ -47,6 +47,7 @@
     "outcome:backfill": "node scripts/runner/outcomeBackfill.ts",
     "outcome:summary": "node scripts/runner/outcomeSummary.ts",
     "outline:apply": "node scripts/runner/outlineApply.ts",
+    "piece:pull": "node --use-env-proxy --disable-warning=UNDICI-EHPA scripts/runner/piecePull.ts",
     "prompt:scan": "node scripts/promptScan/promptScan.ts",
     "repos": "node scripts/runner/repos.ts",
     "research:push": "node scripts/runner/researchPush.ts",

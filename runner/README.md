@@ -8,7 +8,7 @@ Each file under `src/`, with its job and any export, is listed in [`src/AGENTS.m
 
 ## Setup
 
-The Docs module's pull and push reach Google Docs as the developer through a clasp login in its own credential file, `~/.clasprc-docs.json`, never either Sheets credential; `npm run doc:print` reads as the agent account instead, so a Doc it prints must be shared with that account. Log in once, from `packages/framework` (the framework dev project's folder, whose `appsscript.json` stays unedited), as the account that owns the Docs, through the framework's own OAuth client, the file `npx sheets-framework setup-auth` writes:
+The Docs module's pull and push reach Google Docs as the developer through a clasp login in its own credential file, `~/.clasprc-docs.json`, never either Sheets credential; `npm run doc:print` and `npm run piece:pull` read as the agent account instead, so a Doc either reads must be shared with that account. Log in once, from `packages/framework` (the framework dev project's folder, whose `appsscript.json` stays unedited), as the account that owns the Docs, through the framework's own OAuth client, the file `npx sheets-framework setup-auth` writes:
 
 ```sh
 clasp_config_auth="$HOME/.clasprc-docs.json" npx clasp login --creds ~/.config/clasp-real-estate-manager/client_secret.json --use-project-scopes --extra-scopes https://www.googleapis.com/auth/documents,https://www.googleapis.com/auth/drive.readonly

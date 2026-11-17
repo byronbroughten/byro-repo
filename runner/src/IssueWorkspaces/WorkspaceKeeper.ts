@@ -130,7 +130,8 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
   }
 
   async promote(workspace: Workspace, repo: string): Promise<Workspace> {
-    const worktree = this._worktreeOf(workspace, repo);
+    if (workspace.branchedRepos.includes(repo)) return workspace;
+    const worktree = this.worktreeOf(workspace, repo);
     const checkedOut = currentBranchOf(worktree);
     if (checkedOut !== "" && checkedOut !== workspace.branch) {
       throw new Error(
@@ -149,6 +150,14 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
       workspace.key,
     );
     return { path, key, branch, branchedRepos };
+  }
+
+  worktreeOf(workspace: Workspace, repo: string): string {
+    const worktree = join(workspace.path, this._clonePathOf(repo));
+    if (!existsSync(worktree)) {
+      throw new Error(`${workspace.path} has no worktree for ${repo}`);
+    }
+    return worktree;
   }
 
   async resume(workspace: Workspace): Promise<void> {
@@ -242,14 +251,6 @@ export class WorkspaceKeeper extends IssueWorkspacesBase {
         link: join(path, clonePath, file),
       }),
     );
-  }
-
-  private _worktreeOf(workspace: Workspace, repo: string): string {
-    const worktree = join(workspace.path, this._clonePathOf(repo));
-    if (!existsSync(worktree)) {
-      throw new Error(`${workspace.path} has no worktree for ${repo}`);
-    }
-    return worktree;
   }
 
   private async _repoWorktreesOf(path: string): Promise<RepoWorktree[]> {

@@ -67,7 +67,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `halts/haltReplies.ts` | | Reads a developer's replies to a Halt: which answer it, `stop spec` and a Failure or push Halt's answer. |
 | `headlessProbe.ts` | | Launches the one-turn headless session the probes run, refusing a stream-json one that printed no events, and reads a folder's sandbox block and a session's stream events. |
 | `InjectionProbe.ts` | `InjectionProbe` | `npm run session:probe -- --injection-check`: whether a skill's injected command runs, in the box or not, and what a PreToolUse hook sees of it, by slash command and through the Skill tool, for each `allowed-tools` entry. |
-| `IssueReader.ts` | `IssueReader` | `npm run issue:read`: prints an issue as Trusted and Untrusted text, reads a Trusted body's Model fit line for `npm run outcome:summary`, and names a ticket's skill for `npm run issue:start`. || `IssueWorkspaces.ts` | `IssueWorkspaces` | Creates, promotes, resumes, leases, lists and removes issue and session workspaces, delegating to `IssueWorkspaces/`. |
+| `IssueReader.ts` | `IssueReader` | `npm run issue:read`: prints an issue as Trusted and Untrusted text, reads a Trusted body's Model fit line for `npm run outcome:summary`, and names a ticket's skill for `npm run issue:start`. |
+| `IssueWorkspaces.ts` | `IssueWorkspaces` | Creates, promotes, resumes, leases, lists and removes issue and session workspaces, delegating to `IssueWorkspaces/`. |
 | `IssueWorkspaces/BranchNamer.ts` | | Names a workspace's branch, reusing an issue's existing branch in its own repo only, and finds other repos' same-numbered branches. |
 | `IssueWorkspaces/claudeEntries.ts` | `claudeEntries` | The `.claude/` entries the sandbox write-protects in a worktree, and the check that a removal can delete them. |
 | `IssueWorkspaces/IssueWorkspacesBase.ts` | | The Base `IssueWorkspaces` and its collaborators share: the config, a repo's clone path and its primary clone, finding a workspace's folder by key and the free-lease check. |
@@ -96,6 +97,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `outcomeSummary/OutcomeReport.ts` | | Words the outcome summary for a batch of sections. |
 | `outcomeSummary/summarySections.ts` | | Reads the outcome log's spec sections from row files and picks the batch. |
 | `PidLock.ts` | | The pid lock file `LandingLock`, `RunLock`, `AccountLease` and `CheckSlot` extend, and the wait `LandingLock` and `CheckSlot` poll through. |
+| `PiecePull.ts` | `PiecePull` | `npm run piece:pull`'s core: pulls a drafting ticket's Agent draft into its own issue workspace and prints what an interactive session needs next. |
 | `processIdentity.ts` | `processIdentity` | A process named by its pid and start time, for leases, supervision records and a parked watch. |
 | `progressLines.ts` | | The progress-log lines, written and parsed in pairs. |
 | `ProgressLog.ts` | | A progress log's lines and what the Run board reads from them: the current ticket, the account, its step stream reading and the latest line. |
@@ -120,7 +122,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `sleep.ts` | | A promised delay. |
 | `SpecRun.ts` | `SpecRun` | The run loop's entry: `run` over its members, `status`, `requestStop`, `briefReview`, `submitReview`, `resolve`, `decide`, `judgeable` and `standalone`, delegating to `SpecRun/`. |
 | `SpecRun/AccountHold.ts` | | A run's, Batch's or session review's or resolve's hold on a cswap account: the account it last launched on, the accounts a limit hit keeps it off and its account lease, moved by taking the new lease before releasing the old. |
-| `SpecRun/DraftPuller.ts` | | Runs a drafting ticket's pull: writes and commits the Agent draft its Workflow pulls from the Doc, and keeps the push baseline. |
+| `SpecRun/DraftPuller.ts` | | Runs a drafting ticket's pull Step through `runState/draftPull.ts`, and keeps the push baseline. |
 | `SpecRun/DraftPusher.ts` | | Runs the push of a spec with a piece ticket: writes the Agent draft's agent Sections into the Doc once, raising a push Halt before any write on a Section the developer changed since the pull, reading and comparing again on a stale revision up to a bound, and raising a push Halt naming a Doc with pending suggestions, delegating its `keep mine` answers to `DraftPusher/`. |
 | `SpecRun/DraftPusher/DraftKeeper.ts` | | Marks the push's `keep mine` Sections as the developer's in the Agent draft and lands it as a session. |
 | `SpecRun/HaltRaiser.ts` | | Raises and posts a ticket's Halts and finds its downstream. |
@@ -151,6 +153,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/TicketSequencer.ts` | | Runs one ticket's steps from the one it reached, walking the Step sequence its Workflow supplies, and stops one whose sequence ends short of wrap-up. |
 | `SpecRun/runState.ts` | | The run-state types and the ticket-state, targets, launch and member-blocking helper bundles several collaborators share. |
 | `SpecRun/runState/draftCommits.ts` | | Commits the Agent draft of a spec with a piece ticket in one clone, the pull's and the push's `keep mine` alike, committing nothing when it is unchanged. |
+| `SpecRun/runState/draftPull.ts` | | The pull the pull Step and `npm run piece:pull` share: writes the Agent draft its Workflow pulls from the Doc and commits it. |
 | `SpecRun/runState/runHalts.ts` | | Raises, reads, delivers and orders a run's Halts, finds a ticket's downstream and the spec-end Step a spec issue's Halt holds. |
 | `SpecRun/runState/runText.ts` | | Words a run's end, waits and refusals, its rerun command, its review-list judge line and each spec-end Step's name. |
 | `SpecRun/runState/statePaths.ts` | | A spec's run state file and progress log paths in the state folder. |
