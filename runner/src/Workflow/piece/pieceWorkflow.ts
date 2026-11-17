@@ -71,6 +71,7 @@ import {
   researchHandoffCommentOf,
   researchPrompt,
   researchScratchFolderOf,
+  researchSkillNames,
 } from "./researchStep/researchWords.ts";
 import {
   pieceResolvePrompt,
@@ -206,19 +207,17 @@ export function pieceWorkflowOf({
   }
 
   function researchPromptOf(input: ResearchPromptInput): string {
-    const { workspacePath } = input;
+    function skillTextOf(skillName: string): string {
+      return inlinedSkill.textIn({
+        workspacePath: input.workspacePath,
+        skillName,
+        readText,
+      });
+    }
     return researchPrompt({
       ...input,
-      researchSkillText: inlinedSkill.textIn({
-        workspacePath,
-        skillName: "research-piece",
-        readText,
-      }),
-      reviewSkillText: inlinedSkill.textIn({
-        workspacePath,
-        skillName: "review-research",
-        readText,
-      }),
+      researchSkillText: skillTextOf(researchSkillNames.research),
+      reviewSkillText: skillTextOf(researchSkillNames.review),
     });
   }
 

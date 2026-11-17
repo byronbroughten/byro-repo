@@ -67,7 +67,7 @@ The worked examples:
 
 ## The hand-off table
 
-"Named" means the skill's own text points to the next skill or Step, so a skill edit can break it; "you invoke it" means the hand-off lives only in the developer's habits.
+"Named" means the skill's own text points to the next skill or Step, so a skill edit can break it; "you invoke it" means the hand-off lives only in the developer's habits; "inlined" means the runner carries the skill's body in the Step's prompt, so a skill edit reaches it with no pointer to break.
 
 | Workflow stage | Workflow | Skills | Hands off to | Named by |
 | --- | --- | --- | --- | --- |

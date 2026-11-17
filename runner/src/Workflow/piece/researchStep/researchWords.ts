@@ -26,7 +26,8 @@ import type {
 // The spec's one send-back on red quotes before a Failure Halt; the prompt's count and the runner's limit both read it.
 export const quoteSendBacks = 1;
 
-const skillNames = {
+// ../pieceWorkflow.ts reads each from the workspace by the same name the prompt calls it.
+export const researchSkillNames = {
   research: "research-piece",
   review: "review-research",
 } as const;
@@ -62,8 +63,11 @@ export function researchPrompt(input: ResearchSkillPromptInput): string {
     ...(firstTry ? [firstTrySection(scratchFolder, firstTry)] : []),
     ...(latestHandoff ? [previousHandoffSection(latestHandoff)] : []),
     ...(redQuotes ? [redQuotesSection(redQuotes)] : []),
-    inlinedSkill.sectionOf(input.researchSkillText, skillNames.research),
-    inlinedSkill.sectionOf(input.reviewSkillText, skillNames.review),
+    inlinedSkill.sectionOf(
+      input.researchSkillText,
+      researchSkillNames.research,
+    ),
+    inlinedSkill.sectionOf(input.reviewSkillText, researchSkillNames.review),
     `## The ticket\n\n${body}`,
   ].join("\n\n");
 }
@@ -71,7 +75,7 @@ export function researchPrompt(input: ResearchSkillPromptInput): string {
 function stepsSection(scratchFolder: string): string {
   return `## What you do
 
-- Follow the \`${skillNames.research}\` skill below's first seven steps, acting on the verdicts included, with its step 5 pass done by the \`${skillNames.review}\` skill below. Both are here in full: never read either by path or call it. Stop after step 7: post nothing and delete nothing.
+- Follow the \`${researchSkillNames.research}\` skill below's first seven steps, acting on the verdicts included, with its step 5 pass done by the \`${researchSkillNames.review}\` skill below. Both are here in full: never read either by path or call it. Stop after step 7: post nothing and delete nothing.
 - Your scratch folder is \`${scratchFolder}\`: use it as the skill's scratchpad, and leave it in place, since the runner reads the comment and texts from it.
 ${promptSections.stepRules}`;
 }
