@@ -2,6 +2,7 @@
 // opening from `piece:pull`'s committed draft and printed headings, and the generated skills' shared ending in place of
 // the step's record-returning one. The committed skill is runner/skills/implement-piece/SKILL.md; byro-repo's drift test regenerates it from byro-repo's commands.
 
+import { callOfItsOwn } from "../../callOfItsOwn.ts";
 import { stepReadLine } from "../../IssueReader.ts";
 import { commitMessageLine, sectionOf } from "../../promptText.ts";
 import type { Command } from "../../runKnobs.ts";
@@ -89,8 +90,8 @@ ${generatedNoteOf({
 // piece:pull runs the run's pull Step into the workspace, so its output stands in for reading the Doc or the whole draft.
 function pulledDraftSection(piecePullCommand: string): string {
   return sectionOf("Open from the pulled draft", [
-    `\`/start-issue\` ran \`${piecePullCommand}\`, which committed the Agent draft on the ticket's branch and printed the Deliverable's ID and the draft's Sections by heading path.`,
-    `A session that reached this skill without \`/start-issue\`, or holds no such output, runs \`${piecePullCommand}\` first, in a call of its own.`,
+    `When \`/start-issue\` ran \`${piecePullCommand}\`, it committed the Agent draft on the ticket's branch and printed the Deliverable's ID and the draft's Sections by heading path.`,
+    `A session that reached this skill without \`/start-issue\`, or holds no such output, ${callOfItsOwn(`runs \`${piecePullCommand}\` first`)}.`,
     "Read only the Sections you draft, and an earlier Section you open for what leads into them, each by its printed heading path; never read the whole Agent draft or the Deliverable's Doc.",
     "What you draft reaches the Doc only through the run's push at the end of the spec, never from this session; push checks it against the Doc as the run's last pull saw it.",
   ]);

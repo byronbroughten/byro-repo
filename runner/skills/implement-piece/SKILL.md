@@ -19,8 +19,8 @@ disable-model-invocation: true
 
 ## Open from the pulled draft
 
-- `/start-issue` ran `npm run piece:pull -- <repo> <n>`, which committed the Agent draft on the ticket's branch and printed the Deliverable's ID and the draft's Sections by heading path.
-- A session that reached this skill without `/start-issue`, or holds no such output, runs `npm run piece:pull -- <repo> <n>` first, in a call of its own.
+- When `/start-issue` ran `npm run piece:pull -- <repo> <n>`, it committed the Agent draft on the ticket's branch and printed the Deliverable's ID and the draft's Sections by heading path.
+- A session that reached this skill without `/start-issue`, or holds no such output, runs `npm run piece:pull -- <repo> <n>` first in a call of its own, with no pipe, `cd`, `$(…)`, redirect other than `2>&1`, heredoc, flag before the script name, env prefix or other command beside it.
 - Read only the Sections you draft, and an earlier Section you open for what leads into them, each by its printed heading path; never read the whole Agent draft or the Deliverable's Doc.
 - What you draft reaches the Doc only through the run's push at the end of the spec, never from this session; push checks it against the Doc as the run's last pull saw it.
 

@@ -82,10 +82,10 @@ describe("implementPieceSkillOf", () => {
 
   it("opens from piece:pull's committed draft and printed headings, with no pull of its own", () => {
     expect(skill).toContain(
-      "`/start-issue` ran `npm run piece:pull -- <repo> <n>`, which committed the Agent draft on the ticket's branch and printed the Deliverable's ID and the draft's Sections by heading path.",
+      "When `/start-issue` ran `npm run piece:pull -- <repo> <n>`, it committed the Agent draft on the ticket's branch and printed the Deliverable's ID and the draft's Sections by heading path.",
     );
     expect(skill).toContain(
-      "A session that reached this skill without `/start-issue`, or holds no such output, runs `npm run piece:pull -- <repo> <n>` first, in a call of its own.",
+      "A session that reached this skill without `/start-issue`, or holds no such output, runs `npm run piece:pull -- <repo> <n>` first in a call of its own, with no pipe,",
     );
     expect(skill).toContain(
       "Read only the Sections you draft, and an earlier Section you open for what leads into them, each by its printed heading path; never read the whole Agent draft or the Deliverable's Doc.",
