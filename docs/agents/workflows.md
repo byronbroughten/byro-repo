@@ -56,7 +56,6 @@ A new Workflow, a new or edited step prompt, and a new or edited Workflow skill 
 - **A resumed session is told what it already holds; a fresh one isn't told it holds what it never saw.**
 - **Calls already decided on go out together, and none is added to fill a batch.**
 - **A change that cuts turns is measured before and after**: summed context and read tokens per step, by step kind, from the step logs before it lands against the first run after.
-- **A change is reverted when it costs more than it saves**: a batching line, when read tokens rise by more than the summed context it saves.
 - **Either result goes into [the estimates](./codebase-priorities/estimates.md) as an `Observed:` line.**
 
 The worked examples:
