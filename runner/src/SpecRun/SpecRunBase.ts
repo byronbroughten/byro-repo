@@ -44,6 +44,9 @@ import {
   agentStepOf,
   type AgentSteps,
   type Landing,
+  pickedWorkflowOf,
+  type SpecTicket,
+  ticketWorkflowsOf,
   type Workflow,
   workflowOf,
   type Workflows,
@@ -175,6 +178,29 @@ export class SpecRunBase {
     name: SN,
   ): AgentSteps[SN] {
     return agentStepOf(this._workflowOf(spec), name);
+  }
+
+  // Takes the spec and ticket, not a TicketRun, as #798 moves TicketSequencer._runTicket and SessionReviewer.resolve onto it, which pick before one exists.
+  _ticketWorkflowOf(specTicket: SpecTicket): Workflow {
+    return pickedWorkflowOf(specTicket, this.config.workflows);
+  }
+
+  _ticketAgentStepOf<SN extends keyof AgentSteps>(
+    specTicket: SpecTicket,
+    name: SN,
+  ): AgentSteps[SN] {
+    return agentStepOf(this._ticketWorkflowOf(specTicket), name);
+  }
+
+  // The Workflows whose spec-end Steps the run's tickets call for.
+  protected async _ticketWorkflowsOf(run: Run): Promise<Workflow[]> {
+    const tickets = await Promise.all(
+      run.tickets.map((ticket) => this.config.github.issueOf(ticket)),
+    );
+    return ticketWorkflowsOf(
+      { spec: run.spec, tickets },
+      this.config.workflows,
+    );
   }
 
   _landingOf({ run, ticket }: LandingTicket): Landing {

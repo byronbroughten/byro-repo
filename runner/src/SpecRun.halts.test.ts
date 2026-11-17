@@ -324,3 +324,53 @@ describe("run's Halts", () => {
     expect(result.message).toContain("landed byro-repo #1");
   });
 });
+
+describe("run's Halt on a ticket that picks no Workflow", () => {
+  function addMixedSpec(): void {
+    addSpec([1]);
+    github.edit(spec.number, { labels: ["code", "piece"] });
+  }
+
+  it("halts an unlabelled ticket of a spec labelled both, naming the ticket and the missing label, launching no step", async () => {
+    addMixedSpec();
+    const agentStep = FakeAgentStep.init();
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests).toHaveLength(0);
+    expect(ticketState()["byro-repo #1"]?.step).toBe("halted");
+    const [halt] = haltComments();
+    expect(haltComments()).toHaveLength(1);
+    expect(halt).toContain(
+      '**Halt H1** · Halt 1 of 1 · byro-repo #1, "Ticket 1" · spec-ambiguity blocker',
+    );
+    expect(halt).toContain("byro-repo #1 has neither");
+    expect(halt).toContain("`code` or `piece` label");
+  });
+
+  it("reads the labels again on an answer, halting afresh while the ticket still has neither", async () => {
+    addMixedSpec();
+    await specRun(FakeAgentStep.init()).run(spec);
+    github.reply(213, "H1: continue");
+    const agentStep = FakeAgentStep.init();
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests).toHaveLength(0);
+    expect(result.message).toContain("byro-repo #1 waits on Halt H2");
+  });
+
+  // The steps it goes on to are the spec's Workflow's until #798 moves the sequence onto the ticket's.
+  it("goes on past the Halt once the developer labels the ticket and answers", async () => {
+    addMixedSpec();
+    await specRun(FakeAgentStep.init()).run(spec);
+    github.edit(1, { labels: ["ready-for-agent", "code"] });
+    github.reply(213, "H1: continue");
+
+    const result = await specRun(FakeAgentStep.init()).run(spec);
+
+    expect(haltComments()).toHaveLength(1);
+    expect(ticketState()["byro-repo #1"]?.step).not.toBe("halted");
+    expect(result.message).not.toContain("waits on Halt");
+  });
+});

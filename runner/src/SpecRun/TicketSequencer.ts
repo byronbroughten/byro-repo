@@ -2,7 +2,8 @@
 // reached, through ../Workflow.ts only, with its ticket's targets and its spec's sources, and lands it,
 // releasing the lease however it ends. A Halt or a lease taken
 // since the pick leaves the ticket waiting; an UnhandledStop leaves it unlanded and commented on, or Stops the run for a rerun to retry it.
-// Before launch it raises a Failure Halt on a body ../IssueReader.ts doesn't trust; `approve` posts the text's approval.
+// Before launch it raises a Failure Halt on a body ../IssueReader.ts doesn't trust, where `approve` posts the text's approval,
+// and a Halt on a ticket that picks no Workflow.
 // RunLoop.ts calls _runTicket.
 // A sequence that ends short of wrap-up, as a Workflow's may while its later Steps are unbuilt, Stops the ticket unlanded.
 // It builds its own LeaseKeeper, ImplementStepper, ReviewStepper, ResearchStepper, DraftPuller, TicketLander and HaltRaiser.
@@ -29,7 +30,7 @@ import {
   stopOutcomes,
   UnhandledStop,
 } from "../UnhandledStop.ts";
-import type { WorkflowStep } from "../Workflow.ts";
+import { ticketWorkflowNameOf, type WorkflowStep } from "../Workflow.ts";
 import { DraftPuller } from "./DraftPuller.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import { ImplementStepper } from "./ImplementStepper.ts";
@@ -106,6 +107,15 @@ export class TicketSequencer extends SpecRunBase {
         );
       }
       await this._haltOnUntrustedBody({ run, ticket, pair, state });
+      // Read from the ticket as picked, so an answered Halt goes on once the developer labels it.
+      if (ticketWorkflowNameOf({ ticket, spec: run.spec }) === undefined) {
+        await this.haltRaiser._unpickedWorkflowHalt({
+          run,
+          ticket,
+          pair,
+          state,
+        });
+      }
       this._log(
         run,
         ticketLaunchLineOf(ticket.issue, pairLabelOf(pair), state.step),

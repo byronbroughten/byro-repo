@@ -5,13 +5,14 @@
 // SpecRunBase._workflowOf picks; SpecRun/TicketSequencer.ts takes its source targets,
 // SpecRun/DraftPuller.ts its pull rules, through pullOf, and SpecRun/DraftPusher.ts its push rules, through pushOf.
 // Each Workflow's own code is in Workflow/<name>/.
-// A ticket follows its spec's Workflow, and a Standalone ticket, its own spec, its own label; a run, a session's review
-// and resolve, and issue:start's skill all pick by it. Labels are Trusted, since only collaborators can add one.
+// A ticket's own `code` or `piece` label picks its Workflow, falling back to its spec's, so a Standalone ticket, its own
+// spec, picks by its own; in a spec labelled both, a ticket with neither picks none, and a run halts on it. issue:start's
+// skill picks by it, and the spec-only workflowOf stays for its callers until #800 moves them. Labels are Trusted, since only collaborators can add one.
 
 import type { Docs } from "./Docs.ts";
 import type { SectionKey } from "./Docs/markdownDialect.ts";
 import type { HaltQuestion } from "./halts.ts";
-import type { IssueRef } from "./IssueWorkspaces.ts";
+import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import type { SessionSubmit } from "./promptText.ts";
 import { sessionOutputSchemaOf } from "./recordSchema.ts";
 import type { Command } from "./runKnobs.ts";
@@ -377,29 +378,103 @@ export interface GapCheckRules {
   recordOf(output: unknown): GapCheckRecord;
 }
 
-const pieceLabel = "piece";
+// The label that picks each Workflow, on a ticket or its spec.
+const workflowLabels: Record<WorkflowName, string> = {
+  code: "code",
+  piece: "piece",
+};
 
 // The Workflows a repo's runner config builds; the core picks among them.
 export type Workflows = Record<WorkflowName, Workflow>;
 
+type LabelledIssue = Pick<TrackedIssue, "labels">;
+
+type PickedTicket = Pick<TrackedIssue, "issue" | "labels">;
+
 // A Standalone ticket is its own spec.
-export interface SessionSkillInput {
-  ticket: Pick<TrackedIssue, "labels">;
-  spec: Pick<TrackedIssue, "labels">;
+export interface SpecTicket {
+  ticket: PickedTicket;
+  spec: LabelledIssue;
 }
 
-export function workflowNameOf({
-  labels,
-}: Pick<TrackedIssue, "labels">): WorkflowName {
-  return labels.includes(pieceLabel) ? "piece" : "code";
+export interface SpecTickets {
+  tickets: PickedTicket[];
+  spec: LabelledIssue;
+}
+
+export function workflowNameOf(spec: LabelledIssue): WorkflowName {
+  return labelledNameOf(spec) ?? "code";
+}
+
+// Undefined for a ticket with neither label in a spec labelled both, since the fallback to the spec's label can't choose.
+export function ticketWorkflowNameOf({
+  ticket,
+  spec,
+}: SpecTicket): WorkflowName | undefined {
+  const own = labelledNameOf(ticket);
+  if (own !== undefined) return own;
+  if (isLabelledBoth(spec)) return undefined;
+  return workflowNameOf(spec);
+}
+
+// An issue with both labels picks piece, as a spec with both always has.
+function labelledNameOf({ labels }: LabelledIssue): WorkflowName | undefined {
+  if (labels.includes(workflowLabels.piece)) return "piece";
+  if (labels.includes(workflowLabels.code)) return "code";
+  return undefined;
+}
+
+function isLabelledBoth({ labels }: LabelledIssue): boolean {
+  return workflowNames.every((name) => labels.includes(workflowLabels[name]));
+}
+
+function ticketWorkflowOf(
+  specTicket: SpecTicket,
+  workflows: Workflows,
+): Workflow | undefined {
+  const name = ticketWorkflowNameOf(specTicket);
+  return name === undefined ? undefined : workflows[name];
+}
+
+// For a caller past the run's Halt on a ticket that picks none, or a session, which stops there.
+export function pickedWorkflowOf(
+  specTicket: SpecTicket,
+  workflows: Workflows,
+): Workflow {
+  const workflow = ticketWorkflowOf(specTicket, workflows);
+  if (workflow === undefined) {
+    throw new Error(`${unpickedWorkflowOf(specTicket.ticket.issue)}.`);
+  }
+  return workflow;
+}
+
+// The session's throw and the run's Halt both word it.
+export function unpickedWorkflowOf(ticket: IssueRef): string {
+  const label = issueRef.labelOf(ticket);
+  return `${label} has neither the \`code\` nor the \`piece\` label, and its spec has both, so ${label} picks no Workflow until it gets its missing \`code\` or \`piece\` label`;
+}
+
+// Each Workflow once, in name order; a ticket that picks none raises its own Halt when it starts.
+export function ticketWorkflowsOf(
+  { spec, tickets }: SpecTickets,
+  workflows: Workflows,
+): Workflow[] {
+  const picked = new Set(
+    tickets.map((ticket) => ticketWorkflowNameOf({ ticket, spec })),
+  );
+  return workflowNames
+    .filter((name) => picked.has(name))
+    .map((name) => workflows[name]);
 }
 
 // The skill an interactive session follows on a ticket, from the Workflow a run picks for it.
 export function sessionSkillOf(
-  { ticket, spec }: SessionSkillInput,
+  specTicket: SpecTicket,
   workflows: Workflows,
 ): SessionSkill {
-  return workflowOf(spec, workflows).sessionSkillOf(ticket);
+  return pickedWorkflowOf(specTicket, workflows).sessionSkillOf(
+    specTicket.ticket,
+  );
 }
 
 export function isWorkflowName(name: string | undefined): name is WorkflowName {

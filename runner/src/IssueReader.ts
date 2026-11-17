@@ -137,7 +137,7 @@ export class IssueReader {
     return modelFitTextOf(readable.body) ?? "no Model fit section";
   }
 
-  // `npm run issue:start`'s skill, read from the labels alone, which are Trusted; a ticket with no parent is its own spec.
+  // `npm run issue:start`'s skill, read from the labels alone, which are Trusted; a ticket with no parent is its own spec, and one that picks no Workflow throws.
   async sessionSkillOf(issue: IssueRef): Promise<SessionSkill> {
     this._assertAllowed(issue.repo);
     const { source, workflows } = this.config;

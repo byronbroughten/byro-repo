@@ -1,4 +1,4 @@
-// A spec run's Halts: raising a ticket's blocker, Failure and Research Halts, posting them to the spec once its other work is committed,
+// A spec run's Halts: raising a ticket's blocker, Failure and Research Halts and the one on a ticket that picks no Workflow, posting them to the spec once its other work is committed,
 // and halting the ticket; a crash past its retries is a Failure Halt, and a streak of them Stops the run as stuck.
 // It also works out a ticket's downstream, the run's tickets it blocks, which a Halt's scope names.
 // The lowest collaborator: it calls only the Base, and every collaborator that halts a ticket builds one.
@@ -16,11 +16,13 @@ import {
   sessionHaltCommentOf,
   shortRefOf,
   type StepFailure,
+  unpickedWorkflowHaltOf,
 } from "../halts.ts";
 import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
 import { RunStop } from "../RunStop.ts";
 import type { Blocker, ProposedSlice } from "../stepRecords.ts";
 import { TicketHalted } from "../TicketHalted.ts";
+import { unpickedWorkflowOf } from "../Workflow.ts";
 import {
   type Crash,
   type LandingTicket,
@@ -84,6 +86,19 @@ export class HaltRaiser extends SpecRunBase {
       drafts: [failureHaltOf(failure, downstream)],
     });
     await this._stopIfStuck(landingTicket);
+    return this._halt(landingTicket);
+  }
+
+  // Raised as a ticket starts, before any step, so it isn't counted by the stuck detector.
+  async _unpickedWorkflowHalt(landingTicket: LandingTicket): Promise<never> {
+    const { run, ticket } = landingTicket;
+    const downstream = await this._downstreamOf(run, ticket.issue);
+    runHalts.raise(run, {
+      ticket: ticket.issue,
+      drafts: [
+        unpickedWorkflowHaltOf(unpickedWorkflowOf(ticket.issue), downstream),
+      ],
+    });
     return this._halt(landingTicket);
   }
 

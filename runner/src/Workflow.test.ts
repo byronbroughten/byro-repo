@@ -6,7 +6,10 @@ import { workflowsWith } from "./specRunHarness.ts";
 import { trackedIssues } from "./specRunHarness/trackedIssues.ts";
 import {
   agentStepOf,
+  pickedWorkflowOf,
   sessionSchemaOf,
+  ticketWorkflowNameOf,
+  ticketWorkflowsOf,
   workflowNameOf,
   workflowOf,
 } from "./Workflow.ts";
@@ -40,6 +43,90 @@ describe("workflowOf", () => {
     expect(workflowOf(specLabelled(["piece"]), workflowsWith([])).name).toBe(
       "piece",
     );
+  });
+});
+
+function ticketLabelled(labels: string[]): TrackedIssue {
+  return trackedIssues.issueOf(8, { labels, body: "" });
+}
+
+describe("ticketWorkflowNameOf", () => {
+  it("picks piece for a `piece` ticket of a `code` spec", () => {
+    expect(
+      ticketWorkflowNameOf({
+        ticket: ticketLabelled(["piece"]),
+        spec: specLabelled(["code"]),
+      }),
+    ).toBe("piece");
+  });
+
+  it("picks code for a `code` ticket of a `piece` spec", () => {
+    expect(
+      ticketWorkflowNameOf({
+        ticket: ticketLabelled(["code"]),
+        spec: specLabelled(["piece"]),
+      }),
+    ).toBe("code");
+  });
+
+  it.each([
+    { specLabels: ["piece"], name: "piece" },
+    { specLabels: ["code"], name: "code" },
+    { specLabels: [], name: "code" },
+  ])(
+    "follows a spec labelled $specLabels for a ticket with neither label",
+    ({ specLabels, name }) => {
+      expect(
+        ticketWorkflowNameOf({
+          ticket: ticketLabelled(["ready-for-agent"]),
+          spec: specLabelled(specLabels),
+        }),
+      ).toBe(name);
+    },
+  );
+
+  it("picks none for a ticket with neither label in a spec labelled both", () => {
+    expect(
+      ticketWorkflowNameOf({
+        ticket: ticketLabelled(["ready-for-agent"]),
+        spec: specLabelled(["code", "piece"]),
+      }),
+    ).toBeUndefined();
+  });
+
+  it("picks a Standalone ticket by its own label", () => {
+    const standalone = specLabelled(["piece"]);
+
+    expect(ticketWorkflowNameOf({ ticket: standalone, spec: standalone })).toBe(
+      "piece",
+    );
+  });
+});
+
+describe("pickedWorkflowOf", () => {
+  it("throws for a ticket with neither label in a spec labelled both, naming the ticket and the missing label", () => {
+    expect(() =>
+      pickedWorkflowOf(
+        {
+          ticket: ticketLabelled([]),
+          spec: specLabelled(["code", "piece"]),
+        },
+        workflowsWith([]),
+      ),
+    ).toThrow(/byro-repo #8 .*`code` or `piece` label/);
+  });
+});
+
+describe("ticketWorkflowsOf", () => {
+  it("names each Workflow the spec's tickets pick once, leaving out a ticket that picks none", () => {
+    const spec = specLabelled(["code", "piece"]);
+    const tickets = [["piece"], ["code"], ["piece"], []].map(ticketLabelled);
+
+    expect(
+      ticketWorkflowsOf({ spec, tickets }, workflowsWith([])).map(
+        ({ name }) => name,
+      ),
+    ).toEqual(["code", "piece"]);
   });
 });
 

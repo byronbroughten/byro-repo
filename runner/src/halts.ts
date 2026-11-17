@@ -137,6 +137,19 @@ export function splitHaltOf(
   };
 }
 
+// A spec-ambiguity, which only the developer settles by labelling the ticket; any answer but `stop spec` reads its labels again.
+export function unpickedWorkflowHaltOf(
+  question: string,
+  downstream: string[],
+): HaltDraft {
+  return {
+    kind: "spec-ambiguity",
+    question: `${question}. Label it, then answer ${haltOptions.continue}.`,
+    options: [haltOptions.continue],
+    scope: downstream,
+  };
+}
+
 // Raised on the Research Halt's ticket and scope, so drafting never starts on an Outline the developer didn't settle; any answer but `stop spec` goes on.
 export function unappliedEditsHaltOf(
   halt: Halt,
