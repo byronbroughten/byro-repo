@@ -1,7 +1,12 @@
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync } from "node:fs";
 
-import { type HeadlessRun, runHeadless } from "./headlessProbe.ts";
+import {
+  contentBlocks,
+  type HeadlessRun,
+  projectSandboxOf,
+  runHeadless,
+  streamEvents,
+} from "./headlessProbe.ts";
 
 export type CommandOutcome =
   | { command: string; status: "ran" | "not run" }
@@ -28,16 +33,6 @@ interface BashCall {
 interface BashResult {
   isError: boolean;
   text: string;
-}
-
-interface ContentBlock {
-  type?: unknown;
-  id?: unknown;
-  name?: unknown;
-  input?: { command?: unknown };
-  tool_use_id?: unknown;
-  is_error?: unknown;
-  content?: unknown;
 }
 
 // Claude Code 2.1.316 has no command that runs its sandbox runtime alone, so each command goes through one headless session's Bash tool.
@@ -126,18 +121,6 @@ function sandboxSettings(project: Record<string, unknown>): SandboxSettings {
   };
 }
 
-function projectSandboxOf(cwd: string): Record<string, unknown> {
-  const path = join(cwd, ".claude", "settings.json");
-  if (!existsSync(path)) throw new Error(`${path} doesn't exist`);
-  const project = JSON.parse(
-    readFileSync(path, "utf8"),
-  ) as Partial<SandboxSettings>;
-  if (project.sandbox === undefined) {
-    throw new Error(`${path} has no sandbox block`);
-  }
-  return project.sandbox;
-}
-
 function sandboxLaunch(
   commands: string[],
   settings: SandboxSettings,
@@ -171,16 +154,6 @@ function sandboxPrompt(commands: string[]): string {
   ].join("\n");
 }
 
-function streamEvents(stdout: string): unknown[] {
-  return stdout.split("\n").flatMap((line) => {
-    try {
-      return [JSON.parse(line) as unknown];
-    } catch {
-      return [];
-    }
-  });
-}
-
 // A command listed twice matches the session's calls of it in order.
 function commandOutcomes(
   events: unknown[],
@@ -199,14 +172,6 @@ function commandOutcomes(
     const error = firstErrorLine(result.text) ?? "no output";
     return { command, status: "stopped", error };
   });
-}
-
-function contentBlocks(event: unknown, type: string): ContentBlock[] {
-  const message = (event as { message?: { content?: unknown } }).message;
-  if (!Array.isArray(message?.content)) return [];
-  return (message.content as ContentBlock[]).filter(
-    (block) => block.type === type,
-  );
 }
 
 function bashCalls(events: unknown[]): BashCall[] {

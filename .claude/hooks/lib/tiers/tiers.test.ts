@@ -731,6 +731,7 @@ describe("free reads and standing yeses in both modes", () => {
       "npm run -s jev -- /tmp/request.json",
       "npm run session:probe -- /tmp/folder",
       "npm run session:probe -- --sandbox-check /tmp/folder /tmp/commands.txt",
+      "npm run session:probe -- --injection-check /tmp/folder",
       "npm run outline -- scripts/overlap/overlap.ts",
       "npm run ws:rm -- .claude/hooks/old.ts .claude/skills/old/SKILL.md",
     ].forEach((command) => {

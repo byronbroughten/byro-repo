@@ -45,6 +45,7 @@
     "./reviewStep": "./src/Workflow/code/reviewStep.ts",
     "./runCollecting": "./src/runCollecting.ts",
     "./runKnobs": "./src/runKnobs.ts",
+    "./InjectionProbe": "./src/InjectionProbe.ts",
     "./SandboxProbe": "./src/SandboxProbe.ts",
     "./SessionProbe": "./src/SessionProbe.ts",
     "./SpecRun": "./src/SpecRun.ts",
