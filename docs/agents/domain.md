@@ -8,7 +8,7 @@ How the engineering skills should consume this repo's domain documentation when 
 - **The `docs/adr/` of each repo you're touching**: the decisions recorded there, one per file; the root's holds agent-behavior decisions.
 - **`packages/framework/docs/design.md`**: the arguments behind the codebase's design; `docs/agent-behavior-design.md` holds the ones behind how agents work here.
 
-If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The `/domain-modeling` skill (reached via `/grill-with-docs`) creates a `GLOSSARY.md` lazily when terms actually get resolved.
+If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The `/domain-modeling` skill (reached via `/plan-project`) creates a `GLOSSARY.md` lazily when terms actually get resolved.
 
 ## File structure
 
