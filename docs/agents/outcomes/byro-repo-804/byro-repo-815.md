@@ -1,0 +1,7 @@
+# byro-repo#815 outcome
+
+Spec: [byro-repo#804](https://github.com/byronbroughten/byro-repo/issues/804)
+
+| Issue | Workflow | Pair | Account | Files changed | Estimate | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| #815 | code | Opus medium | 5, 6 | 6 | ~135K | 139K → 123K | Fix (resumed implementer) | 2 | 1 | 0 | 1 | 11 min | $3.32 | $1.54 | Fixed: membersLabelOf repeats the body of runLabelOf in BatchRecords.ts. (runner/src/SpecRun/RunOpener.ts:100-103); handoffHeading is exported and re-exported, but nothing outside RunOpener.ts reads it. (runner/src/SpecRun.ts:49, runner/src/SpecRun/RunOpener.ts:42); CatchUp.lines is a generic name for the unexplained event lines. (runner/src/SpecRun/RunOpener.ts:37-40); The triple-negative comment above OpenResult says what isLive is, not why. (runner/src/SpecRun/RunOpener.ts:31). Proposed: run.ts's file-level navigation block is 13 lines, over the 5-10 limit. (scripts/runner/run.ts:1-13); Liveness comes from run locks only, so a still-running tmux pane between run.ts processes gets a launch that tmux.sh refuses. (runner/src/SpecRun/RunOpener.ts _liveMembersOf). | ddfd8cbf-09dc-45be-9093-3a7fdd415fd9, fe85bd5b-dd52-45dc-8475-508925cc4853 |
