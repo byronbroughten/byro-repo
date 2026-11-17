@@ -12,12 +12,10 @@ The rules for planning and writing a spec, code, piece or mixed. Sizing and spli
 
 ## Piece specs
 
-A spec is labelled `code`, `piece` or both; a mixed spec, both, holds a Piece and code in one change, and each ticket's own label picks its Workflow.
-
 - **A piece or mixed spec's Piece is grilled with `/grill-piece`**, which runs [`docs/pieces/grilling.md`](../pieces/grilling.md).
 - **A piece or mixed spec is filed with `/project-spec` and split with `/project-tickets`.**
 - **Every piece or mixed spec gets tickets: at least one drafting ticket, and its Edit gate last**, a `ready-for-human` ticket blocked by every drafting ticket ([`/project-tickets`' piece branch](../../.claude/skills/project-tickets/SKILL.md#the-piece-branch)).
-- **In a mixed spec, every ticket carries its own `code` or `piece` label**; a ticket with neither raises a Halt naming it.
+- **A mixed spec's tickets each carry their own label** ([the piece branch's mixed-spec line](../../.claude/skills/project-tickets/SKILL.md#the-piece-branch)); a ticket with neither raises a Halt naming it.
 
 ## Phases
 
