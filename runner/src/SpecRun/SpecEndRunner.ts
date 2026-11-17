@@ -1,7 +1,8 @@
-// The spec-end Steps. Once the run has no ticket left to work, _finish posts any review list a killed run missed and runs the spec-end Steps its Workflow supplies when the Workflow's trigger finds them due:
+// The spec-end Steps. Once the run has no ticket left to work, _finish posts any review list a killed run missed and runs the union of the spec-end Steps
+// of the Workflows the run's tickets pick, each once, when any of their triggers finds them due:
 // the gap check, whose gaps become the last review list, the judge Step, which ends a run holding undecided items with "judge, then rerun", and the push, DraftPusher.ts's, which may halt on a push Halt.
 // RunLoop.ts calls _finish; StatusReporter.ts calls _isGapChecked.
-// It builds its own ReviewListPoster, StepLauncher, HaltRaiser and DraftPusher; the gap check's prompt is the spec's Workflow's, through ../Workflow.ts.
+// It builds its own ReviewListPoster, StepLauncher, HaltRaiser and DraftPusher; the gap check's prompt is one of those Workflows', through ../Workflow.ts.
 
 import {
   failureHaltOf,
@@ -22,7 +23,14 @@ import { SchemaFailure } from "../SchemaFailure.ts";
 import type { GapCheckRecord } from "../stepRecords.ts";
 import { TicketHalted } from "../TicketHalted.ts";
 import { UnhandledStop } from "../UnhandledStop.ts";
-import { type GapCheckTicket, type SpecEndStep } from "../Workflow.ts";
+import {
+  agentStepOf,
+  type GapCheckTicket,
+  gapCheckWorkflowOf,
+  specEndOf,
+  type SpecEndStep,
+  type Workflow,
+} from "../Workflow.ts";
 import { DraftPusher } from "./DraftPusher.ts";
 import { HaltRaiser } from "./HaltRaiser.ts";
 import { ReviewListPoster } from "./ReviewListPoster.ts";
@@ -62,14 +70,16 @@ export class SpecEndRunner extends SpecRunBase {
   // A RunStop is thrown on to the run loop, which ends every unfinished member on it.
   async _finish(run: Run, waits: Wait[]): Promise<RunResult | undefined> {
     await this._postLandedReviewLists(run);
-    const { specEnd } = this._workflowOf(run.spec);
-    const steps =
-      specEnd.isDue(waits) && !run.isStandalone ? specEnd.steps : [];
+    const workflows = run.isStandalone
+      ? []
+      : await this._ticketWorkflowsOf(run);
+    const specEnd = specEndOf(workflows);
+    const steps = specEnd.isDue(waits) ? specEnd.steps : [];
     let count: UndecidedCount | undefined;
     for (const step of steps) {
       let ended: SpecEndOutcome;
       try {
-        ended = await this._runSpecEndStep(run, step);
+        ended = await this._runSpecEndStep(run, step, workflows);
       } catch (error) {
         if (error instanceof TicketHalted) return undefined;
         if (!(error instanceof UnhandledStop)) throw error;
@@ -104,14 +114,17 @@ export class SpecEndRunner extends SpecRunBase {
   private async _runSpecEndStep(
     run: Run,
     step: SpecEndStep,
+    workflows: Workflow[],
   ): Promise<SpecEndOutcome> {
     const runners: Record<SpecEndStep, () => Promise<SpecEndOutcome>> = {
       "gap-check": async () => {
-        await this._gapCheck(run);
+        await this._gapCheck(run, workflows);
         return {};
       },
       judge: () => this._judge(run),
-      push: async () => ({ stop: await this.draftPusher._push(run) }),
+      push: async () => ({
+        stop: await this.draftPusher._push(run, workflows),
+      }),
     };
     return runners[step]();
   }
@@ -155,7 +168,7 @@ export class SpecEndRunner extends SpecRunBase {
   }
 
   // Runs in the primary root on master, where every landed ticket's work is; it reads and writes nothing else.
-  private async _gapCheck(run: Run): Promise<void> {
+  private async _gapCheck(run: Run, workflows: Workflow[]): Promise<void> {
     if (await this.reviewListPoster._hasReviewList(run, gapCheckSubject)) {
       return;
     }
@@ -170,7 +183,7 @@ export class SpecEndRunner extends SpecRunBase {
     const tickets: GapCheckTicket[] = await Promise.all(
       run.tickets.map((ticket) => this.config.github.issueOf(ticket)),
     );
-    const rules = this._agentStepOf(run.spec, "gapCheck");
+    const rules = agentStepOf(gapCheckWorkflowOf(workflows), "gapCheck");
     let prompt = rules.promptOf({
       spec: run.spec.issue,
       title: run.spec.title,

@@ -1,13 +1,13 @@
 // The one seam between the run core and its Workflows: the Workflow type, the agent steps' rules and the pick of a
-// spec's Workflow. SpecRun/TicketSequencer.ts reaches a Workflow's Step sequence only through this module, SpecRun/SpecEndRunner.ts
-// its spec-end Steps, and every
+// ticket's Workflow. SpecRun/TicketSequencer.ts reaches a Workflow's Step sequence only through this module, SpecRun/SpecEndRunner.ts
+// the union of the spec-end Steps of the Workflows a run's tickets pick, through specEndOf, and every
 // collaborator that launches an agent step takes its prompt, record schema and record checks, through agentStepOf, from the Workflow
-// SpecRunBase._workflowOf picks; SpecRun/TicketSequencer.ts takes its source targets,
+// SpecRunBase._ticketWorkflowOf picks; SpecRun/TicketSequencer.ts takes its source targets,
 // SpecRun/DraftPuller.ts its pull rules, through pullOf, and SpecRun/DraftPusher.ts its push rules, through pushOf.
 // Each Workflow's own code is in Workflow/<name>/.
 // A ticket's own `code` or `piece` label picks its Workflow, falling back to its spec's, so a Standalone ticket, its own
 // spec, picks by its own; in a spec labelled both, a ticket with neither picks none, and a run halts on it. issue:start's
-// skill picks by it, and the spec-only workflowOf stays for its callers until #800 moves them. Labels are Trusted, since only collaborators can add one.
+// skill picks by it. Labels are Trusted, since only collaborators can add one.
 
 import type { Docs } from "./Docs.ts";
 import type { SectionKey } from "./Docs/markdownDialect.ts";
@@ -119,10 +119,12 @@ export interface TicketChecksInput {
   specClone: string;
 }
 
-// A Step that runs once at a spec's end, rather than in each ticket; the core runs each by its name.
+// A Step that runs once at a spec's end, rather than in each ticket; the core runs each by its name, in this order.
 // `judge` ends the run with "judge, then rerun" while any review-list item is undecided, so the Steps after it wait on the developer's judgement.
 // `push` writes the Agent draft into the Deliverable once, asking on a push Halt before it writes over a Section the developer changed since the pull.
-export type SpecEndStep = "gap-check" | "judge" | "push";
+const specEndSteps = ["gap-check", "judge", "push"] as const;
+
+export type SpecEndStep = (typeof specEndSteps)[number];
 
 export interface SpecEnd {
   // Run in order, each when a member's end finds the steps due.
@@ -402,10 +404,6 @@ export interface SpecTickets {
   spec: LabelledIssue;
 }
 
-export function workflowNameOf(spec: LabelledIssue): WorkflowName {
-  return labelledNameOf(spec) ?? "code";
-}
-
 // Undefined for a ticket with neither label in a spec labelled both, since the fallback to the spec's label can't choose.
 export function ticketWorkflowNameOf({
   ticket,
@@ -414,7 +412,12 @@ export function ticketWorkflowNameOf({
   const own = labelledNameOf(ticket);
   if (own !== undefined) return own;
   if (isLabelledBoth(spec)) return undefined;
-  return workflowNameOf(spec);
+  return labelledNameOf(spec) ?? "code";
+}
+
+// A ticket that picks none Halted its run, so its outcome row names the piece Workflow its spec, labelled both, would.
+export function rowWorkflowNameOf(specTicket: SpecTicket): WorkflowName {
+  return ticketWorkflowNameOf(specTicket) ?? "piece";
 }
 
 // An issue with both labels picks piece, as a spec with both always has.
@@ -481,11 +484,44 @@ export function isWorkflowName(name: string | undefined): name is WorkflowName {
   return workflowNames.some((workflowName) => workflowName === name);
 }
 
-export function workflowOf(
-  spec: Pick<TrackedIssue, "labels">,
-  workflows: Workflows,
-): Workflow {
-  return workflows[workflowNameOf(spec)];
+// The union of the set's spec-end Steps, each once in specEndSteps' order; due when any Workflow's trigger is, so one
+// Workflow's open wait, such as a piece ticket's Edit gate, holds no Step back. An empty set has no spec end.
+export function specEndOf(workflows: Workflow[]): SpecEnd {
+  const ends = workflows.map(({ specEnd }) => specEnd);
+  return {
+    steps: specEndSteps.filter((step) =>
+      ends.some(({ steps }) => steps.includes(step)),
+    ),
+    isDue(waits) {
+      return ends.some((end) => end.isDue(waits));
+    },
+    nextLineOf(spec, waits) {
+      for (const end of ends) {
+        const line = end.nextLineOf(spec, waits);
+        if (line !== undefined) return line;
+      }
+      return undefined;
+    },
+  };
+}
+
+// One Workflow's gap-check rules until #801 composes them: the piece Workflow's when the set holds it, so a one-label spec is unchanged.
+export function gapCheckWorkflowOf(workflows: Workflow[]): Workflow {
+  const workflow =
+    workflows.find(({ name }) => name === "piece") ?? workflows.at(0);
+  if (workflow === undefined) {
+    throw new Error("The gap check has no Workflow to take its rules from.");
+  }
+  return workflow;
+}
+
+// The Workflow in the set with an Agent draft, whose pull and push rules the push takes.
+export function pushWorkflowOf(workflows: Workflow[]): Workflow {
+  const workflow = workflows.find(({ push }) => push !== undefined);
+  if (workflow === undefined) {
+    throw new Error("No Workflow of the spec's tickets has a push step.");
+  }
+  return workflow;
 }
 
 export function agentStepOf<SN extends keyof AgentSteps>(

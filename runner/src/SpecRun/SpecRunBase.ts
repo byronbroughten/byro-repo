@@ -48,7 +48,6 @@ import {
   type SpecTicket,
   ticketWorkflowsOf,
   type Workflow,
-  workflowOf,
   type Workflows,
 } from "../Workflow.ts";
 import { WrapUp, type WrapUpGitHub, type WrapUpKnobs } from "../WrapUp.ts";
@@ -167,17 +166,6 @@ export class SpecRunBase {
 
   get factsFile(): FactsFile {
     return FactsFile.init(this.config.stateFolder);
-  }
-
-  _workflowOf(spec: TrackedIssue): Workflow {
-    return workflowOf(spec, this.config.workflows);
-  }
-
-  _agentStepOf<SN extends keyof AgentSteps>(
-    spec: TrackedIssue,
-    name: SN,
-  ): AgentSteps[SN] {
-    return agentStepOf(this._workflowOf(spec), name);
   }
 
   // Takes the spec and ticket, not a TicketRun, as #798 moves TicketSequencer._runTicket and SessionReviewer.resolve onto it, which pick before one exists.
