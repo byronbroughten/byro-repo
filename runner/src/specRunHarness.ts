@@ -219,12 +219,16 @@ export function stateFolder(): string {
 // The repo's own sheets, which the piece review cell reads rule names from.
 const rulesRoot = fileURLToPath(new URL("../../", import.meta.url));
 
-// What each Workflow's review reads as the workspace's review skill's SKILL.md, which no fixture workspace holds.
-const reviewSkillTexts: Record<string, string> = {
+// What each Workflow's step reads as a skill's SKILL.md in the workspace, which no fixture workspace holds.
+const skillTexts: Record<string, string> = {
   "code-review":
     "---\nname: code-review\n---\n\nTwo-axis review. Read [the verdicts](../../../docs/agents/verdicts.md).\n",
   "review-piece":
     "---\nname: review-piece\n---\n\nThree-axis review of a Piece's Agent draft. Read [the rules](../../../docs/pieces/rules.md).\n",
+  "research-piece":
+    "---\nname: research-piece\n---\n\nResearch a Piece's sources. Read [the pages](../../../docs/pdf-pages.md).\n",
+  "review-research":
+    "---\nname: review-research\n---\n\nVerify each claim against its source.\n",
 };
 
 // The code Workflow with a test's own checks, beside the piece Workflow.
@@ -247,8 +251,7 @@ export function workflowsWith(checks: Command[]): Workflows {
 
 function readSkillFixture(path: string): string {
   const skillName = /\/\.claude\/skills\/([^/]+)\/SKILL\.md$/.exec(path)?.[1];
-  const text =
-    skillName === undefined ? undefined : reviewSkillTexts[skillName];
+  const text = skillName === undefined ? undefined : skillTexts[skillName];
   if (text === undefined) throw new Error(`No fixture for ${path}`);
   return text;
 }

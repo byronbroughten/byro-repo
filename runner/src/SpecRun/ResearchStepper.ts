@@ -2,8 +2,12 @@
 // keeps its record on the ticket's state once the record passes its checks; a failed check is a SchemaFailure, which
 // TicketSequencer.ts raises as a Failure Halt. Any record's blockers halt the ticket at once; a handoff posts
 // on the ticket and launches a fresh step, halting first past the handoff cap, as ImplementStepper.ts's does.
+// It creates the scratch folder its rules name before each launch, and a retry's prompt names what the first try left there.
 // Its _checkQuotes is the ticket's checks step: the Workflow's quote check, red sending the step back up to its rules' sendBacks, then a Failure Halt.
 // It builds its own HaltRaiser and StepLauncher; the step's prompt, schema and checks are its spec's Workflow's, through ../Workflow.ts.
+
+import { mkdirSync, readdirSync } from "node:fs";
+import { join, relative } from "node:path";
 
 import { commandLabelOf } from "../failureText.ts";
 import { freshResumeSection } from "../halts.ts";
@@ -97,12 +101,17 @@ export class ResearchStepper extends SpecRunBase {
     }
     const rules = this._researchRulesOf(ticketRun);
     const halts = runHalts.undeliveredOf(run, ticket.issue);
+    const scratchFolder = createScratchFolder(ticketRun, rules);
     const prompt = rules.promptOf({
       issue: ticket.issue,
       title: ticket.title,
       body: ticket.body,
+      workspacePath: workspace.path,
       latestHandoff: state.latestResearchHandoff,
       redQuotes,
+      firstTry: state.isResearchRetried
+        ? { files: filesIn(scratchFolder) }
+        : undefined,
     });
     const ran = await this.stepLauncher._runStep(ticketRun, "research", {
       prompt:
@@ -111,6 +120,8 @@ export class ResearchStepper extends SpecRunBase {
           : `${prompt}\n\n${freshResumeSection(halts)}`,
       jsonSchema: rules.outputSchema,
     });
+    // Kept through a crashed retry's relaunch, but never passed to a fresh step after its handoff.
+    state.isResearchRetried = undefined;
     halts.forEach((halt) => {
       halt.isDelivered = true;
     });
@@ -159,4 +170,22 @@ export class ResearchStepper extends SpecRunBase {
   private _researchRulesOf({ run, ticket }: TicketRun): ResearchRules {
     return this._ticketAgentStepOf({ ticket, spec: run.spec }, "research");
   }
+}
+
+// Created on every launch, as ImplementStepper.ts's kept folder is, so a ticket resumed in a recreated workspace still has it.
+function createScratchFolder(
+  { ticket, workspace }: TicketRun,
+  rules: ResearchRules,
+): string {
+  const folder = join(workspace.path, rules.scratchFolderOf(ticket.issue));
+  mkdirSync(folder, { recursive: true });
+  return folder;
+}
+
+// Each file's path from the folder, sorted so the prompt reads the same on every launch.
+function filesIn(folder: string): string[] {
+  return readdirSync(folder, { recursive: true, withFileTypes: true })
+    .filter((entry) => entry.isFile())
+    .map((entry) => relative(folder, join(entry.parentPath, entry.name)))
+    .sort();
 }

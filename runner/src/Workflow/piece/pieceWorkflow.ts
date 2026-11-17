@@ -1,5 +1,5 @@
 // The piece Workflow: a spec labelled piece runs under it. A research ticket runs its research step, from researchStep/,
-// then its quote check, and lands with no code: its comment posted, its outcome row written and the ticket closed.
+// carrying /research-piece's and /review-research's bodies inline, then its quote check, and lands with no code: its comment posted, its outcome row written and the ticket closed.
 // What it couldn't verify and the Outline edits it proposes then go to the developer in one Research Halt, which holds the drafting tickets.
 // Every other ticket is a drafting ticket: its first Step pulls the Deliverable's Doc into the Agent draft, agentDraft.ts,
 // its implement step, implementStep.ts, drafts the ticket's Sections there, its review step, reviewStep.ts, reviews them,
@@ -39,6 +39,7 @@ import {
   type PullInput,
   type PullRules,
   type RedChecksPromptInput,
+  type ResearchPromptInput,
   type ReviewPromptInput,
   type SpecEnd,
   type Workflow,
@@ -69,6 +70,7 @@ import {
   researchHaltOf,
   researchHandoffCommentOf,
   researchPrompt,
+  researchScratchFolderOf,
 } from "./researchStep/researchWords.ts";
 import {
   pieceResolvePrompt,
@@ -203,6 +205,23 @@ export function pieceWorkflowOf({
     });
   }
 
+  function researchPromptOf(input: ResearchPromptInput): string {
+    const { workspacePath } = input;
+    return researchPrompt({
+      ...input,
+      researchSkillText: inlinedSkill.textIn({
+        workspacePath,
+        skillName: "research-piece",
+        readText,
+      }),
+      reviewSkillText: inlinedSkill.textIn({
+        workspacePath,
+        skillName: "review-research",
+        readText,
+      }),
+    });
+  }
+
   return {
     name: "piece",
     stepsOf(ticket) {
@@ -216,7 +235,8 @@ export function pieceWorkflowOf({
     sourceTargetsOf,
     agentSteps: {
       research: {
-        promptOf: researchPrompt,
+        promptOf: researchPromptOf,
+        scratchFolderOf: researchScratchFolderOf,
         outputSchema: researchOutputSchema,
         recordOf: researchRecordOf,
         recordProblems: researchRecordProblems,

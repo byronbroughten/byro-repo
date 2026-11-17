@@ -94,7 +94,11 @@ export const runHalts = {
     state.conflictResumes = undefined;
     state.continuation = undefined;
     state.guidance = undefined;
+    state.isResearchRetried = undefined;
     const answer = haltReplies.failureAnswerOf(latest);
+    if (answer.kind === "retry" && latest.failedStep === "research") {
+      state.isResearchRetried = true;
+    }
     // A continuation another Halt never offered would resume a session with nothing to continue.
     if (
       answer.kind === "retry-record" &&

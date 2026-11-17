@@ -152,10 +152,18 @@ export interface ResearchPromptInput {
   issue: IssueRef;
   title: string;
   body: string;
+  workspacePath: string;
   // Set for a fresh step after a handoff; a handoff is cumulative, so only the latest is passed.
   latestHandoff?: ResearchHandoff;
   // Set for the step sent back on a red quote check.
   redQuotes?: RedQuotes;
+  // Set for the step a Failure Halt's `retry` answer runs again.
+  firstTry?: FirstTry;
+}
+
+// What the try before a retry left in the scratch folder, each file's path from the folder.
+export interface FirstTry {
+  files: string[];
 }
 
 export interface RedQuotes {
@@ -166,6 +174,8 @@ export interface RedQuotes {
 
 export interface ResearchRules {
   promptOf(input: ResearchPromptInput): string;
+  // A gitignored folder from the workspace root, the runner's to create, so a retry knows where the try before it worked.
+  scratchFolderOf(ticket: IssueRef): string;
   outputSchema: object;
   recordOf(output: unknown): ResearchRecord;
   // Checks the output against outputSchema too, since only the real adapter does; `cwd` resolves a relative path.

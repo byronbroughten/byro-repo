@@ -1533,6 +1533,10 @@ function workspacePath(): string {
   return join(temp, "workspaces", "byro-repo-issue-1-ticket-1");
 }
 
+function researchScratchPath(): string {
+  return join(workspacePath(), ".runner", "research", "byro-repo-1");
+}
+
 // A Doc of level-1 headings with no text of their own, each over its level-2 Sections of one paragraph.
 function headedDocOf(
   parts: Record<string, Record<string, string>>,
@@ -1585,8 +1589,42 @@ describe("run on a piece spec", () => {
     expect(request?.maxTurns).toBe(defaultRunKnobs.maxTurns.research);
     expect(request?.wallClockMs).toBe(defaultRunKnobs.wallClockMs.research);
     expect(request?.logPath).toMatch(/byro-repo-1-1-research\.jsonl$/);
-    expect(request?.prompt).toContain(".claude/skills/research-piece/SKILL.md");
     expect(ticketState()["byro-repo #1"]?.researchRecord).toEqual(record);
+  });
+
+  it("inlines /research-piece's and /review-research's bodies, never pointing at either by path", async () => {
+    addPieceSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      researched(readyRecordOf(scratchFolder())),
+    );
+
+    await specRun(agentStep).run(spec);
+
+    const prompt = agentStep.requests[0]?.prompt ?? "";
+    expect(prompt).toContain(
+      '<skill name="research-piece">\nResearch a Piece\'s sources. Read [the pages](docs/pdf-pages.md).\n</skill>',
+    );
+    expect(prompt).toContain(
+      '<skill name="review-research">\nVerify each claim against its source.\n</skill>',
+    );
+    expect(prompt).not.toContain(".claude/skills/");
+    expect(prompt).not.toContain("## The first try");
+  });
+
+  it("names a scratch folder in the workspace, created before launch and gitignored", async () => {
+    addPieceSpec([1]);
+    const seen: { isThere?: boolean } = {};
+    const agentStep = FakeAgentStep.init(async () => {
+      seen.isThere = existsSync(researchScratchPath());
+      return resultOf({ record: readyRecordOf(scratchFolder()) });
+    });
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests[0]?.prompt).toContain(
+      `Your scratch folder is \`${researchScratchPath()}\``,
+    );
+    expect(seen.isThere).toBe(true);
   });
 
   it("checks the quotes, posts the comment, writes the outcome row and closes the ticket", async () => {
@@ -1623,6 +1661,7 @@ describe("run on a piece spec", () => {
     expect(agentStep.requests).toHaveLength(2);
     expect(agentStep.requests[1]?.prompt).toContain("NOT FOUND: MISQUOTE");
     expect(agentStep.requests[1]?.prompt).toContain(join(folder, "comment.md"));
+    expect(agentStep.requests[1]?.prompt).not.toContain("## The first try");
     expect(result.landed).toEqual([refOf(1)]);
   });
 
@@ -1736,10 +1775,103 @@ describe("run on a piece spec", () => {
 
     expect(agentStep.requests).toHaveLength(2);
     expect(agentStep.requests[1]?.prompt).toContain("ferry timetable");
+    expect(agentStep.requests[1]?.prompt).not.toContain("## The first try");
     expect(commentsOn(1, "## Handoff")[0]).toContain(
       "Read the lighthouse logbook; the ferry timetable is left.",
     );
     expect(ticketState()["byro-repo #1"]?.researchRecord).toEqual(record);
+  });
+});
+
+describe("a research step retried by a Failure Halt's `retry`", () => {
+  const broken = { status: "ready", blockers: [] };
+
+  // A first try that leaves a comment and a source's text in its scratch folder, then returns a record breaking its schema.
+  const leavesWork: StepScript = async () => {
+    mkdirSync(join(researchScratchPath(), "texts"), { recursive: true });
+    writeFileSync(
+      join(researchScratchPath(), "comment.md"),
+      "1. The ferry ran.\n",
+    );
+    writeFileSync(
+      join(researchScratchPath(), "texts", "logbook.txt"),
+      "The ferry ran.\n",
+    );
+    return resultOf({ record: broken });
+  };
+
+  async function retriedPromptAfter(firstTry: StepScript): Promise<string> {
+    await specRun(FakeAgentStep.init(firstTry)).run(spec);
+    github.reply(213, "H1: retry");
+    const agentStep = FakeAgentStep.init(
+      researched(readyRecordOf(scratchFolder())),
+    );
+    await specRun(agentStep).run(spec);
+    return agentStep.requests[0]?.prompt ?? "";
+  }
+
+  it("names the first try's scratch folder, each file it left there and its comment", async () => {
+    addPieceSpec([1]);
+
+    const prompt = await retriedPromptAfter(leavesWork);
+
+    expect(prompt).toContain("## The first try");
+    expect(prompt).toContain(`\`${researchScratchPath()}\``);
+    expect(prompt).toContain("- `comment.md`\n- `texts/logbook.txt`");
+    expect(prompt).toContain(
+      `Its comment is \`${join(researchScratchPath(), "comment.md")}\``,
+    );
+  });
+
+  it("says the first try left no comment when it wrote none", async () => {
+    addPieceSpec([1]);
+
+    const prompt = await retriedPromptAfter(researched(broken));
+
+    expect(prompt).toContain("## The first try");
+    expect(prompt).toContain("It left no files there.");
+    expect(prompt).toContain("It left no comment.");
+  });
+
+  it("names the first try in the retry's prompt only, not a later fresh step's", async () => {
+    addPieceSpec([1]);
+    await specRun(FakeAgentStep.init(leavesWork)).run(spec);
+    github.reply(213, "H1: retry");
+    const agentStep = FakeAgentStep.init(
+      researched({
+        status: "handoff",
+        blockers: [],
+        handoff: {
+          conclusion: "Read the lighthouse logbook.",
+          sourcesDone: ["lighthouse logbook"],
+          sourcesLeft: [],
+        },
+      }),
+      researched(readyRecordOf(scratchFolder())),
+    );
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests[0]?.prompt).toContain("## The first try");
+    expect(agentStep.requests[1]?.prompt).not.toContain("## The first try");
+  });
+
+  it("leaves a rerun after a blocker Halt's answer as a first try", async () => {
+    addPieceSpec([1]);
+    const blockedRecord: ResearchRecord = {
+      status: "blocked",
+      blockers: [
+        {
+          kind: "spec-ambiguity",
+          detail: "The Facts field names two tellings of the walk.",
+          recommendation: "Keep the earlier telling.",
+        },
+      ],
+    };
+
+    const prompt = await retriedPromptAfter(researched(blockedRecord));
+
+    expect(prompt).not.toContain("## The first try");
   });
 });
 
@@ -2090,7 +2222,7 @@ describe("run on a Standalone ticket", () => {
 
     expect(agentStep.requests).toHaveLength(1);
     expect(agentStep.requests[0]?.prompt).toContain(
-      ".claude/skills/research-piece/SKILL.md",
+      '<skill name="research-piece">',
     );
   });
 
@@ -2110,9 +2242,7 @@ describe("run on a Standalone ticket", () => {
     );
 
     const [research, implement] = agentStep.requests;
-    expect(research?.prompt).toContain(
-      ".claude/skills/research-piece/SKILL.md",
-    );
+    expect(research?.prompt).toContain('<skill name="research-piece">');
     expect(implement?.prompt).not.toContain("research-piece");
     expect(result.landed).toContainEqual(codeTicket);
   });

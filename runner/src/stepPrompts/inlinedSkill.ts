@@ -1,6 +1,6 @@
 // A skill's SKILL.md body inlined in a step's prompt, so the step spends no turn loading the skill: read from the
 // ticket's issue workspace, its frontmatter dropped and each relative link made the workspace root's.
-// The code and piece Workflows' review steps carry their review skill this way.
+// The code and piece Workflows' review steps carry their review skill this way, and the piece research step both of its skills.
 
 import { readFileSync } from "node:fs";
 import { join, posix } from "node:path";

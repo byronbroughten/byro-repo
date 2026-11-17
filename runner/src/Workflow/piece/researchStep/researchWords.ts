@@ -1,44 +1,83 @@
-// The research step's words: the prompt the runner sends a piece spec's research ticket, which follows /research-piece up to
-// its post, the section a step sent back on red quotes gets, the handoff comment, the closing comment the ticket lands with, and the words of its Research Halt.
+// The research step's words: the prompt the runner sends a piece spec's research ticket, which carries /research-piece's and
+// /review-research's bodies inline and follows the first up to its post, the scratch folder it names, the section a retry gets on what
+// the first try left, the section a step sent back on red quotes gets, the handoff comment, the closing comment the ticket lands with, and the words of its Research Halt.
 // researchRecord.ts holds the record it returns and the checks on it; ../pieceWorkflow.ts registers both as the piece Workflow's research rules.
+
+import { join } from "node:path";
 
 import type { HaltQuestion } from "../../../halts.ts";
 import { stepReadLine } from "../../../IssueReader.ts";
+import type { IssueRef } from "../../../IssueWorkspaces.ts";
 // Renamed, since a ready record's own field is `outlineEdits`.
 import { outlineEdits as outlineEditWords } from "../../../outlineEdits.ts";
 import { bulletsOf, unattendedRunLine } from "../../../promptText.ts";
+import { inlinedSkill } from "../../../stepPrompts/inlinedSkill.ts";
 import type {
   ReadyResearchRecord,
   ResearchHandoff,
   UnverifiedItem,
 } from "../../../stepRecords.ts";
-import type { RedQuotes, ResearchPromptInput } from "../../../Workflow.ts";
-
-const skillPath = ".claude/skills/research-piece/SKILL.md";
+import type {
+  FirstTry,
+  RedQuotes,
+  ResearchPromptInput,
+} from "../../../Workflow.ts";
 
 // The spec's one send-back on red quotes before a Failure Halt; the prompt's count and the runner's limit both read it.
 export const quoteSendBacks = 1;
 
-export function researchPrompt(input: ResearchPromptInput): string {
-  const { issue, title, body, latestHandoff, redQuotes } = input;
+const skillNames = {
+  research: "research-piece",
+  review: "review-research",
+} as const;
+
+// The skills' SKILL.md texts, read from the issue workspace by ../pieceWorkflow.ts.
+export interface ResearchSkillPromptInput extends ResearchPromptInput {
+  researchSkillText: string;
+  reviewSkillText: string;
+}
+
+// Gitignored at the workspace root, so a retry finds what the try before it left.
+export function researchScratchFolderOf({ repo, number }: IssueRef): string {
+  return `.runner/research/${repo}-${number}`;
+}
+
+export function researchPrompt(input: ResearchSkillPromptInput): string {
+  const {
+    issue,
+    title,
+    body,
+    workspacePath,
+    latestHandoff,
+    redQuotes,
+    firstTry,
+  } = input;
+  const scratchFolder = join(workspacePath, researchScratchFolderOf(issue));
   return [
     `You are the research step of an unattended run. Research ${issue.repo}#${issue.number}, "${title}". ${unattendedRunLine()}`,
-    promptSections.steps,
+    stepsSection(scratchFolder),
     `## GitHub\n\n- Make no GitHub write: the runner posts your comment once its quote check passes, and you post nothing.\n- ${stepReadLine}`,
     promptSections.record,
     promptSections.handoff,
+    ...(firstTry ? [firstTrySection(scratchFolder, firstTry)] : []),
     ...(latestHandoff ? [previousHandoffSection(latestHandoff)] : []),
     ...(redQuotes ? [redQuotesSection(redQuotes)] : []),
+    inlinedSkill.sectionOf(input.researchSkillText, skillNames.research),
+    inlinedSkill.sectionOf(input.reviewSkillText, skillNames.review),
     `## The ticket\n\n${body}`,
   ].join("\n\n");
 }
 
-const promptSections = {
-  steps: `## What you do
+function stepsSection(scratchFolder: string): string {
+  return `## What you do
 
-- Read \`${skillPath}\` and follow its first seven steps, its \`/review-research\` pass and acting on the verdicts included. Stop after step 7: post nothing and delete nothing.
-- Work in a scratch folder of your own under \`$TMPDIR\`, and leave it in place: the runner reads the comment and texts from it.
-- Propose each Outline edit the research calls for in the record; never apply one.
+- Follow the \`${skillNames.research}\` skill below's first seven steps, acting on the verdicts included, with its step 5 pass done by the \`${skillNames.review}\` skill below. Both are here in full: never read either by path or call it. Stop after step 7: post nothing and delete nothing.
+- Your scratch folder is \`${scratchFolder}\`: use it as the skill's scratchpad, and leave it in place, since the runner reads the comment and texts from it.
+${promptSections.stepRules}`;
+}
+
+const promptSections = {
+  stepRules: `- Propose each Outline edit the research calls for in the record; never apply one.
 - In \`## Unverified\`, mark an item wanted when the ticket's \`## Facts\` field names its fact.
 - Never ask. When the ticket is ambiguous, a source can't be read or a tool is denied, record it as a blocker (\`spec-ambiguity\`, \`gated-action\` or \`denied-tool\`) with what happened and what you recommend the developer do. Carry on when the research can go on without it; otherwise stop with status \`blocked\`.`,
 
@@ -57,6 +96,25 @@ Return the research record as \`record\`:
 
 Finish the source in hand, then stop: post nothing and return status \`handoff\` with every \`handoff\` field: \`conclusion\`, \`sourcesDone\` and \`sourcesLeft\`. A handoff is cumulative: carry over whatever still matters from any handoff you started from.`,
 } as const;
+
+// The first try may have crashed or hit its turn cap with no record, so the folder, not a record, says what it left.
+function firstTrySection(scratchFolder: string, { files }: FirstTry): string {
+  const commentPath = join(scratchFolder, "comment.md");
+  const fileLines =
+    files.length === 0
+      ? "It left no files there."
+      : `Its scratch folder holds:${bulletsOf(files.map((file) => `\`${file}\``))}`;
+  const commentLine = files.includes("comment.md")
+    ? `Its comment is \`${commentPath}\`; build on it.`
+    : "It left no comment.";
+  return `## The first try
+
+The research step ran on this ticket before, and the developer answered its Failure Halt with \`retry\`. It worked in the scratch folder above, \`${scratchFolder}\`.
+
+${fileLines}
+
+${commentLine} Build on what it left rather than starting over.`;
+}
 
 function previousHandoffSection(handoff: ResearchHandoff): string {
   return `## Handoff from the previous step
