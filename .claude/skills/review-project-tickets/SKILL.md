@@ -17,7 +17,7 @@ The input is one of:
 
 A ticket that has landed or is current is **report-only**: its risks are reported, and no fix is offered for it.
 
-**Each ticket's Workflow** is the runner's pick from labels (`ticketWorkflowNameOf` in `runner/src/Workflow.ts`): `piece` or `code` on the ticket, else on the spec, else code. It picks the brief's permission files and causes for that ticket.
+**Each ticket's Workflow** is what `ticketWorkflowNameOf` in `runner/src/Workflow.ts` picks from its labels and the spec's. It picks the brief's permission files and causes for that ticket. A ticket it picks none for is itself a Halt risk: report it, with the labels to set as its fix.
 
 Done when the spec body, every ticket body and every blocking edge are in hand, the report-only tickets are named, and each ticket's Workflow is picked.
 
@@ -41,12 +41,13 @@ You are reviewing a spec's tickets before the runner runs them; you are told eac
 - `docs/targets-and-gates.md`, "Which tier an action is in": a tier-3 action is refused in a step.
 - `runner/src/stepPrompts/implementText.ts`, the workspace and ticket-binds lines both Workflows' prompts share.
 - For a code ticket, `runner/src/Workflow/code/implementStep.ts`: what a step may not do with branches, issues and blockers.
-- For a piece ticket, `runner/src/Workflow/piece/implementStep.ts`: the step drafts only its ticket's Sections in the Agent draft, makes no GitHub write, commits only the Agent draft, and reads Supporting Material only by the file IDs the spec lists.
+- For a piece drafting ticket, `runner/src/Workflow/piece/implementStep.ts`: what the step may draft, read, commit and write on GitHub.
+- For a piece Research ticket, `runner/src/Workflow/piece/researchStep/researchWords.ts`, the research step's prompt, in place of the implement step's.
 - `docs/agents/tickets.md`, "Ticket size".
 
 Resolve every path a ticket names, or implies by naming a skill, doc or symbol, to the file it lands on, symlinks followed: the rule applies to where the write lands, not to the name. Grep the names each ticket changes to count its files.
 
-**The causes**, each with a Halt it once raised. A code ticket gets causes 1 to 9; a piece ticket gets causes 1, 2, 3 and 7 as written, then the piece causes 10 to 13.
+**The causes**, each with a Halt it once raised. A code ticket gets causes 1 to 9; a piece ticket gets causes 1, 2, 3 and 7 as written, and a piece drafting ticket the piece causes 10 to 13 as well.
 
 1. **Size**: the estimate's arithmetic doesn't hold by `tickets.md`'s "Ticket size": its `~NK` isn't fixed overhead + the union of its read sets, each file counted once, + the work allowance, a read set leaves out a file the ticket changes or reads, or the sum is over the cap. Re-check the arithmetic, against the breakdown handed over with drafts, or against the files a published ticket's names grep to; never re-estimate from scratch. (#597 split twice.)
 2. **A live run a step can't make**: a criterion needs a command against a live target the ticket doesn't name, or one the gate refuses. (#221–#228 required a `dev:gen:configs` run.)
@@ -58,9 +59,9 @@ Resolve every path a ticket names, or implies by naming a skill, doc or symbol, 
 8. **A hand check the gate refuses**: "check by hand once" or "first confirm" through a command a step can't run. (#470's `claude -p --model haiku` check.)
 9. **An order gap**: two tickets editing the same files with no edge between them, or a ticket that needs another's output without being blocked by it. (#596 failed checks after #597 changed a message it asserted.)
 10. **A Section that isn't a heading in the Deliverable**: the ticket names a Section by a heading path the Deliverable doesn't hold as an H1, or an H2 under that H1. The step keeps every heading as the Agent draft holds it and never invents one, and the record's Sections must be in the committed draft. Evidence: the Deliverable's headings, from `npm run doc:print -- <the Doc ID the spec's ## Deliverable names>`, read-only, and `docs/pieces/agent-draft.md`'s "File format". (personal#45.)
-11. **A criterion the Agent draft's Markdown can't express**: an image, footnote, nested list, a heading inside a Section, a comment or suggestion, or any styling past bold, italic and links. Evidence: the dialect's forms in `runner/src/Docs/markdownDialect.ts` and `runner/src/Docs/markdownDialect/blockParse.ts`, which takes only paragraphs, H3 and lower headings, flat lists and tables.
+11. **A criterion the Agent draft's Markdown can't express**: an image, footnote, nested list, an H1 or H2 inside a Section's body, a comment or suggestion, or any styling past bold, italic and links. Evidence: the dialect's forms in `runner/src/Docs/markdownDialect.ts` and `runner/src/Docs/markdownDialect/blockParse.ts`, which takes only paragraphs, H3 and lower headings, flat lists and tables.
 12. **Kept text the overlap check will flag**: the ticket or spec has text kept word for word, a quotation or the developer's own wording, that shares a run of four or more words with a passage the step will read. The ticket's checks run the overlap command with no allow list and go red on every hit review didn't dismiss. Evidence: `runner/src/Workflow/piece/pieceChecks.ts` and `scripts/overlap/overlap.ts`. (personal#60.)
-13. **A write to a developer Section**: the ticket drafts or edits a Section the pull marks `developer`, which the step must never change. The pull marks each Section the Agent draft holds no agent mark for `developer`, so a Section the developer has written, or one no earlier ticket of this spec drafts, is the developer's. Evidence: `docs/pieces/agent-draft.md`'s "Pull" and `runner/src/Workflow/piece/agentDraft.ts`' `pulledOf`, against the Agent draft on master and each earlier ticket's Sections.
+13. **A write to a developer Section**: the ticket drafts or edits a Section the developer has written in, which the pull marks `developer` and the step must never change. A Section the ticket names that the Deliverable holds empty is the ticket's to draft, though the pull marks it `developer` too. Evidence: `docs/pieces/agent-draft.md`'s "Pull", the Deliverable's Section bodies from `npm run doc:print`, and each other ticket's named Sections.
 
 **The specificity bar.** A ticket leaves the implementer every choice the code, the design docs and the code style settle, as `docs/agents/tickets.md`'s "Ticket size" rule says, because the implement step "carr[ies] on with the reading the ticket best supports when the work can go on without it". Under cause 3 or 7, report only a contradiction, an undefined term, or a case the ticket's rule leaves open. A ticket with no file paths, names or shapes, or no "how", is as `/project-tickets` means it to be.
 
