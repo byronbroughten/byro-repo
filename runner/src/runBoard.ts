@@ -7,7 +7,7 @@
 
 import type { AccountsSection } from "./AccountsSection.ts";
 import type { UsageReading } from "./AgentStep.ts";
-import { BatchRecords } from "./BatchRecords.ts";
+import { BatchRecords, runLabelOf } from "./BatchRecords.ts";
 import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import type { StreamUsage } from "./limitGuard.ts";
 import { ProgressLog } from "./ProgressLog.ts";
@@ -190,10 +190,4 @@ function currentMemberOf(members: MemberProgress[]): MemberProgress {
   return members.reduce((current, member) =>
     member.log.ticketTime > current.log.ticketTime ? member : current,
   );
-}
-
-function runLabelOf([lead, ...rest]: MemberList): string {
-  if (rest.length === 0) return issueRef.labelOf(lead);
-  const numbers = rest.map((member) => issueRef.numberLabelOf(member));
-  return `Batch ${[issueRef.labelOf(lead), ...numbers].join(", ")}`;
 }

@@ -11,6 +11,7 @@
 
 import { existsSync, rmSync } from "node:fs";
 
+import { runLabelOf } from "../BatchRecords.ts";
 import { git, revOf } from "../git.ts";
 import { type Halt } from "../halts.ts";
 import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
@@ -18,7 +19,7 @@ import { type AccountReading, readingLabelOf } from "../limitGuard.ts";
 import { idleLineOf } from "../progressLines.ts";
 import { RunStop } from "../RunStop.ts";
 import { stalePathLabelOf, stalePathsOf } from "../stalePaths.ts";
-import { type AccountHold } from "./AccountHold.ts";
+import { AccountHold } from "./AccountHold.ts";
 import {
   type Member,
   memberIssueOf,
@@ -87,7 +88,7 @@ type Finishing =
 
 export class RunLoop extends SpecRunBase {
   private readonly memberIssues: MemberList;
-  // The first member's, shared by every member so a Batch holds one account lease; undefined until the runs start.
+  // Shared by every member so a Batch holds one account lease, naming the Batch; undefined until the runs start.
   private accountHold: AccountHold | undefined;
 
   constructor(config: SpecRunConfig, memberIssues: MemberList) {
@@ -268,7 +269,11 @@ export class RunLoop extends SpecRunBase {
       this._startRunClearingStop(first),
       ...rest.map((specIssue) => this._startRunClearingStop(specIssue)),
     ]);
-    const [{ accountHold }] = runs;
+    // Labelled once, as a Batch's member list never changes.
+    const accountHold = new AccountHold(
+      this.config.stateFolder,
+      runLabelOf(this.memberIssues),
+    );
     this.accountHold = accountHold;
     for (const run of runs) run.accountHold = accountHold;
     if (isBatch(runs)) {

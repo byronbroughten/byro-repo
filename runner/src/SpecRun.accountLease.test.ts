@@ -111,6 +111,31 @@ describe("run's account lease", () => {
     ]);
   });
 
+  it("records a Batch's label in its lease, as the Run board words it", async () => {
+    const first = refOf(301);
+    const second = refOf(302);
+    addIssue(first.number);
+    addIssue(second.number);
+    const specs: (string | undefined)[] = [];
+    function recordHolder(): void {
+      specs.push(holderAt(leasePathOf(1)).spec);
+    }
+    const agentStep = FakeAgentStep.init(
+      implemented("first.ts", { act: recordHolder }),
+      reviewed(),
+      implemented("second.ts", { act: recordHolder }),
+      reviewed(),
+    );
+    const members: [typeof first, typeof second] = [first, second];
+
+    await specRun(agentStep, { members }).run(...members);
+
+    expect(specs).toEqual([
+      "Batch byro-repo #301, #302",
+      "Batch byro-repo #301, #302",
+    ]);
+  });
+
   it("takes over a lease a dead holder abandoned", async () => {
     addSpec([1]);
     seedLease(1, false);
