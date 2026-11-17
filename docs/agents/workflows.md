@@ -2,6 +2,10 @@
 
 The coding and the piece [Workflows](../../runner/GLOSSARY.md#language), stage by stage: the skills that work each [Workflow stage](../../runner/GLOSSARY.md#language), how each hands off to the next, and the rules docs, formats and machinery that two or more skills or [Steps](../../runner/GLOSSARY.md#language) share, each with its route. The core both Workflows run on is the runner glossary's and [the runner's `src/AGENTS.md`](../../runner/src/AGENTS.md)'s. Beside [the turn-cost rules](#turn-cost-a-workflows-setup-turns), it records what is: a gap it shows is a ticket. Each skill keeps its own rules.
 
+## A change to one Workflow
+
+**When a change to one Workflow is decided, consider whether an analogous change would improve each other Workflow, and either make it or say why it doesn't apply**; borrowing improvements across Workflows is encouraged.
+
 ## Which skills are in scope
 
 A skill is in scope when a Workflow stage of either Workflow calls it or names it as the next step. Lint fails when a skill's `SKILL.md` isn't linked from this map, so a new skill goes in a Workflow stage or the out-of-scope list.
@@ -13,9 +17,9 @@ A skill is in scope when a Workflow stage of either Workflow calls it or names i
 The words Piece, Deliverable, Section, Stage and Agent draft are [the writing glossary](../pieces/GLOSSARY.md)'s.
 
 1. **Planning**
-   - Code: [`/wayfinder`](../../.claude/skills/wayfinder/SKILL.md), [`/grill-with-docs`](../../.claude/skills/grill-with-docs/SKILL.md), [`/grill-me`](../../.claude/skills/grill-me/SKILL.md), [`domain-modeling`](../../.claude/skills/domain-modeling/SKILL.md), [`/prototype`](../../.claude/skills/prototype/SKILL.md), [`/research`](../../.claude/skills/research/SKILL.md).
-   - Piece: [`/grill-piece`](../../.claude/skills/grill-piece/SKILL.md).
-   - Both: [`grilling`](../../.claude/skills/grilling/SKILL.md), its round format.
+   - Code: [`/wayfinder`](../../.claude/skills/wayfinder/SKILL.md), [`domain-modeling`](../../.claude/skills/domain-modeling/SKILL.md), [`/prototype`](../../.claude/skills/prototype/SKILL.md), [`/research`](../../.claude/skills/research/SKILL.md).
+   - Piece: none.
+   - Both: [`/plan-project`](../../.claude/skills/plan-project/SKILL.md), which starts every planning session and branches by Workflow, `code.md` or `piece.md`; [`grilling`](../../.claude/skills/grilling/SKILL.md), its round format.
 2. **Spec**
    - Code: none.
    - Piece: none.
@@ -74,11 +78,11 @@ The worked examples:
 | Workflow stage | Workflow | Skills | Hands off to | Named by |
 | --- | --- | --- | --- | --- |
 | Planning | Code | `/wayfinder` | `grilling` with `domain-modeling`, `/prototype` and `/research`, by ticket type | named |
-| Planning | Code | `/grill-with-docs`, `/grill-me` | `grilling`, and `domain-modeling` for `/grill-with-docs` | named |
-| Planning | Both | any | `/project-spec` | you invoke it |
-| Planning | Piece | `/grill-piece` | `grilling`, for its round format | named |
-| Planning | Piece | `/grill-piece` | `/project-spec` | named |
-| Planning | Piece | `/grill-piece` | `/to-writing-style`, with the calibration differences that hold for every Piece, listed unwritten | named |
+| Planning | Code | `/plan-project`, by its `code.md` | `grilling` and `domain-modeling` | named |
+| Planning | Piece | `/plan-project`, by its `piece.md` | `grilling`, for its round format | named |
+| Planning | Piece | `/plan-project`, by its `piece.md` | `/to-writing-style`, with the calibration differences that hold for every Piece, listed unwritten | named |
+| Planning | Both | `/plan-project` | `/project-spec`, naming the repo or repos | named |
+| Planning | Both | any other | `/project-spec` | you invoke it |
 | Spec | Both | `/project-spec` | `/project-tickets`, for a spec that fails the ticket split test, as every piece or mixed spec does; its Phase gate says which | named, in its chat line |
 | Tickets | Code | `/review-code-tickets` | `grilling`, for the spec gaps a review finds | named |
 | Tickets | Code | `/review-code-tickets` | `/runner` | you invoke it |
@@ -115,7 +119,7 @@ The worked examples:
 | Judgement | Both | `/close-project` | `/project-spec <repo> <n>`, on a held spec the closed spec blocks | named |
 | Process revision | Code | `/mine-outcomes` | `/retro`, on outlier tickets | named |
 | Process revision | Code | `/retro`, `/to-code-style` | `writing-for-agents` | named |
-| Process revision | Piece | `/to-writing-style` | `writing-for-agents`, for a change to `/grill-piece`'s calibration step | named |
+| Process revision | Piece | `/to-writing-style` | `writing-for-agents`, for a change to `/plan-project`'s calibration step | named |
 | Process revision | Both | `/to-code-style` | `/to-writing-style`, with its prose rulings | named |
 | any | Both | the context nudge | a handoff by [`handoffs.md`](./handoffs.md#handoffs) | named, by the hook |
 
@@ -125,7 +129,7 @@ A doc is listed when two or more skills or Steps of either Workflow reach it by 
 
 | Doc | Directly | Indirectly |
 | --- | --- | --- |
-| [Codebase Priorities](./codebase-priorities.md) | `grilling` (and so `/grill-with-docs`, `/grill-me` and `/wayfinder`'s grilling tickets), `/judge-findings`, `/mine-outcomes`, `/retro`, `/to-code-style` | via `verdicts.md`: `/code-review`, `/implement-code`, the review and resolve Steps |
+| [Codebase Priorities](./codebase-priorities.md) | `grilling` (and so `/plan-project` and `/wayfinder`'s grilling tickets), `/judge-findings`, `/mine-outcomes`, `/retro`, `/to-code-style` | via `verdicts.md`: `/code-review`, `/implement-code`, the review and resolve Steps |
 | [`verdicts.md`](./verdicts.md) | `/code-review`, `/implement-code`, `/implement-piece`, `/judge-findings`, `/review-piece`, `/to-writing-style` (its pair mode) | via runner prompt: the resolve Step; via `/code-review` and `/review-piece`: the review Step |
 | [`specs.md`](./specs.md) | `/project-spec`, `/project-tickets` | via `tickets.md`: `/review-code-tickets` |
 | [`tickets.md`](./tickets.md) | `/project-spec`, `/project-tickets`, `/review-code-tickets` | via `model-fit.md`: `/mine-outcomes` |
@@ -135,18 +139,18 @@ A doc is listed when two or more skills or Steps of either Workflow reach it by 
 | [`prose-style.md`](../prose-style.md) | `/code-review`, `/retro`, `/to-code-style` | via always-on hook: every prose edit |
 | [`prose-files.md`](./prose-files.md) | `/to-code-style`, `/to-writing-style` | via always-on hook: every prose edit, through `prose-style.md` |
 | [The issue tracker doc](./issue-tracker.md) and [triage labels](./triage-labels.md) | `/wayfinder`, `domain-modeling`, `/project-spec`, `/project-tickets`, `/review-code-tickets`, `/code-review`, `/judge-findings`, `/mine-outcomes`, `/close-project` | |
-| [The git workflow doc](./git-workflow.md) | `/implement-code`, `/judge-findings`, `/mine-outcomes`, `/implement-piece` | via runner prompt: the implement Step; via `rules.md`: `/grill-piece`, `/project-spec`, `/project-tickets`, `/review-piece` |
+| [The git workflow doc](./git-workflow.md) | `/implement-code`, `/judge-findings`, `/mine-outcomes`, `/implement-piece` | via runner prompt: the implement Step; via `rules.md`: `/plan-project`, `/project-spec`, `/project-tickets`, `/review-piece` |
 | [The runner glossary](../../runner/GLOSSARY.md) | `/runner`, `/review-code-tickets`, `/judge-findings`, `/mine-outcomes` | |
 | [The guardrails doc](../claude-code-guardrails.md) | `/project-tickets`, `/review-code-tickets`' reviewer, `/retro` | |
 | Design docs, ADRs and glossaries | `/project-spec`, `/project-tickets`, `domain-modeling`, `tdd`, `/to-code-style` | |
 | Skills read as docs | `/project-tickets` by `/judge-findings` and `/runner`; `/retro`'s categories by `/mine-outcomes`; `grilling`'s format by `/judge-findings`, `/mine-outcomes` and `/retro`; `/judge-findings`' step 5 by `/close-project`, and `/to-writing-style` by its `piece.md`; `/close-project`'s steps 1 and 3 to 5 by `/judge-findings`, and its steps 1 to 5 by `/implement-code` and `/implement-piece`; `/judge-findings`' step 1 by `/to-writing-style`'s pair mode; `/judge-findings`' step 1 by `/project-spec`'s Phase gate | |
-| The Voice and Craft sheets: [`writing-voice.md`](../writing-voice.md) and [`writing-craft.md`](../writing-craft.md) | `/grill-piece`, `/implement-piece`, `/review-piece`, `/to-writing-style` | via `rules.md`: `/project-spec`, `/project-tickets`, `/judge-findings` (its `piece.md`); via runner prompt: the piece implement Step |
-| [The academic style sheet](../academic-writing-style.md) | `/grill-piece`, `/review-piece`, `/to-writing-style` | via `rules.md`: `/implement-piece`, the piece implement Step, `/project-spec`, `/project-tickets`, `/judge-findings` (its `piece.md`) |
-| [`rules.md`](../pieces/rules.md), the rules for writing any Piece | `/grill-piece`, `/project-spec`, `/project-tickets`, `/implement-piece`, `/review-piece`, `/judge-findings` (its `piece.md`) | via runner prompt: the piece implement Step |
-| [The writing glossary](../pieces/GLOSSARY.md) | `/grill-piece`, `/project-spec`, `/project-tickets`, `/review-piece`, `/to-writing-style` (its pair mode), `/judge-findings` (its `piece.md`), `/close-project` (its `piece.md`) | via `rules.md`: `/implement-piece`, the piece implement Step |
-| [`grilling.md`](../pieces/grilling.md) | `/grill-piece`, `/project-spec`, `/to-writing-style` | via `rules.md`: `/project-tickets`, `/implement-piece`, the piece implement Step, `/review-piece` |
-| [`outlining.md`](../pieces/outlining.md) | `/grill-piece`, `/project-spec`, `/project-tickets` | via `rules.md`: `/implement-piece`, the piece implement Step, `/review-piece` |
-| [`pdf-pages.md`](../pdf-pages.md) | `/grill-piece`, `/project-tickets` (its piece-ticket template), `/research-piece`, `/review-research` | via `rules.md`: `/implement-piece`, the piece implement Step, `/project-spec`, `/review-piece` |
+| The Voice and Craft sheets: [`writing-voice.md`](../writing-voice.md) and [`writing-craft.md`](../writing-craft.md) | `/plan-project`, `/implement-piece`, `/review-piece`, `/to-writing-style` | via `rules.md`: `/project-spec`, `/project-tickets`, `/judge-findings` (its `piece.md`); via runner prompt: the piece implement Step |
+| [The academic style sheet](../academic-writing-style.md) | `/plan-project`, `/review-piece`, `/to-writing-style` | via `rules.md`: `/implement-piece`, the piece implement Step, `/project-spec`, `/project-tickets`, `/judge-findings` (its `piece.md`) |
+| [`rules.md`](../pieces/rules.md), the rules for writing any Piece | `/plan-project`, `/project-spec`, `/project-tickets`, `/implement-piece`, `/review-piece`, `/judge-findings` (its `piece.md`) | via runner prompt: the piece implement Step |
+| [The writing glossary](../pieces/GLOSSARY.md) | `/plan-project`, `/project-spec`, `/project-tickets`, `/review-piece`, `/to-writing-style` (its pair mode), `/judge-findings` (its `piece.md`), `/close-project` (its `piece.md`) | via `rules.md`: `/implement-piece`, the piece implement Step |
+| [`grilling.md`](../pieces/grilling.md) | `/plan-project`, `/project-spec`, `/to-writing-style` | via `rules.md`: `/project-tickets`, `/implement-piece`, the piece implement Step, `/review-piece` |
+| [`outlining.md`](../pieces/outlining.md) | `/plan-project`, `/project-spec`, `/project-tickets` | via `rules.md`: `/implement-piece`, the piece implement Step, `/review-piece` |
+| [`pdf-pages.md`](../pdf-pages.md) | `/plan-project`, `/project-tickets` (its piece-ticket template), `/research-piece`, `/review-research` | via `rules.md`: `/implement-piece`, the piece implement Step, `/project-spec`, `/review-piece` |
 | [`agent-draft.md`](../pieces/agent-draft.md) | `/implement-piece`, `/review-piece`, `/to-writing-style` (its pair mode), `/judge-findings` (its `piece.md`), `/close-project` (its `piece.md`) | via `rules.md`: `/project-spec`, `/project-tickets`; via runner prompt: the piece implement Step |
 | [`style-file.md`](../pieces/style-file.md) | `/review-piece` | via runner prompt: the piece review Step, which carries `/review-piece`'s body |
 
@@ -156,12 +160,12 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 
 | Format | Skills and Steps |
 | --- | --- |
-| `grilling`'s round format | `grilling`, `/project-tickets`, `/review-code-tickets`, `/judge-findings`, `/mine-outcomes`, `/retro`, `/grill-piece` |
+| `grilling`'s round format | `grilling`, `/project-tickets`, `/review-code-tickets`, `/judge-findings`, `/mine-outcomes`, `/retro`, `/plan-project` |
 | The `## Model fit` section and its read-back ([`tickets.md`](./tickets.md#model-fit)) | `/project-spec`, `/project-tickets`, the tickets `/judge-findings` and `/mine-outcomes` file, `/start-issue`'s check |
 | A ticket's `## New dependencies` section | `/project-tickets` writes it; `/implement-code` and the implement Step add only what it names; the wrap-up Step refuses any other new package |
 | The review list's `R<n>.<k>` items | the runner posts them; `/judge-findings` and the Supervisor decide them through `runner -- decide`; `/to-writing-style`'s pair mode mines the decided Proposals |
 | The numbered 🪤/📝 items | `/to-code-style`, `/to-writing-style` |
-| The ten spec fields and the piece spec template | `/grill-piece` settles them, `/project-spec` writes them, `/project-tickets` reads Research, Final pass, Split, Form and Outline, `/review-piece` reads Reader, Outline, Form and Style |
+| The nine spec fields and the piece spec template | `/plan-project` settles them, `/project-spec` writes them, `/project-tickets` reads Research, Final pass, Form and Outline, `/review-piece` reads Reader, Outline, Form and Style |
 | The piece-ticket template, its Sections named by full heading path | `/project-tickets` writes it, and `/judge-findings` for a larger piece fix; `/implement-piece` drafts only the Sections it names; `/review-piece` scopes to them |
 | The piece review axes, `spec`, `standards` and `reader`, each finding with a suggested verdict, and `## Dismissed overlaps` | `/review-piece` reports them, and the piece review Step returns them as its record; `/implement-piece` resolves the ones `runner -- review` prints, as the piece resolve Step does |
 | The Research fact list comment: numbered facts, each ending with a locator naming its saved text and page range or heading, quotes optional and verbatim, and a `## Unverified` section outside the fact list | `/research-piece` posts it; `/review-research` checks its draft first; `/review-piece`'s fact list takes its facts outside `## Unverified` when the spec links it; `/implement-piece` drafts from its facts, never its quotes or `## Unverified` |
@@ -180,12 +184,12 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | `runner -- decide` | `/runner`, `/implement-code`, `/implement-piece`, `/judge-findings` |
 | `runner -- status` | `/runner` reads a run and, to diagnose, the Run board; `/review-code-tickets` and `/project-tickets`' Re-ticket read what has landed or started |
 | `npm run overlap` | `/review-piece` runs it; `/implement-piece` reruns it after a fix; the piece resolve Step reruns it after its Fixes; `/judge-findings` reruns it after a piece "now" fix |
-| `npm run pdf:text` and the page-range command in [`pdf-pages.md`](../pdf-pages.md) | `/research-piece` dumps text; `/grill-piece` and `/review-research` count and print pages |
+| `npm run pdf:text` and the page-range command in [`pdf-pages.md`](../pdf-pages.md) | `/research-piece` dumps text; `/plan-project` and `/review-research` count and print pages |
 | Sub-issues and native blocking edges | `/project-tickets`, `/judge-findings` and `/runner` set them through `npm run issue:file`; `/review-piece` reads the parent through `gh api`; `/project-spec` sets a held spec's blocked-by edge and its Phase gate walks the chain; `/judge-findings` and `/close-project` list what a closed spec blocks |
-| The gworkspace tools (Drive and Docs) | `/grill-piece`, `/implement-piece`, `/research-piece`, `/runner` on an `another source` answer |
+| The gworkspace tools (Drive and Docs) | `/plan-project`, `/implement-piece`, `/research-piece`, `/runner` on an `another source` answer |
 | `npm run verify:quotes` | `/research-piece` and the research Step check the fact list; `/runner` checks an addendum |
 | The Outline edits' code (`runner/src/outlineEdits.ts`) | a run applies an answered Research Halt's; `/research-piece` applies the developer's through `npm run outline:apply` |
 
 ## Out of scope
 
-[`/inbox`](../../.claude/skills/inbox/SKILL.md), [`/wizard`](../../.claude/skills/wizard/SKILL.md), [`/prompt-scan`](../../.claude/skills/prompt-scan/SKILL.md), [`/pr`](../../.claude/skills/pr/SKILL.md), [`/retarget-after-gen-configs`](../../.claude/skills/retarget-after-gen-configs/SKILL.md) and [`/check-upstream-skills`](../../.claude/skills/check-upstream-skills/SKILL.md).
+[`/grill-me`](../../.claude/skills/grill-me/SKILL.md), [`/inbox`](../../.claude/skills/inbox/SKILL.md), [`/wizard`](../../.claude/skills/wizard/SKILL.md), [`/prompt-scan`](../../.claude/skills/prompt-scan/SKILL.md), [`/pr`](../../.claude/skills/pr/SKILL.md), [`/retarget-after-gen-configs`](../../.claude/skills/retarget-after-gen-configs/SKILL.md) and [`/check-upstream-skills`](../../.claude/skills/check-upstream-skills/SKILL.md).
