@@ -44,13 +44,13 @@ export class LogRowCommitter extends WrapUpBase {
     issue: IssueRef,
     spec: IssueRef,
   ): Promise<WorkflowName> {
-    const specLabels = { labels: await this._labelsOf(spec) };
+    const specIssue = { labels: await this._labelsOf(spec) };
     const name = ticketWorkflowNameOf({
       ticket: { issue, labels: await this._labelsOf(issue) },
-      spec: specLabels,
+      spec: specIssue,
     });
     // A ticket that picks none Halted its run, so its row names the spec's Workflow.
-    return name ?? workflowNameOf(specLabels);
+    return name ?? workflowNameOf(specIssue);
   }
 
   private async _labelsOf(issue: IssueRef): Promise<string[]> {
