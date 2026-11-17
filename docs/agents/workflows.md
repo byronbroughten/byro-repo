@@ -87,7 +87,7 @@ The worked examples:
 | Tickets | Both | `/review-project-tickets` | `grilling`, for the spec gaps a review finds | named |
 | Tickets | Both | `/review-project-tickets` | `/runner` | you invoke it |
 | Tickets | Both | `/project-tickets` | `/project-spec <repo> <n>`, on a held spec with a `## Phase gate`, a source past the spec size line or with a gate, or a Phase split past about 20 tickets | named |
-| Tickets | Code | `/project-tickets` | `/review-project-tickets`, at 6 or more drafts, before the breakdown reaches the developer; `grilling`, for the spec gaps it finds | named, read by path |
+| Tickets | Both | `/project-tickets` | `/review-project-tickets`, at 6 or more code drafts or on any piece draft set, before the breakdown reaches the developer; `grilling`, for the spec gaps it finds | named, read by path |
 | Tickets | Both | `/project-tickets` | `/runner` on the spec, or for a piece spec `/implement-piece` on the first ticket | named |
 | Tickets | Piece | the Edit gate | `/close-project <repo> <spec>` | named, in the gate's body, the run's end message and `issue:start`'s `Skill:` line |
 | Implementation | Code | `/runner` | `/judge-findings` when a run finishes; an Interactive ticket through `/start-issue`'s steps and the skill `issue:start` names | named |
@@ -165,7 +165,7 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | A ticket's `## New dependencies` section | `/project-tickets` writes it; `/implement-code` and the implement Step add only what it names; the wrap-up Step refuses any other new package |
 | The review list's `R<n>.<k>` items | the runner posts them; `/judge-findings` and the Supervisor decide them through `runner -- decide`; `/to-writing-style`'s pair mode mines the decided Proposals |
 | The numbered 🪤/📝 items | `/to-code-style`, `/to-writing-style` |
-| The nine spec fields and the piece spec template | `/plan-project` settles them, `/project-spec` writes them, `/project-tickets` reads Research, Final pass, Form and Outline, `/review-piece` reads Reader, Outline, Form and Style |
+| The nine spec fields and the piece spec template | `/plan-project` settles them, `/project-spec` writes them, `/project-tickets` reads Research, Final pass, Form and Outline, the Solution's developer-only steps, and a `## Split` an older spec holds as a suggestion, `/review-piece` reads Reader, Outline, Form and Style |
 | The piece-ticket template, its Sections named by full heading path | `/project-tickets` writes it, and `/judge-findings` for a larger piece fix; `/implement-piece` drafts only the Sections it names; `/review-piece` scopes to them |
 | The piece review axes, `spec`, `standards` and `reader`, each finding with a suggested verdict, and `## Dismissed overlaps` | `/review-piece` reports them, and the piece review Step returns them as its record; `/implement-piece` resolves the ones `runner -- review` prints, as the piece resolve Step does |
 | The Research fact list comment: numbered facts, each ending with a locator naming its saved text and page range or heading, quotes optional and verbatim, and a `## Unverified` section outside the fact list | `/research-piece` posts it; `/review-research` checks its draft first; `/review-piece`'s fact list takes its facts outside `## Unverified` when the spec links it; `/implement-piece` drafts from its facts, never its quotes or `## Unverified` |
