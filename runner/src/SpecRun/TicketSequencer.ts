@@ -96,8 +96,6 @@ export class TicketSequencer extends SpecRunBase {
             extraTurns,
           }) ?? "resume";
       }
-      const workflow = this._workflowOf(run.spec);
-      state.step = entryStepOf(state, workflow.stepsOf(ticket));
       const pair = state.pair ?? pairOf(ticket.body);
       if (pair === undefined) {
         throw new UnhandledStop(
@@ -106,8 +104,8 @@ export class TicketSequencer extends SpecRunBase {
           this._progressPathOf(run),
         );
       }
-      await this._haltOnUntrustedBody({ run, ticket, pair, state });
       // Read from the ticket as picked, so an answered Halt goes on once the developer labels it.
+      // Before the pick below, which throws on a ticket that picks none.
       if (ticketWorkflowNameOf({ ticket, spec: run.spec }) === undefined) {
         await this.haltRaiser._unpickedWorkflowHalt({
           run,
@@ -116,6 +114,9 @@ export class TicketSequencer extends SpecRunBase {
           state,
         });
       }
+      const workflow = this._ticketWorkflowOf({ ticket, spec: run.spec });
+      state.step = entryStepOf(state, workflow.stepsOf(ticket));
+      await this._haltOnUntrustedBody({ run, ticket, pair, state });
       this._log(
         run,
         ticketLaunchLineOf(ticket.issue, pairLabelOf(pair), state.step),
@@ -280,7 +281,11 @@ export class TicketSequencer extends SpecRunBase {
       });
     }
     // In the sequence's order, so a step only ever advances the ticket to a later one.
-    const sequence = this._workflowOf(run.spec).stepsOf(ticketRun.ticket);
+    const { ticket } = ticketRun;
+    const sequence = this._ticketWorkflowOf({
+      ticket,
+      spec: run.spec,
+    }).stepsOf(ticket);
     for (const { step, nextOf } of sequence) {
       // The last step, wrap-up, is the landing _runTicket runs.
       if (state.step !== step || nextOf === undefined) continue;

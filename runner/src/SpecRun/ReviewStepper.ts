@@ -121,8 +121,8 @@ export class ReviewStepper extends SpecRunBase {
   // An implementer past the ticket budget hands off first, while its cache is still warm.
   async _review(ticketRun: TicketRun): Promise<void> {
     await this.handoffTaker._handOffPastBudget(ticketRun, "review");
-    const { run, state } = ticketRun;
-    const rules = this._agentStepOf(run.spec, "review");
+    const { run, ticket, state } = ticketRun;
+    const rules = this._ticketAgentStepOf({ ticket, spec: run.spec }, "review");
     const { reviewerCheck, outputSchema: jsonSchema } = rules;
     const input: ReviewPromptInput = {
       ...(await this._reviewPromptInputOf(ticketRun)),
@@ -226,7 +226,8 @@ export class ReviewStepper extends SpecRunBase {
 
   // The prompt input a run's review and an interactive session's brief alike add to the ticket's fields.
   async _reviewPromptInputOf(ticketRun: TicketRun): Promise<ReviewPromptInput> {
-    const rules = this._agentStepOf(ticketRun.run.spec, "review");
+    const { run, ticket } = ticketRun;
+    const rules = this._ticketAgentStepOf({ ticket, spec: run.spec }, "review");
     const { fileCount, commitsSinceMaster } =
       await this._branchDiffOf(ticketRun);
     return {
@@ -274,8 +275,11 @@ export class ReviewStepper extends SpecRunBase {
     return this._isInlineSize(fileCount);
   }
 
-  private _isInlineOffered({ run }: TicketRun): boolean {
-    const { reviewerCheck } = this._agentStepOf(run.spec, "review");
+  private _isInlineOffered({ run, ticket }: TicketRun): boolean {
+    const { reviewerCheck } = this._ticketAgentStepOf(
+      { ticket, spec: run.spec },
+      "review",
+    );
     return reviewerCheck?.offerInline === true;
   }
 
@@ -482,8 +486,8 @@ export class ReviewStepper extends SpecRunBase {
     return ran;
   }
 
-  private _resolveRulesOf({ run }: TicketRun): ResolveRules {
-    return this._agentStepOf(run.spec, "resolve");
+  private _resolveRulesOf({ run, ticket }: TicketRun): ResolveRules {
+    return this._ticketAgentStepOf({ ticket, spec: run.spec }, "resolve");
   }
 }
 

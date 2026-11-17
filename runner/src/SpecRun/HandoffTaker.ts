@@ -237,7 +237,7 @@ export class HandoffTaker extends SpecRunBase {
     );
   }
 
-  private _implementRulesOf({ run }: TicketRun): ImplementRules {
-    return this._agentStepOf(run.spec, "implement");
+  private _implementRulesOf({ run, ticket }: TicketRun): ImplementRules {
+    return this._ticketAgentStepOf({ ticket, spec: run.spec }, "implement");
   }
 }
