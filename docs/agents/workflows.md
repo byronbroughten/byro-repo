@@ -56,15 +56,14 @@ A new Workflow, a new or edited step prompt, and a new or edited Workflow skill 
 - **A resumed session is told what it already holds; a fresh one isn't told it holds what it never saw.**
 - **Calls already decided on go out together, and none is added to fill a batch.**
 - **A change that cuts turns is measured before and after**: summed context and read tokens per step, by step kind, from the step logs before it lands against the first run after.
-- **A change is reverted when it costs more than it saves**: a batching line, when read tokens rise by more than the summed context it saves.
 - **Either result goes into [the estimates](./codebase-priorities/estimates.md) as an `Observed:` line.**
 
 The worked examples:
 
 - **byro-repo#357, `/start-issue`'s opening**: `npm run issue:start` prints whether the session is already in the workspace, its path, and the ticket's Model fit and comments, cutting the opening from six turns to two, or one when already entered.
-- **byro-repo#773, the review step's opening**: the code and piece review prompts inline their review skill's body; the code review prompt pins `master` as the fixed point and lists each repo's commits since it (`runner/src/Workflow/code/reviewStep.ts`); a review that resumes the implementer is told it holds the ticket (`heldTicketLinesOf` in `runner/src/promptText.ts`); `runner -- review`'s brief prints the same prompt.
+- **byro-repo#773, the review step's opening**: the code and piece review prompts inline their review skill's body; the code review prompt pins `master` as the fixed point and lists each repo's commits since it (`runner/src/Workflow/code/reviewStep.ts`); a review that resumes the implementer is told it holds the ticket (`heldTicketLinesOf` in `runner/src/promptText.ts`); `runner -- review`'s brief prints the same prompt. Measured: the code review step saved 182.5K a ticket against reviews that already resumed the implementer ([the estimates' Steps](./codebase-priorities/estimates.md#steps)).
 - **byro-repo#773, the piece review's inputs**: the runner writes what `/review-piece` copies word for word, the spec's fields, the Unverified sections, the overlap report and the Style file, before the review launches (`runner/src/Workflow/piece/reviewInputs.ts`), leaving the fact list to the review.
-- **byro-repo#773, the batching lines**: the implement body, the piece drafting lines and the resolve text both Workflows share carry "send the reads and greps you've already decided on together in one turn, and don't add a call to fill a batch" (`runner/src/stepPrompts/resolveText.ts`), and `/code-review` and `/review-piece` tell each reviewer to send its opening calls together.
+- **byro-repo#773, the batching lines**: the implement body, the piece drafting lines and the resolve text both Workflows share carry "send the reads and greps you've already decided on together in one turn, and don't add a call to fill a batch" (`runner/src/stepPrompts/resolveText.ts`), and `/code-review` and `/review-piece` tell each reviewer to send its opening calls together. Measured, the line is kept on all three, code's resolve on the developer's call; piece had no run to measure ([the estimates' Steps](./codebase-priorities/estimates.md#steps)).
 
 ## The hand-off table
 
