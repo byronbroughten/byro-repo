@@ -9,7 +9,7 @@ The one home for ticketing judgments: the ticket split test, work packages, sizi
   - its parts need different kinds;
   - its parts need pairs whose merge would put the cheap part on the costly pair;
   - it is a wide refactor with no green state short of expand–migrate–contract;
-  - it is a piece spec, which always gets tickets.
+  - it is a piece or mixed spec, which always gets tickets.
 - **Work that passes is one ticket**: a spec with a `## Model fit` section, or a single filed ticket.
 - **Every agent but a ticketing one only answers whether work passes, never how to split it**: reviewers, resolvers, an implementer writing a handoff, `/project-spec` and the Phase gate cite this test, and [`/project-tickets`](../../.claude/skills/project-tickets/SKILL.md) does the splitting.
 
@@ -56,7 +56,7 @@ The one home for ticketing judgments: the ticket split test, work packages, sizi
 
 - **The pair lives in the ticket: a `## Model fit` section, last in the body, holding a pair line, then a one-line reason ending with the ticket's estimate as `~NK`.**
 - **`/project-tickets` and `/project-spec` write the section**, each by its own rule: [every agent and interactive ticket](../../.claude/skills/project-tickets/SKILL.md#code-ticket-template), [every `ready-for-agent` piece ticket](../../.claude/skills/project-tickets/SKILL.md#piece-ticket-template), [and the read-back](../../.claude/skills/project-tickets/SKILL.md#8-read-back-the-pairs); [the code specs that pass the split test](../../.claude/skills/project-spec/SKILL.md#5-write-each-spec), in the paragraph after its code template.
-- **`/project-spec` writes none in a piece spec**: a piece spec's pairs are its tickets'.
+- **`/project-spec` writes none in a piece or mixed spec**: its pairs are its tickets'.
 - **The developer switches with `/model` and `/effort`**; never dispatch an implementer.
 - **A Model fit check compares the model only**: the agent can't see `/effort`, so it names an effort only when the developer has said what it is.
 - **Pick from six pairs only:** Haiku medium, Sonnet medium, Sonnet high, Opus low, Opus medium, Opus high. Criteria for each and their evidence: [`model-fit.md`](./model-fit.md).
