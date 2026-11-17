@@ -283,9 +283,8 @@ export class RunLoop extends SpecRunBase {
       ...rest.map((specIssue) => this._startRunClearingStop(specIssue)),
     ]);
     // Labelled once, as a Batch's member list never changes.
-    const accountHold = new AccountHold({
-      stateFolder: this.config.stateFolder,
-      runLabel: runLabelOf(this.memberIssues),
+    const accountHold = new AccountHold(this.config.stateFolder, {
+      spec: runLabelOf(this.memberIssues),
       kind: "run",
     });
     this.accountHold = accountHold;

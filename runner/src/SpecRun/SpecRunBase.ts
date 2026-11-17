@@ -258,9 +258,8 @@ export class SpecRunBase {
       skipped: new Set(),
       failureStreak: [],
       streamUsage: new Map(),
-      accountHold: new AccountHold({
-        stateFolder: this.config.stateFolder,
-        runLabel: issueRef.labelOf(specIssue),
+      accountHold: new AccountHold(this.config.stateFolder, {
+        spec: issueRef.labelOf(specIssue),
         kind: holderKind,
       }),
     };

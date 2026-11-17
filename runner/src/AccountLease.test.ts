@@ -21,7 +21,10 @@ function leasePath(account: number): string {
   return join(stateFolder, `account-${account}.lease`);
 }
 
-const account2 = { account: 2, spec: "byro-repo #763", kind: "run" } as const;
+const account2 = {
+  account: 2,
+  holder: { spec: "byro-repo #763", kind: "run" },
+} as const;
 
 describe("AccountLease.take", () => {
   it("takes a free account's lease as this process, recording its spec and kind", () => {

@@ -7,8 +7,12 @@
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import type { LeaseHolder } from "./IssueWorkspaces/workspaceLeases.ts";
-import { type HeldLock, type LockHolder, PidLock } from "./PidLock.ts";
+import {
+  type AccountHolder,
+  type HeldLock,
+  type LockHolder,
+  PidLock,
+} from "./PidLock.ts";
 
 export type AccountLeaseTake =
   { kind: "taken"; lease: AccountLease } | HeldLock;
@@ -23,21 +27,20 @@ export interface AccountLeaseReader {
   read(): LeasedAccount[];
 }
 
-// The run's label, as `spec`, and the holder's kind are recorded in the holder, so the Accounts section names it.
+// The holder is recorded in the lease, so the Accounts section names it.
 export interface AccountLeaseRequest {
   account: number;
-  spec: string;
-  kind: LeaseHolder["kind"];
+  holder: AccountHolder;
 }
 
 export class AccountLease extends PidLock {
   static take(
     stateFolder: string,
-    { account, spec, kind }: AccountLeaseRequest,
+    { account, holder }: AccountLeaseRequest,
   ): AccountLeaseTake {
     mkdirSync(stateFolder, { recursive: true });
     const path = leasePathOf(stateFolder, account);
-    const attempt = PidLock.tryTake(path, { spec, kind });
+    const attempt = PidLock.tryTake(path, { accountHolder: holder });
     if (attempt.kind === "taken") {
       return { kind: "taken", lease: new AccountLease(path, attempt.holder) };
     }
