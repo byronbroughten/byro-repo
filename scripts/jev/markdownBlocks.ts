@@ -36,9 +36,3 @@ export function markdownBlocks(markdown: string): MarkdownBlock[] {
   });
   return blocks;
 }
-
-export function paragraphTexts(blocks: MarkdownBlock[]): string[] {
-  return blocks.flatMap((block) =>
-    block.kind === "paragraph" ? [block.text] : [],
-  );
-}

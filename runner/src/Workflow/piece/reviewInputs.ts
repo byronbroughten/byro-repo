@@ -179,7 +179,7 @@ async function overlapReportOf(
   return report.text;
 }
 
-// The Style file shape the Jev agent doc's style check names: the Axes lines, then the overrides, Form and Order verbatim.
+// The Style file shape docs/pieces/style-file.md names: the Axes lines, then the overrides, Form and Order verbatim.
 // Unsupplied when the Axes line won't parse, so the review gathers the Style file itself rather than losing the field.
 function styleInputsOf(folder: string, body: string): SuppliedInput[] {
   const style = fieldOf(body, headings.style);
@@ -208,7 +208,7 @@ function axesLinesOf({ evidence, formality, isAcademic }: StyleAxes): string {
   return `Evidence: ${evidence}\nFormality: ${formality}\nAcademic: ${academic}\n`;
 }
 
-// The heading stays when the spec has no overrides, since the style check stops on a Style file without it.
+// The heading stays when the spec has no overrides, so a reviewer can tell no overrides from lost ones.
 function overridesOf(overrides: string): string {
   if (overrides === "") return "## Overrides\n";
   return `## Overrides\n\n${overrides}\n`;

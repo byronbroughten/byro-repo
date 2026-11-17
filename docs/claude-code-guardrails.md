@@ -51,7 +51,7 @@ Mechanics of the Claude Code hooks, the Bash sandbox and the project agent. Why 
   - `npm run session:probe *`: it launches `claude`.
   - `npm run check`, `npm run check *`, `npm test` and `npm test *`: in the box, `ps`, which `runner/src/processIdentity.ts` runs, can't see the test's own process, so the runner's lease and process-liveness tests fail.
   - `npm run app*` and `npm run dev*`: they reach Google and read the `clasp` credential.
-  - `npm run jev *` and `npm run jev:style *`: in the box the jev client fails with `fetch failed`, though `curl` reaches its host there ([observed](./claude-code-behaviour.md#the-bash-sandbox)).
+  - `npm run jev *`: in the box the jev client fails with `fetch failed`, though `curl` reaches its host there ([observed](./claude-code-behaviour.md#the-bash-sandbox)).
   - `ps`, `ps *`, `pgrep` and `pgrep *`: the box blocks `ps` ([observed](./claude-code-behaviour.md#the-bash-sandbox)), and an agent checks a process is alive with them instead of guessing from a log; what that exposes is in [their tier row](./targets-and-gates.md#which-tier-an-action-is-in).
   - `npm run ws:rm` and `npm run ws:rm *`: the box protects a worktree's `.claude/hooks` and `.claude/skills`, so a boxed `git rm` there fails; what the script refuses is [its tier row](./targets-and-gates.md#which-tier-an-action-is-in), and the probe of it is [observed](./claude-code-behaviour.md#the-bash-sandbox).
   - `open` and `open *`: the box turns off Launch Services, which `open` needs to show the developer a built prototype; which `open` is free is [its tier row](./targets-and-gates.md#which-tier-an-action-is-in).

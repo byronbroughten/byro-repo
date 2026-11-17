@@ -36,7 +36,6 @@ const freeScripts = new Map<string, string>([
   ["issue:read", "it only reads an issue"],
   ["issue:promote", "a promoted repo comes off with its workspace"],
   ["jev", freeWhys.jev],
-  ["jev:style", freeWhys.jev],
   ["outline", "it only reads a file"],
   ["outcome:summary", "it only reads the outcome log and issues"],
   ["prompt:scan", "it only reads transcripts"],

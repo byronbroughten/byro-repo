@@ -729,7 +729,6 @@ describe("free reads and standing yeses in both modes", () => {
       "gh label list -R ByronBroughten/byro-repo",
       "npm run jev -- /tmp/request.json",
       "npm run -s jev -- /tmp/request.json",
-      "npm run jev:style -- writing/piece.md",
       "npm run session:probe -- /tmp/folder",
       "npm run session:probe -- --sandbox-check /tmp/folder /tmp/commands.txt",
       "npm run outline -- scripts/overlap/overlap.ts",

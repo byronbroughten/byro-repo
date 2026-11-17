@@ -111,6 +111,7 @@ The rules for writing any Piece, whichever repo files its spec. The Pieces' text
 | `grilling.md` | The questions a grill asks before a piece spec is filed, one per spec field it settles, each with an example from a past spec, its private details replaced by neutral stand-ins. `/grill-piece` asks them; `/to-writing-style` adds to them. |
 | `outlining.md` | How a spec's Outline is written: what each entry holds, a template's fixed Sections, and when Research revises it. |
 | `agent-draft.md` | An Agent draft's path, its shape, what may change it, and the pull rules. |
+| `style-file.md` | The Style file's shape, the piece review input that carries a spec's axis values, overrides, Form and Order. |
 
 ### Writing (`packages/personal/writing/`, in the `personal` repo)
 

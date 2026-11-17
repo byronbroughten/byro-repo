@@ -40,7 +40,7 @@ Write each other input to its own file in the scratchpad, so each sub-agent gets
 - **Outline**: the spec's Outline field, verbatim.
 - **Length limit**: the spec's, verbatim.
 - **Overlap**: the output of `npm run overlap -- --deliverable <Agent draft> --passages <passages folder> --allow <file>`, its allow file listing the proper names and fixed terms the Piece can't reword.
-- **Style**: the spec's Evidence and Formality values, whether the Piece is Academic, and its Style field's overrides, Form and Order sections, verbatim, in the Style file shape in [the Jev agent doc](../../../docs/agents/jev.md#the-style-check).
+- **Style**: the spec's Evidence and Formality values, whether the Piece is Academic, and its Style field's overrides, Form and Order sections, verbatim, in the Style file shape in [`style-file.md`](../../../docs/pieces/style-file.md).
 
 Done when every file exists, or the spec has no such field and you say so. Note each **gap**: an input that is missing, a stand-in, or only partly loaded; an empty passages folder, or a fact's cited range the folder lacks, is a gap, never a Drive read.
 
