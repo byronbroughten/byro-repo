@@ -50,3 +50,8 @@ Disclosed from [`docs/writing-craft.md`](../writing-craft.md), "Words". The rule
 
 - Before: "The HELOC is our safety net, so we can hit the ground running." After: "The HELOC is our safety net if repairs run over." — invented; Pinker, Ch. 2, PDF pp. 53–54. _From Pinker; not yet seen in your writing._
 - It guards the Voice sheet's idiom habit: an idiom keeps its picture, so two pictures can collide.
+
+## "If" for what may not happen
+
+- Agent: "the Saint Paul Public Housing Agency inspects a unit for the HCV program (5.5) when a voucher tenant leases it" Developer: "… if a voucher tenant leases it" — personal#45 Agent draft, 2026-11-12
+- No count was recorded; from an Agent draft.

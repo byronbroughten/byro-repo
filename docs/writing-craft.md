@@ -54,6 +54,7 @@ One line per rule. The examples and their sources are one file away. Open a reas
 - **Put quotation marks around a heading or label you name when it isn't in title case, so the reader can see where it ends (the "Out of scope" list).**
 - **When the prose refers to what a table or figure lists, use the words the table or figure uses ("stakeholders", for a table titled "Stakeholder Acceptance Criteria").**
 - **Never let two idioms whose pictures clash share a sentence.**
+- **Introduce an event that may not happen with "if", not "when", which reads as certain.**
 
 ## Explaining
 
