@@ -34,6 +34,7 @@ const freeScripts = new Map<string, string>([
   ["issue:remove", "a plain remove refuses a workspace holding unlanded work"],
   ["issue:backlink", "a further `gh issue edit` undoes it"],
   ["issue:read", "it only reads an issue"],
+  ["map:next", "it only reads a map and its tickets"],
   ["issue:promote", "a promoted repo comes off with its workspace"],
   ["jev", freeWhys.jev],
   ["outline", "it only reads a file"],

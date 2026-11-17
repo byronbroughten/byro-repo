@@ -103,6 +103,7 @@
       "npm run research:push",
       "npm run google:script *",
       "npm run doc:print *",
+      "npm run piece:pull *",
       "npm run runner*",
       "npm run app*",
       "npm run dev*",

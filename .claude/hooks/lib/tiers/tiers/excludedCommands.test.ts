@@ -19,6 +19,7 @@ const entries = [
   "npm run wrap-up *",
   "npm run google:script *",
   "npm run doc:print *",
+  "npm run piece:pull *",
 ];
 
 function decisionOf(command: string) {
@@ -62,6 +63,10 @@ describe("an excluded command the call keeps in the box", () => {
     ],
     [
       "npm run doc:print -- 1AbCdEf | head",
+      "can't read the gworkspace server's credentials or reach Google",
+    ],
+    [
+      "npm run piece:pull -- personal 42 | head",
       "can't read the gworkspace server's credentials or reach Google",
     ],
   ])("refuses `%s` because the sandbox %s", (command, reason) => {
@@ -187,6 +192,7 @@ describe("a call the box lets out, or holding no excluded command", () => {
     "npm test -- runner/src/Checks.test.ts 2>&1",
     "npm test -- runner/src/Checks.test.ts",
     "npm run issue:read -- byro-repo 535 --body --hide-others",
+    "npm run map:next -- byro-repo 804 | head",
     "npm run lint",
   ])("keeps today's verdict on `%s`", (command) => {
     expect(decisionOf(command)).toEqual(

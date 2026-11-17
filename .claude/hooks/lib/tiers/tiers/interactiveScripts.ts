@@ -1,10 +1,10 @@
-// The verdicts for the scripts only an Interactive session runs: its research push, its ticket filing, its ask for the Google script route and its standing yes to the Doc print command. Its gh calls and review-list decisions are interactiveSession.ts's.
+// The verdicts for the scripts only an Interactive session runs: its research push, its ticket filing and parent close-out, its ask for the Google script route and its standing yeses to the Doc print command and the piece pull. Its gh calls and review-list decisions are interactiveSession.ts's.
 import type { SimpleCommand } from "../ShellParser.ts";
 import type { CallContext, Verdict } from "../tiers.ts";
 import { npmCommands } from "./npmCommands.ts";
 
 export const interactiveScripts = {
-  // The research push, the ticket filing, the Google script route and the Doc print command: a runner step's is refused, an Interactive session's gets its script's verdict.
+  // The research push, the ticket filing, the parent close-out, the Google script route, the Doc print command and the piece pull: a runner step's is refused, an Interactive session's gets its script's verdict.
   scriptVerdictOf(
     { words }: SimpleCommand,
     { mode }: CallContext,
@@ -67,6 +67,25 @@ const scripts = {
     sessionVerdict: {
       permissionDecision: "allow",
       why: "`npm run doc:print` is the standing yes to read a Doc as the agent account, whose token reaches only the files shared with that account",
+    },
+  },
+  // Matches the Doc print command's row: it reads a Piece's Doc with the same agent token, a second command holding it.
+  piecePull: {
+    name: "piece:pull",
+    stepWhy:
+      "reads a Piece's Doc with the agent account's access token, which only an Interactive session does",
+    sessionVerdict: {
+      permissionDecision: "allow",
+      why: "`npm run piece:pull` is the standing yes to read a Piece's Doc as the agent account, whose token reaches only the files shared with that account",
+    },
+  },
+  // Free as the `gh issue close` and `gh issue comment` it wraps are; a runner step's is refused, as a step's `gh issue close` is.
+  issueCloseParent: {
+    name: "issue:close-parent",
+    stepWhy: "closes a parent issue, which only an Interactive session does",
+    sessionVerdict: {
+      permissionDecision: "allow",
+      why: "`gh issue reopen` undoes the close `npm run issue:close-parent` makes, and a further comment its closing comment",
     },
   },
 } as const satisfies Record<string, InteractiveScript>;
