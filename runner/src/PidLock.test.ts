@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { deadPid, seedHolder } from "./lockFixture.ts";
+import { notRunningPid, seedHolder } from "./lockFixture.ts";
 import { type LockAttempt, type LockHolder, PidLock } from "./PidLock.ts";
 
 let folder: string;
@@ -23,7 +23,7 @@ function lockPath(): string {
 
 function seedDeadHolder(path: string): void {
   seedHolder(path, {
-    pid: deadPid(),
+    pid: notRunningPid,
     host: hostname(),
     startedAt: "2026-01-01",
   });

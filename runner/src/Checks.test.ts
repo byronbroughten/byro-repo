@@ -30,7 +30,7 @@ import {
   type CommandDuration,
 } from "./Checks.ts";
 import { git, GitFixture } from "./GitFixture.ts";
-import { deadPid, liveHolder, seedHolder } from "./lockFixture.ts";
+import { liveHolder, notRunningPid, seedHolder } from "./lockFixture.ts";
 import { type LockHolder, PidLock } from "./PidLock.ts";
 import type { Command } from "./runKnobs.ts";
 
@@ -512,7 +512,7 @@ describe("Checks.run", () => {
   });
 
   it("takes over a slot whose holder is no longer running", async () => {
-    seedSlot({ ...liveHolder(), pid: deadPid() });
+    seedSlot({ ...liveHolder(), pid: notRunningPid });
 
     const result = await checks([marking("a")]).run();
 

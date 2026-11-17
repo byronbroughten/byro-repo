@@ -9,7 +9,7 @@ import type { UsageWindow } from "./AgentStep.ts";
 import { BatchRecords } from "./BatchRecords.ts";
 import { FakeUsageReader } from "./FakeUsageReader.ts";
 import type { UsageList } from "./limitGuard.ts";
-import { deadPid, seedHolder } from "./lockFixture.ts";
+import { notRunningPid, seedHolder } from "./lockFixture.ts";
 import { boardTimings, runBoardOf, watchBoard } from "./runBoard.ts";
 
 const now = new Date("2026-10-25T12:00:00.000Z");
@@ -164,7 +164,7 @@ describe("runBoardOf", () => {
     seedStream(streamPath, { fiveHour: 0.62, sevenDay: 0.3 });
     seedRun({
       stem: "byro-repo-424",
-      pid: deadPid(),
+      pid: notRunningPid,
       steps: { "byro-repo #431": "review" },
       log: [
         `2026-10-25T11:48:31.000Z byro-repo #431: review step on account 2, raw stream in ${streamPath}.`,
@@ -239,7 +239,7 @@ describe("runBoardOf", () => {
   it("marks a run whose lock's pid is dead", async () => {
     seedRun({
       stem: "personal-21",
-      pid: deadPid(),
+      pid: notRunningPid,
       steps: { "personal #22": "implement" },
       log: [
         "2026-10-25T10:00:00.000Z personal #22: launching on Sonnet high from implement.",

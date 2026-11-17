@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { IssueRef } from "./IssueWorkspaces.ts";
-import { deadPid, seedHolder } from "./lockFixture.ts";
+import { notRunningPid, seedHolder } from "./lockFixture.ts";
 import { RunLock } from "./RunLock.ts";
 
 const spec: IssueRef = { repo: "byro-repo", number: 213 };
@@ -52,7 +52,7 @@ describe("RunLock.isHeld", () => {
 
   it("answers no for a lock whose pid has died", () => {
     seedHolder(lockPath(), {
-      pid: deadPid(),
+      pid: notRunningPid,
       host: hostname(),
       startedAt: "2026-01-01",
     });
