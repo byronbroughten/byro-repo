@@ -1,6 +1,6 @@
 ---
 name: project-tickets
-description: "Split a code or piece spec, a conversation or a hand-written issue into tickets: list its work packages, group them into ordered tickets estimated from the union of their reads, review the drafts, confirm with the developer, file them with npm run issue:file and read back each pair. Invoked as /project-tickets <repo> <n>, or /project-tickets re-ticket <repo> <n> to split one existing ticket."
+description: "Split a code, piece or mixed spec, a conversation or a hand-written issue into tickets: list its work packages, group them into ordered tickets estimated from the union of their reads, review the drafts, confirm with the developer, file them with npm run issue:file and read back each pair. Invoked as /project-tickets <repo> <n>, or /project-tickets re-ticket <repo> <n> to split one existing ticket."
 argument-hint: "[<repo> <n>] | re-ticket <repo> <n>"
 disable-model-invocation: true
 ---
@@ -16,7 +16,8 @@ Read a spec or issue with `npm run issue:read -- <repo> <n> --body --comments`; 
 - **`needs-triage` with a `## Phase gate` section: refuse.** It is a held spec waiting on its Phase gate; tell the developer to run `/project-spec <repo> <n>` for its gate first, and stop.
 - **`needs-triage` with no `## Phase gate` section: accept**, and relabel it `ready-for-agent` once its tickets are filed (step 7).
 - **A spec `/project-spec` just gated is not re-checked against landed code**: the gate did that.
-- **The branch is the spec's `code` or `piece` label.** A piece spec takes [the piece branch](#the-piece-branch) from here; everything else is the code branch.
+- **The branch is the spec's `code` or `piece` label.** A piece spec takes [the piece branch](#the-piece-branch) from here; everything else with one label or none is the code branch.
+- **A spec labelled both is mixed: each ticket takes the branch of its own kind**, its Piece's stages the piece branch and its code work the code branch, as [the piece branch's mixed-spec line](#the-piece-branch) runs them, and every draft's `labels` hold `code` or `piece`.
 - **A standalone run, a conversation or a hand-written issue with neither label, applies [`specs.md`](../../../docs/agents/specs.md)'s rules that bind tickets**: [Exploring](../../../docs/agents/specs.md#exploring), [Test seams](../../../docs/agents/specs.md#test-seams) with their test-speed warnings, and [Phases](../../../docs/agents/specs.md#phases)' "each spec lands green with nothing half-migrated" and "replacing something removes the old version". **Stop and recommend `/project-spec` when the source crosses the spec size line or has a gate**, by Phases' first rule.
 
 Done when the source is in hand, its branch is known, and it was refused or accepted.
@@ -146,6 +147,8 @@ The end-to-end behaviour this ticket makes work, from the user's perspective, no
 ## The piece branch
 
 A piece spec follows the Piece rules in the root's `docs/pieces/`: [`rules.md`](../../../docs/pieces/rules.md) and [`GLOSSARY.md`](../../../docs/pieces/GLOSSARY.md). Use their words (Piece, Deliverable, Section, Supporting Material, Reference); never restate them here. **Every piece spec gets tickets: at least one drafting ticket, and its Edit gate last.** Steps 1, 2 and 6 to 8 run as above; the sections below replace steps 3 to 5, and a piece spec's drafts get no Halt-risk review.
+
+**A mixed spec runs both branches into one draft folder, numbered in dependency order with the Edit gate still last**: its code work through steps 3 to 5, each draft labelled `code`, and its Piece through the sections below, each draft labelled `piece`, the Edit gate included. Step 5's review counts and reads only the code drafts; a piece ticket that needs a code ticket's output is blocked by it.
 
 ### Read the fields
 
