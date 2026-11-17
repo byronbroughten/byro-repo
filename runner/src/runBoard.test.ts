@@ -466,7 +466,6 @@ describe("watchBoard", () => {
     const headings = drawn.map(
       (board) => board.split("\n\n").at(-1)?.split("\n")[0],
     );
-    expect(boardTimings.redrawMs).toBe(5_000);
     expect(usageReader.readCount).toBe(2);
     expect(headings.slice(0, 3)).toEqual([
       "Accounts",

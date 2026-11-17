@@ -4,11 +4,13 @@
 import { existsSync, readFileSync } from "node:fs";
 
 import type { UsageReading } from "./AgentStep.ts";
+import { issueRef } from "./IssueWorkspaces.ts";
 import type { StampedLine } from "./localTime.ts";
 import {
   isIdleLine,
   isStepBoundaryLine,
   stampedLineOf,
+  type StepLaunch,
   stepLaunchOfLine,
   ticketOfLine,
 } from "./progressLines.ts";
@@ -19,6 +21,8 @@ export interface StreamReading {
   account: number;
   usage: UsageReading;
 }
+
+type HeldAccount = { kind: "launched"; launch: StepLaunch } | { kind: "idle" };
 
 export class ProgressLog {
   private readonly lines: StampedLine[];
@@ -52,7 +56,8 @@ export class ProgressLog {
       return `none; ${subject}, ${durationOf(latest.time, now)} on this step`;
     }
     const step = state?.tickets[ticket]?.step ?? "step unknown";
-    const number = ticketNumberOf(ticket);
+    // A spec's tickets are always filed in its repo, so the board drops the repo.
+    const number = issueRef.numberLabelOf(issueRef.ofLabel(ticket));
     const stepStart = this.lines.findLast(({ text }) =>
       isStepBoundaryLine(text, ticket),
     );
@@ -62,22 +67,19 @@ export class ProgressLog {
 
   // An Idle line newer than the last launch means the run holds no account until the next launch.
   accountText(): string {
-    const latest = this._latestAccountLine();
-    if (latest === undefined) return "none launched yet";
-    const launch = stepLaunchOfLine(latest.text);
-    if (launch === undefined) return "none; Idle, holding no account lease";
-    return `${launch.account}`;
+    const held = this._heldAccount();
+    if (held === undefined) return "none launched yet";
+    if (held.kind === "idle") return "none; Idle, holding no account lease";
+    return `${held.launch.account}`;
   }
 
   // The held account's reading from its latest step's own rate-limit events, so the board reads no account state the runs didn't write.
   streamReading(): StreamReading | undefined {
-    const latest = this._latestAccountLine();
-    if (latest === undefined) return undefined;
-    const launch = stepLaunchOfLine(latest.text);
-    if (launch === undefined) return undefined;
-    const usage = streamUsageOf(launch.streamPath);
+    const held = this._heldAccount();
+    if (held?.kind !== "launched") return undefined;
+    const usage = streamUsageOf(held.launch.streamPath);
     if (usage === undefined) return undefined;
-    return { account: launch.account, usage };
+    return { account: held.launch.account, usage };
   }
 
   latestText(now: Date): string {
@@ -92,16 +94,15 @@ export class ProgressLog {
     );
   }
 
-  private _latestAccountLine(): StampedLine | undefined {
-    return this.lines.findLast(
-      ({ text }) => isIdleLine(text) || stepLaunchOfLine(text),
-    );
+  // Undefined before the first launch.
+  private _heldAccount(): HeldAccount | undefined {
+    for (const { text } of this.lines.toReversed()) {
+      if (isIdleLine(text)) return { kind: "idle" };
+      const launch = stepLaunchOfLine(text);
+      if (launch !== undefined) return { kind: "launched", launch };
+    }
+    return undefined;
   }
-}
-
-// A spec's tickets are always filed in its repo, so the board drops the repo from `<repo> #<n>`.
-function ticketNumberOf(ticket: string): string {
-  return ticket.slice(ticket.lastIndexOf("#"));
 }
 
 function streamUsageOf(streamPath: string): UsageReading | undefined {
