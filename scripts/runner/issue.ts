@@ -95,7 +95,7 @@ async function startedTicketOf(
       "--hide-others",
     ]),
   ]);
-  return { skill, text };
+  return { issue: key, skill, text };
 }
 
 // Opens at the primary root, not the workspace, so hooks never point into a folder wrap-up removes.
