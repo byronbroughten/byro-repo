@@ -21,24 +21,24 @@ export interface RepoMap {
 
 // Undefined for anything but `<repo>` the map holds or `<owner>/<repo>`.
 export function repoArgsOf(
-  ownerRepo: string,
+  repoName: string,
   { githubOwner, clonePaths }: RepoMap,
 ): RepoArgs | undefined {
-  if (!ownerRepo.includes("/")) {
-    if (!Object.hasOwn(clonePaths, ownerRepo)) return undefined;
-    return { owner: githubOwner, repo: ownerRepo };
+  if (!repoName.includes("/")) {
+    if (!Object.hasOwn(clonePaths, repoName)) return undefined;
+    return { owner: githubOwner, repo: repoName };
   }
-  const [owner, repo, ...extra] = ownerRepo.split("/");
+  const [owner, repo, ...extra] = repoName.split("/");
   if (!owner || !repo || extra.length > 0) return undefined;
   return { owner, repo };
 }
 
 // Undefined for anything but that form.
 export function launchArgsOf(
-  [ownerRepo = "", ...numbers]: string[],
+  [repoName = "", ...numbers]: string[],
   repoMap: RepoMap,
 ): LaunchArgs | undefined {
-  const repoArgs = repoArgsOf(ownerRepo, repoMap);
+  const repoArgs = repoArgsOf(repoName, repoMap);
   if (repoArgs === undefined) return undefined;
   const { owner, repo } = repoArgs;
   if (!numbers.every((number) => /^\d+$/.test(number))) return undefined;

@@ -131,22 +131,22 @@ interface SpecArgs {
 }
 
 // Throws the usage for anything but `<repo>` the repo map holds or `<owner>/<repo>`.
-function requiredRepoArgsOf(ownerRepo: string): RepoArgs {
-  const repoArgs = repoArgsOf(ownerRepo, repoMap);
+function requiredRepoArgsOf(repoName: string): RepoArgs {
+  const repoArgs = repoArgsOf(repoName, repoMap);
   if (repoArgs === undefined) throw new Error(usage);
   return repoArgs;
 }
 
 // Throws the usage for anything but `<repo> <n>` or `<owner>/<repo> <n>`.
-function specArgsOf(ownerRepo: string, number: string | undefined): SpecArgs {
-  const { owner, repo } = requiredRepoArgsOf(ownerRepo);
+function specArgsOf(repoName: string, number: string | undefined): SpecArgs {
+  const { owner, repo } = requiredRepoArgsOf(repoName);
   if (!Number.isInteger(Number(number))) throw new Error(usage);
   return { owner, issue: { repo, number: Number(number) } };
 }
 
 async function runOnSpec(command: string, args: string[]): Promise<void> {
-  const [ownerRepo = "", number, flag] = args;
-  const { owner, issue } = specArgsOf(ownerRepo, number);
+  const [repoName = "", number, flag] = args;
+  const { owner, issue } = specArgsOf(repoName, number);
   const isAdvance = flag === "--advance";
   const isOnce = flag === "--once";
   const isFlagValid =
@@ -228,8 +228,8 @@ async function runSpec(
 
 // The submit's account and config folder are this process's, which the session that runs it shares.
 async function review(args: string[]): Promise<void> {
-  const [ownerRepo = "", number, recordPath, flag, sessionId, ...rest] = args;
-  const { owner, issue } = specArgsOf(ownerRepo, number);
+  const [repoName = "", number, recordPath, flag, sessionId, ...rest] = args;
+  const { owner, issue } = specArgsOf(repoName, number);
   const specRun = SpecRun.init(specRunConfigOf(owner));
   const holder = nearestClaudeAncestor();
   let result: ReviewResult;
@@ -256,8 +256,8 @@ async function review(args: string[]): Promise<void> {
 
 // `--handled` may sit anywhere after the item id.
 async function decide(args: string[]): Promise<void> {
-  const [ownerRepo = "", number, itemId, ...rest] = args;
-  const { owner, issue } = specArgsOf(ownerRepo, number);
+  const [repoName = "", number, itemId, ...rest] = args;
+  const { owner, issue } = specArgsOf(repoName, number);
   const isHandled = rest.includes("--handled");
   const texts = rest.filter((arg) => arg !== "--handled");
   const [text] = texts;
@@ -284,8 +284,8 @@ function isRepoVerb(command: string): command is RepoVerb {
 }
 
 async function listForRepo(command: RepoVerb, args: string[]): Promise<void> {
-  const [ownerRepo = "", ...rest] = args;
-  const { owner, repo } = requiredRepoArgsOf(ownerRepo);
+  const [repoName = "", ...rest] = args;
+  const { owner, repo } = requiredRepoArgsOf(repoName);
   if (rest.length > 0) throw new Error(usage);
   const specRun = SpecRun.init(specRunConfigOf(owner));
   console.log(await repoListers[command](specRun, repo));
