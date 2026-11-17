@@ -36,12 +36,12 @@ export class CloseOutChecker {
   // Undefined when `--comment-file` may close the parent.
   get closeRefusal(): string | undefined {
     const { parent } = this.read;
-    const { nothingWritten, closePieceOf } = closeOutWords;
+    const { nothingWritten, closeProjectOf } = closeOutWords;
     const label = issueRef.labelOf(parent.issue);
     if (!parent.isOpen) return `${label} is already closed; ${nothingWritten}`;
     if (this.editGate === undefined) return undefined;
     const gate = this.editGate.issue;
-    return `the Edit gate ${issueRef.labelOf(gate)} is still open: close it out first with ${closePieceOf(gate)}; ${nothingWritten}`;
+    return `the Edit gate ${issueRef.labelOf(gate)} is still open: close it out first with ${closeProjectOf(parent.issue)}; ${nothingWritten}`;
   }
 }
 

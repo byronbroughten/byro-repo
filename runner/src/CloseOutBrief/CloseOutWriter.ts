@@ -179,10 +179,10 @@ export class CloseOutWriter {
 
   private _editGateOf(editGate: ReadableIssue | undefined): string[] {
     if (editGate === undefined) return [];
-    const parent = this._refOf(this.config.read.parent.issue);
+    const { issue } = this.config.read.parent;
     return [
       "",
-      `## Edit gate: ${this._refOf(editGate.issue)} is open, the Edit gate to close out first: ${closeOutWords.closePieceOf(editGate.issue)}, before ${parent} closes`,
+      `## Edit gate: ${this._refOf(editGate.issue)} is open, the Edit gate to close out first, by ${closeOutWords.closeProjectOf(issue)}'s \`piece.md\`, before ${this._refOf(issue)} closes`,
     ];
   }
 

@@ -258,7 +258,7 @@ describe("the Close-out brief's refusals", () => {
 
     expect(brief).not.toContain("refused");
     expect(brief).toContain(
-      "## Edit gate: #811 is open, the Edit gate to close out first: `/close-piece byro-repo 811`, before #804 closes",
+      "## Edit gate: #811 is open, the Edit gate to close out first, by `/close-project byro-repo 804`'s `piece.md`, before #804 closes",
     );
   });
 
@@ -341,7 +341,7 @@ describe("the Close-out with --comment-file", () => {
 
     expect(github.closed).toEqual([]);
     expect(brief).toBe(
-      "issue:close-parent brief: none, the Edit gate byro-repo #811 is still open: close it out first with `/close-piece byro-repo 811`; nothing was posted or closed",
+      "issue:close-parent brief: none, the Edit gate byro-repo #811 is still open: close it out first with `/close-project byro-repo 804`; nothing was posted or closed",
     );
   });
 

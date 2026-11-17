@@ -1012,7 +1012,7 @@ describe("the end of a piece spec", () => {
 
       const { result } = await landsThenGapChecks([], agentOnlyDraft);
 
-      const gateLine = `Edit the Deliverable in its Doc, https://docs.google.com/document/d/${deliverableId}/edit, then close out the Edit gate: \`/close-piece byro-repo 2\`.`;
+      const gateLine = `Edit the Deliverable in its Doc, https://docs.google.com/document/d/${deliverableId}/edit, then close out the Edit gate: \`/close-project byro-repo ${spec.number}\`.`;
       expect(result.message).toContain(gateLine);
       expect(noticeSummaries().at(-1)).toContain(gateLine);
     });

@@ -44,11 +44,16 @@ export type Landing = "code" | "research";
 
 // A skill's folder name under `.claude/skills/`, which /start-issue reads.
 export type SessionSkill =
-  "implement-code" | "research-piece" | "close-piece" | "implement-piece";
+  "implement-code" | "research-piece" | "close-project" | "implement-piece";
 
 // An Edit gate ticket walks the drafting Steps too, but the Agent draft there is the developer's to edit.
 export function isDraftingSkill(skill: SessionSkill): boolean {
   return skill === "implement-piece";
+}
+
+// `/close-project` always takes the parent's number, so an Edit gate's session names its spec, never the gate.
+export function isSpecSkill(skill: SessionSkill): boolean {
+  return skill === "close-project";
 }
 
 export interface WorkflowStep {

@@ -47,13 +47,4 @@ A skill that edits files opens and lands its own session workspace, since `/star
 
 ## Closing a parent
 
-- **The parent close-out prompt** is the one the wrap-up points to when a parent has every sub-issue closed, for the developer to hand to a fresh agent. Boxes stay unticked; each sub-issue's closing comment is the record of what landed.
-
-  ````
-  Close out parent #<p> in <owner/repo>, whose sub-issues are all closed. Work from these issues; open master only to settle a doubt about one item.
-  1. Read #<p>'s body, its sub-issue list (`gh api repos/<owner/repo>/issues/<p>/sub_issues`) and each sub-issue's last comment, its closing comment.
-  2. List the gaps: each user story or implementation decision in #<p> that no sub-issue title or closing comment covers, and each closing comment naming a box left undone.
-  3. With no gaps: `gh issue close -R <owner/repo> <p> --comment "<what landed, naming the sub-issues>"`, then check #<p>'s own parent by the rule `parentCheckOf` in `runner/src/WrapUp/IssueCloser.ts` applies to a ticket's; if it is ready to close, print this prompt filled in for it rather than closing. Last, tell me to run `/mine-outcomes <repo> <p>`.
-  4. With gaps: leave #<p> open, report each gap and draft a follow-up ticket's text for me to file.
-  This message is my yes to close #<p> only.
-  ````
+- **Close out a parent with [`/close-project <repo> <p>`](../../.claude/skills/close-project/SKILL.md)**, the command wrap-up names when a parent has every sub-issue closed; a piece spec's Edit gate closes out inside it. Boxes stay unticked; each sub-issue's closing comment is the record of what landed.

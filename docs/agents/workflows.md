@@ -30,8 +30,8 @@ The words Piece, Deliverable, Section, Stage and Agent draft are [the writing gl
    - Both: [`/start-issue`](../../.claude/skills/start-issue/SKILL.md), which follows the skill `issue:start` names.
 5. **Judgement**
    - Code: none.
-   - Piece: [`piece.md`](../../runner/skills/judge-findings/piece.md), which `/judge-findings` reads for a piece spec; the developer's edit of the Deliverable follows the rerun's push, and [`/close-piece`](../../.claude/skills/close-piece/SKILL.md) closes out the Edit gate after it.
-   - Both: [`/judge-findings`](../../runner/skills/judge-findings/SKILL.md).
+   - Piece: [`piece.md`](../../runner/skills/judge-findings/piece.md), which `/judge-findings` reads for a piece spec; the developer's edit of the Deliverable follows the rerun's push, and `/close-project`'s [`piece.md`](../../.claude/skills/close-project/piece.md) closes out the Edit gate after it.
+   - Both: [`/judge-findings`](../../runner/skills/judge-findings/SKILL.md); [`/close-project`](../../.claude/skills/close-project/SKILL.md), which closes out any parent once its sub-issues are closed.
 6. **Process revision**
    - Code: [`/mine-outcomes`](../../runner/skills/mine-outcomes/SKILL.md), [`/retro`](../../.claude/skills/retro/SKILL.md), [`/to-code-style`](../../.claude/skills/to-code-style/SKILL.md).
    - Piece: [`/to-writing-style`](../../.claude/skills/to-writing-style/SKILL.md).
@@ -83,10 +83,10 @@ The worked examples:
 | Tickets | Both | `/project-tickets` | `/project-spec <repo> <n>`, on a held spec with a `## Phase gate`, a source past the spec size line or with a gate, or a Phase split past about 20 tickets | named |
 | Tickets | Code | `/project-tickets` | `/review-code-tickets`, at 6 or more drafts, before the breakdown reaches the developer; `grilling`, for the spec gaps it finds | named, read by path |
 | Tickets | Both | `/project-tickets` | `/runner` on the spec, or for a piece spec `/implement-piece` on the first ticket | named |
-| Tickets | Piece | the Edit gate | `/close-piece` | named, in the gate's body and the run's end message |
+| Tickets | Piece | the Edit gate | `/close-project <repo> <spec>` | named, in the gate's body, the run's end message and `issue:start`'s `Skill:` line |
 | Implementation | Code | `/runner` | `/judge-findings` when a run finishes; an Interactive ticket through `/start-issue`'s steps and the skill `issue:start` names | named |
 | Implementation | Code | `/start-issue` | `/implement-code`, when `issue:start` names it | named by `issue:start`, read by path |
-| Implementation | Piece | `/start-issue` | `/research-piece`, `/close-piece` or `/implement-piece`, whichever `issue:start` names | named by `issue:start`, read by path |
+| Implementation | Piece | `/start-issue` | `/research-piece`, `/close-project` or `/implement-piece`, whichever `issue:start` names | named by `issue:start`, read by path |
 | Implementation | Code | `/implement-code` | `tdd`, the review Step (`runner -- review`), then wrap-up | named |
 | Implementation | Code | `tdd` | `codebase-design` | named |
 | Implementation | Piece | `/runner` | `/judge-findings` when a run stops at the judge Step | named |
@@ -104,10 +104,11 @@ The worked examples:
 | Judgement | Code | `/judge-findings` | `/to-code-style` and `/mine-outcomes` when it closes a spec; tickets filed by `/project-tickets`' procedure, read as a file | named |
 | Judgement | Code | `/judge-findings` | `/project-spec <repo> <n>`, on a held spec the closed spec blocks | named |
 | Judgement | Piece | `/judge-findings`, by its `piece.md` | the runner's rerun (`npm run runner`, or detached through `npm run runner:tmux`), which drafts its filed tickets and pushes; tickets filed by `/project-tickets`' piece branch, read as a file | named |
-| Judgement | Piece | the developer's edit | `/close-piece` on the Edit gate | you invoke it |
-| Judgement | Piece | `/close-piece` | `/to-writing-style` in pair mode, on the developer's yes, read as a file since it is user-invoked | named |
-| Judgement | Piece | `/close-piece` | wrap-up, then `/mine-outcomes` when it closes the spec, or `/judge-findings` on an undecided item | named |
-| Judgement | Piece | `/close-piece` | `/project-spec <repo> <n>`, on a held spec the closed spec blocks | named |
+| Judgement | Piece | the developer's edit | `/close-project` on the spec | you invoke it |
+| Judgement | Piece | `/close-project`, by its `piece.md` | `/to-writing-style` in pair mode, on the developer's yes, read as a file since it is user-invoked; then the gate's wrap-up | named |
+| Judgement | Both | wrap-up, on a parent with every sub-issue closed | `/close-project <repo> <p>` | named, in wrap-up's parent line |
+| Judgement | Both | `/close-project` | `/judge-findings` on an undecided item; `/to-code-style` and `/mine-outcomes` when it closes a spec; `/close-project` on a ready parent its brief didn't announce | named |
+| Judgement | Both | `/close-project` | `/project-spec <repo> <n>`, on a held spec the closed spec blocks | named |
 | Process revision | Code | `/mine-outcomes` | `/retro`, on outlier tickets | named |
 | Process revision | Code | `/retro`, `/to-code-style` | `writing-for-agents` | named |
 | Process revision | Piece | `/to-writing-style` | `writing-for-agents`, for a change to `/grill-piece`'s calibration step | named |
@@ -129,20 +130,20 @@ A doc is listed when two or more skills or Steps of either Workflow reach it by 
 | The code-style rules: [config's](../../config/docs/code-style.md) and [the framework's](../../packages/framework/docs/code-style.md) | `/retro`, `/to-code-style` | via always-on hook: every code edit, by `/implement-code`, the implement and resolve Steps, and `/judge-findings`' "now" fixes |
 | [`prose-style.md`](../prose-style.md) | `/code-review`, `/retro`, `/to-code-style` | via always-on hook: every prose edit |
 | [`prose-files.md`](./prose-files.md) | `/to-code-style`, `/to-writing-style` | via always-on hook: every prose edit, through `prose-style.md` |
-| [The issue tracker doc](./issue-tracker.md) and [triage labels](./triage-labels.md) | `/wayfinder`, `domain-modeling`, `/project-spec`, `/project-tickets`, `/review-code-tickets`, `/code-review`, `/judge-findings`, `/mine-outcomes`, `/close-piece` | |
+| [The issue tracker doc](./issue-tracker.md) and [triage labels](./triage-labels.md) | `/wayfinder`, `domain-modeling`, `/project-spec`, `/project-tickets`, `/review-code-tickets`, `/code-review`, `/judge-findings`, `/mine-outcomes`, `/close-project` | |
 | [The git workflow doc](./git-workflow.md) | `/implement-code`, `/judge-findings`, `/mine-outcomes`, `/implement-piece` | via runner prompt: the implement Step; via `rules.md`: `/grill-piece`, `/project-spec`, `/project-tickets`, `/review-piece` |
 | [The runner glossary](../../runner/GLOSSARY.md) | `/runner`, `/review-code-tickets`, `/judge-findings`, `/mine-outcomes` | |
 | [The guardrails doc](../claude-code-guardrails.md) | `/project-tickets`, `/review-code-tickets`' reviewer, `/retro` | |
 | Design docs, ADRs and glossaries | `/project-spec`, `/project-tickets`, `domain-modeling`, `tdd`, `/to-code-style` | |
-| Skills read as docs | `/project-tickets` by `/judge-findings` and `/runner`; `/retro`'s categories by `/mine-outcomes`; `grilling`'s format by `/judge-findings`, `/mine-outcomes` and `/retro`; `/judge-findings`' step 1 and `/to-writing-style` by `/close-piece`; `/judge-findings`' step 1 by `/to-writing-style`'s pair mode; `/judge-findings`' step 1 by `/project-spec`'s Phase gate | |
+| Skills read as docs | `/project-tickets` by `/judge-findings` and `/runner`; `/retro`'s categories by `/mine-outcomes`; `grilling`'s format by `/judge-findings`, `/mine-outcomes` and `/retro`; `/judge-findings`' steps 1 and 5 by `/close-project`, and `/to-writing-style` by its `piece.md`; `/judge-findings`' step 1 by `/to-writing-style`'s pair mode; `/judge-findings`' step 1 by `/project-spec`'s Phase gate | |
 | The Voice and Craft sheets: [`writing-voice.md`](../writing-voice.md) and [`writing-craft.md`](../writing-craft.md) | `/grill-piece`, `/implement-piece`, `/review-piece`, `/to-writing-style` | via `rules.md`: `/project-spec`, `/project-tickets`, `/judge-findings` (its `piece.md`); via runner prompt: the piece implement Step |
 | [The academic style sheet](../academic-writing-style.md) | `/grill-piece`, `/review-piece`, `/to-writing-style` | via `rules.md`: `/implement-piece`, the piece implement Step, `/project-spec`, `/project-tickets`, `/judge-findings` (its `piece.md`) |
 | [`rules.md`](../pieces/rules.md), the rules for writing any Piece | `/grill-piece`, `/project-spec`, `/project-tickets`, `/implement-piece`, `/review-piece`, `/judge-findings` (its `piece.md`) | via runner prompt: the piece implement Step |
-| [The writing glossary](../pieces/GLOSSARY.md) | `/grill-piece`, `/project-spec`, `/project-tickets`, `/review-piece`, `/to-writing-style` (its pair mode), `/judge-findings` (its `piece.md`), `/close-piece` | via `rules.md`: `/implement-piece`, the piece implement Step |
+| [The writing glossary](../pieces/GLOSSARY.md) | `/grill-piece`, `/project-spec`, `/project-tickets`, `/review-piece`, `/to-writing-style` (its pair mode), `/judge-findings` (its `piece.md`), `/close-project` (its `piece.md`) | via `rules.md`: `/implement-piece`, the piece implement Step |
 | [`grilling.md`](../pieces/grilling.md) | `/grill-piece`, `/project-spec`, `/to-writing-style` | via `rules.md`: `/project-tickets`, `/implement-piece`, the piece implement Step, `/review-piece` |
 | [`outlining.md`](../pieces/outlining.md) | `/grill-piece`, `/project-spec`, `/project-tickets` | via `rules.md`: `/implement-piece`, the piece implement Step, `/review-piece` |
 | [`pdf-pages.md`](../pdf-pages.md) | `/grill-piece`, `/project-tickets` (its piece-ticket template), `/research-piece`, `/review-research` | via `rules.md`: `/implement-piece`, the piece implement Step, `/project-spec`, `/review-piece` |
-| [`agent-draft.md`](../pieces/agent-draft.md) | `/implement-piece`, `/review-piece`, `/to-writing-style` (its pair mode), `/judge-findings` (its `piece.md`), `/close-piece` | via `rules.md`: `/project-spec`, `/project-tickets`; via runner prompt: the piece implement Step |
+| [`agent-draft.md`](../pieces/agent-draft.md) | `/implement-piece`, `/review-piece`, `/to-writing-style` (its pair mode), `/judge-findings` (its `piece.md`), `/close-project` (its `piece.md`) | via `rules.md`: `/project-spec`, `/project-tickets`; via runner prompt: the piece implement Step |
 | [`style-file.md`](../pieces/style-file.md) | `/review-piece` | via runner prompt: the piece review Step, which carries `/review-piece`'s body |
 
 Routes that depend on which files a ticket touches (the read-first gate's tier, framework-style and writing rows, nested `AGENTS.md` files, the AGENTS.md cost nudge and the sandbox-failure context) live in [the guardrails doc's hooks section](../claude-code-guardrails.md#the-hooks-and-the-project-agent).
@@ -161,26 +162,26 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | The piece review axes, `spec`, `standards` and `reader`, each finding with a suggested verdict, and `## Dismissed overlaps` | `/review-piece` reports them, and the piece review Step returns them as its record; `/implement-piece` resolves the ones `runner -- review` prints, as the piece resolve Step does |
 | The Research fact list comment: numbered facts, each ending with a locator naming its saved text and page range or heading, quotes optional and verbatim, and a `## Unverified` section outside the fact list | `/research-piece` posts it; `/review-research` checks its draft first; `/review-piece`'s fact list takes its facts outside `## Unverified` when the spec links it; `/implement-piece` drafts from its facts, never its quotes or `## Unverified` |
 | The passages folder, `.runner/passages/<repo>-<n>` | `/implement-piece` and the piece implement Step save each passage read; `/review-piece`, the piece review Step and `/judge-findings`' piece "now" fixes read it |
-| The Agent draft's path and shape | `/implement-piece`, the pull Step, the piece implement Step and `/judge-findings`' piece "now" fixes write it; `/to-writing-style`'s pair mode diffs it; `/close-piece` compares the Deliverable with it |
+| The Agent draft's path and shape | `/implement-piece`, the pull Step, the piece implement Step and `/judge-findings`' piece "now" fixes write it; `/to-writing-style`'s pair mode diffs it; `/close-project`'s `piece.md` compares the Deliverable with it |
 
 ## The shared machinery
 
 | Machinery | Skills and Steps |
 | --- | --- |
-| The issue reader (`npm run issue:read`) with Trusted and Untrusted text | `/runner`, `/review-code-tickets`, `/start-issue` (via `issue:start`), `/implement-code`, `/judge-findings`, `/mine-outcomes`, every agent Step, `/project-tickets`, `/implement-piece`, `/review-piece`, `/research-piece`, `/review-research`, `/close-piece`, `/project-spec`'s Phase gate |
-| Issue and session workspaces (`npm run issue:start`, [`git-workflow.md`](./git-workflow.md#a-skills-session-workspace)) | `/start-issue`, `/judge-findings`, `/mine-outcomes`, `/implement-piece`'s issue workspace, `/research-piece`'s session workspace, `/close-piece`'s issue workspace |
-| Wrap-up (`npm run wrap-up`) | `/implement-code`, `/judge-findings`, `/mine-outcomes`, the wrap-up Step, `/implement-piece`, `/research-piece`, `/close-piece` |
-| `npm run doc:print` | `/close-piece` reads the Deliverable for the changed Sections; `/to-writing-style`'s pair mode reads it for its diff |
+| The issue reader (`npm run issue:read`) with Trusted and Untrusted text | `/runner`, `/review-code-tickets`, `/start-issue` (via `issue:start`), `/implement-code`, `/judge-findings`, `/mine-outcomes`, every agent Step, `/project-tickets`, `/implement-piece`, `/review-piece`, `/research-piece`, `/review-research`, `/close-project` (via `issue:close-parent`'s brief), `/project-spec`'s Phase gate |
+| Issue and session workspaces (`npm run issue:start`, [`git-workflow.md`](./git-workflow.md#a-skills-session-workspace)) | `/start-issue`, `/judge-findings`, `/mine-outcomes`, `/implement-piece`'s issue workspace, `/research-piece`'s session workspace, the Edit gate's issue workspace in `/close-project`'s `piece.md` |
+| Wrap-up (`npm run wrap-up`) | `/implement-code`, `/judge-findings`, `/mine-outcomes`, the wrap-up Step, `/implement-piece`, `/research-piece`, `/close-project`'s `piece.md` |
+| `npm run doc:print` | `/close-project`'s `piece.md` reads the Deliverable for the changed Sections; `/to-writing-style`'s pair mode reads it for its diff |
 | `npm run piece:pull` | `/start-issue` runs it on a piece drafting ticket; `/implement-piece` opens from its committed Agent draft and printed headings, and runs it itself when a session reached it without `/start-issue` |
 | `runner -- decide` | `/runner`, `/implement-code`, `/implement-piece`, `/judge-findings` |
 | `runner -- status` | `/runner` reads a run and, to diagnose, the Run board; `/review-code-tickets` and `/project-tickets`' Re-ticket read what has landed or started |
 | `npm run overlap` | `/review-piece` runs it; `/implement-piece` reruns it after a fix; the piece resolve Step reruns it after its Fixes; `/judge-findings` reruns it after a piece "now" fix |
 | `npm run pdf:text` and the page-range command in [`pdf-pages.md`](../pdf-pages.md) | `/research-piece` dumps text; `/grill-piece` and `/review-research` count and print pages |
-| Sub-issues and native blocking edges | `/project-tickets`, `/judge-findings` and `/runner` set them through `npm run issue:file`; `/review-piece` reads the parent through `gh api`; `/project-spec` sets a held spec's blocked-by edge and its Phase gate walks the chain; `/judge-findings` and `/close-piece` list what a closed spec blocks |
+| Sub-issues and native blocking edges | `/project-tickets`, `/judge-findings` and `/runner` set them through `npm run issue:file`; `/review-piece` reads the parent through `gh api`; `/project-spec` sets a held spec's blocked-by edge and its Phase gate walks the chain; `/judge-findings` and `/close-project` list what a closed spec blocks |
 | The gworkspace tools (Drive and Docs) | `/grill-piece`, `/implement-piece`, `/research-piece`, `/runner` on an `another source` answer |
 | `npm run verify:quotes` | `/research-piece` and the research Step check the fact list; `/runner` checks an addendum |
 | The Outline edits' code (`runner/src/outlineEdits.ts`) | a run applies an answered Research Halt's; `/research-piece` applies the developer's through `npm run outline:apply` |
 
 ## Out of scope
 
-[`/inbox`](../../.claude/skills/inbox/SKILL.md), [`/wizard`](../../.claude/skills/wizard/SKILL.md), [`/prompt-scan`](../../.claude/skills/prompt-scan/SKILL.md), [`/pr`](../../.claude/skills/pr/SKILL.md), [`/retarget-after-gen-configs`](../../.claude/skills/retarget-after-gen-configs/SKILL.md) and [`/check-upstream-skills`](../../.claude/skills/check-upstream-skills/SKILL.md).
+[`/inbox`](../../.claude/skills/inbox/SKILL.md), [`/wizard`](../../.claude/skills/wizard/SKILL.md), [`/prompt-scan`](../../.claude/skills/prompt-scan/SKILL.md), [`/pr`](../../.claude/skills/pr/SKILL.md), [`/retarget-after-gen-configs`](../../.claude/skills/retarget-after-gen-configs/SKILL.md) and [`/check-upstream-skills`](../../.claude/skills/check-upstream-skills/SKILL.md). [`/close-piece`](../../.claude/skills/close-piece/SKILL.md) is retired in favour of `/close-project`.
