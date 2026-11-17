@@ -166,12 +166,7 @@ export class IssueReader {
   }
 
   private _assertAllowed(repo: string): void {
-    const { allowedRepos } = this.config;
-    if (!allowedRepos.includes(repo)) {
-      throw new Error(
-        `Repo "${repo}" is not one of ${allowedRepos.join(", ")}`,
-      );
-    }
+    assertAllowedRepo(repo, this.config.allowedRepos);
   }
 
   private _bodyOf(issue: ReadableIssue): string[] {
@@ -214,7 +209,7 @@ export class IssueReader {
     const { parent } = issue;
     return [
       ...this._titleOf(issue),
-      `State: ${issue.isOpen ? "open" : "closed"}`,
+      `State: ${stateWordOf(issue.isOpen)}`,
       `Labels: ${listOf(issue.labels)}`,
       `Parent: ${parent ? this._refOf(issue, parent) : "none"}`,
       `Sub-issues: ${listOf(subIssues)}`,
@@ -231,11 +226,36 @@ export class IssueReader {
     ];
   }
 
-  // A ref in another repo carries the repo owner, as the issue-tracker doc writes cross-repo refs.
   private _refOf({ issue }: ReadableIssue, ref: IssueRef): string {
-    if (ref.repo === issue.repo) return `#${ref.number}`;
-    return `${this.config.githubOwner}/${ref.repo}#${ref.number}`;
+    return refLabelOf({
+      ref,
+      seenFrom: issue,
+      githubOwner: this.config.githubOwner,
+    });
   }
+}
+
+export interface SeenRef {
+  ref: IssueRef;
+  // The issue the ref is printed on, whose repo goes without saying.
+  seenFrom: IssueRef;
+  githubOwner: string;
+}
+
+// A ref in another repo carries the repo owner, as the issue-tracker doc writes cross-repo refs.
+export function refLabelOf({ ref, seenFrom, githubOwner }: SeenRef): string {
+  if (ref.repo === seenFrom.repo) return issueRef.numberLabelOf(ref);
+  return `${githubOwner}/${ref.repo}#${ref.number}`;
+}
+
+export function assertAllowedRepo(repo: string, allowedRepos: string[]): void {
+  if (!allowedRepos.includes(repo)) {
+    throw new Error(`Repo "${repo}" is not one of ${allowedRepos.join(", ")}`);
+  }
+}
+
+export function stateWordOf(isOpen: boolean): string {
+  return isOpen ? "open" : "closed";
 }
 
 export function overflowMessageOf(issue: IssueRef, part: string): string {

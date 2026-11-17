@@ -226,7 +226,7 @@ describe("MapNext.brief", () => {
       "a repo outside the repo map",
       ["elsewhere", "1"],
       undefined,
-      'map:next brief: none, repo "elsewhere" is not one of byro-repo, sheets-framework',
+      'map:next brief: none, Repo "elsewhere" is not one of byro-repo, sheets-framework',
     ],
     [
       "another owner's URL",
