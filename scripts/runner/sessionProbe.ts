@@ -72,24 +72,35 @@ async function probeSandbox(args: string[]): Promise<void> {
   } else {
     report = await probe.run(resolve(folder), resolve(commandsPath));
   }
-  writeReport(reportPaths.sandbox, report);
-  for (const outcome of report.outcomes) {
-    console.log(commandOutcomeText(outcome));
-  }
-  console.log(`Full output: ${reportPaths.sandbox}`);
+  printReport({
+    path: reportPaths.sandbox,
+    report,
+    lines: report.outcomes.map(commandOutcomeText),
+  });
 }
 
 async function probeInjection([folder]: string[]): Promise<void> {
   if (folder === undefined) throw new Error(usage);
   const report = await InjectionProbe.init().run(resolve(folder));
-  writeReport(reportPaths.injection, report);
-  for (const outcome of report.outcomes) {
-    console.log(injectionOutcomeText(outcome));
-  }
-  console.log(`Full output: ${reportPaths.injection}`);
+  printReport({
+    path: reportPaths.injection,
+    report,
+    lines: report.outcomes.map(injectionOutcomeText),
+  });
 }
 
-function writeReport(path: string, report: object): void {
+// Writes the whole report under .probe/ and prints one line per outcome and where the report went.
+function printReport({
+  path,
+  report,
+  lines,
+}: {
+  path: string;
+  report: object;
+  lines: string[];
+}): void {
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, JSON.stringify(report, null, 2));
+  for (const line of lines) console.log(line);
+  console.log(`Full output: ${path}`);
 }

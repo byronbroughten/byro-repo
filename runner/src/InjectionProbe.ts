@@ -10,11 +10,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
-  contentBlocks,
   type HeadlessRun,
   projectSandboxOf,
-  runHeadless,
-  streamEvents,
+  runStreaming,
+  streamJson,
 } from "./headlessProbe.ts";
 
 export type InvokedBy = "slash command" | "Skill tool";
@@ -66,26 +65,35 @@ const injectionSkills: InjectionSkill[] = [
   { name: "inject-bash", allowedTools: "Bash" },
 ];
 
-const briefScript = [
-  'import { execFileSync } from "node:child_process";',
-  'import { writeFileSync } from "node:fs";',
-  "let ps;",
-  "try {",
-  '  ps = execFileSync("ps", ["-p", "1", "-o", "comm="], { encoding: "utf8", stdio: "pipe" }).trim();',
-  "} catch (error) {",
-  "  ps = `refused: ${String(error.stderr || error.message).trim()}`;",
-  "}",
-  "const args = process.argv.slice(2);",
-  'writeFileSync(new URL("./brief.json", import.meta.url), JSON.stringify({ args, ps, tmpdir: process.env.TMPDIR }));',
-  'console.log(`brief ran: ${args.join(" ")}; ps: ${ps}`);',
-].join("\n");
+// The throwaway folder's two scripts: the brief an injected command runs, and the PreToolUse hook that logs each call it sees.
+const folderScripts = {
+  brief: [
+    'import { execFileSync } from "node:child_process";',
+    'import { writeFileSync } from "node:fs";',
+    "let ps;",
+    "try {",
+    '  ps = execFileSync("ps", ["-p", "1", "-o", "comm="], { encoding: "utf8", stdio: "pipe" }).trim();',
+    "} catch (error) {",
+    "  ps = `refused: ${String(error.stderr || error.message).trim()}`;",
+    "}",
+    "const args = process.argv.slice(2);",
+    'writeFileSync(new URL("./brief.json", import.meta.url), JSON.stringify({ args, ps, tmpdir: process.env.TMPDIR }));',
+    'console.log(`brief ran: ${args.join(" ")}; ps: ${ps}`);',
+  ].join("\n"),
+  hook: [
+    'import { appendFileSync, readFileSync } from "node:fs";',
+    "const input = JSON.parse(readFileSync(0, 'utf8'));",
+    "const call = { toolName: input.tool_name, command: input.tool_input?.command };",
+    "appendFileSync(process.argv[2], JSON.stringify(call) + '\\n');",
+  ].join("\n"),
+} as const;
 
-const hookScript = [
-  'import { appendFileSync, readFileSync } from "node:fs";',
-  "const input = JSON.parse(readFileSync(0, 'utf8'));",
-  "const call = { toolName: input.tool_name, command: input.tool_input?.command };",
-  "appendFileSync(process.argv[2], JSON.stringify(call) + '\\n');",
-].join("\n");
+interface InjectionRun {
+  folder: string;
+  settings: string;
+  skill: InjectionSkill;
+  invokedBy: InvokedBy;
+}
 
 // Each skill runs in its own one-turn session in a throwaway folder under temp, so only `--settings` adds a hook and no repo file is written.
 export class InjectionProbe {
@@ -111,7 +119,9 @@ export class InjectionProbe {
       const outcomes: InjectionOutcome[] = [];
       for (const skill of injectionSkills) {
         for (const invokedBy of invocations) {
-          outcomes.push(await this._probe(folder, settings, skill, invokedBy));
+          outcomes.push(
+            await this._probe({ folder, settings, skill, invokedBy }),
+          );
         }
       }
       return { sandbox, permissions, outcomes };
@@ -120,27 +130,22 @@ export class InjectionProbe {
     }
   }
 
-  private async _probe(
-    folder: string,
-    settings: string,
-    skill: InjectionSkill,
-    invokedBy: InvokedBy,
-  ): Promise<InjectionOutcome> {
+  private async _probe({
+    folder,
+    settings,
+    skill,
+    invokedBy,
+  }: InjectionRun): Promise<InjectionOutcome> {
     const briefPath = join(folder, "brief.json");
     const hookLog = join(folder, "hook.jsonl");
     rmSync(briefPath, { force: true });
     rmSync(hookLog, { force: true });
-    const { exitCode, stdout, stderr } = await runHeadless(
-      this.claudePath,
-      folder,
-      injectionLaunch(promptOf(skill, invokedBy), settings),
-    );
-    const events = streamEvents(stdout);
-    if (events.length === 0) {
-      throw new Error(
-        `The injection probe session for ${skill.name} by ${invokedBy} exited with ${exitCode} and printed no events: ${stderr.trim()}`,
-      );
-    }
+    const { exitCode, stderr, events } = await runStreaming({
+      claudePath: this.claudePath,
+      cwd: folder,
+      args: injectionLaunch({ prompt: promptOf(skill, invokedBy), settings }),
+      label: `The injection probe session for ${skill.name} by ${invokedBy}`,
+    });
     return {
       skill: skill.name,
       allowedTools: skill.allowedTools,
@@ -176,8 +181,8 @@ function writeProject(folder: string): void {
     join(folder, "package.json"),
     JSON.stringify({ private: true, scripts: { brief: "node brief.mjs" } }),
   );
-  writeFileSync(join(folder, "brief.mjs"), briefScript);
-  writeFileSync(join(folder, "hook.mjs"), hookScript);
+  writeFileSync(join(folder, "brief.mjs"), folderScripts.brief);
+  writeFileSync(join(folder, "hook.mjs"), folderScripts.hook);
   for (const skill of injectionSkills) {
     const skillFolder = join(folder, ".claude", "skills", skill.name);
     mkdirSync(skillFolder, { recursive: true });
@@ -205,7 +210,7 @@ function skillText({ name, allowedTools }: InjectionSkill): string {
   ].join("\n");
 }
 
-// The folder's sandbox block as it is, its excludedCommands matching no brief call, and a PreToolUse hook on every tool that logs what it sees.
+// The folder's sandbox block as it is, excludedCommands kept as the recorded runs had them, and a PreToolUse hook on every tool that logs what it sees.
 function probeSettings(
   folder: string,
   sandbox: Record<string, unknown>,
@@ -226,7 +231,13 @@ function promptOf({ name }: InjectionSkill, invokedBy: InvokedBy): string {
 }
 
 // Project settings only, so the user's permission rules can't allow the brief, and no prompt, as nobody answers one.
-function injectionLaunch(prompt: string, settings: string): string[] {
+function injectionLaunch({
+  prompt,
+  settings,
+}: {
+  prompt: string;
+  settings: string;
+}): string[] {
   return [
     "-p",
     prompt,
@@ -261,6 +272,6 @@ function hookCallsOf(path: string): HookCall[] {
 
 function modelToolsOf(events: unknown[]): string[] {
   return events
-    .flatMap((event) => contentBlocks(event, "tool_use"))
+    .flatMap((event) => streamJson.contentBlocks(event, "tool_use"))
     .map((block) => String(block.name));
 }

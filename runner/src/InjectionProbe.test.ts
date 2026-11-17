@@ -20,8 +20,7 @@ import {
   type InjectionReport,
 } from "./InjectionProbe.ts";
 
-// Stands in for claude: finds the invoked skill in the cwd's .claude/skills, runs its injected command as node rather than npm, and prints one stream-json event.
-// HOOKED=1 passes the command through each PreToolUse hook from --settings first, as a Bash call; SKIP=1 runs nothing.
+// Stands in for claude, running the invoked skill's injected command as node; HOOKED=1 first passes it through each --settings PreToolUse hook, SKIP=1 runs nothing.
 const fakeClaude = `#!/usr/bin/env node
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";

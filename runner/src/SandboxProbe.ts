@@ -1,11 +1,10 @@
 import { readFileSync } from "node:fs";
 
 import {
-  contentBlocks,
   type HeadlessRun,
   projectSandboxOf,
-  runHeadless,
-  streamEvents,
+  runStreaming,
+  streamJson,
 } from "./headlessProbe.ts";
 
 export type CommandOutcome =
@@ -74,17 +73,12 @@ export class SandboxProbe {
     settings: SandboxSettings,
   ): Promise<SandboxReport> {
     const commands = commandList(readFileSync(commandsPath, "utf8"));
-    const { exitCode, stdout, stderr } = await runHeadless(
-      this.claudePath,
+    const { exitCode, stderr, events } = await runStreaming({
+      claudePath: this.claudePath,
       cwd,
-      sandboxLaunch(commands, settings),
-    );
-    const events = streamEvents(stdout);
-    if (events.length === 0) {
-      throw new Error(
-        `The sandbox probe session in ${cwd} exited with ${exitCode} and printed no events: ${stderr.trim()}`,
-      );
-    }
+      args: sandboxLaunch(commands, settings),
+      label: `The sandbox probe session in ${cwd}`,
+    });
     const outcomes = commandOutcomes(events, commands);
     return { settings, outcomes, exitCode, stderr, events };
   }
@@ -176,7 +170,7 @@ function commandOutcomes(
 
 function bashCalls(events: unknown[]): BashCall[] {
   return events
-    .flatMap((event) => contentBlocks(event, "tool_use"))
+    .flatMap((event) => streamJson.contentBlocks(event, "tool_use"))
     .flatMap((block) => {
       if (block.name !== "Bash" || typeof block.input?.command !== "string") {
         return [];
@@ -187,7 +181,7 @@ function bashCalls(events: unknown[]): BashCall[] {
 
 function bashResults(events: unknown[]): Map<string, BashResult> {
   return events
-    .flatMap((event) => contentBlocks(event, "tool_result"))
+    .flatMap((event) => streamJson.contentBlocks(event, "tool_result"))
     .reduce((results, block) => {
       results.set(String(block.tool_use_id), {
         isError: block.is_error === true,

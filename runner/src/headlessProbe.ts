@@ -9,6 +9,19 @@ export interface HeadlessRun {
   stderr: string;
 }
 
+export interface StreamingLaunch {
+  claudePath: string;
+  cwd: string;
+  args: string[];
+  label: string;
+}
+
+export interface StreamedRun {
+  exitCode: HeadlessRun["exitCode"];
+  stderr: string;
+  events: unknown[];
+}
+
 export interface ContentBlock {
   type?: unknown;
   id?: unknown;
@@ -54,20 +67,39 @@ export function projectSandboxOf(cwd: string): Record<string, unknown> {
   return project.sandbox;
 }
 
-export function streamEvents(stdout: string): unknown[] {
-  return stdout.split("\n").flatMap((line) => {
-    try {
-      return [JSON.parse(line) as unknown];
-    } catch {
-      return [];
-    }
-  });
+// A stream-json session's run, its events read and a run that printed none refused, naming the session by its label.
+export async function runStreaming({
+  claudePath,
+  cwd,
+  args,
+  label,
+}: StreamingLaunch): Promise<StreamedRun> {
+  const { exitCode, stdout, stderr } = await runHeadless(claudePath, cwd, args);
+  const events = streamJson.events(stdout);
+  if (events.length === 0) {
+    throw new Error(
+      `${label} exited with ${exitCode} and printed no events: ${stderr.trim()}`,
+    );
+  }
+  return { exitCode, stderr, events };
 }
 
-export function contentBlocks(event: unknown, type: string): ContentBlock[] {
-  const message = (event as { message?: { content?: unknown } }).message;
-  if (!Array.isArray(message?.content)) return [];
-  return (message.content as ContentBlock[]).filter(
-    (block) => block.type === type,
-  );
-}
+export const streamJson = {
+  events(stdout: string): unknown[] {
+    return stdout.split("\n").flatMap((line) => {
+      try {
+        return [JSON.parse(line) as unknown];
+      } catch {
+        return [];
+      }
+    });
+  },
+
+  contentBlocks(event: unknown, type: string): ContentBlock[] {
+    const message = (event as { message?: { content?: unknown } }).message;
+    if (!Array.isArray(message?.content)) return [];
+    return (message.content as ContentBlock[]).filter(
+      (block) => block.type === type,
+    );
+  },
+};
