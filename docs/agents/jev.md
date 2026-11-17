@@ -41,11 +41,9 @@ Stdout is `{ answers, usage }` as JSON: a `noul` answer carries `noul`, the prob
 
 The key comes from `TYPESAFE_API_KEY` in the developer's shell profile, never the repo. When it is missing, the run stops and says so; tell the developer, and note that a session started before the key was added won't see it. The client lives in `scripts/jev/`, with `JevClient` as its one test seam.
 
-## The pin and upgrading it
+## The version pin
 
-**Every request goes to the version in `jevPin`, in `scripts/jev/JevClient.ts`**, so results stay comparable across runs. Each run also asks which version `jev-latest` resolves to, and when it differs it prints one stderr line: `jev-X is out; pinned to <pin>, see the Jev agent doc`. Pass that line on to the developer; don't bump the pin yourself. A failed check prints its own stderr line and still prints the answers.
-
-**Bump `jevPin` only with the developer's yes.**
+**Every request goes to the version in `jevPin`, in `scripts/jev/JevClient.ts`**, so results stay comparable across runs. Each run also asks which version `jev-latest` resolves to, and when it differs it prints one stderr line: `jev-X is out; pinned to <pin>, see the Jev agent doc`. Pass that line on to the developer, and bump the pin only with their yes. A failed check prints its own stderr line and still prints the answers.
 
 ## What may be sent
 
