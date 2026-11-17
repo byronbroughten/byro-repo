@@ -71,12 +71,32 @@ describe("ticketWorkflowNameOf", () => {
     ).toBeUndefined();
   });
 
+  it.each([[["code"]], [["piece"]], [["code", "piece"]], [[]]])(
+    "picks none for a ticket labelled both in a spec labelled %j",
+    (specLabels) => {
+      expect(
+        ticketWorkflowNameOf({
+          ticket: ticketLabelled(["code", "piece"]),
+          spec: specLabelled(specLabels),
+        }),
+      ).toBeUndefined();
+    },
+  );
+
   it("picks a Standalone ticket by its own label", () => {
     const standalone = specLabelled(["piece"]);
 
     expect(ticketWorkflowNameOf({ ticket: standalone, spec: standalone })).toBe(
       "piece",
     );
+  });
+
+  it("picks none for a Standalone ticket labelled both", () => {
+    const standalone = specLabelled(["code", "piece"]);
+
+    expect(
+      ticketWorkflowNameOf({ ticket: standalone, spec: standalone }),
+    ).toBeUndefined();
   });
 });
 
@@ -91,6 +111,18 @@ describe("pickedWorkflowOf", () => {
         workflowsWith([]),
       ),
     ).toThrow(/byro-repo #8 .*`code` or `piece` label/);
+  });
+
+  it("throws for a ticket labelled both, naming the ticket and saying it must keep only one", () => {
+    expect(() =>
+      pickedWorkflowOf(
+        {
+          ticket: ticketLabelled(["code", "piece"]),
+          spec: specLabelled(["code"]),
+        },
+        workflowsWith([]),
+      ),
+    ).toThrow(/byro-repo #8 has both .*keep only one/);
   });
 });
 

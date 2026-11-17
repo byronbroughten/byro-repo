@@ -137,14 +137,14 @@ export function splitHaltOf(
   };
 }
 
-// A spec-ambiguity, which only the developer settles by labelling the ticket; any answer but `stop spec` reads its labels again.
+// A spec-ambiguity, which only the developer settles by fixing the ticket's labels; any answer but `stop spec` reads its labels again.
 export function unpickedWorkflowHaltOf(
   question: string,
   downstream: string[],
 ): HaltDraft {
   return {
     kind: "spec-ambiguity",
-    question: `${question}. Label it, then answer ${haltOptions.continue}.`,
+    question: `${question}. Fix its labels, then answer ${haltOptions.continue}.`,
     options: [haltOptions.continue],
     scope: downstream,
   };
