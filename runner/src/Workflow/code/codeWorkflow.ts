@@ -10,7 +10,6 @@ import { inlinedSkill, type ReadText } from "../../stepPrompts/inlinedSkill.ts";
 import {
   implementRecordOf,
   implementRecordProblems,
-  reviewCaughtOf,
 } from "../../stepRecords.ts";
 import type {
   AgentSteps,
@@ -146,7 +145,6 @@ export function codeWorkflowOf({
     },
     checks,
     specEnd,
-    whatReviewCaughtOf: reviewCaughtOf,
   };
 }
 

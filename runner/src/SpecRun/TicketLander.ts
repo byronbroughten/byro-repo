@@ -67,10 +67,7 @@ export class TicketLander extends SpecRunBase {
         // A merge-master resume adds an item to the review list, which the rerun's close step reads.
         this.factsFile.setReviewFacts(
           ticket.issue,
-          ticketSteps.reviewFactsOf(
-            state,
-            this._ticketWorkflowOf({ ticket, spec: run.spec }),
-          ),
+          ticketSteps.reviewFactsOf(state),
         );
       }
     }

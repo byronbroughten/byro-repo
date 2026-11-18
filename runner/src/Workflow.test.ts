@@ -373,27 +373,3 @@ describe("sessionSchemaOf", () => {
     );
   });
 });
-
-describe("whatReviewCaughtOf", () => {
-  const fix = {
-    finding: 1,
-    axis: "standards",
-    where: "## A private heading",
-    claim: "A private claim.",
-    rule: "Craft sheet's Garden path",
-    verdict: "fix",
-    evidence: "Reworded it.",
-  } as const;
-
-  it("keeps a piece Fix's claim and where as recorded", () => {
-    expect(piece.whatReviewCaughtOf([fix])).toBe(
-      "Fixed: A private claim. (## A private heading).",
-    );
-  });
-
-  it("names a code Fix by its claim and where", () => {
-    expect(code.whatReviewCaughtOf([fix])).toBe(
-      "Fixed: A private claim. (## A private heading).",
-    );
-  });
-});

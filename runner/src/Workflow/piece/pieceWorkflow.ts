@@ -31,7 +31,6 @@ import { inlinedSkill, type ReadText } from "../../stepPrompts/inlinedSkill.ts";
 import {
   implementRecordOf,
   type PieceImplementRecord,
-  reviewCaughtOf,
 } from "../../stepRecords.ts";
 import { ticketSectionOf } from "../../ticketSections.ts";
 import type { Target } from "../../ticketTargets.ts";
@@ -304,7 +303,6 @@ export function pieceWorkflowOf({
       });
     },
     specEnd,
-    whatReviewCaughtOf: reviewCaughtOf,
     pull: pullRulesOf(documents),
     push: {
       agentSectionsOf: agentDraft.agentSectionsOf,
