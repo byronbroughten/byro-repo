@@ -7,9 +7,24 @@ import { TicketFiler } from "./TicketFiler.ts";
 const repo = "byro-repo";
 const parent = 747;
 
+const readySections = `## Where
+
+The filer.
+
+## Model fit
+
+Sonnet medium
+A small change. ~40K`;
+
 function draftOf(
   fileName: string,
-  { title = "A ticket", kind = "agent", labels = "", blockers = "" } = {},
+  {
+    title = "A ticket",
+    kind = "agent",
+    labels = "",
+    blockers = "",
+    sections = readySections,
+  } = {},
 ): DraftFile {
   const text = `---
 title: ${title}
@@ -21,6 +36,8 @@ blockers: ${blockers}
 ## What to build
 
 ${title}, built.
+
+${sections}
 `;
   return { fileName, text };
 }
@@ -59,7 +76,7 @@ describe("TicketFiler", () => {
     expect(github.issues.get(748)).toMatchObject({
       title: "Write issues",
       labels: ["ready-for-agent", "runner", "docs"],
-      body: "## What to build\n\nWrite issues, built.",
+      body: `## What to build\n\nWrite issues, built.\n\n${readySections}`,
     });
     expect(github.issues.get(749)).toMatchObject({
       title: "Read issues",
@@ -110,6 +127,17 @@ describe("TicketFiler", () => {
       labels: ["ready-for-human"],
     });
     expect(github.subIssues.size).toBe(0);
+  });
+
+  it("files a human draft with no Where or Model fit section", async () => {
+    const github = FakeGitHub.init();
+    const report = await TicketFiler.init(github).file({
+      repo,
+      files: [draftOf("1-alone.md", { kind: "human", sections: "" })],
+    });
+
+    expect(report.exitCode).toBe(0);
+    expect(github.issues.get(1)?.labels).toEqual(["ready-for-human"]);
   });
 
   it("exits nonzero naming the draft whose ticket reads back with a different title", async () => {
@@ -285,6 +313,46 @@ describe("TicketFiler", () => {
           },
         ]),
       ).toContain("parent");
+    });
+
+    it("every agent or interactive draft missing Where or a sound Model fit, naming each draft and section in one pass", async () => {
+      const message = await refusalOf([
+        draftOf("1-no-where.md", {
+          sections: "## Model fit\n\nOpus low\nSmall. ~20K",
+        }),
+        draftOf("2-no-fit.md", {
+          kind: "interactive",
+          sections: "## Where\n\nHere.",
+        }),
+        draftOf("3-fit-not-last.md", {
+          sections:
+            "## Model fit\n\nOpus low\nSmall. ~20K\n\n## Where\n\nHere.",
+        }),
+        draftOf("4-bad-pair.md", {
+          sections: "## Where\n\nHere.\n\n## Model fit\n\nOpus max\nBig. ~20K",
+        }),
+        draftOf("5-no-estimate.md", {
+          sections: "## Where\n\nHere.\n\n## Model fit\n\nOpus low\nSmall.",
+        }),
+        draftOf("6-sound.md"),
+      ]);
+      const lines = message.split("\n");
+      expect(lines).toContainEqual(
+        expect.stringMatching(/1-no-where\.md.*## Where/),
+      );
+      expect(lines).toContainEqual(
+        expect.stringMatching(/2-no-fit\.md.*## Model fit/),
+      );
+      expect(lines).toContainEqual(
+        expect.stringMatching(/3-fit-not-last\.md.*## Model fit.*last/),
+      );
+      expect(lines).toContainEqual(
+        expect.stringMatching(/4-bad-pair\.md.*pair/),
+      );
+      expect(lines).toContainEqual(
+        expect.stringMatching(/5-no-estimate\.md.*~NK/),
+      );
+      expect(message).not.toContain("6-sound.md");
     });
 
     it("no drafts at all", async () => {

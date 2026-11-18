@@ -2,8 +2,9 @@
 // The pairs and their criteria are byro-repo's docs/agents/model-fit.md; SpecRun.ts reads the pair just before each launch.
 
 import type { Pair } from "./AgentStep.ts";
+import { lastTicketSectionOf } from "./ticketSections.ts";
 
-const sectionHeading = "## Model fit";
+export const modelFitHeading = "## Model fit";
 
 const pairs: Record<string, Pair> = {
   "haiku medium": { model: "haiku", effort: "medium" },
@@ -35,12 +36,15 @@ export function estimateOf(body: string): string | undefined {
   return /~\d+K$/.exec(reason.join(" "))?.[0];
 }
 
+export function isModelFitLast(body: string): boolean {
+  return modelFitLinesOf(body) !== undefined;
+}
+
 function modelFitLinesOf(body: string): string[] | undefined {
-  const sections = body.split(/^(?=## )/m);
-  const last = sections.at(-1) ?? "";
-  if (!last.startsWith(sectionHeading)) return undefined;
+  const last = lastTicketSectionOf(body);
+  if (!last.startsWith(modelFitHeading)) return undefined;
   return last
-    .slice(sectionHeading.length)
+    .slice(modelFitHeading.length)
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line !== "");
