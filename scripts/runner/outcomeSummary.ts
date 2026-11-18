@@ -1,8 +1,6 @@
 // `npm run outcome:summary`: the outcome log's rows a planning session asks for, by spec section, with their outliers.
 // The core is runner/src/outcomeSummary.ts; this gathers the row files from the primary root's outcome folder, the transcripts on disk and each ticket's Model fit.
-import { existsSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
 
 import { messageOf } from "@byronbroughten/spec-runner/failureText";
 import type { IssueRef } from "@byronbroughten/spec-runner/IssueWorkspaces";
@@ -14,7 +12,7 @@ import {
   type SectionSelection,
 } from "@byronbroughten/spec-runner/outcomeSummary";
 import {
-  configFolderOf,
+  accountConfigFoldersOf,
   hasTranscript,
 } from "@byronbroughten/spec-runner/transcriptFacts";
 
@@ -34,7 +32,7 @@ if (selection === undefined) {
   console.error(usage);
   process.exitCode = 1;
 } else {
-  const folders = configFolders();
+  const folders = accountConfigFoldersOf(process.env, homedir());
   process.stdout.write(
     await outcomeSummaryOf({
       rowFiles: rowFilesIn(outcomeFolder),
@@ -117,18 +115,6 @@ function flaggedSelectionOf(
     return { ...selection, since };
   }
   return undefined;
-}
-
-// The config folders a transcript may be under: the live one and each cswap account's backup.
-function configFolders(): string[] {
-  const home = homedir();
-  const backups = join(home, ".claude-swap-backup", "sessions");
-  const accounts = existsSync(backups)
-    ? readdirSync(backups, { withFileTypes: true })
-        .filter((entry) => entry.isDirectory())
-        .map((entry) => join(backups, entry.name))
-    : [];
-  return [configFolderOf(process.env, home), ...accounts];
 }
 
 async function modelFitOf(issue: IssueRef): Promise<string> {

@@ -147,6 +147,20 @@ export function configFolderOf(
   return env.CLAUDE_CONFIG_DIR ?? join(homeFolder, ".claude");
 }
 
+// The config folders a transcript may be under: the live one and each cswap account's backup.
+export function accountConfigFoldersOf(
+  env: NodeJS.ProcessEnv,
+  homeFolder: string,
+): string[] {
+  const backups = join(homeFolder, ".claude-swap-backup", "sessions");
+  const accounts = existsSync(backups)
+    ? readdirSync(backups, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => join(backups, entry.name))
+    : [];
+  return [configFolderOf(env, homeFolder), ...accounts];
+}
+
 export function hasTranscript(
   configFolder: string,
   sessionId: string,
@@ -327,7 +341,7 @@ function projectDirsBySessionOf(
   return bySession;
 }
 
-function projectDirsOf(configFolder: string): string[] {
+export function projectDirsOf(configFolder: string): string[] {
   const projects = join(configFolder, "projects");
   if (!existsSync(projects)) return [];
   return readdirSync(projects).map((name) => join(projects, name));
@@ -372,7 +386,7 @@ function subagentPathsOf(subagentDir: string): string[] {
     .map((name) => join(subagentDir, name));
 }
 
-function entriesOf(text: string): TranscriptEntry[] {
+export function entriesOf(text: string): TranscriptEntry[] {
   return text.split("\n").flatMap((line) => {
     try {
       const entry: unknown = JSON.parse(line);
@@ -426,7 +440,7 @@ function entryPairOf(entry: TranscriptEntry): string[] {
   ];
 }
 
-function isMainLoopReply(
+export function isMainLoopReply(
   entry: TranscriptEntry,
 ): entry is TranscriptEntry & { message: { model: string } } {
   if (entry.type !== "assistant" || entry.isSidechain === true) return false;

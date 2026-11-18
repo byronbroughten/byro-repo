@@ -33,6 +33,7 @@
     "dev:push": "npm run push -w @byronbroughten/sheets-framework --",
     "dev:run": "npm run run -w @byronbroughten/sheets-framework --",
     "account:switch": "node scripts/runner/accountSwitch.ts",
+    "delegation:measure": "node scripts/runner/delegationMeasure.ts",
     "doc:print": "node --use-env-proxy --disable-warning=UNDICI-EHPA scripts/runner/docPrint.ts",
     "google:script": "node scripts/googleScript/googleScript.ts",
     "logs": "node --use-env-proxy --disable-warning=UNDICI-EHPA scripts/runner/logs.ts",

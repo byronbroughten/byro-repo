@@ -41,6 +41,7 @@
     "./implementStep": "./src/Workflow/code/implementStep.ts",
     "./IssueReader": "./src/IssueReader.ts",
     "./IssueWorkspaces": "./src/IssueWorkspaces.ts",
+    "./largeReadTurns": "./src/largeReadTurns.ts",
     "./LandingLock": "./src/LandingLock.ts",
     "./MapNext": "./src/MapNext.ts",
     "./PiecePull": "./src/PiecePull.ts",
