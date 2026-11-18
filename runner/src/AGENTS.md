@@ -96,7 +96,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Notices.ts` | `Notices` | The notice port, its notice kinds and the run endings among them. |
 | `outlineApply.ts` | `outlineApply` | `npm run outline:apply`'s core: applies the Outline edits a developer's answer approves to a Trusted spec body, for an interactive `/research-piece` session. |
 | `outlineEdits.ts` | | A Research Halt's Outline edits: their schema, ids and words, the ones an answer approves, and their word-for-word application to a spec body's `## Outline`. |
-| `outcomeLog.ts` | `outcomeLog` | The outcome row file's path, table and commit message, and a written row's cells by column and its transcript cells. |
+| `outcomeLog.ts` | `outcomeLog` | The outcome row file's path, table and commit message, and a written row's cells by column. |
 | `outcomeRowWriter.ts` | `outcomeRowWriter` | Writes a ticket's outcome row from its facts file. |
 | `outcomeSummary.ts` | `outcomeSummary` | `npm run outcome:summary`'s core: picks and filters the outcome log's rows and reports their costs, outliers, transcripts and Model fit by spec section. |
 | `outcomeSummary/OutcomeReport.ts` | | Words the outcome summary for a batch of sections, judging each row by the outlier rules. |

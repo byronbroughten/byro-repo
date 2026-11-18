@@ -1,6 +1,10 @@
 import type { IssueRef } from "../IssueWorkspaces.ts";
 import { labelOf, unrecorded, writtenCellsOf } from "../outcomeLog.ts";
-import type { OutcomeRowFile, SectionSelection } from "../outcomeSummary.ts";
+import type {
+  OutcomeRowFile,
+  SectionScope,
+  SectionSelection,
+} from "../outcomeSummary.ts";
 import { isWorkflowName, type WorkflowName } from "../Workflow.ts";
 
 export interface SummaryRow {
@@ -44,25 +48,19 @@ interface SectionRow {
   row: SummaryRow;
 }
 
-// A starting value: enough rows for a tuning question, few enough that rows from before a model change don't outweigh it.
-export const defaultRowCount = 200;
-
 // The outcome log's rows, read from its row files, filtered, picked and grouped into spec sections newest first.
 export const summarySections = {
   selectedOf(
     rowFiles: OutcomeRowFile[],
-    selection: SectionSelection,
+    selection: SectionSelection & { scope: SectionScope },
   ): Section[] {
     const rows = rowFiles.map(sectionRowOf);
     const { scope } = selection;
     const filtered = rows.filter(filterOf(selection));
-    if (scope === undefined) {
+    if ("newest" in scope) {
       const newestRows = filtered
-        .toSorted(
-          (first, second) =>
-            second.row.landedAt.getTime() - first.row.landedAt.getTime(),
-        )
-        .slice(0, defaultRowCount);
+        .toSorted((first, second) => newerFirst(first.row, second.row))
+        .slice(0, scope.newest);
       return newestFirst(sectionsOf(newestRows));
     }
     if ("all" in scope) return newestFirst(sectionsOf(filtered));
@@ -97,9 +95,6 @@ function filterOf({
   spec,
   since,
 }: SectionSelection): (row: SectionRow) => boolean {
-  if (workflow !== undefined && !isWorkflowName(workflow)) {
-    throw new Error(`No Workflow named ${workflow}`);
-  }
   const specFolder = spec === undefined ? undefined : folderOf(spec);
   return ({ folder, row }) =>
     (workflow === undefined || row.workflow === workflow) &&
@@ -131,9 +126,14 @@ function sectionsOf(rows: SectionRow[]): Section[] {
 }
 
 function newestFirst(sections: Section[]): Section[] {
-  return sections.toSorted(
-    (first, second) => second.landedAt.getTime() - first.landedAt.getTime(),
-  );
+  return sections.toSorted(newerFirst);
+}
+
+function newerFirst(
+  first: { landedAt: Date },
+  second: { landedAt: Date },
+): number {
+  return second.landedAt.getTime() - first.landedAt.getTime();
 }
 
 // The outcome folder is gitignored, so a row's own Landed cell is the only date it has.

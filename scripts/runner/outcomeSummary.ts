@@ -8,6 +8,7 @@ import { messageOf } from "@byronbroughten/spec-runner/failureText";
 import type { IssueRef } from "@byronbroughten/spec-runner/IssueWorkspaces";
 import {
   defaultRowCount,
+  isWorkflowName,
   type OutcomeRowFile,
   outcomeSummaryOf,
   type SectionSelection,
@@ -22,8 +23,7 @@ import { outcomeFolder, runKnobs } from "./runnerConfig.ts";
 
 const usage = `Usage: npm run outcome:summary -- [<spec section, such as byro-repo-480> | --recent <N> | --all] [--workflow <code | piece>] [--pair <pair, such as "Opus medium">] [--repo <ticket repo>] [--spec <spec section>] [--since <date>] [--outliers]; with no section, --recent or --all, the last ${defaultRowCount} rows by landing date`;
 
-const filterKeyByFlag: Record<string, "workflow" | "pair" | "repo" | "spec"> = {
-  "--workflow": "workflow",
+const filterKeyByFlag: Record<string, "pair" | "repo" | "spec"> = {
   "--pair": "pair",
   "--repo": "repo",
   "--spec": "spec",
@@ -48,56 +48,75 @@ if (selection === undefined) {
   );
 }
 
+interface ParsedArgument {
+  selection: SectionSelection;
+  argCount: number;
+}
+
 // Undefined for arguments the usage line doesn't allow, a flag given twice or two scopes among them.
 function selectionOf(args: string[]): SectionSelection | undefined {
-  const selection: SectionSelection = {};
-  const rest = [...args];
-  for (let arg = rest.shift(); arg !== undefined; arg = rest.shift()) {
-    const isSet = withArgument(selection, arg, rest);
-    if (!isSet) return undefined;
+  let selection: SectionSelection = {};
+  let index = 0;
+  while (index < args.length) {
+    const parsed = parsedArgumentOf(selection, args.slice(index));
+    if (parsed === undefined) return undefined;
+    selection = parsed.selection;
+    index += parsed.argCount;
   }
   return selection;
 }
 
-// Sets one argument, and the value a flag takes from `rest`, on the selection; false when it can't.
-function withArgument(
+// The selection with the argument heading `args` added, and how many args it took.
+function parsedArgumentOf(
   selection: SectionSelection,
-  arg: string,
-  rest: string[],
-): boolean {
+  [arg, value]: string[],
+): ParsedArgument | undefined {
+  if (arg === undefined) return undefined;
   if (arg === "--outliers") {
-    if (selection.limitsToOutliers === true) return false;
-    selection.limitsToOutliers = true;
-    return true;
+    if (selection.limitsToOutliers === true) return undefined;
+    return { selection: { ...selection, limitsToOutliers: true }, argCount: 1 };
   }
   if (arg === "--all" || !arg.startsWith("-")) {
-    if (selection.scope !== undefined) return false;
-    selection.scope = arg === "--all" ? { all: true } : { section: arg };
-    return true;
+    if (selection.scope !== undefined) return undefined;
+    const scope = arg === "--all" ? { all: true as const } : { section: arg };
+    return { selection: { ...selection, scope }, argCount: 1 };
   }
-  const value = rest.shift();
-  if (value === undefined || value.startsWith("-")) return false;
-  const filterKey = filterKeyByFlag[arg];
+  if (value === undefined || value.startsWith("-")) return undefined;
+  const flagged = flaggedSelectionOf(selection, arg, value);
+  return flagged === undefined
+    ? undefined
+    : { selection: flagged, argCount: 2 };
+}
+
+function flaggedSelectionOf(
+  selection: SectionSelection,
+  flag: string,
+  value: string,
+): SectionSelection | undefined {
+  const filterKey = filterKeyByFlag[flag];
   if (filterKey !== undefined) {
-    if (selection[filterKey] !== undefined) return false;
-    selection[filterKey] = value;
-    return true;
+    if (selection[filterKey] !== undefined) return undefined;
+    return { ...selection, [filterKey]: value };
   }
-  if (arg === "--recent") {
+  if (flag === "--workflow") {
+    if (selection.workflow !== undefined) return undefined;
+    return isWorkflowName(value)
+      ? { ...selection, workflow: value }
+      : undefined;
+  }
+  if (flag === "--recent") {
     const count = Number(value);
-    if (selection.scope !== undefined) return false;
-    if (!Number.isInteger(count) || count <= 0) return false;
-    selection.scope = { recent: count };
-    return true;
+    if (selection.scope !== undefined) return undefined;
+    if (!Number.isInteger(count) || count <= 0) return undefined;
+    return { ...selection, scope: { recent: count } };
   }
-  if (arg === "--since") {
+  if (flag === "--since") {
     const since = new Date(value);
-    if (selection.since !== undefined) return false;
-    if (Number.isNaN(since.getTime())) return false;
-    selection.since = since;
-    return true;
+    if (selection.since !== undefined) return undefined;
+    if (Number.isNaN(since.getTime())) return undefined;
+    return { ...selection, since };
   }
-  return false;
+  return undefined;
 }
 
 // A primary root no landing has written a row in yet has no outcome folder.

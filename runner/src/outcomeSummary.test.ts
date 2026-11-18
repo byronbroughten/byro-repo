@@ -540,12 +540,6 @@ describe("which rows", () => {
     expect(issuesOf(summary)).toEqual(["byro-repo#6", "personal#3"]);
   });
 
-  it("refuses a name that is no Workflow", async () => {
-    await expect(
-      summaryOf(rowFiles, { scope: { all: true }, workflow: "poem" }),
-    ).rejects.toThrow("No Workflow named poem");
-  });
-
   it("narrows to one pair, in any case", async () => {
     const summary = await summaryOf(rowFiles, {
       scope: { all: true },
