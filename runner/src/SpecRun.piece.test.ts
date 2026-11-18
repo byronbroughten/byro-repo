@@ -51,6 +51,7 @@ import {
 } from "./specRunHarness.ts";
 import { pieceDrafts } from "./specRunHarness/pieceDrafts.ts";
 import { stepResults } from "./specRunHarness/stepResults.ts";
+import { expectNudgeRules } from "./stepPrompts/handoffTextFixture.ts";
 import type {
   DismissedOverlap,
   ReadyResearchRecord,
@@ -241,6 +242,19 @@ describe("implement on a piece spec's drafting ticket", () => {
     expect(
       git(primaryOf("byro-repo"), "show", `master:${draftPath}`),
     ).toContain("The ferry carried them away at noon.");
+  });
+
+  it("launches the implement step telling it to hand off only with a paragraph left to draft, and to propose a split by the work left", async () => {
+    addDraftingSpec();
+    const agentStep = FakeAgentStep.init(drafted());
+
+    await specRun(agentStep).run(spec);
+
+    const prompt = agentStep.requests[0]?.prompt;
+    expectNudgeRules(prompt, "no paragraph is left to draft");
+    expect(prompt).toContain(
+      "Otherwise finish the paragraph in hand, then stop",
+    );
   });
 
   it("names a passages folder in the workspace, outside the Agent draft and gitignored, and keeps it", async () => {

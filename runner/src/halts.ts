@@ -131,7 +131,7 @@ export function splitHaltOf(
 ): HaltDraft {
   return {
     kind: "split",
-    question: `The implement step handed off with less than half the ticket done, and proposed splitting the rest into:\n\n${handoffText.proposedSplitOf(slices)}\n\n${splitTheTicketPhraseOf(haltOptions.continue)}: a fresh implement step picks up from the handoff on the ticket's body as it then reads.`,
+    question: `The implement step handed off with more than one ticket's work left, and proposed splitting the rest into:\n\n${handoffText.proposedSplitOf(slices)}\n\n${splitTheTicketPhraseOf(haltOptions.continue)}: a fresh implement step picks up from the handoff on the ticket's body as it then reads.`,
     options: [haltOptions.continue],
     scope: downstream,
   };

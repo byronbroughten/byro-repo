@@ -38,6 +38,7 @@ import {
   useSpecRunHarness,
   withoutHeldTicket,
 } from "./specRunHarness.ts";
+import { expectNudgeRules } from "./stepPrompts/handoffTextFixture.ts";
 import {
   budgetHandoffPrompt,
   handoffOnlyPrompt,
@@ -90,6 +91,18 @@ async function handedOffInReview(): Promise<StepResult> {
 }
 
 describe("run's implement handoff", () => {
+  it("launches the implement step telling it to hand off only with judgement left, and to propose a split by the work left", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    await specRun(agentStep).run(spec);
+
+    expectNudgeRules(
+      agentStep.requests[0]?.prompt,
+      "no code or prose is left to decide",
+    );
+  });
+
   it("passes the ticket to a fresh implement step on the same pair, keeping the work", async () => {
     addSpec([1]);
     github.edit(1, { body: bodyWith("Opus medium") });

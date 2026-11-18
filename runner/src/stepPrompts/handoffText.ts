@@ -7,25 +7,26 @@ import type { Handoff, ProposedSlice } from "../stepRecords.ts";
 import type { HandoffComment, HandoffPoint } from "../Workflow.ts";
 
 export interface HandoffNudge {
+  // The Workflow's form of nothing left needing judgement, after "When".
+  noJudgementLeft: string;
   inHand: string;
   filesToOpen: string;
   stillFailing: string;
-  // After "When less than half".
-  splitWhen: string;
   slices: string;
 }
 
 export const handoffText = {
+  // The skip rule repeats docs/agents/handoffs.md#handoffs' bolded line and its examples, wrap-up left out.
   nudgeSectionOf({
+    noJudgementLeft,
     inHand,
     filesToOpen,
     stillFailing,
-    splitWhen,
     slices,
   }: HandoffNudge): string {
     return `## If a context nudge fires
 
-The nudge's own handoff steps are for an interactive session; follow these instead. Finish the ${inHand} in hand, then stop: commit nothing, post nothing, and return status \`handoff\` with no branches and every \`handoff\` field: \`conclusion\`, \`filesToOpen\` (${filesToOpen}), \`ruledOut\`, \`filesChanged\`, and \`stillFailing\` (${stillFailing}). A handoff is cumulative: carry over whatever still matters from any handoff you started from. When less than half ${splitWhen} and the ticket split test (\`docs/agents/tickets.md#the-ticket-split-test\`) says the rest is more than one ticket, also fill \`proposedSplit\` with ${slices}, so the developer can split the ticket before a fresh step goes on.`;
+The nudge's own handoff steps are for an interactive session; follow these instead. Hand off only when work left needs judgement. When ${noJudgementLeft}, finish the rest, such as the checks, a commit or a comment reporting work already done, and return your implement record as for a finished ticket. Otherwise finish the ${inHand} in hand, then stop: commit nothing, post nothing, and return status \`handoff\` with no branches and every \`handoff\` field: \`conclusion\`, \`filesToOpen\` (${filesToOpen}), \`ruledOut\`, \`filesChanged\`, and \`stillFailing\` (${stillFailing}). A handoff is cumulative: carry over whatever still matters from any handoff you started from. When the ticket split test (\`docs/agents/tickets.md#the-ticket-split-test\`) says the remaining work is more than one ticket, also fill \`proposedSplit\` with ${slices}, so the developer can split the ticket before a fresh step goes on.`;
   },
 
   previousSectionOf(handoff: Handoff): string {
