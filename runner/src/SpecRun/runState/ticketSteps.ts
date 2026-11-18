@@ -12,11 +12,12 @@ import type { RunKnobs } from "../../runKnobs.ts";
 import { SchemaFailure } from "../../SchemaFailure.ts";
 import {
   type ReadyResearchRecord,
+  reviewCaughtOf,
   type UnverifiedItem,
 } from "../../stepRecords.ts";
 import { type RecordedSession, type StepAgent } from "../../transcriptFacts.ts";
 import { UnhandledStop } from "../../UnhandledStop.ts";
-import type { TicketPromptFields, Workflow } from "../../Workflow.ts";
+import type { TicketPromptFields } from "../../Workflow.ts";
 import {
   type gapCheckLabel,
   type Heads,
@@ -221,19 +222,15 @@ export const ticketSteps = {
     return researchRecord.unverified;
   },
 
-  // The spec's Workflow words what review caught, so a piece row names no private prose.
-  reviewFactsOf(
-    {
-      hasFixes,
-      resolveRecords = [],
-      mergeMasterRecord,
-      unrecordedMerge,
-    }: TicketState,
-    workflow: Workflow,
-  ): ReviewFacts {
+  reviewFactsOf({
+    hasFixes,
+    resolveRecords = [],
+    mergeMasterRecord,
+    unrecordedMerge,
+  }: TicketState): ReviewFacts {
     const facts: ReviewFacts = {
       reviewFixes: hasFixes ? "implementer" : "none",
-      whatReviewCaught: workflow.whatReviewCaughtOf(resolveRecords),
+      whatReviewCaught: reviewCaughtOf(resolveRecords),
       proposals: resolveRecords.filter(({ verdict }) => verdict === "propose")
         .length,
     };

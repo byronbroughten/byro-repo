@@ -61,7 +61,7 @@ const codeWorkflow = codeWorkflowOf({
   reviewSkillName: "code-review",
 });
 const scriptFolder = fileURLToPath(new URL(".", import.meta.url));
-// The piece checks and this repo as the rules' root, over a Docs port: the run's, or piece:pull's as the agent account.
+// The piece checks over a Docs port: the run's, or piece:pull's as the agent account.
 export function pieceWorkflowOver(
   documents: DocumentsPort,
 ): SpecRunConfig["workflows"]["piece"] {
@@ -69,7 +69,6 @@ export function pieceWorkflowOver(
     overlapCommand,
     verifyQuotesCommand: ["npm", "run", "verify:quotes", "--"],
     documents,
-    rulesRoot: join(scriptFolder, "..", ".."),
   });
 }
 // A run picks among them, and issue:start names a session's skill from the same pick.

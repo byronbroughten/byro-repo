@@ -265,18 +265,15 @@ const caughtLabels = {
   halt: "Halted",
 } as const satisfies Partial<Record<Verdict, string>>;
 
-// Each kept verdict's group in its Workflow's own entries; undefined when the review kept nothing.
-export function caughtCellOf(
-  records: ResolveRecord[],
-  entriesOf: (kept: ResolveRecord[]) => string[],
-): string | undefined {
+// The outcome row's text: each kept verdict's group of findings by claim and where; undefined when the review kept nothing.
+export function reviewCaughtOf(records: ResolveRecord[]): string | undefined {
   const groups = Object.entries(caughtLabels).flatMap(([verdict, label]) => {
-    const entries = entriesOf(
-      records.filter((record) => record.verdict === verdict),
-    );
+    const entries = records
+      .filter((record) => record.verdict === verdict)
+      .map(({ claim, where }) => `${claim} (${where})`);
     return entries.length === 0 ? [] : [`${label}: ${entries.join("; ")}`];
   });
-  return groups.length === 0 ? undefined : groups.join(". ");
+  return groups.length === 0 ? undefined : `${groups.join(". ")}.`;
 }
 
 // A `<repo>#<n>` reference, as `coveredBy` names its ticket.

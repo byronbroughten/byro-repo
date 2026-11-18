@@ -324,7 +324,7 @@ describe("run", () => {
     expect(existsSync(ownFolder)).toBe(true);
   });
 
-  // No agent session ran, so its row would be nearly all unrecorded and only add noise to /mine-outcomes.
+  // No agent session ran, so its row would be nearly all unrecorded and only add noise to the outcome log.
   it("lands a ready-for-human ticket with no outcome row", async () => {
     github.issues.set(ticket.number, {
       issue: ticket,

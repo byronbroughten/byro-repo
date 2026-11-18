@@ -183,7 +183,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `stepPrompts/interactiveSkillFixture.ts` | | The ending's commands, its parent close-out steps and the in-order assertion the generated `/implement-*` skills' tests share. |
 | `stepPrompts/resolveText.ts` | | The resolve rules, record fields and shared prompt text every Workflow's resolve step uses. |
 | `stepPrompts/resumePrompts.ts` | | The prompts sent with `--resume` after a step is cut off, capped or sent back, or to the implementer for a handoff at a step boundary, and the tree-reset note. |
-| `stepRecords.ts` | | The records the steps return, with the types, reasons, implement record check and small readers the core shares. |
+| `stepRecords.ts` | | The records the steps return, with the types, reasons, implement record check and small readers the core shares, the outcome row's "What review caught" cell among them. |
 | `SupervisionRecords.ts` | `SupervisionRecords` | A Supervisor's record of the run or Batch it watches and the lines explained, and its handoff file, read once on a rejoin. |
 | `targetTools.ts` | | The tools a step gets for each of its ticket's targets and its spec's sources. |
 | `TicketFiler.ts` | `TicketFiler` | `npm run issue:file`'s core: files a folder of ticket drafts in dependency order under a parent, links their sub-issues and blocked-by edges, and reads each back; and its GitHub port. |
@@ -197,8 +197,8 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `transcriptFacts/ReviewResumes.ts` | | The implementer sessions a review or resolve step resumed, split by a recorded review start or the resumed launch's prompt, and each side's cost. |
 | `UnhandledStop.ts` | `UnhandledStop` | The outcomes the run loop doesn't handle yet, and their error. |
 | `verdicts.ts` | | A finding's axes, `spec`, `standards` and `reader`, and its verdicts. |
-| `Workflow.ts` | | The Workflow type, its spec-end Steps, source targets, pull and push rules, each agent step's rules and prompt input, the one schema every step of the implementer's session launches with, its outcome row's review cell and the accessors that throw for a step a Workflow leaves out, the pick of a ticket's Workflow and of a spec's own, the composed spec end and gap-check input, and an interactive session's skill, from the labels: the core's one way to a Workflow. |
-| `Workflow/code/codeWorkflow.ts` | `codeWorkflow` | Builds the code Workflow from a repo's checks and review skill: each ticket's Step sequence, the Step each one goes on to, its spec-end Steps and their trigger, its agent steps' rules and its outcome row's review cell. |
+| `Workflow.ts` | | The Workflow type, its spec-end Steps, source targets, pull and push rules, each agent step's rules and prompt input, the one schema every step of the implementer's session launches with and the accessors that throw for a step a Workflow leaves out, the pick of a ticket's Workflow and of a spec's own, the composed spec end and gap-check input, and an interactive session's skill, from the labels: the core's one way to a Workflow. |
+| `Workflow/code/codeWorkflow.ts` | `codeWorkflow` | Builds the code Workflow from a repo's checks and review skill: each ticket's Step sequence, the Step each one goes on to, its spec-end Steps and their trigger and its agent steps' rules. |
 | `Workflow/code/gapCheck.ts` | | The code Workflow's section of the gap check. |
 | `Workflow/code/implementCodeSkill.ts` | `implementCodeSkill` | Generates the `/implement-code` skill from the implement step's shared body. |
 | `Workflow/code/implementStep.ts` | `implementStep` | The code implement step's prompt and output schema. |
@@ -212,12 +212,11 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Workflow/piece/implementPieceSkill.ts` | `implementPieceSkill` | Generates the `/implement-piece` skill from the piece implement step's drafting lines. |
 | `Workflow/piece/implementStep.ts` | | The piece implement step's prompt, the drafting lines `/implement-piece` shares, passages folder, output schema, record and record checks. |
 | `Workflow/piece/pieceChecks.ts` | | A drafting ticket's checks: overlap and the spec's length limit, the overlap command's report and the `Length:` line the review inputs reuse, and the prompts' wording of an overlap run and its fixes. |
-| `Workflow/piece/pieceWorkflow.ts` | `pieceWorkflow` | Builds the piece Workflow from a repo's overlap and quote commands and Docs port: its research and drafting Steps, research, implement, review, with its supplied inputs, resolve and red-checks agent steps, its spec-end Steps and their trigger, pull and push rules, quote check, drafting checks, outcome row review cell and the source targets read from the spec's Supporting Material. |
+| `Workflow/piece/pieceWorkflow.ts` | `pieceWorkflow` | Builds the piece Workflow from a repo's overlap and quote commands and Docs port: its research and drafting Steps, research, implement, review, with its supplied inputs, resolve and red-checks agent steps, its spec-end Steps and their trigger, pull and push rules, quote check, drafting checks and the source targets read from the spec's Supporting Material. |
 | `Workflow/piece/redChecksStep.ts` | | The piece red-checks step's prompt, fixing red piece checks in the Agent draft, and its output schema. |
 | `Workflow/piece/researchStep/researchRecord.ts` | | The research step's output schema, its record reader and the record checks. |
 | `Workflow/piece/researchStep/researchWords.ts` | | The research step's prompt, its scratch folder, its first-try and red-quotes sections, handoff comment, closing comment and Research Halt words. |
 | `Workflow/piece/resolveStep.ts` | | The piece resolve step's prompt, pointing at the verdict rules' `## Piece findings` and rerunning the piece checks after its Fixes, and its record checks, which refuse the verdict reasons a piece finding never takes. |
-| `Workflow/piece/reviewCaught.ts` | | A piece outcome row's "What review caught" cell: each kept finding by its axis and public rule name only. |
 | `Workflow/piece/reviewInputs.ts` | | Writes the inputs `/review-piece` copies word for word to the review-inputs folder before a piece review, naming each the spec lacks. |
 | `Workflow/piece/reviewStep.ts` | | The piece review step's prompt, carrying `/review-piece`'s SKILL.md body over the Agent draft, passages folder and supplied inputs, its record schema and its reviewer check. |
 | `WrapUp.ts` | `WrapUp` | `npm run wrap-up`: lands an issue or session workspace, delegating its landing steps and closing the issue to `WrapUp/`; and `npm run research:push`'s push. |

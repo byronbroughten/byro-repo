@@ -16,7 +16,7 @@ import { SpecRunBase } from "../SpecRunBase.ts";
 
 export class FactsWriter extends SpecRunBase {
   _writeFacts(landingTicket: LandingTicket, steps: RecordedSession[]): void {
-    const { run, ticket, state } = landingTicket;
+    const { ticket, state } = landingTicket;
     const { record } = state;
     if (record === undefined) {
       throw new Error(
@@ -26,10 +26,7 @@ export class FactsWriter extends SpecRunBase {
     const facts = factsOf(landingTicket, steps, {
       closingComment: record.closingComment,
       boxesUndone: record.boxesUndone,
-      ...ticketSteps.reviewFactsOf(
-        state,
-        this._ticketWorkflowOf({ ticket, spec: run.spec }),
-      ),
+      ...ticketSteps.reviewFactsOf(state),
       reviewRounds: 1,
     });
     if (record.status === "applied") {

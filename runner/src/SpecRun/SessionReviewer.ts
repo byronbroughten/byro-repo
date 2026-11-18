@@ -382,11 +382,8 @@ export class SessionReviewer extends SpecRunBase {
   }
 
   private async _finishReview(ticketRun: TicketRun): Promise<ReviewResult> {
-    const { run, ticket, state } = ticketRun;
-    const reviewFacts = ticketSteps.reviewFactsOf(
-      state,
-      this._ticketWorkflowOf({ ticket, spec: run.spec }),
-    );
+    const { ticket, state } = ticketRun;
+    const reviewFacts = ticketSteps.reviewFactsOf(state);
     this.factsFile.setReviewFacts(ticket.issue, reviewFacts);
     await this.reviewListPoster._postCoveredLaterNotes(
       ticket.issue,
