@@ -129,7 +129,8 @@ A doc is listed when two or more skills or Steps of either Workflow reach it by 
 | --- | --- | --- |
 | [Codebase Priorities](./codebase-priorities.md) | `grilling` (and so `/plan-project` and `/wayfinder`'s grilling tickets), `/judge-findings`, `/revise-workflows` | via `verdicts.md`: `/code-review`, `/implement-code`, the review and resolve Steps |
 | [`verdicts.md`](./verdicts.md) | `/code-review`, `/implement-code`, `/implement-piece`, `/judge-findings`, `/review-piece`, `/revise-workflows` (its pair mode) | via runner prompt: the resolve Step; via `/code-review` and `/review-piece`: the review Step |
-| [`specs.md`](./specs.md) | `/project-spec`, `/project-tickets` | via `tickets.md`: `/review-project-tickets` |
+| [`specs.md`](./specs.md) | `/project-spec`, `/project-tickets`, `/review-project-tickets` | |
+| [`delegation.md`](./delegation.md) | `/revise-workflows` (its log mode) | via `specs.md`: `/project-spec`, `/project-tickets`, `/review-project-tickets`; via `git-workflow.md`: `/implement-code`, `/judge-findings`, `/implement-piece`, the implement Step; via `planning.md`: `/plan-project` |
 | [`tickets.md`](./tickets.md) | `/project-spec`, `/project-tickets`, `/review-project-tickets` | |
 | [`handoffs.md`](./handoffs.md) | `/start-issue`, `/revise-workflows` | via always-on hook: the context nudge, for any session |
 | [`model-fit.md`](./model-fit.md) | `/project-spec`, `/project-tickets` | via `tickets.md`: `/review-project-tickets` |
@@ -161,6 +162,7 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | `grilling`'s round format | `grilling`, `/project-tickets`, `/review-project-tickets`, `/judge-findings`, `/plan-project`, `/revise-workflows`, each of whose questions takes yes, no or file |
 | A Friction note's file: its fields, id and path in the primary root's `.runner/friction/` ([`frictionNotes.ts`](../../runner/src/frictionNotes.ts)) | `/note-friction` and `runner -- decide` write it; `/revise-workflows` reads it in log mode, sets its status and writes one for each "file" answer; `npm run logs` syncs and restores it |
 | The `## Model fit` section and its read-back ([`tickets.md`](./tickets.md#model-fit)) | `/project-spec`, `/project-tickets`, the tickets `/judge-findings` files, `/start-issue`'s check |
+| The findings file, `repo-explorer`'s report saved verbatim as `<scratchpad>/findings.md` ([`specs.md`'s Exploring](./specs.md#exploring)) | `/project-spec` and `/project-tickets` save it; `/review-project-tickets` hands it to each reviewer |
 | A ticket's `## New dependencies` section | `/project-tickets` writes it; `/implement-code` and the implement Step add only what it names; the wrap-up Step refuses any other new package |
 | The review list's `R<n>.<k>` items | the runner posts them; `/judge-findings` and the Supervisor decide them through `runner -- decide`; `/revise-workflows`' pair mode mines the decided Proposals |
 | The nine spec fields and the piece spec template | `/plan-project` settles them, `/project-spec` writes them, `/project-tickets` reads Research, Final pass, Form and Outline, the Solution's developer-only steps, and a `## Split` an older spec holds as a suggestion, `/review-piece` reads Reader, Outline, Form and Style |
@@ -183,6 +185,7 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | `runner -- status` | `/runner` reads a run and, to diagnose, the Run board; `/review-project-tickets` and `/project-tickets`' Re-ticket read what has landed or started |
 | `npm run overlap` | `/review-piece` runs it; `/implement-piece` reruns it after a fix; the piece resolve Step reruns it after its Fixes; `/judge-findings` reruns it after a piece "now" fix |
 | `npm run pdf:text` and the page-range command in [`pdf-pages.md`](../pdf-pages.md) | `/research-piece` dumps text; `/plan-project` and `/review-research` count and print pages |
+| `npm run issue:ready` | `/project-spec`'s Phase gate and `/project-tickets`' step 7 relabel a spec `ready-for-agent` through it |
 | Sub-issues and native blocking edges | `/project-tickets`, `/judge-findings` and `/runner` set them through `npm run issue:file`; `/review-piece` reads the parent through `gh api`; `/project-spec` sets a held spec's blocked-by edge and its Phase gate walks the chain; `/judge-findings` and `/close-project` list what a closed spec blocks |
 | The gworkspace tools (Drive and Docs) | `/plan-project`, `/implement-piece`, `/research-piece`, `/runner` on an `another source` answer |
 | `npm run verify:quotes` | `/research-piece` and the research Step check the fact list; `/runner` checks an addendum |

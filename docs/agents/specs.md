@@ -6,7 +6,8 @@ The rules for planning and writing a spec, code, piece or mixed. Sizing and spli
 
 ## Exploring
 
-- **Explore the repo to understand the current state of the codebase.**
+- **Explore the repo to understand the current state of the codebase, sending the sweep to `repo-explorer`** ([delegation](./delegation.md)).
+- **Save `repo-explorer`'s report verbatim, quotes included, as `<scratchpad>/findings.md`**, for [`/review-project-tickets`](../../.claude/skills/review-project-tickets/SKILL.md).
 - **Use the project's domain glossary vocabulary throughout each spec.**
 - **Respect ADRs in the area you're touching, and the [design](../../packages/framework/docs/design.md) principles that apply.**
 

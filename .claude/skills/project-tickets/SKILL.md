@@ -24,7 +24,7 @@ Done when the source is in hand, its branch is known, and it was refused or acce
 
 ## 2. Explore
 
-Explore by [`specs.md`'s Exploring](../../../docs/agents/specs.md#exploring), if you haven't already: the domain glossary's words, the ADRs in the area, the design principles that apply. Look for prefactoring that makes the change easy. Check each repo's visibility with `npm run repos`.
+Explore by [`specs.md`'s Exploring](../../../docs/agents/specs.md#exploring), if you haven't already: its `repo-explorer` sweep and findings file, the domain glossary's words, the ADRs in the area, the design principles that apply. Look for prefactoring that makes the change easy. Check each repo's visibility with `npm run repos`.
 
 ## 3. List the work packages
 
@@ -69,8 +69,9 @@ A **wide refactor** is one mechanical change (rename a column, retype a shared s
 
 Draft every ticket as a file under `<scratchpad>/tickets/`, in [`issue:file`'s draft format](../../../docs/agents/issue-tracker.md#file-tickets-from-drafts): named `<n>-<slug>.md`, numbered from 1 in dependency order, its front matter's `title`, `kind`, `labels` and `blockers` (other drafts' numbers), then its body by the [code template](#code-ticket-template). An edge to an issue already filed goes in no draft; step 7 sets it.
 
-With 6 or more code drafts, or any piece draft whatever the count, read [`.claude/skills/review-project-tickets/SKILL.md`](../review-project-tickets/SKILL.md) and follow it on that folder, handing over each draft's estimate breakdown (overhead, the union read set by file or passage, the allowance) beside it; it is user-invoked, so the Skill tool can't reach it. Act on its report once, before the developer sees the breakdown:
+With 6 or more code drafts, or any piece draft whatever the count, read [`.claude/skills/review-project-tickets/SKILL.md`](../review-project-tickets/SKILL.md) and follow it on that folder, handing over each draft's estimate breakdown (overhead, the union read set by file or passage, the allowance) beside it, and step 2's `<scratchpad>/findings.md` when there is one; it is user-invoked, so the Skill tool can't reach it. Act on its report once, before the developer sees the breakdown:
 
+- **Revise a draft with Edit, never by rewriting it with Write**, here and for step 6's changes.
 - **Fixes**: make each, as you judge best, true to the spec.
 - **Interactive splits**: split that part into a `ready-for-interactive` ticket, blocking the work that needs it.
 - **Spec gaps**: hold them for step 6's round.
@@ -98,7 +99,7 @@ Iterate until the developer approves. The review in step 5 runs once: carry the 
 
 File the drafts with `npm run issue:file -- <repo> <n> <scratchpad>/tickets`, `<n>` the spec, or with no `<n>` for a standalone run with no issue. It sets each kind's triage label, each sub-issue link and each blocked-by edge, then reads them back. A draft it refuses files nothing: fix the draft it names and run it again. A read-back mismatch comes after filing: fix the issue it names, never by filing again: a title or label by [the issue tracker doc's commands](../../../docs/agents/issue-tracker.md#commands-for-each-operation), a parent or edge by [its Child ticket and Blocking operations](../../../docs/agents/issue-tracker.md#wayfinding-operations). Set any edge to an issue filed earlier by [the Blocking operation](../../../docs/agents/issue-tracker.md#wayfinding-operations).
 
-Then relabel an accepted `needs-triage` spec with `gh issue edit -R <owner>/<repo> <n> --remove-label needs-triage --add-label ready-for-agent`. Change the spec's body only by step 6's added lines; never close it.
+Then relabel an accepted `needs-triage` spec with `npm run issue:ready -- <repo> <n> ready-for-agent`. Change the spec's body only by step 6's added lines; never close it.
 
 ## 8. Read back the pairs
 
