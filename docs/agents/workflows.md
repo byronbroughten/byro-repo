@@ -186,6 +186,7 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | `runner -- decide` | `/runner`, `/implement-code`, `/implement-piece`, `/judge-findings` |
 | `runner -- status` | `/runner` reads a run and, to diagnose, the Run board; `/review-project-tickets` and `/project-tickets`' Re-ticket read what has landed or started |
 | `npm run overlap` | `/review-piece` runs it; `/implement-piece` reruns it after a fix; the piece resolve Step reruns it after its Fixes; `/judge-findings` reruns it after a piece "now" fix |
+| `npm run size` | `/project-tickets` counts each code or piece work package's read set on disk with it, by [`tickets.md`](./tickets.md#ticket-size) |
 | `npm run pdf:text` and the page-range command in [`pdf-pages.md`](../pdf-pages.md) | `/research-piece` dumps text; `/plan-project` and `/review-research` count and print pages |
 | `npm run issue:ready` | `/project-spec`'s Phase gate and `/project-tickets`' step 7 relabel a spec `ready-for-agent` through it; `file-issue` names it for a relabel by hand |
 | `npm run doc:sections` | `file-issue`, `code-style`, `prose-style` and `writing` inject their rule sections through it |

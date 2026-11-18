@@ -17,7 +17,7 @@ The one home for ticketing judgments: the ticket split test, work packages, sizi
 
 - **A work package is the smallest change in a spec that leaves the checks green**, named by what changes, the symbols it touches and the files it reads, never how.
 - **Two packages that always land together, with no green state between them worth having, are one.**
-- **Count a package's read set with grep and line counts, not close reading.**
+- **Find a package's read set with grep, not close reading, and count it with `npm run size`.**
 - **Packages are never published**: a ticketing skill groups them into tickets, and only the tickets are filed.
 
 ## Ticket size
@@ -32,8 +32,8 @@ The one home for ticketing judgments: the ticket split test, work packages, sizi
 - **A planning session querying `outcome:summary` revisits the flat allowance once 30 outcome rows hold an Estimate**, proposing a per-package allowance or confirming the flat one, **and the piece and Research allowances after each piece spec**, retuning them while any of its tickets peaks over its estimate.
 - **A package's read set is the files it changes, counted by grepping the names it renames or retypes, plus the files it reads beside them, the docs the read-by-task table requires, the issues it links and ~5K of re-reads of the files it edits**; a file in two packages' sets counts once in their ticket.
 - **A file the ticket edits counts at its full size when it is under ~300 lines or the change adds code that depends on the rest of it**, in every ticket that edits it.
-- **A ticket that reads a body of text in full is sized by that text, not its file count**: an audit reads all the code it judges, a piece ticket its packages' read sets. Reading costs about 1K tokens per 2K characters of code (about 16 a line) and per 2.5K of Docs prose. Past ~60K of reading, name a subagent per part that returns only findings, or split the ticket; a drafter needs those passages in its own context, so a piece ticket splits.
-- **A piece work package's read set is its Supporting Material and Reference passages, counted in characters at the Docs rate, plus the spec's Outline and the earlier Sections it opens**; a single Section over ~60K of reading is flagged to the developer, never split mid-Section.
+- **A ticket that reads a body of text in full is sized by that text, not its file count**: an audit reads all the code it judges, a piece ticket its packages' read sets, each estimated in tokens by `npm run size`. Past ~60K of reading, name a subagent per part that returns only findings, or split the ticket; a drafter needs those passages in its own context, so a piece ticket splits.
+- **A piece work package's read set is its Supporting Material and Reference passages, counted with `npm run size` when on disk and, when only in Drive, in characters at [the Docs prose rate](./codebase-priorities/estimates.md#reads), plus the spec's Outline and the earlier Sections it opens**; a single Section over ~60K of reading is flagged to the developer, never split mid-Section.
 - **Split an over-cap ticket by its estimate, never by its file count alone**, at a seam where each piece leaves `tsc` and tests green; each split pays the fixed overhead again. A bigger pair never fixes size ([`model-fit.md`](./model-fit.md#ticket-size)).
 - **Vertical slices stay the default, with any prefactoring first; a cut at a named seam is allowed where each side lands green with its own tests.**
 - **A rename or retype across more than ~10 files is a wide refactor**: sequence it expand–migrate–contract as [`/project-tickets`](../../.claude/skills/project-tickets/SKILL.md#wide-refactors) describes, with a pure rename as its own mechanical ticket.

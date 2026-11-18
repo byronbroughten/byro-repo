@@ -57,6 +57,7 @@
     "runner": "node scripts/runner/run.ts",
     "runner:tmux": "bash scripts/runner/tmux.sh",
     "session:probe": "node scripts/runner/sessionProbe.ts",
+    "size": "node scripts/size/size.ts",
     "wrap-up": "node scripts/runner/wrapUp.ts",
     "ws:rm": "node scripts/wsRm/wsRm.ts",
     "jev": "node scripts/jev/jev.ts",
