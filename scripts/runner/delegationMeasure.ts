@@ -14,6 +14,8 @@ import {
   localTranscriptsOf,
 } from "@byronbroughten/spec-runner/transcriptFacts";
 
+import { paddedLinesOf } from "../table/paddedLines.ts";
+
 const usage =
   "Usage: npm run delegation:measure -- --since <date> [--until <date>]; --until defaults to now";
 
@@ -58,11 +60,5 @@ function reportOf(kinds: KindTurns[], { from, to }: DateRange): string {
       String(median),
     ]),
   ];
-  const widths = rows[0]?.map((_, column) =>
-    Math.max(...rows.map((row) => row[column]?.length ?? 0)),
-  );
-  const lines = rows.map((row) =>
-    row.map((cell, column) => cell.padEnd(widths?.[column] ?? 0)).join("  "),
-  );
-  return `${heading}\n${lines.join("\n")}\n`;
+  return `${heading}\n${paddedLinesOf(rows).join("\n")}\n`;
 }

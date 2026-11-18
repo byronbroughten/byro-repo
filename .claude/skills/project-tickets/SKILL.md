@@ -32,7 +32,7 @@ List the [work packages](../../../docs/agents/tickets.md#work-packages), each wi
 
 - what changes, never how;
 - the symbols it touches, and any it adds;
-- its read set, counted with grep and line counts, not close reading, by [Ticket size](../../../docs/agents/tickets.md#ticket-size)'s read-set rule;
+- its read set, found with grep, not close reading, and counted with `npm run size`, by [Ticket size](../../../docs/agents/tickets.md#ticket-size)'s read-set rule;
 - its kind and Model fit pair, by [the kinds](#kinds) below and [Model fit](../../../docs/agents/tickets.md#model-fit);
 - the packages it needs first.
 
