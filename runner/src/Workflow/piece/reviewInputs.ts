@@ -8,9 +8,9 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import type { IssueRef } from "../../IssueWorkspaces.ts";
+import { markdownSectionOf } from "../../markdownSections.ts";
 import type { Command } from "../../runKnobs.ts";
 import type { TrackedIssue } from "../../SpecRun/runState.ts";
-import { ticketSectionOf } from "../../ticketSections.ts";
 import type {
   ReviewInputsContext,
   SuppliedInput,
@@ -143,7 +143,7 @@ function absentFieldOf(heading: string): string {
 
 // A section's body, its heading line dropped, trimmed and ended with one newline; undefined when absent or empty.
 function fieldOf(body: string, heading: string): string | undefined {
-  const section = ticketSectionOf(body, heading);
+  const section = markdownSectionOf(body, heading);
   if (section === undefined) return undefined;
   const text = section.split("\n").slice(1).join("\n").trim();
   return text === "" ? undefined : `${text}\n`;

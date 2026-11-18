@@ -19,6 +19,7 @@ import { closeOutWords } from "../../CloseOutBrief/closeOutWords.ts";
 import { Docs } from "../../Docs.ts";
 import type { DocumentsPort } from "../../Docs/googleDocs.ts";
 import type { IssueRef } from "../../IssueWorkspaces.ts";
+import { markdownSectionOf } from "../../markdownSections.ts";
 import { resolveRulesOf } from "../../resolveRecords.ts";
 import type { Command } from "../../runKnobs.ts";
 import {
@@ -32,7 +33,6 @@ import {
   implementRecordOf,
   type PieceImplementRecord,
 } from "../../stepRecords.ts";
-import { ticketSectionOf } from "../../ticketSections.ts";
 import type { Target } from "../../ticketTargets.ts";
 import {
   type ImplementPromptInput,
@@ -341,7 +341,7 @@ function sourceTargetsOf({ body }: TrackedIssue): Target[] {
 }
 
 function driveIdsOf(body: string, heading: string): string[] {
-  const section = ticketSectionOf(body, heading) ?? "";
+  const section = markdownSectionOf(body, heading) ?? "";
   return section.match(driveIdPattern) ?? [];
 }
 

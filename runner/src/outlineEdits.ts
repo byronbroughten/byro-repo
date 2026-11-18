@@ -2,9 +2,9 @@
 // word-for-word application to a spec body's `## Outline`, which never throws and applies nothing twice.
 // The run applies them in ./SpecRun/OutlineEditApplier.ts; an interactive session through `npm run outline:apply`, whose core is ./outlineApply.ts.
 
+import { markdownSectionOf } from "./markdownSections.ts";
 import { objectSchema, stringSchema } from "./recordSchema.ts";
 import type { OutlineEdit } from "./stepRecords.ts";
-import { ticketSectionOf } from "./ticketSections.ts";
 
 const outlineHeading = "## Outline";
 
@@ -59,7 +59,7 @@ export const outlineEdits = {
 
   // An edit whose old text is gone and whose new text is there counts as applied, so a run killed partway can apply them again.
   applyTo(body: string, edits: OutlineEdit[]): AppliedEdits {
-    const section = ticketSectionOf(body, outlineHeading);
+    const section = markdownSectionOf(body, outlineHeading);
     if (section === undefined) return { body, unapplied: [...edits] };
     const applied = edits.reduce<AppliedEdits>(
       (appliedEdits, edit) => {

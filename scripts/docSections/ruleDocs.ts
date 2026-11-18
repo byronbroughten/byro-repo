@@ -1,7 +1,7 @@
 // The repo rule docs `npm run doc:sections` prints, whole or by `##` section: the read-first gate's docs and the ticket rules.
 import { join, normalize } from "node:path";
 
-import { ticketSectionOf } from "@byronbroughten/spec-runner/ticketSections";
+import { markdownSectionOf } from "@byronbroughten/spec-runner/markdownSections";
 
 import {
   codeStylePath,
@@ -11,7 +11,8 @@ import {
   writingDocPaths,
 } from "../../.claude/hooks/lib/readFirstGate.ts";
 
-const usage = "usage: npm run doc:sections -- <doc> [<section>...]";
+const command = "npm run doc:sections";
+const usage = `usage: ${command} -- <doc> [<section>...]`;
 const knownPaths = [
   codeStylePath,
   frameworkStylePath,
@@ -30,7 +31,7 @@ export const ruleDocs = {
     const path = normalize(docArg);
     if (!knownPaths.includes(path)) {
       throw new Error(
-        `\`${docArg}\` is no doc \`npm run doc:sections\` prints; it prints ${knownPaths.map((known) => `\`${known}\``).join(", ")}`,
+        `\`${docArg}\` is no doc \`${command}\` prints; it prints ${knownPaths.map((known) => `\`${known}\``).join(", ")}`,
       );
     }
     const text = readDoc(path);
@@ -42,9 +43,10 @@ export const ruleDocs = {
 };
 
 function sectionOf(text: string, path: string, heading: string): string {
-  const section = ticketSectionOf(text, `## ${heading}`);
+  const headingLine = `## ${heading}`;
+  const section = markdownSectionOf(text, headingLine);
   if (section === undefined) {
-    throw new Error(`\`${path}\` has no \`## ${heading}\` section`);
+    throw new Error(`\`${path}\` has no \`${headingLine}\` section`);
   }
   return section.trimEnd();
 }

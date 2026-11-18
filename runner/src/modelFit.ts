@@ -2,7 +2,7 @@
 // The pairs and their criteria are byro-repo's docs/agents/model-fit.md; SpecRun.ts reads the pair just before each launch.
 
 import type { Pair } from "./AgentStep.ts";
-import { lastTicketSectionOf } from "./ticketSections.ts";
+import { lastMarkdownSectionOf } from "./markdownSections.ts";
 
 export const modelFitHeading = "## Model fit";
 
@@ -41,7 +41,7 @@ export function isModelFitLast(body: string): boolean {
 }
 
 function modelFitLinesOf(body: string): string[] | undefined {
-  const last = lastTicketSectionOf(body);
+  const last = lastMarkdownSectionOf(body);
   if (!last.startsWith(modelFitHeading)) return undefined;
   return last
     .slice(modelFitHeading.length)

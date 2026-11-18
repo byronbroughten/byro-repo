@@ -1,6 +1,6 @@
-// Finds one `## ` section of a ticket's body, for the readers of its machine-read sections.
+// Finds one `## ` section of a Markdown body, for the readers of a ticket's machine-read sections and `npm run doc:sections`.
 
-export function ticketSectionOf(
+export function markdownSectionOf(
   body: string,
   heading: string,
 ): string | undefined {
@@ -10,7 +10,7 @@ export function ticketSectionOf(
 }
 
 // Empty for an empty body; the text before the first heading counts as a section.
-export function lastTicketSectionOf(body: string): string {
+export function lastMarkdownSectionOf(body: string): string {
   return sectionsOf(body).at(-1) ?? "";
 }
 
