@@ -222,9 +222,18 @@ export class MasterMerger extends SpecRunBase {
 // A clean merge reruns the wrap-up in the implementer's own session, so it needs no handoff.
 async function isAnyConflicting(worktrees: CloneWorktree[]): Promise<boolean> {
   for (const { worktree } of worktrees) {
-    if (await wouldConflict(worktree, "master")) return true;
+    if (await wouldConflictOrFail(worktree)) return true;
   }
   return false;
+}
+
+// A failed check hands off as before, so the merge itself raises git's error as a Failure Halt.
+async function wouldConflictOrFail(worktree: string): Promise<boolean> {
+  try {
+    return await wouldConflict(worktree, "master");
+  } catch {
+    return true;
+  }
 }
 
 async function abortMerges(worktrees: CloneWorktree[]): Promise<void> {

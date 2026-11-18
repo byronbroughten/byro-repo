@@ -14,6 +14,7 @@ import {
   eventOf,
   github,
   haltComments,
+  handoffComments,
   handoffResultOf,
   implemented,
   noConversation,
@@ -113,12 +114,6 @@ const conflicting = implemented("one.ts", {
 // A review that resumed the implementer and left it past the ticket budget.
 function reviewedPastBudget(): StepResult {
   return { ...reviewed(), peakContext: 160_000 };
-}
-
-function handoffComments(): string[] {
-  return github.comments
-    .filter(({ body }) => body.includes("\n## Handoff\n"))
-    .map(({ body }) => body);
 }
 
 describe("run's wrap-up failures", () => {
