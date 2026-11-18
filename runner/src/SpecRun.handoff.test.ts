@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import type { StepRequest, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
 import { git } from "./GitFixture.ts";
+import { guidanceSectionOf } from "./halts.ts";
 import {
   addSpec,
   bodyWith,
@@ -604,6 +605,10 @@ describe("run's split Halt", () => {
     expect(halt).toContain("The parser's error messages. (errors.ts)");
     expect(halt).toContain("The parser's CLI. (cli.ts, bin.ts)");
     expect(halt).toContain("1. `continue`\n2. `stop spec`");
+    expect(halt).toContain(
+      "The implement step handed off and proposed splitting the rest",
+    );
+    expect(halt).not.toMatch(/half/i);
   });
 
   it("isn't counted by the stuck detector", async () => {
@@ -765,6 +770,42 @@ describe("run's handoff cap", () => {
     expect(fresh?.prompt).toContain("Conclusion: The parser is half done.");
     expect(haltComments()).toHaveLength(2);
     expect(haltComments()[1]).toContain("`continue +1 handoff`");
+  });
+
+  it("names the guided form of `continue +1 handoff` in the cap's Halt", async () => {
+    addSpec([1]);
+
+    await specRun(FakeAgentStep.init(handedOff, handedOff, handedOff)).run(
+      spec,
+    );
+
+    expect(haltComments()[0]).toContain("`continue +1 handoff: <guidance>`");
+  });
+
+  it("launches a fresh step carrying the guidance on `continue +1 handoff: <guidance>`, raising no new cap Halt", async () => {
+    addSpec([1]);
+    await specRun(FakeAgentStep.init(handedOff, handedOff, handedOff)).run(
+      spec,
+    );
+    github.reply(
+      213,
+      "H1: **continue +1 handoff**: run the checks and land it",
+    );
+    const rerunStep = FakeAgentStep.init(
+      keepingWork(() => {}),
+      reviewed(),
+    );
+
+    const result = await specRun(rerunStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(haltComments()).toHaveLength(1);
+    const [fresh] = rerunStep.requests;
+    expect(fresh?.resumeSessionId).toBeUndefined();
+    expect(fresh?.prompt).toContain("Conclusion: The parser is half done.");
+    expect(fresh?.prompt).toContain(
+      guidanceSectionOf("run the checks and land it"),
+    );
   });
 });
 

@@ -15,7 +15,7 @@ export type FailureAnswer =
   | { kind: "retry" }
   | { kind: "retry-record" }
   | { kind: "more-turns"; turns: number | undefined }
-  | { kind: "more-handoffs" }
+  | { kind: "more-handoffs"; guidance?: string }
   | { kind: "rerun"; pair: Pair }
   | { kind: "approve" }
   | { kind: "skip" }
@@ -40,7 +40,8 @@ export const haltReplies = {
     if (answerWords === "retry record") return { kind: "retry-record" };
     if (answerWords === "approve") return { kind: "approve" };
     if (answerWords === "skip") return { kind: "skip" };
-    if (answerWords === "continue +1 handoff") return { kind: "more-handoffs" };
+    const moreHandoffs = moreHandoffsAnswerOf(text);
+    if (moreHandoffs !== undefined) return moreHandoffs;
     const moreTurns = /^resume \+(\d+)? ?turns?$/.exec(answerWords);
     if (moreTurns !== null) {
       const [, turns] = moreTurns;
@@ -85,6 +86,18 @@ export const haltReplies = {
     return /^stop spec\b/.test(wordsOf(answerTextOf(halt)));
   },
 };
+
+// The option, in any case and emphasis, then optionally a separator and the guidance; a separator keeps `continue +1 handoffs` from counting.
+const moreHandoffsPattern =
+  /^[*_`\s]*continue\s+\+1\s+handoff[*_`]*\s*(?:[:,.!\-–—][*_`]*\s*([\s\S]*))?$/i;
+
+function moreHandoffsAnswerOf(text: string): FailureAnswer | undefined {
+  const match = moreHandoffsPattern.exec(text);
+  if (match === null) return undefined;
+  const [, guidance = ""] = match;
+  if (!/\w/.test(guidance)) return { kind: "more-handoffs" };
+  return { kind: "more-handoffs", guidance };
+}
 
 function wordsOf(text: string): string {
   return text
