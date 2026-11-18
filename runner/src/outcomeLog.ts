@@ -1,7 +1,14 @@
 // The outcome log: one file per landed ticket, in a folder per spec, each holding that ticket's one-row table.
 // WrapUp/LogRowCommitter.ts writes and commits the file; a fact nobody computed or passed is written `unrecorded`, never guessed.
 
-import { join } from "node:path";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
+import { basename, dirname, join } from "node:path";
 
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { WorkflowName } from "./Workflow.ts";
@@ -88,14 +95,157 @@ export function outcomePathOf(
 export function outcomeFileOf(row: OutcomeRow): string {
   const { issue, spec, githubOwner } = row;
   const specUrl = `https://github.com/${githubOwner}/${spec.repo}/issues/${spec.number}`;
+  return rowFileOf({ issue, spec, specUrl }, columns, cellsOf(row));
+}
+
+/** A written row file read back: its tickets, its spec's link and its cells by column, a `\|` in a cell read as `|`. */
+export interface WrittenRow {
+  issue: IssueRef;
+  spec: IssueRef;
+  specUrl: string;
+  cells: Map<WrittenColumn, string>;
+}
+
+export const writtenColumns: readonly WrittenColumn[] = [
+  ...columns,
+  ...olderColumns,
+];
+
+/** A row file as read from disk. */
+export interface OutcomeRowFile {
+  // Relative to the outcome folder: `<spec repo>-<spec n>/<repo>-<n>.md`.
+  path: string;
+  text: string;
+}
+
+/** The row files in each spec's folder, by path; none when no landing has written a row yet. */
+export function rowFilesIn(outcomeFolder: string): OutcomeRowFile[] {
+  if (!existsSync(outcomeFolder)) return [];
+  // A file beside the spec folders, an older log's, isn't a row.
+  return readdirSync(outcomeFolder, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort()
+    .flatMap((folder) =>
+      readdirSync(join(outcomeFolder, folder))
+        .filter((name) => name.endsWith(".md"))
+        .sort()
+        .map((name) => {
+          const path = `${folder}/${name}`;
+          return {
+            path,
+            text: readFileSync(join(outcomeFolder, path), "utf8"),
+          };
+        }),
+    );
+}
+
+/** Each row file's row, its ticket read from its file name. */
+export function writtenRowsIn(outcomeFolder: string): WrittenRow[] {
+  return rowFilesIn(outcomeFolder).map(({ path, text }) =>
+    writtenRowOf(issueOfLabel(basename(path, ".md")), text),
+  );
+}
+
+/** A written row's file label, `<repo>-<n>`, spec link and cells by column, put back together. */
+interface WrittenRowParts {
+  label: string;
+  specUrl: string;
+  cells: Map<string, string>;
+}
+
+export function writtenRowOfParts({
+  label,
+  specUrl,
+  cells,
+}: WrittenRowParts): WrittenRow {
+  const [, repo, number] = /\/([^/]+)\/issues\/(\d+)$/.exec(specUrl) ?? [];
+  if (repo === undefined) {
+    throw new Error(
+      `The ${label} row's spec link "${specUrl}" isn't an issue URL.`,
+    );
+  }
+  return {
+    issue: issueOfLabel(label),
+    spec: { repo, number: Number(number) },
+    specUrl,
+    cells: new Map(
+      writtenColumns.map((column): [WrittenColumn, string] => [
+        column,
+        cells.get(column) ?? "",
+      ]),
+    ),
+  };
+}
+
+/** Writes a read row back to its file, leaving a file already there alone; whether it wrote one. */
+export function restoreOutcomeRow(
+  outcomeFolder: string,
+  row: WrittenRow,
+): boolean {
+  const path = outcomePathOf(outcomeFolder, row);
+  if (existsSync(path)) return false;
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, writtenFileOf(row));
+  return true;
+}
+
+function issueOfLabel(label: string): IssueRef {
+  const [, repo, number] = /^(.+)-(\d+)$/.exec(label) ?? [];
+  if (repo === undefined) {
+    throw new Error(`The outcome row label "${label}" isn't <repo>-<n>.`);
+  }
+  return { repo, number: Number(number) };
+}
+
+/** The row file `file` holds for `issue`, which its file name, not its table, names in full. */
+export function writtenRowOf(issue: IssueRef, file: string): WrittenRow {
+  const [, specRepo, specNumber, specUrl] =
+    /^Spec: \[(.+)#(\d+)\]\((.*)\)$/m.exec(file) ?? [];
+  if (specRepo === undefined || specUrl === undefined) {
+    throw new Error(`The ${labelOf(issue, "#")} row file has no Spec line.`);
+  }
+  const cells = new Map(
+    [...writtenCellsOf(file)].map(([column, cell]) => [
+      column,
+      cell.replaceAll("\\|", "|"),
+    ]),
+  );
+  return {
+    issue,
+    spec: { repo: specRepo, number: Number(specNumber) },
+    specUrl,
+    cells,
+  };
+}
+
+/** The file holding a read row: today's columns, and each older one only where its cell isn't blank. */
+export function writtenFileOf({ cells, ...link }: WrittenRow): string {
+  const header = writtenColumns.filter(
+    (column) =>
+      columns.some((current) => current === column) ||
+      (cells.get(column) ?? "") !== "",
+  );
+  return rowFileOf(
+    link,
+    header,
+    header.map((column) => cells.get(column) ?? ""),
+  );
+}
+
+function rowFileOf(
+  { issue, spec, specUrl }: Omit<WrittenRow, "cells">,
+  header: readonly string[],
+  cells: readonly string[],
+): string {
   return [
     `# ${labelOf(issue, "#")} outcome`,
     "",
     `Spec: [${labelOf(spec, "#")}](${specUrl})`,
     "",
-    tableLine(columns),
-    tableLine(columns.map(() => "---")),
-    tableLine(cellsOf(row)),
+    tableLine(header),
+    tableLine(header.map(() => "---")),
+    tableLine(cells),
     "",
   ].join("\n");
 }
@@ -132,7 +282,7 @@ export function writtenCellsOf(file: string): Map<WrittenColumn, string> {
 function writtenColumnOf(written: string): WrittenColumn | undefined {
   const current = currentColumnByOlder[written];
   if (current !== undefined) return current;
-  return [...columns, ...olderColumns].find((column) => column === written);
+  return writtenColumns.find((column) => column === written);
 }
 
 function cellsOfLine(line: string): string[] {

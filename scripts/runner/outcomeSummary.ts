@@ -1,15 +1,15 @@
 // `npm run outcome:summary`: the outcome log's rows a planning session asks for, by spec section, with their outliers.
 // The core is runner/src/outcomeSummary.ts; this gathers the row files from the primary root's outcome folder, the transcripts on disk and each ticket's Model fit.
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
 import { messageOf } from "@byronbroughten/spec-runner/failureText";
 import type { IssueRef } from "@byronbroughten/spec-runner/IssueWorkspaces";
+import { rowFilesIn } from "@byronbroughten/spec-runner/outcomeLog";
 import {
   defaultRowCount,
   isWorkflowName,
-  type OutcomeRowFile,
   outcomeSummaryOf,
   type SectionSelection,
 } from "@byronbroughten/spec-runner/outcomeSummary";
@@ -37,7 +37,7 @@ if (selection === undefined) {
   const folders = configFolders();
   process.stdout.write(
     await outcomeSummaryOf({
-      rowFiles: rowFiles(),
+      rowFiles: rowFilesIn(outcomeFolder),
       selection,
       outcomeFolder,
       ticketBudget: runKnobs.ticketBudget,
@@ -117,24 +117,6 @@ function flaggedSelectionOf(
     return { ...selection, since };
   }
   return undefined;
-}
-
-// A primary root no landing has written a row in yet has no outcome folder.
-function rowFiles(): OutcomeRowFile[] {
-  if (!existsSync(outcomeFolder)) return [];
-  return readdirSync(outcomeFolder, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .flatMap((section) =>
-      readdirSync(join(outcomeFolder, section.name))
-        .filter((name) => name.endsWith(".md"))
-        .map((name) => {
-          const path = `${section.name}/${name}`;
-          return {
-            path,
-            text: readFileSync(join(outcomeFolder, path), "utf8"),
-          };
-        }),
-    );
 }
 
 // The config folders a transcript may be under: the live one and each cswap account's backup.

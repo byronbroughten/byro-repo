@@ -64,7 +64,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `FakeIssueSource.ts` | | The scripted issue source issue-reader and Outline-edit tests use. |
 | `FakeNotices.ts` | `FakeNotices` | The notice port run-loop tests read back. |
 | `FakeUsageReader.ts` | | The scripted usage reader run-loop, account-switch and Accounts section tests use. |
-| `frictionNotes.ts` | | A Friction note's file: its fields, its id and its path in the friction folder, and its write. |
+| `frictionNotes.ts` | `frictionNotes` | A Friction note's file: its fields, its id and its path in the friction folder, its write, the folder's notes read back and a read note's restore. |
 | `fixtures/spec796.ts` | | Loads byro-repo #796, a real closed spec copied into `fixtures/byro-repo-796/`, that the `runner judge-brief` and `issue:close-parent` tests measure their briefs on. |
 | `GhCli.ts` | `GhCli` | The real `gh` port. |
 | `git.ts` | | Git helpers the workspaces, run loop and wrap-up share, the worktree add, remove, list and switch helpers and the branch lookup included. |
@@ -87,6 +87,11 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `LandingLock.ts` | `LandingLock` | The per-primary lock wrap-up lands under. |
 | `LeaseHeld.ts` | | The error for another holder's live workspace lease. |
 | `limitGuard.ts` | `limitGuard` | The limit guard: reads usage, picks launch or Limit wait and ranks the accounts. |
+| `logBackup.ts` | `logBackup` | `npm run logs`' core: syncs the friction and outcome folders to a Sheet, named by its ID, and restores their missing files from it, through the Sheets values port its entry passes. |
+| `logBackup/FakeSheetValues.ts` | | The in-memory Sheet log backup tests use. |
+| `logBackup/logTabs.ts` | | The log backup's tabs, one per log: each one's header, its rows read from the log's folder and a row's file written back. |
+| `logBackup/RestSheetValues.ts` | `RestSheetValues` | The real Sheets values port over the Sheets REST API, on an injected access token, adding a tab the Sheet lacks before writing it. |
+| `logBackup/sheetValues.ts` | | The Sheets values port and its rows type. |
 | `localTime.ts` | | Words and reads a human-facing time: local, with its zone, and its local date. |
 | `lockFixture.ts` | | Pid-lock fixtures the lock tests share. |
 | `MapNext.ts` | `MapNext` | `npm run map:next`'s core: a `/wayfinder` session's read-only brief of a wayfinder map, its sub-issues, frontier and chosen ticket, printing only Trusted text, delegating to `MapNext/`. |
@@ -96,7 +101,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Notices.ts` | `Notices` | The notice port, its notice kinds and the run endings among them. |
 | `outlineApply.ts` | `outlineApply` | `npm run outline:apply`'s core: applies the Outline edits a developer's answer approves to a Trusted spec body, for an interactive `/research-piece` session. |
 | `outlineEdits.ts` | | A Research Halt's Outline edits: their schema, ids and words, the ones an answer approves, and their word-for-word application to a spec body's `## Outline`. |
-| `outcomeLog.ts` | `outcomeLog` | The outcome row file's path, table and commit message, and a written row's cells by column. |
+| `outcomeLog.ts` | `outcomeLog` | The outcome row file's path, table and commit message, a written row's cells by column, the folder's row files and written rows read back, and a written row rebuilt from its label, spec link and cells and restored. |
 | `outcomeRowWriter.ts` | `outcomeRowWriter` | Writes a ticket's outcome row from its facts file. |
 | `outcomeSummary.ts` | `outcomeSummary` | `npm run outcome:summary`'s core: picks and filters the outcome log's rows and reports their costs, outliers, transcripts and Model fit by spec section. |
 | `outcomeSummary/OutcomeReport.ts` | | Words the outcome summary for a batch of sections, judging each row by the outlier rules. |

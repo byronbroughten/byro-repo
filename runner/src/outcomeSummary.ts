@@ -4,6 +4,7 @@
 // The row format is outcomeLog.ts's.
 
 import type { IssueRef } from "./IssueWorkspaces.ts";
+import type { OutcomeRowFile } from "./outcomeLog.ts";
 import { OutcomeReport } from "./outcomeSummary/OutcomeReport.ts";
 import { summarySections } from "./outcomeSummary/summarySections.ts";
 import type { WorkflowName } from "./Workflow.ts";
@@ -14,11 +15,8 @@ export { isWorkflowName } from "./Workflow.ts";
 // A starting value: enough rows for a tuning question, few enough that rows from before a model change don't outweigh it.
 export const defaultRowCount = 200;
 
-export interface OutcomeRowFile {
-  // Relative to the outcome folder: `<spec repo>-<spec n>/<repo>-<n>.md`.
-  path: string;
-  text: string;
-}
+// The row file type is outcomeLog.ts's; it is named here too, as the type of the summary's input.
+export type { OutcomeRowFile };
 
 export type SectionScope =
   { section: string } | { recent: number } | { all: true } | { newest: number };
