@@ -102,7 +102,7 @@ const scripts = {
       why: "`gh issue reopen` undoes the close `npm run issue:close-parent` makes, and a further comment its closing comment",
     },
   },
-  // Free as a relabel is; a runner step's is refused, as AGENTS.md bars an agent step from changing a triage label.
+  // Free as a relabel is; a runner step's is refused, as AGENTS.md bars an agent step relabelling a ticket of its running spec.
   issueReady: {
     name: "issue:ready",
     stepWhy:

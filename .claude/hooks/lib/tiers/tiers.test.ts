@@ -375,6 +375,7 @@ describe("a runner step's gh calls", () => {
       const decision = modeDecisionOf(command, "runnerStep");
       expect(decision?.permissionDecision).toBe("deny");
       expect(decision?.reason).toContain("`npm run issue:ready");
+      expect(decision?.reason).toContain(blockerInstead);
     },
   );
 
