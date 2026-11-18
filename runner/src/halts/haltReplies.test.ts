@@ -8,6 +8,7 @@ describe("haltReplies.failureAnswerOf", () => {
     "H1: continue +1 handoff: run the checks and land it",
     "H1: `continue +1 handoff`: run the checks and land it",
     "H1: **continue +1 handoff**: run the checks and land it",
+    "H1: **continue +1 handoff:** run the checks and land it",
     "H1: Continue +1 handoff — run the checks and land it",
   ])("reads %j as more handoffs carrying the guidance", (reply) => {
     expect(answerOf(reply)).toEqual({

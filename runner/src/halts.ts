@@ -256,11 +256,13 @@ export interface StepFailure {
   bodyHash?: string;
 }
 
+const moreHandoffsWords = "continue +1 handoff";
+
 export const failureOptions = {
   retry: "`retry`",
   retryRecord: "`retry record`",
-  moreHandoffs: "`continue +1 handoff`",
-  guidedMoreHandoffs: "`continue +1 handoff: <guidance>`",
+  moreHandoffs: `\`${moreHandoffsWords}\``,
+  guidedMoreHandoffs: `\`${moreHandoffsWords}: <guidance>\``,
   approve: "`approve`",
   skip: "`skip`",
 } as const;
