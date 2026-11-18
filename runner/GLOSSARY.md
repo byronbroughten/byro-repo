@@ -246,6 +246,10 @@ _Avoid_: phase, step, stage (bare)
 One problem with a Workflow, or with the machinery the Workflows share, recorded as the developer or an agent saw it and kept until process revision addresses or dismisses it. It is not a ticket, which is a change already decided.
 _Avoid_: mistake, lesson, retro item
 
+**Primer**:
+A skill the agent invokes itself to load the rule an action needs before taking it, ahead of the block or nudge that backs that rule up. It never replaces the block ([ADR 0031](../docs/adr/0031-a-primer-loads-a-rule-ahead-of-its-block-and-never-replaces-it.md)).
+_Avoid_: wrapper skill, guard skill, preventive skill
+
 ## Same word, two meanings
 
 - **Runner**: here, the program that runs a spec. In the framework's glossary, an endpoint whose checkbox is a run button.
