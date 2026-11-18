@@ -44,6 +44,9 @@ function answerOf(reply: string): FailureAnswer {
     question: "Handed off past its cap.",
     options: ["`continue +1 handoff`"],
     scope: [],
+    isPosted: true,
+    isDelivered: false,
+    ignoredReplies: [],
     answer: { replyId: "1", text: reply, at: "2026-11-18T00:00:00.000Z" },
   };
   return haltReplies.failureAnswerOf(halt);
