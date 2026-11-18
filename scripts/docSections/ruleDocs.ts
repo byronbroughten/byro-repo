@@ -3,7 +3,7 @@ import { join, normalize } from "node:path";
 
 import { markdownSectionOf } from "@byronbroughten/spec-runner/markdownSections";
 
-import { docSectionsCommand as command } from "../../.claude/hooks/lib/fullDocRead.ts";
+import { docSectionsCommand as command } from "../../.claude/hooks/lib/docSectionsInjections.ts";
 import {
   codeStylePath,
   frameworkStylePath,

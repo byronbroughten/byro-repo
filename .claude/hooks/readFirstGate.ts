@@ -4,11 +4,8 @@ import { join, resolve } from "node:path";
 
 import { clonePathsOf } from "@byronbroughten/spec-runner/clonePaths";
 
-import {
-  docsInjectedBy,
-  isFullDocBashRead,
-  isFullDocRead,
-} from "./lib/fullDocRead.ts";
+import { docsInjectedBy } from "./lib/docSectionsInjections.ts";
+import { isFullDocBashRead, isFullDocRead } from "./lib/fullDocRead.ts";
 import {
   type HookInput,
   lineCount,

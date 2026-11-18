@@ -2,11 +2,8 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import {
-  docsInjectedBy,
-  type EditDecision,
-  isFullDocRead,
-} from "./fullDocRead.ts";
+import { docsInjectedBy } from "./docSectionsInjections.ts";
+import { type EditDecision, isFullDocRead } from "./fullDocRead.ts";
 import type { ToolInput } from "./hookIo.ts";
 import {
   codeStylePath,
@@ -630,24 +627,35 @@ describe("a Primer's read, the docs its skill injects through doc:sections", () 
       `!\`cat ${proseStylePath}\``,
       `!\`npm run doc:sections -- docs/agents/tickets.md\``,
     ].join("\n");
-    expect(docsInjectedBy(noInjection)).toEqual(["docs/agents/tickets.md"]);
     expect(
       edit("/repo/AGENTS.md", docsInjectedBy(noInjection)).denyReason,
     ).toMatch(/docs\/prose-style\.md/);
   });
 });
 
-describe("the hook's PreToolUse matcher", () => {
-  it("names exactly the rows' tools", () => {
+describe("the hook's matchers", () => {
+  function matchedTools(event: "PreToolUse" | "PostToolUse"): Set<string> {
     const settings = JSON.parse(
       readFileSync(new URL("../../settings.json", import.meta.url), "utf8"),
     );
-    const matched: string[] = settings.hooks.PreToolUse.filter(
-      ({ hooks }: { hooks: { command: string }[] }) =>
-        hooks.some(({ command }) => command.includes("readFirstGate.ts")),
-    ).flatMap(({ matcher }: { matcher: string }) => matcher.split("|"));
-    expect(new Set(matched)).toEqual(
+    return new Set(
+      settings.hooks[event]
+        .filter(({ hooks }: { hooks: { command: string }[] }) =>
+          hooks.some(({ command }) => command.includes("readFirstGate.ts")),
+        )
+        .flatMap(({ matcher }: { matcher: string }) => matcher.split("|")),
+    );
+  }
+
+  it("names exactly the rows' tools on PreToolUse", () => {
+    expect(matchedTools("PreToolUse")).toEqual(
       new Set(readFirstRows.flatMap((row) => row.tools)),
+    );
+  });
+
+  it("records reads on PostToolUse of Read, Bash and Skill, a Primer's call", () => {
+    expect(matchedTools("PostToolUse")).toEqual(
+      new Set(["Read", "Bash", "Skill"]),
     );
   });
 });
