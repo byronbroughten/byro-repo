@@ -11,7 +11,8 @@ export interface OutcomeRowFile {
   // Relative to the outcome folder: `<spec repo>-<spec n>/<repo>-<n>.md`, or the legacy log's own name, which has no folder.
   path: string;
   text: string;
-  landedAt: Date;
+  // The adding commit's date, read only for a row written before the Landed column.
+  addedAt: Date;
 }
 
 export type SectionSelection =

@@ -15,6 +15,7 @@ const row: OutcomeRow = {
   githubOwner: "byronbroughten",
   workflow: "code",
   filesChanged: 7,
+  landedAt: new Date("2026-11-18T12:00:00Z"),
   facts: {},
 };
 
@@ -43,6 +44,7 @@ describe("outcomeFileOf", () => {
       "unrecorded",
       "unrecorded",
       "unrecorded",
+      "2026-11-18T12:00:00.000Z",
     ]);
   });
 
@@ -89,6 +91,7 @@ describe("outcomeFileOf", () => {
       "$0.40",
       "A \\| in a cell",
       "a1, b2",
+      "2026-11-18T12:00:00.000Z",
     ]);
   });
 
@@ -127,6 +130,21 @@ describe("writtenCellsOf", () => {
     ].join("\n");
     expect(writtenCellsOf(file).get("Peak context")).toBe("90K");
     expect(writtenCellsOf(file).has("Estimate")).toBe(false);
+  });
+
+  it("reads a row's landing date", () => {
+    expect(writtenCellsOf(outcomeFileOf(row)).get("Landed")).toBe(
+      "2026-11-18T12:00:00.000Z",
+    );
+  });
+
+  it("reads a row written before the Landed column without one", () => {
+    const file = [
+      "| Issue | Pair | Files changed |",
+      "| --- | --- | --- |",
+      "| #218 | Opus medium | 7 |",
+    ].join("\n");
+    expect(writtenCellsOf(file).has("Landed")).toBe(false);
   });
 
   it("reads a row's Workflow", () => {

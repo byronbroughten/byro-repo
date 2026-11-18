@@ -15,7 +15,7 @@ The batch is the spec sections the invocation names; a section is the folder `do
 | Invocation | Command | Batch |
 | --- | --- | --- |
 | `/mine-outcomes <repo> <spec>` | `npm run outcome:summary -- <repo>-<spec>` | that one section |
-| `/mine-outcomes --recent <N>` | `npm run outcome:summary -- --recent <N>` | the N sections whose newest row landed most recently, by that row's commit date |
+| `/mine-outcomes --recent <N>` | `npm run outcome:summary -- --recent <N>` | the N sections whose newest row landed most recently, by that row's Landed date, or its adding commit's for a row older than that column |
 | `/mine-outcomes --all` | `npm run outcome:summary -- --all` | every section; the legacy log is never mined |
 
 When it names no section, say so and stop. The summary is what you read in place of the row files and each ticket's `issue:read`. It already reads older rows under today's names, leaves `unrecorded` out of every sum and median with the rows each figure rests on, and sums each row's peaks (`150K → 90K` is a handoff, its peak sum 240K). It gives:
