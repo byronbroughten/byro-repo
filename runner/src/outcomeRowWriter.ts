@@ -58,6 +58,7 @@ export function writeOutcomeRow(
   const row = {
     ...request,
     workflow,
+    landedAt: new Date(),
     facts: {
       ...outcomeFactsOf(facts, { handoffSessionIds, silenceTimeoutMs }),
       estimate,

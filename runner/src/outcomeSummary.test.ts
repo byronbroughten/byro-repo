@@ -468,6 +468,18 @@ describe("which sections", () => {
     expect(specsOf(summary)).toEqual(["byro-repo#1", "writing#9"]);
   });
 
+  it("dates a row by its own Landed cell over its adding commit's date", async () => {
+    const landedRow = tableFileOf({
+      path: "byro-repo-5/byro-repo-7.md",
+      header: [...currentHeader, "Landed"],
+      cells: [...currentCellsOf({ issue: 7 }), "2026-11-01T00:00:00.000Z"],
+      landedAt: "2026-08-01T00:00:00Z",
+    });
+    const summary = await summaryOf([...rowFiles, landedRow], { recent: 1 });
+
+    expect(specsOf(summary)).toEqual(["byro-repo#5"]);
+  });
+
   it("takes every section with --all, leaving the legacy log out", async () => {
     const summary = await summaryOf(rowFiles, { all: true });
 

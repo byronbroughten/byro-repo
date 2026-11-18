@@ -67,18 +67,25 @@ function sectionsOf(rowFiles: OutcomeRowFile[]): Section[] {
     const spec = refOf(folder);
     const issue = refOf(name.replace(/\.md$/, ""));
     if (spec === undefined || issue === undefined) return sections;
+    const landedAt = landedAtOf(file);
     const section = sections.get(folder) ?? {
       spec,
       folder,
       rows: [],
-      landedAt: file.landedAt,
+      landedAt,
     };
     section.rows.push(rowOf(file.text, issue));
-    if (file.landedAt > section.landedAt) section.landedAt = file.landedAt;
+    if (landedAt > section.landedAt) section.landedAt = landedAt;
     sections.set(folder, section);
     return sections;
   }, new Map<string, Section>());
   return [...byFolder.values()];
+}
+
+// A row written before the Landed column falls back to its adding commit's date.
+function landedAtOf({ text, landedAt }: OutcomeRowFile): Date {
+  const landed = writtenCellsOf(text).get("Landed");
+  return landed === undefined ? landedAt : new Date(landed);
 }
 
 // A `<repo>-<n>` name; undefined for one that isn't, such as the legacy log.

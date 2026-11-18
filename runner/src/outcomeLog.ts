@@ -26,6 +26,7 @@ const columns = [
   "Review cost",
   "What review caught",
   "Session ids",
+  "Landed",
 ] as const;
 
 type Column = (typeof columns)[number];
@@ -72,6 +73,8 @@ export interface OutcomeRow {
   githubOwner: string;
   workflow: WorkflowName;
   filesChanged: number;
+  // Kept in the row, not read from git, so it survives the log leaving git.
+  landedAt: Date;
   facts: OutcomeFacts;
 }
 
@@ -185,6 +188,7 @@ function cellsOf({
   issue,
   workflow,
   filesChanged,
+  landedAt,
   facts,
 }: OutcomeRow): string[] {
   return [
@@ -207,6 +211,7 @@ function cellsOf({
     dollarsOf(facts.reviewCostUsd),
     whatReviewCaughtCellOf(facts),
     facts.sessionIds?.join(", ") ?? unrecorded,
+    landedAt.toISOString(),
   ];
 }
 

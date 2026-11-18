@@ -79,6 +79,7 @@ function rowFiles(): OutcomeRowFile[] {
 }
 
 // Each row file's adding commit date, keyed by its path under the outcome folder; a later rewrite such as a backfill doesn't move it.
+// Only a row written before the Landed column is dated by it.
 function landingDates(): Map<string, Date> {
   const log = execFileSync(
     "git",

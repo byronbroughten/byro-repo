@@ -55,15 +55,19 @@ describe("run", () => {
 
     await wrapUp().run(ticket);
 
-    expect(readFileSync(join(primaryRoot, outcomePath), "utf8")).toBe(
+    expect(
+      withLandedPlaceholder(
+        readFileSync(join(primaryRoot, outcomePath), "utf8"),
+      ),
+    ).toBe(
       [
         "# byro-repo#218 outcome",
         "",
         "Spec: [byro-repo#213](https://github.com/byronbroughten/byro-repo/issues/213)",
         "",
-        "| Issue | Workflow | Pair | Account | Files changed | Estimate | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
-        "| #218 | code | Opus medium | unrecorded | 1 |  | 150K → 90K | Fix (fresh resolver) | 0 | 1 | 0 | 0 | unrecorded | unrecorded | unrecorded | A stale doc link | unrecorded |",
+        "| Issue | Workflow | Pair | Account | Files changed | Estimate | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids | Landed |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+        "| #218 | code | Opus medium | unrecorded | 1 |  | 150K → 90K | Fix (fresh resolver) | 0 | 1 | 0 | 0 | unrecorded | unrecorded | unrecorded | A stale doc link | unrecorded | <landed> |",
         "",
       ].join("\n"),
     );
@@ -182,9 +186,11 @@ describe("run", () => {
     await wrapUp().run(ticket);
 
     expect(
-      readFileSync(join(primaryRoot, outcomePath), "utf8").split("\n")[6],
+      withLandedPlaceholder(
+        readFileSync(join(primaryRoot, outcomePath), "utf8"),
+      ).split("\n")[6],
     ).toBe(
-      "| #218 | code | Opus medium | 2 | 1 |  | 150K → 90K | Pass | 0 | 1 | 0 | 0 | 27 min | $1.45 | $0.11 | — | session-implement-1, session-implement-2, session-review, session-triage, session-fix |",
+      "| #218 | code | Opus medium | 2 | 1 |  | 150K → 90K | Pass | 0 | 1 | 0 | 0 | 27 min | $1.45 | $0.11 | — | session-implement-1, session-implement-2, session-review, session-triage, session-fix | <landed> |",
     );
   });
 
@@ -245,9 +251,11 @@ describe("run", () => {
     await wrapUp().run(ticket);
 
     expect(
-      readFileSync(join(primaryRoot, outcomePath), "utf8").split("\n")[6],
+      withLandedPlaceholder(
+        readFileSync(join(primaryRoot, outcomePath), "utf8"),
+      ).split("\n")[6],
     ).toBe(
-      "| #218 | code | Opus medium | 2 | 1 |  | 150K → 90K | Pass | 0 | 1 | 0 | 0 | 15 min | $1.45 | unrecorded | — | session-implement-1, session-implement-2 |",
+      "| #218 | code | Opus medium | 2 | 1 |  | 150K → 90K | Pass | 0 | 1 | 0 | 0 | 15 min | $1.45 | unrecorded | — | session-implement-1, session-implement-2 | <landed> |",
     );
   });
 
@@ -351,4 +359,9 @@ function recorded(
   configFolder: string,
 ): RecordedSession {
   return { agent, sessionId, account: 2, configFolder };
+}
+
+// The Landed cell holds wrap-up's own clock, so a row is compared with it stood in for.
+function withLandedPlaceholder(file: string): string {
+  return file.replace(/ \d{4}-\d\d-\d\dT[\d:.]+Z \|$/m, " <landed> |");
 }
