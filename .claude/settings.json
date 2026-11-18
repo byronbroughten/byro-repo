@@ -66,7 +66,11 @@
       "Bash(npm run issue:read*)",
       "Bash(npm run runner -- decide*)",
       "Bash(.claude/skills/inbox/record.sh *)",
-      "Bash(bash .claude/skills/inbox/record.sh *)"
+      "Bash(bash .claude/skills/inbox/record.sh *)",
+      "Skill(file-issue)",
+      "Skill(code-style)",
+      "Skill(prose-style)",
+      "Skill(writing)"
     ],
     "ask": [
       "Bash(git push*)",
