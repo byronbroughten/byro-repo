@@ -12,7 +12,7 @@ export interface OutcomeRowFile {
   path: string;
   text: string;
   // The adding commit's date, read only for a row written before the Landed column.
-  landedAt: Date;
+  addedAt: Date;
 }
 
 export type SectionSelection =

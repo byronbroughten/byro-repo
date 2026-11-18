@@ -72,7 +72,7 @@ function rowFiles(): OutcomeRowFile[] {
           return {
             path,
             text: readFileSync(join(folder, path), "utf8"),
-            landedAt: landings.get(path) ?? new Date(),
+            addedAt: landings.get(path) ?? new Date(),
           };
         }),
     );

@@ -83,9 +83,9 @@ function sectionsOf(rowFiles: OutcomeRowFile[]): Section[] {
 }
 
 // A row written before the Landed column falls back to its adding commit's date.
-function landedAtOf({ text, landedAt }: OutcomeRowFile): Date {
+function landedAtOf({ text, addedAt }: OutcomeRowFile): Date {
   const landed = writtenCellsOf(text).get("Landed");
-  return landed === undefined ? landedAt : new Date(landed);
+  return landed === undefined ? addedAt : new Date(landed);
 }
 
 // A `<repo>-<n>` name; undefined for one that isn't, such as the legacy log.

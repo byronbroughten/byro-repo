@@ -1,7 +1,7 @@
 import { cpSync, existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { FactsFile } from "./FactsFile.ts";
 import { git } from "./GitFixture.ts";
@@ -29,7 +29,13 @@ import {
 
 useWrapUpHarness(rootCloneOnly);
 
+const landing = "2026-11-18T12:00:00.000Z";
+
 describe("run", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("merges the branch, commits the log row and lands both on the pushed master", async () => {
     const workspace = await workspaceWith();
     commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
@@ -53,13 +59,10 @@ describe("run", () => {
     commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
     writeFacts({ reviewFixes: "fresh", whatReviewCaught: "A stale doc link" });
 
+    landAt(landing);
     await wrapUp().run(ticket);
 
-    expect(
-      withLandedPlaceholder(
-        readFileSync(join(primaryRoot, outcomePath), "utf8"),
-      ),
-    ).toBe(
+    expect(readFileSync(join(primaryRoot, outcomePath), "utf8")).toBe(
       [
         "# byro-repo#218 outcome",
         "",
@@ -67,7 +70,7 @@ describe("run", () => {
         "",
         "| Issue | Workflow | Pair | Account | Files changed | Estimate | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids | Landed |",
         "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
-        "| #218 | code | Opus medium | unrecorded | 1 |  | 150K → 90K | Fix (fresh resolver) | 0 | 1 | 0 | 0 | unrecorded | unrecorded | unrecorded | A stale doc link | unrecorded | <landed> |",
+        `| #218 | code | Opus medium | unrecorded | 1 |  | 150K → 90K | Fix (fresh resolver) | 0 | 1 | 0 | 0 | unrecorded | unrecorded | unrecorded | A stale doc link | unrecorded | ${landing} |`,
         "",
       ].join("\n"),
     );
@@ -183,14 +186,13 @@ describe("run", () => {
       },
     });
 
+    landAt(landing);
     await wrapUp().run(ticket);
 
     expect(
-      withLandedPlaceholder(
-        readFileSync(join(primaryRoot, outcomePath), "utf8"),
-      ).split("\n")[6],
+      readFileSync(join(primaryRoot, outcomePath), "utf8").split("\n")[6],
     ).toBe(
-      "| #218 | code | Opus medium | 2 | 1 |  | 150K → 90K | Pass | 0 | 1 | 0 | 0 | 27 min | $1.45 | $0.11 | — | session-implement-1, session-implement-2, session-review, session-triage, session-fix | <landed> |",
+      `| #218 | code | Opus medium | 2 | 1 |  | 150K → 90K | Pass | 0 | 1 | 0 | 0 | 27 min | $1.45 | $0.11 | — | session-implement-1, session-implement-2, session-review, session-triage, session-fix | ${landing} |`,
     );
   });
 
@@ -248,14 +250,13 @@ describe("run", () => {
       .setReviewFacts(ticket, { reviewFixes: "none" })
       .setClosingFacts(ticket, { closingComment: "Landed the hook." });
 
+    landAt(landing);
     await wrapUp().run(ticket);
 
     expect(
-      withLandedPlaceholder(
-        readFileSync(join(primaryRoot, outcomePath), "utf8"),
-      ).split("\n")[6],
+      readFileSync(join(primaryRoot, outcomePath), "utf8").split("\n")[6],
     ).toBe(
-      "| #218 | code | Opus medium | 2 | 1 |  | 150K → 90K | Pass | 0 | 1 | 0 | 0 | 15 min | $1.45 | unrecorded | — | session-implement-1, session-implement-2 | <landed> |",
+      `| #218 | code | Opus medium | 2 | 1 |  | 150K → 90K | Pass | 0 | 1 | 0 | 0 | 15 min | $1.45 | unrecorded | — | session-implement-1, session-implement-2 | ${landing} |`,
     );
   });
 
@@ -361,7 +362,7 @@ function recorded(
   return { agent, sessionId, account: 2, configFolder };
 }
 
-// The Landed cell holds wrap-up's own clock, so a row is compared with it stood in for.
-function withLandedPlaceholder(file: string): string {
-  return file.replace(/ \d{4}-\d\d-\d\dT[\d:.]+Z \|$/m, " <landed> |");
+// Only Date is faked, so wrap-up's git processes and timers run as usual.
+function landAt(iso: string): void {
+  vi.useFakeTimers({ toFake: ["Date"], now: new Date(iso) });
 }

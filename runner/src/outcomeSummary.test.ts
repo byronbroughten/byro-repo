@@ -67,13 +67,13 @@ function rowFileOf(
   section: string,
   repo: string,
   row: RowCells,
-  landedAt = "2026-10-01T00:00:00Z",
+  addedAt = "2026-10-01T00:00:00Z",
 ): OutcomeRowFile {
   return tableFileOf({
     path: `${section}/${repo}-${row.issue}.md`,
     header: currentHeader,
     cells: currentCellsOf(row),
-    landedAt,
+    addedAt,
   });
 }
 
@@ -81,12 +81,12 @@ function tableFileOf({
   path,
   header,
   cells,
-  landedAt = "2026-10-01T00:00:00Z",
+  addedAt = "2026-10-01T00:00:00Z",
 }: {
   path: string;
   header: string[];
   cells: string[];
-  landedAt?: string;
+  addedAt?: string;
 }): OutcomeRowFile {
   const line = (values: string[]) => `| ${values.join(" | ")} |`;
   return {
@@ -101,7 +101,7 @@ function tableFileOf({
       line(cells),
       "",
     ].join("\n"),
-    landedAt: new Date(landedAt),
+    addedAt: new Date(addedAt),
   };
 }
 
@@ -451,7 +451,7 @@ describe("which sections", () => {
       path: "legacy.md",
       header: ["Issue", "Pair", "Files changed", "Peak context", "Result"],
       cells: ["#194", "Opus medium", "14", "121K", "Pass"],
-      landedAt: "2026-10-30T00:00:00Z",
+      addedAt: "2026-10-30T00:00:00Z",
     }),
   ];
 
@@ -473,7 +473,7 @@ describe("which sections", () => {
       path: "byro-repo-5/byro-repo-7.md",
       header: [...currentHeader, "Landed"],
       cells: [...currentCellsOf({ issue: 7 }), "2026-11-01T00:00:00.000Z"],
-      landedAt: "2026-08-01T00:00:00Z",
+      addedAt: "2026-08-01T00:00:00Z",
     });
     const summary = await summaryOf([...rowFiles, landedRow], { recent: 1 });
 
