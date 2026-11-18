@@ -313,9 +313,17 @@ describe("implementPrompt", () => {
     );
   });
 
-  it("says to propose a split only when less than half is done and the split test says so", () => {
+  it("says to propose a split whenever the split test says the remaining work is more than one ticket", () => {
+    const prompt = implementPrompt(input);
+    expect(prompt).toContain(
+      "When the ticket split test (`docs/agents/tickets.md#the-ticket-split-test`) says the remaining work is more than one ticket, also fill `proposedSplit`",
+    );
+    expect(prompt).not.toContain("less than half");
+  });
+
+  it("says to finish and return the implement record when no code or prose is left to decide", () => {
     expect(implementPrompt(input)).toContain(
-      "When less than half the ticket is done and the ticket split test (`docs/agents/tickets.md#the-ticket-split-test`) says the rest is more than one ticket, also fill `proposedSplit`",
+      "Hand off only when work left needs judgement. When no code or prose is left to decide, finish the rest",
     );
   });
 

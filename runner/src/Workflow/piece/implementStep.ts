@@ -195,10 +195,10 @@ function finishingSection({
 
 function handoffSection({ draftPath }: PieceImplementPromptInput): string {
   return handoffText.nudgeSectionOf({
+    noJudgementLeft: "no paragraph is left to draft",
     inHand: "paragraph",
     filesToOpen: `\`${draftPath}\` with the line range you were drafting, and each passage file you saved, with \`1-\` and its last line`,
     stillFailing: "empty",
-    splitWhen: "the ticket's Sections are drafted",
     slices: `one slice per Section left, each \`delivers\` naming its Section and \`files\` listing \`${draftPath}\``,
   });
 }

@@ -90,6 +90,22 @@ async function handedOffInReview(): Promise<StepResult> {
 }
 
 describe("run's implement handoff", () => {
+  it("launches the implement step telling it to hand off only with judgement left, and to propose a split by the work left", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
+
+    await specRun(agentStep).run(spec);
+
+    const prompt = agentStep.requests[0]?.prompt;
+    expect(prompt).toContain(
+      "Hand off only when work left needs judgement. When no code or prose is left to decide, finish the rest",
+    );
+    expect(prompt).toContain(
+      "When the ticket split test (`docs/agents/tickets.md#the-ticket-split-test`) says the remaining work is more than one ticket, also fill `proposedSplit`",
+    );
+    expect(prompt).not.toContain("less than half");
+  });
+
   it("passes the ticket to a fresh implement step on the same pair, keeping the work", async () => {
     addSpec([1]);
     github.edit(1, { body: bodyWith("Opus medium") });

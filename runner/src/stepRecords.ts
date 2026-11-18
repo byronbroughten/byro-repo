@@ -107,7 +107,7 @@ export interface Handoff {
   ruledOut: string[];
   filesChanged: string[];
   stillFailing: string[];
-  // Set when less than half the ticket is done: the remaining work, which the developer splits the ticket into.
+  // Set when the remaining work is more than one ticket: that work, which the developer splits the ticket into.
   proposedSplit?: ProposedSlice[];
 }
 

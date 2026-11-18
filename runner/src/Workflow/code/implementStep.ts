@@ -80,10 +80,10 @@ const promptSections = {
   - \`pointsWorthChecking\`: optional, only when committed: each place you suspect is weak, unfinished or easy to get wrong, a line naming its file or area. The review hands them to its reviewers as things to check.`,
 
   handoff: handoffText.nudgeSectionOf({
+    noJudgementLeft: "no code or prose is left to decide",
     inHand: "step",
     filesToOpen: "path and line range",
     stillFailing: "empty when the code is green",
-    splitWhen: "the ticket is done",
     slices:
       "the remaining work as slices, each with what it `delivers` and the `files` it changes",
   }),
