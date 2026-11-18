@@ -69,7 +69,7 @@ A **wide refactor** is one mechanical change (rename a column, retype a shared s
 
 Draft every ticket as a file under `<scratchpad>/tickets/`, in [`issue:file`'s draft format](../../../docs/agents/issue-tracker.md#file-tickets-from-drafts): named `<n>-<slug>.md`, numbered from 1 in dependency order, its front matter's `title`, `kind`, `labels` and `blockers` (other drafts' numbers), then its body by the [code template](#code-ticket-template). An edge to an issue already filed goes in no draft; step 7 sets it.
 
-With 6 or more code drafts, or any piece draft whatever the count, read [`.claude/skills/review-project-tickets/SKILL.md`](../review-project-tickets/SKILL.md) and follow it on that folder, handing over each draft's estimate breakdown (overhead, the union read set by file or passage, the allowance) beside it, and step 2's `<scratchpad>/findings.md`; it is user-invoked, so the Skill tool can't reach it. Act on its report once, before the developer sees the breakdown:
+With 6 or more code drafts, or any piece draft whatever the count, read [`.claude/skills/review-project-tickets/SKILL.md`](../review-project-tickets/SKILL.md) and follow it on that folder, handing over each draft's estimate breakdown (overhead, the union read set by file or passage, the allowance) beside it, and step 2's `<scratchpad>/findings.md` when there is one; it is user-invoked, so the Skill tool can't reach it. Act on its report once, before the developer sees the breakdown:
 
 - **Revise a draft with Edit, never by rewriting it with Write**, here and for step 6's changes.
 - **Fixes**: make each, as you judge best, true to the spec.

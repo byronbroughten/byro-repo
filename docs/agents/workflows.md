@@ -130,7 +130,7 @@ A doc is listed when two or more skills or Steps of either Workflow reach it by 
 | [Codebase Priorities](./codebase-priorities.md) | `grilling` (and so `/plan-project` and `/wayfinder`'s grilling tickets), `/judge-findings`, `/revise-workflows` | via `verdicts.md`: `/code-review`, `/implement-code`, the review and resolve Steps |
 | [`verdicts.md`](./verdicts.md) | `/code-review`, `/implement-code`, `/implement-piece`, `/judge-findings`, `/review-piece`, `/revise-workflows` (its pair mode) | via runner prompt: the resolve Step; via `/code-review` and `/review-piece`: the review Step |
 | [`specs.md`](./specs.md) | `/project-spec`, `/project-tickets`, `/review-project-tickets` | |
-| [`delegation.md`](./delegation.md) | | via `specs.md`: `/project-spec`, `/project-tickets` |
+| [`delegation.md`](./delegation.md) | `/revise-workflows` (its log mode) | via `specs.md`: `/project-spec`, `/project-tickets`, `/review-project-tickets`; via `git-workflow.md`: `/implement-code`, `/judge-findings`, `/implement-piece`, the implement Step; via `planning.md`: `/plan-project` |
 | [`tickets.md`](./tickets.md) | `/project-spec`, `/project-tickets`, `/review-project-tickets` | |
 | [`handoffs.md`](./handoffs.md) | `/start-issue`, `/revise-workflows` | via always-on hook: the context nudge, for any session |
 | [`model-fit.md`](./model-fit.md) | `/project-spec`, `/project-tickets` | via `tickets.md`: `/review-project-tickets` |

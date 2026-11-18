@@ -12,7 +12,7 @@ The review reports and never edits. Inside [`/project-tickets`](../project-ticke
 
 The input is one of:
 
-- **Drafts**: the scratchpad folder of ticket files `/project-tickets` hands over, one per ticket in [`issue:file`'s draft format](../../../docs/agents/issue-tracker.md#file-tickets-from-drafts), its `blockers` the edges, with the spec's repo and number, each draft's estimate breakdown and the drafter's findings file, `repo-explorer`'s report by [`specs.md`'s Exploring](../../../docs/agents/specs.md#exploring).
+- **Drafts**: the scratchpad folder of ticket files `/project-tickets` hands over, one per ticket in [`issue:file`'s draft format](../../../docs/agents/issue-tracker.md#file-tickets-from-drafts), its `blockers` the edges, with the spec's repo and number, each draft's estimate breakdown and, when there is one, the drafter's findings file, `repo-explorer`'s report by [`specs.md`'s Exploring](../../../docs/agents/specs.md#exploring).
 - **A published spec**: `/review-project-tickets <repo> <n>`. Read the spec with `npm run issue:read -- <repo> <n> --body --comments`, which also lists its sub-issues; read each sub-issue with `npm run issue:read -- <its repo> <m> --body --comments`. Read the edges, and what has landed or started, from `npm run runner -- status <owner/repo> <n>`: its `Landed`, `Current` and `Waiting` lines.
 
 A ticket that has landed or is current is **report-only**: its risks are reported, and no fix is offered for it.
