@@ -59,6 +59,7 @@
     "./SupervisionRecords": "./src/SupervisionRecords.ts",
     "./TicketFiler": "./src/TicketFiler.ts",
     "./TicketReadier": "./src/TicketReadier.ts",
+    "./ticketSections": "./src/ticketSections.ts",
     "./contextMeter": "./src/contextMeter.ts",
     "./contextNudge": "./src/contextNudge.ts",
     "./limitGuard": "./src/limitGuard.ts",

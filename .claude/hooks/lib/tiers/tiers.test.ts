@@ -816,7 +816,7 @@ describe("a call the gate can't parse", () => {
 });
 
 describe("free reads and standing yeses in both modes", () => {
-  it("allows gh label list, Jev, the session probe and the outline in a session and a runner step", () => {
+  it("allows gh label list, Jev, the session probe, the outline and the doc section printer in a session and a runner step", () => {
     [
       "gh label list -R ByronBroughten/byro-repo",
       "npm run jev -- /tmp/request.json",
@@ -825,6 +825,8 @@ describe("free reads and standing yeses in both modes", () => {
       "npm run session:probe -- --sandbox-check /tmp/folder /tmp/commands.txt",
       "npm run session:probe -- --injection-check /tmp/folder",
       "npm run outline -- scripts/overlap/overlap.ts",
+      "npm run doc:sections -- docs/prose-style.md",
+      "npm run -s doc:sections -- docs/agents/tickets.md 'The ticket split test'",
       "npm run ws:rm -- .claude/hooks/old.ts .claude/skills/old/SKILL.md",
       "npm run map:next -- byro-repo 804",
       "npm run -s map:next -- byro-repo 804 813",
