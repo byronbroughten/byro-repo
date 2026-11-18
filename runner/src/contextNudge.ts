@@ -54,9 +54,15 @@ export function contextNudgeOf(
   const budgetKind = owed.supervision === undefined ? "ticket" : "context";
   return (
     `Context nudge: this session's context is ${Math.round(size / 1000)}K tokens, ` +
-    `approaching the ${ticketBudget / 1000}K ${budgetKind} budget: finish the step you are on, then hand off; ${handoffStepsOf(options)}`
+    `approaching the ${ticketBudget / 1000}K ${budgetKind} budget: finish the step you are on. ${skipRule} ${handoffStepsOf(options)}`
   );
 }
+
+// The skip rule's home is handoffs.md; this repeats its bolded line and examples.
+const skipRule =
+  "Hand off only when work left needs judgement, meaning code or prose still to be decided; " +
+  "finish work that needs none instead: a known command such as wrap-up, the checks or a commit, " +
+  "the step's record, or a comment reporting work already done.";
 
 function handoffStepsOf(options: ContextNudgeOptions): string {
   const { supervision, isTicketOwed } = options.owed;
@@ -67,13 +73,13 @@ function handoffStepsOf(options: ContextNudgeOptions): string {
   const clearLine = `Then tell the developer to \`/clear\`, then run \`${supervision.rejoinCommand}\`.`;
   if (!isTicketOwed) return `${oneHandoffOf(supervisionHandoff)} ${clearLine}`;
   return (
-    "two handoffs are your next and last steps, the ticket's first. " +
+    "Judge the ticket's handoff and the supervision's each on its own; those you owe are your next and last steps, the ticket's first. " +
     `The ticket's${ticketHandoffOf(options)} The supervision's${supervisionHandoff} ${clearLine}`
   );
 }
 
 function oneHandoffOf(handoff: string): string {
-  return `the handoff is your next and last step${handoff}`;
+  return `When you hand off, the handoff is your next and last step${handoff}`;
 }
 
 function ticketHandoffOf({
