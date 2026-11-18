@@ -1,28 +1,44 @@
 // `npm run size`: each named file's characters, lines and estimated tokens, largest first, then their total; counts, never contents.
-// The core is sizeReport.ts; this lists the non-ignored files of the root repo and each package clone, and prints its report.
+// The core is sizeReport.ts; this parses the arguments, lists the non-ignored files of the root repo and each package clone, and prints its report.
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { sizeReportOf } from "./sizeReport.ts";
+import { type SizeInputs, sizeTableOf, sizeTotalOf } from "./sizeReport.ts";
 
 const usage =
-  "Usage: npm run size -- <paths|globs|dirs> [--total]; paths are from the repo root, and --total prints only the total row";
+  "Usage: npm run size -- <paths|globs|dirs> [--total]; paths are from the repo root, and --total prints only the total line";
 
-const root = process.cwd();
-try {
-  process.stdout.write(
-    sizeReportOf({
-      root,
-      files: nonIgnoredFilesOf(root),
-      args: process.argv.slice(2),
-    }),
-  );
-} catch (error) {
-  console.error(
-    `${error instanceof Error ? error.message : String(error)}\n${usage}`,
-  );
+const totalFlag = "--total";
+
+const args = process.argv.slice(2);
+const patterns = args.filter((arg) => arg !== totalFlag);
+const argumentError = argumentErrorOf(patterns);
+if (argumentError !== undefined) {
+  console.error(`${argumentError}\n${usage}`);
   process.exitCode = 1;
+} else {
+  const root = process.cwd();
+  const inputs: SizeInputs = {
+    root,
+    files: nonIgnoredFilesOf(root),
+    patterns,
+  };
+  try {
+    process.stdout.write(
+      args.includes(totalFlag) ? sizeTotalOf(inputs) : sizeTableOf(inputs),
+    );
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  }
+}
+
+function argumentErrorOf(patterns: string[]): string | undefined {
+  const unknownFlag = patterns.find((pattern) => pattern.startsWith("--"));
+  if (unknownFlag !== undefined) return `unknown flag ${unknownFlag}`;
+  if (patterns.length === 0) return "no file named";
+  return undefined;
 }
 
 // The root repo ignores packages/*, each its own clone, so each clone lists its own files.

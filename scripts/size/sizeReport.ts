@@ -1,19 +1,27 @@
 // `npm run size`'s core: each named file's characters, lines and estimated tokens, largest first, then their total.
-// The entry, size.ts, gathers the non-ignored file list from git and prints this report.
+// The entry, size.ts, parses the arguments, gathers the non-ignored file list from git and prints one of these reports.
 import { readFileSync, statSync } from "node:fs";
-import { extname, join, matchesGlob, normalize } from "node:path";
+import {
+  extname,
+  isAbsolute,
+  join,
+  matchesGlob,
+  normalize,
+  relative,
+  resolve,
+} from "node:path";
+
+import { paddedLinesOf } from "../table/paddedLines.ts";
 
 // The median characters a token per read, by docs/agents/codebase-priorities/estimates.md's Reads line (byro-repo#409).
-export const charactersPerToken = { code: 2.0, prose: 2.6 } as const;
+const charactersPerToken = { code: 2.0, prose: 2.6 } as const;
 
 const proseExtensions = [".md", ".txt"];
-
-const totalFlag = "--total";
 
 export interface SizeInputs {
   root: string;
   files: string[];
-  args: string[];
+  patterns: string[];
 }
 
 interface FileSize {
@@ -23,12 +31,26 @@ interface FileSize {
   tokens: number;
 }
 
-export function sizeReportOf({ root, files, args }: SizeInputs): string {
-  const isTotalOnly = args.includes(totalFlag);
-  const patterns = args.filter((arg) => arg !== totalFlag);
-  const unknownFlag = patterns.find((pattern) => pattern.startsWith("--"));
-  if (unknownFlag !== undefined) throw new Error(`unknown flag ${unknownFlag}`);
-  if (patterns.length === 0) throw new Error("no file named");
+export function sizeTableOf(inputs: SizeInputs): string {
+  const sizes = sizesOf(inputs);
+  const rows = [
+    ["file", "characters", "lines", "tokens"],
+    ...[...sizes, totalOf(sizes)].map(({ path, characters, lines, tokens }) => [
+      path,
+      String(characters),
+      String(lines),
+      tokensTextOf(tokens),
+    ]),
+  ];
+  return `${paddedLinesOf(rows).join("\n")}\n`;
+}
+
+export function sizeTotalOf(inputs: SizeInputs): string {
+  const { path, characters, lines, tokens } = totalOf(sizesOf(inputs));
+  return `${path}: ${characters} characters, ${lines} lines, ${tokensTextOf(tokens)} tokens\n`;
+}
+
+function sizesOf({ root, files, patterns }: SizeInputs): FileSize[] {
   const paths = new Set(
     patterns.flatMap((pattern) => {
       const matches = matchesOf(root, files, pattern);
@@ -36,26 +58,30 @@ export function sizeReportOf({ root, files, args }: SizeInputs): string {
       return matches;
     }),
   );
-  const sizes = [...paths]
+  return [...paths]
     .map((path) => sizeOf(root, path))
     .sort((a, b) => b.tokens - a.tokens || a.path.localeCompare(b.path));
-  const total = rowOf(totalOf(sizes));
-  if (isTotalOnly) return `${total.join("  ")}\n`;
-  const rows = [["file", "characters", "lines", "tokens"], ...sizes.map(rowOf)];
-  return `${paddedLinesOf([...rows, total]).join("\n")}\n`;
 }
 
 // A named file counts even when gitignored; a directory or glob takes only the non-ignored list's files.
 function matchesOf(root: string, files: string[], pattern: string): string[] {
-  const path = normalize(pattern).replace(/\/+$/, "");
-  const stats = statSync(join(root, path), { throwIfNoEntry: false });
+  const path = displayPathOf(root, normalize(pattern).replace(/\/+$/, ""));
+  const stats = statSync(resolve(root, path), { throwIfNoEntry: false });
   if (stats?.isFile()) return [path];
   const onDisk = files.filter((file) => isFileOnDisk(join(root, file)));
   if (stats?.isDirectory()) {
-    if (path === ".") return onDisk;
+    if (path === "") return onDisk;
     return onDisk.filter((file) => file.startsWith(`${path}/`));
   }
   return onDisk.filter((file) => matchesGlob(file, path));
+}
+
+// An absolute path under the root shows, and matches the non-ignored list, as relative to it.
+function displayPathOf(root: string, path: string): string {
+  if (!isAbsolute(path)) return path === "." ? "" : path;
+  const fromRoot = relative(root, path);
+  if (fromRoot.startsWith("..") || isAbsolute(fromRoot)) return path;
+  return fromRoot;
 }
 
 function isFileOnDisk(path: string): boolean {
@@ -63,7 +89,7 @@ function isFileOnDisk(path: string): boolean {
 }
 
 function sizeOf(root: string, path: string): FileSize {
-  const text = readFileSync(join(root, path), "utf8");
+  const text = readFileSync(resolve(root, path), "utf8");
   const rate = proseExtensions.includes(extname(path))
     ? charactersPerToken.prose
     : charactersPerToken.code;
@@ -98,23 +124,6 @@ function totalOf(sizes: FileSize[]): FileSize {
   );
 }
 
-function rowOf({ path, characters, lines, tokens }: FileSize): string[] {
-  return [
-    path,
-    String(characters),
-    String(lines),
-    `~${(tokens / 1000).toFixed(1)}K`,
-  ];
-}
-
-function paddedLinesOf(rows: string[][]): string[] {
-  const widths = rows[0]?.map((_, column) =>
-    Math.max(...rows.map((row) => row[column]?.length ?? 0)),
-  );
-  return rows.map((row) =>
-    row
-      .map((cell, column) => cell.padEnd(widths?.[column] ?? 0))
-      .join("  ")
-      .trimEnd(),
-  );
+function tokensTextOf(tokens: number): string {
+  return `~${(tokens / 1000).toFixed(1)}K`;
 }

@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { sizeReportOf } from "./sizeReport.ts";
+import { sizeTableOf, sizeTotalOf } from "./sizeReport.ts";
 
 // Each file is lines of 100 characters, newline included.
 const fixtureLines = {
@@ -36,13 +36,17 @@ afterAll(() => {
   rmSync(root, { recursive: true, force: true });
 });
 
-function reportOf(...args: string[]): string {
-  return sizeReportOf({ root, files: nonIgnoredFiles, args });
+function tableOf(...patterns: string[]): string {
+  return sizeTableOf({ root, files: nonIgnoredFiles, patterns });
 }
 
-describe("sizeReportOf", () => {
+function totalOf(...patterns: string[]): string {
+  return sizeTotalOf({ root, files: nonIgnoredFiles, patterns });
+}
+
+describe("sizeTableOf", () => {
   it("lists each file largest first by estimated tokens, then a total row", () => {
-    expect(reportOf("src", "docs")).toBe(
+    expect(tableOf("src", "docs")).toBe(
       [
         "file             characters  lines  tokens",
         "src/big.ts       4000        40     ~2.0K",
@@ -55,15 +59,11 @@ describe("sizeReportOf", () => {
     );
   });
 
-  it("prints only the total row with --total", () => {
-    expect(reportOf("--total", "src")).toBe(
-      "total (2 files)  5000  50  ~2.5K\n",
-    );
-  });
-
   it("leaves a file out of the non-ignored list out of a directory, but counts it when named", () => {
-    expect(reportOf("--total", "src")).not.toContain("3 files");
-    expect(reportOf("src/ignored.ts")).toBe(
+    expect(totalOf("src")).toBe(
+      "total (2 files): 5000 characters, 50 lines, ~2.5K tokens\n",
+    );
+    expect(tableOf("src/ignored.ts")).toBe(
       [
         "file            characters  lines  tokens",
         "src/ignored.ts  600         6      ~0.3K",
@@ -73,8 +73,20 @@ describe("sizeReportOf", () => {
     );
   });
 
+  it("shows a file named by its absolute path relative to the root", () => {
+    expect(tableOf(join(root, "src/big.ts"), "src")).toBe(
+      [
+        "file             characters  lines  tokens",
+        "src/big.ts       4000        40     ~2.0K",
+        "src/sub/deep.ts  1000        10     ~0.5K",
+        "total (2 files)  5000        50     ~2.5K",
+        "",
+      ].join("\n"),
+    );
+  });
+
   it("expands a glob against the non-ignored list", () => {
-    expect(reportOf("**/*.ts")).toBe(
+    expect(tableOf("**/*.ts")).toBe(
       [
         "file             characters  lines  tokens",
         "src/big.ts       4000        40     ~2.0K",
@@ -86,29 +98,32 @@ describe("sizeReportOf", () => {
     );
   });
 
+  it("refuses an argument that matches no file, naming it", () => {
+    expect(() => tableOf("src", "nope/*.ts")).toThrow(
+      "nope/*.ts matches no file",
+    );
+  });
+});
+
+describe("sizeTotalOf", () => {
+  it("prints only the total, each count labelled", () => {
+    expect(totalOf("src")).toBe(
+      "total (2 files): 5000 characters, 50 lines, ~2.5K tokens\n",
+    );
+  });
+
   it("counts a file matched by two arguments once", () => {
-    expect(reportOf("--total", "src", "./src/big.ts", "src/**")).toBe(
-      "total (2 files)  5000  50  ~2.5K\n",
+    expect(totalOf("src", "./src/big.ts", "src/**")).toBe(
+      "total (2 files): 5000 characters, 50 lines, ~2.5K tokens\n",
     );
   });
 
   it("estimates prose at a lower token cost than code of equal length", () => {
-    expect(reportOf("--total", "docs/same.md")).toBe(
-      "total (1 file)  2600  26  ~1.0K\n",
+    expect(totalOf("docs/same.md")).toBe(
+      "total (1 file): 2600 characters, 26 lines, ~1.0K tokens\n",
     );
-    expect(reportOf("--total", "docs/same.ts")).toBe(
-      "total (1 file)  2600  26  ~1.3K\n",
+    expect(totalOf("docs/same.ts")).toBe(
+      "total (1 file): 2600 characters, 26 lines, ~1.3K tokens\n",
     );
-  });
-
-  it("refuses an argument that matches no file, naming it", () => {
-    expect(() => reportOf("src", "nope/*.ts")).toThrow(
-      "nope/*.ts matches no file",
-    );
-  });
-
-  it("refuses a run naming no file, and an unknown flag", () => {
-    expect(() => reportOf("--total")).toThrow("no file named");
-    expect(() => reportOf("--totals", "src")).toThrow("unknown flag --totals");
   });
 });
