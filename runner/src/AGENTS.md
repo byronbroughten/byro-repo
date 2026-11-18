@@ -175,6 +175,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `StepStream.ts` | | Reads a step's stream-json into its `StepResult`. |
 | `stepPrompts/doneLines.ts` | | The "when you're done" lines the code and piece Workflows' implement and red-checks prompts share. |
 | `stepPrompts/handoffText.ts` | | The handoff wording every Workflow's implementer shares: the nudge section, a fresh step's section, the posted comment, where in the steps it was handed off and a proposed split's text. |
+| `stepPrompts/handoffTextFixture.ts` | | The nudge-section assertion the code and piece implement prompts' tests share. |
 | `stepPrompts/implementText.ts` | | The bullets the implement step's prompt and the generated `/implement-code` skill share, the ticket-binds section and the implement prompt's workspace section. |
 | `stepPrompts/inlinedSkill.ts` | | Reads a skill's SKILL.md from the issue workspace and words its body for a step's prompt. |
 | `stepPrompts/interactiveSkill.ts` | | The generated `/implement-*` skills' shared commands, opening, generated note and ending, which takes its drift and only-writes lines from each skill. |

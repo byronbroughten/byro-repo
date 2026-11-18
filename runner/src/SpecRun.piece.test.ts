@@ -51,6 +51,7 @@ import {
 } from "./specRunHarness.ts";
 import { pieceDrafts } from "./specRunHarness/pieceDrafts.ts";
 import { stepResults } from "./specRunHarness/stepResults.ts";
+import { expectNudgeRules } from "./stepPrompts/handoffTextFixture.ts";
 import type {
   DismissedOverlap,
   ReadyResearchRecord,
@@ -250,16 +251,10 @@ describe("implement on a piece spec's drafting ticket", () => {
     await specRun(agentStep).run(spec);
 
     const prompt = agentStep.requests[0]?.prompt;
-    expect(prompt).toContain(
-      "Hand off only when work left needs judgement. When no paragraph is left to draft, finish the rest",
-    );
+    expectNudgeRules(prompt, "no paragraph is left to draft");
     expect(prompt).toContain(
       "Otherwise finish the paragraph in hand, then stop",
     );
-    expect(prompt).toContain(
-      "When the ticket split test (`docs/agents/tickets.md#the-ticket-split-test`) says the remaining work is more than one ticket, also fill `proposedSplit`",
-    );
-    expect(prompt).not.toContain("less than half");
   });
 
   it("names a passages folder in the workspace, outside the Agent draft and gitignored, and keeps it", async () => {

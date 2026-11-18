@@ -1,6 +1,7 @@
 import { Ajv } from "ajv";
 import { describe, expect, it } from "vitest";
 
+import { expectNudgeRules } from "../../stepPrompts/handoffTextFixture.ts";
 import {
   type AppliedRecord,
   type CommittedRecord,
@@ -313,17 +314,10 @@ describe("implementPrompt", () => {
     );
   });
 
-  it("says to propose a split whenever the split test says the remaining work is more than one ticket", () => {
-    const prompt = implementPrompt(input);
-    expect(prompt).toContain(
-      "When the ticket split test (`docs/agents/tickets.md#the-ticket-split-test`) says the remaining work is more than one ticket, also fill `proposedSplit`",
-    );
-    expect(prompt).not.toContain("less than half");
-  });
-
-  it("says to finish and return the implement record when no code or prose is left to decide", () => {
-    expect(implementPrompt(input)).toContain(
-      "Hand off only when work left needs judgement. When no code or prose is left to decide, finish the rest",
+  it("says to hand off only when code or prose is left to decide, and to propose a split whenever the remaining work is more than one ticket", () => {
+    expectNudgeRules(
+      implementPrompt(input),
+      "no code or prose is left to decide",
     );
   });
 

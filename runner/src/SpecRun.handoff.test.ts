@@ -38,6 +38,7 @@ import {
   useSpecRunHarness,
   withoutHeldTicket,
 } from "./specRunHarness.ts";
+import { expectNudgeRules } from "./stepPrompts/handoffTextFixture.ts";
 import {
   budgetHandoffPrompt,
   handoffOnlyPrompt,
@@ -96,14 +97,10 @@ describe("run's implement handoff", () => {
 
     await specRun(agentStep).run(spec);
 
-    const prompt = agentStep.requests[0]?.prompt;
-    expect(prompt).toContain(
-      "Hand off only when work left needs judgement. When no code or prose is left to decide, finish the rest",
+    expectNudgeRules(
+      agentStep.requests[0]?.prompt,
+      "no code or prose is left to decide",
     );
-    expect(prompt).toContain(
-      "When the ticket split test (`docs/agents/tickets.md#the-ticket-split-test`) says the remaining work is more than one ticket, also fill `proposedSplit`",
-    );
-    expect(prompt).not.toContain("less than half");
   });
 
   it("passes the ticket to a fresh implement step on the same pair, keeping the work", async () => {
