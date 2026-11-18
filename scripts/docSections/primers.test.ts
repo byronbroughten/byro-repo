@@ -41,6 +41,18 @@ describe("the Primers", () => {
     expect(skillTextOf(name)).not.toMatch(/^disable-model-invocation: true$/m);
   });
 
+  it("the project settings allow each Primer by name, and no skill by a blanket rule", () => {
+    const settings = JSON.parse(
+      readFileSync(join(repoRoot, ".claude", "settings.json"), "utf8"),
+    ) as { permissions: { allow: string[] } };
+    const skillRules = settings.permissions.allow.filter((rule) =>
+      rule.startsWith("Skill"),
+    );
+    expect(skillRules.sort()).toEqual(
+      primerNames.map((name) => `Skill(${name})`).sort(),
+    );
+  });
+
   it("each read-first row but the tier table's has a Primer printing all its docs", () => {
     const injectedDocs = primerNames.map((name) =>
       docsInjectedBy(skillTextOf(name)),
