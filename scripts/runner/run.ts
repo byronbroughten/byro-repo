@@ -1,17 +1,8 @@
-// Runs a spec's tickets to landed, one at a time, or a Batch's given several numbers; rerunning the same command resumes. Progress is in .runner/<repo>-<n>.log.
-// Usage below; each `<repo>` is a bare name the repo map holds, as issue:start takes, or `<owner>/<repo>`. Every verb but the run itself and `open` takes one number, a Batch's any member's. `review` and `resolve` take a session's ticket, not a spec, and `resolve` the path of the session's records.
-// `review` alone prints the review brief and records its start; with the session's review record and `--session <id>` it submits the review (SpecRun/SessionReviewer.ts).
-// Exit 1 is a run short of finished, a review short of its brief, reviewed or its findings, or refused records; 2 is a crash, which tmux.sh pushes;
-// 3 is a Restart, which tmux.sh relaunches.
-// `open` launches its numbers through tmux.sh when no run is live, or rejoins a live run or a live Batch holding one, then catches up as `supervise` does (SpecRun/RunOpener.ts); exit 1 is a launch whose run never started.
-// `supervise` records the caller's claude as the spec's or Batch's Supervisor and prints its unexplained event lines, after the last Supervisor's handoff on a rejoin; `--advance` marks one more explained.
-// `watch` streams the spec's or Batch's new event lines and prints a `vanished` line if the run's process dies unreported (runWatch.ts);
-// `--once` prints the first unexplained line, or that `vanished` line, and exits, or exits silently once a newer watch replaces it.
-// `status` and `watch` with no spec print the Run board once or redraw it every 5s, reading accounts every 60s (runBoard.ts).
-// `decide` ticks one review-list item and adds its `Decided:` line, or with `--handled` adds a `Handled:` line unticked (SpecRun/ReviewItemDecider.ts).
-// `judgeable` lists the repo's open issues with undecided review-list items or ready to close, for /judge-findings (SpecRun/JudgeableIssueLister.ts).
-// `judge-brief` prints all /judge-findings' step 1 reads for each spec named, `all` taking `judgeable`'s list in place; it exits 0 on every outcome, a refusal included, since the skill injects it (SpecRun/JudgeBriefWriter.ts).
-// `standalone` lists the repo's launchable Standalone tickets, the left-out ones with their reasons, and the line that launches the list; nothing launches (SpecRun/StandaloneTicketLister.ts).
+// The runner's command line: runs a spec's tickets to landed, one at a time, or a Batch's given several numbers; rerunning the same command resumes. Progress is in .runner/<repo>-<n>.log.
+// Each `<repo>` is a bare name the repo map holds, as issue:start takes, or `<owner>/<repo>`; every verb but the run itself and `open` takes one number, a Batch's any member's.
+// The verbs are `usage` below, each verb's note beside the function that runs it; their work is SpecRun's and its SpecRun/ collaborators', in the spec-runner package.
+// Exit 1 is a run, open, review or resolve short of done; 2 is a crash, which tmux.sh pushes; 3 is a Restart, which tmux.sh relaunches.
+// The Run board is runBoard.ts, a watch's stream runWatch.ts, and tmux.sh launches and relaunches every run.
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
@@ -63,9 +54,11 @@ const plainVerbs = ["status", "stop"];
 const boardVerbs = ["status", "watch"];
 // Each verb that takes only `<repo>` and prints what its SpecRun method resolves to.
 const repoListers = {
+  // The repo's open issues with undecided review-list items or ready to close, for /judge-findings (SpecRun/JudgeableIssueLister.ts).
   judgeable(specRun: SpecRun, repo: string): Promise<string> {
     return specRun.judgeable(repo);
   },
+  // The repo's launchable Standalone tickets, the left-out ones with their reasons, and the line that launches the list; nothing launches (SpecRun/StandaloneTicketLister.ts).
   standalone(specRun: SpecRun, repo: string): Promise<string> {
     return specRun.standalone(repo);
   },
@@ -115,6 +108,7 @@ try {
   process.exitCode = exitCodes.crash;
 }
 
+// `status` and `watch` with no spec print the Run board once or redraw it every 5s, reading accounts every 60s.
 async function showBoard(command: string): Promise<void> {
   if (command === "status") {
     console.log(await boardNow(accountsSectionOf(undefined)));
@@ -163,6 +157,7 @@ function specArgsOf(repoName: string, number: string | undefined): SpecArgs {
   return { owner, issue: { repo, number: Number(number) } };
 }
 
+// `watch` streams new event lines and a `vanished` line if the run's process dies unreported; `--once` prints the first unexplained line or that `vanished` line and exits, or exits silently once a newer watch replaces it.
 async function runOnSpec(command: string, args: string[]): Promise<void> {
   const [repoName = "", number, flag] = args;
   const { owner, issue } = specArgsOf(repoName, number);
@@ -220,6 +215,7 @@ async function runBatch(args: string[]): Promise<void> {
   }
 }
 
+// Launches through tmux.sh when no run is live, or rejoins a live run or a live Batch holding one, then catches up as `supervise` does (SpecRun/RunOpener.ts).
 async function open(args: string[]): Promise<void> {
   const launch = launchArgsOf(args, repoMap);
   if (launch === undefined) throw new Error(usage);
@@ -249,6 +245,7 @@ function tmuxLauncherOf(owner: string): RunLauncher {
   };
 }
 
+// `resolve` takes a session's ticket, not a spec, and the path of the session's records.
 async function runSpec(
   command: string,
   owner: string,
@@ -274,6 +271,7 @@ async function runSpec(
   }
 }
 
+// Takes a session's ticket; alone it prints the review brief and records its start, and with the review record and `--session <id>` it submits the review (SpecRun/SessionReviewer.ts).
 // The submit's account and config folder are this process's, which the session that runs it shares.
 async function review(args: string[]): Promise<void> {
   const [repoName = "", number, recordPath, flag, sessionId, ...rest] = args;
@@ -302,6 +300,7 @@ async function review(args: string[]): Promise<void> {
   if (!passedKinds.includes(result.kind)) process.exitCode = exitCodes.short;
 }
 
+// Ticks one review-list item and adds its `Decided:` line, or with `--handled` adds a `Handled:` line unticked (SpecRun/ReviewItemDecider.ts).
 // `--handled` may sit anywhere after the item id.
 async function decide(args: string[]): Promise<void> {
   const [repoName = "", number, itemId, ...rest] = args;
@@ -327,6 +326,7 @@ async function decide(args: string[]): Promise<void> {
   );
 }
 
+// Prints all /judge-findings' step 1 reads for each spec named, `all` taking `judgeable`'s list in place (SpecRun/JudgeBriefWriter.ts).
 // Injected into /judge-findings, so every refusal is its own line with exit 0, never the usage and a crash.
 async function judgeBrief(args: string[]): Promise<void> {
   const [repoName = "", ...named] = args;
@@ -371,6 +371,7 @@ async function listForRepo(command: RepoVerb, args: string[]): Promise<void> {
   console.log(await repoListers[command](specRun, repo));
 }
 
+// Records the caller's claude as the spec's or Batch's Supervisor and prints its unexplained event lines, after the last Supervisor's handoff on a rejoin; `--advance` marks one more explained.
 async function supervise(
   owner: string,
   spec: IssueRef,
