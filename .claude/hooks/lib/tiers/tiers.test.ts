@@ -24,6 +24,14 @@ function runnerStepDecisionOf(command: string) {
   return modeDecisionOf(command, "runnerStep")?.permissionDecision;
 }
 
+// Edits adding a `ready-*` label, which only `npm run issue:ready` puts on.
+const readyLabelEdits = [
+  "gh issue edit 341 -R byronbroughten/byro-repo --add-label ready-for-agent",
+  "gh issue edit 341 --add-label=ready-for-interactive",
+  'gh issue edit 341 --remove-label needs-triage --add-label "docs,ready-for-human"',
+  "gh issue edit 341 --add-label Ready-For-Agent",
+];
+
 describe("gateDecision", () => {
   it("allows wrap-up, the app build and both deploy aliases", () => {
     expect(decisionOf("npm run wrap-up -- byro-repo 274")).toBe("allow");
@@ -355,10 +363,21 @@ describe("a runner step's gh calls", () => {
   it("allows an issue edit or comment on any issue", () => {
     [
       "gh issue edit 447 --body-file /tmp/body.md",
-      "gh issue edit 341 -R byronbroughten/byro-repo --add-label ready-for-agent",
+      "gh issue edit 341 -R byronbroughten/byro-repo --add-label needs-triage",
+      "gh issue edit 341 --remove-label ready-for-agent",
       "gh issue comment 447 -b done",
     ].forEach((command) => expect(runnerStepDecisionOf(command)).toBe("allow"));
   });
+
+  it.each(readyLabelEdits)(
+    "refuses `%s`, naming issue:ready, as in an Interactive session",
+    (command) => {
+      const decision = modeDecisionOf(command, "runnerStep");
+      expect(decision?.permissionDecision).toBe("deny");
+      expect(decision?.reason).toContain("`npm run issue:ready");
+      expect(decision?.reason).toContain(blockerInstead);
+    },
+  );
 
   it("denies closing an issue with the blocker text", () => {
     const decision = modeDecisionOf("gh issue close 447", "runnerStep");
@@ -409,6 +428,21 @@ describe("a runner step's gh calls", () => {
 });
 
 describe("an Interactive session's gh calls", () => {
+  it.each(readyLabelEdits)("refuses `%s`, naming issue:ready", (command) => {
+    const decision = modeDecisionOf(command);
+    expect(decision?.permissionDecision).toBe("deny");
+    expect(decision?.reason).toContain("`npm run issue:ready");
+  });
+
+  it("leaves an edit removing a label, or adding any other, to Claude Code", () => {
+    [
+      "gh issue edit 341 --remove-label ready-for-agent",
+      "gh issue edit 341 --add-label needs-triage --remove-label ready-for-human",
+      "gh issue edit 341 --add-label ready-for-agentish",
+      "gh issue edit 341 --title ready-for-agent",
+    ].forEach((command) => expect(modeDecisionOf(command)).toBeUndefined());
+  });
+
   it("allows creating an issue, and refuses it in a runner step", () => {
     const command =
       "gh issue create -R ByronBroughten/byro-repo --title T --body-file /tmp/body.md --label ready-for-agent";
@@ -614,6 +648,18 @@ describe("an Interactive session's scripts", () => {
       expect(stepDecision?.reason).toContain(blockerInstead);
     },
   );
+
+  it("allows the ready relabel, as a further relabel undoes it, and refuses it in a runner step", () => {
+    const command = "npm run issue:ready -- byro-repo 850 ready-for-agent";
+    expect(decisionOf(command)).toBe("allow");
+    const stepDecision = modeDecisionOf(command, "runnerStep");
+    expect(stepDecision?.permissionDecision).toBe("deny");
+    expect(stepDecision?.reason).toContain("only an Interactive session");
+    expect(stepDecision?.reason).toContain(blockerInstead);
+    expect(
+      decisionOf("npm --prefix x run issue:ready -- byro-repo 850 x"),
+    ).toBeUndefined();
+  });
 });
 
 describe("loops, conditionals, groups and functions", () => {
@@ -894,7 +940,7 @@ describe("a Supervisor's gh writes", () => {
   it("leaves a gh issue comment and edit to the allow rules, as for any interactive session", () => {
     [
       'gh issue comment 331 --body "Approved reply"',
-      "gh issue edit 341 -R byronbroughten/byro-repo --add-label ready-for-agent",
+      "gh issue edit 341 -R byronbroughten/byro-repo --add-label needs-triage",
     ].forEach((command) => expect(modeDecisionOf(command)).toBeUndefined());
   });
 });
@@ -949,6 +995,27 @@ describe("a sandboxed call", () => {
     ).toBe("allow");
     expect(sandboxedDecisionOf(command, "runnerStep")?.permissionDecision).toBe(
       "deny",
+    );
+  });
+
+  it("still refuses a runner step's ready relabel, as its gh issue edit", () => {
+    const command = "npm run issue:ready -- byro-repo 850 ready-for-agent";
+    expect(
+      sandboxedDecisionOf(command, "interactive")?.permissionDecision,
+    ).toBe("allow");
+    expect(sandboxedDecisionOf(command, "runnerStep")?.permissionDecision).toBe(
+      "deny",
+    );
+  });
+
+  it("still refuses an edit adding a ready-* label in both modes", () => {
+    modes.forEach((mode) =>
+      expect(
+        sandboxedDecisionOf(
+          "gh issue edit 341 --add-label ready-for-agent",
+          mode,
+        )?.permissionDecision,
+      ).toBe("deny"),
     );
   });
 
