@@ -25,7 +25,7 @@ An [observation index](./agents/prose-files.md#terms) of what Claude Code itself
 ## Symlinks and protection
 
 - Observed: An Edit to a skill's real file outside `.claude/` passed with no prompt, while an Edit through the `.claude/skills/<name>` symlink to it was denied, the denial naming the target; 2.1.312, 2026-10-28; [#456 on #445](https://github.com/byronbroughten/byro-repo/issues/445#issuecomment-6485345747).
-- Observed: A symlinked skill's announced base directory was the symlink's path, `.claude/skills/<name>`, not its real folder, and the model resolved relative links from there: a link written from the real folder reached the same file when it climbed to a folder both paths share, and missed it otherwise; 2.1.312 and earlier, 2026-10-28, from every load of `/runner`, `/judge-findings` and `/mine-outcomes` in this repo's session transcripts; [recorded in 27957349](https://github.com/byronbroughten/byro-repo/commit/27957349382f7ef2e5734ca1355ea5bf2b9d616d).
+- Observed: A symlinked skill's announced base directory was the symlink's path, `.claude/skills/<name>`, not its real folder, and the model resolved relative links from there: a link written from the real folder reached the same file when it climbed to a folder both paths share, and missed it otherwise; 2.1.312 and earlier, 2026-10-28, from every load of `/runner`, `/judge-findings` and a runner skill since retired in this repo's session transcripts; [recorded in 27957349](https://github.com/byronbroughten/byro-repo/commit/27957349382f7ef2e5734ca1355ea5bf2b9d616d).
 
 ## Where a skill loads from
 

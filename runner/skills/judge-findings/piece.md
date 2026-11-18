@@ -21,5 +21,5 @@ Read this when the spec's `Piece ticket:` line in the brief names a ticket. Its 
 
 ## The ending
 
-- **Never close a piece spec, and give no `/to-code-style` reminder**: [`/close-project <repo> <spec>`](../../../.claude/skills/close-project/SKILL.md) ends it, closing out the Edit gate first.
+- **Never close a piece spec**: [`/close-project <repo> <spec>`](../../../.claude/skills/close-project/SKILL.md) ends it, closing out the Edit gate first.
 - **End by naming the runner's rerun command, the `npm run runner -- <repo> <spec>` its "judge, then rerun" message printed**, launched detached as `npm run runner:tmux -- <repo> <spec>` or supervised with `/runner <repo> <spec>`, whose push writes the decided fixes into the Deliverable once no item is undecided. Before it, say what is left: undecided items, and open sub-issues by number.

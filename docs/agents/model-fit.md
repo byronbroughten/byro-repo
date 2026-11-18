@@ -54,4 +54,4 @@ Research brief: "For each current model: API price, context window and release d
 
 ## Outcome log
 
-One file per landed issue, written uncommitted by the wrap-up script (`npm run wrap-up -- <repo> <n>`) at the primary root's `.runner/outcomes/<spec repo>-<spec n>/<repo>-<n>.md`; a ticketless spec is its own one-ticket folder. Once a spec lands, `/mine-outcomes <repo> <spec>` turns its folder into proposals and then clears it; `--recent <N>` or `--all` mines several folders at once. A writing Piece or Research spec lands by the script too and logs here, its rows marked `piece` in the `Workflow` column.
+One file per landed issue in the primary root's `.runner/outcomes/`, at `<spec repo>-<spec n>/<repo>-<n>.md`, written by the wrap-up script (`npm run wrap-up -- <repo> <n>`), never committed or cleared, and backed up by `npm run logs -- sync`; a ticketless spec is its own one-ticket folder. A planning session retunes a figure on demand, querying `npm run outcome:summary`. A writing Piece or Research spec lands by the script too and logs here, its rows marked `piece` in the `Workflow` column.

@@ -31,7 +31,7 @@ The words for the repo's prose, which file holds which fact, what the root AGENT
 | `docs/claude-code-behaviour.md` | An observation index of what Claude Code itself does that the gates rest on, grouped by behaviour, each line tagged, dated, versioned and linked to its evidence. |
 | `docs/google-docs-behaviour.md` | An observation index of how Google Docs behaves (the Docs REST API, Drive's comments on a Doc, their auth, the gworkspace MCP's Docs tools), grouped by subject, each line tagged, dated and linked to its evidence; never the runner's or the gates' own behaviour. |
 | `docs/pdf-pages.md` | How a piece stage reads a long PDF by page: download it, count its pages, print a page range, PDF against printed pages, and delete the download. Shared by every piece skill, since user-invoked skills can't reach each other. |
-| `docs/session-transcripts.md` | How a skill that mines a past session finds "the last session" and reads the user's turns in its transcript. Shared by `/to-code-style` and `/to-writing-style`, for the same reason. |
+| `docs/session-transcripts.md` | How a skill that mines a past session finds "the last session" and reads the user's turns in its transcript. Read by `/revise-workflows`' session mode. |
 | `docs/prose-style.md` | How developer-facing prose is shaped, one line per rule, rule only: one home per fact, rule lines, reasoning files, mechanics docs, observation indexes, placement and the AGENTS.md bar, then the `## Smells` baseline with its two derived-prose rules. |
 | `docs/prose-style/*.md` | Each rule's reasoning and examples, indexed by `docs/prose-style.md`'s "When \| File" table. |
 | `docs/writing-voice.md` | The voice of reader-facing prose, one line per rule, rule only, one voice with no sections per medium. Its `## Axes` section defines the Evidence and Formality values and the Academic overlay; a rule scoped to one value starts with that value as a code tag. |
@@ -108,7 +108,7 @@ The rules for writing any Piece, whichever repo files its spec. The Pieces' text
 | --- | --- |
 | `rules.md` | The pointers to `/plan-project` and the outlining guide, and how to implement a piece spec: the Agent draft as the text's working home, Drive IDs and long PDFs, creating files, the style sheets to apply, a Piece's branch and landing, the pointer to the Agent draft doc, and the four done checks. |
 | `GLOSSARY.md` | The writing context's words: Piece, Deliverable, Section, Outline, Stage, Agent draft, Edit gate, Supporting Material and Reference. |
-| `grilling.md` | The questions a grill asks before a piece spec is filed, one per spec field it settles, each with an example from a past spec, its private details replaced by neutral stand-ins. `/plan-project`'s piece branch asks them; `/to-writing-style` adds to them. |
+| `grilling.md` | The questions a grill asks before a piece spec is filed, one per spec field it settles, each with an example from a past spec, its private details replaced by neutral stand-ins. `/plan-project`'s piece branch asks them; `/revise-workflows` adds to them. |
 | `outlining.md` | How a spec's Outline is written: what each entry holds, a template's fixed Sections, and when Research revises it. |
 | `agent-draft.md` | An Agent draft's path, its shape, what may change it, and the pull rules. |
 | `style-file.md` | The Style file's shape, the piece review input that carries a spec's axis values, overrides, Form and Order. |

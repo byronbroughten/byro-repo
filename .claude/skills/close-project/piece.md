@@ -13,14 +13,14 @@
 ## 2. List the changed Sections
 
 - Run `npm run doc:print -- <Doc ID>` bare, in a call of its own, and Write its output to a scratchpad file, `deliverable.md`; it prints each H1 as a `# <H1>` line and each H2 as a `## <H2>` line, the Agent draft's heading lines, each followed by a `<!-- headingId <id> -->` line, which you delete from `deliverable.md`.
-- Write `agent-draft.md` beside it as [`to-writing-style`'s pair-mode step 2](../to-writing-style/pair-mode.md#2-make-the-pair) makes it, `<clone>` being this workspace's checkout of `<repo>`, deleting each author-mark line.
+- Write `agent-draft.md` beside it as [`/revise-workflows`' pair-mode step 2](../revise-workflows/pair-mode.md#2-make-the-pair) makes it, `<clone>` being this workspace's checkout of `<repo>`, deleting each author-mark line.
 - Compare them Section by Section, by full heading path. List each Section whose text differs as changed, each heading path only the Doc holds as added and each only the Agent draft holds as struck, naming each Section by its path.
 
 Done when every Section of both files is in the list or matched. With nothing changed, added or struck, ask whether the edit is done, saying the Doc still matches the Agent draft. A no stops here, leaving the gate and the spec open.
 
 ## 3. Offer the style mining
 
-Ask whether to run `/to-writing-style <repo> <spec>` in pair mode on the changed Sections. On a yes, Read [`.claude/skills/to-writing-style/SKILL.md`](../to-writing-style/SKILL.md) in full by its path and follow it, since it is user-invoked; for its pair, run [pair-mode step 2](../to-writing-style/pair-mode.md#2-make-the-pair) afresh, since step 2's two files have lost the IDs it pairs by, keeping only the Sections in its scope.
+Ask whether to run `/revise-workflows <repo> <spec>`, its pair mode, on the changed Sections. On a yes, Read [`.claude/skills/revise-workflows/SKILL.md`](../revise-workflows/SKILL.md) in full by its path and follow it, since it is user-invoked; for its pair, run [pair-mode step 2](../revise-workflows/pair-mode.md#2-make-the-pair) afresh, since step 2's two files have lost the IDs it pairs by, keeping only the Sections in its scope.
 
 Its approved edits are in the root repo, so unless `<repo>` is the root, put it on the gate's branch first with `npm run issue:promote -- <repo> <gate> byro-repo`; then make them in this workspace and commit them on the gate's branch.
 
