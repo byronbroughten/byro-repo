@@ -6,6 +6,7 @@ import { stepReadLine } from "../../IssueReader.ts";
 import {
   commitMessageLine,
   sectionOf,
+  stepOpeningOf,
   stepWriteLine,
   unattendedRunLine,
 } from "../../promptText.ts";
@@ -21,7 +22,11 @@ import type {
 import { type Verdict, verdictWords } from "../../verdicts.ts";
 import type { ResolvePromptInput } from "../../Workflow.ts";
 import { draftingScope } from "./draftingScope.ts";
-import { draftMaterialsLineOf, passagesFolderIn } from "./implementStep.ts";
+import {
+  draftingTicketKind,
+  draftMaterialsLineOf,
+  passagesFolderIn,
+} from "./implementStep.ts";
 import { pieceChecks } from "./pieceChecks.ts";
 
 const pieceFindingsHeading = "## Piece findings";
@@ -47,7 +52,7 @@ export interface PieceResolvePromptInput extends ResolvePromptInput {
 export function pieceResolvePrompt(input: PieceResolvePromptInput): string {
   const { branch, findings } = input;
   return [
-    `You are the resolve step of an unattended run on a piece spec's drafting ticket. ${unattendedRunLine()}
+    `${stepOpeningOf("resolve step", draftingTicketKind)} ${unattendedRunLine()}
 
 ${resolveBody.findingsOf(input)} A piece finding's verdict follows the \`${pieceFindingsHeading}\` section of that doc. Your working directory is the ticket's issue workspace root, on the ticket's branch, \`${branch}\`. ${stepReadLine}`,
     fixingSection(input),

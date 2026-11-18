@@ -5,7 +5,7 @@
 // Peak context is contextMeter.ts; the row format is outcomeLog.ts; WrapUp.ts merges these over the passed facts.
 // Refresh the price table when a new model version ships (docs/agents/model-fit.md).
 
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { ContextMeter } from "./contextMeter.ts";
@@ -136,6 +136,14 @@ export interface SessionEntries {
   subagents: TranscriptEntry[][];
 }
 
+// A main-session transcript found by date, without its subagents'.
+export type LocalTranscript = Pick<Transcript, "sessionId" | "entries">;
+
+export interface DateRange {
+  from: Date;
+  to: Date;
+}
+
 const syntheticModel = "<synthetic>";
 const handoffSessionLine = /^session: (\S+)$/;
 
@@ -170,6 +178,51 @@ export function hasTranscript(
   return readdirSync(projects).some((name) =>
     existsSync(join(projects, name, `${sessionId}.jsonl`)),
   );
+}
+
+// Each main session started in the range, once by id; a subagent's transcript sits a folder deeper, so is left out.
+export function localTranscriptsOf(
+  configFolders: string[],
+  { from, to }: DateRange,
+): LocalTranscript[] {
+  const bySession = new Map<string, LocalTranscript>();
+  for (const projectDir of configFolders.flatMap(projectDirsOf)) {
+    for (const found of projectTranscriptsOf(projectDir, from)) {
+      const start = found.entries
+        .map(timeOf)
+        .find((time) => time !== undefined);
+      if (
+        start === undefined ||
+        start < from.getTime() ||
+        start >= to.getTime()
+      ) {
+        continue;
+      }
+      const held = bySession.get(found.sessionId);
+      if (held === undefined || held.entries.length < found.entries.length) {
+        bySession.set(found.sessionId, found);
+      }
+    }
+  }
+  return [...bySession.values()];
+}
+
+// A transcript last written before `from` can't have started in the range, so it is never read.
+function projectTranscriptsOf(
+  projectDir: string,
+  from: Date,
+): LocalTranscript[] {
+  return readdirSync(projectDir, { withFileTypes: true }).flatMap((file) => {
+    if (!file.isFile() || !file.name.endsWith(".jsonl")) return [];
+    const path = join(projectDir, file.name);
+    if (statSync(path).mtimeMs < from.getTime()) return [];
+    return [
+      {
+        sessionId: file.name.slice(0, -".jsonl".length),
+        entries: entriesOf(readFileSync(path, "utf8")),
+      },
+    ];
+  });
 }
 
 export function transcriptFactsOf(
@@ -341,7 +394,7 @@ function projectDirsBySessionOf(
   return bySession;
 }
 
-export function projectDirsOf(configFolder: string): string[] {
+function projectDirsOf(configFolder: string): string[] {
   const projects = join(configFolder, "projects");
   if (!existsSync(projects)) return [];
   return readdirSync(projects).map((name) => join(projects, name));
@@ -386,7 +439,7 @@ function subagentPathsOf(subagentDir: string): string[] {
     .map((name) => join(subagentDir, name));
 }
 
-export function entriesOf(text: string): TranscriptEntry[] {
+function entriesOf(text: string): TranscriptEntry[] {
   return text.split("\n").flatMap((line) => {
     try {
       const entry: unknown = JSON.parse(line);

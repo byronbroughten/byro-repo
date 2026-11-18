@@ -9,6 +9,7 @@ import { stepReadLine } from "../../IssueReader.ts";
 import {
   commitMessageLine,
   sectionOf,
+  stepOpeningOf,
   stepWriteLine,
   unattendedRunLine,
 } from "../../promptText.ts";
@@ -32,7 +33,7 @@ import type { ImplementPromptInput } from "../../Workflow.ts";
 export function implementPrompt(input: ImplementPromptInput): string {
   const { issue, title, body, latestHandoff } = input;
   return [
-    `You are the implement step of an unattended run. Implement ${issue.repo}#${issue.number}, "${title}". ${unattendedRunLine()}`,
+    `${stepOpeningOf("implement step")} Implement ${issue.repo}#${issue.number}, "${title}". ${unattendedRunLine()}`,
     implementWorkspaceSection(input),
     gitHubSection(),
     workingSection(),

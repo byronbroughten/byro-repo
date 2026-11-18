@@ -10,7 +10,11 @@ import { stepReadLine } from "../../../IssueReader.ts";
 import type { IssueRef } from "../../../IssueWorkspaces.ts";
 // Renamed, since a ready record's own field is `outlineEdits`.
 import { outlineEdits as outlineEditWords } from "../../../outlineEdits.ts";
-import { bulletsOf, unattendedRunLine } from "../../../promptText.ts";
+import {
+  bulletsOf,
+  stepOpeningOf,
+  unattendedRunLine,
+} from "../../../promptText.ts";
 import { inlinedSkill } from "../../../stepPrompts/inlinedSkill.ts";
 import type {
   ReadyResearchRecord,
@@ -55,7 +59,7 @@ export function researchPrompt(input: ResearchSkillPromptInput): string {
   } = input;
   const scratchFolder = join(workspacePath, researchScratchFolderOf(issue));
   return [
-    `You are the research step of an unattended run. Research ${issue.repo}#${issue.number}, "${title}". ${unattendedRunLine()}`,
+    `${stepOpeningOf("research step")} Research ${issue.repo}#${issue.number}, "${title}". ${unattendedRunLine()}`,
     stepsSection(scratchFolder),
     `## GitHub\n\n- Make no GitHub write: the runner posts your comment once its quote check passes, and you post nothing.\n- ${stepReadLine}`,
     promptSections.record,

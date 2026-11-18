@@ -1,16 +1,18 @@
 // `npm run delegation:measure`: the median main-loop turns after a large Read, by session kind, over the local
 // transcripts of sessions started in a date range, across the live config folder and each cswap account's backup.
-// The core is runner/src/largeReadTurns.ts; this gathers the config folders and prints its table.
+// The core is runner/src/largeReadTurns.ts, over transcriptFacts.ts's finder; this gathers the config folders and prints its table.
 import { homedir } from "node:os";
 
 import {
-  type DateRange,
   type KindTurns,
   largeReadChars,
   largeReadTurnsOf,
-  localTranscriptsOf,
 } from "@byronbroughten/spec-runner/largeReadTurns";
-import { accountConfigFoldersOf } from "@byronbroughten/spec-runner/transcriptFacts";
+import {
+  accountConfigFoldersOf,
+  type DateRange,
+  localTranscriptsOf,
+} from "@byronbroughten/spec-runner/transcriptFacts";
 
 const usage =
   "Usage: npm run delegation:measure -- --since <date> [--until <date>]; --until defaults to now";

@@ -6,13 +6,14 @@ import { stepReadLine } from "../../IssueReader.ts";
 import {
   commitMessageLine,
   sectionOf,
+  stepOpeningOf,
   unattendedRunLine,
 } from "../../promptText.ts";
 import { objectSchema, stringSchema } from "../../recordSchema.ts";
 import { doneLines } from "../../stepPrompts/doneLines.ts";
 import { implementBody } from "../../stepPrompts/implementText.ts";
 import type { RedChecksPromptInput } from "../../Workflow.ts";
-import { draftMaterialsLineOf } from "./implementStep.ts";
+import { draftingTicketKind, draftMaterialsLineOf } from "./implementStep.ts";
 
 export interface PieceRedChecksPromptInput extends RedChecksPromptInput {
   draftPath: string;
@@ -21,7 +22,7 @@ export interface PieceRedChecksPromptInput extends RedChecksPromptInput {
 export function pieceRedChecksPrompt(input: PieceRedChecksPromptInput): string {
   const { issue, title, branch, failures } = input;
   return [
-    `You are the red-checks step of an unattended run on a piece spec's drafting ticket. ${unattendedRunLine()}
+    `${stepOpeningOf("red-checks step", draftingTicketKind)} ${unattendedRunLine()}
 
 The runner's piece checks failed on ${issue.repo}#${issue.number}, "${title}", after its last commit. Turn them green. Your working directory is the ticket's issue workspace root, on the ticket's branch, \`${branch}\`. ${stepReadLine}`,
     fixingSection(input),

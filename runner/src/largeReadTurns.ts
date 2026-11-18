@@ -1,25 +1,18 @@
 // The delegation measurement: for each session kind, the main-loop turns that follow a large Read, each of which carries
 // the read's tokens again, and their median. A kind is the runner step or interactive skill a session's prompts name.
 // It is the data for a delegation table weighing them against a cold `repo-explorer` spawn (docs/agents/delegation.md).
-// The transcript readers are transcriptFacts.ts's; `npm run delegation:measure` (scripts/runner/delegationMeasure.ts)
-// prints this over the developer's local transcripts.
+// Step openings are promptText.ts's; transcriptFacts.ts finds the transcripts, and `npm run delegation:measure`
+// (scripts/runner/delegationMeasure.ts) prints this over the developer's local transcripts.
 
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
-
+import { openedStepOf } from "./promptText.ts";
 import {
-  entriesOf,
   isMainLoopReply,
-  projectDirsOf,
-  timeOf,
-  type Transcript,
+  type LocalTranscript,
   type TranscriptEntry,
 } from "./transcriptFacts.ts";
 
 // The read-size line: a Read result of 20,000 characters or more, about 5K tokens, is a large read.
 export const largeReadChars = 20_000;
-
-export type MeasuredTranscript = Pick<Transcript, "sessionId" | "entries">;
 
 export interface KindTurns {
   kind: string;
@@ -29,31 +22,22 @@ export interface KindTurns {
   median: number;
 }
 
-export interface DateRange {
-  from: Date;
-  to: Date;
-}
-
 interface LargeRead {
   kind: string;
   sessionId: string;
   turnsAfter: number;
 }
 
-export const otherKind = "other";
+const otherKind = "other";
 
-// A runner step's prompt opens by naming its step; a run's review resumes the implementer with its own opening.
-const stepOpenings = [
-  /^You are the (?<kind>[a-z-]+ step|gap check) of an unattended run/,
-  /you now run its (?<kind>review step) in an unattended run/,
-];
-const slashCommand = /<command-name>\/(?<name>[^<\s]+)<\/command-name>/;
-const skillBody = /^Base directory for this skill: (?<path>\S+)/;
+// An interactive skill's kind: its slash command, then the skill body Claude Code adds after it.
+const skillPatterns = {
+  slashCommand: /<command-name>\/(?<name>[^<\s]+)<\/command-name>/,
+  skillBody: /^Base directory for this skill: (?<path>\S+)/,
+} as const;
 
 // Kinds by large-read count, most first.
-export function largeReadTurnsOf(
-  transcripts: MeasuredTranscript[],
-): KindTurns[] {
+export function largeReadTurnsOf(transcripts: LocalTranscript[]): KindTurns[] {
   const byKind = transcripts.flatMap(largeReadsOf).reduce((groups, read) => {
     groups.set(read.kind, [...(groups.get(read.kind) ?? []), read]);
     return groups;
@@ -71,15 +55,14 @@ export function largeReadTurnsOf(
     .sort((a, b) => b.turnsAfter.length - a.turnsAfter.length);
 }
 
-// Each large read takes the kind of the latest prompt before it that names one; a slash command names its skill only
-// once that skill's body follows, which a built-in command such as `/clear` never adds.
-function largeReadsOf({ sessionId, entries }: MeasuredTranscript): LargeRead[] {
+// A slash command names a kind only once its skill body follows, which a built-in such as `/clear` never adds.
+function largeReadsOf({ sessionId, entries }: LocalTranscript): LargeRead[] {
   const readCallIds = new Set<string>();
   const reads: LargeRead[] = [];
   let kind = otherKind;
   let command: string | undefined;
   for (const [index, entry] of entries.entries()) {
-    kind = stepKindOf(entry) ?? kind;
+    kind = openedStepOf(promptOf(entry)) ?? kind;
     command = slashCommandOf(entry) ?? command;
     if (command !== undefined && skillBodyNameOf(entry) === command) {
       kind = `/${command}`;
@@ -97,23 +80,14 @@ function largeReadsOf({ sessionId, entries }: MeasuredTranscript): LargeRead[] {
   return reads;
 }
 
-function stepKindOf(entry: TranscriptEntry): string | undefined {
-  const text = promptOf(entry);
-  for (const opening of stepOpenings) {
-    const kind = text.match(opening)?.groups?.kind;
-    if (kind !== undefined) return kind;
-  }
-  return undefined;
-}
-
 function slashCommandOf(entry: TranscriptEntry): string | undefined {
-  return promptOf(entry).match(slashCommand)?.groups?.name;
+  return promptOf(entry).match(skillPatterns.slashCommand)?.groups?.name;
 }
 
 function skillBodyNameOf(entry: TranscriptEntry): string | undefined {
   if (entry.type !== "user") return undefined;
   const text = promptTextOf(entry.message?.content);
-  return text.match(skillBody)?.groups?.path?.split("/").at(-1);
+  return text.match(skillPatterns.skillBody)?.groups?.path?.split("/").at(-1);
 }
 
 // The developer's or runner's words, never the meta entries Claude Code adds.
@@ -183,50 +157,4 @@ function medianOf(values: number[]): number {
   const middle = Math.floor(sorted.length / 2);
   if (sorted.length % 2 === 1) return sorted[middle] ?? 0;
   return ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
-}
-
-// Each main-session transcript under the config folders that started in the range, once by session id; subagents'
-// transcripts sit a folder deeper and are left out.
-export function localTranscriptsOf(
-  configFolders: string[],
-  { from, to }: DateRange,
-): MeasuredTranscript[] {
-  const bySession = new Map<string, MeasuredTranscript>();
-  for (const projectDir of configFolders.flatMap(projectDirsOf)) {
-    for (const found of projectTranscriptsOf(projectDir, from)) {
-      const start = found.entries
-        .map(timeOf)
-        .find((time) => time !== undefined);
-      if (
-        start === undefined ||
-        start < from.getTime() ||
-        start >= to.getTime()
-      ) {
-        continue;
-      }
-      const held = bySession.get(found.sessionId);
-      if (held === undefined || held.entries.length < found.entries.length) {
-        bySession.set(found.sessionId, found);
-      }
-    }
-  }
-  return [...bySession.values()];
-}
-
-// A transcript last written before `from` can't have started in the range, so it is never read.
-function projectTranscriptsOf(
-  projectDir: string,
-  from: Date,
-): MeasuredTranscript[] {
-  return readdirSync(projectDir, { withFileTypes: true }).flatMap((file) => {
-    if (!file.isFile() || !file.name.endsWith(".jsonl")) return [];
-    const path = join(projectDir, file.name);
-    if (statSync(path).mtimeMs < from.getTime()) return [];
-    return [
-      {
-        sessionId: file.name.slice(0, -".jsonl".length),
-        entries: entriesOf(readFileSync(path, "utf8")),
-      },
-    ];
-  });
 }

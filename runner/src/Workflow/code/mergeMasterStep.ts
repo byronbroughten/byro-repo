@@ -4,6 +4,7 @@ import { stepReadLine } from "../../IssueReader.ts";
 import {
   commitMessageLine,
   sessionReturnOf,
+  stepOpeningOf,
   unattendedRunLine,
 } from "../../promptText.ts";
 import { arraySchema, objectSchema, stringSchema } from "../../recordSchema.ts";
@@ -17,7 +18,7 @@ export function mergeMasterPrompt({
   mergingRepos,
   conflict,
 }: MergeMasterPromptInput): string {
-  return `You are the merge-master step of an unattended run. ${unattendedRunLine()}
+  return `${stepOpeningOf("merge-master step")} ${unattendedRunLine()}
 
 Landing ${issue.repo}#${issue.number}, "${title}", conflicted with master, which moved since the ticket branched. Your working directory is the ticket's issue workspace root; these repos are on the ticket's branch, \`${branch}\`: ${branchedRepos.join(", ")}. Change only those repos. ${stepReadLine}
 

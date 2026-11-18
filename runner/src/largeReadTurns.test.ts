@@ -1,24 +1,13 @@
-import {
-  mkdirSync,
-  mkdtempSync,
-  realpathSync,
-  rmSync,
-  utimesSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   type KindTurns,
   largeReadChars,
   largeReadTurnsOf,
-  localTranscriptsOf,
-  type MeasuredTranscript,
 } from "./largeReadTurns.ts";
-import type { TranscriptEntry } from "./transcriptFacts.ts";
+import { reviewFramingOf, stepOpeningOf } from "./promptText.ts";
+import type { LocalTranscript, TranscriptEntry } from "./transcriptFacts.ts";
+import { draftingTicketKind } from "./Workflow/piece/implementStep.ts";
 
 const bigText = "x".repeat(largeReadChars);
 const smallText = "x".repeat(largeReadChars - 1);
@@ -92,7 +81,7 @@ function readThen(
 function transcript(
   sessionId: string,
   entries: TranscriptEntry[],
-): MeasuredTranscript {
+): LocalTranscript {
   return { sessionId, entries };
 }
 
@@ -275,71 +264,41 @@ describe("largeReadTurnsOf", () => {
   });
 });
 
-describe("localTranscriptsOf", () => {
-  let home: string;
+describe("the step openings the prompts are worded from", () => {
+  const steps = [
+    "implement step",
+    "research step",
+    "resolve step",
+    "red-checks step",
+    "merge-master step",
+    "gap check",
+  ];
 
-  beforeEach(() => {
-    home = realpathSync(mkdtempSync(join(tmpdir(), "large-reads-")));
-  });
-
-  afterEach(() => {
-    rmSync(home, { recursive: true, force: true });
-  });
-
-  function writeSession(
-    configFolder: string,
-    sessionId: string,
-    timestamps: string[],
-  ): void {
-    const project = join(home, configFolder, "projects", "-workspace");
-    mkdirSync(project, { recursive: true });
-    const lines = timestamps.map((timestamp) =>
-      JSON.stringify({ type: "user", timestamp, message: { content: "hi" } }),
-    );
-    writeFileSync(join(project, `${sessionId}.jsonl`), `${lines.join("\n")}\n`);
-  }
-
-  it("reads each session that started in the range, once across the config folders, leaving out subagents", () => {
-    writeSession("live", "inside", ["2026-11-02T10:00:00Z"]);
-    writeSession("account-1", "inside", ["2026-11-02T10:00:00Z"]);
-    writeSession("account-1", "also-inside", [
-      "2026-11-09T10:00:00Z",
-      "2026-11-12T10:00:00Z",
+  it.each(
+    steps.flatMap((step) => [
+      [step, stepOpeningOf(step)],
+      [step, stepOpeningOf(step, draftingTicketKind)],
+    ]),
+  )("names the %s from its prompt's opening", (step, opening) => {
+    const kinds = largeReadTurnsOf([
+      transcript("a", [
+        prompt(`${opening} More.`),
+        ...readThen("r1", bigText, 1),
+      ]),
     ]);
-    writeSession("account-1", "before", ["2026-10-30T10:00:00Z"]);
-    writeSession("account-1", "after", ["2026-11-10T00:00:00Z"]);
-    const subagents = join(
-      home,
-      "account-1",
-      "projects",
-      "-workspace",
-      "inside",
-      "subagents",
-    );
-    mkdirSync(subagents, { recursive: true });
-    writeFileSync(join(subagents, "agent-1.jsonl"), "{}\n");
-    const found = localTranscriptsOf(
-      [join(home, "live"), join(home, "account-1"), join(home, "missing")],
-      {
-        from: new Date("2026-11-01T00:00:00Z"),
-        to: new Date("2026-11-10T00:00:00Z"),
-      },
-    );
-    expect(found.map(({ sessionId }) => sessionId).sort()).toEqual([
-      "also-inside",
-      "inside",
-    ]);
+    expect(kinds.map(({ kind }) => kind)).toEqual([step]);
   });
 
-  it("skips a transcript last written before the range without reading it", () => {
-    writeSession("live", "stale", ["2026-11-02T10:00:00Z"]);
-    const path = join(home, "live", "projects", "-workspace", "stale.jsonl");
-    const longAgo = new Date("2026-01-01T00:00:00Z");
-    utimesSync(path, longAgo, longAgo);
-    const found = localTranscriptsOf([join(home, "live")], {
-      from: new Date("2026-11-01T00:00:00Z"),
-      to: new Date("2026-11-10T00:00:00Z"),
-    });
-    expect(found).toEqual([]);
-  });
+  it.each(["", draftingTicketKind])(
+    "names a run's resumed review step from its opening%s",
+    (ticketKind) => {
+      const kinds = largeReadTurnsOf([
+        transcript("a", [
+          prompt(reviewFramingOf(undefined, ticketKind).opening),
+          ...readThen("r1", bigText, 1),
+        ]),
+      ]);
+      expect(kinds.map(({ kind }) => kind)).toEqual(["review step"]);
+    },
+  );
 });
