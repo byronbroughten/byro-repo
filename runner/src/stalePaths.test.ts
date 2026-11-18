@@ -101,23 +101,6 @@ describe("stalePathsOf", () => {
 });
 
 describe("stalePathsTouchedBy", () => {
-  it("reads only the files a branch changes", async () => {
-    commitFiles(primaryRoot, { "old.md": "Was packages/writing.\n" });
-    git(primaryRoot, "switch", "-q", "-c", "issue-1-fix");
-    commitFiles(primaryRoot, {
-      "new.md": "Was packages/writing.\n",
-    });
-    git(primaryRoot, "switch", "-q", "master");
-
-    expect(
-      await stalePathsTouchedBy({ primaryRoot, clonePaths }, [
-        { repo: "byro-repo", branch: "issue-1-fix" },
-      ]),
-    ).toEqual([
-      { repo: "byro-repo", file: "new.md", line: 1, path: "packages/writing" },
-    ]);
-  });
-
   it("finds stale mentions only in the files a branch changes", async () => {
     commitFiles(primaryRoot, { "old.md": "Was in packages/writing.\n" });
     git(primaryRoot, "switch", "-q", "-c", "issue-1-fix");
