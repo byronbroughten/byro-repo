@@ -28,6 +28,7 @@ export interface ToolInput {
   content?: unknown;
   text?: unknown;
   operations?: unknown;
+  skill?: string;
 }
 
 // Undefined when the file is missing or isn't JSON.

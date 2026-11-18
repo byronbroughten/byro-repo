@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
+import { docsInjectedBy } from "./docSectionsInjections.ts";
 import { type EditDecision, isFullDocRead } from "./fullDocRead.ts";
 import type { ToolInput } from "./hookIo.ts";
 import {
@@ -584,17 +585,77 @@ describe("readFirstNudge", () => {
   });
 });
 
-describe("the hook's PreToolUse matcher", () => {
-  it("names exactly the rows' tools", () => {
+describe("a Primer's read, the docs its skill injects through doc:sections", () => {
+  function primer(...injections: string[]): string {
+    return [
+      "---",
+      "name: a-primer",
+      "allowed-tools: Bash(npm run doc:sections *)",
+      "---",
+      "",
+      ...injections.map((args) => `!\`npm run doc:sections -- ${args}\``),
+    ].join("\n");
+  }
+  const sheetRaw = "/repo/packages/framework/src/02_SpreadsheetRaw/SheetRaw.ts";
+
+  it("lets the row's Edit through once its doc is printed, sections only included", () => {
+    expect(
+      edit("/repo/AGENTS.md", docsInjectedBy(primer(proseStylePath))),
+    ).toEqual(allowed);
+    expect(
+      edit(
+        "/repo/scripts/docLint.ts",
+        docsInjectedBy(primer(`./${codeStylePath} Naming "Class shape"`)),
+      ),
+    ).toEqual(allowed);
+  });
+
+  it("lets a row needing two docs through only when both are printed", () => {
+    const both = primer(
+      `${codeStylePath} Naming`,
+      `${frameworkStylePath} "Class shape"`,
+    );
+    expect(edit(sheetRaw, docsInjectedBy(both))).toEqual(allowed);
+    expect(
+      edit(sheetRaw, docsInjectedBy(primer(codeStylePath))).denyReason,
+    ).toMatch(/packages\/framework\/docs\/code-style\.md/);
+  });
+
+  it("still refuses with no such read", () => {
+    const noInjection = [
+      "Run `npm run doc:sections -- docs/prose-style.md` yourself.",
+      `!\`cat ${proseStylePath}\``,
+      `!\`npm run doc:sections -- docs/agents/tickets.md\``,
+    ].join("\n");
+    expect(
+      edit("/repo/AGENTS.md", docsInjectedBy(noInjection)).denyReason,
+    ).toMatch(/docs\/prose-style\.md/);
+  });
+});
+
+describe("the hook's matchers", () => {
+  function matchedTools(event: "PreToolUse" | "PostToolUse"): Set<string> {
     const settings = JSON.parse(
       readFileSync(new URL("../../settings.json", import.meta.url), "utf8"),
     );
-    const matched: string[] = settings.hooks.PreToolUse.filter(
-      ({ hooks }: { hooks: { command: string }[] }) =>
-        hooks.some(({ command }) => command.includes("readFirstGate.ts")),
-    ).flatMap(({ matcher }: { matcher: string }) => matcher.split("|"));
-    expect(new Set(matched)).toEqual(
+    return new Set(
+      settings.hooks[event]
+        .filter(({ hooks }: { hooks: { command: string }[] }) =>
+          hooks.some(({ command }) => command.includes("readFirstGate.ts")),
+        )
+        .flatMap(({ matcher }: { matcher: string }) => matcher.split("|")),
+    );
+  }
+
+  it("names exactly the rows' tools on PreToolUse", () => {
+    expect(matchedTools("PreToolUse")).toEqual(
       new Set(readFirstRows.flatMap((row) => row.tools)),
+    );
+  });
+
+  it("records reads on PostToolUse of Read, Bash and Skill, a Primer's call", () => {
+    expect(matchedTools("PostToolUse")).toEqual(
+      new Set(["Read", "Bash", "Skill"]),
     );
   });
 });
