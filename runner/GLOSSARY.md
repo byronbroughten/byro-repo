@@ -242,6 +242,10 @@ _Avoid_: mode, pipeline, flavour
 One part of a Workflow, from planning to process revision, worked by its own skills. Every Step of a run falls in one Workflow stage, implementation. [The workflow map](../docs/agents/workflows.md) lists each stage's skills.
 _Avoid_: phase, step, stage (bare)
 
+**Friction note**:
+One problem with a Workflow, or with the machinery the Workflows share, recorded as the developer or an agent saw it and kept until process revision addresses or dismisses it. It is not a ticket, which is a change already decided.
+_Avoid_: mistake, lesson, retro item
+
 ## Same word, two meanings
 
 - **Runner**: here, the program that runs a spec. In the framework's glossary, an endpoint whose checkbox is a run button.
