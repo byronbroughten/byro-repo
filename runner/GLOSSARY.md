@@ -49,7 +49,7 @@ An optional list in a code ticket's committed implement record: each place the i
 _Avoid_: hints, known issues, self-review
 
 **Handoff**:
-An implement step's ending that passes unfinished work, with a written account of it, to a fresh implement step on the same ticket. A ticket past its handoff cap gets a Failure Halt saying to split it.
+A ticket's implementer passing its unfinished work, with a written account of it, to a fresh session that carries on the step it is in or the next one. A ticket past its handoff cap gets a Failure Halt saying to split it.
 _Avoid_: retry, restart
 
 **Facts file**:
