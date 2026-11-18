@@ -31,6 +31,7 @@ import { inlinedSkill, type ReadText } from "../../stepPrompts/inlinedSkill.ts";
 import {
   implementRecordOf,
   type PieceImplementRecord,
+  reviewCaughtOf,
 } from "../../stepRecords.ts";
 import { ticketSectionOf } from "../../ticketSections.ts";
 import type { Target } from "../../ticketTargets.ts";
@@ -78,11 +79,6 @@ import {
   pieceResolvePrompt,
   pieceResolveRecordProblems,
 } from "./resolveStep.ts";
-import {
-  pieceReviewCaughtOf,
-  type RuleSheetName,
-  type RuleSheets,
-} from "./reviewCaught.ts";
 import { reviewInputs } from "./reviewInputs.ts";
 import {
   pieceReviewerCheckOf,
@@ -173,21 +169,12 @@ const specEnd: SpecEnd = {
   },
 };
 
-// From the root of the repo a review's rules live in.
-const ruleSheetPaths: Record<RuleSheetName, string> = {
-  Voice: "docs/writing-voice.md",
-  Craft: "docs/writing-craft.md",
-  academic: "docs/academic-writing-style.md",
-};
-
-// A repo's own values: its overlap and quote checks, the Docs port pull and push reach the Deliverable through and the rules' root.
+// A repo's own values: its overlap and quote checks and the Docs port pull and push reach the Deliverable through.
 export interface PieceWorkflowInput {
   overlapCommand: Command;
   // Called with `--comment <path> --texts <folder>` appended.
   verifyQuotesCommand: Command;
   documents: DocumentsPort;
-  // The rule sheets are read under it once a ticket's review facts are written.
-  rulesRoot: string;
   readText?: ReadText;
 }
 
@@ -195,7 +182,6 @@ export function pieceWorkflowOf({
   overlapCommand,
   verifyQuotesCommand,
   documents,
-  rulesRoot,
   readText,
 }: PieceWorkflowInput): Workflow {
   function reviewPromptOf(input: ReviewPromptInput): string {
@@ -318,9 +304,7 @@ export function pieceWorkflowOf({
       });
     },
     specEnd,
-    whatReviewCaughtOf(records) {
-      return pieceReviewCaughtOf(records, ruleSheetsOf(rulesRoot));
-    },
+    whatReviewCaughtOf: reviewCaughtOf,
     pull: pullRulesOf(documents),
     push: {
       agentSectionsOf: agentDraft.agentSectionsOf,
@@ -330,18 +314,6 @@ export function pieceWorkflowOf({
       },
     },
   };
-}
-
-function ruleSheetsOf(rulesRoot: string): RuleSheets {
-  return {
-    Voice: ruleSheetOf(rulesRoot, "Voice"),
-    Craft: ruleSheetOf(rulesRoot, "Craft"),
-    academic: ruleSheetOf(rulesRoot, "academic"),
-  };
-}
-
-function ruleSheetOf(rulesRoot: string, name: RuleSheetName): string {
-  return readFileSync(join(rulesRoot, ruleSheetPaths[name]), "utf8");
 }
 
 function draftingPromptOf(input: ImplementPromptInput): string {

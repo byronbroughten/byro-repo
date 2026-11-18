@@ -385,9 +385,9 @@ describe("whatReviewCaughtOf", () => {
     evidence: "Reworded it.",
   } as const;
 
-  it("names a piece Fix by axis and the rule sheet's own rule name only", () => {
+  it("keeps a piece Fix's claim and where as recorded", () => {
     expect(piece.whatReviewCaughtOf([fix])).toBe(
-      'Fixed: standards, Craft "Garden path" ×1',
+      "Fixed: A private claim. (## A private heading).",
     );
   });
 

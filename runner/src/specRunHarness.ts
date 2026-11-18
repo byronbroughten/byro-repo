@@ -10,7 +10,6 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
 
@@ -224,9 +223,6 @@ export function outcomeRowPath(number: number): string {
   return join(outcomeFolder(), "byro-repo-213", `byro-repo-${number}.md`);
 }
 
-// The repo's own sheets, which the piece review cell reads rule names from.
-const rulesRoot = fileURLToPath(new URL("../../", import.meta.url));
-
 // What each Workflow's step reads as a skill's SKILL.md in the workspace, which no fixture workspace holds.
 const skillTexts: Record<string, string> = {
   "code-review":
@@ -251,7 +247,6 @@ export function workflowsWith(checks: Command[]): Workflows {
       overlapCommand: reportsSlippedOut,
       verifyQuotesCommand: redOnMisquote,
       documents,
-      rulesRoot,
       readText: readSkillFixture,
     }),
   };

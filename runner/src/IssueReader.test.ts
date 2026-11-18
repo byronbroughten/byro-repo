@@ -22,7 +22,6 @@ const workflows: Workflows = {
     overlapCommand: ["true"],
     verifyQuotesCommand: ["true"],
     documents: new FakeDocuments([]),
-    rulesRoot: ".",
   }),
 };
 

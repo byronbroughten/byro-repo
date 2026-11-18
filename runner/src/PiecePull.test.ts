@@ -73,7 +73,6 @@ function piecePull(): PiecePull {
         overlapCommand: ["true"],
         verifyQuotesCommand: ["true"],
         documents,
-        rulesRoot: ".",
       }),
     },
   });

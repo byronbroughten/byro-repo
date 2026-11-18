@@ -217,7 +217,6 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Workflow/piece/researchStep/researchRecord.ts` | | The research step's output schema, its record reader and the record checks. |
 | `Workflow/piece/researchStep/researchWords.ts` | | The research step's prompt, its scratch folder, its first-try and red-quotes sections, handoff comment, closing comment and Research Halt words. |
 | `Workflow/piece/resolveStep.ts` | | The piece resolve step's prompt, pointing at the verdict rules' `## Piece findings` and rerunning the piece checks after its Fixes, and its record checks, which refuse the verdict reasons a piece finding never takes. |
-| `Workflow/piece/reviewCaught.ts` | | A piece outcome row's "What review caught" cell: each kept finding by its axis and public rule name only. |
 | `Workflow/piece/reviewInputs.ts` | | Writes the inputs `/review-piece` copies word for word to the review-inputs folder before a piece review, naming each the spec lacks. |
 | `Workflow/piece/reviewStep.ts` | | The piece review step's prompt, carrying `/review-piece`'s SKILL.md body over the Agent draft, passages folder and supplied inputs, its record schema and its reviewer check. |
 | `WrapUp.ts` | `WrapUp` | `npm run wrap-up`: lands an issue or session workspace, delegating its landing steps and closing the issue to `WrapUp/`; and `npm run research:push`'s push. |
