@@ -3,7 +3,7 @@ import type { SimpleCommand } from "../ShellParser.ts";
 import type { CallContext, Verdict } from "../tiers.ts";
 import { npmCommands } from "./npmCommands.ts";
 
-// Why reading a Doc as the agent account is a standing yes, for each script that does it.
+// Why using the agent account's token is a standing yes, for each script that does it.
 const agentTokenReach =
   "whose token reaches only the files shared with that account";
 
@@ -83,7 +83,7 @@ const scripts = {
       why: `\`npm run piece:pull\` is the standing yes to read a Piece's Doc as the agent account, ${agentTokenReach}`,
     },
   },
-  // The Doc print command's row, for a third command holding the agent token: a standing yes in an Interactive session; a runner step's is refused, as no ticket has targeted the Sheet it copies to.
+  // The Doc print command's row, for another command holding the agent token: a standing yes in an Interactive session; a runner step's is refused, as no ticket has targeted the Sheet it copies to or from.
   logs: {
     name: "logs",
     stepWhy:
