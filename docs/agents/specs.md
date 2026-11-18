@@ -21,7 +21,7 @@ The rules for planning and writing a spec, code, piece or mixed. Sizing and spli
 
 Each Phase is a spec of its own, filed with the rest of its Project by [`/project-spec`](../../.claude/skills/project-spec/SKILL.md), which also runs each Phase gate.
 
-- **Split work into several specs for a gate (real use could change or cancel what follows) or for size (a spec headed past about 55 user stories or about 25K characters of body).** The size line is fuzzy, weighed with the other considerations, and `/mine-outcomes` may retune it.
+- **Split work into several specs for a gate (real use could change or cancel what follows) or for size (a spec headed past about 55 user stories or about 25K characters of body).** The size line is fuzzy, weighed with the other considerations, and a planning session querying `outcome:summary` may retune it.
 - **Each spec stands on its own: it lands green and leaves master consistent, with nothing half-migrated.** Operator-visible value is preferred; an enabling spec is allowed when no such slice fits, and its Problem Statement says so.
 - **A spec that replaces something also removes the old version, docs included.** That removal and any docs sweep are tickets in that spec, never specs of their own.
 - **A Phase is not a tracer bullet**: a tracer bullet is one verifiable slice, and a Phase is a spec, usually several slices that together can be used in real work.

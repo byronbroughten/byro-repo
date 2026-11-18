@@ -25,7 +25,7 @@ One kind of sub-issue a Piece is worked in: Research, Sections, the Final pass, 
 _Avoid_: phase, step
 
 **Agent draft**:
-The Markdown file of a Piece's Sections as agents draft them, kept in the repo that files the Piece's spec. Agents draft in it, a push writes it into the Deliverable, and `/to-writing-style` compares it with the edited Deliverable. A Section the developer wrote is marked as theirs. It is never edited by hand.
+The Markdown file of a Piece's Sections as agents draft them, kept in the repo that files the Piece's spec. Agents draft in it, a push writes it into the Deliverable, and `/revise-workflows`' pair mode compares it with the edited Deliverable. A Section the developer wrote is marked as theirs. It is never edited by hand.
 _Avoid_: Snapshot, AI copy, draft (alone)
 
 **Edit gate**:

@@ -51,10 +51,10 @@ Every question carries a recommendation:
 
 ## 4. End
 
-1. **The calibration paragraph.** Once the questions before it are answered, draft one paragraph in chat and have the developer rewrite it. Name each difference, then ask whether it holds for this Piece alone, which makes it a style override for the Style field, or for every Piece, which makes it a `/to-writing-style` candidate. In #1, one rewrite would have surfaced the name-not-pronoun, verdict-first and serial-comma habits before the full draft.
+1. **The calibration paragraph.** Once the questions before it are answered, draft one paragraph in chat and have the developer rewrite it. Name each difference, then ask whether it holds for this Piece alone, which makes it a style override for the Style field, or for every Piece, which makes it a `/revise-workflows piece` candidate. In #1, one rewrite would have surfaced the name-not-pronoun, verdict-first and serial-comma habits before the full draft.
 2. **The Outline.** Read [`docs/pieces/outlining.md`](../../../docs/pieces/outlining.md), then draft it from the settled facts for the developer's approval.
 3. **Research and Final pass**: ask grilling.md's two questions that wait on the Outline in one round once it is approved, so every [`/project-spec`](../project-spec/SKILL.md#3-fill-the-pieces-nine-fields) field is settled.
-4. **The `/to-writing-style` candidates**: list each difference that holds for every Piece in chat, unwritten, for that skill's approval.
+4. **The `/revise-workflows piece` candidates**: list each difference that holds for every Piece in chat, unwritten, for that skill's approval.
 5. **Delete the PDFs step 2 downloaded**, by the paths it got back; each later stage downloads the ranges it reads.
 
 Done when every grilling.md question has an answer (the developer's words, or a draft they kept) or the developer's waiver, the calibration paragraph is rewritten, the Outline is approved, the candidates are listed and the downloads are gone.

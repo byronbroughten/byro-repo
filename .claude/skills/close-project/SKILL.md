@@ -44,6 +44,8 @@ Report the close with the comment posted. Then read the parent check it prints:
 
 ## 5. Wrap up
 
-For each spec closed, follow [`/judge-findings`' step 5](../../../runner/skills/judge-findings/SKILL.md#5-closing-the-spec) items 1 and 2: on a code spec the `/to-code-style` reminder with its keep reasons, since the brief holds only the review lists' undecided count; and the open issues it blocks, with `/project-spec` for each labelled `needs-triage`.
+For each spec closed, follow [`/judge-findings`' step 5](../../../runner/skills/judge-findings/SKILL.md#5-closing-the-spec)'s list: the open issues it blocks, with `/project-spec` for each labelled `needs-triage`.
 
-End with one line: run `/mine-outcomes <repo> <n>`.
+Then back the logs up: run `npm run logs -- sync --sheet <id>`, the logs Sheet's ID being with the developer's other Google resource IDs in `packages/personal/private/`. On a failure, report it and go on.
+
+Then count the open Friction notes, the files `grep -rlx "status:" <folder>` lists, `<folder>` being `.runner/friction/` in the primary root, the folder above the path `git rev-parse --path-format=absolute --git-common-dir` prints. At 20 or more, end with one line: run `/revise-workflows log`, naming the count.
