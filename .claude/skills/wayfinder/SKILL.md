@@ -2,7 +2,6 @@
 name: wayfinder
 description: Plan a huge chunk of work (more than one agent session can hold) as a shared map of decision tickets on your issue tracker, and resolve them one at a time until the way to the destination is clear.
 disable-model-invocation: true
-allowed-tools: Bash(npm run map:next *)
 ---
 
 A loose idea has arrived, too big for one agent session, and wrapped in fog: the way from here to the **destination** isn't visible yet. Wayfinding is about finding that way, not charging at the destination. This skill charts the way as a **shared map** on the repo's issue tracker, then works its **decision tickets** (questions whose resolution is a decision, not slices of a build to execute) one at a time until the route is clear.
@@ -118,11 +117,9 @@ User invokes with a loose idea.
 
 ### Work through the map
 
-User invokes with a map (`<repo> <number>`, a URL, or a number in this folder's repo) and an optional ticket. The brief below, `npm run map:next` on the invocation's arguments, already holds the map, its frontier and the chosen ticket: the one the user named, else the first frontier ticket in map order. Don't read any of them again. A brief of one line, `map:next brief: none, <reason>`, means one of two things: arguments that are a loose idea, naming no map, are [Chart the map](#chart-the-map); otherwise your first call is `npm run map:next -- <repo> <map> [<ticket>]` on the map and ticket the arguments name, and its brief stands in for this one. A brief whose `## Chosen ticket` is none gives why: say so and stop.
+User invokes with a map (`<repo> <number>`, a URL, or a number in this folder's repo) and an optional ticket, perhaps beside an explanation; arguments naming no map are a loose idea, for [Chart the map](#chart-the-map). Your first call is `npm run map:next -- <repo> <map> [<ticket>]` on the map and ticket the arguments name, never the arguments pasted whole: free text in them would reach the shell. Its brief holds the map, its frontier and the chosen ticket: the one the user named, else the first frontier ticket in map order. Don't read any of them again. A brief of one line, `map:next brief: none, <reason>`, or one whose `## Chosen ticket` is none, gives why: say so and stop.
 
-!`npm run map:next -- $ARGUMENTS`
-
-1. **In your first turn, send these together**: the **claim**, assigning the chosen ticket to yourself before any work with `gh issue edit -R <owner>/<repo> <n> --add-assignee @me`; a read of the [Wayfinding operations section](../../../docs/agents/issue-tracker.md#wayfinding-operations); and the Skill calls for the brief's `Type:` (see [Ticket Types](#ticket-types)) and for each skill the map's `## Notes` names. With no type, call the Skill tool twice, for "grilling" and "domain-modeling".
+1. **Once the brief is in, send these together**: the **claim**, assigning the chosen ticket to yourself before any work with `gh issue edit -R <owner>/<repo> <n> --add-assignee @me`; a read of the [Wayfinding operations section](../../../docs/agents/issue-tracker.md#wayfinding-operations); and the Skill calls for the brief's `Type:` (see [Ticket Types](#ticket-types)) and for each skill the map's `## Notes` names. With no type, call the Skill tool twice, for "grilling" and "domain-modeling".
 2. Resolve the ticket as its type says. **Zoom as needed**: fetch the full body of any related or closed ticket on demand, and the comments the brief counts but doesn't print.
 3. Record the resolution: post the answer as a **resolution comment**, **close** the issue, and **append a context pointer** to the map's Decisions-so-far.
 4. Add newly-surfaced tickets (create-then-wire); graduate any fog the answer has made specifiable, clearing each graduated patch from **Not yet specified** so it lives only as its new ticket. If the answer reveals that a ticket (this one or another) sits beyond the destination, **rule it out of scope** rather than resolving it on the route. If the decision invalidates other parts of the map, update or delete those tickets.
