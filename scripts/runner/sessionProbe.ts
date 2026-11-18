@@ -1,7 +1,7 @@
 // Starts a one-turn headless session in a folder and prints what its hooks see, $CLAUDE_PROJECT_DIR first.
 // Usage: npm run session:probe -- <folder>, e.g. an issue workspace's path from npm run issue:list.
 // Sandbox check: npm run session:probe -- --sandbox-check [--keep-excluded] <folder> <commands-file> runs each line of the file once under the folder's sandbox block and prints ran or stopped for each.
-// Injection check: npm run session:probe -- --injection-check <folder> invokes throwaway skills holding an injected command under the folder's sandbox block and prints whether each ran, in the box or not, and what a PreToolUse hook saw.
+// Injection check: npm run session:probe -- --injection-check <folder> invokes throwaway skills holding an injected command under the folder's sandbox block and prints whether each ran, in the box or not, what a PreToolUse hook saw, whether the injected command saw the session ID and could read and write the hooks' claude-guardrails folder, and whether a Skill call with no Skill allow rule was denied.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
@@ -22,7 +22,7 @@ const usage = [
   "       npm run session:probe -- --injection-check <folder>",
   "--sandbox-check runs every listed command for real, inside the box: list only reads, dry-run forms and writes into a throwaway repo in temp.",
   "--keep-excluded keeps the folder's excludedCommands, so a call Claude Code lets out runs outside the box: list only reads.",
-  "--injection-check invokes throwaway skills in a folder under temp, by slash command and through the Skill tool, each with an injected `npm run` call of a brief script there that reads `ps` and writes what it saw beside it, under the folder's sandbox block.",
+  "--injection-check invokes throwaway skills in a folder under temp, by slash command and through the Skill tool, each with an injected `npm run` call of a brief script there that reads `ps`, looks for the session ID, lists and writes a throwaway marker in `claude-guardrails/` under the hooks' tmpdir and writes what it saw beside it, under the folder's sandbox block; one more run calls a skill with `allowed-tools` through the Skill tool with no `Skill` allow rule, to see whether that call is denied.",
 ].join("\n");
 const keepExcludedFlag = "--keep-excluded";
 

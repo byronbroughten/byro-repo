@@ -29,11 +29,6 @@ interface BashCall {
   command: string;
 }
 
-interface BashResult {
-  isError: boolean;
-  text: string;
-}
-
 // Claude Code 2.1.316 has no command that runs its sandbox runtime alone, so each command goes through one headless session's Bash tool.
 export class SandboxProbe {
   private readonly claudePath: string;
@@ -154,7 +149,7 @@ function commandOutcomes(
   commands: string[],
 ): CommandOutcome[] {
   const calls = bashCalls(events);
-  const results = bashResults(events);
+  const results = streamJson.toolResults(events);
   return commands.map((command, index) => {
     const occurrence = commands
       .slice(0, index)
@@ -177,26 +172,6 @@ function bashCalls(events: unknown[]): BashCall[] {
       }
       return [{ id: String(block.id), command: block.input.command.trim() }];
     });
-}
-
-function bashResults(events: unknown[]): Map<string, BashResult> {
-  return events
-    .flatMap((event) => streamJson.contentBlocks(event, "tool_result"))
-    .reduce((results, block) => {
-      results.set(String(block.tool_use_id), {
-        isError: block.is_error === true,
-        text: resultText(block.content),
-      });
-      return results;
-    }, new Map<string, BashResult>());
-}
-
-function resultText(content: unknown): string {
-  if (typeof content === "string") return content;
-  if (!Array.isArray(content)) return "";
-  return (content as { text?: unknown }[])
-    .map((part) => (typeof part.text === "string" ? part.text : ""))
-    .join("\n");
 }
 
 // The Bash tool heads a failed command's output with its exit code, which says less than the line after it.
