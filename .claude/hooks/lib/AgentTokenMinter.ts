@@ -1,4 +1,4 @@
-// An access token for the agent account, from the gworkspace server's stored credentials: the tier gate's Drive owner lookup (tiers/driveOwners.ts), `npm run google:script` (scripts/googleScript/), `npm run doc:print` (scripts/runner/docPrint.ts) and `npm run piece:pull` (scripts/runner/piecePull.ts) all take theirs here.
+// An access token for the agent account, from the gworkspace server's stored credentials: the tier gate's Drive owner lookup (tiers/driveOwners.ts), `npm run google:script` (scripts/googleScript/), `npm run doc:print` (scripts/runner/docPrint.ts), `npm run piece:pull` (scripts/runner/piecePull.ts) and `npm run logs` (scripts/runner/logs.ts) all take theirs here.
 // A minted token isn't written back, so the server's own file is never raced, and no error names the refresh token.
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";

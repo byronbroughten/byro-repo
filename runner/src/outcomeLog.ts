@@ -88,14 +88,70 @@ export function outcomePathOf(
 export function outcomeFileOf(row: OutcomeRow): string {
   const { issue, spec, githubOwner } = row;
   const specUrl = `https://github.com/${githubOwner}/${spec.repo}/issues/${spec.number}`;
+  return rowFileOf({ issue, spec, specUrl }, columns, cellsOf(row));
+}
+
+/** A written row file read back: its tickets, its spec's link and its cells by column, a `\|` in a cell read as `|`. */
+export interface WrittenRow {
+  issue: IssueRef;
+  spec: IssueRef;
+  specUrl: string;
+  cells: Map<WrittenColumn, string>;
+}
+
+export const writtenColumns: readonly WrittenColumn[] = [
+  ...columns,
+  ...olderColumns,
+];
+
+/** The row file `file` holds for `issue`, which its file name, not its table, names in full. */
+export function writtenRowOf(issue: IssueRef, file: string): WrittenRow {
+  const [, specRepo, specNumber, specUrl] =
+    /^Spec: \[(.+)#(\d+)\]\((.*)\)$/m.exec(file) ?? [];
+  if (specRepo === undefined || specUrl === undefined) {
+    throw new Error(`The ${labelOf(issue, "#")} row file has no Spec line.`);
+  }
+  const cells = new Map(
+    [...writtenCellsOf(file)].map(([column, cell]) => [
+      column,
+      cell.replaceAll("\\|", "|"),
+    ]),
+  );
+  return {
+    issue,
+    spec: { repo: specRepo, number: Number(specNumber) },
+    specUrl,
+    cells,
+  };
+}
+
+/** The file holding a read row: today's columns, and each older one only where its cell isn't blank. */
+export function writtenFileOf({ cells, ...link }: WrittenRow): string {
+  const header = writtenColumns.filter(
+    (column) =>
+      columns.some((current) => current === column) ||
+      (cells.get(column) ?? "") !== "",
+  );
+  return rowFileOf(
+    link,
+    header,
+    header.map((column) => cells.get(column) ?? ""),
+  );
+}
+
+function rowFileOf(
+  { issue, spec, specUrl }: Omit<WrittenRow, "cells">,
+  header: readonly string[],
+  cells: readonly string[],
+): string {
   return [
     `# ${labelOf(issue, "#")} outcome`,
     "",
     `Spec: [${labelOf(spec, "#")}](${specUrl})`,
     "",
-    tableLine(columns),
-    tableLine(columns.map(() => "---")),
-    tableLine(cellsOf(row)),
+    tableLine(header),
+    tableLine(header.map(() => "---")),
+    tableLine(cells),
     "",
   ].join("\n");
 }

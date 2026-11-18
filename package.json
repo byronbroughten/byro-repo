@@ -35,6 +35,7 @@
     "account:switch": "node scripts/runner/accountSwitch.ts",
     "doc:print": "node --use-env-proxy --disable-warning=UNDICI-EHPA scripts/runner/docPrint.ts",
     "google:script": "node scripts/googleScript/googleScript.ts",
+    "logs": "node --use-env-proxy --disable-warning=UNDICI-EHPA scripts/runner/logs.ts",
     "issue:list": "node scripts/runner/issue.ts list",
     "issue:start": "node scripts/runner/issue.ts start",
     "issue:promote": "node scripts/runner/issue.ts promote",
