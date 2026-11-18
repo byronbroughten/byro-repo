@@ -58,7 +58,7 @@ export function contextNudgeOf(
   );
 }
 
-// The skip rule's home is handoffs.md; this repeats its bolded line.
+// The skip rule's home is handoffs.md; this repeats its bolded line and examples.
 const skipRule =
   "Hand off only when work left needs judgement, meaning code or prose still to be decided; " +
   "finish work that needs none instead: a known command such as wrap-up, the checks or a commit, " +
