@@ -31,6 +31,15 @@ function sized(tokens: number): string {
   return `${line}\n`;
 }
 
+function expectSkipRule(nudge: string): void {
+  expect(nudge).toMatch(
+    /Hand off only when work left needs judgement, meaning code or prose still to be decided; /,
+  );
+  expect(nudge).toMatch(
+    /a known command such as wrap-up, the checks or a commit, the step's record, or a comment reporting work already done/,
+  );
+}
+
 describe("sizeAtNudgeOf", () => {
   const knobs = { ticketBudget: 150_000, budgetMargin: 15_000 };
 
@@ -60,7 +69,19 @@ describe("contextNudgeOf", () => {
 
   it("quotes the budget itself, not the nudge point", () => {
     expect(contextNudgeOf(135_000, options)).toMatch(
-      /approaching the 150K ticket budget: finish the step you are on, then hand off; /,
+      /approaching the 150K ticket budget: finish the step you are on\. /,
+    );
+  });
+
+  it("states the skip rule, then the ticket's handoff steps", () => {
+    const nudge = contextNudgeOf(160_000, options);
+
+    expectSkipRule(nudge);
+    expect(nudge).toMatch(
+      /When you hand off, the handoff is your next and last step, per /,
+    );
+    expect(nudge.indexOf("Hand off only")).toBeLessThan(
+      nudge.indexOf("When you hand off"),
     );
   });
 
@@ -110,6 +131,15 @@ describe("contextNudgeOf", () => {
       expect(nudge).not.toMatch(/ticket budget/);
     });
 
+    it("states the skip rule, then the supervision's handoff steps", () => {
+      const nudge = contextNudgeOf(160_000, supervising);
+
+      expectSkipRule(nudge);
+      expect(nudge).toMatch(
+        /When you hand off, the handoff is your next and last step: write /,
+      );
+    });
+
     it("names the handoff file and what goes in it", () => {
       const nudge = contextNudgeOf(160_000, supervising);
 
@@ -136,10 +166,19 @@ describe("contextNudgeOf", () => {
       owed: { isTicketOwed: true, supervision },
     };
 
+    it("states the skip rule and judges each handoff on its own", () => {
+      const nudge = contextNudgeOf(160_000, both);
+
+      expectSkipRule(nudge);
+      expect(nudge).toMatch(
+        /Judge the ticket's handoff and the supervision's each on its own/,
+      );
+    });
+
     it("names both handoffs in one nudge, the ticket's first", () => {
       const nudge = contextNudgeOf(160_000, both);
 
-      expect(nudge).toMatch(/two handoffs/);
+      expect(nudge).toMatch(/the ticket's first/);
       const ticketAt = nudge.indexOf("End the handoff comment with");
       const supervisionAt = nudge.indexOf(supervision.path);
       expect(ticketAt).toBeGreaterThan(-1);
