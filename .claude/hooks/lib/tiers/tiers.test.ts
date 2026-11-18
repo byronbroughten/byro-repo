@@ -585,6 +585,23 @@ describe("an Interactive session's scripts", () => {
   });
 
   it.each([
+    "npm run logs -- sync --sheet 1AbCdEf",
+    "npm run logs -- restore --sheet 1AbCdEf",
+  ])(
+    "allows `%s` in a session with no ask, and refuses it in a runner step",
+    (command) => {
+      const sessionDecision = modeDecisionOf(command);
+      expect(sessionDecision?.permissionDecision).toBe("allow");
+      expect(sessionDecision?.reason).toContain("standing yes");
+      const stepDecision = modeDecisionOf(command, "runnerStep");
+      expect(stepDecision?.permissionDecision).toBe("deny");
+      expect(stepDecision?.reason).toContain("only an Interactive session");
+      expect(stepDecision?.reason).toContain("agent account's access token");
+      expect(stepDecision?.reason).toContain(blockerInstead);
+    },
+  );
+
+  it.each([
     "npm run issue:close-parent -- byro-repo 804",
     "npm run issue:close-parent -- byro-repo 804 --comment-file /tmp/claude-501/close.md",
   ])(

@@ -83,6 +83,16 @@ const scripts = {
       why: `\`npm run piece:pull\` is the standing yes to read a Piece's Doc as the agent account, ${agentTokenReach}`,
     },
   },
+  // The Doc print command's row, for a third command holding the agent token: a standing yes in an Interactive session; a runner step's is refused, as no ticket has targeted the Sheet it copies to.
+  logs: {
+    name: "logs",
+    stepWhy:
+      "copies the friction and outcome folders to or from a Sheet with the agent account's access token, which only an Interactive session does",
+    sessionVerdict: {
+      permissionDecision: "allow",
+      why: `\`npm run logs\` is the standing yes to copy the friction and outcome folders to or from a Sheet as the agent account, ${agentTokenReach}`,
+    },
+  },
   // Free as the `gh issue close` and `gh issue comment` it wraps are; a runner step's is refused, as a step's `gh issue close` is.
   issueCloseParent: {
     name: "issue:close-parent",
