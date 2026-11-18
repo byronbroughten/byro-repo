@@ -25,6 +25,13 @@ const outlierResults = [
 ];
 
 // The summary's text for a batch of sections: shares, medians, each spec's rows, outliers and Model fit, then transcripts.
+// A row is an outlier on each of these rules, and the report names every one it trips:
+// - its Result is `Fix (resumed implementer)`, `Fix (fresh resolver)` or `Halted then passed (<kind>)`;
+// - its Retries is above 0;
+// - over budget: its peak sum, a handoff's peaks summed, is above the ticket budget;
+// - long or costly for its size: its Duration or Cost per file changed is more than twice the median of that figure
+//   over the batch's rows in its repo and Workflow, with at least `minimumMedianRows` rows recording it.
+// With `limitsToOutliers`, the medians still pool the whole batch, and only the outlier rows are reported.
 export class OutcomeReport {
   private readonly input: OutcomeSummaryInput;
   private readonly sections: Section[];
@@ -33,9 +40,12 @@ export class OutcomeReport {
 
   constructor(input: OutcomeSummaryInput, sections: Section[]) {
     this.input = input;
-    this.sections = sections;
-    this.rows = sections.flatMap((section) => section.rows);
-    this.medians = poolMediansOf(this.rows);
+    this.medians = poolMediansOf(sections.flatMap((section) => section.rows));
+    this.sections =
+      input.selection.limitsToOutliers === true
+        ? this._outlierSectionsOf(sections)
+        : sections;
+    this.rows = this.sections.flatMap((section) => section.rows);
   }
 
   static init(input: OutcomeSummaryInput, sections: Section[]): OutcomeReport {
@@ -125,6 +135,15 @@ export class OutcomeReport {
           `- ${issueLabelOf(issue)}: ${modelFits[index] ?? ""}`,
       ),
     ];
+  }
+
+  private _outlierSectionsOf(sections: Section[]): Section[] {
+    return sections.flatMap((section) => {
+      const rows = section.rows.filter(
+        (row) => this._outlierRulesOf(row).length > 0,
+      );
+      return rows.length === 0 ? [] : [{ ...section, rows }];
+    });
   }
 
   private _outlierRulesOf(row: SummaryRow): string[] {

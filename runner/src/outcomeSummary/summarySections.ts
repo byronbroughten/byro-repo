@@ -1,6 +1,10 @@
 import type { IssueRef } from "../IssueWorkspaces.ts";
 import { labelOf, unrecorded, writtenCellsOf } from "../outcomeLog.ts";
-import type { OutcomeRowFile, SectionSelection } from "../outcomeSummary.ts";
+import type {
+  OutcomeRowFile,
+  SectionScope,
+  SectionSelection,
+} from "../outcomeSummary.ts";
 import { isWorkflowName, type WorkflowName } from "../Workflow.ts";
 
 export interface SummaryRow {
@@ -21,6 +25,7 @@ export interface SummaryRow {
   // A Triage cost column counts triage alone, with the fixer under Cost.
   hasTriageCost: boolean;
   sessionIds: string[] | undefined;
+  landedAt: Date;
 }
 
 export interface Section {
@@ -37,49 +42,98 @@ const currentResultByOlder: Record<string, string> = {
   "Handoff fix": "Fix (fresh resolver)",
 };
 
-// The outcome log's spec sections, read from its row files; the legacy log, in no section, is left out.
+interface SectionRow {
+  spec: IssueRef;
+  folder: string;
+  row: SummaryRow;
+}
+
+// The outcome log's rows, read from its row files, filtered, picked and grouped into spec sections newest first.
 export const summarySections = {
   selectedOf(
     rowFiles: OutcomeRowFile[],
-    selection: SectionSelection,
+    selection: SectionSelection & { scope: SectionScope },
   ): Section[] {
-    const sections = sectionsOf(rowFiles);
-    const newestFirst = sections.toSorted(
-      (first, second) => second.landedAt.getTime() - first.landedAt.getTime(),
-    );
-    if ("all" in selection) return newestFirst;
-    if ("recent" in selection) return newestFirst.slice(0, selection.recent);
-    const folder = selection.section.replace("#", "-");
-    const section = sections.find((candidate) => candidate.folder === folder);
-    if (section === undefined) {
-      throw new Error(`No outcome section named ${selection.section}`);
+    const rows = rowFiles.map(sectionRowOf);
+    const { scope } = selection;
+    const filtered = rows.filter(filterOf(selection));
+    if ("newest" in scope) {
+      const newestRows = filtered
+        .toSorted((first, second) => newerFirst(first.row, second.row))
+        .slice(0, scope.newest);
+      return newestFirst(sectionsOf(newestRows));
     }
-    return [section];
+    if ("all" in scope) return newestFirst(sectionsOf(filtered));
+    if ("recent" in scope) {
+      return newestFirst(sectionsOf(filtered)).slice(0, scope.recent);
+    }
+    const folder = folderOf(scope.section);
+    if (!rows.some((row) => row.folder === folder)) {
+      throw new Error(`No outcome section named ${scope.section}`);
+    }
+    return sectionsOf(filtered.filter((row) => row.folder === folder));
   },
 };
 
-function sectionsOf(rowFiles: OutcomeRowFile[]): Section[] {
-  const byFolder = rowFiles.reduce((sections, file) => {
-    const [folder, name, ...rest] = file.path.split("/");
-    if (folder === undefined || name === undefined || rest.length > 0) {
-      return sections;
-    }
-    const spec = refOf(folder);
-    const issue = refOf(name.replace(/\.md$/, ""));
-    if (spec === undefined || issue === undefined) return sections;
-    const landedAt = landedAtOf(file.text, issue);
+function sectionRowOf(file: OutcomeRowFile): SectionRow {
+  const [folder, name, ...rest] = file.path.split("/");
+  const spec = folder === undefined ? undefined : refOf(folder);
+  const issue =
+    name === undefined ? undefined : refOf(name.replace(/\.md$/, ""));
+  if (spec === undefined || issue === undefined || rest.length > 0) {
+    throw new Error(
+      `${file.path} is not a row file: <spec repo>-<spec n>/<repo>-<n>.md`,
+    );
+  }
+  return { spec, folder: labelOf(spec, "-"), row: rowOf(file.text, issue) };
+}
+
+function filterOf({
+  workflow,
+  pair,
+  repo,
+  spec,
+  since,
+}: SectionSelection): (row: SectionRow) => boolean {
+  const specFolder = spec === undefined ? undefined : folderOf(spec);
+  return ({ folder, row }) =>
+    (workflow === undefined || row.workflow === workflow) &&
+    (pair === undefined || row.pair?.toLowerCase() === pair.toLowerCase()) &&
+    (repo === undefined || row.issue.repo === repo) &&
+    (specFolder === undefined || folder === specFolder) &&
+    (since === undefined || row.landedAt >= since);
+}
+
+// A spec named by its folder, `<repo>-<n>`, or as `<repo>#<n>`.
+function folderOf(spec: string): string {
+  return spec.replace("#", "-");
+}
+
+function sectionsOf(rows: SectionRow[]): Section[] {
+  const byFolder = rows.reduce((sections, { spec, folder, row }) => {
     const section = sections.get(folder) ?? {
       spec,
       folder,
       rows: [],
-      landedAt,
+      landedAt: row.landedAt,
     };
-    section.rows.push(rowOf(file.text, issue));
-    if (landedAt > section.landedAt) section.landedAt = landedAt;
+    section.rows.push(row);
+    if (row.landedAt > section.landedAt) section.landedAt = row.landedAt;
     sections.set(folder, section);
     return sections;
   }, new Map<string, Section>());
   return [...byFolder.values()];
+}
+
+function newestFirst(sections: Section[]): Section[] {
+  return sections.toSorted(newerFirst);
+}
+
+function newerFirst(
+  first: { landedAt: Date },
+  second: { landedAt: Date },
+): number {
+  return second.landedAt.getTime() - first.landedAt.getTime();
 }
 
 // The outcome folder is gitignored, so a row's own Landed cell is the only date it has.
@@ -91,7 +145,7 @@ function landedAtOf(text: string, issue: IssueRef): Date {
   return new Date(landed);
 }
 
-// A `<repo>-<n>` name; undefined for one that isn't, such as the legacy log.
+// A `<repo>-<n>` name; undefined for one that isn't.
 function refOf(name: string): IssueRef | undefined {
   const match = /^(.+)-(\d+)$/.exec(name);
   if (match?.[1] === undefined || match[2] === undefined) return undefined;
@@ -125,6 +179,7 @@ function rowOf(text: string, issue: IssueRef): SummaryRow {
     reviewCostUsd: numberOf(recorded.get("Review cost")?.replace("$", "")),
     hasTriageCost: cells.has("Triage cost"),
     sessionIds: recorded.get("Session ids")?.split(", "),
+    landedAt: landedAtOf(text, issue),
   };
 }
 
