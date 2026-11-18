@@ -1,7 +1,0 @@
-# byro-repo#813 outcome
-
-Spec: [byro-repo#804](https://github.com/byronbroughten/byro-repo/issues/804)
-
-| Issue | Workflow | Pair | Account | Files changed | Estimate | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| #813 | code | Opus medium | 5 | 10 | ~117K | 132K | Fix (resumed implementer) | 1 | 1 | 0 | 0 | 6 min | $1.40 | $1.48 | Fixed: Both comments list every script by name, and line 7 restates the `scripts` bundle. (.claude/hooks/lib/tiers/tiers/interactiveScripts.ts:1 and :7); `piecePull` copies `docPrint`'s token-reach clause. (.claude/hooks/lib/tiers/tiers/interactiveScripts.ts:63-81); The `piecePull` comment gives no reason for refusing a runner step. (.claude/hooks/lib/tiers/tiers/interactiveScripts.ts:72); The piece:pull row copies doc:print's weakening nearly word for word, and its trailing `issue:start` clause is unattached. (docs/targets-and-gates.md:48); The piece:pull row is a near-quote of doc:print's weakening, and 'looser than doc:print's alone' reads awkwardly. (docs/targets-and-gates.md:48). Proposed: `githubWriteScripts` is a second hand-kept list beside interactiveScripts.ts's `scripts`. (.claude/hooks/lib/tiers/tiers/sandboxedCalls.ts:9). | e13594a2-8bc5-4868-901d-098bf3065797 |

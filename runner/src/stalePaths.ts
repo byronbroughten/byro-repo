@@ -81,7 +81,7 @@ async function repoStalePathsOf(
   return lines(output).flatMap((grepLine) => {
     const [prefixedFile = "", line = "", text = ""] = grepLine.split("\0");
     const file = prefixedFile.slice(refPrefix.length);
-    if (isTestFile(file) || isOutcomeRecord(file)) return [];
+    if (isTestFile(file)) return [];
     return [...text.matchAll(mentionRegex)].flatMap(([path = ""]) =>
       cloneFolders.has(path) ? [] : [{ repo, file, line: Number(line), path }],
     );
@@ -113,9 +113,4 @@ async function grepOf(folder: string, args: string[]): Promise<string> {
 
 function isTestFile(file: string): boolean {
   return /\.test\.[^/]+$/.test(file) || file.includes("__snapshots__/");
-}
-
-// Outcome records quote history, so they keep naming old paths.
-function isOutcomeRecord(file: string): boolean {
-  return file.startsWith("docs/agents/outcomes/");
 }

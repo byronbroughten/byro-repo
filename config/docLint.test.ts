@@ -371,7 +371,6 @@ describe("checkDocs", () => {
       const cited = "Cited `planning.md:38` at a fixed commit.\n";
       expect(
         check({
-          "docs/agents/outcomes/r-1/r-2.md": cited,
           "packages/personal/writing/agent-drafts/s.md": cited,
           "packages/personal/inbox/changes.md": cited,
           "inbox/proposals.md": cited,
@@ -425,7 +424,7 @@ describe("checkDocs", () => {
         check({
           ...readmes,
           "docs/a.md": "`[r](../README.md)`\n",
-          "docs/agents/outcomes/r-1.md": "[r](../../../README.md)\n",
+          "inbox/proposals.md": "[r](../README.md)\n",
         }),
       ).toEqual([]);
     });

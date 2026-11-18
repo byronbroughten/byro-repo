@@ -1,7 +1,0 @@
-# sheets-framework#320 outcome
-
-Spec: [sheets-framework#219](https://github.com/byronbroughten/sheets-framework/issues/219)
-
-| Issue | Workflow | Pair | Account | Files changed | Estimate | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| #320 | code | Opus medium | 4, 5 | 13 | ~130K | 138K → 116K | Fix (resumed implementer) | 0 | 1 | 0 | 0 | 10 min | $2.69 | $1.99 | Fixed: BraceRefuser also checks a rule's columns, and its new helpers pass columnNames and headersByColumn back and forth (Divergent Change, Data Clumps). (packages/framework/src/01_SpreadsheetSchema/configReaders/SyncEntryRefuser/BraceRefuser.ts:55-109, 159-213); The `extends` assertion holds for any string, so it doesn't show that the mapped names are kept. (packages/framework/src/01_SpreadsheetSchema/configReaders/intendedState.test.ts:147-148); `withNew` is a Mysterious Name. (packages/framework/src/01_SpreadsheetSchema/configReaders/SyncEntryRefuser/BraceRefuser.ts:63); _ruleFormulaRefusals and _formulaRefusals each run BraceFormula.columnsNamed on the same formula. (packages/framework/src/01_SpreadsheetSchema/configReaders/SyncEntryRefuser/BraceRefuser.ts:93-107). | 5466542f-1c01-4851-9dc9-288a0a1b664f, 9caffa59-ff85-4211-93fb-06338659b0b6 |

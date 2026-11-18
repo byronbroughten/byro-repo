@@ -1,7 +1,0 @@
-# byro-repo#843 outcome
-
-Spec: [byro-repo#828](https://github.com/byronbroughten/byro-repo/issues/828)
-
-| Issue | Workflow | Pair | Account | Files changed | Estimate | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| #843 | code | Opus medium | 4 | 7 | ~129K | 153K | Fix (resumed implementer) | 2 | 1 | 0 | 0 | 8 min | $1.98 | $2.36 | Fixed: Wrong turn is defined in both code.md and the spine, and the spine weights a kind that only the code branch lists. (.claude/skills/revise-workflows/code.md:14, SKILL.md:50); log.md repeats /note-friction's primary-root recipe and field list, and also restates frictionNotes.ts. (.claude/skills/revise-workflows/log.md:3,5); Wrong turn is defined twice: in the spine's weighting rule for both Workflows and as a code-only hunt kind. (.claude/skills/revise-workflows/code.md:14, SKILL.md:50). Proposed: The last triage's date, read from note modification times, jumps to the restore date after `logs -- restore`, so step 1 and step 3's `--since` skip notes. (.claude/skills/revise-workflows/log.md:8); The triage date read from mtimes breaks after `logs -- restore` or a hand edit, so the report and `--outliers --since` drop time. (.claude/skills/revise-workflows/log.md:8). | fcd20218-ef28-4c42-8036-6906e5ff5f35, 844897a3-57a0-45f0-bbd3-d9f8aad7c59b |

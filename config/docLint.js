@@ -14,7 +14,6 @@ const linkedFileNames = {
 const workspaceFolders = new Set(["config"]);
 // Records that cite lines at a fixed commit on purpose, relative to their doc root.
 const recordPrefixes = [
-  "docs/agents/outcomes/",
   "writing/agent-drafts/",
   "inbox/changes.md",
   "inbox/proposals.md",

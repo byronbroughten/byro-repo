@@ -1,7 +1,0 @@
-# sheets-framework#297 outcome
-
-Spec: [sheets-framework#219](https://github.com/byronbroughten/sheets-framework/issues/219)
-
-| Issue | Workflow | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| #297 | code | Opus medium | 2, 4 | 6 | 153K → 129K | Halted then passed (Split Halt) | 0 | 1 | 0 | 0 | 14 min | $6.87 | $5.60 | Fixed: deletionEffects takes two positional string params that can be swapped (packages/framework/src/05_Operators/ConditionalFormatConfigOperator.ts:67); The deletion step silently skips a missing or dead Table ID, which upstream already rules out (packages/framework/src/05_Operators/SyncCoordinator.ts:325); new Set(this.ss.raw.activeTableIds) is built twice (packages/framework/src/05_Operators/SyncCoordinator.ts:221,321); deletedTableOf takes apart the subject shape that SyncPlanner's subjectOf builds (packages/framework/src/05_Operators/SyncCoordinator.ts:548-553); DeletedTableRules names its rules field for the Table, but it holds every rule on the tab (packages/framework/src/01_SpreadsheetSchema/configReaders/RuleRecords.ts:33-38). | aa57eb28-0483-4d55-8db8-2679fe5728dd, 38be5ead-fe6a-42df-b8d2-405060692644, 0dea2fc6-d1cf-4410-8a84-3fd34a5ece66 |
