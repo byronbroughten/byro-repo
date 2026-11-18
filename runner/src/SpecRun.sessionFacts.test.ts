@@ -9,7 +9,7 @@ import {
   addSpec,
   eventOf,
   implemented,
-  outcomeFolder,
+  outcomeRowPath,
   progressLines,
   reviewed,
   spec,
@@ -75,10 +75,7 @@ describe("a landed ticket's session facts", () => {
   }
 
   function outcomeRow(): string {
-    return readFileSync(
-      join(outcomeFolder(), "byro-repo-213", "byro-repo-1.md"),
-      "utf8",
-    );
+    return readFileSync(outcomeRowPath(1), "utf8");
   }
 
   function warnings(): string[] {

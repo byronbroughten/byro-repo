@@ -35,6 +35,7 @@ import {
   masterSubjects,
   noticeSummaries,
   outcomeFolder,
+  outcomeRowPath,
   primaryOf,
   progressLines,
   refOf,
@@ -1652,9 +1653,7 @@ describe("run on a piece spec", () => {
 
     expect(result.landed).toEqual([refOf(1)]);
     expect(commentsOn(1, "The ferry ran.")).toHaveLength(1);
-    expect(
-      existsSync(join(outcomeFolder(), "byro-repo-213", "byro-repo-1.md")),
-    ).toBe(true);
+    expect(existsSync(outcomeRowPath(1))).toBe(true);
     const closing = github.closed.find(({ issue }) => issue.number === 1);
     expect(closing?.comment).toContain(outlineTexts.proposed);
     expect(ticketState()["byro-repo #1"]?.step).toBe("landed");

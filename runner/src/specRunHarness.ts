@@ -220,6 +220,10 @@ export function outcomeFolder(): string {
   return join(stateFolder(), "outcomes");
 }
 
+export function outcomeRowPath(number: number): string {
+  return join(outcomeFolder(), "byro-repo-213", `byro-repo-${number}.md`);
+}
+
 // The repo's own sheets, which the piece review cell reads rule names from.
 const rulesRoot = fileURLToPath(new URL("../../", import.meta.url));
 

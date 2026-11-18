@@ -18,7 +18,7 @@ import {
   implemented,
   masterSubjects,
   noticeKinds,
-  outcomeFolder,
+  outcomeRowPath,
   primaryRoot,
   refOf,
   reviewed,
@@ -127,9 +127,7 @@ describe("run", () => {
     );
     expect(progress).not.toContain("checking");
     expect(masterSubjects()).toEqual(subjectsBefore);
-    expect(
-      existsSync(join(outcomeFolder(), "byro-repo-213", "byro-repo-1.md")),
-    ).toBe(true);
+    expect(existsSync(outcomeRowPath(1))).toBe(true);
     expect(github.issues.get(1)?.isOpen).toBe(false);
     const closing = github.closed.find(
       ({ issue }) => issue.number === 1,

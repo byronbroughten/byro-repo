@@ -38,7 +38,7 @@ The summary flags a row an outlier on each of these rules, naming every one it t
 
 A row is **expired** when none of its Session ids has a transcript under `~/.claude/projects/*/` or `~/.claude-swap-backup/sessions/*/projects/*/`, and **partly expired** when some are missing; one whose Session ids is `unrecorded` never had any. They still count in every figure; only `/retro` needs a transcript.
 
-For each outlier, and each row a pattern below rests on, read its What review caught from its row file, `.runner/outcomes/<spec repo>-<spec n>/<repo>-<n>.md` in the primary root. A `piece` row's cell holds only each finding's axis and rule, with no prose, since the log is public.
+For each outlier, and each row a pattern below rests on, read its What review caught from its row file, `.runner/outcomes/<spec repo>-<spec n>/<repo>-<n>.md` in the primary root. A `piece` row's cell holds only each finding's axis and rule, with no prose.
 
 ## 3. Proposals
 
