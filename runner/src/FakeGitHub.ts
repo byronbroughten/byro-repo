@@ -2,13 +2,16 @@ import type { IssueSource, ReadableIssue } from "./IssueReader.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
 import type { IssueComment, RunGitHub, TrackedIssue } from "./SpecRun.ts";
 import type { FilingGitHub, NewIssue } from "./TicketFiler.ts";
+import type { LabelEdit, ReadyingGitHub } from "./TicketReadier.ts";
 import type { ParentIssue } from "./WrapUp.ts";
 
 // The runner posts as the developer's login, as GhCli does.
 const developer = "byronbroughten";
 
-// The GitHub port run-loop, wrap-up, filing and close-out tests script and read back, an issue source for close-out ones; issues are keyed by number, so one fake serves one repo.
-export class FakeGitHub implements RunGitHub, FilingGitHub, IssueSource {
+// The GitHub port run-loop, wrap-up, filing, readying and close-out tests script and read back, an issue source for close-out ones; issues are keyed by number, so one fake serves one repo.
+export class FakeGitHub
+  implements RunGitHub, FilingGitHub, ReadyingGitHub, IssueSource
+{
   readonly issues = new Map<number, TrackedIssue>();
   readonly subIssues = new Map<number, number[]>();
   readonly blockers = new Map<number, number[]>();
@@ -224,6 +227,20 @@ export class FakeGitHub implements RunGitHub, FilingGitHub, IssueSource {
     this._failIfScripted();
     const listed = this.blockers.get(issue.number) ?? [];
     this.blockers.set(issue.number, [...listed, blocker.number]);
+  }
+
+  // Added labels go last, as GitHub lists them.
+  async editLabels(
+    { number }: IssueRef,
+    { add, remove }: LabelEdit,
+  ): Promise<void> {
+    this._failIfScripted();
+    const held = (this.issues.get(number)?.labels ?? []).filter(
+      (label) => !remove.includes(label),
+    );
+    this.edit(number, {
+      labels: [...held, ...add.filter((label) => !held.includes(label))],
+    });
   }
 
   edit(number: number, change: Partial<TrackedIssue>): void {

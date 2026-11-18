@@ -15,6 +15,7 @@ import type { Visibility, VisibilitySource } from "./RepoVisibility.ts";
 import { sleep } from "./sleep.ts";
 import type { IssueComment, RunGitHub, TrackedIssue } from "./SpecRun.ts";
 import type { FilingGitHub, NewIssue } from "./TicketFiler.ts";
+import type { LabelEdit, ReadyingGitHub } from "./TicketReadier.ts";
 import type { ParentIssue } from "./WrapUp.ts";
 
 const execFileAsync = promisify(execFile);
@@ -106,7 +107,12 @@ type GhProcess = (...args: string[]) => Promise<string>;
 const readRetryWaitsMs = [2000, 8000, 30000];
 
 export class GhCli
-  implements RunGitHub, FilingGitHub, IssueSource, VisibilitySource
+  implements
+    RunGitHub,
+    FilingGitHub,
+    ReadyingGitHub,
+    IssueSource,
+    VisibilitySource
 {
   private readonly owner: string;
   private readonly gh: GhProcess;
@@ -168,6 +174,21 @@ export class GhCli
       `${this.owner}/${repo}`,
       "--body",
       body,
+    );
+  }
+
+  async editLabels(
+    { repo, number }: IssueRef,
+    { add, remove }: LabelEdit,
+  ): Promise<void> {
+    await this.gh(
+      "issue",
+      "edit",
+      String(number),
+      "-R",
+      `${this.owner}/${repo}`,
+      ...add.flatMap((label) => ["--add-label", label]),
+      ...remove.flatMap((label) => ["--remove-label", label]),
     );
   }
 

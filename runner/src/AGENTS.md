@@ -60,7 +60,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `FactsFile.ts` | `FactsFile` | Reads and writes a ticket's facts file. |
 | `failureText.ts` | `failureText` | Words a thrown error or failed command, once for every caller. |
 | `FakeAgentStep.ts` | `FakeAgentStep` | The scripted agent step run-loop tests use. |
-| `FakeGitHub.ts` | | The scripted GitHub port run-loop, wrap-up, filing and close-out tests use, an issue source for close-out ones. |
+| `FakeGitHub.ts` | | The scripted GitHub port run-loop, wrap-up, filing, readying and close-out tests use, an issue source for close-out ones. |
 | `FakeIssueSource.ts` | | The scripted issue source issue-reader and Outline-edit tests use. |
 | `FakeNotices.ts` | `FakeNotices` | The notice port run-loop tests read back. |
 | `FakeUsageReader.ts` | | The scripted usage reader run-loop, account-switch and Accounts section tests use. |
@@ -191,9 +191,11 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SupervisionRecords.ts` | `SupervisionRecords` | A Supervisor's record of the run or Batch it watches and the lines explained, and its handoff file, read once on a rejoin. |
 | `targetTools.ts` | | The tools a step gets for each of its ticket's targets and its spec's sources. |
 | `TicketFiler.ts` | `TicketFiler` | `npm run issue:file`'s core: files a folder of ticket drafts in dependency order under a parent, links their sub-issues and blocked-by edges, and reads each back; and its GitHub port. |
-| `ticketDrafts.ts` | | The ticket drafts' shapes, their filing order and the refusals across drafts made before anything is filed, delegating one file's read to `ticketDrafts/`. |
+| `ticketDrafts.ts` | | The ticket drafts' shapes, their filing order and the refusals across drafts made before anything is filed, the readiness check's among them, delegating one file's read to `ticketDrafts/`. |
 | `ticketDrafts/TicketDraftReader.ts` | | Reads one draft file's name and front matter into a ticket draft, refusing one that can't file. |
 | `TicketHalted.ts` | | The error raised once a ticket's Halts are posted. |
+| `TicketReadier.ts` | `TicketReadier` | `npm run issue:ready`'s core: puts one `ready-*` label on an issue in place of any triage label it holds, once its body passes the check `issue:file` shares, skipping it for a spec headed for tickets; and its GitHub port. |
+| `ticketReadiness.ts` | | The check `issue:file` and `issue:ready` share on an agent or interactive ticket's `## Where` and last `## Model fit`, and the `ready-*` labels. |
 | `ticketNewDependencies.ts` | | Reads a ticket's `## New dependencies` section. |
 | `ticketSections.ts` | | Finds one `## ` section of a ticket's body. |
 | `ticketTargets.ts` | | Reads a ticket's `## Targets` section, and holds the target kinds, a spec's source among them. |

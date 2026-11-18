@@ -2,6 +2,7 @@
 // One file's read into a draft is ticketDrafts/TicketDraftReader.ts's.
 
 import { TicketDraftReader } from "./ticketDrafts/TicketDraftReader.ts";
+import { ticketReadiness } from "./ticketReadiness.ts";
 
 export interface DraftFile {
   fileName: string;
@@ -41,6 +42,17 @@ export const ticketDrafts = {
           `${draft.fileName} is blocked by draft ${missing.join(", ")}, which the folder doesn't hold.`,
         );
       }
+    }
+    const unready = drafts.flatMap(
+      ({ fileName, labels: [triage = ""], body }) =>
+        ticketReadiness.isChecked(triage)
+          ? ticketReadiness.gapsOf(body).map((gap) => `${fileName} ${gap}.`)
+          : [],
+    );
+    if (unready.length > 0) {
+      throw new Error(
+        `Filing nothing: each agent or interactive draft needs docs/agents/tickets.md's ## Where and a last ## Model fit.\n${unready.join("\n")}`,
+      );
     }
     return drafts;
   },

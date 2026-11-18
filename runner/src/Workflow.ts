@@ -425,7 +425,7 @@ export interface GapCheckRules {
 }
 
 // The label that picks each Workflow, on a ticket or its spec.
-const workflowLabels: Record<WorkflowName, string> = {
+export const workflowLabels: Record<WorkflowName, string> = {
   code: "code",
   piece: "piece",
 };
