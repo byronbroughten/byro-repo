@@ -316,7 +316,11 @@ async function decide(args: string[]): Promise<void> {
   ) {
     throw new Error(usage);
   }
-  const specRun = SpecRun.init(specRunConfigOf(owner));
+  // The decide call's own session, which its Friction note names, as startedSession.ts reads it.
+  const specRun = SpecRun.init({
+    ...specRunConfigOf(owner),
+    sessionId: process.env.CLAUDE_CODE_SESSION_ID,
+  });
   console.log(
     await specRun.decide(issue, {
       itemId,

@@ -638,7 +638,7 @@ export interface ItemDecision {
 }
 
 // Handled is for an item partly done and partly still the developer's, so only Decided ticks the box.
-const decisionLabels = {
+export const decisionLabels = {
   decided: "Decided",
   handled: "Handled",
 } as const satisfies Record<DecisionKind, string>;
@@ -654,6 +654,10 @@ const itemLinePatterns = {
   // What proposeHeadingOf puts before an item's subject.
   proposeLead: new RegExp(
     String.raw`^ · ${verdictWords.propose} \x60[^\x60]*\x60 · `,
+  ),
+  // A list posted before Propose was renamed heads its Proposals Defer.
+  proposalHeading: new RegExp(
+    String.raw`^ · ((?:${verdictWords.propose}|Defer) \x60[^\x60]*\x60 · .*?)\r?$`,
   ),
 } as const;
 
@@ -689,6 +693,17 @@ export function decidedListOf({
   if (kind === "decided") lines[head] = headLine.replace("- [ ] ", "- [x] ");
   lines.splice(end, 0, `  ${decisionLabels[kind]}: ${text}${lineEnd}`);
   return lines.join("\n");
+}
+
+// The item's heading after its id, from its verdict on, when it is a Proposal; undefined for any other item.
+export function proposalHeadingOf(
+  body: string,
+  itemId: string,
+): string | undefined {
+  const line = body.split("\n").find((each) => itemIdOfLine(each) === itemId);
+  if (line === undefined) return undefined;
+  const heading = line.replace(itemLinePatterns.head, "");
+  return itemLinePatterns.proposalHeading.exec(heading)?.[1];
 }
 
 // Only the developer's review lists are read, as /judge-findings reads them; anyone else's comment is Untrusted text.
